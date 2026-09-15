@@ -43,6 +43,15 @@ export const SYMBOL_TO_SERIES: Record<string, string> = {
   WBTC: 'btcOracle',
   cbBTC: 'btcOracle',
   USDe: 'usdeSpot',
+  /**
+   * wstETH is NOT the ETH column. `wstethOracle` is the composite
+   * (stETH/ETH in force) x (ETH/USD in force), built minute-START by
+   * scripts/build-oct10-dataset.ts. Pricing a wstETH leg off raw ETH/USD discards the
+   * measured staked-ETH depeg — the feed fell 0.99960 -> 0.95569 between 21:20 and 21:28
+   * UTC on Oct 10, while the liquidations were firing. The composite omits the slow
+   * wstETH<->stETH wrap accrual, which cancels out of any ratio read over this window.
+   */
+  wstETH: 'wstethOracle',
 }
 
 /** Stablecoins we hold at $1 across the window, and say so. USDe is NOT here — it

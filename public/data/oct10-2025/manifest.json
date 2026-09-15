@@ -4,14 +4,19 @@
   "windowEndUtc": "2025-10-11T23:59:00Z",
   "windowStartTs": 1760054400,
   "resolution": "1 minute",
-  "generatedAt": "2026-08-31T17:47:09.533Z",
+  "generatedAt": "2026-09-15T03:17:19.168Z",
   "generatedBy": "scripts/build-oct10-dataset.ts",
   "sourceDirectory": "~/Downloads/oct10_data (not committed)",
   "sources": [
     {
       "series": "ethOracle / btcOracle / stethEthOracle",
-      "source": "Chainlink AnswerUpdated logs via public JSON-RPC (Tenderly public gateway)",
-      "file": "chainlink_1m.csv"
+      "source": "Chainlink AnswerUpdated round log via public JSON-RPC (Tenderly public gateway), binned to the round IN FORCE AT EACH MINUTE START",
+      "file": "chainlink_rounds.csv (+ chainlink_1m.csv minute 0 for the seed round)"
+    },
+    {
+      "series": "wstethOracle",
+      "source": "DERIVED: ethOracle (minute-START in force) x the measured wstETH<->stETH wrap rate 1.215989. NOT stethEthOracle x ethOracle: Aave priced wstETH through the wrap rate and never through the STETH/ETH market feed.",
+      "file": "chainlink_rounds.csv + aave_liquidations_enriched.csv (wrap rate)"
     },
     {
       "series": "ethSpot / btcSpot / usdeSpot (+ lows)",
@@ -35,10 +40,11 @@
     }
   ],
   "caveats": [
-    "The feed labelled wstETH/ETH is actually the stETH/ETH feed — its on-chain description() reads 'STETH / ETH'. It is a ~24h-heartbeat feed and is NOT the accruing wstETH rate. Do not use it to price wstETH without first resolving the feed Aave's oracle actually read at that block.",
+    "The feed labelled wstETH/ETH is the stETH/ETH MARKET feed - its on-chain description() reads 'STETH / ETH'. It is deviation-triggered and on Oct 10 it fired 23 rounds between 18:35 and 22:07 UTC, collapsing 0.99960 -> 0.95569 between 21:20 and 21:28. That depeg is real and the column is published for it. It is NOT what priced a wstETH leg. columns.wstethOracle is ethOracle x 1.215989, the MEASURED wstETH<->stETH wrap rate: Aave’s own per-block prices, recovered as total_collateral_base_usd / pre_collateral_normalized on single-collateral accounts agreed to 1e-6 by >= 2 distinct users, give wstETH/WETH = 1.21598891 to 8 decimal places across 8 block pairs spanning that collapse, so Aave never saw the market depeg at all. Injecting stethEthOracle into a wstETH leg does not restore a move Aave made, it invents one Aave did not make. meta.feedIdentity.stethEthOracle carries notAaveOracle: true.",
     "usdeOnchain is a MARGINAL quote for a 1 USDe clip. It bottomed at $0.99683, but the same pool bottomed at $1.13M USDC of reserves — a 1,000,000 USDe sell realised an average of $0.9759 at the worst minute. \"On-chain never broke $0.997\" is true of the quote, not of exit liquidity at size.",
     "A prior session recorded the on-chain USDe minimum as $0.9957. That figure is NOT supported by this data: it appears only as a pre-existing assumption in a source-script comment (fetch_curve_depth.py), never as a measured output. The measured minimum is $0.99683 at 2025-10-10 22:56 UTC.",
     "Nulls are genuine gaps, never forward-filled. The `carried` columns mark minutes where the oracle held its previous round instead of printing a new one.",
+    "Oracle cells are the round IN FORCE AT THE MINUTE START (last round with updated_at_ts <= the minute boundary). The upstream chainlink_1m.csv binned each minute to its LAST round, which prices an event early in a minute at a round that printed after it. See prices-1m.json meta.oracleSemantics.",
     "Aave's liquidation close factor is documented, not on-chain readable; the measured repay distribution is the honest read of what liquidators actually did.",
     "Oracle and spot are different series. During the crash the ETH oracle printed 0.70% BELOW the Binance spot trough, while the BTC oracle bottomed 4 minutes late and 1.14% ABOVE it. Keying a liquidation model off spot will fire late for ETH and early for BTC."
   ]

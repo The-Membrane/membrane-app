@@ -26,6 +26,7 @@
 // config/simulatorMode.ts decides which one `/` and the nav point at. Both pages exist
 // and both are indexable, so the flip is one constant and nothing else.
 
+import { DEMO_BORROWER_MEASURED } from '@/lib/position-sim/demoBorrower'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
@@ -639,6 +640,7 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, h
           heroVariant={heroVariant}
           history={heroHistory}
           isDemo={isDemo}
+          measured={isDemo ? DEMO_BORROWER_MEASURED : null}
           startTs={scenario?.series.startTs ?? null}
           stepSeconds={scenario?.series.stepSeconds ?? null}
           errors={heroErrors}

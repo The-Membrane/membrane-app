@@ -38,17 +38,24 @@ const LENSES: {
     heading: 'How much of the loan gets closed',
     blurb:
       'Path-independent, so it holds whichever way the market goes next. This is the one to lead with.',
-    metric: (d) => usd(d.debt.differenceUsd),
-    caption: (d) => `less debt closed · ${d.debt.differencePct}%`,
+    // DIRECTION-AWARE (2026-09-14). The gap can point either way and now does: on the
+    // priced set Membrane closes MORE. A caption hard-coded to "less" would have kept
+    // printing the winning word next to a losing number.
+    metric: (d) => usd(Math.abs(d.debt.differenceUsd)),
+    caption: (d) =>
+      `${d.debt.differenceUsd < 0 ? 'more' : 'less'} debt closed · ` +
+      `${Math.abs(d.debt.differencePct)}% · ${d.debt.accounts.toLocaleString()} priced accounts`,
   },
   {
     id: 'time',
     label: 'Time granted',
-    heading: 'What eight hours would have caught',
+    heading: 'What the delay did, account by account',
     blurb:
-      'Aave liquidates atomically, in the same block. Membrane grants a real 8-hour cure window first. Path-dependent — read the caveats.',
-    metric: (d) => `${d.time.healthyAt8hPct}%`,
-    caption: (d) => `still healthy at 8h · of ${d.time.accountsAnalysed.toLocaleString()}`,
+      'Aave liquidates atomically, in the same block. Membrane grants an 8-hour delay inside a 4% band first, modelled here on the contract\u2019s own rules. Path-dependent; read the caveats.',
+    metric: (d) => `$${Math.abs(d.meta.cureModel.delayCreditUsd / 1e6).toFixed(1)}M`,
+    caption: (d) =>
+      `${d.meta.cureModel.delayCreditUsd < 0 ? 'more' : 'less'} debt closed than one repay to cap \u00b7 ` +
+      `${(d.meta.cureModel.outcomes['cured-then-held'] ?? 0).toLocaleString()} accounts never sold`,
   },
   {
     id: 'cohort',
@@ -56,8 +63,11 @@ const LENSES: {
     heading: 'All of them, including the losses',
     blurb:
       'Every account is here and filterable — including the ones where Membrane does worse. Check the claim rather than taking it.',
-    metric: (d) => d.debt.accounts.toLocaleString(),
-    caption: (d) => `real accounts · ${d.debt.membraneClosesMore} where we lose`,
+    // The cohort table traverses EVERY row, included and excluded, so this tile counts
+    // the cohort — not the priced headline.
+    metric: (d) => d.cohort.length.toLocaleString(),
+    caption: (d) =>
+      `real accounts · ${d.debt.allIncluded.membraneClosesMore.toLocaleString()} where we lose`,
   },
 ]
 
@@ -115,8 +125,8 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
           >
             On 10 October 2025, Aave liquidated {doc?.meta.accounts.toLocaleString() ?? '—'}{' '}
             accounts across four chains. Every one of them is below, replayed through
-            Membrane&rsquo;s liquidation engine on the same measured prices, judged against its
-            own liquidation line.
+            Membrane&rsquo;s liquidation engine on the same measured prices, judged against its own
+            liquidation line.
           </Text>
           {doc ? (
             <MockStamp
@@ -146,8 +156,8 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
               fontSize={TYPOGRAPHY.small}
               color={SEMANTIC_COLORS.danger}
             >
-              Could not load the dataset ({error}). Nothing is rendered rather than showing
-              invented numbers.
+              Could not load the dataset ({error}). Nothing is rendered rather than showing invented
+              numbers.
             </Text>
           </Box>
         ) : null}
@@ -191,15 +201,15 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                     borderColor={on ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.borderSubtle}
                     bg={on ? SEMANTIC_COLORS.bgSecondary : 'transparent'}
                     transition={TRANSITIONS.colors}
-                    _hover={{ borderColor: on ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.borderStrong }}
+                    _hover={{
+                      borderColor: on ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.borderStrong,
+                    }}
                     _active={ACTIVE_EFFECTS.dim}
                     _focus={FOCUS_STYLES.ring}
                     aria-pressed={on}
                   >
                     <VStack align="flex-start" spacing={SPACING.sm}>
-                      <Eyebrow
-                        color={on ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textTertiary}
-                      >
+                      <Eyebrow color={on ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textTertiary}>
                         {String(i + 1).padStart(2, '0')} / {l.label}
                       </Eyebrow>
                       <Text
@@ -249,7 +259,7 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
             </VStack>
 
             {lens === 'debt' ? <DebtLens debt={doc.debt} byAsset={doc.byAsset} /> : null}
-            {lens === 'time' ? <TimeLens time={doc.time} /> : null}
+            {lens === 'time' ? <TimeLens time={doc.time} cureModel={doc.meta.cureModel} /> : null}
             {lens === 'cohort' ? (
               doc.cohort.length ? (
                 <CohortLens rows={doc.cohort} />
@@ -259,7 +269,7 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                   fontSize={TYPOGRAPHY.small}
                   color={SEMANTIC_COLORS.textSecondary}
                 >
-                  Loading all {doc.debt.accounts.toLocaleString()} accounts…
+                  Loading all {doc.cohort.length.toLocaleString()} accounts…
                 </Text>
               )
             ) : null}

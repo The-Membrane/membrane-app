@@ -45,10 +45,11 @@ export const HERO = {
    */
   bridge: {
     eyebrow: 'Tested on a real day',
-    line: 'With borrower-first liquidation the position is repaid to its cap once, at the first liquidation minute, at that minute’s price. That one mechanism is the whole $39.2M below. Aave’s own close factor repays partially too, so read it as a floor. The eight-hour cure and the recall are Membrane’s, and the census leaves both at zero.',
-    cite: 'scripts/build-evidence.ts:107 (one membraneRepayValue call per account; no cure, no recall in the closed-debt total) · lib/position-sim/membrane.ts:131 · contracts/LiquidationEngine.sol:803-819 (cure) · contracts/LiquidationEngine.sol:1105-1280 (recall)',
-    note: 'Decomposed 14 Sep (scripts/oct10-decompose.ts, config P reproduces the shipped $105.0M to the cent). An earlier draft attributed the saving to cure and recall as well; the census applies neither to closed debt. A price-recovery cure worth $35.0M was modelled and REFUTED: the shipped engine cures only when venue capital covers the call (compare.ts:256), and 89% of that credit came from accounts back under the line within two minutes.',
+    line: 'With borrower-first liquidation a breach inside the 4% band gets eight hours; a return under the line clears it; past the band, or still over the line at expiry, the position is repaid to its cap. Replayed on 10 Oct 2025 against the same oracle rounds Aave liquidated on, that closes 36% less debt than Aave did across the 748 accounts whose collateral the day’s feeds can price. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
+    cite: 'public/data/oct10-2025/evidence.json debt.priced (748 accounts: Aave $34.69M, Membrane $22.19M) · lib/position-sim/curePath.ts (the walk) · contracts/LiquidationEngine.sol:2099-2103 (band), :1362-1382 (re-arm), :1388-1392 (expiry, band break), :2241-2269 ($2,000 floor)',
+    note: 'Six census passes on 14 Sep, each refuted by a separate agent. What survived: the priced-set sign (Membrane closes less) under every control except pricing wstETH on the market stETH feed Aave does not use. What did not: the shipped $39.2M / 27.2% (one repay, no delay, 599 accounts credited with a breach nobody can locate); a $35.0M cure figure (price-recovery cure the engine did not implement); "Membrane closes more" ($31.9M of it was the wrong wstETH feed, the rest one unpriced AAVE-collateral whale).',
   },
+
   /** Shown while the demo position is loaded, before any address or wallet. */
   demoNote: 'a real wallet Aave V3 liquidated on 10 Oct 2025. Connect yours to replace it.',
 } as const
@@ -318,14 +319,17 @@ export const CLOSE = {
   contains: {
     title: 'What the number contains',
     lines: [
-      'One repay per account, sized to restore the borrow cap (the liquidation line less 3 points), at the first minute Aave liquidated it, at that minute’s oracle price.',
-      'Aave’s figure is the whole episode: every hit on the account across 10 and 11 Oct, capped at the account’s debt. The median account lost 71% of its loan to Aave; repay to cap takes 17.8%.',
-      'The eight-hour cure window and the recall are counted at zero. Both would lower Membrane’s figure. This page claims only what is counted.',
-      '601 accounts show a health factor of 1.0 or above in the block before Aave liquidated them. The census still repays them to the cap, which counts $20.1M against Membrane. Aave closed $94.2M on the same accounts.',
-      '2,245 accounts keep more of the position. The median keeps $970, 49.6% of a median $2,762 loan.',
-      '105 accounts lose more. Aave took a median 15.3% of the loan and left it a median 5.7% past its line; repay to cap restores the line in one pass, a median 33.8%. The largest is a $64.9M loan at health factor 0.97: Aave closed 4.4%, Membrane 29.6%.',
-      '20 accounts sat under the cap already; Membrane repays nothing on them.',
+      'Two sets, never folded. 748 accounts whose collateral the day’s feeds price minute by minute: Aave closed $34.7M, Membrane $22.2M, 36.0% less. 1,003 accounts on collateral they cannot price (AAVE, LINK, OP, ARB, UNI, CRV): the engine can only repay to cap once, and with them added in Membrane closes 14.1% more. The lens above shows both.',
+      'What Membrane’s figure is: a breach inside the 4% band waits eight hours; a return under the line clears the timer and a later breach starts a fresh one; a move past line × 1.04, or still over the line at expiry, repays to the borrow cap at that minute’s price; the position then re-arms. Aave’s figure is every hit on the account across 10 and 11 Oct, measured.',
+      'Five wallets are 75% of the $12.5M difference. Without the largest it is 30% less; without the five, 14.6% less. The sign holds; the size is a handful of whales.',
+      '133 wallets held the whole day, $110.7M of debt. One is 58.6% of that: a $64.9M wstETH loan Aave closed 4.4% of.',
+      'The median account with $2,000 or more of debt loses 49.6% of the loan to Aave and 36.2% to Membrane. Under $2,000 the deployed minimum closes the loan whole: 1,168 accounts, $0.65M, a parameter set at deploy.',
+      '290 of the 748 lose more on Membrane and 111 come out equal. 184 of the 290 are under the $2,000 minimum and total $18,050. The other 106 are past the band or sold at expiry, where repay to cap restores the line in one pass while Aave’s liquidators took a median 46% bite: $6.6M.',
+      '599 accounts, $96.8M of what Aave closed, are left out of both sides: 350 on L2s whose oracle this dataset lacks, 168 healthy by Aave’s own read the block before, 80 on unpriced collateral. No breach can be located, so no window can start.',
+      'Stress it, priced set: cap each repay at the largest single Aave repay on that asset that day, $20.8M; price the day from Aave’s own snapshot instead of the round log, $17.5M; put wstETH on the market stETH feed Aave does not use, $54.3M. Every one keeps Membrane under Aave’s $34.7M except the last, and that feed is the wrong one.',
+      'The Chainlink aggregator in this dataset is not the one Aave read that day: none of Aave’s own prices match a round in it (median gap 0.6%, worst 5.7%). Aave’s side is priced by Aave; Membrane’s walk uses the log as a ratio path. The Aave-anchored line above is the same model on Aave’s prices.',
     ],
-    cite: 'public/data/oct10-2025/evidence.json (cohort rows) · scripts/build-evidence.ts:102-107 (line inverted from health factor; one repay call) · scripts/build-evidence.ts:199-215 (caveats)',
+    cite: 'public/data/oct10-2025/evidence.json (debt.priced, debt.allIncluded, meta.cureModel, meta.sensitivity, meta.anchor, meta.excluded.byReason, cohort rows) · scripts/build-evidence.ts',
   },
+
 } as const

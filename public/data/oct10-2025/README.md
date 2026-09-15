@@ -11,6 +11,10 @@ Window: `2025-10-10T00:00:00Z` → `2025-10-11T23:59:00Z`, 1-minute grid, 2,880 
   stETH/ETH), Binance spot with candle lows (ETH, BTC, USDe), on-chain USDe (Curve quote).
   `carried` flags mark minutes where an oracle held its previous round rather than
   printing a new one. **Nulls are genuine gaps and are never forward-filled in storage.**
+  **Oracle cells are MINUTE-START IN FORCE** — `columns.<feed>[i]` is the last Chainlink
+  round with `updated_at_ts <= startTs + 60*i`, i.e. the round already in force when
+  minute `i` began. Read `meta.oracleSemantics` in the file itself. The spot and Curve
+  columns are unchanged per-minute klines/quotes.
 - **`protocols.json`** — Aave V3 reserve parameters and Morpho Blue market parameters read
   on-chain at mainnet block **23,543,615**; the measured Aave/Morpho liquidation repay
   distributions; the oracle-lag report; the USDe exit-liquidity summary.
@@ -25,9 +29,32 @@ after returning byte-identical results on a sample) and `FINDINGS.md` the analys
 
 ## Caveats that change conclusions
 
-1. **The feed labelled `wstETH/ETH` is the stETH/ETH feed.** Its on-chain `description()`
-   reads `STETH / ETH` and it is a ~24-hour-heartbeat series. Shipped under its true
-   identity; not used to price wstETH.
+0. **Oracle cells changed clock (2026-09-14).** They used to be each minute's LAST round
+   (`fetch_chainlink.py` bins with `updated_at_ts <= m_end`). Read as "the price during
+   minute `i`" that is a lookahead: an account liquidated 11 s into a minute was priced at
+   a round that printed 40 s later, in a later block. The columns are now built from the
+   round log (`chainlink_rounds.csv`) on **minute-START in-force** semantics. Values move
+   in exactly the 183 ETH / 118 BTC / 22 stETH minutes that carried a fresh print; the
+   fresh-print counts themselves are unchanged. The measured lows are the same prices, one
+   minute later on the grid.
+
+1. **The feed labelled `wstETH/ETH` is the stETH/ETH MARKET feed, and it does NOT price
+   wstETH.** Its on-chain `description()` reads `STETH / ETH`. It is deviation-triggered and
+   on Oct 10 it fired 23 rounds between 18:35 and 22:07 UTC, collapsing
+   **0.99960 → 0.95569 between 21:20 and 21:28**. That depeg is real and `stethEthOracle`
+   is published for it — flagged `meta.feedIdentity.stethEthOracle.notAaveOracle = true`.
+   **Aave never saw it.** For a single-collateral account,
+   `total_collateral_base_usd / pre_collateral_normalized` is the unit price Aave's oracle
+   returned at block N-1; taking only values agreed to 1e-6 by ≥ 2 distinct users and
+   pairing wstETH against WETH at the same block gives **wstETH/WETH = 1.21598891 to 8
+   decimal places** across mainnet blocks 23549967–23549993 and arbitrum 388184135 — blocks
+   that span the collapse. Aave priced wstETH as ETH/USD × the wstETH↔stETH **wrap rate**.
+   So `columns.wstethOracle` is `ethOracle × 1.215989`, the wrap rate is a constant and
+   cancels out of every ratio, and multiplying `stethEthOracle` into a wstETH leg does not
+   restore a move Aave made — it invents one Aave did not make. What that invention was
+   worth is published as
+   `evidence.json meta.sensitivity.wstethMarketFeedMembraneClosedUsd`: **+$32.07M** on the
+   priced Membrane total, almost all of it two wstETH accounts it pushed past the 4% band.
 2. **The on-chain USDe low is a marginal quote, not exit liquidity.** $0.99683 is the price
    for a 1 USDe clip. The same pool bottomed at $1.13M USDC of reserves, and a 1,000,000
    USDe sell realised an average of $0.9759 at the worst minute.
@@ -45,8 +72,8 @@ after returning byte-identical results on a sample) and `FINDINGS.md` the analys
 
 | Series | Low | At (UTC) |
 |---|---|---|
-| ETH Chainlink oracle | $3,464.40 | 2025-10-10 21:20 |
-| BTC Chainlink oracle | $105,157.16 | 2025-10-10 21:23 |
+| ETH Chainlink oracle | $3,464.40 | 2025-10-10 21:21 (in force from) |
+| BTC Chainlink oracle | $105,157.16 | 2025-10-10 21:24 (in force from) |
 | ETH Binance spot | $3,488.88 | 2025-10-10 21:20 |
 | BTC Binance spot | $103,975.26 | 2025-10-10 21:19 |
 | USDe Binance spot | $0.6651 | 2025-10-10 21:43 |

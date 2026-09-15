@@ -16,40 +16,97 @@ import { AssetSummary, DebtSummary } from './types'
  * This is the path-independent lens, and the one worth leading with. Whether a
  * liquidation "saved" you equity depends on which way the market went next;
  * how much of your loan was closed out does not.
+ *
+ * TWO SETS, SIDE BY SIDE. The headline numbers are `debt.priced` — the accounts whose
+ * collateral has a price series, so the delay window can actually be walked against real
+ * minutes. `debt.allIncluded` is shown next to it, never instead of it: it adds the
+ * accounts whose collateral this dataset cannot price at all, which take one repay at t0
+ * and can never cure. Leading with allIncluded would credit the repay-to-cap upper bound
+ * to accounts the cure model was never applied to.
  */
 export const DebtLens: React.FC<{
   debt: DebtSummary
   byAsset: Record<string, AssetSummary>
 }> = ({ debt, byAsset }) => {
   const assets = Object.entries(byAsset).sort((a, b) => b[1].accounts - a[1].accounts)
+  const primary = debt.priced ?? debt
+  const all = debt.allIncluded
+  const moreDebt = primary.gapUsd < 0
 
   return (
     <VStack align="stretch" spacing={SPACING_PATTERNS.sectionGap}>
       <SimpleGrid columns={{ base: 2, md: 4 }} spacing={SPACING_PATTERNS.sectionGap}>
-        <Stat label="Accounts" value={debt.accounts.toLocaleString()} sub="real, liquidated" />
-        <Stat label="Aave closed" value={usd(debt.aaveClosedUsd)} tone="bad" sub="entire episode" />
+        <Stat
+          label="Accounts"
+          value={primary.accounts.toLocaleString()}
+          sub="real, liquidated, priced"
+        />
+        <Stat
+          label="Aave closed"
+          value={usd(primary.aaveClosedUsd)}
+          tone="bad"
+          sub="entire episode"
+        />
         <Stat
           label="Membrane would close"
-          value={usd(debt.membraneClosedUsd)}
-          tone="good"
-          sub="one repay to cap"
+          value={usd(primary.membraneClosedUsd)}
+          tone={moreDebt ? 'bad' : 'good'}
+          sub="8h window, walked minute by minute"
         />
         <Stat
           label="Difference"
-          value={`${usd(debt.differenceUsd)}`}
-          tone="good"
-          sub={`${debt.differencePct}% less debt closed`}
+          value={`${usd(primary.gapUsd)}`}
+          tone={moreDebt ? 'bad' : 'good'}
+          sub={`${Math.abs(primary.gapPct)}% ${moreDebt ? 'more' : 'less'} debt closed`}
         />
       </SimpleGrid>
+
+      {all ? (
+        <Card variant="subtle">
+          <VStack align="stretch" spacing={SPACING.sm}>
+            <Eyebrow>Same four numbers, unpriced collateral added back</Eyebrow>
+            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={SPACING_PATTERNS.stackSpacing}>
+              {[
+                ['Accounts', all.accounts.toLocaleString()],
+                ['Aave closed', usd(all.aaveClosedUsd)],
+                ['Membrane would close', usd(all.membraneClosedUsd)],
+                ['Difference', `${usd(all.gapUsd)} (${all.gapPct}%)`],
+              ].map(([k, v]) => (
+                <VStack key={k} align="flex-start" spacing={SPACING.none}>
+                  <Eyebrow>{k}</Eyebrow>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.small}
+                    color={SEMANTIC_COLORS.textPrimary}
+                  >
+                    {v}
+                  </Text>
+                </VStack>
+              ))}
+            </SimpleGrid>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.xs}
+              color={SEMANTIC_COLORS.textTertiary}
+              lineHeight="1.7"
+            >
+              {(all.accounts - primary.accounts).toLocaleString()} of these accounts hold collateral
+              this dataset cannot price, so they take one repay and can never cure &mdash; they
+              carry the repay-to-cap upper bound with none of the 8-hour window it is being compared
+              against.
+            </Text>
+          </VStack>
+        </Card>
+      ) : null}
 
       <Card variant="default">
         <VStack align="stretch" spacing={SPACING_PATTERNS.stackSpacing}>
           <Eyebrow>Median share of the account&rsquo;s debt closed</Eyebrow>
           <CompareBar
             aLabel="Aave — whole multi-hit episode"
-            aValue={debt.aaveMedianFrac}
-            bLabel="Membrane — a single repay to cap"
-            bValue={debt.membraneMedianFrac}
+            aValue={primary.aaveMedianFrac}
+            bLabel="Membrane — the 8h window, walked"
+            bValue={primary.membraneMedianFrac}
             format={(v) => pct(v)}
           />
           <Text
@@ -58,8 +115,9 @@ export const DebtLens: React.FC<{
             color={SEMANTIC_COLORS.textTertiary}
             lineHeight="1.7"
           >
-            The comparison is tilted toward Aave on purpose: its entire episode, including
-            every repeat liquidation, against one Membrane repay.
+            Aave&rsquo;s side is its entire episode, every repeat liquidation included.
+            Membrane&rsquo;s is the 8-hour window walked minute by minute against the same oracle
+            rounds, with the sale re-arming after each repay to cap.
           </Text>
         </VStack>
       </Card>
@@ -73,14 +131,14 @@ export const DebtLens: React.FC<{
               fontSize={TYPOGRAPHY.h1}
               color={SEMANTIC_COLORS.success}
             >
-              {debt.membraneClosesLess.toLocaleString()}
+              {primary.membraneClosesLess.toLocaleString()}
             </Text>
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.xs}
               color={SEMANTIC_COLORS.textSecondary}
             >
-              {pct(debt.membraneClosesLess / debt.accounts)} of accounts — the borrower keeps
+              {pct(primary.membraneClosesLess / primary.accounts)} of accounts — the borrower keeps
               more of the position
             </Text>
           </VStack>
@@ -94,14 +152,14 @@ export const DebtLens: React.FC<{
               fontSize={TYPOGRAPHY.h1}
               color={SEMANTIC_COLORS.danger}
             >
-              {debt.membraneClosesMore.toLocaleString()}
+              {primary.membraneClosesMore.toLocaleString()}
             </Text>
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.xs}
               color={SEMANTIC_COLORS.textSecondary}
             >
-              {pct(debt.membraneClosesMore / debt.accounts)} of accounts — Aave declined to
+              {pct(primary.membraneClosesMore / primary.accounts)} of accounts — Aave declined to
               fully close these; Membrane&rsquo;s formula would have. Filter the cohort by
               &ldquo;Membrane worse&rdquo; to read them.
             </Text>
@@ -123,9 +181,7 @@ export const DebtLens: React.FC<{
               {['Asset', 'Accounts', 'Aave median', 'Membrane median', 'Cured'].map((h) => (
                 <HStack key={h} spacing={SPACING.none} align="center">
                   <Eyebrow>{h}</Eyebrow>
-                  {h === 'Cured' ? (
-                    <InfoTip term="Cured" label={CURE_LEGEND} />
-                  ) : null}
+                  {h === 'Cured' ? <InfoTip term="Cured" label={CURE_LEGEND} /> : null}
                 </HStack>
               ))}
             </Grid>
@@ -163,7 +219,7 @@ export const DebtLens: React.FC<{
                 <Text
                   fontFamily={TYPOGRAPHY.fontMono}
                   fontSize={TYPOGRAPHY.small}
-                  color={SEMANTIC_COLORS.success}
+                  color={a.membraneMedianFrac <= a.aaveMedianFrac ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
                 >
                   {pct(a.membraneMedianFrac)}
                 </Text>
@@ -186,8 +242,8 @@ export const DebtLens: React.FC<{
             fontSize={TYPOGRAPHY.xs}
             color={SEMANTIC_COLORS.textTertiary}
           >
-            Assets with fewer than 20 accounts are omitted. &ldquo;Cured&rdquo; is blank where
-            the Oct 10 oracle series cannot price that collateral.
+            Assets with fewer than 20 accounts are omitted. &ldquo;Cured&rdquo; is blank where the
+            Oct 10 oracle series cannot price that collateral.
           </Text>
         </HStack>
       </VStack>

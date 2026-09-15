@@ -1,20 +1,13 @@
 /**
- * EXPLORATORY. Decomposes the Oct-10 census by mechanism. Read this before quoting it:
- *
- *   config P reproduces the shipped $105.0M to the cent (scripts/build-evidence.ts:107)
- *   and is PARTIAL REPAY-TO-CAP ONLY. The shipped census applies no cure window and no
- *   recall to closed debt.
- *
- *   configs PC / PCR model a PRICE-RECOVERY cure that the shipped engine does not
- *   implement: lib/position-sim/compare.ts:256 cures only when fast venue capital covers
- *   the call (membrane.ts:191-197). The cure here is also one-shot (never re-armed) and
- *   89% of its credit comes from accounts back under the line within two minutes.
- *   Refuted 2026-09-14; do not put a PC/PCR dollar figure on a page.
- *
- *   599 of 2,350 accounts carry a snapshot health factor >= 1 (under their own line at
- *   t0) and are still repaid to cap because membraneRepayValue guards on the borrow cap,
- *   not the line (membrane.ts:16). That is $20.1M counted against Membrane in the
- *   shipped number.
+ * SUPERSEDED, 2026-09-14. This was the first decomposition of the Oct-10 census; every
+ * dollar figure it prints is now known to be wrong for four reasons that the shipped
+ * builder (scripts/build-evidence.ts) fixes: it priced accounts at the grid minute
+ * instead of the Chainlink round in force at the liquidating block; it inverted lines
+ * from a healthy block-1 snapshot without rebasing; it walked wstETH on the market
+ * STETH/ETH feed that Aave's oracle does not use; and it never applied the $2,000
+ * liquidation floor or repeat sales. It is kept as a record of the method. Read the
+ * numbers from public/data/oct10-2025/evidence.json (meta.cureModel, meta.sensitivity,
+ * meta.anchor) instead; the refutation trail is in the 14 Sep commits on this branch.
  */
 /**
  * DECOMPOSES the Oct-10 counterfactual saving by MECHANISM.

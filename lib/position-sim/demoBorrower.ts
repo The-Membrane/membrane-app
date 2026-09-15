@@ -10,7 +10,9 @@
  * 10-11 Oct 2025 window, each judged against its OWN measured liquidation line. The
  * selection ran the page's own engine over every mainnet row whose collateral the
  * measured price path prices and whose debt is priced or a stable held flat, in the
- * 50k-3M band, and kept the one that SURVIVES on Membrane with the largest equity delta.
+ * 50k-3M band, and kept the one with the largest equity delta run with NO deployment.
+ * SURVIVAL is no longer the criterion and is not claimed: this wallet is liquidated on
+ * Membrane too. What differs is how much of the loan each engine closes.
  *
  * WHAT IS MEASURED, AND WHAT IS RECONSTRUCTED — say both:
  *   MEASURED  the address, the collateral and debt USD at the window open, the debt and
@@ -19,33 +21,40 @@
  *   READ      the Aave V3 risk parameters (LTV / liquidation threshold / bonus) come
  *             from public/data/oct10-2025/protocols.json, read at mainnet block
  *             23543615 — not assumed.
- *   DERIVED   the collateral TOKEN amount. The evidence row records dollars, so the
- *             amount is the measured USD divided by the collateral's oracle price at
- *             minute 0 of the same measured path.
+ *   DERIVED   the collateral and debt TOKEN amounts, and the minute-0 valuation. The
+ *             evidence row records dollars READ AT THE LIQUIDATING BLOCK, so the token
+ *             count is those dollars over `pLiqColl` / `pLiqDebt` — the oracle rounds in
+ *             force there — and `valueUsd`, the totals, the LTV and the health factor are
+ *             that token count repriced at minute 0 of the path.
+ *             FIXED 2026-09-14: this used to divide by the MINUTE-0 price, which
+ *             back-solved an amount reproducing the liquidating LTV at midnight. The
+ *             fixture then opened already over its line, 21 hours before the wallet
+ *             breached, and the hero (which walks from minute 0) sold it repeatedly
+ *             across the day where its census row records one sale. The position now
+ *             opens healthy and breaches where the price crosses its own line, which is
+ *             the census t0. scripts/tests/position-sim.test.ts pins the agreement.
  *   ASSUMED   the deployment, and ONLY the deployment. See below.
  *
- * THE ONE ASSUMED THING, and why it is here (owner ruling 2026-09-12).
- * The page used to state proudly that the deployment was ABSENT: a wallet Aave liquidated
- * had no venue capital behind it, so demoBorrowerDetection() returned status 'none' and
- * Membrane won on partial-liquidation mechanics alone. Two things killed that:
+ * NO DEPLOYMENT, AND NONE ASSUMED (owner ruling 2026-09-14).
+ * This fixture used to ship an ASSUMED deployment - half the measured debt in a venue
+ * modelled at 60% recall / 55% fast - on the argument that partial liquidation is no
+ * longer a differentiator (Aave V4 has it) and that a page about recall rails needs a
+ * wallet with rails. Two measurements retired that argument:
  *
- *   1. Partial liquidation is no longer a differentiator. Aave V4 has it. Winning by
- *      $6.5k on repay-to-cap sells a feature the competitor also ships.
- *   2. It does not even work. Swept with no deployment, ZERO of the 63 eligible wallets
- *      survive on Membrane — MEMBRANE_ASSET_LTV sits UNDER Aave's liquidation threshold
- *      for every eligible collateral (WETH 80% vs 83%, WBTC 75% vs 78%), so Membrane
- *      breaches FIRST, and with nothing to recall the 8-hour cure window can never fire.
- *      Membrane's line on the chart sat below Aave's on every single real wallet.
+ *   1. The census has NO VENUE IN IT. Every dollar in evidence.json is walked with the
+ *      delay window and the repay-to-cap and nothing else. A hero ranked on an assumed
+ *      deployment could not be the same claim as the census row underneath it.
+ *   2. It is not needed. The bare run already ends ahead on equity, and the gate and the
+ *      rank are both taken from it, so the figure on screen is the one the census row
+ *      describes rather than the one our venue model produces. (Re-measured 2026-09-14
+ *      after the token-amount fix below: the old note here said every candidate went
+ *      NEGATIVE under the assumed deployment. That was an artefact of the planted breach
+ *      and is no longer true; the deployment is still not shipped, because it is still an
+ *      assumption the census does not contain.)
  *
- * What actually differs is the RECALL RAILS: capital deployed out of the borrowed dollars
- * answers the margin call inside the 4% window, and nothing is sold. A page about rails
- * cannot open on a wallet with no rails — and no real Oct 10 wallet had any. So the
- * default is a REAL wallet plus an ASSUMED deployment, labelled as such at every surface
- * it touches: half the measured debt in a venue modelled at 60% recall / 55% fast, the
- * same rates the carry worked example already quotes. The whole page is a counterfactual
- * ("what if this wallet had been on Membrane"); the deployment is one more clause of it,
- * stated rather than smuggled. It is counted on BOTH balance sheets — runSource adds
- * deployedUsd to Aave's equity too — so it buys Membrane the recall and nothing else.
+ * So the selection now runs with venue null, gates on equity with no deployment, and
+ * ranks on that same figure. The hero equals its census row exactly, and this file has
+ * NOTHING assumed left in it: every field is measured, read, or derived.
  *
  * There is no borrow APR in the evidence row, so this wallet still carries NO cost line:
  * the hero shows the safety verdict, which is the whole point of borrower mode.
@@ -65,18 +74,39 @@ export const DEMO_BORROWER_WINDOW: string = fixture.readAt
 /** The day the liquidation happened, as the copy says it. */
 export const DEMO_BORROWER_DATE = '10 Oct 2025'
 
-/** The assumed deployment, straight off the generated fixture. Never hand-edited. */
-export const DEMO_BORROWER_ASSUMED = fixture.assumedDeployment
+/**
+ * THERE IS NO DEPLOYMENT. Kept as an export (always null) rather than deleted, so a
+ * surface that still reads it gets an explicit absence instead of an undefined.
+ */
+export const DEMO_BORROWER_ASSUMED = null
 
-const PCT = (n: number) => `${Math.round(n * 100)}%`
+/** Why there is none, straight off the generated fixture. Never hand-edited. */
+export const DEMO_BORROWER_NO_DEPLOYMENT = fixture.noDeployment
+
+/**
+ * What the census MEASURED on this wallet: Aave's real liquidation events summed, and
+ * the grid minute of the first one. The hero's first line is written in the past tense,
+ * so it must carry these, never the run's replay of Aave's mechanics (which closes more
+ * than Aave's liquidators actually did on this wallet).
+ */
+export const DEMO_BORROWER_MEASURED: MeasuredCensus = {
+  aaveClosedUsd: fixture.censusAaveClosedUsd,
+  membraneClosedUsd: fixture.censusMembraneClosedUsd,
+  t0Index: fixture.censusT0Index,
+}
+export interface MeasuredCensus {
+  aaveClosedUsd: number
+  membraneClosedUsd: number
+  t0Index: number
+}
 
 /**
  * The stamp the UI shows next to the borrower demo wallet. One line, no paragraph — but
  * it must carry the assumption, because this is the only label some readers will see.
  */
 export const DEMO_BORROWER_NOTE =
-  `liquidated by Aave V3 · ${DEMO_BORROWER_DATE} · deployment assumed — the recall rails ` +
-  'are the difference, not partial liquidation'
+  `liquidated by Aave V3 · ${DEMO_BORROWER_DATE} · no deployment, and none assumed — this ` +
+  'wallet had none, so the figure is the bare census row'
 
 /** A real mainnet borrower, checksummed as the selection recorded it. */
 export const DEMO_BORROWER_ADDRESS = fixture.address as `0x${string}`
@@ -91,15 +121,14 @@ const PROVENANCE_DETAIL =
   ).toLocaleString()} closed by Aave over ${DEMO_BORROWER_WINDOW}). Collateral and debt ` +
   'dollars, health factor and liquidation line are as measured on-chain; the Aave V3 ' +
   'risk parameters are read from protocols.json; the collateral token amount is the ' +
-  'measured USD divided by the oracle price at minute 0 of the same path. The DEPLOYMENT ' +
-  'is the one assumed figure — see the deployment note. Paste any address to read a live ' +
-  'position instead.'
+  'measured USD divided by the oracle round in force in the liquidating block, then ' +
+  'repriced at minute 0 of the same path. There is NO ' +
+  'deployment: this wallet had none and none is assumed, so nothing on this page is a ' +
+  'modelled venue balance. Paste any address to read a live position instead.'
 
 /** The sentence every deployment surface repeats, so the assumption is never implicit. */
 export const DEMO_BORROWER_DEPLOYMENT_PROVENANCE =
-  `assumed — half the debt deployed in a venue modelled at ${PCT(
-    DEMO_BORROWER_ASSUMED.recallRate,
-  )} recall; the real wallet had none`
+  'none — this wallet had no deployment and none is assumed'
 
 /** Epoch ms for the window open, so the stamp dates the measurement, not the build. */
 const MEASURED_AT = Date.parse(DEMO_BORROWER_WINDOW.slice(0, 16) + ':00Z')
@@ -113,50 +142,30 @@ export function demoBorrowerPosition(): ProtocolPosition {
   const p = fixture.position as unknown as ProtocolPosition
   return {
     ...p,
-    provenance: stamp('dataset', `real wallet · liquidated by Aave V3 · ${DEMO_BORROWER_DATE}`, PROVENANCE_DETAIL, AT),
+    provenance: stamp(
+      'dataset',
+      `real wallet · liquidated by Aave V3 · ${DEMO_BORROWER_DATE}`,
+      PROVENANCE_DETAIL,
+      AT,
+    ),
   }
 }
 
 /**
- * The ASSUMED venue, shaped as a KnownVenue so it flows through the same
- * `excludeOwnCollateral` → `toVenueRecall` pipe a pasted address goes through and lands
- * in the deployment table with its rates on display.
- *
- * `underlying` is deliberately 'USD' rather than a real ticker: it must not collide with
- * a collateral symbol (excludeOwnCollateral would drop the row) and it must not read as
- * a token this wallet actually held. The address is the zero address for the same
- * reason — there is no contract to point at, because there was no deployment.
- */
-const ASSUMED_VENUE: KnownVenue = {
-  symbol: 'assumed',
-  underlying: 'USD',
-  name: 'Assumed deployment (not a detected balance)',
-  address: '0x0000000000000000000000000000000000000000',
-  decimals: 18,
-  exit: `assumed, not read: ${PCT(DEMO_BORROWER_ASSUMED.recallRate)} returns on demand and ` +
-    `${PCT(DEMO_BORROWER_ASSUMED.fastRate)} arrives inside the 8-hour window — the carry ` +
-    'example’s own rates. This wallet had no deployment; the page assumes one so the ' +
-    'recall rails have something to recall.',
-  recallRate: DEMO_BORROWER_ASSUMED.recallRate,
-  fastRate: DEMO_BORROWER_ASSUMED.fastRate,
-}
-
-/**
- * The demo's deployment — ASSUMED, and stamped 'modelled' so no surface can render it as
- * a read. Status is 'detected' because the engine and the deployment table key off that,
- * but every label the user sees says assumed.
+ * NO VENUE. `demoBorrowerDetection()` returns status 'none', which is what the detector
+ * returns for any address with no venue balance - the demo now takes the identical path a
+ * pasted address takes, with no special case anywhere in it.
  */
 export function demoBorrowerDetection(): VenueDetection {
-  const deployedUsd = DEMO_BORROWER_ASSUMED.deployedUsd
   return {
-    status: 'detected',
-    detected: [{ venue: ASSUMED_VENUE, amount: deployedUsd, valueUsd: deployedUsd }],
-    totalUsd: deployedUsd,
-    message: DEMO_BORROWER_ASSUMED.note,
+    status: 'none',
+    detected: [],
+    totalUsd: 0,
+    message: DEMO_BORROWER_NO_DEPLOYMENT.reason,
     provenance: stamp(
-      'modelled',
+      'dataset',
       `deployment ${DEMO_BORROWER_DEPLOYMENT_PROVENANCE}`,
-      DEMO_BORROWER_ASSUMED.note,
+      DEMO_BORROWER_NO_DEPLOYMENT.reason,
       AT,
     ),
   }
@@ -167,19 +176,7 @@ export function demoBorrowerDetection(): VenueDetection {
  * `toVenueRecall` a pasted address goes through — so the two paths cannot diverge. The
  * provenance is re-stamped to name the assumption rather than the generic rate model.
  */
-export const DEMO_BORROWER_DEPLOYMENT: VenueRecall | null = (() => {
-  const recall = toVenueRecall(demoBorrowerDetection())
-  if (!recall) return null
-  return {
-    ...recall,
-    provenance: stamp(
-      'modelled',
-      `deployment ${DEMO_BORROWER_DEPLOYMENT_PROVENANCE}`,
-      DEMO_BORROWER_ASSUMED.note,
-      AT,
-    ),
-  }
-})()
+export const DEMO_BORROWER_DEPLOYMENT: VenueRecall | null = toVenueRecall(demoBorrowerDetection())
 
 /** A one-line description of the borrower demo used in copy. 25 words or fewer. */
 export function demoBorrowerSummary(): string {

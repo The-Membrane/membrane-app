@@ -52,6 +52,7 @@
 // wallets — most have never been liquidated at all) and it falls straight back to the
 // Oct 10 verdict. There is no path to an empty hero and no path to a "$0" hero.
 
+import type { MeasuredCensus } from '@/lib/position-sim/demoBorrower'
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'
 
@@ -110,6 +111,8 @@ export interface VerdictHeroProps extends AddressBarProps {
     loading: boolean
   } | null
   isDemo: boolean
+  /** The census's measured figures for the demo wallet; null for a pasted address. */
+  measured?: MeasuredCensus | null
   /** Price-path origin, for the chart's x axis. Null until the path lands. */
   startTs: number | null
   stepSeconds: number | null
@@ -118,42 +121,98 @@ export interface VerdictHeroProps extends AddressBarProps {
 }
 
 /**
- * Two sentences. The first is the source engine's ending, taken verbatim from the
- * clause `outcomeLine` already built (so the hero and the run panel can never
- * disagree). The second names Membrane's ending in the same breath.
+ * THREE LINES, AND BOTH CLOSES ARE ON THEM (owner ruling 2026-09-14).
+ *
+ * This used to print one number: "Membrane would've saved you +$X", in success green,
+ * and never said what Membrane ALSO closed. On the hero wallet Membrane closes six
+ * figures of the same loan; a verdict that prints only the gap is selling the difference
+ * while hiding one of the two terms that make it. So the verdict now states both:
+ *
+ *   1  blood     what the source protocol closed, and at what minute.
+ *   2  bone      what Membrane would have closed, and how much later.
+ *   3  phosphor  the equity gap, with the price basis it is measured at.
+ *
+ * "Closed" is DEBT RETIRED, not collateral seized — the same quantity the Oct 10 census
+ * publishes as aaveClosedUsd / membraneClosedUsd, so a reader can put the hero next to
+ * its census row and read the same units. Membrane's figure sums every repay, including
+ * one answered by venue capital: a dollar of loan closed by a recall is still closed.
+ *
+ * Every figure is the RUN's, not the fixture's. The fixture's census numbers are a
+ * different question (what the census measured) and are checked against this run in
+ * scripts/tests/position-sim.test.ts rather than printed here.
  */
-function verdict(cmp: Comparison, isDemo: boolean): {
+function verdict(
+  cmp: Comparison,
+  isDemo: boolean,
+  measured: MeasuredCensus | null,
+  startTs: number | null,
+  stepSeconds: number | null,
+): {
   first: string
   second: string
+  figure: string
+  caption: string
   firstColor: string
   secondColor: string
+  figureColor: string
 } {
   const o = outcomeLine(cmp)
   const src = cmp.position.label
   const whose = isDemo ? 'this' : 'your'
-  const sold = (run: typeof cmp.source) =>
-    run.events.filter((e) => e.kind === 'liquidation').reduce((a, e) => a + e.seizedUsd, 0)
-  const at = o.source.firstAt !== null ? ` at ${fmtUtcMinute(o.source.firstAt).replace(/^\d+ \w+ /, '')}` : ''
-  // Hopkins: a specific number beats an adjective. Hormozi: name the outcome the
-  // reader wants — collateral kept — not the mechanism that keeps it.
-  const first = o.source.liquidated
-    ? `${src} sold ${usd(sold(cmp.source))} of ${whose} collateral${at}.`
-    : `${src} sold nothing.`
-  // Owner 2026-09-12: say what Membrane SAVED, in green — the equity delta, never a
-  // softer number. A negative delta is printed as a cost, in blood, not hidden.
+  /** Debt retired. The source engine only ever emits liquidations; Membrane may also
+   *  retire debt through a recall or a cure, and those close the loan too. */
+  const sourceClosed = cmp.source.events
+    .filter((e) => e.kind === 'liquidation')
+    .reduce((a, e) => a + e.repaidUsd, 0)
+  const membraneCloses = cmp.membrane.events.filter((e) => e.repaidUsd > 0)
+  const membraneClosed = membraneCloses.reduce((a, e) => a + e.repaidUsd, 0)
+  const sourceFirst = cmp.source.events.find((e) => e.kind === 'liquidation') ?? null
+  const clock = (ts: number) => fmtUtcMinute(ts).replace(/^\d+ \w+ /, '')
+
+  // Past tense needs a measured figure. The demo wallet carries the census's sum of
+  // Aave's real events; a pasted address only has the run's replay of Aave's mechanics,
+  // which is a model, so it is written as one.
+  const measuredTs =
+    measured && startTs !== null && stepSeconds !== null ? startTs + measured.t0Index * stepSeconds : null
+  const first = measured && measuredTs !== null
+    ? `${src} closed ${usd(measured.aaveClosedUsd)} of this loan at ${clock(measuredTs)}, measured.`
+    : o.source.liquidated && sourceFirst
+      ? `${src} would have closed ${usd(sourceClosed)} of ${whose} loan at ${clock(sourceFirst.ts)}.`
+      : `${src} closes nothing.`
+
+  // The lag is the whole mechanism: the delay window is time, and time is what the
+  // reader is being sold. State it in minutes, off the two runs' own event stamps.
+  const lag =
+    sourceFirst && membraneCloses.length ? membraneCloses[0].minute - sourceFirst.minute : null
+  const plural = (n: number) => (n === 1 ? 'minute' : 'minutes')
+  let tail: string
+  if (membraneClosed <= 0) tail = 'and sold nothing'
+  else if (lag === null) tail = membraneCloses.length ? `at ${clock(membraneCloses[0].ts)}` : 'and nothing more'
+  else if (lag > 0) tail = `${lag} ${plural(lag)} later`
+  else if (lag < 0) tail = `${-lag} ${plural(-lag)} earlier`
+  else tail = 'and nothing more'
+  const second = `Membrane would have closed ${usd(membraneClosed)} ${tail}.`
+
+  // The gap, and the prices it is read at. An equity delta is a difference between two
+  // balance sheets at ONE moment; the moment is the last minute of the measured path,
+  // and the caption says so rather than leaving the reader to assume "today".
   const delta = cmp.equityDeltaUsd
-  // The figure itself prints ONCE, in the big number under the headline.
-  const second =
-    delta > 0
-      ? "Membrane would've saved you"
-      : delta < 0
-        ? "Membrane would've cost you more"
-        : "Membrane would've changed nothing"
+  const n = cmp.source.equitySeries.length
+  const endTs = startTs !== null && stepSeconds !== null && n > 0 ? startTs + (n - 1) * stepSeconds : null
+  const basis = endTs !== null ? `${fmtUtcMinute(endTs)} prices` : 'the last price of the measured path'
+  const caption = `${delta < 0 ? 'less' : 'more'} equity left at ${basis}`
+
   return {
     first,
     second,
+    figure: usdSigned(delta),
+    caption,
     firstColor: o.source.liquidated ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
-    secondColor: delta > 0 ? SEMANTIC_COLORS.success : delta < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
+    // BONE, not green. Line 2 is what Membrane also took; colouring it as a win is the
+    // exact thing this rewrite removes.
+    secondColor: SEMANTIC_COLORS.textPrimary,
+    figureColor:
+      delta > 0 ? SEMANTIC_COLORS.success : delta < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
   }
 }
 
@@ -168,10 +227,11 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   stepSeconds,
   errors,
   hideSubhead = false,
+  measured = null,
   compact = false,
   ...addressBar
 }) => {
-  const v = comparison ? verdict(comparison, isDemo) : null
+  const v = comparison ? verdict(comparison, isDemo, measured, startTs, stepSeconds) : null
   const delta = comparison?.equityDeltaUsd ?? 0
   const deltaColor =
     delta > 0
@@ -282,7 +342,13 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                   {v.first}
                 </Text>
                 <Text as="span" display="block" color={v.secondColor}>
-                  {v.second} {usdSigned(delta)}.
+                  {v.second}
+                </Text>
+                <Text as="span" display="block" color={v.figureColor}>
+                  {v.figure}{' '}
+                  <Text as="span" color={SEMANTIC_COLORS.textSecondary}>
+                    {v.caption}
+                  </Text>
                 </Text>
               </Text>
             )}
@@ -383,15 +449,16 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                 {...tabular}
                 color={deltaColor}
               >
-                {usdSigned(delta)}
+                {v.figure}
               </Text>
               <Text
+                data-testid="sim-verdict-basis"
                 fontFamily={TYPOGRAPHY.fontMono}
                 fontSize="11px"
                 letterSpacing="0.06em"
                 color={SEMANTIC_COLORS.textSecondary}
               >
-                kept, Membrane vs {comparison?.position.label}
+                {v.caption}
               </Text>
             </Box>
 

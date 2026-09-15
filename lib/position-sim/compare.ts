@@ -17,6 +17,7 @@
  *   - the venue recall + fast rates     user inputs; the dominant variable
  */
 
+import { DelayTimer } from './curePath'
 import {
   applyRecall,
   fullRepayValue,
@@ -24,6 +25,7 @@ import {
   membraneRepayValue,
   weightedMembraneLine,
   CURE_WINDOW_SECONDS,
+  LIQ_DEBT_MINIMUM_USD,
   MAX_THRESHOLD_TO_DELAY,
   MEMBRANE_CONSTANTS_PROVENANCE,
   type VenueRecall,
@@ -49,6 +51,8 @@ export interface CompareOptions {
   sourceRepayFraction: number
   sourceRepayFractionLabel: string
   scenarioLabel: string
+  /** `liqDebtMinimum` in USD. Defaults to the deployed $2,000. 0 disables the floor. */
+  debtMinimumUsd?: number
 }
 
 interface Leg {
@@ -58,7 +62,11 @@ interface Leg {
   value: number
 }
 
-const MIN_EVENT_GAP_MINUTES = 1
+/** A single episode may not run more than this many sales. Mirrors cureWalk. */
+const MAX_SALES = 20
+
+/** The SOURCE engine's own throttle: one liquidation per minute at most. */
+const MIN_SOURCE_EVENT_GAP_MINUTES = 1
 
 function valueOf(legs: Leg[], path: PricePath, i: number, fallback: Record<string, number>): number {
   let total = 0
@@ -129,7 +137,7 @@ function runSource(position: ProtocolPosition, path: PricePath, opts: CompareOpt
     let ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
     if (Number.isFinite(ltv)) peakLtv = Math.max(peakLtv, ltv)
 
-    if (ltv > line && d > 0 && i - lastEvent > MIN_EVENT_GAP_MINUTES) {
+    if (ltv > line && d > 0 && i - lastEvent > MIN_SOURCE_EVENT_GAP_MINUTES) {
       const repay = Math.min(d, fullRepayValue(d, opts.sourceRepayFraction))
       const wantSeize = repay * (1 + bonus)
       const got = seizeProRata(coll, wantSeize, path, i, fallbackC)
@@ -213,19 +221,28 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   const line = opts.membraneMaxLtv ?? derived.maxLtv
   const cap = membraneBorrowLtv(line)
   const fee = Math.max(0, Math.min(MAX_LIQ_FEE, opts.membraneLiqFee))
+  const dMin = opts.debtMinimumUsd ?? LIQ_DEBT_MINIMUM_USD
   const cureMinutes = Math.round(CURE_WINDOW_SECONDS / path.stepSeconds)
   /** Above this the window is BROKEN: no cure, immediate sale (BrokeWindow). */
   const breakLine = line * (1 + MAX_THRESHOLD_TO_DELAY)
+
+  /**
+   * THE SHARED WALK. This is the same `DelayTimer` the Oct-10 census runs through
+   * `cureWalk` (lib/position-sim/curePath.ts) — not a second copy of the rules. The
+   * timer decides WHEN; recall, the fee and the multi-leg pricing are layered on top
+   * here and are the only differences. scripts/tests/position-sim.test.ts replays two
+   * real census accounts through this engine and asserts the same outcome and the
+   * same closed USD.
+   */
+  const timer = new DelayTimer({ line, band: MAX_THRESHOLD_TO_DELAY, delaySteps: cureMinutes })
 
   const events: SimEvent[] = []
   const equitySeries: (number | null)[] = []
   const ltvSeries: (number | null)[] = []
   let penaltyPaid = 0
   let peakLtv = 0
-  let lastEvent = -999
   let startEquity = 0
-  /** Minute the current unbroken breach began, or null when healthy. */
-  let breachStart: number | null = null
+  let sales = 0
   /** Venue capital already spent — a venue cannot answer the same dollar twice. */
   let venueDrawn = 0
   /** Capital still in venues. Falls as capital is recalled; equity counts it. */
@@ -239,21 +256,46 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
     let ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
     if (Number.isFinite(ltv)) peakLtv = Math.max(peakLtv, ltv)
 
-    if (ltv > line && d > 0) {
-      if (breachStart === null) breachStart = i
-      const brokeWindow = ltv > breakLine
-      // The 8 hours are conditional; the band is the guarantee. Past the band the
-      // timer no longer protects anything.
-      const inCureWindow = !brokeWindow && i - breachStart < cureMinutes
+    const act = d > 0 ? timer.step(i, ltv) : ({ kind: 'none' } as const)
 
-      if (i - lastEvent > MIN_EVENT_GAP_MINUTES) {
-        const needed = membraneRepayValue(d, c, cap)
+    if (act.kind === 'arm' || act.kind === 'hold' || act.kind === 'sell') {
+      const brokeWindow = act.kind === 'sell' && act.reason === 'band'
+      const inCureWindow = act.kind !== 'sell'
+
+      // A breach that opens INSIDE the band arms the timer and sells nothing.
+      if (act.kind === 'arm') {
+        events.push({
+          minute: i,
+          ts: path.startTs + i * path.stepSeconds,
+          kind: 'breach',
+          ltv,
+          line,
+          repaidUsd: 0,
+          seizedUsd: 0,
+          recalledUsd: 0,
+          penaltyUsd: 0,
+          why:
+            `LTV crossed the ${(line * 100).toFixed(1)}% line and opened the ` +
+            `${CURE_WINDOW_SECONDS / 3600}-hour window. Nothing is sold while the position stays ` +
+            `under ${(breakLine * 100).toFixed(1)}% — the price coming back, or venue capital ` +
+            `arriving, ends it with no liquidation at all.`,
+        })
+      }
+
+      if (act.kind !== 'sell' || sales < MAX_SALES) {
+        const needed = membraneRepayValue(d, c, cap, dMin)
         const remainingVenue = opts.venue
           ? { ...opts.venue, deployedUsd: Math.max(0, opts.venue.deployedUsd - venueDrawn) }
           : null
         const recall = applyRecall(needed, remainingVenue)
 
-        if (recall.cured && inCureWindow) {
+        if (inCureWindow && !recall.cured) {
+          // PROTECTED. In band, inside the window, and venue capital cannot close the
+          // call on its own: the engine sells nothing this minute. A cure by price
+          // counts exactly as much as a cure by recall — the timer's own `ltv <= line`
+          // branch clears it, which re-arms a full fresh window on a later breach
+          // (SavedByDelay, LiquidationEngine.sol:1362-1382).
+        } else if (recall.cured && inCureWindow) {
           // Fast capital covered the whole call inside the 8h window: nothing sold.
           venueDrawn += needed
           const share = d > 0 ? needed / d : 0
@@ -261,8 +303,7 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
           c = valueOf(coll, path, i, fallbackC)
           d = valueOf(debt, path, i, fallbackD)
           ltv = c > 0 ? d / c : 0
-          lastEvent = i
-          breachStart = null
+          timer.clearAfterSale()
           events.push({
             minute: i,
             ts: path.startTs + i * path.stepSeconds,
@@ -294,8 +335,10 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
           c = valueOf(coll, path, i, fallbackC)
           d = valueOf(debt, path, i, fallbackD)
           ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
-          lastEvent = i
-          if (ltv <= line) breachStart = null
+          if (repaid > 0) sales++
+          // The sale deletes the timer (:1421-1423); the position is live afterwards
+          // and a later breach opens a FULL fresh delay.
+          timer.clearAfterSale()
 
           events.push({
             minute: i,
@@ -318,8 +361,6 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
           })
         }
       }
-    } else {
-      breachStart = null
     }
 
     // Recalled capital has LEFT the venues and gone into the debt, so it is counted
@@ -335,6 +376,7 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   const caveats = [
     'Membrane has no Ethereum mainnet deployment. The per-asset max LTV used here is our assumption, not a protocol parameter — change it and the result changes.',
     `The cure window is conditional: it holds only while the position stays within ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% above the liquidation line. Past that the sale is immediate — the model applies this break. 4% is the value the deploy script sets on every launch asset; a position holding several assets uses their value-weighted average.`,
+    `Inside the window the engine sells nothing, whether the position is rescued by the price coming back or by venue capital arriving. A return under the line clears the timer, so a later breach gets a full fresh ${CURE_WINDOW_SECONDS / 3600} hours. This is the same walk the Oct 10 census runs — literally the same DelayTimer state machine from lib/position-sim/curePath.ts, driven here with per-leg prices, venue recall and a fee on top — so a pasted address matches its census row. A sale restores the borrow cap rather than closing the loan, so the position stays live and a later breach opens a full fresh window; at most ${MAX_SALES} sales are modelled.`,
     'The venue recall rate is an input, and it is the variable that moves this result most. A venue that pays out in a calm market is not the same venue during a 40-minute crash.',
   ]
   if (derived.unknown.length) {

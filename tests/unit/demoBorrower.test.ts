@@ -28,6 +28,7 @@ import { MAX_LIQ_FEE, measuredRepayFraction, runComparison } from '@/lib/positio
 import {
   DEMO_BORROWER_ADDRESS,
   DEMO_BORROWER_ASSUMED,
+  DEMO_BORROWER_NO_DEPLOYMENT,
   DEMO_BORROWER_DATE,
   DEMO_BORROWER_DEPLOYMENT,
   DEMO_BORROWER_NOTE,
@@ -52,18 +53,15 @@ const read = (p: string) => JSON.parse(readFileSync(join(DATA, p), 'utf8'))
 const fixture = read('demo-borrower.json')
 const protocols = read('oct10-2025/protocols.json')
 
-/** Same default the page picks (Simulator.tsx defaultLiqFee). */
-function defaultLiqFee(p: ProtocolPosition): number {
-  const priced = p.collateral.filter((c) => c.liquidationBonus !== null)
-  const value = priced.reduce((a, c) => a + c.valueUsd, 0)
-  if (value === 0) return MAX_LIQ_FEE
-  return Math.min(
-    MAX_LIQ_FEE,
-    Math.max(
-      0,
-      priced.reduce((a, c) => a + (c.liquidationBonus as number) * c.valueUsd, 0) / value,
-    ),
-  )
+/**
+ * Same default the page picks (Simulator.tsx defaultLiqFee). Owner ruling 2026-09-14:
+ * the deployed protocol liquidation fee is 0, so the page starts there and so does the
+ * census, which charges no liquidation fee at all. This helper used to reimplement the
+ * OLD default (the source protocol's collateral-weighted liquidation bonus) and had gone
+ * stale against the page it claims to mirror.
+ */
+function defaultLiqFee(_p: ProtocolPosition): number {
+  return 0
 }
 
 /** The Oct 10 run, exactly as the borrower page assembles it, but off disk. */
@@ -90,7 +88,7 @@ function oct10Run(venue: VenueRecall | null = toVenueRecall(demoBorrowerDetectio
 
 describe('the borrower demo wallet', () => {
   it('parses, and carries the fields the page reads', () => {
-    expect(fixture.provenance).toBe('measured wallet · assumed deployment')
+    expect(fixture.provenance).toBe('measured wallet · no deployment')
     expect(fixture.source).toBe('public/data/oct10-2025/evidence.json')
     expect(fixture.address).toMatch(/^0x[0-9a-fA-F]{40}$/)
     expect(typeof fixture.readAt).toBe('string')
@@ -105,23 +103,59 @@ describe('the borrower demo wallet', () => {
   it('is measured data, never a fixture or a mock', () => {
     const p = demoBorrowerPosition()
     expect(p.provenance.kind).toBe('dataset')
-    // The DEPLOYMENT is the one assumed thing, so it is stamped 'modelled', never
-    // 'dataset' and never 'onchain'. A reader must not be able to mistake it for a read.
-    expect(demoBorrowerDetection().provenance.kind).toBe('modelled')
-    expect(DEMO_BORROWER_DEPLOYMENT?.provenance.kind).toBe('modelled')
+    // There is NO deployment, so nothing on this page is modelled at all: the detection
+    // is a dataset-stamped absence and the recall input is null.
+    expect(demoBorrowerDetection().provenance.kind).toBe('dataset')
+    expect(DEMO_BORROWER_DEPLOYMENT).toBeNull()
     expect(DEMO_BORROWER_NOTE).toContain(DEMO_BORROWER_DATE)
   })
 
-  it('reconstructs the MEASURED row: LTV lands on ltv0 within 0.5pp', () => {
+  /**
+   * REWRITTEN 2026-09-14, because the old assertion pinned the bug.
+   *
+   * It used to require the fixture's LTV at MINUTE 0 to equal the census `ltv0` — the
+   * ratio measured in the LIQUIDATING block, 21 hours later. The only way to satisfy
+   * that is to back-solve a token amount from the midnight price, which is exactly what
+   * the selector did, and it opened the hero on a position already over its line at
+   * 00:00. The wallet was healthy at midnight; the fixture now says so.
+   *
+   * The measured row is still reconstructed exactly — just at the price it was measured
+   * at. The token count is the invariant, and repricing it to `pLiqColl` lands on the
+   * measured dollars and on `ltv0`.
+   */
+  it('reconstructs the MEASURED row at the price it was measured at', () => {
     const p = demoBorrowerPosition()
-    expect(Math.abs(p.ltv - DEMO_BORROWER_ROW.ltv0)).toBeLessThanOrEqual(0.005)
-    expect(p.totalDebtUsd).toBeCloseTo(DEMO_BORROWER_ROW.debtUsd, 2)
-    expect(p.totalCollateralUsd).toBeCloseTo(DEMO_BORROWER_ROW.collateralUsd, 2)
-    // The token amount is derived, so it must reprice back to the measured dollars.
     const c = p.collateral[0]
-    expect(c.amount * c.priceUsd).toBeCloseTo(DEMO_BORROWER_ROW.collateralUsd, 2)
-    expect(c.symbol).toBe(DEMO_BORROWER_ROW.collSymbol)
-    expect(p.debt[0].symbol).toBe(DEMO_BORROWER_ROW.debtSymbol)
+    const row = DEMO_BORROWER_ROW
+    // The token amount is the measured USD over the round in force in the liquidating
+    // block. Reprice it there and the measured dollars and the measured LTV come back.
+    expect(c.amount).toBeCloseTo(row.collateralUsd / row.pLiqColl, 9)
+    expect(c.amount * row.pLiqColl).toBeCloseTo(row.collateralUsd, 2)
+    expect(p.debt[0].amount * row.pLiqDebt).toBeCloseTo(row.debtUsd, 2)
+    const ltvAtLiq = (p.debt[0].amount * row.pLiqDebt) / (c.amount * row.pLiqColl)
+    expect(Math.abs(ltvAtLiq - row.ltv0)).toBeLessThanOrEqual(0.005)
+    expect(c.symbol).toBe(row.collSymbol)
+    expect(p.debt[0].symbol).toBe(row.debtSymbol)
+  })
+
+  it('opens HEALTHY at minute 0 — the breach belongs to the crash, not the fixture', () => {
+    const p = demoBorrowerPosition()
+    const c = p.collateral[0]
+    // Minute 0 of the path is 00:00 UTC on 10 Oct, and the wallet was fine then.
+    expect(p.totalCollateralUsd).toBeCloseTo(c.amount * c.priceUsd, 6)
+    expect(p.ltv).toBeCloseTo((p.debt[0].amount * p.debt[0].priceUsd) / p.totalCollateralUsd, 12)
+    expect(p.ltv).toBeLessThan(p.liquidationLtv)
+    expect(p.healthFactor).toBeGreaterThan(1)
+    // …and the census's own t0 is hours into the window, not minute 0.
+    expect(fixture.censusT0Index).toBeGreaterThan(60)
+  })
+
+  it('republishes its census row, so the hero can be checked against it', () => {
+    expect(fixture.censusT0Index).toBe(DEMO_BORROWER_ROW.t0Index)
+    expect(fixture.censusOutcome).toBe(DEMO_BORROWER_ROW.outcome)
+    expect(fixture.censusAaveClosedUsd).toBe(DEMO_BORROWER_ROW.aaveClosedUsd)
+    expect(fixture.censusMembraneClosedUsd).toBe(DEMO_BORROWER_ROW.membraneClosedUsd)
+    expect(fixture.censusClosedAtIndex).toBe(DEMO_BORROWER_ROW.closedAtIndex)
   })
 
   it('uses the Aave V3 parameters read into protocols.json, not assumed ones', () => {
@@ -134,38 +168,34 @@ describe('the borrower demo wallet', () => {
     expect(c.decimals).toBe(r.decimals)
   })
 
-  it('carries the ASSUMED deployment, and says so in every label', () => {
-    const a = DEMO_BORROWER_ASSUMED
-    // Half the MEASURED debt, at the carry example's own modelled rates.
-    expect(a.deployedUsd).toBeCloseTo(DEMO_BORROWER_ROW.debtUsd * 0.5, 2)
-    expect(a.recallRate).toBe(0.6)
-    expect(a.fastRate).toBe(0.55)
+  it('carries NO deployment, and says so in every label', () => {
+    // Owner ruling 2026-09-14: the assumed deployment is gone. The census has no venue in
+    // it, and under the old assumption every census-consistent candidate ended with
+    // NEGATIVE equity while its bare run was positive. If an assumed venue ever comes
+    // back, the hero stops being the same claim as its census row.
+    expect(DEMO_BORROWER_ASSUMED).toBeNull()
+    expect(fixture.deployment).toBeNull()
+    expect(fixture.assumedDeployment).toBeUndefined()
 
     const d = demoBorrowerDetection()
-    expect(d.status).toBe('detected')
-    expect(d.totalUsd).toBeCloseTo(a.deployedUsd, 6)
-    // The word has to be on the page, not just in this file's comments.
-    expect(a.note.toLowerCase()).toContain('assumed')
-    expect(d.message?.toLowerCase()).toContain('assumed')
-    expect(d.detected[0].venue.exit.toLowerCase()).toContain('assumed')
-    expect(DEMO_BORROWER_NOTE.toLowerCase()).toContain('assumed')
+    expect(d.status).toBe('none')
+    expect(d.totalUsd).toBe(0)
+    expect(d.detected).toHaveLength(0)
+    expect(toVenueRecall(d)).toBeNull()
+    expect(DEMO_BORROWER_DEPLOYMENT).toBeNull()
 
-    // The engine gets it through the same pipe a pasted address goes through.
-    const recall = toVenueRecall(d)
-    expect(recall?.deployedUsd).toBeCloseTo(a.deployedUsd, 6)
-    expect(recall?.recallRate).toBeCloseTo(a.recallRate, 10)
-    expect(recall?.fastRate).toBeCloseTo(a.fastRate, 10)
-    expect(DEMO_BORROWER_DEPLOYMENT?.deployedUsd).toBeCloseTo(a.deployedUsd, 6)
+    // The absence has to be on the page, not just in this file's comments.
+    expect(DEMO_BORROWER_NOTE.toLowerCase()).toContain('no deployment')
+    expect(d.message?.toLowerCase()).toContain('no venue')
+    expect(DEMO_BORROWER_NO_DEPLOYMENT.equityDeltaUsd).toBeGreaterThan(0)
   })
 
   it('does not collide with the position it is meant to save', () => {
-    // excludeOwnCollateral drops any venue whose underlying is a collateral leg. If the
-    // assumed venue ever picked a colliding ticker the deployment would silently vanish
-    // and the hero would quietly go back to losing.
+    // excludeOwnCollateral must survive an EMPTY detection without inventing one.
     const p = demoBorrowerPosition()
     const kept = excludeOwnCollateral(demoBorrowerDetection(), p)
-    expect(kept.status).toBe('detected')
-    expect(kept.totalUsd).toBeCloseTo(DEMO_BORROWER_ASSUMED.deployedUsd, 6)
+    expect(kept.status).toBe('none')
+    expect(kept.totalUsd).toBe(0)
   })
 
   it('summarises in 25 words or fewer', () => {
@@ -178,32 +208,23 @@ describe('the borrower demo wallet', () => {
     expect(engineOutcome(cmp.source).liquidated).toBe(true)
   })
 
-  it('SURVIVES on Membrane — cure/recall only, and the 4% window holds', () => {
-    // This is the whole hero. If it ever flips, the borrower page is showing "Membrane
-    // liquidated you too, just more gently", which is the differentiator Aave V4 also
-    // ships. Fail loudly rather than ship that.
-    const cmp = oct10Run()
-    expect(engineOutcome(cmp.membrane).liquidated).toBe(false)
-    expect(cmp.membrane.events.length).toBeGreaterThan(0)
-    for (const e of cmp.membrane.events) expect(['cure', 'recall']).toContain(e.kind)
-
-    const line = weightedMembraneLine(demoBorrowerPosition().collateral).maxLtv
-    expect(cmp.membrane.peakLtv).toBeLessThanOrEqual(line * (1 + MAX_THRESHOLD_TO_DELAY))
-
-    // And it ends AHEAD of Aave, because that number is printed as a dollar figure.
+  it('ends AHEAD of Aave on equity, with no deployment anywhere in the run', () => {
+    // This is the whole hero, and the ruling changed what it claims. It is no longer
+    // "Membrane does not liquidate you" — with no venue to recall from, Membrane's line
+    // sits under Aave's and this wallet IS sold on both sides. What it claims now is the
+    // thing the census measures: Membrane closes LESS, so the borrower ends with more
+    // equity. If this flips, the hero is printing a loss as a saving.
+    const cmp = oct10Run(null)
     expect(cmp.equityDeltaUsd).toBeGreaterThan(0)
+    expect(cmp.equityDeltaUsd).toBeCloseTo(DEMO_BORROWER_NO_DEPLOYMENT.equityDeltaUsd, -1)
+    expect(cmp.membrane.events.length).toBeGreaterThan(0)
+    // And the census row it is drawn from must agree that Membrane closes less.
+    expect(DEMO_BORROWER_ROW.membraneClosedUsd).toBeLessThan(DEMO_BORROWER_ROW.aaveClosedUsd)
   })
 
-  it('is not knife-edge: it still survives well below the assumed recall rate', () => {
-    // The break-even recorded by the generator, re-derived here rather than trusted.
-    const be = DEMO_BORROWER_ASSUMED.recallBreakEven
-    expect(be).not.toBeNull()
-    expect(be as number).toBeLessThan(DEMO_BORROWER_ASSUMED.recallRate)
-    const cmp = oct10Run({
-      ...(DEMO_BORROWER_DEPLOYMENT as NonNullable<typeof DEMO_BORROWER_DEPLOYMENT>),
-      recallRate: be as number,
-      fastRate: Math.max(0, (be as number) - 0.05),
-    })
-    expect(engineOutcome(cmp.membrane).liquidated).toBe(false)
+  it('is the census row, not a re-run of it: the default venue is null', () => {
+    // oct10Run's own default is the detection pipe. With no deployment that pipe yields
+    // null, so the default run and the explicit no-venue run must be the same numbers.
+    expect(oct10Run().equityDeltaUsd).toBeCloseTo(oct10Run(null).equityDeltaUsd, 6)
   })
 })

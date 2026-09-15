@@ -126,22 +126,76 @@ export function membraneBorrowLtv(maxLtv: number): number {
  * @param loanValueUsd  total debt value
  * @param collValueUsd  total collateral value after the price move
  * @param borrowLtv     B — the borrow cap to restore to
+ * @param debtMinimumUsd the `liqDebtMinimum` floor; 0 disables it (the default, so
+ *                       every pre-existing call site keeps its old behaviour)
  * @returns debt value to repay, clamped to (0, loanValueUsd]
  */
 export function membraneRepayValue(
   loanValueUsd: number,
   collValueUsd: number,
   borrowLtv: number,
+  debtMinimumUsd = 0,
 ): number {
   if (loanValueUsd <= 0) return 0
-  if (collValueUsd <= 0) return loanValueUsd
+  if (collValueUsd <= 0) return applyDebtMinimum(loanValueUsd, loanValueUsd, debtMinimumUsd)
   const L = loanValueUsd / collValueUsd
-  if (L >= 1) return collValueUsd // underwater: repay against ALL collateral value
-  if (L <= borrowLtv) return 0 // still under the cap: nothing to do
+  // underwater: repay against ALL collateral value (LiquidationEngine.sol:2216-2218)
+  if (L >= 1) return applyDebtMinimum(collValueUsd, loanValueUsd, debtMinimumUsd)
+  if (L <= borrowLtv) return 0 // still under the cap: nothing to do — the floor never runs
   const denomB = borrowLtv < 1 ? 1 - borrowLtv : 1
   let frac = ((L - borrowLtv) / L) / denomB
   if (frac > 1) frac = 1
-  return frac * loanValueUsd
+  return applyDebtMinimum(frac * loanValueUsd, loanValueUsd, debtMinimumUsd)
+}
+
+/**
+ * The deployed partial-liquidation debt floor, in credit VALUE (1e18 == 1 CDT ≈ $1).
+ *
+ * `script/DeployFullSystem.s.sol:388` calls `setLiqDebtMinimum(2000e18)` immediately
+ * after constructing the engine — $2,000 — over the constructor default of
+ * `MembraneDeploymentDefaults.DEBT_MINIMUM = 100e18` ($100,
+ * `contracts/lib/DeploymentDefaults.sol:51`, which is what
+ * `script/DeployLiquidationCore.s.sol` leaves in place because it never calls the
+ * setter). The deploy comment cites a 2026-08-12 liquidation-parameter study: "$100
+ * chunks are toxic at small sizes".
+ */
+export const LIQ_DEBT_MINIMUM_USD = 2000
+
+/** The constructor default, kept for the sensitivity line. */
+export const LIQ_DEBT_MINIMUM_DEFAULT_USD = 100
+
+/**
+ * The `liqDebtMinimum` floor and the remainder guard, exactly as
+ * LiquidationEngine.sol:2241-2269 applies them to an already-sized `repayValue`.
+ *
+ *   dMin = liqDebtMinimum (the contract also takes max(dMin, gasStipend × CHUNK_GAS_MULT);
+ *          gas is not modelled here, so the static minimum is the floor — this can only
+ *          UNDER-state the escalation, never over-state it)
+ *   if dMin != 0 && repay < dMin:
+ *       repay = loan                      if loan < dMin                       (:2250-2251)
+ *       repay = dMin                      if loan - dMin >= dMin               (:2252-2253)
+ *       repay = loan                      otherwise (dMin <= loan < 2 × dMin)  (:2254-2255)
+ *   REMAINDER GUARD (:2266-2269), against the STATIC minimum:
+ *       if repay < loan && loan - repay < dMin: repay = loan
+ *
+ * Every comparison in the contract is strict `<`.
+ */
+export function applyDebtMinimum(
+  repayValue: number,
+  loanValueUsd: number,
+  debtMinimumUsd: number,
+): number {
+  if (!(debtMinimumUsd > 0) || !(repayValue > 0)) return repayValue
+  let repay = repayValue
+  if (repay < debtMinimumUsd) {
+    if (loanValueUsd < debtMinimumUsd) repay = loanValueUsd
+    else if (loanValueUsd - debtMinimumUsd >= debtMinimumUsd) repay = debtMinimumUsd
+    else repay = loanValueUsd
+  }
+  // Remainder guard: a chunk that was already >= dMin can still strand a sub-minimum
+  // remainder. Those escalate to the whole loan.
+  if (repay < loanValueUsd && loanValueUsd - repay < debtMinimumUsd) repay = loanValueUsd
+  return repay
 }
 
 /**

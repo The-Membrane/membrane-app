@@ -9,6 +9,12 @@
 // therefore DRIFT from the data, which is exactly what tests/unit/oct10Totals.test.ts
 // exists to prevent: it re-derives all five fields from the JSON and fails on a dollar.
 // Change the evidence file, change these numbers.
+//
+// LAST MOVED 2026-09-14: wstETH stopped being priced through the STETH/ETH MARKET feed
+// and is now ETH/USD x the MEASURED wrap rate 1.215989, which is what Aave demonstrably
+// used. Both figures are sums over the WHOLE cohort (excluded rows included), so only the
+// wstETH legs' repriced dollars moved: +$18.5k closed, +$1.52M collateral at risk. The
+// headline $144M / 2,350 accounts is unchanged to the nearest million.
 
 /** Measured Oct 10-11 2025 totals. Recomputed from the evidence JSON by the unit test. */
 export const OCT10_TOTALS = {
@@ -17,9 +23,9 @@ export const OCT10_TOTALS = {
   /** Liquidation events in the source window, before the unpriced drop. `meta.sourceEvents`. */
   events: 3111,
   /** Σ aaveClosedUsd over the cohort — what the venues actually closed, in USD. */
-  aaveClosedUsd: 144_221_003,
+  aaveClosedUsd: 144_239_544,
   /** Σ collateralUsd over the cohort — the pre-liquidation collateral standing behind it. */
-  collateralAtRiskUsd: 635_873_181,
+  collateralAtRiskUsd: 637_388_334,
   /** The chains the cohort spans, in first-seen order. */
   chains: ['mainnet', 'arbitrum', 'base', 'optimism'],
   source: 'public/data/oct10-2025/evidence.json (Σ aaveClosedUsd over the cohort)',

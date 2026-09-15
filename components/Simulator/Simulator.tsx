@@ -216,9 +216,10 @@ export interface SimulatorProps {
   hero?: boolean
   /** Hero form only: label for the primary connect button. */
   connectLabel?: string
+  readNote?: string
 }
 
-export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, hero = false, connectLabel }) => {
+export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, hero = false, connectLabel, readNote }) => {
   const router = useRouter()
   /** Keeps the sibling-mode link on the chain the reader is already on. */
   const chainForLinks = typeof router.query.chain === 'string' ? router.query.chain : DEFAULT_CHAIN
@@ -636,6 +637,7 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, h
           compact={hero}
           primaryConnect={hero}
           connectLabel={connectLabel}
+          readNote={readNote}
           heroVariant={heroVariant}
           history={heroHistory}
           isDemo={isDemo}

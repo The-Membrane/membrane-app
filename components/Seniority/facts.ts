@@ -25,8 +25,17 @@
 export const HERO = {
   eyebrow: 'Borrowers',
   headline: 'Borrowers are senior here.',
-  sub: 'Four layers take a loss before it reaches you. Connect a wallet and see where you stand in line.',
-  cta: 'See where you stand in line',
+  sub: 'Four layers take a loss before it reaches you. The order is drawn below, open to anyone.',
+  /**
+   * The CTA names exactly what the read does (owner, 14 Sep: "stand in line where? mock or
+   * real? does it need a connection?"). It reads the address's OPEN position today on
+   * Ethereum mainnet across Aave V3, Spark, Compound V3, Morpho Blue and Fluid over a
+   * public read-only RPC (lib/position-sim/rpc.ts, adapters/), then replays it through the
+   * measured 10 Oct 2025 price path (lib/position-sim/scenario.ts). A pasted address does
+   * the same; the wallet only fills the box.
+   */
+  cta: 'Replay my position through 10 Oct 2025',
+  readNote: 'Reads your open position on Aave V3, Spark, Compound V3, Morpho Blue or Fluid on Ethereum today. Read-only, no signature. Replays it through the measured 10 Oct 2025 prices. Or paste any address. Address logged.',
   /**
    * THE BRIDGE. The h1 and sub are about the loss waterfall (who absorbs bad debt); the
    * sim under it is about liquidation behaviour (repay to cap, cure, recall). Owner,

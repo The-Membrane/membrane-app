@@ -60,7 +60,7 @@ export const Hero: React.FC = () => (
       </Text>
     </VStack>
 
-    <Simulator mode="borrower" hero connectLabel={HERO.cta} />
+    <Simulator mode="borrower" hero connectLabel={HERO.cta} readNote={HERO.readNote} />
   </VStack>
 )
 

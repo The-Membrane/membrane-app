@@ -75,6 +75,8 @@ export interface AddressBarProps {
   primaryConnect?: boolean
   /** Label for the primary connect button; falls back to the plain connect copy. */
   connectLabel?: string
+  /** Replaces the generic disclosure line with one that names venues, chain and data. */
+  readNote?: string
   isLoading: boolean
   /** Verbatim reason the input was rejected, or null. */
   error: string | null
@@ -86,6 +88,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   onSubmit,
   primaryConnect = false,
   connectLabel,
+  readNote,
   loadedAddress,
   onClear,
   isLoading,
@@ -202,7 +205,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       color={SEMANTIC_COLORS.textTertiary}
       lineHeight={1.6}
     >
-      Read-only · no signature · address logged
+      {readNote ?? 'Read-only · no signature · address logged'}
     </Text>
   </Box>
   )

@@ -247,11 +247,97 @@ test('priceAt carries the last real print across a gap but never invents one', (
 })
 
 // ======================================================= comparison engine
+//
+// demoPosition() (lib/position-sim/demo.ts) was switched to a real on-chain snapshot
+// (owner, 2026-09-11/12): six collateral legs — WETH, WBTC, weETH, cbBTC, LBTC, eBTC —
+// against three stable debt legs. crashPath() below only ever drove WETH/WBTC/USDC, so
+// once the real snapshot landed, ~59% of the collateral (weETH+LBTC+eBTC — cbBTC's
+// symbol IS mapped to the btc series but the other three have no series in
+// lib/position-sim/scenario.ts's SYMBOL_TO_SERIES) never moved during the "crash" and
+// nothing ever breached: the five tests below that need a breach were asserting
+// against a position that could no longer produce one.
+//
+// This section restores the two-asset worked-example position the tests were written
+// against (WETH/WBTC collateral, USDC debt, real Aave V3 risk params) as a LOCAL test
+// fixture — it is the shape demoPosition() itself used before the on-chain switch. It
+// is deliberately not imported from lib/position-sim/demo.ts (engine code, not to be
+// changed): every leg below is one crashPath() can actually price, which is the only
+// property these tests need.
+const AAVE_WETH = { liquidationThreshold: 0.83, maxLtv: 0.805, liquidationBonus: 0.05 }
+const AAVE_WBTC = { liquidationThreshold: 0.78, maxLtv: 0.73, liquidationBonus: 0.05 }
+const CRASH_OPEN_ETH = 4370.37
+const CRASH_OPEN_BTC = 121566.15
+
+function crashTestPosition(): ProtocolPosition {
+  const ethAmount = 40
+  const btcAmount = 1.5
+  // 210k, not the 250k the shipped demo later moved to (6bdfd4e7, "worked example now
+  // crosses the line"): at 250k debt the venue-recall test goes negative — the extra
+  // debt changes which liquidation clears the loan by the time price partially
+  // recovers, which is a real property of the engine, not something these tests are
+  // trying to pin. 210k is the amount every test in this file was originally written
+  // and verified against (66e16ad1) and it is still comfortably enough to breach both
+  // engines under crashPath().
+  const debtAmount = 210_000
+  const collateral = [
+    {
+      symbol: 'WETH',
+      address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+      decimals: 18,
+      amount: ethAmount,
+      priceUsd: CRASH_OPEN_ETH,
+      valueUsd: ethAmount * CRASH_OPEN_ETH,
+      ...AAVE_WETH,
+    },
+    {
+      symbol: 'WBTC',
+      address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
+      decimals: 8,
+      amount: btcAmount,
+      priceUsd: CRASH_OPEN_BTC,
+      valueUsd: btcAmount * CRASH_OPEN_BTC,
+      ...AAVE_WBTC,
+    },
+  ]
+  const debt = [
+    {
+      symbol: 'USDC',
+      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      decimals: 6,
+      amount: debtAmount,
+      priceUsd: 1,
+      valueUsd: debtAmount,
+      borrowApr: null,
+    },
+  ]
+  const totalCollateralUsd = collateral.reduce((a, c) => a + c.valueUsd, 0)
+  const totalDebtUsd = debt.reduce((a, d) => a + d.valueUsd, 0)
+  const liquidationLtv =
+    collateral.reduce((a, c) => a + c.liquidationThreshold * c.valueUsd, 0) / totalCollateralUsd
+  return {
+    protocol: 'aave-v3',
+    label: 'Aave V3',
+    collateral,
+    debt,
+    totalCollateralUsd,
+    totalDebtUsd,
+    ltv: totalDebtUsd / totalCollateralUsd,
+    liquidationLtv,
+    healthFactor: (totalCollateralUsd * liquidationLtv) / totalDebtUsd,
+    provenance: stamp(
+      'mock',
+      'worked example · not a real wallet',
+      'Two-asset fixture reproducing the pre-2026-09-11 demoPosition() shape, kept ' +
+        'local to the crash tests because every leg must be one crashPath() can price.',
+    ),
+  }
+}
+
 function crashPath() {
   // A ~45% drawdown and a partial recovery, applied as a MULTIPLIER to each asset's
-  // real opening price so minute 0 reproduces the demo position's stored values
-  // exactly. That keeps the balance-sheet assertions exact rather than approximate.
-  const p = demoPosition()
+  // real opening price so minute 0 reproduces the fixture's stored values exactly.
+  // That keeps the balance-sheet assertions exact rather than approximate.
+  const p = crashTestPosition()
   const openEth = p.collateral.find((c) => c.symbol === 'WETH')!.priceUsd
   const openBtc = p.collateral.find((c) => c.symbol === 'WBTC')!.priceUsd
   const factor: number[] = []
@@ -284,7 +370,7 @@ const baseOpts = {
 
 test('both engines see the identical price path', () => {
   const { path, unpriced } = crashPath()
-  const cmp = runComparison(demoPosition(), path, unpriced, baseOpts)
+  const cmp = runComparison(crashTestPosition(), path, unpriced, baseOpts)
   // Before any liquidation fires, equity must be identical in both runs.
   close(
     cmp.source.equitySeries[0] as number,
@@ -296,7 +382,7 @@ test('both engines see the identical price path', () => {
 
 test('a crash liquidates on both engines — Membrane is not magic', () => {
   const { path, unpriced } = crashPath()
-  const cmp = runComparison(demoPosition(), path, unpriced, baseOpts)
+  const cmp = runComparison(crashTestPosition(), path, unpriced, baseOpts)
   assert.ok(cmp.source.events.length > 0, 'the source engine liquidated')
   assert.ok(cmp.membrane.events.length > 0, 'membrane liquidated too')
 })
@@ -308,10 +394,10 @@ test('a crash liquidates on both engines — Membrane is not magic', () => {
 // loosened the modelled LTVs — check that it was for a real reason.
 test('with no venue, a tighter modelled line makes Membrane liquidate earlier and MORE often', () => {
   const { path, unpriced } = crashPath()
-  const cmp = runComparison(demoPosition(), path, unpriced, baseOpts)
-  const membraneLine = weightedMembraneLine(demoPosition().collateral).maxLtv
+  const cmp = runComparison(crashTestPosition(), path, unpriced, baseOpts)
+  const membraneLine = weightedMembraneLine(crashTestPosition().collateral).maxLtv
   assert.ok(
-    membraneLine < demoPosition().liquidationLtv,
+    membraneLine < crashTestPosition().liquidationLtv,
     "the modelled line is tighter than Aave's",
   )
   assert.ok(cmp.membrane.events.length > cmp.source.events.length, 'more partial liquidations')
@@ -325,13 +411,13 @@ test('recalled capital is equity-neutral — a recall is not free money', () => 
   const { path, unpriced } = crashPath()
   const deployed = 400_000
   const venue = { recallRate: 0.95, fastRate: 0.95, deployedUsd: deployed, provenance: {} as never }
-  const cmp = runComparison(demoPosition(), path, unpriced, { ...baseOpts, venue })
+  const cmp = runComparison(crashTestPosition(), path, unpriced, { ...baseOpts, venue })
   // Deployed capital must appear on BOTH balance sheets: the source protocol simply
   // cannot reach it. Starting equity therefore has to be identical.
   close(cmp.source.startEquityUsd, cmp.membrane.startEquityUsd, 'same starting balance sheet', 1e-6)
   close(
     cmp.source.startEquityUsd,
-    demoPosition().totalCollateralUsd + deployed - demoPosition().totalDebtUsd,
+    crashTestPosition().totalCollateralUsd + deployed - crashTestPosition().totalDebtUsd,
     'equity is collateral + deployed - debt',
     1e-6,
   )
@@ -347,7 +433,7 @@ test('recalled capital is equity-neutral — a recall is not free money', () => 
 test('a deep venue lets Membrane cure without selling collateral', () => {
   const { path, unpriced } = crashPath()
   const venue = { recallRate: 0.98, fastRate: 0.98, deployedUsd: 400_000, provenance: {} as never }
-  const cmp = runComparison(demoPosition(), path, unpriced, { ...baseOpts, venue })
+  const cmp = runComparison(crashTestPosition(), path, unpriced, { ...baseOpts, venue })
   const cures = cmp.membrane.events.filter((e) => e.kind === 'cure')
   assert.ok(cures.length > 0, 'the cure window fired')
   assert.ok(
@@ -363,7 +449,7 @@ test('the recall rate is the dominant variable once it binds', () => {
   // covers the whole call, so every rate gives the same answer — a real property of
   // the engine, not a bug, but useless as a test of sensitivity.
   const mk = (recallRate: number) =>
-    runComparison(demoPosition(), path, unpriced, {
+    runComparison(crashTestPosition(), path, unpriced, {
       ...baseOpts,
       venue: { recallRate, fastRate: 0, deployedUsd: 60_000, provenance: {} as never },
     })
@@ -391,7 +477,7 @@ test('a calm path liquidates on neither engine', () => {
     fakeManifest,
     ['WETH', 'WBTC', 'USDC'],
   )
-  const cmp = runComparison(demoPosition(), flat.path, flat.unpriced, baseOpts)
+  const cmp = runComparison(crashTestPosition(), flat.path, flat.unpriced, baseOpts)
   assert.strictEqual(cmp.source.events.length, 0, 'no source liquidation')
   assert.strictEqual(cmp.membrane.events.length, 0, 'no membrane liquidation')
   close(cmp.equityDeltaUsd, 0, 'and no difference between them')
@@ -399,7 +485,7 @@ test('a calm path liquidates on neither engine', () => {
 
 test('every run carries its caveats — they are never empty', () => {
   const { path, unpriced } = crashPath()
-  const cmp = runComparison(demoPosition(), path, unpriced, baseOpts)
+  const cmp = runComparison(crashTestPosition(), path, unpriced, baseOpts)
   assert.ok(cmp.source.caveats.length > 0, 'source caveats present')
   assert.ok(cmp.membrane.caveats.length > 0, 'membrane caveats present')
   assert.ok(
@@ -425,7 +511,10 @@ test('measuredRepayFraction uses measured events, not the documented close facto
 // ============================================== the demo position is coherent
 test('the demo position uses real Aave V3 risk parameters', () => {
   const p = demoPosition()
-  assert.strictEqual(p.provenance.kind, 'mock', 'the balances are marked mock')
+  // 2026-09-11/12: the demo wallet became a real on-chain snapshot (lib/position-sim/
+  // demo.ts), so the balances are read, not invented — the risk PARAMETERS below are
+  // still real Aave V3 mainnet values either way.
+  assert.strictEqual(p.provenance.kind, 'onchain', 'the balances are a real on-chain read')
   const weth = p.collateral.find((c) => c.symbol === 'WETH')!
   close(weth.liquidationThreshold, 0.83, 'real Aave WETH liquidation threshold')
   close(weth.maxLtv, 0.805, 'real Aave WETH LTV')
@@ -459,6 +548,7 @@ test('url state round-trips so a shared link reproduces the run', () => {
     recallRate: undefined,
     fastRate: undefined,
     deployedUsd: undefined,
+    hero: undefined, // ?hero=history|oct10 A/B override, added after this test was written
   })
 })
 

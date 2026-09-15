@@ -45,8 +45,9 @@ export const HERO = {
    */
   bridge: {
     eyebrow: 'Tested on a real day',
-    line: 'With borrower-first liquidation the position is repaid to its cap once, after eight hours to cure and a recall of the deployed debt. Other venues also repay part of a position. The eight hours and the recall are Membrane’s.',
-    cite: 'contracts/LiquidationEngine.sol:803-819 (8h cure, timelocked) · contracts/LiquidationEngine.sol:1105-1280 (recall) · lib/position-sim/outcome.ts (one repay to cap, the model the census runs)',
+    line: 'With borrower-first liquidation the position is repaid to its cap once, at the first liquidation minute, at that minute’s price. That one mechanism is the whole $39.2M below. Aave’s own close factor repays partially too, so read it as a floor. The eight-hour cure and the recall are Membrane’s, and the census leaves both at zero.',
+    cite: 'scripts/build-evidence.ts:107 (one membraneRepayValue call per account; no cure, no recall in the closed-debt total) · lib/position-sim/membrane.ts:131 · contracts/LiquidationEngine.sol:803-819 (cure) · contracts/LiquidationEngine.sol:1105-1280 (recall)',
+    note: 'Decomposed 14 Sep (scripts/oct10-decompose.ts, config P reproduces the shipped $105.0M to the cent). An earlier draft attributed the saving to cure and recall as well; the census applies neither to closed debt. A price-recovery cure worth $35.0M was modelled and REFUTED: the shipped engine cures only when venue capital covers the call (compare.ts:256), and 89% of that credit came from accounts back under the line within two minutes.',
   },
   /** Shown while the demo position is loaded, before any address or wallet. */
   demoNote: 'a real wallet Aave V3 liquidated on 10 Oct 2025. Connect yours to replace it.',
@@ -308,4 +309,23 @@ export const CLOSE = {
   cta: 'Run yours through the same day',
   href: '/simulator',
   evidenceHref: '/evidence',
+  /**
+   * WHAT THE NUMBER CONTAINS. Every figure is read from public/data/oct10-2025/evidence.json
+   * (the cohort rows) with the builder's own rule for "closes more" (strict >,
+   * scripts/build-evidence.ts). Owner, 14 Sep: predict the questions and answer them
+   * with numbers. Regenerate these lines when the census is rebuilt.
+   */
+  contains: {
+    title: 'What the number contains',
+    lines: [
+      'One repay per account, sized to restore the borrow cap (the liquidation line less 3 points), at the first minute Aave liquidated it, at that minute’s oracle price.',
+      'Aave’s figure is the whole episode: every hit on the account across 10 and 11 Oct, capped at the account’s debt. The median account lost 71% of its loan to Aave; repay to cap takes 17.8%.',
+      'The eight-hour cure window and the recall are counted at zero. Both would lower Membrane’s figure. This page claims only what is counted.',
+      '601 accounts show a health factor of 1.0 or above in the block before Aave liquidated them. The census still repays them to the cap, which counts $20.1M against Membrane. Aave closed $94.2M on the same accounts.',
+      '2,245 accounts keep more of the position. The median keeps $970, 49.6% of a median $2,762 loan.',
+      '105 accounts lose more. Aave took a median 15.3% of the loan and left it a median 5.7% past its line; repay to cap restores the line in one pass, a median 33.8%. The largest is a $64.9M loan at health factor 0.97: Aave closed 4.4%, Membrane 29.6%.',
+      '20 accounts sat under the cap already; Membrane repays nothing on them.',
+    ],
+    cite: 'public/data/oct10-2025/evidence.json (cohort rows) · scripts/build-evidence.ts:102-107 (line inverted from health factor; one repay call) · scripts/build-evidence.ts:199-215 (caveats)',
+  },
 } as const

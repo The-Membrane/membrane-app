@@ -19,6 +19,7 @@ import { ACTIVE_EFFECTS, FOCUS_STYLES, HOVER_EFFECTS, TRANSITIONS } from '@/conf
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
+import { Cite } from './BondCoverage'
 import { CLOSE } from './facts'
 
 export const Close: React.FC<{ initialDoc?: EvidenceDoc | null; num?: string }> = ({
@@ -46,6 +47,39 @@ export const Close: React.FC<{ initialDoc?: EvidenceDoc | null; num?: string }> 
       </VStack>
 
       {doc ? <DebtLens debt={doc.debt} byAsset={doc.byAsset} /> : null}
+
+      {/* WHAT THE NUMBER CONTAINS. The lens above gives the totals; this answers the
+          questions a careful reader asks next, each with the figure from the same doc. */}
+      <VStack align="flex-start" spacing={SPACING.sm} maxW="860px">
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.label}
+          letterSpacing="0.28em"
+          textTransform="uppercase"
+          color={SEMANTIC_COLORS.textSecondary}
+        >
+          {CLOSE.contains.title}
+        </Text>
+        <VStack as="ol" align="stretch" spacing={SPACING.sm} pl={0} m={0} listStyleType="none">
+          {CLOSE.contains.lines.map((l, i) => (
+            <HStack as="li" key={i} align="baseline" spacing={SPACING.md}>
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.label}
+                letterSpacing="0.28em"
+                color={SEMANTIC_COLORS.textTertiary}
+                flexShrink={0}
+              >
+                {String(i + 1).padStart(2, '0')}
+              </Text>
+              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary} lineHeight="1.7">
+                {l}
+              </Text>
+            </HStack>
+          ))}
+        </VStack>
+        <Cite>{CLOSE.contains.cite}</Cite>
+      </VStack>
 
       {error && !doc ? (
         <Box

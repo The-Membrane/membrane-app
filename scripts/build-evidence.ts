@@ -207,6 +207,14 @@ const doc = {
         'recovery. A window that keeps falling would not cure.',
       'Membrane has no mainnet deployment. This models a protocol that is not live, ' +
         'run against real prices.',
+      '601 accounts carry a health factor of 1.0 or above in the block-before snapshot ' +
+        'although Aave liquidated them in the next block. Their line is inverted from that ' +
+        'health factor, so by the snapshot they sit under it; the census still repays them ' +
+        'to the cap (membraneRepayValue guards on the borrow cap, not the line), which ' +
+        'counts $20.1M against Membrane. Aave closed $94.2M on the same accounts.',
+      'The Membrane figure is one repay to cap per account and nothing else: the ' +
+        'eight-hour cure window and the recall are applied to no closed-debt total here. ' +
+        'The cure field on each account is a diagnostic, never a dollar.',
     ],
   },
   debt: {

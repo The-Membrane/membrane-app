@@ -16,6 +16,7 @@ import React from 'react'
 
 import type { EvidenceDoc } from '@/components/Evidence/types'
 import { SPACING, SPACING_PATTERNS } from '@/config/spacing'
+import type { LandingVariant } from '@/lib/landingVariant'
 
 import CarryFlagship from './CarryFlagship'
 import CdtLine from './CdtLine'
@@ -25,10 +26,19 @@ import Hero from './Hero'
 import Mimicry from './Mimicry'
 import Waterfall from './Waterfall'
 
-export const SeniorityLanding: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initialDoc }) => (
+export interface SeniorityLandingProps {
+  initialDoc?: EvidenceDoc | null
+  /**
+   * THE H1 TEST (owner ruling 2026-09-15). Resolved in the page's getServerSideProps
+   * and passed straight through to the hero, so the headline is in the first HTML byte.
+   */
+  variant?: LandingVariant
+}
+
+export const SeniorityLanding: React.FC<SeniorityLandingProps> = ({ initialDoc, variant }) => (
   <Container maxW="1200px" py={SPACING.xl} px={SPACING_PATTERNS.pagePadding}>
     <VStack align="stretch" spacing={SPACING['2xl']}>
-      <Hero />
+      <Hero variant={variant} />
       <Waterfall num="01" />
       <Consequences num="02" />
       <Mimicry num="03" />

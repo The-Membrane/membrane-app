@@ -121,3 +121,26 @@ CREATE TABLE IF NOT EXISTS calibration_call (
   CHECK (outcome IS NULL OR resolved_at IS NOT NULL)
 );
 CREATE INDEX IF NOT EXISTS calibration_call_account_idx ON calibration_call (account, resolved_at);
+
+-- =============================================================================
+-- 5. Landing H1 test (owner ruling 2026-09-15). The landing page renders one of
+--    two headlines, B or C, chosen server-side; this records the one conversion
+--    the test scores: an address run in the hero simulator, stamped with the
+--    variant that was on screen. No page views, no addresses in the clear.
+--    Writer: pages/api/landing/event.ts   Reader: the test readout
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS landing_events (
+  id           BIGSERIAL PRIMARY KEY,
+  at           timestamptz NOT NULL DEFAULT now(),
+  variant      text        NOT NULL,   -- 'a' | 'b' | 'c'
+  kind         text        NOT NULL,   -- 'run' | 'connect'
+  chain        text,
+  -- sha256 of the checksummed address. The address itself is never stored.
+  address_hash text,
+  source       text,                   -- 'paste' | 'wallet'
+  referrer     text,
+  ua_hash      text                    -- sha256 of the user agent; rate limit only
+);
+CREATE INDEX IF NOT EXISTS landing_events_variant_at_idx ON landing_events (variant, at);
+CREATE INDEX IF NOT EXISTS landing_events_kind_at_idx ON landing_events (kind, at);

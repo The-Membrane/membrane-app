@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import React from 'react'
@@ -9,6 +10,12 @@ import { SITE_URL } from '@/components/Seo'
 import { SeniorityLanding } from '@/components/Seniority'
 import type { EvidenceDoc } from '@/components/Evidence'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
+import {
+    LANDING_VARIANT_COOKIE,
+    landingVariantCookie,
+    resolveLandingVariant,
+    type LandingVariant,
+} from '@/lib/landingVariant'
 
 // R8 (docs/SEO_RULESET.md): Organization + WebSite JSON-LD on the landing page
 // only, and conservatively — name/url/logo/description are facts we can stand
@@ -64,7 +71,28 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         summary = null
     }
 
-    return { props: { summary } }
+    // THE H1 TEST (owner ruling 2026-09-15). Resolved here, on the server, so the
+    // headline is in the first byte of HTML and no reader watches one H1 swap for
+    // another. ?v=a|b|c pins a variant and persists it; an existing b/c cookie is
+    // honoured; a fresh reader is split 50/50 across B and C on a random id; every
+    // known crawler gets C and no cookie, so the indexed H1 stays one headline.
+    const { variant, setCookie } = resolveLandingVariant({
+        query: context.query?.v,
+        cookie: context.req.cookies?.[LANDING_VARIANT_COOKIE],
+        userAgent: context.req.headers['user-agent'],
+        randomId: randomUUID(),
+    })
+    if (setCookie) {
+        context.res.setHeader(
+            'Set-Cookie',
+            landingVariantCookie(variant, { secure: process.env.NODE_ENV === 'production' }),
+        )
+    }
+    // The page is per-reader from here on: two readers get two headlines at one URL,
+    // so no shared cache may hold either of them.
+    context.res.setHeader('Cache-Control', 'private, no-store')
+
+    return { props: { summary, variant } }
 }
 
 /**
@@ -85,7 +113,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
  * The server-rendered summary is still read here: the Close band mounts the Evidence
  * DebtLens on it, so a crawler sees real figures rather than a spinner (R1).
  */
-const IndexPage = ({ summary }: { summary: EvidenceDoc | null }) => {
+const IndexPage = ({
+    summary,
+    variant,
+}: {
+    summary: EvidenceDoc | null
+    variant: LandingVariant
+}) => {
     return (
         <>
             <PageSeo
@@ -103,7 +137,7 @@ const IndexPage = ({ summary }: { summary: EvidenceDoc | null }) => {
                     />
                 </Head>
             )}
-            <SeniorityLanding initialDoc={summary} />
+            <SeniorityLanding initialDoc={summary} variant={variant} />
         </>
     )
 }

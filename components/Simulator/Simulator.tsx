@@ -45,6 +45,7 @@ import {
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import useWallet from '@/hooks/useWallet'
+import type { LandingVariant } from '@/lib/landingVariant'
 import { monoXs, tabular } from '@/components/Builder/styles'
 import {
   MEMBRANE_LTV_PROVENANCE,
@@ -94,6 +95,7 @@ import GuaranteeBlock from './GuaranteeBlock'
 import HistoryProof from './HistoryProof'
 import { useSimHistory } from './hooks/useSimHistory'
 import PositionCard from './PositionCard'
+import { recordLandingEvent } from './recordLandingEvent'
 import { recordSimRead } from './recordRead'
 import VerdictHero from './VerdictHero'
 
@@ -216,9 +218,22 @@ export interface SimulatorProps {
   /** Hero form only: label for the primary connect button. */
   connectLabel?: string
   readNote?: string
+  /**
+   * THE LANDING H1 TEST (owner ruling 2026-09-15). Set only by the landing hero, to
+   * the variant the server rendered above this simulator. When it is set, a successful
+   * address read reports one 'run' event, which is the single conversion the test
+   * scores. Absent everywhere else, so /[chain]/simulator records nothing.
+   */
+  landingVariant?: LandingVariant
 }
 
-export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, hero = false, connectLabel, readNote }) => {
+export const Simulator: React.FC<SimulatorProps> = ({
+  mode = LANDING_SIM_MODE,
+  hero = false,
+  connectLabel,
+  readNote,
+  landingVariant,
+}) => {
   const router = useRouter()
   /** Keeps the sibling-mode link on the chain the reader is already on. */
   const chainForLinks = typeof router.query.chain === 'string' ? router.query.chain : DEFAULT_CHAIN
@@ -258,29 +273,55 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, h
     detection: VenueDetection
   } | null>(null)
 
+  /**
+   * THE H1 TEST's conversion, deduped. One 'run' per address per page load: a reader
+   * who re-runs the same wallet, or whose wallet prefill lands on an address they had
+   * already pasted, is one conversion, not two.
+   */
+  const landingFired = useRef<Set<string>>(new Set())
+
   /** Reads an address. Never clears the control overrides — the URL hydration path
-   *  needs to apply them after the read lands. */
-  const readAddress = useCallback(async (raw: string) => {
-    const parsed = parseAddress(raw)
-    if (!parsed) {
-      setAddressError(
-        'That is not an Ethereum address. It needs to be 0x followed by 40 hex characters.',
-      )
-      return
-    }
-    setAddressError(null)
-    setLoading(true)
-    try {
-      // Neither call rejects: runAdapters absorbs every adapter throw into a result,
-      // and detectVenues returns status 'error' rather than raising.
-      const [results, detection] = await Promise.all([runAdapters(parsed), detectVenues(parsed)])
-      setLoaded({ address: parsed, results, detection })
-      // Launch instrument: address + protocols only, never the worked example.
-      recordSimRead(parsed, results)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+   *  needs to apply them after the read lands.
+   *
+   *  `source` says where the address came from: 'wallet' when the connect prefill
+   *  supplied it, 'paste' for a typed address and for one hydrated from a shared link.
+   *  It is carried into the landing event and nowhere else. */
+  const readAddress = useCallback(
+    async (raw: string, source: 'paste' | 'wallet' = 'paste') => {
+      const parsed = parseAddress(raw)
+      if (!parsed) {
+        setAddressError(
+          'That is not an Ethereum address. It needs to be 0x followed by 40 hex characters.',
+        )
+        return
+      }
+      setAddressError(null)
+      setLoading(true)
+      try {
+        // Neither call rejects: runAdapters absorbs every adapter throw into a result,
+        // and detectVenues returns status 'error' rather than raising.
+        const [results, detection] = await Promise.all([runAdapters(parsed), detectVenues(parsed)])
+        setLoaded({ address: parsed, results, detection })
+        // Launch instrument: address + protocols only, never the worked example.
+        recordSimRead(parsed, results)
+        // Landing H1 test: the run is the conversion. Fire-and-forget, deduped, and
+        // only on the landing hero, which is the only caller that sets the variant.
+        if (landingVariant && !landingFired.current.has(parsed)) {
+          landingFired.current.add(parsed)
+          recordLandingEvent({
+            variant: landingVariant,
+            kind: 'run',
+            chain: chainForLinks,
+            address: parsed,
+            source,
+          })
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [landingVariant, chainForLinks],
+  )
 
   // ------------------------------------------------------- wallet prefill
   // THE INTENT-PRESERVING CONNECT (CLAUDE.md V20). There is still no wallet GATE here:
@@ -298,7 +339,7 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, h
     if (prefilled.current === address) return
     prefilled.current = address
     setInput(address)
-    void readAddress(address)
+    void readAddress(address, 'wallet')
   }, [address, input, loaded, isLoading, readAddress])
 
   // --------------------------------------------------------------- positions

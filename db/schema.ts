@@ -7,6 +7,7 @@
 import { sql } from 'drizzle-orm'
 import {
   bigint,
+  bigserial,
   boolean,
   index,
   integer,
@@ -667,4 +668,39 @@ export const simHistory = pgTable(
     summary: jsonb('summary').notNull(), // { since, totals, method, notScanned }
   },
   (table) => [uniqueIndex('sim_history_address_idx').on(table.address)],
+)
+
+// LANDING H1 TEST — the event log (owner ruling 2026-09-15).
+//
+// The landing page renders one of two headlines, B or C, chosen server-side in
+// pages/[chain]/index.tsx (lib/landingVariant.ts). This table holds the ONE
+// conversion the test scores: an address actually run in the hero simulator, stamped
+// with the variant that was on screen above it. A page view is not in here on
+// purpose: the question is "which headline gets a stranger to run their own wallet",
+// and impressions cannot answer it.
+//
+// PRIVACY. The address is never stored. address_hash is sha256 of the checksummed
+// address, which is enough to count distinct runners and to dedupe, and ua_hash is
+// sha256 of the user agent, used only for the rate limit. No IP, no wallet, no
+// address in the clear.
+//
+// Written by pages/api/landing/event.ts. DDL in scripts/apply-landing-events-ddl.mjs
+// — keep them in lockstep.
+export const landingEvents = pgTable(
+  'landing_events',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    variant: text('variant').notNull(), // 'a' | 'b' | 'c'
+    kind: text('kind').notNull(), // 'run' | 'connect'
+    chain: text('chain'),
+    addressHash: text('address_hash'), // sha256 of the checksummed address, never the address
+    source: text('source'), // 'paste' | 'wallet'
+    referrer: text('referrer'),
+    uaHash: text('ua_hash'), // sha256 of the user agent, for the rate limit only
+  },
+  (table) => [
+    index('landing_events_variant_at_idx').on(table.variant, table.at),
+    index('landing_events_kind_at_idx').on(table.kind, table.at),
+  ],
 )

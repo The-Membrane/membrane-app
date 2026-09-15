@@ -22,20 +22,32 @@
 // ---------------------------------------------------------------------------
 // HERO
 // ---------------------------------------------------------------------------
-export const HERO = {
+export interface HeroCopy {
+  readonly eyebrow: string
+  readonly headline: string
+  readonly sub: string
+  readonly cta: string
+  readonly readNote: string
+  readonly bridge: {
+    readonly eyebrow: string
+    readonly line: string
+    readonly cite: string
+    readonly note: string
+  }
+  readonly demoNote: string
+  /** Why this variant exists. Never rendered; it is the ruling the test is run under. */
+  readonly note: string
+}
+
+/**
+ * Everything the three variants share. The test moves the H1 and the line under it,
+ * and nothing else, so the eyebrow, the CTA target, the read disclosure, the bridge
+ * and the demo note are one object spread into all three.
+ */
+const SHARED = {
   eyebrow: 'Borrowers',
-  headline: 'Borrowers are senior here.',
-  sub: 'Four layers take a loss before it reaches you. The order is drawn below, open to anyone.',
-  /**
-   * The CTA names exactly what the read does (owner, 14 Sep: "stand in line where? mock or
-   * real? does it need a connection?"). It reads the address's OPEN position today on
-   * Ethereum mainnet across Aave V3, Spark, Compound V3, Morpho Blue and Fluid over a
-   * public read-only RPC (lib/position-sim/rpc.ts, adapters/), then replays it through the
-   * measured 10 Oct 2025 price path (lib/position-sim/scenario.ts). A pasted address does
-   * the same; the wallet only fills the box.
-   */
-  cta: 'Replay my position through 10 Oct 2025',
-  readNote: 'Reads your open position on leading Ethereum money markets. Replays it through the measured 10 Oct 2025 prices.',
+  readNote:
+    'Reads your open position on leading Ethereum money markets. Replays it through the measured 10 Oct 2025 prices.',
   /**
    * THE BRIDGE. The h1 and sub are about the loss waterfall (who absorbs bad debt); the
    * sim under it is about liquidation behaviour (repay to cap, cure, recall). Owner,
@@ -53,6 +65,72 @@ export const HERO = {
   /** Shown while the demo position is loaded, before any address or wallet. */
   demoNote: 'a real wallet Aave V3 liquidated on 10 Oct 2025. Connect yours to replace it.',
 } as const
+
+/**
+ * THE B/C SUB-LINE, shared by both assigned variants so the H1 is the only difference
+ * between them. The loss order here is the one the contracts implement: the reserve,
+ * MBRN staked under the asset, then the junior and senior lender tranches
+ * (Cdp._absorbBadDebt, contracts/Cdp.sol:2758-2869). Curator bonds are deliberately
+ * absent: CuratorRegistry.slash is onlyRedemptionEngine, so a bond is slashed for a
+ * failed redemption and never in the bad-debt cascade.
+ */
+const BC_SUB =
+  'Cross your line inside 4% and nothing sells for eight hours. The reserve, MBRN stakers and both lender tranches take a loss before you do.'
+
+/** The B/C call to action. Names the day the read replays, in the reader’s own terms. */
+const BC_CTA = 'See what you’d have kept on 10 Oct 2025'
+
+const BC_BRIDGE = {
+  ...SHARED.bridge,
+  line: 'Replayed on 10 Oct 2025 against the same oracle rounds Aave liquidated on, the eight hours inside the band close 36% less debt than Aave did across the 748 accounts whose collateral the day’s feeds can price. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
+}
+
+
+/**
+ * THE THREE HEROES.
+ *
+ * Owner ruling 2026-09-15: run the test on the H1 alone. B and C carry the same
+ * sub-line and the same CTA, so whichever wins, the win is the headline.
+ */
+export const HERO_VARIANTS: Record<'a' | 'b' | 'c', HeroCopy> = {
+  a: {
+    ...SHARED,
+    headline: 'Borrowers are senior here.',
+    sub: 'Four layers take a loss before it reaches you. The order is drawn below, open to anyone.',
+    /**
+     * The CTA names exactly what the read does (owner, 14 Sep: "stand in line where? mock or
+     * real? does it need a connection?"). It reads the address's OPEN position today on
+     * Ethereum mainnet across Aave V3, Spark, Compound V3, Morpho Blue and Fluid over a
+     * public read-only RPC (lib/position-sim/rpc.ts, adapters/), then replays it through the
+     * measured 10 Oct 2025 price path (lib/position-sim/scenario.ts). A pasted address does
+     * the same; the wallet only fills the box.
+     */
+    cta: 'Replay my position through 10 Oct 2025',
+    note: 'Owner ruling 2026-09-15. A is the seniority-led original, the hero that shipped on 14 Sep. It is saved in code and reachable at ?v=a, and the assignment in lib/landingVariant.ts never hands it out, so the test reads as a clean two-way between B and C.',
+  },
+  b: {
+    ...SHARED,
+    headline: 'Stop getting liquidated on wicks.',
+    sub: BC_SUB,
+    cta: BC_CTA,
+    bridge: BC_BRIDGE,
+    note: 'Owner ruling 2026-09-15. B is the imperative form the copy rule bans, entered on purpose: it names the reader’s problem in the reader’s own words, and the test measures what that form is worth against the same claim stated positively. It ships only if it wins, and the rule stands everywhere else on the app.',
+  },
+  c: {
+    ...SHARED,
+    headline: 'A wick has to hold for eight hours before it counts as a drop.',
+    sub: BC_SUB,
+    cta: BC_CTA,
+    bridge: BC_BRIDGE,
+    note: 'Owner ruling 2026-09-15. C is the positive form: it states what the protocol does rather than what the reader should stop doing, which is the house rule. It is also the variant every known crawler is pinned to, so the indexed H1 is one stable headline.',
+  },
+}
+
+/**
+ * BACK-COMPAT. Anything that reads HERO without knowing about the test keeps the
+ * original seniority-led copy. The landing itself goes through HERO_VARIANTS.
+ */
+export const HERO: HeroCopy = HERO_VARIANTS.a
 
 // ---------------------------------------------------------------------------
 // THE WATERFALL — Cdp._absorbBadDebt, contracts/Cdp.sol:2758-2869

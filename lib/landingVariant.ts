@@ -91,14 +91,14 @@ export function resolveLandingVariant(input: LandingVariantInput): LandingVarian
   if (isCrawler(input.userAgent)) return { variant: 'c', setCookie: false }
 
   const queried = Array.isArray(input.query) ? input.query[0] : input.query
-  if (isLandingVariant(queried)) return { variant: queried, setCookie: true }
+  if (isLandingVariant(queried)) return { variant: queried, setCookie: false }
 
-  const cookie = input.cookie
-  if (cookie === 'b' || cookie === 'c') return { variant: cookie, setCookie: false }
-
+  // Owner ruling 2026-09-15: randomise on every load. No cookie is read or written;
+  // each request is a fresh 50/50 split and the run event carries the letter it was
+  // rendered with, so attribution is per load rather than per browser.
   const randomId = input.randomId
   if (!randomId) return { variant: 'c', setCookie: false }
-  return { variant: hashToVariant(randomId), setCookie: true }
+  return { variant: hashToVariant(randomId), setCookie: false }
 }
 
 /**

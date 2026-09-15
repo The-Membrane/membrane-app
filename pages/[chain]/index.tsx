@@ -12,7 +12,6 @@ import type { EvidenceDoc } from '@/components/Evidence'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
 import {
     LANDING_VARIANT_COOKIE,
-    landingVariantCookie,
     resolveLandingVariant,
     type LandingVariant,
 } from '@/lib/landingVariant'
@@ -71,23 +70,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         summary = null
     }
 
-    // THE H1 TEST (owner ruling 2026-09-15). Resolved here, on the server, so the
-    // headline is in the first byte of HTML and no reader watches one H1 swap for
-    // another. ?v=a|b|c pins a variant and persists it; an existing b/c cookie is
-    // honoured; a fresh reader is split 50/50 across B and C on a random id; every
-    // known crawler gets C and no cookie, so the indexed H1 stays one headline.
-    const { variant, setCookie } = resolveLandingVariant({
+    // Owner ruling 2026-09-15: the H1 is randomised on every load. No cookie is read or
+    // written; ?v=a|b|c pins a variant for that request only; a known crawler always gets
+    // C so the indexed H1 stays one headline. Cache-Control is private, no-store, so a
+    // per-request split is never cached.
+const { variant } = resolveLandingVariant({
         query: context.query?.v,
-        cookie: context.req.cookies?.[LANDING_VARIANT_COOKIE],
         userAgent: context.req.headers['user-agent'],
         randomId: randomUUID(),
     })
-    if (setCookie) {
-        context.res.setHeader(
-            'Set-Cookie',
-            landingVariantCookie(variant, { secure: process.env.NODE_ENV === 'production' }),
-        )
-    }
     // The page is per-reader from here on: two readers get two headlines at one URL,
     // so no shared cache may hold either of them.
     context.res.setHeader('Cache-Control', 'private, no-store')

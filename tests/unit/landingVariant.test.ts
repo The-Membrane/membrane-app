@@ -29,37 +29,32 @@ describe('resolveLandingVariant', () => {
           userAgent: BROWSER_UA,
           randomId: 'ignored',
         }),
-      ).toEqual({ variant: v, setCookie: true })
+      ).toEqual({ variant: v, setCookie: false })
     }
   })
 
   it('takes the first value when ?v arrives repeated', () => {
     expect(
       resolveLandingVariant({ query: ['c', 'b'], userAgent: BROWSER_UA, randomId: 'x' }),
-    ).toEqual({ variant: 'c', setCookie: true })
+    ).toEqual({ variant: 'c', setCookie: false })
   })
 
   it('ignores a ?v that names no variant', () => {
     const r = resolveLandingVariant({ query: 'd', cookie: 'b', userAgent: BROWSER_UA })
-    expect(r).toEqual({ variant: 'b', setCookie: false })
+    expect(r).toEqual({ variant: expect.stringMatching(/^[bc]$/), setCookie: false })
   })
 
-  it('honours a b or c cookie without re-setting it', () => {
-    expect(resolveLandingVariant({ cookie: 'b', userAgent: BROWSER_UA, randomId: 'x' })).toEqual({
-      variant: 'b',
-      setCookie: false,
-    })
-    expect(resolveLandingVariant({ cookie: 'c', userAgent: BROWSER_UA, randomId: 'x' })).toEqual({
-      variant: 'c',
-      setCookie: false,
-    })
+  it('ignores any cookie: each load is a fresh split (owner ruling 2026-09-15)', () => {
+    for (const cookie of ['b', 'c', 'a']) {
+      const r = resolveLandingVariant({ cookie, randomId: 'seed-1' })
+      expect(['b', 'c']).toContain(r.variant)
+      expect(r.setCookie).toBe(false)
+    }
   })
 
-  it('ignores an a cookie and re-assigns into the test', () => {
-    const r = resolveLandingVariant({ cookie: 'a', userAgent: BROWSER_UA, randomId: 'seed-a' })
-    expect(r.variant).not.toBe('a')
-    expect(['b', 'c']).toContain(r.variant)
-    expect(r.setCookie).toBe(true)
+  it('never asks to set a cookie', () => {
+    expect(resolveLandingVariant({ query: 'b', randomId: 'x' }).setCookie).toBe(false)
+    expect(resolveLandingVariant({ randomId: 'y' }).setCookie).toBe(false)
   })
 
   it('gives every known crawler c and no cookie, whatever the query or cookie says', () => {
@@ -89,12 +84,11 @@ describe('resolveLandingVariant', () => {
     expect(isCrawler(null)).toBe(false)
   })
 
-  it('assigns a fresh reader b or c and sets the cookie', () => {
-    for (const id of ['a1', 'b2', 'c3', 'd4', 'e5', 'f6']) {
-      const r = resolveLandingVariant({ userAgent: BROWSER_UA, randomId: id })
-      expect(['b', 'c']).toContain(r.variant)
-      expect(r.setCookie).toBe(true)
-    }
+  it('assigns a fresh load b or c, deterministically per id, both letters reachable', () => {
+    const seen = new Set<string>()
+    for (let i = 0; i < 64; i++) seen.add(resolveLandingVariant({ randomId: `id-${i}` }).variant)
+    expect(seen).toEqual(new Set(['b', 'c']))
+    expect(resolveLandingVariant({ randomId: 'same' })).toEqual(resolveLandingVariant({ randomId: 'same' }))
   })
 
   it('falls back to c and no cookie when the caller supplies no random id', () => {

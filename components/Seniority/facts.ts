@@ -118,7 +118,7 @@ export const HERO_VARIANTS: Record<'a' | 'b' | 'c', HeroCopy> = {
   },
   c: {
     ...SHARED,
-    headline: 'A wick has to hold for eight hours before it counts as a drop.',
+    headline: 'Liquidated on a wick? Here a drop has to hold for eight hours first.',
     sub: BC_SUB,
     cta: BC_CTA,
     bridge: BC_BRIDGE,

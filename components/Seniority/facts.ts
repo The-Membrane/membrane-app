@@ -35,7 +35,7 @@ export const HERO = {
    * the same; the wallet only fills the box.
    */
   cta: 'Replay my position through 10 Oct 2025',
-  readNote: 'Reads your open position on Aave V3, Spark, Compound V3, Morpho Blue or Fluid on Ethereum today. Read-only, no signature. Replays it through the measured 10 Oct 2025 prices. Or paste any address. Address logged.',
+  readNote: 'Reads your open position on leading Ethereum money markets. Replays it through the measured 10 Oct 2025 prices.',
   /**
    * THE BRIDGE. The h1 and sub are about the loss waterfall (who absorbs bad debt); the
    * sim under it is about liquidation behaviour (repay to cap, cure, recall). Owner,

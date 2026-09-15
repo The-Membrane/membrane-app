@@ -150,7 +150,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         id="sim-address-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="0x… paste any address"
+        placeholder={primaryConnect ? '0x… connect or paste an address' : '0x… paste any address'}
         aria-label="Ethereum address to read a lending position from"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? 'simulator-address-error' : undefined}

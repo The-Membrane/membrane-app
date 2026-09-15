@@ -45,6 +45,21 @@ export const Hero: React.FC = () => (
       </Text>
     </VStack>
 
+    {/* THE BRIDGE: waterfall above, liquidation behaviour below. Mono, not a second
+        serif dek, so it reads as the caption that hands one topic to the other. */}
+    <VStack align="flex-start" spacing={SPACING.xs} maxW="720px">
+      <Eyebrow>{HERO.bridge.eyebrow}</Eyebrow>
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize={TYPOGRAPHY.small}
+        color={SEMANTIC_COLORS.textPrimary}
+        lineHeight="1.7"
+        title={HERO.bridge.cite}
+      >
+        {HERO.bridge.line}
+      </Text>
+    </VStack>
+
     <Simulator mode="borrower" hero connectLabel={HERO.cta} />
   </VStack>
 )

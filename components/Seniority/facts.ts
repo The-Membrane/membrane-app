@@ -27,6 +27,18 @@ export const HERO = {
   headline: 'Borrowers are senior here.',
   sub: 'Four layers take a loss before it reaches you. Connect a wallet and see where you stand in line.',
   cta: 'See where you stand in line',
+  /**
+   * THE BRIDGE. The h1 and sub are about the loss waterfall (who absorbs bad debt); the
+   * sim under it is about liquidation behaviour (repay to cap, cure, recall). Owner,
+   * 14 Sep: the two topics need a connector, and the saving must not imply Membrane is
+   * the only venue that repays part of a position (Aave V3 had a 50% close factor; V4
+   * refines it). So the bridge names the mechanism and gives partial repayment away.
+   */
+  bridge: {
+    eyebrow: 'Tested on a real day',
+    line: 'With borrower-first liquidation the position is repaid to its cap once, after eight hours to cure and a recall of the deployed debt. Other venues also repay part of a position. The eight hours and the recall are Membrane’s.',
+    cite: 'contracts/LiquidationEngine.sol:803-819 (8h cure, timelocked) · contracts/LiquidationEngine.sol:1105-1280 (recall) · lib/position-sim/outcome.ts (one repay to cap, the model the census runs)',
+  },
   /** Shown while the demo position is loaded, before any address or wallet. */
   demoNote: 'a real wallet Aave V3 liquidated on 10 Oct 2025. Connect yours to replace it.',
 } as const

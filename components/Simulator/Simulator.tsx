@@ -214,9 +214,11 @@ export interface SimulatorProps {
    * (components/Seniority/Hero.tsx); the whole page still lives at its own route.
    */
   hero?: boolean
+  /** Hero form only: label for the primary connect button. */
+  connectLabel?: string
 }
 
-export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, hero = false }) => {
+export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, hero = false, connectLabel }) => {
   const router = useRouter()
   /** Keeps the sibling-mode link on the chain the reader is already on. */
   const chainForLinks = typeof router.query.chain === 'string' ? router.query.chain : DEFAULT_CHAIN
@@ -489,6 +491,10 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, h
   )
 
   useEffect(() => {
+    // Hero form never writes control state into the URL. On the landing this effect
+    // rewrote an indexable canonical URL to /ethereum?p=aave-v3&ltv=…&dep=…, which
+    // splits the page's SEO identity and makes a copied link carry demo controls.
+    if (hero) return
     if (!router.isReady || !hydrated.current) return
     const base = router.asPath.split('?')[0]
     const next = base + writeUrlState(urlState)
@@ -608,8 +614,11 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, h
     <Box
       maxW="1240px"
       mx="auto"
-      px={{ base: SPACING.md, md: SPACING.lg }}
-      pb={SPACING['2xl']}
+      // Hero form lives inside the landing's own container: no inset of its own, so the
+      // verdict shares the h1's left edge (alignment is grouping).
+      px={hero ? 0 : { base: SPACING.md, md: SPACING.lg }}
+      w={hero ? '100%' : undefined}
+      pb={hero ? 0 : SPACING['2xl']}
       fontFamily={TYPOGRAPHY.fontMono}
       color={SEMANTIC_COLORS.textPrimary}
       display="grid"
@@ -623,6 +632,10 @@ export const Simulator: React.FC<SimulatorProps> = ({ mode = LANDING_SIM_MODE, h
           comparison={comparison}
           carry={carry}
           mode={mode}
+          hideSubhead={hero}
+          compact={hero}
+          primaryConnect={hero}
+          connectLabel={connectLabel}
           heroVariant={heroVariant}
           history={heroHistory}
           isDemo={isDemo}

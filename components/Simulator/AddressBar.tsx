@@ -70,6 +70,11 @@ export interface AddressBarProps {
   /** Set once a real address has been read; null while the worked example is showing. */
   loadedAddress: string | null
   onClear: () => void
+  /** Landing hero form: connect is the primary action (solid phosphor, first), the
+   *  paste box is secondary. On /simulator paste stays primary. */
+  primaryConnect?: boolean
+  /** Label for the primary connect button; falls back to the plain connect copy. */
+  connectLabel?: string
   isLoading: boolean
   /** Verbatim reason the input was rejected, or null. */
   error: string | null
@@ -79,6 +84,8 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   value,
   onChange,
   onSubmit,
+  primaryConnect = false,
+  connectLabel,
   loadedAddress,
   onClear,
   isLoading,
@@ -105,6 +112,22 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     maxW="560px"
     w="100%"
   >
+    {primaryConnect && (
+      <Button
+        type="button"
+        onClick={useWalletAddress}
+        {...BTN}
+        w="100%"
+        bg={SEMANTIC_COLORS.success}
+        borderColor={SEMANTIC_COLORS.success}
+        color={SEMANTIC_COLORS.bgPrimary}
+        fontWeight={TYPOGRAPHY.medium}
+        _hover={{ bg: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.textPrimary }}
+      >
+        {isWalletConnected && walletAddress ? 'Use connected wallet' : connectLabel ?? 'Connect a wallet'}
+      </Button>
+    )}
+
     <Box
       as="form"
       display="flex"
@@ -150,9 +173,11 @@ export const AddressBar: React.FC<AddressBarProps> = ({
       </Button>
     </Box>
 
-    <Button type="button" onClick={useWalletAddress} {...LINK_BTN}>
-      {isWalletConnected && walletAddress ? 'Use connected wallet' : 'Connect a wallet to fill this in'}
-    </Button>
+    {!primaryConnect && (
+      <Button type="button" onClick={useWalletAddress} {...LINK_BTN}>
+        {isWalletConnected && walletAddress ? 'Use connected wallet' : 'Connect a wallet to fill this in'}
+      </Button>
+    )}
 
     {loadedAddress && (
       <Button type="button" onClick={onClear} {...LINK_BTN}>

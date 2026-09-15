@@ -129,9 +129,8 @@ const Column: React.FC<{
           />
         </Box>
       ))}
+      {children}
     </Box>
-
-    {children}
   </VStack>
 )
 
@@ -148,6 +147,36 @@ export const Waterfall: React.FC<{ num?: string }> = ({ num = '01' }) => (
           borderColor={SEMANTIC_COLORS.success}
           pt={SPACING_PATTERNS.cardPadding}
         >
+          {/* The fifth layer is the borrower, and the cascade stops above it. Drawn as a
+              cell so the two columns contrast spatially: Pooled lending puts YOU at the
+              top in blood; here you sit under four layers, in phosphor. */}
+          <HStack spacing={SPACING.sm} align="baseline">
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.label}
+              letterSpacing="0.28em"
+              color={SEMANTIC_COLORS.success}
+            >
+              05
+            </Text>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.body}
+              fontWeight={TYPOGRAPHY.medium}
+              color={SEMANTIC_COLORS.success}
+            >
+              You
+            </Text>
+          </HStack>
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.label}
+            letterSpacing="0.28em"
+            textTransform="uppercase"
+            color={SEMANTIC_COLORS.success}
+          >
+            borrower
+          </Text>
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
             fontSize={TYPOGRAPHY.small}

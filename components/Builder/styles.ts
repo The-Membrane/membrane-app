@@ -45,4 +45,7 @@ export const monoSm = {
 }
 
 /** Tabular numerals for every figure. */
-export const tabular = { fontVariantNumeric: 'tabular-nums' }
+// `fontVariantNumeric` is not a Chakra v2 style prop; spread as a bare prop it reaches the DOM
+// and React logs "does not recognize the prop" on every numeric Text (smoke test: zero
+// console errors). Routed through `sx` so it lands in the emitted CSS instead.
+export const tabular = { sx: { fontVariantNumeric: 'tabular-nums' } }

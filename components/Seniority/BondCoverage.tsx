@@ -21,16 +21,25 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 
 import { BOND_COVERAGE } from './facts'
 
-/** 9px tertiary mono. The citation stamp used under every claim on this page. */
+/**
+ * Provenance, one word. The contract path lives in the tooltip. Sixteen 9px file:line
+ * stamps read as dust to a stranger; the proof links carry the visible evidence and this
+ * keeps the exact cite one hover away for anyone checking.
+ */
 export const Cite: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Text
+    as="span"
+    title={typeof children === 'string' ? children : undefined}
     fontFamily={TYPOGRAPHY.fontMono}
     fontSize="9px"
     color={SEMANTIC_COLORS.textTertiary}
-    lineHeight="1.7"
-    letterSpacing="0.04em"
+    letterSpacing="0.14em"
+    textTransform="uppercase"
+    textDecoration="underline dotted"
+    textUnderlineOffset="3px"
+    cursor="help"
   >
-    {children}
+    source
   </Text>
 )
 
@@ -59,7 +68,7 @@ export const BondCoverage: React.FC<BondCoverageProps> = ({ live }) => {
   const figure = ratio === null ? '—' : `${(ratio * 100).toFixed(2)}%`
   const stampLabel =
     ratio === null
-      ? `mock · registry address absent from config/evm · reads: ${BOND_COVERAGE.readPath}`
+      ? 'mock · registry address pending'
       : `on-chain · fetched ${clock()}`
 
   return (
@@ -98,7 +107,17 @@ export const BondCoverage: React.FC<BondCoverageProps> = ({ live }) => {
         </VStack>
 
         {/* The headline slot. A figure and its provenance on one baseline, so the
-            number is never read without the stamp that qualifies it. */}
+            number is never read without the stamp that qualifies it. The eyebrow names
+            the slot, so an empty dash reads as "no value yet" rather than a stray rule. */}
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.label}
+          letterSpacing="0.28em"
+          textTransform="uppercase"
+          color={SEMANTIC_COLORS.textTertiary}
+        >
+          coverage · redemption basis
+        </Text>
         <HStack align="baseline" spacing={SPACING.base} flexWrap="wrap">
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
@@ -109,7 +128,9 @@ export const BondCoverage: React.FC<BondCoverageProps> = ({ live }) => {
           >
             {figure}
           </Text>
-          <MockStamp label={stampLabel} />
+          <Box as="span" title={`reads: ${BOND_COVERAGE.readPath}`}>
+            <MockStamp label={stampLabel} />
+          </Box>
         </HStack>
 
         <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={SPACING_PATTERNS.sectionGap}>

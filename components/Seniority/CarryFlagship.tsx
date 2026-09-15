@@ -81,6 +81,7 @@ export const CarryFlagship: React.FC<{ num?: string }> = ({ num = '04' }) => {
         href={`/${chainName}${CARRY.href}`}
         variant="ghost"
         alignSelf="flex-start"
+        w="auto"
         borderRadius={0}
         border="1px solid"
         borderColor={SEMANTIC_COLORS.borderSubtle}

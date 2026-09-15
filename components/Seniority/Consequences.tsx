@@ -44,6 +44,7 @@ export const Consequences: React.FC<{ num?: string }> = ({ num = '02' }) => {
                   fontFamily={TYPOGRAPHY.fontMono}
                   fontSize={TYPOGRAPHY.xs}
                   color={SEMANTIC_COLORS.textSecondary}
+                  whiteSpace="nowrap"
                 >
                   Proof:
                 </Text>

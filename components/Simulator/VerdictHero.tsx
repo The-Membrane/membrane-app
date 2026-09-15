@@ -89,6 +89,12 @@ export interface VerdictHeroProps extends AddressBarProps {
   carry?: CarryCost | null
   /** Which story is allowed to lead. See the MODE note at the top of this file. */
   mode?: SimMode
+  /** Landing hero form: the page above already carries the dek, so the sim's own
+   *  subhead is suppressed. /simulator keeps it (owner layout ruling 2026-09-12). */
+  hideSubhead?: boolean
+  /** Hero form under a page h1: the verdict is evidence, not the headline. Serif
+   *  lines drop to h2 scale, the figure to 40px, and the block left-aligns to the h1. */
+  compact?: boolean
   /**
    * WHICH PROOF LEADS (owner brief 2026-09-12: "test this as the hero as well").
    * 'oct10' is the measured stress window; 'history' is the address's own liquidation
@@ -161,6 +167,8 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   startTs,
   stepSeconds,
   errors,
+  hideSubhead = false,
+  compact = false,
   ...addressBar
 }) => {
   const v = comparison ? verdict(comparison, isDemo) : null
@@ -201,12 +209,12 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
       alignItems="center"
     >
       {/* Everything above the graph is centred (owner, 2026-09-12). */}
-      <Box display="grid" gap={SPACING.base} alignContent="center" justifyItems="center" textAlign="center">
+      <Box display="grid" gap={SPACING.base} alignContent="center" justifyItems={compact ? 'start' : 'center'} textAlign={compact ? 'left' : 'center'}>
         {/* THE SUBHEAD (borrower mode only). Owner layout ruling 2026-09-12: one landing
             page — the hero SELLS the carry product by name, then the sim PROVES the rails
             with the borrow verdict below it. One line, above the headline, nothing else
             added to the hero. Verbatim; do not paraphrase. */}
-        {mode === 'borrower' && (
+        {mode === 'borrower' && !hideSubhead && (
           <Text
             data-testid="sim-hero-subhead"
             fontFamily={TYPOGRAPHY.fontMono}
@@ -229,7 +237,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               data-testid="sim-verdict-headline"
               as="h1"
               fontFamily={TYPOGRAPHY.fontDisplay}
-              fontSize="clamp(30px, 5vw, 54px)"
+              fontSize={compact ? TYPOGRAPHY.h2 : 'clamp(30px, 5vw, 54px)'}
               lineHeight={1.08}
               letterSpacing="-0.015em"
               color={SEMANTIC_COLORS.success}
@@ -242,7 +250,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               <Text
                 data-testid="sim-history-hero-number"
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="clamp(36px, 6vw, 64px)"
+                fontSize={compact ? '40px' : 'clamp(36px, 6vw, 64px)'}
                 lineHeight={1.02}
                 {...tabular}
                 color={SEMANTIC_COLORS.success}
@@ -287,7 +295,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               data-testid="sim-verdict-headline"
               as="h1"
               fontFamily={TYPOGRAPHY.fontDisplay}
-              fontSize="clamp(30px, 5vw, 54px)"
+              fontSize={compact ? TYPOGRAPHY.h2 : 'clamp(30px, 5vw, 54px)'}
               lineHeight={1.08}
               letterSpacing="-0.015em"
               sx={{ textWrap: 'balance' }}
@@ -309,7 +317,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               <Text
                 data-testid="sim-carry-cost"
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="clamp(36px, 6vw, 64px)"
+                fontSize={compact ? '40px' : 'clamp(36px, 6vw, 64px)'}
                 lineHeight={1.02}
                 {...tabular}
                 color={SEMANTIC_COLORS.danger}
@@ -354,7 +362,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               data-testid="sim-verdict-headline"
               as="h1"
               fontFamily={TYPOGRAPHY.fontDisplay}
-              fontSize="clamp(30px, 5vw, 54px)"
+              fontSize={compact ? TYPOGRAPHY.h2 : 'clamp(30px, 5vw, 54px)'}
               lineHeight={1.08}
               letterSpacing="-0.015em"
               sx={{ textWrap: 'balance' }}
@@ -370,7 +378,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
             <Box display="grid" gap={SPACING.xs}>
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="clamp(36px, 6vw, 64px)"
+                fontSize={compact ? '40px' : 'clamp(36px, 6vw, 64px)'}
                 lineHeight={1.02}
                 {...tabular}
                 color={deltaColor}

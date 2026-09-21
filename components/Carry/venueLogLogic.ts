@@ -104,9 +104,17 @@ export const consequence = (e: Entry): { text: string; tone: 'warning' | 'normal
       if (/duration|seconds|cooldown/i.test(k)) return fmtDuration(n)
       return n.toLocaleString('en-US', { maximumFractionDigits: 2 })
     }
+    // Recorder column names → what the reader is actually looking at.
+    const LABEL: Record<string, string> = {
+      depth_usd: 'instant swap-out depth',
+      instant_usd: 'instant exit',
+      cooldownDuration: 'cooldown',
+      supply_cap_usd: 'supply cap',
+      utilization: 'utilization',
+    }
     const parts = keys
       .filter((k) => String(e.prev?.[k]) !== String(e.next?.[k]))
-      .map((k) => `${k.replace(/_/g, ' ')} ${fmt(k, e.prev?.[k])} → ${fmt(k, e.next?.[k])}`)
+      .map((k) => `${LABEL[k] ?? k.replace(/_/g, ' ')} ${fmt(k, e.prev?.[k])} → ${fmt(k, e.next?.[k])}`)
     const down = keys.some((k) => Number(e.next?.[k]) < Number(e.prev?.[k]))
     return { text: parts.join(' · ') || 'parameter changed', tone: down ? 'warning' : 'normal' }
   }

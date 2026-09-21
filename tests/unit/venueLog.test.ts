@@ -52,7 +52,7 @@ describe('VenueLog consequence rendering', () => {
 
   it('param_changed renders each changed key by name, USD keys as dollars', () => {
     const c = consequence(entry('param_changed', { depth_usd: 24589947.6 }, { depth_usd: 30505294.0 }))
-    expect(c.text).toBe("depth usd $24.59M → $30.51M")
+    expect(c.text).toBe("instant swap-out depth $24.59M → $30.51M")
     expect(c.tone).toBe('normal')
     expect(consequence(entry('param_changed', { depth_usd: 30e6 }, { depth_usd: 14e6 })).tone).toBe('warning')
   })

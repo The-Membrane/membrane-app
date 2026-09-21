@@ -59,7 +59,7 @@ const NeonBootSplash = () => {
         px={4}
         justifyContent="center"
         alignItems="center"
-        gap={{ base: 0, md: '0.2em' }}
+        gap={{ base: 0, md: '0.6em' }}
         aria-hidden="true"
       >
         <b style={{ display: 'flex' }}>

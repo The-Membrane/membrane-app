@@ -66,17 +66,19 @@ export const GUARANTEE = {
  */
 export const CARRY_CLAIMS = [
   'Borrow cost comes out of the carry yield. If the spread inverts, curators cover 14 days of yield to give you time to act.',
-  'No babysitting, no keeper to fail. Unwinds run in-house with no protocol fee.',
-  'Your rate is set when you borrow. Any change to it comes with seven days’ notice — never a rate hike while you are trying to exit.',
+  'No babysitting, no keeper to fail. Unwinds run in-house at the liquidation fee.',
+  `A curator can change the yield split with 7 days’ notice. Otherwise it moves immediately in only 1 case: your curator's vault is repriced to the redemption avoidance rate, the AUM-weighted rate of the lowest-paying vaults. `,
+  // 'A recall carries no protocol fee, against a swap-and-rebalance bill every time a keeper adjusts you.',
 ] as const
 
-/** Card titles, one per CARRY_CLAIMS entry, same order. ≤ 5 words. The fourth claim
- *  (recall vs rebalance fee) was REMOVED by the owner 2026-09-21 as incorrect. */
+/** Card titles, one per CARRY_CLAIMS entry, same order. ≤ 4 words. */
 export const CARRY_CLAIM_TITLES = [
-  'Paid from yield',
-  'No keeper to fail',
-  'Repricing on 7 days\' notice',
+  'Positive carry protections',
+  'In-protocol unwinds',
+  'Measured repricing for lender exit',
+  // 'Recall, not rebalance',
 ] as const
 
-/** The caveat that rides with the claims, never collapsed. */
+/** The liquidation caveat. Owner 2026-09-21: no longer rendered under the claim cards —
+ *  the hero above them IS a liquidation and the fine print already says it. */
 export const CARRY_CLAIMS_CAVEAT = 'Volatile collateral can still be liquidated.'

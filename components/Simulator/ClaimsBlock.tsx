@@ -8,7 +8,7 @@ import { Box, Text } from '@chakra-ui/react'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import { CARRY_CLAIMS, CARRY_CLAIM_TITLES, CARRY_CLAIMS_CAVEAT } from '@/lib/position-sim'
+import { CARRY_CLAIMS, CARRY_CLAIM_TITLES } from '@/lib/position-sim'
 
 export const ClaimsBlock: React.FC = () => (
   <Box data-testid="sim-claims" display="grid" gap={SPACING.sm}>
@@ -62,9 +62,6 @@ export const ClaimsBlock: React.FC = () => (
         </Box>
       ))}
     </Box>
-    <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.warning}>
-      {CARRY_CLAIMS_CAVEAT}
-    </Text>
   </Box>
 )
 

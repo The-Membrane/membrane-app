@@ -51,7 +51,9 @@ const CARRY_TERMS =
   'Membrane charges no interest on debt deployed in a canonical venue; it is paid a ' +
   "curator-set share of that venue's yield. In a worst case the spread can invert — " +
   'curators cover 14 days of yield to give the borrower time to act. ' +
-  'Undeployed debt pays a curator-set base rate. Volatile collateral can still be liquidated.'
+  'Undeployed debt pays a curator-set base rate. Your rate moves in one case: a curator vault ' +
+  'repriced to the avoidance rate (the AUM-weighted rate of the lowest-paying vaults), and a ' +
+  "curator can change the yield split only with seven days' notice. Volatile collateral can still be liquidated."
 
 export interface FinePrintProps {
   /** Caveats the two runs recorded, already unioned and de-duplicated by the caller. */

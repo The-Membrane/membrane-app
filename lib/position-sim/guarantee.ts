@@ -67,7 +67,7 @@ export const GUARANTEE = {
 export const CARRY_CLAIMS = [
   'Borrow cost comes out of the carry yield. If the spread inverts, curators cover 14 days of yield to give you time to act.',
   'No babysitting, no keeper to fail. Unwinds run in-house with no protocol fee.',
-  'Your rate is set when you borrow. It moves in one case: your curator vault is repriced to the avoidance rate, the AUM-weighted rate of the lowest-paying vaults. A curator can change the yield split with seven days’ notice.',
+  'Your rate is set when you borrow. Any change to it comes with seven days’ notice — never a rate hike while you are trying to exit.',
 ] as const
 
 /** Card titles, one per CARRY_CLAIMS entry, same order. ≤ 5 words. The fourth claim

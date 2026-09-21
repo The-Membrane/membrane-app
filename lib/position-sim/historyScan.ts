@@ -1121,7 +1121,7 @@ function buildMethod(x: {
     }, and the LTV at the event is taken to equal that line — an account being liquidated was at or over it by definition. A multi-collateral account's true blended line is not cheaply readable at a historical block. A Morpho Blue market needs no such approximation: its LLTV is exact.`,
   )
   parts.push(
-    `Membrane is charged the SOURCE venue's own liquidation bonus as its fee (Aave/Spark liquidationBonus − 1, Morpho's LIF), never a cheaper one. Position size is the liquidated slice itself: debt = the USD the liquidators repaid across the episode, collateral = that debt at the event LTV, so "x% instead of 100%" means x% of what was actually closed. Stablecoins are held at $1.00; wstETH is priced as stETH/USD × stEthPerToken. Assets with no committed price source are listed unpriced and counted in neither direction.`,
+    `Membrane is charged the SOURCE venue's own liquidation bonus as its fee (Aave/Spark liquidationBonus − 1, Morpho's LIF), never a cheaper one. Position size is the liquidated slice itself: debt = the USD the liquidators repaid across the episode, collateral = that debt at the event LTV, so "Membrane would have sold $Y" is measured against the $X the liquidators actually closed, and "you keep" is the difference. Stablecoins are held at $1.00; wstETH is priced as stETH/USD × stEthPerToken. Assets with no committed price source are listed unpriced and counted in neither direction.`,
   )
   if (x.truncated) parts.push(`Only the most recent ${MAX_EVENTS} events were replayed.`)
   if (x.incomplete)

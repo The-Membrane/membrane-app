@@ -10,7 +10,7 @@
 //  2. NO MANUFACTURED NEAR-MISS. A wallet with no liquidation history gets ONE plain
 //     sentence and no number at all. Not a zero in big type — a sentence.
 //  3. THE NON-SAVES RENDER TOO. "Liquidated anyway — 2 Membrane liquidations, 30%
-//     instead of 100%", BROKE, and WORSE all get a row, in gold and blood. Reporting
+//     sold / would have sold / you keep"), BROKE, and WORSE all get a row, in gold and blood. Reporting
 //     the losses is what makes the saves believable, and hiding them would make this
 //     block advertising.
 //  4. THE ROW IS AN EPISODE, NOT AN EVENT (owner ruling 2026-09-12). Events within 24h
@@ -49,39 +49,41 @@ export const historyDate = (ts: number): string => {
   return `${d.getUTCDate()} ${d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })} ${d.getUTCFullYear()}`
 }
 
-/** The verdict tag, in the words the brief asked for. `null` share prints no percent.
- *  The liquidation COUNT is part of the copy on every non-save: one repay-to-cap and
- *  three of them are different outcomes and must never read the same. */
-export function verdictTag(e: HistoryEpisode): { text: string; color: string } {
-  const pct = e.membraneShare === null ? null : Math.round(e.membraneShare * 100)
+/**
+ * The verdict, as a COMPARISON the reader can use (owner 2026-09-21: "just telling them
+ * they would've gotten liquidated as well isn't useful"). Every non-save row answers the
+ * same three things: what was sold, what Membrane would have sold, what that leaves you.
+ * `membraneShare` (Membrane's seizure ÷ the actual seizure) is never printed bare — a
+ * "37%" with no referent read as a slice of the position, which it is not.
+ */
+export function verdictTag(e: HistoryEpisode): { text: string; color: string; kept: number | null } {
   const n = e.membraneLiquidations
   const times = `${n} Membrane liquidation${n === 1 ? '' : 's'}`
+  const kept = e.membraneShare === null ? null : e.actualSeizedUsd - e.membraneSeizedUsd
+  const keep = kept === null ? '' : ` · you keep ${usd(Math.abs(kept))}${kept < 0 ? ' less' : ''}`
   switch (e.verdict) {
     case 'saved':
-      return { text: 'SAVED — nothing sold', color: SEMANTIC_COLORS.success }
+      return { text: `SAVED — nothing sold · you keep ${usd(e.actualSeizedUsd)}`, color: SEMANTIC_COLORS.success, kept: e.actualSeizedUsd }
     case 'partial':
       return {
-        text:
-          pct === null
-            ? `liquidated anyway — ${times}, repaying only to the borrow cap`
-            : `liquidated anyway — ${times}, ${pct}% instead of 100%`,
+        text: `Membrane would have sold ${usd(e.membraneSeizedUsd)} over ${times}${keep}`,
         color: SEMANTIC_COLORS.warning,
+        kept,
       }
     case 'broke':
       return {
-        text:
-          pct === null
-            ? `BROKE the 4% band — immediate sale, ${times}`
-            : `BROKE the 4% band — ${pct}%`,
+        text: `broke the 4% band — Membrane would have sold ${usd(e.membraneSeizedUsd)} over ${times}${keep}`,
         color: SEMANTIC_COLORS.danger,
+        kept,
       }
     case 'worse':
       return {
-        text: pct === null ? `worse on Membrane — ${times}` : `worse on Membrane — ${pct}%`,
+        text: `worse on Membrane — would have sold ${usd(e.membraneSeizedUsd)} over ${times}${keep}`,
         color: SEMANTIC_COLORS.danger,
+        kept,
       }
     default:
-      return { text: 'unpriced — not counted', color: SEMANTIC_COLORS.textTertiary }
+      return { text: 'unpriced — not counted', color: SEMANTIC_COLORS.textTertiary, kept: null }
   }
 }
 
@@ -284,7 +286,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
                 >
                   sold {usd(e.actualSeizedUsd)} {e.collateral}
                 </Text>
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={tag.color}>
+                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={tag.color} {...tabular}>
                   {tag.text}
                 </Text>
               </Box>
@@ -313,20 +315,31 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
         })}
       </Box>
 
-      {h.totals.partialCount > 0 && (
-        <Text
-          fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="12px"
-          color={SEMANTIC_COLORS.textSecondary}
-          lineHeight={1.6}
-        >
-          On the {h.totals.partialCount} episode{h.totals.partialCount === 1 ? '' : 's'} it could
-          not save, Membrane would still have kept {usd(h.totals.partialKeptUsd)} of collateral by
-          repaying only to the borrow cap — across {h.totals.membraneLiquidationsTotal} Membrane
-          liquidation{h.totals.membraneLiquidationsTotal === 1 ? '' : 's'} in all, re-liquidations
-          included.
-        </Text>
-      )}
+      {/* THE COMPARATIVE TOTAL — one line the reader can act on: what was sold, what
+          Membrane would have sold across every priced episode (re-liquidations included),
+          and the difference. Unknown episodes are excluded from all three. */}
+      {(() => {
+        const priced = episodes.filter((e) => e.membraneShare !== null || e.verdict === 'saved')
+        if (priced.length === 0) return null
+        const sold = priced.reduce((a, e) => a + e.actualSeizedUsd, 0)
+        const membrane = priced.reduce((a, e) => a + e.membraneSeizedUsd, 0)
+        const net = sold - membrane
+        return (
+          <Text
+            data-testid="sim-history-net"
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="12.5px"
+            color={net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
+            lineHeight={1.6}
+            {...tabular}
+          >
+            Across {priced.length} priced episode{priced.length === 1 ? '' : 's'}: sold {usd(sold)} ·
+            Membrane would have sold {usd(membrane)} over {h.totals.membraneLiquidationsTotal} liquidation
+            {h.totals.membraneLiquidationsTotal === 1 ? '' : 's'} · you keep {usd(Math.abs(net))}
+            {net < 0 ? ' less' : ''}.
+          </Text>
+        )
+      })()}
 
       {h.totals.worseCount > 0 && (
         <Text
@@ -352,7 +365,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
           >
             Scanned: Aave V3, Spark, Morpho Blue.
           </Text>
-          {(h.notScanned ?? []).map((n) => (
+          {/* {(h.notScanned ?? []).map((n) => (
             <Text
               key={n.protocol}
               fontFamily={TYPOGRAPHY.fontMono}
@@ -362,7 +375,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
             >
               Not scanned — {n.protocol}: {n.reason}
             </Text>
-          ))}
+          ))} */}
         </Box>
       )}
     </Box>

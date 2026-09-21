@@ -36,10 +36,25 @@ describe('VenueLog consequence rendering', () => {
     expect(up.tone).toBe('normal')
   })
 
-  it('falls back to raw prev→next for unknown kinds, never throws', () => {
+  it('names an unknown kind and never dumps JSON', () => {
     const c = consequence(entry('brand_new_kind', { a: 1 }, { a: 2 }))
-    expect(c.text).toContain('brand_new_kind')
+    expect(c.text).toBe('brand new kind recorded')
+    expect(c.text).not.toContain('{')
     expect(c.tone).toBe('normal')
+  })
+
+  it('terms_page_changed says the page was edited, never the hash', () => {
+    const c = consequence(entry('terms_page_changed', { content_len: 6229, content_hash: 'aa' }, { content_len: 6300, content_hash: 'bb' }))
+    expect(c.text).toBe('terms page edited (+71 chars) — read it before you rely on it')
+    expect(c.text).not.toContain('aa')
+    expect(c.tone).toBe('warning')
+  })
+
+  it('param_changed renders each changed key by name, USD keys as dollars', () => {
+    const c = consequence(entry('param_changed', { depth_usd: 24589947.6 }, { depth_usd: 30505294.0 }))
+    expect(c.text).toBe("depth usd $24.59M → $30.51M")
+    expect(c.tone).toBe('normal')
+    expect(consequence(entry('param_changed', { depth_usd: 30e6 }, { depth_usd: 14e6 })).tone).toBe('warning')
   })
 
   it('formats durations in the largest clean unit', () => {

@@ -203,7 +203,8 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
 
   const stratsPending = !strats
   const logPending = !log
-  const newest: Entry | undefined = log?.entries?.[0]
+  // Newest entry that says something about capacity — terms-hash churn is not it.
+  const newest: Entry | undefined = log?.entries?.find((e) => e.kind !== 'terms_page_changed')
   const newestLine = newest
     ? (newest.provenance === 'alarm' ? alarmConsequence(newest) : consequence(newest)).text
     : null

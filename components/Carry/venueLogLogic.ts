@@ -86,5 +86,30 @@ export const consequence = (e: Entry): { text: string; tone: 'warning' | 'normal
       tone: pct < 0 ? 'warning' : 'normal',
     }
   }
-  return { text: `${e.kind}: ${JSON.stringify(e.prev)} → ${JSON.stringify(e.next)}`, tone: 'normal' }
+  if (e.kind === 'terms_page_changed') {
+    // The watcher hashes the venue's terms page; a new hash is a changed page. The
+    // hash itself is not information — the fact of the edit is.
+    const a = Number(e.prev?.content_len)
+    const b = Number(e.next?.content_len)
+    const delta = Number.isFinite(a) && Number.isFinite(b) && b !== a ? ` (${b > a ? '+' : ''}${b - a} chars)` : ''
+    return { text: `terms page edited${delta} — read it before you rely on it`, tone: 'warning' }
+  }
+  if (e.kind === 'param_changed') {
+    // One line per changed key, values formatted by name: *_usd → $, *Duration → time.
+    const keys = Array.from(new Set([...Object.keys(e.prev ?? {}), ...Object.keys(e.next ?? {})]))
+    const fmt = (k: string, v: unknown) => {
+      const n = Number(v)
+      if (!Number.isFinite(n)) return String(v ?? '—')
+      if (/usd$/i.test(k)) return fmtUsd(n)
+      if (/duration|seconds|cooldown/i.test(k)) return fmtDuration(n)
+      return n.toLocaleString('en-US', { maximumFractionDigits: 2 })
+    }
+    const parts = keys
+      .filter((k) => String(e.prev?.[k]) !== String(e.next?.[k]))
+      .map((k) => `${k.replace(/_/g, ' ')} ${fmt(k, e.prev?.[k])} → ${fmt(k, e.next?.[k])}`)
+    const down = keys.some((k) => Number(e.next?.[k]) < Number(e.prev?.[k]))
+    return { text: parts.join(' · ') || 'parameter changed', tone: down ? 'warning' : 'normal' }
+  }
+  // Unknown kind: name it, never dump it.
+  return { text: `${e.kind.replace(/_/g, ' ')} recorded`, tone: 'normal' }
 }

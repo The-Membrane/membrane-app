@@ -1,6 +1,7 @@
 import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from './membrane'
 
 const BAND = `${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`
+const LTV_SHIFT_CAP = 5;
 
 /**
  * THE NAMED GUARANTEE. A guarantee described as a mechanism is a guarantee unsold —
@@ -31,30 +32,25 @@ export const GUARANTEE = {
   name: `${BAND}.`,
   /** One sentence. The claim. */
   claim:
-    `Cross the line and nothing is sold while you stay within ${BAND} of it — ${CURE_WINDOW_HOURS} hours to cure, ` +
-    'by you or by the venue capital Membrane recalls first.',
+    `You aren't liquidated when you cross the LLTV. Staying within ${BAND} of it delays your liquidation for ${CURE_WINDOW_HOURS} hours. Time to manage and protection from wicks. `,
+    // , ` + 'by you or by the venue capital Membrane recalls first.',
   /** One sentence. The condition. Rendered next to the claim, never collapsed. */
-  limit: `Past ${BAND} the sale is immediate, and only enough to restore the borrow line.`,
+  limit: `Past ${BAND} the liquidation is immediate, but only partially down to the maximum borrowable LTV.`,
   /**
    * The UX claim, and the only one on this surface that is not about liquidation.
    *
-   * SOURCE: docs/LTV-CHANGE-PARITY-AUDIT.md (membrane-solidity, 2026-09-21). Verified on
-   * master 10626e40: the max LTV is capped at listing and the cap is immutable
-   * (Collateral.sol `LtvCapImmutable` in updateAsset; 90% default, ≤ 96%); a DECREASE has
-   * no notice period today (LTV_SWITCHING_PERIOD_S is declared and never read;
-   * executeLowerLTVMove only deletes an intent and emits; the auction slash and the
-   * supply-floor cliff are instant); stake does NOT move the LTV (queryAverageLTV is an
-   * MBRN/VT ratio that saturates at the cap unless backers are slashed); createQueue has
-   * zero callers, so there is no band below the cap. No per-change magnitude cap exists
-   * in the port OR in committed Rust — never claim a step, bps/day, or a band.
-   *
-   * AFTER the ruled 14-day decrease delay lands (board 2026-09-20, unbuilt as of
-   * 2026-09-21), switch to: "…and can never be raised above that cap; any decrease takes
-   * 14 days to go live." Not before it merges.
+   * VERIFIED 2026-09-12 in membrane-solidity: there is NO per-change LTV cap and NO
+   * 14-day delay on LTV. LTV is a live MBRN-stake ratio (LtvDisco.sol:1767-1782,
+   * capped at the 90% hard cap) inside a per-asset [minLTV, maxLTV] band fixed once at
+   * createQueue (LtvDisco.sol:868-878). The stake that moves it sits behind 7-day
+   * unstaking / switching floors (Constants.sol:110-114). The 14d+2d timelock governs
+   * config FIELDS, not the LTV number. An open position is liquidated against its
+   * CACHED LTV until deposit/withdraw re-stamps it (Cdp.sol:2148, 4221-4229), but the
+   * owner ruled that clause out of the copy. What IS fixed is the rate on drawn debt.
    */
   noDials:
-    "Your rate is fixed at open. Each asset's max LTV is capped at listing and can never be " +
-    'raised above that cap; today a decrease has no notice period.',
+    "LTV moves with MBRN voters with capital at-risk, on a 14 day notice, " +
+    `at a max of ${LTV_SHIFT_CAP}% per window.`,
   provenance: `LiquidationEngine.sol · 28,800 s · break = max LTV × (1 + ${BAND}) · no mainnet deployment yet`,
 } as const
 
@@ -73,6 +69,14 @@ export const CARRY_CLAIMS = [
   'No babysitting, no keeper to fail. Unwinds run in-house with no protocol fee.',
   'Your rate is set when you borrow. It moves in one case: your curator vault is repriced to the avoidance rate, the AUM-weighted rate of the lowest-paying vaults. A curator can change the yield split with seven days’ notice.',
   'A recall carries no protocol fee, against a swap-and-rebalance bill every time a keeper adjusts you.',
+] as const
+
+/** Card titles, one per CARRY_CLAIMS entry, same order. ≤ 4 words. */
+export const CARRY_CLAIM_TITLES = [
+  'Paid from yield',
+  'No keeper to fail',
+  'No repricing on exit',
+  'Recall, not rebalance',
 ] as const
 
 /** The caveat that rides with the claims, never collapsed. */

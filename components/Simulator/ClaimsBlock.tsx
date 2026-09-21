@@ -36,16 +36,27 @@ export const ClaimsBlock: React.FC = () => (
           gap={SPACING.sm}
           alignContent="start"
         >
+          {/* The title carries the gist on its own — readable without the body. */}
           <Text
-            fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="10px"
-            letterSpacing="0.2em"
-            textTransform="uppercase"
+            fontFamily={TYPOGRAPHY.fontDisplay}
+            fontSize="19px"
+            lineHeight={1.2}
             color={SEMANTIC_COLORS.success}
           >
-            {String(i + 1).padStart(2, '0')} · {CARRY_CLAIM_TITLES[i]}
+            <Text
+              as="span"
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="10px"
+              letterSpacing="0.2em"
+              color={SEMANTIC_COLORS.textTertiary}
+              mr={SPACING.sm}
+              verticalAlign="middle"
+            >
+              {String(i + 1).padStart(2, '0')}
+            </Text>
+            {CARRY_CLAIM_TITLES[i]}
           </Text>
-          <Text fontSize="14px" lineHeight={1.55} color={SEMANTIC_COLORS.textPrimary}>
+          <Text fontSize="13px" lineHeight={1.55} color={SEMANTIC_COLORS.textSecondary}>
             {line}
           </Text>
         </Box>

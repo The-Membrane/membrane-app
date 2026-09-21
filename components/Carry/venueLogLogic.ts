@@ -7,6 +7,8 @@ export type Entry = {
   at: string
   prev: Record<string, unknown> | null
   next: Record<string, unknown> | null
+  /** Start of the window the change was measured over (previous observed snapshot). */
+  since?: string | null
   provenance: 'observed' | 'reconstructed' | 'alarm'
   severity?: 'watch' | 'alarm'
   evidence?: Record<string, unknown> | null
@@ -18,6 +20,17 @@ export type Entry = {
 // a footer so a quiet log never reads as all-clear.
 export const UNCOVERED_FOOTER =
   'this alarm cannot yet see: depth-vs-book, yield flatness, terms changes'
+
+/** "over 1h" / "over 6d" / "over 3w" — the window between two observed snapshots. */
+export const windowLabel = (e: Entry): string => {
+  if (!e.since) return ''
+  const secs = Math.round((Date.parse(e.at) - Date.parse(e.since)) / 1000)
+  if (!Number.isFinite(secs) || secs <= 0) return ''
+  if (secs < 3600) return ` over ${Math.max(1, Math.round(secs / 60))}m`
+  if (secs < 86400) return ` over ${Math.round(secs / 3600)}h`
+  if (secs < 14 * 86400) return ` over ${Math.round(secs / 86400)}d`
+  return ` over ${Math.round(secs / (7 * 86400))}w`
+}
 
 export const fmtDuration = (secs: number): string => {
   if (secs % 86400 === 0) return `${secs / 86400}d`
@@ -82,7 +95,7 @@ export const consequence = (e: Entry): { text: string; tone: 'warning' | 'normal
     const b = Number(e.next?.instant_usd)
     const pct = ((b - a) / Math.abs(a)) * 100
     return {
-      text: `instant exit ${fmtUsd(a)} → ${fmtUsd(b)} (${pct > 0 ? '+' : ''}${pct.toFixed(0)}%)`,
+      text: `instant exit ${fmtUsd(a)} → ${fmtUsd(b)} (${pct > 0 ? '+' : ''}${pct.toFixed(0)}%)${windowLabel(e)}`,
       tone: pct < 0 ? 'warning' : 'normal',
     }
   }
@@ -116,7 +129,7 @@ export const consequence = (e: Entry): { text: string; tone: 'warning' | 'normal
       .filter((k) => String(e.prev?.[k]) !== String(e.next?.[k]))
       .map((k) => `${LABEL[k] ?? k.replace(/_/g, ' ')} ${fmt(k, e.prev?.[k])} → ${fmt(k, e.next?.[k])}`)
     const down = keys.some((k) => Number(e.next?.[k]) < Number(e.prev?.[k]))
-    return { text: parts.join(' · ') || 'parameter changed', tone: down ? 'warning' : 'normal' }
+    return { text: `${parts.join(' · ') || 'parameter changed'}${windowLabel(e)}`, tone: down ? 'warning' : 'normal' }
   }
   // Unknown kind: name it, never dump it.
   return { text: `${e.kind.replace(/_/g, ' ')} recorded`, tone: 'normal' }

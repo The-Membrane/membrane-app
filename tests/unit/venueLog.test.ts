@@ -53,6 +53,10 @@ describe('VenueLog consequence rendering', () => {
   it('param_changed renders each changed key by name, USD keys as dollars', () => {
     const c = consequence(entry('param_changed', { depth_usd: 24589947.6 }, { depth_usd: 30505294.0 }))
     expect(c.text).toBe("instant swap-out depth $24.59M → $30.51M")
+    const w = consequence({ ...entry('param_changed', { depth_usd: 1e6 }, { depth_usd: 2e6 }), at: '2026-09-21T06:00:00Z', since: '2026-09-21T05:00:00Z' })
+    expect(w.text).toBe("instant swap-out depth $1.00M → $2.00M over 1h")
+    const d = consequence({ ...entry('param_changed', { depth_usd: 1e6 }, { depth_usd: 2e6 }), at: '2026-09-21T06:00:00Z', since: '2026-09-15T06:00:00Z' })
+    expect(d.text).toMatch(/ over 6d$/)
     expect(c.tone).toBe('normal')
     expect(consequence(entry('param_changed', { depth_usd: 30e6 }, { depth_usd: 14e6 })).tone).toBe('warning')
   })

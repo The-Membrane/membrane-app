@@ -17,6 +17,9 @@ export type VenueLogEntry = {
   at: string
   prev: Record<string, unknown> | null
   next: Record<string, unknown> | null
+  /** ISO time of the previous observed snapshot — the start of the window `prev → next`
+   *  was measured over. Observed entries only. */
+  since?: string | null
   provenance: 'observed' | 'reconstructed' | 'alarm'
   /** Only for provenance 'alarm': 'watch' | 'alarm', and whether the alarm has been cleared. */
   severity?: 'watch' | 'alarm'
@@ -42,13 +45,23 @@ export async function fetchVenueLogEntries(filter: VenueLogFilter = {}): Promise
   const { sinceISO, untilISO, venue, limit = 50 } = filter
 
   const observed = await db.execute(sql`
-    SELECT venue, kind, observed_at AS at, prev, next
-    FROM venue_events
+    SELECT e.venue, e.kind, e.observed_at AS at, e.prev, e.next,
+      -- the window: this change was measured against the venue's PREVIOUS observed
+      -- snapshot, so "since" is that snapshot's time. A delta with no window is noise.
+      -- The event is stamped seconds AFTER the tick's own snapshot, so "before the event"
+      -- must exclude that snapshot: key off snapshot_id when the recorder set it, else
+      -- step back a minute (ticks are hourly; the terms watcher sets no snapshot_id).
+      (SELECT max(s.observed_at) FROM venue_snapshots s
+        WHERE s.venue = e.venue AND s.source = 'observed'
+          AND s.observed_at < COALESCE(
+            (SELECT own.observed_at FROM venue_snapshots own WHERE own.id = e.snapshot_id),
+            e.observed_at - interval '1 minute')) AS since
+    FROM venue_events e
     WHERE TRUE
-      ${sinceISO ? sql`AND observed_at >= ${sinceISO}` : sql``}
-      ${untilISO ? sql`AND observed_at <= ${untilISO}` : sql``}
-      ${venue ? sql`AND venue = ${venue}` : sql``}
-    ORDER BY observed_at DESC
+      ${sinceISO ? sql`AND e.observed_at >= ${sinceISO}` : sql``}
+      ${untilISO ? sql`AND e.observed_at <= ${untilISO}` : sql``}
+      ${venue ? sql`AND e.venue = ${venue}` : sql``}
+    ORDER BY e.observed_at DESC
     LIMIT ${limit}`)
 
   // Discrete-param transitions reconstructed from snapshot history. Only
@@ -114,6 +127,7 @@ export async function fetchVenueLogEntries(filter: VenueLogFilter = {}): Promise
       at: new Date(r.at as string).toISOString(),
       prev: r.prev ?? null,
       next: r.next ?? null,
+      since: r.since ? new Date(r.since as string).toISOString() : null,
       provenance: 'observed' as const,
     })),
     ...(reconstructed.rows as any[]).map((r) => ({

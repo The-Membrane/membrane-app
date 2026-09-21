@@ -21,7 +21,7 @@ export const ClaimsBlock: React.FC = () => (
     >
       why carry here
     </Text>
-    <Box display="grid" gridTemplateColumns={{ base: '1fr', md: '1fr 1fr', lg: 'repeat(4, 1fr)' }} gap={SPACING.md}>
+    <Box display="grid" gridTemplateColumns={{ base: '1fr', md: '1fr 1fr', lg: 'repeat(3, 1fr)' }} gap={SPACING.md}>
       {CARRY_CLAIMS.map((line, i) => (
         <Box
           key={line}
@@ -56,7 +56,7 @@ export const ClaimsBlock: React.FC = () => (
             </Text>
             {CARRY_CLAIM_TITLES[i]}
           </Text>
-          <Text fontSize="13px" lineHeight={1.55} color={SEMANTIC_COLORS.textSecondary}>
+          <Text fontSize="13px" lineHeight={1.55} color={SEMANTIC_COLORS.textPrimary}>
             {line}
           </Text>
         </Box>

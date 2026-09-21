@@ -21,13 +21,16 @@
 // Rendered for BOTH modes at the same slot (Simulator.tsx), so the carry-first page and
 // the borrower landing page make the same argument from the same component.
 
-import React from 'react'
+import React, { useState } from 'react'
 import NextLink from 'next/link'
 import { keyframes } from '@emotion/react'
-import { Box, Button, Text } from '@chakra-ui/react'
+import { Box, Button, Collapse, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 
 import CrossingChart from '@/components/Carry/CrossingChart'
+import MarketBoards from '@/components/Carry/MarketBoards'
+import StratsBoard from '@/components/Strats/StratsBoard'
+import AddressBar, { type AddressBarProps } from './AddressBar'
 import { alarmConsequence, consequence, type Entry } from '@/components/Carry/venueLogLogic'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
@@ -176,6 +179,9 @@ const useVenueLog = () =>
   })
 
 export interface CarrySectionProps {
+  /** The hero's address-bar props, so the reader can run a wallet from HERE without
+   *  scrolling back up (owner 2026-09-21). */
+  addressBar?: AddressBarProps
   /** The debt on the position currently on screen. 0 when there is none. */
   positionDebtUsd?: number
   /**
@@ -192,7 +198,9 @@ export interface CarrySectionProps {
  *  notional rather than at zero. It is modelled either way and stamped as such. */
 const REFERENCE_SIZE_USD = 250_000
 
-export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0, detection }) => {
+export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0, detection, addressBar }) => {
+  const [openPanel, setOpenPanel] = useState<'board' | 'strats' | null>(null)
+  const toggle = (p: 'board' | 'strats') => setOpenPanel((cur) => (cur === p ? null : p))
   const { chainName } = useChainRoute()
   // demoDetection() reads the committed snapshot and is pure, but it re-stamps its
   // provenance on every call — memoise so the venue rows do not re-key each render.
@@ -305,21 +313,56 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
         </Box>
       </Box>
 
-      {/* d — THE WAY ON */}
-      <Box display="flex" gap={SPACING.md} flexWrap="wrap" alignItems="center">
-        <Button type="button" onClick={focusAddressBar} {...CTA_BTN}>
-          Run your position ↑
-        </Button>
-        <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'none' }}>
-          <Button as="span" {...CTA_BTN}>
-            See the carry board →
+      {/* d — THE WAY ON. A second paste box (nobody scrolls back up for one), and the
+          board and the strats OPEN HERE instead of navigating away. */}
+      <Box display="grid" gap={SPACING.md}>
+        {addressBar ? (
+          <AddressBar {...addressBar} inputId="sim-address-input-carry" />
+        ) : (
+          <Button type="button" onClick={focusAddressBar} {...CTA_BTN} w="fit-content">
+            Run your position ↑
           </Button>
-        </NextLink>
-        <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'none' }}>
-          <Button as="span" {...CTA_BTN}>
-            Tracked strats →
+        )}
+        <Box display="flex" gap={SPACING.md} flexWrap="wrap" alignItems="center">
+          <Button
+            type="button"
+            onClick={() => toggle('board')}
+            aria-expanded={openPanel === 'board'}
+            {...CTA_BTN}
+            {...(openPanel === 'board' ? { borderColor: SEMANTIC_COLORS.success, color: SEMANTIC_COLORS.success } : {})}
+          >
+            {openPanel === 'board' ? 'Hide the carry board ↑' : 'See the carry board ↓'}
           </Button>
-        </NextLink>
+          <Button
+            type="button"
+            onClick={() => toggle('strats')}
+            aria-expanded={openPanel === 'strats'}
+            {...CTA_BTN}
+            {...(openPanel === 'strats' ? { borderColor: SEMANTIC_COLORS.success, color: SEMANTIC_COLORS.success } : {})}
+          >
+            {openPanel === 'strats' ? 'Hide tracked strats ↑' : 'Tracked strats ↓'}
+          </Button>
+        </Box>
+        <Collapse in={openPanel === 'board'} animateOpacity unmountOnExit>
+          <Box data-testid="sim-inline-board" pt={SPACING.sm} display="grid" gap={SPACING.sm}>
+            <MarketBoards onLoadBoard={() => window.location.assign(`/${chainName}/carry`)} />
+            <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
+              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>
+                full carry page →
+              </Text>
+            </NextLink>
+          </Box>
+        </Collapse>
+        <Collapse in={openPanel === 'strats'} animateOpacity unmountOnExit>
+          <Box data-testid="sim-inline-strats" pt={SPACING.sm} display="grid" gap={SPACING.sm}>
+            <StratsBoard />
+            <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
+              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>
+                full strats page →
+              </Text>
+            </NextLink>
+          </Box>
+        </Collapse>
       </Box>
     </Box>
   )
@@ -330,7 +373,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
  * retyped) and the same two actions, so a reader who scrolled the whole page never has to
  * scroll back to find out what to do.
  */
-export const SimCtaRepeat: React.FC = () => {
+export const SimCtaRepeat: React.FC<{ addressBar?: AddressBarProps }> = ({ addressBar }) => {
   const { chainName } = useChainRoute()
   return (
     <Box
@@ -353,10 +396,14 @@ export const SimCtaRepeat: React.FC = () => {
       >
         {HERO_SUBHEAD}
       </Text>
-      <Box display="flex" gap={SPACING.md} flexWrap="wrap" alignItems="center">
-        <Button type="button" onClick={focusAddressBar} {...CTA_BTN}>
-          Run your position ↑
-        </Button>
+      <Box display="grid" gap={SPACING.md} flex="1 1 420px">
+        {addressBar ? (
+          <AddressBar {...addressBar} inputId="sim-address-input-foot" />
+        ) : (
+          <Button type="button" onClick={focusAddressBar} {...CTA_BTN} w="fit-content">
+            Run your position ↑
+          </Button>
+        )}
         <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'none' }}>
           <Button as="span" {...CTA_BTN}>
             See the carry board →

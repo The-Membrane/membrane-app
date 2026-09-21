@@ -80,6 +80,8 @@ export interface AddressBarProps {
   isLoading: boolean
   /** Verbatim reason the input was rejected, or null. */
   error: string | null
+  /** DOM id — the hero's is 'sim-address-input'; extra bars below the fold must differ. */
+  inputId?: string
 }
 
 export const AddressBar: React.FC<AddressBarProps> = ({
@@ -93,6 +95,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
   onClear,
   isLoading,
   error,
+  inputId = 'sim-address-input',
 }) => {
   // Optional shortcut (owner 2026-09-12): a connected wallet can fill the box so
   // nobody has to copy their address. Still read-only — connecting is never
@@ -147,13 +150,13 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         // Stable anchor: the "Run your position ↑" CTAs under the fold scroll to this
         // element and focus it (CarrySection, and the CTA repeat at the foot of the
         // page). Renaming it silently breaks both buttons.
-        id="sim-address-input"
+        id={inputId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={primaryConnect ? '0x… connect or paste an address' : '0x… paste any address'}
         aria-label="Ethereum address to read a lending position from"
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? 'simulator-address-error' : undefined}
+        aria-describedby={error ? `${inputId}-error` : undefined}
         flex="1 1 240px"
         minW="0"
         bg={SEMANTIC_COLORS.bgSecondary}
@@ -190,7 +193,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
     {error && (
       <Text
-        id="simulator-address-error"
+        id={`${inputId}-error`}
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize="11.5px"
         color={SEMANTIC_COLORS.danger}

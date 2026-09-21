@@ -10,6 +10,25 @@ import { FOCUS_STYLES, TRANSITIONS, HOVER_EFFECTS } from '@/config/transitions';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { TYPOGRAPHY } from '@/helpers/typography';
 import Logo from './Logo';
+
+/**
+ * ONE active/hover language for every nav surface (owner 2026-09-21): the current page
+ * and a hovered item are both PHOSPHOR text on a tertiary ground. Active-ness matches on
+ * the PATH only — the simulator rewrites its own query string (?p=…&ltv=…), which is why
+ * the current page used to render unstyled.
+ */
+const NAV_ITEM = {
+  color: SEMANTIC_COLORS.textPrimary,
+  bg: 'transparent',
+  fontWeight: 'semibold',
+  borderRadius: 0,
+  border: 'none',
+  transition: TRANSITIONS.colors,
+  _hover: { bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success },
+  _focusVisible: FOCUS_STYLES.ring,
+} as const;
+const NAV_ITEM_ACTIVE = { bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success } as const;
+const pathOf = (asPath: string) => asPath.split(/[?#]/)[0].replace(/\/$/, '');
 import { supportedChains, getChainConfig } from '@/config/chains';
 import { LANDING_SIM_MODE, SIM_ROUTE } from '@/config/simulatorMode';
 import { useChainRoute } from '@/hooks/useChainRoute';
@@ -105,6 +124,7 @@ const HorizontalNav = () => {
     const menuButtonRef = useRef<HTMLButtonElement>(null);
     const [dashboardsOpen, setDashboardsOpen] = useState(false);
     const router = useRouter();
+    const isActive = (href: string) => pathOf(router.asPath) === pathOf(`/${chainName}${href}`);
     const { chainName } = useChainRoute();
     const currentChain = getChainConfig(chainName);
     const { appState, setAppState } = useAppState();
@@ -204,16 +224,10 @@ const HorizontalNav = () => {
                         key={item.label}
                         as={NextLink}
                         href={`/${chainName}${item.href}`}
-                        variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                        color={SEMANTIC_COLORS.textPrimary}
-                        fontWeight="semibold"
-                        borderRadius={0}
-                        border="none"
+                        variant="ghost"
+                        {...NAV_ITEM}
+                        {...(isActive(item.href) ? NAV_ITEM_ACTIVE : {})}
                         py={2}
-                        bg={router.asPath === `/${chainName}${item.href}` ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
-                        transition={TRANSITIONS.colors}
-                        _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
-                        _focusVisible={FOCUS_STYLES.ring}
                         fontSize="12px"
                         px={2}
                         w={"fit-content"}
@@ -234,9 +248,9 @@ const HorizontalNav = () => {
                             fontWeight="semibold"
                             borderRadius={0}
                             py={2}
-                            bg={comingSoon.some(d => router.asPath === `/${chainName}${d.href}`) ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                            bg={comingSoon.some(d => isActive(d.href)) ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
                             transition={TRANSITIONS.colors}
-                            _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.textPrimary }}
+                            _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                             _focusVisible={FOCUS_STYLES.ring}
                             fontSize="12px"
                             px={2}
@@ -285,14 +299,14 @@ const HorizontalNav = () => {
                         <Button
                             rightIcon={dashboardsOpen ? <FaChevronUp /> : <FaChevronDown />}
                             variant="ghost"
-                            color={SEMANTIC_COLORS.textPrimary}
                             fontWeight="semibold"
                             borderRadius="full"
                             border="none"
                             px={4}
                             py={2}
-                            bg={dashboardsOpen || dashboards.some(d => router.asPath === `/${chainName}${d.href}`) ? 'whiteAlpha.200' : 'transparent'}
-                            _hover={{ bg: 'whiteAlpha.300' }}
+                            bg={dashboardsOpen || dashboards.some(d => isActive(d.href)) ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                            color={dashboards.some(d => isActive(d.href)) ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textPrimary}
+                            _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                             fontSize="13px"
                             w={"fit-content"}
                             onClick={() => setDashboardsOpen(!dashboardsOpen)}
@@ -306,15 +320,15 @@ const HorizontalNav = () => {
                                         key={item.label}
                                         as={NextLink}
                                         href={`/${chainName}${item.href}`}
-                                        variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                                        color={SEMANTIC_COLORS.textPrimary}
+                                        variant={isActive(item.href) ? 'solid' : 'ghost'}
                                         fontWeight="semibold"
                                         borderRadius="full"
                                         border="none"
                                         px={4}
                                         py={2}
-                                        bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
-                                        _hover={{ bg: 'whiteAlpha.300' }}
+                                        bg={isActive(item.href) ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                                        color={isActive(item.href) ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textPrimary}
+                                        _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                                         fontSize="13px"
                                         w={"fit-content"}
                                     >
@@ -350,7 +364,7 @@ const HorizontalNav = () => {
                 border="none"
                 color={SEMANTIC_COLORS.textPrimary}
                 fontSize="22px"
-                _hover={{ bg: 'whiteAlpha.200' }}
+                _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                 mr={2}
                 w={"fit-content"}
                 justifySelf={"left"}
@@ -381,7 +395,7 @@ const HorizontalNav = () => {
                         variant="ghost"
                         border="none"
                         color={SEMANTIC_COLORS.textPrimary}
-                        _hover={{ bg: 'whiteAlpha.200' }}
+                        _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                         px={2}
                     >
                     </MenuButton>
@@ -390,8 +404,8 @@ const HorizontalNav = () => {
                             <MenuItem
                                 key={chain.name}
                                 onClick={() => handleChainChange(chain.name)}
-                                bg={chain.name === currentChain.name ? 'whiteAlpha.200' : 'transparent'}
-                                _hover={{ bg: 'whiteAlpha.300' }}
+                                bg={chain.name === currentChain.name ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                                _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                                 color={SEMANTIC_COLORS.textPrimary}
                                 cursor="pointer"
                             >
@@ -425,15 +439,11 @@ const HorizontalNav = () => {
                                         key={item.label}
                                         as={NextLink}
                                         href={`/${chainName}${item.href}`}
-                                        variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                                        color={SEMANTIC_COLORS.textPrimary}
-                                        fontWeight="semibold"
-                                        borderRadius="full"
-                                        border="none"
+                                        variant="ghost"
+                                        {...NAV_ITEM}
+                                        {...(isActive(item.href) ? NAV_ITEM_ACTIVE : {})}
                                         px={6}
                                         py={4}
-                                        bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
-                                        _hover={{ bg: 'whiteAlpha.300' }}
                                         fontSize="13px"
                                         maxW={"fit-content"}
                                         justifyContent="flex-start"
@@ -461,13 +471,13 @@ const HorizontalNav = () => {
                                                 as={NextLink}
                                                 href={`/${chainName}${item.href}`}
                                                 variant="ghost"
-                                                color={SEMANTIC_COLORS.textSecondary}
+                                                color={isActive(item.href) ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textSecondary}
                                                 fontWeight="semibold"
                                                 borderRadius={0}
                                                 border="none"
                                                 px={6}
                                                 py={4}
-                                                bg={router.asPath === `/${chainName}${item.href}` ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                                                bg={isActive(item.href) ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
                                                 transition={TRANSITIONS.colors}
                                                 _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                                                 _focusVisible={FOCUS_STYLES.ring}
@@ -486,14 +496,14 @@ const HorizontalNav = () => {
                                         <Button
                                             rightIcon={dashboardsOpen ? <FaChevronUp /> : <FaChevronDown />}
                                             variant="ghost"
-                                            color={SEMANTIC_COLORS.textPrimary}
                                             fontWeight="semibold"
                                             borderRadius="full"
                                             border="none"
                                             px={6}
                                             py={4}
-                                            bg={dashboardsOpen || dashboards.some(d => router.asPath === `/${chainName}${d.href}`) ? 'whiteAlpha.200' : 'transparent'}
-                                            _hover={{ bg: 'whiteAlpha.300' }}
+                                            bg={dashboardsOpen || dashboards.some(d => isActive(d.href)) ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                                            color={dashboards.some(d => isActive(d.href)) ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textPrimary}
+                                            _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                                             fontSize="13px"
                                             maxW={"fit-content"}
                                             justifyContent="flex-start"
@@ -508,15 +518,15 @@ const HorizontalNav = () => {
                                                         key={item.label}
                                                         as={NextLink}
                                                         href={`/${chainName}${item.href}`}
-                                                        variant={router.asPath === `/${chainName}${item.href}` ? 'solid' : 'ghost'}
-                                                        color={SEMANTIC_COLORS.textPrimary}
+                                                        variant={isActive(item.href) ? 'solid' : 'ghost'}
                                                         fontWeight="semibold"
                                                         borderRadius="full"
                                                         border="none"
                                                         px={6}
                                                         py={4}
-                                                        bg={router.asPath === `/${chainName}${item.href}` ? 'whiteAlpha.200' : 'transparent'}
-                                                        _hover={{ bg: 'whiteAlpha.300' }}
+                                                        bg={isActive(item.href) ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
+                                                        color={isActive(item.href) ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textPrimary}
+                                                        _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
                                                         fontSize="13px"
                                                         maxW={"fit-content"}
                                                         justifyContent="flex-start"

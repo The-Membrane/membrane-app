@@ -38,18 +38,23 @@ export const GUARANTEE = {
   /**
    * The UX claim, and the only one on this surface that is not about liquidation.
    *
-   * VERIFIED 2026-09-12 in membrane-solidity: there is NO per-change LTV cap and NO
-   * 14-day delay on LTV. LTV is a live MBRN-stake ratio (LtvDisco.sol:1767-1782,
-   * capped at the 90% hard cap) inside a per-asset [minLTV, maxLTV] band fixed once at
-   * createQueue (LtvDisco.sol:868-878). The stake that moves it sits behind 7-day
-   * unstaking / switching floors (Constants.sol:110-114). The 14d+2d timelock governs
-   * config FIELDS, not the LTV number. An open position is liquidated against its
-   * CACHED LTV until deposit/withdraw re-stamps it (Cdp.sol:2148, 4221-4229), but the
-   * owner ruled that clause out of the copy. What IS fixed is the rate on drawn debt.
+   * SOURCE: docs/LTV-CHANGE-PARITY-AUDIT.md (membrane-solidity, 2026-09-21). Verified on
+   * master 10626e40: the max LTV is capped at listing and the cap is immutable
+   * (Collateral.sol `LtvCapImmutable` in updateAsset; 90% default, ≤ 96%); a DECREASE has
+   * no notice period today (LTV_SWITCHING_PERIOD_S is declared and never read;
+   * executeLowerLTVMove only deletes an intent and emits; the auction slash and the
+   * supply-floor cliff are instant); stake does NOT move the LTV (queryAverageLTV is an
+   * MBRN/VT ratio that saturates at the cap unless backers are slashed); createQueue has
+   * zero callers, so there is no band below the cap. No per-change magnitude cap exists
+   * in the port OR in committed Rust — never claim a step, bps/day, or a band.
+   *
+   * AFTER the ruled 14-day decrease delay lands (board 2026-09-20, unbuilt as of
+   * 2026-09-21), switch to: "…and can never be raised above that cap; any decrease takes
+   * 14 days to go live." Not before it merges.
    */
   noDials:
-    "Your rate is fixed at open. LTV moves only with MBRN stake, on 7 days' notice, " +
-    'inside a fixed band per asset.',
+    "Your rate is fixed at open. Each asset's max LTV is capped at listing and can never be " +
+    'raised above that cap; today a decrease has no notice period.',
   provenance: `LiquidationEngine.sol · 28,800 s · break = max LTV × (1 + ${BAND}) · no mainnet deployment yet`,
 } as const
 

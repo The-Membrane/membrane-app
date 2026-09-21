@@ -42,7 +42,7 @@ const HEAD = {
 }
 
 /** date · venue · sold · membrane would sell · you keep · verdict */
-const COLS = '118px 70px 120px 120px 110px 1fr'
+const COLS = '118px 70px 130px 130px 110px 1fr'
 
 /** "12 Mar 2024" — these are calendar events, not minutes of a stress window, so the
  *  date is the unit and the clock is noise. */
@@ -244,7 +244,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
           borderBottom="1px solid"
           borderColor={SEMANTIC_COLORS.borderSubtle}
         >
-          {['date', 'venue', 'sold', 'membrane would sell', 'you keep', 'verdict'].map((h) => (
+          {['date', 'venue', 'collateral sold', 'membrane would sell', 'you keep', 'verdict'].map((h) => (
             <Text key={h} {...HEAD}>
               {h}
             </Text>
@@ -320,7 +320,8 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
                       {...tabular}
                     >
                       {historyDate(ev.ts)} · {ev.protocol} · {usd(ev.actualSeizedUsd)}{' '}
-                      {ev.collateral}
+                      {ev.collateral} sold
+                      {ev.debtRepaidUsd ? ` for ${usd(ev.debtRepaidUsd)} of loan` : ''}
                       {ev.unpriced ? ` · ${ev.why ?? 'unpriced'}` : ''}
                     </Text>
                   ))}

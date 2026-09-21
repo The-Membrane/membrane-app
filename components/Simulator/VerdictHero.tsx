@@ -66,7 +66,9 @@ import {
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { tabular } from '@/components/Builder/styles'
-import { fmtUtcMinute, outcomeLine, type CarryCost, type Comparison } from '@/lib/position-sim'
+import { outcomeLine, type CarryCost, type Comparison } from '@/lib/position-sim'
+
+import { fmtLocalClock, fmtLocalDayClock, useLocalZone } from './localClock'
 import { OCT10_STAKES_LINE } from '@/lib/position-sim/oct10Totals'
 
 import AddressBar, { type AddressBarProps } from './AddressBar'
@@ -147,6 +149,7 @@ function verdict(
   measured: MeasuredCensus | null,
   startTs: number | null,
   stepSeconds: number | null,
+  zone: string | undefined,
 ): {
   first: string
   second: string
@@ -167,7 +170,8 @@ function verdict(
   const membraneCloses = cmp.membrane.events.filter((e) => e.repaidUsd > 0)
   const membraneClosed = membraneCloses.reduce((a, e) => a + e.repaidUsd, 0)
   const sourceFirst = cmp.source.events.find((e) => e.kind === 'liquidation') ?? null
-  const clock = (ts: number) => fmtUtcMinute(ts).replace(/^\d+ \w+ /, '')
+  // Reader's own timezone, 12-hour clock (owner 2026-09-21). UTC until mounted.
+  const clock = (ts: number) => fmtLocalClock(ts, zone)
 
   // Past tense needs a measured figure. The demo wallet carries the census's sum of
   // Aave's real events; a pasted address only has the run's replay of Aave's mechanics,
@@ -175,7 +179,7 @@ function verdict(
   const measuredTs =
     measured && startTs !== null && stepSeconds !== null ? startTs + measured.t0Index * stepSeconds : null
   const first = measured && measuredTs !== null
-    ? `${src} closed ${usd(measured.aaveClosedUsd)} of this loan at ${clock(measuredTs)}, measured.`
+    ? `${src} closed ${usd(measured.aaveClosedUsd)} of this loan at ${clock(measuredTs)}`
     : o.source.liquidated && sourceFirst
       ? `${src} would have closed ${usd(sourceClosed)} of ${whose} loan at ${clock(sourceFirst.ts)}.`
       : `${src} closes nothing.`
@@ -185,13 +189,13 @@ function verdict(
   const lag =
     sourceFirst && membraneCloses.length ? membraneCloses[0].minute - sourceFirst.minute : null
   const plural = (n: number) => (n === 1 ? 'minute' : 'minutes')
-  let tail: string
+  let tail: string | undefined
   if (membraneClosed <= 0) tail = 'and sold nothing'
   else if (lag === null) tail = membraneCloses.length ? `at ${clock(membraneCloses[0].ts)}` : 'and nothing more'
   else if (lag > 0) tail = `${lag} ${plural(lag)} later`
   else if (lag < 0) tail = `${-lag} ${plural(-lag)} earlier`
-  else tail = 'and nothing more'
-  const second = `Membrane would have closed ${usd(membraneClosed)} ${tail}.`
+  else tail = undefined
+  const second = tail ? `Membrane would have closed ${usd(membraneClosed)} ${tail}.` : `Membrane would have closed ${usd(membraneClosed)}.`
 
   // The gap, and the prices it is read at. An equity delta is a difference between two
   // balance sheets at ONE moment; the moment is the last minute of the measured path,
@@ -199,7 +203,7 @@ function verdict(
   const delta = cmp.equityDeltaUsd
   const n = cmp.source.equitySeries.length
   const endTs = startTs !== null && stepSeconds !== null && n > 0 ? startTs + (n - 1) * stepSeconds : null
-  const basis = endTs !== null ? `${fmtUtcMinute(endTs)} prices` : 'the last price of the measured path'
+  const basis = endTs !== null ? `${fmtLocalDayClock(endTs, zone)} prices` : 'the last price of the measured path'
   const caption = `${delta < 0 ? 'less' : 'more'} equity left at ${basis}`
 
   return {
@@ -231,7 +235,8 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   compact = false,
   ...addressBar
 }) => {
-  const v = comparison ? verdict(comparison, isDemo, measured, startTs, stepSeconds) : null
+  const zone = useLocalZone()
+  const v = comparison ? verdict(comparison, isDemo, measured, startTs, stepSeconds, zone) : null
   const delta = comparison?.equityDeltaUsd ?? 0
   const deltaColor =
     delta > 0

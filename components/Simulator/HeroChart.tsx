@@ -18,6 +18,7 @@ import { tabular } from '@/components/Builder/styles'
 import type { Comparison, SimEvent } from '@/lib/position-sim'
 
 import { equityRange, makeScales, pathD, toRuns, type ChartBox } from './chartGeometry'
+import { fmtLocalDayClock, useLocalZone } from './localClock'
 
 const BOX: ChartBox = { w: 560, h: 320, padL: 46, padR: 14, padT: 18, padB: 28 }
 const PLOT_W = BOX.w - BOX.padL - BOX.padR
@@ -40,14 +41,15 @@ const kUsd = (v: number): string => {
   return `${sign}$${Math.round(a)}`
 }
 
-/** "10 Oct 00:00" for the outer ticks, "12:00" for the inner one. */
-const tickLabel = (ts: number, withDay: boolean): string => {
-  const d = new Date(ts * 1000)
-  const hh = String(d.getUTCHours()).padStart(2, '0')
-  const mm = String(d.getUTCMinutes()).padStart(2, '0')
-  if (!withDay) return `${hh}:${mm}`
-  const month = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })
-  return `${d.getUTCDate()} ${month} ${hh}:${mm}`
+/** "10 Oct, 12:00 AM PDT" for the outer ticks, "12:00 PM" for the inner one — the
+ *  reader's own zone (UTC until mounted), matching the hero's clock. */
+const tickLabel = (ts: number, withDay: boolean, zone: string | undefined): string => {
+  if (!withDay) {
+    return new Date(ts * 1000)
+      .toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: zone })
+      .replace(/\u202f/g, ' ')
+  }
+  return fmtLocalDayClock(ts, zone)
 }
 
 function usePrefersReducedMotion(): boolean {
@@ -78,6 +80,7 @@ export const HeroChart: React.FC<HeroChartProps> = ({
   isDemo,
 }) => {
   const reduced = usePrefersReducedMotion()
+  const zone = useLocalZone()
 
   // Remounts the drawn group whenever a new run lands, so the draw replays for the new
   // numbers instead of showing them already finished.
@@ -263,7 +266,7 @@ export const HeroChart: React.FC<HeroChartProps> = ({
                     fontFamily={TYPOGRAPHY.fontMono}
                     fontSize={9}
                   >
-                    {tickLabel(startTs + i * stepSeconds, k !== 1)}
+                    {tickLabel(startTs + i * stepSeconds, k !== 1, zone)}
                   </text>
                 ))}
 

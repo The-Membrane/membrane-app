@@ -23,7 +23,7 @@
   /* text — warm bone, not white */
   --m-text-primary: #ece6d8;
   --m-text-secondary: #8d877b;
-  --m-text-tertiary: #56524a;
+  --m-text-tertiary: #645f55;
   /* backgrounds — near-black, not navy */
   --m-bg-primary: #09090a;
   --m-bg-secondary: #0e0d10;
@@ -51,7 +51,7 @@
   /* text — espresso ink on parchment (user-approved espresso direction) */
   --m-text-primary: #43331f;
   --m-text-secondary: #6b5942;
-  --m-text-tertiary: #94836a;
+  --m-text-tertiary: #8a7960;
   /* backgrounds — warm parchment */
   --m-bg-primary: #e7dfcc;
   --m-bg-secondary: #efe9d9;

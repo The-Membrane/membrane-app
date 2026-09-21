@@ -41,6 +41,9 @@ const HEAD = {
   color: SEMANTIC_COLORS.textSecondary,
 }
 
+/** date · venue · sold · membrane would sell · you keep · verdict */
+const COLS = '118px 70px 120px 120px 110px 1fr'
+
 /** "12 Mar 2024" — these are calendar events, not minutes of a stress window, so the
  *  date is the unit and the clock is noise. */
 export const historyDate = (ts: number): string => {
@@ -49,43 +52,29 @@ export const historyDate = (ts: number): string => {
   return `${d.getUTCDate()} ${d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })} ${d.getUTCFullYear()}`
 }
 
-/**
- * The verdict, as a COMPARISON the reader can use (owner 2026-09-21: "just telling them
- * they would've gotten liquidated as well isn't useful"). Every non-save row answers the
- * same three things: what was sold, what Membrane would have sold, what that leaves you.
- * `membraneShare` (Membrane's seizure ÷ the actual seizure) is never printed bare — a
- * "37%" with no referent read as a slice of the position, which it is not.
- */
-export function verdictTag(e: HistoryEpisode): { text: string; color: string; kept: number | null } {
+/** The verdict word. The comparison lives in the columns beside it (sold / Membrane
+ *  would sell / you keep), so the tag stays short. The liquidation COUNT rides with it
+ *  on every non-save: one repay-to-cap and three are different outcomes. */
+export function verdictTag(e: HistoryEpisode): { text: string; color: string } {
   const n = e.membraneLiquidations
-  const times = `${n} Membrane liquidation${n === 1 ? '' : 's'}`
-  const kept = e.membraneShare === null ? null : e.actualSeizedUsd - e.membraneSeizedUsd
-  const keep = kept === null ? '' : ` · you keep ${usd(Math.abs(kept))}${kept < 0 ? ' less' : ''}`
+  const times = `${n} liquidation${n === 1 ? '' : 's'}`
   switch (e.verdict) {
     case 'saved':
-      return { text: `SAVED — nothing sold · you keep ${usd(e.actualSeizedUsd)}`, color: SEMANTIC_COLORS.success, kept: e.actualSeizedUsd }
+      return { text: 'SAVED — nothing sold', color: SEMANTIC_COLORS.success }
     case 'partial':
-      return {
-        text: `Membrane would have sold ${usd(e.membraneSeizedUsd)} over ${times}${keep}`,
-        color: SEMANTIC_COLORS.warning,
-        kept,
-      }
+      return { text: `liquidated anyway — ${times}`, color: SEMANTIC_COLORS.warning }
     case 'broke':
-      return {
-        text: `broke the 4% band — Membrane would have sold ${usd(e.membraneSeizedUsd)} over ${times}${keep}`,
-        color: SEMANTIC_COLORS.danger,
-        kept,
-      }
+      return { text: `BROKE the 4% band — ${times}`, color: SEMANTIC_COLORS.danger }
     case 'worse':
-      return {
-        text: `worse on Membrane — would have sold ${usd(e.membraneSeizedUsd)} over ${times}${keep}`,
-        color: SEMANTIC_COLORS.danger,
-        kept,
-      }
+      return { text: `worse on Membrane — ${times}`, color: SEMANTIC_COLORS.danger }
     default:
-      return { text: 'unpriced — not counted', color: SEMANTIC_COLORS.textTertiary, kept: null }
+      return { text: 'unpriced — not counted', color: SEMANTIC_COLORS.textTertiary }
   }
 }
+
+/** Signed "you keep" for an episode: actual − Membrane. null when unpriced. */
+export const keptUsd = (e: HistoryEpisode): number | null =>
+  e.verdict === 'unknown' ? null : e.actualSeizedUsd - e.membraneSeizedUsd
 
 const VERDICT_ORDER: Record<EpisodeVerdict, number> = {
   saved: 0,
@@ -246,8 +235,24 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
       )}
 
       <Box display="grid" gap={SPACING.xs}>
+        {/* column labels — the numbers carry the comparison, the words stay short */}
+        <Box
+          display={{ base: 'none', md: 'grid' }}
+          gridTemplateColumns={COLS}
+          gap={SPACING.md}
+          pb={SPACING.xs}
+          borderBottom="1px solid"
+          borderColor={SEMANTIC_COLORS.borderSubtle}
+        >
+          {['date', 'venue', 'sold', 'membrane would sell', 'you keep', 'verdict'].map((h) => (
+            <Text key={h} {...HEAD}>
+              {h}
+            </Text>
+          ))}
+        </Box>
         {episodes.map((e, i) => {
           const tag = verdictTag(e)
+          const kept = keptUsd(e)
           return (
             <Box
               key={`${e.startTs}-${e.collateral}-${i}`}
@@ -259,7 +264,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
             >
               <Box
                 display="grid"
-                gridTemplateColumns={{ base: '1fr', md: '150px 78px 1fr auto' }}
+                gridTemplateColumns={{ base: '1fr', md: COLS }}
                 gap={{ base: SPACING.xs, md: SPACING.md }}
                 alignItems="baseline"
               >
@@ -284,9 +289,20 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
                   color={SEMANTIC_COLORS.textPrimary}
                   {...tabular}
                 >
-                  sold {usd(e.actualSeizedUsd)} {e.collateral}
+                  {usd(e.actualSeizedUsd)} {e.collateral}
                 </Text>
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={tag.color} {...tabular}>
+                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} {...tabular}>
+                  {kept === null ? '—' : usd(e.membraneSeizedUsd)}
+                </Text>
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="12px"
+                  color={kept === null ? SEMANTIC_COLORS.textTertiary : kept < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}
+                  {...tabular}
+                >
+                  {kept === null ? '—' : kept < 0 ? `−${usd(-kept)}` : usd(kept)}
+                </Text>
+                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={tag.color}>
                   {tag.text}
                 </Text>
               </Box>
@@ -315,29 +331,45 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
         })}
       </Box>
 
-      {/* THE COMPARATIVE TOTAL — one line the reader can act on: what was sold, what
-          Membrane would have sold across every priced episode (re-liquidations included),
-          and the difference. Unknown episodes are excluded from all three. */}
+      {/* totals row — same columns, unknown episodes excluded from all three */}
       {(() => {
-        const priced = episodes.filter((e) => e.membraneShare !== null || e.verdict === 'saved')
+        const priced = episodes.filter((e) => e.verdict !== 'unknown')
         if (priced.length === 0) return null
         const sold = priced.reduce((a, e) => a + e.actualSeizedUsd, 0)
         const membrane = priced.reduce((a, e) => a + e.membraneSeizedUsd, 0)
         const net = sold - membrane
         return (
-          <Text
+          <Box
             data-testid="sim-history-net"
-            fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="12.5px"
-            color={net >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
-            lineHeight={1.6}
-            {...tabular}
+            display="grid"
+            gridTemplateColumns={{ base: '1fr', md: COLS }}
+            gap={{ base: SPACING.xs, md: SPACING.md }}
+            pt={SPACING.xs}
+            borderTop="1px solid"
+            borderColor={SEMANTIC_COLORS.borderStrong}
+            alignItems="baseline"
           >
-            Across {priced.length} priced episode{priced.length === 1 ? '' : 's'}: sold {usd(sold)} ·
-            Membrane would have sold {usd(membrane)} over {h.totals.membraneLiquidationsTotal} liquidation
-            {h.totals.membraneLiquidationsTotal === 1 ? '' : 's'} · you keep {usd(Math.abs(net))}
-            {net < 0 ? ' less' : ''}.
-          </Text>
+            <Text {...HEAD}>total</Text>
+            <Text />
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} {...tabular}>
+              {usd(sold)}
+            </Text>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} {...tabular}>
+              {usd(membrane)}
+            </Text>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="12px"
+              color={net < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}
+              {...tabular}
+            >
+              {net < 0 ? `−${usd(-net)}` : usd(net)}
+            </Text>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
+              {h.totals.membraneLiquidationsTotal} Membrane liquidation
+              {h.totals.membraneLiquidationsTotal === 1 ? '' : 's'}
+            </Text>
+          </Box>
         )
       })()}
 

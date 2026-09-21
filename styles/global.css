@@ -131,23 +131,23 @@ body {
 
 .neonSign b span {
   display: inline-block;
-  font-size: clamp(75px, 4vh, 4vh);
+  font-size: clamp(34px, 8vw, 75px);
 }
 
 .neonSignon b span {
   display: inline-block;
-  font-size: clamp(75px, 4vh, 4vh);
+  font-size: clamp(34px, 8vw, 75px);
   animation: blink linear infinite 5s;
 }
 
 .neonSign b a {
   display: inline-block;
-  font-size: clamp(75px, 4vh, 4vh);
+  font-size: clamp(34px, 8vw, 75px);
 }
 
 .neonSignon b a {
   display: inline-block;
-  font-size: clamp(75px, 4vh, 4vh);
+  font-size: clamp(34px, 8vw, 75px);
 }
 
 .neonSignon b span:nth-of-type(2) {

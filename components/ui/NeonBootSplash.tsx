@@ -55,6 +55,8 @@ const NeonBootSplash = () => {
         textAlign="center"
         display="flex"
         flexDirection={{ base: 'column', md: 'row' }}
+        flexWrap="wrap"
+        px={4}
         justifyContent="center"
         alignItems="center"
         gap={{ base: 0, md: '0.2em' }}
@@ -66,13 +68,13 @@ const NeonBootSplash = () => {
           <span>E</span>
         </b>
         <b style={{ display: 'flex' }}>
-          <i style={{ display: 'inline-block', fontSize: 'clamp(75px, 4vh, 4vh)', fontStyle: 'normal' }}>M</i>
+          <i style={{ display: 'inline-block', fontSize: 'clamp(34px, 8vw, 75px)', fontStyle: 'normal' }}>M</i>
           <span>E</span>
           <span>M</span>
-          <i style={{ display: 'inline-block', fontSize: 'clamp(75px, 4vh, 4vh)', fontStyle: 'normal' }}>B</i>
-          <i style={{ display: 'inline-block', fontSize: 'clamp(75px, 4vh, 4vh)', fontStyle: 'normal' }}>R</i>
+          <i style={{ display: 'inline-block', fontSize: 'clamp(34px, 8vw, 75px)', fontStyle: 'normal' }}>B</i>
+          <i style={{ display: 'inline-block', fontSize: 'clamp(34px, 8vw, 75px)', fontStyle: 'normal' }}>R</i>
           <span>A</span>
-          <i style={{ display: 'inline-block', fontSize: 'clamp(75px, 4vh, 4vh)', fontStyle: 'normal' }}>N</i>
+          <i style={{ display: 'inline-block', fontSize: 'clamp(34px, 8vw, 75px)', fontStyle: 'normal' }}>N</i>
           <span>E</span>
         </b>
       </Box>

@@ -1,5 +1,5 @@
 // THE CARRY CLAIMS — four lines, one caveat. Copy comes only from CARRY_CLAIMS /
-// CARRY_CLAIMS_CAVEAT (owner comms list, Sep 2026). Rendered inside CarrySection, so it
+// (owner comms list, Sep 2026). Rendered inside CarrySection, so it
 // appears under the fold on BOTH builds — it is never mounted standalone any more.
 
 import React from 'react'

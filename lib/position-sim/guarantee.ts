@@ -79,6 +79,3 @@ export const CARRY_CLAIM_TITLES = [
   // 'Recall, not rebalance',
 ] as const
 
-/** The liquidation caveat. Owner 2026-09-21: no longer rendered under the claim cards —
- *  the hero above them IS a liquidation and the fine print already says it. */
-export const CARRY_CLAIMS_CAVEAT = 'Volatile collateral can still be liquidated.'

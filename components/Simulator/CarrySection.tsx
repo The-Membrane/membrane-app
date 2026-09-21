@@ -6,7 +6,7 @@
 // it sells with EVIDENCE rather than description:
 //
 //   a. what it is, in three lines
-//   b. the four claims, verbatim from CARRY_CLAIMS (ClaimsBlock)
+//   b. the claims, verbatim from CARRY_CLAIMS (ClaimsBlock)
 //   c. proof — live tiles off /api/strats and /api/venues/log, plus the modelled crossing
 //   d. the way back up to the paste box, and out to the two live boards
 //

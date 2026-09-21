@@ -757,7 +757,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
 
           {/* 2b — THE PRODUCT, UNDER THE FOLD. Owner layout ruling 2026-09-12: one landing
           page — "the sim is borrows, while under the fold is carries". This is the first
-          thing below the hero, on BOTH builds (it carries the four claims that used to
+          thing below the hero, on BOTH builds (it carries the claims that used to
           render standalone on the carry page), and it sells with live evidence rather
           than description. Its numbers are fetched or stamped modelled, never invented. */}
           <Section tone="evidence">

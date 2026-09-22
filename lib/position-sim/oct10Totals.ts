@@ -24,6 +24,11 @@ export const OCT10_TOTALS = {
   events: 3111,
   /** Σ aaveClosedUsd over the cohort — what the venues actually closed, in USD. */
   aaveClosedUsd: 144_239_544,
+  /** Σ membraneClosedUsd over the cohort — what the 4%/8h window + repay-to-cap would
+   *  have closed on the same accounts, same prices, no deployment assumed. */
+  membraneClosedUsd: 77_064_039,
+  /** aaveClosedUsd − membraneClosedUsd. The day's "4% would have saved" figure. */
+  keptUsd: 67_175_505,
   /** Σ collateralUsd over the cohort — the pre-liquidation collateral standing behind it. */
   collateralAtRiskUsd: 637_388_334,
   /** The chains the cohort spans, in first-seen order. */
@@ -38,3 +43,15 @@ export const OCT10_TOTALS = {
 export const OCT10_STAKES_LINE =
   `$${Math.round(OCT10_TOTALS.aaveClosedUsd / 1_000_000)}M of loans liquidated on Aave` +
   ` · 10 Oct 2025 · ${OCT10_TOTALS.accounts.toLocaleString('en-US')} accounts`
+
+/**
+ * THE SCALE LINE (owner 2026-09-22): "4% sounds small, but it would've saved $X in the
+ * last N years". Today the only measured corpus is Oct 10 2025, so N is one day and X
+ * is keptUsd. When the multi-year scan lands, replace the window and the figure here —
+ * the sentence's shape does not change. Never a number from outside this file.
+ */
+export const OCT10_SCALE_LINE = {
+  figure: `$${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M`,
+  window: 'on 10 Oct 2025 alone',
+  line: `4% sounds small. It would have kept $${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M of collateral on 10 Oct 2025 alone.`,
+} as const

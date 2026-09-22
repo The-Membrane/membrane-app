@@ -30,7 +30,7 @@ import { DEMO_BORROWER_MEASURED } from '@/lib/position-sim/demoBorrower'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
-import { Box, Text } from '@chakra-ui/react'
+import { Box, Button, Text } from '@chakra-ui/react'
 
 import { DEFAULT_CHAIN } from '@/config/chains'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
@@ -89,7 +89,7 @@ import Controls, { type ControlValues } from './Controls'
 import DeploymentSection from './DeploymentSection'
 import EventLog from './EventLog'
 import FinePrint from './FinePrint'
-import CarrySection, { SimCtaRepeat } from './CarrySection'
+import CarrySection from './CarrySection'
 import { usd, utcClock } from './format'
 import GuaranteeBlock from './GuaranteeBlock'
 import HistoryProof from './HistoryProof'
@@ -895,12 +895,34 @@ export const Simulator: React.FC<SimulatorProps> = ({
             />
           </Section>
 
-          {/* 8 — THE CTA, REPEATED. A reader who got to the bottom of the page should not
-          have to hunt for the paste box. Same sentence as the hero, imported from
-          VerdictHero so the two can never drift. */}
-          <Section>
-            <SimCtaRepeat addressBar={addressBarProps} />
-          </Section>
+          {/* 8 — BACK TO THE TOP (owner 2026-09-22, replaces the repeated CTA). One control
+          in the section-label style, so it reads as part of the page's own labelling
+          rather than a widget. The hero holds the paste box it scrolls to. */}
+          <Box display="flex" justifyContent="center" pt={SPACING.xl}>
+            <Button
+              type="button"
+              data-testid="sim-jump-top"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              variant="unstyled"
+              display="inline-flex"
+              alignItems="center"
+              gap={SPACING.sm}
+              h="auto"
+              px={SPACING.md}
+              py={SPACING.sm}
+              border="1px solid"
+              borderColor={SEMANTIC_COLORS.borderStrong}
+              borderRadius={0}
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="10px"
+              letterSpacing="0.2em"
+              textTransform="uppercase"
+              color={SEMANTIC_COLORS.textSecondary}
+              _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+            >
+              back to the top
+            </Button>
+          </Box>
 
           {/* 9 — THE OTHER BUILD. Both simulators are live and indexable; only one of them
           is the landing page (config/simulatorMode.ts). One line, at the foot, so the

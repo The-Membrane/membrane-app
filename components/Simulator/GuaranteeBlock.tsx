@@ -16,6 +16,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { GUARANTEE } from '@/lib/position-sim'
+import { OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
 
 export const GuaranteeBlock: React.FC = () => (
   <Box
@@ -42,6 +43,23 @@ export const GuaranteeBlock: React.FC = () => (
     </Text>
 
     <Box display="grid" gap={SPACING.md}>
+      {/* THE SCALE LINE (owner 2026-09-22): the number that makes 4% not small. Measured,
+          from OCT10_TOTALS; the figure and window swap when the multi-year scan lands. */}
+      <Text
+        data-testid="sim-scale-line"
+        fontFamily={TYPOGRAPHY.fontDisplay}
+        fontSize="clamp(20px, 2.6vw, 26px)"
+        lineHeight={1.25}
+        color={SEMANTIC_COLORS.textPrimary}
+        maxW="30ch"
+      >
+        4% sounds small.{' '}
+        <Text as="span" color={SEMANTIC_COLORS.success}>
+          It would have kept {OCT10_SCALE_LINE.figure} of collateral
+        </Text>{' '}
+        {OCT10_SCALE_LINE.window}.
+      </Text>
+
       <Text
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize="16px"
@@ -67,7 +85,7 @@ export const GuaranteeBlock: React.FC = () => (
 
       {/* One line. No paragraph follows it — owner ruling 2026-09-11, "all these words
           are killing me". */}
-      <Text
+      {/* <Text
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize="13px"
         lineHeight={1.6}
@@ -75,7 +93,7 @@ export const GuaranteeBlock: React.FC = () => (
         maxW="72ch"
       >
         {GUARANTEE.noDials}
-      </Text>
+      </Text> */}
     </Box>
   </Box>
 )

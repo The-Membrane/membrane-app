@@ -317,12 +317,14 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
           board and the strats OPEN HERE instead of navigating away. */}
       <Box display="grid" gap={SPACING.md}>
         {/* paste box on the left, the two panel toggles stacked to its right */}
+        {/* Wide: paste box + a button column that stretches to the box's full height.
+            Narrow: the column drops under the box and matches its WIDTH instead. */}
         <Box
-          display="flex"
+          display="grid"
+          gridTemplateColumns={{ base: '1fr', md: 'minmax(0, 560px) auto' }}
           gap={SPACING.md}
-          flexWrap="wrap"
-          alignItems="stretch"
           justifyContent="center"
+          alignItems="stretch"
         >
           {addressBar ? (
             <AddressBar {...addressBar} inputId="sim-address-input-carry" />
@@ -331,12 +333,21 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
               Run your position ↑
             </Button>
           )}
-          <Box display="flex" flexDirection="column" gap={SPACING.sm} justifyContent="center">
+          <Box
+            display="grid"
+            gridTemplateRows="1fr 1fr"
+            gap={SPACING.sm}
+            w={{ base: '100%', md: 'auto' }}
+            maxW={{ base: '560px', md: 'none' }}
+            justifySelf={{ base: 'center', md: 'stretch' }}
+          >
           <Button
             type="button"
             onClick={() => toggle('board')}
             aria-expanded={openPanel === 'board'}
             {...CTA_BTN}
+            h="100%"
+            w="100%"
             {...(openPanel === 'board' ? { borderColor: SEMANTIC_COLORS.success, color: SEMANTIC_COLORS.success } : {})}
           >
             {openPanel === 'board' ? 'Hide the carry board ↑' : 'See the carry board ↓'}
@@ -346,6 +357,8 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
             onClick={() => toggle('strats')}
             aria-expanded={openPanel === 'strats'}
             {...CTA_BTN}
+            h="100%"
+            w="100%"
             {...(openPanel === 'strats' ? { borderColor: SEMANTIC_COLORS.success, color: SEMANTIC_COLORS.success } : {})}
           >
             {openPanel === 'strats' ? 'Hide tracked strats ↑' : 'Tracked strats ↓'}

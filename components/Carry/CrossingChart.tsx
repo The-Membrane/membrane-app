@@ -33,15 +33,44 @@ const BAND_OPACITY = 0.24
 
 interface ChartBodyProps {
   data: CrossingPoint[]
+  sizeUsd: number
+  altName: string
+  chosenName: string
 }
 
 const ChartBody = lazyChart<ChartBodyProps>((RC) => {
-  const { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Area, Line } = RC
-  return function CrossingChartBody({ data }: ChartBodyProps) {
+  const { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Area, Line, Tooltip } = RC
+  return function CrossingChartBody({ data, sizeUsd, altName, chosenName }: ChartBodyProps) {
+    // Hover: the day, then per tier (your size, ×10, ×100) what each venue leaves you
+    // after exit costs, with the model's cost range in brackets. Numbers only.
+    const HoverCard = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: number }) => {
+      if (!active || !payload?.length) return null
+      const p = payload[0]?.payload as CrossingPoint | undefined
+      if (!p) return null
+      const pct = (v: unknown) => `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`
+      const band = (b: unknown) => (Array.isArray(b) ? ` [${Number(b[0]).toFixed(1)} … ${Number(b[1]).toFixed(1)}]` : '')
+      return (
+        <div style={{ ...(CHART_THEME.tooltip.contentStyle as object), padding: '10px 12px', fontFamily: TYPOGRAPHY.fontMono, fontSize: 11 }}>
+          <div style={{ color: SEMANTIC_COLORS.textSecondary, letterSpacing: '0.14em', textTransform: 'uppercase', fontSize: 9, marginBottom: 6 }}>
+            day {label} · kept after exit costs
+          </div>
+          {CROSSING_TIERS.map((mult) => (
+            <div key={mult} style={{ marginBottom: 6 }}>
+              <div style={{ color: SEMANTIC_COLORS.textTertiary, fontSize: 9, letterSpacing: '0.1em' }}>
+                {mult === 1 ? 'your size' : `×${mult}`} · {formatUSD(sizeUsd * mult)}
+              </div>
+              <div style={{ color: ALT_COLOR }}>{altName.split(' · ')[0]} {pct(p[`alt${mult}`])}<span style={{ color: SEMANTIC_COLORS.textTertiary }}>{band(p[`altBand${mult}`])}</span></div>
+              <div style={{ color: CHOSEN_COLOR }}>{chosenName.split(' · ')[0]} {pct(p[`chosen${mult}`])}<span style={{ color: SEMANTIC_COLORS.textTertiary }}>{band(p[`chosenBand${mult}`])}</span></div>
+            </div>
+          ))}
+        </div>
+      )
+    }
     return (
       <ResponsiveContainer width="100%" height={CHART_DIMENSIONS.heights.md}>
         <ComposedChart data={data} margin={CHART_DIMENSIONS.margins.default}>
           <CartesianGrid {...CHART_THEME.grid} />
+          <Tooltip content={<HoverCard />} cursor={{ stroke: SEMANTIC_COLORS.borderStrong, strokeWidth: 1 }} />
           <XAxis
             {...CHART_THEME.xAxis}
             dataKey="t"
@@ -122,26 +151,39 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
         note={`${EXIT_MODEL.alt.name} vs ${EXIT_MODEL.chosen.name} · what you keep after exit costs, over ${HORIZON_DAYS} days, at your size, ×10 and ×100`}
       />
       <Card p={SPACING.base}>
-        <ChartBody data={data} />
+        <ChartBody data={data} sizeUsd={size} altName={EXIT_MODEL.alt.name} chosenName={EXIT_MODEL.chosen.name} />
 
-        {/* Legend: venue by color, tier by dash/opacity */}
-        <HStack spacing={SPACING.lg} mt={SPACING.sm} flexWrap="wrap">
-          <HStack spacing={SPACING.sm}>
-            <Box w="18px" h="2px" bg={ALT_COLOR} />
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
-              {EXIT_MODEL.alt.name}
-            </Text>
-          </HStack>
-          <HStack spacing={SPACING.sm}>
-            <Box w="18px" h="2px" bg={CHOSEN_COLOR} />
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
-              {EXIT_MODEL.chosen.name}
-            </Text>
-          </HStack>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary}>
-            solid {formatUSD(size)} · dashed ×10 · dotted ×100 · band = model cost range
+        {/* Legend: what the axes are, then the two venues, then the three sizes. */}
+        <Box mt={SPACING.sm} display="grid" gap={SPACING.xs}>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
+            Each line: what a deposit is worth after paying to exit, as % of what you put in, day by
+            day. Above zero you are ahead; the shaded band is the model’s cost range. Hover for numbers.
           </Text>
-        </HStack>
+          <HStack spacing={SPACING.lg} flexWrap="wrap">
+            <HStack spacing={SPACING.sm}>
+              <Box w="18px" h="2px" bg={ALT_COLOR} />
+              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
+                {EXIT_MODEL.alt.name} — higher yield, thinner exit
+              </Text>
+            </HStack>
+            <HStack spacing={SPACING.sm}>
+              <Box w="18px" h="2px" bg={CHOSEN_COLOR} />
+              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
+                {EXIT_MODEL.chosen.name} — lower yield, deeper exit
+              </Text>
+            </HStack>
+          </HStack>
+          <HStack spacing={SPACING.lg} flexWrap="wrap">
+            {CROSSING_TIERS.map((mult) => (
+              <HStack key={mult} spacing={SPACING.sm}>
+                <Box w="18px" h="0" borderTop="2px" borderStyle={mult === 1 ? 'solid' : mult === 10 ? 'dashed' : 'dotted'} borderColor={SEMANTIC_COLORS.textSecondary} />
+                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary}>
+                  {mult === 1 ? 'your size' : `×${mult}`} · {formatUSD(size * mult)}
+                </Text>
+              </HStack>
+            ))}
+          </HStack>
+        </Box>
 
         {/* The takeaway, in dollars, gold-bordered (§6) */}
         {crossing !== null && (

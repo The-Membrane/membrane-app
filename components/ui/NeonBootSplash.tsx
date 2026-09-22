@@ -54,12 +54,12 @@ const NeonBootSplash = () => {
         letterSpacing="wider"
         textAlign="center"
         display="flex"
-        flexDirection={{ base: 'column', md: 'row' }}
+        flexDirection="row"
         flexWrap="wrap"
         px={4}
         justifyContent="center"
         alignItems="center"
-        gap={{ base: 0, md: '0.6em' }}
+        gap="0.5em"
         aria-hidden="true"
       >
         <b>THE</b>

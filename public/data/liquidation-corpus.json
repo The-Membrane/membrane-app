@@ -1,0 +1,48 @@
+{
+  "protocol": "Aave V3 mainnet",
+  "fromBlock": 16291127,
+  "toBlock": 23554876,
+  "fromDate": "2023-01-30T19:11:47.000Z",
+  "toDate": "2025-10-11T07:51:47.000Z",
+  "events": 15564,
+  "accounts": 6522,
+  "episodes": 0,
+  "pricedEpisodes": 0,
+  "unpricedEpisodes": 0,
+  "unpricedEvents": 0,
+  "actualSeizedUsd": 0,
+  "actualRepaidUsd": 0,
+  "membraneSeizedUsd": 0,
+  "keptUsd": 0,
+  "savedCount": 0,
+  "partialCount": 0,
+  "brokeCount": 0,
+  "worseCount": 0,
+  "byYear": [
+    {
+      "year": 2023,
+      "events": 473,
+      "actualSeizedUsd": 0,
+      "membraneSeizedUsd": 0,
+      "keptUsd": 0
+    },
+    {
+      "year": 2024,
+      "events": 5066,
+      "actualSeizedUsd": 0,
+      "membraneSeizedUsd": 0,
+      "keptUsd": 0
+    },
+    {
+      "year": 2025,
+      "events": 10025,
+      "actualSeizedUsd": 0,
+      "membraneSeizedUsd": 0,
+      "keptUsd": 0
+    }
+  ],
+  "byCollateral": [],
+  "method": "Every Aave V3 mainnet LiquidationCall from the Pool's deploy block 16,291,127 (Dec 2022) through block 23,554,876, decoded from logs with NO address filter and no per-wallet event cap — 15,564 events across 6,522 liquidated accounts. Events on one account within 24 hours of each other are ONE EPISODE — one crash, one position — and Membrane's side of an episode is a CHAIN, not a single sale: the position starts at its liquidation line carrying the debt the liquidators actually repaid, is repriced by the Chainlink rounds that really printed, and is walked for 72 hours past the episode's last event (capped at the next episode's first event, so no day is charged twice). Crossing the line arms an 8-hour timer; a climb past the 4% break band sells immediately; a return to the borrow line (liquidation line − 3pp) clears the timer with nothing sold; a window that expires still over the cap is a repay-to-cap, after which the position CONTINUES and can be liquidated again. This is the same engine (lib/position-sim/history.ts replayEpisode) and the same pricing the per-wallet scanner runs. MEMBRANE'S SIDE NEVER ASSUMES A DEPLOYMENT: there is no venue recall, recall = 0. The fee Membrane is charged is the SOURCE VENUE'S OWN liquidation bonus at that event's block (Aave liquidationBonus − 1), never a cheaper liquidator. The account's liquidation line is APPROXIMATED by the seized reserve's own liquidation threshold read at the event block, and the LTV at the event is taken to equal that line — an account being liquidated was at or over it by definition. A multi-collateral account's true blended line is a value-weighted average of its reserves, which needs the full account state at a historical block and is not cheaply readable; the single-reserve threshold is the honest approximation and it is stated here rather than hidden. Stablecoins are held at $1.00; wstETH is priced as stETH/USD × stEthPerToken; every other asset is priced off its Chainlink USD feed's AnswerUpdated rounds. Assets with no committed price source are UNPRICED: 0 of 0 episodes could not be priced at all and are excluded from every dollar figure here, counted in neither direction, and a further 0 individual events inside otherwise-priced episodes contributed nothing — so the actual-seized side is a floor, not a total. Episodes where the Membrane chain cost AT LEAST what the real liquidator took are counted as 'worse' (0 of them) and are included in membraneSeizedUsd at full weight — they are never netted away to flatter the kept figure. keptUsd is actualSeizedUsd − membraneSeizedUsd over priced episodes only. NOT COVERED: Spark, Morpho Blue, Compound V3, Fluid and every non-mainnet chain. This corpus is Aave V3 mainnet alone — one venue, one event shape, one set of reserve configs — so the figure is a floor on the liquidation universe, not a total. PARTIAL: this scan is still running. Figures cover the 0 episodes replayed so far, not the whole corpus.",
+  "partial": true,
+  "generatedAt": "2026-09-22T22:08:54.763Z"
+}

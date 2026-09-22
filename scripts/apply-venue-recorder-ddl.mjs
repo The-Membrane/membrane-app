@@ -219,6 +219,71 @@ await sql`CREATE TABLE IF NOT EXISTS venue_terms (
 )`
 await sql`CREATE INDEX IF NOT EXISTS venue_terms_venue_url_fetched_idx ON venue_terms (venue, url, fetched_at)`
 
+// ---------------------------------------------------------------- CORPUS
+// aave_liquidations — the EVENT-LEVEL multi-year corpus behind the scale line
+// ("4% sounds small. It would have kept $X of collateral over the last N
+// years."). One row per Aave V3 mainnet LiquidationCall from the Pool's deploy
+// block (16,291,127) to head, NO user filter, written by
+// scripts/scan-aave-liquidations.mjs. Amounts are stored RAW (token base units,
+// numeric because a uint256 does not fit a bigint) — never pre-priced, so a
+// pricing change re-derives from the same rows instead of re-scanning 7.5M
+// blocks. PRIMARY KEY (tx_hash, log_index) makes a resumed or overlapping
+// chunk idempotent: the scanner re-runs a chunk after a crash and inserts
+// ON CONFLICT DO NOTHING. "user" is quoted everywhere — it is a reserved word.
+await sql`CREATE TABLE IF NOT EXISTS aave_liquidations (
+  block bigint NOT NULL,
+  block_time timestamptz NOT NULL,
+  tx_hash text NOT NULL,
+  log_index integer NOT NULL,
+  "user" text NOT NULL,
+  collateral_asset text NOT NULL,
+  debt_asset text NOT NULL,
+  debt_to_cover numeric NOT NULL,
+  liquidated_collateral_amount numeric NOT NULL,
+  liquidator text NOT NULL,
+  PRIMARY KEY (tx_hash, log_index)
+)`
+await sql`CREATE INDEX IF NOT EXISTS aave_liquidations_user_block_idx ON aave_liquidations ("user", block, log_index)`
+await sql`CREATE INDEX IF NOT EXISTS aave_liquidations_block_idx ON aave_liquidations (block)`
+await sql`CREATE INDEX IF NOT EXISTS aave_liquidations_time_idx ON aave_liquidations (block_time)`
+
+// aave_liquidation_episodes — one row per EPISODE (events within 24h of each
+// other on one account are ONE episode: one crash, one position), each replayed
+// through the 4%/8h window by lib/position-sim/history.ts replayEpisode — the
+// same engine and the same Chainlink pricing the per-wallet scanner uses.
+// unpriced = nothing in the episode could be priced; such a row is stored (so
+// the count is printable) and excluded from every dollar figure.
+await sql`CREATE TABLE IF NOT EXISTS aave_liquidation_episodes (
+  "user" text NOT NULL,
+  start_ts bigint NOT NULL,
+  end_ts bigint NOT NULL,
+  collateral text NOT NULL,
+  actual_seized_usd numeric NOT NULL DEFAULT 0,
+  actual_repaid_usd numeric NOT NULL DEFAULT 0,
+  membrane_seized_usd numeric NOT NULL DEFAULT 0,
+  membrane_liquidations integer NOT NULL DEFAULT 0,
+  verdict text NOT NULL,
+  unpriced boolean NOT NULL DEFAULT false,
+  event_count integer NOT NULL DEFAULT 0,
+  unpriced_events integer NOT NULL DEFAULT 0,
+  replayed_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY ("user", start_ts)
+)`
+await sql`CREATE INDEX IF NOT EXISTS aave_liq_episodes_start_idx ON aave_liquidation_episodes (start_ts)`
+await sql`CREATE INDEX IF NOT EXISTS aave_liq_episodes_verdict_idx ON aave_liquidation_episodes (verdict)`
+
+// aave_scan_cursor — the resume points. 'logs' = the next block the log scan
+// must read; 'logs_head' = the head block FROZEN at the first run so a resumed
+// scan keeps one stable toBlock (and therefore one stable denominator);
+// 'logs_done'/'episodes_done' = phase completion flags; 'episodes' = the last
+// account (lexicographic) whose episodes are committed. A crash loses at most
+// one chunk / one account.
+await sql`CREATE TABLE IF NOT EXISTS aave_scan_cursor (
+  name text PRIMARY KEY,
+  value text NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+)`
+
 const [{ s }] = await sql`SELECT count(*)::int AS s FROM venue_snapshots`
 const [{ e }] = await sql`SELECT count(*)::int AS e FROM venue_events`
 const [{ p }] = await sql`SELECT count(*)::int AS p FROM venue_predictions`
@@ -227,4 +292,6 @@ const [{ w }] = await sql`SELECT count(*)::int AS w FROM strat_watches`
 const [{ n }] = await sql`SELECT count(*)::int AS n FROM venue_news`
 const [{ a }] = await sql`SELECT count(*)::int AS a FROM venue_alarms`
 const [{ t }] = await sql`SELECT count(*)::int AS t FROM venue_terms`
-console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}, watches: ${w}, news: ${n}, alarms: ${a}, terms: ${t}`)
+const [{ al }] = await sql`SELECT count(*)::int AS al FROM aave_liquidations`
+const [{ ae }] = await sql`SELECT count(*)::int AS ae FROM aave_liquidation_episodes`
+console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}, watches: ${w}, news: ${n}, alarms: ${a}, terms: ${t}, aave_liquidations: ${al}, aave_liquidation_episodes: ${ae}`)

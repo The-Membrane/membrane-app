@@ -1,3 +1,5 @@
+import corpus from '@/public/data/liquidation-corpus.json'
+
 // THE SIZE OF THE DAY.
 //
 // Owner ruling 2026-09-12: the Oct-10 hero must state HOW BIG that day was and that it
@@ -54,4 +56,67 @@ export const OCT10_SCALE_LINE = {
   figure: `$${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M`,
   window: 'on 10 Oct 2025 alone',
   line: `4% sounds small. It would have kept $${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M of collateral on 10 Oct 2025 alone.`,
+} as const
+
+// ---------------------------------------------------------------------------
+// THE MULTI-YEAR CORPUS LINE
+// ---------------------------------------------------------------------------
+
+/**
+ * THE SCALE LINE AT CORPUS SCALE (owner 2026-09-22: "the real figure").
+ *
+ * Same sentence as OCT10_SCALE_LINE, one day replaced by the whole measured history:
+ * every Aave V3 mainnet liquidation from the Pool's deploy block to head, clustered
+ * into 24h episodes and replayed through the 4%/8h window by the SAME engine
+ * (lib/position-sim/history.ts) that the per-wallet scanner runs. The corpus itself is
+ * built by scripts/scan-aave-liquidations.mjs; this file only reads its summary.
+ *
+ * WHY A STATIC IMPORT AND NOT A FETCH: the hero must not block on a network read, and a
+ * hard-coded copy of the figure is exactly the drift OCT10_TOTALS' unit test exists to
+ * prevent — so the number is imported from the artefact instead of transcribed from it.
+ *
+ * `partial` IS LOAD-BEARING. The scan takes hours and writes its summary every 2,000
+ * episodes, so the JSON on disk is routinely a PARTIAL corpus. A caller that prints the
+ * line without honouring this flag is claiming a finished measurement it does not have.
+ * Every dollar here covers PRICED episodes only; unpriced episodes are excluded in both
+ * directions and 'worse' episodes are charged at full weight — see `corpus.method`.
+ */
+const YEAR_MS = 365.2425 * 24 * 3600 * 1000
+
+/** Years between the first and last observed liquidation, to one decimal. */
+function corpusYears(): number {
+  // Cast: a corpus written before the first event has `null` here, and TS would then
+  // infer the literal type `null` and reject the arithmetic below on a later write.
+  const from = corpus.fromDate as string | null
+  const to = corpus.toDate as string | null
+  if (!from || !to) return 0
+  const ms = Date.parse(to) - Date.parse(from)
+  if (!Number.isFinite(ms) || ms <= 0) return 0
+  return Math.round((ms / YEAR_MS) * 10) / 10
+}
+
+/** $1.2B / $340M / $12.4M / $940k — the largest unit the figure honestly fills. */
+function usdFigure(usd: number): string {
+  const v = Math.max(0, usd)
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`
+  if (v >= 1e6) return `$${Math.round(v / 1e6)}M`
+  if (v >= 1e3) return `$${Math.round(v / 1e3)}k`
+  return `$${Math.round(v)}`
+}
+
+const corpusFigure = usdFigure(corpus.keptUsd)
+const corpusYearCount = corpusYears()
+const corpusWindow = `over ${corpusYearCount} years of Aave V3`
+
+export const CORPUS_SCALE_LINE = {
+  /** actualSeizedUsd − membraneSeizedUsd over PRICED episodes, formatted. */
+  figure: corpusFigure,
+  window: corpusWindow,
+  line: `4% sounds small. It would have kept ${corpusFigure} of collateral ${corpusWindow}.`,
+  /** True while the scan is still running. The figure is a floor, not the total. */
+  partial: corpus.partial === true,
+  /** Unrounded, for anything that needs to do arithmetic rather than print. */
+  keptUsd: corpus.keptUsd,
+  years: corpusYearCount,
+  source: 'public/data/liquidation-corpus.json (scripts/scan-aave-liquidations.mjs)',
 } as const

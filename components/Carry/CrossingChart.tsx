@@ -184,7 +184,7 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
         <Box mt={SPACING.sm} display="grid" gap={SPACING.xs}>
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
             Each line: what a deposit is worth after paying to exit, as % of what you put in, day by
-            day. Above zero you are ahead; the shaded band is the model’s cost range. Hover for numbers.
+            day. Green numbers are ahead, red are behind. Hover for the model’s cost range at any day.
           </Text>
           <HStack spacing={SPACING.lg} flexWrap="wrap">
             <HStack spacing={SPACING.sm}>

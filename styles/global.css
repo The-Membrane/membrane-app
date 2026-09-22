@@ -132,15 +132,15 @@ body {
   text-shadow: 0 0 18px rgba(155, 220, 79, 0.55), 0 0 0.6em rgba(155, 220, 79, 0.35), 0 0 3px #000;
 }
 
-.neonSign b span {
+.neonSign b {
   display: inline-block;
   font-size: clamp(34px, 8vw, 75px);
 }
 
-.neonSignon b span {
+.neonSignon b {
   display: inline-block;
   font-size: clamp(34px, 8vw, 75px);
-  animation: blink linear infinite 5s;
+  animation: blink linear infinite 6s;
 }
 
 .neonSign b a {
@@ -153,9 +153,6 @@ body {
   font-size: clamp(34px, 8vw, 75px);
 }
 
-.neonSignon b span:nth-of-type(2) {
-  animation: blink reverse infinite 8s;
-}
 
 @keyframes blink {
   78% {

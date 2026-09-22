@@ -62,21 +62,8 @@ const NeonBootSplash = () => {
         gap={{ base: 0, md: '0.6em' }}
         aria-hidden="true"
       >
-        <b style={{ display: 'flex' }}>
-          <span>T</span>
-          <span>H</span>
-          <span>E</span>
-        </b>
-        <b style={{ display: 'flex' }}>
-          <i style={{ display: 'inline-block', fontSize: 'clamp(34px, 8vw, 75px)', fontStyle: 'normal' }}>M</i>
-          <span>E</span>
-          <span>M</span>
-          <i style={{ display: 'inline-block', fontSize: 'clamp(34px, 8vw, 75px)', fontStyle: 'normal' }}>B</i>
-          <i style={{ display: 'inline-block', fontSize: 'clamp(34px, 8vw, 75px)', fontStyle: 'normal' }}>R</i>
-          <span>A</span>
-          <i style={{ display: 'inline-block', fontSize: 'clamp(34px, 8vw, 75px)', fontStyle: 'normal' }}>N</i>
-          <span>E</span>
-        </b>
+        <b>THE</b>
+        <b>MEMBRANE</b>
       </Box>
     </Box>
   )

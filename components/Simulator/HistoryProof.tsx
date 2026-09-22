@@ -21,6 +21,8 @@
 // Every number here comes from /api/sim/history/[address], which replays REAL decoded
 // liquidation events against real Chainlink rounds. This file computes nothing.
 
+import Stamp from './Stamp'
+import { stamp as stampFn } from '@/lib/position-sim/types'
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'
 
@@ -75,6 +77,8 @@ export function verdictTag(e: HistoryEpisode): { text: string; color: string } {
 /** Signed "you keep" for an episode: actual − Membrane. null when unpriced. */
 export const keptUsd = (e: HistoryEpisode): number | null =>
   e.verdict === 'unknown' ? null : e.actualSeizedUsd - e.membraneSeizedUsd
+
+const HISTORY_PROV = stampFn('onchain', 'measured · mainnet logs', 'Real LiquidationCall / Liquidate events for this address, replayed through the 4%/8h window at recorded Chainlink rounds.')
 
 const VERDICT_ORDER: Record<EpisodeVerdict, number> = {
   saved: 0,
@@ -193,7 +197,10 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
       display="grid"
       gap={SPACING.md}
     >
-      <Text {...HEAD}>what the delay would have done to your own history</Text>
+      <Box display="flex" justifyContent="space-between" alignItems="baseline" gap={SPACING.md} flexWrap="wrap">
+        <Text {...HEAD}>what the delay would have done to your own history</Text>
+        <Stamp provenance={HISTORY_PROV} />
+      </Box>
 
       {savedUsd > 0 ? (
         <Box display="grid" gap={SPACING.xs}>

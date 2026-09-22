@@ -17,6 +17,10 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { GUARANTEE } from '@/lib/position-sim'
 import { OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
+import { stamp as stampFn } from '@/lib/position-sim/types'
+import Stamp from './Stamp'
+
+const GUARANTEE_PROV = stampFn('dataset', 'rule in code', GUARANTEE.provenance)
 
 export const GuaranteeBlock: React.FC = () => (
   <Box
@@ -82,6 +86,7 @@ export const GuaranteeBlock: React.FC = () => (
       >
         {GUARANTEE.limit}
       </Text>
+      <Stamp provenance={GUARANTEE_PROV} />
 
       {/* One line. No paragraph follows it — owner ruling 2026-09-11, "all these words
           are killing me". */}

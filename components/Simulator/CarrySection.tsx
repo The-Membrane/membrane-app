@@ -39,6 +39,11 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { demoDetection } from '@/lib/position-sim/demo'
+import { stamp, type Provenance } from '@/lib/position-sim/types'
+import Stamp from './Stamp'
+
+const LIVE_STRATS = stamp('onchain', 'live · /api/strats', 'Tracked carry strats, refreshed by the hourly recorder; served from stored scans.')
+const LIVE_LOG = stamp('onchain', 'live · /api/venues/log', 'Venue state changes recorded hourly; only discrete changes and >20% liquidity moves become entries.')
 import type { VenueDetection } from '@/lib/position-sim/venues'
 
 import ClaimsBlock from './ClaimsBlock'
@@ -101,7 +106,7 @@ const Pending: React.FC = () => (
 
 const Tile: React.FC<{
   label: string
-  stamp: string
+  stamp: Provenance
   pending: boolean
   children: React.ReactNode
 }> = ({ label, stamp, pending, children }) => (
@@ -127,14 +132,7 @@ const Tile: React.FC<{
     >
       {label}
     </Text>
-    <Text
-      fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="9px"
-      letterSpacing="0.24em"
-      color={SEMANTIC_COLORS.textTertiary}
-    >
-      {stamp}
-    </Text>
+    <Stamp provenance={stamp} />
   </Box>
 )
 
@@ -265,11 +263,11 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
           gridTemplateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }}
           gap={SPACING.base}
         >
-          <Tile label="tracked carry strats" stamp="live · /api/strats" pending={stratsPending}>
+          <Tile label="tracked carry strats" stamp={LIVE_STRATS} pending={stratsPending}>
             <Figure>{strats?.count ?? 0}</Figure>
           </Tile>
 
-          <Tile label="at risk in those books" stamp="live · /api/strats" pending={stratsPending}>
+          <Tile label="at risk in those books" stamp={LIVE_STRATS} pending={stratsPending}>
             <Figure>{fmtUsd(strats?.total_usd ?? 0)}</Figure>
           </Tile>
 
@@ -279,7 +277,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
                 ? `last venue change · ${newest.venue} · ${new Date(newest.at).toISOString().slice(0, 10)}`
                 : 'last venue change'
             }
-            stamp="live · /api/venues/log"
+            stamp={LIVE_LOG}
             pending={logPending}
           >
             <Text

@@ -156,7 +156,6 @@ const HorizontalNav = () => {
             as="nav"
             position="sticky"
             top={0}
-            zIndex={90}
             w="full"
             px={{ base: 2, md: 8 }}
             py={2}

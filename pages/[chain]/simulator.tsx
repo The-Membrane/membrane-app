@@ -15,8 +15,8 @@ const SimulatorPage = () => (
   <>
     <PageSeo
       seoClass="indexable"
-      title="Membrane — Position Simulator"
-      description="Take any lending position on Aave, Spark, Morpho or Compound and replay it through the measured October 2025 crash under two liquidation engines. Same prices, same collateral, different endings."
+      title="Membrane — 4%. Cross the line and nothing is sold."
+      description="Paste any Aave, Spark, Morpho or Compound position and replay it through the measured 10 Oct 2025 crash. Membrane's 4% window would have kept $67M of collateral that day."
     />
     <Simulator mode="borrower" />
   </>

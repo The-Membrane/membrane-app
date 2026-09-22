@@ -48,6 +48,7 @@ import useWallet from '@/hooks/useWallet'
 import type { LandingVariant } from '@/lib/landingVariant'
 import { monoXs, tabular } from '@/components/Builder/styles'
 import {
+  GUARANTEE,
   MEMBRANE_LTV_PROVENANCE,
   buildPricePath,
   DEMO_SNAPSHOT_NOTE,
@@ -98,6 +99,7 @@ import PositionCard from './PositionCard'
 import { recordLandingEvent } from './recordLandingEvent'
 import { recordSimRead } from './recordRead'
 import VerdictHero from './VerdictHero'
+import Logo from '@/components/Logo'
 
 /**
  * Plain section title. There are no numbered eyebrows on this page any more.
@@ -133,15 +135,38 @@ const Section: React.FC<{
   /** The hero. Opens the page, so it carries no top seam. */
   first?: boolean
   children: React.ReactNode
-}> = ({ tone = 'plain', first = false, children }) => (
+  /** Brand #1 (2026-09-22): the "4%." numeral recurs as a faint opener on the bands
+   *  where the 4% window IS the subject, so the one distinctive device on the page
+   *  appears at three scales instead of firing once. */
+  mark?: boolean
+}> = ({ tone = 'plain', first = false, mark = false, children }) => (
   <Box
     as="section"
+    position="relative"
     py={SPACING.xl}
     borderTop={first ? undefined : '1px solid'}
     borderColor={first ? undefined : SEMANTIC_COLORS.borderStrong}
     bg={tone === 'evidence' ? SEMANTIC_COLORS.bgSecondary : SEMANTIC_COLORS.bgPrimary}
     px={tone === 'evidence' ? SPACING.base : undefined}
   >
+    {mark && (
+      <Text
+        aria-hidden="true"
+        position="absolute"
+        top={SPACING.md}
+        right={SPACING.base}
+        fontFamily={TYPOGRAPHY.fontDisplay}
+        fontSize="clamp(28px, 4vw, 44px)"
+        lineHeight={1}
+        letterSpacing="-0.03em"
+        color={SEMANTIC_COLORS.success}
+        opacity={0.55}
+        userSelect="none"
+        pointerEvents="none"
+      >
+        {GUARANTEE.name}
+      </Text>
+    )}
     {children}
   </Box>
 )
@@ -762,7 +787,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
           actually happened to the address on screen. A wallet with no history says so
           in one line and prints no number — never a manufactured near-miss.
           EVIDENCE band: measured events, not a claim. */}
-          <Section tone="evidence">
+          <Section tone="evidence" mark>
             <HistoryProof address={historyAddress} />
           </Section>
 
@@ -848,7 +873,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
 
           {/* 5 — THE RUN. EVIDENCE band: this is the measured comparison itself. */}
           {selected && (
-            <Section tone="evidence">
+            <Section tone="evidence" mark>
               <Box display="grid" gap={SPACING.md}>
                 <Text {...SECTION}>the run</Text>
 
@@ -922,6 +947,27 @@ export const Simulator: React.FC<SimulatorProps> = ({
             >
               back to the top
             </Button>
+          </Box>
+
+          {/* FOOTER (brand #4, 2026-09-22): the wordmark at the bottom as well as the top,
+          with the one provenance line every claim on the page stands on. */}
+          <Box
+            as="footer"
+            data-testid="sim-footer"
+            mt={SPACING.xl}
+            pt={SPACING.lg}
+            borderTop="1px solid"
+            borderColor={SEMANTIC_COLORS.borderStrong}
+            display="flex"
+            flexWrap="wrap"
+            alignItems="center"
+            justifyContent="space-between"
+            gap={SPACING.base}
+          >
+            <Logo height="28px" />
+            <Text {...monoXs} color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.12em" textAlign="right">
+              {GUARANTEE.provenance}
+            </Text>
           </Box>
 
           {/* 9 — THE OTHER BUILD. Both simulators are live and indexable; only one of them

@@ -23,6 +23,8 @@
 //    KNOWN_VENUES (sDAI, the aTokens, sfrxUSD) are wider than the recorder's four.
 //  - EMPTY WHILE LOADING. A pulsing baseline, never a stale or placeholder number.
 
+import Stamp from './Stamp'
+import { stamp as stampFn } from '@/lib/position-sim/types'
 import React from 'react'
 import { keyframes } from '@emotion/react'
 import { Box, Text } from '@chakra-ui/react'
@@ -157,8 +159,8 @@ export const VenueCapacity: React.FC<VenueCapacityProps> = ({ detection }) => {
 
   const byName = new Map((data?.venues ?? []).map((v) => [v.venue.toLowerCase(), v]))
   const observedAt = data?.venues.find((v) => v.observedAt)?.observedAt
-  const stamp = `observed · hourly recorder · ${observedAt ? observedAt.slice(0, 10) : '—'}`
   const rule = data?.venues[0]?.bands.rule
+  const stampProv = stampFn('onchain', `observed · hourly recorder · ${observedAt ? observedAt.slice(0, 10) : '—'}`, rule ?? undefined)
 
   return (
     <Box
@@ -244,15 +246,7 @@ export const VenueCapacity: React.FC<VenueCapacityProps> = ({ detection }) => {
       {/* The derivation lives in the title attribute rather than the layout: the bands
           are derived (the recorder stores no cooling/stranded split) and a reader who
           wants to audit the bar can read exactly how, without a paragraph on screen. */}
-      <Text
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="9px"
-        letterSpacing="0.24em"
-        color={SEMANTIC_COLORS.textTertiary}
-        title={rule}
-      >
-        {stamp}
-      </Text>
+      <Stamp provenance={stampProv} />
     </Box>
   )
 }

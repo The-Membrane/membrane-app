@@ -146,7 +146,7 @@ export function exitCostPctRange(v: ExitModelVenue, sizeUsd: number): [number, n
 }
 
 /** One point of the crossing series: % of principal, net of exit, at day t. */
-const netPct = (v: ExitModelVenue, sizeUsd: number, tDays: number): [number, number, number] => {
+export const netPct = (v: ExitModelVenue, sizeUsd: number, tDays: number): [number, number, number] => {
   const grow = (v.aprPct * tDays) / 365
   const [cLo, cHi] = exitCostPctRange(v, sizeUsd)
   return [grow - cHi, grow - (cLo + cHi) / 2, grow - cLo] // [lo, mid, hi]

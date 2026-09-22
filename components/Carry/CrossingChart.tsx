@@ -10,8 +10,9 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { lazyChart } from '@/components/ui/lazyChart'
 
 import { SectionHeading } from './atoms'
+import type { ExitModelVenue } from './types'
 import { CROSSING_STAMP, EXIT_MODEL } from './fixtures'
-import { CROSSING_TIERS, CrossingPoint, buildCrossingSeries, crossingSizeUsd, formatUSD, twoSigFigs } from './utils'
+import { CROSSING_TIERS, CrossingPoint, buildCrossingSeries, crossingSizeUsd, formatUSD, netPct as netPctPublic, twoSigFigs } from './utils'
 
 /**
  * The crossing chart (BADASS_RULESET §4, rendered to BRAND_CHARTS §6):
@@ -41,7 +42,7 @@ interface ChartBodyProps {
 }
 
 const ChartBody = lazyChart<ChartBodyProps>((RC) => {
-  const { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Area, Line, Tooltip, ReferenceLine, ReferenceArea } = RC
+  const { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Line, Tooltip, ReferenceLine, ReferenceArea } = RC
   return function CrossingChartBody({ data, sizeUsd, altName, chosenName }: ChartBodyProps) {
     // Hover: the day, then per tier (your size, ×10, ×100) what each venue leaves you
     // after exit costs, with the model's cost range in brackets. Numbers only.
@@ -96,22 +97,6 @@ const ChartBody = lazyChart<ChartBodyProps>((RC) => {
           />
           {/* Flat array, no Fragments — recharts identifies children by type. */}
           {CROSSING_TIERS.flatMap((mult) => [
-            <Area
-              key={`cb${mult}`}
-              dataKey={`chosenBand${mult}`}
-              stroke="none"
-              fill={CHOSEN_COLOR}
-              fillOpacity={BAND_OPACITY * TIER_OPACITY[mult]}
-              isAnimationActive={false}
-            />,
-            <Area
-              key={`ab${mult}`}
-              dataKey={`altBand${mult}`}
-              stroke="none"
-              fill={ALT_COLOR}
-              fillOpacity={BAND_OPACITY * TIER_OPACITY[mult]}
-              isAnimationActive={false}
-            />,
             <Line
               key={`cl${mult}`}
               dataKey={`chosen${mult}`}
@@ -142,6 +127,35 @@ const ChartBody = lazyChart<ChartBodyProps>((RC) => {
 export interface CrossingChartProps {
   /** The user's dialled size, USD — tiers render at ×1 / ×10 / ×100 of this. */
   amountUsd: number
+}
+
+/** Three sentences, every number from the same model the lines use. */
+const Conclusions: React.FC<{ size: number; crossing: number | null }> = ({ size, crossing }) => {
+  const end = (v: ExitModelVenue, s: number) => netPctPublic(v, s, HORIZON_DAYS)[1]
+  const a1 = end(EXIT_MODEL.alt, size)
+  const c1 = end(EXIT_MODEL.chosen, size)
+  const a10 = end(EXIT_MODEL.alt, size * 10)
+  const c10 = end(EXIT_MODEL.chosen, size * 10)
+  const alt = EXIT_MODEL.alt.name.split(' · ')[0]
+  const chosen = EXIT_MODEL.chosen.name.split(' · ')[0]
+  const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
+  const win = (a: number, c: number) => (a > c ? alt : chosen)
+  const lines = [
+    `At your size (${formatUSD(size)}), after ${HORIZON_DAYS} days you keep ${pct(a1)} on ${alt} vs ${pct(c1)} on ${chosen} — ${win(a1, c1)} wins.`,
+    `At ×10 (${formatUSD(size * 10)}) it is ${pct(a10)} vs ${pct(c10)} — ${win(a10, c10)} wins; the higher yield is eaten by a deeper exit.`,
+    crossing !== null
+      ? `The crossover is near ${formatUSD(twoSigFigs(crossing))}. Below it, chase the yield; above it, pay for the exit.`
+      : `No crossover inside the modelled range: the ranking holds at every size shown.`,
+  ]
+  return (
+    <Box display="grid" gap={SPACING.xs}>
+      {lines.map((l) => (
+        <Text key={l} fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} lineHeight={1.7} color={SEMANTIC_COLORS.textPrimary} borderLeft="2px solid" borderColor={SEMANTIC_COLORS.success} pl={SPACING.sm}>
+          {l}
+        </Text>
+      ))}
+    </Box>
+  )
 }
 
 export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
@@ -212,6 +226,41 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
             </Text>
           </Box>
         )}
+
+        {/* HOW THE DISCOUNT WORKS + WHAT TO CONCLUDE (owner 2026-09-22). Words only where
+            the chart cannot carry them; every number here is the same model the lines use. */}
+        <Box mt={SPACING.md} display="grid" gridTemplateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={SPACING.md}>
+          <Box display="grid" gap={SPACING.xs}>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.24em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
+              how the yield is discounted
+            </Text>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} lineHeight={1.7} color={SEMANTIC_COLORS.textSecondary}>
+              kept = yield earned so far − the cost of getting out at that size. The exit cost
+              is paid in three tiers: the first slice swaps out instantly at a small spread,
+              the next slice waits through the venue’s cooldown at a bigger one, and anything
+              past the venue’s depth is stranded at the biggest. A larger position reaches
+              the expensive tiers, so the same venue costs more to leave at ×10 than at ×1.
+            </Text>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} lineHeight={1.7} color={SEMANTIC_COLORS.textSecondary}>
+              {EXIT_MODEL.alt.name.split(' · ')[0]}: instant to {formatUSD(EXIT_MODEL.alt.instantDepthUsd)} at{' '}
+              {EXIT_MODEL.alt.instantCostPct[0]}–{EXIT_MODEL.alt.instantCostPct[1]}%, cooling to{' '}
+              {formatUSD(EXIT_MODEL.alt.instantDepthUsd + EXIT_MODEL.alt.coolingDepthUsd)} at{' '}
+              {EXIT_MODEL.alt.coolingCostPct[0]}–{EXIT_MODEL.alt.coolingCostPct[1]}%, then{' '}
+              {EXIT_MODEL.alt.strandedCostPct[0]}–{EXIT_MODEL.alt.strandedCostPct[1]}%.{' '}
+              {EXIT_MODEL.chosen.name.split(' · ')[0]}: instant to {formatUSD(EXIT_MODEL.chosen.instantDepthUsd)} at{' '}
+              {EXIT_MODEL.chosen.instantCostPct[0]}–{EXIT_MODEL.chosen.instantCostPct[1]}%, cooling to{' '}
+              {formatUSD(EXIT_MODEL.chosen.instantDepthUsd + EXIT_MODEL.chosen.coolingDepthUsd)} at{' '}
+              {EXIT_MODEL.chosen.coolingCostPct[0]}–{EXIT_MODEL.chosen.coolingCostPct[1]}%, then{' '}
+              {EXIT_MODEL.chosen.strandedCostPct[0]}–{EXIT_MODEL.chosen.strandedCostPct[1]}%.
+            </Text>
+          </Box>
+          <Box display="grid" gap={SPACING.xs} alignContent="start">
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.24em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
+              what to take from it
+            </Text>
+            <Conclusions size={size} crossing={crossing} />
+          </Box>
+        </Box>
 
         <HStack spacing={SPACING.sm} mt={SPACING.md} align="baseline">
           <MockStamp label="modelled" />

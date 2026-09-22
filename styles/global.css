@@ -118,15 +118,18 @@ body {
 }
 
 .neonSign {
-  font: 400 4vh 'Neon Tubes', monospace;
+  font: 400 4vh 'Redaction 70', 'Redaction', Georgia, serif;
+  letter-spacing: 0.04em;
   color: #9bdc4f5a;
   text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 0.01em #9bdc4f, 0 0 0.01em #9bdc4f, 0 0 0.01em #9bdc4f, 0 10px 3px #000;
 }
 
 .neonSignon {
-  font: 200 4vh 'Neon Tubes', monospace;
-  color: rgba(207, 205, 205, 0.613);
-  text-shadow: 0 0 20px, 0 0 0.2px, 0 0 1em #9bdc4f, 0 0 0.5em #9bdc4f, 0 0 0.1em #9bdc4f, 0 0 3px #000;
+  font: 400 4vh 'Redaction 70', 'Redaction', Georgia, serif;
+  letter-spacing: 0.04em;
+  /* Bone glyphs, phosphor glow — the wordmark's own face, lit like the sign it was. */
+  color: #ece6d8;
+  text-shadow: 0 0 18px rgba(155, 220, 79, 0.55), 0 0 0.6em rgba(155, 220, 79, 0.35), 0 0 3px #000;
 }
 
 .neonSign b span {

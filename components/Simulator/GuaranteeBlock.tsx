@@ -20,7 +20,7 @@ import { OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
 import { stamp as stampFn } from '@/lib/position-sim/types'
 import Stamp from './Stamp'
 
-const GUARANTEE_PROV = stampFn('dataset', 'rule in code', GUARANTEE.provenance)
+const GUARANTEE_PROV = stampFn('dataset', 'LiquidationEngine.sol', GUARANTEE.provenance)
 
 export const GuaranteeBlock: React.FC = () => (
   <Box

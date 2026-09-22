@@ -315,7 +315,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
 
       {/* d — THE WAY ON. A second paste box (nobody scrolls back up for one), and the
           board and the strats OPEN HERE instead of navigating away. */}
-      <Box display="grid" gap={SPACING.md}>
+      <Box display="grid" gap={SPACING.md} justifyItems="center">
         {addressBar ? (
           <AddressBar {...addressBar} inputId="sim-address-input-carry" />
         ) : (
@@ -323,7 +323,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
             Run your position ↑
           </Button>
         )}
-        <Box display="flex" gap={SPACING.md} flexWrap="wrap" alignItems="center">
+        <Box display="flex" gap={SPACING.md} flexWrap="wrap" alignItems="center" justifyContent="center">
           <Button
             type="button"
             onClick={() => toggle('board')}
@@ -344,7 +344,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
           </Button>
         </Box>
         <Collapse in={openPanel === 'board'} animateOpacity unmountOnExit>
-          <Box data-testid="sim-inline-board" pt={SPACING.sm} display="grid" gap={SPACING.sm}>
+          <Box data-testid="sim-inline-board" pt={SPACING.sm} display="grid" gap={SPACING.sm} w="100%">
             <MarketBoards onLoadBoard={() => window.location.assign(`/${chainName}/carry`)} />
             <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
               <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>
@@ -354,7 +354,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
           </Box>
         </Collapse>
         <Collapse in={openPanel === 'strats'} animateOpacity unmountOnExit>
-          <Box data-testid="sim-inline-strats" pt={SPACING.sm} display="grid" gap={SPACING.sm}>
+          <Box data-testid="sim-inline-strats" pt={SPACING.sm} display="grid" gap={SPACING.sm} w="100%">
             <StratsBoard />
             <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
               <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>

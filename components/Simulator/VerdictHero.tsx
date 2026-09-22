@@ -82,7 +82,7 @@ import { usd, usdSigned } from './format'
  * sentence and the two must never drift apart.
  */
 export const HERO_SUBHEAD =
-  'Levered yield that recalls debt instead of liquidating you. First, see what the rails ' +
+  'Empowered carry trading that recalls debt instead of liquidating you. First, see what the rails ' +
   'would have done to your current position.'
 
 export interface VerdictHeroProps extends AddressBarProps {

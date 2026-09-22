@@ -275,7 +275,7 @@ export const HeroChart: React.FC<HeroChartProps> = ({
                   key={`s${k}`}
                   d={pathD(r)}
                   fill="none"
-                  stroke={SEMANTIC_COLORS.textPrimary}
+                  stroke={SEMANTIC_COLORS.danger}
                   strokeWidth={1.5}
                   vectorEffect="non-scaling-stroke"
                   pathLength={reduced ? undefined : 1}
@@ -323,7 +323,7 @@ export const HeroChart: React.FC<HeroChartProps> = ({
       {comparison && (
         <Box display="flex" gap={SPACING.base} flexWrap="wrap">
           {[
-            { label: comparison.position.label, color: SEMANTIC_COLORS.textPrimary },
+            { label: comparison.position.label, color: SEMANTIC_COLORS.danger },
             { label: 'Membrane', color: SEMANTIC_COLORS.success },
           ].map((s) => (
             <Box key={s.label} display="flex" alignItems="center" gap={SPACING.xs}>

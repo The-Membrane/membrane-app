@@ -54,7 +54,7 @@ export const CTA_BTN = {
   borderRadius: 0,
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '10px',
-  letterSpacing: '0.14em',
+  letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   h: 'auto',
   px: SPACING.md,
@@ -121,7 +121,7 @@ const Tile: React.FC<{
     <Text
       fontFamily={TYPOGRAPHY.fontMono}
       fontSize="10px"
-      letterSpacing="0.18em"
+      letterSpacing="0.24em"
       textTransform="uppercase"
       color={SEMANTIC_COLORS.textSecondary}
     >
@@ -130,7 +130,7 @@ const Tile: React.FC<{
     <Text
       fontFamily={TYPOGRAPHY.fontMono}
       fontSize="9px"
-      letterSpacing="0.12em"
+      letterSpacing="0.24em"
       color={SEMANTIC_COLORS.textTertiary}
     >
       {stamp}
@@ -226,7 +226,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize="10px"
-          letterSpacing="0.28em"
+          letterSpacing="0.24em"
           textTransform="uppercase"
           color={SEMANTIC_COLORS.textSecondary}
         >

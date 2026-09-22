@@ -24,7 +24,7 @@ const BTN = {
   borderRadius: 0,
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '10.5px',
-  letterSpacing: '0.14em',
+  letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   h: 'auto',
   px: SPACING.base,

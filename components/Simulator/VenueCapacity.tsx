@@ -87,7 +87,7 @@ const Line: React.FC<{ children: React.ReactNode; color?: string; size?: string 
   <Text
     fontFamily={TYPOGRAPHY.fontMono}
     fontSize={size}
-    letterSpacing="0.12em"
+    letterSpacing="0.24em"
     color={color ?? SEMANTIC_COLORS.textSecondary}
     sx={{ fontVariantNumeric: 'tabular-nums' }}
   >
@@ -174,7 +174,7 @@ export const VenueCapacity: React.FC<VenueCapacityProps> = ({ detection }) => {
       <Text
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize="10px"
-        letterSpacing="0.18em"
+        letterSpacing="0.24em"
         textTransform="uppercase"
         color={SEMANTIC_COLORS.textSecondary}
       >
@@ -247,7 +247,7 @@ export const VenueCapacity: React.FC<VenueCapacityProps> = ({ detection }) => {
       <Text
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize="9px"
-        letterSpacing="0.12em"
+        letterSpacing="0.24em"
         color={SEMANTIC_COLORS.textTertiary}
         title={rule}
       >

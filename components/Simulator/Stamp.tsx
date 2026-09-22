@@ -65,7 +65,7 @@ export const Stamp: React.FC<StampProps> = ({ provenance, note }) => {
         as="span"
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize="9.5px"
-        letterSpacing="0.14em"
+        letterSpacing="0.24em"
         textTransform="uppercase"
         color={color}
         whiteSpace="nowrap"

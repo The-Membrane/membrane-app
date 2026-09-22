@@ -27,7 +27,7 @@ const KIND_COLOR: Record<SimEvent['kind'], string> = {
 const HEAD = {
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '9px',
-  letterSpacing: '0.18em',
+  letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
 }

@@ -26,7 +26,7 @@ import { usd } from './format'
 const HEAD = {
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '9px',
-  letterSpacing: '0.18em',
+  letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
 }
@@ -39,7 +39,7 @@ const BTN = {
   borderRadius: 0,
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '10px',
-  letterSpacing: '0.14em',
+  letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   h: 'auto',
   px: SPACING.md,

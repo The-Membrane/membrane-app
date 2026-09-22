@@ -36,7 +36,7 @@ import { usd } from './format'
 const HEAD = {
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '10px',
-  letterSpacing: '0.2em',
+  letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
 }

@@ -15,7 +15,7 @@ export const ClaimsBlock: React.FC = () => (
     <Text
       fontFamily={TYPOGRAPHY.fontMono}
       fontSize="10px"
-      letterSpacing="0.28em"
+      letterSpacing="0.24em"
       textTransform="uppercase"
       color={SEMANTIC_COLORS.textSecondary}
     >
@@ -47,7 +47,7 @@ export const ClaimsBlock: React.FC = () => (
               as="span"
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize="10px"
-              letterSpacing="0.2em"
+              letterSpacing="0.24em"
               color={SEMANTIC_COLORS.textTertiary}
               mr={SPACING.sm}
               verticalAlign="middle"

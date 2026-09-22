@@ -106,7 +106,7 @@ import VerdictHero from './VerdictHero'
 const SECTION = {
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '10px',
-  letterSpacing: '0.2em',
+  letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
   marginBottom: SPACING.md,
@@ -149,7 +149,7 @@ const Section: React.FC<{
 const HEAD = {
   fontFamily: TYPOGRAPHY.fontMono,
   fontSize: '9px',
-  letterSpacing: '0.18em',
+  letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
 }
@@ -915,7 +915,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
               borderRadius={0}
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize="10px"
-              letterSpacing="0.2em"
+              letterSpacing="0.24em"
               textTransform="uppercase"
               color={SEMANTIC_COLORS.textSecondary}
               _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}

@@ -154,7 +154,9 @@ const HorizontalNav = () => {
     return (
         <Box
             as="nav"
-            position="relative"
+            position="sticky"
+            top={0}
+            zIndex={90}
             w="full"
             px={{ base: 2, md: 8 }}
             py={2}
@@ -559,15 +561,6 @@ const HorizontalNav = () => {
                                         {mode === 'dark' ? 'Light theme' : 'Dark theme'}
                                     </Button>
                                 </Box>
-                                <Text
-                                    color="blue.300"
-                                    fontStyle="italic"
-                                    fontSize="sm"
-                                    textAlign="center"
-                                    mb={4}
-                                >
-                                    &quot;DeFy the World Together&quot;
-                                </Text>
                                 <Box display="flex" justifyContent="center">
                                     <WallectConnect />
                                 </Box>

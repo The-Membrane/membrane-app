@@ -315,15 +315,23 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
 
       {/* d — THE WAY ON. A second paste box (nobody scrolls back up for one), and the
           board and the strats OPEN HERE instead of navigating away. */}
-      <Box display="grid" gap={SPACING.md} justifyItems="center">
-        {addressBar ? (
-          <AddressBar {...addressBar} inputId="sim-address-input-carry" />
-        ) : (
-          <Button type="button" onClick={focusAddressBar} {...CTA_BTN} w="fit-content">
-            Run your position ↑
-          </Button>
-        )}
-        <Box display="flex" gap={SPACING.md} flexWrap="wrap" alignItems="center" justifyContent="center">
+      <Box display="grid" gap={SPACING.md}>
+        {/* paste box on the left, the two panel toggles stacked to its right */}
+        <Box
+          display="flex"
+          gap={SPACING.md}
+          flexWrap="wrap"
+          alignItems="stretch"
+          justifyContent="center"
+        >
+          {addressBar ? (
+            <AddressBar {...addressBar} inputId="sim-address-input-carry" />
+          ) : (
+            <Button type="button" onClick={focusAddressBar} {...CTA_BTN} w="fit-content">
+              Run your position ↑
+            </Button>
+          )}
+          <Box display="flex" flexDirection="column" gap={SPACING.sm} justifyContent="center">
           <Button
             type="button"
             onClick={() => toggle('board')}
@@ -342,6 +350,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
           >
             {openPanel === 'strats' ? 'Hide tracked strats ↑' : 'Tracked strats ↓'}
           </Button>
+          </Box>
         </Box>
         <Collapse in={openPanel === 'board'} animateOpacity unmountOnExit>
           <Box data-testid="sim-inline-board" pt={SPACING.sm} display="grid" gap={SPACING.sm} w="100%">

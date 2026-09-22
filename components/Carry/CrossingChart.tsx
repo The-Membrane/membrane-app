@@ -118,8 +118,8 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
     <Box>
       <SectionHeading
         index="04 /"
-        title="The board's best yield, at your size and beyond"
-        note={`${EXIT_MODEL.alt.name} vs ${EXIT_MODEL.chosen.name} · ${HORIZON_DAYS}d · value net of exit cost, % of principal`}
+        title="Where the higher yield stops paying"
+        note={`${EXIT_MODEL.alt.name} vs ${EXIT_MODEL.chosen.name} · what you keep after exit costs, over ${HORIZON_DAYS} days, at your size, ×10 and ×100`}
       />
       <Card p={SPACING.base}>
         <ChartBody data={data} />
@@ -153,7 +153,7 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
             borderRadius={0}
           >
             <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.warning}>
-              Above ~{formatUSD(twoSigFigs(crossing))}, this ranking inverts — exit depth eats the spread.
+              Past ~{formatUSD(twoSigFigs(crossing))} the cheaper venue wins: the higher yield costs more to leave than it pays.
             </Text>
           </Box>
         )}

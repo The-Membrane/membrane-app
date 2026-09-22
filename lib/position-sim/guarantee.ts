@@ -32,7 +32,7 @@ export const GUARANTEE = {
   name: `${BAND}.`,
   /** One sentence. The claim. */
   claim:
-    `You aren't liquidated when you cross the LLTV. Staying within ${BAND} of it delays your liquidation for ${CURE_WINDOW_HOURS} hours. Time to manage and protection from wicks. `,
+    `You aren't liquidated when you cross the LLTV. Staying within ${BAND} of it delays your liquidation for ${CURE_WINDOW_HOURS} hours. Automatic protection from wicks and time to manage your debt.`,
     // , ` + 'by you or by the venue capital Membrane recalls first.',
   /** One sentence. The condition. Rendered next to the claim, never collapsed. */
   limit: `Past ${BAND} the liquidation is immediate, but only partially down to the maximum borrowable LTV.`,
@@ -73,9 +73,9 @@ export const CARRY_CLAIMS = [
 
 /** Card titles, one per CARRY_CLAIMS entry, same order. ≤ 4 words. */
 export const CARRY_CLAIM_TITLES = [
-  'Positive carry protections',
+  'Carry Spread Protections',
   'In-protocol unwinds',
-  'Measured repricing for lender exit',
+  'Stable repricing for lender exit',
   // 'Recall, not rebalance',
 ] as const
 

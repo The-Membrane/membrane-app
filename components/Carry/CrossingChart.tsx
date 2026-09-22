@@ -25,8 +25,10 @@ import { CROSSING_TIERS, CrossingPoint, buildCrossingSeries, crossingSizeUsd, fo
 const HORIZON_DAYS = 90
 
 // §6: chosen = phosphor, alternative = cyber teal; tiers by opacity + dash.
+// Venue identity only. Good/bad is carried by the SIGN colouring of every number and
+// the zero line, never by the venue hue (owner 2026-09-22).
 const CHOSEN_COLOR = SEMANTIC_COLORS.primary
-const ALT_COLOR = SEMANTIC_COLORS.secondary
+const ALT_COLOR = SEMANTIC_COLORS.textPrimary
 const TIER_OPACITY: Record<number, number> = { 1: 1.0, 10: 0.72, 100: 0.5 }
 const TIER_DASH: Record<number, string | undefined> = { 1: undefined, 10: '6 3', 100: '2 3' }
 const BAND_OPACITY = 0.24
@@ -39,7 +41,7 @@ interface ChartBodyProps {
 }
 
 const ChartBody = lazyChart<ChartBodyProps>((RC) => {
-  const { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Area, Line, Tooltip } = RC
+  const { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Area, Line, Tooltip, ReferenceLine, ReferenceArea } = RC
   return function CrossingChartBody({ data, sizeUsd, altName, chosenName }: ChartBodyProps) {
     // Hover: the day, then per tier (your size, ×10, ×100) what each venue leaves you
     // after exit costs, with the model's cost range in brackets. Numbers only.
@@ -48,6 +50,14 @@ const ChartBody = lazyChart<ChartBodyProps>((RC) => {
       const p = payload[0]?.payload as CrossingPoint | undefined
       if (!p) return null
       const pct = (v: unknown) => `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`
+      const signColor = (v: unknown) => (Number(v) >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger)
+      const Row = ({ name, color, mid, band: b }: { name: string; color: string; mid: unknown; band: unknown }) => (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', columnGap: 12, alignItems: 'baseline' }}>
+          <span style={{ color }}>{name}</span>
+          <span style={{ color: signColor(mid), fontWeight: 600 }}>{pct(mid)}</span>
+          <span style={{ color: SEMANTIC_COLORS.textTertiary, fontSize: 10 }}>{band(b).trim()}</span>
+        </div>
+      )
       const band = (b: unknown) => (Array.isArray(b) ? ` [${Number(b[0]).toFixed(1)} … ${Number(b[1]).toFixed(1)}]` : '')
       return (
         <div style={{ ...(CHART_THEME.tooltip.contentStyle as object), padding: '10px 12px', fontFamily: TYPOGRAPHY.fontMono, fontSize: 11 }}>
@@ -59,8 +69,8 @@ const ChartBody = lazyChart<ChartBodyProps>((RC) => {
               <div style={{ color: SEMANTIC_COLORS.textTertiary, fontSize: 9, letterSpacing: '0.1em' }}>
                 {mult === 1 ? 'your size' : `×${mult}`} · {formatUSD(sizeUsd * mult)}
               </div>
-              <div style={{ color: ALT_COLOR }}>{altName.split(' · ')[0]} {pct(p[`alt${mult}`])}<span style={{ color: SEMANTIC_COLORS.textTertiary }}>{band(p[`altBand${mult}`])}</span></div>
-              <div style={{ color: CHOSEN_COLOR }}>{chosenName.split(' · ')[0]} {pct(p[`chosen${mult}`])}<span style={{ color: SEMANTIC_COLORS.textTertiary }}>{band(p[`chosenBand${mult}`])}</span></div>
+              <Row name={altName.split(' · ')[0]} color={ALT_COLOR} mid={p[`alt${mult}`]} band={p[`altBand${mult}`]} />
+              <Row name={chosenName.split(' · ')[0]} color={CHOSEN_COLOR} mid={p[`chosen${mult}`]} band={p[`chosenBand${mult}`]} />
             </div>
           ))}
         </div>
@@ -70,6 +80,9 @@ const ChartBody = lazyChart<ChartBodyProps>((RC) => {
       <ResponsiveContainer width="100%" height={CHART_DIMENSIONS.heights.md}>
         <ComposedChart data={data} margin={CHART_DIMENSIONS.margins.default}>
           <CartesianGrid {...CHART_THEME.grid} />
+          {/* Good/bad cue on the chart: a faint blood wash below zero and a zero line. */}
+          <ReferenceArea y1={-1000} y2={0} fill={SEMANTIC_COLORS.danger} fillOpacity={0.06} strokeOpacity={0} ifOverflow="hidden" />
+          <ReferenceLine y={0} stroke={SEMANTIC_COLORS.success} strokeOpacity={0.6} strokeWidth={1} label={{ value: 'ahead ↑ · behind ↓', position: 'insideTopRight', fill: SEMANTIC_COLORS.textTertiary, fontSize: 9, fontFamily: TYPOGRAPHY.fontMono }} />
           <Tooltip content={<HoverCard />} cursor={{ stroke: SEMANTIC_COLORS.borderStrong, strokeWidth: 1 }} />
           <XAxis
             {...CHART_THEME.xAxis}

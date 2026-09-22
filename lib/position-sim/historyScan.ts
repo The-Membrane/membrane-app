@@ -75,8 +75,8 @@ import { PUBLIC_MAINNET_RPCS } from './rpc'
 
 /** Aave V3 mainnet Pool proxy — deployed at block 16291127 and never moved. Resolved
  *  through the addresses provider at run time; this is the fallback. */
-const AAVE_V3_POOL_FALLBACK = '0x87870Bca3F3fD6335C3F4ce8392D69350B4fa4E2' as Address
-const AAVE_V3_ADDRESSES_PROVIDER = '0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e' as Address
+export const AAVE_V3_POOL_FALLBACK = '0x87870Bca3F3fD6335C3F4ce8392D69350B4fa4E2' as Address
+export const AAVE_V3_ADDRESSES_PROVIDER = '0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e' as Address
 /** Aave V3 mainnet deploy block. Nothing before it can hold a LiquidationCall. */
 export const AAVE_V3_START_BLOCK = 16_291_127n
 
@@ -104,7 +104,7 @@ const BLOCKS_BEFORE = 1_400n
  *  most recent 200 events and the response says so. */
 export const MAX_EVENTS = 200
 
-const LIQUIDATION_CALL = parseAbiItem(
+export const LIQUIDATION_CALL = parseAbiItem(
   'event LiquidationCall(address indexed collateralAsset, address indexed debtAsset, address indexed user, uint256 debtToCover, uint256 liquidatedCollateralAmount, address liquidator, bool receiveAToken)',
 )
 
@@ -116,7 +116,7 @@ const ANSWER_UPDATED = parseAbiItem(
   'event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)',
 )
 
-const providerAbi = [
+export const providerAbi = [
   {
     type: 'function',
     name: 'getPool',
@@ -133,7 +133,7 @@ const providerAbi = [
   },
 ] as const
 
-const dataProviderAbi = [
+export const dataProviderAbi = [
   {
     type: 'function',
     name: 'getReserveConfigurationData',
@@ -226,7 +226,7 @@ type Pricing =
   | { kind: 'wsteth'; feed: Address }
   | { kind: 'stable' }
 
-interface TokenMeta {
+export interface TokenMeta {
   symbol: string
   decimals: number
   pricing: Pricing
@@ -234,7 +234,7 @@ interface TokenMeta {
 
 /** Only what we can price honestly. Anything absent is reported 'unpriced' and counted
  *  in NEITHER direction — never approximated by a neighbouring asset. */
-const TOKENS: Record<string, TokenMeta> = {
+export const TOKENS: Record<string, TokenMeta> = {
   '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': {
     symbol: 'WETH',
     decimals: 18,
@@ -461,6 +461,13 @@ export async function getLogsChunked<T>(
 }
 
 // ------------------------------------------------------------------- pricing
+//
+// EXPORTED ON PURPOSE (2026-09-22). The multi-year corpus scan
+// (scripts/scan-aave-liquidations.mjs) imports `feedAggregators`, `feedRounds`,
+// `priceAt`, `bonusToFee`, `stEthPerToken`, `TOKENS`, `dataProviderAbi` and the Aave
+// constants from here rather than re-deriving them, so the corpus figure and the
+// per-wallet figure cannot describe the same measurement two different ways. Do not
+// narrow these back to module-private without moving that scan onto the replacement.
 
 const aggregatorCache = new Map<string, Address[]>()
 
@@ -468,7 +475,7 @@ const aggregatorCache = new Map<string, Address[]>()
  *  the AGGREGATOR, not the proxy, and an old event sits on an old phase — reading only
  *  `aggregator()` would silently return zero rounds for anything before the last phase
  *  change. */
-async function feedAggregators(client: PublicClient, proxy: Address): Promise<Address[]> {
+export async function feedAggregators(client: PublicClient, proxy: Address): Promise<Address[]> {
   const key = proxy.toLowerCase()
   const hit = aggregatorCache.get(key)
   if (hit) return hit
@@ -513,7 +520,7 @@ async function feedAggregators(client: PublicClient, proxy: Address): Promise<Ad
 
 /** AnswerUpdated rounds for one feed over a block span, as {ts, price} in USD. The span
  *  is a whole episode (72h+), so it is chunked like any other wide getLogs. */
-async function feedRounds(
+export async function feedRounds(
   client: PublicClient,
   proxy: Address,
   fromBlock: bigint,
@@ -1052,14 +1059,14 @@ export async function scanHistory(
 /** Aave/Spark store the bonus as a 1e4-scaled multiplier: 10500 = a 5% bonus. That
  *  bonus IS Membrane's fee here, so Membrane never gets a cheaper liquidator than the
  *  one that actually took the collateral. */
-function bonusToFee(bonus: bigint | undefined): number {
+export function bonusToFee(bonus: bigint | undefined): number {
   const b = Number(bonus ?? 0n) / 10_000
   if (!(b > 1)) return DEFAULT_REPLAY_PARAMS.liqFee ?? 0.05
   return b - 1
 }
 
 /** Last round at or before `target`, else the earliest round we have. */
-function priceAt(rounds: PriceRound[], target: number): number | null {
+export function priceAt(rounds: PriceRound[], target: number): number | null {
   const before = rounds.filter((r) => r.ts <= target)
   if (before.length > 0) return before[before.length - 1].price
   return rounds.length > 0 ? rounds[0].price : null
@@ -1071,7 +1078,7 @@ function uniqueJoin(xs: string[]): string {
   return out.join(' + ')
 }
 
-async function stEthPerToken(client: PublicClient, blockNumber: bigint): Promise<number> {
+export async function stEthPerToken(client: PublicClient, blockNumber: bigint): Promise<number> {
   const read = async (b?: bigint) =>
     (await client.readContract({
       address: WSTETH,

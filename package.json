@@ -37,7 +37,8 @@
     "terms:watch": "node scripts/watch-venue-terms.mjs",
     "alarms:check": "node scripts/check-venue-alarms.mjs",
     "receipts:ddl": "node scripts/apply-user-receipts-ddl.mjs",
-    "receipts:score": "node scripts/score-user-receipts.mjs"
+    "receipts:score": "node scripts/score-user-receipts.mjs",
+    "corpus:scan": "tsx scripts/scan-aave-liquidations.mjs"
   },
   "dependencies": {
     "@chain-registry/utils": "^1.51.285",

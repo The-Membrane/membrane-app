@@ -580,7 +580,15 @@ async function insertEpisodes(eps) {
       ${eps.map((e) => e.unpricedEvents)}::int[],
       ${eps.map((e) => e.why ?? null)}::text[]
     )
-    ON CONFLICT ("user", start_ts) DO NOTHING`
+    ON CONFLICT ("user", start_ts) DO UPDATE SET
+      end_ts = EXCLUDED.end_ts, collateral = EXCLUDED.collateral,
+      actual_seized_usd = EXCLUDED.actual_seized_usd, actual_repaid_usd = EXCLUDED.actual_repaid_usd,
+      membrane_seized_usd = EXCLUDED.membrane_seized_usd, membrane_liquidations = EXCLUDED.membrane_liquidations,
+      verdict = EXCLUDED.verdict, unpriced = EXCLUDED.unpriced, event_count = EXCLUDED.event_count,
+      unpriced_events = EXCLUDED.unpriced_events, why = EXCLUDED.why
+    -- Only rows from before the why column existed (the dead-ring era, replayed with
+    -- no working getLogs endpoint) are corrected; a tagged row is never overwritten.
+    WHERE aave_liquidation_episodes.why IS NULL`
 }
 
 async function phaseEpisodes() {
@@ -629,6 +637,8 @@ async function phaseEpisodes() {
       await insertEpisodes(eps)
       userCursor = user
       await setCursor('episodes', userCursor)
+      ring.saveStats('aave-episodes')
+      console.log('rpc ring:', ring.stats().map((s) => `${s.host} ${s.ok}/${s.calls} ${(s.blocks / 1000).toFixed(0)}k blk ${s.avgMs}ms`).join(' · '))
       accounts += 1
       episodes += eps.length
 

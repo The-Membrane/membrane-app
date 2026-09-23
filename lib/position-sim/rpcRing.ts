@@ -138,9 +138,21 @@ export async function ensureRing(extra: string[] = [], maxAgeMs = RING_STALE_MS)
  * covers the span; on failure the endpoint cools for `cooldownMs` and the next is tried.
  * Spans wider than the widest live cap are split into cap-sized pieces.
  */
+export interface RingStat {
+  host: string
+  calls: number
+  ok: number
+  failed: number
+  /** Blocks of getLogs range served successfully. */
+  blocks: number
+  /** Mean latency of successful calls, ms. */
+  avgMs: number
+}
+
 export class RpcRing {
   private i = 0
   private cold = new Map<string, number>()
+  private stat = new Map<string, { calls: number; ok: number; failed: number; blocks: number; ms: number }>()
   private clients = new Map<string, PublicClient>()
   readonly table: RingTable
   readonly minCap: number
@@ -176,9 +188,18 @@ export class RpcRing {
       const pool = this.eligible(span)
       if (pool.length === 0) break
       const e = pool[this.i++ % pool.length]
+      const st = this.stat.get(e.url) ?? { calls: 0, ok: 0, failed: 0, blocks: 0, ms: 0 }
+      this.stat.set(e.url, st)
+      st.calls++
+      const t0 = Date.now()
       try {
-        return (await this.client(e.url).getLogs(args as any)) as T[]
+        const r = (await this.client(e.url).getLogs(args as any)) as T[]
+        st.ok++
+        st.blocks += span
+        st.ms += Date.now() - t0
+        return r
       } catch (err) {
+        st.failed++
         lastErr = err
         this.cold.set(e.url, Date.now() + this.cooldownMs)
       }
@@ -215,6 +236,35 @@ export class RpcRing {
       }
     }
     return out
+  }
+  /**
+   * Who actually carried the work (owner 2026-09-23: "track which ones work the best
+   * for us so I know what I want to actually pay for"). Hosts only — never keys.
+   */
+  stats(): RingStat[] {
+    return [...this.stat.entries()]
+      .map(([url, s]) => ({
+        host: new URL(url).host,
+        calls: s.calls,
+        ok: s.ok,
+        failed: s.failed,
+        blocks: s.blocks,
+        avgMs: s.ok ? Math.round(s.ms / s.ok) : 0,
+      }))
+      .sort((a, b) => b.blocks - a.blocks)
+  }
+  /** Append this run's stats to public/data/rpc-ring-stats.json (hosts only). */
+  saveStats(runLabel: string): void {
+    const path = join(process.cwd(), 'public', 'data', 'rpc-ring-stats.json')
+    let prev: { runs: { run: string; at: string; stats: RingStat[] }[] } = { runs: [] }
+    try {
+      prev = JSON.parse(readFileSync(path, 'utf8'))
+    } catch {
+      /* first run */
+    }
+    const runs = prev.runs.filter((r) => r.run !== runLabel)
+    runs.push({ run: runLabel, at: new Date().toISOString(), stats: this.stats() })
+    writeFileSync(path, JSON.stringify({ runs }, null, 2) + '\n')
   }
   /** A plain viem client over the live endpoints for every non-getLogs call. */
   readClient(): PublicClient {

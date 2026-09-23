@@ -150,9 +150,15 @@ export interface RingStat {
 }
 
 export class RpcRing {
-  private i = 0
   private cold = new Map<string, number>()
   private stat = new Map<string, { calls: number; ok: number; failed: number; blocks: number; ms: number }>()
+  private inflight = new Map<string, number>()
+  /** Expected wait for one more call on `e`: its measured latency x (in-flight + 1). */
+  private cost(e: RingEntry): number {
+    const st = this.stat.get(e.url)
+    const ms = st && st.ok ? st.ms / st.ok : Math.max(1, e.ms)
+    return ms * ((this.inflight.get(e.url) ?? 0) + 1)
+  }
   private clients = new Map<string, PublicClient>()
   readonly table: RingTable
   readonly minCap: number
@@ -187,10 +193,14 @@ export class RpcRing {
     for (let attempt = 0; attempt < this.table.entries.length; attempt++) {
       const pool = this.eligible(span)
       if (pool.length === 0) break
-      const e = pool[this.i++ % pool.length]
+      // Cheapest expected wait: measured latency x (in-flight + 1). A fast endpoint
+      // takes the work until it is busy, then the next one; a failure still cools it
+      // and the ring spins on. (Pure round-robin sent every 4th piece to a 1 s node.)
+      const e = pool.reduce((best, x) => (this.cost(x) < this.cost(best) ? x : best), pool[0])
       const st = this.stat.get(e.url) ?? { calls: 0, ok: 0, failed: 0, blocks: 0, ms: 0 }
       this.stat.set(e.url, st)
       st.calls++
+      this.inflight.set(e.url, (this.inflight.get(e.url) ?? 0) + 1)
       const t0 = Date.now()
       try {
         const r = (await this.client(e.url).getLogs(args as any)) as T[]
@@ -202,12 +212,34 @@ export class RpcRing {
         st.failed++
         lastErr = err
         this.cold.set(e.url, Date.now() + this.cooldownMs)
+      } finally {
+        this.inflight.set(e.url, (this.inflight.get(e.url) ?? 1) - 1)
       }
     }
     throw new Error(`rpc ring: no endpoint served getLogs over ${span} blocks: ${String(lastErr).slice(0, 160)}`)
   }
-  /** getLogs over any range, split into pieces no wider than the ring can serve. */
-  async getLogsWide<T>(args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint }): Promise<T[]> {
+  /** getLogs over any range, split into pieces no wider than the ring can serve.
+   *  `concurrency` > 1 runs cap-sized pieces in parallel (each piece still has the
+   *  halving/cooldown fallback of the sequential path). Order of the result is by piece. */
+  async getLogsWide<T>(args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint }, concurrency = 1): Promise<T[]> {
+    if (concurrency > 1) {
+      const cap = BigInt(Math.max(this.maxCap(), this.minCap))
+      const pieces: { fromBlock: bigint; toBlock: bigint }[] = []
+      for (let c = args.fromBlock; c <= args.toBlock; c += cap) {
+        pieces.push({ fromBlock: c, toBlock: c + cap - 1n < args.toBlock ? c + cap - 1n : args.toBlock })
+      }
+      const results: T[][] = new Array(pieces.length)
+      let next = 0
+      const worker = async () => {
+        for (;;) {
+          const i = next++
+          if (i >= pieces.length) return
+          results[i] = await this.getLogsWide<T>({ ...args, ...pieces[i] })
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(concurrency, pieces.length) }, worker))
+      return results.flat()
+    }
     const out: T[] = []
     let cursor = args.fromBlock
     // Start at the widest live cap; on a failure halve the piece (a narrower piece

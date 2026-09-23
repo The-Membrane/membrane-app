@@ -78,7 +78,7 @@ import { PUBLIC_MAINNET_RPCS } from './rpc'
 /** The slice of lib/position-sim/rpcRing.ts's RpcRing the scanner needs. */
 export interface LogRing {
   getLogs<T>(args: any): Promise<T[]>
-  getLogsWide<T>(args: any): Promise<T[]>
+  getLogsWide<T>(args: any, concurrency?: number): Promise<T[]>
   maxCap(): number
 }
 
@@ -549,12 +549,16 @@ export async function feedRounds(
   const aggs = await feedAggregators(client, proxy)
   if (aggs.length === 0) return []
   const rounds: PriceRound[] = []
-  for (const agg of aggs) {
+  // On the ring, ONE filtered query names every phase aggregator (eth_getLogs takes an
+  // address array) and the cap-sized pieces run concurrently — measured 2026-09-23:
+  // per-aggregator serial fetches were 95% of the corpus scan's wall clock.
+  const groups: Address[][] = ring ? [aggs] : aggs.map((a) => [a])
+  for (const agg of groups) {
     const got = ring
-      ? { logs: await ring.getLogsWide<{ args: { current?: bigint; updatedAt?: bigint } }>({ address: agg, event: ANSWER_UPDATED, fromBlock, toBlock }) }
+      ? { logs: await ring.getLogsWide<{ args: { current?: bigint; updatedAt?: bigint } }>({ address: agg, event: ANSWER_UPDATED, fromBlock, toBlock }, 8) }
       : await getLogsChunked<{ args: { current?: bigint; updatedAt?: bigint } }>(
           client,
-          { address: agg, event: ANSWER_UPDATED, fromBlock, toBlock, spans: ROUND_SPANS },
+          { address: agg[0], event: ANSWER_UPDATED, fromBlock, toBlock, spans: ROUND_SPANS },
           { maxRequests: 40, deadlineMs },
         )
     // One dead phase aggregator must not blank the window: getLogsChunked returns what

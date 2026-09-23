@@ -153,6 +153,8 @@ export class RpcRing {
   private cold = new Map<string, number>()
   private stat = new Map<string, { calls: number; ok: number; failed: number; blocks: number; ms: number }>()
   private inflight = new Map<string, number>()
+  private headAt: bigint | null = null
+  private headSeen = 0
   /** Expected wait for one more call on `e`: its measured latency x (in-flight + 1). */
   private cost(e: RingEntry): number {
     const st = this.stat.get(e.url)
@@ -222,6 +224,20 @@ export class RpcRing {
    *  `concurrency` > 1 runs cap-sized pieces in parallel (each piece still has the
    *  halving/cooldown fallback of the sequential path). Order of the result is by piece. */
   async getLogsWide<T>(args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint }, concurrency = 1): Promise<T[]> {
+    // A range past the chain head is an invalid-params error on every endpoint (Ankr:
+    // "block range extends beyond current head block"), and the halving fallback then
+    // burns the whole ladder for nothing — an episode window that runs 72h past a
+    // liquidation from yesterday does exactly that. Clamp to head (cached ~60 s).
+    if (args.toBlock > (this.headAt ?? 0n) || Date.now() - this.headSeen > 60_000) {
+      if (args.toBlock > (this.headAt ?? 0n)) {
+        this.headAt = await this.readClient().getBlockNumber()
+        this.headSeen = Date.now()
+      }
+    }
+    if (this.headAt !== null && args.toBlock > this.headAt) {
+      if (args.fromBlock > this.headAt) return []
+      args = { ...args, toBlock: this.headAt }
+    }
     if (concurrency > 1) {
       const cap = BigInt(Math.max(this.maxCap(), this.minCap))
       const pieces: { fromBlock: bigint; toBlock: bigint }[] = []

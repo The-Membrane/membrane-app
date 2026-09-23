@@ -16,7 +16,9 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { GUARANTEE } from '@/lib/position-sim'
-import { OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
+import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
+
+const SCALE = CORPUS_SCALE_LINE.partial ? OCT10_SCALE_LINE : CORPUS_SCALE_LINE
 import { stamp as stampFn } from '@/lib/position-sim/types'
 import Stamp from './Stamp'
 
@@ -47,8 +49,11 @@ export const GuaranteeBlock: React.FC = () => (
     </Text>
 
     <Box display="grid" gap={SPACING.md}>
-      {/* THE SCALE LINE (owner 2026-09-22): the number that makes 4% not small. Measured,
-          from OCT10_TOTALS; the figure and window swap when the multi-year scan lands. */}
+      {/* THE SCALE LINE (owner 2026-09-22): the number that makes 4% not small. The
+          whole measured Aave V3 history once the corpus scan is complete; while the
+          summary on disk is still partial, the one measured day (OCT10_TOTALS) instead —
+          a partial corpus is a floor, and the band never prints a floor as a total.
+          Both stay (owner 2026-09-22): the day is the sub-line under the history. */}
       <Text
         data-testid="sim-scale-line"
         fontFamily={TYPOGRAPHY.fontDisplay}
@@ -59,10 +64,23 @@ export const GuaranteeBlock: React.FC = () => (
       >
         4% sounds small.{' '}
         <Text as="span" color={SEMANTIC_COLORS.success}>
-          It would have kept {OCT10_SCALE_LINE.figure} of collateral
+          It would have kept {SCALE.figure} of collateral
         </Text>{' '}
-        {OCT10_SCALE_LINE.window}.
+        {SCALE.window}.
       </Text>
+      {!CORPUS_SCALE_LINE.partial && (
+        <Text
+          data-testid="sim-scale-subline"
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12.5px"
+          lineHeight={1.6}
+          color={SEMANTIC_COLORS.textSecondary}
+          mt={`-${SPACING.sm}`}
+        >
+          {OCT10_SCALE_LINE.figure} of that {OCT10_SCALE_LINE.window} · every Aave V3 mainnet
+          liquidation replayed, priced episodes only
+        </Text>
+      )}
 
       <Text
         fontFamily={TYPOGRAPHY.fontMono}

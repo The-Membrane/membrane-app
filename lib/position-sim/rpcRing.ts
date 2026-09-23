@@ -93,13 +93,13 @@ export async function probeRing(candidates: string[] = CANDIDATES, extra: string
 }
 
 /**
- * KEYS NEVER TOUCH DISK. A keyed URL (anything not in CANDIDATES) is saved under the
+ * KEYS NEVER TOUCH DISK. A URL from RECORDER_RPC_URL (the keyed ones) is saved under the
  * alias `env:<host>` and re-resolved from RECORDER_RPC_URL at load time, so the table
  * under public/ (served by the app, tracked by git) holds only public hosts.
  */
 const envUrls = (): string[] =>
   String(process.env.RECORDER_RPC_URL ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-const aliasFor = (url: string): string => (CANDIDATES.includes(url) ? url : `env:${new URL(url).host}`)
+const aliasFor = (url: string): string => (envUrls().includes(url) ? `env:${new URL(url).host}` : url)
 const resolveAlias = (u: string): string | null => {
   if (!u.startsWith('env:')) return u
   const host = u.slice(4)

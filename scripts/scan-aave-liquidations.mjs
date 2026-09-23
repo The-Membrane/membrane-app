@@ -393,6 +393,7 @@ async function lineFor(dataProvider, collAddr, blockNumber) {
       ...(b === undefined ? {} : { blockNumber: b }),
     })
   let out = null
+  const t0 = Date.now()
   try {
     const cfg = await read(blockNumber)
     archiveReads += 1
@@ -407,15 +408,19 @@ async function lineFor(dataProvider, collAddr, blockNumber) {
     }
   }
   if (out && !(out.line > 0)) out = null
+  T.line += Date.now() - t0; T.n.line++
   lineCache.set(key, out)
   return out
 }
 
+// Per-step wall-clock (owner asked where the minute per account goes).
+const T = { line: 0, rounds: 0, wrap: 0, n: { line: 0, rounds: 0, wrap: 0 } }
+const timed = async (k, f) => { const t = Date.now(); try { return await f() } finally { T[k] += Date.now() - t; T.n[k]++ } }
 const wrapCache = new Map()
 async function wrapAt(blockNumber) {
   const key = blockNumber.toString()
   if (wrapCache.has(key)) return wrapCache.get(key)
-  const v = await stEthPerToken(client, blockNumber)
+  const v = await timed('wrap', () => stEthPerToken(client, blockNumber))
   wrapCache.set(key, v)
   return v
 }
@@ -461,7 +466,7 @@ async function replayAccount(user, rows, dataProvider) {
           { ts: spanEndTs, price: 1 },
         ]
       }
-      return roundsOver(meta.pricing.feed, from, to)
+      return timed('rounds', () => roundsOver(meta.pricing.feed, from, to))
     }
 
     const priced = []
@@ -638,7 +643,8 @@ async function phaseEpisodes() {
       userCursor = user
       await setCursor('episodes', userCursor)
       ring.saveStats('aave-episodes')
-      console.log('rpc ring:', ring.stats().map((s) => `${s.host} ${s.ok}/${s.calls} ${(s.blocks / 1000).toFixed(0)}k blk ${s.avgMs}ms`).join(' · '))
+      console.log('rpc ring:', ring.stats().map((s) => `${s.host} ${s.ok}/${s.calls} ${(s.blocks / 1000).toFixed(0)}k blk ${s.avgMs}ms`).join(' · '),
+        `| t line ${(T.line / 1000).toFixed(1)}s/${T.n.line} rounds ${(T.rounds / 1000).toFixed(1)}s/${T.n.rounds} wrap ${(T.wrap / 1000).toFixed(1)}s/${T.n.wrap} total ${((Date.now() - started) / 1000).toFixed(0)}s`)
       accounts += 1
       episodes += eps.length
 

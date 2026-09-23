@@ -1,53 +1,53 @@
 {
-  "probedAt": "2026-09-23T03:50:44.825Z",
+  "probedAt": "2026-09-23T04:02:44.233Z",
   "entries": [
     {
       "url": "env:rpc.ankr.com",
       "cap": 10000,
-      "ms": 42,
-      "alive": true
-    },
-    {
-      "url": "https://eth.api.pocket.network",
-      "cap": 10000,
-      "ms": 718,
+      "ms": 41,
       "alive": true
     },
     {
       "url": "env:mainnet.infura.io",
       "cap": 10000,
-      "ms": 729,
+      "ms": 835,
+      "alive": true
+    },
+    {
+      "url": "https://eth.api.pocket.network",
+      "cap": 5000,
+      "ms": 193,
       "alive": true
     },
     {
       "url": "https://ethereum.public.blockpi.network/v1/rpc/public",
       "cap": 5000,
-      "ms": 1833,
+      "ms": 1817,
+      "alive": true
+    },
+    {
+      "url": "https://eth.api.onfinality.io/public",
+      "cap": 1000,
+      "ms": 437,
       "alive": true
     },
     {
       "url": "https://eth-pokt.nodies.app",
       "cap": 50,
-      "ms": 36,
+      "ms": 25,
       "alive": true
     },
     {
       "url": "env:eth-mainnet.g.alchemy.com",
       "cap": 10,
-      "ms": 30,
+      "ms": 28,
       "alive": true
     },
     {
       "url": "https://eth-mainnet.public.blastapi.io",
       "cap": 10,
-      "ms": 60,
+      "ms": 46,
       "alive": true
-    },
-    {
-      "url": "env:gateway.tenderly.co",
-      "cap": 0,
-      "ms": 0,
-      "alive": false
     },
     {
       "url": "env:divine-spring-wind.ethereum-mainnet.quiknode.pro",
@@ -62,16 +62,22 @@
       "alive": true
     },
     {
-      "url": "https://rpc.mevblocker.io",
+      "url": "env:rpc.mevblocker.io",
       "cap": 0,
       "ms": 0,
       "alive": false
     },
     {
-      "url": "https://rpc.flashbots.net/fast",
+      "url": "env:rpc.flashbots.net",
       "cap": 0,
       "ms": 0,
       "alive": true
+    },
+    {
+      "url": "https://gateway.tenderly.co/public/mainnet",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
     },
     {
       "url": "https://eth.llamarpc.com",
@@ -86,7 +92,7 @@
       "alive": false
     },
     {
-      "url": "env:rpc.ankr.com",
+      "url": "https://rpc.ankr.com/eth",
       "cap": 0,
       "ms": 0,
       "alive": false
@@ -105,12 +111,6 @@
     },
     {
       "url": "https://cloudflare-eth.com",
-      "cap": 0,
-      "ms": 0,
-      "alive": false
-    },
-    {
-      "url": "https://eth.api.onfinality.io/public",
       "cap": 0,
       "ms": 0,
       "alive": false
@@ -143,7 +143,7 @@
       "url": "https://1rpc.io/eth",
       "cap": 0,
       "ms": 0,
-      "alive": false
+      "alive": true
     }
   ]
 }

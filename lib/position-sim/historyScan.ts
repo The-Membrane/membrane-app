@@ -75,6 +75,13 @@ import { PUBLIC_MAINNET_RPCS } from './rpc'
 
 /** Aave V3 mainnet Pool proxy — deployed at block 16291127 and never moved. Resolved
  *  through the addresses provider at run time; this is the fallback. */
+/** The slice of lib/position-sim/rpcRing.ts's RpcRing the scanner needs. */
+export interface LogRing {
+  getLogs<T>(args: any): Promise<T[]>
+  getLogsWide<T>(args: any): Promise<T[]>
+  maxCap(): number
+}
+
 export const AAVE_V3_POOL_FALLBACK = '0x87870Bca3F3fD6335C3F4ce8392D69350B4fa4E2' as Address
 export const AAVE_V3_ADDRESSES_PROVIDER = '0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e' as Address
 /** Aave V3 mainnet deploy block. Nothing before it can hold a LiquidationCall. */
@@ -407,6 +414,9 @@ export async function getLogsChunked<T>(
     spans?: bigint[]
   },
   budget: { maxRequests: number; deadlineMs: number },
+  /** When given, every fetch rotates across the probed ring at each endpoint's own cap
+   *  (lib/position-sim/rpcRing.ts). The span ladder still bounds the request count. */
+  ring?: LogRing,
 ): Promise<ChunkedLogsResult<T>> {
   const spans = args.spans ?? WIDE_SPANS
   const logs: T[] = []
@@ -414,6 +424,11 @@ export async function getLogsChunked<T>(
   let cursor = args.fromBlock
   let spanIdx = 0
   let lastFailure: string | undefined
+  // A ring caps the span at what its widest live endpoint serves.
+  if (ring) {
+    const cap = BigInt(Math.max(1, ring.maxCap()))
+    while (spanIdx < spans.length - 1 && spans[spanIdx] > cap) spanIdx += 1
+  }
 
   while (cursor <= args.toBlock) {
     if (requests >= budget.maxRequests || Date.now() > budget.deadlineMs) {
@@ -433,13 +448,14 @@ export async function getLogsChunked<T>(
     const to = cursor + span - 1n > args.toBlock ? args.toBlock : cursor + span - 1n
     requests += 1
     try {
-      const got = (await client.getLogs({
+      const req = {
         address: args.address,
         event: args.event as never,
         args: args.eventArgs as never,
         fromBlock: cursor,
         toBlock: to,
-      })) as unknown as T[]
+      }
+      const got = (ring ? await ring.getLogs<T>(req) : ((await client.getLogs(req)) as unknown as T[])) as T[]
       logs.push(...got)
       cursor = to + 1n
     } catch (e) {
@@ -526,16 +542,21 @@ export async function feedRounds(
   fromBlock: bigint,
   toBlock: bigint,
   deadlineMs: number,
+  /** When given, every getLogs is rotated across the probed ring at cap-sized spans
+   *  (lib/position-sim/rpcRing.ts) instead of the single fallback client. */
+  ring?: LogRing,
 ): Promise<PriceRound[]> {
   const aggs = await feedAggregators(client, proxy)
   if (aggs.length === 0) return []
   const rounds: PriceRound[] = []
   for (const agg of aggs) {
-    const got = await getLogsChunked<{ args: { current?: bigint; updatedAt?: bigint } }>(
-      client,
-      { address: agg, event: ANSWER_UPDATED, fromBlock, toBlock, spans: ROUND_SPANS },
-      { maxRequests: 40, deadlineMs },
-    )
+    const got = ring
+      ? { logs: await ring.getLogsWide<{ args: { current?: bigint; updatedAt?: bigint } }>({ address: agg, event: ANSWER_UPDATED, fromBlock, toBlock }) }
+      : await getLogsChunked<{ args: { current?: bigint; updatedAt?: bigint } }>(
+          client,
+          { address: agg, event: ANSWER_UPDATED, fromBlock, toBlock, spans: ROUND_SPANS },
+          { maxRequests: 40, deadlineMs },
+        )
     // One dead phase aggregator must not blank the window: getLogsChunked returns what
     // it got and reports the rest, and the other phases still contribute.
     for (const l of got.logs) {
@@ -555,6 +576,8 @@ export interface ScanOptions {
   timeoutMs?: number
   maxRequests?: number
   client?: PublicClient
+  /** A cycling log ring; defaults to the saved table when fresh. */
+  ring?: LogRing & { readClient(): PublicClient }
 }
 
 interface AaveLog {
@@ -603,7 +626,10 @@ export async function scanHistory(
 ): Promise<HistoryResponse> {
   const started = Date.now()
   const deadlineMs = started + (opts.timeoutMs ?? 55_000)
-  const client = opts.client ?? makeHistoryClient()
+  // The probed ring, if a saved table exists and is fresh. Never probe on a request
+  // path — the probe script / the corpus scan keep the table warm.
+  const ring = opts.ring ?? (await savedRing())
+  const client = opts.client ?? ring?.readClient() ?? makeHistoryClient()
   const user = getAddress(address)
 
   const base = {
@@ -678,6 +704,7 @@ export async function scanHistory(
         toBlock: head,
       },
       budget,
+      ring ?? undefined,
     )
     if (!scan.complete) {
       anyIncomplete = true
@@ -827,7 +854,7 @@ export async function scanHistory(
       const key = `${meta.pricing.feed}:${from}:${to}`
       const hit = roundsCache.get(key)
       if (hit) return hit
-      const got = await feedRounds(client, meta.pricing.feed, from, to, deadlineMs)
+      const got = await feedRounds(client, meta.pricing.feed, from, to, deadlineMs, ring ?? undefined)
       roundsCache.set(key, got)
       return got
     }
@@ -1137,4 +1164,17 @@ function buildMethod(x: {
     )
   parts.push(`Not scanned: ${NOT_SCANNED.map((n) => `${n.protocol} — ${n.reason}`).join(' ')}`)
   return parts.join(' ')
+}
+
+/** The saved, fresh ring table as a cycling client — or null if none / stale. */
+async function savedRing(): Promise<(LogRing & { readClient(): PublicClient }) | null> {
+  try {
+    const { loadRing, RpcRing, RING_STALE_MS } = await import('./rpcRing')
+    const t = loadRing()
+    if (!t || Date.now() - Date.parse(t.probedAt) > RING_STALE_MS) return null
+    if (!t.entries.some((e) => e.cap > 0)) return null
+    return new RpcRing(t)
+  } catch {
+    return null
+  }
 }

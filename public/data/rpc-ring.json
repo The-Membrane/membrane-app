@@ -1,0 +1,119 @@
+{
+  "probedAt": "2026-09-23T02:48:35.981Z",
+  "entries": [
+    {
+      "url": "https://eth.api.pocket.network",
+      "cap": 10000,
+      "ms": 805,
+      "alive": true
+    },
+    {
+      "url": "https://ethereum.public.blockpi.network/v1/rpc/public",
+      "cap": 5000,
+      "ms": 2311,
+      "alive": true
+    },
+    {
+      "url": "https://gateway.tenderly.co/public/mainnet",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://eth.drpc.org",
+      "cap": 0,
+      "ms": 0,
+      "alive": true
+    },
+    {
+      "url": "https://rpc.mevblocker.io",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://rpc.flashbots.net/fast",
+      "cap": 0,
+      "ms": 0,
+      "alive": true
+    },
+    {
+      "url": "https://eth.llamarpc.com",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://ethereum-rpc.publicnode.com",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://rpc.ankr.com/eth",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://eth.merkle.io",
+      "cap": 0,
+      "ms": 0,
+      "alive": true
+    },
+    {
+      "url": "https://cloudflare-eth.com",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://eth.api.onfinality.io/public",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://mainnet.gateway.tenderly.co",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://eth1.lava.build",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://rpc.payload.de",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://api.zan.top/eth-mainnet",
+      "cap": 0,
+      "ms": 0,
+      "alive": true
+    },
+    {
+      "url": "https://eth-pokt.nodies.app",
+      "cap": 0,
+      "ms": 0,
+      "alive": true
+    },
+    {
+      "url": "https://eth-mainnet.public.blastapi.io",
+      "cap": 0,
+      "ms": 0,
+      "alive": true
+    },
+    {
+      "url": "https://1rpc.io/eth",
+      "cap": 0,
+      "ms": 0,
+      "alive": true
+    }
+  ]
+}

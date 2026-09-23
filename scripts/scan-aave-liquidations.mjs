@@ -146,13 +146,14 @@ const sql = neon(dbUrl)
 /** The same ring the per-wallet scanner uses (Tenderly public gateway first — the only
  *  keyless endpoint the Oct 10 pull found that serves both archive state and wide
  *  getLogs), built here rather than imported so the scan can hold its own timeouts. */
-const client = createPublicClient({
-  chain: mainnet,
-  transport: fallback(
-    historyRpcUrls().map((u) => http(u, { timeout: 30_000, retryCount: 2 })),
-    { rank: false, retryCount: 1 },
-  ),
-})
+// THE RING (owner 2026-09-23): probe every candidate for its real getLogs cap, save
+// the table, and rotate every log fetch across the endpoints that can serve it, so no
+// single free tier carries the job. Re-probed when the saved table is > 6h old.
+const { ensureRing, RpcRing } = await import('../lib/position-sim/rpcRing.ts')
+const ringTable = await ensureRing(historyRpcUrls())
+const ring = new RpcRing(ringTable)
+console.log(`rpc ring: ${ringTable.entries.filter((e) => e.cap > 0).map((e) => `${new URL(e.url).host}@${e.cap}`).join(' · ')} (probed ${ringTable.probedAt})`)
+const client = ring.readClient()
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const nowIso = () => new Date().toISOString()
@@ -260,6 +261,7 @@ async function phaseLogs() {
   const head = BigInt(headStr)
 
   let cursor = BigInt((await getCursor('logs')) ?? AAVE_V3_START_BLOCK.toString())
+  if (BigInt(ring.maxCap()) < CHUNK) log(`chunk ${CHUNK} exceeds the ring's widest cap ${ring.maxCap()} — the ring splits it`)
   const toBlock = MAX_BLOCKS === null ? head : bigMin(cursor + MAX_BLOCKS - 1n, head)
   log(`blocks ${cursor} → ${toBlock} (head ${head}), chunk ${CHUNK}`)
 
@@ -272,7 +274,7 @@ async function phaseLogs() {
     const to = bigMin(cursor + span - 1n, toBlock)
     let logs
     try {
-      logs = await client.getLogs({
+      logs = await ring.getLogs({
         address: pool,
         event: LIQUIDATION_CALL,
         fromBlock: cursor,
@@ -360,7 +362,7 @@ async function roundsBucket(feed, index) {
   if (hit) return hit
   const from = AAVE_V3_START_BLOCK + BigInt(index) * ROUND_BUCKET
   const to = from + ROUND_BUCKET - 1n
-  const got = await feedRounds(client, feed, from, to, Date.now() + 15 * 60_000)
+  const got = await feedRounds(client, feed, from, to, Date.now() + 15 * 60_000, ring)
   roundBuckets.set(key, got)
   return got
 }

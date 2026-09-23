@@ -523,6 +523,7 @@ async function replayAccount(user, rows, dataProvider) {
         unpriced: true,
         eventCount: cluster.length,
         unpricedEvents,
+        why: unpricedEvents === cluster.length ? 'no event in this episode could be priced (token map / line / rounds)' : 'no priced event',
       })
       continue
     }
@@ -548,6 +549,7 @@ async function replayAccount(user, rows, dataProvider) {
       unpriced: r.verdict === 'unknown',
       eventCount: cluster.length,
       unpricedEvents,
+      why: r.why,
     })
   }
   return out
@@ -560,7 +562,7 @@ async function insertEpisodes(eps) {
     INSERT INTO aave_liquidation_episodes
       ("user", start_ts, end_ts, collateral, actual_seized_usd, actual_repaid_usd,
        membrane_seized_usd, membrane_liquidations, verdict, unpriced, event_count,
-       unpriced_events)
+       unpriced_events, why)
     SELECT * FROM UNNEST(
       ${eps.map((e) => e.user)}::text[],
       ${eps.map((e) => String(e.startTs))}::bigint[],
@@ -573,7 +575,8 @@ async function insertEpisodes(eps) {
       ${eps.map((e) => e.verdict)}::text[],
       ${eps.map((e) => e.unpriced)}::boolean[],
       ${eps.map((e) => e.eventCount)}::int[],
-      ${eps.map((e) => e.unpricedEvents)}::int[]
+      ${eps.map((e) => e.unpricedEvents)}::int[],
+      ${eps.map((e) => e.why ?? null)}::text[]
     )
     ON CONFLICT ("user", start_ts) DO NOTHING`
 }

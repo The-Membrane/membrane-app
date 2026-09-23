@@ -414,7 +414,7 @@ async function lineFor(dataProvider, collAddr, blockNumber) {
 }
 
 // Per-step wall-clock (owner asked where the minute per account goes).
-const T = { line: 0, rounds: 0, wrap: 0, n: { line: 0, rounds: 0, wrap: 0 } }
+const T = { line: 0, rounds: 0, wrap: 0, replay: 0, db: 0, n: { line: 0, rounds: 0, wrap: 0, replay: 0, db: 0 } }
 const timed = async (k, f) => { const t = Date.now(); try { return await f() } finally { T[k] += Date.now() - t; T.n[k]++ } }
 const wrapCache = new Map()
 async function wrapAt(blockNumber) {
@@ -538,11 +538,13 @@ async function replayAccount(user, rows, dataProvider) {
     // The ANCHOR is the first priced event: its collateral carries the price path, its
     // market carries the line and the FEE — the venue's own bonus, never a cheaper one.
     const anchor = priced[0]
+    const tR = Date.now()
     const r = replayEpisode(
       priced.map((p) => p.hl),
       await roundsFor(anchor.meta, anchor.hl.ts),
       { ...DEFAULT_REPLAY_PARAMS, liqFee: anchor.fee, spanSeconds },
     )
+    T.replay += Date.now() - tR; T.n.replay++
     out.push({
       user,
       startTs: cluster[0].ts,
@@ -625,10 +627,12 @@ async function phaseEpisodes() {
     if (batch.length === 0) break
 
     for (const { user } of batch) {
+      const tD = Date.now()
       const rows = await sql`
         SELECT block, extract(epoch FROM block_time)::bigint AS ts, collateral_asset,
                debt_asset, debt_to_cover, liquidated_collateral_amount
         FROM aave_liquidations WHERE "user" = ${user} ORDER BY block, log_index`
+      T.db += Date.now() - tD
       let eps = []
       try {
         eps = await replayAccount(user, rows, dataProvider)
@@ -639,12 +643,14 @@ async function phaseEpisodes() {
         await writeSummary(true)
         process.exit(1)
       }
+      const tI = Date.now()
       await insertEpisodes(eps)
       userCursor = user
       await setCursor('episodes', userCursor)
       ring.saveStats('aave-episodes')
+      T.db += Date.now() - tI; T.n.db++
       console.log('rpc ring:', ring.stats().map((s) => `${s.host} ${s.ok}/${s.calls} ${(s.blocks / 1000).toFixed(0)}k blk ${s.avgMs}ms`).join(' · '),
-        `| t line ${(T.line / 1000).toFixed(1)}s/${T.n.line} rounds ${(T.rounds / 1000).toFixed(1)}s/${T.n.rounds} wrap ${(T.wrap / 1000).toFixed(1)}s/${T.n.wrap} total ${((Date.now() - started) / 1000).toFixed(0)}s`)
+        `| t line ${(T.line / 1000).toFixed(1)}s/${T.n.line} rounds ${(T.rounds / 1000).toFixed(1)}s/${T.n.rounds} wrap ${(T.wrap / 1000).toFixed(1)}s/${T.n.wrap} replay ${(T.replay / 1000).toFixed(1)}s/${T.n.replay} db ${(T.db / 1000).toFixed(1)}s/${T.n.db} total ${((Date.now() - started) / 1000).toFixed(0)}s`)
       accounts += 1
       episodes += eps.length
 

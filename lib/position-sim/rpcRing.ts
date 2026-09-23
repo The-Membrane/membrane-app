@@ -123,7 +123,7 @@ export class RpcRing {
   private clients = new Map<string, PublicClient>()
   readonly table: RingTable
   readonly minCap: number
-  constructor(table: RingTable, private cooldownMs = 60_000) {
+  constructor(table: RingTable, private cooldownMs = 20_000) {
     this.table = table
     const live = table.entries.filter((e) => e.cap > 0)
     if (live.length === 0) throw new Error('rpc ring: no endpoint serves eth_getLogs — re-probe or add a keyed RPC')
@@ -168,11 +168,30 @@ export class RpcRing {
   async getLogsWide<T>(args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint }): Promise<T[]> {
     const out: T[] = []
     let cursor = args.fromBlock
+    // Start at the widest live cap; on a failure halve the piece (a narrower piece
+    // is eligible on more endpoints) down to the smallest live cap, then wait out
+    // one cooldown and try the floor once more before giving up.
+    let span = BigInt(Math.max(this.maxCap(), this.minCap))
+    const floor = BigInt(this.minCap)
+    let waited = false
     while (cursor <= args.toBlock) {
-      const cap = BigInt(Math.max(this.maxCap(), this.minCap))
-      const to = cursor + cap - 1n < args.toBlock ? cursor + cap - 1n : args.toBlock
-      out.push(...(await this.getLogs<T>({ ...args, fromBlock: cursor, toBlock: to })))
-      cursor = to + 1n
+      const to = cursor + span - 1n < args.toBlock ? cursor + span - 1n : args.toBlock
+      try {
+        out.push(...(await this.getLogs<T>({ ...args, fromBlock: cursor, toBlock: to })))
+        cursor = to + 1n
+        waited = false
+      } catch (err) {
+        if (span > floor) {
+          span = span / 2n > floor ? span / 2n : floor
+          continue
+        }
+        if (!waited) {
+          waited = true
+          await new Promise((r) => setTimeout(r, this.cooldownMs + 500))
+          continue
+        }
+        throw err
+      }
     }
     return out
   }

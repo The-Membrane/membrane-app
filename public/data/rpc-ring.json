@@ -1,40 +1,52 @@
 {
-  "probedAt": "2026-09-23T03:36:50.646Z",
+  "probedAt": "2026-09-23T03:42:03.448Z",
   "entries": [
+    {
+      "url": "env:rpc.ankr.com",
+      "cap": 10000,
+      "ms": 43,
+      "alive": true
+    },
     {
       "url": "https://eth.api.pocket.network",
       "cap": 10000,
-      "ms": 1015,
+      "ms": 635,
+      "alive": true
+    },
+    {
+      "url": "env:mainnet.infura.io",
+      "cap": 10000,
+      "ms": 850,
       "alive": true
     },
     {
       "url": "https://ethereum.public.blockpi.network/v1/rpc/public",
       "cap": 5000,
-      "ms": 2016,
+      "ms": 2028,
+      "alive": true
+    },
+    {
+      "url": "https://eth.drpc.org",
+      "cap": 100,
+      "ms": 223,
       "alive": true
     },
     {
       "url": "https://eth-pokt.nodies.app",
       "cap": 50,
-      "ms": 33,
+      "ms": 32,
       "alive": true
     },
     {
-      "url": "https://eth-mainnet.g.alchemy.com/v2/alch_2EqzDPp8OebjNnogMkq9X",
+      "url": "env:eth-mainnet.g.alchemy.com",
       "cap": 10,
-      "ms": 31,
+      "ms": 34,
       "alive": true
     },
     {
       "url": "https://eth-mainnet.public.blastapi.io",
       "cap": 10,
-      "ms": 45,
-      "alive": true
-    },
-    {
-      "url": "https://eth.drpc.org",
-      "cap": 0,
-      "ms": 0,
+      "ms": 63,
       "alive": true
     },
     {
@@ -65,7 +77,7 @@
       "url": "https://eth.merkle.io",
       "cap": 0,
       "ms": 0,
-      "alive": false
+      "alive": true
     },
     {
       "url": "https://cloudflare-eth.com",
@@ -107,7 +119,7 @@
       "url": "https://1rpc.io/eth",
       "cap": 0,
       "ms": 0,
-      "alive": false
+      "alive": true
     }
   ]
 }

@@ -92,15 +92,34 @@ export async function probeRing(candidates: string[] = CANDIDATES, extra: string
   return { probedAt: new Date().toISOString(), entries }
 }
 
+/**
+ * KEYS NEVER TOUCH DISK. A keyed URL (anything not in CANDIDATES) is saved under the
+ * alias `env:<host>` and re-resolved from RECORDER_RPC_URL at load time, so the table
+ * under public/ (served by the app, tracked by git) holds only public hosts.
+ */
+const envUrls = (): string[] =>
+  String(process.env.RECORDER_RPC_URL ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+const aliasFor = (url: string): string => (CANDIDATES.includes(url) ? url : `env:${new URL(url).host}`)
+const resolveAlias = (u: string): string | null => {
+  if (!u.startsWith('env:')) return u
+  const host = u.slice(4)
+  return envUrls().find((x) => new URL(x).host === host) ?? null
+}
+
 export function loadRing(): RingTable | null {
   try {
-    return JSON.parse(readFileSync(RING_PATH, 'utf8')) as RingTable
+    const t = JSON.parse(readFileSync(RING_PATH, 'utf8')) as RingTable
+    const entries = t.entries
+      .map((e) => ({ ...e, url: resolveAlias(e.url) }))
+      .filter((e): e is RingEntry => e.url !== null)
+    return { ...t, entries }
   } catch {
     return null
   }
 }
 export function saveRing(t: RingTable): void {
-  writeFileSync(RING_PATH, JSON.stringify(t, null, 2) + '\n')
+  const redacted: RingTable = { ...t, entries: t.entries.map((e) => ({ ...e, url: aliasFor(e.url) })) }
+  writeFileSync(RING_PATH, JSON.stringify(redacted, null, 2) + '\n')
 }
 
 /** Saved table if fresh, else probe + save. `extra` URLs (e.g. env) are probed too. */

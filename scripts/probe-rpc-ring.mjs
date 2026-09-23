@@ -12,5 +12,5 @@ const extra = String(get('RECORDER_RPC_URL') ?? '').split(',').map((s) => s.trim
 const { probeRing, saveRing } = await import('../lib/position-sim/rpcRing.ts')
 const t = await probeRing(undefined, extra)
 saveRing(t)
-for (const e of t.entries) console.log(String(e.cap).padStart(6), String(e.ms).padStart(6) + 'ms', e.alive ? '     ' : ' dead', e.url)
+for (const e of t.entries) console.log(String(e.cap).padStart(6), String(e.ms).padStart(6) + 'ms', e.alive ? '     ' : ' dead', extra.includes(e.url) ? `env:${new URL(e.url).host}` : e.url)
 console.log(`saved public/data/rpc-ring.json — ${t.entries.filter((e) => e.cap > 0).length} endpoints serve getLogs`)

@@ -54,7 +54,7 @@ export interface RingTable {
   entries: RingEntry[]
 }
 
-const PROBE_SIZES = [10_000n, 5_000n, 2_000n, 1_000n, 800n, 500n, 100n]
+const PROBE_SIZES = [10_000n, 5_000n, 2_000n, 1_000n, 800n, 600n, 500n, 250n, 100n, 50n, 10n]
 const PROBE_FROM = 21_600_000n
 const PROBE_AGG = '0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6' as const // Chainlink ETH/USD aggregator
 const ANSWER_UPDATED = parseAbiItem(
@@ -80,7 +80,9 @@ export async function probeRing(candidates: string[] = CANDIDATES, extra: string
           await c.getLogs({ address: PROBE_AGG, event: ANSWER_UPDATED, fromBlock: PROBE_FROM, toBlock: PROBE_FROM + n - 1n })
           return { url, cap: Number(n), ms: Date.now() - t, alive: true }
         } catch {
-          /* try the next size down */
+          // A refusal at this size — pause briefly so a rate limit on one size
+          // does not zero the endpoint, then try the next size down.
+          await new Promise((r) => setTimeout(r, 250))
         }
       }
       return { url, cap: 0, ms: 0, alive: true }

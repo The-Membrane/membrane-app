@@ -2,23 +2,31 @@
   "runs": [
     {
       "run": "aave-episodes",
-      "at": "2026-09-23T04:32:14.558Z",
+      "at": "2026-09-24T02:34:56.492Z",
       "stats": [
         {
           "host": "rpc.ankr.com",
-          "calls": 2411,
-          "ok": 2411,
+          "calls": 5902,
+          "ok": 5902,
           "failed": 0,
-          "blocks": 24103269,
-          "avgMs": 89
+          "blocks": 59006316,
+          "avgMs": 93
+        },
+        {
+          "host": "eth.api.pocket.network",
+          "calls": 1,
+          "ok": 1,
+          "failed": 0,
+          "blocks": 10000,
+          "avgMs": 2308
         },
         {
           "host": "mainnet.infura.io",
-          "calls": 5,
-          "ok": 3,
-          "failed": 2,
-          "blocks": 30000,
-          "avgMs": 880
+          "calls": 1,
+          "ok": 1,
+          "failed": 0,
+          "blocks": 10000,
+          "avgMs": 2207
         }
       ]
     }

@@ -40,28 +40,32 @@
 
 :root[data-membrane-theme='light'] {
   /* state — darker twins; phosphor/teal/gold/blood fail contrast as text on cream */
-  --m-success: #3f7212;
-  --m-warning: #7f651a;
+  --m-success: #35660d;
+  --m-warning: #6d5512;
   --m-danger: #a92e22;
   --m-info: #0f6b4b;
   /* emphasis — moss for text/emphasis use; solid CTA fills keep phosphor via the
      Chakra ramp (unchanged in this phase) with ink text */
-  --m-primary: #3f7212;
+  --m-primary: #35660d;
   --m-secondary: #0f6b4b;
   /* text — espresso ink on parchment (user-approved espresso direction) */
-  --m-text-primary: #43331f;
-  --m-text-secondary: #6b5942;
-  --m-text-tertiary: #8a7960;
+  --m-text-primary: #2d2114;
+  --m-text-secondary: #4f3d29;
+  --m-text-tertiary: #64513a;
   /* backgrounds — warm parchment */
   --m-bg-primary: #e7dfcc;
   --m-bg-secondary: #efe9d9;
   --m-bg-tertiary: #f5f0e3;
   /* espresso hairlines */
-  --m-border-subtle: rgba(67, 51, 31, 0.16);
-  --m-border-medium: rgba(67, 51, 31, 0.16);
-  --m-border-strong: rgba(67, 51, 31, 0.34);
+  --m-border-subtle: rgba(45, 33, 20, 0.22);
+  --m-border-medium: rgba(45, 33, 20, 0.28);
+  --m-border-strong: rgba(45, 33, 20, 0.46);
   /* faint grid/dividers */
   --m-border-faint: rgba(67, 51, 31, 0.12);
   /* scrim stays dark in both themes, lighter pressure on parchment */
   --m-overlay: rgba(28, 26, 20, 0.5);
+}
+
+:root[data-membrane-theme='light'] body {
+  font-weight: 500;
 }

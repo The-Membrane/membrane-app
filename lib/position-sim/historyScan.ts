@@ -222,6 +222,15 @@ const FEEDS = {
   ETH_USD: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419' as Address,
   BTC_USD: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c' as Address,
   STETH_USD: '0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8' as Address,
+  LINK_USD: '0x2c1d072e956AFFC0D435Cb7AC38EF18d24d9127c' as Address,
+  AAVE_USD: '0x547a514d5e3769680Ce22B2361c10Ea13619e8a9' as Address,
+  UNI_USD: '0x553303d460EE0afB37EdFf9bE42922D8FF63220e' as Address,
+  CRV_USD: '0xCd627aA160A6fA45Eb793D19Ef54f5062F20f33f' as Address,
+  ENS_USD: '0x5C00128d4d1c2F4f652C267d7bcdD7aC99C16E16' as Address,
+  SNX_USD: '0xDC3EA94CD0AC27d9A86C180091e7f78C683d3699' as Address,
+  ONEINCH_USD: '0xc929ad75B72593967DE83E7F7Cda0493458261D9' as Address,
+  BAL_USD: '0xdF2917806E30300537aEB49A7663062F4d1F2b5F' as Address,
+  FXS_USD: '0x6Ebc52C8C1089be9eB3945C4350B68B8E4C2233f' as Address,
 }
 
 const WSTETH = '0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0' as Address
@@ -266,6 +275,51 @@ export const TOKENS: Record<string, TokenMeta> = {
     symbol: 'stETH',
     decimals: 18,
     pricing: { kind: 'feed', feed: FEEDS.STETH_USD },
+  },
+  '0x514910771af9ca656af840dff83e8264ecf986ca': {
+    symbol: 'LINK',
+    decimals: 18,
+    pricing: { kind: 'feed', feed: FEEDS.LINK_USD },
+  },
+  '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9': {
+    symbol: 'AAVE',
+    decimals: 18,
+    pricing: { kind: 'feed', feed: FEEDS.AAVE_USD },
+  },
+  '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984': {
+    symbol: 'UNI',
+    decimals: 18,
+    pricing: { kind: 'feed', feed: FEEDS.UNI_USD },
+  },
+  '0xd533a949740bb3306d119cc777fa900ba034cd52': {
+    symbol: 'CRV',
+    decimals: 18,
+    pricing: { kind: 'feed', feed: FEEDS.CRV_USD },
+  },
+  '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72': {
+    symbol: 'ENS',
+    decimals: 18,
+    pricing: { kind: 'feed', feed: FEEDS.ENS_USD },
+  },
+  '0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f': {
+    symbol: 'SNX',
+    decimals: 18,
+    pricing: { kind: 'feed', feed: FEEDS.SNX_USD },
+  },
+  '0x111111111117dc0aa78b770fa6a738034120c302': {
+    symbol: '1INCH',
+    decimals: 18,
+    pricing: { kind: 'feed', feed: FEEDS.ONEINCH_USD },
+  },
+  '0xba100000625a3754423978a60c9317c58a424e3d': {
+    symbol: 'BAL',
+    decimals: 18,
+    pricing: { kind: 'feed', feed: FEEDS.BAL_USD },
+  },
+  '0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0': {
+    symbol: 'FXS',
+    decimals: 18,
+    pricing: { kind: 'feed', feed: FEEDS.FXS_USD },
   },
   // Stables, held at $1.00 for the whole window. Stated in `method`, never silent.
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': {
@@ -318,6 +372,25 @@ export const TOKENS: Record<string, TokenMeta> = {
     decimals: 18,
     pricing: { kind: 'stable' },
   },
+}
+
+/**
+ * Synthetic $1 rounds for assets whose pricing policy is an exact dollar peg.
+ *
+ * `replayEpisode` deliberately refuses to infer an outcome unless it observes a
+ * point after the liquidation inside the first cure window. A lone anchor plus a
+ * 72-hour span-end point therefore makes a stable-collateral episode `unknown`, even
+ * though its price path is fully specified. Keep the endpoint for the chained replay,
+ * and add one flat observation no later than the first window boundary.
+ */
+export function stablePriceRounds(eventTs: number, spanEndTs: number): PriceRound[] {
+  const futureTs =
+    eventTs + Math.min(DEFAULT_REPLAY_PARAMS.cureWindowSeconds, Math.max(1, spanEndTs - eventTs))
+  const endTs = Math.max(futureTs, spanEndTs)
+
+  return [...new Set([eventTs - 1, futureTs, endTs])]
+    .sort((a, b) => a - b)
+    .map((ts) => ({ ts, price: 1 }))
 }
 
 /** The venues this scan does NOT cover, each with its reason. The UI prints these
@@ -848,12 +921,7 @@ export async function scanHistory(
     /** The collateral's rounds over the WHOLE episode span, fetched once per feed. */
     const roundsFor = async (meta: TokenMeta, ts: number): Promise<PriceRound[]> => {
       if (meta.pricing.kind === 'stable') {
-        // A stable does not move: one flat round before the first event and one at the
-        // span end. Honest, and it makes the verdict deterministic rather than absent.
-        return [
-          { ts: ts - 1, price: 1 },
-          { ts: spanEndTs, price: 1 },
-        ]
+        return stablePriceRounds(ts, spanEndTs)
       }
       const key = `${meta.pricing.feed}:${from}:${to}`
       const hit = roundsCache.get(key)

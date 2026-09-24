@@ -106,111 +106,115 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     else connect()
   }
   return (
-  <Box
-    bg={SEMANTIC_COLORS.bgPrimary}
-    border="1px solid"
-    borderColor={SEMANTIC_COLORS.borderSubtle}
-    p={SPACING.md}
-    display="grid"
-    gap={SPACING.sm}
-    justifyItems="center"
-    textAlign="center"
-    maxW="560px"
-    w="100%"
-  >
-    {primaryConnect && (
-      <Button
-        type="button"
-        onClick={useWalletAddress}
-        {...BTN}
-        w="100%"
-        bg={SEMANTIC_COLORS.success}
-        borderColor={SEMANTIC_COLORS.success}
-        color={SEMANTIC_COLORS.bgPrimary}
-        fontWeight={TYPOGRAPHY.medium}
-        _hover={{ bg: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.textPrimary }}
-      >
-        {isWalletConnected && walletAddress ? 'Use connected wallet' : connectLabel ?? 'Connect a wallet'}
-      </Button>
-    )}
-
     <Box
-      as="form"
-      display="flex"
+      bg={SEMANTIC_COLORS.bgPrimary}
+      border="1px solid"
+      borderColor={SEMANTIC_COLORS.borderSubtle}
+      p={SPACING.md}
+      display="grid"
       gap={SPACING.sm}
-      flexWrap="wrap"
-      justifyContent="center"
+      justifyItems="center"
+      textAlign="center"
+      maxW="560px"
       w="100%"
-      onSubmit={(e: React.FormEvent) => {
-        e.preventDefault()
-        onSubmit()
-      }}
     >
-      <Input
-        // Stable anchor: the "Run your position ↑" CTAs under the fold scroll to this
-        // element and focus it (CarrySection, and the CTA repeat at the foot of the
-        // page). Renaming it silently breaks both buttons.
-        id={inputId}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={primaryConnect ? '0x… connect or paste an address' : '0x… paste any address'}
-        aria-label="Ethereum address to read a lending position from"
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${inputId}-error` : undefined}
-        flex="1 1 240px"
-        minW="0"
-        bg={SEMANTIC_COLORS.bgSecondary}
-        border="1px solid"
-        borderColor={error ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.borderSubtle}
-        borderRadius={0}
-        color={SEMANTIC_COLORS.textPrimary}
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="12.5px"
-        h="auto"
-        px={SPACING.md}
-        py={SPACING.md}
-        transition={TRANSITIONS.colors}
-        _placeholder={{ color: SEMANTIC_COLORS.textTertiary }}
-        _hover={{ borderColor: SEMANTIC_COLORS.borderStrong }}
-        _focus={FOCUS_STYLES.ring}
-      />
-      <Button type="submit" isDisabled={isLoading} {...BTN}>
-        {isLoading ? 'Reading…' : loadedAddress ? 'Run another' : 'Run mine'}
-      </Button>
-    </Box>
+      {primaryConnect && (
+        <Button
+          type="button"
+          onClick={useWalletAddress}
+          {...BTN}
+          w="100%"
+          bg={SEMANTIC_COLORS.success}
+          borderColor={SEMANTIC_COLORS.success}
+          color={SEMANTIC_COLORS.bgPrimary}
+          fontWeight={TYPOGRAPHY.medium}
+          _hover={{ bg: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.textPrimary }}
+        >
+          {isWalletConnected && walletAddress
+            ? 'Use connected wallet'
+            : (connectLabel ?? 'Connect a wallet')}
+        </Button>
+      )}
 
-    {!primaryConnect && (
-      <Button type="button" onClick={useWalletAddress} {...LINK_BTN}>
-        {isWalletConnected && walletAddress ? 'Use connected wallet' : 'Connect a wallet to fill this in'}
-      </Button>
-    )}
-
-    {loadedAddress && (
-      <Button type="button" onClick={onClear} {...LINK_BTN}>
-        Back to example
-      </Button>
-    )}
-
-    {error && (
-      <Text
-        id={`${inputId}-error`}
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="11.5px"
-        color={SEMANTIC_COLORS.danger}
+      <Box
+        as="form"
+        display="flex"
+        gap={SPACING.sm}
+        flexWrap="wrap"
+        justifyContent="center"
+        w="100%"
+        onSubmit={(e: React.FormEvent) => {
+          e.preventDefault()
+          onSubmit()
+        }}
       >
-        {error}
-      </Text>
-    )}
+        <Input
+          // Stable anchor: the "Run your position ↑" CTAs under the fold scroll to this
+          // element and focus it (CarrySection, and the CTA repeat at the foot of the
+          // page). Renaming it silently breaks both buttons.
+          id={inputId}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={primaryConnect ? '0x… connect or paste an address' : '0x… paste any address'}
+          aria-label="Ethereum address to read a lending position from"
+          isInvalid={Boolean(error)}
+          aria-describedby={error ? `${inputId}-error` : undefined}
+          flex="1 1 240px"
+          minW="0"
+          bg={SEMANTIC_COLORS.bgSecondary}
+          border="1px solid"
+          borderColor={error ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.borderSubtle}
+          borderRadius={0}
+          color={SEMANTIC_COLORS.textPrimary}
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12.5px"
+          h="auto"
+          px={SPACING.md}
+          py={SPACING.md}
+          transition={TRANSITIONS.colors}
+          _placeholder={{ color: SEMANTIC_COLORS.textTertiary }}
+          _hover={{ borderColor: SEMANTIC_COLORS.borderStrong }}
+          _focus={FOCUS_STYLES.ring}
+        />
+        <Button type="submit" isDisabled={isLoading} {...BTN}>
+          {isLoading ? 'Reading…' : loadedAddress ? 'Run another' : 'Run mine'}
+        </Button>
+      </Box>
 
-    <Text
-      fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="11px"
-      color={SEMANTIC_COLORS.textTertiary}
-      lineHeight={1.6}
-    >
-      {readNote ?? 'Read-only · no signature · address logged'}
-    </Text>
-  </Box>
+      {!primaryConnect && (
+        <Button type="button" onClick={useWalletAddress} {...LINK_BTN}>
+          {isWalletConnected && walletAddress
+            ? 'Use connected wallet'
+            : 'Connect a wallet to fill this in'}
+        </Button>
+      )}
+
+      {loadedAddress && (
+        <Button type="button" onClick={onClear} {...LINK_BTN}>
+          Back to example
+        </Button>
+      )}
+
+      {error && (
+        <Text
+          id={`${inputId}-error`}
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="11.5px"
+          color={SEMANTIC_COLORS.danger}
+        >
+          {error}
+        </Text>
+      )}
+
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        color={SEMANTIC_COLORS.textTertiary}
+        lineHeight={1.6}
+      >
+        {readNote ?? 'Read-only · no signature · address logged'}
+      </Text>
+    </Box>
   )
 }
 

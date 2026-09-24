@@ -16,6 +16,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { GUARANTEE, type Provenance } from '@/lib/position-sim'
+import { CORPUS_COVERAGE_LINE, CORPUS_WORSE_CONTEXT_LINE } from '@/lib/position-sim/oct10Totals'
 
 import Stamp from './Stamp'
 
@@ -93,15 +94,27 @@ export const FinePrint: React.FC<FinePrintProps> = ({
     border="1px solid"
     borderColor={SEMANTIC_COLORS.borderSubtle}
     p={SPACING.base}
+    minW={0}
     display="grid"
+    gridTemplateColumns="minmax(0, 1fr)"
     gap={SPACING.md}
   >
     <Text {...HEAD}>before you quote this</Text>
 
-    <Box as="ul" display="grid" gap={SPACING.sm} pl={SPACING.base} m={0}>
+    <Box
+      as="ul"
+      minW={0}
+      display="grid"
+      gridTemplateColumns="minmax(0, 1fr)"
+      gap={SPACING.sm}
+      pl={SPACING.base}
+      m={0}
+    >
       {STANDING.map((s) => (
         <Line key={s}>{s}</Line>
       ))}
+      {CORPUS_COVERAGE_LINE && <Line>{CORPUS_COVERAGE_LINE}</Line>}
+      {CORPUS_WORSE_CONTEXT_LINE && <Line>{CORPUS_WORSE_CONTEXT_LINE}</Line>}
       <Line>{CARRY_TERMS}</Line>
       {borrowRateNote && <Line>{borrowRateNote}</Line>}
       {(extraNotes ?? []).map((n) => (
@@ -125,9 +138,9 @@ export const FinePrint: React.FC<FinePrintProps> = ({
       {GUARANTEE.provenance}
     </Text>
 
-    <Box display="grid" gap={SPACING.sm}>
+    <Box minW={0} display="grid" gridTemplateColumns="minmax(0, 1fr)" gap={SPACING.sm}>
       <Text {...HEAD}>where every number came from</Text>
-      <Box display="flex" gap={SPACING.sm} flexWrap="wrap">
+      <Box minW={0} display="flex" gap={SPACING.sm} flexWrap="wrap">
         {stamps.map((p, k) => (
           <Stamp key={`${p.label}-${k}`} provenance={p} />
         ))}

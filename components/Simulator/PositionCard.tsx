@@ -85,17 +85,20 @@ export const PositionCard: React.FC<PositionCardProps> = ({
       borderRadius={0}
       transition={TRANSITIONS.colors}
       p={SPACING.base}
+      minW={0}
       display="grid"
+      gridTemplateColumns="minmax(0, 1fr)"
       gap={SPACING.md}
     >
       <Box
+        minW={0}
         display="flex"
         justifyContent="space-between"
         alignItems="baseline"
         gap={SPACING.md}
         flexWrap="wrap"
       >
-        <Box display="grid" gap="2px">
+        <Box minW={0} display="grid" gap="2px">
           {selectable && (
             <Text {...eyebrow}>{selected ? 'simulating this one' : 'not selected'}</Text>
           )}
@@ -107,7 +110,14 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             {position.label}
           </Text>
         </Box>
-        <Box display="flex" gap={SPACING.sm} alignItems="center" flexWrap="wrap">
+        <Box
+          minW={0}
+          maxW="100%"
+          display="flex"
+          gap={SPACING.sm}
+          alignItems="center"
+          flexWrap="wrap"
+        >
           {interactive && !selected && (
             <Box
               as="button"

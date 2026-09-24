@@ -157,7 +157,9 @@ export const Controls: React.FC<ControlsProps> = ({
     border="1px solid"
     borderColor={SEMANTIC_COLORS.borderSubtle}
     p={SPACING.base}
+    minW={0}
     display="grid"
+    gridTemplateColumns="minmax(0, 1fr)"
     gap={SPACING.md}
     alignContent="start"
   >

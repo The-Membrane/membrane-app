@@ -7,106 +7,144 @@
   "events": 25963,
   "accounts": 11016,
   "episodes": 21791,
-  "pricedEpisodes": 16538,
-  "unpricedEpisodes": 5253,
-  "unpricedEvents": 5772,
-  "actualSeizedUsd": 1703670956.72,
-  "actualRepaidUsd": 1620665926,
-  "membraneSeizedUsd": 633448570.57,
-  "keptUsd": 1070222386.14,
-  "savedCount": 1960,
-  "partialCount": 5541,
-  "brokeCount": 9037,
-  "worseCount": 0,
+  "pricedEpisodes": 20567,
+  "unpricedEpisodes": 1224,
+  "unpricedEvents": 107,
+  "actualSeizedUsd": 1902188788.35,
+  "actualRepaidUsd": 1810199782.54,
+  "membraneSeizedUsd": 708120774.97,
+  "keptUsd": 1194068013.37,
+  "savedCount": 2450,
+  "partialCount": 7414,
+  "brokeCount": 10655,
+  "worseCount": 48,
+  "worseByAnchorCollateral": [
+    {
+      "anchorCollateral": "AAVE",
+      "anchorCollateralAsset": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+      "episodes": 24,
+      "pricedAnchorEpisodes": 1127,
+      "worseRate": 0.02129547471162378,
+      "multiCollateralEpisodes": 3,
+      "actualSeizedUsd": 6640584.86,
+      "membraneSeizedUsd": 7444671.05,
+      "excessSeizedUsd": 804086.19,
+      "maxMembraneToActualRatio": 1.179357906985359
+    },
+    {
+      "anchorCollateral": "UNI",
+      "anchorCollateralAsset": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+      "episodes": 19,
+      "pricedAnchorEpisodes": 133,
+      "worseRate": 0.14285714285714285,
+      "multiCollateralEpisodes": 0,
+      "actualSeizedUsd": 2384671.6,
+      "membraneSeizedUsd": 2409069.13,
+      "excessSeizedUsd": 24397.53,
+      "maxMembraneToActualRatio": 1.079783024072881
+    },
+    {
+      "anchorCollateral": "LINK",
+      "anchorCollateralAsset": "0x514910771af9ca656af840dff83e8264ecf986ca",
+      "episodes": 5,
+      "pricedAnchorEpisodes": 1449,
+      "worseRate": 0.003450655624568668,
+      "multiCollateralEpisodes": 0,
+      "actualSeizedUsd": 59639.58,
+      "membraneSeizedUsd": 60855.03,
+      "excessSeizedUsd": 1215.45,
+      "maxMembraneToActualRatio": 1.0292514249217983
+    }
+  ],
   "byYear": [
     {
       "year": 2023,
       "events": 473,
-      "actualSeizedUsd": 12829560.16,
-      "membraneSeizedUsd": 3256000.15,
-      "keptUsd": 9573560.01
+      "actualSeizedUsd": 15656882.42,
+      "membraneSeizedUsd": 3879921.63,
+      "keptUsd": 11776960.79
     },
     {
       "year": 2024,
       "events": 5066,
-      "actualSeizedUsd": 423908826.34,
-      "membraneSeizedUsd": 174296321.53,
-      "keptUsd": 249612504.82
+      "actualSeizedUsd": 467542968.33,
+      "membraneSeizedUsd": 188397518.07,
+      "keptUsd": 279145450.26
     },
     {
       "year": 2025,
       "events": 12510,
-      "actualSeizedUsd": 811652148.11,
-      "membraneSeizedUsd": 261053644.29,
-      "keptUsd": 550598503.81
+      "actualSeizedUsd": 892912474.02,
+      "membraneSeizedUsd": 296487414.98,
+      "keptUsd": 596425059.04
     },
     {
       "year": 2026,
       "events": 7914,
-      "actualSeizedUsd": 455280422.11,
-      "membraneSeizedUsd": 194842604.6,
-      "keptUsd": 260437817.51
+      "actualSeizedUsd": 526076463.58,
+      "membraneSeizedUsd": 219355920.29,
+      "keptUsd": 306720543.29
     }
   ],
   "byCollateral": [
     {
       "collateral": "WETH",
-      "episodes": 11928,
-      "actualSeizedUsd": 773083610.73,
-      "membraneSeizedUsd": 339312823.69,
-      "keptUsd": 433770787.04
+      "episodes": 12091,
+      "actualSeizedUsd": 774614946.11,
+      "membraneSeizedUsd": 339571633.54,
+      "keptUsd": 435043312.58
     },
     {
       "collateral": "WBTC",
-      "episodes": 2715,
-      "actualSeizedUsd": 404066825.38,
-      "membraneSeizedUsd": 98316023.38,
-      "keptUsd": 305750802
+      "episodes": 2745,
+      "actualSeizedUsd": 404538447.47,
+      "membraneSeizedUsd": 98406044.26,
+      "keptUsd": 306132403.21
     },
     {
       "collateral": "wstETH",
-      "episodes": 1227,
-      "actualSeizedUsd": 340381856.7,
-      "membraneSeizedUsd": 121202276.77,
-      "keptUsd": 219179579.92
+      "episodes": 1240,
+      "actualSeizedUsd": 340516628.37,
+      "membraneSeizedUsd": 121241129.36,
+      "keptUsd": 219275499.01
+    },
+    {
+      "collateral": "AAVE",
+      "episodes": 1084,
+      "actualSeizedUsd": 57944134.57,
+      "membraneSeizedUsd": 24050445.1,
+      "keptUsd": 33893689.48
+    },
+    {
+      "collateral": "USDT",
+      "episodes": 295,
+      "actualSeizedUsd": 43585072.36,
+      "membraneSeizedUsd": 6707939.96,
+      "keptUsd": 36877132.4
+    },
+    {
+      "collateral": "LINK",
+      "episodes": 1411,
+      "actualSeizedUsd": 41896088.67,
+      "membraneSeizedUsd": 13325478.22,
+      "keptUsd": 28570610.44
     },
     {
       "collateral": "cbBTC",
-      "episodes": 269,
-      "actualSeizedUsd": 40660642.58,
-      "membraneSeizedUsd": 9405881.23,
-      "keptUsd": 31254761.35
+      "episodes": 271,
+      "actualSeizedUsd": 40737682.79,
+      "membraneSeizedUsd": 9414995.65,
+      "keptUsd": 31322687.14
     },
     {
       "collateral": "WBTC + WETH",
-      "episodes": 54,
+      "episodes": 55,
       "actualSeizedUsd": 38813547.95,
       "membraneSeizedUsd": 9968778.15,
       "keptUsd": 28844769.8
-    },
-    {
-      "collateral": "WETH + WBTC",
-      "episodes": 63,
-      "actualSeizedUsd": 28502456.63,
-      "membraneSeizedUsd": 17174459.18,
-      "keptUsd": 11327997.45
-    },
-    {
-      "collateral": "wstETH + WETH",
-      "episodes": 20,
-      "actualSeizedUsd": 10064485.25,
-      "membraneSeizedUsd": 6267017.48,
-      "keptUsd": 3797467.77
-    },
-    {
-      "collateral": "wstETH + 0x7fc66500",
-      "episodes": 5,
-      "actualSeizedUsd": 9516921.09,
-      "membraneSeizedUsd": 6017757.62,
-      "keptUsd": 3499163.47
     }
   ],
-  "method": "Every Aave V3 mainnet LiquidationCall from the Pool's deploy block 16,291,127 (Dec 2022) through block 26,035,860, decoded from logs with NO address filter and no per-wallet event cap — 25,963 events across 11,016 liquidated accounts. Events on one account within 24 hours of each other are ONE EPISODE — one crash, one position — and Membrane's side of an episode is a CHAIN, not a single sale: the position starts at its liquidation line carrying the debt the liquidators actually repaid, is repriced by the Chainlink rounds that really printed, and is walked for 72 hours past the episode's last event (capped at the next episode's first event, so no day is charged twice). Crossing the line arms an 8-hour timer; a climb past the 4% break band sells immediately; a return to the borrow line (liquidation line − 3pp) clears the timer with nothing sold; a window that expires still over the cap is a repay-to-cap, after which the position CONTINUES and can be liquidated again. This is the same engine (lib/position-sim/history.ts replayEpisode) and the same pricing the per-wallet scanner runs. MEMBRANE'S SIDE NEVER ASSUMES A DEPLOYMENT: there is no venue recall, recall = 0. The fee Membrane is charged is the SOURCE VENUE'S OWN liquidation bonus at that event's block (Aave liquidationBonus − 1), never a cheaper liquidator. The account's liquidation line is APPROXIMATED by the seized reserve's own liquidation threshold read at the event block (4,070 reads fell back to the current block: the current PoolDataProvider did not yet exist at the event block, or the node refused archive state), and the LTV at the event is taken to equal that line — an account being liquidated was at or over it by definition. A multi-collateral account's true blended line is a value-weighted average of its reserves, which needs the full account state at a historical block and is not cheaply readable; the single-reserve threshold is the honest approximation and it is stated here rather than hidden. Stablecoins are held at $1.00; wstETH is priced as stETH/USD × stEthPerToken; every other asset is priced off its Chainlink USD feed's AnswerUpdated rounds. Assets with no committed price source are UNPRICED: 5,253 of 21,791 episodes could not be priced at all and are excluded from every dollar figure here, counted in neither direction, and a further 5,772 individual events inside otherwise-priced episodes contributed nothing — so the actual-seized side is a floor, not a total. Episodes where the Membrane chain cost AT LEAST what the real liquidator took are counted as 'worse' (0 of them) and are included in membraneSeizedUsd at full weight — they are never netted away to flatter the kept figure. keptUsd is actualSeizedUsd − membraneSeizedUsd over priced episodes only. NOT COVERED: Spark, Morpho Blue, Compound V3, Fluid and every non-mainnet chain. This corpus is Aave V3 mainnet alone — one venue, one event shape, one set of reserve configs — so the figure is a floor on the liquidation universe, not a total.",
+  "method": "Every Aave V3 mainnet LiquidationCall from the Pool's deploy block 16,291,127 (Dec 2022) through block 26,035,860, decoded from logs with NO address filter and no per-wallet event cap — 25,963 events across 11,016 liquidated accounts. Events on one account within 24 hours of each other are ONE EPISODE — one crash, one position — and Membrane's side of an episode is a CHAIN, not a single sale: the position starts at its liquidation line carrying the debt the liquidators actually repaid, is repriced by the Chainlink rounds that really printed, and is walked for 72 hours past the episode's last event (capped at the next episode's first event, so no day is charged twice). Crossing the line arms an 8-hour timer; a climb past the 4% break band sells immediately; a return to the borrow line (liquidation line − 3pp) clears the timer with nothing sold; a window that expires still over the cap is a repay-to-cap, after which the position CONTINUES and can be liquidated again. This is the same engine (lib/position-sim/history.ts replayEpisode) and the same pricing the per-wallet scanner runs. MEMBRANE'S SIDE NEVER ASSUMES A DEPLOYMENT: there is no venue recall, recall = 0. The fee Membrane is charged is the SOURCE VENUE'S OWN liquidation bonus at that event's block (Aave liquidationBonus − 1), never a cheaper liquidator. The account's liquidation line is APPROXIMATED by the seized reserve's own liquidation threshold read at the event block (7,005 reads fell back to the current block: the current PoolDataProvider did not yet exist at the event block, or the node refused archive state), and the LTV at the event is taken to equal that line — an account being liquidated was at or over it by definition. A multi-collateral account's true blended line is a value-weighted average of its reserves, which needs the full account state at a historical block and is not cheaply readable; the single-reserve threshold is the honest approximation and it is stated here rather than hidden. Stablecoins are held at $1.00; wstETH is priced as stETH/USD × stEthPerToken; every other asset is priced off its Chainlink USD feed's AnswerUpdated rounds. Assets with no committed price source are UNPRICED: 1,224 of 21,791 episodes could not be priced at all and are excluded from every dollar figure here, counted in neither direction, and a further 107 individual events inside otherwise-priced episodes contributed nothing — so the actual-seized side is a floor, not a total. Episodes where the Membrane chain cost AT LEAST what the real liquidator took are counted as 'worse' (48 of them) and are included in membraneSeizedUsd at full weight — they are never netted away to flatter the kept figure. Their asset breakdown is grouped exclusively by REPLAY ANCHOR: the first priced event whose collateral supplies the replay price path, liquidation line, and venue fee. An anchor identifies the simulation input, not the asset responsible for the outcome. keptUsd is actualSeizedUsd − membraneSeizedUsd over priced episodes only. NOT COVERED: Spark, Morpho Blue, Compound V3, Fluid and every non-mainnet chain. This corpus is Aave V3 mainnet alone — one venue, one event shape, one set of reserve configs — so the figure is a floor on the liquidation universe, not a total.",
   "partial": false,
-  "generatedAt": "2026-09-23T04:32:14.848Z"
+  "generatedAt": "2026-09-24T02:50:41.250Z"
 }

@@ -6,13 +6,22 @@ import { MockStamp } from '@/components/demo'
 import { CHART_THEME, CHART_DIMENSIONS } from '@/config/chartTheme'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { lazyChart } from '@/components/ui/lazyChart'
 
 import { SectionHeading } from './atoms'
 import type { ExitModelVenue } from './types'
 import { CROSSING_STAMP, EXIT_MODEL } from './fixtures'
-import { CROSSING_TIERS, CrossingPoint, buildCrossingSeries, crossingSizeUsd, formatUSD, netPct as netPctPublic, twoSigFigs } from './utils'
+import {
+  CROSSING_TIERS,
+  CrossingPoint,
+  buildCrossingSeries,
+  crossingSizeUsd,
+  formatUSD,
+  netPct as netPctPublic,
+  twoSigFigs,
+} from './utils'
 
 /**
  * The crossing chart (BADASS_RULESET §4, rendered to BRAND_CHARTS §6):
@@ -42,36 +51,102 @@ interface ChartBodyProps {
 }
 
 const ChartBody = lazyChart<ChartBodyProps>((RC) => {
-  const { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Line, Tooltip, ReferenceLine, ReferenceArea } = RC
+  const {
+    ResponsiveContainer,
+    ComposedChart,
+    CartesianGrid,
+    XAxis,
+    YAxis,
+    Line,
+    Tooltip,
+    ReferenceLine,
+    ReferenceArea,
+  } = RC
   return function CrossingChartBody({ data, sizeUsd, altName, chosenName }: ChartBodyProps) {
     // Hover: the day, then per tier (your size, ×10, ×100) what each venue leaves you
     // after exit costs, with the model's cost range in brackets. Numbers only.
-    const HoverCard = ({ active, payload, label }: { active?: boolean; payload?: any[]; label?: number }) => {
+    const HoverCard = ({
+      active,
+      payload,
+      label,
+    }: {
+      active?: boolean
+      payload?: any[]
+      label?: number
+    }) => {
       if (!active || !payload?.length) return null
       const p = payload[0]?.payload as CrossingPoint | undefined
       if (!p) return null
       const pct = (v: unknown) => `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`
-      const signColor = (v: unknown) => (Number(v) >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger)
-      const Row = ({ name, color, mid, band: b }: { name: string; color: string; mid: unknown; band: unknown }) => (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', columnGap: 12, alignItems: 'baseline' }}>
+      const signColor = (v: unknown) =>
+        Number(v) >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger
+      const Row = ({
+        name,
+        color,
+        mid,
+        band: b,
+      }: {
+        name: string
+        color: string
+        mid: unknown
+        band: unknown
+      }) => (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto auto',
+            columnGap: 12,
+            alignItems: 'baseline',
+          }}
+        >
           <span style={{ color }}>{name}</span>
           <span style={{ color: signColor(mid), fontWeight: 600 }}>{pct(mid)}</span>
-          <span style={{ color: SEMANTIC_COLORS.textTertiary, fontSize: 10 }}>{band(b).trim()}</span>
+          <span style={{ color: SEMANTIC_COLORS.textTertiary, fontSize: 10 }}>
+            {band(b).trim()}
+          </span>
         </div>
       )
-      const band = (b: unknown) => (Array.isArray(b) ? ` [${Number(b[0]).toFixed(1)} … ${Number(b[1]).toFixed(1)}]` : '')
+      const band = (b: unknown) =>
+        Array.isArray(b) ? ` [${Number(b[0]).toFixed(1)} … ${Number(b[1]).toFixed(1)}]` : ''
       return (
-        <div style={{ ...(CHART_THEME.tooltip.contentStyle as object), padding: '10px 12px', fontFamily: TYPOGRAPHY.fontMono, fontSize: 11 }}>
-          <div style={{ color: SEMANTIC_COLORS.textSecondary, letterSpacing: '0.14em', textTransform: 'uppercase', fontSize: 9, marginBottom: 6 }}>
+        <div
+          style={{
+            ...(CHART_THEME.tooltip.contentStyle as object),
+            padding: '10px 12px',
+            fontFamily: TYPOGRAPHY.fontMono,
+            fontSize: 11,
+          }}
+        >
+          <div
+            style={{
+              color: SEMANTIC_COLORS.textSecondary,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              fontSize: 9,
+              marginBottom: 6,
+            }}
+          >
             day {label} · kept after exit costs
           </div>
           {CROSSING_TIERS.map((mult) => (
             <div key={mult} style={{ marginBottom: 6 }}>
-              <div style={{ color: SEMANTIC_COLORS.textTertiary, fontSize: 9, letterSpacing: '0.1em' }}>
+              <div
+                style={{ color: SEMANTIC_COLORS.textTertiary, fontSize: 9, letterSpacing: '0.1em' }}
+              >
                 {mult === 1 ? 'your size' : `×${mult}`} · {formatUSD(sizeUsd * mult)}
               </div>
-              <Row name={altName.split(' · ')[0]} color={ALT_COLOR} mid={p[`alt${mult}`]} band={p[`altBand${mult}`]} />
-              <Row name={chosenName.split(' · ')[0]} color={CHOSEN_COLOR} mid={p[`chosen${mult}`]} band={p[`chosenBand${mult}`]} />
+              <Row
+                name={altName.split(' · ')[0]}
+                color={ALT_COLOR}
+                mid={p[`alt${mult}`]}
+                band={p[`altBand${mult}`]}
+              />
+              <Row
+                name={chosenName.split(' · ')[0]}
+                color={CHOSEN_COLOR}
+                mid={p[`chosen${mult}`]}
+                band={p[`chosenBand${mult}`]}
+              />
             </div>
           ))}
         </div>
@@ -82,14 +157,32 @@ const ChartBody = lazyChart<ChartBodyProps>((RC) => {
         <ComposedChart data={data} margin={CHART_DIMENSIONS.margins.default}>
           <CartesianGrid {...CHART_THEME.grid} />
           {/* Good/bad cue on the chart: a faint blood wash below zero and a zero line. */}
-          <ReferenceArea y1={-1000} y2={0} fill={SEMANTIC_COLORS.danger} fillOpacity={0.06} strokeOpacity={0} ifOverflow="hidden" />
-          <ReferenceLine y={0} stroke={SEMANTIC_COLORS.success} strokeOpacity={0.6} strokeWidth={1} label={{ value: 'ahead ↑ · behind ↓', position: 'insideTopRight', fill: SEMANTIC_COLORS.textTertiary, fontSize: 9, fontFamily: TYPOGRAPHY.fontMono }} />
-          <Tooltip content={<HoverCard />} cursor={{ stroke: SEMANTIC_COLORS.borderStrong, strokeWidth: 1 }} />
-          <XAxis
-            {...CHART_THEME.xAxis}
-            dataKey="t"
-            tickFormatter={(t: number) => `${t}d`}
+          <ReferenceArea
+            y1={-1000}
+            y2={0}
+            fill={SEMANTIC_COLORS.danger}
+            fillOpacity={0.06}
+            strokeOpacity={0}
+            ifOverflow="hidden"
           />
+          <ReferenceLine
+            y={0}
+            stroke={SEMANTIC_COLORS.success}
+            strokeOpacity={0.6}
+            strokeWidth={1}
+            label={{
+              value: 'ahead ↑ · behind ↓',
+              position: 'insideTopRight',
+              fill: SEMANTIC_COLORS.textTertiary,
+              fontSize: 9,
+              fontFamily: TYPOGRAPHY.fontMono,
+            }}
+          />
+          <Tooltip
+            content={<HoverCard />}
+            cursor={{ stroke: SEMANTIC_COLORS.borderStrong, strokeWidth: 1 }}
+          />
+          <XAxis {...CHART_THEME.xAxis} dataKey="t" tickFormatter={(t: number) => `${t}d`} />
           <YAxis
             {...CHART_THEME.yAxis}
             tickFormatter={(v: number) => `${v.toFixed(1)}%`}
@@ -141,8 +234,8 @@ const Conclusions: React.FC<{ size: number; crossing: number | null }> = ({ size
   const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
   const win = (a: number, c: number) => (a > c ? alt : chosen)
   const lines = [
-    `At your size (${formatUSD(size)}), after ${HORIZON_DAYS} days you keep ${pct(a1)} on ${alt} vs ${pct(c1)} on ${chosen} — ${win(a1, c1)} wins.`,
-    `At ×10 (${formatUSD(size * 10)}) it is ${pct(a10)} vs ${pct(c10)} — ${win(a10, c10)} wins; the higher yield is eaten by a deeper exit.`,
+    `At your size (${formatUSD(size)}), after ${HORIZON_DAYS} days you keep ${pct(a1)} on ${alt} vs ${pct(c1)} on ${chosen}. ${win(a1, c1)} wins.`,
+    `At ×10 (${formatUSD(size * 10)}) it is ${pct(a10)} vs ${pct(c10)}. ${win(a10, c10)} wins; the higher yield is eaten by a deeper exit.`,
     crossing !== null
       ? `The crossover is near ${formatUSD(twoSigFigs(crossing))}. Below it, chase the yield; above it, pay for the exit.`
       : `No crossover inside the modelled range: the ranking holds at every size shown.`,
@@ -150,7 +243,16 @@ const Conclusions: React.FC<{ size: number; crossing: number | null }> = ({ size
   return (
     <Box display="grid" gap={SPACING.xs}>
       {lines.map((l) => (
-        <Text key={l} fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} lineHeight={1.7} color={SEMANTIC_COLORS.textPrimary} borderLeft="2px solid" borderColor={SEMANTIC_COLORS.success} pl={SPACING.sm}>
+        <Text
+          key={l}
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          lineHeight={1.7}
+          color={SEMANTIC_COLORS.textPrimary}
+          borderLeft="2px solid"
+          borderColor={SEMANTIC_COLORS.success}
+          pl={SPACING.sm}
+        >
           {l}
         </Text>
       ))}
@@ -178,33 +280,61 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
         note={`${EXIT_MODEL.alt.name} vs ${EXIT_MODEL.chosen.name} · what you keep after exit costs, over ${HORIZON_DAYS} days, at your size, ×10 and ×100`}
       />
       <Card p={SPACING.base}>
-        <ChartBody data={data} sizeUsd={size} altName={EXIT_MODEL.alt.name} chosenName={EXIT_MODEL.chosen.name} />
+        <ChartBody
+          data={data}
+          sizeUsd={size}
+          altName={EXIT_MODEL.alt.name}
+          chosenName={EXIT_MODEL.chosen.name}
+        />
 
         {/* Legend: what the axes are, then the two venues, then the three sizes. */}
         <Box mt={SPACING.sm} display="grid" gap={SPACING.xs}>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+            color={SEMANTIC_COLORS.textSecondary}
+          >
             Each line: what a deposit is worth after paying to exit, as % of what you put in, day by
-            day. Green numbers are ahead, red are behind. Hover for the model’s cost range at any day.
+            day. Green numbers are ahead, red are behind. Hover for the model’s cost range at any
+            day.
           </Text>
           <HStack spacing={SPACING.lg} flexWrap="wrap">
             <HStack spacing={SPACING.sm}>
               <Box w="18px" h="2px" bg={ALT_COLOR} />
-              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
-                {EXIT_MODEL.alt.name} — higher yield, thinner exit
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.xs}
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                {EXIT_MODEL.alt.name} · higher yield, thinner exit
               </Text>
             </HStack>
             <HStack spacing={SPACING.sm}>
               <Box w="18px" h="2px" bg={CHOSEN_COLOR} />
-              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
-                {EXIT_MODEL.chosen.name} — lower yield, deeper exit
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.xs}
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                {EXIT_MODEL.chosen.name} · lower yield, deeper exit
               </Text>
             </HStack>
           </HStack>
           <HStack spacing={SPACING.lg} flexWrap="wrap">
             {CROSSING_TIERS.map((mult) => (
               <HStack key={mult} spacing={SPACING.sm}>
-                <Box w="18px" h="0" borderTop="2px" borderStyle={mult === 1 ? 'solid' : mult === 10 ? 'dashed' : 'dotted'} borderColor={SEMANTIC_COLORS.textSecondary} />
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary}>
+                <Box
+                  w="18px"
+                  h="0"
+                  borderTop="2px"
+                  borderStyle={mult === 1 ? 'solid' : mult === 10 ? 'dashed' : 'dotted'}
+                  borderColor={SEMANTIC_COLORS.textSecondary}
+                />
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize={TYPOGRAPHY.xs}
+                  color={SEMANTIC_COLORS.textTertiary}
+                >
                   {mult === 1 ? 'your size' : `×${mult}`} · {formatUSD(size * mult)}
                 </Text>
               </HStack>
@@ -221,50 +351,130 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
             borderColor={SEMANTIC_COLORS.warning}
             borderRadius={0}
           >
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.warning}>
-              Past ~{formatUSD(twoSigFigs(crossing))} the cheaper venue wins: the higher yield costs more to leave than it pays.
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.small}
+              color={SEMANTIC_COLORS.warning}
+            >
+              Past ~{formatUSD(twoSigFigs(crossing))} the cheaper venue wins: the higher yield costs
+              more to leave than it pays.
             </Text>
           </Box>
         )}
 
-        {/* HOW THE DISCOUNT WORKS + WHAT TO CONCLUDE (owner 2026-09-22). Words only where
-            the chart cannot carry them; every number here is the same model the lines use. */}
-        <Box mt={SPACING.md} display="grid" gridTemplateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={SPACING.md}>
-          <Box display="grid" gap={SPACING.xs}>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.24em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
-              how the yield is discounted
-            </Text>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} lineHeight={1.7} color={SEMANTIC_COLORS.textSecondary}>
-              kept = yield earned so far − the cost of getting out at that size. The exit cost
-              is paid in three tiers: the first slice swaps out instantly at a small spread,
-              the next slice waits through the venue’s cooldown at a bigger one, and anything
-              past the venue’s depth is stranded at the biggest. A larger position reaches
-              the expensive tiers, so the same venue costs more to leave at ×10 than at ×1.
-            </Text>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} lineHeight={1.7} color={SEMANTIC_COLORS.textSecondary}>
-              {EXIT_MODEL.alt.name.split(' · ')[0]}: instant to {formatUSD(EXIT_MODEL.alt.instantDepthUsd)} at{' '}
-              {EXIT_MODEL.alt.instantCostPct[0]}–{EXIT_MODEL.alt.instantCostPct[1]}%, cooling to{' '}
-              {formatUSD(EXIT_MODEL.alt.instantDepthUsd + EXIT_MODEL.alt.coolingDepthUsd)} at{' '}
-              {EXIT_MODEL.alt.coolingCostPct[0]}–{EXIT_MODEL.alt.coolingCostPct[1]}%, then{' '}
-              {EXIT_MODEL.alt.strandedCostPct[0]}–{EXIT_MODEL.alt.strandedCostPct[1]}%.{' '}
-              {EXIT_MODEL.chosen.name.split(' · ')[0]}: instant to {formatUSD(EXIT_MODEL.chosen.instantDepthUsd)} at{' '}
-              {EXIT_MODEL.chosen.instantCostPct[0]}–{EXIT_MODEL.chosen.instantCostPct[1]}%, cooling to{' '}
-              {formatUSD(EXIT_MODEL.chosen.instantDepthUsd + EXIT_MODEL.chosen.coolingDepthUsd)} at{' '}
-              {EXIT_MODEL.chosen.coolingCostPct[0]}–{EXIT_MODEL.chosen.coolingCostPct[1]}%, then{' '}
-              {EXIT_MODEL.chosen.strandedCostPct[0]}–{EXIT_MODEL.chosen.strandedCostPct[1]}%.
-            </Text>
-          </Box>
-          <Box display="grid" gap={SPACING.xs} alignContent="start">
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.24em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
+        {/* Lead with the decision. Model mechanics stay available behind one native,
+            keyboard-operable disclosure instead of occupying half the card. */}
+        <Box
+          mt={SPACING.md}
+          display="grid"
+          gridTemplateColumns={{ base: 'minmax(0, 1fr)', md: 'minmax(0, 1fr) auto' }}
+          gap={SPACING.md}
+          alignItems="start"
+        >
+          <Box display="grid" gap={SPACING.xs} alignContent="start" minW={0}>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="10px"
+              letterSpacing="0.24em"
+              textTransform="uppercase"
+              color={SEMANTIC_COLORS.textSecondary}
+            >
               what to take from it
             </Text>
             <Conclusions size={size} crossing={crossing} />
+          </Box>
+
+          <Box
+            as="details"
+            maxW={{ base: '100%', md: '430px' }}
+            border="1px solid"
+            borderColor={SEMANTIC_COLORS.borderSubtle}
+            bg={SEMANTIC_COLORS.bgPrimary}
+            sx={{ '&[open]': { borderColor: SEMANTIC_COLORS.borderStrong } }}
+          >
+            <Box
+              as="summary"
+              aria-label="How the yield is discounted"
+              title="How the yield is discounted"
+              cursor="pointer"
+              listStyleType="none"
+              px={SPACING.md}
+              py={SPACING.sm}
+              display="flex"
+              gap={SPACING.sm}
+              alignItems="center"
+              justifyContent="space-between"
+              color={SEMANTIC_COLORS.textSecondary}
+              transition={TRANSITIONS.colors}
+              _hover={{ color: SEMANTIC_COLORS.textPrimary }}
+              _focusVisible={FOCUS_STYLES.ring}
+              sx={{ '&::-webkit-details-marker': { display: 'none' } }}
+            >
+              <Text
+                as="span"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="10px"
+                letterSpacing="0.18em"
+                textTransform="uppercase"
+              >
+                yield discount model
+              </Text>
+              <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="15px" aria-hidden="true">
+                ⓘ
+              </Text>
+            </Box>
+            <Box
+              px={SPACING.md}
+              pb={SPACING.md}
+              display="grid"
+              gap={SPACING.sm}
+              borderTop="1px solid"
+              borderColor={SEMANTIC_COLORS.borderSubtle}
+              pt={SPACING.md}
+            >
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.xs}
+                lineHeight={1.7}
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                kept = yield earned so far − the cost of getting out at that size. The first slice
+                swaps out instantly, the next waits through the venue’s cooldown, and anything past
+                the venue’s depth takes the highest modelled cost. Larger positions reach the
+                expensive tiers sooner.
+              </Text>
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.xs}
+                lineHeight={1.7}
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                {EXIT_MODEL.alt.name.split(' · ')[0]}: instant to{' '}
+                {formatUSD(EXIT_MODEL.alt.instantDepthUsd)} at {EXIT_MODEL.alt.instantCostPct[0]}–
+                {EXIT_MODEL.alt.instantCostPct[1]}%, cooling to{' '}
+                {formatUSD(EXIT_MODEL.alt.instantDepthUsd + EXIT_MODEL.alt.coolingDepthUsd)} at{' '}
+                {EXIT_MODEL.alt.coolingCostPct[0]}–{EXIT_MODEL.alt.coolingCostPct[1]}%, then{' '}
+                {EXIT_MODEL.alt.strandedCostPct[0]}–{EXIT_MODEL.alt.strandedCostPct[1]}%.{' '}
+                {EXIT_MODEL.chosen.name.split(' · ')[0]}: instant to{' '}
+                {formatUSD(EXIT_MODEL.chosen.instantDepthUsd)} at{' '}
+                {EXIT_MODEL.chosen.instantCostPct[0]}–{EXIT_MODEL.chosen.instantCostPct[1]}%,
+                cooling to{' '}
+                {formatUSD(EXIT_MODEL.chosen.instantDepthUsd + EXIT_MODEL.chosen.coolingDepthUsd)}{' '}
+                at {EXIT_MODEL.chosen.coolingCostPct[0]}–{EXIT_MODEL.chosen.coolingCostPct[1]}%,
+                then {EXIT_MODEL.chosen.strandedCostPct[0]}–{EXIT_MODEL.chosen.strandedCostPct[1]}%.
+              </Text>
+            </Box>
           </Box>
         </Box>
 
         <HStack spacing={SPACING.sm} mt={SPACING.md} align="baseline">
           <MockStamp label="modelled" />
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary} letterSpacing="0.03em">
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="9px"
+            color={SEMANTIC_COLORS.textTertiary}
+            letterSpacing="0.03em"
+          >
             {CROSSING_STAMP}
           </Text>
         </HStack>

@@ -55,7 +55,8 @@ export const OCT10_STAKES_LINE =
 export const OCT10_SCALE_LINE = {
   figure: `$${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M`,
   window: 'on 10 Oct 2025 alone',
-  line: `4% sounds small. It would have kept $${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M of collateral on 10 Oct 2025 alone.`,
+  result: `$${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M less debt would have been closed`,
+  line: `4% sounds small. $${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M less debt would have been closed on 10 Oct 2025 alone.`,
 } as const
 
 // ---------------------------------------------------------------------------
@@ -112,6 +113,7 @@ export const CORPUS_SCALE_LINE = {
   /** actualSeizedUsd − membraneSeizedUsd over PRICED episodes, formatted. */
   figure: corpusFigure,
   window: corpusWindow,
+  result: `It would have kept ${corpusFigure} of collateral`,
   line: `4% sounds small. It would have kept ${corpusFigure} of collateral ${corpusWindow}.`,
   /** True while the scan is still running. The figure is a floor, not the total. */
   partial: corpus.partial === true,
@@ -120,3 +122,79 @@ export const CORPUS_SCALE_LINE = {
   years: corpusYearCount,
   source: 'public/data/liquidation-corpus.json (scripts/scan-aave-liquidations.mjs)',
 } as const
+
+type CorpusCoverage = Pick<
+  typeof corpus,
+  'partial' | 'pricedEpisodes' | 'episodes' | 'unpricedEpisodes'
+>
+
+/** A finished-corpus disclosure, or nothing while the scan is only a floor. */
+export function corpusCoverageLine(summary: CorpusCoverage): string | null {
+  if (summary.partial) return null
+  return (
+    `${summary.pricedEpisodes.toLocaleString('en-US')} of ${summary.episodes.toLocaleString('en-US')} episodes were priced. ` +
+    `${summary.unpricedEpisodes.toLocaleString('en-US')} unpriced episodes are excluded from every dollar figure.`
+  )
+}
+
+export const CORPUS_COVERAGE_LINE = corpusCoverageLine(corpus)
+
+export type WorseByAnchorCollateralRow = {
+  anchorCollateral: string
+  anchorCollateralAsset: string
+  episodes: number
+  pricedAnchorEpisodes: number
+  worseRate: number
+  multiCollateralEpisodes: number
+  actualSeizedUsd: number
+  membraneSeizedUsd: number
+  excessSeizedUsd: number
+  maxMembraneToActualRatio: number
+}
+
+type CorpusWorseSummary = {
+  partial: boolean
+  worseCount: number
+  worseByAnchorCollateral?: readonly WorseByAnchorCollateralRow[]
+}
+
+/**
+ * A compact asset context for the small set of at-or-above-Aave replay outcomes.
+ * The word "anchor" is deliberate: this is the first priced event that supplies the
+ * replay path, line, and fee. It is not a claim that this asset caused the outcome.
+ */
+export function corpusWorseContextLine(summary: CorpusWorseSummary): string | null {
+  if (summary.partial || summary.worseCount === 0) return null
+  const rows = summary.worseByAnchorCollateral
+  if (!rows?.length) return null
+
+  const anchors = [...rows]
+    .sort(
+      (a, b) => b.worseRate - a.worseRate || a.anchorCollateral.localeCompare(b.anchorCollateral),
+    )
+    .map((row) => {
+      const pct = row.worseRate * 100
+      const rate = pct < 1 ? pct.toFixed(2) : pct.toFixed(1)
+      return (
+        `${row.anchorCollateral} ${row.episodes.toLocaleString('en-US')}/` +
+        `${row.pricedAnchorEpisodes.toLocaleString('en-US')} ` +
+        `(${rate}% worse; max ${row.maxMembraneToActualRatio.toFixed(2)}× Aave)`
+      )
+    })
+    .join(' · ')
+  const multiCollateralEpisodes = rows.reduce((sum, row) => sum + row.multiCollateralEpisodes, 0)
+  const mixed =
+    multiCollateralEpisodes > 0
+      ? ` ${multiCollateralEpisodes.toLocaleString('en-US')} included more than one collateral asset.`
+      : ''
+
+  return (
+    `${summary.worseCount.toLocaleString('en-US')} ‘worse’ replay episodes by anchor ` +
+    `(worse / total priced): ${anchors}.` +
+    `${mixed} The replay anchor is the first priced event used for the path, not the asset responsible.`
+  )
+}
+
+export const CORPUS_WORSE_CONTEXT_LINE = corpusWorseContextLine(
+  corpus as typeof corpus & CorpusWorseSummary,
+)

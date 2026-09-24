@@ -8,19 +8,20 @@
  * clusters each account's events into 24h EPISODES, and replays every episode through
  * the 4% band / 8h window with the SAME ENGINE and the SAME PRICING the per-wallet
  * scanner uses. It imports `replayEpisode` / `clusterEpisodes` from
- * lib/position-sim/history.ts and `feedRounds` / `TOKENS` / `priceAt` / `bonusToFee` /
- * `stEthPerToken` / `dataProviderAbi` from lib/position-sim/historyScan.ts rather than
- * re-deriving any of them: two implementations of one claim is how a landing-page
- * number silently drifts from the thing it claims to measure. (That is why this file
- * is run under tsx — `npx tsx scripts/scan-aave-liquidations.mjs` — a plain `node` run
- * cannot import the TypeScript engine, and a hand-copied engine is the failure mode
- * this whole file exists to avoid.)
+ * lib/position-sim/history.ts and `feedRounds` / `stablePriceRounds` / `TOKENS` /
+ * `priceAt` / `bonusToFee` / `stEthPerToken` / `dataProviderAbi` from
+ * lib/position-sim/historyScan.ts rather than re-deriving any of them: two
+ * implementations of one claim is how a landing-page number silently drifts from the
+ * thing it claims to measure. (That is why this file is run under tsx — `npx tsx
+ * scripts/scan-aave-liquidations.mjs` — a plain `node` run cannot import the TypeScript
+ * engine, and a hand-copied engine is the failure mode this whole file exists to avoid.)
  *
  * TWO PHASES, BOTH RESUMABLE. A crash loses at most one chunk or one account.
  *   logs      — chunked getLogs → one row per event in `aave_liquidations`
  *   episodes  — GROUP BY user → cluster → replay → `aave_liquidation_episodes`
- * Resume points live in `aave_scan_cursor`; every insert is ON CONFLICT DO NOTHING, so
- * re-running a partially-done chunk or account is a no-op. Just re-run the command.
+ * Resume points live in `aave_scan_cursor`. Each account's episode rows, account cursor,
+ * and current-parameter fallback total commit in one transaction, so a crash resumes at
+ * that account without double-counting its fallback reads. Just re-run the command.
  *
  * HONESTY RULES, ENCODED — every one of these is also stated verbatim in the `method`
  * paragraph of public/data/liquidation-corpus.json:
@@ -42,6 +43,8 @@
  *   npx tsx scripts/scan-aave-liquidations.mjs                  # both phases, to head
  *   npx tsx scripts/scan-aave-liquidations.mjs --phase=logs
  *   npx tsx scripts/scan-aave-liquidations.mjs --phase=episodes
+ *   npx tsx scripts/scan-aave-liquidations.mjs --phase=episodes --rebuild-episodes
+ *     # rebuild derived episodes after a completed log scan; keep events/log cursors
  *   npx tsx scripts/scan-aave-liquidations.mjs --max-blocks=20000   # smoke run
  *   npx tsx scripts/scan-aave-liquidations.mjs --reset              # drop the cursors
  */
@@ -70,6 +73,7 @@ const {
   TOKENS,
   feedRounds,
   priceAt,
+  stablePriceRounds,
   bonusToFee,
   stEthPerToken,
   historyRpcUrls,
@@ -133,6 +137,7 @@ const BLOCKS_SPAN = BigInt(Math.ceil(EPISODE_SPAN_SECONDS / 12) + 400)
 const BLOCKS_BEFORE = 1_400n
 
 const OUT_PATH = join(ROOT, 'public', 'data', 'liquidation-corpus.json')
+const EPISODE_FALLBACK_CURSOR = 'episodes_current_param_fallbacks'
 
 // --------------------------------------------------------------------- setup
 
@@ -163,9 +168,12 @@ async function getCursor(name) {
   const rows = await sql`SELECT value FROM aave_scan_cursor WHERE name = ${name}`
   return rows[0]?.value ?? null
 }
-async function setCursor(name, value) {
-  await sql`INSERT INTO aave_scan_cursor (name, value, updated_at) VALUES (${name}, ${String(value)}, now())
+function cursorUpsertQuery(name, value) {
+  return sql`INSERT INTO aave_scan_cursor (name, value, updated_at) VALUES (${name}, ${String(value)}, now())
             ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`
+}
+async function setCursor(name, value) {
+  await cursorUpsertQuery(name, value)
 }
 
 // ------------------------------------------------------------ phase 1: logs
@@ -379,7 +387,7 @@ async function roundsOver(feed, fromBlock, toBlock) {
  *  falling back to the current block when the node refuses archive state — the same
  *  two-step, and the same `usedCurrentParams` disclosure, as the per-wallet scanner. */
 const lineCache = new Map()
-let usedCurrentParams = 0
+let observedCurrentParamFallbacks = 0
 let archiveReads = 0
 async function lineFor(dataProvider, collAddr, blockNumber) {
   const key = `${collAddr}:${blockNumber}`
@@ -401,7 +409,7 @@ async function lineFor(dataProvider, collAddr, blockNumber) {
   } catch {
     try {
       const cfg = await read()
-      usedCurrentParams += 1
+      observedCurrentParamFallbacks += 1
       out = { line: Number(cfg[2]) / 10_000, fee: bonusToFee(cfg[3]) }
     } catch {
       out = null
@@ -461,21 +469,20 @@ async function replayAccount(user, rows, dataProvider) {
 
     const roundsFor = async (meta, ts) => {
       if (meta.pricing.kind === 'stable') {
-        return [
-          { ts: ts - 1, price: 1 },
-          { ts: spanEndTs, price: 1 },
-        ]
+        return stablePriceRounds(ts, spanEndTs)
       }
       return timed('rounds', () => roundsOver(meta.pricing.feed, from, to))
     }
 
     const priced = []
     const labels = []
+    const collateralAssets = new Set()
     let actualSeizedUsd = 0
     let actualRepaidUsd = 0
     let unpricedEvents = 0
 
     for (const h of cluster) {
+      collateralAssets.add(h.collAddr)
       const coll = TOKENS[h.collAddr]
       const debt = TOKENS[h.debtAddr]
       labels.push(coll?.symbol ?? h.collAddr.slice(0, 10))
@@ -511,6 +518,7 @@ async function replayAccount(user, rows, dataProvider) {
           liqLine: cfg.line,
         },
         meta: coll,
+        collateralAsset: h.collAddr,
         fee: cfg.fee,
       })
     }
@@ -530,6 +538,8 @@ async function replayAccount(user, rows, dataProvider) {
         unpriced: true,
         eventCount: cluster.length,
         unpricedEvents,
+        anchorCollateralAsset: null,
+        collateralCount: collateralAssets.size,
         why: unpricedEvents === cluster.length ? 'no event in this episode could be priced (token map / line / rounds)' : 'no priced event',
       })
       continue
@@ -558,20 +568,24 @@ async function replayAccount(user, rows, dataProvider) {
       unpriced: r.verdict === 'unknown',
       eventCount: cluster.length,
       unpricedEvents,
+      // This is the replay input, not a causal attribution: the first priced event's
+      // collateral supplies the price path, liquidation line, and venue fee.
+      anchorCollateralAsset: anchor.collateralAsset,
+      collateralCount: collateralAssets.size,
       why: r.why,
     })
   }
   return out
 }
 
-async function insertEpisodes(eps) {
-  if (eps.length === 0) return
+function episodeInsertQuery(eps) {
+  if (eps.length === 0) return null
   const n = (x) => (Number.isFinite(x) ? String(x) : '0')
-  await sql`
+  return sql`
     INSERT INTO aave_liquidation_episodes
       ("user", start_ts, end_ts, collateral, actual_seized_usd, actual_repaid_usd,
        membrane_seized_usd, membrane_liquidations, verdict, unpriced, event_count,
-       unpriced_events, why)
+       unpriced_events, why, anchor_collateral_asset, collateral_count)
     SELECT * FROM UNNEST(
       ${eps.map((e) => e.user)}::text[],
       ${eps.map((e) => String(e.startTs))}::bigint[],
@@ -585,25 +599,38 @@ async function insertEpisodes(eps) {
       ${eps.map((e) => e.unpriced)}::boolean[],
       ${eps.map((e) => e.eventCount)}::int[],
       ${eps.map((e) => e.unpricedEvents)}::int[],
-      ${eps.map((e) => e.why ?? null)}::text[]
+      ${eps.map((e) => e.why ?? null)}::text[],
+      ${eps.map((e) => e.anchorCollateralAsset)}::text[],
+      ${eps.map((e) => e.collateralCount)}::int[]
     )
     ON CONFLICT ("user", start_ts) DO UPDATE SET
       end_ts = EXCLUDED.end_ts, collateral = EXCLUDED.collateral,
       actual_seized_usd = EXCLUDED.actual_seized_usd, actual_repaid_usd = EXCLUDED.actual_repaid_usd,
       membrane_seized_usd = EXCLUDED.membrane_seized_usd, membrane_liquidations = EXCLUDED.membrane_liquidations,
       verdict = EXCLUDED.verdict, unpriced = EXCLUDED.unpriced, event_count = EXCLUDED.event_count,
-      unpriced_events = EXCLUDED.unpriced_events, why = EXCLUDED.why
+      unpriced_events = EXCLUDED.unpriced_events, why = EXCLUDED.why,
+      anchor_collateral_asset = EXCLUDED.anchor_collateral_asset,
+      collateral_count = EXCLUDED.collateral_count
     -- Only rows from before the why column existed (the dead-ring era, replayed with
     -- no working getLogs endpoint) are corrected; a tagged row is never overwritten.
     WHERE aave_liquidation_episodes.why IS NULL`
 }
 
+async function commitEpisodeAccount(eps, userCursor, currentParamFallbacks) {
+  const insert = episodeInsertQuery(eps)
+  await sql.transaction([
+    ...(insert ? [insert] : []),
+    cursorUpsertQuery('episodes', userCursor),
+    cursorUpsertQuery(EPISODE_FALLBACK_CURSOR, currentParamFallbacks),
+  ])
+}
+
 async function phaseEpisodes() {
   // An episode is a CLUSTER of an account's events, so replaying an account before the
   // log scan has finished would cluster a PARTIAL history and commit a wrong episode
-  // under a primary key that ON CONFLICT DO NOTHING would then never correct. The
-  // phase therefore refuses to start until the log scan is done; --force-episodes is
-  // for smoke runs only, and --reset clears the episodes it wrote.
+  // while advancing the account cursor past that user; later logs would not revisit it.
+  // The phase therefore refuses to start until the log scan is done; --force-episodes
+  // is for smoke runs only, and --reset clears the episodes it wrote.
   if ((await getCursor('logs_done')) !== '1' && !has('force-episodes')) {
     log('phase episodes SKIPPED — the log scan has not finished (pass --force-episodes to override)')
     return
@@ -615,7 +642,23 @@ async function phaseEpisodes() {
   }
   log(`phase episodes — data provider ${dataProvider}`)
 
-  let userCursor = (await getCursor('episodes')) ?? ''
+  const episodeCursor = await getCursor('episodes')
+  let userCursor = episodeCursor ?? ''
+  const fallbackCursor = await getCursor(EPISODE_FALLBACK_CURSOR)
+  let currentParamFallbacks = Number(fallbackCursor ?? 0)
+  // Only a genuinely fresh run can truthfully start at zero. A legacy partial/complete
+  // run already has committed accounts whose process-local fallback count is gone;
+  // silently seeding zero there would preserve the exact undercount this cursor fixes.
+  if (fallbackCursor === null) {
+    if (episodeCursor !== null) {
+      console.error(
+        `Missing ${EPISODE_FALLBACK_CURSOR} for an existing episode cursor; ` +
+          'seed the verified fallback total or rebuild episodes.',
+      )
+      process.exit(1)
+    }
+    await setCursor(EPISODE_FALLBACK_CURSOR, currentParamFallbacks)
+  }
   let accounts = 0
   let episodes = 0
   const started = Date.now()
@@ -634,6 +677,7 @@ async function phaseEpisodes() {
         FROM aave_liquidations WHERE "user" = ${user} ORDER BY block, log_index`
       T.db += Date.now() - tD
       let eps = []
+      const fallbacksBeforeAccount = observedCurrentParamFallbacks
       try {
         eps = await replayAccount(user, rows, dataProvider)
       } catch (e) {
@@ -644,9 +688,11 @@ async function phaseEpisodes() {
         process.exit(1)
       }
       const tI = Date.now()
-      await insertEpisodes(eps)
+      const accountFallbacks = observedCurrentParamFallbacks - fallbacksBeforeAccount
+      const nextCurrentParamFallbacks = currentParamFallbacks + accountFallbacks
       userCursor = user
-      await setCursor('episodes', userCursor)
+      await commitEpisodeAccount(eps, userCursor, nextCurrentParamFallbacks)
+      currentParamFallbacks = nextCurrentParamFallbacks
       ring.saveStats('aave-episodes')
       T.db += Date.now() - tI; T.n.db++
       console.log('rpc ring:', ring.stats().map((s) => `${s.host} ${s.ok}/${s.calls} ${(s.blocks / 1000).toFixed(0)}k blk ${s.avgMs}ms`).join(' · '),
@@ -658,7 +704,7 @@ async function phaseEpisodes() {
         const per = (Date.now() - started) / 1000 / Math.max(1, episodes)
         log(
           `episodes: ${episodes} replayed over ${accounts} accounts this run ` +
-            `(${per.toFixed(2)}s/episode, ${usedCurrentParams} current-param fallbacks)`,
+            `(${per.toFixed(2)}s/episode, ${currentParamFallbacks} current-param fallbacks)`,
         )
       }
       if (episodes > 0 && episodes % SUMMARY_EVERY < eps.length) await writeSummary(true)
@@ -687,7 +733,7 @@ function buildMethod(x) {
     `MEMBRANE'S SIDE NEVER ASSUMES A DEPLOYMENT: there is no venue recall, recall = 0. The fee Membrane is charged is the SOURCE VENUE'S OWN liquidation bonus at that event's block (Aave liquidationBonus − 1), never a cheaper liquidator.`,
     `The account's liquidation line is APPROXIMATED by the seized reserve's own liquidation threshold read at the event block${x.usedCurrentParams > 0 ? ` (${x.usedCurrentParams.toLocaleString('en-US')} reads fell back to the current block: the current PoolDataProvider did not yet exist at the event block, or the node refused archive state)` : ''}, and the LTV at the event is taken to equal that line — an account being liquidated was at or over it by definition. A multi-collateral account's true blended line is a value-weighted average of its reserves, which needs the full account state at a historical block and is not cheaply readable; the single-reserve threshold is the honest approximation and it is stated here rather than hidden.`,
     `Stablecoins are held at $1.00; wstETH is priced as stETH/USD × stEthPerToken; every other asset is priced off its Chainlink USD feed's AnswerUpdated rounds. Assets with no committed price source are UNPRICED: ${x.unpricedEpisodes.toLocaleString('en-US')} of ${x.episodes.toLocaleString('en-US')} episodes could not be priced at all and are excluded from every dollar figure here, counted in neither direction, and a further ${x.unpricedEventCount.toLocaleString('en-US')} individual events inside otherwise-priced episodes contributed nothing — so the actual-seized side is a floor, not a total.`,
-    `Episodes where the Membrane chain cost AT LEAST what the real liquidator took are counted as 'worse' (${x.worseCount.toLocaleString('en-US')} of them) and are included in membraneSeizedUsd at full weight — they are never netted away to flatter the kept figure. keptUsd is actualSeizedUsd − membraneSeizedUsd over priced episodes only.`,
+    `Episodes where the Membrane chain cost AT LEAST what the real liquidator took are counted as 'worse' (${x.worseCount.toLocaleString('en-US')} of them) and are included in membraneSeizedUsd at full weight — they are never netted away to flatter the kept figure. Their asset breakdown is grouped exclusively by REPLAY ANCHOR: the first priced event whose collateral supplies the replay price path, liquidation line, and venue fee. An anchor identifies the simulation input, not the asset responsible for the outcome. keptUsd is actualSeizedUsd − membraneSeizedUsd over priced episodes only.`,
     `NOT COVERED: Spark, Morpho Blue, Compound V3, Fluid and every non-mainnet chain. This corpus is Aave V3 mainnet alone — one venue, one event shape, one set of reserve configs — so the figure is a floor on the liquidation universe, not a total.`,
     x.partial
       ? `PARTIAL: this scan is still running. Figures cover the ${x.episodes.toLocaleString('en-US')} episodes replayed so far, not the whole corpus.`
@@ -698,6 +744,7 @@ function buildMethod(x) {
 }
 
 async function writeSummary(partial) {
+  const usedCurrentParams = Number((await getCursor(EPISODE_FALLBACK_CURSOR)) ?? 0)
   const [ev] = await sql`
     SELECT count(*)::int AS events, count(DISTINCT "user")::int AS accounts,
            min(block_time) AS from_date, max(block_time) AS to_date
@@ -718,7 +765,7 @@ async function writeSummary(partial) {
            count(*) FILTER (WHERE verdict = 'partial')::int AS partial_n,
            count(*) FILTER (WHERE verdict = 'broke')::int   AS broke,
            count(*) FILTER (WHERE verdict = 'worse')::int   AS worse,
-           coalesce(sum(unpriced_events), 0)::int            AS unpriced_events
+           coalesce(sum(unpriced_events) FILTER (WHERE NOT unpriced), 0)::int AS unpriced_events
     FROM aave_liquidation_episodes`
   const byYearEp = await sql`
     SELECT extract(year FROM to_timestamp(start_ts))::int AS year,
@@ -735,6 +782,27 @@ async function writeSummary(partial) {
            coalesce(sum(membrane_seized_usd), 0)::float8 AS membrane_seized
     FROM aave_liquidation_episodes WHERE NOT unpriced
     GROUP BY 1 ORDER BY 3 DESC LIMIT 8`
+  const worseByAnchor = await sql`
+    WITH priced_by_anchor AS (
+      SELECT anchor_collateral_asset, count(*)::int AS priced_anchor_episodes
+      FROM aave_liquidation_episodes
+      WHERE NOT unpriced AND anchor_collateral_asset IS NOT NULL
+      GROUP BY 1
+    ), worse_by_anchor AS (
+      SELECT anchor_collateral_asset,
+             count(*)::int AS episodes,
+             count(*) FILTER (WHERE collateral_count > 1)::int AS multi_collateral_episodes,
+             coalesce(sum(actual_seized_usd), 0)::float8 AS actual_seized,
+             coalesce(sum(membrane_seized_usd), 0)::float8 AS membrane_seized,
+             coalesce(sum(membrane_seized_usd - actual_seized_usd), 0)::float8 AS excess_seized,
+             coalesce(max(membrane_seized_usd / nullif(actual_seized_usd, 0)), 0)::float8 AS max_ratio
+      FROM aave_liquidation_episodes
+      WHERE verdict = 'worse' AND anchor_collateral_asset IS NOT NULL
+      GROUP BY 1
+    )
+    SELECT worse_by_anchor.*, priced_by_anchor.priced_anchor_episodes
+    FROM worse_by_anchor JOIN priced_by_anchor USING (anchor_collateral_asset)
+    ORDER BY episodes DESC, anchor_collateral_asset ASC`
 
   const evYears = new Map(byYearEv.map((r) => [r.year, r.events]))
   const years = [...new Set([...byYearEp.map((r) => r.year), ...evYears.keys()])].sort()
@@ -774,6 +842,18 @@ async function writeSummary(partial) {
     partialCount: ep.partial_n,
     brokeCount: ep.broke,
     worseCount: ep.worse,
+    worseByAnchorCollateral: worseByAnchor.map((r) => ({
+      anchorCollateral: TOKENS[r.anchor_collateral_asset]?.symbol ?? r.anchor_collateral_asset,
+      anchorCollateralAsset: r.anchor_collateral_asset,
+      episodes: r.episodes,
+      pricedAnchorEpisodes: r.priced_anchor_episodes,
+      worseRate: r.episodes / r.priced_anchor_episodes,
+      multiCollateralEpisodes: r.multi_collateral_episodes,
+      actualSeizedUsd: round2(r.actual_seized),
+      membraneSeizedUsd: round2(r.membrane_seized),
+      excessSeizedUsd: round2(r.excess_seized),
+      maxMembraneToActualRatio: Number(r.max_ratio) || 0,
+    })),
     byYear,
     byCollateral: byColl.map((r) => ({
       collateral: r.collateral,
@@ -810,6 +890,33 @@ async function writeSummary(partial) {
 const round2 = (x) => Math.round((Number(x) || 0) * 100) / 100
 
 // -------------------------------------------------------------------- main
+
+if (has('rebuild-episodes')) {
+  if (PHASE !== 'episodes') {
+    console.error('--rebuild-episodes requires --phase=episodes')
+    process.exit(1)
+  }
+  if (has('reset') || has('reset-events')) {
+    console.error('--rebuild-episodes cannot be combined with --reset or --reset-events')
+    process.exit(1)
+  }
+  if ((await getCursor('logs_done')) !== '1') {
+    console.error('--rebuild-episodes requires a completed log scan (logs_done=1)')
+    process.exit(1)
+  }
+  // Withdraw the old complete artefact BEFORE clearing derived rows. If the process
+  // dies after the transaction, the page still sees partial:true rather than stale
+  // complete totals backed by a database that is now mid-rebuild.
+  await writeSummary(true)
+  await sql.transaction([
+    sql`DELETE FROM aave_liquidation_episodes`,
+    sql`DELETE FROM aave_scan_cursor
+        WHERE name IN ('episodes', 'episodes_done', ${EPISODE_FALLBACK_CURSOR})`,
+  ])
+  log('derived episodes and episode cursors cleared; raw events and log cursors preserved')
+  // Publish the empty derived state too; later progress summaries replace it.
+  await writeSummary(true)
+}
 
 if (has('reset')) {
   // Cursors and EPISODES go; the event rows stay. An event row is an immutable decoded

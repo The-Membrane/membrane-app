@@ -16,7 +16,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import type { Provenance, ProvenanceKind } from '@/lib/position-sim'
 
 const KIND_COLOR: Record<ProvenanceKind, string> = {
-  onchain: SEMANTIC_COLORS.info,
+  onchain: SEMANTIC_COLORS.warning,
   dataset: SEMANTIC_COLORS.textSecondary,
   modelled: SEMANTIC_COLORS.warning,
   mock: SEMANTIC_COLORS.warning,
@@ -51,6 +51,9 @@ export const Stamp: React.FC<StampProps> = ({ provenance, note }) => {
       as="span"
       title={provenance.detail}
       display="inline-flex"
+      w="fit-content"
+      minW={0}
+      overflow="hidden"
       alignItems="center"
       gap={SPACING.xs}
       border="1px solid"
@@ -68,6 +71,7 @@ export const Stamp: React.FC<StampProps> = ({ provenance, note }) => {
         letterSpacing="0.24em"
         textTransform="uppercase"
         color={color}
+        minW={0}
         whiteSpace="nowrap"
         overflow="hidden"
         textOverflow="ellipsis"

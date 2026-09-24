@@ -7,13 +7,13 @@
 //
 //   a. what it is, in three lines
 //   b. the claims, verbatim from CARRY_CLAIMS (ClaimsBlock)
-//   c. proof — live tiles off /api/strats and /api/venues/log, plus the modelled crossing
-//   d. the way back up to the paste box, and out to the two live boards
+//   c. proof — tracked capital and venue change receipts, plus direct access to the boards
+//   d. the modelled crossing, with its assumptions available on demand
 //
 // HONESTY RULES, non-negotiable on this surface:
 //   - every number here is FETCHED LIVE or STAMPED MODELLED. Nothing is invented, and no
 //     figure is hard-coded into this file.
-//   - a tile that has not fetched yet renders EMPTY (a thin pulsing baseline), never a
+//   - live evidence that has not fetched yet renders EMPTY (a thin pulsing baseline), never a
 //     stale or placeholder number — the same discipline as DesireRouter.
 //   - CrossingChart carries CROSSING_STAMP and a "modelled" chip of its own. It stays
 //     visible. That chart is a MODEL, not an observation, and it must keep saying so.
@@ -38,16 +38,20 @@ import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
-import { demoDetection } from '@/lib/position-sim/demo'
-import { stamp, type Provenance } from '@/lib/position-sim/types'
+import { stamp } from '@/lib/position-sim/types'
 import Stamp from './Stamp'
 
-const LIVE_STRATS = stamp('onchain', 'live · /api/strats', 'Tracked carry strats, refreshed by the hourly recorder; served from stored scans.')
-const LIVE_LOG = stamp('onchain', 'live · /api/venues/log', 'Venue state changes recorded hourly; only discrete changes and >20% liquidity moves become entries.')
-import type { VenueDetection } from '@/lib/position-sim/venues'
-
+const LIVE_STRATS = stamp(
+  'onchain',
+  'live · /api/strats',
+  'Tracked carry strats, refreshed by the hourly recorder; served from stored scans.',
+)
+const LIVE_LOG = stamp(
+  'onchain',
+  'live · /api/venues/log',
+  'Venue state changes recorded hourly; only discrete changes and >20% liquidity moves become entries.',
+)
 import ClaimsBlock from './ClaimsBlock'
-import VenueCapacity from './VenueCapacity'
 import { HERO_SUBHEAD } from './VerdictHero'
 
 /** Same button as ComparisonPanel's — one CTA style on this page, not two. */
@@ -104,38 +108,6 @@ const Pending: React.FC = () => (
   />
 )
 
-const Tile: React.FC<{
-  label: string
-  stamp: Provenance
-  pending: boolean
-  children: React.ReactNode
-}> = ({ label, stamp, pending, children }) => (
-  <Box
-    border="1px solid"
-    borderColor={SEMANTIC_COLORS.borderSubtle}
-    bg={SEMANTIC_COLORS.bgPrimary}
-    borderRadius={0}
-    p={SPACING.base}
-    display="grid"
-    gap={SPACING.sm}
-    alignContent="start"
-  >
-    <Box minH="26px" display="flex" alignItems="center">
-      {pending ? <Pending /> : children}
-    </Box>
-    <Text
-      fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="10px"
-      letterSpacing="0.24em"
-      textTransform="uppercase"
-      color={SEMANTIC_COLORS.textSecondary}
-    >
-      {label}
-    </Text>
-    <Stamp provenance={stamp} />
-  </Box>
-)
-
 const Figure: React.FC<{ children: React.ReactNode; color?: string }> = ({ children, color }) => (
   <Text
     fontFamily={TYPOGRAPHY.fontMono}
@@ -146,6 +118,68 @@ const Figure: React.FC<{ children: React.ReactNode; color?: string }> = ({ child
   >
     {children}
   </Text>
+)
+
+const EvidenceDoor: React.FC<{
+  title: string
+  body: React.ReactNode
+  open: boolean
+  controls: string
+  onClick: () => void
+}> = ({ title, body, open, controls, onClick }) => (
+  <Button
+    type="button"
+    onClick={onClick}
+    aria-expanded={open}
+    aria-controls={controls}
+    h="auto"
+    minH="112px"
+    p={SPACING.base}
+    display="grid"
+    justifyItems="start"
+    alignContent="space-between"
+    gap={SPACING.md}
+    whiteSpace="normal"
+    textAlign="left"
+    border="1px solid"
+    borderColor={open ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.borderSubtle}
+    borderRadius={0}
+    bg={SEMANTIC_COLORS.bgPrimary}
+    color={SEMANTIC_COLORS.textPrimary}
+    transition={TRANSITIONS.colors}
+    _hover={{ borderColor: SEMANTIC_COLORS.success, bg: SEMANTIC_COLORS.bgPrimary }}
+    _active={{ opacity: 0.85 }}
+    _focus={FOCUS_STYLES.ring}
+  >
+    <Box>
+      <Text
+        fontFamily={TYPOGRAPHY.fontDisplay}
+        fontSize="20px"
+        lineHeight={1.15}
+        color={open ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textPrimary}
+      >
+        {title}
+      </Text>
+      <Text
+        mt={SPACING.xs}
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        lineHeight={1.55}
+        color={SEMANTIC_COLORS.textSecondary}
+      >
+        {body}
+      </Text>
+    </Box>
+    <Text
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize="10px"
+      letterSpacing="0.18em"
+      textTransform="uppercase"
+      color={SEMANTIC_COLORS.success}
+    >
+      {open ? 'close ↑' : 'open ↓'}
+    </Text>
+  </Button>
 )
 
 type StratsSummary = { count: number; total_usd: number }
@@ -177,33 +211,18 @@ const useVenueLog = () =>
   })
 
 export interface CarrySectionProps {
-  /** The hero's address-bar props, so the reader can run a wallet from HERE without
-   *  scrolling back up (owner 2026-09-21). */
-  addressBar?: AddressBarProps
   /** The debt on the position currently on screen. 0 when there is none. */
   positionDebtUsd?: number
-  /**
-   * The venue detection on screen — the demo's, or the one a pasted address produced.
-   *
-   * Expected POST-excludeOwnCollateral (Simulator.tsx filters on the way in). Optional
-   * so this block still renders standalone; when it is omitted it falls back to the
-   * committed demo snapshot, which is what the page opens on anyway.
-   */
-  detection?: VenueDetection
 }
 
 /** No position, no debt, still a real chart: the crossing is sized at a plain reference
  *  notional rather than at zero. It is modelled either way and stamped as such. */
 const REFERENCE_SIZE_USD = 250_000
 
-export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0, detection, addressBar }) => {
+export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 }) => {
   const [openPanel, setOpenPanel] = useState<'board' | 'strats' | null>(null)
   const toggle = (p: 'board' | 'strats') => setOpenPanel((cur) => (cur === p ? null : p))
   const { chainName } = useChainRoute()
-  // demoDetection() reads the committed snapshot and is pure, but it re-stamps its
-  // provenance on every call — memoise so the venue rows do not re-key each render.
-  const demoDet = React.useMemo(() => demoDetection(), [])
-  const shown = detection ?? demoDet
   const { data: strats } = useStratsSummary()
   const { data: log } = useVenueLog()
 
@@ -218,7 +237,13 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
   const amountUsd = positionDebtUsd > 0 ? positionDebtUsd : REFERENCE_SIZE_USD
 
   return (
-    <Box data-testid="sim-carry-section" display="grid" gap={SPACING.lg}>
+    <Box
+      data-testid="sim-carry-section"
+      minW={0}
+      display="grid"
+      gridTemplateColumns="minmax(0, 1fr)"
+      gap={SPACING.lg}
+    >
       {/* a — WHAT IT IS */}
       <Box display="grid" gap={SPACING.sm}>
         <Text
@@ -253,48 +278,161 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
         </Text>
       </Box>
 
-      {/* b — THE FOUR CLAIMS, verbatim from CARRY_CLAIMS + its caveat. */}
+      {/* b — THREE VERIFIED REASONS, verbatim from CARRY_CLAIMS. */}
       <ClaimsBlock />
 
-      {/* c — THE EVIDENCE. Live tiles, then the modelled crossing. */}
+      {/* c — THE EVIDENCE. Capital first, then direct access to the two boards. */}
       <Box display="grid" gap={SPACING.base}>
         <Box
           display="grid"
-          gridTemplateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }}
-          gap={SPACING.base}
+          gridTemplateColumns={{
+            base: 'minmax(0, 1fr)',
+            md: 'minmax(0, 1.45fr) minmax(280px, 0.8fr)',
+          }}
+          border="1px solid"
+          borderColor={SEMANTIC_COLORS.borderSubtle}
+          bg={SEMANTIC_COLORS.bgPrimary}
         >
-          <Tile label="tracked carry strats" stamp={LIVE_STRATS} pending={stratsPending}>
-            <Figure>{strats?.count ?? 0}</Figure>
-          </Tile>
-
-          <Tile label="at risk in those books" stamp={LIVE_STRATS} pending={stratsPending}>
-            <Figure>{fmtUsd(strats?.total_usd ?? 0)}</Figure>
-          </Tile>
-
-          <Tile
-            label={
-              newest
-                ? `last venue change · ${newest.venue} · ${new Date(newest.at).toISOString().slice(0, 10)}`
-                : 'last venue change'
-            }
-            stamp={LIVE_LOG}
-            pending={logPending}
+          <Box
+            minW={0}
+            p={{ base: SPACING.base, md: SPACING.lg }}
+            display="grid"
+            gap={SPACING.md}
+            borderRight={{ base: 'none', md: '1px solid' }}
+            borderBottom={{ base: '1px solid', md: 'none' }}
+            borderColor={SEMANTIC_COLORS.borderSubtle}
           >
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="11.5px"
-              lineHeight={1.55}
-              color={newestLine ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary}
+              fontSize="10px"
+              letterSpacing="0.24em"
+              textTransform="uppercase"
+              color={SEMANTIC_COLORS.textSecondary}
             >
-              {newestLine ?? 'no venue change recorded yet'}
+              capital across tracked strategies
             </Text>
-          </Tile>
+            {stratsPending ? (
+              <Pending />
+            ) : (
+              <Box display="grid" gap={SPACING.sm}>
+                <Figure>{fmtUsd(strats?.total_usd ?? 0)}</Figure>
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize={{ base: '12px', md: '13px' }}
+                  lineHeight={1.6}
+                  color={SEMANTIC_COLORS.textPrimary}
+                >
+                  measured across{' '}
+                  <Text as="span" color={SEMANTIC_COLORS.success} fontWeight={600}>
+                    {strats?.count ?? 0} tracked strategies
+                  </Text>
+                  , refreshed from stored mainnet reads. Exit capacity is tested below.
+                </Text>
+              </Box>
+            )}
+            <Stamp provenance={LIVE_STRATS} />
+          </Box>
+
+          <Box p={SPACING.base} display="grid" gap={SPACING.sm} alignContent="space-between">
+            <Box display="grid" gap={SPACING.sm}>
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="10px"
+                letterSpacing="0.24em"
+                textTransform="uppercase"
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                {newest
+                  ? `latest capacity move · ${newest.venue} · ${new Date(newest.at).toISOString().slice(0, 10)}`
+                  : 'latest capacity move'}
+              </Text>
+              {logPending ? (
+                <Pending />
+              ) : (
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="12px"
+                  lineHeight={1.6}
+                  color={newestLine ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary}
+                >
+                  {newestLine ?? 'no venue change recorded yet'}
+                </Text>
+              )}
+            </Box>
+            <Stamp provenance={LIVE_LOG} />
+          </Box>
         </Box>
 
-        {/* Owner ruling 2026-09-12: "Show our venue visualizer for the carrier's
-            deployments." The claim above is that venue capital answers the margin
-            call; this is the evidence that the venue could actually return it. */}
-        <VenueCapacity detection={shown} />
+        <Box
+          display="grid"
+          gridTemplateColumns={{
+            base: 'minmax(0, 1fr)',
+            md: 'repeat(2, minmax(0, 1fr))',
+          }}
+          gap={SPACING.sm}
+        >
+          <EvidenceDoor
+            title="Open the carry board"
+            body="Compare the yields that survive their recorded exit costs, including the losing routes."
+            open={openPanel === 'board'}
+            controls="sim-inline-board"
+            onClick={() => toggle('board')}
+          />
+          <EvidenceDoor
+            title="Inspect the tracked books"
+            body={
+              strats
+                ? `${fmtUsd(strats.total_usd)} across ${strats.count} strategies, sorted by capital and weakest venue.`
+                : 'Mainnet strategy books, sorted by capital and weakest venue.'
+            }
+            open={openPanel === 'strats'}
+            controls="sim-inline-strats"
+            onClick={() => toggle('strats')}
+          />
+        </Box>
+
+        <Collapse in={openPanel === 'board'} animateOpacity unmountOnExit>
+          <Box
+            id="sim-inline-board"
+            data-testid="sim-inline-board"
+            pt={SPACING.sm}
+            display="grid"
+            gap={SPACING.sm}
+            w="100%"
+          >
+            <MarketBoards onLoadBoard={() => window.location.assign(`/${chainName}/carry`)} />
+            <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="11px"
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                full carry page →
+              </Text>
+            </NextLink>
+          </Box>
+        </Collapse>
+        <Collapse in={openPanel === 'strats'} animateOpacity unmountOnExit>
+          <Box
+            id="sim-inline-strats"
+            data-testid="sim-inline-strats"
+            pt={SPACING.sm}
+            display="grid"
+            gap={SPACING.sm}
+            w="100%"
+          >
+            <StratsBoard />
+            <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="11px"
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                full strats page →
+              </Text>
+            </NextLink>
+          </Box>
+        </Collapse>
 
         <Box display="grid" gap={SPACING.sm}>
           <Text
@@ -309,80 +447,6 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0,
               visible. Do not wrap this in anything that hides them. */}
           <CrossingChart amountUsd={amountUsd} />
         </Box>
-      </Box>
-
-      {/* d — THE WAY ON. A second paste box (nobody scrolls back up for one), and the
-          board and the strats OPEN HERE instead of navigating away. */}
-      <Box display="grid" gap={SPACING.md}>
-        {/* paste box on the left, the two panel toggles stacked to its right */}
-        {/* Wide: paste box + a button column that stretches to the box's full height.
-            Narrow: the column drops under the box and matches its WIDTH instead. */}
-        <Box
-          display="grid"
-          gridTemplateColumns={{ base: '1fr', md: 'minmax(0, 560px) auto' }}
-          gap={SPACING.md}
-          justifyContent="center"
-          alignItems="stretch"
-        >
-          {addressBar ? (
-            <AddressBar {...addressBar} inputId="sim-address-input-carry" />
-          ) : (
-            <Button type="button" onClick={focusAddressBar} {...CTA_BTN} w="fit-content">
-              Run your position ↑
-            </Button>
-          )}
-          <Box
-            display="grid"
-            gridTemplateRows="1fr 1fr"
-            gap={SPACING.sm}
-            w={{ base: '100%', md: 'auto' }}
-            maxW={{ base: '560px', md: 'none' }}
-            justifySelf={{ base: 'center', md: 'stretch' }}
-          >
-          <Button
-            type="button"
-            onClick={() => toggle('board')}
-            aria-expanded={openPanel === 'board'}
-            {...CTA_BTN}
-            h="100%"
-            w="100%"
-            {...(openPanel === 'board' ? { borderColor: SEMANTIC_COLORS.success, color: SEMANTIC_COLORS.success } : {})}
-          >
-            {openPanel === 'board' ? 'Hide the carry board ↑' : 'See the carry board ↓'}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => toggle('strats')}
-            aria-expanded={openPanel === 'strats'}
-            {...CTA_BTN}
-            h="100%"
-            w="100%"
-            {...(openPanel === 'strats' ? { borderColor: SEMANTIC_COLORS.success, color: SEMANTIC_COLORS.success } : {})}
-          >
-            {openPanel === 'strats' ? 'Hide tracked strats ↑' : 'Tracked strats ↓'}
-          </Button>
-          </Box>
-        </Box>
-        <Collapse in={openPanel === 'board'} animateOpacity unmountOnExit>
-          <Box data-testid="sim-inline-board" pt={SPACING.sm} display="grid" gap={SPACING.sm} w="100%">
-            <MarketBoards onLoadBoard={() => window.location.assign(`/${chainName}/carry`)} />
-            <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
-              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>
-                full carry page →
-              </Text>
-            </NextLink>
-          </Box>
-        </Collapse>
-        <Collapse in={openPanel === 'strats'} animateOpacity unmountOnExit>
-          <Box data-testid="sim-inline-strats" pt={SPACING.sm} display="grid" gap={SPACING.sm} w="100%">
-            <StratsBoard />
-            <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
-              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textSecondary}>
-                full strats page →
-              </Text>
-            </NextLink>
-          </Box>
-        </Collapse>
       </Box>
     </Box>
   )

@@ -21,9 +21,7 @@ test.describe('Theme system', () => {
   test('defaults to dark and defines the dark palette', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' })
     await page.goto('/')
-    await expect
-      .poll(async () => page.getAttribute('html', 'data-membrane-theme'))
-      .toBe('dark')
+    await expect.poll(async () => page.getAttribute('html', 'data-membrane-theme')).toBe('dark')
     expect(await getCssVar(page, '--m-bg-primary')).toBe('#09090a')
     expect(await getCssVar(page, '--m-text-primary')).toBe('#ece6d8')
   })
@@ -33,25 +31,24 @@ test.describe('Theme system', () => {
   }) => {
     await page.addInitScript(() => localStorage.setItem('membrane.theme', 'light'))
     await page.goto('/')
-    await expect
-      .poll(async () => page.getAttribute('html', 'data-membrane-theme'))
-      .toBe('light')
+    await expect.poll(async () => page.getAttribute('html', 'data-membrane-theme')).toBe('light')
     expect(await getCssVar(page, '--m-bg-primary')).toBe('#e7dfcc')
-    expect(await getCssVar(page, '--m-text-primary')).toBe('#43331f')
+    expect(await getCssVar(page, '--m-text-primary')).toBe('#2d2114')
+    expect(await getCssVar(page, '--m-text-secondary')).toBe('#4f3d29')
+    expect(await getCssVar(page, '--m-text-tertiary')).toBe('#64513a')
+    expect(await getCssVar(page, '--m-success')).toBe('#35660d')
+    expect(await getCssVar(page, '--m-warning')).toBe('#6d5512')
+    expect(await page.evaluate(() => getComputedStyle(document.body).fontWeight)).toBe('500')
     // The stamped attribute must survive hydration (Chakra re-stamps plain
     // data-theme — the namespaced attribute must be untouched by it).
     await page.waitForTimeout(1500)
     expect(await page.getAttribute('html', 'data-membrane-theme')).toBe('light')
   })
 
-  test('system prefers-color-scheme: light is honored when nothing is stored', async ({
-    page,
-  }) => {
+  test('system prefers-color-scheme: light is honored when nothing is stored', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' })
     await page.goto('/')
-    await expect
-      .poll(async () => page.getAttribute('html', 'data-membrane-theme'))
-      .toBe('light')
+    await expect.poll(async () => page.getAttribute('html', 'data-membrane-theme')).toBe('light')
   })
 
   test('nav toggle flips theme, persists it, and swaps the wordmark', async ({ page }) => {
@@ -82,9 +79,7 @@ test.describe('Theme system', () => {
 
     // and back
     await page.getByRole('button', { name: /switch to dark theme/i }).click()
-    await expect
-      .poll(async () => page.getAttribute('html', 'data-membrane-theme'))
-      .toBe('dark')
+    await expect.poll(async () => page.getAttribute('html', 'data-membrane-theme')).toBe('dark')
     await expect(page.getByTestId('logo').first()).toHaveAttribute(
       'src',
       '/images/membrane-wordmark.svg',

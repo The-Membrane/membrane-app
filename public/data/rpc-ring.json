@@ -1,62 +1,62 @@
 {
-  "probedAt": "2026-09-23T04:02:44.233Z",
+  "probedAt": "2026-09-24T00:23:53.862Z",
   "entries": [
     {
       "url": "env:rpc.ankr.com",
       "cap": 10000,
-      "ms": 41,
+      "ms": 43,
+      "alive": true
+    },
+    {
+      "url": "https://eth.api.pocket.network",
+      "cap": 10000,
+      "ms": 614,
       "alive": true
     },
     {
       "url": "env:mainnet.infura.io",
       "cap": 10000,
-      "ms": 835,
-      "alive": true
-    },
-    {
-      "url": "https://eth.api.pocket.network",
-      "cap": 5000,
-      "ms": 193,
+      "ms": 1103,
       "alive": true
     },
     {
       "url": "https://ethereum.public.blockpi.network/v1/rpc/public",
-      "cap": 5000,
-      "ms": 1817,
+      "cap": 500,
+      "ms": 7377,
       "alive": true
     },
     {
-      "url": "https://eth.api.onfinality.io/public",
-      "cap": 1000,
-      "ms": 437,
+      "url": "env:lb.drpc.live",
+      "cap": 100,
+      "ms": 54,
       "alive": true
     },
     {
       "url": "https://eth-pokt.nodies.app",
       "cap": 50,
-      "ms": 25,
+      "ms": 47,
       "alive": true
     },
     {
       "url": "env:eth-mainnet.g.alchemy.com",
       "cap": 10,
-      "ms": 28,
+      "ms": 31,
       "alive": true
     },
     {
       "url": "https://eth-mainnet.public.blastapi.io",
       "cap": 10,
-      "ms": 46,
+      "ms": 54,
       "alive": true
+    },
+    {
+      "url": "https://gateway.tenderly.co/public/mainnet",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
     },
     {
       "url": "env:divine-spring-wind.ethereum-mainnet.quiknode.pro",
-      "cap": 0,
-      "ms": 0,
-      "alive": true
-    },
-    {
-      "url": "env:lb.drpc.live",
       "cap": 0,
       "ms": 0,
       "alive": true
@@ -72,12 +72,6 @@
       "cap": 0,
       "ms": 0,
       "alive": true
-    },
-    {
-      "url": "https://gateway.tenderly.co/public/mainnet",
-      "cap": 0,
-      "ms": 0,
-      "alive": false
     },
     {
       "url": "https://eth.llamarpc.com",
@@ -111,6 +105,12 @@
     },
     {
       "url": "https://cloudflare-eth.com",
+      "cap": 0,
+      "ms": 0,
+      "alive": false
+    },
+    {
+      "url": "https://eth.api.onfinality.io/public",
       "cap": 0,
       "ms": 0,
       "alive": false

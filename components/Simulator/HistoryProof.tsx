@@ -5,8 +5,8 @@
 // is about days that actually happened to the address on screen. Three rules, taken
 // straight from the brief and enforced here rather than in a comment:
 //
-//  1. A DOLLAR FIGURE, NOT A COUNT. The headline is "$41,200 in collateral that would
-//     still be yours." The count is the label underneath it.
+//  1. A DOLLAR FIGURE, NOT A COUNT. The visible total is actual collateral seized minus
+//     what Membrane would seize across every priced episode. The count is supporting context.
 //  2. NO MANUFACTURED NEAR-MISS. A wallet with no liquidation history gets ONE plain
 //     sentence and no number at all. Not a zero in big type — a sentence.
 //  3. THE NON-SAVES RENDER TOO. "Liquidated anyway — 2 Membrane liquidations, 30%
@@ -78,7 +78,73 @@ export function verdictTag(e: HistoryEpisode): { text: string; color: string } {
 export const keptUsd = (e: HistoryEpisode): number | null =>
   e.verdict === 'unknown' ? null : e.actualSeizedUsd - e.membraneSeizedUsd
 
-const HISTORY_PROV = stampFn('onchain', 'measured · mainnet logs', 'Real LiquidationCall / Liquidate events for this address, replayed through the 4%/8h window at recorded Chainlink rounds.')
+const EpisodeCell: React.FC<{
+  label: string
+  children: React.ReactNode
+  color: string
+}> = ({ label, children, color }) => (
+  <Box
+    minW={0}
+    display={{ base: 'grid', md: 'block' }}
+    gridTemplateColumns="minmax(0, 1fr) minmax(0, 2fr)"
+    gap={SPACING.md}
+    alignItems="baseline"
+  >
+    <Text {...HEAD} display={{ base: 'block', md: 'none' }}>
+      {label}
+    </Text>
+    <Text
+      minW={0}
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize="12px"
+      color={color}
+      textAlign={{ base: 'right', md: 'left' }}
+      overflowWrap="anywhere"
+      {...tabular}
+    >
+      {children}
+    </Text>
+  </Box>
+)
+
+const SummaryMetric: React.FC<{
+  label: string
+  value: string
+  color?: string
+  lead?: boolean
+  testId?: string
+}> = ({ label, value, color = SEMANTIC_COLORS.textPrimary, lead = false, testId }) => (
+  <Box
+    minW={0}
+    display="grid"
+    gap={SPACING.xs}
+    p={{ base: SPACING.md, md: SPACING.base }}
+    borderLeft={{ base: 'none', md: lead ? 'none' : '1px solid' }}
+    borderTop={{ base: lead ? 'none' : '1px solid', md: 'none' }}
+    borderColor={SEMANTIC_COLORS.borderSubtle}
+  >
+    <Text {...HEAD}>{label}</Text>
+    <Text
+      data-testid={testId}
+      minW={0}
+      fontFamily={lead ? TYPOGRAPHY.fontDisplay : TYPOGRAPHY.fontMono}
+      fontSize={lead ? 'clamp(28px, 5vw, 48px)' : 'clamp(18px, 2vw, 24px)'}
+      lineHeight={lead ? 1 : 1.15}
+      letterSpacing={lead ? '-0.015em' : undefined}
+      color={color}
+      overflowWrap="anywhere"
+      {...tabular}
+    >
+      {value}
+    </Text>
+  </Box>
+)
+
+const HISTORY_PROV = stampFn(
+  'onchain',
+  'measured · mainnet logs',
+  'Real LiquidationCall / Liquidate events for this address, replayed through the 4%/8h window at recorded Chainlink rounds.',
+)
 
 const VERDICT_ORDER: Record<EpisodeVerdict, number> = {
   saved: 0,
@@ -102,6 +168,8 @@ export interface HistoryProofProps {
 
 export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
   const { data, isPending, isError } = useSimHistory(address)
+  const [expandedAddress, setExpandedAddress] = React.useState<string | null>(null)
+  const detailsId = React.useId()
 
   // ---------------------------------------------------------------- loading
   if (!address || (isPending && !data)) {
@@ -156,7 +224,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
   }
 
   const h = data!
-  const { savedUsd, savedCount } = h.totals
+  const { savedCount } = h.totals
   const episodes = (h.episodes ?? [])
     .slice()
     .sort((a, b) => VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict] || b.startTs - a.startTs)
@@ -187,6 +255,19 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
   }
 
   const firstTs = h.since.firstEventTs
+  const priced = episodes.filter((e) => e.verdict !== 'unknown')
+  const sold = priced.reduce((sum, e) => sum + e.actualSeizedUsd, 0)
+  const membrane = priced.reduce((sum, e) => sum + e.membraneSeizedUsd, 0)
+  const netKept = sold - membrane
+  const detailsOpen = expandedAddress === address
+  const outcomeLabel = netKept < 0 ? 'Membrane cost you' : 'Membrane Saved You'
+  const outcomeValue = netKept < 0 ? `−${usd(-netKept)}` : usd(netKept)
+  const outcomeColor =
+    netKept < 0
+      ? SEMANTIC_COLORS.danger
+      : netKept > 0
+        ? SEMANTIC_COLORS.success
+        : SEMANTIC_COLORS.textPrimary
 
   return (
     <Box
@@ -194,230 +275,240 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
       border="1px solid"
       borderColor={SEMANTIC_COLORS.borderSubtle}
       p={{ base: SPACING.base, md: SPACING.lg }}
+      minW={0}
       display="grid"
+      gridTemplateColumns="minmax(0, 1fr)"
       gap={SPACING.md}
     >
-      <Box display="flex" justifyContent="space-between" alignItems="baseline" gap={SPACING.md} flexWrap="wrap">
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="baseline"
+        gap={SPACING.md}
+        flexWrap="wrap"
+      >
         <Text {...HEAD}>what the delay would have done to your own history</Text>
         <Stamp provenance={HISTORY_PROV} />
       </Box>
 
-      {savedUsd > 0 ? (
-        <Box display="grid" gap={SPACING.xs}>
-          <Text
-            data-testid="sim-history-headline"
-            fontFamily={TYPOGRAPHY.fontDisplay}
-            fontSize="clamp(26px, 4vw, 44px)"
-            lineHeight={1.08}
-            letterSpacing="-0.015em"
-            color={SEMANTIC_COLORS.success}
-            sx={{ textWrap: 'balance' }}
-          >
-            {usd(savedUsd)} in collateral that would still be yours.
-          </Text>
-          <Text
-            fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="11px"
-            letterSpacing="0.06em"
-            color={SEMANTIC_COLORS.textSecondary}
-          >
-            {savedCount} liquidation episode{savedCount === 1 ? '' : 's'}
-            {firstTs ? ` since ${historyDate(firstTs)}` : ''} · price was back inside the window
-          </Text>
-        </Box>
-      ) : (
-        // Events exist, but the window saved none of them. That is a real result and it
-        // is printed as one — never softened into a near-miss.
+      <Box display="grid" gap={SPACING.xs} pb={SPACING.md}>
         <Text
-          data-testid="sim-history-headline"
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="14px"
+          fontSize="11px"
+          letterSpacing="0.06em"
           lineHeight={1.6}
-          color={SEMANTIC_COLORS.textPrimary}
+          color={SEMANTIC_COLORS.textSecondary}
         >
-          The 8-hour window would not have saved any of this address&apos;s {episodes.length}{' '}
-          liquidation episode{episodes.length === 1 ? '' : 's'}
-          {firstTs ? ` since ${historyDate(firstTs)}` : ''}. Here is what it would have changed.
+          {episodes.length} liquidation episode{episodes.length === 1 ? '' : 's'}
+          {firstTs ? ` since ${historyDate(firstTs)}` : ''}
+          {savedCount === episodes.length
+            ? ' · price was back inside the window'
+            : savedCount > 0
+              ? ` · price was back inside the window on ${savedCount} of them`
+              : ' · price did not return inside the window'}
         </Text>
-      )}
-
-      <Box display="grid" gap={SPACING.xs}>
-        {/* column labels — the numbers carry the comparison, the words stay short */}
-        <Box
-          display={{ base: 'none', md: 'grid' }}
-          gridTemplateColumns={COLS}
-          gap={SPACING.md}
-          pb={SPACING.xs}
-          borderBottom="1px solid"
-          borderColor={SEMANTIC_COLORS.borderSubtle}
-        >
-          {['date', 'venue', 'collateral sold', 'membrane would sell', 'you keep', 'verdict'].map((h) => (
-            <Text key={h} {...HEAD}>
-              {h}
-            </Text>
-          ))}
-        </Box>
-        {episodes.map((e, i) => {
-          const tag = verdictTag(e)
-          const kept = keptUsd(e)
-          return (
-            <Box
-              key={`${e.startTs}-${e.collateral}-${i}`}
-              display="grid"
-              gap={SPACING.xs}
-              borderTop={i === 0 ? undefined : '1px solid'}
-              borderColor={SEMANTIC_COLORS.borderSubtle}
-              pt={i === 0 ? 0 : SPACING.xs}
-            >
-              <Box
-                display="grid"
-                gridTemplateColumns={{ base: '1fr', md: COLS }}
-                gap={{ base: SPACING.xs, md: SPACING.md }}
-                alignItems="baseline"
-              >
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="12px"
-                  color={SEMANTIC_COLORS.textSecondary}
-                  {...tabular}
-                >
-                  {episodeDate(e)}
-                </Text>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="12px"
-                  color={SEMANTIC_COLORS.textSecondary}
-                >
-                  {e.protocol}
-                </Text>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="12px"
-                  color={SEMANTIC_COLORS.textPrimary}
-                  {...tabular}
-                >
-                  {usd(e.actualSeizedUsd)} {e.collateral}
-                </Text>
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} {...tabular}>
-                  {kept === null ? '—' : usd(e.membraneSeizedUsd)}
-                </Text>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="12px"
-                  color={kept === null ? SEMANTIC_COLORS.textTertiary : kept < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}
-                  {...tabular}
-                >
-                  {kept === null ? '—' : kept < 0 ? `−${usd(-kept)}` : usd(kept)}
-                </Text>
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={tag.color}>
-                  {tag.text}
-                </Text>
-              </Box>
-
-              {/* An episode of more than one real hit lists them, so "one row" never
-                  hides two liquidations that actually happened. */}
-              {e.events.length > 1 && (
-                <Box display="grid" gap="2px" pl={{ base: 0, md: SPACING.md }}>
-                  {e.events.map((ev, j) => (
-                    <Text
-                      key={`${ev.ts}-${ev.collateral}-${j}`}
-                      fontFamily={TYPOGRAPHY.fontMono}
-                      fontSize="11px"
-                      color={SEMANTIC_COLORS.textTertiary}
-                      {...tabular}
-                    >
-                      {historyDate(ev.ts)} · {ev.protocol} · {usd(ev.actualSeizedUsd)}{' '}
-                      {ev.collateral} sold
-                      {ev.debtRepaidUsd ? ` for ${usd(ev.debtRepaidUsd)} of loan` : ''}
-                      {ev.unpriced ? ` · ${ev.why ?? 'unpriced'}` : ''}
-                    </Text>
-                  ))}
-                </Box>
-              )}
-            </Box>
-          )
-        })}
       </Box>
 
-      {/* totals row — same columns, unknown episodes excluded from all three */}
-      {(() => {
-        const priced = episodes.filter((e) => e.verdict !== 'unknown')
-        if (priced.length === 0) return null
-        const sold = priced.reduce((a, e) => a + e.actualSeizedUsd, 0)
-        const membrane = priced.reduce((a, e) => a + e.membraneSeizedUsd, 0)
-        const net = sold - membrane
-        return (
-          <Box
-            data-testid="sim-history-net"
-            display="grid"
-            gridTemplateColumns={{ base: '1fr', md: COLS }}
-            gap={{ base: SPACING.xs, md: SPACING.md }}
-            pt={SPACING.xs}
-            borderTop="1px solid"
-            borderColor={SEMANTIC_COLORS.borderStrong}
-            alignItems="baseline"
-          >
-            <Text {...HEAD}>total</Text>
-            <Text />
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} {...tabular}>
-              {usd(sold)}
-            </Text>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} {...tabular}>
-              {usd(membrane)}
-            </Text>
-            <Text
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="12px"
-              color={net < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}
-              {...tabular}
-            >
-              {net < 0 ? `−${usd(-net)}` : usd(net)}
-            </Text>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
-              {h.totals.membraneLiquidationsTotal} Membrane liquidation
-              {h.totals.membraneLiquidationsTotal === 1 ? '' : 's'}
-            </Text>
-          </Box>
-        )
-      })()}
-
-      {h.totals.worseCount > 0 && (
-        <Text
-          fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="12px"
-          color={SEMANTIC_COLORS.danger}
-          lineHeight={1.6}
+      {priced.length > 0 ? (
+        <Box
+          data-testid="sim-history-total"
+          display="grid"
+          gridTemplateColumns={{ base: '1fr', md: 'minmax(0, 1.3fr) repeat(2, minmax(0, 1fr))' }}
+          border="1px solid"
+          borderColor={SEMANTIC_COLORS.borderStrong}
+          bg={SEMANTIC_COLORS.bgSecondary}
         >
-          On {h.totals.worseCount} episode{h.totals.worseCount === 1 ? '' : 's'} the Membrane chain
-          would have cost MORE than the real liquidator did. That is printed, not netted away.
-        </Text>
-      )}
-
-      {/* Scanned: Aave V3, Spark, Morpho Blue. The rest is named WITH ITS REASON,
-          verbatim from the scan — a bare list reads as "we forgot". */}
-      {(h.notScanned ?? []).length > 0 && (
-        <Box display="grid" gap="2px">
+          <SummaryMetric
+            lead
+            label={outcomeLabel}
+            value={outcomeValue}
+            color={outcomeColor}
+            testId="sim-history-headline"
+          />
+          <SummaryMetric label="collateral sold" value={usd(sold)} />
+          <SummaryMetric label="membrane would sell" value={usd(membrane)} />
+        </Box>
+      ) : (
+        <Box
+          data-testid="sim-history-total"
+          border="1px solid"
+          borderColor={SEMANTIC_COLORS.borderStrong}
+          bg={SEMANTIC_COLORS.bgSecondary}
+          p={SPACING.base}
+        >
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="11.5px"
-            color={SEMANTIC_COLORS.textTertiary}
-            lineHeight={1.6}
+            fontSize="13px"
+            color={SEMANTIC_COLORS.textPrimary}
           >
-            Scanned: Aave V3, Spark, Morpho Blue.
+            No priced episodes. Open the breakdown to see why these events were excluded.
           </Text>
-          {/* {(h.notScanned ?? []).map((n) => (
-            <Text
-              key={n.protocol}
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="11.5px"
-              color={SEMANTIC_COLORS.textTertiary}
-              lineHeight={1.6}
-            >
-              Not scanned — {n.protocol}: {n.reason}
-            </Text>
-          ))} */}
         </Box>
       )}
+
+      <Box display="grid" gap={SPACING.sm}>
+        <Box
+          as="button"
+          type="button"
+          data-testid="sim-history-details-toggle"
+          aria-expanded={detailsOpen}
+          aria-controls={detailsId}
+          onClick={() => setExpandedAddress(detailsOpen ? null : address)}
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          gap={SPACING.md}
+          width="100%"
+          minH="44px"
+          px={SPACING.md}
+          py={SPACING.sm}
+          border="1px solid"
+          borderColor={detailsOpen ? SEMANTIC_COLORS.borderStrong : SEMANTIC_COLORS.borderMedium}
+          bg="transparent"
+          color={SEMANTIC_COLORS.textPrimary}
+          textAlign="left"
+          cursor="pointer"
+          _hover={{ borderColor: SEMANTIC_COLORS.borderStrong }}
+          _focusVisible={{ outline: `2px solid ${SEMANTIC_COLORS.success}`, outlineOffset: '2px' }}
+        >
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" fontWeight={600}>
+            {detailsOpen ? 'Hide' : 'Show'} {episodes.length} episode detail
+            {episodes.length === 1 ? '' : 's'}
+            {h.totals.worseCount > 0 && (
+              <Text as="span" color={SEMANTIC_COLORS.danger}>
+                {' '}
+                · {h.totals.worseCount} worse on Membrane
+              </Text>
+            )}
+          </Text>
+          <Text aria-hidden="true" fontFamily={TYPOGRAPHY.fontMono} fontSize="16px">
+            {detailsOpen ? '−' : '+'}
+          </Text>
+        </Box>
+
+        {detailsOpen && (
+          <Box id={detailsId} display="grid" gap={SPACING.md}>
+            <Box
+              display={{ base: 'none', md: 'grid' }}
+              gridTemplateColumns={COLS}
+              gap={SPACING.md}
+              pb={SPACING.xs}
+              borderBottom="1px solid"
+              borderColor={SEMANTIC_COLORS.borderSubtle}
+            >
+              {[
+                'date',
+                'venue',
+                'collateral sold',
+                'membrane would sell',
+                'you keep',
+                'verdict',
+              ].map((label) => (
+                <Text key={label} {...HEAD}>
+                  {label}
+                </Text>
+              ))}
+            </Box>
+
+            {episodes.map((e, i) => {
+              const tag = verdictTag(e)
+              const kept = keptUsd(e)
+              return (
+                <Box
+                  key={`${e.startTs}-${e.collateral}-${i}`}
+                  display="grid"
+                  gap={SPACING.xs}
+                  borderTop={i === 0 ? undefined : '1px solid'}
+                  borderColor={SEMANTIC_COLORS.borderSubtle}
+                  pt={i === 0 ? 0 : SPACING.xs}
+                >
+                  <Box
+                    display="grid"
+                    gridTemplateColumns={{ base: '1fr', md: COLS }}
+                    gap={{ base: SPACING.xs, md: SPACING.md }}
+                    alignItems="baseline"
+                  >
+                    <EpisodeCell label="date" color={SEMANTIC_COLORS.textSecondary}>
+                      {episodeDate(e)}
+                    </EpisodeCell>
+                    <EpisodeCell label="venue" color={SEMANTIC_COLORS.textSecondary}>
+                      {e.protocol}
+                    </EpisodeCell>
+                    <EpisodeCell label="collateral sold" color={SEMANTIC_COLORS.textPrimary}>
+                      {usd(e.actualSeizedUsd)} {e.collateral}
+                    </EpisodeCell>
+                    <EpisodeCell label="membrane would sell" color={SEMANTIC_COLORS.textPrimary}>
+                      {kept === null ? '—' : usd(e.membraneSeizedUsd)}
+                    </EpisodeCell>
+                    <EpisodeCell
+                      label="you keep"
+                      color={
+                        kept === null
+                          ? SEMANTIC_COLORS.textTertiary
+                          : kept < 0
+                            ? SEMANTIC_COLORS.danger
+                            : SEMANTIC_COLORS.success
+                      }
+                    >
+                      {kept === null ? '—' : kept < 0 ? `−${usd(-kept)}` : usd(kept)}
+                    </EpisodeCell>
+                    <EpisodeCell label="verdict" color={tag.color}>
+                      {tag.text}
+                    </EpisodeCell>
+                  </Box>
+
+                  {/* An episode of more than one real hit lists them, so "one row" never
+                  hides two liquidations that actually happened. */}
+                  {e.events.length > 1 && (
+                    <Box display="grid" gap="2px" pl={{ base: 0, md: SPACING.md }}>
+                      {e.events.map((ev, j) => (
+                        <Text
+                          key={`${ev.ts}-${ev.collateral}-${j}`}
+                          fontFamily={TYPOGRAPHY.fontMono}
+                          fontSize="11px"
+                          color={SEMANTIC_COLORS.textTertiary}
+                          {...tabular}
+                        >
+                          {historyDate(ev.ts)} · {ev.protocol} · {usd(ev.actualSeizedUsd)}{' '}
+                          {ev.collateral} sold
+                          {ev.debtRepaidUsd ? ` for ${usd(ev.debtRepaidUsd)} of loan` : ''}
+                          {ev.unpriced ? ` · ${ev.why ?? 'unpriced'}` : ''}
+                        </Text>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              )
+            })}
+
+            {h.totals.worseCount > 0 && (
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="12px"
+                color={SEMANTIC_COLORS.danger}
+                lineHeight={1.6}
+              >
+                On {h.totals.worseCount} episode{h.totals.worseCount === 1 ? '' : 's'} the Membrane
+                chain would have cost MORE than the real liquidator did. That is printed, not netted
+                away.
+              </Text>
+            )}
+
+            {(h.notScanned ?? []).length > 0 && (
+              <Box display="grid" gap="2px">
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="11.5px"
+                  color={SEMANTIC_COLORS.textTertiary}
+                  lineHeight={1.6}
+                >
+                  Scanned: Aave V3, Spark, Morpho Blue.
+                </Text>
+              </Box>
+            )}
+          </Box>
+        )}
+      </Box>
     </Box>
   )
 }

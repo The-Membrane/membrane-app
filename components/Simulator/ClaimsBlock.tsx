@@ -1,4 +1,4 @@
-// THE CARRY CLAIMS — four lines, one caveat. Copy comes only from CARRY_CLAIMS /
+// THE CARRY CLAIMS — three verified reasons. Copy comes only from CARRY_CLAIMS /
 // (owner comms list, Sep 2026). Rendered inside CarrySection, so it
 // appears under the fold on BOTH builds — it is never mounted standalone any more.
 
@@ -21,7 +21,11 @@ export const ClaimsBlock: React.FC = () => (
     >
       why carry here
     </Text>
-    <Box display="grid" gridTemplateColumns={{ base: '1fr', md: '1fr 1fr', lg: 'repeat(3, 1fr)' }} gap={SPACING.md}>
+    <Box
+      display="grid"
+      gridTemplateColumns={{ base: '1fr', md: '1fr 1fr', lg: 'repeat(3, 1fr)' }}
+      gap={SPACING.md}
+    >
       {CARRY_CLAIMS.map((line, i) => (
         <Box
           key={line}
@@ -41,7 +45,7 @@ export const ClaimsBlock: React.FC = () => (
             fontFamily={TYPOGRAPHY.fontDisplay}
             fontSize="19px"
             lineHeight={1.2}
-            color={SEMANTIC_COLORS.success}
+            color={SEMANTIC_COLORS.textPrimary}
           >
             <Text
               as="span"

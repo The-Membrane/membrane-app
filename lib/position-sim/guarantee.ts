@@ -1,7 +1,7 @@
 import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from './membrane'
 
 const BAND = `${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`
-const LTV_SHIFT_CAP = 5;
+const LTV_SHIFT_CAP = 5
 
 /**
  * THE NAMED GUARANTEE. A guarantee described as a mechanism is a guarantee unsold —
@@ -31,9 +31,8 @@ const LTV_SHIFT_CAP = 5;
 export const GUARANTEE = {
   name: `${BAND}.`,
   /** One sentence. The claim. */
-  claim:
-    `You aren't liquidated when you cross the LLTV. Staying within ${BAND} of it delays your liquidation for ${CURE_WINDOW_HOURS} hours. Automatic protection from wicks and time to manage your debt.`,
-    // , ` + 'by you or by the venue capital Membrane recalls first.',
+  claim: `You aren't liquidated when you cross the LLTV. Staying within ${BAND} of it delays your liquidation for ${CURE_WINDOW_HOURS} hours. Automatic protection from wicks and time to manage your debt.`,
+  // , ` + 'by you or by the venue capital Membrane recalls first.',
   /** One sentence. The condition. Rendered next to the claim, never collapsed. */
   limit: `Past ${BAND} the liquidation is immediate, but only partially down to the maximum borrowable LTV.`,
   /**
@@ -49,7 +48,7 @@ export const GUARANTEE = {
    * owner ruled that clause out of the copy. What IS fixed is the rate on drawn debt.
    */
   noDials:
-    "LTV moves with MBRN voters with capital at-risk, on a 14 day notice, " +
+    'LTV moves with MBRN voters with capital at-risk, on a 14 day notice, ' +
     `at a max of ${LTV_SHIFT_CAP}% per window.`,
   provenance: `LiquidationEngine.sol · 28,800 s · break = max LTV × (1 + ${BAND}) · no mainnet deployment yet`,
 } as const
@@ -63,11 +62,16 @@ export const GUARANTEE = {
  * of that number on this surface (VerdictHero's carry line, FinePrint's CARRY_TERMS).
  * It replaces the vaguer "curators cover it first through required bonds", which named
  * a mechanism instead of the thing the borrower actually receives.
+ *
+ * Claim 3 uses only the two curator-vault facts already proved elsewhere on this surface:
+ * users can read a curator's doctrine and compare several curators, while redemptions are
+ * served by curator vaults without opening a borrower's position. "Bulletproof" is the
+ * design brief, not a safety promise, so the copy names those enforceable boundaries.
  */
 export const CARRY_CLAIMS = [
   'Borrow cost comes out of the carry yield. If the spread inverts, curators cover 14 days of yield to give you time to act.',
   'No babysitting, no keeper to fail. Unwinds run in-house at the liquidation fee.',
-  `A curator can change the yield split with 7 days’ notice. Otherwise it moves immediately in only 1 case: your curator's vault is repriced to the redemption avoidance rate, the AUM-weighted rate of the lowest-paying vaults. `,
+  'Choose the curator whose doctrine fits your risk. Vault rails keep redemptions inside the vault instead of opening your position, while tracked mandates make drift visible.',
   // 'A recall carries no protocol fee, against a swap-and-rebalance bill every time a keeper adjusts you.',
 ] as const
 
@@ -75,7 +79,6 @@ export const CARRY_CLAIMS = [
 export const CARRY_CLAIM_TITLES = [
   'Carry Spread Protections',
   'In-protocol unwinds',
-  'Stable repricing for lender exit',
+  'Curators, bounded by rails',
   // 'Recall, not rebalance',
 ] as const
-

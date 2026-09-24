@@ -14,7 +14,8 @@ import { monoXs, tabular } from '@/components/Builder/styles'
 import type { SimEvent, SimRun } from '@/lib/position-sim'
 
 import Stamp from './Stamp'
-import { pct, usd, utcClock } from './format'
+import { pct, usd } from './format'
+import { fmtLocalDayClock, useLocalZone } from './localClock'
 
 const KIND_COLOR: Record<SimEvent['kind'], string> = {
   liquidation: SEMANTIC_COLORS.danger,
@@ -44,7 +45,11 @@ const Cell: React.FC<{ children: React.ReactNode; color?: string }> = ({ childre
   </Text>
 )
 
-const EventRows: React.FC<{ run: SimRun; title: string }> = ({ run, title }) => (
+const EventRows: React.FC<{ run: SimRun; title: string; zone: string | undefined }> = ({
+  run,
+  title,
+  zone,
+}) => (
   <Box display="grid" gap={SPACING.sm} alignContent="start">
     <Box
       display="flex"
@@ -78,7 +83,7 @@ const EventRows: React.FC<{ run: SimRun; title: string }> = ({ run, title }) => 
             <Text {...HEAD} color={KIND_COLOR[e.kind]} minW="76px">
               {e.kind}
             </Text>
-            <Cell color={SEMANTIC_COLORS.textSecondary}>{utcClock(e.ts)}</Cell>
+            <Cell color={SEMANTIC_COLORS.textSecondary}>{fmtLocalDayClock(e.ts, zone)}</Cell>
             <Cell>repaid {usd(e.repaidUsd)}</Cell>
             <Cell>seized {usd(e.seizedUsd)}</Cell>
             <Cell>recalled {usd(e.recalledUsd)}</Cell>
@@ -99,19 +104,23 @@ export interface EventLogProps {
   sourceTitle: string
 }
 
-export const EventLog: React.FC<EventLogProps> = ({ source, membrane, sourceTitle }) => (
-  <Box
-    bg={SEMANTIC_COLORS.bgSecondary}
-    border="1px solid"
-    borderColor={SEMANTIC_COLORS.borderSubtle}
-    p={SPACING.base}
-    display="grid"
-    gridTemplateColumns={{ base: '1fr', lg: '1fr 1fr' }}
-    gap={SPACING.lg}
-  >
-    <EventRows run={source} title={sourceTitle} />
-    <EventRows run={membrane} title="Membrane" />
-  </Box>
-)
+export const EventLog: React.FC<EventLogProps> = ({ source, membrane, sourceTitle }) => {
+  const zone = useLocalZone()
+
+  return (
+    <Box
+      bg={SEMANTIC_COLORS.bgSecondary}
+      border="1px solid"
+      borderColor={SEMANTIC_COLORS.borderSubtle}
+      p={SPACING.base}
+      display="grid"
+      gridTemplateColumns={{ base: '1fr', lg: '1fr 1fr' }}
+      gap={SPACING.lg}
+    >
+      <EventRows run={source} title={sourceTitle} zone={zone} />
+      <EventRows run={membrane} title="Membrane" zone={zone} />
+    </Box>
+  )
+}
 
 export default EventLog

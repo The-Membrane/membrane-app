@@ -266,9 +266,17 @@ await sql`CREATE TABLE IF NOT EXISTS aave_liquidation_episodes (
   unpriced boolean NOT NULL DEFAULT false,
   event_count integer NOT NULL DEFAULT 0,
   unpriced_events integer NOT NULL DEFAULT 0,
+  why text,
+  anchor_collateral_asset text,
+  collateral_count integer NOT NULL DEFAULT 0,
   replayed_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY ("user", start_ts)
 )`
+// CREATE TABLE IF NOT EXISTS does not add columns to a live table. Keep every later
+// episode field here too so applying this DDL upgrades both fresh and existing DBs.
+await sql`ALTER TABLE aave_liquidation_episodes ADD COLUMN IF NOT EXISTS why text`
+await sql`ALTER TABLE aave_liquidation_episodes ADD COLUMN IF NOT EXISTS anchor_collateral_asset text`
+await sql`ALTER TABLE aave_liquidation_episodes ADD COLUMN IF NOT EXISTS collateral_count integer NOT NULL DEFAULT 0`
 await sql`CREATE INDEX IF NOT EXISTS aave_liq_episodes_start_idx ON aave_liquidation_episodes (start_ts)`
 await sql`CREATE INDEX IF NOT EXISTS aave_liq_episodes_verdict_idx ON aave_liquidation_episodes (verdict)`
 

@@ -1,13 +1,8 @@
-// THE NAMED GUARANTEE.
+// THE CORPUS PROOF.
 //
-// A guarantee described as a mechanism is a guarantee unsold, so it is named here in
-// one number and nothing else competes with it on the line.
-//
-// Every string on this surface comes from GUARANTEE (lib/position-sim/guarantee.ts),
-// which is itself pinned to verified contract lines. This file writes NO claim of its
-// own about the protocol — if the code changes, guarantee.ts changes, and this block
-// changes with it. The limit renders next to the claim and never collapses: a caveat
-// behind a toggle stops being read. GUARANTEE.provenance moves to the fine print.
+// This section gives the multi-year result the full visual weight of a standalone
+// proof. Global savings are gold; phosphor remains reserved for a wallet's own result.
+// The mechanism and its limit stay adjacent below the proof, without code-path badges.
 
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'
@@ -19,10 +14,14 @@ import { GUARANTEE } from '@/lib/position-sim'
 import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
 
 const SCALE = CORPUS_SCALE_LINE.partial ? OCT10_SCALE_LINE : CORPUS_SCALE_LINE
-import { stamp as stampFn } from '@/lib/position-sim/types'
-import Stamp from './Stamp'
-
-const GUARANTEE_PROV = stampFn('dataset', 'LiquidationEngine.sol', GUARANTEE.provenance)
+const SCALE_LEAD = CORPUS_SCALE_LINE.partial
+  ? '4% sounds small.'
+  : '4% sounds small. It would have kept'
+const SCALE_TAIL = CORPUS_SCALE_LINE.partial
+  ? `less debt would have been closed ${SCALE.window}.`
+  : `of collateral ${SCALE.window}.`
+const WINDOW_FIGURE = CORPUS_SCALE_LINE.partial ? '1' : String(CORPUS_SCALE_LINE.years)
+const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured'
 
 export const GuaranteeBlock: React.FC = () => (
   <Box
@@ -31,92 +30,134 @@ export const GuaranteeBlock: React.FC = () => (
     borderColor={SEMANTIC_COLORS.borderSubtle}
     bg={SEMANTIC_COLORS.bgPrimary}
     borderRadius={0}
-    px={{ base: SPACING.base, md: SPACING.lg }}
-    py={{ base: SPACING.base, md: SPACING.lg }}
-    display="grid"
-    gridTemplateColumns={{ base: '1fr', md: 'minmax(0, auto) 1fr' }}
-    gap={{ base: SPACING.md, md: SPACING.lg }}
-    alignItems="center"
+    overflow="hidden"
+    minW={0}
   >
-    <Text
-      fontFamily={TYPOGRAPHY.fontDisplay}
-      fontSize="clamp(64px, 10vw, 120px)"
-      lineHeight={0.95}
-      letterSpacing="-0.03em"
-      color={SEMANTIC_COLORS.success}
+    <Box
+      px={{ base: SPACING.base, md: SPACING.xl }}
+      py={{ base: SPACING.xl, md: SPACING['2xl'] }}
+      display="grid"
+      gridTemplateColumns={{ base: '1fr', md: 'minmax(0, 1.35fr) minmax(180px, 0.65fr)' }}
+      gap={{ base: SPACING.xl, md: SPACING['2xl'] }}
+      alignItems="end"
     >
-      {GUARANTEE.name}
-    </Text>
-
-    <Box display="grid" gap={SPACING.md}>
-      {/* THE SCALE LINE (owner 2026-09-22): the number that makes 4% not small. The
-          whole measured Aave V3 history once the corpus scan is complete; while the
-          summary on disk is still partial, the one measured day (OCT10_TOTALS) instead —
-          a partial corpus is a floor, and the band never prints a floor as a total.
-          Both stay (owner 2026-09-22): the day is the sub-line under the history. */}
       <Text
         data-testid="sim-scale-line"
         fontFamily={TYPOGRAPHY.fontDisplay}
-        fontSize="clamp(20px, 2.6vw, 26px)"
-        lineHeight={1.25}
         color={SEMANTIC_COLORS.textPrimary}
-        maxW="30ch"
+        lineHeight={0.95}
+        letterSpacing="-0.025em"
+        minW={0}
       >
-        4% sounds small.{' '}
-        <Text as="span" color={SEMANTIC_COLORS.success}>
-          It would have kept {SCALE.figure} of collateral
-        </Text>{' '}
-        {SCALE.window}.
-      </Text>
-      {!CORPUS_SCALE_LINE.partial && (
-        <Text
-          data-testid="sim-scale-subline"
-          fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="12.5px"
-          lineHeight={1.6}
-          color={SEMANTIC_COLORS.textSecondary}
-          mt={`-${SPACING.sm}`}
-        >
-          {OCT10_SCALE_LINE.figure} of that {OCT10_SCALE_LINE.window} · every Aave V3 mainnet
-          liquidation replayed, priced episodes only
+        <Text as="span" display="block" fontSize="clamp(26px, 4vw, 48px)" lineHeight={1.05}>
+          {SCALE_LEAD}{' '}
         </Text>
-      )}
-
-      <Text
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="16px"
-        lineHeight={1.6}
-        color={SEMANTIC_COLORS.textPrimary}
-        maxW="70ch"
-      >
-        {GUARANTEE.claim}
+        <Text
+          as="span"
+          display="block"
+          py={SPACING.sm}
+          fontSize="clamp(76px, 14vw, 168px)"
+          lineHeight={0.82}
+          color={SEMANTIC_COLORS.warning}
+          sx={{ fontVariantNumeric: 'tabular-nums lining-nums' }}
+        >
+          {SCALE.figure}
+        </Text>{' '}
+        <Text as="span" display="block" fontSize="clamp(25px, 4vw, 48px)" lineHeight={1.05}>
+          {SCALE_TAIL}
+        </Text>
       </Text>
 
+      <Box
+        aria-hidden="true"
+        borderLeft={{ base: 'none', md: '1px solid' }}
+        borderTop={{ base: '1px solid', md: 'none' }}
+        borderColor={SEMANTIC_COLORS.borderStrong}
+        pl={{ base: 0, md: SPACING.xl }}
+        pt={{ base: SPACING.lg, md: 0 }}
+        display="grid"
+        gap={SPACING.base}
+      >
+        <Box h="10px" w="100%" bg={SEMANTIC_COLORS.warning} />
+        <Text
+          fontFamily={TYPOGRAPHY.fontDisplay}
+          fontSize="clamp(76px, 10vw, 132px)"
+          lineHeight={0.82}
+          color={SEMANTIC_COLORS.warning}
+          sx={{ fontVariantNumeric: 'tabular-nums lining-nums' }}
+        >
+          {WINDOW_FIGURE}
+        </Text>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="10px"
+          lineHeight={1.5}
+          letterSpacing="0.12em"
+          textTransform="uppercase"
+          color={SEMANTIC_COLORS.warning}
+        >
+          {WINDOW_UNIT} · Aave V3
+        </Text>
+      </Box>
+    </Box>
+
+    {!CORPUS_SCALE_LINE.partial && (
       <Text
-        borderLeft="2px solid"
+        data-testid="sim-scale-subline"
+        borderTop="1px solid"
+        borderColor={SEMANTIC_COLORS.borderSubtle}
+        px={{ base: SPACING.base, md: SPACING.xl }}
+        py={SPACING.base}
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="12.5px"
+        lineHeight={1.6}
+        color={SEMANTIC_COLORS.textSecondary}
+      >
+        {OCT10_SCALE_LINE.result} {OCT10_SCALE_LINE.window}.
+      </Text>
+    )}
+
+    <Box
+      borderTop="1px solid"
+      borderColor={SEMANTIC_COLORS.borderSubtle}
+      px={{ base: SPACING.base, md: SPACING.xl }}
+      py={{ base: SPACING.lg, md: SPACING.xl }}
+      display="grid"
+      gridTemplateColumns={{ base: '1fr', md: 'minmax(0, 1fr) minmax(0, 0.72fr)' }}
+      gap={{ base: SPACING.base, md: SPACING.xl }}
+    >
+      <Box display="grid" gap={SPACING.sm} alignContent="start">
+        <Text
+          fontFamily={TYPOGRAPHY.fontDisplay}
+          fontSize="clamp(42px, 6vw, 72px)"
+          lineHeight={0.92}
+          color={SEMANTIC_COLORS.success}
+        >
+          {GUARANTEE.name}
+        </Text>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="15px"
+          lineHeight={1.6}
+          color={SEMANTIC_COLORS.textPrimary}
+          maxW="70ch"
+        >
+          {GUARANTEE.claim}
+        </Text>
+      </Box>
+
+      <Text
+        borderLeft={{ base: '2px solid', md: '1px solid' }}
         borderColor={SEMANTIC_COLORS.warning}
-        pl={SPACING.md}
+        pl={SPACING.base}
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize="13px"
         lineHeight={1.6}
         color={SEMANTIC_COLORS.textSecondary}
-        maxW="72ch"
+        alignSelf="center"
       >
         {GUARANTEE.limit}
       </Text>
-      <Stamp provenance={GUARANTEE_PROV} />
-
-      {/* One line. No paragraph follows it — owner ruling 2026-09-11, "all these words
-          are killing me". */}
-      {/* <Text
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="13px"
-        lineHeight={1.6}
-        color={SEMANTIC_COLORS.textSecondary}
-        maxW="72ch"
-      >
-        {GUARANTEE.noDials}
-      </Text> */}
     </Box>
   </Box>
 )

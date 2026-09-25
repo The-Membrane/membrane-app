@@ -84,6 +84,7 @@ const NAME_MAP: Record<string, string> = {
   Collateral: 'collateral',
   FrontendLens: 'frontendLens',
   CdpRouter: 'cdpRouter',
+  CuratorRegistry: 'curatorRegistry',
 }
 
 function main() {

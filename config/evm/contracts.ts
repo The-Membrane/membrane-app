@@ -30,6 +30,7 @@ export type ContractName =
   | 'collateral'
   | 'frontendLens'
   | 'cdpRouter'
+  | 'curatorRegistry'
   // On-chain Q-Racing game (membrane-solidity q-racing/script/Deploy.s.sol, anvil).
   // Filled by `pnpm sync-addresses` from q-racing/ui/deployment.json (the game contract
   // set) and q-racing/ui/dex.json (the anvil swap venue: USDC/WETH/router). The game

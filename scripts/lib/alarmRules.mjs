@@ -17,6 +17,27 @@
 
 const DAY_MS = 86_400_000
 
+// --- read-value guards -----------------------------------------------------
+// A missing reading is null/undefined and must be DROPPED, never coerced:
+// Number(null) is 0 and would read as a collapse to zero.
+export function isReadValue(v) {
+  return v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v))
+}
+
+// Before the depth reader stored null on a failed read (readDepthMarkets'
+// `complete` guard, first live snapshot 2026-09-25T04:29:56Z), a failed read was
+// stored as depth_usd = 0. All four pre-guard zero rows (2026-09-06 sUSDS,
+// 2026-09-13 sUSDe/sUSDS/scrvUSD) recorded every reserve read as failed, so a
+// pre-guard zero is an UNREAD, not a drain. After the guard a zero can only come
+// from successful reads of an empty pool, and it counts. Mirrored in TS as
+// components/Radar/alertLogic.ts DEPTH_GUARD_LIVE -- keep in lockstep.
+export const DEPTH_GUARD_LIVE = '2026-09-25T04:29:56Z'
+export function isUnreadDepthZero(value, at) {
+  if (value === null || value === undefined || Number(value) !== 0) return false
+  const t = typeof at === 'number' ? at : Date.parse(at)
+  return Number.isFinite(t) && t < Date.parse(DEPTH_GUARD_LIVE)
+}
+
 // --- rule: gate_change (alarm) --------------------------------------------
 // Memo P2 ("the gate moves, or was never there"). Ethena's 7d→1d cooldown cut
 // (recorder dated it 2026-03-18) is the canonical hit. Any cooldown change or
@@ -57,7 +78,7 @@ export function evalGateChange(events, nowMs = Date.now()) {
 // chose (instant_usd where the venue has it, else totalAssets in USD). Fires when
 // the fall from the in-window peak to the latest reading is STRICTLY > 20%.
 export function evalDrawdown(series, metric = 'value') {
-  const pts = (series ?? []).filter((p) => Number.isFinite(Number(p.value)))
+  const pts = (series ?? []).filter((p) => isReadValue(p.value))
   if (pts.length < 2) return { fires: false, severity: null, evidence: null }
   let peak = pts[0]
   for (const p of pts) if (Number(p.value) > Number(peak.value)) peak = p
@@ -196,7 +217,7 @@ export function evalDepthSkew(skewPct) {
 // swap-INTO side's reserve) over the trailing 7d of observed snapshots. Fires on
 // peak-to-current fall > 35% (watch) / > 50% (alarm).
 export function evalDepthCollapse(series) {
-  const pts = (series ?? []).filter((p) => Number.isFinite(Number(p.value)))
+  const pts = (series ?? []).filter((p) => isReadValue(p.value) && !isUnreadDepthZero(p.value, p.at))
   if (pts.length < 2) return { fires: false, severity: null, evidence: null }
   let peak = pts[0]
   for (const p of pts) if (Number(p.value) > Number(peak.value)) peak = p

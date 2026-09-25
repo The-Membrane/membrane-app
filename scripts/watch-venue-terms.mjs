@@ -13,19 +13,19 @@
 // kind as alarm-grade. The FIRST observation of a venue+url is a BASELINE — it is
 // stored but emits NO event (there is no prior hash to compare against).
 //
-// HONESTY / false positives: text-normalization (strip scripts/styles/tags,
-// collapse whitespace, lowercase) reduces but CANNOT ELIMINATE dynamic-content
-// churn (rotating banners, embedded live figures, CSRF tokens) — such a page can
-// hash-flap and emit a spurious terms_page_changed. That is deliberately left
-// non-silent rather than papered over: the alarm's dedupe-while-open (one open
-// row per venue+kind) absorbs repeats, and a human reads the diff. Per-venue
-// failures are non-fatal: a fetch/timeout on one venue never aborts the others,
-// mirroring the recorder tick's swallow-and-continue discipline.
+// HONESTY / false positives: the page is reduced to visible text and the venue's
+// LIVE MARKET FIGURES are masked before hashing (APY/APR rates, k/m/b amounts, the
+// copyright year — scripts/lib/termsNormalize.mjs documents exactly what counts as
+// a terms change). Fees, durations, caps and wording still count. Hashes are
+// versioned; a hash from an older normalizer is RE-BASELINED (new row, no event)
+// so upgrading the normalizer never fires a spurious alarm. Per-venue failures are
+// non-fatal: a fetch/timeout on one venue never aborts the others, mirroring the
+// recorder tick's swallow-and-continue discipline.
 //
 // Env: DATABASE_URL(_UNPOOLED) from .env.local (hand-parsed; no Next injection).
 
 import { neon } from '@neondatabase/serverless'
-import { createHash } from 'node:crypto'
+import { termsText, termsHash, termsDecision, normalizeVisibleText } from './lib/termsNormalize.mjs'
 import { readEnv, loadConfig } from './lib/venue-reads.mjs'
 
 const { get } = readEnv()
@@ -36,27 +36,11 @@ if (!dbUrl) {
 }
 const sql = neon(dbUrl)
 
-// Normalize HTML to visible text before hashing: drop <script>/<style>/<head>
-// blocks and HTML comments outright (their contents are never visible), strip all
-// remaining tags, collapse every whitespace run to a single space, trim, and
-// lowercase. We hash ONLY this visible text so cosmetic markup churn (attribute
-// reordering, class renames) does not flap the hash. It cannot defeat genuinely
-// dynamic visible content — see the false-positive note above.
-export function normalizeVisibleText(html) {
-  return String(html)
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<head\b[\s\S]*?<\/head>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
-}
-
-const sha256 = (s) => createHash('sha256').update(s, 'utf8').digest('hex')
+// Re-exported for existing importers; the implementation lives in lib/termsNormalize.mjs.
+export { normalizeVisibleText }
 
 let baselines = 0
+let rebaselines = 0
 let changes = 0
 let unchanged = 0
 let failed = 0
@@ -81,14 +65,14 @@ for (const venue of loadConfig().filter((v) => v.enabled && v.termsUrl)) {
       failed++
       continue
     }
-    text = normalizeVisibleText(await res.text())
+    text = termsText(await res.text())
   } catch (e) {
     console.log(`  fetch error: ${e.message} — skipped (non-fatal)`)
     failed++
     continue
   }
 
-  const hash = sha256(text)
+  const hash = termsHash(text)
   const len = text.length
 
   // Latest stored hash for this venue+url (the change-detection baseline).
@@ -97,18 +81,26 @@ for (const venue of loadConfig().filter((v) => v.enabled && v.termsUrl)) {
     WHERE venue = ${v} AND url = ${url}
     ORDER BY fetched_at DESC LIMIT 1`
 
-  if (!prev) {
-    // BASELINE: first observation — store it, emit NO event.
+  const decision = termsDecision(prev?.content_hash ?? null, hash)
+
+  if (decision === 'baseline' || decision === 'rebaseline') {
+    // BASELINE: first observation. REBASELINE: the stored hash came from an older
+    // normalizer, so a difference says nothing about the page. Store, NO event.
     await sql`
       INSERT INTO venue_terms (venue, url, content_hash, content_len)
       VALUES (${v}, ${url}, ${hash}, ${len})`
-    console.log(`  baseline seeded (no prior hash) — hash=${hash.slice(0, 12)}… len=${len} (NO event)`)
-    baselines++
+    if (decision === 'baseline') {
+      console.log(`  baseline seeded (no prior hash) — hash=${hash.slice(0, 15)}… len=${len} (NO event)`)
+      baselines++
+    } else {
+      console.log(`  re-baselined (normalizer upgraded from ${String(prev.content_hash).slice(0, 12)}…) — hash=${hash.slice(0, 15)}… len=${len} (NO event)`)
+      rebaselines++
+    }
     continue
   }
 
-  if (prev.content_hash === hash) {
-    console.log(`  unchanged — hash=${hash.slice(0, 12)}… len=${len} (no new row)`)
+  if (decision === 'unchanged') {
+    console.log(`  unchanged — hash=${hash.slice(0, 15)}… len=${len} (no new row)`)
     unchanged++
     continue
   }
@@ -127,4 +119,4 @@ for (const venue of loadConfig().filter((v) => v.enabled && v.termsUrl)) {
   changes++
 }
 
-console.log(`\nterms watch complete — baselines: ${baselines}, changes: ${changes}, unchanged: ${unchanged}, failed: ${failed}`)
+console.log(`\nterms watch complete — baselines: ${baselines}, re-baselines: ${rebaselines}, changes: ${changes}, unchanged: ${unchanged}, failed: ${failed}`)

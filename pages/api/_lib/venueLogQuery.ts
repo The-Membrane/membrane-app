@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
+import { isUnreadDepthAlarm, scrubUnreadDepthEvent } from '@/components/Radar/alertLogic'
 
 // Shared venue state-change log query — the "news tracker". Two provenances,
 // both labeled and BOTH derived here so /api/venues/log (the public feed) and
@@ -121,15 +122,21 @@ export async function fetchVenueLogEntries(filter: VenueLogFilter = {}): Promise
   })
 
   return [
-    ...(observed.rows as any[]).map((r) => ({
-      venue: r.venue as string,
-      kind: r.kind as string,
-      at: new Date(r.at as string).toISOString(),
-      prev: r.prev ?? null,
-      next: r.next ?? null,
-      since: r.since ? new Date(r.since as string).toISOString() : null,
-      provenance: 'observed' as const,
-    })),
+    // Pre-guard unread depth zeros are dropped at read time (alertLogic.ts
+    // DEPTH_GUARD_LIVE): they are failed reads, not drains, in insert-only history.
+    ...(observed.rows as any[])
+      .map((r) =>
+        scrubUnreadDepthEvent({
+          venue: r.venue as string,
+          kind: r.kind as string,
+          at: new Date(r.at as string).toISOString(),
+          prev: r.prev ?? null,
+          next: r.next ?? null,
+          since: r.since ? new Date(r.since as string).toISOString() : null,
+          provenance: 'observed' as const,
+        }),
+      )
+      .filter((e): e is NonNullable<typeof e> => e !== null),
     ...(reconstructed.rows as any[]).map((r) => ({
       venue: r.venue as string,
       kind: 'cooldown_duration_changed',
@@ -138,7 +145,7 @@ export async function fetchVenueLogEntries(filter: VenueLogFilter = {}): Promise
       next: { cooldownDuration: Number(r.cd) },
       provenance: 'reconstructed' as const,
     })),
-    ...(openAlarms.rows as any[]).map(mapAlarm),
-    ...(clearedAlarms.rows as any[]).map(mapAlarm),
+    ...(openAlarms.rows as any[]).map(mapAlarm).filter((a) => !isUnreadDepthAlarm(a)),
+    ...(clearedAlarms.rows as any[]).map(mapAlarm).filter((a) => !isUnreadDepthAlarm(a)),
   ].sort((a, b) => (a.at < b.at ? 1 : -1))
 }

@@ -31,6 +31,57 @@ export type AlarmLike = {
 
 export type Alert = AlarmLike & { text: string; open: boolean }
 
+// UNREAD DEPTH ZEROS. Before the depth reader stored null on a failed read (first
+// guarded snapshot 2026-09-25T04:29:56Z), a failed read was stored as depth_usd = 0.
+// All four pre-guard zero rows recorded every reserve read as failed, so they are
+// unreads, not drains — yet they fired depth_collapse alarms and "depth → $0" venue
+// events. Those rows are insert-only history, so they are excluded at READ time by
+// this one rule. After the guard a zero comes only from successful reads and counts.
+// Mirror of scripts/lib/alarmRules.mjs DEPTH_GUARD_LIVE / isUnreadDepthZero.
+export const DEPTH_GUARD_LIVE = '2026-09-25T04:29:56Z'
+
+export const isUnreadDepthZero = (value: unknown, at: string | null | undefined): boolean => {
+  if (value === null || value === undefined || Number(value) !== 0 || !at) return false
+  const t = Date.parse(at)
+  return Number.isFinite(t) && t < Date.parse(DEPTH_GUARD_LIVE)
+}
+
+/** A depth_collapse alarm whose end point was an unread zero. */
+export const isUnreadDepthAlarm = (a: {
+  kind: string
+  evidence?: Record<string, unknown> | null
+  firedAt?: string
+}): boolean => {
+  if (a.kind !== 'depth_collapse') return false
+  const ev = a.evidence ?? {}
+  const to = typeof ev.toDate === 'string' ? ev.toDate : a.firedAt
+  return isUnreadDepthZero(ev.toValue, to)
+}
+
+/**
+ * Remove an unread depth zero from a param_changed event. Returns the event with
+ * depth_usd dropped from prev/next when either side was an unread zero, or null
+ * when nothing else changed (the whole event was the artefact).
+ */
+export const scrubUnreadDepthEvent = <
+  E extends { kind: string; at: string; prev: Record<string, unknown> | null; next: Record<string, unknown> | null },
+>(
+  e: E,
+): E | null => {
+  if (e.kind !== 'param_changed') return e
+  const unread = isUnreadDepthZero(e.next?.depth_usd, e.at) || isUnreadDepthZero(e.prev?.depth_usd, e.at)
+  if (!unread) return e
+  const strip = (o: Record<string, unknown> | null) => {
+    if (!o) return o
+    const { depth_usd: _drop, ...rest } = o
+    return rest
+  }
+  const prev = strip(e.prev)
+  const next = strip(e.next)
+  if (!next || Object.keys(next).length === 0) return null
+  return { ...e, prev, next }
+}
+
 /**
  * The venues an address holds right now. The cached current scan wins when it
  * exists (an address that exited a venue stops getting its alarms); otherwise
@@ -79,7 +130,7 @@ export const matchAlerts = (
 ): { open: Alert[]; recent: Alert[] } => {
   const holds = new Set(held)
   const since = Date.parse(watchedSince)
-  const mine = alarms.filter((a) => holds.has(a.venue))
+  const mine = alarms.filter((a) => holds.has(a.venue) && !isUnreadDepthAlarm(a))
   const open = mine
     .filter((a) => a.clearedAt === null)
     .sort((x, y) => Date.parse(y.firedAt) - Date.parse(x.firedAt))

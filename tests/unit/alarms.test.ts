@@ -329,3 +329,17 @@ describe('uncoveredFor (silence is not all-clear)', () => {
     expect(uncoveredFor({ hasInstant: true }).map((u) => u.id)).toContain('terms_page_changes')
   })
 })
+
+describe('depth_collapse read guards (2026-09-25)', () => {
+  it('a null reading is dropped, never read as a collapse to zero', async () => {
+    const { evalDepthCollapse } = await import('../../scripts/lib/alarmRules.mjs')
+    expect(evalDepthCollapse([{ at: '2026-09-26T00:00Z', value: 3.8e9 }, { at: '2026-09-26T01:00Z', value: null }]).fires).toBe(false)
+  })
+  it('a pre-guard zero is an unread; a post-guard zero is a real drain', async () => {
+    const { evalDepthCollapse } = await import('../../scripts/lib/alarmRules.mjs')
+    expect(evalDepthCollapse([{ at: '2026-09-12T23:00Z', value: 3.8e9 }, { at: '2026-09-13T04:04Z', value: 0 }]).fires).toBe(false)
+    const post = evalDepthCollapse([{ at: '2026-09-26T00:00Z', value: 3.8e9 }, { at: '2026-09-26T01:00Z', value: 0 }])
+    expect(post.fires).toBe(true)
+    expect(post.severity).toBe('alarm')
+  })
+})

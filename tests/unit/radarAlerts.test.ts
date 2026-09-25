@@ -123,3 +123,27 @@ describe('toRss', () => {
     expect(out.indexOf('fired</guid>')).toBeLessThan(out.indexOf('cleared</guid>'))
   })
 })
+
+describe('unread depth zeros (pre-guard failed reads stored as 0)', () => {
+  it('drops a pre-guard depth_collapse that ended at $0, keeps a post-guard one', async () => {
+    const { isUnreadDepthAlarm } = await import('@/components/Radar/alertLogic')
+    const pre = alarm({ venue: 'sUSDS', kind: 'depth_collapse', firedAt: '2026-09-13T04:04:43Z', clearedAt: '2026-09-13T05:05:12Z', evidence: { toValue: 0, toDate: '2026-09-13T04:04:22Z', fromValue: 3.87e9, dropPct: -100 } })
+    const post = alarm({ venue: 'sUSDS', kind: 'depth_collapse', firedAt: '2026-09-26T04:00:00Z', evidence: { toValue: 0, toDate: '2026-09-26T03:59:00Z', fromValue: 3.87e9, dropPct: -100 } })
+    const partial = alarm({ venue: 'sUSDS', kind: 'depth_collapse', firedAt: '2026-09-13T04:04:43Z', evidence: { toValue: 1.2e9, toDate: '2026-09-13T04:04:22Z' } })
+    expect(isUnreadDepthAlarm(pre)).toBe(true)
+    expect(isUnreadDepthAlarm(post)).toBe(false)
+    expect(isUnreadDepthAlarm(partial)).toBe(false)
+    const { open, recent } = matchAlerts(['sUSDS'], [pre, post, partial], '2026-09-01T00:00:00Z')
+    expect([...open, ...recent].map((a) => a.firedAt)).toEqual(['2026-09-26T04:00:00Z', '2026-09-13T04:04:43Z'])
+  })
+
+  it('scrubs depth_usd from a pre-guard event, drops it when nothing else changed', async () => {
+    const { scrubUnreadDepthEvent } = await import('@/components/Radar/alertLogic')
+    const only = { kind: 'param_changed', at: '2026-09-13T04:04:22Z', prev: { depth_usd: 3.87e9 }, next: { depth_usd: 0 } }
+    const mixed = { kind: 'param_changed', at: '2026-09-13T04:04:22Z', prev: { depth_usd: 3.87e9, total_assets: 1 }, next: { depth_usd: 0, total_assets: 2 } }
+    const real = { kind: 'param_changed', at: '2026-09-26T00:00:00Z', prev: { depth_usd: 3.87e9 }, next: { depth_usd: 0 } }
+    expect(scrubUnreadDepthEvent(only)).toBeNull()
+    expect(scrubUnreadDepthEvent(mixed)).toEqual({ ...mixed, prev: { total_assets: 1 }, next: { total_assets: 2 } })
+    expect(scrubUnreadDepthEvent(real)).toBe(real)
+  })
+})

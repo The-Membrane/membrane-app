@@ -1,16 +1,12 @@
-import LTVDashboard from '@/components/LTVDashboard/LTVDashboard'
-import PageSeo from '@/components/PageSeo'
+import type { GetServerSideProps } from 'next'
 
-const LTVDashboardPage = () => (
-  <>
-    {/* Rule 0 (docs/SEO_RULESET.md): internal — mock-data LTV history dashboard */}
-    <PageSeo
-      seoClass="internal"
-      title="Membrane — LTV Dashboard"
-      description="Dashboard displaying historical loan-to-value data for collateral assets, including current and pending LTV, direction of change, built on mock demo data."
-    />
-    <LTVDashboard />
-  </>
-)
+// The LTV dashboard folded into the risk desk (docs/MOAT_TRACKER.md step 9).
+// Old links land on /[chain]/risk; not permanent while the desk runs on a local chain.
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const chain = typeof context.params?.chain === 'string' ? context.params.chain : 'ethereum'
+  return { redirect: { destination: `/${chain}/risk`, permanent: false } }
+}
 
-export default LTVDashboardPage
+const LTVDashboardRedirect = () => null
+
+export default LTVDashboardRedirect

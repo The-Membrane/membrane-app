@@ -21,7 +21,7 @@ Seniority, Evidence, Venue pages; route reachability).
 | 4 | Bonded curators | MISS (app) | `CuratorRegistry.sol` has bonds, ramp, rank buckets, slash, trailing payments; app config has no registry address | Wire the registry; give Strats rows an author/curator column |
 | 5 | Standard reference data | PARTIAL | Named prongs and capacity bands exist but in two vocabularies; no glossary | One vocabulary + a citable `/glossary` |
 | 6 | Belts and practice | MISS | All levels/tutorial systems are q-racing/points, none borrower-facing | Design a borrower practice loop on the real 4%/8h mechanism |
-| 7 | Speed and alerts | PARTIAL | Alarm engine live hourly; per-address alerts + RSS feed; alarm data-quality fixes 2026-09-25 | Sync uncovered-signal mirrors, then a push channel |
+| 7 | Speed and alerts | PARTIAL | Alarm engine live hourly; per-address alerts + RSS feed; alarm data-quality fixes 2026-09-25 | Push channel (owner pick), then Radar permalinks |
 
 ---
 
@@ -96,7 +96,7 @@ The data is public, so no one gets it first; computed signals can still arrive f
 - **FIXED 2026-09-25 — terms-page hash noise.** Cause: sky.money/susds renders a live rate ("3.60% apy") and live supply ("4.46b"); the supply figure flipped the v1 hash 75 times in 19 days, holding sUSDS `gate_change` open permanently. The watcher now hashes visible text with live market figures masked: APY/APR rates, k/m/b amounts, the copyright year (`scripts/lib/termsNormalize.mjs`, which documents what counts as a terms change). Fees, durations, caps and wording still count. Hashes are versioned (`v2:`); the upgrade re-baselined all 4 venues with no event, and a second run read all 4 unchanged. The open sUSDS `gate_change` clears itself on the first tick after 2026-09-26 12:14 UTC, when the last flap leaves the 24h window. The 75 historical flap events stay in the venue log; the watcher never stored page text, so they cannot be re-checked.
 - **FIXED 2026-09-25 — zero-depth reads.** Four snapshots (2026-09-06 sUSDS; 2026-09-13 sUSDe, sUSDS, scrvUSD) stored depth_usd = 0 with every reserve read failed. They fired 3 false `depth_collapse` alarms and 4 "depth → $0" venue events. The reader now stores null on a failed read (`readDepthMarkets` `complete` guard, live since 2026-09-25 04:29:56 UTC; that edit is still uncommitted in another session's working tree). The alarm rules drop null readings instead of coercing them to zero, and ignore pre-guard zeros (`isUnreadDepthZero`, `scripts/lib/alarmRules.mjs`). Alerts and the venue log exclude the pre-guard artefacts at read time (`components/Radar/alertLogic.ts`). No stored row was modified: snapshots, events and alarms are insert-only history. A post-guard zero still fires, since it can only come from successful reads of an empty pool.
 - `alarmConsequence` had no sentence for utilization / depth_skew / depth_collapse and printed raw JSON; fixed 2026-09-25 (`components/Carry/venueLogLogic.ts`).
-- The TS mirrors of the uncovered-signal list lag the source: `pages/api/venues/alarms.ts` and `UNCOVERED_FOOTER` still list "terms changes" and lack the depth/terms coverage flags that `uncoveredFor()` now takes (`scripts/lib/alarmRules.mjs:262`).
+- **FIXED 2026-09-25 — blind-spot list drift.** The venue log footer and `/api/venues/alarms` kept hand-written copies that claimed blindness to depth-vs-book and terms changes (both now covered) and omitted instant-exit headroom (blind at sUSDe, sUSDS, scrvUSD). Now `coverageFor(cfg, { hasInstant })` and `uncoveredFooter()` in `scripts/lib/alarmRules.mjs` are the one source. The checker, venue summary, alarms feed, venue log and per-address alerts all call them (TS via `pages/api/_lib/uncovered.ts`). A unit test fails if a copy reappears. Verified live: all five surfaces print the checker's own list.
 - `scripts/lib/alarmRules.mjs` contains a stray non-UTF-8 byte, so plain `grep` treats it as binary; use `grep -a`.
 
 ---
@@ -107,7 +107,7 @@ The data is public, so no one gets it first; computed signals can still arrive f
 |---|---|---|---|
 | 1 | 7 | Per-address alerts: watched address × open alarm → JSON + RSS + Radar list | **DONE 2026-09-25** |
 | 2 | 7 | **DONE 2026-09-25.** Alarm data quality before anyone relies on the feed: (a) terms-page hash noise — normalize away dynamic numbers or diff by section, re-baseline sUSDS, so its `gate_change` can clear; needs a ruling on what counts as a terms change. (b) zero-depth reads — store null on a failed read, skip zero points in `evalDepthCollapse` | done |
-| 3 | 7 | Sync the uncovered-signal mirrors with `uncoveredFor()` (one shared JSON both sides import) | next |
+| 3 | 7 | **DONE 2026-09-25.** One blind-spot source (`coverageFor` / `uncoveredFooter`) for every surface; no copies | done |
 | 4 | 1 | Radar result permalinks + per-result OG card; flip Radar to indexable for the landing view | |
 | 5 | 1 | Per-venue and per-finding OG cards; "run this on your wallet" CTA on every venue page into the simulator | |
 | 6 | 5 | One vocabulary (pick instant/cooling/stranded or instant/cooldown/flow) + `/glossary` | needs owner pick |

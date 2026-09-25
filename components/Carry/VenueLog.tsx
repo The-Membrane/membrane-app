@@ -20,11 +20,11 @@ import { venueSlug } from './venueSlug'
  * (only discrete changes and >20% liquidity moves ever become entries).
  */
 
-import { Entry, consequence, alarmConsequence, UNCOVERED_FOOTER } from './venueLogLogic'
+import { Entry, consequence, alarmConsequence } from './venueLogLogic'
 
 export const VenueLog: React.FC = () => {
   const { chainName } = useChainRoute()
-  const { data } = useQuery<{ entries: Entry[] }>({
+  const { data } = useQuery<{ entries: Entry[]; uncovered_footer?: string }>({
     queryKey: ['venue_log'],
     queryFn: async () => {
       const r = await fetch('/api/venues/log')
@@ -110,7 +110,8 @@ export const VenueLog: React.FC = () => {
           mt={SPACING.sm}
           fontStyle="italic"
         >
-          {UNCOVERED_FOOTER}
+          {/* per-venue blind spots from the ONE source (alarmRules.mjs coverageFor) */}
+          {data?.uncovered_footer ?? 'blind spots unknown: coverage not loaded'}
         </Text>
         <Stamp>
           observed = witnessed live by the hourly recorder · reconstructed = derived from archive

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 import { fetchVenueLogEntries, type VenueLogEntry } from '@/pages/api/_lib/venueLogQuery'
+import { footerFor, uncoveredByVenue } from '@/pages/api/_lib/uncovered'
 
 // PUBLIC. The venue state-change log ("news tracker") — consequences, never
 // headlines. Two provenances, both labeled:
@@ -20,8 +21,8 @@ export type { VenueLogEntry }
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
 
-  const entries = await fetchVenueLogEntries()
+  const [entries, uncovered] = await Promise.all([fetchVenueLogEntries(), uncoveredByVenue()])
 
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
-  return res.status(200).json({ entries })
+  return res.status(200).json({ entries, uncovered, uncovered_footer: footerFor(uncovered) })
 }

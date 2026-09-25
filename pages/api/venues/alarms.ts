@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
+import { uncoveredByVenue } from '@/pages/api/_lib/uncovered'
 
 // PUBLIC. The VENUE FAILURE-PATTERN ALARM feed. Three parts:
 //   open      — currently-open alarms (cleared_at IS NULL), newest first.
@@ -23,27 +24,6 @@ type AlarmRow = {
   clearedAt: string | null
 }
 
-type UncoveredSignal = { id: string; label: string; memo: string }
-
-// Mirror of scripts/lib/alarmRules.mjs UNCOVERED_SIGNALS / uncoveredFor() — kept
-// in TS here so this route stays tsc-clean (no .mjs type import). Keep in lockstep.
-const UNCOVERED_SIGNALS: UncoveredSignal[] = [
-  { id: 'depth_vs_book', label: 'depth-vs-book', memo: 'P4 — needs the oracle-market depth extension' },
-  { id: 'yield_flatness', label: 'yield flatness', memo: 'P7 — we do not record APY' },
-  { id: 'terms_page_changes', label: 'terms changes', memo: 'needs the terms-page hash watcher' },
-]
-function uncoveredFor(hasInstant: boolean): UncoveredSignal[] {
-  const list = [...UNCOVERED_SIGNALS]
-  if (!hasInstant) {
-    list.push({
-      id: 'headroom_instant_liquidity',
-      label: 'instant-exit headroom',
-      memo: 'no instant_usd read for this venue kind',
-    })
-  }
-  return list
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
 
@@ -57,16 +37,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     FROM venue_alarms WHERE cleared_at IS NOT NULL
     ORDER BY cleared_at DESC LIMIT 10`)
 
-  // Latest observed snapshot per venue → hasInstant → per-venue uncovered list.
-  const latestRes = await db.execute(sql`
-    SELECT DISTINCT ON (venue) venue, instant_usd
-    FROM venue_snapshots WHERE source = 'observed'
-    ORDER BY venue, observed_at DESC`)
-
-  const uncovered = (latestRes.rows as any[]).map((r) => ({
-    venue: r.venue as string,
-    signals: uncoveredFor(r.instant_usd !== null && r.instant_usd !== undefined),
-  }))
+  // Per-venue blind spots from the ONE source (scripts/lib/alarmRules.mjs
+  // coverageFor, via pages/api/_lib/uncovered.ts) -- the same list the checker logs.
+  const byVenue = await uncoveredByVenue()
+  const uncovered = Object.entries(byVenue).map(([venue, signals]) => ({ venue, signals }))
 
   const norm = (r: any): AlarmRow => ({
     venue: r.venue,

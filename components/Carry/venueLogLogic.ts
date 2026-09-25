@@ -15,11 +15,8 @@ export type Entry = {
   cleared?: boolean
 }
 
-// The memo signals the alarm system is BLIND to (mirror of
-// scripts/lib/alarmRules.mjs UNCOVERED_SIGNALS — keep in lockstep). Rendered as
-// a footer so a quiet log never reads as all-clear.
-export const UNCOVERED_FOOTER =
-  'this alarm cannot yet see: depth-vs-book, yield flatness, terms changes'
+// The blind-spot footer is NOT kept here: /api/venues/log serves it per venue from
+// scripts/lib/alarmRules.mjs coverageFor (the one source), so it cannot drift.
 
 /** "over 1h" / "over 6d" / "over 3w" — the window between two observed snapshots. */
 export const windowLabel = (e: Entry): string => {

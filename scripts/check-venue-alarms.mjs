@@ -36,7 +36,7 @@ import {
   evalDepthSkew,
   evalDepthCollapse,
   reconcileAlarms,
-  uncoveredFor,
+  coverageFor,
 } from './lib/alarmRules.mjs'
 import { notify } from './lib/notify.mjs'
 
@@ -175,14 +175,8 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   }
 
   // --- coverage honesty: what this venue is BLIND to -----------------------
-  // depth_vs_book leaves the uncovered list only when the venue has >=1 enabled,
-  // on-chain-verified depth market OR its instant_usd read IS the depth (aave).
-  const depthCovered =
-    (venue.depthMarkets ?? []).some((m) => m.enabled) || venue.depthCoveredByInstant === true
-  // terms_page_changes leaves the blind list once the venue has a termsUrl the
-  // hash watcher tracks (baseline seeded on the first tick before this checker).
-  const termsCovered = !!venue.termsUrl
-  const uncovered = uncoveredFor({ hasInstant, depthCovered, termsCovered })
+  // Blind spots from the ONE shared definition (alarmRules.mjs coverageFor).
+  const uncovered = coverageFor(venue, { hasInstant })
   uncoveredByVenue[v] = uncovered
   console.log(`  uncovered (cannot evaluate): ${uncovered.map((u) => u.id).join(', ')}`)
 }

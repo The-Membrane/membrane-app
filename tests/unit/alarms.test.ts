@@ -343,3 +343,47 @@ describe('depth_collapse read guards (2026-09-25)', () => {
     expect(post.severity).toBe('alarm')
   })
 })
+
+describe('coverageFor / uncoveredFooter — the ONE blind-spot source (2026-09-25)', () => {
+  it('derives coverage from venue config exactly as the checker does', async () => {
+    const { coverageFor } = await import('../../scripts/lib/alarmRules.mjs')
+    const ids = (cfg: object, hasInstant: boolean) => coverageFor(cfg, { hasInstant }).map((u: { id: string }) => u.id).sort()
+    expect(ids({}, false)).toEqual(['depth_vs_book', 'headroom_instant_liquidity', 'terms_page_changes', 'yield_flatness'])
+    expect(ids({ termsUrl: 'https://x', depthMarkets: [{ enabled: true }] }, true)).toEqual(['yield_flatness'])
+    expect(ids({ depthMarkets: [{ enabled: false }] }, true)).toContain('depth_vs_book')
+    expect(ids({ depthCoveredByInstant: true }, true)).not.toContain('depth_vs_book')
+  })
+
+  it('names a signal once when every venue is blind to it, else lists the venues', async () => {
+    const { coverageFor, uncoveredFooter } = await import('../../scripts/lib/alarmRules.mjs')
+    const line = uncoveredFooter({
+      sUSDS: coverageFor({ termsUrl: 'x', depthMarkets: [{ enabled: true }] }, { hasInstant: false }),
+      'aave-v3-usde': coverageFor({ termsUrl: 'x', depthCoveredByInstant: true }, { hasInstant: true }),
+    })
+    expect(line).toBe('this alarm cannot yet see: instant-exit headroom (sUSDS), yield flatness')
+  })
+
+  it('never goes silent', async () => {
+    const { uncoveredFooter } = await import('../../scripts/lib/alarmRules.mjs')
+    expect(uncoveredFooter({})).toMatch(/^blind spots unknown/)
+    expect(uncoveredFooter({ sUSDS: [] })).toMatch(/can see every signal/)
+  })
+
+  it('no hand-kept copy of the list exists outside alarmRules.mjs', async () => {
+    const { readdirSync, readFileSync, statSync } = await import('fs')
+    const { join } = await import('path')
+    const hits: string[] = []
+    const walk = (dir: string) => {
+      for (const f of readdirSync(dir)) {
+        const p = join(dir, f)
+        if (statSync(p).isDirectory()) walk(p)
+        else if (/\.(ts|tsx|mjs)$/.test(f) && !p.endsWith('alarmRules.mjs')) {
+          const src = readFileSync(p, 'utf8')
+          if (/UNCOVERED_SIGNALS\s*[:=]|UNCOVERED_FOOTER\s*=|'depth-vs-book'/.test(src)) hits.push(p)
+        }
+      }
+    }
+    for (const d of ['components', 'pages', 'lib', 'scripts']) walk(join(process.cwd(), d))
+    expect(hits).toEqual([])
+  })
+})

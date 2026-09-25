@@ -294,6 +294,38 @@ export function uncoveredFor({ hasInstant, depthCovered, termsCovered } = {}) {
   return list
 }
 
+// ONE place that turns a venue's config + latest snapshot into its blind-spot
+// list. Every surface (checker, /api/venues/alarms, /api/venues/[venue]/summary,
+// the venue log, per-address alerts) calls THIS -- there are no copies to drift.
+//   cfg        -- the venue's tools/venue-recorder.config.json entry
+//   hasInstant -- the latest observed snapshot carries an instant_usd read
+export function coverageFor(cfg, { hasInstant } = {}) {
+  const depthCovered =
+    (cfg?.depthMarkets ?? []).some((m) => m.enabled) || cfg?.depthCoveredByInstant === true
+  const termsCovered = !!cfg?.termsUrl
+  return uncoveredFor({ hasInstant: !!hasInstant, depthCovered, termsCovered })
+}
+
+// One footer line from { venue: signals[] }. A signal blind at EVERY listed venue
+// is named once; a signal blind at some venues names them. Empty input or no
+// blind spots still says so explicitly -- the footer is never silently absent.
+export function uncoveredFooter(byVenue) {
+  const venues = Object.keys(byVenue ?? {}).sort()
+  if (venues.length === 0) return 'blind spots unknown: no venue coverage recorded'
+  const where = new Map() // label -> venues blind to it
+  for (const v of venues) {
+    for (const s of byVenue[v] ?? []) {
+      if (!where.has(s.label)) where.set(s.label, [])
+      where.get(s.label).push(v)
+    }
+  }
+  if (where.size === 0) return 'this alarm can see every signal it tracks at these venues'
+  const parts = [...where.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([label, vs]) => (vs.length === venues.length ? label : `${label} (${vs.join(', ')})`))
+  return `this alarm cannot yet see: ${parts.join(', ')}`
+}
+
 // --- helpers ---------------------------------------------------------------
 function tOf(at) {
   return typeof at === 'number' ? at : Date.parse(at)

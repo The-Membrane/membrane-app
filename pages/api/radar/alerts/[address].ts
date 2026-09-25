@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { heldVenues, matchAlerts, toRss, type AlarmLike, type WatchLike } from '@/components/Radar/alertLogic'
-import { UNCOVERED_FOOTER } from '@/components/Carry/venueLogLogic'
+import { footerFor, uncoveredByVenue } from '@/pages/api/_lib/uncovered'
 
 // GET /api/radar/alerts/[address] — PER-ADDRESS VENUE ALERTS.
 // GET /api/radar/alerts/[address]?format=rss — the same, as a subscribable feed.
@@ -57,6 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     clearedAt: r.clearedAt ? new Date(r.clearedAt).toISOString() : null,
   }))
   const { open, recent } = matchAlerts(held, alarms, watch.createdAt)
+  // Blind spots for exactly the venues this address holds (one source: coverageFor).
+  const footer = held.length ? footerFor(await uncoveredByVenue(held)) : 'no held venues: nothing to watch'
 
   const radarUrl = `${SITE}/${CHAIN}/radar?address=${address}`
   const feedUrl = `${SITE}/api/radar/alerts/${address}?format=rss`
@@ -66,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8')
     return res
       .status(200)
-      .send(toRss({ address, radarUrl, feedUrl, open, recent, footer: UNCOVERED_FOOTER }))
+      .send(toRss({ address, radarUrl, feedUrl, open, recent, footer }))
   }
   return res.status(200).json({
     address,
@@ -75,6 +77,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     open,
     recent,
     feed_url: feedUrl,
-    uncovered: UNCOVERED_FOOTER,
+    uncovered: footer,
   })
 }

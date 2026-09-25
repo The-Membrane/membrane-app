@@ -5,7 +5,7 @@
 //
 // Nothing here computes a new signal. An alert is an existing venue alarm, routed
 // to the addresses that hold that venue. Silence is NOT all-clear: every surface
-// that renders these carries UNCOVERED_FOOTER (the signals the alarms cannot see).
+// that renders these carries the held venues' blind-spot footer (pages/api/_lib/uncovered.ts).
 
 import { alarmConsequence } from '@/components/Carry/venueLogLogic'
 

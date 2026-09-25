@@ -101,6 +101,21 @@ The data is public, so no one gets it first; computed signals can still arrive f
 
 ---
 
+## Owner decisions (2026-09-25) — build to these without asking
+
+1. **Push channel = Telegram bot.** Build it gated on `TELEGRAM_ALERTS_BOT_TOKEN` + `TELEGRAM_ALERTS_BOT_USERNAME` in `.env.local` (a bot SEPARATE from the operator's `TELEGRAM_BOT_TOKEN`). Subscribe = deep link `t.me/<bot>?start=<token>` from Radar's alert block, keyed to a watched address; unsubscribe = `/stop`. Until the token exists the code ships dark and the tests run against a stubbed Telegram API.
+2. **Taxonomy = align shared words.** Two concepts stay: exit LEGS (instant / cooldown / flow) and size TIERS (instant / cooldown / stranded). "cooling" is renamed "cooldown" everywhere. A public `/glossary` defines both.
+3. **Pre-deploy on-chain surfaces = local anvil deploy**, stamped "local chain"; mainnet is a config swap. Applies to the risk desk, curator profiles, position protection.
+4. **Branch = own worktree** `feat/moat-layers` off `evm-migration`; never touch the other session's files. The owner merges.
+5. **Execution (layer 2) stays backlogged** until the on-chain deploy.
+
+**Defaults the builder applies (no question needed)**
+- Radar permalinks: indexable only for addresses already public on Strats; any other scanned address stays noindex.
+- New public copy follows the landing rules (measured or deleted, no caveat inside a claim, every change has a window, fewer words). Every new public sentence is listed under "Copy added" below for review.
+- "Data compiled by Membrane" goes on public data pages and feeds; "Run this on your wallet" is the CTA into the simulator.
+- Borrower practice mode (step 10): design memo first, then a v1 that replays the Oct-10 crossing.
+- Nothing is pushed. Nothing on-chain is deployed except to local anvil.
+
 ## Plan — step by step
 
 | Step | Layer | What | Status |
@@ -110,10 +125,10 @@ The data is public, so no one gets it first; computed signals can still arrive f
 | 3 | 7 | **DONE 2026-09-25.** One blind-spot source (`coverageFor` / `uncoveredFooter`) for every surface; no copies | done |
 | 4 | 1 | Radar result permalinks + per-result OG card; flip Radar to indexable for the landing view | |
 | 5 | 1 | Per-venue and per-finding OG cards; "run this on your wallet" CTA on every venue page into the simulator | |
-| 6 | 5 | One vocabulary (pick instant/cooling/stranded or instant/cooldown/flow) + `/glossary` | needs owner pick |
-| 7 | 7 | A push channel beyond RSS (Telegram bot deep-link keyed to the watched address, or email). Needs a subscriptions table and an owner call on the channel | needs owner pick |
-| 8 | 4 | Wire `CuratorRegistry` into `config/evm`; BondCoverage goes live; curator profile page | after deploy addresses exist |
-| 9 | 3/risk | **Risk desk page** (see below) | design |
+| 6 | 5 | Align words ("cooling" → "cooldown"); legs instant/cooldown/flow, tiers instant/cooldown/stranded; public `/glossary` | decided |
+| 7 | 7 | Telegram bot: deep-link subscribe keyed to a watched address, subscriptions table, sender in the recorder tick; ships dark until the bot token exists | decided |
+| 8 | 4 | Wire `CuratorRegistry` into `config/evm` (local anvil first); BondCoverage goes live; curator profile page | decided |
+| 9 | 3/risk | **Risk desk page** (see below), on local anvil | decided |
 | 10 | 6 | Borrower practice mode on the simulator | design |
 | — | 2, 3 | Real execution + live position protection | BACKLOG until on-chain deploy |
 

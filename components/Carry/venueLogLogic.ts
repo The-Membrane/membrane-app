@@ -73,6 +73,25 @@ export const alarmConsequence = (e: Entry): { text: string; tone: 'danger' | 'mu
       body = `instant exit ${fmtUsd(Number(ev.instantUsd))} vs worst day out ${fmtUsd(Number(ev.worstDayOutflowUsd))} = ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'}× — one bad day from gating`
       break
     }
+    case 'depth_collapse': {
+      // evidence.dropPct is stored NEGATIVE (-fallFrac*100) by evalDepthCollapse.
+      const drop = Math.abs(Number(ev.dropPct))
+      const from = typeof ev.fromDate === 'string' ? ev.fromDate.slice(0, 10) : null
+      const to = typeof ev.toDate === 'string' ? ev.toDate.slice(0, 10) : null
+      const window = from && to ? ` from ${from} to ${to}` : ' in ≤7d'
+      body = `instant swap-out depth fell ${Number.isFinite(drop) ? drop.toFixed(0) : '?'}% — ${fmtUsd(Number(ev.fromValue))} → ${fmtUsd(Number(ev.toValue))}${window}; the fast exit is thinning`
+      break
+    }
+    case 'depth_skew': {
+      const skew = Number(ev.skewPct)
+      body = `the instant-exit pool is ${Number.isFinite(skew) ? skew.toFixed(0) : '?'}% one-sided — the side you swap into is running out`
+      break
+    }
+    case 'utilization': {
+      const u = Number(ev.utilizationPct)
+      body = `utilization ${Number.isFinite(u) ? u.toFixed(1) : '?'}% — lent out; lenders may not be able to exit`
+      break
+    }
     default:
       body = `${e.kind}: ${JSON.stringify(ev)}`
   }

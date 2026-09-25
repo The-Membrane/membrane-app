@@ -83,6 +83,105 @@ const ProvChip: React.FC<{ provenance: Provenance }> = ({ provenance }) => (
   </Text>
 )
 
+type AlertRow = { venue: string; kind: string; text: string; open: boolean; firedAt: string; clearedAt: string | null }
+type AlertsResponse = {
+  held: string[]
+  open: AlertRow[]
+  recent: AlertRow[]
+  feed_url: string
+  uncovered: string
+}
+
+/**
+ * VENUE ALERTS for a tracked address: the recorder's failure-pattern alarms,
+ * routed to the venues this address holds (/api/radar/alerts). The feed link is
+ * the subscription: any RSS reader, no account. Quiet ≠ safe, so the blind-spot
+ * footer always renders.
+ */
+const AlertsBlock: React.FC<{ address: string }> = ({ address }) => {
+  const [copied, setCopied] = useState(false)
+  const { data } = useQuery<AlertsResponse>({
+    queryKey: ['radar_alerts', address],
+    enabled: !!address,
+    queryFn: async () => {
+      const r = await fetch(`/api/radar/alerts/${address}`)
+      if (!r.ok) throw new Error(`alerts ${r.status}`)
+      return r.json()
+    },
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: true,
+  })
+  if (!data) return null
+  const rows = [...data.open, ...data.recent]
+  const copyFeed = async () => {
+    try {
+      await navigator.clipboard.writeText(data.feed_url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* clipboard blocked — the link below still works */
+    }
+  }
+  return (
+    <Card variant="subtle" p={SPACING.base} mb={SPACING.base} data-testid="radar-alerts">
+      <HStack justify="space-between" align="baseline" flexWrap="wrap" gap={SPACING.sm} mb={SPACING.sm}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.24em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
+          alerts on {data.held.length ? data.held.join(' · ') : 'no held venues'}
+        </Text>
+        <HStack gap={SPACING.sm}>
+          <Text
+            as="a"
+            href={data.feed_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="11px"
+            color={SEMANTIC_COLORS.textSecondary}
+            textDecoration="underline"
+          >
+            rss feed
+          </Text>
+          <Text
+            as="button"
+            onClick={copyFeed}
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="11px"
+            color={copied ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textSecondary}
+            textDecoration="underline"
+          >
+            {copied ? 'copied' : 'copy feed url'}
+          </Text>
+        </HStack>
+      </HStack>
+      {rows.length === 0 ? (
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={SEMANTIC_COLORS.textSecondary}>
+          No alarm has fired on these venues while you have been watching.
+        </Text>
+      ) : (
+        rows.map((a, i) => (
+          <Grid
+            key={`${a.venue}-${a.kind}-${a.firedAt}`}
+            templateColumns={{ base: '1fr', md: '170px 1fr' }}
+            gap={SPACING.base}
+            py={SPACING.sm}
+            borderBottom={i === rows.length - 1 ? 'none' : '1px solid'}
+            borderColor={SEMANTIC_COLORS.borderSubtle}
+            alignItems="baseline"
+          >
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
+              {(a.clearedAt ?? a.firedAt).slice(0, 10)} · {a.venue}
+            </Text>
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={a.open ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}>
+              {a.text}
+            </Text>
+          </Grid>
+        ))
+      )}
+      <Stamp>{data.uncovered}</Stamp>
+    </Card>
+  )
+}
+
 export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
   const queryClient = useQueryClient()
   const [watching, setWatching] = useState(false)
@@ -120,6 +219,7 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
       }
       // Re-anchor the recap to the new watch instant.
       await queryClient.invalidateQueries({ queryKey: ['radar_recap', address] })
+      await queryClient.invalidateQueries({ queryKey: ['radar_alerts', address] })
     } catch (e) {
       setWatchError((e as Error).message)
     } finally {
@@ -174,6 +274,8 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
         )}
         <ProvFooter />
       </Card>
+
+      {watchedSince && <AlertsBlock address={address} />}
 
       {isFetching && (
         <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.md}>

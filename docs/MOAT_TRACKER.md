@@ -1,0 +1,136 @@
+# Moat Tracker — the seven layers
+
+Living progress log for how far the app has moved along each layer of the
+"publish the conclusion free, make acting on it live only inside Membrane" model.
+Our data is public on-chain, so the moat is **curation + execution**, not access.
+
+**How to use this file.** Update the layer's row and its section in the same
+commit that moves it. Every status claim cites a file. Dated entries go at the
+bottom of the layer's section, newest last. A layer is HIT only when the thing
+works on live data for a real user; a mock, a fixture or a demo wallet is at
+most PARTIAL.
+
+Last full scan: **2026-09-25** (landing simulator, Radar, Strats, Carry, Position,
+Seniority, Evidence, Venue pages; route reachability).
+
+| # | Layer | Status | One-line state | Next step |
+|---|---|---|---|---|
+| 1 | Reporting as marketing | PARTIAL | `/evidence`, `/venue/*`, Radar share card and the public Strats board exist; Radar is noindex; one site-wide OG image | Per-finding OG cards + "run this on your wallet" on every venue page |
+| 2 | Execution in one flow | **BACKLOG** | Carry `ExecSheet` is a mock chain; no path reaches a signed tx | Held until contracts deploy on-chain (owner, 2026-09-25) |
+| 3 | Infrastructure after deployment | PARTIAL | Position page has the vocabulary (LTV window, recall, countdowns) on fixtures | Wire to the EVM `LiquidationEngine` timer + recall events after deploy |
+| 4 | Bonded curators | MISS (app) | `CuratorRegistry.sol` has bonds, ramp, rank buckets, slash, trailing payments; app config has no registry address | Wire the registry; give Strats rows an author/curator column |
+| 5 | Standard reference data | PARTIAL | Named prongs and capacity bands exist but in two vocabularies; no glossary | One vocabulary + a citable `/glossary` |
+| 6 | Belts and practice | MISS | All levels/tutorial systems are q-racing/points, none borrower-facing | Design a borrower practice loop on the real 4%/8h mechanism |
+| 7 | Speed and alerts | PARTIAL | Alarm engine live hourly; per-address alerts + RSS feed shipped 2026-09-25 | Fix terms-page hash noise, then a push channel |
+
+---
+
+## 1. Reporting as marketing — PARTIAL
+
+The article is the sample; the simulator against a live position is the Terminal.
+
+**Have**
+- `/evidence` — indexable Oct-10 backtest page, links into the simulator (`components/Evidence/DesireRouter.tsx:93`).
+- `/venue/[name]` — per-venue permalinks, built as the distribution page for venue headlines (`pages/[chain]/venue/[name].tsx`).
+- Provenance stamps everywhere (`components/Simulator/Stamp.tsx`); every landing figure imports from a tested artefact.
+- Radar share line + share-card PNG of the reader's own result (`components/Radar/Radar.tsx:382-420`).
+- Strats board — public list of tracked carry positions with returns and verdicts (`components/Strats/StratsBoard.tsx`).
+- The $1.07B multi-year liquidation corpus renders in the landing band (`lib/position-sim/oct10Totals.ts`).
+
+**Missing**
+- One static OG image for the whole site (`scripts/og-card.mjs` → `public/og.png`); no card per finding, venue or Radar result.
+- Radar is `seoClass="app"` ⇒ noindex (`pages/[chain]/radar.tsx:10`), and a scanned result has no permalink.
+- Venue pages link to Radar/Carry, never to the simulator with a wallet prompt (`components/Venue/VenuePage.tsx:235,246`).
+- The corpus finding has no page of its own; it lives only inside the landing band.
+- No "Data compiled by Membrane" attribution line on public pages (the RSS feed now carries one).
+
+## 2. Execution in one flow — BACKLOG
+
+**Owner ruling 2026-09-25:** backlogged until the contracts are deployed on-chain.
+Do not start real transaction wiring before then.
+
+- Carry `ExecSheet` runs the sign → pending → done sequence on timers, labelled "mock chain" (`components/Carry/ExecSheet.tsx:38`).
+- The simulator, Radar and Strats are read-only by design; Strats → Carry passes no context.
+- When unblocked: simulator → Carry handoff must carry the address, venue and size, and `ExecSheet` must call real contract writes.
+
+## 3. Infrastructure after deployment — PARTIAL
+
+Once a position runs on Membrane's unwind flow, leaving means giving up the protection.
+
+- Position page renders LTV window, headroom and per-intent countdowns from fixtures (`components/Position/fixtures.ts`); countdowns are decorative (`components/Position/utils.ts:173-203`).
+- Live recall reads exist only for Cosmos (`components/NeutronMint/hooks/useCapitalRecall.ts`); no EVM `LiquidationEngine` address or read in `config/evm/contracts.ts`.
+- Position sits under "coming soon" in the nav.
+- Depends on layer 2's deploy; can be built against anvil earlier.
+
+## 4. Bonded curators — MISS in the app, BUILT on-chain
+
+- On-chain primitives in `membrane-solidity/contracts/CuratorRegistry.sol`: `bondOf`, `postBond`, `beginUnbond`/`completeUnbond`, `rampOf` (reputation clock), `bucketOf`/`bucketMembers`/`pokeRank`, `slash`, `trailingPayments`, `realizedRate`.
+- App: `components/Seniority/BondCoverage.tsx:3` renders a mock because the registry address is not in config.
+- Strats rows carry a free-text `label`, no author or curator identity (`db/schema.ts` `strat_watches`).
+- Target: curator profile page (bond, ramp, realized rate, slash history), Strats "curated by" column, follow a curator (reuse the watch + alerts path from layer 7).
+
+## 5. Standard reference data — PARTIAL
+
+- Radar/Strats: stress prongs **instant / cooldown / flow**, verdicts **clear / caution / exposed** (`components/Radar/radarLogic.ts:14-52`).
+- Carry capacity bands: **instant / cooling / stranded** (`components/Carry/utils.ts:135-144`).
+- Venue-log labels: "instant swap-out depth" etc. (`components/Carry/venueLogLogic.ts` LABEL map).
+- Missing: one vocabulary across pages, and a public glossary page that defines each term so others can cite it.
+
+## 6. Belts and practice — MISS
+
+- Levels, tutorials and points progression exist but are q-racing / points-game only (`pages/[chain]/levels`, `components/Racing/Guidance/*`, `components/Points/*`).
+- Nothing trains a borrower on the real mechanism: crossing the 4% band, the 8h window, recall.
+- Candidate: a practice mode in the simulator that replays a real crossing (Oct-10) and scores the reader's decisions.
+
+## 7. Speed and alerts — PARTIAL
+
+The data is public, so no one gets it first; computed signals can still arrive first.
+
+**Have**
+- Hourly recorder (launchd `com.membrane.venue-recorder`, `scripts/recorder-tick.sh`) → alarm checker (`scripts/check-venue-alarms.mjs`) → `venue_alarms`. Rules: gate_change, drawdown_fast, net_outflow_streak, headroom_thin, utilization, depth_skew, depth_collapse (`scripts/lib/alarmRules.mjs`).
+- Operator notification only: Telegram or macOS (`scripts/lib/notify.mjs`).
+- Public structured feed `/api/venues/alarms`; alarms also appear in the venue log.
+- **2026-09-25 — per-address alerts shipped (step 1 of the plan below).** `GET /api/radar/alerts/[address]` joins `strat_watches` (held venues) × `venue_alarms`; `?format=rss` serves a subscribable feed with no account. Radar shows the list + feed link under "Track this strat". Logic: `components/Radar/alertLogic.ts`, tests `tests/unit/radarAlerts.test.ts`. Verified against the live DB: a watched sUSDS holder receives the open sUSDS alarm.
+
+**Known defects feeding this layer**
+- **Terms-page hash noise (blocks trusting the feed).** sUSDS logged 47 `terms_page_changed` events in 10 days (2026-09-15 → 09-25) with unchanged page length, so a dynamic number on the page flips the hash. The sUSDS `gate_change` alarm therefore never clears and tells every sUSDS holder "every exit plan just changed". Watcher: `scripts/watch-venue-terms.mjs`.
+- **Zero-depth reads fire false collapses.** sUSDS `depth_collapse` fired twice (2026-09-07, 09-13) on "$4.0B → $0" within a day. A 100% drop to exactly zero on a multi-billion pool is almost certainly a failed depth read stored as 0, not a real drain. The recorder should store null on a failed read, and `evalDepthCollapse` should ignore zero points (`scripts/lib/alarmRules.mjs:198`). These alarms are cleared, but they show in the alert history.
+- `alarmConsequence` had no sentence for utilization / depth_skew / depth_collapse and printed raw JSON; fixed 2026-09-25 (`components/Carry/venueLogLogic.ts`).
+- The TS mirrors of the uncovered-signal list lag the source: `pages/api/venues/alarms.ts` and `UNCOVERED_FOOTER` still list "terms changes" and lack the depth/terms coverage flags that `uncoveredFor()` now takes (`scripts/lib/alarmRules.mjs:262`).
+- `scripts/lib/alarmRules.mjs` contains a stray non-UTF-8 byte, so plain `grep` treats it as binary; use `grep -a`.
+
+---
+
+## Plan — step by step
+
+| Step | Layer | What | Status |
+|---|---|---|---|
+| 1 | 7 | Per-address alerts: watched address × open alarm → JSON + RSS + Radar list | **DONE 2026-09-25** |
+| 2 | 7 | Alarm data quality before anyone relies on the feed: (a) terms-page hash noise — normalize away dynamic numbers or diff by section, re-baseline sUSDS, so its `gate_change` can clear; needs a ruling on what counts as a terms change. (b) zero-depth reads — store null on a failed read, skip zero points in `evalDepthCollapse` | next |
+| 3 | 7 | Sync the uncovered-signal mirrors with `uncoveredFor()` (one shared JSON both sides import) | small |
+| 4 | 1 | Radar result permalinks + per-result OG card; flip Radar to indexable for the landing view | |
+| 5 | 1 | Per-venue and per-finding OG cards; "run this on your wallet" CTA on every venue page into the simulator | |
+| 6 | 5 | One vocabulary (pick instant/cooling/stranded or instant/cooldown/flow) + `/glossary` | needs owner pick |
+| 7 | 7 | A push channel beyond RSS (Telegram bot deep-link keyed to the watched address, or email). Needs a subscriptions table and an owner call on the channel | needs owner pick |
+| 8 | 4 | Wire `CuratorRegistry` into `config/evm`; BondCoverage goes live; curator profile page | after deploy addresses exist |
+| 9 | 3/risk | **Risk desk page** (see below) | design |
+| 10 | 6 | Borrower practice mode on the simulator | design |
+| — | 2, 3 | Real execution + live position protection | BACKLOG until on-chain deploy |
+
+### Step 9 — the risk desk page (replaces the orphaned `/ltv-dashboard`)
+
+Owner direction 2026-09-25: `/ltv-dashboard` is the only orphaned route worth an
+inbound link, and its content may be better merged into a page where risk
+managers and borrowers congregate.
+
+- **What moves there.** The LTV dashboard's content: the status of risk managers' decisions and the process of change each asset's LTV is going through (current, pending, direction). Today it runs on Neutron mock data (`components/LTVDashboard/LTVDashboard.tsx:25`, stamped "mock — not live").
+- **What joins it.** Per-asset bad-debt waterfall coverage. Existing pieces: `components/Disco/DiscoPageWaterfall*.tsx`, `components/Seniority/Waterfall.tsx`, `components/Seniority/BondCoverage.tsx`.
+- **Why the pairing works.** Both are per-asset, and both answer the borrower's question "how safe is this collateral and who is changing its terms".
+- **Facts to respect.** Each asset's max LTV is capped at listing and can never be raised above that cap; a decrease has no notice period today (the 14-day delay is ruled but unbuilt). See `membrane-solidity/docs/LTV-CHANGE-PARITY-AUDIT.md`.
+- **Link-in.** From the Position page, the simulator's fine print, and curator profiles once layer 4 lands.
+
+## Route notes (2026-09-25)
+
+- Orphaned and intentionally left: acquisition-dashboard, acquisition-sim, control-room, isolated, nft, lockdrop, tournament.
+- `/ltv-dashboard`: fold into the risk desk page (step 9), then give that page its inbound links.
+- Venue pages are linked from Radar, Strats and Carry, not from Evidence or the simulator.

@@ -181,7 +181,13 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
             the board → /carry
           </Text>
         </NextLink>
+        <NextLink href={`/${chainName}/simulator`} style={{ textDecoration: 'underline' }}>
+          <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.success}>
+            Run this on your wallet →
+          </Text>
+        </NextLink>
       </HStack>
+      <Stamp>Data compiled by Membrane.</Stamp>
     </Card>
   )
 

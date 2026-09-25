@@ -7,6 +7,7 @@ import PageSeo from '@/components/PageSeo'
 import { Evidence } from '@/components/Evidence'
 import type { EvidenceDoc } from '@/components/Evidence'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
+import { FINDING_OG_IMAGE_PATH } from '@/lib/share/permalink'
 
 // The Evidence tool has its own URL again. The chain root is now the seniority
 // landing (pages/[chain]/index.tsx), which links here for the filterable cohort, so
@@ -59,6 +60,7 @@ const EvidencePage = ({ summary }: { summary: EvidenceDoc | null }) => {
             <PageSeo
                 seoClass="indexable"
                 path={`/${DEFAULT_CHAIN}/evidence`}
+                image={FINDING_OG_IMAGE_PATH}
                 title="Membrane: What our engine would have done"
                 description="Every account Aave liquidated on 10 October 2025, replayed through Membrane's liquidation engine on the same measured prices. Aave closed a median 71% of each loan; Membrane's partial repay-to-cap closes 17.8%. Includes the accounts where Membrane does worse."
             />

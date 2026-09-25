@@ -230,3 +230,46 @@ for (const [v, list] of Object.entries(uncoveredByVenue)) {
   console.log(`  ${v}: ${list.map((u) => `${u.id} (${u.memo})`).join('; ')}`)
 }
 console.log('\nalarm check complete')
+
+// --- TELEGRAM ADDRESS ALERTS (MOAT step 7) ----------------------------------
+// Drain /start//stop commands (poll mode only — Telegram forbids getUpdates while
+// a webhook is set), then send one message per new (subscription, alarm, moment)
+// to chats watching an address that holds the venue. Ships dark while the bot env
+// is unset. Non-fatal, and the two halves fail independently: a poll failure
+// never blocks sending.
+let tg = null
+try {
+  const bot = await import('./lib/telegramBot.mjs')
+  const tgConfig = bot.botConfig(get)
+  if (!tgConfig.enabled) {
+    console.log('telegram alerts: bot not configured (TELEGRAM_ALERTS_BOT_TOKEN/USERNAME unset) — skipped')
+  } else {
+    const { require: tsxRequire } = await import('tsx/cjs/api')
+    const logic = tsxRequire('../components/Radar/telegramLogic.ts', import.meta.url)
+    tg = { bot, config: tgConfig, logic, venues: loadConfig() }
+  }
+} catch (e) {
+  console.log(`telegram alerts: setup failed (non-fatal) — ${e?.message ?? e}`)
+}
+if (tg && tg.config.webhookSecret) {
+  console.log('telegram alerts: webhook mode — command polling skipped')
+} else if (tg) {
+  try {
+    const footerFor = tg.bot.scriptFooterFor(sql, tg.venues)
+    const { handled } = await tg.bot.pollOnce({ sql, logic: tg.logic, footerFor, config: tg.config })
+    console.log(`telegram alerts: answered ${handled} command(s)`)
+  } catch (e) {
+    console.log(`telegram alerts: poll failed (non-fatal) — ${e?.message ?? e}`)
+  }
+}
+if (tg) {
+  try {
+    await tg.bot.sendAddressAlerts(sql, {
+      logic: tg.logic,
+      coverage: tg.bot.scriptCoverage(sql, tg.venues),
+      config: tg.config,
+    })
+  } catch (e) {
+    console.log(`telegram alerts: send failed (non-fatal) — ${e?.message ?? e}`)
+  }
+}

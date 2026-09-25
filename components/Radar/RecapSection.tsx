@@ -89,6 +89,7 @@ type AlertsResponse = {
   open: AlertRow[]
   recent: AlertRow[]
   feed_url: string
+  telegram_link?: string | null
   uncovered: string
 }
 
@@ -141,6 +142,21 @@ const AlertsBlock: React.FC<{ address: string }> = ({ address }) => {
           >
             rss feed
           </Text>
+          {data.telegram_link && (
+            <Text
+              as="a"
+              href={data.telegram_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="11px"
+              color={SEMANTIC_COLORS.textSecondary}
+              textDecoration="underline"
+              data-testid="radar-alerts-telegram"
+            >
+              telegram
+            </Text>
+          )}
           <Text
             as="button"
             onClick={copyFeed}

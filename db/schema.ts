@@ -9,12 +9,14 @@ import {
   bigint,
   bigserial,
   boolean,
+  check,
   index,
   integer,
   jsonb,
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -704,3 +706,50 @@ export const landingEvents = pgTable(
     index('landing_events_kind_at_idx').on(table.kind, table.at),
   ],
 )
+
+// ---------------------------------------------------------------------------
+// TELEGRAM ADDRESS ALERTS (MOAT step 7). A chat subscribes to a watched Radar
+// address via the bot deep link; scripts/check-venue-alarms.mjs sends one message
+// per venue alarm that opens or clears on a venue that address holds
+// (scripts/lib/telegramBot.mjs). DDL in scripts/apply-alert-subscriptions-ddl.mjs
+// — keep them in lockstep.
+// ---------------------------------------------------------------------------
+
+export const alertSubscriptions = pgTable(
+  'alert_subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    chatId: text('chat_id').notNull(),
+    address: text('address').notNull(), // checksummed 0x…, present in strat_watches
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    stoppedAt: timestamp('stopped_at', { withTimezone: true }), // /stop; null = active
+  },
+  (table) => [
+    uniqueIndex('alert_subscriptions_chat_address_key').on(table.chatId, table.address),
+    index('alert_subscriptions_active_idx').on(table.address).where(sql`stopped_at IS NULL`),
+  ],
+)
+
+// The idempotency ledger: a (subscription, alarm, moment) is sent at most once;
+// the row is written only after Telegram returns ok.
+export const alertDeliveries = pgTable(
+  'alert_deliveries',
+  {
+    subscriptionId: uuid('subscription_id')
+      .notNull()
+      .references(() => alertSubscriptions.id, { onDelete: 'cascade' }),
+    alarmId: uuid('alarm_id').notNull(),
+    moment: text('moment').notNull(), // 'fired' | 'cleared'
+    sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.subscriptionId, table.alarmId, table.moment] }),
+    check('alert_deliveries_moment_check', sql`${table.moment} IN ('fired', 'cleared')`),
+  ],
+)
+
+// Tiny key/value for the dev poller's getUpdates offset (key 'poll_offset').
+export const alertBotState = pgTable('alert_bot_state', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+})

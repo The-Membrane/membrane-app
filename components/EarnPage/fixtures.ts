@@ -37,7 +37,7 @@ export const CAPACITY_BANDS: CapacityBand[] = [
   { key: 'instant', label: 'INSTANT — exits now', amountUsd: 2_950_000 },
   // ETA is banded, not minute-precise: CAPACITY_READS_STAMP below admits it is
   // reconstructed from a live cooldownDuration() and can be silently wrong.
-  { key: 'cooling', label: 'COOLING — lands ~Aug 22 (reconstructed ETA)', amountUsd: 640_000 },
+  { key: 'cooling', label: 'COOLDOWN — lands ~Aug 22 (reconstructed ETA)', amountUsd: 640_000 },
   { key: 'stranded', label: 'STRANDED — needs an operator crank', amountUsd: 1_570_000 },
 ]
 
@@ -60,7 +60,7 @@ export const VENUE_LIQUIDITY: VenueLiquidity[] = [
     coolingUsd: 0,
     strandedUsd: 0,
     note: [
-      { text: 'cooling is ' },
+      { text: 'cooldown is ' },
       { text: 'zero by construction', bold: true },
       { text: ' · recalls synchronously inside every withdraw' },
     ],
@@ -85,7 +85,7 @@ export const VENUE_LIQUIDITY: VenueLiquidity[] = [
         text:
           ": Ethena's global cooldown makes _venueLiquid() read 0, and nothing in the withdraw path starts a cooldown — recall needs the operator. ",
       },
-      { text: '$0.64M cooling', tone: 'warning', bold: true },
+      { text: '$0.64M in cooldown', tone: 'warning', bold: true },
       { text: ' from the crank on Aug 15, unlocks in 4d 11h' },
     ],
   },
@@ -93,7 +93,7 @@ export const VENUE_LIQUIDITY: VenueLiquidity[] = [
 
 export const CAPACITY_READS_STAMP =
   'mock values shaped to the real reads: instantLiquidity() · bufferBalance() · maxWithdraw(you) · ' +
-  "coolingAssets · the cooling ETA is reconstructed from Ethena's live cooldownDuration() and is wrong if " +
+  "coolingAssets · the cooldown ETA is reconstructed from Ethena's live cooldownDuration() and is wrong if " +
   'that parameter changes mid-cooldown — a start-time snapshot is being added on-chain'
 
 /** Sect 03 — per-collateral loss order (proto :262-269). No reserve exists; disco stake on that

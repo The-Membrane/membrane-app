@@ -451,14 +451,14 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
               >
                 {EXIT_MODEL.alt.name.split(' · ')[0]}: instant to{' '}
                 {formatUSD(EXIT_MODEL.alt.instantDepthUsd)} at {EXIT_MODEL.alt.instantCostPct[0]}–
-                {EXIT_MODEL.alt.instantCostPct[1]}%, cooling to{' '}
+                {EXIT_MODEL.alt.instantCostPct[1]}%, cooldown to{' '}
                 {formatUSD(EXIT_MODEL.alt.instantDepthUsd + EXIT_MODEL.alt.coolingDepthUsd)} at{' '}
                 {EXIT_MODEL.alt.coolingCostPct[0]}–{EXIT_MODEL.alt.coolingCostPct[1]}%, then{' '}
                 {EXIT_MODEL.alt.strandedCostPct[0]}–{EXIT_MODEL.alt.strandedCostPct[1]}%.{' '}
                 {EXIT_MODEL.chosen.name.split(' · ')[0]}: instant to{' '}
                 {formatUSD(EXIT_MODEL.chosen.instantDepthUsd)} at{' '}
                 {EXIT_MODEL.chosen.instantCostPct[0]}–{EXIT_MODEL.chosen.instantCostPct[1]}%,
-                cooling to{' '}
+                cooldown to{' '}
                 {formatUSD(EXIT_MODEL.chosen.instantDepthUsd + EXIT_MODEL.chosen.coolingDepthUsd)}{' '}
                 at {EXIT_MODEL.chosen.coolingCostPct[0]}–{EXIT_MODEL.chosen.coolingCostPct[1]}%,
                 then {EXIT_MODEL.chosen.strandedCostPct[0]}–{EXIT_MODEL.chosen.strandedCostPct[1]}%.

@@ -235,7 +235,7 @@ export const VenueCapacity: React.FC<VenueCapacityProps> = ({ detection }) => {
                 youUsd={d.valueUsd}
               />
               <Line>
-                instant {band(rec.bands.instantUsd)} · cooling {band(rec.bands.coolingUsd)} ·
+                instant {band(rec.bands.instantUsd)} · cooldown {band(rec.bands.coolingUsd)} ·
                 stranded {band(rec.bands.strandedUsd)}
               </Line>
             </Box>
@@ -244,7 +244,7 @@ export const VenueCapacity: React.FC<VenueCapacityProps> = ({ detection }) => {
       )}
 
       {/* The derivation lives in the title attribute rather than the layout: the bands
-          are derived (the recorder stores no cooling/stranded split) and a reader who
+          are derived (the recorder stores no cooldown/stranded split) and a reader who
           wants to audit the bar can read exactly how, without a paragraph on screen. */}
       <Stamp provenance={stampProv} />
     </Box>

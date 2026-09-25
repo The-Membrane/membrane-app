@@ -102,7 +102,7 @@ export const consequence = (e: Entry): { text: string; tone: 'warning' | 'normal
     const b = Number(e.next?.cooldownDuration)
     const shorter = b < a
     return {
-      text: `cooldown ${fmtDuration(a)} → ${fmtDuration(b)} — the cooling window ${shorter ? 'shortened' : 'LENGTHENED'}; every exit plan against this venue just changed`,
+      text: `cooldown ${fmtDuration(a)} → ${fmtDuration(b)} — the cooldown window ${shorter ? 'shortened' : 'LENGTHENED'}; every exit plan against this venue just changed`,
       tone: 'warning',
     }
   }

@@ -12,7 +12,7 @@ const entry = (kind: string, prev: Record<string, unknown>, next: Record<string,
 })
 
 describe('VenueLog consequence rendering', () => {
-  it('renders the Ethena cooldown cut as a shortened cooling window, warning tone', () => {
+  it('renders the Ethena cooldown cut as a shortened cooldown window, warning tone', () => {
     const c = consequence(entry('cooldown_duration_changed', { cooldownDuration: 604800 }, { cooldownDuration: 86400 }))
     expect(c.text).toContain('cooldown 7d → 1d')
     expect(c.text).toContain('shortened')

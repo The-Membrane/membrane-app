@@ -241,7 +241,7 @@ const HowTo: React.FC = () => (
         ['retrievableCdt(user)', '= min( convertToAssets(your shares) , pool-wide liquid )'],
         ['pool-wide liquid', '= idleLedger + cdtBufferLedger + _venueLiquidSafe()'],
         ['_venueLiquidSafe()', ' is gas-capped and try/caught. If the venue’s own view reverts or runs out of gas it returns 0 — an unreadable venue counts as illiquid, never as full.'],
-        ['per venue', ': Aave min(aToken.balanceOf(this), underlying.balanceOf(aToken)) — the second term is the unborrowed reserve, which is what a bank run empties · Yearn min(position, yVault idle) · sUSDe 0 while cooling · ERC-4626 min(maxWithdraw, previewRedeem)'],
+        ['per venue', ': Aave min(aToken.balanceOf(this), underlying.balanceOf(aToken)) — the second term is the unborrowed reserve, which is what a bank run empties · Yearn min(position, yVault idle) · sUSDe 0 during cooldown · ERC-4626 min(maxWithdraw, previewRedeem)'],
         ['the recall itself', ' measures balance-delta on the engine, so a venue that claims to have sent funds but did not is recorded as having sent nothing.'],
       ].map(([b, rest]) => (
         <Box key={b} borderLeft="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} pl={SPACING.sm} display="grid" gap="2px">

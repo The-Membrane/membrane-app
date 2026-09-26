@@ -102,6 +102,9 @@ importers:
       cosmwasm:
         specifier: ^1.1.1
         version: 1.1.1(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      cuer:
+        specifier: 0.0.3
+        version: 0.0.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
       dayjs:
         specifier: ^1.11.19
         version: 1.11.19
@@ -126,6 +129,9 @@ importers:
       lucide-react:
         specifier: ^0.542.0
         version: 0.542.0(react@18.3.1)
+      mipd:
+        specifier: 0.0.7
+        version: 0.0.7(typescript@5.9.3)
       next:
         specifier: ^15.0.0
         version: 15.5.20(@babel/core@7.28.5)(@opentelemetry/api@1.9.1)(@playwright/test@1.58.2)(babel-plugin-macros@3.1.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

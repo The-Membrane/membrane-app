@@ -7,6 +7,18 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  // Bundle the wallet packages into the server output instead of leaving their
+  // pnpm-linked ESM dependencies for the Vercel function to resolve at runtime.
+  // Without this, traced functions can omit transitive files such as mipd and
+  // then fail every SSR request with ERR_MODULE_NOT_FOUND.
+  transpilePackages: [
+    '@rainbow-me/rainbowkit',
+    '@wagmi/connectors',
+    '@wagmi/core',
+    'cuer',
+    'mipd',
+    'wagmi',
+  ],
   // R3 (docs/SEO_RULESET.md): routes deleted on the evm-migration branch keep
   // permanent redirects so old links and index entries land somewhere real.
   // Running map: docs/REDIRECT_MAP.md. `:chain` is already validated upstream

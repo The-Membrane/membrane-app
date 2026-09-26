@@ -63,7 +63,9 @@ test.describe('render smoke (production build)', () => {
       })
 
       // 'load' not 'networkidle' — the app polls RPCs forever (see skill notes)
-      await page.goto(route, { waitUntil: 'load' })
+      const response = await page.goto(route, { waitUntil: 'load' })
+      expect(response, `no document response for ${route}`).not.toBeNull()
+      expect(response!.status(), `HTTP ${response!.status()} for ${route}`).toBeLessThan(500)
       // settle window: effects, react-query retries, and any update loop would trip here
       await page.waitForTimeout(4000)
 

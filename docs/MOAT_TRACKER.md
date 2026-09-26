@@ -162,14 +162,14 @@ managers and borrowers congregate.
 - Venue page: "Run this on your wallet →" · "Data compiled by Membrane." — evidence page attribution.
 - Social cards: "4%." mark; "Data compiled by Membrane"; radar "carry radar" · total / venues held / weakest verdict; venue "TVL · worst 1-day outflow · 90 d · worst 7-day outflow · 90 d · open flags"; finding "Collateral a 4% window would have kept over 3.6 years of Aave V3" ($1.2B from liquidation-corpus.json).
 - Glossary: 18 definitions, each sourced from radarLogic.ts / Carry utils / alarmRules.mjs thresholds.
-- Telegram bot: welcome ("Watching …", "Venues: …", "Open now: …", "Silence is not all-clear: <blind spots>.", "Data compiled by Membrane. /stop to unsubscribe, /list …"), "Track this address on Radar first: <link>", "This chat already watches 25 addresses. /stop to reset.", alert header "<addr> holds <venue>".
-- Practice: "Practice the crossing"; "The recorded Oct 10 tape, Membrane's rules. The tape stops when the timer classifies something. You choose."; pause lines and choice labels (see components/Practice).
+- Telegram bot (revised 2026-09-26 on owner review): welcome = "Watching <addr>. It holds <venues>." · "Right now: no alarm on <venues>." (or the open alarms) · "This chat gets a message when an alarm starts or ends on <venues>:" + a plain list of what is watched (lending line only for Aave holders) · "Radar profile: <link>" · "Data compiled by Membrane · /stop to unsubscribe · /list to see what this chat watches"; no blind-spot line in Telegram. Avatar: the cell mark (public/images/telegram-bot-avatar.png). "Track this address on Radar first: <link>", "This chat already watches 25 addresses. /stop to reset.", alert header "<addr> holds <venue>".
+- Practice (revised 2026-09-26, 'crossing'/'tape' jargon removed): "Practice Oct 10"; "Hold a loan through the real Oct 10 2025 crash, minute by minute. When it crosses its liquidation line, Membrane gives it 8 hours instead of selling. The replay pauses so you can act."; presets "worst dip stays inside the window" / "worst dip breaks past the window"; "Start the replay"; pause eyebrows "Window started" / "Halfway through the window" / "Near the break line". Owner wants to judge placement on the live page.
 - Risk desk: "Collateral terms, and who pays for bad debt"; "The max LTV moves at most 5 percentage points per 14-day window, in either direction, and can never exceed the listing cap."; target source sentence; "Curator bonds are not in this cascade and are not assigned to assets."
 
 ## Open findings from the build
 
 - `lib/position-sim/guarantee.ts` `GUARANTEE.noDials` claims a 14-day notice and 5%/window LTV cap that exist only on the unmerged `feat/ltv-change-cap`; not rendered today.
 - The risk desk's LTV-change process exists only on `feat/ltv-change-cap` (unmerged); master has a live ratio with no glide.
-- No per-asset view for curator bonds or the senior haircut hole (global only).
-- Oct-10 tape never reaches the practice "mid-window" pause (every in-band breach recovered within minutes).
+- The senior haircut hole has no per-asset view (global only). Curator bonds are not in the bad-debt waterfall, so they need no per-asset view (owner, 2026-09-26).
+- The Oct-10 prices never reach the practice "halfway through the window" pause: every in-band breach recovered within minutes. Not a data fault; a slower real episode from the liquidation corpus would exercise it (belts v2).
 - Local anvil needs `--disable-block-gas-limit` for DeployFullSystem (two creations at 13.7M/14.9M gas stall otherwise).

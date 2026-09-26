@@ -22,8 +22,8 @@ const PracticePage = () => (
         <PageSeo
             seoClass="indexable"
             path={`/${DEFAULT_CHAIN}/practice`}
-            title="Membrane — Practice the crossing"
-            description="Replay the recorded Oct 10 2025 oracle tape against Membrane's 8-hour window and 4% band. Stop at each classification, choose, and compare the collateral you keep with doing nothing and with what liquidators took."
+            title="Membrane — Practice Oct 10"
+            description="Replay the recorded Oct 10 2025 oracle prices against Membrane's 8-hour window and 4% band. Stop at each classification, choose, and compare the collateral you keep with doing nothing and with what liquidators took."
         />
         <Practice />
     </>

@@ -188,10 +188,10 @@ export const Practice: React.FC = () => {
     <Box maxW="1140px" mx="auto" px={SPACING.base} py={SPACING.lg} bg={SEMANTIC_COLORS.bgPrimary} color={SEMANTIC_COLORS.textPrimary}>
       <Eyebrow>Practice</Eyebrow>
       <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} letterSpacing="-0.01em" mt={SPACING.xs}>
-        Practice the crossing
+        Practice Oct 10
       </Text>
       <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.sm} maxW="640px">
-        The recorded Oct 10 tape, Membrane&apos;s rules. The tape stops when the timer classifies something. You choose.
+        Hold a loan through the real Oct 10 2025 crash, minute by minute. When it crosses its liquidation line, Membrane gives it 8 hours instead of selling. The replay pauses so you can act.
       </Text>
 
       {error && (
@@ -201,7 +201,7 @@ export const Practice: React.FC = () => {
       )}
       {!data && !error && (
         <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textTertiary} mt={SPACING.lg}>
-          Loading the tape…
+          Loading Oct 10 prices…
         </Text>
       )}
 
@@ -228,7 +228,7 @@ export const Practice: React.FC = () => {
                       {fmtPct(p.openLtv)} → worst minute {fmtPct(p.worstLtv)}
                     </Text>
                     <Text fontSize="11px" color={SEMANTIC_COLORS.textTertiary} mt="2px">
-                      {k === 'inside' ? 'inside the band' : 'through the band'} · {clockAt(sc, p.worstIndex)}
+                      {k === 'inside' ? 'worst dip stays inside the window' : 'worst dip breaks past the window'} · {clockAt(sc, p.worstIndex)}
                     </Text>
                   </Box>
                 </ActionButton>
@@ -243,7 +243,7 @@ export const Practice: React.FC = () => {
             <Fact label="window" value={elapsed(sc.delaySteps * (sc.stepSeconds / 60))} />
           </SimpleGrid>
           <Box mt={SPACING.lg}>
-            <ActionButton onClick={start}>Run the tape</ActionButton>
+            <ActionButton onClick={start}>Start the replay</ActionButton>
           </Box>
         </Panel>
       )}
@@ -300,7 +300,7 @@ export const Practice: React.FC = () => {
 
       {data && (
         <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.12em" color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xl} lineHeight={1.7}>
-          Tape: {tapeName}. {data.manifest.windowStartUtc} → {data.manifest.windowEndUtc}.
+          Prices: {tapeName}. {data.manifest.windowStartUtc} → {data.manifest.windowEndUtc}.
         </Text>
       )}
     </Box>

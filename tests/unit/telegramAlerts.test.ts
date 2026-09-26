@@ -76,9 +76,12 @@ describe('parseCommand', () => {
 describe('replyText', () => {
   it('welcome says "Data compiled by Membrane." once, links Radar, carries the footer', () => {
     const t = replyText({ kind: 'subscribed', address: ADDR, held: ['sUSDe'], openTexts: [], footer: 'this alarm cannot yet see: X' })
-    expect(t.match(/Data compiled by Membrane\./g)).toHaveLength(1)
+    expect(t.match(/Data compiled by Membrane/g)).toHaveLength(1)
     expect(t).toContain(`https://membrane.money/ethereum/radar?address=${ADDR}`)
-    expect(t).toContain('this alarm cannot yet see: X')
+    expect(t).toContain('Radar profile: https://membrane.money/ethereum/radar?address=')
+    expect(t).toContain('Right now: no alarm on sUSDe.')
+    expect(t).toContain('This chat gets a message when an alarm starts or ends on sUSDe:')
+    expect(t).not.toMatch(/Silence|cannot yet see|Open now|Venues:/)
     expect(t).not.toMatch(/[*_`[]/) // plain text, no markdown
   })
   it('not-watched points to Radar', () => {
@@ -209,7 +212,7 @@ describe('handleUpdate', () => {
     })
     const out = await handleUpdate({ message: { chat: { id: 7 }, text: `/start ${ADDR}` } }, { sql, logic, footerFor })
     expect(out?.chatId).toBe('7')
-    expect(out?.text).toContain('Open now:\n- sUSDe:')
+    expect(out?.text).toContain('Right now:\n- sUSDe:')
     const ins = calls.find((c) => c.q.startsWith('INSERT INTO alert_subscriptions'))
     expect(ins?.values).toEqual(['7', ADDR])
     expect(ins?.q).toContain('stopped_at = NULL')
@@ -291,7 +294,8 @@ describe('sendAddressAlerts', () => {
     const r = await sendAddressAlerts(w.sql, { logic, coverage, config, fetchImpl, log: silent })
     expect(r).toEqual({ sent: 1, failed: 0 })
     expect(sent[0].body.chat_id).toBe('100')
-    expect(sent[0].body.text).toContain('this alarm cannot yet see: X')
+    expect(sent[0].body.text).toContain('Radar profile: https://membrane.money/ethereum/radar?address=')
+    expect(sent[0].body.text).not.toMatch(/Silence|cannot yet see/)
     expect([...w.ledger]).toEqual(['s1|a1|fired'])
   })
 

@@ -118,12 +118,12 @@ export const ResultCard: React.FC<{
       {st.sales.map((s, k) => (
         <Text key={`s${k}`} fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger} lineHeight={1.8}>
           {clockAt(sc, s.index)} · sold {fmtUsd(s.seizedUsd)} at {fmtPct(s.ltvBefore, 2)} ·{' '}
-          {s.reason === 'band' ? 'break line crossed' : 'window expired'}
+          {s.reason === 'band' ? 'passed the break line' : 'window expired'}
         </Text>
       ))}
 
       <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary} mt={SPACING.md} lineHeight={1.7}>
-        Same position, same tape: {tapeName}. Kept % = collateral still held ÷ all collateral posted, priced at the last minute.
+        Same position, same prices: {tapeName}. Kept % = collateral still held ÷ all collateral posted, priced at the last minute.
       </Text>
     </Box>
   )

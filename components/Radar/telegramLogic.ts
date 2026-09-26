@@ -60,17 +60,41 @@ export type Reply =
   | { kind: 'help' }
 
 /** Plain text, no markdown. "Data compiled by Membrane." appears once, in the welcome. */
+/**
+ * What a subscriber is alerted on, in plain words, one line per alarm genre
+ * (scripts/lib/alarmRules.mjs). No thresholds here: the numbers live in the
+ * glossary, which is built from the rule constants.
+ */
+export const WATCHED_RISKS = [
+  'its exit gate changes (cooldown length, terms page, instant-exit liquidity)',
+  'its exit capacity falls fast',
+  'withdrawals outrun deposits day after day',
+  'instant exit could not cover its worst recent day of withdrawals',
+  'its swap-out pool drains or goes one-sided',
+] as const
+
+/** Only a lending venue (Aave) has a utilization alarm; the line shows only for its holders. */
+const LENDING_RISK = 'its lending market is almost fully lent out'
+const isLendingVenue = (v: string) => v.startsWith('aave')
+
+
 export const replyText = (r: Reply): string => {
   switch (r.kind) {
     case 'subscribed': {
+      const venues = r.held.length ? r.held.join(', ') : null
       const lines = [
-        `Watching ${shortAddr(r.address)}. You get one message when an alarm opens or clears on a venue it holds.`,
-        `Venues: ${r.held.length ? r.held.join(', ') : 'none held right now'}.`,
-        r.openTexts.length ? `Open now:\n${r.openTexts.map((t) => `- ${t}`).join('\n')}` : 'Open now: none.',
-        `Silence is not all-clear: ${r.footer}.`,
-        radarLink(r.address),
-        'Data compiled by Membrane. /stop to unsubscribe, /list to see what this chat watches.',
-      ]
+        venues
+          ? `Watching ${shortAddr(r.address)}. It holds ${venues}.`
+          : `Watching ${shortAddr(r.address)}. It holds none of the venues Membrane watches right now.`,
+        r.openTexts.length
+          ? `Right now:\n${r.openTexts.map((t) => `- ${t}`).join('\n')}`
+          : venues
+            ? `Right now: no alarm on ${venues}.`
+            : null,
+        `This chat gets a message when an alarm starts or ends on ${venues ?? 'a venue this address holds'}:\n${[...WATCHED_RISKS, ...(r.held.some(isLendingVenue) ? [LENDING_RISK] : [])].map((w) => `- ${w}`).join('\n')}`,
+        `Radar profile: ${radarLink(r.address)}`,
+        'Data compiled by Membrane · /stop to unsubscribe · /list to see what this chat watches',
+      ].filter(Boolean)
       return lines.join('\n\n')
     }
     case 'not_watched':
@@ -139,8 +163,7 @@ export const alertMessage = (args: { address: string; alarm: AlarmLike; moment: 
   return [
     `${shortAddr(args.address)} holds ${alarm.venue}`,
     consequence,
-    args.footer ? `Silence is not all-clear: ${args.footer}.` : null,
-    radarLink(args.address),
+    `Radar profile: ${radarLink(args.address)}`,
   ]
     .filter(Boolean)
     .join('\n')

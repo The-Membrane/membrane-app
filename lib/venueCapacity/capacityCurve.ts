@@ -192,20 +192,65 @@ export type CapacityCurveResponse = {
   } | null
 }
 
-// --- slider (log scale: 0.1%..10% is two decades) ----------------------------
+// --- cost ceiling (owner 2026-09-26: the cost scale ends where capacity maxes out) ---
+/** Share of the pool's reserve that counts as "drained" for the ceiling. */
+export const DRAINED_SHARE = 0.99
+
+export type CostCeiling = {
+  costPct: number
+  capacityUsd: number
+  /** pool drained: the value received reached DRAINED_SHARE of the reserve; paying more buys nothing.
+   *  capacity flat: capacity stopped growing (e.g. a PSM buffer at its fee). last quote: neither, within the quoted range. */
+  reason: 'pool drained' | 'capacity flat' | 'last quote'
+}
+
+/**
+ * The lowest quoted cost at which exit capacity is maxed out. Past it, a larger
+ * "capacity" only means paying more for the same output, so charts and levers
+ * stop here. reserveUsd = the swap-into reserve(s) summed; null when unknown.
+ */
+export function costCeiling(points: CurvePoint[], reserveUsd: number | null): CostCeiling | null {
+  const q = points
+    .filter((p): p is { costPct: number; capacityUsd: number } => p.capacityUsd !== null)
+    .sort((a, b) => a.costPct - b.costPct)
+  if (q.length === 0) return null
+  const max = q[q.length - 1].capacityUsd
+  for (const p of q) {
+    if (reserveUsd != null && reserveUsd > 0 && p.capacityUsd * (1 - p.costPct / 100) >= reserveUsd * DRAINED_SHARE) {
+      return { costPct: p.costPct, capacityUsd: p.capacityUsd, reason: 'pool drained' }
+    }
+    if (p.capacityUsd >= max * (1 - 1e-3)) {
+      // First point at the maximum: earlier than the last quote = the curve went flat;
+      // only at the last quote = still rising when the quotes end.
+      const atLast = q.length > 1 && p === q[q.length - 1]
+      return { costPct: p.costPct, capacityUsd: p.capacityUsd, reason: atLast ? 'last quote' : 'capacity flat' }
+    }
+  }
+  const last = q[q.length - 1]
+  return { costPct: last.costPct, capacityUsd: last.capacityUsd, reason: 'last quote' }
+}
+
+/** Sum of the markets' reserves; null if any market's reserve is unknown. */
+export function venueReserveUsd(markets: Array<{ reserveUsd: number | null }>): number | null {
+  if (markets.length === 0 || markets.some((m) => m.reserveUsd == null)) return null
+  return markets.reduce((a, m) => a + (m.reserveUsd as number), 0)
+}
+
+// --- slider (log scale: 0.1%..ceiling) -----------------------------------------
 export const SLIDER_STEPS = 1000
 const SNAP_LOG = 0.02 // snap to a quoted level within ~2% of it (in cost terms)
 
 /** Slider position [0, SLIDER_STEPS] -> cost %, log-spaced, snapped onto a quoted level when close. */
-export function sliderToCost(step: number, levels: readonly number[] = []): number {
+export function sliderToCost(step: number, levels: readonly number[] = [], maxPct: number = CAPACITY_SLIDER_MAX_PCT): number {
   const t = Math.min(Math.max(step, 0), SLIDER_STEPS) / SLIDER_STEPS
-  const raw = CAPACITY_SLIDER_MIN_PCT * (CAPACITY_SLIDER_MAX_PCT / CAPACITY_SLIDER_MIN_PCT) ** t
+  const raw = CAPACITY_SLIDER_MIN_PCT * (maxPct / CAPACITY_SLIDER_MIN_PCT) ** t
   for (const l of levels) if (Math.abs(Math.log(raw / l)) < SNAP_LOG) return l
   return Number(raw.toPrecision(3))
 }
 
 /** Inverse of sliderToCost. */
-export function costToSlider(costPct: number): number {
-  const c = Math.min(Math.max(costPct, CAPACITY_SLIDER_MIN_PCT), CAPACITY_SLIDER_MAX_PCT)
-  return Math.round((Math.log(c / CAPACITY_SLIDER_MIN_PCT) / Math.log(CAPACITY_SLIDER_MAX_PCT / CAPACITY_SLIDER_MIN_PCT)) * SLIDER_STEPS)
+export function costToSlider(costPct: number, maxPct: number = CAPACITY_SLIDER_MAX_PCT): number {
+  if (maxPct <= CAPACITY_SLIDER_MIN_PCT) return 0
+  const c = Math.min(Math.max(costPct, CAPACITY_SLIDER_MIN_PCT), maxPct)
+  return Math.round((Math.log(c / CAPACITY_SLIDER_MIN_PCT) / Math.log(maxPct / CAPACITY_SLIDER_MIN_PCT)) * SLIDER_STEPS)
 }

@@ -180,3 +180,31 @@ describe('slider — log scale over 0.1%..10%', () => {
     expect(sliderToCost(costToSlider(2.5), [0.5, 1, 5])).toBeCloseTo(2.5, 1)
   })
 })
+
+describe('costCeiling (owner 2026-09-26: the cost scale ends where capacity maxes out)', () => {
+  it('stops at the first quote where the value received drains the reserve', async () => {
+    const { costCeiling } = await import('@/lib/venueCapacity/capacityCurve')
+    const pts = [
+      { costPct: 0.5, capacityUsd: 46 },
+      { costPct: 1, capacityUsd: 47.7 },
+      { costPct: 2, capacityUsd: 49.6 }, // 49.6 * 0.98 = 48.6 >= 0.99 * 48.6
+      { costPct: 5, capacityUsd: 50.9 },
+    ]
+    expect(costCeiling(pts, 48.6)).toEqual({ costPct: 2, capacityUsd: 49.6, reason: 'pool drained' })
+  })
+  it('a curve flat from the first quote (PSM at its fee) ceils at that quote', async () => {
+    const { costCeiling } = await import('@/lib/venueCapacity/capacityCurve')
+    const flat = [0.1, 0.5, 1, 5].map((c) => ({ costPct: c, capacityUsd: 4180 }))
+    expect(costCeiling(flat, null)).toEqual({ costPct: 0.1, capacityUsd: 4180, reason: 'capacity flat' })
+  })
+  it('still rising at the last quote, no reserve known: ceils at the last quote', async () => {
+    const { costCeiling } = await import('@/lib/venueCapacity/capacityCurve')
+    expect(costCeiling([{ costPct: 1, capacityUsd: 1 }, { costPct: 10, capacityUsd: 2 }], null)?.reason).toBe('last quote')
+    expect(costCeiling([], null)).toBeNull()
+  })
+  it('the slider spans 0.1% to the ceiling', async () => {
+    const { sliderToCost, costToSlider, SLIDER_STEPS } = await import('@/lib/venueCapacity/capacityCurve')
+    expect(sliderToCost(SLIDER_STEPS, [], 2)).toBeCloseTo(2, 6)
+    expect(costToSlider(2, 2)).toBe(SLIDER_STEPS)
+  })
+})

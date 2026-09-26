@@ -12,6 +12,9 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import {
   CAPACITY_PRESETS_PCT,
+  costCeiling,
+  venueReserveUsd,
+  type CostCeiling,
   CAPACITY_SLIDER_MAX_PCT,
   CAPACITY_SLIDER_MIN_PCT,
   SLIDER_STEPS,
@@ -76,8 +79,8 @@ const feeLine = (m: NonNullable<CapacityCurveResponse['curve']>['markets'][numbe
 type ChartDatum = { c: number; cap: number | null; band: [number, number] | null }
 
 /** Dense log-spaced samples so linear-in-cost interpolation draws true on a log axis. */
-function sample(points: CurvePoint[]): ChartDatum[] {
-  const q = points.filter((p) => p.capacityUsd !== null).sort((a, b) => a.costPct - b.costPct)
+function sample(points: CurvePoint[], maxPct: number): ChartDatum[] {
+  const q = points.filter((p) => p.capacityUsd !== null && p.costPct <= maxPct).sort((a, b) => a.costPct - b.costPct)
   if (q.length === 0) return []
   const lo = q[0].costPct
   const hi = q[q.length - 1].costPct
@@ -96,14 +99,14 @@ function sample(points: CurvePoint[]): ChartDatum[] {
   return out.sort((a, b) => a.c - b.c)
 }
 
-type ChartProps = { points: CurvePoint[]; costPct: number }
+type ChartProps = { points: CurvePoint[]; costPct: number; maxPct: number }
 
 const CurveChart = lazyChart<ChartProps>((RC) => {
   const { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Area, ReferenceLine, ReferenceDot, Tooltip } = RC
-  return function CapacityCurveChart({ points, costPct }: ChartProps) {
-    const data = useMemo(() => sample(points), [points])
-    const ticks = points.map((p) => p.costPct)
-    const presets = CAPACITY_PRESETS_PCT.map((c) => ({ c, r: capacityAt(points, c) })).filter((x) => x.r.capacityUsd !== null)
+  return function CapacityCurveChart({ points, costPct, maxPct }: ChartProps) {
+    const data = useMemo(() => sample(points, maxPct), [points, maxPct])
+    const ticks = points.map((p) => p.costPct).filter((c) => c <= maxPct)
+    const presets = CAPACITY_PRESETS_PCT.filter((c) => c <= maxPct).map((c) => ({ c, r: capacityAt(points, c) })).filter((x) => x.r.capacityUsd !== null)
     const HoverCard = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
       if (!active || !payload?.length) return null
       const d = payload[0]?.payload as ChartDatum | undefined
@@ -168,13 +171,35 @@ const Mono: React.FC<{ children: React.ReactNode; color?: string; size?: string;
 )
 
 /** "0.5% → $X · 1% → $Y · 5% → $Z" */
-export const PresetRow: React.FC<{ points: CurvePoint[]; size?: string }> = ({ points, size }) => (
-  <Mono color={SEMANTIC_COLORS.textPrimary} size={size}>
-    {CAPACITY_PRESETS_PCT.map((c) => `${c}% → ${readingText(capacityAt(points, c))}`).join(' · ')}
-  </Mono>
-)
+export const PresetRow: React.FC<{ points: CurvePoint[]; ceiling: CostCeiling | null; size?: string }> = ({ points, ceiling, size }) => {
+  const within = CAPACITY_PRESETS_PCT.filter((c) => !ceiling || c <= ceiling.costPct)
+  const past = ceiling && CAPACITY_PRESETS_PCT.some((c) => c > ceiling.costPct)
+  return (
+    <Mono color={SEMANTIC_COLORS.textSecondary} size={size}>
+      {within.map((c, i) => (
+        <React.Fragment key={c}>
+          {i > 0 ? ' · ' : ''}
+          {c}% →{' '}
+          <Text as="span" color={SEMANTIC_COLORS.success}>
+            {readingText(capacityAt(points, c))}
+          </Text>
+        </React.Fragment>
+      ))}
+      {past && ceiling ? (
+        <>
+          {within.length ? ' · ' : ''}
+          max{' '}
+          <Text as="span" color={SEMANTIC_COLORS.success}>
+            {fmtUsd(ceiling.capacityUsd)}
+          </Text>{' '}
+          at {fmtPct(ceiling.costPct)} ({ceiling.reason})
+        </>
+      ) : null}
+    </Mono>
+  )
+}
 
-const Lever: React.FC<{ points: CurvePoint[]; costPct: number; onChange: (c: number) => void; size?: string }> = ({ points, costPct, onChange, size }) => {
+const Lever: React.FC<{ points: CurvePoint[]; costPct: number; maxPct: number; onChange: (c: number) => void; size?: string }> = ({ points, costPct, maxPct, onChange, size }) => {
   const r = capacityAt(points, costPct)
   const levels = points.map((p) => p.costPct)
   return (
@@ -184,8 +209,8 @@ const Lever: React.FC<{ points: CurvePoint[]; costPct: number; onChange: (c: num
         min={0}
         max={SLIDER_STEPS}
         step={1}
-        value={costToSlider(costPct)}
-        onChange={(s) => onChange(sliderToCost(s, levels))}
+        value={costToSlider(costPct, maxPct)}
+        onChange={(s) => onChange(sliderToCost(s, levels, maxPct))}
       >
         <SliderTrack bg={SEMANTIC_COLORS.borderMedium} borderRadius={0}>
           <SliderFilledTrack bg={LINE} />
@@ -193,7 +218,10 @@ const Lever: React.FC<{ points: CurvePoint[]; costPct: number; onChange: (c: num
         <SliderThumb borderRadius={0} />
       </Slider>
       <Mono size={size}>
-        within {fmtPct(costPct)} cost → {readingText(r)}
+        within {fmtPct(costPct)} cost →{' '}
+        <Text as="span" color={SEMANTIC_COLORS.success}>
+          {readingText(r)}
+        </Text>
         {r.kind === 'interpolated' ? ` · between ${fmtUsd(r.lowerUsd)} (${fmtPct(r.fromPct)}) and ${fmtUsd(r.upperUsd)} (${fmtPct(r.toPct)}), both quoted` : ''}
       </Mono>
     </Box>
@@ -214,7 +242,7 @@ export const YourSizeLine: React.FC<{ points: CurvePoint[]; sizeUsd: number; siz
             ? `beyond quoted depth (last quote ${fmtUsd(r.lastQuotedUsd)} at ${fmtPct(r.lastQuotedPct)})`
             : 'no quote'
   return (
-    <Mono size={size} color={r.kind === 'beyond-quoted-depth' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}>
+    <Mono size={size} color={r.kind === 'beyond-quoted-depth' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}>
       exit your {fmtUsd(sizeUsd)} in one swap: {text}
     </Mono>
   )
@@ -231,6 +259,10 @@ export const CapacityCurve: React.FC<CapacityCurveProps> = ({ venue, variant = '
   const { data, isLoading } = useCapacityCurve(venue)
   const [costPct, setCostPct] = useState<number>(1)
   const curve = data?.curve ?? null
+  const ceiling = curve ? costCeiling(curve.points, venueReserveUsd(curve.markets)) : null
+  const maxPct = ceiling ? ceiling.costPct : CAPACITY_SLIDER_MAX_PCT
+  // A curve that is flat from the first quote (e.g. a PSM buffer at its fee) has no range to chart.
+  const flat = !!ceiling && ceiling.costPct <= CAPACITY_SLIDER_MIN_PCT
 
   if (variant === 'compact') {
     if (!curve) return null // no swap market recorded (e.g. a lending reserve): nothing to add
@@ -239,9 +271,9 @@ export const CapacityCurve: React.FC<CapacityCurveProps> = ({ venue, variant = '
         <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
           swap-out capacity · cost incl. fees
         </Mono>
-        <PresetRow points={curve.points} size="11px" />
+        <PresetRow points={curve.points} ceiling={ceiling} size="11px" />
         {sizeUsd != null && sizeUsd > 0 && <YourSizeLine points={curve.points} sizeUsd={sizeUsd} size="11px" />}
-        <Lever points={curve.points} costPct={costPct} onChange={setCostPct} size="10px" />
+        {!flat && <Lever points={curve.points} costPct={Math.min(costPct, maxPct)} maxPct={maxPct} onChange={setCostPct} size="10px" />}
         <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
           {provenanceLine(curve)}
         </Mono>
@@ -259,16 +291,26 @@ export const CapacityCurve: React.FC<CapacityCurveProps> = ({ venue, variant = '
       ) : (
         <>
           <Box mt={SPACING.sm}>
-            <CurveChart points={curve.points} costPct={costPct} />
+            {flat && ceiling ? (
+              <Mono>
+                All{' '}
+                <Text as="span" color={SEMANTIC_COLORS.success}>
+                  {fmtUsd(ceiling.capacityUsd)}
+                </Text>{' '}
+                exits within {fmtPct(ceiling.costPct)} cost; paying more buys nothing.
+              </Mono>
+            ) : (
+              <CurveChart points={curve.points} costPct={Math.min(costPct, maxPct)} maxPct={maxPct} />
+            )}
           </Box>
           <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
             x = max cost incl. fees (log) · y = exit capacity · gold = 0.5 / 1 / 5% · teal band = range between quotes
           </Mono>
           <Box mt={SPACING.sm}>
-            <PresetRow points={curve.points} size="13px" />
+            <PresetRow points={curve.points} ceiling={ceiling} size="13px" />
           </Box>
           {sizeUsd != null && sizeUsd > 0 && <YourSizeLine points={curve.points} sizeUsd={sizeUsd} />}
-          <Lever points={curve.points} costPct={costPct} onChange={setCostPct} />
+          {!flat && <Lever points={curve.points} costPct={Math.min(costPct, maxPct)} maxPct={maxPct} onChange={setCostPct} />}
           <Box mt={SPACING.sm}>
             {curve.markets.map((m) => (
               <Mono key={m.market} size="11px">

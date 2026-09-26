@@ -7,6 +7,10 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  // Pages Router SSR functions otherwise externalize the pnpm dependency graph
+  // and can exhaust Vercel's file-descriptor limit during cold start (EMFILE).
+  // Bundle those dependencies into the function chunks instead.
+  bundlePagesRouterDependencies: true,
   // Bundle the wallet packages into the server output instead of leaving their
   // pnpm-linked ESM dependencies for the Vercel function to resolve at runtime.
   // Without this, traced functions can omit transitive files such as mipd and

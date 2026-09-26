@@ -67,7 +67,10 @@ export const alarmConsequence = (e: Entry): { text: string; tone: 'danger' | 'mu
     }
     case 'headroom_thin': {
       const ratio = Number(ev.ratio)
-      body = `instant exit ${fmtUsd(Number(ev.instantUsd))} vs worst day out ${fmtUsd(Number(ev.worstDayOutflowUsd))} = ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'}× — one bad day from gating`
+      // evidence.source (checker, 2026-09-26): which capacity was judged —
+      // 'depth_usd' = the recorded instant swap-out depth (no instant_usd read).
+      const capacity = ev.source === 'depth_usd' ? 'instant swap-out depth' : 'instant exit'
+      body = `${capacity} ${fmtUsd(Number(ev.instantUsd))} vs worst day out ${fmtUsd(Number(ev.worstDayOutflowUsd))} = ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'}× — one bad day from gating`
       break
     }
     case 'depth_collapse': {

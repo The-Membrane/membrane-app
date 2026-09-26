@@ -15,7 +15,31 @@
 // enumerated in UNCOVERED_SIGNALS / uncoveredFor() and surfaced verbatim by the
 // checker and the API so nobody reads a quiet dashboard as a safe venue.
 
-const DAY_MS = 86_400_000
+const HOUR_MS = 3_600_000
+
+// --- thresholds: the ONE place every alarm number lives ---------------------
+// Every eval* rule below reads its numbers from here, and the glossary
+// (components/Glossary/terms.ts) builds its definitions from here, so the words
+// a user reads can never drift from the numbers that fire. Percentages are
+// stored as percents (20 = 20%) and divided by 100 at the comparison; x/100 is
+// the same double as the old 0.x literal, so behaviour is byte-identical.
+// Windows are also read by scripts/check-venue-alarms.mjs for its SQL.
+export const ALARM_THRESHOLDS = Object.freeze({
+  // any gate-moving event in the trailing window
+  gate_change: Object.freeze({ windowHours: 24 }),
+  // peak-to-current fall STRICTLY above alarmFallPct over the trailing window
+  drawdown_fast: Object.freeze({ windowDays: 7, alarmFallPct: 20 }),
+  // consecutive net-outflow days; cumulative outflow must be STRICTLY above minPctOfTvl
+  net_outflow_streak: Object.freeze({ watchDays: 10, alarmDays: 20, minPctOfTvl: 10 }),
+  // instant exit capacity / worst recorded day out, STRICTLY below the multiple
+  headroom_thin: Object.freeze({ watch: 3, alarm: 1.5 }),
+  // lending-reserve utilization STRICTLY above
+  utilization: Object.freeze({ watchPct: 90, alarmPct: 95 }),
+  // exit-pool one-sidedness STRICTLY above
+  depth_skew: Object.freeze({ watchPct: 80, alarmPct: 90 }),
+  // exitable-depth peak-to-current fall STRICTLY above, over the trailing window
+  depth_collapse: Object.freeze({ windowDays: 7, watchFallPct: 35, alarmFallPct: 50 }),
+})
 
 // --- read-value guards -----------------------------------------------------
 // A missing reading is null/undefined and must be DROPPED, never coerced:
@@ -54,7 +78,7 @@ export function isUnreadDepthZero(value, at) {
 export const GATE_KINDS = new Set(['cooldown_duration_changed', 'instant_liquidity_shift', 'terms_page_changed'])
 
 export function evalGateChange(events, nowMs = Date.now()) {
-  const since = nowMs - DAY_MS
+  const since = nowMs - ALARM_THRESHOLDS.gate_change.windowHours * HOUR_MS
   const hits = (events ?? [])
     .filter((e) => GATE_KINDS.has(e.kind))
     .filter((e) => {
@@ -87,7 +111,7 @@ export function evalDrawdown(series, metric = 'value') {
   const curV = Number(current.value)
   if (peakV <= 0) return { fires: false, severity: null, evidence: null }
   const fallFrac = (peakV - curV) / peakV
-  if (!(fallFrac > 0.2)) return { fires: false, severity: null, evidence: null }
+  if (!(fallFrac > ALARM_THRESHOLDS.drawdown_fast.alarmFallPct / 100)) return { fires: false, severity: null, evidence: null }
   return {
     fires: true,
     severity: 'alarm',
@@ -129,10 +153,11 @@ export function evalOutflowStreak(dailyNets, tvlUsd) {
   }
   const tvl = Number(tvlUsd)
   const pctOfTvl = tvl > 0 ? cum / tvl : 0
-  const cumConditionMet = pctOfTvl > 0.1
+  const T = ALARM_THRESHOLDS.net_outflow_streak
+  const cumConditionMet = pctOfTvl > T.minPctOfTvl / 100
   let severity = null
-  if (streak >= 20 && cumConditionMet) severity = 'alarm'
-  else if (streak >= 10 && cumConditionMet) severity = 'watch'
+  if (streak >= T.alarmDays && cumConditionMet) severity = 'alarm'
+  else if (streak >= T.watchDays && cumConditionMet) severity = 'watch'
   // streakDays / cumulativeOutflowUsd are ALWAYS returned (observable even when
   // the rule does not fire, so streak accounting is testable); evidence is
   // populated only when it fires.
@@ -147,10 +172,14 @@ export function evalOutflowStreak(dailyNets, tvlUsd) {
 }
 
 // --- rule: headroom_thin (watch <3x, alarm <1.5x) -------------------------
-// "One bad day from gating." Current instant exit liquidity vs the venue's WORST
-// recorded single-day outflow. Only venues that expose instant_usd can be judged
-// here (the cooldown/4626 venues cannot — that gap is reported via uncoveredFor).
-export function evalHeadroom(instantUsd, worstDayOutflowUsd) {
+// "One bad day from gating." Current instant exit capacity vs the venue's WORST
+// recorded single-day outflow. The capacity is instantExitUsd(latest snapshot):
+// instant_usd where the venue reads it, else the recorded instant swap-out depth
+// (params.depth_usd). `source` ('instant_usd' | 'depth_usd'), when given, is
+// recorded in the evidence so the alarm sentence names which capacity it used.
+// Venues with neither read cannot be judged — that gap is reported via
+// uncoveredFor.
+export function evalHeadroom(instantUsd, worstDayOutflowUsd, source) {
   if (instantUsd === null || instantUsd === undefined) {
     return { fires: false, severity: null, evidence: null }
   }
@@ -161,14 +190,36 @@ export function evalHeadroom(instantUsd, worstDayOutflowUsd) {
   }
   const ratio = inst / worst
   let severity = null
-  if (ratio < 1.5) severity = 'alarm'
-  else if (ratio < 3) severity = 'watch'
+  if (ratio < ALARM_THRESHOLDS.headroom_thin.alarm) severity = 'alarm'
+  else if (ratio < ALARM_THRESHOLDS.headroom_thin.watch) severity = 'watch'
   if (!severity) return { fires: false, severity: null, evidence: null }
-  return {
-    fires: true,
-    severity,
-    evidence: { instantUsd: inst, worstDayOutflowUsd: worst, ratio },
+  const evidence = { instantUsd: inst, worstDayOutflowUsd: worst, ratio }
+  if (source) evidence.source = source
+  return { fires: true, severity, evidence }
+}
+
+// The instant exit capacity of ONE snapshot row ({ instant_usd, params,
+// observed_at|at }), for headroom and for coverage. instant_usd where the venue
+// reads it; else the recorded instant swap-out depth params.depth_usd (the
+// exitable side of its verified depth markets / PSM buffer) when it is a finite
+// read, the reader did not flag it incomplete (params.depth_complete === false),
+// and it is not a pre-guard unread zero (isUnreadDepthZero). Otherwise null —
+// a missing read is never 0.
+export function instantExitUsd(snapshot) {
+  if (!snapshot) return null
+  if (isReadValue(snapshot.instant_usd)) {
+    return { usd: Number(snapshot.instant_usd), source: 'instant_usd' }
   }
+  const p = snapshot.params ?? {}
+  const at = snapshot.observed_at ?? snapshot.at
+  if (
+    isReadValue(p.depth_usd) &&
+    p.depth_complete !== false &&
+    !isUnreadDepthZero(p.depth_usd, at instanceof Date ? at.getTime() : at)
+  ) {
+    return { usd: Number(p.depth_usd), source: 'depth_usd' }
+  }
+  return null
 }
 
 // --- rule: utilization (watch >90%, alarm >95%) ---------------------------
@@ -182,8 +233,8 @@ export function evalUtilization(utilPct) {
   const v = Number(utilPct)
   if (!Number.isFinite(v)) return { fires: false, severity: null, evidence: null }
   let severity = null
-  if (v > 95) severity = 'alarm'
-  else if (v > 90) severity = 'watch'
+  if (v > ALARM_THRESHOLDS.utilization.alarmPct) severity = 'alarm'
+  else if (v > ALARM_THRESHOLDS.utilization.watchPct) severity = 'watch'
   if (!severity) return { fires: false, severity: null, evidence: null }
   return { fires: true, severity, evidence: { utilizationPct: v } }
 }
@@ -202,8 +253,8 @@ export function evalDepthSkew(skewPct) {
   const v = Number(skewPct)
   if (!Number.isFinite(v)) return { fires: false, severity: null, evidence: null }
   let severity = null
-  if (v > 90) severity = 'alarm'
-  else if (v > 80) severity = 'watch'
+  if (v > ALARM_THRESHOLDS.depth_skew.alarmPct) severity = 'alarm'
+  else if (v > ALARM_THRESHOLDS.depth_skew.watchPct) severity = 'watch'
   if (!severity) return { fires: false, severity: null, evidence: null }
   return { fires: true, severity, evidence: { skewPct: v } }
 }
@@ -227,8 +278,8 @@ export function evalDepthCollapse(series) {
   if (peakV <= 0) return { fires: false, severity: null, evidence: null }
   const fallFrac = (peakV - curV) / peakV
   let severity = null
-  if (fallFrac > 0.5) severity = 'alarm'
-  else if (fallFrac > 0.35) severity = 'watch'
+  if (fallFrac > ALARM_THRESHOLDS.depth_collapse.alarmFallPct / 100) severity = 'alarm'
+  else if (fallFrac > ALARM_THRESHOLDS.depth_collapse.watchFallPct / 100) severity = 'watch'
   if (!severity) return { fires: false, severity: null, evidence: null }
   return {
     fires: true,
@@ -265,12 +316,22 @@ export function reconcileAlarms(firing, open) {
 // Surfaced (never as alarms) so a quiet board never reads as all-clear.
 export const UNCOVERED_SIGNALS = [
   { id: 'depth_vs_book', label: 'depth-vs-book', memo: 'P4 — needs the oracle-market depth extension' },
-  { id: 'yield_flatness', label: 'yield flatness', memo: 'P7 — we do not record APY' },
   { id: 'terms_page_changes', label: 'terms changes', memo: 'needs the terms-page hash watcher' },
 ]
 
+// Yield flatness (memo P7) is deliberately NOT listed: owner 2026-09-26 — it is
+// not an exit-risk signal we would ever alert a borrower on.
+
+// Blind when a venue records neither instant_usd nor a usable depth_usd
+// (instantExitUsd(latest) === null).
+export const HEADROOM_BLIND_SIGNAL = Object.freeze({
+  id: 'headroom_instant_liquidity',
+  label: 'instant-exit headroom',
+  memo: 'no instant_usd or instant swap-out depth (depth_usd) read for this venue',
+})
+
 // Per-venue uncovered list: the always-blind memo signals, plus instant-exit
-// headroom for venues that expose no instant_usd read (the cooldown/4626 ones).
+// headroom for venues with no instant exit capacity read (hasInstant false).
 //
 // `depthCovered` (true) drops 'depth_vs_book' from the blind list — the venue now
 // has >=1 enabled, on-chain-verified depth market OR its instant_usd read already
@@ -284,13 +345,7 @@ export function uncoveredFor({ hasInstant, depthCovered, termsCovered } = {}) {
   let list = [...UNCOVERED_SIGNALS]
   if (depthCovered) list = list.filter((u) => u.id !== 'depth_vs_book')
   if (termsCovered) list = list.filter((u) => u.id !== 'terms_page_changes')
-  if (!hasInstant) {
-    list.push({
-      id: 'headroom_instant_liquidity',
-      label: 'instant-exit headroom',
-      memo: 'no instant_usd read for this venue kind',
-    })
-  }
+  if (!hasInstant) list.push({ ...HEADROOM_BLIND_SIGNAL })
   return list
 }
 
@@ -298,7 +353,8 @@ export function uncoveredFor({ hasInstant, depthCovered, termsCovered } = {}) {
 // list. Every surface (checker, /api/venues/alarms, /api/venues/[venue]/summary,
 // the venue log, per-address alerts) calls THIS -- there are no copies to drift.
 //   cfg        -- the venue's tools/venue-recorder.config.json entry
-//   hasInstant -- the latest observed snapshot carries an instant_usd read
+//   hasInstant -- instantExitUsd(latest observed snapshot) !== null: an
+//                 instant_usd read, or a usable instant swap-out depth
 export function coverageFor(cfg, { hasInstant } = {}) {
   const depthCovered =
     (cfg?.depthMarkets ?? []).some((m) => m.enabled) || cfg?.depthCoveredByInstant === true

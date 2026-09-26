@@ -37,6 +37,8 @@ import {
   evalDepthCollapse,
   reconcileAlarms,
   coverageFor,
+  instantExitUsd,
+  ALARM_THRESHOLDS,
 } from './lib/alarmRules.mjs'
 import { notify } from './lib/notify.mjs'
 
@@ -67,12 +69,15 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   const v = venue.name
   console.log(`\n[${v}] ${venue.kind}`)
 
-  // Latest observed snapshot: decides hasInstant + current TVL.
+  // Latest observed snapshot: decides hasInstant (drawdown metric + TVL) and
+  // the instant exit capacity (headroom + coverage).
   const [latest] = await sql`
-    SELECT instant_usd, params FROM venue_snapshots
+    SELECT observed_at, instant_usd, params FROM venue_snapshots
     WHERE venue = ${v} AND source = 'observed'
     ORDER BY observed_at DESC LIMIT 1`
   const hasInstant = !!latest && latest.instant_usd !== null && latest.instant_usd !== undefined
+  // instant_usd, else the recorded instant swap-out depth (depth_usd); null when neither.
+  const exit = instantExitUsd(latest)
   const currentTvlUsd = latest
     ? hasInstant
       ? Number(latest.instant_usd)
@@ -86,7 +91,7 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     SELECT kind, observed_at AS at, prev, next, note FROM venue_events
     WHERE venue = ${v}
       AND kind IN ('cooldown_duration_changed', 'instant_liquidity_shift', 'terms_page_changed')
-      AND observed_at > now() - interval '24 hours'
+      AND observed_at > now() - make_interval(hours => ${ALARM_THRESHOLDS.gate_change.windowHours})
     ORDER BY observed_at DESC`
   const gate = evalGateChange(
     gateEvents.map((e) => ({ kind: e.kind, at: new Date(e.at).toISOString(), prev: e.prev, next: e.next, note: e.note })),
@@ -94,14 +99,15 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   )
   if (gate.fires) {
     firing.push({ venue: v, kind: 'gate_change', severity: gate.severity, evidence: gate.evidence })
-    console.log(`  FIRE gate_change (${gate.severity}) — ${gate.evidence.count} event(s) in 24h`)
+    console.log(`  FIRE gate_change (${gate.severity}) — ${gate.evidence.count} event(s) in ${ALARM_THRESHOLDS.gate_change.windowHours}h`)
   }
 
   // --- drawdown_fast: peak-to-current fall > 20% over trailing 7d ----------
   const metric = hasInstant ? 'instant_usd' : 'total_assets'
   const snaps = await sql`
     SELECT observed_at AS at, instant_usd, params FROM venue_snapshots
-    WHERE venue = ${v} AND source = 'observed' AND observed_at > now() - interval '7 days'
+    WHERE venue = ${v} AND source = 'observed'
+      AND observed_at > now() - make_interval(days => ${ALARM_THRESHOLDS.drawdown_fast.windowDays})
     ORDER BY observed_at ASC`
   const series = snaps
     .map((r) => ({ at: new Date(r.at).toISOString(), value: metricPoint(r, metric) }))
@@ -127,8 +133,8 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     )
   }
 
-  // --- headroom_thin: instant liquidity vs worst 1-day outflow -------------
-  if (hasInstant) {
+  // --- headroom_thin: instant exit capacity vs worst 1-day outflow --------
+  if (exit) {
     const [worst] = await sql`
       SELECT MAX(day_out) AS worst_out FROM (
         SELECT date_trunc('day', block_time) AS d,
@@ -136,10 +142,10 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
         FROM venue_flows WHERE venue = ${v} GROUP BY 1
       ) t`
     const worstDayOutflowUsd = worst && worst.worst_out !== null ? Number(worst.worst_out) / SCALE : 0
-    const hr = evalHeadroom(Number(latest.instant_usd), worstDayOutflowUsd)
+    const hr = evalHeadroom(exit.usd, worstDayOutflowUsd, exit.source)
     if (hr.fires) {
       firing.push({ venue: v, kind: 'headroom_thin', severity: hr.severity, evidence: hr.evidence })
-      console.log(`  FIRE headroom_thin (${hr.severity}) — ${hr.evidence.ratio.toFixed(2)}x`)
+      console.log(`  FIRE headroom_thin (${hr.severity}) — ${hr.evidence.ratio.toFixed(2)}x (${exit.source})`)
     }
   }
 
@@ -163,7 +169,8 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   // --- depth_collapse: exitable depth (depth_usd) falling >35%/>50% over 7d --
   const depthSnaps = await sql`
     SELECT observed_at AS at, params FROM venue_snapshots
-    WHERE venue = ${v} AND source = 'observed' AND observed_at > now() - interval '7 days'
+    WHERE venue = ${v} AND source = 'observed'
+      AND observed_at > now() - make_interval(days => ${ALARM_THRESHOLDS.depth_collapse.windowDays})
     ORDER BY observed_at ASC`
   const depthSeries = depthSnaps
     .map((r) => ({ at: new Date(r.at).toISOString(), value: r.params?.depth_usd }))
@@ -176,7 +183,7 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
 
   // --- coverage honesty: what this venue is BLIND to -----------------------
   // Blind spots from the ONE shared definition (alarmRules.mjs coverageFor).
-  const uncovered = coverageFor(venue, { hasInstant })
+  const uncovered = coverageFor(venue, { hasInstant: exit !== null })
   uncoveredByVenue[v] = uncovered
   console.log(`  uncovered (cannot evaluate): ${uncovered.map((u) => u.id).join(', ')}`)
 }

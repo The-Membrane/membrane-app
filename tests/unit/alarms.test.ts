@@ -301,10 +301,11 @@ describe('reconcileAlarms (dedupe-while-open + cleared_at transition)', () => {
 })
 
 describe('uncoveredFor (silence is not all-clear)', () => {
-  it('always names the three memo blind spots', () => {
+  it('always names the two memo blind spots — yield flatness is not one (owner 2026-09-26)', () => {
     const ids = uncoveredFor({ hasInstant: true }).map((u) => u.id)
-    expect(ids).toEqual(expect.arrayContaining(['depth_vs_book', 'yield_flatness', 'terms_page_changes']))
-    expect(UNCOVERED_SIGNALS).toHaveLength(3)
+    expect(ids).toEqual(expect.arrayContaining(['depth_vs_book', 'terms_page_changes']))
+    expect(UNCOVERED_SIGNALS).toHaveLength(2)
+    expect(UNCOVERED_SIGNALS.map((u) => u.id)).not.toContain('yield_flatness')
   })
 
   it('adds instant-exit headroom when the venue exposes no instant_usd', () => {
@@ -348,8 +349,8 @@ describe('coverageFor / uncoveredFooter — the ONE blind-spot source (2026-09-2
   it('derives coverage from venue config exactly as the checker does', async () => {
     const { coverageFor } = await import('../../scripts/lib/alarmRules.mjs')
     const ids = (cfg: object, hasInstant: boolean) => coverageFor(cfg, { hasInstant }).map((u: { id: string }) => u.id).sort()
-    expect(ids({}, false)).toEqual(['depth_vs_book', 'headroom_instant_liquidity', 'terms_page_changes', 'yield_flatness'])
-    expect(ids({ termsUrl: 'https://x', depthMarkets: [{ enabled: true }] }, true)).toEqual(['yield_flatness'])
+    expect(ids({}, false)).toEqual(['depth_vs_book', 'headroom_instant_liquidity', 'terms_page_changes'])
+    expect(ids({ termsUrl: 'https://x', depthMarkets: [{ enabled: true }] }, true)).toEqual([])
     expect(ids({ depthMarkets: [{ enabled: false }] }, true)).toContain('depth_vs_book')
     expect(ids({ depthCoveredByInstant: true }, true)).not.toContain('depth_vs_book')
   })
@@ -360,7 +361,7 @@ describe('coverageFor / uncoveredFooter — the ONE blind-spot source (2026-09-2
       sUSDS: coverageFor({ termsUrl: 'x', depthMarkets: [{ enabled: true }] }, { hasInstant: false }),
       'aave-v3-usde': coverageFor({ termsUrl: 'x', depthCoveredByInstant: true }, { hasInstant: true }),
     })
-    expect(line).toBe('this alarm cannot yet see: instant-exit headroom (sUSDS), yield flatness')
+    expect(line).toBe('this alarm cannot yet see: instant-exit headroom (sUSDS)')
   })
 
   it('never goes silent', async () => {
@@ -385,5 +386,82 @@ describe('coverageFor / uncoveredFooter — the ONE blind-spot source (2026-09-2
     }
     for (const d of ['components', 'pages', 'lib', 'scripts']) walk(join(process.cwd(), d))
     expect(hits).toEqual([])
+  })
+})
+
+describe('instantExitUsd — headroom capacity: instant_usd, else instant swap-out depth (2026-09-26)', () => {
+  it('prefers instant_usd when read', async () => {
+    const { instantExitUsd } = await import('../../scripts/lib/alarmRules.mjs')
+    expect(instantExitUsd({ instant_usd: '120.5', params: { depth_usd: 9 } })).toEqual({ usd: 120.5, source: 'instant_usd' })
+  })
+
+  it('falls back to params.depth_usd when there is no instant_usd', async () => {
+    const { instantExitUsd } = await import('../../scripts/lib/alarmRules.mjs')
+    const at = '2026-09-26T00:00:00Z'
+    expect(instantExitUsd({ instant_usd: null, observed_at: at, params: { depth_usd: 3.8e9, depth_complete: true } })).toEqual({
+      usd: 3.8e9,
+      source: 'depth_usd',
+    })
+    // depth_complete absent (older rows) is not a failed read
+    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 5 } })?.source).toBe('depth_usd')
+    // a post-guard zero is a real, empty pool — it counts
+    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 0, depth_complete: true } })).toEqual({ usd: 0, source: 'depth_usd' })
+  })
+
+  it('never reads a missing or failed depth as 0', async () => {
+    const { instantExitUsd } = await import('../../scripts/lib/alarmRules.mjs')
+    const at = '2026-09-26T00:00:00Z'
+    expect(instantExitUsd(null)).toBeNull()
+    expect(instantExitUsd({ instant_usd: null, at, params: {} })).toBeNull()
+    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: null, depth_complete: false } })).toBeNull()
+    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 7, depth_complete: false } })).toBeNull()
+    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 'x' } })).toBeNull()
+    // pre-guard zero = unread (string, epoch-ms and Date timestamps)
+    const pre = '2026-09-13T04:04:00Z'
+    expect(instantExitUsd({ instant_usd: null, observed_at: pre, params: { depth_usd: 0 } })).toBeNull()
+    expect(instantExitUsd({ instant_usd: null, observed_at: Date.parse(pre), params: { depth_usd: 0 } })).toBeNull()
+    expect(instantExitUsd({ instant_usd: null, observed_at: new Date(pre), params: { depth_usd: 0 } })).toBeNull()
+  })
+
+  it('evalHeadroom records which capacity it judged', async () => {
+    const { evalHeadroom } = await import('../../scripts/lib/alarmRules.mjs')
+    expect(evalHeadroom(140, 100, 'depth_usd').evidence).toEqual({ instantUsd: 140, worstDayOutflowUsd: 100, ratio: 1.4, source: 'depth_usd' })
+    expect(evalHeadroom(140, 100).evidence).toEqual({ instantUsd: 140, worstDayOutflowUsd: 100, ratio: 1.4 })
+  })
+
+  it('coverage: a venue with recorded depth is no longer headroom-blind; one with neither still is', async () => {
+    const { coverageFor, instantExitUsd } = await import('../../scripts/lib/alarmRules.mjs')
+    const at = '2026-09-26T00:00:00Z'
+    const withDepth = coverageFor({}, { hasInstant: instantExitUsd({ instant_usd: null, at, params: { depth_usd: 1e6 } }) !== null })
+    const neither = coverageFor({}, { hasInstant: instantExitUsd({ instant_usd: null, at, params: {} }) !== null })
+    expect(withDepth.map((u: { id: string }) => u.id)).not.toContain('headroom_instant_liquidity')
+    expect(neither.map((u: { id: string }) => u.id)).toContain('headroom_instant_liquidity')
+  })
+})
+
+describe('ALARM_THRESHOLDS — the one home of every alarm number', () => {
+  it('holds the shipped values and is frozen', async () => {
+    const { ALARM_THRESHOLDS } = await import('../../scripts/lib/alarmRules.mjs')
+    expect(ALARM_THRESHOLDS).toEqual({
+      gate_change: { windowHours: 24 },
+      drawdown_fast: { windowDays: 7, alarmFallPct: 20 },
+      net_outflow_streak: { watchDays: 10, alarmDays: 20, minPctOfTvl: 10 },
+      headroom_thin: { watch: 3, alarm: 1.5 },
+      utilization: { watchPct: 90, alarmPct: 95 },
+      depth_skew: { watchPct: 80, alarmPct: 90 },
+      depth_collapse: { windowDays: 7, watchFallPct: 35, alarmFallPct: 50 },
+    })
+    expect(Object.isFrozen(ALARM_THRESHOLDS)).toBe(true)
+    for (const v of Object.values(ALARM_THRESHOLDS)) expect(Object.isFrozen(v)).toBe(true)
+  })
+
+  it('no eval* rule compares against a bare numeric threshold', async () => {
+    const { readFileSync } = await import('fs')
+    const { join } = await import('path')
+    const src = readFileSync(join(process.cwd(), 'scripts/lib/alarmRules.mjs'), 'utf8')
+    // comparisons of a ratio/fraction/streak/value to a literal (the old shape: `ratio < 1.5`, `v > 95`)
+    const code = src.replace(/\/\/.*$/gm, '')
+    const bare = code.match(/\b(?:ratio|fallFrac|pctOfTvl|streak|v)\s*[<>]=?\s*\d/g) ?? []
+    expect(bare).toEqual([])
   })
 })

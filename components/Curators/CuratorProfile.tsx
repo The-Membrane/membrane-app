@@ -43,7 +43,7 @@ const unbondFigure = (p: { active: boolean; newCap: bigint; readyTime: bigint })
 export const CuratorProfile: React.FC<{ vault: string }> = ({ vault }) => {
   const { chainName } = useChainRoute()
   const valid = isAddress(vault)
-  const { data, isLoading, dataUpdatedAt } = useCuratorProfile(valid ? vault : undefined)
+  const { data, status, error, dataUpdatedAt } = useCuratorProfile(valid ? vault : undefined)
 
   return (
     <Box maxW="1140px" mx="auto" px={SPACING.base} py={SPACING.lg} bg={SEMANTIC_COLORS.bgPrimary} color={SEMANTIC_COLORS.textPrimary}>
@@ -60,8 +60,9 @@ export const CuratorProfile: React.FC<{ vault: string }> = ({ vault }) => {
       </Text>
 
       {!valid && <StatusLine tone="danger">Not an address.</StatusLine>}
-      {valid && isLoading && <StatusLine>reading chain…</StatusLine>}
-      {valid && !isLoading && !data && <StatusLine tone="danger">CuratorRegistry not reachable on this chain.</StatusLine>}
+      {valid && status === 'pending' && <StatusLine>reading chain…</StatusLine>}
+      {valid && status === 'error' && <StatusLine tone="danger">{`CuratorRegistry read failed: ${(error as Error)?.message?.split('\n')[0] ?? 'unknown error'}`}</StatusLine>}
+      {valid && status === 'success' && !data && <StatusLine tone="danger">CuratorRegistry not reachable on this chain.</StatusLine>}
 
       {data && (
         <>

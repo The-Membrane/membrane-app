@@ -1,7 +1,10 @@
 import React from 'react'
+import dynamic from 'next/dynamic'
 
-import { CuratorsTable } from '@/components/Curators/CuratorsTable'
 import PageSeo from '@/components/PageSeo'
+
+// Client-only: reads the local anvil from the browser; nothing to prerender (same as /risk).
+const CuratorsTable = dynamic(() => import('@/components/Curators/CuratorsTable').then((m) => m.CuratorsTable), { ssr: false })
 
 // Internal until mainnet: every figure is a local-chain read and must not be indexed.
 const CuratorsPage = () => (

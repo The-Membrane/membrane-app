@@ -1,8 +1,11 @@
 import React from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/router'
 
-import { CuratorProfile } from '@/components/Curators/CuratorProfile'
 import PageSeo from '@/components/PageSeo'
+
+// Client-only: reads the local anvil from the browser; nothing to prerender (same as /risk).
+const CuratorProfile = dynamic(() => import('@/components/Curators/CuratorProfile').then((m) => m.CuratorProfile), { ssr: false })
 
 // Internal until mainnet: every figure is a local-chain read and must not be indexed.
 const CuratorVaultPage = () => {

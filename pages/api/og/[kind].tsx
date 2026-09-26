@@ -109,8 +109,8 @@ async function venueCard(origin: string, raw: string | null): Promise<CardProps>
   if (!s) return plain
   const stats: Stat[] = []
   if (s.tvlUsd != null) stats.push({ label: 'TVL', value: fmtUsdShort(s.tvlUsd) })
-  if (s.worst1dUsd != null) stats.push({ label: 'worst 1-day outflow', value: fmtUsdShort(s.worst1dUsd) })
-  if (s.worst7dUsd != null) stats.push({ label: 'worst 7-day outflow', value: fmtUsdShort(s.worst7dUsd) })
+  if (s.worst1dUsd != null) stats.push({ label: 'worst 1-day outflow · 90 d', value: fmtUsdShort(s.worst1dUsd) })
+  if (s.worst7dUsd != null) stats.push({ label: 'worst 7-day outflow · 90 d', value: fmtUsdShort(s.worst7dUsd) })
   if (s.openFlags != null) stats.push({ label: 'open flags', value: String(s.openFlags), color: s.openFlags > 0 ? VERDICT.caution : undefined })
   const eyebrow = s.observedAt ? `venue · observed ${s.observedAt}` : plain.eyebrow
   return { eyebrow, title: s.label, stats }

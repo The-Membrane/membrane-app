@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import type { Address } from '@/config/evm/contracts'
-import { getPublicClient } from '@/services/chain/client'
+import { localChainClient } from '@/lib/evm/localClient'
 import {
   getBondCoverageInputs,
   getCuratorProfile,
@@ -20,7 +20,7 @@ const STALE_MS = 15_000
 export function useCuratorSnapshot() {
   return useQuery({
     queryKey: ['curatorRegistry', 'snapshot'],
-    queryFn: () => getCuratorSnapshot(getPublicClient()),
+    queryFn: () => getCuratorSnapshot(localChainClient()),
     enabled: typeof window !== 'undefined',
     staleTime: STALE_MS,
   })
@@ -29,7 +29,7 @@ export function useCuratorSnapshot() {
 export function useCuratorProfile(vault: Address | undefined) {
   return useQuery({
     queryKey: ['curatorRegistry', 'profile', vault?.toLowerCase()],
-    queryFn: () => getCuratorProfile(getPublicClient(), vault as Address),
+    queryFn: () => getCuratorProfile(localChainClient(), vault as Address),
     enabled: typeof window !== 'undefined' && Boolean(vault),
     staleTime: STALE_MS,
   })
@@ -46,7 +46,7 @@ export function useCuratorProfile(vault: Address | undefined) {
 export function useBondCoverageLive() {
   const q = useQuery({
     queryKey: ['curatorRegistry', 'bondCoverage'],
-    queryFn: () => getBondCoverageInputs(getPublicClient()),
+    queryFn: () => getBondCoverageInputs(localChainClient()),
     enabled: typeof window !== 'undefined',
     staleTime: STALE_MS,
   })

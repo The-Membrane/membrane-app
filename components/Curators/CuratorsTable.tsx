@@ -77,7 +77,7 @@ const Row: React.FC<{ row: CuratorVaultRow; last: boolean }> = ({ row, last }) =
 }
 
 export const CuratorsTable: React.FC = () => {
-  const { data, isLoading, dataUpdatedAt } = useCuratorSnapshot()
+  const { data, status, error, dataUpdatedAt } = useCuratorSnapshot()
 
   return (
     <Box maxW="1140px" mx="auto" px={SPACING.base} py={SPACING.lg} bg={SEMANTIC_COLORS.bgPrimary} color={SEMANTIC_COLORS.textPrimary}>
@@ -86,8 +86,9 @@ export const CuratorsTable: React.FC = () => {
         Curators
       </Text>
 
-      {isLoading && <StatusLine>reading chain…</StatusLine>}
-      {!isLoading && !data && <StatusLine tone="danger">CuratorRegistry not reachable on this chain.</StatusLine>}
+      {status === 'pending' && <StatusLine>reading chain…</StatusLine>}
+      {status === 'error' && <StatusLine tone="danger">{`CuratorRegistry read failed: ${(error as Error)?.message?.split('\n')[0] ?? 'unknown error'}`}</StatusLine>}
+      {status === 'success' && !data && <StatusLine tone="danger">CuratorRegistry not reachable on this chain.</StatusLine>}
 
       {data && (
         <>

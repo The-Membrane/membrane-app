@@ -68,8 +68,16 @@ export const alarmConsequence = (e: Entry): { text: string; tone: 'danger' | 'mu
     case 'headroom_thin': {
       const ratio = Number(ev.ratio)
       // evidence.source (checker, 2026-09-26): which capacity was judged —
-      // 'depth_usd' = the recorded instant swap-out depth (no instant_usd read).
-      const capacity = ev.source === 'depth_usd' ? 'instant swap-out depth' : 'instant exit'
+      // 'depth_curve' = swap-out capacity within evidence.costCapPct cost incl.
+      // fees (on-chain quotes); 'depth_usd_raw' (legacy 'depth_usd') = the raw
+      // swap-into reserve, a fallback that is NOT executable at par.
+      const cap = Number(ev.costCapPct)
+      const capacity =
+        ev.source === 'depth_curve'
+          ? `swap-out capacity within ${Number.isFinite(cap) ? cap : '?'}% cost`
+          : ev.source === 'depth_usd_raw' || ev.source === 'depth_usd'
+            ? 'raw swap-out reserve (no cost bound)'
+            : 'instant exit'
       const window = Number.isFinite(Number(ev.windowDays)) ? ` in ${ev.windowDays} d` : ''
       const head = `${capacity} ${fmtUsd(Number(ev.instantUsd))} vs worst day out${window} ${fmtUsd(Number(ev.worstDayOutflowUsd))} = ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'}×`
       // Owner ruling 2026-09-26: the vault's own redemption is capacity too. A

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { consequence, fmtDuration, type Entry } from '@/components/Carry/venueLogLogic'
+import { alarmConsequence, consequence, fmtDuration, type Entry } from '@/components/Carry/venueLogLogic'
 
 const entry = (kind: string, prev: Record<string, unknown>, next: Record<string, unknown>): Entry => ({
   venue: 'sUSDe',
@@ -66,5 +66,20 @@ describe('VenueLog consequence rendering', () => {
     expect(fmtDuration(86400)).toBe('1d')
     expect(fmtDuration(7200)).toBe('2h')
     expect(fmtDuration(90)).toBe('90s')
+  })
+})
+
+describe('headroom_thin sentence names the capacity it judged', () => {
+  const alarm = (evidence: Record<string, unknown>): Entry => ({
+    venue: 'sUSDe', kind: 'headroom_thin', at: '2026-09-26T00:00:00.000Z', prev: null, next: null,
+    provenance: 'alarm', severity: 'watch', evidence,
+  })
+  const base = { instantUsd: 2e6, worstDayOutflowUsd: 1e6, windowDays: 90, ratio: 2 }
+  it('curve capacity: "swap-out capacity within 1% cost"', () => {
+    expect(alarmConsequence(alarm({ ...base, source: 'depth_curve', costCapPct: 1 })).text).toContain('swap-out capacity within 1% cost $2.00M')
+  })
+  it('raw fallback says it has no cost bound', () => {
+    expect(alarmConsequence(alarm({ ...base, source: 'depth_usd_raw' })).text).toContain('raw swap-out reserve (no cost bound)')
+    expect(alarmConsequence(alarm({ ...base, source: 'depth_usd' })).text).toContain('raw swap-out reserve (no cost bound)')
   })
 })

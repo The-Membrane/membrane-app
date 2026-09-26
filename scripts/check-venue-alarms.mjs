@@ -38,6 +38,7 @@ import {
   reconcileAlarms,
   coverageFor,
   instantExitUsd,
+  curveCapacityAtCost,
   ALARM_THRESHOLDS,
   redemptionCapacity,
 } from './lib/alarmRules.mjs'
@@ -77,8 +78,22 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     WHERE venue = ${v} AND source = 'observed'
     ORDER BY observed_at DESC LIMIT 1`
   const hasInstant = !!latest && latest.instant_usd !== null && latest.instant_usd !== undefined
-  // instant_usd, else the recorded instant swap-out depth (depth_usd); null when neither.
-  const exit = instantExitUsd(latest)
+  // Swap-out capacity within headroom_thin.poolCostPct cost, from the venue's
+  // latest depth-curve pass (scripts/record-depth-curves.mjs; one row per
+  // market, all at one block). A missing table/row leaves it null.
+  let curveRows = []
+  try {
+    curveRows = await sql`
+      SELECT market, points FROM venue_depth_curves
+      WHERE venue = ${v}
+        AND block = (SELECT MAX(block) FROM venue_depth_curves WHERE venue = ${v})`
+  } catch {
+    curveRows = []
+  }
+  const curveCap = curveCapacityAtCost(curveRows, ALARM_THRESHOLDS.headroom_thin.poolCostPct)
+  // instant_usd, else the curve capacity within the cost cap, else the raw
+  // swap-into reserve (source 'depth_usd_raw', labelled fallback); null when none.
+  const exit = instantExitUsd(latest, curveCap)
   const currentTvlUsd = latest
     ? hasInstant
       ? Number(latest.instant_usd)
@@ -145,7 +160,7 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
         GROUP BY 1
       ) t`
     const worstDayOutflowUsd = worst && worst.worst_out !== null ? Number(worst.worst_out) / SCALE : 0
-    const hr = evalHeadroom(exit.usd, worstDayOutflowUsd, exit.source, redemptionCapacity(latest))
+    const hr = evalHeadroom(exit.usd, worstDayOutflowUsd, exit.source, redemptionCapacity(latest), exit.costCapPct ?? null)
     if (hr.fires) {
       firing.push({ venue: v, kind: 'headroom_thin', severity: hr.severity, evidence: hr.evidence })
       console.log(`  FIRE headroom_thin (${hr.severity}) — ${hr.evidence.ratio.toFixed(2)}x (${exit.source})`)

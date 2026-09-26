@@ -753,3 +753,24 @@ export const alertBotState = pgTable('alert_bot_state', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
 })
+
+// venue_depth_curves — SLIPPAGE-BOUNDED exit capacity per venue depth market:
+// the largest USD exit whose cost (incl. fees) stays under each level, built
+// from on-chain quotes (Curve get_dy / LitePSM tout) by
+// scripts/record-depth-curves.mjs (scripts/lib/depthCurve.mjs). INSERT-ONLY,
+// one row per (venue, market) per pass. Applied by
+// scripts/apply-depth-curves-ddl.mjs (manual DDL, IF NOT EXISTS) — this is the
+// mirror of that DDL; keep them in lockstep.
+export const venueDepthCurves = pgTable(
+  'venue_depth_curves',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    venue: text('venue').notNull(), // config `name`, e.g. 'sUSDe'
+    market: text('market').notNull(), // depthMarkets[].name
+    block: bigint('block', { mode: 'bigint' }).notNull(), // every quote pinned here
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull().defaultNow(),
+    points: jsonb('points').notNull(), // [{costPct, capacityUsd}] — capacityUsd null = quote reverted, never 0
+    meta: jsonb('meta').notNull(), // {navUsd, feeBps | poolFee, reserveUsd, route, source, …}
+  },
+  (table) => [index('venue_depth_curves_venue_observed_idx').on(table.venue, table.observedAt)],
+)

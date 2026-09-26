@@ -31,8 +31,10 @@ export const ALARM_THRESHOLDS = Object.freeze({
   drawdown_fast: Object.freeze({ windowDays: 7, alarmFallPct: 20 }),
   // consecutive net-outflow days; cumulative outflow must be STRICTLY above minPctOfTvl
   net_outflow_streak: Object.freeze({ watchDays: 10, alarmDays: 20, minPctOfTvl: 10 }),
-  // instant exit capacity / worst recorded day out, STRICTLY below the multiple
-  headroom_thin: Object.freeze({ watch: 3, alarm: 1.5, windowDays: 90, poolMaxSeverity: 'watch' }),
+  // instant exit capacity / worst recorded day out, STRICTLY below the multiple.
+  // poolCostPct: a pool's capacity is what exits within this cost incl. fees
+  // (venue_depth_curves), not its raw reserve.
+  headroom_thin: Object.freeze({ watch: 3, alarm: 1.5, windowDays: 90, poolMaxSeverity: 'watch', poolCostPct: 1 }),
   // lending-reserve utilization STRICTLY above
   utilization: Object.freeze({ watchPct: 90, alarmPct: 95 }),
   // exit-pool one-sidedness STRICTLY above
@@ -174,12 +176,15 @@ export function evalOutflowStreak(dailyNets, tvlUsd) {
 // --- rule: headroom_thin (watch <3x, alarm <1.5x) -------------------------
 // "One bad day from gating." Current instant exit capacity vs the venue's WORST
 // recorded single-day outflow. The capacity is instantExitUsd(latest snapshot):
-// instant_usd where the venue reads it, else the recorded instant swap-out depth
-// (params.depth_usd). `source` ('instant_usd' | 'depth_usd'), when given, is
-// recorded in the evidence so the alarm sentence names which capacity it used.
+// instant_usd where the venue reads it, else the swap-out capacity within
+// headroom_thin.poolCostPct cost from the venue's latest depth curve, else the
+// raw swap-into reserve (params.depth_usd) as a labelled fallback. `source`
+// ('instant_usd' | 'depth_curve' | 'depth_usd_raw'; legacy 'depth_usd'), when
+// given, is recorded in the evidence so the alarm sentence names which capacity
+// it used; costCapPct (the curve's cost cap) is recorded with it.
 // Venues with neither read cannot be judged — that gap is reported via
 // uncoveredFor.
-export function evalHeadroom(instantUsd, worstDayOutflowUsd, source, redemption = null) {
+export function evalHeadroom(instantUsd, worstDayOutflowUsd, source, redemption = null, costCapPct = null) {
   if (instantUsd === null || instantUsd === undefined) {
     return { fires: false, severity: null, evidence: null }
   }
@@ -206,12 +211,13 @@ export function evalHeadroom(instantUsd, worstDayOutflowUsd, source, redemption 
   // A swap pool is not the venue's own exit, so pool-only headroom is capped at
   // poolMaxSeverity ('watch') — unless the total (pool + redemption) cannot
   // cover the worst day either.
-  const poolOnly = source === 'depth_usd' && !(red && redDelay === 0)
+  const poolOnly = POOL_SOURCES.has(source) && !(red && redDelay === 0)
   if (poolOnly && severity === 'alarm' && totalRatio >= ALARM_THRESHOLDS.headroom_thin.alarm) {
     severity = ALARM_THRESHOLDS.headroom_thin.poolMaxSeverity
   }
   const evidence = { instantUsd: fast, worstDayOutflowUsd: worst, windowDays: ALARM_THRESHOLDS.headroom_thin.windowDays, ratio, totalRatio }
   if (source) evidence.source = source
+  if (costCapPct !== null && costCapPct !== undefined) evidence.costCapPct = costCapPct
   if (red) {
     evidence.redemptionUsd = redUsd
     evidence.redemptionDelaySec = redDelay
@@ -241,10 +247,14 @@ export function redemptionCapacity(snapshot) {
 // read, the reader did not flag it incomplete (params.depth_complete === false),
 // and it is not a pre-guard unread zero (isUnreadDepthZero). Otherwise null —
 // a missing read is never 0.
-export function instantExitUsd(snapshot) {
+export function instantExitUsd(snapshot, curveCapacity = null) {
   if (!snapshot) return null
   if (isReadValue(snapshot.instant_usd)) {
     return { usd: Number(snapshot.instant_usd), source: 'instant_usd' }
+  }
+  // Preferred pool capacity: what exits within the cost cap, from on-chain quotes.
+  if (curveCapacity && isReadValue(curveCapacity.usd)) {
+    return { usd: Number(curveCapacity.usd), source: 'depth_curve', costCapPct: curveCapacity.costPct }
   }
   const p = snapshot.params ?? {}
   const at = snapshot.observed_at ?? snapshot.at
@@ -253,9 +263,31 @@ export function instantExitUsd(snapshot) {
     p.depth_complete !== false &&
     !isUnreadDepthZero(p.depth_usd, at instanceof Date ? at.getTime() : at)
   ) {
-    return { usd: Number(p.depth_usd), source: 'depth_usd' }
+    // FALLBACK only (no curve row): the raw reserve is not executable at par.
+    return { usd: Number(p.depth_usd), source: 'depth_usd_raw' }
   }
   return null
+}
+
+// Capacity sources that are a swap pool, not the venue's own exit.
+const POOL_SOURCES = new Set(['depth_curve', 'depth_usd_raw', 'depth_usd'])
+
+// A venue's swap-out capacity at `costPct` from its latest venue_depth_curves
+// rows (one per market, [{ points: [{costPct, capacityUsd}] }]): the SUM across
+// markets at that QUOTED level — valid because the markets are independent
+// pools (lib/venueCapacity/capacityCurve.ts combineMarkets explains why). null
+// when there are no rows, or any market lacks a read at that level (a partial
+// sum would be read as the whole). No interpolation: the cap must be a level
+// the recorder quotes.
+export function curveCapacityAtCost(curveRows, costPct) {
+  if (!Array.isArray(curveRows) || curveRows.length === 0) return null
+  let sum = 0
+  for (const row of curveRows) {
+    const pt = (row?.points ?? []).find((x) => Number(x?.costPct) === Number(costPct))
+    if (!pt || !isReadValue(pt.capacityUsd)) return null
+    sum += Number(pt.capacityUsd)
+  }
+  return { usd: sum, costPct }
 }
 
 // --- rule: utilization (watch >90%, alarm >95%) ---------------------------

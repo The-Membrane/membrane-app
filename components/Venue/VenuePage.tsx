@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import NextLink from 'next/link'
 
 import { Card } from '@/components/ui/Card'
+import { CapacityCurve } from '@/components/Venue/CapacityCurve'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { Entry, consequence, alarmConsequence, fmtDuration } from '@/components/Carry/venueLogLogic'
 import { Eyebrow, SectionHeading, Stamp } from '@/components/Carry/atoms'
@@ -282,6 +283,10 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
           </Text>
         </Card>
       )}
+
+      {/* 01b / swap-out capacity — what exits within a cost, fees included (on-chain quotes) */}
+      <SectionHeading index="01b /" title="Swap-out capacity" note="what exits within a cost, fees included — is the depth 1:1? read the curve" />
+      <CapacityCurve venue={venue} />
 
       {/* 02 / worst recorded exits */}
       <SectionHeading index="02 /" title="Worst recorded exits" note="realized outflow, trailing 90 days" />

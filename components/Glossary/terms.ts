@@ -87,7 +87,7 @@ export const BLIND_SPOT_CLAUSES: Record<string, string> = {
   depth_vs_book: 'depth-vs-book without a verified depth market',
   terms_page_changes: 'terms changes without a watched terms page',
   [HEADROOM_BLIND_SIGNAL.id]:
-    'instant-exit headroom where neither instant liquidity nor instant swap-out depth is recorded',
+    'instant-exit headroom where neither instant liquidity nor swap-out capacity is recorded',
 }
 const blindSpotDefinition = (): string => {
   const ids = [...UNCOVERED_SIGNALS.map((u) => u.id), HEADROOM_BLIND_SIGNAL.id]
@@ -201,12 +201,12 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 
   // ── Depth ────────────────────────────────────────────────────────────────
   {
-    id: 'instant-swap-out-depth',
-    term: 'Instant swap-out depth',
+    id: 'swap-out-capacity',
+    term: 'Swap-out capacity',
     group: 'depth',
     definition:
-      "The sum, across a venue's enabled secondary-market pools, of the reserve you can swap into when exiting the venue token, with each stable counted at face value. The venue-token side is not counted. For a venue with no instant-liquidity read, this is the capacity its thin-headroom alarm judges.",
-    source: 'components/Carry/venueLogLogic.ts · scripts/lib/venue-reads.mjs',
+      `The largest exit from a venue token that stays within a stated cost, fees included, summed across the venue's independent exit pools. Cost is value received against the token's redemption value, both from on-chain quotes at one block; the stable you receive counts at face value. A pool's raw reserve is only its ceiling, not an exit at par. For a venue with no instant-liquidity read, the thin-headroom alarm judges the capacity within ${pct(T.headroom_thin.poolCostPct)} cost.`,
+    source: 'scripts/lib/depthCurve.mjs · lib/venueCapacity/capacityCurve.ts',
   },
 
   // ── Venue alarms ─────────────────────────────────────────────────────────
@@ -243,7 +243,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     group: 'alarms',
     alarmKind: 'headroom_thin',
     definition:
-      `Instant exit liquidity divided by the venue's worst single-day outflow in the last ${T.headroom_thin.windowDays} days. Watch under ${x(T.headroom_thin.watch)}, alarm under ${x(T.headroom_thin.alarm)}. Where a venue has no instant-liquidity read, its instant swap-out depth is used instead, and the alarm says so. The vault's own redemption counts as capacity too: with no cooldown it adds to the fast exit; with a cooldown it counts toward the total, and the alarm names the wait. Pool-only headroom stays at ${T.headroom_thin.poolMaxSeverity} unless even the total cannot cover the day.`,
+      `Instant exit liquidity divided by the venue's worst single-day outflow in the last ${T.headroom_thin.windowDays} days. Watch under ${x(T.headroom_thin.watch)}, alarm under ${x(T.headroom_thin.alarm)}. Where a venue has no instant-liquidity read, its swap-out capacity within ${pct(T.headroom_thin.poolCostPct)} cost is used instead (the raw pool reserve only when no quoted curve exists), and the alarm says so. The vault's own redemption counts as capacity too: with no cooldown it adds to the fast exit; with a cooldown it counts toward the total, and the alarm names the wait. Pool-only headroom stays at ${T.headroom_thin.poolMaxSeverity} unless even the total cannot cover the day.`,
     source: ALARMS,
   },
   {
@@ -270,7 +270,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     group: 'alarms',
     alarmKind: 'depth_collapse',
     definition:
-      `Instant swap-out depth below its ${dayWindow(T.depth_collapse.windowDays)} peak. Watch at a fall above ${pct(T.depth_collapse.watchFallPct)}, alarm above ${pct(T.depth_collapse.alarmFallPct)}.`,
+      `The raw swap-out reserve (the swap-into side of the exit pools, at face value) below its ${dayWindow(T.depth_collapse.windowDays)} peak. Watch at a fall above ${pct(T.depth_collapse.watchFallPct)}, alarm above ${pct(T.depth_collapse.alarmFallPct)}.`,
     source: ALARMS,
   },
   {

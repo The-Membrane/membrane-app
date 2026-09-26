@@ -5,6 +5,7 @@ import NextLink from 'next/link'
 import { useRouter } from 'next/router'
 
 import { Card } from '@/components/ui/Card'
+import { CapacityCurve, YourSizeLine, useCapacityCurve } from '@/components/Venue/CapacityCurve'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
@@ -175,8 +176,18 @@ const VenueCard: React.FC<{ p: Position }> = ({ p }) => {
     <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={VERDICT_COLOR[p.verdict]} mt={SPACING.md}>
       {p.reason}
     </Text>
+    {/* Added line, not a verdict input: the cost of exiting THIS position through
+        the venue's swap markets, read off the quoted curve (none for a lending reserve). */}
+    <CapacityCurve venue={p.venue} variant="compact" sizeUsd={p.usd} />
   </Card>
   )
+}
+
+/** Comparator add-on: the swap cost of the whole stack in this venue, from the quoted curve. */
+const ComparatorSwapCost: React.FC<{ venue: string; sizeUsd: number }> = ({ venue, sizeUsd }) => {
+  const { data } = useCapacityCurve(venue)
+  if (!data?.curve || !(sizeUsd > 0)) return null
+  return <YourSizeLine points={data.curve.points} sizeUsd={sizeUsd} size="11px" />
 }
 
 export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress }) => {
@@ -383,9 +394,12 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
                     {c.label}
                   </Text>
                 </NextLink>
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
-                  {c.reason}
-                </Text>
+                <Box>
+                  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
+                    {c.reason}
+                  </Text>
+                  <ComparatorSwapCost venue={c.venue} sizeUsd={c.at_usd} />
+                </Box>
                 <Box textAlign={{ base: 'left', md: 'right' }}>
                   <VerdictChip verdict={c.verdict} />
                 </Box>

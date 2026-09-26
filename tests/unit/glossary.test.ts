@@ -34,7 +34,7 @@ describe('glossary terms', () => {
     const ids = new Set(GLOSSARY_TERMS.map((t) => t.id))
     for (const id of [
       'instant-leg', 'cooldown-leg', 'flow-leg', 'clear', 'caution', 'exposed',
-      'instant-tier', 'cooldown-tier', 'stranded', 'instant-swap-out-depth', 'blind-spot',
+      'instant-tier', 'cooldown-tier', 'stranded', 'swap-out-capacity', 'blind-spot',
     ]) expect(ids, id).toContain(id)
   })
 
@@ -107,8 +107,9 @@ describe('glossary cannot drift from the code', () => {
     expect(blind.toLowerCase()).not.toContain('yield')
   })
 
-  it('thin headroom says a depth-only venue is judged on swap-out depth', () => {
-    expect(def('headroom-thin')).toContain('instant swap-out depth')
+  it('thin headroom says a depth-only venue is judged on swap-out capacity within the cost cap', () => {
+    expect(def('headroom-thin')).toContain(`swap-out capacity within ${ALARM_THRESHOLDS.headroom_thin.poolCostPct}% cost`)
+    expect(def('swap-out-capacity')).toContain(`${ALARM_THRESHOLDS.headroom_thin.poolCostPct}% cost`)
   })
 })
 

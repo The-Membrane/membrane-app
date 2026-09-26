@@ -389,23 +389,53 @@ describe('coverageFor / uncoveredFooter — the ONE blind-spot source (2026-09-2
   })
 })
 
-describe('instantExitUsd — headroom capacity: instant_usd, else instant swap-out depth (2026-09-26)', () => {
+describe('instantExitUsd — headroom capacity: instant_usd, else swap-out capacity within the cost cap, else raw depth (2026-09-26)', () => {
   it('prefers instant_usd when read', async () => {
     const { instantExitUsd } = await import('../../scripts/lib/alarmRules.mjs')
     expect(instantExitUsd({ instant_usd: '120.5', params: { depth_usd: 9 } })).toEqual({ usd: 120.5, source: 'instant_usd' })
   })
 
-  it('falls back to params.depth_usd when there is no instant_usd', async () => {
+  it('with no instant_usd, prefers the depth-curve capacity within the cost cap (owner ask 2026-09-26)', async () => {
+    const { instantExitUsd, curveCapacityAtCost, ALARM_THRESHOLDS } = await import('../../scripts/lib/alarmRules.mjs')
+    const cap = ALARM_THRESHOLDS.headroom_thin.poolCostPct
+    const rows = [
+      { market: 'A', points: [{ costPct: 0.5, capacityUsd: 1 }, { costPct: cap, capacityUsd: 10 }] },
+      { market: 'B', points: [{ costPct: 0.5, capacityUsd: 2 }, { costPct: cap, capacityUsd: 5 }] },
+    ]
+    const curve = curveCapacityAtCost(rows, cap)
+    expect(curve).toEqual({ usd: 15, costPct: cap })
+    const at = '2026-09-26T00:00:00Z'
+    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 99 } }, curve)).toEqual({ usd: 15, source: 'depth_curve', costCapPct: cap })
+    // a real instant read still wins
+    expect(instantExitUsd({ instant_usd: 7, at, params: {} }, curve)?.source).toBe('instant_usd')
+    // no rows / a market with no read at the cap: no curve capacity (never a partial sum, never 0)
+    expect(curveCapacityAtCost([], cap)).toBeNull()
+    expect(curveCapacityAtCost([rows[0], { market: 'C', points: [{ costPct: cap, capacityUsd: null }] }], cap)).toBeNull()
+    expect(curveCapacityAtCost([{ market: 'D', points: [{ costPct: 2, capacityUsd: 3 }] }], cap)).toBeNull()
+    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 99 } }, null)?.source).toBe('depth_usd_raw')
+  })
+
+  it('evalHeadroom records the cost cap and treats curve/raw pool capacity as pool-only', async () => {
+    const { evalHeadroom, ALARM_THRESHOLDS } = await import('../../scripts/lib/alarmRules.mjs')
+    const cap = ALARM_THRESHOLDS.headroom_thin.poolCostPct
+    expect(evalHeadroom(140, 100, 'depth_curve', null, cap).evidence).toEqual({ instantUsd: 140, worstDayOutflowUsd: 100, windowDays: 90, ratio: 1.4, totalRatio: 1.4, source: 'depth_curve', costCapPct: cap })
+    const deep = ALARM_THRESHOLDS.headroom_thin.alarm / 2
+    for (const src of ['depth_curve', 'depth_usd_raw']) {
+      expect(evalHeadroom(deep, 1, src, { usd: 100, delaySec: 86400 }).severity).toBe(ALARM_THRESHOLDS.headroom_thin.poolMaxSeverity)
+    }
+  })
+
+  it('falls back to the RAW params.depth_usd (labelled depth_usd_raw) when there is no instant_usd and no curve', async () => {
     const { instantExitUsd } = await import('../../scripts/lib/alarmRules.mjs')
     const at = '2026-09-26T00:00:00Z'
     expect(instantExitUsd({ instant_usd: null, observed_at: at, params: { depth_usd: 3.8e9, depth_complete: true } })).toEqual({
       usd: 3.8e9,
-      source: 'depth_usd',
+      source: 'depth_usd_raw',
     })
     // depth_complete absent (older rows) is not a failed read
-    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 5 } })?.source).toBe('depth_usd')
+    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 5 } })?.source).toBe('depth_usd_raw')
     // a post-guard zero is a real, empty pool — it counts
-    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 0, depth_complete: true } })).toEqual({ usd: 0, source: 'depth_usd' })
+    expect(instantExitUsd({ instant_usd: null, at, params: { depth_usd: 0, depth_complete: true } })).toEqual({ usd: 0, source: 'depth_usd_raw' })
   })
 
   it('never reads a missing or failed depth as 0', async () => {
@@ -446,7 +476,7 @@ describe('ALARM_THRESHOLDS — the one home of every alarm number', () => {
       gate_change: { windowHours: 24 },
       drawdown_fast: { windowDays: 7, alarmFallPct: 20 },
       net_outflow_streak: { watchDays: 10, alarmDays: 20, minPctOfTvl: 10 },
-      headroom_thin: { watch: 3, alarm: 1.5, windowDays: 90, poolMaxSeverity: 'watch' },
+      headroom_thin: { watch: 3, alarm: 1.5, windowDays: 90, poolMaxSeverity: 'watch', poolCostPct: 1 },
       utilization: { watchPct: 90, alarmPct: 95 },
       depth_skew: { watchPct: 80, alarmPct: 90 },
       depth_collapse: { windowDays: 7, watchFallPct: 35, alarmFallPct: 50 },

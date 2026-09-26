@@ -36,6 +36,7 @@ import {
   type VenueKind,
   type Verdict,
 } from '@/components/Radar/radarLogic'
+import { CapacityCurve } from '@/components/Venue/CapacityCurve'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
@@ -238,6 +239,11 @@ export const VenueCapacity: React.FC<VenueCapacityProps> = ({ detection }) => {
                 instant {band(rec.bands.instantUsd)} · cooldown {band(rec.bands.coolingUsd)} ·
                 stranded {band(rec.bands.strandedUsd)}
               </Line>
+              {/* Owner ask 2026-09-26: a pool's reserve is not an exit at par. What
+                  exits within 0.5 / 1 / 5% cost incl. fees, and what exiting YOUR
+                  size costs — on-chain quotes, block + date stamped. Absent for a
+                  venue with no swap market (a lending reserve). */}
+              <CapacityCurve venue={rec.venue} variant="compact" sizeUsd={d.valueUsd} />
             </Box>
           )
         })

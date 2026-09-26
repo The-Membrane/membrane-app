@@ -29,7 +29,7 @@ const GlossaryPage = () => (
       seoClass="indexable"
       path={`/${DEFAULT_CHAIN}/glossary`}
       title="Membrane: Glossary"
-      description="Definitions of exit legs (instant, cooldown, flow), verdicts (clear, caution, exposed), size tiers (instant, cooldown, stranded), instant swap-out depth and venue alarm rules, with the thresholds the code uses."
+      description="Definitions of exit legs (instant, cooldown, flow), verdicts (clear, caution, exposed), size tiers (instant, cooldown, stranded), swap-out capacity and venue alarm rules, with the thresholds the code uses."
     />
     {structuredData && (
       <Head>

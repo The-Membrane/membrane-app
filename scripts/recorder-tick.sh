@@ -6,6 +6,10 @@
 cd "$(dirname "$0")/.." || exit 1
 echo "=== recorder tick $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 /opt/homebrew/bin/node scripts/record-venue-liquidity.mjs
+# Slippage-bounded exit capacity: on-chain quotes (Curve get_dy / LitePSM tout)
+# of what each depth market exits within 0.1-10% cost, one block. Non-fatal —
+# a quote hiccup must never fail the capacity/flows tick.
+/opt/homebrew/bin/node scripts/record-depth-curves.mjs || echo "depth-curves:record failed (non-fatal)"
 /opt/homebrew/bin/node scripts/record-venue-flows.mjs --chunk 2000
 # Bounded transaction-class reconciliation for NEW Curve depth events. Never
 # blocks the next capacity tick if an archive RPC is unavailable.

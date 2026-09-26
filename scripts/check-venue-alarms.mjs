@@ -37,6 +37,10 @@ import {
   evalDepthCollapse,
   reconcileAlarms,
   coverageFor,
+  instantExitUsd,
+  curveCapacityAtCost,
+  ALARM_THRESHOLDS,
+  redemptionCapacity,
 } from './lib/alarmRules.mjs'
 import { notify } from './lib/notify.mjs'
 
@@ -67,12 +71,29 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   const v = venue.name
   console.log(`\n[${v}] ${venue.kind}`)
 
-  // Latest observed snapshot: decides hasInstant + current TVL.
+  // Latest observed snapshot: decides hasInstant (drawdown metric + TVL) and
+  // the instant exit capacity (headroom + coverage).
   const [latest] = await sql`
-    SELECT instant_usd, params FROM venue_snapshots
+    SELECT observed_at, instant_usd, params FROM venue_snapshots
     WHERE venue = ${v} AND source = 'observed'
     ORDER BY observed_at DESC LIMIT 1`
   const hasInstant = !!latest && latest.instant_usd !== null && latest.instant_usd !== undefined
+  // Swap-out capacity within headroom_thin.poolCostPct cost, from the venue's
+  // latest depth-curve pass (scripts/record-depth-curves.mjs; one row per
+  // market, all at one block). A missing table/row leaves it null.
+  let curveRows = []
+  try {
+    curveRows = await sql`
+      SELECT market, points FROM venue_depth_curves
+      WHERE venue = ${v}
+        AND block = (SELECT MAX(block) FROM venue_depth_curves WHERE venue = ${v})`
+  } catch {
+    curveRows = []
+  }
+  const curveCap = curveCapacityAtCost(curveRows, ALARM_THRESHOLDS.headroom_thin.poolCostPct)
+  // instant_usd, else the curve capacity within the cost cap, else the raw
+  // swap-into reserve (source 'depth_usd_raw', labelled fallback); null when none.
+  const exit = instantExitUsd(latest, curveCap)
   const currentTvlUsd = latest
     ? hasInstant
       ? Number(latest.instant_usd)
@@ -86,7 +107,7 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     SELECT kind, observed_at AS at, prev, next, note FROM venue_events
     WHERE venue = ${v}
       AND kind IN ('cooldown_duration_changed', 'instant_liquidity_shift', 'terms_page_changed')
-      AND observed_at > now() - interval '24 hours'
+      AND observed_at > now() - make_interval(hours => ${ALARM_THRESHOLDS.gate_change.windowHours})
     ORDER BY observed_at DESC`
   const gate = evalGateChange(
     gateEvents.map((e) => ({ kind: e.kind, at: new Date(e.at).toISOString(), prev: e.prev, next: e.next, note: e.note })),
@@ -94,14 +115,15 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   )
   if (gate.fires) {
     firing.push({ venue: v, kind: 'gate_change', severity: gate.severity, evidence: gate.evidence })
-    console.log(`  FIRE gate_change (${gate.severity}) — ${gate.evidence.count} event(s) in 24h`)
+    console.log(`  FIRE gate_change (${gate.severity}) — ${gate.evidence.count} event(s) in ${ALARM_THRESHOLDS.gate_change.windowHours}h`)
   }
 
   // --- drawdown_fast: peak-to-current fall > 20% over trailing 7d ----------
   const metric = hasInstant ? 'instant_usd' : 'total_assets'
   const snaps = await sql`
     SELECT observed_at AS at, instant_usd, params FROM venue_snapshots
-    WHERE venue = ${v} AND source = 'observed' AND observed_at > now() - interval '7 days'
+    WHERE venue = ${v} AND source = 'observed'
+      AND observed_at > now() - make_interval(days => ${ALARM_THRESHOLDS.drawdown_fast.windowDays})
     ORDER BY observed_at ASC`
   const series = snaps
     .map((r) => ({ at: new Date(r.at).toISOString(), value: metricPoint(r, metric) }))
@@ -127,19 +149,21 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     )
   }
 
-  // --- headroom_thin: instant liquidity vs worst 1-day outflow -------------
-  if (hasInstant) {
+  // --- headroom_thin: instant exit capacity vs worst 1-day outflow --------
+  if (exit) {
     const [worst] = await sql`
       SELECT MAX(day_out) AS worst_out FROM (
         SELECT date_trunc('day', block_time) AS d,
                SUM(CASE WHEN direction = 'out' THEN assets_raw ELSE 0 END) AS day_out
-        FROM venue_flows WHERE venue = ${v} GROUP BY 1
+        FROM venue_flows WHERE venue = ${v}
+          AND block_time > now() - make_interval(days => ${ALARM_THRESHOLDS.headroom_thin.windowDays})
+        GROUP BY 1
       ) t`
     const worstDayOutflowUsd = worst && worst.worst_out !== null ? Number(worst.worst_out) / SCALE : 0
-    const hr = evalHeadroom(Number(latest.instant_usd), worstDayOutflowUsd)
+    const hr = evalHeadroom(exit.usd, worstDayOutflowUsd, exit.source, redemptionCapacity(latest), exit.costCapPct ?? null)
     if (hr.fires) {
       firing.push({ venue: v, kind: 'headroom_thin', severity: hr.severity, evidence: hr.evidence })
-      console.log(`  FIRE headroom_thin (${hr.severity}) — ${hr.evidence.ratio.toFixed(2)}x`)
+      console.log(`  FIRE headroom_thin (${hr.severity}) — ${hr.evidence.ratio.toFixed(2)}x (${exit.source})`)
     }
   }
 
@@ -163,7 +187,8 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   // --- depth_collapse: exitable depth (depth_usd) falling >35%/>50% over 7d --
   const depthSnaps = await sql`
     SELECT observed_at AS at, params FROM venue_snapshots
-    WHERE venue = ${v} AND source = 'observed' AND observed_at > now() - interval '7 days'
+    WHERE venue = ${v} AND source = 'observed'
+      AND observed_at > now() - make_interval(days => ${ALARM_THRESHOLDS.depth_collapse.windowDays})
     ORDER BY observed_at ASC`
   const depthSeries = depthSnaps
     .map((r) => ({ at: new Date(r.at).toISOString(), value: r.params?.depth_usd }))
@@ -176,7 +201,7 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
 
   // --- coverage honesty: what this venue is BLIND to -----------------------
   // Blind spots from the ONE shared definition (alarmRules.mjs coverageFor).
-  const uncovered = coverageFor(venue, { hasInstant })
+  const uncovered = coverageFor(venue, { hasInstant: exit !== null })
   uncoveredByVenue[v] = uncovered
   console.log(`  uncovered (cannot evaluate): ${uncovered.map((u) => u.id).join(', ')}`)
 }
@@ -230,3 +255,46 @@ for (const [v, list] of Object.entries(uncoveredByVenue)) {
   console.log(`  ${v}: ${list.map((u) => `${u.id} (${u.memo})`).join('; ')}`)
 }
 console.log('\nalarm check complete')
+
+// --- TELEGRAM ADDRESS ALERTS (MOAT step 7) ----------------------------------
+// Drain /start//stop commands (poll mode only — Telegram forbids getUpdates while
+// a webhook is set), then send one message per new (subscription, alarm, moment)
+// to chats watching an address that holds the venue. Ships dark while the bot env
+// is unset. Non-fatal, and the two halves fail independently: a poll failure
+// never blocks sending.
+let tg = null
+try {
+  const bot = await import('./lib/telegramBot.mjs')
+  const tgConfig = bot.botConfig(get)
+  if (!tgConfig.enabled) {
+    console.log('telegram alerts: bot not configured (TELEGRAM_ALERTS_BOT_TOKEN/USERNAME unset) — skipped')
+  } else {
+    const { require: tsxRequire } = await import('tsx/cjs/api')
+    const logic = tsxRequire('../components/Radar/telegramLogic.ts', import.meta.url)
+    tg = { bot, config: tgConfig, logic, venues: loadConfig() }
+  }
+} catch (e) {
+  console.log(`telegram alerts: setup failed (non-fatal) — ${e?.message ?? e}`)
+}
+if (tg && tg.config.webhookSecret) {
+  console.log('telegram alerts: webhook mode — command polling skipped')
+} else if (tg) {
+  try {
+    const footerFor = tg.bot.scriptFooterFor(sql, tg.venues)
+    const { handled } = await tg.bot.pollOnce({ sql, logic: tg.logic, footerFor, config: tg.config })
+    console.log(`telegram alerts: answered ${handled} command(s)`)
+  } catch (e) {
+    console.log(`telegram alerts: poll failed (non-fatal) — ${e?.message ?? e}`)
+  }
+}
+if (tg) {
+  try {
+    await tg.bot.sendAddressAlerts(sql, {
+      logic: tg.logic,
+      coverage: tg.bot.scriptCoverage(sql, tg.venues),
+      config: tg.config,
+    })
+  } catch (e) {
+    console.log(`telegram alerts: send failed (non-fatal) — ${e?.message ?? e}`)
+  }
+}

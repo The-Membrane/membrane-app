@@ -308,6 +308,9 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
             </Box>
           </>
         ) : null}
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary}>
+          Data compiled by Membrane.
+        </Text>
       </VStack>
     </Container>
   )

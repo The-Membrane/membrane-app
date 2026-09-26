@@ -9,7 +9,7 @@ import { LABELS } from '@/pages/api/_lib/radarReads'
 // Import the SAME pure helper the alarm checker uses — do NOT duplicate the
 // uncovered-signal logic (precedent: pages/api/_lib/radarReads.ts imports
 // @/scripts/lib/position-reads.mjs from TS, so a .mjs import compiles here).
-import { coverageFor } from '@/scripts/lib/alarmRules.mjs'
+import { coverageFor, instantExitUsd } from '@/scripts/lib/alarmRules.mjs'
 
 // PUBLIC. The per-venue SUMMARY the /venue/[name] permalink is built on. One
 // request assembles the venue's latest observed state, its recorder-corpus
@@ -171,7 +171,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     WHERE venue = ${venue} AND cleared_at IS NULL
     ORDER BY fired_at DESC`)
 
-  const hasInstant = !!observed && observed.instantUsd !== null
+  // instant_usd, else the recorded instant swap-out depth (depth_usd) — the same
+  // capacity the checker's headroom rule judges (alarmRules.mjs instantExitUsd).
+  const hasInstant = instantExitUsd(latest) !== null
   const uncovered = coverageFor(cfg, { hasInstant })
 
   const summary: VenueSummary = {

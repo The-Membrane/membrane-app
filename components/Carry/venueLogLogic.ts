@@ -112,7 +112,27 @@ export const alarmConsequence = (e: Entry): { text: string; tone: 'danger' | 'mu
     }
     case 'headroom_thin': {
       const ratio = Number(ev.ratio)
-      body = `instant exit ${fmtUsd(Number(ev.instantUsd))} vs worst day out ${fmtUsd(Number(ev.worstDayOutflowUsd))} = ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'}× — one bad day from gating`
+      // evidence.source (checker, 2026-09-26): which capacity was judged —
+      // 'depth_curve' = swap-out capacity within evidence.costCapPct cost incl.
+      // fees (on-chain quotes); 'depth_usd_raw' (legacy 'depth_usd') = the raw
+      // swap-into reserve, a fallback that is NOT executable at par.
+      const cap = Number(ev.costCapPct)
+      const capacity =
+        ev.source === 'depth_curve'
+          ? `swap-out capacity within ${Number.isFinite(cap) ? cap : '?'}% cost`
+          : ev.source === 'depth_usd_raw' || ev.source === 'depth_usd'
+            ? 'raw swap-out reserve (no cost bound)'
+            : 'instant exit'
+      const window = Number.isFinite(Number(ev.windowDays)) ? ` in ${ev.windowDays} d` : ''
+      const head = `${capacity} ${fmtUsd(Number(ev.instantUsd))} vs worst day out${window} ${fmtUsd(Number(ev.worstDayOutflowUsd))} = ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'}×`
+      // Owner ruling 2026-09-26: the vault's own redemption is capacity too. A
+      // delayed redemption is stated with its cooldown and the total cover.
+      const delay = Number(ev.redemptionDelaySec)
+      const totalRatio = Number(ev.totalRatio)
+      body =
+        Number.isFinite(Number(ev.redemptionUsd)) && delay > 0
+          ? `${head}; the vault's own redemption adds ${fmtUsd(Number(ev.redemptionUsd))} after a ${fmtDuration(delay)} cooldown (${Number.isFinite(totalRatio) ? totalRatio.toFixed(1) : '?'}× in total) — exits past the fast leg wait for the cooldown`
+          : `${head} — one bad day from gating`
       break
     }
     case 'depth_collapse': {
@@ -147,7 +167,7 @@ export const consequence = (e: Entry): { text: string; tone: 'warning' | 'normal
     const b = Number(e.next?.cooldownDuration)
     const shorter = b < a
     return {
-      text: `cooldown ${fmtDuration(a)} → ${fmtDuration(b)} — the cooling window ${shorter ? 'shortened' : 'LENGTHENED'}; every exit plan against this venue just changed`,
+      text: `cooldown ${fmtDuration(a)} → ${fmtDuration(b)} — the cooldown window ${shorter ? 'shortened' : 'LENGTHENED'}; every exit plan against this venue just changed`,
       tone: 'warning',
     }
   }

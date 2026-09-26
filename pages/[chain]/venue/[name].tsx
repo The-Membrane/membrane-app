@@ -15,6 +15,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import { venueOgImagePath } from '@/lib/share/permalink'
 
 // /venue/[name] — the D3 landing. Every headline about a carry venue becomes our
 // distribution moment. Valid names come from tools/venue-recorder.config.json;
@@ -108,6 +109,7 @@ export default function VenuePermalink({ name, valid, validVenues }: Props) {
       <PageSeo
         seoClass="indexable"
         path={`/${DEFAULT_CHAIN}/venue/${name}`}
+        image={venueOgImagePath(name) ?? undefined}
         title={`${name} — exit capacity, recorded | Membrane Carry Radar`}
         description={`${name} withdrawal capacity, worst recorded outflows, open failure-pattern flags and blind spots — measured from Membrane's venue recorder corpus, provenance-stamped.`}
       />

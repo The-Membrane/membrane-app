@@ -9,6 +9,7 @@ import {
   type DriverResult,
   type TransactionClass,
 } from '@/components/Venue/capacityDriverLogic'
+import { CapacityCurve } from '@/components/Venue/CapacityCurve'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { Entry, consequence, alarmConsequence, fmtDuration } from '@/components/Carry/venueLogLogic'
 import { Eyebrow, SectionHeading, Stamp } from '@/components/Carry/atoms'
@@ -254,7 +255,13 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
             the board → /carry
           </Text>
         </NextLink>
+        <NextLink href={`/${chainName}/simulator`} style={{ textDecoration: 'underline' }}>
+          <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.success}>
+            Run this on your wallet →
+          </Text>
+        </NextLink>
       </HStack>
+      <Stamp>Data compiled by Membrane.</Stamp>
     </Card>
   )
 
@@ -398,6 +405,10 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
           </Text>
         </Card>
       )}
+
+      {/* 01b / swap-out capacity — what exits within a cost, fees included (on-chain quotes) */}
+      <SectionHeading index="01b /" title="Swap-out capacity" note="what exits within a cost, fees included — is the depth 1:1? read the curve" />
+      <CapacityCurve venue={venue} />
 
       {/* 02 / observed capacity driver accounting, never causal attribution */}
       <SectionHeading

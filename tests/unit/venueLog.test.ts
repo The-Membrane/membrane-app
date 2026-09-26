@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  alarmConsequence,
   capacityMove,
   consequence,
   fmtDuration,
@@ -40,7 +41,7 @@ describe('VenueLog consequence rendering', () => {
     expect(capacityMove(entry('terms_page_changed', {}, {}))).toBeNull()
   })
 
-  it('renders the Ethena cooldown cut as a shortened cooling window, warning tone', () => {
+  it('renders the Ethena cooldown cut as a shortened cooldown window, warning tone', () => {
     const c = consequence(
       entry('cooldown_duration_changed', { cooldownDuration: 604800 }, { cooldownDuration: 86400 }),
     )
@@ -120,5 +121,20 @@ describe('VenueLog consequence rendering', () => {
     expect(fmtDuration(86400)).toBe('1d')
     expect(fmtDuration(7200)).toBe('2h')
     expect(fmtDuration(90)).toBe('90s')
+  })
+})
+
+describe('headroom_thin sentence names the capacity it judged', () => {
+  const alarm = (evidence: Record<string, unknown>): Entry => ({
+    venue: 'sUSDe', kind: 'headroom_thin', at: '2026-09-26T00:00:00.000Z', prev: null, next: null,
+    provenance: 'alarm', severity: 'watch', evidence,
+  })
+  const base = { instantUsd: 2e6, worstDayOutflowUsd: 1e6, windowDays: 90, ratio: 2 }
+  it('curve capacity: "swap-out capacity within 1% cost"', () => {
+    expect(alarmConsequence(alarm({ ...base, source: 'depth_curve', costCapPct: 1 })).text).toContain('swap-out capacity within 1% cost $2.00M')
+  })
+  it('raw fallback says it has no cost bound', () => {
+    expect(alarmConsequence(alarm({ ...base, source: 'depth_usd_raw' })).text).toContain('raw swap-out reserve (no cost bound)')
+    expect(alarmConsequence(alarm({ ...base, source: 'depth_usd' })).text).toContain('raw swap-out reserve (no cost bound)')
   })
 })

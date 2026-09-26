@@ -2,8 +2,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Box, Button, Grid, HStack, Input, SimpleGrid, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import NextLink from 'next/link'
+import { useRouter } from 'next/router'
 
 import { Card } from '@/components/ui/Card'
+import { CapacityCurve, YourSizeLine, useCapacityCurve } from '@/components/Venue/CapacityCurve'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
@@ -15,6 +17,7 @@ import { fmtDuration, fmtMultiple, fmtPct, fmtUsd, type Verdict } from './radarL
 import { RecapSection } from './RecapSection'
 import { RadarShareCard } from './RadarShareCard'
 import { exportElementAsImage } from '@/services/shareableCard'
+import { radarPermalinkPath } from '@/lib/share/permalink'
 
 // Carry Radar — paste any mainnet address, see its positions across our four
 // instrumented venues, stressed against our RECORDED capacity + flow corpus.
@@ -173,12 +176,23 @@ const VenueCard: React.FC<{ p: Position }> = ({ p }) => {
     <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={VERDICT_COLOR[p.verdict]} mt={SPACING.md}>
       {p.reason}
     </Text>
+    {/* Added line, not a verdict input: the cost of exiting THIS position through
+        the venue's swap markets, read off the quoted curve (none for a lending reserve). */}
+    <CapacityCurve venue={p.venue} variant="compact" sizeUsd={p.usd} />
   </Card>
   )
 }
 
-export const Radar: React.FC = () => {
+/** Comparator add-on: the swap cost of the whole stack in this venue, from the quoted curve. */
+const ComparatorSwapCost: React.FC<{ venue: string; sizeUsd: number }> = ({ venue, sizeUsd }) => {
+  const { data } = useCapacityCurve(venue)
+  if (!data?.curve || !(sizeUsd > 0)) return null
+  return <YourSizeLine points={data.curve.points} sizeUsd={sizeUsd} size="11px" />
+}
+
+export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress }) => {
   const { chainName } = useChainRoute()
+  const router = useRouter()
   const [input, setInput] = useState('')
   const [address, setAddress] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -187,7 +201,8 @@ export const Radar: React.FC = () => {
   // auto-scans; otherwise fall back to the last-looked-up address (paste-first UX).
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const deepLink = new URLSearchParams(window.location.search).get('address')?.trim()
+    // A permalink (/[chain]/radar/[address]) passes its address in as a prop.
+    const deepLink = initialAddress ?? new URLSearchParams(window.location.search).get('address')?.trim()
     if (deepLink && isAddressish(deepLink)) {
       setInput(deepLink)
       window.localStorage.setItem(LS_KEY, deepLink)
@@ -196,7 +211,7 @@ export const Radar: React.FC = () => {
     }
     const last = window.localStorage.getItem(LS_KEY)
     if (last) setInput(last)
-  }, [])
+  }, [initialAddress])
 
   const { data, isFetching, error } = useQuery<RadarResponse>({
     queryKey: ['radar', address],
@@ -222,9 +237,20 @@ export const Radar: React.FC = () => {
     setAddress(v)
   }
 
+  // After a scan, the address bar becomes the result's permalink. Shallow: the href
+  // stays the current page, only the visible URL changes — no remount, no refetch.
+  const permalink = data?.address ? radarPermalinkPath(chainName, data.address) : null
+  useEffect(() => {
+    if (!permalink || !router.isReady) return
+    if (router.asPath.split(/[?#]/)[0].toLowerCase() === permalink) return
+    const address = permalink.slice(permalink.lastIndexOf('/') + 1)
+    router.replace({ pathname: router.pathname, query: { ...router.query, address } }, permalink, { shallow: true, scroll: false })
+  }, [permalink, router])
+
   const copyShare = async () => {
     if (!data?.share_line || typeof navigator === 'undefined') return
-    await navigator.clipboard.writeText(data.share_line)
+    const url = permalink ? `${window.location.origin}${permalink}` : ''
+    await navigator.clipboard.writeText(url ? `${data.share_line}\n${url}` : data.share_line)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -368,9 +394,12 @@ export const Radar: React.FC = () => {
                     {c.label}
                   </Text>
                 </NextLink>
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
-                  {c.reason}
-                </Text>
+                <Box>
+                  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
+                    {c.reason}
+                  </Text>
+                  <ComparatorSwapCost venue={c.venue} sizeUsd={c.at_usd} />
+                </Box>
                 <Box textAlign={{ base: 'left', md: 'right' }}>
                   <VerdictChip verdict={c.verdict} />
                 </Box>

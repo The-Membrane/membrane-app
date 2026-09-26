@@ -84,7 +84,7 @@ const BANDS_RULE =
   'cooling_usd and stranded_usd are NULL on every recorded row, so the split is derived ' +
   'from recorded fields: instant = instant_usd where the recorder reads one (aTokens), ' +
   'else depth_usd (the venue’s recorded exitable secondary depth), capped at the book; ' +
-  'cooling = the rest of the book when a cooldownDuration IS recorded; stranded = the ' +
+  'cooldown = the rest of the book when a cooldownDuration IS recorded; stranded = the ' +
   'remainder, which has no recorded way out today. Book = totalAssets, or for an aToken ' +
   'the underlying balance plus its recorded variable debt.'
 

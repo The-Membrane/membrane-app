@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm'
 import { db } from '@/db'
 import { heldVenues, matchAlerts, toRss, type AlarmLike, type WatchLike } from '@/components/Radar/alertLogic'
 import { footerFor, uncoveredByVenue } from '@/pages/api/_lib/uncovered'
+import { deepLink } from '@/components/Radar/telegramLogic'
 
 // GET /api/radar/alerts/[address] — PER-ADDRESS VENUE ALERTS.
 // GET /api/radar/alerts/[address]?format=rss — the same, as a subscribable feed.
@@ -62,6 +63,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const radarUrl = `${SITE}/${CHAIN}/radar?address=${address}`
   const feedUrl = `${SITE}/api/radar/alerts/${address}?format=rss`
+  // Telegram subscribe deep link (MOAT step 7) — null while the alerts bot env is
+  // unset, so the "telegram" link stays hidden until the bot exists.
+  const botUser = process.env.TELEGRAM_ALERTS_BOT_USERNAME
+  const telegramLink =
+    process.env.TELEGRAM_ALERTS_BOT_TOKEN && botUser ? deepLink(botUser, address) : null
 
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
   if (req.query.format === 'rss') {
@@ -77,6 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     open,
     recent,
     feed_url: feedUrl,
+    telegram_link: telegramLink,
     uncovered: footer,
   })
 }

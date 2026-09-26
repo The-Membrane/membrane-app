@@ -18,6 +18,13 @@ const BAND_COLOR: Record<CapacityBandKey, string> = {
   stranded: SEMANTIC_COLORS.danger,
 }
 
+/** Band key → user-visible label. Keys are a wire format; labels follow the glossary. */
+const BAND_LABEL: Record<CapacityBandKey, string> = {
+  instant: 'instant',
+  cooling: 'cooldown',
+  stranded: 'stranded',
+}
+
 const NoteRun: React.FC<{ note: VenueLiquidity['note'] }> = ({ note }) => (
   <>
     {note.map((seg, i) => {
@@ -53,7 +60,7 @@ export const ExitLiquidity: React.FC = () => {
     <Card variant="default">
       <Flex h="22px" border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} overflow="hidden">
         {bands.map((band) => (
-          <Box key={band.key} title={band.key} h="100%" w={`${bandSharePercent(band).toFixed(1)}%`} bg={BAND_COLOR[band.key]} opacity={0.75} />
+          <Box key={band.key} title={BAND_LABEL[band.key]} h="100%" w={`${bandSharePercent(band).toFixed(1)}%`} bg={BAND_COLOR[band.key]} opacity={0.75} />
         ))}
       </Flex>
 

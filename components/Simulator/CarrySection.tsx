@@ -31,7 +31,8 @@ import CrossingChart from '@/components/Carry/CrossingChart'
 import MarketBoards from '@/components/Carry/MarketBoards'
 import StratsBoard from '@/components/Strats/StratsBoard'
 import AddressBar, { type AddressBarProps } from './AddressBar'
-import { capacityMove, type Entry } from '@/components/Carry/venueLogLogic'
+import { alarmConsequence, capacityMove, consequence, type Entry } from '@/components/Carry/venueLogLogic'
+import { CapacityCurve } from '@/components/Venue/CapacityCurve'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
@@ -383,6 +384,9 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
                   No measured capacity change recorded yet.
                 </Text>
               )}
+              {/* A pool reserve is not an exit at par (owner 2026-09-26): what exits
+                  within 0.5 / 1 / 5% cost incl. fees, on-chain quotes, block-stamped. */}
+              {newest && <CapacityCurve venue={newest.venue} variant="compact" />}
             </Box>
             <Stamp provenance={LIVE_LOG} />
           </Box>

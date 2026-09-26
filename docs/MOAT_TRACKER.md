@@ -10,18 +10,18 @@ bottom of the layer's section, newest last. A layer is HIT only when the thing
 works on live data for a real user; a mock, a fixture or a demo wallet is at
 most PARTIAL.
 
-Last full scan: **2026-09-25** (landing simulator, Radar, Strats, Carry, Position,
+Last full scan: **2026-09-25** · build pass on feat/moat-layers **2026-09-26** (landing simulator, Radar, Strats, Carry, Position,
 Seniority, Evidence, Venue pages; route reachability).
 
 | # | Layer | Status | One-line state | Next step |
 |---|---|---|---|---|
-| 1 | Reporting as marketing | PARTIAL | `/evidence`, `/venue/*`, Radar share card and the public Strats board exist; Radar is noindex; one site-wide OG image | Per-finding OG cards + "run this on your wallet" on every venue page |
+| 1 | Reporting as marketing | PARTIAL+ | Radar permalinks (indexable only for Strats addresses), per-result/venue/finding social cards, venue CTA 'Run this on your wallet', attribution, /glossary | Blog/finding pages of their own; sitemap |
 | 2 | Execution in one flow | **BACKLOG** | Carry `ExecSheet` is a mock chain; no path reaches a signed tx | Held until contracts deploy on-chain (owner, 2026-09-25) |
-| 3 | Infrastructure after deployment | PARTIAL | Position page has the vocabulary (LTV window, recall, countdowns) on fixtures | Wire to the EVM `LiquidationEngine` timer + recall events after deploy |
-| 4 | Bonded curators | MISS (app) | `CuratorRegistry.sol` has bonds, ramp, rank buckets, slash, trailing payments; app config has no registry address | Wire the registry; give Strats rows an author/curator column |
-| 5 | Standard reference data | PARTIAL | Named prongs and capacity bands exist but in two vocabularies; no glossary | One vocabulary + a citable `/glossary` |
-| 6 | Belts and practice | MISS | All levels/tutorial systems are q-racing/points, none borrower-facing | Design a borrower practice loop on the real 4%/8h mechanism |
-| 7 | Speed and alerts | PARTIAL | Alarm engine live hourly; per-address alerts + RSS feed; alarm data-quality fixes 2026-09-25 | Push channel (owner pick), then Radar permalinks |
+| 3 | Infrastructure after deployment | PARTIAL | /risk desk: per-asset LTV glide + waterfall on local anvil; Position page still fixtures | Position page on the EVM LiquidationEngine timer after deploy |
+| 4 | Bonded curators | PARTIAL (local chain) | /curators + profiles read CuratorRegistry on local anvil; BondCoverage live hook ready | Wire BondCoverage on the landing; 'curated by' on Strats; follow a curator |
+| 5 | Standard reference data | HIT | 'cooldown' everywhere; public /glossary with 18 citable anchors + JSON-LD | Link /glossary from nav |
+| 6 | Belts and practice | PARTIAL | /practice v1: Oct-10 tape, 3 pauses, you vs Membrane vs Aave-style | Belts (v2); link from the simulator |
+| 7 | Speed and alerts | PARTIAL+ | Per-address alerts, RSS, Telegram bot (@MembraneAlertBot), data-quality fixes | Merge to evm-migration so the live tick sends; first real /start test |
 
 ---
 
@@ -123,12 +123,12 @@ The data is public, so no one gets it first; computed signals can still arrive f
 | 1 | 7 | Per-address alerts: watched address × open alarm → JSON + RSS + Radar list | **DONE 2026-09-25** |
 | 2 | 7 | **DONE 2026-09-25.** Alarm data quality before anyone relies on the feed: (a) terms-page hash noise — normalize away dynamic numbers or diff by section, re-baseline sUSDS, so its `gate_change` can clear; needs a ruling on what counts as a terms change. (b) zero-depth reads — store null on a failed read, skip zero points in `evalDepthCollapse` | done |
 | 3 | 7 | **DONE 2026-09-25.** One blind-spot source (`coverageFor` / `uncoveredFooter`) for every surface; no copies | done |
-| 4 | 1 | Radar result permalinks + per-result OG card; flip Radar to indexable for the landing view | |
-| 5 | 1 | Per-venue and per-finding OG cards; "run this on your wallet" CTA on every venue page into the simulator | |
-| 6 | 5 | Align words ("cooling" → "cooldown"); legs instant/cooldown/flow, tiers instant/cooldown/stranded; public `/glossary` | decided |
-| 7 | 7 | Telegram bot: deep-link subscribe keyed to a watched address, subscriptions table, sender in the recorder tick; ships dark until the bot token exists | decided |
-| 8 | 4 | Wire `CuratorRegistry` into `config/evm` (local anvil first); BondCoverage goes live; curator profile page | decided |
-| 9 | 3/risk | **Risk desk page** (see below), on local anvil | decided |
+| 4 | 1 | Radar result permalinks + per-result OG card; flip Radar to indexable for the landing view | | **DONE 2026-09-25** (9b742f57) |
+| 5 | 1 | Per-venue and per-finding OG cards; "run this on your wallet" CTA on every venue page into the simulator | **DONE 2026-09-25** (9b742f57, window labels df5a3260) |
+| 6 | 5 | Align words ("cooling" → "cooldown"); legs instant/cooldown/flow, tiers instant/cooldown/stranded; public `/glossary` | **DONE 2026-09-25** (17a97995) |
+| 7 | 7 | Telegram bot: deep-link subscribe keyed to a watched address, subscriptions table, sender in the recorder tick; ships dark until the bot token exists | **DONE 2026-09-25** (e25632f9); bot token set; sends once merged |
+| 8 | 4 | Wire `CuratorRegistry` into `config/evm` (local anvil first); BondCoverage goes live; curator profile page | **DONE 2026-09-26** (d601c80e, df5a3260) on local anvil |
+| 9 | 3/risk | **Risk desk page** (see below), on local anvil | **DONE 2026-09-25** (6b9282b9) |
 | 10 | 6 | Borrower practice mode on the simulator | design |
 | — | 2, 3 | Real execution + live position protection | BACKLOG until on-chain deploy |
 
@@ -149,3 +149,27 @@ managers and borrowers congregate.
 - Orphaned and intentionally left: acquisition-dashboard, acquisition-sim, control-room, isolated, nft, lockdrop, tournament.
 - `/ltv-dashboard`: fold into the risk desk page (step 9), then give that page its inbound links.
 - Venue pages are linked from Radar, Strats and Carry, not from Evidence or the simulator.
+
+## Build pass 2026-09-25/26 (feat/moat-layers) — what was verified and how
+
+- **Verified live (dev server + real DB/chain):** route status/redirects/robots for /glossary, /practice, /curators, /risk, /ltv-dashboard→/risk, Radar permalinks (Strats address indexable, other noindex, bad address → scanner), venue + evidence; the four OG cards render PNG; alerts API returns the Telegram link; /risk renders live anvil data (glide window, target source). Telegram DDL applied; one real getUpdates poll clean.
+- **Verified from node, not in the browser:** curator pages (service returns 5 vaults @ block 133 via the page's own client). The embedded browser stalled on the boot splash (known hydration trap), so /curators and /practice in-browser rendering is UNVERIFIED.
+- **Not yet exercised:** a real Telegram /start → subscription → alert (needs a human Telegram user).
+- **Build prerequisite found:** committed evm-migration does not build without the other session's untracked files (hooks/useAcquisition.ts and 8 more). The worktree uses them as an uncommitted overlay for testing only.
+
+## Copy added (for owner review)
+
+- Venue page: "Run this on your wallet →" · "Data compiled by Membrane." — evidence page attribution.
+- Social cards: "4%." mark; "Data compiled by Membrane"; radar "carry radar" · total / venues held / weakest verdict; venue "TVL · worst 1-day outflow · 90 d · worst 7-day outflow · 90 d · open flags"; finding "Collateral a 4% window would have kept over 3.6 years of Aave V3" ($1.2B from liquidation-corpus.json).
+- Glossary: 18 definitions, each sourced from radarLogic.ts / Carry utils / alarmRules.mjs thresholds.
+- Telegram bot: welcome ("Watching …", "Venues: …", "Open now: …", "Silence is not all-clear: <blind spots>.", "Data compiled by Membrane. /stop to unsubscribe, /list …"), "Track this address on Radar first: <link>", "This chat already watches 25 addresses. /stop to reset.", alert header "<addr> holds <venue>".
+- Practice: "Practice the crossing"; "The recorded Oct 10 tape, Membrane's rules. The tape stops when the timer classifies something. You choose."; pause lines and choice labels (see components/Practice).
+- Risk desk: "Collateral terms, and who pays for bad debt"; "The max LTV moves at most 5 percentage points per 14-day window, in either direction, and can never exceed the listing cap."; target source sentence; "Curator bonds are not in this cascade and are not assigned to assets."
+
+## Open findings from the build
+
+- `lib/position-sim/guarantee.ts` `GUARANTEE.noDials` claims a 14-day notice and 5%/window LTV cap that exist only on the unmerged `feat/ltv-change-cap`; not rendered today.
+- The risk desk's LTV-change process exists only on `feat/ltv-change-cap` (unmerged); master has a live ratio with no glide.
+- No per-asset view for curator bonds or the senior haircut hole (global only).
+- Oct-10 tape never reaches the practice "mid-window" pause (every in-band breach recovered within minutes).
+- Local anvil needs `--disable-block-gas-limit` for DeployFullSystem (two creations at 13.7M/14.9M gas stall otherwise).

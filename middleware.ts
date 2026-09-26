@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supportedChains } from '@/config/chains'
+import { DEFAULT_CHAIN, supportedChains } from '@/config/chains'
+import { LANDING_SIM_MODE, SIM_ROUTE } from '@/config/simulatorMode'
 
 /**
  * Server-side answer to the two soft-404 holes found in docs/GEO_AUDIT.md:
@@ -41,8 +42,17 @@ export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
     const [, first, ...rest] = pathname.split('/')
 
-    // Root, valid chain, or known top-level route: let Next.js route it.
-    if (first === '' || CHAIN_NAMES.has(first) || TOP_LEVEL_ROUTES.has(first)) {
+    // Redirect root at the edge. Keeping this out of getServerSideProps avoids
+    // booting the full _app wallet dependency graph in a Vercel function just
+    // to compute a fixed destination. Cloning the URL preserves query params.
+    if (first === '') {
+        const url = request.nextUrl.clone()
+        url.pathname = `/${DEFAULT_CHAIN}${SIM_ROUTE[LANDING_SIM_MODE]}`
+        return NextResponse.redirect(url, 307)
+    }
+
+    // Valid chain or known top-level route: let Next.js route it.
+    if (CHAIN_NAMES.has(first) || TOP_LEVEL_ROUTES.has(first)) {
         return NextResponse.next()
     }
 

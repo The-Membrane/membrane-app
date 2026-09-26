@@ -70,7 +70,16 @@ export const alarmConsequence = (e: Entry): { text: string; tone: 'danger' | 'mu
       // evidence.source (checker, 2026-09-26): which capacity was judged —
       // 'depth_usd' = the recorded instant swap-out depth (no instant_usd read).
       const capacity = ev.source === 'depth_usd' ? 'instant swap-out depth' : 'instant exit'
-      body = `${capacity} ${fmtUsd(Number(ev.instantUsd))} vs worst day out ${fmtUsd(Number(ev.worstDayOutflowUsd))} = ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'}× — one bad day from gating`
+      const window = Number.isFinite(Number(ev.windowDays)) ? ` in ${ev.windowDays} d` : ''
+      const head = `${capacity} ${fmtUsd(Number(ev.instantUsd))} vs worst day out${window} ${fmtUsd(Number(ev.worstDayOutflowUsd))} = ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'}×`
+      // Owner ruling 2026-09-26: the vault's own redemption is capacity too. A
+      // delayed redemption is stated with its cooldown and the total cover.
+      const delay = Number(ev.redemptionDelaySec)
+      const totalRatio = Number(ev.totalRatio)
+      body =
+        Number.isFinite(Number(ev.redemptionUsd)) && delay > 0
+          ? `${head}; the vault's own redemption adds ${fmtUsd(Number(ev.redemptionUsd))} after a ${fmtDuration(delay)} cooldown (${Number.isFinite(totalRatio) ? totalRatio.toFixed(1) : '?'}× in total) — exits past the fast leg wait for the cooldown`
+          : `${head} — one bad day from gating`
       break
     }
     case 'depth_collapse': {

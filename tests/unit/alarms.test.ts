@@ -425,8 +425,8 @@ describe('instantExitUsd — headroom capacity: instant_usd, else instant swap-o
 
   it('evalHeadroom records which capacity it judged', async () => {
     const { evalHeadroom } = await import('../../scripts/lib/alarmRules.mjs')
-    expect(evalHeadroom(140, 100, 'depth_usd').evidence).toEqual({ instantUsd: 140, worstDayOutflowUsd: 100, ratio: 1.4, source: 'depth_usd' })
-    expect(evalHeadroom(140, 100).evidence).toEqual({ instantUsd: 140, worstDayOutflowUsd: 100, ratio: 1.4 })
+    expect(evalHeadroom(140, 100, 'depth_usd').evidence).toEqual({ instantUsd: 140, worstDayOutflowUsd: 100, windowDays: 90, ratio: 1.4, totalRatio: 1.4, source: 'depth_usd' })
+    expect(evalHeadroom(140, 100).evidence).toEqual({ instantUsd: 140, worstDayOutflowUsd: 100, windowDays: 90, ratio: 1.4, totalRatio: 1.4 })
   })
 
   it('coverage: a venue with recorded depth is no longer headroom-blind; one with neither still is', async () => {
@@ -446,7 +446,7 @@ describe('ALARM_THRESHOLDS — the one home of every alarm number', () => {
       gate_change: { windowHours: 24 },
       drawdown_fast: { windowDays: 7, alarmFallPct: 20 },
       net_outflow_streak: { watchDays: 10, alarmDays: 20, minPctOfTvl: 10 },
-      headroom_thin: { watch: 3, alarm: 1.5 },
+      headroom_thin: { watch: 3, alarm: 1.5, windowDays: 90, poolMaxSeverity: 'watch' },
       utilization: { watchPct: 90, alarmPct: 95 },
       depth_skew: { watchPct: 80, alarmPct: 90 },
       depth_collapse: { windowDays: 7, watchFallPct: 35, alarmFallPct: 50 },
@@ -463,5 +463,35 @@ describe('ALARM_THRESHOLDS — the one home of every alarm number', () => {
     const code = src.replace(/\/\/.*$/gm, '')
     const bare = code.match(/\b(?:ratio|fallFrac|pctOfTvl|streak|v)\s*[<>]=?\s*\d/g) ?? []
     expect(bare).toEqual([])
+  })
+})
+
+describe('headroom_thin: pool capacity stays at watch (owner ruling 2026-09-26)', () => {
+  it('a swap pool backed by the vault redemption stays at watch; a real instant read, or a pool with nothing behind it, alarms', async () => {
+    const { evalHeadroom, ALARM_THRESHOLDS } = await import('../../scripts/lib/alarmRules.mjs')
+    const deep = ALARM_THRESHOLDS.headroom_thin.alarm / 2 // well under the alarm multiple
+    expect(evalHeadroom(deep, 1, 'depth_usd', { usd: 100, delaySec: 86400 }).severity).toBe(ALARM_THRESHOLDS.headroom_thin.poolMaxSeverity)
+    expect(evalHeadroom(deep, 1, 'depth_usd').severity).toBe('alarm')
+    expect(evalHeadroom(deep, 1, 'instant_usd').severity).toBe('alarm')
+    expect(evalHeadroom(deep, 1).severity).toBe('alarm')
+    expect(ALARM_THRESHOLDS.headroom_thin.windowDays).toBeGreaterThan(0)
+  })
+})
+
+describe('headroom_thin counts the vault redemption as capacity (owner 2026-09-26)', () => {
+  it('instant redemption joins the fast exit; a cooldown redemption only the total', async () => {
+    const { evalHeadroom, redemptionCapacity } = await import('../../scripts/lib/alarmRules.mjs')
+    // sUSDS-like: pool 1, instant redemption 100, worst day 10 -> fast 101/10, quiet
+    expect(evalHeadroom(1, 10, 'depth_usd', { usd: 100, delaySec: 0 }).fires).toBe(false)
+    // sUSDe-like: pool 49, 1-day cooldown redemption 1311, worst day 70 -> fast 0.7x (alarm band) capped to watch, total ~19.4x
+    const e = evalHeadroom(49, 70, 'depth_usd', { usd: 1311, delaySec: 86400 })
+    expect(e.severity).toBe('watch')
+    expect(e.evidence.redemptionDelaySec).toBe(86400)
+    expect(e.evidence.totalRatio).toBeCloseTo((49 + 1311) / 70, 6)
+    // even the total cannot cover -> alarm regardless of pool source
+    expect(evalHeadroom(1, 100, 'depth_usd', { usd: 10, delaySec: 86400 }).severity).toBe('alarm')
+    expect(redemptionCapacity({ params: { totalAssets: '2000000000000000000', vaultDecimals: 18, cooldownDuration: 86400 } })).toEqual({ usd: 2, delaySec: 86400 })
+    expect(redemptionCapacity({ params: { totalAssets: '2000000000000000000', vaultDecimals: 18 } })).toEqual({ usd: 2, delaySec: 0 })
+    expect(redemptionCapacity({ params: { underlyingBalance: '1' } })).toBeNull()
   })
 })

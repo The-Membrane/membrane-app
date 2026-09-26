@@ -39,6 +39,7 @@ import {
   coverageFor,
   instantExitUsd,
   ALARM_THRESHOLDS,
+  redemptionCapacity,
 } from './lib/alarmRules.mjs'
 import { notify } from './lib/notify.mjs'
 
@@ -139,10 +140,12 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
       SELECT MAX(day_out) AS worst_out FROM (
         SELECT date_trunc('day', block_time) AS d,
                SUM(CASE WHEN direction = 'out' THEN assets_raw ELSE 0 END) AS day_out
-        FROM venue_flows WHERE venue = ${v} GROUP BY 1
+        FROM venue_flows WHERE venue = ${v}
+          AND block_time > now() - make_interval(days => ${ALARM_THRESHOLDS.headroom_thin.windowDays})
+        GROUP BY 1
       ) t`
     const worstDayOutflowUsd = worst && worst.worst_out !== null ? Number(worst.worst_out) / SCALE : 0
-    const hr = evalHeadroom(exit.usd, worstDayOutflowUsd, exit.source)
+    const hr = evalHeadroom(exit.usd, worstDayOutflowUsd, exit.source, redemptionCapacity(latest))
     if (hr.fires) {
       firing.push({ venue: v, kind: 'headroom_thin', severity: hr.severity, evidence: hr.evidence })
       console.log(`  FIRE headroom_thin (${hr.severity}) — ${hr.evidence.ratio.toFixed(2)}x (${exit.source})`)

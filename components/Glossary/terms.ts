@@ -243,7 +243,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     group: 'alarms',
     alarmKind: 'headroom_thin',
     definition:
-      `Instant exit liquidity divided by the venue's worst recorded single-day outflow. Where a venue has no instant-liquidity read, its instant swap-out depth is used instead, and the alarm says so. Watch under ${x(T.headroom_thin.watch)}, alarm under ${x(T.headroom_thin.alarm)}.`,
+      `Instant exit liquidity divided by the venue's worst single-day outflow in the last ${T.headroom_thin.windowDays} days. Watch under ${x(T.headroom_thin.watch)}, alarm under ${x(T.headroom_thin.alarm)}. Where a venue has no instant-liquidity read, its instant swap-out depth is used instead, and the alarm says so. The vault's own redemption counts as capacity too: with no cooldown it adds to the fast exit; with a cooldown it counts toward the total, and the alarm names the wait. Pool-only headroom stays at ${T.headroom_thin.poolMaxSeverity} unless even the total cannot cover the day.`,
     source: ALARMS,
   },
   {

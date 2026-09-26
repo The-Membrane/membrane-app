@@ -32,7 +32,7 @@ export const ALARM_THRESHOLDS = Object.freeze({
   // consecutive net-outflow days; cumulative outflow must be STRICTLY above minPctOfTvl
   net_outflow_streak: Object.freeze({ watchDays: 10, alarmDays: 20, minPctOfTvl: 10 }),
   // instant exit capacity / worst recorded day out, STRICTLY below the multiple
-  headroom_thin: Object.freeze({ watch: 3, alarm: 1.5 }),
+  headroom_thin: Object.freeze({ watch: 3, alarm: 1.5, windowDays: 90, poolMaxSeverity: 'watch' }),
   // lending-reserve utilization STRICTLY above
   utilization: Object.freeze({ watchPct: 90, alarmPct: 95 }),
   // exit-pool one-sidedness STRICTLY above
@@ -179,7 +179,7 @@ export function evalOutflowStreak(dailyNets, tvlUsd) {
 // recorded in the evidence so the alarm sentence names which capacity it used.
 // Venues with neither read cannot be judged — that gap is reported via
 // uncoveredFor.
-export function evalHeadroom(instantUsd, worstDayOutflowUsd, source) {
+export function evalHeadroom(instantUsd, worstDayOutflowUsd, source, redemption = null) {
   if (instantUsd === null || instantUsd === undefined) {
     return { fires: false, severity: null, evidence: null }
   }
@@ -188,14 +188,50 @@ export function evalHeadroom(instantUsd, worstDayOutflowUsd, source) {
   if (!Number.isFinite(inst) || !Number.isFinite(worst) || worst <= 0) {
     return { fires: false, severity: null, evidence: null }
   }
-  const ratio = inst / worst
+  // Owner ruling 2026-09-26: the venue's own redemption IS exit capacity, even
+  // when it is delayed. A redemption with no cooldown adds to the fast exit; a
+  // cooldown redemption counts only toward the total. The alarm judges the fast
+  // exit, and escalates to 'alarm' whenever even the total cannot cover the day.
+  const red = redemption && Number.isFinite(Number(redemption.usd)) && Number(redemption.usd) > 0 ? redemption : null
+  const redUsd = red ? Number(red.usd) : 0
+  const redDelay = red ? Number(red.delaySec) || 0 : 0
+  const fast = inst + (red && redDelay === 0 ? redUsd : 0)
+  const total = inst + redUsd
+  const ratio = fast / worst
+  const totalRatio = total / worst
   let severity = null
   if (ratio < ALARM_THRESHOLDS.headroom_thin.alarm) severity = 'alarm'
   else if (ratio < ALARM_THRESHOLDS.headroom_thin.watch) severity = 'watch'
   if (!severity) return { fires: false, severity: null, evidence: null }
-  const evidence = { instantUsd: inst, worstDayOutflowUsd: worst, ratio }
+  // A swap pool is not the venue's own exit, so pool-only headroom is capped at
+  // poolMaxSeverity ('watch') — unless the total (pool + redemption) cannot
+  // cover the worst day either.
+  const poolOnly = source === 'depth_usd' && !(red && redDelay === 0)
+  if (poolOnly && severity === 'alarm' && totalRatio >= ALARM_THRESHOLDS.headroom_thin.alarm) {
+    severity = ALARM_THRESHOLDS.headroom_thin.poolMaxSeverity
+  }
+  const evidence = { instantUsd: fast, worstDayOutflowUsd: worst, windowDays: ALARM_THRESHOLDS.headroom_thin.windowDays, ratio, totalRatio }
   if (source) evidence.source = source
+  if (red) {
+    evidence.redemptionUsd = redUsd
+    evidence.redemptionDelaySec = redDelay
+  }
   return { fires: true, severity, evidence }
+}
+
+// The venue's OWN redemption capacity from ONE snapshot row: an ERC-4626 vault
+// can always redeem its totalAssets (counted at face value), after
+// params.cooldownDuration seconds (0 or absent = instant). null for venues with
+// no vault redemption (a lending market's exit is its instant liquidity).
+export function redemptionCapacity(snapshot) {
+  const p = snapshot?.params ?? {}
+  const raw = p.totalAssets
+  const dec = Number(p.vaultDecimals)
+  if (raw === undefined || raw === null || !Number.isFinite(dec)) return null
+  const usd = Number(raw) / 10 ** dec
+  if (!Number.isFinite(usd) || usd <= 0) return null
+  const delaySec = Number(p.cooldownDuration ?? 0)
+  return { usd, delaySec: Number.isFinite(delaySec) && delaySec > 0 ? delaySec : 0 }
 }
 
 // The instant exit capacity of ONE snapshot row ({ instant_usd, params,

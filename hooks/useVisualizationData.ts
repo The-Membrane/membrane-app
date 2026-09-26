@@ -15,7 +15,7 @@ export const useVisualizationData = (
     timeRange: '1h' | '24h' | '7d' | '30d'
 ) => {
     const query = useQuery<VisualizationDataResponse>({
-        queryKey: ['visualization_data', cosmWasmClient, timeRange],
+        queryKey: ['visualization_data', !!cosmWasmClient, timeRange],
         queryFn: async () => {
             // If no client, return mock data immediately
             if (!cosmWasmClient) {
@@ -38,9 +38,10 @@ export const useVisualizationData = (
             }
             return getVisualizationData(cosmWasmClient, timeRange)
         },
-        enabled: true, // Always enabled, will use mock data if no client
-        refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
-        staleTime: 5000,
+        enabled: true,
+        refetchInterval: 30000, // Refetch every 30 seconds
+        staleTime: 60000, // 1 minute stale time
+        refetchOnWindowFocus: false,
     })
 
     return {

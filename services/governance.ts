@@ -129,13 +129,15 @@ const getDaysLeft = (proposal: any) => {
 
 const parseProposal = (proposals: ProposalResponseType[]) => {
   // console.log("before parse", proposals)
-  const activeProposals = proposals
-    .filter(({ status }) => status === 'active')
-    .map((proposal) => ({
-      ...proposal,
-      badge: 'active',
-      daysLeft: getDaysLeft(proposal),
-    }))
+  const activeProposals = proposals.flatMap((proposal) =>
+    proposal.status === 'active'
+      ? [{
+        ...proposal,
+        badge: 'active',
+        daysLeft: getDaysLeft(proposal),
+      }]
+      : [],
+  )
 
   const completedBadge: Record<string, string> = {
     passed: 'passed',
@@ -143,32 +145,35 @@ const parseProposal = (proposals: ProposalResponseType[]) => {
     amendment_desired: 'amended',
     expired: 'expired',
   }
-  const completedProposals = proposals
-    .filter(
-      ({ status }) =>
-        status === 'passed' ||
-        status === 'rejected' ||
-        status === 'amendment_desired' ||
-        status === 'expired',
-    )
-    .map((proposal) => ({
-      ...proposal,
-      status: 'completed',
-      badge: completedBadge[proposal.status],
-    }))
+  const completedProposals = proposals.flatMap(({ status, ...proposal }) =>
+    status === 'passed' ||
+    status === 'rejected' ||
+    status === 'amendment_desired' ||
+    status === 'expired'
+      ? [{
+        ...proposal,
+        status: 'completed',
+        badge: completedBadge[status],
+      }]
+      : [],
+  )
 
-  const executedProposals = proposals
-    .filter(({ status }) => status === 'executed')
-    .map((proposal) => ({
-      ...proposal,
-      badge: 'executed',
-    }))
-  const pendingProposals = proposals
-    .filter(({ aligned_power }) => aligned_power < "1000000000")
-    .map((proposal) => ({
-      ...proposal,
-      badge: 'pending',
-    }))
+  const executedProposals = proposals.flatMap((proposal) =>
+    proposal.status === 'executed'
+      ? [{
+        ...proposal,
+        badge: 'executed',
+      }]
+      : [],
+  )
+  const pendingProposals = proposals.flatMap((proposal) =>
+    proposal.aligned_power < "1000000000"
+      ? [{
+        ...proposal,
+        badge: 'pending',
+      }]
+      : [],
+  )
 
   return [...activeProposals, ...completedProposals, ...executedProposals, ...pendingProposals]
 }
@@ -217,13 +222,16 @@ export const getProposals = async (client: any) => {
   // console.log(delegateVotes)
 
 
-  return allProposals.filter((prop) => prop.proposal_id != "61")
-    .map((proposal) => ({
-      ...proposal,
-      result: calculateProposalResult(proposal as any, config),
-      ratio: calcuateRatio(proposal as any, config),
-      requiredQuorum,
-    }))
+  return allProposals.flatMap((proposal) =>
+    proposal.proposal_id != "61"
+      ? [{
+        ...proposal,
+        result: calculateProposalResult(proposal as any, config),
+        ratio: calcuateRatio(proposal as any, config),
+        requiredQuorum,
+      }]
+      : [],
+  )
 }
 
 const checkIfVoted = (proposal: Proposal, address?: Addr) => {

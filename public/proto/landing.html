@@ -1,0 +1,763 @@
+<title>Membrane</title>
+
+<style>
+  :root{
+    --bg:#09090a; --raise:#100f12; --card:#0e0d10; --sunk:#070708;
+    --ink:#ece6d8; --dim:#8d877b; --faint:#56524a;
+    --hair:rgba(236,230,216,0.10); --hairS:rgba(236,230,216,0.22);
+    --phos:#9bdc4f; --teal:#46d39a; --gold:#d8b24a; --blood:#cf4034;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  :root[data-theme="light"],:root[data-theme="dark"]{ color-scheme:dark; }
+  *,*::before,*::after{ box-sizing:border-box; }
+
+  .wrap{ background:var(--bg); color:var(--ink); font-family:var(--mono);
+    font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .inner{ max-width:1180px; margin:0 auto; padding:0 clamp(14px,3vw,26px); }
+  h1,h2,h3{ font-family:var(--serif); font-weight:400; margin:0; text-wrap:balance; letter-spacing:-0.01em; }
+  p{ margin:0; }
+
+  /* --- nav: connect is optional, nothing gates the page --- */
+  .nav{ display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:16px 0; border-bottom:1px solid var(--hair); }
+  .brand{ font-family:var(--serif); font-size:19px; letter-spacing:0.01em; }
+  .navr{ display:flex; align-items:center; gap:18px; }
+  .navlink{ font-size:10.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); cursor:pointer; }
+  .navlink:hover{ color:var(--phos); }
+  .connect{ font-family:var(--mono); font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase;
+    background:transparent; color:var(--ink); border:1px solid var(--hairS); padding:9px 14px; cursor:pointer;
+    transition:border-color .15s,color .15s; }
+  .connect:hover{ border-color:var(--phos); color:var(--phos); }
+  .connect:focus-visible,button:focus-visible,input:focus-visible{ outline:1px solid var(--phos); outline-offset:2px; }
+
+  /* --- 01 the instrument --- */
+  .instrument{ display:grid; grid-template-columns:1.35fr 1fr; gap:0;
+    border:1px solid var(--hairS); border-top:0; }
+  @media(max-width:880px){ .instrument{ grid-template-columns:1fr; } }
+  .stage{ background:var(--sunk); padding:clamp(20px,3vw,32px); display:grid; gap:20px; align-content:start; }
+  .rail{ background:var(--card); border-left:1px solid var(--hairS); padding:20px; display:grid; gap:16px; align-content:start; }
+  @media(max-width:880px){ .rail{ border-left:0; border-top:1px solid var(--hairS); } }
+
+  .eyebrow{ font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:var(--phos); }
+  .holding{ display:grid; gap:6px; }
+  /* Numbers are machine-readable, always. A balance never sets in the display serif. */
+  .holding .amt{ font-family:var(--mono); font-size:clamp(28px,4.6vw,42px); line-height:1.05;
+    font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
+  .holding .amt em{ font-style:normal; color:var(--faint); font-size:0.62em; letter-spacing:0.12em; }
+  .holding .sub{ font-size:11.5px; color:var(--dim); font-variant-numeric:tabular-nums; }
+
+  .flow{ display:grid; gap:1px; background:var(--hair); border:1px solid var(--hair); }
+  .fr{ background:var(--card); padding:12px 14px; display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+  .fr .k{ font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); }
+  .fr .v{ font-variant-numeric:tabular-nums; font-size:15px; }
+  .fr .v small{ font-size:11px; color:var(--faint); }
+  .fr.net{ background:var(--raise); }
+  .fr.net .v{ font-size:18px; }
+
+  /* the payload */
+  .carry{ border:1px solid var(--phos); padding:18px; display:grid; gap:7px; }
+  .carry.warn{ border-color:var(--gold); }
+  .carry.neg{ border-color:var(--blood); }
+  .carry.warn .line b{ color:var(--gold); }
+  /* Serif prose, mono numerals set inline &mdash; prose reads, data stays machine-readable. */
+  .carry .line{ font-family:var(--serif); font-size:clamp(17px,2.6vw,24px); line-height:1.3; }
+  .carry .line .num{ font-family:var(--mono); font-size:0.86em; font-variant-numeric:tabular-nums;
+    letter-spacing:-0.01em; }
+  .carry .line b{ font-weight:400; color:var(--phos); }
+  .carry.neg .line b{ color:var(--blood); }
+  .verdict .num{ font-family:var(--mono); font-size:0.86em; font-variant-numeric:tabular-nums; }
+  .cfc .big .num{ font-family:var(--mono); font-size:0.82em; font-variant-numeric:tabular-nums; }
+  h2 .num{ font-family:var(--mono); font-size:0.84em; font-variant-numeric:tabular-nums; }
+  .carry .foot{ font-size:11px; color:var(--dim); }
+
+  /* rail controls */
+  .ctl{ display:grid; gap:7px; }
+  .ctl-hd{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; font-size:11px; }
+  .ctl-hd .k{ color:var(--dim); letter-spacing:0.08em; }
+  .ctl-hd .v{ font-variant-numeric:tabular-nums; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:18px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track{ height:2px; background:var(--hairS); }
+  input[type=range]::-moz-range-track{ height:2px; background:var(--hairS); }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:11px; height:11px; background:var(--phos); margin-top:-4.5px; border:0; }
+  input[type=range]::-moz-range-thumb{ width:11px; height:11px; background:var(--phos); border:0; border-radius:0; }
+  .seg{ display:flex; gap:6px; }
+  .sbtn{ flex:1; font-family:var(--mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+    background:transparent; color:var(--ink); border:1px solid var(--hairS); padding:8px 6px; cursor:pointer;
+    transition:border-color .15s,color .15s,background-color .15s; }
+  .sbtn:hover{ border-color:var(--phos); color:var(--phos); }
+  .sbtn[aria-pressed=true]{ background:var(--phos); border-color:var(--phos); color:#09090a; }
+
+  .cta{ width:100%; font-family:var(--mono); background:var(--phos); color:#09090a; border:1px solid var(--phos);
+    padding:14px 10px; font-size:12.5px; letter-spacing:0.04em; cursor:pointer; font-variant-numeric:tabular-nums;
+    transition:background-color .15s; }
+  .cta:hover{ background:#b2e86f; }
+  .playdoor{ display:grid; gap:7px; padding-bottom:12px; border-bottom:1px solid var(--hair); }
+  a.cta.play{ display:block; text-align:center; text-decoration:none; }
+  .playsub{ font-size:10px; letter-spacing:0.08em; color:var(--dim); text-align:center; margin:0; }
+  .constraint{ font-size:10.5px; color:var(--dim); text-align:center; line-height:1.5; }
+  .tos{ border-top:1px solid var(--hair); padding-top:11px; font-size:10.5px; color:var(--dim);
+    display:flex; gap:8px; align-items:flex-start; line-height:1.55; }
+  .tos .mk{ color:var(--gold); flex:none; }
+  .tos a{ color:var(--phos); text-underline-offset:3px; }
+  .wstat{ font-size:10.5px; line-height:1.55; color:var(--dim); min-height:1px; word-break:break-word; }
+  .wstat.err{ color:var(--blood); } .wstat.ok{ color:var(--phos); } .wstat.busy{ color:var(--gold); }
+  .wstat code{ font-family:var(--mono); color:var(--teal); }
+  .wstat a{ color:var(--phos); text-underline-offset:3px; }
+  .connect.on{ border-color:var(--phos); color:var(--phos); }
+
+  /* --- sections --- */
+  section{ padding:clamp(44px,7vw,84px) 0; border-bottom:1px solid var(--hair); display:grid; gap:20px; }
+  .sechd{ display:grid; gap:10px; }
+  h2{ font-size:clamp(21px,3.2vw,30px); }
+  .lede{ color:var(--dim); font-size:13.5px; max-width:74ch; }
+
+  /* counterfactual */
+  .cf{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--hair); border:1px solid var(--hair); }
+  @media(max-width:720px){ .cf{ grid-template-columns:1fr; } }
+  .cfc{ background:var(--card); padding:20px; display:grid; gap:10px; align-content:start; }
+  .cfc.you{ border-top:2px solid var(--phos); }
+  .cfc.sold{ border-top:2px solid var(--faint); }
+  .cfc .t{ font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--dim); }
+  .cfc.you .t{ color:var(--phos); }
+  .cfc .big{ font-family:var(--serif); font-size:clamp(22px,3.4vw,30px); line-height:1.1; }
+  .cfc .rows{ display:grid; gap:5px; margin-top:2px; }
+  .cfc .rw{ display:flex; justify-content:space-between; gap:10px; font-size:11.5px; color:var(--dim); }
+  .cfc .rw b{ font-weight:400; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .verdict{ font-family:var(--serif); font-size:clamp(17px,2.6vw,23px); line-height:1.3; }
+  .verdict b{ font-weight:400; color:var(--phos); }
+
+  /* risk */
+  .risk{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1px; background:var(--hair); border:1px solid var(--hair); }
+  .rk{ background:var(--card); padding:16px; display:grid; gap:5px; }
+  .rk .k{ font-size:9.5px; letter-spacing:0.22em; text-transform:uppercase; color:var(--dim); }
+  .rk .v{ font-size:19px; font-variant-numeric:tabular-nums; }
+  .rk .n{ font-size:10px; color:var(--faint); line-height:1.5; }
+
+  /* auto-repayment */
+  .repay{ border:1px solid var(--hairS); background:var(--card); padding:18px; display:grid; gap:12px; }
+  .repay-hd{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .repay .rt{ font-family:var(--serif); font-size:17px; }
+  .repay .rtag{ font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--phos);
+    border:1px solid rgba(155,220,79,0.45); padding:4px 9px; }
+  .repay .rsub{ font-size:12px; color:var(--dim); max-width:80ch; }
+  .traj{ display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--hair); border:1px solid var(--hair); }
+  @media(max-width:600px){ .traj{ grid-template-columns:repeat(2,1fr); } }
+  .tj{ background:var(--card); padding:12px 13px; display:grid; gap:4px; }
+  .tj .w{ font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--faint); }
+  .tj .d{ font-size:15px; font-variant-numeric:tabular-nums; }
+  .tj .c{ font-size:11.5px; font-variant-numeric:tabular-nums; color:var(--phos); }
+  .tj.now .w{ color:var(--dim); } .tj.now .c{ color:var(--dim); }
+  .repay .rfoot{ font-size:11.5px; color:var(--dim); }
+
+  /* routes */
+  .routes{ display:grid; gap:1px; background:var(--hair); border:1px solid var(--hair); }
+  .rt-row{ background:var(--card); display:grid; grid-template-columns:1.7fr 62px 1fr 74px; gap:12px;
+    padding:9px 13px; align-items:center; font-size:11.5px;
+    grid-template-areas:"nm pos bar net"; }
+  .rt-row .nm{ grid-area:nm; } .rt-row .pos{ grid-area:pos; }
+  .rt-row .bar,.rt-row .barh{ grid-area:bar; } .rt-row .net{ grid-area:net; }
+  /* Narrow: the net % is the payload of this whole section, so it never gets dropped.
+     The bar is only a second encoding of that same number, so it takes the second row. */
+  @media(max-width:720px){
+    .rt-row{ grid-template-columns:1fr auto; grid-template-areas:"nm net" "bar bar"; gap:7px 10px; }
+    .rt-row .pos{ display:none; }
+    .rt-row .barh{ display:none; }
+  }
+  .rt-row.hd{ background:var(--raise); }
+  .rt-row.hd span{ font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); }
+  .rt-row .nm{ color:var(--ink); }
+  .rt-row .pos{ font-variant-numeric:tabular-nums; color:var(--faint); text-align:right; }
+  .rt-row .net{ font-variant-numeric:tabular-nums; text-align:right; }
+  .rt-row.big .nm{ color:var(--ink); }
+  .rt-row.big{ background:var(--raise); }
+  .bar{ position:relative; height:8px; background:rgba(236,230,216,0.05); }
+  .bar .z{ position:absolute; top:-2px; bottom:-2px; width:1px; background:var(--hairS); }
+  .bar i{ position:absolute; top:0; bottom:0; }
+  .rstats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1px;
+    background:var(--hair); border:1px solid var(--hair); }
+  .rs{ background:var(--card); padding:13px; display:grid; gap:4px; }
+  .rs .k{ font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); }
+  .rs .v{ font-size:19px; font-variant-numeric:tabular-nums; }
+  .rs .n{ font-size:9.5px; color:var(--faint); }
+
+  /* locked / scanner */
+  .locked{ border:1px solid var(--hairS); background:var(--card); padding:0; overflow:hidden;
+    display:grid; grid-template-columns:auto 1fr; gap:0; align-items:stretch; }
+  @media(max-width:720px){ .locked{ grid-template-columns:1fr; } }
+  .scanpad{ width:clamp(150px,20vw,210px); background:var(--sunk); border-right:1px solid var(--hair);
+    display:grid; place-items:center; padding:26px; position:relative; cursor:pointer; user-select:none; }
+  @media(max-width:720px){ .scanpad{ width:auto; border-right:0; border-bottom:1px solid var(--hair); } }
+  .print{ width:82px; height:82px; position:relative; }
+  .print svg{ width:100%; height:100%; display:block; }
+  .print path{ fill:none; stroke:var(--faint); stroke-width:1.6; transition:stroke .3s; }
+  .scanpad.armed .print path{ stroke:var(--phos); }
+  .scanline{ position:absolute; left:8%; right:8%; height:1px; background:var(--phos); opacity:0; box-shadow:none; }
+  .scanpad.armed .scanline{ opacity:.9; animation:sweep 1.1s linear infinite; }
+  @keyframes sweep{ from{ top:6%; } to{ top:94%; } }
+  .scanpad .hint{ position:absolute; bottom:14px; left:0; right:0; text-align:center;
+    font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:var(--faint); }
+  .scanpad.done .hint{ color:var(--phos); }
+  .lockbody{ padding:22px; display:grid; gap:12px; align-content:center; }
+  .lockbody h3{ font-size:19px; }
+  .lockbody .sub{ font-size:12px; color:var(--dim); max-width:60ch; }
+  .tiers{ display:grid; gap:1px; background:var(--hair); border:1px solid var(--hair); margin-top:4px; }
+  .tier{ background:var(--card); padding:10px 13px; display:flex; justify-content:space-between; gap:12px;
+    font-size:11.5px; align-items:baseline; }
+  .tier .nm{ color:var(--dim); }
+  .tier .st{ font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--faint); }
+  .tier.open .nm{ color:var(--ink); } .tier.open .st{ color:var(--phos); }
+
+  .foot{ padding:26px 0 60px; font-size:11px; color:var(--faint); display:grid; gap:5px; }
+  @media(prefers-reduced-motion:reduce){ *,*::before,*::after{ animation:none!important; transition:none!important; } }
+</style>
+
+<div class="wrap">
+  <div class="inner">
+
+    <nav class="nav">
+      <span class="brand">Membrane</span>
+      <div class="navr">
+        <span class="navlink">Borrow</span>
+        <span class="navlink">Earn</span>
+        <span class="navlink">Liquidate</span>
+        <a class="navlink" href="builder.html"
+          style="text-decoration:none;color:var(--phos);cursor:pointer">Play the gauntlet &rarr;</a>
+        <a class="navlink" href="demo.html"
+          style="text-decoration:none;color:var(--phos);cursor:pointer">View demo position &rarr;</a>
+        <button class="connect" type="button">Connect</button>
+      </div>
+    </nav>
+
+    <!-- 01 &mdash; the instrument. Operable before any wallet. -->
+    <div class="instrument">
+      <div class="stage">
+        <span class="eyebrow">Your bitcoin, still yours</span>
+        <div class="holding">
+          <div class="amt" id="hAmt">1.00 <em>BTC</em></div>
+          <div class="sub" id="hSub">&mdash;</div>
+        </div>
+
+        <div class="flow">
+          <div class="fr"><span class="k">You receive</span><span class="v" id="fRecv">&mdash;</span></div>
+          <div class="fr"><span class="k">It earns</span><span class="v" id="fEarn">&mdash;</span></div>
+          <div class="fr"><span class="k">Interest costs</span><span class="v" id="fCost">&mdash;</span></div>
+          <div class="fr net"><span class="k">Net to you</span><span class="v" id="fNet">&mdash;</span></div>
+        </div>
+
+        <div class="carry" id="carryBox">
+          <p class="line" id="carryLine">&mdash;</p>
+          <p class="foot" id="carryFoot">&mdash;</p>
+        </div>
+      </div>
+
+      <div class="rail">
+        <div class="playdoor">
+          <a class="cta play" href="builder.html">Play today&rsquo;s gauntlet &rarr;</a>
+          <p class="playsub">No wallet. Same floors for everyone today. Real measured data.</p>
+        </div>
+
+        <div class="ctl">
+          <div class="ctl-hd"><span class="k">Bitcoin you hold</span><span class="v" id="vBtc">1.00 BTC</span></div>
+          <input type="range" id="sBtc" min="0.05" max="10" step="0.05" value="1" aria-label="Bitcoin held">
+        </div>
+
+        <div class="ctl">
+          <div class="ctl-hd"><span class="k">Liquidity you want</span><span class="v" id="vLtv">42% LTV</span></div>
+          <input type="range" id="sLtv" min="5" max="70" step="1" value="42" aria-label="Loan to value">
+        </div>
+
+        <div class="ctl">
+          <div class="ctl-hd"><span class="k">Put it to work in</span><span class="v" id="vVenue">Balanced</span></div>
+          <div class="seg">
+            <button class="sbtn" data-v="steady" type="button">Steady</button>
+            <button class="sbtn" data-v="bal" aria-pressed="true" type="button">Balanced</button>
+            <button class="sbtn" data-v="hot" type="button">Higher</button>
+          </div>
+        </div>
+
+        <button class="cta" id="cta">&mdash;</button>
+        <p class="constraint" id="cons">&mdash;</p>
+        <a href="demo.html"
+          style="display:block;margin-top:10px;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--phos);text-decoration:underline;text-align:center">
+          see a live position first &mdash; demo wallet &rarr;</a>
+
+        <p class="tos"><span class="mk">&#9670;</span>
+          <span>By borrowing you agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>. Your signature records it, and names that document.</span>
+        </p>
+        <p class="wstat" id="wstat"></p>
+      </div>
+    </div>
+
+    <!-- 02 &mdash; retrospective counterfactual -->
+    <section>
+      <div class="sechd">
+        <span class="eyebrow">What the other choice cost</span>
+        <h2 id="cfHead">&mdash;</h2>
+      </div>
+      <div class="cf">
+        <div class="cfc you">
+          <span class="t">You borrowed</span>
+          <span class="big" id="cfYouBig">&mdash;</span>
+          <div class="rows" id="cfYouRows"></div>
+        </div>
+        <div class="cfc sold">
+          <span class="t">You sold instead</span>
+          <span class="big" id="cfSoldBig">&mdash;</span>
+          <div class="rows" id="cfSoldRows"></div>
+        </div>
+      </div>
+      <p class="verdict" id="cfVerdict">&mdash;</p>
+    </section>
+
+    <!-- 03 &mdash; risk, in hours -->
+    <section>
+      <div class="sechd">
+        <span class="eyebrow">What would actually break it</span>
+        <h2>The honest part</h2>
+        <p class="lede">Bitcoin falls, your loan does not. These are the numbers that decide whether that matters.</p>
+      </div>
+      <div class="risk">
+        <div class="rk"><span class="k">Survives a drop of</span><span class="v" id="rDrop">&mdash;</span><span class="n">before the clock starts</span></div>
+        <div class="rk"><span class="k">Then you get</span><span class="v" id="rGrace">8 hours</span><span class="n">to add collateral or repay &mdash; not an instant close</span></div>
+        <div class="rk"><span class="k">Bitcoin would need to reach</span><span class="v" id="rPrice">&mdash;</span><span class="n">for that clock to start at all</span></div>
+        <div class="rk"><span class="k">Yield covers interest</span><span class="v" id="rCover">&mdash;</span><span class="n">while the venue holds its rate</span></div>
+      </div>
+
+      <div class="repay">
+        <div class="repay-hd">
+          <span class="rt">Your bitcoin is not the first thing sold</span>
+          <span class="rtag">Venue recall</span>
+        </div>
+        <p class="rsub">
+          If you are liquidated, the engine walks the venues you deployed into and drags back whatever is liquid,
+          straight against the debt. Only what it cannot cover comes out of your collateral. It measures what
+          actually arrived rather than what the venue claims it sent.
+        </p>
+        <div class="traj" id="recall"></div>
+        <p class="rfoot" id="rfoot">&mdash;</p>
+      </div>
+    </section>
+
+    <!-- 03b &mdash; what the market is actually running -->
+    <section>
+      <div class="sechd">
+        <span class="eyebrow">1,245 real positions, measured on-chain</span>
+        <h2>The route is the trade</h2>
+        <p class="lede">
+          Every one of these is someone borrowing on Aave, Spark, Morpho or Compound and putting it somewhere.
+          Borrow rate and venue yield both read from chain. The spread between two rows is far larger than the spread
+          between two protocols &mdash; which is why the route, not the venue you borrowed from, is the decision.
+          These routes are the root system: every inefficiency closed here feeds the core the rest of the
+          network grows from.
+        </p>
+      </div>
+      <div class="routes" id="routes"></div>
+      <div class="rstats">
+        <div class="rs"><span class="k">Routes positive</span><span class="v" style="color:var(--phos)">17</span><span class="n">580 positions</span></div>
+        <div class="rs"><span class="k">Routes negative</span><span class="v" style="color:var(--blood)">8</span><span class="n">239 positions, right now</span></div>
+        <div class="rs"><span class="k">Median net carry</span><span class="v">+0.60%</span><span class="n">weighted mean +1.31%</span></div>
+        <div class="rs"><span class="k">Already closed</span><span class="v">~50%</span><span class="n">of carry positions opened</span></div>
+      </div>
+      <p class="lede" style="max-width:80ch;">
+        Nearly a third of these positions are underwater as measured. The worst is 21 borrowers paying 3.75% to stake
+        into a module returning zero &mdash; that is not a modelling artifact, it is what they are doing. Picking the
+        row is the whole skill, and it is a skill because the rows are this far apart.
+      </p>
+    </section>
+
+    <!-- 04 &mdash; the scanner, relocated -->
+    <section style="border-bottom:0;">
+      <div class="sechd">
+        <span class="eyebrow">Deeper in</span>
+        <h2>Past borrowing, there is a second job</h2>
+        <p class="lede">
+          Judging the people who set risk parameters &mdash; then setting them yourself. That layer stays shut until
+          you open it.
+        </p>
+      </div>
+      <div class="locked">
+        <div class="scanpad" id="scanpad" role="button" tabindex="0" aria-label="Hold to scan">
+          <div class="print">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <path d="M50 12c-21 0-38 17-38 38v12"/>
+              <path d="M50 24c-14.4 0-26 11.6-26 26v18"/>
+              <path d="M50 36c-7.7 0-14 6.3-14 14v26"/>
+              <path d="M50 48c-1.1 0-2 .9-2 2v34"/>
+              <path d="M50 12c21 0 38 17 38 38v12"/>
+              <path d="M50 24c14.4 0 26 11.6 26 26v18"/>
+              <path d="M50 36c7.7 0 14 6.3 14 14v26"/>
+              <path d="M62 62v18"/><path d="M76 74v10"/><path d="M36 70v14"/><path d="M24 78v8"/>
+            </svg>
+            <div class="scanline"></div>
+          </div>
+          <span class="hint" id="scanHint">Hold to scan</span>
+        </div>
+        <div class="lockbody">
+          <h3 id="lockTitle">Risk desk &mdash; sealed</h3>
+          <p class="sub" id="lockSub">
+            Read a curator's doctrine, catch it drifting from its mandate, size across several of them. Author your own
+            once you can judge someone else's.
+          </p>
+          <div class="tiers" id="tiers"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">
+      <p>Figures illustrative &mdash; Bitcoin at $95,000, borrow rate 3%, venue rates 4&ndash;12%. Not live data, not advice.</p>
+      <p>Borrowing against volatile collateral can lose you the collateral. The 8-hour delay is time, not a guarantee.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var BTC_PX=95000, BORROW_RATE=0.03, MAX_LTV=0.73, IMMEDIATE=0.73+0.04*0.73;
+  // `liquid` / `cooled` = share of the deployed loan the liquidation engine can actually
+  // recall, normally and with a cooldown-bearing venue locked. Higher-yield mixes hold
+  // more in venues that go illiquid exactly when you need them.
+  var VENUES={
+    steady:{ nm:'Steady',   mix:'steady',       apr:0.042, liquid:0.97, cooled:0.97, note:'deepest venues, closest to free to exit' },
+    bal:   { nm:'Balanced', mix:'balanced',     apr:0.079, liquid:0.88, cooled:0.63, note:'a spread of venues' },
+    hot:   { nm:'Higher',   mix:'higher-yield', apr:0.118, liquid:0.74, cooled:0.32, note:'thinner books; costs more to get out of' }
+  };
+  var st={ btc:1, ltv:0.42, venue:'bal' };
+
+  var usd=function(n){ return '$'+Math.round(n).toLocaleString('en-US'); };
+  var usdc=function(n){ return (n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString('en-US'); };
+  var btcs=function(n){ return n.toFixed(2)+' BTC'; };
+  // Numerals stay monospace even inside serif prose (brand rule: data is machine-readable).
+  var N=function(s){ return '<span class="num">'+s+'</span>'; };
+
+  function calc(){
+    var coll=st.btc*BTC_PX;
+    var debt=coll*st.ltv;
+    var v=VENUES[st.venue];
+    var earn=debt*v.apr;
+    var cost=debt*BORROW_RATE;
+    var net=earn-cost;
+    // price at which the grace clock starts (LTV crosses max)
+    var trigger=BTC_PX*(st.ltv/MAX_LTV);
+    var dropPct=(1-trigger/BTC_PX)*100;
+    return {coll:coll,debt:debt,v:v,earn:earn,cost:cost,net:net,trigger:trigger,dropPct:dropPct};
+  }
+
+  function render(){
+    var c=calc();
+
+    document.getElementById('hAmt').innerHTML=st.btc.toFixed(2)+' <em>BTC</em>';
+    document.getElementById('hSub').textContent=usd(c.coll)+' at today\u2019s price \u00b7 you keep all of it';
+
+    document.getElementById('fRecv').innerHTML=usd(c.debt)+' <small>CDT</small>';
+    document.getElementById('fEarn').innerHTML=usd(c.earn)+'<small>/yr at '+(c.v.apr*100).toFixed(1)+'%</small>';
+    document.getElementById('fCost').innerHTML=usd(c.cost)+'<small>/yr at '+(BORROW_RATE*100).toFixed(1)+'%</small>';
+    var fn=document.getElementById('fNet');
+    fn.innerHTML='<span style="color:'+(c.net>=0?'var(--phos)':'var(--blood)')+'">'+usdc(c.net)+'<small>/yr</small></span>';
+
+    var box=document.getElementById('carryBox');
+    var line=document.getElementById('carryLine'), foot=document.getElementById('carryFoot');
+    // Emphasis follows whichever fact actually dominates. Leading with the yield
+    // while the position sits a few percent from the clock would make a bad entry
+    // feel like a good one -- the exact failure the harm-reduction rule warns about.
+    if(c.net<0){
+      box.className='carry neg';
+      line.innerHTML=N(usd(c.debt))+' of liquidity, and holding it <b>costs you '+N(usd(-c.net))+' a year</b>.';
+      foot.textContent='At this venue rate the loan does not pay for itself. Lower the amount or pick a higher-earning venue.';
+    } else if(c.dropPct<10){
+      box.className='carry neg';
+      line.innerHTML=N(usd(c.debt))+' of liquidity, but a <b>'+N(c.dropPct.toFixed(0)+'% drop')+'</b> starts the liquidation clock.';
+      foot.textContent='It earns '+usd(c.net)+'/yr. Bitcoin moves that much in a bad afternoon \u2014 this is a size problem, not a yield problem.';
+    } else if(c.dropPct<25){
+      box.className='carry warn';
+      line.innerHTML=N(usd(c.debt))+' of liquidity, earning '+N(usd(c.net))+' a year \u2014 with <b>'+N(c.dropPct.toFixed(0)+'%')+' of room</b> beneath you.';
+      foot.textContent='You still own '+btcs(st.btc)+'. Bitcoin has moved '+c.dropPct.toFixed(0)+'% in a week before.';
+    } else {
+      box.className='carry';
+      line.innerHTML=N(usd(c.debt))+' of liquidity, and it pays you <b>'+N(usd(c.net))+' a year</b> to hold it.';
+      foot.textContent='You still own '+btcs(st.btc)+'. Nothing was sold, and Bitcoin has '+c.dropPct.toFixed(0)+'% to fall before the clock starts.';
+    }
+
+    document.getElementById('cta').textContent=
+      'Borrow '+usd(c.debt)+' \u00b7 '+(st.ltv*100).toFixed(0)+'% LTV \u00b7 '+(c.net>=0?'+':'')+usdc(c.net)+'/yr';
+    document.getElementById('cons').textContent=
+      'Max 73% LTV on BTC. '+c.v.note+'.';
+
+    // counterfactual
+    var btcSold=c.debt/BTC_PX, kept=st.btc-btcSold;
+    document.getElementById('cfHead').innerHTML=
+      'You needed '+N(usd(c.debt))+'. Selling would have taken '+N(btcSold.toFixed(2)+' BTC')+'.';
+    document.getElementById('cfYouBig').innerHTML=N(btcs(st.btc))+' <span style="color:var(--faint)">still held</span>';
+    document.getElementById('cfYouRows').innerHTML=
+      '<div class="rw"><span>Cash in hand</span><b>'+usd(c.debt)+'</b></div>'+
+      '<div class="rw"><span>Bitcoin sold</span><b>0.00 BTC</b></div>'+
+      '<div class="rw"><span>Position earns</span><b>'+usdc(c.net)+'/yr</b></div>';
+    document.getElementById('cfSoldBig').innerHTML=N(btcs(kept))+' <span style="color:var(--faint)">left</span>';
+    document.getElementById('cfSoldRows').innerHTML=
+      '<div class="rw"><span>Cash in hand</span><b>'+usd(c.debt)+'</b></div>'+
+      '<div class="rw"><span>Bitcoin sold</span><b>'+btcSold.toFixed(2)+' BTC</b></div>'+
+      '<div class="rw"><span>Position earns</span><b>$0/yr</b></div>';
+    document.getElementById('cfVerdict').innerHTML=
+      'Same cash either way. One of them <b>keeps '+N(btcSold.toFixed(2)+' BTC')+'</b> and pays you to wait.';
+
+    // risk
+    document.getElementById('rDrop').textContent='\u2212'+c.dropPct.toFixed(0)+'%';
+    document.getElementById('rPrice').textContent=usd(c.trigger);
+    var cover=c.cost>0?(c.earn/c.cost):0;
+    var rc=document.getElementById('rCover');
+    rc.textContent=cover.toFixed(1)+'\u00d7';
+    rc.style.color=cover>=1?'var(--phos)':'var(--blood)';
+
+    renderRecall(c);
+  }
+
+  // _step1_5_venueRecall: at liquidation the engine walks p.deployedTo, pulls what is
+  // LIQUID from each venue and applies it to debt before collateral is touched. It only
+  // ever gets retrievableCdt -- liquidity-clamped, and zero for a venue whose own view is
+  // unreadable or that is in a cooldown. So the venue mix the user picked decides how
+  // much of their own loan they repay themselves. That attribution is the point.
+  function renderRecall(c){
+    var v=VENUES[st.venue];
+    var live=c.debt*v.liquid;                 // recallable under normal conditions
+    var cold=c.debt*v.cooled;                 // recallable with the slow venue locked
+    var rows=[
+      {w:'deployed', d:c.debt,        n:'all of what you borrowed', cls:'now'},
+      {w:'recallable now', d:live,    n:(v.liquid*100).toFixed(0)+'% of the debt'},
+      {w:'if a venue is locked', d:cold, n:(v.cooled*100).toFixed(0)+'% of the debt', warn:true},
+      {w:'worst case from BTC', d:c.debt-cold, n:'the rest comes from collateral', warn:true}
+    ];
+    document.getElementById('recall').innerHTML=rows.map(function(r){
+      return '<div class="tj'+(r.cls?' '+r.cls:'')+'">'+
+        '<span class="w">'+r.w+'</span>'+
+        '<span class="d">'+usd(r.d)+'</span>'+
+        '<span class="c"'+(r.warn?' style="color:var(--gold)"':'')+'>'+r.n+'</span></div>';
+    }).join('');
+    document.getElementById('rfoot').innerHTML=
+      'On the '+v.mix+' mix, '+N(usd(live))+' of a '+N(usd(c.debt))+
+      ' loan repays itself before a single satoshi is sold. Even if a venue returns '+
+      N('nothing')+' the balance is still yours, it just cannot arrive in time. '+
+      'Which venues you picked is what sets that number, and it is the same choice that set your yield.';
+  }
+
+  // ---- real measured routes; provenance stated in the section copy ----
+  var ROUTES=[
+    {nm:'AUSD \u2192 Staked USDat',       pos:15,  net:11.53},
+    {nm:'apxUSD \u2192 ApyUSD',           pos:19,  net:9.01},
+    {nm:'USDT \u2192 Fluid [USDC]',       pos:15,  net:3.91},
+    {nm:'USDC \u2192 VaultV2 [USDC]',     pos:182, net:3.44, big:true},
+    {nm:'USDS \u2192 StUsds',             pos:21,  net:2.59},
+    {nm:'PYUSD \u2192 StakingVault',      pos:26,  net:1.98},
+    {nm:'USDe \u2192 Staked USDe',        pos:25,  net:0.62},
+    {nm:'USDC \u2192 USD3',               pos:78,  net:0.22},
+    {nm:'RLUSD \u2192 VaultV2',           pos:37,  net:-0.36},
+    {nm:'USDC \u2192 supply on Compound', pos:20,  net:-0.78},
+    {nm:'PYUSD \u2192 VaultV2 [PYUSD]',   pos:54,  net:-2.43},
+    {nm:'GHO \u2192 UmbrellaStakeToken',  pos:21,  net:-3.75}
+  ];
+  function renderRoutes(){
+    var max=12, zero=50;                     // diverging scale, zero at centre
+    var html='<div class="rt-row hd"><span class="nm">Route</span><span class="pos">Pos</span>'+
+             '<span class="barh">Net carry</span><span class="net">%</span></div>';
+    html+=ROUTES.map(function(r){
+      var frac=Math.min(1,Math.abs(r.net)/max)*50;
+      var col=r.net>=0?'var(--phos)':'var(--blood)';
+      var fill=r.net>=0
+        ? 'left:'+zero+'%;width:'+frac+'%'
+        : 'right:'+(100-zero)+'%;width:'+frac+'%';
+      var bar='<div class="bar"><span class="z" style="left:'+zero+'%"></span>'+
+              '<i style="'+fill+';background:'+col+'"></i></div>';
+      return '<div class="rt-row'+(r.big?' big':'')+'">'+
+        '<span class="nm">'+r.nm+'</span>'+
+        '<span class="pos">'+r.pos+'</span>'+bar+
+        '<span class="net" style="color:'+col+'">'+(r.net>=0?'+':'')+r.net.toFixed(2)+'</span></div>';
+    }).join('');
+    document.getElementById('routes').innerHTML=html;
+  }
+
+  document.getElementById('sBtc').addEventListener('input',function(e){
+    st.btc=parseFloat(e.target.value);
+    document.getElementById('vBtc').textContent=st.btc.toFixed(2)+' BTC';
+    render();
+  });
+  document.getElementById('sLtv').addEventListener('input',function(e){
+    st.ltv=parseFloat(e.target.value)/100;
+    document.getElementById('vLtv').textContent=(st.ltv*100).toFixed(0)+'% LTV';
+    render();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-v]'),function(b){
+    b.addEventListener('click',function(){
+      Array.prototype.forEach.call(document.querySelectorAll('[data-v]'),function(s){
+        s.setAttribute('aria-pressed', s===b?'true':'false');
+      });
+      st.venue=b.getAttribute('data-v');
+      document.getElementById('vVenue').textContent=VENUES[st.venue].nm;
+      render();
+    });
+  });
+
+  // ---- the scanner, relocated: a threshold ritual, never a door ----
+  var TIERS=[
+    {nm:'Borrow against your bitcoin', st:'open', always:true},
+    {nm:'Read a curator\u2019s doctrine', st:'sealed'},
+    {nm:'Size across several curators', st:'sealed'},
+    {nm:'Set parameters yourself',      st:'sealed'}
+  ];
+  var unlocked=false;
+  function paintTiers(){
+    document.getElementById('tiers').innerHTML=TIERS.map(function(t,i){
+      var open=t.always||(unlocked&&i<=2);
+      var label=t.always?'Open':(unlocked?(i<=2?'Open':'Earn it'):'Sealed');
+      return '<div class="tier'+(open?' open':'')+'"><span class="nm">'+t.nm+'</span><span class="st">'+label+'</span></div>';
+    }).join('');
+  }
+  var pad=document.getElementById('scanpad'), hint=document.getElementById('scanHint');
+  var timer=null;
+  function startScan(){
+    if(unlocked||timer) return;
+    pad.classList.add('armed'); hint.textContent='Reading\u2026';
+    timer=setTimeout(function(){
+      timer=null; unlocked=true;
+      pad.classList.remove('armed'); pad.classList.add('done');
+      hint.textContent='Open';
+      document.getElementById('lockTitle').textContent='Risk desk \u2014 open';
+      document.getElementById('lockSub').textContent=
+        'Start by judging a doctrine you did not write. Authoring your own comes after you can tell a good one from a bad one.';
+      paintTiers();
+    },1400);
+  }
+  function cancelScan(){
+    if(unlocked||!timer) return;
+    clearTimeout(timer); timer=null;
+    pad.classList.remove('armed'); hint.textContent='Hold to scan';
+  }
+  pad.addEventListener('mousedown',startScan);
+  pad.addEventListener('touchstart',function(e){ e.preventDefault(); startScan(); },{passive:false});
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(function(ev){ pad.addEventListener(ev,cancelScan); });
+  pad.addEventListener('keydown',function(e){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); startScan(); } });
+  pad.addEventListener('keyup',cancelScan);
+
+  // ---------------------------------------------------------------------------
+  // Wallet \u2014 EIP-1193 directly off the injected provider. No bundler, no CDN.
+  //
+  // The CTA signs the position intent rather than broadcasting it: no deployment
+  // vault or Cdp address is deployed yet, so there is nothing to send to, and
+  // firing a transaction at an address that does not exist would burn gas to
+  // revert. Signing is the honest end of this flow AND it is what the Terms line
+  // above already promises \u2014 "your signature records it". Swapping the last step
+  // for eth_sendTransaction is the only change needed once addresses exist.
+  // ---------------------------------------------------------------------------
+  var TERMS_VERSION='v2026.06.30';
+  var TERMS_PATH='/terms';
+  // Absolute URI, derived from wherever this is actually served. A signature that
+  // says "I agree to the Terms" without naming the document it agreed to is the
+  // weak version of this \u2014 the signed text has to identify what was signed.
+  function termsUrl(){
+    var o=(typeof location!=='undefined') ? location.origin : '';
+    return (o && o!=='null') ? o+TERMS_PATH : TERMS_PATH;
+  }
+  var wallet={ account:null, chainId:null };
+  var connectBtn=document.querySelector('.connect');
+  var wstat=document.getElementById('wstat');
+
+  function say(msg,cls){ wstat.className='wstat'+(cls?' '+cls:''); wstat.innerHTML=msg||''; }
+  function short(a){ return a.slice(0,6)+'\u2026'+a.slice(-4); }
+  function provider(){ return (typeof window!=='undefined') ? window.ethereum : null; }
+  function toHex(s){
+    var b=new TextEncoder().encode(s), h='0x';
+    for(var i=0;i<b.length;i++) h+=b[i].toString(16).padStart(2,'0');
+    return h;
+  }
+  function rpcError(e){
+    if(!e) return 'Something went wrong.';
+    if(e.code===4001) return 'You rejected the request in your wallet.';
+    if(e.code===-32002) return 'Your wallet already has a request open \u2014 check the extension.';
+    return (e.message||String(e)).slice(0,160);
+  }
+
+  function paintWallet(){
+    if(wallet.account){
+      connectBtn.textContent=short(wallet.account);
+      connectBtn.classList.add('on');
+    } else {
+      connectBtn.textContent='Connect';
+      connectBtn.classList.remove('on');
+    }
+  }
+
+  async function connect(){
+    var p=provider();
+    if(!p){ say('No wallet found in this browser. Install MetaMask, Rabby or similar, then reload.','err'); return false; }
+    try{
+      say('Waiting for your wallet\u2026','busy');
+      var accts=await p.request({method:'eth_requestAccounts'});
+      if(!accts||!accts.length){ say('No account returned.','err'); return false; }
+      wallet.account=accts[0];
+      try{ wallet.chainId=await p.request({method:'eth_chainId'}); }catch(_){}
+      paintWallet();
+      say('Connected as <code>'+short(wallet.account)+'</code>'+
+          (wallet.chainId?' on chain <code>'+parseInt(wallet.chainId,16)+'</code>':''),'ok');
+      return true;
+    }catch(e){ say(rpcError(e),'err'); return false; }
+  }
+
+  function intentMessage(c){
+    return [
+      'Membrane \u2014 position intent',
+      '',
+      'Collateral   ' + st.btc.toFixed(2) + ' BTC',
+      'Borrow       ' + usd(c.debt) + ' CDT  (' + (st.ltv*100).toFixed(0) + '% LTV)',
+      'Deploy       ' + VENUES[st.venue].nm,
+      'Net carry    ' + (c.net>=0?'+':'') + usdc(c.net) + ' / yr',
+      '',
+      'I agree to the Terms of Service (' + TERMS_VERSION + '):',
+      termsUrl(),
+      '',
+      'Nonce ' + Math.floor(Date.now()/1000)
+    ].join('\n');
+  }
+
+  async function submit(){
+    var p=provider();
+    if(!p){ say('No wallet found in this browser. Install MetaMask, Rabby or similar, then reload.','err'); return; }
+    if(!wallet.account){ var ok=await connect(); if(!ok) return; }
+    var c=calc();
+    try{
+      say('Confirm in your wallet \u2014 this signs your position and the terms, it does not move funds yet.','busy');
+      var sig=await p.request({ method:'personal_sign', params:[ toHex(intentMessage(c)), wallet.account ] });
+      say('Signed. <a href="'+TERMS_PATH+'" target="_blank" rel="noopener">Terms '+TERMS_VERSION+
+          '</a> recorded against <code>'+short(wallet.account)+
+          '</code>.<br>Signature <code>'+sig.slice(0,18)+'\u2026'+sig.slice(-6)+'</code>'+
+          '<br><span style="color:var(--faint)">Broadcast is disabled until the Cdp and vault addresses are deployed.</span>','ok');
+    }catch(e){ say(rpcError(e),'err'); }
+  }
+
+  connectBtn.addEventListener('click',function(){ if(!wallet.account) connect(); else say('Already connected as <code>'+short(wallet.account)+'</code>.',''); });
+  document.getElementById('cta').addEventListener('click',submit);
+
+  (function watch(){
+    var p=provider(); if(!p||!p.on) return;
+    p.on('accountsChanged',function(a){
+      wallet.account=(a&&a.length)?a[0]:null; paintWallet();
+      say(wallet.account?'Switched to <code>'+short(wallet.account)+'</code>.':'Wallet disconnected.','');
+    });
+    p.on('chainChanged',function(id){ wallet.chainId=id; say('Network changed to chain <code>'+parseInt(id,16)+'</code>.',''); });
+  })();
+
+  // Reconnect silently if this site is already authorised.
+  (async function eager(){
+    var p=provider(); if(!p) return;
+    try{
+      var a=await p.request({method:'eth_accounts'});
+      if(a&&a.length){ wallet.account=a[0];
+        try{ wallet.chainId=await p.request({method:'eth_chainId'}); }catch(_){}
+        paintWallet(); }
+    }catch(_){}
+  })();
+
+  paintTiers(); renderRoutes(); render();
+  window.__lp={ st:st, calc:calc, render:render, VENUES:VENUES };
+})();
+</script>

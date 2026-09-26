@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { dialogTrigger, openDialog } from './helpers/dialog'
 
 /**
  * Accessibility Tests
@@ -140,26 +141,19 @@ test.describe('ARIA Attributes', () => {
   })
 
   test('should have proper modal dialog attributes', async ({ page }) => {
-    await page.goto('/neutron')
+    await page.goto('/ethereum')
 
-    const modalTrigger = page.locator('button:has-text("Connect"), button:has-text("Deposit")').first()
+    const dialog = await openDialog(page)
+    await expect(dialog).toBeVisible()
 
-    if (await modalTrigger.count() > 0) {
-      await modalTrigger.click()
+    // Dialog should have aria-modal
+    const ariaModal = await dialog.getAttribute('aria-modal')
+    expect(ariaModal).toBe('true')
 
-      // Modal should have role="dialog"
-      const dialog = page.locator('[role="dialog"]')
-      await expect(dialog).toBeVisible()
-
-      // Dialog should have aria-modal
-      const ariaModal = await dialog.getAttribute('aria-modal')
-      expect(ariaModal).toBe('true')
-
-      // Dialog should have aria-label or aria-labelledby
-      const ariaLabel = await dialog.getAttribute('aria-label')
-      const ariaLabelledby = await dialog.getAttribute('aria-labelledby')
-      expect(ariaLabel || ariaLabelledby).toBeTruthy()
-    }
+    // Dialog should have aria-label or aria-labelledby
+    const ariaLabel = await dialog.getAttribute('aria-label')
+    const ariaLabelledby = await dialog.getAttribute('aria-labelledby')
+    expect(ariaLabel || ariaLabelledby).toBeTruthy()
   })
 })
 
@@ -279,69 +273,64 @@ test.describe('Color Contrast', () => {
 
 test.describe('Focus Management', () => {
   test('should restore focus after modal closes', async ({ page }) => {
-    await page.goto('/neutron')
+    await page.goto('/ethereum')
 
-    const modalTrigger = page.locator('button:has-text("Connect"), button:has-text("Deposit")').first()
+    const trigger = dialogTrigger(page)
+    const dialog = await openDialog(page)
+    await expect(dialog).toBeVisible()
 
-    if (await modalTrigger.count() > 0) {
-      // Focus trigger button
-      await modalTrigger.focus()
-      const triggerText = await modalTrigger.textContent()
+    // Close modal
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
 
-      // Open modal
-      await modalTrigger.click()
-
-      const dialog = page.locator('[role="dialog"]')
-      await expect(dialog).toBeVisible()
-
-      // Close modal
-      await page.keyboard.press('Escape')
-      await expect(dialog).toBeHidden()
-
-      // Focus should return to trigger
-      const focusedElement = await page.evaluate(() =>
-        document.activeElement?.textContent
-      )
-
-      expect(focusedElement).toContain(triggerText || '')
-    }
+    // Focus should return to the trigger. Compared by element identity rather
+    // than by text: the mobile trigger is an icon-only button whose textContent
+    // is '', and `expect(focused).toContain('')` passes for literally anything.
+    await expect
+      .poll(() => trigger.evaluate((el) => el === document.activeElement))
+      .toBe(true)
   })
 
   test('should focus first element in modal', async ({ page }) => {
-    await page.goto('/neutron')
+    await page.goto('/ethereum')
 
-    const modalTrigger = page.locator('button:has-text("Connect"), button:has-text("Deposit")').first()
+    const dialog = await openDialog(page)
+    await expect(dialog).toBeVisible()
 
-    if (await modalTrigger.count() > 0) {
-      await modalTrigger.click()
-
-      const dialog = page.locator('[role="dialog"]')
-      await expect(dialog).toBeVisible()
-
-      // Focus should be on close button or first focusable element
-      const focusedInModal = await page.evaluate(() => {
-        const active = document.activeElement
-        const modal = document.querySelector('[role="dialog"]')
-        return modal?.contains(active)
-      })
-
-      expect(focusedInModal).toBe(true)
-    }
+    // Focus should be on the close button or first focusable element. Polled
+    // because focus moves in an effect after the dialog paints, so a one-shot
+    // read can observe the frame before it lands.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const active = document.activeElement
+          const modal = document.querySelector('[role="dialog"]')
+          return Boolean(modal?.contains(active))
+        })
+      )
+      .toBe(true)
   })
 })
 
 test.describe('Error Messages', () => {
   test('should announce errors to screen readers', async ({ page }) => {
-    await page.goto('/neutron/mint')
+    await page.goto('/ethereum/mint')
 
     // Trigger validation error
     const submitButton = page.locator('button[type="submit"], button:has-text("Deposit")').first()
 
-    if (await submitButton.count() > 0) {
+    // Only click when the control is actually enabled: clicking a disabled
+    // button does not fail fast, it blocks until the actionability timeout.
+    if ((await submitButton.count()) > 0 && !(await submitButton.isDisabled())) {
       await submitButton.click()
 
-      // Error messages should have role="alert" or aria-live
-      const errorMessages = page.locator('[role="alert"], [aria-live="assertive"]')
+      // Error messages should have role="alert" or aria-live. Next's route
+      // announcer (#__next-route-announcer__) also carries role="alert" but is
+      // page-title narration, not an error, so exclude it.
+      const errorMessages = page.locator(
+        '[role="alert"]:not(#__next-route-announcer__), ' +
+          '[aria-live="assertive"]:not(#__next-route-announcer__)'
+      )
 
       if (await errorMessages.count() > 0) {
         // Error should be announced
@@ -351,10 +340,19 @@ test.describe('Error Messages', () => {
   })
 
   test('should associate errors with form fields', async ({ page }) => {
-    await page.goto('/neutron/mint')
+    await page.goto('/ethereum/mint')
 
-    // Look for error messages
-    const errorMessage = page.locator('[class*="error"], [role="alert"]').first()
+    // Look for error messages. Next.js injects its own route announcer —
+    // <p role="alert" id="__next-route-announcer__"> — which reads the page
+    // title aloud on client-side navigation. It is framework markup, not a form
+    // error, and nothing should reference it via aria-describedby, so excluding
+    // it stops this test demanding an association that would be wrong to add.
+    const errorMessage = page
+      .locator(
+        '[class*="error"]:not(#__next-route-announcer__), ' +
+          '[role="alert"]:not(#__next-route-announcer__)'
+      )
+      .first()
 
     if (await errorMessage.count() > 0) {
       // Error should be associated with input via aria-describedby

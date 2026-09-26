@@ -66,7 +66,7 @@ export const VENUE_LIQUIDITY: VenueLiquidity[] = [
     ],
   },
   {
-    venue: 'VaultV2',
+    venue: 'Morpho Vault V2',
     sub: '4626 · no cooldown',
     instantUsd: 980_000,
     coolingUsd: 0,
@@ -82,8 +82,7 @@ export const VENUE_LIQUIDITY: VenueLiquidity[] = [
     note: [
       { text: '$1.57M stranded', tone: 'danger', bold: true },
       {
-        text:
-          ": Ethena's global cooldown makes _venueLiquid() read 0, and nothing in the withdraw path starts a cooldown — recall needs the operator. ",
+        text: ": Ethena's global cooldown makes _venueLiquid() read 0, and nothing in the withdraw path starts a cooldown — recall needs the operator. ",
       },
       { text: '$0.64M cooling', tone: 'warning', bold: true },
       { text: ' from the crank on Aug 15, unlocks in 4d 11h' },
@@ -153,9 +152,30 @@ export const CLAIM_FEES_REQUEST: ExecRequest = {
 
 /** Sect 05 — shop window: unlisted candidates from the lending scan (proto :308-311). */
 export const SHOP_OPTIONS: ShopOption[] = [
-  { sym: 'sDAI', p999: 0.35, mcap: '$171M', band: '4–9%', windowCount: 2950, src: '145.1M supply @ $1.179' },
-  { sym: 'USDY', p999: 2.82, mcap: '$1.11B', band: '3–8%', windowCount: 2986, src: '971.6M supply @ $1.140' },
-  { sym: 'cbBTC', p999: 5.1, mcap: '$3.13B', band: '6–14%', windowCount: 2992, src: '48.3k supply @ $64,895' },
+  {
+    sym: 'sDAI',
+    p999: 0.35,
+    mcap: '$171M',
+    band: '4–9%',
+    windowCount: 2950,
+    src: '145.1M supply @ $1.179',
+  },
+  {
+    sym: 'USDY',
+    p999: 2.82,
+    mcap: '$1.11B',
+    band: '3–8%',
+    windowCount: 2986,
+    src: '971.6M supply @ $1.140',
+  },
+  {
+    sym: 'cbBTC',
+    p999: 5.1,
+    mcap: '$3.13B',
+    band: '6–14%',
+    windowCount: 2992,
+    src: '48.3k supply @ $64,895',
+  },
 ]
 
 export const SHOP_STAMP =

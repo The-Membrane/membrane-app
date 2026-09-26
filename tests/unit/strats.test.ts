@@ -6,6 +6,9 @@ import {
   deltaOf,
   sortByCurrentDesc,
   totalOfPositions,
+  venueFlows,
+  filterStrats,
+  type StratRow,
 } from '@/components/Strats/stratsLogic'
 import type { Verdict } from '@/components/Radar/radarLogic'
 
@@ -45,7 +48,7 @@ describe('deltaOf — arithmetic, honest null baseline', () => {
   it('grown position is up', () => {
     expect(deltaOf(100_000, 150_000)).toEqual({ delta: 50_000, dir: 'up' })
   })
-  it('shrunk position is down', () => {
+  it('a withdrawal-like shrink is down, not an earnings calculation', () => {
     expect(deltaOf(200_000, 120_000)).toEqual({ delta: -80_000, dir: 'down' })
   })
   it('unchanged position is flat', () => {
@@ -77,5 +80,41 @@ describe('totalOfPositions — entry-baseline total', () => {
   })
   it('ignores non-numeric usd entries safely', () => {
     expect(totalOfPositions([{ usd: 100 }, {} as { usd?: number }])).toBe(100)
+  })
+})
+
+const sampleRows = [
+  {
+    address: '0x1111111111111111111111111111111111111111',
+    label: 'Yield desk',
+    current_total_usd: 300,
+    held: [
+      { venue: 'susds', label: 'sUSDS', usd: 200, verdict: 'clear' },
+      { venue: 'scrvusd', label: 'scrvUSD', usd: 100, verdict: 'caution' },
+    ],
+    verdict: 'caution',
+  },
+  {
+    address: '0x2222222222222222222222222222222222222222',
+    label: null,
+    current_total_usd: 150,
+    held: [{ venue: 'susds', label: 'sUSDS', usd: 150, verdict: 'clear' }],
+    verdict: 'clear',
+  },
+] as StratRow[]
+
+describe('tracked-capital flow and filters', () => {
+  it('groups current venue holdings without confusing them with transfers', () => {
+    expect(venueFlows(sampleRows)).toEqual([
+      { venue: 'susds', label: 'sUSDS', usd: 350, books: 2 },
+      { venue: 'scrvusd', label: 'scrvUSD', usd: 100, books: 1 },
+    ])
+  })
+  it('filters the detail rows by address or label, venue, and weakest verdict', () => {
+    expect(filterStrats(sampleRows, 'Yield', 'scrvusd', 'caution').map((row) => row.label)).toEqual(
+      ['Yield desk'],
+    )
+    expect(filterStrats(sampleRows, '0x2222', 'susds', 'clear')).toHaveLength(1)
+    expect(filterStrats(sampleRows, '', 'scrvusd', 'clear')).toHaveLength(0)
   })
 })

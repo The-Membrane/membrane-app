@@ -21,7 +21,8 @@ import { dirname, join } from 'path'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const env = readFileSync(join(root, '.env.local'), 'utf8')
-const get = (k) => (env.match(new RegExp(`^${k}=(.*)$`, 'm')) || [])[1]?.trim().replace(/^["']|["']$/g, '')
+const get = (k) =>
+  (env.match(new RegExp(`^${k}=(.*)$`, 'm')) || [])[1]?.trim().replace(/^["']|["']$/g, '')
 const url = get('DATABASE_URL_UNPOOLED') || get('DATABASE_URL')
 if (!url) {
   console.error('No DATABASE_URL_UNPOOLED / DATABASE_URL in .env.local')
@@ -57,6 +58,15 @@ await sql`CREATE TABLE IF NOT EXISTS venue_events (
   created_at timestamptz NOT NULL DEFAULT now()
 )`
 await sql`CREATE INDEX IF NOT EXISTS venue_events_venue_observed_idx ON venue_events (venue, observed_at)`
+
+await sql`CREATE TABLE IF NOT EXISTS venue_event_drivers (
+  event_id uuid PRIMARY KEY,
+  venue text NOT NULL,
+  status text NOT NULL,
+  evidence jsonb NOT NULL,
+  computed_at timestamptz NOT NULL DEFAULT now()
+)`
+await sql`CREATE INDEX IF NOT EXISTS venue_event_drivers_venue_computed_idx ON venue_event_drivers (venue, computed_at)`
 
 await sql`CREATE TABLE IF NOT EXISTS venue_predictions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -124,6 +134,52 @@ await sql`CREATE UNIQUE INDEX IF NOT EXISTS strat_watches_address_idx ON strat_w
 // stratWatches drizzle definition — keep them in lockstep.
 await sql`ALTER TABLE strat_watches ADD COLUMN IF NOT EXISTS last_scanned jsonb`
 await sql`ALTER TABLE strat_watches ADD COLUMN IF NOT EXISTS last_scanned_at timestamptz`
+
+// Watch-epoch-scoped performance substrate. Re-watch changes created_at and
+// starts fresh rows; prior append-only observations remain audit-able.
+await sql`CREATE TABLE IF NOT EXISTS strat_return_cursors (
+  address text NOT NULL,
+  venue text NOT NULL,
+  watch_epoch timestamptz NOT NULL,
+  start_block bigint NOT NULL,
+  last_complete_block bigint NOT NULL,
+  start_at timestamptz NOT NULL,
+  start_nav_usd numeric,
+  last_error text
+)`
+await sql`CREATE UNIQUE INDEX IF NOT EXISTS strat_return_cursors_key_idx ON strat_return_cursors (address, venue, watch_epoch)`
+await sql`CREATE TABLE IF NOT EXISTS strat_return_flows (
+  address text NOT NULL,
+  venue text NOT NULL,
+  watch_epoch timestamptz NOT NULL,
+  tx_hash text NOT NULL,
+  log_index integer NOT NULL,
+  block bigint NOT NULL,
+  occurred_at timestamptz NOT NULL,
+  from_address text NOT NULL,
+  to_address text NOT NULL,
+  shares_raw text NOT NULL,
+  flow_usd numeric,
+  pricing_status text NOT NULL
+)`
+await sql`CREATE UNIQUE INDEX IF NOT EXISTS strat_return_flows_event_idx ON strat_return_flows (address, venue, watch_epoch, tx_hash, log_index)`
+await sql`CREATE INDEX IF NOT EXISTS strat_return_flows_window_idx ON strat_return_flows (address, venue, watch_epoch, block)`
+await sql`CREATE TABLE IF NOT EXISTS strat_return_snapshots (
+  address text NOT NULL,
+  venue text NOT NULL,
+  watch_epoch timestamptz NOT NULL,
+  block bigint NOT NULL,
+  observed_at timestamptz NOT NULL,
+  nav_usd numeric,
+  pnl_usd numeric,
+  return_pct numeric,
+  capital_base_usd numeric,
+  flow_count integer NOT NULL DEFAULT 0,
+  unpriced_count integer NOT NULL DEFAULT 0,
+  status text NOT NULL
+)`
+await sql`CREATE UNIQUE INDEX IF NOT EXISTS strat_return_snapshots_key_idx ON strat_return_snapshots (address, venue, watch_epoch, block)`
+await sql`ALTER TABLE strat_return_snapshots ADD COLUMN IF NOT EXISTS capital_base_usd numeric`
 
 // sim_reads — Position-simulator READ LOG (the launch instrument: "did the
 // address come back?"). One row per pasted address; first_seen is kept on
@@ -302,4 +358,6 @@ const [{ a }] = await sql`SELECT count(*)::int AS a FROM venue_alarms`
 const [{ t }] = await sql`SELECT count(*)::int AS t FROM venue_terms`
 const [{ al }] = await sql`SELECT count(*)::int AS al FROM aave_liquidations`
 const [{ ae }] = await sql`SELECT count(*)::int AS ae FROM aave_liquidation_episodes`
-console.log(`venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}, watches: ${w}, news: ${n}, alarms: ${a}, terms: ${t}, aave_liquidations: ${al}, aave_liquidation_episodes: ${ae}`)
+console.log(
+  `venue recorder tables ready — snapshots: ${s}, events: ${e}, predictions: ${p}, flows: ${f}, watches: ${w}, news: ${n}, alarms: ${a}, terms: ${t}, aave_liquidations: ${al}, aave_liquidation_episodes: ${ae}`,
+)

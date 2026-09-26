@@ -224,6 +224,8 @@ export const getPositions = (basketPositions?: BasketPositionsResponse[], prices
 
 export const getAssetRatio = (skipStable: boolean, tvl: number, positions: Positions[]) => {
   if (!positions) return []
+  // js-set-map-lookups FP: stableSymbols is a hardcoded 3-item list (config/defaults.ts) —
+  // well under the ~10-item threshold where a Set pays off.
   return positions.map((position) => {
     if (!position || (skipStable && stableSymbols.includes(position.symbol))) return
     if (skipStable && positions.length === 2) return {

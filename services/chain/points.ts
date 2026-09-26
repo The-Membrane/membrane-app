@@ -150,8 +150,7 @@ export async function getLeaderboard(
     }
 
     return Array.from(totals.entries())
-      .filter(([, points]) => points > 0n)
-      .map(([user, points]) => ({ user: user as Address, points }))
+      .flatMap(([user, points]) => (points > 0n ? [{ user: user as Address, points }] : []))
       .sort((a, b) => (b.points > a.points ? 1 : b.points < a.points ? -1 : 0))
   } catch (error) {
     console.error('Error reconstructing PointsSystem leaderboard:', error)

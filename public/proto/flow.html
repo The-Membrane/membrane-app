@@ -1,0 +1,150 @@
+<title>Membrane &mdash; Nav Flow</title>
+<style>
+  :root{
+    --bg:#09090a; --raise:#100f12; --card:#0e0d10; --sunk:#070708;
+    --ink:#ece6d8; --dim:#8d877b; --faint:#56524a;
+    --hair:rgba(236,230,216,0.10); --hairS:rgba(236,230,216,0.22);
+    --phos:#9bdc4f; --teal:#46d39a; --gold:#d8b24a; --blood:#cf4034;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--mono);
+    font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; padding-bottom:70px; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 20px; }
+  h1,h2{ font-family:var(--serif); font-weight:400; margin:0; letter-spacing:-0.01em; }
+  nav{ display:flex; justify-content:space-between; align-items:center; gap:14px;
+    padding:16px 0; border-bottom:1px solid var(--hair); margin-bottom:26px; }
+  .brand{ font-family:var(--serif); font-size:17px; }
+  .navr{ font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--faint); }
+  .eyebrow{ font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); }
+
+  .rule{ font-size:12px; color:var(--dim); max-width:78ch; line-height:1.7; margin:8px 0 26px; }
+  .rule b{ font-weight:400; color:var(--ink); }
+
+  .states{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+  .st{ border:1px solid var(--hair); background:var(--card); padding:16px; display:grid; gap:10px;
+    align-content:start; }
+  .st .who{ font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--faint); }
+  .st .q{ font-family:var(--serif); font-size:16px; }
+  .arrow{ text-align:center; color:var(--faint); font-size:14px; padding:2px 0; }
+  a.dest{ display:block; border:1px solid var(--hairS); padding:12px 14px; text-decoration:none;
+    color:var(--ink); transition:border-color .15s; }
+  a.dest:hover{ border-color:var(--phos); }
+  a.dest .dn{ font-family:var(--serif); font-size:15px; display:block; }
+  a.dest .dd{ font-size:10px; color:var(--dim); display:block; margin-top:3px; line-height:1.5; }
+  a.dest.stub{ border-style:dashed; cursor:default; }
+  a.dest.stub:hover{ border-color:var(--hairS); }
+  a.dest.stub .dn{ color:var(--dim); }
+  .why{ font-size:10px; color:var(--faint); line-height:1.6; }
+
+  .navrow{ margin-top:30px; border:1px solid var(--hair); background:var(--card); padding:16px; }
+  .navrow .items{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .navrow .it{ border:1px solid var(--hairS); padding:9px 14px; font-size:10.5px;
+    letter-spacing:0.16em; text-transform:uppercase; color:var(--ink); text-decoration:none;
+    transition:border-color .15s,color .15s; }
+  .navrow a.it:hover{ border-color:var(--phos); color:var(--phos); }
+  .navrow .it.stub{ color:var(--faint); border-style:dashed; cursor:help; }
+  .navrow .note{ font-size:10.5px; color:var(--faint); margin-top:10px; line-height:1.6; max-width:88ch; }
+
+  .links{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:30px; }
+  .lk{ border:1px solid var(--hair); background:var(--card); padding:14px 16px; }
+  .lk .k{ font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--faint); }
+  .lk ul{ margin:8px 0 0; padding:0; list-style:none; display:grid; gap:5px; }
+  .lk li{ font-size:11px; color:var(--dim); }
+  .lk li b{ font-weight:400; color:var(--ink); }
+
+  @media(max-width:800px){ .states{ grid-template-columns:1fr; } .links{ grid-template-columns:1fr; } }
+</style>
+
+<div class="wrap">
+  <nav>
+    <span class="brand">Membrane</span>
+    <span class="navr">Nav flow &middot; proposal</span>
+  </nav>
+
+  <span class="eyebrow">Where Home points</span>
+  <h1 style="margin-top:8px">One route, three answers.</h1>
+  <p class="rule">
+    Home is state-dependent. The revenue winners open on a feed of the thing you care about;
+    <b>what you care about depends on what you hold</b>. The veteran ruleset&rsquo;s V7 (no front door for
+    returning users) and the training-wheels rule (restrict, don&rsquo;t hide, for new users) resolve to
+    the same routing. Click any solid card &mdash; it opens the mock.
+  </p>
+
+  <div class="states">
+    <div class="st">
+      <span class="who">Never signed</span>
+      <span class="q">Who are you?</span>
+      <span class="arrow">&darr;</span>
+      <a class="dest" href="landing.html">
+        <span class="dn">Landing</span>
+        <span class="dd">Variant A &mdash; the carry explained, scanner &rarr; Defend. The only marketing surface. Variant B test sends them to the Builder instead.</span>
+      </a>
+      <span class="why">The front door exists only for people who have never walked through it.</span>
+    </div>
+
+    <div class="st">
+      <span class="who">Connected &middot; no position</span>
+      <span class="q">Ready to learn?</span>
+      <span class="arrow">&darr;</span>
+      <a class="dest" href="builder.html">
+        <span class="dn">Builder</span>
+        <span class="dd">The board and the gauntlet. First screen is the product doing something &mdash; pump.fun&rsquo;s lesson. Templates get them moving without reading.</span>
+      </a>
+      <span class="why">Training wheels: restricting new users to the practice range makes them faster at the real thing later &mdash; measured, not hoped.</span>
+    </div>
+
+    <div class="st">
+      <span class="who">Has a position</span>
+      <span class="q">What happened while I was gone?</span>
+      <span class="arrow">&darr;</span>
+      <a class="dest" href="dash.html">
+        <span class="dn">Position</span>
+        <span class="dd">The whole position: collateral, LTV window, headroom, debt &mdash; then the belt, deliveries, encounters, calibration, recap. The feed is the terminal.</span>
+      </a>
+      <span class="why">A veteran&rsquo;s first second is their own state. The Builder stays one click away as the drill range.</span>
+    </div>
+  </div>
+
+  <div class="navrow">
+    <span class="eyebrow">The persistent nav &mdash; depth-ordered, left to right</span>
+    <div class="items">
+      <a class="it" href="dash.html">Position</a>
+      <a class="it" href="borrow.html">Borrow</a>
+      <a class="it" href="carry.html">Carry</a>
+      <a class="it" href="supply.html">Earn</a>
+      <span class="it stub" title="structure not mocked yet">Liquidate</span>
+      <a class="it" href="defend.html">Defend</a>
+      <a class="it" href="builder.html">Builder</a>
+    </div>
+    <p class="note">
+      Borrow &middot; Carry &middot; Earn &middot; Liquidate &middot; Defend is the depth ladder &mdash;
+      increasing expertise left to right, ending at Defend (risk management through the Disco).
+      Borrow is plain debt: CDT minted to the wallet against wallet collateral, deployed nowhere.
+      Carry is the yield loop split out of it &mdash; borrow and route through venues in one motion.
+      Only Liquidate is not mocked yet. The current app&rsquo;s nav (About &middot; Home &middot; Mint &middot; The Disco &middot;
+      Liquidate) leads with its least-used pages and has Portfolio commented out entirely.
+    </p>
+  </div>
+
+  <div class="links">
+    <div class="lk">
+      <span class="k">Cross-links that matter</span>
+      <ul>
+        <li><b>Position &rarr; Builder:</b> every encounter card gets &ldquo;drill this scenario&rdquo; &mdash; it opens the gauntlet floor built from that event.</li>
+        <li><b>Builder &rarr; Position:</b> clearing a floor with a live position offers &ldquo;check your real board against this.&rdquo;</li>
+        <li><b>Landing &rarr; Terms:</b> the signature&rsquo;s URI resolves to /terms &mdash; already built.</li>
+        <li><b>Calibration &rarr; Training grounds:</b> the &ldquo;Is it luck?&rdquo; card is the entry point on both surfaces.</li>
+      </ul>
+    </div>
+    <div class="lk">
+      <span class="k">What this replaces</span>
+      <ul>
+        <li><b>Portfolio page:</b> unreachable today (nav link commented out); synthetic ticking counter; chart that cannot draw a decline. Replaced by Position.</li>
+        <li><b>CyberpunkHome:</b> pre-migration home component. Replaced by the state routing above.</li>
+        <li><b>Points ladder:</b> returns-fed progression &mdash; prohibited by ruleset &sect;11.1. Calibration is the progression that remains.</li>
+      </ul>
+    </div>
+  </div>
+</div>

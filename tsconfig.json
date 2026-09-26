@@ -30,6 +30,16 @@
     "components/Bid/StabilityPool.tsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    // CosmWasm codegen output, marked "DO NOT MODIFY IT BY HAND". The generated
+    // *.client.ts files reference response types the generator never emitted
+    // (e.g. ConfigResponse is absent from every *.types.ts), which accounted for
+    // 76 of the repo's type errors. Nothing imports them — the only live imports
+    // from this directory are the *.types.ts files, and those are still
+    // typechecked because reachable imports are pulled into the program
+    // regardless of this list. Dropping the directory as a compilation root
+    // therefore removes dead, unfixable-by-hand noise without losing coverage of
+    // any code that actually ships.
+    "contracts/generated"
   ]
 }

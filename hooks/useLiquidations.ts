@@ -60,28 +60,29 @@ export const useCheckClaims = (run: boolean) => {
 
             const client = getPublicClient()
 
+            // js-combine-iterations: fused the former .filter().map(async) into a single
+            // flatMap pass — assets without a base are skipped inline instead of a
+            // separate filtering traversal.
             const perAsset = await Promise.all(
-                assets
-                    .filter((a) => !!a.base)
-                    .map(async (a) => {
-                        const key = assetKey(a.base)
-                        const [claimable, bids] = await Promise.all([
-                            getClaimableCollateral(client, key, address as Address),
-                            getEvmUserBids(client, key, address as Address),
-                        ])
-                        // claimableCollateral = already-drained aggregate; per-bid
-                        // pendingLiquidatedCollateral = collateral accrued to still-active bids.
-                        const pendingFromBids = (bids ?? []).reduce(
-                            (acc, b) => acc + b.pendingLiquidatedCollateral,
-                            0n,
-                        )
-                        const total = (claimable ?? 0n) + pendingFromBids
-                        if (total <= 0n) return null
-                        return {
-                            bid_for: a.base,
-                            pending_liquidated_collateral: total.toString(),
-                        } as ClaimsResponse
-                    }),
+                assets.flatMap((a) => !a.base ? [] : [(async () => {
+                    const key = assetKey(a.base)
+                    const [claimable, bids] = await Promise.all([
+                        getClaimableCollateral(client, key, address as Address),
+                        getEvmUserBids(client, key, address as Address),
+                    ])
+                    // claimableCollateral = already-drained aggregate; per-bid
+                    // pendingLiquidatedCollateral = collateral accrued to still-active bids.
+                    const pendingFromBids = (bids ?? []).reduce(
+                        (acc, b) => acc + b.pendingLiquidatedCollateral,
+                        0n,
+                    )
+                    const total = (claimable ?? 0n) + pendingFromBids
+                    if (total <= 0n) return null
+                    return {
+                        bid_for: a.base,
+                        pending_liquidated_collateral: total.toString(),
+                    } as ClaimsResponse
+                })()]),
             )
 
             return perAsset.filter((c): c is ClaimsResponse => c !== null)

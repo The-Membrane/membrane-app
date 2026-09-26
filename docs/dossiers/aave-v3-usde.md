@@ -67,14 +67,16 @@ exit-liquidity number.
   the Governance Bridge executors."
   Source: `https://aave.com/docs/aave-v3/smart-contracts/acl-manager`.
 
-So there are **two distinct gates**: (1) an automatic, market-driven one — you cannot
-withdraw more than the unborrowed liquidity (this is the utilization constraint in Q1);
-and (2) an administrative pause/freeze that a Guardian multisig / governance-controlled
-role can invoke.
+For withdrawal, distinguish **available unborrowed liquidity** from an administrative
+**pause**. Aave's [reserve-flag action table](https://aave.com/docs/mcp/safety)
+explicitly permits withdrawal from a *frozen* reserve and when supply or borrow caps
+are reached; a paused reserve blocks withdrawal. Freeze/cap changes are therefore not
+withdrawal-lock signals by themselves. A collateralized wallet may have an additional
+health-factor constraint, separate from reserve liquidity and flags.
 
-- **UNKNOWN — the speed and notice of an admin pause/freeze** for *this* reserve: the
+- **UNKNOWN — the speed and notice of an admin pause** for *this* reserve: the
   Guardian multisig can act quickly by design, but we have not verified the specific
-  multisig, its threshold, or any timelock/notice on a USDe-reserve freeze. Do not
+  multisig, its threshold, or any timelock/notice on a USDe-reserve pause. Do not
   assume a notice period.
 - **UNKNOWN — terms/parameter change history** for the reserve (caps, reserve factor,
   freeze status over time): no terms-hash watcher (rank-3 roadmap ADD); we hold no

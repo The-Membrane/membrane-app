@@ -10,6 +10,7 @@ import { useBalanceByAsset } from './useBalance'
 import { useOraclePrice } from './useOracle'
 import { num } from '@/helpers/num'
 import { useChainRoute } from './useChainRoute'
+import { getChainConfig } from '@/config/chains'
 import React from 'react'
 import { getManagedConfig, getManagedMarket, getManagedMarketContracts, getManagedMarkets, getManagedMarketUnderlyingCDT, getManagedUXBoosts, getManagers, getMarketClaimTracker, getMarketCollateralCost, getMarketCollateralDenoms, getMarketCollateralPrice, getMarketDebtPrice, getTotalBorrowed, getUserPositioninMarket, getUserUXBoostsinMarket } from '@/services/managed'
 import useAppState from '@/persisted-state/useAppState'
@@ -143,10 +144,30 @@ function usePromise<T>(promise: Promise<T> | null) {
     return { data };
 }
 
+// Stable empty result. `useAllMarkets` returns `null` to mean "still loading" and an
+// array to mean "resolved" — consumers gate their spinner on `null`, so the resolved
+// zero-market case MUST be an array, never null.
+const NO_MANAGED_MARKETS: (MarketData & { manager: string })[] = [];
+
 export const useAllMarkets = () => {
     const { appState } = useAppState()
+    const { chainName } = useChainRoute();
     const { data: managers } = useManagers();
     const { data: client } = useCosmWasmClient(appState.rpcUrl);
+
+    // The managed-market registry is a CosmWasm contract (`contracts.marketManager`,
+    // an osmo1… address). On the EVM routes there is no Cosmos RPC to reach it with —
+    // config/chains.ts ships `rpcUrl: ''` for ethereum — so `CosmWasmClient.connect('')`
+    // never yields a client and the promise chain below can never resolve. Resolve to an
+    // empty list instead of hanging on `null` forever, so the UI renders an empty state
+    // rather than a permanent spinner.
+    //
+    // Keyed off the route's chain config rather than appState.rpcUrl on purpose: the
+    // chain config is identical on server and client, whereas appState.rpcUrl is a
+    // persisted (localStorage) value that is the Cosmos default during SSR and '' after
+    // rehydration — reading it here would render a spinner server-side and an empty
+    // state client-side.
+    const hasCosmosRpc = !!getChainConfig(chainName).rpcUrl;
 
     const markets = useMemo(() => {
         if (!managers || !client) return null;
@@ -165,16 +186,17 @@ export const useAllMarkets = () => {
                 }
             })
         ).then(results =>
-            results
-                .filter(r => r.status === 'fulfilled')
-                .flatMap(r => (r.status === 'fulfilled' ? r.value : []))
+            results.flatMap(r => (r.status === 'fulfilled' ? r.value : []))
         );
     }, [managers, client]);
 
     const { data: managedMarkets } = usePromise(markets);
 
     // Memoize the final result so consumers always get a stable reference
-    return useMemo(() => managedMarkets, [managedMarkets]);
+    return useMemo(
+        () => (hasCosmosRpc ? managedMarkets : NO_MANAGED_MARKETS),
+        [managedMarkets, hasCosmosRpc],
+    );
 };
 
 //Use market collateral price

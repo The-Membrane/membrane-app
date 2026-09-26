@@ -17,7 +17,14 @@
 // injection. If RECORDER_RPC_URL is unset the script exits(1) with the fix.
 
 import { neon } from '@neondatabase/serverless'
-import { readEnv, loadConfig, makeClient, readVenueState, readDepthMarkets, primaryMetric } from './lib/venue-reads.mjs'
+import {
+  readEnv,
+  loadConfig,
+  makeClient,
+  readVenueState,
+  readDepthMarkets,
+  primaryMetric,
+} from './lib/venue-reads.mjs'
 
 const { get } = readEnv()
 const rpcUrl = get('RECORDER_RPC_URL') || process.env.RECORDER_RPC_URL
@@ -41,20 +48,40 @@ const client = makeClient(rpcUrl)
 // depthMarkets is a structured sub-array whose reserves drift every block — its
 // eventable summary is the top-level depth_usd / depth_skew_pct, so the array
 // itself is meta (diffing it would spam param_changed rows every tick).
-const META_KEYS = new Set(['kind', 'reads', 'instant_note', 'depthMarkets', 'depth_note', 'utilization_note', 'variableDebtToken'])
+const META_KEYS = new Set([
+  'kind',
+  'reads',
+  'instant_note',
+  'depthMarkets',
+  'depth_note',
+  'depth_complete',
+  'read_block_pinned',
+  'utilization_note',
+  'variableDebtToken',
+])
 
 // Continuously-varying metrics drift every block (yield accrual, ordinary
 // flows). Eventing every tick makes the news tracker a noise feed (Badass
 // rule 9) — these only fire an event on a >20% move, like instant_usd.
 // Discrete params (cooldownDuration, silo, …) still event on ANY change.
-const CONTINUOUS_KEYS = new Set(['totalAssets', 'totalSupply', 'underlyingBalance', 'depth_usd', 'depth_skew_pct', 'variableDebt', 'utilization_pct'])
+const CONTINUOUS_KEYS = new Set([
+  'totalAssets',
+  'totalSupply',
+  'underlyingBalance',
+  'depth_usd',
+  'depth_skew_pct',
+  'variableDebt',
+  'utilization_pct',
+])
 const CONTINUOUS_SHIFT = 0.2
 
 // Extract the value of a chosen metric from a snapshot row (numeric columns
 // arrive from neon as strings).
 function metricValueOf(row, metric) {
   if (metric === 'instant_usd') {
-    return row.instant_usd === null || row.instant_usd === undefined ? null : Number(row.instant_usd)
+    return row.instant_usd === null || row.instant_usd === undefined
+      ? null
+      : Number(row.instant_usd)
   }
   const ta = row.params?.totalAssets
   return ta === undefined || ta === null ? null : Number(ta)
@@ -76,13 +103,20 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
 
   // 1. Read latest state (+ depth-market extension, memo P4, when configured).
   const block = await client.getBlockNumber()
-  const { params, instantUsd, coolingUsd, strandedUsd } = await readVenueState(client, venue)
-  const depth = await readDepthMarkets(client, venue)
+  // Every field in this snapshot must describe the SAME block. The previous
+  // latest-per-call reads could straddle transactions while storing one block.
+  const { params, instantUsd, coolingUsd, strandedUsd } = await readVenueState(client, venue, block)
+  const depth = await readDepthMarkets(client, venue, block)
   if (depth) {
     Object.assign(params, depth)
-    console.log(`  depth_usd=${depth.depth_usd} (exitable) depth_skew_pct=${depth.depth_skew_pct?.toFixed(1) ?? 'null'}%`)
+    console.log(
+      `  depth_usd=${depth.depth_usd} (exitable) depth_skew_pct=${depth.depth_skew_pct?.toFixed(1) ?? 'null'}%`,
+    )
   }
-  console.log(`  block ${block} — instant_usd=${instantUsd ?? 'null'} params=${JSON.stringify(params)}`)
+  params.read_block_pinned = true
+  console.log(
+    `  block ${block} — instant_usd=${instantUsd ?? 'null'} params=${JSON.stringify(params)}`,
+  )
 
   // 3a. Fetch the previous observed snapshot BEFORE inserting the new one.
   const [prev] = await sql`
@@ -145,7 +179,9 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
   for (const pred of due) {
     const realized = metricValueOf({ instant_usd: instantUsd, params }, pred.metric)
     if (realized === null) {
-      console.log(`  prediction ${pred.id} due but metric '${pred.metric}' unreadable — left unscored`)
+      console.log(
+        `  prediction ${pred.id} due but metric '${pred.metric}' unreadable — left unscored`,
+      )
       continue
     }
     const hit = realized >= Number(pred.band_low) && realized <= Number(pred.band_high)
@@ -168,7 +204,9 @@ for (const venue of loadConfig().filter((v) => v.enabled)) {
     SELECT instant_usd, params FROM venue_snapshots
     WHERE venue = ${venue.name} AND source = 'observed'
     ORDER BY observed_at ASC`
-  const series = hist.map((r) => metricValueOf(r, primary.metric)).filter((v) => v !== null && v !== 0)
+  const series = hist
+    .map((r) => metricValueOf(r, primary.metric))
+    .filter((v) => v !== null && v !== 0)
   let spread
   if (series.length < 3) {
     spread = 0.25

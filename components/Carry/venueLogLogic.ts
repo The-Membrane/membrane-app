@@ -38,6 +38,51 @@ export const fmtDuration = (secs: number): string => {
 const fmtUsd = (n: number): string =>
   n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : `$${Math.round(n / 1000)}k`
 
+/** Only a measured, windowed capacity delta belongs in the landing's capacity card. */
+export const capacityMove = (
+  e: Entry,
+): {
+  venue: string
+  metric: string
+  change: string
+  from: string
+  to: string
+  window: string
+  at: string
+} | null => {
+  if (e.provenance !== 'observed' || !e.since) return null
+  const field =
+    e.kind === 'instant_liquidity_shift'
+      ? 'instant_usd'
+      : e.kind === 'param_changed' && 'depth_usd' in (e.next ?? {})
+        ? 'depth_usd'
+        : e.kind === 'param_changed' && 'instant_usd' in (e.next ?? {})
+          ? 'instant_usd'
+          : null
+  if (!field) return null
+  const before = Number(e.prev?.[field])
+  const after = Number(e.next?.[field])
+  const window = windowLabel(e).trim()
+  if (
+    !Number.isFinite(before) ||
+    !Number.isFinite(after) ||
+    before < 0 ||
+    after < 0 ||
+    before === after ||
+    !window
+  )
+    return null
+  return {
+    venue: e.venue === 'aave-v3-usde' ? 'Aave USDe' : e.venue,
+    metric: field === 'depth_usd' ? 'instant swap-out depth' : 'instant exit capacity',
+    change: `${after > before ? 'rose' : 'fell'} ${fmtUsd(Math.abs(after - before))}`,
+    from: fmtUsd(before),
+    to: fmtUsd(after),
+    window,
+    at: e.at,
+  }
+}
+
 /**
  * Render a fired alarm as a consequence line from its evidence numbers. Every
  * alarm row is danger-toned (open) or muted (cleared). Mirrors the genres in
@@ -120,7 +165,10 @@ export const consequence = (e: Entry): { text: string; tone: 'warning' | 'normal
     // hash itself is not information — the fact of the edit is.
     const a = Number(e.prev?.content_len)
     const b = Number(e.next?.content_len)
-    const delta = Number.isFinite(a) && Number.isFinite(b) && b !== a ? ` (${b > a ? '+' : ''}${b - a} chars)` : ''
+    const delta =
+      Number.isFinite(a) && Number.isFinite(b) && b !== a
+        ? ` (${b > a ? '+' : ''}${b - a} chars)`
+        : ''
     return { text: `terms page edited${delta} — read it before you rely on it`, tone: 'warning' }
   }
   if (e.kind === 'param_changed') {
@@ -143,9 +191,15 @@ export const consequence = (e: Entry): { text: string; tone: 'warning' | 'normal
     }
     const parts = keys
       .filter((k) => String(e.prev?.[k]) !== String(e.next?.[k]))
-      .map((k) => `${LABEL[k] ?? k.replace(/_/g, ' ')} ${fmt(k, e.prev?.[k])} → ${fmt(k, e.next?.[k])}`)
+      .map(
+        (k) =>
+          `${LABEL[k] ?? k.replace(/_/g, ' ')} ${fmt(k, e.prev?.[k])} → ${fmt(k, e.next?.[k])}`,
+      )
     const down = keys.some((k) => Number(e.next?.[k]) < Number(e.prev?.[k]))
-    return { text: `${parts.join(' · ') || 'parameter changed'}${windowLabel(e)}`, tone: down ? 'warning' : 'normal' }
+    return {
+      text: `${parts.join(' · ') || 'parameter changed'}${windowLabel(e)}`,
+      tone: down ? 'warning' : 'normal',
+    }
   }
   // Unknown kind: name it, never dump it.
   return { text: `${e.kind.replace(/_/g, ' ')} recorded`, tone: 'normal' }

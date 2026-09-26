@@ -75,7 +75,7 @@ export const PRESETS: Preset[] = [
     lev: 2,
     coll: 'syrupUSDC',
     yld: 7.8,
-    venues: 'Aave V3 + VaultV2',
+    venues: 'Aave V3 + Morpho Vault V2',
     room: 1,
     pd: '2× · deep venues · the 1-in-1000 move uses 1% of your room',
   },
@@ -85,7 +85,7 @@ export const PRESETS: Preset[] = [
     lev: 3,
     coll: 'sUSDS',
     yld: 6.5,
-    venues: 'Aave V3 + VaultV2 + sUSDe',
+    venues: 'Aave V3 + Morpho Vault V2 + sUSDe',
     room: 2,
     pd: '3× · mixed venues · 62× covered',
   },
@@ -95,7 +95,7 @@ export const PRESETS: Preset[] = [
     lev: 5,
     coll: 'sUSDS',
     yld: 6.5,
-    venues: 'sUSDe + VaultV2 + PT',
+    venues: 'sUSDe + Morpho Vault V2 + PT',
     room: 4,
     pd: '5× · yield venues · 26× covered · slower recall',
   },
@@ -116,7 +116,7 @@ export const BOARDS: Board[] = [
     coll: 'sUSDS',
     lev: 3,
     yld: 6.5,
-    venues: 'Aave V3 + VaultV2 + sUSDe',
+    venues: 'Aave V3 + Morpho Vault V2 + sUSDe',
     room: 2,
     surv: 'cleared 15/15 floors',
     cov: '62× covered',
@@ -127,7 +127,7 @@ export const BOARDS: Board[] = [
     coll: 'syrupUSDC',
     lev: 2,
     yld: 7.8,
-    venues: 'Aave V3 + VaultV2',
+    venues: 'Aave V3 + Morpho Vault V2',
     room: 1,
     surv: 'cleared 15/15 floors',
     cov: 'the 1-in-1000 move uses 1% of room',
@@ -138,7 +138,7 @@ export const BOARDS: Board[] = [
     coll: 'sUSDS',
     lev: 5,
     yld: 6.5,
-    venues: 'sUSDe + VaultV2 + PT',
+    venues: 'sUSDe + Morpho Vault V2 + PT',
     room: 4,
     surv: 'cleared 13/15 floors',
     cov: '26× covered · slower recall',
@@ -149,7 +149,7 @@ export const BOARDS: Board[] = [
     coll: 'scrvUSD',
     lev: 5,
     yld: 9.2,
-    venues: 'PT + sUSDe + VaultV2',
+    venues: 'PT + sUSDe + Morpho Vault V2',
     room: 9,
     surv: 'cleared 9/15 floors',
     cov: 'thin — died to the rate spiral twice',
@@ -177,28 +177,126 @@ const LP = 'https://defillama.com/protocol/'
  * sides → the protocol's DefiLlama page.
  */
 export const ROUTES: Route[] = [
-  { proto: 'Morpho Blue', src: 'AUSD', su: LY + 'AUSD', dst: 'Staked USDat', du: LY + 'USDAT', pos: 15, net: 11.53 },
-  { proto: 'Morpho Blue', src: 'apxUSD', su: LY + 'APXUSD', dst: 'ApyUSD', du: LY + 'APYUSD', pos: 19, net: 9.01 },
-  { proto: 'Aave V3', src: 'USDT', su: LY + 'USDT', dst: 'Fluid', du: LP + 'fluid', pos: 15, net: 3.91 },
-  { proto: 'Morpho Blue', src: 'USDC', su: LY + 'USDC', dst: 'VaultV2', du: LP + 'morpho', pos: 182, net: 3.44, big: true },
-  { proto: 'Spark', src: 'USDS', su: LY + 'USDS', dst: 'StUsds', du: LY + 'SUSDS', pos: 21, net: 2.59 },
-  { proto: 'Morpho Blue', src: 'PYUSD', su: LY + 'PYUSD', dst: 'StakingVault', du: LY + 'PYUSD', pos: 26, net: 1.98 },
-  { proto: 'Aave V3', src: 'USDe', su: LY + 'USDE', dst: 'Staked USDe', du: LY + 'SUSDE', pos: 25, net: 0.62 },
-  { proto: 'Compound v3', src: 'USDC', su: LY + 'USDC', dst: 'USD3', du: LY + 'USD3', pos: 78, net: 0.22 },
-  { proto: 'Aave V3', src: 'RLUSD', su: LY + 'RLUSD', dst: 'VaultV2', du: LP + 'morpho', pos: 37, net: -0.36 },
-  { proto: 'Aave V3', src: 'USDC', su: LY + 'USDC', dst: 'Compound', du: LP + 'compound-finance', pos: 20, net: -0.78 },
-  { proto: 'Morpho Blue', src: 'PYUSD', su: LY + 'PYUSD', dst: 'VaultV2', du: LP + 'morpho', pos: 54, net: -2.43 },
-  { proto: 'Aave V3', src: 'GHO', su: LY + 'GHO', dst: 'UmbrellaStakeToken', du: LP + 'aave', pos: 21, net: -3.75, note: 'confirmed 0% module' },
+  {
+    proto: 'Morpho Blue',
+    src: 'AUSD',
+    su: LY + 'AUSD',
+    dst: 'Staked USDat',
+    du: LY + 'USDAT',
+    pos: 15,
+    net: 11.53,
+  },
+  {
+    proto: 'Morpho Blue',
+    src: 'apxUSD',
+    su: LY + 'APXUSD',
+    dst: 'ApyUSD',
+    du: LY + 'APYUSD',
+    pos: 19,
+    net: 9.01,
+  },
+  {
+    proto: 'Aave V3',
+    src: 'USDT',
+    su: LY + 'USDT',
+    dst: 'Fluid',
+    du: LP + 'fluid',
+    pos: 15,
+    net: 3.91,
+  },
+  {
+    proto: 'Morpho Blue',
+    src: 'USDC',
+    su: LY + 'USDC',
+    dst: 'Morpho Vault V2',
+    du: LP + 'morpho',
+    pos: 182,
+    net: 3.44,
+    big: true,
+  },
+  {
+    proto: 'Spark',
+    src: 'USDS',
+    su: LY + 'USDS',
+    dst: 'StUsds',
+    du: LY + 'SUSDS',
+    pos: 21,
+    net: 2.59,
+  },
+  {
+    proto: 'Morpho Blue',
+    src: 'PYUSD',
+    su: LY + 'PYUSD',
+    dst: 'StakingVault',
+    du: LY + 'PYUSD',
+    pos: 26,
+    net: 1.98,
+  },
+  {
+    proto: 'Aave V3',
+    src: 'USDe',
+    su: LY + 'USDE',
+    dst: 'Staked USDe',
+    du: LY + 'SUSDE',
+    pos: 25,
+    net: 0.62,
+  },
+  {
+    proto: 'Compound v3',
+    src: 'USDC',
+    su: LY + 'USDC',
+    dst: 'USD3',
+    du: LY + 'USD3',
+    pos: 78,
+    net: 0.22,
+  },
+  {
+    proto: 'Aave V3',
+    src: 'RLUSD',
+    su: LY + 'RLUSD',
+    dst: 'Morpho Vault V2',
+    du: LP + 'morpho',
+    pos: 37,
+    net: -0.36,
+  },
+  {
+    proto: 'Aave V3',
+    src: 'USDC',
+    su: LY + 'USDC',
+    dst: 'Compound',
+    du: LP + 'compound-finance',
+    pos: 20,
+    net: -0.78,
+  },
+  {
+    proto: 'Morpho Blue',
+    src: 'PYUSD',
+    su: LY + 'PYUSD',
+    dst: 'Morpho Vault V2',
+    du: LP + 'morpho',
+    pos: 54,
+    net: -2.43,
+  },
+  {
+    proto: 'Aave V3',
+    src: 'GHO',
+    su: LY + 'GHO',
+    dst: 'UmbrellaStakeToken',
+    du: LP + 'aave',
+    pos: 21,
+    net: -3.75,
+    note: 'confirmed 0% module',
+  },
 ]
 
 /**
  * Exit-cost model for the crossing chart (BADASS_RULESET §4, BRAND_CHARTS §6).
  * The pair is the real decision the Aug 2026 board poses: the thin
  * top-of-board route (Staked USDat, 11.53% net, 15 positions) against the
- * crowd's deep route (VaultV2, 3.44% net, 182 positions).
+ * crowd's deep route (Morpho Vault V2, 3.44% net, 182 positions).
  *
  * PROVENANCE: aprPct comes from the measured ROUTES table above. The depth
- * tiers and cost ranges are a MODEL — VaultV2's instant depth echoes the
+ * tiers and cost ranges are a MODEL — Morpho Vault V2's instant depth echoes the
  * EarnPage capacity fixture ($980k instant, buffer self-heals); USDat's
  * thinness is inferred from its 15-position footprint. Nothing here is an
  * observed exit. The venue recorder (venue_snapshots) replaces these numbers
@@ -207,7 +305,7 @@ export const ROUTES: Route[] = [
  */
 export const EXIT_MODEL: { chosen: ExitModelVenue; alt: ExitModelVenue } = {
   chosen: {
-    name: 'VaultV2 · 3.44% net',
+    name: 'Morpho Vault V2 · 3.44% net',
     aprPct: 3.44,
     instantDepthUsd: 980_000,
     instantCostPct: [0.02, 0.08],
@@ -258,7 +356,7 @@ export const RH: RedemptionVenue[] = [
     ],
   },
   {
-    v: 'VaultV2',
+    v: 'Morpho Vault V2',
     sub: '4626 vault',
     req: 268400,
     srv: 267300,
@@ -270,7 +368,11 @@ export const RH: RedemptionVenue[] = [
     noteSegments: [{ t: 'one partial fill re-served next block' }],
     prongs: [
       { label: 'composition', fact: 'lending positions, readable on-chain', conf: 'high' },
-      { label: 'withdrawal path', fact: 'buffer self-heals one layer down on withdraw', conf: 'med' },
+      {
+        label: 'withdrawal path',
+        fact: 'buffer self-heals one layer down on withdraw',
+        conf: 'med',
+      },
       { label: 'delivery', fact: '41/41 served — history, not a guarantee', conf: 'low' },
     ],
   },
@@ -290,7 +392,11 @@ export const RH: RedemptionVenue[] = [
     ],
     prongs: [
       { label: 'composition', fact: 'staked USDe + silo, readable on-chain', conf: 'high' },
-      { label: 'withdrawal path', fact: 'global cooldown; nothing in the exit path starts it', conf: 'med' },
+      {
+        label: 'withdrawal path',
+        fact: 'global cooldown; nothing in the exit path starts it',
+        conf: 'med',
+      },
       { label: 'delivery', fact: '2 recalls landed inside the cooldown window', conf: 'low' },
     ],
   },
@@ -307,8 +413,16 @@ export const RH: RedemptionVenue[] = [
     oracle: 'PT',
     noteSegments: [{ t: '2 pre-maturity recalls sold at market: full size, −0.9% price' }],
     prongs: [
-      { label: 'composition', fact: 'fixed-maturity principal token, readable on-chain', conf: 'high' },
-      { label: 'withdrawal path', fact: 'pre-maturity exit is a market sale, not a redemption', conf: 'med' },
+      {
+        label: 'composition',
+        fact: 'fixed-maturity principal token, readable on-chain',
+        conf: 'high',
+      },
+      {
+        label: 'withdrawal path',
+        fact: 'pre-maturity exit is a market sale, not a redemption',
+        conf: 'med',
+      },
       { label: 'delivery', fact: '2 pre-maturity sales cleared at −0.9%', conf: 'low' },
     ],
   },
@@ -353,7 +467,11 @@ export const ORACLE_PROV =
 
 export const ORACLE: Record<string, OracleInfo> = {
   sUSDS: { tag: ['med', 'medium (AOR-3/5 · share-rate)'], sum: ADAPTER_SUM, li: ADAPTER_BULLETS },
-  syrupUSDC: { tag: ['med', 'medium (AOR-3/5 · share-rate)'], sum: ADAPTER_SUM, li: ADAPTER_BULLETS },
+  syrupUSDC: {
+    tag: ['med', 'medium (AOR-3/5 · share-rate)'],
+    sum: ADAPTER_SUM,
+    li: ADAPTER_BULLETS,
+  },
   scrvUSD: { tag: ['med', 'medium (AOR-3/5 · share-rate)'], sum: ADAPTER_SUM, li: ADAPTER_BULLETS },
   WBTC: {
     tag: ['med', 'medium (AOR-2 · route depth)'],

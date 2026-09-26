@@ -71,5 +71,6 @@ export const getAssetByDenom = (denom: string, _legacyChainID?: string) => {
 
 export const getAssetsByDenom = (denoms: string[], _legacyChainID?: string) => {
   const assets = getAssets()
-  return assets?.filter((asset) => denoms.includes(asset.base))
+  const denomSet = new Set(denoms)
+  return assets?.filter((asset) => denomSet.has(asset.base))
 }

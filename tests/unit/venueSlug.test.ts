@@ -27,6 +27,7 @@ describe('venueSlug', () => {
 
   it('returns null for untracked venues so they never link into a 404-card', () => {
     expect(venueSlug('VaultV2')).toBeNull()
+    expect(venueSlug('Morpho Vault V2')).toBeNull()
     expect(venueSlug('PT (fixed maturity)')).toBeNull()
     expect(venueSlug('')).toBeNull()
     expect(venueSlug(undefined)).toBeNull()

@@ -18,7 +18,7 @@ const SCALE_LEAD = CORPUS_SCALE_LINE.partial
   ? '4% sounds small.'
   : '4% sounds small. It would have kept'
 const SCALE_TAIL = CORPUS_SCALE_LINE.partial
-  ? `less debt would have been closed ${SCALE.window}.`
+  ? `of debt protected from forced closure ${SCALE.window}.`
   : `of collateral ${SCALE.window}.`
 const WINDOW_FIGURE = CORPUS_SCALE_LINE.partial ? '1' : String(CORPUS_SCALE_LINE.years)
 const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured'

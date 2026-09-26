@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Box, Button, Flex, Grid, Link, Text } from '@chakra-ui/react'
 
 import { MockStamp } from '@/components/demo'
@@ -13,8 +13,52 @@ import { BOARDS, ROUTES } from './fixtures'
 import { routeBar } from './utils'
 import { Board } from './types'
 
+const ROUTE_NOTIONAL_USD = 10_000
+const signedDollars = (value: number) =>
+  `${value >= 0 ? '+' : '−'}$${Math.abs(value).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+
+const RouteMagnitude: React.FC<{ count: number; netPct: number; color: string }> = ({
+  count,
+  netPct,
+  color,
+}) => {
+  const [showCount, setShowCount] = useState(false)
+  return (
+    <Button
+      type="button"
+      data-testid="route-magnitude"
+      variant="unstyled"
+      minW={0}
+      h="auto"
+      textAlign="right"
+      whiteSpace="normal"
+      onClick={() => setShowCount((current) => !current)}
+      aria-label={
+        showCount
+          ? `${count} observed positions. Show dollars per $10,000.`
+          : `${signedDollars((netPct / 100) * ROUTE_NOTIONAL_USD)} per year on $10,000. Show observed position count.`
+      }
+      _focusVisible={FOCUS_STYLES.ring}
+    >
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        color={showCount ? SEMANTIC_COLORS.textPrimary : color}
+      >
+        {showCount
+          ? `${count} observed`
+          : `${signedDollars((netPct / 100) * ROUTE_NOTIONAL_USD)} / yr`}
+      </Text>
+      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary}>
+        {showCount ? 'tap for $10k example' : 'on $10k · tap for count'}
+      </Text>
+    </Button>
+  )
+}
+
 export interface MarketBoardsProps {
-  onLoadBoard: (b: Board) => void
+  onLoadBoard?: (b: Board) => void
+  routesOnly?: boolean
 }
 
 const LoadBtn: React.FC<{ onClick: () => void }> = ({ onClick }) => (
@@ -40,82 +84,106 @@ const LoadBtn: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   </Button>
 )
 
-export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard }) => (
+export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard, routesOnly = false }) => (
   <Box>
-    <SectionHeading index="02 /" title="What the market is running" note="real boards and real routes — including the losing ones" />
+    <SectionHeading
+      index="02 /"
+      title={routesOnly ? 'Measured routes on other protocols' : 'What the market is running'}
+      note={
+        routesOnly
+          ? 'measured route spreads, including the losing routes'
+          : 'real boards and real routes — including the losing ones'
+      }
+    />
 
     {/* Boards — top survivors */}
-    <Card p={SPACING.base}>
-      <Eyebrow>Boards — top survivors</Eyebrow>
-      <MockStamp ml={SPACING.sm} />
-      <Box mt={SPACING.md}>
-        {BOARDS.map((b) => {
-          const carry = (b.lev * b.yld).toFixed(1)
-          const netColor = b.dead ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success
-          return (
-            <Grid
-              key={b.rk}
-              templateColumns={{ base: '24px 1fr auto', md: '30px 1.5fr 110px 1.1fr auto' }}
-              gap={SPACING.md}
-              alignItems="center"
-              px={SPACING.md}
-              py="10px"
-              border="1px solid"
-              borderColor={SEMANTIC_COLORS.borderSubtle}
-              borderBottom={b.rk === BOARDS.length ? '1px solid' : 'none'}
-              bg={SEMANTIC_COLORS.bgSecondary}
-              fontSize="11.5px"
-            >
-              <Text fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textTertiary}>
-                {b.rk}
-              </Text>
-              <Box>
-                <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary}>
-                  {b.nm}
-                </Text>
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
-                  {b.coll} · {b.lev}× · {b.venues}
-                </Text>
-              </Box>
-              <Text
-                display={{ base: 'none', md: 'block' }}
-                fontFamily={TYPOGRAPHY.fontMono}
-                color={netColor}
-                textAlign="right"
-                whiteSpace="nowrap"
+    {!routesOnly && (
+      <Card p={SPACING.base}>
+        <Eyebrow>Boards — top survivors</Eyebrow>
+        <MockStamp ml={SPACING.sm} />
+        <Box mt={SPACING.md}>
+          {BOARDS.map((b) => {
+            const carry = (b.lev * b.yld).toFixed(1)
+            const netColor = b.dead ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success
+            return (
+              <Grid
+                key={b.rk}
+                templateColumns={{ base: '24px 1fr auto', md: '30px 1.5fr 110px 1.1fr auto' }}
+                gap={SPACING.md}
+                alignItems="center"
+                px={SPACING.md}
+                py="10px"
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+                borderBottom={b.rk === BOARDS.length ? '1px solid' : 'none'}
+                bg={SEMANTIC_COLORS.bgSecondary}
+                fontSize="11.5px"
               >
-                {(b.dead ? '−' : '+') + carry}% / yr
-                <Text as="span" display="block" fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" color={SEMANTIC_COLORS.textTertiary}>
-                  on equity
+                <Text fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textTertiary}>
+                  {b.rk}
                 </Text>
-              </Text>
-              <Text
-                display={{ base: 'none', md: 'block' }}
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="10px"
-                color={SEMANTIC_COLORS.textSecondary}
-                lineHeight={1.5}
-              >
-                <Text as="span" color={SEMANTIC_COLORS.textPrimary}>
-                  {b.surv}
-                </Text>{' '}
-                · {b.cov}
-              </Text>
-              <LoadBtn onClick={() => onLoadBoard(b)} />
-            </Grid>
-          )
-        })}
-      </Box>
-      <Stamp>
-        mock leaderboard — real boards come from the gauntlet and position history · ranked by floors survived,
-        then net · net carry is on equity at the shown leverage
-      </Stamp>
-    </Card>
+                <Box>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontDisplay}
+                    fontSize={TYPOGRAPHY.small}
+                    color={SEMANTIC_COLORS.textPrimary}
+                  >
+                    {b.nm}
+                  </Text>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="9.5px"
+                    color={SEMANTIC_COLORS.textTertiary}
+                  >
+                    {b.coll} · {b.lev}× · {b.venues}
+                  </Text>
+                </Box>
+                <Text
+                  display={{ base: 'none', md: 'block' }}
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  color={netColor}
+                  textAlign="right"
+                  whiteSpace="nowrap"
+                >
+                  {(b.dead ? '−' : '+') + carry}% / yr
+                  <Text
+                    as="span"
+                    display="block"
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="9px"
+                    color={SEMANTIC_COLORS.textTertiary}
+                  >
+                    on equity
+                  </Text>
+                </Text>
+                <Text
+                  display={{ base: 'none', md: 'block' }}
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="10px"
+                  color={SEMANTIC_COLORS.textSecondary}
+                  lineHeight={1.5}
+                >
+                  <Text as="span" color={SEMANTIC_COLORS.textPrimary}>
+                    {b.surv}
+                  </Text>{' '}
+                  · {b.cov}
+                </Text>
+                <LoadBtn onClick={() => onLoadBoard?.(b)} />
+              </Grid>
+            )
+          })}
+        </Box>
+        <Stamp>
+          mock leaderboard — real boards come from the gauntlet and position history · ranked by
+          floors survived, then net · net carry is on equity at the shown leverage
+        </Stamp>
+      </Card>
+    )}
 
-    {/* Live routes on other protocols */}
-    <Card mt={SPACING.md} p={SPACING.base}>
+    {/* Historical route cohort on other protocols */}
+    <Card mt={routesOnly ? 0 : SPACING.md} p={SPACING.base}>
       <Flex justify="space-between" align="baseline" gap={SPACING.md} flexWrap="wrap">
-        <Eyebrow>Live routes on other protocols</Eyebrow>
+        {!routesOnly && <Eyebrow>Measured routes on other protocols</Eyebrow>}
         <MockStamp label="measured Aug 2026 · 1,245 positions, A+B evidence" />
       </Flex>
       <Box mt={SPACING.md}>
@@ -125,7 +193,7 @@ export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard }) => (
           return (
             <Grid
               key={i}
-              templateColumns={{ base: '1fr auto', md: '1.6fr 64px 1fr auto' }}
+              templateColumns={{ base: 'minmax(0, 1fr) 116px', md: '1.6fr 150px 1fr auto' }}
               gap={SPACING.md}
               alignItems="center"
               py={SPACING.sm}
@@ -135,11 +203,21 @@ export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard }) => (
             >
               <Box fontFamily={TYPOGRAPHY.fontMono}>
                 <Text as="span" color={SEMANTIC_COLORS.textPrimary}>
-                  <Link href={r.su} isExternal color="inherit" _hover={{ color: SEMANTIC_COLORS.success, textDecoration: 'underline' }}>
+                  <Link
+                    href={r.su}
+                    isExternal
+                    color="inherit"
+                    _hover={{ color: SEMANTIC_COLORS.success, textDecoration: 'underline' }}
+                  >
                     {r.src}
                   </Link>{' '}
                   →{' '}
-                  <Link href={r.du} isExternal color="inherit" _hover={{ color: SEMANTIC_COLORS.success, textDecoration: 'underline' }}>
+                  <Link
+                    href={r.du}
+                    isExternal
+                    color="inherit"
+                    _hover={{ color: SEMANTIC_COLORS.success, textDecoration: 'underline' }}
+                  >
                     {r.dst}
                   </Link>
                 </Text>
@@ -149,16 +227,34 @@ export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard }) => (
                     · {r.note}
                   </Text>
                 )}
-                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="9px" letterSpacing="0.12em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="9px"
+                  letterSpacing="0.12em"
+                  textTransform="uppercase"
+                  color={SEMANTIC_COLORS.textTertiary}
+                >
                   {r.proto}
                 </Text>
               </Box>
-              <Text display={{ base: 'none', md: 'block' }} fontFamily={TYPOGRAPHY.fontMono} color={SEMANTIC_COLORS.textTertiary} textAlign="right">
-                {r.pos} pos
-              </Text>
+              <RouteMagnitude count={r.pos} netPct={r.net} color={netColor} />
               {/* Diverging bar around a zero line */}
-              <Box display={{ base: 'none', md: 'block' }} position="relative" h="7px" bg={SEMANTIC_COLORS.bgPrimary} border="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
-                <Box position="absolute" left="50%" top="-3px" bottom="-3px" w="1px" bg={SEMANTIC_COLORS.borderStrong} />
+              <Box
+                display={{ base: 'none', md: 'block' }}
+                position="relative"
+                h="7px"
+                bg={SEMANTIC_COLORS.bgPrimary}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+              >
+                <Box
+                  position="absolute"
+                  left="50%"
+                  top="-3px"
+                  bottom="-3px"
+                  w="1px"
+                  bg={SEMANTIC_COLORS.borderStrong}
+                />
                 <Box
                   position="absolute"
                   top={0}
@@ -179,12 +275,14 @@ export const MarketBoards: React.FC<MarketBoardsProps> = ({ onLoadBoard }) => (
         })}
       </Box>
       <Stamp>
-        12 of 25 priced routes shown · borrow venue attributed from route semantics · routes are per-dollar
-        spreads; boards above are on your equity at leverage — do not compare the raw numbers
+        Aug 2026 route cohort, not a count of positions still open today · 12 of 25 priced routes
+        shown · $10,000 examples apply August annualized spreads, not current yield or a forecast ·
+        cohort capital was not measured · borrow venue attributed from route semantics · spreads are
+        per dollar, not on leveraged equity
       </Stamp>
       <Stamp>
-        median external net +0.60% / yr per dollar · the Balanced preset carries +19.5% on your equity at 3× —
-        the difference is the loop
+        median external net +0.60% / yr per dollar · the Balanced preset carries +19.5% on your
+        equity at 3× — the difference is the loop
       </Stamp>
     </Card>
   </Box>

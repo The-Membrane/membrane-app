@@ -260,16 +260,20 @@ export async function getRateHistory(
     })
     const count = len < maxPoints ? len : maxPoints
     const start = len - count
-    const points: EvmRatePoint[] = []
-    for (let i = start; i < len; i++) {
-      const r = await client.readContract({
-        address,
-        abi: transmuterAbi,
-        functionName: 'rateHistory',
-        args: [i],
-      })
-      points.push({ timestamp: r[0], conversionRate: r[1] })
-    }
+    // Independent per-index reads — fan out (multicall-batched by the public client).
+    const indices: bigint[] = []
+    for (let i = start; i < len; i++) indices.push(i)
+    const points: EvmRatePoint[] = await Promise.all(
+      indices.map(async (i) => {
+        const r = await client.readContract({
+          address,
+          abi: transmuterAbi,
+          functionName: 'rateHistory',
+          args: [i],
+        })
+        return { timestamp: r[0], conversionRate: r[1] }
+      }),
+    )
     return points
   } catch (error) {
     console.error('Error querying Transmuter rate history:', error)
@@ -519,19 +523,28 @@ export async function getUserSwitchingIntents(
       functionName: 'nextIntentId',
     })
     const upper = next < maxScan ? next : maxScan
-    const intents: EvmSwitchingIntent[] = []
-    for (let id = 0n; id < upper; id++) {
-      const owns = await client.readContract({
-        address,
-        abi: transmuterAbi,
-        functionName: 'userIntentIndex',
-        args: [user, id],
-      })
-      if (!owns) continue
-      const intent = await getSwitchingIntent(client, id, contractAddr)
-      // Skip consumed/pruned intents (deleted → zero user).
-      if (intent && intent.user.toLowerCase() === user.toLowerCase()) intents.push(intent)
-    }
+    // Independent per-id reads over a bounded range — fan out (multicall-batched by the
+    // client). Same set of reads as the sequential scan, just concurrent; order preserved.
+    const ids: bigint[] = []
+    for (let id = 0n; id < upper; id++) ids.push(id)
+    const scanned = await Promise.all(
+      ids.map(async (id) => {
+        const owns = await client.readContract({
+          address,
+          abi: transmuterAbi,
+          functionName: 'userIntentIndex',
+          args: [user, id],
+        })
+        if (!owns) return null
+        const intent = await getSwitchingIntent(client, id, contractAddr)
+        // Skip consumed/pruned intents (deleted → zero user).
+        if (intent && intent.user.toLowerCase() === user.toLowerCase()) return intent
+        return null
+      }),
+    )
+    const intents: EvmSwitchingIntent[] = scanned.filter(
+      (it): it is EvmSwitchingIntent => it !== null,
+    )
     return intents
   } catch (error) {
     console.error('Error querying Transmuter user switching intents:', error)

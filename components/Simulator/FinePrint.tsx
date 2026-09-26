@@ -2,8 +2,8 @@
 //
 // The disclosures did not get smaller, they got moved. "What this is not" used to be
 // the first thing on the screen; it is now the last, because a caveat at the top of a
-// landing page is a caveat about nothing. Nothing here is collapsed, and this section
-// renders whether or not there is a run — an unrun page still makes claims.
+// landing page is a caveat about nothing. The disclosure renders whether or not
+// there is a run, with the full source detail available on demand.
 //
 // The first four lines are fixed and hand-written. Everything after them is generated:
 // the engine's own caveats for this run, the unpriced legs, and the provenance strings
@@ -30,7 +30,7 @@ const HEAD = {
 
 /** Fixed, and true whatever the run says. */
 const STANDING = [
-  'Membrane has no Ethereum mainnet deployment. Its lines here are modelled and editable above.',
+  'Membrane has no Ethereum mainnet deployment. Its liquidation lines are modelled, not live protocol settings.',
   'The price path is measured: 1-minute Chainlink rounds, 10-11 Oct 2025.',
   'The venue recall rate is an assumption and moves the result most.',
   'A simulation is not a forecast.',
@@ -68,6 +68,8 @@ export interface FinePrintProps {
   borrowRateNote?: string
   /** Extra standing lines the page needs — one per bullet, no paragraphs. */
   extraNotes?: string[]
+  /** The exact inputs used for this run, retained after removing the visible controls. */
+  assumptionNote?: string
 }
 
 const Line: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -89,61 +91,98 @@ export const FinePrint: React.FC<FinePrintProps> = ({
   stamps,
   borrowRateNote,
   extraNotes,
+  assumptionNote,
 }) => (
   <Box
-    border="1px solid"
-    borderColor={SEMANTIC_COLORS.borderSubtle}
-    p={SPACING.base}
+    as="details"
+    data-testid="sim-fineprint"
+    borderTop="1px solid"
+    borderBottom="1px solid"
+    borderColor={SEMANTIC_COLORS.borderStrong}
     minW={0}
-    display="grid"
-    gridTemplateColumns="minmax(0, 1fr)"
-    gap={SPACING.md}
   >
-    <Text {...HEAD}>before you quote this</Text>
-
     <Box
-      as="ul"
-      minW={0}
-      display="grid"
-      gridTemplateColumns="minmax(0, 1fr)"
-      gap={SPACING.sm}
-      pl={SPACING.base}
-      m={0}
+      as="summary"
+      cursor="pointer"
+      listStyleType="none"
+      px={SPACING.base}
+      py={SPACING.base}
+      display="flex"
+      justifyContent="space-between"
+      alignItems="center"
+      gap={SPACING.base}
+      _focusVisible={{
+        outline: '2px solid',
+        outlineColor: SEMANTIC_COLORS.success,
+        outlineOffset: '2px',
+      }}
+      sx={{ '&::-webkit-details-marker': { display: 'none' } }}
     >
-      {STANDING.map((s) => (
-        <Line key={s}>{s}</Line>
-      ))}
-      {CORPUS_COVERAGE_LINE && <Line>{CORPUS_COVERAGE_LINE}</Line>}
-      {CORPUS_WORSE_CONTEXT_LINE && <Line>{CORPUS_WORSE_CONTEXT_LINE}</Line>}
-      <Line>{CARRY_TERMS}</Line>
-      {borrowRateNote && <Line>{borrowRateNote}</Line>}
-      {(extraNotes ?? []).map((n) => (
-        <Line key={n}>{n}</Line>
-      ))}
-      {unpricedSymbols.length > 0 && (
-        <Line>Held flat — not priced by this dataset: {unpricedSymbols.join(', ')}.</Line>
-      )}
-      {caveats.map((c) => (
-        <Line key={c}>{c}</Line>
-      ))}
+      <Text as="span" {...HEAD} color={SEMANTIC_COLORS.textPrimary}>
+        before you quote this
+      </Text>
+      <Text
+        as="span"
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        color={SEMANTIC_COLORS.warning}
+      >
+        read the method ↓
+      </Text>
     </Box>
 
-    <Text
-      fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="12px"
-      lineHeight={1.65}
-      color={SEMANTIC_COLORS.textTertiary}
-      maxW="92ch"
+    <Box
+      px={SPACING.base}
+      pb={SPACING.base}
+      display="grid"
+      gridTemplateColumns="minmax(0, 1fr)"
+      gap={SPACING.md}
     >
-      {GUARANTEE.provenance}
-    </Text>
-
-    <Box minW={0} display="grid" gridTemplateColumns="minmax(0, 1fr)" gap={SPACING.sm}>
-      <Text {...HEAD}>where every number came from</Text>
-      <Box minW={0} display="flex" gap={SPACING.sm} flexWrap="wrap">
-        {stamps.map((p, k) => (
-          <Stamp key={`${p.label}-${k}`} provenance={p} />
+      <Box
+        as="ul"
+        minW={0}
+        display="grid"
+        gridTemplateColumns="minmax(0, 1fr)"
+        gap={SPACING.sm}
+        pl={SPACING.base}
+        m={0}
+      >
+        {STANDING.map((s) => (
+          <Line key={s}>{s}</Line>
         ))}
+        {CORPUS_COVERAGE_LINE && <Line>{CORPUS_COVERAGE_LINE}</Line>}
+        {CORPUS_WORSE_CONTEXT_LINE && <Line>{CORPUS_WORSE_CONTEXT_LINE}</Line>}
+        {assumptionNote && <Line>{assumptionNote}</Line>}
+        <Line>{CARRY_TERMS}</Line>
+        {borrowRateNote && <Line>{borrowRateNote}</Line>}
+        {(extraNotes ?? []).map((n) => (
+          <Line key={n}>{n}</Line>
+        ))}
+        {unpricedSymbols.length > 0 && (
+          <Line>Held flat — not priced by this dataset: {unpricedSymbols.join(', ')}.</Line>
+        )}
+        {caveats.map((c) => (
+          <Line key={c}>{c}</Line>
+        ))}
+      </Box>
+
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="12px"
+        lineHeight={1.65}
+        color={SEMANTIC_COLORS.textTertiary}
+        maxW="92ch"
+      >
+        {GUARANTEE.provenance}
+      </Text>
+
+      <Box minW={0} display="grid" gridTemplateColumns="minmax(0, 1fr)" gap={SPACING.sm}>
+        <Text {...HEAD}>where every number came from</Text>
+        <Box minW={0} display="flex" gap={SPACING.sm} flexWrap="wrap">
+          {stamps.map((p, k) => (
+            <Stamp key={`${p.label}-${k}`} provenance={p} />
+          ))}
+        </Box>
       </Box>
     </Box>
   </Box>

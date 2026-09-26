@@ -7,20 +7,51 @@ import { test, expect } from '@playwright/test'
  * These tests should be fast and catch major issues.
  */
 
+/**
+ * Errors the test environment always produces, which say nothing about whether
+ * the app works. Chiefly: there is no local EVM node on 127.0.0.1:8545 and no
+ * live RPC, so wallet/chain calls fail by design here.
+ *
+ * These must be matched browser-agnostically. Chromium reports a failed request
+ * as "Failed to load resource", WebKit as "Could not connect to the server." /
+ * "...due to access control checks." — the same condition worded differently,
+ * so filtering only the Chromium phrasing made these tests fail on iPhone 14
+ * while passing on Desktop Chrome.
+ */
+const ENVIRONMENT_NOISE = [
+  'DevTools',
+  'Download the React DevTools',
+  'Failed to load resource',
+  'Could not connect to the server',
+  'due to access control checks',
+  '127.0.0.1:8545',
+  'Cosmostation', // Wallet extension not installed
+  'Client Not Exist', // Wallet client errors
+]
+
+const isEnvironmentNoise = (message: string) =>
+  ENVIRONMENT_NOISE.some((pattern) => message.includes(pattern))
+
 test.describe('Smoke Tests', () => {
   test.describe('Page Loading', () => {
     test('should load home page', async ({ page }) => {
-      await page.goto('/neutron', { waitUntil: 'domcontentloaded', timeout: 60000 })
+      // Listen BEFORE navigating: attaching afterwards missed every error
+      // thrown during load, which is exactly when they happen.
+      const errors: string[] = []
+      page.on('pageerror', (error) => errors.push(error.message))
+
+      await page.goto('/ethereum', { waitUntil: 'domcontentloaded', timeout: 60000 })
 
       // Verify page loaded
       await expect(page.locator('body')).toBeVisible()
 
-      // Verify no major errors
-      const errors: string[] = []
-      page.on('pageerror', (error) => errors.push(error.message))
       await page.waitForTimeout(2000) // Wait for any async errors
 
-      expect(errors.length).toBe(0)
+      const realErrors = errors.filter((error) => !isEnvironmentNoise(error))
+      if (realErrors.length > 0) {
+        console.log('Page errors found:', realErrors)
+      }
+      expect(realErrors.length).toBe(0)
     })
 
     test('should load portfolio page', async ({ page }) => {
@@ -157,20 +188,11 @@ test.describe('Smoke Tests', () => {
         }
       })
 
-      await page.goto('/neutron', { waitUntil: 'domcontentloaded', timeout: 60000 })
+      await page.goto('/ethereum', { waitUntil: 'domcontentloaded', timeout: 60000 })
       await page.waitForLoadState('networkidle')
 
       // Filter out common non-critical errors
-      const criticalErrors = consoleErrors.filter((error) => {
-        // Ignore common warnings that aren't actual issues
-        return (
-          !error.includes('DevTools') &&
-          !error.includes('Download the React DevTools') &&
-          !error.includes('Failed to load resource') &&
-          !error.includes('Cosmostation') && // Wallet extension not installed
-          !error.includes('Client Not Exist') // Wallet client errors
-        )
-      })
+      const criticalErrors = consoleErrors.filter((error) => !isEnvironmentNoise(error))
 
       // Should have no critical errors
       if (criticalErrors.length > 0) {

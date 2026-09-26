@@ -20,6 +20,7 @@ import { neon } from '@neondatabase/serverless'
 import { getAddress } from 'viem'
 import { readEnv, loadConfig, makeClient } from './lib/venue-reads.mjs'
 import { readUsdByVenue } from './lib/position-reads.mjs'
+import { recordStratVenueReturn } from './lib/strat-return-recorder.mjs'
 
 const { get } = readEnv()
 const rpcUrl = get('RECORDER_RPC_URL') || process.env.RECORDER_RPC_URL
@@ -46,15 +47,27 @@ async function withRetry(fn, label, tries = 4) {
     } catch (e) {
       lastErr = e
       const backoff = 400 * 2 ** i
-      console.log(`    retry ${label} (${i + 1}/${tries}) after ${backoff}ms — ${String(e).split('\n')[0].slice(0, 110)}`)
+      console.log(
+        `    retry ${label} (${i + 1}/${tries}) after ${backoff}ms — ${String(e).split('\n')[0].slice(0, 110)}`,
+      )
       await sleep(backoff)
     }
   }
   throw lastErr
 }
 
-const rows = await sql`SELECT address FROM strat_watches ORDER BY created_at ASC`
+const rows = await sql`SELECT address, created_at FROM strat_watches ORDER BY created_at ASC`
 console.log(`refreshing ${rows.length} watched strats across ${venues.length} venues…\n`)
+// Only finalized blocks enter the performance ledger. If the RPC cannot serve
+// finalized state, fail this tick closed rather than publish a reorgable claim.
+let head = null
+try {
+  head = await client.getBlock({ blockTag: 'finalized' })
+} catch (error) {
+  console.log(
+    `finalized head unavailable; positions refresh continues, returns stay stale (${String(error).split('\n')[0].slice(0, 100)})`,
+  )
+}
 
 let refreshed = 0
 let failed = 0
@@ -66,7 +79,11 @@ for (let i = 0; i < rows.length; i += POOL) {
     batch.map(async (row) => {
       const address = getAddress(row.address)
       try {
-        const usdByVenue = await withRetry(() => readUsdByVenue(client, venues, address), `positions ${address.slice(0, 8)}`, 3)
+        const usdByVenue = await withRetry(
+          () => readUsdByVenue(client, venues, address),
+          `positions ${address.slice(0, 8)}`,
+          3,
+        )
         const obj = {}
         let total = 0
         for (const v of venues) {
@@ -74,9 +91,11 @@ for (let i = 0; i < rows.length; i += POOL) {
           obj[v.name] = usd
           total += usd
         }
-        return { address, total, usdByVenue: obj }
+        return { address, watchEpoch: row.created_at, total, usdByVenue: obj }
       } catch (e) {
-        console.log(`  ${address.slice(0, 10)}… read failed (${String(e).split('\n')[0].slice(0, 80)}) — left stale`)
+        console.log(
+          `  ${address.slice(0, 10)}… read failed (${String(e).split('\n')[0].slice(0, 80)}) — left stale`,
+        )
         return null
       }
     }),
@@ -86,11 +105,37 @@ for (let i = 0; i < rows.length; i += POOL) {
       failed++
       continue
     }
-    const lastScanned = JSON.stringify({ at: new Date().toISOString(), total_usd: r.total, usdByVenue: r.usdByVenue })
+    const lastScanned = JSON.stringify({
+      at: new Date().toISOString(),
+      total_usd: r.total,
+      usdByVenue: r.usdByVenue,
+    })
     await sql`
       UPDATE strat_watches
       SET last_scanned = ${lastScanned}::jsonb, last_scanned_at = now()
       WHERE address = ${r.address}`
+    for (const venue of head ? venues : []) {
+      try {
+        const measured = await recordStratVenueReturn({
+          sql,
+          client,
+          venue,
+          address: r.address,
+          watchEpoch: r.watchEpoch,
+          head,
+        })
+        console.log(`    ${venue.name}: ${measured.status} through block ${measured.block}`)
+      } catch (error) {
+        // Do not advance a failed venue cursor or publish a partial return.
+        console.log(
+          `    ${venue.name}: return scan incomplete (${String(error).split('\n')[0].slice(0, 120)})`,
+        )
+        await sql`
+          UPDATE strat_return_cursors SET last_error = ${String(error).slice(0, 500)}
+          WHERE address = ${r.address} AND venue = ${venue.name}
+            AND watch_epoch = ${new Date(r.watchEpoch).toISOString()}::timestamptz`
+      }
+    }
     refreshed++
     grandTotal += r.total
     console.log(`  ✓ ${r.address} — $${Math.round(r.total).toLocaleString()}`)

@@ -51,7 +51,6 @@ import {
   GUARANTEE,
   MEMBRANE_LTV_PROVENANCE,
   buildPricePath,
-  DEMO_SNAPSHOT_NOTE,
   carryCost,
   demoBorrowerDetection,
   demoBorrowerPosition,
@@ -59,7 +58,6 @@ import {
   demoPosition,
   DEMO_ADDRESS,
   DEMO_BORROWER_ADDRESS,
-  DEMO_BORROWER_NOTE,
   detectVenues,
   engineOutcome,
   excludeOwnCollateral,
@@ -71,7 +69,6 @@ import {
   runAdapters,
   runComparison,
   shareUrl,
-  downloadShareCard,
   stamp,
   toVenueRecall,
   weightedMembraneLine,
@@ -86,7 +83,7 @@ import {
 } from '@/lib/position-sim'
 
 import ComparisonPanel from './ComparisonPanel'
-import Controls, { type ControlValues } from './Controls'
+import type { ControlValues } from './Controls'
 import DeploymentSection from './DeploymentSection'
 import EventLog from './EventLog'
 import FinePrint from './FinePrint'
@@ -96,7 +93,6 @@ import GuaranteeBlock from './GuaranteeBlock'
 import HistoryProof from './HistoryProof'
 import { useSimHistory } from './hooks/useSimHistory'
 import { fmtLocalDayClock, useLocalZone } from './localClock'
-import PositionCard from './PositionCard'
 import { recordLandingEvent } from './recordLandingEvent'
 import { recordSimRead } from './recordRead'
 import VerdictHero from './VerdictHero'
@@ -191,13 +187,6 @@ interface MeasuredLiquidations {
 }
 
 const keyOf = (p: ProtocolPosition) => `${p.protocol}:${p.marketId ?? ''}`
-
-const STATUS_COLOR: Record<AdapterResult['status'], string> = {
-  ok: SEMANTIC_COLORS.success,
-  empty: SEMANTIC_COLORS.textSecondary,
-  error: SEMANTIC_COLORS.danger,
-  unsupported: SEMANTIC_COLORS.warning,
-}
 
 /**
  * The default Membrane liquidation fee.
@@ -384,8 +373,6 @@ export const Simulator: React.FC<SimulatorProps> = ({
     () => (mode === 'borrower' ? demoBorrowerDetection() : demoDetection()),
     [mode],
   )
-  /** The one-line stamp beside the demo position. Names what it is, per mode. */
-  const demoTag = mode === 'borrower' ? DEMO_BORROWER_NOTE : DEMO_SNAPSHOT_NOTE
   const isDemo = loaded === null
   const positions = useMemo<ProtocolPosition[]>(
     () => (loaded ? loaded.results.flatMap((r) => r.positions) : [demoPos]),
@@ -443,10 +430,6 @@ export const Simulator: React.FC<SimulatorProps> = ({
     () => ({ ...defaults, ...overrides }),
     [defaults, overrides],
   )
-
-  const onControlChange = useCallback((patch: Partial<ControlValues>) => {
-    setOverrides((prev) => ({ ...prev, ...patch }))
-  }, [])
 
   const venueProvenance = useMemo<Provenance>(() => {
     const same =
@@ -592,10 +575,6 @@ export const Simulator: React.FC<SimulatorProps> = ({
     return () => clearTimeout(t)
   }, [copyState])
 
-  const onSaveCard = useCallback(() => {
-    if (comparison) downloadShareCard(comparison, isDemo)
-  }, [comparison, isDemo])
-
   // ---------------------------------------------------------------- handlers
   const onSubmitAddress = useCallback(() => {
     setOverrides({})
@@ -615,8 +594,6 @@ export const Simulator: React.FC<SimulatorProps> = ({
     setSelectedKey(k)
     setOverrides({})
   }, [])
-
-  const onResetControls = useCallback(() => setOverrides({}), [])
 
   // ---------------------------------------------------------- derived for render
   /** Page-level failures. One line each, in the hero, in danger — never a paragraph. */
@@ -734,6 +711,36 @@ export const Simulator: React.FC<SimulatorProps> = ({
           isLoading={isLoading}
           error={addressError}
         />
+        {positions.length > 1 && (
+          <Box data-testid="sim-position-picker" mt={SPACING.base} display="grid" gap={SPACING.sm}>
+            <Text {...SECTION} mb={0}>
+              choose a position to simulate
+            </Text>
+            <Box display="flex" flexWrap="wrap" gap={SPACING.sm}>
+              {positions.map((position) => {
+                const active = selected ? keyOf(position) === keyOf(selected) : false
+                return (
+                  <Button
+                    key={keyOf(position)}
+                    onClick={() => onSelectPosition(keyOf(position))}
+                    aria-pressed={active}
+                    variant="outline"
+                    size="sm"
+                    borderRadius={0}
+                    borderColor={active ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.borderStrong}
+                    color={active ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textPrimary}
+                    whiteSpace="normal"
+                    height="auto"
+                    minH="36px"
+                    py={SPACING.sm}
+                  >
+                    {position.label} · {usd(position.totalDebtUsd)} debt
+                  </Button>
+                )
+              })}
+            </Box>
+          </Box>
+        )}
       </Section>
 
       {/* 2 — THE GUARANTEE, verbatim from GUARANTEE. Limit adjacent, never collapsed. */}
@@ -805,74 +812,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
             <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} />
           </Section>
 
-          {/* 3 — YOUR POSITION */}
-          {positions.length > 0 && (
-            <Section>
-              <Box minW={0} display="grid" gridTemplateColumns="minmax(0, 1fr)" gap={SPACING.md}>
-                <Box display="flex" gap={SPACING.md} alignItems="baseline" flexWrap="wrap">
-                  <Text {...SECTION}>your position</Text>
-                  {isDemo && (
-                    <Text {...SECTION} color={SEMANTIC_COLORS.textSecondary}>
-                      real wallet · {demoTag}
-                    </Text>
-                  )}
-                </Box>
-
-                {/* one line per adapter, status only */}
-                {loaded && (
-                  <Box display="flex" gap={SPACING.md} flexWrap="wrap">
-                    {loaded.results.map((r) => (
-                      <Text
-                        key={`${r.protocol}-${r.label}`}
-                        fontFamily={TYPOGRAPHY.fontMono}
-                        fontSize="11px"
-                        color={STATUS_COLOR[r.status]}
-                        {...tabular}
-                      >
-                        {r.label} · {r.status}
-                        {r.status === 'ok' ? ` · ${r.positions.length} positions` : ''}
-                      </Text>
-                    ))}
-                  </Box>
-                )}
-
-                {positions.map((p) => (
-                  <PositionCard
-                    key={keyOf(p)}
-                    position={p}
-                    selectable={positions.length > 1}
-                    selected={
-                      positions.length > 1 && selected ? keyOf(p) === keyOf(selected) : undefined
-                    }
-                    onSelect={positions.length > 1 ? () => onSelectPosition(keyOf(p)) : undefined}
-                  />
-                ))}
-              </Box>
-            </Section>
-          )}
-
-          {/* 4 — WHAT YOU ARE ASSUMING */}
-          {selected && (
-            <Section>
-              <Box minW={0} display="grid" gridTemplateColumns="minmax(0, 1fr)" gap={SPACING.md}>
-                <Text {...SECTION}>what you are assuming</Text>
-                <Box minW={0} w="100%" maxW={{ base: '100%', md: '760px' }}>
-                  <Controls
-                    values={values}
-                    onChange={onControlChange}
-                    onReset={onResetControls}
-                    unknownLtvSymbols={derived.unknown}
-                    venueDetected={detection?.status === 'detected'}
-                    assumedDeploymentNote={undefined}
-                    ltvProvenance={MEMBRANE_LTV_PROVENANCE}
-                    venueProvenance={venueProvenance}
-                  />
-                </Box>
-              </Box>
-            </Section>
-          )}
-
-          {/* 5 — THE RUN. EVIDENCE band: this is the measured comparison itself. */}
+          {/* THE RUN. Keep the evidence receipt; model inputs remain in FinePrint. */}
           {selected && (
             <Section tone="evidence" mark>
               <Box minW={0} display="grid" gridTemplateColumns="minmax(0, 1fr)" gap={SPACING.md}>
@@ -889,7 +829,6 @@ export const Simulator: React.FC<SimulatorProps> = ({
                   <>
                     <ComparisonPanel
                       comparison={comparison}
-                      onSaveCard={onSaveCard}
                       onCopyLink={onCopyLink}
                       copyState={copyState}
                     />
@@ -918,6 +857,11 @@ export const Simulator: React.FC<SimulatorProps> = ({
               stamps={stamps}
               borrowRateNote={borrowRateNote}
               extraNotes={finePrintNotes}
+              assumptionNote={
+                selected
+                  ? `This run uses a modelled Membrane max LTV of ${(values.membraneMaxLtv * 100).toFixed(1)}%, liquidation fee ${(values.membraneLiqFee * 100).toFixed(1)}%, detected deployable venue capital ${usd(values.deployedUsd)}, recall rate ${(values.recallRate * 100).toFixed(1)}%, and fast rate ${(values.fastRate * 100).toFixed(1)}%. URL parameters can override these inputs; none are live Membrane settings.`
+                  : undefined
+              }
             />
           </Section>
 

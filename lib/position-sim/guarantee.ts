@@ -31,10 +31,10 @@ const LTV_SHIFT_CAP = 5
 export const GUARANTEE = {
   name: `${BAND}.`,
   /** One sentence. The claim. */
-  claim: `You aren't liquidated when you cross the LLTV. Staying within ${BAND} of it delays your liquidation for ${CURE_WINDOW_HOURS} hours. Automatic protection from wicks and time to manage your debt.`,
+  claim: `You aren't liquidated when you cross the LLTV. Staying within ${BAND} of it delays your liquidation for ${CURE_WINDOW_HOURS} hours. You get automatic protection from wicks and time to manage your debt.`,
   // , ` + 'by you or by the venue capital Membrane recalls first.',
   /** One sentence. The condition. Rendered next to the claim, never collapsed. */
-  limit: `Past ${BAND} the liquidation is immediate, but only partially down to the maximum borrowable LTV.`,
+  limit: `Past ${BAND} the partial liquidation is immediate down to the maximum borrowable LTV.`,
   /**
    * The UX claim, and the only one on this surface that is not about liquidation.
    *
@@ -63,15 +63,14 @@ export const GUARANTEE = {
  * It replaces the vaguer "curators cover it first through required bonds", which named
  * a mechanism instead of the thing the borrower actually receives.
  *
- * Claim 3 uses only the two curator-vault facts already proved elsewhere on this surface:
- * users can read a curator's doctrine and compare several curators, while redemptions are
- * served by curator vaults without opening a borrower's position. "Bulletproof" is the
- * design brief, not a safety promise, so the copy names those enforceable boundaries.
+ * Claim 3 names the CuratorVault's enforced bounds: each venue has a cap, raises
+ * wait its immutable 1–14 day timelock, and reallocation must net to zero.
+ * The guardian may revoke a pending raise but cannot move vault assets.
  */
 export const CARRY_CLAIMS = [
   'Borrow cost comes out of the carry yield. If the spread inverts, curators cover 14 days of yield to give you time to act.',
   'No babysitting, no keeper to fail. Unwinds run in-house at the liquidation fee.',
-  'Choose the curator whose doctrine fits your risk. Vault rails keep redemptions inside the vault instead of opening your position, while tracked mandates make drift visible.',
+  'Pick the curator. Each venue has a cap; increases wait the vault’s 1–14 day timelock. Reallocations must move equal amounts out and in, and a guardian can cancel a pending increase.',
   // 'A recall carries no protocol fee, against a swap-and-rebalance bill every time a keeper adjusts you.',
 ] as const
 
@@ -79,6 +78,6 @@ export const CARRY_CLAIMS = [
 export const CARRY_CLAIM_TITLES = [
   'Carry Spread Protections',
   'In-protocol unwinds',
-  'Curators, bounded by rails',
+  'Carry Curators, bounded by rails',
   // 'Recall, not rebalance',
 ] as const

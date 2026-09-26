@@ -75,6 +75,10 @@ export const useBalanceByAsset = (asset: Asset | null, _legacyChainID?: string, 
   // Decide which address to use (prop wins if provided)
   const addressToUse = inputedAddress || address
 
+  // Depends on `asset?.base` / `asset?.decimal` (the only fields read) rather than the
+  // whole `asset` object, so the memo doesn't recompute when `asset`'s reference changes
+  // but its contents don't. The bare `!asset` null-check is covered by these: a null asset
+  // yields undefined base/decimal, which changes the deps. Intentionally granular.
   return useMemo(() => {
     if (!balances || !asset || !addressToUse) return '0'
 

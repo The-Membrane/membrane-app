@@ -6,7 +6,7 @@
 // External mainnet venues (Ethena/Aave on Ethereum), read via a viem
 // PublicClient over RECORDER_RPC_URL. Standalone: no Next env injection.
 
-import { createPublicClient, http, fallback, defineChain } from 'viem'
+import { createPublicClient, http, fallback, defineChain, isAddress } from 'viem'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -48,38 +48,124 @@ export function makeClient(rpcUrl) {
     // the per-address position reader (scripts/lib/position-reads.mjs). viem's
     // built-in `mainnet` chain carries this; a hand-rolled defineChain must
     // declare it or multicall throws ChainDoesNotSupportContract.
-    contracts: { multicall3: { address: '0xcA11bde05977b3631167028862bE2a173976CA11', blockCreated: 14353601 } },
+    contracts: {
+      multicall3: { address: '0xcA11bde05977b3631167028862bE2a173976CA11', blockCreated: 14353601 },
+    },
   })
   const transport =
     urls.length === 1
       ? http(urls[0])
-      : fallback(urls.map((u) => http(u, { timeout: 15_000 })), { rank: false })
+      : fallback(
+          urls.map((u) => http(u, { timeout: 15_000 })),
+          { rank: false },
+        )
   return createPublicClient({ chain: mainnet, transport })
 }
 
 // Minimal ABIs — only the reads we need.
 const erc4626CooldownAbi = [
-  { type: 'function', name: 'cooldownDuration', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint24' }] },
-  { type: 'function', name: 'totalAssets', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'totalSupply', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
-  { type: 'function', name: 'silo', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+  {
+    type: 'function',
+    name: 'cooldownDuration',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint24' }],
+  },
+  {
+    type: 'function',
+    name: 'totalAssets',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'totalSupply',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'decimals',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint8' }],
+  },
+  {
+    type: 'function',
+    name: 'silo',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
 ]
 const erc20Abi = [
-  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
-  { type: 'function', name: 'totalSupply', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'decimals',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint8' }],
+  },
+  {
+    type: 'function',
+    name: 'totalSupply',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+]
+const aTokenAbi = [
+  {
+    type: 'function',
+    name: 'UNDERLYING_ASSET_ADDRESS',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
 ]
 // Depth-market ABIs. Curve stableswap exposes coins(i)/balances(i); Uniswap v3
 // exposes token0()/token1() (no reserve view — pool token balances are read via
 // erc20 balanceOf as an honest raw measure of swappable inventory).
 const curvePoolAbi = [
-  { type: 'function', name: 'coins', stateMutability: 'view', inputs: [{ type: 'uint256' }], outputs: [{ type: 'address' }] },
-  { type: 'function', name: 'balances', stateMutability: 'view', inputs: [{ type: 'uint256' }], outputs: [{ type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'coins',
+    stateMutability: 'view',
+    inputs: [{ type: 'uint256' }],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'balances',
+    stateMutability: 'view',
+    inputs: [{ type: 'uint256' }],
+    outputs: [{ type: 'uint256' }],
+  },
 ]
 const univ3PoolAbi = [
-  { type: 'function', name: 'token0', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
-  { type: 'function', name: 'token1', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+  {
+    type: 'function',
+    name: 'token0',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'token1',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
 ]
 
 // Every read is wrapped so a single missing method never aborts the snapshot —
@@ -106,11 +192,36 @@ export async function readVenueState(client, venue, blockNumber) {
 
   if (venue.kind === 'erc4626-cooldown') {
     const address = venue.address
-    const cooldownDuration = await tryRead(client, { address, abi: erc4626CooldownAbi, functionName: 'cooldownDuration', ...at })
-    const totalAssets = await tryRead(client, { address, abi: erc4626CooldownAbi, functionName: 'totalAssets', ...at })
-    const totalSupply = await tryRead(client, { address, abi: erc4626CooldownAbi, functionName: 'totalSupply', ...at })
-    const vaultDecimals = await tryRead(client, { address, abi: erc4626CooldownAbi, functionName: 'decimals', ...at })
-    const silo = await tryRead(client, { address, abi: erc4626CooldownAbi, functionName: 'silo', ...at })
+    const cooldownDuration = await tryRead(client, {
+      address,
+      abi: erc4626CooldownAbi,
+      functionName: 'cooldownDuration',
+      ...at,
+    })
+    const totalAssets = await tryRead(client, {
+      address,
+      abi: erc4626CooldownAbi,
+      functionName: 'totalAssets',
+      ...at,
+    })
+    const totalSupply = await tryRead(client, {
+      address,
+      abi: erc4626CooldownAbi,
+      functionName: 'totalSupply',
+      ...at,
+    })
+    const vaultDecimals = await tryRead(client, {
+      address,
+      abi: erc4626CooldownAbi,
+      functionName: 'decimals',
+      ...at,
+    })
+    const silo = await tryRead(client, {
+      address,
+      abi: erc4626CooldownAbi,
+      functionName: 'silo',
+      ...at,
+    })
 
     if (cooldownDuration !== undefined) params.cooldownDuration = Number(cooldownDuration)
     if (totalAssets !== undefined) params.totalAssets = s(totalAssets)
@@ -134,6 +245,18 @@ export async function readVenueState(client, venue, blockNumber) {
 
   if (venue.kind === 'atoken-liquidity') {
     const decimals = venue.decimals ?? 18
+    const underlyingOnchain = await tryRead(client, {
+      address: venue.address,
+      abi: aTokenAbi,
+      functionName: 'UNDERLYING_ASSET_ADDRESS',
+      ...at,
+    })
+    const underlyingDecimalsOnchain = await tryRead(client, {
+      address: venue.underlying,
+      abi: erc20Abi,
+      functionName: 'decimals',
+      ...at,
+    })
     // instant liquidity = the aToken's underlying balance = what can be
     // withdrawn right now.
     const bal = await tryRead(client, {
@@ -144,11 +267,33 @@ export async function readVenueState(client, venue, blockNumber) {
       ...at,
     })
     params.underlyingBalance = bal !== undefined ? s(bal) : null
+    params.aToken = venue.address
+    params.underlying = venue.underlying
+    params.underlyingOnchain = underlyingOnchain ?? null
+    params.underlyingDecimalsOnchain =
+      underlyingDecimalsOnchain !== undefined ? Number(underlyingDecimalsOnchain) : null
     params.decimals = decimals
+    params.underlyingIdentity =
+      typeof underlyingOnchain === 'string' && isAddress(underlyingOnchain)
+        ? underlyingOnchain.toLowerCase() === String(venue.underlying).toLowerCase()
+          ? 'match'
+          : 'mismatch'
+        : 'unknown'
+    params.decimalsIdentity =
+      underlyingDecimalsOnchain !== undefined && Number.isInteger(Number(underlyingDecimalsOnchain))
+        ? Number(underlyingDecimalsOnchain) === decimals
+          ? 'match'
+          : 'mismatch'
+        : 'unknown'
+    params.reads = {
+      underlyingAsset: underlyingOnchain !== undefined,
+      underlyingDecimals: underlyingDecimalsOnchain !== undefined,
+      underlyingBalance: bal !== undefined,
+    }
     params.priceAssumptionUsd = 1 // stable assumption — RECORDED, not silent
-    params.instant_note = 'atoken-liquidity: instant_usd = underlyingBalance / 10^decimals, valued at $1/stable (priceAssumptionUsd).'
-    const instantUsd =
-      bal !== undefined ? Number(bal) / 10 ** decimals : null
+    params.instant_note =
+      'atoken-liquidity: instant_usd = underlyingBalance / 10^decimals, valued at $1/stable (priceAssumptionUsd).'
+    const instantUsd = bal !== undefined ? Number(bal) / 10 ** decimals : null
 
     // UTILIZATION extension (Fraxlend/Morpho genre: utilization at 100% = lenders
     // can't exit even though the market is "solvent"). debt = the reserve's
@@ -177,7 +322,7 @@ export async function readVenueState(client, venue, blockNumber) {
             'utilization_pct = variableDebt/(variableDebt+underlyingBalance)*100, both at $1/stable. 100% = lenders cannot exit (Fraxlend/Morpho genre).'
         }
       }
-      params.reads = { underlyingBalance: bal !== undefined, variableDebt: debt !== undefined }
+      params.reads.variableDebt = debt !== undefined
     }
     return { params, instantUsd, coolingUsd: null, strandedUsd: null }
   }
@@ -216,15 +361,28 @@ export async function readDepthMarkets(client, venue, blockNumber) {
   if (markets.length === 0) return null
 
   const decOf = async (token) => {
-    const d = await tryRead(client, { address: token, abi: erc20Abi, functionName: 'decimals', ...at })
-    return d !== undefined ? Number(d) : 18
+    const d = await tryRead(client, {
+      address: token,
+      abi: erc20Abi,
+      functionName: 'decimals',
+      ...at,
+    })
+    // Unknown precision must not silently become 18 (USDC/USDT are 6).
+    return d !== undefined ? Number(d) : null
   }
   const balOf = async (token, pool) =>
-    tryRead(client, { address: token, abi: erc20Abi, functionName: 'balanceOf', args: [pool], ...at })
+    tryRead(client, {
+      address: token,
+      abi: erc20Abi,
+      functionName: 'balanceOf',
+      args: [pool],
+      ...at,
+    })
 
   const out = []
   let depthUsd = 0
   let worstSkew = null
+  let complete = true
 
   for (const m of markets) {
     // psm-buffer: a peg-stability module (Sky LitePSM), NOT a two-sided AMM. The
@@ -237,8 +395,9 @@ export async function readDepthMarkets(client, venue, blockNumber) {
     if (m.kind === 'psm-buffer') {
       const decB = await decOf(m.bufferToken)
       const bal = await balOf(m.bufferToken, m.buffer)
-      const usd = bal !== undefined ? Number(bal) / 10 ** decB : null
+      const usd = bal !== undefined && decB !== null ? Number(bal) / 10 ** decB : null
       if (usd !== null && Number.isFinite(usd)) depthUsd += usd
+      else complete = false
       out.push({
         name: m.name,
         kind: m.kind,
@@ -247,11 +406,12 @@ export async function readDepthMarkets(client, venue, blockNumber) {
         bufferToken: m.bufferToken,
         exitFrom: m.exitFrom ?? null,
         bufferBalanceRaw: bal !== undefined ? s(bal) : null,
+        bufferDecimals: decB,
         exitableUsd: usd,
         skewPct: null, // single-sided buffer: no pool ratio to skew
         priceAssumptionUsd: 1,
         note: m.note ?? null,
-        reads: { buffer: bal !== undefined },
+        reads: { buffer: bal !== undefined, decimals: decB !== null },
       })
       continue
     }
@@ -262,14 +422,28 @@ export async function readDepthMarkets(client, venue, blockNumber) {
     // only path for uniswap-v3, which has no reserve view). Store what succeeds.
     let r0, r1
     if (m.kind === 'curve-stableswap') {
-      r0 = await tryRead(client, { address: m.address, abi: curvePoolAbi, functionName: 'balances', args: [0n], ...at })
-      r1 = await tryRead(client, { address: m.address, abi: curvePoolAbi, functionName: 'balances', args: [1n], ...at })
+      r0 = await tryRead(client, {
+        address: m.address,
+        abi: curvePoolAbi,
+        functionName: 'balances',
+        args: [0n],
+        ...at,
+      })
+      r1 = await tryRead(client, {
+        address: m.address,
+        abi: curvePoolAbi,
+        functionName: 'balances',
+        args: [1n],
+        ...at,
+      })
     }
     if (r0 === undefined) r0 = await balOf(m.token0, m.address)
     if (r1 === undefined) r1 = await balOf(m.token1, m.address)
 
-    const usd0 = r0 !== undefined ? Number(r0) / 10 ** dec0 : null
-    const usd1 = r1 !== undefined ? Number(r1) / 10 ** dec1 : null
+    const usd0 = r0 !== undefined && dec0 !== null ? Number(r0) / 10 ** dec0 : null
+    const usd1 = r1 !== undefined && dec1 !== null ? Number(r1) / 10 ** dec1 : null
+    if (usd0 === null || usd1 === null || !Number.isFinite(usd0) || !Number.isFinite(usd1))
+      complete = false
 
     // Skew = one-sidedness of the pool in [0,100] (stETH 78:22 / MIM 96% genre).
     let skewPct = null
@@ -279,7 +453,8 @@ export async function readDepthMarkets(client, venue, blockNumber) {
 
     // Exitable = the side that is NOT exitFrom (the token you swap INTO). If
     // exitFrom is token0, the exitable reserve is token1's, and vice-versa.
-    const exitFromIs0 = m.exitFrom && m.token0 && m.exitFrom.toLowerCase() === m.token0.toLowerCase()
+    const exitFromIs0 =
+      m.exitFrom && m.token0 && m.exitFrom.toLowerCase() === m.token0.toLowerCase()
     const exitableUsd = exitFromIs0 ? usd1 : usd0
 
     if (exitableUsd !== null && Number.isFinite(exitableUsd)) depthUsd += exitableUsd
@@ -294,19 +469,29 @@ export async function readDepthMarkets(client, venue, blockNumber) {
       exitFrom: m.exitFrom ?? null,
       reserve0Raw: r0 !== undefined ? s(r0) : null,
       reserve1Raw: r1 !== undefined ? s(r1) : null,
+      decimals0: dec0,
+      decimals1: dec1,
       reserve0Usd: usd0,
       reserve1Usd: usd1,
       skewPct,
       exitableUsd,
       priceAssumptionUsd: 1,
       note: m.note ?? null,
-      reads: { reserve0: r0 !== undefined, reserve1: r1 !== undefined },
+      reads: {
+        reserve0: r0 !== undefined,
+        reserve1: r1 !== undefined,
+        decimals0: dec0 !== null,
+        decimals1: dec1 !== null,
+      },
     })
   }
 
   return {
     depthMarkets: out,
-    depth_usd: depthUsd,
+    // Keep raw partial market rows for diagnosis, but never publish a partial
+    // sum as if exit inventory collapsed. Null is an unpriced observation.
+    depth_usd: complete ? depthUsd : null,
+    depth_complete: complete,
     depth_skew_pct: worstSkew,
     depth_note:
       'depth_usd = EXITABLE side (tokens swappable INTO on exit), summed across enabled verified markets, at $1/stable. depth_skew_pct = worst pool one-sidedness. This is the INSTANT-exit tier only; protocol redemption (cooldown/instant) is a separate exit path.',

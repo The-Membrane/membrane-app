@@ -1,5 +1,5 @@
 import { cdtRoutes, denoms, mainnetAddrs, rpcUrl, SWAP_SLIPPAGE, clPositions } from "@/config/defaults";
-import { getPriceByDenom, Price } from "@/services/oracle";
+import { Price } from "@/services/oracle";
 import { Coin, coin, coins } from "@cosmjs/amino";
 
 import { calcAmountWithSlippage, calcShareOutAmount, convertGeckoPricesToDenomPriceHash, LiquidityPoolCalculator } from "@osmonauts/math";
@@ -127,7 +127,7 @@ const getCLPosition = async (positionId: string, osmosisClient: any) => {
 }
 
 //Get the RangeBound positions
-export const getCLPositionsForVault = () => {
+export const useCLPositionsForVault = () => {
     const { data: config } = useBoundedConfig()
     const { data: prices } = useOraclePrice()
     const cdtPrice = parseFloat(prices?.find((price) => price.denom === "factory/osmo1s794h9rxggytja3a4pmwul53u98k06zy2qtrdvjnfuxruh7s8yjs6cyxgd/ucdt")?.price ?? "0")
@@ -207,7 +207,7 @@ export const useLPRewards = () => {
     });
 }
 
-export const getBestCLRange = () => {
+export const useBestCLRange = () => {
     const clRewardsData = useLPRewards()
 
     return useQuery({
@@ -290,6 +290,8 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(false, tvl, positions);
     // console.log("ratios:", cAsset_ratios, "positions:", positions)
+    //Prices don't change in btwn loops so we can index them by denom outside the loop
+    const priceByDenom = new Map<string, string>((prices ?? []).map((price) => [price.denom, price.price]));
 
     //Repeat until no more CDT or Loops are done
     var iter = 0;
@@ -309,7 +311,7 @@ export const unloopPosition = (cdtPrice: number, walletCDT: number, address: str
         var cAsset_prices: number[] = []
         let cAsset_amounts = cAsset_ratios.map((asset) => {
             if (!asset) return;
-            const assetPrice = prices?.find((price) => price.denom === asset.denom)?.price || '0'
+            const assetPrice = priceByDenom.get(asset.denom) || '0'
             cAsset_prices.push(parseFloat(assetPrice))
 
             return [asset.symbol, parseInt(((asset.ratio * withdrawValue) / parseFloat(assetPrice) * Math.pow(10, denoms[asset.symbol as keyof exported_supportedAssets][1] as number)).toFixed(0))];
@@ -433,6 +435,8 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
     //Ratios won't change in btwn loops so we can set them outside the loop
     let cAsset_ratios = getAssetRatio(skipStable, tvl, positions);
     // console.log(cAsset_ratios)
+    //Prices don't change in btwn loops so we can index them by denom outside the loop
+    const priceByDenom = new Map<string, string>((prices ?? []).map((price) => [price.denom, price.price]));
     //Get Position's LTV
     var currentLTV = getPositionLTV(positionValue, creditAmount, basket);
     if (LTV < currentLTV) {
@@ -471,7 +475,7 @@ export const loopPosition = (skipStable: boolean, cdtPrice: number, LTV: number,
             if (!amount || !address) return;
             if (amount[1] as number > 0) {
                 //Get price for denom 
-                let price = prices?.find((price) => price.denom === amount[0])?.price || '0';
+                let price = priceByDenom.get(amount[0] as string) || '0';
                 let swap_output = handleCollateralswaps(address, cdtPrice, parseFloat(price), amount[2] as keyof exported_supportedAssets, parseInt(amount[1].toString()) as number);
                 swap_msgs.push(swap_output.msg as MsgExecuteContractEncodeObject);
                 tokenOutMins.push(coin(swap_output.tokenOutMinAmount, amount[0] as string));

@@ -1,0 +1,1499 @@
+<script>window.__FORCE_DEMO=true;</script>
+<title>Membrane &mdash; Position</title>
+<style>
+  :root{
+    --bg:#09090a; --raise:#100f12; --card:#0e0d10; --sunk:#070708;
+    --ink:#ece6d8; --dim:#8d877b; --faint:#56524a;
+    --hair:rgba(236,230,216,0.10); --hairS:rgba(236,230,216,0.22);
+    --phos:#9bdc4f; --teal:#46d39a; --gold:#d8b24a; --blood:#cf4034;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--mono);
+    font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; padding-bottom:70px; }
+  .wrap{ max-width:1240px; margin:0 auto; padding:0 20px; }
+  h1,h2,h3{ font-family:var(--serif); font-weight:400; margin:0; letter-spacing:-0.01em; text-wrap:balance; }
+  .num{ font-variant-numeric:tabular-nums; }
+
+  nav{ display:flex; justify-content:space-between; align-items:center;
+    padding:16px 0; border-bottom:1px solid var(--hair); margin-bottom:26px; }
+  .brand{ font-family:var(--serif); font-size:17px; }
+  .navr{ font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--faint); }
+
+  .pnav{ display:flex; gap:2px; margin-left:26px; margin-right:auto; }
+  .pnav a{ font-family:var(--mono); font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--dim); text-decoration:none; padding:6px 10px; border:1px solid transparent;
+    transition:color .15s,border-color .15s; cursor:pointer; }
+  .pnav a:hover{ color:var(--phos); }
+  .pnav a.on{ color:var(--ink); border-color:var(--hairS); }
+  .pnav a.stub{ color:var(--faint); cursor:help; }
+  .vtgl{ display:block; margin-top:5px; margin-left:auto; background:transparent;
+    border:1px solid var(--hairS); color:var(--dim); font-family:var(--mono); font-size:9px;
+    letter-spacing:0.18em; text-transform:uppercase; padding:5px 9px; cursor:pointer;
+    transition:border-color .15s,color .15s; }
+  .vtgl:hover{ border-color:var(--phos); color:var(--phos); }
+  /* Veteran mode (VETERAN_UX_RULESET V9): warm teaching text leaves the hot path once
+     competence exists. Production gates this per-mechanic; the mock uses a switch so
+     both states can be inspected. Decayed text collapses to a badge (V4), not to nothing. */
+  body.vet .warm{ display:none; }
+  .vbadge{ display:none; font-size:8.5px; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--faint); border:1px solid var(--hair); padding:2px 7px; vertical-align:4px;
+    margin-left:8px; }
+  body.vet .vbadge{ display:inline-block; }
+  .eyebrow{ font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); }
+  .sect{ margin:34px 0 12px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .sect h2{ font-size:20px; }
+  .sect .note{ font-size:11px; color:var(--faint); }
+
+  .card{ background:var(--card); border:1px solid var(--hair); padding:18px; }
+
+  .roles{ display:flex; gap:2px; margin-bottom:18px; }
+  .role{ background:transparent; border:1px solid var(--hair); color:var(--dim);
+    font-family:var(--mono); font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase;
+    padding:9px 16px; cursor:pointer; transition:color .15s,border-color .15s; }
+  .role:hover{ color:var(--phos); }
+  .role.on{ color:var(--ink); border-color:var(--hairS); background:var(--raise); }
+  .role .num{ letter-spacing:0; color:var(--faint); }
+  .seats{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .seat .sh{ display:flex; justify-content:space-between; gap:10px; align-items:baseline; }
+  .seat .sn2{ font-family:var(--serif); font-size:15px; }
+  .seat .sv2{ font-size:12px; color:var(--dim); }
+  .lo{ display:flex; height:9px; border:1px solid var(--hair); margin-top:12px; }
+  .lo i{ display:block; height:100%; }
+  .lo .me{ outline:1px solid var(--phos); outline-offset:-1px; }
+  .comp2{ height:22px; display:flex; border:1px solid var(--hair); overflow:hidden; }
+  .comp2 i{ display:block; height:100%; }
+  .complg2{ display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:10px; color:var(--dim); }
+  .complg2 .sw{ display:inline-block; width:9px; height:9px; margin-right:5px; vertical-align:-1px; }
+  @media(max-width:760px){ .seats{ grid-template-columns:1fr; } }
+  .poshead{ display:grid; grid-template-columns:1fr 1.6fr 1fr 1fr; gap:22px; margin-bottom:18px; }
+  .pcell{ display:grid; gap:5px; align-content:start; min-width:0; }
+  .pk{ font-size:9.5px; letter-spacing:0.24em; text-transform:uppercase; color:var(--faint); }
+  .pv{ font-size:24px; line-height:1.05; }
+  .pn{ font-size:9.5px; color:var(--faint); line-height:1.5; }
+  .lwin{ position:relative; height:9px; background:var(--sunk); border:1px solid var(--hair); margin-top:7px; }
+  .lwin .fill{ position:absolute; left:0; top:0; bottom:0; background:var(--phos); }
+  .lwin .band{ position:absolute; top:0; bottom:0; background:rgba(207,64,52,0.20); }
+  .lwin .tick{ position:absolute; top:-3px; bottom:-3px; width:1px; background:var(--blood); }
+  .php{ height:9px; background:var(--sunk); border:1px solid var(--hair); margin-top:7px; }
+  .php i{ display:block; height:100%; background:var(--blood); }
+  @media(max-width:900px){ .poshead{ grid-template-columns:1fr 1fr; } }
+
+  /* ---------- hero ---------- */
+  .hero{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:18px; }
+  .hero h1{ font-size:clamp(22px,3vw,31px); line-height:1.15; margin-bottom:6px; }
+  .hero .sub{ font-size:12.5px; color:var(--dim); max-width:60ch; }
+  .rate{ display:flex; align-items:flex-end; gap:18px; margin:20px 0 4px; flex-wrap:wrap; }
+  .rate .big{ font-size:clamp(38px,6vw,60px); line-height:0.95; letter-spacing:-0.03em; }
+  .rate .unit{ font-size:12px; color:var(--dim); padding-bottom:8px; }
+  .delta{ font-size:11.5px; color:var(--phos); }
+  .delta.dn{ color:var(--gold); }
+
+  .beltlist{ position:relative; margin-top:18px; background:var(--sunk);
+    border:1px solid var(--hair); overflow:hidden; }
+  .beltlist canvas{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .beltlist .vlist{ position:relative; z-index:1; margin:0; border:0; padding-right:34px; }
+  .cadlbl{ display:flex; justify-content:space-between; font-size:9.5px;
+    letter-spacing:0.18em; text-transform:uppercase; color:var(--faint); margin-top:6px; }
+
+
+  .vrow{ border-bottom:1px solid var(--hair); }
+  .vrow:last-child{ border-bottom:0; }
+  .vhead{ display:grid; grid-template-columns:14px 1fr auto auto auto 16px; gap:10px;
+    align-items:baseline; width:100%; padding:11px 10px; background:transparent; border:0;
+    color:var(--ink); font-family:var(--mono); font-size:11.5px; cursor:pointer;
+    text-align:left; transition:color .15s; }
+  .vhead:hover .vn{ color:var(--phos); }
+  .vhead .vn{ transition:color .15s; }
+  .vhead .vs{ font-size:10.5px; color:var(--dim); }
+  .vshare{ position:relative; width:76px; height:5px; align-self:center;
+    background:rgba(236,230,216,0.07); border:1px solid var(--hair); }
+  .vshare i{ position:absolute; left:0; top:0; bottom:0; }
+  .vhead .vx{ color:var(--faint); text-align:right; }
+  .vbody{ display:none; padding:2px 34px 12px 34px; }
+  .vrow.open .vbody{ display:grid; gap:5px; }
+  .vfact{ display:flex; justify-content:space-between; gap:12px; font-size:10.5px; color:var(--faint); }
+  .vfact b{ font-weight:400; color:var(--dim); }
+  .vfact .copy{ cursor:pointer; transition:color .15s; }
+  .vfact .copy:hover{ color:var(--phos); }
+  .vstamp{ font-size:9px; color:var(--faint); letter-spacing:0.12em; margin-top:4px; }
+
+  .chhd{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .chtabs{ display:flex; gap:2px; }
+  .cht{ background:transparent; border:1px solid transparent; color:var(--faint);
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.16em; text-transform:uppercase;
+    padding:5px 9px; cursor:pointer; transition:color .15s,border-color .15s; }
+  .cht:hover{ color:var(--phos); }
+  .cht.on{ color:var(--ink); border-color:var(--hairS); }
+  .chwrap{ position:relative; height:190px; margin-top:12px;
+    background:var(--sunk); border:1px solid var(--hair);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(236,230,216,0.045) 0 1px, transparent 1px 24px),
+      repeating-linear-gradient(90deg, rgba(236,230,216,0.045) 0 1px, transparent 1px 24px);
+  }
+  .chwrap canvas{ position:absolute; inset:0; width:100%; height:100%; }
+
+  /* ---------- feed ---------- */
+  .feed{ display:grid; gap:0; }
+  .fr{ display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:baseline;
+    padding:9px 0; border-bottom:1px solid var(--hair); font-size:11.5px; }
+  .fr:last-child{ border-bottom:0; }
+  .fr .amt{ color:var(--phos); }
+  .fr .src{ color:var(--dim); }
+  .fr .src b{ font-weight:400; color:var(--ink); }
+  .fr .ago{ color:var(--faint); font-size:10px; }
+  .cls{ display:inline-block; width:7px; height:7px; margin-right:6px; vertical-align:baseline; }
+
+  /* ---------- intents ---------- */
+  .intents{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+  .it .hd{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .it .nm{ font-family:var(--serif); font-size:16px; }
+  .it .tag{ font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--faint); }
+  .it .lead{ font-size:26px; margin:14px 0 2px; }
+  .it .leadn{ font-size:10.5px; color:var(--dim); line-height:1.5; }
+  .it.on{ border-color:var(--hairS); }
+  .it.on .tag{ color:var(--phos); }
+
+  .hp{ height:9px; background:var(--sunk); position:relative; margin:14px 0 6px;
+    border:1px solid var(--hair); }
+  .hp i{ display:block; height:100%; background:var(--blood); }
+  .hp .mark{ position:absolute; top:-3px; bottom:-3px; width:1px; background:var(--hairS); }
+  .hpn{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--faint); }
+
+  /* A projection off venue APR is the low-validity prong (ruleset 7): it renders as a
+     range with visible edges, never a date. Realized facts keep a single tick. */
+  .rng{ height:11px; background:var(--sunk); position:relative; border:1px solid var(--hair);
+    margin:14px 0 6px; }
+  .rng .band{ position:absolute; top:0; bottom:0; background:rgba(70,211,154,0.28); }
+  .rng .band.gold{ background:rgba(216,178,74,0.28); }
+  .rng .edge{ position:absolute; top:-3px; bottom:-3px; width:1px; background:var(--teal); }
+  .rng .edge.gold{ background:var(--gold); }
+  .rng .pt{ position:absolute; top:-4px; bottom:-4px; width:2px; background:var(--ink); }
+  .rng .goal{ position:absolute; top:-4px; bottom:-4px; width:1px; background:var(--hairS); }
+  .rngn{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--faint); }
+  .lead.band-v, .lead .band-v{ color:var(--teal); }
+  .lead.band-days{ color:var(--ink); }
+  .lead.band-v.gold, .lead .band-v.gold{ color:var(--gold); }
+  .mini{ display:grid; gap:5px; margin-top:12px; padding-top:11px; border-top:1px solid var(--hair); }
+  .mrow{ display:flex; justify-content:space-between; font-size:10.5px; color:var(--dim); }
+  .mrow b{ font-weight:400; color:var(--ink); }
+
+  .asel{ background:var(--raise); color:var(--ink); border:1px solid var(--hairS);
+    font-family:var(--mono); font-size:13px; padding:4px 8px; cursor:pointer; border-radius:0; }
+  .asel:focus{ outline:1px solid var(--phos); outline-offset:2px; }
+  .intents.solo .it{ display:none; }
+  .intents.solo .it.view{ display:block; }
+  .it{ position:relative; }
+  .wico{ display:inline-block; width:15px; height:15px; line-height:13px; text-align:center;
+    margin-left:7px; vertical-align:2px; font-size:10px; color:var(--gold);
+    border:1px solid var(--gold); cursor:help; font-family:var(--mono); font-style:normal; }
+  .wico .wtip{ display:none; position:absolute; left:10px; right:10px; top:44px;
+    background:var(--card); border:1px solid var(--gold);
+    padding:12px 14px; z-index:9; font-family:var(--mono); letter-spacing:0; text-transform:none;
+    text-align:left; box-shadow:0 8px 24px rgba(0,0,0,0.55); }
+  .wico .wtip .wt-h{ display:block; font-size:10px; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--gold); margin-bottom:6px; }
+  .wico .wtip .wt-b{ display:block; font-size:11px; line-height:1.65; color:var(--dim); }
+  .wico .wtip .wt-b b{ font-weight:400; color:var(--ink); }
+  .wico:hover .wtip, .wico:focus .wtip, .wico:focus-within .wtip{ display:block; }
+  .verses{ display:grid; grid-template-columns:1fr auto 1fr; gap:16px; align-items:start;
+    margin-top:14px; padding:16px; background:var(--raise); border:1px solid var(--hair); }
+  .vs{ display:grid; gap:4px; min-width:0; }
+  .vs .k{ font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--faint); }
+  .vs .v{ font-size:21px; }
+  .vs .n{ font-size:10.5px; color:var(--dim); line-height:1.55; }
+  .vs .n b{ font-weight:400; color:var(--ink); }
+  .verses .op{ font-size:11px; color:var(--faint); padding-top:16px; }
+  @media(max-width:760px){ .verses{ grid-template-columns:1fr; } .verses .op{ padding:0; } }
+  .drag{ margin-top:14px; padding:16px; background:var(--raise); border:1px solid var(--gold); }
+  .drag .k{ font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); }
+  .drag p{ font-size:11.5px; color:var(--dim); line-height:1.7; margin:8px 0 0; max-width:92ch; }
+  .drag p b{ font-weight:400; color:var(--ink); }
+  .dragrow{ display:flex; justify-content:space-between; gap:12px; margin-top:12px; padding-top:11px;
+    border-top:1px solid var(--hair); font-size:10.5px; color:var(--faint); flex-wrap:wrap; }
+  .dragrow .num{ color:var(--blood); }
+  .spread{ display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center;
+    margin-top:14px; padding:12px 14px; background:var(--raise); border:1px solid var(--hair); }
+  .spread .k{ font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--faint); }
+  .spread .track{ height:3px; background:var(--sunk); position:relative; }
+  .spread .track i{ position:absolute; top:0; bottom:0; background:var(--teal); }
+  .spread .track .zero{ position:absolute; top:-4px; bottom:-4px; width:1px; background:var(--hairS); }
+  .spread .v{ font-size:15px; color:var(--teal); }
+  .spread.inv .track i{ background:var(--blood); }
+  .spread.inv .v{ color:var(--blood); }
+  .spread.inv{ border-color:var(--blood); }
+  .tgl{ margin-left:auto; background:transparent; border:1px solid var(--hairS); color:var(--dim);
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.18em; text-transform:uppercase;
+    padding:7px 11px; cursor:pointer; transition:border-color .15s,color .15s; }
+  .tgl:hover{ border-color:var(--gold); color:var(--gold); }
+  .nudge{ display:grid; grid-template-columns:34px 1fr; gap:14px; align-items:start; margin-top:12px;
+    padding:15px 16px; background:var(--raise); border:1px solid var(--gold); }
+  .ntt{ font-family:var(--serif); font-size:15px; color:var(--gold); }
+  .nbd{ font-size:11.5px; color:var(--dim); margin-top:5px; line-height:1.65; max-width:78ch; }
+  .nbd b{ font-weight:400; color:var(--ink); }
+
+  /* ---------- encounters ---------- */
+  .enc{ display:grid; gap:0; }
+  .er{ display:grid; grid-template-columns:118px 1fr; gap:16px; padding:14px 0;
+    border-bottom:1px solid var(--hair); }
+  .er:last-child{ border-bottom:0; }
+  .er .when{ font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--faint); }
+  .er .ttl{ font-size:13px; color:var(--ink); }
+  .er .body{ font-size:11.5px; color:var(--dim); margin-top:4px; line-height:1.65; }
+  .er .body b{ font-weight:400; color:var(--phos); }
+  .er .body b.neg, .neg{ color:var(--blood) !important; }
+  .er .stamp{ font-size:9.5px; color:var(--faint); margin-top:6px; }
+  .er.bad .ttl{ color:var(--gold); }
+
+  /* ---------- calibration ---------- */
+  .cal2{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:18px; }
+  .score{ display:flex; align-items:flex-end; gap:14px; }
+  .score .big{ font-size:44px; line-height:1; color:var(--phos); }
+  .score .u{ font-size:11px; color:var(--dim); padding-bottom:6px; }
+  .bars{ display:grid; gap:7px; margin-top:16px; }
+  .br{ display:grid; grid-template-columns:74px 1fr 54px; gap:10px; align-items:center; font-size:10.5px; }
+  .br .t{ height:7px; background:var(--sunk); position:relative; }
+  .br .t i{ position:absolute; top:0; bottom:0; background:var(--teal); }
+  .br .t .ideal{ position:absolute; top:-3px; bottom:-3px; width:1px; background:var(--gold); }
+  .br .k{ color:var(--faint); }
+  .br .v{ color:var(--dim); text-align:right; }
+
+  .cta{ display:block; width:100%; margin-top:16px; text-align:left; background:transparent;
+    border:1px solid var(--hairS); color:var(--ink); font-family:var(--mono); font-size:11px;
+    letter-spacing:0.16em; text-transform:uppercase; padding:13px 14px; cursor:pointer;
+    transition:border-color .15s,color .15s; }
+  .cta:hover{ border-color:var(--phos); color:var(--phos); }
+  .cta small{ display:block; letter-spacing:0.02em; text-transform:none; font-size:10.5px;
+    color:var(--faint); margin-top:5px; }
+
+  /* ---------- ditto ---------- */
+  .ditto{ display:grid; grid-template-columns:96px 1fr; gap:18px; align-items:start; }
+  .sprite{ width:96px; height:96px; background:var(--sunk); border:1px solid var(--hair);
+    display:grid; place-items:center; }
+  .recap .rt{ font-family:var(--serif); font-size:17px; }
+  .recap .rl{ display:grid; gap:6px; margin:12px 0 0; }
+  .recap .rr{ display:grid; grid-template-columns:16px 1fr; gap:9px; font-size:11.5px; color:var(--dim); }
+  .recap .rr b{ font-weight:400; color:var(--ink); }
+  .recap .dot{ color:var(--phos); }
+  .share{ margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
+  .share button{ background:transparent; border:1px solid var(--hairS); color:var(--dim);
+    font-family:var(--mono); font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    padding:9px 13px; cursor:pointer; transition:border-color .15s,color .15s; }
+  .share button:hover{ border-color:var(--phos); color:var(--phos); }
+
+  .foot p{ margin:0 0 9px; }
+  .foot p:last-child{ margin-bottom:0; }
+  .foot{ margin-top:34px; padding-top:16px; border-top:1px solid var(--hair);
+    font-size:10.5px; color:var(--faint); line-height:1.7; max-width:96ch; }
+
+  @media(max-width:980px){
+    .hero,.cal2{ grid-template-columns:1fr; }
+    .intents{ grid-template-columns:1fr; }
+  }
+  @media(max-width:620px){
+    .er{ grid-template-columns:1fr; gap:4px; }
+    .ditto{ grid-template-columns:1fr; }
+  }
+
+  /* lifestyle equivalence (Hevy pattern): the measured rate, priced in things.
+     Click cycles items; blocks are units covered (filled = whole, partial = fraction). */
+  .lifel{ display:block; width:100%; text-align:left; background:var(--sunk); border:1px solid var(--hair);
+    padding:10px 14px; margin-top:10px; cursor:pointer; font-family:var(--mono); color:var(--ink);
+    transition:border-color .15s; }
+  .lifel:hover{ border-color:var(--hairS); }
+  .lifel .ll1{ font-size:12.5px; }
+  .lifel .ll1 b{ font-weight:400; color:var(--phos); }
+  .lifel .blocks{ display:inline-flex; gap:3px; margin:0 8px; vertical-align:-1px; }
+  .lifel .blocks i{ display:inline-block; width:9px; height:9px; border:1px solid var(--phos);
+    background:transparent; position:relative; overflow:hidden; }
+  .lifel .blocks i.f{ background:var(--phos); }
+  .lifel .blocks i em{ position:absolute; left:0; top:0; bottom:0; background:var(--phos); }
+  .lifel .ll2{ display:block; font-size:9px; color:var(--faint); letter-spacing:0.12em; margin-top:4px; }
+
+  /* points & sacrifice: portfolio editor -- continuous r, no tiers, no cranks */
+  .ptcard{ margin-top:16px; }
+  .pthd{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .ptrow{ display:grid; grid-template-columns:120px 1.25fr 1.35fr auto; gap:14px; align-items:center;
+    padding:10px 0; border-bottom:1px solid var(--hair); font-size:11px; }
+  .ptrow:last-child{ border-bottom:0; }
+  .ptrow .cn2{ font-size:12px; }
+  .ptrow .cn2 small{ display:block; font-size:9px; color:var(--faint); letter-spacing:0.14em; text-transform:uppercase; }
+  .ptrow .pend{ color:var(--dim); line-height:1.6; }
+  .ptrow .pend b{ font-weight:400; color:var(--ink); }
+  .ptrow .sac{ display:grid; gap:3px; }
+  .ptrow .sac input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:14px;
+    background:transparent; cursor:pointer; padding:0; border:0; }
+  .ptrow .sac input[type=range]::-webkit-slider-runnable-track{ height:2px; background:var(--hairS); }
+  .ptrow .sac input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:10px; height:10px;
+    background:var(--phos); margin-top:-4px; border:0; }
+  .ptrow .sac input[type=range]::-moz-range-track{ height:2px; background:var(--hairS); }
+  .ptrow .sac input[type=range]::-moz-range-thumb{ width:10px; height:10px; background:var(--phos); border:0; border-radius:0; }
+  .ptrow .sacl{ font-size:9.5px; color:var(--dim); line-height:1.5; }
+  .ptrow .sacl b{ font-weight:400; color:var(--ink); }
+  .ptsync{ color:var(--gold); }
+  @media(max-width:820px){ .ptrow{ grid-template-columns:1fr; } }
+
+  /* demo mode: banner + closeable tour (revert's demo-wallet door; one click closes) */
+  .demobar{ display:none; justify-content:space-between; align-items:baseline; gap:12px;
+    background:var(--raise); border:1px solid var(--hair); padding:9px 14px; margin-bottom:16px;
+    font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); }
+  .demobar a{ color:var(--phos); text-decoration:none; }
+  .demobar a:hover{ text-decoration:underline; }
+  body.demo .demobar{ display:flex; }
+  .tourc{ display:none; position:fixed; right:16px; bottom:16px; width:min(300px,86vw); z-index:70;
+    background:var(--card); border:1px solid var(--hairS); padding:14px; }
+  .tourc.open{ display:block; }
+  .tourc .tk{ font-size:9px; letter-spacing:0.24em; text-transform:uppercase; color:var(--faint); }
+  .tourc .tt{ font-family:var(--serif); font-size:15px; margin:4px 0 2px; }
+  .tourc .tb{ font-size:11px; color:var(--dim); line-height:1.6; margin:0; }
+  .tourc .tx{ position:absolute; top:6px; right:8px; background:none; border:0; color:var(--faint);
+    font-family:var(--mono); font-size:13px; cursor:pointer; padding:2px 5px; }
+  .tourc .tx:hover{ color:var(--blood); }
+  .tourc .tbtns{ display:flex; gap:8px; margin-top:12px; }
+  .tour-hi{ outline:1px solid var(--phos) !important; outline-offset:3px; }
+
+  /* execution layer (V5/V6): every implied action gets its button; one confirm, numbers only */
+  .acct{ font-size:10px; color:var(--dim); border:1px solid var(--hair); padding:5px 10px; letter-spacing:0.06em; }
+  .xbtn{ display:inline-block; background:transparent; border:1px solid var(--hairS); color:var(--ink);
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:6px 11px; cursor:pointer; text-decoration:none; transition:border-color .15s,color .15s; }
+  .xbtn:hover{ border-color:var(--phos); color:var(--phos); }
+  .xbtn.go{ background:var(--phos); border-color:var(--phos); color:#09090a; }
+  .xbtn.go:hover{ background:#b3ec6e; color:#09090a; }
+  .xrail{ display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .xsheet{ position:fixed; inset:0; background:rgba(7,7,8,0.78); display:grid; place-items:center; z-index:60; }
+  .xcard{ background:var(--card); border:1px solid var(--hairS); padding:20px; width:min(430px,92vw); }
+  .xh{ font-family:var(--serif); font-size:17px; margin-bottom:12px; }
+  .xrow{ display:flex; justify-content:space-between; gap:14px; font-size:11.5px; color:var(--dim);
+    padding:5px 0; border-bottom:1px solid var(--hair); }
+  .xrow:last-child{ border-bottom:0; }
+  .xv{ font-weight:400; color:var(--ink); }
+  .xnote{ font-size:10px; color:var(--faint); line-height:1.6; margin:10px 0 0; }
+  .xbtns{ display:flex; gap:8px; margin-top:16px; }
+  .xgo{ flex:1; background:var(--phos); border:1px solid var(--phos); color:#09090a;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px; cursor:pointer; }
+  .xno{ background:transparent; border:1px solid var(--hairS); color:var(--dim);
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px 16px; cursor:pointer; }
+  .xpend{ margin-top:16px; font-size:11px; color:var(--gold); letter-spacing:0.08em; }
+  .xdone{ margin-top:16px; font-size:11px; color:var(--phos); letter-spacing:0.08em; }
+
+</style>
+
+<div class="wrap">
+
+  <nav>
+    <span class="brand">Membrane</span>
+    <span class="pnav">
+      <a href="dash.html" class="on">Position</a>
+      <a href="builder.html">Builder</a>
+      <a href="borrow.html">Borrow</a>
+      <a href="carry.html">Carry</a>
+      <a href="supply.html">Earn</a>
+      <a class="stub" title="not mocked yet">Liquidate</a>
+      <a href="defend.html">Defend</a>
+    </span>
+    <span class="navr">Position &middot; mock
+      <button class="vtgl" id="vTgl" type="button">view: first visit</button></span>
+    <span class="acct num">0x9a41&hellip;c2e0</span>
+  </nav>
+
+  <div class="demobar" id="demoBar">
+    <span>Demo wallet &mdash; every number is a measured mock, not yours.</span>
+    <a href="borrow.html">Start your own &rarr;</a>
+  </div>
+
+  <div class="tourc" id="tourc">
+    <button class="tx" id="tourX" type="button" aria-label="Close tour">&times;</button>
+    <span class="tk num" id="tourK">1 / 5</span>
+    <div class="tt" id="tourT"></div>
+    <p class="tb" id="tourB"></p>
+    <div class="tbtns">
+      <button class="xgo" id="tourNext" type="button" style="flex:1">Next</button>
+      <button class="xno" id="tourSkip" type="button">Skip tour</button>
+    </div>
+  </div>
+
+  <div class="roles" id="roles">
+    <button class="role on" data-role="borrow" type="button">Borrow <span class="num">&middot; 1</span></button>
+    <button class="role" data-role="lend" type="button">Lend <span class="num">&middot; 2 tranches</span></button>
+    <button class="role" data-role="curate" type="button">Curate <span class="num">&middot; 1 vault</span></button>
+  </div>
+
+  <div class="card ptcard">
+    <div class="pthd">
+      <span class="eyebrow">Points &middot; epoch 3, open</span>
+      <span class="stamp num" style="margin:0">100,000 MBRN / month &middot; 33,333 per class &middot; closes in 12d 06h</span>
+    </div>
+    <div id="ptrows" style="margin-top:8px"></div>
+    <p class="stamp">open-epoch numbers are estimates &mdash; they shrink as others accrue weight; closed epochs are
+      final and claimable &middot; there is no crank anywhere: sacrifice boosts land the instant revenue arrives, and
+      your pending points flush at your next touch &middot; forgone fees boost your own pool, not the protocol&rsquo;s</p>
+  </div>
+
+  <div id="roleBorrow">
+  <!-- ============ 0. THE WHOLE POSITION ============ -->
+  <div class="card poshead">
+    <div class="pcell">
+      <span class="pk">Collateral</span>
+      <span class="pv num">1.000 BTC</span>
+      <span class="pn num">$95,000 &middot; never deployed, never lent</span>
+    </div>
+    <div class="pcell wide">
+      <span class="pk">Loan to value <b class="num" style="color:var(--ink);font-weight:400">28%</b></span>
+      <div class="lwin">
+        <i class="fill" style="width:28%"></i>
+        <span class="band" style="left:60%;width:13%"></span>
+        <span class="tick" style="left:60%"></span>
+        <span class="tick" style="left:73%"></span>
+      </div>
+      <span class="pn">borrow cap 60% &middot; liquidated past 73% &middot; a breach repays to 60%</span>
+    </div>
+    <div class="pcell">
+      <span class="pk">Headroom</span>
+      <span class="pv num">38 h</span>
+      <span class="pn">at the worst 24h fall of the last 90 days (&minus;14%, measured)</span>
+    </div>
+    <div class="pcell">
+      <span class="pk">Debt</span>
+      <span class="pv num" style="color:var(--blood)">$26,980</span>
+      <div class="php"><i style="width:71%"></i></div>
+      <span class="pn num">of $38,000 borrowed &middot; 71% remains</span>
+    </div>
+  </div>
+
+  <div class="xrail">
+    <button class="xbtn go" type="button" data-exec="Repay from wallet"
+      data-rows='[["Debt now","$26,980"],["You repay","$1,000 CDT"],["Debt after","$25,980"],["Days to self-repaid","2,400 \u2192 2,311"]]'
+      data-note="Repaying from wallet is on top of the yield already repaying." data-cta="Sign & repay" data-done="Repaid">Repay extra</button>
+    <button class="xbtn" type="button" data-exec="Add collateral"
+      data-rows='[["You add","0.10 BTC"],["Collateral after","1.100 BTC"],["LTV after","26%"],["Break distance","43% \u2192 47%"]]'
+      data-cta="Sign & deposit" data-done="Deposited">Add collateral</button>
+    <button class="xbtn" type="button" data-exec="Withdraw collateral"
+      data-rows='[["You withdraw","0.10 BTC"],["LTV after","31%"],["Break distance","43% \u2192 38%"]]'
+      data-note="Withdrawing moves you toward the line. The numbers above are the whole story." data-cta="Sign & withdraw" data-done="Withdrawn">Withdraw</button>
+  </div>
+
+  <!-- ============ 1. THROUGHPUT HERO ============ -->
+  <div class="hero">
+    <div class="card">
+      <span class="eyebrow">01 / Throughput</span>
+      <h1 style="margin-top:10px">The machine is getting faster.</h1>
+      <p class="sub warm">
+        What arrives is already net &mdash; the loan&rsquo;s interest comes out before the yield reaches
+        you. That subtraction shrinks as the debt shrinks. So each delivery is a little larger than the
+        last, from the same venues at the same rates. The machine speeds up by losing overhead.
+      </p>
+
+      <div class="rate">
+        <span class="big num" id="hRate">$10.17</span>
+        <span class="unit">per day, measured across<br>the last 14 days of deliveries</span>
+        <span class="delta num" id="hDelta">&#9650; from $9.27 in your first fortnight &middot;
+          $12.40 at zero debt, if rates hold</span>
+      </div>
+      <p class="pn num" style="margin:2px 0 0">vs just holding:
+        <b style="color:var(--phos);font-weight:400">+$402 delivered</b> on top of the same BTC &middot;
+        vs selling in January: <b style="color:var(--phos);font-weight:400">0.19 BTC ahead</b>,
+        net of exit cost and tax &mdash; both measured</p>
+
+      <button class="lifel" id="lifel" type="button" aria-label="Cycle what the yield covers"></button>
+
+      <div class="beltlist" id="beltlist">
+        <canvas id="belt"></canvas>
+        <div class="vlist" id="vlist"></div>
+      </div>
+      <div class="cadlbl"><span>packet size = measured yield &middot; outline = before the loan&rsquo;s cut</span><span>debt</span></div>
+    </div>
+
+    <div class="card">
+      <span class="eyebrow">Belt deliveries</span>
+      <div class="feed" id="feed" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- ============ 1.5 REALIZED DELIVERIES CHART ============ -->
+  <div class="card" id="chartCard" style="margin-top:18px">
+    <div class="chhd">
+      <span class="eyebrow">Delivered, cumulative</span>
+      <span class="chtabs">
+        <button class="cht on" data-r="life" type="button">Lifetime</button>
+        <button class="cht" data-r="90d" type="button">90 days</button>
+        <button class="cht" data-r="30d" type="button">30 days</button>
+      </span>
+      <span class="chtabs" aria-label="Benchmark">
+        <button class="cht bch on" data-b="hold" type="button">vs holding</button>
+        <button class="cht bch" data-b="sold" type="button">vs sold in Jan</button>
+      </span>
+    </div>
+    <div class="chwrap"><canvas id="chart"></canvas></div>
+    <p class="pn" style="margin:8px 0 0">
+      Every point is a settled delivery &mdash; the line can plateau, and does: the flat week in June is
+      the sUSDe cooldown, when nothing arrived. Measured on-chain; last event 2h ago.
+      Benchmarks: holding alone delivers $0 &mdash; the whole green line is the surplus; the
+      sold-in-January path is cash interest on the proceeds, net of exit cost and tax.
+    </p>
+  </div>
+
+  <!-- ============ 2. PER-INTENT COUNTDOWNS ============ -->
+  <div class="sect">
+    <span class="eyebrow">02 /</span>
+    <h2>What the yield is doing &mdash;
+      <select id="intentSel" class="asel" aria-label="View another intent">
+        <option value="0">Repay &middot; running</option>
+        <option value="1">Compound &middot; preview</option>
+        <option value="2">Distribute &middot; preview</option>
+      </select></h2>
+    <span class="note warm">The menu previews the intents you did not pick. Nothing switches unless you switch it.</span>
+    <button class="tgl" id="tgl" type="button">Preview a rate spike</button>
+  </div>
+
+  <div class="intents solo" id="intents">
+    <div class="card it on">
+      <div class="hd"><span class="nm">Repay</span><span class="tag">Running</span></div>
+      <div class="lead num band-days">2,024&ndash;2,948 <span style="font-size:13px;color:var(--dim)">days</span><span class="vbadge">venue rates</span></div>
+      <div class="leadn warm">until the debt is gone. The yield pays it off, so you keep the deployed stack as well
+        as the bitcoin. A range, because the harvest rate is venue rates &mdash; the same rates every other
+        projection on this page depends on.</div>
+      <div class="hp"><i style="width:71%"></i><span class="mark" style="left:100%"></span></div>
+      <div class="hpn"><span>$26,980 left</span><span>of $38,000 borrowed</span></div>
+      <div class="mini">
+        <div class="mrow"><span>Burned so far</span><b class="num">$11,020</b></div>
+        <div class="mrow"><span>Burn rate today</span><b class="num">$10.17 / day</b></div>
+        <div class="mrow"><span>Since you added Fluid</span><b class="num" style="color:var(--phos)">&minus;694 days</b></div>
+        <div class="mrow"><span>Stack at the end</span><b class="num">$38,000 &mdash; yield repaid, not principal</b></div>
+        <div class="mrow"><span>LTV path</span><b style="color:var(--phos)">falls every day</b></div>
+        <div class="mrow"><span>Breach odds, next 12 mo</span><b class="num">1&ndash;12%</b></div>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="hd"><span class="nm">Compound
+        <span class="wico" tabindex="0" role="note" aria-label="Compounding increases risk and reward. Use it wisely.">!<span class="wtip"><span class="wt-h">Use it wisely</span><span class="wt-b">Compounding increases risk and reward. Your LTV rises every day this runs. Breach odds next 12 months: <b>19&ndash;43%</b>, against <b>1&ndash;12%</b> on Repay.</span></span></span>
+      </span><span class="tag">Available</span></div>
+      <div class="lead num band-days">1,761&ndash;2,613 <span style="font-size:13px;color:var(--dim)">days to 2&times;</span><span class="vbadge">venue rates</span></div>
+      <div class="leadn warm">until the stack has earned its own size back and can clear the loan by itself.
+        Same end state as Repay. A range, because it is next year&rsquo;s venue rates and nobody has those.</div>
+      <div class="rng">
+        <span class="band" style="left:38%;width:36%"></span>
+        <span class="edge" style="left:38%"></span><span class="edge" style="left:74%"></span>
+        <span class="pt" style="left:9%"></span>
+      </div>
+      <div class="rngn"><span>break-even, day 148 (realised)</span><span>2&times; &mdash; centre 2,104</span></div>
+      <div class="mini">
+        <div class="mrow"><span>Deployed stack</span><b class="num">$41,900</b></div>
+        <div class="mrow"><span>Surplus realised so far</span><b class="num">$1,244</b></div>
+        <div class="mrow"><span>Compounds LTV upward</span><b style="color:var(--gold)">yes</b></div>
+        <div class="mrow"><span>Breach odds, next 12 mo</span><b class="num neg">19&ndash;43%</b></div>
+      </div>
+    </div>
+
+    <div class="card it">
+      <div class="hd"><span class="nm">Distribute</span><span class="tag">Available</span></div>
+      <div class="lead num band-v gold">$470&ndash;710<span style="font-size:13px;color:var(--dim)"> / mo</span><span class="vbadge">projected</span></div>
+      <div class="leadn warm">to your wallet, paid out rather than reinvested. A range because it is next month&rsquo;s
+        venue rates, not last month&rsquo;s receipts.</div>
+      <div class="rng">
+        <span class="band gold" style="left:47%;width:24%"></span>
+        <span class="edge gold" style="left:47%"></span><span class="edge gold" style="left:71%"></span>
+        <span class="goal" style="left:100%"></span>
+      </div>
+      <div class="rngn"><span>47&ndash;71% of goal</span><span>$1,000 / mo goal</span></div>
+      <div class="mini">
+        <div class="mrow"><span>Paid out to date</span><b class="num">$3,940</b></div>
+        <div class="mrow"><span>Withdrawable now</span><b class="num">$208
+      <button class="xbtn" type="button" style="margin-left:8px" data-exec="Claim distributed yield"
+        data-rows='[["Withdrawable","$208.14"],["To","0x9a41\u2026c2e0"],["Debt untouched","yes"]]'
+        data-cta="Sign & claim" data-done="Claimed">Claim</button></b></div>
+        <div class="mrow"><span>Leaves debt untouched</span><b style="color:var(--gold)">yes</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spread" id="spread">
+    <span class="k">Spread</span>
+    <div class="track">
+      <span class="zero" id="spZero"></span>
+      <i id="spBar"></i>
+    </div>
+    <span class="v num" id="spVal"></span>
+  </div>
+  <p class="foot warm" id="spNote" style="margin-top:8px;padding-top:0;border:0"></p>
+
+  <div class="nudge" id="nudge" style="display:none">
+    <div class="nsprite">
+      <svg width="34" height="34" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+        <g fill="#d8b24a">
+          <rect x="5" y="2" width="6" height="1"/><rect x="4" y="3" width="8" height="1"/>
+          <rect x="3" y="4" width="10" height="2"/><rect x="2" y="6" width="12" height="3"/>
+          <rect x="3" y="9" width="10" height="2"/><rect x="4" y="11" width="8" height="1"/>
+          <rect x="5" y="12" width="6" height="1"/>
+        </g>
+        <g fill="#09090a"><rect x="5" y="6" width="2" height="2"/><rect x="9" y="6" width="2" height="2"/>
+          <rect x="6" y="10" width="4" height="1"/></g>
+      </svg>
+    </div>
+    <div>
+      <div class="ntt">The spread just inverted.</div>
+      <div class="nbd" id="nudgeBody"></div>
+      <div class="share" style="margin-top:11px">
+        <button type="button">Switch to Repay</button>
+        <button type="button">Leave it, I am watching</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 3. ENCOUNTERS ============ -->
+  <div class="sect">
+    <span class="eyebrow">03 /</span>
+    <h2>What you have survived</h2>
+    <span class="note warm">Named after the fact, from measured price history &mdash; not from how it felt.</span>
+  </div>
+
+  <div class="card">
+    <div class="enc" id="enc"></div>
+  </div>
+
+  <!-- ============ 4. CALIBRATION ============ -->
+  <div class="sect">
+    <span class="eyebrow">04 /</span>
+    <h2>Is it luck?</h2>
+    <span class="note warm">Scored only on calls that have actually resolved.</span>
+  </div>
+
+  <div class="cal2">
+    <div class="card">
+      <span class="eyebrow">Better than a coin flip</span>
+      <div class="score" style="margin-top:12px">
+        <span class="big num">+31%</span>
+        <span class="u">across 46 resolved calls<br>Brier 0.172</span>
+      </div>
+      <div class="mini" style="margin-top:16px">
+        <div class="mrow"><span>Best subject</span><b>venue liquidity</b></div>
+        <div class="mrow"><span>Weakest subject</span><b style="color:var(--gold)">how long a depeg lasts</b></div>
+        <div class="mrow"><span>Overconfidence bias</span><b class="num">+6 pts</b></div>
+      </div>
+      <button class="cta" type="button">
+        Enter the training grounds
+        <small>Post P(I breach 80% headroom) before the week runs, and get scored when it resolves. Nothing you do there touches this position.</small>
+      </button>
+    </div>
+
+    <div class="card">
+      <span class="eyebrow">Calls by confidence band</span>
+      <p style="font-size:11px;color:var(--faint);margin:8px 0 0;line-height:1.6">
+        Gold tick is where a perfectly calibrated person lands. Bar is how often you were actually right.
+      </p>
+      <div class="bars" id="bars"></div>
+    </div>
+  </div>
+
+  <!-- ============ 5. DITTO RECAP ============ -->
+  <div class="sect">
+    <span class="eyebrow">05 /</span>
+    <h2>This week</h2>
+    <span class="note warm">Ditto writes one of these every Sunday. It is the card you can hand to someone else.</span>
+  </div>
+
+  <div class="card ditto">
+    <div class="sprite">
+      <svg width="64" height="64" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-label="Ditto">
+        <g fill="#9bdc4f">
+          <rect x="5" y="2" width="6" height="1"/><rect x="4" y="3" width="8" height="1"/>
+          <rect x="3" y="4" width="10" height="1"/><rect x="3" y="5" width="10" height="1"/>
+          <rect x="2" y="6" width="12" height="1"/><rect x="2" y="7" width="12" height="1"/>
+          <rect x="2" y="8" width="12" height="1"/><rect x="3" y="9" width="10" height="1"/>
+          <rect x="3" y="10" width="10" height="1"/><rect x="4" y="11" width="8" height="1"/>
+          <rect x="5" y="12" width="6" height="1"/>
+        </g>
+        <g fill="#09090a">
+          <rect x="5" y="6" width="2" height="2" id="eyeL"/><rect x="9" y="6" width="2" height="2" id="eyeR"/>
+          <rect x="6" y="10" width="4" height="1"/>
+        </g>
+      </svg>
+    </div>
+    <div class="recap">
+      <span class="eyebrow">Week 31 &middot; Aug 3&ndash;10</span>
+      <div class="rt" style="margin-top:8px">Twenty-three deliveries, and you held through Thursday at 41% LTV.</div>
+      <div class="rl">
+        <div class="rr"><span class="dot">&#9642;</span><span><b>$186.40</b> harvested across 23 belt deliveries &mdash; your busiest week yet.</span></div>
+        <div class="rr"><span class="dot">&#9642;</span><span>That&rsquo;s <b>nine months of Claude Pro</b>, delivered in seven days &mdash; at list price, already realized.</span></div>
+        <div class="rr"><span class="dot">&#9642;</span><span><b>23.4 days</b> of debt burned. Self-repayment moved 41 days closer.</span></div>
+        <div class="rr"><span class="dot">&#9642;</span><span>Headroom bottomed at <b>9.4 hours</b> on Thursday, then recovered. You were drawn at 41%; at 55% the engine would have recalled.</span></div>
+        <div class="rr"><span class="dot">&#9642;</span><span>The you-that-sold in January is <b>0.19 BTC behind</b> &mdash; ghost line net of exit cost and tax.</span></div>
+        <div class="rr"><span class="dot">&#9642;</span><span>You called 3 floors, got <b>2 right</b>, and were <b class="neg" style="font-weight:400">14 points overconfident</b> on the third.</span></div>
+      </div>
+      <div class="share">
+        <button type="button">Copy card</button>
+        <button type="button">Save image</button>
+        <button type="button">Recap settings</button>
+      </div>
+    </div>
+  </div>
+
+  <details class="foot" style="margin-top:34px">
+    <summary style="cursor:pointer;color:var(--dim);letter-spacing:0.2em;text-transform:uppercase;font-size:10px">What this page does not show</summary>
+    <p>
+      This page does not show a portfolio value. It does not show a percentage return. It does not show an
+      unrealized profit. These numbers change when the market changes. They do not show what you did.
+    </p>
+    <p>
+      This page shows only events that occurred. It shows the yield that arrived, the debt that you paid,
+      the shocks that the position survived, and the calls that resolved.
+    </p>
+    <p>
+      The route data has a measurement date. We measured 1,245 positions and 25 routes in August 2026. We
+      measure them again on a schedule. Each event on this page shows the date of its data. Do not trust a
+      number that has no measurement date.
+    </p>
+  </details>
+  </div><!-- /roleBorrow -->
+
+  <div id="roleLend" style="display:none">
+    <div class="card poshead" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="pcell"><span class="pk">Staked</span><span class="pv num">$14,300</span>
+        <span class="pn">across 2 tranches</span></div>
+      <div class="pcell"><span class="pk">Fees paid to you</span><span class="pv num">$412.85</span>
+        <span class="pn">realized, lifetime</span></div>
+      <div class="pcell"><span class="pk">Losses taken</span><span class="pv num">$0</span>
+        <span class="pn">no haircut has ever reached a tranche</span></div>
+    </div>
+
+    <div class="sect"><span class="eyebrow">01 /</span><h2>Your seats</h2>
+      <span class="note warm">each collateral has its own loss order &mdash; full detail on the Earn page</span></div>
+    <div class="seats">
+      <div class="card seat">
+        <div class="sh"><span class="sn2">sUSDS &middot; senior</span><span class="sv2 num">$12,000 staked</span></div>
+        <div class="lo"><i style="width:16%;background:rgba(70,211,154,0.35)"></i><i style="width:18%;background:rgba(216,178,74,0.4)"></i><i class="me" style="width:44%;background:rgba(155,220,79,0.28)"></i><i style="width:22%;background:rgba(207,64,52,0.25)"></i></div>
+        <div class="mini">
+          <div class="mrow"><span>In front of you</span><b class="num">$3.5M &mdash; disco + junior</b></div>
+          <div class="mrow"><span>Fees, last 30d</span><b class="num">$64.40</b></div>
+          <div class="mrow"><span>Withdrawable</span><b class="num">now</b></div>
+        </div>
+      </div>
+      <div class="card seat">
+        <div class="sh"><span class="sn2">scrvUSD &middot; junior</span><span class="sv2 num">$2,300 staked</span></div>
+        <div class="lo"><i style="width:14%;background:rgba(70,211,154,0.35)"></i><i class="me" style="width:20%;background:rgba(216,178,74,0.4)"></i><i style="width:44%;background:rgba(155,220,79,0.28)"></i><i style="width:22%;background:rgba(207,64,52,0.25)"></i></div>
+        <div class="mini">
+          <div class="mrow"><span>In front of you</span><b class="num">$0.4M &mdash; disco only</b></div>
+          <div class="mrow"><span>Fees, last 30d</span><b class="num">$31.10</b></div>
+          <div class="mrow"><span>Withdrawable</span><b class="num" style="color:var(--gold)">in 34 days &mdash; listing lock</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect"><span class="eyebrow">02 /</span><h2>Fees paid to you</h2>
+      <span class="note">realized only, by collateral</span></div>
+    <div class="card feed" id="lendFeed"></div>
+  </div><!-- /roleLend -->
+
+  <div id="roleCurate" style="display:none">
+    <div class="card poshead" style="grid-template-columns:1fr 1fr 1fr 1fr">
+      <div class="pcell"><span class="pk">Your vault</span><span class="pv" style="font-size:19px">Depth-first CDT</span>
+        <span class="pn">launched Mar 2026</span></div>
+      <div class="pcell"><span class="pk">Deposits</span><span class="pv num">$1.84M</span>
+        <span class="pn num">61 depositors</span></div>
+      <div class="pcell"><span class="pk">Your fee share</span><span class="pv num">$1,912</span>
+        <span class="pn">realized, lifetime &mdash; disclosed 8% of vault fees</span></div>
+      <div class="pcell"><span class="pk">Capacity used</span><span class="pv num">74%</span>
+        <div class="php"><i style="width:74%;background:var(--teal)"></i></div>
+        <span class="pn">of the cap your stake sets</span></div>
+    </div>
+
+    <div class="sect"><span class="eyebrow">01 /</span><h2>Where your vault deploys</h2>
+      <span class="note">allocation, measured today</span></div>
+    <div class="card">
+      <div class="comp2" id="curComp"></div>
+      <div class="complg2" id="curLg"></div>
+      <p class="stamp">measured 2026-08-15 &middot; block 21,911,004 &middot; depositors see this same view</p>
+    </div>
+
+    <div class="sect"><span class="eyebrow">02 /</span><h2>Fees paid to you</h2>
+      <span class="note">realized only &mdash; your share follows the fees your strategy generates</span></div>
+    <div class="card feed" id="curFeed"></div>
+  </div><!-- /roleCurate -->
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- belt deliveries ----------
+  var CLS={ synth:'#d8b24a', stable:'#ece6d8', lst:'#46d39a' };
+  // Deliveries arrive NET -- the loan's interest is subtracted upstream, so three
+  // collections a day sum to ~$10.17, not the $12.40 gross the venues paid.
+  // "Days burned" = amount / today's net daily burn.
+  var FEED=[
+    {amt:3.55, v:'sUSDe',   c:'synth',  eff:'0.35 days of debt burned', ago:'2h ago'},
+    {amt:2.60, v:'Aave V3', c:'stable', eff:'0.26 days of debt burned', ago:'9h ago'},
+    {amt:4.05, v:'VaultV2', c:'stable', eff:'0.40 days of debt burned', ago:'17h ago'},
+    {amt:3.60, v:'sUSDe',   c:'synth',  eff:'0.35 days of debt burned', ago:'yesterday'},
+    {amt:2.45, v:'Aave V3', c:'stable', eff:'0.24 days of debt burned', ago:'yesterday'},
+    {amt:3.95, v:'VaultV2', c:'stable', eff:'0.38 days of debt burned', ago:'yesterday'},
+    {amt:3.30, v:'sUSDe',   c:'synth',  eff:'0.32 days of debt burned', ago:'2 days ago'},
+    {amt:2.55, v:'Aave V3', c:'stable', eff:'0.25 days of debt burned', ago:'2 days ago'}
+  ];
+  document.getElementById('feed').innerHTML=FEED.map(function(f){
+    return '<div class="fr"><span class="amt num">+$'+f.amt.toFixed(2)+'</span>'+
+      '<span class="src"><span class="cls" style="background:'+CLS[f.c]+'"></span>'+
+      'from <b>'+f.v+'</b> &rarr; '+f.eff+'</span>'+
+      '<span class="ago">'+f.ago+'</span></div>';
+  }).join('');
+
+  // ---------- the belt ----------
+  // Venues on the left drip packets rightward. At the fork each packet loses its
+  // interest share (gold, falls away) and the rest lands on the debt block, which
+  // ticks down. The fork position IS the 82-cent split -- the animation and the
+  // hero number are the same fact.
+  var beltEl=document.getElementById('belt'), bctx=beltEl.getContext('2d');
+  var NET=0.82, packets=[], debtFlash=0;
+  var VCOL={ synth:'#d8b24a', stable:'#ece6d8', lst:'#46d39a' };
+  // Each packet is one tick of that venue's drip, and its AREA is the venue's measured
+  // $/day -- size comparison is instant where cadence comparison is not. One uniform
+  // cadence across lanes so the flow is not double-counted (size x rate would show
+  // rate squared). Outline vs core stays gross vs net.
+  var LANE_RATE=[4.11, 2.87, 3.19];
+  var RMAX=Math.max.apply(null,LANE_RATE);
+  var LANE_R=LANE_RATE.map(function(r){ return 6.5*Math.sqrt(r/RMAX); });
+  var laneTimers=LANE_RATE.map(function(r,i){ return 0.7+i*0.7; });
+  function drawBelt(dt){
+    var host=document.getElementById('beltlist');
+    var W=host.clientWidth, H=host.clientHeight;
+    if(!W||!H) return;
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    if(beltEl.width!==Math.round(W*dpr)||beltEl.height!==Math.round(H*dpr)){
+      beltEl.width=Math.round(W*dpr); beltEl.height=Math.round(H*dpr);
+    }
+    bctx.setTransform(dpr,0,0,dpr,0,0);
+    bctx.clearRect(0,0,W,H);
+    debtFlash=Math.max(0,debtFlash-dt*2);
+
+    // lanes come from the actual rows, so an open drawer reshapes the belt live
+    var rows=Array.prototype.slice.call(host.querySelectorAll('.vrow'));
+    var lanes=rows.map(function(r){
+      var b=r.querySelector('.vhead'), hb=b.getBoundingClientRect(), hh=host.getBoundingClientRect();
+      return hb.top-hh.top+hb.height/2;
+    });
+    var debtX=W-26;
+
+    // the debt bar spans every lane: one loan, three feeders
+    bctx.fillStyle= debtFlash>0 ? '#cf4034' : 'rgba(207,64,52,0.5)';
+    bctx.fillRect(debtX,6,14,H-12);
+    bctx.save();
+    bctx.translate(debtX+11,H/2); bctx.rotate(-Math.PI/2);
+    bctx.fillStyle='#09090a'; bctx.font='8px ui-monospace,monospace'; bctx.textAlign='center';
+    bctx.fillText('DEBT',0,0);
+    bctx.restore();
+
+    // uniform cadence; the yield lives in the packet size
+    lanes.forEach(function(y,i){
+      laneTimers[i]-=dt;
+      if(laneTimers[i]<=0){
+        packets.push({lane:i, x:8});
+        laneTimers[i]=2.0+Math.random()*0.5;
+      }
+    });
+
+    var cls=['synth','stable','stable'];
+    packets.forEach(function(pk){
+      var y=lanes[pk.lane]; if(y===undefined){ pk.dead=true; return; }
+      pk.x+=(W/7)*dt;
+      if(pk.x>=debtX-4){ pk.dead=true; debtFlash=1; return; }
+      var R=LANE_R[pk.lane], core=R*Math.sqrt(NET);
+      bctx.strokeStyle='rgba(236,230,216,0.25)';
+      bctx.strokeRect(pk.x-R, y-R, R*2, R*2);
+      bctx.fillStyle=VCOL[cls[pk.lane]];
+      bctx.fillRect(pk.x-core, y-core, core*2, core*2);
+    });
+    packets=packets.filter(function(pk){ return !pk.dead; });
+  }
+  var bLast=0;
+  (function bFrame(ts){
+    if(!bLast) bLast=ts;
+    var dt=Math.min(0.05,(ts-bLast)/1000); bLast=ts;
+    try{ drawBelt(dt); }catch(e){}
+    requestAnimationFrame(bFrame);
+  })(0);
+  window.__dash={ drawBelt:drawBelt, packets:function(){return packets;} };
+
+  // ---------- the venues, measured ----------
+  // Replaces the "next delivery" countdown, which was a forecast twice over (arrival
+  // time and size). Everything here is a measurement with a date. No external links:
+  // leaving the app is a cost, so the domain is copyable text and the detail is an
+  // inline drawer.
+  var VENUES=[
+    { nm:'sUSDe', cls:'synth', dep:12667, share:'33.4%', del14:'$4.11 / day', recall:'30%',
+      state:'cooldown idle \u2014 no unstake pending', home:'ethena.fi',
+      addr:'0x9d39...c2f1', measured:'2026-08-10 \u00b7 block 21,882,404' },
+    { nm:'Aave V3', cls:'stable', dep:12667, share:'33.3%', del14:'$2.87 / day', recall:'97%',
+      state:'reserve 61% unborrowed', home:'aave.com',
+      addr:'0x8787...11ab', measured:'2026-08-10 \u00b7 block 21,882,404' },
+    { nm:'VaultV2', cls:'stable', dep:12666, share:'33.3%', del14:'$3.19 / day', recall:'90%',
+      state:'182 positions share this vault', home:'membrane.money',
+      addr:'0x4c2e...9d07', measured:'2026-08-10 \u00b7 block 21,882,404' }
+  ];
+  var CLSC={ synth:'#d8b24a', stable:'#ece6d8', lst:'#46d39a' };
+  document.getElementById('vlist').innerHTML=VENUES.map(function(v,i){
+    return '<div class="vrow" data-v="'+i+'">'+
+      '<button class="vhead" type="button" aria-expanded="false">'+
+        '<span class="cls" style="background:'+CLSC[v.cls]+'"></span>'+
+        '<span class="vn">'+v.nm+'</span>'+
+        '<span class="vshare" role="img" aria-label="'+v.share+' of the stack">'+
+          '<i style="width:'+v.share+';background:'+CLSC[v.cls]+'"></i></span>'+
+        '<span class="vs num">'+v.del14+'</span>'+
+        '<span class="vs num">recall '+v.recall+'</span>'+
+        '<span class="vx" aria-hidden="true">+</span>'+
+      '</button>'+
+      '<div class="vbody">'+
+        '<div class="vfact"><span>State</span><b>'+v.state+'</b></div>'+
+        '<div class="vfact"><span>Deployed</span><b class="num">'+usdc(v.dep)+' \u00b7 '+v.share+' of the stack</b></div>'+
+        '<div class="vfact"><span>Deliveries, 14d avg</span><b class="num">'+v.del14+'</b></div>'+
+        '<div class="vfact"><span>Contract</span><b class="num copy" data-copy="'+v.addr+'">'+v.addr+' \u29c9</b></div>'+
+        '<div class="vfact"><span>Site</span><b class="copy" data-copy="'+v.home+'">'+v.home+' \u29c9</b></div>'+
+        '<div class="vstamp">measured '+v.measured+'</div>'+
+      '</div></div>';
+  }).join('');
+  function usdc(n){ return '$'+Math.round(n).toLocaleString('en-US'); }
+  Array.prototype.forEach.call(document.querySelectorAll('.vhead'),function(b){
+    b.addEventListener('click',function(){
+      var row=b.parentNode, open=row.classList.toggle('open');
+      b.setAttribute('aria-expanded',open);
+      b.querySelector('.vx').textContent=open?'\u2212':'+';
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.copy'),function(el){
+    el.addEventListener('click',function(){
+      try{ navigator.clipboard.writeText(el.getAttribute('data-copy')); }catch(e){}
+      var t=el.textContent; el.textContent='copied';
+      setTimeout(function(){ el.textContent=t; },900);
+    });
+  });
+
+  // ---------- realized-deliveries chart ----------
+  // Cumulative settled deliveries. Monotone because reality is (money arrived), not by
+  // construction: a week with no deliveries draws FLAT, which the old RevenueChart was
+  // structurally incapable of. Crosshatch + gradient kept from the chart the user liked.
+  var SERIES={
+    life:[0,9,21,34,49,58,71,86,99,112,131,150,163,178,196,214,228,241,241,241,241,244,259,276,290,308,325,344,362,381,402],
+    '90d':[0,12,26,41,55,68,84,98,98,98,101,117,133,150,164,181,199,214,229,247,262],
+    '30d':[0,10,21,33,33,36,49,62,74,88,101,112]
+  };
+  var chartRange='life';
+  // Benchmark ghost (revert mechanic: every number answers "compared to what?").
+  // 'hold' = the same BTC untouched delivers $0; 'sold' = cash interest on the
+  // January proceeds, net of exit cost and tax (same figures as the recap's ghost).
+  var benchMode='hold';
+  var BENCH_SOLD={ life:118, '90d':62, '30d':21 };
+  var chEl=document.getElementById('chart'), chCtx=chEl.getContext('2d');
+  function drawChart(){
+    var W=chEl.clientWidth||chEl.parentNode.clientWidth, H=chEl.clientHeight||chEl.parentNode.clientHeight;
+    if(!W||!H) return;
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    chEl.width=Math.round(W*dpr); chEl.height=Math.round(H*dpr);
+    chCtx.setTransform(dpr,0,0,dpr,0,0);
+    chCtx.clearRect(0,0,W,H);
+    var d=SERIES[chartRange], max=d[d.length-1]*1.08, P=14;
+    var X=function(i){ return P+(W-2*P)*i/(d.length-1); };
+    var Y=function(v){ return H-P-(H-2*P)*v/max; };
+    // gradient area under the line, flat colour at low opacity per the chart spec
+    var g=chCtx.createLinearGradient(0,P,0,H-P);
+    g.addColorStop(0,'rgba(155,220,79,0.22)'); g.addColorStop(1,'rgba(155,220,79,0.02)');
+    chCtx.beginPath(); chCtx.moveTo(X(0),Y(d[0]));
+    d.forEach(function(v,i){ chCtx.lineTo(X(i),Y(v)); });
+    chCtx.lineTo(X(d.length-1),H-P); chCtx.lineTo(X(0),H-P); chCtx.closePath();
+    chCtx.fillStyle=g; chCtx.fill();
+    chCtx.beginPath(); chCtx.moveTo(X(0),Y(d[0]));
+    d.forEach(function(v,i){ chCtx.lineTo(X(i),Y(v)); });
+    chCtx.strokeStyle='#9bdc4f'; chCtx.lineWidth=2; chCtx.stroke();
+    // the plateau annotation: find the longest flat run and mark it
+    var s0=0,len=0,bs=0,bl=0;
+    for(var i=1;i<d.length;i++){
+      if(d[i]===d[i-1]){ if(len===0)s0=i-1; len++; if(len>bl){bl=len;bs=s0;} } else len=0;
+    }
+    if(bl>=2){
+      chCtx.strokeStyle='rgba(216,178,74,0.7)'; chCtx.setLineDash([2,3]);
+      chCtx.beginPath(); chCtx.moveTo(X(bs),Y(d[bs])-8); chCtx.lineTo(X(bs+bl),Y(d[bs])-8); chCtx.stroke();
+      chCtx.setLineDash([]);
+      chCtx.fillStyle='#d8b24a'; chCtx.font='8.5px ui-monospace,monospace'; chCtx.textAlign='center';
+      chCtx.fillText('cooldown \u2014 nothing arrived', X(bs+bl/2), Y(d[bs])-14);
+    }
+    // endpoint value, mono
+    chCtx.fillStyle='#ece6d8'; chCtx.font='11px ui-monospace,monospace'; chCtx.textAlign='right';
+    chCtx.fillText('$'+d[d.length-1].toLocaleString('en-US'), W-P-2, Y(d[d.length-1])-6);
+    // benchmark ghost: dashed bone line under the delivered curve
+    if(benchMode){
+      var bEnd=benchMode==='hold'?0:BENCH_SOLD[chartRange];
+      chCtx.strokeStyle='rgba(236,230,216,0.55)'; chCtx.setLineDash([4,4]); chCtx.lineWidth=1;
+      chCtx.beginPath();
+      for(var bi=0;bi<d.length;bi++){
+        var bv=bEnd*bi/(d.length-1);
+        if(bi===0) chCtx.moveTo(X(bi),Y(bv)); else chCtx.lineTo(X(bi),Y(bv));
+      }
+      chCtx.stroke(); chCtx.setLineDash([]);
+      chCtx.fillStyle='#8d877b'; chCtx.font='8.5px ui-monospace,monospace'; chCtx.textAlign='left';
+      chCtx.fillText(benchMode==='hold'
+        ?'just holding: $0 delivered'
+        :'sold in Jan: $'+bEnd+' cash interest, net of exit cost + tax',
+        P+2, Y(bEnd)-6);
+    }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.cht:not(.bch)'),function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.cht:not(.bch)').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on'); chartRange=b.getAttribute('data-r'); drawChart();
+    });
+  });
+  // benchmark chips: one on at a time; clicking the active one turns benchmarking off
+  Array.prototype.forEach.call(document.querySelectorAll('.cht.bch'),function(b){
+    b.addEventListener('click',function(){
+      var was=b.classList.contains('on');
+      document.querySelectorAll('.cht.bch').forEach(function(x){ x.classList.remove('on'); });
+      if(was){ benchMode=null; } else { b.classList.add('on'); benchMode=b.getAttribute('data-b'); }
+      drawChart();
+    });
+  });
+  drawChart();
+  window.addEventListener('resize',drawChart);
+  window.__dash.drawChart=drawChart;
+
+  // ---------- encounters ----------
+  // Named retroactively by a scheduled sweep of measured price history. The claim is
+  // always attributable to a decision the user made, never to their nerve.
+  var ENC=[
+    { when:'Aug 12, 2026', bad:false, t:'Survived the Aug 12 wick',
+      b:'Bitcoin fell 14.2% in 90 minutes. Your headroom bottomed at <b>3.1 hours</b> before recovering, '+
+        'and no venue was ever asked for capital. You were drawn at 40% when the same position at 52% '+
+        'would have been recalled &mdash; <b>your sizing is why</b>.', st:'price data measured 2026-08-12 \u00b7 block 21,904,118' },
+    { when:'Jul 29, 2026', bad:false, t:'sUSDe cooldown coincided with a 9% slide',
+      b:'The one venue that could not have answered was locked for four days. It never mattered, because '+
+        '<b>Aave and VaultV2 covered the whole requirement</b> on their own. Two liquid venues did the work '+
+        'of three.', st:'price data measured 2026-07-29 \u00b7 block 21,712,455' },
+    { when:'Jun 04, 2026', bad:true, t:'You paid for a lesson here',
+      b:'A 6% drift crossed the line because the position was drawn at 57% that week. <b class="neg">$418 of bitcoin '+
+        'was sold</b> to bring it back to the cap. You reduced the draw four days later and it has not '+
+        'happened since.', st:'price data measured 2026-06-04 \u00b7 block 21,204,901' }
+  ];
+  document.getElementById('enc').innerHTML=ENC.map(function(e){
+    return '<div class="er'+(e.bad?' bad':'')+'"><span class="when">'+e.when+'</span>'+
+      '<div><div class="ttl">'+e.t+'</div><div class="body">'+e.b+'</div>'+
+      '<div class="stamp">'+e.st+'</div></div></div>';
+  }).join('');
+
+  // ---------- calibration bands ----------
+  var BANDS=[ {k:'50\u201360%', ideal:55, hit:52, n:9},  {k:'60\u201370%', ideal:65, hit:61, n:11},
+              {k:'70\u201380%', ideal:75, hit:78, n:12}, {k:'80\u201390%', ideal:85, hit:80, n:9},
+              {k:'90\u2013100%',ideal:95, hit:86, n:5} ];
+  document.getElementById('bars').innerHTML=BANDS.map(function(b){
+    return '<div class="br"><span class="k">'+b.k+'</span>'+
+      '<span class="t"><i style="width:'+b.hit+'%"></i>'+
+      '<span class="ideal" style="left:'+b.ideal+'%"></span></span>'+
+      '<span class="v num">'+b.hit+'% \u00b7 n='+b.n+'</span></div>';
+  }).join('');
+
+  // ---------- spread dial ----------
+  // The dial is drawn on a signed axis with zero pinned, so an inversion is a direction
+  // change you can see rather than a minus sign you have to read. It never switches the
+  // intent for you -- a silent auto-switch would be exactly the hidden default the
+  // roadmap forbids.
+  var LO=-10, HI=14, pos=function(v){ return (v-LO)/(HI-LO)*100; };
+  function paintSpread(apr, borrow){
+    var sp=apr-borrow, inv=sp<0;
+    var el=document.getElementById('spread');
+    el.className='spread'+(inv?' inv':'');
+    document.getElementById('spZero').style.left=pos(0)+'%';
+    var bar=document.getElementById('spBar');
+    bar.style.left=pos(Math.min(0,sp))+'%';
+    bar.style.width=Math.abs(pos(sp)-pos(0))+'%';
+    document.getElementById('spVal').textContent=(sp>=0?'+':'\u2212')+Math.abs(sp).toFixed(1)+'%';
+    document.getElementById('spNote').innerHTML = inv
+      ? 'Venues pay '+apr.toFixed(1)+'%, the loan now costs '+borrow.toFixed(1)+'%. While the spread is '+
+        'negative, compounding adds debt faster than it earns, so <b style="color:var(--ink);font-weight:400">'+
+        'Repay strictly dominates</b> &mdash; it is the only leg that cannot lose here. Nothing has been '+
+        'switched for you.'
+      : 'Venues pay '+apr.toFixed(1)+'%, the loan costs '+borrow.toFixed(1)+'%. While that spread is positive, '+
+        'compounding out-earns repaying &mdash; but repaying is the leg that cannot lose, and it cuts LTV '+
+        'strictly faster. That is the trade, and it is yours to make. Nothing here picks for you.';
+    document.getElementById('nudge').style.display = inv ? 'grid' : 'none';
+    document.getElementById('nudgeBody').innerHTML =
+      'Venue rates fell to <b>'+apr.toFixed(1)+'%</b> while the variable borrow rate spiked to <b>'+
+      borrow.toFixed(1)+'%</b>. Every harvest you compound from here costs you <b>'+
+      Math.abs(sp).toFixed(1)+'% a year</b> against itself. Repay does not have that problem, and it '+
+      'pulls your LTV down at the same time. Your call &mdash; I will not move it.';
+  }
+  var spiked=false;
+  paintSpread(11.9, 3.0);
+  document.getElementById('tgl').addEventListener('click',function(){
+    spiked=!spiked;
+    this.textContent = spiked ? 'Back to today' : 'Preview a rate spike';
+    paintSpread(spiked?6.1:11.9, spiked?10.3:3.0);
+  });
+
+  var VIEW_KEY='membrane.view';
+  function applyView(){
+    var vet=(function(){ try{ return localStorage.getItem(VIEW_KEY)==='vet'; }catch(e){ return false; } })();
+    document.body.classList.toggle('vet',vet);
+    document.getElementById('vTgl').textContent='view: '+(vet?'veteran':'first visit');
+  }
+  document.getElementById('vTgl').addEventListener('click',function(){
+    try{ localStorage.setItem(VIEW_KEY,
+      document.body.classList.contains('vet')?'first':'vet'); }catch(e){}
+    applyView();
+  });
+  applyView();
+
+  // ---------- roles: the page is the account ----------
+  var ROLE_KEY='membrane.role';
+  function applyRole(r){
+    ['borrow','lend','curate'].forEach(function(k){
+      document.getElementById('role'+k.charAt(0).toUpperCase()+k.slice(1)).style.display = k===r?'':'none';
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.role'),function(b){
+      b.classList.toggle('on', b.getAttribute('data-role')===r);
+    });
+    try{ localStorage.setItem(ROLE_KEY,r); }catch(e){}
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.role'),function(b){
+    b.addEventListener('click',function(){ applyRole(b.getAttribute('data-role')); });
+  });
+  applyRole((function(){ try{ return localStorage.getItem(ROLE_KEY)||'borrow'; }catch(e){ return 'borrow'; } })());
+
+  // lend + curate feeds: realized events only, same grammar as the delivery feed
+  document.getElementById('lendFeed').innerHTML=[
+    { amt:28.40, src:'borrow fees, sUSDS positions \u2014 senior share', ago:'2d ago' },
+    { amt:31.10, src:'borrow fees, scrvUSD positions \u2014 junior share', ago:'6d ago' },
+    { amt:6.10,  src:'liquidation fee, sUSDS retrieval in the Aug 12 wick', ago:'12d ago' },
+    { amt:26.85, src:'borrow fees, sUSDS positions \u2014 senior share', ago:'16d ago' }
+  ].map(function(f){
+    return '<div class="fr"><span class="amt num">+$'+f.amt.toFixed(2)+'</span>'+
+      '<span class="src">'+f.src+'</span><span class="ago">'+f.ago+'</span></div>';
+  }).join('');
+  document.getElementById('curFeed').innerHTML=[
+    { amt:112.60, src:'your 8% of vault fees, epoch settled', ago:'2d ago' },
+    { amt:98.20,  src:'your 8% of vault fees, epoch settled', ago:'9d ago' },
+    { amt:104.75, src:'your 8% of vault fees, epoch settled', ago:'16d ago' }
+  ].map(function(f){
+    return '<div class="fr"><span class="amt num">+$'+f.amt.toFixed(2)+'</span>'+
+      '<span class="src">'+f.src+'</span><span class="ago">'+f.ago+'</span></div>';
+  }).join('');
+  var CURC=[['sUSDS lending',46,'#ece6d8'],['syrupUSDC lending',31,'#ece6d8'],
+            ['scrvUSD lending',14,'#e0c877'],['Transmuter LP',9,'#46d39a']];
+  document.getElementById('curComp').innerHTML=CURC.map(function(c,i){
+    return '<i style="width:'+c[1]+'%;background:'+c[2]+';opacity:'+(1-i*0.14)+'" title="'+c[0]+'"></i>';
+  }).join('');
+  document.getElementById('curLg').innerHTML=CURC.map(function(c,i){
+    return '<span><span class="sw" style="background:'+c[2]+';opacity:'+(1-i*0.14)+'"></span>'+c[0]+
+      ' <b class="num" style="font-weight:400;color:var(--ink)">'+c[1]+'%</b></span>';
+  }).join('');
+
+  // ---------- intent menu: show the chosen card, preview the others ----------
+  function applyIntentView(i){
+    var cards=document.querySelectorAll('#intents .it');
+    Array.prototype.forEach.call(cards,function(c,ix){ c.classList.toggle('view', ix===+i); });
+  }
+  document.getElementById('intentSel').addEventListener('change',function(){ applyIntentView(this.value); });
+  applyIntentView(0);
+
+  // ---------- the familiar blinks, and does nothing else ----------
+  var eyes=[document.getElementById('eyeL'),document.getElementById('eyeR')];
+  setInterval(function(){
+    eyes.forEach(function(e){ e.setAttribute('height','0.5'); e.setAttribute('y','7'); });
+    setTimeout(function(){
+      eyes.forEach(function(e){ e.setAttribute('height','2'); e.setAttribute('y','6'); });
+    },130);
+  },5200);
+})();
+</script>
+
+<script>
+(function(){
+"use strict";
+// The one confirmation an irreversible action gets (VETERAN_UX_RULESET V6): numbers,
+// not prose; then pending; then settled. Mock chain, real choreography.
+function el(t,c,x){var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.innerHTML=x; return e;}
+window.__exec=function(o){
+  var ov=el('div','xsheet'), c=el('div','xcard');
+  c.appendChild(el('div','xh',o.title));
+  var tb=el('div');
+  (o.rows||[]).forEach(function(r){ var w=el('div','xrow');
+    w.appendChild(el('span','',r[0])); w.appendChild(el('b','xv num',r[1])); tb.appendChild(w); });
+  c.appendChild(tb);
+  if(o.note) c.appendChild(el('p','xnote',o.note));
+  var btns=el('div','xbtns'), go=el('button','xgo',o.cta||'Confirm'), no=el('button','xno','Cancel');
+  btns.appendChild(go); btns.appendChild(no); c.appendChild(btns);
+  ov.appendChild(c); document.body.appendChild(ov);
+  var close=function(){ ov.remove(); };
+  no.onclick=close; ov.onclick=function(e){ if(e.target===ov) close(); };
+  go.onclick=function(){
+    btns.remove();
+    var p=el('div','xpend','signing\u2026'); c.appendChild(p);
+    setTimeout(function(){ p.textContent='pending \u2014 waiting for the receipt\u2026';
+      setTimeout(function(){
+        p.className='xdone'; p.textContent=(o.done||'Settled')+' \u00b7 mock chain';
+        var ok=el('button','xno','Close'); ok.style.marginTop='12px';
+        c.appendChild(ok); ok.onclick=close;
+      },1100);
+    },800);
+  };
+};
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-exec]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  var rows=[]; try{ rows=JSON.parse(b.getAttribute('data-rows')||'[]'); }catch(err){}
+  window.__exec({ title:b.getAttribute('data-exec'), rows:rows,
+    cta:b.getAttribute('data-cta')||undefined, note:b.getAttribute('data-note')||'',
+    done:b.getAttribute('data-done')||undefined });
+});
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// Switch-intent: the preview menu can now DO the thing it previews. One confirm.
+var sel=document.getElementById('intentSel'); if(!sel) return;
+var names=['Repay','Compound','Distribute'];
+var host=document.getElementById('intents');
+var bar=document.createElement('div'); bar.className='xrail'; bar.style.marginTop='10px';
+host.insertAdjacentElement('afterend',bar);
+function paint(){
+  var i=+sel.value;
+  bar.innerHTML = i===0 ? '' :
+    '<button class="xbtn go" type="button" data-exec="Switch intent to '+names[i]+'" '+
+    'data-rows=\'[["Running now","Repay"],["Switch to","'+names[i]+'"],'+
+    '["LTV path","falls \u2192 '+(i===1?'rises':'flat')+'"],'+
+    '["Takes effect","next harvest"]]\' data-cta="Sign & switch" data-done="Intent switched">'+
+    'Switch to '+names[i]+'</button>';
+}
+sel.addEventListener('change',paint); paint();
+})();
+</script><script>
+(function(){
+"use strict";
+// Demo mode (revert's demo-wallet door): activated only by #demo in the URL.
+// The tour is a closeable guide -- one click on the X dismisses it for good
+// (localStorage), because the archetype browsing a demo wants to look around,
+// not be boxed in. Non-demo visits are untouched.
+// Three activation signals: #demo (works for /proto in-iframe navigation),
+// ?demo, and window.__FORCE_DEMO (set by demo.html, the artifact-safe entry --
+// the artifact viewer keeps the hash on ITS url, so the document never sees it).
+var demoOn=location.hash.indexOf('demo')>-1
+  || location.search.indexOf('demo')>-1
+  || !!window.__FORCE_DEMO;
+if(!demoOn) return;
+document.body.classList.add('demo');
+var STEPS=[
+  ['.poshead','The whole position','Collateral, the LTV window, headroom in hours, and the debt. One row, always first.'],
+  ['#beltlist','Throughput','$10.17 a day, measured from settled deliveries. Nothing here is projected without a visible range.'],
+  ['#chartCard','Deliveries, cumulative','Every point is money that arrived. Flat weeks draw flat. The chart is allowed to disappoint.'],
+  ['#intents','What the yield is doing','Repay is running. The menu previews the intents you did not pick. Nothing switches unless you switch it.'],
+  ['.cal2','Is it luck?','Call outcomes before they happen and the score measures you, not the position.']
+];
+var i=0, card=document.getElementById('tourc'), cur=null;
+function clearHi(){ if(cur){ cur.classList.remove('tour-hi'); cur=null; } }
+function show(n){
+  i=n; var s=STEPS[i], el=document.querySelector(s[0]);
+  clearHi();
+  document.getElementById('tourK').textContent=(i+1)+' / '+STEPS.length;
+  document.getElementById('tourT').textContent=s[1];
+  document.getElementById('tourB').textContent=s[2];
+  document.getElementById('tourNext').textContent=(i===STEPS.length-1)?'Done':'Next';
+  if(el){ cur=el; el.classList.add('tour-hi'); el.scrollIntoView({behavior:'smooth',block:'center'}); }
+}
+function dismiss(){ clearHi(); card.classList.remove('open');
+  try{ localStorage.setItem('membrane.demoTour','dismissed'); }catch(e){} }
+var seen=null; try{ seen=localStorage.getItem('membrane.demoTour'); }catch(e){}
+if(seen!=='dismissed'){
+  card.classList.add('open'); show(0);
+  document.getElementById('tourNext').addEventListener('click',function(){
+    if(i>=STEPS.length-1){ dismiss(); } else { show(i+1); }
+  });
+  document.getElementById('tourX').addEventListener('click',dismiss);
+  document.getElementById('tourSkip').addEventListener('click',dismiss);
+}
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// Points & sacrifice editor. Contract shape: PointsSystem.setSacrifice(Class, rWad)
+// -- self-service, immediate, reversible, continuous r (r=1e18 => fees x0, points x2).
+// pendingReward(epoch, class, user) for the numbers; open epoch = estimate (shrinks
+// as others accrue weight), closed = final, claim(epoch, class) mints MBRN.
+// The Transmuter caches r at each user touch: when live r != synced r, the change
+// applies at the next deposit/exit there -- shown as a gold "pending" line.
+var CLASSES=[
+  { c:'Borrower', sub:'loan interest', fee:84.10, r:0, synced:0, pend:121.4, closed:96.2, active:true },
+  { c:'Lender', sub:'tranche fees', fee:97.35, r:50, synced:25, pend:158.9, closed:112.0, active:true },
+  { c:'RiskManager', sub:'curator fees', fee:0, r:0, synced:0, pend:0, closed:0, active:false }
+];
+function money(n){ return '$'+n.toFixed(2); }
+function paint(){
+  document.getElementById('ptrows').innerHTML=CLASSES.map(function(k,i){
+    if(!k.active){
+      return '<div class="ptrow"><span class="cn2">'+k.c+'<small>'+k.sub+'</small></span>'+
+        '<span class="pend" style="grid-column:2/-1">no weight this epoch \u2014 run a policy on '+
+        '<a href="defend.html" style="color:var(--phos)">Defend</a> to earn here</span></div>';
+    }
+    var sync=k.synced!==k.r
+      ? '<span class="ptsync">Transmuter synced at '+k.synced+'% \u2014 the new '+k.r+'% applies at your next deposit or exit there</span>'
+      : '';
+    return '<div class="ptrow">'+
+      '<span class="cn2">'+k.c+'<small>'+k.sub+'</small></span>'+
+      '<span class="pend num">this epoch <b>~'+k.pend.toFixed(1)+' MBRN</b> est \u00b7 '+
+        'epoch 2 final <b>'+k.closed.toFixed(1)+' MBRN</b> '+
+        '<button class="xbtn ptClaim" type="button" data-i="'+i+'" style="margin-left:6px">Claim</button></span>'+
+      '<span class="sac">'+
+        '<span class="sacl num">r=<b id="ptr'+i+'">'+k.r+'%</b> \u00b7 keep '+money(k.fee*(1-k.r/100))+' of '+money(k.fee)+'/mo \u00b7 points <b>'+(1+k.r/100).toFixed(2)+'\u00d7</b><br>'+sync+'</span>'+
+        '<input type="range" min="0" max="100" step="5" value="'+k.r+'" data-i="'+i+'" class="ptSlide" aria-label="Sacrifice ratio for '+k.c+'">'+
+      '</span>'+
+      '<button class="xbtn ptSet" type="button" data-i="'+i+'">Set</button>'+
+      '</div>';
+  }).join('');
+}
+document.getElementById('ptrows').addEventListener('input',function(e){
+  var s=e.target.closest('.ptSlide'); if(!s) return;
+  var i=+s.getAttribute('data-i');
+  document.getElementById('ptr'+i).textContent=s.value+'%';
+});
+document.getElementById('ptrows').addEventListener('click',function(e){
+  var g=e.target.closest('.ptSet'), cl=e.target.closest('.ptClaim');
+  if(g){
+    var i=+g.getAttribute('data-i'), k=CLASSES[i];
+    var nr=+document.querySelector('.ptSlide[data-i="'+i+'"]').value;
+    window.__exec({ title:'Set sacrifice \u2014 '+k.c,
+      rows:[['Class',k.c],['New ratio r',nr+'%'],
+        ['Fees you keep',(100-nr)+'% \u2014 '+money(k.fee*(1-nr/100))+' of '+money(k.fee)+'/mo'],
+        ['Points weight',(1+nr/100).toFixed(2)+'\u00d7 fee-value'],
+        ['Where forgone fees go','your own pool \u2014 tranche rate / revenue share']],
+      note:'One transaction to PointsSystem. Immediate and reversible. The Transmuter syncs at your next touch there \u2014 until then its cached ratio keeps applying.',
+      cta:'Sign & set', done:'Sacrifice set' });
+    window.__exec._after=function(){ k.r=nr; paint(); };
+  }
+  if(cl){
+    var j=+cl.getAttribute('data-i'), kk=CLASSES[j];
+    window.__exec({ title:'Claim epoch 2 \u2014 '+kk.c,
+      rows:[['Epoch','2 \u00b7 closed \u00b7 final'],['MBRN minted to you',kk.closed.toFixed(1)]],
+      note:'Closed-epoch rewards are final. Open-epoch estimates keep moving until the epoch closes.',
+      cta:'Sign & claim', done:'MBRN in wallet' });
+  }
+});
+paint();
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// demo-until-connect (the flip): every page opens fully populated. Wallet-scoped
+// blocks run on the demo wallet until a wallet connects; protocol-scoped blocks
+// stay live either way. CTAs in demo are intent-preserving: the confirm sheet
+// keeps its exact rows, the button becomes "Connect wallet", and after the (mock)
+// connect the SAME sheet re-opens for the real signature. Mock connect = one
+// localStorage flag so the whole loop is testable; the acct chip toggles it.
+var KEY='membrane.wallet';
+function isConn(){ try{ return localStorage.getItem(KEY)==='1'; }catch(e){ return false; } }
+function setConn(v){ try{ if(v) localStorage.setItem(KEY,'1'); else localStorage.removeItem(KEY); }catch(e){} }
+function wireAcct(conn){
+  var a=document.querySelector('.acct'); if(!a) return;
+  a.style.cursor='pointer';
+  if(conn){ a.textContent='0x9a41\u2026c2e0'; a.title='demo-connected \u00b7 click to disconnect';
+    a.onclick=function(){ setConn(false); location.reload(); }; }
+  else{ a.textContent='demo \u00b7 connect'; a.title='click to connect (mock wallet)';
+    a.onclick=function(){ setConn(true); location.reload(); }; }
+}
+function init(){
+  if(isConn()){ wireAcct(true); return; }
+  document.body.classList.add('demo');
+  wireAcct(false);
+  var st=document.createElement('style');
+  st.textContent='.demobar2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;'+
+    'background:var(--raise);border:1px solid var(--hair);padding:9px 14px;margin:0 0 16px;'+
+    'font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim)}'+
+    '.demobar2 b{font-weight:400;color:var(--gold)}'+
+    '.demobar2 button{background:none;border:0;color:var(--phos);font-family:inherit;font-size:10px;'+
+    'letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;text-decoration:underline;padding:0}';
+  document.head.appendChild(st);
+  if(!document.getElementById('demoBar')&&!document.getElementById('demoBar2')){
+    var bar=document.createElement('div'); bar.className='demobar2'; bar.id='demoBar2';
+    bar.innerHTML='<span><b>Demo</b> \u2014 wallet-scoped numbers are a demo wallet, not yours. '+
+      'Live market data stays live.</span>'+
+      '<button type="button" id="demoConn">Connect wallet \u2192</button>';
+    var nav=document.querySelector('.wrap nav')||document.querySelector('nav');
+    if(nav&&nav.parentNode) nav.parentNode.insertBefore(bar,nav.nextSibling);
+    else document.body.insertBefore(bar,document.body.firstChild);
+    document.getElementById('demoConn').onclick=function(){ setConn(true); location.reload(); };
+  }
+  var real=window.__exec; if(!real) return;
+  window.__exec=function(o){
+    var oo={}; for(var k in o) oo[k]=o[k];
+    oo.cta='Connect wallet';
+    oo.note=(o.note?o.note+' ':'')+'Demo: connecting keeps this exact intent and re-opens it for the real signature.';
+    real(oo);
+    var sheets=document.querySelectorAll('.xsheet');
+    var sheet=sheets[sheets.length-1]; if(!sheet) return;
+    var go=sheet.querySelector('.xgo'); if(!go) return;
+    go.onclick=function(){
+      go.textContent='connecting\u2026';
+      setTimeout(function(){
+        setConn(true);
+        sheet.remove();
+        document.body.classList.remove('demo');
+        var b1=document.getElementById('demoBar2'); if(b1) b1.remove();
+        window.__exec=real;
+        wireAcct(true);
+        real(o);
+      },700);
+    };
+  };
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// Lifestyle equivalence (the Hevy "that's like lifting a bus" move, done honestly):
+// the MEASURED last-14-day rate, priced in things people actually pay for monthly.
+// List prices are constants with an approx flag and a dated stamp -- no projection
+// beyond "at the measured rate", which is the same qualifier the hero already uses.
+var RATE_MO=10.17*30.4; // measured $/day x avg month
+var LIFE=[
+  { nm:'Claude Max (20x)', mo:200 },
+  { nm:'Claude Pro', mo:20 },
+  { nm:'Netflix', mo:18 },
+  { nm:'a Porsche 718 lease', mo:1200, approx:true },
+  { nm:'the median US mortgage payment', mo:2700, approx:true },
+  { nm:'a median Manhattan 1BR', mo:4500, approx:true }
+];
+// default to the tightest full cover (smallest multiple >= 1), else the largest fraction
+var start=0, best=Infinity;
+LIFE.forEach(function(x,i){ var c=RATE_MO/x.mo;
+  if(c>=1&&c<best){ best=c; start=i; } });
+var idx=start;
+var el=document.getElementById('lifel'); if(!el) return;
+function blocks(cover){
+  var out='', full=Math.floor(Math.min(cover,12)), frac=Math.min(cover,12)-full;
+  for(var i=0;i<full;i++) out+='<i class="f"></i>';
+  if(frac>0.03&&full<12) out+='<i><em style="width:'+(frac*100).toFixed(0)+'%"></em></i>';
+  if(cover>12) out+='<span class="num" style="font-size:9px;color:var(--phos)">+'+Math.round(cover-12)+'</span>';
+  return out;
+}
+function paint(){
+  var x=LIFE[idx], c=RATE_MO/x.mo;
+  var line;
+  if(c>=1){
+    line='your yield covers <b>'+c.toFixed(1).replace(/\.0$/,'')+'&times; '+x.nm+'</b>'+
+      '<span class="blocks">'+blocks(c)+'</span>every month, at the measured rate';
+  }else{
+    line='your yield pays <b>'+(c*100).toFixed(0)+'% of '+x.nm+'</b>'+
+      '<span class="blocks">'+blocks(c)+'</span>every month, at the measured rate';
+  }
+  el.innerHTML='<span class="ll1 num">'+line+'</span>'+
+    '<span class="ll2 num">$'+RATE_MO.toFixed(0)+'/mo at the last-14-day measured rate &middot; '+
+    (x.approx?'&asymp;':'')+'$'+x.mo.toLocaleString('en-US')+'/mo list price, Aug 2026 &middot; '+
+    'click for the next one &middot; '+(idx+1)+' / '+LIFE.length+'</span>';
+}
+el.addEventListener('click',function(){ idx=(idx+1)%LIFE.length; paint(); });
+paint();
+})();
+</script>

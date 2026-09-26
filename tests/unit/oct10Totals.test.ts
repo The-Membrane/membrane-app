@@ -63,7 +63,7 @@ describe('OCT10 kept figure', () => {
     expect(Math.abs(mem - OCT10_TOTALS.membraneClosedUsd)).toBeLessThan(1)
     expect(Math.abs(aave - mem - OCT10_TOTALS.keptUsd)).toBeLessThan(1)
     expect(OCT10_SCALE_LINE.line).toBe(
-      '4% sounds small. $67M less debt would have been closed on 10 Oct 2025 alone.',
+      '4% sounds small. $67M of debt protected from forced closure on 10 Oct 2025 alone.',
     )
   })
 })

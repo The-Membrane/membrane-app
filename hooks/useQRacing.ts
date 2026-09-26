@@ -24,7 +24,7 @@ export function useQRacingTrack(trackId?: string, rpcUrl?: string) {
 // Convenience hook that fetches both pieces of data in parallel
 export function useQRacing(trackId?: string, race?: JsonRaceResult, rpcUrl?: string) {
     const trackQuery = useQRacingTrack(trackId, rpcUrl);
-    const log = useMemo(() => (race ? raceResultToPlayByPlayEntries(race) : undefined), [race?.race_id]);
+    const log = useMemo(() => (race ? raceResultToPlayByPlayEntries(race) : undefined), [race]);
 
     return {
         track: trackQuery.data,

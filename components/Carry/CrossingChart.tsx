@@ -1,5 +1,16 @@
 import React, { useMemo } from 'react'
-import { Box, HStack, Text } from '@chakra-ui/react'
+import {
+  Box,
+  Button,
+  HStack,
+  Popover,
+  PopoverBody,
+  PopoverCloseButton,
+  PopoverContent,
+  PopoverTrigger,
+  Portal,
+  Text,
+} from '@chakra-ui/react'
 
 import { Card } from '@/components/ui/Card'
 import { MockStamp } from '@/components/demo'
@@ -233,18 +244,34 @@ const Conclusions: React.FC<{ size: number; crossing: number | null }> = ({ size
   const chosen = EXIT_MODEL.chosen.name.split(' · ')[0]
   const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
   const win = (a: number, c: number) => (a > c ? alt : chosen)
+  const gold = (value: string) => (
+    <Text as="span" color={SEMANTIC_COLORS.warning} fontWeight={700}>
+      {value}
+    </Text>
+  )
   const lines = [
-    `At your size (${formatUSD(size)}), after ${HORIZON_DAYS} days you keep ${pct(a1)} on ${alt} vs ${pct(c1)} on ${chosen}. ${win(a1, c1)} wins.`,
-    `At ×10 (${formatUSD(size * 10)}) it is ${pct(a10)} vs ${pct(c10)}. ${win(a10, c10)} wins; the higher yield is eaten by a deeper exit.`,
-    crossing !== null
-      ? `The crossover is near ${formatUSD(twoSigFigs(crossing))}. Below it, chase the yield; above it, pay for the exit.`
-      : `No crossover inside the modelled range: the ranking holds at every size shown.`,
+    <>
+      At your size ({gold(formatUSD(size))}), after {gold(`${HORIZON_DAYS} days`)} you keep{' '}
+      {gold(pct(a1))} on {alt} vs {gold(pct(c1))} on {chosen}. {gold(win(a1, c1))} wins.
+    </>,
+    <>
+      At ×10 ({gold(formatUSD(size * 10))}) it is {gold(pct(a10))} vs {gold(pct(c10))}.{' '}
+      {gold(win(a10, c10))} wins; the higher yield is eaten by a deeper exit.
+    </>,
+    crossing !== null ? (
+      <>
+        The crossover is near {gold(formatUSD(twoSigFigs(crossing)))}. Below it, chase the yield;
+        above it, pay for the exit.
+      </>
+    ) : (
+      <>No crossover inside the modelled range: the ranking holds at every size shown.</>
+    ),
   ]
   return (
     <Box display="grid" gap={SPACING.xs}>
-      {lines.map((l) => (
+      {lines.map((line, index) => (
         <Text
-          key={l}
+          key={index}
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize={TYPOGRAPHY.xs}
           lineHeight={1.7}
@@ -253,7 +280,7 @@ const Conclusions: React.FC<{ size: number; crossing: number | null }> = ({ size
           borderColor={SEMANTIC_COLORS.success}
           pl={SPACING.sm}
         >
-          {l}
+          {line}
         </Text>
       ))}
     </Box>
@@ -276,7 +303,7 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
     <Box>
       <SectionHeading
         index="04 /"
-        title="Where the higher yield stops paying"
+        title="Higher Yield Comes With Risks"
         note={`${EXIT_MODEL.alt.name} vs ${EXIT_MODEL.chosen.name} · what you keep after exit costs, over ${HORIZON_DAYS} days, at your size, ×10 and ×100`}
       />
       <Card p={SPACING.base}>
@@ -362,8 +389,8 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
           </Box>
         )}
 
-        {/* Lead with the decision. Model mechanics stay available behind one native,
-            keyboard-operable disclosure instead of occupying half the card. */}
+        {/* Lead with the decision. The model details float over the chart without
+            changing the card's height. */}
         <Box
           mt={SPACING.md}
           display="grid"
@@ -384,87 +411,117 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
             <Conclusions size={size} crossing={crossing} />
           </Box>
 
-          <Box
-            as="details"
-            maxW={{ base: '100%', md: '430px' }}
-            border="1px solid"
-            borderColor={SEMANTIC_COLORS.borderSubtle}
-            bg={SEMANTIC_COLORS.bgPrimary}
-            sx={{ '&[open]': { borderColor: SEMANTIC_COLORS.borderStrong } }}
-          >
-            <Box
-              as="summary"
-              aria-label="How the yield is discounted"
-              title="How the yield is discounted"
-              cursor="pointer"
-              listStyleType="none"
-              px={SPACING.md}
-              py={SPACING.sm}
-              display="flex"
-              gap={SPACING.sm}
-              alignItems="center"
-              justifyContent="space-between"
-              color={SEMANTIC_COLORS.textSecondary}
-              transition={TRANSITIONS.colors}
-              _hover={{ color: SEMANTIC_COLORS.textPrimary }}
-              _focusVisible={FOCUS_STYLES.ring}
-              sx={{ '&::-webkit-details-marker': { display: 'none' } }}
-            >
-              <Text
-                as="span"
+          <Popover placement="top-end" closeOnBlur>
+            <PopoverTrigger>
+              <Button
+                type="button"
+                aria-label="How the yield is discounted"
+                h="auto"
+                px={SPACING.md}
+                py={SPACING.sm}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderSubtle}
+                borderRadius={0}
+                bg={SEMANTIC_COLORS.bgPrimary}
+                color={SEMANTIC_COLORS.textSecondary}
                 fontFamily={TYPOGRAPHY.fontMono}
                 fontSize="10px"
                 letterSpacing="0.18em"
                 textTransform="uppercase"
+                gap={SPACING.sm}
+                transition={TRANSITIONS.colors}
+                _hover={{
+                  color: SEMANTIC_COLORS.textPrimary,
+                  borderColor: SEMANTIC_COLORS.borderStrong,
+                }}
+                _focus={FOCUS_STYLES.ring}
               >
-                yield discount model
-              </Text>
-              <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="15px" aria-hidden="true">
-                ⓘ
-              </Text>
-            </Box>
-            <Box
-              px={SPACING.md}
-              pb={SPACING.md}
-              display="grid"
-              gap={SPACING.sm}
-              borderTop="1px solid"
-              borderColor={SEMANTIC_COLORS.borderSubtle}
-              pt={SPACING.md}
-            >
-              <Text
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize={TYPOGRAPHY.xs}
-                lineHeight={1.7}
-                color={SEMANTIC_COLORS.textSecondary}
+                yield discount model{' '}
+                <Text as="span" fontSize="15px" aria-hidden="true">
+                  ⓘ
+                </Text>
+              </Button>
+            </PopoverTrigger>
+            <Portal>
+              <PopoverContent
+                w={{ base: 'calc(100vw - 32px)', md: '430px' }}
+                maxH="min(70vh, 420px)"
+                overflowY="auto"
+                borderRadius={0}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderStrong}
+                bg={SEMANTIC_COLORS.bgPrimary}
+                color={SEMANTIC_COLORS.textPrimary}
+                boxShadow="lg"
+                _focus={FOCUS_STYLES.ring}
               >
-                kept = yield earned so far − the cost of getting out at that size. The first slice
-                swaps out instantly, the next waits through the venue’s cooldown, and anything past
-                the venue’s depth takes the highest modelled cost. Larger positions reach the
-                expensive tiers sooner.
-              </Text>
-              <Text
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize={TYPOGRAPHY.xs}
-                lineHeight={1.7}
-                color={SEMANTIC_COLORS.textSecondary}
-              >
-                {EXIT_MODEL.alt.name.split(' · ')[0]}: instant to{' '}
-                {formatUSD(EXIT_MODEL.alt.instantDepthUsd)} at {EXIT_MODEL.alt.instantCostPct[0]}–
-                {EXIT_MODEL.alt.instantCostPct[1]}%, cooling to{' '}
-                {formatUSD(EXIT_MODEL.alt.instantDepthUsd + EXIT_MODEL.alt.coolingDepthUsd)} at{' '}
-                {EXIT_MODEL.alt.coolingCostPct[0]}–{EXIT_MODEL.alt.coolingCostPct[1]}%, then{' '}
-                {EXIT_MODEL.alt.strandedCostPct[0]}–{EXIT_MODEL.alt.strandedCostPct[1]}%.{' '}
-                {EXIT_MODEL.chosen.name.split(' · ')[0]}: instant to{' '}
-                {formatUSD(EXIT_MODEL.chosen.instantDepthUsd)} at{' '}
-                {EXIT_MODEL.chosen.instantCostPct[0]}–{EXIT_MODEL.chosen.instantCostPct[1]}%,
-                cooling to{' '}
-                {formatUSD(EXIT_MODEL.chosen.instantDepthUsd + EXIT_MODEL.chosen.coolingDepthUsd)}{' '}
-                at {EXIT_MODEL.chosen.coolingCostPct[0]}–{EXIT_MODEL.chosen.coolingCostPct[1]}%,
-                then {EXIT_MODEL.chosen.strandedCostPct[0]}–{EXIT_MODEL.chosen.strandedCostPct[1]}%.
-              </Text>
-            </Box>
-          </Box>
+                <PopoverCloseButton aria-label="Close yield discount model" borderRadius={0} />
+                <PopoverBody p={SPACING.md} display="grid" gap={SPACING.sm}>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.xs}
+                    lineHeight={1.7}
+                    color={SEMANTIC_COLORS.textPrimary}
+                  >
+                    If part of your withdrawal has to wait, how much value does this model take off
+                    that waiting part?
+                  </Text>
+                  {[EXIT_MODEL.chosen, EXIT_MODEL.alt].map((venue) => (
+                    <Box
+                      key={venue.name}
+                      display="flex"
+                      justifyContent="space-between"
+                      gap={SPACING.md}
+                      borderBottom="1px solid"
+                      borderColor={SEMANTIC_COLORS.borderSubtle}
+                      py={SPACING.xs}
+                    >
+                      <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.xs}
+                        color={SEMANTIC_COLORS.textPrimary}
+                      >
+                        {venue.name.split(' · ')[0]}
+                      </Text>
+                      <Text
+                        fontFamily={TYPOGRAPHY.fontMono}
+                        fontSize={TYPOGRAPHY.xs}
+                        fontWeight={700}
+                        color={SEMANTIC_COLORS.warning}
+                        whiteSpace="nowrap"
+                      >
+                        {venue.coolingCostPct[0]}–{venue.coolingCostPct[1]}% haircut
+                      </Text>
+                    </Box>
+                  ))}
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.xs}
+                    lineHeight={1.7}
+                    color={SEMANTIC_COLORS.textSecondary}
+                  >
+                    This applies only after the instant-exit slice:{' '}
+                    {formatUSD(EXIT_MODEL.chosen.instantDepthUsd)} at Morpho and{' '}
+                    {formatUSD(EXIT_MODEL.alt.instantDepthUsd)} at USDat. Beyond each venue’s
+                    modelled waiting capacity, the haircut rises to{' '}
+                    {EXIT_MODEL.chosen.strandedCostPct[0]}–{EXIT_MODEL.chosen.strandedCostPct[1]}%
+                    and {EXIT_MODEL.alt.strandedCostPct[0]}–{EXIT_MODEL.alt.strandedCostPct[1]}%,
+                    respectively.
+                  </Text>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.xs}
+                    lineHeight={1.7}
+                    color={SEMANTIC_COLORS.textSecondary}
+                  >
+                    The wait length is not measured here. These haircuts are model assumptions, not
+                    observed withdrawal fees. The chart subtracts the weighted haircut from yield
+                    earned so far.
+                  </Text>
+                </PopoverBody>
+              </PopoverContent>
+            </Portal>
+          </Popover>
         </Box>
 
         <HStack spacing={SPACING.sm} mt={SPACING.md} align="baseline">

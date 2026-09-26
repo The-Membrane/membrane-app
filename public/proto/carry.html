@@ -1,0 +1,912 @@
+<title>Membrane &mdash; Carry</title>
+<style>
+  :root{
+    --bg:#09090a; --raise:#100f12; --card:#0e0d10; --sunk:#070708;
+    --ink:#ece6d8; --dim:#8d877b; --faint:#56524a;
+    --hair:rgba(236,230,216,0.10); --hairS:rgba(236,230,216,0.22);
+    --phos:#9bdc4f; --teal:#46d39a; --gold:#d8b24a; --blood:#cf4034;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--mono);
+    font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; padding-bottom:70px; }
+  .wrap{ max-width:1140px; margin:0 auto; padding:0 20px; }
+  h1,h2{ font-family:var(--serif); font-weight:400; margin:0; letter-spacing:-0.01em; }
+  .num{ font-variant-numeric:tabular-nums; }
+  nav{ display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:16px 0; border-bottom:1px solid var(--hair); margin-bottom:26px; }
+  .brand{ font-family:var(--serif); font-size:17px; }
+  .pnav{ display:flex; gap:2px; margin-left:26px; margin-right:auto; flex-wrap:wrap; }
+  .pnav a{ font-family:var(--mono); font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--dim); text-decoration:none; padding:6px 10px; border:1px solid transparent;
+    transition:color .15s,border-color .15s; }
+  .pnav a:hover{ color:var(--phos); }
+  .pnav a.on{ color:var(--ink); border-color:var(--hairS); }
+  .pnav a.stub{ color:var(--faint); cursor:help; }
+  .navr{ font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--faint); }
+  .eyebrow{ font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); }
+  .card{ background:var(--card); border:1px solid var(--hair); padding:18px; }
+  .warm{ font-size:12px; color:var(--dim); max-width:74ch; line-height:1.7; }
+
+  /* collateral picker */
+  .coll{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:14px; }
+  .cbtn{ text-align:left; background:var(--card); border:1px solid var(--hair); padding:14px;
+    color:var(--ink); font-family:var(--mono); cursor:pointer; display:grid; gap:4px;
+    transition:border-color .15s; }
+  .cbtn:hover{ border-color:var(--phos); }
+  .cbtn.on{ border-color:var(--hairS); background:var(--raise); }
+  .cbtn .cn{ font-family:var(--serif); font-size:15px; }
+  .cbtn .cy{ font-size:11px; color:var(--dim); }
+  .cbtn .ct{ font-size:9.5px; color:var(--faint); }
+
+  /* ladder */
+  .ladder{ margin-top:18px; }
+  .rung{ display:grid; grid-template-columns:66px 1.1fr 1.4fr auto; gap:16px; align-items:center;
+    padding:13px 14px; border:1px solid var(--hair); border-bottom:0; background:var(--card);
+    cursor:pointer; transition:border-color .15s; }
+  .rung:last-child{ border-bottom:1px solid var(--hair); }
+  .rung:hover{ border-color:var(--hairS); }
+  .rung.on{ background:var(--raise); border-left:3px solid var(--phos); padding-left:12px; }
+  .rung .lx{ font-size:19px; }
+  .rung .carry{ font-size:13px; }
+  .rung .carry small{ display:block; font-size:9.5px; color:var(--faint); }
+  .surv{ display:grid; gap:4px; }
+  .sbar{ position:relative; height:7px; background:var(--sunk); border:1px solid var(--hair); }
+  .sbar i{ position:absolute; left:0; top:0; bottom:0; background:var(--teal); }
+  .sbar .mv{ position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--gold); }
+  .surv .sn{ font-size:9.5px; color:var(--faint); }
+  .rung .tag{ font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--faint);
+    border:1px solid var(--hair); padding:3px 8px; }
+  .rung.on .tag{ color:var(--phos); border-color:var(--phos); }
+  .rung.danger .tag{ color:var(--gold); border-color:var(--gold); }
+
+  /* cure timeline */
+  .onebox{ display:flex; gap:18px; align-items:stretch; flex-wrap:wrap; margin-top:14px; padding:20px; }
+  .ob-amt input{ width:150px; background:var(--raise); border:1px solid var(--hairS); color:var(--ink);
+    font-family:var(--mono); font-size:22px; padding:8px 10px; text-align:right; }
+  .obu{ font-size:12px; color:var(--dim); }
+  .ob-presets{ display:flex; gap:8px; flex:1; min-width:300px; }
+  .obp{ flex:1; text-align:left; background:var(--card); border:1px solid var(--hair); padding:10px 12px;
+    color:var(--ink); font-family:var(--mono); cursor:pointer; display:grid; gap:3px;
+    transition:border-color .15s; }
+  .obp:hover{ border-color:var(--phos); }
+  .obp.on{ border-color:var(--phos); background:var(--raise); }
+  .obp .pn2{ font-family:var(--serif); font-size:14px; }
+  .obp .pd{ font-size:9.5px; color:var(--dim); line-height:1.5; }
+  .ob-go{ align-self:center; padding:14px 26px; font-size:12px; }
+  .linklike{ background:none; border:0; color:var(--phos); font-family:var(--mono); font-size:9px;
+    letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; padding:0; margin-left:8px;
+    text-decoration:underline; }
+  /* boards + cross-protocol routes */
+  .brow2{ display:grid; grid-template-columns:30px 1.5fr 110px 1.1fr auto; gap:12px; align-items:center;
+    padding:10px 12px; border:1px solid var(--hair); border-bottom:0; background:var(--card); font-size:11.5px; }
+  .brow2:last-child{ border-bottom:1px solid var(--hair); }
+  .brow2 .rk{ color:var(--faint); }
+  .brow2 .bn b{ font-weight:400; display:block; }
+  .brow2 .bn small{ font-size:9.5px; color:var(--faint); }
+  .brow2 .cy2{ color:var(--phos); text-align:right; white-space:nowrap; }
+  .brow2 .cy2 small{ display:block; color:var(--faint); font-size:9px; }
+  .brow2 .sv2{ font-size:10px; color:var(--dim); line-height:1.5; }
+  .brow2 .sv2 b{ font-weight:400; color:var(--ink); }
+  .brow2.dead .cy2{ color:var(--blood); }
+  .rt-row{ display:grid; grid-template-columns:1.6fr 64px 1fr auto; gap:12px; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--hair); font-size:11px; }
+  .rt-row:last-child{ border-bottom:0; }
+  .rt-row .rn b{ font-weight:400; color:var(--ink); }
+  .rt-row .rn a{ color:inherit; text-decoration:none; }
+  .rt-row .rn a:hover{ color:var(--phos); text-decoration:underline; }
+  .rt-row .rp{ color:var(--faint); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; display:block; }
+  .rt-row .pos2{ color:var(--faint); text-align:right; }
+  .rt-bar{ position:relative; height:7px; background:var(--sunk); border:1px solid var(--hair); }
+  .rt-bar .z{ position:absolute; left:50%; top:-3px; bottom:-3px; width:1px; background:var(--hairS); }
+  .rt-bar i{ position:absolute; top:0; bottom:0; }
+  .rt-net{ text-align:right; white-space:nowrap; }
+  .rt-net small{ display:block; font-size:9px; color:var(--teal); }
+  .rthd{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  /* redemption history: liquidity-at-liquidation evidence, per venue */
+  .rhrow{ display:grid; grid-template-columns:150px 1fr 300px; gap:14px; align-items:center;
+    padding:11px 0; border-bottom:1px solid var(--hair); }
+  .rhrow:last-child{ border-bottom:0; }
+  .rhrow .vn{ font-size:12px; }
+  .rhrow .vn small{ display:block; font-size:9px; color:var(--faint); letter-spacing:0.14em; text-transform:uppercase; }
+  .rhbar{ position:relative; height:13px; background:var(--sunk); border:1px solid var(--hair); }
+  .rhbar i{ position:absolute; top:0; bottom:0; left:0; background:rgba(155,220,79,0.75); }
+  .rhbar em{ position:absolute; top:0; bottom:0; right:0; background:rgba(207,64,52,0.7); font-style:normal; }
+  .rhrow .rhs{ font-size:9.5px; color:var(--dim); line-height:1.55; text-align:right; }
+  .rhrow .rhs b{ font-weight:400; color:var(--ink); }
+  @media(max-width:820px){ .rhrow{ grid-template-columns:1fr; } .rhrow .rhs{ text-align:left; } }
+  @media(max-width:760px){ .brow2{ grid-template-columns:24px 1fr auto; } .brow2 .sv2{ display:none; }
+    .rt-row{ grid-template-columns:1fr auto; } .rt-bar,.rt-row .pos2{ display:none; } }
+
+  .cure{ margin-top:18px; }
+  .tl{ position:relative; height:96px; background:var(--sunk); border:1px solid var(--hair);
+    margin-top:12px; overflow:hidden; }
+  .tl .seg{ position:absolute; top:0; bottom:0; }
+  .tl .lbl{ position:absolute; font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--dim); white-space:nowrap; }
+  .tl .tick{ position:absolute; top:0; bottom:0; width:1px; background:var(--hairS); }
+  .tlnote{ display:flex; justify-content:space-between; gap:14px; font-size:9.5px;
+    color:var(--faint); margin-top:7px; flex-wrap:wrap; }
+  .sect{ margin:34px 0 10px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .sect h2{ font-size:20px; }
+  .sect .note{ font-size:11px; color:var(--faint); }
+  .stamp{ font-size:9px; color:var(--faint); letter-spacing:0.12em; margin-top:10px; }
+  @media(max-width:760px){ .coll{ grid-template-columns:1fr; }
+    .rung{ grid-template-columns:52px 1fr; } .rung .surv{ grid-column:1/-1; } .rung .tag{ display:none; } }
+
+  /* execution layer (V5/V6): every implied action gets its button; one confirm, numbers only */
+  .acct{ font-size:10px; color:var(--dim); border:1px solid var(--hair); padding:5px 10px; letter-spacing:0.06em; }
+  .xbtn{ display:inline-block; background:transparent; border:1px solid var(--hairS); color:var(--ink);
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:6px 11px; cursor:pointer; text-decoration:none; transition:border-color .15s,color .15s; }
+  .xbtn:hover{ border-color:var(--phos); color:var(--phos); }
+  .xbtn.go{ background:var(--phos); border-color:var(--phos); color:#09090a; }
+  .xbtn.go:hover{ background:#b3ec6e; color:#09090a; }
+  .xrail{ display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .xsheet{ position:fixed; inset:0; background:rgba(7,7,8,0.78); display:grid; place-items:center; z-index:60; }
+  .xcard{ background:var(--card); border:1px solid var(--hairS); padding:20px; width:min(430px,92vw); }
+  .xh{ font-family:var(--serif); font-size:17px; margin-bottom:12px; }
+  .xrow{ display:flex; justify-content:space-between; gap:14px; font-size:11.5px; color:var(--dim);
+    padding:5px 0; border-bottom:1px solid var(--hair); }
+  .xrow:last-child{ border-bottom:0; }
+  .xv{ font-weight:400; color:var(--ink); }
+  .xnote{ font-size:10px; color:var(--faint); line-height:1.6; margin:10px 0 0; }
+  .xbtns{ display:flex; gap:8px; margin-top:16px; }
+  .xgo{ flex:1; background:var(--phos); border:1px solid var(--phos); color:#09090a;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px; cursor:pointer; }
+  .xno{ background:transparent; border:1px solid var(--hairS); color:var(--dim);
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px 16px; cursor:pointer; }
+  .xpend{ margin-top:16px; font-size:11px; color:var(--gold); letter-spacing:0.08em; }
+  .xdone{ margin-top:16px; font-size:11px; color:var(--phos); letter-spacing:0.08em; }
+
+</style>
+
+<div class="wrap">
+  <nav>
+    <span class="brand">Membrane</span>
+    <span class="pnav">
+      <a href="dash.html">Position</a>
+      <a href="builder.html">Builder</a>
+      <a href="borrow.html">Borrow</a>
+      <a href="carry.html" class="on">Carry</a>
+      <a href="supply.html">Earn</a>
+      <a class="stub" title="not mocked yet">Liquidate</a>
+      <a href="defend.html">Defend</a>
+    </span>
+    <span class="acct num">0x9a41&hellip;c2e0</span>
+    <span class="navr">Carry &middot; mock</span>
+  </nav>
+
+  <span class="eyebrow">Carry</span>
+  <h1 style="margin-top:8px">Borrow against dollars that keep earning.</h1>
+  <p class="stamp" style="margin-top:8px">
+    Carry borrows CDT and routes it through venues in the same motion &mdash; the root system of the
+    network. Venue yield flows to lenders, which holds the loan&rsquo;s cost down, and every closed route
+    feeds the core that funds the borrowing side; neither side extracts from the other. Plain debt,
+    minted to your wallet and deployed nowhere, is
+    <a href="borrow.html" style="color:var(--phos)">Borrow</a>.
+  </p>
+
+  <div class="card onebox">
+    <div class="ob-amt">
+      <span class="eyebrow">Amount</span>
+      <div><input id="obAmt" class="num" value="10000" inputmode="numeric" aria-label="Equity, USD"> <span class="obu">USD</span></div>
+    </div>
+    <div class="ob-presets" id="obPresets" role="radiogroup" aria-label="Risk preset"></div>
+    <button class="xbtn go ob-go" id="obGo" type="button">Open carry</button>
+  </div>
+  <p class="stamp" style="margin-top:8px">
+    One decision. The preset picks collateral, leverage, and the venue mix together &mdash; they are
+    the same risk axis &mdash; and the confirmation lists every choice it made for you.
+    <button class="linklike" id="obAdv" type="button">customize each piece instead</button>
+  </p>
+
+  <div class="sect"><span class="eyebrow">02 /</span><h2>What the market is running</h2>
+    <span class="note">real boards and real routes &mdash; including the losing ones</span></div>
+  <div class="card">
+    <span class="eyebrow">Boards &mdash; top survivors</span>
+    <div class="boards" id="boards" style="margin-top:12px"></div>
+    <p class="stamp">mock leaderboard &mdash; real boards come from the gauntlet and position history &middot;
+      ranked by floors survived, then net &middot; net carry is on equity at the shown leverage</p>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="rthd">
+      <span class="eyebrow">Live routes on other protocols</span>
+      <span class="stamp" id="rtStamp" style="margin:0">measured Aug 2026 &middot; 1,245 positions, A+B evidence</span>
+    </div>
+    <div class="routes" id="routes" style="margin-top:12px"></div>
+    <p class="stamp">12 of 25 priced routes shown &middot; borrow venue attributed from route semantics &middot;
+      routes are per-dollar spreads; boards above are on your equity at leverage &mdash; do not compare the raw numbers</p>
+    <p class="stamp">median external net +0.60% / yr per dollar &middot; the Balanced preset carries +19.5% on your
+      equity at 3&times; &mdash; the difference is the loop</p>
+  </div>
+
+  <div id="advanced" style="display:none">
+  <div class="sect"><span class="eyebrow">01 /</span><h2>Collateral</h2></div>
+  <div class="coll" id="coll"></div>
+
+  <div class="sect"><span class="eyebrow">02 /</span><h2>Leverage, carry, and survival</h2>
+    <span style="margin-left:auto;font-size:11px;color:var(--dim)">Equity
+      <input id="amtIn" class="num" value="10000" inputmode="numeric" aria-label="Equity amount, USD"
+        style="width:90px;background:var(--raise);border:1px solid var(--hairS);color:var(--ink);
+        font-family:var(--mono);font-size:12px;padding:4px 7px;text-align:right"> USD</span>
+    <span class="note">net carry is on your equity, at today&rsquo;s rates &middot; survival is against the measured 1-in-1000 8-hour move</span></div>
+  <div class="ladder" id="ladder"></div>
+  <p class="stamp" id="ladderStamp"></p>
+  <p class="warm" style="margin-top:14px">
+    Carry-venue yield flows to lenders &mdash; that is what holds the loan&rsquo;s cost down, at
+    today&rsquo;s rates. The survival column is measured
+    against six years of 8-hour moves, not against a feeling. Venue mixes are edited on the
+    <a href="builder.html" style="color:var(--phos)">Builder board</a> &mdash; the same three slots,
+    with the gauntlet to test them.
+  </p>
+  </div><!-- /advanced -->
+
+  <div class="sect"><span class="eyebrow">03 /</span><h2>Will the venue give it back?</h2>
+    <span class="note">recall behavior when it mattered &mdash; evidence for liquidation-time liquidity, not a lender-flight signal</span></div>
+  <div class="card">
+    <div id="rh"></div>
+    <p class="stamp">mock &mdash; in production this is reconstructed by an indexer from VaultServed / VaultSlashed /
+      VenueRecalled events and globalVenueBannedUntil; no on-chain aggregates exist &middot;
+      redemptions are 1:1 at peg, so there is no premium to show</p>
+  </div>
+
+  <div class="sect"><span class="eyebrow">04 /</span><h2>Breach, cure window, liquidation</h2>
+    <span class="note">the mechanism, in order</span></div>
+  <div class="card cure">
+    <div class="tl" id="tl"></div>
+    <div class="tlnote">
+      <span>Two ways in: cross the cap and the timer starts; jump 4% past it and liquidation is immediate, no window.</span>
+      <span>Liquidation repays to the cap &mdash; not the whole loan.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // Measured 8h-drawdown tails from the lending scan (collateral_rank.json,
+  // ~2,950 windows per asset, 2019-2026). ABSORB is how much price fall the
+  // 4%-LTV window absorbs at max draw. Yields are today's, marked as such.
+  var ABSORB=5.41;
+  var COLL=[
+    { sym:'sUSDS',     yld:6.5, p999:0.41, worst:6.26, maxLtv:0.86, n:2950 },
+    { sym:'syrupUSDC', yld:7.8, p999:0.18, worst:0.20, maxLtv:0.86, n:2101 },
+    { sym:'scrvUSD',   yld:9.2, p999:0.92, worst:0.92, maxLtv:0.80, n:2986 }
+  ];
+  var sel=0, rung=1;
+  var LEV=[2,3,5,7];
+
+  function paintColl(){
+    document.getElementById('coll').innerHTML=COLL.map(function(c,i){
+      return '<button class="cbtn'+(i===sel?' on':'')+'" data-c="'+i+'" type="button">'+
+        '<span class="cn">'+c.sym+' <span class="oic" data-oracle="'+c.sym+'">oracle</span></span>'+
+        '<span class="cy num">earns '+c.yld.toFixed(1)+'% while posted &middot; max draw '+(c.maxLtv*100).toFixed(0)+'%</span>'+
+        '<span class="ct num">1-in-1000 8h move: &minus;'+c.p999.toFixed(2)+'% &middot; worst ever: &minus;'+c.worst.toFixed(2)+'% &middot; n='+c.n.toLocaleString()+'</span>'+
+        '</button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('.cbtn'),function(b){
+      b.addEventListener('click',function(){ sel=+b.getAttribute('data-c'); rung=1; paintColl(); paintLadder(); });
+    });
+  }
+
+  function paintLadder(){
+    var c=COLL[sel];
+    document.getElementById('ladder').innerHTML=LEV.map(function(L,i){
+      var ltv=(L-1)/L;
+      if(ltv>c.maxLtv) ltv=c.maxLtv;
+      var carry=L*c.yld;                          // borrow ~0%: carry on equity ~ L x yield
+      // price fall that reaches breach from this rung; then how many measured
+      // 1-in-1000 8h moves fit inside it
+      var fall=(1-ltv/(c.maxLtv*1.04))*100;
+      var cover=fall/c.p999;
+      var danger=cover<3;
+      var w=Math.min(100, c.p999/Math.max(fall,0.0001)*100);
+      return '<div class="rung'+(i===rung?' on':'')+(danger?' danger':'')+'" data-r="'+i+'">'+
+        '<span class="lx num">'+L+'&times;</span>'+
+        '<span class="carry num" style="color:var(--phos)">+'+carry.toFixed(1)+'% / yr'+
+          '<small>on equity &middot; '+(ltv*100).toFixed(0)+'% LTV</small></span>'+
+        '<span class="surv">'+
+          '<span class="sbar"><i style="width:'+w.toFixed(1)+'%"></i><span class="mv" style="left:100%"></span></span>'+
+          '<span class="sn num">the 1-in-1000 move uses '+w.toFixed(0)+'% of your room &mdash; '+
+            cover.toFixed(0)+'&times; covered</span>'+
+        '</span>'+
+        '<span class="tag">'+(danger?'thin':'measured')+'</span></div>';
+    }).join('');
+    document.getElementById('ladderStamp').textContent=
+      'drawdown tails measured across '+c.n.toLocaleString()+' eight-hour windows, 2019-2026 \u00b7 '+
+      'window absorption '+ABSORB+'% at max draw \u00b7 yields are today\u2019s and move';
+    Array.prototype.forEach.call(document.querySelectorAll('.rung'),function(r){
+      r.addEventListener('click',function(){ rung=+r.getAttribute('data-r'); paintLadder(); });
+    });
+  }
+
+  function paintTimeline(){
+    // The window is a corridor with one exit up (cure, any time inside it) and one
+    // terminal at the end (liquidation). Cure is never a stage that comes after the
+    // timer -- if the timer runs out, what comes next is the retrieval.
+    var tl=document.getElementById('tl');
+    tl.innerHTML=
+      '<span class="seg" style="left:0;width:20%;background:rgba(155,220,79,0.08)"></span>'+
+      '<span class="lbl" style="left:2%;top:8px;color:var(--phos)">HEALTHY</span>'+
+      '<span class="lbl num" style="left:2%;bottom:8px">LTV under your cap</span>'+
+      '<span class="tick" style="left:20%"></span>'+
+      '<span class="lbl" style="left:21.5%;top:8px;color:var(--gold)">BREACH &middot; 8H TIMER STARTS</span>'+
+      '<span class="seg" style="left:20%;width:60%;background:rgba(216,178,74,0.10)"></span>'+
+      '<span class="seg" id="cureFill" style="left:20%;width:0%;background:rgba(216,178,74,0.28)"></span>'+
+      '<span class="lbl num" id="cureLbl" style="left:44%;top:44px;color:var(--gold)">0h 00m of 8h</span>'+
+      '<span class="lbl" style="left:34%;bottom:8px;color:var(--ink)">&uarr; cure anytime in the window: deposit, repay, or price recovery &rarr; back to healthy</span>'+
+      '<span class="tick" style="left:80%"></span>'+
+      '<span class="seg" style="left:80%;width:20%;background:rgba(207,64,52,0.22)"></span>'+
+      '<span class="lbl" style="left:82%;top:8px;color:var(--blood)">LIQUIDATION</span>'+
+      '<span class="lbl num" style="left:82%;bottom:8px">timer expired uncured &middot; repays to the cap</span>';
+    var t=0;
+    setInterval(function(){
+      t=(t+0.02)%1.15;
+      var k=Math.min(1,t/1);
+      document.getElementById('cureFill').style.width=(k*60)+'%';
+      var mins=Math.round(k*480);
+      document.getElementById('cureLbl').textContent=Math.floor(mins/60)+'h '+String(mins%60).padStart(2,'0')+'m of 8h';
+    },80);
+  }
+
+  paintColl(); paintLadder(); paintTimeline();
+  window.__borrow={ paintLadder:paintLadder, COLL:COLL, sel:function(){return sel;} };
+})();
+</script>
+
+<script>
+(function(){
+"use strict";
+// The one confirmation an irreversible action gets (VETERAN_UX_RULESET V6): numbers,
+// not prose; then pending; then settled. Mock chain, real choreography.
+function el(t,c,x){var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.innerHTML=x; return e;}
+window.__exec=function(o){
+  var ov=el('div','xsheet'), c=el('div','xcard');
+  c.appendChild(el('div','xh',o.title));
+  var tb=el('div');
+  (o.rows||[]).forEach(function(r){ var w=el('div','xrow');
+    w.appendChild(el('span','',r[0])); w.appendChild(el('b','xv num',r[1])); tb.appendChild(w); });
+  c.appendChild(tb);
+  if(o.note) c.appendChild(el('p','xnote',o.note));
+  var btns=el('div','xbtns'), go=el('button','xgo',o.cta||'Confirm'), no=el('button','xno','Cancel');
+  btns.appendChild(go); btns.appendChild(no); c.appendChild(btns);
+  ov.appendChild(c); document.body.appendChild(ov);
+  var close=function(){ ov.remove(); };
+  no.onclick=close; ov.onclick=function(e){ if(e.target===ov) close(); };
+  go.onclick=function(){
+    btns.remove();
+    var p=el('div','xpend','signing\u2026'); c.appendChild(p);
+    setTimeout(function(){ p.textContent='pending \u2014 waiting for the receipt\u2026';
+      setTimeout(function(){
+        p.className='xdone'; p.textContent=(o.done||'Settled')+' \u00b7 mock chain';
+        var ok=el('button','xno','Close'); ok.style.marginTop='12px';
+        c.appendChild(ok); ok.onclick=close;
+      },1100);
+    },800);
+  };
+};
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-exec]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  var rows=[]; try{ rows=JSON.parse(b.getAttribute('data-rows')||'[]'); }catch(err){}
+  window.__exec({ title:b.getAttribute('data-exec'), rows:rows,
+    cta:b.getAttribute('data-cta')||undefined, note:b.getAttribute('data-note')||'',
+    done:b.getAttribute('data-done')||undefined });
+});
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// Per-rung execution: the button lives ON the rung it executes (action in context).
+var LEV=[2,3,5,7];
+function fmt(n){ return '$'+Math.round(n).toLocaleString('en-US'); }
+function addButtons(){
+  document.querySelectorAll('.rung').forEach(function(r,i){
+    if(r.querySelector('.xbtn')) return;
+    var b=document.createElement('button');
+    b.className='xbtn go rungGo'; b.type='button'; b.textContent='Open carry';
+    b.setAttribute('data-r',i);
+    r.appendChild(b);
+  });
+}
+document.addEventListener('click',function(e){
+  var g=e.target.closest('.rungGo'); if(!g) return;
+  e.stopPropagation();
+  var B=window.__borrow, c=B.COLL[B.sel()], i=+g.getAttribute('data-r'), L=LEV[i];
+  var eq=parseFloat((document.getElementById('amtIn').value||'0').replace(/[^0-9.]/g,''))||0;
+  var ltv=Math.min((L-1)/L, c.maxLtv);
+  window.__exec({
+    title:'Carry \u2014 '+c.sym+' at '+L+'\u00d7',
+    rows:[
+      ['You post', fmt(eq*L)+' '+c.sym],
+      ['You borrow', fmt(eq*(L-1))+' CDT'],
+      ['Your LTV', (ltv*100).toFixed(0)+'% \u00b7 cap '+(c.maxLtv*100).toFixed(0)+'%'],
+      ['Net carry on equity, today', '+'+(L*c.yld).toFixed(1)+'% / yr'],
+      ['1-in-1000 8h move uses', Math.round(c.p999/Math.max(0.0001,(1-ltv/(c.maxLtv*1.04))*100)*100)+'% of your room']
+    ],
+    note:'Rates move; the carry is not fixed. A breach repays you to the cap, not to zero.',
+    cta:'Sign & open', done:'Carry open'
+  });
+});
+var old=window.__borrow&&window.__borrow.paintLadder;
+if(old){ var wrap=function(){ old(); addButtons(); }; window.__borrow.paintLadder=wrap; }
+addButtons();
+new MutationObserver(addButtons).observe(document.getElementById('ladder'),{childList:true});
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// One dial. Each preset commits a full, NAMED vector -- the confirm enumerates every
+// choice the default made, because a silent choice teaches nothing (attribution rule).
+var PRESETS=[
+  { id:'steady', nm:'Steady', lev:2, coll:'syrupUSDC', yld:7.8,
+    venues:'Aave V3 + VaultV2', room:1,
+    pd:'2\u00d7 \u00b7 deep venues \u00b7 the 1-in-1000 move uses 1% of your room' },
+  { id:'balanced', nm:'Balanced', lev:3, coll:'sUSDS', yld:6.5,
+    venues:'Aave V3 + VaultV2 + sUSDe', room:2,
+    pd:'3\u00d7 \u00b7 mixed venues \u00b7 62\u00d7 covered' },
+  { id:'reaching', nm:'Reaching', lev:5, coll:'sUSDS', yld:6.5,
+    venues:'sUSDe + VaultV2 + PT', room:4,
+    pd:'5\u00d7 \u00b7 yield venues \u00b7 26\u00d7 covered \u00b7 slower recall' }
+];
+var sel=1;
+function paint(){
+  document.getElementById('obPresets').innerHTML=PRESETS.map(function(p,i){
+    return '<button class="obp'+(i===sel?' on':'')+'" data-i="'+i+'" type="button" role="radio" '+
+      'aria-checked="'+(i===sel)+'"><span class="pn2">'+p.nm+'</span>'+
+      '<span class="pd num">'+p.pd+'</span></button>';
+  }).join('');
+}
+document.getElementById('obPresets').addEventListener('click',function(e){
+  var b=e.target.closest('.obp'); if(!b) return; sel=+b.getAttribute('data-i'); paint();
+});
+document.getElementById('obGo').addEventListener('click',function(){
+  var p=PRESETS[sel];
+  var eq=parseFloat((document.getElementById('obAmt').value||'0').replace(/[^0-9.]/g,''))||0;
+  var fmt=function(n){ return '$'+Math.round(n).toLocaleString('en-US'); };
+  window.__exec({
+    title:'Carry \u2014 '+p.nm,
+    rows:[
+      ['Collateral (chosen for you)', p.coll],
+      ['You post', fmt(eq*p.lev)+' '+p.coll],
+      ['You borrow', fmt(eq*(p.lev-1))+' CDT'],
+      ['Venue mix (chosen for you)', p.venues],
+      ['Net carry on equity, today', '+'+(p.lev*p.yld).toFixed(1)+'% / yr'],
+      ['1-in-1000 8h move uses', p.room+'% of your room']
+    ],
+    note:'Every row above was picked by the preset. Customize each piece instead, or tune the venue mix on the Builder board \u2014 nothing here is hidden.',
+    cta:'Sign & open', done:'Carry open'
+  });
+});
+document.getElementById('obAdv').addEventListener('click',function(){
+  var a=document.getElementById('advanced');
+  var open=a.style.display==='none';
+  a.style.display=open?'':'none';
+  this.textContent=open?'hide the pickers':'customize each piece instead';
+});
+paint();
+// Boards feed the dial: loading a board becomes a fourth, named preset chip --
+// the confirm still enumerates its whole vector like any other preset.
+window.__carryLoadBoard=function(p){
+  PRESETS[3]={ id:'loaded', nm:p.nm, lev:p.lev, coll:p.coll, yld:p.yld,
+    venues:p.venues, room:p.room, pd:p.pd };
+  sel=3; paint();
+  var box=document.getElementById('obAmt');
+  if(box&&box.scrollIntoView) box.scrollIntoView({behavior:'smooth',block:'center'});
+};
+window.__carryPresets={ PRESETS:PRESETS, paint:paint };
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// -- Boards leaderboard (mock): ranked by floors survived, then net made -- the
+// gauntlet's own scoring order. Losers stay on the board; survival grades them down.
+var BOARDS=[
+  { rk:1, nm:'quiet compounding', coll:'sUSDS', lev:3, yld:6.5, venues:'Aave V3 + VaultV2 + sUSDe',
+    room:2, surv:'cleared 15/15 floors', cov:'62\u00d7 covered' },
+  { rk:2, nm:'syrup steady', coll:'syrupUSDC', lev:2, yld:7.8, venues:'Aave V3 + VaultV2',
+    room:1, surv:'cleared 15/15 floors', cov:'the 1-in-1000 move uses 1% of room' },
+  { rk:3, nm:'reach with a rope', coll:'sUSDS', lev:5, yld:6.5, venues:'sUSDe + VaultV2 + PT',
+    room:4, surv:'cleared 13/15 floors', cov:'26\u00d7 covered \u00b7 slower recall' },
+  { rk:4, nm:'scrv hot', coll:'scrvUSD', lev:5, yld:9.2, venues:'PT + sUSDe + VaultV2',
+    room:9, surv:'cleared 9/15 floors', cov:'thin \u2014 died to the rate spiral twice' },
+  { rk:5, nm:'full send', coll:'scrvUSD', lev:7, yld:9.2, venues:'PT + PT + sUSDe',
+    room:18, surv:'died on floor 6', cov:'wiped \u2014 partial liq took the board', dead:true }
+];
+document.getElementById('boards').innerHTML=BOARDS.map(function(b){
+  var carry=(b.lev*b.yld).toFixed(1);
+  return '<div class="brow2'+(b.dead?' dead':'')+'">'+
+    '<span class="rk num">'+b.rk+'</span>'+
+    '<span class="bn"><b>'+b.nm+'</b><small>'+b.coll+' \u00b7 '+b.lev+'\u00d7 \u00b7 '+b.venues+'</small></span>'+
+    '<span class="cy2 num">'+(b.dead?'\u2212':'+')+carry+'% / yr<small>on equity</small></span>'+
+    '<span class="sv2 num"><b>'+b.surv+'</b> \u00b7 '+b.cov+'</span>'+
+    '<button class="xbtn boardGo" type="button" data-rk="'+b.rk+'">Load this board</button>'+
+    '</div>';
+}).join('');
+document.getElementById('boards').addEventListener('click',function(e){
+  var g=e.target.closest('.boardGo'); if(!g) return;
+  var b=BOARDS[+g.getAttribute('data-rk')-1];
+  window.__carryLoadBoard({ nm:'Board: '+b.nm, lev:b.lev, coll:b.coll, yld:b.yld, venues:b.venues,
+    room:b.room, pd:b.lev+'\u00d7 \u00b7 '+b.surv+' \u00b7 loaded from boards' });
+});
+
+// -- Cross-protocol routes: the measured Aug 2026 carry-route table (A+B evidence,
+// 1,245 positions). On /proto the destination venue's CURRENT yield is fetched from
+// yields.llama.fi and shown as a live chip next to the measured net -- the net itself
+// is never recomputed from mixed vintages. Artifact copy: fetch is CSP-blocked and
+// the rows simply stay measured-only. One render path, two stamps.
+// Each side of a route is a quiet link (rest styling unchanged; affordance on
+// hover only). Token sides go to DefiLlama's yields filter; product sides go to
+// the protocol's DefiLlama page where identity is unambiguous.
+var LY='https://defillama.com/yields?token=', LP='https://defillama.com/protocol/';
+var ROUTES=[
+  { proto:'Morpho Blue', src:'AUSD', su:LY+'AUSD', dst:'Staked USDat', du:LY+'USDAT', pos:15, net:11.53 },
+  { proto:'Morpho Blue', src:'apxUSD', su:LY+'APXUSD', dst:'ApyUSD', du:LY+'APYUSD', pos:19, net:9.01 },
+  { proto:'Aave V3', src:'USDT', su:LY+'USDT', dst:'Fluid', du:LP+'fluid', pos:15, net:3.91, m:{ projects:['fluid-lending'], symbol:'USDT' } },
+  { proto:'Morpho Blue', src:'USDC', su:LY+'USDC', dst:'VaultV2', du:LP+'morpho', pos:182, net:3.44, big:true },
+  { proto:'Spark', src:'USDS', su:LY+'USDS', dst:'StUsds', du:LY+'SUSDS', pos:21, net:2.59, m:{ projects:['sky-lending','sky-savings-rate','spark'], symbol:'SUSDS' } },
+  { proto:'Morpho Blue', src:'PYUSD', su:LY+'PYUSD', dst:'StakingVault', du:LY+'PYUSD', pos:26, net:1.98 },
+  { proto:'Aave V3', src:'USDe', su:LY+'USDE', dst:'Staked USDe', du:LY+'SUSDE', pos:25, net:0.62, m:{ projects:['ethena'], symbol:'SUSDE' } },
+  { proto:'Compound v3', src:'USDC', su:LY+'USDC', dst:'USD3', du:LY+'USD3', pos:78, net:0.22 },
+  { proto:'Aave V3', src:'RLUSD', su:LY+'RLUSD', dst:'VaultV2', du:LP+'morpho', pos:37, net:-0.36 },
+  { proto:'Aave V3', src:'USDC', su:LY+'USDC', dst:'Compound', du:LP+'compound-finance', pos:20, net:-0.78 },
+  { proto:'Morpho Blue', src:'PYUSD', su:LY+'PYUSD', dst:'VaultV2', du:LP+'morpho', pos:54, net:-2.43 },
+  { proto:'Aave V3', src:'GHO', su:LY+'GHO', dst:'UmbrellaStakeToken', du:LP+'aave', pos:21, net:-3.75, note:'confirmed 0% module' }
+];
+var SCALE=12; // +/- % full bar
+function renderRoutes(live){
+  document.getElementById('routes').innerHTML=ROUTES.map(function(r){
+    var pos=r.net>=0, w=Math.min(50, Math.abs(r.net)/SCALE*50);
+    var bar='<span class="rt-bar"><span class="z"></span><i style="'+
+      (pos?('left:50%;width:'+w+'%;background:var(--phos)')
+          :('right:50%;width:'+w+'%;background:var(--blood)'))+
+      (r.big?';opacity:1':';opacity:0.75')+'"></i></span>';
+    var liveChip='';
+    if(live&&r.liveYld!=null){
+      liveChip='<small>dest yield now '+r.liveYld.toFixed(2)+'% \u00b7 live</small>';
+    }
+    var nm='<a href="'+r.su+'" target="_blank" rel="noopener">'+r.src+'</a> \u2192 '+
+      '<a href="'+r.du+'" target="_blank" rel="noopener">'+r.dst+'</a>';
+    return '<div class="rt-row">'+
+      '<span class="rn num"><b>'+nm+'</b>'+(r.note?' \u00b7 <span style="color:var(--blood)">'+r.note+'</span>':'')+
+        '<span class="rp">'+r.proto+'</span></span>'+
+      '<span class="pos2 num">'+r.pos+' pos</span>'+bar+
+      '<span class="rt-net num" style="color:'+(pos?'var(--phos)':'var(--blood)')+'">'+
+        (pos?'+':'')+r.net.toFixed(2)+'%'+liveChip+'</span>'+
+      '</div>';
+  }).join('');
+}
+renderRoutes(false);
+// live repricing chip -- destination-venue yield only, matched by (project, symbol),
+// biggest TVL pool wins. The measured net is never mixed with a live leg.
+try{
+  fetch('https://yields.llama.fi/pools').then(function(r){ return r.json(); }).then(function(j){
+    var pools=(j&&j.data)||[]; var hit=0;
+    ROUTES.forEach(function(r){
+      if(!r.m) return;
+      var best=null;
+      pools.forEach(function(p){
+        if(p.symbol!==r.m.symbol) return;
+        if(r.m.projects.indexOf(p.project)<0) return;
+        if(!best||(p.tvlUsd||0)>(best.tvlUsd||0)) best=p;
+      });
+      if(best&&best.apy!=null){ r.liveYld=best.apy; hit++; }
+    });
+    if(hit>0){
+      renderRoutes(true);
+      var t=new Date();
+      document.getElementById('rtStamp').textContent=
+        'net: measured Aug 2026 \u00b7 dest yields: live, fetched '+
+        String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+
+        ' \u00b7 yields.llama.fi \u00b7 '+hit+' of '+ROUTES.length+' routes matched';
+    }
+  }).catch(function(){});
+}catch(e){}
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// Redemption history per venue: the carry trader's question is "if I get liquidated,
+// does this venue give the capital back in time?" Fill rate = served/requested from
+// VaultServed; VaultSlashed is the strongest negative; VenueRecalled success counts
+// only real liquidations. Deliberately NOT framed as lender flight, and no premium
+// column exists because redemption is 1:1 at peg.
+var RH=[
+  { v:'Aave V3', sub:'money market', req:412000, srv:412000, slash:0, slashAmt:0, rec:34, recOk:34, ban:false,
+    n:'every liquidation recall served in full' },
+  { v:'VaultV2', sub:'4626 vault', req:268400, srv:267300, slash:0, slashAmt:0, rec:41, recOk:41, ban:false,
+    n:'one partial fill re-served next block' },
+  { v:'sUSDe', sub:'ethena cooldown', req:151200, srv:131600, slash:1, slashAmt:12400, rec:11, recOk:9, ban:false,
+    n:'<b style="color:var(--gold)">2 recalls fell inside the cooldown</b> \u2014 served after the liquidation had already closed' },
+  { v:'PT (fixed maturity)', sub:'pendle', req:96800, srv:96800, slash:0, slashAmt:0, rec:8, recOk:6, ban:false,
+    n:'2 pre-maturity recalls sold at market: full size, \u22120.9% price' }
+];
+function usd(n){ return '$'+Math.round(n/1000)+'k'; }
+document.getElementById('rh').innerHTML=RH.map(function(x){
+  var fill=x.srv/x.req*100;
+  var recBad=x.recOk<x.rec, slashBad=x.slash>0;
+  return '<div class="rhrow">'+
+    '<span class="vn">'+x.v+(x.v.indexOf('PT')===0?' <span class="oic" data-oracle="PT">oracle</span>':'')+'<small>'+x.sub+'</small></span>'+
+    '<span class="rhbar"><i style="width:'+fill.toFixed(1)+'%"></i>'+
+      (fill<100?'<em style="width:'+(100-fill).toFixed(1)+'%"></em>':'')+'</span>'+
+    '<span class="rhs num">fill <b>'+fill.toFixed(1)+'%</b> ('+usd(x.srv)+' of '+usd(x.req)+', 90d) \u00b7 '+
+      'slashed <b style="color:'+(slashBad?'var(--blood)':'var(--ink)')+'">'+x.slash+
+      (slashBad?' \u00b7 '+usd(x.slashAmt):'')+'</b> \u00b7 '+
+      'liq recalls <b style="color:'+(recBad?'var(--gold)':'var(--ink)')+'">'+x.recOk+'/'+x.rec+'</b> \u00b7 '+
+      (x.ban?'<b style="color:var(--blood)">BANNED</b>':'no ban')+
+      '<br>'+x.n+'</span>'+
+    '</div>';
+}).join('');
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// demo-until-connect (the flip): every page opens fully populated. Wallet-scoped
+// blocks run on the demo wallet until a wallet connects; protocol-scoped blocks
+// stay live either way. CTAs in demo are intent-preserving: the confirm sheet
+// keeps its exact rows, the button becomes "Connect wallet", and after the (mock)
+// connect the SAME sheet re-opens for the real signature. Mock connect = one
+// localStorage flag so the whole loop is testable; the acct chip toggles it.
+var KEY='membrane.wallet';
+function isConn(){ try{ return localStorage.getItem(KEY)==='1'; }catch(e){ return false; } }
+function setConn(v){ try{ if(v) localStorage.setItem(KEY,'1'); else localStorage.removeItem(KEY); }catch(e){} }
+function wireAcct(conn){
+  var a=document.querySelector('.acct'); if(!a) return;
+  a.style.cursor='pointer';
+  if(conn){ a.textContent='0x9a41\u2026c2e0'; a.title='demo-connected \u00b7 click to disconnect';
+    a.onclick=function(){ setConn(false); location.reload(); }; }
+  else{ a.textContent='demo \u00b7 connect'; a.title='click to connect (mock wallet)';
+    a.onclick=function(){ setConn(true); location.reload(); }; }
+}
+function init(){
+  if(isConn()){ wireAcct(true); return; }
+  document.body.classList.add('demo');
+  wireAcct(false);
+  var st=document.createElement('style');
+  st.textContent='.demobar2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;'+
+    'background:var(--raise);border:1px solid var(--hair);padding:9px 14px;margin:0 0 16px;'+
+    'font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim)}'+
+    '.demobar2 b{font-weight:400;color:var(--gold)}'+
+    '.demobar2 button{background:none;border:0;color:var(--phos);font-family:inherit;font-size:10px;'+
+    'letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;text-decoration:underline;padding:0}';
+  document.head.appendChild(st);
+  if(!document.getElementById('demoBar')&&!document.getElementById('demoBar2')){
+    var bar=document.createElement('div'); bar.className='demobar2'; bar.id='demoBar2';
+    bar.innerHTML='<span><b>Demo</b> \u2014 wallet-scoped numbers are a demo wallet, not yours. '+
+      'Live market data stays live.</span>'+
+      '<button type="button" id="demoConn">Connect wallet \u2192</button>';
+    var nav=document.querySelector('.wrap nav')||document.querySelector('nav');
+    if(nav&&nav.parentNode) nav.parentNode.insertBefore(bar,nav.nextSibling);
+    else document.body.insertBefore(bar,document.body.firstChild);
+    document.getElementById('demoConn').onclick=function(){ setConn(true); location.reload(); };
+  }
+  var real=window.__exec; if(!real) return;
+  window.__exec=function(o){
+    var oo={}; for(var k in o) oo[k]=o[k];
+    oo.cta='Connect wallet';
+    oo.note=(o.note?o.note+' ':'')+'Demo: connecting keeps this exact intent and re-opens it for the real signature.';
+    real(oo);
+    var sheets=document.querySelectorAll('.xsheet');
+    var sheet=sheets[sheets.length-1]; if(!sheet) return;
+    var go=sheet.querySelector('.xgo'); if(!go) return;
+    go.onclick=function(){
+      go.textContent='connecting\u2026';
+      setTimeout(function(){
+        setConn(true);
+        sheet.remove();
+        document.body.classList.remove('demo');
+        var b1=document.getElementById('demoBar2'); if(b1) b1.remove();
+        window.__exec=real;
+        wireAcct(true);
+        real(o);
+      },700);
+    };
+  };
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// live collateral yields on /proto; the ladder and the preset math both reprice.
+// Stamped with source+time; artifact copies stay on the measured figures.
+var C=window.__borrow, P=window.__carryPresets;
+if(!C||!P) return;
+var MATCH={ 'sUSDS':{sym:'SUSDS',proj:['sky-lending','sky-savings-rate','spark','makerdao']},
+  'syrupUSDC':{sym:'SYRUPUSDC',proj:['maple','syrup']},
+  'scrvUSD':{sym:'SCRVUSD',proj:[]} };
+try{
+fetch('https://yields.llama.fi/pools').then(function(r){return r.json();}).then(function(j){
+  var pools=(j&&j.data)||[], hit=0;
+  C.COLL.forEach(function(c){
+    var m=MATCH[c.sym]; if(!m) return;
+    var b=null;
+    pools.forEach(function(p){ if(p.symbol!==m.sym) return;
+      if(m.proj.length&&m.proj.indexOf(p.project)<0) return;
+      if(!b||(p.tvlUsd||0)>(b.tvlUsd||0)) b=p; });
+    if(b&&b.apy!=null){ c.yld=b.apy; hit++;
+      P.PRESETS.forEach(function(pr){ if(pr.coll===c.sym) pr.yld=b.apy; });
+    }
+  });
+  if(hit>0){
+    C.paintLadder(); P.paint();
+    var el=document.createElement('p'); el.className='stamp';
+    var t=new Date();
+    el.textContent='collateral yields live \u00b7 yields.llama.fi \u00b7 fetched '+
+      String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+
+      ' \u00b7 '+hit+' of '+C.COLL.length+' matched \u00b7 unmatched stay at the measured figure';
+    var ob=document.querySelector('.onebox');
+    if(ob&&ob.parentNode) ob.parentNode.insertBefore(el,ob.nextSibling);
+  }
+}).catch(function(){});
+}catch(e){}
+})();
+</script>
+<!-- _oracle-cards.html &mdash; shared oracle-info modal module (canonical copy).
+Append the whole block to a page AFTER its main scripts. Affordance: any element
+with data-oracle="SYM" opens the card (capture-phase delegate, so it never
+triggers the underlying asset button). COPY IS WRITTEN IN DEPLOYED VOICE (owner, Aug 26 2026): these cards describe the
+oracle as live so no post-deploy copy edit is needed or forgotten. LAUNCH GATE &mdash;
+before any executable page ships publicly, each asset named here must actually be
+wired (Oracle.setAdapterSource / route config) and the PT template registered;
+otherwise a card asserts a feed that does not exist. Tracked in
+docs/GAME_LAUNCH_PLAN.md P3.
+Facts sourced from membrane-solidity
+(Oracle.sol, Adapter4626Base.sol, AUTONOMOUS-ORACLE-RISK-REGISTER.md) by the
+oracle exploration of Aug 26 2026 &mdash; line refs drift; the code is the truth. -->
+<script>
+(function(){
+"use strict";
+// Oracle info cards. Written in DEPLOYED VOICE so no post-launch copy edit is
+// forgotten (owner ruling): each card describes the oracle path as live. The
+// launch gate in the header comment is what keeps that honest -- an asset may
+// not ship a card until its feed is actually wired. Risk tags carry the register
+// severity (AOR-n); the PT chart stays labeled a model because it illustrates
+// price paths, which is separate from deployment status.
+var CSS='.ocv{position:fixed;inset:0;background:rgba(7,7,8,0.82);display:grid;place-items:center;z-index:80;overflow:auto;padding:20px}'+
+'.ocd{background:var(--card);border:1px solid var(--hairS);padding:20px;width:min(640px,94vw);max-height:92vh;overflow:auto}'+
+'.ocd .oh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}'+
+'.ocd .ot{font-family:var(--serif);font-size:19px}'+
+'.ocd .org{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;border:1px solid;padding:4px 9px;white-space:nowrap}'+
+'.ocd .org.med{color:var(--gold);border-color:var(--gold)}.ocd .org.plan{color:var(--teal);border-color:var(--teal)}'+
+'.ocd .osum{font-size:12px;color:var(--ink);line-height:1.7;margin:10px 0}'+
+'.ocd .ost{font-size:10px;letter-spacing:0.24em;text-transform:uppercase;color:var(--dim);margin:14px 0 6px}'+
+'.ocd .oli{font-size:11.5px;color:var(--dim);line-height:1.65;padding:5px 0 5px 14px;position:relative}'+
+'.ocd .oli:before{content:"\\25AA";position:absolute;left:0;color:var(--faint)}'+
+'.ocd .oli b{font-weight:400}'+
+'.ocd .oli b.does{color:var(--phos)}.ocd .oli b.not{color:var(--teal)}.ocd .oli b.mut{color:var(--gold)}'+
+'.ocd .owire{font-size:11px;color:var(--gold);border:1px solid rgba(216,178,74,0.4);padding:9px 12px;margin:12px 0;line-height:1.6}'+
+'.ocd .ochart{position:relative;height:200px;background:var(--sunk);border:1px solid var(--hair);margin:12px 0 6px}'+
+'.ocd .ochart canvas{position:absolute;inset:0;width:100%;height:100%}'+
+'.ocd .oscn{display:flex;gap:6px;margin:8px 0}'+
+'.ocd .oscn button{background:transparent;border:1px solid var(--hairS);color:var(--dim);font-family:var(--mono);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 10px;cursor:pointer}'+
+'.ocd .oscn button.on{color:var(--ink);border-color:var(--phos)}'+
+'.ocd .oprov{font-size:9px;color:var(--faint);letter-spacing:0.1em;line-height:1.7;margin-top:12px;border-top:1px solid var(--hair);padding-top:10px}'+
+'.ocd .oclose{background:transparent;border:1px solid var(--hairS);color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;padding:9px 16px;cursor:pointer;margin-top:14px}'+
+'.oic{display:inline-block;font-size:8.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--faint);border:1px solid var(--hair);padding:1px 6px;margin-left:7px;cursor:help;vertical-align:2px;transition:color .15s,border-color .15s}'+
+'.oic:hover{color:var(--phos);border-color:var(--phos)}';
+var st=document.createElement('style'); st.textContent=CSS; document.head.appendChild(st);
+
+var TIMELOCK='Three numeric risk params (fallback window, max deviation, breaker threshold) sit behind a <b class="mut">14-day timelock</b>; listing powers <b class="mut">die permanently at renounceOwnership()</b>. The circuit breaker is permissionless \u2014 deviation math, not a key.';
+var NOSIG='No committee reports this price: <b class="not">no signer set or multisig attestation exists</b> anywhere in the oracle stack \u2014 only pool math.';
+var ADAPTER_SUM='Priced as the vault\u2019s own share rate \u00d7 the underlying\u2019s on-chain Uniswap TWAP. No Chainlink anywhere in this stack \u2014 feeds that cannot stand alone are barred from being primary.';
+var ADAPTER_BULLETS=[
+ 'The vault\u2019s <b class="does">share rate does affect</b> the price \u2014 instantly on the way down, growth-capped on the way up (max-yield-per-second clamp; under-pricing collateral is the safe direction).',
+ 'The underlying\u2019s <b class="does">1-hour Uniswap TWAP does affect</b> the price.',
+ 'The wrapper\u2019s own <b class="not">market quote does not affect</b> it \u2014 the oracle reads the vault\u2019s exchange rate, not a pool price of the wrapper.',
+ 'The price <b class="does">can float above $1</b> as yield accrues \u2014 adapter assets are deliberately exempt from the USD-par clamp.',
+ NOSIG, TIMELOCK];
+var TWAP_SUM='Two-tier Uniswap V3 TWAP: a 1-hour window primary, and a 10-minute read of the same pool as fallback. If both fail, the price REVERTS \u2014 borrows halt rather than running on a stale number.';
+var TWAP_BULLETS=[
+ 'The pool\u2019s <b class="does">1h TWAP does affect</b> your liquidation line; the fallback is a <b class="does">shorter read of the same pool</b> \u2014 never a number someone typed.',
+ 'A <b class="not">stale price is never served</b>: both windows failing halts pricing (PriceStale) instead of freezing a value.',
+ 'Both tiers readable but diverging beyond the deviation cap also <b class="not">refuses to price</b> (OracleSourcesDisagree).',
+ NOSIG, TIMELOCK];
+var PROV='Sources: Oracle.sol \u00b7 Adapter4626Base.sol \u00b7 OracleTemplateFactory.sol \u00b7 AUTONOMOUS-ORACLE-RISK-REGISTER.md (membrane-solidity, read Aug 26 2026 \u2014 line numbers drift, the code is the truth). Written to the best of our ability; for exact behavior, read the oracle code itself.';
+var O={
+ 'sUSDS':{ tag:['med','medium (AOR-3/5 \u00b7 share-rate)'], sum:ADAPTER_SUM, li:ADAPTER_BULLETS,
+   wire:'' },
+ 'syrupUSDC':{ tag:['med','medium (AOR-3/5 \u00b7 share-rate)'], sum:ADAPTER_SUM, li:ADAPTER_BULLETS,
+   wire:'' },
+ 'scrvUSD':{ tag:['med','medium (AOR-3/5 \u00b7 share-rate)'], sum:ADAPTER_SUM, li:ADAPTER_BULLETS,
+   wire:'' },
+ 'WBTC':{ tag:['med','medium (AOR-2 \u00b7 route depth)'], sum:TWAP_SUM, li:TWAP_BULLETS.concat(
+   ['Register\u2019s live residual for TWAP assets: <b class="mut">thin or self-created pools</b> (AOR-2, medium) \u2014 no minimum-liquidity floor exists on autonomous routes today.']),
+   wire:'' },
+ 'wstETH':{ tag:['med','medium (AOR-2 \u00b7 route depth)'], sum:TWAP_SUM, li:TWAP_BULLETS,
+   wire:'' },
+ 'PT':{ tag:['med','medium (AOR-6 \u00b7 basis risk)'], pt:true,
+   sum:'Takes the LOWER of two prices: the PT\u2019s own market TWAP, and a linear discount curve that rises to one dollar at maturity. Whichever is lower is what your liquidation line is measured against \u2014 the oracle never pays you for optimism in the PT market.',
+   li:[ 'The market\u2019s <b class="does">implied APY does affect</b> the price \u2014 rates up, PT price down, hardest early in the term.',
+     '<b class="does">Time to maturity does affect</b> it: the pull to par shrinks duration risk every day.',
+     'The <b class="not">redemption value at maturity is not the risk</b> \u2014 held to term, the PT redeems at the underlying\u2019s value. The path BETWEEN now and then is what can liquidate you.',
+     'At the 90% LTV hard cap the <b class="mut">6.4% recovery margin is below the worst observed ~7% PT clearing discount</b> (AOR-8, high) \u2014 oracle-correct bad debt is possible at max LTV.',
+     NOSIG ],
+   wire:'The chart is a model, not history: 6%/yr discount over a 180-day term, drawn to show how the price behaves through the life of the position. Your PT\u2019s own curve is set by its term and listing discount.' }
+};
+function ptChart(cv, mode){
+  var W=cv.clientWidth||580, H=cv.clientHeight||200, dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=W*dpr; cv.height=H*dpr;
+  var x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
+  var P=26, T=180, r0=0.06;
+  var X=function(d){ return P+(W-2*P)*d/T; }, Y=function(p){ return H-P-(H-2*P)*(p-0.90)/0.11; };
+  function curve(d,r){ return Math.pow(1+r,-(T-d)/365); }
+  // Canvas has no z-index -- text sits under anything painted after it. So ALL
+  // strokes run first and EVERY label is drawn last, each on its own knocked-out
+  // chip, so a line crossing underneath can never swallow the words.
+  x.font='9px ui-monospace,monospace';
+  x.strokeStyle='rgba(236,230,216,0.35)'; x.setLineDash([3,4]); x.beginPath();
+  x.moveTo(P,Y(1)); x.lineTo(W-P,Y(1)); x.stroke(); x.setLineDash([]);
+  x.strokeStyle='rgba(236,230,216,0.55)'; x.setLineDash([4,4]); x.beginPath();
+  for(var d=0;d<=T;d++){ var p=curve(d,r0); d===0?x.moveTo(X(d),Y(p)):x.lineTo(X(d),Y(p)); }
+  x.stroke(); x.setLineDash([]);
+  var col={calm:'#9bdc4f',spike:'#d8b24a',depeg:'#cf4034'}[mode];
+  x.strokeStyle=col; x.lineWidth=2; x.beginPath();
+  for(var d2=0;d2<=T;d2++){
+    var p2;
+    if(mode==='calm'){ p2=Math.min(curve(d2,r0), curve(d2,r0+0.004*(1-d2/T)*4)); }
+    else if(mode==='spike'){ var r=d2<60?r0:(d2<120? 0.14-(0.14-r0)*((d2-60)/60)*0.3 : r0+ (0.14*0.7-r0)*Math.max(0,1-(d2-120)/60)); p2=Math.min(curve(d2,r0),curve(d2,Math.max(r0,r))); }
+    else { var base=Math.min(curve(d2,r0),curve(d2,r0+0.003)); p2=d2<90?base:base*0.97; }
+    d2===0?x.moveTo(X(d2),Y(Math.max(0.90,p2))):x.lineTo(X(d2),Y(Math.max(0.90,p2)));
+  }
+  x.stroke(); x.lineWidth=1;
+  // ---- labels last, on knocked-out chips ----
+  function label(t,px,py,color,align){
+    x.textAlign=align||'left';
+    var w=x.measureText(t).width, lx=align==='right'?px-w:px;
+    x.fillStyle='#070708';
+    x.fillRect(lx-3, py-8, w+6, 11);
+    x.fillStyle=color; x.fillText(t,px,py);
+  }
+  label('$1.00 par', P+2, Y(1)-5, '#8d877b');
+  label('fixed discount curve (6%/yr) \u2014 the oracle\u2019s ceiling', P+2, Y(curve(0,r0))+13, '#8d877b');
+  var lbl={calm:'calm: converges to $1 at maturity', spike:'rate spike at day 60: price gaps down, pull-to-par reels it back', depeg:'underlying cut 3% at day 90: proportional, ends at $0.97'}[mode];
+  label(lbl, W-P-2, P+10, col, 'right');
+  label('listing', P, H-8, '#56524a');
+  label('maturity (180d)', W-P, H-8, '#56524a', 'right');
+}
+window.__oracleCard=function(sym){
+  var o=O[sym]; if(!o) return;
+  var ov=document.createElement('div'); ov.className='ocv';
+  var chart=o.pt?'<div class="ochart"><canvas id="ocv-cv"></canvas></div>'+
+    '<div class="oscn" id="ocv-scn"><button data-m="calm" class="on" type="button">calm</button>'+
+    '<button data-m="spike" type="button">rate spike</button>'+
+    '<button data-m="depeg" type="button">underlying depeg</button></div>'+
+    '<p class="oli" style="padding-left:0">model \u2014 how the price behaves over the term under each scenario</p>':'';
+  ov.innerHTML='<div class="ocd">'+
+    '<div class="oh"><span class="ot">Oracle info \u2014 '+sym+'</span>'+
+    '<span class="org '+o.tag[0]+'">'+o.tag[1]+'</span></div>'+
+    '<p class="osum">'+o.sum+'</p>'+chart+
+    '<div class="ost">In simple terms</div>'+
+    o.li.map(function(t){ return '<div class="oli">'+t+'</div>'; }).join('')+
+    (o.wire?'<div class="owire">'+o.wire+'</div>':'')+
+    '<p class="oprov">'+PROV+'</p>'+
+    '<button class="oclose" type="button">Close</button></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov||e.target.classList.contains('oclose')) ov.remove(); });
+  if(o.pt){
+    var cv=ov.querySelector('#ocv-cv'); ptChart(cv,'calm');
+    ov.querySelector('#ocv-scn').addEventListener('click',function(e){
+      var b=e.target.closest('button'); if(!b) return;
+      ov.querySelectorAll('#ocv-scn button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on'); ptChart(cv,b.getAttribute('data-m'));
+    });
+  }
+};
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-oracle]'); if(!t) return;
+  e.preventDefault(); e.stopPropagation();
+  window.__oracleCard(t.getAttribute('data-oracle'));
+},true);
+})();
+</script>

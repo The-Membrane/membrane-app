@@ -9,7 +9,7 @@ import { shiftDigits } from './math'
 import { getAssetBySymbol } from './chain'
 import { MsgExecuteContractEncodeObject } from '@cosmjs/cosmwasm-stargate'
 import { PointsMsgComposer } from '@/contracts/codegen/points/Points.message-composer'
-import { getAssetWithNonZeroValues } from '@/components/Mint/CollateralAssets'
+import { getAssetWithNonZeroValues } from '@/components/Mint/collateralAssetsUtils'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
 // const getDeposited = (deposited = 0, newDeposit: string) => {

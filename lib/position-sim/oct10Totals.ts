@@ -55,8 +55,8 @@ export const OCT10_STAKES_LINE =
 export const OCT10_SCALE_LINE = {
   figure: `$${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M`,
   window: 'on 10 Oct 2025 alone',
-  result: `$${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M less debt would have been closed`,
-  line: `4% sounds small. $${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M less debt would have been closed on 10 Oct 2025 alone.`,
+  result: `$${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M of debt protected from forced closure`,
+  line: `4% sounds small. $${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M of debt protected from forced closure on 10 Oct 2025 alone.`,
 } as const
 
 // ---------------------------------------------------------------------------

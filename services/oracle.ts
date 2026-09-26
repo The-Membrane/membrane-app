@@ -32,7 +32,7 @@ export const parsePrice = (prices: PriceResponse[], assetInfos: AssetInfo[]): Pr
   })
 }
 
-export const getPriceByDenom = (denom: string) => {
+export const usePriceByDenom = (denom: string) => {
   const { data: prices } = useOraclePrice()
   return prices?.find((price) => price.denom === denom)
 }

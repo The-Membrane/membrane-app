@@ -101,13 +101,19 @@ export const usePerformanceMetrics = (logToConsole = true) => {
       return metrics
     }
 
-    // Measure after page load
+    // Measure after page load — track the timer/listener so unmount can release them.
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const onLoad = () => {
+      timeoutId = setTimeout(measurePerformance, 0)
+    }
     if (document.readyState === 'complete') {
-      setTimeout(measurePerformance, 0)
+      timeoutId = setTimeout(measurePerformance, 0)
     } else {
-      window.addEventListener('load', () => {
-        setTimeout(measurePerformance, 0)
-      })
+      window.addEventListener('load', onLoad)
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      window.removeEventListener('load', onLoad)
     }
   }, [logToConsole])
 }

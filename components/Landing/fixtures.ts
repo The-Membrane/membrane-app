@@ -14,9 +14,30 @@ export const MAX_LTV = 0.73
  * Higher-yield mixes hold more in venues that go illiquid exactly when needed.
  */
 export const VENUES: Record<VenueKey, Venue> = {
-  steady: { nm: 'Steady', mix: 'steady', apr: 0.042, liquid: 0.97, cooled: 0.97, note: 'deepest venues, closest to free to exit' },
-  bal: { nm: 'Balanced', mix: 'balanced', apr: 0.079, liquid: 0.88, cooled: 0.63, note: 'a spread of venues' },
-  hot: { nm: 'Higher', mix: 'higher-yield', apr: 0.118, liquid: 0.74, cooled: 0.32, note: 'thinner books; costs more to get out of' },
+  steady: {
+    nm: 'Steady',
+    mix: 'steady',
+    apr: 0.042,
+    liquid: 0.97,
+    cooled: 0.97,
+    note: 'deepest venues, closest to free to exit',
+  },
+  bal: {
+    nm: 'Balanced',
+    mix: 'balanced',
+    apr: 0.079,
+    liquid: 0.88,
+    cooled: 0.63,
+    note: 'a spread of venues',
+  },
+  hot: {
+    nm: 'Higher',
+    mix: 'higher-yield',
+    apr: 0.118,
+    liquid: 0.74,
+    cooled: 0.32,
+    note: 'thinner books; costs more to get out of',
+  },
 }
 
 /** Ordered venue segment buttons. */
@@ -30,14 +51,14 @@ export const ROUTES: Route[] = [
   { nm: 'AUSD → Staked USDat', pos: 15, net: 11.53 },
   { nm: 'apxUSD → ApyUSD', pos: 19, net: 9.01 },
   { nm: 'USDT → Fluid [USDC]', pos: 15, net: 3.91 },
-  { nm: 'USDC → VaultV2 [USDC]', pos: 182, net: 3.44, big: true },
+  { nm: 'USDC → Morpho Vault V2 [USDC]', pos: 182, net: 3.44, big: true },
   { nm: 'USDS → StUsds', pos: 21, net: 2.59 },
   { nm: 'PYUSD → StakingVault', pos: 26, net: 1.98 },
   { nm: 'USDe → Staked USDe', pos: 25, net: 0.62 },
   { nm: 'USDC → USD3', pos: 78, net: 0.22 },
-  { nm: 'RLUSD → VaultV2', pos: 37, net: -0.36 },
+  { nm: 'RLUSD → Morpho Vault V2', pos: 37, net: -0.36 },
   { nm: 'USDC → supply on Compound', pos: 20, net: -0.78 },
-  { nm: 'PYUSD → VaultV2 [PYUSD]', pos: 54, net: -2.43 },
+  { nm: 'PYUSD → Morpho Vault V2 [PYUSD]', pos: 54, net: -2.43 },
   { nm: 'GHO → UmbrellaStakeToken', pos: 21, net: -3.75 },
 ]
 

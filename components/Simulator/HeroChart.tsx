@@ -19,7 +19,7 @@ const usdMillions = (value: number): string => `$${Math.round(value / 1_000_000)
 
 const AAVE_CLOSED = OCT10_TOTALS.aaveClosedUsd
 const MEMBRANE_CLOSED = OCT10_TOTALS.membraneClosedUsd
-const LESS_CLOSED = AAVE_CLOSED - MEMBRANE_CLOSED
+const PROTECTED_DEBT = AAVE_CLOSED - MEMBRANE_CLOSED
 
 const rows = [
   {
@@ -90,7 +90,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           color={SEMANTIC_COLORS.warning}
           {...tabular}
         >
-          {usdMillions(LESS_CLOSED)} less
+          {usdMillions(PROTECTED_DEBT)} protected
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
@@ -99,7 +99,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           textTransform="uppercase"
           color={SEMANTIC_COLORS.textSecondary}
         >
-          debt closed
+          from forced debt closure
         </Text>
       </Box>
     </Box>

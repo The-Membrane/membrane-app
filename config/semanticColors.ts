@@ -52,6 +52,9 @@ export const SEMANTIC_COLORS = {
    */
   warning: 'var(--m-warning)', // Gold / dark gold
 
+  /** Risk verdict only. Copper/ochre stays distinct from gold product claims. */
+  riskCaution: 'var(--m-risk-caution)',
+
   /**
    * Danger state - errors, critical issues, destructive actions
    * Used for: Error messages, liquidation warnings, delete actions
@@ -180,12 +183,7 @@ export const COLOR_USAGE_GUIDELINES = {
     'Destructive actions (delete, remove)',
     'Failed transactions',
   ],
-  info: [
-    'Informational tooltips',
-    'Helper text',
-    'Neutral notifications',
-    'Educational content',
-  ],
+  info: ['Informational tooltips', 'Helper text', 'Neutral notifications', 'Educational content'],
 
   // Emphasis colors
   primary: [
@@ -202,59 +200,19 @@ export const COLOR_USAGE_GUIDELINES = {
   ],
 
   // Text colors
-  textPrimary: [
-    'Page titles',
-    'Card titles',
-    'Main content',
-    'Important labels',
-  ],
-  textSecondary: [
-    'Descriptions',
-    'Supporting text',
-    'Subtitles',
-    'Helper text',
-  ],
-  textTertiary: [
-    'Timestamps',
-    'Metadata',
-    'Least important information',
-    'Disabled text',
-  ],
+  textPrimary: ['Page titles', 'Card titles', 'Main content', 'Important labels'],
+  textSecondary: ['Descriptions', 'Supporting text', 'Subtitles', 'Helper text'],
+  textTertiary: ['Timestamps', 'Metadata', 'Least important information', 'Disabled text'],
 
   // Background colors
-  bgPrimary: [
-    'Main app background',
-    'Page backgrounds',
-  ],
-  bgSecondary: [
-    'Card backgrounds',
-    'Panel backgrounds',
-    'Modal backgrounds',
-    'Elevated surfaces',
-  ],
-  bgTertiary: [
-    'Nested card backgrounds',
-    'Table row hovers',
-    'Subtle elevation',
-  ],
+  bgPrimary: ['Main app background', 'Page backgrounds'],
+  bgSecondary: ['Card backgrounds', 'Panel backgrounds', 'Modal backgrounds', 'Elevated surfaces'],
+  bgTertiary: ['Nested card backgrounds', 'Table row hovers', 'Subtle elevation'],
 
   // Border colors
-  borderSubtle: [
-    'Dividers',
-    'Section separators',
-    'Subtle boundaries',
-  ],
-  borderMedium: [
-    'Card borders',
-    'Input borders',
-    'Standard borders',
-  ],
-  borderStrong: [
-    'Focus states',
-    'Active borders',
-    'Emphasized boundaries',
-    'Selected states',
-  ],
+  borderSubtle: ['Dividers', 'Section separators', 'Subtle boundaries'],
+  borderMedium: ['Card borders', 'Input borders', 'Standard borders'],
+  borderStrong: ['Focus states', 'Active borders', 'Emphasized boundaries', 'Selected states'],
 }
 
 /**

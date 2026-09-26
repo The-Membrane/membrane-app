@@ -34,3 +34,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*
+
+# machine-local symlink to the shared Membrane agent board (~/membrane-board)
+AGENT_BOARD.md
+
+# Machine-local, reproducible archive-RPC research cache (large raw samples)
+/data/research/venue-signals/

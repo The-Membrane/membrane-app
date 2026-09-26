@@ -1,13 +1,16 @@
-import { useEffect } from 'react'
-import { useRouter } from 'next/router'
+import type { GetServerSideProps } from 'next'
 import { supportedChains } from '@/config/chains'
 
-export default function Redirect() {
-  const router = useRouter()
-  
-  useEffect(() => {
-    router.replace(`/${supportedChains[0].name}/borrow`)
-  }, [router])
+// Server-side redirect: no client-side flash, correct 307 with working back button.
+export const getServerSideProps: GetServerSideProps = async () => {
+  return {
+    redirect: {
+      destination: `/${supportedChains[0].name}/borrow`,
+      permanent: false,
+    },
+  }
+}
 
+export default function Redirect() {
   return null
 }

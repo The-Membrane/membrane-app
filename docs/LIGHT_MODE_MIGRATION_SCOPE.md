@@ -4,8 +4,9 @@
 Phase 3: e86c6186 (~250 literals across 50+ files; grep budget for palette literals
 outside comments is zero-equivalent). Phase 4: 040cf7ca (theme e2e spec; theme +
 smoke suites 10/10). Dark stays the default; the nav toggle follows system
-preference. Light text scale is espresso (user-approved): #43331f / #6b5942 /
-#94836a, espresso hairlines. Added tokens: --m-border-faint, --m-overlay.
+preference. The 2026-09-24 refinement gives light mode its own paper/card/raised
+surface hierarchy and stronger three-level ink scale; `styles/themes.css` is the
+canonical current palette. Added tokens: --m-border-faint, --m-overlay.
 
 IMPLEMENTATION NOTES:
 - Theme attribute is `data-membrane-theme` (namespaced) — Chakra's
@@ -30,18 +31,19 @@ as hex needs work.
 
 | Token | Dark (current) | Light (Parchment) |
 |---|---|---|
-| bgPrimary | `#09090a` | `#e7dfcc` |
-| bgSecondary (card) | `#0e0d10` | `#efe9d9` |
-| bgTertiary (raised) | `#100f12` | `#f5f0e3` |
-| textPrimary | `#ece6d8` bone | `#1c1a14` ink |
-| textSecondary | `#8d877b` | `#5b5443` |
-| textTertiary | `#56524a` | `#8b8371` |
-| primary / success | `#9bdc4f` phosphor | `#3f7212` moss (text use) |
+| bgPrimary | `#09090a` | `#f1eee6` |
+| bgSecondary (card) | `#0e0d10` | `#fffdf8` |
+| bgTertiary (raised) | `#100f12` | `#f8f5ed` |
+| textPrimary | `#ece6d8` bone | `#241f17` ink |
+| textSecondary | `#8d877b` | `#51483d` |
+| textTertiary | `#56524a` | `#6c6255` |
+| primary / success | `#9bdc4f` phosphor | `#326215` moss (text use) |
 | secondary / info | `#46d39a` teal | `#0f6b4b` |
-| warning | `#d8b24a` | `#7f651a` |
-| danger | `#cf4034` | `#a92e22` |
-| borderSubtle / Medium | bone @ 0.10 | ink @ 0.14 |
-| borderStrong | bone @ 0.22 | ink @ 0.30 |
+| warning | `#d8b24a` | `#725410` |
+| riskCaution | `#c77d3f` | `#8a451a` |
+| danger | `#cf4034` | `#a52f2a` |
+| borderSubtle / Medium | bone @ 0.10 | ink @ 0.18 / 0.24 |
+| borderStrong | bone @ 0.22 | ink @ 0.40 |
 
 CTA button fill stays phosphor `#9bdc4f` with ink text in both modes. All light-mode
 text tokens pass WCAG 4.5:1 on their surfaces.

@@ -91,26 +91,29 @@ export async function getUserStake(
       functionName: 'depositCountOf',
       args: [user],
     })
-    const deposits: StakeDeposit[] = []
-    for (let i = 0n; i < count; i++) {
-      const d = await client.readContract({
-        address,
-        abi: stakingAbi,
-        functionName: 'depositOf',
-        args: [user, i],
-      })
-      deposits.push({
-        amount: d.amount,
-        stakeTime: d.stakeTime,
-        unstakeStartTime: d.unstakeStartTime,
-        locked: {
-          lockedUntil: d.locked.lockedUntil,
-          perpetualLockDays: d.locked.perpetualLockDays,
-          intendedLockDays: d.locked.intendedLockDays,
-          isLocked: d.locked.isLocked,
-        },
-      })
-    }
+    // Independent per-index reads — fan out (multicall-batched by the client).
+    const indices = Array.from({ length: Number(count) }, (_, i) => BigInt(i))
+    const deposits: StakeDeposit[] = await Promise.all(
+      indices.map(async (i) => {
+        const d = await client.readContract({
+          address,
+          abi: stakingAbi,
+          functionName: 'depositOf',
+          args: [user, i],
+        })
+        return {
+          amount: d.amount,
+          stakeTime: d.stakeTime,
+          unstakeStartTime: d.unstakeStartTime,
+          locked: {
+            lockedUntil: d.locked.lockedUntil,
+            perpetualLockDays: d.locked.perpetualLockDays,
+            intendedLockDays: d.locked.intendedLockDays,
+            isLocked: d.locked.isLocked,
+          },
+        }
+      }),
+    )
     const totalStaked = await client.readContract({
       address,
       abi: stakingAbi,

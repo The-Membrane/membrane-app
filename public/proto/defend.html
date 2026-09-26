@@ -1,0 +1,772 @@
+<title>Membrane &mdash; Defend</title>
+<style>
+  :root{
+    --bg:#09090a; --raise:#100f12; --card:#0e0d10; --sunk:#070708;
+    --ink:#ece6d8; --dim:#8d877b; --faint:#56524a;
+    --hair:rgba(236,230,216,0.10); --hairS:rgba(236,230,216,0.22);
+    --phos:#9bdc4f; --teal:#46d39a; --gold:#d8b24a; --blood:#cf4034;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--mono);
+    font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; padding-bottom:70px; }
+  .wrap{ max-width:1140px; margin:0 auto; padding:0 20px; }
+  h1,h2{ font-family:var(--serif); font-weight:400; margin:0; letter-spacing:-0.01em; }
+  .num{ font-variant-numeric:tabular-nums; }
+  nav{ display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:16px 0; border-bottom:1px solid var(--hair); margin-bottom:26px; }
+  .brand{ font-family:var(--serif); font-size:17px; }
+  .pnav{ display:flex; gap:2px; margin-left:26px; margin-right:auto; flex-wrap:wrap; }
+  .pnav a{ font-family:var(--mono); font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--dim); text-decoration:none; padding:6px 10px; border:1px solid transparent;
+    transition:color .15s,border-color .15s; }
+  .pnav a:hover{ color:var(--phos); }
+  .pnav a.on{ color:var(--ink); border-color:var(--hairS); }
+  .pnav a.stub{ color:var(--faint); cursor:help; }
+  .navr{ font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--faint); }
+  .eyebrow{ font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); }
+  .card{ background:var(--card); border:1px solid var(--hair); padding:18px; }
+  .warm{ font-size:12px; color:var(--dim); max-width:80ch; line-height:1.7; }
+  .sect{ margin:32px 0 10px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .sect h2{ font-size:20px; }
+  .sect .note{ font-size:11px; color:var(--faint); }
+  .stamp{ font-size:9px; color:var(--faint); letter-spacing:0.12em; margin-top:10px; line-height:1.7; }
+  .wico{ display:inline-block; width:13px; height:13px; line-height:11px; text-align:center;
+    margin-left:6px; vertical-align:1px; font-size:9px; color:var(--dim); font-style:normal;
+    border:1px solid var(--hairS); cursor:help; position:relative; }
+  .wico .wtip{ display:none; position:absolute; left:-120px; right:auto; width:280px; top:20px;
+    background:var(--card); border:1px solid var(--hairS); padding:10px 12px; z-index:9;
+    text-align:left; letter-spacing:0; text-transform:none; font-size:10px; line-height:1.6;
+    color:var(--dim); box-shadow:0 8px 24px rgba(0,0,0,0.55); }
+  .wico:hover .wtip, .wico:focus .wtip{ display:block; }
+
+  /* ---- belt strip ---- */
+  .belts{ display:flex; gap:8px; align-items:center; font-size:10px; letter-spacing:0.16em;
+    text-transform:uppercase; color:var(--faint); margin-top:14px; flex-wrap:wrap; }
+  .belt{ border:1px solid var(--hair); padding:5px 11px; }
+  .belt.on{ border-color:var(--gold); color:var(--gold); }
+  .belts .arr{ color:var(--faint); }
+
+  /* ---- decision surface ---- */
+  .ds{ display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:18px; margin-top:14px; }
+  .dsviz{ position:relative; height:250px; background:var(--sunk); border:1px solid var(--hair); }
+  .dsviz canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  .ctl-hd{ display:flex; justify-content:space-between; font-size:11px; margin-top:12px; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:18px;
+    background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track{ height:2px; background:var(--hairS); }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:11px; height:11px;
+    background:var(--phos); margin-top:-4.5px; border:0; }
+  input[type=range]::-moz-range-track{ height:2px; background:var(--hairS); }
+  input[type=range]::-moz-range-thumb{ width:11px; height:11px; background:var(--phos); border:0; border-radius:0; }
+  .psel{ background:var(--raise); color:var(--ink); border:1px solid var(--hairS);
+    font-family:var(--mono); font-size:11px; padding:3px 7px; cursor:pointer; border-radius:0; margin-left:8px; }
+  .cbar{ position:relative; height:7px; background:var(--sunk); border:1px solid var(--hair); margin-top:5px; }
+  .cbar i{ position:absolute; top:0; bottom:0; }
+  .cbar .fm{ position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--teal); }
+  .dsn{ display:grid; gap:6px; margin-top:14px; padding-top:12px; border-top:1px solid var(--hair); }
+  .drow{ display:flex; justify-content:space-between; font-size:11px; color:var(--dim); }
+  .drow b{ font-weight:400; color:var(--ink); }
+  .drow b.bad{ color:var(--blood); }
+  .drow b.warn{ color:var(--gold); }
+
+  /* ---- leaderboard ---- */
+  .lb{ margin-top:12px; }
+  .lbr{ display:grid; grid-template-columns:34px 1.3fr 1fr auto auto; gap:12px; align-items:center;
+    padding:10px 12px; border:1px solid var(--hair); border-bottom:0; background:var(--card);
+    font-size:11.5px; }
+  .lbr:last-child{ border-bottom:1px solid var(--hair); }
+  .lbr.house{ background:var(--raise); }
+  .lbr.you{ border-left:3px solid var(--phos); padding-left:10px; }
+  .lbr .rk{ color:var(--faint); }
+  .lbr .who b{ font-weight:400; display:block; }
+  .lbr .who small{ font-size:9.5px; color:var(--faint); }
+  .regs{ display:flex; gap:3px; align-items:flex-end; height:20px; }
+  .regs i{ display:block; width:12px; background:var(--teal); }
+  .regs i.neg{ background:var(--blood); }
+  .lbr .edge{ font-size:14px; text-align:right; }
+  .lbr .att{ font-size:9.5px; color:var(--faint); text-align:right; }
+
+  /* ---- regime table ---- */
+  .regtab{ display:grid; }
+  .regrow{ display:grid; grid-template-columns:1.2fr 1fr auto; gap:12px; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--hair); font-size:11.5px; }
+  .regrow:last-child{ border-bottom:0; }
+  .regrow .bar{ position:relative; height:7px; background:var(--sunk); border:1px solid var(--hair); }
+  .regrow .bar i{ position:absolute; top:0; bottom:0; }
+  .regrow .v{ text-align:right; }
+
+  /* ---- sandbox ---- */
+  .sbgate{ width:100%; text-align:left; background:transparent; border:1px solid var(--hairS);
+    color:var(--ink); font-family:var(--mono); font-size:11px; letter-spacing:0.16em;
+    text-transform:uppercase; padding:13px 14px; cursor:pointer; transition:border-color .15s,color .15s; }
+  .sbgate:hover{ border-color:var(--phos); color:var(--phos); }
+  .sbgate small{ display:block; letter-spacing:0.02em; text-transform:none; font-size:10.5px;
+    color:var(--faint); margin-top:5px; }
+  .sb{ display:none; margin-top:14px; }
+  .sb.open{ display:block; }
+  .sbctl{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .sbctl select, .sbctl button{ background:var(--raise); color:var(--ink); border:1px solid var(--hairS);
+    font-family:var(--mono); font-size:11px; padding:7px 11px; cursor:pointer; border-radius:0; }
+  .sbctl button:hover{ border-color:var(--phos); color:var(--phos); }
+  .duel{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .duelc{ border:1px solid var(--hair); background:var(--sunk); position:relative; height:190px; }
+  .duelc canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  .duelh{ font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim);
+    padding:8px 10px; position:relative; z-index:1; }
+  .duelr{ display:grid; gap:4px; margin-top:10px; font-size:11px; color:var(--dim); }
+  .duelr b{ font-weight:400; color:var(--ink); }
+  @media(max-width:820px){ .ds,.duel{ grid-template-columns:1fr; } }
+
+  /* ---- vault ---- */
+  .vault{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:18px; }
+  .vchart{ position:relative; height:200px; background:var(--sunk); border:1px solid var(--hair); }
+  .vchart canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  .mini{ display:grid; gap:5px; margin-top:12px; padding-top:11px; border-top:1px solid var(--hair); }
+  .mrow{ display:flex; justify-content:space-between; font-size:10.5px; color:var(--dim); }
+  .mrow b{ font-weight:400; color:var(--ink); }
+  .open-chip{ font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold);
+    border:1px solid var(--gold); padding:2px 7px; }
+  @media(max-width:820px){ .vault{ grid-template-columns:1fr; } }
+
+  /* ---- open decisions ---- */
+  .decs{ display:grid; gap:0; }
+  .dec{ display:grid; grid-template-columns:26px 1fr; gap:10px; padding:9px 0;
+    border-bottom:1px solid var(--hair); font-size:11.5px; color:var(--dim); }
+  .dec:last-child{ border-bottom:0; }
+  .dec .n{ color:var(--gold); }
+  .dec b{ font-weight:400; color:var(--ink); }
+
+  .copy{ cursor:pointer; transition:color .15s; color:var(--dim); }
+  .copy:hover{ color:var(--phos); }
+  .cta{ display:inline-block; background:var(--gold); border:1px solid var(--gold); color:#09090a;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase;
+    padding:12px 22px; cursor:pointer; }
+  .cta:hover{ background:#e6c463; }
+
+  /* execution layer (V5/V6): every implied action gets its button; one confirm, numbers only */
+  .acct{ font-size:10px; color:var(--dim); border:1px solid var(--hair); padding:5px 10px; letter-spacing:0.06em; }
+  .xbtn{ display:inline-block; background:transparent; border:1px solid var(--hairS); color:var(--ink);
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:6px 11px; cursor:pointer; text-decoration:none; transition:border-color .15s,color .15s; }
+  .xbtn:hover{ border-color:var(--phos); color:var(--phos); }
+  .xbtn.go{ background:var(--phos); border-color:var(--phos); color:#09090a; }
+  .xbtn.go:hover{ background:#b3ec6e; color:#09090a; }
+  .xrail{ display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .xsheet{ position:fixed; inset:0; background:rgba(7,7,8,0.78); display:grid; place-items:center; z-index:60; }
+  .xcard{ background:var(--card); border:1px solid var(--hairS); padding:20px; width:min(430px,92vw); }
+  .xh{ font-family:var(--serif); font-size:17px; margin-bottom:12px; }
+  .xrow{ display:flex; justify-content:space-between; gap:14px; font-size:11.5px; color:var(--dim);
+    padding:5px 0; border-bottom:1px solid var(--hair); }
+  .xrow:last-child{ border-bottom:0; }
+  .xv{ font-weight:400; color:var(--ink); }
+  .xnote{ font-size:10px; color:var(--faint); line-height:1.6; margin:10px 0 0; }
+  .xbtns{ display:flex; gap:8px; margin-top:16px; }
+  .xgo{ flex:1; background:var(--phos); border:1px solid var(--phos); color:#09090a;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px; cursor:pointer; }
+  .xno{ background:transparent; border:1px solid var(--hairS); color:var(--dim);
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px 16px; cursor:pointer; }
+  .xpend{ margin-top:16px; font-size:11px; color:var(--gold); letter-spacing:0.08em; }
+  .xdone{ margin-top:16px; font-size:11px; color:var(--phos); letter-spacing:0.08em; }
+
+</style>
+
+<div class="wrap">
+  <nav>
+    <span class="brand">Membrane</span>
+    <span class="pnav">
+      <a href="dash.html">Position</a>
+      <a href="builder.html">Builder</a>
+      <a href="borrow.html">Borrow</a>
+      <a href="carry.html">Carry</a>
+      <a href="supply.html">Earn</a>
+      <a class="stub" title="not mocked yet">Liquidate</a>
+      <a href="defend.html" class="on">Defend</a>
+    </span>
+    <span class="acct num">0x9a41&hellip;c2e0</span>
+    <span class="navr">Defend &middot; mock</span>
+  </nav>
+
+  <span class="eyebrow">Defend</span>
+  <h1 style="margin-top:8px">Design a better risk curator.</h1>
+  <p class="warm" style="margin-top:8px">
+    Submit a program. Each step it reads market state &mdash; reserves, oracle price, utilization,
+    clearable depth, flow, position distribution &mdash; and outputs the <b style="font-weight:400;color:var(--ink)">whole
+    risk vector</b>: liquidation LTV, borrow gap, collateral caps, delay length, oracle tolerance.
+    We score it over <b style="font-weight:400;color:var(--ink)">1,000 randomized simulations</b> against
+    hidden regimes it cannot see, and rank it by average edge. Win on-chain and your policy becomes
+    protocol infrastructure &mdash; public, forkable, your name on it. Run a private model offchain and
+    <b style="font-weight:400;color:var(--ink)">charge for it</b>: compute costs are the only real fee
+    moat, because anything fully on-chain can be copied the day it wins. The house entries below are
+    real venue policies; the challenge is beating Membrane&rsquo;s own algorithm.
+  </p>
+  <div class="xrail" style="margin-top:14px">
+    <button class="cta" type="button">Submit a strategy</button>
+    <button class="xbtn" type="button" data-exec="Deposit into the rank-1 vault"
+      data-rows='[["Vault","Depth-Led Adaptive v2 \u00b7 rank 1"],["You deposit","$5,000 CDT"],["Live vs sim, 12 weeks","\u22120.9 drift"],["Withdraw","anytime"]]'
+      data-note="Sim edge is not live edge. The vault section below shows the divergence chart."
+      data-cta="Sign & deposit" data-done="Deposited">Deposit into the top strategy</button>
+    <span class="copy" data-copy="github.com/membrane-fi/curator-starter" tabindex="0"
+      style="font-size:10px">starter repo &#10697;</span>
+  </div>
+  <div class="belts">
+    <span class="belt">read a curator</span><span class="arr">&rarr;</span>
+    <span class="belt">allocate across curators</span><span class="arr">&rarr;</span>
+    <span class="belt on">become one</span>
+  </div>
+
+  <div class="sect"><span class="eyebrow">01 /</span><h2>The decision surface</h2>
+    <span class="note">every lever your program outputs &middot; move any of them and watch the couplings</span></div>
+  <div class="card ds">
+    <div>
+      <div class="dsviz"><canvas id="dsc"></canvas></div>
+      <div class="ctl-hd"><span>Liquidation LTV (M)</span><span class="num" id="mVal">86%</span></div>
+      <input type="range" id="mSlider" min="70" max="95" step="1" value="86" aria-label="Liquidation LTV">
+      <div class="ctl-hd"><span>Borrow gap (g)</span><span class="num" id="gSlVal">3.0%</span></div>
+      <input type="range" id="gSlider" min="10" max="50" step="1" value="30" aria-label="Borrow gap, tenths of a percent">
+      <div class="ctl-hd"><span>Collateral cap</span><span class="num" id="capVal">$30M</span></div>
+      <input type="range" id="capSlider" min="5" max="100" step="1" value="30" aria-label="Collateral cap, millions">
+      <div class="ctl-hd" style="gap:10px">
+        <span>Delay window
+          <select id="delaySel" class="psel" aria-label="Delay window">
+            <option value="0">none</option><option value="2">2h</option>
+            <option value="8" selected>8h</option><option value="24">24h</option>
+          </select>
+        </span>
+        <span>Oracle staleness
+          <select id="oraSel" class="psel" aria-label="Oracle staleness tolerance">
+            <option value="1">60s</option><option value="15" selected>15m</option><option value="60">1h</option>
+          </select>
+        </span>
+      </div>
+    </div>
+    <div class="dsn">
+      <div class="drow"><span>Borrow LTV &mdash; B = M &minus; g</span><b class="num" id="bVal"></b></div>
+      <div class="drow"><span>Wipeout frontier &radic;M</span><b class="num bad" id="wipeVal"></b></div>
+      <div class="drow"><span>Headroom, trigger &rarr; wipeout</span><b class="num" id="headVal"></b></div>
+      <div class="drow"><span>Capital efficiency vs Aave BTC</span><b class="num" id="effVal"></b></div>
+
+      <div class="drow" style="margin-top:6px;padding-top:8px;border-top:1px solid var(--hair)">
+        <span>Max safe delay at this M &mdash; crash depth vs headroom</span><b class="num" id="dSafeVal"></b></div>
+      <div class="drow"><span>Your delay</span><b class="num" id="dYourVal"></b></div>
+
+      <div class="drow" style="margin-top:6px;padding-top:8px;border-top:1px solid var(--hair)">
+        <span>House cap formula &mdash; depth &times; (1 + junior &minus; vol stress)</span><b class="num" id="capHouse"></b></div>
+      <div class="cbar" id="capBar"></div>
+      <div class="drow"><span style="font-size:9.5px;color:var(--faint)">teal tick = formula cap &middot; your cap past it is cascade exposure</span><b class="num" id="capFlag"></b></div>
+
+      <div class="drow" style="margin-top:6px;padding-top:8px;border-top:1px solid var(--hair)">
+        <span>Oracle: max price error at liquidation</span><b class="num" id="oraErr"></b></div>
+      <div class="drow"><span>Oracle: expected frozen time per week</span><b class="num" id="oraFrz"></b></div>
+
+      <p class="stamp" style="margin-top:8px">
+        Every number is a consequence, not a setting &mdash; and the levers couple. A delay that is
+        safe at 86% is lethal at 95%. A cap that ignores clearable depth only fails in the cascade
+        regime. Your program outputs this whole vector, per collateral, every step.
+      </p>
+    </div>
+  </div>
+
+  <div class="sect"><span class="eyebrow">02 /</span><h2>Leaderboard</h2>
+    <span class="note">avg edge over 1,000 sims &middot; house policies pinned
+      <span class="wico" tabindex="0">i<span class="wtip">Edge = capital efficiency captured (interest
+      per unit volume) minus an asymmetric bad-debt penalty &mdash; bad debt hurts more than volume
+      helps. Averaged over 1,000 randomized draws, so luck washes out: this grades process, never a
+      single run&rsquo;s P&amp;L. Penalty coefficient is an open decision.</span></span></span></div>
+  <div class="lb" id="lb"></div>
+  <p class="stamp">regime strip per row: edge by hidden regime &mdash; calm &middot; vol spike &middot; depth shock &middot; cascade. Red = negative in that regime.</p>
+
+  <div class="sect"><span class="eyebrow">03 /</span><h2>Where your last submission bled</h2>
+    <span class="note">per-regime breakdown &mdash; this is the practice loop, not a verdict</span></div>
+  <div class="card">
+    <div class="regtab" id="regtab"></div>
+    <p class="stamp">submission #3 &middot; scored 2026-08-15 over 1,000 draws &middot; seed set rotates per scoring epoch</p>
+  </div>
+
+  <div class="sect"><span class="eyebrow">04 /</span><h2>Run one sim before you submit</h2></div>
+  <button class="sbgate" id="sbGate" type="button">
+    Open the sandbox
+    <small>One visible-parameter run. The scored competition uses hidden regimes &mdash; this is for
+    building intuition, and it will not predict your score.</small>
+  </button>
+  <div class="sb card" id="sb">
+    <div class="sbctl">
+      <label class="eyebrow" for="sbReg">Regime</label>
+      <select id="sbReg">
+        <option value="calm">Calm &middot; 1.2% 8h vol</option>
+        <option value="stress" selected>Vol spike &middot; 3% 8h vol</option>
+        <option value="cascade">Cascade &middot; 5% vol + jump</option>
+      </select>
+      <label class="eyebrow" for="sbM">Liq LTV</label>
+      <select id="sbM">
+        <option value="0.78">78%</option><option value="0.83">83%</option>
+        <option value="0.86" selected>86%</option><option value="0.91">91%</option>
+      </select>
+      <button id="sbRun" type="button">Run the same path through both venues</button>
+    </div>
+    <div class="duel">
+      <div class="duelc"><div class="duelh">Membrane &mdash; 8h window &middot; partial to B</div><canvas id="cvA"></canvas></div>
+      <div class="duelc"><div class="duelh">Instant venue &mdash; no window &middot; liquidate at breach</div><canvas id="cvB"></canvas></div>
+    </div>
+    <div class="duelr" id="duelr"></div>
+    <p class="stamp">Identical price path, identical position, drawn at B. The only difference is the
+      mechanism. This is the required lesson: Membrane&rsquo;s delay changes what risk means &mdash;
+      a breach here is a timer, not an execution.</p>
+  </div>
+
+  <div class="sect"><span class="eyebrow">05 /</span><h2>Mirror vaults &mdash; two classes, one honest split</h2>
+    <span class="note">on-chain policy is copyable, so it cannot carry a fee &middot; offchain compute can</span></div>
+  <div class="card vault">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+        <span style="font-family:var(--serif);font-size:16px">Depth-Led Adaptive v2</span>
+        <span class="open-chip">frozen</span>
+      </div>
+      <div class="mini">
+        <div class="mrow"><span>Author</span><b>0x7a41&hellip;9c2e</b></div>
+        <div class="mrow"><span>Sim edge, rank 1 of epoch 4</span><b class="num">+3.86</b></div>
+        <div class="mrow"><span>Deposits</span><b class="num">$412k &middot; 37 depositors</b></div>
+        <div class="mrow"><span>Class</span><b>public policy &mdash; fully on-chain</b></div>
+        <div class="mrow"><span>Fee</span><b>none &mdash; copyable code cannot charge rent</b></div>
+        <div class="mrow"><span>Author earns</span><b>rank, provenance, and the listing it seeds</b></div>
+        <div class="mrow"><span>Updates</span><b>none &mdash; frozen means the program, not the params</b></div>
+      </div>
+      <div class="xrail">
+        <button class="xbtn go" type="button" data-exec="Deposit into Depth-Led Adaptive v2"
+          data-rows='[["You deposit","$5,000 CDT"],["Sim edge, epoch 4","+3.86"],["Live vs sim, 12 weeks","\u22120.9 drift \u2014 see chart"],["Fee","entry, decaying \u00b7 shape OPEN"],["Withdraw","anytime, no lock"]]'
+          data-note="Sim edge is not live edge. The chart beside this button is the honest version."
+          data-cta="Sign & deposit" data-done="Deposited">Deposit</button>
+      </div>
+      <p class="stamp">A frozen program still adapts &mdash; it was scored on reacting to regimes it
+        had never seen. Fork it freely; that is the point of winning on-chain.</p>
+      <div class="mini" style="border-top:1px solid var(--hairS)">
+        <div class="mrow"><span style="font-family:var(--serif);font-size:13px;color:var(--ink)">Operator vaults</span>
+          <b class="open-chip">offchain &middot; fee-bearing</b></div>
+        <div class="mrow"><span>Why a fee holds</span><b>the model runs offchain &mdash; it costs money and cannot be read out</b></div>
+        <div class="mrow"><span>Discipline</span><b>every update re-simulates before it activates</b></div>
+        <div class="mrow"><span>Depositor view</span><b>same divergence chart, same rules</b></div>
+      </div>
+    </div>
+    <div>
+      <div class="vchart"><canvas id="vc"></canvas></div>
+      <p class="stamp">Live performance against the sim expectation band. The divergence is shown
+        because it exists: sim edge is not live edge, and the drift between them is the honest number
+        an allocator needs. Band = middle 80% of the 1,000 scored sims.</p>
+    </div>
+  </div>
+
+  <div class="sect"><span class="eyebrow">06 /</span><h2>What the sim cannot see</h2></div>
+  <div class="card">
+    <div class="decs">
+      <div class="dec"><span class="n">&#9679;</span><span><b>Venue recalls are not modeled.</b> Live positions can pull deployed capital back to repay debt before collateral sells. The sim has no such lever, so live outcomes should beat sim outcomes in shallow breaches. If they do not, that is signal.</span></div>
+      <div class="dec"><span class="n">&#9679;</span><span><b>Sim edge is not live edge.</b> Calibration drifts from the moment it is measured. The vault chart above is the correction, updated as live data settles.</span></div>
+      <div class="dec"><span class="n">&#9679;</span><span><b>Rebreach timers are simulated both ways</b> &mdash; with and without reset &mdash; because the shipping behavior is an open decision. Your score shows both columns.</span></div>
+    </div>
+    <p class="stamp">calibration: backtest v5 &middot; 27 files &middot; Chainlink rounds &middot; 3,111 Aave + 886 Morpho
+      liquidation events &middot; protocol params at block 23,543,615 &middot; USDe trade-level data &middot; Curve depth</p>
+  </div>
+
+  <div class="sect"><span class="eyebrow">07 /</span><h2>Submit</h2></div>
+  <div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+    <button class="cta" type="button">Submit a strategy</button>
+    <span class="copy" data-copy="github.com/membrane-fi/curator-starter" tabindex="0">
+      starter repo: github.com/membrane-fi/curator-starter &#10697;</span>
+    <span class="stamp" style="margin:0">sandboxed runtime &middot; scored on rotating seed sets &middot;
+      submission cooldown applies</span>
+  </div>
+
+  <div class="sect"><span class="eyebrow">08 /</span><h2>Decisions pending &mdash; not resolved here</h2></div>
+  <div class="card decs">
+    <div class="dec"><span class="n num">1</span><span><b>DIRECTION SET &mdash; two tiers:</b> on-chain winners are public policy (free, forkable, seed listings); offchain operator vaults carry the fees, because compute cost and unreadable models are the only durable moat. Remaining open: the exact split of what each tier may control.</span></div>
+    <div class="dec"><span class="n num">2</span><span><b>Fee shape for operator vaults</b> (on-chain tier now feeless): ongoing vs performance &mdash; still open.</span></div>
+    <div class="dec"><span class="n num">3</span><span><b>Bad-debt penalty coefficient</b> in the edge formula.</span></div>
+    <div class="dec"><span class="n num">4</span><span><b>Runtime:</b> WASM preferred; languages supported.</span></div>
+    <div class="dec"><span class="n num">5</span><span><b>Managed vaults at v1?</b> Each update invalidates the sim record; if offered, re-simulation before activation is mandatory.</span></div>
+    <div class="dec"><span class="n num">6</span><span><b>Rebreach timer reset</b> &mdash; both variants simulated; one ships.</span></div>
+    <div class="dec"><span class="n num">7</span><span><b>Anti-gaming:</b> rotating seed epochs and cooldowns proposed; not locked.</span></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------- decision surface ----------------
+  // g scaled to measured 8h vol (illustrative curve, BTC-class collateral).
+  var VOL8H=5.1;                                  // measured p99.9 8h move, BTC class
+  var DEPTH=28;                                   // clearable depth, $M, measured
+  var JUNIOR=0.35, VOLSTRESS=0.31;                // junior coverage, vol stress (measured mocks)
+  var P={ M:0.86, g:0.03, cap:30, delay:8, stale:15 };
+  var BASE=[ {nm:'Aave BTC',m:0.78}, {nm:'Aave ETH',m:0.83}, {nm:'Morpho',m:0.86}, {nm:'Liquity',m:0.9091} ];
+
+  var dsc=document.getElementById('dsc'), dctx=dsc.getContext('2d');
+  function fmtPct(x){ return (x*100).toFixed(x<0.9995&&x*100%1?2:0).replace(/\.00$/,'')+'%'; }
+
+  function drawDS(){
+    var M=P.M;
+    var W=dsc.clientWidth||dsc.parentNode.clientWidth, H=dsc.clientHeight||250;
+    if(!W) return;
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    dsc.width=Math.round(W*dpr); dsc.height=Math.round(H*dpr);
+    dctx.setTransform(dpr,0,0,dpr,0,0); dctx.clearRect(0,0,W,H);
+    var PAD=30, X=function(v){ return PAD+(W-2*PAD)*(v-0.70)/(0.30); };
+
+    // axis: LTV from 70% to 100%
+    dctx.strokeStyle='rgba(236,230,216,0.22)';
+    dctx.beginPath(); dctx.moveTo(PAD,H-26); dctx.lineTo(W-PAD,H-26); dctx.stroke();
+    dctx.fillStyle='#56524a'; dctx.font='9px ui-monospace,monospace'; dctx.textAlign='center';
+    [0.70,0.80,0.90,1.00].forEach(function(v){ dctx.fillText(fmtPct(v), X(v), H-12); });
+
+    var g=P.g, B=Math.max(0.4,M-g), wipe=Math.sqrt(M), trig=M*1.04;
+
+    // safe band B..M (phosphor), window M..trigger (gold), trigger..wipe (dim), wipe.. (blood)
+    function band(a,b,color,alpha){
+      dctx.fillStyle=color; dctx.globalAlpha=alpha;
+      dctx.fillRect(X(a), 44, X(Math.min(b,1))-X(a), H-70); dctx.globalAlpha=1;
+    }
+    band(B,M,'#9bdc4f',0.16); band(M,trig,'#d8b24a',0.18);
+    band(trig,wipe,'#8d877b',0.12); band(wipe,1.0,'#cf4034',0.22);
+
+    function mark(v,label,color,dy){
+      dctx.strokeStyle=color; dctx.beginPath(); dctx.moveTo(X(v),40); dctx.lineTo(X(v),H-26); dctx.stroke();
+      dctx.fillStyle=color; dctx.textAlign='center';
+      dctx.fillText(label, Math.min(W-30,Math.max(30,X(v))), 34-(dy||0));
+    }
+    mark(B,'B '+fmtPct(B),'#9bdc4f');
+    mark(M,'M '+fmtPct(M),'#ece6d8');
+    mark(trig,'trigger','#d8b24a');
+    mark(wipe,'\u221aM wipeout '+fmtPct(wipe),'#cf4034');
+
+    // baselines as small ticks under the axis
+    BASE.forEach(function(b){
+      dctx.strokeStyle='rgba(70,211,154,0.8)';
+      dctx.beginPath(); dctx.moveTo(X(b.m),H-26); dctx.lineTo(X(b.m),H-32); dctx.stroke();
+      dctx.fillStyle='#46d39a'; dctx.font='8px ui-monospace,monospace';
+      dctx.fillText(b.nm, X(b.m), H-2);
+    });
+
+    document.getElementById('mVal').textContent=fmtPct(M);
+    document.getElementById('gSlVal').textContent=fmtPct(g);
+    document.getElementById('capVal').textContent='$'+P.cap+'M';
+    document.getElementById('bVal').textContent=fmtPct(B);
+    document.getElementById('wipeVal').textContent=fmtPct(wipe);
+    var head=wipe-trig;
+    var hv=document.getElementById('headVal');
+    hv.textContent=(head*100).toFixed(1)+' pts';
+    hv.className='num'+(head<0.03?' bad':head<0.05?' warn':'');
+    document.getElementById('effVal').textContent='+'+((B/0.75-1)*100).toFixed(0)+'% borrowable per $';
+
+    // COUPLING 1 -- delay safety: crash depth over d hours ~ vol8h*sqrt(d/8); the
+    // window is safe only while that depth stays inside the fall from trigger to
+    // underwater (1 - M). At 95% LTV that budget is ~5%, and 8h of BTC tail eats it.
+    var budget=1-M;
+    var dSafe=8*Math.pow(budget/(VOL8H/100),2);
+    var dv=document.getElementById('dSafeVal');
+    dv.textContent = dSafe>48 ? '>48h' : dSafe.toFixed(1)+'h';
+    var dy=document.getElementById('dYourVal');
+    dy.textContent = P.delay===0 ? 'none \u2014 instant execution, no cure' : P.delay+'h'+
+      (P.delay>dSafe ? ' \u2014 positions can go UNDERWATER inside your own window' : ' \u2014 inside the safe bound');
+    dy.className='num'+(P.delay>dSafe?' bad':P.delay>dSafe*0.6?' warn':'');
+
+    // COUPLING 2 -- cap vs the house formula: Cap = depth x (1 + junior - vol stress)
+    var houseCap=DEPTH*(1+JUNIOR-VOLSTRESS);
+    document.getElementById('capHouse').textContent='$'+houseCap.toFixed(0)+'M';
+    var maxScale=100;
+    var bar=document.getElementById('capBar');
+    var over=P.cap>houseCap;
+    bar.innerHTML='<i style="left:0;width:'+(Math.min(P.cap,houseCap)/maxScale*100)+'%;background:rgba(155,220,79,0.5)"></i>'+
+      (over?'<i style="left:'+(houseCap/maxScale*100)+'%;width:'+((P.cap-houseCap)/maxScale*100)+'%;background:rgba(207,64,52,0.6)"></i>':'')+
+      '<span class="fm" style="left:'+(houseCap/maxScale*100)+'%"></span>';
+    var cf=document.getElementById('capFlag');
+    cf.textContent = over ? '$'+(P.cap-houseCap).toFixed(0)+'M cannot be cleared in a cascade'
+                          : '$'+(houseCap-P.cap).toFixed(0)+'M of headroom unused';
+    cf.className='num'+(over?' bad':'');
+
+    // COUPLING 3 -- oracle staleness: loose = liquidating on wrong prices,
+    // tight = freeze windows where nothing is liquidatable. Both cost; pick which.
+    var err=VOL8H*Math.sqrt(P.stale/480);
+    document.getElementById('oraErr').textContent='\u00b1'+err.toFixed(2)+'%';
+    var frz={1:14,15:2,60:0}[P.stale];
+    var of_=document.getElementById('oraFrz');
+    of_.textContent = frz+' min \u2014 '+(frz>10?'un-liquidatable windows add up':frz>0?'tolerable':'never freezes, every error prices in');
+    of_.className='num'+(frz>10?' warn':'');
+  }
+  document.getElementById('mSlider').addEventListener('input',function(){ P.M=+this.value/100; drawDS(); });
+  document.getElementById('gSlider').addEventListener('input',function(){ P.g=+this.value/1000; drawDS(); });
+  document.getElementById('capSlider').addEventListener('input',function(){ P.cap=+this.value; drawDS(); });
+  document.getElementById('delaySel').addEventListener('change',function(){ P.delay=+this.value; drawDS(); });
+  document.getElementById('oraSel').addEventListener('change',function(){ P.stale=+this.value; drawDS(); });
+  drawDS();
+  window.addEventListener('resize',function(){ drawDS(); });
+
+  // ---------------- leaderboard ----------------
+  // House policies pinned; regs = edge by hidden regime [calm, vol, depth, cascade].
+  var ROWS=[
+    { rk:1, who:'0x7a41\u20269c2e', nm:'Depth-Led Adaptive v2', edge:3.86, att:14, regs:[3.2,4.1,4.4,3.7] },
+    { rk:2, who:'membrane', nm:'B = M \u2212 g (house controller)', edge:3.41, att:null, house:true, regs:[3.0,3.6,3.8,3.3] },
+    { rk:3, who:'0x22b0\u20261f77', nm:'Vol-Gated Caps', edge:3.12, att:31, regs:[3.4,3.9,2.4,2.7] },
+    { rk:4, who:'you', nm:'submission #3', edge:2.48, att:3, you:true, regs:[3.1,3.3,2.2,-1.6] },
+    { rk:5, who:'morpho (static)', nm:'86% fixed', edge:2.21, att:null, house:true, regs:[3.5,2.6,1.4,-0.9] },
+    { rk:6, who:'aave (static)', nm:'78% BTC / 83% ETH fixed', edge:1.74, att:null, house:true, regs:[2.2,1.9,1.6,1.2] },
+    { rk:7, who:'liquity-style', nm:'90.91%, ETH only', edge:1.32, att:null, house:true, regs:[3.8,1.9,0.4,-2.3] }
+  ];
+  document.getElementById('lb').innerHTML=ROWS.map(function(r){
+    var regs=r.regs.map(function(v){
+      var h=Math.min(18,Math.abs(v)*4);
+      return '<i class="'+(v<0?'neg':'')+'" style="height:'+h+'px"></i>';
+    }).join('');
+    return '<div class="lbr'+(r.house?' house':'')+(r.you?' you':'')+'">'+
+      '<span class="rk num">'+r.rk+'</span>'+
+      '<span class="who"><b>'+r.nm+'</b><small>'+r.who+(r.house?' \u00b7 house policy':'')+'</small></span>'+
+      '<span class="regs">'+regs+'</span>'+
+      '<span class="edge num" style="color:'+(r.edge>=3?'var(--phos)':'var(--ink)')+'">+'+r.edge.toFixed(2)+'</span>'+
+      '<span class="att num">'+(r.att!=null?r.att+' attempts':'\u2014')+'</span></div>';
+  }).join('');
+
+  // ---------------- regime bleed ----------------
+  var REG=[
+    { nm:'Calm drift \u00b7 412 sims', v:+3.1, why:'held with the pack' },
+    { nm:'Vol spike \u00b7 305 sims', v:+3.3, why:'your caps tightened in time' },
+    { nm:'Depth shock \u00b7 178 sims', v:+2.2, why:'edge thinned \u2014 caps lagged the depth draw' },
+    { nm:'Cascade \u00b7 105 sims', v:-1.6, why:'bad debt: LTV held high into forced flow. This regime alone cost you rank 2.' }
+  ];
+  var MAXV=4.5;
+  document.getElementById('regtab').innerHTML=REG.map(function(r){
+    var w=Math.abs(r.v)/MAXV*100;
+    return '<div class="regrow"><span>'+r.nm+'<br><small style="color:var(--faint);font-size:9.5px">'+r.why+'</small></span>'+
+      '<span class="bar"><i style="'+(r.v>=0?'left:0':'right:0')+';width:'+w+'%;background:'+
+        (r.v>=0?'var(--teal)':'var(--blood)')+'"></i></span>'+
+      '<span class="v num" style="color:'+(r.v>=0?'var(--dim)':'var(--blood)')+'">'+(r.v>=0?'+':'')+r.v.toFixed(1)+'</span></div>';
+  }).join('');
+
+  // ---------------- sandbox ----------------
+  document.getElementById('sbGate').addEventListener('click',function(){
+    document.getElementById('sb').classList.add('open');
+    this.style.display='none';
+    runDuel();
+  });
+  var REGIMES={ calm:{vol:0.012,jump:0}, stress:{vol:0.03,jump:0}, cascade:{vol:0.05,jump:0.12} };
+  function runDuel(){
+    var M=+document.getElementById('sbM').value, g=P.g, B=M-g, trig=M*1.04;
+    var rg=REGIMES[document.getElementById('sbReg').value];
+    // one shared path: 90 steps of 8h
+    var px=[1];
+    for(var i=1;i<90;i++){
+      var r=(Math.random()*2-1)*rg.vol;
+      if(rg.jump && i===40) r-=rg.jump;
+      px.push(px[i-1]*(1+r));
+    }
+    // Membrane: breach starts 1-step (8h) timer; cure if back under M; band trig = instant partial to B
+    // Instant venue: liquidate at first touch of M (full close, 5% penalty)
+    function simMembrane(){
+      var debt=B, ltv, timer=0, liqs=0, equity=1;
+      var out=[];
+      for(var i=0;i<px.length;i++){
+        ltv=debt/px[i];
+        var ev='';
+        if(ltv>=trig || (ltv>M && timer>=1)){
+          var need=Math.max(0,debt-B*px[i]);
+          var seize=ltv>=Math.sqrt(M)? 1 : need/px[i]*1.02;
+          equity=Math.max(0,equity-seize*0.02-Math.max(0,need*0.01));
+          debt=B*px[i]; liqs++; timer=0; ev='liq';
+        } else if(ltv>M){ timer++; ev='timer'; }
+        else timer=0;
+        out.push({p:px[i],ev:ev});
+      }
+      return {out:out, liqs:liqs, equity:equity, end:px[px.length-1]-debt};
+    }
+    function simInstant(){
+      var debt=B, liqs=0, equity=1, out=[];
+      for(var i=0;i<px.length;i++){
+        var ltv=debt/px[i], ev='';
+        if(ltv>M){
+          equity=Math.max(0,equity-0.05); debt=B*px[i]; liqs++; ev='liq';
+        }
+        out.push({p:px[i],ev:ev});
+      }
+      return {out:out, liqs:liqs, equity:equity};
+    }
+    var A=simMembrane(), Bv=simInstant();
+    drawPath('cvA',A.out,M,trig); drawPath('cvB',Bv.out,M,null);
+    document.getElementById('duelr').innerHTML=
+      '<span>Same path &middot; drawn at B = '+fmtPct(B)+' &middot; regime '+document.getElementById('sbReg').value+'</span>'+
+      '<span>Membrane: <b class="num">'+A.liqs+'</b> liquidation'+(A.liqs===1?'':'s')+
+        ' &middot; timers gave the position time to cure &middot; penalty paid <b class="num">'+((1-A.equity)*100).toFixed(1)+'%</b></span>'+
+      '<span>Instant venue: <b class="num">'+Bv.liqs+'</b> liquidation'+(Bv.liqs===1?'':'s')+
+        ' &middot; every touch of M executed &middot; penalty paid <b class="num">'+((1-Bv.equity)*100).toFixed(1)+'%</b></span>';
+  }
+  function drawPath(id,out,M,trig){
+    var cv=document.getElementById(id), ctx=cv.getContext('2d');
+    var W=cv.clientWidth||cv.parentNode.clientWidth, H=cv.clientHeight||190;
+    if(!W) return;
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+    var ps=out.map(function(o){return o.p;});
+    var lo=Math.min.apply(null,ps)*0.98, hi=Math.max.apply(null,ps)*1.02;
+    var X=function(i){ return 8+(W-16)*i/(out.length-1); };
+    var Y=function(p){ return 30+(H-44)*(1-(p-lo)/(hi-lo)); };
+    ctx.strokeStyle='#ece6d8'; ctx.lineWidth=1.5; ctx.beginPath();
+    out.forEach(function(o,i){ i?ctx.lineTo(X(i),Y(o.p)):ctx.moveTo(X(i),Y(o.p)); });
+    ctx.stroke();
+    out.forEach(function(o,i){
+      if(o.ev==='liq'){ ctx.fillStyle='#cf4034'; ctx.fillRect(X(i)-2,Y(o.p)-2,5,5); }
+      else if(o.ev==='timer'){ ctx.fillStyle='#d8b24a'; ctx.fillRect(X(i)-1.5,Y(o.p)-1.5,3.5,3.5); }
+    });
+    ctx.font='8.5px ui-monospace,monospace'; ctx.textAlign='left';
+    ctx.fillStyle='#d8b24a'; if(trig) ctx.fillText('gold = timer ticking', 10, H-8);
+    ctx.fillStyle='#cf4034'; ctx.fillText('red = liquidation', trig?130:10, H-8);
+  }
+  document.getElementById('sbRun').addEventListener('click',runDuel);
+
+  // ---------------- vault: sim band vs live ----------------
+  var vc=document.getElementById('vc'), vctx=vc.getContext('2d');
+  function drawVault(){
+    var W=vc.clientWidth||vc.parentNode.clientWidth, H=vc.clientHeight||200;
+    if(!W) return;
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    vc.width=Math.round(W*dpr); vc.height=Math.round(H*dpr);
+    vctx.setTransform(dpr,0,0,dpr,0,0); vctx.clearRect(0,0,W,H);
+    var N=26, P=14;
+    var X=function(i){ return P+(W-2*P)*i/(N-1); };
+    var Y=function(v){ return H-P-(H-2*P)*(v+1)/6; };
+    // sim expectation band (middle 80% of scored sims)
+    vctx.beginPath();
+    for(var i=0;i<N;i++){ var t=i/(N-1), hi=3.86+0.9-t*0.25; i?vctx.lineTo(X(i),Y(hi)):vctx.moveTo(X(i),Y(hi)); }
+    for(var i=N-1;i>=0;i--){ var t=i/(N-1), lo=3.86-1.1-t*0.35; vctx.lineTo(X(i),Y(lo)); }
+    vctx.closePath(); vctx.fillStyle='rgba(70,211,154,0.15)'; vctx.fill();
+    // live line, drifting to the band's lower half
+    vctx.strokeStyle='#ece6d8'; vctx.lineWidth=1.5; vctx.beginPath();
+    var live=[3.7,3.9,3.5,3.2,3.4,2.9,3.1,2.8,2.6,2.9,2.7,2.5];
+    live.forEach(function(v,i){ var x=X(i*(N-1)/(live.length-1)*0.46); i?vctx.lineTo(x,Y(v)):vctx.moveTo(x,Y(v)); });
+    vctx.stroke();
+    vctx.font='8.5px ui-monospace,monospace';
+    vctx.fillStyle='#46d39a'; vctx.fillText('sim expectation band', W-150, 18);
+    vctx.fillStyle='#ece6d8'; vctx.fillText('live, 12 weeks', 16, 18);
+    vctx.fillStyle='#d8b24a'; vctx.fillText('drift: \u22120.9 vs sim median \u2014 shown, not hidden', 16, H-6);
+  }
+  drawVault();
+  window.addEventListener('resize',drawVault);
+
+  // ---------------- copy chips ----------------
+  Array.prototype.forEach.call(document.querySelectorAll('.copy'),function(el){
+    el.addEventListener('click',function(){
+      try{ navigator.clipboard.writeText(el.getAttribute('data-copy')); }catch(e){}
+      var t=el.textContent; el.textContent='copied';
+      setTimeout(function(){ el.textContent=t; },900);
+    });
+  });
+})();
+</script>
+
+<script>
+(function(){
+"use strict";
+// The one confirmation an irreversible action gets (VETERAN_UX_RULESET V6): numbers,
+// not prose; then pending; then settled. Mock chain, real choreography.
+function el(t,c,x){var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.innerHTML=x; return e;}
+window.__exec=function(o){
+  var ov=el('div','xsheet'), c=el('div','xcard');
+  c.appendChild(el('div','xh',o.title));
+  var tb=el('div');
+  (o.rows||[]).forEach(function(r){ var w=el('div','xrow');
+    w.appendChild(el('span','',r[0])); w.appendChild(el('b','xv num',r[1])); tb.appendChild(w); });
+  c.appendChild(tb);
+  if(o.note) c.appendChild(el('p','xnote',o.note));
+  var btns=el('div','xbtns'), go=el('button','xgo',o.cta||'Confirm'), no=el('button','xno','Cancel');
+  btns.appendChild(go); btns.appendChild(no); c.appendChild(btns);
+  ov.appendChild(c); document.body.appendChild(ov);
+  var close=function(){ ov.remove(); };
+  no.onclick=close; ov.onclick=function(e){ if(e.target===ov) close(); };
+  go.onclick=function(){
+    btns.remove();
+    var p=el('div','xpend','signing\u2026'); c.appendChild(p);
+    setTimeout(function(){ p.textContent='pending \u2014 waiting for the receipt\u2026';
+      setTimeout(function(){
+        p.className='xdone'; p.textContent=(o.done||'Settled')+' \u00b7 mock chain';
+        var ok=el('button','xno','Close'); ok.style.marginTop='12px';
+        c.appendChild(ok); ok.onclick=close;
+      },1100);
+    },800);
+  };
+};
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-exec]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  var rows=[]; try{ rows=JSON.parse(b.getAttribute('data-rows')||'[]'); }catch(err){}
+  window.__exec({ title:b.getAttribute('data-exec'), rows:rows,
+    cta:b.getAttribute('data-cta')||undefined, note:b.getAttribute('data-note')||'',
+    done:b.getAttribute('data-done')||undefined });
+});
+})();
+</script><script>
+(function(){
+"use strict";
+// demo-until-connect (the flip): every page opens fully populated. Wallet-scoped
+// blocks run on the demo wallet until a wallet connects; protocol-scoped blocks
+// stay live either way. CTAs in demo are intent-preserving: the confirm sheet
+// keeps its exact rows, the button becomes "Connect wallet", and after the (mock)
+// connect the SAME sheet re-opens for the real signature. Mock connect = one
+// localStorage flag so the whole loop is testable; the acct chip toggles it.
+var KEY='membrane.wallet';
+function isConn(){ try{ return localStorage.getItem(KEY)==='1'; }catch(e){ return false; } }
+function setConn(v){ try{ if(v) localStorage.setItem(KEY,'1'); else localStorage.removeItem(KEY); }catch(e){} }
+function wireAcct(conn){
+  var a=document.querySelector('.acct'); if(!a) return;
+  a.style.cursor='pointer';
+  if(conn){ a.textContent='0x9a41\u2026c2e0'; a.title='demo-connected \u00b7 click to disconnect';
+    a.onclick=function(){ setConn(false); location.reload(); }; }
+  else{ a.textContent='demo \u00b7 connect'; a.title='click to connect (mock wallet)';
+    a.onclick=function(){ setConn(true); location.reload(); }; }
+}
+function init(){
+  if(isConn()){ wireAcct(true); return; }
+  document.body.classList.add('demo');
+  wireAcct(false);
+  var st=document.createElement('style');
+  st.textContent='.demobar2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;'+
+    'background:var(--raise);border:1px solid var(--hair);padding:9px 14px;margin:0 0 16px;'+
+    'font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim)}'+
+    '.demobar2 b{font-weight:400;color:var(--gold)}'+
+    '.demobar2 button{background:none;border:0;color:var(--phos);font-family:inherit;font-size:10px;'+
+    'letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;text-decoration:underline;padding:0}';
+  document.head.appendChild(st);
+  if(!document.getElementById('demoBar')&&!document.getElementById('demoBar2')){
+    var bar=document.createElement('div'); bar.className='demobar2'; bar.id='demoBar2';
+    bar.innerHTML='<span><b>Demo</b> \u2014 wallet-scoped numbers are a demo wallet, not yours. '+
+      'Live market data stays live.</span>'+
+      '<button type="button" id="demoConn">Connect wallet \u2192</button>';
+    var nav=document.querySelector('.wrap nav')||document.querySelector('nav');
+    if(nav&&nav.parentNode) nav.parentNode.insertBefore(bar,nav.nextSibling);
+    else document.body.insertBefore(bar,document.body.firstChild);
+    document.getElementById('demoConn').onclick=function(){ setConn(true); location.reload(); };
+  }
+  var real=window.__exec; if(!real) return;
+  window.__exec=function(o){
+    var oo={}; for(var k in o) oo[k]=o[k];
+    oo.cta='Connect wallet';
+    oo.note=(o.note?o.note+' ':'')+'Demo: connecting keeps this exact intent and re-opens it for the real signature.';
+    real(oo);
+    var sheets=document.querySelectorAll('.xsheet');
+    var sheet=sheets[sheets.length-1]; if(!sheet) return;
+    var go=sheet.querySelector('.xgo'); if(!go) return;
+    go.onclick=function(){
+      go.textContent='connecting\u2026';
+      setTimeout(function(){
+        setConn(true);
+        sheet.remove();
+        document.body.classList.remove('demo');
+        var b1=document.getElementById('demoBar2'); if(b1) b1.remove();
+        window.__exec=real;
+        wireAcct(true);
+        real(o);
+      },700);
+    };
+  };
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>

@@ -15,6 +15,7 @@
   /* state */
   --m-success: #9bdc4f;
   --m-warning: #d8b24a;
+  --m-risk-caution: #c77d3f;
   --m-danger: #cf4034;
   --m-info: #46d39a;
   /* emphasis */
@@ -39,33 +40,37 @@
 }
 
 :root[data-membrane-theme='light'] {
-  /* state — darker twins; phosphor/teal/gold/blood fail contrast as text on cream */
-  --m-success: #35660d;
-  --m-warning: #6d5512;
-  --m-danger: #a92e22;
+  /* state — purpose-mapped ink accents, legible on every paper surface */
+  --m-success: #326215;
+  --m-warning: #725410;
+  --m-risk-caution: #8a451a;
+  --m-danger: #a52f2a;
   --m-info: #0f6b4b;
-  /* emphasis — moss for text/emphasis use; solid CTA fills keep phosphor via the
-     Chakra ramp (unchanged in this phase) with ink text */
-  --m-primary: #35660d;
+  /* emphasis — moss ink; solid CTA fills keep phosphor with dark text */
+  --m-primary: #326215;
   --m-secondary: #0f6b4b;
-  /* text — espresso ink on parchment (user-approved espresso direction) */
-  --m-text-primary: #2d2114;
-  --m-text-secondary: #4f3d29;
-  --m-text-tertiary: #64513a;
-  /* backgrounds — warm parchment */
-  --m-bg-primary: #e7dfcc;
-  --m-bg-secondary: #efe9d9;
-  --m-bg-tertiary: #f5f0e3;
-  /* espresso hairlines */
-  --m-border-subtle: rgba(45, 33, 20, 0.22);
-  --m-border-medium: rgba(45, 33, 20, 0.28);
-  --m-border-strong: rgba(45, 33, 20, 0.46);
+  /* text — three ink weights, all >= 4.5:1 against page and cards */
+  --m-text-primary: #241f17;
+  --m-text-secondary: #51483d;
+  --m-text-tertiary: #6c6255;
+  /* surfaces — paper canvas, clean card, gently raised control */
+  --m-bg-primary: #f1eee6;
+  --m-bg-secondary: #fffdf8;
+  --m-bg-tertiary: #f8f5ed;
+  /* ink hairlines; geometry remains sharp */
+  --m-border-subtle: rgba(36, 31, 23, 0.18);
+  --m-border-medium: rgba(36, 31, 23, 0.24);
+  --m-border-strong: rgba(36, 31, 23, 0.4);
   /* faint grid/dividers */
-  --m-border-faint: rgba(67, 51, 31, 0.12);
+  --m-border-faint: rgba(36, 31, 23, 0.1);
   /* scrim stays dark in both themes, lighter pressure on parchment */
   --m-overlay: rgba(28, 26, 20, 0.5);
 }
 
 :root[data-membrane-theme='light'] body {
   font-weight: 500;
+}
+
+:root[data-membrane-theme='light'] {
+  color-scheme: light;
 }

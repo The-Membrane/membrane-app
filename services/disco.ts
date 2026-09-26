@@ -1,34 +1,45 @@
 /**
- * TODO: EMISSIONS VOTING INTEGRATION  
- * When a user has active votes in the emissions_voting contract, they cannot withdraw
- * or reduce lock durations on their disco deposits. The frontend should:
- * 1. Query HasAnyVotes before withdraw/lock reduction
- * 2. If user has votes, sandwich the operation with RemoveVote calls before and Vote calls after
- * 3. Flow: RemoveVote (all graphs) -> Withdraw/Reduce Lock -> Re-Vote (same values)
- * 
- * This allows users to perform operations without manually removing votes.
- * The emissions_voting contract address can be queried from ltv_disco config.
+ * Service layer for the LTV Disco contract.
+ * Slots are keyed by LTV percentage (higher LTV = riskiest, lower LTV = safest).
+ *
+ * Withdrawal is 2-step: request_unstake → cooldown (2 days) → complete_unstake.
+ * Claims are per-asset: claim_revenue_for_user { user, asset }.
  */
 
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import contracts from '@/config/contracts.json'
-import { getMockDiscoUserDeposits, getMockDiscoLifetimeRevenue, getMockDiscoAssets } from './discoMockData'
+import {
+  getMockDiscoUserDeposits,
+  getMockDiscoLifetimeRevenue,
+  getMockDiscoAssets,
+  getMockPendingClaims,
+  getMockUnstakeRequests,
+  getMockSlotWeights,
+  getMockAssetQueue,
+  getMockManagerPerformance,
+} from './discoMockData'
+import type { ManagerPerformanceResponse } from '@/components/Disco/types'
 
 // Set to true to use mock data instead of querying contract
 const USE_MOCK_DATA = true // Change to false when contract is ready
 
 /**
- * Get LTV queue(s) for asset(s).
+ * Get asset queue(s) containing LTV-designated slots.
  * If assets is empty, returns all queues (paginated).
  * Returns { queues: [asset_name, queue][] }
  */
-export const getLTVQueues = async (
+export const getAssetQueues = async (
     client: CosmWasmClient | null,
     assets: string[],
     contractAddr?: string,
     limit?: number,
     startAfter?: string
 ) => {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return getMockAssetQueue(assets)
+    }
+
     if (!client) return null
 
     const discoContract = contractAddr || (contracts as any).ltv_disco
@@ -36,7 +47,7 @@ export const getLTVQueues = async (
 
     try {
         const response = await client.queryContractSmart(discoContract, {
-            get_ltv_queue: {
+            get_asset_queue: {
                 assets,
                 limit: limit ?? null,
                 start_after: startAfter ?? null,
@@ -44,41 +55,37 @@ export const getLTVQueues = async (
         })
         return response as { queues: [string, any][] }
     } catch (error) {
-        console.error("Error querying LTV queues:", error)
+        console.error("Error querying asset queues:", error)
         return null
     }
 }
 
 /**
- * Get LTV queue for a single asset (convenience wrapper).
- * Returns the queue object directly, or null if not found.
+ * Get asset queue for a single asset (convenience wrapper).
+ * Returns { queue: { slots: DiscoSlot[], current_deposit_id, min_ltv, max_ltv } } or null.
  */
-export const getLTVQueue = async (
+export const getAssetQueue = async (
     client: CosmWasmClient | null,
     asset: string,
     contractAddr?: string
 ) => {
-    const response = await getLTVQueues(client, [asset], contractAddr)
+    const response = await getAssetQueues(client, [asset], contractAddr)
     if (!response || !response.queues || response.queues.length === 0) return null
-    // Return in the shape { queue: ... } for backward compatibility with existing callers
     return { queue: response.queues[0][1] }
 }
 
 /**
- * Get user's backing deposits for an asset
+ * Get all user deposits across all assets.
+ * Returns { deposits: UserDepositInfo[] }
  */
-export const getUserDeposits = async (
+export const getAllUserDeposits = async (
     client: CosmWasmClient | null,
     user: string,
-    asset: string,
-    contractAddr?: string,
-    limit?: number,
-    startAfter?: string
+    contractAddr?: string
 ) => {
-    // Use mock data if enabled
     if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 100))
-        return getMockDiscoUserDeposits(user, asset)
+        return getMockDiscoUserDeposits(user)
     }
 
     if (!client) return null
@@ -88,25 +95,55 @@ export const getUserDeposits = async (
 
     try {
         const response = await client.queryContractSmart(discoContract, {
-            get_backing_deposits_by_user: {
-                user,
-                asset,
-                limit,
-                start_after: startAfter ? parseInt(startAfter) : undefined
-            }
+            get_all_user_deposits: { user }
         })
         return response
     } catch (error) {
-        console.error("Error querying user deposits:", error)
+        console.error("Error querying all user deposits:", error)
         return null
     }
 }
 
 /**
- * Get user's locked deposits
+ * Get pending unstake requests for a user and asset.
+ * Returns { requests: UnstakeRequest[] }
  */
-export const getUserLockedDeposits = async (
+export const getUnstakeRequests = async (
     client: CosmWasmClient | null,
+    user: string,
+    asset: string,
+    contractAddr?: string
+) => {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return getMockUnstakeRequests(user, asset)
+    }
+
+    if (!client) return null
+
+    const discoContract = contractAddr || (contracts as any).ltv_disco
+    if (!discoContract || discoContract === "") return null
+
+    try {
+        const response = await client.queryContractSmart(discoContract, {
+            get_unstake_requests: { user, asset }
+        })
+        return response
+    } catch (error) {
+        console.error("Error querying unstake requests:", error)
+        return null
+    }
+}
+
+/**
+ * Get effective unlock time for an unstake request, accounting for liquidation lockout.
+ * Returns { request_unlock_time, effective_unlock_time, last_liquidation_timestamp, is_locked_by_liquidation }
+ */
+export const getEffectiveUnlockTime = async (
+    client: CosmWasmClient | null,
+    asset: string,
+    slot: number,
+    depositId: string,
     user: string,
     contractAddr?: string
 ) => {
@@ -117,17 +154,28 @@ export const getUserLockedDeposits = async (
 
     try {
         const response = await client.queryContractSmart(discoContract, {
-            get_locked_deposits: { user }
+            get_effective_unlock_time: {
+                asset,
+                slot,
+                deposit_id: depositId,
+                user,
+            }
         })
-        return response
+        return response as {
+            request_unlock_time: number
+            effective_unlock_time: number
+            last_liquidation_timestamp: number | null
+            is_locked_by_liquidation: boolean
+        }
     } catch (error) {
-        console.error("Error querying locked deposits:", error)
+        console.error("Error querying effective unlock time:", error)
         return null
     }
 }
 
 /**
- * Get user's lifetime revenue for an asset
+ * Get user's lifetime revenue for an asset.
+ * Returns UserLifetimeRevenueEntry[]
  */
 export const getUserLifetimeRevenue = async (
     client: CosmWasmClient | null,
@@ -135,7 +183,6 @@ export const getUserLifetimeRevenue = async (
     asset: string,
     contractAddr?: string
 ) => {
-    // Use mock data if enabled
     if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 100))
         return getMockDiscoLifetimeRevenue(user, asset)
@@ -158,48 +205,8 @@ export const getUserLifetimeRevenue = async (
 }
 
 /**
- * Mock pending claims data
- */
-const getMockPendingClaims = (user: string, asset: string) => {
-    // Return mock claims that match various LTV combinations
-    return {
-        claims: [
-            {
-                max_ltv: "0.75",
-                max_borrow_ltv: "0.70",
-                pending_amount: "125000" // 0.125 CDT
-            },
-            {
-                max_ltv: "0.80",
-                max_borrow_ltv: "0.75",
-                pending_amount: "90000" // 0.09 CDT
-            },
-            {
-                max_ltv: "0.70",
-                max_borrow_ltv: "0.65",
-                pending_amount: "60000" // 0.06 CDT
-            },
-            {
-                max_ltv: "0.85",
-                max_borrow_ltv: "0.80",
-                pending_amount: "187500" // 0.1875 CDT
-            },
-            {
-                max_ltv: "0.65",
-                max_borrow_ltv: "0.60",
-                pending_amount: "45000" // 0.045 CDT
-            },
-            {
-                max_ltv: "0.72",
-                max_borrow_ltv: "0.68",
-                pending_amount: "100000" // 0.1 CDT
-            }
-        ]
-    }
-}
-
-/**
- * Get pending claims for a user and asset
+ * Get pending claims for a user and asset.
+ * Returns { claims: { slot, deposit_id, pending_amount }[] }
  */
 export const getPendingClaims = async (
     client: CosmWasmClient | null,
@@ -207,7 +214,6 @@ export const getPendingClaims = async (
     asset: string,
     contractAddr?: string
 ) => {
-    // Use mock data if enabled
     if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 100))
         return getMockPendingClaims(user, asset)
@@ -230,7 +236,8 @@ export const getPendingClaims = async (
 }
 
 /**
- * Get daily TVL history
+ * Get daily TVL history.
+ * Returns { entries: TVLEntry[] }
  */
 export const getDailyTVL = async (
     client: CosmWasmClient | null,
@@ -253,9 +260,10 @@ export const getDailyTVL = async (
 }
 
 /**
- * Get daily LTV history for an asset
+ * Get daily deposit history for an asset.
+ * Returns { entries: DepositEntry[] }
  */
-export const getDailyLTV = async (
+export const getDailyDeposits = async (
     client: CosmWasmClient | null,
     asset: string,
     contractAddr?: string
@@ -267,23 +275,22 @@ export const getDailyLTV = async (
 
     try {
         const response = await client.queryContractSmart(discoContract, {
-            get_daily_ltv: { asset }
+            get_daily_deposits: { asset }
         })
         return response
     } catch (error) {
-        console.error("Error querying daily LTV:", error)
+        console.error("Error querying daily deposits:", error)
         return null
     }
 }
 
 /**
- * Get revenue events for a specific group
+ * Get revenue events for a specific slot.
  */
 export const getRevenueEvents = async (
     client: CosmWasmClient | null,
     asset: string,
-    ltv: string,
-    maxBorrowLtv: string,
+    slot: number,
     contractAddr?: string
 ) => {
     if (!client) return null
@@ -293,11 +300,7 @@ export const getRevenueEvents = async (
 
     try {
         const response = await client.queryContractSmart(discoContract, {
-            get_revenue_events: {
-                asset,
-                max_ltv: ltv,
-                max_borrow_ltv: maxBorrowLtv
-            }
+            get_revenue_events: { asset, slot }
         })
         return response
     } catch (error) {
@@ -307,13 +310,12 @@ export const getRevenueEvents = async (
 }
 
 /**
- * Get cumulative revenue for an asset, optionally filtered by LTV
+ * Get cumulative revenue for an asset, optionally filtered by slot.
  */
 export const getCumulativeRevenue = async (
     client: CosmWasmClient | null,
     asset: string,
-    maxLtv?: string,
-    maxBorrowLtv?: string,
+    slot?: number,
     contractAddr?: string
 ) => {
     if (!client) return null
@@ -322,14 +324,9 @@ export const getCumulativeRevenue = async (
     if (!discoContract || discoContract === "") return null
 
     try {
-        const query: any = {
-            asset
-        }
-        if (maxLtv) {
-            query.max_ltv = maxLtv
-        }
-        if (maxBorrowLtv) {
-            query.max_borrow_ltv = maxBorrowLtv
+        const query: any = { asset }
+        if (slot !== undefined) {
+            query.slot = slot
         }
 
         const response = await client.queryContractSmart(discoContract, {
@@ -343,13 +340,98 @@ export const getCumulativeRevenue = async (
 }
 
 /**
- * Get all assets that have LTV queues
+ * Get computed revenue weights for all slots.
+ * Returns { weights: [slot, decimal_weight][] }
+ */
+export const getSlotWeights = async (
+    client: CosmWasmClient | null,
+    asset: string,
+    contractAddr?: string
+) => {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return getMockSlotWeights(asset)
+    }
+
+    if (!client) return null
+
+    const discoContract = contractAddr || (contracts as any).ltv_disco
+    if (!discoContract || discoContract === "") return null
+
+    try {
+        const response = await client.queryContractSmart(discoContract, {
+            get_slot_weights: { asset }
+        })
+        return response
+    } catch (error) {
+        console.error("Error querying slot weights:", error)
+        return null
+    }
+}
+
+/**
+ * Get user's total deposits value.
+ * Returns { total_deposits: Uint128 }
+ */
+export const getUserTotalDeposits = async (
+    client: CosmWasmClient | null,
+    user: string,
+    contractAddr?: string
+) => {
+    if (!client) return null
+
+    const discoContract = contractAddr || (contracts as any).ltv_disco
+    if (!discoContract || discoContract === "") return null
+
+    try {
+        const response = await client.queryContractSmart(discoContract, {
+            user_total_deposits: { user }
+        })
+        return response
+    } catch (error) {
+        console.error("Error querying user total deposits:", error)
+        return null
+    }
+}
+
+/**
+ * Convert vault tokens to deposit tokens for a slot.
+ */
+export const getVaultTokenConversion = async (
+    client: CosmWasmClient | null,
+    asset: string,
+    slot: number,
+    vaultTokens: string,
+    contractAddr?: string
+) => {
+    if (!client) return null
+
+    const discoContract = contractAddr || (contracts as any).ltv_disco
+    if (!discoContract || discoContract === "") return null
+
+    try {
+        const response = await client.queryContractSmart(discoContract, {
+            vault_token_conversion: {
+                asset,
+                slot,
+                vault_tokens: vaultTokens,
+            }
+        })
+        return response
+    } catch (error) {
+        console.error("Error querying vault token conversion:", error)
+        return null
+    }
+}
+
+/**
+ * Get all assets that have queues.
+ * Returns { assets: string[] }
  */
 export const getAssets = async (
     client: CosmWasmClient | null,
     contractAddr?: string
 ) => {
-    // Use mock data if enabled
     if (USE_MOCK_DATA) {
         await new Promise(resolve => setTimeout(resolve, 100))
         return getMockDiscoAssets()
@@ -372,9 +454,56 @@ export const getAssets = async (
 }
 
 /**
+ * Get historic manager performance (fees, losses, capital managed over time).
+ * Returns { manager, entries: ManagerPerformanceEntry[] }
+ */
+export const getManagerPerformance = async (
+    client: CosmWasmClient | null,
+    manager: string,
+    contractAddr?: string
+): Promise<ManagerPerformanceResponse | null> => {
+    if (USE_MOCK_DATA) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return getMockManagerPerformance(manager)
+    }
+
+    if (!client || !manager) return null
+
+    const discoContract = contractAddr || (contracts as any).ltv_disco
+    if (!discoContract || discoContract === "") return null
+
+    try {
+        const response = await client.queryContractSmart(discoContract, {
+            get_manager_performance: { manager }
+        })
+        return response as ManagerPerformanceResponse
+    } catch (error) {
+        console.error("Error querying manager performance:", error)
+        return null
+    }
+}
+
+/**
  * Get total insurance (reuses from flywheel service)
  */
 export { getDiscoTotalInsurance as getTotalInsurance } from '@/services/flywheel'
+
+/**
+ * Alias for backwards compatibility.
+ */
+export const getUserDeposits = getAllUserDeposits
+
+/**
+ * Stub: locked deposits were removed in the slot-based disco refactor.
+ * Returns empty locked_deposits so consumers degrade gracefully.
+ */
+export const getUserLockedDeposits = async (
+    _client: CosmWasmClient | null,
+    _user: string,
+    _contractAddr?: string
+) => {
+    return { locked_deposits: [] as any[] }
+}
 
 /**
  * Chart data point for Disco revenue
@@ -394,7 +523,6 @@ export const transformDiscoToChartData = (
 ): DiscoChartDataPoint[] => {
     if (!revenueData || revenueData.length === 0) return []
 
-    // Create a map of TVL by timestamp if available
     const tvlMap = new Map<number, number>()
     if (dailyTVL && Array.isArray(dailyTVL)) {
         dailyTVL.forEach((entry: any) => {
@@ -416,4 +544,3 @@ export const transformDiscoToChartData = (
         }
     }).sort((a, b) => a.timestamp - b.timestamp)
 }
-

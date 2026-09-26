@@ -28,7 +28,7 @@ export const portfolioContract: DittoPageContract = {
         discoBoost: 'Disco boost multiplier',
         
         // Transmuter position
-        hasTransmuterLockdrop: 'Whether user has lockdrop position',
+        hasAcquisition: 'Whether user has lockdrop position',
         lockdropValue: 'Lockdrop USDC value',
         lockdropMBRN: 'Lockdrop MBRN allocation',
         
@@ -173,7 +173,7 @@ export const portfolioContract: DittoPageContract = {
             type: 'INSIGHT',
             severity: 'info',
             body: 'Lockdrop: {lockdropValue} USDC → {lockdropMBRN} MBRN',
-            when: 'hasTransmuterLockdrop',
+            when: 'hasAcquisition',
             cooldownSec: 0,
             showAs: 'panel',
         },

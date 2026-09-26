@@ -31,7 +31,7 @@ import CrossingChart from '@/components/Carry/CrossingChart'
 import MarketBoards from '@/components/Carry/MarketBoards'
 import StratsBoard from '@/components/Strats/StratsBoard'
 import AddressBar, { type AddressBarProps } from './AddressBar'
-import { alarmConsequence, consequence, type Entry } from '@/components/Carry/venueLogLogic'
+import { capacityMove, type Entry } from '@/components/Carry/venueLogLogic'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
@@ -41,10 +41,10 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import { stamp } from '@/lib/position-sim/types'
 import Stamp from './Stamp'
 
-const LIVE_STRATS = stamp(
-  'onchain',
-  'live · /api/strats',
-  'Tracked carry strats, refreshed by the hourly recorder; served from stored scans.',
+const STORED_STRATS = stamp(
+  'dataset',
+  'stored · /api/strats',
+  'Tracked positions are cached mainnet reads. The scan timestamp, not the API fetch time, determines freshness.',
 )
 const LIVE_LOG = stamp(
   'onchain',
@@ -134,9 +134,13 @@ const EvidenceDoor: React.FC<{
     aria-controls={controls}
     h="auto"
     minH="112px"
-    p={SPACING.base}
+    px={{ base: SPACING.base, md: SPACING['3xl'] }}
+    py={SPACING.base}
+    w="100%"
     display="grid"
+    gridTemplateColumns="minmax(0, 1fr)"
     justifyItems="start"
+    justifyContent="stretch"
     alignContent="space-between"
     gap={SPACING.md}
     whiteSpace="normal"
@@ -151,7 +155,7 @@ const EvidenceDoor: React.FC<{
     _active={{ opacity: 0.85 }}
     _focus={FOCUS_STYLES.ring}
   >
-    <Box>
+    <Box w="100%">
       <Text
         fontFamily={TYPOGRAPHY.fontDisplay}
         fontSize="20px"
@@ -182,7 +186,7 @@ const EvidenceDoor: React.FC<{
   </Button>
 )
 
-type StratsSummary = { count: number; total_usd: number }
+type StratsSummary = { count: number; total_usd: number; freshest_scan: string | null }
 
 /** The two live reads this block makes. Both override the app-wide refetchOnMount:false
  *  default, so an empty or errored first fetch cannot stick for the whole session. */
@@ -228,11 +232,14 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
 
   const stratsPending = !strats
   const logPending = !log
-  // Newest entry that says something about capacity — terms-hash churn is not it.
-  const newest: Entry | undefined = log?.entries?.find((e) => e.kind !== 'terms_page_changed')
-  const newestLine = newest
-    ? (newest.provenance === 'alarm' ? alarmConsequence(newest) : consequence(newest)).text
-    : null
+  const newestMove = log?.entries?.map(capacityMove).find((move) => move !== null) ?? null
+  const scanTime = strats?.freshest_scan ? new Date(strats.freshest_scan) : null
+  const scanAgeMs = scanTime ? Date.now() - scanTime.getTime() : Number.POSITIVE_INFINITY
+  const scanStale = !Number.isFinite(scanAgeMs) || scanAgeMs > 2 * 60 * 60 * 1000
+  const scanNote =
+    scanTime && Number.isFinite(scanTime.getTime())
+      ? `${scanStale ? 'stale' : 'scanned'} ${scanTime.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+      : 'no completed scan'
 
   const amountUsd = positionDebtUsd > 0 ? positionDebtUsd : REFERENCE_SIZE_USD
 
@@ -330,7 +337,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
                 </Text>
               </Box>
             )}
-            <Stamp provenance={LIVE_STRATS} />
+            <Stamp provenance={STORED_STRATS} note={scanNote} />
           </Box>
 
           <Box p={SPACING.base} display="grid" gap={SPACING.sm} alignContent="space-between">
@@ -342,20 +349,38 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
                 textTransform="uppercase"
                 color={SEMANTIC_COLORS.textSecondary}
               >
-                {newest
-                  ? `latest capacity move · ${newest.venue} · ${new Date(newest.at).toISOString().slice(0, 10)}`
-                  : 'latest capacity move'}
+                latest measured capacity move
               </Text>
               {logPending ? (
                 <Pending />
+              ) : newestMove ? (
+                <Box display="grid" gap={SPACING.xs}>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="clamp(18px, 2.3vw, 25px)"
+                    lineHeight={1.2}
+                    color={SEMANTIC_COLORS.textPrimary}
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {newestMove.venue} exit capacity {newestMove.change}
+                  </Text>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="12px"
+                    lineHeight={1.5}
+                    color={SEMANTIC_COLORS.textSecondary}
+                  >
+                    {newestMove.metric} · {newestMove.from} → {newestMove.to} {newestMove.window} ·{' '}
+                    {new Date(newestMove.at).toISOString().slice(0, 10)}
+                  </Text>
+                </Box>
               ) : (
                 <Text
                   fontFamily={TYPOGRAPHY.fontMono}
                   fontSize="12px"
-                  lineHeight={1.6}
-                  color={newestLine ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary}
+                  color={SEMANTIC_COLORS.textSecondary}
                 >
-                  {newestLine ?? 'no venue change recorded yet'}
+                  No measured capacity change recorded yet.
                 </Text>
               )}
             </Box>
@@ -400,9 +425,10 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
             gap={SPACING.sm}
             w="100%"
           >
-            <MarketBoards onLoadBoard={() => window.location.assign(`/${chainName}/carry`)} />
+            <MarketBoards routesOnly />
             <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
               <Text
+                as="span"
                 fontFamily={TYPOGRAPHY.fontMono}
                 fontSize="11px"
                 color={SEMANTIC_COLORS.textSecondary}
@@ -424,6 +450,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
             <StratsBoard />
             <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
               <Text
+                as="span"
                 fontFamily={TYPOGRAPHY.fontMono}
                 fontSize="11px"
                 color={SEMANTIC_COLORS.textSecondary}
@@ -435,14 +462,6 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
         </Collapse>
 
         <Box display="grid" gap={SPACING.sm}>
-          <Text
-            fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="11px"
-            lineHeight={1.6}
-            color={SEMANTIC_COLORS.textSecondary}
-          >
-            exit cost priced into the yield — where the cheaper venue stops being cheaper
-          </Text>
           {/* CROSSING_STAMP and the "modelled" chip are the component's own and stay
               visible. Do not wrap this in anything that hides them. */}
           <CrossingChart amountUsd={amountUsd} />

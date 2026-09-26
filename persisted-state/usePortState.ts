@@ -17,6 +17,7 @@ export interface PortState {
     lastSessionTime: number | null
     lastSessionRevenue: number
     sessionStartTime: number
+    lastVisitTime: number | null
 
     // Revenue tracking
     revenueHistory: RevenueHistoryEntry[]
@@ -44,6 +45,7 @@ const initialState: PortState = {
     lastSessionTime: null,
     lastSessionRevenue: 0,
     sessionStartTime: Date.now(),
+    lastVisitTime: null,
     revenueHistory: [],
     lifetimeRevenue: 0,
     todayRevenue: 0,

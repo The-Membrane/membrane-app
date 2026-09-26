@@ -1,7 +1,7 @@
 import contracts from '@/config/contracts.json'
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate'
-import type { MbrnIntentOption } from '@/types/lockdropIntents'
-import { getMockIntentBoosts } from '@/components/trans-lockdrop/mockData'
+import type { MbrnIntentOption } from '@/types/acquisitionIntents'
+import { getMockIntentBoosts } from '@/components/acquisition/mockData'
 
 // Set to true to use mock data instead of querying contract
 const USE_MOCK_DATA = true // Change to false when contract is ready
@@ -44,30 +44,32 @@ const getMockDiscount = (user: string): UserDiscountResponse => {
 
 /**
  * Query user boost from system_discounts contract
+ * DISABLED: GetBoost query removed from system - always returns zero boost
  */
 export const getUserBoost = async (
-    client: CosmWasmClient | null,
+    _client: CosmWasmClient | null,
     user: string
 ): Promise<UserBoostResponse | null> => {
-    if (!client || !user) {
-        return getMockBoost(user || 'mock-user')
-    }
-
-    const systemDiscountsContract = (contracts as any).system_discounts
-    if (!systemDiscountsContract || systemDiscountsContract === '') {
-        return getMockBoost(user)
-    }
-
-    try {
-        const response = await client.queryContractSmart(systemDiscountsContract, {
-            user_boost: { user }
-        })
-        return response as UserBoostResponse
-    } catch (error) {
-        console.error('Error querying user boost:', error)
-        // Return mock data on error
-        return getMockBoost(user)
-    }
+    // DISABLED: GetBoost query removed from system
+    // if (!client || !user) {
+    //     return getMockBoost(user || 'mock-user')
+    // }
+    //
+    // const systemDiscountsContract = (contracts as any).system_discounts
+    // if (!systemDiscountsContract || systemDiscountsContract === '') {
+    //     return getMockBoost(user)
+    // }
+    //
+    // try {
+    //     const response = await client.queryContractSmart(systemDiscountsContract, {
+    //         user_boost: { user }
+    //     })
+    //     return response as UserBoostResponse
+    // } catch (error) {
+    //     console.error('Error querying user boost:', error)
+    //     return getMockBoost(user)
+    // }
+    return { user: user || 'no-user', boost: '0' }
 }
 
 /**

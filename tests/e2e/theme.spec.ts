@@ -17,6 +17,21 @@ async function getCssVar(page: any, name: string): Promise<string> {
   )
 }
 
+function contrast(a: string, b: string): number {
+  const luminance = (hex: string) => {
+    const channels = [1, 3, 5].map(
+      (offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255,
+    )
+    const linear = channels.map((value) =>
+      value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4,
+    )
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+  }
+  const first = luminance(a)
+  const second = luminance(b)
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05)
+}
+
 test.describe('Theme system', () => {
   test('defaults to dark and defines the dark palette', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' })
@@ -32,13 +47,29 @@ test.describe('Theme system', () => {
     await page.addInitScript(() => localStorage.setItem('membrane.theme', 'light'))
     await page.goto('/')
     await expect.poll(async () => page.getAttribute('html', 'data-membrane-theme')).toBe('light')
-    expect(await getCssVar(page, '--m-bg-primary')).toBe('#e7dfcc')
-    expect(await getCssVar(page, '--m-text-primary')).toBe('#2d2114')
-    expect(await getCssVar(page, '--m-text-secondary')).toBe('#4f3d29')
-    expect(await getCssVar(page, '--m-text-tertiary')).toBe('#64513a')
-    expect(await getCssVar(page, '--m-success')).toBe('#35660d')
-    expect(await getCssVar(page, '--m-warning')).toBe('#6d5512')
+    expect(await getCssVar(page, '--m-bg-primary')).toBe('#f1eee6')
+    expect(await getCssVar(page, '--m-text-primary')).toBe('#241f17')
+    expect(await getCssVar(page, '--m-text-secondary')).toBe('#51483d')
+    expect(await getCssVar(page, '--m-text-tertiary')).toBe('#6c6255')
+    expect(await getCssVar(page, '--m-success')).toBe('#326215')
+    expect(await getCssVar(page, '--m-warning')).toBe('#725410')
     expect(await page.evaluate(() => getComputedStyle(document.body).fontWeight)).toBe('500')
+    expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(
+      'rgb(241, 238, 230)',
+    )
+    const surfaces = await Promise.all(
+      ['--m-bg-primary', '--m-bg-secondary', '--m-bg-tertiary'].map((token) =>
+        getCssVar(page, token),
+      ),
+    )
+    for (const textToken of ['--m-text-primary', '--m-text-secondary', '--m-text-tertiary']) {
+      const ink = await getCssVar(page, textToken)
+      for (const surface of surfaces) expect(contrast(ink, surface)).toBeGreaterThanOrEqual(4.5)
+    }
+    for (const accentToken of ['--m-success', '--m-warning', '--m-risk-caution', '--m-danger']) {
+      const accent = await getCssVar(page, accentToken)
+      for (const surface of surfaces) expect(contrast(accent, surface)).toBeGreaterThanOrEqual(3)
+    }
     // The stamped attribute must survive hydration (Chakra re-stamps plain
     // data-theme — the namespaced attribute must be untouched by it).
     await page.waitForTimeout(1500)
@@ -70,7 +101,7 @@ test.describe('Theme system', () => {
         { timeout: 30_000 },
       )
       .toBe('light')
-    expect(await getCssVar(page, '--m-bg-primary')).toBe('#e7dfcc')
+    expect(await getCssVar(page, '--m-bg-primary')).toBe('#f1eee6')
     expect(await page.evaluate(() => localStorage.getItem('membrane.theme'))).toBe('light')
     await expect(page.getByTestId('logo').first()).toHaveAttribute(
       'src',

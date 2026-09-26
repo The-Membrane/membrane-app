@@ -2,6 +2,12 @@
 
 **CRITICAL:** All code changes MUST follow these standardized patterns. No exceptions.
 
+> **Agent Message Board:** shared persistent memory for all agents across ALL Membrane repos
+> (membrane-app, membrane-core, membrane-solidity). `AGENT_BOARD.md` at the repo root is a symlink to
+> the real board at `~/membrane-board/AGENT_BOARD.md`. Read it before substantial work; append
+> discoveries, decisions, warnings, and failed approaches the moment you learn them (your context can
+> vanish at any time). Protocol: `.claude/skills/agent-message-board/SKILL.md`.
+
 > **Brand direction:** Living Typeface (bone-on-black, phosphor green, sharp corners, hairlines). This
 > supersedes the old cyberpunk navy/purple/glow system. See
 > `.claude/skills/branding-guidelines/SKILL.md` for the full brand guide.
@@ -282,6 +288,27 @@ import { motion } from 'framer-motion'
 **Removed (do not reintroduce):** `lift`, `liftSubtle`, `scale`, `glow`, `brighten`-filter — these were
 signature cyberpunk-era effects. If you see them in older components, that's legacy code pending
 migration, not something to copy.
+
+---
+
+## 🚪 Demo-First Pages (V20 — applies to EVERY new page)
+
+**Owner rule (Aug 2026): a new page ships demo-first.** No connect gates, no empty states.
+
+- With no wallet, the page opens FULLY POPULATED: wallet-scoped blocks run on demo-wallet
+  fixtures under a persistent "Demo — not yours" banner.
+- Protocol-scoped blocks (rates, routes, boards, capacity, leaderboards) are LIVE in both
+  states — demo mode never fakes market data.
+- Every CTA in demo is an **intent-preserving connect**: the confirm sheet keeps its exact
+  rows, the button becomes "Connect wallet", and after connect the same sheet re-opens for
+  the real signature.
+- Query real data wherever a source exists and stamp it `source · fetched HH:MM`;
+  everything unstamped stays marked mock/measured.
+- Prototypes: append the shared layer from `prototypes/_demo-layer.html` (mock connect seam:
+  localStorage `membrane.wallet`). Production: the same state machine on wagmi `useAccount`.
+- Ships only if it passes the **stranger test** (docs/VETERAN_UX_RULESET.md §6 test 7):
+  fresh browser, no wallet → populated, marked, live, and the primary CTA opens the real
+  sheet with a Connect button that lands you back in the same intent.
 
 ---
 
@@ -734,6 +761,10 @@ Before submitting any PR, verify:
 - [ ] Tested on mobile, tablet, desktop
 - [ ] No console errors
 - [ ] Smoke tests passing
+- [ ] New/changed pages follow `docs/SEO_RULESET.md` — `PageSeo` with an explicit SEO class,
+      server-rendered title/description, indexable pages pass the curl check (R1)
+- [ ] New pages are demo-first (V20): populated with no wallet, demo banner on wallet-scoped
+      blocks, live protocol data, intent-preserving connect CTAs — passes the stranger test
 
 ---
 
@@ -747,6 +778,7 @@ Before submitting any PR, verify:
 - `docs/PLAYWRIGHT_SETUP.md` - Testing guide
 - `docs/BUTTON_PATTERNS.md` - Button usage
 - `docs/COMPONENT_GUIDE.md` - Component reference
+- `docs/SEO_RULESET.md` - SEO classes, per-page meta, crawlability & perf rules (applies to every new page)
 - `.claude/skills/branding-guidelines/SKILL.md` - Full Living Typeface brand guide
 
 **Config Files:**

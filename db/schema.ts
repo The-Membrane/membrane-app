@@ -405,6 +405,22 @@ export const venueEvents = pgTable(
   (table) => [index('venue_events_venue_observed_idx').on(table.venue, table.observedAt)],
 )
 
+// Transaction-class attribution for a recorded capacity event. Computed from
+// ERC20 exit-token transfers and Curve pool events over the event's two stored
+// snapshot blocks. A reconciled row is a balance-flow explanation, not a claim
+// about why traders acted or whether volatility/governance caused the change.
+export const venueEventDrivers = pgTable(
+  'venue_event_drivers',
+  {
+    eventId: uuid('event_id').primaryKey(),
+    venue: text('venue').notNull(),
+    status: text('status').notNull(), // 'reconciled' | 'incomplete'
+    evidence: jsonb('evidence').notNull(),
+    computedAt: timestamp('computed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('venue_event_drivers_venue_computed_idx').on(table.venue, table.computedAt)],
+)
+
 // venue_predictions — the Brier / track-record substrate. Per BADASS_RULESET.md
 // §7.2 / §9.3, confidence may come ONLY from realized outcomes. A row is INSERTED
 // at prediction time with (realized, scored_at, hit) NULL; exactly ONE later
@@ -521,7 +537,9 @@ export const venueAlarms = pgTable(
     notified: boolean('notified').notNull().default(false),
   },
   (table) => [
-    uniqueIndex('venue_alarms_open_unique_idx').on(table.venue, table.kind).where(sql`cleared_at IS NULL`),
+    uniqueIndex('venue_alarms_open_unique_idx')
+      .on(table.venue, table.kind)
+      .where(sql`cleared_at IS NULL`),
     index('venue_alarms_venue_fired_idx').on(table.venue, table.firedAt),
   ],
 )
@@ -548,7 +566,9 @@ export const venueTerms = pgTable(
     contentLen: integer('content_len').notNull(), // normalized text length
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('venue_terms_venue_url_fetched_idx').on(table.venue, table.url, table.fetchedAt)],
+  (table) => [
+    index('venue_terms_venue_url_fetched_idx').on(table.venue, table.url, table.fetchedAt),
+  ],
 )
 
 // user_receipts — CALLED-IT RECEIPTS (owner-approved). One row per WALLET-BOUND
@@ -593,7 +613,9 @@ export const userReceipts = pgTable(
     index('user_receipts_address_made_idx').on(table.address, table.madeAt),
     // Partial index over unscored receipts: the API counts these to enforce the
     // per-address cap and the scorer scans them for elapsed horizons.
-    index('user_receipts_unscored_idx').on(table.address).where(sql`scored_at IS NULL`),
+    index('user_receipts_unscored_idx')
+      .on(table.address)
+      .where(sql`scored_at IS NULL`),
   ],
 )
 
@@ -626,6 +648,86 @@ export const stratWatches = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex('strat_watches_address_idx').on(table.address)],
+)
+
+// Account-attributed tracked-venue performance. A watch's created_at is its
+// epoch: re-watching starts a new window without rewriting earlier evidence.
+// First scheduled read supplies the actual block-anchored NAV. Transfer rows
+// are append-only; a cursor advances only after its full log range is stored.
+export const stratReturnCursors = pgTable(
+  'strat_return_cursors',
+  {
+    address: text('address').notNull(),
+    venue: text('venue').notNull(),
+    watchEpoch: timestamp('watch_epoch', { withTimezone: true }).notNull(),
+    startBlock: bigint('start_block', { mode: 'number' }).notNull(),
+    lastCompleteBlock: bigint('last_complete_block', { mode: 'number' }).notNull(),
+    startAt: timestamp('start_at', { withTimezone: true }).notNull(),
+    startNavUsd: numeric('start_nav_usd'),
+    lastError: text('last_error'),
+  },
+  (table) => [
+    uniqueIndex('strat_return_cursors_key_idx').on(table.address, table.venue, table.watchEpoch),
+  ],
+)
+
+export const stratReturnFlows = pgTable(
+  'strat_return_flows',
+  {
+    address: text('address').notNull(),
+    venue: text('venue').notNull(),
+    watchEpoch: timestamp('watch_epoch', { withTimezone: true }).notNull(),
+    txHash: text('tx_hash').notNull(),
+    logIndex: integer('log_index').notNull(),
+    block: bigint('block', { mode: 'number' }).notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    fromAddress: text('from_address').notNull(),
+    toAddress: text('to_address').notNull(),
+    sharesRaw: text('shares_raw').notNull(),
+    flowUsd: numeric('flow_usd'), // null = historical valuation failed
+    pricingStatus: text('pricing_status').notNull(),
+  },
+  (table) => [
+    uniqueIndex('strat_return_flows_event_idx').on(
+      table.address,
+      table.venue,
+      table.watchEpoch,
+      table.txHash,
+      table.logIndex,
+    ),
+    index('strat_return_flows_window_idx').on(
+      table.address,
+      table.venue,
+      table.watchEpoch,
+      table.block,
+    ),
+  ],
+)
+
+export const stratReturnSnapshots = pgTable(
+  'strat_return_snapshots',
+  {
+    address: text('address').notNull(),
+    venue: text('venue').notNull(),
+    watchEpoch: timestamp('watch_epoch', { withTimezone: true }).notNull(),
+    block: bigint('block', { mode: 'number' }).notNull(),
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull(),
+    navUsd: numeric('nav_usd'),
+    pnlUsd: numeric('pnl_usd'),
+    returnPct: numeric('return_pct'),
+    capitalBaseUsd: numeric('capital_base_usd'),
+    flowCount: integer('flow_count').notNull().default(0),
+    unpricedCount: integer('unpriced_count').notNull().default(0),
+    status: text('status').notNull(),
+  },
+  (table) => [
+    uniqueIndex('strat_return_snapshots_key_idx').on(
+      table.address,
+      table.venue,
+      table.watchEpoch,
+      table.block,
+    ),
+  ],
 )
 
 // Position-simulator READ LOG — the launch instrument ("did the address come

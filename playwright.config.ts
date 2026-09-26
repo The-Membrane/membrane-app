@@ -157,11 +157,23 @@ export default defineConfig({
     // },
   ],
 
-  // Run your local dev server before starting the tests
+  // Run the app before starting the tests.
+  //
+  // Set PLAYWRIGHT_PROD=1 (CI does) to test a production build instead of the
+  // dev server. This is not just about realism — two dev-only artefacts break
+  // tests outright:
+  //   1. Next's error overlay (<nextjs-portal>) sits above the page and
+  //      intercepts pointer events, so clicks time out.
+  //   2. Routes compile on demand, making a first navigation take seconds and
+  //      blowing past assertion timeouts.
+  // Local runs still default to `pnpm dev` for fast iteration.
   webServer: {
-    command: 'pnpm dev',
+    command: process.env.PLAYWRIGHT_PROD
+      ? 'pnpm build && pnpm exec next start --port 3005'
+      : 'pnpm dev',
     url: 'http://localhost:3005',
     reuseExistingServer: !process.env.CI,
-    timeout: 120000, // 2 minutes for Next.js to start
+    // A production build has to compile first, so allow considerably longer.
+    timeout: process.env.PLAYWRIGHT_PROD ? 600000 : 120000,
   },
 })

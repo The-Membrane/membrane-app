@@ -1,0 +1,77 @@
+<!-- _demo-layer.html — the V20 shared demo-until-connect layer (canonical copy).
+USAGE: append this whole <script> block LAST in any new prototype page (it must run
+after the page defines window.__exec). Requirements on the page:
+  - a nav with a .acct chip (becomes the connect/disconnect toggle)
+  - the shared execution layer (window.__exec confirm sheets)
+Wallet-scoped blocks should render demo fixtures; protocol-scoped blocks stay live.
+The mock connect seam is localStorage 'membrane.wallet' — in production this becomes
+wagmi useAccount and the rest of the state machine survives unchanged.
+Rule: docs/VETERAN_UX_RULESET.md V20 + acceptance test 7 (the stranger test). -->
+<script>
+(function(){
+"use strict";
+// demo-until-connect (the flip): every page opens fully populated. Wallet-scoped
+// blocks run on the demo wallet until a wallet connects; protocol-scoped blocks
+// stay live either way. CTAs in demo are intent-preserving: the confirm sheet
+// keeps its exact rows, the button becomes "Connect wallet", and after the (mock)
+// connect the SAME sheet re-opens for the real signature. Mock connect = one
+// localStorage flag so the whole loop is testable; the acct chip toggles it.
+var KEY='membrane.wallet';
+function isConn(){ try{ return localStorage.getItem(KEY)==='1'; }catch(e){ return false; } }
+function setConn(v){ try{ if(v) localStorage.setItem(KEY,'1'); else localStorage.removeItem(KEY); }catch(e){} }
+function wireAcct(conn){
+  var a=document.querySelector('.acct'); if(!a) return;
+  a.style.cursor='pointer';
+  if(conn){ a.textContent='0x9a41\u2026c2e0'; a.title='demo-connected \u00b7 click to disconnect';
+    a.onclick=function(){ setConn(false); location.reload(); }; }
+  else{ a.textContent='demo \u00b7 connect'; a.title='click to connect (mock wallet)';
+    a.onclick=function(){ setConn(true); location.reload(); }; }
+}
+function init(){
+  if(isConn()){ wireAcct(true); return; }
+  document.body.classList.add('demo');
+  wireAcct(false);
+  var st=document.createElement('style');
+  st.textContent='.demobar2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;'+
+    'background:var(--raise);border:1px solid var(--hair);padding:9px 14px;margin:0 0 16px;'+
+    'font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim)}'+
+    '.demobar2 b{font-weight:400;color:var(--gold)}'+
+    '.demobar2 button{background:none;border:0;color:var(--phos);font-family:inherit;font-size:10px;'+
+    'letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;text-decoration:underline;padding:0}';
+  document.head.appendChild(st);
+  if(!document.getElementById('demoBar')&&!document.getElementById('demoBar2')){
+    var bar=document.createElement('div'); bar.className='demobar2'; bar.id='demoBar2';
+    bar.innerHTML='<span><b>Demo</b> \u2014 wallet-scoped numbers are a demo wallet, not yours. '+
+      'Live market data stays live.</span>'+
+      '<button type="button" id="demoConn">Connect wallet \u2192</button>';
+    var nav=document.querySelector('.wrap nav')||document.querySelector('nav');
+    if(nav&&nav.parentNode) nav.parentNode.insertBefore(bar,nav.nextSibling);
+    else document.body.insertBefore(bar,document.body.firstChild);
+    document.getElementById('demoConn').onclick=function(){ setConn(true); location.reload(); };
+  }
+  var real=window.__exec; if(!real) return;
+  window.__exec=function(o){
+    var oo={}; for(var k in o) oo[k]=o[k];
+    oo.cta='Connect wallet';
+    oo.note=(o.note?o.note+' ':'')+'Demo: connecting keeps this exact intent and re-opens it for the real signature.';
+    real(oo);
+    var sheets=document.querySelectorAll('.xsheet');
+    var sheet=sheets[sheets.length-1]; if(!sheet) return;
+    var go=sheet.querySelector('.xgo'); if(!go) return;
+    go.onclick=function(){
+      go.textContent='connecting\u2026';
+      setTimeout(function(){
+        setConn(true);
+        sheet.remove();
+        document.body.classList.remove('demo');
+        var b1=document.getElementById('demoBar2'); if(b1) b1.remove();
+        window.__exec=real;
+        wireAcct(true);
+        real(o);
+      },700);
+    };
+  };
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>

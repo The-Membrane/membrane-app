@@ -2,11 +2,11 @@
 //
 // Stripped to the three numbers that decide whether the reader believes the hero —
 // what each engine ended with, how many times it seized collateral, and what that cost
-// — plus the two share actions and the way out to /builder.
+// — plus a reproducible link and the way out to /builder.
 //
 // The caveats that used to live in this block did not disappear: the engine's own
 // caveat list and the "read this before you quote the number" disclosure are rendered
-// in full by FinePrint at the foot of the page. They are not collapsed anywhere.
+// by FinePrint at the foot of the page.
 
 import React from 'react'
 import { Box, Button, Text } from '@chakra-ui/react'
@@ -137,14 +137,12 @@ const EngineColumn: React.FC<{ run: SimRun; title: string; accent: string }> = (
 
 export interface ComparisonPanelProps {
   comparison: Comparison
-  onSaveCard: () => void
   onCopyLink: () => void
   copyState: 'idle' | 'copied' | 'failed'
 }
 
 export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
   comparison,
-  onSaveCard,
   onCopyLink,
   copyState,
 }) => {
@@ -187,9 +185,6 @@ export const ComparisonPanel: React.FC<ComparisonPanelProps> = ({
       </Box>
 
       <Box display="flex" gap={SPACING.sm} flexWrap="wrap">
-        <Button type="button" onClick={onSaveCard} {...BTN}>
-          Save share card
-        </Button>
         <Button type="button" onClick={onCopyLink} {...BTN}>
           {copyState === 'copied'
             ? 'Link copied'

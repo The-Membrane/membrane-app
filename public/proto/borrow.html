@@ -1,0 +1,667 @@
+<title>Membrane &mdash; Borrow</title>
+<style>
+  :root{
+    --bg:#09090a; --raise:#100f12; --card:#0e0d10; --sunk:#070708;
+    --ink:#ece6d8; --dim:#8d877b; --faint:#56524a;
+    --hair:rgba(236,230,216,0.10); --hairS:rgba(236,230,216,0.22);
+    --phos:#9bdc4f; --teal:#46d39a; --gold:#d8b24a; --blood:#cf4034;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--mono);
+    font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; padding-bottom:70px; }
+  .wrap{ max-width:1140px; margin:0 auto; padding:0 20px; }
+  h1,h2{ font-family:var(--serif); font-weight:400; margin:0; letter-spacing:-0.01em; }
+  .num{ font-variant-numeric:tabular-nums; }
+  nav{ display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:16px 0; border-bottom:1px solid var(--hair); margin-bottom:26px; }
+  .brand{ font-family:var(--serif); font-size:17px; }
+  .pnav{ display:flex; gap:2px; margin-left:26px; margin-right:auto; flex-wrap:wrap; }
+  .pnav a{ font-family:var(--mono); font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--dim); text-decoration:none; padding:6px 10px; border:1px solid transparent;
+    transition:color .15s,border-color .15s; }
+  .pnav a:hover{ color:var(--phos); }
+  .pnav a.on{ color:var(--ink); border-color:var(--hairS); }
+  .pnav a.stub{ color:var(--faint); cursor:help; }
+  .navr{ font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--faint); }
+  .eyebrow{ font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); }
+  .card{ background:var(--card); border:1px solid var(--hair); padding:18px; }
+  .warm{ font-size:12px; color:var(--dim); max-width:74ch; line-height:1.7; }
+  .sect{ margin:34px 0 10px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .sect h2{ font-size:20px; }
+  .sect .note{ font-size:11px; color:var(--faint); }
+  .stamp{ font-size:9px; color:var(--faint); letter-spacing:0.12em; margin-top:10px; }
+
+  /* wallet strip: only what the wallet holds is offered */
+  .wal{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:14px; }
+  .wbtn{ text-align:left; background:var(--card); border:1px solid var(--hair); padding:12px 14px;
+    color:var(--ink); font-family:var(--mono); cursor:pointer; display:grid; gap:3px;
+    transition:border-color .15s; }
+  .wbtn:hover{ border-color:var(--phos); }
+  .wbtn.on{ border-color:var(--phos); background:var(--raise); }
+  .wbtn .wn{ font-family:var(--serif); font-size:15px; }
+  .wbtn .wb{ font-size:11px; color:var(--dim); }
+  .wbtn .wy{ font-size:9.5px; color:var(--faint); }
+
+  /* mint box */
+  .mint{ margin-top:12px; padding:20px; display:grid; gap:16px; }
+  .mrow{ display:flex; gap:22px; align-items:flex-end; flex-wrap:wrap; }
+  .mcell{ display:grid; gap:5px; }
+  .mcell input[type=text]{ width:150px; background:var(--raise); border:1px solid var(--hairS);
+    color:var(--ink); font-family:var(--mono); font-size:20px; padding:8px 10px; text-align:right; }
+  .msub{ font-size:9.5px; color:var(--faint); }
+  .maxl{ background:none; border:0; color:var(--phos); font-family:var(--mono); font-size:9px;
+    letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; padding:0; text-decoration:underline; }
+  .mget{ margin-left:auto; text-align:right; display:grid; gap:2px; }
+  .mget .gv{ font-size:26px; }
+  .mget .gs{ font-size:9.5px; color:var(--faint); }
+  .sld{ display:grid; gap:6px; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:18px;
+    background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track{ height:2px; background:var(--hairS); }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:11px; height:11px;
+    background:var(--phos); margin-top:-4.5px; border:0; }
+  input[type=range]::-moz-range-track{ height:2px; background:var(--hairS); }
+  input[type=range]::-moz-range-thumb{ width:11px; height:11px; background:var(--phos); border:0; border-radius:0; }
+  .sldn{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--faint); }
+
+  /* the three facts: collateral, risk, cost */
+  .facts{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; border:1px solid var(--hair); }
+  .fact{ padding:12px 14px; border-right:1px solid var(--hair); display:grid; gap:4px; align-content:start; }
+  .fact:last-child{ border-right:0; }
+  .fact .fv{ font-size:15px; }
+  .fact .fs{ font-size:10px; color:var(--dim); line-height:1.55; }
+  .good{ color:var(--phos); } .warn{ color:var(--gold); } .bad{ color:var(--blood); }
+  .mgo{ justify-self:start; }
+
+  /* cure timeline (below the fold) */
+  .cure{ margin-top:18px; }
+  .tl{ position:relative; height:96px; background:var(--sunk); border:1px solid var(--hair);
+    margin-top:12px; overflow:hidden; }
+  .tl .seg{ position:absolute; top:0; bottom:0; }
+  .tl .lbl{ position:absolute; font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--dim); white-space:nowrap; }
+  .tl .tick{ position:absolute; top:0; bottom:0; width:1px; background:var(--hairS); }
+  .tlnote{ display:flex; justify-content:space-between; gap:14px; font-size:9.5px;
+    color:var(--faint); margin-top:7px; flex-wrap:wrap; }
+
+  @media(max-width:760px){ .wal,.facts{ grid-template-columns:1fr; }
+    .fact{ border-right:0; border-bottom:1px solid var(--hair); } .fact:last-child{ border-bottom:0; }
+    .mget{ margin-left:0; text-align:left; } }
+
+  /* execution layer (V5/V6): every implied action gets its button; one confirm, numbers only */
+  .acct{ font-size:10px; color:var(--dim); border:1px solid var(--hair); padding:5px 10px; letter-spacing:0.06em; }
+  .xbtn{ display:inline-block; background:transparent; border:1px solid var(--hairS); color:var(--ink);
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:6px 11px; cursor:pointer; text-decoration:none; transition:border-color .15s,color .15s; }
+  .xbtn:hover{ border-color:var(--phos); color:var(--phos); }
+  .xbtn.go{ background:var(--phos); border-color:var(--phos); color:#09090a; }
+  .xbtn.go:hover{ background:#b3ec6e; color:#09090a; }
+  .xsheet{ position:fixed; inset:0; background:rgba(7,7,8,0.78); display:grid; place-items:center; z-index:60; }
+  .xcard{ background:var(--card); border:1px solid var(--hairS); padding:20px; width:min(430px,92vw); }
+  .xh{ font-family:var(--serif); font-size:17px; margin-bottom:12px; }
+  .xrow{ display:flex; justify-content:space-between; gap:14px; font-size:11.5px; color:var(--dim);
+    padding:5px 0; border-bottom:1px solid var(--hair); }
+  .xrow:last-child{ border-bottom:0; }
+  .xv{ font-weight:400; color:var(--ink); }
+  .xnote{ font-size:10px; color:var(--faint); line-height:1.6; margin:10px 0 0; }
+  .xbtns{ display:flex; gap:8px; margin-top:16px; }
+  .xgo{ flex:1; background:var(--phos); border:1px solid var(--phos); color:#09090a;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px; cursor:pointer; }
+  .xno{ background:transparent; border:1px solid var(--hairS); color:var(--dim);
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px 16px; cursor:pointer; }
+  .xpend{ margin-top:16px; font-size:11px; color:var(--gold); letter-spacing:0.08em; }
+  .xdone{ margin-top:16px; font-size:11px; color:var(--phos); letter-spacing:0.08em; }
+</style>
+
+<div class="wrap">
+  <nav>
+    <span class="brand">Membrane</span>
+    <span class="pnav">
+      <a href="dash.html">Position</a>
+      <a href="builder.html">Builder</a>
+      <a href="borrow.html" class="on">Borrow</a>
+      <a href="carry.html">Carry</a>
+      <a href="supply.html">Earn</a>
+      <a class="stub" title="not mocked yet">Liquidate</a>
+      <a href="defend.html">Defend</a>
+    </span>
+    <span class="acct num">0x9a41&hellip;c2e0</span>
+    <span class="navr">Borrow &middot; mock</span>
+  </nav>
+
+  <span class="eyebrow">Borrow</span>
+  <h1 style="margin-top:8px">Mint CDT against what you already hold.</h1>
+  <p class="stamp" style="margin-top:8px">
+    Plain debt. The CDT arrives in your wallet and does nothing until you spend or deploy it.
+    The version where the debt earns its own interest is <a href="carry.html" style="color:var(--phos)">Carry</a>.
+  </p>
+
+  <div class="wal" id="wal"></div>
+
+  <div class="card mint">
+    <div class="mrow">
+      <div class="mcell">
+        <span class="eyebrow">You post <button class="maxl" id="maxBtn" type="button">max</button></span>
+        <input type="text" id="postIn" class="num" inputmode="decimal" aria-label="Collateral amount">
+        <span class="msub num" id="postSub"></span>
+      </div>
+      <div class="mcell sld" style="flex:1;min-width:240px">
+        <span class="eyebrow">How far you draw &middot; <span class="num" id="ltvLbl"></span></span>
+        <input type="range" id="ltvIn" min="10" max="60" step="1" value="40" aria-label="Loan to value, percent">
+        <span class="sldn"><span>light</span><span class="num" id="capLbl"></span></span>
+      </div>
+      <div class="mget">
+        <span class="eyebrow">You mint</span>
+        <span class="gv num" id="mintV"></span>
+        <span class="gs">CDT &middot; straight to your wallet</span>
+      </div>
+    </div>
+
+    <div class="facts">
+      <div class="fact">
+        <span class="eyebrow">Collateral</span>
+        <span class="fv num" id="fColl"></span>
+        <span class="fs num" id="fCollSub"></span>
+      </div>
+      <div class="fact">
+        <span class="eyebrow">Risk</span>
+        <span class="fv num" id="fRisk"></span>
+        <span class="fs num" id="fRiskSub"></span>
+      </div>
+      <div class="fact">
+        <span class="eyebrow">What it earns &amp; costs</span>
+        <span class="fv num" id="fCost"></span>
+        <span class="fs num" id="fCostSub"></span>
+      </div>
+    </div>
+
+    <button class="xbtn go mgo" id="mintGo" type="button" style="padding:13px 30px;font-size:12px">Borrow</button>
+  </div>
+  <p class="stamp" id="oddsStamp"></p>
+
+  <div class="sect"><span class="eyebrow">02 /</span><h2>Breach, cure window, liquidation</h2>
+    <span class="note">what happens if price moves against you &mdash; scroll matter, not decision matter</span></div>
+  <div class="card cure">
+    <div class="tl" id="tl"></div>
+    <div class="tlnote">
+      <span>Two ways in: cross the line and the timer starts; jump 4% past it and liquidation is immediate, no window.</span>
+      <span>Liquidation repays to the cap &mdash; not the whole loan.</span>
+    </div>
+  </div>
+
+  <div class="sect"><span class="eyebrow">03 /</span><h2>When the debt should work instead</h2></div>
+  <div class="card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+    <p class="warm" style="margin:0;flex:1;min-width:260px">
+      Borrow is for debt you intend to use elsewhere &mdash; or just hold. If the point of the loan
+      is yield, Carry borrows and routes the CDT through venues in one motion, and the venue
+      yield pays the loan&rsquo;s cost.
+    </p>
+    <a class="xbtn" href="carry.html">Open Carry &rarr;</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // Wallet-scoped collateral: the page offers ONLY what this wallet holds (mock
+  // balances). B = borrow cap, M = liquidation line (B = M - vol-scaled gap).
+  // vol = realized 12m annualized; odds via zero-drift touch probability
+  // (reflection principle), same model family as the daily breach surface.
+  var RATE=4.2; // CDT borrow rate today, %/yr (moves)
+  var WALLET=[
+    { sym:'WBTC',   bal:0.4200,  px:115200, dp:4, yld:0.0, B:0.60, M:0.73, vol:0.343 },
+    { sym:'wstETH', bal:2.6000,  px:4310,   dp:3, yld:3.0, B:0.63, M:0.75, vol:0.420 },
+    { sym:'sUSDS',  bal:12400,   px:1.00,   dp:0, yld:6.5, B:0.83, M:0.86, vol:0.006 }
+  ];
+  var sel=0;
+
+  function phi(z){ var t=1/(1+0.2316419*Math.abs(z));
+    var d=0.3989423*Math.exp(-z*z/2);
+    var p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
+    return z>0?1-p:p; }
+  function odds12(ltv,a){ // P(price touches the liquidation line within 12 months)
+    if(ltv<=0) return 0;
+    var z=Math.log((a.M*100)/ltv)/a.vol;
+    return Math.min(99, 200*phi(-z));
+  }
+  function fmt(n){ return '$'+Math.round(n).toLocaleString('en-US'); }
+
+  function paintWal(){
+    document.getElementById('wal').innerHTML=WALLET.map(function(a,i){
+      return '<button class="wbtn'+(i===sel?' on':'')+'" data-i="'+i+'" type="button">'+
+        '<span class="wn">'+a.sym+' <span class="oic" data-oracle="'+a.sym+'">oracle</span></span>'+
+        '<span class="wb num">in wallet: '+a.bal.toLocaleString('en-US',{maximumFractionDigits:a.dp})+
+          ' \u00b7 '+fmt(a.bal*a.px)+'</span>'+
+        '<span class="wy num">'+(a.yld>0?('earns '+a.yld.toFixed(1)+'% while posted'):'earns nothing while posted')+
+          ' \u00b7 line at '+(a.M*100).toFixed(0)+'%</span>'+
+        '</button>';
+    }).join('');
+  }
+
+  function post(){ var a=WALLET[sel];
+    return parseFloat((document.getElementById('postIn').value||'0').replace(/[^0-9.]/g,''))||0; }
+
+  function paint(){
+    var a=WALLET[sel];
+    var ltvIn=document.getElementById('ltvIn');
+    ltvIn.max=String(Math.round(a.B*100));
+    var ltv=Math.min(+ltvIn.value, a.B*100);
+    var p=post(), pv=p*a.px, mint=pv*ltv/100;
+    var o=odds12(ltv,a);
+    var net=a.yld-RATE;
+
+    document.getElementById('ltvLbl').textContent=ltv.toFixed(0)+'% LTV';
+    document.getElementById('capLbl').textContent='cap '+(a.B*100).toFixed(0)+'% \u00b7 line '+(a.M*100).toFixed(0)+'%';
+    document.getElementById('postSub').textContent=fmt(pv)+' \u00b7 you hold '+
+      a.bal.toLocaleString('en-US',{maximumFractionDigits:a.dp})+' '+a.sym;
+    document.getElementById('mintV').textContent=fmt(mint);
+
+    document.getElementById('fColl').textContent=p.toLocaleString('en-US',{maximumFractionDigits:a.dp})+' '+a.sym;
+    document.getElementById('fCollSub').textContent=fmt(pv)+' posted \u00b7 stays yours \u00b7 back in full when you repay';
+
+    var riskEl=document.getElementById('fRisk');
+    riskEl.textContent=o<1?'breach odds under 1%':'breach odds '+o.toFixed(o<10?1:0)+'%';
+    riskEl.className='fv num '+(o<5?'good':o<20?'warn':'bad');
+    document.getElementById('fRiskSub').textContent='in 12 months, at '+ltv.toFixed(0)+'% LTV vs the '+
+      (a.M*100).toFixed(0)+'% line \u00b7 a breach opens an 8h cure window';
+
+    var costEl=document.getElementById('fCost');
+    if(net>=0){ costEl.textContent='+'+net.toFixed(1)+'% / yr net'; costEl.className='fv num good'; }
+    else{ costEl.textContent=net.toFixed(1)+'% / yr net'; costEl.className='fv num bad'; }
+    document.getElementById('fCostSub').textContent='collateral earns '+a.yld.toFixed(1)+
+      '% \u00b7 the debt costs '+RATE.toFixed(1)+'% \u00b7 today\u2019s rates, they move';
+
+    document.getElementById('oddsStamp').textContent=
+      'breach odds = probability price touches your liquidation line within 12 months \u00b7 '+
+      'zero-drift model on realized 12m vol ('+(a.vol*100).toFixed(1)+'%) \u00b7 recomputed daily with the breach surface';
+  }
+
+  document.getElementById('wal').addEventListener('click',function(e){
+    var b=e.target.closest('.wbtn'); if(!b) return;
+    sel=+b.getAttribute('data-i');
+    var a=WALLET[sel];
+    document.getElementById('postIn').value=String((a.bal/2).toFixed(Math.min(a.dp,4)));
+    paintWal(); paint();
+  });
+  document.getElementById('maxBtn').addEventListener('click',function(){
+    var a=WALLET[sel];
+    document.getElementById('postIn').value=String(a.bal.toFixed(Math.min(a.dp,4)));
+    paint();
+  });
+  document.getElementById('postIn').addEventListener('input',paint);
+  document.getElementById('ltvIn').addEventListener('input',paint);
+
+  document.getElementById('mintGo').addEventListener('click',function(){
+    var a=WALLET[sel], ltv=+document.getElementById('ltvIn').value;
+    var p=post(), pv=p*a.px, mint=pv*ltv/100, o=odds12(ltv,a), net=a.yld-RATE;
+    window.__exec({
+      title:'Borrow \u2014 mint CDT against '+a.sym,
+      rows:[
+        ['You post', p.toLocaleString('en-US',{maximumFractionDigits:a.dp})+' '+a.sym+' ('+fmt(pv)+')'],
+        ['You mint', fmt(mint)+' CDT \u2014 to your wallet'],
+        ['Your LTV', ltv.toFixed(0)+'% \u00b7 cap '+(a.B*100).toFixed(0)+'% \u00b7 line '+(a.M*100).toFixed(0)+'%'],
+        ['Breach odds, 12 months', o<1?'under 1%':o.toFixed(o<10?1:0)+'%'],
+        ['Cost of the debt, today', RATE.toFixed(1)+'% / yr'+(net<0?'':' \u00b7 collateral earns '+a.yld.toFixed(1)+'%')]
+      ],
+      note:'The CDT is minted to your wallet and deployed nowhere. Repay anytime to unlock the collateral. '+
+        'A breach opens an 8-hour cure window; liquidation repays to the cap, not to zero.',
+      cta:'Sign & mint', done:'CDT in wallet'
+    });
+  });
+
+  // default: first wallet asset, half the balance posted
+  document.getElementById('postIn').value=String((WALLET[0].bal/2).toFixed(4));
+  paintWal(); paint();
+  window.__borrow2={ WALLET:WALLET, paint:paint, paintWal:paintWal };
+})();
+</script>
+
+<script>
+(function(){
+  "use strict";
+  // Below the fold on purpose: the mechanism is reading matter, not decision matter.
+  var tl=document.getElementById('tl');
+  tl.innerHTML=
+    '<span class="seg" style="left:0;width:20%;background:rgba(155,220,79,0.08)"></span>'+
+    '<span class="lbl" style="left:2%;top:8px;color:var(--phos)">HEALTHY</span>'+
+    '<span class="lbl num" style="left:2%;bottom:8px">LTV under your cap</span>'+
+    '<span class="tick" style="left:20%"></span>'+
+    '<span class="lbl" style="left:21.5%;top:8px;color:var(--gold)">BREACH &middot; 8H TIMER STARTS</span>'+
+    '<span class="seg" style="left:20%;width:60%;background:rgba(216,178,74,0.10)"></span>'+
+    '<span class="seg" id="cureFill" style="left:20%;width:0%;background:rgba(216,178,74,0.28)"></span>'+
+    '<span class="lbl num" id="cureLbl" style="left:44%;top:44px;color:var(--gold)">0h 00m of 8h</span>'+
+    '<span class="lbl" style="left:34%;bottom:8px;color:var(--ink)">&uarr; cure anytime in the window: deposit, repay, or price recovery &rarr; back to healthy</span>'+
+    '<span class="tick" style="left:80%"></span>'+
+    '<span class="seg" style="left:80%;width:20%;background:rgba(207,64,52,0.22)"></span>'+
+    '<span class="lbl" style="left:82%;top:8px;color:var(--blood)">LIQUIDATION</span>'+
+    '<span class="lbl num" style="left:82%;bottom:8px">timer expired uncured &middot; repays to the cap</span>';
+  var t=0;
+  setInterval(function(){
+    t=(t+0.02)%1.15;
+    var k=Math.min(1,t/1);
+    document.getElementById('cureFill').style.width=(k*60)+'%';
+    var mins=Math.round(k*480);
+    document.getElementById('cureLbl').textContent=Math.floor(mins/60)+'h '+String(mins%60).padStart(2,'0')+'m of 8h';
+  },80);
+})();
+</script>
+
+<script>
+(function(){
+"use strict";
+// The one confirmation an irreversible action gets (VETERAN_UX_RULESET V6): numbers,
+// not prose; then pending; then settled. Mock chain, real choreography.
+function el(t,c,x){var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.innerHTML=x; return e;}
+window.__exec=function(o){
+  var ov=el('div','xsheet'), c=el('div','xcard');
+  c.appendChild(el('div','xh',o.title));
+  var tb=el('div');
+  (o.rows||[]).forEach(function(r){ var w=el('div','xrow');
+    w.appendChild(el('span','',r[0])); w.appendChild(el('b','xv num',r[1])); tb.appendChild(w); });
+  c.appendChild(tb);
+  if(o.note) c.appendChild(el('p','xnote',o.note));
+  var btns=el('div','xbtns'), go=el('button','xgo',o.cta||'Confirm'), no=el('button','xno','Cancel');
+  btns.appendChild(go); btns.appendChild(no); c.appendChild(btns);
+  ov.appendChild(c); document.body.appendChild(ov);
+  var close=function(){ ov.remove(); };
+  no.onclick=close; ov.onclick=function(e){ if(e.target===ov) close(); };
+  go.onclick=function(){
+    btns.remove();
+    var p=el('div','xpend','signing\u2026'); c.appendChild(p);
+    setTimeout(function(){ p.textContent='pending \u2014 waiting for the receipt\u2026';
+      setTimeout(function(){
+        p.className='xdone'; p.textContent=(o.done||'Settled')+' \u00b7 mock chain';
+        var ok=el('button','xno','Close'); ok.style.marginTop='12px';
+        c.appendChild(ok); ok.onclick=close;
+      },1100);
+    },800);
+  };
+};
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-exec]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  var rows=[]; try{ rows=JSON.parse(b.getAttribute('data-rows')||'[]'); }catch(err){}
+  window.__exec({ title:b.getAttribute('data-exec'), rows:rows,
+    cta:b.getAttribute('data-cta')||undefined, note:b.getAttribute('data-note')||'',
+    done:b.getAttribute('data-done')||undefined });
+});
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// demo-until-connect (the flip): every page opens fully populated. Wallet-scoped
+// blocks run on the demo wallet until a wallet connects; protocol-scoped blocks
+// stay live either way. CTAs in demo are intent-preserving: the confirm sheet
+// keeps its exact rows, the button becomes "Connect wallet", and after the (mock)
+// connect the SAME sheet re-opens for the real signature. Mock connect = one
+// localStorage flag so the whole loop is testable; the acct chip toggles it.
+var KEY='membrane.wallet';
+function isConn(){ try{ return localStorage.getItem(KEY)==='1'; }catch(e){ return false; } }
+function setConn(v){ try{ if(v) localStorage.setItem(KEY,'1'); else localStorage.removeItem(KEY); }catch(e){} }
+function wireAcct(conn){
+  var a=document.querySelector('.acct'); if(!a) return;
+  a.style.cursor='pointer';
+  if(conn){ a.textContent='0x9a41\u2026c2e0'; a.title='demo-connected \u00b7 click to disconnect';
+    a.onclick=function(){ setConn(false); location.reload(); }; }
+  else{ a.textContent='demo \u00b7 connect'; a.title='click to connect (mock wallet)';
+    a.onclick=function(){ setConn(true); location.reload(); }; }
+}
+function init(){
+  if(isConn()){ wireAcct(true); return; }
+  document.body.classList.add('demo');
+  wireAcct(false);
+  var st=document.createElement('style');
+  st.textContent='.demobar2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;'+
+    'background:var(--raise);border:1px solid var(--hair);padding:9px 14px;margin:0 0 16px;'+
+    'font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim)}'+
+    '.demobar2 b{font-weight:400;color:var(--gold)}'+
+    '.demobar2 button{background:none;border:0;color:var(--phos);font-family:inherit;font-size:10px;'+
+    'letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;text-decoration:underline;padding:0}';
+  document.head.appendChild(st);
+  if(!document.getElementById('demoBar')&&!document.getElementById('demoBar2')){
+    var bar=document.createElement('div'); bar.className='demobar2'; bar.id='demoBar2';
+    bar.innerHTML='<span><b>Demo</b> \u2014 wallet-scoped numbers are a demo wallet, not yours. '+
+      'Live market data stays live.</span>'+
+      '<button type="button" id="demoConn">Connect wallet \u2192</button>';
+    var nav=document.querySelector('.wrap nav')||document.querySelector('nav');
+    if(nav&&nav.parentNode) nav.parentNode.insertBefore(bar,nav.nextSibling);
+    else document.body.insertBefore(bar,document.body.firstChild);
+    document.getElementById('demoConn').onclick=function(){ setConn(true); location.reload(); };
+  }
+  var real=window.__exec; if(!real) return;
+  window.__exec=function(o){
+    var oo={}; for(var k in o) oo[k]=o[k];
+    oo.cta='Connect wallet';
+    oo.note=(o.note?o.note+' ':'')+'Demo: connecting keeps this exact intent and re-opens it for the real signature.';
+    real(oo);
+    var sheets=document.querySelectorAll('.xsheet');
+    var sheet=sheets[sheets.length-1]; if(!sheet) return;
+    var go=sheet.querySelector('.xgo'); if(!go) return;
+    go.onclick=function(){
+      go.textContent='connecting\u2026';
+      setTimeout(function(){
+        setConn(true);
+        sheet.remove();
+        document.body.classList.remove('demo');
+        var b1=document.getElementById('demoBar2'); if(b1) b1.remove();
+        window.__exec=real;
+        wireAcct(true);
+        real(o);
+      },700);
+    };
+  };
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+<script>
+(function(){
+"use strict";
+// live market data where a real source exists; every live bit is stamped with its
+// source and fetch time, everything else stays marked mock/measured. Artifact
+// copies are CSP-blocked -> all fetches fail quietly and the measured stamps hold.
+var H=window.__borrow2; if(!H) return;
+var live=[];
+function stamp(){
+  var el=document.getElementById('liveStamp');
+  if(!el){ el=document.createElement('p'); el.className='stamp'; el.id='liveStamp';
+    var wal=document.getElementById('wal'); wal.parentNode.insertBefore(el,wal.nextSibling); }
+  var t=new Date();
+  el.textContent='live: '+live.join(' \u00b7 ')+' \u00b7 fetched '+
+    String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+
+    ' \u00b7 everything unstamped is mock';
+}
+try{
+fetch('https://coins.llama.fi/prices/current/coingecko:wrapped-bitcoin,coingecko:wrapped-steth')
+  .then(function(r){return r.json();}).then(function(j){
+    var c=(j&&j.coins)||{};
+    var wb=c['coingecko:wrapped-bitcoin'], ws=c['coingecko:wrapped-steth'];
+    var hit=false;
+    if(wb&&wb.price){ H.WALLET[0].px=Math.round(wb.price); hit=true; }
+    if(ws&&ws.price){ H.WALLET[1].px=Math.round(ws.price); hit=true; }
+    if(hit){ H.paintWal(); H.paint(); live.push('WBTC/wstETH prices (coins.llama.fi)'); stamp(); }
+  }).catch(function(){});
+fetch('https://yields.llama.fi/pools').then(function(r){return r.json();}).then(function(j){
+  var pools=(j&&j.data)||[];
+  function best(sym,projects){ var b=null;
+    pools.forEach(function(p){ if(p.symbol!==sym) return;
+      if(projects&&projects.length&&projects.indexOf(p.project)<0) return;
+      if(!b||(p.tvlUsd||0)>(b.tvlUsd||0)) b=p; });
+    return b&&b.apy!=null?b.apy:null; }
+  var hit=false;
+  var st=best('STETH',['lido']); if(st!=null){ H.WALLET[1].yld=st; hit=true; }
+  var su=best('SUSDS',['sky-lending','sky-savings-rate','spark','makerdao']);
+  if(su!=null){ H.WALLET[2].yld=su; hit=true; }
+  if(hit){ H.paintWal(); H.paint(); live.push('collateral yields (yields.llama.fi)'); stamp(); }
+}).catch(function(){});
+fetch('/data/breach-surface.json').then(function(r){return r.json();}).then(function(j){
+  var v=j&&j.realized_vol&&j.realized_vol.vol;
+  if(typeof v==='number'&&v>0&&v<3){ H.WALLET[0].vol=v; H.paint();
+    live.push('WBTC vol '+(v*100).toFixed(1)+'% (breach-surface, '+String(j.measured_at||'').slice(0,10)+')'); stamp(); }
+}).catch(function(){});
+}catch(e){}
+})();
+</script>
+<!-- _oracle-cards.html &mdash; shared oracle-info modal module (canonical copy).
+Append the whole block to a page AFTER its main scripts. Affordance: any element
+with data-oracle="SYM" opens the card (capture-phase delegate, so it never
+triggers the underlying asset button). COPY IS WRITTEN IN DEPLOYED VOICE (owner, Aug 26 2026): these cards describe the
+oracle as live so no post-deploy copy edit is needed or forgotten. LAUNCH GATE &mdash;
+before any executable page ships publicly, each asset named here must actually be
+wired (Oracle.setAdapterSource / route config) and the PT template registered;
+otherwise a card asserts a feed that does not exist. Tracked in
+docs/GAME_LAUNCH_PLAN.md P3.
+Facts sourced from membrane-solidity
+(Oracle.sol, Adapter4626Base.sol, AUTONOMOUS-ORACLE-RISK-REGISTER.md) by the
+oracle exploration of Aug 26 2026 &mdash; line refs drift; the code is the truth. -->
+<script>
+(function(){
+"use strict";
+// Oracle info cards. Written in DEPLOYED VOICE so no post-launch copy edit is
+// forgotten (owner ruling): each card describes the oracle path as live. The
+// launch gate in the header comment is what keeps that honest -- an asset may
+// not ship a card until its feed is actually wired. Risk tags carry the register
+// severity (AOR-n); the PT chart stays labeled a model because it illustrates
+// price paths, which is separate from deployment status.
+var CSS='.ocv{position:fixed;inset:0;background:rgba(7,7,8,0.82);display:grid;place-items:center;z-index:80;overflow:auto;padding:20px}'+
+'.ocd{background:var(--card);border:1px solid var(--hairS);padding:20px;width:min(640px,94vw);max-height:92vh;overflow:auto}'+
+'.ocd .oh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}'+
+'.ocd .ot{font-family:var(--serif);font-size:19px}'+
+'.ocd .org{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;border:1px solid;padding:4px 9px;white-space:nowrap}'+
+'.ocd .org.med{color:var(--gold);border-color:var(--gold)}.ocd .org.plan{color:var(--teal);border-color:var(--teal)}'+
+'.ocd .osum{font-size:12px;color:var(--ink);line-height:1.7;margin:10px 0}'+
+'.ocd .ost{font-size:10px;letter-spacing:0.24em;text-transform:uppercase;color:var(--dim);margin:14px 0 6px}'+
+'.ocd .oli{font-size:11.5px;color:var(--dim);line-height:1.65;padding:5px 0 5px 14px;position:relative}'+
+'.ocd .oli:before{content:"\\25AA";position:absolute;left:0;color:var(--faint)}'+
+'.ocd .oli b{font-weight:400}'+
+'.ocd .oli b.does{color:var(--phos)}.ocd .oli b.not{color:var(--teal)}.ocd .oli b.mut{color:var(--gold)}'+
+'.ocd .owire{font-size:11px;color:var(--gold);border:1px solid rgba(216,178,74,0.4);padding:9px 12px;margin:12px 0;line-height:1.6}'+
+'.ocd .ochart{position:relative;height:200px;background:var(--sunk);border:1px solid var(--hair);margin:12px 0 6px}'+
+'.ocd .ochart canvas{position:absolute;inset:0;width:100%;height:100%}'+
+'.ocd .oscn{display:flex;gap:6px;margin:8px 0}'+
+'.ocd .oscn button{background:transparent;border:1px solid var(--hairS);color:var(--dim);font-family:var(--mono);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 10px;cursor:pointer}'+
+'.ocd .oscn button.on{color:var(--ink);border-color:var(--phos)}'+
+'.ocd .oprov{font-size:9px;color:var(--faint);letter-spacing:0.1em;line-height:1.7;margin-top:12px;border-top:1px solid var(--hair);padding-top:10px}'+
+'.ocd .oclose{background:transparent;border:1px solid var(--hairS);color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;padding:9px 16px;cursor:pointer;margin-top:14px}'+
+'.oic{display:inline-block;font-size:8.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--faint);border:1px solid var(--hair);padding:1px 6px;margin-left:7px;cursor:help;vertical-align:2px;transition:color .15s,border-color .15s}'+
+'.oic:hover{color:var(--phos);border-color:var(--phos)}';
+var st=document.createElement('style'); st.textContent=CSS; document.head.appendChild(st);
+
+var TIMELOCK='Three numeric risk params (fallback window, max deviation, breaker threshold) sit behind a <b class="mut">14-day timelock</b>; listing powers <b class="mut">die permanently at renounceOwnership()</b>. The circuit breaker is permissionless \u2014 deviation math, not a key.';
+var NOSIG='No committee reports this price: <b class="not">no signer set or multisig attestation exists</b> anywhere in the oracle stack \u2014 only pool math.';
+var ADAPTER_SUM='Priced as the vault\u2019s own share rate \u00d7 the underlying\u2019s on-chain Uniswap TWAP. No Chainlink anywhere in this stack \u2014 feeds that cannot stand alone are barred from being primary.';
+var ADAPTER_BULLETS=[
+ 'The vault\u2019s <b class="does">share rate does affect</b> the price \u2014 instantly on the way down, growth-capped on the way up (max-yield-per-second clamp; under-pricing collateral is the safe direction).',
+ 'The underlying\u2019s <b class="does">1-hour Uniswap TWAP does affect</b> the price.',
+ 'The wrapper\u2019s own <b class="not">market quote does not affect</b> it \u2014 the oracle reads the vault\u2019s exchange rate, not a pool price of the wrapper.',
+ 'The price <b class="does">can float above $1</b> as yield accrues \u2014 adapter assets are deliberately exempt from the USD-par clamp.',
+ NOSIG, TIMELOCK];
+var TWAP_SUM='Two-tier Uniswap V3 TWAP: a 1-hour window primary, and a 10-minute read of the same pool as fallback. If both fail, the price REVERTS \u2014 borrows halt rather than running on a stale number.';
+var TWAP_BULLETS=[
+ 'The pool\u2019s <b class="does">1h TWAP does affect</b> your liquidation line; the fallback is a <b class="does">shorter read of the same pool</b> \u2014 never a number someone typed.',
+ 'A <b class="not">stale price is never served</b>: both windows failing halts pricing (PriceStale) instead of freezing a value.',
+ 'Both tiers readable but diverging beyond the deviation cap also <b class="not">refuses to price</b> (OracleSourcesDisagree).',
+ NOSIG, TIMELOCK];
+var PROV='Sources: Oracle.sol \u00b7 Adapter4626Base.sol \u00b7 OracleTemplateFactory.sol \u00b7 AUTONOMOUS-ORACLE-RISK-REGISTER.md (membrane-solidity, read Aug 26 2026 \u2014 line numbers drift, the code is the truth). Written to the best of our ability; for exact behavior, read the oracle code itself.';
+var O={
+ 'sUSDS':{ tag:['med','medium (AOR-3/5 \u00b7 share-rate)'], sum:ADAPTER_SUM, li:ADAPTER_BULLETS,
+   wire:'' },
+ 'syrupUSDC':{ tag:['med','medium (AOR-3/5 \u00b7 share-rate)'], sum:ADAPTER_SUM, li:ADAPTER_BULLETS,
+   wire:'' },
+ 'scrvUSD':{ tag:['med','medium (AOR-3/5 \u00b7 share-rate)'], sum:ADAPTER_SUM, li:ADAPTER_BULLETS,
+   wire:'' },
+ 'WBTC':{ tag:['med','medium (AOR-2 \u00b7 route depth)'], sum:TWAP_SUM, li:TWAP_BULLETS.concat(
+   ['Register\u2019s live residual for TWAP assets: <b class="mut">thin or self-created pools</b> (AOR-2, medium) \u2014 no minimum-liquidity floor exists on autonomous routes today.']),
+   wire:'' },
+ 'wstETH':{ tag:['med','medium (AOR-2 \u00b7 route depth)'], sum:TWAP_SUM, li:TWAP_BULLETS,
+   wire:'' },
+ 'PT':{ tag:['med','medium (AOR-6 \u00b7 basis risk)'], pt:true,
+   sum:'Takes the LOWER of two prices: the PT\u2019s own market TWAP, and a linear discount curve that rises to one dollar at maturity. Whichever is lower is what your liquidation line is measured against \u2014 the oracle never pays you for optimism in the PT market.',
+   li:[ 'The market\u2019s <b class="does">implied APY does affect</b> the price \u2014 rates up, PT price down, hardest early in the term.',
+     '<b class="does">Time to maturity does affect</b> it: the pull to par shrinks duration risk every day.',
+     'The <b class="not">redemption value at maturity is not the risk</b> \u2014 held to term, the PT redeems at the underlying\u2019s value. The path BETWEEN now and then is what can liquidate you.',
+     'At the 90% LTV hard cap the <b class="mut">6.4% recovery margin is below the worst observed ~7% PT clearing discount</b> (AOR-8, high) \u2014 oracle-correct bad debt is possible at max LTV.',
+     NOSIG ],
+   wire:'The chart is a model, not history: 6%/yr discount over a 180-day term, drawn to show how the price behaves through the life of the position. Your PT\u2019s own curve is set by its term and listing discount.' }
+};
+function ptChart(cv, mode){
+  var W=cv.clientWidth||580, H=cv.clientHeight||200, dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=W*dpr; cv.height=H*dpr;
+  var x=cv.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,H);
+  var P=26, T=180, r0=0.06;
+  var X=function(d){ return P+(W-2*P)*d/T; }, Y=function(p){ return H-P-(H-2*P)*(p-0.90)/0.11; };
+  function curve(d,r){ return Math.pow(1+r,-(T-d)/365); }
+  // Canvas has no z-index -- text sits under anything painted after it. So ALL
+  // strokes run first and EVERY label is drawn last, each on its own knocked-out
+  // chip, so a line crossing underneath can never swallow the words.
+  x.font='9px ui-monospace,monospace';
+  x.strokeStyle='rgba(236,230,216,0.35)'; x.setLineDash([3,4]); x.beginPath();
+  x.moveTo(P,Y(1)); x.lineTo(W-P,Y(1)); x.stroke(); x.setLineDash([]);
+  x.strokeStyle='rgba(236,230,216,0.55)'; x.setLineDash([4,4]); x.beginPath();
+  for(var d=0;d<=T;d++){ var p=curve(d,r0); d===0?x.moveTo(X(d),Y(p)):x.lineTo(X(d),Y(p)); }
+  x.stroke(); x.setLineDash([]);
+  var col={calm:'#9bdc4f',spike:'#d8b24a',depeg:'#cf4034'}[mode];
+  x.strokeStyle=col; x.lineWidth=2; x.beginPath();
+  for(var d2=0;d2<=T;d2++){
+    var p2;
+    if(mode==='calm'){ p2=Math.min(curve(d2,r0), curve(d2,r0+0.004*(1-d2/T)*4)); }
+    else if(mode==='spike'){ var r=d2<60?r0:(d2<120? 0.14-(0.14-r0)*((d2-60)/60)*0.3 : r0+ (0.14*0.7-r0)*Math.max(0,1-(d2-120)/60)); p2=Math.min(curve(d2,r0),curve(d2,Math.max(r0,r))); }
+    else { var base=Math.min(curve(d2,r0),curve(d2,r0+0.003)); p2=d2<90?base:base*0.97; }
+    d2===0?x.moveTo(X(d2),Y(Math.max(0.90,p2))):x.lineTo(X(d2),Y(Math.max(0.90,p2)));
+  }
+  x.stroke(); x.lineWidth=1;
+  // ---- labels last, on knocked-out chips ----
+  function label(t,px,py,color,align){
+    x.textAlign=align||'left';
+    var w=x.measureText(t).width, lx=align==='right'?px-w:px;
+    x.fillStyle='#070708';
+    x.fillRect(lx-3, py-8, w+6, 11);
+    x.fillStyle=color; x.fillText(t,px,py);
+  }
+  label('$1.00 par', P+2, Y(1)-5, '#8d877b');
+  label('fixed discount curve (6%/yr) \u2014 the oracle\u2019s ceiling', P+2, Y(curve(0,r0))+13, '#8d877b');
+  var lbl={calm:'calm: converges to $1 at maturity', spike:'rate spike at day 60: price gaps down, pull-to-par reels it back', depeg:'underlying cut 3% at day 90: proportional, ends at $0.97'}[mode];
+  label(lbl, W-P-2, P+10, col, 'right');
+  label('listing', P, H-8, '#56524a');
+  label('maturity (180d)', W-P, H-8, '#56524a', 'right');
+}
+window.__oracleCard=function(sym){
+  var o=O[sym]; if(!o) return;
+  var ov=document.createElement('div'); ov.className='ocv';
+  var chart=o.pt?'<div class="ochart"><canvas id="ocv-cv"></canvas></div>'+
+    '<div class="oscn" id="ocv-scn"><button data-m="calm" class="on" type="button">calm</button>'+
+    '<button data-m="spike" type="button">rate spike</button>'+
+    '<button data-m="depeg" type="button">underlying depeg</button></div>'+
+    '<p class="oli" style="padding-left:0">model \u2014 how the price behaves over the term under each scenario</p>':'';
+  ov.innerHTML='<div class="ocd">'+
+    '<div class="oh"><span class="ot">Oracle info \u2014 '+sym+'</span>'+
+    '<span class="org '+o.tag[0]+'">'+o.tag[1]+'</span></div>'+
+    '<p class="osum">'+o.sum+'</p>'+chart+
+    '<div class="ost">In simple terms</div>'+
+    o.li.map(function(t){ return '<div class="oli">'+t+'</div>'; }).join('')+
+    (o.wire?'<div class="owire">'+o.wire+'</div>':'')+
+    '<p class="oprov">'+PROV+'</p>'+
+    '<button class="oclose" type="button">Close</button></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov||e.target.classList.contains('oclose')) ov.remove(); });
+  if(o.pt){
+    var cv=ov.querySelector('#ocv-cv'); ptChart(cv,'calm');
+    ov.querySelector('#ocv-scn').addEventListener('click',function(e){
+      var b=e.target.closest('button'); if(!b) return;
+      ov.querySelectorAll('#ocv-scn button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on'); ptChart(cv,b.getAttribute('data-m'));
+    });
+  }
+};
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-oracle]'); if(!t) return;
+  e.preventDefault(); e.stopPropagation();
+  window.__oracleCard(t.getAttribute('data-oracle'));
+},true);
+})();
+</script>

@@ -268,16 +268,19 @@ export async function getSupplyCaps(
   if (!address) return null
   try {
     const len = await client.readContract({ address, abi: cdpAbi, functionName: 'supplyCapsLength' })
-    const caps: EvmSupplyCap[] = []
-    for (let i = 0n; i < len; i++) {
-      const r = await client.readContract({
-        address,
-        abi: cdpAbi,
-        functionName: 'supplyCaps',
-        args: [i],
-      })
-      caps.push({ assetDenom: r[0], cap: r[1], current: r[2], debtTotal: r[3] })
-    }
+    // Independent per-index reads — fan out (multicall-batched by the public client).
+    const indices = Array.from({ length: Number(len) }, (_, i) => BigInt(i))
+    const caps: EvmSupplyCap[] = await Promise.all(
+      indices.map(async (i) => {
+        const r = await client.readContract({
+          address,
+          abi: cdpAbi,
+          functionName: 'supplyCaps',
+          args: [i],
+        })
+        return { assetDenom: r[0], cap: r[1], current: r[2], debtTotal: r[3] }
+      }),
+    )
     return caps
   } catch (error) {
     console.error('Error querying CDP supplyCaps roster:', error)
@@ -304,19 +307,21 @@ export async function getCollateralInterest(
   try {
     const caps = await getSupplyCaps(client, contractAddr)
     if (!caps) return null
-    const rates: { denom: Bytes32; rate: bigint }[] = []
-    for (const c of caps) {
-      const rate = await client.readContract({
-        address,
-        abi: cdpAbi,
-        functionName: 'currentAdaptiveRate',
-        args: [c.assetDenom],
-      })
-      // TODO(evm-migration): confirm whether the UI's displayed collateral interest
-      // is base+adaptive; if so add getRatesConfig().baseInterestRate here. Kept as the
-      // adaptive component only to match the existing getCurrentAdaptiveRate mapping.
-      rates.push({ denom: c.assetDenom, rate })
-    }
+    // Independent per-asset reads — fan out (multicall-batched by the public client).
+    const rates: { denom: Bytes32; rate: bigint }[] = await Promise.all(
+      caps.map(async (c) => {
+        const rate = await client.readContract({
+          address,
+          abi: cdpAbi,
+          functionName: 'currentAdaptiveRate',
+          args: [c.assetDenom],
+        })
+        // TODO(evm-migration): confirm whether the UI's displayed collateral interest
+        // is base+adaptive; if so add getRatesConfig().baseInterestRate here. Kept as the
+        // adaptive component only to match the existing getCurrentAdaptiveRate mapping.
+        return { denom: c.assetDenom, rate }
+      }),
+    )
     return rates
   } catch (error) {
     console.error('Error querying CDP collateral interest:', error)
@@ -499,6 +504,10 @@ export async function getUserPositionIds(
   const address = cdpAddress(client, contractAddr)
   if (!address) return null
   const ids: bigint[] = []
+  // FALSE POSITIVE (async-await-in-loop): sequential by necessity — this probes for the
+  // out-of-bounds revert that marks the end of the user's position array, so iteration i
+  // only happens because iteration i-1 didn't revert. Parallelizing would fire wasted reads
+  // past the true length and defeat the early-exit this loop exists for.
   for (let i = 0n; i < 256n; i++) {
     try {
       const id = await client.readContract({

@@ -209,9 +209,12 @@ export const useEarnUSDCRealizedAPR = () => {
             if (!router.pathname.endsWith("/manic")) return
             if (!earnClient) return
 
-            const claimTracker = await getEarnUSDCRealizedAPR(earnClient)
-            const currentClaim = await getUnderlyingUSDC("1000000000000", earnClient)
-            const blockTime = await earnClient.client.getBlock().then(block => Date.parse(block.header.time) / 1000)
+            // Independent reads — none consumes another's result — so fan out concurrently.
+            const [claimTracker, currentClaim, blockTime] = await Promise.all([
+                getEarnUSDCRealizedAPR(earnClient),
+                getUnderlyingUSDC("1000000000000", earnClient),
+                earnClient.client.getBlock().then(block => Date.parse(block.header.time) / 1000),
+            ])
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).minus(40237).toString(), //subtracting gains from the exit bug
@@ -254,9 +257,12 @@ export const useEarnCDTRealizedAPR = () => {
             if (!router.pathname.endsWith("/liquidate")) return
             if (!client) return
 
-            const claimTracker = await getEarnCDTRealizedAPR(client)
-            const currentClaim = await getUnderlyingCDT("1000000000000", client)
-            const blockTime = await client.getBlock().then(block => Date.parse(block.header.time) / 1000)
+            // Independent reads — none consumes another's result — so fan out concurrently.
+            const [claimTracker, currentClaim, blockTime] = await Promise.all([
+                getEarnCDTRealizedAPR(client),
+                getUnderlyingCDT("1000000000000", client),
+                client.getBlock().then(block => Date.parse(block.header.time) / 1000),
+            ])
             const time_since_last_checkpoint = blockTime - claimTracker.last_updated
             const currentClaimTracker = {
                 vt_claim_of_checkpoint: num(currentClaim).toString(), //subtracting gains from the exit bug
@@ -304,8 +310,11 @@ export const useBoundedCDTRealizedAPR = () => {
             if (!cosmwasmClient) return
 
             // const claimTracker = await getBoundedCDTRealizedAPR(cosmwasmClient)
-            const currentClaim = await getBoundedUnderlyingCDT("1000000000000", cosmwasmClient)
-            const blockTime = await cosmwasmClient.getBlock().then(block => Date.parse(block.header.time) / 1000)
+            // Independent reads — fan out concurrently instead of waterfalling.
+            const [currentClaim, blockTime] = await Promise.all([
+                getBoundedUnderlyingCDT("1000000000000", cosmwasmClient),
+                cosmwasmClient.getBlock().then(block => Date.parse(block.header.time) / 1000),
+            ])
             //Calc days since March 11th 2025 using date
             const march11th = new Date("2025-03-11T00:00:00Z").getTime() / 1000
 
@@ -376,40 +385,11 @@ export const useRBLPCDTBalance = () => {
     })
 }
 
-export const getBoundedCDTBalance = () => {
-    const boundCDTAsset = useAssetBySymbol("range-bound-CDT")
-    const boundCDTBalance = useBalanceByAsset(boundCDTAsset)
-    const router = useRouter()
-    const { chainName } = useChainRoute()
-    const { data } = useUserBoundedIntents()
-
-    return useQuery({
-        queryKey: ['getBoundedCDTBalance', data, boundCDTBalance, router.pathname],
-        queryFn: async () => {
-            if (router.pathname !== `/${chainName}`) return
-            if (!data || !boundCDTBalance) return "0"
-            const intents = data
-            const totalVTs = num(boundCDTBalance).plus(intents[0].intent.vault_tokens).toString()
-
-            const { data: underlyingData } = useBoundedCDTVaultTokenUnderlying(num(shiftDigits(totalVTs, 6)).toFixed(0))
-            return shiftDigits(underlyingData ?? "1000000", -6).toString()
-        },
-        staleTime: 1000 * 60 * 5,
-    })
-}
-
-export const useBoundedCDTBalance = () => {
-    const router = useRouter()
-    const { chainName } = useChainRoute()
-    return useQuery({
-        queryKey: ['useBoundedCDTBalance', router.pathname],
-        queryFn: async () => {
-            if (router.pathname !== `/${chainName}`) return
-            return getBoundedCDTBalance()
-        },
-        staleTime: 1000 * 60 * 5,
-    })
-}
+// NOTE: getBoundedCDTBalance / useBoundedCDTBalance were removed — both were dead code
+// (never called; only an unused import) AND broken (each called a Hook inside a react-query
+// queryFn, which throws at fetch time). If a bounded-CDT-balance value is needed, build it as
+// a proper Hook: call useBoundedCDTVaultTokenUnderlying(totalVTs) at the top level and derive
+// the result, rather than inside a queryFn.
 
 export const simpleBoundedAPRCalc = (cdpDebt: number, interest: CollateralInterestResponse, vaultCDT: any, manicDebt: number) => {
     if (!cdpDebt || !interest || !vaultCDT) {
@@ -453,9 +433,11 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
     const { chainName } = useChainRoute()
 
 
-    const userDiscountQueries = useDiscounts ? useQueries({
+    // useQueries must be called unconditionally (Rules of Hooks); gate the work by
+    // supplying an empty queries array when discounts aren't requested.
+    const userDiscountQueries = useQueries({
         // TODO(evm-migration): useBasketPositions is a null-stub (no enumeration view in Cdp.sol) — cast keeps legacy per-position discount math compiling until an indexer feed lands
-        queries: ((allPositions || []) as any[]).map((basketPosition: any) => ({
+        queries: !useDiscounts ? [] : ((allPositions || []) as any[]).map((basketPosition: any) => ({
             queryKey: ['user', 'discount', 'cdp', basketPosition.user, client],
             queryFn: async () => {
 
@@ -466,7 +448,7 @@ export const useEstimatedAnnualInterest = (useDiscounts: boolean) => {
             },
             staleTime: 60000, // 60 seconds (adjust based on your needs)
         })) || [],
-    }) : [];
+    });
 
     return useQuery({
         queryKey: ['useEstimatedAnnualInterest',

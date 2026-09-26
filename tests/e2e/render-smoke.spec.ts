@@ -31,16 +31,21 @@ const ROUTES = [
 ]
 
 // Errors that mean "the page crashed", not "a data fetch failed".
-// Hydration mismatches (#418/#423/#425) are excluded: React recovers by client
-// rendering, the page still displays — they're logged as warnings below and tracked
-// for a dedicated hydration pass (timing-dependent: live chain data racing hydration).
+//
+// Hydration mismatches (#418/#423/#425) USED to be excluded here and merely
+// warned about, on the theory that React recovers by client rendering so the
+// page still displays. That undersold them: a mismatch makes React discard the
+// server tree and re-render the whole root on the client, which drops event
+// handlers — the /portfolio route had a nested <button> that left the header
+// chain selector unclickable. Every route is hydration-clean as of this change,
+// so these now fail the build rather than printing a warning nobody reads.
 const FATAL_PATTERNS = [
-  /Minified React error #(?!418\b|423\b|425\b)\d+/,
+  /Minified React error #\d+/,
   /Maximum update depth exceeded/,
   /client-side exception/i,
+  /Hydration failed/,
+  /did not match the server-rendered HTML/,
 ]
-
-const HYDRATION_PATTERNS = [/Minified React error #(418|423|425)\b/, /Hydration failed/]
 
 test.describe('render smoke (production build)', () => {
   test.setTimeout(90000)
@@ -61,11 +66,6 @@ test.describe('render smoke (production build)', () => {
       await page.goto(route, { waitUntil: 'load' })
       // settle window: effects, react-query retries, and any update loop would trip here
       await page.waitForTimeout(4000)
-
-      const hydration = pageErrors.filter((e) => HYDRATION_PATTERNS.some((p) => p.test(e)))
-      if (hydration.length) {
-        console.warn(`[HYDRATION-WARN] ${route}: ${hydration.length} hydration mismatch(es)`)
-      }
 
       const fatal = [
         ...pageErrors.filter((e) => FATAL_PATTERNS.some((p) => p.test(e))),

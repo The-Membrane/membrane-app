@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
 import useAppState from '@/persisted-state/useAppState'
 import { getIntentBoosts } from '@/services/systemDiscounts'
-import type { MbrnIntentOption } from '@/types/lockdropIntents'
+import type { MbrnIntentOption } from '@/types/acquisitionIntents'
 
 /**
  * Hook to query intent boosts from system_discounts contract

@@ -100,7 +100,7 @@ export const getManagedMarkets = async (cosmWasmClient: any, manager: string) =>
 ////////// 
 
 //Get market name from address
-export const getMarketName = (marketAddress: string) => {
+export const useMarketName = (marketAddress: string) => {
 
     const allMarkets = useAllMarkets();
     const marketName = useMemo(() => {

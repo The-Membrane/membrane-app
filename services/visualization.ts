@@ -1,7 +1,7 @@
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import contracts from '@/config/contracts.json'
 import type { MarketNode, FlowEdge, SystemEvent, TimelineData } from '@/types/visualization'
-import { getLTVQueue } from './disco'
+import { getAssetQueue } from './disco'
 
 interface VisualizationDataResponse {
     markets: MarketNode[]

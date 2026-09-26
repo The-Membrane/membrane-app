@@ -10,6 +10,9 @@ export interface RevenueSource {
 
 export interface PortMetrics {
     totalRevenue: number
+    // Optional: not populated by aggregateRevenue yet; feature code reads it as
+    // `metrics?.dailyRevenue || 0` (undefined → 0). Declared so the reads type-check.
+    dailyRevenue?: number
     revenuePerSecond: number
     revenueBySource: {
         disco: number

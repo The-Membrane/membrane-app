@@ -1,0 +1,2614 @@
+<title>Membrane &mdash; Carry Builder</title>
+
+<style>
+  :root{
+    --bg:#09090a; --raise:#100f12; --card:#0e0d10; --sunk:#070708;
+    --ink:#ece6d8; --dim:#8d877b; --faint:#56524a;
+    --hair:rgba(236,230,216,0.10); --hairS:rgba(236,230,216,0.22);
+    --phos:#9bdc4f; --teal:#46d39a; --gold:#d8b24a; --blood:#cf4034;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --serif:Georgia,"Times New Roman",serif;
+  }
+  :root[data-theme="light"],:root[data-theme="dark"]{ color-scheme:dark; }
+  *,*::before,*::after{ box-sizing:border-box; }
+
+  .wrap{ background:var(--bg); color:var(--ink); font-family:var(--mono);
+    font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; padding-bottom:60px; }
+  .inner{ max-width:1240px; margin:0 auto; padding:0 clamp(12px,2.4vw,24px); }
+  h1,h2,h3{ font-family:var(--serif); font-weight:400; margin:0; text-wrap:balance; letter-spacing:-0.01em; }
+  p{ margin:0; }
+
+  .nav{ display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:14px 0; border-bottom:1px solid var(--hair); }
+  .brand{ font-family:var(--serif); font-size:18px; }
+  .variant{ font-size:9.5px; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold);
+    border:1px solid rgba(216,178,74,0.4); padding:4px 9px; }
+
+  .head{ padding:26px 0 16px; display:grid; gap:9px; }
+  .head h1{ font-size:clamp(23px,3.6vw,34px); line-height:1.12; }
+  .head .sub{ color:var(--dim); font-size:13px; max-width:82ch; }
+
+  /* ---------- board ---------- */
+  .shell{ display:grid; grid-template-columns:200px 1fr 240px; gap:0;
+    border:1px solid var(--hairS); }
+  @media(max-width:1080px){ .shell{ grid-template-columns:1fr; } }
+
+  .tray{ background:var(--card); border-right:1px solid var(--hairS); padding:14px; display:grid; gap:10px; align-content:start; }
+  @media(max-width:1080px){ .tray{ border-right:0; border-bottom:1px solid var(--hairS); } }
+  .trayh{ font-size:9.5px; letter-spacing:0.24em; text-transform:uppercase; color:var(--phos); }
+  .trayn{ font-size:10px; color:var(--faint); line-height:1.5; }
+  /* Veteran mode (VETERAN_UX_RULESET V9): warm-tier teaching text is removed from the
+     hot path once competence exists. In production the gate is per-mechanic mastery;
+     in this mock it is a visible switch so both states can be inspected. */
+  .pnav{ display:flex; gap:2px; margin-left:26px; margin-right:auto; flex-wrap:wrap; }
+  .pnav a{ font-family:var(--mono); font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--dim); text-decoration:none; padding:6px 10px; border:1px solid transparent;
+    transition:color .15s,border-color .15s; cursor:pointer; }
+  .pnav a:hover{ color:var(--phos); }
+  .pnav a.on{ color:var(--ink); border-color:var(--hairS); }
+  .pnav a.stub{ color:var(--faint); cursor:help; }
+  .vtgl{ display:block; margin-top:5px; background:transparent; border:1px solid var(--hairS);
+    color:var(--dim); font-family:var(--mono); font-size:9px; letter-spacing:0.18em;
+    text-transform:uppercase; padding:5px 9px; cursor:pointer;
+    transition:border-color .15s,color .15s; }
+  .vtgl:hover{ border-color:var(--phos); color:var(--phos); }
+  body.vet .warm{ display:none; }
+  .tmpls{ display:grid; gap:6px; }
+  .legend{ display:grid; gap:5px; margin:2px 0 6px; }
+  .legend .lg2{ display:grid; grid-template-columns:10px 1fr; gap:8px; align-items:start;
+    font-family:var(--mono); font-size:9.5px; line-height:1.5; color:var(--faint); }
+  .legend .sw{ width:10px; height:10px; margin-top:2px; }
+  .legend b{ display:block; font-weight:400; letter-spacing:0.16em; text-transform:uppercase; }
+  .scls{ font-size:8px; letter-spacing:0.16em; text-transform:uppercase; display:block; }
+  .tmpl{ font-family:var(--mono); text-align:left; background:transparent; border:1px solid var(--hairS);
+    color:var(--dim); padding:7px 9px; cursor:pointer; font-size:10.5px; transition:border-color .15s,color .15s; }
+  .tmpl:hover{ border-color:var(--phos); color:var(--phos); }
+  .tmpl b{ display:block; font-weight:400; color:var(--ink); font-size:11px; }
+  .tmpl:hover b{ color:var(--phos); }
+  .tiles{ display:grid; gap:8px; }
+  @media(max-width:1080px){ .tiles{ grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); } }
+
+  .tile{ border:1px solid var(--hairS); background:var(--raise); padding:9px 10px; display:grid; gap:3px;
+    cursor:grab; touch-action:none; user-select:none; transition:border-color .15s; }
+  .tile:hover{ border-color:var(--phos); }
+  .tile.used{ opacity:.32; cursor:not-allowed; }
+  .tile .tn{ font-size:11.5px; color:var(--ink); }
+  .tile .tstat{ display:flex; justify-content:space-between; gap:8px; font-size:10px; font-variant-numeric:tabular-nums; }
+  .tile .apr{ color:var(--phos); } .tile .liq{ color:var(--dim); }
+  .tile .warn{ font-size:9.5px; color:var(--gold); }
+  .tile.drag{ opacity:.4; }
+
+  .ghost{ position:fixed; z-index:999; pointer-events:none; border:1px solid var(--phos);
+    background:var(--card); padding:9px 10px; font-size:11.5px; color:var(--ink); display:none; }
+
+  .floor{ position:relative; background:var(--sunk); min-height:430px;
+    background-image:radial-gradient(rgba(236,230,216,0.055) 1px, transparent 1px);
+    background-size:22px 22px; overflow:hidden; }
+  .floor canvas{ position:absolute; inset:0; width:100%; height:100%; }
+  .mach{ position:absolute; transform:translate(-50%,-50%); background:var(--card);
+    border:1px solid var(--hairS); padding:9px 11px; min-width:132px; display:grid; gap:2px; z-index:3; }
+  .mach .mn{ font-size:11.5px; }
+  .mach .ms{ font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--faint); }
+  .mach .mv{ font-size:11.5px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .mach.live{ border-color:rgba(155,220,79,0.45); }
+  .mach.hot{ border-color:var(--blood); }
+
+  .slot{ position:absolute; transform:translate(-50%,-50%); width:150px; min-height:66px;
+    border:1px dashed var(--hairS); display:grid; place-items:center; z-index:3;
+    color:var(--faint); font-size:10px; letter-spacing:0.18em; text-transform:uppercase;
+    transition:border-color .15s, background-color .15s; padding:8px; text-align:center; }
+  .slot.over{ border-color:var(--phos); background:rgba(155,220,79,0.07); }
+  .slot.filled{ border-style:solid; border-color:var(--hairS); background:var(--card);
+    display:grid; gap:2px; place-items:stretch; text-align:left; text-transform:none; letter-spacing:0; padding:9px 10px; }
+  .slot .sn{ font-size:11.5px; color:var(--ink); letter-spacing:0; }
+  .slot .sv{ font-size:10px; color:var(--dim); font-variant-numeric:tabular-nums; letter-spacing:0; }
+  .slot .rm{ position:absolute; top:3px; right:5px; font-size:13px; color:var(--faint);
+    cursor:pointer; background:none; border:0; line-height:1; padding:2px 4px; }
+  .slot .rm:hover{ color:var(--blood); }
+
+  .intent{ position:absolute; transform:translate(-50%,-50%); z-index:3; display:grid; gap:5px; }
+  .intent .ih{ font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--faint); text-align:center; }
+  .ichip{ font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
+    background:var(--card); border:1px solid var(--hairS); color:var(--dim); padding:6px 9px;
+    cursor:pointer; transition:border-color .15s,color .15s; }
+  .ichip:hover{ border-color:var(--phos); color:var(--phos); }
+  .ichip[aria-pressed=true]{ border-color:var(--phos); color:#09090a; background:var(--phos); }
+
+  /* ---------- readout ---------- */
+  .meter{ background:var(--card); border-left:1px solid var(--hairS); padding:14px; display:grid; gap:12px; align-content:start; }
+  @media(max-width:1080px){ .meter{ border-left:0; border-top:1px solid var(--hairS); } }
+  .mh{ font-size:9.5px; letter-spacing:0.24em; text-transform:uppercase; color:var(--phos); }
+  .gauge{ display:grid; gap:3px; }
+  .gauge .gk{ font-size:9.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); }
+  .gauge .gv{ font-size:19px; font-variant-numeric:tabular-nums; }
+  .gauge .gn{ font-size:9.5px; color:var(--faint); }
+  .bar{ height:5px; background:rgba(236,230,216,0.06); position:relative; }
+  .bar i{ position:absolute; inset:0 auto 0 0; background:var(--phos); }
+  .bar .tick{ position:absolute; top:-2px; bottom:-2px; width:1px; background:var(--blood); }
+  .bar .band{ position:absolute; top:0; bottom:0; background:rgba(207,64,52,0.20); }
+
+  .ctl{ display:grid; gap:6px; border-top:1px solid var(--hair); padding-top:11px; }
+  .ctl-hd{ display:flex; justify-content:space-between; font-size:11px; }
+  .ctl-hd .k{ color:var(--dim); } .ctl-hd .v{ font-variant-numeric:tabular-nums; }
+  input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:18px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track{ height:2px; background:var(--hairS); }
+  input[type=range]::-moz-range-track{ height:2px; background:var(--hairS); }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:11px; height:11px; background:var(--phos); margin-top:-4.5px; border:0; }
+  input[type=range]::-moz-range-thumb{ width:11px; height:11px; background:var(--phos); border:0; border-radius:0; }
+
+  .btn{ width:100%; font-family:var(--mono); font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase;
+    background:transparent; color:var(--ink); border:1px solid var(--hairS); padding:11px 8px; cursor:pointer;
+    transition:border-color .15s,color .15s,background-color .15s; }
+  .btn:hover{ border-color:var(--phos); color:var(--phos); }
+  .btn.go{ background:var(--gold); border-color:var(--gold); color:#09090a; }
+  .btn.go:hover{ background:#e6c463; border-color:#e6c463; color:#09090a; }
+  .btn:disabled{ opacity:.35; cursor:not-allowed; border-color:var(--hair); color:var(--faint); background:transparent; }
+  button:focus-visible,input:focus-visible,.tile:focus-visible,.slot:focus-visible{ outline:1px solid var(--phos); outline-offset:2px; }
+
+  /* ---------- run / gauntlet ---------- */
+  .seedchip{ position:sticky; top:0; z-index:60; margin-top:16px; background:var(--bg);
+    border:1px solid var(--hair); padding:9px 12px;
+    display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px; }
+  .seedchip .cc-tag{ font-size:9.5px; letter-spacing:0.24em; text-transform:uppercase; color:var(--phos); }
+  .seedchip .cc-txt{ font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--dim); }
+  .seedchip .cc-txt b{ color:var(--ink); font-weight:400; }
+  .seedchip.practice{ border-color:rgba(216,178,74,0.5); }
+  .seedchip.practice .cc-tag, .seedchip.practice .cc-txt, .seedchip.practice .cc-txt b{ color:var(--gold); }
+  .seedchip .cc-btns{ display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
+  .cc-btn{ background:transparent; border:1px solid var(--hairS); color:var(--dim);
+    font-family:var(--mono); font-size:9px; letter-spacing:0.18em; text-transform:uppercase;
+    padding:4px 8px; cursor:pointer; }
+  .cc-btn:hover{ color:var(--ink); border-color:var(--ink); }
+  .seedchip.practice .cc-btn.back{ border-color:rgba(216,178,74,0.5); color:var(--gold); }
+  .cc-form{ flex-basis:100%; display:flex; gap:6px; flex-wrap:wrap; align-items:center;
+    border-top:1px solid var(--hair); padding-top:8px; margin-top:2px; }
+  .cc-form input{ background:var(--sunk); border:1px solid var(--hairS); color:var(--ink);
+    font-family:var(--mono); font-size:10.5px; letter-spacing:0.08em; padding:5px 8px; width:220px; }
+  .cc-form .cc-note{ font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--faint); }
+  .cc-hist{ flex-basis:100%; display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+    border-top:1px solid var(--hair); padding-top:8px; }
+  .cc-hist .cc-seed{ letter-spacing:0.1em; text-transform:none; }
+  .runbar{ margin-top:10px; border:1px solid var(--hairS); background:var(--card);
+    display:grid; grid-template-columns:1fr auto; gap:14px; padding:14px 16px; align-items:center; }
+  @media(max-width:720px){ .runbar{ grid-template-columns:1fr; } }
+  .floors{ display:flex; gap:5px; flex-wrap:wrap; }
+  .fl{ width:26px; height:26px; border:1px solid var(--hairS); display:grid; place-items:center;
+    font-size:9.5px; color:var(--faint); font-variant-numeric:tabular-nums; }
+  .fl.done{ border-color:var(--phos); color:#09090a; background:var(--phos); }
+  .fl.now{ border-color:var(--gold); color:var(--gold); }
+  .fl.hurt{ border-color:var(--gold); color:#09090a; background:var(--gold); }
+  .fl.dead{ border-color:var(--blood); color:#09090a; background:var(--blood); }
+  .fl{ font-family:var(--mono); background:none; padding:0; }
+  .fl[disabled]{ opacity:.35; cursor:not-allowed; }
+  .fl.open{ cursor:pointer; }
+  .fl.open:hover{ border-color:var(--phos); color:var(--phos); }
+  .fl.open.done:hover{ color:#09090a; }
+  .runstat{ display:flex; gap:18px; flex-wrap:wrap; align-items:baseline; }
+  .rs2{ display:grid; gap:1px; }
+  .rs2 .k{ font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); }
+  .rs2 .v{ font-size:17px; font-variant-numeric:tabular-nums; }
+  .banked{ color:var(--phos); }
+  .rload{ color:var(--faint); animation:rload 1.2s ease-in-out infinite; }
+  @keyframes rload{ 0%,100%{ opacity:0.25; } 50%{ opacity:1; } }
+
+  .stage2{ margin-top:14px; border:1px solid var(--hairS); background:var(--sunk); padding:18px;
+    display:grid; gap:12px; min-height:150px; }
+  .sc-hd{ display:flex; justify-content:space-between; gap:12px; align-items:baseline; flex-wrap:wrap; }
+  .sc-nm{ font-family:var(--serif); font-size:19px; }
+  .sc-era{ font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); }
+  .sc-note{ font-size:12px; color:var(--dim); }
+  .duo{ display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:18px; align-items:start; }
+  .side{ position:sticky; top:14px; }
+  .side .info{ margin:0 0 8px; }
+  .side .cal{ margin-top:0; }
+  @media (max-width:900px){ .duo{ grid-template-columns:1fr; } .side{ position:static; } }
+  .info{ margin:18px 0 8px; }
+  .info>summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:9px; }
+  .info>summary::-webkit-details-marker{ display:none; }
+  .info .ttl{ font-family:var(--serif); font-size:19px; color:var(--ink); }
+  .info .ic{ font-family:var(--serif); font-style:italic; font-size:10px; width:15px; height:15px;
+    border:1px solid var(--hairS); color:var(--dim); display:grid; place-items:center;
+    transition:border-color .15s,color .15s; }
+  .info>summary:hover .ic{ border-color:var(--phos); color:var(--phos); }
+  .info[open] .ic{ border-color:var(--phos); color:var(--phos); }
+  .info p{ font-size:12px; color:var(--dim); line-height:1.75; margin-top:8px;
+    border-left:2px solid var(--hairS); padding-left:12px; max-width:92ch; }
+  .sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .sc-yours{ font-size:13px; color:var(--ink); line-height:1.6; }
+  .sc-yours b{ font-weight:400; color:var(--gold); }
+  .mech{ margin-top:2px; }
+  .mech>summary{ list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--faint); transition:color .15s; }
+  .mech>summary::-webkit-details-marker{ display:none; }
+  .mech>summary:hover{ color:var(--phos); }
+  .mech>summary:hover .ic{ border-color:var(--phos); color:var(--phos); }
+  .mech p{ font-size:12px; color:var(--dim); line-height:1.75; margin-top:8px;
+    border-left:2px solid var(--hairS); padding-left:12px; max-width:92ch; }
+  .fc{ margin:14px 0 2px; border:1px solid var(--hairS); padding:14px; }
+  .fc-q{ font-size:13px; color:var(--ink); line-height:1.5; }
+  .fc-sub{ font-size:11px; color:var(--dim); margin-top:4px; }
+  .fc input[type=range]{ width:100%; margin:14px 0 4px; accent-color:var(--gold); }
+  .fc-scale{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:9.5px;
+    letter-spacing:0.14em; text-transform:uppercase; color:var(--faint); }
+  .fc-r{ display:flex; align-items:center; gap:14px; margin-top:12px; flex-wrap:wrap; }
+  .fc-v{ font-family:var(--mono); font-size:32px; font-variant-numeric:tabular-nums;
+    color:var(--gold); min-width:96px; line-height:1; }
+  .fc-r .btn{ flex:1; min-width:150px; width:auto; }
+  .fc-r #fcSkip{ flex:0 1 auto; min-width:130px; }
+  .fc-n{ font-size:10.5px; color:var(--faint); margin-top:10px; line-height:1.6; }
+  .fcres{ margin:10px 0 2px; font-family:var(--mono); font-size:11.5px; font-variant-numeric:tabular-nums;
+    color:var(--dim); border-left:2px solid var(--hairS); padding-left:10px; line-height:1.7; }
+  .fcres b{ color:var(--ink); font-weight:400; }
+  .cal{ margin-top:16px; border:1px solid var(--hair); padding:14px; }
+  .cal-hd{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .cal-k{ font-family:var(--mono); font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:var(--dim); }
+  .cal-v{ font-family:var(--mono); font-size:26px; font-variant-numeric:tabular-nums; color:var(--ink); }
+  .cal-lock{ font-family:var(--mono); font-size:10.5px; color:var(--faint); letter-spacing:0.06em; }
+  .cal-bar{ height:3px; background:var(--sunk); margin:10px 0 4px; }
+  .cal-bar i{ display:block; height:100%; background:var(--gold); }
+  .calrow{ display:grid; grid-template-columns:1fr auto auto; gap:10px; font-family:var(--mono);
+    font-size:11px; font-variant-numeric:tabular-nums; padding:5px 0; border-top:1px solid var(--hair); color:var(--dim); }
+  .calrow .p{ color:var(--ink); }
+  .calrow .o.hit{ color:var(--phos); } .calrow .o.miss{ color:var(--blood); }
+  .calclr{ width:100%; margin-top:10px; background:transparent; border:1px solid var(--hair);
+    color:var(--faint); font-family:var(--mono); font-size:9px; letter-spacing:0.18em;
+    text-transform:uppercase; padding:7px; cursor:pointer; transition:border-color .15s,color .15s; }
+  .calclr:hover{ border-color:var(--blood); color:var(--blood); }
+  .cal-n{ font-size:10.5px; color:var(--faint); margin-top:10px; line-height:1.6; max-width:86ch; }
+  .ticker{ font-size:clamp(26px,5vw,44px); font-variant-numeric:tabular-nums; letter-spacing:-0.02em;
+    color:var(--phos); line-height:1; }
+  .ticker.hurt{ color:var(--blood); }
+  .tickn{ font-size:10.5px; color:var(--faint); }
+  .pxbar{ height:6px; background:rgba(236,230,216,0.06); position:relative; }
+  .pxbar i{ position:absolute; inset:0 auto 0 0; background:var(--phos); }
+  .runbtns{ display:grid; gap:8px; }
+  .runbtns--x{ display:flex; gap:8px; flex-wrap:wrap; }
+  .runbtns .btn{ width:auto; flex:1; min-width:130px; }
+
+  .board{ margin-top:16px; border:1px solid var(--hair); }
+  .brow{ display:grid; grid-template-columns:34px 1.5fr 78px 96px 1fr; gap:12px; padding:9px 13px;
+    border-bottom:1px solid var(--hair); font-size:11.5px; align-items:center; }
+  .brow:last-child{ border-bottom:0; }
+  .brow.hd{ background:var(--raise); }
+  .brow.hd span{ font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); }
+  .brow.you{ background:rgba(155,220,79,0.06); }
+  .brow .rk{ color:var(--faint); font-variant-numeric:tabular-nums; }
+  .brow .nm{ color:var(--ink); }
+  .brow .nm small{ display:block; color:var(--faint); font-size:9.5px; letter-spacing:0.04em; }
+  .brow .num{ font-variant-numeric:tabular-nums; text-align:right; }
+  .brow .yield{ color:var(--faint); font-variant-numeric:tabular-nums; text-align:right; }
+  @media(max-width:720px){
+    .brow{ grid-template-columns:28px 1fr 60px 76px; }
+    .brow .yield{ display:none; }
+  }
+  .lbnote{ font-size:10.5px; color:var(--faint); margin-top:8px; line-height:1.6; max-width:86ch; }
+
+  /* ---------- per-venue audit: why each slot returned what it returned ---------- */
+  .audit{ margin-top:12px; border:1px solid var(--hair); }
+  .arow{ display:grid; grid-template-columns:1.4fr 84px 66px 62px 84px 1.9fr; gap:10px;
+    padding:8px 12px; border-bottom:1px solid var(--hair); font-size:11px; align-items:center; }
+  .arow:last-child{ border-bottom:0; }
+  .arow.hd{ background:var(--raise); }
+  .arow.hd span{ font-size:8.5px; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); }
+  .arow .num{ font-variant-numeric:tabular-nums; text-align:right; }
+  .arow .why{ color:var(--faint); font-size:10px; line-height:1.45; }
+  .arow.zero .num.ret{ color:var(--blood); }
+  .arow.zero .why{ color:var(--blood); }
+  .arow.tot{ background:var(--raise); }
+  .settle{ display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:14px; align-items:center;
+    padding:15px 12px; background:var(--raise); border-top:1px solid var(--hairS); }
+  .settle .cell{ display:grid; gap:4px; min-width:0; }
+  .settle .k{ font-family:var(--mono); font-size:9px; letter-spacing:0.2em;
+    text-transform:uppercase; color:var(--faint); }
+  .settle .v{ font-family:var(--mono); font-size:18px; font-variant-numeric:tabular-nums; color:var(--ink); }
+  .settle .n{ font-family:var(--mono); font-size:10px; color:var(--dim); line-height:1.5; }
+  .settle .op{ font-family:var(--mono); font-size:16px; color:var(--faint); }
+  .settle .bad .v{ color:var(--blood); }
+  .settle .good .v{ color:var(--phos); }
+  @media(max-width:700px){
+    .settle{ grid-template-columns:1fr; gap:10px; }
+    .settle .op{ display:none; }
+  }
+  .arow.tot .num{ color:var(--ink); }
+  .vcls{ font-size:8.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--faint); display:block; }
+  @media(max-width:860px){
+    .arow{ grid-template-columns:1fr 78px 84px; }
+    .arow .hair,.arow .liqc{ display:none; }
+    .arow .why{ grid-column:1 / -1; }
+  }
+  .howto{ margin-top:10px; border:1px solid var(--hair); background:var(--raise); }
+  .howto summary{ padding:10px 13px; cursor:pointer; font-size:10px; letter-spacing:0.2em;
+    text-transform:uppercase; color:var(--phos); list-style:none; }
+  .howto summary::-webkit-details-marker{ display:none; }
+  .howto summary::before{ content:"+ "; color:var(--faint); }
+  .howto[open] summary::before{ content:"\2212 "; }
+  .howto .body{ padding:0 13px 13px; display:grid; gap:8px; font-size:11px; color:var(--dim); line-height:1.65; }
+  .howto code{ font-family:var(--mono); color:var(--teal); font-size:10.5px; }
+  .howto .fn{ border-left:1px solid var(--hair); padding-left:11px; display:grid; gap:2px; }
+  .howto .fn b{ font-weight:400; color:var(--ink); }
+
+  /* ---------- verdict ---------- */
+  .verdict{ margin-top:16px; border:1px solid var(--hairS); background:var(--card); padding:18px; display:grid; gap:10px; }
+  .verdict.pass{ border-color:var(--phos); } .verdict.fail{ border-color:var(--blood); }
+  .verdict .vh{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .verdict .vt{ font-family:var(--serif); font-size:clamp(18px,2.8vw,25px); }
+  .verdict .vtag{ font-size:10px; letter-spacing:0.2em; text-transform:uppercase; border:1px solid; padding:4px 9px; }
+  .verdict.pass .vtag{ color:var(--phos); border-color:rgba(155,220,79,0.5); }
+  .verdict.fail .vtag{ color:var(--blood); border-color:var(--blood); }
+  .verdict .vwhy{ font-size:12.5px; color:var(--dim); max-width:84ch; line-height:1.7; }
+  .ledger{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--hair); border:1px solid var(--hair); }
+  .lg{ background:var(--card); padding:11px 12px; display:grid; gap:3px; }
+  .lg .k{ font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); }
+  .lg .v{ font-size:16px; font-variant-numeric:tabular-nums; }
+  .lg .n{ font-size:9.5px; color:var(--faint); }
+  .pos{color:var(--phos)} .neg{color:var(--blood)} .warn{color:var(--gold)}
+
+  .note{ margin-top:14px; font-size:11px; color:var(--faint); line-height:1.6; max-width:88ch; }
+  @media(prefers-reduced-motion:reduce){ *,*::before,*::after{ animation:none!important; transition:none!important; } }
+
+  /* execution layer (V5/V6): every implied action gets its button; one confirm, numbers only */
+  .acct{ font-size:10px; color:var(--dim); border:1px solid var(--hair); padding:5px 10px; letter-spacing:0.06em; }
+  .xbtn{ display:inline-block; background:transparent; border:1px solid var(--hairS); color:var(--ink);
+    font-family:var(--mono); font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:6px 11px; cursor:pointer; text-decoration:none; transition:border-color .15s,color .15s; }
+  .xbtn:hover{ border-color:var(--phos); color:var(--phos); }
+  .xbtn.go{ background:var(--phos); border-color:var(--phos); color:#09090a; }
+  .xbtn.go:hover{ background:#b3ec6e; color:#09090a; }
+  .xrail{ display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .xsheet{ position:fixed; inset:0; background:rgba(7,7,8,0.78); display:grid; place-items:center; z-index:60; }
+  .xcard{ background:var(--card); border:1px solid var(--hairS); padding:20px; width:min(430px,92vw); }
+  .xh{ font-family:var(--serif); font-size:17px; margin-bottom:12px; }
+  .xrow{ display:flex; justify-content:space-between; gap:14px; font-size:11.5px; color:var(--dim);
+    padding:5px 0; border-bottom:1px solid var(--hair); }
+  .xrow:last-child{ border-bottom:0; }
+  .xv{ font-weight:400; color:var(--ink); }
+  .xnote{ font-size:10px; color:var(--faint); line-height:1.6; margin:10px 0 0; }
+  .xbtns{ display:flex; gap:8px; margin-top:16px; }
+  .xgo{ flex:1; background:var(--phos); border:1px solid var(--phos); color:#09090a;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px; cursor:pointer; }
+  .xno{ background:transparent; border:1px solid var(--hairS); color:var(--dim);
+    font-family:var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:11px 16px; cursor:pointer; }
+  .xpend{ margin-top:16px; font-size:11px; color:var(--gold); letter-spacing:0.08em; }
+  .xdone{ margin-top:16px; font-size:11px; color:var(--phos); letter-spacing:0.08em; }
+
+</style>
+
+<div class="wrap"><div class="inner">
+
+  <nav class="nav">
+    <span class="brand">Membrane</span>
+    <span class="pnav">
+      <a href="dash.html">Position</a>
+      <a href="builder.html" class="on">Builder</a>
+      <a href="borrow.html">Borrow</a>
+      <a href="carry.html">Carry</a>
+      <a href="supply.html">Earn</a>
+      <a class="stub" title="not mocked yet">Liquidate</a>
+      <a href="defend.html">Defend</a>
+    </span>
+    <span class="variant">Variant B &middot; builder
+      <button class="vtgl" id="vTgl" type="button">view: first visit</button></span>
+    <span class="acct num">0x9a41&hellip;c2e0</span>
+  </nav>
+
+  <header class="head">
+    <h1>Build the position.</h1>
+    <p class="sub warm">
+      Drag venues onto the three slots. Belts carry borrowed CDT out, yield comes back. Then shock it &mdash;
+      the shock is the only thing that grades you, because a build that earns more and dies is not a better build.
+    </p>
+  </header>
+
+  <div class="shell" id="shell">
+    <!-- parts tray -->
+    <div class="tray">
+      <span class="trayh">Templates</span>
+      <div class="tmpls" id="tmpls"></div>
+      <span class="trayh" style="margin-top:4px">Venues</span>
+      <div class="legend" id="legend"></div>
+      <p class="trayn warm">Drag onto a slot. Three per position &mdash; a contract limit, not a preference. Shocks travel by <em>what a venue holds</em>, so three venues of the same class is one bet, not three.</p>
+      <div class="tiles" id="tiles"></div>
+    </div>
+
+    <!-- factory floor -->
+    <div class="floor" id="floor">
+      <canvas id="belts"></canvas>
+      <div id="machines"></div>
+    </div>
+
+    <!-- readout -->
+    <div class="meter">
+      <span class="mh">Readout</span>
+
+      <div class="gauge">
+        <span class="gk">Throughput</span>
+        <span class="gv" id="gNet">&mdash;</span>
+        <span class="gn" id="gNetN">net per year</span>
+      </div>
+
+      <div class="gauge">
+        <span class="gk">Loan to value</span>
+        <span class="gv" id="gLtv">&mdash;</span>
+        <div class="bar"><i id="gLtvBar" style="width:0%"></i><span class="band" id="gBand"></span><span class="tick" id="gTickB"></span><span class="tick" id="gTickL"></span></div>
+        <span class="gn" id="gLine">liquidation line at 73%</span>
+      </div>
+
+      <div class="gauge">
+        <span class="gk">Stress test</span>
+        <span class="gv" id="gDef">&mdash;</span>
+        <div class="bar"><i id="gDefBar" style="width:0%"></i></div>
+        <span class="gn" id="gDefN">nothing placed yet</span>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-hd"><span class="k">Bitcoin in</span><span class="v" id="vBtc">1.00 BTC</span></div>
+        <input type="range" id="sBtc" min="0.25" max="5" step="0.05" value="1" aria-label="Bitcoin collateral">
+      </div>
+      <div class="ctl">
+        <div class="ctl-hd"><span class="k">Draw</span><span class="v" id="vLtv">40% LTV</span></div>
+        <input type="range" id="sLtv" min="5" max="60" step="1" value="40" aria-label="Draw as percent LTV">
+      </div>
+
+      <button class="btn go" id="bTest" type="button">Run the gauntlet</button>
+      <button class="btn" id="bClear" type="button">Clear</button>
+    </div>
+  </div>
+
+  <details class="info">
+    <summary><span class="ttl">The gauntlet</span><i class="ic" aria-hidden="true">i</i><span class="sr">How a floor works</span></summary>
+    <p>
+      Bitcoin moves and your LTV jumps. If it crosses the line the engine recalls whatever is liquid in your
+      venues and puts it against the debt &mdash; only enough to get back under the line, not the whole loan
+      &mdash; and only the shortfall is taken out of your bitcoin. So a venue&rsquo;s recall number is the whole
+      game: it is the share that actually comes back when it is asked, cooldowns and queues already priced in.
+      That is why the highest-yield board is so rarely the best board.
+    </p>
+  </details>
+
+  <div class="seedchip" id="seedChip">
+    <span class="cc-tag" id="chipTag">Challenge</span>
+    <span class="cc-txt" id="chipTxt">&mdash;</span>
+    <span class="cc-btns">
+      <button class="cc-btn" id="chipShare" type="button">copy challenge link</button>
+      <button class="cc-btn" id="chipSwap" type="button">play a different challenge</button>
+      <button class="cc-btn back" id="chipBack" type="button" style="display:none">back to today&rsquo;s challenge</button>
+    </span>
+    <div class="cc-form" id="chipForm" style="display:none">
+      <input id="chipSeedIn" placeholder="seed &mdash; e.g. A7F3, or any word" aria-label="Challenge seed">
+      <button class="cc-btn" id="chipLoad" type="button">load</button>
+      <button class="cc-btn" id="chipRand" type="button">randomize</button>
+      <span class="cc-note">any seed is replayable &amp; shareable &middot; only the daily seed ranks</span>
+      <div class="cc-hist" id="chipHist"></div>
+    </div>
+  </div>
+
+  <div class="runbar">
+    <div>
+      <div class="floors" id="floors"></div>
+      <p class="sc-note" style="margin-top:8px;" id="runHint">Build a board, then take it through the gauntlet. Each floor is a real episode or a constructed one.</p>
+    </div>
+    <div class="runstat">
+      <div class="rs2"><span class="k">Floor</span><span class="v" id="rFloor">&mdash;</span></div>
+      <div class="rs2"><span class="k">Net made</span><span class="v banked" id="rBank">$0</span></div>
+      <div class="rs2"><span class="k">Bitcoin kept</span><span class="v" id="rKept">1.00</span></div>
+    </div>
+  </div>
+
+  <div class="duo">
+  <div class="stage2" id="stage2">
+    <div class="sc-hd">
+      <span class="sc-nm" id="scNm">The gauntlet</span>
+      <span class="sc-era" id="scEra">not started</span>
+    </div>
+    <p class="sc-yours" id="scYours">Fifteen floors, one sweep. A floor you survive pays and carries forward; a floor that would have killed you is voided and marked red &mdash; the run walks on either way.</p>
+    <details class="mech" id="scMech" style="display:none">
+      <summary>What this floor is doing<i class="ic" aria-hidden="true">i</i></summary>
+      <p id="scMechBody"></p>
+    </details>
+    <div class="fc" id="fcast" style="display:none">
+      <div class="fc-q" id="fcQ">Chance this board gets through the floor without selling any bitcoin?</div>
+      <div class="fc-sub" id="fcSub"></div>
+      <input type="range" id="fcS" min="0" max="100" step="1" value="50" aria-label="Your probability that no bitcoin is sold">
+      <div class="fc-scale"><span>certain it sells</span><span>coin flip</span><span>certain it holds</span></div>
+      <div class="fc-r">
+        <span class="fc-v" id="fcV">50%</span>
+        <button class="btn go" id="fcGo" type="button">Call it &amp; run</button>
+        <button class="btn" id="fcSkip" type="button">Skip &mdash; just run it</button>
+      </div>
+      <div class="fc-n warm">
+        Optional, and it costs you nothing to skip. But a board that survives tells you the board was fine;
+        it does not tell you whether <em>you</em> knew it would. Calling the floor first is the only part of
+        this that measures you rather than the position.
+      </div>
+    </div>
+    <div class="fcres" id="fcRes" style="display:none"></div>
+    <div class="ticker" id="tick">$0</div>
+    <span class="tickn" id="tickN">nothing running</span>
+    <div class="pxbar"><i id="pxb" style="width:0%"></i></div>
+    <div class="audit" id="audit" style="display:none"></div>
+    <details class="howto" id="howto" style="display:none"><summary>Where these numbers come from</summary><div class="body" id="howtoBody"></div></details>
+
+    <div class="runbtns">
+      <button class="btn" id="bNext" type="button" style="display:none">Continue to Next Floor</button>
+      <button class="btn" id="bRetry" type="button" style="display:none">Re-tune &amp; retry this floor</button>
+    </div>
+
+  </div>
+
+    <aside class="side">
+  <details class="info">
+    <summary><span class="ttl">Is it luck?</span><i class="ic" aria-hidden="true">i</i><span class="sr">How calibration is scored</span></summary>
+    <p>
+      Before each floor you post the odds your board holds. Afterwards the floor either sells bitcoin or it
+      does not, and the gap between what you said and what happened is squared and averaged &mdash; that is a
+      Brier score. Lower is better. 0.25 is what you get by always saying 50%, so the figure shown is how far
+      past that you are: above zero means your confidence carries information, below it means you are sure
+      about the wrong things. It stays hidden until 20 forecasts have resolved, because a score off five is
+      noise wearing a decimal point.
+    </p>
+  </details>
+
+  <div class="cal" id="cal">
+    <div class="cal-hd">
+      <span class="cal-k" id="calK">Calls made</span>
+      <span class="cal-v" id="calV">&mdash;</span>
+    </div>
+    <div class="cal-bar"><i id="calBar" style="width:0%"></i></div>
+    <div class="cal-lock" id="calLock">0 / 20 forecasts resolved</div>
+    <div id="calRows"></div>
+    <button class="calclr" id="calClr" type="button">Reset my calls</button>
+  </div>
+    </aside>
+  </div>
+
+
+  <div class="verdict" id="verdict" style="display:none">
+    <div class="vh">
+      <span class="vt" id="vTitle">Nothing built yet.</span>
+      <span class="vtag" id="vTag">Idle</span>
+    </div>
+    <p class="vwhy" id="vWhy">Drop at least one venue on a slot, then run the gauntlet.</p>
+    <div class="ledger" id="vLedger"></div>
+    <div class="xrail" style="margin-top:12px">
+      <a class="xbtn go" href="borrow.html">Take this board live &rarr; Borrow</a>
+      <button class="xbtn" id="shareCard" type="button">Save result card</button>
+    </div>
+  </div>
+
+
+  <details class="info">
+    <summary><span class="ttl">Leaderboard</span><i class="ic" aria-hidden="true">i</i><span class="sr">How ranking works</span></summary>
+    <p>
+      Ranked by floors survived, then by what you actually made &mdash; yield banked minus the market value of
+      the bitcoin you had to sell. Gross yield never ranks on its own: banking $1,070 while selling 0.7 BTC is
+      a loss wearing a profit&rsquo;s clothes, and floors gate everything so nobody out-earns a death.
+      Only runs on the <b>daily seed</b> rank &mdash; everyone faces the same drawn floors, so the board is a
+      fair fight. A run on any other seed still settles and still teaches, but it sits below the line as
+      practice, unranked.
+      The two reference rows are methods, not firms, and are illustrative lines rather than anyone&rsquo;s
+      track record. They disagree on purpose: one constrains how much you borrow and lets the venue mix be
+      wide, the other constrains which venues you will touch and sizes up on the strength of that vetting.
+      Both are re-run against the floors the loaded seed actually drew &mdash; through the same engine as
+      your board &mdash; so their lines move with the challenge: a method that cleared eight floors on one
+      seed can die on three the next.
+    </p>
+  </details>
+
+  <div class="board" id="board"></div>
+
+
+
+</div></div>
+
+<div class="ghost" id="ghost"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var BTC_PX=95000, BORROW=0.03, MAX_LTV=0.73, MAX_BORROW=0.60;
+
+  // Two lines, not one. You may borrow up to MAX_BORROW; you are liquidated past MAX_LTV.
+  // The band between them is the only headroom a price move has to eat through, and a
+  // partial liquidation does not stop at the liquidation line -- it repays you all the
+  // way back down to the borrow cap. That gap is why a shallow breach still costs real
+  // bitcoin. Port of LiquidationEngine._getRepayQuantities.
+  function repayNeeded(debt, collAfter, ltvAfter){
+    if(collAfter<=0) return debt;
+    if(ltvAfter>=1) return collAfter;                       // rs:472 -- repay against ALL collateral
+    return Math.max(0, debt*(ltvAfter-MAX_BORROW)/ltvAfter);
+  }
+
+  // The line and the debt both move during a run. A governance cut to the Disco-averaged
+  // max LTV lowers the bar under a position that never moved, and interest compounds into
+  // the debt rather than being paid from pocket -- so both have to be run state, not
+  // constants the board can read off once and trust.
+  function liqLine(){ return run.active ? Math.max(0.2, MAX_LTV-run.ltvCut) : MAX_LTV; }
+  function debtMul(){ return run.active ? run.debtX : 1; }
+
+  // liq = share recallable at liquidation; cool = can drop to zero when locked
+  // `cls` is what the venue actually HOLDS. Shocks travel by asset class, not by name \u2014
+  // a staking depeg reaches every LST venue at once and leaves stablecoin venues alone.
+  // Measured, not eyeballed: the previous set put liquid staking 24 dE from synthetic
+  // dollar and it disappeared. This trio is the widest separation available without
+  // borrowing phosphor or blood (which already mean healthy and dead here) -- worst pair
+  // 52 dE, and every one clears 9.6:1 contrast on the card. Stables take the achromatic
+  // bone because "plain" is the honest read for them.
+  var CLASS_COLOR={ stable:'#ece6d8', lst:'#46d39a', synth:'#d8b24a' };
+  var CLASS_NM={ stable:'stablecoin', lst:'liquid staking', synth:'synthetic dollar' };
+  // Named for the METHOD, never for a firm. These are inspired by how real risk
+  // managers actually differ -- one constrains size and lets the asset universe be
+  // wide, another constrains the universe and sizes up on the strength of vetting --
+  // but no result here is attributed to anyone. Inventing a score and putting a real
+  // company's name on it would be both legally reckless and, per the honesty rule,
+  // a confidence figure with nothing behind it.
+  // Every template is deliberately missing ONE thing that would have saved it, and the
+  // floor that kills it is the floor that asks for exactly that thing. They exist to get a
+  // student moving without dragging tiles first -- so none of them survives past the
+  // halfway mark, and the receipt on the death floor names what was absent.
+  // Every template is deliberately missing ONE thing that would have saved it, and the
+  // floor that kills it is the floor that asks for exactly that thing. They exist to get a
+  // student moving without dragging tiles first -- so none survives past the halfway mark,
+  // and the receipt on the death floor names what was absent.
+  var TEMPLATES=[
+    {nm:'Max draw', slots:['ptoken'], ltv:0.50,
+     doc:'Borrows near the cap and puts all of it in the best fixed rate on the board. What it leaves out is an exit: a principal token cannot be redeemed before maturity, so when the crash calls for capital there is a market to sell into and nothing else. The rate was never the problem.'},
+    {nm:'Depth-led', slots:['ptoken','vault','fluid'], ltv:0.48,
+     doc:'Two of the deepest venues on the board, plus the best rate, sized on the strength of that vetting. What it leaves out is headroom. The deep venues really are deep and they really do pay out \u2014 they are just answering for a position that was already too large while everything was still fine.'},
+    {nm:'Yield stack', slots:['ptoken','susde','wsteth'], ltv:0.46,
+     doc:'The three highest rates, spread across three different assets, which looks like diversification and is. What it leaves out is anything that actually comes back: a fixed maturity, a cooldown and an unstaking queue return about a third of what they hold between them, so when the bar moves underneath there is nothing to answer with.'},
+    {nm:'One basket', slots:['wsteth','reth'], ltv:0.42,
+     doc:'Two venues, both liquid staking. It reads as diversified because there are two of them, but they answer to the same asset \u2014 one bet wearing two names. What it leaves out is decorrelation, and the fortnight that broke the staking peg took bitcoin down with it, so the freeze and the margin call arrive together.'}
+  ];
+
+
+
+  var TILES=[
+    {id:'aave',  nm:'Aave V3',    cls:'stable', apr:0.042, liq:0.97, spd:1, note:'lending, holds USDC'},
+    {id:'vault', nm:'VaultV2',    cls:'stable', apr:0.076, liq:0.9, spd:1, note:'182 real positions run this'},
+    {id:'fluid', nm:'Fluid',      cls:'stable', apr:0.075, liq:0.85, spd:1, note:'lending, holds USDC'},
+    {id:'usd3',  nm:'USD3',       cls:'stable', apr:0.068, liq:0.8, spd:0.9, note:''},
+    {id:'yearn', nm:'Yearn V2',   cls:'stable', apr:0.082, liq:0.62, spd:0.3, note:'unwinds on a lag'},
+    {id:'wsteth',nm:'wstETH vault',cls:'lst',   apr:0.094, liq:0.7, spd:0.55, note:'staking yield, depeg risk'},
+    {id:'reth',  nm:'rETH vault', cls:'lst',    apr:0.088, liq:0.66, spd:0.55, note:'staking yield, depeg risk'},
+    {id:'ptoken',nm:'PT (fixed)',  cls:'synth',  apr:0.145, liq:0.12, spd:0, note:'best rate on the board, no exit until maturity'},
+    {id:'susde', nm:'sUSDe',      cls:'synth',  apr:0.118, liq:0.3, spd:0, note:'funding rate, 7-day cooldown'}
+  ];
+
+  var st={ btc:1, ltv:0.40, slots:[null,null,null], intent:'repay', tested:false };
+
+  // The sign belongs in front of the currency symbol, not after it. Callers that want an
+  // explicit "+" add it themselves; this never emits "$-4,332".
+  var usd=function(n){ var v=Math.round(n);
+    return (v<0?'\u2212$':'$')+Math.abs(v).toLocaleString('en-US'); };
+  var pct=function(n){ return (n*100).toFixed(0)+'%'; };
+  var byId=function(id){ return TILES.filter(function(t){ return t.id===id; })[0]; };
+
+  function placed(){ return st.slots.filter(Boolean).map(byId); }
+
+  // The interesting number is not "what does a 40% fall cost" -- for most boards that is
+  // zero, because recall covers a shallow breach. It is HOW FAR bitcoin has to fall before
+  // your venues stop being able to cover you. That is always informative, it is in the same
+  // unit as every floor, and it separates boards that a fixed shock cannot tell apart.
+  function breakPoint(){
+    var c=calc(); if(!c.p.length) return null;
+    for(var d=0.05; d<=0.90001; d+=0.01){ if(stressBtc(d)>1e-9) return d; }
+    return null;   // nothing up to a 90% fall costs bitcoin
+  }
+
+  // Bitcoin sold if the price falls by `drop`, on this board.
+  function stressBtc(drop){
+    var c=calc(); if(!c.p.length) return 0;
+    var px=BTC_PX*(1-drop), collAfter=st.btc*px;
+    if(collAfter<=0) return st.btc;
+    var lv=c.debt/collAfter;
+    if(lv<=liqLine()) return 0;
+    var needed=repayNeeded(c.debt, collAfter, lv);
+    return Math.min(st.btc, Math.max(0,needed-c.debt*c.liq)/px);
+  }
+
+  function calc(){
+    var coll=st.btc*BTC_PX, debt=coll*st.ltv*debtMul(), p=placed();
+    var apr=p.length? p.reduce(function(a,t){ return a+t.apr; },0)/p.length : 0;
+    var liq=p.length? p.reduce(function(a,t){ return a+t.liq; },0)/p.length : 0;
+    var earn=st.intent==='distribute'||st.intent==='repay'||st.intent==='compound' ? debt*apr : 0;
+    var cost=debt*BORROW;
+    return { coll:coll, debt:debt, p:p, apr:apr, liq:liq,
+             earn:earn, cost:cost, net:earn-cost, ltv:st.ltv };
+  }
+
+  // ---------- layout ----------
+  var NODES={
+    btc:   {x:0.10, y:0.50},
+    cdp:   {x:0.30, y:0.50},
+    s0:    {x:0.585,y:0.18},
+    s1:    {x:0.585,y:0.50},
+    s2:    {x:0.585,y:0.82},
+    router:{x:0.87, y:0.50}
+  };
+  var BELTS=[
+    {a:'btc',b:'cdp',c:'teal'},
+    {a:'cdp',b:'s0',c:'teal'},{a:'cdp',b:'s1',c:'teal'},{a:'cdp',b:'s2',c:'teal'},
+    {a:'s0',b:'router',c:'phos'},{a:'s1',b:'router',c:'phos'},{a:'s2',b:'router',c:'phos'},
+    {a:'router',b:'cdp',c:'phos',curve:-0.30}   // the loop that closes
+  ];
+  var COL={teal:'#46d39a',phos:'#9bdc4f',gold:'#d8b24a',bone:'#8d877b'};
+
+  var floor=document.getElementById('floor'),
+      cv=document.getElementById('belts'), ctx=cv.getContext('2d'),
+      mach=document.getElementById('machines');
+  var W=0,H=0;
+
+  function layout(){
+    var r=floor.getBoundingClientRect();
+    if(r.width<2||r.height<2) return;   // not laid out yet; keep the last good size
+    W=r.width; H=r.height;
+    var d=Math.min(2,window.devicePixelRatio||1);
+    cv.width=Math.round(W*d); cv.height=Math.round(H*d); ctx.setTransform(d,0,0,d,0,0);
+  }
+  function P(k){ return {x:NODES[k].x*W, y:NODES[k].y*H}; }
+  function path(b){
+    var a=P(b.a), z=P(b.b), mx=(a.x+z.x)/2, my=(a.y+z.y)/2;
+    if(b.curve){ var dx=z.x-a.x, dy=z.y-a.y; mx+=-dy*b.curve; my+=dx*b.curve; }
+    return {a:a,b:z,c:{x:mx,y:my}};
+  }
+  function at(p,t){ var u=1-t; return {
+    x:u*u*p.a.x+2*u*t*p.c.x+t*t*p.b.x, y:u*u*p.a.y+2*u*t*p.c.y+t*t*p.b.y }; }
+
+  // ---------- machines + slots ----------
+  function buildFloor(){
+    mach.innerHTML='';
+    function put(html,key,cls){
+      var d=document.createElement('div');
+      d.className=cls; d.style.left=(NODES[key].x*100)+'%'; d.style.top=(NODES[key].y*100)+'%';
+      d.innerHTML=html; d.setAttribute('data-node',key); mach.appendChild(d); return d;
+    }
+    put('<span class="ms">Source</span><span class="mn" id="mBtc">1.00 BTC</span><span class="mv" id="mBtcV"></span>','btc','mach');
+    put('<span class="ms">Cdp</span><span class="mn">Your position</span><span class="mv" id="mDebt"></span>','cdp','mach');
+    ['s0','s1','s2'].forEach(function(k,i){
+      // key is the NODES id ('s0'...), not the css class -- put() positions from it
+      var d=put('Empty slot',k,'slot');
+      d.setAttribute('data-slot',String(i));
+    });
+    var r=put('<span class="ih">Yield goes to</span>'+
+      '<button class="ichip" data-int="repay" aria-pressed="true" type="button">Repay debt</button>'+
+      '<button class="ichip" data-int="compound" aria-pressed="false" type="button">Compound</button>'+
+      '<button class="ichip" data-int="distribute" aria-pressed="false" type="button">Pay me</button>','router','intent');
+    Array.prototype.forEach.call(r.querySelectorAll('.ichip'),function(b){
+      b.addEventListener('click',function(){
+        st.intent=b.getAttribute('data-int');
+        Array.prototype.forEach.call(r.querySelectorAll('.ichip'),function(s){
+          s.setAttribute('aria-pressed', s===b?'true':'false');
+        });
+        st.tested=false; render();
+      });
+    });
+    paintSlots();
+  }
+
+  function paintSlots(){
+    st.slots.forEach(function(id,i){
+      var el=mach.querySelector('[data-slot="'+i+'"]');
+      if(!el) return;
+      if(!id){
+        el.className='slot'; el.style.boxShadow=''; el.innerHTML='Empty slot'; return;
+      }
+      var t=byId(id);
+      el.className='slot filled live';
+      el.style.boxShadow='inset 4px 0 0 '+CLASS_COLOR[t.cls];
+      el.innerHTML='<button class="rm" type="button" aria-label="Remove '+t.nm+'">&times;</button>'+
+        '<span class="sn">'+t.nm+'</span>'+
+        '<span class="scls" style="color:'+CLASS_COLOR[t.cls]+'">'+CLASS_NM[t.cls]+'</span>'+
+        '<span class="sv">'+(t.apr*100).toFixed(1)+'% &middot; recall '+pct(t.liq)+'</span>'+
+        '';
+      el.querySelector('.rm').addEventListener('click',function(e){
+        e.stopPropagation(); st.slots[i]=null; st.tested=false; paintSlots(); paintTiles(); render();
+      });
+    });
+  }
+
+  function paintTemplates(){
+    document.getElementById('tmpls').innerHTML=TEMPLATES.map(function(t,i){
+      return '<button class="tmpl" type="button" data-tmpl="'+i+'" title="'+t.doc.replace(/"/g,'')+'">'+
+        '<b>'+t.nm+'</b>'+(t.ltv*100).toFixed(0)+'% LTV &middot; '+t.slots.length+' venues</button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-tmpl]'),function(b){
+      b.addEventListener('click',function(){
+        var t=TEMPLATES[+b.getAttribute('data-tmpl')];
+        lastTmpl=+b.getAttribute('data-tmpl');
+        st.slots=[null,null,null];
+        t.slots.forEach(function(id,i){ st.slots[i]=id; });
+        st.ltv=t.ltv; st.tested=false;
+        document.getElementById('sLtv').value=String(Math.round(t.ltv*100));
+        document.getElementById('vLtv').textContent=(t.ltv*100).toFixed(0)+'% LTV';
+        paintSlots(); paintTiles(); render();
+        document.getElementById('vTitle').textContent=t.nm;
+        document.getElementById('vWhy').textContent=t.doc+' Run the gauntlet to see where it bends.';
+        document.getElementById('vTag').textContent='Template';
+        document.getElementById('verdict').className='verdict';
+        document.getElementById('vLedger').innerHTML='';
+      });
+    });
+  }
+
+  // ---------- tray ----------
+  // Shocks travel by what a venue HOLDS, so the class is the unit of shared risk. Colour
+  // is redundant with the written label on purpose -- a learning aid, never the only
+  // channel carrying the information.
+  function paintLegend(){
+    var why={ stable:'one lending panic drains them together',
+              lst:'one staking queue shuts them all',
+              synth:'one funding flip reaches every one' };
+    document.getElementById('legend').innerHTML=Object.keys(CLASS_COLOR).map(function(k){
+      return '<div class="lg2"><span class="sw" style="background:'+CLASS_COLOR[k]+'"></span>'+
+        '<span><b style="color:'+CLASS_COLOR[k]+'">'+CLASS_NM[k]+'</b>'+
+        '<span class="warm">'+why[k]+'</span></span></div>';
+    }).join('');
+  }
+
+  function paintTiles(){
+    var used=st.slots.filter(Boolean);
+    document.getElementById('tiles').innerHTML=TILES.map(function(t){
+      var isUsed=used.indexOf(t.id)>=0;
+      var col=CLASS_COLOR[t.cls];
+      return '<div class="tile'+(isUsed?' used':'')+'" data-tile="'+t.id+'" '+
+        'style="border-left:3px solid '+col+'" '+
+        (isUsed?'':'tabindex="0" role="button" aria-label="Place '+t.nm+'"')+'>'+
+        '<span class="tn">'+t.nm+' <em style="font-style:normal;color:'+col+';font-size:9px;'+
+          'letter-spacing:0.14em;text-transform:uppercase">'+CLASS_NM[t.cls]+'</em></span>'+
+        '<span class="tstat"><span class="apr">'+(t.apr*100).toFixed(1)+'%</span>'+
+        '<span class="liq">recall '+pct(t.liq)+'</span></span>'+
+        (t.note?'<span class="warn" style="color:var(--faint)">'+t.note+'</span>':'')+
+        '</div>';
+    }).join('');
+    bindTiles();
+  }
+
+  // ---------- dragging (pointer events: one path for mouse and touch) ----------
+  var ghost=document.getElementById('ghost'), dragId=null, dragEl=null;
+
+  function slotUnder(x,y){
+    var found=null;
+    Array.prototype.forEach.call(mach.querySelectorAll('[data-slot]'),function(el){
+      var r=el.getBoundingClientRect();
+      if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom) found=el;
+    });
+    return found;
+  }
+  function clearOver(){
+    Array.prototype.forEach.call(mach.querySelectorAll('[data-slot]'),function(el){ el.classList.remove('over'); });
+  }
+  function drop(x,y){
+    var target=slotUnder(x,y);
+    if(target && dragId){
+      var i=+target.getAttribute('data-slot');
+      // same venue twice adds nothing: the second placement replaces the first
+      var prev=st.slots.indexOf(dragId);
+      if(prev>=0 && prev!==i) st.slots[prev]=null;
+      st.slots[i]=dragId;
+      st.tested=false;
+    }
+    clearOver();
+  }
+
+  function bindTiles(){
+    Array.prototype.forEach.call(document.querySelectorAll('[data-tile]'),function(el){
+      if(el.classList.contains('used')) return;
+
+      el.addEventListener('pointerdown',function(e){
+        if(e.button!==undefined && e.button!==0) return;
+        dragId=el.getAttribute('data-tile'); dragEl=el;
+        el.classList.add('drag');
+        ghost.textContent=byId(dragId).nm;
+        ghost.style.display='block';
+        ghost.style.left=(e.clientX+12)+'px'; ghost.style.top=(e.clientY+12)+'px';
+        el.setPointerCapture&&el.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+
+      el.addEventListener('pointermove',function(e){
+        if(!dragId) return;
+        ghost.style.left=(e.clientX+12)+'px'; ghost.style.top=(e.clientY+12)+'px';
+        clearOver();
+        var t=slotUnder(e.clientX,e.clientY);
+        if(t) t.classList.add('over');
+      });
+
+      function end(e){
+        if(!dragId) return;
+        drop(e.clientX,e.clientY);
+        ghost.style.display='none';
+        if(dragEl) dragEl.classList.remove('drag');
+        dragId=null; dragEl=null;
+        paintSlots(); paintTiles(); render();
+      }
+      el.addEventListener('pointerup',end);
+      el.addEventListener('pointercancel',function(){
+        ghost.style.display='none';
+        if(dragEl) dragEl.classList.remove('drag');
+        clearOver(); dragId=null; dragEl=null;
+      });
+
+      // Keyboard: dragging is not the only way in.
+      el.addEventListener('keydown',function(e){
+        if(e.key!=='Enter'&&e.key!==' ') return;
+        e.preventDefault();
+        var free=st.slots.indexOf(null);
+        if(free<0) return;
+        st.slots[free]=el.getAttribute('data-tile');
+        st.tested=false; paintSlots(); paintTiles(); render();
+      });
+    });
+  }
+
+  // ---------- belts ----------
+  var parts=[], acc={};
+  function emit(i,color,rate,dt){
+    if(rate<=0) return;
+    acc[i]=(acc[i]||0)+rate*dt;
+    while(acc[i]>=1){ acc[i]-=1; parts.push({i:i,t:Math.random()*0.08,c:color,sp:0.34+Math.random()*0.2}); }
+  }
+
+  function draw(dt){
+    if(!W||!H||!cv.width) return;       // no canvas to draw onto yet
+    ctx.clearRect(0,0,W,H);
+    var c=calc();
+    BELTS.forEach(function(b,i){
+      var live=beltLive(b,c);
+      var p=path(b);
+      ctx.beginPath(); ctx.moveTo(p.a.x,p.a.y);
+      ctx.quadraticCurveTo(p.c.x,p.c.y,p.b.x,p.b.y);
+      ctx.strokeStyle= live? 'rgba(236,230,216,0.16)' : 'rgba(236,230,216,0.07)';
+      ctx.lineWidth=1; ctx.setLineDash([3,5]); ctx.stroke(); ctx.setLineDash([]);
+      if(live) emit(i,COL[b.c],2.4,dt);
+    });
+    var keep=[];
+    for(var k=0;k<parts.length;k++){
+      var q=parts[k]; q.t+=q.sp*dt;
+      if(q.t>=1) continue;
+      keep.push(q);
+      var pt=at(path(BELTS[q.i]),q.t);
+      ctx.beginPath(); ctx.arc(pt.x,pt.y,2.5,0,Math.PI*2);
+      ctx.fillStyle=q.c; ctx.globalAlpha=.9; ctx.fill(); ctx.globalAlpha=1;
+    }
+    parts=keep.length>420?keep.slice(keep.length-420):keep;
+  }
+
+  function beltLive(b,c){
+    if(c.debt<=0) return false;
+    if(b.a==='btc') return true;
+    var si={s0:0,s1:1,s2:2};
+    if(b.a==='cdp' && si[b.b]!==undefined) return !!st.slots[si[b.b]];
+    if(si[b.a]!==undefined && b.b==='router') return !!st.slots[si[b.a]];
+    if(b.a==='router') return st.intent==='repay' && c.p.length>0;   // only Repay closes the loop
+    return false;
+  }
+
+  // ---------- render ----------
+  function render(){
+    var c=calc();
+    var mB=document.getElementById('mBtc'); if(mB) mB.textContent=st.btc.toFixed(2)+' BTC';
+    var mBV=document.getElementById('mBtcV'); if(mBV) mBV.textContent=usd(c.coll);
+    var mD=document.getElementById('mDebt'); if(mD) mD.textContent=usd(c.debt)+' CDT out';
+
+    var g=document.getElementById('gNet');
+    g.textContent=(c.net>=0?'+':'')+usd(c.net);
+    g.className='gv '+(c.p.length===0?'':(c.net>=0?'pos':'neg'));
+    document.getElementById('gNetN').textContent=
+      c.p.length? 'venues pay '+(c.apr*100).toFixed(1)+'% on '+usd(c.debt)+
+                  ', the loan costs '+(BORROW*100).toFixed(0)+'%'
+                : 'no venues placed';
+
+    document.getElementById('gLtv').textContent=(c.ltv*100).toFixed(0)+'%';
+    var ln=liqLine();
+    document.getElementById('gTickB').style.left=(MAX_BORROW*100)+'%';
+    document.getElementById('gTickL').style.left=(ln*100)+'%';
+    var bd=document.getElementById('gBand');
+    bd.style.left=(MAX_BORROW*100)+'%';
+    bd.style.width=Math.max(0,(ln-MAX_BORROW)*100)+'%';
+    document.getElementById('gLine').textContent =
+      'borrow cap '+(MAX_BORROW*100).toFixed(0)+'% \u00b7 liquidated past '+(ln*100).toFixed(0)+'%'+
+      (ln<MAX_LTV?' (CUT)':'')+' \u00b7 a breach repays you back to '+(MAX_BORROW*100).toFixed(0)+'%';
+    document.getElementById('gLine').style.color = ln<MAX_LTV ? 'var(--blood)' : '';
+    var lb=document.getElementById('gLtvBar');
+    lb.style.width=Math.min(100,c.ltv*100)+'%';
+    lb.style.background=c.ltv>=liqLine()?'var(--blood)':(c.ltv>0.6?'var(--gold)':'var(--phos)');
+
+    // This gauge used to read "Defense 91%" -- the average share of deployed capital
+    // recallable in calm conditions. That number is worse than useless: 91% parses as
+    // odds of survival, when it is neither odds nor about survival. It is denominated
+    // here in the only thing the user came to protect. LTV decides WHEN the line
+    // breaks; the venue mix decides WHAT IT COSTS when it does. Two gauges, two
+    // lessons, instead of two flavours of reassurance.
+    // Under partial liquidation the honest statement is a RATE, not a total: for every
+    // dollar you go past the line, this many cents come out of the stack because the
+    // venues could not cover them. It cannot be misread as odds of survival.
+    // "cents per dollar past the line" was accurate and unreadable. This answers the
+    // question actually being asked -- what does a bad day cost me -- against one fixed,
+    // named shock, so two boards can be compared at a glance.
+    var bp=breakPoint();
+    document.getElementById('gDef').textContent = !c.p.length ? '\u2014'
+      : bp==null ? 'past \u221290%' : '\u2212'+(bp*100).toFixed(0)+'%';
+    var atRisk = bp==null? 0 : Math.max(0.02, 1-bp);
+    var brkDrop=c.ltv>0? Math.max(0,1-c.ltv/liqLine()) : 1;
+    var db=document.getElementById('gDefBar');
+    db.style.width=(atRisk*100)+'%';
+    db.style.background=atRisk<=0?'var(--phos)':(atRisk<0.45?'var(--gold)':'var(--blood)');
+    document.getElementById('gDefN').textContent= c.p.length
+      ? (bp==null
+          ? 'no fall short of 90% costs you bitcoin \u2014 recall covers every breach'
+          : 'how far bitcoin must fall before your venues stop covering you')
+      : 'nothing placed yet';
+
+    document.getElementById('bTest').disabled = c.p.length===0;
+    if(!st.tested) document.getElementById('verdict').style.display='none';
+  }
+
+  function idleVerdict(c){
+    var v=document.getElementById('verdict');
+    v.className='verdict';
+    document.getElementById('vTag').textContent='Not tested';
+    document.getElementById('vLedger').innerHTML='';
+    if(c.p.length===0){
+      document.getElementById('vTitle').textContent='Nothing built yet.';
+      document.getElementById('vWhy').textContent='Drop at least one venue on a slot, then run the gauntlet.';
+      return;
+    }
+    document.getElementById('vTitle').textContent='Board is running.';
+    document.getElementById('vWhy').textContent=
+      'Throughput is '+(c.net>=0?'+':'')+usd(c.net)+' a year at '+(c.ltv*100).toFixed(0)+
+      '% LTV. That number tells you nothing about whether it survives \u2014 run the gauntlet.';
+  }
+
+  // ---------------------------------------------------------------------------
+  // The gauntlet. Fifteen floors: real episodes first, then the mechanisms that only
+  // exist because the contracts do -- rate compounding, a voted line cut, the cure timer,
+  // the punitive ban, a stale cache, the oracle freeze, and the forced divest.
+  //
+  // Progression is floors survived and bitcoin retained -- never yield. Ranking on
+  // returns would put the board that dies on floor six above the one that finishes,
+  // which is the exact failure the ruleset warns about: it certifies luck and
+  // promotes the reckless fastest in a bull run.
+  //
+  // `lock` puts cooldown-bearing venues at zero recall; `brick` blackens N venue
+  // views outright (they read as zero, the conservative-degrade direction).
+  // ---------------------------------------------------------------------------
+  // Each floor declares HOW it reaches you:
+  //   coll   - collateral price shock (moves LTV)
+  //   hair   - value lost on deployed capital, by asset class (real loss, survive or not)
+  //   freeze - classes that cannot be recalled in time (solvent, just stuck)
+  //   fail   - venues that stop existing (counterparty), worst-first
+  var BASE_SCENARIOS=[
+    {n:'Calm drift', era:'baseline', days:90, coll:0.06, hair:{}, freeze:[], fail:0,
+     mech:'Nothing breaks. Bitcoin drifts, the venues pay, and the position simply accrues. This floor exists so you can see the machine running before anything is done to it.'},
+
+    {n:'Black Thursday', era:'Mar 2020', days:1, coll:0.50, hair:{}, freeze:[], fail:0,
+     mech:'A pure collateral shock. Bitcoin halves inside a day and your LTV nearly doubles. Nothing is frozen here and no venue fails \u2014 but not frozen is not the same as returns everything. Each venue still hands back only its own share, so this floor is decided by two things at once: how much you drew, and how much of what you deployed can actually come back on the day. A board of shallow venues loses bitcoin here even though every one of them is working perfectly.'},
+
+    {n:'FTX', era:'Nov 2022', days:5, coll:0.25, hair:{}, freeze:[], fail:1,
+     mech:'Collateral falls 25%, and separately one venue simply stops existing \u2014 a counterparty failure, not a price move. The engine loses that slot entirely and recalls from what remains. It takes your largest position first, because that is how these actually land.'},
+
+    {n:'May capitulation', era:'May 2021', days:21, coll:0.53, hair:{}, freeze:[], fail:0,
+     mech:'A slow bleed rather than a wick \u2014 53% over three weeks, with no single candle to survive. Nothing freezes, so every venue returns its ordinary share and nothing more; on a shallow board that is still most of the damage. What this floor asks is whether you were sized for the destination rather than for the path.'},
+
+    {n:'Rate spiral', era:'2022-23 regime', days:365, coll:0.12, rate:0.22, hair:{}, freeze:[], fail:0,
+     mech:'Nothing breaks and nothing depegs. The adaptive borrow rate climbs to 22% and stays there for a year, and the excess over baseline compounds into the debt instead of being paid out of carry. Bitcoin only slips 12%. Your LTV rises anyway \u2014 because the numerator grew, not because the denominator fell. This is the floor that kills a position whose owner never saw a bad price. The only defences are a venue spread wider than the borrow rate, or less debt to compound.'},
+
+    {n:'stETH depeg', era:'Jun 2022', days:14, coll:0.42, hair:{lst:0.02}, freeze:['lst'], fail:0,
+     mech:'The depeg did not arrive alone. Celsius and 3AC went down in the same fortnight and bitcoin fell 42% with them, so the collateral move and the freeze land together \u2014 which is the only reason this floor is dangerous. Liquid-staking venues trade slightly under peg and, far more importantly, stop redeeming while the exit queue clears. The peg itself recovered, so holding through it costs almost nothing; being asked for capital while the queue is shut is what costs you. Stablecoin and synthetic venues are not frozen \u2014 though they still return only their usual share, which is the part people forget.'},
+
+    {n:'The line moves', era:'governance', days:30, coll:0.10, ltvCut:0.12, hair:{}, freeze:[], fail:0,
+     mech:'No shock at all. The Disco-averaged max LTV for bitcoin is voted down and your liquidation line drops from 73% to 61% \u2014 the bar moves under a position that did not. Every sizing decision you made was measured against the old line. Headroom you never spent is the only thing that survives this, and it is the cheapest insurance available on this board.'},
+
+    {n:'USDC depeg', era:'Mar 2023', days:4, coll:0.00, hair:{stable:0.01}, freeze:['stable'], fail:0,
+     mech:'The mirror image of the last floor. Bitcoin is flat, but stablecoin venues stop paying out: the panic drains the lending reserves, utilisation pins at 100%, and there is simply no unborrowed USDC left to withdraw. It recovered, so simply waiting costs you a rounding error \u2014 the trap is being liquidated during the window and eating the discount for real. LST and synthetic venues are not frozen, which is not the same as being able to hand back everything they hold.'},
+
+    {n:'Cure or die', era:'mechanism', days:3, coll:0.50, timer:1, hair:{}, freeze:['synth'], fail:0,
+     mech:'You breach, but not far enough past the line for an instant liquidation \u2014 the engine starts a timer and gives you one window to cure it. Only capital that can actually arrive inside that window counts: instant lending positions land in full, staking wrappers land slowly, anything in cooldown does not land at all. This is the only floor that grades venue SPEED rather than venue depth. Cure it and the position is saved outright with nothing sold; miss and you are liquidated from further underwater than you started.'},
+
+    {n:'Funding flip', era:'adversarial', days:7, coll:0.15, hair:{}, bleed:{synth:0.10}, freeze:['synth'], fail:0,
+     mech:'Perpetual funding goes deeply negative. Synthetic-dollar venues bleed 10% of principal \u2014 this one is a real loss, not a dislocation that mean-reverts \u2014 and enter cooldown at the same moment, so the capital is both worth less and unreachable. Bitcoin only slips 15% \u2014 the damage is in the venue, not the collateral.'},
+
+    {n:'Blacklisted', era:'mechanism', days:12, coll:0.46, hair:{}, freeze:['stable'], fail:0,
+     mech:'A venue that fails to deliver on a recall does not simply disappoint. The engine marks it failed and bans it from every subsequent liquidation until the ban expires \u2014 and the ban outlives the venue\u2019s own recovery, because it is punitive rather than diagnostic. So a venue that goes quiet here is still absent on the next floor even after it is healthy again. Redundancy answers this. Re-tuning does not, because the ban follows the venue, not the slot.'},
+
+    {n:'Bad data', era:'mechanism', days:20, coll:0.47, stale:0.45, hair:{}, freeze:[], fail:0,
+     mech:'Every venue is healthy and every number you are looking at is wrong. The live NAV read reverts, so the vault quietly serves its last cached value instead of failing loudly \u2014 the receipt below shows what was REPORTED beside what actually arrived. You sized against the reported figure, and the gap is the whole floor. A number with no timestamp is a rumour. This is the one floor you cannot beat by being clever, only by leaving room for the reading itself to be wrong.'},
+
+    {n:'Doors locked', era:'mechanism', days:9, coll:0.48, closed:1, rate:0.09, hair:{}, freeze:[], fail:0,
+     mech:'The oracle trips its circuit breaker, so isPriceSafe() returns false and liquidate() reverts outright. You breach the line and nothing happens \u2014 the protocol cannot sell you. It also cannot let you deposit, withdraw or borrow, so you cannot cure it either, and interest keeps compounding the whole time the doors are shut. This floor never takes a single satoshi. It hands you to the next one already underwater, which is the entire point: being un-liquidatable is not the same as being safe.'},
+
+    {n:'Forced exit', era:'mechanism', days:26, coll:0.44, divest:1, hair:{}, freeze:[], fail:0,
+     mech:'Any venue that has been unresponsive since an earlier floor has now been unresponsive long enough to trip the divest window, and that trigger is permissionless \u2014 anyone at all can pull it. Whatever is left in that venue is force-crystallised at whatever it happens to be worth. Capital that was merely stuck becomes capital that is realised at a loss. Bitcoin also falls 44% while this happens, so the floor is never free \u2014 but the crystallisation part of it only bills you if you were already carrying a venue that had gone quiet.'},
+
+    {n:'Everything', era:'adversarial', days:2, coll:0.60, hair:{lst:0.05,stable:0.02}, bleed:{synth:0.08}, freeze:['lst','synth','stable'], fail:1,
+     mech:'All four channels at once: a 60% collateral crash, haircuts across every asset class, every class frozen, and one venue gone. Nothing is recallable in time. This floor cannot be beaten by picking venues \u2014 only by never having borrowed enough to need them.'}
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Daily seed. One scenario-set per UTC day, derived from the date, so every
+  // player faces the same floors -- Wordle's fairness model. The seed decides
+  // WHICH parameters get drawn for each floor (the levers jitter inside sane
+  // bounds); every formula downstream is untouched. Any other seed is the same
+  // machine in practice mode: replayable, shareable, unranked.
+  // ---------------------------------------------------------------------------
+  function mulberry32(a){
+    a=a>>>0;
+    return function(){
+      a=(a+0x6D2B79F5)>>>0;
+      var t=a;
+      t=Math.imul(t^(t>>>15), t|1);
+      t^=t+Math.imul(t^(t>>>7), t|61);
+      return ((t^(t>>>14))>>>0)/4294967296;
+    };
+  }
+  function fnv(s){
+    var h=2166136261>>>0;
+    for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; }
+    return h>>>0;
+  }
+  function hex4(n){ return ('0000'+(n&0xffff).toString(16).toUpperCase()).slice(-4); }
+  function utcDayStr(d){
+    function p2(x){ return (x<10?'0':'')+x; }
+    return d.getUTCFullYear()+'-'+p2(d.getUTCMonth()+1)+'-'+p2(d.getUTCDate());
+  }
+  function fmtUTC(d){
+    var DY=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return DY[d.getUTCDay()]+' '+MO[d.getUTCMonth()]+' '+d.getUTCDate();
+  }
+  // The seed id IS the seed: 16 bits, shown as 4 hex chars. Entering the id from
+  // someone else's chip reproduces their exact floors.
+  function dailySeedId(){
+    var h=fnv('membrane-gauntlet-'+utcDayStr(new Date()));
+    return hex4((h>>>16)^h);
+  }
+  // Any text becomes a seed id: 1-4 hex chars pass through, anything else hashes.
+  function seedIdFrom(s){
+    s=String(s==null?'':s).trim();
+    if(!s) return null;
+    var m=s.match(/^#?([0-9a-fA-F]{1,4})$/);
+    if(m) return hex4(parseInt(m[1],16));
+    return hex4((function(h){ return (h>>>16)^h; })(fnv(s.toLowerCase())));
+  }
+  // Jitter one lever. Zero stays zero (a floor that does not use a channel never
+  // gains one), and the clamp keeps every draw inside the range the floor's own
+  // mechanism text describes.
+  function jit(rnd,v,frac,lo,hi){
+    if(!v) return v;
+    var x=v*(1+(rnd()*2-1)*frac);
+    return Math.round(Math.min(hi,Math.max(lo,x))*1000)/1000;
+  }
+  function buildScenarios(id){
+    var rnd=mulberry32(parseInt(id,16)^0x9E3779B9);
+    return BASE_SCENARIOS.map(function(b){
+      var sc={}, k;
+      for(k in b) sc[k]=b[k];
+      sc.hair={}; for(k in (b.hair||{})) sc.hair[k]=jit(rnd,b.hair[k],0.4,0.005,0.12);
+      if(b.bleed){ sc.bleed={}; for(k in b.bleed) sc.bleed[k]=jit(rnd,b.bleed[k],0.3,0.03,0.15); }
+      sc.freeze=(b.freeze||[]).slice();
+      sc.coll=jit(rnd,b.coll,0.2,0.02,0.65);
+      if(b.rate) sc.rate=jit(rnd,b.rate,0.25,0.05,0.35);
+      if(b.ltvCut) sc.ltvCut=jit(rnd,b.ltvCut,0.3,0.06,0.2);
+      if(b.stale) sc.stale=jit(rnd,b.stale,0.3,0.15,0.6);
+      if(b.days>3) sc.days=Math.max(2,Math.round(b.days*(1+(rnd()*2-1)*0.25)));
+      return sc;
+    });
+  }
+  var SEED=(function(){
+    var daily=dailySeedId();
+    return { id:daily, isDaily:true, dateStr:utcDayStr(new Date()) };
+  })();
+  var SCENARIOS=buildScenarios(SEED.id);
+  window.__seed={ id:SEED.id, isDaily:SEED.isDaily, dateStr:SEED.dateStr };
+
+  var DIVEST_LOSS=0.18;   // what a force-crystallised venue gives back short
+  var practice=-1;   // index when drilling a single floor, else -1
+  var run={ active:false, floor:0, btc:1, banked:0, lost:0, dead:false, phase:'idle', t:0, target:0, shown:0,
+            ltvCut:0, debtX:1, banned:{}, sick:{}, closed:false, marks:[] };
+  var HISTORY=[];   // completed runs, this session
+  // Highest floor ever entered. Reaching a floor unlocks it for solo practice \u2014
+  // you can still only reach floor 5 by getting through 1-4 in order, but a death
+  // on 4 does not lock you out of drilling what you just failed.
+  var maxReached=0;
+
+  // Recall available under a given scenario: locks zero the cooldown venues, bricks
+  // blacken whole slots. Fewer, deeper venues degrade far more gracefully.
+  // Why a slot returns nothing. These mirror the real reads: _venueLiquid() is
+  // gas-capped and try/caught, and an unreadable or gated venue resolves to ZERO
+  // rather than to an optimistic guess.
+  // Each of these is a different route to the same zero. The peg or the headline is
+  // only the trigger; the mechanism is always somebody else getting to the exit first.
+  var FREEZE_WHY={
+    lst:   'the unstaking queue is shut \u2014 your money is fine, it just cannot come out until the queue clears',
+    synth: 'in its cooldown \u2014 this venue pays the most precisely because it makes you wait to leave',
+    stable:'the lending pool is empty \u2014 everyone withdrew at once and there is nothing left to hand you'
+  };
+  // Plain English first. The contract detail lives in "Where these numbers come from" for
+  // anyone who wants it -- it does not belong in the line that explains why you lost.
+  var LIQ_WHY={
+    aave:  'you can only take out what other people have not already borrowed',
+    fluid: 'you can only take out what other people have not already borrowed',
+    yearn: 'most of the money is out working in strategies and has to be unwound first',
+    susde: 'only the part not sitting in a cooldown can leave today',
+    ptoken:'it cannot be redeemed until it matures, so the only way out is selling it to someone',
+    wsteth:'staked ETH has to be unwrapped and queued before it is cash again',
+    reth:  'staked ETH has to be unwrapped and queued before it is cash again',
+    usd3:  'you can only take out what has not already been lent on to someone else'
+  };
+
+  // Full per-venue accounting for one floor. Returns the receipt, not a verdict.
+  function auditFloor(sc){
+    var c=calc(), p=placed(), n=p.length||1, share=c.debt/n;
+    var rows=p.map(function(t){
+      // `hair` is a dislocation: it only becomes a real loss if you are forced to exit
+      // into it. `bleed` is principal that is actually gone either way.
+      var hair=(sc.hair&&sc.hair[t.cls])||0;
+      var bleed=(sc.bleed&&sc.bleed[t.cls])||0;
+      var frozen=sc.freeze.indexOf(t.cls)>=0;
+      // A ban is punitive and outlives the venue's own recovery, so it is checked
+      // separately from whether the venue is healthy right now.
+      var ban=!!(run.active && run.banned[t.id]>0);
+      // A venue that has been quiet since an earlier floor gets force-crystallised.
+      var divest=!!(sc.divest && run.active && run.sick[t.id]);
+      var crys=divest?DIVEST_LOSS:0;
+      var value=share*Math.max(0,1-hair-bleed-crys);
+      var live=!frozen && !ban;
+      return { t:t, share:share, hair:hair, bleed:bleed+crys, value:value, frozen:frozen,
+               ban:ban, divest:divest,
+               liq:live?t.liq:0, ret:live?value*t.liq:0, failed:false };
+    });
+    // A counterparty failure takes the slot that would have returned the most.
+    for(var i=0;i<sc.fail && i<rows.length;i++){
+      var best=-1,bv=-1;
+      rows.forEach(function(r,ix){ if(!r.failed && r.ret>bv){ bv=r.ret; best=ix; } });
+      if(best>=0){ rows[best].failed=true; rows[best].ret=0; rows[best].liq=0; }
+    }
+    rows.forEach(function(r){
+      r.why = r.failed ? 'the venue itself is gone \u2014 nothing comes back from it, ever'
+            : r.ban ? 'benched \u2014 it failed to deliver on an earlier floor, so it is skipped now even though it recovered'
+            : r.frozen ? FREEZE_WHY[r.t.cls]
+            : r.divest ? 'force-closed \u2014 it stayed unreachable long enough that anyone could pull the plug, and this is what was left'
+            : (LIQ_WHY[r.t.id]||'only part of what it holds can be handed back on demand');
+    });
+    // What the vault REPORTS can exceed what arrives: a reverting live read degrades to
+    // the last cached total rather than failing loudly. The receipt shows both.
+    var over=sc.stale||0;
+    rows.forEach(function(r){ r.shown=r.ret*(1+over); });
+    return { rows:rows, stale:over,
+             // Only capital that can physically arrive inside a grace window can cure a
+             // timer. This is the one number that grades venue speed rather than depth.
+             fast:rows.reduce(function(a,r){ return a+r.ret*(r.t.spd===undefined?1:r.t.spd); },0),
+             shown:rows.reduce(function(a,r){ return a+r.shown; },0),
+             recalled:rows.reduce(function(a,r){ return a+r.ret; },0),
+             haircut:rows.reduce(function(a,r){ return a+r.share*r.hair; },0),
+             bleed:rows.reduce(function(a,r){ return a+r.share*r.bleed; },0),
+             debt:c.debt };
+  }
+
+  function renderAudit(a,sc,needed,soldBtc){
+    soldBtc=soldBtc||0;
+    var el=document.getElementById('audit'); el.style.display='block';
+    var html='<div class="arow hd"><span>Venue</span><span class="num">Held</span>'+
+             '<span class="num hair">Haircut</span><span class="num liqc">Liquid</span>'+
+             '<span class="num">Returned</span><span class="why">Why</span></div>';
+    html+=a.rows.map(function(r){
+      return '<div class="arow'+(r.ret<=0?' zero':'')+'">'+
+        '<span style="box-shadow:inset 3px 0 0 '+CLASS_COLOR[r.t.cls]+';padding-left:9px">'+r.t.nm+
+          '<span class="vcls" style="color:'+CLASS_COLOR[r.t.cls]+'">'+CLASS_NM[r.t.cls]+'</span></span>'+
+        '<span class="num">'+usd(r.share)+'</span>'+
+        '<span class="num hair">'+((r.hair||r.bleed)
+          ? '\u2212'+((r.hair+r.bleed)*100).toFixed(0)+'%'+(r.bleed?'*':'')
+          : '\u2014')+'</span>'+
+        '<span class="num liqc">'+(r.liq*100).toFixed(0)+'%</span>'+
+        '<span class="num ret">'+(a.stale
+          ? '<span style="color:var(--gold)">'+usd(r.shown)+'</span> \u2192 '+usd(r.ret)
+          : usd(r.ret))+'</span>'+
+        '<span class="why">'+r.why+'</span></div>';
+    }).join('');
+    var gap=Math.max(0,needed-a.recalled);
+    html+='<div class="arow tot"><span>Total recallable</span><span class="num"></span>'+
+      '<span class="num hair"></span><span class="num liqc"></span>'+
+      '<span class="num" style="color:var(--ink)">'+usd(a.recalled)+'</span>'+
+      '<span class="why">'+(needed<=0
+        ? 'you stayed under the line, so none of this was called for. It is what would have been there.'
+        : 'available across your venues in total')+'</span></div>';
+    // The settlement is a three-term sum, not a sixth table column. Forcing it into the
+    // venue grid put the single most important number under headings that meant something
+    // else entirely.
+    if(needed>0){
+      var applied=Math.min(a.recalled,needed);
+      html+='<div class="settle">'+
+        '<div class="cell"><span class="k">Debt liquidated</span><span class="v">'+usd(needed)+'</span>'+
+          '<span class="n">to get back to the '+(MAX_BORROW*100).toFixed(0)+'% cap</span></div>'+
+        '<span class="op">\u2212</span>'+
+        '<div class="cell"><span class="k">Recalled from venues</span><span class="v">'+usd(applied)+'</span>'+
+          '<span class="n">'+(a.recalled>needed? 'of '+usd(a.recalled)+' available' : 'everything they could send')+'</span></div>'+
+        '<span class="op">=</span>'+
+        '<div class="cell '+(gap>0?'bad':'good')+'"><span class="k">Sold as bitcoin</span>'+
+          '<span class="v">'+(gap>0? usd(gap) : '$0')+'</span>'+
+          '<span class="n">'+(gap>0? soldBtc.toFixed(3)+' BTC out of your stack' : 'your stack was not touched')+'</span></div>'+
+        '</div>';
+    }
+    el.innerHTML=html;
+
+    var ht=document.getElementById('howto'); ht.style.display='block';
+    document.getElementById('howtoBody').innerHTML=
+      '<p>Every figure above comes from the same read the liquidation engine uses. It walks the position\u2019s '+
+      'registered venues and asks each one what it can actually deliver right now \u2014 not what it holds on paper.</p>'+
+      '<div class="fn"><b>retrievableCdt(user)</b>= min( convertToAssets(your shares) , pool-wide liquid )</div>'+
+      '<div class="fn"><b>pool-wide liquid</b>= idleLedger + cdtBufferLedger + _venueLiquidSafe()</div>'+
+      '<div class="fn"><b>_venueLiquidSafe()</b> is gas-capped and try/caught. If the venue\u2019s own view reverts or '+
+      'runs out of gas it returns <code>0</code> \u2014 an unreadable venue counts as illiquid, never as full.</div>'+
+      '<div class="fn"><b>per venue</b>: Aave <code>min(aToken.balanceOf(this), underlying.balanceOf(aToken))</code> \u2014 the second term is the <em>unborrowed</em> reserve, which is what a bank run empties &middot; '+
+      'Yearn <code>min(position, yVault idle)</code> &middot; sUSDe <code>0</code> while cooling &middot; '+
+      'ERC-4626 <code>min(maxWithdraw, previewRedeem)</code></div>'+
+      '<div class="fn"><b>the recall itself</b> measures balance-delta on the engine, so a venue that claims to have '+
+      'sent funds but did not is recorded as having sent nothing.</div>'+
+      '<p style="color:var(--faint)">A haircut marked <code>*</code> is a real bleed \u2014 principal that is gone. An unmarked one is a dislocation: it only costs you if the collateral move forces a recall while the peg is off, otherwise it recovers and you paid nothing. Haircuts are the other half: a depeg reduces what your shares are <em>worth</em> '+
+      'before liquidity is even asked about. That loss is real whether or not you are liquidated.</p>';
+  }
+
+  function paintFloors(){
+    document.getElementById('floors').innerHTML=SCENARIOS.map(function(sc,i){
+      // The strip is the report: green held, gold held-at-a-cost, red would
+      // have killed. Marks outlive the run so the sweep stays readable.
+      var mk=(run.marks||[])[i];
+      var cls = mk==='dead' ? 'fl dead'
+              : mk==='hurt' ? 'fl hurt'
+              : mk==='clean' ? 'fl done'
+              : practice===i ? 'fl now'
+              : (run.active && i===run.floor ? 'fl now' : 'fl');
+      var open = i<=maxReached && !run.active;
+      return '<button class="'+cls+(open?' open':'')+'" type="button" data-fl="'+i+'" '+
+        (open?'':'disabled ')+'title="'+(open? sc.n+' \u2014 drill this floor' : 'locked \u2014 reach it in a run first')+
+        '">'+(i+1)+'</button>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-fl]'),function(b){
+      b.addEventListener('click',function(){ drillFloor(+b.getAttribute('data-fl')); });
+    });
+    document.getElementById('rFloor').textContent = run.active ? (run.floor+1)+' / '+SCENARIOS.length
+      : (run.marks && run.marks.length>=SCENARIOS.length ? 'swept '+SCENARIOS.length
+      : (practice>=0 ? 'drill '+(practice+1) : '\u2014'));
+    var netMade=run.banked-run.lost;
+    var rb=document.getElementById('rBank');
+    rb.textContent=(netMade>=0?'+':'')+usd(netMade);
+    rb.className='v '+(netMade>=0?'banked':'neg');
+    document.getElementById('rKept').textContent = run.btc.toFixed(3)+' BTC';
+  }
+
+  // Drill one unlocked floor against the current board. Nothing is banked and it
+  // never reaches the leaderboard -- this is the practice range, not a run.
+  function drillFloor(i){
+    if(i>maxReached || run.active) return;
+    practice=i; pending=null; toFloor();
+    var cfx1=document.getElementById('cfx'); if(cfx1) cfx1.style.display='none';
+    document.getElementById('fcast').style.display='none';
+    document.getElementById('fcRes').style.display='none';
+    var sc=SCENARIOS[i], c=calc();
+    if(!c.p.length) return;
+
+    document.getElementById('scNm').textContent='Floor '+(i+1)+': '+sc.n;
+    document.getElementById('scEra').textContent=sc.era+' \u00b7 drill';
+    var hits=placed().filter(function(t){ return (sc.hair[t.cls]||0)>0 || sc.freeze.indexOf(t.cls)>=0; });
+    document.getElementById('scMech').style.display='block';
+    document.getElementById('scMechBody').textContent=sc.mech;
+    var dLtv=sc.coll<1 ? c.ltv/(1-sc.coll) : 9;
+    document.getElementById('scYours').textContent =
+      (hits.length ? 'This floor freezes '+hits.map(function(t){return t.nm;}).join(' and ')+'. '
+                   : 'Nothing on your board is frozen by this floor. ')+
+      'Either way your venues hand back about '+(c.liq*100).toFixed(0)+
+      '% of what is deployed, and a '+(sc.coll*100).toFixed(0)+'% move takes you to '+
+      (dLtv*100).toFixed(0)+'% LTV against a '+(liqLine()*100).toFixed(0)+'% line.';
+
+    var a=auditFloor(sc);
+    var px=BTC_PX*(1-sc.coll), collAfter=st.btc*px;
+    var ltvAfter=collAfter>0? c.debt/collAfter : 99;
+    var breached=ltvAfter>liqLine();
+    var needed=breached ? repayNeeded(c.debt, collAfter, ltvAfter) : 0;
+    var recalled=Math.min(a.recalled, needed);
+    var sold=breached? Math.min(st.btc, Math.max(0,needed-recalled)/px) : 0;
+
+    renderAudit(a, sc, needed, sold);
+    var t=document.getElementById('tick'), n=document.getElementById('tickN');
+    t.className='ticker'+(sold>0?' hurt':'');
+    t.textContent= sold>0 ? '\u2212'+sold.toFixed(3)+' BTC'
+                 : (a.haircut>0 ? '\u2212'+usd(a.haircut)+' to haircuts' : 'clean');
+    n.textContent='drill only \u2014 '+(ltvAfter*100).toFixed(0)+'% LTV after the move. '+
+      (breached? usd(needed)+' would have to be retired to get back to the '+(MAX_BORROW*100).toFixed(0)+
+        '% borrow cap, and '+usd(a.recalled)+' is recallable.'
+              : 'Under the line, so nothing is recalled. '+usd(a.recalled)+' was available.')+
+      ' Nothing banked, nothing scored.';
+    document.getElementById('pxb').style.width='100%';
+    document.getElementById('runHint').textContent=
+      'Drilling floor '+(i+1)+'. Re-tune and run it again as many times as you like.';
+    paintFloors();
+  }
+
+  // ---------- calibration ----------
+  // Floors survived and net made are skill measures INSIDE a fixed scenario set. The
+  // thing that transfers to a live market is knowing how sure you are, so the student
+  // posts odds before each floor and gets scored on them. Brier = mean squared error
+  // of a probability against a 0/1 outcome. Always answering 50% scores exactly 0.25,
+  // which makes the baseline honest and unbeatable by hedging.
+  // Calls have to outlive the tab, or the count never reaches 20 and the module is dead
+  // weight. localStorage rather than a cookie: a cookie is capped near 4KB, is sent on
+  // every request, and this data never needs to reach a server.
+  var CAL_KEY='membrane.calls.v1';
+  function loadCalls(){
+    try{
+      var raw=window.localStorage.getItem(CAL_KEY); if(!raw) return {calls:[],skipped:0};
+      var d=JSON.parse(raw);
+      return { calls: Array.isArray(d.calls)? d.calls.filter(function(f){
+                 return f && typeof f.p==='number' && (f.o===0||f.o===1); }) : [],
+               skipped: typeof d.skipped==='number'? d.skipped : 0 };
+    }catch(e){ return {calls:[],skipped:0}; }   // private mode, quota, or corrupt JSON
+  }
+  function saveCalls(){
+    try{ window.localStorage.setItem(CAL_KEY,
+      JSON.stringify({ calls:FORECASTS, skipped:skipped, v:1 })); }catch(e){}
+  }
+  var __stored=loadCalls();
+  var FORECASTS=__stored.calls;          // {p, o, floor, nm}
+  var pending=null;          // the odds posted for the floor now running
+  var skipped=__stored.skipped;   // floors run without a call
+  var CAL_MIN=20;            // no score shown below this -- see paintCal
+
+  function brier(){
+    if(!FORECASTS.length) return null;
+    return FORECASTS.reduce(function(a,f){ return a+(f.p-f.o)*(f.p-f.o); },0)/FORECASTS.length;
+  }
+
+  function paintCal(){
+    var n=FORECASTS.length, b=brier();
+    var v=document.getElementById('calV'), lock=document.getElementById('calLock'),
+        bar=document.getElementById('calBar');
+
+    var k=document.getElementById('calK');
+    if(n<CAL_MIN){
+      // Showing a score off five forecasts would be the exact thing this app tells
+      // users not to trust: a confident number with nothing behind it.
+      k.textContent='Calls made';
+      v.textContent=n+' / '+CAL_MIN;
+      v.style.color='var(--ink)';
+      lock.textContent = n===0
+        ? 'Call a floor before it runs and this starts answering.'
+        : (CAL_MIN-n)+' more and you find out whether you actually know'+
+          (skipped? '  \u00b7  '+skipped+' skipped' : '');
+      bar.style.width=(n/CAL_MIN*100)+'%'; bar.style.background='var(--gold)';
+    } else {
+      // 0.187 means nothing to anyone. The share of the coin-flip baseline you actually
+      // beat does, and it points the intuitive way: higher is better.
+      var skill=(0.25-b)/0.25;
+      k.textContent='Better than a coin flip';
+      v.textContent=(skill>=0?'+':'\u2212')+Math.abs(skill*100).toFixed(0)+'%';
+      v.style.color = b<0.25 ? 'var(--phos)' : b<0.30 ? 'var(--gold)' : 'var(--blood)';
+      lock.textContent = n+' resolved \u2014 '+(
+        b<0.15 ? 'well calibrated; your confidence carries information'
+        : b<0.25 ? 'beating the coin flip'
+        : b<0.30 ? 'no better than answering 50% every time'
+        : 'confident about the wrong things')+'  \u00b7  Brier '+b.toFixed(3);
+      bar.style.width=Math.min(100,b/0.5*100)+'%';
+      bar.style.background = b<0.25 ? 'var(--phos)' : 'var(--blood)';
+    }
+
+    document.getElementById('calRows').innerHTML=FORECASTS.slice(-8).reverse().map(function(f){
+      var loss=(f.p-f.o)*(f.p-f.o);
+      return '<div class="calrow"><span>'+f.nm+'</span>'+
+        '<span class="p">said '+(f.p*100).toFixed(0)+'%</span>'+
+        '<span class="o '+(loss<0.25?'hit':'miss')+'">'+(f.o?'held':'sold')+
+        ' \u00b7 '+(Math.abs(f.p-f.o)*100).toFixed(0)+' pts off</span></div>';
+    }).join('');
+  }
+
+  function askForecast(){
+    var sc=SCENARIOS[run.floor], c=calc();
+    var bp=breakPoint();
+    document.getElementById('fcQ').textContent=
+      'Before floor '+(run.floor+1)+' runs \u2014 what are the odds your board gets through '+sc.n+
+      ' without selling any bitcoin?';
+    document.getElementById('fcSub').textContent=
+      sc.days+' days of carry, then '+(sc.coll>0? 'a '+(sc.coll*100).toFixed(0)+'% collateral move'
+        : 'no collateral move at all')+'. You are at '+(c.ltv*100).toFixed(0)+'% LTV against the 73% line, '+
+      'and bitcoin has to fall '+(bp==null?'more than 90%':'about '+(bp*100).toFixed(0)+'%')+
+      ' before your venues stop covering you.';
+    document.getElementById('fcS').value=50;
+    document.getElementById('fcV').textContent='50%';
+    document.getElementById('fcast').style.display='block';
+    document.getElementById('fcRes').style.display='none';
+    document.getElementById('tickN').textContent='waiting on your call\u2026';
+  }
+
+  // While a floor runs, the totals on the rail are mid-calculation. A stale
+  // number reads as a settled one, so the readout says "working" instead.
+  function netDots(){
+    var rb=document.getElementById('rBank');
+    rb.className='v rload'; rb.textContent='\u00b7\u00b7\u00b7';
+  }
+
+  // Declining is a first-class option: a gate in front of the simulation would buy a few
+  // forced forecasts and cost far more in people who never reach the floor at all.
+  function skipForecast(){
+    pending=null; skipped++; saveCalls();
+    document.getElementById('fcast').style.display='none';
+    var sc=SCENARIOS[run.floor];
+    document.getElementById('tickN').textContent='accruing over '+sc.days+' days\u2026';
+    netDots();
+    run.phase='accrue'; run.t=0; run.shown=0;
+    paintCal();
+  }
+
+  function lockForecast(){
+    pending=+document.getElementById('fcS').value/100;
+    document.getElementById('fcast').style.display='none';
+    var sc=SCENARIOS[run.floor];
+    document.getElementById('tickN').textContent='accruing over '+sc.days+' days\u2026';
+    netDots();
+    run.phase='accrue'; run.t=0; run.shown=0;
+  }
+
+  function scoreForecast(sold){
+    if(pending===null) return;
+    var o = sold<=1e-9 ? 1 : 0, p=pending, loss=(p-o)*(p-o);
+    FORECASTS.push({ p:p, o:o, floor:run.floor, nm:'Floor '+(run.floor+1)+' \u2014 '+SCENARIOS[run.floor].n });
+    pending=null; saveCalls();
+    var el=document.getElementById('fcRes'); el.style.display='block';
+    var off=Math.abs(p-o)*100;
+    el.innerHTML='You said <b>'+(p*100).toFixed(0)+'%</b> it would hold. It <b>'+(o?'held':'sold bitcoin')+
+      '</b> \u2014 you were <b>'+off.toFixed(0)+' points off</b>. '+
+      (loss<0.06 ? 'You knew.' : loss<0.25 ? 'Better than a coin flip.'
+       : loss<0.5 ? 'Worse than admitting you did not know.'
+       : 'Confidently wrong, which is the expensive kind.');
+    paintCal();
+  }
+
+  // Asked for three times: pressing run must move the page to the floor, not leave the
+  // student hunting for where the thing they just started is happening.
+  function toBoard(){
+    var el=document.getElementById('shell');
+    if(el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function toFloor(){
+    var el=document.querySelector('.runbar');
+    if(el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function startRun(){
+    var c=calc();
+    if(!c.p.length) return;
+    run={ active:true, floor:0, btc:st.btc, banked:0, lost:0, dead:false, phase:'accrue', t:0, target:0, shown:0,
+          ltvCut:0, debtX:1, banned:{}, sick:{}, closed:false, marks:[] };
+    practice=-1;
+    recordSeedRun();
+    document.getElementById('bNext').style.display='none';
+    document.getElementById('fcRes').style.display='none';
+    pending=null;
+    maxReached=Math.max(maxReached,0);
+    enterFloor(); toFloor();
+  }
+
+  function enterFloor(){
+    // Snapshot before anything this floor does, so the student can rewind to exactly here
+    // after seeing the receipt. Retrying is how you learn a floor; one shot is how you
+    // learn to resent it.
+    run.snap={ floor:run.floor, btc:run.btc, banked:run.banked, lost:run.lost,
+               debtX:run.debtX, ltvCut:run.ltvCut, pushed:false,
+               banned:JSON.parse(JSON.stringify(run.banned)),
+               sick:JSON.parse(JSON.stringify(run.sick)) };
+    var sc=SCENARIOS[run.floor], c=calc();
+    document.getElementById('scNm').textContent='Floor '+(run.floor+1)+': '+sc.n;
+    document.getElementById('scEra').textContent=sc.era;
+
+    // The mechanism, then what it means for the board actually on the table.
+    var hits=placed().filter(function(t){
+      return (sc.hair[t.cls]||0)>0 || sc.freeze.indexOf(t.cls)>=0;
+    });
+    // Naming only what this floor freezes made a board with 12%-recall venues read as
+    // safe, because nothing was "affected". What decides the outcome is the recall rate
+    // the board carries on ANY floor, so it is stated every time.
+    var pl=placed();
+    var ltvAfter=sc.coll<1 ? c.ltv/(1-sc.coll) : 9;
+    var yours = !pl.length ? 'Drop a venue on a slot first.'
+      : (hits.length
+          ? 'This floor freezes ' + hits.map(function(t){ return t.nm; }).join(' and ') + '. '
+          : 'Nothing on your board is frozen by this floor. ')
+        + 'Either way your venues hand back about ' + (c.liq*100).toFixed(0) +
+          '% of what is deployed, and a ' + (sc.coll*100).toFixed(0) + '% move takes you to ' +
+          (ltvAfter*100).toFixed(0) + '% LTV against a ' + (liqLine()*100).toFixed(0) + '% line.';
+    // Only the part about THIS board is on screen by default. The mechanism is a click
+    // away for the student who wants it, and out of the way for the one who does not.
+    document.getElementById('scMech').style.display='block';
+    document.getElementById('scMechBody').textContent=sc.mech;
+    document.getElementById('scYours').textContent = yours.trim() ||
+      'Nothing on your board is in an affected class \u2014 only the collateral move reaches you.';
+
+    document.getElementById('runHint').textContent=
+      'Floor '+(run.floor+1)+' of '+SCENARIOS.length+' \u2014 '+sc.days+' days, then '+
+      (sc.coll>0 ? 'a '+(sc.coll*100).toFixed(0)+'% collateral move' : 'no collateral move at all')+'.';
+
+    run.target = c.debt*c.apr*(sc.days/365) - c.debt*(sc.rate||BORROW)*(sc.days/365);
+    run.shown=0; run.t=0; run.phase='forecast';
+    document.getElementById('tick').className='ticker';
+    askForecast();
+    document.getElementById('audit').style.display='none';
+    document.getElementById('howto').style.display='none';
+    var cfx0=document.getElementById('cfx'); if(cfx0) cfx0.style.display='none';
+  }
+
+  function tickRun(dt){
+    if(!run.active) return;
+    if(run.phase==='forecast'){ return; }
+    if(run.phase==='accrue'){
+      run.t+=dt;
+      var k=Math.min(1,run.t/1.5);
+      run.shown=run.target*k;
+      var tk=document.getElementById('tick');
+      tk.textContent=(run.shown>=0?'+':'')+usd(run.shown);
+      tk.style.color = run.shown<0 ? 'var(--blood)' : '';
+      document.getElementById('pxb').style.width=(k*100)+'%';
+      if(k>=1){ run.phase='shock'; run.t=0; resolveFloor(); }
+    } else if(run.phase==='shocked'){
+      run.t+=dt;
+      if(run.t>0.6) run.phase='wait';
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // The roads not taken. After a floor resolves, the same scenario is replayed
+  // over the boards the student did NOT run -- twice the draw, the template not
+  // picked, one venue swapped -- through the exact same resolution path, and
+  // each row names the constraint that actually decided it, with the numbers
+  // from that simulation. Lessons, not score: nothing here banks, ranks or
+  // unlocks anything.
+  // ---------------------------------------------------------------------------
+
+  // One floor against one state, no side effects. Impersonates the given board
+  // and run state, resolves through the SAME calc/auditFloor/repayNeeded/liqLine
+  // path the live run uses, restores everything, and reports every intermediate.
+  // resolveFloor itself resolves through here, so a ghost row can never drift
+  // from what actually happened to the player.
+  function resolveCore(sc, S){
+    var sv={ slots:st.slots, ltv:st.ltv, debtX:run.debtX, ltvCut:run.ltvCut,
+             banned:run.banned, sick:run.sick, active:run.active };
+    st.slots=S.slots; st.ltv=S.ltv;
+    run.debtX=S.debtX*(sc.rate ? 1+Math.max(0,sc.rate-BORROW)*(sc.days/365) : 1);
+    run.ltvCut=S.ltvCut+(sc.ltvCut||0);
+    run.banned=S.banned; run.sick=S.sick; run.active=true;
+    var R;
+    try{
+      var c=calc(), a=auditFloor(sc);
+      var px=BTC_PX*(1-sc.coll), collAfter=S.btc*px;
+      var ltvAfter=collAfter>0 ? c.debt/collAfter : 99;
+      var line=liqLine();
+      var breached=ltvAfter>line;
+      var needed=breached ? repayNeeded(c.debt, collAfter, ltvAfter) : 0;
+      var recalled=Math.min(a.recalled, needed);
+      var shortfall=Math.max(0,needed-recalled);
+      var cured = breached && sc.timer && a.fast>=needed;
+      var frozenOut = breached && sc.closed;
+      var sold = (breached && !cured && !frozenOut) ? Math.min(S.btc, shortfall/px) : 0;
+      var btcAfter=Math.max(0,S.btc-sold);
+      R={ c:c, a:a, px:px, ltvAfter:ltvAfter, line:line, breached:breached,
+          needed:needed, recalled:recalled, shortfall:shortfall, cured:cured,
+          frozenOut:frozenOut, sold:sold, btcAfter:btcAfter,
+          wiped: btcAfter<=st.btc*0.75,
+          debtXAfter:run.debtX, ltvCutAfter:run.ltvCut };
+      R.survived=!R.wiped;
+      R.bind=bindingConstraint(sc,S,R);
+    } finally {
+      st.slots=sv.slots; st.ltv=sv.ltv; run.debtX=sv.debtX; run.ltvCut=sv.ltvCut;
+      run.banned=sv.banned; run.sick=sv.sick; run.active=sv.active;
+    }
+    return R;
+  }
+
+  // Which lever actually decided the outcome, in plain language, with the
+  // numbers from the simulation that just ran. Checked most-specific first.
+  // Nothing here is estimated or invented; every figure is sim state.
+  function bindingConstraint(sc,S,R){
+    var frozen=0, benched=0, gone=0, crys=0;
+    R.a.rows.forEach(function(r){
+      if(r.failed) gone+=r.value*r.t.liq;
+      else if(r.ban) benched+=r.value*r.t.liq;
+      else if(r.frozen) frozen+=r.value*r.t.liq;
+      if(r.divest) crys+=r.share*DIVEST_LOSS;
+    });
+    var grow=R.debtXAfter>0 ? R.c.debt*(1-S.debtX/R.debtXAfter) : 0;
+    var ltvNoRate=R.ltvAfter*(R.debtXAfter>0 ? S.debtX/R.debtXAfter : 1);
+    var lineOld=Math.max(0.2, MAX_LTV-S.ltvCut);
+    var lp=function(v){ return (v*100).toFixed(0)+'%'; };
+
+    if(R.wiped){
+      if(R.ltvAfter>=1) return { k:'total',
+        why:'at '+lp(R.ltvAfter)+' LTV the call was the whole stack; the recall answered '+usd(R.recalled)+' and the last '+usd(R.shortfall)+' came out of bitcoin' };
+      if(sc.timer && R.a.fast<R.needed) return { k:'timer',
+        why:'only '+usd(R.a.fast)+' could move inside the cure window; the call was '+usd(R.needed) };
+      if(sc.rate && ltvNoRate<=R.line) return { k:'rate',
+        why:lp(sc.rate)+' interest compounded '+usd(grow)+' onto the debt \u2014 the price move alone would have stayed under the line' };
+      if(sc.ltvCut && R.ltvAfter<=lineOld) return { k:'cut',
+        why:'the vote moved the line from '+lp(lineOld)+' to '+lp(R.line)+' under a position that never moved' };
+      if(frozen>0 && frozen>=R.shortfall) return { k:'freeze',
+        why:'the freeze locked '+usd(frozen)+' of its exit; the call wanted '+usd(R.shortfall)+' more' };
+      if(benched>0 && benched>=R.shortfall) return { k:'ban',
+        why:'the earlier ban held out '+usd(benched)+' from venues that were healthy again' };
+      if(gone>0 && gone>=R.shortfall) return { k:'fail',
+        why:'the dead venue took '+usd(gone)+' of recall with it; the gap was '+usd(R.shortfall) };
+      if(crys>0 && crys>=R.shortfall) return { k:'divest',
+        why:'the force-close crystallised '+usd(crys)+' out of a venue that had gone quiet' };
+      return { k:'depth',
+        why:'repay-to-cap sold '+lp(S.btc>0?R.sold/S.btc:1)+' of the stack \u2014 venues sent '+usd(R.recalled)+' of the '+usd(R.needed)+' call' };
+    }
+    if(R.cured) return { k:'cured',
+      why:usd(R.a.fast)+' arrived inside the window against the '+usd(R.needed)+' call \u2014 cured, nothing sold' };
+    if(R.frozenOut) return { k:'breaker',
+      why:'the breaker blocked the sale at '+lp(R.ltvAfter)+' LTV \u2014 the breach rides into the next floor' };
+    if(R.breached && R.ltvAfter>=1) return { k:'recall-total',
+      why:(R.sold<=0
+        ? 'at '+lp(R.ltvAfter)+' LTV the call was the whole stack, and the recall answered all '+usd(R.needed)+' of it'
+        : 'at '+lp(R.ltvAfter)+' LTV the call was the whole stack; the recall answered '+usd(R.recalled)+', so only '+R.sold.toFixed(3)+' BTC went')
+        +' \u2014 without the recall, everything goes' };
+    if(R.breached && R.sold<=0) return { k:'covered',
+      why:'recall covered the whole '+usd(R.needed)+' call \u2014 '+usd(R.a.recalled)+' was on tap' };
+    if(R.sold>0) return { k:'depth',
+      why:'held, minus '+R.sold.toFixed(3)+' BTC \u2014 venues sent '+usd(R.recalled)+' of the '+usd(R.needed)+' call' };
+    if(R.a.bleed>0) return { k:'bleed',
+      why:'no breach, but the funding bleed took '+usd(R.a.bleed)+' of principal for good' };
+    if(sc.rate) return { k:'rate-held',
+      why:'interest grew the debt '+usd(grow)+'; it topped out at '+lp(R.ltvAfter)+' against the '+lp(R.line)+' line' };
+    if(sc.ltvCut) return { k:'cut-held',
+      why:'the line fell to '+lp(R.line)+' and it still cleared by '+((R.line-R.ltvAfter)*100).toFixed(1)+' points' };
+    if(!sc.coll && frozen>0) return { k:'unasked',
+      why:'bitcoin never moved, so the '+usd(frozen)+' locked behind the freeze was never called for' };
+    if(sc.coll>0) return { k:'room',
+      why:'the '+lp(sc.coll)+' fall used '+Math.round(R.ltvAfter/R.line*100)+'% of its room' };
+    return { k:'calm', why:'nothing moved and nothing was called for' };
+  }
+
+  var lastTmpl=-1;     // template most recently applied to the board, if any
+  var cfxOpen=true;    // collapse state, remembered across floors this session
+  var cfxCssIn=false;
+
+  function cfxCss(){
+    if(cfxCssIn) return; cfxCssIn=true;
+    var s=document.createElement('style');
+    s.textContent=
+      '#cfx{margin-top:10px;border:1px solid rgba(236,230,216,0.10);display:none;}'+
+      '#cfx .cfxh{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 10px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:var(--dim);transition:color .15s;}'+
+      '#cfx .cfxh:hover{color:var(--ink);}'+
+      '#cfx .cfxc{color:var(--faint);transition:color .15s;}'+
+      '#cfx .cfxr{display:grid;grid-template-columns:minmax(150px,1fr) 62px minmax(200px,2.2fr);gap:10px;padding:3px 10px;border-top:1px solid rgba(236,230,216,0.10);font-family:var(--mono);font-size:10px;line-height:1.35;align-items:baseline;}'+
+      '#cfx .cfxr.you .cfxs{color:var(--ink);}'+
+      '#cfx .cfxs{color:var(--dim);}'+
+      '#cfx .cfxo{font-size:9px;letter-spacing:0.18em;transition:color .15s;}'+
+      '#cfx .cfxo.s{color:var(--phos);}#cfx .cfxo.d{color:var(--blood);}'+
+      '#cfx .cfxw{color:var(--dim);font-variant-numeric:tabular-nums;}'+
+      '@media(max-width:760px){#cfx .cfxr{grid-template-columns:1fr 62px;}#cfx .cfxw{grid-column:1/-1;}}';
+    document.head.appendChild(s);
+  }
+
+  // The three roads not taken, resolved from the same floor-entry snapshot the
+  // retry button rewinds to -- same starting bitcoin, same compounded debt, same
+  // bans -- so the comparison is honest.
+  function ghostRows(sc, playerR){
+    var snap=run.snap||{btc:st.btc,debtX:1,ltvCut:0,banned:{},sick:{}};
+    var mySlots=st.slots.slice(), myLtv=st.ltv;
+    var S=function(slots,ltv){ return { slots:slots, ltv:ltv, btc:snap.btc,
+      debtX:snap.debtX, ltvCut:snap.ltvCut,
+      banned:JSON.parse(JSON.stringify(snap.banned||{})),
+      sick:JSON.parse(JSON.stringify(snap.sick||{})) }; };
+    var out=[];
+
+    // (a) same venues, twice the draw. The borrow cap still applies.
+    var lev=Math.min(MAX_BORROW, myLtv*2);
+    out.push({ label:'2\u00d7 the draw \u00b7 same venues \u00b7 '+(lev*100).toFixed(0)+'%'+
+                     (myLtv*2>MAX_BORROW?' (the cap)':''),
+               R:resolveCore(sc, S(mySlots.slice(), lev)) });
+
+    // (b) the template not picked. Prefer the one whose outcome differs from
+    // the player's -- that is the row carrying a lesson.
+    var pick=null;
+    for(var i=0;i<TEMPLATES.length;i++){
+      if(i===lastTmpl) continue;
+      var t=TEMPLATES[i];
+      var same = t.ltv===myLtv &&
+        t.slots.length===mySlots.filter(Boolean).length &&
+        t.slots.every(function(id){ return mySlots.indexOf(id)>=0; });
+      if(same) continue;
+      var slots=[null,null,null];
+      t.slots.forEach(function(id,j){ slots[j]=id; });
+      var Rg=resolveCore(sc, S(slots, t.ltv));
+      if(!pick || (Rg.survived!==playerR.survived && pick.R.survived===playerR.survived))
+        pick={ t:t, R:Rg };
+      if(pick.R.survived!==playerR.survived) break;
+    }
+    if(pick) out.push({ label:'the '+pick.t.nm+' template \u00b7 '+(pick.t.ltv*100).toFixed(0)+'%',
+                        R:pick.R });
+
+    // (c) one venue swapped. The swap that changes the outcome if any does;
+    // otherwise the shallowest venue swapped for the deepest one available.
+    var idx=[]; mySlots.forEach(function(id,i2){ if(id) idx.push(i2); });
+    var swap=null;
+    for(var s2=0; s2<idx.length && !swap; s2++){
+      for(var t2=0; t2<TILES.length; t2++){
+        if(mySlots.indexOf(TILES[t2].id)>=0) continue;
+        var sl=mySlots.slice(); sl[idx[s2]]=TILES[t2].id;
+        var R2=resolveCore(sc, S(sl, myLtv));
+        if(R2.survived!==playerR.survived){
+          swap={ from:byId(mySlots[idx[s2]]), to:TILES[t2], R:R2 }; break;
+        }
+      }
+    }
+    if(!swap && idx.length){
+      var low=idx.slice().sort(function(x,y){ return byId(mySlots[x]).liq-byId(mySlots[y]).liq; })[0];
+      var hi=TILES.filter(function(t3){ return mySlots.indexOf(t3.id)<0; })
+                  .sort(function(x,y){ return y.liq-x.liq; })[0];
+      if(hi){
+        var sl2=mySlots.slice(); sl2[low]=hi.id;
+        swap={ from:byId(mySlots[low]), to:hi, R:resolveCore(sc, S(sl2, myLtv)) };
+      }
+    }
+    if(swap) out.push({ label:swap.from.nm+' \u2192 '+swap.to.nm+' \u00b7 same draw', R:swap.R });
+    return out;
+  }
+
+  // Rendered unprompted after every floor resolution, dead or alive -- the
+  // novice does not know to ask for the counterfactual, so it is never behind
+  // a click. innerHTML is replaced whole, so a retry refreshes rather than
+  // stacking a second table.
+  function renderGhosts(sc, playerR){
+    cfxCss();
+    var el=document.getElementById('cfx');
+    if(!el){
+      el=document.createElement('div'); el.id='cfx';
+      var au=document.getElementById('audit');
+      au.parentNode.insertBefore(el, au.nextSibling);
+    }
+    var rows=[{ label:'you \u2014 '+(placed().map(function(t){ return t.nm; }).join(' + ')||'empty')+
+                      ' \u00b7 '+(st.ltv*100).toFixed(0)+'%',
+                R:playerR, you:true }].concat(ghostRows(sc, playerR));
+    el.innerHTML=
+      '<div class="cfxh" role="button" tabindex="0" aria-expanded="'+cfxOpen+'">'+
+        '<span>The roads not taken \u00b7 same floor, same math</span>'+
+        '<span class="cfxc">'+(cfxOpen?'collapse':'expand')+'</span></div>'+
+      '<div class="cfxb" style="display:'+(cfxOpen?'block':'none')+'">'+
+      rows.map(function(r){
+        var why = (!r.you && r.R.survived===playerR.survived && r.R.bind.k===playerR.bind.k)
+          ? 'same story as yours \u2014 '+r.R.bind.why
+          : (r.R.survived?'survived':'died')+' \u2014 '+r.R.bind.why;
+        return '<div class="cfxr'+(r.you?' you':'')+'">'+
+          '<span class="cfxs">'+r.label+'</span>'+
+          '<span class="cfxo '+(r.R.survived?'s':'d')+'">'+(r.R.survived?'SURVIVED':'DIED')+'</span>'+
+          '<span class="cfxw">'+why+'</span></div>';
+      }).join('')+'</div>';
+    el.style.display='block';
+    var hd=el.querySelector('.cfxh');
+    var tog=function(){
+      cfxOpen=!cfxOpen;
+      el.querySelector('.cfxb').style.display=cfxOpen?'block':'none';
+      el.querySelector('.cfxc').textContent=cfxOpen?'collapse':'expand';
+      hd.setAttribute('aria-expanded',String(cfxOpen));
+    };
+    hd.addEventListener('click',tog);
+    hd.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tog(); }
+    });
+  }
+
+  function resolveFloor(){
+    var sc=SCENARIOS[run.floor];
+    // Both of these land BEFORE the shock is measured, which is exactly what makes them
+    // dangerous: the excess borrow rate compounds into the debt, and a voted cut lowers
+    // the line under a position that never moved. Neither is visible as a price.
+    // The whole resolution -- rate compounding, the voted cut, the audit, breach
+    // sizing, the cure window, the breaker -- happens inside resolveCore, on the
+    // same path the ghost boards run. One math path; the counterfactual table
+    // cannot drift from the run.
+    var R=resolveCore(sc, { slots:st.slots.slice(), ltv:st.ltv, btc:run.btc,
+                            debtX:run.debtX, ltvCut:run.ltvCut,
+                            banned:run.banned, sick:run.sick });
+    run.debtX=R.debtXAfter; run.ltvCut=R.ltvCutAfter;
+    var c=R.c;
+    run.banked+=run.target;
+    var a=R.a;
+    // A bleed is gone regardless. A dislocation only costs you if the collateral move
+    // forces a recall while the peg is off -- otherwise it recovers and you paid nothing.
+    run.lost+=a.bleed;
+    var px=R.px, ltvAfter=R.ltvAfter, breached=R.breached, needed=R.needed,
+        recalled=R.recalled, cured=R.cured, frozenOut=R.frozenOut, sold=R.sold;
+    scoreForecast(sold);
+    run.btc=Math.max(0,run.btc-sold);
+    run.lost+=sold*px;
+    if(sold>0) run.lost+=a.haircut;   // only a forced exit realises the dislocation
+
+    // Any venue that delivered nothing on an invoked recall is marked failed: banned for
+    // the next two floors, and carried as sick so a later divest window can crystallise it.
+    if(breached && !frozenOut){
+      a.rows.forEach(function(r){ if(r.ret<=0){ run.banned[r.t.id]=2; run.sick[r.t.id]=1; } });
+    }
+
+    renderAudit(a, sc, needed, sold);
+
+    // Name the slot that actually let you down, rather than reporting an average.
+    var dead=a.rows.filter(function(r){ return r.ret<=0; });
+    var culprit = dead.length
+      ? dead.map(function(r){ return r.t.nm; }).join(' and ')+' returned nothing'
+      : 'every venue paid, but they only hand back '+(c.liq*100).toFixed(0)+'% of what they hold';
+
+    // A floor that takes a quarter of the stack is a kill -- but a kill is a
+    // VERDICT now, not a gate. The floor is marked red, its damage is rewound
+    // to the floor-entry snapshot, and the sweep walks on, so one killer floor
+    // cannot hide the risks sitting behind it. One run, fifteen verdicts.
+    var wiped = run.btc <= st.btc*0.75;
+    run.marks[run.floor] = wiped ? 'dead' : (sold>0 ? 'hurt' : 'clean');
+    var t=document.getElementById('tick'), n=document.getElementById('tickN');
+
+    if(wiped){
+      var s2=run.snap;
+      if(s2){
+        run.btc=s2.btc; run.banked=s2.banked; run.lost=s2.lost;
+        run.debtX=s2.debtX; run.ltvCut=s2.ltvCut;
+        run.banned=JSON.parse(JSON.stringify(s2.banned));
+        run.sick=JSON.parse(JSON.stringify(s2.sick));
+      }
+      t.className='ticker hurt';
+      t.textContent='\u2212'+sold.toFixed(3)+' BTC';
+      n.textContent=sc.n+' would have ended it. '+
+        (ltvAfter>=1
+          ? 'At '+(ltvAfter*100).toFixed(0)+'% LTV the engine stops sizing the repayment and comes for the whole '+
+            usd(needed)+' of collateral. '
+          : (ltvAfter*100).toFixed(0)+'% LTV meant '+usd(needed)+' had to be retired to get back down to the '+
+            (MAX_BORROW*100).toFixed(0)+'% borrow cap. ')+
+        'Your venues returned '+usd(recalled)+' \u2014 '+culprit+' \u2014 so the remaining '+
+        usd(needed-recalled)+' would have come out of bitcoin: '+sold.toFixed(3)+' BTC. '+
+        'The floor is marked red, the damage is voided, and the sweep continues \u2014 nothing banked here.';
+      run.phase='shocked';
+      document.getElementById('bRetry').style.display='block';
+      if(run.floor>=SCENARIOS.length-1){ run.active=false; endRun(); }
+      else { document.getElementById('bNext').style.display='block'; syncBoardBtn(); }
+    } else {
+      var head=(liqLine()-ltvAfter)*100;
+      t.className = sold>0 ? 'ticker hurt' : 'ticker';
+      if(sold<=0 && head<8) t.style.color='var(--gold)'; else t.style.color='';
+      t.textContent = sold>0 ? '\u2212'+sold.toFixed(3)+' BTC'
+                    : (a.bleed>0 ? usd(-a.bleed)+' bled'
+                       : run.target>=0 ? '+'+usd(run.target)+' banked'
+                                       : usd(run.target)+' \u2014 the loan cost more than the venues paid');
+      n.textContent = sold>0
+        ? (ltvAfter>=1
+            ? 'Past 100% LTV the engine stops sizing the repayment and comes for all of it. '
+            : 'A breach does not stop at the line \u2014 it repays you back down to the '+
+              (MAX_BORROW*100).toFixed(0)+'% borrow cap. ')+
+          'That meant '+usd(needed)+' had to be retired. Your venues could return '+usd(recalled)+
+          ' ('+culprit+'), so the '+usd(needed-recalled)+' left over was covered by selling '+
+          sold.toFixed(3)+' BTC.'
+        : cured
+          ? 'SavedByDelay \u2014 breached at '+(ltvAfter*100).toFixed(0)+'% LTV, but '+usd(a.fast)+
+            ' could arrive inside the window against '+usd(c.debt)+' owed. The timer cleared and nothing was sold.'
+        : frozenOut
+          ? 'breached at '+(ltvAfter*100).toFixed(0)+'% LTV and nothing happened \u2014 the breaker blocked liquidate(). '+
+            'You are carrying that breach into the next floor, and you could not have repaid it either.'
+        : (breached ? 'breached at '+(ltvAfter*100).toFixed(0)+'% LTV but recall covered it in full'
+                    : 'cleared with '+((liqLine()-ltvAfter)*100).toFixed(0)+' points of headroom \u2014 '+
+                      (ltvAfter*100).toFixed(0)+'% LTV against the '+(liqLine()*100).toFixed(0)+'% liquidation line'+
+                      (a.bleed>0?', though funding still bled '+usd(a.bleed):(a.haircut>0?'. The dislocation cost nothing because you never had to sell into it':'')));
+      run.phase='shocked';
+      document.getElementById('bRetry').style.display='block';
+      if(run.floor>=SCENARIOS.length-1){ run.active=false; endRun(); }
+      else { document.getElementById('bNext').style.display='block'; syncBoardBtn(); }
+    }
+    // The roads not taken -- rendered unprompted, alive or dead. A failure in
+    // the lesson table must never take the run down with it.
+    try{ renderGhosts(sc, R); }catch(e){}
+    paintFloors();
+  }
+
+  function retryFloor(){
+    var s2=run.snap; if(!s2) return;
+    if(s2.pushed) HISTORY.pop();       // that run was recorded; un-record it
+    run.active=true; run.dead=false;
+    run.floor=s2.floor; run.btc=s2.btc; run.banked=s2.banked; run.lost=s2.lost;
+    run.debtX=s2.debtX; run.ltvCut=s2.ltvCut;
+    run.banned=JSON.parse(JSON.stringify(s2.banned));
+    run.sick=JSON.parse(JSON.stringify(s2.sick));
+    st.tested=false;
+    document.getElementById('bNext').style.display='none';
+    document.getElementById('bRetry').style.display='none';
+    document.getElementById('verdict').style.display='none';
+    document.getElementById('audit').style.display='none';
+    document.getElementById('howto').style.display='none';
+    enterFloor(); paintFloors(); paintBoard(); syncBoardBtn(); toBoard();
+  }
+
+  function nextFloor(){
+    document.getElementById('bNext').style.display='none';
+    document.getElementById('bRetry').style.display='none';
+    syncBoardBtn();
+    Object.keys(run.banned).forEach(function(k){
+      run.banned[k]--; if(run.banned[k]<=0) delete run.banned[k];
+    });
+    run.floor++; maxReached=Math.max(maxReached,run.floor); enterFloor(); paintFloors(); toFloor();
+  }
+
+  function endRun(){
+    // Score of a sweep: floors that held. A red floor was voided, so it banks
+    // nothing and costs nothing -- it just is not survived.
+    var deadFloors=[], i;
+    for(i=0;i<SCENARIOS.length;i++) if(run.marks[i]==='dead') deadFloors.push(i);
+    var survived=SCENARIOS.length-deadFloors.length;
+    var res={ who:'Your run '+(HISTORY.length+1), floors:survived,
+              deadFloors:deadFloors, marks:run.marks.slice(),
+              btc:run.btc/st.btc, banked:run.banked, lost:run.lost,
+              net:run.banked-run.lost, mine:true, seed:SEED.id, unranked:!SEED.isDaily,
+              build:(placed().map(function(t){return t.nm;}).join(' + ')||'empty')+
+                    ' \u00b7 seed #'+SEED.id+(SEED.isDaily?'':' \u00b7 practice') };
+    HISTORY.push(res);
+    if(run.snap) run.snap.pushed=true;
+    recordSeedResult(survived, res.net);
+    runVerdict(res);
+    syncBoardBtn();
+    document.getElementById('runHint').textContent= deadFloors.length
+      ? deadFloors.length+' of '+SCENARIOS.length+' floors ran red \u2014 each would have ended this board. Re-tune and sweep again.'
+      : 'Cleared all '+SCENARIOS.length+'. Re-tune and try to keep more bitcoin.';
+    paintBoard();
+    paintFloors();
+  }
+
+  // The post-mortem lands in the same card that described the board before it ran,
+  // so there is one place to look rather than a separate grader with its own button.
+  function runVerdict(res){
+    document.getElementById('verdict').style.display='block';
+    var reds=res.deadFloors||[], cleared=!reds.length, sold=Math.max(0,1-res.btc);
+    var grade = !cleared ? 'dead' : sold<=0.001 ? 'held' : sold<0.15 ? 'bruised' : 'costly';
+    var v=document.getElementById('verdict');
+    v.className='verdict '+(grade==='held'?'pass':(grade==='bruised'?'':'fail'));
+    document.getElementById('vTag').textContent=
+      grade==='dead'?('Red on '+reds.length+' floor'+(reds.length>1?'s':'')):
+      grade==='held'?'Cleared':grade==='bruised'?'Bruised':'Sold your stack';
+
+    var title,why;
+    if(grade==='dead'){
+      var nms=reds.map(function(fi){ return (fi+1)+' \u00b7 '+SCENARIOS[fi].n; }).join(', ');
+      title=(reds.length>1 ? reds.length+' floors would have taken it: ' : 'One floor would have taken it: ')+nms+'.';
+      why='Each red floor ended the position in simulation; its damage was voided and the sweep walked on, '+
+          'so the score is the '+res.floors+' floors that held. The receipt above each red names the venue '+
+          'that did not return \u2014 read it before you re-tune, because the fix is usually size, not rate.';
+    } else if(grade==='held'){
+      title='Cleared all '+SCENARIOS.length+' floors with the stack intact.';
+      why='Every floor was absorbed by the venues and no bitcoin left. '+usd(res.banked)+' banked. '+
+          'Worth knowing what that cost you in throughput \u2014 the safest board is rarely the '+
+          'highest-paying one, and that trade is the decision, not an accident. '+
+          'This is the fluency the network runs on: capital retention first, optimization second. '+
+          'You are learning the root system.';
+    } else if(grade==='bruised'){
+      title='Cleared all '+SCENARIOS.length+', and it cost '+(sold*100).toFixed(0)+'% of the stack.';
+      why='The position finished, but '+usd(res.lost)+' of bitcoin went out the door to keep it there '+
+          'against '+usd(res.banked)+' banked \u2014 net '+(res.net>=0?'+':'')+usd(res.net)+'.';
+    } else {
+      title='It finished, and you sold '+(sold*100).toFixed(0)+'% of your bitcoin to do it.';
+      why='Surviving every floor is not the goal if the stack pays for it. '+usd(res.banked)+
+          ' banked against '+usd(res.lost)+' of bitcoin sold is a '+usd(Math.abs(res.net))+
+          ' loss wearing a yield number. Size down and run it again.';
+    }
+    document.getElementById('vTitle').textContent=title;
+    document.getElementById('vWhy').textContent=why;
+    document.getElementById('vLedger').innerHTML=[
+      ['Floors survived', res.floors+' / '+SCENARIOS.length, cleared?'cleared':'red floors voided', cleared?'pos':'neg'],
+      ['Bitcoin kept', (res.btc*100).toFixed(0)+'%', (res.btc*st.btc).toFixed(3)+' BTC', sold>0.001?'neg':'pos'],
+      ['Yield banked', usd(res.banked), 'over the run', 'warn'],
+      ['Net made', (res.net>=0?'+':'')+usd(res.net), 'banked minus bitcoin sold', res.net>=0?'pos':'neg']
+    ].map(function(r){
+      return '<div class="lg"><span class="k">'+r[0]+'</span><span class="v '+r[3]+'">'+r[1]+
+             '</span><span class="n">'+r[2]+'</span></div>';
+    }).join('');
+    lastRes=res;
+    st.tested=true;
+  }
+
+  // ---------- share card ----------
+  // 1080x1350 PNG drawn off-DOM from the res object the verdict just showed, so the
+  // card can never disagree with the screen. Nothing external is fetched: system
+  // Georgia for the headline, system monospace for every number.
+  var lastRes=null;
+  var EQUIV=[ {nm:'Claude Max', mo:200}, {nm:'Claude Pro', mo:20}, {nm:'Netflix', mo:18} ];
+
+  function cardSeed(){
+    // window.__seed = {id, isDaily, dateStr} is the shared interface with the
+    // daily-seed module; absent, the card still identifies the day it was run.
+    var s=(window.__seed && typeof window.__seed==='object')? window.__seed : null;
+    var dateStr=(s && s.dateStr)? String(s.dateStr)
+      : new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    return { id: (s && s.id!=null)? String(s.id) : null,
+             isDaily: s? !!s.isDaily : true,
+             dateStr: dateStr };
+  }
+
+  function drawResultCard(res){
+    var W=1080,H=1350,M=96;
+    var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+    var g=cv.getContext('2d');
+    var MONO='Menlo,Consolas,monospace', SERIF='Georgia,serif';
+    var BONE='#ece6d8', DIM='#8d877b', FAINT='#56524a',
+        PHOS='#9bdc4f', GOLD='#d8b24a', BLOOD='#cf4034';
+
+    g.fillStyle='#09090a'; g.fillRect(0,0,W,H);
+    g.strokeStyle='rgba(236,230,216,0.10)'; g.lineWidth=2; g.strokeRect(48,48,W-96,H-96);
+
+    var sd=cardSeed();
+    try{ g.letterSpacing='6px'; }catch(e){}
+    g.font='26px '+MONO; g.fillStyle=DIM;
+    g.fillText('MEMBRANE GAUNTLET', M, 172);
+    var seedLine = sd.isDaily
+      ? 'CHALLENGE \u00b7 '+sd.dateStr.toUpperCase()+(sd.id? ' \u00b7 SEED #'+sd.id.toUpperCase():'')
+      : 'PRACTICE \u00b7 SEED #'+(sd.id||'?').toUpperCase()+' \u00b7 UNRANKED';
+    g.fillStyle= sd.isDaily? BONE : GOLD;
+    g.fillText(seedLine, M, 220);
+    try{ g.letterSpacing='0px'; }catch(e){}
+
+    var marks=res.marks||null;
+    var redN=marks? marks.filter(function(m){ return m==='dead'; }).length
+                  : (res.floors>=SCENARIOS.length?0:1);
+    var cleared=redN===0;
+    g.font='64px '+SERIF; g.fillStyle=BONE;
+    g.fillText(cleared? 'Cleared all '+SCENARIOS.length+' floors.'
+                      : (marks? redN+' floor'+(redN>1?'s':'')+' ran red.'
+                              : 'Dead on floor '+(res.floors+1)+'.'), M, 340);
+
+    // the Wordle-glance element: one square per floor -- reds sit where they
+    // happened, because the sweep no longer stops at the first kill
+    var n=SCENARIOS.length, size=48, gap=n>1? (W-2*M-n*size)/(n-1) : 0, y0=408;
+    for(var i=0;i<n;i++){
+      var x=M+i*(size+gap);
+      var mk=marks? marks[i] : (i<res.floors?'clean':(!cleared&&i===res.floors?'dead':null));
+      if(mk==='dead'){ g.fillStyle=BLOOD; g.fillRect(x,y0,size,size); }
+      else if(mk==='hurt'){ g.fillStyle=GOLD; g.fillRect(x,y0,size,size); }
+      else if(mk==='clean'){ g.fillStyle=PHOS; g.fillRect(x,y0,size,size); }
+      else { g.strokeStyle='rgba(236,230,216,0.28)'; g.lineWidth=2;
+             g.strokeRect(x+1,y0+1,size-2,size-2); }
+    }
+    g.font='24px '+MONO; g.fillStyle=DIM;
+    g.fillText(res.floors+' / '+n+' floors', M, y0+size+46);
+
+    g.font='22px '+MONO; g.fillStyle=DIM;
+    try{ g.letterSpacing='4px'; }catch(e){}
+    g.fillText('NET \u00b7 ON EQUITY \u00b7 SIMULATED', M, 650);
+    try{ g.letterSpacing='0px'; }catch(e){}
+    g.font='120px '+MONO;
+    g.fillStyle= res.net<0? BLOOD : PHOS;
+    g.fillText((res.net>=0?'+':'')+usd(res.net), M, 780);
+
+    var y=880;
+    // calibration line only when the module itself would show a score; a figure
+    // off fewer than CAL_MIN calls is exactly the unbacked confidence this app
+    // tells users not to trust, so below that the card carries no number at all.
+    var nc=FORECASTS.length, b=brier();
+    if(nc>=CAL_MIN && b!=null){
+      var skill=(0.25-b)/0.25;
+      g.font='30px '+MONO; g.fillStyle= skill>=0? PHOS : BLOOD;
+      g.fillText((skill>=0?'+':'\u2212')+Math.abs(skill*100).toFixed(0)+'% vs coin flip', M, y);
+      g.font='22px '+MONO; g.fillStyle=DIM;
+      g.fillText(nc+' calls scored', M, y+38);
+      y+=118;
+    }
+
+    if(res.net>0){
+      var eq=null, months=0;
+      for(var j=0;j<EQUIV.length;j++){
+        var m=Math.floor(res.net/EQUIV[j].mo);
+        if(m>=3){ eq=EQUIV[j]; months=m; break; }
+      }
+      if(!eq){ var lastEq=EQUIV[EQUIV.length-1];
+        months=Math.floor(res.net/lastEq.mo); if(months>=1) eq=lastEq; }
+      if(eq){
+        g.font='34px '+SERIF; g.fillStyle=BONE;
+        g.fillText('= '+months+' month'+(months===1?'':'s')+' of '+eq.nm, M, y);
+        g.font='22px '+MONO; g.fillStyle=DIM;
+        g.fillText('at list price \u00b7 $'+eq.mo+'/mo', M, y+40);
+      }
+    }
+
+    g.font='20px '+MONO; g.fillStyle=FAINT;
+    g.fillText('simulated on six years of measured 8-hour windows \u00b7 membrane', M, H-108);
+    return cv;
+  }
+
+  (function(){
+    var b=document.getElementById('shareCard'); if(!b) return;
+    b.addEventListener('click', function(){
+      if(!lastRes) return;
+      var cv=drawResultCard(lastRes), url=cv.toDataURL('image/png');
+      window.__lastCard={ png:url, w:cv.width, h:cv.height };
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='membrane-gauntlet-'+
+        cardSeed().dateStr.replace(/[^A-Za-z0-9]+/g,'-').toLowerCase()+'.png';
+      document.body.appendChild(a);
+      try{ a.click(); }catch(e){}
+      document.body.removeChild(a);
+    });
+  })();
+
+  // Reference rows are real published doctrines, not invented players (ruleset 8.1).
+  // Reference rows describe a METHOD and carry no firm's name. They are labelled as
+  // reference lines, not as anyone's audited track record.
+  //
+  // A method is a board, not a score -- so each doctrine is RE-RUN against the
+  // floors the loaded seed actually drew, through resolveCore, the same
+  // no-side-effects path the ghost rows use. A static "floors: 8" would be a
+  // lie on a seed whose draws kill that board on floor 3.
+  // "Sized to depth" sizes the draw to what the venues can hand back on
+  // recall -- the collateral side is not in its arithmetic. So it shrugs off
+  // the early price floors, and then a mechanism floor (a ban, a stale NAV)
+  // voids the recall it was sized against and kills it mid-deck. That failure
+  // IS the lesson, so the LTV sits where the doctrine's own logic puts it,
+  // not where it would survive: 44%, covered by deep recall until recall
+  // itself is taken away. It must NOT clear the deck -- a reference that
+  // finishes 15/15 parks itself at rank #1 and teaches that survival is free.
+  var DOCTRINE_DEFS=[
+    { who:'Reference \u2014 sized to depth', build:'borrow capped to absorbable size',
+      slots:['aave','vault','fluid'], ltv:0.44 },
+    { who:'Reference \u2014 narrow list',    build:'few vetted venues, sized larger',
+      slots:['aave','vault'], ltv:0.55 }
+  ];
+  // Walk one fixed board through every drawn floor, carrying exactly what the
+  // live run carries: banked carry, bleeds, realised haircuts, bans and their
+  // decay, compounded debt, voted cuts -- and the same quarter-of-the-stack
+  // death rule. Mirrors resolveFloor line for line via resolveCore.
+  function simReference(slots, ltv){
+    var S={ slots:slots.slice(), ltv:ltv, btc:st.btc, debtX:1, ltvCut:0, banned:{}, sick:{} };
+    var banked=0, lost=0, dead=0;
+    for(var i=0;i<SCENARIOS.length;i++){
+      var sc=SCENARIOS[i];
+      var R=resolveCore(sc,S);
+      if(R.wiped){
+        // A red floor is a verdict, not a gate -- voided, banks nothing,
+        // carries nothing forward. Same sweep semantics as the live run,
+        // so reference floors and player floors mean the same thing.
+        dead++;
+      } else {
+        // Carry accrues on the debt as it stood at floor entry, before this
+        // floor's rate compounding lands -- same as enterFloor's run.target.
+        var debtPre=R.debtXAfter>0 ? R.c.debt*(S.debtX/R.debtXAfter) : R.c.debt;
+        banked+=debtPre*(R.c.apr-(sc.rate||BORROW))*(sc.days/365);
+        lost+=R.a.bleed + R.sold*R.px + (R.sold>0?R.a.haircut:0);
+        if(R.breached && !R.frozenOut){
+          R.a.rows.forEach(function(r){ if(r.ret<=0){ S.banned[r.t.id]=2; S.sick[r.t.id]=1; } });
+        }
+        S.btc=R.btcAfter; S.debtX=R.debtXAfter; S.ltvCut=R.ltvCutAfter;
+      }
+      Object.keys(S.banned).forEach(function(k){ S.banned[k]--; if(S.banned[k]<=0) delete S.banned[k]; });
+    }
+    return { floors:SCENARIOS.length-dead, btc:st.btc>0?S.btc/st.btc:0, banked:banked, lost:lost, net:banked-lost };
+  }
+  function doctrineRows(){
+    return DOCTRINE_DEFS.map(function(d){
+      var r=simReference(d.slots,d.ltv);
+      return { who:d.who, floors:r.floors, btc:r.btc, banked:r.banked, lost:r.lost, net:r.net,
+               build:d.build+' \u00b7 seed #'+SEED.id };
+    });
+  }
+
+  function paintBoard(){
+    var rows=doctrineRows().concat(HISTORY).slice();
+    // floors first, then bitcoin retained. Yield is never a sort key.
+    // Floors first so nobody out-earns a death, then net made. Gross yield never sorts:
+    // banking $1,070 while selling 0.7 BTC is a loss wearing a profit's clothes.
+    // Only daily-seed runs rank; practice seeds sit below the line, unranked.
+    rows.sort(function(a,b){ return ((a.unranked?1:0)-(b.unranked?1:0)) || (b.floors-a.floors) || (b.net-a.net); });
+    var html='<div class="brow hd"><span>#</span><span>Build</span><span class="num">Floors</span>'+
+             '<span class="num">Net made</span><span class="yield">Banked &minus; sold</span></div>';
+    html+=rows.map(function(r,i){
+      return '<div class="brow'+(r.mine?' you':'')+'"><span class="rk">'+(r.unranked?'\u2014':(i+1))+'</span>'+
+        '<span class="nm">'+r.who+'<small>'+r.build+'</small></span>'+
+        '<span class="num" style="color:'+(r.floors>=SCENARIOS.length?'var(--phos)':'var(--gold)')+'">'+r.floors+' / '+SCENARIOS.length+'</span>'+
+        '<span class="num" style="color:'+(r.net>=0?'var(--phos)':'var(--blood)')+'">'+
+          (r.net>=0?'+':'')+usd(r.net)+'</span>'+
+        '<span class="yield">'+usd(r.banked||0)+' &minus; '+usd(r.lost||0)+
+          ' &middot; '+((r.btc||0)*100).toFixed(0)+'% BTC</span></div>';
+    }).join('');
+    document.getElementById('board').innerHTML=html;
+  }
+
+  document.getElementById('bNext').addEventListener('click',nextFloor);
+
+  // ---------- daily challenge chip ----------
+  // The seed is a first-class object on screen: the player must KNOW tomorrow is a
+  // different challenge, that any challenge is loadable by seed, and that only the
+  // daily one ranks.
+  function paintChip(){
+    var chip=document.getElementById('seedChip'); if(!chip) return;
+    chip.className='seedchip'+(SEED.isDaily?'':' practice');
+    document.getElementById('chipTag').textContent='Challenge';
+    document.getElementById('chipTxt').innerHTML = SEED.isDaily
+      ? fmtUTC(new Date())+' \u00b7 seed <b>#'+SEED.id+'</b> \u00b7 same floors for everyone today \u00b7 new challenge at 00:00 UTC'
+      : 'PRACTICE \u2014 UNRANKED \u00b7 seed <b>#'+SEED.id+'</b> \u00b7 daily challenge is the ranked one';
+    document.getElementById('chipBack').style.display=SEED.isDaily?'none':'';
+  }
+  // ---------- seed book ----------
+  // Every seed you have actually run is kept (localStorage, same reasoning as
+  // the calls store) so it can be re-run later -- and each is labelled by what
+  // playing it FELT like, derived from its draws, so "harsh \u00B7 61% Thursday"
+  // is referenceable where "#B3E2" is not.
+  var SEEDS_KEY='membrane.seeds.v1';
+  function loadSeedBook(){
+    try{ var r=window.localStorage.getItem(SEEDS_KEY); return r?JSON.parse(r):{}; }
+    catch(e){ return {}; }
+  }
+  function saveSeedBook(bk){
+    try{ window.localStorage.setItem(SEEDS_KEY,JSON.stringify(bk)); }catch(e){}
+  }
+  // The experience of a seed: mean severity of its draws against baseline
+  // (gentle / standard / harsh), plus the single most inflated big lever as
+  // the standout -- the floor people will actually remember it by.
+  function seedExperience(){
+    var SHORT=['calm drift','Thursday','FTX','capitulation','rate year','stETH depeg',
+               'the vote','USDC freeze','cure window','funding flip','blacklist',
+               'bad data','locked doors','forced exit','everything'];
+    var num=0, den=0, worst={r:0, txt:''};
+    SCENARIOS.forEach(function(sc,i){
+      var b=BASE_SCENARIOS[i], nm=SHORT[i]||b.n;
+      if(b.coll>0){
+        num+=sc.coll/b.coll; den++;
+        if(b.coll>=0.2 && sc.coll/b.coll>worst.r)
+          worst={r:sc.coll/b.coll, txt:(sc.coll*100).toFixed(0)+'% '+nm};
+      }
+      if(b.rate){
+        num+=sc.rate/b.rate; den++;
+        if(sc.rate/b.rate>worst.r)
+          worst={r:sc.rate/b.rate, txt:(sc.rate*100).toFixed(0)+'% '+nm};
+      }
+      if(b.stale){
+        num+=sc.stale/b.stale; den++;
+        if(sc.stale/b.stale>worst.r)
+          worst={r:sc.stale/b.stale, txt:'+'+(sc.stale*100).toFixed(0)+'% '+nm};
+      }
+    });
+    var sev=den?num/den:1;
+    var tier= sev<0.97 ? 'gentle' : sev<=1.03 ? 'standard' : 'harsh';
+    return { tier:tier, standout:worst.txt, label:tier+(worst.txt?' \u00B7 '+worst.txt:'') };
+  }
+  function recordSeedRun(){
+    var bk=loadSeedBook();
+    var e=bk[SEED.id]||{ id:SEED.id, first:SEED.dateStr, runs:0, best:-1, bestNet:null };
+    e.label=seedExperience().label;
+    if(SEED.isDaily) e.daily=SEED.dateStr;
+    e.runs++; e.last=utcDayStr(new Date());
+    bk[SEED.id]=e; saveSeedBook(bk);
+  }
+  function recordSeedResult(floors, net){
+    var bk=loadSeedBook(), e=bk[SEED.id]; if(!e) return;
+    if(floors>e.best || (floors===e.best && (e.bestNet==null || net>e.bestNet))){
+      e.best=floors; e.bestNet=net;
+    }
+    bk[SEED.id]=e; saveSeedBook(bk);
+  }
+  function renderSeedHistory(){
+    var el=document.getElementById('chipHist'); if(!el) return;
+    var bk=loadSeedBook();
+    var list=Object.keys(bk).map(function(k){ return bk[k]; });
+    list.sort(function(a,b){ return (b.last||'').localeCompare(a.last||''); });
+    list=list.slice(0,8);
+    if(!list.length){ el.innerHTML='<span class="cc-note">no seeds run yet \u2014 the ones you play collect here</span>'; return; }
+    el.innerHTML='<span class="cc-note">seeds you&rsquo;ve run \u2014 tap to reload</span>'+
+      list.map(function(e){
+        return '<button class="cc-btn cc-seed" type="button" data-seed="'+e.id+'">#'+e.id+
+          ' \u00B7 '+(e.label||'?')+(e.best>=0? ' \u00B7 best '+e.best+'/'+SCENARIOS.length:'')+
+          (e.daily? ' \u00B7 daily '+e.daily : '')+'</button>';
+      }).join('');
+    Array.prototype.forEach.call(el.querySelectorAll('[data-seed]'),function(b){
+      b.addEventListener('click',function(){
+        applySeed(b.getAttribute('data-seed'));
+        document.getElementById('chipForm').style.display='none';
+      });
+    });
+  }
+
+  function applySeed(raw){
+    var id=seedIdFrom(raw); if(!id) return;
+    var daily=dailySeedId();
+    if(id===SEED.id){ SEED.isDaily=(id===daily); paintChip(); return; }
+    SEED.id=id; SEED.isDaily=(id===daily); SEED.dateStr=utcDayStr(new Date());
+    window.__seed={ id:SEED.id, isDaily:SEED.isDaily, dateStr:SEED.dateStr };
+    var next=buildScenarios(id);
+    SCENARIOS.length=0; Array.prototype.push.apply(SCENARIOS,next);
+    // A different seed is a different challenge: any run in flight is void, and the
+    // stage resets to idle. Floor math and settlement are untouched -- only the
+    // drawn parameters changed.
+    run.active=false; run.dead=false; run.floor=0; run.phase='idle'; run.t=0; run.shown=0;
+    run.banned={}; run.sick={}; run.ltvCut=0; run.debtX=1; run.marks=[];
+    practice=-1; pending=null;
+    ['bNext','bRetry'].forEach(function(i){ document.getElementById(i).style.display='none'; });
+    ['fcast','fcRes','audit','howto','verdict'].forEach(function(i){ document.getElementById(i).style.display='none'; });
+    document.getElementById('scNm').textContent='The gauntlet';
+    document.getElementById('scEra').textContent='not started';
+    document.getElementById('scMech').style.display='none';
+    document.getElementById('scYours').textContent=
+      'Fifteen floors, drawn from seed #'+SEED.id+', one sweep. A floor you survive pays; one that would have killed you is voided and marked red \u2014 the run walks on either way.';
+    document.getElementById('tick').textContent='$0';
+    document.getElementById('tick').className='ticker';
+    document.getElementById('tickN').textContent='nothing running';
+    document.getElementById('pxb').style.width='0%';
+    document.getElementById('runHint').textContent = SEED.isDaily
+      ? 'Back on today\u2019s challenge. Build a board, then sweep it through the gauntlet.'
+      : 'Practice seed #'+SEED.id+' loaded \u2014 '+seedExperience().label+' \u2014 same machine, different draws, unranked.';
+    paintFloors(); syncBoardBtn(); paintChip(); paintBoard();
+  }
+  function challengeUrl(){
+    var base='';
+    try{ base=location.origin+location.pathname.replace(/\.html$/,''); }catch(e){}
+    return base+'?seed='+SEED.id;
+  }
+  function seedFromUrl(){
+    // The page is iframed at /proto/builder, and the wrapper does not forward its
+    // query string -- so when same-origin, the parent's URL is checked too. A
+    // cross-origin parent throws and falls through to null.
+    function pick(loc){
+      if(!loc) return null;
+      var m=(loc.search||'').match(/[?&]seed=([^&]+)/);
+      if(!m) m=(loc.hash||'').match(/[#&]seed=([^&#]+)/);
+      return m?decodeURIComponent(m[1]):null;
+    }
+    var own=null;
+    try{ own=pick(location); }catch(e){}
+    if(own) return own;
+    try{
+      if(window.parent && window.parent!==window) return pick(window.parent.location);
+    }catch(e){}
+    return null;
+  }
+  document.getElementById('chipSwap').addEventListener('click',function(){
+    var f=document.getElementById('chipForm');
+    f.style.display = f.style.display==='none' ? 'flex' : 'none';
+    if(f.style.display!=='none'){
+      renderSeedHistory();
+      var inp=document.getElementById('chipSeedIn'); inp.value=''; inp.focus();
+    }
+  });
+  document.getElementById('chipLoad').addEventListener('click',function(){
+    applySeed(document.getElementById('chipSeedIn').value);
+    document.getElementById('chipForm').style.display='none';
+  });
+  document.getElementById('chipSeedIn').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ applySeed(this.value); document.getElementById('chipForm').style.display='none'; }
+  });
+  document.getElementById('chipRand').addEventListener('click',function(){
+    // Millisecond clock as entropy source -- avoids the daily id by construction.
+    var r=(fnv(String(Date.now()))^(Math.random()*0xffff))&0xffff;
+    if(hex4(r)===dailySeedId()) r=(r+1)&0xffff;
+    applySeed(hex4(r));
+    document.getElementById('chipForm').style.display='none';
+  });
+  document.getElementById('chipBack').addEventListener('click',function(){ applySeed(dailySeedId()); });
+  document.getElementById('chipShare').addEventListener('click',function(){
+    var u=challengeUrl(), b=this;
+    function flag(t){ b.textContent=t; setTimeout(function(){ b.textContent='copy challenge link'; },1600); }
+    function fallback(){
+      var f=document.getElementById('chipForm'), inp=document.getElementById('chipSeedIn');
+      f.style.display='flex'; inp.value=u; if(inp.select) inp.select();
+      flag('copy blocked \u2014 link below');
+    }
+    try{
+      navigator.clipboard.writeText(u).then(function(){ flag('copied'); },function(){ fallback(); });
+    }catch(e){ fallback(); }
+  });
+  window.addEventListener('hashchange',function(){
+    var s=seedFromUrl(); if(s) applySeed(s);
+  });
+  (function(){ var s=seedFromUrl(); if(s) applySeed(s); else paintChip(); })();
+
+  // ---------- wiring ----------
+  document.getElementById('sBtc').addEventListener('input',function(e){
+    st.btc=parseFloat(e.target.value);
+    document.getElementById('vBtc').textContent=st.btc.toFixed(2)+' BTC';
+    st.tested=false; render();
+  });
+  document.getElementById('sLtv').addEventListener('input',function(e){
+    st.ltv=parseFloat(e.target.value)/100;
+    document.getElementById('vLtv').textContent=(st.ltv*100).toFixed(0)+'% LTV';
+    st.tested=false; render();
+  });
+  // The board button is where re-tuning happens, so while a floor is waiting to be
+  // advanced it becomes a second Continue -- no scrolling back down to carry on.
+  function syncBoardBtn(){
+    var b=document.getElementById('bTest');
+    var awaiting=document.getElementById('bNext').style.display==='block';
+    b.dataset.mode = awaiting ? 'continue' : 'run';
+    b.textContent  = awaiting ? 'Continue' : (HISTORY.length ? 'Run the gauntlet again' : 'Run the gauntlet');
+  }
+  document.getElementById('fcS').addEventListener('input',function(){
+    document.getElementById('fcV').textContent=this.value+'%';
+  });
+  document.getElementById('fcGo').addEventListener('click',lockForecast);
+  document.getElementById('fcSkip').addEventListener('click',skipForecast);
+  document.getElementById('calClr').addEventListener('click',function(){
+    FORECASTS.length=0; skipped=0; saveCalls(); paintCal();
+  });
+  document.getElementById('bRetry').addEventListener('click',retryFloor);
+  document.getElementById('bTest').addEventListener('click',function(){
+    if(this.dataset.mode==='continue') nextFloor(); else startRun();
+  });
+  document.getElementById('bClear').addEventListener('click',function(){
+    st.slots=[null,null,null]; st.tested=false; paintSlots(); paintTiles(); render();
+  });
+  window.addEventListener('resize',function(){ layout(); },{passive:true});
+
+  var last=0;
+  function frame(ts){
+    if(!last) last=ts;
+    var dt=Math.min(0.05,(ts-last)/1000); last=ts;
+    try{ draw(dt); }catch(e){ console.error('draw',e); }
+    try{ tickRun(dt); }catch(e){ console.error('tick',e); }
+    requestAnimationFrame(frame);
+  }
+
+  var VIEW_KEY='membrane.view';
+  function applyView(){
+    var vet = (function(){ try{ return localStorage.getItem(VIEW_KEY)==='vet'; }catch(e){ return false; } })();
+    document.body.classList.toggle('vet',vet);
+    document.getElementById('vTgl').textContent='view: '+(vet?'veteran':'first visit');
+  }
+  document.getElementById('vTgl').addEventListener('click',function(){
+    try{ localStorage.setItem(VIEW_KEY,
+      document.body.classList.contains('vet')?'first':'vet'); }catch(e){}
+    applyView();
+  });
+  applyView();
+
+  layout(); buildFloor(); paintTemplates(); paintLegend(); paintTiles(); render(); draw(0); paintFloors(); paintBoard(); syncBoardBtn(); paintCal();
+  requestAnimationFrame(frame);
+
+  window.__b={ st:st, calc:calc, render:render, lockForecast:lockForecast, stressBtc:stressBtc, liqLine:liqLine, SCENARIOS:SCENARIOS, auditFloor:auditFloor,
+    forecasts:function(){return FORECASTS;}, brier:brier, setP:function(v){document.getElementById('fcS').value=v*100;}, TILES:TILES,
+    run:run, SCENARIOS:SCENARIOS, auditFloor:auditFloor, startRun:startRun,
+    nextFloor:nextFloor, tickRun:tickRun, HISTORY:HISTORY, getRun:function(){return run;},
+    applySeed:applySeed, getSeed:function(){return SEED;}, buildScenarios:buildScenarios, dailySeedId:dailySeedId,
+    simReference:simReference, doctrineRows:doctrineRows,
+    seedExperience:seedExperience, loadSeedBook:loadSeedBook, resolveFloor:resolveFloor,
+    place:function(i,id){ st.slots[i]=id; st.tested=false; paintSlots(); paintTiles(); render(); } };
+})();
+</script>
+
+<script>
+(function(){
+"use strict";
+// The one confirmation an irreversible action gets (VETERAN_UX_RULESET V6): numbers,
+// not prose; then pending; then settled. Mock chain, real choreography.
+function el(t,c,x){var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.innerHTML=x; return e;}
+window.__exec=function(o){
+  var ov=el('div','xsheet'), c=el('div','xcard');
+  c.appendChild(el('div','xh',o.title));
+  var tb=el('div');
+  (o.rows||[]).forEach(function(r){ var w=el('div','xrow');
+    w.appendChild(el('span','',r[0])); w.appendChild(el('b','xv num',r[1])); tb.appendChild(w); });
+  c.appendChild(tb);
+  if(o.note) c.appendChild(el('p','xnote',o.note));
+  var btns=el('div','xbtns'), go=el('button','xgo',o.cta||'Confirm'), no=el('button','xno','Cancel');
+  btns.appendChild(go); btns.appendChild(no); c.appendChild(btns);
+  ov.appendChild(c); document.body.appendChild(ov);
+  var close=function(){ ov.remove(); };
+  no.onclick=close; ov.onclick=function(e){ if(e.target===ov) close(); };
+  go.onclick=function(){
+    btns.remove();
+    var p=el('div','xpend','signing\u2026'); c.appendChild(p);
+    setTimeout(function(){ p.textContent='pending \u2014 waiting for the receipt\u2026';
+      setTimeout(function(){
+        p.className='xdone'; p.textContent=(o.done||'Settled')+' \u00b7 mock chain';
+        var ok=el('button','xno','Close'); ok.style.marginTop='12px';
+        c.appendChild(ok); ok.onclick=close;
+      },1100);
+    },800);
+  };
+};
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-exec]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  var rows=[]; try{ rows=JSON.parse(b.getAttribute('data-rows')||'[]'); }catch(err){}
+  window.__exec({ title:b.getAttribute('data-exec'), rows:rows,
+    cta:b.getAttribute('data-cta')||undefined, note:b.getAttribute('data-note')||'',
+    done:b.getAttribute('data-done')||undefined });
+});
+})();
+</script>

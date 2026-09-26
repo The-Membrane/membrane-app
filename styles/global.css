@@ -14,13 +14,24 @@
 }
 
 /*
- * Living Typeface page background. The Chakra theme already sets html/body bg, but
- * pin the page canvas to near-black here too so the raw document background (visible
- * during hydration / overscroll) matches.
+ * Keep the raw document canvas (visible during hydration / overscroll) aligned
+ * with the selected palette, including Parchment light mode.
  */
 html,
 body {
-  background-color: #09090a;
+  background-color: var(--m-bg-primary);
+}
+
+/* Keep underlined links readable across the app, including NextLink wrappers
+ * around Chakra text. The browser default sits on the glyphs in our mono face. */
+a,
+button,
+.chakra-button,
+[role='link'] {
+  /* Inline text-decoration shorthands otherwise reset thickness back to auto. */
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 0.24em;
+  text-decoration-skip-ink: auto;
 }
 
 /* ===========================================================================
@@ -61,9 +72,9 @@ body {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(40% 50% at 22% 18%, rgba(155, 220, 79, 0.10) 0%, transparent 70%),
+    radial-gradient(40% 50% at 22% 18%, rgba(155, 220, 79, 0.1) 0%, transparent 70%),
     radial-gradient(45% 55% at 82% 30%, rgba(216, 178, 74, 0.08) 0%, transparent 72%),
-    radial-gradient(60% 60% at 50% 100%, rgba(74, 134, 54, 0.10) 0%, transparent 75%);
+    radial-gradient(60% 60% at 50% 100%, rgba(74, 134, 54, 0.1) 0%, transparent 75%);
   mix-blend-mode: screen;
 }
 
@@ -81,7 +92,13 @@ body {
 }
 
 .textShadow {
-  text-shadow: 0 -40px 100px, 0 0 .2px, 0 0 1em #9bdc4f, 0 0 .5em #9bdc4f, 0 0 .1em #9bdc4f, 0 10px 3px #000;
+  text-shadow:
+    0 -40px 100px,
+    0 0 0.2px,
+    0 0 1em #9bdc4f,
+    0 0 0.5em #9bdc4f,
+    0 0 0.1em #9bdc4f,
+    0 10px 3px #000;
 }
 
 .paddingBottom {
@@ -118,18 +135,35 @@ body {
 }
 
 .neonSign {
-  font: 400 4vh 'Redaction 70', 'Redaction', Georgia, serif;
+  font:
+    400 4vh 'Redaction 70',
+    'Redaction',
+    Georgia,
+    serif;
   letter-spacing: 0.04em;
   color: #9bdc4f5a;
-  text-shadow: 0 -40px 100px, 0 0 0.2px, 0 0 0.01em #9bdc4f, 0 0 0.01em #9bdc4f, 0 0 0.01em #9bdc4f, 0 10px 3px #000;
+  text-shadow:
+    0 -40px 100px,
+    0 0 0.2px,
+    0 0 0.01em #9bdc4f,
+    0 0 0.01em #9bdc4f,
+    0 0 0.01em #9bdc4f,
+    0 10px 3px #000;
 }
 
 .neonSignon {
-  font: 400 4vh 'Redaction 70', 'Redaction', Georgia, serif;
+  font:
+    400 4vh 'Redaction 70',
+    'Redaction',
+    Georgia,
+    serif;
   letter-spacing: 0.04em;
   /* Bone glyphs, phosphor glow — the wordmark's own face, lit like the sign it was. */
   color: #ece6d8;
-  text-shadow: 0 0 18px rgba(155, 220, 79, 0.55), 0 0 0.6em rgba(155, 220, 79, 0.35), 0 0 3px #000;
+  text-shadow:
+    0 0 18px rgba(155, 220, 79, 0.55),
+    0 0 0.6em rgba(155, 220, 79, 0.35),
+    0 0 3px #000;
 }
 
 .neonSign b {
@@ -153,7 +187,6 @@ body {
   font-size: clamp(34px, 8vw, 75px);
 }
 
-
 @keyframes blink {
   78% {
     color: inherit;
@@ -165,7 +198,6 @@ body {
   }
 
   80% {
-
     text-shadow: none;
   }
 
@@ -220,7 +252,6 @@ body {
 }
 
 @keyframes ping {
-
   75%,
   100% {
     transform: scale(2);
@@ -229,7 +260,6 @@ body {
 }
 
 @keyframes bounce {
-
   0%,
   100% {
     transform: translateY(-25%);
@@ -263,7 +293,6 @@ body {
 }
 
 @keyframes portalPulse {
-
   0%,
   100% {
     opacity: 0.8;
@@ -319,28 +348,33 @@ body {
 }
 
 @keyframes neonScanGlow {
-
   0%,
   100% {
-    box-shadow: 0 0 10px #3BE5E5, 0 0 20px #3BE5E5, 0 0 30px #3BE5E5;
+    box-shadow:
+      0 0 10px #3be5e5,
+      0 0 20px #3be5e5,
+      0 0 30px #3be5e5;
     opacity: 0.8;
   }
 
   50% {
-    box-shadow: 0 0 20px #3BE5E5, 0 0 40px #3BE5E5, 0 0 60px #3BE5E5;
+    box-shadow:
+      0 0 20px #3be5e5,
+      0 0 40px #3be5e5,
+      0 0 60px #3be5e5;
     opacity: 1;
   }
 }
 
 @keyframes scannerGlow {
-
   0%,
   100% {
-    filter: drop-shadow(0 0 10px #3BE5E5) drop-shadow(0 0 20px #6943FF);
+    filter: drop-shadow(0 0 10px #3be5e5) drop-shadow(0 0 20px #6943ff);
   }
 
   50% {
-    filter: drop-shadow(0 0 20px #3BE5E5) drop-shadow(0 0 30px #6943FF) drop-shadow(0 0 40px #A692FF);
+    filter: drop-shadow(0 0 20px #3be5e5) drop-shadow(0 0 30px #6943ff)
+      drop-shadow(0 0 40px #a692ff);
   }
 }
 
@@ -355,14 +389,14 @@ body {
 }
 
 @keyframes discoSparkle {
-
   0%,
   100% {
     filter: brightness(1) contrast(1) drop-shadow(0 0 4px rgba(166, 146, 255, 0.2));
   }
 
   50% {
-    filter: brightness(1.2) contrast(1.15) drop-shadow(0 0 10px rgba(166, 146, 255, 0.4)) drop-shadow(0 0 15px rgba(59, 229, 229, 0.25));
+    filter: brightness(1.2) contrast(1.15) drop-shadow(0 0 10px rgba(166, 146, 255, 0.4))
+      drop-shadow(0 0 15px rgba(59, 229, 229, 0.25));
   }
 }
 
@@ -391,11 +425,11 @@ body {
     top: 0%;
     left: -2%;
   }
-
 }
 
 /* Medium devices (tablets, 600px to 768px) */
-@media (min-width: 601px) {}
+@media (min-width: 601px) {
+}
 
 /* Race Controls Mobile Responsive Styles */
 .race-controls-container {
@@ -471,7 +505,9 @@ body {
   background: #2a2a2a;
   border-radius: 8px;
   border: 3px solid #444;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -503,7 +539,7 @@ body {
 
 /* Leaderboard Styles */
 .leaderboard-container {
-  font-family: "Press Start 2P", monospace;
+  font-family: 'Press Start 2P', monospace;
   font-size: 12px;
   color: #b8c1ff;
 }

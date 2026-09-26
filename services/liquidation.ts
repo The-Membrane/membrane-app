@@ -114,9 +114,10 @@ export const buildRetractBidMsg = ({ address, denom, bidId, amount }: RetractBid
 }
 
 export const getUserBids = async (address: Addr, rpcUrl: string, denom?: string) => {
-  const client = await liquidationClient(rpcUrl)
-
+  // Guard doesn't use `client` — check it before paying for the client connection.
   if (!denom) return
+
+  const client = await liquidationClient(rpcUrl)
 
   const bidFor = {
     native_token: {

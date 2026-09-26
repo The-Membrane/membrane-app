@@ -7,6 +7,9 @@ cd "$(dirname "$0")/.." || exit 1
 echo "=== recorder tick $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 /opt/homebrew/bin/node scripts/record-venue-liquidity.mjs
 /opt/homebrew/bin/node scripts/record-venue-flows.mjs --chunk 2000
+# Bounded transaction-class reconciliation for NEW Curve depth events. Never
+# blocks the next capacity tick if an archive RPC is unavailable.
+/opt/homebrew/bin/node scripts/record-venue-event-drivers.mjs --limit 8 || echo "drivers:reconcile failed (non-fatal)"
 # Venue news last (external RSS; upsert-idempotent). Non-fatal — a Google News
 # hiccup must never fail the capacity/flows tick, so swallow its exit code.
 /opt/homebrew/bin/node scripts/fetch-venue-news.mjs || echo "news:fetch failed (non-fatal)"

@@ -8,12 +8,26 @@ export default function Document() {
             next/document is the wrong place for them — they'd be identical on every
             route and Next ignores a _document <title> in newer versions anyway. */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png" />
-        <link rel="manifest" href="/images/site.webmanifest" />
-        <link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#09090a" />
-        <meta name="msapplication-TileColor" content="#da532c" />
+        <link rel="shortcut icon" href="/favicon.ico?v=dissolving-cell-1" />
+        <link
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/images/apple-touch-icon.png?v=dissolving-cell-1"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/images/favicon-32x32.png?v=dissolving-cell-1"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/images/favicon-16x16.png?v=dissolving-cell-1"
+        />
+        <link rel="manifest" href="/images/site.webmanifest?v=dissolving-cell-1" />
+        <meta name="msapplication-TileColor" content="#09090a" />
         <meta name="theme-color" content="#09090a" />
         {/* Pre-paint theme stamp: [data-membrane-theme] must exist before first
             paint or light-mode users flash dark. Namespaced attribute — Chakra's

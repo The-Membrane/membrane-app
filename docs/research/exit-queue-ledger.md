@@ -21,11 +21,11 @@ changes that emitted no event.
 
 ## Contract with the other layers
 
-| Term | Definition | Where |
-| --- | --- | --- |
-| Venue key | Stable id: `lido-steth`, `beacon-exit`, `etherfi-weeth`, `kelp-rseth`, `ethena-susde`, `maple-syrupusdc`, `erc7540:<address>`. `aliases.venueRecorder` maps to the recorder's names (`sUSDe`). | `lib/exitQueue/venues.ts` |
-| Block anchor | `{ block, ts }`: the finalized block the numbers were computed at. Every metric, `venue_state` row and Risk Frontier input carries one. | `lib/exitQueue/types.ts` |
-| Label class | `onchain_state` (read at the anchor), `measured_history` (observed outcomes over a trailing window; "measured history, not a forecast"), `chain_schedule` (the beacon chain's assigned exit epochs; "not a forecast"), `change_log` (a recorded parameter change). | `LABEL_TEXT` in `lib/exitQueue/types.ts` |
+| Term         | Definition                                                                                                                                                                                                                                                         | Where                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- |
+| Venue key    | Stable id: `lido-steth`, `beacon-exit`, `etherfi-weeth`, `kelp-rseth`, `ethena-susde`, `maple-syrupusdc`, `erc7540:<address>`. `aliases.venueRecorder` maps to the recorder's names (`sUSDe`).                                                                     | `lib/exitQueue/venues.ts`                |
+| Block anchor | `{ block, ts }`: the finalized block the numbers were computed at. Every metric, `venue_state` row and Risk Frontier input carries one.                                                                                                                            | `lib/exitQueue/types.ts`                 |
+| Label class  | `onchain_state` (read at the anchor), `measured_history` (observed outcomes over a trailing window; "measured history, not a forecast"), `chain_schedule` (the beacon chain's assigned exit epochs; "not a forecast"), `change_log` (a recorded parameter change). | `LABEL_TEXT` in `lib/exitQueue/types.ts` |
 
 The umbrella board entry (Mac-only `/Users/EBmic/AGENT_BOARD.md`) was not readable from the
 cloud session that built this. The three terms above are this lane's reading of
@@ -44,15 +44,15 @@ is not touched here.
 
 ## Venues
 
-| Key | Contract (mainnet) | Request | Claimable (finalized) | Claim | Queue now | Advertised wait |
-| --- | --- | --- | --- | --- | --- | --- |
-| `lido-steth` | WithdrawalQueueERC721 `0x889e…F9B1` | `WithdrawalRequested` | `WithdrawalsFinalized(from, to)` range | `WithdrawalClaimed` | `unfinalizedStETH()`, `unfinalizedRequestNumber()` | none on-chain |
-| `beacon-exit` | Beacon API | — | — | — | `active_exiting` count, Σ effective balance | schedule tail: max `exit_epoch` − head epoch |
-| `etherfi-weeth` | WithdrawRequestNFT `0x7d57…4E2c` | `WithdrawRequestCreated` | `lastFinalizedRequestId()` advanced — **no event**; located by bisection | `WithdrawRequestClaimed` | count `nextRequestId − 1 − lastFinalized`; amount = ledger sum | none on-chain |
-| `kelp-rseth` | LRTWithdrawalManager `0x62De…ec16` | `AssetWithdrawalQueued(…, userNonce)` | `nextLockedNonce(asset)` read at each `AssetUnlocked` | `AssetWithdrawalFinalized`, FIFO + exact rsETH amount | count Σ `nextUnusedNonce − nextLockedNonce`; amount = ledger sum | `withdrawalDelayBlocks` × 12 s |
-| `ethena-susde` | StakedUSDeV2 `0x9D39…3497`, silo `0x7FC7…3425` | `Withdraw` with receiver = silo | `cooldownEnd` = request time + cooldown in force (contract rule) | USDe `Transfer` silo → receiver, matched to an owner bucket by exact amount | `USDe.balanceOf(silo)` | `cooldownDuration()` |
-| `maple-syrupusdc` | pool `0x80ac…Cc0b` → WithdrawalManagerQueue `0x1bc4…cfE3` | `RequestCreated` | `RequestProcessed` + `RequestRemoved` in one tx | same tx (redeem pays out) | `totalShares()`, `queue()` | none on-chain |
-| `erc7540:<addr>` | configured in `ERC7540_VAULTS` (empty) | `RedeemRequest` | not standardised | ERC-4626 `Withdraw` by controller, FIFO | ledger | none |
+| Key               | Contract (mainnet)                                        | Request                               | Claimable (finalized)                                                    | Claim                                                                       | Queue now                                                        | Advertised wait                              |
+| ----------------- | --------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| `lido-steth`      | WithdrawalQueueERC721 `0x889e…F9B1`                       | `WithdrawalRequested`                 | `WithdrawalsFinalized(from, to)` range                                   | `WithdrawalClaimed`                                                         | `unfinalizedStETH()`, `unfinalizedRequestNumber()`               | none on-chain                                |
+| `beacon-exit`     | Beacon API                                                | —                                     | —                                                                        | —                                                                           | `active_exiting` count, Σ effective balance                      | schedule tail: max `exit_epoch` − head epoch |
+| `etherfi-weeth`   | WithdrawRequestNFT `0x7d57…4E2c`                          | `WithdrawRequestCreated`              | `lastFinalizedRequestId()` advanced — **no event**; located by bisection | `WithdrawRequestClaimed`                                                    | count `nextRequestId − 1 − lastFinalized`; amount = ledger sum   | none on-chain                                |
+| `kelp-rseth`      | LRTWithdrawalManager `0x62De…ec16`                        | `AssetWithdrawalQueued(…, userNonce)` | `nextLockedNonce(asset)` read at each `AssetUnlocked`                    | `AssetWithdrawalFinalized`, FIFO + exact rsETH amount                       | count Σ `nextUnusedNonce − nextLockedNonce`; amount = ledger sum | `withdrawalDelayBlocks` × 12 s               |
+| `ethena-susde`    | StakedUSDeV2 `0x9D39…3497`, silo `0x7FC7…3425`            | `Withdraw` with receiver = silo       | `cooldownEnd` = request time + cooldown in force (contract rule)         | USDe `Transfer` silo → receiver, matched to an owner bucket by exact amount | `USDe.balanceOf(silo)`                                           | `cooldownDuration()`                         |
+| `maple-syrupusdc` | pool `0x80ac…Cc0b` → WithdrawalManagerQueue `0x1bc4…cfE3` | `RequestCreated`                      | `RequestProcessed` + `RequestRemoved` in one tx                          | same tx (redeem pays out)                                                   | `totalShares()`, `queue()`                                       | none on-chain                                |
+| `erc7540:<addr>`  | configured in `ERC7540_VAULTS` (empty)                    | `RedeemRequest`                       | not standardised                                                         | ERC-4626 `Withdraw` by controller, FIFO                                     | ledger                                                           | none                                         |
 
 Every address and event ABI was checked on 2026-10-05: proxies through the EIP-1967 slot,
 ABIs from verified implementation source (Sourcify for ether.fi impl `0x41617d01…4a7e` and
@@ -76,7 +76,9 @@ Kelp impl `0x0ecde3f4…2c19`; GitHub for Lido, Ethena, Maple), topic0 seen in l
   `WithdrawalDelayBlocksUpdated` / fee / min amount, pause and bunker events) plus
   **read-diff changes**: each run reads the parameters, and a value that differs from the
   last good read with no event in between is logged as `state_diff` with its block bracket.
-  A failed read (`null`) is never a change.
+  A failed read (`null`) is never a change. Changes from before the ledger's coverage appear
+  only when verified once and listed in `seededChanges` (today: sUSDe cooldown 604,800 →
+  86,400 s, block 24,669,809, tx `0x05856199…f9`); this is not a complete history.
 - **Unmatched claims** are counted, never invented (claims of requests older than the ledger,
   non-queue exits).
 
@@ -96,47 +98,60 @@ fleet. Re-running continues from each ledger's cursor.
 
 Storage is local-first (Neon is quota-limited): one JSON file per venue under
 `data/exit-queue/` (gitignored), written atomically. Finished requests are pruned after 120
-days. Sizes after a 30-day backfill: Lido 936 KB, sUSDe 472 KB, Maple 205 KB, Kelp 71 KB,
-beacon 0.5 KB per reading.
+days. Sizes after a 30-day backfill: Lido 935 KB, sUSDe 497 KB, ether.fi 308 KB, Maple 216 KB,
+Kelp 90 KB, beacon 0.5 KB per reading.
 
 API: `GET /api/venues/exit-queues[?venue=]` (`pages/api/venues/exit-queues.ts`; no RPC).
 Card: `components/Venue/ExitQueueCard.tsx`, mounted on the Carry page as section 08.
 
-## Findings (2026-10-05, finalized block ≈ 26,123,640; measured history, not a forecast)
+## Findings (2026-10-05; finalized block 26,123,831, 04:38 UTC; measured history, not a forecast)
 
-30-day backfill over public RPC (Pocket + publicnode), request cohorts:
+30-day backfill over public RPC (Pocket + dRPC) with every defense below on: 0 request-id
+gaps, 0 read anomalies, and the ledger's open count equals the contract's pending count for
+Lido (514), ether.fi (70) and Kelp (138). Request cohorts; 30-day window unless stated.
 
-- **Lido stETH**: 2,855 requests. Request → finalized p50 23.5 h, p90 101.4 h (4.2 d).
-  The 7-day cohort has not reached its median: 513 requests / 150,124 stETH unfinalized,
-  oldest 102.6 h. Finalized → claimed p50 23.1 h.
-- **Beacon exit queue**: 24,354–24,392 validators / ≈787–788k ETH exiting; the last assigned
-  exit epoch is 2,014 epochs (≈ 8.95 d) after head, +27.3 h to withdrawable, then the sweep.
-- **Ethena sUSDe**: 962 requests; request → claimable 24.0 h at p50 and p90 (the 1-day
-  cooldown, contract rule). Claimable → claimed p50 0.8 h, p90 370.7 h (15.4 d): a long tail
-  of matured, unclaimed cooldowns. The silo holds 15.27M USDe (cooling and matured-unclaimed).
-- **Maple syrupUSDC**: 573 requests; processed (and paid in the same tx) p50 ≈ 6 min, p90 ≈ 8 min;
-  6 cancelled; queue empty at the anchor.
-- **Kelp rsETH** and **ether.fi eETH**: see the lane log on the board; the first 30-day run
-  exposed two data hazards (below) and was re-run.
+| Venue           | Requests | Request → claimable                                                                      | Claimable → claimed     | Queue now                                       |
+| --------------- | -------- | ---------------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------- |
+| Lido stETH      | 2,856    | p50 23.5 h · p90 101.9 h (4.2 d); 7-day cohort median not reached, ≥ 103.2 h             | p50 22.9 h              | 514 requests / 150,124 stETH                    |
+| Beacon exits    | —        | last scheduled exit 8.92 d after head (+27.3 h to withdrawable, then the sweep)          | —                       | 24,323 validators / 786,275 ETH                 |
+| ether.fi eETH   | 869      | p50 25.4 h · p90 43.5 h; 7-day cohort p50 55.6 h · p90 70.8 h                            | p50 1.5 h · p90 3.8 h   | 70 requests / 1,243 eETH                        |
+| Kelp rsETH      | 217      | p50 397.6 h (16.6 d); p90 not reached, ≥ 487.1 h (20.3 d); no 7-day request unlocked yet | p50 32.8 h              | 138 requests / 7,088 rsETH                      |
+| Ethena sUSDe    | 1,003    | 24.0 h at p50 and p90 (the 1-day cooldown, contract rule)                                | p50 45 min · p90 96.3 h | silo 15.67M USDe (cooling + matured, unclaimed) |
+| Maple syrupUSDC | 604      | p50 3.4 min · p90 6.4 min (processed and paid in one tx)                                 | same tx                 | empty                                           |
 
-Data hazards found while building:
+Read with care:
 
-1. **Kelp `AssetWithdrawalFinalized` is also emitted by `instantWithdrawal`**, which never
-   queued. The event alone is not a queue claim. `completeWithdrawal` always pays the user's
-   oldest request, so the ledger accepts a claim only when the burned rsETH equals that
-   request's amount.
-2. **Kelp `withdrawalDelayBlocks` reads 0** on 2026-10-05 (code default 8 days). The
-   advertised delay is therefore not the wait; the operator's `unlockQueue` is.
-3. **A public relay returned a wrong historical read**: ether.fi `lastFinalizedRequestId`
-   82,325 at block 25,925,600, while Pocket and dRPC both return 82,403 there (and at the
-   blocks on both sides). Bisection now retries an out-of-order read once, then brackets the
-   interval and counts it in `readAnomalies`.
-4. **publicnode refuses archive `eth_call`** (`-32602 Archive requests require a personal
-   token`) while serving recent state, so a fallback hop silently turned historical reads
-   into failures. Reads at events are retried; Kelp reconciles with the on-chain frontier at
-   the scan end (upper bound); ether.fi keeps its cursor block when the end read fails.
-5. **Beacon API**: publicnode answers `/states/{state_root}/validators` but returns HTTP 403
-   for a numeric slot as `state_id`. The recorder queries by the finalized header's state root.
+- Lido and ether.fi are slowing: their 7-day cohorts wait longer than their 30-day cohorts.
+  The beacon queue (≈ 9 d to the last scheduled exit) is the likely common cause; this ledger
+  shows the coincidence, not the mechanism.
+- Kelp's on-chain `withdrawalDelayBlocks` is **0** (code default 8 days), yet requests take a
+  median 16.6 days to unlock: the operator's `unlockQueue` sets the wait, not the parameter.
+  An "advertised cooldown" read from the contract would understate the real wait.
+- sUSDe's wait is the cooldown by construction; the tail is users not claiming.
+
+## Data hazards found while building
+
+1. **Public relays drop logs silently.** One 30-day Lido scan missed 118 of 2,862 requests;
+   two sUSDe scans each missed different requests. Nothing errored. Defenses: each log range
+   is fetched twice and unioned when the answers differ (the final run caught 3 Lido, 3
+   ether.fi and 6 sUSDe disagreeing ranges); request-id gaps (Lido, ether.fi, Maple, Kelp per
+   asset) trigger a re-fetch of the bounding range and are counted if they remain.
+2. **Public relays answer archive `eth_call` with another block's state.** Pocket answered
+   ether.fi `lastFinalizedRequestId` at block 25,930,000 with 82721 once and 82427 five times
+   (dRPC: 82427 every time); another read returned 82325 at a block where the value is 82403.
+   Defense: historical reads need two matching answers; bisection retries an out-of-order
+   read, then brackets the interval (`readAnomalies`).
+3. **publicnode refuses archive `eth_call`** (`-32602 Archive requests require a personal
+token`) while serving recent state, so a fallback hop turned historical reads into
+   failures. Reads at events retry; Kelp reconciles with `nextLockedNonce` at the scan end.
+4. **Kelp `AssetWithdrawalFinalized` is also emitted by `instantWithdrawal`**, which never
+   queued. The ledger accepts a queue claim only when the burned rsETH equals the user's
+   oldest open request (what `completeWithdrawal` always pays).
+5. **ether.fi finalization emits no event.** `lastFinalizedRequestId` is bisected; a budget
+   that runs out depth-first leaves later finalizations to be dated by the claim (an upper
+   bound, `finalizedVia: 'claim'`). The default budget is now 2,000 reads.
+6. **Beacon API**: publicnode returns HTTP 403 for a numeric slot as `state_id` and sometimes
+   404 for a finalized state root; the recorder falls back to `finalized` and re-checks the slot.
 
 ## Open items
 
@@ -147,4 +162,33 @@ Data hazards found while building:
 - sUSDe claim matching needs the owner's whole bucket inside the ledger; buckets that started
   before the ledger stay unmatched (counted).
 - Live validation used public RPCs from a cloud session; re-run with the keyed Ankr alias on
-  the Mac before relying on the numbers.
+  the Mac (`--quorum 1 --log-quorum 1` is safe only on a single trusted archive endpoint).
+- sUSDe has no request ids, so a missed request log is caught only by the double fetch.
+
+## Board lines (for the umbrella entry in `/Users/EBmic/AGENT_BOARD.md`)
+
+The cloud session that built this could not reach that board. Paste under the umbrella
+entry's LANES list and discoveries:
+
+```
+- LANE exit-queue-ledger · Layer: DATA · The-Membrane/membrane-app feat/exit-queue-ledger
+  (off evm-migration 28c674d) · contract: venue key + finalized-block anchor + label classes
+  (onchain_state | measured_history | chain_schedule | change_log) · venues: Lido, beacon,
+  ether.fi, Kelp, sUSDe, Maple (+ERC-7540 decoder, no vault) · local JSON ledger, no Neon,
+  no launchd · 92 unit tests · Risk Frontier input: lib/exitQueue/riskFrontier.ts (engine
+  untouched) · doc: docs/research/exit-queue-ledger.md · TODO: re-run on the Mac with the
+  keyed Ankr alias.
+- 2026-10-05 DISCOVERY (exit-queue lane): public relays (Pocket) silently drop eth_getLogs
+  results (Lido 30-day scan missed 118/2,862 requests) and answer archive eth_call with
+  another block's state (ether.fi lastFinalizedRequestId@25,930,000: 82721 once, 82427 x5;
+  dRPC 82427). Any research reading history through the RPC ring needs double fetch /
+  quorum reads. publicnode refuses archive eth_call (-32602).
+- 2026-10-05 DISCOVERY: Kelp withdrawalDelayBlocks = 0 on-chain, but 30-day measured
+  request → unlock p50 = 16.6 d (p90 ≥ 20.3 d); the advertised parameter is not the wait.
+  Kelp AssetWithdrawalFinalized also fires for instantWithdrawal (not a queue claim).
+- 2026-10-05 DISCOVERY: ether.fi finalizeRequests emits no event; finalization time needs
+  bisection of lastFinalizedRequestId.
+- 2026-10-05 MEASURED (not a forecast): Lido p50 23.5 h / p90 4.2 d, 7-day cohort ≥ 103 h,
+  514 requests / 150k stETH pending; beacon exit tail 8.9 d; ether.fi 7-day p50 55.6 h vs
+  30-day 25.4 h; sUSDe claim tail p90 96 h, silo 15.67M USDe; Maple p50 3.4 min.
+```

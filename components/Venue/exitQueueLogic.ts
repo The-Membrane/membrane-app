@@ -123,7 +123,7 @@ export function changeCell(m: VenueExitMetrics): Cell {
   return {
     primary: describeChange(c),
     secondary:
-      c.source === 'event'
+      c.source === 'event' || c.source === 'seeded'
         ? `${new Date(c.ts * 1000).toISOString().slice(0, 10)} · emitted as an event`
         : `silent (no event) · found ${new Date(c.ts * 1000).toISOString().slice(0, 10)}, changed after block ${c.sinceBlock}`,
   }

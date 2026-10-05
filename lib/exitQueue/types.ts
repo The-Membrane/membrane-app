@@ -87,8 +87,11 @@ export interface ParamChange {
   to: ParamValue
   block: number
   ts: number
-  /** `event` = the contract emitted it; `state_diff` = two reads disagreed (silent change). */
-  source: 'event' | 'state_diff'
+  /**
+   * `event` = the contract emitted it; `state_diff` = two reads disagreed (silent change);
+   * `seeded` = an event before the ledger's coverage, verified once and listed in venues.ts.
+   */
+  source: 'event' | 'state_diff' | 'seeded'
   /** For state_diff: the change happened in (sinceBlock, block]. */
   sinceBlock?: number
   txHash?: string

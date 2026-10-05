@@ -301,7 +301,10 @@ export function venueMetrics(
     ? cooldownSeconds(def, sample?.values[def.cooldown.param])
     : null
 
-  const changes = [...ledger.changes]
+  const seeded = (def.seededChanges ?? []).filter(
+    (c) => !ledger.changes.some((x) => x.txHash === c.txHash && x.param === c.param),
+  )
+  const changes = [...ledger.changes, ...seeded]
     .filter((c) => !anchor || c.block <= anchor.block)
     .sort((a, b) => b.block - a.block)
 

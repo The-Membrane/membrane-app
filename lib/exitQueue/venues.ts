@@ -1,6 +1,6 @@
 import { parseAbiItem, toEventSelector, type AbiEvent } from 'viem'
 
-import type { VenueKey } from './types'
+import type { ParamChange, VenueKey } from './types'
 
 /**
  * Venue registry for the exit-queue ledger, in the priority order of the DeFi Dojo
@@ -111,6 +111,11 @@ export interface VenueDef {
   aliases?: Record<string, string>
   /** One-line mechanism note shown under the card row. */
   mechanism: string
+  /**
+   * Parameter changes before any ledger's coverage, each checked on-chain once. Not a
+   * complete history: only what was verified is listed.
+   */
+  seededChanges?: ParamChange[]
 }
 
 export const VENUES: VenueDef[] = [
@@ -169,6 +174,19 @@ export const VENUES: VenueDef[] = [
     },
     cooldown: { param: 'cooldownDuration', toSeconds: 'seconds' },
     aliases: { venueRecorder: 'sUSDe' },
+    seededChanges: [
+      {
+        // Receipt status 1; CooldownDurationUpdated(604800, 86400) from the vault;
+        // cooldownDuration() reads 604800 at block 24,669,808 and 86400 at 24,669,809.
+        param: 'cooldownDuration',
+        from: 604_800,
+        to: 86_400,
+        block: 24_669_809,
+        ts: 1_773_661_067,
+        source: 'seeded',
+        txHash: '0x05856199ceddbfb1b8231c8bfa3bf4c967e5156122b2f1eb11a473fdf5f2d9f9',
+      },
+    ],
     mechanism:
       'One cooldown bucket per owner; a new cooldown resets the whole bucket. Duration changes apply only to new requests.',
   },

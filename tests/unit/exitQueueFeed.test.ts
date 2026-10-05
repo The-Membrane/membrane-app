@@ -190,6 +190,15 @@ describe('card text', () => {
     return venueMetrics(def('lido-steth'), l)
   }
 
+  it('shows the verified pre-coverage sUSDe cooldown change, and drops the seed once the ledger has the event', () => {
+    const l = ledgerWithCoverage('ethena-susde', 26_000_000, 26_100_000)
+    const seededView = changeCell(venueMetrics(def('ethena-susde'), l))
+    expect(seededView.primary).toBe('cooldown 7.0d → 24.0h')
+    expect(seededView.secondary).toMatch(/^2026-03-16 · emitted as an event/)
+    l.changes.push({ ...def('ethena-susde').seededChanges![0], source: 'event' })
+    expect(venueMetrics(def('ethena-susde'), l).changes).toHaveLength(1)
+  })
+
   it('formats durations without pretending to precision', () => {
     expect([
       fmtDuration(null),

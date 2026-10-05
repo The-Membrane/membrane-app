@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 import { fetchMerklOpportunities } from '@/lib/netApy/incentives'
-import { readAllVenues, type SnapshotSet } from '@/lib/netApy/read'
+import { AnchorNotFinalizedError, readAllVenues, type SnapshotSet } from '@/lib/netApy/read'
 import { netApyClient, redactError } from '@/lib/netApy/rpc'
 import {
   handleNetApy,
@@ -13,7 +13,13 @@ import {
   type NetApyVenueResponse,
   type Serialized,
 } from '@/lib/netApy/service'
-import { loadLatestSnapshotSet, loadMerklPull, loadSnapshotSetAt, saveMerklPull, saveSnapshotSet } from '@/lib/netApy/store'
+import {
+  loadLatestSnapshotSet,
+  loadMerklPull,
+  loadPinnedSnapshotSet,
+  saveMerklPull,
+  saveSnapshotSet,
+} from '@/lib/netApy/store'
 import { asOfOf } from '@/lib/netApy/types'
 import { NET_APY_VENUES } from '@/lib/netApy/venues'
 
@@ -43,7 +49,7 @@ const nowS = () => Math.floor(Date.now() / 1000)
 const deps: NetApyDeps = {
   snapshots: async (block) => {
     if (block !== undefined) {
-      const stored = loadSnapshotSetAt(block)
+      const stored = loadPinnedSnapshotSet(block)
       if (stored) return stored
       const { client, label } = netApyClient()
       const set = await readAllVenues(client, NET_APY_VENUES, label, block)
@@ -86,6 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     res.setHeader('Cache-Control', query.block !== undefined ? 'public, s-maxage=86400' : 'public, s-maxage=60, stale-while-revalidate=300')
     return res.status(200).json(serialize(body) as NetApyResponse)
   } catch (e) {
+    if (e instanceof AnchorNotFinalizedError) return res.status(400).json({ error: e.message })
     // The message names the failed call; redactError strips any RPC URL (rpc.ts).
     return res.status(502).json({ error: redactError(e) })
   }

@@ -5,9 +5,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { bigintReviver } from '@/lib/netApy/fixedPoint'
 import { extractCampaigns, type MerklOpportunity } from '@/lib/netApy/incentives'
-import type { SnapshotSet } from '@/lib/netApy/read'
+import { AnchorNotFinalizedError, resolveAnchor, type SnapshotSet } from '@/lib/netApy/read'
 import { handleNetApy, parseQuery, type NetApyVenueResponse } from '@/lib/netApy/service'
-import { loadLatestSnapshotSet, saveSnapshotSet } from '@/lib/netApy/store'
+import { loadLatestSnapshotSet, loadPinnedSnapshotSet, saveSnapshotSet } from '@/lib/netApy/store'
 import type { VenueSnapshot } from '@/lib/netApy/types'
 import { venueByKey } from '@/lib/netApy/venues'
 
@@ -100,5 +100,51 @@ describe('the live-read cache is measured from asOf', () => {
     // The same block stored without asOf is judged by its anchor time: 900 s > 120 s.
     saveSnapshotSet({ anchor: fx.anchor, rpc: fx.rpc, snapshots: fx.snapshots, errors: [] })
     expect(loadLatestSnapshotSet(120, now)).toBeNull()
+  })
+})
+
+describe('pinned anchors keep the finalized contract', () => {
+  const FINALIZED = 26_120_000n
+  const client = {
+    getBlock: async (q: { blockTag?: string; blockNumber?: bigint }) => {
+      const n = q.blockTag === 'finalized' ? FINALIZED : q.blockNumber!
+      return { number: n, timestamp: 1_700_000_000n + n, hash: `0x${'ab'.repeat(32)}` }
+    },
+  } as unknown as Parameters<typeof resolveAnchor>[0]
+
+  it('refuses a pinned block above finalized (it could be reorged, and would outrank the live set)', async () => {
+    await expect(resolveAnchor(client, FINALIZED + 1n)).rejects.toBeInstanceOf(
+      AnchorNotFinalizedError,
+    )
+  })
+
+  it('accepts a pinned block at or below finalized, and the unpinned read is the finalized block', async () => {
+    expect((await resolveAnchor(client, FINALIZED)).blockNumber).toBe(FINALIZED)
+    expect((await resolveAnchor(client, FINALIZED - 5n)).blockNumber).toBe(FINALIZED - 5n)
+    expect((await resolveAnchor(client)).blockNumber).toBe(FINALIZED)
+  })
+})
+
+describe('a pinned replay of a stored live read uses the block time', () => {
+  let dir: string | null = null
+  afterEach(() => {
+    delete process.env.NET_APY_STORE_DIR
+    if (dir) rmSync(dir, { recursive: true, force: true })
+    dir = null
+  })
+
+  it('loadPinnedSnapshotSet resets asOf to the anchor time', () => {
+    dir = mkdtempSync(join(tmpdir(), 'net-apy-pinned-'))
+    process.env.NET_APY_STORE_DIR = dir
+    saveSnapshotSet({
+      anchor: fx.anchor,
+      asOf: anchorTs + 900,
+      rpc: fx.rpc,
+      snapshots: fx.snapshots,
+      errors: [],
+    })
+    expect(loadPinnedSnapshotSet(fx.anchor.blockNumber)?.asOf).toBe(anchorTs)
+    // The live path still sees the read's own wall clock.
+    expect(loadLatestSnapshotSet(Number.POSITIVE_INFINITY)?.asOf).toBe(anchorTs + 900)
   })
 })

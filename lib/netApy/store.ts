@@ -70,6 +70,15 @@ export function saveSnapshotSet(set: SnapshotSet): boolean {
 
 export const loadSnapshotSetAt = (block: bigint): SnapshotSet | null => readJson<SnapshotSet>(snapFile(block))
 
+/**
+ * A stored set served as a PINNED replay: its asOf is the block's own time, even when
+ * the file was first written by a live read (whose asOf is that read's wall clock).
+ */
+export function loadPinnedSnapshotSet(block: bigint): SnapshotSet | null {
+  const set = loadSnapshotSetAt(block)
+  return set && { ...set, asOf: Number(set.anchor.blockTimestamp) }
+}
+
 /** Newest stored set read less than `maxAgeS` before `nowS` (its `asOf`, not its finalized anchor's time). */
 export function loadLatestSnapshotSet(maxAgeS: number, nowS: number = Math.floor(Date.now() / 1000)): SnapshotSet | null {
   const newest = snapshotBlocks()[0]

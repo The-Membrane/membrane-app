@@ -127,6 +127,17 @@ export const eulerKinkAbi = [
 
 // ---------------------------------------------------------------------- anchor
 
+/** A pinned block above the finalized block: refused, never read or stored. */
+export class AnchorNotFinalizedError extends Error {
+  constructor(
+    readonly block: bigint,
+    readonly finalized: bigint,
+  ) {
+    super(`block ${block} is not finalized yet (finalized is ${finalized})`)
+    this.name = 'AnchorNotFinalizedError'
+  }
+}
+
 /**
  * The anchor block: `blockNumber` if given (a pinned read), else the FINALIZED block.
  * Umbrella contract (AGENT_BOARD.md, "ONE GOAL, THREE LAYERS"): recorder rows,
@@ -138,6 +149,14 @@ export const eulerKinkAbi = [
  * left); use `asOfOf(set)` (lib/netApy/types.ts). Chain math (Morpho's elapsed-time IRM) keeps the anchor time.
  */
 export async function resolveAnchor(client: PublicClient, blockNumber?: bigint): Promise<BlockAnchor> {
+  if (blockNumber !== undefined) {
+    // A pinned anchor is held to the same contract: above finalized it could be reorged,
+    // and once stored it would outrank the live finalized set (store.ts takes the highest block).
+    const finalized = await client.getBlock({ blockTag: 'finalized' })
+    if (finalized.number !== null && blockNumber > finalized.number) {
+      throw new AnchorNotFinalizedError(blockNumber, finalized.number)
+    }
+  }
   const block = await client.getBlock(blockNumber === undefined ? { blockTag: 'finalized' } : { blockNumber })
   if (block.number === null || block.hash === null) throw new Error('anchor: block has no number/hash (pending?)')
   return { chainId: 1, blockNumber: block.number, blockTimestamp: block.timestamp, blockHash: block.hash }

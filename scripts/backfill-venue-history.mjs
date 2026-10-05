@@ -52,6 +52,13 @@ if (!venue) {
   console.error(`Unknown venue '${venueName}' — not in tools/venue-recorder.config.json`)
   process.exit(1)
 }
+if (!venue.address) {
+  // Registry-only entries (e.g. net-APY venue-keys) carry no verified recorder address.
+  console.error(
+    `Venue '${venueName}' has no verified address in tools/venue-recorder.config.json — not backfillable`,
+  )
+  process.exit(1)
+}
 
 const sql = neon(dbUrl)
 const client = makeClient(rpcUrl)

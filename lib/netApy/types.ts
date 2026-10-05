@@ -1,17 +1,22 @@
 /**
  * NET APY AT SIZE — shared types.
  *
- * THE THREE CONTRACT TERMS this lane exports (umbrella board entry, Layer DATA+PRODUCT):
+ * THE CONTRACT TERMS this lane shares (umbrella board entry, Layer DATA+PRODUCT):
  *
- *   venue-key     a stable lowercase slug, `<protocol>-<market>`, e.g. `aave-v3-usdc`,
- *                 `morpho-blue-cbbtc-usdc-86`, `euler-v2-eusdc-2`. Where the venue
- *                 recorder already names a venue (tools/venue-recorder.config.json
- *                 `name`), the key IS that name (`aave-v3-usde`), so rows join.
+ *   venue-key     the venue's `name` in THE venue registry, tools/venue-recorder.config.json,
+ *                 exact case. One namespace: no lane mints its own IDs. This lane's keys
+ *                 are `<protocol>-<market>` slugs (`aave-v3-usdc`, `morpho-blue-cbbtc-usdc-86`,
+ *                 `euler-v2-eusdc-2`) and each is registered there; the ones the recorder
+ *                 does not record yet sit `enabled: false`. Other registry names keep their
+ *                 own case (`sUSDe`). tests/unit/netApyVenueRegistry.test.ts enforces this.
  *   block anchor  every on-chain number in one snapshot was read at ONE block
- *                 (`BlockAnchor`). A projection names the anchor it projects from.
- *   label class   every figure says what kind of claim it is (`LabelClass`). A
- *                 projection is never shown as a measurement, and nothing here is a
- *                 promise of positive carry.
+ *                 (`BlockAnchor`): the finalized block, or an explicitly pinned one.
+ *                 A projection names the anchor it projects from.
+ *   label class   `LabelClass`: where a number comes from (measured, derived, projected,
+ *                 reported, curator-set). A projection is never shown as a measurement,
+ *                 and nothing here is a promise of positive carry.
+ *   claim class   `ClaimClass`: the umbrella's five classes of claim, a separate field.
+ *                 Today only the rate-spike axis carries one ('stress-scenario').
  */
 
 export type Address = `0x${string}`
@@ -25,6 +30,14 @@ export interface BlockAnchor {
 }
 
 /**
+ * "Now" for a wall-clock question about a read (cache age, campaign liveness, days
+ * left): its `asOf`, falling back to the anchor time for sets stored before `asOf`
+ * existed. A finalized anchor is minutes old, so never use the anchor time directly.
+ */
+export const asOfOf = (set: { anchor: BlockAnchor; asOf?: number }): number =>
+  set.asOf ?? Number(set.anchor.blockTimestamp)
+
+/**
  * What kind of claim a number is. The card renders the class next to the number.
  *   measured     read on-chain at the anchor block
  *   derived      exact arithmetic on measured values (a fee split, a reconstructed rate)
@@ -34,6 +47,26 @@ export interface BlockAnchor {
  *   curator-set  Membrane's take: a curator declares it; it is not fixed pre-launch
  */
 export type LabelClass = 'measured' | 'derived' | 'projected' | 'reported' | 'curator-set'
+
+/**
+ * The umbrella's claim classes, in its own words (they must never blur). This is a
+ * different question from `LabelClass`: a label says where a number comes from, a
+ * claim class says what an output claims. Both can say "measured"; read them apart:
+ * a `measured` label is one on-chain read, a `measured-change` claim is a change
+ * between reads.
+ *   measured-change          a change that was measured
+ *   observed-driver          an observed cause of a change
+ *   possible-leading-signal  might lead a change; not shown as a cause
+ *   stress-scenario          deterministic what-if under stated assumptions; "not a probability"
+ *   calibrated-forecast      EMPTY TODAY: only after the forecaster's promotion gate, as
+ *                            ranges with n and the sample period
+ */
+export type ClaimClass =
+  | 'measured-change'
+  | 'observed-driver'
+  | 'possible-leading-signal'
+  | 'stress-scenario'
+  | 'calibrated-forecast'
 
 export type NetApyProtocol = 'aave-v3' | 'spark' | 'morpho-blue' | 'euler-v2'
 

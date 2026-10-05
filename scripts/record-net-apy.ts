@@ -3,7 +3,7 @@
 //
 //   pnpm netapy:record            (tsx; from the membrane-app root)
 //
-//   1. Read every registered venue at the latest block (one anchor) and store the set.
+//   1. Read every registered venue at the finalized block (one anchor) and store the set.
 //   2. Pull live Merkl campaigns and store the trimmed pull.
 //   3. Diff against the previous tick and append changes to events.jsonl:
 //      campaign_new · campaign_end_changed · campaign_gone_early (lapsed before its end
@@ -26,6 +26,7 @@ import {
   saveSnapshotSet,
   storeDir,
 } from '../lib/netApy/store'
+import { asOfOf } from '../lib/netApy/types'
 import { NET_APY_VENUES, venueByKey } from '../lib/netApy/venues'
 
 const vaultOf = (k: string) => {
@@ -37,7 +38,9 @@ async function main(): Promise<number> {
   const prevSet = loadLatestSnapshotSet(Number.POSITIVE_INFINITY)
   const { client, label } = netApyClient()
   const set = await readAllVenues(client, NET_APY_VENUES, label)
-  const nowTs = Number(set.anchor.blockTimestamp)
+  // Event times are wall clock. The finalized anchor is ~13–19 min old: judging Merkl
+  // campaign liveness by it would log an on-time end as campaign_gone_early.
+  const nowTs = asOfOf(set)
   console.log(`[net-apy] block ${set.anchor.blockNumber} via ${label}: ${set.snapshots.length}/${NET_APY_VENUES.length} venues read`)
   for (const e of set.errors) console.log(`  read error ${e.venueKey}: ${e.message}`)
   if (set.snapshots.length === 0) return 1
@@ -48,10 +51,10 @@ async function main(): Promise<number> {
   try {
     const pull = { fetchedAt: Math.floor(Date.now() / 1000), opportunities: await fetchMerklOpportunities() }
     saveMerklPull(pull)
-    const campaigns = extractCampaigns(pull.opportunities, set.snapshots, vaultOf, nowTs)
+    const campaigns = extractCampaigns(pull.opportunities, set.snapshots, vaultOf, pull.fetchedAt)
     const prev = loadCampaignState()
-    if (prev) events.push(...diffCampaigns(prev.campaigns, campaigns, nowTs))
-    saveCampaignState({ observedAt: nowTs, campaigns })
+    if (prev) events.push(...diffCampaigns(prev.campaigns, campaigns, pull.fetchedAt))
+    saveCampaignState({ observedAt: pull.fetchedAt, campaigns })
     console.log(`[net-apy] merkl: ${pull.opportunities.length} opportunities, ${campaigns.length} pay covered venues`)
   } catch (e) {
     console.log(`[net-apy] merkl unavailable, campaign diff skipped: ${redactError(e)}`)

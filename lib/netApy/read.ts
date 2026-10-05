@@ -127,9 +127,18 @@ export const eulerKinkAbi = [
 
 // ---------------------------------------------------------------------- anchor
 
-/** The anchor block: `blockNumber` if given (a pinned read), else the latest block. */
+/**
+ * The anchor block: `blockNumber` if given (a pinned read), else the FINALIZED block.
+ * Umbrella contract (AGENT_BOARD.md, "ONE GOAL, THREE LAYERS"): recorder rows,
+ * forecaster issues and Risk Frontier nodes share a finalized-block anchor, so a stored
+ * snapshot can never be reorged away. `latest` would be ~2 epochs fresher but reorgable.
+ *
+ * TRAP: the finalized block is ~13–19 min old. Never use `anchor.blockTimestamp` as
+ * "now" for a wall-clock question (cache age, which Merkl campaigns are live, days
+ * left); use `asOfOf(set)` (lib/netApy/types.ts). Chain math (Morpho's elapsed-time IRM) keeps the anchor time.
+ */
 export async function resolveAnchor(client: PublicClient, blockNumber?: bigint): Promise<BlockAnchor> {
-  const block = await client.getBlock(blockNumber === undefined ? { blockTag: 'latest' } : { blockNumber })
+  const block = await client.getBlock(blockNumber === undefined ? { blockTag: 'finalized' } : { blockNumber })
   if (block.number === null || block.hash === null) throw new Error('anchor: block has no number/hash (pending?)')
   return { chainId: 1, blockNumber: block.number, blockTimestamp: block.timestamp, blockHash: block.hash }
 }
@@ -298,6 +307,13 @@ export async function readVenueSnapshot(
 
 export interface SnapshotSet {
   anchor: BlockAnchor
+  /**
+   * Unix seconds: the moment this set describes, for wall-clock questions. A live read
+   * stamps the wall clock at read time (its finalized anchor is minutes older); a pinned
+   * read stamps the block's own time, so a replay sees that moment. Absent on sets
+   * stored before this field existed — read it through `asOfOf`.
+   */
+  asOf?: number
   rpc: string
   snapshots: VenueSnapshot[]
   errors: { venueKey: string; message: string }[]
@@ -322,6 +338,7 @@ export async function readAllVenues(
   )
   return {
     anchor,
+    asOf: blockNumber === undefined ? Math.floor(Date.now() / 1000) : Number(anchor.blockTimestamp),
     rpc,
     snapshots: results.flatMap((r) => (r.ok ? [r.snap] : [])),
     errors: results.flatMap((r) => (r.ok ? [] : [{ venueKey: r.venueKey, message: r.message }])),

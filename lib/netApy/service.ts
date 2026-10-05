@@ -8,7 +8,7 @@ import { extractCampaigns, type IncentiveCampaign, type MerklOpportunity } from 
 import { rateSpikeAxis, type RateSpikeAxis } from './ratePath'
 import type { SnapshotSet } from './read'
 import { redactError } from './rpc'
-import type { BlockAnchor } from './types'
+import { asOfOf, type BlockAnchor } from './types'
 import { usdToRaw, venueByKey } from './venues'
 
 /** bigint → decimal string, recursively: the JSON shape the route returns. */
@@ -123,8 +123,8 @@ async function incentives(deps: NetApyDeps, set: SnapshotSet): Promise<{ campaig
       const d = venueByKey(key)
       return d && d.protocol === 'euler-v2' ? d.vault : null
     }
-    const nowTs = Number(set.anchor.blockTimestamp)
-    return { campaigns: extractCampaigns(pull.opportunities, set.snapshots, vaultOf, nowTs), status: { ok: true, fetchedAt: pull.fetchedAt } }
+    // Campaign liveness is a wall-clock question: the read's asOf, never the finalized anchor's time.
+    return { campaigns: extractCampaigns(pull.opportunities, set.snapshots, vaultOf, asOfOf(set)), status: { ok: true, fetchedAt: pull.fetchedAt } }
   } catch (e) {
     // No incentive data is shown as "unavailable", never as "no incentives".
     return { campaigns: [], status: { ok: false, fetchedAt: null, error: redactError(e) } }
@@ -141,7 +141,7 @@ export async function handleNetApy(query: NetApyQuery, deps: NetApyDeps): Promis
       const err = set.errors.find((e) => e.venueKey === query.venue)
       throw new Error(err ? err.message : `${query.venue}: not read at block ${set.anchor.blockNumber}`)
     }
-    const breakdown = netBreakdown(s, { side: query.side, sizeUsd: query.sizeUsd, campaigns, share: query.share })
+    const breakdown = netBreakdown(s, { side: query.side, sizeUsd: query.sizeUsd, campaigns, share: query.share, nowTs: asOfOf(set) })
     const sizeRaw = usdToRaw(query.sizeUsd, s.asset)
     let rateSpike: RateSpikeAxis | null = null
     if (query.path) {
@@ -151,7 +151,7 @@ export async function handleNetApy(query: NetApyQuery, deps: NetApyDeps): Promis
   }
 
   const venues: NetApyListRow[] = set.snapshots.map((s) => {
-    const b = netBreakdown(s, { side: query.side, sizeUsd: query.sizeUsd, campaigns, share: query.share })
+    const b = netBreakdown(s, { side: query.side, sizeUsd: query.sizeUsd, campaigns, share: query.share, nowTs: asOfOf(set) })
     const ends = b.incentives.eligible.map((c) => c.endTs)
     return {
       venueKey: s.venueKey,

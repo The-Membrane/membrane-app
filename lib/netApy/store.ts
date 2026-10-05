@@ -15,6 +15,7 @@ import { bigintReplacer, bigintReviver } from './fixedPoint'
 import type { NetApyEvent } from './history'
 import type { IncentiveCampaign, MerklOpportunity } from './incentives'
 import type { SnapshotSet } from './read'
+import { asOfOf } from './types'
 
 export const KEEP_SNAPSHOTS = 48
 
@@ -69,12 +70,12 @@ export function saveSnapshotSet(set: SnapshotSet): boolean {
 
 export const loadSnapshotSetAt = (block: bigint): SnapshotSet | null => readJson<SnapshotSet>(snapFile(block))
 
-/** Newest stored set whose anchor block is younger than `maxAgeS` at `nowS`. */
+/** Newest stored set read less than `maxAgeS` before `nowS` (its `asOf`, not its finalized anchor's time). */
 export function loadLatestSnapshotSet(maxAgeS: number, nowS: number = Math.floor(Date.now() / 1000)): SnapshotSet | null {
   const newest = snapshotBlocks()[0]
   if (newest === undefined) return null
   const set = loadSnapshotSetAt(newest)
-  if (!set || nowS - Number(set.anchor.blockTimestamp) > maxAgeS) return null
+  if (!set || nowS - asOfOf(set) > maxAgeS) return null
   return set
 }
 

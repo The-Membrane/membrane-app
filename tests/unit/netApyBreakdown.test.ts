@@ -147,6 +147,9 @@ describe('the /api/net-apy service', () => {
     const r = (await handleNetApy(parseQuery({ venue: 'morpho-blue-wbtc-usdc-86', size: '2000000', path: '1' }), deps)) as NetApyVenueResponse
     expect(r.breakdown.venueKey).toBe('morpho-blue-wbtc-usdc-86')
     expect(r.rateSpike!.levels.map((l) => l.name)).toContain('at-size')
+    // Two separate fields: where the numbers come from, and what the axis claims.
+    expect(r.rateSpike!.label).toBe('projected')
+    expect(r.rateSpike!.claim).toBe('stress-scenario')
     const json = serialize(r)
     expect(json.anchor.blockNumber).toBe('26120000')
     expect(() => JSON.stringify(json)).not.toThrow()

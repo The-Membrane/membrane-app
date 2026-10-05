@@ -94,6 +94,8 @@ export interface NetBreakdown {
   label: string
   protocol: NetApyProtocol
   anchor: BlockAnchor
+  /** Unix seconds the incentive calendar was evaluated at (the read's `asOf`, see asOfOf); use it, not the anchor time, for "days left". */
+  asOf: number
   side: 'supply' | 'borrow'
   sizeUsd: number
   now: RatePoint
@@ -292,6 +294,7 @@ export function netBreakdown(
     label: s.label,
     protocol: s.protocol,
     anchor: s.anchor,
+    asOf: nowTs,
     side,
     sizeUsd: opts.sizeUsd,
     now,

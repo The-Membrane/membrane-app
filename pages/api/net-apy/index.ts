@@ -14,6 +14,7 @@ import {
   type Serialized,
 } from '@/lib/netApy/service'
 import { loadLatestSnapshotSet, loadMerklPull, loadSnapshotSetAt, saveMerklPull, saveSnapshotSet } from '@/lib/netApy/store'
+import { asOfOf } from '@/lib/netApy/types'
 import { NET_APY_VENUES } from '@/lib/netApy/venues'
 
 // PUBLIC. Net APY at the user's size, per venue — a PROJECTION from on-chain IRM
@@ -27,7 +28,8 @@ import { NET_APY_VENUES } from '@/lib/netApy/venues'
 // DATA: chain reads at the anchor (lib/netApy/read.ts) over RPC from .env.local
 // aliases (lib/netApy/rpc.ts — only `env:<host>` ever leaves the process), Merkl's
 // public API for incentives. LOCAL-FIRST: both are kept as JSON under .data/net-apy
-// (lib/netApy/store.ts) — no Neon. A latest read is reused for 120 s (~10 blocks);
+// (lib/netApy/store.ts) — no Neon. A live (finalized-anchor) read is reused for 120 s
+// of wall clock, measured from when it was read (`asOf`), not from its block's time;
 // a pinned block is reused forever. Merkl is reused for 15 min.
 
 const LATEST_MAX_AGE_S = 120
@@ -48,7 +50,7 @@ const deps: NetApyDeps = {
       saveSnapshotSet(set)
       return set
     }
-    if (memLatest && nowS() - Number(memLatest.anchor.blockTimestamp) <= LATEST_MAX_AGE_S) return memLatest
+    if (memLatest && nowS() - asOfOf(memLatest) <= LATEST_MAX_AGE_S) return memLatest
     const stored = loadLatestSnapshotSet(LATEST_MAX_AGE_S)
     if (stored) return (memLatest = stored)
     const { client, label } = netApyClient()

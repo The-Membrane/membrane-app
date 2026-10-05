@@ -132,7 +132,8 @@ export const NetApyCard: React.FC<NetApyCardProps> = ({ venue, defaultSizeUsd = 
   if (!covered) return null
 
   const b = q.data?.breakdown
-  const nowTs = b ? Number(b.anchor.blockTimestamp) : 0
+  // Days left is wall-clock: the read's asOf, not the finalized anchor (minutes old). Older payloads lack asOf.
+  const nowTs = b ? (b.asOf ?? Number(b.anchor.blockTimestamp)) : 0
   const headline = b?.net
   const ceiling = headline?.bound === 'upper'
 

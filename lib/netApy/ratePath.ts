@@ -12,12 +12,21 @@
  * rateAtTarget compounds at 50/yr x error, so at 100% the rate doubles every ~5.1 days
  * until the 200%/yr ceiling. Holding utilization fixed is the stated assumption — in a
  * real spike borrowers repay and suppliers arrive, which pulls utilization back.
- * Every point is a projection (label class 'projected'), not a forecast.
+ * Every point is a projection (label class 'projected'), not a forecast, and the axis
+ * as a whole is the umbrella's claim class 'stress-scenario': deterministic, stated
+ * assumptions, "not a probability".
  */
 
 import { WAD } from './fixedPoint'
 import { kinkUtilization, ratesAtSize, ratesAtUtilization } from './irm'
-import type { BlockAnchor, LabelClass, RatePathPoint, SizeDelta, VenueSnapshot } from './types'
+import type {
+  BlockAnchor,
+  ClaimClass,
+  LabelClass,
+  RatePathPoint,
+  SizeDelta,
+  VenueSnapshot,
+} from './types'
 
 export const DAY_S = 86_400
 
@@ -71,6 +80,7 @@ export interface RateSpikeAxis {
   venueKey: string
   anchor: BlockAnchor
   label: LabelClass
+  claim: Extract<ClaimClass, 'stress-scenario'>
   horizonSeconds: number
   levels: RateSpikeLevel[]
   assumption: string
@@ -101,6 +111,7 @@ export function rateSpikeAxis(
     venueKey: s.venueKey,
     anchor: s.anchor,
     label: 'projected',
+    claim: 'stress-scenario',
     horizonSeconds,
     assumption: RATE_PATH_ASSUMPTION,
     levels: levels.map(({ name, u }) => {

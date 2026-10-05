@@ -5,13 +5,16 @@ is read at one block. Lane: umbrella "ONE GOAL, THREE LAYERS", layer DATA+PRODUC
 Research driver: DeFi Dojo F4. Net APY at the user's size is data need #3 (18 msgs / 16
 authors). Rate-spike risk is #4 (15 / 14).
 
-## Contract terms this lane exports
+## Contract terms this lane shares
+
+Reconciled with the umbrella on 2026-10-05 (owner rulings).
 
 | Term | Definition | Where |
 |---|---|---|
-| venue-key | `<protocol>-<market>`, lowercase. Equals the recorder `name` where one exists (`aave-v3-usde`). | `lib/netApy/venues.ts` |
-| block anchor | `{chainId, blockNumber, blockTimestamp, blockHash}`. Every on-chain number in a snapshot is read at this block. | `lib/netApy/types.ts` `BlockAnchor` |
-| label class | `measured` · `derived` · `projected` · `reported` · `curator-set`. Every row carries one. | `lib/netApy/types.ts` `LabelClass` |
+| venue-key | The venue's `name` in the one venue registry, `tools/venue-recorder.config.json`, exact case. No lane mints its own IDs. This lane's keys are `<protocol>-<market>` slugs, all registered. The ones the recorder does not record yet are `enabled: false`. A test enforces it. | `lib/netApy/venues.ts`, `tests/unit/netApyVenueRegistry.test.ts` |
+| block anchor | `{chainId, blockNumber, blockTimestamp, blockHash}`. Every on-chain number in a snapshot is read at this block. It is the **finalized** block, or a block pinned with `block=<n>`. It is never `latest`, which can be reorged. The finalized block is about 13–19 min old, so wall-clock questions (cache age, which campaigns are live, days left) use the read's `asOf`, through `asOfOf`, and never the anchor time. | `lib/netApy/types.ts` `BlockAnchor`, `lib/netApy/read.ts` `resolveAnchor` |
+| label class | Where a number comes from: `measured` · `derived` · `projected` · `reported` · `curator-set`. Every row carries one. | `lib/netApy/types.ts` `LabelClass` |
+| claim class | The umbrella's five classes, kept as a separate field: `measured-change` · `observed-driver` · `possible-leading-signal` · `stress-scenario` · `calibrated-forecast`. The last is empty until the forecaster's promotion gate passes. Today only the rate-spike axis carries one: `stress-scenario`. A `measured` label (one read) and a `measured-change` claim (a change between reads) are different things. | `lib/netApy/types.ts` `ClaimClass`, `lib/netApy/ratePath.ts` |
 
 ## Pieces
 
@@ -55,7 +58,7 @@ Membrane charge.
 
 ## Continuous fetch
 
-`pnpm netapy:record` runs one tick. It reads every venue at the latest block, pulls
+`pnpm netapy:record` runs one tick. It reads every venue at the finalized block, pulls
 Merkl, and appends changes to `.data/net-apy/events.jsonl`:
 - `campaign_new`
 - `campaign_end_changed`

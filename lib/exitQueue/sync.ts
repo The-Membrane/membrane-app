@@ -41,6 +41,8 @@ export interface SyncOptions {
   /** eth_call budget for bisecting ether.fi finalization points. */
   bisectCalls: number
   retentionDays: number
+  /** Max request-id gaps to re-fetch per run (default 50). */
+  healRanges?: number
 }
 
 export const BLOCKS_PER_DAY = 7_200
@@ -270,6 +272,44 @@ export async function readQueue(
   }
 }
 
+const SEQUENTIAL: ReadonlySet<VenueDef['kind']> = new Set(['lido', 'etherfi', 'maple', 'kelp'])
+
+/** Holes in a venue's request-id sequence, with the block range that must contain them. */
+export function idGaps(
+  def: VenueDef,
+  ledger: VenueLedger,
+  events: LedgerEvent[],
+): Array<{ seq: string; afterId: bigint; missing: number; fromBlock: number; toBlock: number }> {
+  if (!SEQUENTIAL.has(def.kind)) return []
+  const bySeq = new Map<string, Map<bigint, number>>()
+  const add = (id: string, block: number) => {
+    const cut = id.lastIndexOf(':')
+    const seq = cut >= 0 ? id.slice(0, cut) : ''
+    const n = BigInt(cut >= 0 ? id.slice(cut + 1) : id)
+    const ids = bySeq.get(seq) ?? new Map<bigint, number>()
+    ids.set(n, block)
+    bySeq.set(seq, ids)
+  }
+  for (const r of Object.values(ledger.requests)) add(r.id, r.requestedBlock)
+  for (const e of events) if (e.kind === 'request') add(e.id, e.block)
+  const out: ReturnType<typeof idGaps> = []
+  for (const [seq, ids] of bySeq) {
+    const sorted = [...ids.keys()].sort((a, b) => (a < b ? -1 : 1))
+    for (let i = 1; i < sorted.length; i += 1) {
+      const missing = Number(sorted[i] - sorted[i - 1] - 1n)
+      if (missing > 0)
+        out.push({
+          seq,
+          afterId: sorted[i - 1],
+          missing,
+          fromBlock: ids.get(sorted[i - 1])!,
+          toBlock: ids.get(sorted[i])!,
+        })
+    }
+  }
+  return out
+}
+
 export async function syncVenue(
   def: VenueDef,
   ledger: VenueLedger,
@@ -328,17 +368,29 @@ export async function syncVenue(
 
   const seen = new Set<string>()
   const events: LedgerEvent[] = []
-  for (const log of logs) {
-    const key = `${log.transactionHash.toLowerCase()}:${log.logIndex}`
-    if (seen.has(key)) continue
-    seen.add(key)
-    try {
-      const e = decodeVenueLog(def, log)
-      if (e) events.push(e)
-    } catch {
-      ledger.undecodedLogs += 1
+  const take = (batch: RawLog[]) => {
+    for (const log of batch) {
+      const key = `${log.transactionHash.toLowerCase()}:${log.logIndex}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      try {
+        const e = decodeVenueLog(def, log)
+        if (e) events.push(e)
+      } catch {
+        ledger.undecodedLogs += 1
+      }
     }
   }
+  take(logs)
+
+  // Request ids are sequential (Lido, ether.fi, Maple; Kelp per asset), so a missing
+  // id is a missing log: public relays have returned incomplete eth_getLogs results.
+  // Re-fetch the block range between the neighbours of each gap, then count what is left.
+  let gaps = idGaps(def, ledger, events)
+  for (const gap of gaps.slice(0, opts.healRanges ?? 50))
+    for (const f of filters) take(await reader.getLogs(f, gap.fromBlock, gap.toBlock))
+  if (gaps.length) gaps = idGaps(def, ledger, events)
+  ledger.idGaps = gaps.reduce((n, g) => n + g.missing, 0)
 
   if (def.kind === 'kelp') {
     // AssetUnlocked has no nonce range; nextLockedNonce(asset) read at that block does.

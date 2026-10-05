@@ -18,7 +18,9 @@
  *
  * Historical eth_calls need --quorum matching answers (default 2): public relay
  * pools have returned other blocks' state for archive reads. --quorum 1 on a single
- * trusted archive endpoint halves the calls. --bisect caps ether.fi bisection reads.
+ * trusted archive endpoint halves the calls. Log ranges are fetched --log-quorum
+ * times (default 2) and unioned on disagreement; sequential request ids are checked
+ * for gaps and the gap ranges re-fetched. --bisect caps ether.fi bisection reads.
  *
  * Manual only. Do not install it as a launchd job; the owner controls that fleet.
  */
@@ -97,13 +99,41 @@ const RANGE_ERROR = /range|limit|too many|exceed|10000|5000|block range|query re
 function makeReader(
   client: PublicClient,
   quorum: number,
-): ChainReader & { rpcCalls: number; quorumMisses: number; recentFloor: number } {
+  logQuorum: number,
+): ChainReader & {
+  rpcCalls: number
+  quorumMisses: number
+  logDisagreements: number
+  recentFloor: number
+} {
   const tsCache = new Map<number, number>()
   const key = (v: unknown) => JSON.stringify(v, (_k, x) => (typeof x === 'bigint' ? `${x}n` : x))
   const reader = {
     rpcCalls: 0,
     quorumMisses: 0,
+    logDisagreements: 0,
     recentFloor: Number.MAX_SAFE_INTEGER,
+    /**
+     * Relays have returned incomplete eth_getLogs results (2026-10-05: one 30-day Lido
+     * scan missed 118 of 2,862 requests). Fetch each range twice; if the answers differ,
+     * fetch twice more and keep the union — finalized logs are facts, and the observed
+     * failure is omission, not invention.
+     */
+    async getLogs(filter: LogFilter, fromBlock: number, toBlock: number): Promise<RawLog[]> {
+      const id = (l: RawLog) => `${l.transactionHash.toLowerCase()}:${l.logIndex}`
+      const union = new Map<string, RawLog>()
+      let previous: string | null = null
+      for (let i = 0; i < 4; i += 1) {
+        const batch = await reader.fetchLogs(filter, fromBlock, toBlock)
+        for (const l of batch) union.set(id(l), l)
+        const signature = batch.map(id).sort().join(',')
+        if (i === 1 && signature === previous) break
+        if (i === 1) reader.logDisagreements += 1
+        previous = signature
+        if (logQuorum <= 1) break
+      }
+      return [...union.values()]
+    },
     async blockTs(block: number) {
       const hit = tsCache.get(block)
       if (hit != null) return hit
@@ -137,7 +167,7 @@ function makeReader(
       reader.quorumMisses += 1
       throw new Error(`no ${quorum}-read quorum for ${fn.name} at ${block}`)
     },
-    async getLogs(filter: LogFilter, fromBlock: number, toBlock: number): Promise<RawLog[]> {
+    async fetchLogs(filter: LogFilter, fromBlock: number, toBlock: number): Promise<RawLog[]> {
       type Raw = {
         address: string
         topics: string[]
@@ -167,8 +197,8 @@ function makeReader(
         if (toBlock > fromBlock && RANGE_ERROR.test(msg)) {
           const mid = fromBlock + Math.floor((toBlock - fromBlock) / 2)
           return [
-            ...(await reader.getLogs(filter, fromBlock, mid)),
-            ...(await reader.getLogs(filter, mid + 1, toBlock)),
+            ...(await reader.fetchLogs(filter, fromBlock, mid)),
+            ...(await reader.fetchLogs(filter, mid + 1, toBlock)),
           ]
         }
         throw e
@@ -204,14 +234,37 @@ async function getJson<T>(path: string): Promise<T> {
   return (await res.json()) as T
 }
 
+type BeaconHeader = { data: { header: { message: { slot: string; state_root: string } } } }
+
+/**
+ * Exiting validators at the finalized state, pinned to one slot. Public nodes refuse a
+ * numeric slot as state_id (HTTP 403) and sometimes no longer hold a finalized state
+ * by root (HTTP 404), so: by state root first, else `finalized` with the header
+ * re-read after, so the slot still matches what was summarised.
+ */
+async function finalizedExiting(): Promise<{ slot: number; validators: ExitingValidator[] }> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const header = await getJson<BeaconHeader>('/eth/v1/beacon/headers/finalized')
+    const slot = Number(header.data.header.message.slot)
+    const query = '/validators?status=active_exiting'
+    try {
+      const byRoot = await getJson<{ data: ExitingValidator[] }>(
+        `/eth/v1/beacon/states/${header.data.header.message.state_root}${query}`,
+      )
+      return { slot, validators: byRoot.data }
+    } catch {
+      const named = await getJson<{ data: ExitingValidator[] }>(
+        `/eth/v1/beacon/states/finalized${query}`,
+      )
+      const after = await getJson<BeaconHeader>('/eth/v1/beacon/headers/finalized')
+      if (Number(after.data.header.message.slot) === slot) return { slot, validators: named.data }
+    }
+  }
+  throw new Error('beacon finalized state moved during the read twice')
+}
+
 async function recordBeacon(dir: string, run: boolean) {
-  const header = await getJson<{
-    data: { header: { message: { slot: string; state_root: string } } }
-  }>('/eth/v1/beacon/headers/finalized')
-  const slot = Number(header.data.header.message.slot)
-  // Query by state root, not slot: it pins the exact state, and public nodes refuse
-  // (HTTP 403) a numeric slot as state_id while serving the root.
-  const stateRoot = header.data.header.message.state_root
+  const { slot, validators } = await finalizedExiting()
   const block = await getJson<{
     data: { message: { body: { execution_payload: { block_number: string; timestamp: string } } } }
   }>(`/eth/v2/beacon/blocks/${slot}`)
@@ -219,10 +272,7 @@ async function recordBeacon(dir: string, run: boolean) {
   const spec = parseSpec(
     (await getJson<{ data: Record<string, unknown> }>('/eth/v1/config/spec')).data,
   )
-  const validators = await getJson<{ data: ExitingValidator[] }>(
-    `/eth/v1/beacon/states/${stateRoot}/validators?status=active_exiting`,
-  )
-  const summary = summarizeExitQueue(slot, validators.data, spec)
+  const summary = summarizeExitQueue(slot, validators, spec)
   const snap = beaconSnapshot(summary, Number(payload.block_number), Number(payload.timestamp))
   console.log(
     `  beacon-exit  slot ${slot} block ${snap.block}: ${summary.exitingCount} exiting, ` +
@@ -263,7 +313,7 @@ async function main() {
   console.log(`  rpc: ${rpc ? hosts(rpc) : 'NONE'} · beacon: ${new URL(beaconUrl).host}`)
 
   const client = rpc ? (makeClient(rpc) as PublicClient) : null
-  const reader = client ? makeReader(client, int('quorum', 2)) : null
+  const reader = client ? makeReader(client, int('quorum', 2), int('log-quorum', 2)) : null
   const finalized = client ? await client.getBlock({ blockTag: 'finalized' }) : null
   const anchor = finalized
     ? { block: Number(finalized.number), ts: Number(finalized.timestamp) }
@@ -297,13 +347,16 @@ async function main() {
       }
       const before = reader.rpcCalls
       const missesBefore = reader.quorumMisses
+      const disagreementsBefore = reader.logDisagreements
       const r = await syncVenue(def, ledger, reader, { ...sync, anchor })
       const file = saveLedger(r.ledger, dir)
       const snap = r.ledger.snapshots[r.ledger.snapshots.length - 1]
       console.log(
         `  ${def.key}  scanned → ${r.scannedTo}${r.complete ? '' : ' (PARTIAL: raise --max-chunks or re-run)'}; ` +
           `${r.logs} logs, ${reader.rpcCalls - before} rpc calls` +
-          `${reader.quorumMisses > missesBefore ? ` (${reader.quorumMisses - missesBefore} reads without quorum)` : ''}; ` +
+          `${reader.quorumMisses > missesBefore ? ` (${reader.quorumMisses - missesBefore} reads without quorum)` : ''}` +
+          `${reader.logDisagreements > disagreementsBefore ? ` (${reader.logDisagreements - disagreementsBefore} log ranges disagreed; union kept)` : ''}; ` +
+          `${r.ledger.idGaps ? `${r.ledger.idGaps} request ids still missing; ` : ''}` +
           `queue ${snap?.depthCount ?? '?'} req / ${snap?.depthAmount ?? '?'} raw ${def.unit.symbol}; ` +
           `${Object.keys(r.ledger.requests).length} requests in ledger, ` +
           `${r.ledger.unmatchedClaims} unmatched claims, ${r.ledger.undecodedLogs} undecoded → ${file}`,

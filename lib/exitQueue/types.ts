@@ -125,6 +125,8 @@ export interface VenueLedger {
   undecodedLogs: number
   /** Historical reads that came back out of order or failed and forced a bracket. */
   readAnomalies?: number
+  /** Request ids still missing from a sequential-id venue after re-fetching (missed logs). */
+  idGaps?: number
 }
 
 /** A log as the recorder hands it to the decoders. */

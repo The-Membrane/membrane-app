@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { LogFilter } from '@/lib/exitQueue/decode'
 import { emptyLedger } from '@/lib/exitQueue/ledger'
+import { venueMetrics } from '@/lib/exitQueue/metrics'
 import { syncVenue, type ChainReader, type SyncOptions } from '@/lib/exitQueue/sync'
 import type { RawLog } from '@/lib/exitQueue/types'
 import { ABI } from '@/lib/exitQueue/venues'
@@ -233,6 +234,74 @@ describe('syncVenue: Kelp (unlock read at the event block)', () => {
         source: 'event',
       }),
     ])
+  })
+})
+
+describe('syncVenue: missed logs', () => {
+  it('re-fetches the block range around a request-id gap and fills it', async () => {
+    const lido = def('lido-steth')
+    const q = lido.contracts.queue
+    const ANCHOR = 20_000
+    const START = ANCHOR - 7_200
+    const request = (id: bigint, block: number) =>
+      mkLog(
+        q,
+        ABI.lido.requested,
+        {
+          requestId: id,
+          requestor: addr(1),
+          owner: addr(1),
+          amountOfStETH: 1n,
+          amountOfShares: 1n,
+        },
+        { block },
+      )
+    const logs = [request(10n, START + 100), request(11n, START + 200), request(12n, START + 300)]
+    const { reader } = fakeChain(logs, (sig) => {
+      if (sig.includes('unfinalized')) return 3n
+      if (sig.includes('Bunker') || sig.includes('isPaused')) return false
+      return undefined
+    })
+    // A relay that drops request 11 from the first, wide query only.
+    const honest = reader.getLogs
+    let wide = true
+    reader.getLogs = async (f, from, to) => {
+      const out = await honest(f, from, to)
+      if (wide && to - from > 1_000) {
+        wide = false
+        return out.filter((l) => l.blockNumber !== START + 200)
+      }
+      return out
+    }
+    const { ledger } = await syncVenue(lido, emptyLedger('lido-steth'), reader, {
+      ...opts(ANCHOR),
+      chunkBlocks: 10_000,
+    })
+    expect(Object.keys(ledger.requests).sort()).toEqual(['10', '11', '12'])
+    expect(ledger.idGaps).toBe(0)
+  })
+
+  it('counts a gap it cannot fill', async () => {
+    const lido = def('lido-steth')
+    const q = lido.contracts.queue
+    const logs = [10n, 13n].map((id, i) =>
+      mkLog(
+        q,
+        ABI.lido.requested,
+        {
+          requestId: id,
+          requestor: addr(1),
+          owner: addr(1),
+          amountOfStETH: 1n,
+          amountOfShares: 1n,
+        },
+        { block: 13_000 + i * 100 },
+      ),
+    )
+    const { reader } = fakeChain(logs, (sig) => (sig.includes('unfinalized') ? 0n : false))
+    const { ledger } = await syncVenue(lido, emptyLedger('lido-steth'), reader, opts(20_000))
+    expect(ledger.idGaps).toBe(2)
+    expect(venueMetrics(lido, ledger).ledgerHealth.idGaps).toBe(2)
   })
 })
 

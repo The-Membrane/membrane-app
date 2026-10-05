@@ -85,6 +85,8 @@ export interface VenueExitMetrics {
     undecodedLogs: number
     /** Historical reads that failed or came back out of order. */
     readAnomalies: number
+    /** Request ids missing from a sequential-id venue (logs a relay did not return). */
+    idGaps: number
     /** Finalization times known only as an upper bound (`bracket`). */
     bracketedFinalizations: number
     coverageFromTs: number | null
@@ -344,6 +346,7 @@ export function venueMetrics(
       unmatchedClaims: ledger.unmatchedClaims,
       undecodedLogs: ledger.undecodedLogs,
       readAnomalies: ledger.readAnomalies ?? 0,
+      idGaps: ledger.idGaps ?? 0,
       bracketedFinalizations: Object.values(ledger.requests).filter(
         // ERC-7540 has no fulfilment signal: there the claim IS the measured event.
         (r) =>

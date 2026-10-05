@@ -1,0 +1,97 @@
+// Cold tier (VETERAN_UX_RULESET V9): where the numbers come from, behind one toggle.
+// Mirrors the MASTER / INTENDED / MODELLED / OMITTED blocks of lib/position-sim/stressGrid.ts.
+
+import React, { useState } from 'react'
+import { Box, Button, Text } from '@chakra-ui/react'
+
+import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES } from '@/config/transitions'
+import { TYPOGRAPHY } from '@/helpers/typography'
+
+import { Panel } from './atoms'
+import { STRESS_CODE_VERSION, STRESS_LABEL } from './viewModel'
+
+const LINES = (tapeWindow: string | null): { head: string; body: string }[] => [
+  {
+    head: 'What a node is',
+    body: `A sandbox position plus one named scenario, walked step by step through the same delay timer as the Oct 10 census. Every node is a ${STRESS_LABEL}, reproduces from its cell key, and carries the code base: ${STRESS_CODE_VERSION}. No probabilities, weights or win rates are computed.`,
+  },
+  {
+    head: 'Owner-ruled rules, not yet on master',
+    body: 'A recall asks the venues only for what restores the borrow LTV (line − 3pp); master asks for the whole debt. A liquidation never leaves debt between zero and the debt minimum: it repays all, and when a recall comes back short of that the rest is sold from collateral; master has no such guard, in the repay or the recall. Each gap has a fix lane.',
+  },
+  {
+    head: 'Modelled, not measured',
+    body: 'Membrane is not on mainnet, so every LTV and line here is modelled. Venue recall is a stock, min(deployed, exit capacity × multiplier), drawn down and never refilled; a freeze starts at the first breach. Exit-capacity presets are named stress levels, not measured exit shares. Debt is held at $1 and the price shape moves the whole collateral. After a shape ends the price holds for one window plus a step.',
+  },
+  {
+    head: 'Left out',
+    body: 'The keeper fee ramp, gas stipend and protocol liquidation fee (all paid from collateral, so "sold" understates what leaves), interest accrual, the gas-indexed debt floor, slippage and MEV.',
+  },
+  {
+    head: 'Distances',
+    body: 'Each figure is the largest whole unit with no trigger, so the edge lies just past it: rounded toward risk. Venue axes are solved at a named −25% step, never folded into one combined route.',
+  },
+  {
+    head: 'Oct 10 replay',
+    body: `The measured ETH oracle path${tapeWindow ? ` (${tapeWindow})` : ''}, relative to its first observation: the shape of the crash, not its price level. A mechanical sensitivity test, not a forecast.`,
+  },
+  {
+    head: 'Also not modelled yet',
+    body: 'Live venue reads and staleness hatching, the 7-day trend line, change cards, the novelty banner, LST exit queues and oracle-lag scenarios. This page is a sandbox for the engine only.',
+  },
+]
+
+export const FinePrint: React.FC<{ tapeWindow: string | null }> = ({ tapeWindow }) => {
+  const [open, setOpen] = useState(false)
+  return (
+    <Panel>
+      <Button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        variant="unstyled"
+        display="block"
+        textAlign="left"
+        w="100%"
+        h="auto"
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize={TYPOGRAPHY.label}
+        letterSpacing="0.24em"
+        textTransform="uppercase"
+        fontWeight={400}
+        color={SEMANTIC_COLORS.textSecondary}
+        _hover={{ color: SEMANTIC_COLORS.textPrimary }}
+        _focusVisible={FOCUS_STYLES.ring}
+      >
+        {open ? '−' : '+'} where these numbers come from
+      </Button>
+      {open && (
+        <Box display="grid" gap={SPACING.sm} mt={SPACING.md}>
+          {LINES(tapeWindow).map((l) => (
+            <Box key={l.head}>
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.label}
+                letterSpacing="0.16em"
+                textTransform="uppercase"
+                color={SEMANTIC_COLORS.textTertiary}
+              >
+                {l.head}
+              </Text>
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.label}
+                color={SEMANTIC_COLORS.textSecondary}
+                lineHeight={1.6}
+                mt={SPACING.xs}
+              >
+                {l.body}
+              </Text>
+            </Box>
+          ))}
+        </Box>
+      )}
+    </Panel>
+  )
+}

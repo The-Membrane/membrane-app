@@ -17,11 +17,11 @@
  * liquidation thresholds and the venue balances are all that read. Nothing here is
  * authored by hand; to change the demo, re-run the script.
  *
- * WHAT IS STILL MODELLED: the recall rates. `toVenueRecall` turns the detected
- * balances into a recall input using KNOWN_VENUES' per-venue recallRate/fastRate, which
- * are our reading of each venue's exit mechanics — not measured, and editable in the
- * controls. The DEPLOYED DOLLARS are real; the share of them that comes back inside
- * eight hours is a model, and it is stamped as one.
+ * WHAT IS STILL MODELLED: the recall rate. `toVenueRecall` turns the detected
+ * balances into a recall input using KNOWN_VENUES' per-venue recallRate, which is our
+ * reading of each venue's exit mechanics — not measured, and editable in the controls.
+ * The DEPLOYED DOLLARS are real; the share of them that comes back when recalled is a
+ * model, and it is stamped as one.
  *
  * The snapshot is a moment, not a live feed. Say so wherever it renders
  * (DEMO_SNAPSHOT_NOTE) — pasting the same address re-reads it live.

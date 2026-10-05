@@ -149,12 +149,13 @@ const MAINNET_TOKEN: Record<string, string> = {
  */
 const ASSUMED_DEPLOYED_SHARE = 0.5
 const ASSUMED_RECALL_RATE = 0.6
-const ASSUMED_FAST_RATE = 0.55
+// The old ASSUMED_FAST_RATE (0.55) is gone: the "fast rate" input was removed from the
+// engine 2026-10-04 by owner ruling (a keeper call's recall is synchronous on master).
 
 /** Stress variants reported alongside the default, so the winner is not knife-edge. */
-const STRESS: { label: string; share: number; recall: number; fast: number }[] = [
-  { label: '35%/0.60', share: 0.35, recall: 0.6, fast: 0.55 },
-  { label: '50%/0.40', share: 0.5, recall: 0.4, fast: 0.35 },
+const STRESS: { label: string; share: number; recall: number }[] = [
+  { label: '35%/0.60', share: 0.35, recall: 0.6 },
+  { label: '50%/0.40', share: 0.5, recall: 0.4 },
 ]
 
 /**
@@ -296,11 +297,9 @@ function assumedVenue(
   row: EvidenceRow,
   share = ASSUMED_DEPLOYED_SHARE,
   recallRate = ASSUMED_RECALL_RATE,
-  fastRate = ASSUMED_FAST_RATE,
 ): VenueRecall {
   return {
     recallRate,
-    fastRate,
     deployedUsd: row.debtUsd * share,
     provenance: stamp('modelled', 'assumed deployment · modelled'),
   }
@@ -467,7 +466,7 @@ for (const row of cohort) {
 
   // Survival is reported off the BARE run, because that is what ships.
   const base = survival(bare, position)
-  const stress = STRESS.map((v) => oct10Run(position, assumedVenue(row, v.share, v.recall, v.fast)))
+  const stress = STRESS.map((v) => oct10Run(position, assumedVenue(row, v.share, v.recall)))
 
   candidates.push({
     row,
@@ -586,16 +585,13 @@ if (!bareSurvival.survives) {
 
 /**
  * The lowest recallRate at which the winner still survives, holding the deployed share
- * fixed and the fast rate the same 5pp below. Printed because it is the honest answer
+ * fixed. Printed because it is the honest answer
  * to "how much of this is the assumption?" — and because it belongs in the fixture.
  */
 function recallBreakEven(c: Candidate): number | null {
   let lowest: number | null = null
   for (let rr = 1; rr >= 0.01; rr -= 0.01) {
-    const run = oct10Run(
-      c.position,
-      assumedVenue(c.row, ASSUMED_DEPLOYED_SHARE, rr, Math.max(0, rr - 0.05)),
-    )
+    const run = oct10Run(c.position, assumedVenue(c.row, ASSUMED_DEPLOYED_SHARE, rr))
     if (!survival(run, c.position).survives) break
     lowest = Math.round(rr * 100) / 100
   }
@@ -718,7 +714,6 @@ const fixture = {
     diagnosticWithOldAssumedDeployment: {
       deployedShareOfDebt: ASSUMED_DEPLOYED_SHARE,
       recallRate: ASSUMED_RECALL_RATE,
-      fastRate: ASSUMED_FAST_RATE,
       deployedUsd: Math.round(winner.row.debtUsd * ASSUMED_DEPLOYED_SHARE),
       equityDeltaUsd: Math.round(winner.deltaUsd),
       recallBreakEven: breakEven,

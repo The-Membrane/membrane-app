@@ -17,10 +17,12 @@ import {
   applyDebtMinimum,
   CURE_WINDOW_SECONDS,
   MAX_LTV_HARD_CAP,
+  NO_DELAY_LTV_HARD_CAP,
   applyRecall,
   fullRepayValue,
   membraneBorrowLtv,
   membraneMaxLtv,
+  membraneRecallTarget,
   membraneRepayValue,
   weightedMembraneLine,
 } from '../../lib/position-sim/membrane'
@@ -65,14 +67,16 @@ console.log('lib/position-sim')
 
 // ====================================================== membrane constants
 test('the real contract constants are what the code uses', () => {
-  close(BORROW_LTV_GAP, 0.03, 'BORROW_LTV_GAP — lib/Constants.sol:30')
+  // Citations re-pointed to membrane-solidity master 10626e40 (values unchanged).
+  close(BORROW_LTV_GAP, 0.03, 'BORROW_LTV_GAP — lib/Constants.sol:39')
   close(MAX_LTV_HARD_CAP, 0.9, 'MAX_LTV_HARD_CAP — lib/Constants.sol:23')
+  close(NO_DELAY_LTV_HARD_CAP, 0.96, 'NO_DELAY_LTV_HARD_CAP — lib/Constants.sol:32')
   assert.strictEqual(
     CURE_WINDOW_SECONDS,
     28_800,
-    'cure window — liquidation-engine/src/contract.rs:52',
+    'cure window — script/DeployFullSystem.s.sol:199 LIQUIDATION_DELAY_S',
   )
-  close(MAX_LIQ_FEE, 0.1, 'MAX_LIQ_FEE — lib/Constants.sol:57')
+  close(MAX_LIQ_FEE, 0.1, 'MAX_LIQ_FEE — lib/Constants.sol:64')
 })
 
 test('the borrow cap sits exactly 3pp under the liquidation line', () => {
@@ -128,7 +132,9 @@ test('a partial repay is always less than the whole loan', () => {
 
 test('membraneRepayValue is zero under the cap and total when underwater', () => {
   close(membraneRepayValue(70_000, 100_000, 0.77), 0, 'under the cap')
-  close(membraneRepayValue(110_000, 100_000, 0.77), 100_000, 'underwater -> all collateral value')
+  // CHANGED 2026-10-04: master targets the FULL DEBT at L >= 1 (LiquidationEngine.sol
+  // :2673-2688), not the collateral value (the old Rust cap). Was 100_000.
+  close(membraneRepayValue(110_000, 100_000, 0.77), 110_000, 'underwater -> the whole debt')
   close(membraneRepayValue(0, 100_000, 0.77), 0, 'no debt')
   close(membraneRepayValue(50_000, 0, 0.77), 50_000, 'no collateral -> whole debt')
 })
@@ -146,32 +152,28 @@ test('a full-repayment engine takes far more than a partial one', () => {
 
 // ============================================================ venue recall
 test('recall covers the call before any collateral is touched', () => {
-  const venue = { recallRate: 0.9, fastRate: 0.9, deployedUsd: 100_000, provenance: {} as never }
+  const venue = { recallRate: 0.9, deployedUsd: 100_000, provenance: {} as never }
   const r = applyRecall(50_000, venue)
   close(r.recalledUsd, 50_000, 'the venue answers the whole call')
   close(r.shortfallUsd, 0, 'nothing reaches collateral')
-  assert.ok(r.cured, 'fast capital covered it')
 })
 
 test('a shallow venue leaves a shortfall for collateral', () => {
-  const venue = { recallRate: 0.3, fastRate: 0, deployedUsd: 100_000, provenance: {} as never }
+  const venue = { recallRate: 0.3, deployedUsd: 100_000, provenance: {} as never }
   const r = applyRecall(50_000, venue)
   close(r.recalledUsd, 30_000, 'only the recallable share returns')
   close(r.shortfallUsd, 20_000, 'the rest is a shortfall')
-  assert.ok(!r.cured, 'no fast capital -> no cure')
 })
 
 test('the recall rate is the dominant variable', () => {
   const call = 50_000
   const deep = applyRecall(call, {
     recallRate: 0.95,
-    fastRate: 0.95,
     deployedUsd: 100_000,
     provenance: {} as never,
   })
   const shallow = applyRecall(call, {
     recallRate: 0.12,
-    fastRate: 0,
     deployedUsd: 100_000,
     provenance: {} as never,
   })
@@ -186,7 +188,22 @@ test('no venue means no recall — never a silent default', () => {
   const r = applyRecall(50_000, null)
   close(r.recalledUsd, 0, 'nothing recalled')
   close(r.shortfallUsd, 50_000, 'the whole call hits collateral')
-  assert.ok(!r.cured)
+})
+
+test('membraneRecallTarget asks only what restores borrowable LTV (owner ruling 2026-10-04)', () => {
+  // 82k on 100k, B = 0.77: recalling 82,000 − 77,000 = 5,000 lands at exactly 77%.
+  close(membraneRecallTarget(82_000, 100_000, 0.77), 5_000, 'restore by recall')
+  // Not the collateral-sale formula: that over-asks by 1/(1 − B) (collateral leaves with
+  // a sale, not with a recall).
+  close(membraneRepayValue(82_000, 100_000, 0.77) * (1 - 0.77), 5_000, 'formula × (1 − B)')
+  // Underwater on collateral alone: still back to B, not the full debt.
+  close(membraneRecallTarget(110_000, 100_000, 0.77), 33_000, 'underwater -> back to B')
+  close(membraneRecallTarget(70_000, 100_000, 0.77), 0, 'under B: nothing to recall')
+  close(membraneRecallTarget(50_000, 0, 0.77), 50_000, 'no collateral: the whole debt')
+  // The floor and the ruled remainder guard apply to the ask.
+  close(membraneRecallTarget(80_500, 100_000, 0.77, 2_000), 3_500, 'a 3,500 ask stands')
+  close(membraneRecallTarget(77_500, 100_000, 0.77, 2_000), 2_000, 'a 500 ask lifts to dMin')
+  close(membraneRecallTarget(3_000, 3_500, 0.77, 2_000), 3_000, 'would strand < dMin: whole loan')
 })
 
 test('weightedMembraneLine reports unknown assets instead of guessing', () => {
@@ -410,7 +427,7 @@ test('with no venue, a tighter modelled line makes Membrane liquidate earlier an
 test('recalled capital is equity-neutral — a recall is not free money', () => {
   const { path, unpriced } = crashPath()
   const deployed = 400_000
-  const venue = { recallRate: 0.95, fastRate: 0.95, deployedUsd: deployed, provenance: {} as never }
+  const venue = { recallRate: 0.95, deployedUsd: deployed, provenance: {} as never }
   const cmp = runComparison(crashTestPosition(), path, unpriced, { ...baseOpts, venue })
   // Deployed capital must appear on BOTH balance sheets: the source protocol simply
   // cannot reach it. Starting equity therefore has to be identical.
@@ -432,7 +449,7 @@ test('recalled capital is equity-neutral — a recall is not free money', () => 
 
 test('a deep venue lets Membrane cure without selling collateral', () => {
   const { path, unpriced } = crashPath()
-  const venue = { recallRate: 0.98, fastRate: 0.98, deployedUsd: 400_000, provenance: {} as never }
+  const venue = { recallRate: 0.98, deployedUsd: 400_000, provenance: {} as never }
   const cmp = runComparison(crashTestPosition(), path, unpriced, { ...baseOpts, venue })
   const cures = cmp.membrane.events.filter((e) => e.kind === 'cure')
   assert.ok(cures.length > 0, 'the cure window fired')
@@ -451,7 +468,7 @@ test('the recall rate is the dominant variable once it binds', () => {
   const mk = (recallRate: number) =>
     runComparison(crashTestPosition(), path, unpriced, {
       ...baseOpts,
-      venue: { recallRate, fastRate: 0, deployedUsd: 60_000, provenance: {} as never },
+      venue: { recallRate, deployedUsd: 60_000, provenance: {} as never },
     })
   const deep = mk(0.95)
   const shallow = mk(0.1)
@@ -531,7 +548,6 @@ test('url state round-trips so a shared link reproduces the run', () => {
     membraneMaxLtv: 0.8,
     liqFee: 0.05,
     recallRate: 0.9,
-    fastRate: 0.5,
     deployedUsd: 250_000,
   }
   const q = Object.fromEntries(new URLSearchParams(writeUrlState(s).slice(1)))
@@ -546,7 +562,6 @@ test('url state round-trips so a shared link reproduces the run', () => {
     membraneMaxLtv: undefined,
     liqFee: undefined,
     recallRate: undefined,
-    fastRate: undefined,
     deployedUsd: undefined,
     hero: undefined, // ?hero=history|oct10 A/B override, added after this test was written
   })
@@ -566,7 +581,7 @@ const walkBase = {
 const flatAfter = (r: number, n: number) => [1, ...new Array(n).fill(r)]
 
 test('the break line is line x (1 + band), not line + band', () => {
-  // LiquidationEngine.sol:2099-2103. At line 0.8 / band 0.04 the break is 0.832,
+  // master LiquidationEngine.sol:2554-2557. At line 0.8 / band 0.04 the break is 0.832,
   // NOT 0.84. An LTV of 0.835 must therefore be OUTSIDE the window.
   const inside = cureWalk({
     ...walkBase,
@@ -648,13 +663,17 @@ test('breaking the band during the window sells at once, before expiry', () => {
     collateralUsd: 1000,
     ratios: [1, ...new Array(9).fill(1), ...new Array(600).fill(0.9)],
   })
-  assert.strictEqual(r.outcome, 'sold-at-band', 'BrokeWindow — LiquidationEngine.sol:1388-1389')
+  assert.strictEqual(
+    r.outcome,
+    'sold-at-band',
+    'BrokeWindow — master LiquidationEngine.sol:1695-1696',
+  )
   assert.strictEqual(r.closedAtIndex, 10, 'the minute the band broke, not minute 480')
 })
 
 test('a recovery re-arms the window — the delay is not one-shot', () => {
   // Breach, cure at minute 10, re-breach at minute 20. A one-shot model would sell at
-  // minute 480 (t0 + 8h). The contract clears the timer on recovery (:1362-1382), so
+  // minute 480 (t0 + 8h). The contract clears the timer on recovery (master LE:1666-1685), so
   // the sale lands at minute 20 + 480 = 500 instead.
   const ratios = [1, ...new Array(9).fill(1), ...new Array(10).fill(1.2), ...new Array(700).fill(1)]
   const r = cureWalk({ ...walkBase, debtUsd: 810, collateralUsd: 1000, ratios })
@@ -843,7 +862,7 @@ test('UnsupportedError is distinguishable so a stub is not reported as a failure
   assert.ok(e.message.includes('fluid'))
 })
 
-// ============================ the liqDebtMinimum floor, LiquidationEngine.sol:2241-2269
+// ============ the liqDebtMinimum floor, master LiquidationEngine.sol:2718-2729 + the ruled guard
 test('the debt floor escalates a sub-minimum chunk exactly as the contract does', () => {
   // repay >= dMin and a healthy remainder: untouched.
   close(applyDebtMinimum(5_000, 100_000, 2_000), 5_000, 'a normal chunk passes through')
@@ -854,6 +873,8 @@ test('the debt floor escalates a sub-minimum chunk exactly as the contract does'
   // dMin <= loan < 2 x dMin: lifting to dMin would strand a sub-minimum remainder.
   close(applyDebtMinimum(500, 3_000, 2_000), 3_000, 'a stranded remainder escalates to full')
   // The remainder guard: the chunk was already >= dMin but leaves too little behind.
+  // OWNER RULING 2026-10-04: a liquidation never leaves 0 < debt < dMin — repay all. This
+  // is the INTENDED rule; master LiquidationEngine.sol:2718-2729 has no guard (fix lane).
   close(applyDebtMinimum(9_000, 10_000, 2_000), 10_000, 'remainder guard escalates to full')
   // Disabled.
   close(applyDebtMinimum(500, 100_000, 0), 500, 'liqDebtMinimum == 0 disables the floor')

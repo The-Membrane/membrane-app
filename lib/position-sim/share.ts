@@ -21,7 +21,8 @@ export interface SimUrlState {
   membraneMaxLtv?: number
   liqFee?: number
   recallRate?: number
-  fastRate?: number
+  // `fast` (the old "fast rate") was REMOVED 2026-10-04 by owner ruling. An old link that
+  // still carries ?fast= is read without it — the parameter is ignored, not an error.
   deployedUsd?: number
   /** Hero A/B override (?hero=history|oct10). Carried so the page's own URL rewrite
    *  and copy-link both preserve it. */
@@ -46,7 +47,6 @@ export function readUrlState(query: Record<string, string | string[] | undefined
     membraneMaxLtv: numParam(query.ltv),
     liqFee: numParam(query.fee),
     recallRate: numParam(query.recall),
-    fastRate: numParam(query.fast),
     deployedUsd: numParam(query.dep),
     hero: (() => { const h = Array.isArray(query.hero) ? query.hero[0] : query.hero; return h === 'history' || h === 'oct10' ? h : undefined })(),
   }
@@ -59,7 +59,6 @@ export function writeUrlState(s: SimUrlState): string {
   if (s.membraneMaxLtv !== undefined) q.set('ltv', s.membraneMaxLtv.toFixed(4))
   if (s.liqFee !== undefined) q.set('fee', s.liqFee.toFixed(4))
   if (s.recallRate !== undefined) q.set('recall', s.recallRate.toFixed(4))
-  if (s.fastRate !== undefined) q.set('fast', s.fastRate.toFixed(4))
   if (s.deployedUsd !== undefined) q.set('dep', String(Math.round(s.deployedUsd)))
   if (s.hero !== undefined) q.set('hero', s.hero)
   const str = q.toString()

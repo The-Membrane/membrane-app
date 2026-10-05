@@ -17,7 +17,7 @@ import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { monoXs, tabular } from '@/components/Builder/styles'
-import { CURE_WINDOW_HOURS, MAX_LIQ_FEE, type Provenance } from '@/lib/position-sim'
+import { MAX_LIQ_FEE, type Provenance } from '@/lib/position-sim'
 
 import Stamp from './Stamp'
 import { pct, usd } from './format'
@@ -123,7 +123,6 @@ export interface ControlValues {
   membraneMaxLtv: number
   membraneLiqFee: number
   recallRate: number
-  fastRate: number
   deployedUsd: number
 }
 
@@ -298,20 +297,8 @@ export const Controls: React.FC<ControlsProps> = ({
       min={0}
       max={1}
       step={0.01}
-      onChange={(v) => onChange({ recallRate: v, fastRate: Math.min(values.fastRate, v) })}
+      onChange={(v) => onChange({ recallRate: v })}
       note="Share venues return on demand"
-    />
-
-    <Slider
-      id="sim-fast"
-      label="Fast rate"
-      value={values.fastRate}
-      display={pct(values.fastRate)}
-      min={0}
-      max={Math.max(0, values.recallRate)}
-      step={0.01}
-      onChange={(v) => onChange({ fastRate: Math.min(v, values.recallRate) })}
-      note={`Share arriving inside ${CURE_WINDOW_HOURS} h`}
     />
   </Box>
 )

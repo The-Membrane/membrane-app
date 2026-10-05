@@ -221,7 +221,6 @@ const ZERO_CONTROLS: ControlValues = {
   membraneMaxLtv: 0,
   membraneLiqFee: 0,
   recallRate: 0,
-  fastRate: 0,
   deployedUsd: 0,
 }
 
@@ -420,7 +419,6 @@ export const Simulator: React.FC<SimulatorProps> = ({
       membraneMaxLtv: derived.maxLtv,
       membraneLiqFee: liqFeeDefault,
       recallRate: detectedRecall?.recallRate ?? 0,
-      fastRate: detectedRecall?.fastRate ?? 0,
       deployedUsd: detectedRecall?.deployedUsd ?? 0,
     }
   }, [selected, derived, liqFeeDefault, detectedRecall])
@@ -435,13 +433,12 @@ export const Simulator: React.FC<SimulatorProps> = ({
     const same =
       detectedRecall !== null &&
       Math.abs(detectedRecall.recallRate - values.recallRate) < 1e-9 &&
-      Math.abs(detectedRecall.fastRate - values.fastRate) < 1e-9 &&
       Math.round(detectedRecall.deployedUsd) === Math.round(values.deployedUsd)
     if (same && detectedRecall) return detectedRecall.provenance
     return stamp(
       'modelled',
       'venue recall · your inputs',
-      'The recall and fast rates in force are the ones set in the controls on this page. They are not measured and they are not read from any venue.',
+      'The recall rate in force is the one set in the controls on this page. It is not measured and it is not read from any venue.',
     )
   }, [detectedRecall, values])
 
@@ -490,7 +487,6 @@ export const Simulator: React.FC<SimulatorProps> = ({
       values.deployedUsd > 0
         ? {
             recallRate: values.recallRate,
-            fastRate: values.fastRate,
             deployedUsd: values.deployedUsd,
             provenance: venueProvenance,
           }
@@ -516,7 +512,6 @@ export const Simulator: React.FC<SimulatorProps> = ({
     if (s.membraneMaxLtv !== undefined) patch.membraneMaxLtv = s.membraneMaxLtv
     if (s.liqFee !== undefined) patch.membraneLiqFee = s.liqFee
     if (s.recallRate !== undefined) patch.recallRate = s.recallRate
-    if (s.fastRate !== undefined) patch.fastRate = s.fastRate
     if (s.deployedUsd !== undefined) patch.deployedUsd = s.deployedUsd
     if (s.hero !== undefined) setHeroOverride(s.hero)
     const run = async () => {
@@ -538,7 +533,6 @@ export const Simulator: React.FC<SimulatorProps> = ({
       membraneMaxLtv: selected ? values.membraneMaxLtv : undefined,
       liqFee: selected ? values.membraneLiqFee : undefined,
       recallRate: selected ? values.recallRate : undefined,
-      fastRate: selected ? values.fastRate : undefined,
       deployedUsd: selected ? values.deployedUsd : undefined,
       hero: heroOverride ?? undefined,
     }),
@@ -840,11 +834,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
                   </>
                 )}
 
-                <DeploymentSection
-                  detection={detection}
-                  recallRate={values.recallRate}
-                  fastRate={values.fastRate}
-                />
+                <DeploymentSection detection={detection} recallRate={values.recallRate} />
               </Box>
             </Section>
           )}
@@ -859,7 +849,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
               extraNotes={finePrintNotes}
               assumptionNote={
                 selected
-                  ? `This run uses a modelled Membrane max LTV of ${(values.membraneMaxLtv * 100).toFixed(1)}%, liquidation fee ${(values.membraneLiqFee * 100).toFixed(1)}%, detected deployable venue capital ${usd(values.deployedUsd)}, recall rate ${(values.recallRate * 100).toFixed(1)}%, and fast rate ${(values.fastRate * 100).toFixed(1)}%. URL parameters can override these inputs; none are live Membrane settings.`
+                  ? `This run uses a modelled Membrane max LTV of ${(values.membraneMaxLtv * 100).toFixed(1)}%, liquidation fee ${(values.membraneLiqFee * 100).toFixed(1)}%, detected deployable venue capital ${usd(values.deployedUsd)}, and recall rate ${(values.recallRate * 100).toFixed(1)}%. URL parameters can override these inputs; none are live Membrane settings.`
                   : undefined
               }
             />

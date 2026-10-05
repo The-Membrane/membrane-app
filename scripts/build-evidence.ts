@@ -1,7 +1,7 @@
 /**
  * Builds public/data/oct10-2025/evidence.json — the dataset behind /[chain]/evidence.
  *
- * SINGLE SOURCE OF TRUTH: this imports membraneRepayValue, BORROW_LTV_GAP,
+ * SINGLE SOURCE OF TRUTH: this imports membraneCollateralRepayValue, BORROW_LTV_GAP,
  * CURE_WINDOW_SECONDS, MAX_THRESHOLD_TO_DELAY and LIQ_DEBT_MINIMUM_USD from
  * lib/position-sim/membrane.ts, and the delay-window walk itself from
  * lib/position-sim/curePath.ts — the SAME engine the per-address wallet simulator
@@ -53,7 +53,7 @@ import {
   CURE_WINDOW_SECONDS,
   LIQ_DEBT_MINIMUM_USD,
   MAX_THRESHOLD_TO_DELAY,
-  membraneRepayValue,
+  membraneCollateralRepayValue,
 } from '../lib/position-sim/membrane'
 import { cureWalk } from '../lib/position-sim/curePath'
 
@@ -621,7 +621,9 @@ function buildCohort(opts: CohortOpts = {}) {
       debtUsd,
     )
     // the shared engine, not a reimplementation
-    const oneRepayUsd = membraneRepayValue(
+    // Collateral is the only payer: past L = 1 it closes at most its own value (the rest
+    // is bad debt, LE:2361-2374), exactly as cureWalk books it.
+    const oneRepayUsd = membraneCollateralRepayValue(
       debtUsd,
       collUsd,
       Math.max(0, lt - BORROW_LTV_GAP),
@@ -1517,7 +1519,7 @@ for (let i = 0; i < walkInputs.length; i++) {
   ) {
     floorAccountsChanged++
   }
-  const bare = membraneRepayValue(
+  const bare = membraneCollateralRepayValue(
     w.debtUsd,
     w.collateralUsd,
     Math.max(0, w.line - BORROW_LTV_GAP),
@@ -1556,16 +1558,21 @@ const doc = {
       'breached after the rebase are excluded from BOTH sides.',
     realConstants: {
       borrowLtvGap: BORROW_LTV_GAP,
-      borrowLtvGapSource: 'lib/Constants.sol:30',
-      repayFormulaSource: 'LiquidationEngine.sol:2204-2238',
+      borrowLtvGapSource: 'lib/Constants.sol:39',
+      repayFormulaSource:
+        'membrane-solidity master 10626e40 LiquidationEngine.sol:2663-2710; at L >= 1 the target is the ' +
+        'full debt (:2673-2688) but collateral repays at most what is held, and the uncovered rest ' +
+        'is bad debt (:2361-2374), so the census books min(target, collateral value)',
       cureWindowSeconds: CURE_WINDOW_SECONDS,
-      cureWindowSource: 'liquidation-engine/src/contract.rs:52',
+      cureWindowSource:
+        'script/DeployFullSystem.s.sol:199 LIQUIDATION_DELAY_S = 8 hours (engine constructor :481)',
       liqDebtMinimumUsd: LIQ_DEBT_MINIMUM_USD,
       liqDebtMinimumSource:
-        'script/DeployFullSystem.s.sol:388 setLiqDebtMinimum(2000e18); the constructor ' +
+        'script/DeployFullSystem.s.sol:486 setLiqDebtMinimum(2000e18); the constructor ' +
         'default is MembraneDeploymentDefaults.DEBT_MINIMUM = 100e18 ' +
         '(contracts/lib/DeploymentDefaults.sol:51), which DeployLiquidationCore.s.sol leaves in place',
-      debtMinimumRuleSource: 'LiquidationEngine.sol:2241-2269 (floor + remainder guard)',
+      debtMinimumRuleSource:
+        'membrane-solidity master 10626e40 LiquidationEngine.sol:2718-2729 (the floor), plus the remainder guard the owner ruled on 2026-10-04: no liquidation leaves 0 < debt < the minimum, it repays all (master does not have the guard yet; a fix is tracked)',
     },
     /** The rebase, and what it could not resolve. */
     excluded: {
@@ -1741,13 +1748,14 @@ const doc = {
       maxSales: MAX_SALES,
       stepSeconds: STEP,
       semantics: [
-        'The break line is line x (1 + band), not line + band — LiquidationEngine.sol:2099-2103, tested strictly at :1329.',
-        'A position back under its LINE clears the timer (SavedByDelay, LiquidationEngine.sol:1362-1382 and :760-781), so a later breach gets a FULL fresh delay. The delay is not one-shot.',
+        'The break line is line x (1 + band), not line + band — LiquidationEngine.sol:2554-2557, tested strictly at :1576.',
+        'A position back under its LINE clears the timer (SavedByDelay, LiquidationEngine.sol:1666-1685 and clearRecoveredTimer :926-949), so a later breach gets a FULL fresh delay. The delay is not one-shot.',
         'MODELLED SEMANTICS, stated: clearRecoveredTimer / saveByDelay are permissionless and cost only gas, but somebody must CALL them. This model clears instantly on a return under the line. meta.sensitivity.noEarlyClearMembraneClosedUsd prices the opposite corner, where nobody ever calls, the original expiry stands, and a later breach does not restart it.',
-        'Past the band while a timer runs is BrokeWindow — immediate sale (LiquidationEngine.sol:1388-1389). Past the band with no timer is Immediate (:1390). Neither gets a delay.',
-        'At expiry still over the line is DelayExpired — sale at that minute, sized to restore the borrow cap at that minute’s collateral value (:1391-1392, :2204-2238).',
-        `A sale restores the BORROW CAP, not zero, and deletes the timer (:1421-1423), so the position stays live: the reduced debt and collateral walk on and a later breach re-arms. Up to ${MAX_SALES} sales per episode.`,
-        `Every repay passes through the liqDebtMinimum floor and the remainder guard (LiquidationEngine.sol:2241-2269) at the deployed $${LIQ_DEBT_MINIMUM_USD}. The contract also gas-indexes that floor upward; gas is not modelled, so this can only UNDER-state the escalation.`,
+        'Past the band while a timer runs is BrokeWindow — immediate sale (LiquidationEngine.sol:1695-1696). Past the band with no timer is Immediate (:1697-1698). Neither gets a delay.',
+        'At expiry still over the line is DelayExpired — sale at that minute, sized to restore the borrow cap at that minute’s collateral value (:1699-1700, :2663-2710).',
+        `A sale restores the BORROW CAP, not zero, and deletes the timer (:1724-1727), so the position stays live: the reduced debt and collateral walk on and a later breach re-arms. Up to ${MAX_SALES} sales per episode.`,
+        `Every repay passes through the liqDebtMinimum floor (master LiquidationEngine.sol:2718-2729) at the deployed $${LIQ_DEBT_MINIMUM_USD}, and a repay that would leave less than that behind closes the whole loan instead — the intended rule (owner ruling 2026-10-04); master does not apply that remainder guard yet. The contract also gas-indexes the floor upward; gas is not modelled, so this can only UNDER-state the escalation.`,
+        'Past insolvency (LTV >= 100%) the contract targets the FULL debt (master LiquidationEngine.sol:2673-2688), but collateral can only repay what is held: the census books the collateral value as closed, and the uncovered rest is bad debt (:2361-2374), not a repay.',
         'Conservative choices: a grid that ends inside an unresolved delay SELLS at the last price; a recovery only re-arms on a return under the line, never merely back inside the band; accounts whose breach cannot be located even after the rebase are excluded from both sides rather than handed a free cure.',
       ],
       outcomes,

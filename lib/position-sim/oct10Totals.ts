@@ -17,6 +17,20 @@ import corpus from '@/public/data/liquidation-corpus.json'
 // used. Both figures are sums over the WHOLE cohort (excluded rows included), so only the
 // wstETH legs' repriced dollars moved: +$18.5k closed, +$1.52M collateral at risk. The
 // headline $144M / 2,350 accounts is unchanged to the nearest million.
+//
+// MOVED AGAIN 2026-10-04: repay sizing re-aligned to membrane-solidity master 10626e40 —
+// no remainder guard on the debt floor (LiquidationEngine.sol:2718-2729), and past
+// insolvency collateral closes at most its own value (the full-debt target's uncovered
+// rest is bad debt, :2361-2374). 32 sold-at-t0 rows moved (19 lose the guard's escalation
+// to a full close, 13 underwater rows stop booking uncovered debt as closed): −$26.3k
+// closed, +$26.3k kept. The $67M scale line is unchanged.
+//
+// UPDATED 2026-10-04 (later the same day): owner ruling — a liquidation must never leave
+// 0 < debt < liqDebtMinimum, so the debt floor's remainder guard is BACK as the intended
+// rule (master still lacks it; fix lane on AGENT_BOARD.md). The 19 sold-at-t0 rows that
+// lost the escalation above regain it: +$17.6k closed, −$17.6k kept. The 13 underwater
+// rows keep their bad-debt fix. Net vs the pre-2026-10-04 pins: −$8.7k closed. The $67M
+// scale line is unchanged.
 
 /** Measured Oct 10-11 2025 totals. Recomputed from the evidence JSON by the unit test. */
 export const OCT10_TOTALS = {
@@ -28,9 +42,9 @@ export const OCT10_TOTALS = {
   aaveClosedUsd: 144_239_544,
   /** Σ membraneClosedUsd over the cohort — what the 4%/8h window + repay-to-cap would
    *  have closed on the same accounts, same prices, no deployment assumed. */
-  membraneClosedUsd: 77_064_039,
+  membraneClosedUsd: 77_055_307,
   /** aaveClosedUsd − membraneClosedUsd. The day's "4% would have saved" figure. */
-  keptUsd: 67_175_505,
+  keptUsd: 67_184_237,
   /** Σ collateralUsd over the cohort — the pre-liquidation collateral standing behind it. */
   collateralAtRiskUsd: 637_388_334,
   /** The chains the cohort spans, in first-seen order. */

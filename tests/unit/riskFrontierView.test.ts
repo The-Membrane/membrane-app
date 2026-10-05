@@ -1,0 +1,419 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+import {
+  DEFAULT_INPUTS,
+  LOADOUTS,
+  TIME_KNOTS,
+  buildStressPosition,
+  computeFrontier,
+  crashLevel,
+  detailRows,
+  duration,
+  edgeView,
+  laneTimeline,
+  leafView,
+  pct,
+  resolveSelection,
+  swatchText,
+  timeX,
+  usdShort,
+  type FrontierModel,
+} from '@/components/RiskFrontier/viewModel'
+import { MEMBRANE_CLASS_PARAMS } from '@/lib/position-sim/membrane'
+import {
+  STRESS_CODE_VERSION,
+  STRESS_LABEL,
+  oct10ReplayShape,
+  runStress,
+  type StressResult,
+} from '@/lib/position-sim/stressGrid'
+import type { Oct10Series } from '@/lib/position-sim/scenario'
+
+const series = JSON.parse(
+  readFileSync(path.resolve(__dirname, '../../public/data/oct10-2025/prices-1m.json'), 'utf8'),
+) as Oct10Series
+const replay = oct10ReplayShape(series, 'WETH')
+
+/** Every user-visible string the view model hands the screen for one model. */
+function visibleStrings(m: FrontierModel): string[] {
+  const out: string[] = [m.headline.lead, m.headline.detail ?? '']
+  for (const lane of m.tree) out.push(lane.label, lane.sub, lane.leaf.title, lane.leaf.short)
+  for (const c of m.crash) out.push(c.title, c.summary, c.limit.text, c.limit.hint)
+  for (const row of m.swatch.rows)
+    for (const cell of row.cells) out.push(cell.leaf.title, cell.leaf.short, cell.text)
+  for (const lane of m.tree)
+    if (lane.result) for (const r of detailRows(lane.result)) out.push(r.label, r.value)
+  for (const e of [
+    m.dtd.price.breach,
+    m.dtd.price.arm,
+    m.dtd.price.sale,
+    m.dtd.saleAtShock,
+    m.dtd.capacity.arm,
+    m.dtd.capacity.sale,
+    m.dtd.freeze.arm,
+    m.dtd.freeze.sale,
+  ]) {
+    const v = edgeView(e, 'drop')
+    out.push(v.text, v.hint)
+  }
+  return out
+}
+
+describe('risk frontier view model — format', () => {
+  it('never prints a bare 0%; ∞ for collateral gone', () => {
+    expect(pct(0)).toBe('—')
+    expect(pct(Infinity)).toBe('∞')
+    expect(pct(0.71363)).toBe('71.4%')
+    expect(pct(null)).toBe('—')
+  })
+
+  it('formats money and durations', () => {
+    expect(usdShort(14_200)).toBe('$14.2k')
+    expect(usdShort(940)).toBe('$940')
+    expect(usdShort(1_050_000)).toBe('$1.05M')
+    expect(duration(30)).toBe('<1m')
+    expect(duration(60)).toBe('1m')
+    expect(duration(8 * 3600)).toBe('8h')
+    expect(duration(76_680)).toBe('21h 18m')
+    expect(duration(null)).toBe('—')
+  })
+})
+
+describe('risk frontier view model — sandbox inputs', () => {
+  it('clamps the line to the class ceiling and reports it', () => {
+    const sb = buildStressPosition({ ...DEFAULT_INPUTS, line: 0.95 })
+    expect(sb.line).toBe(MEMBRANE_CLASS_PARAMS.delayed.ltvCeiling)
+    expect(sb.lineClamped).toBe(true)
+    const nd = buildStressPosition({ ...DEFAULT_INPUTS, membraneClass: 'no-delay', line: 0.95 })
+    expect(nd.line).toBe(0.95)
+    expect(nd.lineClamped).toBe(false)
+    expect(nd.breakLine).toBe(0.95) // no band
+  })
+
+  it('caps deployed at the debt and drops venue fields for levered long', () => {
+    const sb = buildStressPosition({ ...DEFAULT_INPUTS, deployedUsd: 99_999 })
+    expect(sb.deployedUsd).toBe(DEFAULT_INPUTS.debtUsd)
+    expect(sb.deployedClamped).toBe(true)
+    const lev = buildStressPosition({ ...DEFAULT_INPUTS, tradeShape: 'levered_long' })
+    expect(lev.position.deployedUsd).toBeUndefined()
+    expect(lev.position.exitCapacityPreset).toBeUndefined()
+    expect(lev.position.exitCapacityUsd).toBeUndefined()
+    expect(lev.exitCapacityUsd).toBeNull()
+  })
+
+  it('passes a preset through, and a custom multiplier as a multiple of the deployed amount', () => {
+    const preset = buildStressPosition(DEFAULT_INPUTS)
+    expect(preset.position.exitCapacityPreset).toBe('stressed')
+    expect(preset.exitCapacityUsd).toBe(DEFAULT_INPUTS.deployedUsd * 0.5)
+    const custom = buildStressPosition({
+      ...DEFAULT_INPUTS,
+      capacity: { kind: 'custom', mult: 0.3 },
+    })
+    expect(custom.position.exitCapacityPreset).toBeUndefined()
+    // UPDATED 2026-10-04 (review: custom capacity skewed the crash test): was passed as a
+    // fixed exitCapacityUsd, which the reverse solve held in $ while rescaling the debt.
+    expect(custom.position.exitCapacityUsd).toBeUndefined()
+    expect(custom.position.exitCapacityMult).toBe(0.3)
+    expect(custom.exitCapacityUsd).toBeCloseTo(DEFAULT_INPUTS.deployedUsd * 0.3, 9)
+    const node = runStress(custom.position, { price: { kind: 'step', drop: 0.25 } })
+    expect(node.outcome !== 'not_modelled' && node.recallAvailableUsd).toBeCloseTo(
+      DEFAULT_INPUTS.deployedUsd * 0.3,
+      2,
+    )
+    const wild = buildStressPosition({ ...DEFAULT_INPUTS, capacity: { kind: 'custom', mult: 7 } })
+    expect(wild.capacityMult).toBe(1)
+  })
+
+  it('never defaults to the optimistic exit (owner ruling 2026-10-04)', () => {
+    expect(DEFAULT_INPUTS.capacity).not.toEqual({ kind: 'preset', preset: 'optimistic' })
+  })
+})
+
+describe('risk frontier view model — edges and leaves', () => {
+  it('quotes found edges toward risk, whole units', () => {
+    const node = runStress(buildStressPosition(DEFAULT_INPUTS).position, {
+      price: { kind: 'step', drop: 0.36 },
+    })
+    const found = edgeView(
+      {
+        status: 'found',
+        unit: 'pct',
+        display: 35,
+        safeBelow: 0.357,
+        triggersAt: 0.3571,
+        iterations: 20,
+        at: node,
+      },
+      'drop',
+    )
+    expect(found.text).toBe('35%')
+    expect(found.at).toBeCloseTo(0.35, 12)
+    expect(found.hint).toBe('nothing at 35% of drop; the edge is in (35%, 36%]')
+    const tiny = edgeView(
+      {
+        status: 'found',
+        unit: 'hours',
+        display: 0,
+        safeBelow: 0.001,
+        triggersAt: 0.0011,
+        iterations: 9,
+        at: node,
+      },
+      'freeze',
+    )
+    expect(tiny.text).toBe('<1h')
+    expect(edgeView({ status: 'beyond_range', unit: 'pct', max: 0.99 }, 'drop')).toMatchObject({
+      state: 'beyond',
+      at: null,
+      text: '>99%',
+    })
+    expect(edgeView({ status: 'not_applicable', reason: 'no_delay_class' }, 'drop').text).toBe(
+      'no window',
+    )
+  })
+
+  it('gives every outcome its own glyph', () => {
+    const glyphs = new Set<string>()
+    const pos = buildStressPosition(DEFAULT_INPUTS).position
+    const runs: StressResult[] = [
+      runStress(pos, { price: { kind: 'step', drop: 0 } }),
+      runStress(pos, { price: { kind: 'step', drop: 0.25 } }),
+      runStress(pos, { price: { kind: 'step', drop: 0.5 } }),
+      runStress({ ...pos, exitCapacityPreset: undefined }, { price: { kind: 'step', drop: 0.1 } }),
+    ]
+    for (const r of runs) glyphs.add(leafView(r).glyph)
+    expect([...glyphs].sort()).toEqual(['●', '◆', '✖', '░'].sort())
+    expect(leafView(null, 'Oct 10 tape loading')).toMatchObject({
+      glyph: '░',
+      short: 'Oct 10 tape loading',
+    })
+  })
+})
+
+describe('risk frontier view model — swatch cells', () => {
+  it('gives each outcome a compact line that carries its number', () => {
+    const pos = buildStressPosition(DEFAULT_INPUTS).position
+    const flat = runStress(pos, { price: { kind: 'step', drop: 0 } })
+    const recall = runStress(pos, { price: { kind: 'step', drop: 0.25 } })
+    const sold = runStress(pos, { price: { kind: 'step', drop: 0.5 } })
+    const nm = runStress(
+      { ...pos, exitCapacityPreset: undefined },
+      { price: { kind: 'step', drop: 0.1 } },
+    )
+    expect(flat.outcome).toBe('no_breach')
+    expect(swatchText(flat)).toBe('peak 71%')
+    expect(recall.outcome).toBe('recall_cured')
+    expect(swatchText(recall)).toMatch(/^recall \$\d/)
+    expect(sold.outcome).toBe('sold')
+    expect(swatchText(sold)).toMatch(/^\$[\d.,]+k? sold$/)
+    expect(swatchText(nm)).toBe('not modelled')
+  })
+
+  it('stores the compact line on every grid cell', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, null)
+    for (const row of m.swatch.rows)
+      for (const cell of row.cells) expect(cell.text).toBe(swatchText(cell.result))
+  })
+})
+
+describe('risk frontier view model — tree timeline', () => {
+  it('maps time monotonically onto [0, 1] through its knots', () => {
+    for (const [s, x] of TIME_KNOTS) expect(timeX(s)).toBeCloseTo(x, 12)
+    expect(timeX(-5)).toBe(0)
+    expect(timeX(1e9)).toBe(1)
+    let prev = -1
+    for (let s = 0; s <= 70 * 3600; s += 997) {
+      const x = timeX(s)
+      expect(x).toBeGreaterThanOrEqual(prev)
+      prev = x
+    }
+  })
+
+  it('hatches a lane with no modelled result, and keeps segments contiguous otherwise', () => {
+    expect(laneTimeline(null, 0.1)).toEqual({
+      events: [],
+      segments: [{ from: 0.1, to: 1, tone: 'muted' }],
+      endX: 1,
+    })
+    const m = computeFrontier(DEFAULT_INPUTS, replay)
+    for (const lane of m.tree) {
+      const segs = lane.segments
+      expect(segs[0].from).toBeCloseTo(lane.startX, 12)
+      for (let i = 1; i < segs.length; i++) expect(segs[i].from).toBeCloseTo(segs[i - 1].to, 12)
+      for (const s of segs) expect(s.to).toBeGreaterThan(s.from)
+    }
+  })
+
+  it('builds the named branches, venue rows under the −25% step', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, null)
+    expect(m.tree.map((l) => l.id)).toEqual([
+      'flat',
+      'step10',
+      'step25',
+      'freeze8',
+      'cap01',
+      'wick25',
+      'oct10',
+    ])
+    expect(m.tree.filter((l) => l.parent === 'step25').map((l) => l.id)).toEqual([
+      'freeze8',
+      'cap01',
+    ])
+    const oct = m.tree.find((l) => l.id === 'oct10')!
+    expect(oct.result).toBeNull()
+    expect(oct.leaf.glyph).toBe('░')
+    for (const lane of m.tree) {
+      if (!lane.result) continue
+      expect(lane.result.label).toBe(STRESS_LABEL)
+      expect(lane.result.codeVersion).toBe(STRESS_CODE_VERSION)
+    }
+    // The venue rows fork at the parent's first breach.
+    const step = m.tree.find((l) => l.id === 'step25')!
+    const fork = m.tree.find((l) => l.id === 'freeze8')!
+    expect(step.result?.outcome).not.toBe('not_modelled')
+    expect(fork.startX).toBeGreaterThan(0)
+  })
+
+  it('runs the Oct 10 replay once the tape is in', () => {
+    expect(replay).not.toBeNull()
+    const m = computeFrontier(DEFAULT_INPUTS, replay)
+    const oct = m.tree.find((l) => l.id === 'oct10')!
+    expect(oct.result?.outcome).not.toBe('not_modelled')
+    expect(oct.sub).toContain('sensitivity test')
+  })
+
+  it('shows levered-long venue rows as not modelled, with the reason', () => {
+    const m = computeFrontier({ ...DEFAULT_INPUTS, tradeShape: 'levered_long' }, null)
+    for (const id of ['freeze8', 'cap01']) {
+      const lane = m.tree.find((l) => l.id === id)!
+      expect(lane.leaf.glyph).toBe('░')
+      expect(lane.leaf.short).toBe('levered long: no venue recall')
+    }
+    expect(m.swatch.cols).toEqual(['chosen exit'])
+  })
+})
+
+describe('risk frontier view model — headline, crash test, selection', () => {
+  it('names the nearest price edge without folding in venue axes', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, null)
+    expect(m.headline.lead).toBe('A held drop past 35% arms the 8h window.')
+    expect(m.headline.detail).toContain('Modelled recall, not a guarantee.')
+    const nd = computeFrontier(LOADOUTS.find((l) => l.id === 'no-delay')!.inputs, null)
+    expect(nd.headline.lead).toContain('no window in this class')
+    expect(visibleStrings(nd).join(' ')).not.toMatch(
+      /8h window|arms the|window armed|past the band/,
+    )
+  })
+
+  it('says when a carry position starts over the line (recall fires at once)', () => {
+    const m = computeFrontier({ ...DEFAULT_INPUTS, debtUsd: 39_500 }, null)
+    expect(m.dtd.price.breach.status).toBe('already')
+    expect(m.headline.detail).toMatch(
+      /^Already over the line: start LTV 89\.8% vs line 86%, so recall fires at once\./,
+    )
+    expect(computeFrontier(DEFAULT_INPUTS, null).headline.detail).not.toContain(
+      'Already over the line',
+    )
+  })
+
+  it('crash verdicts come from the user’s own node at that drop', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, null)
+    expect(m.crash.map((c) => c.title)).toEqual(['−50%', '−60%'])
+    for (const c of m.crash) {
+      expect(c.verdict).toBe(
+        c.node.outcome === 'sold'
+          ? 'sold'
+          : c.node.outcome === 'not_modelled'
+            ? 'not_modelled'
+            : 'cleared',
+      )
+    }
+    expect(m.crash[0].limit.text).toBe('55%')
+    expect(m.crash[0].verdict).toBe('sold')
+    // UPDATED 2026-10-04 (owner ruling 1, the debt floor on what a call actually repays):
+    // was every level 'cleared'. The small loan ($3k debt, $2.5k deployed, optimistic)
+    // breaches at both drops; the ask is the whole loan and the venue's $2,500 would leave
+    // $500 — under the $2,000 floor — so the call repays all and sells the $500.
+    const small = computeFrontier(LOADOUTS.find((l) => l.id === 'small')!.inputs, null)
+    for (const c of small.crash) {
+      expect(c.verdict).toBe('sold')
+      expect(c.node.outcome === 'sold' && c.node.saleReason).toBe('floor')
+      expect(c.node.outcome === 'sold' && c.node.exposedUsd).toBeCloseTo(500, 6)
+    }
+  })
+
+  it('a custom capacity multiple solves exactly like the preset with the same multiple', () => {
+    // The review case: $38k of debt, $22.8k deployed. The custom choice used to reach the
+    // engine as a fixed $11,400, which the reverse solve held in dollars while it rescaled
+    // the debt: at −60% the limit read 60% (custom ×0.50) vs 49% ('stressed', ×0.5), and at
+    // −50% 68% vs 61% — the custom answer optimistic exactly where the crash test matters.
+    const base = { ...DEFAULT_INPUTS, debtUsd: 38_000, deployedUsd: 22_800 }
+    const preset = computeFrontier(
+      { ...base, capacity: { kind: 'preset', preset: 'stressed' } },
+      null,
+    )
+    const custom = computeFrontier({ ...base, capacity: { kind: 'custom', mult: 0.5 } }, null)
+    expect(custom.crash.map((c) => c.limit.text)).toEqual(preset.crash.map((c) => c.limit.text))
+    expect(preset.crash.map((c) => c.limit.text)).toEqual(['61%', '49%'])
+    expect(custom.dtd.reverse).toEqual(preset.dtd.reverse)
+    expect(custom.dtd.capacity).toEqual(preset.dtd.capacity)
+    expect(custom.sandbox.exitCapacityUsd).toBeCloseTo(11_400, 9)
+  })
+
+  it('the crash stamp carries the node’s own glyph: ● only when the line was never crossed', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, null)
+    for (const c of m.crash) {
+      const own = leafView(c.node)
+      expect([c.glyph, c.tone]).toEqual([own.glyph, own.tone])
+    }
+    // A cleared level that crossed the line and was recalled is ◆, not the "no breach" ●.
+    const p = buildStressPosition(DEFAULT_INPUTS).position
+    const recalled = runStress(p, { price: { kind: 'step', drop: 0.5 } })
+    const fake = { ...recalled, outcome: 'recall_cured' } as StressResult
+    const lvl = crashLevel(0.5, m.dtd.reverse.at50, fake, 0.7, 0.86)
+    expect(lvl.verdict).toBe('cleared')
+    expect(lvl.glyph).toBe('◆')
+    const armed = crashLevel(
+      0.5,
+      m.dtd.reverse.at50,
+      { ...recalled, outcome: 'armed_cured' } as StressResult,
+      0.7,
+      0.86,
+    )
+    expect(armed.glyph).toBe('▲')
+    const covered = crashLevel(
+      0.5,
+      m.dtd.reverse.at50,
+      { ...recalled, outcome: 'recall_liquidated' } as StressResult,
+      0.7,
+      0.86,
+    )
+    expect([covered.verdict, covered.glyph]).toEqual(['cleared', '■'])
+  })
+
+  it('resolves a selection against the current model', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, null)
+    const lane = resolveSelection(m, { kind: 'lane', id: 'cap01' })
+    expect(lane.result?.cellKey).toBe(m.tree.find((l) => l.id === 'cap01')!.result?.cellKey)
+    const edge = resolveSelection(m, { kind: 'edge', axis: 'price', edge: 'sale' })
+    expect(edge.result?.outcome).toBe('sold')
+    const cell = resolveSelection(m, { kind: 'swatch', row: 1, col: 2 })
+    expect(cell.result?.cellKey).toBe(m.swatch.rows[1].cells[2].result.cellKey)
+    const none = resolveSelection(m, { kind: 'edge', axis: 'capacity', edge: 'breach' })
+    expect(none.result).toBeNull()
+  })
+
+  it('keeps the copy rules on every loadout', () => {
+    for (const l of LOADOUTS) {
+      const text = visibleStrings(computeFrontier(l.inputs, replay)).join(' \n ')
+      expect(text).not.toMatch(/(^|[^\d.])0(\.0+)?%/) // no bare 0%
+      expect(text).not.toMatch(/\$0(?![\d,.])/) // no bare $0
+      expect(text).not.toMatch(
+        /\bfree\b|interest-free|\bsafe\b|\bok\b|win rate|confidence|% of users/i,
+      )
+      expect(text.split(STRESS_LABEL).join('')).not.toMatch(/probab|odds|chance|likely/i)
+    }
+  })
+})

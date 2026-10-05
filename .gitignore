@@ -40,3 +40,5 @@ AGENT_BOARD.md
 
 # Machine-local, reproducible archive-RPC research cache (large raw samples)
 /data/research/venue-signals/
+# exit-queue ledger (local-first; scripts/record-exit-queues.ts)
+/data/exit-queue/

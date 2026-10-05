@@ -23,6 +23,7 @@ authors). Rate-spike risk is #4 (15 / 14).
 | Net breakdown: gross → venue fee → Membrane split → net, plus the worst case | `lib/netApy/breakdown.ts` |
 | Rate path and rate-spike axis (the Risk Frontier hand-off) | `lib/netApy/ratePath.ts` |
 | Local-first store under `.data/net-apy/` (no Neon) | `lib/netApy/store.ts` |
+| Recorder tick: snapshot + Merkl pull + change log (`events.jsonl`) | `scripts/record-net-apy.ts`, `lib/netApy/history.ts` |
 | API | `pages/api/net-apy/index.ts` |
 | Card, mounted on `/[chain]/venue/[name]` for covered venues | `components/NetApy/NetApyCard.tsx` |
 
@@ -51,6 +52,24 @@ Membrane charge.
 - RPC URLs come from `.env.local` (`NET_APY_RPC_URL`, `RECORDER_RPC_URL`,
   `NEXT_PUBLIC_MAINNET_RPC_URL`). Only the `env:<host>` label leaves the process. Every
   error that is surfaced has URLs redacted.
+
+## Continuous fetch
+
+`pnpm netapy:record` runs one tick. It reads every venue at the latest block, pulls
+Merkl, and appends changes to `.data/net-apy/events.jsonl`:
+- `campaign_new`
+- `campaign_end_changed`
+- `campaign_gone_early`: the campaign left Merkl before its end date (it lapsed)
+- `campaign_ended`
+- `param_changed`: a slope, kink, fee or cap
+
+A failed Merkl pull skips the campaign diff, so an outage never reads as "all campaigns
+ended". The tick is not scheduled yet. To run it hourly with the existing launchd
+recorder, add this line to `scripts/recorder-tick.sh`:
+
+```
+node_modules/.bin/tsx scripts/record-net-apy.ts || echo "netapy:record failed (non-fatal)"
+```
 
 ## Risk Frontier hand-off
 

@@ -8,11 +8,12 @@
  * the caller keeps its in-memory copy.
  */
 
-import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
+import { appendFileSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
 import { bigintReplacer, bigintReviver } from './fixedPoint'
-import type { MerklOpportunity } from './incentives'
+import type { NetApyEvent } from './history'
+import type { IncentiveCampaign, MerklOpportunity } from './incentives'
 import type { SnapshotSet } from './read'
 
 export const KEEP_SNAPSHOTS = 48
@@ -87,4 +88,45 @@ export const saveMerklPull = (p: MerklPull): boolean => writeJson('merkl-latest.
 export function loadMerklPull(maxAgeS: number, nowS: number = Math.floor(Date.now() / 1000)): MerklPull | null {
   const p = readJson<MerklPull>('merkl-latest.json')
   return p && nowS - p.fetchedAt <= maxAgeS ? p : null
+}
+
+// ------------------------------------------------- recorder state (history.ts)
+
+/** The campaigns the last SUCCESSFUL Merkl pull matched — the baseline for the next diff. */
+export interface CampaignState {
+  observedAt: number
+  campaigns: IncentiveCampaign[]
+}
+
+export const saveCampaignState = (s: CampaignState): boolean => writeJson('campaigns-latest.json', s)
+export const loadCampaignState = (): CampaignState | null => readJson<CampaignState>('campaigns-latest.json')
+
+/** Append-only change log, one JSON object per line. A quiet tick appends nothing. */
+export function appendEvents(events: readonly NetApyEvent[]): boolean {
+  if (events.length === 0) return true
+  try {
+    mkdirSync(storeDir(), { recursive: true })
+    appendFileSync(join(storeDir(), 'events.jsonl'), events.map((e) => JSON.stringify(e)).join('\n') + '\n')
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Events at or after `sinceS`, oldest first. Unparseable lines are skipped. */
+export function loadEvents(sinceS = 0): NetApyEvent[] {
+  try {
+    return readFileSync(join(storeDir(), 'events.jsonl'), 'utf8')
+      .split('\n')
+      .flatMap((line) => {
+        try {
+          const e = JSON.parse(line) as NetApyEvent
+          return e.at >= sinceS ? [e] : []
+        } catch {
+          return []
+        }
+      })
+  } catch {
+    return []
+  }
 }

@@ -1,0 +1,432 @@
+{
+ "_comment": "Trimmed real Merkl v4 /opportunities?chainId=1&status=LIVE&campaigns=true responses, fetched 2026-10-05 ~04:00Z. Fields not read by lib/netApy/incentives.ts are dropped.",
+ "fetchedAt": "2026-10-05T04:00:00Z",
+ "opportunities": [
+  {
+   "chainId": 1,
+   "type": "AAVE_SUPPLY",
+   "identifier": "0x4F5923Fc5FD4a93352581b38B7cD26943012DECFBORROW_BL",
+   "name": "Lend USDe on Aave (looping required)",
+   "status": "LIVE",
+   "action": "LEND",
+   "tvl": 548477972.2836566,
+   "apr": 4.688634150229694,
+   "nativeApr": 0.14326322379656642,
+   "dailyRewards": 68302.35147964732,
+   "explorerAddress": "0x4F5923Fc5FD4a93352581b38B7cD26943012DECF",
+   "latestCampaignEnd": "1791504000",
+   "campaigns": [
+    {
+     "campaignId": "0x341db299cf107f13fb0d84cb63b73b3032250e4e6c132fb368af4eb396618783",
+     "type": "AAVE_SUPPLY",
+     "startTimestamp": 1790899200,
+     "endTimestamp": 1791504000,
+     "apr": 4.688634150229694,
+     "dailyRewards": 68302.35147964732,
+     "distributionType": "AAVE_NET_APR",
+     "amount": "475325000000000000000000",
+     "params": {
+      "targetToken": "0x4F5923Fc5FD4a93352581b38B7cD26943012DECF",
+      "hooks": [
+       {
+        "chainId": 1,
+        "hookType": 17,
+        "protocol": 0,
+        "targetBytesLike": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+        "healthFactorThreshold": "2"
+       },
+       {
+        "hookType": 14,
+        "protocol": 2,
+        "computeChainId": 1,
+        "borrowBytesLike": [
+         "0x015396E1F286289aE23a762088E863b3ec465145"
+        ]
+       }
+      ],
+      "whitelist": [],
+      "blacklist": [],
+      "symbolRewardToken": "aEthUSDe",
+      "duration": 604800
+     },
+     "rewardToken": {
+      "symbol": "aEthUSDe"
+     }
+    }
+   ]
+  },
+  {
+   "chainId": 1,
+   "type": "AAVE_NET_LENDING",
+   "identifier": "46f2cfea975070a7",
+   "name": "Lend RLUSD on Aave Horizon",
+   "status": "LIVE",
+   "action": "LEND",
+   "tvl": 159957669.9687825,
+   "apr": 4.987753750628692,
+   "nativeApr": 1.657523967178783,
+   "dailyRewards": 14594.405386884677,
+   "explorerAddress": "0xE3190143Eb552456F88464662f0c0C4aC67A77eB",
+   "latestCampaignEnd": "1791482400",
+   "campaigns": [
+    {
+     "campaignId": "0x12d8a95c42901686632f4fa4cef844b17acae818fce5308c0a2c113d25d9b641",
+     "type": "AAVE_NET_LENDING",
+     "startTimestamp": 1790877600,
+     "endTimestamp": 1791482400,
+     "apr": 4.987753750628692,
+     "dailyRewards": 14594.405386884677,
+     "distributionType": "AAVE_NET_APR",
+     "amount": "101455000000000000000000",
+     "params": {
+      "lendingToken": "0xE3190143Eb552456F88464662f0c0C4aC67A77eB",
+      "hooks": [],
+      "whitelist": [],
+      "blacklist": [
+       "0x13DdA4AF1D87c404f611dFc1555Ed7074fe9e418"
+      ],
+      "symbolRewardToken": "aHorRwaRLUSD",
+      "duration": 604800
+     },
+     "rewardToken": {
+      "symbol": "aHorRwaRLUSD"
+     }
+    }
+   ]
+  },
+  {
+   "chainId": 1,
+   "type": "AAVE_V4_HUB_NET_LENDING",
+   "identifier": "843cee7d4361af56",
+   "name": "Lend USDG on Aave V4",
+   "status": "LIVE",
+   "action": "LEND",
+   "tvl": 53282270.16775114,
+   "apr": 6,
+   "nativeApr": 2.709821919550277,
+   "dailyRewards": 4802.963215933009,
+   "explorerAddress": null,
+   "latestCampaignEnd": "1791464400",
+   "campaigns": [
+    {
+     "campaignId": "0x59a51ac7dfaa113c7baa0e01f38249e4eae0117b7a28d86cbd498dcef95ae0bc",
+     "type": "AAVE_V4_HUB_NET_LENDING",
+     "startTimestamp": 1790859600,
+     "endTimestamp": 1791464400,
+     "apr": 6,
+     "dailyRewards": 4802.963215933009,
+     "distributionType": "AAVE_V4_NET_APR",
+     "amount": "52000000000",
+     "params": {
+      "hooks": [],
+      "whitelist": [],
+      "blacklist": [
+       "0x5779f5b96cA182e37A38d41e74a83E8e6cB66B66"
+      ],
+      "symbolRewardToken": "USDG",
+      "duration": 604800
+     },
+     "rewardToken": {
+      "symbol": "USDG"
+     }
+    }
+   ]
+  },
+  {
+   "chainId": 1,
+   "type": "AAVE_V4_HUB_NET_LENDING",
+   "identifier": "de55a05953428b34",
+   "name": "Lend frxUSD on Aave V4",
+   "status": "LIVE",
+   "action": "LEND",
+   "tvl": 25547285.978450414,
+   "apr": 5.36,
+   "nativeApr": 2.6817257683877362,
+   "dailyRewards": 1874.592814348303,
+   "explorerAddress": null,
+   "latestCampaignEnd": "1791464400",
+   "campaigns": [
+    {
+     "campaignId": "0x405c27dc7d091f9643d6fcc18a79097fac123890446140f32b1e58d22509d89b",
+     "type": "AAVE_V4_HUB_NET_LENDING",
+     "startTimestamp": 1790859600,
+     "endTimestamp": 1791464400,
+     "apr": 5.36,
+     "dailyRewards": 1874.592814348303,
+     "distributionType": "AAVE_V4_NET_APR",
+     "amount": "25000000000000000000000",
+     "params": {
+      "hooks": [],
+      "whitelist": [],
+      "blacklist": [
+       "0x52dfc2fcEA64A5Aa33c27Cd5aC10c1eB88E83E6e"
+      ],
+      "symbolRewardToken": "frxUSD",
+      "duration": 604800
+     },
+     "rewardToken": {
+      "symbol": "frxUSD"
+     }
+    }
+   ]
+  },
+  {
+   "chainId": 1,
+   "type": "AAVE_NET_LENDING",
+   "identifier": "5933c21067238de7",
+   "name": "Lend USDS on Aave",
+   "status": "LIVE",
+   "action": "LEND",
+   "tvl": 8743089.899343567,
+   "apr": 3.3896936451134216,
+   "nativeApr": 0.15909554356804168,
+   "dailyRewards": 811.95606220439,
+   "explorerAddress": "0x32a6268f9Ba3642Dda7892aDd74f1D34469A4259",
+   "latestCampaignEnd": "1791464400",
+   "campaigns": [
+    {
+     "campaignId": "3159551984957690692",
+     "type": "AAVE_NET_LENDING",
+     "startTimestamp": 1790694000,
+     "endTimestamp": 1791464400,
+     "apr": 3.3896936451134216,
+     "dailyRewards": 811.95606220439,
+     "distributionType": "DUTCH_AUCTION",
+     "amount": "7240495614514995790865",
+     "params": {
+      "lendingToken": "0x32a6268f9Ba3642Dda7892aDd74f1D34469A4259",
+      "hooks": [],
+      "whitelist": [],
+      "blacklist": [],
+      "symbolRewardToken": "aEthUSDS",
+      "duration": 1992
+     },
+     "rewardToken": {
+      "symbol": "aEthUSDS"
+     }
+    }
+   ]
+  },
+  {
+   "chainId": 1,
+   "type": "MORPHOSUPPLY",
+   "identifier": "0x17f7ae1b52670010976B3fE41324Cbb2b1EB7dd8",
+   "name": "Supply USDC on fxSAVE/USDC 91.5%",
+   "status": "LIVE",
+   "action": "LEND",
+   "tvl": 21126243.245346,
+   "apr": 4.896907285619859,
+   "nativeApr": 3.5644847544119393,
+   "dailyRewards": 2834.3357387921137,
+   "explorerAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+   "latestCampaignEnd": "1793019600",
+   "campaigns": [
+    {
+     "campaignId": "0x24be3000f53eaa4782db1b6ac79d9025954a310e813cdafaaee2480140dd4e60",
+     "type": "MORPHOSUPPLY",
+     "startTimestamp": 1790424000,
+     "endTimestamp": 1793019600,
+     "apr": 4.896907285619859,
+     "dailyRewards": 2834.3357387921137,
+     "distributionType": "TARGET_APR_WITH_MERKL",
+     "amount": "2526083700000000000000",
+     "params": {
+      "targetToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "market": "0x17f7ae1b52670010976b3fe41324cbb2b1eb7dd8f492e51764b2828371b86b84",
+      "hooks": [],
+      "whitelist": [],
+      "blacklist": [
+       "0x53E82ABbb12638F09d9e624578ccB666217a765e",
+       "0x2DC70fb75b88d2eB4715bc06E1595E6D97c34DFF",
+       "0x2C24B57e2CCd1f273045Af6A5f632504C432374F",
+       "0x6d4f9f9f8f0155509ecd6Ac6c544fF27999845CC",
+       "0x2536f2Ef78B0DF34299CaD6e59300F8f83fE1Ec4"
+      ],
+      "LLTV": "915000000000000000",
+      "loanToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbolRewardToken": "FXN",
+      "duration": 2595600
+     },
+     "rewardToken": {
+      "symbol": "FXN"
+     }
+    }
+   ]
+  },
+  {
+   "chainId": 1,
+   "type": "MORPHOBORROW",
+   "identifier": "0xb8feF900B383DB2DBBF4458C7F46aCF5B140f26D",
+   "name": "Borrow USDC on OETH/USDC 86%",
+   "status": "LIVE",
+   "action": "BORROW",
+   "tvl": 9523160.617987,
+   "apr": 6.395529256278103,
+   "nativeApr": null,
+   "dailyRewards": 1668.64800944031,
+   "explorerAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+   "latestCampaignEnd": "1791417600",
+   "campaigns": [
+    {
+     "campaignId": "0x613b860e642a9e8dd85ace018458a7f79b032f8e1aaf99075ebf16eb27d1cc99",
+     "type": "MORPHOBORROW",
+     "startTimestamp": 1790812800,
+     "endTimestamp": 1791417600,
+     "apr": 6.395529256278103,
+     "dailyRewards": 1668.64800944031,
+     "distributionType": "DUTCH_AUCTION",
+     "amount": "4288558121849795726",
+     "params": {
+      "targetToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "market": "0xb8fef900b383db2dbbf4458c7f46acf5b140f26d603a6d1829963f241b82510e",
+      "hooks": [],
+      "whitelist": [],
+      "blacklist": [
+       "0x53E82ABbb12638F09d9e624578ccB666217a765e",
+       "0x2DC70fb75b88d2eB4715bc06E1595E6D97c34DFF",
+       "0x2C24B57e2CCd1f273045Af6A5f632504C432374F",
+       "0x6d4f9f9f8f0155509ecd6Ac6c544fF27999845CC",
+       "0x2536f2Ef78B0DF34299CaD6e59300F8f83fE1Ec4"
+      ],
+      "LLTV": "860000000000000000",
+      "loanToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "symbolRewardToken": "OETH",
+      "duration": 604800
+     },
+     "rewardToken": {
+      "symbol": "OETH"
+     }
+    }
+   ]
+  },
+  {
+   "chainId": 1,
+   "type": "MORPHOCOLLATERAL",
+   "identifier": "0xD9D2fc090bDbaB1804EA960dd6669B62357787E5",
+   "name": "Deposit USDe as collateral on USDe/RLUSD 91.5%",
+   "status": "LIVE",
+   "action": "BORROW",
+   "tvl": 33925872.71296487,
+   "apr": 4.75,
+   "nativeApr": null,
+   "dailyRewards": 4415.010832509127,
+   "explorerAddress": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+   "latestCampaignEnd": "1791504000",
+   "campaigns": [
+    {
+     "campaignId": "0xc127e394165d9c5a5f1b1a97c1f24e0fd3cd07f393290d78a1ce40a33bef9545",
+     "type": "MORPHOCOLLATERAL",
+     "startTimestamp": 1790899200,
+     "endTimestamp": 1791504000,
+     "apr": 4.75,
+     "dailyRewards": 4415.010832509127,
+     "distributionType": "MAX_REWARD_VALUE_PER_LIQUIDITY_VALUE",
+     "amount": "50102000000000000000000",
+     "params": {
+      "targetToken": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+      "market": "0xd9d2fc090bdbab1804ea960dd6669b62357787e5816f575f14ca4e6d999614bf",
+      "hooks": [],
+      "whitelist": [],
+      "blacklist": [
+       "0x53E82ABbb12638F09d9e624578ccB666217a765e",
+       "0x2DC70fb75b88d2eB4715bc06E1595E6D97c34DFF",
+       "0x2C24B57e2CCd1f273045Af6A5f632504C432374F",
+       "0x6d4f9f9f8f0155509ecd6Ac6c544fF27999845CC",
+       "0x2536f2Ef78B0DF34299CaD6e59300F8f83fE1Ec4"
+      ],
+      "LLTV": "915000000000000000",
+      "loanToken": "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD",
+      "symbolRewardToken": "USDe",
+      "duration": 604800
+     },
+     "rewardToken": {
+      "symbol": "USDe"
+     }
+    }
+   ]
+  },
+  {
+   "chainId": 1,
+   "type": "ERC20LOGPROCESSOR",
+   "identifier": "0x6dC58a0FdfC8D694e571DC59B9A52EEEa780E6bf",
+   "name": "Supply to Sentora RLUSD Main V2 vault on Morpho on Ethereum",
+   "status": "LIVE",
+   "action": "LEND",
+   "tvl": 465661847.35694355,
+   "apr": 2.6086832381650042,
+   "nativeApr": 2.809923418382523,
+   "dailyRewards": 33281.21248912354,
+   "explorerAddress": "0x6dC58a0FdfC8D694e571DC59B9A52EEEa780E6bf",
+   "latestCampaignEnd": "1791482400",
+   "campaigns": [
+    {
+     "campaignId": "0xf9793617d88797726887cacac749307c9db0cebb9302396bcf7aa604f3dc4482",
+     "type": "ERC20LOGPROCESSOR",
+     "startTimestamp": 1790877600,
+     "endTimestamp": 1791482400,
+     "apr": 2.6086832381650042,
+     "dailyRewards": 33281.21248912354,
+     "distributionType": "MAX_REWARD_VALUE_PER_LIQUIDITY_VALUE",
+     "amount": "231475000000000000000000",
+     "params": {
+      "targetToken": "0x6dC58a0FdfC8D694e571DC59B9A52EEEa780E6bf",
+      "hooks": [],
+      "whitelist": [],
+      "blacklist": [],
+      "symbolRewardToken": "RLUSD",
+      "duration": 604800
+     },
+     "rewardToken": {
+      "symbol": "RLUSD"
+     }
+    }
+   ]
+  },
+  {
+   "chainId": 1,
+   "type": "EULER",
+   "identifier": "0xa10BDC927D70325326D71Fa7971F7B0e4aFFf702",
+   "name": "Supply HYBOND on Clearstar OpenEden Hybond vault ",
+   "status": "LIVE",
+   "action": "LEND",
+   "tvl": 4261907.195071906,
+   "apr": 39.807716444013856,
+   "nativeApr": 0,
+   "dailyRewards": 4106.624287355145,
+   "explorerAddress": "0xa10BDC927D70325326D71Fa7971F7B0e4aFFf702",
+   "latestCampaignEnd": "1791892800",
+   "campaigns": [
+    {
+     "campaignId": "0xfa3ef01f5ba61474bc711b132160662d1b84b9ce2e7c1333a5454aef74b26d36",
+     "type": "EULER",
+     "startTimestamp": 1790683200,
+     "endTimestamp": 1791892800,
+     "apr": 39.807716444013856,
+     "dailyRewards": 4106.624287355145,
+     "distributionType": "DUTCH_AUCTION",
+     "amount": "970000000000000000000000",
+     "params": {
+      "targetToken": "0xa10BDC927D70325326D71Fa7971F7B0e4aFFf702",
+      "evkAddress": "0xa10BDC927D70325326D71Fa7971F7B0e4aFFf702",
+      "hooks": [
+       {
+        "hookType": 2,
+        "eligibilityDuration": 10,
+        "eligibilityTokenAddress": "0x24A3D725C37A8D1a66Eb87f0E5D07fE67c120035",
+        "eligibilityTokenChainId": 1,
+        "eligibilityTokenThreshold": "100000000000000000000000"
+       }
+      ],
+      "whitelist": [],
+      "blacklist": [],
+      "symbolRewardToken": "EDEN",
+      "duration": 1209600
+     },
+     "rewardToken": {
+      "symbol": "EDEN"
+     }
+    }
+   ]
+  }
+ ]
+}

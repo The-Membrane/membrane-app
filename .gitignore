@@ -40,3 +40,6 @@ AGENT_BOARD.md
 
 # Machine-local, reproducible archive-RPC research cache (large raw samples)
 /data/research/venue-signals/
+
+# net-apy-at-size local-first store (lib/netApy/store.ts) — snapshots + Merkl pull, never committed
+/.data/

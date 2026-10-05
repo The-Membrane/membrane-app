@@ -64,12 +64,16 @@ Merkl, and appends changes to `.data/net-apy/events.jsonl`:
 - `param_changed`: a slope, kink, fee or cap
 
 A failed Merkl pull skips the campaign diff, so an outage never reads as "all campaigns
-ended". The tick is not scheduled yet. To run it hourly with the existing launchd
-recorder, add this line to `scripts/recorder-tick.sh`:
+ended". It runs hourly as one step of `scripts/recorder-tick.sh` (the existing launchd
+recorder), after the strats refresh and non-fatal:
 
 ```
-node_modules/.bin/tsx scripts/record-net-apy.ts || echo "netapy:record failed (non-fatal)"
+/opt/homebrew/bin/node --import tsx scripts/record-net-apy.ts || echo "netapy:record failed (non-fatal)"
 ```
+
+It uses `--import tsx`, not `node_modules/.bin/tsx`: launchd runs with a bare PATH, and
+the tsx shim finds `node` on PATH. History builds from the first tick; that tick only
+sets the baseline.
 
 ## Risk Frontier hand-off
 

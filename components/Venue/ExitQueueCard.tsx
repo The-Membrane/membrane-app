@@ -180,7 +180,8 @@ export const ExitQueueCard: React.FC = () => {
             <Stamp>
               Request → claimable over the trailing {CARD_WINDOW_DAYS} days; requests still waiting
               count as waiting at least this long (Kaplan–Meier). Measured history, not a forecast.
-              Beacon row: the chain&apos;s own exit schedule, not a forecast.
+              Beacon row: the chain&apos;s own exit schedule at the anchor; its window readings
+              are measured history. Neither is a forecast.
               {anchorBlock != null &&
                 ` Anchor: finalized block ${anchorBlock.toLocaleString('en-US')}.`}
             </Stamp>

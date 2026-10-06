@@ -54,6 +54,10 @@ const nextConfig = {
     '/blog': ['./content/blog/**'],
     '/blog/[slug]': ['./content/blog/**'],
     '/sitemap.xml': ['./content/blog/**'],
+    // Oracle registry: collector output read at request time (lib/oracleRegistry/server.ts).
+    '/api/oracles': ['./data/oracle-registry/snapshots/**', './data/oracle-registry/history/**', './data/oracle-registry/changes.json'],
+    '/api/oracles/[asset]': ['./data/oracle-registry/snapshots/**', './data/oracle-registry/history/**', './data/oracle-registry/changes.json'],
+    '/[chain]/oracles': ['./data/oracle-registry/snapshots/**', './data/oracle-registry/history/**', './data/oracle-registry/changes.json'],
   },
   webpack: (config, { isServer }) => {
     // Ensure chain-registry is properly resolved

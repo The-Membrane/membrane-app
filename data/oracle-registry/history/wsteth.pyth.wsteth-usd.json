@@ -1,0 +1,1 @@
+{"id":"wsteth.pyth.wsteth-usd","source":"events","from":1788649883,"to":1791241811,"points":[[1786528853,2363.25577]],"note":"no on-chain update inside the window; value held since 2026-08-12. on-chain pushes only (pull oracle; off-chain Hermes needs a Pyth API key)"}

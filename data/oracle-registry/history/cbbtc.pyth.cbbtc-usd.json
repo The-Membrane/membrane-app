@@ -1,0 +1,1 @@
+{"id":"cbbtc.pyth.cbbtc-usd","source":"events","from":1788649883,"to":1791241811,"points":[[1781184307,62878.5363]],"note":"no on-chain update inside the window; value held since 2026-06-11. on-chain pushes only (pull oracle; off-chain Hermes needs a Pyth API key)"}

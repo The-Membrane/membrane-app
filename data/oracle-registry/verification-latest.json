@@ -1,0 +1,979 @@
+{
+  "block": 26129364,
+  "at": "2026-10-05T23:09:47.000Z",
+  "results": [
+    {
+      "id": "eth.chainlink.eth-usd",
+      "status": "verified",
+      "price": 2717.72,
+      "quoteUnit": "USD",
+      "ageSeconds": 3060,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "eth.chainlink.eth-usd-svr",
+      "status": "verified",
+      "price": 2718.6078,
+      "quoteUnit": "USD",
+      "ageSeconds": 3000,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "eth.chainlink.eth-usd-shared-svr",
+      "status": "verified",
+      "price": 2718.92115449,
+      "quoteUnit": "USD",
+      "ageSeconds": 2988,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "eth.chronicle.eth-usd",
+      "status": "verified",
+      "price": 2703.3302977999997,
+      "quoteUnit": "USD",
+      "ageSeconds": 18828,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "read: tolled (address(0) eth_call only)"
+      ]
+    },
+    {
+      "id": "eth.chronicle.weth-usd",
+      "status": "verified",
+      "price": 2702.9,
+      "quoteUnit": "USD",
+      "ageSeconds": 18840,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "read: tolled (address(0) eth_call only)"
+      ]
+    },
+    {
+      "id": "eth.redstone.eth-usd",
+      "status": "verified",
+      "price": 2718.9830745,
+      "quoteUnit": "USD",
+      "ageSeconds": 4044,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "eth.pyth.eth-usd",
+      "status": "verified",
+      "price": 1905.3391558800001,
+      "quoteUnit": "USD",
+      "ageSeconds": 4255897,
+      "stale": true,
+      "failures": [],
+      "warnings": [
+        "STALE: age 49d > heartbeat 1h (pull) + grace"
+      ],
+      "notes": [
+        "conf ±1.06428"
+      ]
+    },
+    {
+      "id": "eth.pyth.weth-usd",
+      "status": "verified",
+      "price": 2391.91029006,
+      "quoteUnit": "USD",
+      "ageSeconds": 1662751,
+      "stale": true,
+      "failures": [],
+      "warnings": [
+        "STALE: age 19d > heartbeat 1h (pull) + grace"
+      ],
+      "notes": [
+        "conf ±0.997283"
+      ]
+    },
+    {
+      "id": "eth.uniswap-v3.weth-usdc-5bp",
+      "status": "verified",
+      "price": 2716.5209964377486,
+      "quoteUnit": "USD",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "eth.spark.eth-usd-median",
+      "status": "verified",
+      "price": 2717.72,
+      "quoteUnit": "USD",
+      "ageSeconds": 0,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "eth.liquity.weth-pricefeed",
+      "status": "verified",
+      "price": 2717.7200000000003,
+      "quoteUnit": "USD",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "fetchPrice() live 2,717.72"
+      ],
+      "livePrice": 2717.7200000000003
+    },
+    {
+      "id": "eth.morpho.weth-usdc",
+      "status": "verified",
+      "price": 2718.9211544900004,
+      "quoteUnit": "USD",
+      "ageSeconds": 2988,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "btc.chainlink.btc-usd",
+      "status": "verified",
+      "price": 85887.18,
+      "quoteUnit": "USD",
+      "ageSeconds": 1896,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "btc.chainlink.btc-usd-svr",
+      "status": "verified",
+      "price": 85887.38,
+      "quoteUnit": "USD",
+      "ageSeconds": 1884,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "btc.chainlink.btc-usd-shared-svr",
+      "status": "verified",
+      "price": 85931.836,
+      "quoteUnit": "USD",
+      "ageSeconds": 1932,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "btc.chronicle.btc-usd",
+      "status": "verified",
+      "price": 85842.06000000001,
+      "quoteUnit": "USD",
+      "ageSeconds": 5676,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "read: tolled (address(0) eth_call only)"
+      ]
+    },
+    {
+      "id": "btc.redstone.btc-usd",
+      "status": "verified",
+      "price": 85975.4016,
+      "quoteUnit": "USD",
+      "ageSeconds": 4404,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "btc.pyth.btc-usd",
+      "status": "verified",
+      "price": 64735.605,
+      "quoteUnit": "USD",
+      "ageSeconds": 6409611,
+      "stale": true,
+      "failures": [],
+      "warnings": [
+        "STALE: age 74d > heartbeat 1h (pull) + grace"
+      ],
+      "notes": [
+        "conf ±18.08500"
+      ]
+    },
+    {
+      "id": "wsteth.chainlink.wsteth-usd-calculated",
+      "status": "verified",
+      "price": 3371.58489661,
+      "quoteUnit": "USD",
+      "ageSeconds": 16512,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "wsteth.redstone.wsteth-usd",
+      "status": "verified",
+      "price": 3388.35786258,
+      "quoteUnit": "USD",
+      "ageSeconds": 4104,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "wsteth.redstone.wsteth-steth-rate",
+      "status": "verified",
+      "price": 1.24562634,
+      "quoteUnit": "underlying",
+      "ageSeconds": 16284,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "wsteth.chronicle.wsteth-usd",
+      "status": "verified",
+      "price": 3387.003081823706,
+      "quoteUnit": "USD",
+      "ageSeconds": 3912,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "read: tolled (address(0) eth_call only)"
+      ]
+    },
+    {
+      "id": "wsteth.pyth.wsteth-usd",
+      "status": "verified",
+      "price": 2363.2557692200003,
+      "quoteUnit": "USD",
+      "ageSeconds": 4712934,
+      "stale": true,
+      "failures": [],
+      "warnings": [
+        "STALE: age 55d > heartbeat 1h (pull) + grace"
+      ],
+      "notes": [
+        "conf ±4.97977"
+      ]
+    },
+    {
+      "id": "wsteth.uniswap-v3.wsteth-weth-1bp",
+      "status": "verified",
+      "price": 1.2453156485210446,
+      "quoteUnit": "ETH",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "wsteth.aave.capo",
+      "status": "verified",
+      "price": 3386.36947044,
+      "quoteUnit": "USD",
+      "ageSeconds": 3000,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "wsteth.spark.exchange-rate",
+      "status": "verified",
+      "price": 3385.26360338,
+      "quoteUnit": "USD",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "wsteth.liquity.wsteth-pricefeed",
+      "status": "verified",
+      "price": 3361.272943459349,
+      "quoteUnit": "USD",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "fetchPrice() live 3,383.32"
+      ],
+      "livePrice": 3383.31942980194
+    },
+    {
+      "id": "wsteth.morpho.wsteth-usdt",
+      "status": "verified",
+      "price": 3360.825989020097,
+      "quoteUnit": "USD",
+      "ageSeconds": 65664,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "wsteth.morpho.wsteth-usdc",
+      "status": "verified",
+      "price": 3366.1197139926808,
+      "quoteUnit": "USD",
+      "ageSeconds": 65664,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "wsteth.morpho.wsteth-weth",
+      "status": "verified",
+      "price": 1.2456263350844605,
+      "quoteUnit": "ETH",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "weeth.chainlink.weeth-eth",
+      "status": "verified",
+      "price": 1.1045784802912169,
+      "quoteUnit": "ETH",
+      "ageSeconds": 66936,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "weeth.redstone.weeth-eth",
+      "status": "verified",
+      "price": 1.1047557,
+      "quoteUnit": "ETH",
+      "ageSeconds": 37896,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "weeth.redstone.weeth-usd-etherfi",
+      "status": "verified",
+      "price": 3001.41378564,
+      "quoteUnit": "USD",
+      "ageSeconds": 4752,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "weeth.chronicle.weeth-usd",
+      "status": "verified",
+      "price": 2987.519956331711,
+      "quoteUnit": "USD",
+      "ageSeconds": 18816,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "read: tolled (address(0) eth_call only)"
+      ]
+    },
+    {
+      "id": "weeth.pyth.weeth-usd",
+      "status": "verified",
+      "price": 2470.37024907,
+      "quoteUnit": "USD",
+      "ageSeconds": 21121327,
+      "stale": true,
+      "failures": [],
+      "warnings": [
+        "STALE: age 244d > heartbeat 1h (pull) + grace"
+      ],
+      "notes": [
+        "conf ±9.92555"
+      ]
+    },
+    {
+      "id": "weeth.uniswap-v3.weeth-weth-1bp",
+      "status": "verified",
+      "price": 1.1049443926752416,
+      "quoteUnit": "ETH",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "weeth.aave.capo-core",
+      "status": "verified",
+      "price": 3004.43626628,
+      "quoteUnit": "USD",
+      "ageSeconds": 3000,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "weeth.aave.capo-etherfi",
+      "status": "verified",
+      "price": 3003.45512494,
+      "quoteUnit": "USD",
+      "ageSeconds": 3060,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "weeth.spark.exchange-rate",
+      "status": "verified",
+      "price": 3003.45512494,
+      "quoteUnit": "USD",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "weeth.morpho.weeth-rlusd",
+      "status": "verified",
+      "price": 3002.1785341579516,
+      "quoteUnit": "USD",
+      "ageSeconds": 66936,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "weeth.morpho.weeth-pyusd",
+      "status": "verified",
+      "price": 3002.2811604520343,
+      "quoteUnit": "USD",
+      "ageSeconds": 66936,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "weeth.morpho.weeth-usdc-usdt",
+      "status": "verified",
+      "price": 3004.782566183562,
+      "quoteUnit": "USD",
+      "ageSeconds": 2988,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "weeth.morpho.weeth-weth",
+      "status": "verified",
+      "price": 1.1051378085096337,
+      "quoteUnit": "ETH",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "wbtc.chainlink.wbtc-btc",
+      "status": "verified",
+      "price": 0.99981,
+      "quoteUnit": "BTC",
+      "ageSeconds": 6540,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "wbtc.redstone.wbtc-btc",
+      "status": "verified",
+      "price": 0.9997,
+      "quoteUnit": "BTC",
+      "ageSeconds": 37896,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "wbtc.chronicle.wbtc-usd",
+      "status": "verified",
+      "price": 85864.52849999999,
+      "quoteUnit": "USD",
+      "ageSeconds": 5628,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "read: tolled (address(0) eth_call only)"
+      ]
+    },
+    {
+      "id": "wbtc.pyth.wbtc-usd",
+      "status": "verified",
+      "price": 79041.71951907,
+      "quoteUnit": "USD",
+      "ageSeconds": 3566668,
+      "stale": true,
+      "failures": [],
+      "warnings": [
+        "STALE: age 41d > heartbeat 1h (pull) + grace"
+      ],
+      "notes": [
+        "conf ±58.07851"
+      ]
+    },
+    {
+      "id": "wbtc.uniswap-v3.wbtc-weth-5bp",
+      "status": "verified",
+      "price": 31.630602747132077,
+      "quoteUnit": "ETH",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "wbtc.aave.composite",
+      "status": "verified",
+      "price": 85871.0613978,
+      "quoteUnit": "USD",
+      "ageSeconds": 6540,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "wbtc.spark.composite",
+      "status": "verified",
+      "price": 85870.8614358,
+      "quoteUnit": "USD",
+      "ageSeconds": 6540,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "wbtc.morpho.wbtc-usdc",
+      "status": "verified",
+      "price": 85881.94020608658,
+      "quoteUnit": "USD",
+      "ageSeconds": 16368,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "wbtc.morpho.wbtc-usdt",
+      "status": "verified",
+      "price": 85888.0364664522,
+      "quoteUnit": "USD",
+      "ageSeconds": 30792,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "wbtc.morpho.wbtc-rlusd",
+      "status": "verified",
+      "price": 85877.82698634686,
+      "quoteUnit": "USD",
+      "ageSeconds": 66108,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "cbbtc.chainlink.cbbtc-usd",
+      "status": "verified",
+      "price": 85270.32943125,
+      "quoteUnit": "USD",
+      "ageSeconds": 21264,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "cbbtc.redstone.cbbtc-usd",
+      "status": "verified",
+      "price": 85792.98467393,
+      "quoteUnit": "USD",
+      "ageSeconds": 9984,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "cbbtc.chronicle.cbbtc-usdc",
+      "status": "verified",
+      "price": 85873.13849609895,
+      "quoteUnit": "USD",
+      "ageSeconds": 5592,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "read: tolled (address(0) eth_call only)"
+      ]
+    },
+    {
+      "id": "cbbtc.pyth.cbbtc-usd",
+      "status": "verified",
+      "price": 62878.53627412,
+      "quoteUnit": "USD",
+      "ageSeconds": 10057480,
+      "stale": true,
+      "failures": [],
+      "warnings": [
+        "STALE: age 116d > heartbeat 1h (pull) + grace"
+      ],
+      "notes": [
+        "conf ±104.72942"
+      ]
+    },
+    {
+      "id": "cbbtc.uniswap-v3.cbbtc-wbtc-1bp",
+      "status": "verified",
+      "price": 1.000400060004,
+      "quoteUnit": "BTC",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "cbbtc.chainlink.btc-usd-svr-as-cbbtc",
+      "status": "verified",
+      "price": 85887.38,
+      "quoteUnit": "USD",
+      "ageSeconds": 1884,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "cbbtc.spark.btc-usd-median",
+      "status": "verified",
+      "price": 85887.18,
+      "quoteUnit": "USD",
+      "ageSeconds": 0,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "cbbtc.morpho.cbbtc-usdc",
+      "status": "verified",
+      "price": 85887.18,
+      "quoteUnit": "USD",
+      "ageSeconds": 1896,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "cbbtc.morpho.cbbtc-usdt-meta",
+      "status": "verified",
+      "price": 85931.836,
+      "quoteUnit": "USD",
+      "ageSeconds": 1932,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "cbbtc.morpho.cbbtc-rlusd",
+      "status": "verified",
+      "price": 85277.24626869486,
+      "quoteUnit": "USD",
+      "ageSeconds": 66108,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "usde.chainlink.usde-usd",
+      "status": "verified",
+      "price": 0.9997251,
+      "quoteUnit": "USD",
+      "ageSeconds": 51132,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "usde.redstone.usde-usd",
+      "status": "verified",
+      "price": 0.99955999,
+      "quoteUnit": "USD",
+      "ageSeconds": 37896,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "usde.pyth.usde-usd",
+      "status": "verified",
+      "price": 0.99995906,
+      "quoteUnit": "USD",
+      "ageSeconds": 6452230,
+      "stale": true,
+      "failures": [],
+      "warnings": [
+        "STALE: age 75d > heartbeat 1h (pull) + grace"
+      ],
+      "notes": [
+        "conf ±0.000711280"
+      ]
+    },
+    {
+      "id": "usde.aave.capped-usdt",
+      "status": "verified",
+      "price": 0.99980003,
+      "quoteUnit": "USD",
+      "ageSeconds": 30792,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "usde.morpho.usde-rlusd",
+      "status": "verified",
+      "price": 0.9998061942804182,
+      "quoteUnit": "USD",
+      "ageSeconds": 66108,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "susde.chainlink.susde-usd",
+      "status": "verified",
+      "price": 1.25064558,
+      "quoteUnit": "USD",
+      "ageSeconds": 8424,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "susde.redstone.susde-usd",
+      "status": "verified",
+      "price": 1.2509705,
+      "quoteUnit": "USD",
+      "ageSeconds": 37896,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "susde.pyth.susde-usd",
+      "status": "verified",
+      "price": 1.2398811,
+      "quoteUnit": "USD",
+      "ageSeconds": 6452230,
+      "stale": true,
+      "failures": [],
+      "warnings": [
+        "STALE: age 75d > heartbeat 1h (pull) + grace"
+      ],
+      "notes": [
+        "conf ±0.00428343"
+      ]
+    },
+    {
+      "id": "susde.aave.capo",
+      "status": "verified",
+      "price": 1.25134376,
+      "quoteUnit": "USD",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "susde.morpho.susde-pyusd",
+      "status": "verified",
+      "price": 1.2513942571454697,
+      "quoteUnit": "USD",
+      "ageSeconds": 51132,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "susds.chronicle.susds-usd",
+      "status": "verified",
+      "price": 1.1115848597389584,
+      "quoteUnit": "USD",
+      "ageSeconds": 18060,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "read: tolled (address(0) eth_call only)"
+      ]
+    },
+    {
+      "id": "susds.morpho.susds-usdt",
+      "status": "verified",
+      "price": 1.1119513041854714,
+      "quoteUnit": "USD",
+      "ageSeconds": 30792,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "susds.morpho.susds-usdt-dai",
+      "status": "verified",
+      "price": 1.1118548346093033,
+      "quoteUnit": "USD",
+      "ageSeconds": 30792,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "susds.spark.ssr-oracle",
+      "status": "verified",
+      "price": 1.11181828,
+      "quoteUnit": "USD",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    },
+    {
+      "id": "pt-srusde-22oct2026.aave.linear-discount",
+      "status": "verified",
+      "price": 0.99814415,
+      "quoteUnit": "USD",
+      "ageSeconds": 30792,
+      "stale": false,
+      "failures": [],
+      "warnings": [],
+      "notes": [
+        "age = oldest component"
+      ]
+    },
+    {
+      "id": "pt-srusde-22oct2026.pendle.pt-twap",
+      "status": "verified",
+      "price": 0.9976473097538104,
+      "quoteUnit": "underlying",
+      "ageSeconds": null,
+      "stale": null,
+      "failures": [],
+      "warnings": [],
+      "notes": []
+    }
+  ]
+}

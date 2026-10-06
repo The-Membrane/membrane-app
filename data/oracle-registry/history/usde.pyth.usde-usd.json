@@ -1,0 +1,1 @@
+{"id":"usde.pyth.usde-usd","source":"events","from":1788649883,"to":1791241811,"points":[[1784789557,0.99995906]],"note":"no on-chain update inside the window; value held since 2026-07-23. on-chain pushes only (pull oracle; off-chain Hermes needs a Pyth API key)"}

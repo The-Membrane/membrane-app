@@ -31,6 +31,8 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     // company facts (docs/GEO_AUDIT.md trust-anchor finding); levels is a sim.
     'Disallow: /*/about',
     'Disallow: /*/levels',
+    // Oracle registry: internal data surface (noindex, not in nav) until it graduates.
+    'Disallow: /*/oracles',
     // /manic entries removed: the route was deleted on this branch and now
     // returns a real 404 via middleware.ts — disallowing a 404 is noise.
     '',

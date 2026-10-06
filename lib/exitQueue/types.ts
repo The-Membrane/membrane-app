@@ -2,39 +2,84 @@
  * Exit-queue ledger — shared types (Layer: DATA).
  *
  * The contract this layer keeps with its consumers (the venue card, the Recall
- * Coverage Dataset `venue_state` rows, and Risk Frontier's exit-time axis):
+ * Coverage Dataset `venue_state` rows, and Risk Frontier's exit-time axis), as set by
+ * the 2026-10-04 UMBRELLA entry on the agent board (shared contracts 1 and 3):
  *   - every row is keyed by a stable VenueKey;
- *   - every derived number carries the BlockAnchor it was computed at;
- *   - every derived number carries a LabelClass that says what kind of fact it is.
+ *   - every derived number carries the finalized BlockAnchor it was computed at;
+ *   - every derived number carries a Label: the umbrella's LabelClass plus this
+ *     layer's LabelBasis, which says what kind of measured fact it is.
  * Amounts stay raw integer strings (the venue's own unit and decimals) until the UI
  * formats them, so no float rounding enters the ledger.
  */
 
+/**
+ * One key per venue across recorder rows, forecaster issues and Risk Frontier nodes.
+ * A venue the venue recorder already names keeps the recorder's name
+ * (`tools/venue-recorder.config.json`: `sUSDe`). The others had no key anywhere and
+ * are minted here.
+ */
 export type VenueKey =
   | 'lido-steth'
   | 'beacon-exit'
   | 'etherfi-weeth'
   | 'kelp-rseth'
-  | 'ethena-susde'
+  | 'sUSDe'
   | 'maple-syrupusdc'
   | `erc7540:${string}`
 
 /**
- * What kind of fact a number is. The UI prints LABEL_TEXT next to it.
+ * The umbrella's label classes, which must never blur:
+ *  measured_change      an accounting fact (read, counted or measured)
+ *  observed_driver      a reconciled event or transaction class behind a change
+ *  leading_signal       a time-ordered association, not a cause
+ *  stress_scenario      a deterministic what-if; not a probability
+ *  calibrated_forecast  empty until the forecaster's promotion gate passes
+ * Everything this layer emits is measured_change.
+ */
+export type LabelClass =
+  | 'measured_change'
+  | 'observed_driver'
+  | 'leading_signal'
+  | 'stress_scenario'
+  | 'calibrated_forecast'
+
+/**
+ * What kind of measured fact a number is, within LabelClass `measured_change`. The UI
+ * prints LABEL_TEXT next to it.
  *  onchain_state     read from the contract at the anchor block
  *  measured_history  observed request outcomes over a trailing window; never a forecast
  *  chain_schedule    the beacon chain's own exit schedule at the anchor (assigned exit
  *                    epochs); a floor for a new exit, not a forecast
  *  change_log        a recorded parameter change (event or read-diff)
  */
-export type LabelClass = 'onchain_state' | 'measured_history' | 'chain_schedule' | 'change_log'
+export type LabelBasis = 'onchain_state' | 'measured_history' | 'chain_schedule' | 'change_log'
 
-export const LABEL_TEXT: Record<LabelClass, string> = {
+export const LABEL_TEXT: Record<LabelBasis, string> = {
   onchain_state: 'read on-chain at the anchor block',
   measured_history: 'measured history, not a forecast',
   chain_schedule: 'beacon-chain schedule at the anchor, not a forecast',
   change_log: 'recorded parameter change',
 }
+
+export const BASIS_CLASS: Record<LabelBasis, LabelClass> = {
+  onchain_state: 'measured_change',
+  measured_history: 'measured_change',
+  chain_schedule: 'measured_change',
+  change_log: 'measured_change',
+}
+
+/** A label a consumer can carry verbatim next to the number it describes. */
+export interface Label {
+  class: LabelClass
+  basis: LabelBasis
+  text: string
+}
+
+export const label = (basis: LabelBasis): Label => ({
+  class: BASIS_CLASS[basis],
+  basis,
+  text: LABEL_TEXT[basis],
+})
 
 /** A block the numbers were computed at. `ts` is UTC seconds. */
 export interface BlockAnchor {

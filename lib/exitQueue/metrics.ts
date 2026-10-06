@@ -1,11 +1,12 @@
-import type {
-  BlockAnchor,
-  LabelClass,
-  ParamChange,
-  QueueRequest,
-  QueueSnapshot,
-  VenueKey,
-  VenueLedger,
+import {
+  label,
+  type BlockAnchor,
+  type Label,
+  type ParamChange,
+  type QueueRequest,
+  type QueueSnapshot,
+  type VenueKey,
+  type VenueLedger,
 } from './types'
 import { cooldownSeconds, type VenueDef } from './venues'
 
@@ -43,7 +44,7 @@ export interface WindowMetrics {
   requestToFinalize: DurationStats
   finalizeToClaim: DurationStats
   requestToClaim: DurationStats
-  label: LabelClass
+  label: Label
 }
 
 export interface VenueExitMetrics {
@@ -69,7 +70,7 @@ export interface VenueExitMetrics {
       onchain: number
       status: 'match' | 'ledger_short' | 'ledger_over'
     } | null
-    label: LabelClass
+    label: Label
   }
   /** Ledger requests not yet claimable at the anchor. */
   open: { count: number; oldestAgeS: number | null }
@@ -77,6 +78,8 @@ export interface VenueExitMetrics {
   /** Beacon only: seconds from the anchor to the last scheduled exit epoch. */
   scheduleWaitS: number | null
   advertisedCooldownS: number | null
+  /** The cooldown is the wait (sUSDe), not just a floor (Kelp). See VenueDef.cooldown. */
+  advertisedCooldownSetsWait: boolean
   lastChange: ParamChange | null
   changes: ParamChange[]
   ledgerHealth: {
@@ -164,7 +167,7 @@ export function windowMetrics(
   anchor: BlockAnchor,
   windowDays: number,
 ): WindowMetrics {
-  const label: LabelClass = 'measured_history'
+  const measured = label('measured_history')
   const empty = durationStats([])
   if (!ledger.coverage || ledger.coverage.fromTs >= anchor.ts)
     return {
@@ -173,7 +176,7 @@ export function windowMetrics(
       requestToFinalize: empty,
       finalizeToClaim: empty,
       requestToClaim: empty,
-      label,
+      label: measured,
     }
   const start = anchor.ts - windowDays * 86_400
   const coverage = ledger.coverage.fromTs <= start ? 'complete' : 'partial'
@@ -199,7 +202,7 @@ export function windowMetrics(
     requestToClaim: durationStats(
       cohort.filter((r) => !r.manual).map((r) => requestSample(r, 'claim', anchor)),
     ),
-    label,
+    label: measured,
   }
 }
 
@@ -210,7 +213,10 @@ export function nearestRank(values: number[], q: number): number | null {
   return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(q * sorted.length) - 1))]
 }
 
-/** Beacon windows: the distribution of schedule-wait readings taken in the window. */
+/**
+ * Beacon windows: the distribution of schedule-wait readings taken in the window. Each
+ * reading is the chain's own schedule, so the label is chain_schedule.
+ */
 function beaconWindow(ledger: VenueLedger, anchor: BlockAnchor, windowDays: number): WindowMetrics {
   const start = anchor.ts - windowDays * 86_400
   const readings = ledger.snapshots
@@ -232,7 +238,7 @@ function beaconWindow(ledger: VenueLedger, anchor: BlockAnchor, windowDays: numb
     requestToFinalize: stats,
     finalizeToClaim: empty,
     requestToClaim: empty,
-    label: 'measured_history',
+    label: label('chain_schedule'),
   }
 }
 
@@ -330,7 +336,7 @@ export function venueMetrics(
         ? snapshot.extra?.amountIsLowerBound === true
         : source === 'ledger',
       reconciliation: reconcile(snapshot),
-      label: 'onchain_state',
+      label: label('onchain_state'),
     },
     open: {
       count: openRequests.length,
@@ -342,6 +348,7 @@ export function venueMetrics(
     windows,
     scheduleWaitS: snapshot?.scheduleWaitS ?? null,
     advertisedCooldownS,
+    advertisedCooldownSetsWait: def.cooldown?.setsWait === true,
     lastChange: changes[0] ?? null,
     changes: changes.slice(0, 10),
     ledgerHealth: {

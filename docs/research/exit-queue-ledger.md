@@ -1,6 +1,7 @@
 # Exit-queue ledger (Layer: DATA)
 
-Status: built 2026-10-05 on `feat/exit-queue-ledger` (off `evm-migration` @ `28c674d`).
+Status: built 2026-10-05 on `feat/exit-queue-ledger` (off `evm-migration` @ `28c674d`); contract
+reconciled with the board's umbrella entry and backfilled on the keyed RPC 2026-10-05/06.
 Measured history only. No forecast, no alert, no risk badge: the research-only rules in
 [`venue-capacity-drivers.md`](./venue-capacity-drivers.md) still apply to anything predictive.
 
@@ -21,15 +22,22 @@ changes that emitted no event.
 
 ## Contract with the other layers
 
-| Term         | Definition                                                                                                                                                                                                                                                         | Where                                    |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- |
-| Venue key    | Stable id: `lido-steth`, `beacon-exit`, `etherfi-weeth`, `kelp-rseth`, `ethena-susde`, `maple-syrupusdc`, `erc7540:<address>`. `aliases.venueRecorder` maps to the recorder's names (`sUSDe`).                                                                     | `lib/exitQueue/venues.ts`                |
-| Block anchor | `{ block, ts }`: the finalized block the numbers were computed at. Every metric, `venue_state` row and Risk Frontier input carries one.                                                                                                                            | `lib/exitQueue/types.ts`                 |
-| Label class  | `onchain_state` (read at the anchor), `measured_history` (observed outcomes over a trailing window; "measured history, not a forecast"), `chain_schedule` (the beacon chain's assigned exit epochs; "not a forecast"), `change_log` (a recorded parameter change). | `LABEL_TEXT` in `lib/exitQueue/types.ts` |
+| Term         | Definition | Where |
+| ------------ | ---------- | ----- |
+| Venue key    | One key per venue across recorder rows, forecaster issues and Risk Frontier nodes. A venue the venue recorder already names keeps the recorder's name: `sUSDe` (`tools/venue-recorder.config.json`). The others had no key anywhere and are minted here: `lido-steth`, `beacon-exit`, `etherfi-weeth`, `kelp-rseth`, `maple-syrupusdc`, `erc7540:<address>`. `aliases.assets` lists the tokens whose exit runs through each queue (`wstETH` → `lido-steth`); `venueKeyForAsset()` resolves them. | `lib/exitQueue/{types,venues}.ts` |
+| Block anchor | `{ block, ts }`: the **finalized** block the numbers were computed at (`getBlock({ blockTag: 'finalized' })`). Every metric, `venue_state` row and Risk Frontier input carries one. | `lib/exitQueue/types.ts`, `scripts/record-exit-queues.ts` |
+| Label        | `{ class, basis, text }`. `class` is the umbrella's label class (`measured_change`, `observed_driver`, `leading_signal`, `stress_scenario`, `calibrated_forecast`). Everything this layer emits is `measured_change`. `basis` says what kind of measured fact it is: `onchain_state` (read at the anchor), `measured_history` ("measured history, not a forecast"), `chain_schedule` (the beacon chain's assigned exit epochs; "not a forecast"), `change_log` (a recorded parameter change). | `label()`, `LABEL_TEXT`, `BASIS_CLASS` in `lib/exitQueue/types.ts` |
 
-The umbrella board entry (Mac-only `/Users/EBmic/AGENT_BOARD.md`) was not readable from the
-cloud session that built this. The three terms above are this lane's reading of
-"venue-key + block anchor + label classes"; check them against the umbrella entry.
+**Reconciled with the umbrella entry (2026-10-05, on the Mac).** The cloud session could not read the
+board and assumed the terms. Two differed and were changed in code and tests
+(`tests/unit/exitQueueContract.test.ts`):
+
+- `ethena-susde` became `sUSDe`. The umbrella allows one key per venue, and the venue recorder
+  already names this one. The `venue_state.venue_id` now joins recorder rows directly.
+- The umbrella's label classes are a different, coarser set. The lane's four labels became the
+  `basis` under class `measured_change`, so "class" means the same thing in every lane.
+
+The anchor already matched: the recorder reads the finalized block.
 
 **Recall Coverage Dataset.** `venueMetrics().venueState` is the `venue_state` slice this
 layer owns: `venue_id`, `block`, `ts`, `queue_depth` (float, venue unit), `queue_depth_count`,
@@ -37,10 +45,13 @@ layer owns: `venue_id`, `block`, `ts`, `queue_depth` (float, venue unit), `queue
 
 **Risk Frontier.** `exitTimeInput(metrics, 30)` → `ExitTimeInput` (`lib/exitQueue/riskFrontier.ts`):
 request → claimable p50/p90 with a lower bound when a quantile is not reached, the advertised
-cooldown, the beacon schedule floor, queue depth and the last change time. `exitTimeS(input, 'p90')`
-is the conservative single number (max of the parts; `null` = unknown, never 0). The stress
-engine (`lib/position-sim/stressGrid.ts`, branch `feat/risk-frontier-stress-grid` @ `44c79c8b`)
-is not touched here.
+cooldown and whether it sets the wait, the beacon schedule floor (readings get the same +27.3 h
+withdrawability delay, so the parts compare), queue depth and the last change time.
+`exitTime(input, 'p90')` is the conservative single number with what it rests on: the largest
+part, its `source`, `atLeast` (print "≥") and its `label`. `exitTimeS` is the bare number.
+`null` = unknown, never 0. A cooldown that is only a floor raises the number but never stands
+alone: Kelp's `withdrawalDelayBlocks` reads 0. The stress engine consumes it on the integration
+branch `feat/risk-frontier-exit-queue` (`lib/position-sim/exitQueueAxis.ts`).
 
 ## Venues
 
@@ -50,7 +61,7 @@ is not touched here.
 | `beacon-exit`     | Beacon API                                                | —                                     | —                                                                        | —                                                                           | `active_exiting` count, Σ effective balance                      | schedule tail: max `exit_epoch` − head epoch |
 | `etherfi-weeth`   | WithdrawRequestNFT `0x7d57…4E2c`                          | `WithdrawRequestCreated`              | `lastFinalizedRequestId()` advanced — **no event**; located by bisection | `WithdrawRequestClaimed`                                                    | count `nextRequestId − 1 − lastFinalized`; amount = ledger sum   | none on-chain                                |
 | `kelp-rseth`      | LRTWithdrawalManager `0x62De…ec16`                        | `AssetWithdrawalQueued(…, userNonce)` | `nextLockedNonce(asset)` read at each `AssetUnlocked`                    | `AssetWithdrawalFinalized`, FIFO + exact rsETH amount                       | count Σ `nextUnusedNonce − nextLockedNonce`; amount = ledger sum | `withdrawalDelayBlocks` × 12 s               |
-| `ethena-susde`    | StakedUSDeV2 `0x9D39…3497`, silo `0x7FC7…3425`            | `Withdraw` with receiver = silo       | `cooldownEnd` = request time + cooldown in force (contract rule)         | USDe `Transfer` silo → receiver, matched to an owner bucket by exact amount | `USDe.balanceOf(silo)`                                           | `cooldownDuration()`                         |
+| `sUSDe`           | StakedUSDeV2 `0x9D39…3497`, silo `0x7FC7…3425`            | `Withdraw` with receiver = silo       | `cooldownEnd` = request time + cooldown in force (contract rule)         | USDe `Transfer` silo → receiver, matched to an owner bucket by exact amount | `USDe.balanceOf(silo)`                                           | `cooldownDuration()`                         |
 | `maple-syrupusdc` | pool `0x80ac…Cc0b` → WithdrawalManagerQueue `0x1bc4…cfE3` | `RequestCreated`                      | `RequestProcessed` + `RequestRemoved` in one tx                          | same tx (redeem pays out)                                                   | `totalShares()`, `queue()`                                       | none on-chain                                |
 | `erc7540:<addr>`  | configured in `ERC7540_VAULTS` (empty)                    | `RedeemRequest`                       | not standardised                                                         | ERC-4626 `Withdraw` by controller, FIFO                                     | ledger                                                           | none                                         |
 
@@ -93,8 +104,12 @@ pnpm exitq:record --run --venue lido-steth --days 30 --max-chunks 60
 RPC: `--rpc`, else `EXIT_QUEUE_RPC_URLS` / `RECORDER_RPC_URLS` / `RECORDER_RPC_URL` from the
 environment or `.env.local` (comma-separated; put the keyed archive + getLogs endpoint first).
 URLs are never printed. Beacon: `--beacon`, else `BEACON_API_URL`, else publicnode.
-Manual only — **do not install it as a launchd job**; the owner controls the `com.membrane.*`
-fleet. Re-running continues from each ledger's cursor.
+Hourly, it is a non-fatal step of `scripts/recorder-tick.sh`, after the flows recorder:
+`/opt/homebrew/bin/node --import tsx scripts/record-exit-queues.ts --run --max-chunks 12`. Use node
+`--import tsx`, not the `.bin/tsx` shim, which needs `node` on PATH (launchd has none). The tick runs
+from the main checkout (`evm-migration`), so the line takes effect only once this branch is merged
+there. **Do not install a separate launchd job**; the owner controls the `com.membrane.*` fleet.
+Re-running continues from each ledger's cursor.
 
 Storage is local-first (Neon is quota-limited): one JSON file per venue under
 `data/exit-queue/` (gitignored), written atomically. Finished requests are pruned after 120
@@ -104,7 +119,40 @@ Kelp 90 KB, beacon 0.5 KB per reading.
 API: `GET /api/venues/exit-queues[?venue=]` (`pages/api/venues/exit-queues.ts`; no RPC).
 Card: `components/Venue/ExitQueueCard.tsx`, mounted on the Carry page as section 08.
 
-## Findings (2026-10-05; finalized block 26,123,831, 04:38 UTC; measured history, not a forecast)
+## Keyed-RPC re-run (Mac, finalized block 26,129,440, 2026-10-05 23:25 UTC; measured history, not a forecast)
+
+30-day backfill on the keyed Ankr endpoint alone (`--quorum 1 --log-quorum 1`, 79 s): 0 request-id
+gaps, 0 read anomalies, 0 undecoded logs, 0 bracketed finalizations. The ledger's open count equals
+the contract's pending count for Lido (514), ether.fi (17) and Kelp (145). An independent sUSDe scan
+on Infura gave a byte-identical request set (979 requests, 162 unmatched claims), so the venue with
+no id-gap check is covered by a second provider. 30-day request cohorts unless stated.
+
+| Venue           | Requests | Request → claimable                                                                   | Claimable → claimed      | Queue now                       |
+| --------------- | -------- | ------------------------------------------------------------------------------------- | ------------------------ | ------------------------------- |
+| Lido stETH      | 2,849    | p50 23.4 h · p90 111.0 h (4.6 d); 7-day cohort p50 110.9 h, p90 not reached ≥ 113.9 h | p50 21.0 h               | 514 requests / 131,818 stETH    |
+| Beacon exits    | —        | last scheduled exit 8.46 d after head (+27.3 h to withdrawable, then the sweep)       | —                        | 23,122 validators / 869,932 ETH |
+| ether.fi eETH   | 885      | p50 25.3 h · p90 37.3 h; 7-day cohort p50 37.3 h · p90 71.2 h                         | p50 1.2 h · p90 3.7 h    | 17 requests / 2,752 eETH        |
+| Kelp rsETH      | 218      | p50 402.5 h (16.8 d); p90 not reached, ≥ 505.9 h (21.1 d); no 7-day request unlocked  | p50 23.2 h               | 145 requests / 10,740 rsETH     |
+| Ethena sUSDe    | 979      | 24.0 h at p50 and p90 (the 1-day cooldown, contract rule)                             | p50 51 min · p90 164.5 h | silo 15.42M USDe                |
+| Maple syrupUSDC | 609      | p50 3.4 min · p90 6.4 min                                                             | same tx                  | empty                           |
+
+**Against the cloud run.** The cloud's anchor was 19 h earlier. Pinned to it (block 26,123,831), the
+keyed ledger reproduces the cloud's queue: Lido 514 / 150,123.8 stETH, ether.fi 70 / 1,243.05 eETH,
+Kelp 138 / 7,087.8 rsETH. It also gives Kelp p50 397.6 h / ≥ 487.1 h, ether.fi 7-day p50 55.6 h /
+p90 70.8 h, and Lido 7-day ≥ 103.2 h. Lido 30-day p90 is 102.5 h against 101.9 h; the keyed ledger
+starts 19 h later, so that window is partial. The differences in the table above are 19 h of queue
+movement, not the RPC. One figure is unstable rather than different: sUSDe claimable → claimed p90
+(cloud 96.3 h, keyed 163.7 h at the same anchor). Kaplan–Meier survival on that tail is 0.114 at
+96 h and reaches 0.10 only at ~164 h, so a 1–2 % change in the cohort moves the p90 by ~70 h. It is
+not an exit-time input (request → claimable is).
+
+**First hourly tick** (the `scripts/recorder-tick.sh` line, run by hand with an empty environment,
+7.5 s, default quorum 2 on the 7-endpoint ring; finalized block 26,130,296): still 0 gaps and
+0 anomalies; Lido 521/521, ether.fi 15/15, Kelp 146/146. Risk Frontier `exitTime(…, 'p90')`:
+Lido 112.1 h, beacon ≥ 230.3 h (chain schedule), ether.fi 36.5 h, Kelp ≥ 508.8 h, sUSDe 24.0 h,
+Maple 6.4 min.
+
+## Cloud-run findings (2026-10-05; finalized block 26,123,831, 04:38 UTC; measured history, not a forecast)
 
 30-day backfill over public RPC (Pocket + dRPC) with every defense below on: 0 request-id
 gaps, 0 read anomalies, and the ledger's open count equals the contract's pending count for
@@ -127,7 +175,8 @@ Read with care:
 - Kelp's on-chain `withdrawalDelayBlocks` is **0** (code default 8 days), yet requests take a
   median 16.6 days to unlock: the operator's `unlockQueue` sets the wait, not the parameter.
   An "advertised cooldown" read from the contract would understate the real wait.
-- sUSDe's wait is the cooldown by construction; the tail is users not claiming.
+- sUSDe's wait is the cooldown by construction; the tail is users not claiming, and its p90 sits
+  on a flat stretch of the survival curve (see the keyed re-run).
 
 ## Data hazards found while building
 
@@ -161,8 +210,8 @@ token`) while serving recent state, so a fallback hop turned historical reads in
   initiation → exit history would need historical state reads.
 - sUSDe claim matching needs the owner's whole bucket inside the ledger; buckets that started
   before the ledger stay unmatched (counted).
-- Live validation used public RPCs from a cloud session; re-run with the keyed Ankr alias on
-  the Mac (`--quorum 1 --log-quorum 1` is safe only on a single trusted archive endpoint).
+- `--quorum 1 --log-quorum 1` is safe only on a single trusted archive endpoint. The tick uses
+  the full ring with the defaults (2).
 - sUSDe has no request ids, so a missed request log is caught only by the double fetch.
 
 ## Board lines (for the umbrella entry in `/Users/EBmic/AGENT_BOARD.md`)

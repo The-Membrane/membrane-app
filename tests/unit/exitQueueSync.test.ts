@@ -347,7 +347,7 @@ describe('syncVenue: Kelp reconciliation', () => {
 
 describe('syncVenue: sUSDe (baseline cooldown read before the scan)', () => {
   it('dates maturity with the cooldown in force at the first scanned block', async () => {
-    const susde = def('ethena-susde')
+    const susde = def('sUSDe')
     const ANCHOR = 20_000
     const START = ANCHOR - 7_200
     const logs = [
@@ -369,7 +369,7 @@ describe('syncVenue: sUSDe (baseline cooldown read before the scan)', () => {
       if (sig.includes('balanceOf')) return 100n
       return undefined
     })
-    const { ledger } = await syncVenue(susde, emptyLedger('ethena-susde'), reader, opts(ANCHOR))
+    const { ledger } = await syncVenue(susde, emptyLedger('sUSDe'), reader, opts(ANCHOR))
     const [r] = Object.values(ledger.requests)
     expect(r.finalizedTs).toBe(tsOf(START + 1) + 86_400)
     expect(ledger.snapshots.at(-1)).toMatchObject({

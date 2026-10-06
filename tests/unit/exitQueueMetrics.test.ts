@@ -125,7 +125,11 @@ describe('windowMetrics', () => {
     expect(w.requestToFinalize).toMatchObject({ n: 3, completed: 2, censored: 1 })
     // Durations 119,988 s and 120,000 s (events) plus 120,000 s open: S falls 1 → 2/3 → 1/3.
     expect(w.requestToFinalize.p50S).toBe(tsOf(160_000) - tsOf(150_000))
-    expect(w.label).toBe('measured_history')
+    expect(w.label).toEqual({
+      class: 'measured_change',
+      basis: 'measured_history',
+      text: 'measured history, not a forecast',
+    })
   })
 
   it('measures finalize → claim over the finalized cohort', () => {
@@ -144,8 +148,8 @@ describe('windowMetrics', () => {
   })
 
   it('sUSDe: a maturity after the anchor counts as still waiting', () => {
-    const susde = def('ethena-susde')
-    const l = ledgerWithCoverage('ethena-susde', 1_000, 2_000)
+    const susde = def('sUSDe')
+    const l = ledgerWithCoverage('sUSDe', 1_000, 2_000)
     recordParamSample(l, { block: 999, ts: tsOf(999), values: { cooldownDuration: 7 * D } })
     applyEvents(l, susde, [
       {
@@ -165,8 +169,8 @@ describe('windowMetrics', () => {
 
 describe('venueMetrics', () => {
   it('reports queue now from the on-chain snapshot, cooldown, last change, and the venue_state row', () => {
-    const susde = def('ethena-susde')
-    const l = ledgerWithCoverage('ethena-susde', 1_000, 2_000)
+    const susde = def('sUSDe')
+    const l = ledgerWithCoverage('sUSDe', 1_000, 2_000)
     recordParamSample(l, { block: 1_000, ts: tsOf(1_000), values: { cooldownDuration: 604_800 } })
     recordParamSample(l, { block: 2_000, ts: tsOf(2_000), values: { cooldownDuration: 86_400 } })
     recordSnapshot(l, {
@@ -192,7 +196,7 @@ describe('venueMetrics', () => {
       source: 'state_diff',
     })
     expect(m.venueState).toEqual({
-      venue_id: 'ethena-susde',
+      venue_id: 'sUSDe',
       block: 2_000,
       ts: tsOf(2_000),
       queue_depth: 15_000_000,

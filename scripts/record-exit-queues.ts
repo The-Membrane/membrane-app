@@ -22,7 +22,9 @@
  * times (default 2) and unioned on disagreement; sequential request ids are checked
  * for gaps and the gap ranges re-fetched. --bisect caps ether.fi bisection reads.
  *
- * Manual only. Do not install it as a launchd job; the owner controls that fleet.
+ * Hourly: a non-fatal step of scripts/recorder-tick.sh (the owner's launchd tick, run
+ * from the main checkout). Never install a separate launchd job for it; the owner
+ * controls that fleet.
  */
 import { parseAbiItem, type AbiFunction, type PublicClient } from 'viem'
 

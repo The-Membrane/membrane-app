@@ -29,7 +29,7 @@ const ONCHAIN_TOPIC0: Array<[string, string]> = [
 const lido = def('lido-steth')
 const etherfi = def('etherfi-weeth')
 const kelp = def('kelp-rseth')
-const ethena = def('ethena-susde')
+const ethena = def('sUSDe')
 const maple = def('maple-syrupusdc')
 const ETH = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
 
@@ -45,7 +45,7 @@ describe('exit-queue ABIs', () => {
       'beacon-exit',
       'etherfi-weeth',
       'kelp-rseth',
-      'ethena-susde',
+      'sUSDe',
       'maple-syrupusdc',
     ])
     expect(new Set(VENUES.map((v) => v.priority)).size).toBe(VENUES.length)

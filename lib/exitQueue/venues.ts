@@ -105,10 +105,18 @@ export interface VenueDef {
   priority: number
   unit: { symbol: string; decimals: number }
   contracts: Record<string, `0x${string}`>
-  /** The advertised wait, if the venue has one on-chain. */
-  cooldown: { param: string; toSeconds: 'seconds' | 'blocks_x12' } | null
-  /** Cross-references to other datasets' venue ids. */
-  aliases?: Record<string, string>
+  /**
+   * The advertised wait, if the venue has one on-chain. `setsWait`: the contract makes a
+   * request claimable exactly when it ends (sUSDe). Otherwise it is only a floor: Kelp's
+   * `withdrawalDelayBlocks` reads 0 while requests wait a median 16.6 days.
+   */
+  cooldown: { param: string; toSeconds: 'seconds' | 'blocks_x12'; setsWait?: boolean } | null
+  /**
+   * Cross-references to other datasets' names for this venue. `assets`: the token
+   * symbols whose exit runs through this queue, as positions (lib/position-sim) name
+   * them. Each symbol belongs to at most one venue (venueKeyForAsset).
+   */
+  aliases?: { assets?: readonly string[] }
   /** One-line mechanism note shown under the card row. */
   mechanism: string
   /**
@@ -127,6 +135,8 @@ export const VENUES: VenueDef[] = [
     unit: { symbol: 'stETH', decimals: 18 },
     contracts: { queue: '0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1' },
     cooldown: null,
+    // wstETH requests go through the same queue (requestWithdrawalsWstETH).
+    aliases: { assets: ['stETH', 'wstETH'] },
     mechanism: 'Finalized in ranges by Lido oracle reports; no on-chain cooldown parameter.',
   },
   {
@@ -148,6 +158,7 @@ export const VENUES: VenueDef[] = [
     unit: { symbol: 'eETH', decimals: 18 },
     contracts: { queue: '0x7d5706f6ef3F89B3951E23e557CDFBC3239D4E2c' },
     cooldown: null,
+    aliases: { assets: ['eETH', 'weETH'] },
     mechanism:
       'Admin advances lastFinalizedRequestId (no event); finalization time located by bisection.',
   },
@@ -159,10 +170,11 @@ export const VENUES: VenueDef[] = [
     unit: { symbol: 'rsETH', decimals: 18 },
     contracts: { queue: '0x62De59c08eB5dAE4b7E6F7a8cAd3006d6965ec16' },
     cooldown: { param: 'withdrawalDelayBlocks', toSeconds: 'blocks_x12' },
+    aliases: { assets: ['rsETH'] },
     mechanism: 'Per-asset nonce queue; unlockQueue advances nextLockedNonce; users claim FIFO.',
   },
   {
-    key: 'ethena-susde',
+    key: 'sUSDe',
     label: 'Ethena sUSDe',
     kind: 'ethena',
     priority: 5,
@@ -172,8 +184,8 @@ export const VENUES: VenueDef[] = [
       silo: '0x7FC7c91D556B400AFa565013E3F32055a0713425',
       usde: '0x4c9EDD5852cd905f086C759E8383e09bff1E68B3',
     },
-    cooldown: { param: 'cooldownDuration', toSeconds: 'seconds' },
-    aliases: { venueRecorder: 'sUSDe' },
+    cooldown: { param: 'cooldownDuration', toSeconds: 'seconds', setsWait: true },
+    aliases: { assets: ['sUSDe'] },
     seededChanges: [
       {
         // Receipt status 1; CooldownDurationUpdated(604800, 86400) from the vault;
@@ -203,6 +215,7 @@ export const VENUES: VenueDef[] = [
       queue: '0x1bc47a0Dd0FdaB96E9eF982fdf1F34DC6207cfE3',
     },
     cooldown: null,
+    aliases: { assets: ['syrupUSDC'] },
     mechanism:
       'FIFO queue processed by the pool delegate; processing pays out in the same transaction.',
   },
@@ -238,6 +251,17 @@ export const allVenues = (): VenueDef[] => [
 
 export const venueByKey = (key: string): VenueDef | undefined =>
   allVenues().find((v) => v.key === key)
+
+/**
+ * The venue whose queue a token exits through, matched on `aliases.assets` without
+ * regard to case. Undefined when no ledger venue covers the token: the caller must read
+ * that as "exit time unknown", never as an instant exit.
+ */
+export function venueKeyForAsset(symbol: string): VenueKey | undefined {
+  const s = symbol.trim().toLowerCase()
+  if (!s) return undefined
+  return allVenues().find((v) => v.aliases?.assets?.some((a) => a.toLowerCase() === s))?.key
+}
 
 /** Advertised cooldown in seconds from a raw parameter value. */
 export function cooldownSeconds(def: VenueDef, raw: unknown): number | null {

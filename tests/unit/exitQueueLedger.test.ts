@@ -157,9 +157,9 @@ describe('Kelp ledger', () => {
 })
 
 describe('sUSDe ledger', () => {
-  const susde = def('ethena-susde')
+  const susde = def('sUSDe')
   const start = () => {
-    const l = emptyLedger('ethena-susde')
+    const l = emptyLedger('sUSDe')
     setParamCursor(l, 'cooldownDuration', 86_400)
     return l
   }
@@ -318,9 +318,9 @@ describe('parameter change log', () => {
   })
 
   it('a change already announced by an event is not logged twice', () => {
-    const l = emptyLedger('ethena-susde')
+    const l = emptyLedger('sUSDe')
     recordParamSample(l, { block: 100, ts: 1, values: { cooldownDuration: 604_800 } })
-    applyEvents(l, def('ethena-susde'), [
+    applyEvents(l, def('sUSDe'), [
       {
         kind: 'param',
         param: 'cooldownDuration',

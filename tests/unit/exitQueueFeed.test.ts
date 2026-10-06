@@ -22,7 +22,7 @@ import { applyEvents, emptyLedger, recordSnapshot } from '@/lib/exitQueue/ledger
 import { venueMetrics } from '@/lib/exitQueue/metrics'
 import { exitTimeInput, exitTimeS } from '@/lib/exitQueue/riskFrontier'
 import { ledgerFile, loadLedger, saveLedger } from '@/lib/exitQueue/store'
-import { LABEL_TEXT } from '@/lib/exitQueue/types'
+import { label, LABEL_TEXT } from '@/lib/exitQueue/types'
 import { allVenues } from '@/lib/exitQueue/venues'
 
 import { addr, def, ledgerWithCoverage, tsOf } from './exitQueueFixtures'
@@ -69,17 +69,20 @@ describe('beacon exit queue', () => {
     const w30 = m.windows.find((w) => w.windowDays === 30)!
     expect(w30.requestToFinalize.n).toBe(3)
     const input = exitTimeInput(m)!
-    expect(input.label).toBe('chain_schedule')
+    expect(input.label.basis).toBe('chain_schedule')
     expect(input.scheduleFloorS).toBe(m.scheduleWaitS! + 256 * 384)
+    // Readings get the same withdrawability delay as the floor, so the parts compare.
+    expect(input.requestToExit.p90S).toBe(w30.requestToFinalize.p90S! + 256 * 384)
   })
 })
 
 describe('Risk Frontier exit-time input', () => {
   it('takes the max of cooldown, schedule floor and measured quantile; null when nothing is known', () => {
     const base = {
-      venue: 'ethena-susde' as const,
+      venue: 'sUSDe' as const,
       anchor: { block: 1, ts: 1 },
-      label: 'measured_history' as const,
+      label: label('measured_history'),
+      advertisedSetsWait: true,
       windowDays: 30,
       coverage: 'complete' as const,
       queueDepth: { amount: null, count: null, symbol: 'USDe', decimals: 18 },
@@ -124,18 +127,18 @@ describe('feed', () => {
 
   it('orders venues by priority and goes historical when the oldest anchor is stale', () => {
     const lido = ledgerWithCoverage('lido-steth', 1_000, 2_000)
-    const susde = ledgerWithCoverage('ethena-susde', 1_000, 2_000)
+    const susde = ledgerWithCoverage('sUSDe', 1_000, 2_000)
     const feed = buildExitQueueFeed(
       [
-        { def: def('ethena-susde'), ledger: susde },
+        { def: def('sUSDe'), ledger: susde },
         { def: def('lido-steth'), ledger: lido },
       ],
       (tsOf(2_000) + 31 * 3_600) * 1_000,
     )
-    expect(feed.venues.map((x) => x.venue)).toEqual(['lido-steth', 'ethena-susde'])
+    expect(feed.venues.map((x) => x.venue)).toEqual(['lido-steth', 'sUSDe'])
     expect(feed.observationStatus).toBe('paused')
     expect(observationStatus(tsOf(2_000), (tsOf(2_000) + 3_600) * 1_000)).toBe('recent')
-    expect(feed.riskFrontier.map((x) => x.venue)).toEqual(['lido-steth', 'ethena-susde'])
+    expect(feed.riskFrontier.map((x) => x.venue)).toEqual(['lido-steth', 'sUSDe'])
   })
 })
 
@@ -191,12 +194,12 @@ describe('card text', () => {
   }
 
   it('shows the verified pre-coverage sUSDe cooldown change, and drops the seed once the ledger has the event', () => {
-    const l = ledgerWithCoverage('ethena-susde', 26_000_000, 26_100_000)
-    const seededView = changeCell(venueMetrics(def('ethena-susde'), l))
+    const l = ledgerWithCoverage('sUSDe', 26_000_000, 26_100_000)
+    const seededView = changeCell(venueMetrics(def('sUSDe'), l))
     expect(seededView.primary).toBe('cooldown 7.0d → 24.0h')
     expect(seededView.secondary).toMatch(/^2026-03-16 · emitted as an event/)
-    l.changes.push({ ...def('ethena-susde').seededChanges![0], source: 'event' })
-    expect(venueMetrics(def('ethena-susde'), l).changes).toHaveLength(1)
+    l.changes.push({ ...def('sUSDe').seededChanges![0], source: 'event' })
+    expect(venueMetrics(def('sUSDe'), l).changes).toHaveLength(1)
   })
 
   it('formats durations without pretending to precision', () => {

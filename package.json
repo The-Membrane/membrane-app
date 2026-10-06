@@ -35,6 +35,7 @@
     "strats:refresh": "node scripts/refresh-strat-positions.mjs",
     "news:fetch": "node scripts/fetch-venue-news.mjs",
     "terms:watch": "node scripts/watch-venue-terms.mjs",
+    "exitq:record": "tsx scripts/record-exit-queues.ts",
     "alarms:check": "node scripts/check-venue-alarms.mjs",
     "receipts:ddl": "node scripts/apply-user-receipts-ddl.mjs",
     "telegram:ddl": "node scripts/apply-alert-subscriptions-ddl.mjs",

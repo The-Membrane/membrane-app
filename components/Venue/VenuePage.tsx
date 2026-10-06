@@ -10,6 +10,8 @@ import {
   type TransactionClass,
 } from '@/components/Venue/capacityDriverLogic'
 import { CapacityCurve } from '@/components/Venue/CapacityCurve'
+import { NetApyCard } from '@/components/NetApy/NetApyCard'
+import { venueByKey } from '@/lib/netApy/venues'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { Entry, consequence, alarmConsequence, fmtDuration } from '@/components/Carry/venueLogLogic'
 import { Eyebrow, SectionHeading, Stamp } from '@/components/Carry/atoms'
@@ -409,6 +411,14 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
       {/* 01b / swap-out capacity — what exits within a cost, fees included (on-chain quotes) */}
       <SectionHeading index="01b /" title="Swap-out capacity" note="what exits within a cost, fees included — is the depth 1:1? read the curve" />
       <CapacityCurve venue={venue} />
+
+      {/* 01c / net at your size — the venue's own rate curve at one block (lib/netApy) */}
+      {venueByKey(venue) ? (
+        <>
+          <SectionHeading index="01c /" title="Net at your size" note="your size moves the rate · incentives shown with end dates · projection, not a promise" />
+          <NetApyCard venue={venue} />
+        </>
+      ) : null}
 
       {/* 02 / observed capacity driver accounting, never causal attribution */}
       <SectionHeading

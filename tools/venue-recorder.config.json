@@ -103,6 +103,102 @@
           "note": "VERIFIED on-chain 2026-09-06: coins(0)=USDC (symbol USDC, 6dec), coins(1)=crvUSD (symbol crvUSD, 18dec); balances ~$14.5M USDC / ~$12.3M crvUSD (~$26.8M TVL). scrvUSD (the venue token) has NO deep secondary pool, so this entry covers the UNDERLYING crvUSD's exit: exitFrom=crvUSD ⇒ exitable depth = the USDC side. The deeper crvUSD/USDT pool (0x390f3595bCa2Df7d23783dFd126427CCeb997BF4) is now ADDED as a second enabled market above (verified 2026-09-06); depth_usd aggregates the exitable side of BOTH."
         }
       ]
+    },
+    {
+      "name": "aave-v3-usdc",
+      "kind": "atoken-liquidity",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified reserve (Aave v3 Pool, USDC). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule)."
+    },
+    {
+      "name": "aave-v3-usdt",
+      "kind": "atoken-liquidity",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified reserve (Aave v3 Pool, USDT). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule)."
+    },
+    {
+      "name": "aave-v3-usds",
+      "kind": "atoken-liquidity",
+      "address": "",
+      "decimals": 18,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified reserve (Aave v3 Pool, USDS). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule)."
+    },
+    {
+      "name": "spark-usdc",
+      "kind": "atoken-liquidity",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified reserve (SparkLend Pool, USDC). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule). SparkLend is the Aave v3.0 layout (no virtual balance): check the atoken-liquidity reader before enabling."
+    },
+    {
+      "name": "spark-usdt",
+      "kind": "atoken-liquidity",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified reserve (SparkLend Pool, USDT). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule). SparkLend is the Aave v3.0 layout (no virtual balance): check the atoken-liquidity reader before enabling."
+    },
+    {
+      "name": "spark-usds",
+      "kind": "atoken-liquidity",
+      "address": "",
+      "decimals": 18,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified reserve (SparkLend Pool, USDS). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule). SparkLend is the Aave v3.0 layout (no virtual balance): check the atoken-liquidity reader before enabling."
+    },
+    {
+      "name": "morpho-blue-cbbtc-usdc-86",
+      "kind": "morpho-blue-market",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified market id (cbBTC/USDC, LLTV 86%). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule)."
+    },
+    {
+      "name": "morpho-blue-wbtc-usdc-86",
+      "kind": "morpho-blue-market",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified market id (WBTC/USDC, LLTV 86%). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule)."
+    },
+    {
+      "name": "morpho-blue-wsteth-usdc-86",
+      "kind": "morpho-blue-market",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified market id (wstETH/USDC, LLTV 86%). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule)."
+    },
+    {
+      "name": "morpho-blue-wsteth-usdt-86",
+      "kind": "morpho-blue-market",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified market id (wstETH/USDT, LLTV 86%). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule)."
+    },
+    {
+      "name": "euler-v2-eusdc-2",
+      "kind": "euler-v2-vault",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified vault (eUSDC-2). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule)."
+    },
+    {
+      "name": "euler-v2-eusdt-2",
+      "kind": "euler-v2-vault",
+      "address": "",
+      "decimals": 6,
+      "enabled": false,
+      "notes": "Registered 2026-10-05 as a venue-key for net-APY-at-size; lib/netApy/venues.ts holds its on-chain-verified vault (eUSDT-2). NOT recorded here: address empty and enabled=false until verified for this recorder (file rule)."
     }
   ]
 }

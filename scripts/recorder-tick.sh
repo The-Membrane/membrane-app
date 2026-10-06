@@ -20,6 +20,11 @@ echo "=== recorder tick $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 # Refresh tracked strat positions (batched multicall reads; the /strats board
 # serves this cache + freshness stamp). Non-fatal.
 /opt/homebrew/bin/node scripts/refresh-strat-positions.mjs || echo "strats:refresh failed (non-fatal)"
+# Net APY at size: venue IRM params at one block + Merkl campaigns, local-first
+# under .data/net-apy, with a change log (campaign lapsed early / end date moved /
+# slope or fee changed). TypeScript via `--import tsx` so it needs no PATH lookup
+# under launchd. Non-fatal — a Merkl or RPC hiccup must never fail the tick.
+/opt/homebrew/bin/node --import tsx scripts/record-net-apy.ts || echo "netapy:record failed (non-fatal)"
 # Terms-page hash watcher — fetches each venue's official terms/redemption page,
 # hashes visible text, and records a change (+ a terms_page_changed event) only
 # when the hash moves. Runs BEFORE alarms so a terms change is in the corpus the

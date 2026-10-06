@@ -40,7 +40,8 @@
     "telegram:ddl": "node scripts/apply-alert-subscriptions-ddl.mjs",
     "telegram:poll": "node scripts/telegram-poll.mjs",
     "receipts:score": "node scripts/score-user-receipts.mjs",
-    "corpus:scan": "tsx scripts/scan-aave-liquidations.mjs"
+    "corpus:scan": "tsx scripts/scan-aave-liquidations.mjs",
+    "netapy:record": "tsx scripts/record-net-apy.ts"
   },
   "dependencies": {
     "@chain-registry/utils": "^1.51.285",

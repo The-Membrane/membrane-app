@@ -175,7 +175,11 @@ export function matchCampaign(
   return null
 }
 
-/** Live campaigns (endTs in the future) that pay a covered venue. */
+/**
+ * Live campaigns: started and not yet ended at `nowTs`, paying a covered venue. One
+ * that starts later — or, on a pinned historical block, started after it — is not
+ * live yet. A campaign with no start time is kept.
+ */
 export function extractCampaigns(
   opportunities: readonly MerklOpportunity[],
   snapshots: readonly VenueSnapshot[],
@@ -187,6 +191,7 @@ export function extractCampaigns(
   for (const o of opportunities) {
     for (const c of o.campaigns ?? []) {
       if (!(c.endTimestamp > nowTs) || seen.has(c.campaignId)) continue
+      if (Number.isFinite(c.startTimestamp) && c.startTimestamp > nowTs) continue
       const m = matchCampaign(o, c, snapshots, vaultOf)
       if (!m) continue
       const apr = Number(c.apr)

@@ -15,7 +15,7 @@ import { bigintReplacer, bigintReviver } from './fixedPoint'
 import type { NetApyEvent } from './history'
 import type { IncentiveCampaign, MerklOpportunity } from './incentives'
 import type { SnapshotSet } from './read'
-import { asOfOf } from './types'
+import { asOfOf, type VenueSnapshot } from './types'
 
 export const KEEP_SNAPSHOTS = 48
 
@@ -110,6 +110,21 @@ export interface CampaignState {
 
 export const saveCampaignState = (s: CampaignState): boolean => writeJson('campaigns-latest.json', s)
 export const loadCampaignState = (): CampaignState | null => readJson<CampaignState>('campaigns-latest.json')
+
+/**
+ * The tick's OWN parameter baseline: the last snapshot the recorder read per venue.
+ * Not the newest stored set — API reads store sets too, and diffing against one of
+ * those would swallow a change made between two ticks. Merged per venue, so a venue
+ * that failed to read keeps its last-known snapshot. Snapshot pruning never touches it.
+ */
+export interface ParamBaseline {
+  observedAt: number
+  snapshots: VenueSnapshot[]
+}
+
+const PARAM_BASELINE = 'params-baseline.json'
+export const saveParamBaseline = (b: ParamBaseline): boolean => writeJson(PARAM_BASELINE, b)
+export const loadParamBaseline = (): ParamBaseline | null => readJson<ParamBaseline>(PARAM_BASELINE)
 
 /** Append-only change log, one JSON object per line. A quiet tick appends nothing. */
 export function appendEvents(events: readonly NetApyEvent[]): boolean {

@@ -33,7 +33,10 @@ export interface DurationStats {
   censored: number
   p50S: number | null
   p90S: number | null
-  /** When a quantile is not reached: every unresolved request has waited at least this long. */
+  /**
+   * When p90 is not reached: the longest wait among unresolved requests (the oldest open
+   * one). The unreached quantile is at least this (Kaplan–Meier: no event after it).
+   */
   atLeastS: number | null
 }
 
@@ -214,8 +217,8 @@ export function nearestRank(values: number[], q: number): number | null {
 }
 
 /**
- * Beacon windows: the distribution of schedule-wait readings taken in the window. Each
- * reading is the chain's own schedule, so the label is chain_schedule.
+ * Beacon windows: the distribution of schedule-wait readings taken in the window. That is
+ * history (measured_history); only the reading at the anchor is chain_schedule.
  */
 function beaconWindow(ledger: VenueLedger, anchor: BlockAnchor, windowDays: number): WindowMetrics {
   const start = anchor.ts - windowDays * 86_400
@@ -238,7 +241,7 @@ function beaconWindow(ledger: VenueLedger, anchor: BlockAnchor, windowDays: numb
     requestToFinalize: stats,
     finalizeToClaim: empty,
     requestToClaim: empty,
-    label: label('chain_schedule'),
+    label: label('measured_history'),
   }
 }
 

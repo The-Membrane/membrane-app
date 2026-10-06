@@ -5,7 +5,12 @@ import { describe, expect, it } from 'vitest'
 
 import { emptyLedger } from '@/lib/exitQueue/ledger'
 import { venueMetrics } from '@/lib/exitQueue/metrics'
-import { exitTime, exitTimeInput, exitTimeS, type ExitTimeInput } from '@/lib/exitQueue/riskFrontier'
+import {
+  exitTime,
+  exitTimeInput,
+  exitTimeS,
+  type ExitTimeInput,
+} from '@/lib/exitQueue/riskFrontier'
 import {
   BASIS_CLASS,
   label,
@@ -27,7 +32,12 @@ const BASES = Object.keys(LABEL_TEXT) as LabelBasis[]
 
 describe('label classes (umbrella shared contract 3)', () => {
   it('every basis this layer emits is class measured_change', () => {
-    expect(BASES.sort()).toEqual(['chain_schedule', 'change_log', 'measured_history', 'onchain_state'])
+    expect(BASES.sort()).toEqual([
+      'chain_schedule',
+      'change_log',
+      'measured_history',
+      'onchain_state',
+    ])
     for (const b of BASES) expect(BASIS_CLASS[b]).toBe('measured_change')
   })
 
@@ -51,8 +61,9 @@ describe('label classes (umbrella shared contract 3)', () => {
     const m = venueMetrics(def('lido-steth'), ledgerWithCoverage('lido-steth', 1_000, 2_000))
     expect(m.queueNow.label.basis).toBe('onchain_state')
     expect(m.windows.every((w) => w.label.basis === 'measured_history')).toBe(true)
+    // Beacon windows are the HISTORY of schedule readings, not the schedule at the anchor.
     const b = venueMetrics(def('beacon-exit'), emptyLedger('beacon-exit'), { block: 2, ts: 2 })
-    expect(b.windows.every((w) => w.label.basis === 'chain_schedule')).toBe(true)
+    expect(b.windows.every((w) => w.label.basis === 'measured_history')).toBe(true)
   })
 })
 
@@ -104,6 +115,7 @@ describe('exit time: what the single number rests on', () => {
     advertisedSetsWait: false,
     scheduleFloorS: null,
     queueDepth: { amount: null, count: null, symbol: 'rsETH', decimals: 18 },
+    oldestOpenAgeS: null,
     lastParamChangeTs: null,
     ...over,
   })
@@ -124,22 +136,27 @@ describe('exit time: what the single number rests on', () => {
     )!
     expect(e).toMatchObject({ seconds: 20 * D, source: 'measured_at_least', atLeast: true })
     expect(e.label.basis).toBe('measured_history')
-    expect(exitTime(input({ requestToExit: { p50S: 16.6 * D, p90S: null, atLeastS: 20 * D, n: 217 } }), 'p50')!)
-      .toMatchObject({ seconds: 16.6 * D, source: 'measured_quantile', atLeast: false })
+    expect(
+      exitTime(
+        input({ requestToExit: { p50S: 16.6 * D, p90S: null, atLeastS: 20 * D, n: 217 } }),
+        'p50',
+      )!,
+    ).toMatchObject({ seconds: 16.6 * D, source: 'measured_quantile', atLeast: false })
   })
 
   it('a floor-only cooldown above the measurement wins, as a lower bound read on-chain', () => {
     const e = exitTime(
-      input({ advertisedCooldownS: 8 * D, requestToExit: { p50S: D, p90S: 2 * D, atLeastS: null, n: 50 } }),
+      input({
+        advertisedCooldownS: 8 * D,
+        requestToExit: { p50S: D, p90S: 2 * D, atLeastS: null, n: 50 },
+      }),
     )!
     expect(e).toMatchObject({ seconds: 8 * D, source: 'advertised_cooldown', atLeast: true })
     expect(e.label.basis).toBe('onchain_state')
   })
 
   it('a cooldown that sets the wait stands alone when nothing was requested', () => {
-    const e = exitTime(
-      input({ venue: 'sUSDe', advertisedCooldownS: D, advertisedSetsWait: true }),
-    )!
+    const e = exitTime(input({ venue: 'sUSDe', advertisedCooldownS: D, advertisedSetsWait: true }))!
     expect(e).toMatchObject({ seconds: D, source: 'advertised_cooldown', atLeast: false })
     expect(e.label.basis).toBe('onchain_state')
   })
@@ -162,7 +179,6 @@ describe('exit time: what the single number rests on', () => {
     const e = exitTime(
       input({
         venue: 'beacon-exit',
-        label: label('chain_schedule'),
         requestToExit: { p50S: 7 * D + delay, p90S: 8 * D + delay, atLeastS: null, n: 3 },
         scheduleFloorS: 8.5 * D + delay,
       }),
@@ -171,12 +187,65 @@ describe('exit time: what the single number rests on', () => {
     expect(e.label.basis).toBe('chain_schedule')
   })
 
+  it('beacon history above the anchor schedule is labelled history, not "at the anchor"', () => {
+    // Refuter finding 3: readings drained from 40 d to 1 d; the anchor schedule is 2.14 d.
+    const delay = 256 * 384
+    const e = exitTime(
+      input({
+        venue: 'beacon-exit',
+        requestToExit: { p50S: 20 * D + delay, p90S: 38 * D + delay, atLeastS: null, n: 30 },
+        scheduleFloorS: D + delay,
+      }),
+    )!
+    expect(e).toMatchObject({ seconds: 38 * D + delay, source: 'measured_quantile', atLeast: true })
+    expect(e.label.basis).toBe('measured_history')
+    expect(e.label.text).not.toMatch(/at the anchor/)
+  })
+
+  it('negative control: a malformed input is unknown, never a 0 s exit', () => {
+    // Refuter finding 5: a negative quantile let a floor-only cooldown of 0 through.
+    expect(
+      exitTime(
+        input({
+          advertisedCooldownS: 0,
+          requestToExit: { p50S: -1, p90S: -1, atLeastS: null, n: 3 },
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      exitTime(input({ requestToExit: { p50S: NaN, p90S: 5, atLeastS: null, n: 3 } })),
+    ).toBeNull()
+    expect(
+      exitTime(
+        input({
+          scheduleFloorS: Infinity,
+          requestToExit: { p50S: 1, p90S: 2, atLeastS: null, n: 1 },
+        }),
+      ),
+    ).toBeNull()
+  })
+
+  it('carries the oldest open wait next to the number, but never folds it in', () => {
+    const m = venueMetrics(def('kelp-rseth'), ledgerWithCoverage('kelp-rseth', 1_000, 2_000))
+    expect(exitTimeInput(m)!.oldestOpenAgeS).toBe(m.open.oldestAgeS)
+    const e = exitTime(
+      input({
+        oldestOpenAgeS: 5 * 3600,
+        requestToExit: { p50S: 300, p90S: 300, atLeastS: null, n: 100 },
+      }),
+    )!
+    expect(e.seconds).toBe(300)
+  })
+
   it('exitTimeInput keeps the metrics anchor and the venue cooldown rule', () => {
     const m = venueMetrics(def('sUSDe'), ledgerWithCoverage('sUSDe', 1_000, 2_000))
     const i = exitTimeInput(m)!
     expect(i.anchor).toEqual(m.anchor)
     expect(i.advertisedSetsWait).toBe(true)
-    expect(exitTimeInput(venueMetrics(def('kelp-rseth'), ledgerWithCoverage('kelp-rseth', 1_000, 2_000)))!
-      .advertisedSetsWait).toBe(false)
+    expect(
+      exitTimeInput(
+        venueMetrics(def('kelp-rseth'), ledgerWithCoverage('kelp-rseth', 1_000, 2_000)),
+      )!.advertisedSetsWait,
+    ).toBe(false)
   })
 })

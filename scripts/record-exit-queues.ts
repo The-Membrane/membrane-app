@@ -230,8 +230,14 @@ function makeReader(
   return reader
 }
 
+// A hung beacon node must not hold up the rest of the hourly tick (undici's default is ~300 s).
+const BEACON_TIMEOUT_MS = 30_000
+
 async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${beaconUrl}${path}`, { headers: { accept: 'application/json' } })
+  const res = await fetch(`${beaconUrl}${path}`, {
+    headers: { accept: 'application/json' },
+    signal: AbortSignal.timeout(BEACON_TIMEOUT_MS),
+  })
   if (!res.ok) throw new Error(`beacon ${path} → HTTP ${res.status}`)
   return (await res.json()) as T
 }

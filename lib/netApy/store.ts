@@ -5,17 +5,31 @@
  * under `.data/net-apy/` (gitignored; override with NET_APY_STORE_DIR), one per anchor
  * block, pruned to the newest KEEP files so the directory stays a few hundred KB.
  * A read-only filesystem (a serverless deploy) is not an error: writes are skipped and
- * the caller keeps its in-memory copy.
+ * the caller keeps its in-memory copy. Every JSON file is written whole or not at all
+ * (temp file + rename), so a crash mid-write never leaves a torn file behind.
  */
 
-import { appendFileSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs'
+import {
+  appendFileSync,
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+  writeSync,
+} from 'fs'
 import { join } from 'path'
 
 import { bigintReplacer, bigintReviver } from './fixedPoint'
 import type { NetApyEvent } from './history'
 import type { IncentiveCampaign, MerklOpportunity } from './incentives'
 import type { SnapshotSet } from './read'
-import { asOfOf } from './types'
+import { asOfOf, type VenueSnapshot } from './types'
 
 export const KEEP_SNAPSHOTS = 48
 
@@ -24,12 +38,20 @@ export const storeDir = (): string => process.env.NET_APY_STORE_DIR || join(proc
 const snapFile = (block: bigint) => `snapshots-${block}.json`
 const SNAP_RE = /^snapshots-(\d+)\.json$/
 
+/** Atomic: the body goes to a temp file, renamed over `name` only once complete. */
 function writeJson(name: string, body: unknown): boolean {
+  const tmp = join(storeDir(), `${name}.tmp-${process.pid}`)
   try {
     mkdirSync(storeDir(), { recursive: true })
-    writeFileSync(join(storeDir(), name), JSON.stringify(body, bigintReplacer) + '\n')
+    writeFileSync(tmp, JSON.stringify(body, bigintReplacer) + '\n')
+    renameSync(tmp, join(storeDir(), name))
     return true
   } catch {
+    try {
+      unlinkSync(tmp)
+    } catch {
+      // nothing was written
+    }
     return false
   }
 }
@@ -110,6 +132,88 @@ export interface CampaignState {
 
 export const saveCampaignState = (s: CampaignState): boolean => writeJson('campaigns-latest.json', s)
 export const loadCampaignState = (): CampaignState | null => readJson<CampaignState>('campaigns-latest.json')
+
+/**
+ * The tick's OWN parameter baseline: the last snapshot the recorder read per venue.
+ * Not the newest stored set — API reads store sets too, and diffing against one of
+ * those would swallow a change made between two ticks. Merged per venue, so a venue
+ * that failed to read keeps its last-known snapshot. Snapshot pruning never touches it.
+ */
+export interface ParamBaseline {
+  observedAt: number
+  snapshots: VenueSnapshot[]
+}
+
+export const PARAM_BASELINE = 'params-baseline.json'
+export const saveParamBaseline = (b: ParamBaseline): boolean => writeJson(PARAM_BASELINE, b)
+/** Null when the file is missing OR unreadable; tell them apart with paramBaselineExists. */
+export function loadParamBaseline(): ParamBaseline | null {
+  const b = readJson<ParamBaseline>(PARAM_BASELINE)
+  return b && Array.isArray(b.snapshots) ? b : null
+}
+export const paramBaselineExists = (): boolean => existsSync(join(storeDir(), PARAM_BASELINE))
+
+// ------------------------------------------------------------------ tick lock
+
+const TICK_LOCK = 'tick.lock'
+
+/** When a lock was taken: the time written in it, else (torn) its mtime; 0 once gone. */
+function lockTakenAt(path: string): number {
+  try {
+    const t = Number(readFileSync(path, 'utf8').split(' ')[0])
+    return Number.isFinite(t) && t > 0 ? t : Math.floor(statSync(path).mtimeMs / 1000)
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * The recorder tick's exclusive lock: manual runs and recorder-tick.sh can overlap.
+ * Returns its release, or null while another tick holds a lock younger than `staleS`.
+ * An older lock is a crashed tick's and is replaced. A store that cannot be written at
+ * all gets a no-op lock: nothing can be recorded there anyway.
+ */
+export function acquireTickLock(nowS: number, staleS: number): { release: () => void } | null {
+  const path = join(storeDir(), TICK_LOCK)
+  const token = `${nowS} ${process.pid} ${Math.random().toString(36).slice(2)}`
+  // true = taken, false = held by another tick, null = this store cannot be written
+  const take = (): boolean | null => {
+    try {
+      mkdirSync(storeDir(), { recursive: true })
+      const fd = openSync(path, 'wx')
+      try {
+        writeSync(fd, token)
+      } finally {
+        closeSync(fd)
+      }
+      return true
+    } catch (e) {
+      return (e as NodeJS.ErrnoException).code === 'EEXIST' ? false : null
+    }
+  }
+  let taken = take()
+  if (taken === false) {
+    if (nowS - lockTakenAt(path) < staleS) return null
+    try {
+      unlinkSync(path)
+    } catch {
+      // released meanwhile
+    }
+    taken = take()
+  }
+  if (taken === null) return { release: () => {} }
+  if (!taken) return null
+  return {
+    release: () => {
+      try {
+        // Only our own: a lock that went stale under us may now be another tick's.
+        if (readFileSync(path, 'utf8') === token) unlinkSync(path)
+      } catch {
+        // already gone
+      }
+    },
+  }
+}
 
 /** Append-only change log, one JSON object per line. A quiet tick appends nothing. */
 export function appendEvents(events: readonly NetApyEvent[]): boolean {

@@ -87,6 +87,32 @@ describe('Merkl → venue matching (real payloads, real on-chain addresses)', ()
   })
 })
 
+describe('a campaign is live only once it has started', () => {
+  const live = extractCampaigns(merkl.opportunities, snaps, vaultOf, NOW)[0]
+  const START = NOW + 3_600
+  // The same real payload, with one matched campaign's start moved (or removed).
+  const startingAt = (start: number | undefined): MerklOpportunity[] =>
+    merkl.opportunities.map((o) => ({
+      ...o,
+      campaigns: (o.campaigns ?? []).map((c) =>
+        c.campaignId === live.campaignId ? { ...c, startTimestamp: start as number } : c,
+      ),
+    }))
+  const ids = (ops: MerklOpportunity[], nowTs: number) =>
+    extractCampaigns(ops, snaps, vaultOf, nowTs).map((c) => c.campaignId)
+
+  it('excludes a campaign starting after nowTs; includes it once nowTs ≥ start', () => {
+    expect(live.endTs).toBeGreaterThan(START)
+    expect(ids(startingAt(START), NOW)).not.toContain(live.campaignId)
+    expect(ids(startingAt(START), START - 1)).not.toContain(live.campaignId)
+    expect(ids(startingAt(START), START)).toContain(live.campaignId)
+  })
+
+  it('keeps a campaign with no start time', () => {
+    expect(ids(startingAt(undefined), NOW)).toContain(live.campaignId)
+  })
+})
+
 describe('dilution and the decay calendar', () => {
   it('classifies Merkl distribution types', () => {
     expect(dilutionOf('DUTCH_AUCTION')).toBe('fixed-budget')
@@ -118,6 +144,12 @@ describe('dilution and the decay calendar', () => {
 
   it('a campaign that has not started is not in today’s APR', () => {
     expect(decayCalendar([campaign({ startTs: NOW + 10 })], 0, NOW).aprNow).toBe(0)
+  })
+
+  it('a campaign with no start time counts as started, as extractCampaigns keeps it', () => {
+    const cal = decayCalendar([campaign({ startTs: undefined as unknown as number })], 0, NOW)
+    expect(cal.aprNow).toBe(0.04)
+    expect(cal.steps.map((s) => s.campaignId)).toEqual(['c1'])
   })
 })
 

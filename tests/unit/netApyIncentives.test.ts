@@ -145,6 +145,12 @@ describe('dilution and the decay calendar', () => {
   it('a campaign that has not started is not in today’s APR', () => {
     expect(decayCalendar([campaign({ startTs: NOW + 10 })], 0, NOW).aprNow).toBe(0)
   })
+
+  it('a campaign with no start time counts as started, as extractCampaigns keeps it', () => {
+    const cal = decayCalendar([campaign({ startTs: undefined as unknown as number })], 0, NOW)
+    expect(cal.aprNow).toBe(0.04)
+    expect(cal.steps.map((s) => s.campaignId)).toEqual(['c1'])
+  })
 })
 
 describe('conditions', () => {

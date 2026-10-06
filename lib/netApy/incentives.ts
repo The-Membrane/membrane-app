@@ -176,9 +176,16 @@ export function matchCampaign(
 }
 
 /**
- * Live campaigns: started and not yet ended at `nowTs`, paying a covered venue. One
- * that starts later — or, on a pinned historical block, started after it — is not
- * live yet. A campaign with no start time is kept.
+ * THE start rule, shared by every liveness check: a campaign has started unless its
+ * start is a finite time after `nowTs`. No start time counts as started.
+ */
+export const hasStarted = (startTs: number | null | undefined, nowTs: number): boolean =>
+  !(typeof startTs === 'number' && Number.isFinite(startTs) && startTs > nowTs)
+
+/**
+ * Live campaigns: started (`hasStarted`) and not yet ended at `nowTs`, paying a covered
+ * venue. One that starts later — or, on a pinned historical block, started after it —
+ * is not live yet.
  */
 export function extractCampaigns(
   opportunities: readonly MerklOpportunity[],
@@ -191,7 +198,7 @@ export function extractCampaigns(
   for (const o of opportunities) {
     for (const c of o.campaigns ?? []) {
       if (!(c.endTimestamp > nowTs) || seen.has(c.campaignId)) continue
-      if (Number.isFinite(c.startTimestamp) && c.startTimestamp > nowTs) continue
+      if (!hasStarted(c.startTimestamp, nowTs)) continue
       const m = matchCampaign(o, c, snapshots, vaultOf)
       if (!m) continue
       const apr = Number(c.apr)
@@ -243,7 +250,9 @@ export interface CalendarStep {
  * floor (0) unless a campaign runs past the horizon.
  */
 export function decayCalendar(campaigns: readonly IncentiveCampaign[], sizeUsd: number, nowTs: number): { aprNow: number; steps: CalendarStep[] } {
-  const live = campaigns.filter((c) => c.startTs <= nowTs && c.endTs > nowTs).sort((a, b) => a.endTs - b.endTs)
+  const live = campaigns
+    .filter((c) => hasStarted(c.startTs, nowTs) && c.endTs > nowTs)
+    .sort((a, b) => a.endTs - b.endTs)
   const aprs = live.map((c) => aprAtSize(c, sizeUsd))
   // Sum what is still running at each step rather than subtracting, so the floor after
   // the last end is exactly 0, not a float residue.

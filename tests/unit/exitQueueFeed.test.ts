@@ -69,7 +69,8 @@ describe('beacon exit queue', () => {
     const w30 = m.windows.find((w) => w.windowDays === 30)!
     expect(w30.requestToFinalize.n).toBe(3)
     const input = exitTimeInput(m)!
-    expect(input.label.basis).toBe('chain_schedule')
+    // Readings over the window are history; only the anchor reading is the chain schedule.
+    expect(input.label.basis).toBe('measured_history')
     expect(input.scheduleFloorS).toBe(m.scheduleWaitS! + 256 * 384)
     // Readings get the same withdrawability delay as the floor, so the parts compare.
     expect(input.requestToExit.p90S).toBe(w30.requestToFinalize.p90S! + 256 * 384)
@@ -83,6 +84,7 @@ describe('Risk Frontier exit-time input', () => {
       anchor: { block: 1, ts: 1 },
       label: label('measured_history'),
       advertisedSetsWait: true,
+      oldestOpenAgeS: null,
       windowDays: 30,
       coverage: 'complete' as const,
       queueDepth: { amount: null, count: null, symbol: 'USDe', decimals: 18 },

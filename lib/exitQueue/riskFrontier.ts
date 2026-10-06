@@ -14,14 +14,15 @@ import { label, type BlockAnchor, type Label, type VenueKey } from './types'
 export interface ExitTimeInput {
   venue: VenueKey
   anchor: BlockAnchor
-  /** Label of `requestToExit`: measured_history, or chain_schedule for the beacon queue. */
+  /** Label of `requestToExit`: measured_history (for the beacon, the history of schedule readings). */
   label: Label
   windowDays: number
   coverage: WindowMetrics['coverage']
   /**
    * Request → claimable. For ERC-7540 (no fulfilment event) this is request → claim. For
-   * the beacon queue: schedule readings in the window + the withdrawability delay, so the
-   * unit matches `scheduleFloorS`.
+   * the beacon queue: schedule readings taken in the window + the withdrawability delay, so
+   * the unit matches `scheduleFloorS`. `atLeastS`: when a quantile is not reached, the
+   * oldest open request's wait (a Kaplan–Meier lower bound on that quantile).
    */
   requestToExit: { p50S: number | null; p90S: number | null; atLeastS: number | null; n: number }
   /** The on-chain advertised wait at the anchor, if the venue has one. */
@@ -35,6 +36,13 @@ export interface ExitTimeInput {
   /** Beacon only: the schedule floor for a new exit plus the withdrawability delay. */
   scheduleFloorS: number | null
   queueDepth: { amount: string | null; count: number | null; symbol: string; decimals: number }
+  /**
+   * How long the oldest still-open request has waited at the anchor. A current stall that
+   * holds fewer than 10% of the cohort does not move the p90, so show this next to it. It
+   * is NOT a lower bound on a new request's wait (the head may clear a minute later), so it
+   * never enters the single number.
+   */
+  oldestOpenAgeS: number | null
   lastParamChangeTs: number | null
 }
 
@@ -52,7 +60,7 @@ export function exitTimeInput(m: VenueExitMetrics, windowDays = 30): ExitTimeInp
   return {
     venue: m.venue,
     anchor: m.anchor,
-    label: label(isBeacon ? 'chain_schedule' : 'measured_history'),
+    label: label('measured_history'),
     windowDays,
     coverage: w.coverage,
     requestToExit: isBeacon
@@ -67,14 +75,16 @@ export function exitTimeInput(m: VenueExitMetrics, windowDays = 30): ExitTimeInp
       symbol: m.unit.symbol,
       decimals: m.unit.decimals,
     },
+    oldestOpenAgeS: m.open.oldestAgeS,
     lastParamChangeTs: m.lastChange?.ts ?? null,
   }
 }
 
 /**
  * What set the single number:
- *  measured_quantile    the window's request → claimable quantile
- *  measured_at_least    the quantile was not reached; every open request waited this long
+ *  measured_quantile    the window's request → claimable quantile (beacon: of the schedule
+ *                       readings taken in the window, each a floor because the sweep is out)
+ *  measured_at_least    the quantile was not reached; the oldest open request's wait
  *  advertised_cooldown  the on-chain cooldown at the anchor
  *  chain_schedule       the beacon chain's assigned exit epochs (+ withdrawability delay)
  */
@@ -103,26 +113,29 @@ export interface ExitTime {
 
 type Part = { seconds: number; source: ExitTimeSource; atLeast: boolean; label: Label }
 
+const isDuration = (x: number | null) => x == null || (Number.isFinite(x) && x >= 0)
+
 /**
  * The largest of the measured quantile (or its lower bound when not reached), the beacon
- * schedule floor and the advertised cooldown. Null when nothing is known: the engine
- * must treat null as "unknown", never as zero. A cooldown that is only a floor raises
- * the number but never stands alone (Kelp's parameter reads 0).
+ * schedule floor and the advertised cooldown. Null when nothing is known, or when an input
+ * is not a duration (a hand-built or corrupted payload): the engine must treat null as
+ * "unknown", never as zero. A cooldown that is only a floor raises the number but never
+ * stands alone (Kelp's parameter reads 0).
  */
 export function exitTime(input: ExitTimeInput, q: 'p50' | 'p90' = 'p90'): ExitTime | null {
+  const r = input.requestToExit
+  if (
+    ![r.p50S, r.p90S, r.atLeastS, input.advertisedCooldownS, input.scheduleFloorS].every(isDuration)
+  )
+    return null
   const beacon = input.venue === 'beacon-exit'
-  const quantile = q === 'p50' ? input.requestToExit.p50S : input.requestToExit.p90S
+  const quantile = q === 'p50' ? r.p50S : r.p90S
   const measured: Part | null =
     quantile != null
-      ? {
-          seconds: quantile,
-          source: beacon ? 'chain_schedule' : 'measured_quantile',
-          atLeast: beacon,
-          label: input.label,
-        }
-      : input.requestToExit.atLeastS != null
+      ? { seconds: quantile, source: 'measured_quantile', atLeast: beacon, label: input.label }
+      : r.atLeastS != null
         ? {
-            seconds: input.requestToExit.atLeastS,
+            seconds: r.atLeastS,
             source: 'measured_at_least',
             atLeast: true,
             label: input.label,
@@ -162,7 +175,7 @@ export function exitTime(input: ExitTimeInput, q: 'p50' | 'p90' = 'p90'): ExitTi
     label: best.label,
     windowDays: input.windowDays,
     coverage: input.coverage,
-    n: input.requestToExit.n,
+    n: r.n,
   }
 }
 

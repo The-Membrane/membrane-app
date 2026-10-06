@@ -214,30 +214,20 @@ token`) while serving recent state, so a fallback hop turned historical reads in
   the full ring with the defaults (2).
 - sUSDe has no request ids, so a missed request log is caught only by the double fetch.
 
-## Board lines (for the umbrella entry in `/Users/EBmic/AGENT_BOARD.md`)
+## Board lines
 
-The cloud session that built this could not reach that board. Paste under the umbrella
-entry's LANES list and discoveries:
+Posted 2026-10-05/06 on the canonical board (`/Users/EBmic/AGENT_BOARD.md`): the lane line under the
+umbrella's LANES list, the data-products row #2, and the entry "### LANE — Exit-queue ledger" at the
+end of the umbrella. It carries the contract reconcile (resolved in code), the keyed-RPC numbers and
+the discoveries:
 
-```
-- LANE exit-queue-ledger · Layer: DATA · The-Membrane/membrane-app feat/exit-queue-ledger
-  (off evm-migration 28c674d) · contract: venue key + finalized-block anchor + label classes
-  (onchain_state | measured_history | chain_schedule | change_log) · venues: Lido, beacon,
-  ether.fi, Kelp, sUSDe, Maple (+ERC-7540 decoder, no vault) · local JSON ledger, no Neon,
-  no launchd · 92 unit tests · Risk Frontier input: lib/exitQueue/riskFrontier.ts (engine
-  untouched) · doc: docs/research/exit-queue-ledger.md · TODO: re-run on the Mac with the
-  keyed Ankr alias.
-- 2026-10-05 DISCOVERY (exit-queue lane): public relays (Pocket) silently drop eth_getLogs
-  results (Lido 30-day scan missed 118/2,862 requests) and answer archive eth_call with
-  another block's state (ether.fi lastFinalizedRequestId@25,930,000: 82721 once, 82427 x5;
-  dRPC 82427). Any research reading history through the RPC ring needs double fetch /
-  quorum reads. publicnode refuses archive eth_call (-32602).
-- 2026-10-05 DISCOVERY: Kelp withdrawalDelayBlocks = 0 on-chain, but 30-day measured
-  request → unlock p50 = 16.6 d (p90 ≥ 20.3 d); the advertised parameter is not the wait.
-  Kelp AssetWithdrawalFinalized also fires for instantWithdrawal (not a queue claim).
-- 2026-10-05 DISCOVERY: ether.fi finalizeRequests emits no event; finalization time needs
-  bisection of lastFinalizedRequestId.
-- 2026-10-05 MEASURED (not a forecast): Lido p50 23.5 h / p90 4.2 d, 7-day cohort ≥ 103 h,
-  514 requests / 150k stETH pending; beacon exit tail 8.9 d; ether.fi 7-day p50 55.6 h vs
-  30-day 25.4 h; sUSDe claim tail p90 96 h, silo 15.67M USDe; Maple p50 3.4 min.
-```
+- Public relays (Pocket) silently drop `eth_getLogs` results: one Lido 30-day scan missed 118 of
+  2,862 requests. They also answer archive `eth_call` with another block's state. publicnode refuses
+  archive `eth_call` (-32602). Keyed Ankr and Infura agree byte-for-byte on sUSDe.
+- Kelp `withdrawalDelayBlocks` = 0 on-chain, yet request → unlock is a median 16.8 d (keyed run;
+  16.6 d in the cloud run). A floor-only cooldown must never stand in for an exit time.
+- Kelp `AssetWithdrawalFinalized` also fires for `instantWithdrawal`.
+- ether.fi finalization emits no event; `lastFinalizedRequestId` is bisected.
+- sUSDe claimable → claimed p90 sits on a flat survival tail (0.114 at 96 h, 0.10 at ~164 h).
+- position-sim `KNOWN_VENUES` still says sUSDe has a 7-day cooldown; it is 1 day on-chain since
+  block 24,669,809.

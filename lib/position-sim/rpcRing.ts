@@ -14,8 +14,27 @@
  *      requested span, so no single free tier carries the whole job. A failure marks
  *      the endpoint cold for a cooldown; the ring keeps spinning on the rest.
  * Every other RPC method goes through viem's ordinary fallback over the live endpoints.
+ *
+ * AN EMPTY ANSWER IS NOT A FACT (2026-10-07). Measured against the Chainlink ETH/USD
+ * AnswerUpdated scan: eth.api.pocket.network answers a 10,000-block query with `[]`
+ * 10–15% of the time (8 of 55 calls) where Tenderly, MEV Blocker and BlockPI all return
+ * the same 37–49 logs, and halving to 1,000 blocks does not help (2 of 20). A
+ * rate-limited rpc.flashbots.net also answers `[]`. Neither is an error, so the old ring
+ * took them as "no events here" — the 34–35 h holes in the price history. Now:
+ *   - every EMPTY answer is re-asked on a second, INDEPENDENT endpoint (another backend,
+ *     not another host of the same one) and believed only when both say empty;
+ *   - an endpoint that said empty (or short) while another returned the logs is
+ *     QUARANTINED for the run, and the fuller answer is kept;
+ *   - an empty that no independent endpoint can check throws RingEmptyUnconfirmedError,
+ *     so the halve-the-span ladders (here and in every caller) reach narrower spans,
+ *     which more endpoints serve; at the floor it is flagged, never passed off as clean;
+ *   - getLogsWideChecked returns the coverage (confidence: verified | unverified).
+ * The probe had the same blind spot: it asked a RETIRED aggregator (ETH/USD phase 5)
+ * over a window in which it emits nothing, so `[]` passed as proof of a 10k cap. It now
+ * asks the live aggregator over a window that ENDS on a known log; an answer without
+ * that log proves nothing.
  */
-import { createPublicClient, fallback, http, parseAbiItem, type PublicClient } from 'viem'
+import { createPublicClient, fallback, http, parseAbiItem, type PublicClient, type Transport } from 'viem'
 import { mainnet } from 'viem/chains'
 import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
@@ -48,6 +67,10 @@ export interface RingEntry {
   ms: number
   /** Whether eth_blockNumber answered at all. */
   alive: boolean
+  /** Probe answers that came back WITHOUT the anchor log — empty (or short) over a range
+   *  known to hold it. Informational: the ring cross-checks every empty answer anyway.
+   *  Absent in tables probed before 2026-10-07. */
+  emptyAnswers?: number
 }
 export interface RingTable {
   probedAt: string
@@ -55,8 +78,12 @@ export interface RingTable {
 }
 
 const PROBE_SIZES = [10_000n, 5_000n, 2_000n, 1_000n, 800n, 600n, 500n, 250n, 100n, 50n, 10n]
-const PROBE_FROM = 21_600_000n
-const PROBE_AGG = '0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6' as const // Chainlink ETH/USD aggregator
+/** The probe window ENDS on a known log, so every probe size must return it: Chainlink
+ *  ETH/USD phase-7 aggregator, round 5119, block 21,609,832, log 415. (The pre-2026-10-07
+ *  probe asked phase 5, 0x37bC…a9e6, which emits nothing at 21.6M.) */
+export const PROBE_AGG = '0x7d4e742018fb52e48b08be73d041c18b21de6fb5' as const
+export const PROBE_ANCHOR_BLOCK = 21_609_832n
+export const PROBE_ANCHOR_TX = '0xa7a23564357c9813da591112fb95d0a9bceefe9e5babdc5d1846ca713195a761'
 const ANSWER_UPDATED = parseAbiItem(
   'event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)',
 )
@@ -64,28 +91,54 @@ export const RING_PATH = join(process.cwd(), 'public', 'data', 'rpc-ring.json')
 /** A saved table older than this is re-probed before use. */
 export const RING_STALE_MS = 6 * 3600 * 1000
 
-export async function probeRing(candidates: string[] = CANDIDATES, extra: string[] = []): Promise<RingTable> {
+/** One transport per URL. Production uses viem's http; the unit tests inject a fake. */
+export type TransportFor = (url: string, opts: { timeout: number; retryCount: number }) => Transport
+const httpTransport: TransportFor = (url, opts) => http(url, opts)
+
+export async function probeRing(
+  candidates: string[] = CANDIDATES,
+  extra: string[] = [],
+  opts: { transportFor?: TransportFor; pauseMs?: number } = {},
+): Promise<RingTable> {
+  const transportFor = opts.transportFor ?? httpTransport
+  const pauseMs = opts.pauseMs ?? 250
   const urls = [...new Set([...extra, ...candidates])]
   const entries = await Promise.all(
     urls.map(async (url): Promise<RingEntry> => {
-      const c = createPublicClient({ chain: mainnet, transport: http(url, { timeout: 12_000, retryCount: 0 }) })
+      const c = createPublicClient({ chain: mainnet, transport: transportFor(url, { timeout: 12_000, retryCount: 0 }) })
       try {
         await c.getBlockNumber()
       } catch {
         return { url, cap: 0, ms: 0, alive: false }
       }
+      let emptyAnswers = 0
+      const flagged = () => (emptyAnswers ? { emptyAnswers } : {})
       for (const n of PROBE_SIZES) {
-        const t = Date.now()
-        try {
-          await c.getLogs({ address: PROBE_AGG, event: ANSWER_UPDATED, fromBlock: PROBE_FROM, toBlock: PROBE_FROM + n - 1n })
-          return { url, cap: Number(n), ms: Date.now() - t, alive: true }
-        } catch {
-          // A refusal at this size — pause briefly so a rate limit on one size
-          // does not zero the endpoint, then try the next size down.
-          await new Promise((r) => setTimeout(r, 250))
+        // An answer without the anchor log gets one more try at the same size (Pocket's
+        // empties are intermittent); an error is a refusal at this size.
+        for (let tryNo = 0; tryNo < 2; tryNo++) {
+          const t = Date.now()
+          let refused = false
+          try {
+            const logs = await c.getLogs({
+              address: PROBE_AGG,
+              event: ANSWER_UPDATED,
+              fromBlock: PROBE_ANCHOR_BLOCK - n + 1n,
+              toBlock: PROBE_ANCHOR_BLOCK,
+            })
+            if (logs.some((l) => l.transactionHash?.toLowerCase() === PROBE_ANCHOR_TX)) {
+              return { url, cap: Number(n), ms: Date.now() - t, alive: true, ...flagged() }
+            }
+            emptyAnswers++
+          } catch {
+            refused = true
+          }
+          // Pause briefly so a rate limit on one size does not zero the endpoint.
+          await new Promise((r) => setTimeout(r, pauseMs))
+          if (refused) break
         }
       }
-      return { url, cap: 0, ms: 0, alive: true }
+      return { url, cap: 0, ms: 0, alive: true, ...flagged() }
     }),
   )
   entries.sort((a, b) => b.cap - a.cap || a.ms - b.ms)
@@ -133,74 +186,195 @@ export async function ensureRing(extra: string[] = [], maxAgeMs = RING_STALE_MS)
   return t
 }
 
+/** Two hosts on one registrable domain answer from one fleet (gateway.tenderly.co and
+ *  mainnet.gateway.tenderly.co), so they cannot confirm each other. Approximated by the
+ *  last two DNS labels. Hosts only — a keyed URL's path never leaves this function. */
+export function backendOf(url: string): string {
+  return new URL(url).hostname.split('.').slice(-2).join('.')
+}
+const hostOf = (url: string): string => new URL(url).host
+
+/** An empty answer that no independent endpoint could check. */
+export class RingEmptyUnconfirmedError extends Error {
+  constructor(
+    readonly fromBlock: bigint,
+    readonly toBlock: bigint,
+    readonly host: string,
+  ) {
+    super(`rpc ring: ${host} answered [] for blocks ${fromBlock}-${toBlock} and no independent endpoint could confirm it`)
+    this.name = 'RingEmptyUnconfirmedError'
+  }
+}
+
+/** How far one getLogs answer can be trusted.
+ *   agreed     — two independent endpoints returned the same logs (or both none);
+ *   recovered  — they disagreed; the union was kept and the short side quarantined;
+ *   single     — one non-empty answer, not re-asked (verify 'empty');
+ *   unverified — nobody independent could check it (or verify 'none' and it was empty). */
+export type PieceCheck = 'agreed' | 'recovered' | 'single' | 'unverified'
+export interface CheckedLogs<T> {
+  logs: T[]
+  check: PieceCheck
+  /** Host that gave the kept answer. */
+  host: string
+  /** Hosts quarantined by this call because their answer was missing logs. */
+  contradicted?: string[]
+}
+
+/** What a wide scan can vouch for. `unverified` lists the ranges whose logs may be
+ *  missing; a caller that publishes data from the scan should publish this too. */
+export interface LogCoverage {
+  fromBlock: bigint
+  toBlock: bigint
+  pieces: number
+  /** Empty pieces two independent endpoints agreed on. */
+  confirmedEmpty: number
+  /** Pieces where one endpoint said empty (or short) and another returned logs. */
+  recovered: { fromBlock: bigint; toBlock: bigint; host: string; logs: number }[]
+  /** Pieces no independent endpoint could check. */
+  unverified: { fromBlock: bigint; toBlock: bigint; host: string; logs: number }[]
+  confidence: 'verified' | 'unverified'
+}
+
+export class RingCoverageError extends Error {
+  constructor(readonly coverage: LogCoverage) {
+    const r = coverage.unverified.slice(0, 3).map((u) => `${u.fromBlock}-${u.toBlock} (${u.host})`).join(', ')
+    super(`rpc ring: ${coverage.unverified.length} unverified piece(s) in ${coverage.fromBlock}-${coverage.toBlock}: ${r}`)
+    this.name = 'RingCoverageError'
+  }
+}
+
+/** 'empty' (default): re-ask every empty answer on an independent endpoint.
+ *  'all': re-ask every answer — catches a SHORT answer too, at twice the calls.
+ *  'none': the pre-2026-10-07 ring; empties are still reported as unverified. */
+export type VerifyMode = 'empty' | 'all' | 'none'
+export interface RingOptions {
+  /** How long a failed endpoint sits out. Default 20 s. */
+  cooldownMs?: number
+  verify?: VerifyMode
+  /** How long an endpoint that contradicted another sits out. Default 6 h — the run. */
+  quarantineMs?: number
+  transportFor?: TransportFor
+}
+
 /**
- * The cycling client. `getLogsRing` picks, round-robin, the next endpoint whose cap
- * covers the span; on failure the endpoint cools for `cooldownMs` and the next is tried.
- * Spans wider than the widest live cap are split into cap-sized pieces.
+ * The cycling client. `getLogs` picks the endpoint with the cheapest expected wait
+ * whose cap covers the span; on failure the endpoint cools for `cooldownMs` and the
+ * next is tried. Spans wider than the widest live cap are split into cap-sized pieces.
  */
 export interface RingStat {
   host: string
   calls: number
   ok: number
   failed: number
+  /** Answers that were `[]`. */
+  empty: number
+  /** Answers another endpoint proved were missing logs. */
+  falseEmpty: number
+  quarantined: boolean
   /** Blocks of getLogs range served successfully. */
   blocks: number
   /** Mean latency of successful calls, ms. */
   avgMs: number
 }
+/** Run totals of the cross-check. */
+export interface RingChecks {
+  /** Answers re-asked on a second endpoint. */
+  rechecked: number
+  confirmedEmpty: number
+  recovered: number
+  unverified: number
+}
+
+type Stat = { calls: number; ok: number; failed: number; empty: number; falseEmpty: number; blocks: number; ms: number }
+type LogKey = { blockNumber?: bigint | number | null; logIndex?: number | bigint | null }
+const keyOf = (l: unknown): string => {
+  const x = l as LogKey
+  return `${String(x.blockNumber)}:${String(x.logIndex)}`
+}
+const byPosition = (a: unknown, b: unknown): number => {
+  const x = a as LogKey
+  const y = b as LogKey
+  const d = BigInt(x.blockNumber ?? 0) - BigInt(y.blockNumber ?? 0)
+  return d !== 0n ? (d < 0n ? -1 : 1) : Number(x.logIndex ?? 0) - Number(y.logIndex ?? 0)
+}
 
 export class RpcRing {
   private cold = new Map<string, number>()
-  private stat = new Map<string, { calls: number; ok: number; failed: number; blocks: number; ms: number }>()
+  private quarantine = new Map<string, number>()
+  private stat = new Map<string, Stat>()
+  private totals: RingChecks = { rechecked: 0, confirmedEmpty: 0, recovered: 0, unverified: 0 }
   private inflight = new Map<string, number>()
   private headAt: bigint | null = null
   private headSeen = 0
   /** Expected wait for one more call on `e`: its measured latency x (in-flight + 1). */
   private cost(e: RingEntry): number {
     const st = this.stat.get(e.url)
-    const ms = st && st.ok ? st.ms / st.ok : Math.max(1, e.ms)
+    const ms = Math.max(1, st && st.ok ? st.ms / st.ok : e.ms)
     return ms * ((this.inflight.get(e.url) ?? 0) + 1)
   }
   private clients = new Map<string, PublicClient>()
   readonly table: RingTable
   readonly minCap: number
-  constructor(table: RingTable, private cooldownMs = 20_000) {
+  readonly verify: VerifyMode
+  private readonly cooldownMs: number
+  private readonly quarantineMs: number
+  private readonly transportFor: TransportFor
+  constructor(table: RingTable, opts: RingOptions | number = {}) {
+    const o: RingOptions = typeof opts === 'number' ? { cooldownMs: opts } : opts
+    this.cooldownMs = o.cooldownMs ?? 20_000
+    this.quarantineMs = o.quarantineMs ?? RING_STALE_MS
+    this.verify = o.verify ?? 'empty'
+    this.transportFor = o.transportFor ?? httpTransport
     this.table = table
     const live = table.entries.filter((e) => e.cap > 0)
     if (live.length === 0) throw new Error('rpc ring: no endpoint serves eth_getLogs — re-probe or add a keyed RPC')
     this.minCap = Math.min(...live.map((e) => e.cap))
   }
-  /** Endpoints that serve at least `span` blocks and are not cooling. */
+  /** Endpoints that serve at least `span` blocks and are neither cooling nor quarantined. */
   private eligible(span: number): RingEntry[] {
     const now = Date.now()
-    return this.table.entries.filter((e) => e.cap >= span && (this.cold.get(e.url) ?? 0) < now)
+    return this.table.entries.filter(
+      (e) => e.cap >= span && (this.cold.get(e.url) ?? 0) < now && (this.quarantine.get(e.url) ?? 0) < now,
+    )
   }
   private client(url: string): PublicClient {
     let c = this.clients.get(url)
     if (!c) {
-      c = createPublicClient({ chain: mainnet, transport: http(url, { timeout: 20_000, retryCount: 0 }) }) as PublicClient
+      c = createPublicClient({ chain: mainnet, transport: this.transportFor(url, { timeout: 20_000, retryCount: 0 }) }) as PublicClient
       this.clients.set(url, c)
     }
     return c
+  }
+  private statFor(url: string): Stat {
+    let st = this.stat.get(url)
+    if (!st) {
+      st = { calls: 0, ok: 0, failed: 0, empty: 0, falseEmpty: 0, blocks: 0, ms: 0 }
+      this.stat.set(url, st)
+    }
+    return st
   }
   /** Widest span any live endpoint serves right now. */
   maxCap(): number {
     const e = this.eligible(1)
     return e.length ? Math.max(...e.map((x) => x.cap)) : 0
   }
-  /** One getLogs over [from, to], rotated across every endpoint that can serve it. */
-  async getLogs<T>(args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint }): Promise<T[]> {
+  /** One raw answer from the cheapest eligible endpoint whose backend is not in `skip`.
+   *  Errors cool the endpoint and move on; an empty answer is returned as-is. */
+  private async ask<T>(
+    args: { fromBlock: bigint; toBlock: bigint },
+    skip: ReadonlySet<string>,
+  ): Promise<{ ok: true; logs: T[]; url: string } | { ok: false; err: unknown }> {
     const span = Number(args.toBlock - args.fromBlock + 1n)
     let lastErr: unknown = null
     for (let attempt = 0; attempt < this.table.entries.length; attempt++) {
-      const pool = this.eligible(span)
+      const pool = this.eligible(span).filter((e) => !skip.has(backendOf(e.url)))
       if (pool.length === 0) break
       // Cheapest expected wait: measured latency x (in-flight + 1). A fast endpoint
       // takes the work until it is busy, then the next one; a failure still cools it
       // and the ring spins on. (Pure round-robin sent every 4th piece to a 1 s node.)
       const e = pool.reduce((best, x) => (this.cost(x) < this.cost(best) ? x : best), pool[0])
-      const st = this.stat.get(e.url) ?? { calls: 0, ok: 0, failed: 0, blocks: 0, ms: 0 }
-      this.stat.set(e.url, st)
+      const st = this.statFor(e.url)
       st.calls++
       this.inflight.set(e.url, (this.inflight.get(e.url) ?? 0) + 1)
       const t0 = Date.now()
@@ -209,7 +383,8 @@ export class RpcRing {
         st.ok++
         st.blocks += span
         st.ms += Date.now() - t0
-        return r
+        if (r.length === 0) st.empty++
+        return { ok: true, logs: r, url: e.url }
       } catch (err) {
         st.failed++
         lastErr = err
@@ -218,12 +393,80 @@ export class RpcRing {
         this.inflight.set(e.url, (this.inflight.get(e.url) ?? 1) - 1)
       }
     }
-    throw new Error(`rpc ring: no endpoint served getLogs over ${span} blocks: ${String(lastErr).slice(0, 160)}`)
+    return { ok: false, err: lastErr }
   }
-  /** getLogs over any range, split into pieces no wider than the ring can serve.
-   *  `concurrency` > 1 runs cap-sized pieces in parallel (each piece still has the
-   *  halving/cooldown fallback of the sequential path). Order of the result is by piece. */
+  private strike(url: string): void {
+    this.statFor(url).falseEmpty++
+    this.quarantine.set(url, Date.now() + this.quarantineMs)
+  }
+  /**
+   * One getLogs over [from, to] and how far its answer can be trusted. An empty answer
+   * (every answer, under verify 'all') is re-asked on an independent backend. A real log
+   * cannot be invented by an honest node, so when the two disagree the UNION is kept and
+   * each side that was missing logs is quarantined.
+   */
+  async getLogsChecked<T>(args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint }): Promise<CheckedLogs<T>> {
+    const span = Number(args.toBlock - args.fromBlock + 1n)
+    const first = await this.ask<T>(args, new Set())
+    if (!first.ok) throw new Error(`rpc ring: no endpoint served getLogs over ${span} blocks: ${String(first.err).slice(0, 160)}`)
+    const empty = first.logs.length === 0
+    if (this.verify === 'none' || (this.verify === 'empty' && !empty)) {
+      if (empty) this.totals.unverified++
+      return { logs: first.logs, check: empty ? 'unverified' : 'single', host: hostOf(first.url) }
+    }
+    this.totals.rechecked++
+    const second = await this.ask<T>(args, new Set([backendOf(first.url)]))
+    if (!second.ok) {
+      this.totals.unverified++
+      return { logs: first.logs, check: 'unverified', host: hostOf(first.url) }
+    }
+    const a = new Set(first.logs.map(keyOf))
+    const b = new Set(second.logs.map(keyOf))
+    const aShort = [...b].some((k) => !a.has(k))
+    const bShort = [...a].some((k) => !b.has(k))
+    if (!aShort && !bShort) {
+      if (empty) this.totals.confirmedEmpty++
+      return { logs: first.logs, check: 'agreed', host: hostOf(first.url) }
+    }
+    const union = new Map<string, T>()
+    for (const l of [...first.logs, ...second.logs]) if (!union.has(keyOf(l))) union.set(keyOf(l), l)
+    const contradicted: string[] = []
+    if (aShort) {
+      this.strike(first.url)
+      contradicted.push(hostOf(first.url))
+    }
+    if (bShort) {
+      this.strike(second.url)
+      contradicted.push(hostOf(second.url))
+    }
+    this.totals.recovered++
+    const kept = second.logs.length > first.logs.length ? second.url : first.url
+    return { logs: [...union.values()].sort(byPosition), check: 'recovered', host: hostOf(kept), contradicted }
+  }
+  /** One getLogs over [from, to], rotated across every endpoint that can serve it. Throws
+   *  RingEmptyUnconfirmedError for an empty answer nobody independent could check. */
+  async getLogs<T>(args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint }): Promise<T[]> {
+    const r = await this.getLogsChecked<T>(args)
+    if (r.check === 'unverified' && r.logs.length === 0 && this.verify !== 'none') {
+      throw new RingEmptyUnconfirmedError(args.fromBlock, args.toBlock, r.host)
+    }
+    return r.logs
+  }
+  /** getLogs over any range, split into pieces no wider than the ring can serve. Throws
+   *  RingCoverageError if any piece stayed unverified — use getLogsWideChecked to keep
+   *  the logs and read the coverage instead. */
   async getLogsWide<T>(args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint }, concurrency = 1): Promise<T[]> {
+    const { logs, coverage } = await this.getLogsWideChecked<T>(args, concurrency)
+    if (coverage.confidence === 'unverified' && this.verify !== 'none') throw new RingCoverageError(coverage)
+    return logs
+  }
+  /** getLogsWide plus what the scan can vouch for. `concurrency` > 1 runs cap-sized
+   *  pieces in parallel (each piece still has the halving/cooldown fallback of the
+   *  sequential path). Order of the result is by piece. */
+  async getLogsWideChecked<T>(
+    args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint },
+    concurrency = 1,
+  ): Promise<{ logs: T[]; coverage: LogCoverage }> {
     // A range past the chain head is an invalid-params error on every endpoint (Ankr:
     // "block range extends beyond current head block"), and the halving fallback then
     // burns the whole ladder for nothing — an episode window that runs 72h past a
@@ -234,10 +477,29 @@ export class RpcRing {
         this.headSeen = Date.now()
       }
     }
-    if (this.headAt !== null && args.toBlock > this.headAt) {
-      if (args.fromBlock > this.headAt) return []
-      args = { ...args, toBlock: this.headAt }
+    const cov: LogCoverage = {
+      fromBlock: args.fromBlock,
+      toBlock: args.toBlock,
+      pieces: 0,
+      confirmedEmpty: 0,
+      recovered: [],
+      unverified: [],
+      confidence: 'verified',
     }
+    if (this.headAt !== null && args.toBlock > this.headAt) {
+      if (args.fromBlock > this.headAt) return { logs: [], coverage: cov }
+      args = { ...args, toBlock: this.headAt }
+      cov.toBlock = this.headAt
+    }
+    const logs = await this.wide<T>(args, concurrency, cov)
+    cov.confidence = cov.unverified.length ? 'unverified' : 'verified'
+    return { logs, coverage: cov }
+  }
+  private async wide<T>(
+    args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint },
+    concurrency: number,
+    cov: LogCoverage,
+  ): Promise<T[]> {
     if (concurrency > 1) {
       const cap = BigInt(Math.max(this.maxCap(), this.minCap))
       const pieces: { fromBlock: bigint; toBlock: bigint }[] = []
@@ -250,7 +512,7 @@ export class RpcRing {
         for (;;) {
           const i = next++
           if (i >= pieces.length) return
-          results[i] = await this.getLogsWide<T>({ ...args, ...pieces[i] })
+          results[i] = await this.wide<T>({ ...args, ...pieces[i] }, 1, cov)
         }
       }
       await Promise.all(Array.from({ length: Math.min(concurrency, pieces.length) }, worker))
@@ -260,16 +522,29 @@ export class RpcRing {
     let cursor = args.fromBlock
     // Start at the widest live cap; on a failure halve the piece (a narrower piece
     // is eligible on more endpoints) down to the smallest live cap, then wait out
-    // one cooldown and try the floor once more before giving up.
-    let span = BigInt(Math.max(this.maxCap(), this.minCap))
+    // one cooldown and try the floor once more before giving up. An unconfirmed empty
+    // takes the same ladder — narrower pieces are what a second endpoint can check —
+    // and once a piece survives, the span climbs back so one bad piece does not slow
+    // the rest of the range.
+    const start = BigInt(Math.max(this.maxCap(), this.minCap))
+    let span = start
     const floor = BigInt(this.minCap)
     let waited = false
     while (cursor <= args.toBlock) {
       const to = cursor + span - 1n < args.toBlock ? cursor + span - 1n : args.toBlock
       try {
-        out.push(...(await this.getLogs<T>({ ...args, fromBlock: cursor, toBlock: to })))
+        const r = await this.getLogsChecked<T>({ ...args, fromBlock: cursor, toBlock: to })
+        if (r.check === 'unverified' && r.logs.length === 0 && this.verify !== 'none') {
+          throw new RingEmptyUnconfirmedError(cursor, to, r.host)
+        }
+        cov.pieces++
+        if (r.check === 'agreed' && r.logs.length === 0) cov.confirmedEmpty++
+        if (r.check === 'recovered') cov.recovered.push({ fromBlock: cursor, toBlock: to, host: (r.contradicted ?? []).join('+'), logs: r.logs.length })
+        if (r.check === 'unverified') cov.unverified.push({ fromBlock: cursor, toBlock: to, host: r.host, logs: r.logs.length })
+        out.push(...r.logs)
         cursor = to + 1n
         waited = false
+        if (span < start) span = span * 2n < start ? span * 2n : start
       } catch (err) {
         if (span > floor) {
           span = span / 2n > floor ? span / 2n : floor
@@ -278,6 +553,15 @@ export class RpcRing {
         if (!waited) {
           waited = true
           await new Promise((r) => setTimeout(r, this.cooldownMs + 500))
+          continue
+        }
+        if (err instanceof RingEmptyUnconfirmedError) {
+          // Nothing independent serves this range even at the floor. Keep going, and
+          // say so: the piece is in the coverage as unverified, never as clean.
+          cov.pieces++
+          cov.unverified.push({ fromBlock: cursor, toBlock: to, host: err.host, logs: 0 })
+          cursor = to + 1n
+          waited = false
           continue
         }
         throw err
@@ -290,28 +574,36 @@ export class RpcRing {
    * for us so I know what I want to actually pay for"). Hosts only — never keys.
    */
   stats(): RingStat[] {
+    const now = Date.now()
     return [...this.stat.entries()]
       .map(([url, s]) => ({
-        host: new URL(url).host,
+        host: hostOf(url),
         calls: s.calls,
         ok: s.ok,
         failed: s.failed,
+        empty: s.empty,
+        falseEmpty: s.falseEmpty,
+        quarantined: (this.quarantine.get(url) ?? 0) > now,
         blocks: s.blocks,
         avgMs: s.ok ? Math.round(s.ms / s.ok) : 0,
       }))
       .sort((a, b) => b.blocks - a.blocks)
   }
+  /** Run totals of the empty-answer cross-check. */
+  checks(): RingChecks {
+    return { ...this.totals }
+  }
   /** Append this run's stats to public/data/rpc-ring-stats.json (hosts only). */
   saveStats(runLabel: string): void {
     const path = join(process.cwd(), 'public', 'data', 'rpc-ring-stats.json')
-    let prev: { runs: { run: string; at: string; stats: RingStat[] }[] } = { runs: [] }
+    let prev: { runs: { run: string; at: string; stats: RingStat[]; checks?: RingChecks }[] } = { runs: [] }
     try {
       prev = JSON.parse(readFileSync(path, 'utf8'))
     } catch {
       /* first run */
     }
     const runs = prev.runs.filter((r) => r.run !== runLabel)
-    runs.push({ run: runLabel, at: new Date().toISOString(), stats: this.stats() })
+    runs.push({ run: runLabel, at: new Date().toISOString(), stats: this.stats(), checks: this.checks() })
     writeFileSync(path, JSON.stringify({ runs }, null, 2) + '\n')
   }
   /** A plain viem client over the live endpoints for every non-getLogs call. */
@@ -319,7 +611,7 @@ export class RpcRing {
     const live = this.table.entries.filter((e) => e.alive)
     return createPublicClient({
       chain: mainnet,
-      transport: fallback(live.map((e) => http(e.url, { timeout: 20_000, retryCount: 1 })), { rank: false, retryCount: 1 }),
+      transport: fallback(live.map((e) => this.transportFor(e.url, { timeout: 20_000, retryCount: 1 })), { rank: false, retryCount: 1 }),
     }) as PublicClient
   }
 }

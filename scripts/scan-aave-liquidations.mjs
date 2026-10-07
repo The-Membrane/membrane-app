@@ -336,6 +336,10 @@ async function phaseLogs() {
     cursor = to + 1n
     await setCursor('logs', cursor.toString())
     chunks += 1
+    // Which endpoint served which chunk, and how many empties the ring had to re-ask
+    // (lib/position-sim/rpcRing.ts, 2026-10-07). Without this an audit of the log phase
+    // cannot tell whether a false-empty endpoint ever carried a chunk.
+    if (chunks % 100 === 0) ring.saveStats('aave-logs')
     // Climb back toward the configured chunk once a narrowed span is surviving.
     if (span < CHUNK && chunks % 20 === 0) span = bigMin(span * 2n, CHUNK)
     if (chunks % 100 === 0) {
@@ -354,6 +358,7 @@ async function phaseLogs() {
   }
 
   if (cursor > head) await setCursor('logs_done', '1')
+  ring.saveStats('aave-logs')
   log(`phase logs complete to ${cursor - 1n} — ${events} events inserted this run`)
   await writeSummary(true)
 }
@@ -695,7 +700,7 @@ async function phaseEpisodes() {
       currentParamFallbacks = nextCurrentParamFallbacks
       ring.saveStats('aave-episodes')
       T.db += Date.now() - tI; T.n.db++
-      console.log('rpc ring:', ring.stats().map((s) => `${s.host} ${s.ok}/${s.calls} ${(s.blocks / 1000).toFixed(0)}k blk ${s.avgMs}ms`).join(' · '),
+      console.log('rpc ring:', ring.stats().map((s) => `${s.host} ${s.ok}/${s.calls}${s.falseEmpty ? ` FALSE-EMPTY x${s.falseEmpty}` : ''} ${(s.blocks / 1000).toFixed(0)}k blk ${s.avgMs}ms`).join(' · '),
         `| t line ${(T.line / 1000).toFixed(1)}s/${T.n.line} rounds ${(T.rounds / 1000).toFixed(1)}s/${T.n.rounds} wrap ${(T.wrap / 1000).toFixed(1)}s/${T.n.wrap} replay ${(T.replay / 1000).toFixed(1)}s/${T.n.replay} db ${(T.db / 1000).toFixed(1)}s/${T.n.db} total ${((Date.now() - started) / 1000).toFixed(0)}s`)
       accounts += 1
       episodes += eps.length

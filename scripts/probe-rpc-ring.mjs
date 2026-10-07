@@ -17,5 +17,5 @@ const extra = [...new Set([...keyed, ...historyRpcUrls()])]
 const { probeRing, saveRing } = await import('../lib/position-sim/rpcRing.ts')
 const t = await probeRing(undefined, extra)
 saveRing(t)
-for (const e of t.entries) console.log(String(e.cap).padStart(6), String(e.ms).padStart(6) + 'ms', e.alive ? '     ' : ' dead', keyed.includes(e.url) ? `env:${new URL(e.url).host}` : e.url)
+for (const e of t.entries) console.log(String(e.cap).padStart(6), String(e.ms).padStart(6) + 'ms', e.alive ? '     ' : ' dead', keyed.includes(e.url) ? `env:${new URL(e.url).host}` : e.url, e.emptyAnswers ? `(answered [] ${e.emptyAnswers}x over a range that holds a log)` : '')
 console.log(`saved public/data/rpc-ring.json — ${t.entries.filter((e) => e.cap > 0).length} endpoints serve getLogs`)

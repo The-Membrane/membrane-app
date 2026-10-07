@@ -10,6 +10,8 @@
  *   npx tsx scripts/audit-ring-gaps.mjs --mode=aave    # every Aave V3 LiquidationCall vs
  *                                                      # public/data/liquidation-corpus.json
  *   --concurrency=3  --out=<file>  --verify=empty|all
+ *   --db   (aave) diff per 10k-block bucket against the Neon aave_liquidations table and
+ *          list every on-chain event the table lacks. Needs .env.local. SELECT only.
  *
  * feeds: AnswerUpdated round ids are consecutive per aggregator, so a hole is visible
  *   without any reference endpoint: an interior jump in round id is a missing stretch.
@@ -155,6 +157,50 @@ if (MODE === 'aave') {
   const perYear = {}
   for (const l of events) perYear[yearOf(l.blockNumber)] = (perYear[yearOf(l.blockNumber)] ?? 0) + 1
   const accounts = new Set(events.map((l) => l.args.user.toLowerCase())).size
+  // Per 10k-block bucket, aligned to the corpus's first block, so a reader with the
+  // Neon table can diff bucket by bucket (and --db does it here).
+  const BUCKET = 10_000n
+  const bucketOf = (b) => Number((BigInt(b) - from) / BUCKET)
+  const buckets = new Map()
+  for (const l of events) buckets.set(bucketOf(l.blockNumber), (buckets.get(bucketOf(l.blockNumber)) ?? 0) + 1)
+  let dbDiff = null
+  if (argv.includes('--db')) {
+    // READ-ONLY: two SELECTs against aave_liquidations. Nothing is written.
+    const { readEnv } = await import('./lib/venue-reads.mjs')
+    const { get } = readEnv()
+    const dbUrl = get('DATABASE_URL_UNPOOLED') || get('DATABASE_URL')
+    if (!dbUrl) throw new Error('--db: no DATABASE_URL_UNPOOLED / DATABASE_URL in .env.local')
+    const { neon } = await import('@neondatabase/serverless')
+    const sql = neon(dbUrl)
+    const rows = await sql`SELECT ((block - ${String(from)}::bigint) / 10000)::int AS b, count(*)::int AS n
+                           FROM aave_liquidations WHERE block BETWEEN ${String(from)}::bigint AND ${String(to)}::bigint GROUP BY 1`
+    const inDb = new Map(rows.map((r) => [r.b, r.n]))
+    const short = [...new Set([...buckets.keys(), ...inDb.keys()])]
+      .map((b) => ({ b, rescan: buckets.get(b) ?? 0, db: inDb.get(b) ?? 0 }))
+      .filter((x) => x.rescan !== x.db)
+      .sort((x, y) => x.b - y.b)
+    const missing = []
+    for (const s of short.filter((x) => x.rescan > x.db)) {
+      const lo = from + BigInt(s.b) * BUCKET
+      const have = new Set(
+        (await sql`SELECT tx_hash, log_index FROM aave_liquidations WHERE block BETWEEN ${String(lo)}::bigint AND ${String(lo + BUCKET - 1n)}::bigint`).map(
+          (r) => `${r.tx_hash.toLowerCase()}:${r.log_index}`,
+        ),
+      )
+      for (const l of events) {
+        if (bucketOf(l.blockNumber) !== s.b) continue
+        if (!have.has(`${l.transactionHash.toLowerCase()}:${Number(l.logIndex)}`)) {
+          missing.push({ block: String(l.blockNumber), tx: l.transactionHash, logIndex: Number(l.logIndex), user: l.args.user })
+        }
+      }
+    }
+    dbDiff = {
+      buckets: short.map((x) => ({ fromBlock: String(from + BigInt(x.b) * BUCKET), toBlock: String(from + BigInt(x.b + 1) * BUCKET - 1n), rescan: x.rescan, db: x.db })),
+      missingEvents: missing.length,
+      missing,
+    }
+    console.log(`db diff: ${short.length} bucket(s) differ, ${missing.length} event(s) on chain but not in aave_liquidations`)
+  }
   report.aave = {
     range: [String(from), String(to)],
     rescan: { events: events.length, accounts, perYear },
@@ -167,8 +213,12 @@ if (MODE === 'aave') {
     coverage: { pieces: cov.pieces, confirmedEmpty: cov.confirmedEmpty, recovered: cov.recovered.map((r) => ({ ...r, fromBlock: String(r.fromBlock), toBlock: String(r.toBlock) })), unverified: cov.unverified.map((r) => ({ ...r, fromBlock: String(r.fromBlock), toBlock: String(r.toBlock) })) },
     stats: ring.stats(),
     checks: ring.checks(),
+    dbDiff,
+    bucketBlocks: Number(BUCKET),
+    buckets: Object.fromEntries([...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([b, n]) => [String(from + BigInt(b) * BUCKET), n])),
   }
-  console.log(JSON.stringify(report.aave, null, 2))
+  const { buckets: _omit, ...shown } = report.aave
+  console.log(JSON.stringify({ ...shown, dbDiff: dbDiff && { buckets: dbDiff.buckets, missingEvents: dbDiff.missingEvents } }, null, 2))
 }
 
 if (OUT) writeFileSync(OUT, JSON.stringify(report, (_k, v) => (typeof v === 'bigint' ? String(v) : v), 2) + '\n')

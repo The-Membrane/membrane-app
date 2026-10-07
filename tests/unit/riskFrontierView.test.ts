@@ -6,6 +6,7 @@ import {
   DEFAULT_INPUTS,
   LOADOUTS,
   TIME_KNOTS,
+  TREE_FLOOR_MISSING,
   buildStressPosition,
   computeFrontier,
   crashLevel,
@@ -14,17 +15,23 @@ import {
   edgeView,
   laneTimeline,
   leafView,
+  multText,
   pct,
   resolveSelection,
   swatchText,
   timeX,
+  treeLanes,
   usdShort,
+  type CapacityChoice,
   type FrontierModel,
+  type SandboxInputs,
 } from '@/components/RiskFrontier/viewModel'
+import { DEFAULT_VENUE_REFERENCE } from '@/lib/position-sim/frontier'
 import { MEMBRANE_CLASS_PARAMS } from '@/lib/position-sim/membrane'
 import {
   EXIT_CAPACITY_DEFAULT_PRESET,
   EXIT_CAPACITY_PRESETS,
+  EXIT_CAPACITY_PRESET_ORDER,
   STRESS_CODE_VERSION,
   STRESS_LABEL,
   oct10ReplayShape,
@@ -37,6 +44,17 @@ const series = JSON.parse(
   readFileSync(path.resolve(__dirname, '../../public/data/oct10-2025/prices-1m.json'), 'utf8'),
 ) as Oct10Series
 const replay = oct10ReplayShape(series, 'WETH')
+
+/**
+ * UPDATED 2026-10-07 (owner ruling: the default exit is cash vs book, Aave USDC typical at a
+ * $50M book — ×1, its idle cash covered the whole book). The mechanics pins below were
+ * derived on a PARTIAL stock (×0.1119 of $14,200 = $1,589), so they now name that level
+ * explicitly: the everyone-exits floor of the same venue's typical event.
+ */
+const FLOOR_INPUTS: SandboxInputs = {
+  ...DEFAULT_INPUTS,
+  capacity: { kind: 'preset', preset: 'aave-usdc-floor-typical' },
+}
 
 /** Every user-visible string the view model hands the screen for one model. */
 function visibleStrings(m: FrontierModel): string[] {
@@ -106,19 +124,32 @@ describe('risk frontier view model — sandbox inputs', () => {
   })
 
   it('passes a preset through, and a custom multiplier as a multiple of the deployed amount', () => {
-    // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
-    // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): the default preset
-    // passes through as an id and resolves to deployed × its measured mult.
+    // UPDATED 2026-10-07 (owner ruling: the headline is cash vs book; the default is typical
+    // Aave USDC stress at a $50M book, was the pro-rata ×0.1119 — now the floor): the default
+    // preset passes through as an id and resolves to deployed × its measured mult — ×1, the
+    // venue's idle cash covered the whole book, and the label says so.
     const preset = buildStressPosition(DEFAULT_INPUTS)
-    expect(preset.position.exitCapacityPreset).toBe('aave-usdc-typical')
-    expect(preset.exitCapacityUsd).toBeCloseTo(DEFAULT_INPUTS.deployedUsd * 0.1119, 9)
-    expect(preset.capacityLabel).toBe('Aave USDC · typical')
+    expect(preset.position.exitCapacityPreset).toBe('aave-usdc-50m-typical')
+    expect(preset.exitCapacityUsd).toBeCloseTo(DEFAULT_INPUTS.deployedUsd * 1, 9)
+    expect(preset.capacityLabel).toBe('Aave USDC · $50M book · typical · ×1, cash covers the book')
     expect(preset.capacityLockHours).toBe(0)
+    const floor = buildStressPosition({
+      ...DEFAULT_INPUTS,
+      capacity: { kind: 'preset', preset: 'aave-usdc-floor-typical' },
+    })
+    expect(floor.exitCapacityUsd).toBeCloseTo(DEFAULT_INPUTS.deployedUsd * 0.1119, 9)
+    expect(floor.capacityLabel).toBe('Aave USDC · floor (everyone exits) · typical')
     const kelp = buildStressPosition({
       ...DEFAULT_INPUTS,
-      capacity: { kind: 'preset', preset: 'aave-usdc-worst' },
+      capacity: { kind: 'preset', preset: 'aave-usdc-floor-worst' },
     })
     expect(kelp.capacityLockHours).toBe(45)
+    // The same Kelp event against a $50M book: idle cash under 1% of the book for 16 h.
+    const kelpBook = buildStressPosition({
+      ...DEFAULT_INPUTS,
+      capacity: { kind: 'preset', preset: 'aave-usdc-50m-worst' },
+    })
+    expect(kelpBook.capacityLockHours).toBe(16)
     const custom = buildStressPosition({
       ...DEFAULT_INPUTS,
       capacity: { kind: 'custom', mult: 0.3 },
@@ -140,7 +171,8 @@ describe('risk frontier view model — sandbox inputs', () => {
 
   it('never defaults to the optimistic exit (owner ruling 2026-10-04)', () => {
     expect(DEFAULT_INPUTS.capacity).not.toEqual({ kind: 'preset', preset: 'optimistic' })
-    // Owner instruction 2026-10-06: typical Aave capacity during stress.
+    // Owner ruling 2026-10-07: typical Aave USDC stress against a $50M book.
+    expect(EXIT_CAPACITY_DEFAULT_PRESET).toBe('aave-usdc-50m-typical')
     expect(DEFAULT_INPUTS.capacity).toEqual({
       kind: 'preset',
       preset: EXIT_CAPACITY_DEFAULT_PRESET,
@@ -148,7 +180,36 @@ describe('risk frontier view model — sandbox inputs', () => {
     for (const l of LOADOUTS) {
       if (l.inputs.capacity.kind === 'preset') {
         expect(EXIT_CAPACITY_PRESETS[l.inputs.capacity.preset], l.id).toBeDefined()
+        expect(l.inputs.capacity.preset, l.id).not.toBe('optimistic')
       }
+    }
+    // The 'Small loan' quick start silently ran at the ×1 upper bound (review 2026-10-07).
+    expect(LOADOUTS.find((l) => l.id === 'small')!.inputs.capacity).toEqual({
+      kind: 'preset',
+      preset: EXIT_CAPACITY_DEFAULT_PRESET,
+    })
+  })
+
+  // Review 2026-10-07: no quick start or default may resolve to ×1 unless its label says ×1.
+  it('no quick start or default resolves to ×1 unless it is labelled ×1', () => {
+    const resolved = [
+      { id: 'DEFAULT_INPUTS', inputs: DEFAULT_INPUTS },
+      ...LOADOUTS.map((l) => ({ id: l.id, inputs: l.inputs })),
+    ]
+    let ones = 0
+    for (const { id, inputs } of resolved) {
+      const sb = buildStressPosition(inputs)
+      if (sb.capacityMult === null) continue // levered long: no venue
+      if (sb.capacityMult >= 1) {
+        ones++
+        expect(sb.capacityLabel, id).toMatch(/×1\b/)
+      }
+    }
+    // The default resolves to a measured ×1 today, so the rule is exercised, not vacuous.
+    expect(ones).toBeGreaterThan(0)
+    // Every preset that resolves to ×1 is labelled so; no other label claims ×1.
+    for (const x of Object.values(EXIT_CAPACITY_PRESETS)) {
+      expect(/×1\b/.test(x.label), x.id).toBe(x.mult >= 1)
     }
   })
 })
@@ -198,7 +259,7 @@ describe('risk frontier view model — edges and leaves', () => {
 
   it('gives every outcome its own glyph', () => {
     const glyphs = new Set<string>()
-    const pos = buildStressPosition(DEFAULT_INPUTS).position
+    const pos = buildStressPosition(FLOOR_INPUTS).position
     // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
     // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): the recall cure is
     // reached at −20% (needs $1,128 of the $1,589 stock), no longer at −25%.
@@ -219,7 +280,7 @@ describe('risk frontier view model — edges and leaves', () => {
 
 describe('risk frontier view model — swatch cells', () => {
   it('gives each outcome a compact line that carries its number', () => {
-    const pos = buildStressPosition(DEFAULT_INPUTS).position
+    const pos = buildStressPosition(FLOOR_INPUTS).position
     const flat = runStress(pos, { price: { kind: 'step', drop: 0 } })
     // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
     // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): recall cures at −20%.
@@ -280,13 +341,13 @@ describe('risk frontier view model — tree timeline', () => {
       'step10',
       'step25',
       'freeze8',
-      'cap01',
+      'capFloor',
       'wick25',
       'oct10',
     ])
     expect(m.tree.filter((l) => l.parent === 'step25').map((l) => l.id)).toEqual([
       'freeze8',
-      'cap01',
+      'capFloor',
     ])
     const oct = m.tree.find((l) => l.id === 'oct10')!
     expect(oct.result).toBeNull()
@@ -311,9 +372,66 @@ describe('risk frontier view model — tree timeline', () => {
     expect(oct.sub).toContain('sensitivity test')
   })
 
+  it("the everyone-exits lane runs the chosen venue's OWN floor, not a cut of the chosen level", () => {
+    // Review 2026-10-07: the lane applied the default's floor ÷ default cut (×0.1119) on top of
+    // whatever capacity was chosen, so it was "everyone exits" only at the default preset.
+    const lane = (capacity: CapacityChoice) =>
+      computeFrontier({ ...DEFAULT_INPUTS, capacity }, null).tree.find((l) => l.id === 'capFloor')!
+    const strip = (r: StressResult | null) => ({ ...r!, cellKey: '', scenarioId: '' })
+    const cases = [
+      ['aave-usdc-50m-worst', 'aave-usdc-floor-worst'], // was ×0.0000112 behind its 16 h lock
+      ['steakhouse-usdc-50m-typical', 'steakhouse-usdc-floor-typical'], // was ×0.0336
+      ['aave-usdc-floor-typical', 'aave-usdc-floor-typical'], // was ×0.0125, the floor of the floor
+      ['spark-usds-250m-bad', 'spark-usds-floor-bad'],
+      [EXIT_CAPACITY_DEFAULT_PRESET, 'aave-usdc-floor-typical'],
+    ] as const
+    for (const [chosen, floorId] of cases) {
+      const l = lane({ kind: 'preset', preset: chosen })
+      const floor = EXIT_CAPACITY_PRESETS[floorId]
+      expect(l.label, chosen).toBe(`Exit ×${multText(floor.mult)}`)
+      expect(l.sub, chosen).toContain(`${floor.source!.venueName} everyone exits`)
+      if (floor.freezeHours > 0) expect(l.sub, chosen).toContain(`${floor.freezeHours}h lock`)
+      // The same walk as a position that chose that floor itself.
+      const own = buildStressPosition({
+        ...DEFAULT_INPUTS,
+        capacity: { kind: 'preset', preset: floorId },
+      })
+      const direct = runStress(own.position, { price: DEFAULT_VENUE_REFERENCE })
+      expect(strip(l.result), chosen).toEqual(strip(direct))
+    }
+    expect(lane(DEFAULT_INPUTS.capacity).label).toBe('Exit ×0.1119')
+    // Every measured level: the lane's stock is deployed × its own venue's floor at its level.
+    for (const id of EXIT_CAPACITY_PRESET_ORDER) {
+      const src = EXIT_CAPACITY_PRESETS[id].source
+      if (!src) continue
+      const floor = EXIT_CAPACITY_PRESETS[`${src.slug}-floor-${src.level}`]
+      const capacity: CapacityChoice = { kind: 'preset', preset: id }
+      const sb = buildStressPosition({ ...DEFAULT_INPUTS, capacity })
+      const def = treeLanes(capacity, null).find((l) => l.id === 'capFloor')!
+      const r = runStress(sb.position, def.scenario!)
+      expect(r.outcome === 'not_modelled' ? null : r.recallAvailableUsd, id).toBeCloseTo(
+        sb.deployedUsd * floor.mult,
+        1,
+      )
+      expect(def.label, id).toBe(`Exit ×${multText(floor.mult)}`)
+    }
+    // A bound or a custom multiple names no venue: the lane is missing, never a multiplier.
+    for (const c of [
+      { kind: 'preset', preset: 'frozen' },
+      { kind: 'preset', preset: 'optimistic' },
+      { kind: 'custom', mult: 0.3 },
+    ] as CapacityChoice[]) {
+      const l = lane(c)
+      expect(l.scenario).toBeNull()
+      expect(l.result).toBeNull()
+      expect([l.leaf.glyph, l.leaf.short]).toEqual(['░', TREE_FLOOR_MISSING])
+      expect(l.label).not.toMatch(/×/)
+    }
+  })
+
   it('shows levered-long venue rows as not modelled, with the reason', () => {
     const m = computeFrontier({ ...DEFAULT_INPUTS, tradeShape: 'levered_long' }, null)
-    for (const id of ['freeze8', 'cap01']) {
+    for (const id of ['freeze8', 'capFloor']) {
       const lane = m.tree.find((l) => l.id === id)!
       expect(lane.leaf.glyph).toBe('░')
       expect(lane.leaf.short).toBe('levered long: no venue recall')
@@ -324,11 +442,15 @@ describe('risk frontier view model — tree timeline', () => {
 
 describe('risk frontier view model — headline, crash test, selection', () => {
   it('names the nearest price edge without folding in venue axes', () => {
-    const m = computeFrontier(DEFAULT_INPUTS, null)
+    const m = computeFrontier(FLOOR_INPUTS, null)
     // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
     // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): the $1,589 stock
     // cures drops to ~21.2% (was 35% with $7,100).
     expect(m.headline.lead).toBe('A held drop past 21% arms the 8h window.')
+    // UPDATED 2026-10-07: the default (cash vs book, $50M, ×1) recalls the whole $14,200.
+    expect(computeFrontier(DEFAULT_INPUTS, null).headline.lead).toBe(
+      'A held drop past 54% arms the 8h window.',
+    )
     expect(m.headline.detail).toContain('Modelled recall, not a guarantee.')
     const nd = computeFrontier(LOADOUTS.find((l) => l.id === 'no-delay')!.inputs, null)
     expect(nd.headline.lead).toContain('no window in this class')
@@ -341,12 +463,12 @@ describe('risk frontier view model — headline, crash test, selection', () => {
     // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
     // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): at $39,500 the
     // $1,660 the recall needs is over the $1,589 stock, so the case moves to $39,400 ($1,560).
-    const m = computeFrontier({ ...DEFAULT_INPUTS, debtUsd: 39_400 }, null)
+    const m = computeFrontier({ ...FLOOR_INPUTS, debtUsd: 39_400 }, null)
     expect(m.dtd.price.breach.status).toBe('already')
     expect(m.headline.detail).toMatch(
       /^Already over the line: start LTV 89\.5% vs line 86%, so recall fires at once\./,
     )
-    const short = computeFrontier({ ...DEFAULT_INPUTS, debtUsd: 39_500 }, null)
+    const short = computeFrontier({ ...FLOOR_INPUTS, debtUsd: 39_500 }, null)
     expect(short.dtd.price.breach.status).toBe('already')
     expect(short.headline.detail).toMatch(
       /^Recall would need \$1,660; the chosen exit capacity holds \$1,589\./,
@@ -357,7 +479,7 @@ describe('risk frontier view model — headline, crash test, selection', () => {
   })
 
   it('crash verdicts come from the user’s own node at that drop', () => {
-    const m = computeFrontier(DEFAULT_INPUTS, null)
+    const m = computeFrontier(FLOOR_INPUTS, null)
     expect(m.crash.map((c) => c.title)).toEqual(['−50%', '−60%'])
     for (const c of m.crash) {
       expect(c.verdict).toBe(
@@ -374,8 +496,8 @@ describe('risk frontier view model — headline, crash test, selection', () => {
     expect(m.crash[0].limit.text).toBe('45%')
     expect(m.crash[0].verdict).toBe('sold')
     // UPDATED 2026-10-04 (owner ruling 1, the debt floor on what a call actually repays):
-    // was every level 'cleared'. The small loan ($3k debt, $2.5k deployed, optimistic)
-    // breaches at both drops; the ask is the whole loan and the venue's $2,500 would leave
+    // was every level 'cleared'. The small loan ($3k debt, $2.5k deployed; UPDATED 2026-10-07:
+    // at the default cash-vs-book level, ×1 — was the silent 'optimistic' ×1) breaches at both drops; the ask is the whole loan and the venue's $2,500 would leave
     // $500 — under the $2,000 floor — so the call repays all and sells the $500.
     const small = computeFrontier(LOADOUTS.find((l) => l.id === 'small')!.inputs, null)
     for (const c of small.crash) {
@@ -390,11 +512,11 @@ describe('risk frontier view model — headline, crash test, selection', () => {
     // engine as a fixed $11,400, which the reverse solve held in dollars while it rescaled
     // the debt: at −60% the limit read 60% (custom ×0.50) vs 49% ('stressed', ×0.5), and at
     // −50% 68% vs 61% — the custom answer optimistic exactly where the crash test matters.
-    // UPDATED 2026-10-06: the preset is the measured 'aave-usdc-typical' (×0.1119), was the
+    // UPDATED 2026-10-06: the preset is the measured 'aave-usdc-floor-typical' (×0.1119), was the
     // named 'stressed' (×0.5, where the limits read 61% / 49%).
     const base = { ...DEFAULT_INPUTS, debtUsd: 38_000, deployedUsd: 22_800 }
     const preset = computeFrontier(
-      { ...base, capacity: { kind: 'preset', preset: 'aave-usdc-typical' } },
+      { ...base, capacity: { kind: 'preset', preset: 'aave-usdc-floor-typical' } },
       null,
     )
     const custom = computeFrontier({ ...base, capacity: { kind: 'custom', mult: 0.1119 } }, null)
@@ -438,14 +560,30 @@ describe('risk frontier view model — headline, crash test, selection', () => {
 
   it('resolves a selection against the current model', () => {
     const m = computeFrontier(DEFAULT_INPUTS, null)
-    const lane = resolveSelection(m, { kind: 'lane', id: 'cap01' })
-    expect(lane.result?.cellKey).toBe(m.tree.find((l) => l.id === 'cap01')!.result?.cellKey)
+    const lane = resolveSelection(m, { kind: 'lane', id: 'capFloor' })
+    expect(lane.result?.cellKey).toBe(m.tree.find((l) => l.id === 'capFloor')!.result?.cellKey)
     const edge = resolveSelection(m, { kind: 'edge', axis: 'price', edge: 'sale' })
     expect(edge.result?.outcome).toBe('sold')
     const cell = resolveSelection(m, { kind: 'swatch', row: 1, col: 2 })
     expect(cell.result?.cellKey).toBe(m.swatch.rows[1].cells[2].result.cellKey)
     const none = resolveSelection(m, { kind: 'edge', axis: 'capacity', edge: 'breach' })
     expect(none.result).toBeNull()
+  })
+
+  it('keeps the copy rules in every exit-capacity label and provenance the picker shows', () => {
+    // Review 2026-10-07: 'Idle cash $0 …' (spark-dai-50m-bad) and a mid-sentence 'Under 0.01%'.
+    for (const id of EXIT_CAPACITY_PRESET_ORDER) {
+      const x = EXIT_CAPACITY_PRESETS[id]
+      for (const text of [x.label, x.provenance]) {
+        expect(text, id).not.toMatch(/(^|[^\d.])0(\.0+)?%/) // no bare 0%
+        expect(text, id).not.toMatch(/\$0(?![\d,.])/) // no bare $0
+        expect(text, id).not.toMatch(/[a-z0-9,;:] Under\b/) // no capital mid-sentence
+        expect(text, id).not.toMatch(/\bfree\b|interest-free/i)
+      }
+    }
+    expect(EXIT_CAPACITY_PRESETS['spark-dai-50m-bad'].provenance).toContain(
+      'Idle cash under $1 across the 8 h window covers under 0.01% of the $50M book',
+    )
   })
 
   it('keeps the copy rules on every loadout', () => {

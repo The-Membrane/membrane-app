@@ -649,12 +649,12 @@ describe('rule 7 — withMeasuredCapacity', () => {
 
   it('sets exitCapacityUsd and removes the preset and the multiplier, without mutating', () => {
     // UPDATED 2026-10-06: 'stressed' (×0.5, named) is gone; any preset id serves here.
-    const input = carryPos({ exitCapacityPreset: 'aave-usdc-typical', exitCapacityMult: 0.3 })
+    const input = carryPos({ exitCapacityPreset: 'aave-usdc-floor-typical', exitCapacityMult: 0.3 })
     const out = withMeasuredCapacity(input, m)
     expect(out.exitCapacityUsd).toBe(12_000)
     expect('exitCapacityPreset' in out).toBe(false)
     expect('exitCapacityMult' in out).toBe(false)
-    expect(input.exitCapacityPreset).toBe('aave-usdc-typical')
+    expect(input.exitCapacityPreset).toBe('aave-usdc-floor-typical')
     expect(input.exitCapacityMult).toBe(0.3)
   })
 
@@ -796,7 +796,7 @@ describe('integration with the stress engine', () => {
       const m = measured(measuredExitCapacity(s, opts({ measure })))
       // UPDATED 2026-10-06: a LOCKED measured preset (Kelp, 45 h) — the measured USD figure
       // must drop its lock too, or the two runs below would differ.
-      const p = carryPos({ exitCapacityPreset: 'aave-usdc-worst' })
+      const p = carryPos({ exitCapacityPreset: 'aave-usdc-floor-worst' })
       const manual: StressPosition = { ...p, exitCapacityUsd: m.exitCapacityUsd }
       delete manual.exitCapacityPreset
       for (const sc of stressGridScenarios('carry')) {

@@ -11,15 +11,20 @@
  * windows derived from its series (`utilWindowsFromSeries`, the builder's rule).
  * `--out` writes the table without the per-event member rows. `--emit-presets` rewrites the
  * generated rows of lib/position-sim/exitCapacityAnalogs.ts (the stress engine's measured
- * exit-capacity presets; basis 'held' only) — run prettier on it afterwards.
+ * exit-capacity presets; basis 'held' only): the cash-vs-book HEADLINE rows at every book of
+ * EXIT_CAPACITY_BOOKS (`cashVsBookAnalogs` → `exitCapacityBookRows`) and the pro-rata FLOOR
+ * rows (`exitCapacityAnalogRows`) — run prettier on it afterwards.
  */
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { indexAt, primaryGrid, type PriceHistoryFile } from '../../lib/position-sim/drawdowns'
+import { EXIT_CAPACITY_BOOKS } from '../../lib/position-sim/exitCapacityAnalogs'
 import {
   VENUE_ANALOG_DEFAULT_BASIS,
+  cashVsBookAnalogs,
   exitCapacityAnalogRows,
+  exitCapacityBookRows,
   VENUE_DEFAULT_STRESS_UTIL,
   stressWindowsFromEpisodes,
   utilWindowsFromSeries,
@@ -89,6 +94,29 @@ for (const r of table.rows) {
     )
   }
 }
+const books = cashVsBookAnalogs(
+  series,
+  windows,
+  EXIT_CAPACITY_BOOKS.map((b) => b.usd),
+  { priceUsd },
+)
+console.log(`\ncash vs book (headline) · m = min(1, held idle cash / book) over the 8 h window`)
+for (const r of books.rows) {
+  if (!r.presets) {
+    console.log(`${r.name.padEnd(16)} ${usd(r.bookUsd)} n=0`)
+    continue
+  }
+  console.log(
+    `${r.name} · ${usd(r.bookUsd)} book · n=${r.n}` +
+      Object.values(r.presets)
+        .map(
+          (p) =>
+            `  ${p.id.split('-')[0]} m=${pct(p.m)} lock=${hrs(p.lockH)}${p.lockCensored ? '+' : ''}h cash8=${usd(p.cashUsd8h)} ← ${p.source.name}`,
+        )
+        .join(''),
+  )
+}
+
 console.log(
   `\nbounds: frozen f=${table.bounds.frozen.f} (${table.bounds.frozen.kind}); ` +
     `optimistic f=${table.bounds.optimistic.f} (${table.bounds.optimistic.kind}, default ${table.bounds.optimistic.isDefault})`,
@@ -125,7 +153,8 @@ if (out) {
 }
 
 if (process.argv.includes('--emit-presets')) {
-  const rows = exitCapacityAnalogRows(table)
+  const floor = exitCapacityAnalogRows(table)
+  const book = exitCapacityBookRows(books)
   const file = path.join(ROOT, 'lib/position-sim/exitCapacityAnalogs.ts')
   const src = fs.readFileSync(file, 'utf8')
   const open = '// <generated:exit-capacity-analogs>\n'
@@ -140,7 +169,13 @@ if (process.argv.includes('--emit-presets')) {
     `/** The venue stress history the rows were measured on runs through this hour (UTC). */\n` +
     `export const EXIT_CAPACITY_ANALOG_DATA_THROUGH = '${through}Z'\n\n` +
     `/** ${windows.length} stress windows (named, ETH −10%/24 h drops, utilisation ≥ the venue's stress level). */\n` +
-    `export const EXIT_CAPACITY_ANALOG_ROWS: readonly ExitCapacityAnalogRow[] = ${JSON.stringify(rows, null, 2)}\n`
+    `export const EXIT_CAPACITY_ANALOG_WINDOW_COUNT = ${windows.length}\n\n` +
+    `/** The HEADLINE: cash vs book, m = min(1, held idle cash / book), per venue × book × level. */\n` +
+    `export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = ${JSON.stringify(book, null, 2)}\n\n` +
+    `/** The FLOOR: pro-rata, every depositor exits at once (mult = f), per venue × level. */\n` +
+    `export const EXIT_CAPACITY_FLOOR_ROWS: readonly ExitCapacityFloorRow[] = ${JSON.stringify(floor, null, 2)}\n`
   fs.writeFileSync(file, src.slice(0, a + open.length) + body + src.slice(b))
-  console.log(`\nwrote ${rows.length} preset rows to ${path.relative(ROOT, file)}`)
+  console.log(
+    `\nwrote ${book.length} cash-vs-book + ${floor.length} floor preset rows to ${path.relative(ROOT, file)}`,
+  )
 }

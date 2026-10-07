@@ -226,7 +226,7 @@ describe('windowTrough', () => {
 // ------------------------------------------------------------------ case + solve
 
 describe('casePosition', () => {
-  // UPDATED 2026-10-06: 'stressed' (×0.5, named) → the measured 'aave-usdc-typical'; a
+  // UPDATED 2026-10-06: 'stressed' (×0.5, named) → the measured 'aave-usdc-floor-typical'; a
   // custom multiple (a mechanics fixture) now passes through too.
   it('deploys the whole debt for carry and names its exit capacity', () => {
     const pos = casePosition(
@@ -234,14 +234,14 @@ describe('casePosition', () => {
         line: 0.8,
         membraneClass: 'delayed',
         tradeShape: 'carry',
-        exitCapacityPreset: 'aave-usdc-typical',
+        exitCapacityPreset: 'aave-usdc-floor-typical',
       },
       0.5,
     )
     expect(pos.collateralUsd).toBe(SET_AND_FORGET_COLLATERAL_USD)
     expect(pos.debtUsd).toBe(50_000)
     expect(pos.deployedUsd).toBe(50_000)
-    expect(pos.exitCapacityPreset).toBe('aave-usdc-typical')
+    expect(pos.exitCapacityPreset).toBe('aave-usdc-floor-typical')
     expect(pos.exitCapacityMult).toBeUndefined()
     const custom = casePosition(
       { line: 0.8, membraneClass: 'delayed', tradeShape: 'carry', exitCapacityMult: 0.5 },
@@ -310,13 +310,13 @@ describe('solveStartLtv', () => {
         line: 0.8,
         membraneClass: 'delayed',
         tradeShape: 'carry',
-        exitCapacityPreset: 'aave-usdc-typical',
+        exitCapacityPreset: 'aave-usdc-floor-typical',
       },
       {
         line: 0.8,
         membraneClass: 'delayed',
         tradeShape: 'carry',
-        exitCapacityPreset: 'spark-dai-worst',
+        exitCapacityPreset: 'spark-dai-floor-worst',
       },
     ]
     for (const seed of [11, 12, 13, 14]) {

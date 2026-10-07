@@ -23,7 +23,15 @@ const LINES = (tapeWindow: string | null): { head: string; body: string }[] => [
   },
   {
     head: 'Modelled, not measured',
-    body: 'Membrane is not on mainnet, so every LTV and line here is modelled. Venue recall is a stock, min(deployed, exit capacity × multiplier), drawn down and never refilled; a freeze starts at the first breach. Exit-capacity presets are measured analogs: the share of deposits a real venue (Aave, Spark, Steakhouse) let depositors withdraw across the first 8 hours of a real stress event, 2023–2026, assuming every depositor races for the exit at once (pro-rata). A locked event (1% or less withdrawable) also gives no recall for its measured lock, and the stock never refills when the venue recovers. They describe past stress, not the next one. The ×1 bound (everything comes back) is an upper bound, never a default. Debt is held at $1 and the price shape moves the whole collateral. After a shape ends the price holds for one window plus a step.',
+    body: 'Membrane is not on mainnet, so every LTV and line here is modelled. Venue recall is a stock, min(deployed, exit capacity × multiplier), drawn down and never refilled across the horizon; a freeze starts at the first breach. Debt is held at $1 and the price shape moves the whole collateral. After a shape ends the price holds for one window plus a step.',
+  },
+  {
+    head: 'Exit capacity: cash vs book (the default)',
+    body: "Each measured level is one real stress event at a real venue (Aave, Spark, Steakhouse), 2023–2026: its idle cash across the first 8 hours, with an hourly keeper retry, set against Membrane's whole book at that venue ($10M, $50M or $250M; $50M by default). A recall gets min(1, cash ÷ book) of what it deployed. Assumed: (i) the whole book recalls at once, which is conservative; (ii) the cash observed in an hour is first come and already net of everyone else who withdrew in it; (iii) Membrane's recall does not itself start a run; (iv) the stock never refills across the horizon. Where the cash covered the whole book the level reads ×1, and says so. A level at 1% or less also gives no recall for its measured lock. These describe past stress, not the next one.",
+  },
+  {
+    head: 'Exit capacity: the floor',
+    body: "Everyone exits: every depositor races for the exit at once and a recall gets its pro-rata share, the venue's cash divided by everything deposited. It is not what depositors could actually withdraw in those events. On the same event it never pays more than cash vs book for a book the venue could hold. A book larger than the venue's whole supply could not exist there, since Membrane's deposit is part of that supply: those levels (some $250M books) are marked 'book exceeds the venue', and on the same event they are the only ones that pay less than everyone exits. The ×1 bound (everything comes back in every scenario) is an upper bound, never a default. The grid's capacity cuts are measured from the default venue, not named; the tree's everyone-exits lane runs the venue and level you chose.",
   },
   {
     head: 'Left out',

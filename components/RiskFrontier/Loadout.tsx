@@ -8,11 +8,19 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import type {
-  ExitCapacityAnalogLevel,
-  ExitCapacityAnalogVenue,
+import {
+  EXIT_CAPACITY_BOOKS,
+  EXIT_CAPACITY_DEFAULT_BOOK,
+  type ExitCapacityAnalogLevel,
+  type ExitCapacityAnalogRow,
+  type ExitCapacityAnalogVenue,
+  type ExitCapacityBookId,
 } from '@/lib/position-sim/exitCapacityAnalogs'
-import { EXIT_CAPACITY_PRESETS, EXIT_CAPACITY_VENUES } from '@/lib/position-sim/stressGrid'
+import {
+  EXIT_CAPACITY_PRESETS,
+  EXIT_CAPACITY_VENUES,
+  exitCapacityPresetId,
+} from '@/lib/position-sim/stressGrid'
 import type { MembraneClass } from '@/lib/position-sim/membrane'
 
 import { Eyebrow, Panel } from './atoms'
@@ -215,6 +223,192 @@ const Readout: React.FC<{ children: React.ReactNode; color?: string }> = ({ chil
   </Text>
 )
 
+/** Where a measured row sits in the picker: its venue, and its book or the floor. */
+type BookChoice = ExitCapacityBookId | 'floor'
+const bookOf = (r: ExitCapacityAnalogRow): BookChoice =>
+  r.model === 'cash-vs-book' ? r.book : 'floor'
+
+const MODEL_NOTE: Readonly<Record<'cash-vs-book' | 'pro-rata', string>> = {
+  'cash-vs-book':
+    "cash vs book · the venue's idle cash in a real stress event against Membrane's whole book there",
+  'pro-rata': "floor · every depositor exits at once: a pro-rata share of the venue's cash",
+}
+
+/**
+ * The exit-capacity choice: venue → book ($10M / $50M / $250M, or the everyone-exits floor) →
+ * level (typical / bad / worst), plus the bounds and a custom multiple. The venue and book on
+ * screen are DERIVED from the chosen preset; only a bound or custom needs the last pair kept,
+ * and that is recorded in the click handler (no effect mirrors props into state).
+ */
+const CapacityPicker: React.FC<{
+  cap: CapacityChoice
+  sandbox: SandboxPosition
+  onChange: (next: CapacityChoice) => void
+}> = ({ cap, sandbox, onChange }) => {
+  const src = cap.kind === 'preset' ? EXIT_CAPACITY_PRESETS[cap.preset].source : null
+  const [kept, setKept] = useState<{ venue: ExitCapacityAnalogVenue; book: BookChoice }>(() => ({
+    venue: src?.slug ?? 'aave-usdc',
+    book: src ? bookOf(src) : EXIT_CAPACITY_DEFAULT_BOOK,
+  }))
+  const shown = src ? { venue: src.slug, book: bookOf(src) } : kept
+  const level: ExitCapacityAnalogLevel = src?.level ?? 'typical'
+  const venue = EXIT_CAPACITY_VENUES.find((v) => v.slug === shown.venue) ?? EXIT_CAPACITY_VENUES[0]
+  const levels = shown.book === 'floor' ? venue.floor : venue.books[shown.book]
+  // Switching venue or book keeps the level (typical from a bound or custom).
+  const pick = (v: ExitCapacityAnalogVenue, b: BookChoice) =>
+    onChange({ kind: 'preset', preset: exitCapacityPresetId(v, b, level) })
+  const leave = (next: CapacityChoice) => {
+    setKept(shown) // so the venue and book stay on screen under a bound or custom
+    onChange(next)
+  }
+  const model = src?.model ?? null
+
+  return (
+    <>
+      <HStack justify="space-between" mt={SPACING.sm} align="baseline">
+        <Eyebrow>Exit capacity</Eyebrow>
+        <Readout color={SEMANTIC_COLORS.textPrimary}>
+          {usdOrNone(sandbox.exitCapacityUsd)} · ×{multText(sandbox.capacityMult)}
+          {sandbox.capacityLockHours ? ` · ${sandbox.capacityLockHours}h lock` : ''}
+        </Readout>
+      </HStack>
+      <Readout>
+        {model ? MODEL_NOTE[model] : cap.kind === 'custom' ? 'a custom multiple' : 'a bound'}
+      </Readout>
+      <SimpleGrid columns={{ base: 2, sm: 5, lg: 2 }} spacing={SPACING.sm} mt={SPACING.sm}>
+        {EXIT_CAPACITY_VENUES.map((v) => (
+          <Chip
+            key={v.slug}
+            active={src?.slug === v.slug}
+            onClick={() => pick(v.slug, shown.book)}
+            label={`Exit-capacity venue ${v.name}`}
+            title={v.asset === 'eth' ? 'An ETH supply market' : undefined}
+          >
+            <Text fontSize={TYPOGRAPHY.label} textAlign="left" w="100%">
+              {v.name}
+            </Text>
+          </Chip>
+        ))}
+      </SimpleGrid>
+      <SimpleGrid columns={{ base: 2, sm: 4, lg: 2 }} spacing={SPACING.sm} mt={SPACING.sm}>
+        {EXIT_CAPACITY_BOOKS.map((b) => (
+          <Chip
+            key={b.id}
+            active={src !== null && shown.book === b.id}
+            onClick={() => pick(shown.venue, b.id)}
+            label={`Membrane book at the venue ${b.label}`}
+            title="Cash vs book: the whole book recalls at once against the venue's idle cash"
+          >
+            <Box textAlign="left" w="100%">
+              <Text fontSize={TYPOGRAPHY.label}>{b.label} book</Text>
+              <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
+                cash vs book
+              </Text>
+            </Box>
+          </Chip>
+        ))}
+        <Chip
+          active={src !== null && shown.book === 'floor'}
+          onClick={() => pick(shown.venue, 'floor')}
+          label="Everyone exits at once: the pro-rata floor"
+          title="Every depositor exits at once and a recall gets its pro-rata share: on the same event, never more than cash vs book for a book the venue could hold"
+        >
+          <Box textAlign="left" w="100%">
+            <Text fontSize={TYPOGRAPHY.label}>everyone exits</Text>
+            <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
+              floor · pro-rata
+            </Text>
+          </Box>
+        </Chip>
+      </SimpleGrid>
+      <SimpleGrid columns={3} spacing={SPACING.sm} mt={SPACING.sm}>
+        {levels.map((id) => {
+          const x = EXIT_CAPACITY_PRESETS[id]
+          return (
+            <Chip
+              key={id}
+              active={cap.kind === 'preset' && cap.preset === id}
+              onClick={() => onChange({ kind: 'preset', preset: id })}
+              label={`Exit capacity ${x.label}, ×${multText(x.mult)}`}
+              title={x.provenance}
+            >
+              <Box textAlign="left" w="100%">
+                <Text fontSize={TYPOGRAPHY.label}>{LEVEL_SHORT[x.source?.level ?? 'typical']}</Text>
+                <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
+                  ×{multText(x.mult)}
+                  {x.freezeHours > 0 ? ` · ${x.freezeHours}h lock` : ''}
+                </Text>
+                {x.source?.model === 'cash-vs-book' && x.source.bookExceedsVenue && (
+                  <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
+                    book exceeds the venue
+                  </Text>
+                )}
+              </Box>
+            </Chip>
+          )
+        })}
+      </SimpleGrid>
+      <SimpleGrid columns={3} spacing={SPACING.sm} mt={SPACING.sm}>
+        {(['frozen', 'optimistic'] as const).map((id) => (
+          <Chip
+            key={id}
+            active={cap.kind === 'preset' && cap.preset === id}
+            onClick={() => leave({ kind: 'preset', preset: id })}
+            label={`Exit capacity ${EXIT_CAPACITY_PRESETS[id].label}`}
+            title={EXIT_CAPACITY_PRESETS[id].provenance}
+          >
+            <Box textAlign="left" w="100%">
+              <Text fontSize={TYPOGRAPHY.label}>{id === 'frozen' ? 'frozen' : 'upper bound'}</Text>
+              <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
+                ×{EXIT_CAPACITY_PRESETS[id].mult}
+              </Text>
+            </Box>
+          </Chip>
+        ))}
+        <Chip
+          active={cap.kind === 'custom'}
+          onClick={() => leave({ kind: 'custom', mult: sandbox.capacityMult ?? 0.5 })}
+          label="Exit capacity custom multiplier"
+        >
+          <Box textAlign="left" w="100%">
+            <Text fontSize={TYPOGRAPHY.label}>custom</Text>
+            <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
+              ×{cap.kind === 'custom' ? cap.mult.toFixed(2) : '…'}
+            </Text>
+          </Box>
+        </Chip>
+      </SimpleGrid>
+      {cap.kind === 'custom' && (
+        <Box mt={SPACING.sm}>
+          <Range
+            id="rf-cap-mult"
+            label="Custom exit-capacity multiplier"
+            value={cap.mult}
+            min={0}
+            max={1}
+            step={0.01}
+            onChange={(v) => onChange({ kind: 'custom', mult: v })}
+          />
+          <Readout>
+            exit = deployed × {cap.mult.toFixed(2)}, scaled with the deployed amount like a preset
+          </Readout>
+        </Box>
+      )}
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize={TYPOGRAPHY.label}
+        color={SEMANTIC_COLORS.textTertiary}
+        mt={SPACING.sm}
+        lineHeight={1.5}
+      >
+        {cap.kind === 'preset'
+          ? EXIT_CAPACITY_PRESETS[cap.preset].provenance
+          : 'A custom level you chose. Not a measured exit share.'}
+      </Text>
+    </>
+  )
+}
+
 export const LoadoutPanel: React.FC<{
   inputs: SandboxInputs
   sandbox: SandboxPosition
@@ -234,25 +428,6 @@ export const LoadoutPanel: React.FC<{
   const activeLoadout = LOADOUTS.find(
     (l) => JSON.stringify(l.inputs) === JSON.stringify(inputs),
   )?.id
-  const cap = inputs.capacity
-  const setCap = (c: CapacityChoice) => set('capacity', c)
-  // The measured preset's venue, if one is chosen; a bound or custom keeps the last venue
-  // picked so its three levels stay on screen.
-  const capSource = cap.kind === 'preset' ? EXIT_CAPACITY_PRESETS[cap.preset].source : null
-  const presetVenue = capSource?.slug ?? null
-  const [venuePick, setVenuePick] = useState<ExitCapacityAnalogVenue>(presetVenue ?? 'aave-usdc')
-  useEffect(() => {
-    if (presetVenue) setVenuePick(presetVenue) // a loadout can switch the venue too
-  }, [presetVenue])
-  const venue =
-    EXIT_CAPACITY_VENUES.find((v) => v.slug === (presetVenue ?? venuePick)) ??
-    EXIT_CAPACITY_VENUES[0]
-  // Switching venue keeps the level (typical / bad / worst), typical from a bound or custom.
-  const pickVenue = (slug: ExitCapacityAnalogVenue) => {
-    setVenuePick(slug)
-    const level = capSource?.level ?? 'typical'
-    setCap({ kind: 'preset', preset: `${slug}-${level}` })
-  }
   const setClass = (cls: MembraneClass) =>
     onChange({ ...inputs, membraneClass: cls, line: clampLine(inputs.line, cls) })
 
@@ -437,113 +612,11 @@ export const LoadoutPanel: React.FC<{
             step={0.01}
             onChange={(v) => set('deployedUsd', Math.round(v * inputs.debtUsd))}
           />
-          <HStack justify="space-between" mt={SPACING.sm} align="baseline">
-            <Eyebrow>Exit capacity</Eyebrow>
-            <Readout color={SEMANTIC_COLORS.textPrimary}>
-              {usdOrNone(sandbox.exitCapacityUsd)} · ×{multText(sandbox.capacityMult)}
-              {sandbox.capacityLockHours ? ` · ${sandbox.capacityLockHours}h lock` : ''}
-            </Readout>
-          </HStack>
-          <Readout>measured venue analog · pro-rata share of the venue&apos;s cash</Readout>
-          <SimpleGrid columns={{ base: 2, sm: 5, lg: 2 }} spacing={SPACING.sm} mt={SPACING.sm}>
-            {EXIT_CAPACITY_VENUES.map((v) => (
-              <Chip
-                key={v.slug}
-                active={presetVenue === v.slug}
-                onClick={() => pickVenue(v.slug)}
-                label={`Exit-capacity venue ${v.name}`}
-                title={v.asset === 'eth' ? 'An ETH supply market' : undefined}
-              >
-                <Text fontSize={TYPOGRAPHY.label} textAlign="left" w="100%">
-                  {v.name}
-                </Text>
-              </Chip>
-            ))}
-          </SimpleGrid>
-          <SimpleGrid columns={3} spacing={SPACING.sm} mt={SPACING.sm}>
-            {venue.presets.map((id) => {
-              const x = EXIT_CAPACITY_PRESETS[id]
-              return (
-                <Chip
-                  key={id}
-                  active={cap.kind === 'preset' && cap.preset === id}
-                  onClick={() => setCap({ kind: 'preset', preset: id })}
-                  label={`Exit capacity ${x.label}, ×${multText(x.mult)}`}
-                  title={x.provenance}
-                >
-                  <Box textAlign="left" w="100%">
-                    <Text fontSize={TYPOGRAPHY.label}>
-                      {LEVEL_SHORT[x.source?.level ?? 'typical']}
-                    </Text>
-                    <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
-                      ×{multText(x.mult)}
-                      {x.freezeHours > 0 ? ` · ${x.freezeHours}h lock` : ''}
-                    </Text>
-                  </Box>
-                </Chip>
-              )
-            })}
-          </SimpleGrid>
-          <SimpleGrid columns={3} spacing={SPACING.sm} mt={SPACING.sm}>
-            {(['frozen', 'optimistic'] as const).map((id) => (
-              <Chip
-                key={id}
-                active={cap.kind === 'preset' && cap.preset === id}
-                onClick={() => setCap({ kind: 'preset', preset: id })}
-                label={`Exit capacity ${EXIT_CAPACITY_PRESETS[id].label}`}
-                title={EXIT_CAPACITY_PRESETS[id].provenance}
-              >
-                <Box textAlign="left" w="100%">
-                  <Text fontSize={TYPOGRAPHY.label}>
-                    {id === 'frozen' ? 'frozen' : 'upper bound'}
-                  </Text>
-                  <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
-                    ×{EXIT_CAPACITY_PRESETS[id].mult}
-                  </Text>
-                </Box>
-              </Chip>
-            ))}
-            <Chip
-              active={cap.kind === 'custom'}
-              onClick={() => setCap({ kind: 'custom', mult: sandbox.capacityMult ?? 0.5 })}
-              label="Exit capacity custom multiplier"
-            >
-              <Box textAlign="left" w="100%">
-                <Text fontSize={TYPOGRAPHY.label}>custom</Text>
-                <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
-                  ×{cap.kind === 'custom' ? cap.mult.toFixed(2) : '…'}
-                </Text>
-              </Box>
-            </Chip>
-          </SimpleGrid>
-          {cap.kind === 'custom' && (
-            <Box mt={SPACING.sm}>
-              <Range
-                id="rf-cap-mult"
-                label="Custom exit-capacity multiplier"
-                value={cap.mult}
-                min={0}
-                max={1}
-                step={0.01}
-                onChange={(v) => setCap({ kind: 'custom', mult: v })}
-              />
-              <Readout>
-                exit = deployed × {cap.mult.toFixed(2)}, scaled with the deployed amount like a
-                preset
-              </Readout>
-            </Box>
-          )}
-          <Text
-            fontFamily={TYPOGRAPHY.fontMono}
-            fontSize={TYPOGRAPHY.label}
-            color={SEMANTIC_COLORS.textTertiary}
-            mt={SPACING.sm}
-            lineHeight={1.5}
-          >
-            {cap.kind === 'preset'
-              ? EXIT_CAPACITY_PRESETS[cap.preset].provenance
-              : 'A custom level you chose. Not a measured exit share.'}
-          </Text>
+          <CapacityPicker
+            cap={inputs.capacity}
+            sandbox={sandbox}
+            onChange={(c) => set('capacity', c)}
+          />
         </Group>
       )}
 

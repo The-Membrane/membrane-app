@@ -25,12 +25,19 @@
  * version that solved it) and `seededAs` (the case it was solved under, when another); re-run
  * one path as a probe and compare before trusting a seed.
  *
- * EXIT CAPACITY (owner instruction 2026-10-06): carry runs at MEASURED venue analogs
- * (stressGrid EXIT_CAPACITY_PRESETS, exitCapacityAnalogs.ts) — Aave USDC typical / bad /
- * worst on every main path and class, every other stable venue's three levels on ETH,
- * delayed class — plus the bounds 'frozen' (×0) and 'optimistic' (×1, upper bound only).
- * Carry cases that resolve to the same venue stock (same mult and lock, or mult 0 whatever
- * the lock: nothing to recall) are solved once per cell and copied (`aliasOf`).
+ * EXIT CAPACITY (owner instruction 2026-10-06, ruling 2026-10-07): carry runs at MEASURED
+ * venue analogs (stressGrid EXIT_CAPACITY_PRESETS, exitCapacityAnalogs.ts) in two models:
+ *   CASH VS BOOK (the headline): m = min(1, the venue's idle cash ÷ Membrane's whole book at
+ *     it). Aave USDC at every book ($10M / $50M / $250M) × typical / bad / worst on ETH, both
+ *     classes; the default (Aave USDC typical, $50M book) on every main path and class; the
+ *     $50M typical of Steakhouse USDC, Spark USDS and Aave USDT on ETH, delayed class.
+ *   PRO-RATA FLOOR (everyone exits at once): Aave USDC typical / bad / worst on every main
+ *     path and class, every other stable venue's three floor levels on ETH, delayed class.
+ * plus the bounds 'frozen' (×0) and 'optimistic' (×1, upper bound only). Carry cases that
+ * resolve to the same venue stock (same mult and lock, or mult 0 whatever the lock: nothing to
+ * recall) are solved once per cell and copied (`aliasOf`) — and `--seed` copies a published
+ * row of the same stock, so a cash-vs-book level whose idle cash covered the whole book (×1)
+ * is the published 'optimistic' row, and a floor level is its published row under its old id.
  *   ./node_modules/.bin/tsx scripts/position-sim/set-and-forget-sim.ts --claims [--horizons=90d]
  * measures each COPY CLAIM (CLAIMS below) directly, per position size; written to
  * data/price-history/cache/set-and-forget/claims/ and merged by --report as `claims`.
@@ -99,12 +106,18 @@ import {
 } from '../../lib/position-sim/setAndForget'
 import {
   EXIT_CAPACITY_ANALOG_DATA_THROUGH,
+  EXIT_CAPACITY_ANALOG_ROWS,
   EXIT_CAPACITY_ANALOG_SOURCE,
+  EXIT_CAPACITY_ANALOG_WINDOW_COUNT,
+  EXIT_CAPACITY_BOOKS,
+  EXIT_CAPACITY_DEFAULT_BOOK,
 } from '../../lib/position-sim/exitCapacityAnalogs'
 import {
+  EXIT_CAPACITY_DEFAULT_PRESET,
   EXIT_CAPACITY_PRESETS,
   EXIT_CAPACITY_VENUES,
   STRESS_CODE_VERSION,
+  exitCapacityPresetId,
   type ExitCapacityPresetId,
   type TradeShape,
 } from '../../lib/position-sim/stressGrid'
@@ -217,7 +230,7 @@ const PATHS: Record<string, PathDef> = {
     symbol: 'wstETH',
     label: 'wstETH (ETH × stETH/ETH market × stEthPerToken)',
     resolution: 'low-close',
-    cases: ['levered_long', 'carry:aave-usdc-typical'],
+    cases: ['levered_long', 'carry:aave-usdc-floor-typical'],
     sensitivity: true,
     build: () => {
       const eth = ethPrimary()
@@ -239,7 +252,7 @@ const PATHS: Record<string, PathDef> = {
     symbol: 'wstETH',
     label: 'wstETH (ETH × stEthPerToken) on the market-feed span, from 2021-08-25',
     resolution: 'low-close',
-    cases: ['levered_long', 'carry:aave-usdc-typical'],
+    cases: ['levered_long', 'carry:aave-usdc-floor-typical'],
     sensitivity: true,
     build: () => {
       // The exchange-rate path cut to the span the stETH/ETH market feed covers, so the
@@ -324,19 +337,34 @@ interface CaseDef {
   classes?: readonly MembraneClass[]
 }
 
-/** The owner's benchmark venue (instruction 2026-10-06: "typical Aave capacity during stress"),
- *  run on every main path and class. */
-const AAVE_USDC_PRESETS: readonly ExitCapacityPresetId[] = [
-  'aave-usdc-typical',
-  'aave-usdc-bad',
-  'aave-usdc-worst',
-]
+const venueOf = (slug: string) => {
+  const v = EXIT_CAPACITY_VENUES.find((x) => x.slug === slug)
+  if (!v) throw new Error(`no exit-capacity venue ${slug}`)
+  return v
+}
 
-/** Every other STABLE venue's levels: the per-venue table, ETH, delayed class. ETH supply
+/** The owner's benchmark venue (instruction 2026-10-06: "typical Aave capacity during
+ *  stress"). The pro-rata FLOOR runs on every main path and class. */
+const AAVE_USDC_FLOOR: readonly ExitCapacityPresetId[] = venueOf('aave-usdc').floor
+
+/** The cash-vs-book HEADLINE at Aave USDC, every book × level (ETH, both classes); the default
+ *  ($50M typical) is its own case, on every main path and class. */
+const AAVE_USDC_BOOKS: readonly ExitCapacityPresetId[] = EXIT_CAPACITY_BOOKS.flatMap(
+  (b) => venueOf('aave-usdc').books[b.id],
+).filter((id) => id !== EXIT_CAPACITY_DEFAULT_PRESET)
+
+/** The $50M-book typical level at the other venues the memo quotes (ETH, delayed class). */
+const VENUE_SWEEP_HEADLINE: readonly ExitCapacityPresetId[] = [
+  'steakhouse-usdc',
+  'spark-usds',
+  'aave-usdt',
+].map((slug) => exitCapacityPresetId(slug as never, EXIT_CAPACITY_DEFAULT_BOOK, 'typical'))
+
+/** Every other STABLE venue's floor levels: the per-venue table, ETH, delayed class. ETH supply
  *  markets (Aave/Spark WETH) are left out: carry deploys CDT debt as a stable. */
-const VENUE_SWEEP_PRESETS: readonly ExitCapacityPresetId[] = EXIT_CAPACITY_VENUES.filter(
+const VENUE_SWEEP_FLOOR: readonly ExitCapacityPresetId[] = EXIT_CAPACITY_VENUES.filter(
   (v) => v.asset === 'stable' && v.slug !== 'aave-usdc',
-).flatMap((v) => v.presets)
+).flatMap((v) => v.floor)
 
 // (`Partial` is this file's partial-result type, so the restriction is spelled out.)
 const carryCase = (
@@ -349,12 +377,17 @@ const carryCase = (
   ...extra,
 })
 
+const ETH_DELAYED: Pick<CaseDef, 'paths' | 'classes'> = { paths: ['ETH'], classes: ['delayed'] }
+
 const CASES: readonly CaseDef[] = [
   { id: 'levered_long', tradeShape: 'levered_long' },
   carryCase('optimistic'),
   carryCase('frozen'),
-  ...AAVE_USDC_PRESETS.map((p) => carryCase(p)),
-  ...VENUE_SWEEP_PRESETS.map((p) => carryCase(p, { paths: ['ETH'], classes: ['delayed'] })),
+  carryCase(EXIT_CAPACITY_DEFAULT_PRESET),
+  ...AAVE_USDC_BOOKS.map((p) => carryCase(p, { paths: ['ETH'] })),
+  ...AAVE_USDC_FLOOR.map((p) => carryCase(p)),
+  ...VENUE_SWEEP_HEADLINE.map((p) => carryCase(p, ETH_DELAYED)),
+  ...VENUE_SWEEP_FLOOR.map((p) => carryCase(p, ETH_DELAYED)),
 ]
 
 /** Carry cases with this key resolve to the same venue stock, so the same answer. */
@@ -484,15 +517,19 @@ function runPath(
           collateralUsd,
         }
         const cap = caseBorrowCap(c)
+        // Nothing (or, behind a measured lock, at most 1% of the deployed debt) to recall: the
+        // levered-long bracket is a good first guess. A HINT only (below).
         const noRecall =
-          cd.tradeShape === 'levered_long' || EXIT_CAPACITY_PRESETS[cd.preset!].mult === 0
+          cd.tradeShape === 'levered_long' ||
+          EXIT_CAPACITY_PRESETS[cd.preset!].mult <= EXIT_CAPACITY_ANALOG_SOURCE.lockF
         const lb = (s: number) => noBreachBound(line, minr[s])
         let runs = 0
         let boundViolations = 0
         const tail = solveLowTail<StartSolve>(starts, lb, k, (s) => {
           const shape = windowReplay(p, s, h.hours, def.resolution)!
           // With nothing to recall the trough LTV past the break line is an immediate sale:
-          // a bracket HINT only — the engine verifies it before bisection uses it.
+          // a bracket HINT only — the engine verifies it before bisection uses it (a tiny
+          // recall that cures at the hint fails the check, costing one run).
           const hint = noRecall ? line * (1 + band) * minr[s] * (1 + LOWER_BOUND_SLACK) : undefined
           const sol = solveStartLtv(c, shape, {
             lowerBound: lb(s),
@@ -679,12 +716,21 @@ const CLAIMS: readonly ClaimDef[] = [
   {
     id: 'A1',
     label:
-      'ETH carry, the deployed debt at Aave USDC stress capacity (typical and bad analogs), at HF 2 — "set it and forget it"',
+      'ETH carry, the deployed debt at Aave USDC stress capacity (cash vs book at $10M / $50M / $250M, and the everyone-exits floor; typical and bad events), at HF 2 — "set it and forget it"',
     pathId: 'ETH',
     membraneClass: 'delayed',
     ltv: (line) => line / 2,
     ltvLabel: 'HF 2 (line / 2)',
-    caseIds: ['carry:aave-usdc-typical', 'carry:aave-usdc-bad', 'levered_long'],
+    caseIds: [
+      ...EXIT_CAPACITY_BOOKS.flatMap((b) =>
+        (['typical', 'bad'] as const).map(
+          (l) => `carry:${exitCapacityPresetId('aave-usdc', b.id, l)}`,
+        ),
+      ),
+      'carry:aave-usdc-floor-typical',
+      'carry:aave-usdc-floor-bad',
+      'levered_long',
+    ],
     horizons: ['90d', '365d'],
     // Debt at 40% LTV: $2,000 (= the floor), $3,999.60 and $4,000 (either side of
     // 2 × the floor), $8,000, $40,000 (the table's size).
@@ -695,6 +741,10 @@ const CLAIMS: readonly ClaimDef[] = [
 interface ClaimRow extends LtvTally {
   /** `--claims --cases`: copied from the published run under this code version (case not re-run). */
   seededFrom?: string
+  /** Copied from the published case it was measured under (the same venue stock). */
+  seededAs?: string
+  /** Copied from this case in the same run: the same venue stock. */
+  aliasOf?: string
   claimId: string
   pathId: string
   caseId: string
@@ -708,19 +758,29 @@ interface ClaimRow extends LtvTally {
 
 /**
  * `--claims [--horizons] [--cases]`. With `--cases`, only those cases are measured; every other
- * case's rows are copied from the PUBLISHED claims (`seededFrom`) — for a case whose preset
- * did not move — and a missing one throws.
+ * case's rows are copied from the PUBLISHED claims (`seededFrom`) of a case with the SAME venue
+ * stock (`stockKey`; `seededAs` names it when its id differs) — levered_long by id — and a
+ * missing one throws. Cases of one stock are measured once per run (`aliasOf`).
  */
 function runClaims(horizonFilter?: readonly string[], caseFilter?: ReadonlySet<string>) {
   fs.mkdirSync(CLAIM_DIR, { recursive: true })
   const pubFile = caseFilter
     ? (JSON.parse(fs.readFileSync(OUT, 'utf8')) as {
         codeVersion: string
+        mechanics?: {
+          exitCapacity?: { presets?: Record<string, { mult: number; freezeHours: number }> }
+        }
         claims?: { claimId: string; horizon: string; rows: ClaimRow[] }[]
       })
     : null
   const published = pubFile?.claims ?? []
   const publishedVersion = pubFile?.codeVersion ?? ''
+  const pubStock = pubFile ? publishedStock(pubFile) : () => null
+  const keyOf = (caseId: string) => {
+    const cd = CASES.find((x) => x.id === caseId)
+    if (!cd) throw new Error(`claims: unknown case ${caseId}`)
+    return cd.preset ? stockKey(cd.preset) : caseId
+  }
   for (const cl of CLAIMS) {
     const def = PATHS[cl.pathId]
     const line = membraneMaxLtv(def.symbol)
@@ -739,17 +799,48 @@ function runClaims(horizonFilter?: readonly string[], caseFilter?: ReadonlySet<s
         if (Number.isFinite(minr[s])) starts.push(s)
       }
       const rows: ClaimRow[] = []
+      const measured = new Map<string, string>() // stock → the case measured under it
       for (const caseId of cl.caseIds) {
         const cd = CASES.find((x) => x.id === caseId)!
-        if (caseFilter && !caseFilter.has(caseId)) {
-          const pub = published.find((c) => c.claimId === cl.id && c.horizon === hz)
-          const copied = (pub?.rows ?? []).filter((r) => r.caseId === caseId)
-          if (copied.length !== cl.collateralUsd.length)
-            throw new Error(`--claims --cases: no published ${cl.id} ${hz} rows for ${caseId}`)
-          for (const r of copied) rows.push({ ...r, seededFrom: r.seededFrom ?? publishedVersion })
-          console.log(`claim ${cl.id} ${caseId} ${hz}: ${copied.length} rows copied (published)`)
+        const key = keyOf(caseId)
+        const same = measured.get(key)
+        if (same) {
+          for (const r of rows.filter((x) => x.caseId === same)) {
+            const { seededAs: _as, ...rest } = r
+            rows.push({ ...rest, caseId, seconds: 0, aliasOf: same })
+          }
+          console.log(`claim ${cl.id} ${caseId} ${hz}: = ${same}`)
           continue
         }
+        if (caseFilter && !caseFilter.has(caseId)) {
+          const pub = published.find((c) => c.claimId === cl.id && c.horizon === hz)
+          const pubRows = pub?.rows ?? []
+          const srcCase =
+            pubRows.find(
+              (r) => r.caseId === caseId && (cd.preset ? pubStock(r.caseId) === key : true),
+            )?.caseId ??
+            (cd.preset ? pubRows.find((r) => pubStock(r.caseId) === key)?.caseId : undefined)
+          const copied = srcCase ? pubRows.filter((r) => r.caseId === srcCase) : []
+          if (copied.length !== cl.collateralUsd.length)
+            throw new Error(
+              `--claims --cases: no published ${cl.id} ${hz} rows at ${caseId}'s stock`,
+            )
+          for (const r of copied) {
+            const { aliasOf: _alias, ...rest } = r
+            rows.push({
+              ...rest,
+              caseId,
+              seededFrom: r.seededFrom ?? publishedVersion,
+              ...(srcCase !== caseId ? { seededAs: srcCase } : {}),
+            })
+          }
+          measured.set(key, caseId)
+          console.log(
+            `claim ${cl.id} ${caseId} ${hz}: ${copied.length} rows copied (published${srcCase !== caseId ? ` as ${srcCase}` : ''})`,
+          )
+          continue
+        }
+        measured.set(key, caseId)
         for (const collateralUsd of cl.collateralUsd) {
           const t0 = Date.now()
           const c: SetAndForgetCase = {
@@ -876,14 +967,48 @@ function headline(partials: Partial[]) {
       `carry, ${x.label} (×${x.mult}${x.freezeHours > 0 ? `, locked ${x.freezeHours} h` : ''})`,
     ]
   }
+  const DEFAULT_CASE = `carry:${EXIT_CAPACITY_DEFAULT_PRESET}`
   const shapes: [string, string][] = [
     ['levered_long', 'levered long (= carry, frozen venue)'],
-    presetCase('aave-usdc-worst'),
-    presetCase('aave-usdc-bad'),
-    presetCase('aave-usdc-typical'),
+    presetCase('aave-usdc-floor-worst'),
+    presetCase('aave-usdc-floor-bad'),
+    presetCase('aave-usdc-floor-typical'),
+    presetCase(EXIT_CAPACITY_DEFAULT_PRESET),
     presetCase('optimistic'),
   ]
-  console.log('## HEADLINE — delayed class, start LTV % never / ≤1% / ≤5% of start hours sold')
+  const eth = main.find((p) => p.pathId === 'ETH')
+  if (eth) {
+    console.log(
+      '## HEADLINE — ETH, cash vs book at Aave USDC: start LTV % never / ≤1% / ≤5% of start hours sold',
+    )
+    console.log(`| book · level | ×mult (lock) | class | ${hz.join(' | ')} |`)
+    console.log(`|---|---|---|${hz.map(() => '---').join('|')}|`)
+    const ids = [
+      ...EXIT_CAPACITY_BOOKS.flatMap((bk) => venueOf('aave-usdc').books[bk.id]),
+      ...venueOf('aave-usdc').floor,
+    ]
+    for (const id of ids) {
+      const x = EXIT_CAPACITY_PRESETS[id]
+      for (const cls of CLASSES) {
+        console.log(
+          `| ${x.label} | ×${x.mult}${x.freezeHours > 0 ? ` (${x.freezeHours} h)` : ''} | ${cls} | ` +
+            hz.map((h) => tailCell(find(eth, `carry:${id}`, cls, h))).join(' | ') +
+            ' |',
+        )
+      }
+    }
+    for (const cls of CLASSES) {
+      console.log(
+        `| levered long | — | ${cls} | ` +
+          hz.map((h) => tailCell(find(eth, 'levered_long', cls, h))).join(' | ') +
+          ' |',
+      )
+    }
+    console.log('')
+  }
+  console.log(
+    '## EVERY MAIN PATH — delayed class, start LTV % never / ≤1% / ≤5% of start hours sold',
+  )
   console.log(`| asset · line | shape | ${hz.join(' | ')} |`)
   console.log(`|---|---|${hz.map(() => '---').join('|')}|`)
   for (const p of main) {
@@ -912,14 +1037,15 @@ function headline(partials: Partial[]) {
   console.log(`\ncarry:frozen == levered_long in ${same}/${total} cells`)
 
   console.log(
-    '\n## PER VENUE — ETH, delayed class, carry at each stable venue analog: never / ≤1% / ≤5%',
+    '\n## PER VENUE — ETH, delayed class, carry at each stable venue: $50M-book typical (where run) and the floor: never / ≤1% / ≤5%',
   )
-  const eth = main.find((p) => p.pathId === 'ETH')
   if (eth) {
     console.log(`| venue · level | ×mult (lock) | ${hz.join(' | ')} |`)
     console.log(`|---|---|${hz.map(() => '---').join('|')}|`)
     for (const v of EXIT_CAPACITY_VENUES.filter((x) => x.asset === 'stable')) {
-      for (const id of v.presets) {
+      const head = exitCapacityPresetId(v.slug, EXIT_CAPACITY_DEFAULT_BOOK, 'typical')
+      for (const id of [head, ...v.floor]) {
+        if (!eth.rows.some((r) => r.caseId === `carry:${id}`)) continue
         const x = EXIT_CAPACITY_PRESETS[id]
         console.log(
           `| ${x.label} | ×${x.mult}${x.freezeHours > 0 ? ` (${x.freezeHours} h)` : ''} | ` +
@@ -936,7 +1062,12 @@ function headline(partials: Partial[]) {
   console.log(`| asset | shape | ${hz.join(' | ')} |`)
   console.log(`|---|---|${hz.map(() => '---').join('|')}|`)
   for (const p of main) {
-    for (const id of ['levered_long', 'carry:aave-usdc-bad', 'carry:aave-usdc-typical']) {
+    for (const id of [
+      'levered_long',
+      'carry:aave-usdc-floor-bad',
+      'carry:aave-usdc-floor-typical',
+      DEFAULT_CASE,
+    ]) {
       const cells = hz.map((h) => {
         const d = find(p, id, 'delayed', h)
         const n = find(p, id, 'no-delay', h)
@@ -984,8 +1115,10 @@ function headline(partials: Partial[]) {
   }
   for (const p of partials.filter((x) => x.pathId.startsWith('wstETH'))) {
     console.log(
-      `| ${p.label} carry:aave-usdc-typical | ` +
-        hz.map((h) => tailCell(find(p, 'carry:aave-usdc-typical', 'delayed', h))).join(' | ') +
+      `| ${p.label} carry:aave-usdc-floor-typical | ` +
+        hz
+          .map((h) => tailCell(find(p, 'carry:aave-usdc-floor-typical', 'delayed', h)))
+          .join(' | ') +
         ' |',
     )
   }
@@ -994,7 +1127,12 @@ function headline(partials: Partial[]) {
     '\n## RECALL FIRED — carry: share of start hours whose path crosses the line at the never-sold LTV',
   )
   for (const p of main) {
-    for (const id of ['carry:aave-usdc-bad', 'carry:aave-usdc-typical', 'carry:optimistic']) {
+    for (const id of [
+      'carry:aave-usdc-floor-bad',
+      'carry:aave-usdc-floor-typical',
+      DEFAULT_CASE,
+      'carry:optimistic',
+    ]) {
       console.log(
         `| ${p.label.split(' ')[0]} | ${id} | ` +
           hz
@@ -1008,6 +1146,30 @@ function headline(partials: Partial[]) {
     }
   }
   console.log('')
+}
+
+/**
+ * The stress windows the analogs were measured on, by trigger (summary.json episodes; the
+ * util windows a venue without a summary stress level derives from its own series make up
+ * the rest of EXIT_CAPACITY_ANALOG_WINDOW_COUNT).
+ */
+function analogWindowCounts() {
+  const summary = JSON.parse(
+    fs.readFileSync(path.join(ROOT, EXIT_CAPACITY_ANALOG_SOURCE.summary), 'utf8'),
+  ) as { episodes: { trigger: string; venue?: string }[] }
+  const byTrigger: Record<string, number> = {}
+  const utilByVenue: Record<string, number> = {}
+  for (const e of summary.episodes) {
+    const t = e.trigger.startsWith('util') ? 'util' : e.trigger
+    byTrigger[t] = (byTrigger[t] ?? 0) + 1
+    if (t === 'util' && e.venue) utilByVenue[e.venue] = (utilByVenue[e.venue] ?? 0) + 1
+  }
+  return {
+    total: EXIT_CAPACITY_ANALOG_WINDOW_COUNT,
+    byTrigger,
+    utilByVenue,
+    utilDerivedFromSeries: EXIT_CAPACITY_ANALOG_WINDOW_COUNT - summary.episodes.length,
+  }
 }
 
 function report() {
@@ -1048,7 +1210,34 @@ function report() {
       collateralUsd: SET_AND_FORGET_COLLATERAL_USD,
       exitCapacity: {
         assumption:
-          'pro-rata race: a recall gets the venue’s withdrawable fraction (cash / supply) of the deployed debt, lowest over the 8 h window in one real stress event; a locked event (≤ 1%) also gives no recall for its measured lock from the first breach; the stock never refills',
+          'HEADLINE cash vs book (owner ruling 2026-10-07): a recall gets m = min(1, the venue’s idle cash ÷ Membrane’s whole book B at the venue) of the deployed debt, the idle cash being the lowest over the 8 h window (held basis) in one real stress event, at B = $10M / $50M / $250M; assumes (i) the whole book recalls at once, (ii) the observed cash is first come within the hour and already net of other withdrawers, (iii) the recall does not itself trigger a run, (iv) the stock never refills across the horizon. FLOOR pro-rata: every depositor exits at once and a recall gets the withdrawable fraction (cash / supply) of the deployed debt. Either model: a locked event (≤ 1%) also gives no recall for its measured lock from the first breach',
+        books: EXIT_CAPACITY_BOOKS,
+        windows: analogWindowCounts(),
+        /** Every measured level (both models, every venue), so the memo's venue tables trace
+         *  to this file. */
+        analogs: EXIT_CAPACITY_ANALOG_ROWS.map((r) => ({
+          id: r.id,
+          model: r.model,
+          bookUsd: r.bookUsd,
+          venue: r.venueName,
+          asset: r.asset,
+          level: r.level,
+          mult: r.mult,
+          freezeHours: r.freezeHours,
+          locked: r.locked,
+          lockH: r.lockH,
+          lockCensored: r.lockCensored,
+          recover5H: r.recover5H,
+          recoverLowerBoundH: r.recoverLowerBoundH,
+          horizonCensored: r.horizonCensored,
+          cashUsd8h: r.cashUsd8h,
+          event: r.event,
+          onset: r.onset,
+          rank: r.rank,
+          n: r.n,
+          from: r.from,
+          to: r.to,
+        })),
         source: EXIT_CAPACITY_ANALOG_SOURCE,
         dataThrough: EXIT_CAPACITY_ANALOG_DATA_THROUGH,
         presets: Object.fromEntries(
@@ -1060,6 +1249,9 @@ function report() {
                 mult: x.mult,
                 freezeHours: x.freezeHours,
                 kind: x.kind,
+                model: x.model,
+                bookUsd: x.bookUsd,
+                cashUsd8h: x.source?.cashUsd8h ?? null,
                 ...(x.source
                   ? {
                       venue: x.source.venueName,
@@ -1158,6 +1350,23 @@ function report() {
 // ------------------------------------------------------------------ main
 
 /**
+ * The venue stock a PUBLISHED carry case had (`stockKey` on the published
+ * mechanics.exitCapacity.presets, read by the published case's own preset id — so a case
+ * renamed since, e.g. 'carry:aave-usdc-typical' → 'carry:aave-usdc-floor-typical', still
+ * maps). Null for levered_long or an unknown preset.
+ */
+function publishedStock(pub: {
+  mechanics?: { exitCapacity?: { presets?: Record<string, { mult: number; freezeHours: number }> } }
+}): (caseId: string) => string | null {
+  const was = pub.mechanics?.exitCapacity?.presets ?? {}
+  return (caseId) => {
+    const x = caseId.startsWith('carry:') ? was[caseId.slice('carry:'.length)] : undefined
+    if (!x) return null
+    return x.mult === 0 ? 'none' : `${x.mult}@${x.freezeHours}h`
+  }
+}
+
+/**
  * `--seed`: published rows the engine cannot move, as '#seed' shards. A carry case is seeded
  * BY STOCK (`stockKey`): from the published row, in the same path × class × horizon cell, of a
  * case whose PUBLISHED preset had the stock this case has NOW (mechanics.exitCapacity.presets
@@ -1174,13 +1383,7 @@ function seed(caseIds: readonly string[]) {
     }
     paths: (Partial & { codeVersion: string })[]
   }
-  const was = pub.mechanics?.exitCapacity?.presets ?? {}
-  const pubStock = (caseId: string): string | null => {
-    const cd = CASES.find((c) => c.id === caseId)
-    const x = cd?.preset ? was[cd.preset] : undefined
-    if (!x) return null
-    return x.mult === 0 ? 'none' : `${x.mult}@${x.freezeHours}h`
-  }
+  const pubStock = publishedStock(pub)
   fs.mkdirSync(PARTIAL_DIR, { recursive: true })
   for (const part of pub.paths) {
     const rows: ResultRow[] = []
@@ -1201,8 +1404,10 @@ function seed(caseIds: readonly string[]) {
         const [hours, cls] = cell.split('|')
         if (cd.classes && !cd.classes.includes(cls as MembraneClass)) continue
         const inCell = part.rows.filter((r) => String(r.hours) === hours && r.membraneClass === cls)
+        // The case's own published row first, then any published row of the same stock;
+        // levered_long and the bounds are skipped as sources only when their stock differs.
         const src =
-          inCell.find((r) => r.caseId === id && pubStock(id) === want) ??
+          inCell.find((r) => r.caseId === id && pubStock(r.caseId) === want) ??
           inCell.find((r) => pubStock(r.caseId) === want)
         if (!src) {
           console.log(`seed ${part.pathId} ${cls} ${hours}h ${id}: no published row at ${want}`)

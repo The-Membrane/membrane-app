@@ -12,6 +12,7 @@
  *    no carry claim; no 8h window on the no-delay class.
  */
 
+import type { ExitCapacityFloorId } from '@/lib/position-sim/exitCapacityAnalogs'
 import {
   DEFAULT_VENUE_REFERENCE,
   REVERSE_SOLVE_DROPS,
@@ -33,6 +34,7 @@ import {
   EXIT_CAPACITY_PRESETS,
   STRESS_CODE_VERSION,
   STRESS_LABEL,
+  exitCapacityFloorOf,
   runStress,
   type ExitCapacityPresetId,
   type NotModelledReason,
@@ -123,9 +125,12 @@ export function multText(m: number | null | undefined): string {
 
 /**
  * The opening loadout: the design's illustrative carry position (§3). The capacity
- * default is the measured typical Aave USDC stress analog (owner instruction 2026-10-06:
- * "typical Aave capacity during stress over the last 3 years") — never 'optimistic' (owner
- * ruling 2026-10-04: full withdrawability is the most optimistic case, an upper bound only).
+ * default is the measured typical Aave USDC stress event against a $50M Membrane book (cash
+ * vs book, owner ruling 2026-10-07; instruction 2026-10-06: "typical Aave capacity during
+ * stress over the last 3 years") — never the 'optimistic' bound (owner ruling 2026-10-04:
+ * full withdrawability is the most optimistic case, an upper bound only). That measured level
+ * can itself resolve to ×1 — the venue's idle cash covered the whole book — and its label then
+ * says so; no quick start resolves to an unlabelled ×1 (tests/unit/riskFrontierView.test.ts).
  */
 export const DEFAULT_INPUTS: SandboxInputs = {
   collateralUsd: 44_000,
@@ -157,7 +162,7 @@ export const LOADOUTS: readonly Loadout[] = [
       collateralUsd: 40_000,
       debtUsd: 32_000,
       deployedUsd: 30_000,
-      capacity: { kind: 'preset', preset: 'aave-usdc-worst' },
+      capacity: { kind: 'preset', preset: 'aave-usdc-50m-worst' },
     },
   },
   {
@@ -183,7 +188,7 @@ export const LOADOUTS: readonly Loadout[] = [
       membraneClass: 'no-delay',
       line: 0.95,
       deployedUsd: 60_000,
-      capacity: { kind: 'preset', preset: 'aave-usdc-typical' },
+      capacity: { kind: 'preset', preset: EXIT_CAPACITY_DEFAULT_PRESET },
     },
   },
   {
@@ -195,7 +200,7 @@ export const LOADOUTS: readonly Loadout[] = [
       collateralUsd: 4_000,
       debtUsd: 3_000,
       deployedUsd: 2_500,
-      capacity: { kind: 'preset', preset: 'optimistic' },
+      capacity: { kind: 'preset', preset: EXIT_CAPACITY_DEFAULT_PRESET },
     },
   },
 ]
@@ -248,7 +253,8 @@ export interface SandboxPosition {
   breakLine: number
   /** Exit-capacity multiplier on the deployed amount. Null for levered long. */
   capacityMult: number | null
-  /** The chosen level's name ('Aave USDC · typical', 'custom'). Null for levered long. */
+  /** The chosen level's name ('Aave USDC · $50M book · typical · ×1, cash covers the book',
+   *  'custom'). A ×1 always says so. Null for levered long. */
   capacityLabel: string | null
   /** The preset's measured lock: no recall for this long from the first breach, hours. */
   capacityLockHours: number | null
@@ -509,7 +515,7 @@ export function edgeView(edge: FrontierEdge, what: string): EdgeView {
 
 // ------------------------------------------------------------------ tree
 
-export type LaneId = 'flat' | 'step10' | 'step25' | 'wick25' | 'oct10' | 'freeze8' | 'cap01'
+export type LaneId = 'flat' | 'step10' | 'step25' | 'wick25' | 'oct10' | 'freeze8' | 'capFloor'
 
 export interface LaneDef {
   id: LaneId
@@ -523,7 +529,23 @@ export interface LaneDef {
 
 /** The venue sub-branches hang off the named reference shock (frontier.ts DEFAULT_VENUE_REFERENCE). */
 export const TREE_FREEZE_HOURS = 8
-export const TREE_CAPACITY_MULT = 0.1
+
+/**
+ * The tree's capacity lane: EVERYONE EXITS at the position's OWN venue — the pro-rata floor of
+ * the chosen measured level (same venue, same level: stressGrid `exitCapacityFloorOf`), run as
+ * an ABSOLUTE venue condition (`venue.exitCapacityPreset`): it replaces the chosen capacity and
+ * lock, it does not scale them. Review 2026-10-07: the lane used to multiply the default
+ * venue's floor ÷ default cut (×0.1119) onto whatever capacity the position chose, so it was
+ * the everyone-exits floor only at the default preset (under Aave USDC $50M worst it ran
+ * ×0.0000112 and still said "everyone exits"). A bound or a custom multiple names no venue:
+ * null, and the lane is missing with the reason — never an arbitrary or silent multiplier.
+ */
+export function treeFloorPreset(capacity: CapacityChoice): ExitCapacityFloorId | null {
+  return capacity.kind === 'preset' ? exitCapacityFloorOf(capacity.preset) : null
+}
+
+/** Why the everyone-exits lane has no scenario: the capacity names no measured venue. */
+export const TREE_FLOOR_MISSING = 'no venue chosen: everyone exits needs a measured venue'
 
 /**
  * The tree's branches, in order. Equal-width, no weights. Venue rows sit under the −25% step
@@ -531,10 +553,14 @@ export const TREE_CAPACITY_MULT = 0.1
  * breach (a freeze is counted from it).
  */
 export function treeLanes(
+  capacity: CapacityChoice,
   replay: PriceShape | null,
   replayMissing = 'Oct 10 tape loading',
 ): LaneDef[] {
   const ref = DEFAULT_VENUE_REFERENCE
+  const floorId = treeFloorPreset(capacity)
+  const floor = floorId ? EXIT_CAPACITY_PRESETS[floorId] : null
+  const floorLock = floor && floor.freezeHours > 0 ? ` · ${floor.freezeHours}h lock` : ''
   return [
     {
       id: 'flat',
@@ -569,12 +595,14 @@ export function treeLanes(
       missing: null,
     },
     {
-      id: 'cap01',
-      label: `Exit ×${TREE_CAPACITY_MULT}`,
-      sub: 'at −25% step',
+      id: 'capFloor',
+      label: floor ? `Exit ×${multText(floor.mult)}` : 'Everyone exits',
+      sub: floor
+        ? `${floor.source?.venueName ?? ''} everyone exits${floorLock} · at −25% step`
+        : 'at −25% step',
       parent: 'step25',
-      scenario: { price: ref, venue: { capacityMult: TREE_CAPACITY_MULT } },
-      missing: null,
+      scenario: floorId ? { price: ref, venue: { exitCapacityPreset: floorId } } : null,
+      missing: floorId ? null : TREE_FLOOR_MISSING,
     },
     {
       id: 'wick25',
@@ -827,10 +855,12 @@ export function nearestRisk(d: DistanceToDanger, sb: SandboxPosition): Headline 
     const tail = ' Modelled recall, not a guarantee.'
     if (!(stock > 0))
       return `The chosen exit capacity returns nothing, so recall cannot hold the line.${tail}`
+    // A measured level can leave a few dollars (×0.0001 behind a lock): never a bare $0.
+    const amount = (x: number) => (x > 0 && x < 0.5 ? 'under $1' : usd(x))
     if (Math.abs(need - stock) <= Math.max(1, stock * 1e-3)) {
-      return `That is where recall runs out: the chosen exit capacity holds ${usd(stock)}.${tail}`
+      return `That is where recall runs out: the chosen exit capacity holds ${amount(stock)}.${tail}`
     }
-    return `Recall would need ${usd(need)}; the chosen exit capacity holds ${usd(stock)}.${tail}`
+    return `Recall would need ${amount(need)}; the chosen exit capacity holds ${amount(stock)}.${tail}`
   }
   // The floor close (owner ruling 2026-10-04): the venue answered short of a whole-loan ask
   // and would have left debt under the floor, so that call repaid all and sold the rest.
@@ -1164,7 +1194,7 @@ export function computeFrontier(
   const sandbox = buildStressPosition(inputs)
   const p = sandbox.position
   const dtd = distanceToDanger(p)
-  const tree = buildTree(p, treeLanes(replay, replayMissing))
+  const tree = buildTree(p, treeLanes(inputs.capacity, replay, replayMissing))
   const [d50, d60] = REVERSE_SOLVE_DROPS
   const crash = [
     crashLevel(

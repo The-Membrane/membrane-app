@@ -17,11 +17,14 @@ import { withStartLtv } from '@/lib/position-sim/frontier'
 import { membraneRepayValue, CURE_WINDOW_SECONDS } from '@/lib/position-sim/membrane'
 import type { Oct10Series } from '@/lib/position-sim/scenario'
 import {
+  DEFAULT_CAPACITY_MULTS,
   DEFAULT_PRICE_SHAPES,
+  EXIT_CAPACITY_DEFAULT_CUTS,
   EXIT_CAPACITY_DEFAULT_PRESET,
   EXIT_CAPACITY_PRESETS,
   EXIT_CAPACITY_PRESET_ORDER,
   EXIT_CAPACITY_VENUES,
+  exitCapacityFloorOf,
   exitCapacityFromPreset,
   STRESS_CODE_VERSION,
   STRESS_LABEL,
@@ -330,13 +333,17 @@ describe('levered_long has no recall rows', () => {
 // ------------------------------------------------------------------- the grid
 
 describe('runStressGrid', () => {
-  it('carry: every shape × (×1, ×0.5, ×0.1, freeze 4/8/24h), single-axis', () => {
+  // UPDATED 2026-10-07: the capacity rows were the named ×0.5 / ×0.1; they are now MEASURED
+  // cuts of the default preset (EXIT_CAPACITY_DEFAULT_CUTS): Aave USDC's bad event at the $50M
+  // book (×0.9032 of its typical ×1) and its everyone-exits floor (×0.1119).
+  it('carry: every shape × (×1, the measured cuts, freeze 4/8/24h), single-axis', () => {
+    expect(DEFAULT_CAPACITY_MULTS).toEqual([1, 0.9032, 0.1119])
     const cells = runStressGrid(carry({ deployedUsd: 20_000 }))
     expect(cells).toHaveLength(DEFAULT_PRICE_SHAPES.length * 6)
     expect(cells.slice(0, 6).map((c) => c.result.scenarioId)).toEqual([
       'step-10',
-      'step-10@cap-x0.5',
-      'step-10@cap-x0.1',
+      'step-10@cap-x0.9032',
+      'step-10@cap-x0.1119',
       'step-10@freeze-4h',
       'step-10@freeze-8h',
       'step-10@freeze-24h',
@@ -819,7 +826,7 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
 
   // UPDATED 2026-10-06 (owner instruction: measured venue analogs replace the named ×0.5 /
   // ×0.1 levels): the preset this pinned was 'stressed' (×0.5); it is now the measured
-  // 'aave-usdc-typical' (×0.1119). A LOCKED preset is not the same node as its multiple.
+  // 'aave-usdc-floor-typical' (×0.1119). A LOCKED preset is not the same node as its multiple.
   it('a custom multiple resolves like an unlocked preset; USD wins, then the preset, then the multiple', () => {
     const dep = { deployedUsd: 10_000, exitCapacityPreset: undefined }
     const at = (o: Partial<StressPosition>) =>
@@ -829,17 +836,17 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
       return r.outcome === 'not_modelled' ? r.reason : r.recallAvailableUsd
     }
     expect(stock({ exitCapacityMult: 0.5 })).toBe(5_000)
-    const typical = EXIT_CAPACITY_PRESETS['aave-usdc-typical']
+    const typical = EXIT_CAPACITY_PRESETS['aave-usdc-floor-typical']
     expect(typical.freezeHours).toBe(0)
     expect(at({ exitCapacityMult: typical.mult }).cellKey).toBe(
-      at({ exitCapacityPreset: 'aave-usdc-typical' }).cellKey,
+      at({ exitCapacityPreset: 'aave-usdc-floor-typical' }).cellKey,
     )
     // The Kelp lock is part of the node: ×0 with a 45 h lock is not custom ×0.
     expect(at({ exitCapacityMult: 0 }).cellKey).not.toBe(
-      at({ exitCapacityPreset: 'aave-usdc-worst' }).cellKey,
+      at({ exitCapacityPreset: 'aave-usdc-floor-worst' }).cellKey,
     )
-    expect(stock({ exitCapacityMult: 0.5, exitCapacityPreset: 'aave-usdc-bad' })).toBeCloseTo(
-      10_000 * EXIT_CAPACITY_PRESETS['aave-usdc-bad'].mult,
+    expect(stock({ exitCapacityMult: 0.5, exitCapacityPreset: 'aave-usdc-floor-bad' })).toBeCloseTo(
+      10_000 * EXIT_CAPACITY_PRESETS['aave-usdc-floor-bad'].mult,
       6,
     )
     expect(stock({ exitCapacityMult: 0.5, exitCapacityUsd: 2_500 })).toBe(2_500)
@@ -856,23 +863,32 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
     expect(lev.outcome).not.toBe('not_modelled')
   })
 
-  // UPDATED 2026-10-06: was "the four named presets" (optimistic ×1, stressed ×0.5,
-  // kelp-lock ×0.1, frozen ×0 — named, not measured). Now: every measured venue's three
-  // analogs, each equal to its measured source row, then the two bounds, upper bound last.
-  it('measured analogs per venue (typical, bad, worst), then frozen, then the upper bound', () => {
-    expect(EXIT_CAPACITY_PRESET_ORDER).toHaveLength(EXIT_CAPACITY_VENUES.length * 3 + 2)
-    expect(EXIT_CAPACITY_PRESET_ORDER.slice(0, 3)).toEqual([
-      'aave-usdc-typical',
-      'aave-usdc-bad',
-      'aave-usdc-worst',
+  // UPDATED 2026-10-07 (owner ruling: cash vs book is the headline, pro-rata the floor): per
+  // venue the three levels at each book ($10M, $50M, $250M), then its everyone-exits floor; then
+  // the two bounds, upper bound last. Was: one pro-rata set per venue (now the floor).
+  it('measured analogs per venue (books, then the floor), then frozen, then the upper bound', () => {
+    expect(EXIT_CAPACITY_PRESET_ORDER).toHaveLength(EXIT_CAPACITY_VENUES.length * 12 + 2)
+    expect(EXIT_CAPACITY_PRESET_ORDER.slice(0, 12)).toEqual([
+      'aave-usdc-10m-typical',
+      'aave-usdc-10m-bad',
+      'aave-usdc-10m-worst',
+      'aave-usdc-50m-typical',
+      'aave-usdc-50m-bad',
+      'aave-usdc-50m-worst',
+      'aave-usdc-250m-typical',
+      'aave-usdc-250m-bad',
+      'aave-usdc-250m-worst',
+      'aave-usdc-floor-typical',
+      'aave-usdc-floor-bad',
+      'aave-usdc-floor-worst',
     ])
     expect(EXIT_CAPACITY_PRESET_ORDER.slice(-2)).toEqual(['frozen', 'optimistic'])
     expect(new Set(EXIT_CAPACITY_PRESET_ORDER).size).toBe(EXIT_CAPACITY_PRESET_ORDER.length)
     expect(Object.keys(EXIT_CAPACITY_PRESETS).sort()).toEqual(
       [...EXIT_CAPACITY_PRESET_ORDER].sort(),
     )
-    // Owner instruction 2026-10-06: the default is typical Aave capacity during stress.
-    expect(EXIT_CAPACITY_DEFAULT_PRESET).toBe('aave-usdc-typical')
+    // Owner ruling 2026-10-07: the default is typical Aave USDC stress at a $50M book.
+    expect(EXIT_CAPACITY_DEFAULT_PRESET).toBe('aave-usdc-50m-typical')
     for (const id of EXIT_CAPACITY_PRESET_ORDER) {
       const x = EXIT_CAPACITY_PRESETS[id]
       expect(x.id).toBe(id)
@@ -881,12 +897,25 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
       expect(x.provenance.length).toBeGreaterThan(20)
       // Copy rules: never "0%" or "free".
       expect(x.provenance).not.toMatch(/\b0%|free/i)
+      expect(x.label).not.toMatch(/\b0%|free/i)
+      // A ×1 is never silent: the label says so whenever the level resolves to ×1.
+      expect(/×1\b/.test(x.label), id).toBe(x.mult >= 1)
       if (x.kind !== 'measured') {
         expect(x.source).toBeNull()
+        expect(x.model).toBeNull()
         continue
       }
       const src = x.source!
-      expect(id).toBe(`${src.slug}-${src.level}`)
+      expect(x.model).toBe(src.model)
+      if (src.model === 'cash-vs-book') {
+        expect(id).toBe(`${src.slug}-${src.book}-${src.level}`)
+        expect(x.bookUsd).toBe(src.bookUsd)
+        expect(src.provenance).toContain('Cash vs book')
+      } else {
+        expect(id).toBe(`${src.slug}-floor-${src.level}`)
+        expect(x.bookUsd).toBeNull()
+        expect(src.provenance).toContain('Floor: every depositor exits at once')
+      }
       expect(x.mult).toBe(src.mult)
       // The lock reaches the engine only for a locked event, and then it is the measured lock.
       expect(x.freezeHours).toBe(src.locked ? src.lockH : 0)
@@ -897,17 +926,35 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
       expect(src.from <= src.onset && src.onset <= src.to).toBe(true)
     }
     for (const v of EXIT_CAPACITY_VENUES) {
-      const [t, b, w] = v.presets.map((id) => EXIT_CAPACITY_PRESETS[id].source!)
-      expect(t.mult).toBeGreaterThanOrEqual(b.mult)
-      expect(w.rank).toBe(1)
-      expect(b.rank).toBeLessThanOrEqual(t.rank)
-      if (!b.locked) expect(b.mult).toBeGreaterThanOrEqual(w.mult)
+      for (const ids of [...Object.values(v.books), v.floor]) {
+        const [t, b, w] = ids.map((id) => EXIT_CAPACITY_PRESETS[id].source!)
+        if (!b.locked) expect(t.mult).toBeGreaterThanOrEqual(b.mult)
+        expect(w.rank).toBe(1)
+        expect(b.rank).toBeLessThanOrEqual(t.rank)
+        if (!b.locked) expect(b.mult).toBeGreaterThanOrEqual(w.mult)
+      }
     }
-    // The owner's benchmark venue, pinned: typical ≈ 11% of deposits over the 8 h window;
-    // worst = Kelp Apr-2026, under 0.01% and locked 45 h.
-    expect(EXIT_CAPACITY_PRESETS['aave-usdc-typical'].mult).toBe(0.1119)
-    expect(EXIT_CAPACITY_PRESETS['aave-usdc-worst']).toMatchObject({ mult: 0, freezeHours: 45 })
-    expect(EXIT_CAPACITY_PRESETS['aave-usdc-worst'].source!.event).toBe('Kelp Apr-2026')
+    // The owner's benchmark venue, pinned. Floor: typical ≈ 11% of deposits over the 8 h
+    // window; worst = Kelp Apr-2026, under 0.01% and locked 45 h.
+    expect(EXIT_CAPACITY_PRESETS['aave-usdc-floor-typical'].mult).toBe(0.1119)
+    expect(EXIT_CAPACITY_PRESETS['aave-usdc-floor-worst']).toMatchObject({
+      mult: 0,
+      freezeHours: 45,
+    })
+    expect(EXIT_CAPACITY_PRESETS['aave-usdc-floor-worst'].source!.event).toBe('Kelp Apr-2026')
+    // Cash vs book: the idle cash covered a $10M and a $50M book in the typical event (×1),
+    // 81.25% of a $250M one; the bad event ($45.2M) 90.32% of $50M; Kelp is locked at every
+    // book, longer the larger the book.
+    expect(EXIT_CAPACITY_PRESETS['aave-usdc-10m-typical'].mult).toBe(1)
+    expect(EXIT_CAPACITY_PRESETS['aave-usdc-50m-typical'].mult).toBe(1)
+    expect(EXIT_CAPACITY_PRESETS['aave-usdc-250m-typical'].mult).toBe(0.8125)
+    expect(EXIT_CAPACITY_PRESETS['aave-usdc-50m-bad'].mult).toBe(0.9032)
+    expect(EXIT_CAPACITY_PRESETS['aave-usdc-250m-bad'].mult).toBe(0.1806)
+    const kelp = (['10m', '50m', '250m'] as const).map(
+      (b) => EXIT_CAPACITY_PRESETS[`aave-usdc-${b}-worst`],
+    )
+    expect(kelp.map((k) => k.source!.event)).toEqual(Array(3).fill('Kelp Apr-2026'))
+    expect(kelp.map((k) => k.freezeHours)).toEqual([11, 16, 45])
     expect(EXIT_CAPACITY_PRESETS.frozen).toMatchObject({
       kind: 'theoretical-bound',
       mult: 0,
@@ -915,6 +962,24 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
     })
     expect(EXIT_CAPACITY_PRESETS.optimistic).toMatchObject({ kind: 'upper-bound', mult: 1 })
     expect(EXIT_CAPACITY_PRESETS.optimistic.provenance).toMatch(/upper bound only, never a default/)
+  })
+
+  // Review 2026-10-07: no arbitrary multiplier default is left; the cuts are measured.
+  it('the default capacity cuts are measured from the default preset', () => {
+    const d = EXIT_CAPACITY_PRESETS[EXIT_CAPACITY_DEFAULT_PRESET]
+    expect(EXIT_CAPACITY_DEFAULT_CUTS.map((c) => [c.id, c.from])).toEqual([
+      ['bad', 'aave-usdc-50m-bad'],
+      ['floor', 'aave-usdc-floor-typical'],
+    ])
+    for (const c of EXIT_CAPACITY_DEFAULT_CUTS) {
+      expect(c.mult).toBeCloseTo(EXIT_CAPACITY_PRESETS[c.from].mult / d.mult, 4)
+      expect(EXIT_CAPACITY_PRESETS[c.from].kind).toBe('measured')
+    }
+    expect(DEFAULT_CAPACITY_MULTS[0]).toBe(1)
+    expect(DEFAULT_CAPACITY_MULTS.slice(1)).toEqual(
+      EXIT_CAPACITY_DEFAULT_CUTS.map((c) => c.mult).filter((m) => m < 1),
+    )
+    for (const m of DEFAULT_CAPACITY_MULTS) expect([0.5, 0.1]).not.toContain(m)
   })
 
   // UPDATED 2026-10-06: the ladder pinned optimistic/stressed cure, kelp-lock/frozen sell. The
@@ -942,9 +1007,14 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
     expect(outcome('optimistic')).toBe('recall_cured')
     // UPDATED 2026-10-07: Steakhouse typical is ×0.1057 on the pro-rata basis (was ×0.2183,
     // first in line), so it no longer covers $1,300; Aave USDe typical does.
-    expect(outcome('aave-usde-typical')).toBe('recall_cured') // ×0.2302: $2,302
-    expect(outcome('steakhouse-usdc-typical')).toBe('sold') // ×0.1057: $1,057 < $1,300
-    expect(outcome('aave-usdc-typical')).toBe('sold') // ×0.1119: $1,119 < $1,300
+    expect(outcome('aave-usde-floor-typical')).toBe('recall_cured') // ×0.2302: $2,302
+    expect(outcome('steakhouse-usdc-floor-typical')).toBe('sold') // ×0.1057: $1,057 < $1,300
+    expect(outcome('aave-usdc-floor-typical')).toBe('sold') // ×0.1119: $1,119 < $1,300
+    // Cash vs book (2026-10-07): the default ($50M book, ×1) cures; Steakhouse at $50M (×0.3002)
+    // covers $1,300 too; Kelp at $50M (×0.0001 behind a 16 h lock) does not.
+    expect(outcome('aave-usdc-50m-typical')).toBe('recall_cured')
+    expect(outcome('steakhouse-usdc-50m-typical')).toBe('recall_cured') // $3,002
+    expect(outcome('aave-usdc-50m-worst')).toBe('sold')
     expect(outcome('frozen')).toBe('sold')
     // Frozen is the no-recall walk exactly.
     const frozen = run(carry({ deployedUsd: 10_000, exitCapacityPreset: 'frozen' }), step(0.25))
@@ -958,7 +1028,7 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
     // now the one its 8 h window runs into): ×0.0005 and a 17 h lock. On $75,000 the debt sits
     // half the $5 stock over the $60,000 line — the stock covers it, but only after the lock,
     // past the 8 h window.
-    const x = EXIT_CAPACITY_PRESETS['spark-dai-worst']
+    const x = EXIT_CAPACITY_PRESETS['spark-dai-floor-worst']
     expect(x.mult).toBeGreaterThan(0)
     expect(x.freezeHours).toBeGreaterThan(CURE_WINDOW_SECONDS / 3600)
     const stock = 10_000 * x.mult
@@ -969,7 +1039,7 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
     })
     const custom = run({ ...base, exitCapacityMult: x.mult }, step(0.25))
     expect(custom.outcome).toBe('recall_cured')
-    const locked = run({ ...base, exitCapacityPreset: 'spark-dai-worst' }, step(0.25))
+    const locked = run({ ...base, exitCapacityPreset: 'spark-dai-floor-worst' }, step(0.25))
     expect(locked.outcome).toBe('sold')
     expect(locked.saleReason).toBe('expiry')
     expect(locked.recallDrawnUsd).toBe(0)
@@ -981,11 +1051,11 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
     const strip = (r: StressModelled) => ({ ...r, cellKey: '', scenarioId: '' })
     expect(strip(locked)).toEqual(strip(asFreeze))
     // A scenario freeze and the lock overlap: the venue answers once both are over.
-    const shorter = run({ ...base, exitCapacityPreset: 'spark-dai-worst' }, step(0.25), {
+    const shorter = run({ ...base, exitCapacityPreset: 'spark-dai-floor-worst' }, step(0.25), {
       freezeHours: 4,
     })
     expect(shorter.recallOpensAtSeconds).toBe(locked.recallOpensAtSeconds)
-    const longer = run({ ...base, exitCapacityPreset: 'spark-dai-worst' }, step(0.25), {
+    const longer = run({ ...base, exitCapacityPreset: 'spark-dai-floor-worst' }, step(0.25), {
       freezeHours: 100,
     })
     expect(longer.recallOpensAtSeconds).toBe(locked.timeToBreachSeconds! + 100 * 3600)
@@ -998,7 +1068,11 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
     )
     expect(r.recallAvailableUsd).toBe(2_500)
     const kelp = run(
-      carry({ deployedUsd: 10_000, exitCapacityUsd: 2_500, exitCapacityPreset: 'aave-usdc-worst' }),
+      carry({
+        deployedUsd: 10_000,
+        exitCapacityUsd: 2_500,
+        exitCapacityPreset: 'aave-usdc-floor-worst',
+      }),
       step(0.25),
     )
     expect(kelp.recallAvailableUsd).toBe(2_500)
@@ -1054,10 +1128,109 @@ describe('exit capacity is explicit — no optimistic default (owner ruling 2026
     const out = stressPositionFromProtocol(p, {
       tradeShape: 'carry',
       deployedUsd: 8_000,
-      exitCapacityPreset: 'aave-usdc-typical', // UPDATED 2026-10-06: was 'stressed' (×0.5)
+      exitCapacityPreset: 'aave-usdc-floor-typical', // UPDATED 2026-10-06: was 'stressed' (×0.5)
     })
-    expect(out.ok && out.position.exitCapacityPreset).toBe('aave-usdc-typical')
+    expect(out.ok && out.position.exitCapacityPreset).toBe('aave-usdc-floor-typical')
     if (out.ok) expect(run(out.position, step(0.25)).recallAvailableUsd).toBeCloseTo(895.2, 6)
+  })
+})
+
+describe('an ABSOLUTE venue level — VenueStress.exitCapacityPreset (review 2026-10-07)', () => {
+  // The tree's everyone-exits lane used to be a ×0.1119 CUT of whatever the position chose, so
+  // under Aave USDC $50M worst (×0.0001) it ran ×0.0000112 and still read "everyone exits".
+  // A venue level REPLACES the chosen capacity and lock instead.
+  const strip = (r: StressModelled) => ({ ...r, cellKey: '', scenarioId: '' })
+  const chosen = carry({ deployedUsd: 10_000, exitCapacityPreset: 'aave-usdc-50m-worst' })
+
+  it('replaces the chosen capacity and lock — the same walk as choosing the level itself', () => {
+    const floor = run(chosen, step(0.25), { exitCapacityPreset: 'aave-usdc-floor-typical' })
+    expect(floor.recallAvailableUsd).toBeCloseTo(
+      exitCapacityFromPreset(10_000, 'aave-usdc-floor-typical'),
+      6,
+    ) // ×0.1119 of $10,000, not ×0.1119 of the chosen $1
+    expect(floor.recallAvailableUsd).toBeCloseTo(1_119, 6)
+    expect(floor.recallOpensAtSeconds).toBe(floor.timeToBreachSeconds) // the 16 h lock is gone
+    const direct = run({ ...chosen, exitCapacityPreset: 'aave-usdc-floor-typical' }, step(0.25))
+    expect(strip(floor)).toEqual(strip(direct))
+    // Its own lock replaces the position's: Aave USDC worst floor (×0, 45 h) over the ×1 bound.
+    const x = EXIT_CAPACITY_PRESETS['aave-usdc-floor-worst']
+    expect(x.freezeHours).toBeGreaterThan(0)
+    const kelp = run(carry({ deployedUsd: 10_000 }), step(0.25), {
+      exitCapacityPreset: 'aave-usdc-floor-worst',
+    })
+    expect(kelp.recallOpensAtSeconds).toBe(kelp.timeToBreachSeconds! + x.freezeHours * 3600)
+    expect(kelp.recallDrawnUsd).toBe(0)
+  })
+
+  it('wins over an explicit USD capacity and a custom multiple; cuts and freezes still apply on top', () => {
+    const want = exitCapacityFromPreset(10_000, 'aave-usdc-floor-typical')
+    const venue = { exitCapacityPreset: 'aave-usdc-floor-typical' } as const
+    const usd = carry({
+      deployedUsd: 10_000,
+      exitCapacityUsd: 2_500,
+      exitCapacityPreset: undefined,
+    })
+    expect(run(usd, step(0.25), venue).recallAvailableUsd).toBeCloseTo(want, 6)
+    const mult = carry({
+      deployedUsd: 10_000,
+      exitCapacityMult: 0.9,
+      exitCapacityPreset: undefined,
+    })
+    expect(run(mult, step(0.25), venue).recallAvailableUsd).toBeCloseTo(want, 6)
+    // No capacity chosen at all: the venue level supplies it.
+    const none = carry({ deployedUsd: 10_000, exitCapacityPreset: undefined })
+    expect(run(none, step(0.25), venue).recallAvailableUsd).toBeCloseTo(want, 6)
+    const half = run(chosen, step(0.25), { ...venue, capacityMult: 0.5 })
+    expect(half.recallAvailableUsd).toBeCloseTo(want * 0.5, 6)
+    const frozen = run(chosen, step(0.25), { ...venue, freezeHours: 4 })
+    expect(frozen.recallOpensAtSeconds).toBe(frozen.timeToBreachSeconds! + 4 * 3600)
+  })
+
+  it('is named and keyed; absent, the canonical inputs carry no trace of it', () => {
+    const s: StressScenario = {
+      price: step(0.25),
+      venue: { exitCapacityPreset: 'aave-usdc-floor-typical' },
+    }
+    const r = runStress(chosen, s)
+    expect(r.scenarioId).toBe('step-25@exit-aave-usdc-floor-typical')
+    expect(stressCellCanonical(chosen, s)).toContain('"exit":"aave-usdc-floor-typical"')
+    for (const venue of [undefined, { capacityMult: 0.5 }, { freezeHours: 8 }]) {
+      expect(stressCellCanonical(chosen, { price: step(0.25), venue })).not.toContain('"exit"')
+    }
+  })
+
+  it('levered long is not modelled under it; an unknown id is an invalid venue', () => {
+    const lev = runStress(pos(), {
+      price: step(0.25),
+      venue: { exitCapacityPreset: 'aave-usdc-floor-typical' },
+    })
+    expect(lev.outcome === 'not_modelled' && lev.reason).toBe('no_recall_levered_long')
+    const bad = runStress(chosen, {
+      price: step(0.25),
+      venue: { exitCapacityPreset: 'bogus' as never },
+    })
+    expect(bad.outcome === 'not_modelled' && bad.reason).toBe('invalid_venue')
+  })
+
+  it('exitCapacityFloorOf: a measured level maps to its own venue and level; a bound to none', () => {
+    expect(exitCapacityFloorOf('aave-usdc-50m-worst')).toBe('aave-usdc-floor-worst')
+    expect(exitCapacityFloorOf('steakhouse-usdc-250m-typical')).toBe(
+      'steakhouse-usdc-floor-typical',
+    )
+    expect(exitCapacityFloorOf('spark-dai-floor-bad')).toBe('spark-dai-floor-bad')
+    expect(exitCapacityFloorOf('frozen')).toBeNull()
+    expect(exitCapacityFloorOf('optimistic')).toBeNull()
+    expect(exitCapacityFloorOf('bogus' as never)).toBeNull()
+    for (const id of EXIT_CAPACITY_PRESET_ORDER) {
+      const f = exitCapacityFloorOf(id)
+      const src = EXIT_CAPACITY_PRESETS[id].source
+      if (!src) continue
+      expect(EXIT_CAPACITY_PRESETS[f!].source).toMatchObject({
+        model: 'pro-rata',
+        slug: src.slug,
+        level: src.level,
+      })
+    }
   })
 })
 

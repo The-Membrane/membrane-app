@@ -66,7 +66,7 @@
  * MODELLED, NOT MASTER (state these wherever a node is shown)
  * ---------------------------------------------------------------------------
  *  - Venue recall is a STOCK: `min(deployedUsd, exitCapacityUsd × capacityMult)`, drawn
- *    down by every committed recall and never refilled. A freeze makes it unavailable for
+ *    down by every committed recall and never refilled across the horizon. A freeze makes it unavailable for
  *    `freezeHours` from the FIRST breach (the moment recall is first needed): the longer of
  *    the scenario's freeze and the preset's measured lock.
  *  - Exit capacity is an EXPLICIT input for a carry position with capital deployed —
@@ -75,8 +75,11 @@
  *    no silent default: owner ruling 2026-10-04 — assuming the whole deployed amount is
  *    withdrawable is the MOST optimistic case, so it must be chosen, never assumed. A
  *    carry node with deployed capital and none of them is `not_modelled`
- *    ('no_exit_capacity'). A measured analog is the pro-rata share of a real venue's cash
- *    in a real stress event: descriptive history, not a forecast of the next one.
+ *    ('no_exit_capacity'). A measured analog is, as the HEADLINE, a real venue's idle cash
+ *    in a real stress event against Membrane's whole book there (cash vs book, owner ruling
+ *    2026-10-07), or, as the FLOOR, the pro-rata share every depositor would get if all
+ *    exited at once: descriptive history, not a forecast of the next one. The stock never
+ *    refills across the horizon.
  *  - Debt (CDT) is held at $1; the price shape moves the whole collateral value.
  *  - After the shape ends the price holds at its last value for one full window plus a
  *    step, so every armed timer resolves inside the horizon (no grid-end guess).
@@ -102,10 +105,16 @@ import {
   EXIT_CAPACITY_ANALOG_LEVELS,
   EXIT_CAPACITY_ANALOG_ROWS,
   EXIT_CAPACITY_ANALOG_VENUES,
+  EXIT_CAPACITY_BOOKS,
+  EXIT_CAPACITY_DEFAULT_BOOK,
   type ExitCapacityAnalogId,
   type ExitCapacityAnalogLevel,
   type ExitCapacityAnalogRow,
   type ExitCapacityAnalogVenue,
+  type ExitCapacityBookId,
+  type ExitCapacityBookPresetId,
+  type ExitCapacityFloorId,
+  type ExitCapacityModel,
 } from './exitCapacityAnalogs'
 import { SYMBOL_TO_SERIES, type Oct10Series } from './scenario'
 import type { ProtocolPosition } from './types'
@@ -139,21 +148,32 @@ export type TradeShape = 'carry' | 'levered_long'
  * Named exit-capacity levels a carry position can be run at. Owner instruction 2026-10-06:
  * "the venue-capacity assumptions should directly analogize existing protocols (assuming
  * typical Aave capacity during stress over the last 3 years)". So every level but the two
- * bounds is a MEASURED ANALOG — what a depositor could withdraw from one real venue during
- * one real stress event, 2023-10 → 2026-10 (exitCapacityAnalogs.ts; method
- * venueStressAnalogs.ts). Ids are '<venue>-<level>': per venue the median ('typical'),
- * 10th-percentile ('bad') and worst ('worst') of its stress events.
- *   exit capacity = deployedUsd × `mult`, where mult = the event's withdrawable fraction
- *     (cash / supply) over the 8 h window — the PRO-RATA RACE assumption: every depositor
- *     exits at once, so a recall gets the same share of its deposit whatever its size.
- *   `freezeHours` = the event's measured lock (≤ 1% withdrawable) when the event is locked:
- *     the venue answers nothing for that long from the first breach (exitCapacityAnalogs.ts
- *     header: it starts up to 8 h early, and the recovery after it is not modelled).
+ * bounds is a MEASURED ANALOG of one real venue in one real stress event, 2023-10 → 2026-10
+ * (exitCapacityAnalogs.ts; method venueStressAnalogs.ts): per venue the median ('typical'),
+ * 10th-percentile ('bad') and worst ('worst') of its stress events over the 8 h window.
+ * Exit capacity = deployedUsd × `mult` in two models (owner ruling 2026-10-07):
+ *   CASH VS BOOK — the HEADLINE, ids '<venue>-<book>-<level>' (book '10m' | '50m' | '250m'):
+ *     mult = m(B) = min(1, idle cash / B), the venue's idle cash in that hour against
+ *     Membrane's whole book B at the venue. Assumptions (stated wherever shown): (i) the
+ *     whole book recalls at once (conservative); (ii) the observed cash is first come within
+ *     the hour and already net of everyone else who withdrew in it; (iii) Membrane's recall
+ *     does not itself trigger a run; (iv) the stock never refills across the horizon.
+ *   PRO-RATA FLOOR — ids '<venue>-floor-<level>': mult = f = cash / supply, every depositor
+ *     exits at once and a recall gets its pro-rata share of the cash. On the SAME event it is
+ *     the worst case for any book the venue could hold (B ≤ supply ⇒ cash / B ≥ cash / supply).
+ *     A cash-vs-book row whose book is larger than the venue's whole supply in the window
+ *     (m < the same window's f) is a book that could not exist there — Membrane's deposit is
+ *     part of the supply — and is FLAGGED (`bookExceedsVenue`, label '· book exceeds the
+ *     venue'), not dropped (one row per venue × book × level, owner ruling 2026-10-07).
+ *   `freezeHours` = the measured lock (mult ≤ 1%) when the event is locked: the venue answers
+ *     nothing for that long from the first breach (exitCapacityAnalogs.ts header: it starts
+ *     up to 8 h early, and the recovery after it is not modelled).
  * The bounds: 'frozen' (×0, nothing comes back — a paused reserve or a recall that loses the
  * race) and 'optimistic' (×1, an UPPER BOUND only, never a default: owner ruling 2026-10-04,
- * "assuming the whole deployed amount is withdrawable is the most optimistic case").
- * The ×0.5 'stressed' and ×0.1 'kelp-lock' levels these replace were named, not measured;
- * their ids are gone (no URL or store encoded them). A custom multiple is `exitCapacityMult`.
+ * "assuming the whole deployed amount is withdrawable is the most optimistic case"). A
+ * measured cash-vs-book level can also resolve to ×1 (the idle cash covered the whole book);
+ * its label then says so ('×1, cash covers the book'), so a ×1 is never silent.
+ * A custom multiple is `exitCapacityMult`.
  */
 export type ExitCapacityBoundId = 'frozen' | 'optimistic'
 export type ExitCapacityPresetId = ExitCapacityAnalogId | ExitCapacityBoundId
@@ -161,7 +181,11 @@ export type ExitCapacityPresetId = ExitCapacityAnalogId | ExitCapacityBoundId
 export interface ExitCapacityPreset {
   readonly id: ExitCapacityPresetId
   readonly kind: 'measured' | 'theoretical-bound' | 'upper-bound'
-  /** Short picker name, e.g. 'Aave USDC · typical'. */
+  /** 'cash-vs-book' (headline) or 'pro-rata' (floor) for a measured level; null for a bound. */
+  readonly model: ExitCapacityModel | null
+  /** Membrane's whole book at the venue, USD (cash-vs-book only). */
+  readonly bookUsd: number | null
+  /** Short picker name, e.g. 'Aave USDC · $50M book · typical · ×1, cash covers the book'. */
   readonly label: string
   /** Exit capacity = deployedUsd × mult. */
   readonly mult: number
@@ -179,10 +203,25 @@ const LEVEL_LABEL: Readonly<Record<ExitCapacityAnalogLevel, string>> = {
   worst: 'worst seen',
 }
 
+const BOOK_LABEL = Object.fromEntries(EXIT_CAPACITY_BOOKS.map((b) => [b.id, b.label])) as Record<
+  ExitCapacityBookId,
+  string
+>
+
+/** A measured row's picker label. A ×1 always says so; so does a book the venue could not hold. */
+function analogLabel(r: ExitCapacityAnalogRow): string {
+  const model = r.model === 'cash-vs-book' ? `${BOOK_LABEL[r.book]} book` : 'floor (everyone exits)'
+  const exceeds =
+    r.model === 'cash-vs-book' && r.bookExceedsVenue ? ' · book exceeds the venue' : ''
+  return `${r.venueName} · ${model} · ${LEVEL_LABEL[r.level]}${r.mult >= 1 ? ' · ×1, cash covers the book' : ''}${exceeds}`
+}
+
 export const EXIT_CAPACITY_BOUNDS: Readonly<Record<ExitCapacityBoundId, ExitCapacityPreset>> = {
   frozen: {
     id: 'frozen',
     kind: 'theoretical-bound',
+    model: null,
+    bookUsd: null,
     label: 'Frozen · ×0',
     mult: 0,
     freezeHours: 0,
@@ -193,11 +232,13 @@ export const EXIT_CAPACITY_BOUNDS: Readonly<Record<ExitCapacityBoundId, ExitCapa
   optimistic: {
     id: 'optimistic',
     kind: 'upper-bound',
+    model: null,
+    bookUsd: null,
     label: 'Upper bound · ×1',
     mult: 1,
     freezeHours: 0,
     provenance:
-      'Everything deployed comes back on demand. An upper bound only, never a default (owner ruling 2026-10-04); no stress event measured it.',
+      'Everything deployed comes back on demand, in every scenario. An upper bound only, never a default (owner ruling 2026-10-04).',
     source: null,
   },
 }
@@ -210,7 +251,9 @@ export const EXIT_CAPACITY_PRESETS: Readonly<Record<ExitCapacityPresetId, ExitCa
         {
           id: r.id,
           kind: 'measured',
-          label: `${r.venueName} · ${LEVEL_LABEL[r.level]}`,
+          model: r.model,
+          bookUsd: r.bookUsd,
+          label: analogLabel(r),
           mult: r.mult,
           freezeHours: r.freezeHours,
           provenance: r.provenance,
@@ -221,34 +264,105 @@ export const EXIT_CAPACITY_PRESETS: Readonly<Record<ExitCapacityPresetId, ExitCa
     ...EXIT_CAPACITY_BOUNDS,
   })
 
-/** The measured venues, picker order, each with its three levels. */
+/** A measured preset id from its parts: a book ('10m' | '50m' | '250m') or the 'floor'. */
+export function exitCapacityPresetId(
+  venue: ExitCapacityAnalogVenue,
+  book: ExitCapacityBookId | 'floor',
+  level: ExitCapacityAnalogLevel,
+): ExitCapacityBookPresetId | ExitCapacityFloorId {
+  return book === 'floor'
+    ? (`${venue}-floor-${level}` as ExitCapacityFloorId)
+    : (`${venue}-${book}-${level}` as ExitCapacityBookPresetId)
+}
+
+/** The measured venues, picker order, each with its three levels per book and on the floor. */
 export const EXIT_CAPACITY_VENUES: readonly {
   slug: ExitCapacityAnalogVenue
   name: string
   asset: 'stable' | 'eth'
-  presets: readonly ExitCapacityAnalogId[]
+  books: Readonly<Record<ExitCapacityBookId, readonly ExitCapacityBookPresetId[]>>
+  floor: readonly ExitCapacityFloorId[]
 }[] = EXIT_CAPACITY_ANALOG_VENUES.map((v) => ({
   slug: v.slug,
   name: v.name,
   asset: v.asset,
-  presets: EXIT_CAPACITY_ANALOG_LEVELS.map((l) => `${v.slug}-${l}` as ExitCapacityAnalogId),
+  books: Object.fromEntries(
+    EXIT_CAPACITY_BOOKS.map((b) => [
+      b.id,
+      EXIT_CAPACITY_ANALOG_LEVELS.map(
+        (l) => exitCapacityPresetId(v.slug, b.id, l) as ExitCapacityBookPresetId,
+      ),
+    ]),
+  ) as unknown as Record<ExitCapacityBookId, readonly ExitCapacityBookPresetId[]>,
+  floor: EXIT_CAPACITY_ANALOG_LEVELS.map(
+    (l) => exitCapacityPresetId(v.slug, 'floor', l) as ExitCapacityFloorId,
+  ),
 }))
 
-/** Display order: every measured venue (typical, bad, worst), then 'frozen', then the upper
- *  bound 'optimistic' last. */
+/** Display order: per measured venue its books ($10M, $50M, $250M; typical, bad, worst), then
+ *  its floor; then 'frozen', then the upper bound 'optimistic' last. */
 export const EXIT_CAPACITY_PRESET_ORDER: readonly ExitCapacityPresetId[] = [
-  ...EXIT_CAPACITY_VENUES.flatMap((v) => v.presets),
+  ...EXIT_CAPACITY_VENUES.flatMap((v) => [
+    ...EXIT_CAPACITY_BOOKS.flatMap((b) => v.books[b.id]),
+    ...v.floor,
+  ]),
   'frozen',
   'optimistic',
 ]
 
-/** The default level: typical Aave USDC capacity during stress (owner instruction 2026-10-06). */
-export const EXIT_CAPACITY_DEFAULT_PRESET: ExitCapacityPresetId = 'aave-usdc-typical'
+/** The default level: typical Aave USDC stress at a $50M book (owner ruling 2026-10-07). */
+export const EXIT_CAPACITY_DEFAULT_PRESET: ExitCapacityPresetId = exitCapacityPresetId(
+  'aave-usdc',
+  EXIT_CAPACITY_DEFAULT_BOOK,
+  'typical',
+)
 
 /** Exit capacity, USD, for a deployed amount at a named level. */
 export function exitCapacityFromPreset(deployedUsd: number, preset: ExitCapacityPresetId): number {
   return Math.max(0, deployedUsd) * EXIT_CAPACITY_PRESETS[preset].mult
 }
+
+/**
+ * The everyone-exits (pro-rata floor) preset at a measured preset's OWN venue and level:
+ * '<venue>-<book>-<level>' and '<venue>-floor-<level>' both give '<venue>-floor-<level>'. Null
+ * for a bound ('frozen', 'optimistic') or an unknown id: they name no venue to exit from.
+ */
+export function exitCapacityFloorOf(preset: ExitCapacityPresetId): ExitCapacityFloorId | null {
+  if (!Object.prototype.hasOwnProperty.call(EXIT_CAPACITY_PRESETS, preset)) return null
+  const src = EXIT_CAPACITY_PRESETS[preset].source
+  return src ? (exitCapacityPresetId(src.slug, 'floor', src.level) as ExitCapacityFloorId) : null
+}
+
+/**
+ * Capacity CUTS measured against the default preset, as multiples of it (so they scale
+ * whatever capacity a position chose, like any `capacityMult`): at the default venue,
+ *   'bad'    its bad (p10) event at the same book ÷ its typical event;
+ *   'floor'  its typical event when every depositor exits at once (pro-rata) ÷ the default.
+ * They replace the named ×0.5 / ×0.1 cuts of the swatch grid (DEFAULT_CAPACITY_MULTS). A cut
+ * is NOT an everyone-exits level for any other preset: the tree's everyone-exits lane runs the
+ * chosen venue's own floor (`exitCapacityFloorOf`, `VenueStress.exitCapacityPreset`).
+ * Empty when the default measures nothing to cut from (mult 0).
+ */
+export const EXIT_CAPACITY_DEFAULT_CUTS: readonly {
+  id: 'bad' | 'floor'
+  /** The measured preset the cut comes from. */
+  from: ExitCapacityPresetId
+  mult: number
+}[] = (() => {
+  const d = EXIT_CAPACITY_PRESETS[EXIT_CAPACITY_DEFAULT_PRESET]
+  const src = d.source
+  if (!src || !(d.mult > 0)) return []
+  const book = src.model === 'cash-vs-book' ? src.book : 'floor'
+  const cut = (id: 'bad' | 'floor', from: ExitCapacityPresetId) => ({
+    id,
+    from,
+    mult: Math.round((EXIT_CAPACITY_PRESETS[from].mult / d.mult) * 1e4) / 1e4,
+  })
+  return [
+    cut('bad', exitCapacityPresetId(src.slug, book, 'bad')),
+    cut('floor', exitCapacityPresetId(src.slug, 'floor', src.level)),
+  ]
+})()
 
 export interface StressPosition {
   /** Collateral value at t0, USD. */
@@ -305,6 +419,18 @@ export interface VenueStress {
   capacityMult?: number
   /** Venue answers nothing for this long from the first breach. Default 0. */
   freezeHours?: number
+  /**
+   * An ABSOLUTE venue condition: this measured level REPLACES the position's exit capacity
+   * (resolved against `deployedUsd`, whatever the position chose — `exitCapacityUsd`, a preset
+   * or a custom multiple) and its measured lock replaces the position's lock. `capacityMult`
+   * and `freezeHours` then apply on top of it as usual. A cut (`capacityMult`) scales what
+   * the position chose; this does not — e.g. the tree's everyone-exits lane runs the chosen
+   * venue's own pro-rata floor (`exitCapacityFloorOf`). Carry only: a levered long is not
+   * modelled under it ('no_recall_levered_long'); an unknown id is 'invalid_venue'.
+   * Absent, the normalized inputs and so every cell key are byte-identical to a scenario
+   * without the field (it is written to the key only when set), so STRESS_CODE_VERSION stands.
+   */
+  exitCapacityPreset?: ExitCapacityPresetId
 }
 
 export interface StressScenario {
@@ -471,7 +597,9 @@ interface NormalizedStress {
     dMin: number
   }
   price: NormPrice
-  venue: { mult: number; freezeHours: number }
+  /** `exit`: the scenario's absolute exit-capacity preset (`VenueStress.exitCapacityPreset`);
+   *  the key only when set. Its capacity and lock are already resolved into `pos`. */
+  venue: { mult: number; freezeHours: number; exit?: string }
   stepSeconds: number
 }
 
@@ -543,20 +671,34 @@ function normalize(
           ? customMult
           : NaN
         : undefined
+  // The scenario's absolute venue level, when it names a known one, replaces whatever the
+  // position chose (capacity AND lock). An unknown id leaves the position's own resolution
+  // and is rejected by validate() ('invalid_venue').
+  const venueExit = scenario.venue?.exitCapacityPreset
+  const exitPreset =
+    venueExit !== undefined &&
+    Object.prototype.hasOwnProperty.call(EXIT_CAPACITY_PRESETS, venueExit)
+      ? EXIT_CAPACITY_PRESETS[venueExit]
+      : null
   const cap: number | null = !carry
     ? 0
-    : position.exitCapacityUsd !== undefined
-      ? usd(Math.max(0, position.exitCapacityUsd))
-      : presetMult !== undefined
-        ? usd(dep * presetMult)
-        : dep > 0
-          ? null
-          : 0
+    : exitPreset
+      ? usd(dep * exitPreset.mult)
+      : position.exitCapacityUsd !== undefined
+        ? usd(Math.max(0, position.exitCapacityUsd))
+        : presetMult !== undefined
+          ? usd(dep * presetMult)
+          : dep > 0
+            ? null
+            : 0
   // A preset's measured lock applies only when the preset resolves the capacity.
-  const lock =
-    carry && position.exitCapacityUsd === undefined && known
-      ? hrs(EXIT_CAPACITY_PRESETS[preset!].freezeHours)
-      : 0
+  const lock = !carry
+    ? 0
+    : exitPreset
+      ? hrs(exitPreset.freezeHours)
+      : position.exitCapacityUsd === undefined && known
+        ? hrs(EXIT_CAPACITY_PRESETS[preset!].freezeHours)
+        : 0
   const stepSeconds =
     scenario.price.kind === 'replay'
       ? q(scenario.price.stepSeconds, 3)
@@ -577,6 +719,8 @@ function normalize(
     venue: {
       mult: frac(scenario.venue?.capacityMult ?? 1),
       freezeHours: hrs(scenario.venue?.freezeHours ?? 0),
+      // Written only when set: a scenario without it keeps its key byte for byte.
+      ...(venueExit !== undefined ? { exit: String(venueExit) } : {}),
     },
     stepSeconds,
   }
@@ -602,7 +746,16 @@ function validate(n: NormalizedStress): NotModelledReason | null {
     if (price.kind === 'wick' && !(price.recover >= 0 && price.recover <= 1)) return 'invalid_shape'
   }
   if (!(venue.mult >= 0) || !(venue.freezeHours >= 0)) return 'invalid_venue'
-  if (pos.shape === 'levered_long' && (venue.mult !== 1 || venue.freezeHours > 0)) {
+  if (
+    venue.exit !== undefined &&
+    !Object.prototype.hasOwnProperty.call(EXIT_CAPACITY_PRESETS, venue.exit)
+  ) {
+    return 'invalid_venue'
+  }
+  if (
+    pos.shape === 'levered_long' &&
+    (venue.mult !== 1 || venue.freezeHours > 0 || venue.exit !== undefined)
+  ) {
     return 'no_recall_levered_long'
   }
   return null
@@ -677,12 +830,14 @@ function scenarioIdOf(n: NormalizedStress): string {
         : p.kind === 'wick'
           ? `wick-${pctId(p.drop)}-${p.hours}h${p.recover === 1 ? '' : `-rec${pctId(p.recover)}`}`
           : `replay-${p.id}`
+  const exit = n.venue.exit !== undefined ? `@exit-${n.venue.exit}` : ''
   const cap = n.venue.mult === 1 ? '' : `@cap-x${n.venue.mult}`
   const freeze = n.venue.freezeHours > 0 ? `@freeze-${n.venue.freezeHours}h` : ''
-  return base + cap + freeze
+  return base + exit + cap + freeze
 }
 
-/** A scenario's machine id, e.g. 'step-25', 'wick-25-4h@cap-x0.1', 'linear-25-24h@freeze-8h'. */
+/** A scenario's machine id, e.g. 'step-25', 'wick-25-4h@cap-x0.1', 'linear-25-24h@freeze-8h',
+ *  'step-25@exit-aave-usdc-floor-typical'. */
 export function stressScenarioId(scenario: StressScenario, opts: StressRunOptions = {}): string {
   const probe: StressPosition = {
     collateralUsd: 1,
@@ -1038,8 +1193,12 @@ export const DEFAULT_PRICE_SHAPES: readonly PriceShape[] = [
 
 /** Venue exit capacity multipliers, applied to the position's EXPLICIT exit capacity
  *  (`exitCapacityUsd` / `exitCapacityPreset` / `exitCapacityMult`). ×1 is the baseline row —
- *  the capacity the caller chose, not "everything deployed". */
-export const DEFAULT_CAPACITY_MULTS: readonly number[] = [1, 0.5, 0.1]
+ *  the capacity the caller chose, not "everything deployed". The cuts are MEASURED, not named:
+ *  EXIT_CAPACITY_DEFAULT_CUTS (the default venue's bad event and its everyone-exits floor, as
+ *  multiples of the default preset). Distinct, largest first. */
+export const DEFAULT_CAPACITY_MULTS: readonly number[] = [
+  ...new Set([1, ...EXIT_CAPACITY_DEFAULT_CUTS.map((c) => c.mult).filter((m) => m < 1)]),
+].sort((a, b) => b - a)
 
 /** Venue freeze lengths, hours. */
 export const DEFAULT_FREEZE_HOURS: readonly number[] = [4, 8, 24]

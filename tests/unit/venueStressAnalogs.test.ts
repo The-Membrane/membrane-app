@@ -11,8 +11,11 @@ import { describe, expect, it } from 'vitest'
 import { indexAt, primaryGrid, type PriceHistoryFile } from '@/lib/position-sim/drawdowns'
 import {
   EXIT_CAPACITY_ANALOG_DATA_THROUGH,
-  EXIT_CAPACITY_ANALOG_ROWS,
+  EXIT_CAPACITY_ANALOG_LEVELS,
   EXIT_CAPACITY_ANALOG_VENUES,
+  EXIT_CAPACITY_BOOKS,
+  EXIT_CAPACITY_BOOK_ROWS,
+  EXIT_CAPACITY_FLOOR_ROWS,
 } from '@/lib/position-sim/exitCapacityAnalogs'
 import { MEASURED_DESCRIPTIVE_LABEL } from '@/lib/position-sim/measuredCapacity'
 import {
@@ -20,7 +23,10 @@ import {
   VENUE_ANALOG_DEFAULT_BASIS,
   VENUE_ANALOG_PRESET_ORDER,
   analogExitCapacityUsd,
+  cashVsBookAnalogs,
+  cashVsBookMultiplier,
   exitCapacityAnalogRows,
+  exitCapacityBookRows,
   nearestRankIndex,
   stressWindowsFromEpisodes,
   utilWindowsFromSeries,
@@ -515,7 +521,12 @@ describe('venueStressAnalogs', () => {
   it('engine rows: mult = f; the lock reaches freezeHours ONLY for a locked event', () => {
     const t = venueStressAnalogs([s], windows)
     const rows = exitCapacityAnalogRows(t, [EXIT_CAPACITY_ANALOG_VENUES[0]])
-    expect(rows.map((r) => r.id)).toEqual(['aave-usdc-typical', 'aave-usdc-bad', 'aave-usdc-worst'])
+    expect(rows.map((r) => r.id)).toEqual([
+      'aave-usdc-floor-typical',
+      'aave-usdc-floor-bad',
+      'aave-usdc-floor-worst',
+    ])
+    for (const r of rows) expect(r).toMatchObject({ model: 'pro-rata', bookUsd: null })
     const [typ, bad, worst] = rows
     // w7: f 0, locked 30 h → ×0 behind a 30 h lock from the first breach.
     expect(worst).toMatchObject({
@@ -599,6 +610,192 @@ describe('venueStressAnalogs', () => {
     expect(analogExitCapacityUsd(VENUE_ANALOG_BOUNDS.frozen, 1_000, 'first-in-line')).toBe(0)
     expect(analogExitCapacityUsd(VENUE_ANALOG_BOUNDS.optimistic, 1_000)).toBe(1_000)
     expect(analogExitCapacityUsd(p, -5)).toBe(0)
+  })
+})
+
+// ------------------------------------------------------------------ cash vs book
+
+describe('cash vs book (owner ruling 2026-10-07)', () => {
+  it('m(B) = min(1, cash / B); unknown cash is unknown, never 0; a book must be positive', () => {
+    expect(cashVsBookMultiplier(25e6, 50e6)).toBe(0.5)
+    expect(cashVsBookMultiplier(80e6, 50e6)).toBe(1)
+    expect(cashVsBookMultiplier(0, 50e6)).toBe(0)
+    expect(cashVsBookMultiplier(-5, 50e6)).toBe(0)
+    expect(cashVsBookMultiplier(null, 50e6)).toBeNull()
+    expect(() => cashVsBookMultiplier(1, 0)).toThrow(/positive/)
+    expect(() => cashVsBookMultiplier(1, NaN)).toThrow(/positive/)
+  })
+
+  // The ten-window fixture of 'venueStressAnalogs' (supply 1,000,000): window k holds
+  // f = 0.02 × (k + 1), so idle cash 20,000 × (k + 1); w3 has a one-reading drain to 0 (the
+  // held basis retries past it); w7 holds 0 for 30 h.
+  const N = 10
+  const f = fill(2000, 0.5)
+  const windows: StressWindow[] = []
+  for (let k = 0; k < N; k++) {
+    const at = 20 + k * 80
+    for (let i = at; i < at + 10; i++) f[i] = 0.02 * (k + 1)
+    windows.push(win(`w${k}`, T0 + at * H))
+  }
+  f[20 + 3 * 80 + 4] = 0
+  for (let i = 20 + 7 * 80; i < 20 + 7 * 80 + 30; i++) f[i] = 0
+  const s = series(f)
+
+  it('the same events as the floor, ranked on m per book; typical / bad / worst are ONE window each', () => {
+    const t = cashVsBookAnalogs([s], windows, [10_000, 250_000])
+    expect(t).toMatchObject({ model: 'cash-vs-book', basis: 'held', books: [10_000, 250_000] })
+    expect(t.rows.map((r) => [r.venue, r.bookUsd, r.n])).toEqual([
+      ['aave-core-usdc', 10_000, N],
+      ['aave-core-usdc', 250_000, N],
+    ])
+    const [small, large] = t.rows.map((r) => r.presets!)
+    // $10k book: every window but w7 had ≥ $20,000 idle → m = 1. w7 is the worst (locked).
+    expect(small['worst-observed']).toMatchObject({ m: 0, locked: true, lockH: 30 })
+    expect(small['worst-observed'].source.windowId).toBe('w7')
+    expect(small['typical-stress'].m).toBe(1)
+    expect(small['typical-stress'].provenance).toContain('covered the whole $10.0k book')
+    // $250k book: m = 0.08 × (k + 1) → sorted w7, w0, w1, w2, w3 … → the median (index 4) is
+    // w3 at 0.32: its one-reading drain does not set the minimum (held basis).
+    expect(large['typical-stress'].source.windowId).toBe('w3')
+    expect(large['typical-stress'].m).toBeCloseTo(0.32, 12)
+    expect(large['typical-stress'].mSingleReading).toBe(0)
+    expect(large['typical-stress'].f8).toBeCloseTo(0.08, 12)
+    expect(large['typical-stress'].cashUsd8h).toBeCloseTo(80_000, 6)
+    expect(large['bad-stress'].source.windowId).toBe('w7')
+    for (const p of [...Object.values(small), ...Object.values(large)])
+      expect(p.provenance).not.toMatch(/\b0%|free/i)
+  })
+
+  it('a larger book never gets a higher m, nor a shorter lock when locked (synthetic sweep)', () => {
+    // Pseudo-random windows of idle cash, some held under 1% of a large book for hours.
+    let seed = 7
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647
+    const g = fill(4000, 0.4)
+    const ws: StressWindow[] = []
+    for (let k = 0; k < 40; k++) {
+      const at = 20 + k * 90
+      const depth = rnd() < 0.3 ? rnd() * 0.004 : rnd() * 0.3
+      const len = 2 + Math.floor(rnd() * 40)
+      for (let i = at; i < at + len; i++) g[i] = depth * (0.5 + rnd())
+      ws.push(win(`r${k}`, T0 + at * H))
+    }
+    const books = [20_000, 100_000, 400_000, 2_000_000, 10_000_000]
+    const t = cashVsBookAnalogs([series(g)], ws, books)
+    // not vacuous: the larger the book, the more events are locked (m ≤ 1%)
+    const locked = (r: (typeof t.rows)[number]) =>
+      r.events.filter((e) => e.worst.book.mHeld.h8 <= 0.01).length
+    expect(locked(t.rows[0])).toBeLessThan(locked(t.rows[books.length - 1]))
+    expect(t.rows[books.length - 1].presets!['worst-observed'].locked).toBe(true)
+    const ids = ['typical-stress', 'bad-stress', 'worst-observed'] as const
+    for (let b = 1; b < books.length; b++) {
+      const lo = t.rows[b - 1]
+      const hi = t.rows[b]
+      // every event, book by book: m never rises
+      for (const e of hi.events) {
+        const before = lo.events.find((x) => x.memberIds[0] === e.memberIds[0])!
+        expect(e.worst.book.mHeld.h8).toBeLessThanOrEqual(before.worst.book.mHeld.h8)
+      }
+      for (const id of ids) {
+        const a = lo.presets![id]
+        const c = hi.presets![id]
+        // the ranked value (every m ≤ 1% ties as locked) never rises …
+        const ranked = (p: { m: number }) => (p.m <= 0.01 ? 0 : p.m)
+        expect(ranked(c), `${id} ${books[b]}`).toBeLessThanOrEqual(ranked(a))
+        // … and between two locked presets the lock never shortens
+        if (a.locked && c.locked) expect(c.lockH).toBeGreaterThanOrEqual(a.lockH)
+      }
+    }
+  })
+
+  it('locks: m ≤ 1% maps to the m-lock the 8 h window runs into, by book', () => {
+    // idle cash $2,000 for 5 h, then $20,000 for 10 h, then plenty
+    const g = fill(400, 0.5)
+    for (let i = 20; i < 25; i++) g[i] = 0.002
+    for (let i = 25; i < 35; i++) g[i] = 0.02
+    const one = [win('w', T0 + 20 * H)]
+    const books = [
+      { id: '10m' as const, usd: 100_000, label: '$100k' },
+      { id: '50m' as const, usd: 500_000, label: '$500k' },
+      { id: '250m' as const, usd: 5_000_000, label: '$5M' },
+    ]
+    const t = cashVsBookAnalogs(
+      [series(g)],
+      one,
+      books.map((b) => b.usd),
+    )
+    const rows = exitCapacityBookRows(t, [EXIT_CAPACITY_ANALOG_VENUES[0]], books)
+    const worst = rows.filter((r) => r.level === 'worst')
+    expect(worst.map((r) => r.id)).toEqual([
+      'aave-usdc-10m-worst',
+      'aave-usdc-50m-worst',
+      'aave-usdc-250m-worst',
+    ])
+    // $100k: $2,000 is 2% of the book — not locked (the 1% lock line is $1,000).
+    expect(worst[0]).toMatchObject({ mult: 0.02, locked: false, freezeHours: 0, lockH: 0 })
+    // $500k: $2,000 is 0.4% → locked for the 5 h it lasted; $20,000 (4%) is not.
+    expect(worst[1]).toMatchObject({ mult: 0.004, locked: true, freezeHours: 5, lockH: 5 })
+    // $5M: both $2,000 and $20,000 are under 1% of the book → locked 15 h.
+    expect(worst[2]).toMatchObject({ mult: 0.0004, locked: true, freezeHours: 15, lockH: 15 })
+    for (const r of rows) {
+      expect(r).toMatchObject({ model: 'cash-vs-book', fWindow: 0.002 })
+      expect(r.provenance).toContain('Cash vs book')
+      expect(r.provenance).not.toMatch(/\b0%|free/i)
+    }
+    expect(worst[1].provenance).toContain('under 1% of the book for 5 h')
+    // Never invented: a book the table did not measure throws.
+    expect(() =>
+      exitCapacityBookRows(
+        t,
+        [EXIT_CAPACITY_ANALOG_VENUES[0]],
+        [{ id: '10m', usd: 1, label: '$1' }],
+      ),
+    ).toThrow(/no measured events/)
+  })
+})
+
+describe('cash vs book — a book larger than the venue (review 2026-10-07)', () => {
+  // Idle cash $200,000 on a $1M supply all along: f = 20%. A book above the supply could not
+  // exist there (Membrane's deposit is part of it) — and only such a book gets m < f.
+  const s = series(fill(200, 0.2))
+  const one = [win('w', T0 + 20 * H)]
+  const books = [
+    { id: '10m' as const, usd: 500_000, label: '$500k' },
+    { id: '50m' as const, usd: 1_000_000, label: '$1M' },
+    { id: '250m' as const, usd: 4_000_000, label: '$4M' },
+  ]
+  const t = cashVsBookAnalogs(
+    [s],
+    one,
+    books.map((b) => b.usd),
+  )
+
+  it('flags exactly the book whose m falls under the same window’s f', () => {
+    const p = t.rows.map((r) => r.presets!['typical-stress'])
+    expect(p.map((x) => [x.m, x.f8, x.bookExceedsVenue])).toEqual([
+      [0.4, 0.2, false], // half the supply: cash covers 40% of it
+      [0.2, 0.2, false], // the whole supply: m = f, the floor's own share
+      [0.05, 0.2, true], // four times the supply: m = 5% < f = 20%
+    ])
+    expect(p[2].provenance).toContain('exceeds the venue')
+    expect(p[0].provenance).not.toContain('exceeds')
+  })
+
+  it('carries the flag into the engine rows, their provenance and nowhere else', () => {
+    const rows = exitCapacityBookRows(t, [EXIT_CAPACITY_ANALOG_VENUES[0]], books)
+    for (const r of rows) {
+      expect(r.bookExceedsVenue, r.id).toBe(r.book === '250m')
+      expect(r.fWindow).toBe(0.2)
+      if (r.bookExceedsVenue) {
+        expect(r.mult).toBeLessThan(r.fWindow)
+        expect(r.provenance).toContain(
+          "Book exceeds the venue: $4M is more than the venue's whole supply in that window",
+        )
+        expect(r.provenance).toContain('everyone exits pays 20.00% on the same event')
+      } else {
+        expect(r.mult).toBeGreaterThanOrEqual(r.fWindow)
+        expect(r.provenance).not.toContain('exceeds')
+      }
+    }
   })
 })
 
@@ -743,11 +940,77 @@ describe.skipIf(!HAVE_DATA)('the real venue stress history', () => {
         return i >= 0 && i < eth.close.length ? eth.close[i] : null
       }
       const table = venueStressAnalogs(data!.seriesAll, data!.windows, { priceUsd })
-      expect(exitCapacityAnalogRows(table)).toEqual(EXIT_CAPACITY_ANALOG_ROWS)
+      expect(exitCapacityAnalogRows(table)).toEqual(EXIT_CAPACITY_FLOOR_ROWS)
+      // The headline: cash vs book at every book, recomputed from the same data.
+      const books = cashVsBookAnalogs(
+        data!.seriesAll,
+        data!.windows,
+        EXIT_CAPACITY_BOOKS.map((b) => b.usd),
+        { priceUsd },
+      )
+      expect(exitCapacityBookRows(books)).toEqual(EXIT_CAPACITY_BOOK_ROWS)
       const t = data!.seriesAll.find((x) => x.venue === 'aave-core-usdc')!.t
       expect(EXIT_CAPACITY_ANALOG_DATA_THROUGH).toBe(iso(t[t.length - 1]))
     },
   )
+
+  it('cash vs book on the real data: a larger book never gets a higher m, nor a shorter lock', () => {
+    for (const v of EXIT_CAPACITY_ANALOG_VENUES) {
+      for (const level of EXIT_CAPACITY_ANALOG_LEVELS) {
+        const rows = EXIT_CAPACITY_BOOKS.map(
+          (b) => EXIT_CAPACITY_BOOK_ROWS.find((r) => r.id === `${v.slug}-${b.id}-${level}`)!,
+        )
+        expect(rows.map((r) => r.bookUsd)).toEqual(EXIT_CAPACITY_BOOKS.map((b) => b.usd))
+        for (let i = 1; i < rows.length; i++) {
+          expect(rows[i].mult, rows[i].id).toBeLessThanOrEqual(rows[i - 1].mult)
+          expect(rows[i].freezeHours, rows[i].id).toBeGreaterThanOrEqual(rows[i - 1].freezeHours)
+        }
+      }
+    }
+    // Typical Aave USDC stress: idle cash covered a $50M book whole, 81.25% of $250M.
+    const at = (id: string) => EXIT_CAPACITY_BOOK_ROWS.find((r) => r.id === id)!
+    expect(at('aave-usdc-50m-typical')).toMatchObject({ mult: 1, locked: false, n: 33 })
+    expect(at('aave-usdc-250m-typical')).toMatchObject({ mult: 0.8125, cashUsd8h: 203_125_083 })
+    expect(at('aave-usdc-50m-bad')).toMatchObject({ mult: 0.9032, event: 'util ≥95% 2024-03-13' })
+    expect(at('aave-usdc-250m-worst')).toMatchObject({ event: 'Kelp Apr-2026', freezeHours: 45 })
+  })
+
+  it('the floor never pays more than cash vs book on the same event, except for a book the venue could not hold', () => {
+    // Review 2026-10-07: 12 headline rows sat under their floor while every label called the
+    // floor the worst case. On the same event that happens only where m < f, i.e. the book is
+    // larger than the venue's whole supply in the window — those rows are now flagged.
+    const flagged = EXIT_CAPACITY_BOOK_ROWS.filter((r) => r.bookExceedsVenue).map((r) => r.id)
+    expect(flagged).toEqual([
+      'aave-usde-250m-worst',
+      'steakhouse-usdc-250m-typical',
+      'steakhouse-usdc-250m-bad',
+      'steakhouse-usdc-250m-worst',
+      'spark-usdc-250m-typical',
+      'spark-usdc-250m-bad',
+      'spark-usdc-250m-worst',
+      'spark-usds-250m-bad',
+      'spark-usds-250m-worst',
+    ])
+    for (const r of EXIT_CAPACITY_BOOK_ROWS) {
+      // Rounding to 0.01% keeps ≤ / ≥, so the stored values carry the same order.
+      if (r.bookExceedsVenue) {
+        expect(r.mult, r.id).toBeLessThanOrEqual(r.fWindow)
+        expect(r.provenance, r.id).toContain('Book exceeds the venue')
+      } else {
+        expect(r.mult, r.id).toBeGreaterThanOrEqual(r.fWindow)
+        expect(r.provenance, r.id).not.toContain('exceeds')
+      }
+    }
+    // Aave USDC, the venue the set-and-forget sim runs on, holds every book.
+    expect(flagged.filter((id) => id.startsWith('aave-usdc-'))).toEqual([])
+    // Level by level the two models can name DIFFERENT events: an unflagged level pays less
+    // than its venue's floor level only inside the locked band (both ≤ 1%: Spark DAI worst).
+    for (const r of EXIT_CAPACITY_BOOK_ROWS) {
+      if (r.bookExceedsVenue) continue
+      const fl = EXIT_CAPACITY_FLOOR_ROWS.find((x) => x.slug === r.slug && x.level === r.level)!
+      if (r.mult < fl.mult) expect([r.locked, fl.locked], r.id).toEqual([true, true])
+    }
+  })
 
   it('typical Aave USDC stress is a median ETH-drop event, ~11% withdrawable across the 8 h', () => {
     const p = data!.table.rows.find((r) => r.venue === 'aave-core-usdc')!.presets!['typical-stress']

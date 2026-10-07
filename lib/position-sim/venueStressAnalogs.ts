@@ -9,7 +9,8 @@
  * existing protocols (assuming typical Aave capacity during stress over the last 3 years)".
  * It replaced the arbitrary EXIT_CAPACITY_PRESETS multipliers (stressGrid.ts: ×1 / ×0.5 /
  * ×0.1 / ×0) with per-venue presets that each NAME the real window they come from: the
- * engine reads them as data from exitCapacityAnalogs.ts (`exitCapacityAnalogRows`).
+ * engine reads them as data from exitCapacityAnalogs.ts (`exitCapacityBookRows`, the
+ * cash-vs-book headline; `exitCapacityAnalogRows`, the pro-rata floor).
  * Descriptive sampled history (MEASURED_DESCRIPTIVE_LABEL), not a forecast.
  *
  * ---------------------------------------------------------------------------
@@ -21,19 +22,23 @@
  *             cash, Σ vault assets × idle / market supply — venueStressRules.metaMorphoCash;
  *             history.json `liquid` keeps the first-in-line walk, Σ min(vault assets, idle)).
  *    supply = every depositor's claim (aToken.totalSupply(); MetaMorpho totalAssets()).
- *  PRO-RATA RACE ASSUMPTION: in stress every depositor tries to exit at once, so one
- *  depositor's expected share of the cash is its share of the supply: a deposit of D gets
- *  f × D. The vault is held to the same race one level down (every supplier of each Morpho
+ *  PRO-RATA RACE — THE FLOOR (owner ruling 2026-10-07: the floor, not the headline): if
+ *  every depositor tries to exit at once, one depositor's expected share of the cash is its
+ *  share of the supply: a deposit of D gets f × D. That is NOT what depositors could actually
+ *  withdraw — the cash was there for whoever came first — it is the case where the whole
+ *  supply races for it at the same moment. The vault is held to the same race one level down (every supplier of each Morpho
  *  market exits at once), so its f is like-for-like with Aave's and Spark's (review
  *  2026-10-07: the first-in-line walk had read Steakhouse's typical f at 21.83%). That is
  *  (a) SIZE-INDEPENDENT — one number per venue per moment, which is what the
  *  engine's `exitCapacityMult` (a multiple of the deployed amount) takes — and (b)
  *  CONSERVATIVE against the first-in-line case: f × D = cash × D / supply ≤ cash for any
- *  D ≤ supply. It is NOT a worst case: a recall that loses the race entirely gets nothing,
- *  which is the 'frozen ×0' bound below.
- *  ABSOLUTE ALTERNATIVE (size-aware): cash(t) in USD. A deposit of D that is first in line
- *  gets min(D, cashUsd) — an UPPER bound per moment (`analogExitCapacityUsd`
- *  'first-in-line'). Stablecoins are held at $1 (VENUE_STABLE_SYMBOLS: a depeg would
+ *  D ≤ supply. So on the SAME event it is the worst case of the two models for any book the
+ *  venue could hold (B ≤ supply ⇒ cash / B ≥ f; CASH VS BOOK, BOOK EXCEEDS THE VENUE). It is
+ *  not the theoretical lower bound: a recall that loses the race entirely gets nothing, which
+ *  is the 'frozen ×0' bound below.
+ *  ABSOLUTE (size-aware): cash(t) in USD. A deposit of D that is first in line gets
+ *  min(D, cashUsd) (`analogExitCapacityUsd` 'first-in-line'); the HEADLINE model below holds
+ *  Membrane's whole book to it (CASH VS BOOK). Stablecoins are held at $1 (VENUE_STABLE_SYMBOLS: a depeg would
  *  overstate it); any other token needs `priceUsd`, else the USD figure is null (unknown,
  *  never 0).
  *  A PAUSED reserve (flags bit2) blocks withdrawals: f = 0 and cash = 0 whatever the
@@ -129,9 +134,43 @@
  *  it is never a default (owner ruling 2026-10-04) and is not in
  *  VENUE_ANALOG_PRESET_ORDER.
  *
- *  NOT MODELLED: the stock refilling inside the window (the engine draws one stock); the
- *  recall's own size moving f; interest accrued since a MetaMorpho market's last update;
- *  sub-hour paths (a reading is an hourly snapshot).
+ *
+ * ---------------------------------------------------------------------------
+ * CASH VS BOOK — THE HEADLINE (owner ruling 2026-10-07; `cashVsBookAnalogs`)
+ * ---------------------------------------------------------------------------
+ *  Same events, same onsets, same 8 h window, same 'held' basis and hourly keeper retry as
+ *  above. Instead of f, each window is read as m(B) = min(1, cash_held / B): the venue's idle
+ *  cash in USD that the held basis credits (f_held × supply — the cash observed in that hour)
+ *  against B, Membrane's WHOLE book at that venue (exitCapacityAnalogs EXIT_CAPACITY_BOOKS:
+ *  $10M / $50M / $250M). Every Membrane position at the venue gets m of its own deployment.
+ *  Per venue AND per book, each event is counted at its worst member under m, events rank as
+ *  in RANKING with m for f (`compareWorstFirstBook`: every m8 ≤ 1% ties as locked, then the
+ *  m-lock ↓, m-locked hours ↓, m72 ↑, onset ↑, id ↑), and the same nearest ranks pick
+ *  typical / bad / worst. LOCKS: a reading with m ≤ 1% (cash ≤ 1% of the book) is locked; the
+ *  lock a recall in the 8 h window runs into is measured by the same rule as `lockH`
+ *  (`thresholdRuns`), and only a locked preset (m8 ≤ 1%) carries it to the engine.
+ *  MONOTONE IN B: a larger book never gets a higher m for the same window, never a shorter
+ *  m-lock, so never a higher preset (tests/unit/venueStressAnalogs.test.ts).
+ *  ASSUMPTIONS (state them wherever the numbers are shown):
+ *    (i)   the whole book recalls at once, at the onset — conservative: in practice only the
+ *          positions that breach recall, and only down to their borrow LTV;
+ *    (ii)  the observed cash is first come within the hour and already NET of every other
+ *          depositor who withdrew in that hour (it is what was left after them);
+ *    (iii) Membrane's recall does not itself trigger a run on the venue;
+ *    (iv)  the engine's stock never refills across the horizon.
+ *  The pro-rata f stays as the FLOOR (every depositor exits at once).
+ *  BOOK EXCEEDS THE VENUE (`bookExceedsVenue`, review 2026-10-07): on the same window, m8 < f8
+ *  means cash / B < cash / supply at the reading that sets m8 (its held cash also bounds f8
+ *  there), so B is larger than the venue's WHOLE supply in that window. Membrane's deposit is
+ *  part of that supply, so such a book could not exist at the venue: the row is kept (one per
+ *  venue × book × level, owner ruling 2026-10-07) but flagged in its label and provenance,
+ *  and it is the one case where the headline pays less than the floor on the same event. On
+ *  the data that is only $250M books at venues whose supply was under $250M (Steakhouse,
+ *  Spark USDC, Spark USDS, Aave USDe); never Aave USDC, the venue the set-and-forget sim uses.
+ *
+ *  NOT MODELLED: the stock refilling across the horizon (the engine draws one stock and never
+ *  refills it); the recall's own size moving f or the cash; interest accrued since a
+ *  MetaMorpho market's last update; sub-hour paths (a reading is an hourly snapshot).
  */
 
 import { MEASURED_DESCRIPTIVE_LABEL } from './measuredCapacity'
@@ -139,13 +178,16 @@ import { utilClusters, withdrawableFraction } from './venueStressRules'
 import {
   EXIT_CAPACITY_ANALOG_SOURCE,
   EXIT_CAPACITY_ANALOG_VENUES,
+  EXIT_CAPACITY_BOOKS,
   type ExitCapacityAnalogLevel,
-  type ExitCapacityAnalogRow,
+  type ExitCapacityBookId,
+  type ExitCapacityBookRow,
+  type ExitCapacityFloorRow,
 } from './exitCapacityAnalogs'
 
 // ---------------------------------------------------------------- constants
 
-export const VENUE_ANALOG_CODE_VERSION = 'venue-stress-analogs/1'
+export const VENUE_ANALOG_CODE_VERSION = 'venue-stress-analogs/2'
 
 /** f at or under this is 'locked'. */
 export const VENUE_LOCK_F = 0.01
@@ -429,7 +471,7 @@ export const VENUE_ANALOG_BOUNDS: Readonly<Record<VenueAnalogBoundId, VenueAnalo
     kind: 'upper-bound',
     isDefault: false,
     provenance:
-      'Everything deployed comes back on demand. An upper bound only, never a default (owner ruling 2026-10-04); no stress window measured it.',
+      'Everything deployed comes back on demand, in every scenario. An upper bound only, never a default (owner ruling 2026-10-04). On the pro-rata floor no stress window measured it; cash vs book reaches ×1 only where the measured idle cash covered the whole book.',
   },
 }
 
@@ -663,6 +705,111 @@ export function venueWindows(venue: string, windows: readonly StressWindow[]): S
 
 // ------------------------------------------------------------- per window
 
+/** The lock and recovery measures of one window, for any per-reading quantity (THRESHOLD RUNS). */
+interface ThresholdRuns {
+  lockedHours72h: number
+  lockH: number
+  lockCensored: boolean
+  recover5H: number | null
+  recoverLowerBoundH: number | null
+}
+
+/**
+ * Locked hours, the lock a recall in the 8 h window runs into, and the recovery to 5% (module
+ * header, PER WINDOW) for a per-reading quantity `v` — the withdrawable fraction f, or the
+ * cash-vs-book multiple m(B) (CASH VS BOOK). `k` is the as-of reading, `idx` the readings with a
+ * known f in [as-of, onset + 72 h]. A reading with `v` unknown (null) is never locked and
+ * breaks a lock run.
+ */
+function thresholdRuns(
+  s: VenueSeries,
+  k: number,
+  onsetSec: number,
+  idx: readonly number[],
+  v: (i: number) => number | null,
+): ThresholdRuns {
+  const t = s.t
+  const maxH = VENUE_ANALOG_HORIZONS_H[VENUE_ANALOG_HORIZONS_H.length - 1]
+  const end72 = onsetSec + maxH * HOUR
+  const end8 = onsetSec + VENUE_ANALOG_BASIS_HORIZON_H * HOUR
+  const lastT = t[t.length - 1]
+
+  // locked hours inside [onset, onset + 72 h): a reading holds until the next reading, ≤ 6 h
+  const readingEnd = (i: number) =>
+    i + 1 < t.length ? Math.min(t[i + 1], t[i] + VENUE_READING_MAX_H * HOUR) : t[i]
+  let lockedSec = 0
+  for (let i = k; i < t.length && t[i] < end72; i++) {
+    const x = v(i)
+    if (x === null || x > VENUE_LOCK_F) continue
+    const a = Math.max(t[i], onsetSec)
+    const b = Math.min(readingEnd(i), end72)
+    if (b > a) lockedSec += b - a
+  }
+
+  // the longest locked stretch a recall in the 8 h window [onset, onset + 8 h] runs into: one
+  // that starts by the window's end (a stretch from the as-of reading k on overlaps the onset)
+  let lockSec = 0
+  let lockCensored = false
+  for (let i = k; i < t.length && t[i] <= end8; ) {
+    const x = v(i)
+    if (x === null || x > VENUE_LOCK_F) {
+      i++
+      continue
+    }
+    const start = Math.max(t[i], onsetSec)
+    let j = i
+    while (
+      j + 1 < t.length &&
+      t[j + 1] - t[j] <= VENUE_READING_MAX_H * HOUR &&
+      (v(j + 1) ?? Infinity) <= VENUE_LOCK_F
+    ) {
+      j++
+    }
+    const censored = j + 1 >= t.length
+    const end = censored ? t[j] : readingEnd(j)
+    if (end - start > lockSec || (end - start === lockSec && censored)) {
+      lockSec = Math.max(lockSec, end - start)
+      lockCensored = censored
+    }
+    i = j + 1
+  }
+
+  // recovery to ≥ 5%, once under 5% inside the first 72 h
+  let recover5H: number | null = 0
+  let recoverLowerBoundH: number | null = null
+  const dip = idx.find((i) => {
+    const x = v(i)
+    return x !== null && x < VENUE_RECOVER_F
+  })
+  if (dip !== undefined) {
+    recover5H = null
+    for (let j = dip + 1; j < t.length; j++) {
+      const x = v(j)
+      if (x !== null && x >= VENUE_RECOVER_F) {
+        recover5H = Math.max(0, t[j] - onsetSec) / HOUR
+        break
+      }
+    }
+    if (recover5H === null) recoverLowerBoundH = Math.max(0, lastT - onsetSec) / HOUR
+  }
+  return {
+    lockedHours72h: lockedSec / HOUR,
+    lockH: lockSec / HOUR,
+    lockCensored,
+    recover5H,
+    recoverLowerBoundH,
+  }
+}
+
+/** Readings with a known f in [as-of reading `k`, onset + 72 h]. */
+function knownReadings(s: VenueSeries, k: number, onsetSec: number): number[] {
+  const t = s.t
+  const end72 = onsetSec + VENUE_ANALOG_HORIZONS_H[VENUE_ANALOG_HORIZONS_H.length - 1] * HOUR
+  const idx: number[] = []
+  for (let i = k; i < t.length && t[i] <= end72; i++) if (fAt(s, i) !== null) idx.push(i)
+  return idx
+}
+
 /**
  * The capacity a recall made at `onsetSec` faced at one venue (module header, PER WINDOW).
  */
@@ -685,9 +832,7 @@ export function windowMetrics(
   const end72 = onsetSec + maxH * HOUR
   const lastT = t[t.length - 1]
 
-  // known readings in [as-of, onset + 72 h]
-  const idx: number[] = []
-  for (let i = k; i < t.length && t[i] <= end72; i++) if (fAt(s, i) !== null) idx.push(i)
+  const idx = knownReadings(s, k, onsetSec)
 
   const held = (i: number, value: (j: number) => number | null): number | null => {
     let best: number | null = null
@@ -722,61 +867,7 @@ export function windowMetrics(
   for (let j = 1; j < in8.length; j++) maxGap = Math.max(maxGap, t[in8[j]] - t[in8[j - 1]])
   maxGap = Math.max(maxGap, end8 - t[in8[in8.length - 1]])
 
-  // locked hours inside [onset, onset + 72 h): a reading holds until the next reading, ≤ 6 h
-  const readingEnd = (i: number) =>
-    i + 1 < t.length ? Math.min(t[i + 1], t[i] + VENUE_READING_MAX_H * HOUR) : t[i]
-  let lockedSec = 0
-  for (let i = k; i < t.length && t[i] < end72; i++) {
-    const f = fAt(s, i)
-    if (f === null || f > VENUE_LOCK_F) continue
-    const a = Math.max(t[i], onsetSec)
-    const b = Math.min(readingEnd(i), end72)
-    if (b > a) lockedSec += b - a
-  }
-
-  // the longest locked stretch a recall in the 8 h window [onset, onset + 8 h] runs into: one
-  // that starts by the window's end (a stretch from the as-of reading k on overlaps the onset)
-  let lockSec = 0
-  let lockCensored = false
-  for (let i = k; i < t.length && t[i] <= end8; ) {
-    const f = fAt(s, i)
-    if (f === null || f > VENUE_LOCK_F) {
-      i++
-      continue
-    }
-    const start = Math.max(t[i], onsetSec)
-    let j = i
-    while (
-      j + 1 < t.length &&
-      t[j + 1] - t[j] <= VENUE_READING_MAX_H * HOUR &&
-      (fAt(s, j + 1) ?? Infinity) <= VENUE_LOCK_F
-    ) {
-      j++
-    }
-    const censored = j + 1 >= t.length
-    const end = censored ? t[j] : readingEnd(j)
-    if (end - start > lockSec || (end - start === lockSec && censored)) {
-      lockSec = Math.max(lockSec, end - start)
-      lockCensored = censored
-    }
-    i = j + 1
-  }
-
-  // recovery to f ≥ 5%, once under 5% inside the first 72 h
-  let recover5H: number | null = 0
-  let recoverLowerBoundH: number | null = null
-  const dip = idx.find((i) => (fAt(s, i) as number) < VENUE_RECOVER_F)
-  if (dip !== undefined) {
-    recover5H = null
-    for (let j = dip + 1; j < t.length; j++) {
-      const f = fAt(s, j)
-      if (f !== null && f >= VENUE_RECOVER_F) {
-        recover5H = Math.max(0, t[j] - onsetSec) / HOUR
-        break
-      }
-    }
-    if (recover5H === null) recoverLowerBoundH = Math.max(0, lastT - onsetSec) / HOUR
-  }
+  const runs = thresholdRuns(s, k, onsetSec, idx, fOf)
 
   return {
     onsetSec,
@@ -787,11 +878,7 @@ export function windowMetrics(
     cashUsdOnset: cashOf(k),
     minCashUsd: { h8: cashMin(8), h24: cashMin(24), h72: cashMin(72) },
     minCashUsdHeld: { h8: cashHeldMin(8), h24: cashHeldMin(24), h72: cashHeldMin(72) },
-    lockedHours72h: lockedSec / HOUR,
-    lockH: lockSec / HOUR,
-    lockCensored,
-    recover5H,
-    recoverLowerBoundH,
+    ...runs,
     readings8h: in8.length,
     maxGapH8h: maxGap / HOUR,
     horizonCensored: end72 > lastT,
@@ -1019,6 +1106,346 @@ export function analogExitCapacityUsd(
   return choice.cashUsd8h === null ? null : Math.min(d, choice.cashUsd8h)
 }
 
+// ---------------------------------------------------------- cash vs book
+
+/**
+ * m(B) = min(1, cash / B) — the share of Membrane's whole book B at a venue that the venue's
+ * idle cash covers (module header, CASH VS BOOK). Unknown cash is unknown (null), never 0.
+ */
+export function cashVsBookMultiplier(cashUsd: number | null, bookUsd: number): number | null {
+  if (!(Number.isFinite(bookUsd) && bookUsd > 0))
+    throw new Error(`venueStressAnalogs: book ${bookUsd} must be a positive USD amount`)
+  if (cashUsd === null || !Number.isFinite(cashUsd)) return null
+  return Math.min(1, Math.max(0, cashUsd) / bookUsd)
+}
+
+export interface HorizonNullable {
+  h8: number | null
+  h24: number | null
+  h72: number | null
+}
+
+/** One window against one book (module header, CASH VS BOOK). */
+export interface BookWindowMetrics {
+  bookUsd: number
+  /** m at the onset reading. */
+  mOnset: number | null
+  /** min(1, held cash / B), lowest over each horizon: the basis the presets rank on. */
+  mHeld: HorizonNullable
+  /** min(1, cash / B) on the literal single readings. */
+  mReading: HorizonNullable
+  /** Readings with m ≤ 1% (cash ≤ 1% of the book) inside [t0, t0 + 72 h). */
+  lockedHours72h: number
+  /** The m ≤ 1% stretch a recall inside the 8 h window runs into (same rule as `lockH`). */
+  lockH: number
+  lockCensored: boolean
+  /** Hours from t0 until m ≥ 5% again, once under 5% in the first 72 h. */
+  recover5H: number | null
+  recoverLowerBoundH: number | null
+}
+
+/**
+ * The cash-vs-book measures of a window already measured by `windowMetrics` (same onset, same
+ * as-of reading): m from the held and single-reading USD cash, and the lock and recovery runs
+ * on m (cash ≤ 1% / ≥ 5% of the book) instead of f.
+ */
+export function bookWindowMetrics(
+  s: VenueSeries,
+  w: WindowMetrics,
+  bookUsd: number,
+  opts: VenueAnalogOptions = {},
+): BookWindowMetrics {
+  const m = (cash: number | null) => cashVsBookMultiplier(cash, bookUsd)
+  const k = asOfIndex(s.t, w.onsetReadingSec)
+  if (k < 0 || s.t[k] !== w.onsetReadingSec)
+    throw new Error(`venueStressAnalogs: ${s.venue} has no reading at ${w.onsetReadingSec}`)
+  const runs = thresholdRuns(s, k, w.onsetSec, knownReadings(s, k, w.onsetSec), (i) =>
+    m(cashUsdAt(s, i, opts)),
+  )
+  return {
+    bookUsd,
+    mOnset: m(w.cashUsdOnset),
+    mHeld: {
+      h8: m(w.minCashUsdHeld.h8),
+      h24: m(w.minCashUsdHeld.h24),
+      h72: m(w.minCashUsdHeld.h72),
+    },
+    mReading: { h8: m(w.minCashUsd.h8), h24: m(w.minCashUsd.h24), h72: m(w.minCashUsd.h72) },
+    ...runs,
+  }
+}
+
+/** A window row with its book measures; m is known (a member with unknown USD cash is skipped). */
+export interface BookWindowRow extends VenueWindowRow {
+  book: BookWindowMetrics & { mHeld: HorizonValues }
+}
+
+/** m8 as ranked: every locked value (≤ VENUE_LOCK_F) is one tie, as for f. */
+function rankM8(r: BookWindowRow): number {
+  const m = r.book.mHeld.h8
+  return m <= VENUE_LOCK_F ? 0 : m
+}
+
+/**
+ * Worst first under one book: the f ranking (module header, RANKING) on m instead of f —
+ * m8 ↑ (every m8 ≤ 1% ties as locked), then the m-lock ↓, m-locked hours ↓, m72 ↑, onset ↑, id ↑.
+ */
+export function compareWorstFirstBook(a: BookWindowRow, b: BookWindowRow): number {
+  return (
+    rankM8(a) - rankM8(b) ||
+    b.book.lockH - a.book.lockH ||
+    b.book.lockedHours72h - a.book.lockedHours72h ||
+    a.book.mHeld.h72 - b.book.mHeld.h72 ||
+    a.onsetSec - b.onsetSec ||
+    (a.windowId < b.windowId ? -1 : a.windowId > b.windowId ? 1 : 0)
+  )
+}
+
+export interface BookStressEvent {
+  venue: string
+  name: string
+  label: string
+  shortLabel: string
+  memberIds: string[]
+  firstOnsetIso: string
+  /** The member the event is counted at under this book: its worst m. */
+  worst: BookWindowRow
+}
+
+export interface CashVsBookPreset {
+  id: VenueAnalogPresetId
+  venue: string
+  bookUsd: number
+  percentile: number | null
+  /** 1-based, worst first, of n. */
+  rank: number
+  n: number
+  /** m(B) over the 8 h delay window, held basis: the engine multiple. */
+  m: number
+  /** m ≤ 1%. */
+  locked: boolean
+  mOnset: number
+  mSingleReading: number
+  m24h: number
+  m72h: number
+  /** The same window's pro-rata f over the 8 h (held): the floor's reading of the same hours. */
+  f8: number
+  /** m < f8: B is larger than the venue's whole supply in the window, a book that could not
+   *  exist there (module header, BOOK EXCEEDS THE VENUE). */
+  bookExceedsVenue: boolean
+  lockH: number
+  lockCensored: boolean
+  lockedHours72h: number
+  recover5H: number | null
+  recoverLowerBoundH: number | null
+  horizonCensored: boolean
+  /** The source event's lowest idle cash over the 8 h window, USD (held basis). */
+  cashUsd8h: number
+  source: {
+    name: string
+    label: string
+    windowId: string
+    trigger: StressTrigger
+    onsetIso: string
+    memberIds: string[]
+  }
+  range: { fromIso: string; toIso: string }
+  provenance: string
+}
+
+export interface CashVsBookRow {
+  venue: string
+  name: string
+  bookUsd: number
+  n: number
+  range: { fromIso: string; toIso: string } | null
+  presets: Record<VenueAnalogPresetId, CashVsBookPreset> | null
+  /** Worst first under this book. */
+  events: BookStressEvent[]
+  /** Windows not measured: the venue's skipped windows, plus members with unknown USD cash. */
+  skipped: { windowId: string; reason: WindowSkipReason | 'no_usd' }[]
+}
+
+export interface CashVsBookTable {
+  version: string
+  descriptiveLabel: string
+  model: 'cash-vs-book'
+  /** Always 'held': the idle cash the hourly keeper retry credits. */
+  basis: 'held'
+  books: readonly number[]
+  /** Venue order, then book order. */
+  rows: CashVsBookRow[]
+}
+
+/** Copy rule (viewModel.ts): no bare "$0" — idle cash under a dollar reads "under $1". */
+const usdText = (x: number) =>
+  x >= 1e6
+    ? `$${(x / 1e6).toFixed(1)}M`
+    : x >= 1e3
+      ? `$${(x / 1e3).toFixed(1)}k`
+      : x >= 1
+        ? `$${Math.round(x)}`
+        : 'under $1'
+
+/**
+ * The cash-vs-book table (module header, CASH VS BOOK): per venue and per book B, the same
+ * events as the floor (`venueStressEvents`: same windows, same onsets, same 72 h merge), each
+ * counted at its worst member under m(B), ranked by `compareWorstFirstBook`, and the median /
+ * 10th-percentile / worst event picked by the same nearest rank. Basis 'held' only.
+ */
+export function cashVsBookAnalogs(
+  series: readonly VenueSeries[],
+  windows: readonly StressWindow[],
+  books: readonly number[],
+  opts: Omit<VenueAnalogOptions, 'basis'> = {},
+): CashVsBookTable {
+  for (const b of books) cashVsBookMultiplier(0, b) // validates every book
+  const rows: CashVsBookRow[] = []
+  for (const s of series
+    .slice()
+    .sort((a, b) => (a.venue < b.venue ? -1 : a.venue > b.venue ? 1 : 0))) {
+    validateSeries(s)
+    const { events: base, skipped } = venueStressEvents(s, windows, { ...opts, basis: 'held' })
+    for (const bookUsd of books) {
+      const noUsd: { windowId: string; reason: 'no_usd' }[] = []
+      const events: BookStressEvent[] = []
+      for (const e of base) {
+        const members: BookWindowRow[] = []
+        for (const w of e.members) {
+          const book = bookWindowMetrics(s, w, bookUsd, opts)
+          const { h8, h24, h72 } = book.mHeld
+          if (h8 === null || h24 === null || h72 === null) {
+            noUsd.push({ windowId: w.windowId, reason: 'no_usd' })
+            continue
+          }
+          members.push({ ...w, book: { ...book, mHeld: { h8, h24, h72 } } })
+        }
+        if (members.length === 0) continue
+        const worst = members.slice().sort(compareWorstFirstBook)[0]
+        events.push({
+          venue: e.venue,
+          name: e.name,
+          label: e.label,
+          shortLabel: e.shortLabel,
+          memberIds: e.memberIds,
+          firstOnsetIso: e.firstOnsetIso,
+          worst,
+        })
+      }
+      events.sort((a, b) => compareWorstFirstBook(a.worst, b.worst))
+      const n = events.length
+      const allSkipped = [...skipped, ...noUsd]
+      if (n === 0) {
+        rows.push({
+          venue: s.venue,
+          name: s.name,
+          bookUsd,
+          n,
+          range: null,
+          presets: null,
+          events,
+          skipped: allSkipped,
+        })
+        continue
+      }
+      let first = Infinity
+      let last = -Infinity
+      for (const e of events) {
+        first = Math.min(first, e.worst.onsetSec)
+        last = Math.max(last, e.worst.onsetSec)
+      }
+      const range = { fromIso: isoHour(first), toIso: isoHour(last) }
+      const pick = (id: VenueAnalogPresetId, idx: number, percentile: number | null) =>
+        bookPresetFrom(id, events[idx], idx + 1, n, percentile, bookUsd, range)
+      const typ = nearestRankIndex(VENUE_ANALOG_PERCENTILES['typical-stress'], n)
+      const bad = nearestRankIndex(VENUE_ANALOG_PERCENTILES['bad-stress'], n)
+      rows.push({
+        venue: s.venue,
+        name: s.name,
+        bookUsd,
+        n,
+        range,
+        presets: {
+          'typical-stress': pick('typical-stress', typ, VENUE_ANALOG_PERCENTILES['typical-stress']),
+          'bad-stress': pick('bad-stress', bad, VENUE_ANALOG_PERCENTILES['bad-stress']),
+          'worst-observed': pick('worst-observed', 0, null),
+        },
+        events,
+        skipped: allSkipped,
+      })
+    }
+  }
+  return {
+    version: VENUE_ANALOG_CODE_VERSION,
+    descriptiveLabel: MEASURED_DESCRIPTIVE_LABEL,
+    model: 'cash-vs-book',
+    basis: 'held',
+    books: [...books],
+    rows,
+  }
+}
+
+function bookPresetFrom(
+  id: VenueAnalogPresetId,
+  e: BookStressEvent,
+  rank: number,
+  n: number,
+  percentile: number | null,
+  bookUsd: number,
+  range: { fromIso: string; toIso: string },
+): CashVsBookPreset {
+  const w = e.worst
+  const b = w.book
+  const m = b.mHeld.h8
+  const cashUsd8h = w.minCashUsdHeld.h8 as number // known: m is
+  const what =
+    id === 'worst-observed'
+      ? 'Worst observed'
+      : `${id === 'typical-stress' ? 'Median' : '10th-percentile'} stress event (rank ${rank} of ${n})`
+  const cover =
+    m >= 1
+      ? `idle cash ${usdText(cashUsd8h)} covered the whole ${usdText(bookUsd)} book`
+      : `idle cash ${usdText(cashUsd8h)} covered ${fracText(m)} of the ${usdText(bookUsd)} book`
+  const f8 = w.minFHeld.h8
+  const bookExceedsVenue = m < f8
+  const exceeds = bookExceedsVenue
+    ? ` The ${usdText(bookUsd)} book exceeds the venue's whole supply in that window (the floor's f is ${fracText(f8)}): it could not exist there.`
+    : ''
+  return {
+    id,
+    venue: e.venue,
+    bookUsd,
+    percentile,
+    rank,
+    n,
+    m,
+    locked: m <= VENUE_LOCK_F,
+    mOnset: b.mOnset as number,
+    mSingleReading: b.mReading.h8 as number,
+    m24h: b.mHeld.h24,
+    m72h: b.mHeld.h72,
+    f8,
+    bookExceedsVenue,
+    lockH: b.lockH,
+    lockCensored: b.lockCensored,
+    lockedHours72h: b.lockedHours72h,
+    recover5H: b.recover5H,
+    recoverLowerBoundH: b.recoverLowerBoundH,
+    horizonCensored: w.horizonCensored,
+    cashUsd8h,
+    source: {
+      name: e.name,
+      label: e.label,
+      windowId: w.windowId,
+      trigger: w.trigger,
+      onsetIso: w.onsetIso,
+      memberIds: e.memberIds,
+    },
+    range,
+    provenance: `${what}: ${e.name} (${w.onsetIso}) — ${cover} across the 8 h window; ${n} events ${range.fromIso.slice(0, 7)} → ${range.toIso.slice(0, 7)}.${exceeds}`,
+  }
+}
+
 // ------------------------------------------------------- engine presets
 
 const LEVEL_OF: Readonly<Record<VenueAnalogPresetId, ExitCapacityAnalogLevel>> = {
@@ -1032,23 +1459,46 @@ const r4 = (x: number) => {
   return v === 0 ? 0 : v
 }
 
+/** Copy rule: a fraction under 0.01% is never printed as a bare zero. Lower case: it sits
+ *  mid-sentence; `sentence` capitalises it where it opens one. */
+const fracText = (x: number) => (x < 1e-4 ? 'under 0.01%' : `${(x * 100).toFixed(2)}%`)
+
+/** The first letter upper-cased: a generated clause that opens a sentence. */
+const sentence = (s: string) => `${s[0].toUpperCase()}${s.slice(1)}`
+
+type AnalogVenue = (typeof EXIT_CAPACITY_ANALOG_VENUES)[number]
+
+function rankText(level: ExitCapacityAnalogLevel, n: number, rank: number): string {
+  return level === 'worst'
+    ? `worst of ${n} stress events`
+    : `${level === 'typical' ? 'median' : '10th-percentile'} of ${n} stress events (rank ${rank})`
+}
+
+function recoverText(recover5H: number | null, recoverLowerBoundH: number | null): string {
+  return recover5H !== null
+    ? `, back to 5% after ${Math.round(recover5H)} h`
+    : recoverLowerBoundH !== null
+      ? `, still under 5% ${Math.round(recoverLowerBoundH)} h later at the data's end`
+      : ''
+}
+
 /**
- * The analog table as the stress engine's preset rows (exitCapacityAnalogs.ts header: the
- * mapping onto `mult` and `freezeHours`). Every venue of `venues` (default
- * EXIT_CAPACITY_ANALOG_VENUES) × level, in that order; a venue missing from the table, or with
- * no event, throws — a preset is never invented. Fractions to 0.01%, hours whole, cash to the
- * dollar.
+ * The floor table as the stress engine's PRO-RATA preset rows, ids '<venue>-floor-<level>'
+ * (exitCapacityAnalogs.ts header: the mapping onto `mult` and `freezeHours`). Every venue of
+ * `venues` (default EXIT_CAPACITY_ANALOG_VENUES) × level, in that order; a venue missing from
+ * the table, or with no event, throws — a preset is never invented. Fractions to 0.01%, hours
+ * whole, cash to the dollar.
  */
 export function exitCapacityAnalogRows(
   table: VenueAnalogTable,
-  venues: readonly (typeof EXIT_CAPACITY_ANALOG_VENUES)[number][] = EXIT_CAPACITY_ANALOG_VENUES,
-): ExitCapacityAnalogRow[] {
+  venues: readonly AnalogVenue[] = EXIT_CAPACITY_ANALOG_VENUES,
+): ExitCapacityFloorRow[] {
   if (table.basis !== EXIT_CAPACITY_ANALOG_SOURCE.basis) {
     throw new Error(
       `venueStressAnalogs: engine presets are on the '${EXIT_CAPACITY_ANALOG_SOURCE.basis}' basis`,
     )
   }
-  const out: ExitCapacityAnalogRow[] = []
+  const out: ExitCapacityFloorRow[] = []
   for (const v of venues) {
     const row = table.rows.find((r) => r.venue === v.venue)
     if (!row || !row.presets || !row.range)
@@ -1060,38 +1510,28 @@ export function exitCapacityAnalogRows(
       if (!e) throw new Error(`venueStressAnalogs: ${v.venue} ${id} has no source event`)
       const mult = r4(p.f)
       const lockH = Math.round(p.lockH)
-      // Copy rule: a fraction under 0.01% is never printed as a bare zero.
-      const fText = p.f < 1e-4 ? 'Under 0.01%' : `${(p.f * 100).toFixed(2)}%`
-      const what =
-        level === 'worst'
-          ? `worst of ${p.n} stress events`
-          : `${level === 'typical' ? 'median' : '10th-percentile'} of ${p.n} stress events (rank ${p.rank})`
-      const recover =
-        p.recover5H !== null
-          ? `, back to 5% after ${Math.round(p.recover5H)} h`
-          : p.recoverLowerBoundH !== null
-            ? `, still under 5% ${Math.round(p.recoverLowerBoundH)} h later at the data's end`
-            : ''
       const later = Math.round(p.lockedHours72h)
       const lock = p.locked
-        ? `; locked (≤ 1%) for ${lockH}${p.lockCensored ? '+' : ''} h${recover}`
+        ? `; locked (≤ 1%) for ${lockH}${p.lockCensored ? '+' : ''} h${recoverText(p.recover5H, p.recoverLowerBoundH)}`
         : lockH > 0
           ? `; one ≤ 1% reading inside the window, which the hourly retry clears`
           : later > 0
             ? `; ≤ 1% for ${later} h later in the 72 h, after the window`
             : ''
       const provenance =
-        `${v.name}, ${what} ${p.range.fromIso.slice(0, 7)} → ${p.range.toIso.slice(0, 7)}: ` +
+        `${v.name}, ${rankText(level, p.n, p.rank)} ${p.range.fromIso.slice(0, 7)} → ${p.range.toIso.slice(0, 7)}: ` +
         `${e.shortLabel} (onset ${p.source.onsetIso}). ` +
-        `${fText} of deposits withdrawable across the 8 h window${lock}. ` +
-        `Pro-rata share of the venue's cash${v.asset === 'eth' ? '; an ETH supply market' : ''}.` +
+        `${sentence(fracText(p.f))} of deposits withdrawable across the 8 h window${lock}. ` +
+        `Floor: every depositor exits at once and a recall gets its pro-rata share of the venue's cash${v.asset === 'eth' ? '; an ETH supply market' : ''}.` +
         (p.horizonCensored ? " The 72 h horizon runs past the data's end." : '')
       out.push({
-        id: `${v.slug}-${level}`,
+        id: `${v.slug}-floor-${level}`,
         slug: v.slug,
         venue: v.venue,
         venueName: v.name,
         asset: v.asset,
+        model: 'pro-rata',
+        bookUsd: null,
         level,
         percentile: p.percentile,
         rank: p.rank,
@@ -1118,6 +1558,98 @@ export function exitCapacityAnalogRows(
         windows: [...p.source.memberIds],
         provenance,
       })
+    }
+  }
+  return out
+}
+
+/**
+ * The cash-vs-book table as the stress engine's HEADLINE preset rows, ids
+ * '<venue>-<book>-<level>' (exitCapacityAnalogs.ts header). Every venue of `venues` × every
+ * book of `books` (default EXIT_CAPACITY_BOOKS, which the table must have measured) × level,
+ * in that order; a missing venue or book, or one with no event, throws. m to 0.01%, hours
+ * whole, cash to the dollar. A locked row (m ≤ 1%) carries its m-lock as `freezeHours`.
+ */
+export function exitCapacityBookRows(
+  table: CashVsBookTable,
+  venues: readonly AnalogVenue[] = EXIT_CAPACITY_ANALOG_VENUES,
+  books: readonly { id: ExitCapacityBookId; usd: number; label: string }[] = EXIT_CAPACITY_BOOKS,
+): ExitCapacityBookRow[] {
+  if (table.basis !== EXIT_CAPACITY_ANALOG_SOURCE.basis) {
+    throw new Error(
+      `venueStressAnalogs: engine presets are on the '${EXIT_CAPACITY_ANALOG_SOURCE.basis}' basis`,
+    )
+  }
+  const out: ExitCapacityBookRow[] = []
+  for (const v of venues) {
+    for (const bk of books) {
+      const row = table.rows.find((r) => r.venue === v.venue && r.bookUsd === bk.usd)
+      if (!row || !row.presets || !row.range)
+        throw new Error(`venueStressAnalogs: no measured events for ${v.venue} at ${bk.label}`)
+      for (const id of VENUE_ANALOG_MEASURED_IDS) {
+        const p = row.presets[id]
+        const level = LEVEL_OF[id]
+        const e = row.events.find((x) => x.worst.windowId === p.source.windowId)
+        if (!e) throw new Error(`venueStressAnalogs: ${v.venue} ${bk.id} ${id} has no source event`)
+        const mult = r4(p.m)
+        const lockH = Math.round(p.lockH)
+        const cash = usdText(p.cashUsd8h)
+        const cover =
+          mult >= 1
+            ? `idle cash ${cash} across the 8 h window covers the whole ${bk.label} book (×1)`
+            : `idle cash ${cash} across the 8 h window covers ${fracText(p.m)} of the ${bk.label} book`
+        const lock = p.locked
+          ? `; under 1% of the book for ${lockH}${p.lockCensored ? '+' : ''} h${recoverText(p.recover5H, p.recoverLowerBoundH)}`
+          : ''
+        // Module header, BOOK EXCEEDS THE VENUE: said in the row itself, never only in a doc.
+        const exceeds = p.bookExceedsVenue
+          ? ` Book exceeds the venue: ${bk.label} is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays ${fracText(p.f8)} on the same event.`
+          : ''
+        const provenance =
+          `${v.name}, ${bk.label} book, ${rankText(level, p.n, p.rank)} ${p.range.fromIso.slice(0, 7)} → ${p.range.toIso.slice(0, 7)}: ` +
+          `${e.shortLabel} (onset ${p.source.onsetIso}). ${sentence(cover)}${lock}. ` +
+          `Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers${v.asset === 'eth' ? '; an ETH supply market' : ''}.` +
+          exceeds +
+          (p.horizonCensored ? " The 72 h horizon runs past the data's end." : '')
+        out.push({
+          id: `${v.slug}-${bk.id}-${level}`,
+          slug: v.slug,
+          venue: v.venue,
+          venueName: v.name,
+          asset: v.asset,
+          model: 'cash-vs-book',
+          book: bk.id,
+          bookUsd: bk.usd,
+          level,
+          percentile: p.percentile,
+          rank: p.rank,
+          n: p.n,
+          from: p.range.fromIso,
+          to: p.range.toIso,
+          mult,
+          freezeHours: p.locked ? lockH : 0,
+          locked: p.locked,
+          mOnset: r4(p.mOnset),
+          mSingleReading: r4(p.mSingleReading),
+          m72h: r4(p.m72h),
+          fWindow: r4(p.f8),
+          bookExceedsVenue: p.bookExceedsVenue,
+          lockH,
+          lockCensored: p.lockCensored,
+          recover5H: p.recover5H === null ? null : Math.round(p.recover5H),
+          recoverLowerBoundH:
+            p.recoverLowerBoundH === null ? null : Math.round(p.recoverLowerBoundH),
+          horizonCensored: p.horizonCensored,
+          cashUsd8h: Math.round(p.cashUsd8h),
+          event: e.shortLabel,
+          eventLabel: e.label,
+          windowId: p.source.windowId,
+          trigger: p.source.trigger,
+          onset: p.source.onsetIso,
+          windows: [...p.source.memberIds],
+          provenance,
+        })
+      }
     }
   }
   return out

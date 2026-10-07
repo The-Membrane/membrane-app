@@ -51,8 +51,22 @@ export interface KnownVenue {
 
 export const KNOWN_VENUES: KnownVenue[] = [
   {
+    // Cooldown: StakedUSDeV2 cooldownDuration() reads 604,800 s at block 24,669,808 and
+    // 86,400 s at 24,669,809 — CooldownDurationUpdated(604800, 86400), tx
+    // 0x05856199ceddbfb1b8231c8bfa3bf4c967e5156122b2f1eb11a473fdf5f2d9f9. Still 86,400 s
+    // in the exit-queue ledger's keyed re-run (finalized block 26,129,440): request →
+    // claimable 24.0 h at p50 and p90 over 979 requests (docs/research/exit-queue-ledger.md,
+    // feat/exit-queue-ledger). Measured history, not a forecast: the admin can set it
+    // again and a change applies to new requests at once.
+    //
+    // The rates are NOT derived from the cooldown length. 0.3 / 0 first appear in the
+    // Builder sUSDe tile ported from the proto (a96a2590, hours before this file landed
+    // in 66e16ad1): `liq: 0.3, spd: 0`, where "liq = share recallable at liquidation"
+    // (public/proto/builder.html). No comment or formula ties 0.3 to seven days. fastRate
+    // stays 0 because a 24 h gate still exceeds the 8 h cure window. Whether a 1-day gate
+    // should move recallRate is an open modelling call for the owner, not a copy fix.
     symbol: 'sUSDe', underlying: 'USDe', name: 'Ethena sUSDe', address: '0x9D39A5DE30e57443BfF2A8307A4256c8797A3497', decimals: 18,
-    exit: 'a 7-day cooldown must elapse before staked USDe can be redeemed',
+    exit: 'a 1-day cooldown (86,400 s) must elapse before staked USDe can be redeemed — set at block 24,669,809, tx 0x05856199…f2d9f9 (was 7 days); the admin can change it',
     recallRate: 0.3, fastRate: 0,
   },
   {

@@ -139,7 +139,7 @@ export const TILES: Tile[] = [
     apr: 0.118,
     liq: 0.3,
     spd: 0,
-    note: 'funding rate, 7-day cooldown',
+    note: 'funding rate, 1-day cooldown',
   },
 ]
 

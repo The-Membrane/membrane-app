@@ -219,8 +219,16 @@ claimed as proof there is none; the capital may be in an unlisted venue, an LP p
 or on another address.
 
 The `recallRate` / `fastRate` per venue are **modelled** from each venue's exit mechanics
-(sUSDe's 7-day cooldown, Aave's utilisation cap, sDAI's on-demand redemption) and are
+(sUSDe's cooldown, Aave's utilisation cap, sDAI's on-demand redemption) and are
 editable in the UI, because they are the variable that moves the result most.
+
+sUSDe's cooldown is 1 day: `cooldownDuration()` went 604,800 → 86,400 s at block
+24,669,809 (tx `0x05856199ceddbfb1b8231c8bfa3bf4c967e5156122b2f1eb11a473fdf5f2d9f9`).
+The exit-queue ledger's keyed re-run (finalized block 26,129,440) measured request →
+claimable at 24.0 h at p50 and p90. That is measured history, not a forecast; the admin
+can change the duration again. The sUSDe rates (0.3 / 0) were not derived from the old
+7-day figure — they first appear in the proto Builder's sUSDe tile (`liq: 0.3, spd: 0`) —
+so the correction changed only the exit copy. `fastRate` 0 still holds because 24 h exceeds the 8 h cure window.
 
 ---
 

@@ -32,7 +32,13 @@
  */
 
 import snapshot from '../../public/data/demo-carry.json'
-import { excludeOwnCollateral, toVenueRecall, type VenueDetection } from './venues'
+import {
+  excludeOwnCollateral,
+  KNOWN_VENUES,
+  toVenueRecall,
+  type KnownVenue,
+  type VenueDetection,
+} from './venues'
 import { stamp, type ProtocolPosition } from './types'
 import type { VenueRecall } from './membrane'
 
@@ -52,6 +58,12 @@ const PROVENANCE_DETAIL =
   'block. Paste the address to re-read it live.'
 
 const SNAPSHOT_AT = Date.parse(snapshot.readAt)
+
+/** The live KNOWN_VENUES entry for a snapshot venue, matched by address. A venue since
+ *  dropped from the list keeps its snapshot entry rather than vanishing from the scan. */
+function currentVenue(v: KnownVenue): KnownVenue {
+  return KNOWN_VENUES.find((k) => k.address.toLowerCase() === v.address.toLowerCase()) ?? v
+}
 
 /**
  * The demo position, exactly as the adapter returned it.
@@ -94,6 +106,11 @@ export function demoDetection(): VenueDetection {
   )
   return {
     ...d,
+    // The snapshot froze each venue's exit copy and modelled rates along with the
+    // balances. Only the balances are the on-chain read; the venue description is ours
+    // and lives in KNOWN_VENUES, so it is re-read from there. Otherwise the demo kept
+    // printing sUSDe's 7-day cooldown after it was corrected to 1 day.
+    detected: d.detected.map((x) => ({ ...x, venue: currentVenue(x.venue) })),
     provenance: stamp(
       'onchain',
       `venue scan · snapshot ${DEMO_SNAPSHOT_DATE}`,

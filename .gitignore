@@ -40,3 +40,6 @@ AGENT_BOARD.md
 
 # Machine-local, reproducible archive-RPC research cache (large raw samples)
 /data/research/venue-signals/
+
+# Resumable raw cache of scripts/position-sim/build-price-history.mjs (klines, oracle segments, rate reads)
+/data/price-history/cache/

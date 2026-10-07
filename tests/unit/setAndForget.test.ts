@@ -226,15 +226,30 @@ describe('windowTrough', () => {
 // ------------------------------------------------------------------ case + solve
 
 describe('casePosition', () => {
+  // UPDATED 2026-10-06: 'stressed' (×0.5, named) → the measured 'aave-usdc-typical'; a
+  // custom multiple (a mechanics fixture) now passes through too.
   it('deploys the whole debt for carry and names its exit capacity', () => {
     const pos = casePosition(
-      { line: 0.8, membraneClass: 'delayed', tradeShape: 'carry', exitCapacityPreset: 'stressed' },
+      {
+        line: 0.8,
+        membraneClass: 'delayed',
+        tradeShape: 'carry',
+        exitCapacityPreset: 'aave-usdc-typical',
+      },
       0.5,
     )
     expect(pos.collateralUsd).toBe(SET_AND_FORGET_COLLATERAL_USD)
     expect(pos.debtUsd).toBe(50_000)
     expect(pos.deployedUsd).toBe(50_000)
-    expect(pos.exitCapacityPreset).toBe('stressed')
+    expect(pos.exitCapacityPreset).toBe('aave-usdc-typical')
+    expect(pos.exitCapacityMult).toBeUndefined()
+    const custom = casePosition(
+      { line: 0.8, membraneClass: 'delayed', tradeShape: 'carry', exitCapacityMult: 0.5 },
+      0.5,
+    )
+    expect(custom.exitCapacityMult).toBe(0.5)
+    expect(custom.exitCapacityPreset).toBeUndefined()
+    expect(casePosition({ ...LL, exitCapacityMult: 0.5 }, 0.5).exitCapacityMult).toBeUndefined()
   })
 
   it('deploys nothing for levered_long and keeps the engine floor unless given', () => {
@@ -287,8 +302,22 @@ describe('solveStartLtv', () => {
     const cases: SetAndForgetCase[] = [
       LL,
       { ...LL, membraneClass: 'no-delay' },
-      { line: 0.8, membraneClass: 'delayed', tradeShape: 'carry', exitCapacityPreset: 'stressed' },
-      { line: 0.8, membraneClass: 'delayed', tradeShape: 'carry', exitCapacityPreset: 'kelp-lock' },
+      // UPDATED 2026-10-06: the named 'stressed' (×0.5) / 'kelp-lock' (×0.1) cases became a
+      // custom ×0.5 (same walk as before), the measured Aave USDC typical (×0.1119) and a
+      // measured LOCKED analog (Spark DAI worst: ×0.0068 behind a 78 h lock — the lock path).
+      { line: 0.8, membraneClass: 'delayed', tradeShape: 'carry', exitCapacityMult: 0.5 },
+      {
+        line: 0.8,
+        membraneClass: 'delayed',
+        tradeShape: 'carry',
+        exitCapacityPreset: 'aave-usdc-typical',
+      },
+      {
+        line: 0.8,
+        membraneClass: 'delayed',
+        tradeShape: 'carry',
+        exitCapacityPreset: 'spark-dai-worst',
+      },
     ]
     for (const seed of [11, 12, 13, 14]) {
       const p = randomPath(seed, 120, 0.05)
@@ -468,7 +497,9 @@ describe('tallyAtLtv — one start LTV, every start (copy-claim check)', () => {
   /**
    * The debt floor at small sizes (refuter finding 2026-10-06). Entry 100, a 3-hour wick to 49
    * (LTV 40% → 81.6%: over the 80% line, inside the 4% band) and back. A levered long is
-   * saved by the window. A carry position recalls; with the venue returning ×0.5:
+   * saved by the window. A carry position recalls; with the venue returning ×0.5 (a custom
+   * multiple — a mechanics fixture; UPDATED 2026-10-06 from the retired 'stressed' preset,
+   * the same node):
    *   $10,000 collateral, debt $4,000: the ask lifts to the $2,000 floor and the venue's
    *     $2,000 covers it — cured, the $2,000 left stands (not under the floor);
    *   $9,999 collateral, debt $3,999.60: loan − floor < floor, so the ask is the WHOLE loan
@@ -480,7 +511,7 @@ describe('tallyAtLtv — one start LTV, every start (copy-claim check)', () => {
     line: 0.8,
     membraneClass: 'delayed',
     tradeShape: 'carry',
-    exitCapacityPreset: 'stressed',
+    exitCapacityMult: 0.5,
     collateralUsd,
   })
 

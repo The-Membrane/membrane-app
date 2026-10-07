@@ -1,7 +1,8 @@
 /**
  * stressGrid — fixed, named stress scenarios run through Membrane's liquidation mechanics
  * for ONE position. ENGINE ONLY: it returns numbers and machine codes, never copy (the one
- * exception is EXIT_CAPACITY_PRESETS' one-line provenance notes, data for the UI's picker).
+ * exception is EXIT_CAPACITY_PRESETS' labels and one-line provenance notes, data for the UI's
+ * picker).
  *
  * A node is a position (collateral, debt, line, class, trade shape, deployed venue capital)
  * plus ONE scenario (a price shape, optionally a venue condition), walked step by step
@@ -66,13 +67,16 @@
  * ---------------------------------------------------------------------------
  *  - Venue recall is a STOCK: `min(deployedUsd, exitCapacityUsd × capacityMult)`, drawn
  *    down by every committed recall and never refilled. A freeze makes it unavailable for
- *    `freezeHours` from the FIRST breach (the moment recall is first needed).
+ *    `freezeHours` from the FIRST breach (the moment recall is first needed): the longer of
+ *    the scenario's freeze and the preset's measured lock.
  *  - Exit capacity is an EXPLICIT input for a carry position with capital deployed —
- *    `exitCapacityUsd`, or a named `exitCapacityPreset` (EXIT_CAPACITY_PRESETS). There is
+ *    `exitCapacityUsd`, or a named `exitCapacityPreset` (EXIT_CAPACITY_PRESETS: measured
+ *    venue analogs, owner instruction 2026-10-06), or a custom `exitCapacityMult`. There is
  *    no silent default: owner ruling 2026-10-04 — assuming the whole deployed amount is
  *    withdrawable is the MOST optimistic case, so it must be chosen, never assumed. A
- *    carry node with deployed capital and neither input is `not_modelled`
- *    ('no_exit_capacity').
+ *    carry node with deployed capital and none of them is `not_modelled`
+ *    ('no_exit_capacity'). A measured analog is the pro-rata share of a real venue's cash
+ *    in a real stress event: descriptive history, not a forecast of the next one.
  *  - Debt (CDT) is held at $1; the price shape moves the whole collateral value.
  *  - After the shape ends the price holds at its last value for one full window plus a
  *    step, so every armed timer resolves inside the horizon (no grid-end guess).
@@ -94,6 +98,15 @@ import {
   weightedMembraneLine,
   type MembraneClass,
 } from './membrane'
+import {
+  EXIT_CAPACITY_ANALOG_LEVELS,
+  EXIT_CAPACITY_ANALOG_ROWS,
+  EXIT_CAPACITY_ANALOG_VENUES,
+  type ExitCapacityAnalogId,
+  type ExitCapacityAnalogLevel,
+  type ExitCapacityAnalogRow,
+  type ExitCapacityAnalogVenue,
+} from './exitCapacityAnalogs'
 import { SYMBOL_TO_SERIES, type Oct10Series } from './scenario'
 import type { ProtocolPosition } from './types'
 
@@ -101,7 +114,7 @@ import type { ProtocolPosition } from './types'
 
 /** Bumped whenever the walk, the normalization or the key changes. Part of every key. */
 export const STRESS_CODE_VERSION =
-  'stress-grid/4 · membrane-solidity master 10626e40 + owner rulings 2026-10-04'
+  'stress-grid/5 · membrane-solidity master 10626e40 + owner rulings 2026-10-04'
 
 /** The only label a node carries. */
 export const STRESS_LABEL = 'stress scenario — not a probability'
@@ -123,55 +136,114 @@ const DUST_USD = 1e-6
 export type TradeShape = 'carry' | 'levered_long'
 
 /**
- * Named exit-capacity levels a carry position can be run at (ruling 5, owner 2026-10-04:
- * "assuming the whole deployed amount is withdrawable is the most optimistic case"). Each
- * resolves to exit capacity = deployedUsd × `mult`. They are NAMED STRESS LEVELS, not
- * measurements: the capacity sim (AGENT_BOARD.md ATTACH POINT) is meant to replace them
- * with measured per-venue figures passed as `exitCapacityUsd`.
+ * Named exit-capacity levels a carry position can be run at. Owner instruction 2026-10-06:
+ * "the venue-capacity assumptions should directly analogize existing protocols (assuming
+ * typical Aave capacity during stress over the last 3 years)". So every level but the two
+ * bounds is a MEASURED ANALOG — what a depositor could withdraw from one real venue during
+ * one real stress event, 2023-10 → 2026-10 (exitCapacityAnalogs.ts; method
+ * venueStressAnalogs.ts). Ids are '<venue>-<level>': per venue the median ('typical'),
+ * 10th-percentile ('bad') and worst ('worst') of its stress events.
+ *   exit capacity = deployedUsd × `mult`, where mult = the event's withdrawable fraction
+ *     (cash / supply) over the 8 h window — the PRO-RATA RACE assumption: every depositor
+ *     exits at once, so a recall gets the same share of its deposit whatever its size.
+ *   `freezeHours` = the event's measured lock (≤ 1% withdrawable) when the event is locked:
+ *     the venue answers nothing for that long from the first breach (exitCapacityAnalogs.ts
+ *     header: it starts up to 8 h early, and the recovery after it is not modelled).
+ * The bounds: 'frozen' (×0, nothing comes back — a paused reserve or a recall that loses the
+ * race) and 'optimistic' (×1, an UPPER BOUND only, never a default: owner ruling 2026-10-04,
+ * "assuming the whole deployed amount is withdrawable is the most optimistic case").
+ * The ×0.5 'stressed' and ×0.1 'kelp-lock' levels these replace were named, not measured;
+ * their ids are gone (no URL or store encoded them). A custom multiple is `exitCapacityMult`.
  */
-export type ExitCapacityPresetId = 'optimistic' | 'stressed' | 'kelp-lock' | 'frozen'
+export type ExitCapacityBoundId = 'frozen' | 'optimistic'
+export type ExitCapacityPresetId = ExitCapacityAnalogId | ExitCapacityBoundId
 
 export interface ExitCapacityPreset {
   readonly id: ExitCapacityPresetId
+  readonly kind: 'measured' | 'theoretical-bound' | 'upper-bound'
+  /** Short picker name, e.g. 'Aave USDC · typical'. */
+  readonly label: string
   /** Exit capacity = deployedUsd × mult. */
   readonly mult: number
+  /** The venue answers nothing for this long from the first breach, hours (a measured lock). */
+  readonly freezeHours: number
   /** One line: where the level comes from. Data the UI can show next to the choice. */
   readonly provenance: string
+  /** The measured source (venue, event, windows, date range, n). Null for a bound. */
+  readonly source: ExitCapacityAnalogRow | null
 }
 
-export const EXIT_CAPACITY_PRESETS: Readonly<Record<ExitCapacityPresetId, ExitCapacityPreset>> = {
-  optimistic: {
-    id: 'optimistic',
-    mult: 1,
-    provenance:
-      'Everything deployed comes back on demand. The most optimistic case (owner ruling 2026-10-04), so it is never the default.',
-  },
-  stressed: {
-    id: 'stressed',
-    mult: 0.5,
-    provenance:
-      'Half of what is deployed comes back. A named stress level, not a measured exit share.',
-  },
-  'kelp-lock': {
-    id: 'kelp-lock',
-    mult: 0.1,
-    provenance:
-      'A tenth comes back. Stand-in for a utilisation lock like Aave markets near 99.9% utilisation in the April 2026 KelpDAO rsETH event (per the 2026-10-04 ruling); a named level, not a measured share.',
-  },
+const LEVEL_LABEL: Readonly<Record<ExitCapacityAnalogLevel, string>> = {
+  typical: 'typical',
+  bad: 'bad (p10)',
+  worst: 'worst seen',
+}
+
+export const EXIT_CAPACITY_BOUNDS: Readonly<Record<ExitCapacityBoundId, ExitCapacityPreset>> = {
   frozen: {
     id: 'frozen',
+    kind: 'theoretical-bound',
+    label: 'Frozen · ×0',
     mult: 0,
-    provenance: 'Nothing comes back: the venue is frozen or paused for the whole scenario.',
+    freezeHours: 0,
+    provenance:
+      'Nothing comes back: a paused reserve, or a recall that loses the exit race. The theoretical lower bound.',
+    source: null,
+  },
+  optimistic: {
+    id: 'optimistic',
+    kind: 'upper-bound',
+    label: 'Upper bound · ×1',
+    mult: 1,
+    freezeHours: 0,
+    provenance:
+      'Everything deployed comes back on demand. An upper bound only, never a default (owner ruling 2026-10-04); no stress event measured it.',
+    source: null,
   },
 }
 
-/** Display order, most to least optimistic. */
+export const EXIT_CAPACITY_PRESETS: Readonly<Record<ExitCapacityPresetId, ExitCapacityPreset>> =
+  Object.freeze({
+    ...(Object.fromEntries(
+      EXIT_CAPACITY_ANALOG_ROWS.map((r) => [
+        r.id,
+        {
+          id: r.id,
+          kind: 'measured',
+          label: `${r.venueName} · ${LEVEL_LABEL[r.level]}`,
+          mult: r.mult,
+          freezeHours: r.freezeHours,
+          provenance: r.provenance,
+          source: r,
+        } satisfies ExitCapacityPreset,
+      ]),
+    ) as Record<ExitCapacityAnalogId, ExitCapacityPreset>),
+    ...EXIT_CAPACITY_BOUNDS,
+  })
+
+/** The measured venues, picker order, each with its three levels. */
+export const EXIT_CAPACITY_VENUES: readonly {
+  slug: ExitCapacityAnalogVenue
+  name: string
+  asset: 'stable' | 'eth'
+  presets: readonly ExitCapacityAnalogId[]
+}[] = EXIT_CAPACITY_ANALOG_VENUES.map((v) => ({
+  slug: v.slug,
+  name: v.name,
+  asset: v.asset,
+  presets: EXIT_CAPACITY_ANALOG_LEVELS.map((l) => `${v.slug}-${l}` as ExitCapacityAnalogId),
+}))
+
+/** Display order: every measured venue (typical, bad, worst), then 'frozen', then the upper
+ *  bound 'optimistic' last. */
 export const EXIT_CAPACITY_PRESET_ORDER: readonly ExitCapacityPresetId[] = [
-  'optimistic',
-  'stressed',
-  'kelp-lock',
+  ...EXIT_CAPACITY_VENUES.flatMap((v) => v.presets),
   'frozen',
+  'optimistic',
 ]
+
+/** The default level: typical Aave USDC capacity during stress (owner instruction 2026-10-06). */
+export const EXIT_CAPACITY_DEFAULT_PRESET: ExitCapacityPresetId = 'aave-usdc-typical'
 
 /** Exit capacity, USD, for a deployed amount at a named level. */
 export function exitCapacityFromPreset(deployedUsd: number, preset: ExitCapacityPresetId): number {
@@ -199,15 +271,17 @@ export interface StressPosition {
   exitCapacityUsd?: number
   /**
    * A named exit-capacity level (EXIT_CAPACITY_PRESETS) resolved against `deployedUsd`:
-   * exit capacity = deployedUsd × preset multiplier. Carry only.
+   * exit capacity = deployedUsd × preset multiplier, and the venue answers nothing for the
+   * preset's measured lock (`freezeHours`) from the first breach. Carry only.
    */
   exitCapacityPreset?: ExitCapacityPresetId
   /**
    * A custom exit capacity as a MULTIPLE of `deployedUsd` (0–1 in the UI), resolved exactly
    * like a preset — so `withStartLtv`, which scales the deployed amount with the debt,
-   * scales the capacity with it. A custom ×0.50 is then the same node as the 'stressed'
-   * preset. (The sandbox used to turn a custom multiplier into a fixed `exitCapacityUsd`,
-   * which the reverse solve holds in dollars: "custom ×0.50" and 'stressed' disagreed.)
+   * scales the capacity with it. A custom ×m is then the same node as an unlocked preset
+   * with mult m. (The sandbox used to turn a custom multiplier into a fixed
+   * `exitCapacityUsd`, which the reverse solve holds in dollars: "custom ×0.50" and the
+   * ×0.5 preset of the time disagreed.) A custom multiple carries no lock.
    * Precedence: `exitCapacityUsd`, then `exitCapacityPreset`, then this. Carry only.
    */
   exitCapacityMult?: number
@@ -391,6 +465,9 @@ interface NormalizedStress {
     /** Resolved exit capacity, USD. Null = a carry position with deployed capital gave
      *  none (not modelled: 'no_exit_capacity'). NaN = an invalid input or unknown preset. */
     cap: number | null
+    /** The exit-capacity preset's measured lock, hours: no recall for this long from the
+     *  first breach. 0 without a preset (or when `exitCapacityUsd` wins). */
+    lock: number
     dMin: number
   }
   price: NormPrice
@@ -454,9 +531,11 @@ function normalize(
   // A named preset, else a custom multiple of the deployed amount (both resolve the same
   // way). A non-finite or negative custom multiple is NaN: validate() reads it as invalid.
   const customMult = position.exitCapacityMult
+  const known =
+    preset !== undefined && Object.prototype.hasOwnProperty.call(EXIT_CAPACITY_PRESETS, preset)
   const presetMult =
     preset !== undefined
-      ? Object.prototype.hasOwnProperty.call(EXIT_CAPACITY_PRESETS, preset)
+      ? known
         ? EXIT_CAPACITY_PRESETS[preset].mult
         : NaN
       : customMult !== undefined
@@ -473,6 +552,11 @@ function normalize(
         : dep > 0
           ? null
           : 0
+  // A preset's measured lock applies only when the preset resolves the capacity.
+  const lock =
+    carry && position.exitCapacityUsd === undefined && known
+      ? hrs(EXIT_CAPACITY_PRESETS[preset!].freezeHours)
+      : 0
   const stepSeconds =
     scenario.price.kind === 'replay'
       ? q(scenario.price.stepSeconds, 3)
@@ -486,6 +570,7 @@ function normalize(
       shape: position.tradeShape,
       dep,
       cap,
+      lock,
       dMin: usd(Math.max(0, position.debtMinimumUsd ?? LIQ_DEBT_MINIMUM_USD)),
     },
     price: normalizePrice(scenario.price),
@@ -502,7 +587,9 @@ function validate(n: NormalizedStress): NotModelledReason | null {
   const fin = Number.isFinite
   if (!(fin(pos.c) && pos.c > 0) || !(fin(pos.d) && pos.d >= 0)) return 'invalid_position'
   if (pos.cap === null) return 'no_exit_capacity'
-  if (!fin(pos.dep) || !fin(pos.cap) || !fin(pos.dMin)) return 'invalid_position'
+  if (!fin(pos.dep) || !fin(pos.cap) || !fin(pos.dMin) || !(pos.lock >= 0)) {
+    return 'invalid_position'
+  }
   const params = MEMBRANE_CLASS_PARAMS[pos.cls]
   if (!params) return 'invalid_position'
   if (!(pos.line > 0 && pos.line <= params.ltvCeiling)) return 'line_out_of_class_range'
@@ -685,7 +772,9 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
   // The SAME classifier cureWalk and compare.ts run (curePath.ts). band 0 ⇒ never arms.
   const timer = new DelayTimer({ line, band: params.band, delaySteps })
   const stock = pos.shape === 'carry' ? Math.min(pos.dep, (pos.cap ?? 0) * n.venue.mult) : 0
-  const freezeSteps = Math.ceil((n.venue.freezeHours * 3600) / n.stepSeconds)
+  // The scenario's freeze and the preset's measured lock both start at the first breach:
+  // the venue answers once both are over.
+  const freezeSteps = Math.ceil((Math.max(n.venue.freezeHours, pos.lock) * 3600) / n.stepSeconds)
 
   let debt = pos.d
   let collBase = pos.c // collateral on the t0 basis: value at step i = collBase × ratios[i]
@@ -948,8 +1037,8 @@ export const DEFAULT_PRICE_SHAPES: readonly PriceShape[] = [
 ]
 
 /** Venue exit capacity multipliers, applied to the position's EXPLICIT exit capacity
- *  (`exitCapacityUsd` / `exitCapacityPreset`). ×1 is the baseline row — the capacity the
- *  caller chose, not "everything deployed". */
+ *  (`exitCapacityUsd` / `exitCapacityPreset` / `exitCapacityMult`). ×1 is the baseline row —
+ *  the capacity the caller chose, not "everything deployed". */
 export const DEFAULT_CAPACITY_MULTS: readonly number[] = [1, 0.5, 0.1]
 
 /** Venue freeze lengths, hours. */

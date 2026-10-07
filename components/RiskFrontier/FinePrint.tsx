@@ -23,7 +23,7 @@ const LINES = (tapeWindow: string | null): { head: string; body: string }[] => [
   },
   {
     head: 'Modelled, not measured',
-    body: 'Membrane is not on mainnet, so every LTV and line here is modelled. Venue recall is a stock, min(deployed, exit capacity × multiplier), drawn down and never refilled; a freeze starts at the first breach. Exit-capacity presets are named stress levels, not measured exit shares. Debt is held at $1 and the price shape moves the whole collateral. After a shape ends the price holds for one window plus a step.',
+    body: 'Membrane is not on mainnet, so every LTV and line here is modelled. Venue recall is a stock, min(deployed, exit capacity × multiplier), drawn down and never refilled; a freeze starts at the first breach. Exit-capacity presets are measured analogs: the share of deposits a real venue (Aave, Spark, Steakhouse) let depositors withdraw across the first 8 hours of a real stress event, 2023–2026, assuming every depositor races for the exit at once (pro-rata). A locked event (1% or less withdrawable) also gives no recall for its measured lock, and the stock never refills when the venue recovers. They describe past stress, not the next one. The ×1 bound (everything comes back) is an upper bound, never a default. Debt is held at $1 and the price shape moves the whole collateral. After a shape ends the price holds for one window plus a step.',
   },
   {
     head: 'Left out',

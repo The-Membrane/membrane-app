@@ -23,6 +23,8 @@ import {
 } from '@/components/RiskFrontier/viewModel'
 import { MEMBRANE_CLASS_PARAMS } from '@/lib/position-sim/membrane'
 import {
+  EXIT_CAPACITY_DEFAULT_PRESET,
+  EXIT_CAPACITY_PRESETS,
   STRESS_CODE_VERSION,
   STRESS_LABEL,
   oct10ReplayShape,
@@ -104,9 +106,19 @@ describe('risk frontier view model — sandbox inputs', () => {
   })
 
   it('passes a preset through, and a custom multiplier as a multiple of the deployed amount', () => {
+    // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
+    // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): the default preset
+    // passes through as an id and resolves to deployed × its measured mult.
     const preset = buildStressPosition(DEFAULT_INPUTS)
-    expect(preset.position.exitCapacityPreset).toBe('stressed')
-    expect(preset.exitCapacityUsd).toBe(DEFAULT_INPUTS.deployedUsd * 0.5)
+    expect(preset.position.exitCapacityPreset).toBe('aave-usdc-typical')
+    expect(preset.exitCapacityUsd).toBeCloseTo(DEFAULT_INPUTS.deployedUsd * 0.1119, 9)
+    expect(preset.capacityLabel).toBe('Aave USDC · typical')
+    expect(preset.capacityLockHours).toBe(0)
+    const kelp = buildStressPosition({
+      ...DEFAULT_INPUTS,
+      capacity: { kind: 'preset', preset: 'aave-usdc-worst' },
+    })
+    expect(kelp.capacityLockHours).toBe(45)
     const custom = buildStressPosition({
       ...DEFAULT_INPUTS,
       capacity: { kind: 'custom', mult: 0.3 },
@@ -128,6 +140,16 @@ describe('risk frontier view model — sandbox inputs', () => {
 
   it('never defaults to the optimistic exit (owner ruling 2026-10-04)', () => {
     expect(DEFAULT_INPUTS.capacity).not.toEqual({ kind: 'preset', preset: 'optimistic' })
+    // Owner instruction 2026-10-06: typical Aave capacity during stress.
+    expect(DEFAULT_INPUTS.capacity).toEqual({
+      kind: 'preset',
+      preset: EXIT_CAPACITY_DEFAULT_PRESET,
+    })
+    for (const l of LOADOUTS) {
+      if (l.inputs.capacity.kind === 'preset') {
+        expect(EXIT_CAPACITY_PRESETS[l.inputs.capacity.preset], l.id).toBeDefined()
+      }
+    }
   })
 })
 
@@ -177,9 +199,12 @@ describe('risk frontier view model — edges and leaves', () => {
   it('gives every outcome its own glyph', () => {
     const glyphs = new Set<string>()
     const pos = buildStressPosition(DEFAULT_INPUTS).position
+    // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
+    // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): the recall cure is
+    // reached at −20% (needs $1,128 of the $1,589 stock), no longer at −25%.
     const runs: StressResult[] = [
       runStress(pos, { price: { kind: 'step', drop: 0 } }),
-      runStress(pos, { price: { kind: 'step', drop: 0.25 } }),
+      runStress(pos, { price: { kind: 'step', drop: 0.2 } }),
       runStress(pos, { price: { kind: 'step', drop: 0.5 } }),
       runStress({ ...pos, exitCapacityPreset: undefined }, { price: { kind: 'step', drop: 0.1 } }),
     ]
@@ -196,7 +221,9 @@ describe('risk frontier view model — swatch cells', () => {
   it('gives each outcome a compact line that carries its number', () => {
     const pos = buildStressPosition(DEFAULT_INPUTS).position
     const flat = runStress(pos, { price: { kind: 'step', drop: 0 } })
-    const recall = runStress(pos, { price: { kind: 'step', drop: 0.25 } })
+    // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
+    // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): recall cures at −20%.
+    const recall = runStress(pos, { price: { kind: 'step', drop: 0.2 } })
     const sold = runStress(pos, { price: { kind: 'step', drop: 0.5 } })
     const nm = runStress(
       { ...pos, exitCapacityPreset: undefined },
@@ -298,7 +325,10 @@ describe('risk frontier view model — tree timeline', () => {
 describe('risk frontier view model — headline, crash test, selection', () => {
   it('names the nearest price edge without folding in venue axes', () => {
     const m = computeFrontier(DEFAULT_INPUTS, null)
-    expect(m.headline.lead).toBe('A held drop past 35% arms the 8h window.')
+    // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
+    // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): the $1,589 stock
+    // cures drops to ~21.2% (was 35% with $7,100).
+    expect(m.headline.lead).toBe('A held drop past 21% arms the 8h window.')
     expect(m.headline.detail).toContain('Modelled recall, not a guarantee.')
     const nd = computeFrontier(LOADOUTS.find((l) => l.id === 'no-delay')!.inputs, null)
     expect(nd.headline.lead).toContain('no window in this class')
@@ -308,10 +338,18 @@ describe('risk frontier view model — headline, crash test, selection', () => {
   })
 
   it('says when a carry position starts over the line (recall fires at once)', () => {
-    const m = computeFrontier({ ...DEFAULT_INPUTS, debtUsd: 39_500 }, null)
+    // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
+    // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): at $39,500 the
+    // $1,660 the recall needs is over the $1,589 stock, so the case moves to $39,400 ($1,560).
+    const m = computeFrontier({ ...DEFAULT_INPUTS, debtUsd: 39_400 }, null)
     expect(m.dtd.price.breach.status).toBe('already')
     expect(m.headline.detail).toMatch(
-      /^Already over the line: start LTV 89\.8% vs line 86%, so recall fires at once\./,
+      /^Already over the line: start LTV 89\.5% vs line 86%, so recall fires at once\./,
+    )
+    const short = computeFrontier({ ...DEFAULT_INPUTS, debtUsd: 39_500 }, null)
+    expect(short.dtd.price.breach.status).toBe('already')
+    expect(short.headline.detail).toMatch(
+      /^Recall would need \$1,660; the chosen exit capacity holds \$1,589\./,
     )
     expect(computeFrontier(DEFAULT_INPUTS, null).headline.detail).not.toContain(
       'Already over the line',
@@ -330,7 +368,10 @@ describe('risk frontier view model — headline, crash test, selection', () => {
             : 'cleared',
       )
     }
-    expect(m.crash[0].limit.text).toBe('55%')
+    // UPDATED 2026-10-06 (owner instruction: measured venue analogs; the default exit is typical
+    // Aave USDC stress, ×0.1119 of deployed, was the named 'stressed' ×0.5): at −50% the limit
+    // start LTV is 45% (was 55%).
+    expect(m.crash[0].limit.text).toBe('45%')
     expect(m.crash[0].verdict).toBe('sold')
     // UPDATED 2026-10-04 (owner ruling 1, the debt floor on what a call actually repays):
     // was every level 'cleared'. The small loan ($3k debt, $2.5k deployed, optimistic)
@@ -349,17 +390,19 @@ describe('risk frontier view model — headline, crash test, selection', () => {
     // engine as a fixed $11,400, which the reverse solve held in dollars while it rescaled
     // the debt: at −60% the limit read 60% (custom ×0.50) vs 49% ('stressed', ×0.5), and at
     // −50% 68% vs 61% — the custom answer optimistic exactly where the crash test matters.
+    // UPDATED 2026-10-06: the preset is the measured 'aave-usdc-typical' (×0.1119), was the
+    // named 'stressed' (×0.5, where the limits read 61% / 49%).
     const base = { ...DEFAULT_INPUTS, debtUsd: 38_000, deployedUsd: 22_800 }
     const preset = computeFrontier(
-      { ...base, capacity: { kind: 'preset', preset: 'stressed' } },
+      { ...base, capacity: { kind: 'preset', preset: 'aave-usdc-typical' } },
       null,
     )
-    const custom = computeFrontier({ ...base, capacity: { kind: 'custom', mult: 0.5 } }, null)
+    const custom = computeFrontier({ ...base, capacity: { kind: 'custom', mult: 0.1119 } }, null)
     expect(custom.crash.map((c) => c.limit.text)).toEqual(preset.crash.map((c) => c.limit.text))
-    expect(preset.crash.map((c) => c.limit.text)).toEqual(['61%', '49%'])
+    expect(preset.crash.map((c) => c.limit.text)).toEqual(['46%', '36%'])
     expect(custom.dtd.reverse).toEqual(preset.dtd.reverse)
     expect(custom.dtd.capacity).toEqual(preset.dtd.capacity)
-    expect(custom.sandbox.exitCapacityUsd).toBeCloseTo(11_400, 9)
+    expect(custom.sandbox.exitCapacityUsd).toBeCloseTo(2_551.32, 9)
   })
 
   it('the crash stamp carries the node’s own glyph: ● only when the line was never crossed', () => {

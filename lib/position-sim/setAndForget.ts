@@ -37,9 +37,11 @@
  * the driver still re-checks the worst windows on a whole-percent grid and reports it.
  * So the ℓ* table holds for LARGE positions only. A copy claim at one LTV is measured per
  * position size by `tallyAtLtv` (plain runs, no bisection — driver `--claims`): with the
- * venue returning half, a carry position whose debt is under 2 × liqDebtMinimum ($4,000)
- * has its first recall escalated to the whole loan, gets half back, and sells collateral
- * for the rest on the first line crossing (saleReason 'floor', refuter finding 2026-10-06).
+ * venue returning only a share of the deployed debt (×0.5 in the refuter's run; the
+ * measured venue analogs return less), a carry position whose debt is under
+ * 2 × liqDebtMinimum ($4,000) has its first recall escalated to the whole loan, gets that
+ * share back, and sells collateral for the rest on the first line crossing (saleReason
+ * 'floor', refuter finding 2026-10-06).
  */
 import type { PriceGrid } from './drawdowns'
 import { bisectEdge } from './frontier'
@@ -301,8 +303,12 @@ export interface SetAndForgetCase {
   line: number
   membraneClass: MembraneClass
   tradeShape: TradeShape
-  /** Carry only: the named exit-capacity level. The whole debt is deployed. */
+  /** Carry only: the named exit-capacity level (a measured venue analog or a bound). The
+   *  whole debt is deployed. */
   exitCapacityPreset?: ExitCapacityPresetId
+  /** Carry only: a custom exit capacity as a multiple of the deployed debt (stressGrid
+   *  `exitCapacityMult`) — a mechanics fixture, not a venue claim. The preset wins. */
+  exitCapacityMult?: number
   /** Default SET_AND_FORGET_COLLATERAL_USD. */
   collateralUsd?: number
   /** Default: the engine's (LIQ_DEBT_MINIMUM_USD). */
@@ -324,7 +330,13 @@ export function casePosition(c: SetAndForgetCase, ltv: number): StressPosition {
     line: c.line,
     membraneClass: c.membraneClass,
     tradeShape: c.tradeShape,
-    ...(carry ? { deployedUsd: debtUsd, exitCapacityPreset: c.exitCapacityPreset } : {}),
+    ...(carry
+      ? {
+          deployedUsd: debtUsd,
+          exitCapacityPreset: c.exitCapacityPreset,
+          ...(c.exitCapacityMult !== undefined ? { exitCapacityMult: c.exitCapacityMult } : {}),
+        }
+      : {}),
     ...(c.debtMinimumUsd !== undefined ? { debtMinimumUsd: c.debtMinimumUsd } : {}),
   }
 }

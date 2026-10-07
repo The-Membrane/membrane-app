@@ -8,7 +8,11 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import { EXIT_CAPACITY_PRESETS, EXIT_CAPACITY_PRESET_ORDER } from '@/lib/position-sim/stressGrid'
+import type {
+  ExitCapacityAnalogLevel,
+  ExitCapacityAnalogVenue,
+} from '@/lib/position-sim/exitCapacityAnalogs'
+import { EXIT_CAPACITY_PRESETS, EXIT_CAPACITY_VENUES } from '@/lib/position-sim/stressGrid'
 import type { MembraneClass } from '@/lib/position-sim/membrane'
 
 import { Eyebrow, Panel } from './atoms'
@@ -16,6 +20,7 @@ import {
   LOADOUTS,
   classView,
   clampLine,
+  multText,
   pct,
   usd,
   usdOrNone,
@@ -193,6 +198,12 @@ const Group: React.FC<{ label: string; children: React.ReactNode; right?: React.
   </Box>
 )
 
+const LEVEL_SHORT: Readonly<Record<ExitCapacityAnalogLevel, string>> = {
+  typical: 'typical',
+  bad: 'bad · p10',
+  worst: 'worst seen',
+}
+
 const Readout: React.FC<{ children: React.ReactNode; color?: string }> = ({ children, color }) => (
   <Text
     fontFamily={TYPOGRAPHY.fontMono}
@@ -225,6 +236,23 @@ export const LoadoutPanel: React.FC<{
   )?.id
   const cap = inputs.capacity
   const setCap = (c: CapacityChoice) => set('capacity', c)
+  // The measured preset's venue, if one is chosen; a bound or custom keeps the last venue
+  // picked so its three levels stay on screen.
+  const capSource = cap.kind === 'preset' ? EXIT_CAPACITY_PRESETS[cap.preset].source : null
+  const presetVenue = capSource?.slug ?? null
+  const [venuePick, setVenuePick] = useState<ExitCapacityAnalogVenue>(presetVenue ?? 'aave-usdc')
+  useEffect(() => {
+    if (presetVenue) setVenuePick(presetVenue) // a loadout can switch the venue too
+  }, [presetVenue])
+  const venue =
+    EXIT_CAPACITY_VENUES.find((v) => v.slug === (presetVenue ?? venuePick)) ??
+    EXIT_CAPACITY_VENUES[0]
+  // Switching venue keeps the level (typical / bad / worst), typical from a bound or custom.
+  const pickVenue = (slug: ExitCapacityAnalogVenue) => {
+    setVenuePick(slug)
+    const level = capSource?.level ?? 'typical'
+    setCap({ kind: 'preset', preset: `${slug}-${level}` })
+  }
   const setClass = (cls: MembraneClass) =>
     onChange({ ...inputs, membraneClass: cls, line: clampLine(inputs.line, cls) })
 
@@ -412,20 +440,63 @@ export const LoadoutPanel: React.FC<{
           <HStack justify="space-between" mt={SPACING.sm} align="baseline">
             <Eyebrow>Exit capacity</Eyebrow>
             <Readout color={SEMANTIC_COLORS.textPrimary}>
-              {usdOrNone(sandbox.exitCapacityUsd)} · ×{sandbox.capacityMult?.toFixed(2)}
+              {usdOrNone(sandbox.exitCapacityUsd)} · ×{multText(sandbox.capacityMult)}
+              {sandbox.capacityLockHours ? ` · ${sandbox.capacityLockHours}h lock` : ''}
             </Readout>
           </HStack>
-          <SimpleGrid columns={{ base: 3, sm: 5, lg: 3 }} spacing={SPACING.sm} mt={SPACING.sm}>
-            {EXIT_CAPACITY_PRESET_ORDER.map((id) => (
+          <Readout>measured venue analog · pro-rata share of the venue&apos;s cash</Readout>
+          <SimpleGrid columns={{ base: 2, sm: 5, lg: 2 }} spacing={SPACING.sm} mt={SPACING.sm}>
+            {EXIT_CAPACITY_VENUES.map((v) => (
+              <Chip
+                key={v.slug}
+                active={presetVenue === v.slug}
+                onClick={() => pickVenue(v.slug)}
+                label={`Exit-capacity venue ${v.name}`}
+                title={v.asset === 'eth' ? 'An ETH supply market' : undefined}
+              >
+                <Text fontSize={TYPOGRAPHY.label} textAlign="left" w="100%">
+                  {v.name}
+                </Text>
+              </Chip>
+            ))}
+          </SimpleGrid>
+          <SimpleGrid columns={3} spacing={SPACING.sm} mt={SPACING.sm}>
+            {venue.presets.map((id) => {
+              const x = EXIT_CAPACITY_PRESETS[id]
+              return (
+                <Chip
+                  key={id}
+                  active={cap.kind === 'preset' && cap.preset === id}
+                  onClick={() => setCap({ kind: 'preset', preset: id })}
+                  label={`Exit capacity ${x.label}, ×${multText(x.mult)}`}
+                  title={x.provenance}
+                >
+                  <Box textAlign="left" w="100%">
+                    <Text fontSize={TYPOGRAPHY.label}>
+                      {LEVEL_SHORT[x.source?.level ?? 'typical']}
+                    </Text>
+                    <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
+                      ×{multText(x.mult)}
+                      {x.freezeHours > 0 ? ` · ${x.freezeHours}h lock` : ''}
+                    </Text>
+                  </Box>
+                </Chip>
+              )
+            })}
+          </SimpleGrid>
+          <SimpleGrid columns={3} spacing={SPACING.sm} mt={SPACING.sm}>
+            {(['frozen', 'optimistic'] as const).map((id) => (
               <Chip
                 key={id}
                 active={cap.kind === 'preset' && cap.preset === id}
                 onClick={() => setCap({ kind: 'preset', preset: id })}
-                label={`Exit capacity ${id}, ×${EXIT_CAPACITY_PRESETS[id].mult}`}
+                label={`Exit capacity ${EXIT_CAPACITY_PRESETS[id].label}`}
                 title={EXIT_CAPACITY_PRESETS[id].provenance}
               >
                 <Box textAlign="left" w="100%">
-                  <Text fontSize={TYPOGRAPHY.label}>{id}</Text>
+                  <Text fontSize={TYPOGRAPHY.label}>
+                    {id === 'frozen' ? 'frozen' : 'upper bound'}
+                  </Text>
                   <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
                     ×{EXIT_CAPACITY_PRESETS[id].mult}
                   </Text>

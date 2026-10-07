@@ -43,3 +43,6 @@ AGENT_BOARD.md
 
 # Resumable raw cache of scripts/position-sim/build-price-history.mjs (klines, oracle segments, rate reads)
 /data/price-history/cache/
+
+# Resumable raw cache of scripts/position-sim/build-venue-stress-history.mjs (per-block venue reads)
+/data/venue-stress/cache/

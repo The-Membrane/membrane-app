@@ -29,6 +29,7 @@ import {
   DEFAULT_CAPACITY_MULTS,
   DEFAULT_FREEZE_HOURS,
   DEFAULT_PRICE_SHAPES,
+  EXIT_CAPACITY_DEFAULT_PRESET,
   EXIT_CAPACITY_PRESETS,
   STRESS_CODE_VERSION,
   STRESS_LABEL,
@@ -115,10 +116,16 @@ export interface SandboxInputs {
   debtMinimumUsd: number
 }
 
+/** An exit-capacity multiple as typed: up to 4 decimals, no trailing zeros (×0.1119, ×0.5). */
+export function multText(m: number | null | undefined): string {
+  return m === null || m === undefined || !Number.isFinite(m) ? '—' : String(Number(m.toFixed(4)))
+}
+
 /**
  * The opening loadout: the design's illustrative carry position (§3). The capacity
- * default is 'stressed' — never 'optimistic' (owner ruling 2026-10-04: full
- * withdrawability is the most optimistic case, so it is chosen, never assumed).
+ * default is the measured typical Aave USDC stress analog (owner instruction 2026-10-06:
+ * "typical Aave capacity during stress over the last 3 years") — never 'optimistic' (owner
+ * ruling 2026-10-04: full withdrawability is the most optimistic case, an upper bound only).
  */
 export const DEFAULT_INPUTS: SandboxInputs = {
   collateralUsd: 44_000,
@@ -127,7 +134,7 @@ export const DEFAULT_INPUTS: SandboxInputs = {
   line: 0.86,
   tradeShape: 'carry',
   deployedUsd: 14_200,
-  capacity: { kind: 'preset', preset: 'stressed' },
+  capacity: { kind: 'preset', preset: EXIT_CAPACITY_DEFAULT_PRESET },
   debtMinimumUsd: LIQ_DEBT_MINIMUM_USD,
 }
 
@@ -144,13 +151,13 @@ export const LOADOUTS: readonly Loadout[] = [
   {
     id: 'tight-carry',
     name: 'Tight carry',
-    sub: 'LTV 80% · kelp-lock exit',
+    sub: 'LTV 80% · Aave USDC, Kelp lock',
     inputs: {
       ...DEFAULT_INPUTS,
       collateralUsd: 40_000,
       debtUsd: 32_000,
       deployedUsd: 30_000,
-      capacity: { kind: 'preset', preset: 'kelp-lock' },
+      capacity: { kind: 'preset', preset: 'aave-usdc-worst' },
     },
   },
   {
@@ -176,7 +183,7 @@ export const LOADOUTS: readonly Loadout[] = [
       membraneClass: 'no-delay',
       line: 0.95,
       deployedUsd: 60_000,
-      capacity: { kind: 'preset', preset: 'stressed' },
+      capacity: { kind: 'preset', preset: 'aave-usdc-typical' },
     },
   },
   {
@@ -241,6 +248,10 @@ export interface SandboxPosition {
   breakLine: number
   /** Exit-capacity multiplier on the deployed amount. Null for levered long. */
   capacityMult: number | null
+  /** The chosen level's name ('Aave USDC · typical', 'custom'). Null for levered long. */
+  capacityLabel: string | null
+  /** The preset's measured lock: no recall for this long from the first breach, hours. */
+  capacityLockHours: number | null
   /** Resolved exit capacity, USD. Null for levered long. */
   exitCapacityUsd: number | null
   overLine: boolean
@@ -271,7 +282,7 @@ export function buildStressPosition(inp: SandboxInputs): SandboxPosition {
     position.deployedUsd = deployed
     // A custom choice is a MULTIPLE of the deployed amount, like a preset — not a fixed $
     // figure, which the reverse solve would hold while it rescales the debt and deployed
-    // amount (custom ×0.50 then disagreed with the 'stressed' preset, ×0.5).
+    // amount (custom ×0.50 then disagreed with the ×0.5 preset of the time).
     if (inp.capacity.kind === 'preset') position.exitCapacityPreset = inp.capacity.preset
     else position.exitCapacityMult = mult as number
   }
@@ -286,6 +297,16 @@ export function buildStressPosition(inp: SandboxInputs): SandboxPosition {
     recallTarget: Math.max(0, line - BORROW_LTV_GAP),
     breakLine: line * (1 + params.band),
     capacityMult: mult,
+    capacityLabel: !carry
+      ? null
+      : inp.capacity.kind === 'preset'
+        ? EXIT_CAPACITY_PRESETS[inp.capacity.preset].label
+        : 'custom',
+    capacityLockHours: !carry
+      ? null
+      : inp.capacity.kind === 'preset'
+        ? EXIT_CAPACITY_PRESETS[inp.capacity.preset].freezeHours
+        : 0,
     exitCapacityUsd: mult === null ? null : deployed * mult,
     overLine: startLtv >= line,
   }

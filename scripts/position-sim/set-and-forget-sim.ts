@@ -13,8 +13,24 @@
  * data/price-history/cache/set-and-forget/<id>.json (gitignored); `--report` merges every
  * partial into public/data/price-history/set-and-forget-ltv.json and prints the tables.
  * Other flags: --horizons=30d,90d,365d  --cases=<case ids>  --stride=<hours>
- * --classes=delayed|no-delay (a class shard, merged by --report)  --collateral=<usd> (a
- * position-size probe for the $2,000 debt floor; written as '.partial', never merged).
+ * --classes=delayed|no-delay (a class shard, merged by --report)  --shard=<name> (with
+ * --cases: a case shard, merged by --report; without --shard a case subset is a probe)
+ * --collateral=<usd> (a position-size probe for the $2,000 debt floor; written as '.partial',
+ * never merged).
+ *   ./node_modules/.bin/tsx scripts/position-sim/set-and-forget-sim.ts --seed=<case ids>
+ * copies those cases' rows from the PUBLISHED set-and-forget-ltv.json into '#seed' shards,
+ * for cases a code-version bump cannot move: levered_long by id, and carry BY STOCK — a cell
+ * is seeded from the published row whose case then had the venue stock (mult, lock) this case
+ * has now, else left to be solved (`seed`). Each seeded row keeps `seededFrom` (the code
+ * version that solved it) and `seededAs` (the case it was solved under, when another); re-run
+ * one path as a probe and compare before trusting a seed.
+ *
+ * EXIT CAPACITY (owner instruction 2026-10-06): carry runs at MEASURED venue analogs
+ * (stressGrid EXIT_CAPACITY_PRESETS, exitCapacityAnalogs.ts) — Aave USDC typical / bad /
+ * worst on every main path and class, every other stable venue's three levels on ETH,
+ * delayed class — plus the bounds 'frozen' (×0) and 'optimistic' (×1, upper bound only).
+ * Carry cases that resolve to the same venue stock (same mult and lock, or mult 0 whatever
+ * the lock: nothing to recall) are solved once per cell and copied (`aliasOf`).
  *   ./node_modules/.bin/tsx scripts/position-sim/set-and-forget-sim.ts --claims [--horizons=90d]
  * measures each COPY CLAIM (CLAIMS below) directly, per position size; written to
  * data/price-history/cache/set-and-forget/claims/ and merged by --report as `claims`.
@@ -27,7 +43,7 @@
  * down by PRUNING, not by skipping hours: a start whose proven lower bound (line × the
  * window's lowest ratio — under it nothing breaches) is at or above the k-th smallest solved
  * threshold cannot enter the low tail, so it is never solved (setAndForget.ts
- * `solveLowTail`; exact for the lowest k). Cases with recall (carry above 'frozen') prune
+ * `solveLowTail`; exact for the lowest k). Cases with recall (carry with mult > 0) prune
  * poorly — their thresholds sit well above the bound — and are the slow ones.
  */
 import fs from 'node:fs'
@@ -82,7 +98,12 @@ import {
   type StartSolve,
 } from '../../lib/position-sim/setAndForget'
 import {
+  EXIT_CAPACITY_ANALOG_DATA_THROUGH,
+  EXIT_CAPACITY_ANALOG_SOURCE,
+} from '../../lib/position-sim/exitCapacityAnalogs'
+import {
   EXIT_CAPACITY_PRESETS,
+  EXIT_CAPACITY_VENUES,
   STRESS_CODE_VERSION,
   type ExitCapacityPresetId,
   type TradeShape,
@@ -196,7 +217,7 @@ const PATHS: Record<string, PathDef> = {
     symbol: 'wstETH',
     label: 'wstETH (ETH × stETH/ETH market × stEthPerToken)',
     resolution: 'low-close',
-    cases: ['levered_long', 'carry:stressed'],
+    cases: ['levered_long', 'carry:aave-usdc-typical'],
     sensitivity: true,
     build: () => {
       const eth = ethPrimary()
@@ -218,7 +239,7 @@ const PATHS: Record<string, PathDef> = {
     symbol: 'wstETH',
     label: 'wstETH (ETH × stEthPerToken) on the market-feed span, from 2021-08-25',
     resolution: 'low-close',
-    cases: ['levered_long', 'carry:stressed'],
+    cases: ['levered_long', 'carry:aave-usdc-typical'],
     sensitivity: true,
     build: () => {
       // The exchange-rate path cut to the span the stETH/ETH market feed covers, so the
@@ -298,15 +319,49 @@ interface CaseDef {
   id: string
   tradeShape: TradeShape
   preset?: ExitCapacityPresetId
+  /** Run only on these paths / classes (default: every one the path runs). */
+  paths?: readonly string[]
+  classes?: readonly MembraneClass[]
 }
+
+/** The owner's benchmark venue (instruction 2026-10-06: "typical Aave capacity during stress"),
+ *  run on every main path and class. */
+const AAVE_USDC_PRESETS: readonly ExitCapacityPresetId[] = [
+  'aave-usdc-typical',
+  'aave-usdc-bad',
+  'aave-usdc-worst',
+]
+
+/** Every other STABLE venue's levels: the per-venue table, ETH, delayed class. ETH supply
+ *  markets (Aave/Spark WETH) are left out: carry deploys CDT debt as a stable. */
+const VENUE_SWEEP_PRESETS: readonly ExitCapacityPresetId[] = EXIT_CAPACITY_VENUES.filter(
+  (v) => v.asset === 'stable' && v.slug !== 'aave-usdc',
+).flatMap((v) => v.presets)
+
+// (`Partial` is this file's partial-result type, so the restriction is spelled out.)
+const carryCase = (
+  preset: ExitCapacityPresetId,
+  extra: Pick<CaseDef, 'paths' | 'classes'> = {},
+): CaseDef => ({
+  id: `carry:${preset}`,
+  tradeShape: 'carry',
+  preset,
+  ...extra,
+})
 
 const CASES: readonly CaseDef[] = [
   { id: 'levered_long', tradeShape: 'levered_long' },
-  { id: 'carry:optimistic', tradeShape: 'carry', preset: 'optimistic' },
-  { id: 'carry:stressed', tradeShape: 'carry', preset: 'stressed' },
-  { id: 'carry:kelp-lock', tradeShape: 'carry', preset: 'kelp-lock' },
-  { id: 'carry:frozen', tradeShape: 'carry', preset: 'frozen' },
+  carryCase('optimistic'),
+  carryCase('frozen'),
+  ...AAVE_USDC_PRESETS.map((p) => carryCase(p)),
+  ...VENUE_SWEEP_PRESETS.map((p) => carryCase(p, { paths: ['ETH'], classes: ['delayed'] })),
 ]
+
+/** Carry cases with this key resolve to the same venue stock, so the same answer. */
+function stockKey(preset: ExitCapacityPresetId): string {
+  const x = EXIT_CAPACITY_PRESETS[preset]
+  return x.mult === 0 ? 'none' : `${x.mult}@${x.freezeHours}h`
+}
 
 const CLASSES: readonly MembraneClass[] = ['delayed', 'no-delay']
 
@@ -357,6 +412,12 @@ interface ResultRow {
   } | null
   soldShareAt?: { label: string; ltv: number; share: number; sold: number }[]
   check: { windows: number; probes: number; violations: number; boundViolations: number }
+  /** Copied from this case's row in the same cell: the same venue stock (`stockKey`). */
+  aliasOf?: string
+  /** Copied from a published run solved under this code version (`--seed`). */
+  seededFrom?: string
+  /** `--seed` by stock: the published case the row was solved under (the same stock). */
+  seededAs?: string
 }
 
 function runPath(
@@ -366,6 +427,7 @@ function runPath(
   caseFilter?: Set<string>,
   classes: readonly MembraneClass[] = CLASSES,
   collateralUsd: number = SET_AND_FORGET_COLLATERAL_USD,
+  caseShard?: string,
 ) {
   const def = PATHS[pathId]
   if (!def) throw new Error(`unknown --path ${pathId}; one of ${Object.keys(PATHS).join(', ')}`)
@@ -378,7 +440,9 @@ function runPath(
   const rows: ResultRow[] = []
   const cases = CASES.filter(
     (c) =>
-      (def.cases ? def.cases.includes(c.id) : true) && (caseFilter ? caseFilter.has(c.id) : true),
+      (def.cases ? def.cases.includes(c.id) : true) &&
+      (caseFilter ? caseFilter.has(c.id) : true) &&
+      (c.paths ? c.paths.includes(pathId) : true),
   )
   for (const h of horizons) {
     const minr = windowMinRatios(p, h.hours, def.resolution)
@@ -394,7 +458,23 @@ function runPath(
     const k = tailK(n)
     for (const membraneClass of classes) {
       const band = MEMBRANE_CLASS_PARAMS[membraneClass].band
+      const solvedByStock = new Map<string, ResultRow>()
       for (const cd of cases) {
+        if (cd.classes && !cd.classes.includes(membraneClass)) continue
+        const key = cd.preset ? stockKey(cd.preset) : null
+        const same = key ? solvedByStock.get(key) : undefined
+        if (same) {
+          const copy: ResultRow = {
+            ...same,
+            caseId: cd.id,
+            runs: 0,
+            seconds: 0,
+            aliasOf: same.aliasOf ?? same.caseId,
+          }
+          rows.push(copy)
+          console.log(`${pathId} ${membraneClass} ${cd.id} ${h.label}: = ${copy.aliasOf}`)
+          continue
+        }
         const t0 = Date.now()
         const c: SetAndForgetCase = {
           line,
@@ -521,6 +601,7 @@ function runPath(
           check: { windows: worstKeys.length, probes, violations, boundViolations },
         }
         rows.push(row)
+        if (key) solvedByStock.set(key, row)
         console.log(
           `${pathId} ${membraneClass} ${cd.id} ${h.label}: n=${n} solved=${tail.solvedCount} runs=${runs} ` +
             `${row.seconds.toFixed(1)}s | never ${(neverSold * 100).toFixed(2)}% p1 ${(p1 * 100).toFixed(2)}% ` +
@@ -556,12 +637,14 @@ function runPath(
   // A run over a subset of cases or horizons is a probe ('.partial', ignored by --report); a
   // run over a subset of classes is a shard ('@<class>', merged by --report).
   const probe =
-    caseFilter ||
+    (caseFilter && !caseShard) ||
     horizons.length !== SET_AND_FORGET_HORIZONS.length ||
     collateralUsd !== SET_AND_FORGET_COLLATERAL_USD
       ? '.partial'
       : ''
-  const shard = classes.length === CLASSES.length ? '' : `@${classes.join('+')}`
+  const shard =
+    (classes.length === CLASSES.length ? '' : `@${classes.join('+')}`) +
+    (caseShard ? `#${caseShard}` : '')
   fs.writeFileSync(
     path.join(PARTIAL_DIR, `${pathId}${shard}${probe}.json`),
     JSON.stringify(partial),
@@ -595,12 +678,13 @@ interface ClaimDef {
 const CLAIMS: readonly ClaimDef[] = [
   {
     id: 'A1',
-    label: 'ETH carry, half the deployed debt recallable (×0.5), at HF 2 — "set it and forget it"',
+    label:
+      'ETH carry, the deployed debt at Aave USDC stress capacity (typical and bad analogs), at HF 2 — "set it and forget it"',
     pathId: 'ETH',
     membraneClass: 'delayed',
     ltv: (line) => line / 2,
     ltvLabel: 'HF 2 (line / 2)',
-    caseIds: ['carry:stressed', 'levered_long'],
+    caseIds: ['carry:aave-usdc-typical', 'carry:aave-usdc-bad', 'levered_long'],
     horizons: ['90d', '365d'],
     // Debt at 40% LTV: $2,000 (= the floor), $3,999.60 and $4,000 (either side of
     // 2 × the floor), $8,000, $40,000 (the table's size).
@@ -609,6 +693,8 @@ const CLAIMS: readonly ClaimDef[] = [
 ]
 
 interface ClaimRow extends LtvTally {
+  /** `--claims --cases`: copied from the published run under this code version (case not re-run). */
+  seededFrom?: string
   claimId: string
   pathId: string
   caseId: string
@@ -620,8 +706,21 @@ interface ClaimRow extends LtvTally {
   seconds: number
 }
 
-function runClaims(horizonFilter?: readonly string[]) {
+/**
+ * `--claims [--horizons] [--cases]`. With `--cases`, only those cases are measured; every other
+ * case's rows are copied from the PUBLISHED claims (`seededFrom`) — for a case whose preset
+ * did not move — and a missing one throws.
+ */
+function runClaims(horizonFilter?: readonly string[], caseFilter?: ReadonlySet<string>) {
   fs.mkdirSync(CLAIM_DIR, { recursive: true })
+  const pubFile = caseFilter
+    ? (JSON.parse(fs.readFileSync(OUT, 'utf8')) as {
+        codeVersion: string
+        claims?: { claimId: string; horizon: string; rows: ClaimRow[] }[]
+      })
+    : null
+  const published = pubFile?.claims ?? []
+  const publishedVersion = pubFile?.codeVersion ?? ''
   for (const cl of CLAIMS) {
     const def = PATHS[cl.pathId]
     const line = membraneMaxLtv(def.symbol)
@@ -642,6 +741,15 @@ function runClaims(horizonFilter?: readonly string[]) {
       const rows: ClaimRow[] = []
       for (const caseId of cl.caseIds) {
         const cd = CASES.find((x) => x.id === caseId)!
+        if (caseFilter && !caseFilter.has(caseId)) {
+          const pub = published.find((c) => c.claimId === cl.id && c.horizon === hz)
+          const copied = (pub?.rows ?? []).filter((r) => r.caseId === caseId)
+          if (copied.length !== cl.collateralUsd.length)
+            throw new Error(`--claims --cases: no published ${cl.id} ${hz} rows for ${caseId}`)
+          for (const r of copied) rows.push({ ...r, seededFrom: r.seededFrom ?? publishedVersion })
+          console.log(`claim ${cl.id} ${caseId} ${hz}: ${copied.length} rows copied (published)`)
+          continue
+        }
         for (const collateralUsd of cl.collateralUsd) {
           const t0 = Date.now()
           const c: SetAndForgetCase = {
@@ -761,11 +869,19 @@ function headline(partials: Partial[]) {
   const find = (p: Partial, caseId: string, cls: MembraneClass, horizon: string) =>
     p.rows.find((r) => r.caseId === caseId && r.membraneClass === cls && r.horizon === horizon)
   const hz = SET_AND_FORGET_HORIZONS.map((h) => h.label)
+  const presetCase = (id: ExitCapacityPresetId): [string, string] => {
+    const x = EXIT_CAPACITY_PRESETS[id]
+    return [
+      `carry:${id}`,
+      `carry, ${x.label} (×${x.mult}${x.freezeHours > 0 ? `, locked ${x.freezeHours} h` : ''})`,
+    ]
+  }
   const shapes: [string, string][] = [
     ['levered_long', 'levered long (= carry, frozen venue)'],
-    ['carry:kelp-lock', 'carry, venue answers ×0.1 (kelp-lock)'],
-    ['carry:stressed', 'carry, venue answers ×0.5 (stressed)'],
-    ['carry:optimistic', 'carry, venue answers ×1 (optimistic)'],
+    presetCase('aave-usdc-worst'),
+    presetCase('aave-usdc-bad'),
+    presetCase('aave-usdc-typical'),
+    presetCase('optimistic'),
   ]
   console.log('## HEADLINE — delayed class, start LTV % never / ≤1% / ≤5% of start hours sold')
   console.log(`| asset · line | shape | ${hz.join(' | ')} |`)
@@ -796,12 +912,31 @@ function headline(partials: Partial[]) {
   console.log(`\ncarry:frozen == levered_long in ${same}/${total} cells`)
 
   console.log(
+    '\n## PER VENUE — ETH, delayed class, carry at each stable venue analog: never / ≤1% / ≤5%',
+  )
+  const eth = main.find((p) => p.pathId === 'ETH')
+  if (eth) {
+    console.log(`| venue · level | ×mult (lock) | ${hz.join(' | ')} |`)
+    console.log(`|---|---|${hz.map(() => '---').join('|')}|`)
+    for (const v of EXIT_CAPACITY_VENUES.filter((x) => x.asset === 'stable')) {
+      for (const id of v.presets) {
+        const x = EXIT_CAPACITY_PRESETS[id]
+        console.log(
+          `| ${x.label} | ×${x.mult}${x.freezeHours > 0 ? ` (${x.freezeHours} h)` : ''} | ` +
+            hz.map((h) => tailCell(find(eth, `carry:${id}`, 'delayed', h))).join(' | ') +
+            ' |',
+        )
+      }
+    }
+  }
+
+  console.log(
     '\n## DELAY VALUE — never-sold start LTV %, delayed (8h, 4% band) vs instant at the line',
   )
   console.log(`| asset | shape | ${hz.join(' | ')} |`)
   console.log(`|---|---|${hz.map(() => '---').join('|')}|`)
   for (const p of main) {
-    for (const [id] of shapes.slice(0, 3)) {
+    for (const id of ['levered_long', 'carry:aave-usdc-bad', 'carry:aave-usdc-typical']) {
       const cells = hz.map((h) => {
         const d = find(p, id, 'delayed', h)
         const n = find(p, id, 'no-delay', h)
@@ -849,8 +984,8 @@ function headline(partials: Partial[]) {
   }
   for (const p of partials.filter((x) => x.pathId.startsWith('wstETH'))) {
     console.log(
-      `| ${p.label} carry:stressed | ` +
-        hz.map((h) => tailCell(find(p, 'carry:stressed', 'delayed', h))).join(' | ') +
+      `| ${p.label} carry:aave-usdc-typical | ` +
+        hz.map((h) => tailCell(find(p, 'carry:aave-usdc-typical', 'delayed', h))).join(' | ') +
         ' |',
     )
   }
@@ -859,7 +994,7 @@ function headline(partials: Partial[]) {
     '\n## RECALL FIRED — carry: share of start hours whose path crosses the line at the never-sold LTV',
   )
   for (const p of main) {
-    for (const id of ['carry:kelp-lock', 'carry:stressed', 'carry:optimistic']) {
+    for (const id of ['carry:aave-usdc-bad', 'carry:aave-usdc-typical', 'carry:optimistic']) {
       console.log(
         `| ${p.label.split(' ')[0]} | ${id} | ` +
           hz
@@ -911,9 +1046,37 @@ function report() {
       borrowLtvGap: BORROW_LTV_GAP,
       debtMinimumUsd: LIQ_DEBT_MINIMUM_USD,
       collateralUsd: SET_AND_FORGET_COLLATERAL_USD,
-      exitCapacityPresets: Object.fromEntries(
-        Object.values(EXIT_CAPACITY_PRESETS).map((x) => [x.id, x.mult]),
-      ),
+      exitCapacity: {
+        assumption:
+          'pro-rata race: a recall gets the venue’s withdrawable fraction (cash / supply) of the deployed debt, lowest over the 8 h window in one real stress event; a locked event (≤ 1%) also gives no recall for its measured lock from the first breach; the stock never refills',
+        source: EXIT_CAPACITY_ANALOG_SOURCE,
+        dataThrough: EXIT_CAPACITY_ANALOG_DATA_THROUGH,
+        presets: Object.fromEntries(
+          CASES.filter((c) => c.preset).map((c) => {
+            const x = EXIT_CAPACITY_PRESETS[c.preset!]
+            return [
+              x.id,
+              {
+                mult: x.mult,
+                freezeHours: x.freezeHours,
+                kind: x.kind,
+                ...(x.source
+                  ? {
+                      venue: x.source.venueName,
+                      event: x.source.event,
+                      onset: x.source.onset,
+                      windows: x.source.windows,
+                      rank: x.source.rank,
+                      n: x.source.n,
+                      from: x.source.from,
+                      to: x.source.to,
+                    }
+                  : {}),
+              },
+            ]
+          }),
+        ),
+      },
     },
     paths: partials,
     claimsMethod:
@@ -994,10 +1157,84 @@ function report() {
 
 // ------------------------------------------------------------------ main
 
+/**
+ * `--seed`: published rows the engine cannot move, as '#seed' shards. A carry case is seeded
+ * BY STOCK (`stockKey`): from the published row, in the same path × class × horizon cell, of a
+ * case whose PUBLISHED preset had the stock this case has NOW (mechanics.exitCapacity.presets
+ * of the published JSON) — the same stock is the same answer, whatever case it was solved
+ * under (`seededAs`). A cell with no such row is left to be solved. Levered long has no stock
+ * and is seeded by id.
+ */
+function seed(caseIds: readonly string[]) {
+  for (const id of caseIds)
+    if (!CASES.some((c) => c.id === id)) throw new Error(`--seed: unknown case ${id}`)
+  const pub = JSON.parse(fs.readFileSync(OUT, 'utf8')) as {
+    mechanics?: {
+      exitCapacity?: { presets?: Record<string, { mult: number; freezeHours: number }> }
+    }
+    paths: (Partial & { codeVersion: string })[]
+  }
+  const was = pub.mechanics?.exitCapacity?.presets ?? {}
+  const pubStock = (caseId: string): string | null => {
+    const cd = CASES.find((c) => c.id === caseId)
+    const x = cd?.preset ? was[cd.preset] : undefined
+    if (!x) return null
+    return x.mult === 0 ? 'none' : `${x.mult}@${x.freezeHours}h`
+  }
+  fs.mkdirSync(PARTIAL_DIR, { recursive: true })
+  for (const part of pub.paths) {
+    const rows: ResultRow[] = []
+    const def = PATHS[part.pathId]
+    for (const id of caseIds) {
+      const cd = CASES.find((c) => c.id === id)!
+      // only the cells a fresh run would solve (runPath's case filter)
+      if (def?.cases && !def.cases.includes(id)) continue
+      if (cd.paths && !cd.paths.includes(part.pathId)) continue
+      if (!cd.preset) {
+        for (const r of part.rows)
+          if (r.caseId === id) rows.push({ ...r, seededFrom: part.codeVersion })
+        continue
+      }
+      const want = stockKey(cd.preset)
+      const cells = new Set(part.rows.map((r) => `${r.hours}|${r.membraneClass}`))
+      for (const cell of cells) {
+        const [hours, cls] = cell.split('|')
+        if (cd.classes && !cd.classes.includes(cls as MembraneClass)) continue
+        const inCell = part.rows.filter((r) => String(r.hours) === hours && r.membraneClass === cls)
+        const src =
+          inCell.find((r) => r.caseId === id && pubStock(id) === want) ??
+          inCell.find((r) => pubStock(r.caseId) === want)
+        if (!src) {
+          console.log(`seed ${part.pathId} ${cls} ${hours}h ${id}: no published row at ${want}`)
+          continue
+        }
+        const { aliasOf: _alias, ...rest } = src
+        rows.push({
+          ...rest,
+          caseId: id,
+          seededFrom: part.codeVersion,
+          ...(src.caseId !== id ? { seededAs: src.caseId } : {}),
+        })
+      }
+    }
+    if (!rows.length) continue
+    fs.writeFileSync(
+      path.join(PARTIAL_DIR, `${part.pathId}#seed.json`),
+      JSON.stringify({ ...part, codeVersion: STRESS_CODE_VERSION, rows }),
+    )
+    console.log(`seeded ${part.pathId}: ${rows.length} rows from ${part.codeVersion}`)
+  }
+}
+
 if (args.has('report')) {
   report()
+} else if (args.has('seed')) {
+  seed(args.get('seed')!.split(','))
 } else if (args.has('claims')) {
-  runClaims(args.get('horizons')?.split(','))
+  runClaims(
+    args.get('horizons')?.split(','),
+    args.get('cases') ? new Set(args.get('cases')!.split(',')) : undefined,
+  )
 } else {
   const stride = Math.max(1, Number(args.get('stride') ?? 1))
   const wanted = args.get('horizons')?.split(',')
@@ -1009,5 +1246,7 @@ if (args.has('report')) {
   const ids = (args.get('path') ?? Object.keys(PATHS).join(',')).split(',')
   // --collateral=<usd>: a position-size probe (the debt floor stays $2,000), never merged.
   const collateralUsd = Number(args.get('collateral') ?? SET_AND_FORGET_COLLATERAL_USD)
-  for (const id of ids) runPath(id, horizons, stride, caseFilter, classes, collateralUsd)
+  const caseShard = args.get('shard')
+  if (caseShard && !caseFilter) throw new Error('--shard needs --cases')
+  for (const id of ids) runPath(id, horizons, stride, caseFilter, classes, collateralUsd, caseShard)
 }

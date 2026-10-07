@@ -35,6 +35,7 @@ import {
   buildStressPosition,
   classView,
   computeFrontier,
+  multText,
   pct,
   resolveSelection,
   usd,
@@ -124,7 +125,11 @@ const Hud: React.FC<{ sb: SandboxPosition; pending: boolean; model: FrontierMode
       {sb.exitCapacityUsd !== null && (
         <HudChip
           label="EXIT"
-          value={`${usdOrNone(sb.exitCapacityUsd)} ×${sb.capacityMult?.toFixed(2)}`}
+          value={
+            `${usdOrNone(sb.exitCapacityUsd)} ×${multText(sb.capacityMult)}` +
+            (sb.capacityLockHours ? ` · ${sb.capacityLockHours}h lock` : '')
+          }
+          title={sb.capacityLabel ?? undefined}
         />
       )}
       <WrapItem>

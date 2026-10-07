@@ -4,6 +4,11 @@
 >
 > Inputs: five fact-checked research reports, one completeness critique (rejections: Appendix). *(unverified)* = no primary source. Formulas are models until fork-tested.
 
+> **Owner rulings 2026-10-05:**
+> - Thresholds as proposed: RED R_lo < 1.5, or hard-red, or free-move EV ≥ $100k; YELLOW R_pt < 10, or C_lo < $100M, or any free-move EV. The card notes that every successful past attack had cost ÷ extracted ≤ 0.76.
+> - Publication is **public**.
+> - EV covers every market using the leaf. A mainnet-only v1 must say the data is not exhaustive and will be extended.
+
 ## 1. Definitions
 
 - **Leaf ℓ:** the state an attacker moves: a pool, Pendle market, ERC-4626 vault, aggregator, Pyth id or CEX source set. Group consumers by leaf, never by oracle address, window or chain: one Pendle buffer feeds every TWAP duration, one Pyth id or CEX source set every chain.

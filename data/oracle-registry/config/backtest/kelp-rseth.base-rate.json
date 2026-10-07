@@ -1,0 +1,178 @@
+{
+ "version": 1,
+ "builtAt": "2026-10-07T04:18:17.297Z",
+ "scope": "ReceiveUln302 overrides only; OApps inheriting defaults not counted; liveness = peers(eid) ≠ 0 at the block (unknown if peers() reverts); metadata identity only, code at the block; value at risk = an OFT adapter's locked balance on Ethereum at the block, priced with the registry consensus at the block (catalog tokens; the subject through its own rate) — remote supplies not read for the base rate",
+ "evalBlock": 24908284,
+ "oappsWithOverrides": 1835,
+ "overriddenRoutes": 4996,
+ "underFloorRoutes": 2096,
+ "liveUnderFloorRoutes": 1883,
+ "livenessUnknown": 20,
+ "oappsWithLiveUnderFloor": 825,
+ "subject": {
+  "oapp": "0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3",
+  "liveUnderFloor": 24,
+  "rank": 4,
+  "ofOApps": 825
+ },
+ "top": [
+  {
+   "oapp": "0xdc09f06d11dfc7703bf8f3049e2ccf4507bea1ab",
+   "liveUnderFloor": 43
+  },
+  {
+   "oapp": "0x43a1421b40a6feab59850dde01d5662a336d9304",
+   "liveUnderFloor": 42
+  },
+  {
+   "oapp": "0xc53ac24320e3a54c7211e4993c8095078a0cb3cf",
+   "liveUnderFloor": 35
+  },
+  {
+   "oapp": "0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3",
+   "liveUnderFloor": 24
+  },
+  {
+   "oapp": "0x5e006442e82d805c10c7701c5d9ff376a7aaaaaa",
+   "liveUnderFloor": 21
+  },
+  {
+   "oapp": "0xd22588b4d75bd2d1eaea29ae95535092dbdaf969",
+   "liveUnderFloor": 20
+  },
+  {
+   "oapp": "0xaa496eff6d9c9113eddb98ba6b7e2e6ed3c71b5c",
+   "liveUnderFloor": 20
+  },
+  {
+   "oapp": "0xcece2765a5cb28d228c0cf8033c1ee72d31045e0",
+   "liveUnderFloor": 18
+  },
+  {
+   "oapp": "0x76407e610a258bf86b110c6a09fb716922b1cfbb",
+   "liveUnderFloor": 18
+  },
+  {
+   "oapp": "0x5c386d85b1b82fd9db681b9176c8a4248bb6345b",
+   "liveUnderFloor": 15
+  },
+  {
+   "oapp": "0x160345fc359604fc6e70e3c5facbde5f7a9342d8",
+   "liveUnderFloor": 15
+  },
+  {
+   "oapp": "0x13211b0b7f61be3b231d94c3ce4081bb900c6c5c",
+   "liveUnderFloor": 15
+  },
+  {
+   "oapp": "0x8105a644937bc3fe1ae01b7a3da34618751f9b5d",
+   "liveUnderFloor": 14
+  },
+  {
+   "oapp": "0xbce9988376c6b9c0c035bdbc9060568031d51130",
+   "liveUnderFloor": 10
+  },
+  {
+   "oapp": "0x1958853a8be062dc4f401750eb233f5850f0d0d2",
+   "liveUnderFloor": 10
+  },
+  {
+   "oapp": "0xc827828ad46f01f85aa1fa6c6bdcb83dde06e271",
+   "liveUnderFloor": 10
+  },
+  {
+   "oapp": "0xd450db3188b7fbf52c670eee30372ba74b4c5857",
+   "liveUnderFloor": 10
+  },
+  {
+   "oapp": "0xf7d116f1a1ac7c34372e52cf5763c58dcf43185a",
+   "liveUnderFloor": 10
+  },
+  {
+   "oapp": "0xbe47a4b84ce1be093c608b505ea251e9319eaeee",
+   "liveUnderFloor": 9
+  },
+  {
+   "oapp": "0x17435cc940e03aa52c349738c72c7aa44ffa6525",
+   "liveUnderFloor": 9
+  },
+  {
+   "oapp": "0xdaafc693469efbfe7a9840556d3ec6598ccde335",
+   "liveUnderFloor": 9
+  },
+  {
+   "oapp": "0x314bd7473cb9d4ca23d3407e36cc781f4dc91db1",
+   "liveUnderFloor": 9
+  },
+  {
+   "oapp": "0xb7a941982f6a0190a2c19800e47cb246abbff950",
+   "liveUnderFloor": 9
+  },
+  {
+   "oapp": "0xc8ab875889e19084f8b8b92c8df260a3a85d539b",
+   "liveUnderFloor": 9
+  },
+  {
+   "oapp": "0xb4818bb69478730ef4e33cc068dd94278e2766cb",
+   "liveUnderFloor": 9
+  }
+ ],
+ "byValue": {
+  "priced": 8,
+  "unpriced": 817,
+  "subject": {
+   "usd": 295005032.03322744,
+   "rank": 1
+  },
+  "top": [
+   {
+    "oapp": "0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3",
+    "usd": 295005032.03322744,
+    "token": "0xa1290d69c65a6fe4df752f95823fae25cb99e5a7",
+    "liveUnderFloor": 24
+   },
+   {
+    "oapp": "0x5c0d3e2dbb3e04228f2f0c21e53ccc58bd61ac54",
+    "usd": 5.907253383774999,
+    "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "liveUnderFloor": 1
+   },
+   {
+    "oapp": "0x582bccfb936869510aa32204173c89124f9afe87",
+    "usd": 1.3941117985709,
+    "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "liveUnderFloor": 1
+   },
+   {
+    "oapp": "0xf7b04b29c9e918cd3d7545cc7ff33f78a0fadb6a",
+    "usd": 0.3789304056023283,
+    "token": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+    "liveUnderFloor": 1
+   },
+   {
+    "oapp": "0x56e8afec0b17ce49c41d9b227fb338575af89607",
+    "usd": 0.050003742,
+    "token": "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+    "liveUnderFloor": 1
+   },
+   {
+    "oapp": "0x4be1cca79d3287e0fd3b40ef1862635825351a45",
+    "usd": 0.0023629013535099996,
+    "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "liveUnderFloor": 1
+   },
+   {
+    "oapp": "0xd3f994f5ddd0828ab8fe78e613bb9d4f1209d372",
+    "usd": 0,
+    "token": "0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee",
+    "liveUnderFloor": 1
+   },
+   {
+    "oapp": "0xde5e6ba6151d4093ca80542f734ae2aa679213ca",
+    "usd": 0,
+    "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "liveUnderFloor": 1
+   }
+  ]
+ }
+}

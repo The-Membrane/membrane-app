@@ -1,0 +1,3581 @@
+{
+ "version": 1,
+ "fixtureBuiltAt": "2026-10-06T04:22:08.267Z",
+ "evalBlock": 24908284,
+ "framing": {
+  "redDaysBeforeExploit": 381,
+  "baseRate": "825 of 1,835 comparable OApps (45%)",
+  "severity": {
+   "usd": 295005032.03322744,
+   "basis": "locked",
+   "rankByValue": 1,
+   "priced": 8,
+   "ofOApps": 825
+  },
+  "text": "The card would have shown the exploited route (eid 30320) red for 381 days (1.0 years) before the exploit, from the change that first put it under the floor. At block 24,908,284 it would also have shown 825 of 1,835 comparable OApps (45%) with at least one live route under the floor; this subject ranked #4 by number of such routes. The floor is a broad flag, not a discriminator. By the severity rank — the value at risk behind a route, the larger of the adapter's locked balance on Ethereum and the remote chain's bridged supply, priced with the registry consensus — the exploited route carried $295M (locked on Ethereum). Among the floor-breaching OApps whose value could be priced, this subject ranked #1 of the 8 priced (817 of 825 could not be priced: a token the registry does not price, or a native OFT with nothing locked on Ethereum)."
+ },
+ "criteria": {
+  "redOnExploitedEidBeforeCutoff": {
+   "pass": true,
+   "count": 2,
+   "first": "1:0xef6bf2ef7442be302a1b4cf25f2fba7d3a67034e491d6d58b10e92ca033161e4:178:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30320:send",
+   "firstTs": 1743581675
+  },
+  "exploitedEidFloorBreachAtEval": {
+   "pass": true,
+   "directions": [
+    "send",
+    "receive"
+   ]
+  },
+  "controlRouteNoRedDvnChanges": {
+   "pass": true,
+   "red": [],
+   "peerRepointsRed": [
+    "1:0xcb1f1323f9b19146c07c2e40f951c3884a57695138b494da8e90933473673a7b:633:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:send BR-6",
+    "1:0xcb1f1323f9b19146c07c2e40f951c3884a57695138b494da8e90933473673a7b:633:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:receive BR-6"
+   ]
+  },
+  "unannouncedNullThroughout": {
+   "pass": true,
+   "trivial": true
+  },
+  "crossChecksMatch": {
+   "pass": true,
+   "checks": 4
+  }
+ },
+ "counts": {
+  "changes": 227,
+  "red": 55,
+  "redBeforeEval": 55,
+  "remoteChanges": 4
+ },
+ "headAtEval": [
+  {
+   "eid": 30110,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30110,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30111,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30111,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30217,
+   "direction": "send",
+   "live": true,
+   "E": 2,
+   "display": "E=2 · 2-of-2 (layerzero-labs, polyhedra-network) · 42 conf",
+   "breaches": []
+  },
+  {
+   "eid": 30217,
+   "direction": "receive",
+   "live": true,
+   "E": 2,
+   "display": "E=2 · 2-of-2 (layerzero-labs, polyhedra-network) · 42 conf",
+   "breaches": []
+  },
+  {
+   "eid": 30260,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30260,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30243,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30243,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30214,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30214,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30184,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30184,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30183,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30183,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30274,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30274,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30165,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30165,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30303,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30303,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30335,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30335,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30329,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30329,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30332,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30332,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30362,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30362,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30325,
+   "direction": "send",
+   "live": true,
+   "E": 2,
+   "display": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 42 conf",
+   "breaches": []
+  },
+  {
+   "eid": 30325,
+   "direction": "receive",
+   "live": true,
+   "E": 2,
+   "display": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 30000 conf",
+   "breaches": []
+  },
+  {
+   "eid": 30367,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30367,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30320,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30320,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30377,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30377,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30106,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30106,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30339,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30339,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30383,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30383,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30396,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30396,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30398,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30398,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30181,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30181,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30390,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30390,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  }
+ ],
+ "remoteHeadAtEval": [
+  {
+   "eid": 30101,
+   "direction": "send",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  },
+  {
+   "eid": 30101,
+   "direction": "receive",
+   "live": true,
+   "E": 1,
+   "display": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "breaches": [
+    {
+     "ruleId": "BR-2",
+     "message": "live route at E=1: fewer than 2 distinct known DVN operators"
+    }
+   ]
+  }
+ ],
+ "crossChecks": [
+  {
+   "chainId": 1,
+   "block": 24907000,
+   "eid": 30320,
+   "direction": "receive",
+   "replay": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "read": "1 required [0x589dedbd617e0cbcb916a9223f4d1300c294236b] + 0-of-0 optional, 42 conf",
+   "match": true
+  },
+  {
+   "chainId": 1,
+   "block": 24907000,
+   "eid": 30320,
+   "direction": "send",
+   "replay": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "read": "1 required [0x589dedbd617e0cbcb916a9223f4d1300c294236b] + 0-of-0 optional, 42 conf",
+   "match": true
+  },
+  {
+   "chainId": 1,
+   "block": 24908284,
+   "eid": 30320,
+   "direction": "receive",
+   "replay": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "read": "1 required [0x589dedbd617e0cbcb916a9223f4d1300c294236b] + 0-of-0 optional, 42 conf",
+   "match": true
+  },
+  {
+   "chainId": 1,
+   "block": 24908284,
+   "eid": 30320,
+   "direction": "send",
+   "replay": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "read": "1 required [0x589dedbd617e0cbcb916a9223f4d1300c294236b] + 0-of-0 optional, 42 conf",
+   "match": true
+  }
+ ],
+ "red": [
+  {
+   "id": "1:0x02f2baf36b37ef79e16eafbf7970e16224bbcbc2e2a622ece4c9e3a8d98b6152:89:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:send",
+   "block": 19441188,
+   "date": "2024-03-15T15:17:47.000Z",
+   "eid": 30217,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-6"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "blocked (dead_dvn)"
+  },
+  {
+   "id": "1:0x02f2baf36b37ef79e16eafbf7970e16224bbcbc2e2a622ece4c9e3a8d98b6152:89:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:receive",
+   "block": 19441188,
+   "date": "2024-03-15T15:17:47.000Z",
+   "eid": 30217,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-6"
+   ],
+   "tags": [],
+   "before": "blocked (dead_dvn)",
+   "after": "blocked (dead_dvn)"
+  },
+  {
+   "id": "1:0x90770c411af3a8bf225214622f1b175a241939e47f1244475a23b5cbd68e2fab:127:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:receive",
+   "block": 19446017,
+   "date": "2024-03-16T07:36:35.000Z",
+   "eid": 30217,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-4",
+    "BR-7"
+   ],
+   "tags": [],
+   "before": "blocked (dead_dvn)",
+   "after": "blocked (dead_dvn) · 1 unknown DVN · 1 DVN without code"
+  },
+  {
+   "id": "1:0x2d07411080450dfb993fc8b8a99f21b0647eb6f4cd70a51f4ad734b7a9a612ec:79:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30260:send",
+   "block": 19480799,
+   "date": "2024-03-21T04:55:23.000Z",
+   "eid": 30260,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (layerzero-labs, polyhedra-network) · 42 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x2d07411080450dfb993fc8b8a99f21b0647eb6f4cd70a51f4ad734b7a9a612ec:79:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30243:send",
+   "block": 19480799,
+   "date": "2024-03-21T04:55:23.000Z",
+   "eid": 30243,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (layerzero-labs, polyhedra-network) · 42 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xf64d02e59234f08841eeeafd4668ff3c30581acc200a20330a51241f00a5e94f:192:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30260:receive",
+   "block": 19480800,
+   "date": "2024-03-21T04:55:35.000Z",
+   "eid": 30260,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (layerzero-labs, polyhedra-network) · 42 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xf64d02e59234f08841eeeafd4668ff3c30581acc200a20330a51241f00a5e94f:192:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30243:receive",
+   "block": 19480800,
+   "date": "2024-03-21T04:55:35.000Z",
+   "eid": 30243,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (layerzero-labs, polyhedra-network) · 42 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x0534693dd1eeffcf92959f9f01f01b14a225bd2fef8562f8d312b94534a67546:160:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30214:send",
+   "block": 19512609,
+   "date": "2024-03-25T16:16:23.000Z",
+   "eid": 30214,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x0534693dd1eeffcf92959f9f01f01b14a225bd2fef8562f8d312b94534a67546:160:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30184:send",
+   "block": 19512609,
+   "date": "2024-03-25T16:16:23.000Z",
+   "eid": 30184,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 15 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x7d8c4d8c668f763c129cf3021f9e9667a30cafb4b41a890f79763a68db893a58:148:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30214:receive",
+   "block": 19512610,
+   "date": "2024-03-25T16:16:35.000Z",
+   "eid": 30214,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x7d8c4d8c668f763c129cf3021f9e9667a30cafb4b41a890f79763a68db893a58:148:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30184:receive",
+   "block": 19512610,
+   "date": "2024-03-25T16:16:35.000Z",
+   "eid": 30184,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 10 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x7485c16c9be3f19de141d7315e63e2a8a5e4bd2930dffffcbd14b9cceece73ef:160:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30110:send",
+   "block": 19559425,
+   "date": "2024-04-01T07:12:11.000Z",
+   "eid": 30110,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 15 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x7485c16c9be3f19de141d7315e63e2a8a5e4bd2930dffffcbd14b9cceece73ef:160:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30111:send",
+   "block": 19559425,
+   "date": "2024-04-01T07:12:11.000Z",
+   "eid": 30111,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 15 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x21e967c99a7038962d84c3a1090b55a531a2fe34a250141ae2e48178ced77084:168:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30110:receive",
+   "block": 19559426,
+   "date": "2024-04-01T07:12:23.000Z",
+   "eid": 30110,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 20 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x21e967c99a7038962d84c3a1090b55a531a2fe34a250141ae2e48178ced77084:168:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30111:receive",
+   "block": 19559426,
+   "date": "2024-04-01T07:12:23.000Z",
+   "eid": 30111,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 20 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x89363f583855fea4f9811a90423e1399985947c21bd7e9a3f270177550830e00:206:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30183:send",
+   "block": 19662869,
+   "date": "2024-04-15T19:02:59.000Z",
+   "eid": 30183,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 15 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x95a906177e279dfb9b61c7a41c77addba28f80632385f2bc437505f4484b8777:243:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30183:receive",
+   "block": 19662870,
+   "date": "2024-04-15T19:03:11.000Z",
+   "eid": 30183,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 10 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x9b9e8acb67963da46750592abe80ac4749348fd92ff7a03e80b1e2a895e73741:386:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30274:send",
+   "block": 19830524,
+   "date": "2024-05-09T05:53:59.000Z",
+   "eid": 30274,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xf3b7dc2812063c97e081a0e865101576b498b6f4af7ecbc514d39646e5c5051e:185:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30274:receive",
+   "block": 19830526,
+   "date": "2024-05-09T05:54:23.000Z",
+   "eid": 30274,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xd73766c83bf71d41dc699dd896fef1dc188bfc54ac39af836d9152b525b72544:177:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30165:send",
+   "block": 19881200,
+   "date": "2024-05-16T07:59:23.000Z",
+   "eid": 30165,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x31250898dea1b27a6f2d2f1accc3e4a0fdb2580a0c34601bbfa3287de6d33d39:112:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30165:receive",
+   "block": 19881201,
+   "date": "2024-05-16T07:59:35.000Z",
+   "eid": 30165,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xa03917996d4d50e2754411fc4e822a7e0342de075e4b73c58b9ef9826f3f9dcb:172:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30303:send",
+   "block": 20725411,
+   "date": "2024-09-11T05:53:59.000Z",
+   "eid": 30303,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x074e8c53f0bb62453048bb680c8c69378ce5eb843e9f52ecde3e7e0e415e8882:326:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30303:receive",
+   "block": 20725412,
+   "date": "2024-09-11T05:54:11.000Z",
+   "eid": 30303,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x82c63d7bb3c0d78219cdac9da8b905e36a09c5cc602a9985d88e238a67293bcf:193:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30335:send",
+   "block": 21422385,
+   "date": "2024-12-17T12:53:59.000Z",
+   "eid": 30335,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x82c63d7bb3c0d78219cdac9da8b905e36a09c5cc602a9985d88e238a67293bcf:193:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30329:send",
+   "block": 21422385,
+   "date": "2024-12-17T12:53:59.000Z",
+   "eid": 30329,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x7bc75150d931795f191986a8100809b3b55b132e4832161c0063c15e063e9a57:242:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30335:receive",
+   "block": 21422386,
+   "date": "2024-12-17T12:54:11.000Z",
+   "eid": 30335,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x7bc75150d931795f191986a8100809b3b55b132e4832161c0063c15e063e9a57:242:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30329:receive",
+   "block": 21422386,
+   "date": "2024-12-17T12:54:11.000Z",
+   "eid": 30329,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xae06760c01df2751ce96940c72fd89bd75afbd74c38918697d52cb6fe6677f87:91:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30362:send",
+   "block": 21695294,
+   "date": "2025-01-24T15:35:47.000Z",
+   "eid": 30362,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 15 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x6545f712995e3785132605aca68b668458b3ef829412fad67ab11e5cc062c89e:82:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30362:receive",
+   "block": 21695295,
+   "date": "2025-01-24T15:35:59.000Z",
+   "eid": 30362,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 20 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x80b95be7c34feb4bde38875baeac97d54b3517b7ec045afe5400e379db5b5c93:255:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:send",
+   "block": 21974307,
+   "date": "2025-03-04T15:05:47.000Z",
+   "eid": 30332,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-6"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "blocked (dead_dvn)"
+  },
+  {
+   "id": "1:0x80b95be7c34feb4bde38875baeac97d54b3517b7ec045afe5400e379db5b5c93:255:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:receive",
+   "block": 21974307,
+   "date": "2025-03-04T15:05:47.000Z",
+   "eid": 30332,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-6"
+   ],
+   "tags": [],
+   "before": "blocked (dead_dvn)",
+   "after": "blocked (dead_dvn)"
+  },
+  {
+   "id": "1:0xc559ced65077bc53ed22dafca2690b9d509b1f26a807ef36780745dd8a3a5b10:95:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:send",
+   "block": 21974398,
+   "date": "2025-03-04T15:23:59.000Z",
+   "eid": 30332,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xd5612679e6e4ac8d4fe4f148c5b14cae986b2636cd851be71f3698102503db97:92:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:receive",
+   "block": 21974400,
+   "date": "2025-03-04T15:24:23.000Z",
+   "eid": 30332,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xcb1f1323f9b19146c07c2e40f951c3884a57695138b494da8e90933473673a7b:633:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:send",
+   "block": 22094020,
+   "date": "2025-03-21T08:22:59.000Z",
+   "eid": 30325,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-6"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 42 conf",
+   "after": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 42 conf"
+  },
+  {
+   "id": "1:0xcb1f1323f9b19146c07c2e40f951c3884a57695138b494da8e90933473673a7b:633:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:receive",
+   "block": 22094020,
+   "date": "2025-03-21T08:22:59.000Z",
+   "eid": 30325,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-6"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 1000000 conf",
+   "after": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 1000000 conf"
+  },
+  {
+   "id": "1:0x911d563eeda3c5d926a7a66cfaa97340cd6df18baf769fcf35d3baf176a920f9:343:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30367:send",
+   "block": 22145814,
+   "date": "2025-03-28T13:49:23.000Z",
+   "eid": 30367,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x9aff0056d4f270165fa38200fcb7e0e9acad14a8b126128ee7af8ea0b482543f:377:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30367:receive",
+   "block": 22145815,
+   "date": "2025-03-28T13:49:35.000Z",
+   "eid": 30367,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xef6bf2ef7442be302a1b4cf25f2fba7d3a67034e491d6d58b10e92ca033161e4:178:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30320:send",
+   "block": 22179963,
+   "date": "2025-04-02T08:14:35.000Z",
+   "eid": 30320,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x2d48d9331d96c46f8b4a9f7a7bdcf256d2034dadb42f039d27dc28077d520592:1488:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30320:receive",
+   "block": 22179964,
+   "date": "2025-04-02T08:14:47.000Z",
+   "eid": 30320,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xf1450264996e3e05e5335ec43746732c6d319247b2994620e984a0ae42d5ddc9:323:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30377:send",
+   "block": 22911648,
+   "date": "2025-07-13T17:08:11.000Z",
+   "eid": 30377,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x5189ab81d3940da3ebb13964823d8026f280d308429d6a5f62943d5428177e7c:172:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30377:receive",
+   "block": 22911653,
+   "date": "2025-07-13T17:09:11.000Z",
+   "eid": 30377,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xb4ad1a9a7ba9e763b0766bc61361586f10d5cdadac4f495956ac7aef28f7fe73:193:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30106:send",
+   "block": 23167808,
+   "date": "2025-08-18T12:00:35.000Z",
+   "eid": 30106,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 15 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xfa974c410c58fec4ea31fd37181183ab15c45823199ddc7fc13ffd204c68cfaf:466:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30106:receive",
+   "block": 23167809,
+   "date": "2025-08-18T12:00:47.000Z",
+   "eid": 30106,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (google-cloud, layerzero-labs) · 12 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x7e8e2a657bbe052c308d612e23f7a429020bfb28ca303addc90489fd34294950:246:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30339:send",
+   "block": 23369379,
+   "date": "2025-09-15T15:29:35.000Z",
+   "eid": 30339,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x8e83a3b07312b4187850217dfc365317025dfd32d6f588a8a62775a4f56e3899:401:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30339:receive",
+   "block": 23369382,
+   "date": "2025-09-15T15:30:11.000Z",
+   "eid": 30339,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x71a8529e8485e9cbcbb75036b318f3e7064d0972f9bba0ecbd010d33a63cc091:272:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30383:send",
+   "block": 23375854,
+   "date": "2025-09-16T13:13:59.000Z",
+   "eid": 30383,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 15 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xc8d4cfe3e65e067fc02f3fb76a94a1b9ac51a9e05ba23e9134b85d6d6617e847:364:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30383:receive",
+   "block": 23375859,
+   "date": "2025-09-16T13:14:59.000Z",
+   "eid": 30383,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 5 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x2fc3e42a0251911c85eb705fa86ed26b5b6e9a61c89d5ba0b89bda4443d6b976:160:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30396:send",
+   "block": 23980955,
+   "date": "2025-12-10T07:53:35.000Z",
+   "eid": 30396,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x2fc3e42a0251911c85eb705fa86ed26b5b6e9a61c89d5ba0b89bda4443d6b976:160:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30396:receive",
+   "block": 23980955,
+   "date": "2025-12-10T07:53:35.000Z",
+   "eid": 30396,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x6114e95a11480e27557afe324f9a8223cfe2a4f778fa1cb30894436fab36511b:552:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30398:send",
+   "block": 24076637,
+   "date": "2025-12-23T16:54:35.000Z",
+   "eid": 30398,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xd6ad507795df456606daa2d1fe53191c0e2ed7d13462214aabdcbe826806ccd3:702:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30398:receive",
+   "block": 24076748,
+   "date": "2025-12-23T17:17:11.000Z",
+   "eid": 30398,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x1dddeb57c212026cd86db2867bde1c4d4b97abb70403b163403e75a757189c89:142:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30181:send",
+   "block": 24140219,
+   "date": "2026-01-01T13:55:59.000Z",
+   "eid": 30181,
+   "chain": 1,
+   "dir": "send",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 15 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0xfdc485c659dbd118148a669d6f9ef71f201e87a524ab86b055d85c2477feebb8:192:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30181:receive",
+   "block": 24140229,
+   "date": "2026-01-01T13:57:59.000Z",
+   "eid": 30181,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "downgrade",
+   "red": true,
+   "rules": [
+    "BR-2",
+    "BR-1"
+   ],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 2 conf",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x0c412fc8dac9b07af6837724c83982103e974888c5f3e8aefd6f5590470c027c:994:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30390:send",
+   "block": 24784282,
+   "date": "2026-04-01T10:54:59.000Z",
+   "eid": 30390,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "1:0x53e5389c75d592cc7f0e57b9b0d74303253d35f1357cf151e97166df0969e086:610:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30390:receive",
+   "block": 24784877,
+   "date": "2026-04-01T12:54:35.000Z",
+   "eid": 30390,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  }
+ ],
+ "remote": [
+  {
+   "id": "130:0x31ea2b10a738ca91f77468fdb4d20e94fcae3df6522494de6409ec1315bb8443:0:0xc3eacf0612346366db554c991d7858716db09f58:30101:send",
+   "block": 12785382,
+   "date": "2025-04-01T18:55:41.000Z",
+   "eid": 30101,
+   "chain": 130,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "blocked (dead_dvn)"
+  },
+  {
+   "id": "130:0x31ea2b10a738ca91f77468fdb4d20e94fcae3df6522494de6409ec1315bb8443:0:0xc3eacf0612346366db554c991d7858716db09f58:30101:receive",
+   "block": 12785382,
+   "date": "2025-04-01T18:55:41.000Z",
+   "eid": 30101,
+   "chain": 130,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "blocked (dead_dvn)",
+   "after": "blocked (dead_dvn)"
+  },
+  {
+   "id": "130:0xd8ef5416a532d92f9b7a04230285d1b81b3e73e84270641a34b83999b48152f4:8:0xc3eacf0612346366db554c991d7858716db09f58:30101:send",
+   "block": 12785388,
+   "date": "2025-04-01T18:55:47.000Z",
+   "eid": 30101,
+   "chain": 130,
+   "dir": "send",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "send_side",
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  },
+  {
+   "id": "130:0x90917ef3395a0dce66f8d46d0274156ab2f019289b459735eb90c84ad248c5fc:2:0xc3eacf0612346366db554c991d7858716db09f58:30101:receive",
+   "block": 12785395,
+   "date": "2025-04-01T18:55:54.000Z",
+   "eid": 30101,
+   "chain": 130,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": true,
+   "rules": [
+    "BR-2"
+   ],
+   "tags": [
+    "unblocked"
+   ],
+   "before": "blocked (dead_dvn)",
+   "after": "E=1 · 1-of-1 (layerzero-labs) · 42 conf"
+  }
+ ],
+ "after": [
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30110:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30110,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30111:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30111,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30217,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (layerzero-labs, polyhedra-network) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30260:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30260,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30243:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30243,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30214:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30214,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30184:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30184,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30183:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30183,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30274:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30274,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30165:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30165,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30303:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30303,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30335:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30335,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30329:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30329,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30362:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30362,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30332,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30367:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30367,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30320:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30320,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30377:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30377,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30106:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30106,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30339:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30339,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30383:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30383,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30396:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30396,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30398:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30398,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30181:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30181,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xbf09fd7d513415adfc12f8bb8bfbdbde356e95f18dd059ccb3f93faa3c39b947:597:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30390:send",
+   "block": 24941876,
+   "date": "2026-04-23T09:53:47.000Z",
+   "eid": 30390,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30110:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30110,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30111:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30111,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30217,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (layerzero-labs, polyhedra-network) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30260:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30260,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30243:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30243,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30214:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30214,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30184:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30184,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30183:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30183,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30274:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30274,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30165:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30165,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30303:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30303,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30335:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30335,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30329:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30329,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30362:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30362,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30332,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30367:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30367,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30320:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30320,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30377:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30377,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30106:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30106,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30339:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30339,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30383:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30383,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30396:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30396,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30398:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30398,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30181:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30181,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xde7aa019a29b999606335c16e60d445cfa3d25a2b9d4f565db5aed5eb1a5a240:642:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30390:receive",
+   "block": 24941884,
+   "date": "2026-04-23T09:55:23.000Z",
+   "eid": 30390,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=1 · 1-of-1 (layerzero-labs) · 42 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xd67c4d9add38242c9794ce130dd2be7ed9a39d0c0091d5c984d4713e69d6547e:745:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:send",
+   "block": 24943740,
+   "date": "2026-04-23T16:07:47.000Z",
+   "eid": 30325,
+   "chain": 1,
+   "dir": "send",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 42 conf",
+   "after": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 64 conf"
+  },
+  {
+   "id": "1:0x7b3e4eef76a6943d276ba033dbc752dbca82e7bcaba607dc6069e064e8e7b621:831:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:receive",
+   "block": 24943743,
+   "date": "2026-04-23T16:08:23.000Z",
+   "eid": 30325,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "upgrade",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 30000 conf",
+   "after": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 30000 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30111:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30111,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30111:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30111,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30217,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30217,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30260:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30260,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30260:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30260,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30243:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30243,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30243:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30243,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30214:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30214,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30214:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30214,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30183:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30183,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30183:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30183,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30274:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30274,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30274:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30274,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30165:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30165,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30165:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30165,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30303:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30303,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30303:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30303,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30335:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30335,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30335:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30335,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30329:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30329,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30329:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30329,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30362:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30362,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30362:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30362,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30332,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30332,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30367:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30367,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30367:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30367,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30320:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30320,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30320:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30320,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30377:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30377,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30377:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30377,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30106:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30106,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30106:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30106,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30383:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30383,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30383:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30383,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30396:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30396,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30396:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30396,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30398:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30398,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30398:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30398,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30390:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30390,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30390:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30390,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:send",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30325,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 64 conf",
+   "after": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 64 conf"
+  },
+  {
+   "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:receive",
+   "block": 25324299,
+   "date": "2026-06-15T17:08:47.000Z",
+   "eid": 30325,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 30000 conf",
+   "after": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 30000 conf"
+  },
+  {
+   "id": "1:0x2bc8e5d6413788443b6ac0696c74dc5d28df50030479cab763d82f916ef4df9d:502:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30110:send",
+   "block": 25934516,
+   "date": "2026-09-08T18:44:35.000Z",
+   "eid": 30110,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, google-cloud, horizen-labs, layerzero-labs) · 64 conf"
+  },
+  {
+   "id": "1:0x2bc8e5d6413788443b6ac0696c74dc5d28df50030479cab763d82f916ef4df9d:502:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30110:receive",
+   "block": 25934516,
+   "date": "2026-09-08T18:44:35.000Z",
+   "eid": 30110,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, google-cloud, horizen-labs, layerzero-labs) · 64 conf"
+  },
+  {
+   "id": "1:0x6f627d0f635525327c0c3a3acf94c402d421c44b4c39f8477ebdf7f03d6123f4:1323:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30184:send",
+   "block": 26113868,
+   "date": "2026-10-03T19:21:11.000Z",
+   "eid": 30184,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "blocked"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "BlockedMessageLib (route closed)"
+  },
+  {
+   "id": "1:0x6f627d0f635525327c0c3a3acf94c402d421c44b4c39f8477ebdf7f03d6123f4:1323:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30181:send",
+   "block": 26113868,
+   "date": "2026-10-03T19:21:11.000Z",
+   "eid": 30181,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "blocked"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "BlockedMessageLib (route closed)"
+  },
+  {
+   "id": "1:0x6f627d0f635525327c0c3a3acf94c402d421c44b4c39f8477ebdf7f03d6123f4:1323:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30339:send",
+   "block": 26113868,
+   "date": "2026-10-03T19:21:11.000Z",
+   "eid": 30339,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "blocked"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "BlockedMessageLib (route closed)"
+  },
+  {
+   "id": "1:0xac476ef147431c4cd284c82a19ca37efedf040e5b7b55ce50dd4ed83d8cbfb5b:884:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30339:send",
+   "block": 26127704,
+   "date": "2026-10-05T17:37:11.000Z",
+   "eid": 30339,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed"
+   ],
+   "before": "BlockedMessageLib (route closed)",
+   "after": "BlockedMessageLib (route closed)"
+  },
+  {
+   "id": "1:0xac476ef147431c4cd284c82a19ca37efedf040e5b7b55ce50dd4ed83d8cbfb5b:884:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30339:receive",
+   "block": 26127704,
+   "date": "2026-10-05T17:37:11.000Z",
+   "eid": 30339,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0x06a8fdad75d6491d398e80eaca0f1116a4a618667181a2723834c9bf8b219d0d:307:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30181:send",
+   "block": 26127708,
+   "date": "2026-10-05T17:37:59.000Z",
+   "eid": 30181,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed"
+   ],
+   "before": "BlockedMessageLib (route closed)",
+   "after": "BlockedMessageLib (route closed)"
+  },
+  {
+   "id": "1:0x06a8fdad75d6491d398e80eaca0f1116a4a618667181a2723834c9bf8b219d0d:307:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30181:receive",
+   "block": 26127708,
+   "date": "2026-10-05T17:37:59.000Z",
+   "eid": 30181,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  },
+  {
+   "id": "1:0xa306c0455abf5ce83fa4aaa59fe44f8affe12b24702b7f4eb96d8a12c29b0cb2:679:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30184:send",
+   "block": 26127715,
+   "date": "2026-10-05T17:39:23.000Z",
+   "eid": 30184,
+   "chain": 1,
+   "dir": "send",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "send_side",
+    "route_removed"
+   ],
+   "before": "BlockedMessageLib (route closed)",
+   "after": "BlockedMessageLib (route closed)"
+  },
+  {
+   "id": "1:0xa306c0455abf5ce83fa4aaa59fe44f8affe12b24702b7f4eb96d8a12c29b0cb2:679:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30184:receive",
+   "block": 26127715,
+   "date": "2026-10-05T17:39:23.000Z",
+   "eid": 30184,
+   "chain": 1,
+   "dir": "receive",
+   "severity": "neutral",
+   "red": false,
+   "rules": [],
+   "tags": [
+    "route_removed",
+    "inactive_route"
+   ],
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+  }
+ ]
+}

@@ -5,20 +5,23 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import type { AssetSummary } from '@/lib/oracleRegistry/apiTypes'
 
+import { configTabLabel, configTabMarks, smallText, type TabEntry } from './configViewModel'
 import { COLOUR_META, tabLabel, tabMarks } from './viewModel'
 
 // Asset picker: a roving-tabindex tablist (arrows / Home / End), horizontally scrollable on
 // phones. Each tab carries its status marks — ▼n / ▲n outlier counts, ● when calm, × when
-// the asset has no consensus.
+// the asset has no consensus — then its config marks: ■n open red flags, ◐n pending changes.
+// Config-only subjects (no oracle in the catalog, e.g. rsETH) get a tab of their own.
 
 export const AssetTabs: React.FC<{
-  assets: AssetSummary[]
+  assets: TabEntry[]
   selected: string
   onSelect: (slug: string) => void
   panelId: string
-}> = ({ assets, selected, onSelect, panelId }) => {
+  /** Client clock (unix s; null during SSR): marks stale config output. */
+  now?: number | null
+}> = ({ assets, selected, onSelect, panelId, now = null }) => {
   const refs = useRef<(HTMLButtonElement | null)[]>([])
   const scroller = useRef<HTMLDivElement | null>(null)
 
@@ -75,6 +78,12 @@ export const AssetTabs: React.FC<{
       >
         {assets.map((a, i) => {
           const active = a.slug === selected
+          const label = [
+            a.oracle ? tabLabel(a.oracle) : `${a.symbol} (config only)`,
+            configTabLabel(a.config, now),
+          ]
+            .filter(Boolean)
+            .join('; ')
           return (
             <Box
               as="button"
@@ -86,7 +95,7 @@ export const AssetTabs: React.FC<{
               role="tab"
               id={`oracle-tab-${a.slug}`}
               aria-selected={active}
-              aria-label={tabLabel(a)}
+              aria-label={label}
               aria-controls={panelId}
               tabIndex={active ? 0 : -1}
               onClick={() => onSelect(a.slug)}
@@ -107,12 +116,17 @@ export const AssetTabs: React.FC<{
                 <Text as="span">
                   {a.symbol.startsWith('PT-') ? a.symbol.replace(/-\d.*$/, '') : a.symbol}
                 </Text>
-                {a.kind === 'reference' && (
-                  <Text as="span" fontSize="9px" color={SEMANTIC_COLORS.textTertiary}>
+                {a.oracle?.kind === 'reference' && (
+                  <Text as="span" fontSize="9px" color={SEMANTIC_COLORS.textSecondary}>
                     ref
                   </Text>
                 )}
-                {tabMarks(a).map((m) => (
+                {!a.oracle && (
+                  <Text as="span" fontSize="9px" color={SEMANTIC_COLORS.textSecondary}>
+                    config
+                  </Text>
+                )}
+                {(a.oracle ? tabMarks(a.oracle) : []).map((m) => (
                   <Text
                     as="span"
                     key={m.colour}
@@ -121,6 +135,12 @@ export const AssetTabs: React.FC<{
                   >
                     {m.glyph}
                     {m.count != null ? m.count : ''}
+                  </Text>
+                ))}
+                {configTabMarks(a.config, now).map((m) => (
+                  <Text as="span" key={m.label} color={smallText(m.token)} fontSize="10px">
+                    {m.glyph}
+                    {m.count}
                   </Text>
                 ))}
               </HStack>

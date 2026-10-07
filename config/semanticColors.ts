@@ -56,10 +56,18 @@ export const SEMANTIC_COLORS = {
   riskCaution: 'var(--m-risk-caution)',
 
   /**
+   * Proposed (not yet queued on-chain) - the oracle registry's config-card state between
+   * "discussed" and "pending". Blue, because `info` is teal and pending already owns gold.
+   */
+  proposed: 'var(--m-proposed)',
+
+  /**
    * Danger state - errors, critical issues, destructive actions
    * Used for: Error messages, liquidation warnings, delete actions
    */
   danger: 'var(--m-danger)', // Blood red / deep blood
+  /** Danger for SMALL text (10-12px chips, rule ids): meets 4.5:1 in both themes. */
+  dangerText: 'var(--m-danger-text)',
 
   /**
    * Info state - informational, neutral information

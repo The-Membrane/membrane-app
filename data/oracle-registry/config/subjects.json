@@ -1,0 +1,2161 @@
+{
+  "version": 1,
+  "generatedAt": "2026-10-07",
+  "scanFloor": 17600000,
+  "subjects": [
+    {
+      "key": "rseth",
+      "label": "rsETH (Kelp)",
+      "oracleAssetKey": null,
+      "class": "lrt",
+      "contracts": [
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0xa1290d69c65a6fe4df752f95823fae25cb99e5a7",
+          "label": "rsETH (Transparent proxy)",
+          "deployBlock": 18758282
+        },
+        {
+          "role": "config",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x947cb49334e6571ccbfef1f1f1178d8469d65ec7",
+          "label": "LRTConfig (roles, contracts, deposit limits)",
+          "deployBlock": 18758282
+        },
+        {
+          "role": "minting",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x036676389e48133b63a802f8635ad39e752d375d",
+          "label": "LRTDepositPool",
+          "deployBlock": 18758282
+        },
+        {
+          "role": "oracle",
+          "dimension": "oracle",
+          "chainId": 1,
+          "address": "0x349a73444b1a310bae67ef67973022020d70020d",
+          "label": "LRTOracle (rsETH price)",
+          "deployBlock": 18758376
+        },
+        {
+          "role": "oft_adapter",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3",
+          "label": "LayerZero OFTAdapter",
+          "deployBlock": 19166120
+        },
+        {
+          "role": "ccip_pool",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x55e5a21b4ccc7fa502434ab1109d4ede0397ab25",
+          "label": "CCIP LockReleaseTokenPool 1.5.1",
+          "deployBlock": 22496558
+        },
+        {
+          "role": "proxy_admin",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xb61e0e39b6d4030c36a176f576aabe44bf59dc78",
+          "label": "ProxyAdmin",
+          "deployBlock": 18758282
+        },
+        {
+          "role": "timelock",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x49bd9989e31ad35b0a62c20be86335196a3135b1",
+          "label": "Timelock (10 d)",
+          "deployBlock": 19811860
+        },
+        {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xb3696a817d01c8623e66d156b6798291fa10a46d",
+          "label": "Safe (LRTConfig admin, timelock proposer)",
+          "deployBlock": 19811600
+        },
+        {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xcbcdd778aa25476f203814214dd3e9b9c46829a1",
+          "label": "Safe (MANAGER, OFT owner + delegate)",
+          "deployBlock": 18758223
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xb22764f98dd05c789929716d677382df22c05cb6",
+          "label": "CCIP TokenAdminRegistry (shared; events kept for this token only)",
+          "deployBlock": 20735575
+        }
+      ],
+      "lzOApps": [
+        "0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3"
+      ],
+      "ccipPools": [
+        "0x55e5a21b4ccc7fa502434ab1109d4ede0397ab25"
+      ],
+      "powers": [
+        {
+          "power": "upgrade",
+          "contract": "0xa1290d69c65a6fe4df752f95823fae25cb99e5a7",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade rsETH"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x947cb49334e6571ccbfef1f1f1178d8469d65ec7",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade LRTConfig"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x036676389e48133b63a802f8635ad39e752d375d",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade LRTDepositPool"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x349a73444b1a310bae67ef67973022020d70020d",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade LRTOracle"
+        },
+        {
+          "power": "mint",
+          "contract": "0x947cb49334e6571ccbfef1f1f1178d8469d65ec7",
+          "path": [
+            "role_admin:MINTER_ROLE"
+          ],
+          "label": "Grant rsETH MINTER_ROLE"
+        },
+        {
+          "power": "mint",
+          "contract": "0x947cb49334e6571ccbfef1f1f1178d8469d65ec7",
+          "path": [
+            "role:MINTER_ROLE"
+          ],
+          "label": "rsETH minters"
+        },
+        {
+          "power": "oracle",
+          "contract": "0x947cb49334e6571ccbfef1f1f1178d8469d65ec7",
+          "path": [
+            "role:DEFAULT_ADMIN_ROLE"
+          ],
+          "label": "LRTConfig admin (setContract: oracle, deposit pool)"
+        },
+        {
+          "power": "caps",
+          "contract": "0x947cb49334e6571ccbfef1f1f1178d8469d65ec7",
+          "path": [
+            "role:MANAGER"
+          ],
+          "label": "LRTConfig MANAGER (deposit limits)"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3",
+          "path": [
+            "owner"
+          ],
+          "label": "OFTAdapter owner (peers, delegate)"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3",
+          "path": [
+            "lz_delegate"
+          ],
+          "label": "OFTAdapter LZ delegate (DVN config)"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x55e5a21b4ccc7fa502434ab1109d4ede0397ab25",
+          "path": [
+            "owner"
+          ],
+          "label": "CCIP pool owner (remote pools, rate limits)"
+        }
+      ],
+      "params": [
+        {
+          "key": "depositLimit:ETH",
+          "contract": "0x947cb49334e6571ccbfef1f1f1178d8469d65ec7",
+          "sig": "function depositLimitByAsset(address) view returns (uint256)",
+          "rule": "cap",
+          "label": "Deposit limit ETH",
+          "args": [
+            "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+          ],
+          "zero": "closed",
+          "setter": {
+            "sig": "function updateAssetDepositLimit(address asset, uint256 depositLimit)",
+            "value": 1,
+            "match": [
+              0
+            ]
+          }
+        },
+        {
+          "key": "depositLimit:stETH",
+          "contract": "0x947cb49334e6571ccbfef1f1f1178d8469d65ec7",
+          "sig": "function depositLimitByAsset(address) view returns (uint256)",
+          "rule": "cap",
+          "label": "Deposit limit stETH",
+          "args": [
+            "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
+          ],
+          "zero": "closed",
+          "setter": {
+            "sig": "function updateAssetDepositLimit(address asset, uint256 depositLimit)",
+            "value": 1,
+            "match": [
+              0
+            ]
+          }
+        },
+        {
+          "key": "depositLimit:ETHx",
+          "contract": "0x947cb49334e6571ccbfef1f1f1178d8469d65ec7",
+          "sig": "function depositLimitByAsset(address) view returns (uint256)",
+          "rule": "cap",
+          "label": "Deposit limit ETHx",
+          "args": [
+            "0xA35b1B31Ce002FBF2058D22F30f95D405200A15b"
+          ],
+          "zero": "closed",
+          "setter": {
+            "sig": "function updateAssetDepositLimit(address asset, uint256 depositLimit)",
+            "value": 1,
+            "match": [
+              0
+            ]
+          }
+        },
+        {
+          "key": "pricePercentageLimit",
+          "contract": "0x349a73444b1a310bae67ef67973022020d70020d",
+          "sig": "function pricePercentageLimit() view returns (uint256)",
+          "rule": "bound_upper",
+          "label": "rsETH price-move sanity limit (1e18 = 100%)",
+          "setter": {
+            "sig": "function setPricePercentageLimit(uint256 pricePercentageLimit)",
+            "value": 0
+          }
+        },
+        {
+          "key": "assetPriceOracle:stETH",
+          "contract": "0x349a73444b1a310bae67ef67973022020d70020d",
+          "sig": "function assetPriceOracle(address) view returns (address)",
+          "rule": "price_oracle",
+          "label": "stETH price oracle",
+          "args": [
+            "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84"
+          ],
+          "setter": {
+            "sig": "function updatePriceOracleFor(address asset, address priceOracle)",
+            "value": 1,
+            "match": [
+              0
+            ]
+          }
+        },
+        {
+          "key": "assetPriceOracle:ETH",
+          "contract": "0x349a73444b1a310bae67ef67973022020d70020d",
+          "sig": "function assetPriceOracle(address) view returns (address)",
+          "rule": "price_oracle",
+          "label": "ETH price oracle",
+          "args": [
+            "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+          ],
+          "setter": {
+            "sig": "function updatePriceOracleFor(address asset, address priceOracle)",
+            "value": 1,
+            "match": [
+              0
+            ]
+          }
+        },
+        {
+          "key": "depositPoolPaused",
+          "contract": "0x036676389e48133b63a802f8635ad39e752d375d",
+          "sig": "function paused() view returns (bool)",
+          "rule": "info",
+          "label": "Deposit pool paused"
+        }
+      ],
+      "timelocks": [
+        "0x49bd9989e31ad35b0a62c20be86335196a3135b1"
+      ],
+      "safes": [
+        "0xb3696a817d01c8623e66d156b6798291fa10a46d",
+        "0xcbcdd778aa25476f203814214dd3e9b9c46829a1"
+      ],
+      "govChannels": [],
+      "notes": [
+        "Kelp has no governance forum or Snapshot space (NO-GOV-CHANNEL); its Safes act without a timelock, so the Safe Tx Service is the only pending source."
+      ],
+      "valuation": {
+        "asset": "ETH",
+        "rate": {
+          "contract": "0x349a73444b1a310bae67ef67973022020d70020d",
+          "sig": "function rsETHPrice() view returns (uint256)",
+          "decimals": 18
+        }
+      }
+    },
+    {
+      "key": "weeth",
+      "label": "weETH (ether.fi)",
+      "oracleAssetKey": "weETH",
+      "class": "lrt",
+      "contracts": [
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee",
+          "label": "weETH (UUPS)",
+          "deployBlock": 17664336
+        },
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x35fa164735182de50811e8e2e824cfb9b6118ac2",
+          "label": "eETH (UUPS)",
+          "deployBlock": 17664324
+        },
+        {
+          "role": "minting",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x308861a430be4cce5502d0a12724771fc6daf216",
+          "label": "LiquidityPool (UUPS)",
+          "deployBlock": 17664317
+        },
+        {
+          "role": "config",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x62247d29b4b9becf4bb73e0c722cf6445cfc7ce9",
+          "label": "RoleRegistry",
+          "deployBlock": 22039954
+        },
+        {
+          "role": "oft_adapter",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xcd2eb13d6831d4602d80e5db9230a57596cdca63",
+          "label": "weETH OFT adapter",
+          "deployBlock": 20865339
+        },
+        {
+          "role": "lz_oapp",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xd789870bea40d056a4d26055d0befcc8755da146",
+          "label": "L1SyncPool (OApp)",
+          "deployBlock": 19630101
+        },
+        {
+          "role": "oracle",
+          "dimension": "oracle",
+          "chainId": 1,
+          "address": "0x0ef8fa4760db8f5cd4d993f3e3416f30f942d705",
+          "label": "EtherFiAdmin (rebase sanity)",
+          "deployBlock": 18518789
+        },
+        {
+          "role": "oracle",
+          "dimension": "oracle",
+          "chainId": 1,
+          "address": "0x57aaf0004c716388b21795431cd7d5f9d3bb6a41",
+          "label": "EtherFiOracle (committee)",
+          "deployBlock": 18518785
+        },
+        {
+          "role": "timelock",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x9f26d4c958fd811a1f59b01b86be7dffc9d20761",
+          "label": "Upgrade timelock (10 d)",
+          "deployBlock": 19298624
+        },
+        {
+          "role": "timelock",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xcd425f44758a08baab3c4908f3e3de5776e45d7a",
+          "label": "Operating timelock (2 d)",
+          "deployBlock": 22089226
+        },
+        {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x2aca71020de61bb532008049e1bd41e451ae8adc",
+          "label": "Safe (operating multisig, L1SyncPool delegate)",
+          "deployBlock": 17693714
+        }
+      ],
+      "lzOApps": [
+        "0xcd2eb13d6831d4602d80e5db9230a57596cdca63",
+        "0xd789870bea40d056a4d26055d0befcc8755da146"
+      ],
+      "ccipPools": [],
+      "powers": [
+        {
+          "power": "upgrade",
+          "contract": "0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee",
+          "path": [
+            "call:roleRegistry()",
+            "owner"
+          ],
+          "label": "Upgrade weETH"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x35fa164735182de50811e8e2e824cfb9b6118ac2",
+          "path": [
+            "call:roleRegistry()",
+            "owner"
+          ],
+          "label": "Upgrade eETH"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x308861a430be4cce5502d0a12724771fc6daf216",
+          "path": [
+            "call:roleRegistry()",
+            "owner"
+          ],
+          "label": "Upgrade LiquidityPool"
+        },
+        {
+          "power": "roles",
+          "contract": "0x62247d29b4b9becf4bb73e0c722cf6445cfc7ce9",
+          "path": [
+            "owner"
+          ],
+          "label": "RoleRegistry owner (grants every ether.fi role)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0xcd2eb13d6831d4602d80e5db9230a57596cdca63",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade weETH OFT adapter"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0xcd2eb13d6831d4602d80e5db9230a57596cdca63",
+          "path": [
+            "owner"
+          ],
+          "label": "OFT adapter owner"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0xcd2eb13d6831d4602d80e5db9230a57596cdca63",
+          "path": [
+            "lz_delegate"
+          ],
+          "label": "OFT adapter LZ delegate"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0xd789870bea40d056a4d26055d0befcc8755da146",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade L1SyncPool"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0xd789870bea40d056a4d26055d0befcc8755da146",
+          "path": [
+            "owner"
+          ],
+          "label": "L1SyncPool owner"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0xd789870bea40d056a4d26055d0befcc8755da146",
+          "path": [
+            "lz_delegate"
+          ],
+          "label": "L1SyncPool LZ delegate"
+        }
+      ],
+      "params": [
+        {
+          "key": "acceptableRebaseAprInBps",
+          "contract": "0x0ef8fa4760db8f5cd4d993f3e3416f30f942d705",
+          "sig": "function acceptableRebaseAprInBps() view returns (int32)",
+          "rule": "bound_upper",
+          "label": "Max rebase APR accepted (bps)",
+          "setter": {
+            "sig": "function updateAcceptableRebaseApr(int32 acceptableRebaseAprInBps)",
+            "value": 0
+          }
+        },
+        {
+          "key": "oracleQuorum",
+          "contract": "0x57aaf0004c716388b21795431cd7d5f9d3bb6a41",
+          "sig": "function quorumSize() view returns (uint32)",
+          "rule": "quorum",
+          "label": "Oracle committee quorum",
+          "setter": {
+            "sig": "function setQuorumSize(uint32 quorumSize)",
+            "value": 0
+          }
+        },
+        {
+          "key": "oracleMembers",
+          "contract": "0x57aaf0004c716388b21795431cd7d5f9d3bb6a41",
+          "sig": "function numActiveCommitteeMembers() view returns (uint32)",
+          "rule": "quorum_members",
+          "label": "Oracle committee active members"
+        },
+        {
+          "key": "liquidityPoolPaused",
+          "contract": "0x308861a430be4cce5502d0a12724771fc6daf216",
+          "sig": "function paused() view returns (bool)",
+          "rule": "info",
+          "label": "LiquidityPool paused"
+        }
+      ],
+      "timelocks": [
+        "0x9f26d4c958fd811a1f59b01b86be7dffc9d20761",
+        "0xcd425f44758a08baab3c4908f3e3de5776e45d7a"
+      ],
+      "safes": [
+        "0x2aca71020de61bb532008049e1bd41e451ae8adc"
+      ],
+      "govChannels": [
+        {
+          "kind": "snapshot",
+          "space": "etherfi-dao.eth"
+        },
+        {
+          "kind": "discourse",
+          "base": "https://governance.ether.fi"
+        }
+      ],
+      "notes": [
+        "RoleRegistry roles (Solady-style) are not decoded in v1: guardian / operating roles are not enumerated."
+      ],
+      "valuation": {
+        "asset": "weETH"
+      }
+    },
+    {
+      "key": "usde",
+      "label": "USDe (Ethena)",
+      "oracleAssetKey": "USDe",
+      "class": "bridged",
+      "contracts": [
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+          "label": "USDe",
+          "deployBlock": 18571358
+        },
+        {
+          "role": "minting",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0xe3490297a08d6fc8da46edb7b6142e4f461b62d3",
+          "label": "EthenaMinting V2",
+          "deployBlock": 20142841
+        },
+        {
+          "role": "oft_adapter",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+          "label": "USDe OFT adapter",
+          "deployBlock": 19392586
+        },
+        {
+          "role": "timelock",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xe8dc0fab349ea169283c48ccfd09d797e6db7c94",
+          "label": "Ethena timelock (1 d)",
+          "deployBlock": 25301829
+        },
+        {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x3b0aaf6e6fcd4a7ceef8c92c32dfea9e64dc1862",
+          "label": "Safe (timelock proposer)",
+          "deployBlock": 18233861
+        }
+      ],
+      "lzOApps": [
+        "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34"
+      ],
+      "ccipPools": [],
+      "powers": [
+        {
+          "power": "mint",
+          "contract": "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+          "path": [
+            "call:minter()"
+          ],
+          "label": "USDe minter contract"
+        },
+        {
+          "power": "mint",
+          "contract": "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+          "path": [
+            "owner"
+          ],
+          "label": "USDe owner (sets minter)"
+        },
+        {
+          "power": "caps",
+          "contract": "0xe3490297a08d6fc8da46edb7b6142e4f461b62d3",
+          "path": [
+            "owner"
+          ],
+          "label": "EthenaMinting owner (caps, custodians)",
+          "bypassExclude": [
+            "addWhitelistedBenefactor(address)",
+            "removeWhitelistedBenefactor(address)",
+            "disableMintRedeem()",
+            "revokeRole(bytes32,address)",
+            "removeMinterRole(address)",
+            "removeRedeemerRole(address)",
+            "removeCollateralManagerRole(address)",
+            "removeCustodianAddress(address)",
+            "removeSupportedAsset(address)"
+          ]
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+          "path": [
+            "owner"
+          ],
+          "label": "OFT adapter owner"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+          "path": [
+            "lz_delegate"
+          ],
+          "label": "OFT adapter LZ delegate"
+        }
+      ],
+      "params": [
+        {
+          "key": "globalMaxMintPerBlock",
+          "contract": "0xe3490297a08d6fc8da46edb7b6142e4f461b62d3",
+          "sig": "function globalConfig() view returns (uint128,uint128)",
+          "rule": "cap",
+          "label": "Global max mint per block",
+          "outputIndex": 0,
+          "zero": "closed",
+          "setter": {
+            "sig": "function setGlobalMaxMintPerBlock(uint128 globalMaxMintPerBlock)",
+            "value": 0
+          }
+        },
+        {
+          "key": "globalMaxRedeemPerBlock",
+          "contract": "0xe3490297a08d6fc8da46edb7b6142e4f461b62d3",
+          "sig": "function globalConfig() view returns (uint128,uint128)",
+          "rule": "cap",
+          "label": "Global max redeem per block",
+          "outputIndex": 1,
+          "zero": "closed",
+          "setter": {
+            "sig": "function setGlobalMaxRedeemPerBlock(uint128 globalMaxRedeemPerBlock)",
+            "value": 0
+          }
+        },
+        {
+          "key": "maxMintPerBlock:USDT",
+          "contract": "0xe3490297a08d6fc8da46edb7b6142e4f461b62d3",
+          "sig": "function tokenConfig(address) view returns (uint8,bool,uint128,uint128)",
+          "rule": "cap",
+          "label": "Max mint per block (USDT)",
+          "args": [
+            "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+          ],
+          "outputIndex": 2,
+          "zero": "closed",
+          "setter": {
+            "sig": "function setMaxMintPerBlock(uint128 maxMintPerBlock, address asset)",
+            "value": 0,
+            "match": [
+              1
+            ]
+          }
+        },
+        {
+          "key": "maxRedeemPerBlock:USDT",
+          "contract": "0xe3490297a08d6fc8da46edb7b6142e4f461b62d3",
+          "sig": "function tokenConfig(address) view returns (uint8,bool,uint128,uint128)",
+          "rule": "cap",
+          "label": "Max redeem per block (USDT)",
+          "args": [
+            "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+          ],
+          "outputIndex": 3,
+          "zero": "closed",
+          "setter": {
+            "sig": "function setMaxRedeemPerBlock(uint128 maxRedeemPerBlock, address asset)",
+            "value": 0,
+            "match": [
+              1
+            ]
+          }
+        },
+        {
+          "key": "stablesDeltaLimit",
+          "contract": "0xe3490297a08d6fc8da46edb7b6142e4f461b62d3",
+          "sig": "function stablesDeltaLimit() view returns (uint128)",
+          "rule": "bound_upper",
+          "label": "Stables delta limit",
+          "setter": {
+            "sig": "function setStablesDeltaLimit(uint128 stablesDeltaLimit)",
+            "value": 0
+          }
+        },
+        {
+          "key": "minter",
+          "contract": "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
+          "sig": "function minter() view returns (address)",
+          "rule": "minter",
+          "label": "USDe minter",
+          "setter": {
+            "sig": "function setMinter(address newMinter)",
+            "value": 0
+          }
+        }
+      ],
+      "timelocks": [
+        "0xe8dc0fab349ea169283c48ccfd09d797e6db7c94"
+      ],
+      "safes": [
+        "0x3b0aaf6e6fcd4a7ceef8c92c32dfea9e64dc1862"
+      ],
+      "govChannels": [
+        {
+          "kind": "snapshot",
+          "space": "ethenagovernance.eth"
+        },
+        {
+          "kind": "discourse",
+          "base": "https://gov.ethenafoundation.com"
+        }
+      ],
+      "notes": [
+        "Ethena global caps emit no event: they are polled on the archive grid."
+      ],
+      "valuation": {
+        "asset": "USDe"
+      }
+    },
+    {
+      "key": "susde",
+      "label": "sUSDe (Ethena)",
+      "oracleAssetKey": "sUSDe",
+      "class": "bridged",
+      "contracts": [
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+          "label": "sUSDe",
+          "deployBlock": 18571359
+        },
+        {
+          "role": "oft_adapter",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2",
+          "label": "sUSDe OFT adapter",
+          "deployBlock": 19392822
+        },
+        {
+          "role": "timelock",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xe8dc0fab349ea169283c48ccfd09d797e6db7c94",
+          "label": "Ethena timelock (1 d)",
+          "deployBlock": 25301829
+        },
+        {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x3b0aaf6e6fcd4a7ceef8c92c32dfea9e64dc1862",
+          "label": "Safe (timelock proposer)",
+          "deployBlock": 18233861
+        }
+      ],
+      "lzOApps": [
+        "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2"
+      ],
+      "ccipPools": [],
+      "powers": [
+        {
+          "power": "roles",
+          "contract": "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+          "path": [
+            "owner"
+          ],
+          "label": "sUSDe owner (cooldown, rewarder)",
+          "bypassExclude": [
+            "addToBlacklist(address,bool)",
+            "removeFromBlacklist(address,bool)",
+            "revokeRole(bytes32,address)"
+          ]
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2",
+          "path": [
+            "owner"
+          ],
+          "label": "OFT adapter owner"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x211cc4dd073734da055fbf44a2b4667d5e5fe5d2",
+          "path": [
+            "lz_delegate"
+          ],
+          "label": "OFT adapter LZ delegate"
+        }
+      ],
+      "params": [
+        {
+          "key": "cooldownDuration",
+          "contract": "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+          "sig": "function cooldownDuration() view returns (uint24)",
+          "rule": "cooldown",
+          "label": "Unstake cooldown (s)",
+          "setter": {
+            "sig": "function setCooldownDuration(uint24 duration)",
+            "value": 0
+          }
+        }
+      ],
+      "timelocks": [
+        "0xe8dc0fab349ea169283c48ccfd09d797e6db7c94"
+      ],
+      "safes": [
+        "0x3b0aaf6e6fcd4a7ceef8c92c32dfea9e64dc1862"
+      ],
+      "govChannels": [
+        {
+          "kind": "snapshot",
+          "space": "ethenagovernance.eth"
+        },
+        {
+          "kind": "discourse",
+          "base": "https://gov.ethenafoundation.com"
+        }
+      ],
+      "notes": [],
+      "valuation": {
+        "asset": "sUSDe"
+      }
+    },
+    {
+      "key": "wbtc",
+      "label": "WBTC (BitGo / BiT Global)",
+      "oracleAssetKey": "WBTC",
+      "class": "bridged",
+      "contracts": [
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+          "label": "WBTC",
+          "deployBlock": 6766284
+        },
+        {
+          "role": "controller",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xca06411bd7a7296d7dbdd0050dfc846e95febeb7",
+          "label": "WBTC Controller (token owner)",
+          "deployBlock": 6766286
+        },
+        {
+          "role": "config",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x3e8640574aa764763291ed733672d3a105107ac5",
+          "label": "Members (custodian + merchant whitelist)",
+          "deployBlock": 6766288
+        },
+        {
+          "role": "minting",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0xe5a5f138005e19a3e6d0fe68b039397eeef2322b",
+          "label": "Factory (mint/burn requests)",
+          "deployBlock": 6766290
+        },
+        {
+          "role": "multisig",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x972eed35781f09987a5c40f761f6a24623c570de",
+          "label": "MultiSigWallet (Controller owner)",
+          "deployBlock": 22023059
+        },
+        {
+          "role": "multisig",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x4dbbbfb0e68be9d8f5a377a4654604a62e851e80",
+          "label": "MultiSigWallet (Members owner)",
+          "deployBlock": 6781016
+        },
+        {
+          "role": "oft_adapter",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
+          "label": "WBTC OFT adapter",
+          "deployBlock": 20722986
+        },
+        {
+          "role": "ccip_pool",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xf6698064776d521b0afe469f30c40b39b4875b93",
+          "label": "CCIP SiloedLockReleaseTokenPool 1.6.0 (Chainlink-run)",
+          "deployBlock": 21877467
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xb22764f98dd05c789929716d677382df22c05cb6",
+          "label": "CCIP TokenAdminRegistry (shared; events kept for this token only)",
+          "deployBlock": 20735575
+        }
+      ],
+      "lzOApps": [
+        "0x0555e30da8f98308edb960aa94c0db47230d2b9c"
+      ],
+      "ccipPools": [
+        "0xf6698064776d521b0afe469f30c40b39b4875b93"
+      ],
+      "powers": [
+        {
+          "power": "mint",
+          "contract": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+          "path": [
+            "owner"
+          ],
+          "label": "WBTC owner (Controller)"
+        },
+        {
+          "power": "roles",
+          "contract": "0xca06411bd7a7296d7dbdd0050dfc846e95febeb7",
+          "path": [
+            "owner"
+          ],
+          "label": "Controller owner"
+        },
+        {
+          "power": "mint",
+          "contract": "0x3e8640574aa764763291ed733672d3a105107ac5",
+          "path": [
+            "owner"
+          ],
+          "label": "Members owner (custodian, merchants)"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
+          "path": [
+            "owner"
+          ],
+          "label": "OFT adapter owner"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
+          "path": [
+            "lz_delegate"
+          ],
+          "label": "OFT adapter LZ delegate"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0xf6698064776d521b0afe469f30c40b39b4875b93",
+          "path": [
+            "owner"
+          ],
+          "label": "CCIP pool owner"
+        }
+      ],
+      "params": [
+        {
+          "key": "custodian",
+          "contract": "0x3e8640574aa764763291ed733672d3a105107ac5",
+          "sig": "function custodian() view returns (address)",
+          "rule": "info",
+          "label": "Custodian"
+        },
+        {
+          "key": "factory",
+          "contract": "0xca06411bd7a7296d7dbdd0050dfc846e95febeb7",
+          "sig": "function factory() view returns (address)",
+          "rule": "minter",
+          "label": "Minting factory",
+          "setter": {
+            "sig": "function setFactory(address factory)",
+            "value": 0
+          }
+        },
+        {
+          "key": "paused",
+          "contract": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+          "sig": "function paused() view returns (bool)",
+          "rule": "info",
+          "label": "WBTC paused"
+        }
+      ],
+      "timelocks": [],
+      "safes": [],
+      "govChannels": [],
+      "notes": [
+        "History before block 17,600,000 (2018 deployment) is not scanned; the 2025-03-28 Controller handover is inside the window."
+      ],
+      "valuation": {
+        "asset": "WBTC"
+      }
+    },
+    {
+      "key": "cbbtc",
+      "label": "cbBTC (Coinbase)",
+      "oracleAssetKey": "cbBTC",
+      "class": "custodial",
+      "contracts": [
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "label": "cbBTC (FiatToken proxy)",
+          "deployBlock": 20570548
+        }
+      ],
+      "lzOApps": [],
+      "ccipPools": [],
+      "powers": [
+        {
+          "power": "upgrade",
+          "contract": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "path": [
+            "zos_admin"
+          ],
+          "label": "Upgrade cbBTC (proxy admin)"
+        },
+        {
+          "power": "roles",
+          "contract": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "path": [
+            "owner"
+          ],
+          "label": "cbBTC owner (sets masterMinter, pauser, blacklister)"
+        },
+        {
+          "power": "mint",
+          "contract": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "path": [
+            "call:masterMinter()"
+          ],
+          "label": "masterMinter (configures minters and allowances)"
+        },
+        {
+          "power": "pause",
+          "contract": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "path": [
+            "call:pauser()"
+          ],
+          "label": "pauser"
+        },
+        {
+          "power": "roles",
+          "contract": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "path": [
+            "call:blacklister()"
+          ],
+          "label": "blacklister"
+        }
+      ],
+      "params": [
+        {
+          "key": "masterMinter",
+          "contract": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "sig": "function masterMinter() view returns (address)",
+          "rule": "minter",
+          "label": "masterMinter",
+          "setter": {
+            "sig": "function updateMasterMinter(address newMasterMinter)",
+            "value": 0
+          }
+        },
+        {
+          "key": "pauser",
+          "contract": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "sig": "function pauser() view returns (address)",
+          "rule": "pauser",
+          "label": "pauser",
+          "setter": {
+            "sig": "function updatePauser(address newPauser)",
+            "value": 0
+          }
+        },
+        {
+          "key": "paused",
+          "contract": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "sig": "function paused() view returns (bool)",
+          "rule": "info",
+          "label": "cbBTC paused"
+        },
+        {
+          "key": "minterAllowance:events",
+          "contract": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+          "sig": "",
+          "rule": "cap",
+          "label": "Minter allowance (from MinterConfigured)",
+          "zero": "closed",
+          "eventsOnly": true
+        }
+      ],
+      "timelocks": [],
+      "safes": [],
+      "govChannels": [],
+      "notes": [
+        "Coinbase states role keys sit behind internal multi-party approval; that control is off-chain and not checkable."
+      ]
+    },
+    {
+      "key": "pt-srusde",
+      "label": "PT-srUSDe (Pendle × Strata)",
+      "oracleAssetKey": "PT-srUSDe-22OCT2026",
+      "class": "pt",
+      "contracts": [
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x59bc9fae5d62b19d4f8d07d758047acb9ee19d34",
+          "label": "PT-srUSDe 22OCT2026 (immutable)",
+          "deployBlock": 24096611
+        },
+        {
+          "role": "proxy",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0xc9bfebc79a722c05dc34bd2a227ef2db19fd1b8e",
+          "label": "SY-srUSDe (Transparent proxy; keyed here so the card survives expiry)",
+          "deployBlock": 24096611
+        },
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x3d7d6fdf07ee548b939a80edbc9b2256d0cdc003",
+          "label": "srUSDe (Strata, proxy)",
+          "deployBlock": 23492392
+        },
+        {
+          "role": "oracle",
+          "dimension": "oracle",
+          "chainId": 1,
+          "address": "0x1695a2ff3e45365ab4111d2e1083b2a143b4d171",
+          "label": "Strata APR feed (provider)",
+          "deployBlock": 24391920
+        },
+        {
+          "role": "timelock",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xb2a3cf69c97afd4de7882e5fee120e4efc77b706",
+          "label": "Strata timelock (2 d)",
+          "deployBlock": 23049699
+        },
+        {
+          "role": "timelock",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x68d8d192df476bc01895e16b0ed3945673d777ac",
+          "label": "Pendle SY timelock (2 d)",
+          "deployBlock": 25481956
+        },
+        {
+          "role": "proxy_admin",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x77c67f645540a2f8223f82d9597dfef483714732",
+          "label": "SY ProxyAdmin",
+          "deployBlock": 25481966
+        },
+        {
+          "role": "proxy_admin",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x30a17d6bcbdbf1579d6fbba453acf776d01fbb50",
+          "label": "srUSDe ProxyAdmin",
+          "deployBlock": 23492392
+        },
+        {
+          "role": "config",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x2ad631f72fb16d91c4953a7f4260a97c2fe2f31e",
+          "label": "Pendle governance proxy (SY owner)",
+          "deployBlock": 20589552
+        }
+      ],
+      "lzOApps": [],
+      "ccipPools": [],
+      "powers": [
+        {
+          "power": "upgrade",
+          "contract": "0xc9bfebc79a722c05dc34bd2a227ef2db19fd1b8e",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade SY"
+        },
+        {
+          "power": "pause",
+          "contract": "0xc9bfebc79a722c05dc34bd2a227ef2db19fd1b8e",
+          "path": [
+            "owner",
+            "role:DEFAULT_ADMIN_ROLE"
+          ],
+          "label": "SY owner (pause) via governance proxy admin"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x3d7d6fdf07ee548b939a80edbc9b2256d0cdc003",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade srUSDe"
+        },
+        {
+          "power": "roles",
+          "contract": "0x3d7d6fdf07ee548b939a80edbc9b2256d0cdc003",
+          "path": [
+            "owner"
+          ],
+          "label": "srUSDe owner"
+        },
+        {
+          "power": "oracle",
+          "contract": "0x1695a2ff3e45365ab4111d2e1083b2a143b4d171",
+          "path": [
+            "owner"
+          ],
+          "label": "APR feed owner (setProvider)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x1695a2ff3e45365ab4111d2e1083b2a143b4d171",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade APR feed"
+        }
+      ],
+      "params": [
+        {
+          "key": "aprProvider",
+          "contract": "0x1695a2ff3e45365ab4111d2e1083b2a143b4d171",
+          "sig": "function provider() view returns (address)",
+          "rule": "rate_provider",
+          "label": "srUSDe APR provider",
+          "setter": {
+            "sig": "function setProvider(address provider)",
+            "value": 0
+          }
+        },
+        {
+          "key": "syPaused",
+          "contract": "0xc9bfebc79a722c05dc34bd2a227ef2db19fd1b8e",
+          "sig": "function paused() view returns (bool)",
+          "rule": "info",
+          "label": "SY paused"
+        }
+      ],
+      "timelocks": [
+        "0xb2a3cf69c97afd4de7882e5fee120e4efc77b706",
+        "0x68d8d192df476bc01895e16b0ed3945673d777ac"
+      ],
+      "safes": [],
+      "govChannels": [],
+      "notes": [
+        "Two PT expiries share this SY (2026-10-22 and 2027-02-25)."
+      ]
+    },
+    {
+      "key": "wsteth",
+      "label": "wstETH (Lido)",
+      "oracleAssetKey": "wstETH",
+      "class": "lrt",
+      "contracts": [
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "label": "wstETH (immutable: no owner, no proxy)",
+          "deployBlock": 11888477
+        },
+        {
+          "role": "token",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+          "label": "stETH / Lido (Aragon AppProxyUpgradeable)",
+          "deployBlock": 11473216
+        },
+        {
+          "role": "config",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xb8ffc3cd6e7cf5a098a1c92f48009765b24088dc",
+          "label": "Lido DAO Kernel (Aragon: app upgrades via SetApp)",
+          "deployBlock": 11473216
+        },
+        {
+          "role": "config",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x9895f0f17cc1d1891b6f18ee0b483b6f221b37bb",
+          "label": "Lido DAO ACL (Aragon permissions)",
+          "deployBlock": 11473216
+        },
+        {
+          "role": "controller",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x3e40d73eb977dc6a537af587d48316fee66e9c8c",
+          "label": "Lido DAO Agent (Aragon: owner / proxy admin of the Lido contracts)",
+          "deployBlock": 11473216
+        },
+        {
+          "role": "other",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x2e59a20f205bb85a89c53f1936454680651e618e",
+          "label": "Aragon Voting (LDO vote; the only Dual Governance proposer)",
+          "deployBlock": 11473216
+        },
+        {
+          "role": "other",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xc1db28b3301331277e307fdcff8de28242a4486e",
+          "label": "Dual Governance (stETH-holder veto / rage quit)",
+          "deployBlock": 23095715
+        },
+        {
+          "role": "timelock",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xce0425301c85c5ea2a0873a2dee44d78e02d2316",
+          "label": "EmergencyProtectedTimelock (Dual Governance)",
+          "deployBlock": 22537921
+        },
+        {
+          "role": "other",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x23e0b465633ff5178808f4a75186e2f2f9537021",
+          "label": "Dual Governance Admin Executor (holds the Agent RUN_SCRIPT / EXECUTE roles)",
+          "deployBlock": 22537920
+        },
+        {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x8b7854488fde088d686ea672b6ba1a5242515f45",
+          "label": "Safe (Emergency Activation Committee)",
+          "deployBlock": 22517184
+        },
+        {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xc7792b3f2b399bb0edf53fecdceceb97fbeb18af",
+          "label": "Safe (Emergency Execution Committee)",
+          "deployBlock": 22517274
+        },
+        {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xffe21561251c49adccfad065c94fb4931df49081",
+          "label": "Safe (Reseal Committee)",
+          "deployBlock": 22494950
+        },
+        {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0x73b047fe6337183a454c5217241d780a932777bd",
+          "label": "Safe (Emergency Brakes: NTT / bridge pauser)",
+          "deployBlock": 13676424
+        },
+        {
+          "role": "config",
+          "dimension": "oracle",
+          "chainId": 1,
+          "address": "0xc1d0b3de6792bf6b4b37eccdcc24e45978cfd2eb",
+          "label": "LidoLocator (OssifiableProxy: every protocol address)",
+          "deployBlock": 17031323
+        },
+        {
+          "role": "oracle",
+          "dimension": "oracle",
+          "chainId": 1,
+          "address": "0x852ded011285fe67063a08005c71a85690503cee",
+          "label": "AccountingOracle (OssifiableProxy)",
+          "deployBlock": 17172553
+        },
+        {
+          "role": "oracle",
+          "dimension": "oracle",
+          "chainId": 1,
+          "address": "0xd624b08c83baecf0807dd2c6880c3154a5f0b288",
+          "label": "HashConsensus (AccountingOracle committee)",
+          "deployBlock": 17172555
+        },
+        {
+          "role": "oracle",
+          "dimension": "oracle",
+          "chainId": 1,
+          "address": "0x147f8d3cf3004faf9bf94e88b54b6c06de507be9",
+          "label": "OracleReportSanityChecker (rate bounds)",
+          "deployBlock": 25437712
+        },
+        {
+          "role": "minting",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x23ed611be0e1a820978875c0122f92260804cddf",
+          "label": "Accounting (Lido V3 report handler: sets the share rate)",
+          "deployBlock": 23933031
+        },
+        {
+          "role": "minting",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x1d201be093d847f6446530efb0e8fb426d176709",
+          "label": "VaultHub (Lido V3 stVaults: external stETH mint)",
+          "deployBlock": 23933041
+        },
+        {
+          "role": "ccip_pool",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xa586a732394a1affcf15b972cd47c936033c9fa7",
+          "label": "CCIP SiloedLockReleaseTokenPool 1.6.0 (Chainlink-run)",
+          "deployBlock": 22219593
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xb22764f98dd05c789929716d677382df22c05cb6",
+          "label": "CCIP TokenAdminRegistry (shared; events kept for this token only)",
+          "deployBlock": 20735575
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xb948a93827d68a82f6513ad178964da487fe2bd9",
+          "label": "Wormhole NTT manager (BNB Chain; locking)",
+          "deployBlock": 20171629
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xa1acc1e6edab281febd91e3515093f1de81f25c0",
+          "label": "NTT Wormhole transceiver",
+          "deployBlock": 20171629
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x723aead29acee7e9281c32d11ea4ed0070c41b13",
+          "label": "NTT Axelar transceiver",
+          "deployBlock": 20333622
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x0f25c1dc2a9922304f2eac71dca9b07e310e8e5a",
+          "label": "Arbitrum canonical bridge, L1 side (L1ERC20TokenGateway)",
+          "deployBlock": 15275328
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x76943c0d61395d8f2edf9060e1533529cae05de6",
+          "label": "Optimism canonical bridge, L1 side (L1LidoTokensBridge)",
+          "deployBlock": 15281202
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x9de443adc5a411e83f1878ef24c3f52c61571e72",
+          "label": "Base canonical bridge, L1 side (L1ERC20TokenBridge)",
+          "deployBlock": 18236815
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x755610f5be536ad7afbaa7c10f3e938ea3aa1877",
+          "label": "Unichain canonical bridge, L1 side (L1LidoTokensBridge)",
+          "deployBlock": 21843337
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x41527b2d03844db6b0945f25702cb958b6d55989",
+          "label": "zkSync Era canonical bridge, L1 side (L1ERC20Bridge)",
+          "deployBlock": 18413072
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x2d001d79e5af5f65a939781fe228b267a8ed468b",
+          "label": "Mantle canonical bridge, L1 side (L1ERC20TokenBridge)",
+          "deployBlock": 18635671
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x6625c6332c9f91f2d27c304e729b86db87a3f504",
+          "label": "Scroll canonical bridge, L1 side (L1LidoGateway)",
+          "deployBlock": 18318364
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xd0dea0a3bd8e4d55170943129c025d3fe0493f2a",
+          "label": "Mode canonical bridge, L1 side (L1ERC20TokenBridge)",
+          "deployBlock": 20019920
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x912c7271a6a3622dfb8b218eb46a6122ab046c79",
+          "label": "Zircuit canonical bridge, L1 side (L1ERC20TokenBridge)",
+          "deployBlock": 20771597
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x2f543a7c9cc80cc2427c892b96263098d23ee55a",
+          "label": "Soneium canonical bridge, L1 side (L1LidoTokensBridge)",
+          "deployBlock": 21664885
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x9348af23b01f2b517afe8f29b3183d2bb7d69fcf",
+          "label": "Lisk canonical bridge, L1 side (L1ERC20TokenBridge)",
+          "deployBlock": 21686205
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0xecf3376512edaca4fbb63d2c67d12a0397d24121",
+          "label": "Swellchain canonical bridge, L1 side (L1ERC20TokenBridge)",
+          "deployBlock": 21394394
+        },
+        {
+          "role": "other",
+          "dimension": "bridge",
+          "chainId": 1,
+          "address": "0x051f1d88f0af5763fb888ec4378b4d8b29ea3319",
+          "label": "Linea canonical bridge, L1 side (TokenBridge)",
+          "deployBlock": 17834649
+        },
+        {
+          "role": "proxy_admin",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xcc2c53556bc75217cf698721b29071d6f12628a9",
+          "label": "ProxyAdmin (Scroll L1LidoGateway)",
+          "deployBlock": 19252031
+        }
+      ],
+      "lzOApps": [],
+      "ccipPools": [
+        "0xa586a732394a1affcf15b972cd47c936033c9fa7"
+      ],
+      "powers": [
+        {
+          "power": "upgrade",
+          "contract": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+          "path": [
+            "call:kernel()",
+            "acl_manager:APP_MANAGER_ROLE"
+          ],
+          "label": "Upgrade stETH (Kernel APP_MANAGER_ROLE manager)"
+        },
+        {
+          "power": "roles",
+          "contract": "0x9895f0f17cc1d1891b6f18ee0b483b6f221b37bb",
+          "path": [
+            "acl_manager:CREATE_PERMISSIONS_ROLE"
+          ],
+          "label": "Create / grant any Lido DAO permission (ACL)"
+        },
+        {
+          "power": "roles",
+          "contract": "0xce0425301c85c5ea2a0873a2dee44d78e02d2316",
+          "path": [
+            "call:getAdminExecutor()"
+          ],
+          "label": "Dual Governance config (delays, committees, governance)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0xc1d0b3de6792bf6b4b37eccdcc24e45978cfd2eb",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade LidoLocator (re-points every protocol contract)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x852ded011285fe67063a08005c71a85690503cee",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade AccountingOracle"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x23ed611be0e1a820978875c0122f92260804cddf",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade Accounting (share-rate report handler)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x1d201be093d847f6446530efb0e8fb426d176709",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade VaultHub (external stETH mint)"
+        },
+        {
+          "power": "oracle",
+          "contract": "0xd624b08c83baecf0807dd2c6880c3154a5f0b288",
+          "path": [
+            "role:MANAGE_MEMBERS_AND_QUORUM_ROLE"
+          ],
+          "label": "Oracle committee members / quorum (HashConsensus)"
+        },
+        {
+          "power": "oracle",
+          "contract": "0x147f8d3cf3004faf9bf94e88b54b6c06de507be9",
+          "path": [
+            "role:DEFAULT_ADMIN_ROLE"
+          ],
+          "label": "Rate bounds (OracleReportSanityChecker admin)"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0xa586a732394a1affcf15b972cd47c936033c9fa7",
+          "path": [
+            "owner"
+          ],
+          "label": "CCIP pool owner"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0xb948a93827d68a82f6513ad178964da487fe2bd9",
+          "path": [
+            "owner"
+          ],
+          "label": "NTT manager owner (peers, transceivers, threshold, upgrade)"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0xa1acc1e6edab281febd91e3515093f1de81f25c0",
+          "path": [
+            "owner"
+          ],
+          "label": "NTT Wormhole transceiver owner (peers)"
+        },
+        {
+          "power": "bridge_config",
+          "contract": "0x723aead29acee7e9281c32d11ea4ed0070c41b13",
+          "path": [
+            "owner"
+          ],
+          "label": "NTT Axelar transceiver owner (peers)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x0f25c1dc2a9922304f2eac71dca9b07e310e8e5a",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Arbitrum bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x76943c0d61395d8f2edf9060e1533529cae05de6",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Optimism bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x9de443adc5a411e83f1878ef24c3f52c61571e72",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Base bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x755610f5be536ad7afbaa7c10f3e938ea3aa1877",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Unichain bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x41527b2d03844db6b0945f25702cb958b6d55989",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the zkSync Era bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x2d001d79e5af5f65a939781fe228b267a8ed468b",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Mantle bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x6625c6332c9f91f2d27c304e729b86db87a3f504",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade the Scroll bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0xd0dea0a3bd8e4d55170943129c025d3fe0493f2a",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Mode bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x912c7271a6a3622dfb8b218eb46a6122ab046c79",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Zircuit bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x2f543a7c9cc80cc2427c892b96263098d23ee55a",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Soneium bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x9348af23b01f2b517afe8f29b3183d2bb7d69fcf",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Lisk bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0xecf3376512edaca4fbb63d2c67d12a0397d24121",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the Swellchain bridge (L1 side)"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x051f1d88f0af5763fb888ec4378b4d8b29ea3319",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade the Linea bridge (L1 side)"
+        }
+      ],
+      "params": [
+        {
+          "key": "maxExternalRatioBP",
+          "contract": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+          "sig": "function getMaxExternalRatioBP() view returns (uint256)",
+          "rule": "cap",
+          "zero": "closed",
+          "unlimited": "10000",
+          "label": "Max share of stETH minted by stVaults (external, bp)",
+          "setter": {
+            "sig": "function setMaxExternalRatioBP(uint256 maxExternalRatioBP)",
+            "value": 0
+          }
+        },
+        {
+          "key": "maxStakeLimit",
+          "contract": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+          "sig": "function getStakeLimitFullInfo() view returns (bool isStakingPaused, bool isStakingLimitSet, uint256 currentStakeLimit, uint256 maxStakeLimit, uint256 maxStakeLimitGrowthBlocks, uint256 prevStakeLimit, uint256 prevStakeBlockNumber)",
+          "outputIndex": 3,
+          "rule": "cap",
+          "zero": "unlimited",
+          "label": "Staking limit (max ETH per window)",
+          "setter": {
+            "sig": "function setStakingLimit(uint256 maxStakeLimit, uint256 stakeLimitIncreasePerBlock)",
+            "value": 0
+          }
+        },
+        {
+          "key": "stakingPaused",
+          "contract": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+          "sig": "function isStakingPaused() view returns (bool)",
+          "rule": "info",
+          "label": "stETH staking paused"
+        },
+        {
+          "key": "stethStopped",
+          "contract": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+          "sig": "function isStopped() view returns (bool)",
+          "rule": "info",
+          "label": "stETH stopped (transfers halted)"
+        },
+        {
+          "key": "accounting",
+          "contract": "0xc1d0b3de6792bf6b4b37eccdcc24e45978cfd2eb",
+          "sig": "function accounting() view returns (address)",
+          "rule": "rate_provider",
+          "label": "Share-rate report handler (Locator.accounting)"
+        },
+        {
+          "key": "accountingOracle",
+          "contract": "0xc1d0b3de6792bf6b4b37eccdcc24e45978cfd2eb",
+          "sig": "function accountingOracle() view returns (address)",
+          "rule": "rate_provider",
+          "label": "Accounting oracle (Locator.accountingOracle)"
+        },
+        {
+          "key": "sanityChecker",
+          "contract": "0xc1d0b3de6792bf6b4b37eccdcc24e45978cfd2eb",
+          "sig": "function oracleReportSanityChecker() view returns (address)",
+          "rule": "rate_provider",
+          "label": "Rate-bound checker (Locator.oracleReportSanityChecker)"
+        },
+        {
+          "key": "vaultHub",
+          "contract": "0xc1d0b3de6792bf6b4b37eccdcc24e45978cfd2eb",
+          "sig": "function vaultHub() view returns (address)",
+          "rule": "minter",
+          "label": "External stETH minter (Locator.vaultHub)"
+        },
+        {
+          "key": "lazyOracle",
+          "contract": "0xc1d0b3de6792bf6b4b37eccdcc24e45978cfd2eb",
+          "sig": "function lazyOracle() view returns (address)",
+          "rule": "price_oracle",
+          "label": "stVault value oracle (Locator.lazyOracle)"
+        },
+        {
+          "key": "consensusContract",
+          "contract": "0x852ded011285fe67063a08005c71a85690503cee",
+          "sig": "function getConsensusContract() view returns (address)",
+          "rule": "rate_provider",
+          "label": "Oracle consensus contract (AccountingOracle)"
+        },
+        {
+          "key": "oracleQuorum",
+          "contract": "0xd624b08c83baecf0807dd2c6880c3154a5f0b288",
+          "sig": "function getQuorum() view returns (uint256)",
+          "rule": "quorum",
+          "label": "Oracle committee quorum"
+        },
+        {
+          "key": "oracleMembers",
+          "contract": "0xd624b08c83baecf0807dd2c6880c3154a5f0b288",
+          "sig": "function getMembers() view returns (address[] addresses, uint256[] lastReportedRefSlots)",
+          "count": true,
+          "rule": "quorum_members",
+          "label": "Oracle committee members"
+        },
+        {
+          "key": "annualBalanceIncreaseBPLimit",
+          "contract": "0x147f8d3cf3004faf9bf94e88b54b6c06de507be9",
+          "sig": "function getOracleReportLimits() view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256)",
+          "outputIndex": 2,
+          "rule": "bound_upper",
+          "label": "Max annual CL balance increase (bp)"
+        },
+        {
+          "key": "simulatedShareRateDeviationBPLimit",
+          "contract": "0x147f8d3cf3004faf9bf94e88b54b6c06de507be9",
+          "sig": "function getOracleReportLimits() view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256)",
+          "outputIndex": 3,
+          "rule": "bound_upper",
+          "label": "Max share-rate deviation from simulation (bp)"
+        },
+        {
+          "key": "maxPositiveTokenRebase",
+          "contract": "0x147f8d3cf3004faf9bf94e88b54b6c06de507be9",
+          "sig": "function getOracleReportLimits() view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256)",
+          "outputIndex": 10,
+          "rule": "bound_upper",
+          "label": "Max positive token rebase per report (1e9 = 100%)"
+        },
+        {
+          "key": "maxCLBalanceDecreaseBP",
+          "contract": "0x147f8d3cf3004faf9bf94e88b54b6c06de507be9",
+          "sig": "function getOracleReportLimits() view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256)",
+          "outputIndex": 11,
+          "rule": "bound_upper",
+          "label": "Max CL balance decrease (bp)"
+        },
+        {
+          "key": "clBalanceOraclesErrorUpperBPLimit",
+          "contract": "0x147f8d3cf3004faf9bf94e88b54b6c06de507be9",
+          "sig": "function getOracleReportLimits() view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256)",
+          "outputIndex": 12,
+          "rule": "bound_upper",
+          "label": "Max CL balance error vs second opinion (bp)"
+        },
+        {
+          "key": "externalPendingBalanceCapEth",
+          "contract": "0x147f8d3cf3004faf9bf94e88b54b6c06de507be9",
+          "sig": "function getOracleReportLimits() view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256, uint256)",
+          "outputIndex": 15,
+          "rule": "bound_upper",
+          "label": "External pending balance cap (ETH)"
+        },
+        {
+          "key": "nttOutboundLimit",
+          "contract": "0xb948a93827d68a82f6513ad178964da487fe2bd9",
+          "sig": "function getOutboundLimitParams() view returns (uint72 limit, uint72 currentCapacity, uint64 lastTxTimestamp)",
+          "outputIndex": 0,
+          "rule": "cap",
+          "zero": "closed",
+          "label": "NTT outbound rate limit (per 24 h)"
+        },
+        {
+          "key": "nttInboundLimitBsc",
+          "contract": "0xb948a93827d68a82f6513ad178964da487fe2bd9",
+          "sig": "function getInboundLimitParams(uint16) view returns (uint72 limit, uint72 currentCapacity, uint64 lastTxTimestamp)",
+          "args": [
+            4
+          ],
+          "outputIndex": 0,
+          "rule": "cap",
+          "zero": "closed",
+          "label": "NTT inbound rate limit from BNB Chain (per 24 h)"
+        },
+        {
+          "key": "nttPaused",
+          "contract": "0xb948a93827d68a82f6513ad178964da487fe2bd9",
+          "sig": "function isPaused() view returns (bool)",
+          "rule": "info",
+          "label": "NTT manager paused"
+        }
+      ],
+      "timelocks": [],
+      "safes": [
+        "0x8b7854488fde088d686ea672b6ba1a5242515f45",
+        "0xc7792b3f2b399bb0edf53fecdceceb97fbeb18af",
+        "0xffe21561251c49adccfad065c94fb4931df49081",
+        "0x73b047fe6337183a454c5217241d780a932777bd"
+      ],
+      "govChannels": [
+        {
+          "kind": "snapshot",
+          "space": "lido-snapshot.eth"
+        },
+        {
+          "kind": "discourse",
+          "base": "https://research.lido.fi"
+        }
+      ],
+      "notes": [
+        "wstETH itself is immutable (no owner, no proxy): every power on this card is over stETH, its rate path and the bridges.",
+        "Lido DAO path: Aragon Agent → Dual Governance Admin Executor → EmergencyProtectedTimelock; proposals come only from the Aragon Voting (LDO). Shortest path to execution: 5 d vote + 3 d after submit (+1 d after schedule unless the Emergency Execution Committee executes in emergency mode); stETH holders can extend it (veto signalling).",
+        "Aragon votes (the days before a proposal reaches Dual Governance) are not read: a change appears here once it is submitted to Dual Governance.",
+        "History before block 17,600,000 is not scanned, except the Aragon ACL (read from 2020 to know who holds each permission; those rows are replayed, not listed).",
+        "The canonical rollup bridges' own message verification (proof systems, sequencers, rollup security councils) is not read. Linea's TokenBridge is Linea-run, not Lido's.",
+        "Not covered: Polygon PoS and third-party bridges (other OFTs / wrappers), the Tiebreaker committee internals, and the first Dual Governance contract (0xcdf49b05…, replaced 2025-09)."
+      ],
+      "valuation": {
+        "asset": "wstETH"
+      },
+      "nttManagers": [
+        "0xb948a93827d68a82f6513ad178964da487fe2bd9"
+      ],
+      "canonicalBridges": [
+        {
+          "address": "0x0f25c1dc2a9922304f2eac71dca9b07e310e8e5a",
+          "chain": "Arbitrum",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (Arbitrum rollup verifies)"
+        },
+        {
+          "address": "0x76943c0d61395d8f2edf9060e1533529cae05de6",
+          "chain": "Optimism",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (OP Stack rollup verifies)"
+        },
+        {
+          "address": "0x9de443adc5a411e83f1878ef24c3f52c61571e72",
+          "chain": "Base",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (OP Stack rollup verifies)"
+        },
+        {
+          "address": "0x755610f5be536ad7afbaa7c10f3e938ea3aa1877",
+          "chain": "Unichain",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (OP Stack rollup verifies)"
+        },
+        {
+          "address": "0x41527b2d03844db6b0945f25702cb958b6d55989",
+          "chain": "zkSync Era",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (zkSync rollup verifies)"
+        },
+        {
+          "address": "0x2d001d79e5af5f65a939781fe228b267a8ed468b",
+          "chain": "Mantle",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (Mantle rollup verifies)"
+        },
+        {
+          "address": "0x6625c6332c9f91f2d27c304e729b86db87a3f504",
+          "chain": "Scroll",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (Scroll rollup verifies)"
+        },
+        {
+          "address": "0xd0dea0a3bd8e4d55170943129c025d3fe0493f2a",
+          "chain": "Mode",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (OP Stack rollup verifies)"
+        },
+        {
+          "address": "0x912c7271a6a3622dfb8b218eb46a6122ab046c79",
+          "chain": "Zircuit",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (Zircuit rollup verifies)"
+        },
+        {
+          "address": "0x2f543a7c9cc80cc2427c892b96263098d23ee55a",
+          "chain": "Soneium",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (OP Stack rollup verifies)"
+        },
+        {
+          "address": "0x9348af23b01f2b517afe8f29b3183d2bb7d69fcf",
+          "chain": "Lisk",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (OP Stack rollup verifies)"
+        },
+        {
+          "address": "0xecf3376512edaca4fbb63d2c67d12a0397d24121",
+          "chain": "Swellchain",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Lido (OP Stack rollup verifies)"
+        },
+        {
+          "address": "0x051f1d88f0af5763fb888ec4378b4d8b29ea3319",
+          "chain": "Linea",
+          "token": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+          "operator": "Linea (Linea-run bridge, not Lido)"
+        }
+      ],
+      "aragonAcl": "0x9895f0f17cc1d1891b6f18ee0b483b6f221b37bb"
+    }
+  ]
+}

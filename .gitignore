@@ -43,3 +43,4 @@ AGENT_BOARD.md
 
 # Oracle registry collector resumable run cache (deleted after a successful run)
 /data/oracle-registry/.cache/
+/data/oracle-registry/config/.cache/

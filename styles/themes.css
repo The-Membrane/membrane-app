@@ -17,7 +17,10 @@
   --m-warning: #d8b24a;
   --m-risk-caution: #c77d3f;
   --m-danger: #cf4034;
+  /* small red text (10–12px chips, rule ids): ≥ 4.5:1 on every dark background */
+  --m-danger-text: #df5a4e;
   --m-info: #46d39a;
+  --m-proposed: #6ea8fe;
   /* emphasis */
   --m-primary: #9bdc4f;
   --m-secondary: #46d39a;
@@ -45,7 +48,9 @@
   --m-warning: #725410;
   --m-risk-caution: #8a451a;
   --m-danger: #a52f2a;
+  --m-danger-text: #a52f2a;
   --m-info: #0f6b4b;
+  --m-proposed: #1f4e9c;
   /* emphasis — moss ink; solid CTA fills keep phosphor with dark text */
   --m-primary: #326215;
   --m-secondary: #0f6b4b;

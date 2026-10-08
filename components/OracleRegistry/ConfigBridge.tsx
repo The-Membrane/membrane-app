@@ -9,6 +9,7 @@ import type { ConfigCardView, OAppView, RouteRowView } from '@/lib/oracleRegistr
 
 import { BlockTitle, BreachLine, Chip, ExtLink, Holders, ItemLine } from './ConfigAtoms'
 import {
+  closedRoutesDisclosure,
   eCell,
   oappSummary,
   operatorLabels,
@@ -205,6 +206,7 @@ const HeaderRow: React.FC = () => (
 const OAppTable: React.FC<{ o: OAppView; rules: Record<string, string> }> = ({ o, rules }) => {
   const live = o.routes.filter((r) => r.live)
   const closed = o.routes.filter((r) => !r.live)
+  const disclosure = closedRoutesDisclosure(closed)
   return (
     <Box mt={SPACING.md}>
       <Text
@@ -256,10 +258,16 @@ const OAppTable: React.FC<{ o: OAppView; rules: Record<string, string> }> = ({ o
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize="11px"
           color={SEMANTIC_COLORS.textSecondary}
+          // a closed route with a red flag opens the disclosure (never collapsed under calm text)
+          open={disclosure.open || undefined}
         >
-          <Box as="summary" cursor="pointer" _focusVisible={FOCUS_STYLES.ring}>
-            {closed.length} closed {closed.length === 1 ? 'route' : 'routes'} (peer zeroed or
-            blocked)
+          <Box
+            as="summary"
+            cursor="pointer"
+            _focusVisible={FOCUS_STYLES.ring}
+            color={disclosure.red ? RED_META.text : undefined}
+          >
+            {disclosure.summary}
           </Box>
           <Box role="table" aria-label={`${o.label} closed routes`}>
             {closed.map((r) => (

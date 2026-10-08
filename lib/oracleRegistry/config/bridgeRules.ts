@@ -5,7 +5,7 @@
 // inherited 2-of-2 default with 1-of-1 is a downgrade even though no explicit value dropped,
 // and a route CREATED under the floor is red even though nothing was downgraded.
 
-import type { ChangeTag, RouteState } from './types'
+import type { ChangeTag, RouteState, StateItem } from './types'
 import { down, neutral, tag, up, type Verdict } from './rules'
 import { FLOOR_E, isZeroPeer, routeVerifies } from './uln'
 
@@ -259,4 +259,23 @@ export function routeTags(r: RouteState): ChangeTag[] {
   if (r.security.blocked) t.push('blocked')
   if (r.direction === 'send') t.push('send_side')
   return t
+}
+
+/**
+ * Routes with a floor breach (BR-2) now, counted once per ROUTE (Ethereum OApp × eid) whichever
+ * of its four sides breach (review round 7: the headline counted sides — the Kelp route, under
+ * the floor on both send and receive, read "2 floor breaches" next to "1 under floor").
+ */
+export function floorBreachRoutes(
+  items: readonly Pick<StateItem, 'key' | 'display' | 'value' | 'breaches'>[],
+): string[] {
+  const out = new Set<string>()
+  for (const i of items) {
+    if (!(i.breaches ?? []).some((b) => b.ruleId === 'BR-2')) continue
+    const named = (i.value as { localOApp?: unknown } | undefined)?.localOApp
+    const oapp = typeof named === 'string' ? named.toLowerCase() : (i.key.split('/')[3] ?? i.key)
+    const eid = i.display.match(/^eid (\d+)/)?.[1] ?? i.key.split('/')[4] ?? ''
+    out.add(`${oapp}|${eid}`)
+  }
+  return [...out]
 }

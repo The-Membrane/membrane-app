@@ -108,6 +108,9 @@ export const EVENT_SIGS = {
   OwnerAddition: ['event OwnerAddition(address indexed owner)'],
   OwnerRemoval: ['event OwnerRemoval(address indexed owner)'],
   RequirementChange: ['event RequirementChange(uint256 required)'],
+  // a legacy MultiSigWallet transaction submitted (its block = when a pending one was queued;
+  // scanned per multisig, not in the admin scan — review round 7)
+  Submission: ['event Submission(uint256 indexed transactionId)'],
   // FiatToken (cbBTC)
   MasterMinterChanged: ['event MasterMinterChanged(address indexed newMasterMinter)'],
   PauserChanged: ['event PauserChanged(address indexed newAddress)'],
@@ -250,6 +253,7 @@ export const ADMIN_TOPICS = Object.keys(EVENT_SIGS)
         'DelegateSet',
         'UpdateSigner',
         'UpdateQuorum',
+        'Submission',
       ].includes(k),
   )
   .map((k) => TOPIC[k])
@@ -550,6 +554,20 @@ export const ROLE_HASHES = Object.fromEntries(
     'DESIGNATE_SIGNER_ROLE',
     'SUBMIT_DATA_ROLE',
     'BUFFER_RESERVE_MANAGER_ROLE',
+    // Lido WithdrawalQueue (named for display only, judged PRIVILEGED, #8): finalization, the
+    // oracle hook (bunker mode) and the NFT metadata
+    'FINALIZE_ROLE',
+    'ORACLE_ROLE',
+    'MANAGE_TOKEN_URI_ROLE',
+    // Aragon Voting (Lido): changes the vote time — a delay on the Dual Governance path
+    'UNSAFELY_MODIFY_VOTE_TIME_ROLE',
+    // Linea TokenBridge config (Linea-run): message service, remote bridge, reserved / custom tokens
+    'SECURITY_COUNCIL_ROLE',
+    'SET_MESSAGE_SERVICE_ROLE',
+    'SET_REMOTE_TOKENBRIDGE_ROLE',
+    'SET_RESERVED_TOKEN_ROLE',
+    'REMOVE_RESERVED_TOKEN_ROLE',
+    'SET_CUSTOM_CONTRACT_ROLE',
     // Linea TokenBridge PauseManager (the Linea-run bridge wstETH uses)
     'PAUSE_ALL_ROLE',
     'UNPAUSE_ALL_ROLE',
@@ -568,6 +586,15 @@ for (const n of [
   'WITHDRAWALS_DISABLER_ROLE',
 ])
   ROLE_HASHES[keccak256(toHex(`BridgingManager.${n}`))] = n
+// Lido V3 (VaultHub and the other PausableUntilWithRoles contracts) namespaces its roles: the
+// pause / resume switches keep their names and rules; the VaultHub's own roles are named for
+// display only (judged PRIVILEGED, #8)
+ROLE_HASHES[keccak256(toHex('PausableUntilWithRoles.PauseRole'))] = 'PAUSE_ROLE'
+ROLE_HASHES[keccak256(toHex('PausableUntilWithRoles.ResumeRole'))] = 'RESUME_ROLE'
+ROLE_HASHES[keccak256(toHex('vaults.VaultHub.BadDebtMasterRole'))] = 'BAD_DEBT_MASTER_ROLE'
+ROLE_HASHES[keccak256(toHex('vaults.VaultHub.ValidatorExitRole'))] = 'VALIDATOR_EXIT_ROLE'
+ROLE_HASHES[keccak256(toHex('vaults.VaultHub.RedemptionMasterRole'))] = 'REDEMPTION_MASTER_ROLE'
+ROLE_HASHES[keccak256(toHex('vaults.VaultHub.VaultMasterRole'))] = 'VAULT_MASTER_ROLE'
 export const roleName = (h) => ROLE_HASHES[String(h).toLowerCase()] ?? String(h).toLowerCase()
 export const roleHash = (name) =>
   name === 'DEFAULT_ADMIN_ROLE'
@@ -623,7 +650,10 @@ export const ARAGON_NS = {
  */
 export function aragonRows(rows, appIds = {}) {
   const ids = Object.fromEntries(
-    Object.entries(appIds).map(([k, v]) => [String(k).toLowerCase(), v.map((a) => a.toLowerCase())]),
+    Object.entries(appIds).map(([k, v]) => [
+      String(k).toLowerCase(),
+      v.map((a) => a.toLowerCase()),
+    ]),
   )
   const out = []
   for (const row of rows) {
@@ -677,4 +707,3 @@ export function aragonRows(rows, appIds = {}) {
   }
   return out
 }
-

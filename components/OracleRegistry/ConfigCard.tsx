@@ -15,7 +15,9 @@ import {
   asOfLine,
   blockAside,
   delayText,
+  hasFloorRoutes,
   headline,
+  headlineTone,
   NO_WINDOW_TITLE,
   oracleAside,
   RED_META,
@@ -60,6 +62,7 @@ export const ConfigCard: React.FC<{
   const ann = announcementChip({ announcement: view.announcement, unannounced: null })
   const floor = view.breaches.filter((b) => b.ruleId === 'BR-2')
   const rule = view.breaches.filter((b) => b.ruleId !== 'BR-2')
+  const tone = headlineTone(view.available, view.changesAvailable, view.counts.openRed)
   return (
     <Box as="article" aria-labelledby="config-title" mt={SPACING.lg}>
       {/* ---- header -------------------------------------------------------------------------- */}
@@ -80,19 +83,23 @@ export const ConfigCard: React.FC<{
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize={TYPOGRAPHY.small}
         color={
-          !view.available
-            ? SEMANTIC_COLORS.warning
-            : view.counts.openRed
-              ? RED_META.text
+          tone === 'red'
+            ? RED_META.text
+            : tone === 'warning'
+              ? SEMANTIC_COLORS.warning
               : SEMANTIC_COLORS.textPrimary
         }
         aria-live="polite"
       >
-        {!view.available && <span aria-hidden="true">? </span>}
-        {view.available && view.counts.openRed > 0 && (
-          <span aria-hidden="true">{RED_META.glyph} </span>
+        {tone === 'warning' && <span aria-hidden="true">? </span>}
+        {tone === 'red' && <span aria-hidden="true">{RED_META.glyph} </span>}
+        {headline(
+          view.symbol,
+          view.counts,
+          view.available,
+          view.changesAvailable,
+          hasFloorRoutes(view.bridge),
         )}
-        {headline(view.symbol, view.counts, view.available, view.changesAvailable)}
       </Text>
       <Box
         mt="4px"
@@ -205,7 +212,10 @@ export const ConfigCard: React.FC<{
       {/* ---- persistent red banner: state rules failing NOW (no change event needed) ---------- */}
       {view.breaches.length > 0 && (
         <Box
-          role="alert"
+          // a region, not an alert (review round 7): the persistent banner was announced twice
+          // with the aria-live headline that already states the breaches
+          role="region"
+          aria-label="Rules failing now"
           mt={SPACING.md}
           p={SPACING.md}
           border="1px solid"
@@ -429,7 +439,7 @@ export const ConfigCard: React.FC<{
             <Text as="span" color={smallText(STATE_META.pending.token)}>
               {STATE_META.pending.glyph} pending
             </Text>{' '}
-            (queued in a timelock),{' '}
+            (queued in a timelock, or submitted to an on-chain multisig and not executed),{' '}
             <Text as="span" color={smallText(STATE_META.proposed.token)}>
               {STATE_META.proposed.glyph} proposed
             </Text>{' '}

@@ -28,8 +28,14 @@ import {
   type DvnSignerChange,
   type ParamTransition,
 } from './adminReplay'
-import { compareRoute, routeBreaches, routeDiffers, routeTags } from './bridgeRules'
-import { compactRoute, replayLz, routeKey, type LzEvent } from './lzReplay'
+import {
+  compareRoute,
+  floorBreachRoutes,
+  routeBreaches,
+  routeDiffers,
+  routeTags,
+} from './bridgeRules'
+import { compactRoute, replayLz, routeChangeDisplays, routeKey, type LzEvent } from './lzReplay'
 import {
   multisigSubmissionChanges,
   safeProposalChanges,
@@ -44,8 +50,10 @@ import {
   type WhitelistReach,
   classifyMultisigChange,
   classifyOracleParam,
+  classifyRoleGrant,
   classifySafeModuleChange,
   classifyControllerChange,
+  isPrivilegedRole,
   controllerRank,
   compareRank,
   describeController,
@@ -73,7 +81,16 @@ import {
   type EvalCtx,
   type RouteInputs,
 } from './uln'
-import { amountToNumber, valueAtRisk, type Amount } from './value'
+import { amountToNumber, formatParamAmount, valueAtRisk, type Amount } from './value'
+
+/** Lido Dual Governance committee fields of a timelock's `dg` (card order). */
+const DG_COMMITTEE_FIELDS = [
+  ['activationCommittee', 'Emergency Activation Committee'],
+  ['executionCommittee', 'Emergency Execution Committee'],
+  ['resealCommittee', 'Reseal Committee'],
+  ['tiebreakerCommittee', 'Tiebreaker Committee'],
+  ['proposalsCanceller', 'Proposals canceller'],
+] as const
 
 export type HeadRouteRead = {
   oapp: string
@@ -127,13 +144,194 @@ export type NttHead = {
   mode: 'locking' | 'burning' | null
   threshold: number | null
   /** null = getTransceivers() not read; `type` = getTransceiverType() (the verifier network). */
-  transceivers: { address: string; type: string | null; peers: Record<string, string | null> }[] | null
+  transceivers:
+    | { address: string; type: string | null; peers: Record<string, string | null> }[]
+    | null
   /** chain id (Wormhole) → the manager's peer there; null = not read. */
   peers: Record<string, { peer: string; decimals: number } | null>
   owner: string | null
   pauser: string | null
   paused: boolean | null
   locked: Amount | null
+  /**
+   * The remote side of each live peer (admin.mjs readNttRemote), read at head on THAT chain.
+   * undefined = not read (--no-remote, or a raw file from before 2026-10-07): a read gap.
+   */
+  remote?: NttRemoteHead[]
+}
+
+/** The remote side of a Wormhole NTT route (the peer manager on another chain), read at head there. */
+export type NttRemoteHead = {
+  wormholeChainId: number
+  /** EVM chain id; null = a Wormhole chain the collector does not map (not read) */
+  chainId: number | null
+  chainKey: string | null
+  status: 'ok' | 'remote_unread'
+  reason?: string
+  manager?: string
+  token?: string | null
+  mode?: 'locking' | 'burning' | null
+  threshold?: number | null
+  transceivers?: NttHead['transceivers']
+  /** the remote manager's peer for Ethereum (Wormhole chain 2); null = not read / not set */
+  peerBack?: { peer: string; decimals: number } | null
+  /** classified ON THE REMOTE CHAIN (never looked up in the Ethereum controller map) */
+  owner?: Controller | null
+  pauser?: Controller | null
+  paused?: boolean | null
+  /** burning mode: the token's total supply there = the bridged supply */
+  supply?: Amount | null
+  supplyNote?: string
+}
+
+const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+const remoteName = (r: Pick<NttRemoteHead, 'chainKey' | 'chainId' | 'wormholeChainId'>) =>
+  r.chainKey ?? (r.chainId ? `chain ${r.chainId}` : `Wormhole chain ${r.wormholeChainId}`)
+
+/**
+ * The remote sides of a Wormhole NTT manager's live routes, judged at head (pure): BR-2 floor /
+ * BR-7 on the remote threshold and transceivers, AD-3 when the remote owner is EOA-controlled
+ * (classified on that chain), a peer back to Ethereum that is not this manager (warning), the
+ * largest bridged supply (severity rank), and the display parts. An unread side is a warning
+ * and an `unread` entry (the value is then a lower bound), never silence.
+ */
+export function nttRemoteLines(n: NttHead): {
+  breaches: StateItem['breaches']
+  warnings: string[]
+  unread: string[]
+  supply: Amount | null
+  parts: string[]
+} {
+  const breaches: StateItem['breaches'] = []
+  const warnings: string[] = []
+  const unread: string[] = []
+  const parts: string[] = []
+  let supply: Amount | null = null
+  const sides = nttRemoteSides(n)
+  if (sides === null) {
+    unread.push('remote bridged supply not read')
+    warnings.push(
+      'the remote side of the route was not read: its threshold and owner are not judged',
+    )
+    return { breaches, warnings, unread, supply, parts }
+  }
+  const amount = (a: Amount | null | undefined) => {
+    const x = amountToNumber(a ?? null)
+    return x === null ? 'not read' : x.toLocaleString('en-US', { maximumFractionDigits: 1 })
+  }
+  for (const r of sides) {
+    const where = remoteName(r)
+    if (r.status !== 'ok') {
+      warnings.push(
+        `${where} side not read (${r.reason ?? 'no reason given'}): its threshold and owner are not judged`,
+      )
+      unread.push(`${where} bridged supply not read`)
+      parts.push(`${where} side NOT READ`)
+      continue
+    }
+    const mgr = r.manager ? shortAddr(r.manager) : 'manager ?'
+    const types = r.transceivers?.map((t) => t.type) ?? null
+    const eff = types ? nttEffective(r.threshold ?? null, types) : null
+    // the remote peer for Ethereum unread: assume it still points here (fail closed, as LZ routes)
+    const rLive = !r.peerBack || !/^0x0*$/i.test(r.peerBack.peer)
+    if (eff && r.threshold !== null && r.threshold !== undefined) {
+      if (rLive && eff.E < 2)
+        breaches.push({
+          ruleId: 'BR-2',
+          message: `NTT ${mgr} on ${where}: ${eff.E} effective verifier network(s) attest a message (threshold ${r.threshold} over ${eff.distinct} distinct)`,
+        })
+      if (eff.unknown)
+        breaches.push({
+          ruleId: 'BR-7',
+          message: `${where}: ${eff.unknown} transceiver(s) of an unknown verifier network`,
+        })
+      if (eff.duplicate)
+        breaches.push({
+          ruleId: 'BR-7',
+          message: `${where}: ${eff.duplicate} transceiver(s) on a network already counted`,
+        })
+    } else
+      warnings.push(
+        `${where} side: threshold / transceivers not read — the floor is not judged there (read gap)`,
+      )
+    if (r.peerBack === null || r.peerBack === undefined)
+      warnings.push(`${where} side: its peer for Ethereum was not read`)
+    else if (
+      rLive &&
+      r.peerBack.peer.slice(-40).toLowerCase() !== n.manager.slice(-40).toLowerCase()
+    )
+      warnings.push(`${where} manager's peer for Ethereum is ${r.peerBack.peer}, not this manager`)
+    if (r.owner && isEoaControlled(r.owner))
+      breaches.push({
+        ruleId: 'AD-3',
+        message: `NTT owner on ${where} is ${describeController(r.owner)}`,
+      })
+    if (r.owner && r.owner.kind === 'contract')
+      warnings.push(
+        `${where} owner ${shortAddr(r.owner.address)} is a contract classified on ${where} only: its own governance there (e.g. a cross-chain executor) is not followed`,
+      )
+    if (r.supply) {
+      if (!supply || (amountToNumber(r.supply) ?? 0) > (amountToNumber(supply) ?? 0))
+        supply = r.supply
+    } else
+      unread.push(`${where} bridged supply not read${r.supplyNote ? ` (${r.supplyNote})` : ''}`)
+    const pauser =
+      r.pauser === null || r.pauser === undefined
+        ? 'NOT READ'
+        : r.pauser.kind === 'zero'
+          ? 'none'
+          : describeController(r.pauser)
+    parts.push(
+      `${where} side ${mgr} (${r.mode ?? 'mode not read'}): threshold ${r.threshold ?? '?'} of ${r.transceivers?.length ?? '?'} (${(r.transceivers ?? []).map((t) => t.type ?? 'unknown').join(' + ') || 'none'}) · ${amount(r.supply)} bridged · owner ${r.owner ? describeController(r.owner) : 'NOT READ'} · pauser ${pauser}${r.paused ? ' · PAUSED' : ''}`,
+    )
+  }
+  return { breaches, warnings, unread, supply, parts }
+}
+
+/**
+ * The remote side of every LIVE Ethereum peer (fail closed): a live peer with no remote entry is
+ * an unread side. null = the remote sides were not read at all while a route is live; [] = no
+ * live route. Remote entries for chains Ethereum no longer peers with are ignored.
+ */
+function nttRemoteSides(n: NttHead): NttRemoteHead[] | null {
+  // review round 8: a peer that could not be read may be live — its remote side is unread, never
+  // dropped (fail closed)
+  const liveChains = Object.entries(n.peers)
+    .filter(([, p]) => !p || !/^0x0*$/i.test(p.peer))
+    .map(([wc]) => Number(wc))
+  if (!liveChains.length) return []
+  if (!n.remote) return null
+  return liveChains.map(
+    (wc) =>
+      n.remote!.find((r) => r.wormholeChainId === wc) ?? {
+        wormholeChainId: wc,
+        chainId: null,
+        chainKey: null,
+        status: 'remote_unread',
+        reason: n.peers[wc]
+          ? 'no remote read recorded for this peer'
+          : "the Ethereum manager's peer for this chain was not read",
+      },
+  )
+}
+
+/** Read gaps of an NTT manager's remote sides (the card never says "no red flags" over them). */
+export function nttRemoteGaps(n: NttHead): string[] {
+  const sides = nttRemoteSides(n)
+  if (sides === null) return [`NTT manager ${shortAddr(n.manager)}: remote side not read`]
+  return sides.flatMap((r) =>
+    r.status !== 'ok'
+      ? [
+          `NTT manager ${shortAddr(n.manager)}: ${remoteName(r)} side not read (${r.reason ?? 'no reason given'})`,
+        ]
+      : r.threshold === null || r.threshold === undefined || !r.transceivers
+        ? [
+            `NTT manager ${shortAddr(n.manager)}: ${remoteName(r)} threshold / transceivers not read`,
+          ]
+        : !r.owner
+          ? [`NTT manager ${shortAddr(n.manager)}: ${remoteName(r)} owner not read`]
+          : [],
+  )
 }
 
 /** A canonical rollup bridge's L1 side as the collector read it at head (admin.mjs readCanonicalBridge). */
@@ -153,6 +351,12 @@ export type PowerRead = {
   label: string
   contract: string
   holders: string[]
+  /**
+   * Intermediate hops of the power path (review round 7): the ProxyAdmin of an `eip1967_admin`
+   * step, a registry of a `call:` step… Each holds the power for the next one — its own events
+   * (ownership) and the calls queued on it are the subject's.
+   */
+  via?: string[]
   error?: string
 }
 
@@ -290,6 +494,15 @@ export function selectorOf(x: string): string {
     return x.toLowerCase()
   }
 }
+
+/** Roles on a declared timelock whose holders are in the subject's scope (admin.mjs TIMELOCK_SCOPE_ROLES). */
+export const TIMELOCK_SCOPE_ROLE_NAMES = [
+  'PROPOSER_ROLE',
+  'EXECUTOR_ROLE',
+  'CANCELLER_ROLE',
+  'TIMELOCK_ADMIN_ROLE',
+  'DEFAULT_ADMIN_ROLE',
+]
 
 /** What an LZ delegate can change on the endpoint (the DVN / library config of its OApp). */
 export const ENDPOINT_CONFIG_FNS = [
@@ -679,6 +892,13 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       const since = prevRemote.readAt?.[key] ?? prevRemote.block
       const v = compareRoute(prev, now, lastVerifyingBefore[key], lastPeerBefore[key])
       tag(v, 'bracketed')
+      const disp = routeChangeDisplays(
+        prev,
+        now,
+        (x) => opt.registry.byChain[now.chainId]?.[lc(x)]?.id,
+      )
+      v.notes.push(...disp.notes)
+      if (disp.dvnRotation && !isRed(v)) tag(v, 'rotation')
       changes.push({
         id: `${now.chainId}:remote-head:${key}:${head}`,
         subject: subject.key,
@@ -687,8 +907,8 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         title: `Remote ${now.direction} config on chain ${now.chainId} (${now.oapp.slice(0, 10)}…), between runs: E=${prev.Eeff} → E=${now.Eeff}`,
         before: compactRoute(prev),
         after: compactRoute(now),
-        beforeDisplay: displayRoute(prev),
-        afterDisplay: displayRoute(now),
+        beforeDisplay: disp.before,
+        afterDisplay: disp.after,
         state: 'historical',
         stage: 'executed',
         severity: v.severity,
@@ -912,7 +1132,9 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     const breaches: StateItem['breaches'] = []
     const bypass = powerNotes.get(pi) ?? []
     for (const h of p.holders) {
-      if (isEoa(h))
+      // an EOA, or a holder that ranks with one (review round 7: a 1-of-N multisig — any one
+      // signer acts alone; a contract an EOA owns)
+      if (isEoaControlled(h))
         breaches.push({ ruleId: 'AD-3', message: `${p.label} held by ${describeController(h)}` })
       if (h.kind === 'safe' && h.modules?.length)
         breaches.push({
@@ -1035,20 +1257,41 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     ...subject.timelocks.map(lc),
     endpoint,
   ])
+  // Review round 7: the contracts each power is exercised THROUGH — a holder that is a contract
+  // its owner (a timelock) calls: EthenaMinting for "USDe minter contract". The head bypass
+  // check (delayOf) already follows these chains; the history / queue matcher looked only at
+  // powers declared on the whitelisted target, so the two gave opposite answers.
+  const chainActs = new Map<PowerSpec, Set<string>>()
+  raw.admin.powers.forEach((p, pi) => {
+    const sp = specOf(p)
+    if (!sp) return
+    const set = chainActs.get(sp) ?? new Set<string>()
+    for (const h of powers[pi].holders) {
+      let c: Controller | undefined = h
+      while (c && c.kind === 'contract' && c.ownedBy) {
+        set.add(lc(c.address))
+        c = c.ownedBy
+      }
+    }
+    chainActs.set(sp, set)
+  })
   const whitelistReach = (target: string, selector: string): WhitelistReach => {
     const t = lc(target)
-    if (!ownContracts.has(t)) return 'foreign'
-    const about = subject.powers
-      .map((sp) => ({ sp, r: bypassReach(sp, sp.power, endpoint) }))
-      .filter(({ sp, r }) =>
-        t === endpoint ? sp.power === 'bridge_config' || r.delegate : lc(sp.contract) === t,
-      )
+    const viaChain = subject.powers.filter((sp) => chainActs.get(sp)?.has(t))
+    // a contract in one of the subject's holder chains is the subject's (never 'foreign')
+    if (!ownContracts.has(t) && !viaChain.length) return 'foreign'
+    const about = [
+      ...subject.powers
+        .map((sp) => ({ sp, r: bypassReach(sp, sp.power, endpoint) }))
+        .filter(({ sp, r }) =>
+          t === endpoint ? sp.power === 'bridge_config' || r.delegate : lc(sp.contract) === t,
+        )
+        .map(({ sp, r }) => ({ r, actsOn: r.delegate ? endpoint : lc(sp.contract) })),
+      // the same reach test the head uses: the chain contract is the one acted on
+      ...viaChain.map((sp) => ({ r: bypassReach(sp, sp.power, endpoint), actsOn: t })),
+    ]
     if (!about.length) return 'unknown'
-    return about.some(({ sp, r }) =>
-      r.reaches(t, r.delegate ? endpoint : lc(sp.contract), selector),
-    )
-      ? 'reaches'
-      : 'outside'
+    return about.some(({ r, actsOn }) => r.reaches(t, actsOn, selector)) ? 'reaches' : 'outside'
   }
   changes.push(
     ...classifyAdminEvents(raw.admin.events, {
@@ -1120,7 +1363,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       key: `mint/${spec.key}`,
       chainId: 1,
       block: head,
-      display: `${spec.label}: ${v === undefined ? 'unread' : typeof v === 'string' && /^0x[0-9a-f]{40}$/i.test(v) ? describeController(ctlHead(v) ?? { kind: 'contract', address: lc(v) }) : String(v)}`,
+      display: `${spec.label}: ${v === undefined ? 'unread' : typeof v === 'string' && /^0x[0-9a-f]{40}$/i.test(v) ? describeController(ctlHead(v) ?? { kind: 'contract', address: lc(v) }) : (formatParamAmount(v, spec.unit) ?? String(v))}`,
       value: v,
       breaches,
     })
@@ -1172,7 +1415,10 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   }
 
   // ---- Wormhole NTT (design §2 BR-2: the floor applies to the NTT threshold) ------------------------------
-  const tokenPrice = { priceUsd: raw.lz.value?.priceUsd ?? null, priceBasis: raw.lz.value?.priceBasis ?? '' }
+  const tokenPrice = {
+    priceUsd: raw.lz.value?.priceUsd ?? null,
+    priceBasis: raw.lz.value?.priceBasis ?? '',
+  }
   const amountText = (a: Amount | null) => {
     const n = amountToNumber(a)
     return n === null ? 'not read' : n.toLocaleString('en-US', { maximumFractionDigits: 1 })
@@ -1182,7 +1428,9 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     const itemWarnings: string[] = []
     const types = n.transceivers?.map((t) => t.type) ?? null
     const eff = types ? nttEffective(n.threshold, types) : null
-    const live = Object.values(n.peers).some((p) => p && !/^0x0*$/i.test(p.peer))
+    // review round 8: a peer that could not be read may be live (fail closed) — a failed read
+    // never switches the floor off
+    const live = Object.values(n.peers).some((p) => !p || !/^0x0*$/i.test(p.peer))
     if (eff && n.threshold !== null) {
       if (live && eff.E < 2)
         breaches.push({
@@ -1190,24 +1438,37 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
           message: `NTT ${short(n.manager)}: ${eff.E} effective verifier network(s) attest a message (threshold ${n.threshold} over ${eff.distinct} distinct)`,
         })
       if (eff.unknown)
-        breaches.push({ ruleId: 'BR-7', message: `${eff.unknown} transceiver(s) of an unknown verifier network` })
+        breaches.push({
+          ruleId: 'BR-7',
+          message: `${eff.unknown} transceiver(s) of an unknown verifier network`,
+        })
       if (eff.duplicate)
-        breaches.push({ ruleId: 'BR-7', message: `${eff.duplicate} transceiver(s) on a network already counted` })
-    } else itemWarnings.push('threshold / transceivers not read: the floor is not judged (read gap)')
+        breaches.push({
+          ruleId: 'BR-7',
+          message: `${eff.duplicate} transceiver(s) on a network already counted`,
+        })
+    } else
+      itemWarnings.push('threshold / transceivers not read: the floor is not judged (read gap)')
     const own = n.owner ? ctlHead(n.owner) : null
     if (own && isEoaControlled(own))
       breaches.push({ ruleId: 'AD-3', message: `NTT owner is ${describeController(own)}` })
     const peers = Object.entries(n.peers)
-      .map(([ch, p]) => `chain ${ch} ${p ? `0x…${p.peer.slice(-40, -34)}…${p.peer.slice(-4)}` : 'NOT READ'}`)
+      .map(
+        ([ch, p]) =>
+          `chain ${ch} ${p ? `0x…${p.peer.slice(-40, -34)}…${p.peer.slice(-4)}` : 'NOT READ'}`,
+      )
       .join(', ')
+    // the remote side of each live route (review 2026-10-07): the floor, the owner and the
+    // bridged supply there — a message forged on the remote side mints there, and the remote
+    // owner can upgrade the remote manager / transceivers into emitting messages Ethereum releases on
+    const remote = nttRemoteLines(n)
+    breaches.push(...remote.breaches)
+    itemWarnings.push(...remote.warnings)
     const value = valueAtRisk({
       locked: n.locked,
-      remoteSupply: null,
+      remoteSupply: remote.supply,
       ...tokenPrice,
-      unread: [
-        ...(n.locked ? [] : ['locked balance not read']),
-        'remote bridged supply not read',
-      ],
+      unread: [...(n.locked ? [] : ['locked balance not read']), ...remote.unread],
     })
     items.push({
       subject: subject.key,
@@ -1215,8 +1476,13 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       key: `bridge/ntt/${lc(n.manager)}`,
       chainId: 1,
       block: head,
-      display: `Wormhole NTT manager ${short(n.manager)} (${n.mode ?? 'mode not read'}): threshold ${n.threshold ?? '?'} of ${n.transceivers?.length ?? '?'} transceivers (${(n.transceivers ?? []).map((t) => t.type ?? 'unknown').join(' + ') || 'none'}) · peers ${peers || 'none'} · ${amountText(n.locked)} locked · owner ${describeController(own)}${n.paused ? ' · PAUSED' : ''}`,
-      value: { threshold: n.threshold, transceivers: n.transceivers, peers: n.peers },
+      display: `Wormhole NTT manager ${short(n.manager)} (${n.mode ?? 'mode not read'}): threshold ${n.threshold ?? '?'} of ${n.transceivers?.length ?? '?'} transceivers (${(n.transceivers ?? []).map((t) => t.type ?? 'unknown').join(' + ') || 'none'}) · peers ${peers || 'none'} · ${amountText(n.locked)} locked · owner ${describeController(own)} · pauser ${n.pauser === null ? 'NOT READ' : /^0x0{40}$/i.test(n.pauser) ? 'none' : describeController(ctlHead(n.pauser) ?? { kind: 'contract', address: lc(n.pauser) })}${n.paused ? ' · PAUSED' : ''}${remote.parts.map((x) => ` · ${x}`).join('')}`,
+      value: {
+        threshold: n.threshold,
+        transceivers: n.transceivers,
+        peers: n.peers,
+        ...(n.remote ? { remote: n.remote } : {}),
+      },
       breaches,
       warnings: itemWarnings.length ? itemWarnings : undefined,
       valueAtRisk: value,
@@ -1254,8 +1520,95 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         .join(' · '),
       value: { locked: b.locked, admin: b.admin },
       breaches,
-      warnings: ["the rollup's own message verification (proof system, sequencer, its upgrade keys) is not read"],
+      warnings: [
+        "the rollup's own message verification (proof system, sequencer, its upgrade keys) is not read",
+      ],
       valueAtRisk: value,
+    })
+  }
+
+  // ---- Lido Dual Governance at head: committees, canceller, state (wstETH) --------------------------------
+  // The committees hold no declared power, yet in emergency mode the execution committee executes
+  // scheduled proposals without the after-schedule delay and can reset governance; the reseal
+  // committee extends a seal of the withdrawal queue; the tiebreaker executes when governance is
+  // deadlocked; the canceller can cancel every pending proposal. A committee one key controls (an
+  // EOA, a 1-of-N Safe, a contract an EOA owns) is the AD-3 head breach, like a power held by one.
+  const dgTimelocks = new Map<string, Controller>()
+  const findDg = (c: Controller | undefined, seen = new Set<Controller>()): void => {
+    if (!c || seen.has(c)) return
+    seen.add(c)
+    if (c.kind === 'aragon_dg' && c.dg && !dgTimelocks.has(lc(c.address)))
+      dgTimelocks.set(lc(c.address), c)
+    findDg(c.ownedBy, seen)
+    for (const e of c.executors ?? []) findDg(e, seen)
+  }
+  for (const p of powers) p.holders.forEach((h) => findDg(h))
+  const dgGaps: string[] = []
+  const dgCommitteeAddrs = new Set<string>()
+  for (const [ept, c] of dgTimelocks) {
+    const d = c.dg!
+    const breaches: StateItem['breaches'] = []
+    const lines: string[] = []
+    for (const [field, name] of DG_COMMITTEE_FIELDS) {
+      const a = d[field]
+      if (a === undefined) continue // not read by the collector version that wrote this controller
+      if (a === null) {
+        lines.push(`${name} NOT READ`)
+        dgGaps.push(`Dual Governance ${short(ept)}: ${name} not read`)
+        continue
+      }
+      if (/^0x0{40}$/i.test(a)) {
+        lines.push(`${name} none`)
+        continue
+      }
+      dgCommitteeAddrs.add(lc(a))
+      const h = ctlHead(a)
+      if (!h) {
+        lines.push(`${name} ${short(lc(a))} (not classified at head)`)
+        dgGaps.push(`Dual Governance ${short(ept)}: ${name} ${short(lc(a))} not classified at head`)
+        continue
+      }
+      lines.push(`${name} ${describeController(h)}`)
+      if (isEoaControlled(h))
+        breaches.push({
+          ruleId: 'AD-3',
+          message: `${name} of Dual Governance ${short(ept)} is ${describeController(h)}`,
+        })
+    }
+    const ends = d.emergencyProtectionEndsAfter
+    const protection =
+      ends === null
+        ? 'emergency protection end NOT READ'
+        : ends <= raw.head.ts
+          ? `emergency protection ended ${new Date(ends * 1000).toISOString().slice(0, 10)} (the emergency committees have no power)`
+          : `emergency protection until ${new Date(ends * 1000).toISOString().slice(0, 10)}`
+    const state =
+      d.state === undefined
+        ? null
+        : d.state === null
+          ? 'state NOT READ'
+          : d.state === 'Normal'
+            ? 'state Normal'
+            : `STATE ${d.state} (stETH holders' veto: proposals cannot execute until it resolves)`
+    const proposers = (d.proposers ?? []).map((x) => short(lc(x))).join(', ') || 'none read'
+    items.push({
+      subject: subject.key,
+      dimension: 'admin',
+      key: `admin/dg/${ept}`,
+      chainId: 1,
+      block: head,
+      display: [
+        `Lido Dual Governance timelock ${short(ept)}`,
+        state,
+        `proposals by ${proposers}${d.proposerVoteSec ? ` (${formatDelay(d.proposerVoteSec)} vote)` : ''} · after-submit ${d.afterSubmitDelaySec === null ? 'NOT READ' : formatDelay(d.afterSubmitDelaySec)} · after-schedule ${d.afterScheduleDelaySec === null ? 'NOT READ' : formatDelay(d.afterScheduleDelaySec)}`,
+        `emergency mode ${d.emergencyModeActive === null ? 'NOT READ' : d.emergencyModeActive ? 'ACTIVE' : 'off'}`,
+        protection,
+        ...lines,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      value: d,
+      breaches,
     })
   }
 
@@ -1264,11 +1617,30 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   // controller map, so diffing all of it put one app's Safe change on every card): declared
   // Safes, Safes in the power graph (through deferral chains), timelock-admin holders, the
   // Safes whose queues this card reads, and the OApps' owners / delegates.
+  // Every proposer / executor / canceller / admin of a declared timelock too (review round 7:
+  // the Ethena timelock's EXECUTOR Safe had its events on the card but no run-to-run snapshot).
+  const timelockRoleHolders = new Map<string, Set<string>>()
+  for (const e of [...raw.admin.events].sort(
+    (x, y) => x.block - y.block || x.logIndex - y.logIndex,
+  )) {
+    if (e.event !== 'RoleGranted' && e.event !== 'RoleRevoked') continue
+    if (!subject.timelocks.map(lc).includes(lc(e.emitter))) continue
+    const role = String(e.args.roleName ?? opt.roleName(String(e.args.role)))
+    if (!TIMELOCK_SCOPE_ROLE_NAMES.includes(role)) continue
+    const k = `${lc(e.emitter)}|${role}`
+    const set = timelockRoleHolders.get(k) ?? new Set<string>()
+    if (e.event === 'RoleGranted') set.add(lc(String(e.args.account)))
+    else set.delete(lc(String(e.args.account)))
+    timelockRoleHolders.set(k, set)
+  }
   const subjectSafes = new Set<string>([
     ...subject.safes.map(lc),
     ...subject.contracts.map((c) => lc(c.address)),
     ...raw.queues.safeStatus.map((x) => lc(x.safe)),
     ...raw.admin.timelockAdmins.flatMap((t) => t.holders.map(lc)),
+    ...[...timelockRoleHolders.values()].flatMap((x) => [...x]),
+    // power-path hops (a ProxyAdmin) — a Safe there is tracked like a holder
+    ...raw.admin.powers.flatMap((p) => (p.via ?? []).map(lc)),
     ...subject.lzOApps.flatMap((o) =>
       [raw.admin.owners[lc(o)], raw.admin.delegates[lc(o)]].filter((x): x is string => !!x),
     ),
@@ -1279,6 +1651,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     addChain(h.ownedBy)
   }
   for (const p of powers) p.holders.forEach(addChain)
+  for (const a of dgCommitteeAddrs) subjectSafes.add(a)
   // A Safe proxy whose slot 0 no longer holds a canonical singleton is classified as a plain
   // contract; it stays tracked (its `singleton` is kept) so that swap is never silent.
   const isSafeLike = (c: Controller | null | undefined): c is Controller =>
@@ -1296,8 +1669,6 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     const c = ctlHead(addr)
     if (!prev || !c) continue
     const since = prevSafes!.block
-    // an event-sourced change of the same key since the last run already says it
-    const seen = (key: string) => changes.some((x) => x.key === key && (x.block ?? 0) > since)
     // AD-6 singleton: slot 0 moved (a canonical Safe whose singleton was swapped is no longer a
     // Safe — the delegatecall-takeover path), or a Safe no longer classifies as one.
     const wasSafe = prev.kind === 'safe'
@@ -1398,7 +1769,6 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     }
     const fields = ['guard', 'moduleGuard', 'fallbackHandler'] as const
     for (const f of fields) {
-      if ((prev[f] ?? null) === (c[f] ?? null)) continue
       const field = (
         {
           guard: 'guard',
@@ -1406,15 +1776,30 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
           fallbackHandler: 'fallback_handler',
         } as const
       )[f]
-      if (seen(`admin/safe/${c.address}/${field}`)) continue
-      const v = classifySafeModuleChange(field, prev[f] ?? undefined, c[f] ?? undefined)
+      // Review round 7: compared with what the EVENTS since the last run left, not skipped
+      // whenever one fired — a ChangedGuard(G1) since the last run masked a silent G1 → G2 at
+      // head (the threshold fix of round 6, for guards, module guards and fallback handlers).
+      const fk = `admin/safe/${c.address}/${field}`
+      const lastField = changes
+        .filter((x) => x.key === fk && (x.block ?? 0) > since && !x.tags.includes('bracketed'))
+        .sort((a, b) => (a.block ?? 0) - (b.block ?? 0))
+        .at(-1)
+      const zeroish = (x: unknown) =>
+        x === undefined || x === null || /^0x0{40}$/i.test(String(x)) ? null : lc(String(x))
+      const base = lastField ? zeroish(lastField.after) : zeroish(prev[f])
+      if (base === zeroish(c[f])) continue
+      const v = classifySafeModuleChange(field, base ?? undefined, c[f] ?? undefined)
+      if (lastField)
+        v.notes.push(
+          `the events since the last run set it to ${base ?? 'none'}; at head it is ${c[f] ?? 'none'} — changed without an event`,
+        )
       changes.push({
         id: `1:safe-head:${c.address}:${f}:${raw.head.block}`,
         subject: subject.key,
         dimension: 'admin',
-        key: `admin/safe/${c.address}/${field}`,
+        key: fk,
         title: `Safe ${c.address.slice(0, 10)}…: ${field.replace('_', ' ')} changed between runs (no event required)`,
-        before: prev[f],
+        before: base ?? undefined,
         after: c[f],
         state: 'historical',
         stage: 'executed',
@@ -1431,8 +1816,22 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         notes: v.notes.length ? v.notes : undefined,
       })
     }
-    for (const m of (c.modules ?? []).filter(
-      (x) => !(prev.modules ?? []).includes(x) && !seen(`admin/safe/${c.address}/module_enabled`),
+    // per module (review round 7): one evented EnabledModule since the last run no longer hides
+    // a second module enabled without an event
+    const evModules = new Set(
+      changes
+        .filter(
+          (x) =>
+            x.key === `admin/safe/${c.address}/module_enabled` &&
+            (x.block ?? 0) > since &&
+            !x.tags.includes('bracketed'),
+        )
+        .map((x) => lc(String(x.after ?? ''))),
+    )
+    // review round 8: a module list unread on either run is no baseline (the read gap says so)
+    const modulesComparable = !c.modulesUnread && !prev.modulesUnread
+    for (const m of (modulesComparable ? (c.modules ?? []) : []).filter(
+      (x) => !(prev.modules ?? []).map(lc).includes(lc(x)) && !evModules.has(lc(x)),
     )) {
       const v = classifySafeModuleChange('module_enabled', undefined, m)
       changes.push({
@@ -1624,7 +2023,19 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     implHistory: raw.admin.implHistory,
     minDelayOf: (t) => raw.admin.minDelays[lc(t)] ?? null,
     roleName: opt.roleName,
-    contracts: [...subject.contracts.map((c) => lc(c.address)), ...subject.timelocks],
+    contracts: [
+      ...new Set([
+        ...subject.contracts.map((c) => lc(c.address)),
+        ...subject.timelocks,
+        // power-path hops (a ProxyAdmin that is not declared): calls on them are this card's
+        ...raw.admin.powers.flatMap((p) => (p.via ?? []).map(lc)),
+        // review round 8: the NTT managers read at head and their transceivers
+        ...(raw.ntt ?? []).flatMap((n) => [
+          lc(n.manager),
+          ...(n.transceivers ?? []).map((x) => lc(x.address)),
+        ]),
+      ]),
+    ],
     oapps: subject.lzOApps.map(lc),
     safes: [
       ...new Set([
@@ -1668,6 +2079,48 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     paramLastNonZero,
     whitelistReach,
     verified,
+    declaredSelectors: (contract, selector) => {
+      const sel = selector.toLowerCase()
+      let named: string | null = null
+      for (const sp of subject.powers)
+        for (const sig of sp.bypassExclude ?? []) {
+          if (selectorOf(sig) !== sel) continue
+          // restrict-only where the power acts: its contract, or a contract of its holder chain
+          if (lc(sp.contract) === lc(contract) || chainActs.get(sp)?.has(lc(contract)))
+            return { signature: sig, restrictOnly: true }
+          named ??= sig
+        }
+      return named ? { signature: named, restrictOnly: false } : null
+    },
+    ccipEverRemotePools: (pool, selector) => {
+      const out: string[] = []
+      for (const e of [...raw.admin.events].sort(
+        (x, y) => x.block - y.block || x.logIndex - y.logIndex,
+      )) {
+        if (e.event !== 'RemotePoolSet' && e.event !== 'RemotePoolAdded') continue
+        if (lc(e.emitter) !== lc(pool) || String(e.args.remoteChainSelector) !== selector) continue
+        const a = lc(String(e.args.remotePoolAddress ?? ''))
+        if (a && !/^0x0*$/.test(a) && !out.includes(a)) out.push(a)
+      }
+      return out
+    },
+    ccipLastRemotePools: (pool, selector) =>
+      ccipRemotePoolsReplay(raw.admin.events, pool, selector).last,
+    ccipLastLimiterOn: (pool, selector) => {
+      const last = [...raw.admin.events]
+        .filter(
+          (e) =>
+            (e.event === 'ChainAdded' || e.event === 'ChainConfigured') &&
+            lc(e.emitter) === lc(pool) &&
+            String(e.args.remoteChainSelector) === selector,
+        )
+        .sort((x, y) => x.block - y.block || x.logIndex - y.logIndex)
+        .at(-1)
+      if (!last) return null
+      const on = (c: unknown) => (c as { isEnabled?: boolean } | undefined)?.isEnabled !== false
+      return on(last.args.inboundRateLimiterConfig) && on(last.args.outboundRateLimiterConfig)
+    },
+    ntt: raw.ntt,
     ccipRemotePools: (pool, selector) => {
       const c = raw.ccip.pools
         .find((x) => lc(x.pool) === lc(pool))
@@ -1697,6 +2150,19 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   ]
 
   markStillInEffect(changes)
+  // review round 8 (on-chain #1): a grant judged on the grantee as it was when granted is
+  // re-judged on the grantee as it is at head — both ways
+  changes.push(
+    ...rejudgeRoleHoldersAtHead(changes, raw.admin.events, {
+      ctlAt: (a, b) => raw.admin.controllers[`${lc(a)}@${b}`] ?? null,
+      ctlRanked: ctl,
+      ctlHead,
+      administers: (c, r) => roleAdmins.get(lc(c))?.has(r) ?? false,
+      head,
+      subject: subject.key,
+      announcement,
+    }),
+  )
 
   // Reads that failed in a way that can HIDE a red flag: the card never says "no red flags"
   // over them (default 2026-10-06). Route sides that were not read are counted apart (UNREAD).
@@ -1746,6 +2212,51 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     ...(raw.ntt ?? [])
       .filter((n) => n.threshold === null || n.transceivers === null)
       .map((n) => `NTT manager ${short(n.manager)}: threshold / transceivers not read`),
+    // review round 8: an unread peer or owner can hide BR-2 / BR-6 / AD-3 — never "no red flags"
+    ...(raw.ntt ?? []).flatMap((n) =>
+      Object.entries(n.peers)
+        .filter(([, p]) => p === null)
+        .map(([ch]) => `NTT manager ${short(n.manager)}: peer for chain ${ch} not read`),
+    ),
+    ...(raw.ntt ?? [])
+      .filter((n) => !n.owner)
+      .map((n) => `NTT manager ${short(n.manager)}: owner not read`),
+    ...(raw.ntt ?? [])
+      .filter((n) => n.owner && !ctlHead(n.owner))
+      .map(
+        (n) =>
+          `NTT manager ${short(n.manager)}: owner ${short(lc(n.owner!))} could not be classified at head`,
+      ),
+    ...(raw.canonical ?? [])
+      .filter((b) => b.ossified !== true && !b.admin)
+      .map(
+        (b) =>
+          `canonical bridge ${short(b.bridge)}: proxy admin not read (upgrade control unknown)`,
+      ),
+    ...(raw.canonical ?? [])
+      .filter((b) => b.ossified !== true && b.admin && !ctlHead(b.admin))
+      .map(
+        (b) =>
+          `canonical bridge ${short(b.bridge)}: proxy admin ${short(lc(b.admin!))} could not be classified at head`,
+      ),
+    // review round 8: a Safe whose module list could not be read (ranked as a plain contract)
+    ...[
+      ...new Set(
+        powers.flatMap((p) =>
+          p.holders
+            .flatMap((h) => {
+              const chain: Controller[] = []
+              for (let c: Controller | undefined = h; c; c = c.ownedBy) chain.push(c)
+              return chain
+            })
+            .filter((h) => h.modulesUnread)
+            .map((h) => `Safe ${short(h.address)}: modules not read (ranked as a plain contract)`),
+        ),
+      ),
+    ],
+    // the remote side of a live NTT route: its floor and owner cannot be judged unread
+    ...(raw.ntt ?? []).flatMap(nttRemoteGaps),
+    ...dgGaps,
   ]
 
   const all = [...changes, ...queue]
@@ -1785,12 +2296,169 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       pending: queue.filter((c) => c.state === 'pending' && c.stage !== 'stale').length,
       proposed: queue.filter((c) => c.state === 'proposed').length,
       historical: changes.length,
-      floorBreaches: items.filter((i) => i.breaches.some((b) => b.ruleId === 'BR-2')).length,
+      floorBreaches: floorBreachRoutes(items).length,
     },
     readGaps: readGaps.length ? readGaps : undefined,
     warnings,
   }
   return { state, changes: changes.sort((a, b) => (b.block ?? 0) - (a.block ?? 0)), queue }
+}
+
+/**
+ * ROLE HOLDERS RE-JUDGED AT HEAD (review round 8, on-chain #1). A role grant is judged on the
+ * grantee as it was at the grant block, and the account can change afterwards without an event
+ * this card scans (an MCMS whose owner moved from a key to a timelock; a Safe whose threshold was
+ * raised — or lowered). For every CURRENT holder (RoleGranted / RoleRevoked replayed):
+ *   - a red grant (AD-4 only) still in effect whose grantee, as classified at head, ranks
+ *     strictly stronger than at the grant AND would not have made the grant red (against the
+ *     holders it was ranked against) is no longer in effect — noted with both controllers;
+ *   - a holder of a privileged role whose grant was NOT red, EOA-controlled at head and strictly
+ *     weaker than at the grant, gets a red AD-4 row (bracketed: grant block → head), in effect —
+ *     unless an evented weakening of the same account is already a red in effect on the card.
+ * A controller not read (at the grant block exactly, or at head) changes nothing: a red is never
+ * resolved, and nothing is called calm, on a read that did not happen. Returns the new rows.
+ */
+export function rejudgeRoleHoldersAtHead(
+  changes: ConfigChange[],
+  events: readonly AdminEventRow[],
+  o: {
+    /** Exact classification at a block (no fallback): the grantee as it was granted. */
+    ctlAt: (address: string, block: number) => Controller | null
+    /** The lookup the replay ranked the other holders with (head fallback). */
+    ctlRanked: (address: string, block: number) => Controller | null
+    ctlHead: (address: string) => Controller | null
+    administers: (contract: string, role: string) => boolean
+    head: number
+    subject: string
+    announcement: AnnouncementStatus
+  },
+): ConfigChange[] {
+  const byId = new Map(changes.map((c) => [c.id, c]))
+  const holders = new Map<string, Set<string>>()
+  // grants of the current holding period per `${contract}|${role}|${account}`, with the holders
+  // just before each (what the replay ranked it against)
+  const held = new Map<string, { e: AdminEventRow; before: string[] }[]>()
+  for (const e of [...events].sort((x, y) => x.block - y.block || x.logIndex - y.logIndex)) {
+    if (e.event !== 'RoleGranted' && e.event !== 'RoleRevoked') continue
+    const k = `${lc(e.emitter)}|${lc(String(e.args.role))}`
+    const acct = lc(String(e.args.account))
+    const set = holders.get(k) ?? new Set<string>()
+    if (e.event === 'RoleGranted') {
+      held.set(`${k}|${acct}`, [
+        ...(held.get(`${k}|${acct}`) ?? []),
+        { e, before: [...set].filter((h) => h !== acct) },
+      ])
+      set.add(acct)
+    } else {
+      set.delete(acct)
+      held.delete(`${k}|${acct}`)
+    }
+    holders.set(k, set)
+  }
+  const shortA = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+  const added: ConfigChange[] = []
+  for (const list of held.values()) {
+    const { e: lastE } = list.at(-1)!
+    const em = lc(lastE.emitter)
+    const acct = lc(String(lastE.args.account))
+    const now = o.ctlHead(acct)
+    if (!now) continue
+    const rowOf = (e: AdminEventRow) => byId.get(`${e.chainId}:${e.tx}:${e.logIndex}`)
+    for (const { e, before } of list) {
+      const row = rowOf(e)
+      if (!row || !row.red || !row.stillInEffect) continue
+      if (!row.ruleIds.length || row.ruleIds.some((r) => r !== 'AD-4')) continue
+      const then = o.ctlAt(acct, e.block)
+      if (!then || compareRank(controllerRank(now), controllerRank(then)) <= 0) continue
+      const name = String(e.args.roleName ?? lc(String(e.args.role)))
+      const ranked = before.map((h) => o.ctlRanked(h, e.block)).filter((c): c is Controller => !!c)
+      const v = classifyRoleGrant(name, now, ranked, true, {
+        administersRoles: o.administers(em, name),
+      })
+      if (isRed(v)) continue
+      row.stillInEffect = false
+      row.notes = [
+        ...(row.notes ?? []),
+        `NO LONGER IN EFFECT at head (block ${o.head}): the grantee is now ${describeController(now)} (it was ${describeController(then)} when granted) — the grant would not be red today`,
+      ]
+    }
+    // the reverse: a calm grant whose holder weakened afterwards
+    const row = rowOf(lastE)
+    if (!row || row.red) continue
+    const name = String(lastE.args.roleName ?? lc(String(lastE.args.role)))
+    if (!isPrivilegedRole(name) && !o.administers(em, name)) continue
+    const then = o.ctlAt(acct, lastE.block)
+    if (!then || !isEoaControlled(now)) continue
+    if (compareRank(controllerRank(now), controllerRank(then)) >= 0) continue
+    if (
+      changes.some(
+        (x) =>
+          x.red &&
+          x.stillInEffect &&
+          (x.key === `admin/multisig/${acct}` || x.key === `admin/owner/${acct}`),
+      )
+    )
+      continue
+    added.push({
+      id: `1:role-head:${em}:${lc(String(lastE.args.role))}:${acct}:${o.head}`,
+      subject: o.subject,
+      dimension: row.dimension,
+      key: row.key,
+      title: `${name} holder ${shortA(acct)} on ${shortA(em)} weakened since its grant: ${describeController(then)} → ${describeController(now)}`,
+      before: acct,
+      after: acct,
+      state: 'historical',
+      stage: 'executed',
+      severity: 'downgrade',
+      floorBreach: false,
+      red: true,
+      ruleIds: ['AD-4'],
+      tags: ['bracketed'],
+      unannounced: null,
+      announcement: o.announcement,
+      chainId: 1,
+      block: o.head,
+      blockFrom: lastE.block,
+      stillInEffect: true,
+      notes: [
+        `${name} is held by ${describeController(now)} at head; it was ${describeController(then)} when granted at block ${lastE.block} — weakened since, with no event on this card`,
+      ],
+    })
+  }
+  return added
+}
+
+/**
+ * CCIP remote pools of a token pool's chain, replayed from RemotePoolSet / RemotePoolAdded /
+ * RemotePoolRemoved / ChainRemoved (review round 8): the pools it accepts after the last event
+ * (`now`) and the ones it accepted the last time it served any (`last`; [] = never served). A
+ * queued re-add of a pool outside `last` — an older pool included — is a re-point (CC-1).
+ */
+export function ccipRemotePoolsReplay(
+  events: readonly {
+    event: string
+    emitter: string
+    block: number
+    logIndex: number
+    args: Record<string, unknown>
+  }[],
+  pool: string,
+  selector: string,
+): { now: string[]; last: string[] } {
+  let cur: string[] = []
+  let last: string[] = []
+  const zero = (a: string) => /^0x0*$/i.test(a)
+  for (const e of [...events].sort((x, y) => x.block - y.block || x.logIndex - y.logIndex)) {
+    if (lc(e.emitter) !== lc(pool) || String(e.args.remoteChainSelector) !== selector) continue
+    const a = lc(String(e.args.remotePoolAddress ?? ''))
+    if (e.event === 'RemotePoolSet') cur = a && !zero(a) ? [a] : []
+    else if (e.event === 'RemotePoolAdded') cur = cur.includes(a) ? cur : [...cur, a]
+    else if (e.event === 'RemotePoolRemoved') cur = cur.filter((x) => x !== a)
+    else if (e.event === 'ChainRemoved') cur = []
+    else continue
+    if (cur.length) last = [...cur]
+  }
+  return { now: cur, last }
 }
 
 /**

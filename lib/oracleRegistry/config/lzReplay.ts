@@ -27,6 +27,7 @@ import {
   evaluateRoute,
   lc,
   mergeUln,
+  normalizeOperator,
   routeVerifies,
   ZERO_ADDRESS,
   type EvalCtx,
@@ -400,16 +401,26 @@ export function replayLz(events: LzEvent[], opts: ReplayOptions): ReplayResult {
       if (group.some((g) => g.kind === 'uln_default' || g.kind.startsWith('default_')))
         tag(v, 'default_change')
       const first = group[0]
+      const disp = routeChangeDisplays(b, a, (x) => ctx.registry.byChain[chainId]?.[lc(x)]?.id)
+      v.notes.push(...disp.notes)
+      if (disp.dvnRotation && !isRed(v)) tag(v, 'rotation')
+      const dirWord = a.direction === 'receive' ? 'Receive' : 'Send'
+      const eMoved = !b || closedOr(b) !== closedOr(a)
       const change: ConfigChange = {
         id: `${chainId}:${tx}:${first.logIndex}:${a.oapp}:${a.eid}:${a.direction}`,
         subject: opts.subject,
         dimension: 'bridge',
         key: routeKey(a),
-        title: `${a.direction === 'receive' ? 'Receive' : 'Send'} config, eid ${a.eid} (${eidName(a.eid)}): ${b ? closedOr(b) : 'new'} → ${closedOr(a)}`,
+        // a peer move names the peer in the title (review round 7: the red BR-6 re-points read
+        // "Send config … E=2 → E=2", the move only in the notes)
+        title:
+          b && disp.peerMoved
+            ? `${dirWord} peer, eid ${a.eid} (${eidName(a.eid)}): ${peerText(b.peer)} → ${peerText(a.peer)}${eMoved ? ` (${closedOr(b)} → ${closedOr(a)})` : ''}`
+            : `${dirWord} config, eid ${a.eid} (${eidName(a.eid)}): ${b ? closedOr(b) : 'new'} → ${closedOr(a)}`,
         before: b ? compactRoute(b) : undefined,
         after: compactRoute(a),
-        beforeDisplay: b ? displayRoute(b) : undefined,
-        afterDisplay: displayRoute(a),
+        beforeDisplay: disp.before,
+        afterDisplay: disp.after,
         state: 'historical',
         stage: 'executed',
         severity: v.severity,
@@ -483,5 +494,99 @@ export function compactRoute(r: RouteState) {
     grace: r.grace
       ? { lib: r.grace.lib, expiry: r.grace.expiry, E: r.grace.security.E }
       : undefined,
+  }
+}
+
+// ---- before → after lines that say what moved (review round 7) -----------------------------------
+
+const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+/** A bytes32 LZ peer as the address it pads, "0 (none)" when zeroed. */
+export function peerText(p: string | undefined | null): string {
+  if (!p || /^0x0*$/i.test(p)) return '0 (none)'
+  if (/^0x0{24}[0-9a-f]{40}$/i.test(p)) return shortAddr(`0x${p.slice(26)}`)
+  return p.length > 20 ? `${p.slice(0, 10)}…${p.slice(-4)}` : p
+}
+
+/**
+ * The before / after lines of a route change, and why two equal-looking lines differ. The route
+ * line names OPERATORS, so a DVN contract swapped for another of the same operator, a peer
+ * re-point or a library / config-source move rendered identical lines (228 rows, 12 red). The
+ * lines now carry what moved: the peer, the swapped DVN contracts (operator + address), the
+ * library, the config source. `dvnRotation` = DVN contracts swapped with the operator set
+ * unchanged (a rotation, unless a rule says otherwise).
+ */
+export function routeChangeDisplays(
+  b: RouteState | undefined,
+  a: RouteState,
+  operatorOf: (dvn: string) => string | undefined,
+): { before?: string; after: string; notes: string[]; dvnRotation: boolean; peerMoved: boolean } {
+  const after = displayRoute(a)
+  if (!b) return { after, notes: [], dvnRotation: false, peerMoved: false }
+  const before = displayRoute(b)
+  const notes: string[] = []
+  const peerMoved = lc(b.peer) !== lc(a.peer)
+  const dv = (r: RouteState) => [...r.config.required, ...r.config.optional].map(lc)
+  const bd = dv(b)
+  const ad = dv(a)
+  const gone = bd.filter((x) => !ad.includes(x))
+  const came = ad.filter((x) => !bd.includes(x))
+  const name = (x: string) => `${operatorOf(x) ?? 'unknown'} ${shortAddr(x)}`
+  // operators as the rules count them (canary / canary-subsidized, mantle01–03… fold together)
+  const opsOf = (xs: string[]) =>
+    [...new Set(xs.map((x) => normalizeOperator(operatorOf(x) ?? x)))].sort().join()
+  const dvnRotation = (gone.length > 0 || came.length > 0) && opsOf(bd) === opsOf(ad)
+  if (dvnRotation)
+    notes.push(
+      `DVN contract swapped within the same operator: ${gone.map(name).join(', ') || 'none'} → ${came.map(name).join(', ') || 'none'}`,
+    )
+  if (before !== after) {
+    // the lines differ already; a peer move is still named on them
+    return peerMoved
+      ? {
+          before: `${before} · peer ${peerText(b.peer)}`,
+          after: `${after} · peer ${peerText(a.peer)}`,
+          notes,
+          dvnRotation,
+          peerMoved,
+        }
+      : { before, after, notes, dvnRotation, peerMoved }
+  }
+  const bx: string[] = []
+  const ax: string[] = []
+  if (peerMoved) {
+    bx.push(`peer ${peerText(b.peer)}`)
+    ax.push(`peer ${peerText(a.peer)}`)
+  }
+  if (gone.length || came.length) {
+    bx.push(`DVN ${gone.map(name).join(', ') || '—'}`)
+    ax.push(`DVN ${came.map(name).join(', ') || '—'}`)
+  }
+  if (lc(b.lib) !== lc(a.lib)) {
+    bx.push(`library ${shortAddr(b.lib)}`)
+    ax.push(`library ${shortAddr(a.lib)}`)
+  }
+  if (b.config.source !== a.config.source) {
+    bx.push(`${b.config.source} config`)
+    ax.push(`${a.config.source} config`)
+  }
+  if ((b.grace?.lib ?? null) !== (a.grace?.lib ?? null) || b.grace?.expiry !== a.grace?.expiry) {
+    bx.push(
+      b.grace ? `grace ${shortAddr(b.grace.lib)} until ${b.grace.expiry}` : 'no grace library',
+    )
+    ax.push(
+      a.grace ? `grace ${shortAddr(a.grace.lib)} until ${a.grace.expiry}` : 'no grace library',
+    )
+  }
+  if (!bx.length && b.config.confirmations !== a.config.confirmations) {
+    bx.push(`${b.config.confirmations} conf`)
+    ax.push(`${a.config.confirmations} conf`)
+  }
+  if (!bx.length) return { before, after, notes, dvnRotation, peerMoved }
+  return {
+    before: `${before} · ${bx.join(' · ')}`,
+    after: `${after} · ${ax.join(' · ')}`,
+    notes,
+    dvnRotation,
+    peerMoved,
   }
 }

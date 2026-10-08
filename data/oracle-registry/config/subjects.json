@@ -42,6 +42,14 @@
           "deployBlock": 18758376
         },
         {
+          "role": "oracle",
+          "dimension": "oracle",
+          "chainId": 1,
+          "address": "0x3d08ccb47cccde84755924ed6b0642f9ab30dfd2",
+          "label": "ETHx price oracle (Transparent proxy, ProxyAdmin 0xb61e)",
+          "deployBlock": 18758376
+        },
+        {
           "role": "oft_adapter",
           "dimension": "bridge",
           "chainId": 1,
@@ -140,6 +148,15 @@
             "owner"
           ],
           "label": "Upgrade LRTOracle"
+        },
+        {
+          "power": "upgrade",
+          "contract": "0x3d08ccb47cccde84755924ed6b0642f9ab30dfd2",
+          "path": [
+            "eip1967_admin",
+            "owner"
+          ],
+          "label": "Upgrade ETHx price oracle"
         },
         {
           "power": "mint",
@@ -282,6 +299,23 @@
           }
         },
         {
+          "key": "assetPriceOracle:ETHx",
+          "contract": "0x349a73444b1a310bae67ef67973022020d70020d",
+          "sig": "function assetPriceOracle(address) view returns (address)",
+          "rule": "price_oracle",
+          "label": "ETHx price oracle",
+          "args": [
+            "0xA35b1B31Ce002FBF2058D22F30f95D405200A15b"
+          ],
+          "setter": {
+            "sig": "function updatePriceOracleFor(address asset, address priceOracle)",
+            "value": 1,
+            "match": [
+              0
+            ]
+          }
+        },
+        {
           "key": "assetPriceOracle:ETH",
           "contract": "0x349a73444b1a310bae67ef67973022020d70020d",
           "sig": "function assetPriceOracle(address) view returns (address)",
@@ -315,7 +349,7 @@
       ],
       "govChannels": [],
       "notes": [
-        "Kelp has no governance forum or Snapshot space (NO-GOV-CHANNEL); its Safes act without a timelock, so the Safe Tx Service is the only pending source."
+        "Kelp has no governance forum or Snapshot space (NO-GOV-CHANNEL). Upgrades of rsETH, LRTConfig, LRTDepositPool, LRTOracle and the ETHx price oracle go through ProxyAdmin 0xb61e owned by Timelock 10 d 0x49bd…35b1: they are queued on-chain and visible as pending. Everything else (LRTConfig admin and MANAGER roles, the OFT adapter and CCIP pool owners) is held by Safes that act without a timelock: for those, the Safe Tx Service is the only pending source."
       ],
       "valuation": {
         "asset": "ETH",
@@ -633,7 +667,18 @@
           "path": [
             "call:minter()"
           ],
-          "label": "USDe minter contract"
+          "label": "USDe minter contract",
+          "bypassExclude": [
+            "addWhitelistedBenefactor(address)",
+            "removeWhitelistedBenefactor(address)",
+            "disableMintRedeem()",
+            "revokeRole(bytes32,address)",
+            "removeMinterRole(address)",
+            "removeRedeemerRole(address)",
+            "removeCollateralManagerRole(address)",
+            "removeCustodianAddress(address)",
+            "removeSupportedAsset(address)"
+          ]
         },
         {
           "power": "mint",
@@ -1500,6 +1545,14 @@
           "deployBlock": 23933041
         },
         {
+          "role": "proxy",
+          "dimension": "mint_redeem",
+          "chainId": 1,
+          "address": "0x889edc2edab5f40e902b864ad4d7ade8e412f9b1",
+          "label": "WithdrawalQueueERC721 (OssifiableProxy: stETH → ETH redemptions)",
+          "deployBlock": 17172547
+        },
+        {
           "role": "ccip_pool",
           "dimension": "bridge",
           "chainId": 1,
@@ -1715,6 +1768,14 @@
           "label": "Upgrade VaultHub (external stETH mint)"
         },
         {
+          "power": "upgrade",
+          "contract": "0x889edc2edab5f40e902b864ad4d7ade8e412f9b1",
+          "path": [
+            "eip1967_admin"
+          ],
+          "label": "Upgrade the WithdrawalQueue (stETH → ETH redemptions)"
+        },
+        {
           "power": "oracle",
           "contract": "0xd624b08c83baecf0807dd2c6880c3154a5f0b288",
           "path": [
@@ -1894,6 +1955,10 @@
           "setter": {
             "sig": "function setStakingLimit(uint256 maxStakeLimit, uint256 stakeLimitIncreasePerBlock)",
             "value": 0
+          },
+          "unit": {
+            "decimals": 18,
+            "symbol": "ETH"
           }
         },
         {
@@ -1909,6 +1974,13 @@
           "sig": "function isStopped() view returns (bool)",
           "rule": "info",
           "label": "stETH stopped (transfers halted)"
+        },
+        {
+          "key": "withdrawalsPaused",
+          "contract": "0x889edc2edab5f40e902b864ad4d7ade8e412f9b1",
+          "sig": "function isPaused() view returns (bool)",
+          "rule": "info",
+          "label": "stETH withdrawals paused (WithdrawalQueue)"
         },
         {
           "key": "accounting",
@@ -2020,9 +2092,19 @@
           "contract": "0xb948a93827d68a82f6513ad178964da487fe2bd9",
           "sig": "function getOutboundLimitParams() view returns (uint72 limit, uint72 currentCapacity, uint64 lastTxTimestamp)",
           "outputIndex": 0,
+          "decode": "trimmed_amount",
+          "decimals": 18,
           "rule": "cap",
           "zero": "closed",
-          "label": "NTT outbound rate limit (per 24 h)"
+          "label": "NTT outbound rate limit (per 24 h)",
+          "unit": {
+            "decimals": 18,
+            "symbol": "wstETH"
+          },
+          "setter": {
+            "sig": "function setOutboundLimit(uint256 limit)",
+            "value": 0
+          }
         },
         {
           "key": "nttInboundLimitBsc",
@@ -2032,9 +2114,22 @@
             4
           ],
           "outputIndex": 0,
+          "decode": "trimmed_amount",
+          "decimals": 18,
           "rule": "cap",
           "zero": "closed",
-          "label": "NTT inbound rate limit from BNB Chain (per 24 h)"
+          "label": "NTT inbound rate limit from BNB Chain (per 24 h)",
+          "unit": {
+            "decimals": 18,
+            "symbol": "wstETH"
+          },
+          "setter": {
+            "sig": "function setInboundLimit(uint256 limit, uint16 chainId_)",
+            "value": 0,
+            "match": [
+              1
+            ]
+          }
         },
         {
           "key": "nttPaused",
@@ -2067,7 +2162,10 @@
         "Aragon votes (the days before a proposal reaches Dual Governance) are not read: a change appears here once it is submitted to Dual Governance.",
         "History before block 17,600,000 is not scanned, except the Aragon ACL (read from 2020 to know who holds each permission; those rows are replayed, not listed).",
         "The canonical rollup bridges' own message verification (proof systems, sequencers, rollup security councils) is not read. Linea's TokenBridge is Linea-run, not Lido's.",
-        "Not covered: Polygon PoS and third-party bridges (other OFTs / wrappers), the Tiebreaker committee internals, and the first Dual Governance contract (0xcdf49b05…, replaced 2025-09)."
+        "Not covered: Polygon PoS and third-party bridges (other OFTs / wrappers), the Tiebreaker committee internals, and the first Dual Governance contract (0xcdf49b05…, replaced 2025-09).",
+        "The L2 side of each canonical bridge (the L2 wstETH token and bridge, upgraded on each L2 by Lido's cross-chain governance executor) is not read: on Ethereum, each bridge's upgrade path, switches and locked balance are. The Wormhole NTT route is read on BOTH sides at head (the BNB Chain manager's threshold, transceivers, owner, pauser and wstETH supply, through public RPCs); the BNB Chain side's event history is not scanned, and its owner is classified on BNB Chain only (a cross-chain governance executor there is not followed back to the Lido DAO).",
+        "The NTT Axelar transceiver has no peer getter: its peers come from AxelarChainIdSet events (history), not a head read.",
+        "Redemption: the WithdrawalQueue (stETH → ETH) is read for its pause switch and upgrade path; its role grants (who may pause or resume withdrawals) are replayed from block 17,600,000."
       ],
       "valuation": {
         "asset": "wstETH"

@@ -57,6 +57,11 @@ export type Controller = {
   delaySec?: number
   /** Safe extras (read through Safe.getStorageAt so delegatecall edits are caught at head). */
   modules?: Address[]
+  /**
+   * The Safe's module list could not be read (review round 8): never "no modules" — it ranks
+   * as a plain contract (a module would execute without signatures) and is a read gap.
+   */
+  modulesUnread?: boolean
   guard?: Address
   moduleGuard?: Address
   fallbackHandler?: Address
@@ -108,6 +113,17 @@ export type Controller = {
     emergencyModeActive: boolean | null
     /** Unix seconds after which the emergency committees lose their powers. */
     emergencyProtectionEndsAfter: number | null
+    /**
+     * Read on the governance (DualGovernance) contract: the Reseal Committee (extends a seal of
+     * the withdrawal queue / exit bus), the Tiebreaker committee (executes when governance is
+     * deadlocked), who may cancel every pending proposal, and the effective state (Normal,
+     * VetoSignalling, …, RageQuit). undefined = not read by this collector version; null = the
+     * read failed.
+     */
+    resealCommittee?: Address | null
+    tiebreakerCommittee?: Address | null
+    proposalsCanceller?: Address | null
+    state?: string | null
   }
   /** Aragon Voting app (kind 'aragon_voting'): a vote lasts voteTime (delaySec). */
   voting?: { voteTimeSec: number | null; objectionPhaseSec: number | null }
@@ -212,6 +228,16 @@ export type ParamSpec = {
    * `args[i]` (e.g. updatePriceOracleFor(asset, oracle): value 1, match [0]).
    */
   setter?: { sig: string; value: number; match?: number[] }
+  /**
+   * How the raw getter output is decoded before it is stored and compared: 'trimmed_amount' = a
+   * Wormhole NTT TrimmedAmount (uint72: amount << 8 | decimals) rescaled to the base units of a
+   * token with `decimals` decimals (the NTT rate limits).
+   */
+  decode?: 'trimmed_amount'
+  /** Token decimals for `decode` 'trimmed_amount'. */
+  decimals?: number
+  /** Display only: the value is an amount in base units of `symbol` with `decimals` decimals. */
+  unit?: { decimals: number; symbol: string }
 }
 
 export type ConfigSubject = {

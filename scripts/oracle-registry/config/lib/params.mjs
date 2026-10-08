@@ -15,6 +15,28 @@ const norm = (v) => {
   return v
 }
 
+/**
+ * A Wormhole NTT TrimmedAmount (uint72 = amount (uint64) << 8 | decimals (uint8)) in base units
+ * of a token with `tokenDecimals` decimals, as a decimal string: the NTT rate limits are stored
+ * trimmed (wstETH → BNB: 768000000000008 = 3,000,000,000,000 at 8 decimals = 30,000 wstETH).
+ * undefined when the input is not an integer or the decimals are not.
+ */
+export function decodeTrimmedAmount(raw, tokenDecimals) {
+  if (!Number.isInteger(tokenDecimals) || tokenDecimals < 0) return undefined
+  let x
+  try {
+    x = BigInt(raw)
+  } catch {
+    return undefined
+  }
+  if (x < 0n) return undefined
+  const d = Number(x & 0xffn)
+  const amount = x >> 8n
+  return d <= tokenDecimals
+    ? (amount * 10n ** BigInt(tokenDecimals - d)).toString()
+    : (amount / 10n ** BigInt(d - tokenDecimals)).toString()
+}
+
 /** Read every spec at one block with Multicall3. Returns key → value (undefined on failure). */
 export async function readParams(client, specs, block) {
   const live = specs.filter((s) => !s.eventsOnly && s.sig)
@@ -38,7 +60,8 @@ export async function readParams(client, specs, block) {
       // (a single-list output arrives as the list itself, several outputs as a tuple)
       const list = fnAbi(s.sig)[0].outputs.length > 1 ? v : r.result
       out[s.key] = Array.isArray(list) ? list.length : undefined
-    } else out[s.key] = norm(v)
+    } else if (s.decode === 'trimmed_amount') out[s.key] = decodeTrimmedAmount(v, s.decimals)
+    else out[s.key] = norm(v)
   })
   return out
 }

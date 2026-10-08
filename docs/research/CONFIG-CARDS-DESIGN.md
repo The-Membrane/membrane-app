@@ -171,7 +171,7 @@ Then:
 | cbBTC | custodial, all EOAs | Zero delay. Owner, admin, masterMinter and pauser were all rotated between 2026-09-29 and 2026-10-02. |
 | PT-srUSDe | PT | AD-7 fires (a 3-of-5 Safe holds TIMELOCK_ADMIN), and srUSDe has an armed `setProvider` op anyone can execute. The subject is keyed on the SY so it survives the 2026-10-22 expiry. |
 
-Deferred: sUSDe (nearly free to add), wstETH and sUSDS.
+Added since: sUSDe, and wstETH (2026-10-07, the 8th subject: see "wstETH, the 8th subject" at the end). Deferred: sUSDS.
 
 ## 5. Kelp backtest
 `scripts/oracle-registry/config/backtest-kelp.mjs` runs from a committed fixture.
@@ -477,7 +477,7 @@ A fifth adversarial review (on-chain, rules, UI) of round 5. Every item has a te
 
 **On-chain.**
 - The Safes that hold PROPOSER / EXECUTOR / CANCELLER / admin roles on a declared timelock are in the subject's scope (`subjectExtraEmitters`): their events were scanned, then dropped by the per-subject filter, so weETH's 10-day-timelock proposer Safe and Strata's proposer Safe lost their AD-1 rows.
-- AD-4 uses `isEoaControlled`: a privileged role granted to a contract an EOA controls (WBTC's CCIP RBACTimelock PROPOSER / CANCELLER to an EOA-owned MCMS) is red even with no classified current holder; unclassified holders are noted, not silently dropped.
+- AD-4 uses `isEoaControlled`: a privileged role granted to a contract an EOA controls (WBTC's CCIP RBACTimelock PROPOSER / CANCELLER to an MCMS that was EOA-owned when granted at 22,234,034 — its ownership moved to the RBACTimelock at 22,290,213, see round 8) is red even with no classified current holder; unclassified holders are noted, not silently dropped.
 
 **Rules.**
 - AD-2 whitelist rows are judged per card: a function whitelisted on one of the subject's contracts that reaches a declared power is red (an unmatched subject contract fails closed); one on another asset's contract (the Ethena timelock is shared) is not filed. At head (re-run): USDe / sUSDe OFT adapter owner (`setPeer` whitelisted), USDe minter contract (EthenaMinting functions whitelisted; the mint power declares no `bypassExclude`) and WBTC's CCIP pool owner (`bypasserExecuteBatch`) carry the AD-2 breach.
@@ -500,3 +500,120 @@ A fifth adversarial review (on-chain, rules, UI) of round 5. Every item has a te
 - Power notes (bypass functions and who holds the bypass, a holder not classified at head) reach the card; an unclassified holder and an unread whitelist are read gaps.
 - The card remounts per subject (filters reset); "All" clears both filters; an active "Red only" can always be turned off.
 
+
+## Review fixes, round 7 (2026-10-07)
+
+A sixth adversarial review (rules, UI, on-chain) of round 6. Every item has a test in `tests/unit/oracleRegistryConfigReview7.test.ts`; all 37 failed on the code before the fix (some carry a control assertion inside), and pass now. Two round-5/6 tests that matched the old filter-button source were moved onto the new `timelineFilterButtons` output (same behaviour, asserted on the function).
+
+**Rules.**
+- AD-5 / AD-8 / AD-3 through an undeclared ProxyAdmin: a queued `upgrade` / `upgradeAndCall` / `changeProxyAdmin` is the subject's when its PROXY argument is (not only its target). The collector records the intermediate hops of every power path (`PowerRead.via`, e.g. the ProxyAdmin of an `eip1967_admin` step): their own events are scanned (an ownership move of the ProxyAdmin is filed) and calls queued on them are in scope. weETH's two OFT ProxyAdmins are covered this way.
+- CC-1 through address(0): a TokenAdminRegistry `PoolSet` A → 0 → B and a 1.5.0 `RemotePoolSet` A → 0 → B are re-points (red), like BR-6 peers.
+- CC-1 in the queue: re-adding a remote pool to a chain the pool no longer serves is red when the pool is not one the chain ever accepted (`ccipEverRemotePools`, replayed from `RemotePoolSet` / `RemotePoolAdded`).
+- AD-6 between runs: guard, module guard and fallback handler are compared with what the EVENTS since the last run left (an evented `ChangedGuard(G1)` no longer hides a silent G1 → G2 at head); modules are matched one by one.
+- OR-1: an oracle source moved to a contract an EOA controls is red (`isEoaControlled`, as MR-2).
+- Rank model (**owner sign-off requested**): a threshold-1 multisig ranks with an EOA — any one signer acts alone. A privileged role granted to a 1-of-N Safe is red, EOA → Safe 1-of-N is not an upgrade, an unread previous holder replaced by one is red, and a power held by one carries the AD-3 head breach. Reverting is one line in `controllerRank`.
+- BURNER_ROLE is privileged (Kelp `RSETH.burnFrom` burns any holder's balance with no allowance, the OFT adapter's lockbox included).
+- A red role grant with no established bot pattern says so first ("no established MINTER_ROLE bot pattern yet: n of the 3 earlier grants…").
+
+**On-chain.**
+- The AD-2 whitelist matcher (history and queue) follows holder chains like the head bypass check: the contract a power is exercised through (EthenaMinting for "USDe minter contract") is matched with the same reach test; a holder-chain contract is never "foreign". The USDe minter power now declares the restrict-only EthenaMinting functions (`bypassExclude`), so head and history agree: the seven whitelisted selectors are restrict-only, the minter power keeps its 1 d delay.
+- rsETH declares the ETHx price oracle (`assetPriceOracle:ETHx`, 0x3D08…dFd2), its proxy as a contract and its upgrade power (ProxyAdmin 0xb61e → Timelock 10 d).
+- Every PROPOSER / EXECUTOR / CANCELLER / admin of a declared timelock is classified at head and in the run-to-run Safe snapshot (the Ethena EXECUTOR Safe 0xa075).
+
+**UI.**
+- Filter buttons come from `timelineFilterButtons`: with no collector output every one says "not collected" and is disabled; oracle rows in the change files count as collected when the state file is missing. Disabled labels use AA-contrast text with a dashed border.
+- A closed-routes disclosure holding a red route opens and its summary counts the red ones.
+- Before → after lines say what moved: a DVN contract swapped within one operator (operator + address, a `rotation` tag and a note), a peer re-point (titled as a peer change, peers on both lines), a queued `setPeer` (the peers, labelled send + receive, no send-side tag), multisig owner swaps (the owners). Two equal lines read "(same as before)".
+- Floor breaches count ROUTES (`floorBreachRoutes`), the same unit as "under floor"; a subject with no LayerZero route reads "floor n/a", never "0 floor breaches".
+- Pending legacy-multisig rows show their submission block (the collector scans `Submission` per multisig) or "block not read"; the legend says pending includes on-chain multisig submissions.
+- A queued op is atomic under the filters (a batch never reads "0 red" because its red call is in another dimension). A selector the subject declares restrict-only is named, not a loud CALL NOT DECODED. The red banner is a region (the headline's aria-live already announces it). The rsETH note names the 10 d timelock as an on-chain pending source.
+
+**Re-run (block 26,144,054, seven subjects; wstETH not re-collected).** Red rows: rsETH 82 → 85 (MANAGER and DEFAULT_ADMIN_ROLE to Safe 1-of-2 at 18,759,607; an unrecognised role to Safe 1-of-6 at 24,222,807), weETH 58 → 59 (role 0x5543… to Safe 1-of-5 at 25,533,308), PT-srUSDe 13 → 12 (the TIMELOCK_ADMIN grant to Safe 3-of-5 at 25,489,176 was red only because the EOA it replaced was unclassified; every timelock role holder is classified now, and a Safe replacing an EOA admin is not weaker), others unchanged. USDe state breaches 2 → 1 (the minter power keeps its 1 d delay; the OFT adapter owner's `setPeer` bypass stays red). weETH's two OFT ProxyAdmins now carry their ownership history; WBTC's 25 pending multisig submissions carry their submission block (oldest 7,144,784); 0xa075 is in the USDe / sUSDe Safe snapshots. Route rows with identical before → after lines: 228 → 0 (the 72 same-operator DVN swaps carry `rotation` and a note). The Kelp backtest re-run is unchanged in counts (227 changes, 55 red) and passes all five criteria; only the before → after lines of its peer rows changed.
+
+## wstETH, the 8th subject (2026-10-07)
+
+wstETH itself is immutable; the card covers the powers over stETH, its rate path, its redemption queue and the bridges that carry wstETH. Tests: `tests/unit/oracleRegistryConfigWsteth.test.ts` (parsers and rules), `…WstethAudit.test.ts` (first audit), `…WstethRemote.test.ts` (second audit, below).
+
+**Coverage.**
+- **Admin:** the Lido DAO path Aragon Voting (5 d LDO vote) → Dual Governance (`0xC1db…486E`) → EmergencyProtectedTimelock (`0xCE04…2316`, 3 d after submit, +1 d after schedule) → Admin Executor (`0x23E0…7021`) → Aragon Agent (`0x3e40…9c8c`). The effective delay of every Lido power is 8 d. The Aragon ACL is replayed from 2020 so that every permission's holder and manager is known. The Dual Governance line names its state, the emergency activation (4-of-7), execution (5-of-7) and reseal (5-of-6) committee Safes, the tiebreaker and the proposals canceller. DG proposals are read on-chain as pending ops (14 so far, none open).
+- **Rate path:** LidoLocator pointers (accounting, AccountingOracle, sanity checker, VaultHub, LazyOracle), the HashConsensus quorum (5 of 9 members) and the OracleReportSanityChecker limits, plus the upgrade power over each of them.
+- **Mint / redeem:** the stETH staking switches and staking limit, the Lido V3 external-mint cap (`maxExternalRatioBP` 3000), VaultHub. **Added in the second audit:** the WithdrawalQueue (stETH → ETH, `0x889e…F9B1`), with its pause switch and upgrade path. Its role history (GateSeal rotations; the reseal manager's PAUSE / RESUME at the Dual Governance launch) is replayed from 17,600,000.
+- **Bridges:** the Chainlink-run CCIP SiloedLockReleaseTokenPool (9 chains; owner = the CCIP RBACTimelock, 3 h, with a bypasser). The Wormhole NTT manager to BNB Chain is locking, 2-of-2 Wormhole + Axelar. The L1 side of 13 canonical rollup bridges is covered: locked balance, deposit and withdrawal switches, proxy admin. Linea's is Linea-run, through a 0-delay timelock.
+
+**Second audit (this pass).**
+- **The NTT remote side is now read** (`readNttRemote`, `nttRemoteLines`, `nttRemoteGaps`). For each live peer, the remote manager is read at head on its chain through the LZ metadata's public RPCs. That covers the threshold and transceivers (BR-2 floor and BR-7 judged there too), its peer back to Ethereum (a mismatch is a warning), and the owner and pauser classified on that chain (an EOA-controlled owner is AD-3). It also covers the token supply there (burning mode = the bridged supply), which feeds the severity rank as max(locked, bridged), ruling #9.
+  - A live peer with no remote read is a READ GAP (fail closed). One route breached on both sides is one floor breach.
+  - Wormhole chain ids are mapped to EVM chains by a fixed table. An unmapped chain is not read, and the card says so.
+  - Read on 2026-10-07: BNB Chain side 2-of-2 Wormhole + Axelar; 1,179.27 wstETH minted there; 1,179.3 locked on Ethereum.
+- **Headline:** a card whose only floor-bound route is an NTT line reads "0 floor breaches", not "floor n/a" (`hasFloorRoutes`).
+- **Role names:** Lido V3 `PausableUntilWithRoles.PauseRole` / `ResumeRole` hash to their namespace and keep the PAUSE / RESUME names and rules, like the BridgingManager roles. VaultHub's BAD_DEBT_MASTER / VALIDATOR_EXIT / REDEMPTION_MASTER / VAULT_MASTER, the WithdrawalQueue's FINALIZE / ORACLE / MANAGE_TOKEN_URI, the Voting's UNSAFELY_MODIFY_VOTE_TIME and Linea's TokenBridge config roles are named for display only. They stay PRIVILEGED (ruling #8), and no verdict changed. No role hash on the card is unnamed now.
+- **Spot-checked on-chain, independently of the collector:** NTT threshold, transceivers, owner and pauser; the CCIP pool owner and the 3 h delay; the DG delays and the 5 d vote; the canonical bridges' EIP-1967 admin = Agent; Linea's ProxyAdmin owner = 0-delay timelock; stETH PAUSE_ROLE held by no one (manager = Agent); BUFFER_RESERVE_MANAGER_ROLE held by `0xfe59…f977`, a contract owned by the Aragon Voting directly.
+
+**Result (block 26,144,725).**
+- 19 red rows (11 still in effect), 0 pending, 0 proposed, 380 historical, 0 floor breaches, 1 head-state breach, no read gaps.
+- **The breach:** AD-2, the CCIP pool owner's RBACTimelock has an unrestricted bypasser.
+- **The red rows:**
+  - AD-4: BUFFER_RESERVE_MANAGER_ROLE to a Voting-owned contract (block 26,054,464). The role can be used after a 5 d vote with no Dual Governance veto.
+  - CC-1 ×3: remote pools re-pointed (23,843,863).
+  - MR-1 ×2: stETH PAUSE / STAKING_PAUSE revoked from the Voting at the Dual Governance launch and granted to no one (22,817,714). Only the Agent, as permission manager, can grant them back, through Dual Governance.
+  - AD-4 ×2: PROPOSER / CANCELLER on the CCIP RBACTimelock to an MCMS that was EOA-owned when granted (22,234,034), the same as on WBTC. Its owner has been the RBACTimelock itself since 22,290,213: round 8 marks both rows no longer in effect.
+  - AD-3 ×8: NTT owner and pauser moves in 2024: Safe 3-of-4 → EOA, and Safe 3-of-4 → 3-of-5 (a signer added at the same threshold).
+  - BR-2 ×2: the BNB route opened 1-of-1 (20,171,663), then sat at 1-of-2 until the threshold was raised to 2 (20,342,418).
+  - AD-4: zkSync bridge DEFAULT_ADMIN to the deployer EOA for 40 blocks at deployment (18,413,104).
+
+**Known gaps (wstETH):**
+- History on the remote side (BNB Chain) and on the L2 sides of the canonical bridges is not scanned.
+- The BNB owner `0x8e51…123d` is classified on BNB only. It is a contract, so it carries a warning, and the cross-chain executor is not followed back to the DAO.
+- Aragon votes before they reach Dual Governance are not read.
+- The tiebreaker committee internals and Polygon PoS / third-party wrappers are not covered.
+- A deployment-time DEFAULT_ADMIN grant to the deployer EOA is red under AD-4, with no init window. This is consistent with PT-srUSDe and rsETH; ruling #7's 7,200-block window covers owners only. Extending it to first role grants is an owner call.
+
+## Review fixes, round 8 (2026-10-07, final round)
+
+Round 8 is the fourth refutation pass, run from three angles: on-chain, rules and UI. A confirmed bug that could make a dangerous change read calm, hide a red, or misstate chain data was fixed. Each one has a test in `tests/unit/oracleRegistryConfigReview8.test.ts`: all 31 fix tests failed on the code before the fix, and 10 controls passed both before and after. The other confirmed bugs, the gaps found while re-collecting, and every UNSURE item are registered in [CONFIG-CARDS-KNOWN-GAPS.md](CONFIG-CARDS-KNOWN-GAPS.md) (KG-1 to KG-3, UQ-1 to UQ-16).
+
+**Rules.**
+- **Upgrade with a call attached.** The call inside `upgradeToAndCall(impl, data)`, and the call inside a ProxyAdmin's `upgradeAndCall(proxy, impl, data)`, is judged as a call on the proxy. Before, an onlyOwner `transferOwnership(EOA)` hidden there read as one amber `logic_change` row.
+- **Unread NTT reads.** A Wormhole NTT peer that could not be read counts as possibly live (fail closed): the floor is judged, and the read is a read gap. These are read gaps too:
+  - an unread or unclassified Ethereum NTT owner;
+  - an unread or unclassified canonical-bridge proxy admin (unless the bridge is ossified).
+
+  `readNtt` also sweeps every EVM chain Wormhole maps, so a false-empty `PeerUpdated` scan cannot leave `peers` empty.
+- **NTT and Safe calls in the queue are decoded:**
+  - NTT `setThreshold`, `setTransceiver` (a new transceiver's network is unknown, so it is red BR-7), `removeTransceiver`, and the four-argument NTT `setPeer` (BR-1 / BR-2 / BR-6 / BR-7, as for executed events);
+  - transceiver `setWormholePeer` / `setAxelarChainId` (BR-6; a current peer that was not read is red);
+  - the NTT one-argument `upgrade(address)`;
+  - the Safe ≤ 1.1.1 `changeMasterCopy` (AD-6 singleton).
+
+  A transceiver of a subject NTT manager is in scope.
+- **NTT effective count.** BR-1 on an NTT transceiver removal or threshold change compares the effective verifier count, not only the raw threshold.
+- **CCIP:**
+  - A chain removed and re-added with its rate limiter off is CC-2 (history; and the queue, through `ccipLastLimiterOn`).
+  - CC-3 ranks the rebalancer with `isEoaControlled`.
+  - A remote pool is compared with the pools the chain had LAST, so a roll-back to an older pool is a re-point. In history this is `lastServed`; in the queue it is `ccipRemotePoolsReplay` / `ccipLastRemotePools`.
+- **Safe modules.** A Safe whose `getModulesPaginated` read failed has `modulesUnread`, not `modules: []`. It ranks as a plain contract, is a read gap, and is not diffed between runs.
+- **Grant reasons.** A red grant that an established bot pattern would not clear leads with its anomaly and carries the ANOMALY tag. It no longer says "no established pattern yet". This changes the reason line on 41 rows: weETH 28, rsETH 7, PT-srUSDe 5, wstETH 1.
+
+**On-chain.**
+- **Role holders are re-judged at head** (`rejudgeRoleHoldersAtHead`).
+  - A red AD-4 grant ends ("NO LONGER IN EFFECT at head") when two things hold. The grantee, classified at head, ranks strictly stronger than when it was granted. And it would not make the grant red against the holders it was ranked against.
+  - A calm grant to a privileged role whose holder is EOA-controlled at head, and weaker than when granted, gets a red AD-4 row (bracketed, in effect).
+  - A controller that was not read changes nothing.
+- **What the collector now classifies.**
+  - At head: every current holder of a privileged role that had code when granted.
+  - At each grant block: the holders that grant is ranked against. Before, the replay fell back to a holder's head classification, or noted "could not be classified: not ranked against".
+
+**UI.** With the head-state file missing, the headline still names "N red in effect" and "N red queued", and its tone is red (`headlineTone`). Before, it dropped both and read amber.
+
+**Re-run (wstETH at block 26,145,187; the seven others at 26,145,153).**
+- **wstETH:** 19 red (unchanged); red in effect 11 → 9. The MCMS `0xd975…cf7e` was EOA-owned when it was granted PROPOSER / CANCELLER at 22,234,034. Its owner has been the RBACTimelock `0x4483…9449` since 22,290,213. Both rows are no longer in effect.
+- **WBTC:** red in effect 4 → 2 (the same MCMS rows).
+- **rsETH:** red in effect 6 → 4. Two grantees are now stronger:
+  - role `0x9c20…` to Safe `0x4e24…8c62`: 1-of-6 when granted, 2-of-6 since 24,306,194;
+  - MANAGER to Safe `0xcbcd…29a1`: 1-of-2 when granted, 3-of-6 at head.
+- **weETH:** red 59 → 62; red in effect unchanged at 11.
+  - +4: grants of two unrecognised roles to 8 h timelocks (22,084,653–22,089,298). They are ranked against holders now classified at the grant block, and are weaker. None is in effect.
+  - −1: the oracle committee rows 3 → 5 / 5 → 3 (25,626,145 / 25,633,016) fell between two param-grid points this run (KG-3).
+- **USDe, sUSDe, cbBTC, PT-srUSDe:** counts unchanged.
+- **All subjects:** no read gaps. The wstETH NTT sweep found one live peer (BNB Chain), as before.
+- **Kelp backtest:** unchanged (its test passes on the same expected file).

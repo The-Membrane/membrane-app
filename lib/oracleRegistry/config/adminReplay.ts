@@ -46,6 +46,7 @@ import {
   type Verdict,
   type WhitelistReach,
 } from './rules'
+import { formatParamAmount } from './value'
 
 export type AdminEventRow = {
   chainId: number
@@ -158,6 +159,12 @@ function mk(
 }
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+/** The owners a multisig transaction's Added / Removed events name, shortened. */
+const ownersOf = (rows: AdminEventRow[], re: RegExp) =>
+  rows
+    .filter((x) => re.test(x.event))
+    .map((x) => short(lcs(x.args.owner)))
+    .join(', ')
 
 export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): ConfigChange[] {
   const out: ConfigChange[] = []
@@ -175,9 +182,14 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
   // last guard / module guard / fallback handler per Safe (the events carry only the new one)
   const lastGuard = new Map<string, { value: string; block: number }>()
   const rateLimit = new Map<string, boolean>()
-  // CCIP remote pools per (pool, chain selector): current, and every one the chain ever had
+  // CCIP remote pools per (pool, chain selector): current, every one the chain ever had, and the
+  // set it accepted the last time it served any (review round 8: a roll-back to an OLDER pool
+  // after a removal is a re-point; only the pools it had last are a plain re-open)
   const remotePools = new Map<string, Set<string>>()
   const everRemote = new Map<string, Set<string>>()
+  const lastServed = new Map<string, Set<string>>()
+  // last non-zero CCIP pool per token (TokenAdminRegistry PoolSet): A → 0 → B is a re-point
+  const lastPool = new Map<string, string>()
   const done = new Set<string>()
   // Last known holder per (what, emitter): a later "set from address(0)" is judged against it.
   const lastOwner = new Map<string, string>()
@@ -529,6 +541,13 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
             {
               before: prev ? `${prev.threshold}/${prev.signers}` : undefined,
               after: next ? `${next.threshold}/${next.signers}` : undefined,
+              // the owners that moved (review round 7: a swap read "3/6 → 3/6")
+              ...(added || removed
+                ? {
+                    beforeDisplay: `${prev ? `${prev.threshold}/${prev.signers}` : '?'}${removed ? ` · owner ${ownersOf(mine, /Removed|Removal/)} removed` : ''}`,
+                    afterDisplay: `${next ? `${next.threshold}/${next.signers}` : '?'}${added ? ` · owner ${ownersOf(mine, /Added|Addition/)} added` : ''}`,
+                  }
+                : {}),
             },
           ),
         )
@@ -699,7 +718,20 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         break
       case 'PoolSet': {
         if (!ctx.tokens.includes(lcs(a.token))) break
-        const v = classifyCcip('pool_set', { prev: lcs(a.previousPool), next: lcs(a.newPool) })
+        // Review round 7: through address(0) (A → 0 → B) is a re-point like A → B — CC-1, the
+        // through-zero rule BR-6 peers, params and remote pools already follow.
+        const pk = `ccip_pool|${lcs(a.token)}`
+        const prevPool = lcs(a.previousPool)
+        const nextPool = lcs(a.newPool)
+        const lastNonZero = lastPool.get(pk)
+        const v = classifyCcip('pool_set', {
+          prev: isZero(prevPool) && lastNonZero ? lastNonZero : prevPool,
+          next: nextPool,
+        })
+        if (isZero(prevPool) && lastNonZero && isRed(v))
+          v.notes.push(`re-pointed through address(0): the last pool was ${lastNonZero}`)
+        if (!isZero(prevPool)) lastPool.set(pk, prevPool)
+        if (!isZero(nextPool)) lastPool.set(pk, nextPool)
         out.push(
           mk(
             ctx,
@@ -743,13 +775,25 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const pk = `${em}|${sel}`
         const cur = remotePools.get(pk) ?? new Set<string>()
         const ever = everRemote.get(pk) ?? new Set<string>()
+        // the pools the chain accepted the last time it served any (empty = never served)
+        const last = lastServed.get(pk) ?? new Set<string>()
         const addr = lcs(a.remotePoolAddress)
         let v: Verdict
         if (r.event === 'RemotePoolRemoved') {
           cur.delete(addr)
           v = tag(neutral(), 'route_removed')
         } else if (r.event === 'RemotePoolSet') {
-          v = classifyCcip('remote_pool_set', { prev: lcs(a.previousPoolAddress), next: addr })
+          // through address(0) (review round 7): the pool the chain had LAST counts — not the
+          // first-inserted one of every pool it ever had (review round 8: 0→A, A→B, B→A, A→0,
+          // 0→B read "route created")
+          const pp = lcs(a.previousPoolAddress)
+          const lastPool = isZero(pp) && last.size && !last.has(addr) ? [...last].join(', ') : null
+          v = classifyCcip('remote_pool_set', {
+            prev: isZero(pp) ? (lastPool ?? (last.has(addr) ? addr : pp)) : pp,
+            next: addr,
+          })
+          if (lastPool && isRed(v))
+            v.notes.push(`re-pointed through address(0): the last remote pool was ${lastPool}`)
           cur.clear()
           if (!isZero(addr)) cur.add(addr)
         } else if (cur.has(addr)) {
@@ -761,11 +805,13 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
             `second remote pool for an already-served chain ${sel}: ${[...cur].join(', ')} + ${addr} (both accepted)`,
           )
           cur.add(addr)
-        } else if (ever.size > 0 && !ever.has(addr)) {
+        } else if (last.size > 0 && !last.has(addr)) {
+          // review round 8: compared with the pools it had LAST, not every pool it ever had (add
+          // A, remove A, add B, remove B, add A read neutral)
           v = down(
             neutral(),
             'CC-1',
-            `remote pool for chain ${sel} re-pointed: ${[...ever].join(', ')} → ${addr}`,
+            `remote pool for chain ${sel} re-pointed after a removal: ${[...last].join(', ')} → ${addr}`,
           )
           cur.add(addr)
         } else {
@@ -775,6 +821,7 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         if (r.event !== 'RemotePoolRemoved' && !isZero(addr)) ever.add(addr)
         remotePools.set(pk, cur)
         everRemote.set(pk, ever)
+        if (cur.size) lastServed.set(pk, new Set(cur))
         out.push(
           mk(
             ctx,
@@ -812,12 +859,18 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const k = `${em}|${sel}`
         const prevEnabled = rateLimit.get(k)
         rateLimit.set(k, enabled)
+        // Review round 8: a chain removed and re-added with its limiter off switches it off as
+        // surely as ChainConfigured does (the limiter state survives ChainRemoved here).
         const v =
           r.event === 'ChainAdded'
-            ? tag(neutral(), 'route_created')
+            ? !enabled && prevEnabled === true
+              ? tag(classifyCcip('rate_limiter', { enabled: false }), 'route_created')
+              : tag(neutral(), 'route_created')
             : !enabled && prevEnabled !== false
               ? classifyCcip('rate_limiter', { enabled: false })
               : neutral()
+        if (r.event === 'ChainAdded' && isRed(v))
+          v.notes.push('re-added with its rate limiter OFF: it was on before the chain was removed')
         out.push(
           mk(
             ctx,
@@ -879,7 +932,9 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
               ? tag(neutral(), 'initialization')
               : classifyControllerChange(before(known), at(next))
         if (!isInit(em, r.block) && known !== undefined && isZero(known))
-          v.notes.push(`${name} created on ${short(em)} with manager ${describeController(at(next))}`)
+          v.notes.push(
+            `${name} created on ${short(em)} with manager ${describeController(at(next))}`,
+          )
         out.push(
           mk(
             ctx,
@@ -966,11 +1021,16 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const lk = `dg|${em}|${r.event}`
         const known = lastSet.get(lk) ?? (r.prev != null ? String(r.prev) : undefined)
         lastSet.set(lk, String(next))
-        const what = r.event === 'AfterSubmitDelaySet' ? 'after-submit delay' : 'after-schedule delay'
+        const what =
+          r.event === 'AfterSubmitDelaySet' ? 'after-submit delay' : 'after-schedule delay'
         let v: Verdict
         if (isInit(em, r.block)) v = tag(neutral(), 'initialization')
         else if (known === undefined)
-          v = down(neutral(), 'AD-2', `${what} set to ${formatDelay(next)}; the previous value was not read (fail closed)`)
+          v = down(
+            neutral(),
+            'AD-2',
+            `${what} set to ${formatDelay(next)}; the previous value was not read (fail closed)`,
+          )
         else v = classifyDelayChange(Number(known), next)
         out.push(
           mk(
@@ -1003,7 +1063,17 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
           v.notes.push(
             'in emergency mode only the Emergency Execution Committee executes, without the after-schedule delay, and it can reset governance to the emergency governance',
           )
-        out.push(mk(ctx, r, 'admin', `admin/dg/${em}/emergency`, title, v, val === undefined ? {} : { after: String(val) }))
+        out.push(
+          mk(
+            ctx,
+            r,
+            'admin',
+            `admin/dg/${em}/emergency`,
+            title,
+            v,
+            val === undefined ? {} : { after: String(val) },
+          ),
+        )
         break
       }
       case 'ProposerRegistered':
@@ -1062,14 +1132,16 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
           const t = lcs(a.transceiver)
           st.tx.delete(t)
           const next = Number(a.threshold)
-          v = classifyNttThreshold(prevThreshold, next, [...st.tx.values()])
+          // review round 8: judged on the effective verifier count before and after (a network
+          // removed at an unchanged threshold lowers E)
+          v = classifyNttThreshold(prevThreshold, next, [...st.tx.values()], prevTypes)
           st.threshold = next
           title = `NTT ${short(em)}: transceiver ${short(t)} removed · threshold ${next} of ${st.tx.size}`
           key = `bridge/ntt/${em}/verification`
         } else {
           const prev = a.oldThreshold === undefined ? prevThreshold : Number(a.oldThreshold)
           const next = Number(a.threshold)
-          v = classifyNttThreshold(prev, next, [...st.tx.values()])
+          v = classifyNttThreshold(prev, next, [...st.tx.values()], prevTypes)
           st.threshold = next
           title = `NTT ${short(em)}: threshold ${prev ?? '?'} → ${next} (${st.tx.size} transceivers)`
           // one key for everything that sets how many verifiers attest a message: a later raise
@@ -1097,8 +1169,7 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
           r.event === 'AxelarChainIdSet'
             ? `${String(a.axelarChainId)}:${String(a.transceiverAddress).toLowerCase()}`
             : lcs(a.peerContract)
-        const prev =
-          r.event === 'PeerUpdated' ? lcs(a.oldPeerContract) : (peerNow.get(pk) ?? null)
+        const prev = r.event === 'PeerUpdated' ? lcs(a.oldPeerContract) : (peerNow.get(pk) ?? null)
         const v = classifyPeerChange(prev, next, lastPeer.get(pk))
         peerNow.set(pk, next)
         if (!/^0x0*$/i.test(next)) lastPeer.set(pk, next)
@@ -1186,7 +1257,11 @@ function ad5(v: Verdict, r: AdminEventRow, txRows: AdminEventRow[], ctx: AdminCt
       (x.event === 'CallExecuted' || x.event === 'ProposalExecuted') && tls.includes(x.emitter),
   )
   if (!executed)
-    down(v, 'AD-5', `no CallExecuted / ProposalExecuted from ${tls.map(short).join('/')} in this transaction`)
+    down(
+      v,
+      'AD-5',
+      `no CallExecuted / ProposalExecuted from ${tls.map(short).join('/')} in this transaction`,
+    )
 }
 
 // ---- DVN signer sets ------------------------------------------------------------------------------
@@ -1313,7 +1388,7 @@ export function classifyParamTransitions(
       subject: ctx.subject,
       dimension: 'mint_redeem',
       key: `mint/${t.key}`,
-      title: `${spec.label}: ${fmt(t.before)} → ${fmt(t.after)}`,
+      title: `${spec.label}: ${formatParamAmount(t.before, spec.unit) ?? fmt(t.before)} → ${formatParamAmount(t.after, spec.unit) ?? fmt(t.after)}`,
       before: t.before,
       after: t.after,
       state: 'historical',

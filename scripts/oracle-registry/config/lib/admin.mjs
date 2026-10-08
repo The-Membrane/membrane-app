@@ -293,7 +293,10 @@ export async function classify(client, address, block, depth = 0, seen = new Set
         [SENTINEL, 20n],
         block,
       )
-      c.modules = mods.ok ? mods.value[0].map((m) => m.toLowerCase()) : []
+      // review round 8: a module read that failed is NOT "no modules" — the Safe then ranks as a
+      // plain contract and the engine reports a read gap (a module executes without signatures)
+      if (mods.ok) c.modules = mods.value[0].map((m) => m.toLowerCase())
+      else c.modulesUnread = true
       c.guard = await storage(SAFE_SLOTS.guard)
       c.moduleGuard = await storage(SAFE_SLOTS.moduleGuard)
       c.fallbackHandler = await storage(SAFE_SLOTS.fallbackHandler)
@@ -354,15 +357,17 @@ export const TIMELOCK_SCOPE_ROLES = [
 
 /**
  * Accounts outside the subject's declared contracts whose OWN events belong on its card: every
- * power holder, and every holder of a proposer / executor / canceller / admin role on one of its
+ * power holder and every intermediate hop of a power path (a ProxyAdmin — review round 7), and
+ * every holder of a proposer / executor / canceller / admin role on one of its
  * declared timelocks (review round 6: those Safes were scanned, then dropped by the per-subject
  * filter — weETH's 10-day timelock proposer Safe lost three red AD-1 rows).
- *   subject  { timelocks }       powers  [{ holders }]
+ *   subject  { timelocks }       powers  [{ holders, via? }]
  *   roleMap  Map(`${timelock}|${roleHash}` → Set(holder))
  */
 export function subjectExtraEmitters(subject, powers, roleMap, hashOf = roleHash) {
   const out = new Set()
-  for (const p of powers ?? []) for (const h of p.holders ?? []) out.add(String(h).toLowerCase())
+  for (const p of powers ?? [])
+    for (const h of [...(p.holders ?? []), ...(p.via ?? [])]) out.add(String(h).toLowerCase())
   for (const t of subject.timelocks ?? [])
     for (const role of TIMELOCK_SCOPE_ROLES)
       for (const h of roleMap.get(`${t}|${hashOf(role)}`) ?? []) out.add(String(h).toLowerCase())
@@ -409,10 +414,24 @@ async function holdersOf(client, contract, role, roleMap, block) {
   }
   // AccessControlEnumerable: the members the contract lists itself (a grant older than the
   // event scan floor — Lido's 2023 oracle contracts — has no event to replay)
-  const n = await tryRead(client, contract, fnAbi(FN.getRoleMemberCount), 'getRoleMemberCount', [role], block)
+  const n = await tryRead(
+    client,
+    contract,
+    fnAbi(FN.getRoleMemberCount),
+    'getRoleMemberCount',
+    [role],
+    block,
+  )
   if (n.ok)
     for (let i = 0; i < Math.min(Number(n.value), 50); i++) {
-      const m = await tryRead(client, contract, fnAbi(FN.getRoleMember), 'getRoleMember', [role, BigInt(i)], block)
+      const m = await tryRead(
+        client,
+        contract,
+        fnAbi(FN.getRoleMember),
+        'getRoleMember',
+        [role, BigInt(i)],
+        block,
+      )
       if (m.ok && !out.includes(m.value.toLowerCase())) out.push(m.value.toLowerCase())
     }
   return out
@@ -456,7 +475,10 @@ const aragonExec = new Map()
 export function setAragonExecCandidates(map) {
   aragonExec.clear()
   for (const [agent, cands] of map)
-    aragonExec.set(String(agent).toLowerCase(), new Set([...cands].map((x) => String(x).toLowerCase())))
+    aragonExec.set(
+      String(agent).toLowerCase(),
+      new Set([...cands].map((x) => String(x).toLowerCase())),
+    )
 }
 
 /** Aragon executor candidates per Agent from replayed (ACL-rewritten) role rows. */
@@ -464,7 +486,11 @@ export function aragonExecCandidatesFromRows(rows) {
   const m = new Map()
   const want = new Set(ARAGON_EXEC_ROLES.map((r) => roleHash(r)))
   for (const r of rows)
-    if (r.event === 'RoleGranted' && r.args?.via === 'ACL' && want.has(String(r.args.role).toLowerCase())) {
+    if (
+      r.event === 'RoleGranted' &&
+      r.args?.via === 'ACL' &&
+      want.has(String(r.args.role).toLowerCase())
+    ) {
       const s = m.get(r.emitter) ?? new Set()
       s.add(String(r.args.account).toLowerCase())
       m.set(r.emitter, s)
@@ -472,10 +498,15 @@ export function aragonExecCandidatesFromRows(rows) {
   return m
 }
 
-/** Resolve a PowerSpec path to holder addresses at head. */
-export async function resolvePath(client, { endpoint, contract, path, roleMap, block }) {
+/**
+ * Resolve a PowerSpec path to holder addresses at head. `trail` (a Set, optional) collects the
+ * intermediate hops — the ProxyAdmin of an `eip1967_admin` step before its `owner` — whose own
+ * events and queued calls belong to the subject (review round 7).
+ */
+export async function resolvePath(client, { endpoint, contract, path, roleMap, block, trail }) {
   let cur = [contract.toLowerCase()]
-  for (const step of path) {
+  for (const [si, step] of path.entries()) {
+    if (si > 0 && trail) for (const c of cur) trail.add(c)
     const next = []
     for (const c of cur) {
       if (step === 'owner') {
@@ -844,6 +875,16 @@ export async function classifyDgTimelock(client, a, block) {
     }
     if (votes.length) proposerVoteSec = Math.min(...votes)
   }
+  // the governance contract's committees and state (undefined when there is no governance read)
+  const onGov = async (sig) => (governance ? rd(sig, governance) : null)
+  const govAddr = async (fn) => {
+    const v = await onGov(`function ${fn}() view returns (address)`)
+    return v ? String(v).toLowerCase() : null
+  }
+  const tb = await onGov(
+    'function getTiebreakerDetails() view returns ((bool isTie, address tiebreakerCommittee, uint32 tiebreakerActivationTimeout, address[] sealableWithdrawalBlockers))',
+  )
+  const st = await onGov('function getEffectiveState() view returns (uint8)')
   return {
     kind: 'aragon_dg',
     address: a,
@@ -858,10 +899,56 @@ export async function classifyDgTimelock(client, a, block) {
       emergencyGovernance: await addr('getEmergencyGovernance'),
       activationCommittee: await addr('getEmergencyActivationCommittee'),
       executionCommittee: await addr('getEmergencyExecutionCommittee'),
-      emergencyModeActive: (await rd('function isEmergencyModeActive() view returns (bool)')) ?? null,
+      emergencyModeActive:
+        (await rd('function isEmergencyModeActive() view returns (bool)')) ?? null,
       emergencyProtectionEndsAfter: em ? Number(em.emergencyProtectionEndsAfter) : null,
+      resealCommittee: await govAddr('getResealCommittee'),
+      tiebreakerCommittee: tb?.tiebreakerCommittee
+        ? String(tb.tiebreakerCommittee).toLowerCase()
+        : null,
+      proposalsCanceller: await govAddr('getProposalsCanceller'),
+      state: st === null ? null : (DG_STATES[Number(st)] ?? `state ${st}`),
     },
   }
+}
+
+/** DualGovernance `State` enum (getEffectiveState). */
+export const DG_STATES = [
+  'Unset',
+  'Normal',
+  'VetoSignalling',
+  'VetoSignallingDeactivation',
+  'VetoCooldown',
+  'RageQuit',
+]
+
+/** Committee fields of a Dual Governance timelock's `dg` (display names, in card order). */
+export const DG_COMMITTEES = [
+  ['activationCommittee', 'Emergency Activation Committee'],
+  ['executionCommittee', 'Emergency Execution Committee'],
+  ['resealCommittee', 'Reseal Committee'],
+  ['tiebreakerCommittee', 'Tiebreaker Committee'],
+  ['proposalsCanceller', 'Proposals canceller'],
+]
+
+/**
+ * Every Dual Governance committee / canceller address reachable from a controller (through its
+ * deferral chain and an Aragon Agent's executors): the collector classifies them at head so the
+ * card shows them and their Safe fields are diffed run to run (they hold no declared power, so
+ * the power paths never reach them).
+ */
+export function dgCommitteeAddresses(c, out = new Set(), seen = new Set()) {
+  if (!c || typeof c !== 'object' || seen.has(c)) return out
+  seen.add(c)
+  if (c.kind === 'aragon_dg' && c.dg)
+    for (const [k] of DG_COMMITTEES) {
+      const a = c.dg[k]
+      if (typeof a === 'string' && /^0x[0-9a-f]{40}$/i.test(a) && !/^0x0{40}$/i.test(a))
+        out.add(a.toLowerCase())
+    }
+  dgCommitteeAddresses(c.ownedBy, out, seen)
+  for (const e of c.executors ?? []) dgCommitteeAddresses(e, out, seen)
+  return out
 }
 
 // An Aragon app is an AppProxy: the dispatch table that says what it can do lives in the
@@ -877,12 +964,33 @@ export const isAragonAppProxyCode = (code) => ARAGON_PROXY_CODE.every((x) => dis
  */
 export async function aragonVotingOf(client, a, code, block) {
   if (!isAragonAppProxyCode(code)) return undefined
-  const impl = await tryRead(client, a, fnAbi('function implementation() view returns (address)'), 'implementation', [], block)
+  const impl = await tryRead(
+    client,
+    a,
+    fnAbi('function implementation() view returns (address)'),
+    'implementation',
+    [],
+    block,
+  )
   if (!impl.ok || isZero(impl.value)) return undefined
   const implCode = await codeAt(client, impl.value.toLowerCase(), block)
   if (!ARAGON_VOTING_CODE.every((x) => dispatches(implCode, x))) return undefined
-  const vt = await tryRead(client, a, fnAbi('function voteTime() view returns (uint64)'), 'voteTime', [], block)
-  const op = await tryRead(client, a, fnAbi('function objectionPhaseTime() view returns (uint64)'), 'objectionPhaseTime', [], block)
+  const vt = await tryRead(
+    client,
+    a,
+    fnAbi('function voteTime() view returns (uint64)'),
+    'voteTime',
+    [],
+    block,
+  )
+  const op = await tryRead(
+    client,
+    a,
+    fnAbi('function objectionPhaseTime() view returns (uint64)'),
+    'objectionPhaseTime',
+    [],
+    block,
+  )
   return {
     kind: 'aragon_voting',
     address: a,
@@ -908,7 +1016,14 @@ const ARAGON_AGENT_CODE = ['forward(bytes)', 'execute(address,uint256,bytes)']
  */
 export async function aragonAgentOf(client, a, code, block, depth = 0, seen = new Set()) {
   if (!isAragonAppProxyCode(code)) return undefined
-  const impl = await tryRead(client, a, fnAbi('function implementation() view returns (address)'), 'implementation', [], block)
+  const impl = await tryRead(
+    client,
+    a,
+    fnAbi('function implementation() view returns (address)'),
+    'implementation',
+    [],
+    block,
+  )
   if (!impl.ok || isZero(impl.value)) return undefined
   const implCode = await codeAt(client, impl.value.toLowerCase(), block)
   if (!ARAGON_AGENT_CODE.every((x) => dispatches(implCode, x))) return undefined
@@ -918,7 +1033,14 @@ export async function aragonAgentOf(client, a, code, block, depth = 0, seen = ne
     let held = false
     for (const role of ARAGON_EXEC_ROLES) {
       const x = acl
-        ? await tryRead(client, acl, fnAbi(FN.aclHasPermission), 'hasPermission', [cand, a, roleHash(role)], block)
+        ? await tryRead(
+            client,
+            acl,
+            fnAbi(FN.aclHasPermission),
+            'hasPermission',
+            [cand, a, roleHash(role)],
+            block,
+          )
         : { ok: false }
       if (!x.ok || x.value) held = true
     }
@@ -931,7 +1053,8 @@ export async function aragonAgentOf(client, a, code, block, depth = 0, seen = ne
     if (!seen.has(h)) executors.push(await classify(client, h, block, depth, new Set([...seen, a])))
   if (executors.length) c.executors = executors
   if (executors.length === 1) c.ownedBy = executors[0]
-  else if (!executors.length) c.version = 'Aragon Agent: no executor found — ranked as a plain contract'
+  else if (!executors.length)
+    c.version = 'Aragon Agent: no executor found — ranked as a plain contract'
   return c
 }
 
@@ -963,7 +1086,10 @@ export function dgProposalOp(ept, p, { now, afterSubmitDelaySec, afterScheduleDe
   if (status === 'executed') timestamp = 1
   else if (status === 'cancelled' || status === 'not_exist') timestamp = 0
   else if (status === 'submitted' && delays)
-    timestamp = Math.max(sub + afterSubmitDelaySec + afterScheduleDelaySec, now + afterScheduleDelaySec)
+    timestamp = Math.max(
+      sub + afterSubmitDelaySec + afterScheduleDelaySec,
+      now + afterScheduleDelaySec,
+    )
   else if (status === 'scheduled' && afterScheduleDelaySec !== null)
     timestamp = sch + afterScheduleDelaySec
   return {
@@ -1019,7 +1145,11 @@ export async function readDgProposals(client, ept, { now, max = 200 } = {}) {
         await client.call({
           account: '0x000000000000000000000000000000000000dEaD',
           to: a,
-          data: encodeFunctionData({ abi: DG_ABI.execute, functionName: 'execute', args: [BigInt(id)] }),
+          data: encodeFunctionData({
+            abi: DG_ABI.execute,
+            functionName: 'execute',
+            args: [BigInt(id)],
+          }),
         })
         op.simulation = 'ok'
       } catch (e) {
@@ -1041,7 +1171,9 @@ const NTT_ABI = {
   owner: fnAbi('function owner() view returns (address)'),
   pauser: fnAbi('function pauser() view returns (address)'),
   isPaused: fnAbi('function isPaused() view returns (bool)'),
-  getPeer: fnAbi('function getPeer(uint16) view returns ((bytes32 peerAddress, uint8 tokenDecimals))'),
+  getPeer: fnAbi(
+    'function getPeer(uint16) view returns ((bytes32 peerAddress, uint8 tokenDecimals))',
+  ),
   getTransceiverType: fnAbi('function getTransceiverType() view returns (string)'),
   getWormholePeer: fnAbi('function getWormholePeer(uint16) view returns (bytes32)'),
 }
@@ -1051,7 +1183,13 @@ const NTT_ABI = {
  * one runs on: getTransceiverType()), peers of the chains its events named, owner / pauser, and
  * the token balance it locks (mode 0 = LOCKING). Unread fields are null (the engine says so).
  */
-export async function readNtt(client, manager, chains = []) {
+/**
+ * `chains` = the Wormhole chains the PeerUpdated scan named (every one is kept, zero peers
+ * included); `sweep` = more chains read whatever the scan found (review round 8: a false-empty
+ * getLogs chunk left `peers` empty and switched the floor off) — a sweep chain is kept only when
+ * its peer is set or could not be read (an unread peer is a read gap, never "no route").
+ */
+export async function readNtt(client, manager, chains = [], sweep = []) {
   const m = manager.toLowerCase()
   const rd = async (abi, fn, args = [], to = m) => {
     const x = await tryRead(client, to, abi, fn, args)
@@ -1060,21 +1198,26 @@ export async function readNtt(client, manager, chains = []) {
   const lcA = (v) => (v ? String(v).toLowerCase() : null)
   const threshold = await rd(NTT_ABI.getThreshold, 'getThreshold')
   const txs = await rd(NTT_ABI.getTransceivers, 'getTransceivers')
+  const peers = {}
+  const named = new Set(chains.map(Number))
+  for (const ch of [...named, ...sweep.map(Number).filter((c) => !named.has(c))]) {
+    const p = await rd(NTT_ABI.getPeer, 'getPeer', [ch])
+    const v = p
+      ? { peer: String(p.peerAddress).toLowerCase(), decimals: Number(p.tokenDecimals) }
+      : null
+    if (!named.has(ch) && v && /^0x0*$/.test(v.peer)) continue
+    peers[ch] = v
+  }
   const transceivers = []
   for (const t of txs ?? []) {
     const type = await rd(NTT_ABI.getTransceiverType, 'getTransceiverType', [], t)
-    const peers = {}
+    const tPeers = {}
     if (type === 'wormhole')
-      for (const ch of chains) {
+      for (const ch of Object.keys(peers).map(Number)) {
         const p = await rd(NTT_ABI.getWormholePeer, 'getWormholePeer', [ch], t)
-        peers[ch] = p ? String(p).toLowerCase() : null
+        tPeers[ch] = p ? String(p).toLowerCase() : null
       }
-    transceivers.push({ address: t.toLowerCase(), type: type ? String(type) : null, peers })
-  }
-  const peers = {}
-  for (const ch of chains) {
-    const p = await rd(NTT_ABI.getPeer, 'getPeer', [ch])
-    peers[ch] = p ? { peer: String(p.peerAddress).toLowerCase(), decimals: Number(p.tokenDecimals) } : null
+    transceivers.push({ address: t.toLowerCase(), type: type ? String(type) : null, peers: tPeers })
   }
   const token = lcA(await rd(NTT_ABI.token, 'token'))
   const mode = await rd(NTT_ABI.getMode, 'getMode')
@@ -1095,6 +1238,108 @@ export async function readNtt(client, manager, chains = []) {
     pauser: lcA(await rd(NTT_ABI.pauser, 'pauser')),
     paused: await rd(NTT_ABI.isPaused, 'isPaused'),
     locked,
+  }
+}
+
+// ---- Wormhole NTT: the remote side of a route (another chain, public RPC, head) -----------------
+
+/** Ethereum's Wormhole chain id (the remote manager's peer for Ethereum is read under it). */
+export const WORMHOLE_ETHEREUM = 2
+/**
+ * Wormhole chain id → EVM chain id (wormhole-foundation/wormhole, sdk constants). A peer on a
+ * chain not listed here is NOT read (remote_unread, says why): never guessed.
+ */
+export const WORMHOLE_EVM_CHAINS = Object.freeze({
+  2: 1,
+  4: 56,
+  5: 137,
+  6: 43114,
+  10: 250,
+  14: 42220,
+  16: 1284,
+  23: 42161,
+  24: 10,
+  30: 8453,
+  34: 534352,
+  35: 5000,
+  36: 81457,
+  38: 59144,
+})
+
+/**
+ * The EVM chains of the live peers of an NTT manager read at head: [{ wormholeChainId, chainId,
+ * peer }] (chainId null = not an EVM chain this module maps). Zeroed peers are not routes.
+ */
+export function nttRemoteTargets(ntt) {
+  return Object.entries(ntt?.peers ?? {})
+    .filter(([, p]) => p && !/^0x0*$/i.test(p.peer))
+    .map(([wc, p]) => ({
+      wormholeChainId: Number(wc),
+      chainId: WORMHOLE_EVM_CHAINS[Number(wc)] ?? null,
+      peer: String(p.peer).toLowerCase(),
+    }))
+}
+
+/**
+ * Head state of the REMOTE side of a Wormhole NTT route (the peer manager on another chain),
+ * read with that chain's client: its threshold and transceivers (the floor binds there too: a
+ * message forged on the remote side mints there, and the remote owner can upgrade the remote
+ * manager / transceivers into emitting messages the Ethereum side releases on), its peer back to
+ * Ethereum, owner / pauser classified ON THAT CHAIN, and the bridged supply of its token
+ * (burning mode: totalSupply — the severity rank, owner ruling #9). Never throws for a read
+ * failure: an unread side is { status: 'remote_unread', reason }.
+ */
+export async function readNttRemote(rc, { wormholeChainId, chainId, chainKey, peer }) {
+  const base = { wormholeChainId, chainId, chainKey: chainKey ?? null }
+  if (!/^0x0{24}[0-9a-f]{40}$/i.test(String(peer)))
+    return { ...base, status: 'remote_unread', reason: 'peer is not a right-aligned EVM address' }
+  const manager = '0x' + String(peer).slice(-40).toLowerCase()
+  const n = await readNtt(rc, manager, [WORMHOLE_ETHEREUM])
+  if (n.threshold === null && n.transceivers === null && n.owner === null)
+    return {
+      ...base,
+      manager,
+      status: 'remote_unread',
+      reason: 'every remote read failed (public RPCs)',
+    }
+  let supply = null
+  let supplyNote
+  if (n.token && n.mode === 'burning') {
+    const s = await tryRead(rc, n.token, fnAbi(FN.totalSupply), 'totalSupply')
+    const d = s.ok ? await tryRead(rc, n.token, fnAbi(FN.decimals), 'decimals') : null
+    if (s.ok && d?.ok) supply = { raw: String(s.value), decimals: Number(d.value) }
+    else supplyNote = `token supply not read (${s.ok ? d?.error : s.error})`
+  } else
+    supplyNote =
+      n.mode === 'locking'
+        ? 'the remote manager LOCKS (hub side): its supply is not the bridged amount'
+        : 'token / mode not read'
+  const cls = async (a) => {
+    if (!a) return null
+    try {
+      return await classify(rc, a)
+    } catch {
+      return {
+        kind: 'contract',
+        address: a.toLowerCase(),
+        version: `not classified on ${chainKey ?? chainId}`,
+      }
+    }
+  }
+  return {
+    ...base,
+    status: 'ok',
+    manager,
+    token: n.token,
+    mode: n.mode,
+    threshold: n.threshold,
+    transceivers: n.transceivers,
+    peerBack: n.peers[WORMHOLE_ETHEREUM] ?? null,
+    owner: await cls(n.owner),
+    pauser: await cls(n.pauser),
+    paused: n.paused,
+    supply,
+    ...(supplyNote ? { supplyNote } : {}),
   }
 }
 

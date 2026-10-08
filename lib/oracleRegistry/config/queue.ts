@@ -33,7 +33,13 @@ import type {
   UlnConfigRaw,
 } from './types'
 import { compareRoute, routeDiffers } from './bridgeRules'
-import { compactRoute, routeInputsFromState, type LzReplayState } from './lzReplay'
+import {
+  compactRoute,
+  peerText,
+  routeChangeDisplays,
+  routeInputsFromState,
+  type LzReplayState,
+} from './lzReplay'
 import {
   MINT_ROLES,
   PAUSE_ROLES,
@@ -42,7 +48,10 @@ import {
   classifyControllerChange,
   classifyDelayChange,
   classifyMultisigChange,
+  classifyNttThreshold,
+  classifyNttTransceiverAdded,
   classifyParamChange,
+  classifyPeerChange,
   classifyPauserChange,
   classifyRoleGrant,
   classifySafeModuleChange,
@@ -53,6 +62,7 @@ import {
   isEoaControlled,
   isRed,
   neutral,
+  nttEffective,
   tag,
   up,
   verificationRule,
@@ -61,7 +71,6 @@ import {
   type WhitelistReach,
 } from './rules'
 import {
-  displayRoute,
   evaluateRoute,
   isZeroPeer,
   lc,
@@ -71,6 +80,7 @@ import {
   type EvalCtx,
   type RouteInputs,
 } from './uln'
+import { formatParamAmount } from './value'
 
 const ABI = parseAbi([
   'function setConfig(address oapp, address lib, (uint32 eid, uint32 configType, bytes config)[] params)',
@@ -144,6 +154,17 @@ const ABI = parseAbi([
   'function createPermission(address entity, address app, bytes32 role, address manager)',
   'function setPermissionManager(address newManager, address app, bytes32 role)',
   'function setApp(bytes32 namespace, bytes32 appId, address app)',
+  // review round 8: Wormhole NTT manager / transceiver admin calls (an armed threshold cut, a
+  // transceiver removed or a peer re-point read "call not decoded") and the NTT one-argument
+  // upgrade; Safe <= 1.1.1 singleton swap
+  'function setThreshold(uint8 threshold)',
+  'function setTransceiver(address transceiver)',
+  'function removeTransceiver(address transceiver)',
+  'function setPeer(uint16 peerChainId, bytes32 peerContract, uint8 decimals, uint256 inboundLimit)',
+  'function setWormholePeer(uint16 chainId, bytes32 peerContract)',
+  'function setAxelarChainId(uint16 chainId, string axelarChainId, string transceiverAddress)',
+  'function upgrade(address newImplementation)',
+  'function changeMasterCopy(address _masterCopy)',
 ])
 const ROLE_ABI = parseAbi([
   'function grantRole(bytes32 role, address account)',
@@ -187,7 +208,10 @@ export function aragonCalls(calls: Call[], appProxies: Record<string, string[]> 
   const out: Call[] = []
   for (const c of calls) {
     const d = decodeCall(c.data)
-    if (d && (d.fn === 'grantPermission' || d.fn === 'createPermission' || d.fn === 'revokePermission')) {
+    if (
+      d &&
+      (d.fn === 'grantPermission' || d.fn === 'createPermission' || d.fn === 'revokePermission')
+    ) {
       const [entity, app, role] = d.args as [string, string, string]
       out.push({
         target: lc(app),
@@ -205,7 +229,11 @@ export function aragonCalls(calls: Call[], appProxies: Record<string, string[]> 
         out.push({
           target: lc(p),
           value: '0',
-          data: encodeFunctionData({ abi: ROLE_ABI, functionName: 'upgradeTo', args: [d.args[2] as VHex] }),
+          data: encodeFunctionData({
+            abi: ROLE_ABI,
+            functionName: 'upgradeTo',
+            args: [d.args[2] as VHex],
+          }),
         })
     } else out.push(c)
   }
@@ -417,8 +445,34 @@ export type QueueCtx = {
   paramHead?: Record<string, unknown>
   /** Source verification of an implementation / provider: true, false, or null (not read). */
   verified?: (address: string) => boolean | null
+  /**
+   * Every remote pool a token pool's chain EVER accepted (RemotePoolSet / RemotePoolAdded
+   * replayed), oldest first: a queued re-add after an executed removal is a re-point (review
+   * round 7: the queue compared only with head).
+   */
+  ccipEverRemotePools?: (pool: string, selector: string) => string[]
+  /**
+   * A selector the subject declares on a contract (a power's `bypassExclude`): its signature,
+   * and whether it is declared restrict-only there (review round 7). null = not declared.
+   */
+  declaredSelectors?: (
+    contract: string,
+    selector: string,
+  ) => { signature: string; restrictOnly: boolean } | null
   /** CCIP remote pools a token pool accepts for a chain at head; null = not read. */
   ccipRemotePools?: (pool: string, selector: string) => string[] | null
+  /**
+   * The remote pools a chain accepted the LAST time it served any (replay; review round 8): a
+   * re-add of any other pool — an older one included — is a re-point. [] = never served.
+   */
+  ccipLastRemotePools?: (pool: string, selector: string) => string[]
+  /** Was the chain's rate limiter on when it was last configured (replay)? null = never seen. */
+  ccipLastLimiterOn?: (pool: string, selector: string) => boolean | null
+  /**
+   * Wormhole NTT managers read at head (review round 8): an armed setThreshold /
+   * removeTransceiver / setPeer is judged against them instead of reading "call not decoded".
+   */
+  ntt?: NttQueueHead[]
   /** Last NON-ZERO peer of each route direction (replay): a reopening to another peer is BR-6. */
   lastPeer?: Record<string, string>
   /** CCIP pools as read at head (rebalancers, rate limiters, remote pools per chain). */
@@ -439,6 +493,17 @@ export type QueueCtx = {
   aragonAppProxies?: Record<string, string[]>
   /** Aragon: the permission manager of (app, role) at head; null = not read. */
   permissionManagerOf?: (app: string, role: string) => string | null
+}
+
+/** A Wormhole NTT manager as read at head (the shape of engine.ts NttHead the queue needs). */
+export type NttQueueHead = {
+  manager: string
+  threshold: number | null
+  transceivers:
+    | { address: string; type: string | null; peers?: Record<string, string | null> }[]
+    | null
+  /** Wormhole chain id → the manager's peer there; null = not read. */
+  peers: Record<string, { peer: string } | null>
 }
 
 /** One CCIP token pool as the collector read it at head. */
@@ -463,10 +528,20 @@ export function callIsForSubject(call: Call, q: QueueCtx): boolean {
   const t = lc(call.target)
   if (q.contracts.includes(t)) return true
   if ((q.safes ?? []).map(lc).includes(t)) return true
-  if (t !== lc(q.endpoint)) return false
+  // review round 8: a transceiver of the subject's NTT manager is the subject's
+  if ((q.ntt ?? []).some((n) => (n.transceivers ?? []).some((x) => lc(x.address) === t)))
+    return true
   const d = decodeCall(call.data)
+  // A ProxyAdmin acts on the proxy named in its call (review round 7): an upgrade or admin
+  // change of one of the subject's proxies routed through a ProxyAdmin that is not declared
+  // is this card's — before, only the call's target was matched and it was invisible.
+  if (d && PROXY_ADMIN_FNS.has(d.fn) && q.contracts.includes(lc(d.args[0] as string))) return true
+  if (t !== lc(q.endpoint)) return false
   return !!d && ENDPOINT_FNS.has(d.fn) && q.oapps.includes(lc(d.args[0] as string))
 }
+
+/** ProxyAdmin functions whose first argument is the proxy acted on. */
+const PROXY_ADMIN_FNS = new Set(['upgrade', 'upgradeAndCall', 'changeProxyAdmin'])
 
 type Judged = {
   key: string
@@ -601,27 +676,35 @@ function judgeLz(
     const after = sim.state(inp)
     return { before, after, changed: routeDiffers(before, after), dir }
   }
+  const operatorOf = (x: string) => q.eval.registry.byChain[1]?.[lc(x)]?.id
   const judged = (
     oapp: string,
     eid: number,
     r: { before: RouteState; after: RouteState; dir: 'send' | 'receive' },
     title: string,
-  ): Judged => ({
-    key: `bridge/lz/1/${lc(oapp)}/${eid}/${r.dir}`,
-    title,
-    v: compareRoute(
+  ): Judged => {
+    const v = compareRoute(
       r.before,
       r.after,
       q.lastVerifying?.[rk(oapp, eid, r.dir)],
       q.lastPeer?.[rk(oapp, eid, r.dir)],
-    ),
-    before: compactRoute(r.before),
-    after: compactRoute(r.after),
-    beforeDisplay: displayRoute(r.before),
-    afterDisplay: displayRoute(r.after),
-    dimension: 'bridge',
-    route: { chainId: 1, oapp: lc(oapp), eid, direction: r.dir },
-  })
+    )
+    // lines that say what moved (review round 7: same-operator DVN swaps read X → X)
+    const disp = routeChangeDisplays(r.before, r.after, operatorOf)
+    v.notes.push(...disp.notes)
+    if (disp.dvnRotation && v.severity !== 'downgrade' && !v.floorBreach) tag(v, 'rotation')
+    return {
+      key: `bridge/lz/1/${lc(oapp)}/${eid}/${r.dir}`,
+      title,
+      v,
+      before: compactRoute(r.before),
+      after: compactRoute(r.after),
+      beforeDisplay: disp.before,
+      afterDisplay: disp.after,
+      dimension: 'bridge',
+      route: { chainId: 1, oapp: lc(oapp), eid, direction: r.dir },
+    }
+  }
   const switchLib = (x: RouteInputs, oapp: string, eid: number, newLib: string) => {
     if (isZeroAddr(newLib)) {
       x.libIsDefault = true
@@ -745,15 +828,19 @@ function judgeLz(
         ),
       )
       if (isZeroPeer(peer)) tag(v, 'route_removed')
+      // A peer serves BOTH directions (review round 7): the row shows the peer it moves, not the
+      // receive route's config on both sides, and the send side's plumbing tag is dropped.
+      v.tags = v.tags.filter((x) => x !== 'send_side')
+      const routeNow = (r: { before: RouteState }) => `${r.before.direction} ${closedOr(r.before)}`
       return [
         {
           key: `bridge/lz/1/${t}/${eid}/peer`,
-          title: `peer for eid ${eid} → ${isZeroPeer(peer) ? '0 (route closed)' : lc(peer)}`,
+          title: `peer for eid ${eid} → ${isZeroPeer(peer) ? '0 (route closed)' : peerText(lc(peer))}`,
           v,
           before: recv.before.peer,
           after: lc(peer),
-          beforeDisplay: displayRoute(recv.before),
-          afterDisplay: displayRoute(recv.after),
+          beforeDisplay: `peer ${peerText(recv.before.peer)} (${rs.map(routeNow).join(', ')})`,
+          afterDisplay: `peer ${peerText(lc(peer))}${isZeroPeer(peer) ? ' (both directions closed)' : ''}`,
           dimension: 'bridge',
           route: { chainId: 1, oapp: t, eid, direction: 'receive' },
         },
@@ -762,6 +849,193 @@ function judgeLz(
     default:
       return null
   }
+}
+
+// ---- Wormhole NTT manager / transceiver calls (review round 8) ------------------------------------
+
+const NTT_FNS = new Set([
+  'setThreshold',
+  'setTransceiver',
+  'removeTransceiver',
+  'setPeer',
+  'setWormholePeer',
+  'setAxelarChainId',
+])
+
+/**
+ * Judge an NTT admin call against the manager as read at head (BR-1 / BR-2 / BR-6 / BR-7, the
+ * same rules as the executed events). null = not an NTT call. A call on a contract that is not a
+ * known NTT manager / transceiver stays "not decoded" (never read as calm).
+ */
+function judgeNtt(fn: string, args: readonly unknown[], t: string, q: QueueCtx): Judged[] | null {
+  if (!NTT_FNS.has(fn)) return null
+  // the LayerZero setPeer(uint32, bytes32) has two arguments
+  if (fn === 'setPeer' && args.length !== 4) return null
+  const mgr = (q.ntt ?? []).find((n) => lc(n.manager) === t)
+  const tx = mgr
+    ? null
+    : ((q.ntt ?? [])
+        .flatMap((n) => (n.transceivers ?? []).map((x) => ({ n, x })))
+        .find(({ x }) => lc(x.address) === t) ?? null)
+  const short = `${t.slice(0, 10)}…`
+  const peerFn = fn === 'setWormholePeer' || fn === 'setAxelarChainId'
+  // a manager call on a transceiver (or the reverse), or a contract that is no NTT of this card:
+  // not judged, and never read as calm
+  if ((!mgr && !tx) || (tx && !peerFn) || (mgr && peerFn))
+    return [
+      {
+        key: `call/${t}/${fn}`,
+        title: `${fn} on ${short} (${mgr || tx ? 'not judged on this NTT contract' : 'not a Wormhole NTT contract of this card'})`,
+        v: tag(neutral(), 'undecoded'),
+        dimension: 'admin',
+      },
+    ]
+  const one = (key: string, title: string, v: Verdict, before?: unknown, after?: unknown) => [
+    { key, title, v, before, after, dimension: 'bridge' as const },
+  ]
+  const unread = (v: Verdict, what: string) =>
+    down(v, 'BR-1', `${what} not read at head: the change cannot be judged (fail closed)`)
+  if (tx) {
+    // a transceiver's own peer: BR-6 on a re-point (strict, like every peer)
+    const [chainRaw, peerRaw] = args as [number, string, string?]
+    const chain = String(Number(chainRaw))
+    const next =
+      fn === 'setAxelarChainId'
+        ? `${String(args[1])}:${String(args[2]).toLowerCase()}`
+        : lc(String(peerRaw))
+    const prev = fn === 'setWormholePeer' ? tx.x.peers?.[chain] : undefined
+    const v =
+      typeof prev === 'string'
+        ? classifyPeerChange(prev, next)
+        : down(
+            neutral(),
+            'BR-6',
+            `${fn === 'setAxelarChainId' ? 'Axelar' : 'Wormhole'} transceiver peer for chain ${chain} → ${next}; the peer it has now was not read (fail closed)`,
+          )
+    return one(
+      `bridge/ntt/${lc(tx.n.manager)}/peer/${chain}`,
+      `${fn === 'setAxelarChainId' ? 'Axelar' : 'Wormhole'} transceiver ${short}: peer for chain ${chain} → ${next.length > 42 && next.startsWith('0x') ? `0x…${next.slice(-40)}` : next}`,
+      v,
+      prev ?? undefined,
+      next,
+    )
+  }
+  const m = mgr!
+  const types = m.transceivers ? m.transceivers.map((x) => x.type) : null
+  const peers = Object.values(m.peers)
+  // live unless every peer is read and zero (an unread peer may be live: fail closed)
+  const live = peers.some((p) => !p || !/^0x0*$/i.test(p.peer))
+  const key = `bridge/ntt/${t}/verification`
+  const floorOff = (v: Verdict) => {
+    if (live || !v.floorBreach) return v
+    v.floorBreach = false
+    v.ruleIds = v.ruleIds.filter((x) => x !== 'BR-2')
+    v.notes = v.notes.filter((n) => !n.startsWith('FLOOR'))
+    v.notes.push('no peer set: the route is not live (the floor is judged when it opens)')
+    return v
+  }
+  switch (fn) {
+    case 'setThreshold': {
+      const next = Number(args[0])
+      if (m.threshold === null || !types)
+        return one(
+          key,
+          `NTT ${short}: threshold → ${next}`,
+          unread(neutral(), 'threshold / transceivers'),
+        )
+      const v = floorOff(classifyNttThreshold(m.threshold, next, types, types))
+      return one(key, `NTT ${short}: threshold ${m.threshold} → ${next}`, v, m.threshold, next)
+    }
+    case 'removeTransceiver': {
+      const a = lc(String(args[0]))
+      if (m.threshold === null || !m.transceivers)
+        return one(
+          key,
+          `NTT ${short}: transceiver ${a.slice(0, 10)}… removed`,
+          unread(neutral(), 'threshold / transceivers'),
+        )
+      const after = m.transceivers.filter((x) => lc(x.address) !== a)
+      // NttManager lowers the threshold to the transceivers left when it would exceed them
+      const next = Math.min(m.threshold, after.length)
+      const v = floorOff(
+        classifyNttThreshold(
+          m.threshold,
+          next,
+          after.map((x) => x.type),
+          types ?? undefined,
+        ),
+      )
+      return one(
+        key,
+        `NTT ${short}: transceiver ${a.slice(0, 10)}… removed · threshold ${next} of ${after.length}`,
+        v,
+        m.threshold,
+        next,
+      )
+    }
+    case 'setTransceiver': {
+      const a = lc(String(args[0]))
+      const known = m.transceivers?.find((x) => lc(x.address) === a)
+      if (m.threshold === null || !m.transceivers)
+        return one(
+          key,
+          `NTT ${short}: transceiver ${a.slice(0, 10)}… set`,
+          unread(neutral(), 'threshold / transceivers'),
+        )
+      if (known)
+        return one(
+          key,
+          `NTT ${short}: transceiver ${a.slice(0, 10)}… set (already registered)`,
+          neutral(),
+        )
+      // a new transceiver's verifier network is not read before it is registered: unknown ⇒ BR-7
+      const next = m.threshold === 0 ? 1 : m.threshold
+      const v = floorOff(classifyNttTransceiverAdded(null, types ?? [], m.threshold, next))
+      return one(
+        key,
+        `NTT ${short}: transceiver ${a.slice(0, 10)}… added · threshold ${next} of ${m.transceivers.length + 1}`,
+        v,
+      )
+    }
+    case 'setPeer': {
+      const [chainRaw, peerRaw] = args as [number, string]
+      const chain = String(Number(chainRaw))
+      const next = lc(peerRaw)
+      const cur = m.peers[chain]
+      const v =
+        cur === null
+          ? down(
+              neutral(),
+              'BR-6',
+              `NTT peer for chain ${chain} → ${next}; the peer it has now was not read (fail closed)`,
+            )
+          : classifyPeerChange(cur?.peer ?? null, next)
+      if (cur === undefined)
+        v.notes.push(
+          `no peer for chain ${chain} was read at head (no PeerUpdated event, not a swept EVM chain): judged as a new route`,
+        )
+      // a peer that opens a route under the floor is BR-2 (as the executed PeerUpdated)
+      const eff = nttEffective(m.threshold, types ?? [])
+      if (!/^0x0*$/i.test(next) && (!types || m.threshold === null || eff.E < 2)) {
+        v.floorBreach = true
+        if (!v.ruleIds.includes('BR-2')) v.ruleIds.push('BR-2')
+        if (v.severity !== 'downgrade') v.severity = 'downgrade'
+        v.notes.push(
+          !types || m.threshold === null
+            ? 'FLOOR: threshold / transceivers not read at head — the route cannot be shown to meet the floor (fail closed)'
+            : `FLOOR: the route has ${eff.E} effective verifier network(s) (threshold ${m.threshold} over ${eff.distinct} distinct)`,
+        )
+      }
+      return one(
+        `bridge/ntt/${t}/peer/${chain}`,
+        `NTT manager ${short}: peer for chain ${chain} → 0x…${next.slice(-40)}`,
+        v,
+        cur?.peer,
+        next,
+      )
+    }
+  }
+  return null
 }
 
 /** Safe self-calls (owners, threshold, modules, guards, fallback handler) against a working copy. */
@@ -784,6 +1058,8 @@ function judgeSafe(
     'setGuard',
     'setModuleGuard',
     'setFallbackHandler',
+    // Safe <= 1.1.1: the singleton is a self-call away (review round 8)
+    'changeMasterCopy',
     // legacy MultiSigWallet (its removeOwner takes one argument: decoded as the Safe one fails)
     'addOwner',
     'replaceOwner',
@@ -891,6 +1167,20 @@ function judgeSafe(
         m,
       )
     }
+    case 'changeMasterCopy': {
+      // AD-6 singleton: the Safe's code is replaced (the delegatecall-takeover path, by vote)
+      const from = prev?.singleton ?? undefined
+      if (next) next.singleton = a0
+      const v = classifySafeModuleChange('singleton', from, a0)
+      if (from === undefined) v.notes.push("the Safe's current singleton was not read at head")
+      return one(
+        key('singleton'),
+        `Safe ${t.slice(0, 10)}…: singleton (master copy) → ${a0.slice(0, 10)}…`,
+        v,
+        from,
+        a0,
+      )
+    }
     case 'setGuard':
     case 'setModuleGuard':
     case 'setFallbackHandler': {
@@ -987,7 +1277,7 @@ function judgeParamSetter(call: Call, q: QueueCtx): Judged[] | null {
     return [
       {
         key: `mint/${spec.key}`,
-        title: `${spec.label} → ${addr ? describeController(q.ctl(addr)) : String(next)}`,
+        title: `${spec.label} → ${addr ? describeController(q.ctl(addr)) : (formatParamAmount(next, spec.unit) ?? String(next))}`,
         v,
         before: prev,
         after: next,
@@ -1020,15 +1310,39 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
     }
     return roles.get(k)!
   }
-  if (!d)
+  if (!d) {
+    // Review round 7: a selector the subject declares (a power's bypassExclude) is named, and a
+    // function declared restrict-only on this contract is not a loud CALL NOT DECODED.
+    const sel = call.data.slice(0, 10).toLowerCase()
+    const known = q.declaredSelectors?.(t, sel) ?? null
+    if (known?.restrictOnly)
+      return [
+        {
+          key: `call/${t}/${sel}`,
+          title: `${known.signature} on ${t.slice(0, 10)}…`,
+          v: (() => {
+            const v = neutral()
+            v.notes.push(
+              `${known.signature}: declared restrict-only for this contract (bypassExclude) — arguments not judged`,
+            )
+            return v
+          })(),
+          dimension: 'admin',
+        },
+      ]
     return [
       {
-        key: `call/${t}/${call.data.slice(0, 10)}`,
-        title: `call ${call.data.slice(0, 10)} on ${t.slice(0, 10)}…`,
+        key: `call/${t}/${sel}`,
+        title: `${known ? known.signature : `call ${sel}`} on ${t.slice(0, 10)}…`,
         v: tag(neutral(), 'undecoded'),
         dimension: 'admin',
       },
     ]
+  }
+  // review round 8: NTT manager / transceiver admin calls (before the LayerZero setPeer, whose
+  // name the NTT four-argument setPeer shares)
+  const nt = judgeNtt(d.fn, d.args, t, q)
+  if (nt) return nt
   const lz = judgeLz(d.fn, d.args, t, q, sim)
   if (lz) return lz
   const sf = judgeSafe(d.fn, d.args, t, q, safes, w.addedBy)
@@ -1055,8 +1369,11 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
     case 'upgradeToAndCall':
     case 'upgrade':
     case 'upgradeAndCall': {
-      const proxy = d.fn.startsWith('upgradeTo') ? t : lc(d.args[0] as string)
-      const impl = lc((d.fn.startsWith('upgradeTo') ? d.args[0] : d.args[1]) as string)
+      // upgradeTo / upgradeToAndCall and the NTT one-argument upgrade(impl) act on the target;
+      // a ProxyAdmin's upgrade / upgradeAndCall name the proxy first
+      const onTarget = d.fn.startsWith('upgradeTo') || (d.fn === 'upgrade' && d.args.length === 1)
+      const proxy = onTarget ? t : lc(d.args[0] as string)
+      const impl = lc((onTarget ? d.args[0] : d.args[1]) as string)
       const h = q.implHistory[proxy]
       const v = tag(neutral(), 'logic_change')
       const cur = h?.current ?? null
@@ -1079,16 +1396,32 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
           )
       }
       verificationRule(v, impl, q.verified?.(impl) ?? null)
-      return [
-        {
-          key: `admin/implementation/${proxy}`,
-          title: `upgrade ${proxy.slice(0, 10)}… → ${impl.slice(0, 10)}…`,
-          v,
-          before: cur,
-          after: impl,
-          dimension: 'admin',
+      const upgraded: Judged = {
+        key: `admin/implementation/${proxy}`,
+        title: `upgrade ${proxy.slice(0, 10)}… → ${impl.slice(0, 10)}…`,
+        v,
+        before: cur,
+        after: impl,
+        dimension: 'admin',
+      }
+      // Review round 8: the call an upgradeToAndCall / upgradeAndCall makes on the proxy after
+      // the upgrade runs as the proxy's admin — an onlyOwner transferOwnership hidden there (to
+      // the same implementation, even) is judged like the call queued on its own.
+      const inner =
+        d.fn === 'upgradeToAndCall'
+          ? (d.args[1] as string)
+          : d.fn === 'upgradeAndCall'
+            ? (d.args[2] as string)
+            : null
+      if (!inner || inner === '0x') return [upgraded]
+      const via = d.fn === 'upgradeToAndCall' ? 'upgradeToAndCall' : 'ProxyAdmin upgradeAndCall'
+      const calls = judgeOne({ target: proxy, value: '0', data: inner }, q, opts, sim, w).map(
+        (j) => {
+          j.v.notes.push(`called on ${proxy} by ${via} (runs right after the upgrade)`)
+          return { ...j, title: `${j.title} (inside ${via})` }
         },
-      ]
+      )
+      return [upgraded, ...calls]
     }
     case 'setPermissionManager': {
       // Aragon: the manager of (app, role) grants and revokes it at will (AD-3 on who it is)
@@ -1305,7 +1638,7 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
                   'CC-1',
                   `second remote pool for an already-served chain ${selector}: ${cur.join(', ')} + ${next} (both accepted)`,
                 )
-              : tag(neutral(), 'route_created')
+              : (reAdd(q, t, selector, [next]) ?? tag(neutral(), 'route_created'))
       return [
         {
           key: `bridge/ccip/${t}/${selector}`,
@@ -1336,6 +1669,28 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
 
 type RL = { isEnabled: boolean; capacity: bigint; rate: bigint }
 
+/**
+ * A chain the pool does not serve at head gets remote pools again: a pool it never accepted
+ * before is a re-point (CC-1, strict like BR-6 through a zeroed peer) — the history replay
+ * already says so for executed events (review round 7). null = a fresh chain, or the same pool.
+ */
+function reAdd(q: QueueCtx, pool: string, selector: string, next: string[]): Verdict | null {
+  // Review round 8: compared with the pools the chain had LAST (an older pool it once had is a
+  // roll-back, a re-point all the same); every pool it ever had only when the replay is absent.
+  const last = (
+    q.ccipLastRemotePools?.(pool, selector) ??
+    q.ccipEverRemotePools?.(pool, selector) ??
+    []
+  ).map(lc)
+  const fresh = next.map(lc).filter((x) => !/^0x0*$/i.test(x) && !last.includes(x))
+  if (!last.length || !fresh.length) return null
+  return down(
+    neutral(),
+    'CC-1',
+    `remote pool for chain ${selector} re-pointed after a removal: ${last.join(', ')} → ${fresh.join(', ')}`,
+  )
+}
+
 /** Judge one decoded CCIP call against the pools as read at head; null = not a CCIP call. */
 function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx): Judged[] | null {
   const pool = q.ccipPools?.find((p) => lc(p.pool) === t)
@@ -1351,8 +1706,12 @@ function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx)
     // A limiter switched off that is on now is CC-2; with the pool's head state unread, fail
     // closed. A chain the pool does not serve yet has no limiter to switch off (like an executed
     // ChainAdded): noted, not red.
+    // Review round 8: a chain the pool does not serve now whose limiter was ON when it was last
+    // configured (removed, then re-added with it off) switches it off too.
+    const reAddedOff = !c && q.ccipLastLimiterOn?.(t, sel) === true
     const wasOn =
       !pool ||
+      reAddedOff ||
       (!!c &&
         ((!outb.isEnabled && c.outboundEnabled !== false) ||
           (!inb.isEnabled && c.inboundEnabled !== false)))
@@ -1360,7 +1719,7 @@ function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx)
       down(
         v,
         'CC-2',
-        `rate limiter ${off.join(' + ')} disabled for chain ${sel}${pool ? '' : ' (head state not read)'}`,
+        `rate limiter ${off.join(' + ')} disabled for chain ${sel}${pool ? '' : ' (head state not read)'}${reAddedOff ? ' (re-added after a removal; it was on before)' : ''}`,
       )
     else if (off.length) v.notes.push(`rate limiter ${off.join(' + ')} off for new chain ${sel}`)
     return { key: `bridge/ccip/${t}/${sel}/rate_limit`, title, v, dimension: 'bridge' }
@@ -1396,7 +1755,9 @@ function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx)
               'CC-1',
               `remote pool for chain ${selector} set to ${next}; the pool it has now could not be read (fail closed)`,
             )
-          : classifyCcip('remote_pool_set', { prev: cur[0] ?? undefined, next })
+          : cur.length
+            ? classifyCcip('remote_pool_set', { prev: cur[0], next })
+            : (reAdd(q, t, selector, [next]) ?? classifyCcip('remote_pool_set', { next }))
       return one(
         `bridge/ccip/${t}/${selector}`,
         `CCIP remote pool for chain ${selector} → ${next.slice(0, 12)}…`,
@@ -1468,7 +1829,8 @@ function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx)
             'CC-1',
             `remote pool for chain ${sel} re-pointed: ${cur.join(', ')} → ${next.join(', ')}`,
           )
-        else v = tag(neutral(), served ? 'rotation' : 'route_created')
+        else if (!served) v = reAdd(q, t, sel, next) ?? tag(neutral(), 'route_created')
+        else v = tag(neutral(), 'rotation')
         out.push({
           key: `bridge/ccip/${t}/${sel}`,
           title: `CCIP chain ${sel} added (remote pools ${next.map((x) => x.slice(0, 12) + '…').join(', ')})`,
@@ -1699,7 +2061,11 @@ export function timelockChanges(ops: TimelockOp[], q: QueueCtx, now: number): Co
               ts: op.scheduledTs,
               tx: op.scheduledTx,
               eta: op.timestamp ?? undefined,
-              queue: { kind: dg ? 'dg_timelock' : 'oz_timelock', address: op.timelock, opId: op.id },
+              queue: {
+                kind: dg ? 'dg_timelock' : 'oz_timelock',
+                address: op.timelock,
+                opId: op.id,
+              },
             },
             q,
             st === 'ready_unexecutable'

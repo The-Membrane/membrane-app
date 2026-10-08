@@ -112,3 +112,20 @@ export function tokenPriceUsd(
   const r = amountToNumber(rate)
   return r === null ? null : consensusUsd * r
 }
+
+/**
+ * A mint/redeem parameter for display: an integer in base units of `unit` reads "30,000 wstETH"
+ * (the stored value stays the raw integer, so the rules compare exactly). null = not an amount
+ * (no unit, an address, a flag): the caller shows the value as stored.
+ */
+export function formatParamAmount(
+  v: unknown,
+  unit: { decimals: number; symbol: string } | undefined,
+): string | null {
+  if (!unit || (typeof v !== 'string' && typeof v !== 'number') || !/^\d+$/.test(String(v)))
+    return null
+  const n = amountToNumber({ raw: String(v), decimals: unit.decimals })
+  return n === null
+    ? null
+    : `${n.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${unit.symbol}`
+}

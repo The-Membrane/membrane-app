@@ -151,17 +151,20 @@ export function controllerRank(c: Controller | null | undefined): number[] {
       return [5, c.delaySec ?? 0]
     case 'safe':
     case 'legacy_multisig':
+      // A threshold-1 multisig: ANY one signer acts alone — it ranks with an EOA (review round
+      // 7: a 1-of-N Safe outranked a plain contract and an EOA, so a MANAGER grant to a 1-of-2
+      // Safe read neutral and EOA → Safe 1-of-5 read as an upgrade).
+      if (c.threshold !== undefined && c.threshold !== null && c.threshold <= 1) return [1]
       // A Safe module executes without signatures: the Safe is no stronger than an
       // unclassified contract while one is enabled (critique: min over module controllers).
-      if (c.modules?.length) return [2]
+      // Review round 8: a module list that could not be read is not "no modules" (fail closed).
+      if (c.modules?.length || c.modulesUnread) return [2]
       return [4, c.threshold ?? 0, -(c.signers ?? 0)]
     case 'contract': {
       // An Aragon Agent acts only for its executors (enumerated from the ACL at the block): it
       // is exactly as strong as the weakest one — no other code path of its own to discount.
       if (c.executors?.length)
-        return c.executors
-          .map(controllerRank)
-          .reduce((m, r) => (compareRank(r, m) < 0 ? r : m))
+        return c.executors.map(controllerRank).reduce((m, r) => (compareRank(r, m) < 0 ? r : m))
       if (!c.ownedBy) return [2]
       const r = controllerRank(c.ownedBy)
       return r[0] >= 3 ? [...r, -1] : r
@@ -207,7 +210,9 @@ export function describeController(c: Controller | null | undefined): string {
       const d = c.dg
       const parts = [
         d?.proposerVoteSec ? `${formatDelay(d.proposerVoteSec)} Aragon vote` : null,
-        d?.afterSubmitDelaySec != null ? `${formatDelay(d.afterSubmitDelaySec)} after submit` : null,
+        d?.afterSubmitDelaySec != null
+          ? `${formatDelay(d.afterSubmitDelaySec)} after submit`
+          : null,
       ].filter(Boolean)
       return `Dual Governance timelock ${formatDelay(c.delaySec ?? 0)}${parts.length ? ` (${parts.join(' + ')}${d?.afterScheduleDelaySec ? `; +${formatDelay(d.afterScheduleDelaySec)} after schedule unless the emergency committee executes` : ''}${d?.emergencyModeActive ? '; EMERGENCY MODE ACTIVE' : ''})` : ''} ${a}`
     }
@@ -265,7 +270,8 @@ export function classifyControllerChange(
   const v = neutral()
   if (!prev) {
     if (!next) return down(v, 'AD-3', 'neither the previous nor the new holder could be classified')
-    if (isEoa(next))
+    // an EOA, or anything that ranks with one (a 1-of-N multisig, a contract an EOA owns)
+    if (isEoaControlled(next))
       return down(v, 'AD-3', `previous holder not read → ${describeController(next)}`)
     v.notes.push(
       `previous holder not read → ${describeController(next)} (not judged as an upgrade)`,
@@ -467,7 +473,13 @@ export const ADMIN_LEVEL_ROLES = new Set<string>([
  * role (review round 5: CANCELLER_ROLE was admin-level but not privileged, so a grant of it to an
  * EOA read neutral — a canceller can block a pending fix) plus the mint role.
  */
-export const PRIVILEGED_ROLES = new Set<string>([...ADMIN_LEVEL_ROLES, 'MINTER_ROLE'])
+export const PRIVILEGED_ROLES = new Set<string>([
+  ...ADMIN_LEVEL_ROLES,
+  'MINTER_ROLE',
+  // review round 7: a burner burns ANY holder's balance with no allowance (Kelp RSETH.burnFrom,
+  // role checked on LRTConfig) — the OFT adapter's lockbox included: privileged, not admin-level
+  'BURNER_ROLE',
+])
 export const MINT_ROLES = new Set<string>(['MINTER_ROLE'])
 export const PAUSE_ROLES = new Set<string>([
   'PAUSER_ROLE',
@@ -636,7 +648,26 @@ export function grantPattern(
  * that is not red is left alone (the split never adds red where the rules did not).
  */
 export function applyGrantPattern(v: Verdict, role: string, p: GrantPattern): Verdict {
-  if (!isRed(v) || !p.established) return v
+  if (!isRed(v)) return v
+  if (!p.established) {
+    if (ADMIN_LEVEL_ROLES.has(role)) return v
+    // Review round 8: a grant an established pattern would NOT clear (the grantee has code, the
+    // role is unrecognised, a spike…) leads with that anomaly — "no pattern yet" read as if the
+    // row would turn amber once three earlier bot grants exist.
+    if (p.anomalies.length) {
+      tag(v, 'anomaly')
+      v.notes.unshift(
+        `red whatever the ${role} bot pattern (owner ruling #8): ${p.anomalies.join('; ')}`,
+      )
+      return v
+    }
+    // say why a bot-like grant is red (review round 7: the first USDe MINTER grants read only
+    // "new minter" — the reason sat in the chip tooltips)
+    v.notes.unshift(
+      `no established ${role} bot pattern yet: ${p.earlierBotGrants} of the ${OPERATIONAL_PATTERN_MIN_GRANTS} earlier grants to wallets with no code it needs`,
+    )
+    return v
+  }
   // The pattern verdict is the row's reason: it leads the notes (review round 5 — the timeline
   // showed only the first notes, so the reason was cut off).
   if (p.anomalies.length) {
@@ -721,16 +752,29 @@ export function nttEffective(
   }
 }
 
-/** BR-1 / BR-2 on an NTT threshold change (`types` = the transceivers after the change). */
+/**
+ * BR-1 / BR-2 on an NTT threshold change (`types` = the transceivers after the change,
+ * `prevTypes` = before). Review round 8: with both given, BR-1 compares the EFFECTIVE verifier
+ * count (distinct networks the threshold reaches), not only the raw threshold — removing the one
+ * axelar transceiver from {wormhole, axelar, ccip, wormhole} at threshold 3 drops E from 3 to 2.
+ */
 export function classifyNttThreshold(
   prev: number | null,
   next: number,
   types?: (string | null)[],
+  prevTypes?: (string | null)[],
 ): Verdict {
   const v = neutral()
-  if (prev !== null && next < prev) down(v, 'BR-1', `NTT threshold ${prev} → ${next}`)
-  else if (prev !== null && next > prev) up(v, `NTT threshold ${prev} → ${next}`)
   const E = types ? nttEffective(next, types).E : next
+  const prevE = prev !== null && prevTypes ? nttEffective(prev, prevTypes).E : null
+  if (prev !== null && next < prev) down(v, 'BR-1', `NTT threshold ${prev} → ${next}`)
+  else if (prevE !== null && E < prevE)
+    down(
+      v,
+      'BR-1',
+      `NTT effective verifier networks ${prevE} → ${E} (threshold ${next}${prev !== next ? `, was ${prev}` : ' unchanged'})`,
+    )
+  else if (prev !== null && next > prev) up(v, `NTT threshold ${prev} → ${next}`)
   if (E < 2) {
     v.floorBreach = true
     if (!v.ruleIds.includes('BR-2')) v.ruleIds.push('BR-2')
@@ -752,8 +796,9 @@ export function classifyNttTransceiverAdded(
   prevThreshold: number | null,
   threshold: number,
 ): Verdict {
-  const v = classifyNttThreshold(prevThreshold, threshold, [...prevTypes, type])
-  if (!type) down(v, 'BR-7', 'transceiver of an unknown verifier network (getTransceiverType unread)')
+  const v = classifyNttThreshold(prevThreshold, threshold, [...prevTypes, type], prevTypes)
+  if (!type)
+    down(v, 'BR-7', 'transceiver of an unknown verifier network (getTransceiverType unread)')
   else if (prevTypes.some((t) => t && t.toLowerCase() === type.toLowerCase()))
     down(v, 'BR-7', `a second ${type} transceiver: one verifier network counts once`)
   else if (prevThreshold !== null && threshold === prevThreshold && prevTypes.length > 0) {
@@ -906,8 +951,10 @@ export function classifyCcip(
   if (kind === 'remote_pool_added') return tag(v, 'route_created')
   if (kind === 'rate_limiter')
     return args.enabled === false ? down(v, 'CC-2', 'rate limiter disabled') : v
-  // rebalancer
-  if (isEoa(args.nextCtl))
+  // rebalancer — review round 8: ranked with whoever controls it (a contract an EOA owns, a
+  // 1-of-N Safe), as the head check does; `isEoa` alone let a first rebalancer, or one whose
+  // previous holder was unread, read calm
+  if (isEoaControlled(args.nextCtl))
     return down(v, 'CC-3', `rebalancer → ${describeController(args.nextCtl)}`)
   if (args.prevCtl && compareRank(controllerRank(args.nextCtl), controllerRank(args.prevCtl)) < 0)
     return down(
@@ -1107,7 +1154,11 @@ export function classifyOracleParam(
     b > a
   )
     return down(v, 'OR-1', `${param} ${a} → ${b}`)
-  if ((kind === 'market_source' || kind === 'aggregator' || kind === 'wiring') && isEoa(toCtl))
+  // review round 7: a source moved to a contract an EOA controls ranks with that EOA (MR-2 does)
+  if (
+    (kind === 'market_source' || kind === 'aggregator' || kind === 'wiring') &&
+    isEoaControlled(toCtl)
+  )
     return down(v, 'OR-1', `${param} → ${describeController(toCtl)}`)
   if (p.includes('fallback') && (to === null || (typeof to === 'string' && ZERO_ADDR.test(to))))
     return down(v, 'OR-1', 'fallback removed')

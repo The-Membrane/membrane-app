@@ -17,8 +17,6 @@ import {
   changeAnchor,
   compactDigits,
   DIMENSION_LABEL,
-  DIMENSION_ORDER,
-  dimensionFilterLabel,
   filterRows,
   groupRows,
   hashToChangeId,
@@ -30,6 +28,7 @@ import {
   rowFrame,
   rowNoteLine,
   readBeforeEta,
+  routeLabel,
   rowState,
   STATE_META,
   smallText,
@@ -38,6 +37,7 @@ import {
   tagChips,
   tagToken,
   timelineCountsLine,
+  timelineFilterButtons,
   type TimelineFilter,
   type TimelineItem,
 } from './configViewModel'
@@ -68,8 +68,10 @@ const FilterButton: React.FC<{
     bg={active ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
     fontFamily={TYPOGRAPHY.fontMono}
     fontSize="11px"
-    color={disabled ? SEMANTIC_COLORS.textTertiary : SEMANTIC_COLORS.textSecondary}
-    opacity={disabled ? 0.6 : 1}
+    // disabled labels still carry information ("Oracles: not collected"): AA-contrast text,
+    // a dashed border says disabled (review round 7: 0.6 opacity on tertiary was ~1.8:1)
+    color={disabled ? smallText(SEMANTIC_COLORS.textTertiary) : SEMANTIC_COLORS.textSecondary}
+    borderStyle={disabled ? 'dashed' : 'solid'}
     cursor={disabled ? 'default' : 'pointer'}
     transition={TRANSITIONS.colors}
     _hover={disabled ? undefined : { borderColor: SEMANTIC_COLORS.borderStrong }}
@@ -143,7 +145,7 @@ const Row: React.FC<{
             letterSpacing="0.12em"
           >
             {DIMENSION_LABEL[r.dimension].toUpperCase()}
-            {r.route ? ` · ${r.route.chain} ${r.route.direction}` : ''} ·{' '}
+            {r.route ? ` · ${routeLabel(r.route)}` : ''} ·{' '}
           </Text>
           {compactDigits(r.title)}
         </Text>
@@ -490,7 +492,7 @@ export const ConfigTimeline: React.FC<{
   }, [target, rows, complete, loadingAll, onLoadAll])
 
   // the labels count the FULL timeline (review round 6), never only the loaded rows
-  const totals = view.timeline.totals
+  // (timelineFilterButtons reads view.timeline.totals)
   const groups = useMemo(() => groupRows(filterRows(rows, filter)), [rows, filter])
   const row = (r: ConfigChangeView) => (
     <Row
@@ -556,37 +558,36 @@ export const ConfigTimeline: React.FC<{
         role="group"
         aria-label="Filter changes"
       >
-        <FilterButton
-          active={!filter.dimension && !filter.redOnly}
-          onClick={() => press({ kind: 'all' })}
-        >
-          All {totals.all}
-        </FilterButton>
-        {DIMENSION_ORDER.map((d) => (
-          <FilterButton
-            key={d}
-            active={filter.dimension === d}
-            disabled={!totals.byDimension[d] && filter.dimension !== d}
-            onClick={() => press({ kind: 'dimension', dimension: d })}
-          >
-            {dimensionFilterLabel(
-              d,
-              totals.byDimension[d],
-              d !== 'oracle' || view.oracle.collected,
-            )}
-          </FilterButton>
-        ))}
-        <FilterButton
-          active={filter.redOnly}
-          disabled={!totals.red && !filter.redOnly}
-          token={RED_META.token}
-          onClick={() => press({ kind: 'red' })}
-        >
-          <Text as="span" color={RED_META.text} aria-hidden="true">
-            {RED_META.glyph}{' '}
-          </Text>
-          Red only {totals.red}
-        </FilterButton>
+        {timelineFilterButtons(view, filter).map((b) =>
+          b.key === 'red' ? (
+            <FilterButton
+              key={b.key}
+              active={b.active}
+              disabled={b.disabled}
+              token={RED_META.token}
+              onClick={() => press({ kind: 'red' })}
+            >
+              <Text as="span" color={RED_META.text} aria-hidden="true">
+                {RED_META.glyph}{' '}
+              </Text>
+              {b.label}
+            </FilterButton>
+          ) : (
+            <FilterButton
+              key={b.key}
+              active={b.active}
+              disabled={b.disabled}
+              onClick={() => {
+                const k = b.key
+                press(
+                  k === 'all' || k === 'red' ? { kind: k } : { kind: 'dimension', dimension: k },
+                )
+              }}
+            >
+              {b.label}
+            </FilterButton>
+          ),
+        )}
       </Box>
 
       {shown === 0 && (

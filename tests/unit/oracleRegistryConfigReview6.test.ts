@@ -13,6 +13,7 @@ import {
   headline,
   nextFilter,
   stateText,
+  timelineFilterButtons,
 } from '@/components/OracleRegistry/configViewModel'
 import type { ConfigChangeView, ConfigCounts } from '@/lib/oracleRegistry/config/apiTypes'
 import {
@@ -1330,8 +1331,26 @@ describe('UI #5: timeline filters reset between assets; Red only can always be t
       dimension: null,
       redOnly: false,
     })
+    // review round 7: the buttons come from timelineFilterButtons — an ACTIVE Red only with no
+    // red row left is still enabled (it can be turned off), asserted on the function's output
     expect(src('components/OracleRegistry/ConfigTimeline.tsx')).toMatch(
-      /disabled=\{!totals\.red && !filter\.redOnly\}/,
+      /timelineFilterButtons\(view, filter\)/,
     )
+    const view = {
+      available: true,
+      changesAvailable: true,
+      oracle: { collected: true },
+      timeline: {
+        totals: { all: 3, red: 0, byDimension: { bridge: 1, oracle: 0, admin: 2, mint_redeem: 0 } },
+      },
+    }
+    const redOn = timelineFilterButtons(view, { dimension: null, redOnly: true }).find(
+      (b) => b.key === 'red',
+    )
+    expect(redOn).toMatchObject({ active: true, disabled: false })
+    const redOff = timelineFilterButtons(view, { dimension: null, redOnly: false }).find(
+      (b) => b.key === 'red',
+    )
+    expect(redOff).toMatchObject({ active: false, disabled: true })
   })
 })

@@ -223,7 +223,8 @@ export type ConfigChangeView = {
   executableBy: string | null
   /** Proposed Safe transaction: "2/5". */
   signatures: string | null
-  route: { eid: number; direction: Direction; chain: string } | null
+  /** 'both': a peer change (one peer serves the send and the receive direction). */
+  route: { eid: number; direction: Direction | 'both'; chain: string } | null
   notes: string[]
 }
 

@@ -124,6 +124,23 @@ export function parseSubjects(raw: unknown): SubjectsFile {
         fail(`${where}: cap ${p.key} must say what 0 means for this asset`)
       if (p.count !== undefined && (p.count !== true || !/returns \(address\[\]/.test(p.sig)))
         fail(`${where}: param ${p.key} count needs a getter returning a list first`)
+      if (
+        p.decode !== undefined &&
+        (p.decode !== 'trimmed_amount' ||
+          !Number.isInteger(p.decimals) ||
+          (p.decimals as number) < 0 ||
+          p.count)
+      )
+        fail(`${where}: param ${p.key} decode 'trimmed_amount' needs the token decimals`)
+      if (
+        p.unit !== undefined &&
+        (!p.unit ||
+          !Number.isInteger(p.unit.decimals) ||
+          p.unit.decimals < 0 ||
+          typeof p.unit.symbol !== 'string' ||
+          !p.unit.symbol)
+      )
+        fail(`${where}: param ${p.key} unit needs integer decimals and a symbol`)
     }
     for (const g of s.govChannels)
       if (g.kind !== 'snapshot' && g.kind !== 'discourse')

@@ -279,12 +279,29 @@ export function announcementChip(
       }
 }
 
+/** "Linea receive" · "Linea send + receive (peer)" — a peer serves both directions. */
+export function routeLabel(r: NonNullable<ConfigChangeView['route']>): string {
+  return `${r.chain} ${r.direction === 'both' ? 'send + receive (peer)' : r.direction}`
+}
+
 /** Where the change is: "block 24,784,877" · "blocks 26,085,463–26,085,464" · "queued". */
-export function blockText(r: Pick<ConfigChangeView, 'block' | 'blockFrom' | 'state'>): string {
+export function blockText(
+  r: Pick<ConfigChangeView, 'block' | 'blockFrom' | 'state'> &
+    Partial<Pick<ConfigChangeView, 'queue'>>,
+): string {
   const n = (b: number) => b.toLocaleString('en-US')
-  if (r.block == null) return r.state === 'proposed' ? 'off-chain' : '—'
+  // a legacy MultiSigWallet transaction is SUBMITTED on-chain, not queued in a timelock (review
+  // round 7: WBTC's pending rows read "—", their age invisible)
+  const multisig = r.state === 'pending' && r.queue?.kind === 'legacy_multisig'
+  if (r.block == null)
+    return r.state === 'proposed'
+      ? 'off-chain'
+      : multisig
+        ? `submitted · tx ${r.queue!.opId} · block not read`
+        : '—'
   if (r.blockFrom != null && r.blockFrom < r.block - 1)
     return `blocks ${n(r.blockFrom)}–${n(r.block)}`
+  if (multisig) return `submitted at block ${n(r.block)}`
   return r.state === 'pending' ? `queued at block ${n(r.block)}` : `block ${n(r.block)}`
 }
 
@@ -328,11 +345,30 @@ export function unreadLines(r: Pick<RouteRowView, 'local' | 'remote'>): string[]
   return out
 }
 
+/** The queued op a row belongs to (a batch key); null for executed rows. */
+const opKey = (r: Pick<ConfigChangeView, 'state' | 'queue'>): string | null =>
+  r.queue && r.state !== 'historical'
+    ? `${r.state}|${r.queue.kind}|${r.queue.address}|${r.queue.opId}`
+    : null
+
+/**
+ * Rows matching a filter. A queued op is atomic (review round 7): when any of its calls
+ * matches, ALL its calls are kept, so its batch never reads "0 red" or a reduced call count
+ * because the red call was in another dimension.
+ */
 export function filterRows(
   rows: readonly ConfigChangeView[],
   f: TimelineFilter,
 ): ConfigChangeView[] {
-  return rows.filter((r) => (!f.dimension || r.dimension === f.dimension) && (!f.redOnly || r.red))
+  const match = (r: ConfigChangeView) =>
+    (!f.dimension || r.dimension === f.dimension) && (!f.redOnly || r.red)
+  const ops = new Set(
+    rows
+      .filter(match)
+      .map(opKey)
+      .filter((k): k is string => k !== null),
+  )
+  return rows.filter((r) => match(r) || ops.has(opKey(r) ?? ''))
 }
 
 export type RowGroups = Record<RowState, ConfigChangeView[]>
@@ -403,10 +439,7 @@ export function batchRows(rows: readonly ConfigChangeView[]): TimelineItem[] {
   const out: TimelineItem[] = []
   const at = new Map<string, number>()
   for (const r of rows) {
-    const key =
-      r.queue && r.state !== 'historical'
-        ? `${r.state}|${r.queue.kind}|${r.queue.address}|${r.queue.opId}`
-        : null
+    const key = opKey(r)
     const i = key == null ? undefined : at.get(key)
     if (key == null || i == null) {
       if (key != null) at.set(key, out.length)
@@ -457,6 +490,21 @@ export function dimensionCounts(rows: readonly ConfigChangeView[]): Record<Dimen
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
 /**
+ * Does the card hold a route the verifier floor (BR-2) applies to? A LayerZero route, or a
+ * Wormhole NTT manager line (the floor binds its threshold — wstETH's BNB Chain route). CCIP
+ * pools and canonical rollup bridges have no verifier floor.
+ */
+export function hasFloorRoutes(bridge: {
+  oapps: readonly { routes: readonly unknown[] }[]
+  ccip: readonly { key: string }[]
+}): boolean {
+  return (
+    bridge.oapps.some((o) => o.routes.length > 0) ||
+    bridge.ccip.some((c) => c.key.startsWith('bridge/ntt/'))
+  )
+}
+
+/**
  * "rsETH: 0 floor breaches · 1 red in effect · 0 pending · 0 proposed". Without collector
  * output there are no counts to state: zeros would read as "nothing found". With the change
  * files but no head-state file, the queue counts are known and the breaches are not.
@@ -466,12 +514,28 @@ export function headline(
   c: ConfigCounts,
   available = true,
   changesAvailable = false,
+  /**
+   * false: no route the floor applies to (no LayerZero route, no Wormhole NTT route) — the
+   * floor count is not applicable, never "0". See `hasFloorRoutes`.
+   */
+  hasLzRoutes = true,
 ): string {
-  if (!available && changesAvailable)
-    return `${symbol}: head state not collected — floor and rule breaches unknown · ${c.pending} pending · ${c.proposed} proposed (from the change files)`
+  if (!available && changesAvailable) {
+    // review round 8: the change files carry the red queued / red in effect counts — the
+    // headline names them (it dropped them, and the tab and the headline disagreed)
+    const reds = [
+      c.redInEffect ? `${c.redInEffect} red in effect` : '',
+      c.redOpen ? `${c.redOpen} red queued` : '',
+    ].filter(Boolean)
+    return `${symbol}: head state not collected — floor and rule breaches unknown · ${reds.length ? `${reds.join(' · ')} · ` : ''}${c.pending} pending · ${c.proposed} proposed (from the change files)`
+  }
   if (!available)
     return `${symbol}: not collected — floor breaches, red flags, pending and proposed changes are unknown`
-  const parts = [plural(c.floorBreaches, 'floor breach', 'floor breaches')]
+  const parts = [
+    hasLzRoutes || c.floorBreaches
+      ? plural(c.floorBreaches, 'floor breach', 'floor breaches')
+      : 'no LayerZero or NTT route (floor n/a)',
+  ]
   if (c.ruleBreaches) parts.push(plural(c.ruleBreaches, 'rule breach', 'rule breaches'))
   if (c.redInEffect) parts.push(`${c.redInEffect} red in effect`)
   if (c.redOpen) parts.push(`${c.redOpen} red queued`)
@@ -488,6 +552,20 @@ export function headline(
   ].filter(Boolean)
   const hedge = gaps.length ? ` — ${gaps.join(' and ')}: red flags may be missing` : ''
   return `${symbol}: ${parts.join(' · ')}${hedge}`
+}
+
+/**
+ * The headline's tone (review round 8): red whenever a red is known — also when the head state
+ * is missing but the change files hold a red (it was amber there); amber (warning) when nothing
+ * red is known and the head state is missing; normal otherwise.
+ */
+export function headlineTone(
+  available: boolean,
+  changesAvailable: boolean,
+  openRed: number,
+): 'red' | 'warning' | 'normal' {
+  if (openRed > 0 && (available || changesAvailable)) return 'red'
+  return available ? 'normal' : 'warning'
 }
 
 /** Collector output older than this is marked STALE (the timeline may be missing changes). */
@@ -512,6 +590,56 @@ export function oracleAside(o: ConfigCardView['oracle']): string {
 /** A timeline filter button: "Admin 4", or "Oracles: not collected" (never a zero nobody read). */
 export function dimensionFilterLabel(d: Dimension, n: number, collected = true): string {
   return collected ? `${DIMENSION_LABEL[d]} ${n}` : `${DIMENSION_LABEL[d]}: not collected`
+}
+
+export type FilterButton = {
+  key: 'all' | 'red' | Dimension
+  label: string
+  active: boolean
+  disabled: boolean
+}
+
+/**
+ * The timeline's filter buttons (review round 7): with no collector output at all every button
+ * says "not collected" and is disabled — never "All 0 · Bridge 0 · Red only 0" — and a
+ * dimension that was not collected (Oracles for a subject outside the catalog) is disabled
+ * unless it is the active filter (so it can always be turned off).
+ */
+export function timelineFilterButtons(
+  v: Pick<ConfigCardView, 'available' | 'changesAvailable'> & {
+    oracle: Pick<ConfigCardView['oracle'], 'collected'>
+    timeline: { totals: Pick<ConfigCardView['timeline']['totals'], 'all' | 'red' | 'byDimension'> }
+  },
+  filter: TimelineFilter,
+): FilterButton[] {
+  const any = v.available || v.changesAvailable
+  const t = v.timeline.totals
+  const out: FilterButton[] = [
+    {
+      key: 'all',
+      label: any ? `All ${t.all}` : 'All: not collected',
+      active: !filter.dimension && !filter.redOnly,
+      // "All" clears the filters: enabled whenever one is on
+      disabled: !any && !filter.dimension && !filter.redOnly,
+    },
+  ]
+  for (const d of DIMENSION_ORDER) {
+    const collected = any && (d !== 'oracle' || v.oracle.collected)
+    const active = filter.dimension === d
+    out.push({
+      key: d,
+      label: dimensionFilterLabel(d, t.byDimension[d] ?? 0, collected),
+      active,
+      disabled: (!collected || !t.byDimension[d]) && !active,
+    })
+  }
+  out.push({
+    key: 'red',
+    label: any ? `Red only ${t.red}` : 'Red only: not collected',
+    active: filter.redOnly,
+    disabled: (!any || !t.red) && !filter.redOnly,
+  })
+  return out
 }
 
 /** The timeline's count line; "not collected" when neither state nor change files exist. */
@@ -686,6 +814,23 @@ export function routeFlags(r: Pick<RouteRowView, 'local' | 'remote'>): RouteFlag
     }
   }
   return { breaches, tags, warnings }
+}
+
+/**
+ * The closed-routes disclosure (review round 7): BR-4 / BR-5 / BR-7 can fire on a route that is
+ * not live, and a red row must never sit collapsed under a calm summary — the disclosure opens
+ * and its summary counts the red routes (like the stale group).
+ */
+export function closedRoutesDisclosure(
+  closed: readonly Pick<RouteRowView, 'local' | 'remote' | 'floorBreach'>[],
+): { summary: string; open: boolean; red: number } {
+  const red = closed.filter((r) => r.floorBreach || routeFlags(r).breaches.length > 0).length
+  const n = closed.length
+  return {
+    summary: `${n} closed ${n === 1 ? 'route' : 'routes'} (peer zeroed or blocked)${red ? ` · ${RED_META.glyph} ${red} with red flags` : ''}`,
+    open: red > 0,
+    red,
+  }
 }
 
 /** Operators that differ between the Ethereum receive side and the remote receive side. */

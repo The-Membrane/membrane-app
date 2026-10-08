@@ -12,6 +12,7 @@ import {
   configTabLabel,
   configTabMarks,
   dimensionFilterLabel,
+  timelineFilterButtons,
   headline,
   oracleAside,
   RED_META,
@@ -1156,7 +1157,29 @@ describe('UI: "not collected" never reads as zero or calm', () => {
     const card = buildConfigCard({ subject: subject(), state: null, changes: [], queue: [] })
     expect(card.oracle.collected).toBe(false)
     expect(src('components/OracleRegistry/ConfigCard.tsx')).toMatch(/oracleAside\(/)
-    expect(src('components/OracleRegistry/ConfigTimeline.tsx')).toMatch(/dimensionFilterLabel\(/)
+    // review round 7: the buttons come from timelineFilterButtons (which labels them with
+    // dimensionFilterLabel) — asserted on its output, and on the timeline rendering it
+    expect(src('components/OracleRegistry/ConfigTimeline.tsx')).toMatch(
+      /timelineFilterButtons\(view, filter\)/,
+    )
+    expect(src('components/OracleRegistry/configViewModel.ts')).toMatch(/dimensionFilterLabel\(/)
+    const oracleBtn = timelineFilterButtons(
+      {
+        available: true,
+        changesAvailable: true,
+        oracle: { collected: false },
+        timeline: {
+          totals: {
+            all: 3,
+            red: 0,
+            byDimension: { bridge: 1, oracle: 0, admin: 2, mint_redeem: 0 },
+          },
+        },
+      },
+      { dimension: null, redOnly: false },
+    ).find((b) => b.key === 'oracle')
+    expect(oracleBtn?.label).toMatch(/not collected/)
+    expect(oracleBtn?.disabled).toBe(true)
   })
   it('the engine records the oracle window; the card exposes it', () => {
     const out = build(subject({ oracleAssetKey: 'zz' }), rawOf({}))

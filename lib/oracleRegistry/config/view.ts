@@ -32,6 +32,7 @@ import type {
   RouteRowView,
   RouteSideView,
 } from './apiTypes'
+import { floorBreachRoutes } from './bridgeRules'
 import { describeController, formatDelay, RULES } from './rules'
 import { compareValueAtRisk, valueAtRiskLabel } from './value'
 import type {
@@ -311,14 +312,19 @@ export function toChangeView(
                 url: explorerAddressUrl(c.chainId || 1, c.queue.address),
               }
   }
+  const before = c.beforeDisplay ?? scalar(c.before)
+  const after0 = c.afterDisplay ?? scalar(c.after)
+  // two equal lines never read as a change (review round 7): a value set again says so
+  const after =
+    before !== null && after0 !== null && before === after0 ? `${after0} (same as before)` : after0
   return {
     id: c.id,
     state: c.state,
     stage: c.stage ?? null,
     dimension: c.dimension,
     title: c.title,
-    before: c.beforeDisplay ?? scalar(c.before),
-    after: c.afterDisplay ?? scalar(c.after),
+    before,
+    after,
     red: !!c.red,
     severity: c.severity,
     floorBreach: !!c.floorBreach,
@@ -343,7 +349,12 @@ export function toChangeView(
         ? signaturesOf(c.notes)
         : null,
     route: c.route
-      ? { eid: c.route.eid, direction: c.route.direction, chain: ctx.eidName(c.route.eid) }
+      ? {
+          eid: c.route.eid,
+          // a queued setPeer moves both directions (review round 7: it read "receive")
+          direction: c.key.endsWith('/peer') ? ('both' as const) : c.route.direction,
+          chain: ctx.eidName(c.route.eid),
+        }
       : null,
     notes: c.notes ?? [],
   }
@@ -399,8 +410,9 @@ export function countsOf(
   readGaps: readonly string[] = [],
 ): ConfigCounts {
   const breaches = breachesOf(items)
-  const floorBreaches = breaches.filter((b) => b.ruleId === 'BR-2').length
-  const ruleBreaches = breaches.length - floorBreaches
+  // routes, not sides (review round 7): the same count as the bridge block's "under floor"
+  const floorBreaches = floorBreachRoutes(items).length
+  const ruleBreaches = breaches.filter((b) => b.ruleId !== 'BR-2').length
   let redInEffect = 0
   let redOpen = 0
   let redTotal = 0
@@ -865,8 +877,10 @@ export function buildConfigCard(inp: ConfigInputs, opt: BuildCardOptions = {}): 
       oracleSlug,
       entries: inp.oracleEntries ?? 0,
       changes: all.filter((c) => c.dimension === 'oracle').length,
-      // the collector reads oracle governance events only for a subject in the oracle catalog
-      collected: !!state && !!oracleSlug,
+      // the collector reads oracle governance events only for a subject in the oracle catalog;
+      // oracle rows in the change files are collected even when the state file is missing
+      // (review round 7: the filter said "not collected" yet filtered 2 rows)
+      collected: !!oracleSlug && (!!state || all.some((c) => c.dimension === 'oracle')),
       windowDays: state?.oracleWindow?.days ?? null,
     },
     admin: {

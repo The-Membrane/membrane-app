@@ -13,7 +13,12 @@
 import { describe, expect, it } from 'vitest'
 import { encodeFunctionData, keccak256, parseAbi, toFunctionSelector, toHex } from 'viem'
 
-import { buildSubject, markStillInEffect, type RawSubject } from '@/lib/oracleRegistry/config/engine'
+import {
+  buildSubject,
+  markStillInEffect,
+  type NttHead,
+  type RawSubject,
+} from '@/lib/oracleRegistry/config/engine'
 import { classifyAdminEvents, type AdminEventRow } from '@/lib/oracleRegistry/config/adminReplay'
 import {
   aragonCalls,
@@ -48,19 +53,35 @@ import {
 } from '@/scripts/oracle-registry/config/lib/abi.mjs'
 import {
   aragonExecCandidatesFromRows,
-  classify,
+  classify as classifyJs,
   dgProposalOp,
   isDgTimelockCode,
   readCanonicalBridge,
-  readDgProposals,
-  readNtt,
-  resolvePath,
+  readDgProposals as readDgProposalsJs,
+  readNtt as readNttJs,
+  resolvePath as resolvePathJs,
   roleHoldersFromEvents,
   setAragonExecCandidates,
 } from '@/scripts/oracle-registry/config/lib/admin.mjs'
 import { readParams } from '@/scripts/oracle-registry/config/lib/params.mjs'
 
 // ---- fixtures ------------------------------------------------------------------------------------
+// the collector is plain JS: its inferred return / option types are too narrow for fakes
+const classify = classifyJs as unknown as (c: unknown, a: string, b?: number) => Promise<Controller>
+const resolvePath = resolvePathJs as unknown as (
+  c: unknown,
+  o: Record<string, unknown>,
+) => Promise<string[]>
+const readDgProposals = readDgProposalsJs as unknown as (
+  c: unknown,
+  ept: string,
+  o: { now: number; max?: number },
+) => Promise<{ status: string; ops: TimelockOp[] }>
+const readNtt = readNttJs as unknown as (
+  c: unknown,
+  m: string,
+  chains?: number[],
+) => Promise<NttHead>
 type Hx = `0x${string}`
 const A = (n: string) => ('0x' + n.repeat(40).slice(0, 40)) as Hx
 const KERNEL = A('1')
@@ -81,7 +102,8 @@ const TOKEN = A('f')
 const SAFE = '0x' + '12'.repeat(20)
 const ZERO = '0x' + '0'.repeat(40)
 const sel = (sig: string) => toFunctionSelector(`function ${sig}`).slice(2)
-const codeWith = (sigs: string[]) => '0x6080' + sigs.map((x) => '63' + sel(x) + '14').join('') + '00'
+const codeWith = (sigs: string[]) =>
+  '0x6080' + sigs.map((x) => '63' + sel(x) + '14').join('') + '00'
 const revert = () =>
   Object.assign(new Error('execution reverted'), { name: 'ContractFunctionRevertedError' })
 
@@ -197,7 +219,7 @@ describe('Aragon rows: ACL and Kernel events rewritten onto the apps they act on
   const LIDO_APP_ID = '0x3ca7c3e38968823ccb4c78ea688df41356f182ae1d159e4ee608d30d68cef320'
   it('decodes the ACL / Kernel / NTT / Dual Governance events', () => {
     const enc = (sig: string, args: Record<string, unknown>, data: Hx = '0x') => {
-      const [ev] = parseAbi([sig])
+      const ev = (parseAbi as (s: readonly string[]) => readonly unknown[])([sig])[0]
       return { topics: [TOPIC[(ev as { name: string }).name]], ev, args, data }
     }
     expect(TOPIC.SetPermission).toBe(
@@ -238,9 +260,23 @@ describe('Aragon rows: ACL and Kernel events rewritten onto the apps they act on
   it('SetPermission → RoleGranted / RoleRevoked on the app; ChangePermissionManager → PermissionManagerChanged', () => {
     const base = { chainId: 1, block: 10, logIndex: 0, tx: '0x1', emitter: ACL }
     const out = aragonRows([
-      { ...base, event: 'SetPermission', args: { entity: EXEC, app: AGENT, role: RUN, allowed: true } },
-      { ...base, logIndex: 1, event: 'SetPermission', args: { entity: VOTING, app: AGENT, role: RUN, allowed: false } },
-      { ...base, logIndex: 2, event: 'ChangePermissionManager', args: { app: AGENT, role: RUN, manager: AGENT } },
+      {
+        ...base,
+        event: 'SetPermission',
+        args: { entity: EXEC, app: AGENT, role: RUN, allowed: true },
+      },
+      {
+        ...base,
+        logIndex: 1,
+        event: 'SetPermission',
+        args: { entity: VOTING, app: AGENT, role: RUN, allowed: false },
+      },
+      {
+        ...base,
+        logIndex: 2,
+        event: 'ChangePermissionManager',
+        args: { app: AGENT, role: RUN, manager: AGENT },
+      },
       { ...base, logIndex: 3, emitter: SAFE, event: 'AddedOwner', args: { owner: EOA } },
     ])
     expect(out.map((r: AdminEventRow) => [r.emitter, r.event])).toEqual([
@@ -261,19 +297,42 @@ describe('Aragon rows: ACL and Kernel events rewritten onto the apps they act on
     const base = { chainId: 1, block: 10, logIndex: 0, tx: '0x1', emitter: KERNEL }
     const out = aragonRows(
       [
-        { ...base, event: 'SetApp', args: { namespace: ARAGON_NS.base, appId: LIDO_APP_ID, app: A('9') } },
-        { ...base, logIndex: 1, event: 'SetApp', args: { namespace: ARAGON_NS.base, appId: '0x' + 'ee'.repeat(32), app: A('9') } },
-        { ...base, logIndex: 2, event: 'SetApp', args: { namespace: ARAGON_NS.core, appId: '0x' + 'cc'.repeat(32), app: A('a') } },
-        { ...base, logIndex: 3, event: 'SetApp', args: { namespace: ARAGON_NS.app, appId: '0x' + 'dd'.repeat(32), app: A('b') } },
+        {
+          ...base,
+          event: 'SetApp',
+          args: { namespace: ARAGON_NS.base, appId: LIDO_APP_ID, app: A('9') },
+        },
+        {
+          ...base,
+          logIndex: 1,
+          event: 'SetApp',
+          args: { namespace: ARAGON_NS.base, appId: '0x' + 'ee'.repeat(32), app: A('9') },
+        },
+        {
+          ...base,
+          logIndex: 2,
+          event: 'SetApp',
+          args: { namespace: ARAGON_NS.core, appId: '0x' + 'cc'.repeat(32), app: A('a') },
+        },
+        {
+          ...base,
+          logIndex: 3,
+          event: 'SetApp',
+          args: { namespace: ARAGON_NS.app, appId: '0x' + 'dd'.repeat(32), app: A('b') },
+        },
       ],
       { [LIDO_APP_ID]: [STETH] },
     )
-    expect(out.map((r: AdminEventRow) => [r.emitter, r.event, r.args.implementation ?? r.args.app])).toEqual([
+    expect(
+      out.map((r: AdminEventRow) => [r.emitter, r.event, r.args.implementation ?? r.args.app]),
+    ).toEqual([
       [STETH, 'Upgraded', A('9')],
       [KERNEL, 'Upgraded', A('a')],
       [KERNEL, 'AppAddressSet', A('b')],
     ])
-    expect(ARAGON_NS.base).toBe('0xf1f3eb40f5bc1ad1344716ced8b8a0431d840b5783aea1fd01786bc26f35ac0f')
+    expect(ARAGON_NS.base).toBe(
+      '0xf1f3eb40f5bc1ad1344716ced8b8a0431d840b5783aea1fd01786bc26f35ac0f',
+    )
   })
 })
 
@@ -357,7 +416,11 @@ describe('Aragon power paths and classification (fake client)', () => {
     expect(v).toMatchObject({ kind: 'aragon_voting', delaySec: 432000 })
     const t = await classify(world(), EPT)
     expect(t).toMatchObject({ kind: 'aragon_dg', delaySec: 432000 + 259200 })
-    expect(t.dg).toMatchObject({ proposers: [VOTING], proposerVoteSec: 432000, afterScheduleDelaySec: 86400 })
+    expect(t.dg).toMatchObject({
+      proposers: [VOTING],
+      proposerVoteSec: 432000,
+      afterScheduleDelaySec: 86400,
+    })
     expect(isDgTimelockCode(codeWith(['getAfterSubmitDelay()']))).toBe(false)
   })
   it('a proposer that is not an Aragon Voting adds nothing (fail closed: 3 d, not 8 d)', async () => {
@@ -375,7 +438,11 @@ describe('Aragon power paths and classification (fake client)', () => {
     // DG era: the Admin Executor holds RUN_SCRIPT_ROLE
     const dgEra = await classify(world({ [`${EXEC}|${AGENT}|${RUN}`]: true }), AGENT)
     expect(dgEra.version).toBe('Aragon Agent')
-    expect(dgEra.ownedBy).toMatchObject({ kind: 'contract', address: EXEC, ownedBy: { kind: 'aragon_dg' } })
+    expect(dgEra.ownedBy).toMatchObject({
+      kind: 'contract',
+      address: EXEC,
+      ownedBy: { kind: 'aragon_dg' },
+    })
     // Voting era: the Voting holds EXECUTE_ROLE
     const votingEra = await classify(world({ [`${VOTING}|${AGENT}|${EXE}`]: true }), AGENT)
     expect(votingEra.ownedBy).toMatchObject({ kind: 'aragon_voting' })
@@ -386,7 +453,10 @@ describe('Aragon power paths and classification (fake client)', () => {
       AGENT,
     )
     expect(two.ownedBy).toBeUndefined()
-    expect(two.executors?.map((x: Controller) => x.kind).sort()).toEqual(['aragon_voting', 'contract'])
+    expect(two.executors?.map((x: Controller) => x.kind).sort()).toEqual([
+      'aragon_voting',
+      'contract',
+    ])
     expect(compareRank(controllerRank(two), controllerRank(voting()))).toBe(0)
     expect(describeController(two)).toMatch(/Aragon Voting 5d vote .*ranked as the weakest/)
     // no executor found: a plain contract, said so
@@ -396,15 +466,30 @@ describe('Aragon power paths and classification (fake client)', () => {
     setAragonExecCandidates(new Map())
     // ranks: the DG-era Agent outranks the Voting-era one (8 d > 5 d): the DG launch is no downgrade
     expect(compareRank(controllerRank(dgEra), controllerRank(votingEra))).toBe(1)
-    expect(describeController(dgEra)).toMatch(/^Aragon Agent 0x3333…3333 → contract .* → Dual Governance timelock 8d/)
+    expect(describeController(dgEra)).toMatch(
+      /^Aragon Agent 0x3333…3333 → contract .* → Dual Governance timelock 8d/,
+    )
   }, 30_000)
 })
 
 describe('Lido roles: recognised, admin-level, pause', () => {
   it('Aragon execution / ACL / Kernel roles and Lido limit roles are admin-level; disablers pause; unknown roles stay privileged', () => {
-    for (const r of ['APP_MANAGER_ROLE', 'RUN_SCRIPT_ROLE', 'EXECUTE_ROLE', 'CREATE_PERMISSIONS_ROLE', 'STAKING_CONTROL_ROLE', 'MANAGE_MEMBERS_AND_QUORUM_ROLE', 'MAX_POSITIVE_TOKEN_REBASE_MANAGER_ROLE'])
+    for (const r of [
+      'APP_MANAGER_ROLE',
+      'RUN_SCRIPT_ROLE',
+      'EXECUTE_ROLE',
+      'CREATE_PERMISSIONS_ROLE',
+      'STAKING_CONTROL_ROLE',
+      'MANAGE_MEMBERS_AND_QUORUM_ROLE',
+      'MAX_POSITIVE_TOKEN_REBASE_MANAGER_ROLE',
+    ])
       expect(ADMIN_LEVEL_ROLES.has(r)).toBe(true)
-    for (const r of ['PAUSE_ROLE', 'STAKING_PAUSE_ROLE', 'DEPOSITS_DISABLER_ROLE', 'WITHDRAWALS_DISABLER_ROLE'])
+    for (const r of [
+      'PAUSE_ROLE',
+      'STAKING_PAUSE_ROLE',
+      'DEPOSITS_DISABLER_ROLE',
+      'WITHDRAWALS_DISABLER_ROLE',
+    ])
       expect(PAUSE_ROLES.has(r)).toBe(true)
     expect(isPrivilegedRole('RESUME_ROLE')).toBe(false)
     expect(isPrivilegedRole('DEPOSITS_ENABLER_ROLE')).toBe(false)
@@ -428,9 +513,27 @@ describe('Dual Governance history: config events, proposers, AD-5', () => {
   it('an after-submit delay cut is AD-2; a first value set at deployment is initialization; an unread previous value fails closed', () => {
     const out = classifyAdminEvents(
       [
-        row({ emitter: EPT, block: 1, event: 'AfterSubmitDelaySet', args: { newAfterSubmitDelay: '259200' } }),
-        row({ emitter: EPT, block: 200, logIndex: 1, tx: '0x2', event: 'AfterSubmitDelaySet', args: { newAfterSubmitDelay: '86400' } }),
-        row({ emitter: DG, block: 300, tx: '0x3', event: 'AfterScheduleDelaySet', args: { newAfterScheduleDelay: '3600' } }),
+        row({
+          emitter: EPT,
+          block: 1,
+          event: 'AfterSubmitDelaySet',
+          args: { newAfterSubmitDelay: '259200' },
+        }),
+        row({
+          emitter: EPT,
+          block: 200,
+          logIndex: 1,
+          tx: '0x2',
+          event: 'AfterSubmitDelaySet',
+          args: { newAfterSubmitDelay: '86400' },
+        }),
+        row({
+          emitter: DG,
+          block: 300,
+          tx: '0x3',
+          event: 'AfterScheduleDelaySet',
+          args: { newAfterScheduleDelay: '3600' },
+        }),
       ],
       actx(m),
     )
@@ -458,8 +561,18 @@ describe('Dual Governance history: config events, proposers, AD-5', () => {
     expect(out[0].title).toMatch(/emergency execution committee/)
   })
   it('a governance contract replaced is a logic change: AD-9 unless its source is verified', () => {
-    const ev = row({ emitter: EPT, block: 200, event: 'GovernanceSet', args: { newGovernance: DG }, prev: A('9') })
-    const ctxM = { ...m, [`${DG}@200`]: { kind: 'contract', address: DG } as Controller, [`${A('9')}@199`]: { kind: 'contract', address: A('9') } as Controller }
+    const ev = row({
+      emitter: EPT,
+      block: 200,
+      event: 'GovernanceSet',
+      args: { newGovernance: DG },
+      prev: A('9'),
+    })
+    const ctxM = {
+      ...m,
+      [`${DG}@200`]: { kind: 'contract', address: DG } as Controller,
+      [`${A('9')}@199`]: { kind: 'contract', address: A('9') } as Controller,
+    }
     const unverified = classifyAdminEvents([ev], actx(ctxM, { verified: () => false }))
     expect(unverified[0].ruleIds).toContain('AD-9')
     const ok = classifyAdminEvents([ev], actx(ctxM, { verified: () => true }))
@@ -469,8 +582,19 @@ describe('Dual Governance history: config events, proposers, AD-5', () => {
   it('a new Dual Governance proposer that is an EOA is red (PROPOSER_ROLE, AD-4); the Aragon Voting is not', () => {
     const out = classifyAdminEvents(
       [
-        row({ emitter: DG, block: 200, event: 'ProposerRegistered', args: { proposer: VOTING, executor: EXEC } }),
-        row({ emitter: DG, block: 200, logIndex: 1, event: 'ProposerRegistered', args: { proposer: EOA, executor: EXEC } }),
+        row({
+          emitter: DG,
+          block: 200,
+          event: 'ProposerRegistered',
+          args: { proposer: VOTING, executor: EXEC },
+        }),
+        row({
+          emitter: DG,
+          block: 200,
+          logIndex: 1,
+          event: 'ProposerRegistered',
+          args: { proposer: EOA, executor: EXEC },
+        }),
       ],
       actx(m),
     )
@@ -480,11 +604,30 @@ describe('Dual Governance history: config events, proposers, AD-5', () => {
   })
   it('AD-5: an upgrade through a Dual Governance timelock needs its ProposalExecuted in the same transaction', () => {
     const holders = { [`${STETH}@200`]: [agentCtl(dgCtl())] }
-    const upg = row({ emitter: STETH, block: 200, tx: '0xu', event: 'Upgraded', args: { implementation: A('9'), via: 'SetApp' } })
-    const bare = classifyAdminEvents([upg], actx(m, { upgradeHoldersAt: holders, verified: () => true }))
+    const upg = row({
+      emitter: STETH,
+      block: 200,
+      tx: '0xu',
+      event: 'Upgraded',
+      args: { implementation: A('9'), via: 'SetApp' },
+    })
+    const bare = classifyAdminEvents(
+      [upg],
+      actx(m, { upgradeHoldersAt: holders, verified: () => true }),
+    )
     expect(bare[0].ruleIds).toContain('AD-5')
     const viaDg = classifyAdminEvents(
-      [upg, row({ emitter: EPT, block: 200, tx: '0xu', logIndex: 9, event: 'ProposalExecuted', args: { id: '12' } })],
+      [
+        upg,
+        row({
+          emitter: EPT,
+          block: 200,
+          tx: '0xu',
+          logIndex: 9,
+          event: 'ProposalExecuted',
+          args: { id: '12' },
+        }),
+      ],
       actx(m, { upgradeHoldersAt: holders, verified: () => true }),
     )
     expect(viaDg[0].ruleIds).not.toContain('AD-5')
@@ -494,8 +637,21 @@ describe('Dual Governance history: config events, proposers, AD-5', () => {
     const mm = { ...m, [`${VOTING}@199`]: voting(259200), [`${AGENT}@200`]: agentCtl(dgCtl()) }
     const out = classifyAdminEvents(
       [
-        row({ emitter: STETH, block: 200, event: 'PermissionManagerChanged', args: { role: roleHash('PAUSE_ROLE'), roleName: 'PAUSE_ROLE', manager: AGENT }, prev: VOTING }),
-        row({ emitter: STETH, block: 200, logIndex: 1, event: 'PermissionManagerChanged', args: { role: roleHash('RESUME_ROLE'), roleName: 'RESUME_ROLE', manager: EOA }, prev: VOTING }),
+        row({
+          emitter: STETH,
+          block: 200,
+          event: 'PermissionManagerChanged',
+          args: { role: roleHash('PAUSE_ROLE'), roleName: 'PAUSE_ROLE', manager: AGENT },
+          prev: VOTING,
+        }),
+        row({
+          emitter: STETH,
+          block: 200,
+          logIndex: 1,
+          event: 'PermissionManagerChanged',
+          args: { role: roleHash('RESUME_ROLE'), roleName: 'RESUME_ROLE', manager: EOA },
+          prev: VOTING,
+        }),
       ],
       actx(mm),
     )
@@ -512,7 +668,19 @@ describe('Dual Governance history: config events, proposers, AD-5', () => {
       executors: [voting(), { kind: 'contract', address: EXEC, ownedBy: dgCtl() }],
     }
     const out = classifyAdminEvents(
-      [row({ emitter: KERNEL, block: 200, event: 'PermissionManagerChanged', args: { role: roleHash('APP_MANAGER_ROLE'), roleName: 'APP_MANAGER_ROLE', manager: AGENT }, prev: VOTING })],
+      [
+        row({
+          emitter: KERNEL,
+          block: 200,
+          event: 'PermissionManagerChanged',
+          args: {
+            role: roleHash('APP_MANAGER_ROLE'),
+            roleName: 'APP_MANAGER_ROLE',
+            manager: AGENT,
+          },
+          prev: VOTING,
+        }),
+      ],
       actx({ ...m, [`${VOTING}@199`]: voting(), [`${AGENT}@200`]: both }),
     )
     expect(out[0].red).toBe(false)
@@ -523,10 +691,24 @@ describe('Dual Governance history: config events, proposers, AD-5', () => {
     expect(roleName(h)).toBe('DEPOSITS_DISABLER_ROLE')
     const out = classifyAdminEvents(
       [
-        row({ emitter: A('5'), block: 200, event: 'RoleGranted', args: { role: h, roleName: roleName(h), account: SAFE } }),
-        row({ emitter: A('5'), block: 200, logIndex: 1, event: 'RoleGranted', args: { role: roleHash('PAUSE_ALL_ROLE'), roleName: 'PAUSE_ALL_ROLE', account: EOA } }),
+        row({
+          emitter: A('5'),
+          block: 200,
+          event: 'RoleGranted',
+          args: { role: h, roleName: roleName(h), account: SAFE },
+        }),
+        row({
+          emitter: A('5'),
+          block: 200,
+          logIndex: 1,
+          event: 'RoleGranted',
+          args: { role: roleHash('PAUSE_ALL_ROLE'), roleName: 'PAUSE_ALL_ROLE', account: EOA },
+        }),
       ],
-      actx({ [`${SAFE}@200`]: { kind: 'safe', address: SAFE, threshold: 3, signers: 5 }, [`${EOA}@200`]: { kind: 'eoa', address: EOA } }),
+      actx({
+        [`${SAFE}@200`]: { kind: 'safe', address: SAFE, threshold: 3, signers: 5 },
+        [`${EOA}@200`]: { kind: 'eoa', address: EOA },
+      }),
     )
     expect(out.map((c) => c.red)).toEqual([false, false])
   })
@@ -534,8 +716,18 @@ describe('Dual Governance history: config events, proposers, AD-5', () => {
     const RUN = roleHash('RUN_SCRIPT_ROLE')
     const out = classifyAdminEvents(
       [
-        row({ emitter: AGENT, block: 50, event: 'RoleGranted', args: { role: RUN, roleName: 'RUN_SCRIPT_ROLE', account: VOTING } }),
-        row({ emitter: AGENT, block: 200, event: 'RoleGranted', args: { role: RUN, roleName: 'RUN_SCRIPT_ROLE', account: EXEC } }),
+        row({
+          emitter: AGENT,
+          block: 50,
+          event: 'RoleGranted',
+          args: { role: RUN, roleName: 'RUN_SCRIPT_ROLE', account: VOTING },
+        }),
+        row({
+          emitter: AGENT,
+          block: 200,
+          event: 'RoleGranted',
+          args: { role: RUN, roleName: 'RUN_SCRIPT_ROLE', account: EXEC },
+        }),
       ],
       actx({ ...m, [`${VOTING}@50`]: voting(), [`${VOTING}@200`]: voting() }, { fileFrom: 100 }),
     )
@@ -551,8 +743,15 @@ describe('Wormhole NTT rules', () => {
     expect(nttEffective(2, ['wormhole', 'axelar'])).toMatchObject({ E: 2, distinct: 2 })
     expect(nttEffective(2, ['wormhole', 'wormhole'])).toMatchObject({ E: 1, duplicate: 1 })
     expect(nttEffective(2, ['wormhole', null])).toMatchObject({ E: 1, unknown: 1 })
-    expect(classifyNttThreshold(2, 1, ['wormhole', 'axelar'])).toMatchObject({ severity: 'downgrade', floorBreach: true, ruleIds: ['BR-1', 'BR-2'] })
-    expect(classifyNttThreshold(1, 2, ['wormhole', 'axelar'])).toMatchObject({ severity: 'upgrade', floorBreach: false })
+    expect(classifyNttThreshold(2, 1, ['wormhole', 'axelar'])).toMatchObject({
+      severity: 'downgrade',
+      floorBreach: true,
+      ruleIds: ['BR-1', 'BR-2'],
+    })
+    expect(classifyNttThreshold(1, 2, ['wormhole', 'axelar'])).toMatchObject({
+      severity: 'upgrade',
+      floorBreach: false,
+    })
   })
   it('a transceiver added at the same threshold is AMBER wider set; a second one on the same network or an unknown one is BR-7', () => {
     const wider = classifyNttTransceiverAdded('axelar', ['wormhole', 'ccip'], 2, 2)
@@ -576,11 +775,56 @@ describe('Wormhole NTT rules', () => {
     const Z32 = '0x' + '0'.repeat(64)
     const out = classifyAdminEvents(
       [
-        row({ emitter: NTT, block: 1, event: 'TransceiverAdded', args: { transceiver: WH, transceiversNum: '1', threshold: '1', transceiverType: 'wormhole' } }),
-        row({ emitter: NTT, block: 1, logIndex: 1, event: 'ThresholdChanged', args: { oldThreshold: '0', threshold: '1' } }),
-        row({ emitter: NTT, block: 30, tx: '0x2', event: 'PeerUpdated', args: { chainId_: '4', oldPeerContract: Z32, oldPeerDecimals: '0', peerContract: P, peerDecimals: '18' } }),
-        row({ emitter: NTT, block: 40, tx: '0x3', event: 'TransceiverAdded', args: { transceiver: AX, transceiversNum: '2', threshold: '1', transceiverType: 'axelar' } }),
-        row({ emitter: NTT, block: 50, tx: '0x4', event: 'ThresholdChanged', args: { oldThreshold: '1', threshold: '2' } }),
+        row({
+          emitter: NTT,
+          block: 1,
+          event: 'TransceiverAdded',
+          args: {
+            transceiver: WH,
+            transceiversNum: '1',
+            threshold: '1',
+            transceiverType: 'wormhole',
+          },
+        }),
+        row({
+          emitter: NTT,
+          block: 1,
+          logIndex: 1,
+          event: 'ThresholdChanged',
+          args: { oldThreshold: '0', threshold: '1' },
+        }),
+        row({
+          emitter: NTT,
+          block: 30,
+          tx: '0x2',
+          event: 'PeerUpdated',
+          args: {
+            chainId_: '4',
+            oldPeerContract: Z32,
+            oldPeerDecimals: '0',
+            peerContract: P,
+            peerDecimals: '18',
+          },
+        }),
+        row({
+          emitter: NTT,
+          block: 40,
+          tx: '0x3',
+          event: 'TransceiverAdded',
+          args: {
+            transceiver: AX,
+            transceiversNum: '2',
+            threshold: '1',
+            transceiverType: 'axelar',
+          },
+        }),
+        row({
+          emitter: NTT,
+          block: 50,
+          tx: '0x4',
+          event: 'ThresholdChanged',
+          args: { oldThreshold: '1', threshold: '2' },
+        }),
       ],
       actx({}),
     )
@@ -601,8 +845,18 @@ describe('Wormhole NTT rules', () => {
   })
   it('a pauser moved to address(0) is MR-1', () => {
     const out = classifyAdminEvents(
-      [row({ emitter: NTT, block: 200, event: 'PauserTransferred', args: { oldPauser: SAFE, newPauser: ZERO } })],
-      actx({ [`${SAFE}@199`]: { kind: 'safe', address: SAFE, threshold: 3, signers: 5 }, [`${ZERO}@200`]: { kind: 'zero', address: ZERO } }),
+      [
+        row({
+          emitter: NTT,
+          block: 200,
+          event: 'PauserTransferred',
+          args: { oldPauser: SAFE, newPauser: ZERO },
+        }),
+      ],
+      actx({
+        [`${SAFE}@199`]: { kind: 'safe', address: SAFE, threshold: 3, signers: 5 },
+        [`${ZERO}@200`]: { kind: 'zero', address: ZERO },
+      }),
     )
     expect(out[0].ruleIds).toContain('MR-1')
   })
@@ -620,7 +874,11 @@ describe('collector readers: Dual Governance proposals, NTT, canonical bridges, 
     })
     const d = { now: 2_000_000, afterSubmitDelaySec: 259200, afterScheduleDelaySec: 86400 }
     const submitted = dgProposalOp(EPT, p(1, 1_990_000), d)
-    expect(submitted).toMatchObject({ kind: 'dg', status: 'submitted', timestamp: 1_990_000 + 259200 + 86400 })
+    expect(submitted).toMatchObject({
+      kind: 'dg',
+      status: 'submitted',
+      timestamp: 1_990_000 + 259200 + 86400,
+    })
     // submitted long ago: still needs scheduling + the after-schedule delay
     expect(dgProposalOp(EPT, p(1, 100), d).timestamp).toBe(2_000_000 + 86400)
     expect(dgProposalOp(EPT, p(2, 100, 1_000_000), d).timestamp).toBe(1_086_400)
@@ -632,7 +890,13 @@ describe('collector readers: Dual Governance proposals, NTT, canonical bridges, 
   it('readDgProposals keeps only open proposals and simulates a scheduled one past its delay', async () => {
     const calls: string[] = []
     const prop = (id: number, status: number, sub: number, sch: number) => [
-      { id: BigInt(id), executor: EXEC, submittedAt: BigInt(sub), scheduledAt: BigInt(sch), status },
+      {
+        id: BigInt(id),
+        executor: EXEC,
+        submittedAt: BigInt(sub),
+        scheduledAt: BigInt(sch),
+        status,
+      },
       [{ target: AGENT, value: 0n, payload: '0xabcd' }],
     ]
     const c = fake({
@@ -640,7 +904,9 @@ describe('collector readers: Dual Governance proposals, NTT, canonical bridges, 
       reads: {
         [`${EPT}|getProposalsCount`]: 3n,
         [`${EPT}|getProposal`]: (args: bigint[]) =>
-          ({ 1: prop(1, 3, 10, 20), 2: prop(2, 2, 10, 20), 3: prop(3, 1, 1_999_000, 0) })[Number(args[0])],
+          ({ 1: prop(1, 3, 10, 20), 2: prop(2, 2, 10, 20), 3: prop(3, 1, 1_999_000, 0) })[
+            Number(args[0])
+          ],
         [`${EPT}|getAfterSubmitDelay`]: 259200,
         [`${EPT}|getAfterScheduleDelay`]: 86400,
         [`${EPT}|getGovernance`]: ZERO,
@@ -695,7 +961,7 @@ describe('collector readers: Dual Governance proposals, NTT, canonical bridges, 
       locked: { raw: '5000000000000000000', decimals: 18 },
       peers: { 4: { peer: PEER, decimals: 18 } },
     })
-    expect(n.transceivers.map((t: { type: string }) => t.type)).toEqual(['wormhole', 'axelar'])
+    expect(n.transceivers!.map((t) => t.type)).toEqual(['wormhole', 'axelar'])
   })
   it('readCanonicalBridge: a switch the bridge lacks is undefined, a failed read null', async () => {
     const BR = A('5')
@@ -707,23 +973,46 @@ describe('collector readers: Dual Governance proposals, NTT, canonical bridges, 
         [`${BR}|isWithdrawalsEnabled`]: new Error('fetch failed'),
       },
       storage: {
-        [`${BR}|0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103`]: '0x' + '0'.repeat(24) + AGENT.slice(2),
+        [`${BR}|0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103`]:
+          '0x' + '0'.repeat(24) + AGENT.slice(2),
       },
     })
     const b = await readCanonicalBridge(c, BR, TOKEN)
-    expect(b).toMatchObject({ depositsEnabled: true, withdrawalsEnabled: null, admin: AGENT, locked: { raw: '7' } })
+    expect(b).toMatchObject({
+      depositsEnabled: true,
+      withdrawalsEnabled: null,
+      admin: AGENT,
+      locked: { raw: '7' },
+    })
     expect(b.ossified).toBeUndefined()
   })
   it('readParams count: a getter returning lists is judged on the length of the selected one', async () => {
     const c = fake({
       reads: {
-        [`${A('7')}|getMembers`]: [[A('1'), A('2'), A('3')], [1n, 2n, 3n]],
+        [`${A('7')}|getMembers`]: [
+          [A('1'), A('2'), A('3')],
+          [1n, 2n, 3n],
+        ],
         [`${A('7')}|list`]: [A('1'), A('2')],
       },
     })
     const out = await readParams(c, [
-      { key: 'm', contract: A('7'), sig: 'function getMembers() view returns (address[] addresses, uint256[] lastReportedRefSlots)', count: true, rule: 'quorum_members', label: 'm' },
-      { key: 'l', contract: A('7'), sig: 'function list() view returns (address[])', count: true, rule: 'info', label: 'l' },
+      {
+        key: 'm',
+        contract: A('7'),
+        sig: 'function getMembers() view returns (address[] addresses, uint256[] lastReportedRefSlots)',
+        count: true,
+        rule: 'quorum_members',
+        label: 'm',
+      },
+      {
+        key: 'l',
+        contract: A('7'),
+        sig: 'function list() view returns (address[])',
+        count: true,
+        rule: 'info',
+        label: 'l',
+      },
     ])
     expect(out).toEqual({ m: 3, l: 2 })
   })
@@ -733,7 +1022,10 @@ describe('queue: an Aragon Agent forward(EVMScript) inside a Dual Governance pro
   const script = (calls: { to: string; data: string }[]) =>
     '0x00000001' +
     calls
-      .map((c) => c.to.slice(2) + ((c.data.length - 2) / 2).toString(16).padStart(8, '0') + c.data.slice(2))
+      .map(
+        (c) =>
+          c.to.slice(2) + ((c.data.length - 2) / 2).toString(16).padStart(8, '0') + c.data.slice(2),
+      )
       .join('')
   const grantPermission = (entity: string, app: string, role: string) =>
     encodeFunctionData({
@@ -742,9 +1034,16 @@ describe('queue: an Aragon Agent forward(EVMScript) inside a Dual Governance pro
       args: [entity as Hx, app as Hx, role as Hx],
     })
   const forward = (s: string) =>
-    encodeFunctionData({ abi: parseAbi(['function forward(bytes evmScript)']), functionName: 'forward', args: [s as Hx] })
+    encodeFunctionData({
+      abi: parseAbi(['function forward(bytes evmScript)']),
+      functionName: 'forward',
+      args: [s as Hx],
+    })
   it('decodes spec-1 scripts and refuses truncated or foreign ones', () => {
-    const s = script([{ to: ACL, data: '0x12345678' }, { to: STETH, data: '0xaabb' }])
+    const s = script([
+      { to: ACL, data: '0x12345678' },
+      { to: STETH, data: '0xaabb' },
+    ])
     expect(decodeEvmScript(s)).toEqual([
       { target: ACL, value: '0', data: '0x12345678' },
       { target: STETH, value: '0', data: '0xaabb' },
@@ -762,7 +1061,11 @@ describe('queue: an Aragon Agent forward(EVMScript) inside a Dual Governance pro
     })
     const out = aragonCalls(
       [
-        { target: ACL, value: '0', data: grantPermission(EOA, STETH, roleHash('STAKING_CONTROL_ROLE')) },
+        {
+          target: ACL,
+          value: '0',
+          data: grantPermission(EOA, STETH, roleHash('STAKING_CONTROL_ROLE')),
+        },
         { target: KERNEL, value: '0', data: setApp },
       ],
       { [appId]: [STETH] },
@@ -779,7 +1082,15 @@ describe('queue: an Aragon Agent forward(EVMScript) inside a Dual Governance pro
       timelock: EPT,
       id: '15',
       calls: [
-        { target: AGENT, value: '0', data: forward(script([{ to: ACL, data: grantPermission(EOA, STETH, roleHash('STAKING_CONTROL_ROLE')) }])) },
+        {
+          target: AGENT,
+          value: '0',
+          data: forward(
+            script([
+              { to: ACL, data: grantPermission(EOA, STETH, roleHash('STAKING_CONTROL_ROLE')) },
+            ]),
+          ),
+        },
       ],
       predecessor: '0x' + '0'.repeat(64),
       delaySec: 345600,
@@ -823,13 +1134,41 @@ describe('engine: NTT and canonical bridge lines, DG delays on powers', () => {
     oracleAssetKey: null,
     class: 'lrt',
     contracts: [
-      { role: 'other', dimension: 'bridge', chainId: 1, address: NTT, label: 'ntt', deployBlock: 1 },
-      { role: 'other', dimension: 'bridge', chainId: 1, address: A('5'), label: 'arb', deployBlock: 1 },
-      { role: 'token', dimension: 'mint_redeem', chainId: 1, address: STETH, label: 'steth', deployBlock: 1 },
+      {
+        role: 'other',
+        dimension: 'bridge',
+        chainId: 1,
+        address: NTT,
+        label: 'ntt',
+        deployBlock: 1,
+      },
+      {
+        role: 'other',
+        dimension: 'bridge',
+        chainId: 1,
+        address: A('5'),
+        label: 'arb',
+        deployBlock: 1,
+      },
+      {
+        role: 'token',
+        dimension: 'mint_redeem',
+        chainId: 1,
+        address: STETH,
+        label: 'steth',
+        deployBlock: 1,
+      },
     ],
     lzOApps: [],
     ccipPools: [],
-    powers: [{ power: 'upgrade', contract: STETH, path: ['call:kernel()', 'acl_manager:APP_MANAGER_ROLE'], label: 'Upgrade stETH' }],
+    powers: [
+      {
+        power: 'upgrade',
+        contract: STETH,
+        path: ['call:kernel()', 'acl_manager:APP_MANAGER_ROLE'],
+        label: 'Upgrade stETH',
+      },
+    ],
     params: [],
     timelocks: [],
     safes: [],
@@ -851,7 +1190,12 @@ describe('engine: NTT and canonical bridge lines, DG delays on powers', () => {
       codeProbes: {},
       dvnSigner: [],
       dvnHead: {},
-      value: { priceUsd: 4000, priceBasis: 'wstETH registry consensus', locked: {}, remoteSupply: {} },
+      value: {
+        priceUsd: 4000,
+        priceBasis: 'wstETH registry consensus',
+        locked: {},
+        remoteSupply: {},
+      },
     },
     admin: {
       events: [],
@@ -886,7 +1230,17 @@ describe('engine: NTT and canonical bridge lines, DG delays on powers', () => {
         locked: { raw: '1000000000000000000000', decimals: 18 },
       },
     ],
-    canonical: [{ bridge: A('5'), token: TOKEN, locked: { raw: '2000000000000000000', decimals: 18 }, depositsEnabled: true, withdrawalsEnabled: false, ossified: false, admin: AGENT }],
+    canonical: [
+      {
+        bridge: A('5'),
+        token: TOKEN,
+        locked: { raw: '2000000000000000000', decimals: 18 },
+        depositsEnabled: true,
+        withdrawalsEnabled: false,
+        ossified: false,
+        admin: AGENT,
+      },
+    ],
     warnings: [],
   })
   const build = (r: RawSubject) =>
@@ -899,17 +1253,25 @@ describe('engine: NTT and canonical bridge lines, DG delays on powers', () => {
     const r1 = raw()
     r1.ntt![0].threshold = 1
     const bad = build(r1)
-    expect(bad.state.items.find((i) => i.key === `bridge/ntt/${NTT}`)!.breaches.map((b) => b.ruleId)).toEqual(['BR-2'])
+    expect(
+      bad.state.items.find((i) => i.key === `bridge/ntt/${NTT}`)!.breaches.map((b) => b.ruleId),
+    ).toEqual(['BR-2'])
     expect(bad.state.counts.floorBreaches).toBe(1)
     // two transceivers on ONE network count once
     const r2 = raw()
     r2.ntt![0].transceivers![1].type = 'wormhole'
-    expect(build(r2).state.items.find((i) => i.key === `bridge/ntt/${NTT}`)!.breaches.map((b) => b.ruleId)).toEqual(['BR-2', 'BR-7'])
+    expect(
+      build(r2)
+        .state.items.find((i) => i.key === `bridge/ntt/${NTT}`)!
+        .breaches.map((b) => b.ruleId),
+    ).toEqual(['BR-2', 'BR-7'])
   })
   it('canonical bridge line: locked, switches, proxy admin; NTT reads that failed are a read gap', () => {
     const out = build(raw())
     const c = out.state.items.find((i) => i.key === `bridge/canonical/${A('5')}`)!
-    expect(c.display).toMatch(/^Arbitrum canonical bridge 0x5555…5555 \(Lido\): 2 locked · deposits on · withdrawals OFF · proxy admin Aragon Agent/)
+    expect(c.display).toMatch(
+      /^Arbitrum canonical bridge 0x5555…5555 \(Lido\): 2 locked · deposits on · withdrawals OFF · proxy admin Aragon Agent/,
+    )
     const r = raw({ ntt: [{ ...raw().ntt![0], threshold: null }] })
     expect(build(r).state.readGaps?.join(' ')).toMatch(/NTT manager .* not read/)
   })
@@ -919,7 +1281,11 @@ describe('engine: NTT and canonical bridge lines, DG delays on powers', () => {
     const item = out.state.items.find((i) => i.key === `admin/power/upgrade/${STETH}`)!
     expect(item.breaches).toEqual([])
     const em = build(raw({ emergency: true }))
-    expect(em.state.items.find((i) => i.key === `admin/power/upgrade/${STETH}`)!.breaches.map((b) => b.ruleId)).toEqual(['AD-2'])
+    expect(
+      em.state.items
+        .find((i) => i.key === `admin/power/upgrade/${STETH}`)!
+        .breaches.map((b) => b.ruleId),
+    ).toEqual(['AD-2'])
   })
 })
 
@@ -950,7 +1316,8 @@ describe('subjects.json: the wstETH subject', () => {
     h.subjects.find((x: ConfigSubject) => x.key === 'wsteth').nttManagers = ['0x' + '9'.repeat(40)]
     expect(() => parseSubjects(h)).toThrow(/not a declared contract/)
     const k = f()
-    k.subjects.find((x: ConfigSubject) => x.key === 'wsteth').canonicalBridges[0].address = '0x' + '9'.repeat(40)
+    k.subjects.find((x: ConfigSubject) => x.key === 'wsteth').canonicalBridges[0].address =
+      '0x' + '9'.repeat(40)
     expect(() => parseSubjects(k)).toThrow(/bridge .* is not a declared contract/)
   })
 })

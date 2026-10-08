@@ -39,17 +39,22 @@ import {
 import {
   aragonExecCandidatesFromRows,
   classify,
+  dgCommitteeAddresses,
   opsFromEvents,
   readCanonicalBridge,
   readCcipPool,
   readDgProposals,
   readMultisigSubmissions,
   readNtt,
+  readNttRemote,
   readOps,
   resolvePath,
   roleHoldersFromEvents,
   setAragonExecCandidates,
   subjectExtraEmitters,
+  TIMELOCK_SCOPE_ROLES,
+  WORMHOLE_EVM_CHAINS,
+  nttRemoteTargets,
 } from './lib/admin.mjs'
 import {
   ETH,
@@ -223,7 +228,9 @@ let adminRows = (
 // they act on (SetPermission → RoleGranted / RoleRevoked, SetApp → Upgraded; abi.mjs aragonRows).
 for (const acl of [...new Set(subjects.map((s) => s.aragonAcl).filter(Boolean))]) {
   const dep = Math.min(
-    ...subjects.flatMap((s) => s.contracts.filter((c) => c.address === acl).map((c) => c.deployBlock)),
+    ...subjects.flatMap((s) =>
+      s.contracts.filter((c) => c.address === acl).map((c) => c.deployBlock),
+    ),
   )
   if (dep >= adminFrom) continue
   const pre = await scanLogs({
@@ -264,13 +271,23 @@ const resolveAll = async () => {
     const out = []
     for (const p of s.powers) {
       try {
+        const trail = new Set()
         const holders = await resolvePath(client, {
           endpoint: ETH.endpoint,
           contract: p.contract,
           path: p.path,
           roleMap,
+          trail,
         })
-        out.push({ power: p.power, label: p.label, contract: p.contract, holders })
+        // the path's intermediate hops (a ProxyAdmin): scanned and in scope (review round 7)
+        const via = [...trail].filter((a) => a !== lc(p.contract) && !holders.includes(a))
+        out.push({
+          power: p.power,
+          label: p.label,
+          contract: p.contract,
+          holders,
+          ...(via.length ? { via } : {}),
+        })
       } catch (e) {
         out.push({
           power: p.power,
@@ -348,8 +365,38 @@ for (const e of [...lzEvents, ...adminRows, ...dvnRows]) e.ts = tsMap[e.block]
 
 // ---- 6. LZ head reads + metadata ----------------------------------------------------------------------
 const eidSet = new Set([30101, ...lzEvents.filter((e) => e.eid !== undefined).map((e) => e.eid)])
+// An --only run keeps every chain the earlier runs detailed: the file is shared, and the other
+// subjects' cards read their DVN registries from it (a wstETH-only run, which has no LayerZero
+// route, rewrote it down to Ethereum alone).
+if (ONLY.length)
+  try {
+    const prevMeta = JSON.parse(readFileSync(join(DIR, 'lz-metadata.json'), 'utf8'))
+    for (const k of Object.keys(prevMeta.chains ?? {})) eidSet.add(Number(k))
+  } catch {
+    /* first run */
+  }
 const raw = await fetchLzMetadata(CACHE)
-const metadata = compactLzMetadata(raw, eidSet, new Date().toISOString())
+let metadata = compactLzMetadata(raw, eidSet, new Date().toISOString())
+// the chains of every Wormhole NTT peer: their public RPCs read the remote manager (section 9b)
+{
+  const nttEvm = new Set(
+    adminRows
+      .filter(
+        (r) =>
+          r.event === 'PeerUpdated' &&
+          subjects.some((s) => (s.nttManagers ?? []).includes(r.emitter)),
+      )
+      .map((r) => WORMHOLE_EVM_CHAINS[Number(r.args.chainId_)])
+      .filter(Boolean),
+  )
+  const need = Object.entries(metadata.eids)
+    .filter(([e, x]) => nttEvm.has(Number(x.chainId)) && !eidSet.has(Number(e)))
+    .map(([e]) => Number(e))
+  if (need.length) {
+    need.forEach((e) => eidSet.add(e))
+    metadata = compactLzMetadata(raw, eidSet, new Date().toISOString())
+  }
+}
 writeJson(join(DIR, 'lz-metadata.json'), metadata)
 const registry = registryOf(metadata)
 const headRoutes = new Map()
@@ -637,11 +684,19 @@ const controllers = {}
 const want = new Set()
 const wantAt = new Set()
 for (const s of subjects)
-  for (const p of powerReads.get(s.key)) for (const h of p.holders) want.add(h)
+  for (const p of powerReads.get(s.key))
+    for (const h of [...p.holders, ...(p.via ?? [])]) want.add(h)
 for (const a of [...Object.values(owners), ...Object.values(delegates)]) want.add(a)
+// every proposer / executor / canceller / admin of a declared timelock is classified at head:
+// its Safe fields are diffed run to run (review round 7: the Ethena EXECUTOR Safe was scanned
+// for events but missing from the snapshot)
 for (const t of subjects.flatMap((s) => s.timelocks))
-  for (const role of ['TIMELOCK_ADMIN_ROLE', 'DEFAULT_ADMIN_ROLE', 'PROPOSER_ROLE'])
+  for (const role of TIMELOCK_SCOPE_ROLES)
     for (const h of roleMap.get(`${t}|${roleHash(role)}`) ?? []) want.add(h)
+// every declared Safe is classified at head (wstETH: the Dual Governance emergency committees are
+// declared but sit on no power path — without this they never reached the card or the run-to-run
+// Safe snapshot)
+for (const s of subjects) for (const a of s.safes) want.add(lc(a))
 // the previous CCIP token administrator is the one the last AdministratorTransferred set: classify
 // it one block before the next transfer (the event names only the new one)
 const prevCcipAdminOf = new Map()
@@ -709,8 +764,10 @@ const dgPrevSig = {
   GovernanceSet: 'function getGovernance() view returns (address)',
   AdminExecutorSet: 'function getAdminExecutor() view returns (address)',
   EmergencyGovernanceSet: 'function getEmergencyGovernance() view returns (address)',
-  EmergencyActivationCommitteeSet: 'function getEmergencyActivationCommittee() view returns (address)',
-  EmergencyExecutionCommitteeSet: 'function getEmergencyExecutionCommittee() view returns (address)',
+  EmergencyActivationCommitteeSet:
+    'function getEmergencyActivationCommittee() view returns (address)',
+  EmergencyExecutionCommitteeSet:
+    'function getEmergencyExecutionCommittee() view returns (address)',
   ProposalsCancellerSet: 'function getProposalsCanceller() view returns (address)',
   ResealCommitteeSet: 'function getResealCommittee() view returns (address)',
   ConfigProviderSet: 'function getConfigProvider() view returns (address)',
@@ -722,7 +779,14 @@ const dgPrevSig = {
 for (const r of adminRows) {
   if (dgPrevSig[r.event]) {
     const sig = dgPrevSig[r.event]
-    const x = await tryRead(client, r.emitter, fnAbi(sig), sig.match(/function (\w+)/)[1], [], r.block - 1)
+    const x = await tryRead(
+      client,
+      r.emitter,
+      fnAbi(sig),
+      sig.match(/function (\w+)/)[1],
+      [],
+      r.block - 1,
+    )
     const v = x.ok ? (x.value?.tiebreakerCommittee ?? x.value) : null
     r.prev = v === null || v === undefined ? null : typeof v === 'string' ? lc(v) : String(v)
     if (r.prev && /^0x[0-9a-f]{40}$/.test(r.prev)) wantAt.add(`${r.prev}@${r.block - 1}`)
@@ -823,10 +887,60 @@ log(`controllers: ${want.size} at head, ${wantAt.size} at event blocks`)
 await pool([...want], 4, async (a) => {
   controllers[`${a}@head`] = await classify(client, a)
 })
+// the Dual Governance committees and canceller the head controllers name (classified below with
+// the other late additions to `want`)
+for (const c of Object.values(controllers)) for (const a of dgCommitteeAddresses(c)) want.add(a)
 // A classification at a past block never changes: cache it across runs. v2 = classification
 // from the code (canonical Safe singleton, timelock dispatch table, bypass paths).
 const AT_CACHE = join(CACHE, 'controllers-at-v2.json')
 const atCache = existsSync(AT_CACHE) ? JSON.parse(readFileSync(AT_CACHE, 'utf8')) : {}
+// Review round 8: the holders a role grant is ranked against are classified AT the grant block.
+// The replay fell back to their head classification (or, with none, to "not ranked against") —
+// and the head now covers every current holder with code (below), so the fallback would rank a
+// past grant against today's holder. Only PRIVILEGED roles (and roles that administer others)
+// are ranked; a holder that was a plain EOA when granted is skipped (it ranks as an EOA).
+const rulesTs = await loadTs('../../../../lib/oracleRegistry/config/rules.ts')
+const adminRoleNames = new Map()
+for (const r of adminRows)
+  if (r.event === 'RoleAdminChanged')
+    adminRoleNames.set(
+      r.emitter,
+      new Set([
+        ...(adminRoleNames.get(r.emitter) ?? []),
+        String(r.args.newAdminRoleName ?? roleName(r.args.newAdminRole)),
+      ]),
+    )
+const rankedRole = (r) => {
+  const name = String(r.args.roleName ?? roleName(r.args.role))
+  return rulesTs.isPrivilegedRole(name) || !!adminRoleNames.get(r.emitter)?.has(name)
+}
+{
+  const held = new Map()
+  const grantedAt = new Map()
+  for (const r of [...adminRows].sort((a, b) => a.block - b.block || a.logIndex - b.logIndex)) {
+    if (r.event !== 'RoleGranted' && r.event !== 'RoleRevoked') continue
+    const k = `${r.emitter}|${lc(r.args.role)}`
+    const acct = lc(r.args.account)
+    const set = held.get(k) ?? new Set()
+    if (r.event === 'RoleGranted' && rankedRole(r)) {
+      for (const h of set) {
+        if (h === acct) continue
+        const own = atCache[`${h}@${grantedAt.get(`${k}|${h}`)}`]
+        if (own && (own.kind === 'eoa' || own.kind === 'eoa_7702')) continue
+        wantAt.add(`${h}@${r.block}`)
+      }
+    }
+    if (r.event === 'RoleGranted') {
+      set.add(acct)
+      if (!grantedAt.has(`${k}|${acct}`)) grantedAt.set(`${k}|${acct}`, r.block)
+    } else {
+      set.delete(acct)
+      grantedAt.delete(`${k}|${acct}`)
+    }
+    held.set(k, set)
+  }
+  log(`role holders at their grant blocks: ${wantAt.size} at event blocks in all`)
+}
 await pool([...wantAt], 6, async (k) => {
   if (atCache[k]) return void (controllers[k] = atCache[k])
   const [a, b] = k.split('@')
@@ -925,6 +1039,40 @@ for (const s of subjects)
 const multisigReads = new Map()
 for (const ms of multisigs) {
   const r = await readMultisigSubmissions(client, ms)
+  // When each pending transaction was submitted (review round 7: WBTC's pending rows showed
+  // "—" for block and date, so a 2019 submission read like a fresh one): its Submission event,
+  // scanned from the multisig's first block with code. Unfound ⇒ the row says so.
+  if (r.status === 'ok' && r.rows.length) {
+    try {
+      const fc = await firstCodeBlocks(client, [ms], () => 0, head)
+      const from = fc[ms]?.firstCode ?? 0
+      const subs = await scanLogs({
+        client: logs,
+        chainId: 1,
+        addresses: [ms],
+        topics0: [TOPIC.Submission],
+        from,
+        to: head,
+        cacheDir: CACHE,
+        span: 1_000_000,
+      })
+      const at = new Map(subs.map((x) => [Number(x.args.transactionId), x]))
+      const ts = await blockTimestamps(
+        client,
+        r.rows.map((row) => at.get(row.txId)?.block).filter((b) => b !== undefined),
+        join(CACHE, 'ts-1.json'),
+      )
+      for (const row of r.rows) {
+        const x = at.get(row.txId)
+        if (!x) continue
+        row.block = x.block
+        row.tx = x.tx
+        row.ts = ts[x.block]
+      }
+    } catch (e) {
+      ctx.warnings.push(`multisig ${ms}: submission blocks not read (${scrub(e?.message)})`)
+    }
+  }
   multisigReads.set(ms, r)
   log(
     `  MultiSigWallet ${ms.slice(0, 10)}…: ${r.status === 'ok' ? `${r.rows.length} submitted, unexecuted` : `submissions NOT read (${r.note})`}`,
@@ -966,15 +1114,84 @@ for (const m of [...new Set(subjects.flatMap((s) => s.nttManagers ?? []))]) {
         .map((r) => Number(r.args.chainId_)),
     ),
   ]
-  nttReads[m] = await readNtt(client, m, chains)
+  // review round 8: every EVM chain Wormhole maps is read too — a false-empty PeerUpdated scan
+  // must not leave the manager with no live route (and the floor switched off)
+  nttReads[m] = await readNtt(
+    client,
+    m,
+    chains,
+    Object.keys(WORMHOLE_EVM_CHAINS)
+      .map(Number)
+      .filter((c) => c !== 2),
+  )
   for (const a of [nttReads[m].owner, nttReads[m].pauser]) if (a) want.add(a)
-  log(`  NTT ${m.slice(0, 10)}…: threshold ${nttReads[m].threshold} of ${nttReads[m].transceivers?.length ?? '?'}`)
+  log(
+    `  NTT ${m.slice(0, 10)}…: threshold ${nttReads[m].threshold} of ${nttReads[m].transceivers?.length ?? '?'}`,
+  )
+  // the remote side of each live peer (threshold, transceivers, owner, bridged supply), read with
+  // that chain's public RPCs; unread sides say why (the engine counts them as read gaps)
+  if (!flag('no-remote')) {
+    const remoteSides = []
+    for (const t of nttRemoteTargets(nttReads[m])) {
+      const chain = t.chainId
+        ? Object.values(metadata.chains).find((c) => c.evm && Number(c.chainId) === t.chainId)
+        : null
+      const base = {
+        wormholeChainId: t.wormholeChainId,
+        chainId: t.chainId,
+        chainKey: chain?.chainKey ?? null,
+      }
+      const unread = (reason) => remoteSides.push({ ...base, status: 'remote_unread', reason })
+      if (!t.chainId) {
+        unread(`Wormhole chain ${t.wormholeChainId} is not mapped to an EVM chain`)
+        continue
+      }
+      if (!chain) {
+        unread(`no public RPC list for chain ${t.chainId}`)
+        continue
+      }
+      const rc = await clientForChain(chain)
+      if (!rc) {
+        unread('no working public RPC')
+        continue
+      }
+      try {
+        remoteSides.push(await readNttRemote(rc, { ...base, peer: t.peer }))
+      } catch (e) {
+        unread(scrub(e?.shortMessage || e?.message))
+      }
+    }
+    nttReads[m].remote = remoteSides
+    for (const r of remoteSides)
+      log(
+        `    remote ${r.chainKey ?? r.wormholeChainId}: ${r.status === 'ok' ? `threshold ${r.threshold} of ${r.transceivers?.length ?? '?'}` : `REMOTE UNREAD (${r.reason})`}`,
+      )
+  }
 }
 const canonicalReads = {}
 for (const b of subjects.flatMap((s) => s.canonicalBridges ?? [])) {
   if (canonicalReads[b.address]) continue
   canonicalReads[b.address] = await readCanonicalBridge(client, b.address, b.token)
   if (canonicalReads[b.address].admin) want.add(canonicalReads[b.address].admin)
+}
+// Review round 8 (on-chain #1): every CURRENT role holder that had code when it was granted is
+// classified at head too — the engine re-judges the grant on the account as it is now (an MCMS
+// whose owner moved from a key to a timelock; a Safe whose threshold changed). A holder that was
+// a plain EOA when granted has no controller to change.
+{
+  const grantBlock = new Map()
+  for (const r of adminRows)
+    if (r.event === 'RoleGranted' && rankedRole(r))
+      grantBlock.set(`${r.emitter}|${lc(r.args.role)}|${lc(r.args.account)}`, r.block)
+  for (const [k, set] of roleMap)
+    for (const h of set) {
+      const b = grantBlock.get(`${k}|${h}`)
+      // not a privileged role (no grant recorded as ranked): the engine never re-judges it
+      if (b === undefined) continue
+      const c = controllers[`${h}@${b}`]
+      if (c && (c.kind === 'eoa' || c.kind === 'eoa_7702')) continue
+      want.add(h)
+    }
 }
 await pool(
   [...want].filter((a) => !controllers[`${a}@head`]),
@@ -1328,7 +1545,9 @@ for (const s of subjects) {
       })(),
     },
     ccip: { pools: s.ccipPools.map((p) => ccipPools[p]).filter(Boolean) },
-    ...(s.nttManagers?.length ? { ntt: s.nttManagers.map((m) => nttReads[m]).filter(Boolean) } : {}),
+    ...(s.nttManagers?.length
+      ? { ntt: s.nttManagers.map((m) => nttReads[m]).filter(Boolean) }
+      : {}),
     ...(s.canonicalBridges?.length
       ? { canonical: s.canonicalBridges.map((b) => canonicalReads[b.address]).filter(Boolean) }
       : {}),

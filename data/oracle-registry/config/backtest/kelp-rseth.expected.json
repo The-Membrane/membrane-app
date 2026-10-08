@@ -791,8 +791,8 @@
    "tags": [
     "send_side"
    ],
-   "before": "blocked (dead_dvn)",
-   "after": "blocked (dead_dvn)"
+   "before": "blocked (dead_dvn) · peer 0x4186bfc7…0000",
+   "after": "blocked (dead_dvn) · peer 0x4186…b41f"
   },
   {
    "id": "1:0x02f2baf36b37ef79e16eafbf7970e16224bbcbc2e2a622ece4c9e3a8d98b6152:89:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:receive",
@@ -807,8 +807,8 @@
     "BR-6"
    ],
    "tags": [],
-   "before": "blocked (dead_dvn)",
-   "after": "blocked (dead_dvn)"
+   "before": "blocked (dead_dvn) · peer 0x4186bfc7…0000",
+   "after": "blocked (dead_dvn) · peer 0x4186…b41f"
   },
   {
    "id": "1:0x90770c411af3a8bf225214622f1b175a241939e47f1244475a23b5cbd68e2fab:127:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:receive",
@@ -1316,8 +1316,8 @@
    "tags": [
     "send_side"
    ],
-   "before": "blocked (dead_dvn)",
-   "after": "blocked (dead_dvn)"
+   "before": "blocked (dead_dvn) · peer 0x9eca…d9f1",
+   "after": "blocked (dead_dvn) · peer 0xd757…99b1"
   },
   {
    "id": "1:0x80b95be7c34feb4bde38875baeac97d54b3517b7ec045afe5400e379db5b5c93:255:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:receive",
@@ -1332,8 +1332,8 @@
     "BR-6"
    ],
    "tags": [],
-   "before": "blocked (dead_dvn)",
-   "after": "blocked (dead_dvn)"
+   "before": "blocked (dead_dvn) · peer 0x9eca…d9f1",
+   "after": "blocked (dead_dvn) · peer 0xd757…99b1"
   },
   {
    "id": "1:0xc559ced65077bc53ed22dafca2690b9d509b1f26a807ef36780745dd8a3a5b10:95:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:send",
@@ -1387,8 +1387,8 @@
    "tags": [
     "send_side"
    ],
-   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 42 conf",
-   "after": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 42 conf"
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 42 conf · peer 0x1e4c9341…552c",
+   "after": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 42 conf · peer 0xe34b5a63…fe81"
   },
   {
    "id": "1:0xcb1f1323f9b19146c07c2e40f951c3884a57695138b494da8e90933473673a7b:633:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:receive",
@@ -1403,8 +1403,8 @@
     "BR-6"
    ],
    "tags": [],
-   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 1000000 conf",
-   "after": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 1000000 conf"
+   "before": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 1000000 conf · peer 0x1e4c9341…552c",
+   "after": "E=2 · 2-of-2 (layerzero-labs, nethermind) · 1000000 conf · peer 0xe34b5a63…fe81"
   },
   {
    "id": "1:0x911d563eeda3c5d926a7a66cfaa97340cd6df18baf769fcf35d3baf176a920f9:343:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30367:send",
@@ -1788,8 +1788,8 @@
    "tags": [
     "send_side"
    ],
-   "before": "blocked (dead_dvn)",
-   "after": "blocked (dead_dvn)"
+   "before": "blocked (dead_dvn) · peer 0 (none)",
+   "after": "blocked (dead_dvn) · peer 0x85d4…8ef3"
   },
   {
    "id": "130:0x31ea2b10a738ca91f77468fdb4d20e94fcae3df6522494de6409ec1315bb8443:0:0xc3eacf0612346366db554c991d7858716db09f58:30101:receive",
@@ -1802,8 +1802,8 @@
    "red": false,
    "rules": [],
    "tags": [],
-   "before": "blocked (dead_dvn)",
-   "after": "blocked (dead_dvn)"
+   "before": "blocked (dead_dvn) · peer 0 (none)",
+   "after": "blocked (dead_dvn) · peer 0x85d4…8ef3"
   },
   {
    "id": "130:0xd8ef5416a532d92f9b7a04230285d1b81b3e73e84270641a34b83999b48152f4:8:0xc3eacf0612346366db554c991d7858716db09f58:30101:send",
@@ -2639,8 +2639,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30111:receive",
@@ -2656,8 +2656,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:send",
@@ -2674,8 +2674,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30217:receive",
@@ -2691,8 +2691,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30260:send",
@@ -2709,8 +2709,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30260:receive",
@@ -2726,8 +2726,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30243:send",
@@ -2744,8 +2744,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30243:receive",
@@ -2761,8 +2761,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30214:send",
@@ -2779,8 +2779,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x6542…1b66",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30214:receive",
@@ -2796,8 +2796,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x6542…1b66",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30183:send",
@@ -2814,8 +2814,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30183:receive",
@@ -2831,8 +2831,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30274:send",
@@ -2849,8 +2849,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x1b3a…a0f9",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30274:receive",
@@ -2866,8 +2866,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x1b3a…a0f9",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30165:send",
@@ -2884,8 +2884,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x6be2…7236",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30165:receive",
@@ -2901,8 +2901,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x6be2…7236",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30303:send",
@@ -2919,8 +2919,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30303:receive",
@@ -2936,8 +2936,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30335:send",
@@ -2954,8 +2954,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc3ea…9f58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30335:receive",
@@ -2971,8 +2971,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc3ea…9f58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30329:send",
@@ -2989,8 +2989,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc3ea…9f58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30329:receive",
@@ -3006,8 +3006,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc3ea…9f58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30362:send",
@@ -3024,8 +3024,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30362:receive",
@@ -3041,8 +3041,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:send",
@@ -3059,8 +3059,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xd757…99b1",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30332:receive",
@@ -3076,8 +3076,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xd757…99b1",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30367:send",
@@ -3094,8 +3094,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xa321…bade",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30367:receive",
@@ -3111,8 +3111,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xa321…bade",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30320:send",
@@ -3129,8 +3129,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc3ea…9f58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30320:receive",
@@ -3146,8 +3146,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc3ea…9f58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30377:send",
@@ -3164,8 +3164,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x9eca…d9f1",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30377:receive",
@@ -3181,8 +3181,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x9eca…d9f1",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30106:send",
@@ -3199,8 +3199,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc430…1363",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30106:receive",
@@ -3216,8 +3216,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc430…1363",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30383:send",
@@ -3234,8 +3234,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x9eca…d9f1",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30383:receive",
@@ -3251,8 +3251,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x9eca…d9f1",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30396:send",
@@ -3269,8 +3269,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x9eca…d9f1",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30396:receive",
@@ -3286,8 +3286,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x9eca…d9f1",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30398:send",
@@ -3304,8 +3304,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc3ea…9f58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30398:receive",
@@ -3321,8 +3321,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc3ea…9f58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30390:send",
@@ -3339,8 +3339,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x1bda…ea58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30390:receive",
@@ -3356,8 +3356,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x1bda…ea58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:send",
@@ -3374,8 +3374,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 64 conf",
-   "after": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 64 conf"
+   "before": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 64 conf · peer 0xe34b5a63…fe81",
+   "after": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x8221d92186d0c0cfe5c1afde50c96525320268b5897ea1533ac6c1a9aebf5a0c:121:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30325:receive",
@@ -3391,8 +3391,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 30000 conf",
-   "after": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 30000 conf"
+   "before": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 30000 conf · peer 0xe34b5a63…fe81",
+   "after": "E=4 · 4-of-4 (horizen-labs, layerzero-labs, nethermind, p2p) · 30000 conf · peer 0 (none)"
   },
   {
    "id": "1:0x2bc8e5d6413788443b6ac0696c74dc5d28df50030479cab763d82f916ef4df9d:502:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30110:send",
@@ -3489,8 +3489,8 @@
     "send_side",
     "route_removed"
    ],
-   "before": "BlockedMessageLib (route closed)",
-   "after": "BlockedMessageLib (route closed)"
+   "before": "BlockedMessageLib (route closed) · peer 0xc3ea…9f58",
+   "after": "BlockedMessageLib (route closed) · peer 0 (none)"
   },
   {
    "id": "1:0xac476ef147431c4cd284c82a19ca37efedf040e5b7b55ce50dd4ed83d8cbfb5b:884:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30339:receive",
@@ -3506,8 +3506,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0xc3ea…9f58",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0x06a8fdad75d6491d398e80eaca0f1116a4a618667181a2723834c9bf8b219d0d:307:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30181:send",
@@ -3523,8 +3523,8 @@
     "send_side",
     "route_removed"
    ],
-   "before": "BlockedMessageLib (route closed)",
-   "after": "BlockedMessageLib (route closed)"
+   "before": "BlockedMessageLib (route closed) · peer 0x4186…b41f",
+   "after": "BlockedMessageLib (route closed) · peer 0 (none)"
   },
   {
    "id": "1:0x06a8fdad75d6491d398e80eaca0f1116a4a618667181a2723834c9bf8b219d0d:307:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30181:receive",
@@ -3540,8 +3540,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x4186…b41f",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   },
   {
    "id": "1:0xa306c0455abf5ce83fa4aaa59fe44f8affe12b24702b7f4eb96d8a12c29b0cb2:679:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30184:send",
@@ -3557,8 +3557,8 @@
     "send_side",
     "route_removed"
    ],
-   "before": "BlockedMessageLib (route closed)",
-   "after": "BlockedMessageLib (route closed)"
+   "before": "BlockedMessageLib (route closed) · peer 0x1bc7…5993",
+   "after": "BlockedMessageLib (route closed) · peer 0 (none)"
   },
   {
    "id": "1:0xa306c0455abf5ce83fa4aaa59fe44f8affe12b24702b7f4eb96d8a12c29b0cb2:679:0x85d456b2dff1fd8245387c0bfb64dfb700e98ef3:30184:receive",
@@ -3574,8 +3574,8 @@
     "route_removed",
     "inactive_route"
    ],
-   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf",
-   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf"
+   "before": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0x1bc7…5993",
+   "after": "E=4 · 4-of-4 (canary, horizen-labs, layerzero-labs, nethermind) · 64 conf · peer 0 (none)"
   }
  ]
 }

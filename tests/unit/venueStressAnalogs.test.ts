@@ -754,8 +754,9 @@ describe('cash vs book (owner ruling 2026-10-07)', () => {
 })
 
 describe('cash vs book — a book larger than the venue (review 2026-10-07)', () => {
-  // Idle cash $200,000 on a $1M supply all along: f = 20%. A book above the supply could not
-  // exist there (Membrane's deposit is part of it) — and only such a book gets m < f.
+  // Idle cash $200,000 on a $1M supply all along: f = 20%. A book above the supply has no
+  // analog in the observed history (if Membrane's deposit added to the supply, the venue would
+  // have been a different venue) — and only such a book gets m < f.
   const s = series(fill(200, 0.2))
   const one = [win('w', T0 + 20 * H)]
   const books = [

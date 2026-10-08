@@ -155,14 +155,18 @@
  *    (i)   the whole book recalls at once, at the onset — conservative: in practice only the
  *          positions that breach recall, and only down to their borrow LTV;
  *    (ii)  the observed cash is first come within the hour and already NET of every other
- *          depositor who withdrew in that hour (it is what was left after them);
+ *          depositor who withdrew in that hour (it is what was left after them). NOT for
+ *          the MetaMorpho vault: its cash is its pro-rata share of each market's idle cash,
+ *          not cash it is first in line for, so its levels are conservative on (ii)
+ *          (VAULT_CASH_NOTE, said in each of its rows);
  *    (iii) Membrane's recall does not itself trigger a run on the venue;
  *    (iv)  the engine's stock never refills across the horizon.
  *  The pro-rata f stays as the FLOOR (every depositor exits at once).
  *  BOOK EXCEEDS THE VENUE (`bookExceedsVenue`, review 2026-10-07): on the same window, m8 < f8
  *  means cash / B < cash / supply at the reading that sets m8 (its held cash also bounds f8
- *  there), so B is larger than the venue's WHOLE supply in that window. Membrane's deposit is
- *  part of that supply, so such a book could not exist at the venue: the row is kept (one per
+ *  there), so B is larger than the venue's WHOLE supply in that window. The observed history is
+ *  not an analog for a book that large (if Membrane's deposit added to the supply, the venue
+ *  would have been a different venue; parent ruling 2026-10-07): the row is kept (one per
  *  venue × book × level, owner ruling 2026-10-07) but flagged in its label and provenance,
  *  and it is the one case where the headline pays less than the floor on the same event. On
  *  the data that is only $250M books at venues whose supply was under $250M (Steakhouse,
@@ -1409,7 +1413,7 @@ function bookPresetFrom(
   const f8 = w.minFHeld.h8
   const bookExceedsVenue = m < f8
   const exceeds = bookExceedsVenue
-    ? ` The ${usdText(bookUsd)} book exceeds the venue's whole supply in that window (the floor's f is ${fracText(f8)}): it could not exist there.`
+    ? ` The ${usdText(bookUsd)} book exceeds the venue's whole supply in that window (the floor's f is ${fracText(f8)}): the observed history is not an analog for a book that large.`
     : ''
   return {
     id,
@@ -1563,6 +1567,10 @@ export function exitCapacityAnalogRows(
   return out
 }
 
+/** Assumption (ii) does not hold for a MetaMorpho vault (module header): said in its rows. */
+const VAULT_CASH_NOTE =
+  "; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative"
+
 /**
  * The cash-vs-book table as the stress engine's HEADLINE preset rows, ids
  * '<venue>-<book>-<level>' (exitCapacityAnalogs.ts header). Every venue of `venues` × every
@@ -1603,12 +1611,12 @@ export function exitCapacityBookRows(
           : ''
         // Module header, BOOK EXCEEDS THE VENUE: said in the row itself, never only in a doc.
         const exceeds = p.bookExceedsVenue
-          ? ` Book exceeds the venue: ${bk.label} is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays ${fracText(p.f8)} on the same event.`
+          ? ` Book exceeds the venue: ${bk.label} is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays ${fracText(p.f8)} on the same event.`
           : ''
         const provenance =
           `${v.name}, ${bk.label} book, ${rankText(level, p.n, p.rank)} ${p.range.fromIso.slice(0, 7)} → ${p.range.toIso.slice(0, 7)}: ` +
           `${e.shortLabel} (onset ${p.source.onsetIso}). ${sentence(cover)}${lock}. ` +
-          `Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers${v.asset === 'eth' ? '; an ETH supply market' : ''}.` +
+          `Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers${v.asset === 'eth' ? '; an ETH supply market' : ''}${v.venue.startsWith('morpho-') ? VAULT_CASH_NOTE : ''}.` +
           exceeds +
           (p.horizonCensored ? " The 72 h horizon runs past the data's end." : '')
         out.push({

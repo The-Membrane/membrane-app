@@ -1237,6 +1237,12 @@ function report() {
           n: r.n,
           from: r.from,
           to: r.to,
+          // A cash-vs-book level whose book is larger than the venue's whole supply in the
+          // window, and that window's floor f: the memo's flagged list traces to this file
+          // (claims refuter round 3, 2026-10-07).
+          ...(r.model === 'cash-vs-book'
+            ? { fWindow: r.fWindow, bookExceedsVenue: r.bookExceedsVenue }
+            : {}),
         })),
         source: EXIT_CAPACITY_ANALOG_SOURCE,
         dataThrough: EXIT_CAPACITY_ANALOG_DATA_THROUGH,

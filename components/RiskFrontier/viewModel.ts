@@ -12,7 +12,10 @@
  *    no carry claim; no 8h window on the no-delay class.
  */
 
-import type { ExitCapacityFloorId } from '@/lib/position-sim/exitCapacityAnalogs'
+import {
+  EXIT_CAPACITY_BOOKS,
+  type ExitCapacityFloorId,
+} from '@/lib/position-sim/exitCapacityAnalogs'
 import {
   DEFAULT_VENUE_REFERENCE,
   REVERSE_SOLVE_DROPS,
@@ -30,6 +33,7 @@ import {
   DEFAULT_CAPACITY_MULTS,
   DEFAULT_FREEZE_HOURS,
   DEFAULT_PRICE_SHAPES,
+  EXIT_CAPACITY_DEFAULT_CUTS,
   EXIT_CAPACITY_DEFAULT_PRESET,
   EXIT_CAPACITY_PRESETS,
   STRESS_CODE_VERSION,
@@ -120,7 +124,9 @@ export interface SandboxInputs {
 
 /** An exit-capacity multiple as typed: up to 4 decimals, no trailing zeros (×0.1119, ×0.5). */
 export function multText(m: number | null | undefined): string {
-  return m === null || m === undefined || !Number.isFinite(m) ? '—' : String(Number(m.toFixed(4)))
+  if (m === null || m === undefined || !Number.isFinite(m)) return '—'
+  // a positive multiple that rounds to 0 is not the frozen bound: say so
+  return m > 0 && m < 0.00005 ? '<0.0001' : String(Number(m.toFixed(4)))
 }
 
 /**
@@ -316,6 +322,110 @@ export function buildStressPosition(inp: SandboxInputs): SandboxPosition {
     exitCapacityUsd: mult === null ? null : deployed * mult,
     overLine: startLtv >= line,
   }
+}
+
+// ------------------------------------------------------- exit capacity, named
+
+// Claims refuter round 3 (2026-10-07): an exit capacity shown as a bare "×1", "×0.9032" or
+// "$14,200" does not say which model and book it is, and a hover title is invisible on touch.
+// Every exit capacity the screen shows goes through these names: a cash-vs-book level says
+// "cash vs book" and its book (its ×1 says so, stressGrid `analogLabel`), the floor says
+// "floor (everyone exits)", a bound and a custom multiple say what they are.
+
+const BOOK_LABEL_BY_USD = new Map<number, string>(
+  EXIT_CAPACITY_BOOKS.map((b) => [b.usd, b.label] as const),
+)
+
+function knownPreset(id: ExitCapacityPresetId | undefined) {
+  return id !== undefined && Object.prototype.hasOwnProperty.call(EXIT_CAPACITY_PRESETS, id)
+    ? EXIT_CAPACITY_PRESETS[id]
+    : null
+}
+
+/** A preset's full name: 'cash vs book · Aave USDC · $50M book · typical · ×1, cash covers the
+ *  book', 'Aave USDC · floor (everyone exits) · typical', 'Upper bound · ×1'. */
+export function exitPresetName(id: ExitCapacityPresetId): string {
+  const x = knownPreset(id)
+  if (!x) return 'unknown exit capacity'
+  return x.model === 'cash-vs-book' ? `cash vs book · ${x.label}` : x.label
+}
+
+/** A measured preset's short name for a column header: 'Aave USDC $50M bad',
+ *  'Aave USDC floor typical'. A bound keeps its label. */
+export function exitPresetShortName(id: ExitCapacityPresetId): string {
+  const x = knownPreset(id)
+  if (!x) return 'unknown exit capacity'
+  if (!x.source) return x.label
+  const book =
+    x.model === 'cash-vs-book' ? (BOOK_LABEL_BY_USD.get(x.bookUsd ?? NaN) ?? 'book') : 'floor'
+  return `${x.source.venueName} ${book} ${x.source.level}`
+}
+
+/** The exit capacity a position chose, named. Same precedence as the engine:
+ *  `exitCapacityUsd`, then `exitCapacityPreset`, then `exitCapacityMult`. */
+export function positionExitName(p: StressPosition): string {
+  if (p.tradeShape !== 'carry') return 'no venue (levered long)'
+  if (p.exitCapacityUsd !== undefined) return `fixed ${usd(p.exitCapacityUsd)}`
+  if (p.exitCapacityPreset !== undefined) return exitPresetName(p.exitCapacityPreset)
+  if (p.exitCapacityMult !== undefined) return `custom ×${multText(p.exitCapacityMult)} of deployed`
+  return 'no exit capacity chosen'
+}
+
+/** The chosen exit capacity as a multiple of deployed; null when it is a fixed $ figure. */
+function positionExitMult(p: StressPosition): number | null {
+  if (p.tradeShape !== 'carry' || p.exitCapacityUsd !== undefined) return null
+  if (p.exitCapacityPreset !== undefined) return knownPreset(p.exitCapacityPreset)?.mult ?? null
+  if (p.exitCapacityMult !== undefined && Number.isFinite(p.exitCapacityMult)) {
+    return Math.min(1, Math.max(0, p.exitCapacityMult))
+  }
+  return null
+}
+
+function atDefaultExit(p: StressPosition): boolean {
+  return p.exitCapacityUsd === undefined && p.exitCapacityPreset === EXIT_CAPACITY_DEFAULT_PRESET
+}
+
+/** A swatch capacity cut, named. The cuts are measured at the default level
+ *  (EXIT_CAPACITY_DEFAULT_CUTS) and MULTIPLY whatever the position chose: at the default the
+ *  column is that measured level ('exit ×0.9032 · Aave USDC $50M bad'); anywhere else the
+ *  product is spelled out ('exit ×0.1011 = chosen ×0.1119 × 0.9032 (Aave USDC $50M bad ÷
+ *  Aave USDC $50M typical)'). */
+export function capacityCutText(mult: number, p: StressPosition): string {
+  const cut = EXIT_CAPACITY_DEFAULT_CUTS.find((c) => c.mult === mult)
+  const chosen = positionExitMult(p)
+  if (cut && chosen !== null && atDefaultExit(p)) {
+    return `exit ×${multText(chosen * mult)} · ${exitPresetShortName(cut.from)}`
+  }
+  const why = cut
+    ? ` (${exitPresetShortName(cut.from)} ÷ ${exitPresetShortName(EXIT_CAPACITY_DEFAULT_PRESET)})`
+    : ''
+  return chosen === null
+    ? `chosen exit × ${multText(mult)}${why}`
+    : `exit ×${multText(chosen * mult)} = chosen ×${multText(chosen)} × ${multText(mult)}${why}`
+}
+
+/** Where a node's venue stock comes from: the chosen exit capacity, or the scenario's own
+ *  measured level (`VenueStress.exitCapacityPreset`), times any cut. */
+export function stockSourceText(p: StressPosition, v: VenueStress | undefined): string {
+  const base =
+    v?.exitCapacityPreset !== undefined ? exitPresetName(v.exitCapacityPreset) : positionExitName(p)
+  if (v?.capacityMult === undefined || v.capacityMult === 1) return base
+  const cut = EXIT_CAPACITY_DEFAULT_CUTS.find((c) => c.mult === v.capacityMult)
+  const why = cut
+    ? ` (${exitPresetShortName(cut.from)} ÷ ${exitPresetShortName(EXIT_CAPACITY_DEFAULT_PRESET)})`
+    : ''
+  return `${base} × ${multText(v.capacityMult)}${why}`
+}
+
+/** The HUD's EXIT chip, shown in full (not in a hover title): the dollars, the multiple and
+ *  the named level. A name that already carries its multiple (a ×1 level, a bound, a custom
+ *  multiple) is not given a second one. */
+export function exitChipText(sb: SandboxPosition): string | null {
+  if (sb.exitCapacityUsd === null) return null
+  const name = positionExitName(sb.position)
+  const mult = name.includes('×') ? '' : ` ×${multText(sb.capacityMult)}`
+  const lock = sb.capacityLockHours ? ` · ${sb.capacityLockHours}h lock` : ''
+  return `${usdOrNone(sb.exitCapacityUsd)}${mult}${lock} · ${name}`
 }
 
 // ---------------------------------------------------------------- outcomes
@@ -598,7 +708,7 @@ export function treeLanes(
       id: 'capFloor',
       label: floor ? `Exit ×${multText(floor.mult)}` : 'Everyone exits',
       sub: floor
-        ? `${floor.source?.venueName ?? ''} everyone exits${floorLock} · at −25% step`
+        ? `${floor.source?.venueName ?? ''} everyone exits · ${floor.source?.level ?? ''}${floorLock} · at −25% step`
         : 'at −25% step',
       parent: 'step25',
       scenario: floorId ? { price: ref, venue: { exitCapacityPreset: floorId } } : null,
@@ -853,14 +963,16 @@ export function nearestRisk(d: DistanceToDanger, sb: SandboxPosition): Headline 
     const need = n.recallNeededUsd
     const stock = n.recallAvailableUsd ?? 0
     const tail = ' Modelled recall, not a guarantee.'
+    // Named with its model and book (claims refuter round 3): never a bare capacity.
+    const chosen = `the chosen exit capacity [${positionExitName(p)}]`
     if (!(stock > 0))
-      return `The chosen exit capacity returns nothing, so recall cannot hold the line.${tail}`
+      return `${chosen.charAt(0).toUpperCase()}${chosen.slice(1)} returns nothing, so recall cannot hold the line.${tail}`
     // A measured level can leave a few dollars (×0.0001 behind a lock): never a bare $0.
     const amount = (x: number) => (x > 0 && x < 0.5 ? 'under $1' : usd(x))
     if (Math.abs(need - stock) <= Math.max(1, stock * 1e-3)) {
-      return `That is where recall runs out: the chosen exit capacity holds ${amount(stock)}.${tail}`
+      return `That is where recall runs out: ${chosen} holds ${amount(stock)}.${tail}`
     }
-    return `Recall would need ${amount(need)}; the chosen exit capacity holds ${amount(stock)}.${tail}`
+    return `Recall would need ${amount(need)}; ${chosen} holds ${amount(stock)}.${tail}`
   }
   // The floor close (owner ruling 2026-10-04): the venue answered short of a whole-loan ask
   // and would have left debt under the floor, so that call repaid all and sold the rest.
@@ -968,9 +1080,12 @@ export function shapeLabel(s: PriceShape): string {
   }
 }
 
-export function venueLabel(v: VenueStress | undefined): string {
+/** A swatch column header. A capacity cut is named with the measured level it comes from
+ *  and, off the default level, the product it runs (`capacityCutText`): never a bare ×. */
+export function venueLabel(v: VenueStress | undefined, p: StressPosition): string {
   if (!v) return 'chosen exit'
-  if (v.capacityMult !== undefined && v.capacityMult !== 1) return `exit ×${v.capacityMult}`
+  if (v.capacityMult !== undefined && v.capacityMult !== 1)
+    return capacityCutText(v.capacityMult, p)
   if (v.freezeHours) return `freeze ${v.freezeHours}h`
   return 'chosen exit'
 }
@@ -985,16 +1100,17 @@ export function buildSwatch(position: StressPosition, replay: PriceShape | null)
           ...DEFAULT_CAPACITY_MULTS.map((m) => (m === 1 ? undefined : { capacityMult: m })),
           ...DEFAULT_FREEZE_HOURS.map((h) => ({ freezeHours: h })),
         ]
+  const cols = venues.map((v) => venueLabel(v, position))
   return {
-    cols: venues.map(venueLabel),
+    cols,
     rows: shapes.map((price) => ({
       key: shapeLabel(price),
       label: shapeLabel(price),
-      cells: venues.map((venue) => {
+      cells: venues.map((venue, ci) => {
         const scenario: StressScenario = venue ? { price, venue } : { price }
         const result = runStress(position, scenario)
         return {
-          key: `${shapeLabel(price)}·${venueLabel(venue)}`,
+          key: `${shapeLabel(price)}·${cols[ci]}`,
           scenario,
           result,
           leaf: leafView(result),
@@ -1013,8 +1129,9 @@ export interface DetailRow {
   tone?: Tone
 }
 
-/** Every field the detail panel shows for one node. */
-export function detailRows(r: StressResult): DetailRow[] {
+/** Every field the detail panel shows for one node. `stock` names where the venue stock
+ *  comes from (`stockSourceText`): the stock is never a bare dollar figure. */
+export function detailRows(r: StressResult, stock: string): DetailRow[] {
   const rows: DetailRow[] = []
   if (r.outcome === 'not_modelled') {
     rows.push({ label: 'reason', value: notModelledText(r.reason), tone: 'muted' })
@@ -1029,7 +1146,7 @@ export function detailRows(r: StressResult): DetailRow[] {
     if (r.recallNeededUsd !== null) {
       rows.push({ label: 'recall drawn', value: usdOrNone(r.recallDrawnUsd) })
       rows.push({ label: 'needed to hold line', value: usdOrNone(r.recallNeededUsd) })
-      rows.push({ label: 'venue stock', value: usdOrNone(r.recallAvailableUsd) })
+      rows.push({ label: 'venue stock', value: `${usdOrNone(r.recallAvailableUsd)} · ${stock}` })
     } else {
       rows.push({ label: 'recall', value: 'none (levered long)' })
     }
@@ -1104,11 +1221,15 @@ export interface ResolvedSelection {
   result: StressResult | null
   /** Why there is no result. */
   missing: string | null
+  /** Where the node's venue stock comes from, named (`stockSourceText`), for `detailRows`. */
+  stock: string
 }
 
 const EDGE_NAME = { breach: 'line crossed', arm: 'window arms', sale: 'first sale' } as const
 
 export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSelection {
+  const p = m.sandbox.position
+  const chosen = positionExitName(p)
   switch (sel.kind) {
     case 'lane': {
       const lane = m.tree.find((l) => l.id === sel.id) ?? m.tree[0]
@@ -1117,14 +1238,27 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         sub: lane.sub,
         result: lane.result,
         missing: lane.result ? null : lane.missing,
+        stock: stockSourceText(p, lane.scenario?.venue),
       }
     }
     case 'swatch': {
       const row = m.swatch.rows[sel.row]
       const cell = row?.cells[sel.col]
       if (!row || !cell)
-        return { title: 'Swatch', sub: '', result: null, missing: 'cell not in this grid' }
-      return { title: row.label, sub: m.swatch.cols[sel.col], result: cell.result, missing: null }
+        return {
+          title: 'Swatch',
+          sub: '',
+          result: null,
+          missing: 'cell not in this grid',
+          stock: chosen,
+        }
+      return {
+        title: row.label,
+        sub: m.swatch.cols[sel.col],
+        result: cell.result,
+        missing: null,
+        stock: stockSourceText(p, cell.scenario.venue),
+      }
     }
     case 'crash': {
       const c = m.crash[sel.index] ?? m.crash[0]
@@ -1133,6 +1267,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         sub: 'held step · your position',
         result: c.node,
         missing: null,
+        stock: chosen,
       }
     }
     case 'edge': {
@@ -1166,6 +1301,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         sub: view ? `edge ${view.text} · node just past it` : 'no such edge on this axis',
         result: view?.node ?? null,
         missing: view?.node ? null : view ? view.hint : 'no such edge on this axis',
+        stock: sel.axis === 'capacity' ? `${chosen} × (1 − the cut at this edge)` : chosen,
       }
     }
   }

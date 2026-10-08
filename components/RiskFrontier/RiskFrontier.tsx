@@ -35,11 +35,10 @@ import {
   buildStressPosition,
   classView,
   computeFrontier,
-  multText,
+  exitChipText,
   pct,
   resolveSelection,
   usd,
-  usdOrNone,
   type FrontierModel,
   type SandboxInputs,
   type SandboxPosition,
@@ -55,8 +54,9 @@ const HudChip: React.FC<{ label: string; value: string; color?: string; title?: 
   color,
   title,
 }) => (
-  <WrapItem>
+  <WrapItem maxW="100%">
     <HStack
+      maxW="100%"
       spacing={SPACING.sm}
       border="1px solid"
       borderColor={SEMANTIC_COLORS.borderSubtle}
@@ -74,9 +74,11 @@ const HudChip: React.FC<{ label: string; value: string; color?: string; title?: 
         {label}
       </Text>
       <Text
+        minW={0}
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize={TYPOGRAPHY.xs}
         color={color ?? SEMANTIC_COLORS.textPrimary}
+        overflowWrap="anywhere"
         sx={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {value}
@@ -92,6 +94,7 @@ const Hud: React.FC<{ sb: SandboxPosition; pending: boolean; model: FrontierMode
 }) => {
   const p = sb.position
   const cv = classView(p.membraneClass)
+  const exitChip = exitChipText(sb)
   const ltvColor =
     !Number.isFinite(sb.startLtv) || sb.overLine
       ? SEMANTIC_COLORS.danger
@@ -122,16 +125,9 @@ const Hud: React.FC<{ sb: SandboxPosition; pending: boolean; model: FrontierMode
         label={p.tradeShape === 'carry' ? 'CARRY' : 'LEVERED'}
         value={p.tradeShape === 'carry' ? `${usd(sb.deployedUsd)} deployed` : 'no recall'}
       />
-      {sb.exitCapacityUsd !== null && (
-        <HudChip
-          label="EXIT"
-          value={
-            `${usdOrNone(sb.exitCapacityUsd)} ×${multText(sb.capacityMult)}` +
-            (sb.capacityLockHours ? ` · ${sb.capacityLockHours}h lock` : '')
-          }
-          title={sb.capacityLabel ?? undefined}
-        />
-      )}
+      {/* The model and book are on the chip itself, not in a hover title (invisible on
+          touch): a bare "×1" would read as "everything comes back". */}
+      {exitChip !== null && <HudChip label="EXIT" value={exitChip} />}
       <WrapItem>
         {/* Visual status only: announcing "computing / computed in N ms" on every keystroke
             flooded screen readers. The headline lead is the one live region. */}

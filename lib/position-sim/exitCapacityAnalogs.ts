@@ -23,7 +23,9 @@
  *      (i)   the whole book recalls at once, at the onset (conservative: in practice only the
  *            positions that breach recall, and only down to their borrow LTV);
  *      (ii)  the observed cash is first come within the hour, and it is already NET of every
- *            other depositor who withdrew in that hour (it is what was left);
+ *            other depositor who withdrew in that hour (it is what was left). Not for the
+ *            Steakhouse vault: its cash is its pro-rata share of each Morpho market's idle
+ *            cash, so its levels are conservative on (ii) (said in each of its rows);
  *      (iii) Membrane's recall does not itself trigger a run on the venue;
  *      (iv)  the engine's stock never refills across the horizon (the venue recovering after
  *            the window is not credited).
@@ -34,9 +36,9 @@
  *    in line); it is the case where the whole supply races for it at the same moment. On the
  *    SAME event it never pays more than cash vs book for a book the venue could hold
  *    (B ≤ supply ⇒ cash / B ≥ cash / supply). A cash-vs-book row whose book is larger than the
- *    venue's whole supply in the window (m < the same window's f) could not exist — Membrane's
- *    deposit is part of the supply — and carries `bookExceedsVenue` (label and provenance say
- *    so); it is kept, not dropped (one row per venue × book × level, owner ruling 2026-10-07).
+ *    venue's whole supply in the window (m < the same window's f) has no analog in the observed
+ *    history — if Membrane's deposit added to the supply, the venue would have been a
+ *    different venue — and carries `bookExceedsVenue` (label and provenance say so); it is kept, not dropped (one row per venue × book × level, owner ruling 2026-10-07).
  *
  * MAPPING ONTO THE ENGINE (stressGrid.ts "MODELLED, NOT MASTER": the venue is one stock,
  * drawn down and never refilled; a freeze makes it unavailable from the FIRST breach):
@@ -191,7 +193,7 @@ export interface ExitCapacityBookRow extends ExitCapacityAnalogRowBase {
   readonly fWindow: number
   /**
    * m < fWindow (unrounded): the book is larger than the venue's whole supply in the window,
-   * so it could not exist there (header, 'pro-rata'). The only rows that pay less than the
+   * so the observed history is not an analog for it (header, 'pro-rata'). The only rows that pay less than the
    * floor on the same event; their label and provenance say so.
    */
   readonly bookExceedsVenue: boolean
@@ -1242,7 +1244,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2026-05-06T18:53Z',
     windows: ['util-aave-core-usde-2026-05-06T18'],
     provenance:
-      "Aave USDe, $250M book, worst of 14 stress events 2025-09 → 2026-08: util ≥95% 2026-05-06 (onset 2026-05-06T18:53Z). Idle cash $10.1k across the 8 h window covers under 0.01% of the $250M book; under 1% of the book for 6 h, back to 5% after 6 h. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays under 0.01% on the same event.",
+      "Aave USDe, $250M book, worst of 14 stress events 2025-09 → 2026-08: util ≥95% 2026-05-06 (onset 2026-05-06T18:53Z). Idle cash $10.1k across the 8 h window covers under 0.01% of the $250M book; under 1% of the book for 6 h, back to 5% after 6 h. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays under 0.01% on the same event.",
   },
   {
     id: 'steakhouse-usdc-10m-typical',
@@ -1280,7 +1282,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2025-02-02T22:00Z',
     windows: ['eth-drop-2025-02-02'],
     provenance:
-      'Steakhouse USDC, $10M book, median of 26 stress events (rank 13) 2024-11 → 2026-08: ETH -29.3% 2025-02-02 (onset 2025-02-02T22:00Z). Idle cash $17.0M across the 8 h window covers the whole $10M book (×1). Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers.',
+      "Steakhouse USDC, $10M book, median of 26 stress events (rank 13) 2024-11 → 2026-08: ETH -29.3% 2025-02-02 (onset 2025-02-02T22:00Z). Idle cash $17.0M across the 8 h window covers the whole $10M book (×1). Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative.",
   },
   {
     id: 'steakhouse-usdc-10m-bad',
@@ -1319,7 +1321,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2024-11-09T07:00Z',
     windows: ['util-morpho-steakhouse-usdc-2024-11-09T07'],
     provenance:
-      'Steakhouse USDC, $10M book, 10th-percentile of 26 stress events (rank 3) 2024-11 → 2026-08: util ≥95% 2024-11-09 (onset 2024-11-09T07:00Z). Idle cash $2.6M across the 8 h window covers 25.93% of the $10M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers.',
+      "Steakhouse USDC, $10M book, 10th-percentile of 26 stress events (rank 3) 2024-11 → 2026-08: util ≥95% 2024-11-09 (onset 2024-11-09T07:00Z). Idle cash $2.6M across the 8 h window covers 25.93% of the $10M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative.",
   },
   {
     id: 'steakhouse-usdc-10m-worst',
@@ -1358,7 +1360,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2024-11-19T05:00Z',
     windows: ['util-morpho-steakhouse-usdc-2024-11-19T05'],
     provenance:
-      'Steakhouse USDC, $10M book, worst of 26 stress events 2024-11 → 2026-08: util ≥95% 2024-11-19 (onset 2024-11-19T05:00Z). Idle cash $1.7M across the 8 h window covers 16.68% of the $10M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers.',
+      "Steakhouse USDC, $10M book, worst of 26 stress events 2024-11 → 2026-08: util ≥95% 2024-11-19 (onset 2024-11-19T05:00Z). Idle cash $1.7M across the 8 h window covers 16.68% of the $10M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative.",
   },
   {
     id: 'steakhouse-usdc-50m-typical',
@@ -1396,7 +1398,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2025-06-13T01:00Z',
     windows: ['eth-drop-2025-06-13'],
     provenance:
-      'Steakhouse USDC, $50M book, median of 26 stress events (rank 13) 2024-11 → 2026-08: ETH -11.5% 2025-06-13 (onset 2025-06-13T01:00Z). Idle cash $15.0M across the 8 h window covers 30.02% of the $50M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers.',
+      "Steakhouse USDC, $50M book, median of 26 stress events (rank 13) 2024-11 → 2026-08: ETH -11.5% 2025-06-13 (onset 2025-06-13T01:00Z). Idle cash $15.0M across the 8 h window covers 30.02% of the $50M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative.",
   },
   {
     id: 'steakhouse-usdc-50m-bad',
@@ -1435,7 +1437,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2024-11-09T07:00Z',
     windows: ['util-morpho-steakhouse-usdc-2024-11-09T07'],
     provenance:
-      'Steakhouse USDC, $50M book, 10th-percentile of 26 stress events (rank 3) 2024-11 → 2026-08: util ≥95% 2024-11-09 (onset 2024-11-09T07:00Z). Idle cash $2.6M across the 8 h window covers 5.19% of the $50M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers.',
+      "Steakhouse USDC, $50M book, 10th-percentile of 26 stress events (rank 3) 2024-11 → 2026-08: util ≥95% 2024-11-09 (onset 2024-11-09T07:00Z). Idle cash $2.6M across the 8 h window covers 5.19% of the $50M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative.",
   },
   {
     id: 'steakhouse-usdc-50m-worst',
@@ -1474,7 +1476,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2024-11-19T05:00Z',
     windows: ['util-morpho-steakhouse-usdc-2024-11-19T05'],
     provenance:
-      'Steakhouse USDC, $50M book, worst of 26 stress events 2024-11 → 2026-08: util ≥95% 2024-11-19 (onset 2024-11-19T05:00Z). Idle cash $1.7M across the 8 h window covers 3.34% of the $50M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers.',
+      "Steakhouse USDC, $50M book, worst of 26 stress events 2024-11 → 2026-08: util ≥95% 2024-11-19 (onset 2024-11-19T05:00Z). Idle cash $1.7M across the 8 h window covers 3.34% of the $50M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative.",
   },
   {
     id: 'steakhouse-usdc-250m-typical',
@@ -1512,7 +1514,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2025-06-13T01:00Z',
     windows: ['eth-drop-2025-06-13'],
     provenance:
-      "Steakhouse USDC, $250M book, median of 26 stress events (rank 13) 2024-11 → 2026-08: ETH -11.5% 2025-06-13 (onset 2025-06-13T01:00Z). Idle cash $15.0M across the 8 h window covers 6.00% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays 9.17% on the same event.",
+      "Steakhouse USDC, $250M book, median of 26 stress events (rank 13) 2024-11 → 2026-08: ETH -11.5% 2025-06-13 (onset 2025-06-13T01:00Z). Idle cash $15.0M across the 8 h window covers 6.00% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays 9.17% on the same event.",
   },
   {
     id: 'steakhouse-usdc-250m-bad',
@@ -1551,7 +1553,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2024-11-09T07:00Z',
     windows: ['util-morpho-steakhouse-usdc-2024-11-09T07'],
     provenance:
-      "Steakhouse USDC, $250M book, 10th-percentile of 26 stress events (rank 3) 2024-11 → 2026-08: util ≥95% 2024-11-09 (onset 2024-11-09T07:00Z). Idle cash $2.6M across the 8 h window covers 1.04% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays 4.81% on the same event.",
+      "Steakhouse USDC, $250M book, 10th-percentile of 26 stress events (rank 3) 2024-11 → 2026-08: util ≥95% 2024-11-09 (onset 2024-11-09T07:00Z). Idle cash $2.6M across the 8 h window covers 1.04% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays 4.81% on the same event.",
   },
   {
     id: 'steakhouse-usdc-250m-worst',
@@ -1590,7 +1592,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2024-11-19T05:00Z',
     windows: ['util-morpho-steakhouse-usdc-2024-11-19T05'],
     provenance:
-      "Steakhouse USDC, $250M book, worst of 26 stress events 2024-11 → 2026-08: util ≥95% 2024-11-19 (onset 2024-11-19T05:00Z). Idle cash $1.7M across the 8 h window covers 0.67% of the $250M book; under 1% of the book for 2 h, back to 5% after 91 h. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays 2.87% on the same event.",
+      "Steakhouse USDC, $250M book, worst of 26 stress events 2024-11 → 2026-08: util ≥95% 2024-11-19 (onset 2024-11-19T05:00Z). Idle cash $1.7M across the 8 h window covers 0.67% of the $250M book; under 1% of the book for 2 h, back to 5% after 91 h. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers; for this vault that cash is its pro-rata share of each Morpho market's idle cash, not cash it is first in line for, so the level is conservative. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays 2.87% on the same event.",
   },
   {
     id: 'spark-usdc-10m-typical',
@@ -1856,7 +1858,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2025-12-01T15:00Z',
     windows: ['eth-drop-2025-12-01'],
     provenance:
-      "Spark USDC, $250M book, median of 9 stress events (rank 5) 2025-04 → 2026-02: ETH -10.4% 2025-12-01 (onset 2025-12-01T15:00Z). Idle cash $7.9M across the 8 h window covers 3.18% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays 15.89% on the same event.",
+      "Spark USDC, $250M book, median of 9 stress events (rank 5) 2025-04 → 2026-02: ETH -10.4% 2025-12-01 (onset 2025-12-01T15:00Z). Idle cash $7.9M across the 8 h window covers 3.18% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays 15.89% on the same event.",
   },
   {
     id: 'spark-usdc-250m-bad',
@@ -1894,7 +1896,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2025-04-16T09:00Z',
     windows: ['util-spark-usdc-2025-04-16T09'],
     provenance:
-      "Spark USDC, $250M book, 10th-percentile of 9 stress events (rank 1) 2025-04 → 2026-02: util ≥95% 2025-04-16 (onset 2025-04-16T09:00Z). Idle cash $1.9M across the 8 h window covers 0.76% of the $250M book; under 1% of the book for 3 h, back to 5% after 8 h. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays 3.65% on the same event.",
+      "Spark USDC, $250M book, 10th-percentile of 9 stress events (rank 1) 2025-04 → 2026-02: util ≥95% 2025-04-16 (onset 2025-04-16T09:00Z). Idle cash $1.9M across the 8 h window covers 0.76% of the $250M book; under 1% of the book for 3 h, back to 5% after 8 h. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays 3.65% on the same event.",
   },
   {
     id: 'spark-usdc-250m-worst',
@@ -1932,7 +1934,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2025-04-16T09:00Z',
     windows: ['util-spark-usdc-2025-04-16T09'],
     provenance:
-      "Spark USDC, $250M book, worst of 9 stress events 2025-04 → 2026-02: util ≥95% 2025-04-16 (onset 2025-04-16T09:00Z). Idle cash $1.9M across the 8 h window covers 0.76% of the $250M book; under 1% of the book for 3 h, back to 5% after 8 h. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays 3.65% on the same event.",
+      "Spark USDC, $250M book, worst of 9 stress events 2025-04 → 2026-02: util ≥95% 2025-04-16 (onset 2025-04-16T09:00Z). Idle cash $1.9M across the 8 h window covers 0.76% of the $250M book; under 1% of the book for 3 h, back to 5% after 8 h. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays 3.65% on the same event.",
   },
   {
     id: 'spark-usdt-10m-typical',
@@ -2920,7 +2922,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2025-12-01T15:00Z',
     windows: ['eth-drop-2025-12-01'],
     provenance:
-      "Spark USDS, $250M book, 10th-percentile of 12 stress events (rank 2) 2025-06 → 2026-08: ETH -10.4% 2025-12-01 (onset 2025-12-01T15:00Z). Idle cash $48.6M across the 8 h window covers 19.46% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays 27.09% on the same event.",
+      "Spark USDS, $250M book, 10th-percentile of 12 stress events (rank 2) 2025-06 → 2026-08: ETH -10.4% 2025-12-01 (onset 2025-12-01T15:00Z). Idle cash $48.6M across the 8 h window covers 19.46% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays 27.09% on the same event.",
   },
   {
     id: 'spark-usds-250m-worst',
@@ -2958,7 +2960,7 @@ export const EXIT_CAPACITY_BOOK_ROWS: readonly ExitCapacityBookRow[] = [
     onset: '2026-04-18T20:00Z',
     windows: ['named-2026-04-kelp'],
     provenance:
-      "Spark USDS, $250M book, worst of 12 stress events 2025-06 → 2026-08: Kelp Apr-2026 (onset 2026-04-18T20:00Z). Idle cash $30.6M across the 8 h window covers 12.24% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so this book could not exist there (Membrane's deposit is part of the supply); everyone exits pays 32.17% on the same event.",
+      "Spark USDS, $250M book, worst of 12 stress events 2025-06 → 2026-08: Kelp Apr-2026 (onset 2026-04-18T20:00Z). Idle cash $30.6M across the 8 h window covers 12.24% of the $250M book. Cash vs book: the whole book recalls at once against the idle cash observed that hour, already net of other withdrawers. Book exceeds the venue: $250M is more than the venue's whole supply in that window, so the observed history is not an analog for this book (if Membrane's deposit added to the supply, the venue would have been a different venue); everyone exits pays 32.17% on the same event.",
   },
   {
     id: 'aave-weth-10m-typical',

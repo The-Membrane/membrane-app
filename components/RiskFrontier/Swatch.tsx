@@ -12,6 +12,10 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { GlyphMark, HATCH, Legend, TONE_COLOR } from './atoms'
 import type { Selection, Swatch as SwatchModel } from './viewModel'
 
+/** A named capacity cut ('exit ×0.9032 · Aave USDC $50M bad') gets a wider column than a bare
+ *  'freeze 4h', so its source reads in a few lines; the grid scrolls inside its own box. */
+const colWidth = (c: string): number => (c.length > 24 ? 168 : 88)
+
 export const Swatch: React.FC<{
   swatch: SwatchModel
   delayed: boolean
@@ -23,7 +27,7 @@ export const Swatch: React.FC<{
       <Box
         as="table"
         w="100%"
-        minW={`${120 + swatch.cols.length * 88}px`}
+        minW={`${120 + swatch.cols.reduce((w, c) => w + colWidth(c), 0)}px`}
         sx={{ borderCollapse: 'separate', borderSpacing: '4px' }}
         aria-label="Stress swatch: price shapes by venue conditions"
       >
@@ -35,6 +39,7 @@ export const Swatch: React.FC<{
                 as="th"
                 key={c}
                 scope="col"
+                minW={`${colWidth(c)}px`}
                 fontFamily={TYPOGRAPHY.fontMono}
                 fontSize={TYPOGRAPHY.label}
                 fontWeight={400}

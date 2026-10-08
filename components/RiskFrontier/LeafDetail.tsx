@@ -16,7 +16,7 @@ const KEY_ROWS = new Set(['scenario', 'cell key', 'code'])
 export const LeafDetail: React.FC<{ sel: ResolvedSelection }> = ({ sel }) => {
   const r = sel.result
   const leaf = leafView(r, sel.missing ?? undefined)
-  const rows = r ? detailRows(r) : []
+  const rows = r ? detailRows(r, sel.stock) : []
   const facts = rows.filter((x) => !KEY_ROWS.has(x.label))
   const keys = rows.filter((x) => KEY_ROWS.has(x.label))
   return (

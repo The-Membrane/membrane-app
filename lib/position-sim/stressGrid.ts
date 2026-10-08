@@ -162,8 +162,9 @@ export type TradeShape = 'carry' | 'levered_long'
  *     exits at once and a recall gets its pro-rata share of the cash. On the SAME event it is
  *     the worst case for any book the venue could hold (B ≤ supply ⇒ cash / B ≥ cash / supply).
  *     A cash-vs-book row whose book is larger than the venue's whole supply in the window
- *     (m < the same window's f) is a book that could not exist there — Membrane's deposit is
- *     part of the supply — and is FLAGGED (`bookExceedsVenue`, label '· book exceeds the
+ *     (m < the same window's f) is a book the observed history is not an analog for — if
+ *     Membrane's deposit added to the supply, the venue would have been a different venue —
+ *     and is FLAGGED (`bookExceedsVenue`, label '· book exceeds the
  *     venue'), not dropped (one row per venue × book × level, owner ruling 2026-10-07).
  *   `freezeHours` = the measured lock (mult ≤ 1%) when the event is locked: the venue answers
  *     nothing for that long from the first breach (exitCapacityAnalogs.ts header: it starts

@@ -8,16 +8,21 @@ import {
   TIME_KNOTS,
   TREE_FLOOR_MISSING,
   buildStressPosition,
+  capacityCutText,
   computeFrontier,
   crashLevel,
   detailRows,
   duration,
   edgeView,
+  exitChipText,
+  exitPresetName,
   laneTimeline,
   leafView,
   multText,
   pct,
+  positionExitName,
   resolveSelection,
+  stockSourceText,
   swatchText,
   timeX,
   treeLanes,
@@ -29,6 +34,7 @@ import {
 import { DEFAULT_VENUE_REFERENCE } from '@/lib/position-sim/frontier'
 import { MEMBRANE_CLASS_PARAMS } from '@/lib/position-sim/membrane'
 import {
+  EXIT_CAPACITY_DEFAULT_CUTS,
   EXIT_CAPACITY_DEFAULT_PRESET,
   EXIT_CAPACITY_PRESETS,
   EXIT_CAPACITY_PRESET_ORDER,
@@ -58,13 +64,19 @@ const FLOOR_INPUTS: SandboxInputs = {
 
 /** Every user-visible string the view model hands the screen for one model. */
 function visibleStrings(m: FrontierModel): string[] {
-  const out: string[] = [m.headline.lead, m.headline.detail ?? '']
+  const out: string[] = [m.headline.lead, m.headline.detail ?? '', exitChipText(m.sandbox) ?? '']
+  out.push(...m.swatch.cols)
   for (const lane of m.tree) out.push(lane.label, lane.sub, lane.leaf.title, lane.leaf.short)
   for (const c of m.crash) out.push(c.title, c.summary, c.limit.text, c.limit.hint)
   for (const row of m.swatch.rows)
     for (const cell of row.cells) out.push(cell.leaf.title, cell.leaf.short, cell.text)
   for (const lane of m.tree)
-    if (lane.result) for (const r of detailRows(lane.result)) out.push(r.label, r.value)
+    if (lane.result)
+      for (const r of detailRows(
+        lane.result,
+        stockSourceText(m.sandbox.position, lane.scenario?.venue),
+      ))
+        out.push(r.label, r.value)
   for (const e of [
     m.dtd.price.breach,
     m.dtd.price.arm,
@@ -470,8 +482,10 @@ describe('risk frontier view model — headline, crash test, selection', () => {
     )
     const short = computeFrontier({ ...FLOOR_INPUTS, debtUsd: 39_500 }, null)
     expect(short.dtd.price.breach.status).toBe('already')
+    // UPDATED 2026-10-07 (claims refuter round 3: the capacity is named with its model): was
+    // "the chosen exit capacity holds $1,589." with no level.
     expect(short.headline.detail).toMatch(
-      /^Recall would need \$1,660; the chosen exit capacity holds \$1,589\./,
+      /^Recall would need \$1,660; the chosen exit capacity \[Aave USDC · floor \(everyone exits\) · typical\] holds \$1,589\./,
     )
     expect(computeFrontier(DEFAULT_INPUTS, null).headline.detail).not.toContain(
       'Already over the line',
@@ -596,5 +610,148 @@ describe('risk frontier view model — headline, crash test, selection', () => {
       )
       expect(text.split(STRESS_LABEL).join('')).not.toMatch(/probab|odds|chance|likely/i)
     }
+  })
+})
+
+// Claims refuter round 3 (2026-10-07), C: the HUD EXIT chip showed a bare "$14,200 ×1" with the
+// model and book only in a hover title (invisible on touch); the swatch columns read
+// "exit ×0.9032" / "exit ×0.1119" with no source while multiplying whatever was chosen; the
+// venue stock row and the headline named no level. Every one now names its model and book.
+describe('risk frontier view model — every exit capacity is named', () => {
+  const BOOK_OR_MODEL =
+    /cash vs book · .*\$(10|50|250)M book|floor \(everyone exits\)|bound|custom ×|Frozen/
+
+  it('the EXIT chip shows the model and book, not only a multiple', () => {
+    const def = buildStressPosition(DEFAULT_INPUTS)
+    expect(exitChipText(def)).toBe(
+      '$14,200 · cash vs book · Aave USDC · $50M book · typical · ×1, cash covers the book',
+    )
+    const floor = buildStressPosition(FLOOR_INPUTS)
+    expect(exitChipText(floor)).toBe(
+      '$1,589 ×0.1119 · Aave USDC · floor (everyone exits) · typical',
+    )
+    const kelp = buildStressPosition({
+      ...DEFAULT_INPUTS,
+      capacity: { kind: 'preset', preset: 'aave-usdc-50m-worst' },
+    })
+    expect(exitChipText(kelp)).toMatch(
+      /^\$\d[\d,]* ×0\.0001 · 16h lock · cash vs book · Aave USDC · \$50M book · worst seen$/,
+    )
+    const custom = buildStressPosition({
+      ...DEFAULT_INPUTS,
+      capacity: { kind: 'custom', mult: 0.3 },
+    })
+    expect(exitChipText(custom)).toBe('$4,260 · custom ×0.3 of deployed')
+    expect(
+      exitChipText(buildStressPosition({ ...DEFAULT_INPUTS, tradeShape: 'levered_long' })),
+    ).toBeNull()
+    // Every preset: the chip names its model and book, and a ×1 always says so.
+    for (const id of EXIT_CAPACITY_PRESET_ORDER) {
+      const sb = buildStressPosition({
+        ...DEFAULT_INPUTS,
+        capacity: { kind: 'preset', preset: id },
+      })
+      const text = exitChipText(sb)!
+      expect(text, id).toMatch(BOOK_OR_MODEL)
+      expect(text, id).toContain(exitPresetName(id))
+      if (EXIT_CAPACITY_PRESETS[id].mult >= 1) expect(text, id).toMatch(/×1\b/)
+    }
+  })
+
+  it('the HUD renders the chip text itself, not a hover title', () => {
+    const src = readFileSync(
+      path.resolve(__dirname, '../../components/RiskFrontier/RiskFrontier.tsx'),
+      'utf8',
+    )
+    expect(src).toContain('<HudChip label="EXIT" value={exitChip} />')
+    expect(src).toContain('const exitChip = exitChipText(sb)')
+    expect(src).not.toMatch(/title=\{sb\.capacityLabel/)
+  })
+
+  it('names each swatch cut at the default level', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, null)
+    expect(EXIT_CAPACITY_DEFAULT_CUTS.map((c) => [c.id, c.from, c.mult])).toEqual([
+      ['bad', 'aave-usdc-50m-bad', 0.9032],
+      ['floor', 'aave-usdc-floor-typical', 0.1119],
+    ])
+    expect(m.swatch.cols).toEqual([
+      'chosen exit',
+      'exit ×0.9032 · Aave USDC $50M bad',
+      'exit ×0.1119 · Aave USDC floor typical',
+      'freeze 4h',
+      'freeze 8h',
+      'freeze 24h',
+    ])
+  })
+
+  it('spells out the product a cut runs away from the default level', () => {
+    // The cuts multiply whatever was chosen: under the floor (×0.1119) the "bad" column runs
+    // ×0.1119 × 0.9032 = ×0.1011, not the $50M bad level.
+    const m = computeFrontier(FLOOR_INPUTS, null)
+    expect(m.swatch.cols.slice(1, 3)).toEqual([
+      'exit ×0.1011 = chosen ×0.1119 × 0.9032 (Aave USDC $50M bad ÷ Aave USDC $50M typical)',
+      'exit ×0.0125 = chosen ×0.1119 × 0.1119 (Aave USDC floor typical ÷ Aave USDC $50M typical)',
+    ])
+    const pos = buildStressPosition({ ...DEFAULT_INPUTS, capacity: { kind: 'custom', mult: 0.5 } })
+    expect(capacityCutText(0.9032, pos.position)).toBe(
+      'exit ×0.4516 = chosen ×0.5 × 0.9032 (Aave USDC $50M bad ÷ Aave USDC $50M typical)',
+    )
+    // A fixed-dollar capacity has no multiple to multiply: the cut says it scales the choice.
+    expect(capacityCutText(0.9032, { ...pos.position, exitCapacityUsd: 1000 })).toBe(
+      'chosen exit × 0.9032 (Aave USDC $50M bad ÷ Aave USDC $50M typical)',
+    )
+    // No column, at any level, is a bare "exit ×N".
+    for (const inputs of [DEFAULT_INPUTS, FLOOR_INPUTS, ...LOADOUTS.map((l) => l.inputs)]) {
+      for (const c of computeFrontier(inputs, null).swatch.cols) {
+        expect(c).not.toMatch(/^exit ×[\d.]+$/)
+      }
+    }
+  })
+
+  it('names where the venue stock comes from in the node detail', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, null)
+    const stockOf = (sel: Parameters<typeof resolveSelection>[1]) => {
+      const r = resolveSelection(m, sel)
+      return detailRows(r.result!, r.stock).find((x) => x.label === 'venue stock')!.value
+    }
+    const chosen = 'cash vs book · Aave USDC · $50M book · typical · ×1, cash covers the book'
+    expect(positionExitName(m.sandbox.position)).toBe(chosen)
+    expect(stockOf({ kind: 'swatch', row: 1, col: 0 })).toMatch(
+      new RegExp(`^\\$[\\d,]+ · ${chosen.replace(/[$()]/g, '\\$&')}$`),
+    )
+    expect(stockOf({ kind: 'swatch', row: 1, col: 1 })).toContain(
+      `${chosen} × 0.9032 (Aave USDC $50M bad ÷ Aave USDC $50M typical)`,
+    )
+    // The tree's everyone-exits lane REPLACES the chosen level with the venue's own floor.
+    expect(stockOf({ kind: 'lane', id: 'capFloor' })).toMatch(
+      /^\$[\d,]+ · Aave USDC · floor \(everyone exits\) · typical$/,
+    )
+    expect(stockOf({ kind: 'crash', index: 0 })).toContain(chosen)
+    for (const lane of m.tree) {
+      if (!lane.result || lane.result.outcome === 'not_modelled') continue
+      const v = detailRows(lane.result, stockSourceText(m.sandbox.position, lane.scenario?.venue))
+      expect(v.find((x) => x.label === 'venue stock')!.value, lane.id).toMatch(BOOK_OR_MODEL)
+    }
+  })
+
+  it('names the chosen level in the headline', () => {
+    let named = 0
+    for (const inputs of [
+      DEFAULT_INPUTS,
+      FLOOR_INPUTS,
+      { ...FLOOR_INPUTS, debtUsd: 39_500 },
+      { ...DEFAULT_INPUTS, capacity: { kind: 'preset', preset: 'frozen' } } as SandboxInputs,
+      ...LOADOUTS.map((l) => l.inputs),
+    ]) {
+      const m = computeFrontier(inputs, null)
+      const d = m.headline.detail ?? ''
+      // Never a bare "the chosen exit capacity holds/returns": always its bracketed name.
+      expect(d).not.toMatch(/the chosen exit capacity (holds|returns)/i)
+      if (/chosen exit capacity/i.test(d)) {
+        named++
+        expect(d).toContain(`[${positionExitName(m.sandbox.position)}]`)
+      }
+    }
+    expect(named).toBeGreaterThan(1)
   })
 })

@@ -99,6 +99,8 @@ const dgCtl = (o: Partial<NonNullable<Controller['dg']>> = {}): Controller => ({
   kind: 'aragon_dg',
   address: EPT,
   delaySec: 691200,
+  // ruling #12: the declared proposer (the Aragon Voting), classified
+  schedulers: [{ kind: 'aragon_voting', address: VOTING, delaySec: 432000 }],
   dg: {
     proposers: [VOTING],
     proposerVoteSec: 432000,

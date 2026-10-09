@@ -29,6 +29,11 @@ export type BreachView = {
   valueAtRiskUsd?: number | null
   /** "$300M at risk (locked on Ethereum)" or why it is unknown. */
   valueAtRisk?: string
+  /**
+   * What part of the value was not read (review round 9): a partial read sorts with the unread
+   * breaches (ruling #14), its read side shown as a lower bound. Absent = fully read.
+   */
+  valueAtRiskUnread?: string[]
 }
 
 /**

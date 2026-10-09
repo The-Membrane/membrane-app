@@ -59,18 +59,33 @@ export function valueAtRisk(inp: {
   }
 }
 
-/** Sort comparator: the highest value at risk first; an unknown value last. */
+/**
+ * Sort comparator for floor breaches: a value at risk that was NOT READ first (owner ruling
+ * 2026-10-08, #14 — fail closed: an unread value could be the largest), then the highest value
+ * first. Review round 9: a PARTIAL read (one side unread, `unread` non-empty) is unread too — the
+ * value is the larger of the two sides (ruling #9), so with a side missing the value is not
+ * known and could be the largest. Order: nothing read, then partial reads by the side that was
+ * read (highest first), then fully read values (highest first). `unread` absent = fully read.
+ */
 export function compareValueAtRisk(
-  a: Pick<ValueAtRisk, 'usd'> | null | undefined,
-  b: Pick<ValueAtRisk, 'usd'> | null | undefined,
+  a: (Pick<ValueAtRisk, 'usd'> & { unread?: readonly string[] }) | null | undefined,
+  b: (Pick<ValueAtRisk, 'usd'> & { unread?: readonly string[] }) | null | undefined,
 ): number {
   const x = a?.usd ?? null
   const y = b?.usd ?? null
-  if (x === null && y === null) return 0
-  if (x === null) return 1
-  if (y === null) return -1
+  // 0 = nothing read, 1 = partly read, 2 = fully read
+  const tier = (usd: number | null, unread: readonly string[] | undefined) =>
+    usd === null ? 0 : unread?.length ? 1 : 2
+  const tx = tier(x, a?.unread)
+  const ty = tier(y, b?.unread)
+  if (tx !== ty) return tx - ty
+  if (x === null || y === null) return 0
   return y - x
 }
+
+/** Is the value at risk not fully known (nothing read, or one side unread)? Review round 9. */
+export const valueAtRiskUnread = (v: ValueAtRisk | null | undefined): boolean =>
+  !v || v.usd === null || v.unread.length > 0
 
 /** "$1.23B" · "$300M" · "$12.4K" · "$950" (three significant digits, trailing zeros dropped). */
 export function formatUsdCompact(n: number): string {
@@ -94,12 +109,18 @@ export function formatUsdCompact(n: number): string {
   return `$${r}${units[u][1]}`
 }
 
-/** One-line label of a value at risk: "$300M at risk (locked on Ethereum)" or why it is unknown. */
+/**
+ * One-line label of a value at risk: "$300M at risk (locked on Ethereum)", or "value unread"
+ * and why (ruling #14: such a breach sorts first). A partial read is "value unread" too, with
+ * the side that was read as a lower bound (review round 9).
+ */
 export function valueAtRiskLabel(v: ValueAtRisk | null | undefined): string {
-  if (!v) return 'value at risk not read'
-  if (v.usd === null) return `value at risk unknown (${v.unread.join('; ') || 'not read'})`
+  if (!v) return 'value unread (not read)'
+  if (v.usd === null) return `value unread (${v.unread.join('; ') || 'not read'})`
   const basis = v.basis === 'locked' ? 'locked on Ethereum' : 'bridged supply on the remote chain'
-  return `${formatUsdCompact(v.usd)} at risk (${basis})${v.unread.length ? ` · lower bound: ${v.unread.join('; ')}` : ''}`
+  if (v.unread.length)
+    return `value unread (${v.unread.join('; ')}) · at least ${formatUsdCompact(v.usd)} (${basis})`
+  return `${formatUsdCompact(v.usd)} at risk (${basis})`
 }
 
 /** USD consensus of a registry asset × an optional on-chain rate (rsETH/ETH) → USD per token. */

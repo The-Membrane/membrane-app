@@ -119,8 +119,26 @@ export const TAG_LABEL: Partial<
   delegatecall: { label: 'DELEGATECALL', loud: true, tone: 'danger' },
 }
 
-/** A floor-breach route's severity: "$300M at risk (locked on Ethereum)" or why it is unknown. */
+/**
+ * A floor-breach route's severity: "$300M at risk (locked on Ethereum)", or "value unread" and
+ * why (owner ruling 2026-10-08 #14: such a route sorts first).
+ */
 export const routeValueText = (v: ValueAtRisk | null | undefined): string => valueAtRiskLabel(v)
+
+/**
+ * The red banner's title (KG-2, closed 2026-10-08): floor breaches counted in ROUTES, like the
+ * headline (`floorBreachRoutes`), with the breaching sides in brackets when they differ —
+ * "1 FLOOR BREACH (2 sides) · 3 RULE BREACHES IN FORCE NOW". `routes` = the counted routes;
+ * `sides` = the BR-2 lines listed under the banner.
+ */
+export function breachBannerTitle(routes: number, sides: number, rules: number): string {
+  const r = Math.max(routes, sides > 0 ? 1 : 0)
+  const floor = r
+    ? `${r} FLOOR ${r === 1 ? 'BREACH' : 'BREACHES'}${sides !== r ? ` (${sides} ${sides === 1 ? 'side' : 'sides'})` : ''}`
+    : ''
+  const rule = rules ? `${rules} RULE ${rules === 1 ? 'BREACH' : 'BREACHES'}` : ''
+  return `${[floor, rule].filter(Boolean).join(' · ')} IN FORCE NOW`
+}
 
 /** DVN operators for display: an issuer-run one says so ("usdt0 (issuer-run)"). */
 export function operatorLabels(

@@ -379,7 +379,12 @@ describe('engine: the remote side of an NTT route', () => {
     ownedBy: {
       kind: 'contract',
       address: EXEC,
-      ownedBy: { kind: 'aragon_dg', address: EPT, delaySec: 691200 },
+      ownedBy: {
+        kind: 'aragon_dg',
+        address: EPT,
+        delaySec: 691200,
+        schedulers: [{ kind: 'aragon_voting', address: A('4'), delaySec: 432000 }],
+      },
     },
   }
   const raw = (ntt: NttHead): RawSubject => ({

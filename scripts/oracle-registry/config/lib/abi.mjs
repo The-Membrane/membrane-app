@@ -185,6 +185,22 @@ export const EVENT_SIGS = {
     'event ProposalExecuted(uint256 indexed id)',
     'event ProposalExecuted(uint256 id)',
   ],
+  // Oracle committee members (owner ruling 2026-10-08, #13 — closes KG-1): replayed as admin
+  // events and judged by the path that made them. Lido HashConsensus (signatures measured on
+  // 0xd624…b288, 2026-10-08: the totals after each change are in the data) and ether.fi
+  // EtherFiOracle (verified source of 0x0565…2b9e behind 0x57aa…6a41).
+  MemberAdded: [
+    'event MemberAdded(address indexed addr, uint256 newTotalMembers, uint256 newQuorum)',
+  ],
+  MemberRemoved: [
+    'event MemberRemoved(address indexed addr, uint256 newTotalMembers, uint256 newQuorum)',
+  ],
+  CommitteeMemberAdded: ['event CommitteeMemberAdded(address indexed member)'],
+  CommitteeMemberRemoved: ['event CommitteeMemberRemoved(address indexed member)'],
+  CommitteeMemberUpdated: ['event CommitteeMemberUpdated(address indexed member, bool enabled)'],
+  // An Aragon Voting executed a passed vote: marks a transaction as made through the vote (the
+  // delayed path of a Lido committee before Dual Governance)
+  ExecuteVote: ['event ExecuteVote(uint256 indexed voteId)'],
   ProposerRegistered: [
     'event ProposerRegistered(address indexed proposer, address indexed executor)',
   ],

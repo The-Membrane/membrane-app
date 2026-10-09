@@ -127,6 +127,30 @@ export type Controller = {
   }
   /** Aragon Voting app (kind 'aragon_voting'): a vote lasts voteTime (delaySec). */
   voting?: { voteTimeSec: number | null; objectionPhaseSec: number | null }
+  /**
+   * Owner ruling 2026-10-08 (#12): who can put an operation INTO a timelock, classified at the
+   * same block. A timelock ranks as its WEAKEST scheduler; its delay adds strength only at
+   * 24 h or more (rules.ts `controllerRank`).
+   *   oz_timelock    PROPOSER_ROLE holders, plus the holders of PROPOSER_ROLE's admin role
+   *                  (TIMELOCK_ADMIN_ROLE / DEFAULT_ADMIN_ROLE / ADMIN_ROLE): they can grant it.
+   *                  The timelock itself (its self-administration) is not listed.
+   *   ds_pause       its owner and its authority (DSAuth: either may plot).
+   *   aragon_dg      the governance contract's declared proposers (getProposers()).
+   * undefined on a timelock kind = not read by this collector version; with `schedulersUnread`
+   * the read failed. Either way the timelock ranks as a plain contract and is a read gap (fail
+   * closed). An Aragon Voting app needs none: the token-holder vote is its own controller.
+   */
+  schedulers?: Controller[]
+  /** The scheduler set could not be read (or enumerated completely): a read gap. */
+  schedulersUnread?: boolean
+  /**
+   * Review round 9: schedulers (lower-case addresses) that can change this timelock's delay
+   * WITHOUT waiting for it — a Chainlink RBACTimelock gates `updateDelay` with ADMIN_ROLE, not
+   * self-only as in OZ (measured: `updateDelay(0)` succeeds as an eth_call from the holder, or
+   * the call failed for another reason: fail closed). Such a scheduler gets no delay credit: it
+   * can cut the delay to 0, grant itself PROPOSER and EXECUTOR, then schedule and execute.
+   */
+  delaySetters?: string[]
 }
 
 // ---- subjects (data/oracle-registry/config/subjects.json) ---------------------------------

@@ -37,6 +37,39 @@ export function decodeTrimmedAmount(raw, tokenDecimals) {
     : (amount / 10n ** BigInt(d - tokenDecimals)).toString()
 }
 
+/**
+ * Review round 9: subject-scoped param keys. Two subjects can declare the same key on DIFFERENT
+ * contracts (weETH and wstETH both declare `oracleQuorum` / `oracleMembers`; WBTC and cbBTC both
+ * `paused`). The collector reads every subject in one multicall pass, and `readParams` /
+ * `paramTransitions` key their results by `key` alone, so the later subject's value overwrote
+ * the earlier one's: weETH's EtherFiOracle quorum 3 / 3 members read as wstETH's HashConsensus
+ * 5 / 9, and weETH's real quorum change 2 → 3 at 25,626,145 vanished. The collector reads under
+ * `<subject>::<key>` and hands each subject its own slice with the plain keys.
+ */
+export const PARAM_SCOPE_SEP = '::'
+
+export function scopedParamSpecs(subjects) {
+  return subjects.flatMap((s) =>
+    (s.params ?? []).map((p) => ({ ...p, key: `${s.key}${PARAM_SCOPE_SEP}${p.key}` })),
+  )
+}
+
+/** One subject's slice of a scoped `paramTransitions` result, with its plain keys. */
+export function paramsForSubject(params, subjectKey) {
+  const pre = `${subjectKey}${PARAM_SCOPE_SEP}`
+  const strip = (k) => k.slice(pre.length)
+  return {
+    head: Object.fromEntries(
+      Object.entries(params.head ?? {})
+        .filter(([k]) => k.startsWith(pre))
+        .map(([k, v]) => [strip(k), v]),
+    ),
+    transitions: (params.transitions ?? [])
+      .filter((t) => t.key.startsWith(pre))
+      .map((t) => ({ ...t, key: strip(t.key) })),
+  }
+}
+
 /** Read every spec at one block with Multicall3. Returns key → value (undefined on failure). */
 export async function readParams(client, specs, block) {
   const live = specs.filter((s) => !s.eventsOnly && s.sig)

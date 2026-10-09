@@ -145,10 +145,20 @@ const safe = (addr: string, threshold: number, signers: number): Controller => (
   signers,
 })
 const eoa = (addr: string): Controller => ({ kind: 'eoa', address: addr })
-const timelock = (addr: string, delaySec: number): Controller => ({
+// Owner ruling 2026-10-08 (#12): a timelock ranks as its weakest proposer, then its delay
+// credit. The fixture's default proposer is a governance Safe 7-of-12, so a timelock here outranks
+// the smaller Safes these tests compare it with — as the tests assumed before the ruling.
+const GOV_SAFE: Controller = {
+  kind: 'safe',
+  address: '0x00000000000000000000000000000000000000c0',
+  threshold: 7,
+  signers: 12,
+}
+const timelock = (addr: string, delaySec: number, proposer: Controller = GOV_SAFE): Controller => ({
   kind: 'oz_timelock',
   address: addr,
   delaySec,
+  schedulers: [proposer],
 })
 
 // ---- ULN merge and E ----------------------------------------------------------------------------------
@@ -436,8 +446,18 @@ describe('event replay', () => {
 describe('admin rules AD-1..AD-9', () => {
   const A = '0x00000000000000000000000000000000000000aa'
   const B = '0x00000000000000000000000000000000000000bb'
-  it('ranks: immutable > timelock (by delay) > Safe (threshold, then FEWER signers) > contract > EOA', () => {
-    expect(compareRank(controllerRank(timelock(A, 86400)), controllerRank(safe(B, 6, 10)))).toBe(1)
+  it('ranks: immutable > Safe (threshold, then FEWER signers) > contract > EOA; a timelock = its weakest proposer + delay credit', () => {
+    // ruling #12: a 1-day timelock proposed by a Safe 6-of-10 outranks that Safe (credit ≥ 24 h)
+    expect(
+      compareRank(
+        controllerRank(timelock(A, 86400, safe(B, 6, 10))),
+        controllerRank(safe(B, 6, 10)),
+      ),
+    ).toBe(1)
+    // … a 10-day timelock an EOA proposes into does not outrank a Safe 6-of-10
+    expect(
+      compareRank(controllerRank(timelock(A, 864000, eoa(B))), controllerRank(safe(B, 6, 10))),
+    ).toBe(-1)
     expect(compareRank(controllerRank(safe(A, 6, 10)), controllerRank(safe(B, 6, 11)))).toBe(1)
     expect(
       compareRank(controllerRank({ kind: 'contract', address: A }), controllerRank(eoa(B))),
@@ -1638,8 +1658,19 @@ describe('admin history review fixes', () => {
   })
 
   it('controller rank cannot be gamed by a zero delay or a plain contract fronting a timelock', () => {
-    // a 0-delay "timelock" is not stronger than a 4-of-7 Safe
-    expect(classifyControllerChange(safe(A, 4, 7), timelock(B, 0)).ruleIds).toContain('AD-3')
+    // a 0-delay "timelock" is not stronger than the 4-of-7 Safe that proposes into it (ruling
+    // #12: no credit below 24 h — neutral), and one an EOA proposes into is a downgrade
+    expect(classifyControllerChange(safe(A, 4, 7), timelock(B, 0, safe(A, 4, 7))).severity).toBe(
+      'neutral',
+    )
+    expect(classifyControllerChange(safe(A, 4, 7), timelock(B, 0, eoa(B))).ruleIds).toContain(
+      'AD-3',
+    )
+    // a timelock whose proposers were not read ranks as a plain contract (fail closed)
+    expect(
+      classifyControllerChange(safe(A, 4, 7), { kind: 'oz_timelock', address: B, delaySec: 864000 })
+        .ruleIds,
+    ).toContain('AD-3')
     // timelock → a plain contract the timelock owns: strictly weaker
     expect(
       classifyControllerChange(timelock(A, 172800), {

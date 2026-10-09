@@ -127,52 +127,145 @@ export const isRed = (v: { severity: Severity; floorBreach: boolean }) =>
 // ---- controller rank ----------------------------------------------------------------------------
 
 /**
- * Strongest first: immutable / renounced > timelock (by delay) > multisig (by threshold, then
- * FEWER signers — a signer added at the same threshold widens the attack surface) > contract >
- * EOA = 7702 EOA. Returned as a tuple compared lexicographically (higher = stronger).
- *
- * A timelock is only as strong as its delay: with no delay, or with an unrestricted bypass
- * (bypasserExecuteBatch), it ranks as a plain contract. A contract that defers to an owner is
- * at most as strong as that owner and strictly weaker (its own code may hold other paths): a
- * move from a timelock to a contract the timelock owns is a downgrade.
+ * A delay adds strength only from this many seconds (24 h) — owner ruling 2026-10-08 (#12). A
+ * shorter delay gives a timelock no credit over its proposer: a 60 s timelock proposed by a Safe
+ * ranks exactly as that Safe.
  */
-export function controllerRank(c: Controller | null | undefined): number[] {
-  if (!c) return [0]
+export const DELAY_CREDIT_MIN_SEC = 86_400
+
+/** The delay credit of one timelock stage: 0 below 24 h, the delay itself at or above it. */
+export const delayCredit = (sec: number | null | undefined): number =>
+  sec !== null && sec !== undefined && Number.isFinite(sec) && sec >= DELAY_CREDIT_MIN_SEC ? sec : 0
+
+/** Kinds that hold an operation for a delay before it runs (ranked by who can schedule into them). */
+export const TIMELOCK_KINDS: ControllerKind[] = ['oz_timelock', 'ds_pause', 'aragon_dg']
+export const isTimelockKind = (c: Controller | null | undefined): boolean =>
+  !!c && (TIMELOCK_KINDS.includes(c.kind) || c.kind === 'aragon_voting')
+
+/**
+ * A rank in three parts, compared in this order:
+ *   base    the class of the weakest key holder: 6 immutable / renounced, 5 a token-holder vote
+ *           (Aragon Voting), 4 multisig [4, threshold, −signers], 2 contract, 1 EOA, 0 unknown;
+ *   credit  the delay credit of the timelock stages in front of that holder (0 for anything
+ *           that is not a timelock — "every non-timelock rank compares as if its delay credit
+ *           were 0"); stages in series add up (Aragon vote + Dual Governance after-submit);
+ *   tail    one −1 per deferral hop (a contract that defers to an owner is strictly weaker
+ *           than that owner: its own code may hold other paths).
+ */
+type RankParts = { base: number[]; credit: number; tail: number[] }
+const RANK_BASE_WIDTH = 3
+
+function rankParts(c: Controller | null | undefined): RankParts {
+  const leaf = (base: number[]): RankParts => ({ base, credit: 0, tail: [] })
+  if (!c) return leaf([0])
   switch (c.kind) {
     case 'immutable':
     case 'zero':
     case 'precompile':
-      return [6]
+      return leaf([6])
+    case 'aragon_voting':
+      // A token-holder vote: no key holder to rank, the electorate is the controller. Its vote
+      // time is a delay stage (credit from 24 h). Review round 9: a vote time that is 0 or was
+      // not read leaves no vote to rank — a plain contract (fail closed), as before ruling #12
+      // (a 0 s / unread Voting had come to outrank every Safe: Safe 6/11 → it read UPGRADE).
+      if (!((c.delaySec ?? 0) > 0) || c.voting?.voteTimeSec === null) return leaf([2])
+      return { base: [5], credit: delayCredit(c.delaySec), tail: [] }
     case 'oz_timelock':
     case 'ds_pause':
-    case 'aragon_dg':
-    case 'aragon_voting':
-      if ((c.delaySec ?? 0) <= 0 || c.bypass?.scope === 'any') return [2]
-      return [5, c.delaySec ?? 0]
+    case 'aragon_dg': {
+      // Owner ruling 2026-10-08 (#12): a timelock is as strong as its WEAKEST scheduler; its
+      // delay adds strength only at 24 h or more, and never rescues a weak proposer (the
+      // scheduler's class is compared first). An unread scheduler set ranks as a plain
+      // contract (fail closed) and is a read gap.
+      if (!c.schedulers || c.schedulersUnread) return leaf([2])
+      // nobody can schedule (every proposer revoked): ranked as a plain contract, never stronger
+      // — an empty set read from events could be a false-empty scan
+      if (!c.schedulers.length) return leaf([2])
+      const scheduled = c.schedulers
+        .map((s) => scheduledParts(c, s))
+        .reduce((m, r) => (compareParts(r, m) < 0 ? r : m))
+      // An unrestricted bypass (bypasserExecuteBatch, or a whitelist that could not be read)
+      // executes with no delay, for holders this module does not classify: at most a plain
+      // contract with no credit.
+      if (c.bypass?.scope === 'any') {
+        const bypass = leaf([2])
+        return compareParts(bypass, scheduled) < 0 ? bypass : scheduled
+      }
+      return scheduled
+    }
     case 'safe':
     case 'legacy_multisig':
       // A threshold-1 multisig: ANY one signer acts alone — it ranks with an EOA (review round
       // 7: a 1-of-N Safe outranked a plain contract and an EOA, so a MANAGER grant to a 1-of-2
       // Safe read neutral and EOA → Safe 1-of-5 read as an upgrade).
-      if (c.threshold !== undefined && c.threshold !== null && c.threshold <= 1) return [1]
+      if (c.threshold !== undefined && c.threshold !== null && c.threshold <= 1) return leaf([1])
       // A Safe module executes without signatures: the Safe is no stronger than an
       // unclassified contract while one is enabled (critique: min over module controllers).
       // Review round 8: a module list that could not be read is not "no modules" (fail closed).
-      if (c.modules?.length || c.modulesUnread) return [2]
-      return [4, c.threshold ?? 0, -(c.signers ?? 0)]
+      if (c.modules?.length || c.modulesUnread) return leaf([2])
+      return leaf([4, c.threshold ?? 0, -(c.signers ?? 0)])
     case 'contract': {
       // An Aragon Agent acts only for its executors (enumerated from the ACL at the block): it
       // is exactly as strong as the weakest one — no other code path of its own to discount.
       if (c.executors?.length)
-        return c.executors.map(controllerRank).reduce((m, r) => (compareRank(r, m) < 0 ? r : m))
-      if (!c.ownedBy) return [2]
-      const r = controllerRank(c.ownedBy)
-      return r[0] >= 3 ? [...r, -1] : r
+        return c.executors.map(rankParts).reduce((m, r) => (compareParts(r, m) < 0 ? r : m))
+      if (!c.ownedBy) return leaf([2])
+      const r = rankParts(c.ownedBy)
+      return r.base[0] >= 3 ? { ...r, tail: [...r.tail, -1] } : r
     }
     case 'eoa':
     case 'eoa_7702':
-      return [1]
+      return leaf([1])
   }
+}
+
+/**
+ * A timelock's own delay stage: a Dual Governance timelock's is the after-submit delay (the
+ * proposers' vote is their own credit, Aragon Voting). A delay that was not read adds nothing.
+ */
+const ownDelayCredit = (c: Controller): number =>
+  delayCredit(c.kind === 'aragon_dg' ? (c.dg?.afterSubmitDelaySec ?? 0) : c.delaySec)
+
+/** Can this scheduler change the timelock's delay without waiting for it (review round 9)? */
+const setsDelay = (c: Controller, s: Controller): boolean =>
+  (c.delaySetters ?? []).some((x) => x.toLowerCase() === s.address.toLowerCase())
+
+/**
+ * One scheduler's rank through the timelock: its own rank plus the timelock's delay credit —
+ * none for a scheduler that can change the delay at once (review round 9: an RBACTimelock
+ * ADMIN_ROLE holder can call updateDelay(0), then grant itself PROPOSER and execute).
+ */
+function scheduledParts(c: Controller, s: Controller): RankParts {
+  const r = rankParts(s)
+  return { ...r, credit: r.credit + (setsDelay(c, s) ? 0 : ownDelayCredit(c)) }
+}
+
+const flatRank = (p: RankParts): number[] => {
+  const base = [...p.base]
+  while (base.length < RANK_BASE_WIDTH) base.push(0)
+  const out = [...base, p.credit, ...p.tail]
+  // trailing zeros compare as missing: trimmed so a leaf reads as before ([2], [4, 3, -5])
+  while (out.length > 1 && out[out.length - 1] === 0) out.pop()
+  return out
+}
+const compareParts = (a: RankParts, b: RankParts) => compareRank(flatRank(a), flatRank(b))
+
+/**
+ * Strongest first: immutable / renounced > a token-holder vote > multisig (by threshold, then
+ * FEWER signers — a signer added at the same threshold widens the attack surface) > contract >
+ * EOA = 7702 EOA. Returned as a tuple compared lexicographically (higher = stronger):
+ * [base (3 wide), delay credit, deferral tail] — see `rankParts`.
+ *
+ * Owner ruling 2026-10-08 (#12): a TIMELOCK ranks as its WEAKEST PROPOSER (who can schedule:
+ * PROPOSER_ROLE and the roles that can grant it; a DSPause's owner / authority; a Dual
+ * Governance timelock's declared proposers), then its delay credit — 0 below 24 h, the delay
+ * itself at or above it. A delay never rescues a weak proposer: a 10-day timelock an EOA
+ * proposes into ranks below a Safe 6-of-11. An unread proposer set, and an unrestricted bypass,
+ * rank as a plain contract. A contract that defers to an owner is at most as strong as that
+ * owner and strictly weaker (its own code may hold other paths).
+ */
+export function controllerRank(c: Controller | null | undefined): number[] {
+  return flatRank(rankParts(c))
 }
 
 export function compareRank(a: number[], b: number[]): number {
@@ -194,8 +287,20 @@ export const isEoa = (c: Controller | null | undefined) => !!c && EOA_KINDS.incl
 export const isEoaControlled = (c: Controller | null | undefined) =>
   !!c && (isEoa(c) || controllerRank(c)[0] <= 1)
 
-export function describeController(c: Controller | null | undefined): string {
+/**
+ * One-line description of a controller. `nested` (inside a timelock's "proposed by" note): a
+ * timelock further down is named without its own proposer note, so a proposer the timelock owns
+ * (an MCMS owned by its RBACTimelock) does not print the timelock again and again.
+ */
+export function describeController(
+  c: Controller | null | undefined,
+  // an options object, not a boolean: `holders.map(describeController)` passes the index here
+  opts?: { nested?: boolean } | number,
+): string {
   if (!c) return 'unknown'
+  const nested = typeof opts === 'object' && !!opts?.nested
+  const note = () => (nested ? '' : schedulerNote(c))
+  const sub = (x: Controller | null | undefined) => describeController(x, { nested })
   const a = `${c.address.slice(0, 6)}…${c.address.slice(-4)}`
   switch (c.kind) {
     case 'safe':
@@ -203,9 +308,9 @@ export function describeController(c: Controller | null | undefined): string {
     case 'legacy_multisig':
       return `MultiSig ${c.threshold}-of-${c.signers} ${a}`
     case 'oz_timelock':
-      return `Timelock ${formatDelay(c.delaySec ?? 0)}${c.bypass ? ` (bypass: ${c.bypass.fn}${c.bypass.unread ? ', whitelist UNREAD' : ''})` : ''} ${a}`
+      return `Timelock ${formatDelay(c.delaySec ?? 0)}${c.bypass ? ` (bypass: ${c.bypass.fn}${c.bypass.unread ? ', whitelist UNREAD' : ''})` : ''} ${a}${note()}`
     case 'ds_pause':
-      return `DSPause ${formatDelay(c.delaySec ?? 0)} ${a}`
+      return `DSPause ${formatDelay(c.delaySec ?? 0)} ${a}${note()}`
     case 'aragon_dg': {
       const d = c.dg
       const parts = [
@@ -214,10 +319,13 @@ export function describeController(c: Controller | null | undefined): string {
           ? `${formatDelay(d.afterSubmitDelaySec)} after submit`
           : null,
       ].filter(Boolean)
-      return `Dual Governance timelock ${formatDelay(c.delaySec ?? 0)}${parts.length ? ` (${parts.join(' + ')}${d?.afterScheduleDelaySec ? `; +${formatDelay(d.afterScheduleDelaySec)} after schedule unless the emergency committee executes` : ''}${d?.emergencyModeActive ? '; EMERGENCY MODE ACTIVE' : ''})` : ''} ${a}`
+      return `Dual Governance timelock ${formatDelay(c.delaySec ?? 0)}${parts.length ? ` (${parts.join(' + ')}${d?.afterScheduleDelaySec ? `; +${formatDelay(d.afterScheduleDelaySec)} after schedule unless the emergency committee executes` : ''}${d?.emergencyModeActive ? '; EMERGENCY MODE ACTIVE' : ''})` : ''} ${a}${note()}`
     }
     case 'aragon_voting':
-      return `Aragon Voting ${formatDelay(c.delaySec ?? 0)} vote ${a}`
+      // review round 9: a 0 s or unread vote time ranks as a plain contract — say so
+      if (c.voting?.voteTimeSec === null)
+        return `Aragon Voting ${a} [vote time UNREAD: ranked as a plain contract]`
+      return `Aragon Voting ${formatDelay(c.delaySec ?? 0)} vote ${a}${(c.delaySec ?? 0) > 0 ? '' : ' [no vote time: ranked as a plain contract]'}`
     case 'eoa':
       return `EOA ${a}`
     case 'eoa_7702':
@@ -230,12 +338,54 @@ export function describeController(c: Controller | null | undefined): string {
       // an Aragon Agent says so (its controllers are the executors it acts for)
       const name = c.version?.startsWith('Aragon Agent') ? 'Aragon Agent' : 'contract'
       if ((c.executors?.length ?? 0) > 1)
-        return `${name} ${a} → ${c.executors!.map(describeController).join(' | ')} (ranked as the weakest)`
-      return c.ownedBy ? `${name} ${a} → ${describeController(c.ownedBy)}` : `${name} ${a}`
+        return `${name} ${a} → ${c.executors!.map(sub).join(' | ')} (ranked as the weakest)`
+      return c.ownedBy ? `${name} ${a} → ${sub(c.ownedBy)}` : `${name} ${a}`
     }
     default:
       return `${c.kind} ${a}`
   }
+}
+
+/**
+ * Every controller in `c`'s tree: itself, its deferral chain (ownedBy), an Aragon Agent's
+ * executors and a timelock's schedulers — what its rank is computed from.
+ */
+export function controllerTree(c: Controller | null | undefined): Controller[] {
+  const out: Controller[] = []
+  const walk = (x: Controller | null | undefined, depth: number) => {
+    if (!x || depth > 12 || out.includes(x)) return
+    out.push(x)
+    walk(x.ownedBy, depth + 1)
+    for (const e of x.executors ?? []) walk(e, depth + 1)
+    for (const s of x.schedulers ?? []) walk(s, depth + 1)
+  }
+  walk(c, 0)
+  return out
+}
+
+/** A timelock whose scheduler set was not read (ranked as a plain contract: a read gap). */
+export const schedulersUnreadOf = (c: Controller): boolean =>
+  TIMELOCK_KINDS.includes(c.kind) && (!c.schedulers || !!c.schedulersUnread)
+
+/** The weakest controller that can schedule into a timelock (ruling #12); null = none read. */
+export function weakestScheduler(c: Controller | null | undefined): Controller | null {
+  if (!c?.schedulers?.length || c.schedulersUnread) return null
+  return c.schedulers.reduce((m, h) =>
+    compareParts(scheduledParts(c, h), scheduledParts(c, m)) < 0 ? h : m,
+  )
+}
+
+/**
+ * Who the timelock's rank comes from (owner ruling 2026-10-08, #12): its weakest proposer, or
+ * why it ranks as a plain contract. Kept short: the weakest one is named, the rest counted.
+ */
+function schedulerNote(c: Controller): string {
+  if (!c.schedulers || c.schedulersUnread) return ' [proposers UNREAD: ranked as a plain contract]'
+  if (!c.schedulers.length) return ' [no proposer read: ranked as a plain contract]'
+  const w = weakestScheduler(c)!
+  const more = c.schedulers.length - 1
+  const cuts = setsDelay(c, w) ? ', which can change the delay at once' : ''
+  return ` [proposed by ${describeController(w, { nested: true })}${cuts}${more ? ` (the weakest of ${c.schedulers.length})` : ''}]`
 }
 
 export function formatDelay(sec: number): string {

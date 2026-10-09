@@ -51,6 +51,7 @@ import {
   resolvePath,
   roleHoldersFromEvents,
   setAragonExecCandidates,
+  setRoleCandidates,
   subjectExtraEmitters,
   TIMELOCK_SCOPE_ROLES,
   WORMHOLE_EVM_CHAINS,
@@ -70,7 +71,7 @@ import {
   scanLzConfig,
   ulnFromTuple,
 } from './lib/lz.mjs'
-import { paramTransitions, txAtBlock } from './lib/params.mjs'
+import { paramTransitions, paramsForSubject, scopedParamSpecs, txAtBlock } from './lib/params.mjs'
 import {
   blockTimestamps,
   codeAt,
@@ -329,6 +330,9 @@ if (extraCode.length) {
   roleMap = roleHoldersFromEvents(adminRows)
   await resolveAll()
 }
+// ruling #12: the timelock proposer candidates the admin scan saw (a cross-check for the
+// per-timelock RoleGranted read in classify)
+setRoleCandidates(adminRows)
 for (const r of adminRows) {
   if (r.args?.role) r.args.roleName = roleName(r.args.role)
   // RoleAdminChanged: name both admin roles (AD-3 on who can grant the role)
@@ -891,15 +895,56 @@ await pool([...want], 4, async (a) => {
 // the other late additions to `want`)
 for (const c of Object.values(controllers)) for (const a of dgCommitteeAddresses(c)) want.add(a)
 // A classification at a past block never changes: cache it across runs. v2 = classification
-// from the code (canonical Safe singleton, timelock dispatch table, bypass paths).
-const AT_CACHE = join(CACHE, 'controllers-at-v2.json')
-const atCache = existsSync(AT_CACHE) ? JSON.parse(readFileSync(AT_CACHE, 'utf8')) : {}
+// from the code (canonical Safe singleton, timelock dispatch table, bypass paths); v3 = a
+// timelock carries its schedulers (owner ruling 2026-10-08, #12); v4 (review round 9) = owner
+// hops counted from the last scheduler hop, ownership cycles not followed, a timelock's delay
+// setters. A v3 entry with no timelock, no Aragon Agent executors and no repeated address in its
+// tree classifies the same under v4 and carries over; the rest are read again.
+const AT_CACHE = join(CACHE, 'controllers-at-v4.json')
+const AT_CACHE_V3 = join(CACHE, 'controllers-at-v3.json')
+const atCache = existsSync(AT_CACHE)
+  ? JSON.parse(readFileSync(AT_CACHE, 'utf8'))
+  : existsSync(AT_CACHE_V3)
+    ? (() => {
+        const v3 = JSON.parse(readFileSync(AT_CACHE_V3, 'utf8'))
+        const same = (c, anc = []) =>
+          !c ||
+          (!['oz_timelock', 'ds_pause', 'aragon_dg'].includes(c.kind) &&
+            !c.executors?.length &&
+            !anc.includes(c.address) &&
+            [c.ownedBy, ...(c.schedulers ?? []), ...(c.executors ?? [])].every((x) =>
+              same(x, [...anc, c.address]),
+            ))
+        return Object.fromEntries(Object.entries(v3).filter(([, c]) => same(c)))
+      })()
+    : {}
 // Review round 8: the holders a role grant is ranked against are classified AT the grant block.
 // The replay fell back to their head classification (or, with none, to "not ranked against") —
 // and the head now covers every current holder with code (below), so the fallback would rank a
 // past grant against today's holder. Only PRIVILEGED roles (and roles that administer others)
 // are ranked; a holder that was a plain EOA when granted is skipped (it ranks as an EOA).
 const rulesTs = await loadTs('../../../../lib/oracleRegistry/config/rules.ts')
+// Review round 9: a committee member change is neutral only when the declared delayed path MADE
+// it (adminReplay `committeePathVia`): the recipient of each such transaction is read (a
+// transaction sent to the path runs nothing outside it), and the calldata of every CallExecuted
+// that targets a committee is kept (it must name the member). A failed read is null (no proof).
+const { COMMITTEE_EVENTS } = await loadTs('../../../../lib/oracleRegistry/config/adminReplay.ts')
+const committeeEmitters = new Set(
+  adminRows.filter((r) => COMMITTEE_EVENTS.has(r.event)).map((r) => lc(r.emitter)),
+)
+const committeeTxTo = {}
+await pool(
+  [...new Set(adminRows.filter((r) => COMMITTEE_EVENTS.has(r.event)).map((r) => r.tx))],
+  4,
+  async (h) => {
+    try {
+      const t = await retry(() => client.getTransaction({ hash: h }))
+      committeeTxTo[h] = t?.to ? lc(t.to) : null
+    } catch {
+      committeeTxTo[h] = null
+    }
+  },
+)
 const adminRoleNames = new Map()
 for (const r of adminRows)
   if (r.event === 'RoleAdminChanged')
@@ -1208,7 +1253,9 @@ await pool(
 // ---- 10. mint / redeem getters ------------------------------------------------------------------------
 let params = { transitions: [], head: {} }
 if (!flag('no-params')) {
-  const specs = subjects.flatMap((s) => s.params)
+  // review round 9: keys scoped by subject — weETH and wstETH both declare oracleQuorum /
+  // oracleMembers, and one pass keyed by `key` alone gave weETH wstETH's values
+  const specs = scopedParamSpecs(subjects)
   params = await paramTransitions(client, specs, {
     from: head - Math.round(PARAM_DAYS * 7200),
     head,
@@ -1297,12 +1344,13 @@ for (const s of subjects)
   for (const sp of s.params.filter(
     (x) => x.rule === 'rate_provider' || x.rule === 'price_oracle',
   )) {
-    const v = params.head[sp.key]
+    const mine = paramsForSubject(params, s.key)
+    const v = mine.head[sp.key]
     if (typeof v === 'string' && /^0x[0-9a-f]{40}$/.test(v)) {
       verifyTargets.add(v)
       proxyTargets.add(v)
     }
-    for (const t of params.transitions.filter((x) => x.key === sp.key))
+    for (const t of mine.transitions.filter((x) => x.key === sp.key))
       if (typeof t.after === 'string' && /^0x[0-9a-f]{40}$/.test(t.after)) {
         verifyTargets.add(t.after)
         proxyTargets.add(t.after)
@@ -1464,9 +1512,27 @@ for (const s of subjects) {
         )
         .map((r) =>
           r.event === 'CallExecuted'
-            ? { ...r, args: { id: r.args.id, index: r.args.index, target: r.args.target } }
+            ? {
+                ...r,
+                args: {
+                  id: r.args.id,
+                  index: r.args.index,
+                  target: r.args.target,
+                  ...(committeeEmitters.has(lc(r.args.target)) ? { data: r.args.data } : {}),
+                },
+              }
             : r,
         ),
+      txTo: Object.fromEntries(
+        Object.entries(committeeTxTo).filter(([h]) =>
+          adminRows.some(
+            (r) =>
+              r.tx === h &&
+              COMMITTEE_EVENTS.has(r.event) &&
+              (subjectAddrs.has(r.emitter) || extraForSubject.has(r.emitter)),
+          ),
+        ),
+      ),
       controllers,
       powers: powerReads.get(s.key),
       timelockAdmins: tl,
@@ -1491,10 +1557,7 @@ for (const s of subjects) {
       ...(s.aragonAcl ? { fileFrom: adminFrom } : {}),
       ...(Object.keys(aragonApps).length ? { aragonApps } : {}),
     },
-    params: {
-      head: params.head,
-      transitions: params.transitions.filter((t) => s.params.some((p) => p.key === t.key)),
-    },
+    params: paramsForSubject(params, s.key),
     queues: {
       ops: [
         ...s.timelocks.flatMap((t) => opsByTimelock.get(t) ?? []),

@@ -439,7 +439,8 @@ describe('round-2 ruling #9: severity rank of floor breaches by value at risk (U
     expect(none.unread.join()).toMatch(/no price/)
   })
 
-  it('sort: highest value first, unknown value last', () => {
+  // superseded by owner ruling 2026-10-08 #14: an unread value sorts FIRST (fail closed)
+  it('sort: an unread value first, then the highest value first', () => {
     const mk = (usd: number | null) => ({
       usd,
       lockedUsd: usd,
@@ -450,7 +451,7 @@ describe('round-2 ruling #9: severity rank of floor breaches by value at risk (U
       unread: [],
     })
     const xs = [mk(5), mk(null), mk(50), mk(1)]
-    expect([...xs].sort(compareValueAtRisk).map((x) => x.usd)).toEqual([50, 5, 1, null])
+    expect([...xs].sort(compareValueAtRisk).map((x) => x.usd)).toEqual([null, 50, 5, 1])
   })
 
   it('engine + card: every floor-breach route carries its value at risk, and breaches are sorted by it', () => {

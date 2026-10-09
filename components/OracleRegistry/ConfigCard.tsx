@@ -14,6 +14,7 @@ import {
   announcementChip,
   asOfLine,
   blockAside,
+  breachBannerTitle,
   delayText,
   hasFloorRoutes,
   headline,
@@ -230,15 +231,8 @@ export const ConfigCard: React.FC<{
             mb="4px"
           >
             <span aria-hidden="true">{RED_META.glyph} </span>
-            {[
-              floor.length
-                ? `${floor.length} FLOOR ${floor.length === 1 ? 'BREACH' : 'BREACHES'}`
-                : '',
-              rule.length ? `${rule.length} RULE ${rule.length === 1 ? 'BREACH' : 'BREACHES'}` : '',
-            ]
-              .filter(Boolean)
-              .join(' · ')}{' '}
-            IN FORCE NOW
+            {/* KG-2: routes like the headline, sides in brackets */}
+            {breachBannerTitle(view.counts.floorBreaches, floor.length, rule.length)}
           </Text>
           {view.breaches.map((b, i) => (
             <BreachLine key={`${b.key}-${b.ruleId}-${i}`} b={b} rule={view.rules[b.ruleId]} />

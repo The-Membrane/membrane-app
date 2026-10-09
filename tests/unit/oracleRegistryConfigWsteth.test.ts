@@ -185,6 +185,8 @@ const dgCtl = (delay = 691200, o: Partial<Controller['dg']> = {}): Controller =>
   kind: 'aragon_dg',
   address: EPT,
   delaySec: delay,
+  // ruling #12: the declared proposer (the Aragon Voting), classified — the rank comes from it
+  schedulers: [voting()],
   dg: {
     proposers: [VOTING],
     proposerVoteSec: 432000,

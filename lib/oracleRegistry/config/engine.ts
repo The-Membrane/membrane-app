@@ -24,6 +24,7 @@ import {
   classifyAdminEvents,
   classifyDvnSignerChanges,
   classifyParamTransitions,
+  COMMITTEE_EVENTS,
   type AdminEventRow,
   type DvnSignerChange,
   type ParamTransition,
@@ -55,7 +56,10 @@ import {
   classifyControllerChange,
   isPrivilegedRole,
   controllerRank,
+  controllerTree,
   compareRank,
+  isTimelockKind,
+  schedulersUnreadOf,
   describeController,
   formatDelay,
   OWNER_INIT_WINDOW_BLOCKS,
@@ -421,6 +425,11 @@ export type RawSubject = {
     fileFrom?: number
     /** Aragon appId → the subject's app proxies with it (Kernel SetApp / queued setApp). */
     aragonApps?: Record<string, string[]>
+    /**
+     * Review round 9: the recipient (`to`) of every transaction carrying an oracle committee
+     * member event; null = not read. Proves a member change was made BY the declared path.
+     */
+    txTo?: Record<string, string | null>
   }
   params: { head: Record<string, unknown>; transitions: ParamTransition[] }
   queues: {
@@ -1293,12 +1302,32 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     if (!about.length) return 'unknown'
     return about.some(({ r, actsOn }) => r.reaches(t, actsOn, selector)) ? 'reaches' : 'outside'
   }
+  // Owner ruling 2026-10-08 (#13): the declared delayed governance path of each oracle committee
+  // = every delayed controller (timelock, Dual Governance, Aragon vote) in the head trees of the
+  // holders of a declared power over the committee; with no such power, the subject's declared
+  // timelocks. A member change executed through none of them is red.
+  const committeePaths: Record<string, string[]> = {}
+  for (const em of new Set(
+    raw.admin.events.filter((e) => COMMITTEE_EVENTS.has(e.event)).map((e) => lc(e.emitter)),
+  )) {
+    const on = powers.filter((p) => lc(p.contract) === em)
+    const path = new Set<string>()
+    for (const p of on)
+      for (const h of p.holders)
+        for (const c of controllerTree(h))
+          if (isTimelockKind(c) && ((c.delaySec ?? 0) > 0 || (c.dg?.afterSubmitDelaySec ?? 0) > 0))
+            path.add(lc(c.address))
+    if (!on.length) for (const t of subject.timelocks) path.add(lc(t))
+    committeePaths[em] = [...path]
+  }
   changes.push(
     ...classifyAdminEvents(raw.admin.events, {
       subject: subject.key,
       ctl,
       upgradeTimelocks,
       timelockSince,
+      committeePaths,
+      ...(raw.admin.txTo ? { txTo: raw.admin.txTo } : {}),
       upgradeHoldersAt: raw.admin.upgradeHoldersAt
         ? Object.fromEntries(
             Object.entries(raw.admin.upgradeHoldersAt).map(([k, hs]) => {
@@ -2254,6 +2283,36 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         ),
       ),
     ],
+    // owner ruling 2026-10-08 (#12): a timelock whose proposer set was not read ranks as a
+    // plain contract — never "no red flags" over it (an EOA proposer would be AD-3)
+    ...[
+      ...new Set(
+        powers.flatMap((p) =>
+          p.holders
+            .flatMap(controllerTree)
+            .filter(schedulersUnreadOf)
+            .map(
+              (h) =>
+                `timelock ${short(h.address)}: proposers not read (ranked as a plain contract)`,
+            ),
+        ),
+      ),
+    ],
+    // review round 9: an Aragon Voting app whose vote time was not read ranks as a plain
+    // contract — a read gap, like an unread proposer set
+    ...[
+      ...new Set(
+        powers.flatMap((p) =>
+          p.holders
+            .flatMap(controllerTree)
+            .filter((h) => h.kind === 'aragon_voting' && h.voting?.voteTimeSec === null)
+            .map(
+              (h) =>
+                `Aragon Voting ${short(h.address)}: vote time not read (ranked as a plain contract)`,
+            ),
+        ),
+      ),
+    ],
     // the remote side of a live NTT route: its floor and owner cannot be judged unread
     ...(raw.ntt ?? []).flatMap(nttRemoteGaps),
     ...dgGaps,
@@ -2483,6 +2542,25 @@ export function markStillInEffect(changes: ConfigChange[]): void {
   for (const c of ordered) byKey.set(c.key, [...(byKey.get(c.key) ?? []), c])
   const str = (x: unknown): string | null => (typeof x === 'string' ? lc(x) : null)
   for (const [key, list] of byKey) {
+    // Oracle committee member sets (ruling #13): `before` = the members a change removed,
+    // `after` = the ones it added. A red change stays in effect while any member it added is
+    // still in, or any member it removed is still out.
+    if (key.startsWith('oracle/committee/')) {
+      const arr = (x: unknown) => (Array.isArray(x) ? x.map((m) => lc(String(m))) : [])
+      let open: { c: ConfigChange; inn: Set<string>; out: Set<string> }[] = []
+      for (const c of list) {
+        const removed = arr(c.before)
+        const added = arr(c.after)
+        for (const o of open) {
+          for (const m of removed) o.inn.delete(m)
+          for (const m of added) o.out.delete(m)
+        }
+        open = open.filter((o) => o.inn.size > 0 || o.out.size > 0)
+        if (c.red) open.push({ c, inn: new Set(added), out: new Set(removed) })
+      }
+      for (const o of open) o.c.stillInEffect = true
+      continue
+    }
     // role keys hold a SET of accounts; a minter key's value is its allowance, while its red is
     // about the minter existing (only its removal ends it)
     const isSet = key.startsWith('admin/role/') || key.startsWith('mint/minter/')

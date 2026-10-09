@@ -72,10 +72,20 @@ const safe = (a: string, t: number, n: number, o: Partial<Controller> = {}): Con
   signers: n,
   ...o,
 })
+// Owner ruling 2026-10-08 (#12): a timelock ranks as its weakest proposer + delay credit. The
+// fixture's default proposer is a governance Safe 7-of-12 (override with `schedulers`).
 const timelock = (a: string, d = 86400, o: Partial<Controller> = {}): Controller => ({
   kind: 'oz_timelock',
   address: a,
   delaySec: d,
+  schedulers: [
+    {
+      kind: 'safe',
+      address: '0x00000000000000000000000000000000000000c0',
+      threshold: 7,
+      signers: 12,
+    },
+  ],
   ...o,
 })
 const ownedBy = (a: string, o: Controller): Controller => ({

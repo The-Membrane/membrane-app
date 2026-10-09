@@ -110,6 +110,81 @@ export type AdminCtx = {
    * power on it is reached; anything else is judged as reaching one (fail closed).
    */
   whitelistReach?: (target: string, selector: string) => WhitelistReach
+  /**
+   * Owner ruling 2026-10-08 (#13, closes KG-1): per oracle committee contract (lower), the
+   * DECLARED delayed governance path — the timelocks / votes whose execution event in the same
+   * transaction (CallExecuted, ProposalExecuted, ExecuteVote) makes a member-set change neutral.
+   * A member change with none of them in its transaction is red (AD-5). Missing = no declared
+   * path: every member change outside initialization is red (fail closed).
+   */
+  committeePaths?: Record<string, string[]>
+  /**
+   * Review round 9: the recipient (`to`) of each transaction that carries an oracle committee
+   * member event (collector: eth_getTransactionByHash). null / missing = not read. A transaction
+   * SENT to a declared path contract runs nothing outside that contract's execution.
+   */
+  txTo?: Record<string, string | null>
+}
+
+/** Oracle committee member events (Lido HashConsensus, ether.fi EtherFiOracle). */
+export const COMMITTEE_EVENTS = new Set([
+  'MemberAdded',
+  'MemberRemoved',
+  'CommitteeMemberAdded',
+  'CommitteeMemberRemoved',
+  'CommitteeMemberUpdated',
+])
+/** Events that mark a transaction as executed through a delayed governance path. */
+export const PATH_EXEC_EVENTS = new Set(['CallExecuted', 'ProposalExecuted', 'ExecuteVote'])
+
+/**
+ * Review round 9 (the UQ-7 class, on committee rows): did the DECLARED delayed path MAKE this
+ * member change, rather than merely run in the same transaction? Returns the path execution
+ * event that proves it, or null (red: fail closed). Proof is one of:
+ *  (a) the transaction was SENT to a declared path contract, and that contract's own execution
+ *      event (CallExecuted / ProposalExecuted / ExecuteVote) comes after every member event: a
+ *      Dual Governance `execute`, an Aragon `executeVote` / last `vote` — nothing outside the
+ *      path's execution runs in such a transaction (verified on chain: all 7 wstETH rows);
+ *  (b) every member event is followed by a CallExecuted from a declared path timelock whose call
+ *      (the FIRST CallExecuted after the event — OZ emits it right after each call of a batch)
+ *      targets the committee and names that member in its calldata (the ether.fi rows: a Safe
+ *      calls the timelock's execute, so the transaction is not sent to the path).
+ * An unread recipient falls back to (b); a call that targets another contract, or does not name
+ * the member (an out-of-band add placed in front of an unrelated timelocked call), is no proof.
+ */
+export function committeePathVia(
+  txRows: readonly AdminEventRow[],
+  memberRows: readonly AdminEventRow[],
+  committee: string,
+  path: readonly string[],
+  txTo: string | null | undefined,
+): AdminEventRow | null {
+  if (!path.length || !memberRows.length) return null
+  const lastMember = Math.max(...memberRows.map((m) => m.logIndex))
+  const to = txTo ? lcs(txTo) : null
+  if (to && path.includes(to)) {
+    const exec = txRows.find(
+      (x) => PATH_EXEC_EVENTS.has(x.event) && lcs(x.emitter) === to && x.logIndex > lastMember,
+    )
+    if (exec) return exec
+  }
+  const calls = txRows
+    .filter((x) => x.event === 'CallExecuted' && path.includes(lcs(x.emitter)))
+    .sort((x, y) => x.logIndex - y.logIndex)
+  let first: AdminEventRow | null = null
+  for (const m of memberRows) {
+    const member = lcs(m.args.addr ?? m.args.member).replace(/^0x/, '')
+    const c = calls.find((x) => x.logIndex > m.logIndex)
+    if (
+      !c ||
+      !/^[0-9a-f]{40}$/.test(member) ||
+      lcs(c.args.target) !== lcs(committee) ||
+      !lcs(c.args.data).includes(member)
+    )
+      return null
+    first ??= c
+  }
+  return first
 }
 
 const lcs = (x: unknown) => String(x ?? '').toLowerCase()
@@ -195,6 +270,9 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
   const lastOwner = new Map<string, string>()
   // Multisig threshold / signers replayed from the events, anchored at exact archive reads.
   const msState = new Map<string, { threshold: number; signers: number; block: number }>()
+  // Oracle committees: the member set replayed from the events (incomplete when the committee
+  // predates the scan: a member removed that was never seen added was a member before)
+  const committees = new Map<string, Set<string>>()
   // Dual Governance: the last value each config event set (the events carry only the new one)
   const lastSet = new Map<string, string>()
   const dgProposers = new Map<string, Set<string>>()
@@ -469,6 +547,111 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
             `timelock ${short(em)} delay ${a.oldDuration}s → ${a.newDuration}s`,
             v,
             { before: Number(a.oldDuration), after: Number(a.newDuration) },
+          ),
+        )
+        break
+      }
+      case 'MemberAdded':
+      case 'MemberRemoved':
+      case 'CommitteeMemberAdded':
+      case 'CommitteeMemberRemoved':
+      case 'CommitteeMemberUpdated': {
+        // Owner ruling 2026-10-08 (#13, closes KG-1): an oracle committee's member set is judged
+        // by the PATH that changed it — neutral through the declared delayed governance path,
+        // red (AD-5) outside it. One row per (committee, transaction): a same-size swap shows.
+        const gk = `${r.tx}|${em}|committee`
+        if (done.has(gk)) break
+        done.add(gk)
+        const mine = txRows.filter((x) => x.emitter === em && COMMITTEE_EVENTS.has(x.event))
+        const set = committees.get(em) ?? new Set<string>()
+        const memberOf = (x: AdminEventRow) => lcs(x.args.addr ?? x.args.member)
+        const isOn = (x: AdminEventRow) =>
+          x.event === 'MemberAdded' ||
+          x.event === 'CommitteeMemberAdded' ||
+          (x.event === 'CommitteeMemberUpdated' &&
+            (x.args.enabled === true || String(x.args.enabled) === 'true'))
+        const first = new Map<string, boolean>()
+        const last = new Map<string, boolean>()
+        for (const x of mine) {
+          const m = memberOf(x)
+          if (!first.has(m)) first.set(m, isOn(x))
+          last.set(m, isOn(x))
+        }
+        const sizeKnown =
+          ctx.deployBlocks[em] !== undefined &&
+          ctx.scanFrom !== undefined &&
+          ctx.deployBlocks[em] >= ctx.scanFrom
+        const beforeSize = sizeKnown ? set.size : null
+        const added: string[] = []
+        const removed: string[] = []
+        for (const [m, on] of last) {
+          // a member whose first event here is a removal was a member before (even if the
+          // replay never saw it added)
+          const was = set.has(m) || first.get(m) === false
+          if (on && !was) added.push(m)
+          if (!on && was) removed.push(m)
+          if (on) set.add(m)
+          else set.delete(m)
+        }
+        committees.set(em, set)
+        // HashConsensus events carry the totals after each change; ether.fi's do not
+        const tail = mine.filter((x) => x.args.newTotalMembers !== undefined).at(-1)
+        const afterSize =
+          tail !== undefined ? Number(tail.args.newTotalMembers) : sizeKnown ? set.size : null
+        const quorum = tail?.args.newQuorum !== undefined ? Number(tail.args.newQuorum) : null
+        const before0 =
+          beforeSize ?? (afterSize !== null ? afterSize - added.length + removed.length : null)
+        const v = neutral()
+        const path = ctx.committeePaths?.[em] ?? []
+        const via = committeePathVia(txRows, mine, em, path, ctx.txTo?.[r.tx])
+        // a path execution that ran in the transaction but did not make the change (review round 9)
+        const ran = txRows.find((x) => PATH_EXEC_EVENTS.has(x.event) && path.includes(x.emitter))
+        if (isInit(em, r.block)) tag(v, 'initialization')
+        else if (via)
+          v.notes.push(
+            `through the declared delayed governance path: ${via.event} from ${short(via.emitter)} in this transaction`,
+          )
+        else
+          down(
+            v,
+            'AD-5',
+            !path.length
+              ? 'oracle committee members changed, and the committee has no declared delayed governance path (fail closed)'
+              : ran
+                ? `oracle committee members changed outside the declared delayed governance path: ${ran.event} from ${short(ran.emitter)} runs in this transaction, but it did not make this change (the transaction was not sent to the path, and no executed call to ${short(em)} names the member)`
+                : `oracle committee members changed outside the declared delayed governance path: no CallExecuted / ProposalExecuted / ExecuteVote from ${path.map(short).join('/')} in this transaction`,
+          )
+        if (added.length && removed.length && !isRed(v)) tag(v, 'rotation')
+        const members = (n: number | null) =>
+          n === null ? '? members' : `${n} ${n === 1 ? 'member' : 'members'}`
+        const list = (xs: string[]) =>
+          xs.length > 4
+            ? `${xs.slice(0, 3).map(short).join(', ')} … (${xs.length})`
+            : xs.map(short).join(', ')
+        const what =
+          added.length && added.length === removed.length
+            ? `${added.length} ${added.length === 1 ? 'member' : 'members'} replaced`
+            : [
+                added.length ? `${added.length} added` : '',
+                removed.length ? `${removed.length} removed` : '',
+              ]
+                .filter(Boolean)
+                .join(', ') || 'members re-set (no net change)'
+        const sizes = `${before0 ?? '?'} → ${afterSize ?? '?'} members${quorum !== null ? `, quorum ${quorum}` : ''}`
+        out.push(
+          mk(
+            ctx,
+            r,
+            'oracle',
+            `oracle/committee/${em}`,
+            `oracle committee ${short(em)}: ${what} (${sizes})`,
+            v,
+            {
+              before: removed.sort(),
+              after: added.sort(),
+              beforeDisplay: `${members(before0)}${removed.length ? ` · removed ${list(removed)}` : ''}`,
+              afterDisplay: `${members(afterSize)}${added.length ? ` · added ${list(added)}` : ''}`,
+            },
           ),
         )
         break

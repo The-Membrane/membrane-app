@@ -163,6 +163,209 @@ async function whitelistLogs(client, a) {
   return wlLogs.get(a)
 }
 
+const TOPIC_ROLE_GRANTED = keccak256(toHex('RoleGranted(bytes32,address,address)'))
+const roleLogs = new Map() // timelock → Promise<{ role, account, block }[] | null>
+/** RoleGranted(role, account) logs of a timelock from its deployment (null when unread). */
+async function roleGrantLogs(client, a) {
+  if (!roleLogs.has(a))
+    roleLogs.set(
+      a,
+      (async () => {
+        try {
+          const from = await firstCodeBlock(client, a)
+          const head = Number(await retry(() => client.getBlockNumber()))
+          const out = []
+          for (let b = from; b <= head; b += 1_000_000) {
+            const logs = await getLogsAdaptive(client, {
+              address: a,
+              topics0: [TOPIC_ROLE_GRANTED],
+              fromBlock: b,
+              toBlock: Math.min(head, b + 999_999),
+            })
+            for (const l of logs)
+              out.push({
+                role: String(l.topics[1]).toLowerCase(),
+                account: ('0x' + String(l.topics[2]).slice(-40)).toLowerCase(),
+                block: Number(l.blockNumber),
+              })
+          }
+          return out
+        } catch {
+          return null
+        }
+      })(),
+    )
+  return roleLogs.get(a)
+}
+
+// Every account the collector's own admin scan saw granted a role, per contract (set from the
+// replayed rows): a cross-check for a false-empty per-timelock log read (the shared RPC ring can
+// return empty getLogs chunks).
+const roleCands = new Map()
+export function setRoleCandidates(rows) {
+  roleCands.clear()
+  for (const r of rows ?? []) {
+    if (r.event !== 'RoleGranted') continue
+    const k = `${String(r.emitter).toLowerCase()}|${String(r.args?.role).toLowerCase()}`
+    const set = roleCands.get(k) ?? new Set()
+    set.add(String(r.args?.account).toLowerCase())
+    roleCands.set(k, set)
+  }
+}
+
+const ROLE_ADMIN_FALLBACK = ['TIMELOCK_ADMIN_ROLE', 'DEFAULT_ADMIN_ROLE', 'ADMIN_ROLE']
+// Scheduler classifications are NOT memoized: a memo of a pending promise deadlocks when a
+// scheduler's own deferral chain leads back to the timelock (measured 2026-10-08: the run exited
+// with an unsettled top-level await). Recursion is bounded by `seen` and MAX_SCHEDULER_DEPTH.
+const MAX_SCHEDULER_DEPTH = 4
+/**
+ * Owner hops followed from a contract (contract → owner → owner's owner). Review round 9: the
+ * hops are counted from the last scheduler / executor hop, not from the top of the tree — a
+ * timelock's proposers sat at depth 2 under "ProxyAdmin owned by a timelock", so a proposer
+ * CONTRACT's owner was never read: one owned by an EOA ranked as a plain contract and its AD-3
+ * never fired. A cycle (an owner already on the path, e.g. an MCMS owned by the RBACTimelock it
+ * proposes into) is not followed: it ranks as a plain contract instead of counting the
+ * timelock's delay credit twice.
+ */
+const MAX_OWNER_HOPS = 2
+const UPDATE_DELAY_0 = encodeFunctionData({
+  abi: parseAbi(['function updateDelay(uint256)']),
+  functionName: 'updateDelay',
+  args: [0n],
+})
+
+/**
+ * Review round 9: can `from` change the timelock's delay at once? An eth_call of updateDelay(0)
+ * from it at the block: success = yes (a Chainlink RBACTimelock gates it with ADMIN_ROLE); a
+ * revert = no (OZ TimelockController: only the timelock itself); any other failure, after two
+ * retries = yes (fail closed: the scheduler then gets no delay credit).
+ */
+async function canSetDelay(client, timelock, from, block) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      await client.call({
+        account: from,
+        to: timelock,
+        data: UPDATE_DELAY_0,
+        blockNumber: block === undefined ? undefined : BigInt(block),
+      })
+      return true
+    } catch (e) {
+      if (isRevertError(e)) return false
+    }
+  }
+  return true
+}
+const proposerRoleMemo = new Map() // timelock → Promise<role hash>
+const notEnumerable = new Set() // timelocks whose getRoleMemberCount reverted (OZ: not enumerable)
+
+/**
+ * One eth_call: a revert answers at once (no retry backoff — OZ TimelockController has no
+ * getRoleMemberCount, and the classification runs at hundreds of blocks); any other error goes
+ * through tryRead's retries. Same result shape as tryRead.
+ */
+async function readOnce(client, address, sig, fn, args, block) {
+  try {
+    const value = await client.readContract({
+      address,
+      abi: fnAbi(sig),
+      functionName: fn,
+      args,
+      blockNumber: block === undefined ? undefined : BigInt(block),
+    })
+    return { ok: true, value }
+  } catch (e) {
+    if (isRevertError(e)) return { ok: false, reverted: true, error: 'reverted' }
+    return tryRead(client, address, fnAbi(sig), fn, args, block)
+  }
+}
+
+/**
+ * Who can schedule into an OZ TimelockController / RBACTimelock at `block` (owner ruling
+ * 2026-10-08, #12): the PROPOSER_ROLE holders and the holders of the roles that can grant it
+ * (getRoleAdmin(PROPOSER_ROLE), and its own admin, up to three levels; TIMELOCK_ADMIN_ROLE /
+ * DEFAULT_ADMIN_ROLE / ADMIN_ROLE when getRoleAdmin cannot be read). Candidates come from the
+ * timelock's RoleGranted logs since deployment, the collector's admin scan and
+ * AccessControlEnumerable; hasRole at the block decides (a failed read keeps the candidate:
+ * fail closed). The timelock itself (self-administration) is not a scheduler.
+ *   { schedulers: Controller[] }            the set, each classified at the block
+ *   { schedulers: [...], unread: true }      no PROPOSER_ROLE candidate at all, or no log read
+ *                                            and no enumeration: ranked as a plain contract
+ */
+export async function timelockSchedulers(client, a, block, depth = 0, seen = new Set()) {
+  // nested deeper than this: not read (fail closed — ranked as a plain contract)
+  if (depth >= MAX_SCHEDULER_DEPTH) return { schedulers: [], unread: true }
+  const rd = (sig, fn, args = []) => readOnce(client, a, sig, fn, args, block)
+  if (!proposerRoleMemo.has(a))
+    proposerRoleMemo.set(
+      a,
+      rd('function PROPOSER_ROLE() view returns (bytes32)', 'PROPOSER_ROLE').then((p) =>
+        (p.ok ? String(p.value) : roleHash('PROPOSER_ROLE')).toLowerCase(),
+      ),
+    )
+  const proposerRole = await proposerRoleMemo.get(a)
+  const roles = [proposerRole]
+  let adminRead = true
+  for (let i = 0; i < 3; i++) {
+    const r = await rd(FN.getRoleAdmin, 'getRoleAdmin', [roles[roles.length - 1]])
+    if (!r.ok) {
+      adminRead = false
+      break
+    }
+    const ar = String(r.value).toLowerCase()
+    if (roles.includes(ar)) break
+    roles.push(ar)
+  }
+  if (!adminRead)
+    for (const n of ROLE_ADMIN_FALLBACK) {
+      const h = (n === 'DEFAULT_ADMIN_ROLE' ? '0x' + '0'.repeat(64) : roleHash(n)).toLowerCase()
+      if (!roles.includes(h)) roles.push(h)
+    }
+  const logs = await roleGrantLogs(client, a)
+  const holders = new Set()
+  const adminHolders = new Set() // holders of a role that administers PROPOSER (not PROPOSER)
+  let enumerated = false
+  let proposerCands = 0
+  for (const role of roles) {
+    const cands = new Set([
+      ...(logs ?? [])
+        .filter((l) => l.role === role && (block === undefined || l.block <= block))
+        .map((l) => l.account),
+      ...(roleCands.get(`${a}|${role}`) ?? []),
+    ])
+    const n = notEnumerable.has(a)
+      ? { ok: false }
+      : await rd(FN.getRoleMemberCount, 'getRoleMemberCount', [role])
+    if (!n.ok && n.reverted) notEnumerable.add(a)
+    if (n.ok) {
+      enumerated = true
+      for (let i = 0; i < Math.min(Number(n.value), 50); i++) {
+        const m = await rd(FN.getRoleMember, 'getRoleMember', [role, BigInt(i)])
+        if (m.ok) cands.add(String(m.value).toLowerCase())
+      }
+    }
+    if (role === proposerRole) proposerCands = cands.size
+    for (const h of cands) {
+      if (h === a) continue
+      const x = await rd(FN.hasRole, 'hasRole', [role, h])
+      if (!x.ok || x.value) {
+        holders.add(h)
+        if (role !== proposerRole) adminHolders.add(h)
+      }
+    }
+  }
+  const unread = (!logs && !enumerated) || proposerCands === 0
+  const schedulers = []
+  const delaySetters = []
+  for (const h of holders) {
+    if (seen.has(h)) continue
+    schedulers.push(await classify(client, h, block, depth + 1, new Set([...seen, a]), 0))
+    // review round 9: an admin-role holder that can change the delay at once gets no credit
+    if (adminHolders.has(h) && (await canSetDelay(client, a, h, block))) delaySetters.push(h)
+  }
+  return { schedulers, unread, delaySetters }
+}
+
 /**
  * The bypass path of a timelock at `block`, read from its code and state:
  *   bypasserExecuteBatch (RBACTimelock) — unrestricted, held by BYPASSER_ROLE members;
@@ -243,7 +446,7 @@ export async function timelockBypass(client, a, code, block) {
  * cannot fake its own storage through a view); a timelock / legacy multisig needs the matching
  * dispatch table in its bytecode. Anything else is a plain contract.
  */
-export async function classify(client, address, block, depth = 0, seen = new Set()) {
+export async function classify(client, address, block, depth = 0, seen = new Set(), ownerHops = 0) {
   const a = address.toLowerCase()
   if (isZero(a)) return { kind: 'zero', address: a }
   if (BigInt(a) <= 0x1ffn) return { kind: 'precompile', address: a }
@@ -312,7 +515,7 @@ export async function classify(client, address, block, depth = 0, seen = new Set
       ...(singleton ? { singleton } : {}),
     }
   }
-  if (isDgTimelockCode(code)) return classifyDgTimelock(client, a, block)
+  if (isDgTimelockCode(code)) return classifyDgTimelock(client, a, block, depth, seen)
   const voting = await aragonVotingOf(client, a, code, block)
   if (voting) return voting
   const agent = await aragonAgentOf(client, a, code, block, depth, seen)
@@ -321,6 +524,11 @@ export async function classify(client, address, block, depth = 0, seen = new Set
     const c = { kind: 'oz_timelock', address: a, delaySec: Number(r.getMinDelay) }
     const bypass = await timelockBypass(client, a, code, block)
     if (bypass) c.bypass = bypass
+    // ruling #12: the timelock ranks as its weakest scheduler (read gap when unread)
+    const sch = await timelockSchedulers(client, a, block, depth, seen)
+    c.schedulers = sch.schedulers
+    if (sch.unread) c.schedulersUnread = true
+    if (sch.delaySetters?.length) c.delaySetters = sch.delaySetters
     return c
   }
   if (r.required !== undefined && Array.isArray(r.getOwners)) {
@@ -338,11 +546,35 @@ export async function classify(client, address, block, depth = 0, seen = new Set
       version: 'multisig views without a MultiSigWallet dispatch table',
     }
   }
-  if (r.delay !== undefined && r.authority !== undefined)
-    return { kind: 'ds_pause', address: a, delaySec: Number(r.delay) }
+  if (r.delay !== undefined && r.authority !== undefined) {
+    // ruling #12: DSAuth lets the owner and the authority plot — the pause ranks as the weaker
+    const c = { kind: 'ds_pause', address: a, delaySec: Number(r.delay), schedulers: [] }
+    for (const h of [r.owner, r.authority])
+      if (h && !isZero(h) && String(h).toLowerCase() !== a && !seen.has(String(h).toLowerCase()))
+        c.schedulers.push(
+          await classify(
+            client,
+            String(h).toLowerCase(),
+            block,
+            depth + 1,
+            new Set([...seen, a]),
+            0,
+          ),
+        )
+    if (r.owner === undefined) c.schedulersUnread = true
+    return c
+  }
   const c = { kind: 'contract', address: a, ...(multisigLike ?? {}) }
-  if (r.owner && depth < 2 && !isZero(r.owner) && r.owner.toLowerCase() !== a)
-    c.ownedBy = await classify(client, r.owner, block, depth + 1)
+  const owner = r.owner ? String(r.owner).toLowerCase() : null
+  if (owner && ownerHops < MAX_OWNER_HOPS && !isZero(owner) && owner !== a && !seen.has(owner))
+    c.ownedBy = await classify(
+      client,
+      owner,
+      block,
+      depth + 1,
+      new Set([...seen, a]),
+      ownerHops + 1,
+    )
   return c
 }
 
@@ -839,7 +1071,7 @@ export const isDgTimelockCode = (code) => DG_CODE.every((x) => dispatches(code, 
  * scheduled proposal without the after-schedule delay, which is kept apart for display. An
  * unread after-submit delay is 0 (fail closed: the timelock then ranks as a plain contract).
  */
-export async function classifyDgTimelock(client, a, block) {
+export async function classifyDgTimelock(client, a, block, depth = 0, seen = new Set()) {
   const rd = async (sig, to = a) => {
     const fn = sig.match(/function (\w+)/)[1]
     const x = await tryRead(client, to, fnAbi(sig), fn, [], block)
@@ -861,17 +1093,25 @@ export async function classifyDgTimelock(client, a, block) {
   const governance = await addr('getGovernance')
   let proposerVoteSec = 0
   const proposers = []
+  // ruling #12: the declared proposers are the timelock's schedulers, classified at the block
+  // (an Aragon Voting is a token-holder vote; anything else is classified like any controller)
+  const schedulers = []
+  let schedulersUnread = !governance
   if (governance) {
     const ps = await rd(
       'function getProposers() view returns ((address account, address executor)[])',
       governance,
     )
+    if (ps === null) schedulersUnread = true
     const votes = []
     for (const p of ps ?? []) {
       const acct = String(p.account).toLowerCase()
       const v = await aragonVotingOf(client, acct, await codeAt(client, acct, block), block)
       proposers.push(acct)
       votes.push(v ? v.delaySec : 0)
+      if (v) schedulers.push(v)
+      else if (!seen.has(acct))
+        schedulers.push(await classify(client, acct, block, depth + 1, new Set([...seen, a]), 0))
     }
     if (votes.length) proposerVoteSec = Math.min(...votes)
   }
@@ -888,6 +1128,8 @@ export async function classifyDgTimelock(client, a, block) {
   return {
     kind: 'aragon_dg',
     address: a,
+    schedulers,
+    ...(schedulersUnread ? { schedulersUnread: true } : {}),
     delaySec: submit === null ? 0 : Number(submit) + proposerVoteSec,
     dg: {
       proposers,

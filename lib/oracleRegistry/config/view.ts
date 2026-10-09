@@ -364,8 +364,9 @@ export function toChangeView(
 
 /**
  * Every state rule failing now. Floor breaches (BR-2) lead, sorted by the value at risk behind
- * the route — the severity rank, worst first (owner ruling 2026-10-06 #9); an unknown value
- * sorts last. Other breaches keep the engine's order after them.
+ * the route — the severity rank, worst first (owner ruling 2026-10-06 #9); a value that was not
+ * read sorts FIRST, labelled "value unread" (owner ruling 2026-10-08 #14, fail closed). Other
+ * breaches keep the engine's order after them.
  */
 export function breachesOf(items: readonly StateItem[]): ConfigCardView['breaches'] {
   const out: ConfigCardView['breaches'] = []
@@ -386,6 +387,10 @@ export function breachesOf(items: readonly StateItem[]): ConfigCardView['breache
           ? {
               valueAtRiskUsd: i.valueAtRisk?.usd ?? null,
               valueAtRisk: valueAtRiskLabel(i.valueAtRisk),
+              // review round 9: a partial read sorts with the unread ones (ruling #14)
+              ...(i.valueAtRisk?.unread.length
+                ? { valueAtRiskUnread: [...i.valueAtRisk.unread] }
+                : {}),
             }
           : {}),
       })
@@ -396,8 +401,8 @@ export function breachesOf(items: readonly StateItem[]): ConfigCardView['breache
     .sort(
       (x, y) =>
         compareValueAtRisk(
-          { usd: x.b.valueAtRiskUsd ?? null },
-          { usd: y.b.valueAtRiskUsd ?? null },
+          { usd: x.b.valueAtRiskUsd ?? null, unread: x.b.valueAtRiskUnread },
+          { usd: y.b.valueAtRiskUsd ?? null, unread: y.b.valueAtRiskUnread },
         ) || x.n - y.n,
     )
     .map((x) => x.b)

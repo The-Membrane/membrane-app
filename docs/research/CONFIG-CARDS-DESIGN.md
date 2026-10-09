@@ -75,7 +75,12 @@ The oracle dimension reuses the existing `ChangeItem`s from `changes.json` and `
 - **BR-6:** a peer moves from one nonzero address to another. **Strict (owner ruling 2026-10-06): every re-point is red**, also on a route that is closed at the time (the new counterparty is trusted the moment it reopens), and also through a zeroed peer (A → 0 → B, review round 5: the replay, the queue and the remote side between runs keep the last non-zero peer). Zeroing a peer is neutral, and so is swapping a DVN without changing the count. The CCIP twin (CC-1, default 2026-10-06): a second remote pool for an already-served chain is red, and so is a new remote pool after the old one was removed (a re-point); pending `addRemotePool` calls are judged against the pools the chain accepts at head (unread ⇒ red).
 - **BR-8 (AMBER, owner ruling 2026-10-06, round 2 #6):** a wider DVN set at the same effective threshold (e.g. 4-of-4 → 2 required + 2-of-3 optional, or one more optional DVN at an unchanged optional threshold) is tagged `WIDER DVN SET`, not red. An unknown added DVN stays red under BR-7.
 
-**Admin.** Controller rank, strongest first: immutable > timelock (by delay) > Safe or multisig (by threshold, then signer count) > contract > EOA = 7702 EOA.
+**Admin.** Controller rank, strongest first: immutable > a token-holder vote (Aragon Voting) > Safe or multisig (by threshold, then signer count) > contract > EOA = 7702 EOA. **Owner ruling 2026-10-08 (#12):** a TIMELOCK ranks as its WEAKEST PROPOSER, then its delay credit. The delay credit is 0 below 24 h (86,400 s) and the delay itself at or above it; a delay never rescues a weak proposer. Who can propose:
+- an OZ timelock / RBACTimelock: the PROPOSER_ROLE holders, and the holders of the role that administers it (TIMELOCK_ADMIN / DEFAULT_ADMIN / ADMIN), since they can grant it;
+- a DSPause: its owner and its authority;
+- a Dual Governance timelock: its declared proposers (`getProposers()`).
+
+An unread proposer set ranks as a plain contract and is a read gap (fail closed). Details and the required cases are in "Owner rulings 2026-10-08" below.
 - **AD-1:** a multisig's threshold drops; a signer is added at an unchanged threshold; or signers are added so that the ADDED signers alone meet the new threshold (review round 5: a 2-of-3 → 3-of-10 lets any three of the seven new signers act without an old one). A raised threshold with fewer new signers than it (3-of-5 → 4-of-7) is an upgrade. Review round 6: owners SWAPPED in count as added (a 3-of-5 with three owners swapped is red; so is a 2-of-4 → 3-of-4 with three swaps), in replay, in queued `swapOwner` / `replaceOwner` batches (cumulative over the op) and between runs (the owner set is compared, not only its size).
 - **AD-2:** a timelock or DSPause delay is shortened, or a timelock is removed from the authority path. Review round 6: that includes a function put on a timelock's no-delay whitelist (`FunctionWhitelisted`, a queued `addToWhitelist`) when it reaches a declared power (unmatched ⇒ fail closed; removal is an upgrade), and — as a head-state breach, the twin of a Safe module — a power whose delay a read timelock bypass skips.
 - **AD-3:** an owner, admin, LZ delegate or role-admin drops in rank. The WBTC Controller going from 8-of-13 to 6-of-10 is red. EOA→EOA is neutral and tagged `rotation`. **Owner ruling 2026-10-06 (round 2, #7):** a FIRST owner set from address(0) more than `OWNER_INIT_WINDOW_BLOCKS` = 7,200 blocks after the contract's deploy block is red (its `initialize()` could have been front-run); within 7,200 blocks it is neutral initialization. An unknown deploy block fails closed (red, says why).
@@ -89,7 +94,7 @@ The oracle dimension reuses the existing `ChangeItem`s from `changes.json` and `
     - *RATE*: the trailing `GRANT_RATE_WINDOW_BLOCKS` = 216,000-block (≈ 30-day) count is more than `GRANT_RATE_SPIKE_FACTOR` = 2× the largest count of any earlier window that ends before the current one starts (no earlier window ⇒ no rate baseline).
     - Pending and proposed grants are judged the same way, against the executed grant history, as if they ran at the head block.
     - The rsETH deposit-pool MINTER grant on LRTConfig stays red: its grantee is a contract.
-- **AD-5:** an `Upgraded` or `AdminChanged` event has no `CallExecuted` from the subject's timelock in the same tx.
+- **AD-5:** an `Upgraded` or `AdminChanged` event has no `CallExecuted` from the subject's timelock in the same tx. **Owner ruling 2026-10-08 (#13):** the same for an oracle committee's member set. A member change with no `CallExecuted` / `ProposalExecuted` / `ExecuteVote` from the committee's declared delayed governance path in its transaction is red; one through that path is neutral.
 - **AD-6:** a Safe module is enabled, or the guard is set to 0. **Owner ruling 2026-10-06:** adding a guard where none existed is an UPGRADE; removing or replacing one is red (in event history the previous guard is the last one the events set — `ChangedGuard` carries only the new one). A Safe whose slot-0 singleton moves (incl. to a non-canonical one, after which it ranks as a plain contract) is red.
 - **AD-7 (state rule):** TIMELOCK_ADMIN_ROLE is held by anything other than the timelock itself.
 - **AD-8:** an armed op would break a rule. This includes an upgrade scheduled before the current implementation was installed, which would be a stale rollback.
@@ -195,7 +200,7 @@ What it scans:
 
 **Honest framing (owner ruling 2026-10-06).** The card would have shown Kelp's exploited route red for about a year before the exploit — 381 days, from its creation under the floor on 2025-04-02 — but it would also have shown about 45% of comparable apps red: 825 of 1,835 OApps that override their receive config had at least one live route under the floor at block 24,908,284 (Kelp ranked #4 by number of such routes). The floor is a broad flag, not a discriminator.
 
-**SEVERITY RANK (owner rulings #5 and round 2 #9, built).** Floor breaches are ranked by the value at risk behind the route: the larger of the Ethereum adapter's locked balance and the remote chain's bridged supply, priced in USD with the registry consensus (times an on-chain rate when the token is not a catalog asset: rsETH = ETH consensus × `LRTOracle.rsETHPrice()`). The card shows it on every floor-breach row and in the red banner, and sorts by it, worst first (`lib/oracleRegistry/config/value.ts`). At block 24,908,284 the exploited route carried **$295M**: 116,723.5 rsETH locked in the adapter × $2,527 (ETH consensus $2,362.90 at that block, from an archive snapshot of the registry, `backtest/registry-at-eval.json`); the Unichain peer's supply was 49.3 rsETH. Across the 825 floor-breaching OApps, Kelp ranks **#1 of the 8 that the registry can price**; 817 could not be priced (a token the registry does not price — the registry covers ten assets — or a native OFT with nothing locked on Ethereum), and remote supplies are not read for the base rate. So the rank puts Kelp first where it can be computed, but it is computed for 1% of the apps: the registry's asset coverage, not the rule, is the limit. `kelp-rseth.expected.json` carries this framing as computed text (`framing`).
+**SEVERITY RANK (owner rulings #5 and round 2 #9, built).** Floor breaches are ranked by the value at risk behind the route: the larger of the Ethereum adapter's locked balance and the remote chain's bridged supply, priced in USD with the registry consensus (times an on-chain rate when the token is not a catalog asset: rsETH = ETH consensus × `LRTOracle.rsETHPrice()`). The card shows it on every floor-breach row and in the red banner, and sorts by it, worst first (`lib/oracleRegistry/config/value.ts`). At block 24,908,284 the exploited route carried **$295M**: 116,723.5 rsETH locked in the adapter × $2,527 (ETH consensus $2,362.90 at that block, from an archive snapshot of the registry, `backtest/registry-at-eval.json`); the Unichain peer's supply was 49.3 rsETH. Across the 825 floor-breaching OApps, Kelp ranks **#1 of the 8 that the registry can price**; 817 could not be priced (a token the registry does not price — the registry covers ten assets — or a native OFT with nothing locked on Ethereum), and remote supplies are not read for the base rate. So the rank puts Kelp first where it can be computed, but it is computed for 1% of the apps: the registry's asset coverage, not the rule, is the limit. **Owner ruling 2026-10-08 (#14):** a floor breach whose value at risk was NOT READ sorts FIRST on the card, labelled "value unread" (fail closed: an unread value could be the largest). On a card listing all 825, the 817 unpriced breaches would therefore be listed ahead of Kelp. The framing says so. `kelp-rseth.expected.json` carries this framing as computed text (`framing`).
 
 The backtest passes when all of these hold:
 - At least one red change on eid 30320 is dated before 2026-04-18 17:35:35 UTC.
@@ -365,7 +370,7 @@ fixes below are in the engine, collector and UI, each with a test.
   - A timelock needs the OZ (or RBACTimelock) dispatch table.
   - A Safe needs a canonical singleton in storage slot 0.
   - A timelock bypass is read and lowers the effective delay to INSTANT for what it reaches: Ethena `executeWhitelisted` per whitelisted (target, selector), and RBACTimelock `bypasserExecuteBatch` for everything.
-- In the controller rank, a timelock with no delay or with an unrestricted bypass counts as a plain contract. A contract that defers to an owner ranks strictly below that owner.
+- In the controller rank, a timelock with no delay or with an unrestricted bypass counts as a plain contract. A contract that defers to an owner ranks strictly below that owner. (Superseded on 2026-10-08 by ruling #12: a timelock ranks as its weakest proposer, and a delay under 24 h adds nothing. An unrestricted bypass still caps it at a plain contract.)
 - Multisig changes are replayed from the events of each transaction on top of an exact archive read. They never fall back to the head classification.
 - A Safe threshold or owner change with no event is diffed from run to run.
 - An owner set from address(0) counts as initialization only:
@@ -617,3 +622,101 @@ Round 8 is the fourth refutation pass, run from three angles: on-chain, rules an
 - **USDe, sUSDe, cbBTC, PT-srUSDe:** counts unchanged.
 - **All subjects:** no read gaps. The wstETH NTT sweep found one live peer (BNB Chain), as before.
 - **Kelp backtest:** unchanged (its test passes on the same expected file).
+
+## Owner rulings 2026-10-08 (#12–#14) and KG-2
+
+Every change has tests in `tests/unit/oracleRegistryConfigRulings1214.test.ts`. 29 of the 30 failed on the code before the change. The one control passed before as well: Safe 6/11 → a 7-day timelock proposed by the same Safe was an upgrade then too. Tests whose fixtures encoded the superseded rules were updated:
+- a timelock fixture now names its proposer (a governance Safe 7-of-12 by default);
+- the Round 2 sort test now expects an unread value first.
+
+**#12: a timelock ranks as its WEAKEST PROPOSER (`rules.ts`, `rankParts`).**
+- **The rank tuple.** A rank is `[base (3 wide), delay credit, deferral tail]`, compared left to right.
+  - *base:* the class of the weakest key holder. 6 = immutable; 5 = token-holder vote (Aragon Voting); 4 = multisig `[4, threshold, −signers]`; 2 = contract; 1 = EOA.
+  - *delay credit:* the sum of the credits of the timelock stages in front of that holder. A stage's credit is 0 below 24 h and the delay itself at or above it. Every non-timelock has credit 0.
+  - *tail:* one −1 per deferral hop.
+
+  The base is compared first, so a delay never rescues a weak proposer.
+- **Who counts as a proposer (the collector reads them at every classified block, `timelockSchedulers` / `classifyDgTimelock` in `admin.mjs`):**
+  - OZ TimelockController / RBACTimelock: PROPOSER_ROLE holders plus the holders of `getRoleAdmin(PROPOSER_ROLE)` and its own admin, up to three levels. When `getRoleAdmin` cannot be read: TIMELOCK_ADMIN / DEFAULT_ADMIN / ADMIN. The timelock itself is not a proposer.
+    - Candidates come from three sources: the timelock's own `RoleGranted` logs since deployment, the collector's admin scan, and AccessControlEnumerable. `hasRole` at the block decides; a failed read keeps the candidate.
+    - No PROPOSER candidate at all (e.g. a false-empty log read) = unread.
+  - DSPause: its owner and its authority.
+  - Dual Governance timelock: its declared proposers (`getProposers()` on the governance contract). Its own stage is the after-submit delay; the proposers' vote is their own credit (Aragon Voting 5 d + after-submit 3 d = 8 d, as before).
+- **Fail closed.** An unread proposer set ranks as a plain contract and is a read gap ("timelock …: proposers not read"). So does an empty one. An unrestricted bypass caps a timelock at a plain contract with no credit.
+- **Where the rank applies:** wherever it was used before.
+  - AD-3: the previous holder is compared with the new one.
+  - AD-4: the grantee is compared with the current holders, and holders are re-judged at head.
+  - CC-3 and MR-2.
+  - The head-state breach check (`isEoaControlled`): a power held by a timelock that an EOA can propose into is AD-3 at head.
+- **Required cases (tested):**
+  - Safe 6/11 → 60 s timelock proposed by the same Safe = NEUTRAL;
+  - → 60 s timelock proposed by an EOA = RED;
+  - → 7-day timelock proposed by the same Safe = UPGRADE;
+  - → 10-day timelock proposed by an EOA = RED;
+  - a PROPOSER grant to an EOA on an existing timelock = RED (AD-4 on the grant; the timelock's rank drops to EOA, AD-3).
+- **Interpretations for owner review:**
+  - An Aragon Voting is ranked as the token-holder vote itself (base 5, credit = vote time). Its "proposer" (any LDO holder through the TokenManager) decides nothing. Review round 9 (R-1): a Voting whose vote time is 0 or was not read ranks as a plain contract and, at head, is a read gap; the base-5 rank for a read vote time is open owner call UQ-17.
+  - Credits in series add up.
+  - A 0-delay timelock now ranks as its proposer. Before, it ranked as a plain contract; ruling #12 makes 0 s and 60 s equal.
+  - The controller cache moved to `controllers-at-v3.json` (review round 9: `controllers-at-v4.json`).
+  - Review round 9 (R-2): a proposer that can change the delay without waiting for it gets no credit from that timelock. A Chainlink RBACTimelock gates `updateDelay` with ADMIN_ROLE; the collector marks every admin-role holder whose `updateDelay(0)` eth_call succeeds (another failure: fail closed) as a `delaySetter`. OZ TimelockController's `updateDelay` is self-only, so its admins keep the credit.
+  - Review round 9 (CB-3): a contract's owner is followed for 2 hops counted from the last proposer / executor hop (it was 2 from the top of the tree, so a proposer under "ProxyAdmin owned by a timelock" never had its owner read). An ownership cycle is not followed: an MCMS owned by the RBACTimelock it proposes into ranks as a plain contract, with the timelock's credit counted once.
+  - Proposer classifications are not memoized. The first re-run deadlocked: an MCMS proposer owned by its own RBACTimelock awaited its own pending promise, and node exited 13 with an unsettled top-level await. Recursion is now bounded by `seen` and a depth cap of 4 (deeper = unread). A nested timelock is described without its own proposer note, so the MCMS → RBACTimelock cycle prints once.
+
+**#13: oracle committee members (closes KG-1).** The committee events are scanned and replayed: HashConsensus `MemberAdded` / `MemberRemoved`, EtherFiOracle `CommitteeMemberAdded` / `Removed` / `Updated`, and Aragon Voting `ExecuteVote`.
+- **One row per (committee, transaction):** key `oracle/committee/<contract>`. `before` holds the members removed and `after` the members added, so a same-size swap shows.
+- **Judged by the path:**
+  - neutral when the committee's declared delayed governance path MADE the change. As first built, any `CallExecuted` / `ProposalExecuted` / `ExecuteVote` from the path in the same transaction counted; review round 9 (CB-2) checks each call (`committeePathVia`): the transaction was sent to a declared path contract whose execution event follows the member events, or each member event is followed by a path `CallExecuted` that targets the committee and names the member in its calldata;
+  - red AD-5 outside it, or with no declared path;
+  - initialization in the deploy block.
+- **The declared path (`engine.ts`, `committeePaths`):** every delayed controller in the head trees of the holders of a declared power over the committee (ownedBy, an Agent's executors, a timelock's proposers). With no such power, the subject's declared timelocks. This is the head path, so a historical change is judged against today's path plus everything on it (e.g. the Aragon Voting, which is Dual Governance's proposer).
+- **STILL IN EFFECT:** a red change stays in effect while a member it added is still in, or a member it removed is still out.
+- The count parameters stay as they were (KG-3, UQ-2).
+
+**#14: an unread value at risk sorts FIRST.** `compareValueAtRisk` puts a floor breach whose value was not read ahead of every priced one. `valueAtRiskLabel` says "value unread (why)". A partial read (one side unread) first sorted by the side that was read, labelled "lower bound"; review round 9 (R-3) sorts it with the unread ones (after the fully unread, by the side that was read) and labels it "value unread (…) · at least $X", because the value is the larger side (ruling #9) and with a side missing it is not known. The Kelp framing adds one sentence: on a card, the 817 unpriced breaches would be listed ahead of Kelp.
+
+**KG-2: the banner counts routes.** `breachBannerTitle`: "1 FLOOR BREACH (2 sides) IN FORCE NOW", the same unit as the headline.
+
+**Re-run (all 8 subjects at block 26,151,037; the raw and scan caches were rebuilt from scratch, then deleted).** Before = the round-8 data at 26,145,153 (wstETH 26,145,187). Format: red / red in effect / amber pending / floor breaches / state breaches.
+
+| Subject | Before | After | Why |
+| --- | --- | --- | --- |
+| rsETH | 85 / 4 / 0 / 0 / 0 | 85 / 4 / 0 / 0 / 0 | Ruling #12 changed one verdict. At 19,812,242 the owner of `0xb61e…dc78` moved from a Safe 3-of-5 to the 3-minute timelock `0x49bd…35b1`, proposed by a Safe 3-of-5. It was an upgrade; it is now neutral (no credit below 24 h). One proposed Safe transaction executed on chain (+1 historical). |
+| weETH | 62 / 11 / 9 / 0 / 0 | 63 / 11 / 9 / 0 / 0 | +9 committee rows (#13). +1 red: the first EtherFiOracle member add at 18,537,396 was made directly, not through a timelock (AD-5). It is not in effect: that member was removed through the timelock at 20,584,737. The other 8 went through the declared timelocks and are neutral. −1: the quorum 2 → 3 row at 25,626,145 disappeared. **Corrected in review round 9:** that was not grid drift (KG-3) but CB-1 — this run read all 8 subjects together, the weETH and wstETH param keys collided, and weETH showed wstETH's quorum 5 / 9 members (on chain 3 / 3). Fixed and re-collected; see "Review fixes, round 9". |
+| USDe | 56 / 4 / 6 / 0 / 1 | 56 / 4 / 2 / 0 / 1 | Amber −4: the Ethena timelock ops scheduled at 26,133,937 and 26,139,184 executed at 26,146,886 / 26,146,894 (+2 historical). The AD-2 head breach now names the timelock's proposer (Safe 5-of-10). |
+| sUSDe | 37 / 5 / 5 / 0 / 1 | 37 / 5 / 2 / 0 / 1 | Amber −3: the same executed ops. +2 new FULL_RESTRICTED_STAKER grants (restrictions, neutral). |
+| WBTC | 15 / 2 / 25 / 0 / 1 | unchanged | The RBACTimelock `0x4483…9449` is still capped at a plain contract by its bypass. The AD-2 breach now names its weakest proposer. |
+| cbBTC, PT-srUSDe | unchanged | unchanged | — |
+| wstETH | 19 / 9 / 0 / 0 / 1 | 19 / 9 / 0 / 0 / 1 | +7 committee rows, all neutral: 4 through an Aragon vote, 3 through Dual Governance (the 2026 swap included). The Linea bridge timelock (0 s) now ranks as its weakest proposer, Safe 3-of-5 `0xb8f5…0051`. **Corrected in review round 9:** that Safe has a module (`0x784c…5436`, a 90-day cooldown), so it, and the timelock, still rank as a plain contract `[2]`; the "proposed by Safe 3-of-5" description does not show the module (UQ-22). No breach either way. |
+
+- **No read gaps.** Every timelock at head has a read proposer set:
+  - rsETH `0x49bd`: Safe 6-of-11;
+  - weETH `0x9f26` / `0xcd42`: Safe 6-of-10 / 4-of-7;
+  - Ethena `0xe8dc`: Safe 5-of-10;
+  - PT-srUSDe `0x68d8` / `0xb2a3`: Safe 3-of-5 / 3-of-4;
+  - Dual Governance: the Aragon Voting.
+- **No new head breach.** No timelock that holds a power has an EOA proposer at head. At some past blocks, the WBTC RBACTimelock and the PT-srUSDe timelock `0x68d8` had an EOA proposer. No row flipped red or calm because of it (every row was compared before and after); the RBACTimelock is capped at a plain contract by its bypass anyway.
+- Remote reads: 121 ok, 24 unread. Round 8 had 122 / 23: one more public RPC failure.
+- **Kelp backtest:** passes, all 5 criteria. Red count unchanged at 55 (227 changes), because the fixture is LayerZero-only: no controller, no committee. The framing gained the ruling-#14 sentence.
+
+
+## Review fixes, round 9 (2026-10-08)
+
+Two refuters (an on-chain lens and a rules lens) reviewed the ruling #12–#14 work and confirmed six bugs. Each one could make a dangerous change read calm, hide a red, or misstate chain data, so all six were fixed. Tests: `tests/unit/oracleRegistryConfigReview9.test.ts` (15 tests; 11 fail with the fixes reverted, the other four are the CB-1 helper test and three controls). The fixture-level detail and the open owner calls they raised (UQ-17 to UQ-24) are in [CONFIG-CARDS-KNOWN-GAPS.md](CONFIG-CARDS-KNOWN-GAPS.md).
+
+- **CB-1, param keys collided across subjects (data).** The collector read every subject's mint / redeem getters in one pass keyed by `key` alone. weETH and wstETH both declare `oracleQuorum` / `oracleMembers`, so the all-8 run above gave weETH wstETH's 5 / 9 (on chain 3 / 3) and dropped weETH's quorum 2 → 3 row. Keys are now read as `<subject>::<key>` (`params.mjs`, `scopedParamSpecs` / `paramsForSubject`).
+- **CB-2, the committee path was checked per transaction.** Now per call (`adminReplay.ts`, `committeePathVia`): the transaction was sent to a declared path contract whose execution event follows the member events, or each member event is followed by a path `CallExecuted` that targets the committee and names the member in its calldata. The collector reads each committee transaction's recipient (`txTo`) and keeps the calldata of `CallExecuted` calls to a committee. Checked on chain before the change: the 7 wstETH transactions are sent to `0xce04` (Dual Governance) or `0x2e59` (the Voting), each with its execution event last; the 8 ether.fi transactions go through a Safe, with a `CallExecuted` to `0x57aa` right after each member event.
+- **CB-3, a proposer contract's owner was never read under a ProxyAdmin → timelock chain.** Owner hops are counted from the last proposer / executor hop (`MAX_OWNER_HOPS = 2`), and an ownership cycle is not followed, so the MCMS under the RBACTimelock counts the delay credit once. Cache: `controllers-at-v4.json` (v3 entries with no timelock, Agent or cycle carry over).
+- **R-1, an Aragon Voting with a 0 s or unread vote time outranked every Safe.** It ranks as a plain contract again, says so, and is a read gap at head.
+- **R-2, an RBACTimelock ADMIN_ROLE holder got the delay credit.** It can call `updateDelay(0)` at once. The collector marks admin-role holders whose `updateDelay(0)` eth_call succeeds as `delaySetters` (any non-revert failure counts as yes); they get no credit from that timelock. Probed at head: no timelock in the 8 subjects has one.
+- **R-3, a partly read value at risk sorted by its read side.** It now sorts with the unread breaches (after the fully unread, by the read side) and reads "value unread (…) · at least $X (…)".
+
+**Re-run (weETH, WBTC, wstETH at block 26,151,320; the other five subjects are unchanged by these fixes and stay at 26,151,037).** The scan caches were deleted afterwards.
+
+| Subject | Before (26,151,037) | After | Why |
+| --- | --- | --- | --- |
+| weETH | 63 / 11 / 9 / 0 / 0 | 63 / 11 / 9 / 0 / 0 | CB-1: the quorum 2 → 3 row at 25,626,145 is back (tx `0xc0d1ec56…`, an upgrade; 473 historical rows, was 472). Head state: quorum 3 and 3 active members, as on chain (was 5 / 9). The 9 committee rows are unchanged: 8 neutral under the per-call check, the 2023 direct add red and not in effect. |
+| WBTC | 15 / 2 / 25 / 0 / 1 | unchanged | CB-3: the RBACTimelock description no longer repeats itself through the MCMS it owns ("[proposed by contract 0xe532…012f (the weakest of 3)]"). No verdict changed; the AD-2 head breach stands. |
+| wstETH | 19 / 9 / 0 / 0 / 1 | unchanged | The same CB-3 description change on the CCIP rows. The 7 committee rows are unchanged and neutral. |
+
+No verdict and no "still in effect" flag changed in any row of the three subjects; no read gap appeared. Kelp backtest: re-run offline, all 5 criteria pass, the output is byte-identical (227 changes, 55 red).

@@ -382,6 +382,10 @@ export function kelpFraming(
         severity.rankByValue !== null
           ? `Among the floor-breaching OApps whose value could be priced, this subject ranked #${severity.rankByValue} of the ${severity.priced.toLocaleString('en-US')} priced (${(severity.ofOApps - severity.priced).toLocaleString('en-US')} of ${severity.ofOApps.toLocaleString('en-US')} could not be priced: a token the registry does not price, or a native OFT with nothing locked on Ethereum).`
           : '',
+        // owner ruling 2026-10-08 #14: an unread value sorts FIRST (fail closed)
+        severity.rankByValue !== null && severity.ofOApps > severity.priced
+          ? `A card sorts a floor breach whose value is unread FIRST, labelled "value unread" (fail closed), so those ${(severity.ofOApps - severity.priced).toLocaleString('en-US')} would be listed ahead of this subject.`
+          : '',
       ]
         .filter(Boolean)
         .join(' ')

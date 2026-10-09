@@ -44,6 +44,7 @@ import { crossCheckedLogs } from '@/scripts/oracle-registry/config/lib/rpc.mjs'
 import {
   LIDO_QUORUM,
   LIDO_SUPPORT,
+  defenseOf,
   holderAddr,
   tokenVote,
   voteData,
@@ -204,6 +205,8 @@ describe('UQ-17: a token vote ranks by HOLDER CONCENTRATION (owner ruling 2026-1
         minAcceptQuorumPct: LIDO_QUORUM,
         supply: '1000000000000000000000000000',
         holderCount: 66485,
+        // UQ-25: this is the round-10 LITERAL reading (nobody else votes): D = 0
+        defense: defenseOf(),
         truncated: true,
         holders: [
           { address: AGENT, balance: '121497545794599365251635349', ctl: lidoAgent() },
@@ -508,6 +511,7 @@ describe('UQ-17 collector: holder snapshots and the vote enrichment', () => {
         head: 1000,
         decide: tokenVoteDecision,
         snapshotsFor: async () => new Map([[1000, snap]]),
+        defenseFor: async () => defenseOf(), // UQ-25: D = 0 (no vote in the window)
       },
     )
     setAragonExecCandidates(new Map())

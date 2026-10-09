@@ -13,6 +13,7 @@ import type {
   ControllerKind,
   ParamSpec,
   Severity,
+  VoteDefense,
   VoteHolder,
 } from './types'
 
@@ -152,7 +153,8 @@ export const isTimelockKind = (c: Controller | null | undefined): boolean =>
 /**
  * A rank in three parts, compared in this order:
  *   base    the class of the weakest key holder: 6 immutable / renounced, 5 a BROADLY HELD
- *           token vote (UQ-17: more than 10 of the largest holders needed to pass one), 4
+ *           token vote (UQ-17: more than 10 of the largest holders needed to pass one against
+ *           the trailing-year average opposition, UQ-25), 4
  *           multisig [4, threshold, −signers] (a token vote that k ≤ 10 holders pass alone ranks
  *           as a k-of-k multisig), 2 contract, 1 EOA, 0 unknown;
  *   credit  the delay credit of the timelock stages in front of that holder (0 for anything
@@ -161,7 +163,8 @@ export const isTimelockKind = (c: Controller | null | undefined): boolean =>
  *   tail    one −1 per deferral hop (a contract that defers to an owner is strictly weaker
  *           than that owner: its own code may hold other paths).
  * `gap` (UQ-18, 2026-10-08): a READ GAP somewhere in the tree (an unread proposer set, module
- * list, vote time, holder concentration, bypasser or DSAuth authority). The rank is then capped
+ * list, vote time, holder concentration, trailing-year vote history (UQ-25), bypasser or DSAuth
+ * authority). The rank is then capped
  * at a plain contract [2] and no delay credit is added on top of it anywhere above: a delay
  * never lifts a fail-closed rank.
  */
@@ -288,10 +291,15 @@ export const TOKEN_VOTE_MAX_SIGNERS = 10
  *   few     2 ≤ k ≤ 10 holders: a k-of-k multisig of them (see `tokenVoteParts`);
  *   broad   more than 10 needed (k reported when the examined list reaches it; null = more than
  *           the examined list, or the holders alone can never pass one).
- * A set of holders passes a vote alone when, voting yes with nobody else voting, it meets BOTH of
- * the app's thresholds as Aragon Voting computes them (strictly greater than):
+ * A set of holders passes a vote alone when, voting yes against the AVERAGE OPPOSITION of the
+ * trailing year (owner ruling 2026-10-09, UQ-25: not "nobody else votes", not "everyone else
+ * votes no"), it meets BOTH of the app's thresholds as Aragon Voting computes them (strictly
+ * greater than, `_isValuePct`):
  *   quorum   yes × 1e18 / supply > minAcceptQuorumPct
- *   support  yes × 1e18 / (yes + no) > supportRequiredPct, with no = 0
+ *   support  yes × 1e18 / (yes + D) > supportRequiredPct
+ * D (`voting.defense.mean`) = the mean nay stake of every vote STARTED in the 365 days before the
+ * classification block (a vote with no nays counts as 0). No vote in the window: D = 0 (fail
+ * closed — said on the card). Vote history not read: a read gap (plain contract, no credit).
  * Every holder counts (exchanges and bridges included) EXCEPT
  *   - a holder whose control leads only back to this same vote (`selfRef` in its tree — Lido's
  *     Agent, executed by the vote through Dual Governance): it votes only after the vote itself
@@ -309,7 +317,8 @@ export const TOKEN_VOTE_MAX_SIGNERS = 10
  * already a key (EOA-like: nothing ranks lower). Not settled = a read gap (fail closed).
  */
 export type TokenVoteDecision =
-  | { kind: 'unread'; reason: string }
+  // `history`: the trailing-year vote history (UQ-25) was not read, rather than the holders
+  | { kind: 'unread'; reason: string; history?: boolean }
   | { kind: 'one'; k: 1; holders: VoteHolder[]; settled: boolean }
   | { kind: 'few'; k: number; holders: VoteHolder[]; settled: boolean }
   | { kind: 'broad'; k: number | null; examined: number }
@@ -327,9 +336,39 @@ export const cannotVote = (h: VoteHolder): boolean => {
   }
 }
 
+/**
+ * D from a vote-history record, or why it cannot be used (a read gap, fail closed). Review round
+ * 11 (RV11-2): nothing checked that D was plausible, and a misread D (a yea / nay or unit mix-up)
+ * larger than the supply made a 60 % EOA whale read as a BROADLY HELD vote. The record must be
+ * whole: integers, D = floor(sum / count), no vote = no nays, and D at most the supply (a vote
+ * can at most be all-nay; the collector also refuses a vote whose stakes exceed its own voting
+ * power).
+ */
+function defenseMean(d: VoteDefense, supply: bigint): bigint | string {
+  let mean: bigint, sum: bigint
+  try {
+    mean = BigInt(d.mean)
+    sum = BigInt(d.naySum)
+  } catch {
+    return 'vote history not read (malformed)'
+  }
+  const n = d.votes
+  if (!Number.isSafeInteger(n) || n < 0 || mean < 0n || sum < 0n)
+    return 'vote history not read (malformed)'
+  if (n === 0 ? mean !== 0n || sum !== 0n : mean !== sum / BigInt(n))
+    return 'vote history inconsistent (D is not the mean of its nays)'
+  if (mean > supply) return 'vote history implausible (D exceeds the supply)'
+  return mean
+}
+
 export function tokenVoteDecision(c: Controller): TokenVoteDecision {
   const v = c.voting
   if (v?.holdersUnread) return { kind: 'unread', reason: v.holdersUnread }
+  // UQ-25: the trailing-year opposition. Not read (an older classification, or a failed read)
+  // = a read gap — never "nobody votes against" by default. (The collector skips the holders
+  // of a vote whose history failed: no rank can come from them.)
+  if (v?.defenseUnread)
+    return { kind: 'unread', reason: `vote history not read: ${v.defenseUnread}`, history: true }
   if (
     !v?.holders ||
     v.supply == null ||
@@ -337,6 +376,9 @@ export function tokenVoteDecision(c: Controller): TokenVoteDecision {
     v.supportRequiredPct == null
   )
     return { kind: 'unread', reason: 'holder concentration not read' }
+  // review round 11 (RV11-3): the reason does not repeat "trailing-year vote history"
+  if (!v.defense)
+    return { kind: 'unread', reason: 'not recorded with this classification', history: true }
   let supply: bigint, quorum: bigint, support: bigint
   try {
     supply = BigInt(v.supply)
@@ -346,10 +388,12 @@ export function tokenVoteDecision(c: Controller): TokenVoteDecision {
     return { kind: 'unread', reason: 'holder concentration not read (malformed)' }
   }
   if (supply <= 0n) return { kind: 'unread', reason: 'token supply read as 0' }
+  const defense = defenseMean(v.defense, supply)
+  if (typeof defense === 'string') return { kind: 'unread', reason: defense, history: true }
   // a 100 % support threshold is never met (strictly greater): no set of holders passes alone
   if (support >= PCT_BASE) return { kind: 'broad', k: null, examined: v.holders.length }
   const passes = (yes: bigint) =>
-    yes > 0n && (yes * PCT_BASE) / supply > quorum && (yes * PCT_BASE) / yes > support
+    yes > 0n && (yes * PCT_BASE) / supply > quorum && (yes * PCT_BASE) / (yes + defense) > support
   const voters = v.holders.filter((h) => !cannotVote(h) && !isVoteControlled(h))
   const bal: bigint[] = []
   for (const h of voters) {
@@ -482,25 +526,57 @@ export function tokenVoteNeedsHolders(c: Controller): boolean {
   return d.holders.some((h) => !h.ctl)
 }
 
-/** One line on a token vote's holder concentration (UQ-17), for descriptions. */
+/** `x / supply` as a percentage with three decimals ("1.234"); '?' when not computable. */
+function pctOfSupply(x: string, supply: string | null | undefined): string {
+  try {
+    const s = BigInt(supply ?? '0')
+    if (s <= 0n) return '?'
+    const m = (BigInt(x) * 100_000n) / s // thousandths of a percent
+    return `${m / 1000n}.${(m % 1000n).toString().padStart(3, '0')}`
+  } catch {
+    return '?'
+  }
+}
+
+/**
+ * UQ-25 (owner ruling 2026-10-09): the trailing-year opposition a token vote is judged against,
+ * for its rank note — D, the window and the vote count. null = not read (the decision is then
+ * unread and says why). No vote in the window: D = 0, and the note says it is the fail-closed
+ * default.
+ */
+export function voteDefenseNote(c: Controller): string | null {
+  const v = c.voting
+  const d = v?.defense
+  if (!v || !d) return null
+  const day = (t: number) => new Date(t * 1000).toISOString().slice(0, 10)
+  const win = `${Math.round(d.windowSec / 86_400)} days to ${day(d.toTs)}`
+  if (!d.votes) return `no vote started in the ${win}: D = 0 (fail closed — no opposition assumed)`
+  return `against D = ${pctOfSupply(d.mean, v.supply)} % of supply, the mean nay stake of the ${d.votes} vote${d.votes === 1 ? '' : 's'} started in the ${win}`
+}
+
+/** One line on a token vote's holder concentration (UQ-17 / UQ-25), for descriptions. */
 export function tokenVoteNote(c: Controller): string {
   const d = tokenVoteDecision(c)
   const sym = c.voting?.token ? ` of ${c.voting.token.slice(0, 6)}…` : ''
+  const def = voteDefenseNote(c)
+  const vs = def ? `; ${def}` : ''
   switch (d.kind) {
     case 'unread':
-      return `holder concentration UNREAD (${d.reason}): ranked as a plain contract`
+      return d.history
+        ? `trailing-year vote history UNREAD (${d.reason}): ranked as a plain contract`
+        : `holder concentration UNREAD (${d.reason}): ranked as a plain contract`
     case 'one': {
       const w = weakestVoter(d.holders)
       const who = describeController(w.ctl ?? UNCLASSIFIED_HOLDER(w.address), { nested: true })
       const unsettled = d.settled ? '' : '; later holders not examined: a read gap'
       return d.holders.length > 1
-        ? `${d.holders.length} holders${sym} can each pass a vote alone; the weakest: ${who} — ranked as it${unsettled}`
-        : `ONE holder${sym} can pass a vote alone: ${who} — ranked as it${unsettled}`
+        ? `${d.holders.length} holders${sym} can each pass a vote alone (k = 1); the weakest: ${who} — ranked as it${unsettled}${vs}`
+        : `ONE holder${sym} can pass a vote alone (k = 1): ${who} — ranked as it${unsettled}${vs}`
     }
     case 'few':
-      return `${d.k} holders${sym} can pass a vote alone: ranked as a ${d.k}-of-${d.k} multisig of them${d.holders.length > d.k ? ` (the weakest of the ${d.holders.length} holders in a passing set of ${d.k})` : ''}${d.settled ? '' : '; later holders not examined: a read gap'}`
+      return `${d.k} holders${sym} can pass a vote alone: ranked as a ${d.k}-of-${d.k} multisig of them (k = ${d.k})${d.holders.length > d.k ? ` (the weakest of the ${d.holders.length} holders in a passing set of ${d.k})` : ''}${d.settled ? '' : '; later holders not examined: a read gap'}${vs}`
     case 'broad':
-      return `broadly held: ${d.k !== null ? `k = ${d.k} of the largest holders${sym} needed` : `more than ${d.examined} holders${sym} needed`} to pass a vote alone`
+      return `broadly held: ${d.k !== null ? `k = ${d.k} of the largest holders${sym} needed` : `more than ${d.examined} holders${sym} needed`} to pass a vote alone${vs}`
   }
 }
 
@@ -699,7 +775,10 @@ export function nodeReadGaps(c: Controller): string[] {
     const d = tokenVoteDecision(c)
     if (d.kind === 'unread')
       out.push(
-        `Aragon Voting ${a}: holder concentration not read (${d.reason}; ranked as a plain contract)`,
+        d.history
+          ? // UQ-25: the opposition a vote is judged against was not read
+            `Aragon Voting ${a}: trailing-year vote history not read (${d.reason}; ranked as a plain contract)`
+          : `Aragon Voting ${a}: holder concentration not read (${d.reason}; ranked as a plain contract)`,
       )
     // review round 10 (O-1 / R-1): a holder that decides the rank was not classified, or the
     // holders that can pass a vote were not all examined
@@ -726,6 +805,39 @@ export function nodeReadGaps(c: Controller): string[] {
       `DSPause ${a}: the callers its authority ${c.dsAuthority.address.slice(0, 6)}… permits were not read (ranked as a plain contract)`,
     )
   return out
+}
+
+/**
+ * Review round 11 (RV11-1): the read gaps the CURRENT rules find in a set of head controller
+ * trees — the tree-wide families the engine lists for a power's holders (a Safe's modules, a
+ * timelock's proposers, a vote's time, and `nodeReadGaps`), with the engine's exact lines. The
+ * card is rendered from stored trees with the current rules, so a tree collected before a rule
+ * existed (a vote without its UQ-25 history, a bypass without its UQ-24 holders) renders a read
+ * gap the stored state never listed; the card adds these so it never contradicts itself and
+ * never says "no red flags" over them (fail closed).
+ */
+export function treeReadGaps(holders: readonly Controller[]): string[] {
+  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+  const nodes = holders.flatMap(controllerTree)
+  return [
+    ...new Set([
+      ...nodes
+        .filter((h) => h.modulesUnread)
+        .map((h) => `Safe ${short(h.address)}: modules not read (ranked as a plain contract)`),
+      ...nodes
+        .filter(schedulersUnreadOf)
+        .map(
+          (h) => `timelock ${short(h.address)}: proposers not read (ranked as a plain contract)`,
+        ),
+      ...nodes
+        .filter((h) => h.kind === 'aragon_voting' && h.voting?.voteTimeSec === null)
+        .map(
+          (h) =>
+            `Aragon Voting ${short(h.address)}: vote time not read (ranked as a plain contract)`,
+        ),
+      ...nodes.flatMap(nodeReadGaps),
+    ]),
+  ]
 }
 
 /** The weakest controller that can schedule into a timelock (ruling #12); null = none read. */

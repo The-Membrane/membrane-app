@@ -59,6 +59,7 @@ import {
   TIMELOCK_SCOPE_ROLES,
   WORMHOLE_EVM_CHAINS,
   nttRemoteTargets,
+  voteDefense,
 } from './lib/admin.mjs'
 import {
   ETH,
@@ -1460,10 +1461,27 @@ for (const e of oracleChanges.events ?? []) {
     }
     return hi
   }
+  // UQ-25 (owner ruling 2026-10-09): each vote's trailing-year opposition D at its block, cached
+  // per (vote app, block) — a few hundred bytes each
+  const DEFENSE_CACHE = join(CACHE, 'vote-defense-v1.json')
+  const defenseCache = existsSync(DEFENSE_CACHE)
+    ? JSON.parse(readFileSync(DEFENSE_CACHE, 'utf8'))
+    : {}
+  let defenseDirty = false
+  const defenseFor = async (app, block) => {
+    const key = `${app}@${block}`
+    if (defenseCache[key]) return defenseCache[key]
+    const ts = (await blockTimestamps(client, [block], join(CACHE, 'ts-1.json')))[block]
+    const d = await voteDefense(client, app, block, ts)
+    defenseCache[key] = d
+    defenseDirty = true
+    return d
+  }
   const n = await enrichTokenVotes(client, controllers, {
     head,
     decide: rulesTs.tokenVoteDecision,
     needsHolders: rulesTs.tokenVoteNeedsHolders,
+    defenseFor,
     log,
     snapshotsFor: async (token, blocks) =>
       holderSnapshots({
@@ -1476,6 +1494,7 @@ for (const e of oracleChanges.events ?? []) {
         log,
       }),
   })
+  if (defenseDirty) writeJson(DEFENSE_CACHE, defenseCache)
   if (n) {
     log(`token votes: ${n} vote classification(s) given their holder concentration`)
     // the past-block classifications now carry their holders: cached with them

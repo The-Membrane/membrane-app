@@ -172,6 +172,16 @@ export type Controller = {
     truncated?: boolean
     /** Why the holder concentration could not be read: a read gap, ranked as a plain contract. */
     holdersUnread?: string
+    /**
+     * Owner ruling 2026-10-09 (UQ-25): "can pass a vote alone" is judged against the AVERAGE
+     * OPPOSITION of the trailing year. Every vote STARTED in the `windowSec` (365 days) before
+     * the classification block, its nay stake read at that block (getVote); `mean` = D, the
+     * mean nay stake (a vote with no nays counts as 0; no vote in the window = 0, fail closed).
+     * Token units, decimal strings. undefined = not read by this collector version: a read gap.
+     */
+    defense?: VoteDefense
+    /** Why the vote history could not be read: a read gap, ranked as a plain contract. */
+    defenseUnread?: string
   }
   /**
    * Owner ruling 2026-10-08 (#12): who can put an operation INTO a timelock, classified at the
@@ -207,6 +217,22 @@ export type Controller = {
 
 /** One holder of a voting token at a block (UQ-17). `ctl` missing = not classified. */
 export type VoteHolder = { address: Address; balance: string; ctl?: Controller }
+
+/**
+ * A token vote's trailing-year opposition at a block (owner ruling 2026-10-09, UQ-25): the votes
+ * started in (`fromTs`, `toTs`] (`toTs` = the block's timestamp), their summed nay stake and its
+ * mean D. `firstId` / `lastId`: the vote ids in the window (absent when there is none).
+ */
+export type VoteDefense = {
+  windowSec: number
+  fromTs: number
+  toTs: number
+  votes: number
+  naySum: string
+  mean: string
+  firstId?: number
+  lastId?: number
+}
 
 // ---- subjects (data/oracle-registry/config/subjects.json) ---------------------------------
 

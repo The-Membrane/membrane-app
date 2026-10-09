@@ -1368,6 +1368,114 @@ export async function votingParams(client, a, block) {
   }
 }
 
+/** UQ-25: the trailing window of votes a token vote's opposition is averaged over (365 days). */
+export const DEFENSE_WINDOW_SEC = 365 * 86_400
+/**
+ * Aragon Voting `getVote`, static head only: Lido's Voting returns an extra trailing `phase`
+ * word after the dynamic `script`, which decoding the first nine words ignores — one ABI for both.
+ */
+export const GET_VOTE_SIG =
+  'function getVote(uint256) view returns (bool open, bool executed, uint64 startDate, uint64 snapshotBlock, uint64 supportRequired, uint64 minAcceptQuorum, uint256 yea, uint256 nay, uint256 votingPower)'
+const VOTE_BATCH = 25
+
+/** getVote(id) at `block` for each id → [{ id, startDate, nay }]; any failure THROWS (fail closed). */
+async function readVotes(client, app, ids, block) {
+  const abi = fnAbi(GET_VOTE_SIG)
+  // review round 11 (RV11-2): a vote's stakes cannot exceed its own voting power (the supply at
+  // its snapshot); more is a misread (a word or unit mix-up) — refused, the history is unread
+  const one = (r, id) => {
+    const yea = BigInt(r[6])
+    const nay = BigInt(r[7])
+    if (yea + nay > BigInt(r[8])) throw new Error(`getVote(${id}): stakes exceed its voting power`)
+    return { id, startDate: Number(r[2]), nay }
+  }
+  if (block === undefined || block >= MULTICALL3_BLOCK) {
+    const res = await retry(() =>
+      client.multicall({
+        contracts: ids.map((id) => ({
+          address: app,
+          abi,
+          functionName: 'getVote',
+          args: [BigInt(id)],
+        })),
+        allowFailure: true,
+        blockNumber: block === undefined ? undefined : BigInt(block),
+      }),
+    )
+    return res.map((x, i) => {
+      if (x.status !== 'success') throw new Error(`getVote(${ids[i]}) failed`)
+      return one(x.result, ids[i])
+    })
+  }
+  // before Multicall3 (review round 10, R-7): one eth_call per vote
+  const out = []
+  for (const id of ids) {
+    const r = await retry(
+      () =>
+        client.readContract({
+          address: app,
+          abi,
+          functionName: 'getVote',
+          args: [BigInt(id)],
+          blockNumber: BigInt(block),
+        }),
+      3,
+      300,
+    )
+    out.push(one(r, id))
+  }
+  return out
+}
+
+/**
+ * Owner ruling 2026-10-09 (UQ-25): the AVERAGE OPPOSITION of an Aragon Voting app's trailing
+ * year at `block` (timestamp `blockTs`): every vote STARTED in (blockTs − window, blockTs], its
+ * nay stake read at the block (getVote; a vote still open counts with its nays so far — fewer
+ * nays, the fail-closed side), and their mean D (a vote with no nays counts as 0; no vote in the
+ * window = 0, fail closed). Vote ids rise with their start dates, so the votes are read newest
+ * first until one started before the window. Any read that fails THROWS: the caller records the
+ * history as unread (a read gap).
+ */
+export async function voteDefense(client, app, block, blockTs, windowSec = DEFENSE_WINDOW_SEC) {
+  if (!Number.isFinite(blockTs) || blockTs <= 0) throw new Error('block timestamp not read')
+  const len = await readOnce(
+    client,
+    app,
+    'function votesLength() view returns (uint256)',
+    'votesLength',
+    [],
+    block,
+  )
+  if (!len.ok) throw new Error(`votesLength not read (${len.error})`)
+  const n = Number(len.value)
+  const fromTs = blockTs - windowSec
+  let naySum = 0n
+  let votes = 0
+  let firstId = null
+  let lastId = null
+  outer: for (let hi = n - 1; hi >= 0; hi -= VOTE_BATCH) {
+    const ids = []
+    for (let id = hi; id >= Math.max(0, hi - VOTE_BATCH + 1); id--) ids.push(id)
+    for (const v of await readVotes(client, app, ids, block)) {
+      if (v.startDate <= fromTs) break outer
+      if (v.startDate > blockTs) throw new Error(`vote ${v.id} starts after the block`)
+      naySum += v.nay
+      votes++
+      lastId ??= v.id
+      firstId = v.id
+    }
+  }
+  return {
+    windowSec,
+    fromTs,
+    toTs: blockTs,
+    votes,
+    naySum: String(naySum),
+    mean: String(votes ? naySum / BigInt(votes) : 0n),
+    ...(votes ? { firstId, lastId } : {}),
+  }
+}
+
 /** Every Aragon Voting node (not a back-reference) in a controller tree. */
 export function votingNodes(c, out = [], seen = new Set()) {
   if (!c || typeof c !== 'object' || seen.has(c)) return out
@@ -1398,13 +1506,29 @@ export function votingNodes(c, out = [], seen = new Set()) {
  * decides the rank). A node that already carries holders (a cached past-block classification)
  * is left as it is unless `needsHolders(node)` (rules.ts `tokenVoteNeedsHolders`): not settled
  * under the current rule, or a holder that decides the rank not classified — read again.
+ *
+ * Owner ruling 2026-10-09 (UQ-25): before its holders, each vote gets its trailing-year
+ * opposition (`defenseFor(app, block)` → rules `voting.defense`, the mean nay stake D of the
+ * votes started in the 365 days before the block); a failure is recorded as `defenseUnread` (a
+ * read gap). A cached node without it is read again; the holders it had already classified at
+ * that block are reused (a classification at a block does not depend on the vote rule).
  */
 export async function enrichTokenVotes(
   client,
   controllers,
-  { head, snapshotsFor, decide, needsHolders = null, log = () => {} },
+  {
+    head,
+    snapshotsFor,
+    decide,
+    needsHolders = null,
+    // (app, block) => Promise<VoteDefense>; typed for the TS callers (allowJs infers `null`)
+    defenseFor = /** @type {any} */ (null),
+    log = () => {},
+  },
 ) {
   const jobs = []
+  // holder classifications already made at a block for a vote (cached nodes being re-read)
+  const known = new Map()
   for (const [k, c] of Object.entries(controllers)) {
     const at = k.endsWith('@head') ? head : Number(k.split('@')[1])
     if (!Number.isFinite(at)) continue
@@ -1417,7 +1541,11 @@ export async function enrichTokenVotes(
           decide(v).kind === 'unread' ||
           (needsHolders ? needsHolders(v) : unsettled(decide(v))))
       ) {
-        if (v.voting) for (const f of ['holders', 'truncated', 'holdersUnread']) delete v.voting[f]
+        for (const h of v.voting?.holders ?? [])
+          if (h.ctl) known.set(`${h.address}@${at}@${v.address}`, h.ctl)
+        if (v.voting)
+          for (const f of ['holders', 'truncated', 'holdersUnread', 'defense', 'defenseUnread'])
+            delete v.voting[f]
         jobs.push({ v, at, head: k.endsWith('@head') })
       }
   }
@@ -1427,6 +1555,14 @@ export async function enrichTokenVotes(
     if (!j.v.voting) j.v.voting = { voteTimeSec: j.v.delaySec ?? null, objectionPhaseSec: null }
     if (!j.v.voting.token || j.v.voting.minAcceptQuorumPct == null)
       Object.assign(j.v.voting, await votingParams(client, j.v.address, j.at))
+    // UQ-25: the opposition the holders are judged against (unread = a read gap, fail closed)
+    if (!defenseFor) j.v.voting.defenseUnread = 'no vote-history reader'
+    else
+      try {
+        j.v.voting.defense = await defenseFor(j.v.address, j.at)
+      } catch (e) {
+        j.v.voting.defenseUnread = String(e?.message ?? e).slice(0, 80)
+      }
   }
   const byToken = new Map()
   for (const j of jobs) {
@@ -1434,6 +1570,9 @@ export async function enrichTokenVotes(
       j.v.voting.holdersUnread = 'voting token not read'
       continue
     }
+    // UQ-25: no holder snapshot for a vote whose history is unread (a read gap either way — a
+    // new block would cost a full pass over the token's Transfer logs for nothing)
+    if (j.v.voting.defenseUnread) continue
     const t = j.v.voting.token
     byToken.set(t, [...(byToken.get(t) ?? []), j])
   }
@@ -1460,6 +1599,9 @@ export async function enrichTokenVotes(
       const vt = j.v.voting
       vt.supply = snap.supply
       vt.holderCount = snap.holderCount
+      // UQ-25: with the vote history unread no holder set decides the rank (a read gap either
+      // way) — classifying the whole top-50 at the block would buy nothing
+      if (vt.defenseUnread) continue
       vt.holders = []
       vt.truncated = true
       for (const [i, [addr, bal]] of snap.top.entries()) {
@@ -1467,9 +1609,11 @@ export async function enrichTokenVotes(
         if (!memo.has(mk))
           memo.set(
             mk,
-            classify(client, addr, j.at, 0, new Set([VOTE_SELF + j.v.address]), 0).catch(
-              () => undefined,
-            ),
+            known.has(mk)
+              ? Promise.resolve(known.get(mk))
+              : classify(client, addr, j.at, 0, new Set([VOTE_SELF + j.v.address]), 0).catch(
+                  () => undefined,
+                ),
           )
         const ctl = await memo.get(mk)
         vt.holders.push({ address: addr, balance: bal, ...(ctl ? { ctl } : {}) })

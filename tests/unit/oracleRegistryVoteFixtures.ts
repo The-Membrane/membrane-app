@@ -1,12 +1,34 @@
 // Token-vote fixtures for the config-card tests (owner ruling 2026-10-08, UQ-17): an Aragon Voting
 // ranks by HOLDER CONCENTRATION, so a fixture vote carries its holder data. Not a test file.
 
-import type { Controller, VoteHolder } from '@/lib/oracleRegistry/config/types'
+import type { Controller, VoteDefense, VoteHolder } from '@/lib/oracleRegistry/config/types'
 
 const E18 = 10n ** 18n
 /** Lido's thresholds: support 50 %, minimum acceptance quorum 5 % (1e18 = 100 %). */
 export const LIDO_SUPPORT = (E18 / 2n).toString()
 export const LIDO_QUORUM = (E18 / 20n).toString()
+
+/** The classification block's timestamp in the fixtures (2026-09-21). */
+export const FIXTURE_TS = 1_790_000_000
+const YEAR = 365 * 86_400
+
+/**
+ * Owner ruling 2026-10-09 (UQ-25): a vote's trailing-year opposition. `nays` (whole tokens) are
+ * the nay stakes of the votes started in the window; D = their mean. No nays given = no vote in
+ * the window (D = 0, the fail-closed default the card names).
+ */
+export function defenseOf(nays: number[] = [], toTs = FIXTURE_TS): VoteDefense {
+  const sum = nays.reduce((x, y) => x + BigInt(y) * E18, 0n)
+  return {
+    windowSec: YEAR,
+    fromTs: toTs - YEAR,
+    toTs,
+    votes: nays.length,
+    naySum: sum.toString(),
+    mean: (nays.length ? sum / BigInt(nays.length) : 0n).toString(),
+    ...(nays.length ? { firstId: 100, lastId: 100 + nays.length - 1 } : {}),
+  }
+}
 
 /** A holder address from an index (distinct from the single-letter fixture addresses). */
 export const holderAddr = (i: number) => '0x' + (0xabc000 + i).toString(16).padStart(40, '0')
@@ -28,9 +50,12 @@ export function voteData(
     support?: string
     ctls?: Record<number, Controller | undefined>
     truncated?: boolean
+    /** UQ-25: the trailing-year opposition (default: no vote in the window, D = 0). */
+    defense?: VoteDefense
   } = {},
 ): NonNullable<Controller['voting']> {
   return {
+    defense: o.defense ?? defenseOf(),
     voteTimeSec: null,
     objectionPhaseSec: null,
     token: '0x5a98fcbea516cf06857215779fd812ca3bef1b32',

@@ -30,6 +30,7 @@ import { crossCheckedLogs } from '@/scripts/oracle-registry/config/lib/rpc.mjs'
 import {
   LIDO_QUORUM,
   LIDO_SUPPORT,
+  defenseOf,
   holderAddr,
   tokenVote,
   voteData,
@@ -631,6 +632,8 @@ describe('collector: enrichTokenVotes examines holders until the weakest passing
     head: 20_000_000,
     decide: tokenVoteDecision,
     snapshotsFor: async (_t: string, blocks: number[]) => new Map(blocks.map((b) => [b, snap])),
+    // UQ-25: no vote in the trailing year (D = 0) — the reading these round-10 cases were built on
+    defenseFor: async () => defenseOf(),
   }
   it('a Safe whale first: the EOA that also passes alone is examined — ranked [1] (was [4, 4, −7])', async () => {
     const v = vote()

@@ -33,7 +33,7 @@ import type {
   RouteSideView,
 } from './apiTypes'
 import { floorBreachRoutes } from './bridgeRules'
-import { describeController, formatDelay, RULES } from './rules'
+import { describeController, formatDelay, RULES, treeReadGaps } from './rules'
 import { compareValueAtRisk, valueAtRiskLabel } from './value'
 import type {
   ConfigChange,
@@ -821,6 +821,19 @@ export function delayChips(powers: readonly PowerState[]): DelayChip[] {
 
 // ---- the card -------------------------------------------------------------------------------------
 
+/**
+ * Review round 11 (RV11-1): the card's read gaps — the stored ones, plus any the CURRENT rules
+ * find in the stored head controllers (`treeReadGaps`). Holder labels are rendered from the
+ * stored trees with the current rules; a tree collected before a rule existed would otherwise
+ * render "UNREAD … ranked as a plain contract" while the card counted no read gap.
+ */
+export function readGapsOf(state: SubjectState | null | undefined): string[] {
+  const stored = state?.readGaps ?? []
+  const have = new Set(stored)
+  const found = treeReadGaps((state?.powers ?? []).flatMap((p) => p.holders))
+  return [...stored, ...found.filter((g) => !have.has(g))]
+}
+
 export type BuildCardOptions = {
   /** Quiet historical rows to keep; 'all' returns the full history. */
   keep?: number | 'all'
@@ -841,7 +854,8 @@ export function buildConfigCard(inp: ConfigInputs, opt: BuildCardOptions = {}): 
   const executors = executorsByTimelock(inp.changes)
   const items = state?.items ?? []
   const powers = state?.powers ?? []
-  const counts = countsOf(items, all, state?.readGaps ?? [])
+  const readGaps = readGapsOf(state)
+  const counts = countsOf(items, all, readGaps)
   const views = orderTimeline(
     all.map((c) => toChangeView(c, { executors, eidName: (e) => eidName(e) })),
   )
@@ -914,7 +928,7 @@ export function buildConfigCard(inp: ConfigInputs, opt: BuildCardOptions = {}): 
     rules,
     notes: subject.notes ?? [],
     warnings: [...(state?.warnings ?? []), ...bridge.warnings],
-    readGaps: state?.readGaps ?? [],
+    readGaps,
   }
 }
 
@@ -926,7 +940,7 @@ export function buildConfigSummary(inp: ConfigInputs): ConfigTabSummary {
     symbol: subjectSymbol(subject.label),
     label: subject.label,
     oracleSlug: subject.oracleAssetKey ? subject.oracleAssetKey.toLowerCase() : null,
-    counts: countsOf(state?.items ?? [], [...inp.queue, ...inp.changes], state?.readGaps ?? []),
+    counts: countsOf(state?.items ?? [], [...inp.queue, ...inp.changes], readGapsOf(state)),
     asOf: state?.asOf ?? null,
   }
 }

@@ -87,7 +87,62 @@ export function ethereumClients() {
     })
   // Archive reads go to the keyed endpoint first (the free tiers refuse old blocks).
   const ordered = [...logUrls, ...urls.filter((u) => !logUrls.includes(u))]
-  return { state: mk(ordered, 30_000), logs: mk(logUrls.length ? logUrls : urls, 45_000) }
+  // UQ-23: two INDEPENDENT log endpoints (no fallback between them), so an empty answer from
+  // one can be asked again on the other (the shared ring can return false-empty chunks)
+  const pair = logUrls.length >= 2 ? logUrls.slice(0, 2) : [...logUrls, ...urls].slice(0, 2)
+  return {
+    state: mk(ordered, 30_000),
+    logs: mk(logUrls.length ? logUrls : urls, 45_000),
+    logsPrimary: mk([pair[0]], 45_000),
+    logsSecondary: pair[1] ? mk([pair[1]], 45_000) : null,
+  }
+}
+
+/**
+ * UQ-23 (2026-10-08): one getLogs range, CROSS-CHECKED. An empty answer is asked again on a
+ * second, independent endpoint — the shared ring can return false-empty chunks, and a lost
+ * chunk drops a log silently:
+ *   primary non-empty                           → its logs
+ *   primary empty or failed, secondary non-empty → the secondary's (a false-empty corrected)
+ *   both answered empty                          → [] (confirmed)
+ *   otherwise (a failure and no confirming empty) → throws: the caller marks the read UNREAD
+ * `secondary` null: an empty primary answer cannot be confirmed — throws (fail closed).
+ * Review round 10 (R-5): a primary that FAILS on the range (a result-size or range limit) is
+ * split in halves, and each half is cross-checked on its own. Before, the split ran inside one
+ * adaptive read and only the combined answer was checked: one false-empty half next to a
+ * non-empty half was accepted, and its log lost.
+ * Returns { logs, corrected } (`corrected`: a primary empty answer was false).
+ */
+export async function crossCheckedLogs(primary, secondary, q, depth = 0) {
+  let a = null
+  let aErr = null
+  try {
+    a = await getLogsOnce(primary, q)
+  } catch (e) {
+    aErr = e
+  }
+  if (a && a.length) return { logs: a, corrected: false }
+  if (aErr) {
+    const span = BigInt(q.toBlock) - BigInt(q.fromBlock)
+    if (span >= 200n && depth <= 12) {
+      const mid = BigInt(q.fromBlock) + span / 2n
+      const x = await crossCheckedLogs(primary, secondary, { ...q, toBlock: mid }, depth + 1)
+      const y = await crossCheckedLogs(primary, secondary, { ...q, fromBlock: mid + 1n }, depth + 1)
+      return { logs: [...x.logs, ...y.logs], corrected: x.corrected || y.corrected }
+    }
+  }
+  if (!secondary)
+    throw aErr ?? new Error('empty getLogs answer not cross-checked (no second endpoint)')
+  let b = null
+  try {
+    b = await getLogsAdaptive(secondary, q)
+  } catch (e) {
+    if (aErr) throw aErr
+    throw e
+  }
+  if (b.length) return { logs: b, corrected: !aErr }
+  if (aErr) throw aErr
+  return { logs: [], corrected: false }
 }
 
 /** A public client for another chain from a list of public RPC URLs (LZ metadata / chainlist). */
@@ -101,6 +156,19 @@ export function publicClient(chainId, urls) {
   })
 }
 
+/** One raw eth_getLogs request (retried, never split). */
+async function getLogsOnce(client, { address, topics0, fromBlock, toBlock }) {
+  const hx = (n) => '0x' + BigInt(n).toString(16)
+  return retry(
+    () =>
+      client.request({
+        method: 'eth_getLogs',
+        params: [{ address, topics: [topics0], fromBlock: hx(fromBlock), toBlock: hx(toBlock) }],
+      }),
+    2,
+  )
+}
+
 /**
  * Raw eth_getLogs with a topic0 OR-list. (viem's getLogs has no raw `topics` parameter: passing
  * one is silently ignored and the node returns EVERY log of the addresses — measured
@@ -108,16 +176,8 @@ export function publicClient(chainId, urls) {
  * in half on any error (result-size limits) down to 200 blocks.
  */
 export async function getLogsAdaptive(client, { address, topics0, fromBlock, toBlock }, depth = 0) {
-  const hx = (n) => '0x' + BigInt(n).toString(16)
   try {
-    return await retry(
-      () =>
-        client.request({
-          method: 'eth_getLogs',
-          params: [{ address, topics: [topics0], fromBlock: hx(fromBlock), toBlock: hx(toBlock) }],
-        }),
-      2,
-    )
+    return await getLogsOnce(client, { address, topics0, fromBlock, toBlock })
   } catch (e) {
     const span = BigInt(toBlock) - BigInt(fromBlock)
     if (span < 200n || depth > 12) throw e

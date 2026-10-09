@@ -30,6 +30,7 @@ import {
   nttRemoteTargets,
   readNttRemote,
 } from '@/scripts/oracle-registry/config/lib/admin.mjs'
+import { tokenVote } from './oracleRegistryVoteFixtures'
 
 type Hx = `0x${string}`
 const A = (n: string) => ('0x' + n.repeat(40).slice(0, 40)) as Hx
@@ -383,7 +384,7 @@ describe('engine: the remote side of an NTT route', () => {
         kind: 'aragon_dg',
         address: EPT,
         delaySec: 691200,
-        schedulers: [{ kind: 'aragon_voting', address: A('4'), delaySec: 432000 }],
+        schedulers: [tokenVote(A('4'))],
       },
     },
   }

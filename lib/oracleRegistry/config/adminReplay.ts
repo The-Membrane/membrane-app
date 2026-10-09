@@ -35,8 +35,11 @@ import {
   classifyRoleGrant,
   classifySafeModuleChange,
   classifyWhitelistChange,
+  compareRank,
+  controllerRank,
   describeController,
   down,
+  rankHasReadGap,
   grantPattern,
   isRed,
   neutral,
@@ -119,6 +122,22 @@ export type AdminCtx = {
    */
   committeePaths?: Record<string, string[]>
   /**
+   * UQ-19 (2026-10-08): per oracle committee contract (lower), the holders of the declared powers
+   * over it — its controllers. A member change made through a path controller is neutral only
+   * when that controller, ranked at block − 1 (a timelock as its weakest proposer, ruling #12),
+   * is NOT BELOW the weakest of them at block − 1. With none declared (the path falls back to
+   * the subject's timelocks), the path controller must rank at least as a multisig with a delay
+   * credit. A path controller or a controller that cannot be ranked (not classified, or a read
+   * gap) is red (fail closed).
+   */
+  committeeControllers?: Record<string, string[]>
+  /**
+   * UQ-19: the lookup that ranks a committee's path controller and its controllers — `ctl`, then
+   * the same address found anywhere in a head controller tree (a Dual Governance timelock or an
+   * Aragon Voting sits inside the Agent's tree; it holds no power of its own).
+   */
+  ctlPath?: ControllerLookup
+  /**
    * Review round 9: the recipient (`to`) of each transaction that carries an oracle committee
    * member event (collector: eth_getTransactionByHash). null / missing = not read. A transaction
    * SENT to a declared path contract runs nothing outside that contract's execution.
@@ -185,6 +204,47 @@ export function committeePathVia(
     first ??= c
   }
   return first
+}
+
+/**
+ * UQ-19: why the path controller `via` that made a committee member change does NOT count as the
+ * delayed governance path, or null when it does. Ranked at block − 1 (the lookup falls back to
+ * head): a timelock as its weakest proposer (ruling #12), a token vote by holder concentration
+ * (UQ-17). Fail closed: a path controller or committee controller that was not classified, or
+ * whose rank rests on a read gap, does not count.
+ */
+export function committeePathTooWeak(
+  ctx: Pick<AdminCtx, 'ctl' | 'ctlPath' | 'committeeControllers'>,
+  committee: string,
+  via: string,
+  block: number,
+): string | null {
+  const ctl = ctx.ctlPath ?? ctx.ctl
+  const p = ctl(via, block - 1)
+  if (!p) return `${short(via)} could not be classified (fail closed)`
+  if (rankHasReadGap(p))
+    return `its rank rests on a read gap (${describeController(p)}; fail closed)`
+  const holders = ctx.committeeControllers?.[lcs(committee)] ?? []
+  const rp = controllerRank(p)
+  if (!holders.length) {
+    // no declared power over the committee: at least a multisig behind a delay credit
+    if ((rp[0] ?? 0) >= 4 && (rp[3] ?? 0) > 0) return null
+    return `the committee has no declared controller, and ${describeController(p)} ranks below a multisig behind a delay of 24 h or more`
+  }
+  const prev = holders.map((h) => ctl(h, block - 1))
+  const unread = holders.filter((_, i) => !prev[i])
+  if (unread.length)
+    return `the committee's controller ${unread.map(short).join(', ')} could not be classified (fail closed)`
+  const cs = prev as Controller[]
+  const gap = cs.find(rankHasReadGap)
+  if (gap)
+    return `the committee's controller rests on a read gap (${describeController(gap)}; fail closed)`
+  const weakest = cs.reduce((m, c) =>
+    compareRank(controllerRank(c), controllerRank(m)) < 0 ? c : m,
+  )
+  if (compareRank(rp, controllerRank(weakest)) < 0)
+    return `${describeController(p)} ranks below the committee's controller ${describeController(weakest)}`
+  return null
 }
 
 const lcs = (x: unknown) => String(x ?? '').toLowerCase()
@@ -606,7 +666,15 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const via = committeePathVia(txRows, mine, em, path, ctx.txTo?.[r.tx])
         // a path execution that ran in the transaction but did not make the change (review round 9)
         const ran = txRows.find((x) => PATH_EXEC_EVENTS.has(x.event) && path.includes(x.emitter))
+        // UQ-19: the path controller that made it must not rank below the committee's controller
+        const weakPath = via ? committeePathTooWeak(ctx, em, lcs(via.emitter), r.block) : null
         if (isInit(em, r.block)) tag(v, 'initialization')
+        else if (via && weakPath)
+          down(
+            v,
+            'AD-5',
+            `oracle committee members changed through ${short(via.emitter)} (${via.event}), which does not count as the delayed governance path: ${weakPath}`,
+          )
         else if (via)
           v.notes.push(
             `through the declared delayed governance path: ${via.event} from ${short(via.emitter)} in this transaction`,

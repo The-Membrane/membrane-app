@@ -940,11 +940,15 @@ describe('collector: classification from code, not from self-reported views (rev
       A,
     )
     expect(c.kind).toBe('oz_timelock')
-    expect((c as { bypass?: unknown }).bypass).toEqual({
+    expect((c as { bypass?: unknown }).bypass).toMatchObject({
       fn: 'bypasserExecuteBatch',
       scope: 'any',
       holders: ['0x' + '7'.repeat(40)],
     })
+    // UQ-24: the bypasser is classified at the block (it ranks the bypass)
+    expect((c as { bypass?: { holderCtls?: { address: string }[] } }).bypass?.holderCtls).toEqual([
+      expect.objectContaining({ address: '0x' + '7'.repeat(40) }),
+    ])
     expect(isTimelockCode(codeWith(TL_SIGS))).toBe(true)
     expect(isTimelockCode('0x6080')).toBe(false)
   })

@@ -64,6 +64,7 @@ import {
   setAragonExecCandidates,
 } from '@/scripts/oracle-registry/config/lib/admin.mjs'
 import { readParams } from '@/scripts/oracle-registry/config/lib/params.mjs'
+import { tokenVote, withVoteHolders } from './oracleRegistryVoteFixtures'
 
 // ---- fixtures ------------------------------------------------------------------------------------
 // the collector is plain JS: its inferred return / option types are too narrow for fakes
@@ -208,12 +209,8 @@ const agentCtl = (owner: Controller | null): Controller => ({
   version: 'Aragon Agent',
   ...(owner ? { ownedBy: { kind: 'contract', address: EXEC, ownedBy: owner } } : {}),
 })
-const voting = (sec = 432000): Controller => ({
-  kind: 'aragon_voting',
-  address: VOTING,
-  delaySec: sec,
-  voting: { voteTimeSec: sec, objectionPhaseSec: 172800 },
-})
+// UQ-17: a vote ranks by holder concentration — the fixture is broadly held (k = 13)
+const voting = (sec = 432000): Controller => tokenVote(VOTING, { voteTimeSec: sec })
 
 // =====================================================================================================
 describe('Aragon rows: ACL and Kernel events rewritten onto the apps they act on', () => {
@@ -459,7 +456,7 @@ describe('Aragon power paths and classification (fake client)', () => {
       'aragon_voting',
       'contract',
     ])
-    expect(compareRank(controllerRank(two), controllerRank(voting()))).toBe(0)
+    expect(compareRank(controllerRank(withVoteHolders(two)), controllerRank(voting()))).toBe(0)
     expect(describeController(two)).toMatch(/Aragon Voting 5d vote .*ranked as the weakest/)
     // no executor found: a plain contract, said so
     const none = await classify(world(), AGENT)
@@ -467,6 +464,9 @@ describe('Aragon power paths and classification (fake client)', () => {
     expect(controllerRank(none)).toEqual([2])
     setAragonExecCandidates(new Map())
     // ranks: the DG-era Agent outranks the Voting-era one (8 d > 5 d): the DG launch is no downgrade
+    // (UQ-17: the collector enriches every vote with its holder data — here broadly held)
+    withVoteHolders(dgEra)
+    withVoteHolders(votingEra)
     expect(compareRank(controllerRank(dgEra), controllerRank(votingEra))).toBe(1)
     expect(describeController(dgEra)).toMatch(
       /^Aragon Agent 0x3333…3333 → contract .* → Dual Governance timelock 8d/,

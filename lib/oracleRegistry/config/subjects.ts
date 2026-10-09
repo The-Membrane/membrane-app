@@ -54,8 +54,10 @@ const RULES: ParamRule[] = [
   'info',
 ]
 const CLASSES = ['lrt', 'bridged', 'pt', 'custodial'] as const
+// a role is named, or given as its 32-byte hash when its name is unknown (UQ-20: the ether.fi
+// RoleRegistry role the EtherFiOracle checks, measured from a trace of its committee calls)
 const STEP =
-  /^(owner|eip1967_admin|zos_admin|lz_delegate|call:[A-Za-z0-9_]+\(\)|role:[A-Z0-9_]+|role_admin:[A-Z0-9_]+|acl_manager:[A-Z0-9_]+)$/
+  /^(owner|eip1967_admin|zos_admin|lz_delegate|call:[A-Za-z0-9_]+\(\)|role:([A-Z0-9_]+|0x[0-9a-f]{64})|role_admin:[A-Z0-9_]+|acl_manager:[A-Z0-9_]+)$/
 const ADDR = /^0x[0-9a-f]{40}$/
 
 function fail(msg: string): never {
@@ -94,7 +96,8 @@ export function parseSubjects(raw: unknown): SubjectsFile {
     for (const b of s.canonicalBridges ?? []) {
       if (!declared.has(b.address)) fail(`${where}: bridge ${b.address} is not a declared contract`)
       if (!ADDR.test(b.token)) fail(`${where}: bridge ${b.address} token ${b.token}`)
-      if (!b.chain || !b.operator) fail(`${where}: bridge ${b.address} needs a chain and an operator`)
+      if (!b.chain || !b.operator)
+        fail(`${where}: bridge ${b.address} needs a chain and an operator`)
     }
     for (const a of s.safes) if (!ADDR.test(a)) fail(`${where}: safe ${a}`)
     for (const p of s.powers) {

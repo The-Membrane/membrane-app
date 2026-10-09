@@ -30,6 +30,7 @@ import {
   paramsForSubject,
   scopedParamSpecs,
 } from '@/scripts/oracle-registry/config/lib/params.mjs'
+import { tokenVote } from './oracleRegistryVoteFixtures'
 
 type Hx = `0x${string}`
 const A = (n: string) => ('0x' + n.repeat(40).slice(0, 40)) as Hx
@@ -160,9 +161,16 @@ describe('CB-2: a committee member change is neutral only when the declared path
         data: '0x3b4aea80' + (member ?? OTHER).slice(2).padStart(64, '0'),
       },
     })
+  // UQ-19: the path controllers are ranked — a 2-day timelock the Safe 6/11 proposes into; the
+  // Dual Governance timelock as a 3-day timelock behind the same Safe (rank shape only)
   const ctx = (o: Record<string, unknown> = {}) => ({
     subject: 'z',
-    ctl: () => null,
+    ctl: (a: string) =>
+      a === TL
+        ? tl(2 * DAY, [SAFE_6_11])
+        : a === EPT
+          ? tl(3 * DAY, [SAFE_6_11], { address: EPT })
+          : null,
     upgradeTimelocks: {},
     deployBlocks: { [HC]: 10 },
     tokens: [],
@@ -362,13 +370,9 @@ describe('R-1 / R-2: rank fixes in rules.ts', () => {
     expect(describeController(unread)).toMatch(/vote time UNREAD/)
     const zero: Controller = { kind: 'aragon_voting', address: VOTING, delaySec: 0 }
     expect(controllerRank(zero)).toEqual([2])
-    // control: a read 5-day vote still ranks as a token-holder vote (owner call UQ-17)
-    const lido: Controller = {
-      kind: 'aragon_voting',
-      address: VOTING,
-      delaySec: 5 * DAY,
-      voting: { voteTimeSec: 5 * DAY, objectionPhaseSec: 2 * DAY },
-    }
+    // control: a read 5-day vote, broadly held (UQ-17: ranked by holder concentration), still
+    // ranks as a token-holder vote
+    const lido = tokenVote(VOTING, { voteTimeSec: 5 * DAY })
     expect(controllerRank(lido)[0]).toBe(5)
   })
   it('R-2: Safe 6/11 → a 7-day RBACTimelock whose ADMIN and PROPOSER are that Safe is NEUTRAL (was UPGRADE)', () => {

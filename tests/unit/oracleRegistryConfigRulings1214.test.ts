@@ -39,6 +39,7 @@ import {
   roleHash,
 } from '@/scripts/oracle-registry/config/lib/abi.mjs'
 import { classify, timelockSchedulers } from '@/scripts/oracle-registry/config/lib/admin.mjs'
+import { tokenVote } from './oracleRegistryVoteFixtures'
 
 // ---- fixtures -------------------------------------------------------------------------------------
 type Hx = `0x${string}`
@@ -74,11 +75,8 @@ const tl = (
   ...(schedulers ? { schedulers } : {}),
   ...o,
 })
-const voting = (sec = 432000): Controller => ({
-  kind: 'aragon_voting',
-  address: VOTING,
-  delaySec: sec,
-})
+// UQ-17: a token vote ranks by holder concentration — the fixture is broadly held (k = 13)
+const voting = (sec = 432000): Controller => tokenVote(VOTING, { voteTimeSec: sec })
 const dg = (schedulers: Controller[] | undefined): Controller => ({
   kind: 'aragon_dg',
   address: EPT,
@@ -165,9 +163,13 @@ const row = (o: Partial<AdminEventRow>): AdminEventRow => ({
   args: {},
   ...o,
 })
+// UQ-19: the path controllers a committee test executes through, ranked (a Dual Governance
+// timelock proposed by the broadly held vote; the vote itself)
+const pathCtl = (a: string): Controller | null =>
+  a === EPT ? dg([voting()]) : a === VOTING ? voting() : a === TL ? tl(2 * DAY, [SAFE_6_11]) : null
 const actx = (m: Record<string, Controller>, o: Record<string, unknown> = {}) => ({
   subject: 'z',
-  ctl: (a: string, b: number) => m[`${a}@${b}`] ?? m[`${a}@head`] ?? null,
+  ctl: (a: string, b: number) => m[`${a}@${b}`] ?? m[`${a}@head`] ?? pathCtl(a),
   ctlExact: (a: string, b: number) => m[`${a}@${b}`] ?? null,
   upgradeTimelocks: {},
   deployBlocks: { [HC]: 10 },
@@ -682,7 +684,10 @@ describe('ruling #13: oracle committee members are replayed and judged by the pa
       version: 'Aragon Agent',
       ownedBy: { kind: 'contract', address: EXEC, ownedBy: dg([voting()]) },
     }
-    const run = (path: { event: string; emitter: string } | null) =>
+    const run = (
+      path: { event: string; emitter: string } | null,
+      at: Record<string, Controller> = {},
+    ) =>
       build(
         s,
         rawOf({
@@ -695,7 +700,7 @@ describe('ruling #13: oracle committee members are replayed and judged by the pa
                 holders: [AGENT],
               },
             ],
-            controllers: { [`${AGENT}@head`]: agent },
+            controllers: { [`${AGENT}@head`]: agent, ...at },
             events: swap(path),
             // review round 9: the transaction is sent to the path contract that executes it
             ...(path ? { txTo: { [TX]: path.emitter } } : {}),
@@ -705,7 +710,22 @@ describe('ruling #13: oracle committee members are replayed and judged by the pa
     const viaDg = run({ event: 'ProposalExecuted', emitter: EPT })
     expect(viaDg).toHaveLength(1)
     expect(viaDg[0].red).toBe(false)
-    expect(run({ event: 'ExecuteVote', emitter: VOTING })[0].red).toBe(false)
+    // the pre-DG era: the Agent was executed by the Voting itself at the block (classified at
+    // block − 1 by the collector) — the vote is not below it
+    const votingEraAgent: Controller = {
+      kind: 'contract',
+      address: AGENT,
+      version: 'Aragon Agent',
+      executors: [voting()],
+      ownedBy: voting(),
+    }
+    expect(
+      run({ event: 'ExecuteVote', emitter: VOTING }, { [`${AGENT}@26054463`]: votingEraAgent })[0]
+        .red,
+    ).toBe(false)
+    // UQ-19: in the DG era the same ExecuteVote path ranks BELOW the committee's controller (the
+    // DG-governed Agent: vote + 3 d) — a change made through it is red
+    expect(run({ event: 'ExecuteVote', emitter: VOTING })[0].red).toBe(true)
     const bypass = run(null)
     expect(bypass[0].red).toBe(true)
     expect(bypass[0].stillInEffect).toBe(true)

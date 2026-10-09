@@ -94,7 +94,28 @@ export type Controller = {
     targets?: Record<Address, string[]>
     /** The whitelist could not be read this run: ranked as an unrestricted bypass (fail closed). */
     unread?: boolean
+    /**
+     * UQ-24 (2026-10-08): the bypassers (`holders`) classified at the same block. An unrestricted
+     * bypass ranks as its WEAKEST bypasser, with no credit from this timelock's delay. Missing,
+     * or shorter than `holders` (a holder that could not be classified) = a read gap: the
+     * timelock ranks as a plain contract (fail closed).
+     */
+    holderCtls?: Controller[]
   }
+  /**
+   * UQ-24 (2026-10-08): a DSPause's DSAuth `authority` (non-zero). DSAuth lets whoever the
+   * authority PERMITS call the pause (`canCall`), so the pause ranks as the weakest of them.
+   * `callers` undefined = the permitted callers could not be enumerated: a read gap, ranked as a
+   * plain contract (fail closed).
+   */
+  dsAuthority?: { address: Address; callers?: Controller[] }
+  /**
+   * UQ-17 (2026-10-08): a reference back to the token vote whose holders are being ranked — a
+   * holder whose control leads back to that same vote (Lido's Agent: its executor is the vote,
+   * through Dual Governance). Such a holder acts only after the vote itself passed, so it adds no
+   * independent voter. Only ever found inside `voting.holders[].ctl`.
+   */
+  selfRef?: boolean
   /**
    * Lido Dual Governance EmergencyProtectedTimelock (kind 'aragon_dg'). `delaySec` is the
    * shortest path to execution: the proposers' Aragon vote (when every proposer is one) + the
@@ -126,7 +147,32 @@ export type Controller = {
     state?: string | null
   }
   /** Aragon Voting app (kind 'aragon_voting'): a vote lasts voteTime (delaySec). */
-  voting?: { voteTimeSec: number | null; objectionPhaseSec: number | null }
+  voting?: {
+    voteTimeSec: number | null
+    objectionPhaseSec: number | null
+    /**
+     * Owner ruling 2026-10-08 (UQ-17): a token vote ranks by HOLDER CONCENTRATION — how many of
+     * the largest holders of the voting token can pass a vote ALONE (meet the minimum acceptance
+     * quorum and the support threshold, both read on chain at the block). Every holder counts
+     * (exchanges and bridges included). All read at the classification block.
+     */
+    token?: Address
+    /** Aragon `supportRequiredPct` / `minAcceptQuorumPct` (1e18 = 100%), as decimal strings. */
+    supportRequiredPct?: string | null
+    minAcceptQuorumPct?: string | null
+    /** The token's total supply at the block (the vote's voting power), decimal string. */
+    supply?: string | null
+    /** Accounts with a non-zero balance at the block. */
+    holderCount?: number
+    /**
+     * The largest holders at the block, largest first, each classified at the block: the prefix
+     * the collector examined (it stops once k is decided). `truncated`: more holders exist.
+     */
+    holders?: VoteHolder[]
+    truncated?: boolean
+    /** Why the holder concentration could not be read: a read gap, ranked as a plain contract. */
+    holdersUnread?: string
+  }
   /**
    * Owner ruling 2026-10-08 (#12): who can put an operation INTO a timelock, classified at the
    * same block. A timelock ranks as its WEAKEST scheduler; its delay adds strength only at
@@ -151,7 +197,16 @@ export type Controller = {
    * can cut the delay to 0, grant itself PROPOSER and EXECUTOR, then schedule and execute.
    */
   delaySetters?: string[]
+  /**
+   * Review round 10 (R-6): a contract whose owner was NOT followed — the owner chain reached the
+   * collector's hop limit (`MAX_OWNER_HOPS`). The owner's address; its control was not read, so
+   * the contract ranks as a plain contract and is a read gap (fail closed).
+   */
+  ownerNotFollowed?: Address
 }
+
+/** One holder of a voting token at a block (UQ-17). `ctl` missing = not classified. */
+export type VoteHolder = { address: Address; balance: string; ctl?: Controller }
 
 // ---- subjects (data/oracle-registry/config/subjects.json) ---------------------------------
 
@@ -426,6 +481,11 @@ export type ChangeTag =
   | 'route_created'
   | 'route_removed'
   | 'stale_rollback'
+  /**
+   * Review round 10 (R-3): the new holder's rank rests on a READ GAP — not judged as an upgrade,
+   * and (like a rotation) a red before it is carried forward: a failed read never ends a red.
+   */
+  | 'read_gap'
   | 'send_side'
   | 'grace_period'
   | 'blocked'

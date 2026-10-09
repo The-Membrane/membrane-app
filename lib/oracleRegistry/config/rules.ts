@@ -7,7 +7,14 @@
 //   red ⇔ severity === 'downgrade' || floorBreach
 // Every rule is generic: no rule knows a subject, a date or an exploit.
 
-import type { ChangeTag, Controller, ControllerKind, ParamSpec, Severity } from './types'
+import type {
+  ChangeTag,
+  Controller,
+  ControllerKind,
+  ParamSpec,
+  Severity,
+  VoteHolder,
+} from './types'
 
 export type RuleId =
   | 'BR-1'
@@ -144,32 +151,61 @@ export const isTimelockKind = (c: Controller | null | undefined): boolean =>
 
 /**
  * A rank in three parts, compared in this order:
- *   base    the class of the weakest key holder: 6 immutable / renounced, 5 a token-holder vote
- *           (Aragon Voting), 4 multisig [4, threshold, −signers], 2 contract, 1 EOA, 0 unknown;
+ *   base    the class of the weakest key holder: 6 immutable / renounced, 5 a BROADLY HELD
+ *           token vote (UQ-17: more than 10 of the largest holders needed to pass one), 4
+ *           multisig [4, threshold, −signers] (a token vote that k ≤ 10 holders pass alone ranks
+ *           as a k-of-k multisig), 2 contract, 1 EOA, 0 unknown;
  *   credit  the delay credit of the timelock stages in front of that holder (0 for anything
  *           that is not a timelock — "every non-timelock rank compares as if its delay credit
  *           were 0"); stages in series add up (Aragon vote + Dual Governance after-submit);
  *   tail    one −1 per deferral hop (a contract that defers to an owner is strictly weaker
  *           than that owner: its own code may hold other paths).
+ * `gap` (UQ-18, 2026-10-08): a READ GAP somewhere in the tree (an unread proposer set, module
+ * list, vote time, holder concentration, bypasser or DSAuth authority). The rank is then capped
+ * at a plain contract [2] and no delay credit is added on top of it anywhere above: a delay
+ * never lifts a fail-closed rank.
  */
-type RankParts = { base: number[]; credit: number; tail: number[] }
+type RankParts = { base: number[]; credit: number; tail: number[]; gap?: boolean }
 const RANK_BASE_WIDTH = 3
+/** A plain contract: the cap a read gap puts on the whole rank (UQ-18). */
+const GAP_CAP: RankParts = { base: [2], credit: 0, tail: [], gap: true }
+/** Below a plain contract a gap changes nothing; above it, the rank drops to [2], no credit. */
+const capGap = (p: RankParts): RankParts =>
+  compareParts(p, GAP_CAP) <= 0 ? { ...p, gap: true } : GAP_CAP
+/** The weakest of several ranks; a gap in ANY of them caps the result (UQ-18). */
+const weakestOf = (ps: RankParts[]): RankParts => {
+  const m = ps.reduce((a, r) => (compareParts(r, a) < 0 ? r : a))
+  return ps.some((r) => r.gap) ? capGap(m) : m
+}
+/** `p` plus a delay credit — none when the tree under it has a read gap (UQ-18). */
+const withCredit = (p: RankParts, credit: number): RankParts =>
+  p.gap ? p : { ...p, credit: p.credit + credit }
+/** A reference back to the token vote being ranked (UQ-17): stronger than anything else. */
+const SELF_BASE = 7
 
 function rankParts(c: Controller | null | undefined): RankParts {
   const leaf = (base: number[]): RankParts => ({ base, credit: 0, tail: [] })
   if (!c) return leaf([0])
+  // a holder whose control leads back to the vote being ranked (UQ-17): it adds no voter
+  if (c.selfRef) return leaf([SELF_BASE])
+  // a holder the engine could not classify at head, or a token holder whose classification
+  // failed (review round 10, O-1): a read gap (plain contract, no credit)
+  if (c.kind === 'contract' && NOT_CLASSIFIED.has(c.version ?? '')) return GAP_CAP
   switch (c.kind) {
     case 'immutable':
     case 'zero':
     case 'precompile':
       return leaf([6])
-    case 'aragon_voting':
-      // A token-holder vote: no key holder to rank, the electorate is the controller. Its vote
-      // time is a delay stage (credit from 24 h). Review round 9: a vote time that is 0 or was
-      // not read leaves no vote to rank — a plain contract (fail closed), as before ruling #12
-      // (a 0 s / unread Voting had come to outrank every Safe: Safe 6/11 → it read UPGRADE).
-      if (!((c.delaySec ?? 0) > 0) || c.voting?.voteTimeSec === null) return leaf([2])
-      return { base: [5], credit: delayCredit(c.delaySec), tail: [] }
+    case 'aragon_voting': {
+      // Review round 9: a vote time that is 0 leaves no vote to rank — a plain contract; one
+      // that was not read is a read gap (fail closed).
+      if (c.voting?.voteTimeSec === null) return GAP_CAP
+      if (!((c.delaySec ?? 0) > 0)) return leaf([2])
+      // Owner ruling 2026-10-08 (UQ-17): ranked by HOLDER CONCENTRATION, then the vote time as
+      // a delay stage (credit from 24 h, as any timelock — ruling #12).
+      const d = tokenVoteDecision(c)
+      return withCredit(tokenVoteParts(d), delayCredit(c.delaySec))
+    }
     case 'oz_timelock':
     case 'ds_pause':
     case 'aragon_dg': {
@@ -177,21 +213,22 @@ function rankParts(c: Controller | null | undefined): RankParts {
       // delay adds strength only at 24 h or more, and never rescues a weak proposer (the
       // scheduler's class is compared first). An unread scheduler set ranks as a plain
       // contract (fail closed) and is a read gap.
-      if (!c.schedulers || c.schedulersUnread) return leaf([2])
+      if (!c.schedulers || c.schedulersUnread) return GAP_CAP
+      const parts = c.schedulers.map((s) => scheduledParts(c, s))
+      // UQ-24: a DSPause's DSAuth authority lets the callers it permits plot: each ranks like a
+      // scheduler; callers that could not be enumerated are a read gap (fail closed)
+      if (c.kind === 'ds_pause' && c.dsAuthority) {
+        if (!c.dsAuthority.callers) parts.push(GAP_CAP)
+        else parts.push(...c.dsAuthority.callers.map((s) => scheduledParts(c, s)))
+      }
       // nobody can schedule (every proposer revoked): ranked as a plain contract, never stronger
       // — an empty set read from events could be a false-empty scan
-      if (!c.schedulers.length) return leaf([2])
-      const scheduled = c.schedulers
-        .map((s) => scheduledParts(c, s))
-        .reduce((m, r) => (compareParts(r, m) < 0 ? r : m))
+      if (!parts.length) return leaf([2])
       // An unrestricted bypass (bypasserExecuteBatch, or a whitelist that could not be read)
-      // executes with no delay, for holders this module does not classify: at most a plain
-      // contract with no credit.
-      if (c.bypass?.scope === 'any') {
-        const bypass = leaf([2])
-        return compareParts(bypass, scheduled) < 0 ? bypass : scheduled
-      }
-      return scheduled
+      // executes with no delay. UQ-24: ranked as its WEAKEST bypasser with NO credit from this
+      // timelock; a bypasser that could not be classified is a read gap (fail closed).
+      if (c.bypass?.scope === 'any') parts.push(bypassParts(c))
+      return weakestOf(parts)
     }
     case 'safe':
     case 'legacy_multisig':
@@ -199,23 +236,271 @@ function rankParts(c: Controller | null | undefined): RankParts {
       // 7: a 1-of-N Safe outranked a plain contract and an EOA, so a MANAGER grant to a 1-of-2
       // Safe read neutral and EOA → Safe 1-of-5 read as an upgrade).
       if (c.threshold !== undefined && c.threshold !== null && c.threshold <= 1) return leaf([1])
+      // Review round 8: a module list that could not be read is not "no modules": a read gap.
+      if (c.modulesUnread) return GAP_CAP
       // A Safe module executes without signatures: the Safe is no stronger than an
       // unclassified contract while one is enabled (critique: min over module controllers).
-      // Review round 8: a module list that could not be read is not "no modules" (fail closed).
-      if (c.modules?.length || c.modulesUnread) return leaf([2])
+      if (c.modules?.length) return leaf([2])
       return leaf([4, c.threshold ?? 0, -(c.signers ?? 0)])
     case 'contract': {
       // An Aragon Agent acts only for its executors (enumerated from the ACL at the block): it
       // is exactly as strong as the weakest one — no other code path of its own to discount.
-      if (c.executors?.length)
-        return c.executors.map(rankParts).reduce((m, r) => (compareParts(r, m) < 0 ? r : m))
+      if (c.executors?.length) return weakestOf(c.executors.map(rankParts))
+      // review round 10 (R-6): an owner the collector did not follow (hop limit) was not read —
+      // the contract is no stronger than whoever that owner is: a read gap (fail closed)
+      if (c.ownerNotFollowed) return GAP_CAP
       if (!c.ownedBy) return leaf([2])
       const r = rankParts(c.ownedBy)
+      if (r.gap) return capGap(r)
       return r.base[0] >= 3 ? { ...r, tail: [...r.tail, -1] } : r
     }
     case 'eoa':
     case 'eoa_7702':
       return leaf([1])
+  }
+}
+
+/**
+ * UQ-24: an unrestricted bypass ranks as its weakest bypasser, with no credit from the timelock
+ * it bypasses (the bypassers' own trees keep theirs). Unread (no classified bypasser for every
+ * listed holder, or a whitelist that could not be read) = a read gap: a plain contract.
+ */
+function bypassParts(c: Controller): RankParts {
+  const b = c.bypass!
+  if (b.unread || !b.holderCtls?.length || b.holderCtls.length < (b.holders?.length ?? 0))
+    return GAP_CAP
+  return weakestOf(b.holderCtls.map(rankParts))
+}
+
+// ---- token votes (owner ruling 2026-10-08, UQ-17) ------------------------------------------------
+
+/** Aragon's percentage base: 1e18 = 100%. */
+const PCT_BASE = 10n ** 18n
+/** More holders than this needed to pass a vote alone: a broadly held vote (base 5). */
+export const TOKEN_VOTE_MAX_SIGNERS = 10
+
+/**
+ * How many of the largest holders of a voting token can pass a vote ALONE:
+ *   unread  the holder data (supply, thresholds, the largest holders) was not read, or the
+ *           examined list is too short to decide — a read gap, ranked as a plain contract;
+ *   one     a single holder (k = 1): the vote ranks as the WEAKEST holder that passes one alone
+ *           (an EOA, or the holder's own controller rank when it is a contract);
+ *   few     2 ≤ k ≤ 10 holders: a k-of-k multisig of them (see `tokenVoteParts`);
+ *   broad   more than 10 needed (k reported when the examined list reaches it; null = more than
+ *           the examined list, or the holders alone can never pass one).
+ * A set of holders passes a vote alone when, voting yes with nobody else voting, it meets BOTH of
+ * the app's thresholds as Aragon Voting computes them (strictly greater than):
+ *   quorum   yes × 1e18 / supply > minAcceptQuorumPct
+ *   support  yes × 1e18 / (yes + no) > supportRequiredPct, with no = 0
+ * Every holder counts (exchanges and bridges included) EXCEPT
+ *   - a holder whose control leads only back to this same vote (`selfRef` in its tree — Lido's
+ *     Agent, executed by the vote through Dual Governance): it votes only after the vote itself
+ *     passed, so it adds no independent voter;
+ *   - address(0) and the precompile range (≤ 0x1ff; review round 10, O-3): a balance there cannot
+ *     vote (it ranked the vote as immutable when it decided k).
+ * A holder that could not be classified counts, and is a read gap where it decides the rank.
+ *
+ * Review round 10 (R-1): k is the size of the SMALLEST passing set of the largest holders, but
+ * the vote ranks as the WEAKEST set of k holders that passes — not only the top k. `holders` =
+ * every holder in SOME passing set of k (the top k, and each later holder h for which h plus the
+ * k − 1 largest others passes; balances fall, so they form a prefix). `settled`: the examined
+ * list proves no unseen holder is one of them (a later holder was examined and does not
+ * qualify, or the list holds every holder) — or, for k = 1, a holder that passes alone is
+ * already a key (EOA-like: nothing ranks lower). Not settled = a read gap (fail closed).
+ */
+export type TokenVoteDecision =
+  | { kind: 'unread'; reason: string }
+  | { kind: 'one'; k: 1; holders: VoteHolder[]; settled: boolean }
+  | { kind: 'few'; k: number; holders: VoteHolder[]; settled: boolean }
+  | { kind: 'broad'; k: number | null; examined: number }
+
+/** The holder acts only through the vote being ranked (UQ-17). */
+export const isVoteControlled = (h: VoteHolder): boolean =>
+  !!h.ctl && rankParts(h.ctl).base[0] >= SELF_BASE
+
+/** address(0) and the precompile range (≤ 0x1ff): a balance there cannot vote (review round 10, O-3). */
+export const cannotVote = (h: VoteHolder): boolean => {
+  try {
+    return BigInt(h.address) <= 0x1ffn
+  } catch {
+    return false
+  }
+}
+
+export function tokenVoteDecision(c: Controller): TokenVoteDecision {
+  const v = c.voting
+  if (v?.holdersUnread) return { kind: 'unread', reason: v.holdersUnread }
+  if (
+    !v?.holders ||
+    v.supply == null ||
+    v.minAcceptQuorumPct == null ||
+    v.supportRequiredPct == null
+  )
+    return { kind: 'unread', reason: 'holder concentration not read' }
+  let supply: bigint, quorum: bigint, support: bigint
+  try {
+    supply = BigInt(v.supply)
+    quorum = BigInt(v.minAcceptQuorumPct)
+    support = BigInt(v.supportRequiredPct)
+  } catch {
+    return { kind: 'unread', reason: 'holder concentration not read (malformed)' }
+  }
+  if (supply <= 0n) return { kind: 'unread', reason: 'token supply read as 0' }
+  // a 100 % support threshold is never met (strictly greater): no set of holders passes alone
+  if (support >= PCT_BASE) return { kind: 'broad', k: null, examined: v.holders.length }
+  const passes = (yes: bigint) =>
+    yes > 0n && (yes * PCT_BASE) / supply > quorum && (yes * PCT_BASE) / yes > support
+  const voters = v.holders.filter((h) => !cannotVote(h) && !isVoteControlled(h))
+  const bal: bigint[] = []
+  for (const h of voters) {
+    try {
+      bal.push(BigInt(h.balance))
+    } catch {
+      return { kind: 'unread', reason: `balance of ${h.address} malformed` }
+    }
+  }
+  let yes = 0n
+  let k = 0
+  for (const [i, b] of bal.entries()) {
+    yes += b
+    if (passes(yes)) {
+      k = i + 1
+      break
+    }
+  }
+  if (!k) {
+    // not passed by the examined holders: broadly held only when that is decided — the first 11
+    // independent holders were examined, or the list holds every holder (then nobody passes alone)
+    if (v.truncated && voters.length <= TOKEN_VOTE_MAX_SIGNERS)
+      return {
+        kind: 'unread',
+        reason: `only ${voters.length} independent holders examined: k not decided`,
+      }
+    return { kind: 'broad', k: null, examined: v.holders.length }
+  }
+  if (k > TOKEN_VOTE_MAX_SIGNERS) return { kind: 'broad', k, examined: v.holders.length }
+  // every holder in some passing set of k: the top k, then each later h with h + the k − 1
+  // largest others passing (a prefix — balances fall)
+  const rest = bal.slice(0, k - 1).reduce((x, y) => x + y, 0n)
+  const members = voters.slice(0, k)
+  let settled = !v.truncated
+  for (let j = k; j < voters.length; j++) {
+    if (!passes(rest + bal[j])) {
+      settled = true
+      break
+    }
+    members.push(voters[j])
+  }
+  if (k === 1) {
+    // a key that passes alone is the floor: no unseen holder can rank the vote lower
+    if (members.some((h) => !!h.ctl && isKeyParts(rankParts(h.ctl)))) settled = true
+    return { kind: 'one', k: 1, holders: members, settled }
+  }
+  return { kind: 'few', k, holders: members, settled }
+}
+
+/** An ordinary signer key: an EOA, or any holder whose rank is that of one key (no read gap). */
+const isKeyParts = (r: RankParts) => !r.gap && r.base[0] <= 1
+const NOT_CLASSIFIED = new Set(['not classified at head', 'holder not classified'])
+const UNCLASSIFIED_HOLDER = (a: string): Controller => ({
+  kind: 'contract',
+  address: a,
+  version: 'holder not classified',
+})
+
+/**
+ * One voter's rank (UQ-17): its controller rank; a holder not classified is a READ GAP (review
+ * round 10, O-1: it ranked as a plain contract with no gap, so the vote-time credit went on top
+ * and the card listed nothing); a holder ranking as immutable or above (an 'immutable' contract,
+ * a contract the vote itself owns) holds votes it can cast only through its own code — a plain
+ * contract.
+ */
+function voterParts(h: VoteHolder): RankParts {
+  if (!h.ctl) return GAP_CAP
+  const r = rankParts(h.ctl)
+  if (r.base[0] >= 6) return { base: [2], credit: 0, tail: [], ...(r.gap ? { gap: true } : {}) }
+  return r
+}
+
+/**
+ * The rank of a token vote's holder side (before its vote-time credit):
+ *   one    the WEAKEST holder that passes a vote alone (EOA [1]; a contract: its controller
+ *          rank — "follow it");
+ *   few    a k-of-k multisig [4, k, −k] — the WEAKEST-HOLDER rule over every passing set of k: a
+ *          holder that is neither a key (EOA-like, ranking [1]) nor at least a multisig (a plain
+ *          or unclassified contract, a Safe with a module, a tree with a read gap) caps the vote
+ *          at its own rank;
+ *   broad  [5] (a broadly held vote, above every multisig);
+ *   unread a read gap: a plain contract.
+ * Not settled (an unseen holder could belong to a passing set): a read gap.
+ */
+function tokenVoteParts(d: TokenVoteDecision): RankParts {
+  const leaf = (base: number[]): RankParts => ({ base, credit: 0, tail: [] })
+  switch (d.kind) {
+    case 'unread':
+      return GAP_CAP
+    case 'broad':
+      return leaf([5])
+    case 'one': {
+      const parts = d.holders.map(voterParts)
+      const keys = parts.filter(isKeyParts)
+      if (keys.length) return weakestOf(keys)
+      if (!d.settled) parts.push(GAP_CAP)
+      return weakestOf(parts)
+    }
+    case 'few': {
+      const parts = [leaf([4, d.k, -d.k])]
+      for (const h of d.holders) {
+        const r = voterParts(h)
+        if (isKeyParts(r)) continue
+        if (r.gap || r.base[0] < 4) parts.push(r)
+      }
+      if (!d.settled) parts.push(GAP_CAP)
+      return weakestOf(parts)
+    }
+  }
+}
+
+/** The weakest holder of a 'one' decision (the one the vote is ranked as), for descriptions. */
+function weakestVoter(hs: VoteHolder[]): VoteHolder {
+  return hs.reduce((m, h) => (compareParts(voterParts(h), voterParts(m)) < 0 ? h : m))
+}
+
+/**
+ * Review round 10: the vote's holder side needs reading (again) — not read, not settled, or a
+ * holder that decides its rank was not classified (a cached node from an older rule or a failed
+ * classification is read again rather than kept as a gap). For the collector.
+ */
+export function tokenVoteNeedsHolders(c: Controller): boolean {
+  if (!c.voting?.holders) return true
+  const d = tokenVoteDecision(c)
+  if (d.kind === 'unread') return true
+  if (d.kind === 'broad') return false
+  if (!d.settled) return true
+  const parts = d.holders.map(voterParts)
+  if (d.kind === 'one' && parts.some(isKeyParts)) return false
+  return d.holders.some((h) => !h.ctl)
+}
+
+/** One line on a token vote's holder concentration (UQ-17), for descriptions. */
+export function tokenVoteNote(c: Controller): string {
+  const d = tokenVoteDecision(c)
+  const sym = c.voting?.token ? ` of ${c.voting.token.slice(0, 6)}…` : ''
+  switch (d.kind) {
+    case 'unread':
+      return `holder concentration UNREAD (${d.reason}): ranked as a plain contract`
+    case 'one': {
+      const w = weakestVoter(d.holders)
+      const who = describeController(w.ctl ?? UNCLASSIFIED_HOLDER(w.address), { nested: true })
+      const unsettled = d.settled ? '' : '; later holders not examined: a read gap'
+      return d.holders.length > 1
+        ? `${d.holders.length} holders${sym} can each pass a vote alone; the weakest: ${who} — ranked as it${unsettled}`
+        : `ONE holder${sym} can pass a vote alone: ${who} — ranked as it${unsettled}`
+    }
+    case 'few':
+      return `${d.k} holders${sym} can pass a vote alone: ranked as a ${d.k}-of-${d.k} multisig of them${d.holders.length > d.k ? ` (the weakest of the ${d.holders.length} holders in a passing set of ${d.k})` : ''}${d.settled ? '' : '; later holders not examined: a read gap'}`
+    case 'broad':
+      return `broadly held: ${d.k !== null ? `k = ${d.k} of the largest holders${sym} needed` : `more than ${d.examined} holders${sym} needed`} to pass a vote alone`
   }
 }
 
@@ -233,11 +518,11 @@ const setsDelay = (c: Controller, s: Controller): boolean =>
 /**
  * One scheduler's rank through the timelock: its own rank plus the timelock's delay credit —
  * none for a scheduler that can change the delay at once (review round 9: an RBACTimelock
- * ADMIN_ROLE holder can call updateDelay(0), then grant itself PROPOSER and execute).
+ * ADMIN_ROLE holder can call updateDelay(0), then grant itself PROPOSER and execute), and none
+ * over a read gap in the scheduler's own tree (UQ-18: a delay never lifts a fail-closed rank).
  */
 function scheduledParts(c: Controller, s: Controller): RankParts {
-  const r = rankParts(s)
-  return { ...r, credit: r.credit + (setsDelay(c, s) ? 0 : ownDelayCredit(c)) }
+  return withCredit(rankParts(s), setsDelay(c, s) ? 0 : ownDelayCredit(c))
 }
 
 const flatRank = (p: RankParts): number[] => {
@@ -298,6 +583,7 @@ export function describeController(
   opts?: { nested?: boolean } | number,
 ): string {
   if (!c) return 'unknown'
+  if (c.selfRef) return `the same vote ${c.address.slice(0, 6)}…${c.address.slice(-4)}`
   const nested = typeof opts === 'object' && !!opts?.nested
   const note = () => (nested ? '' : schedulerNote(c))
   const sub = (x: Controller | null | undefined) => describeController(x, { nested })
@@ -307,10 +593,24 @@ export function describeController(
       return `Safe ${c.threshold}-of-${c.signers} ${a}`
     case 'legacy_multisig':
       return `MultiSig ${c.threshold}-of-${c.signers} ${a}`
-    case 'oz_timelock':
-      return `Timelock ${formatDelay(c.delaySec ?? 0)}${c.bypass ? ` (bypass: ${c.bypass.fn}${c.bypass.unread ? ', whitelist UNREAD' : ''})` : ''} ${a}${note()}`
+    case 'oz_timelock': {
+      // UQ-24: an unrestricted bypass names its weakest bypasser (or that it was not read)
+      const b = c.bypass
+      const by =
+        b?.scope === 'any' && !b.unread
+          ? (() => {
+              const r = bypassParts(c)
+              if (r.gap) return ', bypassers UNREAD: ranked as a plain contract'
+              const w = b.holderCtls!.reduce((m, h) =>
+                compareParts(rankParts(h), rankParts(m)) < 0 ? h : m,
+              )
+              return `, held by ${describeController(w, { nested: true })}${b.holderCtls!.length > 1 ? ` (the weakest of ${b.holderCtls!.length})` : ''}`
+            })()
+          : ''
+      return `Timelock ${formatDelay(c.delaySec ?? 0)}${b ? ` (bypass: ${b.fn}${b.unread ? ', whitelist UNREAD' : ''}${by})` : ''} ${a}${note()}`
+    }
     case 'ds_pause':
-      return `DSPause ${formatDelay(c.delaySec ?? 0)} ${a}${note()}`
+      return `DSPause ${formatDelay(c.delaySec ?? 0)} ${a}${c.dsAuthority && !c.dsAuthority.callers ? ` [authority ${c.dsAuthority.address.slice(0, 6)}…: callers UNREAD, ranked as a plain contract]` : ''}${note()}`
     case 'aragon_dg': {
       const d = c.dg
       const parts = [
@@ -325,7 +625,10 @@ export function describeController(
       // review round 9: a 0 s or unread vote time ranks as a plain contract — say so
       if (c.voting?.voteTimeSec === null)
         return `Aragon Voting ${a} [vote time UNREAD: ranked as a plain contract]`
-      return `Aragon Voting ${formatDelay(c.delaySec ?? 0)} vote ${a}${(c.delaySec ?? 0) > 0 ? '' : ' [no vote time: ranked as a plain contract]'}`
+      if (!((c.delaySec ?? 0) > 0))
+        return `Aragon Voting ${formatDelay(c.delaySec ?? 0)} vote ${a} [no vote time: ranked as a plain contract]`
+      // UQ-17: ranked by holder concentration — say how
+      return `Aragon Voting ${formatDelay(c.delaySec ?? 0)} vote ${a} [${tokenVoteNote(c)}]`
     case 'eoa':
       return `EOA ${a}`
     case 'eoa_7702':
@@ -339,6 +642,9 @@ export function describeController(
       const name = c.version?.startsWith('Aragon Agent') ? 'Aragon Agent' : 'contract'
       if ((c.executors?.length ?? 0) > 1)
         return `${name} ${a} → ${c.executors!.map(sub).join(' | ')} (ranked as the weakest)`
+      if (c.ownerNotFollowed)
+        return `${name} ${a} → owner ${c.ownerNotFollowed.slice(0, 6)}…${c.ownerNotFollowed.slice(-4)} not followed (read gap: ranked as a plain contract)`
+      if (c.version === 'holder not classified') return `holder ${a} (not classified: read gap)`
       return c.ownedBy ? `${name} ${a} → ${sub(c.ownedBy)}` : `${name} ${a}`
     }
     default:
@@ -348,7 +654,8 @@ export function describeController(
 
 /**
  * Every controller in `c`'s tree: itself, its deferral chain (ownedBy), an Aragon Agent's
- * executors and a timelock's schedulers — what its rank is computed from.
+ * executors, a timelock's schedulers and bypassers, and a DSPause authority's callers — what its
+ * rank is computed from.
  */
 export function controllerTree(c: Controller | null | undefined): Controller[] {
   const out: Controller[] = []
@@ -358,6 +665,11 @@ export function controllerTree(c: Controller | null | undefined): Controller[] {
     walk(x.ownedBy, depth + 1)
     for (const e of x.executors ?? []) walk(e, depth + 1)
     for (const s of x.schedulers ?? []) walk(s, depth + 1)
+    // UQ-24: bypassers and a DSPause authority's permitted callers act on it too
+    for (const b of x.bypass?.holderCtls ?? []) walk(b, depth + 1)
+    for (const b of x.dsAuthority?.callers ?? []) walk(b, depth + 1)
+    // a token vote's holders are NOT walked: they rank the vote (UQ-17) but hold no power of
+    // their own on the card (a holder's own Safe module is not this card's AD-6)
   }
   walk(c, 0)
   return out
@@ -366,6 +678,55 @@ export function controllerTree(c: Controller | null | undefined): Controller[] {
 /** A timelock whose scheduler set was not read (ranked as a plain contract: a read gap). */
 export const schedulersUnreadOf = (c: Controller): boolean =>
   TIMELOCK_KINDS.includes(c.kind) && (!c.schedulers || !!c.schedulersUnread)
+
+/**
+ * UQ-18 / UQ-21: the controller's rank rests on a READ GAP somewhere in its tree (an unread
+ * proposer set, module list, vote time, holder concentration, bypasser or DSAuth authority, or a
+ * holder not classified): its rank is the fail-closed plain-contract cap, never a read result.
+ */
+export const rankHasReadGap = (c: Controller | null | undefined): boolean =>
+  !!c && !!rankParts(c).gap
+
+/**
+ * The read gaps in one controller's own node (not its tree), as card lines (UQ-17 / UQ-24): a
+ * token vote whose holder concentration was not read, an unrestricted bypass whose bypassers
+ * were not classified, a DSPause authority whose callers were not enumerated.
+ */
+export function nodeReadGaps(c: Controller): string[] {
+  const a = `${c.address.slice(0, 6)}…${c.address.slice(-4)}`
+  const out: string[] = []
+  if (c.kind === 'aragon_voting' && !c.selfRef && (c.delaySec ?? 0) > 0) {
+    const d = tokenVoteDecision(c)
+    if (d.kind === 'unread')
+      out.push(
+        `Aragon Voting ${a}: holder concentration not read (${d.reason}; ranked as a plain contract)`,
+      )
+    // review round 10 (O-1 / R-1): a holder that decides the rank was not classified, or the
+    // holders that can pass a vote were not all examined
+    if ((d.kind === 'one' || d.kind === 'few') && tokenVoteParts(d).gap) {
+      const un = d.holders.filter((h) => !h.ctl)
+      if (un.length)
+        out.push(
+          `Aragon Voting ${a}: holder ${un.map((h) => `${h.address.slice(0, 6)}…${h.address.slice(-4)}`).join(', ')} not classified (ranked as a plain contract)`,
+        )
+      if (!d.settled)
+        out.push(
+          `Aragon Voting ${a}: the holders that can pass a vote were not all examined (ranked as a plain contract)`,
+        )
+    }
+  }
+  if (c.kind === 'contract' && c.ownerNotFollowed)
+    out.push(
+      `contract ${a}: owner ${c.ownerNotFollowed.slice(0, 6)}…${c.ownerNotFollowed.slice(-4)} not followed (owner hop limit; ranked as a plain contract)`,
+    )
+  if (c.bypass?.scope === 'any' && !c.bypass.unread && bypassParts(c).gap)
+    out.push(`timelock ${a}: ${c.bypass.fn} bypassers not classified (ranked as a plain contract)`)
+  if (c.kind === 'ds_pause' && c.dsAuthority && !c.dsAuthority.callers)
+    out.push(
+      `DSPause ${a}: the callers its authority ${c.dsAuthority.address.slice(0, 6)}… permits were not read (ranked as a plain contract)`,
+    )
+  return out
+}
 
 /** The weakest controller that can schedule into a timelock (ruling #12); null = none read. */
 export function weakestScheduler(c: Controller | null | undefined): Controller | null {
@@ -385,7 +746,11 @@ function schedulerNote(c: Controller): string {
   const w = weakestScheduler(c)!
   const more = c.schedulers.length - 1
   const cuts = setsDelay(c, w) ? ', which can change the delay at once' : ''
-  return ` [proposed by ${describeController(w, { nested: true })}${cuts}${more ? ` (the weakest of ${c.schedulers.length})` : ''}]`
+  // UQ-18: a read gap under the weakest proposer — the delay adds nothing to its fail-closed rank
+  const gap = rankParts(w).gap
+    ? '; a read gap below it: ranked as a plain contract, no delay credit'
+    : ''
+  return ` [proposed by ${describeController(w, { nested: true })}${cuts}${more ? ` (the weakest of ${c.schedulers.length})` : ''}${gap}]`
 }
 
 export function formatDelay(sec: number): string {
@@ -426,11 +791,23 @@ export function classifyControllerChange(
     v.notes.push(
       `previous holder not read → ${describeController(next)} (not judged as an upgrade)`,
     )
-    return v
+    // review round 10 (R-3): a new holder resting on a read gap carries an earlier red forward
+    return rankHasReadGap(next) ? tag(v, 'read_gap') : v
   }
   const c = compareRank(controllerRank(next), controllerRank(prev))
   if (isEoa(prev) && isEoa(next)) return tag(v, 'rotation')
   if (c < 0) return down(v, 'AD-3', `${describeController(prev)} → ${describeController(next)}`)
+  // Review round 10 (O-2 / R-3, owner: a failed read never ends a red): a new holder whose rank
+  // rests on a READ GAP (an unread proposer set, module list, holder concentration…) ranks as a
+  // plain contract only because it was not read. That is no upgrade — an EOA → an unread
+  // timelock read UPGRADE and ended the red before it. Neutral, noted, and tagged so the red
+  // before it stays in effect.
+  if (c > 0 && rankHasReadGap(next)) {
+    v.notes.push(
+      `${describeController(prev)} → ${describeController(next)}: not judged as an upgrade — the new holder's rank rests on a read gap`,
+    )
+    return tag(v, 'read_gap')
+  }
   if (c > 0) return up(v, `${describeController(prev)} → ${describeController(next)}`)
   if (prev && next && prev.address !== next.address) tag(v, 'rotation')
   return v
@@ -868,6 +1245,11 @@ export function classifyRoleAdminChange(
   }
   const c = compareRank(weakest(nextAdmin.holders), weakest(prevAdmin.holders))
   if (c < 0) return down(v, 'AD-3', msg)
+  // review round 10 (R-3): a new admin side resting on a read gap is never an upgrade
+  if (c > 0 && nextAdmin.holders.some(rankHasReadGap)) {
+    v.notes.push(`${msg}: not judged as an upgrade — a new admin holder's rank rests on a read gap`)
+    return tag(v, 'read_gap')
+  }
   if (c > 0) return up(v, msg)
   v.notes.push(msg)
   return v

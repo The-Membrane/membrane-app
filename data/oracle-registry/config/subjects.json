@@ -497,6 +497,24 @@
           "label": "RoleRegistry owner (grants every ether.fi role)"
         },
         {
+          "power": "oracle",
+          "contract": "0x57aaf0004c716388b21795431cd7d5f9d3bb6a41",
+          "path": [
+            "call:roleRegistry()",
+            "role:0xe6bda0fc5c63b525e475d178ed9c7fa9913b3429ade866197b11eb0f2c18c673"
+          ],
+          "label": "EtherFiOracle committee members (RoleRegistry role 0xe6bd…c673, checked by the oracle)"
+        },
+        {
+          "power": "oracle",
+          "contract": "0x57aaf0004c716388b21795431cd7d5f9d3bb6a41",
+          "path": [
+            "call:roleRegistry()",
+            "owner"
+          ],
+          "label": "EtherFiOracle committee: RoleRegistry owner (can grant the committee role)"
+        },
+        {
           "power": "upgrade",
           "contract": "0xcd2eb13d6831d4602d80e5db9230a57596cdca63",
           "path": [
@@ -1497,6 +1515,14 @@
           "deployBlock": 13676424
         },
         {
+          "role": "safe",
+          "dimension": "admin",
+          "chainId": 1,
+          "address": "0xb8f5524d73f549cf14a0587a3c7810723f9c0051",
+          "label": "Safe (Linea L1 bridge timelock proposer; has a module)",
+          "deployBlock": 22587649
+        },
+        {
           "role": "config",
           "dimension": "oracle",
           "chainId": 1,
@@ -2144,7 +2170,8 @@
         "0x8b7854488fde088d686ea672b6ba1a5242515f45",
         "0xc7792b3f2b399bb0edf53fecdceceb97fbeb18af",
         "0xffe21561251c49adccfad065c94fb4931df49081",
-        "0x73b047fe6337183a454c5217241d780a932777bd"
+        "0x73b047fe6337183a454c5217241d780a932777bd",
+        "0xb8f5524d73f549cf14a0587a3c7810723f9c0051"
       ],
       "govChannels": [
         {

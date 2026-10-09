@@ -13,7 +13,16 @@ import {
   toHex,
 } from 'viem'
 import { FN, SAFE_SLOTS, SLOT, fnAbi, roleHash, roleName, word2addr } from './abi.mjs'
-import { codeAt, getLogsAdaptive, isRevertError, pool, retry, tryRead } from './rpc.mjs'
+import {
+  codeAt,
+  crossCheckedLogs,
+  getLogsAdaptive,
+  isRevertError,
+  pool,
+  retry,
+  sleep,
+  tryRead,
+} from './rpc.mjs'
 
 const ZERO = '0x0000000000000000000000000000000000000000'
 const isZero = (a) => !a || /^0x0*$/i.test(a)
@@ -165,6 +174,16 @@ async function whitelistLogs(client, a) {
 
 const TOPIC_ROLE_GRANTED = keccak256(toHex('RoleGranted(bytes32,address,address)'))
 const roleLogs = new Map() // timelock → Promise<{ role, account, block }[] | null>
+// UQ-23 (2026-10-08): the proposer-log reads go to two independent KEYED log endpoints, in
+// smaller chunks, and every empty chunk is cross-checked on the second one (`crossCheckedLogs`).
+// A chunk that fails without a confirming empty answer makes the whole set UNREAD (the timelock
+// then ranks as a plain contract and is a read gap). Unset (tests, old callers): `client` alone.
+let logClients = null
+export function setLogClients(primary, secondary) {
+  logClients = primary ? { primary, secondary: secondary ?? null } : null
+  roleLogs.clear()
+}
+export const ROLE_LOG_CHUNK = 500_000
 /** RoleGranted(role, account) logs of a timelock from its deployment (null when unread). */
 async function roleGrantLogs(client, a) {
   if (!roleLogs.has(a))
@@ -175,13 +194,16 @@ async function roleGrantLogs(client, a) {
           const from = await firstCodeBlock(client, a)
           const head = Number(await retry(() => client.getBlockNumber()))
           const out = []
-          for (let b = from; b <= head; b += 1_000_000) {
-            const logs = await getLogsAdaptive(client, {
+          for (let b = from; b <= head; b += ROLE_LOG_CHUNK) {
+            const q = {
               address: a,
               topics0: [TOPIC_ROLE_GRANTED],
               fromBlock: b,
-              toBlock: Math.min(head, b + 999_999),
-            })
+              toBlock: Math.min(head, b + ROLE_LOG_CHUNK - 1),
+            }
+            const logs = logClients
+              ? (await crossCheckedLogs(logClients.primary, logClients.secondary, q)).logs
+              : await getLogsAdaptive(client, q)
             for (const l of logs)
               out.push({
                 role: String(l.topics[1]).toLowerCase(),
@@ -228,6 +250,68 @@ const MAX_SCHEDULER_DEPTH = 4
  * timelock's delay credit twice.
  */
 const MAX_OWNER_HOPS = 2
+
+/**
+ * Multicall3 (0xcA11…CA11) was deployed on Ethereum at this block. Review round 10 (R-7): before
+ * it, a batched read returns every entry as failed, so a Safe classified at an older block
+ * silently became a plain contract. Such a read is made one eth_call per view instead.
+ */
+export const MULTICALL3_BLOCK = 14_353_601
+
+/** "The function is not there" (reverts, or returns no / short data) — not a transport failure. */
+const isAbsentResult = (e) => {
+  if (isRevertError(e)) return true
+  for (let x = e, i = 0; x && i < 12; x = x.cause, i++)
+    if (
+      /ContractFunctionZeroDataError|AbiDecodingZeroDataError|AbiDecodingDataSizeTooSmallError|PositionOutOfBoundsError|InvalidBytesBooleanError/.test(
+        String(x.name ?? ''),
+      )
+    )
+      return true
+  return false
+}
+
+/**
+ * The MC views of `a` at `block` as multicall results ({ status, result }). Before Multicall3
+ * (R-7) every view is read with its own eth_call: an absent function is a failure, a transport
+ * error that persists THROWS (the classification fails — fail closed — rather than reading as
+ * "no such view").
+ */
+async function readViews(client, a, block) {
+  const pre = block !== undefined && block < MULTICALL3_BLOCK
+  let res = null
+  try {
+    res = await retry(() =>
+      client.multicall({
+        contracts: MC.map(([fn, sig]) => ({ address: a, abi: fnAbi(sig), functionName: fn })),
+        allowFailure: true,
+        blockNumber: block === undefined ? undefined : BigInt(block),
+      }),
+    )
+  } catch (e) {
+    if (!pre) throw e
+  }
+  if (res && (!pre || res.some((x) => x.status === 'success'))) return res
+  return Promise.all(
+    MC.map(async ([fn, sig]) => {
+      for (let i = 0; ; i++) {
+        try {
+          const result = await client.readContract({
+            address: a,
+            abi: fnAbi(sig),
+            functionName: fn,
+            blockNumber: BigInt(block),
+          })
+          return { status: 'success', result }
+        } catch (e) {
+          if (isAbsentResult(e)) return { status: 'failure' }
+          if (i >= 2) throw e
+          await sleep(300 * 2 ** i)
+        }
+      }
+    }),
+  )
+}
 const UPDATE_DELAY_0 = encodeFunctionData({
   abi: parseAbi(['function updateDelay(uint256)']),
   functionName: 'updateDelay',
@@ -372,7 +456,7 @@ export async function timelockSchedulers(client, a, block, depth = 0, seen = new
  *   executeWhitelisted (Ethena)         — the (target, selector) pairs whitelisted right now.
  * A bypass that cannot be enumerated is reported as unrestricted (fail closed).
  */
-export async function timelockBypass(client, a, code, block) {
+export async function timelockBypass(client, a, code, block, depth = 0, seen = new Set()) {
   if (dispatches(code, BYPASS_ANY)) {
     const r = await tryRead(
       client,
@@ -404,7 +488,20 @@ export async function timelockBypass(client, a, code, block) {
       )
       if (m.ok) holders.push(m.value.toLowerCase())
     }
-    return { fn: 'bypasserExecuteBatch', scope: 'any', holders }
+    // UQ-24: the bypassers, classified at the block — the bypass ranks as the weakest of them.
+    // An unread member count, a member that could not be read, or one that could not be
+    // classified leaves `holderCtls` short of the count: a read gap (plain contract).
+    const holderCtls = []
+    if (n.ok && holders.length === Math.min(Number(n.value), 10) && Number(n.value) <= 10)
+      for (const h of holders) {
+        if (seen.has(h)) continue
+        try {
+          holderCtls.push(await classify(client, h, block, depth + 1, new Set([...seen, a]), 0))
+        } catch {
+          /* not classified: holderCtls stays short — a read gap */
+        }
+      }
+    return { fn: 'bypasserExecuteBatch', scope: 'any', holders, holderCtls }
   }
   if (BYPASS_WHITELIST.some((x) => dispatches(code, x))) {
     const logs = await whitelistLogs(client, a)
@@ -448,18 +545,15 @@ export async function timelockBypass(client, a, code, block) {
  */
 export async function classify(client, address, block, depth = 0, seen = new Set(), ownerHops = 0) {
   const a = address.toLowerCase()
+  // UQ-17: the token vote whose holders are being ranked — a holder whose control leads back to
+  // it is MARKED, not followed (it acts only after that vote passed: no independent voter)
+  if (seen.has(VOTE_SELF + a)) return { kind: 'aragon_voting', address: a, selfRef: true }
   if (isZero(a)) return { kind: 'zero', address: a }
   if (BigInt(a) <= 0x1ffn) return { kind: 'precompile', address: a }
   const code = await codeAt(client, a, block)
   if (!code) return { kind: 'eoa', address: a }
   if (code.startsWith('0xef0100')) return { kind: 'eoa_7702', address: a }
-  const res = await retry(() =>
-    client.multicall({
-      contracts: MC.map(([fn, sig]) => ({ address: a, abi: fnAbi(sig), functionName: fn })),
-      allowFailure: true,
-      blockNumber: block === undefined ? undefined : BigInt(block),
-    }),
-  )
+  const res = await readViews(client, a, block)
   const r = Object.fromEntries(
     MC.map(([fn], i) => [fn, res[i].status === 'success' ? res[i].result : undefined]),
   )
@@ -522,7 +616,7 @@ export async function classify(client, address, block, depth = 0, seen = new Set
   if (agent) return agent
   if (r.getMinDelay !== undefined && isTimelockCode(code)) {
     const c = { kind: 'oz_timelock', address: a, delaySec: Number(r.getMinDelay) }
-    const bypass = await timelockBypass(client, a, code, block)
+    const bypass = await timelockBypass(client, a, code, block, depth, seen)
     if (bypass) c.bypass = bypass
     // ruling #12: the timelock ranks as its weakest scheduler (read gap when unread)
     const sch = await timelockSchedulers(client, a, block, depth, seen)
@@ -547,34 +641,35 @@ export async function classify(client, address, block, depth = 0, seen = new Set
     }
   }
   if (r.delay !== undefined && r.authority !== undefined) {
-    // ruling #12: DSAuth lets the owner and the authority plot — the pause ranks as the weaker
+    // ruling #12: DSAuth lets the owner plot — the pause ranks as its owner. UQ-24: it also lets
+    // whoever the AUTHORITY permits (`canCall`) plot; those callers are not enumerable from a
+    // generic DSAuthority, so a non-zero authority is a read gap (ranked as a plain contract).
     const c = { kind: 'ds_pause', address: a, delaySec: Number(r.delay), schedulers: [] }
-    for (const h of [r.owner, r.authority])
-      if (h && !isZero(h) && String(h).toLowerCase() !== a && !seen.has(String(h).toLowerCase()))
-        c.schedulers.push(
-          await classify(
-            client,
-            String(h).toLowerCase(),
-            block,
-            depth + 1,
-            new Set([...seen, a]),
-            0,
-          ),
-        )
+    const owner = r.owner ? String(r.owner).toLowerCase() : null
+    if (owner && !isZero(owner) && owner !== a && !seen.has(owner))
+      c.schedulers.push(await classify(client, owner, block, depth + 1, new Set([...seen, a]), 0))
+    const auth = String(r.authority).toLowerCase()
+    if (!isZero(auth) && auth !== a) c.dsAuthority = { address: auth }
     if (r.owner === undefined) c.schedulersUnread = true
     return c
   }
   const c = { kind: 'contract', address: a, ...(multisigLike ?? {}) }
   const owner = r.owner ? String(r.owner).toLowerCase() : null
-  if (owner && ownerHops < MAX_OWNER_HOPS && !isZero(owner) && owner !== a && !seen.has(owner))
-    c.ownedBy = await classify(
-      client,
-      owner,
-      block,
-      depth + 1,
-      new Set([...seen, a]),
-      ownerHops + 1,
-    )
+  if (owner && !isZero(owner) && owner !== a && !seen.has(owner)) {
+    if (ownerHops < MAX_OWNER_HOPS)
+      c.ownedBy = await classify(
+        client,
+        owner,
+        block,
+        depth + 1,
+        new Set([...seen, a]),
+        ownerHops + 1,
+      )
+    // review round 10 (R-6): past the hop limit the owner is recorded, not followed — the rules
+    // rank the contract as a plain contract AND a read gap (it ranked [2] silently, even when
+    // the chain ended at an EOA)
+    else c.ownerNotFollowed = owner
+  }
   return c
 }
 
@@ -1106,6 +1201,13 @@ export async function classifyDgTimelock(client, a, block, depth = 0, seen = new
     const votes = []
     for (const p of ps ?? []) {
       const acct = String(p.account).toLowerCase()
+      // UQ-17: the vote being ranked by its holders, met again as a proposer (the Agent's DG
+      // path): a reference back, not a fresh classification
+      if (seen.has(VOTE_SELF + acct)) {
+        proposers.push(acct)
+        schedulers.push({ kind: 'aragon_voting', address: acct, selfRef: true })
+        continue
+      }
       const v = await aragonVotingOf(client, acct, await codeAt(client, acct, block), block)
       proposers.push(acct)
       votes.push(v ? v.delaySec : 0)
@@ -1240,9 +1342,153 @@ export async function aragonVotingOf(client, a, code, block) {
     voting: {
       voteTimeSec: vt.ok ? Number(vt.value) : null,
       objectionPhaseSec: op.ok ? Number(op.value) : null,
+      // UQ-17: the token and thresholds at the block (holders: `enrichTokenVotes`)
+      ...(await votingParams(client, a, block)),
     },
   }
 }
+
+/** Marker in a classification's `seen` set: the vote whose holders are being classified. */
+export const VOTE_SELF = 'vote-self:'
+
+/**
+ * UQ-17: an Aragon Voting app's token and thresholds at `block` (1e18 = 100%, decimal strings).
+ * A threshold that cannot be read is null (the holder concentration is then unread: fail closed).
+ */
+export async function votingParams(client, a, block) {
+  // one eth_call each: a revert (no such view) answers at once
+  const rd = (sig) => readOnce(client, a, sig, sig.match(/function (\w+)/)[1], [], block)
+  const tok = await rd('function token() view returns (address)')
+  const sup = await rd('function supportRequiredPct() view returns (uint64)')
+  const quo = await rd('function minAcceptQuorumPct() view returns (uint64)')
+  return {
+    ...(tok.ok && !isZero(tok.value) ? { token: String(tok.value).toLowerCase() } : {}),
+    supportRequiredPct: sup.ok ? String(sup.value) : null,
+    minAcceptQuorumPct: quo.ok ? String(quo.value) : null,
+  }
+}
+
+/** Every Aragon Voting node (not a back-reference) in a controller tree. */
+export function votingNodes(c, out = [], seen = new Set()) {
+  if (!c || typeof c !== 'object' || seen.has(c)) return out
+  seen.add(c)
+  if (c.kind === 'aragon_voting' && !c.selfRef) out.push(c)
+  for (const x of [
+    c.ownedBy,
+    ...(c.executors ?? []),
+    ...(c.schedulers ?? []),
+    ...(c.bypass?.holderCtls ?? []),
+    ...(c.dsAuthority?.callers ?? []),
+  ])
+    votingNodes(x, out, seen)
+  return out
+}
+
+/**
+ * UQ-17 (owner ruling 2026-10-08): give every Aragon Voting node in `controllers` (keyed
+ * `${address}@${block}` or `${address}@head`) its HOLDER CONCENTRATION at that block: the
+ * voting token's supply and largest holders (`snapshotsFor(token, blocks)` → Map(block → snap)),
+ * each holder classified at the block with the vote marked (a holder whose control leads back to
+ * the vote is a back-reference: no independent voter). Holders are examined largest first until
+ * `decide` (rules.ts `tokenVoteDecision`) settles the decision — review round 10 (R-1): past
+ * the top k, until a holder is examined that is in no passing set of k (the vote ranks as the
+ * WEAKEST such set), or, for k = 1, a key passes alone; at head (`exactK`) a broad vote until k
+ * itself is found, so it can be reported. A failure is recorded as `holdersUnread` (a read gap,
+ * fail closed); a holder whose classification fails is kept without `ctl` (a read gap where it
+ * decides the rank). A node that already carries holders (a cached past-block classification)
+ * is left as it is unless `needsHolders(node)` (rules.ts `tokenVoteNeedsHolders`): not settled
+ * under the current rule, or a holder that decides the rank not classified — read again.
+ */
+export async function enrichTokenVotes(
+  client,
+  controllers,
+  { head, snapshotsFor, decide, needsHolders = null, log = () => {} },
+) {
+  const jobs = []
+  for (const [k, c] of Object.entries(controllers)) {
+    const at = k.endsWith('@head') ? head : Number(k.split('@')[1])
+    if (!Number.isFinite(at)) continue
+    for (const v of votingNodes(c))
+      // a cached node keeps its holders only while they still decide k under the current rules
+      // (a rule change that needs more holders re-reads them instead of reading as a gap)
+      if (
+        (v.delaySec ?? 0) > 0 &&
+        (!v.voting?.holders ||
+          decide(v).kind === 'unread' ||
+          (needsHolders ? needsHolders(v) : unsettled(decide(v))))
+      ) {
+        if (v.voting) for (const f of ['holders', 'truncated', 'holdersUnread']) delete v.voting[f]
+        jobs.push({ v, at, head: k.endsWith('@head') })
+      }
+  }
+  if (!jobs.length) return 0
+  // token + thresholds (a cached classification predates them: read at the block)
+  for (const j of jobs) {
+    if (!j.v.voting) j.v.voting = { voteTimeSec: j.v.delaySec ?? null, objectionPhaseSec: null }
+    if (!j.v.voting.token || j.v.voting.minAcceptQuorumPct == null)
+      Object.assign(j.v.voting, await votingParams(client, j.v.address, j.at))
+  }
+  const byToken = new Map()
+  for (const j of jobs) {
+    if (!j.v.voting.token) {
+      j.v.voting.holdersUnread = 'voting token not read'
+      continue
+    }
+    const t = j.v.voting.token
+    byToken.set(t, [...(byToken.get(t) ?? []), j])
+  }
+  for (const [token, js] of byToken) {
+    let snaps
+    try {
+      snaps = await snapshotsFor(
+        token,
+        js.map((j) => j.at),
+      )
+    } catch (e) {
+      for (const j of js)
+        j.v.voting.holdersUnread = `holder snapshots failed (${String(e?.message ?? e).slice(0, 80)})`
+      continue
+    }
+    // one classification per (holder, block, vote)
+    const memo = new Map()
+    for (const j of js) {
+      const snap = snaps.get(j.at)
+      if (!snap || snap.error) {
+        j.v.voting.holdersUnread = snap?.error ?? 'holder snapshot missing'
+        continue
+      }
+      const vt = j.v.voting
+      vt.supply = snap.supply
+      vt.holderCount = snap.holderCount
+      vt.holders = []
+      vt.truncated = true
+      for (const [i, [addr, bal]] of snap.top.entries()) {
+        const mk = `${addr}@${j.at}@${j.v.address}`
+        if (!memo.has(mk))
+          memo.set(
+            mk,
+            classify(client, addr, j.at, 0, new Set([VOTE_SELF + j.v.address]), 0).catch(
+              () => undefined,
+            ),
+          )
+        const ctl = await memo.get(mk)
+        vt.holders.push({ address: addr, balance: bal, ...(ctl ? { ctl } : {}) })
+        vt.truncated = i < snap.top.length - 1 || snap.holderCount > snap.top.length
+        const d = decide(j.v)
+        // review round 10 (R-1): k found is not enough — until the WEAKEST passing set is settled
+        if ((d.kind === 'one' || d.kind === 'few') && d.settled !== false) break
+        if (d.kind === 'broad' && (d.k !== null || !j.head)) break
+      }
+    }
+    log(`  token vote ${token.slice(0, 10)}…: ${js.length} classification(s) given holder data`)
+  }
+  return jobs.length
+}
+
+/** A one / few decision whose weakest passing set is not settled (or a holder in it unclassified). */
+const unsettled = (d) =>
+  (d.kind === 'one' || d.kind === 'few') &&
+  (d.settled === false || (d.holders ?? []).some((h) => !h.ctl))
 
 const ARAGON_AGENT_CODE = ['forward(bytes)', 'execute(address,uint256,bytes)']
 

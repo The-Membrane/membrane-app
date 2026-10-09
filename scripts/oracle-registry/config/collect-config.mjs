@@ -40,6 +40,8 @@ import {
   aragonExecCandidatesFromRows,
   classify,
   dgCommitteeAddresses,
+  enrichTokenVotes,
+  MULTICALL3_BLOCK,
   opsFromEvents,
   readCanonicalBridge,
   readCcipPool,
@@ -51,6 +53,7 @@ import {
   resolvePath,
   roleHoldersFromEvents,
   setAragonExecCandidates,
+  setLogClients,
   setRoleCandidates,
   subjectExtraEmitters,
   TIMELOCK_SCOPE_ROLES,
@@ -71,6 +74,7 @@ import {
   scanLzConfig,
   ulnFromTuple,
 } from './lib/lz.mjs'
+import { holderSnapshots } from './lib/holders.mjs'
 import { paramTransitions, paramsForSubject, scopedParamSpecs, txAtBlock } from './lib/params.mjs'
 import {
   blockTimestamps,
@@ -172,7 +176,10 @@ if (flag('rebuild')) {
   process.exit(0)
 }
 
-const { state: client, logs } = ethereumClients()
+const { state: client, logs, logsPrimary, logsSecondary } = ethereumClients()
+// UQ-23: timelock proposer logs are read on two independent keyed endpoints, every empty chunk
+// cross-checked on the second
+setLogClients(logsPrimary, logsSecondary)
 const head = Number(await retry(() => client.getBlockNumber())) - 3
 const headTs = Number((await retry(() => client.getBlock({ blockNumber: BigInt(head) }))).timestamp)
 log(`head ${head} (${new Date(headTs * 1000).toISOString()}), ${subjects.length} subjects`)
@@ -898,26 +905,24 @@ for (const c of Object.values(controllers)) for (const a of dgCommitteeAddresses
 // from the code (canonical Safe singleton, timelock dispatch table, bypass paths); v3 = a
 // timelock carries its schedulers (owner ruling 2026-10-08, #12); v4 (review round 9) = owner
 // hops counted from the last scheduler hop, ownership cycles not followed, a timelock's delay
-// setters. A v3 entry with no timelock, no Aragon Agent executors and no repeated address in its
-// tree classifies the same under v4 and carries over; the rest are read again.
-const AT_CACHE = join(CACHE, 'controllers-at-v4.json')
-const AT_CACHE_V3 = join(CACHE, 'controllers-at-v3.json')
+// setters; v5 (review round 10) = before Multicall3 (block 14,353,601) the views are read one
+// eth_call each (a Safe there was a plain contract), and an owner past the hop limit is
+// recorded (`ownerNotFollowed`). A v4 entry at or after the Multicall3 block carries over (no v4
+// entry in the cache reached the owner hop limit: measured 2026-10-09); older ones are read again.
+const AT_CACHE = join(CACHE, 'controllers-at-v5.json')
+const AT_CACHE_V4 = join(CACHE, 'controllers-at-v4.json')
 const atCache = existsSync(AT_CACHE)
   ? JSON.parse(readFileSync(AT_CACHE, 'utf8'))
-  : existsSync(AT_CACHE_V3)
-    ? (() => {
-        const v3 = JSON.parse(readFileSync(AT_CACHE_V3, 'utf8'))
-        const same = (c, anc = []) =>
-          !c ||
-          (!['oz_timelock', 'ds_pause', 'aragon_dg'].includes(c.kind) &&
-            !c.executors?.length &&
-            !anc.includes(c.address) &&
-            [c.ownedBy, ...(c.schedulers ?? []), ...(c.executors ?? [])].every((x) =>
-              same(x, [...anc, c.address]),
-            ))
-        return Object.fromEntries(Object.entries(v3).filter(([, c]) => same(c)))
-      })()
+  : existsSync(AT_CACHE_V4)
+    ? Object.fromEntries(
+        Object.entries(JSON.parse(readFileSync(AT_CACHE_V4, 'utf8'))).filter(
+          ([k]) => Number(k.split('@')[1]) >= MULTICALL3_BLOCK,
+        ),
+      )
     : {}
+// Review round 10 (O-4): a classification at a past block that FAILED is recorded, so the engine
+// never replaces it with the head classification (that mixes eras; fail closed)
+const classifyFailed = new Set()
 // Review round 8: the holders a role grant is ranked against are classified AT the grant block.
 // The replay fell back to their head classification (or, with none, to "not ranked against") —
 // and the head now covers every current holder with code (below), so the fallback would rank a
@@ -945,6 +950,28 @@ await pool(
     }
   },
 )
+// UQ-19: a committee member change is judged by the rank of the path controller that made it
+// against the committee's own controllers (the holders of the declared powers over it), both at
+// block − 1: classify the path executors of each such transaction and the committee's power
+// holders there (the engine falls back to head, which mixes eras: the 2023 Voting path against
+// the 2026 Dual Governance Agent)
+{
+  const powerHoldersOn = new Map()
+  for (const s of subjects)
+    for (const p of powerReads.get(s.key) ?? [])
+      powerHoldersOn.set(lc(p.contract), [
+        ...(powerHoldersOn.get(lc(p.contract)) ?? []),
+        ...p.holders,
+      ])
+  const byTx = new Map()
+  for (const r of adminRows) byTx.set(r.tx, [...(byTx.get(r.tx) ?? []), r])
+  for (const r of adminRows.filter((x) => COMMITTEE_EVENTS.has(x.event))) {
+    for (const h of powerHoldersOn.get(lc(r.emitter)) ?? []) wantAt.add(`${lc(h)}@${r.block - 1}`)
+    for (const x of byTx.get(r.tx) ?? [])
+      if (['CallExecuted', 'ProposalExecuted', 'ExecuteVote'].includes(x.event))
+        wantAt.add(`${lc(x.emitter)}@${r.block - 1}`)
+  }
+}
 const adminRoleNames = new Map()
 for (const r of adminRows)
   if (r.event === 'RoleAdminChanged')
@@ -992,6 +1019,7 @@ await pool([...wantAt], 6, async (k) => {
   try {
     controllers[k] = atCache[k] = await classify(client, a, Number(b))
   } catch (e) {
+    classifyFailed.add(k)
     ctx.warnings.push(`classify ${a}@${b}: ${scrub(e?.message)}`)
   }
 })
@@ -1417,6 +1445,43 @@ for (const e of oracleChanges.events ?? []) {
       /* unclassified source: judged as unknown */
     }
 }
+// UQ-17 (owner ruling 2026-10-08): every Aragon Voting in a classified tree gets its HOLDER
+// CONCENTRATION at that block — one streaming pass over the voting token's Transfer logs per run
+// (top-50 per block cached; no raw logs, no balance map on disk), each snapshot verified on chain.
+{
+  const HOLDER_CACHE = join(CACHE, 'token-holders-v1.json')
+  const firstCode = async (a) => {
+    let lo = 0
+    let hi = head
+    while (hi - lo > 1) {
+      const m = Math.floor((lo + hi) / 2)
+      if (await codeAt(client, a, m)) hi = m
+      else lo = m
+    }
+    return hi
+  }
+  const n = await enrichTokenVotes(client, controllers, {
+    head,
+    decide: rulesTs.tokenVoteDecision,
+    needsHolders: rulesTs.tokenVoteNeedsHolders,
+    log,
+    snapshotsFor: async (token, blocks) =>
+      holderSnapshots({
+        logClients: { primary: logsPrimary, secondary: logsSecondary },
+        state: client,
+        token,
+        from: await firstCode(token),
+        blocks,
+        cacheFile: HOLDER_CACHE,
+        log,
+      }),
+  })
+  if (n) {
+    log(`token votes: ${n} vote classification(s) given their holder concentration`)
+    // the past-block classifications now carry their holders: cached with them
+    writeJson(AT_CACHE, atCache)
+  }
+}
 const oracleFor = (s) => {
   if (!s.oracleAssetKey) return undefined
   const slug = s.oracleAssetKey.toLowerCase()
@@ -1534,6 +1599,7 @@ for (const s of subjects) {
         ),
       ),
       controllers,
+      ...(classifyFailed.size ? { classifyFailed: [...classifyFailed] } : {}),
       powers: powerReads.get(s.key),
       timelockAdmins: tl,
       implHistory,

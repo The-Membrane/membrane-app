@@ -92,6 +92,8 @@ export const TAG_LABEL: Partial<
   run_risk: { label: 'RUN RISK', loud: true },
   not_executable: { label: 'NOT EXECUTABLE', loud: false },
   rotation: { label: 'rotation', loud: false },
+  // review round 10: the new holder's rank rests on a read gap — not an upgrade, red carried
+  read_gap: { label: 'READ GAP', loud: true, tone: 'warning' },
   deprecated_dvn: { label: 'deprecated DVN', loud: false },
   default_change: { label: 'LZ default changed', loud: false },
   route_created: { label: 'route created', loud: false },

@@ -24,6 +24,7 @@ import {
   dgCommitteeAddresses,
 } from '@/scripts/oracle-registry/config/lib/admin.mjs'
 import { decodeTrimmedAmount, readParams } from '@/scripts/oracle-registry/config/lib/params.mjs'
+import { tokenVote } from './oracleRegistryVoteFixtures'
 
 type Hx = `0x${string}`
 // the collector is plain JS: its inferred return types are unions of object literals
@@ -100,7 +101,7 @@ const dgCtl = (o: Partial<NonNullable<Controller['dg']>> = {}): Controller => ({
   address: EPT,
   delaySec: 691200,
   // ruling #12: the declared proposer (the Aragon Voting), classified
-  schedulers: [{ kind: 'aragon_voting', address: VOTING, delaySec: 432000 }],
+  schedulers: [tokenVote(VOTING)],
   dg: {
     proposers: [VOTING],
     proposerVoteSec: 432000,
@@ -414,7 +415,7 @@ describe('engine: the Dual Governance line, the NTT pauser, units', () => {
         [`${EXE}@head`]: safe(EXE, 5, 7),
         [`${RESEAL}@head`]: safe(RESEAL, 5, 6),
         [`${TIE}@head`]: { kind: 'contract', address: TIE },
-        [`${VOTING}@head`]: { kind: 'aragon_voting', address: VOTING, delaySec: 432000 },
+        [`${VOTING}@head`]: tokenVote(VOTING),
         [`${PAUSER}@head`]: safe(PAUSER, 3, 5),
         ...o.controllers,
       },

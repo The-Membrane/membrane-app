@@ -57,6 +57,8 @@ import {
   isPrivilegedRole,
   controllerRank,
   controllerTree,
+  nodeReadGaps,
+  rankHasReadGap,
   compareRank,
   isTimelockKind,
   schedulersUnreadOf,
@@ -430,6 +432,12 @@ export type RawSubject = {
      * member event; null = not read. Proves a member change was made BY the declared path.
      */
     txTo?: Record<string, string | null>
+    /**
+     * Review round 10 (O-4): `${address}@${block}` keys the collector tried to classify at a
+     * past block and FAILED. Such a lookup is null (not read: fail closed), never the head
+     * classification — that mixes eras (the 2023 Voting path judged on the 2026 controller).
+     */
+    classifyFailed?: string[]
   }
   params: { head: Record<string, unknown>; transitions: ParamTransition[] }
   queues: {
@@ -569,10 +577,13 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     code: (chainId, a, b) => (chainId === 1 ? codeOracleFrom(probes)(chainId, a, b) : null),
     useDeprecated: true,
   }
+  // Review round 10 (O-4): a classification attempted at the block that FAILED is not read —
+  // never replaced by the head one (fail closed); a key never requested still falls back to head
+  const classifyFailed = new Set((raw.admin.classifyFailed ?? []).map(lc))
+  const failedAt = (addr: string, block: number) => classifyFailed.has(`${lc(addr)}@${block}`)
   const ctl = (addr: string, block: number): Controller | null =>
     raw.admin.controllers[`${lc(addr)}@${block}`] ??
-    raw.admin.controllers[`${lc(addr)}@head`] ??
-    null
+    (failedAt(addr, block) ? null : (raw.admin.controllers[`${lc(addr)}@head`] ?? null))
   const ctlHead = (addr: string) => raw.admin.controllers[`${lc(addr)}@head`] ?? null
   // Source verification of an implementation / provider / oracle source; null = not read.
   const verified = (addr: string): boolean | null => raw.admin.verification?.[lc(addr)] ?? null
@@ -1145,11 +1156,19 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       // signer acts alone; a contract an EOA owns)
       if (isEoaControlled(h))
         breaches.push({ ruleId: 'AD-3', message: `${p.label} held by ${describeController(h)}` })
-      if (h.kind === 'safe' && h.modules?.length)
-        breaches.push({
-          ruleId: 'AD-6',
-          message: `${describeController(h)} has ${h.modules.length} module(s) that execute without signatures`,
-        })
+      // AD-6 at head through the whole controller tree (UQ-22): a Safe with a module anywhere in
+      // the holder's tree — a timelock's proposer, an Agent's executor, an owner — executes
+      // without signatures, exactly as if it held the power directly (the timelock ranks as
+      // that Safe: a plain contract)
+      for (const x of controllerTree(h))
+        if (x.kind === 'safe' && x.modules?.length)
+          breaches.push({
+            ruleId: 'AD-6',
+            message:
+              x === h
+                ? `${describeController(h)} has ${h.modules!.length} module(s) that execute without signatures`
+                : `${p.label}: ${describeController(x, { nested: true })} (in the tree of ${short(h.address)}) has ${x.modules!.length} module(s) that execute without signatures`,
+          })
       // A Dual Governance timelock in EMERGENCY MODE: the execution committee executes without
       // the after-schedule delay and can reset governance (the stETH-holder veto) — AD-2 at head
       if (leaf(h).kind === 'aragon_dg' && leaf(h).dg?.emergencyModeActive)
@@ -1306,7 +1325,17 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   // = every delayed controller (timelock, Dual Governance, Aragon vote) in the head trees of the
   // holders of a declared power over the committee; with no such power, the subject's declared
   // timelocks. A member change executed through none of them is red.
+  // UQ-19: the committee's own controllers (the holders of those powers) — a member change made
+  // through a path controller that ranks BELOW them (its weakest proposer) is red.
   const committeePaths: Record<string, string[]> = {}
+  const committeeControllers: Record<string, string[]> = {}
+  // a path controller nested in a head tree (the DG timelock under the Agent): found there
+  const treeNodes = new Map<string, Controller>()
+  for (const [k, c] of Object.entries(raw.admin.controllers))
+    if (k.endsWith('@head'))
+      for (const x of controllerTree(c))
+        if (!treeNodes.has(lc(x.address))) treeNodes.set(lc(x.address), x)
+  const headTreeNode = (a: string): Controller | null => treeNodes.get(lc(a)) ?? null
   for (const em of new Set(
     raw.admin.events.filter((e) => COMMITTEE_EVENTS.has(e.event)).map((e) => lc(e.emitter)),
   )) {
@@ -1319,6 +1348,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
             path.add(lc(c.address))
     if (!on.length) for (const t of subject.timelocks) path.add(lc(t))
     committeePaths[em] = [...path]
+    committeeControllers[em] = [...new Set(on.flatMap((p) => p.holders.map((h) => lc(h.address))))]
   }
   changes.push(
     ...classifyAdminEvents(raw.admin.events, {
@@ -1327,6 +1357,9 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       upgradeTimelocks,
       timelockSince,
       committeePaths,
+      committeeControllers,
+      ctlPath: (a: string, b: number) =>
+        failedAt(a, b) ? ctl(a, b) : (ctl(a, b) ?? headTreeNode(a)),
       ...(raw.admin.txTo ? { txTo: raw.admin.txTo } : {}),
       upgradeHoldersAt: raw.admin.upgradeHoldersAt
         ? Object.fromEntries(
@@ -2273,11 +2306,8 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       ...new Set(
         powers.flatMap((p) =>
           p.holders
-            .flatMap((h) => {
-              const chain: Controller[] = []
-              for (let c: Controller | undefined = h; c; c = c.ownedBy) chain.push(c)
-              return chain
-            })
+            // UQ-22: through the whole tree (a timelock's proposer Safe included)
+            .flatMap(controllerTree)
             .filter((h) => h.modulesUnread)
             .map((h) => `Safe ${short(h.address)}: modules not read (ranked as a plain contract)`),
         ),
@@ -2313,6 +2343,10 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         ),
       ),
     ],
+    // UQ-17 / UQ-24: a token vote whose holder concentration was not read, an unrestricted
+    // bypass whose bypassers were not classified, a DSPause authority whose callers were not
+    // enumerated — each ranks as a plain contract; never "no red flags" over them
+    ...[...new Set(powers.flatMap((p) => p.holders.flatMap(controllerTree).flatMap(nodeReadGaps)))],
     // the remote side of a live NTT route: its floor and owner cannot be judged unread
     ...(raw.ntt ?? []).flatMap(nttRemoteGaps),
     ...dgGaps,
@@ -2429,8 +2463,26 @@ export function rejudgeRoleHoldersAtHead(
       if (!row.ruleIds.length || row.ruleIds.some((r) => r !== 'AD-4')) continue
       const then = o.ctlAt(acct, e.block)
       if (!then || compareRank(controllerRank(now), controllerRank(then)) <= 0) continue
+      // UQ-21 (owner: fail closed everywhere): a head rank that rests on a READ GAP (an unread
+      // proposer set ranks as a plain contract, above the EOA that proposed at the grant) is no
+      // read of the grantee — it never ends a red. The red stays in effect, and says why.
+      if (rankHasReadGap(now)) {
+        const note = `STILL IN EFFECT at head (block ${o.head}): the grantee's head read has a read gap (${describeController(now)}) — a failed read never ends a red`
+        if (!(row.notes ?? []).includes(note)) row.notes = [...(row.notes ?? []), note]
+        continue
+      }
       const name = String(e.args.roleName ?? lc(String(e.args.role)))
-      const ranked = before.map((h) => o.ctlRanked(h, e.block)).filter((c): c is Controller => !!c)
+      // Review round 10 (R-4): the holders the grant is ranked against must be READ too — one not
+      // classified (dropped from the comparison) or resting on a read gap (ranked as a plain
+      // contract) would make the grant look calm by comparison. The red stays in effect.
+      const cmp = before.map((h) => ({ h, c: o.ctlRanked(h, e.block) }))
+      const unreadCmp = cmp.filter((x) => !x.c || rankHasReadGap(x.c))
+      if (unreadCmp.length) {
+        const note = `STILL IN EFFECT at head (block ${o.head}): ${unreadCmp.length} holder(s) it was ranked against not read at block ${e.block} (${unreadCmp.map((x) => (x.c ? describeController(x.c) : shortA(x.h))).join(' | ')}) — a failed read never ends a red`
+        if (!(row.notes ?? []).includes(note)) row.notes = [...(row.notes ?? []), note]
+        continue
+      }
+      const ranked = cmp.map((x) => x.c as Controller)
       const v = classifyRoleGrant(name, now, ranked, true, {
         administersRoles: o.administers(em, name),
       })
@@ -2572,7 +2624,13 @@ export function markStillInEffect(changes: ConfigChange[]): void {
         open = []
       const before: string | null = str(c.before) ?? (isSet ? null : last)
       const after: string | null = str(c.after)
-      const moved = before !== null && before !== after && !c.tags.includes('rotation')
+      // a rotation, and (review round 10, R-3) a move to a holder whose rank rests on a read gap,
+      // carry an open red forward: a failed read never ends a red
+      const moved =
+        before !== null &&
+        before !== after &&
+        !c.tags.includes('rotation') &&
+        !c.tags.includes('read_gap')
       if (moved) open = open.filter((o) => str(o.after) !== before)
       if (!isSet && after !== null) last = after
       if (c.red) open.push(c)

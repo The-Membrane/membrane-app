@@ -381,6 +381,8 @@ export function breachesOf(items: readonly StateItem[]): ConfigCardView['breache
         ruleId: b.ruleId,
         message: b.message,
         ...(where ? { where } : {}),
+        // UQ-30: carried, not re-confirmed — still counted and red
+        ...(b.unconfirmed ? { unconfirmed: b.unconfirmed.readGap } : {}),
         dimension: i.dimension,
         key: i.key,
         ...(b.ruleId === 'BR-2'
@@ -764,7 +766,14 @@ export function powerViews(
     let j = pool[idx]?.key === key && !used.has(idx) ? idx : -1
     if (j < 0) j = pool.findIndex((i, n) => !used.has(n) && i.key === key)
     if (j >= 0) used.add(j)
-    const breaches: BreachView[] = j >= 0 ? (pool[j].breaches ?? []).map((b) => ({ ...b })) : []
+    const breaches: BreachView[] =
+      j >= 0
+        ? (pool[j].breaches ?? []).map((b) => ({
+            ruleId: b.ruleId,
+            message: b.message,
+            ...(b.unconfirmed ? { unconfirmed: b.unconfirmed.readGap } : {}),
+          }))
+        : []
     // the engine's notes on the power (bypass functions and holders, unclassified holders)
     const warnings = j >= 0 ? [...(pool[j].warnings ?? [])] : []
     return {

@@ -205,7 +205,7 @@ describe('RV11-1: a card never renders a read gap it does not count', () => {
     })
   }
 
-  it('wstETH (MEASURED, head 26,152,213): every Lido vote node carries D read at the head block — 13 votes, D = 279,135.7 LDO, k = 1 — and no vote-history gap', () => {
+  it('wstETH (MEASURED, head 26,152,213; re-collected at 26,158,320 in round 12): every Lido vote node carries D read at the head block — 13 votes, D = 279,135.7 LDO, k = 1 — and no vote-history gap', () => {
     const s = subjects.find((x) => x.key === 'wsteth')!
     const state = loadConfigInputs(s).state!
     const votes = state.powers
@@ -226,10 +226,17 @@ describe('RV11-1: a card never renders a read gap it does not count', () => {
     }
     const card = getConfigCard('wsteth')!
     const labels = card.admin.powers.flatMap((p) => p.holders.map((h) => h.label)).join('\n')
-    expect(labels).not.toMatch(/UNREAD/)
+    expect(labels).not.toMatch(/vote history UNREAD|holder concentration UNREAD/)
     expect(card.readGaps).toEqual(state.readGaps ?? [])
-    expect(labels).toMatch(
-      /ONE holder of 0x5a98… can pass a vote alone \(k = 1\): EOA 0xf977…acec — ranked as it; against D = 0\.027 % of supply, the mean nay stake of the 13 votes started in the 365 days to 2026-10-09/,
+    // round 12: the re-collection could not read the Linea bridge timelock's proposers (KG-6);
+    // a label that says UNREAD is always a counted read gap — never a silent one (RV11-1)
+    for (const m of labels.matchAll(/(0x[0-9a-f]{4}…[0-9a-f]{4}) \[proposers UNREAD/g))
+      expect(card.readGaps).toContain(
+        `timelock ${m[1]}: proposers not read (ranked as a plain contract)`,
+      )
+    const day = new Date(state.asOf.ts * 1000).toISOString().slice(0, 10)
+    expect(labels).toContain(
+      `ONE holder of 0x5a98… can pass a vote alone (k = 1): EOA 0xf977…acec — ranked as it; against D = 0.027 % of supply, the mean nay stake of the 13 votes started in the 365 days to ${day}`,
     )
   })
 })

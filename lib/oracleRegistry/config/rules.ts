@@ -249,6 +249,8 @@ function rankParts(c: Controller | null | undefined): RankParts {
       // An Aragon Agent acts only for its executors (enumerated from the ACL at the block): it
       // is exactly as strong as the weakest one — no other code path of its own to discount.
       if (c.executors?.length) return weakestOf(c.executors.map(rankParts))
+      // review round 12 (rules #4): an Agent whose executors were not found is a read gap
+      if (c.executorsUnread) return GAP_CAP
       // review round 10 (R-6): an owner the collector did not follow (hop limit) was not read —
       // the contract is no stronger than whoever that owner is: a read gap (fail closed)
       if (c.ownerNotFollowed) return GAP_CAP
@@ -294,7 +296,8 @@ export const TOKEN_VOTE_MAX_SIGNERS = 10
  * A set of holders passes a vote alone when, voting yes against the AVERAGE OPPOSITION of the
  * trailing year (owner ruling 2026-10-09, UQ-25: not "nobody else votes", not "everyone else
  * votes no"), it meets BOTH of the app's thresholds as Aragon Voting computes them (strictly
- * greater than, `_isValuePct`):
+ * greater than, `_isValuePct` — UQ-31, decided 2026-10-09: the contract's own comparison, not the
+ * ruling's "≥"; they differ only at exact equality):
  *   quorum   yes × 1e18 / supply > minAcceptQuorumPct
  *   support  yes × 1e18 / (yes + D) > supportRequiredPct
  * D (`voting.defense.mean`) = the mean nay stake of every vote STARTED in the 365 days before the
@@ -800,6 +803,19 @@ export function nodeReadGaps(c: Controller): string[] {
     )
   if (c.bypass?.scope === 'any' && !c.bypass.unread && bypassParts(c).gap)
     out.push(`timelock ${a}: ${c.bypass.fn} bypassers not classified (ranked as a plain contract)`)
+  // Review round 12 (rules #1): a bypass whitelist that could not be read — the AD-2 head breach
+  // it hides depends on it, so the UQ-30 carry must find it in the holder's tree (it was listed by
+  // the engine for a power's leaf only, which the carry never saw: the USDe / sUSDe AD-2 vanished)
+  if (c.bypass?.unread) out.push(`timelock ${a}: ${c.bypass.fn} whitelist not read`)
+  // Review round 12 (on-chain #2 / rules #2): Dual Governance emergency mode not read — the AD-2
+  // "emergency mode is active" breach rests on it (it changed only the item text: no gap, no carry)
+  if (c.kind === 'aragon_dg' && c.dg && c.dg.emergencyModeActive === null)
+    out.push(`Dual Governance ${a}: emergency mode not read`)
+  // Review round 12 (rules #4): an Aragon Agent whose executors were not found
+  if (c.kind === 'contract' && c.executorsUnread)
+    out.push(
+      `Aragon Agent ${a}: no executor found (its executors could not be read; ranked as a plain contract)`,
+    )
   if (c.kind === 'ds_pause' && c.dsAuthority && !c.dsAuthority.callers)
     out.push(
       `DSPause ${a}: the callers its authority ${c.dsAuthority.address.slice(0, 6)}… permits were not read (ranked as a plain contract)`,
@@ -909,6 +925,16 @@ export function classifyControllerChange(
   const c = compareRank(controllerRank(next), controllerRank(prev))
   if (isEoa(prev) && isEoa(next)) return tag(v, 'rotation')
   if (c < 0) return down(v, 'AD-3', `${describeController(prev)} → ${describeController(next)}`)
+  // Review round 12 (rules #5): a PREVIOUS holder whose rank rests on a read gap ranks as a plain
+  // contract only because it was not read — its true rank may be far higher (a 7-day timelock a
+  // Safe 6-of-11 proposes into). A move from it is never an upgrade: neutral, noted, and tagged
+  // so a red before it stays in effect (it read UPGRADE and ended earlier reds on the key).
+  if (c >= 0 && rankHasReadGap(prev)) {
+    v.notes.push(
+      `${describeController(prev)} → ${describeController(next)}: not judged as an upgrade — the previous holder's rank rests on a read gap`,
+    )
+    return tag(v, 'read_gap')
+  }
   // Review round 10 (O-2 / R-3, owner: a failed read never ends a red): a new holder whose rank
   // rests on a READ GAP (an unread proposer set, module list, holder concentration…) ranks as a
   // plain contract only because it was not read. That is no upgrade — an EOA → an unread
@@ -1357,6 +1383,18 @@ export function classifyRoleAdminChange(
   }
   const c = compareRank(weakest(nextAdmin.holders), weakest(prevAdmin.holders))
   if (c < 0) return down(v, 'AD-3', msg)
+  // review round 12 (rules #5): a previous admin side not read, or resting on a read gap, is no
+  // baseline to rank an upgrade against
+  if (c >= 0 && prevAdmin.holders.some((h) => !h || rankHasReadGap(h))) {
+    // as for an owner (`classifyControllerChange`): an EOA-controlled new side against an unread
+    // baseline is red
+    if (nextAdmin.holders.some((h) => isEoaControlled(h)))
+      return down(v, 'AD-3', `${msg} (previous admin side not read)`)
+    v.notes.push(
+      `${msg}: not judged as an upgrade — a previous admin holder was not read or its rank rests on a read gap`,
+    )
+    return tag(v, 'read_gap')
+  }
   // review round 10 (R-3): a new admin side resting on a read gap is never an upgrade
   if (c > 0 && nextAdmin.holders.some(rankHasReadGap)) {
     v.notes.push(`${msg}: not judged as an upgrade — a new admin holder's rank rests on a read gap`)

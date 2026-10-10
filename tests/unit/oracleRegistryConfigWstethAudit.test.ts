@@ -495,6 +495,8 @@ describe('engine: the Dual Governance line, the NTT pauser, units', () => {
         message: expect.stringMatching(
           /^Emergency Execution Committee of Dual Governance 0x6666…6666 is EOA/,
         ),
+        // UQ-30: what the breach is about, stable across runs (matches a carried breach)
+        ref: 'committee:executionCommittee',
       },
     ])
     const one = dgItem(raw({ controllers: { [`${RESEAL}@head`]: safe(RESEAL, 1, 6) } }))!

@@ -79,6 +79,12 @@ export type AdminCtx = {
    * judges an upgrade only against the timelock that actually held the power at that time.
    */
   upgradeHoldersAt?: Record<string, Controller[]>
+  /**
+   * Review round 12: `${proxy}@${block}` keys whose holders at block − 1 could NOT be read. AD-5
+   * then judges against the declared timelocks (`upgradeTimelocks` since they held a power) —
+   * fail closed; a failed read is never "no timelock held it".
+   */
+  upgradeHoldersUnread?: string[]
   /** Exact classification at a block (no fallback to head): `null` when not read. */
   ctlExact?: ControllerLookup
   /** contract (lower) → first block with code (an Upgraded in the deploy tx is initialization). */
@@ -1493,10 +1499,12 @@ function ad5(v: Verdict, r: AdminEventRow, txRows: AdminEventRow[], ctx: AdminCt
       : c.ownedBy
         ? tlOf(c.ownedBy)
         : []
-  // With holders resolved at the block, judge against them; otherwise never guess.
+  // With holders resolved at the block, judge against them; otherwise never guess — except that
+  // a read that FAILED falls back to the declared timelocks (review round 12: fail closed).
+  const unread = (ctx.upgradeHoldersUnread ?? []).includes(`${r.emitter}@${r.block}`)
   const tls = at
     ? at.flatMap(tlOf)
-    : ctx.upgradeHoldersAt
+    : ctx.upgradeHoldersAt && !unread
       ? []
       : (ctx.upgradeTimelocks[r.emitter] ?? []).filter(
           (t) => r.block >= (ctx.timelockSince?.[t] ?? 0),
@@ -1511,7 +1519,7 @@ function ad5(v: Verdict, r: AdminEventRow, txRows: AdminEventRow[], ctx: AdminCt
     down(
       v,
       'AD-5',
-      `no CallExecuted / ProposalExecuted from ${tls.map(short).join('/')} in this transaction`,
+      `no CallExecuted / ProposalExecuted from ${tls.map(short).join('/')} in this transaction${unread && !at ? ' (the upgrade holders before it were not read: judged against the declared timelock)' : ''}`,
     )
 }
 

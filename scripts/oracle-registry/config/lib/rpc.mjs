@@ -112,7 +112,23 @@ export function ethereumClients() {
  * adaptive read and only the combined answer was checked: one false-empty half next to a
  * non-empty half was accepted, and its log lost.
  * Returns { logs, corrected } (`corrected`: a primary empty answer was false).
+ * KG-6 (closed in review round 12): the second endpoint refuses any range over 10,000 blocks, so
+ * it is asked in ≤ SECONDARY_LOG_SPAN pieces from the start (`secondaryLogs`). It was asked for
+ * the whole range and halved through ~63 refused (and retried) requests per empty 500k chunk; one
+ * failure in that cascade left the whole proposer set unread (the rsETH 0x49bd… and wstETH Linea
+ * 0xd6b9… read gaps of round 12) and made a run take 47 minutes.
  */
+export const SECONDARY_LOG_SPAN = 10_000
+async function secondaryLogs(client, q) {
+  const out = []
+  const to = BigInt(q.toBlock)
+  const span = BigInt(SECONDARY_LOG_SPAN)
+  for (let a = BigInt(q.fromBlock); a <= to; a += span) {
+    const b = a + span - 1n < to ? a + span - 1n : to
+    out.push(...(await getLogsAdaptive(client, { ...q, fromBlock: a, toBlock: b })))
+  }
+  return out
+}
 export async function crossCheckedLogs(primary, secondary, q, depth = 0) {
   let a = null
   let aErr = null
@@ -135,7 +151,7 @@ export async function crossCheckedLogs(primary, secondary, q, depth = 0) {
     throw aErr ?? new Error('empty getLogs answer not cross-checked (no second endpoint)')
   let b = null
   try {
-    b = await getLogsAdaptive(secondary, q)
+    b = await secondaryLogs(secondary, q)
   } catch (e) {
     if (aErr) throw aErr
     throw e

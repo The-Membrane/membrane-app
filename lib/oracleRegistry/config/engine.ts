@@ -16,6 +16,7 @@ import type {
   PowerSpec,
   PowerState,
   RouteState,
+  StateBreach,
   StateItem,
   SubjectState,
   UlnConfigRaw,
@@ -62,6 +63,7 @@ import {
   compareRank,
   isTimelockKind,
   schedulersUnreadOf,
+  treeReadGaps,
   describeController,
   formatDelay,
   OWNER_INIT_WINDOW_BLOCKS,
@@ -245,16 +247,19 @@ export function nttRemoteLines(n: NttHead): {
         breaches.push({
           ruleId: 'BR-2',
           message: `NTT ${mgr} on ${where}: ${eff.E} effective verifier network(s) attest a message (threshold ${r.threshold} over ${eff.distinct} distinct)`,
+          ref: `remote:${where}:floor`,
         })
       if (eff.unknown)
         breaches.push({
           ruleId: 'BR-7',
           message: `${where}: ${eff.unknown} transceiver(s) of an unknown verifier network`,
+          ref: `remote:${where}:unknown`,
         })
       if (eff.duplicate)
         breaches.push({
           ruleId: 'BR-7',
           message: `${where}: ${eff.duplicate} transceiver(s) on a network already counted`,
+          ref: `remote:${where}:duplicate`,
         })
     } else
       warnings.push(
@@ -271,6 +276,7 @@ export function nttRemoteLines(n: NttHead): {
       breaches.push({
         ruleId: 'AD-3',
         message: `NTT owner on ${where} is ${describeController(r.owner)}`,
+        ref: `remote:${where}:owner`,
       })
     if (r.owner && r.owner.kind === 'contract')
       warnings.push(
@@ -418,7 +424,17 @@ export type RawSubject = {
     /** `${proxy}@${block}` → upgrade holders resolved at block − 1 (AD-5). */
     upgradeHoldersAt?: Record<string, string[]>
     /** Safe controllers as classified by the PREVIOUS run (state/<subject>.json safeSnapshot). */
-    previousSafes?: { block: number; controllers: Record<string, Controller> }
+    previousSafes?: {
+      block: number
+      controllers: Record<string, Controller>
+      /** Review round 12: the block each Safe was last READ at (carried ones); default `block`. */
+      readAt?: Record<string, number>
+    }
+    /**
+     * Review round 12: `${proxy}@${block}` keys whose upgrade holders at block − 1 could NOT be
+     * read (resolvePath threw): AD-5 judges them against the declared timelock (fail closed).
+     */
+    upgradeHoldersUnread?: string[]
     /** First block with code of every admin-event emitter (initialization = its deploy block). */
     deployBlocks?: Record<string, number>
     /** Source verification of implementations / providers / oracle sources (Sourcify, Blockscout). */
@@ -460,6 +476,8 @@ export type RawSubject = {
       pool: string
       owner: string | null
       rebalancer: string | null
+      /** Review round 12: getSupportedChains failed — `chains` is empty because it was not read. */
+      chainsUnread?: boolean
       chains: {
         selector: string
         inboundEnabled: boolean | null
@@ -481,6 +499,25 @@ export type RawSubject = {
     events: OracleGovEvent[]
     window?: { startBlock: number; endBlock: number; days: number }
   }
+  /**
+   * UQ-30: the head-state items of the PREVIOUS run (state/<subject>.json `items`, at `asOf`). A
+   * breach it recorded that this run cannot re-confirm because a read it depends on failed is
+   * carried, still counted and red, marked "breach unconfirmed: read gap".
+   */
+  previousHead?: { block: number; items: StateItem[] }
+  /**
+   * Review round 12 (rules #6): the previous run's rows that no event re-derives — the run-to-run
+   * Safe / remote diffs (`:safe-head:`, `:remote-head:`) and the head-derived AD-4 rows
+   * (`:role-head:`). The diffs are history (a silent threshold drop stays on the card); a role
+   * row is carried while its holder cannot be read at head.
+   */
+  previousChanges?: { block: number; changes: ConfigChange[] }
+  /**
+   * Review round 12 (rules #7): the previous run's queue rows. A row whose queue (Safe Tx
+   * Service, MultiSigWallet submissions, Dual Governance proposals) cannot be read this run is
+   * carried, marked NOT READ this run.
+   */
+  previousQueue?: { block: number; changes: ConfigChange[] }
   warnings: string[]
 }
 
@@ -560,6 +597,157 @@ export function bypassReach(
 
 export function announcementOf(s: ConfigSubject): AnnouncementStatus {
   return s.govChannels.length ? 'not_checked' : 'no_gov_channel'
+}
+
+// ---- UQ-30: a failed head read never drops a head breach -------------------------------------------
+
+/** Prefix of a carried breach's read gap when the route side itself was not read (counted apart). */
+export const ROUTE_SIDE_UNREAD = 'route side not read: '
+const SHORT_ADDR = /0x[0-9a-f]{4}…[0-9a-f]{4}/g
+
+/**
+ * What a head breach is about (`StateBreach.ref`), for a breach recorded before refs existed
+ * (state files written before UQ-30): derived from its item key and message. `holders` are the
+ * short addresses of the power's current holders (an AD-3 names its holder: the first of them in
+ * the message after "held by"). Undefined = matched by its message.
+ */
+export function legacyBreachRef(
+  key: string,
+  b: Pick<StateBreach, 'ruleId' | 'message' | 'unconfirmed'>,
+  ctx: { label?: string; holders?: readonly string[] } = {},
+): string | undefined {
+  const msg = b.unconfirmed?.message ?? b.message
+  const shorts = (x: string) => [...x.matchAll(SHORT_ADDR)].map((m) => m[0])
+  if (key.startsWith('admin/power/')) {
+    if (b.ruleId === 'AD-3') {
+      const rest = msg.slice(msg.indexOf(' held by ') + 1)
+      const named = shorts(rest)
+      const hit = named.find((s) => ctx.holders?.includes(s)) ?? named[0]
+      return hit ? `holder:${hit}` : undefined
+    }
+    if (b.ruleId === 'AD-6' || b.ruleId === 'AD-2') {
+      const rest = (
+        ctx.label && msg.startsWith(`${ctx.label}: `) ? msg.slice(ctx.label.length + 2) : msg
+      )
+        // a timelock's "(bypass: fn, held by X 0x…)" names its bypasser before its own address
+        .replace(/\(bypass:(?:[^()]|\([^()]*\))*\)/g, '')
+      const first = shorts(rest)[0]
+      return first ? `node:${first}` : undefined
+    }
+    return undefined
+  }
+  if (key.startsWith('admin/timelock_admin/')) {
+    const first = shorts(msg.slice(msg.indexOf(' held by ') + 1))[0]
+    return first ? `holder:${first}` : undefined
+  }
+  if (key.startsWith('mint/')) return 'param'
+  if (key.startsWith('bridge/canonical/')) return b.ruleId === 'AD-3' ? 'admin' : undefined
+  if (key.startsWith('admin/dg/')) {
+    const f = DG_COMMITTEE_FIELDS.find(([, name]) => msg.startsWith(`${name} of Dual Governance`))
+    return f ? `committee:${f[0]}` : undefined
+  }
+  if (key.startsWith('bridge/ccip/')) {
+    if (msg.startsWith('rebalancer is ')) return 'rebalancer'
+    const silo = msg.match(/^silo rebalancer of chain (\S+) is /)
+    if (silo) return `silo:${silo[1]}`
+    const chain = msg.match(/^rate limiter off for chain (\S+)$/)
+    return chain ? `chain:${chain[1]}` : undefined
+  }
+  if (key.startsWith('bridge/ntt/')) {
+    const ro = msg.match(/^NTT owner on (.+) is /)
+    if (ro) return `remote:${ro[1]}:owner`
+    if (msg.startsWith('NTT owner is ')) return 'owner'
+    const rf = msg.match(/^NTT \S+ on (.+?): \d+ effective/)
+    if (rf) return `remote:${rf[1]}:floor`
+    if (/^NTT \S+: \d+ effective/.test(msg)) return 'floor'
+    const r7 = msg.match(/^(.+): \d+ transceiver\(s\) (of an unknown|on a network already)/)
+    if (r7) return `remote:${r7[1]}:${r7[2] === 'of an unknown' ? 'unknown' : 'duplicate'}`
+    if (/^\d+ transceiver\(s\) of an unknown/.test(msg)) return 'unknown'
+    if (/^\d+ transceiver\(s\) on a network already/.test(msg)) return 'duplicate'
+    return undefined
+  }
+  return undefined
+}
+
+/**
+ * UQ-30 (decided 2026-10-09 under the standing rulings "a failed read never ends a red" and "fail
+ * closed everywhere"): a head breach the PREVIOUS run recorded that this run did not re-confirm is
+ * CARRIED — still counted and red — when a read it depends on failed this run (`gapsOf` returns
+ * the read gaps: e.g. a token vote's trailing-year history or holders, a proposer set, a Safe's
+ * modules, a route side). With no failed read it is resolved (dropped). A carried breach keeps the
+ * message it was last confirmed with and says "breach unconfirmed: read gap (…)"; a breach carried
+ * before is carried again while the gap lasts, with its first confirmation block. A breach is
+ * re-confirmed when this run's item has a breach with the same rule and the same `ref` (or, with
+ * no ref, the same message). Several items can share a key (two powers of one kind on one
+ * contract: an OFT's owner and its delegate); the n-th previous item with a key is matched with
+ * the n-th item with that key this run (`occ`, the order of the declarations). An item missing
+ * this run whose breach still depends on a failed read is added back from the previous run,
+ * marked "NOT READ this run". Mutates `items`; returns the number carried and the read gaps
+ * behind them.
+ */
+export function carryUnconfirmedBreaches(
+  items: StateItem[],
+  prev: { block: number; items: readonly StateItem[] } | undefined,
+  o: {
+    gapsOf: (
+      key: string,
+      b: StateBreach,
+      prevItem: StateItem,
+      cur: StateItem | undefined,
+      occ: number,
+    ) => string[]
+    refOf: (key: string, b: StateBreach, occ: number) => string | undefined
+  },
+): { carried: number; gaps: string[] } {
+  if (!prev) return { carried: 0, gaps: [] }
+  const msgId = (b: StateBreach) => `${b.ruleId}|msg:${b.unconfirmed?.message ?? b.message}`
+  const idOf = (key: string, b: StateBreach, occ: number) =>
+    `${b.ruleId}|${b.ref ?? o.refOf(key, b, occ) ?? `msg:${b.unconfirmed?.message ?? b.message}`}`
+  // this run's items by key, in order (before any item is added back)
+  const byKey = new Map<string, StateItem[]>()
+  for (const i of items) byKey.set(i.key, [...(byKey.get(i.key) ?? []), i])
+  const seenPrev = new Map<string, number>()
+  const gaps = new Set<string>()
+  let carried = 0
+  for (const p of prev.items) {
+    const occ = seenPrev.get(p.key) ?? 0
+    seenPrev.set(p.key, occ + 1)
+    if (!p.breaches?.length) continue
+    let cur = byKey.get(p.key)?.[occ]
+    // re-confirmed: the same rule about the same thing — or, for a breach recorded before refs,
+    // the very same message
+    const have = new Set((cur?.breaches ?? []).flatMap((b) => [idOf(p.key, b, occ), msgId(b)]))
+    for (const b of p.breaches) {
+      const id = idOf(p.key, b, occ)
+      if (have.has(id) || (!b.ref && have.has(msgId(b)))) continue // re-confirmed this run
+      const g = o.gapsOf(p.key, b, p, cur, occ)
+      if (!g.length) continue // read this run, and it no longer fails: resolved
+      const message = b.unconfirmed?.message ?? b.message
+      const lastConfirmedBlock = b.unconfirmed?.lastConfirmedBlock ?? prev.block
+      const ref = b.ref ?? o.refOf(p.key, b, occ)
+      if (!cur) {
+        cur = {
+          ...p,
+          display: `${p.display.replace(/ · NOT READ this run \(carried from block \d+\)$/, '')} · NOT READ this run (carried from block ${prev.block})`,
+          breaches: [],
+          warnings: [
+            'not read this run: its breaches are carried from the last run that read it (UQ-30)',
+          ],
+        }
+        items.push(cur)
+      }
+      cur.breaches.push({
+        ruleId: b.ruleId,
+        message: `${message} — breach unconfirmed: read gap (${g[0]}${g.length > 1 ? `; +${g.length - 1} more` : ''}); last confirmed at block ${lastConfirmedBlock}`,
+        ...(ref ? { ref } : {}),
+        unconfirmed: { readGap: g[0], lastConfirmedBlock, message },
+      })
+      have.add(id)
+      carried++
+      for (const x of g) gaps.add(x)
+    }
+  }
+  return { carried, gaps: [...gaps] }
 }
 
 export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: BuildOptions) {
@@ -1155,7 +1343,11 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       // an EOA, or a holder that ranks with one (review round 7: a 1-of-N multisig — any one
       // signer acts alone; a contract an EOA owns)
       if (isEoaControlled(h))
-        breaches.push({ ruleId: 'AD-3', message: `${p.label} held by ${describeController(h)}` })
+        breaches.push({
+          ruleId: 'AD-3',
+          message: `${p.label} held by ${describeController(h)}`,
+          ref: `holder:${short(h.address)}`,
+        })
       // AD-6 at head through the whole controller tree (UQ-22): a Safe with a module anywhere in
       // the holder's tree — a timelock's proposer, an Agent's executor, an owner — executes
       // without signatures, exactly as if it held the power directly (the timelock ranks as
@@ -1168,6 +1360,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
               x === h
                 ? `${describeController(h)} has ${h.modules!.length} module(s) that execute without signatures`
                 : `${p.label}: ${describeController(x, { nested: true })} (in the tree of ${short(h.address)}) has ${x.modules!.length} module(s) that execute without signatures`,
+            ref: `node:${short(x.address)}`,
           })
       // A Dual Governance timelock in EMERGENCY MODE: the execution committee executes without
       // the after-schedule delay and can reset governance (the stETH-holder veto) — AD-2 at head
@@ -1175,6 +1368,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         breaches.push({
           ruleId: 'AD-2',
           message: `${p.label}: ${describeController(leaf(h))} — emergency mode is active`,
+          ref: `node:${short(leaf(h).address)}`,
         })
       // AD-2 at head (review round 6): a timelock whose no-delay bypass reaches this power is
       // not in its authority path — the head-state twin of a Safe module (above). A whitelist
@@ -1188,6 +1382,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         breaches.push({
           ruleId: 'AD-2',
           message: `${p.label}: ${describeController(tl)} is bypassed — ${tl.bypass?.scope === 'any' ? `${tl.bypass.fn} executes any call` : `whitelisted functions reach this power through ${tl.bypass?.fn}`} with NO delay`,
+          ref: `node:${short(tl.address)}`,
         })
     }
     items.push({
@@ -1204,7 +1399,6 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   }
   for (const t of raw.admin.timelockAdmins) {
     const hs = t.holders.map((h) => ctlHead(h) ?? { kind: 'contract' as const, address: lc(h) })
-    const bad = timelockAdminBreach(t.timelock, hs)
     items.push({
       subject: subject.key,
       dimension: 'admin',
@@ -1212,7 +1406,14 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       chainId: 1,
       block: head,
       display: `timelock ${lc(t.timelock).slice(0, 10)}… ${t.role} holders: ${hs.map(describeController).join(' | ') || 'none'}`,
-      breaches: bad.map((b) => ({ ruleId: 'AD-7', message: `${t.role} held by ${b}` })),
+      // UQ-30: each breach names its holder, so a re-run matches it to a carried one
+      breaches: hs
+        .filter((h) => timelockAdminBreach(t.timelock, [h]).length)
+        .map((h) => ({
+          ruleId: 'AD-7',
+          message: `${t.role} held by ${timelockAdminBreach(t.timelock, [h])[0]}`,
+          ref: `holder:${short(h.address)}`,
+        })),
     })
   }
   const upgradeTimelocks: Record<string, string[]> = {}
@@ -1361,6 +1562,9 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       ctlPath: (a: string, b: number) =>
         failedAt(a, b) ? ctl(a, b) : (ctl(a, b) ?? headTreeNode(a)),
       ...(raw.admin.txTo ? { txTo: raw.admin.txTo } : {}),
+      ...(raw.admin.upgradeHoldersUnread
+        ? { upgradeHoldersUnread: raw.admin.upgradeHoldersUnread }
+        : {}),
       upgradeHoldersAt: raw.admin.upgradeHoldersAt
         ? Object.fromEntries(
             Object.entries(raw.admin.upgradeHoldersAt).map(([k, hs]) => {
@@ -1416,9 +1620,10 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       breaches.push({
         ruleId: 'MR-2',
         message: `${spec.label} is ${describeController(ctlHead(v))}`,
+        ref: 'param',
       })
     if (spec.rule === 'pauser' && typeof v === 'string' && /^0x0{40}$/i.test(v))
-      breaches.push({ ruleId: 'MR-1', message: 'no pauser' })
+      breaches.push({ ruleId: 'MR-1', message: 'no pauser', ref: 'param' })
     items.push({
       subject: subject.key,
       dimension: 'mint_redeem',
@@ -1440,7 +1645,11 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     const siloed = p.chains.filter((c) => c.siloed)
     const unsiloed = p.chains.filter((c) => !c.siloed)
     if (reb && isEoaControlled(reb) && (unsiloed.length || !siloed.length))
-      breaches.push({ ruleId: 'CC-3', message: `rebalancer is ${describeController(reb)}` })
+      breaches.push({
+        ruleId: 'CC-3',
+        message: `rebalancer is ${describeController(reb)}`,
+        ref: 'rebalancer',
+      })
     const siloLines: string[] = []
     for (const c of siloed) {
       const sr = c.rebalancer ? ctlHead(c.rebalancer) : null
@@ -1451,11 +1660,16 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         breaches.push({
           ruleId: 'CC-3',
           message: `silo rebalancer of chain ${c.selector} is ${describeController(sr)}`,
+          ref: `silo:${c.selector}`,
         })
     }
     for (const c of p.chains)
       if (c.inboundEnabled === false || c.outboundEnabled === false)
-        breaches.push({ ruleId: 'CC-2', message: `rate limiter off for chain ${c.selector}` })
+        breaches.push({
+          ruleId: 'CC-2',
+          message: `rate limiter off for chain ${c.selector}`,
+          ref: `chain:${c.selector}`,
+        })
     const unreadSilo = siloed.filter((c) => !c.rebalancer).length
     const rebText =
       p.rebalancer && /^0x0{40}$/i.test(p.rebalancer)
@@ -1467,11 +1681,14 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       key: `bridge/ccip/${lc(p.pool)}`,
       chainId: 1,
       block: head,
-      display: `CCIP pool ${lc(p.pool).slice(0, 10)}…: owner ${describeController(p.owner ? ctlHead(p.owner) : null)}, ${siloed.length ? `unsiloed rebalancer ${rebText}${unsiloed.length ? '' : ' (no unsiloed chain)'}; ${siloLines.join('; ')}` : `rebalancer ${rebText}`} (can withdraw locked liquidity), ${p.chains.length} chains · CCIP 2.0 verifier set (CCV/RMN) not read in v1`,
+      display: `CCIP pool ${lc(p.pool).slice(0, 10)}…: owner ${describeController(p.owner ? ctlHead(p.owner) : null)}, ${siloed.length ? `unsiloed rebalancer ${rebText}${unsiloed.length ? '' : ' (no unsiloed chain)'}; ${siloLines.join('; ')}` : `rebalancer ${rebText}`} (can withdraw locked liquidity), ${p.chainsUnread ? 'supported chains NOT READ' : `${p.chains.length} chains`} · CCIP 2.0 verifier set (CCV/RMN) not read in v1`,
       breaches,
       warnings: [
         'CCIP 2.0 committee/CCV verifier set not read in v1',
         ...(unreadSilo ? [`${unreadSilo} siloed chain rebalancer(s) not read`] : []),
+        ...(p.chainsUnread
+          ? ['supported chains not read: rate limiters and silo rebalancers not judged (read gap)']
+          : []),
       ],
     })
   }
@@ -1498,22 +1715,29 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         breaches.push({
           ruleId: 'BR-2',
           message: `NTT ${short(n.manager)}: ${eff.E} effective verifier network(s) attest a message (threshold ${n.threshold} over ${eff.distinct} distinct)`,
+          ref: 'floor',
         })
       if (eff.unknown)
         breaches.push({
           ruleId: 'BR-7',
           message: `${eff.unknown} transceiver(s) of an unknown verifier network`,
+          ref: 'unknown',
         })
       if (eff.duplicate)
         breaches.push({
           ruleId: 'BR-7',
           message: `${eff.duplicate} transceiver(s) on a network already counted`,
+          ref: 'duplicate',
         })
     } else
       itemWarnings.push('threshold / transceivers not read: the floor is not judged (read gap)')
     const own = n.owner ? ctlHead(n.owner) : null
     if (own && isEoaControlled(own))
-      breaches.push({ ruleId: 'AD-3', message: `NTT owner is ${describeController(own)}` })
+      breaches.push({
+        ruleId: 'AD-3',
+        message: `NTT owner is ${describeController(own)}`,
+        ref: 'owner',
+      })
     const peers = Object.entries(n.peers)
       .map(
         ([ch, p]) =>
@@ -1557,7 +1781,11 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     const breaches: StateItem['breaches'] = []
     const adm = b.admin ? ctlHead(b.admin) : null
     if (adm && isEoaControlled(adm))
-      breaches.push({ ruleId: 'AD-3', message: `bridge proxy admin is ${describeController(adm)}` })
+      breaches.push({
+        ruleId: 'AD-3',
+        message: `bridge proxy admin is ${describeController(adm)}`,
+        ref: 'admin',
+      })
     const sw = (x: boolean | null | undefined, what: string) =>
       x === undefined ? null : x === null ? `${what} NOT READ` : x ? `${what} on` : `${what} OFF`
     const value = valueAtRisk({
@@ -1635,6 +1863,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         breaches.push({
           ruleId: 'AD-3',
           message: `${name} of Dual Governance ${short(ept)} is ${describeController(h)}`,
+          ref: `committee:${field}`,
         })
     }
     const ends = d.emergencyProtectionEndsAfter
@@ -1722,6 +1951,24 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     .map((a) => ctlHead(a))
     .filter((c): c is Controller => isSafeLike(c))
   const prevSafes = raw.admin.previousSafes
+  // Review round 12 (rules #6): a Safe of the last snapshot that this run could not classify
+  // keeps its LAST READ in the snapshot (with the block it was read at), as an unread remote route
+  // does — it dropped out, so a silent threshold drop across that run was never bracketed. Kept
+  // while it is still in this card's scope, or while the scope itself was not read (a power whose
+  // holders were not resolved). A read gap meanwhile.
+  const scopeUnread = raw.admin.powers.some((p) => p.error)
+  const safeReadAt: Record<string, number> = {}
+  const safeCarried: Controller[] = []
+  const safeCarriedGaps: string[] = []
+  for (const [addr, prev] of Object.entries(prevSafes?.controllers ?? {})) {
+    if (ctlHead(addr) || !(subjectSafes.has(lc(addr)) || scopeUnread)) continue
+    const at = prevSafes!.readAt?.[addr] ?? prevSafes!.block
+    safeCarried.push(prev)
+    safeReadAt[addr] = at
+    safeCarriedGaps.push(
+      `Safe ${short(lc(addr))}: not classified this run (its last read, at block ${at}, is kept: a change since is bracketed from it)`,
+    )
+  }
   const tracked = new Set([
     ...safeNow.map((c) => c.address),
     ...Object.keys(prevSafes?.controllers ?? {}).filter((a) => subjectSafes.has(lc(a))),
@@ -1730,7 +1977,8 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     const prev = prevSafes?.controllers[addr]
     const c = ctlHead(addr)
     if (!prev || !c) continue
-    const since = prevSafes!.block
+    // bracketed from the run that last READ it (a Safe carried through an unread run)
+    const since = prevSafes!.readAt?.[addr] ?? prevSafes!.block
     // AD-6 singleton: slot 0 moved (a canonical Safe whose singleton was swapped is no longer a
     // Safe — the delegatecall-takeover path), or a Safe no longer classifies as one.
     const wasSafe = prev.kind === 'safe'
@@ -2210,6 +2458,18 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     ...safeProposalChanges(raw.queues.safe, q),
     ...multisigSubmissionChanges(raw.queues.multisig ?? [], q),
   ]
+  queue.push(...carryUnreadQueueRows(queue, raw))
+
+  // Review round 12 (rules #6): the run-to-run diff rows of the previous run (a Safe field or a
+  // remote route that changed between two runs, with no event) are history no event re-derives:
+  // they were rewritten away by the next run, so a silent threshold drop was red for ONE run only.
+  // Carried as they were; whether each is still in effect is judged again below.
+  for (const r of raw.previousChanges?.changes ?? [])
+    if (/:(safe-head|remote-head):/.test(r.id) && !changes.some((c) => c.id === r.id)) {
+      const kept: ConfigChange = { ...r }
+      delete kept.stillInEffect
+      changes.push(kept)
+    }
 
   markStillInEffect(changes)
   // review round 8 (on-chain #1): a grant judged on the grantee as it was when granted is
@@ -2223,6 +2483,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       head,
       subject: subject.key,
       announcement,
+      previous: (raw.previousChanges?.changes ?? []).filter((c) => c.id.includes(':role-head:')),
     }),
   )
 
@@ -2243,16 +2504,8 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         ),
       ),
     ],
-    ...[
-      ...new Set(
-        powers.flatMap((p) =>
-          p.holders
-            .map(leaf)
-            .filter((h) => h.bypass?.unread)
-            .map((h) => `timelock ${short(h.address)}: ${h.bypass!.fn} whitelist not read`),
-        ),
-      ),
-    ],
+    // (a bypass whitelist that could not be read is listed by `nodeReadGaps` below, tree-wide:
+    // review round 12 — the UQ-30 carry finds it there)
     ...raw.queues.safeStatus
       .filter((x) => x.status === 'unavailable')
       .map(
@@ -2274,6 +2527,12 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     ...(raw.ntt ?? [])
       .filter((n) => n.threshold === null || n.transceivers === null)
       .map((n) => `NTT manager ${short(n.manager)}: threshold / transceivers not read`),
+    // review round 12 (rules #3): a CCIP chain list that was not read hides CC-1 / CC-2 / CC-3
+    ...raw.ccip.pools
+      .filter((p) => p.chainsUnread)
+      .map((p) => `CCIP pool ${short(lc(p.pool))}: supported chains not read`),
+    // review round 12 (rules #6): a tracked Safe not classified this run (its last read is carried)
+    ...safeCarriedGaps,
     // review round 8: an unread peer or owner can hide BR-2 / BR-6 / AD-3 — never "no red flags"
     ...(raw.ntt ?? []).flatMap((n) =>
       Object.entries(n.peers)
@@ -2352,6 +2611,227 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     ...dgGaps,
   ]
 
+  // UQ-30: a head breach the previous run recorded is never dropped by a failed read. The read
+  // gaps each breach depends on (the engine's own read-gap lines, so they are listed once):
+  // an item added back by the carry itself (not read this run) counts as unread, never as a read
+  const isUnreadSide = (i: StateItem | undefined) =>
+    !!i &&
+    (i.warnings ?? []).some(
+      (w) => w === 'UNREAD' || w === 'REMOTE UNREAD' || w.startsWith('not read this run'),
+    )
+  const holderGaps = (h: Controller, label: string): string[] => [
+    ...(h.version === 'not classified at head'
+      ? [`${label}: holder ${short(h.address)} could not be classified at head`]
+      : []),
+    ...treeReadGaps([h]),
+  ]
+  const powerKey = (p: { power: string; contract: string }) =>
+    `admin/power/${p.power}/${lc(p.contract)}`
+  const ctlGaps = (
+    a: string | null | undefined,
+    what: string,
+    unread: string,
+    notClassified = 'could not be classified at head',
+  ): string[] => {
+    if (!a) return [unread]
+    if (/^0x0{40}$/i.test(a)) return []
+    const c = ctlHead(a)
+    return c ? treeReadGaps([c]) : [`${what} ${short(lc(a))} ${notClassified}`]
+  }
+  // the occ-th power with this item key (several powers of one kind on one contract share it)
+  const powerAt = (key: string, occ: number): number =>
+    powers.map((p, i) => (powerKey(p) === key ? i : -1)).filter((i) => i >= 0)[occ] ?? -1
+  const refOf = (key: string, b: StateBreach, occ: number): string | undefined => {
+    const pi = powerAt(key, occ)
+    return legacyBreachRef(key, b, {
+      label: pi >= 0 ? powers[pi].label : undefined,
+      holders: pi >= 0 ? powers[pi].holders.map((h) => short(h.address)) : undefined,
+    })
+  }
+  const gapsOf = (
+    key: string,
+    b: StateBreach,
+    p: StateItem,
+    cur: StateItem | undefined,
+    occ: number,
+  ) => {
+    const ref = b.ref ?? refOf(key, b, occ)
+    // a LayerZero route side: re-confirmed only by reading it
+    if (key.startsWith('bridge/lz/')) {
+      if (cur) return isUnreadSide(cur) ? [`${ROUTE_SIDE_UNREAD}${cur.display}`] : []
+      // an Ethereum side with no live peer (zeroed, no library) is gone, not unread
+      if (key.startsWith('bridge/lz/1/') || key.startsWith('bridge/lz/remote/')) return []
+      const o = lc((p.value as { localOApp?: string } | undefined)?.localOApp ?? '')
+      if (!o || !subject.lzOApps.map(lc).includes(o)) return []
+      const dir = key.split('/').at(-1)
+      const ofO = (i: StateItem) =>
+        lc((i.value as { localOApp?: string } | undefined)?.localOApp ?? '') === o
+      // superseded: that remote chain and direction of the OApp was READ this run (another peer)
+      if (
+        items.some(
+          (i) =>
+            i.key.startsWith(`bridge/lz/${p.chainId}/`) &&
+            i.key.endsWith(`/30101/${dir}`) &&
+            ofO(i) &&
+            !isUnreadSide(i),
+        )
+      )
+        return []
+      const ph = items.find(
+        (i) =>
+          i.key.startsWith('bridge/lz/remote/') &&
+          ofO(i) &&
+          (i.chainId === p.chainId || i.chainId === 0),
+      )
+      if (ph) return [`${ROUTE_SIDE_UNREAD}${ph.display}`]
+      const eid = p.display.match(/^eid (\d+)/)?.[1]
+      const local = items.find(
+        (i) => !!eid && i.key.startsWith(`bridge/lz/1/${o}/${eid}/`) && isUnreadSide(i),
+      )
+      if (local) return [`${ROUTE_SIDE_UNREAD}${local.display}`]
+      return [`remote route side ${key} not read this run`]
+    }
+    if (key.startsWith('admin/power/')) {
+      const pi = powerAt(key, occ)
+      if (pi < 0) {
+        const spec = subject.powers.filter((s) => powerKey(s) === key)[occ]
+        return spec ? [`${spec.label}: holders not read this run`] : []
+      }
+      const pw = powers[pi]
+      const err = raw.admin.powers[pi]?.error
+      const base = err ? [`${pw.label}: holders not resolved (${err})`] : []
+      const all = () => [...base, ...pw.holders.flatMap((h) => holderGaps(h, pw.label))]
+      if (ref?.startsWith('holder:')) {
+        const h = pw.holders.find((x) => short(x.address) === ref.slice(7))
+        // a holder no longer listed is gone (unless the holder list itself was not read)
+        return h ? [...base, ...holderGaps(h, pw.label)] : base
+      }
+      if (ref?.startsWith('node:')) {
+        const hs = pw.holders.filter((h) =>
+          controllerTree(h).some((x) => short(x.address) === ref.slice(5)),
+        )
+        // a node no longer in any tree may be hidden by a tree that was not read
+        return hs.length ? [...base, ...hs.flatMap((h) => holderGaps(h, pw.label))] : all()
+      }
+      return all()
+    }
+    if (key.startsWith('admin/timelock_admin/')) return [] // AD-7 does not depend on a rank
+    if (key.startsWith('mint/')) {
+      const spec = subject.params.find((s) => `mint/${s.key}` === key)
+      if (!spec) return []
+      const v = raw.params.head[spec.key]
+      if (v === undefined) return [`${spec.label}: not read at head`]
+      return typeof v === 'string' && /^0x[0-9a-f]{40}$/i.test(v)
+        ? ctlGaps(v, spec.label, `${spec.label}: not read at head`)
+        : []
+    }
+    if (key.startsWith('bridge/ccip/')) {
+      const addr = key.slice('bridge/ccip/'.length)
+      const pool = raw.ccip.pools.find((x) => lc(x.pool) === addr)
+      if (!pool)
+        return subject.ccipPools.map(lc).includes(addr)
+          ? [`CCIP pool ${short(addr)} not read this run`]
+          : []
+      const at = `CCIP pool ${short(addr)}`
+      // review round 12 (rules #3): a chain missing because the chain LIST was not read is unread
+      const chainsGap = pool.chainsUnread ? [`${at}: supported chains not read`] : []
+      const reb = () => ctlGaps(pool.rebalancer, `${at}: rebalancer`, `${at}: rebalancer not read`)
+      const silo = (sel: string) => {
+        const c = pool.chains.find((x) => x.selector === sel)
+        if (!c) return chainsGap
+        if (c.siloed === null) return [`${at}: whether chain ${sel} is siloed was not read`]
+        if (!c.siloed) return []
+        return ctlGaps(
+          c.rebalancer,
+          `${at}: silo rebalancer of chain ${sel}`,
+          `${at}: silo rebalancer of chain ${sel} not read`,
+        )
+      }
+      const limiter = (sel: string) => {
+        const c = pool.chains.find((x) => x.selector === sel)
+        if (!c) return chainsGap
+        return c.inboundEnabled === null || c.outboundEnabled === null
+          ? [`${at}: rate limiter of chain ${sel} not read`]
+          : []
+      }
+      if (ref === 'rebalancer') return reb()
+      if (ref?.startsWith('silo:')) return silo(ref.slice(5))
+      if (ref?.startsWith('chain:')) return limiter(ref.slice(6))
+      return [
+        ...reb(),
+        ...chainsGap,
+        ...pool.chains.flatMap((c) => [...silo(c.selector), ...limiter(c.selector)]),
+      ]
+    }
+    if (key.startsWith('bridge/ntt/')) {
+      const addr = key.slice('bridge/ntt/'.length)
+      const n = (raw.ntt ?? []).find((x) => lc(x.manager) === addr)
+      if (!n)
+        return (subject.nttManagers ?? []).map(lc).includes(addr)
+          ? [`NTT manager ${short(addr)} not read this run`]
+          : []
+      const floor =
+        n.threshold === null || n.transceivers === null
+          ? [`NTT manager ${short(n.manager)}: threshold / transceivers not read`]
+          : []
+      const owner = ctlGaps(
+        n.owner,
+        `NTT manager ${short(n.manager)}: owner`,
+        `NTT manager ${short(n.manager)}: owner not read`,
+      )
+      const remote = nttRemoteGaps(n)
+      if (ref === 'floor' || ref === 'unknown' || ref === 'duplicate') return floor
+      if (ref === 'owner') return owner
+      if (ref?.startsWith('remote:')) return remote
+      return [...floor, ...owner, ...remote]
+    }
+    if (key.startsWith('bridge/canonical/')) {
+      const addr = key.slice('bridge/canonical/'.length)
+      const br = (raw.canonical ?? []).find((x) => lc(x.bridge) === addr)
+      if (!br)
+        return (subject.canonicalBridges ?? []).some((x) => lc(x.address) === addr)
+          ? [`canonical bridge ${short(addr)} not read this run`]
+          : []
+      if (br.ossified === true) return []
+      return ctlGaps(
+        br.admin,
+        `canonical bridge ${short(br.bridge)}: proxy admin`,
+        `canonical bridge ${short(br.bridge)}: proxy admin not read (upgrade control unknown)`,
+      )
+    }
+    if (key.startsWith('admin/dg/')) {
+      const ept = key.slice('admin/dg/'.length)
+      const c = dgTimelocks.get(ept)
+      // the Dual Governance timelock is no longer in any holder's tree: gone, unless a holder's
+      // tree was not read
+      if (!c)
+        return powers.flatMap((pw, pi) => [
+          ...(raw.admin.powers[pi]?.error
+            ? [`${pw.label}: holders not resolved (${raw.admin.powers[pi].error})`]
+            : []),
+          ...pw.holders.flatMap((h) => holderGaps(h, pw.label)),
+        ])
+      const fields = DG_COMMITTEE_FIELDS.filter(
+        ([f]) => !ref?.startsWith('committee:') || ref === `committee:${f}`,
+      )
+      return fields.flatMap(([f, name]) => {
+        const a = c.dg![f]
+        if (a === undefined) return []
+        // the engine's own dgGaps lines
+        return ctlGaps(
+          a,
+          `Dual Governance ${short(ept)}: ${name}`,
+          `Dual Governance ${short(ept)}: ${name} not read`,
+          'not classified at head',
+        )
+      })
+    }
+    return []
+  }
+  const carry = carryUnconfirmedBreaches(items, raw.previousHead, { gapsOf, refOf })
+  for (const g of carry.gaps)
+    if (!g.startsWith(ROUTE_SIDE_UNREAD) && !readGaps.includes(g)) readGaps.push(g)
+
   const all = [...changes, ...queue]
   const state: SubjectState = {
     version: 1,
@@ -2373,7 +2853,8 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       { kind: 'discourse', status: 'not_ingested' },
     ],
     powers,
-    safeSnapshot: safeNow,
+    safeSnapshot: safeCarried.length ? [...safeNow, ...safeCarried] : safeNow,
+    safeReadAt: Object.keys(safeReadAt).length ? safeReadAt : undefined,
     remoteSnapshot:
       Object.keys(remoteNow).length + Object.keys(remoteCarried).length
         ? { ...remoteCarried, ...remoteNow }
@@ -2395,6 +2876,58 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     warnings,
   }
   return { state, changes: changes.sort((a, b) => (b.block ?? 0) - (a.block ?? 0)), queue }
+}
+
+/**
+ * Review round 12 (rules #7): the previous run's pending / proposed queue rows whose QUEUE could
+ * not be read this run (Safe Tx Service unavailable, MultiSigWallet submissions or Dual Governance
+ * proposals not read) — carried, still counted (a red stays red), tagged `read_gap` and marked
+ * "NOT READ this run (carried from block N)" with the block of the last run that read it. They
+ * were dropped, and a red pending row with them (WBTC 0x4dbb… tx 21, an owner added at 1 of 5
+ * confirmations), leaving only a read-gap line. A queue read again is the truth: a row it no
+ * longer lists is resolved (executed or cancelled).
+ */
+export function carryUnreadQueueRows(
+  queue: readonly ConfigChange[],
+  raw: Pick<RawSubject, 'queues' | 'previousQueue'>,
+): ConfigChange[] {
+  const prev = raw.previousQueue
+  if (!prev) return []
+  const unread = new Set([
+    ...raw.queues.safeStatus
+      .filter((x) => x.status === 'unavailable')
+      .map((x) => `safe|${lc(x.safe)}`),
+    ...(raw.queues.multisigStatus ?? [])
+      .filter((x) => x.status === 'unavailable')
+      .map((x) => `legacy_multisig|${lc(x.multisig)}`),
+    ...(raw.queues.dgStatus ?? [])
+      .filter((x) => x.status === 'unavailable')
+      .map((x) => `dg_timelock|${lc(x.timelock)}`),
+  ])
+  const have = new Set(queue.map((c) => c.id))
+  const name = {
+    safe: 'Safe Tx Service',
+    legacy_multisig: 'MultiSigWallet',
+    dg_timelock: 'Dual Governance',
+  }
+  const out: ConfigChange[] = []
+  for (const p of prev.changes) {
+    if (!p.queue || have.has(p.id)) continue
+    if (!unread.has(`${p.queue.kind}|${lc(p.queue.address)}`)) continue
+    const first = (p.notes ?? [])
+      .map((n) => n.match(/^NOT READ this run \(carried from block (\d+)\)/)?.[1])
+      .find(Boolean)
+    const from = first ? Number(first) : prev.block
+    out.push({
+      ...p,
+      tags: [...new Set([...p.tags, 'read_gap' as const])],
+      notes: [
+        ...(p.notes ?? []).filter((n) => !n.startsWith('NOT READ this run')),
+        `NOT READ this run (carried from block ${from}): the ${name[p.queue.kind as keyof typeof name] ?? p.queue.kind} queue of ${shortAddr(lc(p.queue.address))} could not be read — a failed read never drops a pending row`,
+      ],
+    })
+  }
+  return out
 }
 
 /**
@@ -2424,6 +2957,8 @@ export function rejudgeRoleHoldersAtHead(
     head: number
     subject: string
     announcement: AnnouncementStatus
+    /** Review round 12: the previous run's `:role-head:` rows (carried while unread at head). */
+    previous?: ConfigChange[]
   },
 ): ConfigChange[] {
   const byId = new Map(changes.map((c) => [c.id, c]))
@@ -2455,7 +2990,23 @@ export function rejudgeRoleHoldersAtHead(
     const em = lc(lastE.emitter)
     const acct = lc(String(lastE.args.account))
     const now = o.ctlHead(acct)
-    if (!now) continue
+    if (!now) {
+      // Review round 12 (rules #6): the holder was not read at head this run. A red row the last
+      // run derived for it ("weakened since its grant") is CARRIED — it was dropped, and the red
+      // with it, by one failed read.
+      const pre = `1:role-head:${em}:${lc(String(lastE.args.role))}:${acct}:`
+      for (const p of o.previous ?? [])
+        if (p.id.startsWith(pre))
+          added.push({
+            ...p,
+            stillInEffect: true,
+            notes: [
+              ...(p.notes ?? []).filter((n) => !n.startsWith('CARRIED: ')),
+              `CARRIED: the holder was not read at head (block ${o.head}) — kept from the run that found it weakened (block ${p.block}); a failed read never ends a red`,
+            ],
+          })
+      continue
+    }
     const rowOf = (e: AdminEventRow) => byId.get(`${e.chainId}:${e.tx}:${e.logIndex}`)
     for (const { e, before } of list) {
       const row = rowOf(e)

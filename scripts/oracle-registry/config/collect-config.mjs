@@ -19,7 +19,7 @@
 // RPC: RECORDER_RPC_URL (keyed; never printed — every error is scrubbed). Remote chains: public
 // RPCs from the LZ metadata. Scans are topic-filtered raw eth_getLogs (see lib/rpc.mjs).
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { toFunctionSelector } from 'viem'
 import { ROOT } from '../../lib/venue-reads.mjs'
@@ -41,6 +41,7 @@ import {
   classify,
   dgCommitteeAddresses,
   enrichTokenVotes,
+  hasReadFailure,
   MULTICALL3_BLOCK,
   opsFromEvents,
   readCanonicalBridge,
@@ -51,6 +52,7 @@ import {
   readNttRemote,
   readOps,
   resolvePath,
+  coHolderReads,
   roleHoldersFromEvents,
   setAragonExecCandidates,
   setLogClients,
@@ -87,6 +89,7 @@ import {
   scrub,
   tryRead,
 } from './lib/rpc.mjs'
+import { readPreviousState, writeJsonAtomic } from './lib/files.mjs'
 import { safeQueues } from './lib/safe.mjs'
 import { verifySources, verifySourcesThroughProxies } from './lib/verify.mjs'
 import { loadTs } from './lib/ts.mjs'
@@ -119,7 +122,9 @@ const DIR = join(ROOT, 'data', 'oracle-registry', 'config')
 const CACHE = join(DIR, '.cache')
 for (const d of ['state', 'changes', 'queues', '.cache'])
   mkdirSync(join(DIR, d), { recursive: true })
-const writeJson = (p, o) => writeFileSync(p, JSON.stringify(o) + '\n')
+// review round 12 (rules #8): every write is atomic (temp file + rename) — a full disk mid-write
+// truncated state/<subject>.json, and the next run silently lost every carry
+const writeJson = (p, o) => writeJsonAtomic(p, o)
 
 const file = JSON.parse(readFileSync(join(DIR, 'subjects.json'), 'utf8'))
 const subjects = file.subjects.filter((s) => !ONLY.length || ONLY.includes(s.key))
@@ -868,6 +873,7 @@ for (const e of oracleChanges.events ?? [])
 // AD-5: the upgrade power's holders at the block BEFORE each upgrade / admin change, so a
 // timelock is only expected in transactions after it actually held that power.
 const upgradeHoldersAt = {}
+const upgradeHoldersUnread = []
 const upgradeSpecs = new Map()
 for (const s of subjects)
   for (const p of s.powers) if (p.power === 'upgrade') upgradeSpecs.set(p.contract, p.path)
@@ -877,13 +883,22 @@ for (const r of adminRows) {
     !upgradeSpecs.has(r.emitter)
   )
     continue
-  const hs = await resolvePath(client, {
-    endpoint: ETH.endpoint,
-    contract: r.emitter,
-    path: upgradeSpecs.get(r.emitter),
-    roleMap,
-    block: r.block - 1,
-  })
+  // review round 12: resolvePath now throws on a failed read (fail closed) — the upgrade is then
+  // judged against the declared timelock (AD-5 `upgradeHoldersUnread`), never skipped
+  let hs
+  try {
+    hs = await resolvePath(client, {
+      endpoint: ETH.endpoint,
+      contract: r.emitter,
+      path: upgradeSpecs.get(r.emitter),
+      roleMap,
+      block: r.block - 1,
+    })
+  } catch (e) {
+    upgradeHoldersUnread.push(`${r.emitter}@${r.block}`)
+    ctx.warnings.push(`upgrade holders of ${r.emitter}@${r.block - 1}: ${scrub(e?.message)}`)
+    continue
+  }
   upgradeHoldersAt[`${r.emitter}@${r.block}`] = hs
   for (const h of hs) wantAt.add(`${h}@${r.block - 1}`)
 }
@@ -983,47 +998,34 @@ for (const r of adminRows)
         String(r.args.newAdminRoleName ?? roleName(r.args.newAdminRole)),
       ]),
     )
+const coHolderReuse = {}
 const rankedRole = (r) => {
   const name = String(r.args.roleName ?? roleName(r.args.role))
   return rulesTs.isPrivilegedRole(name) || !!adminRoleNames.get(r.emitter)?.has(name)
 }
 {
-  const held = new Map()
-  const grantedAt = new Map()
-  for (const r of [...adminRows].sort((a, b) => a.block - b.block || a.logIndex - b.logIndex)) {
-    if (r.event !== 'RoleGranted' && r.event !== 'RoleRevoked') continue
-    const k = `${r.emitter}|${lc(r.args.role)}`
-    const acct = lc(r.args.account)
-    const set = held.get(k) ?? new Set()
-    if (r.event === 'RoleGranted' && rankedRole(r)) {
-      for (const h of set) {
-        if (h === acct) continue
-        const own = atCache[`${h}@${grantedAt.get(`${k}|${h}`)}`]
-        if (own && (own.kind === 'eoa' || own.kind === 'eoa_7702')) continue
-        wantAt.add(`${h}@${r.block}`)
-      }
-    }
-    if (r.event === 'RoleGranted') {
-      set.add(acct)
-      if (!grantedAt.has(`${k}|${acct}`)) grantedAt.set(`${k}|${acct}`, r.block)
-    } else {
-      set.delete(acct)
-      grantedAt.delete(`${k}|${acct}`)
-    }
-    held.set(k, set)
-  }
+  // review round 12 (on-chain #5): a co-holder already read as an EOA is recorded at the later
+  // grant block too (`reuse`), never left "not read" there
+  const co = coHolderReads(adminRows, atCache, rankedRole)
+  for (const k of co.want) wantAt.add(k)
+  for (const [k, c] of Object.entries(co.reuse)) coHolderReuse[k] = c
   log(`role holders at their grant blocks: ${wantAt.size} at event blocks in all`)
 }
 await pool([...wantAt], 6, async (k) => {
-  if (atCache[k]) return void (controllers[k] = atCache[k])
+  // round 12: a cached classification in which a read failed is read again (never sticky)
+  if (atCache[k] && !hasReadFailure(atCache[k])) return void (controllers[k] = atCache[k])
   const [a, b] = k.split('@')
   try {
-    controllers[k] = atCache[k] = await classify(client, a, Number(b))
+    const c = await classify(client, a, Number(b))
+    controllers[k] = c
+    if (hasReadFailure(c)) delete atCache[k]
+    else atCache[k] = c
   } catch (e) {
     classifyFailed.add(k)
     ctx.warnings.push(`classify ${a}@${b}: ${scrub(e?.message)}`)
   }
 })
+for (const [k, c] of Object.entries(coHolderReuse)) controllers[k] ??= c
 writeJson(AT_CACHE, atCache)
 // Previous delegates for DelegateSet (the replay knows them; classify one block before).
 {
@@ -1512,15 +1514,22 @@ const oracleFor = (s) => {
   }
 }
 // The previous run's state of a subject (Safe fields and remote routes are diffed run to run).
+// Review round 12 (rules #8): a missing file is a first run; one that cannot be parsed STOPS the
+// run (it was read as null: every carry and run-to-run diff silently lost).
 const prevStates = new Map()
 const prevState = (key) => {
   if (!prevStates.has(key))
-    try {
-      prevStates.set(key, JSON.parse(readFileSync(join(DIR, 'state', `${key}.json`), 'utf8')))
-    } catch {
-      prevStates.set(key, null)
-    }
+    prevStates.set(key, readPreviousState(join(DIR, 'state', `${key}.json`)))
   return prevStates.get(key)
+}
+// Review round 12 (rules #6 / #7): the rows of the previous run that no event re-derives — the
+// run-to-run Safe / remote diffs and the head-derived AD-4 rows (carried by the engine), and the
+// pending queue rows (carried when their queue cannot be read this run).
+const RUN_ONLY_ROW = /:(safe-head|remote-head|role-head):/
+const prevRows = (dir, key, keep = () => true) => {
+  const f = readPreviousState(join(DIR, dir, `${key}.json`))
+  if (!f?.changes) return undefined
+  return { block: f.asOf?.block ?? 0, changes: f.changes.filter(keep) }
 }
 const summary = []
 // this subject's Dual Governance timelocks (leaves of its power holders)
@@ -1628,12 +1637,22 @@ for (const s of subjects) {
       upgradeHoldersAt: Object.fromEntries(
         Object.entries(upgradeHoldersAt).filter(([k]) => subjectAddrs.has(k.split('@')[0])),
       ),
+      ...(upgradeHoldersUnread.some((k) => subjectAddrs.has(k.split('@')[0]))
+        ? {
+            upgradeHoldersUnread: upgradeHoldersUnread.filter((k) =>
+              subjectAddrs.has(k.split('@')[0]),
+            ),
+          }
+        : {}),
       previousSafes: (() => {
         const prev = prevState(s.key)
         if (!prev?.safeSnapshot) return undefined
         return {
           block: prev.asOf.block,
           controllers: Object.fromEntries(prev.safeSnapshot.map((c) => [c.address, c])),
+          // review round 12: a Safe carried through a run that could not classify it keeps the
+          // block it was last READ at
+          ...(prev.safeReadAt ? { readAt: prev.safeReadAt } : {}),
         }
       })(),
       deployBlocks,
@@ -1700,6 +1719,20 @@ for (const s of subjects) {
       ? { canonical: s.canonicalBridges.map((b) => canonicalReads[b.address]).filter(Boolean) }
       : {}),
     oracle: oracleFor(s),
+    // UQ-30: the previous run's head breaches — one this run cannot re-confirm because a read it
+    // depends on failed is carried (counted, red, "breach unconfirmed: read gap")
+    ...(prevState(s.key)?.items
+      ? { previousHead: { block: prevState(s.key).asOf.block, items: prevState(s.key).items } }
+      : {}),
+    // review round 12: the previous run's run-only rows and pending queue rows
+    ...(() => {
+      const ch = prevRows('changes', s.key, (c) => RUN_ONLY_ROW.test(String(c.id)))
+      const q = prevRows('queues', s.key)
+      return {
+        ...(ch?.changes.length ? { previousChanges: ch } : {}),
+        ...(q?.changes.length ? { previousQueue: q } : {}),
+      }
+    })(),
     warnings: ctx.warnings,
   }
   // Raw observations (for --rebuild): opt-in, they are the largest cache files.

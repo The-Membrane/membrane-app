@@ -20,6 +20,7 @@ import {
   isRevertError,
   pool,
   retry,
+  scrub,
   sleep,
   tryRead,
 } from './rpc.mjs'
@@ -139,7 +140,15 @@ async function firstCodeBlock(client, a) {
   return deployOf.get(a)
 }
 
-/** FunctionWhitelisted(target, selector) logs of a timelock (null when they could not be read). */
+/**
+ * FunctionWhitelisted(target, selector) logs of a timelock (null when they could not be read).
+ * Review round 12 (on-chain #3): read like the proposer logs (UQ-23) — every EMPTY chunk is
+ * cross-checked on the second log endpoint (`crossCheckedLogs`), and an empty answer nothing
+ * confirms makes the whitelist UNREAD. It was one unchecked read on the state ring: a false-empty
+ * chunk made `timelockBypass` answer "no bypass", and the USDe / sUSDe AD-2 head breaches (the
+ * Ethena timelock's whitelisted setPeer) vanished with no read gap. Without log clients (tests,
+ * old callers) the one endpoint's empty answer is unconfirmed: unread.
+ */
 async function whitelistLogs(client, a) {
   if (!wlLogs.has(a))
     wlLogs.set(
@@ -149,13 +158,16 @@ async function whitelistLogs(client, a) {
           const from = await firstCodeBlock(client, a)
           const head = Number(await retry(() => client.getBlockNumber()))
           const out = []
-          for (let b = from; b <= head; b += 1_000_000) {
-            const logs = await getLogsAdaptive(client, {
+          for (let b = from; b <= head; b += ROLE_LOG_CHUNK) {
+            const q = {
               address: a,
               topics0: [TOPIC_FUNCTION_WHITELISTED],
               fromBlock: b,
-              toBlock: Math.min(head, b + 999_999),
-            })
+              toBlock: Math.min(head, b + ROLE_LOG_CHUNK - 1),
+            }
+            const logs = logClients
+              ? (await crossCheckedLogs(logClients.primary, logClients.secondary, q)).logs
+              : (await crossCheckedLogs(client, null, q)).logs
             for (const l of logs)
               out.push({
                 target: ('0x' + l.topics[1].slice(-40)).toLowerCase(),
@@ -182,6 +194,7 @@ let logClients = null
 export function setLogClients(primary, secondary) {
   logClients = primary ? { primary, secondary: secondary ?? null } : null
   roleLogs.clear()
+  wlLogs.clear()
 }
 export const ROLE_LOG_CHUNK = 500_000
 /** RoleGranted(role, account) logs of a timelock from its deployment (null when unread). */
@@ -257,6 +270,44 @@ const MAX_OWNER_HOPS = 2
  * silently became a plain contract. Such a read is made one eth_call per view instead.
  */
 export const MULTICALL3_BLOCK = 14_353_601
+
+/**
+ * Round 12 (2026-10-09): a past-block classification is cached across runs because the chain at
+ * that block never changes — but a classification in which a READ FAILED is this run's fail-closed
+ * answer, not a fact about the block. Cached, one transient RPC failure became permanent: the
+ * re-collection cached 24 rsETH timelock classifications (`0x49bd…35b1`) with `schedulersUnread`
+ * after its RoleGranted log read failed, and every later run would have reused them. True when
+ * any node in the tree carries a read-failure marker (an unread proposer set, module list or
+ * bypass whitelist); the collector then uses it for this run only and reads it again next run (a
+ * deterministic marker, e.g. a timelock with no proposer, is simply re-read each run). A vote's
+ * unread history or holders are not checked here: `enrichTokenVotes` already reads those again.
+ */
+export function hasReadFailure(c, seen = new Set()) {
+  if (!c || typeof c !== 'object' || seen.has(c)) return false
+  seen.add(c)
+  if (c.schedulersUnread || c.modulesUnread || c.bypass?.unread || c.executorsUnread) return true
+  // Review round 12 (on-chain #4 / rules #9): also an unrestricted bypass whose bypassers were
+  // not all classified (a round-9 entry with no `holderCtls` at all — 19 cached entries of WBTC's
+  // 0x4483…9449 rendered "bypassers UNREAD" on every run, although the role reads fine), a vote
+  // time that was not read, and a Dual Governance read a rank or a breach rests on (an unread
+  // after-submit delay drops the delay credit; an unread emergency mode can hide an AD-2).
+  const b = c.bypass
+  if (
+    b?.scope === 'any' &&
+    b.fn === 'bypasserExecuteBatch' &&
+    (!b.holderCtls || b.holderCtls.length < (b.holders?.length ?? 0))
+  )
+    return true
+  if (c.voting && c.voting.voteTimeSec === null) return true
+  if (c.dg && (c.dg.afterSubmitDelaySec === null || c.dg.emergencyModeActive === null)) return true
+  return [
+    c.ownedBy,
+    ...(c.executors ?? []),
+    ...(c.schedulers ?? []),
+    ...(c.bypass?.holderCtls ?? []),
+    ...(c.dsAuthority?.callers ?? []),
+  ].some((x) => hasReadFailure(x, seen))
+}
 
 /** "The function is not there" (reverts, or returns no / short data) — not a transport failure. */
 const isAbsentResult = (e) => {
@@ -494,7 +545,18 @@ export async function timelockBypass(client, a, code, block, depth = 0, seen = n
     const holderCtls = []
     if (n.ok && holders.length === Math.min(Number(n.value), 10) && Number(n.value) <= 10)
       for (const h of holders) {
-        if (seen.has(h)) continue
+        // Review round 12 (on-chain #4): a bypasser already on this control path (WBTC's CCIP
+        // RBACTimelock 0x4483…9449: its bypasser 0x117e…aadc is owned by it) or the timelock
+        // itself is a CYCLE — ranked as a plain contract, as an owner cycle is. It was skipped,
+        // which left `holderCtls` short: a permanent "bypassers UNREAD" read gap on every run.
+        if (seen.has(h) || h === a) {
+          holderCtls.push({
+            kind: 'contract',
+            address: h,
+            version: 'already on this control path (a cycle): ranked as a plain contract',
+          })
+          continue
+        }
         try {
           holderCtls.push(await classify(client, h, block, depth + 1, new Set([...seen, a]), 0))
         } catch {
@@ -701,6 +763,54 @@ export function subjectExtraEmitters(subject, powers, roleMap, hashOf = roleHash
   return out
 }
 
+/**
+ * The co-holders a ranked role grant is judged against, to classify at the grant block (review
+ * round 8: a privileged grant is ranked against the other holders of the role). Returns the keys
+ * `${holder}@${block}` to classify (`want`) and the ones answered without a read (`reuse`).
+ *
+ * Review round 12 (on-chain #5): a co-holder that was an EOA at its own grant block is an EOA at
+ * every later block (an address with a known key never gets contract code; an EIP-7702 delegation
+ * still ranks as an EOA), so it is not read again — but it IS recorded at the later block. It was
+ * skipped and left unrecorded: the engine then found no classification there and kept rsETH's
+ * MANAGER grant at 18,759,607 red in effect "not read", blaming a read that never failed
+ * (`0x7aad…af47` was an EOA MANAGER at 18,759,606).
+ *   rows        admin event rows (RoleGranted / RoleRevoked are used)
+ *   atCache     past-block classifications by `${address}@${block}`
+ *   rankedRole  (row) → the grant is ranked against its co-holders
+ */
+export function coHolderReads(rows, atCache, rankedRole) {
+  const lcs = (x) => String(x ?? '').toLowerCase()
+  const held = new Map()
+  const grantedAt = new Map()
+  const want = new Set()
+  const reuse = {}
+  for (const r of [...rows].sort((a, b) => a.block - b.block || a.logIndex - b.logIndex)) {
+    if (r.event !== 'RoleGranted' && r.event !== 'RoleRevoked') continue
+    const k = `${lcs(r.emitter)}|${lcs(r.args?.role)}`
+    const acct = lcs(r.args?.account)
+    const set = held.get(k) ?? new Set()
+    if (r.event === 'RoleGranted' && rankedRole(r))
+      for (const h of set) {
+        if (h === acct) continue
+        const own = atCache[`${h}@${grantedAt.get(`${k}|${h}`)}`]
+        if (own && (own.kind === 'eoa' || own.kind === 'eoa_7702')) {
+          reuse[`${h}@${r.block}`] = own
+          continue
+        }
+        want.add(`${h}@${r.block}`)
+      }
+    if (r.event === 'RoleGranted') {
+      set.add(acct)
+      if (!grantedAt.has(`${k}|${acct}`)) grantedAt.set(`${k}|${acct}`, r.block)
+    } else {
+      set.delete(acct)
+      grantedAt.delete(`${k}|${acct}`)
+    }
+    held.set(k, set)
+  }
+  return { want: [...want], reuse }
+}
+
 /** Role holders per (emitter, role) replayed from RoleGranted / RoleRevoked rows. */
 export function roleHoldersFromEvents(rows) {
   const m = new Map()
@@ -713,6 +823,37 @@ export function roleHoldersFromEvents(rows) {
     m.set(k, s)
   }
   return m
+}
+
+/**
+ * Review round 12 (on-chain #1): one view of a power path, read at `block`. Answers
+ *   { ok: true, value }      the read succeeded;
+ *   { ok: false, absent }    the function is not there (it reverts, or returns no / short data —
+ *                            an EOA, a Safe asked for owner()): a FACT about the contract;
+ * and THROWS on any other failure, after retries — a transport error is never "no holder" (it was
+ * read as one: the power got `holders: []` with no error, so its AD-3 was dropped with no read
+ * gap). The collector turns the throw into `power.error`, a read gap the UQ-30 carry follows.
+ */
+async function pathRead(client, address, sig, fn, args, block) {
+  for (let i = 0; ; i++) {
+    try {
+      const value = await client.readContract({
+        address,
+        abi: fnAbi(sig),
+        functionName: fn,
+        args,
+        blockNumber: block === undefined ? undefined : BigInt(block),
+      })
+      return { ok: true, value }
+    } catch (e) {
+      if (isAbsentResult(e)) return { ok: false, absent: true }
+      if (i >= 2)
+        throw new Error(
+          `${fn}() on ${address} not read: ${scrub(e?.shortMessage || e?.message || e)}`,
+        )
+      await sleep(300 * 2 ** i)
+    }
+  }
 }
 
 async function holdersOf(client, contract, role, roleMap, block) {
@@ -740,26 +881,29 @@ async function holdersOf(client, contract, role, roleMap, block) {
     if (!x.ok || x.value) out.push(h)
   }
   // AccessControlEnumerable: the members the contract lists itself (a grant older than the
-  // event scan floor — Lido's 2023 oracle contracts — has no event to replay)
-  const n = await tryRead(
+  // event scan floor — Lido's 2023 oracle contracts — has no event to replay). Review round 12:
+  // a count or member read that FAILS (not "not enumerable") throws — a silently skipped member
+  // is a holder lost with no read gap.
+  const n = await pathRead(
     client,
     contract,
-    fnAbi(FN.getRoleMemberCount),
+    FN.getRoleMemberCount,
     'getRoleMemberCount',
     [role],
     block,
   )
   if (n.ok)
     for (let i = 0; i < Math.min(Number(n.value), 50); i++) {
-      const m = await tryRead(
+      const m = await pathRead(
         client,
         contract,
-        fnAbi(FN.getRoleMember),
+        FN.getRoleMember,
         'getRoleMember',
         [role, BigInt(i)],
         block,
       )
-      if (m.ok && !out.includes(m.value.toLowerCase())) out.push(m.value.toLowerCase())
+      if (!m.ok) throw new Error(`getRoleMember(${i}) on ${contract} returned no data`)
+      if (!out.includes(m.value.toLowerCase())) out.push(m.value.toLowerCase())
     }
   return out
 }
@@ -829,6 +973,19 @@ export function aragonExecCandidatesFromRows(rows) {
  * Resolve a PowerSpec path to holder addresses at head. `trail` (a Set, optional) collects the
  * intermediate hops — the ProxyAdmin of an `eip1967_admin` step before its `owner` — whose own
  * events and queued calls belong to the subject (review round 7).
+ *
+ * Review round 12 (on-chain #1, HIGH): every step fails CLOSED. A read that fails (transport,
+ * timeout, rate limit) THROWS — the collector records `power.error`, a read gap the UQ-30 carry
+ * follows — instead of dropping that hop: 59 of 76 declared powers used a step that silently
+ * yielded `holders: []`, which dropped the power's AD-3 with no read gap. What a step answers:
+ *   owner         the owner; at an intermediate hop with NO owner() (an EOA or a Safe as the
+ *                 proxy admin — it reverts or returns no data) the hop itself holds the power;
+ *                 on the declared contract itself a missing owner() is an error (misdeclared);
+ *   eip1967_admin the admin slot (zero = no admin: nothing);
+ *   lz_delegate / call:<fn> / role_admin:<ROLE>   the value; a missing function is an error;
+ *   role:<ROLE>   the holders (a count or member read that fails throws, see holdersOf);
+ *   acl_manager   the ACL's permission manager (an ACL that cannot be found is an error; a
+ *                 zero manager is no holder).
  */
 export async function resolvePath(client, { endpoint, contract, path, roleMap, block, trail }) {
   let cur = [contract.toLowerCase()]
@@ -837,8 +994,11 @@ export async function resolvePath(client, { endpoint, contract, path, roleMap, b
     const next = []
     for (const c of cur) {
       if (step === 'owner') {
-        const x = await tryRead(client, c, fnAbi(FN.owner), 'owner', [], block)
+        const x = await pathRead(client, c, FN.owner, 'owner', [], block)
         if (x.ok) next.push(x.value.toLowerCase())
+        else if (si > 0)
+          next.push(c) // an ownerless hop (EOA / Safe admin) acts itself
+        else throw new Error(`owner() not present on ${c} (declared path ${path.join('>')})`)
       } else if (step === 'eip1967_admin' || step === 'zos_admin') {
         const w = await retry(() =>
           client.getStorageAt({
@@ -850,41 +1010,50 @@ export async function resolvePath(client, { endpoint, contract, path, roleMap, b
         const a = word2addr(w)
         if (a && !isZero(a)) next.push(a)
       } else if (step === 'lz_delegate') {
-        const x = await tryRead(client, endpoint, fnAbi(FN.delegates), 'delegates', [c], block)
-        if (x.ok) next.push(x.value.toLowerCase())
+        const x = await pathRead(client, endpoint, FN.delegates, 'delegates', [c], block)
+        if (!x.ok) throw new Error(`delegates(${c}) not present on the endpoint ${endpoint}`)
+        next.push(x.value.toLowerCase())
       } else if (step.startsWith('call:')) {
         const fn = step.slice(5).replace('()', '')
-        const x = await tryRead(
+        const x = await pathRead(
           client,
           c,
-          fnAbi(`function ${fn}() view returns (address)`),
+          `function ${fn}() view returns (address)`,
           fn,
           [],
           block,
         )
-        if (x.ok) next.push(x.value.toLowerCase())
+        if (!x.ok) throw new Error(`${fn}() not present on ${c} (declared path ${path.join('>')})`)
+        next.push(x.value.toLowerCase())
       } else if (step.startsWith('role:')) {
         next.push(...(await holdersOf(client, c, roleHash(step.slice(5)), roleMap, block)))
       } else if (step.startsWith('acl_manager:')) {
         // Aragon: the permission MANAGER of (c, ROLE) — it can grant itself the role at will
         // (Lido revokes APP_MANAGER_ROLE between upgrades; its manager is the standing power)
         const acl = await aclOf(client, c, block)
-        if (acl) {
-          const x = await tryRead(
-            client,
-            acl,
-            fnAbi(FN.getPermissionManager),
-            'getPermissionManager',
-            [c, roleHash(step.slice(12))],
-            block,
-          )
-          if (x.ok && !isZero(x.value)) next.push(x.value.toLowerCase())
-        }
+        if (!acl) throw new Error(`the Aragon ACL of ${c} was not read`)
+        const x = await pathRead(
+          client,
+          acl,
+          FN.getPermissionManager,
+          'getPermissionManager',
+          [c, roleHash(step.slice(12))],
+          block,
+        )
+        if (!x.ok) throw new Error(`getPermissionManager not present on the ACL ${acl}`)
+        if (!isZero(x.value)) next.push(x.value.toLowerCase())
       } else if (step.startsWith('role_admin:')) {
-        const x = await tryRead(client, c, fnAbi(FN.getRoleAdmin), 'getRoleAdmin', [
-          roleHash(step.slice(11)),
-        ])
-        if (x.ok) next.push(...(await holdersOf(client, c, x.value.toLowerCase(), roleMap)))
+        // review round 12: read at the block (it read head at every block)
+        const x = await pathRead(
+          client,
+          c,
+          FN.getRoleAdmin,
+          'getRoleAdmin',
+          [roleHash(step.slice(11))],
+          block,
+        )
+        if (!x.ok) throw new Error(`getRoleAdmin not present on ${c}`)
+        next.push(...(await holdersOf(client, c, x.value.toLowerCase(), roleMap, block)))
       }
     }
     cur = [...new Set(next)]
@@ -1101,6 +1270,9 @@ export async function readCcipPool(client, poolAddr) {
     rebalancer: reb.ok ? reb.value.toLowerCase() : null,
     chains: [],
   }
+  // Review round 12 (rules #3): a chain list that could not be read is not "no chain" — marked,
+  // so the card counts a read gap and a rate-limiter / silo breach of the last run is carried
+  if (!chains.ok) out.chainsUnread = true
   for (const sel of chains.ok ? chains.value : []) {
     const i = await tryRead(
       client,
@@ -1685,8 +1857,15 @@ export async function aragonAgentOf(client, a, code, block, depth = 0, seen = ne
     if (!seen.has(h)) executors.push(await classify(client, h, block, depth, new Set([...seen, a])))
   if (executors.length) c.executors = executors
   if (executors.length === 1) c.ownedBy = executors[0]
-  else if (!executors.length)
+  else if (!executors.length) {
     c.version = 'Aragon Agent: no executor found — ranked as a plain contract'
+    // Review round 12 (rules #4): no executor FOUND is not "nobody can execute" — the candidates
+    // come from the ACL event scan, which can lose a chunk. A read gap (fail closed), as a
+    // timelock with no proposer candidate is; it was a plain contract with no gap, so on wstETH
+    // (≈ 40 of 42 head breaches go through Agent 0x3e40…) one lost scan dropped them silently.
+    // An executor that is only on this control path (a cycle) is not a read failure.
+    if (!holders.length) c.executorsUnread = true
+  }
   return c
 }
 

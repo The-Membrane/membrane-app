@@ -1,16 +1,77 @@
-# Config Cards: known gaps (2026-10-07, updated 2026-10-09, round 11: UQ-25 and its review)
+# Config Cards: known gaps (2026-10-07, updated 2026-10-10: review round 12)
 
 This is the register of what the config cards do NOT do yet, after the final review round (round 8). The design is in [CONFIG-CARDS-DESIGN.md](CONFIG-CARDS-DESIGN.md).
 
-**What gets fixed now and what goes here.** A confirmed bug that can make a dangerous change read calm, hide a red, or misstate chain data was fixed in round 8, and again in review round 9 (the review of the ruling #12–#14 work). Each one has a test that failed before the fix and passes now (`tests/unit/oracleRegistryConfigReview8.test.ts`, `tests/unit/oracleRegistryConfigReview9.test.ts`, for the review of the round-10 work `tests/unit/oracleRegistryConfigReview10.test.ts`, and for the review of the round-11 work `tests/unit/oracleRegistryConfigReview11.test.ts`). Everything else is listed here: cosmetic issues, latent issues, and anything that needs an owner call. Each entry has an id, the lens that found it, where it lives, what it does to the card, a proposed fix, and why it was not fixed now.
+**What gets fixed now and what goes here.** A confirmed bug that can make a dangerous change read calm, hide a red, or misstate chain data was fixed in round 8, and again in review round 9 (the review of the ruling #12–#14 work). Each one has a test that failed before the fix and passes now (`tests/unit/oracleRegistryConfigReview8.test.ts`, `tests/unit/oracleRegistryConfigReview9.test.ts`, for the review of the round-10 work `tests/unit/oracleRegistryConfigReview10.test.ts`, for the review of the round-11 work `tests/unit/oracleRegistryConfigReview11.test.ts`, and for the review of the round-12 work `tests/unit/oracleRegistryConfigReview12.test.ts`). Everything else is listed here: cosmetic issues, latent issues, and anything that needs an owner call. Each entry has an id, the lens that found it, where it lives, what it does to the card, a proposed fix, and why it was not fixed now.
 
 Line numbers are as of 2026-10-07 in the `feat/oracle-registry` worktree.
+
+## Review round 12 (2026-10-10): the review of the round-12 work — 14 fixed, 1 registered
+
+Two refuters reviewed the round-12 work (UQ-30, UQ-31, the re-collection): an on-chain lens and a rules lens. Every CONFIRMED-BUG could make a dangerous change read calm, hide a red, or misstate chain data, so every one is FIXED. Each fix has a test that failed before it and passes now: `tests/unit/oracleRegistryConfigReview12.test.ts`, 32 tests. Run on the code before the fixes (with only the new `files.mjs` exports stubbed), 25 fail and 6 controls pass. The KG-6 test was run separately against the old `crossCheckedLogs`: it fails (it timed out after 20 s inside the refused-request cascade). The UNSURE item both lenses raised is registered as KG-7. Uncommitted at the time of writing.
+
+| ID | Finding (lens) | Could | Fixed — where | Test |
+| --- | --- | --- | --- | --- |
+| RV12-3 | **HIGH.** A power-path read that failed without reverting was skipped. The steps were `owner`, `call:`, `lz_delegate`, `role_admin`, `acl_manager` (its `aclOf` → null) and the `getRoleMemberCount` / `getRoleMember` enumeration. The power then got `holders: []` with no `error`, and the UQ-30 carry read "holder gone": its AD-3 dropped with no read gap. 59 of 76 declared powers use such a step. Also a proxy admin that is an EOA or a Safe has no `owner()`, so `eip1967_admin>owner` gave no holder at all (on-chain #1) | hide a red | `admin.mjs` `pathRead` + `resolvePath` + `holdersOf`: a failed read THROWS → `power.error` → read gap → carried. An ownerless intermediate hop (an EOA or Safe admin) holds the power itself. A step missing on the declared contract is an error. `role_admin` now reads at the block (it read head). The past-block AD-5 holder read is wrapped: when it fails, the upgrade is judged against the declared timelock (`upgradeHoldersUnread`, `adminReplay.ts` `ad5`), never skipped | "RV12-3" (7) |
+| RV12-4 | Dual Governance `emergencyModeActive: null` changed only the item text. No read gap, no carry: the AD-2 "emergency mode is active" breach dropped, and a first run could say "no red flags" (on-chain #2, rules #2) | hide a red | `rules.ts` `nodeReadGaps`: "Dual Governance X: emergency mode not read" (card read gap; the carry follows the holder's tree) | "AD-2 Dual Governance emergency mode NOT READ" |
+| RV12-5 | The `FunctionWhitelisted` log read was one unchecked `getLogsAdaptive` on the state ring. A false-empty chunk read as "no bypass". The USDe and sUSDe AD-2 head breaches (`0xe8dc…`'s whitelisted `setPeer`) rest on it (on-chain #3) | hide a red | `admin.mjs` `whitelistLogs`: 500k chunks through `crossCheckedLogs` (UQ-23). An empty answer nothing confirms = whitelist UNREAD (a plain contract, a read gap) | "RV12-5" (3) |
+| RV12-6 | AD-2 is skipped while the whitelist is unread. The carry looked in `treeReadGaps`, but the engine listed "whitelist not read" for a power's LEAF only, so the carry found no gap and dropped the USDe / sUSDe AD-2 (rules #1) | hide a red | `nodeReadGaps` lists it tree-wide (the engine's leaf-only line is removed, so it is listed once) | "AD-2 whitelist bypass (the USDe / sUSDe 0xe8dc shape)" |
+| RV12-7 | A failed `getSupportedChains` read became `chains: []` with no marker. The CC-2 (rate limiter off) and CC-3 (silo rebalancer) breaches of the last run were dropped (rules #3) | hide a red | `readCcipPool` sets `chainsUnread`. Engine: read gap "CCIP pool X: supported chains not read", carried for `chain:` / `silo:` refs, item text "supported chains NOT READ" | "CC-2 …", "readCcipPool …" |
+| RV12-8 | An Aragon Agent with "no executor found" ranked as a plain contract with no gap. Its candidates come from the ACL event scan (no empty-chunk cross-check). On wstETH about 40 of 42 head breaches go through Agent `0x3e40…` (rules #4) | hide a red | `aragonAgentOf`: no executor candidate held = `executorsUnread`. Rules: ranked `[2]` AS A READ GAP. `nodeReadGaps` line; not cached. An executor that is only a cycle is not a read failure | "AD-3 through an Aragon Agent …", "aragonAgentOf …" |
+| RV12-9 | A change FROM a holder whose rank rests on a read gap was ranked against the gap's plain-contract cap. A real downgrade (from a 7-day timelock a Safe 6-of-11 proposes into) read UPGRADE, and `markStillInEffect` ended earlier reds on the key. The role-admin rule had the same shape, and an unread (null) previous admin ranked `[0]` (rules #5) | read calm, end a red | `classifyControllerChange` / `classifyRoleAdminChange`: a previous side with a read gap (or not read) is never an upgrade — neutral, noted, tagged `read_gap` (keeps a red before it in effect). An EOA-controlled new admin against an unread previous side is red AD-3, as for an owner | "RV12-9" (4) |
+| RV12-10 | Run-to-run diff rows (a Safe's threshold, owners, guard, module or singleton changed with no event; a remote route changed) exist only in the run that saw the diff. The next run rewrote `changes/<subject>.json` without them: a silent 4/7 → 2/7 drop was red for ONE run (rules #6a) | hide a red | Collector hands the engine the previous run's `:safe-head:` / `:remote-head:` rows (`raw.previousChanges`). The engine keeps them as history and judges "still in effect" again | "a silent threshold drop … stays on the card" |
+| RV12-11 | A Safe that could not be classified in one run dropped out of `safeSnapshot`. A silent drop across that run was never bracketed (rules #6b) | hide a red | Engine: the Safe's last read stays in the snapshot with the block it was read at (`state.safeReadAt`, like `remoteReadAt`), plus a read gap. The next diff is bracketed from that block. Kept while the Safe is in scope, or while a power's holders were not resolved | "a Safe not classified in one run …" |
+| RV12-12 | A head-derived AD-4 row ("holder weakened since its grant") was dropped when the holder's head read failed: `if (!now) continue` (rules #6, last bullet) | hide a red | `rejudgeRoleHoldersAtHead` `previous`: the last run's `:role-head:` row for that holder is carried, still in effect, with a "CARRIED: … not read at head" note. A successful read re-judges it | "RV12-12" (2) |
+| RV12-13 | Red pending queue rows were dropped on a failed queue read (Safe Tx Service, MultiSigWallet submissions, Dual Governance proposals). Only a read-gap line stayed. Live: WBTC `0x4dbb…` tx 21, an `addOwner` at 1 of 5 confirmations (rules #7) | hide a red | `engine.ts` `carryUnreadQueueRows` (`raw.previousQueue`): carried, counted, tagged `read_gap`, "NOT READ this run (carried from block N)" (the first carry block is kept). A queue read again is the truth | "RV12-13" (2) |
+| RV12-14 | `writeJson` was a plain `writeFileSync`, and `prevState` turned a parse error into null. One full-disk write would truncate `state/<subject>.json`, and the next run would silently lose every carry and run-to-run diff (rules #8) | hide a red | New `scripts/oracle-registry/config/lib/files.mjs`: `writeJsonAtomic` (temp file + rename) for every collector write. `readPreviousState`: missing = first run; unreadable = the run STOPS. The previous changes and queues are read the same way | "RV12-14" (2) |
+| RV12-15 | The RV12-1 cache fix was incomplete. `hasReadFailure` missed a bypass with no or too few `holderCtls` (19 cached round-9 entries of WBTC's `0x4483…9449`: "bypassers UNREAD" on every run), an unread vote time, and an unread Dual Governance after-submit delay or emergency mode. Separately, a bypasser already on the path (`0x117e…aadc`, owned by the `0x4483` timelock it bypasses) was SKIPPED. That left `holderCtls` short: a permanent read gap, though the role reads fine (on-chain #4, rules #9) | misstate chain data (fail closed) | `hasReadFailure` covers them, so those entries are read again. `timelockBypass`: a bypasser on the path (or the timelock itself) is a CYCLE marker, ranked as a plain contract, as an owner cycle is — not a read gap | "RV12-15" (2) |
+| RV12-16 | rsETH's MANAGER grant at 18,759,607 stayed red in effect with a note blaming a failed read. The collector skipped co-holder `0x7aad…af47` because it was an EOA at its own grant block, and the engine then found no classification at 18,759,607 (on-chain #5; rules data issue) | misstate chain data (fail closed) | `admin.mjs` `coHolderReads`: such a co-holder is RECORDED at the later grant block (an address with a key stays an EOA; a 7702 delegation still ranks as one), not left unread | "RV12-16" |
+| KG-6 | (registered in round 12) The cross-check endpoint refuses ranges over 10,000 blocks. Each empty 500k chunk cost about 63 refused, retried requests; one failure left a proposer set unread. These were the rsETH `0x49bd…` and wstETH Linea `0xd6b9…` read gaps | (read gap, slow run) | Closed: `rpc.mjs` `crossCheckedLogs` asks the second endpoint in ≤ 10,000-block pieces from the start (`SECONDARY_LOG_SPAN`). Needed by RV12-5, which adds the whitelist read to this path | "KG-6 (closed) …" |
+
+**Registered: KG-7** (both lenses, UNSURE) — below.
+
+**Gates (2026-10-10):**
+- Unit suite: 72 files, 1,423 tests pass (1,391 + 32).
+- Scoped `tsc` (the 6 touched `lib` files and 4 test files): clean.
+- `eslint` on the 9 changed files: 0 errors, 0 warnings.
+- Kelp backtest (offline): all 5 criteria pass, 227 changes, 55 red; `kelp-rseth.expected.json` byte-identical (md5 `a99a1d99…`).
+- Re-collection: see "KG-4: the re-collection (review round 12)" below.
+
+### KG-4: the re-collection (review round 12) — NOT RUN, the disk gate was not met
+
+Only the subjects whose stored data the fixes would change were to be re-collected: WBTC, then rsETH, then wstETH. The run used the round-12 runbook: one subject per process (`node --max-old-space-size=1536 … --only=<key>`), each gated on free disk ≥ 600 MB (60 s polls, up to 10 minutes), a 150 MB watchdog, and the scan and raw caches deleted after each subject.
+
+- **2026-10-10, 09:20–09:30:** free disk on the Data volume read 534–541 MB for the whole 10 minutes, with swap at 2.56–2.72 GB. At 09:01 macOS had added two swap files (1 GB and 256 MB). Shortly before the gate started, the disk filled to 0 bytes (ENOSPC) for several minutes, which was outside this work. So the gate stopped the run before WBTC. No collector process started, and every data file is byte-identical to before (checked against a copy).
+- **What a re-run would change, and why** (from the stored data, the cache and the reviewers' chain checks):
+  - **WBTC and wstETH (RV12-15).** The 19 cached `0x4483…9449` classifications without UQ-24 bypass holders are read again. A fresh read gives `holderCtls [contract 0x117e…aadc]`: a cycle, a plain contract, no read gap.
+    - Expected: the owner moves at 21,890,003 (WBTC) and 22,225,938 (wstETH) go from neutral READ GAP back to their ranked verdict.
+    - The PROPOSER / CANCELLER rows at 22,234,034 (in effect on both cards, "not read") are re-judged. The reviewers expect them to end: `0xd975…` is now owned by `0x4483`, not by the EOA `0x062f…`.
+  - **wstETH Linea `0xd6b9…0574` and rsETH `0x49bd…35b1` (KG-6, closed).** The proposer log reads should now succeed. The wstETH read gap would then go (−1). rsETH's 19,812,242 owner move (Safe 3-of-5 → Timelock 3m proposed by Safe 3-of-5 `0xb369…`) would return to neutral: −1 red, −1 in effect, −1 read gap.
+  - **rsETH MANAGER at 18,759,607 (RV12-16).** The co-holder `0x7aad…af47` is recorded as the EOA it was. The grant (to `0xcbcd…`, now a Safe 3-of-6) is then re-judged on a read, not a failed one. The reviewers expect it to end: −1 in effect.
+  - **No other subject.** No stored power had an empty or failed holder list, no Agent lacked an executor, no CCIP chain list or emergency mode was unread, and no stored upgrade row was judged against a gap-ranked previous holder (all checked on the stored files). The fixes change weeETH, USDe, sUSDe, PT-srUSDe and cbBTC only when a read fails.
+- **Next step:** run `recollect.sh wbtc rseth wsteth` when free disk holds ≥ 600 MB, then update this table.
 
 ## Confirmed bugs, registered (not fixed)
 
 KG-1 and KG-2 were closed on 2026-10-08 (uncommitted at the time of writing); see "Closed 2026-10-08" below.
 
+### KG-7: the main log scans do not cross-check empty chunks (registered in review round 12)
+
+- **Lens:** both refuters, UNSURE. The same class as UQ-23 and UQ-28.
+- **Where:** `rpc.mjs` `scanLogs` on the `logs` client (keyed Ankr, Infura as a fallback). It reads the admin and Aragon ACL event scan, the LayerZero config history and the MultiSigWallet submissions.
+- **What it can do:**
+  - The round-12 runbook deletes the scan caches after every subject, so each run re-scans from deployment.
+  - One false-empty chunk would remove a role holder from `roleMap`, an Aragon Agent's executor candidate, or the Ethereum side of a route.
+  - The UQ-30 carry would then treat the breach as resolved: a holder no longer listed, or a route no longer live.
+  - Since RV12-8, an Agent left with NO candidate is a read gap. A lost candidate next to a found one is still silent.
+- **Why registered, not fixed:**
+  - Neither refuter showed that Ankr or Infura actually return false-empty chunks. UQ-23 measured that on the shared state ring.
+  - The fix is a scan-wide change: about 2× the requests of every scan, on a machine at its disk and swap limits.
+- **Proposed fix:** confirm each EMPTY chunk of `scanLogs` on the second endpoint, in pieces it accepts (as `crossCheckedLogs` now does). Mark a chunk that cannot be confirmed as unread, and carry the breaches it could hide (UQ-30).
+
 ### KG-4: the stored cards predate the review-round-10 fixes, and six predate round 10
+
+**Round 12 (2026-10-09/10): all 8 subjects re-collected on the current engine. Results and the reason for every change are in "KG-4: the re-collection (round 12)" below. What remains open: the rsETH and wstETH read gaps from KG-6. Re-run both once KG-6 is fixed; the re-run tried this round was stopped by the disk watchdog. Review round 12 (2026-10-10) closed KG-6 and listed WBTC, rsETH and wstETH for a re-run. The disk gate stopped that run before its first subject: see "KG-4: the re-collection (review round 12)".**
 
 - **Lens:** on-chain (review round 10, O-9), and the aborted re-collection of this round.
 - **Where:** `data/oracle-registry/config/{changes,state,queues}/<subject>.json`.
@@ -50,6 +111,102 @@ KG-1 and KG-2 were closed on 2026-10-08 (uncommitted at the time of writing); se
 - **Why deferred:** the reviewers did not raise this. The real fix is event replay, which is the same design work as KG-1.
 - **Partly addressed 2026-10-08:** the committees now have event replay (KG-1, closed). A committee member change is a row of its own and no longer depends on the grid. The count rows (`oracleMembers`, `numActiveCommitteeMembers`) and every other grid parameter can still vanish between runs as described above.
 - **Correction (review round 9):** the weETH quorum row 2 → 3 at 25,626,145 that the round-9 re-run lost was NOT this gap. It was CB-1: the weETH and wstETH param keys collided, so weETH's grid read wstETH's constant quorum 5 (fixed; see "Fixed in review round 9").
+
+## Closed 2026-10-09 (round 12): UQ-30, UQ-31, and the re-collection (KG-4)
+
+Parent decisions under the standing rulings ("a failed read never ends a red"; "fail closed everywhere"), 2026-10-09. Uncommitted at the time of writing.
+
+### UQ-30: a failed head read never drops a head breach — CLOSED
+
+- **Was:** the head breaches were recomputed from each run's reads alone. When a read a breach depends on failed, the holder ranked as a plain contract (or the route side was UNREAD), so the breach vanished and only a read-gap line stayed. Examples: a token vote's trailing-year history or holders at head, a proposer set, a Safe's module list, a parameter, a route side. On wstETH, one failed D read at a new head would have taken the head breaches from 42 to 0, while the reds in effect survived (UQ-21).
+- **Now:** `engine.ts` `carryUnconfirmedBreaches`.
+  - The collector passes the engine the previous run's head items (`raw.previousHead`, from `state/<subject>.json`).
+  - A previous breach this run does not re-confirm is CARRIED when a read it depends on failed this run. It stays counted and red. With no failed read it is resolved and dropped.
+- **Identity.** Every head breach now has a `ref`, naming what it is about:
+  - `holder:0x…` for AD-3 and AD-7;
+  - `node:0x…` for the Safe or timelock in a holder's tree (AD-6, AD-2);
+  - `owner`, `admin`, `rebalancer`, `silo:<chain>`, `chain:<chain>`, `committee:<field>`, `param`, `floor`, `remote:<chain>:…`.
+  - Re-confirmed means the same rule and the same ref. A breach stored before refs existed gets one derived from its message (`legacyBreachRef`), or it matches on the exact message.
+- **What a breach depends on** (`gapsOf` in `buildSubject`; each gap is worded as the engine's own read-gap line):
+  - *A power's breach:* the classification and tree read gaps (`treeReadGaps`) of the holder its ref names, plus the power's holder list. A holder no longer listed, when the list WAS read, is gone, and its breach is dropped.
+  - *A LayerZero route side:* the side itself UNREAD.
+  - *A remote side missing this run:* carried when its REMOTE UNREAD placeholder or an UNREAD local side covers it, or when nothing read it. Dropped when the same remote chain and direction was read through another peer (superseded).
+  - *A mint parameter:* the getter, or its controller's classification and tree.
+  - *CCIP:* the rebalancer, the silo rebalancer, or the limiter of the chain the ref names.
+  - *NTT:* threshold / transceivers (floor), the owner, or the remote sides.
+  - *A canonical bridge:* its proxy admin.
+  - *Dual Governance:* the committee the ref names.
+  - *AD-7* (an extra timelock admin) does not depend on a rank and is never carried.
+- **On the card:**
+  - The breach keeps the message it was confirmed with, followed by "— breach unconfirmed: read gap (<the gap>); last confirmed at block N".
+  - `StateBreach.unconfirmed` = {readGap, lastConfirmedBlock, message}; `BreachView.unconfirmed` = the gap.
+  - The read-gap line is in the card's read gaps (an UNREAD route side stays counted apart, as an unread side).
+  - It counts in the headline and the banner: floor breaches by route, rule breaches, open reds.
+  - Carried again, it keeps its first confirmation block. Read again, it is re-confirmed (a plain breach) or resolved.
+  - An item missing this run (a declared power, NTT manager, CCIP pool or canonical bridge whose read returned nothing, or a remote side not read) is added back from the previous run, marked "NOT READ this run (carried from block N)".
+- **Residual:** a FIRST collection (no previous state) has nothing to carry. It shows the read gap, and the card never says "no red flags" over it.
+- **Tests:** `tests/unit/oracleRegistryConfigUq30.test.ts`, 17 tests (15 for UQ-30, plus the RV12-1 and RV12-2 tests below). With `engine.ts`, `types.ts`, `view.ts`, `apiTypes.ts` and `admin.mjs` reverted to HEAD `fd3c20c0` and only the four new exports stubbed, 14 fail; the other 3 are controls (a failed read with no previous run, a breach a successful read no longer finds, a holder no longer listed).
+  - The synthetic wstETH shape: Agent → executor → Dual Governance timelock → the LDO vote, where one 6 % EOA passes alone against D. Run 1 has the AD-3. In run 2 the D read fails, and the AD-3 is still there: counted (rule breaches 1, open red 1), message "… breach unconfirmed: read gap (Aragon Voting 0x4444…4444: trailing-year vote history not read …)", read-gap line listed.
+  - The same holds for unread holders, an unread module list (AD-6), an unread rate provider (MR-2), an UNREAD route side (BR-2: still 1 floor-breach route), a remote side not read, and an unresolved holder list.
+  - On the committed wstETH card, removing every AD-3 (what one failed D read did) and carrying restores all 42 head breaches.
+  - `oracleRegistryConfigWstethAudit.test.ts`: one exact-equality expectation gained the new `ref`.
+
+### UQ-31: strict thresholds — DECIDED (keep strict)
+
+Parent decision: a threshold uses the contract's own comparison. Aragon `_isValuePct` is strictly greater-than, so `rules.ts` `tokenVoteDecision` keeps `>` for both the quorum test and the support test. The ruling's "≥" differs only at exact equality.
+
+- **Where equality occurs:** at LDO blocks 11,473,299 and 12,341,644, three non-Agent holders hold exactly 50,000,000 LDO (5.000 %). Strict gives k = 2 there, "≥" would give k = 1. They are plain contracts, so the rank is `[2]` either way, and no count changes.
+- **Pinned by:** `oracleRegistryConfigUq17.test.ts` "the quorum is strict" (exactly 5 % is not enough) and `oracleRegistryConfigUq25.test.ts` "D also raises the bar …" (60 / 120 = 50 % does not pass).
+- **Code:** a comment in `rules.ts` only. No behaviour change.
+
+### KG-4: the re-collection (round 12, 2026-10-09/10) — all 8 subjects re-collected
+
+The run went one subject per process (`node --max-old-space-size=1536 … --only=<key>`), each gated on free disk ≥ 600 MB (60 s polls, up to 10 minutes), with the scan and raw caches deleted after each subject. A watchdog would have killed a collector below 150 MB free; it never fired.
+
+- **Re-collected:** wstETH, weETH, WBTC, rsETH, USDe, sUSDe and PT-srUSDe at heads 26,158,320 to 26,159,053 (2026-10-09 20:04–22:46), and cbBTC at 26,159,538 (2026-10-10 00:08).
+- **cbBTC was delayed.** Before its turn, free disk fell to 52–308 MB, and the gate stopped the first attempt at 22:56. Swap was about 3.6 GB, and another job's solc build and the macOS storage manager were running. It ran once free disk recovered.
+- **Re-runs stopped.** A re-run of wstETH and rsETH, meant to clear the KG-6 read gaps, followed cbBTC. The watchdog stopped it at 00:10 (free disk fell from 1,390 MB to 93 MB within 90 s, and then to 0). No file was written: the wstETH and rsETH data are byte-identical to their first round-12 run, and every data and cache file parses.
+- **Code versions:** wstETH, weETH, WBTC, rsETH, USDe and sUSDe ran on the engine before the duplicate-key fix (RV12-2, below); PT-srUSDe and cbBTC ran after it. The fix changes nothing for the first six: no subject had a carried breach. The collector's cache fix (RV12-1) was in place from sUSDe on, and it changes only what is cached.
+- **Counts:** red / red in effect / amber pending / head breaches / read gaps (the card's count, `readGapsOf`). Before = the committed data (HEAD `fd3c20c0`).
+
+| Subject | Before | After | Why (every change) |
+| --- | --- | --- | --- |
+| wstETH | 51 / 33 / 0 / 42 / 0 (26,152,213) | 51 / 35 / 0 / 42 / 1 (26,158,320) | **+2 in effect:** the PROPOSER_ROLE and CANCELLER_ROLE grants to contract `0xd975…cf7e` → EOA `0x062f…1316` on the CCIP RBACTimelock `0x4483…9449` at 22,234,034 are in effect again. The pre-RV10-4 head re-judge had ended them by dropping comparison holders it could not read (KG-4 predicted this). **Re-judged rows:** RV10-3 changes two rows at 22,225,938. The owner move of `0xa586…9fa7`, EOA `0x8761…df34` → Timelock 3h (its bypassers not read at that block), goes from UPGRADE to neutral READ GAP. The CCIP token-administrator row goes from neutral to neutral READ GAP. **Head breaches:** 42, the same rules on the same items; 39 texts now carry the UQ-25 D note and "(k = 1)". **+1 read gap:** "timelock `0xd6b9…0574`: proposers not read". This is the Linea bridge timelock, and this run's RoleGranted log read for it failed (KG-6). It ranks as a plain contract (fail closed). No breach depends on it: the Linea power ranked as a plain contract before (its proposer Safe `0xb8f5…0051` has a module), and that AD-6 breach is re-confirmed. |
+| weETH | 63 / 11 / 9 / 0 / 0 (26,151,320) | 63 / 11 / 9 / 0 / 0 (26,158,358) | No count changed. The head state gains the two UQ-20 powers over the EtherFiOracle committee. One is RoleRegistry role `0xe6bd…c673`, held by Timelock 2d `0xcd42…5d7a` (proposed by Safe 4-of-7 `0x2aca…8adc`). The other is the RoleRegistry owner, Timelock 10d `0x9f26…0761` (proposed by Safe 6-of-10 `0xcdd5…8c21`). Neither breaches. |
+| WBTC | 15 / 2 / 25 / 1 / 1 (26,151,320) | 15 / 4 / 25 / 1 / 0 (26,158,494) | **+2 in effect:** the same two `0x4483…9449` grants at 22,234,034 (RV10-4). **Re-judged rows:** RV10-3 changes two rows at 21,890,003. The owner move of `0xf669…5b93` (EOA → Timelock 3h, bypassers not read at that block) goes from UPGRADE to neutral READ GAP. The CCIP token-administrator row goes from neutral to neutral READ GAP. **−1 read gap:** the stale round-9 bypass line is gone. The bypasser is now classified (UQ-24), so the AD-2 breach names it: "held by contract `0x117e…aadc`". |
+| rsETH | 85 / 4 / 0 / 0 / 0 (26,151,037) | 86 / 6 / 0 / 0 / 1 (26,158,612) | **+1 in effect:** the MANAGER grant to Safe 1-of-2 `0xcbcd…29a1` on `0x947c…5ec7` at 18,759,607 (RV10-4, predicted by KG-4). **+1 red, +1 in effect: a read failure, not chain data.** The 19,812,242 owner move of `0xb61e…dc78`, Safe 3-of-5 → Timelock 3m `0x49bd…35b1`, was neutral (ruling #12: proposed by a Safe 3-of-5, with no credit below 24 h). It is now red AD-3, because this run's RoleGranted log read for `0x49bd` failed (KG-6). An unread proposer set ranks as a plain contract, below the Safe (fail closed). **+1 read gap:** the same timelock at head. The collector had CACHED the 24 failed past-block classifications as facts, which would have made this permanent; that is fixed (RV12-1), so the next run reads them again. |
+| USDe | 56 / 4 / 2 / 1 / 0 (26,151,037) | 56 / 4 / 2 / 1 / 0 (26,158,967) | No count changed. Five new PROPOSED rows (Safe Tx Service). One is an undecoded call `0x2da09621` on `0xe349…62d3`. Four are DVN-set rotations on eids 30410 and 30168, send and receive, E=4 → E=4, all neutral. |
+| sUSDe | 37 / 5 / 2 / 1 / 0 (26,151,037) | 37 / 5 / 2 / 1 / 0 (26,159,015) | No count changed. +1 historical: a FULL_RESTRICTED_STAKER_ROLE grant at 26,155,620, a restriction, neutral. +4 PROPOSED rows: the same DVN rotations as USDe. The Robinhood remote sides (eid 30416) were read this run (E=4 both ways, no breach), so unread route sides went from 8 to 7. |
+| PT-srUSDe | 12 / 6 / 1 / 1 / 0 (26,151,037) | 12 / 6 / 1 / 1 / 0 (26,159,053) | No change. KG-5's constructor-delay rows remain. |
+| cbBTC | 6 / 3 / 0 / 6 / 0 (26,151,037) | 6 / 3 / 0 / 6 / 0 (26,159,538) | No change. |
+
+- **No breach was carried (UQ-30).** No subject had a breach whose read failed. The two failed proposer reads fall under breaches that were re-confirmed (wstETH) or under no breach at all (rsETH).
+- **Lido at 26,158,320:** 13 votes started in the window (ids 193–205; window 2025-10-10 → 2026-10-10). D = 279,135.7 LDO (0.0279 % of supply), and k = 1 (`0xf977…acec`, an EOA, 6.078 %). This is the same as at 26,152,213: no vote has started since. All 49 head vote nodes carry one defense record.
+
+### RV12-1 (found by the re-collection, fixed): a classification in which a read failed was cached as a fact
+
+- **Was:** `collect-config.mjs` caches every past-block classification across runs (`.cache/controllers-at-v5.json`), because the chain at a past block never changes. A classification in which a READ failed was cached too: an unread proposer set, module list or bypass whitelist. That is this run's fail-closed answer, not a fact about the block. This run cached 24 classifications of the rsETH timelock `0x49bd…35b1` with `schedulersUnread`, which would have kept the 19,812,242 row red on every later run.
+- **Now:** `admin.mjs` `hasReadFailure` (tree-wide). Such a classification is used for the run and not cached, and a cached one is read again. A vote's unread history or holders are already read again by `enrichTokenVotes`.
+- **Test:** `oracleRegistryConfigUq30.test.ts` "round 12 …" (fails before: the helper did not exist). The 24 cached entries are still in the cache; the next run reads them again.
+
+### RV12-2 (found while re-collecting, fixed before PT-srUSDe): duplicate item keys in the UQ-30 carry
+
+- **Was:** two powers of one kind on one contract share an item key (an OFT's owner and delegate on USDe / sUSDe / rsETH / WBTC / weETH, cbBTC's two `roles` powers). The first UQ-30 build matched a previous item to the LAST current item with its key. A breach on the first could then be carried onto the second, next to its own re-confirmed copy.
+- **Now:** the n-th previous item with a key matches the n-th current one (`occ`; declaration order, as `powerViews` does). The power behind a key is the n-th power with it.
+- **Test:** "two powers sharing one item key …". No stored card carried a breach, so no data changed.
+
+### KG-6 (CLOSED in review round 12): the second log endpoint caps getLogs at 10,000 blocks
+
+**Closed 2026-10-10:** `crossCheckedLogs` now asks the second endpoint in pieces of at most 10,000 blocks from the start (`SECONDARY_LOG_SPAN`), so it sends no refused requests. An empty 500k chunk is confirmed in 50 requests instead of about 127 refused and retried ones. Test: "KG-6 (closed) …" in `oracleRegistryConfigReview12.test.ts`. The wstETH and rsETH re-run it was waiting for: see "KG-4: the re-collection (review round 12)". The original entry follows.
+
+- **Where:** `rpc.mjs` `crossCheckedLogs` (UQ-23) and `admin.mjs` `roleGrantLogs` (500k-block chunks).
+- **What happens:**
+  - The primary log endpoint answers a 500k-block RoleGranted query at once. The cross-check endpoint refuses any range over 10,000 blocks (measured 2026-10-09: "range 499999 exceeds limit of 10000").
+  - Every EMPTY 500k chunk is therefore confirmed through `getLogsAdaptive`'s halving: about 63 refused requests (each retried) and 64 accepted ones per chunk.
+  - One failure in that cascade makes the whole proposer set unread. That is fail closed, but it is a read gap, a slow run (rsETH took 47 minutes), and with RV12-1 it was sticky.
+- **Impact this round:** the proposer sets of `0xd6b9…0574` (wstETH, Linea) and `0x49bd…35b1` (rsETH) were unread. A probe of `0x49bd` hung on the 21.5M chunk.
+- **Proposed fix:** confirm empty chunks on the second endpoint in ≤ 10,000-block requests from the start, or choose a second endpoint without the cap. Then re-run rsETH and wstETH.
+- **Why deferred:** it is an RPC-plumbing change (outside UQ-30), and the disk would not allow a re-run this round.
 
 ## Closed 2026-10-09 (round 11): UQ-25 — a token vote is judged against the trailing year's average opposition
 
@@ -181,7 +338,7 @@ Every row below has a failing-then-passing test in `tests/unit/oracleRegistryCon
 
 ## Unsure items (not confirmed): open owner calls
 
-UQ-17 to UQ-24 were closed on 2026-10-08 (round 10); see "Closed 2026-10-08 (round 10)" above. UQ-25 was closed on 2026-10-09 (round 11). UQ-26 to UQ-29 were raised in review round 10 (2026-10-09), UQ-30 and UQ-31 in review round 11 (2026-10-09).
+UQ-17 to UQ-24 were closed on 2026-10-08 (round 10); see "Closed 2026-10-08 (round 10)" above. UQ-25 was closed on 2026-10-09 (round 11). UQ-26 to UQ-29 were raised in review round 10 (2026-10-09), UQ-30 and UQ-31 in review round 11 (2026-10-09); both were settled on 2026-10-09 (round 12).
 
 The reviewers marked these items UNSURE, so nothing was changed. They are listed so that none of them is lost.
 
@@ -208,5 +365,5 @@ The reviewers marked these items UNSURE, so nothing was changed. They are listed
 | UQ-27 | on-chain, rules | `rules.ts` `tokenVoteDecision` | Vote delegation is not modelled. Lido Voting delegation is live (640 `AssignDelegate` events; the largest delegate carries about 0.9 % of supply at head), so LDO's k = 1 is unchanged. Under the literal reading delegation cannot raise k; a delegate can only lower it (13 holders of 4 % all delegated to one EOA rank broadly held `[5]` while that EOA can pass a vote). | Owner call. If modelled: group voting power by delegate at the block (`getDelegate`), and rank a delegate as the voter. Review round 11: both refuters raised it again (`getDelegate` / `getDelegatedVotersCount` answer at 26,152,213), and it still fails open in general. Lido is unaffected, because k = 1 is already the floor. |
 | UQ-28 | on-chain | `rpc.mjs` `crossCheckedLogs` | Only EMPTY answers are cross-checked. A non-empty but partial chunk from the primary is accepted. For holder data the on-chain check catches it only if it moves the supply or the top-10 balances; for proposer logs nothing catches it. | Ask both endpoints for every chunk and take the union (doubles the log reads), or cross-check counts per chunk. Not a confirmed failure on any endpoint used. |
 | UQ-29 | rules (raised while fixing RV10-2) | `rules.ts` `tokenVoteParts` | The vote ranks as the weakest set of k holders that passes, k being the SMALLEST passing set. A larger set (k + 1 … 10) in which every member is needed can include a weaker holder (a plain contract) and pass too: it is not considered, so a vote passed by one Safe whale ranks as that Safe even if a plain contract and an EOA could also pass it together. | Owner call: whether "the weakest coalition that can pass it" extends to minimal coalitions larger than k (each member needed). |
-| UQ-30 | on-chain (review round 11) | `rules.ts` `tokenVoteDecision`, the engine's head breaches | **A failed D read at head drops the head breach.** An unread history ranks the vote as a plain contract `[2]`, above an EOA `[1]`. So a power that breaches AD-3 through a k = 1 vote loses that head breach, and only a read-gap line stays (probe: AD-3 → none, 1 read gap). The reds in effect survive (UQ-21). On wstETH one transient failure would take the head breaches from 42 to 0. D is cached per block, so every new head needs a fresh read. The same path already existed for unread holders (UQ-17). | Owner call: whether a head breach counts as a red under UQ-21. If it does, carry the previous run's head breach forward, marked "unconfirmed: read gap", while the rank rests on a read gap. |
-| UQ-31 | rules, on-chain (review round 11) | `rules.ts` `tokenVoteDecision` | **Strict thresholds versus the ruling's "≥".** The code tests strictly greater, as Aragon `_isValuePct` does. Equality occurs at 11,473,299 and 12,341,644: three non-Agent holders hold exactly 50,000,000 LDO (5.000 %), so strict gives k = 2 and "≥" gives k = 1. They are plain contracts, so the rank is `[2]` either way, and no count changes today. | Owner call: keep strict (what the chain executes) or follow the ruling's "≥". |
+| UQ-30 | on-chain (review round 11) | `rules.ts` `tokenVoteDecision`, the engine's head breaches | **CLOSED 2026-10-09 (round 12, parent decision under the standing rulings): a failed head read never drops a head breach; see "Closed 2026-10-09 (round 12)" above.** Was: a failed D read at head ranked the vote as a plain contract, so its AD-3 head breaches vanished (wstETH 42 → 0 on one transient failure) while only a read-gap line stayed. | — |
+| UQ-31 | rules, on-chain (review round 11) | `rules.ts` `tokenVoteDecision` | **DECIDED 2026-10-09 (round 12, parent decision under the standing rulings): keep strict — a threshold uses the contract's own comparison (Aragon `_isValuePct` is strictly greater-than); see "Closed 2026-10-09 (round 12)" above.** Equality occurs at 11,473,299 and 12,341,644 (three non-Agent holders at exactly 50,000,000 LDO): strict gives k = 2 there, "≥" would give k = 1; the rank is `[2]` either way. | — |

@@ -81,6 +81,12 @@ export type Controller = {
    */
   executors?: Controller[]
   /**
+   * Review round 12 (rules #4): an Aragon Agent for which NO executor was found — the candidates
+   * come from the ACL event scan, which can lose a chunk. A read gap: ranked as a plain contract
+   * (fail closed), and the card says so.
+   */
+  executorsUnread?: boolean
+  /**
    * A timelock with a path around its own delay (read from the bytecode at the block):
    *   scope 'any'        — an unrestricted bypass (Chainlink RBACTimelock bypasserExecuteBatch,
    *                        held by `holders`); the delay protects nothing
@@ -588,6 +594,28 @@ export type ConfigChange = {
   notes?: string[]
 }
 
+/**
+ * A head-state rule that fails now. UQ-30 (decided 2026-10-09 under the standing "a failed read
+ * never ends a red" rulings): a breach the previous run confirmed is CARRIED, still counted and
+ * red, when this run could not re-confirm it because a read it depends on failed.
+ */
+export type StateBreach = {
+  ruleId: string
+  message: string
+  /**
+   * What the breach is about, stable across runs (`holder:0x1234…abcd` — the power holder of an
+   * AD-3; `node:0x…` — the Safe / timelock in a holder's tree of an AD-6 / AD-2; `owner`,
+   * `rebalancer`, …). Matches a carried breach with its re-confirmation. Absent = the message.
+   */
+  ref?: string
+  /**
+   * Set on a CARRIED breach (UQ-30): the read gap that kept this run from re-confirming it, the
+   * last block a run confirmed it at, and the message it was confirmed with. `message` then reads
+   * "<that message> — breach unconfirmed: read gap (<gap>); last confirmed at block N".
+   */
+  unconfirmed?: { readGap: string; lastConfirmedBlock: number; message: string }
+}
+
 export type StateItem = {
   subject: string
   dimension: Dimension
@@ -597,7 +625,7 @@ export type StateItem = {
   chainId: number
   block: number
   /** State rules that currently fail (red banner — persists without any new change). */
-  breaches: { ruleId: string; message: string }[]
+  breaches: StateBreach[]
   tags?: ChangeTag[]
   warnings?: string[]
   /** Bridge routes: USD value behind the route (owner ruling 2026-10-06 #9: the severity rank). */
@@ -637,6 +665,12 @@ export type SubjectState = {
   powers: PowerState[]
   /** Head classification of every Safe in the power graph (the next run diffs it: AD-6). */
   safeSnapshot?: Controller[]
+  /**
+   * Review round 12 (rules #6): the block each Safe in `safeSnapshot` was last READ at, for the
+   * ones carried through a run that could not classify them (absent = read at `asOf`). A silent
+   * change across such a run is bracketed from the last read, never lost.
+   */
+  safeReadAt?: Record<string, number>
   /** Remote route states as evaluated at this run (the next run diffs them: remote history). */
   remoteSnapshot?: Record<string, RouteState>
   /** Ethereum block each remoteSnapshot route was last read at (a route unread this run is carried). */

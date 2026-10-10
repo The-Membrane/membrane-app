@@ -25,6 +25,12 @@ export type BreachView = {
   message: string
   /** Where the rule fails: "eid 30110 (arbitrum) receive" for a route (the banner names it). */
   where?: string
+  /**
+   * UQ-30: the breach was carried from the last run that confirmed it, because a read it depends
+   * on failed this run — the read gap (the message says "breach unconfirmed: read gap"). Still
+   * counted and red.
+   */
+  unconfirmed?: string
   /** Floor breaches (BR-2): USD value behind the route — the severity rank (null = unknown). */
   valueAtRiskUsd?: number | null
   /** "$300M at risk (locked on Ethereum)" or why it is unknown. */

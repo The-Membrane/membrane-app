@@ -161,8 +161,8 @@ test.describe('landing conversion acceptance', () => {
     await stubLandingEvidence(page)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/ethereum/simulator', { waitUntil: 'load' })
-    await page.getByRole('button', { name: /^Inspect the tracked books/ }).click()
     const strats = page.getByTestId('sim-inline-strats')
+    await expect(strats).toBeVisible()
     await strats.getByRole('button', { name: 'Filter tracked strategies by verdict' }).click()
     await expect(page.getByRole('menu')).toHaveCSS('opacity', '1')
     await page.getByRole('menuitemradio', { name: /Exposed/ }).click()
@@ -177,13 +177,12 @@ test.describe('landing conversion acceptance', () => {
     expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1)
   })
 
-  test('keeps carry routes distinct from strategy holdings and explains modeled waiting haircuts', async ({
+  test('puts percentage routes before the unified strategy rack with transient row feedback', async ({
     page,
   }) => {
     await stubLandingEvidence(page)
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/ethereum/simulator', { waitUntil: 'load' })
-    await page.getByRole('button', { name: /^Open the carry board/ }).click()
     await expect(page.getByTestId('sim-inline-board')).toContainText(
       'Measured routes on other protocols',
     )
@@ -194,12 +193,25 @@ test.describe('landing conversion acceptance', () => {
     await expect(page.getByTestId('sim-inline-board')).toContainText(
       'not a count of positions still open today',
     )
-    const routeExample = page.getByTestId('route-magnitude').first()
-    await expect(routeExample).toContainText('+$1,153 / yr')
+    await expect(page.getByTestId('sim-inline-board')).toContainText('sGHO')
+    await expect(page.getByTestId('sim-inline-board')).toContainText('UmbrellaStakeToken')
+    const routeRegion = page.getByRole('region', { name: 'Measured carry routes' })
+    await expect(routeRegion).toBeVisible()
+    expect(
+      await routeRegion.evaluate((element) => element.scrollHeight > element.clientHeight),
+    ).toBe(true)
+    const routeExample = page.getByTestId('measured-route-row').first()
+    await expect(routeExample).toContainText('+11.53%')
+    await expect(routeExample).toContainText('Unpriced')
+    await expect(page.getByTestId('sim-inline-board')).toContainText('≈$860k')
+    const restingBorder = await routeExample.evaluate((row) => getComputedStyle(row).borderTopColor)
+    await routeExample.hover()
+    expect(await routeExample.evaluate((row) => getComputedStyle(row).boxShadow)).not.toBe('none')
     await routeExample.click()
+    await expect(routeExample).toHaveCSS('border-top-color', restingBorder)
     await expect(routeExample).toContainText('15 observed')
     const underline = await page
-      .getByRole('link', { name: 'full carry page →' })
+      .getByRole('link', { name: 'full carry board →' })
       .evaluate((link) => {
         const style = getComputedStyle(link)
         return { thickness: style.textDecorationThickness, offset: style.textUnderlineOffset }
@@ -207,10 +219,23 @@ test.describe('landing conversion acceptance', () => {
     expect(underline.thickness).toBe('1px')
     expect(underline.offset).not.toBe('auto')
 
-    await page.getByRole('button', { name: /^Inspect the tracked books/ }).click()
     const strats = page.getByTestId('sim-inline-strats')
+    await expect(strats).toBeVisible()
     await expect(strats.getByTestId('strats-flow')).toContainText('Where tracked capital sits')
     await expect(strats.getByTestId('strats-flow')).toContainText('not transfers between them')
+    const capitalRow = strats.getByTestId('strats-venue-row').first()
+    const idleCapitalStyle = await capitalRow.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return { border: style.borderColor, shadow: style.boxShadow }
+    })
+    await capitalRow.hover()
+    expect(await capitalRow.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe(
+      idleCapitalStyle.shadow,
+    )
+    await capitalRow.click()
+    await page.mouse.move(0, 0)
+    await expect(capitalRow).toHaveCSS('border-color', idleCapitalStyle.border)
+    await strats.getByTestId('strats-all-venues').click()
     await expect(strats.getByText('Entered → now')).toHaveCount(0)
     await expect(strats.getByText('Tracked return', { exact: true })).toBeVisible()
     await expect(strats.getByText('+$10', { exact: true })).toBeVisible()
@@ -278,17 +303,16 @@ test.describe('landing conversion acceptance', () => {
 
     await strats.getByRole('button', { name: 'How risk verdicts are assigned' }).click()
     const help = page.getByRole('dialog')
-    await expect(help).toContainText('Coverage is below 1× or a cooldown exceeds 24 hours.')
-    await expect(help).toContainText('no applicable evidence was recorded')
+    await expect(help).toContainText(
+      'Recorded instant inventory is below 1× the position or a recorded cooldown exceeds 24 hours.',
+    )
+    await expect(help).toContainText('no applicable check is available')
+    await expect(help).toContainText('Inventory does not verify this holder can exit.')
     await expect(help).toHaveCSS('opacity', '1')
     await help.getByRole('button', { name: 'Close verdict explanation' }).click()
     await expect(help).not.toBeVisible()
 
-    await page.getByRole('button', { name: 'How the yield is discounted' }).click()
-    const model = page.getByRole('dialog')
-    await expect(model).toContainText('0.2–0.6% haircut')
-    await expect(model).toContainText('0.8–2% haircut')
-    await expect(model).toContainText('The wait length is not measured here.')
+    await expect(page.getByRole('button', { name: 'How the yield is discounted' })).toHaveCount(0)
   })
 
   test('keeps the completed corpus claim honest and the primary action usable', async ({
@@ -306,6 +330,8 @@ test.describe('landing conversion acceptance', () => {
       '$67M of debt protected from forced closure on 10 Oct 2025 alone.',
     )
     await expect(page.getByTestId('sim-oct10-comparison')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'What you keep after the exit' })).toHaveCount(0)
+    await expect(page.getByText('the run', { exact: true })).toHaveCount(0)
     await expect(page.getByText('scrvUSD exit capacity rose $5.92M')).toBeVisible()
     await expect(page.getByText('$24.59M → $30.51M over 16h', { exact: false })).toBeVisible()
     await expect(page.getByText('what you are assuming', { exact: true })).toHaveCount(0)
@@ -317,13 +343,9 @@ test.describe('landing conversion acceptance', () => {
       'URL parameters can override these inputs',
     )
 
-    const doors = await page
-      .getByRole('button', { name: /^Open the carry board|^Inspect the tracked books/ })
-      .evaluateAll((buttons) =>
-        buttons.map((button) => Math.round(parseFloat(getComputedStyle(button).paddingLeft))),
-      )
-    expect(doors).toHaveLength(2)
-    expect(doors[0]).toBe(doors[1])
+    await expect(
+      page.getByRole('button', { name: /^Open the carry board|^Inspect the tracked books/ }),
+    ).toHaveCount(0)
 
     const input = page.getByLabel('Ethereum address to read a lending position from').first()
     await input.fill('not-an-address')
@@ -373,5 +395,205 @@ test.describe('landing conversion acceptance', () => {
     }))
     expect(expandedWidths.document).toBeLessThanOrEqual(expandedWidths.viewport + 1)
     expect(expandedWidths.body).toBeLessThanOrEqual(expandedWidths.viewport + 1)
+  })
+
+  test('keeps share actions transient and moves history details behind an info control', async ({
+    page,
+  }) => {
+    await stubLandingEvidence(page)
+    await page.goto('/ethereum/simulator', { waitUntil: 'load' })
+    await page
+      .getByLabel('Ethereum address to read a lending position from')
+      .first()
+      .fill(historyFixture.address)
+    await page.getByRole('button', { name: 'Run mine' }).click()
+
+    const card = page.getByTestId('address-evidence')
+    await expect(card).toBeVisible()
+    await expect(card).toContainText(
+      'Actual collateral seized minus modeled Membrane collateral seized across 2 priced episodes.',
+    )
+    await expect(card).not.toContainText('First recorded episode')
+    await card.getByRole('button', { name: 'About this liquidation history' }).click()
+    const details = page.getByRole('dialog')
+    await expect(details).toContainText('First recorded episode')
+    await expect(details).toContainText('Membrane outcomes are modeled')
+    await details.getByRole('button', { name: 'Close history details' }).click()
+
+    const copy = card.getByRole('button', { name: 'Copy result link' })
+    const restingBorder = await copy.evaluate((element) => getComputedStyle(element).borderTopColor)
+    await copy.hover()
+    await expect(copy).not.toHaveCSS('box-shadow', 'none')
+    await expect(copy).toHaveCSS('border-top-color', restingBorder)
+    await copy.click()
+    await expect(copy).toHaveCSS('border-top-color', restingBorder)
+
+    const save = card.getByRole('button', { name: 'Save card image' })
+    await save.hover()
+    await expect(save).not.toHaveCSS('box-shadow', 'none')
+    await expect(save).toHaveCSS('border-top-color', restingBorder)
+  })
+
+  test('keeps tracked-capital summary and venue flow inside narrow viewports', async ({ page }) => {
+    await stubLandingEvidence(page)
+    await page.goto('/ethereum/simulator', { waitUntil: 'load' })
+    const strats = page.getByTestId('sim-inline-strats')
+    const summary = strats.getByTestId('strats-summary')
+    const flow = strats.getByTestId('strats-flow')
+    await expect(summary).toContainText('Total tracked')
+    await expect(flow).toContainText('Where tracked capital sits')
+
+    for (const width of [320, 375, 390]) {
+      await page.setViewportSize({ width, height: 812 })
+      for (const section of [summary, flow]) {
+        const geometry = await section.evaluate((element) => {
+          const rect = element.getBoundingClientRect()
+          return {
+            left: rect.left,
+            right: rect.right,
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+            viewport: document.documentElement.clientWidth,
+          }
+        })
+        expect(geometry.left).toBeGreaterThanOrEqual(-1)
+        expect(geometry.right).toBeLessThanOrEqual(geometry.viewport + 1)
+        expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1)
+      }
+    }
+  })
+
+  test('keeps light landing proof copy legible at mobile and desktop widths', async ({ page }) => {
+    await stubLandingEvidence(page)
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.addInitScript(() => localStorage.setItem('membrane.theme', 'light'))
+
+    for (const width of [375, 1440]) {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/ethereum/simulator', { waitUntil: 'load' })
+      await expect(page.locator('html')).toHaveAttribute('data-membrane-theme', 'light')
+      await expect(page.getByTestId('sim-scale-line')).toBeVisible()
+      await expect(page.getByRole('status', { name: 'Loading The Membrane' })).toHaveCount(0)
+      const geometry = await page.evaluate(() => ({
+        viewport: document.documentElement.clientWidth,
+        document: document.documentElement.scrollWidth,
+        offenders: [...document.querySelectorAll('*')]
+          .filter((element) => {
+            const rect = element.getBoundingClientRect()
+            return rect.width > 0 && rect.right > document.documentElement.clientWidth + 1
+          })
+          .slice(0, 8)
+          .map((element) => ({
+            tag: element.tagName,
+            testId: element.getAttribute('data-testid'),
+            text: element.textContent?.trim().slice(0, 35),
+            right: Math.round(element.getBoundingClientRect().right),
+          })),
+      }))
+
+      const undersized = await page.evaluate(() => {
+        const selectors = [
+          '[data-testid="sim-guarantee"]',
+          '[data-testid="sim-history"]',
+          '[data-testid="sim-carry-section"]',
+        ]
+        return selectors.flatMap((selector) => {
+          const root = document.querySelector(selector)
+          if (!root) return []
+          return [...root.querySelectorAll('p,span,button,a,label')]
+            .filter((element) => {
+              const style = getComputedStyle(element)
+              return (
+                [...element.childNodes].some(
+                  (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+                ) &&
+                element.getClientRects().length > 0 &&
+                style.display !== 'none' &&
+                style.visibility !== 'hidden' &&
+                !element.closest('[aria-hidden="true"]') &&
+                Number.parseFloat(style.fontSize) < 12
+              )
+            })
+            .slice(0, 12)
+            .map((element) => ({
+              text: element.textContent?.trim().slice(0, 50),
+              size: getComputedStyle(element).fontSize,
+            }))
+        })
+      })
+      const lowContrast = await page.evaluate(() => {
+        const colorChannels = (value: string) =>
+          [...value.matchAll(/[\d.]+/g)].slice(0, 4).map((match) => Number(match[0]))
+        const luminance = (rgb: number[]) => {
+          const linear = rgb.slice(0, 3).map((channel) => {
+            const value = channel / 255
+            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+          })
+          return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+        }
+        const rootStyle = getComputedStyle(document.documentElement)
+        const probe = document.createElement('span')
+        document.body.appendChild(probe)
+        const neutralColors = new Set(
+          ['--m-text-primary', '--m-text-secondary', '--m-text-tertiary'].map((token) => {
+            probe.style.color = rootStyle.getPropertyValue(token)
+            return getComputedStyle(probe).color
+          }),
+        )
+        probe.remove()
+        return [
+          '[data-testid="sim-guarantee"]',
+          '[data-testid="sim-history"]',
+          '[data-testid="sim-carry-section"]',
+        ].flatMap((selector) => {
+          const root = document.querySelector(selector)
+          if (!root) return []
+          return [...root.querySelectorAll('p,span,button,a,label')]
+            .filter((element) => {
+              const style = getComputedStyle(element)
+              return (
+                [...element.childNodes].some(
+                  (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+                ) &&
+                element.getClientRects().length > 0 &&
+                style.visibility !== 'hidden' &&
+                !element.closest('[aria-hidden="true"]') &&
+                neutralColors.has(style.color)
+              )
+            })
+            .flatMap((element) => {
+              const foreground = colorChannels(getComputedStyle(element).color)
+              let background: number[] | null = null
+              for (let node: Element | null = element; node; node = node.parentElement) {
+                const channels = colorChannels(getComputedStyle(node).backgroundColor)
+                if (channels.length === 3 || channels[3] === 1) {
+                  background = channels
+                  break
+                }
+              }
+              if (!background) return [{ text: 'missing opaque background' }]
+              const values = [luminance(foreground), luminance(background)]
+              const ratio = (Math.max(...values) + 0.05) / (Math.min(...values) + 0.05)
+              return ratio < 4.5
+                ? [
+                    {
+                      text: element.textContent?.trim().slice(0, 50),
+                      ratio: Number(ratio.toFixed(2)),
+                    },
+                  ]
+                : []
+            })
+            .slice(0, 12)
+        })
+      })
+      if (process.env.MEMBRANE_E2E_CAPTURE === '1') {
+        await page.screenshot({ path: `/private/tmp/membrane-landing-light-${width}.png` })
+      }
+      expect(geometry.document, JSON.stringify(geometry.offenders)).toBeLessThanOrEqual(
+        geometry.viewport + 1,
+      )
+      expect(undersized, `undersized visible proof copy at ${width}px`).toEqual([])
+      expect(lowContrast, `neutral proof text below 4.5:1 at ${width}px`).toEqual([])
+    }
   })
 })

@@ -14,7 +14,7 @@ export const ClaimsBlock: React.FC = () => (
   <Box data-testid="sim-claims" display="grid" gap={SPACING.sm}>
     <Text
       fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="10px"
+      fontSize="12px"
       letterSpacing="0.24em"
       textTransform="uppercase"
       color={SEMANTIC_COLORS.textSecondary}
@@ -50,7 +50,7 @@ export const ClaimsBlock: React.FC = () => (
             <Text
               as="span"
               fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="10px"
+              fontSize="12px"
               letterSpacing="0.24em"
               color={SEMANTIC_COLORS.textTertiary}
               mr={SPACING.sm}

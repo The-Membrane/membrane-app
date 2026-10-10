@@ -28,6 +28,17 @@ export function capMagnitude(kind, raw) {
 
 export function buildFeed(segments, state, checkedAt) {
   if (!Number.isFinite(Date.parse(checkedAt))) throw new Error('Invalid export timestamp')
+  const lastSegment = segments.at(-1)
+  const coveredThroughAt = new Date(lastSegment?.toTimestamp * 1000)
+  if (
+    !lastSegment ||
+    !Number.isSafeInteger(lastSegment.toTimestamp) ||
+    lastSegment.toTimestamp <= 0 ||
+    !Number.isFinite(coveredThroughAt.getTime()) ||
+    lastSegment.to !== state.throughBlock ||
+    coveredThroughAt.getTime() > Date.parse(checkedAt)
+  )
+    throw new Error('Invalid covered-through timestamp')
   const latest = new Map()
   for (const segment of segments) {
     for (const event of segment.events) {
@@ -79,6 +90,7 @@ export function buildFeed(segments, state, checkedAt) {
     scope: 'VaultV2 allocation cap increases observed by the local watcher only',
     checkedAt,
     coveredThroughBlock: state.throughBlock,
+    coveredThroughAt: coveredThroughAt.toISOString(),
     items,
     limitation:
       'Cap permission can increase allocation headroom. It does not measure exit capacity or guarantee allocation.',

@@ -19,6 +19,7 @@
 // The token is only ever placed in the request URL; it is never logged.
 
 import { coverageFor, uncoveredFooter } from './alarmRules.mjs'
+import { createHash } from 'node:crypto'
 
 const API = 'https://api.telegram.org'
 export const MAX_SUBSCRIPTIONS_PER_CHAT = 25
@@ -51,7 +52,12 @@ export async function tg(token, method, body, fetchImpl = fetch) {
 }
 
 export const sendMessage = (token, chatId, text, fetchImpl) =>
-  tg(token, 'sendMessage', { chat_id: chatId, text, link_preview_options: { is_disabled: true } }, fetchImpl)
+  tg(
+    token,
+    'sendMessage',
+    { chat_id: chatId, text, link_preview_options: { is_disabled: true } },
+    fetchImpl,
+  )
 
 const iso = (v) => (v === null || v === undefined ? null : new Date(v).toISOString())
 
@@ -83,7 +89,9 @@ export function scriptCoverage(sql, venues) {
     const rows = await sql`
       SELECT DISTINCT ON (venue) venue, instant_usd FROM venue_snapshots
       WHERE source = 'observed' ORDER BY venue, observed_at DESC`
-    const hasInstant = new Map(rows.map((r) => [r.venue, r.instant_usd !== null && r.instant_usd !== undefined]))
+    const hasInstant = new Map(
+      rows.map((r) => [r.venue, r.instant_usd !== null && r.instant_usd !== undefined]),
+    )
     const byVenue = {}
     for (const v of venues.filter((c) => c.enabled)) {
       byVenue[v.name] = coverageFor(v, { hasInstant: hasInstant.get(v.name) ?? false })
@@ -118,20 +126,47 @@ export async function handleUpdate(update, { sql, logic, footerFor }) {
   const chatId = msg?.chat?.id
   if (chatId === undefined || chatId === null || typeof msg?.text !== 'string') return null
   const chat = String(chatId)
+  // A signed wallet preference issues this short-lived opaque link token. It
+  // is separate from `/start <address>`, which is only a public Radar watch.
+  const alertLink = /^\/start(?:@[a-z0-9_]+)?\s+(a_[A-Za-z0-9_-]{43})$/i.exec(msg.text.trim())
+  if (alertLink) {
+    if (msg.chat.type !== 'private') {
+      return { chatId: chat, text: 'Personal alert links can only be confirmed in a private chat.' }
+    }
+    const hash = createHash('sha256').update(alertLink[1]).digest('hex')
+    // The DB function serializes confirmation and /stop on this chat before
+    // taking fresh row snapshots; two separate HTTP SQL statements cannot.
+    const bound = await sql`
+      SELECT address FROM confirm_user_alert_telegram_link(${hash}, ${chat})`
+    if (bound.length !== 1) {
+      return {
+        chatId: chat,
+        text: 'This alert link expired, was used, or its preference changed. Request a fresh link in Membrane.',
+      }
+    }
+    return {
+      chatId: chat,
+      text: 'Telegram chat confirmed for your signed Membrane alert preference. Personal event alerts are not active until verified onchain sources and delivery are available. /stop disconnects this chat.',
+    }
+  }
   const cmd = logic.parseCommand(msg.text)
 
   if (cmd.kind === 'subscribe') {
     const [w] = await sql`
       SELECT created_at AS "createdAt", entry_positions AS "entryPositions", last_scanned AS "lastScanned"
       FROM strat_watches WHERE address = ${cmd.address} LIMIT 1`
-    if (!w) return { chatId: chat, text: logic.replyText({ kind: 'not_watched', address: cmd.address }) }
+    if (!w)
+      return { chatId: chat, text: logic.replyText({ kind: 'not_watched', address: cmd.address }) }
     // Cap ACTIVE subscriptions per chat (a re-/start of an address already
     // watched does not count against it).
     const [cnt] = await sql`
       SELECT count(*)::int AS n FROM alert_subscriptions
       WHERE chat_id = ${chat} AND stopped_at IS NULL AND address <> ${cmd.address}`
     if (Number(cnt?.n ?? 0) >= MAX_SUBSCRIPTIONS_PER_CHAT) {
-      return { chatId: chat, text: logic.replyText({ kind: 'full', max: MAX_SUBSCRIPTIONS_PER_CHAT }) }
+      return {
+        chatId: chat,
+        text: logic.replyText({ kind: 'full', max: MAX_SUBSCRIPTIONS_PER_CHAT }),
+      }
     }
     // Re-subscribing after /stop restarts the clock: no backfill of the stopped gap.
     await sql`
@@ -145,21 +180,48 @@ export async function handleUpdate(update, { sql, logic, footerFor }) {
       FROM venue_alarms WHERE cleared_at IS NULL`
     const { held, openTexts } = logic.openAlertTexts(watch, alarmRows.map(toAlarm))
     const footer = await footerFor(held)
-    return { chatId: chat, text: logic.replyText({ kind: 'subscribed', address: cmd.address, held, openTexts, footer }) }
+    return {
+      chatId: chat,
+      text: logic.replyText({ kind: 'subscribed', address: cmd.address, held, openTexts, footer }),
+    }
   }
 
   if (cmd.kind === 'stop') {
+    // The new personal-intent tables may not have been migrated yet. A missing
+    // function must never prevent /stop from revoking the existing venue watch.
+    let personalCount = 0
+    let personalDisconnectUnconfirmed = false
+    let personalDisconnectFailed = false
+    try {
+      const [personal] = await sql`
+        SELECT disconnect_user_alert_telegram_chat(${chat}) AS count`
+      personalCount = Number(personal?.count ?? 0)
+    } catch (error) {
+      personalDisconnectUnconfirmed = true
+      // 42883 means this optional migration has not installed the function.
+      // Any other failure might leave a live personal binding: retry /stop.
+      personalDisconnectFailed = error?.code !== '42883'
+    }
     const rows = await sql`
       UPDATE alert_subscriptions SET stopped_at = now()
       WHERE chat_id = ${chat} AND stopped_at IS NULL RETURNING id`
-    return { chatId: chat, text: logic.replyText({ kind: 'stopped', count: rows.length }) }
+    // The legacy stop has now been attempted even when personal storage failed.
+    // A retry is safe: both disconnect operations are idempotent.
+    if (personalDisconnectFailed) throw new Error('personal alert disconnect unconfirmed')
+    return {
+      chatId: chat,
+      text: `${logic.replyText({ kind: 'stopped', count: rows.length })}${personalCount > 0 ? ' Personal alert chat disconnected.' : ''}${personalDisconnectUnconfirmed ? ' Personal alert disconnect could not be confirmed; retry /stop.' : ''}`,
+    }
   }
 
   if (cmd.kind === 'list') {
     const rows = await sql`
       SELECT address FROM alert_subscriptions
       WHERE chat_id = ${chat} AND stopped_at IS NULL ORDER BY created_at ASC`
-    return { chatId: chat, text: logic.replyText({ kind: 'list', addresses: rows.map((r) => r.address) }) }
+    return {
+      chatId: chat,
+      text: logic.replyText({ kind: 'list', addresses: rows.map((r) => r.address) }),
+    }
   }
 
   return { chatId: chat, text: logic.replyText({ kind: 'help' }) }
@@ -167,18 +229,29 @@ export async function handleUpdate(update, { sql, logic, footerFor }) {
 
 /**
  * Local/dev inbound: drain pending updates with getUpdates, handle each, reply,
- * and persist the offset in alert_bot_state after every update (a crash never
- * re-answers a handled command). Telegram refuses getUpdates while a webhook is
+ * and persist the offset in alert_bot_state before each reply. A failed handler
+ * or offset write stops the batch without advancing past that update. Telegram
+ * refuses getUpdates while a webhook is
  * set, so callers skip this when TELEGRAM_ALERTS_WEBHOOK_SECRET is configured.
  * deps: { sql, logic, footerFor, config, fetchImpl?, timeoutSec?, log? }
  */
-export async function pollOnce({ sql, logic, footerFor, config, fetchImpl = fetch, timeoutSec = 0, log = console.log }) {
+export async function pollOnce({
+  sql,
+  logic,
+  footerFor,
+  config,
+  fetchImpl = fetch,
+  timeoutSec = 0,
+  log = console.log,
+}) {
   if (!config.enabled) {
-    log('telegram alerts: bot not configured (TELEGRAM_ALERTS_BOT_TOKEN/USERNAME unset) — poll skipped')
+    log(
+      'telegram alerts: bot not configured (TELEGRAM_ALERTS_BOT_TOKEN/USERNAME unset) — poll skipped',
+    )
     return { handled: 0, ok: false }
   }
   const [state] = await sql`SELECT value FROM alert_bot_state WHERE key = 'poll_offset'`
-  let offset = state ? Number(state.value) : 0
+  const offset = state ? Number(state.value) : 0
   const res = await tg(
     config.token,
     'getUpdates',
@@ -191,26 +264,30 @@ export async function pollOnce({ sql, logic, footerFor, config, fetchImpl = fetc
   }
   let handled = 0
   for (const update of res.result ?? []) {
+    let out
     try {
-      const out = await handleUpdate(update, { sql, logic, footerFor })
-      if (out) {
-        const sent = await sendMessage(config.token, out.chatId, out.text, fetchImpl)
-        if (!sent.ok) log(`telegram alerts: reply failed — ${sent.description ?? sent.error_code}`)
-        handled++
-      }
-    } catch (e) {
-      log(`telegram alerts: update ${update?.update_id} failed — ${e?.message ?? e}`)
+      out = await handleUpdate(update, { sql, logic, footerFor })
+    } catch {
+      log('telegram alerts: update handling failed; offset unchanged')
+      return { handled, ok: false }
     }
-    offset = Number(update.update_id) + 1
-    // Own try: a failed offset write never throws out of pollOnce. GREATEST so an
-    // overlapping poller can never move the offset backwards.
+    const nextOffset = Number(update.update_id) + 1
+    // GREATEST prevents an overlapping poller from moving the offset backwards.
+    // Do not reply until this is durable, or an offset failure could duplicate
+    // the reply on the next poll.
     try {
       await sql`
-        INSERT INTO alert_bot_state (key, value) VALUES ('poll_offset', ${String(offset)})
+        INSERT INTO alert_bot_state (key, value) VALUES ('poll_offset', ${String(nextOffset)})
         ON CONFLICT (key) DO UPDATE SET
           value = GREATEST(alert_bot_state.value::bigint, EXCLUDED.value::bigint)::text`
-    } catch (e) {
-      log(`telegram alerts: offset write failed — ${e?.message ?? e}`)
+    } catch {
+      log('telegram alerts: offset write failed; later updates deferred')
+      return { handled, ok: false }
+    }
+    if (out) {
+      const sent = await sendMessage(config.token, out.chatId, out.text, fetchImpl)
+      if (!sent.ok) log(`telegram alerts: reply failed — ${sent.description ?? sent.error_code}`)
+      handled++
     }
   }
   return { handled, ok: true }
@@ -223,7 +300,9 @@ const isGone = (r) =>
 
 // A group upgraded to a supergroup answers 400 with parameters.migrate_to_chat_id.
 const migratedTo = (r) =>
-  r.error_code === 400 && r.parameters?.migrate_to_chat_id !== undefined && r.parameters?.migrate_to_chat_id !== null
+  r.error_code === 400 &&
+  r.parameters?.migrate_to_chat_id !== undefined &&
+  r.parameters?.migrate_to_chat_id !== null
     ? String(r.parameters.migrate_to_chat_id)
     : null
 
@@ -251,9 +330,14 @@ async function migrateChat(sql, oldId, newId) {
  * run retries it, and skips that chat for the rest of this run.
  * deps: { logic, coverage: () => Promise<byVenue>, config, fetchImpl?, log? }
  */
-export async function sendAddressAlerts(sql, { logic, coverage, config, fetchImpl = fetch, log = console.log }) {
+export async function sendAddressAlerts(
+  sql,
+  { logic, coverage, config, fetchImpl = fetch, log = console.log },
+) {
   if (!config.enabled) {
-    log('telegram alerts: bot not configured (TELEGRAM_ALERTS_BOT_TOKEN/USERNAME unset) — nothing sent')
+    log(
+      'telegram alerts: bot not configured (TELEGRAM_ALERTS_BOT_TOKEN/USERNAME unset) — nothing sent',
+    )
     return { sent: 0, failed: 0 }
   }
   const subRows = await sql`
@@ -307,7 +391,8 @@ export async function sendAddressAlerts(sql, { logic, coverage, config, fetchImp
     alarms,
     delivered,
     footerByAddress,
-    onOverflow: (chatId, n) => log(`telegram alerts: chat cap reached — ${n} message(s) deferred to next run`),
+    onOverflow: (chatId, n) =>
+      log(`telegram alerts: chat cap reached — ${n} message(s) deferred to next run`),
   })
 
   let sent = 0
@@ -346,7 +431,8 @@ export async function sendAddressAlerts(sql, { logic, coverage, config, fetchImp
         for (const id of stopped) stoppedSubs.add(id)
         migrated.set(d.chatId, to)
         log('telegram alerts: chat migrated to a supergroup — subscriptions moved')
-        if (!stoppedSubs.has(d.subscriptionId)) r = await sendMessage(config.token, to, d.text, fetchImpl)
+        if (!stoppedSubs.has(d.subscriptionId))
+          r = await sendMessage(config.token, to, d.text, fetchImpl)
       } catch (e) {
         log(`telegram alerts: chat migration failed — ${e?.message ?? e}`)
       }
@@ -365,7 +451,9 @@ export async function sendAddressAlerts(sql, { logic, coverage, config, fetchImp
     await release(d)
     const failedChat = migrated.get(d.chatId) ?? chatId
     skip.add(failedChat)
-    log(`telegram alerts: send failed (${d.moment}) — ${r.description ?? r.error_code ?? 'unknown'}; chat skipped this run`)
+    log(
+      `telegram alerts: send failed (${d.moment}) — ${r.description ?? r.error_code ?? 'unknown'}; chat skipped this run`,
+    )
     if (isGone(r)) {
       try {
         await sql`UPDATE alert_subscriptions SET stopped_at = now() WHERE chat_id = ${failedChat} AND stopped_at IS NULL`

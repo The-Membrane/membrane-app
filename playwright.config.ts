@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const boundedAcceptance = process.env.MEMBRANE_E2E_ACCEPTANCE === '1'
+
 /**
  * Playwright Configuration for Membrane App
  *
@@ -17,145 +19,175 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
+  ...(boundedAcceptance
+    ? {
+        testMatch: [
+          'app-wide-acceptance.spec.ts',
+          'carry-simulator-acceptance.spec.ts',
+          'landing-acceptance.spec.ts',
+          'rpc-status-acceptance.spec.ts',
+        ],
+      }
+    : {}),
+  timeout: boundedAcceptance ? 240000 : 30000,
 
   // Run tests in files in parallel
-  fullyParallel: true,
+  fullyParallel: !boundedAcceptance,
 
   // Fail the build on CI if you accidentally left test.only in the source code
-  forbidOnly: !!process.env.CI,
+  forbidOnly: boundedAcceptance || !!process.env.CI,
 
   // Retry on CI only
-  retries: process.env.CI ? 2 : 0,
+  retries: boundedAcceptance ? 0 : process.env.CI ? 2 : 0,
 
   // Opt out of parallel tests on CI
-  workers: process.env.CI ? 1 : undefined,
+  workers: boundedAcceptance || process.env.CI ? 1 : undefined,
 
   // Reporter to use
-  reporter: [
-    ['html'],
-    ['list'],
-    ['json', { outputFile: 'test-results/results.json' }],
-  ],
+  reporter: boundedAcceptance
+    ? [['list']]
+    : [['html'], ['list'], ['json', { outputFile: 'test-results/results.json' }]],
 
   // Shared settings for all the projects below
   use: {
     // Base URL to use in actions like `await page.goto('/')`
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3005',
+    baseURL: boundedAcceptance
+      ? 'http://localhost:3005'
+      : process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3005',
 
     // Collect trace when retrying the failed test
-    trace: 'on-first-retry',
+    trace: boundedAcceptance ? 'off' : 'on-first-retry',
 
     // Screenshot on failure
-    screenshot: 'only-on-failure',
+    screenshot: boundedAcceptance ? 'off' : 'only-on-failure',
 
     // Video on failure
-    video: 'retain-on-failure',
+    video: boundedAcceptance ? 'off' : 'retain-on-failure',
 
     // Timeout for each action
     actionTimeout: 15000,
   },
 
   // Configure projects for major browsers and devices
-  projects: [
-    // ============================================
-    // DESKTOP BROWSERS
-    // ============================================
-    {
-      name: 'Desktop Chrome',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 1920, height: 1080 },
-      },
-    },
+  projects: boundedAcceptance
+    ? [
+        {
+          name: 'Desktop Chrome',
+          use: {
+            ...devices['Desktop Chrome'],
+            channel: 'chrome',
+            viewport: { width: 1440, height: 900 },
+          },
+        },
+        {
+          name: 'Mobile Chromium 375',
+          use: {
+            ...devices['Pixel 7'],
+            channel: 'chrome',
+            viewport: { width: 375, height: 812 },
+          },
+        },
+      ]
+    : [
+        // ============================================
+        // DESKTOP BROWSERS
+        // ============================================
+        {
+          name: 'Desktop Chrome',
+          use: {
+            ...devices['Desktop Chrome'],
+            viewport: { width: 1920, height: 1080 },
+          },
+        },
 
-    {
-      name: 'Desktop Firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        viewport: { width: 1920, height: 1080 },
-      },
-    },
+        {
+          name: 'Desktop Firefox',
+          use: {
+            ...devices['Desktop Firefox'],
+            viewport: { width: 1920, height: 1080 },
+          },
+        },
 
-    {
-      name: 'Desktop Safari',
-      use: {
-        ...devices['Desktop Safari'],
-        viewport: { width: 1920, height: 1080 },
-      },
-    },
+        {
+          name: 'Desktop Safari',
+          use: {
+            ...devices['Desktop Safari'],
+            viewport: { width: 1920, height: 1080 },
+          },
+        },
 
-    // ============================================
-    // LAPTOP (Common resolution)
-    // ============================================
-    {
-      name: 'Laptop 1440',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 1440, height: 900 },
-      },
-    },
+        // ============================================
+        // LAPTOP (Common resolution)
+        // ============================================
+        {
+          name: 'Laptop 1440',
+          use: {
+            ...devices['Desktop Chrome'],
+            viewport: { width: 1440, height: 900 },
+          },
+        },
 
-    // ============================================
-    // TABLET
-    // ============================================
-    {
-      name: 'iPad Pro',
-      use: {
-        ...devices['iPad Pro'],
-      },
-    },
+        // ============================================
+        // TABLET
+        // ============================================
+        {
+          name: 'iPad Pro',
+          use: {
+            ...devices['iPad Pro'],
+          },
+        },
 
-    {
-      name: 'iPad',
-      use: {
-        ...devices['iPad (gen 7)'],
-      },
-    },
+        {
+          name: 'iPad',
+          use: {
+            ...devices['iPad (gen 7)'],
+          },
+        },
 
-    // ============================================
-    // MOBILE
-    // ============================================
-    {
-      name: 'iPhone 14',
-      use: {
-        ...devices['iPhone 14'],
-      },
-    },
+        // ============================================
+        // MOBILE
+        // ============================================
+        {
+          name: 'iPhone 14',
+          use: {
+            ...devices['iPhone 14'],
+          },
+        },
 
-    {
-      name: 'iPhone SE',
-      use: {
-        ...devices['iPhone SE'],
-      },
-    },
+        {
+          name: 'iPhone SE',
+          use: {
+            ...devices['iPhone SE'],
+          },
+        },
 
-    {
-      name: 'Pixel 7',
-      use: {
-        ...devices['Pixel 7'],
-      },
-    },
+        {
+          name: 'Pixel 7',
+          use: {
+            ...devices['Pixel 7'],
+          },
+        },
 
-    // ============================================
-    // BRANDED BROWSERS (for specific features)
-    // ============================================
-    // Test against branded browsers
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: {
-    //     ...devices['Desktop Edge'],
-    //     channel: 'msedge',
-    //   },
-    // },
+        // ============================================
+        // BRANDED BROWSERS (for specific features)
+        // ============================================
+        // Test against branded browsers
+        // {
+        //   name: 'Microsoft Edge',
+        //   use: {
+        //     ...devices['Desktop Edge'],
+        //     channel: 'msedge',
+        //   },
+        // },
 
-    // {
-    //   name: 'Google Chrome',
-    //   use: {
-    //     ...devices['Desktop Chrome'],
-    //     channel: 'chrome',
-    //   },
-    // },
-  ],
+        // {
+        //   name: 'Google Chrome',
+        //   use: {
+        //     ...devices['Desktop Chrome'],
+        //     channel: 'chrome',
+        //   },
+        // },
+      ],
 
   // Run the app before starting the tests.
   //
@@ -168,12 +200,20 @@ export default defineConfig({
   //      blowing past assertion timeouts.
   // Local runs still default to `pnpm dev` for fast iteration.
   webServer: {
-    command: process.env.PLAYWRIGHT_PROD
-      ? 'pnpm build && pnpm exec next start --port 3005'
-      : 'pnpm dev',
-    url: 'http://localhost:3005',
-    reuseExistingServer: !process.env.CI,
+    command: boundedAcceptance
+      ? 'pnpm dev:acceptance'
+      : process.env.PLAYWRIGHT_PROD
+        ? 'pnpm build && pnpm exec next start --port 3005'
+        : 'pnpm dev',
+    // Compile Simulator before the first acceptance navigation. A cold Pages
+    // Router compile can trigger a dev reload and abort page.goto mid-suite.
+    url: boundedAcceptance
+      ? process.env.MEMBRANE_E2E_READY_URL || 'http://localhost:3005/ethereum/simulator'
+      : 'http://localhost:3005',
+    reuseExistingServer:
+      (boundedAcceptance && process.env.MEMBRANE_E2E_REUSE_SERVER === '1') ||
+      (!boundedAcceptance && !process.env.CI),
     // A production build has to compile first, so allow considerably longer.
-    timeout: process.env.PLAYWRIGHT_PROD ? 600000 : 120000,
+    timeout: boundedAcceptance ? 180000 : process.env.PLAYWRIGHT_PROD ? 600000 : 120000,
   },
 })

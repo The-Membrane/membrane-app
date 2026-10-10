@@ -27,6 +27,8 @@ const HOUR_MS = 3_600_000
 export const ALARM_THRESHOLDS = Object.freeze({
   // any gate-moving event in the trailing window
   gate_change: Object.freeze({ windowHours: 24 }),
+  // an observed edit to the official terms page; its exit impact is unknown
+  terms_page_notice: Object.freeze({ windowHours: 24 }),
   // peak-to-current fall STRICTLY above alarmFallPct over the trailing window
   drawdown_fast: Object.freeze({ windowDays: 7, alarmFallPct: 20 }),
   // consecutive net-outflow days; cumulative outflow must be STRICTLY above minPctOfTvl
@@ -34,7 +36,13 @@ export const ALARM_THRESHOLDS = Object.freeze({
   // instant exit capacity / worst recorded day out, STRICTLY below the multiple.
   // poolCostPct: a pool's capacity is what exits within this cost incl. fees
   // (venue_depth_curves), not its raw reserve.
-  headroom_thin: Object.freeze({ watch: 3, alarm: 1.5, windowDays: 90, poolMaxSeverity: 'watch', poolCostPct: 1 }),
+  headroom_thin: Object.freeze({
+    watch: 3,
+    alarm: 1.5,
+    windowDays: 90,
+    poolMaxSeverity: 'watch',
+    poolCostPct: 1,
+  }),
   // lending-reserve utilization STRICTLY above
   utilization: Object.freeze({ watchPct: 90, alarmPct: 95 }),
   // exit-pool one-sidedness STRICTLY above
@@ -72,12 +80,8 @@ export function isUnreadDepthZero(value, at) {
 // `events`: [{ kind, at }] (at = ISO string or epoch ms). Only the two
 // gate-moving kinds count; the 24h window is applied here so the boundary is
 // tested against the pure fn, not the SQL.
-// terms_page_changed is ALARM-GRADE: a redemption/terms page edit is a
-// gate-moving act in the same genre as a cooldown change (memo P2 — "the gate
-// moves, or was never there"), so it rides the gate_change rule. The recorder
-// seeds terms baselines silently (no event on first hash); only a SUBSEQUENT
-// hash change emits terms_page_changed, and that is what fires here.
-export const GATE_KINDS = new Set(['cooldown_duration_changed', 'instant_liquidity_shift', 'terms_page_changed'])
+// A page-text edit alone cannot establish that redemption mechanics changed.
+export const GATE_KINDS = new Set(['cooldown_duration_changed', 'instant_liquidity_shift'])
 
 export function evalGateChange(events, nowMs = Date.now()) {
   const since = nowMs - ALARM_THRESHOLDS.gate_change.windowHours * HOUR_MS
@@ -97,6 +101,121 @@ export function evalGateChange(events, nowMs = Date.now()) {
   }
 }
 
+// --- rule: terms_page_notice (notice) -------------------------------------
+// The watcher emits only after its first baseline. A changed page warrants a
+// factual notice and review; no exit impact is inferred from the hash alone.
+// Legacy aggregate evaluator retained for readers/tests. The checker issues
+// notices through termsNoticeRows below, one per immutable venue_events.id.
+export function evalTermsPageNotice(events, nowMs = Date.now()) {
+  const since = nowMs - ALARM_THRESHOLDS.terms_page_notice.windowHours * HOUR_MS
+  const hits = (events ?? [])
+    .filter((e) => e.kind === 'terms_page_changed')
+    .filter((e) => {
+      const t = tOf(e.at)
+      return Number.isFinite(t) && t >= since
+    })
+  if (hits.length === 0) return { fires: false, severity: null, evidence: null }
+  const sorted = [...hits].sort((a, b) => tOf(b.at) - tOf(a.at))
+  return {
+    fires: true,
+    severity: 'notice',
+    evidence: { count: hits.length, latest: sorted[0], events: sorted },
+  }
+}
+
+export function termsNoticeRows(events, venue, nowMs = Date.now()) {
+  const since = nowMs - ALARM_THRESHOLDS.terms_page_notice.windowHours * HOUR_MS
+  return (events ?? [])
+    .filter((e) => e.kind === 'terms_page_changed' && e.id && Number.isFinite(tOf(e.at)))
+    .filter((e) => tOf(e.at) > since && tOf(e.at) <= nowMs)
+    .map((e) => {
+      const sourceUrl = publicTermsUrl(e.next?.source_url)
+      // venue_events retains the exact configured URL. The public alarm
+      // evidence whitelists hash metadata and a safe link, never note/raw URL.
+      const eventEvidence = {
+        id: e.id,
+        kind: e.kind,
+        at: e.at,
+        prev: { content_hash: e.prev?.content_hash, content_len: e.prev?.content_len },
+        next: { content_hash: e.next?.content_hash, content_len: e.next?.content_len },
+      }
+      return {
+        venue,
+        kind: 'terms_page_notice',
+        severity: 'notice',
+        sourceEventId: e.id,
+        evidence: {
+          count: 1,
+          latest: eventEvidence,
+          events: [eventEvidence],
+          sourceUrl: sourceUrl ?? undefined,
+          sourceUrlStatus: sourceUrl ? 'source_event' : 'unavailable',
+          firstObservedAt: new Date(tOf(e.at)).toISOString(),
+          exitImpact: 'unclassified',
+        },
+      }
+    })
+}
+
+function publicTermsUrl(raw) {
+  if (typeof raw !== 'string') return null
+  try {
+    const url = new URL(raw)
+    if (!['http:', 'https:'].includes(url.protocol)) return null
+    if (url.username || url.password || url.search || url.hash) return null
+    if (!url.hostname.includes('.') || /(?:\.local|\.internal)$/i.test(url.hostname)) return null
+    if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(url.hostname)) return null
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+export function termsNoticeExpired(row, nowMs = Date.now()) {
+  const observedAt = row.evidence?.firstObservedAt ?? row.evidence?.latest?.at ?? row.fired_at
+  const at = tOf(observedAt)
+  return (
+    Number.isFinite(at) && at + ALARM_THRESHOLDS.terms_page_notice.windowHours * HOUR_MS <= nowMs
+  )
+}
+
+// An old gate_change row may have been opened solely by terms-page edits.
+// It must be cleared before a real gate_change can take its unique open slot.
+export function isLegacyTermsOnlyGateAlarm(row) {
+  if (row?.kind !== 'gate_change') return false
+  const { events, count, latest } = row.evidence ?? {}
+  const reportedCount = Number(count)
+  if (!Number.isInteger(reportedCount) || reportedCount < 1) return false
+  if (Array.isArray(events) && events.length > 0) {
+    // Partial evidence cannot prove that a hidden event was not a real gate move.
+    return reportedCount === events.length && events.every((e) => e?.kind === 'terms_page_changed')
+  }
+  // A legacy single-event row can still be identified when only latest survived.
+  return reportedCount === 1 && latest?.kind === 'terms_page_changed'
+}
+
+export function legacyTermsNoticeEvidence(row) {
+  const old = row.evidence ?? {}
+  const latest = old.latest ?? old.events?.[0] ?? {}
+  const at = Number.isFinite(tOf(latest.at)) ? latest.at : row.fired_at
+  const count = Number.isInteger(Number(old.count)) && Number(old.count) > 0 ? Number(old.count) : 1
+  const event = {
+    kind: 'terms_page_changed',
+    at,
+    prev: { content_hash: latest.prev?.content_hash, content_len: latest.prev?.content_len },
+    next: { content_hash: latest.next?.content_hash, content_len: latest.next?.content_len },
+  }
+  return {
+    count,
+    latest: event,
+    events: [event],
+    firstObservedAt: at,
+    sourceUrlStatus: 'unavailable_legacy',
+    migrationStatus: 'retagged_unmapped_aggregate',
+    exitImpact: 'unclassified',
+  }
+}
+
 // --- rule: drawdown_fast (alarm) ------------------------------------------
 // stETH/Angle drain genre: the carried book's capacity fell fast. Peak-to-
 // current drawdown of the primary metric over the trailing 7d of observed
@@ -113,7 +232,8 @@ export function evalDrawdown(series, metric = 'value') {
   const curV = Number(current.value)
   if (peakV <= 0) return { fires: false, severity: null, evidence: null }
   const fallFrac = (peakV - curV) / peakV
-  if (!(fallFrac > ALARM_THRESHOLDS.drawdown_fast.alarmFallPct / 100)) return { fires: false, severity: null, evidence: null }
+  if (!(fallFrac > ALARM_THRESHOLDS.drawdown_fast.alarmFallPct / 100))
+    return { fires: false, severity: null, evidence: null }
   return {
     fires: true,
     severity: 'alarm',
@@ -137,7 +257,8 @@ export function evalDrawdown(series, metric = 'value') {
 // cumulative-outflow-vs-TVL condition hold.
 export function evalOutflowStreak(dailyNets, tvlUsd) {
   const rows = (dailyNets ?? []).filter((d) => d && typeof d.day === 'string')
-  if (rows.length === 0) return { fires: false, severity: null, streakDays: 0, cumulativeOutflowUsd: 0, evidence: null }
+  if (rows.length === 0)
+    return { fires: false, severity: null, streakDays: 0, cumulativeOutflowUsd: 0, evidence: null }
   const byDay = new Map(rows.map((d) => [d.day, Number(d.net)]))
   const days = rows.map((d) => d.day).sort()
   let cursor = days[days.length - 1]
@@ -169,7 +290,12 @@ export function evalOutflowStreak(dailyNets, tvlUsd) {
     fires: true,
     severity,
     ...base,
-    evidence: { streakDays: streak, cumulativeOutflowUsd: cum, tvlUsd: tvl, pctOfTvl: pctOfTvl * 100 },
+    evidence: {
+      streakDays: streak,
+      cumulativeOutflowUsd: cum,
+      tvlUsd: tvl,
+      pctOfTvl: pctOfTvl * 100,
+    },
   }
 }
 
@@ -184,7 +310,13 @@ export function evalOutflowStreak(dailyNets, tvlUsd) {
 // it used; costCapPct (the curve's cost cap) is recorded with it.
 // Venues with neither read cannot be judged — that gap is reported via
 // uncoveredFor.
-export function evalHeadroom(instantUsd, worstDayOutflowUsd, source, redemption = null, costCapPct = null) {
+export function evalHeadroom(
+  instantUsd,
+  worstDayOutflowUsd,
+  source,
+  redemption = null,
+  costCapPct = null,
+) {
   if (instantUsd === null || instantUsd === undefined) {
     return { fires: false, severity: null, evidence: null }
   }
@@ -197,7 +329,10 @@ export function evalHeadroom(instantUsd, worstDayOutflowUsd, source, redemption 
   // when it is delayed. A redemption with no cooldown adds to the fast exit; a
   // cooldown redemption counts only toward the total. The alarm judges the fast
   // exit, and escalates to 'alarm' whenever even the total cannot cover the day.
-  const red = redemption && Number.isFinite(Number(redemption.usd)) && Number(redemption.usd) > 0 ? redemption : null
+  const red =
+    redemption && Number.isFinite(Number(redemption.usd)) && Number(redemption.usd) > 0
+      ? redemption
+      : null
   const redUsd = red ? Number(red.usd) : 0
   const redDelay = red ? Number(red.delaySec) || 0 : 0
   const fast = inst + (red && redDelay === 0 ? redUsd : 0)
@@ -215,7 +350,13 @@ export function evalHeadroom(instantUsd, worstDayOutflowUsd, source, redemption 
   if (poolOnly && severity === 'alarm' && totalRatio >= ALARM_THRESHOLDS.headroom_thin.alarm) {
     severity = ALARM_THRESHOLDS.headroom_thin.poolMaxSeverity
   }
-  const evidence = { instantUsd: fast, worstDayOutflowUsd: worst, windowDays: ALARM_THRESHOLDS.headroom_thin.windowDays, ratio, totalRatio }
+  const evidence = {
+    instantUsd: fast,
+    worstDayOutflowUsd: worst,
+    windowDays: ALARM_THRESHOLDS.headroom_thin.windowDays,
+    ratio,
+    totalRatio,
+  }
   if (source) evidence.source = source
   if (costCapPct !== null && costCapPct !== undefined) evidence.costCapPct = costCapPct
   if (red) {
@@ -254,7 +395,11 @@ export function instantExitUsd(snapshot, curveCapacity = null) {
   }
   // Preferred pool capacity: what exits within the cost cap, from on-chain quotes.
   if (curveCapacity && isReadValue(curveCapacity.usd)) {
-    return { usd: Number(curveCapacity.usd), source: 'depth_curve', costCapPct: curveCapacity.costPct }
+    return {
+      usd: Number(curveCapacity.usd),
+      source: 'depth_curve',
+      costCapPct: curveCapacity.costPct,
+    }
   }
   const p = snapshot.params ?? {}
   const at = snapshot.observed_at ?? snapshot.at
@@ -336,7 +481,9 @@ export function evalDepthSkew(skewPct) {
 // swap-INTO side's reserve) over the trailing 7d of observed snapshots. Fires on
 // peak-to-current fall > 35% (watch) / > 50% (alarm).
 export function evalDepthCollapse(series) {
-  const pts = (series ?? []).filter((p) => isReadValue(p.value) && !isUnreadDepthZero(p.value, p.at))
+  const pts = (series ?? []).filter(
+    (p) => isReadValue(p.value) && !isUnreadDepthZero(p.value, p.at),
+  )
   if (pts.length < 2) return { fires: false, severity: null, evidence: null }
   let peak = pts[0]
   for (const p of pts) if (Number(p.value) > Number(peak.value)) peak = p
@@ -371,7 +518,7 @@ export function evalDepthCollapse(series) {
 // (and severity is never mutated on an open row; the only permitted UPDATEs are
 // cleared_at and notified).
 export function reconcileAlarms(firing, open) {
-  const key = (x) => `${x.venue} ${x.kind}`
+  const key = (x) => `${x.venue}\u0000${x.kind}`
   const openKeys = new Set((open ?? []).map(key))
   const firingKeys = new Set((firing ?? []).map(key))
   const toInsert = (firing ?? []).filter((f) => !openKeys.has(key(f)))
@@ -383,7 +530,11 @@ export function reconcileAlarms(firing, open) {
 // Memo signals the alarm system CANNOT evaluate from the corpus as it stands.
 // Surfaced (never as alarms) so a quiet board never reads as all-clear.
 export const UNCOVERED_SIGNALS = [
-  { id: 'depth_vs_book', label: 'depth-vs-book', memo: 'P4 — needs the oracle-market depth extension' },
+  {
+    id: 'depth_vs_book',
+    label: 'depth-vs-book',
+    memo: 'P4 — needs the oracle-market depth extension',
+  },
   { id: 'terms_page_changes', label: 'terms changes', memo: 'needs the terms-page hash watcher' },
 ]
 
@@ -407,7 +558,7 @@ export const HEADROOM_BLIND_SIGNAL = Object.freeze({
 // keeps depth_vs_book listed: silence there is still a blind spot, not all-clear.
 // `termsCovered` (true) drops 'terms_page_changes' — the venue has a termsUrl
 // the hash watcher (scripts/watch-venue-terms.mjs) tracks, so a redemption/terms
-// edit now surfaces as a terms_page_changed event (alarm-grade via gate_change).
+// edit now surfaces as a terms_page_changed event (a factual notice).
 // A venue with NO termsUrl keeps terms_page_changes listed: still a blind spot.
 export function uncoveredFor({ hasInstant, depthCovered, termsCovered } = {}) {
   let list = [...UNCOVERED_SIGNALS]

@@ -1,9 +1,10 @@
 // notify.mjs — alarm delivery for the VENUE FAILURE-PATTERN ALARM.
 //
-// notify(newAlarms) delivers a plain-text digest of freshly-fired alarms over
-// whatever channels are available, and returns { ok, channels } — ok=true iff at
-// least one channel accepted the message. The checker marks a row notified=true
-// ONLY after ok is true (i.e. at least one channel succeeded).
+// notify(alarms) delivers a plain-text digest of new or retried open alarms over
+// whatever channels are available, and returns { ok, channels, telegram }.
+// ok=true means at least one channel accepted the message; telegram records
+// configured/delivered separately. The checker requires Telegram delivery
+// when configured, so a successful local fallback does not mask its failure.
 //
 // Channels, in order:
 //   1. Telegram — POST api.telegram.org/bot<token>/sendMessage. ONLY if BOTH
@@ -12,26 +13,41 @@
 //   2. Log file — always append one line per alarm to ~/Library/Logs/venue-alarms.log.
 //   3. macOS notification — on darwin, one `osascript -e 'display notification …'`.
 //
-// This module NEVER invents env values. If the Telegram vars are unset it logs a
-// single line naming exactly which vars would enable it, then relies on the local
-// fallbacks (log file + macOS notification), which is why ok is still true.
+// This module NEVER invents env values. If both Telegram vars are unset it logs
+// how to enable them and relies on local fallbacks. If only one is set, Telegram
+// remains required but incomplete: local fallback still runs and the checker
+// leaves the row pending. A Telegram retry may repeat the local log append.
 
 import { appendFile } from 'fs/promises'
 import { execFile } from 'child_process'
 import { homedir } from 'os'
 import { join } from 'path'
 import { readEnv } from './venue-reads.mjs'
+import { GATE_KINDS, isLegacyTermsOnlyGateAlarm } from './alarmRules.mjs'
 
 const LOG_PATH = join(homedir(), 'Library', 'Logs', 'venue-alarms.log')
 
 // One human line per alarm — venue, kind, severity, and the evidence numbers.
 export function formatAlarmLine(a) {
-  const sev = String(a.severity ?? '').toUpperCase()
+  const legacyTermsOnly = isLegacyTermsOnlyGateAlarm(a)
+  const sev = legacyTermsOnly ? 'NOTICE' : String(a.severity ?? '').toUpperCase()
   const ev = a.evidence ?? {}
   let detail = ''
   switch (a.kind) {
     case 'gate_change':
-      detail = `gate moved — ${ev.latest?.kind ?? 'event'} (${ev.count ?? 1} in 24h): ${ev.latest?.note ?? ''}`.trim()
+      if (legacyTermsOnly) {
+        detail = `NOTICE — official terms page text changed (${ev.count ?? 1} in 24h); exit impact unclassified`
+      } else {
+        const measured = (ev.events ?? []).find((event) => GATE_KINDS.has(event?.kind))
+        detail = measured
+          ? `gate moved — ${measured.kind} (${ev.count ?? 1} in 24h): ${measured.note ?? ''}`.trim()
+          : ev.latest?.kind === 'terms_page_changed'
+            ? 'legacy evidence incomplete — terms page text changed; exit impact unclassified'
+            : `gate moved — ${ev.latest?.kind ?? 'event'} (${ev.count ?? 1} in 24h): ${ev.latest?.note ?? ''}`.trim()
+      }
+      break
+    case 'terms_page_notice':
+      detail = `NOTICE — official terms page text changed (${ev.count ?? 1} in 24h); exit impact unclassified${ev.sourceUrl ? `; review ${ev.sourceUrl}` : ''}`
       break
     case 'drawdown_fast':
       detail = `${ev.metric ?? 'capacity'} fell ${fmtPct(ev.dropPct)} — ${fmtUsd(ev.fromValue)} (${shortDate(ev.fromDate)}) -> ${fmtUsd(ev.toValue)} (${shortDate(ev.toDate)})`
@@ -48,9 +64,21 @@ export function formatAlarmLine(a) {
   return `[${sev}] ${a.venue} ${a.kind}: ${detail}`
 }
 
+export function formatDigest(alarms, stamp) {
+  const noticesOnly = alarms.every((a) => a.severity === 'notice' || isLegacyTermsOnlyGateAlarm(a))
+  const heading = noticesOnly ? 'Membrane venue notices' : 'Membrane venue signals'
+  return `${heading} (${alarms.length}) — ${stamp}\n${alarms.map(formatAlarmLine).join('\n')}`
+}
+
 export async function notify(newAlarms, opts = {}) {
   const alarms = newAlarms ?? []
-  if (alarms.length === 0) return { ok: true, channels: [], skipped: 'no new alarms' }
+  if (alarms.length === 0)
+    return {
+      ok: true,
+      channels: [],
+      telegram: { configured: false, delivered: false },
+      skipped: 'no new alarms',
+    }
 
   const lines = alarms.map(formatAlarmLine)
   const stamp = new Date().toISOString()
@@ -60,23 +88,31 @@ export async function notify(newAlarms, opts = {}) {
   const get = opts.get ?? readEnv().get
   const token = get('TELEGRAM_BOT_TOKEN')
   const chatId = get('TELEGRAM_CHAT_ID')
-  if (token && chatId) {
+  const telegramRequired = Boolean(token || chatId)
+  const telegramReady = Boolean(token && chatId)
+  if (telegramReady) {
     try {
-      const text = `Membrane venue alarms (${alarms.length}) — ${stamp}\n${lines.join('\n')}`
-      const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      const text = formatDigest(alarms, stamp)
+      const r = await (opts.fetch ?? fetch)(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
+        signal: AbortSignal.timeout(opts.telegramTimeoutMs ?? 30_000),
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
       })
-      if (r.ok) {
+      const body = r.ok ? await r.json() : null
+      if (r.ok && body?.ok === true) {
         channels.push('telegram')
         console.log(`  notify: telegram delivered (${alarms.length} alarm(s))`)
       } else {
-        console.log(`  notify: telegram HTTP ${r.status} — falling back to local channels`)
+        console.log(`  notify: telegram rejected message (HTTP ${r.status}) — local fallback only`)
       }
-    } catch (e) {
-      console.log(`  notify: telegram error (${String(e).split('\n')[0]}) — falling back to local channels`)
+    } catch {
+      console.log('  notify: telegram request failed or timed out — local fallback only')
     }
+  } else if (telegramRequired) {
+    console.log(
+      `  notify: telegram configuration incomplete — missing ${token ? 'TELEGRAM_CHAT_ID' : 'TELEGRAM_BOT_TOKEN'}; local fallback only, remote delivery pending`,
+    )
   } else {
     console.log(
       '  notify: telegram disabled — set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env.local to enable it',
@@ -85,7 +121,10 @@ export async function notify(newAlarms, opts = {}) {
 
   // --- 2. Log file (always) -------------------------------------------------
   try {
-    await appendFile(LOG_PATH, lines.map((l) => `${stamp} ${l}`).join('\n') + '\n')
+    await (opts.appendFile ?? appendFile)(
+      LOG_PATH,
+      lines.map((l) => `${stamp} ${l}`).join('\n') + '\n',
+    )
     channels.push('logfile')
     console.log(`  notify: appended ${lines.length} line(s) to ${LOG_PATH}`)
   } catch (e) {
@@ -95,9 +134,13 @@ export async function notify(newAlarms, opts = {}) {
   // --- 3. macOS notification (darwin) --------------------------------------
   if (process.platform === 'darwin') {
     try {
-      const worst = alarms.some((a) => a.severity === 'alarm') ? 'ALARM' : 'watch'
+      const worst = alarms.some((a) => a.severity === 'alarm' && !isLegacyTermsOnlyGateAlarm(a))
+        ? 'ALARM'
+        : alarms.some((a) => a.severity === 'watch')
+          ? 'watch'
+          : 'notice'
       const body = `${alarms.length} venue signal(s): ${alarms.map((a) => `${a.venue}/${a.kind}`).join(', ')}`
-      await displayNotification(`Membrane venue ${worst}`, body)
+      await (opts.displayNotification ?? displayNotification)(`Membrane venue ${worst}`, body)
       channels.push('macos')
       console.log('  notify: macOS notification posted')
     } catch (e) {
@@ -105,16 +148,23 @@ export async function notify(newAlarms, opts = {}) {
     }
   }
 
-  return { ok: channels.length > 0, channels }
+  return {
+    ok: channels.length > 0,
+    channels,
+    telegram: { configured: telegramRequired, delivered: channels.includes('telegram') },
+  }
 }
 
 // --- helpers ---------------------------------------------------------------
 function displayNotification(title, body) {
   // Pass title/body as osascript arguments (on-account-of "$1"/"$2"), never
   // string-interpolated into the script, so an evidence value can't break out.
-  const script = 'on run argv\ndisplay notification (item 2 of argv) with title (item 1 of argv)\nend run'
+  const script =
+    'on run argv\ndisplay notification (item 2 of argv) with title (item 1 of argv)\nend run'
   return new Promise((resolve, reject) => {
-    execFile('osascript', ['-e', script, title, body], (err) => (err ? reject(err) : resolve()))
+    execFile('osascript', ['-e', script, title, body], { timeout: 10_000 }, (err) =>
+      err ? reject(err) : resolve(),
+    )
   })
 }
 

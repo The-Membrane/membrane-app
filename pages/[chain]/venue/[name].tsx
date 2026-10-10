@@ -54,19 +54,46 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
 const NotFoundCard: React.FC<{ name: string; validVenues: string[] }> = ({ name, validVenues }) => {
   const { chainName } = useChainRoute()
   return (
-    <Box maxW="1140px" mx="auto" px={SPACING.base} py={SPACING.lg} bg={SEMANTIC_COLORS.bgPrimary} color={SEMANTIC_COLORS.textPrimary}>
+    <Box
+      maxW="1140px"
+      mx="auto"
+      px={SPACING.base}
+      py={SPACING.lg}
+      bg={SEMANTIC_COLORS.bgPrimary}
+      color={SEMANTIC_COLORS.textPrimary}
+    >
       <Eyebrow>venue permalink</Eyebrow>
-      <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} letterSpacing="-0.01em" mt={SPACING.sm}>
+      <Text
+        fontFamily={TYPOGRAPHY.fontDisplay}
+        fontSize={TYPOGRAPHY.h1}
+        letterSpacing="-0.01em"
+        mt={SPACING.sm}
+      >
         No such venue
       </Text>
       <Card variant="default" p={SPACING.base} mt={SPACING.base}>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={SEMANTIC_COLORS.textSecondary}>
-          {name ? `"${name}" is not a venue we track.` : 'No venue named.'} These are the venues we record:
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="11.5px"
+          color={SEMANTIC_COLORS.textSecondary}
+        >
+          {name ? `"${name}" is not a venue we track.` : 'No venue named.'} These are the venues we
+          record:
         </Text>
         <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.base}>
           {validVenues.map((v) => (
-            <NextLink key={v} href={`/${chainName}/venue/${v}`} style={{ textDecoration: 'underline' }}>
-              <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary} _hover={{ color: SEMANTIC_COLORS.success }}>
+            <NextLink
+              key={v}
+              href={`/${chainName}/venue/${v}`}
+              style={{ textDecoration: 'underline' }}
+            >
+              <Text
+                as="span"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.small}
+                color={SEMANTIC_COLORS.textPrimary}
+                _hover={{ color: SEMANTIC_COLORS.success }}
+              >
                 {v}
               </Text>
             </NextLink>
@@ -74,12 +101,24 @@ const NotFoundCard: React.FC<{ name: string; validVenues: string[] }> = ({ name,
         </HStack>
         <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.lg}>
           <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
-            <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+            <Text
+              as="span"
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.small}
+              color={SEMANTIC_COLORS.textSecondary}
+              _hover={{ color: SEMANTIC_COLORS.success }}
+            >
               the board → /carry
             </Text>
           </NextLink>
           <NextLink href={`/${chainName}/radar`} style={{ textDecoration: 'underline' }}>
-            <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+            <Text
+              as="span"
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.small}
+              color={SEMANTIC_COLORS.textSecondary}
+              _hover={{ color: SEMANTIC_COLORS.success }}
+            >
               scan an address → /radar
             </Text>
           </NextLink>
@@ -110,8 +149,8 @@ export default function VenuePermalink({ name, valid, validVenues }: Props) {
         seoClass="indexable"
         path={`/${DEFAULT_CHAIN}/venue/${name}`}
         image={venueOgImagePath(name) ?? undefined}
-        title={`${name} — exit capacity, recorded | Membrane Carry Radar`}
-        description={`${name} withdrawal capacity, worst recorded outflows, open failure-pattern flags and blind spots — measured from Membrane's venue recorder corpus, provenance-stamped.`}
+        title={`${name} — exit readings | Membrane Carry Radar`}
+        description={`Review ${name}'s latest exit readings, gate status and open flags. Withdrawal maxima remain unavailable until complete flow windows are verified.`}
       />
       <VenuePage venue={name} />
     </>

@@ -1,5 +1,5 @@
-import React from 'react'
-import { Box, Grid, HStack, Text } from '@chakra-ui/react'
+import React, { useState } from 'react'
+import { Box, Grid, HStack, Input, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 import NextLink from 'next/link'
 
@@ -10,22 +10,40 @@ import {
   type TransactionClass,
 } from '@/components/Venue/capacityDriverLogic'
 import { CapacityCurve } from '@/components/Venue/CapacityCurve'
+import { FlowImpactCard, type ObservedCapacitySignal } from '@/components/Venue/FlowImpactCard'
+import {
+  isRecentObservedEvent,
+  isRecentPublishedNews,
+  newsFetchedAtLabel,
+  selectObservedCapacitySignal,
+  type NewsStorage,
+  type ValidatedRouteFlowOutlook,
+} from '@/components/Venue/flowImpactCardLogic'
+import type { HistoricalInventoryEvidence } from '@/components/Venue/historicalInventoryScenarioLogic'
 import { fmtUsd } from '@/components/Radar/radarLogic'
-import { Entry, consequence, alarmConsequence, fmtDuration } from '@/components/Carry/venueLogLogic'
+import {
+  Entry,
+  consequence,
+  alarmConsequence,
+  fmtDuration,
+  isTermsOnlyNotice,
+  termsSourceUrl,
+} from '@/components/Carry/venueLogLogic'
 import { Eyebrow, SectionHeading, Stamp } from '@/components/Carry/atoms'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import type { VenueMeasuredPersistenceResult } from '@/pages/api/_lib/venueForecastReads'
 
 /**
  * VenuePage — the /venue/[name] permalink. Every headline about a carry venue
  * becomes our distribution moment: one URL assembling the venue's recorded state,
- * its worst realized exits, the open flags AND the blind spots, what changed, and
+ * its verified exit history, the open flags AND the blind spots, what changed, and
  * what's being said. All corpus-driven, numbers-first, no prose explanations.
  *
- * Data: /api/venues/[venue]/summary (state + coverage + worst-outflows + alarms),
+ * Data: /api/venues/[venue]/summary (state + coverage + alarms),
  * /api/venues/log (filtered to this venue client-side) and /api/venues/news?venue=.
  * Every fetch overrides the app-wide refetchOnMount:false default so an empty
  * first fetch cannot stick for the session.
@@ -46,6 +64,9 @@ type VenueSummary = {
   observed: {
     block: number
     observedAt: string
+    sourceAt?: string
+    fetchedAt?: string
+    firstLocalReceiptAt?: string
     instantUsd: number | null
     params: {
       totalAssets: string | null
@@ -56,13 +77,15 @@ type VenueSummary = {
       depthMarkets: DepthMarket[] | null
     }
   } | null
+  suppliedTvl: { usd: number; block: number; observedAt: string } | null
   corpus: {
     snapshots: number
     snapshotsObserved: number
     snapshotSpan: { start: string | null; end: string | null }
-    flows: number
+    flows: number | null
     flowSpan: { start: string | null; end: string | null }
-    news: number
+    news: number | null
+    status: 'database' | 'database_unreconciled' | 'local_only'
   }
   worstOutflows: {
     d1: { usd: number; date: string } | null
@@ -71,12 +94,73 @@ type VenueSummary = {
   alarms: {
     open: Array<{
       kind: string
-      severity: 'watch' | 'alarm'
+      severity: 'watch' | 'alarm' | 'notice'
       evidence: Record<string, unknown> | null
       firedAt: string
     }>
     uncovered: Array<{ id: string; label: string; memo: string }>
+    status: 'available' | 'database_unreconciled' | 'unknown'
   }
+  provenance: {
+    storage: 'database' | 'local_mac_recorder'
+    observationStatus: 'fresh' | 'stale' | 'missing' | 'unknown'
+    databaseStatus: 'available' | 'available_lagging' | 'unavailable'
+    sourceAt: string | null
+    fetchedAt: string | null
+    firstLocalReceiptAt: string | null
+  }
+}
+
+type VenueForecastResponse = {
+  measuredPersistence?: VenueMeasuredPersistenceResult
+  storage: 'database' | 'local_mac_recorder'
+  route: { label: string; kind: string; limit: string; metric: 'instant_usd' | 'depth_usd' }
+  latest: { block: number; observedAt: string; capacityUsd: number | null; coverage: string } | null
+  coverage: {
+    observedRows: number
+    flowStatus: string
+    flowReason: string
+    maxGrossOutflowUsd: number | null
+    maxNetOutflowUsd: number | null
+  }
+  forecast: {
+    status: 'research_projection' | 'abstain'
+    reason: string | null
+    current: { capacityUsd: number; observedAt: string } | null
+    projection: {
+      targetAt: string
+      bandLowUsd: number
+      bandHighUsd: number
+      relativeToAmount: 'below' | 'at_or_above' | 'uncertain'
+    } | null
+    sourceSpan: { completeSnapshots: number; incompleteSnapshots: number }
+    backtest: {
+      holdout: {
+        eligible: number
+        bandCoverage: number | null
+        belowAmountEvents: number
+        atOrAboveAmountControls: number
+      }
+    }
+    duration: {
+      observedEpisodes: number
+      completed: number
+      leftCensored: number
+      rightCensored: number
+      gapCensored: number
+      maxCompletedObservedSpanHours: number | null
+      durationForecast: { status: 'unavailable' }
+    }
+  }
+  impactForecast?: ValidatedRouteFlowOutlook | { status: 'unavailable' }
+}
+
+type CapacityChangeSignal = {
+  items: Array<{
+    venue: string
+    metric: 'instantUsd' | 'depthUsd'
+    signal: ObservedCapacitySignal
+  }>
 }
 
 type NewsItem = {
@@ -86,6 +170,19 @@ type NewsItem = {
   url: string
   publishedAt: string | null
   fetchedAt: string
+}
+
+type NewsResponse = {
+  items: NewsItem[]
+  provenance: { storage: NewsStorage }
+}
+
+const newsTimeUtc = (iso: string | null | undefined): string => {
+  if (!iso) return 'unavailable'
+  const timestamp = new Date(iso)
+  return Number.isNaN(timestamp.getTime())
+    ? 'unavailable'
+    : `${timestamp.toISOString().slice(0, 16).replace('T', ' ')} UTC`
 }
 
 const day = (iso: string | null | undefined): string =>
@@ -117,6 +214,11 @@ const observedTime = (iso: string): string =>
     hour: 'numeric',
     minute: '2-digit',
   })
+const tvlAge = (observedAt: string, now = Date.now()) => {
+  const ageMs = Math.max(0, now - new Date(observedAt).getTime())
+  const hours = Math.floor(ageMs / (60 * 60 * 1000))
+  return { label: hours < 1 ? '<1h old' : `${hours}h old`, stale: ageMs > 36 * 60 * 60 * 1000 }
+}
 
 // --- small building blocks -------------------------------------------------
 
@@ -150,16 +252,171 @@ const Stat: React.FC<{
   </Card>
 )
 
-const ProvFooter: React.FC<{ date: string }> = ({ date }) => (
-  <Stamp>carry radar · recorded corpus · {date}</Stamp>
-)
+const ProvFooter: React.FC<{ date: string; local?: boolean }> = ({ date, local = false }) =>
+  local ? null : <Stamp>carry radar · recorded corpus · {date}</Stamp>
+
+export const MeasuredPersistenceMetrics: React.FC<{
+  value: VenueMeasuredPersistenceResult | undefined
+}> = ({ value }) => {
+  if (!value) return null
+  const span = (hours: number | undefined) =>
+    hours != null && Number.isFinite(hours) && hours >= 0 ? `${hours.toFixed(2)}h` : '—'
+  const current =
+    value.status === 'measured_history' && value.unavailableReason === null
+      ? value.currentStatus === 'at_or_above'
+        ? span(value.currentRun?.sampledSpanHours)
+        : value.currentStatus === 'below'
+          ? 'Below Q'
+          : '—'
+      : '—'
+  const fraction =
+    value.sampleShare.complete > 0 && value.sampleShare.fraction !== null
+      ? `${value.sampleShare.atOrAboveQ.toLocaleString('en-US')} / ${value.sampleShare.complete.toLocaleString('en-US')} · ${(value.sampleShare.fraction * 100).toFixed(1)}%`
+      : '—'
+  const metrics = [
+    {
+      label: 'Current ≥ Q · sampled',
+      value: current,
+      color: current === 'Below Q' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
+      detail: `First-to-last above-Q sample span as of ${value.asOf}. The current run is right censored; capacity between samples is unknown.`,
+    },
+    {
+      label: 'Longest completed · sampled',
+      value: span(value.longestCompletedRun?.sampledSpanHours),
+      detail:
+        'Longest historical sampled run with observed start and end crossings bracketed by complete samples. Capacity between samples is unknown.',
+    },
+    {
+      label: '≥ Q / complete samples',
+      value: fraction,
+      detail: `${value.coverage.completeExpectedSamples} complete / ${value.coverage.expectedSamples} expected cadence slots; ${value.coverage.missingExpectedSamples} missing. This is an observed sample fraction.`,
+    },
+  ]
+  return (
+    <Box
+      mt={SPACING.md}
+      pt={SPACING.md}
+      borderTop="1px solid"
+      borderColor={SEMANTIC_COLORS.hairline}
+    >
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize={TYPOGRAPHY.xs}
+        color={SEMANTIC_COLORS.textSecondary}
+      >
+        Historical samples
+        {value.source === 'recorded_cost_curve' && value.costCapPct != null
+          ? ` · ${value.costCapPct}% cost cap${value.costCapSelection === 'default_recorded_level' ? ' (default)' : ''}`
+          : ''}
+      </Text>
+      <Grid
+        role="group"
+        aria-label="Measured historical persistence"
+        templateColumns={{ base: '1fr', md: 'repeat(3, minmax(0, 1fr))' }}
+        gap={SPACING.md}
+        mt={SPACING.sm}
+      >
+        {metrics.map((metric) => (
+          <Box key={metric.label} minW={0} title={metric.detail}>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.label}
+              textTransform="uppercase"
+              letterSpacing="0.28em"
+              color={SEMANTIC_COLORS.textSecondary}
+            >
+              {metric.label}
+            </Text>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.small}
+              color={metric.color ?? SEMANTIC_COLORS.textPrimary}
+              mt={SPACING.xs}
+            >
+              {metric.value}
+            </Text>
+          </Box>
+        ))}
+      </Grid>
+    </Box>
+  )
+}
+
+export const parseExitQuestionInputs = (amountInput: string, horizonInput: string) => {
+  const amount = Number(amountInput)
+  const hours = Number(horizonInput)
+  return {
+    amountUsd: amountInput.trim() && Number.isFinite(amount) && amount > 0 ? amount : null,
+    horizonHours:
+      horizonInput.trim() && Number.isInteger(hours) && hours >= 1 && hours <= 720 ? hours : null,
+  }
+}
 
 // --- the page --------------------------------------------------------------
 
 export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
   const { chainName } = useChainRoute()
+  const [exitAmountInput, setExitAmountInput] = useState('10000')
+  const [horizonHoursInput, setHorizonHoursInput] = useState('24')
+  const { amountUsd: selectedExitUsd, horizonHours: selectedHorizonHours } =
+    parseExitQuestionInputs(exitAmountInput, horizonHoursInput)
+  const {
+    data: forecastData,
+    isLoading: forecastLoading,
+    isError: forecastError,
+  } = useQuery<VenueForecastResponse>({
+    queryKey: ['venue_forecast', venue, selectedExitUsd, selectedHorizonHours],
+    enabled: selectedExitUsd != null && selectedHorizonHours != null,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        amountUsd: String(selectedExitUsd),
+        horizonHours: String(selectedHorizonHours),
+      })
+      const response = await fetch(`/api/venues/${encodeURIComponent(venue)}/forecast?${params}`)
+      if (!response.ok) throw new Error(`venue forecast ${response.status}`)
+      return response.json()
+    },
+    staleTime: 1000 * 60,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  })
 
-  const { data: summary } = useQuery<VenueSummary>({
+  const { data: changeData } = useQuery<CapacityChangeSignal>({
+    queryKey: ['venue_capacity_change', venue],
+    enabled: process.env.NODE_ENV === 'development',
+    queryFn: async () => {
+      const response = await fetch(`/api/venues/capacity-change?venue=${encodeURIComponent(venue)}`)
+      if (!response.ok) throw new Error(`capacity change ${response.status}`)
+      return response.json()
+    },
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 1000 * 60 * 5,
+  })
+  const measuredChangeItem = changeData?.items.find((item) => item.venue === venue)
+
+  const { data: historicalEvidence } = useQuery<HistoricalInventoryEvidence>({
+    queryKey: ['venue_historical_inventory_scenario', venue],
+    enabled:
+      process.env.NODE_ENV === 'development' &&
+      ['sUSDe', 'aave-v3-usde', 'sGHO', 'sUSDS', 'scrvUSD'].includes(venue),
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/venues/historical-inventory-scenario?venue=${encodeURIComponent(venue)}`,
+      )
+      if (!response.ok) throw new Error(`historical inventory scenario ${response.status}`)
+      return response.json()
+    },
+    staleTime: 1000 * 60 * 60,
+    refetchOnMount: true,
+  })
+
+  const {
+    data: summary,
+    isError: summaryError,
+    isLoading: summaryLoading,
+  } = useQuery<VenueSummary>({
     queryKey: ['venue_summary', venue],
     queryFn: async () => {
       const r = await fetch(`/api/venues/${venue}/summary`)
@@ -168,20 +425,24 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
     },
     staleTime: 1000 * 60 * 5,
     refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 1000 * 60 * 5,
   })
 
-  const { data: logData } = useQuery<{ entries: Entry[] }>({
-    queryKey: ['venue_log'],
+  const { data: logData, isLoading: logLoading } = useQuery<{ entries: Entry[] }>({
+    queryKey: ['venue_log', venue],
     queryFn: async () => {
-      const r = await fetch('/api/venues/log')
+      const r = await fetch(`/api/venues/log?venue=${encodeURIComponent(venue)}`)
       if (!r.ok) throw new Error(`venue log ${r.status}`)
       return r.json()
     },
     staleTime: 1000 * 60 * 5,
     refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 1000 * 60 * 5,
   })
 
-  const { data: newsData } = useQuery<{ items: NewsItem[] }>({
+  const { data: newsData, isLoading: newsLoading } = useQuery<NewsResponse>({
     queryKey: ['venue_news', venue],
     queryFn: async () => {
       const r = await fetch(`/api/venues/news?venue=${encodeURIComponent(venue)}`)
@@ -214,18 +475,43 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
   const label = summary?.label ?? venue
   const obs = summary?.observed ?? null
   const p = obs?.params
-  const corpusDate = day(summary?.corpus.snapshotSpan.end ?? obs?.observedAt) || todayIso()
+  const localProvenance =
+    summary?.provenance.storage === 'local_mac_recorder' ? summary.provenance : null
+  const corpusDate =
+    day(
+      localProvenance ? obs?.observedAt : (summary?.corpus.snapshotSpan.end ?? obs?.observedAt),
+    ) || todayIso()
 
-  // TVL prefers totalAssets (the cooldown/4626 venues), else the instant read (aave).
+  // Aave supplied stock has its own last-valid source block/time. It need not
+  // share the latest immediate-cash block after an independent read failure.
   const totalAssetsUsd = p?.totalAssets != null ? Number(p.totalAssets) / 1e18 : null
-  const tvlUsd = totalAssetsUsd ?? obs?.instantUsd ?? null
-  // Instant-exit liquidity: the protocol instant read where it exists (aave),
-  // else the instant-exit-tier secondary-market depth (cooldown/4626 venues).
+  const aaveTvl = summary?.kind === 'atoken-liquidity' ? summary.suppliedTvl : null
+  const aaveTvlAge = aaveTvl ? tvlAge(aaveTvl.observedAt) : null
+  const tvlUsd = summary?.kind === 'atoken-liquidity' ? (aaveTvl?.usd ?? null) : totalAssetsUsd
+  // Aave's instant read is aggregate reserve cash, not a holder-specific
+  // withdrawal quote. Other venues expose secondary-market exit depth.
   const instantIsProtocol = obs?.instantUsd != null
   const instantLiquidityUsd = instantIsProtocol ? obs!.instantUsd : (p?.depthUsd ?? null)
 
   const logEntries = (logData?.entries ?? []).filter((e) => e.venue === venue)
   const newsItems = newsData?.items ?? []
+  const recentNews = newsItems.find((item) => isRecentPublishedNews(item.publishedAt))
+  const observedChange = selectObservedCapacitySignal(
+    measuredChangeItem,
+    logData?.entries,
+    venue,
+    summary?.observed,
+  )
+  const latestEvent = logEntries
+    .filter(
+      (entry) =>
+        entry.provenance === 'observed' &&
+        !entry.cleared &&
+        !isTermsOnlyNotice(entry) &&
+        isRecentObservedEvent(entry.at) &&
+        ['gate_change', 'cooldown_duration_changed', 'param_changed'].includes(entry.kind),
+    )
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))[0]
   const openAlarms = summary?.alarms.open ?? []
   const uncovered = summary?.alarms.uncovered ?? []
 
@@ -256,7 +542,12 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
           </Text>
         </NextLink>
         <NextLink href={`/${chainName}/simulator`} style={{ textDecoration: 'underline' }}>
-          <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.success}>
+          <Text
+            as="span"
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.small}
+            color={SEMANTIC_COLORS.success}
+          >
             Run this on your wallet →
           </Text>
         </NextLink>
@@ -290,10 +581,23 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
           {summary?.kind ?? ''}
         </Text>
       </HStack>
-      <ProvFooter date={corpusDate} />
+      <ProvFooter date={corpusDate} local={Boolean(localProvenance)} />
+      {localProvenance && (
+        <Stamp>
+          Local · {localProvenance.observationStatus} · {newsTimeUtc(localProvenance.sourceAt)}
+        </Stamp>
+      )}
 
       {/* 01 / the state */}
-      <SectionHeading index="01 /" title="The state" note="latest observed on-chain reading" />
+      <SectionHeading
+        index="01 /"
+        title="The state"
+        note={
+          summary?.kind === 'atoken-liquidity'
+            ? 'latest exit reading · TVL has its own timestamp'
+            : 'latest observed on-chain reading'
+        }
+      />
       {obs ? (
         <>
           <Grid
@@ -303,10 +607,10 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
             <Stat
               label="gate"
               value={
-                p?.cooldownDuration != null && p.cooldownDuration > 0
-                  ? `${fmtDuration(p.cooldownDuration)} cooldown`
-                  : instantIsProtocol
-                    ? 'instant'
+                p?.cooldownDuration == null
+                  ? 'unavailable'
+                  : p.cooldownDuration > 0
+                    ? `${fmtDuration(p.cooldownDuration)} cooldown`
                     : 'no cooldown'
               }
               sub={`block ${obs.block.toLocaleString()}`}
@@ -314,14 +618,38 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
             <Stat
               label="TVL"
               value={tvlUsd != null ? fmtUsd(tvlUsd) : '—'}
-              sub="total assets · $1/stable"
+              sub={
+                <>
+                  {summary?.kind === 'atoken-liquidity'
+                    ? 'aToken supplied stock · approx. $1/stable'
+                    : 'total assets · approx. $1/stable'}
+                  {aaveTvl ? (
+                    <>
+                      {' · recorded '}
+                      {observedTime(aaveTvl.observedAt)}
+                      {' · block '}
+                      {aaveTvl.block.toLocaleString()}
+                      {' · '}
+                      {aaveTvlAge?.label}
+                      {aaveTvlAge?.stale ? ' · Stale' : ''}
+                    </>
+                  ) : summary?.kind === 'atoken-liquidity' ? (
+                    ' · no verified supply reading'
+                  ) : (
+                    <>
+                      {' · recorded '}
+                      {observedTime(obs.observedAt)}
+                    </>
+                  )}
+                </>
+              }
             />
             <Stat
-              label={instantIsProtocol ? 'instant liquidity' : 'instant-exit depth'}
+              label={instantIsProtocol ? 'reserve cash' : 'instant-exit depth'}
               value={instantLiquidityUsd != null ? fmtUsd(instantLiquidityUsd) : 'not derivable'}
               sub={
                 instantIsProtocol
-                  ? 'underlying held, exitable now'
+                  ? 'aggregate pool inventory · holder withdrawal unverified'
                   : 'secondary-market swap-into side'
               }
             />
@@ -385,14 +713,10 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                   </Grid>
                 ))}
               </Box>
-              <Stamp>
-                depth = the EXITABLE side (tokens swappable INTO on exit), $1/stable. This is the
-                instant-exit tier only; protocol redemption (cooldown/instant) is a separate exit
-                path.
-              </Stamp>
+              <Stamp>Instant swap depth · protocol redemption is separate</Stamp>
             </Card>
           )}
-          <ProvFooter date={day(obs.observedAt)} />
+          <ProvFooter date={day(obs.observedAt)} local={Boolean(localProvenance)} />
         </>
       ) : (
         <Card variant="default" p={SPACING.base}>
@@ -401,21 +725,186 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
             fontSize="11.5px"
             color={SEMANTIC_COLORS.textSecondary}
           >
-            No observed snapshot yet for this venue.
+            {summaryLoading
+              ? 'Reading snapshot…'
+              : summaryError
+                ? 'Snapshot availability unknown.'
+                : 'No observed snapshot yet for this venue.'}
           </Text>
         </Card>
       )}
 
       {/* 01b / swap-out capacity — what exits within a cost, fees included (on-chain quotes) */}
-      <SectionHeading index="01b /" title="Swap-out capacity" note="what exits within a cost, fees included — is the depth 1:1? read the curve" />
-      <CapacityCurve venue={venue} />
+      <SectionHeading index="01b /" title="Swap-out capacity" note="Live quotes · fees included" />
+      <Card variant="default" p={SPACING.base} mt={SPACING.base}>
+        <Eyebrow>Exit scenario</Eyebrow>
+        <Grid templateColumns={{ base: '1fr', sm: '1fr 1fr' }} gap={SPACING.base} mt={SPACING.md}>
+          <Box>
+            <Text
+              as="label"
+              htmlFor={`exit-size-${venue}`}
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.label}
+              color={SEMANTIC_COLORS.textSecondary}
+            >
+              Exit amount (USD)
+            </Text>
+            <Input
+              id={`exit-size-${venue}`}
+              type="number"
+              inputMode="decimal"
+              min={1}
+              step="any"
+              value={exitAmountInput}
+              onChange={(event) => setExitAmountInput(event.target.value)}
+              borderRadius={0}
+              borderColor={SEMANTIC_COLORS.borderStrong}
+              fontFamily={TYPOGRAPHY.fontMono}
+              mt={SPACING.xs}
+              _focus={FOCUS_STYLES.ring}
+              aria-describedby={`exit-question-status-${venue}`}
+            />
+          </Box>
+          <Box>
+            <Text
+              as="label"
+              htmlFor={`exit-horizon-${venue}`}
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.label}
+              color={SEMANTIC_COLORS.textSecondary}
+            >
+              Future horizon (hours · 1h–30d)
+            </Text>
+            <Input
+              id={`exit-horizon-${venue}`}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={720}
+              step={1}
+              value={horizonHoursInput}
+              onChange={(event) => setHorizonHoursInput(event.target.value)}
+              borderRadius={0}
+              borderColor={SEMANTIC_COLORS.borderStrong}
+              fontFamily={TYPOGRAPHY.fontMono}
+              mt={SPACING.xs}
+              _focus={FOCUS_STYLES.ring}
+              aria-describedby={`exit-question-status-${venue}`}
+            />
+          </Box>
+        </Grid>
+        <Text
+          id={`exit-question-status-${venue}`}
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          color={SEMANTIC_COLORS.warning}
+          mt={SPACING.md}
+        >
+          {selectedExitUsd == null || selectedHorizonHours == null
+            ? 'Enter an amount and horizon.'
+            : forecastLoading
+              ? 'Reading evidence…'
+              : forecastError || !forecastData
+                ? 'Evidence unavailable'
+                : 'Future exit · unvalidated'}
+        </Text>
+        {forecastData && selectedExitUsd != null && selectedHorizonHours != null && (
+          <Box mt={SPACING.sm}>
+            {forecastData.forecast.status === 'research_projection' &&
+              forecastData.forecast.projection && (
+                <Text
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize={TYPOGRAPHY.xs}
+                  color={SEMANTIC_COLORS.textSecondary}
+                >
+                  {forecastData.route.metric === 'depth_usd'
+                    ? 'Exit inventory proxy'
+                    : 'Market cash proxy'}{' '}
+                  · {fmtUsd(forecastData.forecast.projection.bandLowUsd)}–
+                  {fmtUsd(forecastData.forecast.projection.bandHighUsd)} ·{' '}
+                  {newsTimeUtc(forecastData.forecast.projection.targetAt)}
+                </Text>
+              )}
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.xs}
+              color={SEMANTIC_COLORS.textSecondary}
+              mt={SPACING.xs}
+            >
+              {forecastData.route.label} ·{' '}
+              {forecastData.latest?.capacityUsd == null
+                ? 'unavailable'
+                : fmtUsd(forecastData.latest.capacityUsd)}{' '}
+              · B{forecastData.latest?.block?.toLocaleString() ?? 'unknown'} ·{' '}
+              {newsTimeUtc(forecastData.latest?.observedAt)} ·{' '}
+              {forecastData.latest?.coverage ?? 'unverified'} ·{' '}
+              {forecastData.storage === 'local_mac_recorder' ? 'local Mac' : 'database'}
+            </Text>
+            <MeasuredPersistenceMetrics value={forecastData.measuredPersistence} />
+          </Box>
+        )}
+        <Box
+          mt={SPACING.md}
+          borderTop="1px solid"
+          borderColor={SEMANTIC_COLORS.borderSubtle}
+          pt={SPACING.md}
+        >
+          {!forecastData && (
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.xs}
+              color={SEMANTIC_COLORS.textSecondary}
+            >
+              {summary?.kind === 'atoken-liquidity'
+                ? 'Aggregate reserve cash proxy'
+                : summary?.kind === 'erc4626-vault-cash'
+                  ? 'Aggregate vault cash proxy'
+                  : 'Recorded instant capacity proxy'}{' '}
+              · {instantLiquidityUsd != null ? fmtUsd(instantLiquidityUsd) : 'unavailable'} ·{' '}
+              {obs
+                ? `source block ${obs.block.toLocaleString()} · recorded ${newsTimeUtc(obs.observedAt)}`
+                : 'source unavailable'}{' '}
+              · aggregate only
+            </Text>
+          )}
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+            color={SEMANTIC_COLORS.textSecondary}
+            mt={SPACING.xs}
+          >
+            24h max flow ·{' '}
+            {forecastData?.coverage.maxGrossOutflowUsd == null
+              ? `unavailable (${forecastData?.coverage.flowReason ?? 'loading coverage'})`
+              : `${fmtUsd(forecastData.coverage.maxGrossOutflowUsd)} gross / ${forecastData.coverage.maxNetOutflowUsd == null ? 'unavailable' : fmtUsd(forecastData.coverage.maxNetOutflowUsd)} net`}
+          </Text>
+        </Box>
+      </Card>
+      <FlowImpactCard
+        venue={label}
+        venueKey={venue}
+        capacityMetric={observedChange.metric}
+        amountUsd={selectedExitUsd}
+        horizonHours={selectedHorizonHours}
+        capacity={observedChange.signal}
+        news={recentNews ? { ...recentNews, storage: newsData?.provenance?.storage } : null}
+        event={
+          latestEvent ? { label: latestEvent.kind.replaceAll('_', ' '), at: latestEvent.at } : null
+        }
+        outlook={
+          forecastData?.impactForecast?.status === 'validated' ? forecastData.impactForecast : null
+        }
+        historicalScenario={
+          historicalEvidence?.status === 'historical_scenario' ? historicalEvidence : null
+        }
+        historicalCoverage={
+          historicalEvidence?.status === 'insufficient_history' ? historicalEvidence : null
+        }
+      />
+      <CapacityCurve venue={venue} sizeUsd={selectedExitUsd ?? undefined} />
 
       {/* 02 / observed capacity driver accounting, never causal attribution */}
-      <SectionHeading
-        index="02 /"
-        title="Why did capacity move?"
-        note="first answer · which recorded inventory changed"
-      />
+      <SectionHeading index="02 /" title="Inventory changes" note="Measured components" />
       <Card variant="default" p={SPACING.base}>
         {driversLoading ? (
           <Text
@@ -659,114 +1148,121 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
             </Stamp>
           </>
         )}
-        <Text
-          fontFamily={TYPOGRAPHY.fontMono}
-          fontSize={TYPOGRAPHY.xs}
-          color={SEMANTIC_COLORS.textSecondary}
-          mt={SPACING.base}
-        >
-          Component and transaction-flow accounting do not reveal why actors moved capital.
-          Historical recorder snapshots may be unpinned; volatility and governance signals are not
-          validated here. Pool-side inventory is not an executable exit quote.
-        </Text>
       </Card>
 
-      {/* 03 / worst recorded exits */}
-      <SectionHeading
-        index="03 /"
-        title="Worst recorded exits"
-        note="realized outflow, trailing 90 days"
-      />
+      {/* 03 / complete-window withdrawal history */}
+      <SectionHeading index="03 /" title="Withdrawal history" note="Complete windows only" />
       <Grid templateColumns={{ base: '1fr', sm: '1fr 1fr' }} gap={SPACING.base}>
-        <Stat
-          label="worst 1-day outflow"
-          value={summary?.worstOutflows.d1 ? fmtUsd(summary.worstOutflows.d1.usd) : '—'}
-          sub={summary?.worstOutflows.d1 ? day(summary.worstOutflows.d1.date) : 'no flow rows'}
-        />
-        <Stat
-          label="worst 7-day outflow"
-          value={summary?.worstOutflows.d7 ? fmtUsd(summary.worstOutflows.d7.usd) : '—'}
-          sub={
-            summary?.worstOutflows.d7
-              ? `week ending ${day(summary.worstOutflows.d7.date)}`
-              : 'no flow rows'
-          }
-        />
+        <Stat label="max observed 24h withdrawals" value="Unavailable" sub="Window unverified" />
+        <Stat label="max observed 7d withdrawals" value="Unavailable" sub="Window unverified" />
       </Grid>
-      {venue === 'sUSDe' && (
-        <Text
-          fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="10px"
-          color={SEMANTIC_COLORS.warning}
-          mt={SPACING.sm}
-          fontStyle="italic"
-        >
-          sUSDe caveat: recorded out-flows are cooldown INITIATIONS — the Withdraw event fires when
-          a holder STARTS the cooldown, not when assets are received. A worst-outflow day marks
-          demand to leave, not settled exits.
-        </Text>
-      )}
-      <ProvFooter date={day(summary?.corpus.flowSpan.end)} />
 
       {/* 04 / open flags + what we cannot see */}
       <SectionHeading
         index="04 /"
-        title="Open flags"
-        note="failure-pattern alarms in danger — and the blind spots, same prominence"
+        title="Open alerts and notices"
+        note={
+          !summary || summary.alarms.status === 'unknown'
+            ? 'Alarm records unavailable'
+            : summary?.alarms.status === 'database_unreconciled'
+              ? 'Database alerts · newer local snapshot'
+              : 'Measured alerts · terms notices'
+        }
       />
       <Card variant="default" p={SPACING.base}>
-        <Eyebrow>open alarms</Eyebrow>
+        <Eyebrow>open alerts and notices</Eyebrow>
         <Box mt={SPACING.sm} mb={SPACING.base}>
-          {openAlarms.length === 0 ? (
+          {!summary || summary.alarms.status === 'unknown' ? (
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize="11.5px"
               color={SEMANTIC_COLORS.textSecondary}
             >
-              None open. Silence is NOT all-clear — see the blind spots below.
+              {summaryLoading ? 'Reading alarm status…' : 'Alarm status unavailable'}
+            </Text>
+          ) : openAlarms.length === 0 ? (
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="11.5px"
+              color={SEMANTIC_COLORS.textSecondary}
+            >
+              None open · recorder blind spots below
             </Text>
           ) : (
-            openAlarms.map((a, i) => (
-              <Grid
-                key={`${a.kind}-${a.firedAt}`}
-                templateColumns={{ base: '1fr', md: '160px 1fr 90px' }}
-                gap={SPACING.base}
-                py={SPACING.sm}
-                borderBottom={i === openAlarms.length - 1 ? 'none' : '1px solid'}
-                borderColor={SEMANTIC_COLORS.borderSubtle}
-                alignItems="baseline"
-              >
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="10px"
-                  letterSpacing="0.14em"
-                  textTransform="uppercase"
-                  color={a.severity === 'alarm' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.warning}
+            openAlarms.map((a, i) => {
+              const event: Entry = {
+                venue,
+                kind: a.kind,
+                at: a.firedAt,
+                prev: null,
+                next: null,
+                provenance: 'alarm',
+                severity: a.severity,
+                evidence: a.evidence,
+              }
+              const c = alarmConsequence(event)
+              const sourceUrl = termsSourceUrl(event)
+              const color =
+                c.tone === 'danger'
+                  ? SEMANTIC_COLORS.danger
+                  : c.tone === 'notice'
+                    ? SEMANTIC_COLORS.info
+                    : SEMANTIC_COLORS.textSecondary
+              return (
+                <Grid
+                  key={`${a.kind}-${a.firedAt}`}
+                  templateColumns={{ base: '1fr', md: '160px 1fr 90px' }}
+                  gap={SPACING.base}
+                  py={SPACING.sm}
+                  borderBottom={i === openAlarms.length - 1 ? 'none' : '1px solid'}
+                  borderColor={SEMANTIC_COLORS.borderSubtle}
+                  alignItems="baseline"
                 >
-                  {a.kind}
-                </Text>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="11px"
-                  color={SEMANTIC_COLORS.textSecondary}
-                >
-                  {a.evidence ? JSON.stringify(a.evidence) : ''}
-                </Text>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="9px"
-                  letterSpacing="0.14em"
-                  textTransform="uppercase"
-                  color={a.severity === 'alarm' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.warning}
-                  textAlign={{ base: 'left', md: 'right' }}
-                >
-                  {a.severity}
-                </Text>
-              </Grid>
-            ))
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="10px"
+                    letterSpacing="0.14em"
+                    textTransform="uppercase"
+                    color={color}
+                  >
+                    {isTermsOnlyNotice(event) ? 'terms-page notice' : a.kind.replace(/_/g, ' ')}
+                  </Text>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="11px"
+                    color={SEMANTIC_COLORS.textSecondary}
+                  >
+                    {c.text}
+                    {sourceUrl && (
+                      <Text
+                        as="a"
+                        href={sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        ml={SPACING.sm}
+                        textDecoration="underline"
+                        color={SEMANTIC_COLORS.info}
+                      >
+                        source terms ↗
+                      </Text>
+                    )}
+                  </Text>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="9px"
+                    letterSpacing="0.14em"
+                    textTransform="uppercase"
+                    color={color}
+                    textAlign={{ base: 'left', md: 'right' }}
+                  >
+                    {isTermsOnlyNotice(event) ? 'notice' : a.severity}
+                  </Text>
+                </Grid>
+              )
+            })
           )}
         </Box>
-        <Eyebrow>what this alarm cannot see</Eyebrow>
+        <Eyebrow>what this recorder cannot see</Eyebrow>
         <Box mt={SPACING.sm}>
           {uncovered.map((u) => (
             <Grid
@@ -798,36 +1294,39 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
             </Grid>
           ))}
         </Box>
-        <Stamp>
-          a quiet board is never a safe venue — the blind-spot list carries the same weight as the
-          flags
-        </Stamp>
       </Card>
 
       {/* 05 / what changed */}
-      <SectionHeading
-        index="05 /"
-        title="What changed"
-        note="state changes only — parameter moves and >20% liquidity shifts; drift never appears here"
-      />
+      <SectionHeading index="05 /" title="What changed" note="Recorded changes" />
       <Card variant="default" p={SPACING.base}>
-        {logEntries.length === 0 ? (
+        {!logData ? (
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
             fontSize="11.5px"
             color={SEMANTIC_COLORS.textSecondary}
           >
-            Nothing yet — the recorder logs an entry when this venue actually changes something.
+            {logLoading ? 'Reading changes…' : 'Change history unavailable'}
+          </Text>
+        ) : logEntries.length === 0 ? (
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="11.5px"
+            color={SEMANTIC_COLORS.textSecondary}
+          >
+            No recorded changes.
           </Text>
         ) : (
           <Box>
             {logEntries.map((e, i) => {
               const isAlarm = e.provenance === 'alarm'
               const c = isAlarm ? alarmConsequence(e) : consequence(e)
+              const sourceUrl = termsSourceUrl(e)
               const textColor = isAlarm
                 ? c.tone === 'danger'
                   ? SEMANTIC_COLORS.danger
-                  : SEMANTIC_COLORS.textTertiary
+                  : c.tone === 'notice'
+                    ? SEMANTIC_COLORS.info
+                    : SEMANTIC_COLORS.textTertiary
                 : c.tone === 'warning'
                   ? SEMANTIC_COLORS.warning
                   : SEMANTIC_COLORS.textPrimary
@@ -852,6 +1351,19 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                   </Text>
                   <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={textColor}>
                     {c.text}
+                    {sourceUrl && (
+                      <Text
+                        as="a"
+                        href={sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        ml={SPACING.sm}
+                        textDecoration="underline"
+                        color={SEMANTIC_COLORS.info}
+                      >
+                        source terms ↗
+                      </Text>
+                    )}
                   </Text>
                   <Text
                     fontFamily={TYPOGRAPHY.fontMono}
@@ -859,28 +1371,36 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
                     letterSpacing="0.14em"
                     textTransform="uppercase"
                     color={
-                      isAlarm && !e.cleared ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textTertiary
+                      isAlarm && c.tone === 'danger'
+                        ? SEMANTIC_COLORS.danger
+                        : isAlarm && c.tone === 'notice'
+                          ? SEMANTIC_COLORS.info
+                          : SEMANTIC_COLORS.textTertiary
                     }
                     textAlign={{ base: 'left', md: 'right' }}
                   >
-                    {e.provenance}
+                    {isTermsOnlyNotice(e) ? 'notice' : e.provenance}
                   </Text>
                 </Grid>
               )
             })}
           </Box>
         )}
-        <ProvFooter date={corpusDate} />
+        <ProvFooter date={corpusDate} local={Boolean(localProvenance)} />
       </Card>
 
       {/* 06 / what's being said */}
-      <SectionHeading
-        index="06 /"
-        title="What's being said"
-        note="raw headlines, newest first — information, not endorsement"
-      />
+      <SectionHeading index="06 /" title="What's being said" note="Unverified headlines" />
       <Card variant="default" p={SPACING.base}>
-        {newsItems.length === 0 ? (
+        {!newsData ? (
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="11.5px"
+            color={SEMANTIC_COLORS.textSecondary}
+          >
+            {newsLoading ? 'Reading headlines…' : 'Headline status unavailable'}
+          </Text>
+        ) : newsItems.length === 0 ? (
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
             fontSize="11.5px"
@@ -893,22 +1413,30 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
             {newsItems.map((it, i) => (
               <Grid
                 key={it.url}
-                templateColumns={{ base: '1fr', md: '92px 130px 1fr' }}
+                templateColumns={{ base: '1fr', md: '190px 130px 1fr' }}
                 gap={SPACING.base}
                 py={SPACING.sm}
                 borderBottom={i === newsItems.length - 1 ? 'none' : '1px solid'}
                 borderColor={SEMANTIC_COLORS.borderSubtle}
                 alignItems="baseline"
               >
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="10px"
-                  letterSpacing="0.14em"
-                  textTransform="uppercase"
-                  color={SEMANTIC_COLORS.textTertiary}
-                >
-                  {day(it.publishedAt)}
-                </Text>
+                <Box>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="10px"
+                    color={SEMANTIC_COLORS.textTertiary}
+                  >
+                    Published · {newsTimeUtc(it.publishedAt)}
+                  </Text>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="10px"
+                    color={SEMANTIC_COLORS.textSecondary}
+                  >
+                    {newsFetchedAtLabel(newsData?.provenance?.storage)} ·{' '}
+                    {newsTimeUtc(it.fetchedAt)}
+                  </Text>
+                </Box>
                 <Text
                   fontFamily={TYPOGRAPHY.fontMono}
                   fontSize="10px"
@@ -935,7 +1463,7 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
             ))}
           </Box>
         )}
-        <ProvFooter date={corpusDate} />
+        <ProvFooter date={corpusDate} local={Boolean(localProvenance)} />
       </Card>
 
       {/* 07 / next-step row */}

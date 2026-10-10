@@ -5,7 +5,13 @@ import { mainnet } from 'viem/chains'
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { computeRadar, shareLine, type VenueInputs, type VenueKind, type FlowStats } from '@/components/Radar/radarLogic'
+import {
+  computeRadar,
+  shareLine,
+  type VenueInputs,
+  type VenueKind,
+  type FlowStats,
+} from '@/components/Radar/radarLogic'
 import { readUsdByVenue } from '@/scripts/lib/position-reads.mjs'
 
 // Shared Carry Radar read path — the ONE place that turns an address into the
@@ -20,10 +26,11 @@ import { readUsdByVenue } from '@/scripts/lib/position-reads.mjs'
 // SAME way. The corpus fetch (readCorpus) and payload assembly (assembleRadar)
 // are split out below so the Carry Strats API can serve STORED positions —
 // fetching the address-independent corpus ONCE and reusing computeRadar — instead
-// of doing N addresses × 4 venues of live chain reads per request.
+// of doing N addresses × 5 venues of live chain reads per request.
 //
 // PROVENANCE DISCIPLINE (owner, docs/BRAND_CHARTS.md §4): chain reads are LIVE at
-// request time; capacity + flow facts are RECORDED (never re-queried live);
+// request time; capacity facts are RECORDED (never re-queried live); legacy
+// flow rows lack certified range coverage and cannot support an exit verdict;
 // nothing is modelled beyond the stated $1/underlying stable assumption.
 
 // ---- venue config (source of truth: tools/venue-recorder.config.json) -------
@@ -46,22 +53,28 @@ export const LABELS: Record<string, string> = {
   'aave-v3-usde': 'Aave',
   sUSDe: 'sUSDe',
   sUSDS: 'sUSDS',
+  sGHO: 'sGHO',
   scrvUSD: 'scrvUSD',
 }
 
 export function makeClient(): PublicClient {
   const raw = process.env.RECORDER_RPC_URL
   if (!raw) throw new Error('RECORDER_RPC_URL is not set (see .env.local)')
-  const urls = raw.split(',').map((u) => u.trim()).filter(Boolean)
+  const urls = raw
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean)
   const transport =
     urls.length === 1
       ? http(urls[0])
-      : fallback(urls.map((u) => http(u, { timeout: 15_000 })), { rank: false })
+      : fallback(
+          urls.map((u) => http(u, { timeout: 15_000 })),
+          { rank: false },
+        )
   return createPublicClient({ chain: mainnet, transport }) as PublicClient
 }
 
-const num = (v: unknown): number | null =>
-  v === null || v === undefined ? null : Number(v)
+const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v))
 
 // The serialized position/comparator shapes the radar endpoints return.
 export type PositionOut = {
@@ -117,10 +130,10 @@ export type Corpus = {
 
 /**
  * The RECORDED corpus stress for every configured venue: latest snapshot
- * (capacity + cooldown + TVL) and trailing-90d realized-outflow stats, plus the
- * per-venue provenance counts. Address-independent — the SQL here is exactly what
- * getRadarPayload used inline; splitting it out lets the strats board reuse it
- * once for many addresses. Read from the recorder DB, never re-queried on-chain.
+ * (capacity + cooldown + TVL) and per-venue provenance counts. Legacy flow
+ * rows have no complete-range receipts: their counts remain visible, but flow
+ * stress is unavailable until a certified ledger supplies it. Address-independent
+ * so the strats board can reuse the same corpus across tracked addresses.
  */
 export async function readCorpus(venues: VenueConfig[]): Promise<Corpus> {
   const snapRows = (
@@ -133,41 +146,6 @@ export async function readCorpus(venues: VenueConfig[]): Promise<Corpus> {
         observed_at
       FROM venue_snapshots
       ORDER BY venue, observed_at DESC`)
-  ).rows as Array<Record<string, unknown>>
-
-  const worst1dRows = (
-    await db.execute(sql`
-      WITH daily AS (
-        SELECT venue, date_trunc('day', block_time) AS d,
-               SUM(assets_raw::numeric) / 1e18 AS out_usd
-        FROM venue_flows
-        WHERE direction = 'out' AND block_time > now() - interval '90 days'
-        GROUP BY venue, date_trunc('day', block_time)
-      )
-      SELECT venue, MAX(out_usd) AS worst1d, COUNT(*) AS day_count
-      FROM daily GROUP BY venue`)
-  ).rows as Array<Record<string, unknown>>
-
-  const worst7dRows = (
-    await db.execute(sql`
-      WITH daily AS (
-        SELECT venue, date_trunc('day', block_time) AS d,
-               SUM(assets_raw::numeric) / 1e18 AS out_usd
-        FROM venue_flows
-        WHERE direction = 'out' AND block_time > now() - interval '97 days'
-        GROUP BY venue, date_trunc('day', block_time)
-      ), roll AS (
-        SELECT venue, d,
-               SUM(out_usd) OVER (
-                 PARTITION BY venue ORDER BY d
-                 RANGE BETWEEN interval '6 days' PRECEDING AND CURRENT ROW
-               ) AS w7
-        FROM daily
-      )
-      SELECT venue, MAX(w7) AS worst7d
-      FROM roll
-      WHERE d > now() - interval '90 days'
-      GROUP BY venue`)
   ).rows as Array<Record<string, unknown>>
 
   const flowCorpus = (
@@ -187,27 +165,21 @@ export async function readCorpus(venues: VenueConfig[]): Promise<Corpus> {
   const byVenue = <T extends { venue?: unknown }>(rows: T[]) =>
     new Map(rows.map((r) => [String(r.venue), r]))
   const snap = byVenue(snapRows)
-  const w1 = byVenue(worst1dRows)
-  const w7 = byVenue(worst7dRows)
   const fc = byVenue(flowCorpus)
   const sc = byVenue(snapCorpus)
 
   const corpusByVenue = new Map<string, VenueCorpus>()
   for (const v of venues) {
     const s = snap.get(v.name)
-    const a = w1.get(v.name)
-    const b = w7.get(v.name)
     const totalAssetsRaw = s ? num(s.total_assets_raw) : null
-    const worst1dUsd = a ? num(a.worst1d) : null
-    const dayCount = a ? num(a.day_count) : null
     corpusByVenue.set(v.name, {
-      tvlUsd: v.kind === 'erc4626-cooldown' && totalAssetsRaw != null ? totalAssetsRaw / 1e18 : null,
+      tvlUsd:
+        (v.kind === 'erc4626-cooldown' || v.kind === 'erc4626-vault-cash') && totalAssetsRaw != null
+          ? totalAssetsRaw / 1e18
+          : null,
       instantUsd: s ? num(s.instant_usd) : null,
       cooldownSeconds: s ? num(s.cooldown_seconds) : null,
-      flow:
-        worst1dUsd != null
-          ? { worst1dUsd, worst7dUsd: (b ? num(b.worst7d) : null) ?? 0, dayCount: dayCount ?? 0 }
-          : null,
+      flow: null,
     })
   }
 
@@ -294,8 +266,7 @@ export function assembleRadar(
       },
       recorded: {
         window: corpus.window,
-        note:
-          'capacity (venue_snapshots) and realized flow (venue_flows) are read from the recorder corpus, never re-queried live',
+        note: 'capacity is read from venue_snapshots; legacy venue_flows counts show observed rows only and lack certified range coverage, so flow stress is unavailable',
         per_venue: corpus.perVenueProvenance,
       },
       modelled: null,

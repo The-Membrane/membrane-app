@@ -4,6 +4,7 @@ import {
   CAPACITY_PRESETS_PCT,
   capacityAt,
   combineMarkets,
+  hasCompleteCurvePass,
   isMonotone,
   presetReadings,
   costAtSize,
@@ -12,12 +13,104 @@ import {
   SLIDER_STEPS,
   CAPACITY_SLIDER_MIN_PCT,
   CAPACITY_SLIDER_MAX_PCT,
+  RECORDED_COST_LEVELS_PCT,
+  selectRecentCompleteCurvePass,
   type CurvePoint,
+  type StoredCurveRow,
+  type StoredCurvePassRow,
 } from '@/lib/venueCapacity/capacityCurve'
 // The recorder's pure math — same code that writes the rows.
 import { buildCurve, capacityAtCost, costPct, flatFeeCurve, COST_LEVELS_PCT, MAX_QUOTES_PER_LEVEL } from '@/scripts/lib/depthCurve.mjs'
 
 const pts = (xs: Array<[number, number | null]>): CurvePoint[] => xs.map(([costPct, capacityUsd]) => ({ costPct, capacityUsd }))
+
+describe('latest recorded pass coverage', () => {
+  const row = (market: string): StoredCurveRow => ({
+    market,
+    block: '26069593',
+    observed_at: '2026-09-27T14:53:11.000Z',
+    points: RECORDED_COST_LEVELS_PCT.map((costPct, i) => ({ costPct, capacityUsd: (i + 1) * 100 })),
+    meta: { route: `${market} exit` },
+  })
+  const expected = ['crvUSD/USDT', 'crvUSD/USDC']
+  const identities = { 'crvUSD/USDT': 'route-a', 'crvUSD/USDC': 'route-b' }
+
+  it('keeps the API cost levels in lockstep with the recorder and accepts a complete two-market pass', () => {
+    expect([...RECORDED_COST_LEVELS_PCT]).toEqual([...COST_LEVELS_PCT])
+    expect(hasCompleteCurvePass([row(expected[0]), row(expected[1])], expected)).toBe(true)
+  })
+
+  it('rejects missing, extra, duplicate and misnamed markets, including duplicate configuration', () => {
+    expect(hasCompleteCurvePass([row(expected[0])], expected)).toBe(false)
+    expect(hasCompleteCurvePass([row(expected[0]), row(expected[1]), row('extra')], expected)).toBe(false)
+    expect(hasCompleteCurvePass([row(expected[0]), row(expected[0])], expected)).toBe(false)
+    expect(hasCompleteCurvePass([row(expected[0]), row('wrong')], expected)).toBe(false)
+    expect(hasCompleteCurvePass([row(expected[0]), row(expected[1])], [expected[0], expected[0]])).toBe(false)
+  })
+
+  it('rejects a failed market or any missing, duplicate, null, nonfinite or negative quote level', () => {
+    const valid = row(expected[0])
+    const broken = row(expected[1])
+    const check = (points: unknown) => hasCompleteCurvePass([valid, { ...broken, points }], expected)
+    expect(hasCompleteCurvePass([valid, { ...broken, meta: { error: 'quote reverted' } }], expected)).toBe(false)
+    const points = broken.points as CurvePoint[]
+    expect(check(points.slice(1))).toBe(false)
+    expect(check([points[0], ...points.slice(0, -1)])).toBe(false)
+    expect(check(points.map((p, i) => (i === 0 ? { ...p, capacityUsd: null } : p)))).toBe(false)
+    expect(check(points.map((p, i) => (i === 0 ? { ...p, capacityUsd: Infinity } : p)))).toBe(false)
+    expect(check(points.map((p, i) => (i === 0 ? { ...p, capacityUsd: -1 } : p)))).toBe(false)
+    expect(check(points.map((p, i) => (i === 3 ? { ...p, capacityUsd: 1 } : p)))).toBe(false)
+    expect(check([points[1], points[0], ...points.slice(2)])).toBe(false)
+  })
+
+  it('rejects a mixed-block or untimeable pass', () => {
+    expect(hasCompleteCurvePass([row(expected[0]), { ...row(expected[1]), block: '26069594' }], expected)).toBe(false)
+    expect(hasCompleteCurvePass([row(expected[0]), { ...row(expected[1]), observed_at: 'bad date' }], expected)).toBe(false)
+  })
+
+  it('falls back only to an older complete recorded block and preserves its source time', () => {
+    const passRow = (market: string, block: string, count = 2): StoredCurvePassRow => ({
+      ...row(market),
+      block,
+      observed_at: block === '101' ? '2026-09-27T15:00:00.000Z' : '2026-09-27T14:00:00.000Z',
+      block_row_count: String(count),
+      meta: {
+        configIdentity: identities[market as keyof typeof identities],
+        sourceBlockTime: block === '101' ? '2026-09-27T14:45:00.000Z' : '2026-09-27T13:45:00.000Z',
+        sourceBlockHash: `0x${block.padStart(64, '0')}`,
+      },
+    })
+    const older = [passRow(expected[0], '100'), passRow(expected[1], '100')]
+    const partialLatest = [passRow(expected[0], '101', 1), ...older]
+    expect(selectRecentCompleteCurvePass(partialLatest, expected, identities)).toEqual({
+      rows: older,
+      latestPassIncomplete: true,
+    })
+    expect(selectRecentCompleteCurvePass([...older], expected, identities)).toEqual({
+      rows: older,
+      latestPassIncomplete: false,
+    })
+    expect(selectRecentCompleteCurvePass(partialLatest, expected, identities)?.rows[0].observed_at).toBe('2026-09-27T14:00:00.000Z')
+    expect(selectRecentCompleteCurvePass([...older], expected, {
+      ...identities,
+      'crvUSD/USDC': 'repointed-pool',
+    })).toBeNull()
+    expect(selectRecentCompleteCurvePass(older.map((r) => ({
+      ...r,
+      meta: { ...(r.meta as object), configIdentity: undefined },
+    })), expected, identities)).toBeNull()
+  })
+
+  it('does not treat a row-limited group as complete or return a partial fallback', () => {
+    const newer = { ...row(expected[0]), block: '101', block_row_count: '1' }
+    const truncatedOlder = [
+      { ...row(expected[0]), block: '100', block_row_count: '3' },
+      { ...row(expected[1]), block: '100', block_row_count: '3' },
+    ]
+    expect(selectRecentCompleteCurvePass([newer, ...truncatedOlder], expected, identities)).toBeNull()
+    expect(selectRecentCompleteCurvePass([], expected, identities)).toBeNull()
+  })
+})
 
 describe('combineMarkets — sum across independent pools', () => {
   it('sums capacities level by level', () => {

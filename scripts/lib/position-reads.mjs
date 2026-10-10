@@ -48,7 +48,10 @@ export async function readUsdByVenue(client, venues, address) {
   // balance (aToken balance is ALREADY underlying units).
   const need4626 = venues
     .map((v, i) => ({ v, i, bal: balances[i]?.status === 'success' ? balances[i].result : 0n }))
-    .filter((x) => x.v.kind === 'erc4626-cooldown' && x.bal > 0n)
+    .filter(
+      (x) =>
+        (x.v.kind === 'erc4626-cooldown' || x.v.kind === 'erc4626-vault-cash') && x.bal > 0n,
+    )
 
   const assetsResults =
     need4626.length > 0

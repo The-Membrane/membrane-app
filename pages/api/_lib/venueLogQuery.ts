@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm'
+import { isIP } from 'node:net'
 
 import { db } from '@/db'
 import { isUnreadDepthAlarm, scrubUnreadDepthEvent } from '@/components/Radar/alertLogic'
@@ -23,7 +24,7 @@ export type VenueLogEntry = {
   since?: string | null
   provenance: 'observed' | 'reconstructed' | 'alarm'
   /** Only for provenance 'alarm': 'watch' | 'alarm', and whether the alarm has been cleared. */
-  severity?: 'watch' | 'alarm'
+  severity?: 'watch' | 'alarm' | 'notice'
   evidence?: Record<string, unknown> | null
   cleared?: boolean
 }
@@ -36,6 +37,118 @@ export type VenueLogFilter = {
   /** Restrict to a single venue (config name). */
   venue?: string
   limit?: number
+}
+
+// Older terms events may have been persisted before the watcher redacted its
+// public JSON. Keep only known fields here so a legacy URL (or freeform note)
+// cannot escape through the public venue log or Radar recap.
+function publicTermsUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null
+    // Removing these pieces could point at a different document. Withhold the
+    // link instead of presenting it as the page that was actually observed.
+    if (parsed.username || parsed.password || parsed.search || parsed.hash) return null
+    const hostname = parsed.hostname.replace(/\.$/, '').replace(/^\[|\]$/g, '')
+    if (
+      isIP(hostname) ||
+      !hostname.includes('.') ||
+      /(?:^|\.)(?:localhost|local|internal|localdomain|lan|home|onion|arpa)$/i.test(hostname) ||
+      !hostname.split('.').every((label) => /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label))
+    )
+      return null
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
+function safeTermsSnapshot(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const source = value as Record<string, unknown>
+  const safe: Record<string, unknown> = {}
+  if (
+    typeof source.content_hash === 'string' &&
+    /^(?:v\d+:)?[a-f0-9]{64}$/i.test(source.content_hash)
+  )
+    safe.content_hash = source.content_hash
+  if (
+    typeof source.content_len === 'number' &&
+    Number.isSafeInteger(source.content_len) &&
+    source.content_len >= 0
+  )
+    safe.content_len = source.content_len
+  for (const key of ['source_url', 'final_url'] as const) {
+    const url = publicTermsUrl(source[key])
+    if (url) safe[key] = url
+  }
+  return safe
+}
+
+export function scrubLegacyTermsPageEvent(entry: VenueLogEntry): VenueLogEntry {
+  if (entry.kind !== 'terms_page_changed' || entry.provenance !== 'observed') return entry
+  return {
+    ...entry,
+    prev: safeTermsSnapshot(entry.prev),
+    next: safeTermsSnapshot(entry.next),
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function containsTermsEvent(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(containsTermsEvent)
+  if (!isRecord(value)) return false
+  if (value.kind === 'terms_page_changed') return true
+  return Object.values(value).some(containsTermsEvent)
+}
+
+function scrubAlarmData(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(scrubAlarmData)
+  if (!isRecord(value)) return value
+  if (value.kind === 'terms_page_changed') {
+    const event: Record<string, unknown> = { kind: 'terms_page_changed' }
+    if (typeof value.at === 'string' && !Number.isNaN(Date.parse(value.at))) event.at = value.at
+    event.prev = safeTermsSnapshot(value.prev)
+    event.next = safeTermsSnapshot(value.next)
+    return event
+  }
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([key, child]) => {
+      // Legacy evidence could copy an event's freeform note or URL alongside
+      // measured data. Notes cannot be reliably redacted, so omit them.
+      if (key === 'note') return []
+      if (/url$/i.test(key)) {
+        const safe = publicTermsUrl(child)
+        return safe ? [[key, safe]] : []
+      }
+      return [[key, scrubAlarmData(child)]]
+    }),
+  )
+}
+
+export function scrubTermsAlarmEvidence(
+  kind: string,
+  value: unknown,
+): Record<string, unknown> | null {
+  if (!isRecord(value)) return null
+  if (kind !== 'terms_page_notice' && !containsTermsEvent(value)) return value
+  const safe: Record<string, unknown> = {}
+  if (typeof value.count === 'number' && Number.isSafeInteger(value.count) && value.count >= 0)
+    safe.count = value.count
+  if (isRecord(value.latest)) safe.latest = scrubAlarmData(value.latest)
+  if (Array.isArray(value.events)) safe.events = value.events.map(scrubAlarmData)
+  const sourceUrl = publicTermsUrl(value.sourceUrl)
+  if (sourceUrl) safe.sourceUrl = sourceUrl
+  for (const key of ['sourceUrlStatus', 'migrationStatus', 'exitImpact'] as const) {
+    if (typeof value[key] === 'string' && /^[a-z_]+$/.test(value[key])) safe[key] = value[key]
+  }
+  if (typeof value.firstObservedAt === 'string' && !Number.isNaN(Date.parse(value.firstObservedAt)))
+    safe.firstObservedAt = value.firstObservedAt
+  return safe
 }
 
 /**
@@ -109,32 +222,37 @@ export async function fetchVenueLogEntries(filter: VenueLogFilter = {}): Promise
     ORDER BY cleared_at DESC
     LIMIT 10`)
 
-  const mapAlarm = (r: any): VenueLogEntry => ({
-    venue: r.venue as string,
-    kind: r.kind as string,
-    at: new Date(r.at as string).toISOString(),
-    prev: null,
-    next: (r.evidence as Record<string, unknown>) ?? null,
-    provenance: 'alarm' as const,
-    severity: r.severity as 'watch' | 'alarm',
-    evidence: (r.evidence as Record<string, unknown>) ?? null,
-    cleared: !!r.cleared,
-  })
+  const mapAlarm = (r: any): VenueLogEntry => {
+    const evidence = scrubTermsAlarmEvidence(r.kind as string, r.evidence)
+    return {
+      venue: r.venue as string,
+      kind: r.kind as string,
+      at: new Date(r.at as string).toISOString(),
+      prev: null,
+      next: evidence,
+      provenance: 'alarm' as const,
+      severity: r.severity as 'watch' | 'alarm' | 'notice',
+      evidence,
+      cleared: !!r.cleared,
+    }
+  }
 
   return [
     // Pre-guard unread depth zeros are dropped at read time (alertLogic.ts
     // DEPTH_GUARD_LIVE): they are failed reads, not drains, in insert-only history.
     ...(observed.rows as any[])
       .map((r) =>
-        scrubUnreadDepthEvent({
-          venue: r.venue as string,
-          kind: r.kind as string,
-          at: new Date(r.at as string).toISOString(),
-          prev: r.prev ?? null,
-          next: r.next ?? null,
-          since: r.since ? new Date(r.since as string).toISOString() : null,
-          provenance: 'observed' as const,
-        }),
+        scrubUnreadDepthEvent(
+          scrubLegacyTermsPageEvent({
+            venue: r.venue as string,
+            kind: r.kind as string,
+            at: new Date(r.at as string).toISOString(),
+            prev: r.prev ?? null,
+            next: r.next ?? null,
+            since: r.since ? new Date(r.since as string).toISOString() : null,
+            provenance: 'observed' as const,
+          }),
+        ),
       )
       .filter((e): e is NonNullable<typeof e> => e !== null),
     ...(reconstructed.rows as any[]).map((r) => ({

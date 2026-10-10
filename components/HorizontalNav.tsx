@@ -10,6 +10,7 @@ import { FOCUS_STYLES, TRANSITIONS, HOVER_EFFECTS } from '@/config/transitions';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { TYPOGRAPHY } from '@/helpers/typography';
 import Logo from './Logo';
+import RPCStatus from './RPCStatus';
 
 /**
  * ONE active/hover language for every nav surface (owner 2026-09-21): the current page
@@ -55,8 +56,6 @@ const navItems = [
     // Wallet-free carry-trader decision tool: paste any address, stress its
     // positions against our recorded venue capacity + flow corpus.
     { label: 'Radar', href: '/radar' },
-    // Auto-tracked mainnet carry strats (discovery scan -> watch -> verdicts).
-    { label: 'Strats', href: '/strats' },
     // Called-It receipts: wallet-signed venue calls, scored by the recorder.
     { label: 'Receipts', href: '/receipts' },
     { label: 'Home', href: '/home' },
@@ -114,7 +113,7 @@ const getNavItemsForChain = (chainName: string) => {
     return { navItems, comingSoon: comingSoonItems, dashboards: dashboardItems };
 };
 
-const HorizontalNav = () => {
+const HorizontalNav = ({ showRpcStatus = false }: { showRpcStatus?: boolean }) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     // Passed to the Drawer as `finalFocusRef` so closing always returns focus to
     // the hamburger. Without it Chakra restores focus to whatever was focused
@@ -372,7 +371,7 @@ const HorizontalNav = () => {
             />
 
             {/* Right: Chain Selector & Connect Wallet */}
-            <HStack spacing={{ base: 2, md: 4 }} align="center">
+            <HStack spacing={{ base: 1, md: 4 }} align="center">
                 <IconButton
                     aria-label={mode === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
                     icon={mode === 'dark' ? <FaSun /> : <FaMoon />}
@@ -384,8 +383,10 @@ const HorizontalNav = () => {
                     transition={TRANSITIONS.colors}
                     _hover={HOVER_EFFECTS.borderHighlight}
                     _focusVisible={FOCUS_STYLES.ring}
+                    display={{ base: 'none', lg: 'inline-flex' }}
                     w={"fit-content"}
                 />
+                {showRpcStatus && <RPCStatus />}
                 <Menu>
                     <MenuButton
                         as={Button}
@@ -397,7 +398,7 @@ const HorizontalNav = () => {
                         border="none"
                         color={SEMANTIC_COLORS.textPrimary}
                         _hover={{ bg: SEMANTIC_COLORS.bgTertiary, color: SEMANTIC_COLORS.success }}
-                        px={2}
+                        px={{ base: 1, md: 2 }}
                     >
                     </MenuButton>
                     <MenuList bg={SEMANTIC_COLORS.bgSecondary}>
@@ -576,7 +577,7 @@ const HorizontalNav = () => {
                 re-enabled on the link itself. */}
             <Box
                 position="absolute"
-                left="50%"
+                left={{ base: 'calc(50% - 8px)', sm: '50%' }}
                 top="50%"
                 transform="translate(-50%, -50%)"
                 display={{ base: 'block', lg: 'none' }}
@@ -590,11 +591,12 @@ const HorizontalNav = () => {
                     display="block"
                     pointerEvents="auto"
                 >
-                    <Logo height="34px" />
+                    <Box display={{ base: 'block', sm: 'none' }}><Logo height="26px" /></Box>
+                    <Box display={{ base: 'none', sm: 'block' }}><Logo height="34px" /></Box>
                 </Box>
             </Box>
         </Box>
     );
 };
 
-export default HorizontalNav; 
+export default HorizontalNav;

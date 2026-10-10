@@ -16,11 +16,17 @@ import { venueSlug } from './venueSlug'
  * The venue state-change log — the "news tracker", rendered as consequences,
  * never headlines. Entries come from /api/venues/log: 'observed' rows are what
  * the hourly recorder witnessed; 'reconstructed' rows are discrete-param
- * transitions derived from archive snapshots. Drift is filtered at the source
- * (only discrete changes and >20% liquidity moves ever become entries).
+ * transitions derived from archive snapshots. Terms-page text changes are
+ * notices with unclassified exit impact, not verified withdrawal gate changes.
  */
 
-import { Entry, consequence, alarmConsequence } from './venueLogLogic'
+import {
+  Entry,
+  consequence,
+  alarmConsequence,
+  isTermsOnlyNotice,
+  termsSourceUrl,
+} from './venueLogLogic'
 
 export const VenueLog: React.FC = () => {
   const { chainName } = useChainRoute()
@@ -44,11 +50,15 @@ export const VenueLog: React.FC = () => {
       <SectionHeading
         index="06 /"
         title="What the venues changed"
-        note="state changes only — parameter moves and >20% liquidity shifts; drift never appears here"
+        note="recorded venue changes and alerts · terms-page text changes have unclassified exit impact"
       />
       <Card p={SPACING.base}>
         {entries.length === 0 ? (
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={SEMANTIC_COLORS.textSecondary}>
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="11.5px"
+            color={SEMANTIC_COLORS.textSecondary}
+          >
             Nothing yet — the recorder logs its first entry when a venue actually changes something.
           </Text>
         ) : (
@@ -56,10 +66,13 @@ export const VenueLog: React.FC = () => {
             {entries.map((e, i) => {
               const isAlarm = e.provenance === 'alarm'
               const c = isAlarm ? alarmConsequence(e) : consequence(e)
+              const sourceUrl = termsSourceUrl(e)
               const textColor = isAlarm
                 ? c.tone === 'danger'
                   ? SEMANTIC_COLORS.danger
-                  : SEMANTIC_COLORS.textTertiary
+                  : c.tone === 'notice'
+                    ? SEMANTIC_COLORS.info
+                    : SEMANTIC_COLORS.textTertiary
                 : c.tone === 'warning'
                   ? SEMANTIC_COLORS.warning
                   : SEMANTIC_COLORS.textPrimary
@@ -73,10 +86,19 @@ export const VenueLog: React.FC = () => {
                   borderColor={SEMANTIC_COLORS.borderSubtle}
                   alignItems="baseline"
                 >
-                  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="10px"
+                    letterSpacing="0.14em"
+                    textTransform="uppercase"
+                    color={SEMANTIC_COLORS.textTertiary}
+                  >
                     {new Date(e.at).toISOString().slice(0, 10)} ·{' '}
                     {venueSlug(e.venue) ? (
-                      <NextLink href={`/${chainName}/venue/${venueSlug(e.venue)}`} style={{ textDecoration: 'underline' }}>
+                      <NextLink
+                        href={`/${chainName}/venue/${venueSlug(e.venue)}`}
+                        style={{ textDecoration: 'underline' }}
+                      >
                         <Text as="span" _hover={{ color: SEMANTIC_COLORS.success }}>
                           {e.venue}
                         </Text>
@@ -87,16 +109,35 @@ export const VenueLog: React.FC = () => {
                   </Text>
                   <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={textColor}>
                     {c.text}
+                    {sourceUrl && (
+                      <Text
+                        as="a"
+                        href={sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        ml={SPACING.sm}
+                        textDecoration="underline"
+                        color={SEMANTIC_COLORS.info}
+                      >
+                        source terms ↗
+                      </Text>
+                    )}
                   </Text>
                   <Text
                     fontFamily={TYPOGRAPHY.fontMono}
                     fontSize="9px"
                     letterSpacing="0.14em"
                     textTransform="uppercase"
-                    color={isAlarm && !e.cleared ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textTertiary}
+                    color={
+                      isAlarm && c.tone === 'danger'
+                        ? SEMANTIC_COLORS.danger
+                        : isAlarm && c.tone === 'notice'
+                          ? SEMANTIC_COLORS.info
+                          : SEMANTIC_COLORS.textTertiary
+                    }
                     textAlign={{ base: 'left', md: 'right' }}
                   >
-                    {e.provenance}
+                    {isTermsOnlyNotice(e) ? 'notice' : e.provenance}
                   </Text>
                 </Grid>
               )
@@ -115,8 +156,9 @@ export const VenueLog: React.FC = () => {
         </Text>
         <Stamp>
           observed = witnessed live by the hourly recorder · reconstructed = derived from archive
-          state; real transitions the recorder was not yet running to see · alarm = a failure-pattern
-          flag (danger); its evidence numbers are in the line
+          state; real transitions the recorder was not yet running to see · alarm = recorded alert;
+          a terms-only alert is an unclassified page-text notice · withdrawn historical flow alerts
+          appear muted
         </Stamp>
       </Card>
     </Box>

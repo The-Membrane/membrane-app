@@ -40,58 +40,82 @@ const susde = (usd: number): VenueInputs => ({
   flow: { worst1dUsd: SUSDE_WORST1D, worst7dUsd: SUSDE_WORST7D, dayCount: 91 },
 })
 
-describe('coverage thresholds — both sides', () => {
-  it('clears a size the venue dwarfs (coverage ≥ 10x)', () => {
-    const v = computeVenueVerdict(aave(2_100_000)) // instant 158x, flow 25x
-    expect(v.verdict).toBe('clear')
-    expect(v.prongs.instant?.level).toBe('clear')
-    expect(v.prongs.flow?.level).toBe('clear')
+describe('inventory proxy thresholds — both sides', () => {
+  it('keeps a position at caution even when recorded inventory dwarfs it (coverage ≥ 10x)', () => {
+    const v = computeVenueVerdict(aave(2_100_000)) // instant 158x
+    expect(v.verdict).toBe('caution')
+    expect(v.prongs.instant?.level).toBe('caution')
+    expect(v.prongs.flow).toBeNull()
+    expect(v.reason).toMatch(/recorded instant inventory/)
+    expect(v.reason).toMatch(/holder path and health remain unverified/)
+    expect(v.reason).not.toMatch(/can exit|clears|covers/i)
   })
 
   it('flags a size that exceeds capacity (coverage < 1x)', () => {
-    const v = computeVenueVerdict(aave(400_000_000)) // instant 0.83x, flow 0.13x
+    const v = computeVenueVerdict(aave(400_000_000)) // instant 0.83x
     expect(v.verdict).toBe('exposed')
     expect(v.prongs.instant?.level).toBe('exposed')
-    expect(v.reason).toMatch(/exceeds instant liquidity/)
+    expect(v.reason).toMatch(/exceeds recorded instant inventory/)
+    expect(v.reason).not.toMatch(/can exit|clears/i)
   })
 
   it('is exactly at the band edges', () => {
-    // coverage exactly 10 → clear; exactly 1 → caution; just under 1 → exposed
+    // Inventory ≥1x is caution (holder execution unresolved); just under 1x is exposed.
     const at10 = computeVenueVerdict({ ...aave(0), usd: AAVE_INSTANT / 10 })
     const at1 = computeVenueVerdict({ ...aave(0), usd: AAVE_INSTANT })
     const under1 = computeVenueVerdict({ ...aave(0), usd: AAVE_INSTANT + 1 })
-    expect(at10.prongs.instant?.level).toBe('clear')
+    expect(at10.prongs.instant?.level).toBe('caution')
     expect(at1.prongs.instant?.level).toBe('caution')
     expect(under1.prongs.instant?.level).toBe('exposed')
   })
 })
 
 describe('weakest-prong selection — verdict is never averaged', () => {
-  it('a 1-day cooldown caps an otherwise-clear venue at caution', () => {
-    // sUSDe at a tiny size: flow prong clears easily, but the cooldown gate is a
-    // caution — the composite must equal the WEAKEST prong.
+  it('a 1-day cooldown is caution and does not promise withdrawal after the gate', () => {
+    // sUSDe at a tiny size: the cooldown gate applies regardless of size.
     const v = computeVenueVerdict(susde(1_000))
-    expect(v.prongs.flow?.level).toBe('clear')
+    expect(v.prongs.flow).toBeNull()
     expect(v.prongs.cooldown?.level).toBe('caution')
     expect(v.verdict).toBe('caution')
     expect(v.reason).toMatch(/cooldown/)
-    expect(v.reason).toMatch(/100% of your/)
+    expect(v.reason).toMatch(/before withdrawal eligibility/)
+    expect(v.reason).toMatch(/completion after the gate is unverified/)
   })
 
-  it('a flow-exposed prong drags an instant-clear venue to exposed', () => {
+  it('a small historical outflow cannot drag an inventory-caution venue to exposed', () => {
     const v = computeVenueVerdict({
       venue: 'x',
       label: 'X',
       kind: 'atoken-liquidity',
       usd: 50,
       tvlUsd: null,
-      instantUsd: 1000, // 20x → clear
+      instantUsd: 1000, // 20x inventory → caution, not executable clearance
       cooldownSeconds: null,
-      flow: { worst1dUsd: 10, worst7dUsd: 10, dayCount: 1 }, // 0.2x → exposed
+      flow: { worst1dUsd: 10, worst7dUsd: 10, dayCount: 1 },
     })
-    expect(v.prongs.instant?.level).toBe('clear')
-    expect(v.prongs.flow?.level).toBe('exposed')
-    expect(v.verdict).toBe('exposed')
+    expect(v.prongs.instant?.level).toBe('caution')
+    expect(v.prongs.flow).toBeNull()
+    expect(v.verdict).toBe('caution')
+    expect(v.reason).not.toMatch(/outflow|worst|served/i)
+  })
+
+  it('a large historical outflow alone cannot clear a holder or generate a size claim', () => {
+    const onlyFlow = {
+      ...aave(50_000_000),
+      instantUsd: null,
+      flow: { worst1dUsd: 500_000_000, worst7dUsd: 900_000_000, dayCount: 91 },
+    }
+    const v = computeVenueVerdict(onlyFlow)
+    expect(v.prongs.flow).toBeNull()
+    expect(v.verdict).toBe('caution')
+    expect(v.reason).toMatch(/no instant capacity or cooldown gate recorded/)
+    expect(shareLine(computeRadar([onlyFlow]))).not.toMatch(/clears my size|worst exit day/)
+  })
+
+  it('changing aggregate flow cannot alter a gate or instant-capacity verdict', () => {
+    const withoutFlow = computeVenueVerdict({ ...aave(2_100_000), flow: null })
+    const withFlow = computeVenueVerdict(aave(2_100_000))
+    expect(withFlow).toEqual(withoutFlow)
   })
 })
 
@@ -134,8 +158,10 @@ describe('share-line rendering — the user’s own result, never a plug', () =>
     const r = computeRadar([aave(2_100_000), susde(1_000_000)])
     const line = shareLine(r)
     expect(line).toContain('My $3.1M across 2 venues')
-    expect(line).toContain('Aave clears my size')
-    expect(line).toContain('sUSDe cooldown gates 100% of my exit')
+    expect(line).toContain('Aave recorded instant inventory is')
+    expect(line).toContain('withdrawal unverified')
+    expect(line).toContain('sUSDe requires a 1d cooldown before withdrawal eligibility')
+    expect(line).not.toMatch(/clears my size|can exit|served/i)
     expect(line.endsWith('Membrane Carry Radar')).toBe(true)
     expect(line).not.toMatch(/sign up|try |visit /i)
   })
@@ -143,7 +169,9 @@ describe('share-line rendering — the user’s own result, never a plug', () =>
   it('says so plainly when nothing is held', () => {
     const r = computeRadar([aave(0), susde(0)])
     expect(r.heldCount).toBe(0)
-    expect(shareLine(r)).toBe('No position in any instrumented Membrane venue — Membrane Carry Radar')
+    expect(shareLine(r)).toBe(
+      'No position in any instrumented Membrane venue — Membrane Carry Radar',
+    )
   })
 })
 

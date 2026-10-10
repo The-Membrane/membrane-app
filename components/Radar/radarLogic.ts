@@ -6,18 +6,20 @@
 //  - Never invent a number. Every figure here is derived from a chain read or a
 //    recorded DB row passed in by the caller; nothing is modelled.
 //  - Never blend confidences. A venue's composite verdict is the WEAKEST of its
-//    applicable prongs, never an average.
+//    applicable exit-capacity/gate prongs, never an average.
 //  - A prong that has no data is OMITTED, not defaulted to "clear". In
 //    particular a cooldown vault has instantUsd === null and MUST NOT be given a
 //    fabricated instant-capacity claim.
 
-export type VenueKind = 'erc4626-cooldown' | 'atoken-liquidity'
+export type VenueKind = 'erc4626-cooldown' | 'erc4626-vault-cash' | 'atoken-liquidity'
 export type Verdict = 'clear' | 'caution' | 'exposed'
 
-// Capacity/size coverage bands. coverage = capacity ÷ your size (an x-multiple):
-//  >= 10x  → the venue dwarfs you            → clear
-//  >=  1x  → the venue can just cover you     → caution
-//  <   1x  → you are bigger than the capacity → exposed
+// Recorded inventory/size coverage is only a proxy, not a same-holder exit
+// quote. Even 10x inventory cannot establish that this wallet can withdraw.
+//  >=  1x → inventory is at least your size → caution (execution unverified)
+//  <   1x → your size exceeds inventory     → exposed
+// Keep the 10x reference for existing consumers of the descriptive threshold;
+// it must not upgrade an inventory-only result to "clear".
 export const COVERAGE_CLEAR = 10
 export const COVERAGE_CAUTION = 1
 
@@ -26,7 +28,7 @@ export const COVERAGE_CAUTION = 1
 export const COOLDOWN_EXPOSED_SECONDS = 86_400
 
 export type FlowStats = {
-  /** Worst single-day realized outflow over the window, in USD. */
+  /** Historical aggregate outflow only; not same-holder exit capacity. */
   worst1dUsd: number
   /** Worst rolling 7-day realized outflow over the window, in USD. */
   worst7dUsd: number
@@ -43,17 +45,17 @@ export type VenueInputs = {
   usd: number
   /** Vault TVL in USD (ERC4626 totalAssets); null when not read (aToken). */
   tvlUsd: number | null
-  /** Instant withdrawable liquidity in USD; null for cooldown vaults. */
+  /** Recorded instant venue inventory in USD; not holder-specific maxWithdraw. */
   instantUsd: number | null
   /** Cooldown gate in seconds (ERC4626 cooldown vaults); null = none recorded. */
   cooldownSeconds: number | null
-  /** Recorded outflow stats; null when the corpus has no rows for this venue. */
+  /** Legacy historical aggregate outflow input; excluded from the exit verdict. */
   flow: FlowStats | null
 }
 
 export type ProngResult = {
   level: Verdict
-  /** capacity ÷ size, an x-multiple. null when the prong is not size-relative. */
+  /** Inventory ÷ size, an x-multiple. null when the prong is not size-relative. */
   coverage: number | null
 }
 
@@ -67,7 +69,8 @@ export type VenueVerdict = {
   prongs: {
     instant: (ProngResult & { instantUsd: number }) | null
     cooldown: (ProngResult & { seconds: number }) | null
-    flow: (ProngResult & { worst1dUsd: number; worst7dUsd: number; coverage7d: number | null }) | null
+    /** Historical outflow cannot certify this holder's exit; retained for API shape. */
+    flow: null
   }
   verdict: Verdict
   reason: string
@@ -130,14 +133,13 @@ export const fmtDuration = (secs: number): string => {
 // Core stress logic.
 // ---------------------------------------------------------------------------
 
-const coverageLevel = (x: number): Verdict =>
-  x >= COVERAGE_CLEAR ? 'clear' : x >= COVERAGE_CAUTION ? 'caution' : 'exposed'
+const coverageLevel = (x: number): Verdict => (x >= COVERAGE_CAUTION ? 'caution' : 'exposed')
 
 const severity: Record<Verdict, number> = { clear: 0, caution: 1, exposed: 2 }
 
 /** Compute one venue's stress prongs + weakest-prong verdict for a given size. */
 export function computeVenueVerdict(input: VenueInputs): VenueVerdict {
-  const { venue, label, kind, usd, tvlUsd, instantUsd, cooldownSeconds, flow } = input
+  const { venue, label, kind, usd, tvlUsd, instantUsd, cooldownSeconds } = input
 
   const shareOfTvl = tvlUsd != null && tvlUsd > 0 ? usd / tvlUsd : null
 
@@ -153,8 +155,9 @@ export function computeVenueVerdict(input: VenueInputs): VenueVerdict {
     }
   }
 
-  // Instant-capacity prong. ONLY where instantUsd is a real read — cooldown
-  // vaults pass null and get NO instant prong (honesty: never fabricate one).
+  // Instant-inventory proxy. ONLY where instantUsd is a recorded read — cooldown
+  // vaults pass null and get NO instant prong. Inventory alone never clears a
+  // holder because wallet health, permissions, route and execution can differ.
   let instant: (ProngResult & { instantUsd: number }) | null = null
   if (instantUsd != null) {
     const coverage = instantUsd / usd
@@ -169,33 +172,19 @@ export function computeVenueVerdict(input: VenueInputs): VenueVerdict {
     cooldown = { level, coverage: null, seconds: cooldownSeconds }
   }
 
-  // Flow prong. A large historical outflow is GOOD for an exiter — it proves the
-  // venue can push size out. coverage = worst single-day outflow ÷ your size.
-  let flowProng:
-    | (ProngResult & { worst1dUsd: number; worst7dUsd: number; coverage7d: number | null })
-    | null = null
-  if (flow && flow.worst1dUsd > 0) {
-    const coverage = flow.worst1dUsd / usd
-    const coverage7d = flow.worst7dUsd > 0 ? flow.worst7dUsd / usd : null
-    flowProng = {
-      level: coverageLevel(coverage),
-      coverage,
-      coverage7d,
-      worst1dUsd: flow.worst1dUsd,
-      worst7dUsd: flow.worst7dUsd,
-    }
-  }
+  // Aggregate past outflow does not establish whether this holder, at this
+  // size, through this route, can exit now. Keep the response field for API
+  // compatibility, but never turn the flow input into a verdict prong.
+  const prongs = { instant, cooldown, flow: null }
+  const applicable = [instant, cooldown].filter(Boolean) as ProngResult[]
 
-  const prongs = { instant, cooldown, flow: flowProng }
-  const applicable = [instant, cooldown, flowProng].filter(Boolean) as ProngResult[]
-
-  // No data at all: we cannot clear a venue we have nothing to stress against.
+  // No data at all: we cannot assess a venue we have nothing to stress against.
   if (applicable.length === 0) {
     return {
       ...base,
       prongs,
       verdict: 'caution',
-      reason: `no recorded capacity or flow to stress your ${fmtUsd(usd)} against`,
+      reason: `no instant capacity or cooldown gate recorded to assess your ${fmtUsd(usd)} exit`,
     }
   }
 
@@ -218,25 +207,18 @@ function reasonFor(
   const you = fmtUsd(usd)
 
   // The governing prong is the applicable prong whose level equals the verdict,
-  // preferring the most decision-relevant (cooldown → instant → flow).
-  const { instant, cooldown, flow } = prongs
+  // preferring the most decision-relevant (cooldown → instant).
+  const { instant, cooldown } = prongs
 
   if (cooldown && cooldown.level === verdict) {
-    return `your exit sits behind a ${fmtDuration(cooldown.seconds)} cooldown — 100% of your ${you} is gated until it clears`
+    return `your ${you} is subject to a ${fmtDuration(cooldown.seconds)} cooldown before withdrawal eligibility; completion after the gate is unverified`
   }
 
   if (instant && instant.level === verdict && instant.coverage != null) {
     if (verdict === 'exposed') {
-      return `your ${you} exceeds instant liquidity — only ${fmtMultiple(instant.coverage)} of your size can exit right now`
+      return `your ${you} exceeds recorded instant inventory (${fmtMultiple(instant.coverage)} of your size); holder path and health remain unverified`
     }
-    return `instant liquidity covers your ${you} ${fmtMultiple(instant.coverage)} over`
-  }
-
-  if (flow && flow.level === verdict && flow.coverage != null) {
-    if (verdict === 'exposed') {
-      return `your ${you} is ${fmtMultiple(1 / flow.coverage)} the venue's worst observed exit day (${fmtUsd(flow.worst1dUsd)}) — no single day has moved your size`
-    }
-    return `your ${you} = ${fmtPct(usd / flow.worst1dUsd)} of the worst observed exit day (${fmtUsd(flow.worst1dUsd)}) — ${label} has served ${fmtMultiple(flow.coverage)} your size in a day`
+    return `recorded instant inventory is ${fmtMultiple(instant.coverage)} your ${you} position; holder path and health remain unverified`
   }
 
   // Fallback (should be unreachable when applicable prongs exist).
@@ -262,17 +244,12 @@ export function computeRadar(inputs: VenueInputs[]): RadarResult {
 export function venueClause(v: VenueVerdict): string {
   const { prongs, verdict, label } = v
   if (prongs.cooldown && prongs.cooldown.level === verdict) {
-    return `${label} cooldown gates 100% of my exit`
+    return `${label} requires a ${fmtDuration(prongs.cooldown.seconds)} cooldown before withdrawal eligibility`
   }
   if (prongs.instant && prongs.instant.level === verdict && prongs.instant.coverage != null) {
     return verdict === 'exposed'
-      ? `${label} can't clear my size instantly (${fmtMultiple(prongs.instant.coverage)})`
-      : `${label} clears my size ${fmtMultiple(prongs.instant.coverage)} over instantly`
-  }
-  if (prongs.flow && prongs.flow.level === verdict && prongs.flow.coverage != null) {
-    return verdict === 'exposed'
-      ? `my size is ${fmtMultiple(1 / prongs.flow.coverage)} ${label}'s worst exit day`
-      : `${label} clears my size ${fmtMultiple(prongs.flow.coverage)} over on its worst day`
+      ? `${label} recorded instant inventory is ${fmtMultiple(prongs.instant.coverage)} my size`
+      : `${label} recorded instant inventory is ${fmtMultiple(prongs.instant.coverage)} my size; withdrawal unverified`
   }
   return `${label} is ${verdict} at my size`
 }

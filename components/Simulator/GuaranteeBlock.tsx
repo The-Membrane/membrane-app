@@ -90,7 +90,7 @@ export const GuaranteeBlock: React.FC = () => (
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="10px"
+          fontSize="12px"
           lineHeight={1.5}
           letterSpacing="0.12em"
           textTransform="uppercase"

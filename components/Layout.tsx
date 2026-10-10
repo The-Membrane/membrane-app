@@ -3,7 +3,6 @@ import HorizontalNav from './HorizontalNav'
 import ChainLayout from './ChainLayout'
 import { RulesModal } from './MembersRules/RulesModal'
 import useMembersRulesState from './MembersRules/useRules'
-import RPCStatus from './RPCStatus'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import useAppState from '@/persisted-state/useAppState'
@@ -47,6 +46,7 @@ const isExecutableRoute = (pathname: string): boolean =>
 
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter()
+  const executableRoute = isExecutableRoute(router.pathname)
   // const { rulesState } = useMembersRulesState()
   // const { isOpen, onOpen, onClose } = useDisclosure()
 
@@ -71,16 +71,15 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <Box minH="100vh" bg={SEMANTIC_COLORS.bgPrimary}>
-      <HorizontalNav />
+      <HorizontalNav showRpcStatus={executableRoute} />
       <DailyFirstTicker />
       <ChainLayout>
         <Box as="main" justifyContent="center" pb={{ base: '200px', md: '180px', lg: '180px' }}>
-          <RPCStatus />
           {children}
         </Box>
       </ChainLayout>
       {/* <RulesModal isOpen={isOpen} onClose={onClose} /> */}
-      {isExecutableRoute(router.pathname) && <DittoHologram stayShown={true} />}
+      {executableRoute && <DittoHologram stayShown={true} />}
     </Box>
   )
 }

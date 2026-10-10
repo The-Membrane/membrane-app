@@ -1,11 +1,20 @@
-import { Alert, AlertIcon, Text } from '@chakra-ui/react'
+import {
+  Box,
+  Button,
+  HStack,
+  Popover,
+  PopoverBody,
+  PopoverContent,
+  PopoverTrigger,
+  Text,
+} from '@chakra-ui/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import React, { useEffect, useRef, useState } from 'react'
 import { getPublicClient } from '@/services/chain/client'
 import { DEFAULT_EVM_CHAIN } from '@/config/evm/chains'
 
 /**
- * EVM RPC health banner. Was: Cosmos `<rpc>/status` poll against appState.rpcUrl
+ * EVM RPC health indicator. Was: Cosmos `<rpc>/status` poll against appState.rpcUrl
  * (dead celatone endpoints post-migration). Now probes the configured EVM RPC with
  * eth_chainId and flags mismatched/unreachable nodes.
  *
@@ -13,9 +22,8 @@ import { DEFAULT_EVM_CHAIN } from '@/config/evm/chains'
  * numbers for up to a minute (tools/ui-sensory/FINDINGS.md). Once DOWN it backs off to
  * 45s — the healthy-state interval is what bounds detection latency, and re-probing a
  * dead node every 12s (x viem's internal retries) just floods the console and keeps
- * the network from ever idling (it broke Playwright's networkidle waits). The banner
- * states the age of what is on screen; recovery invalidates every active query so the
- * stale numbers refresh the moment fresh ones are obtainable.
+ * the network from ever idling (it broke Playwright's networkidle waits). Recovery
+ * invalidates active queries so data fetched through that RPC can refresh.
  */
 const RPC_POLL_HEALTHY_MS = 12_000
 const RPC_POLL_DOWN_MS = 45_000
@@ -38,14 +46,16 @@ const RPCStatus = () => {
   const { isError } = useRpcStatus()
   const queryClient = useQueryClient()
   const [downSince, setDownSince] = useState<number | null>(null)
+  const [everDown, setEverDown] = useState(false)
   const wasError = useRef(false)
 
   useEffect(() => {
     if (isError && !wasError.current) {
       setDownSince(Date.now())
+      setEverDown(true)
       // Deliberately NO invalidation here: refetching against a dead RPC cannot
       // produce fresher data — it can only storm every active query into errors.
-      // The staleness is communicated by the banner's explicit age line instead.
+      // The compact control reports how long the RPC has been unavailable.
     }
     if (!isError && wasError.current) {
       setDownSince(null)
@@ -55,9 +65,7 @@ const RPCStatus = () => {
     wasError.current = isError
   }, [isError, queryClient])
 
-  // Re-render the age figure while unhealthy. Coarse (minutes) and slow (30s tick) on
-  // purpose: a seconds counter reflowed the banner every 5s, which is a layout shift
-  // on exactly the surface that must not add motion.
+  // Keep the detail's minute count current without changing the nav control's width.
   const [, tick] = useState(0)
   useEffect(() => {
     if (!isError) return
@@ -65,19 +73,88 @@ const RPCStatus = () => {
     return () => clearInterval(id)
   }, [isError])
 
-  if (!isError) return null
-
   const downMins = downSince ? Math.floor((Date.now() - downSince) / 60_000) : null
 
   return (
-    <Alert status="error" borderRadius={0}>
-      <AlertIcon />
-      <Text>
-        RPC node is unreachable. Is the chain running? (expected {DEFAULT_EVM_CHAIN.name})
-        {' '}Numbers on this page stopped updating
-        {downMins !== null && downMins >= 1 ? ` over ${downMins}m ago.` : ' just now.'}
-      </Text>
-    </Alert>
+    <>
+      <Box
+        as="span"
+        position="absolute"
+        w="1px"
+        h="1px"
+        overflow="hidden"
+        clipPath="inset(50%)"
+        whiteSpace="nowrap"
+        role="status"
+        aria-live="polite"
+      >
+        {isError
+          ? 'Local contract RPC unavailable. On-chain actions may fail.'
+          : everDown
+            ? 'Local contract RPC restored.'
+            : ''}
+      </Box>
+      {isError && (
+        <Popover placement="bottom-end" isLazy>
+          <PopoverTrigger>
+            <Button
+              aria-label="RPC offline; view connection details"
+              size="sm"
+              variant="ghost"
+              minW={{ base: '40px', lg: 'auto' }}
+              h={{ base: '40px', lg: '32px' }}
+              px={{ base: 2, lg: 2 }}
+              border="none"
+              borderRadius={0}
+              color="var(--m-danger)"
+              fontSize="xs"
+              fontWeight="semibold"
+              letterSpacing="0.08em"
+              _hover={{ bg: 'var(--m-bg-tertiary)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)' }}
+              _active={{ bg: 'var(--m-bg-tertiary)', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)' }}
+              _focus={{ boxShadow: 'none' }}
+              _focusVisible={{ boxShadow: '0 0 0 2px var(--m-border-strong)' }}
+            >
+              <HStack spacing={2}>
+                <Box
+                  as="span"
+                  display="inline-block"
+                  w="7px"
+                  h="7px"
+                  borderRadius="full"
+                  bg="var(--m-danger)"
+                  aria-hidden="true"
+                />
+                <Text as="span" display={{ base: 'none', lg: 'inline' }}>
+                  RPC OFFLINE
+                </Text>
+              </HStack>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            w="min(300px, calc(100vw - 24px))"
+            borderRadius={0}
+            borderColor="var(--m-border-medium)"
+            bg="var(--m-bg-secondary)"
+            color="var(--m-text-primary)"
+            boxShadow="0 8px 24px rgba(0, 0, 0, 0.25)"
+            _focus={{ outline: 'none' }}
+          >
+            <PopoverBody p={4}>
+              <Text fontSize="sm" fontWeight="semibold">
+                Local contract RPC unavailable
+              </Text>
+              <Text mt={2} fontSize="sm" color="var(--m-text-secondary)">
+                On-chain actions may fail. Expected {DEFAULT_EVM_CHAIN.name}.
+                {downMins !== null && downMins >= 1
+                  ? ` Offline for at least ${downMins} minute${downMins === 1 ? '' : 's'}.`
+                  : ''}
+              </Text>
+            </PopoverBody>
+          </PopoverContent>
+        </Popover>
+      )}
+    </>
   )
 }
 

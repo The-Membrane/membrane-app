@@ -22,7 +22,7 @@ import type { Verdict } from '@/components/Radar/radarLogic'
 // raw entry→now size change (not profit) and a weakest-prong verdict. To stay shareable-fast it serves
 // STORED current positions (last_scanned, written by scripts/refresh-strat-
 // positions.mjs in one batched chain-read pass) rather than doing N addresses ×
-// 4 venues of live reads per request. The address-independent recorded corpus is
+// 5 venues of live reads per request. The address-independent recorded corpus is
 // fetched ONCE and reused across all strats via assembleRadar → computeRadar, so
 // verdicts here are byte-identical to the live radar's, with no logic drift.
 //
@@ -153,8 +153,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const totalFlowRows = corpus.perVenueProvenance.reduce((s, v) => s + v.flow_rows, 0)
   const totalSnapRows = corpus.perVenueProvenance.reduce((s, v) => s + v.snapshot_rows, 0)
 
-  // Return freshness is time-gated; do not let edge caching extend a completed
-  // claim far beyond its two-hour evidence window.
+  // Return age is disclosed by the board; an old complete reading remains a
+  // valid as-of observation. Keep edge caching short so new scans appear soon.
   res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=60')
   return res.status(200).json({
     count: sorted.length,

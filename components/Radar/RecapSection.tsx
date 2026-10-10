@@ -8,6 +8,11 @@ import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { SectionHeading, Stamp } from '@/components/Carry/atoms'
+import {
+  isTermsOnlyNotice,
+  safeHttpsSourceUrl,
+  termsSourceUrl,
+} from '@/components/Carry/venueLogLogic'
 
 // STRAT WATCHES + POST-EVENT RECAP. Track an address's carry strat over time and
 // tell the story of what happened — including failure stories ("exit initiated —
@@ -16,7 +21,7 @@ import { SectionHeading, Stamp } from '@/components/Carry/atoms'
 // Brand-clean, screenshot-first: each surface carries a self-documenting footer.
 
 type BeatKind = 'entered' | 'exit_initiated' | 'exit_landed' | 'venue_param_changed' | 'context'
-type Provenance = 'observed' | 'reconstructed' | 'chain-read' | 'recorded'
+type Provenance = 'observed' | 'reconstructed' | 'chain-read' | 'recorded' | 'alarm'
 
 type Beat = {
   at: string
@@ -24,6 +29,7 @@ type Beat = {
   kind: BeatKind
   text: string
   provenance: Provenance
+  sourceUrl?: string
 }
 type RecapResponse = {
   address: string
@@ -83,7 +89,15 @@ const ProvChip: React.FC<{ provenance: Provenance }> = ({ provenance }) => (
   </Text>
 )
 
-type AlertRow = { venue: string; kind: string; text: string; open: boolean; firedAt: string; clearedAt: string | null }
+type AlertRow = {
+  venue: string
+  kind: string
+  evidence?: Record<string, unknown> | null
+  text: string
+  open: boolean
+  firedAt: string
+  clearedAt: string | null
+}
 type AlertsResponse = {
   held: string[]
   open: AlertRow[]
@@ -94,7 +108,8 @@ type AlertsResponse = {
 }
 
 /**
- * VENUE ALERTS for a tracked address: the recorder's failure-pattern alarms,
+ * VENUE ALERTS for a tracked address: recorded condition alerts and terms-page
+ * text notices,
  * routed to the venues this address holds (/api/radar/alerts). The feed link is
  * the subscription: any RSS reader, no account. Quiet ≠ safe, so the blind-spot
  * footer always renders.
@@ -125,8 +140,20 @@ const AlertsBlock: React.FC<{ address: string }> = ({ address }) => {
   }
   return (
     <Card variant="subtle" p={SPACING.base} mb={SPACING.base} data-testid="radar-alerts">
-      <HStack justify="space-between" align="baseline" flexWrap="wrap" gap={SPACING.sm} mb={SPACING.sm}>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.24em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
+      <HStack
+        justify="space-between"
+        align="baseline"
+        flexWrap="wrap"
+        gap={SPACING.sm}
+        mb={SPACING.sm}
+      >
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="10px"
+          letterSpacing="0.24em"
+          textTransform="uppercase"
+          color={SEMANTIC_COLORS.textTertiary}
+        >
           alerts on {data.held.length ? data.held.join(' · ') : 'no held venues'}
         </Text>
         <HStack gap={SPACING.sm}>
@@ -170,8 +197,12 @@ const AlertsBlock: React.FC<{ address: string }> = ({ address }) => {
         </HStack>
       </HStack>
       {rows.length === 0 ? (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={SEMANTIC_COLORS.textSecondary}>
-          No alarm has fired on these venues while you have been watching.
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="11.5px"
+          color={SEMANTIC_COLORS.textSecondary}
+        >
+          No recorded venue alert during this watch.
         </Text>
       ) : (
         rows.map((a, i) => (
@@ -184,11 +215,40 @@ const AlertsBlock: React.FC<{ address: string }> = ({ address }) => {
             borderColor={SEMANTIC_COLORS.borderSubtle}
             alignItems="baseline"
           >
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.14em" textTransform="uppercase" color={SEMANTIC_COLORS.textTertiary}>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="10px"
+              letterSpacing="0.14em"
+              textTransform="uppercase"
+              color={SEMANTIC_COLORS.textTertiary}
+            >
               {(a.clearedAt ?? a.firedAt).slice(0, 10)} · {a.venue}
             </Text>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={a.open ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="11.5px"
+              color={
+                a.open
+                  ? isTermsOnlyNotice(a)
+                    ? SEMANTIC_COLORS.info
+                    : SEMANTIC_COLORS.danger
+                  : SEMANTIC_COLORS.textSecondary
+              }
+            >
               {a.text}
+              {termsSourceUrl(a) && (
+                <Text
+                  as="a"
+                  href={termsSourceUrl(a) ?? undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  ml={SPACING.sm}
+                  textDecoration="underline"
+                  color={SEMANTIC_COLORS.info}
+                >
+                  source terms ↗
+                </Text>
+              )}
             </Text>
           </Grid>
         ))
@@ -261,9 +321,14 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
 
       <Card variant="subtle" p={SPACING.base} mb={SPACING.base}>
         <HStack justify="space-between" align="baseline" flexWrap="wrap" gap={SPACING.sm}>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} maxW="640px">
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="12px"
+            color={SEMANTIC_COLORS.textSecondary}
+            maxW="640px"
+          >
             {watchedSince
-              ? `Watching this address. The recap below tells the story since ${watchedSince.slice(0, 10)}: entries, gated exits, and how each exit day ranked in our recorded corpus.`
+              ? `Watching this address. The recap below shows recorded entries and withdrawals since ${watchedSince.slice(0, 10)}, with available venue context. Exit-day totals and ranks are unavailable without complete flow coverage.`
               : 'Snapshot this address’s positions now, so a later recap can tell the "entered $X → now $Y" story against a real baseline.'}
           </Text>
           <Button
@@ -284,7 +349,12 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
           </Button>
         </HStack>
         {watchError && (
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.danger} mt={SPACING.sm}>
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="11px"
+            color={SEMANTIC_COLORS.danger}
+            mt={SPACING.sm}
+          >
             {watchError}
           </Text>
         )}
@@ -294,12 +364,22 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
       {watchedSince && <AlertsBlock address={address} />}
 
       {isFetching && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.md}>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12px"
+          color={SEMANTIC_COLORS.textSecondary}
+          mt={SPACING.md}
+        >
           composing recap from chain logs + corpus…
         </Text>
       )}
       {error && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger} mt={SPACING.md}>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12px"
+          color={SEMANTIC_COLORS.danger}
+          mt={SPACING.md}
+        >
           {(error as Error).message}
         </Text>
       )}
@@ -308,12 +388,23 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
         <>
           <SectionHeading index="06 /" title="What happened" note={data.provenance.window} />
           <Card p={SPACING.base}>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} lineHeight={1.7} mb={SPACING.md}>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="12px"
+              color={SEMANTIC_COLORS.textPrimary}
+              lineHeight={1.7}
+              mb={SPACING.md}
+            >
               {data.summary}
             </Text>
             {data.beats.length === 0 ? (
-              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11.5px" color={SEMANTIC_COLORS.textSecondary}>
-                No recorded activity for this address in the window — no entries, exits, or venue changes to recount.
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="11.5px"
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                No recorded activity for this address in the window — no entries, exits, or venue
+                changes to recount.
               </Text>
             ) : (
               <Box>
@@ -341,9 +432,24 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
                       <Text
                         fontFamily={TYPOGRAPHY.fontMono}
                         fontSize="11.5px"
-                        color={tone === 'warning' ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.textPrimary}
+                        color={
+                          tone === 'warning' ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.textPrimary
+                        }
                       >
                         {b.text}
+                        {safeHttpsSourceUrl(b.sourceUrl) && (
+                          <Text
+                            as="a"
+                            href={safeHttpsSourceUrl(b.sourceUrl) ?? undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            ml={SPACING.sm}
+                            textDecoration="underline"
+                            color={SEMANTIC_COLORS.info}
+                          >
+                            source terms ↗
+                          </Text>
+                        )}
                       </Text>
                       <ProvChip provenance={b.provenance} />
                     </Grid>
@@ -352,8 +458,10 @@ export const RecapSection: React.FC<{ address: string }> = ({ address }) => {
               </Box>
             )}
             <Stamp>
-              observed = on-chain event we filtered to this address · reconstructed = venue change derived from archive ·
-              chain-read = live balances · recorded = corpus (venue_snapshots / venue_flows). Nothing modelled.
+              observed = on-chain event we filtered to this address · reconstructed = venue change
+              derived from archive · chain-read = live balances · recorded = venue snapshots · alarm
+              = recorded venue alert. Exit-day flow totals and ranks are unavailable. Nothing
+              modelled.
             </Stamp>
             <ProvFooter />
           </Card>

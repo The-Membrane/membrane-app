@@ -59,6 +59,10 @@ export interface Board {
 
 /** A measured cross-protocol carry route (A+B evidence, Aug 2026). */
 export interface Route {
+  /** Exact label in the August lending-route source; names may group multiple contracts. */
+  routeKey?: string
+  /** Number of distinct destination contracts grouped under this label. */
+  destinations?: number
   proto: string
   src: string
   /** DefiLlama link for the source token/product. */

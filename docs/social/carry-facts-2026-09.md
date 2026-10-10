@@ -58,7 +58,7 @@ alone and you're reading the one chart that can't show you this.
 A third of the routes on our measured board are negative — including one at −3.75%
 whose yield module was confirmed earning exactly 0%. The count is from the August 2026
 cohort, not evidence that those positions remain open today.
-`src: route table, 4 of 12 board routes net-negative; GHO→UmbrellaStakeToken note`
+`src: route table, 8 of 25 priced board groups net-negative; GHO→UmbrellaStakeToken note`
 
 **9. [measured]**
 63% of real carry positions required an in-transaction swap to even get built. The

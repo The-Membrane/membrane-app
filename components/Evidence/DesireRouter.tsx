@@ -107,7 +107,7 @@ export const DesireRouter: React.FC = () => {
           body="The measured board, exit costs priced in — the yield-hunter's whole picture on one page."
           cta="→ /carry"
         />
-        <Door href={`/${chainName}/strats`} eyebrow="Watch the big books" body={booksBody} cta="→ /strats" />
+        <Door href={`/${chainName}/carry#strats`} eyebrow="Watch the big books" body={booksBody} cta="→ /carry#strats" />
       </Grid>
       <Stamp>carry radar · recorded corpus · {new Date().toISOString().slice(0, 10)}</Stamp>
     </Box>

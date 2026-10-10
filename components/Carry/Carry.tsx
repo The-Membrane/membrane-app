@@ -7,11 +7,12 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
+import StratsBoard from '@/components/Strats/StratsBoard'
 
 import Collateral from './Collateral'
 import CapacityChanges from './CapacityChanges'
-import CrossingChart from './CrossingChart'
 import ExecSheet from './ExecSheet'
+import ForecastWorkbench from './ForecastWorkbench'
 import Hero from './Hero'
 import Ladder from './Ladder'
 import MarketBoards from './MarketBoards'
@@ -115,7 +116,13 @@ export const Carry: React.FC = () => {
         />
       </Box>
 
-      <MarketBoards routesOnly />
+      <MarketBoards routesOnly chainName={chainName} />
+
+      <ForecastWorkbench chainName={chainName} />
+
+      <Box id="strats" mt={SPACING.xl}>
+        <StratsBoard embedded />
+      </Box>
 
       {advancedOpen && (
         <Box>
@@ -133,7 +140,6 @@ export const Carry: React.FC = () => {
       )}
 
       <RedemptionHistory onOpenOracle={setOracleSym} amountUsd={parseAmount(heroAmount)} />
-      <CrossingChart amountUsd={parseAmount(heroAmount)} />
       <Timeline />
       <VenueLog />
       <CapacityChanges />

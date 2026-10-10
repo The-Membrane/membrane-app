@@ -2,9 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
+import { isSuspendedFlowAlarm } from '@/components/Radar/alertLogic'
+import { scrubTermsAlarmEvidence } from '@/pages/api/_lib/venueLogQuery'
 import { uncoveredByVenue } from '@/pages/api/_lib/uncovered'
 
-// PUBLIC. The VENUE FAILURE-PATTERN ALARM feed. Three parts:
+// PUBLIC. The VENUE ALERT feed: measured condition alarms and terms-page notices.
 //   open      — currently-open alarms (cleared_at IS NULL), newest first.
 //   cleared   — recently-cleared alarms, capped at 10 (history / audit trail).
 //   uncovered — per venue, the memo signals the alarm system CANNOT evaluate yet
@@ -18,7 +20,7 @@ import { uncoveredByVenue } from '@/pages/api/_lib/uncovered'
 type AlarmRow = {
   venue: string
   kind: string
-  severity: 'watch' | 'alarm'
+  severity: 'watch' | 'alarm' | 'notice'
   evidence: Record<string, unknown> | null
   firedAt: string
   clearedAt: string | null
@@ -30,11 +32,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const openRes = await db.execute(sql`
     SELECT venue, kind, severity, evidence, fired_at AS "firedAt", cleared_at AS "clearedAt"
     FROM venue_alarms WHERE cleared_at IS NULL
+      AND kind NOT IN ('net_outflow_streak', 'headroom_thin')
     ORDER BY fired_at DESC`)
 
   const clearedRes = await db.execute(sql`
     SELECT venue, kind, severity, evidence, fired_at AS "firedAt", cleared_at AS "clearedAt"
     FROM venue_alarms WHERE cleared_at IS NOT NULL
+      AND kind NOT IN ('net_outflow_streak', 'headroom_thin')
     ORDER BY cleared_at DESC LIMIT 10`)
 
   // Per-venue blind spots from the ONE source (scripts/lib/alarmRules.mjs
@@ -46,15 +50,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     venue: r.venue,
     kind: r.kind,
     severity: r.severity,
-    evidence: r.evidence ?? null,
+    evidence: scrubTermsAlarmEvidence(r.kind, r.evidence),
     firedAt: new Date(r.firedAt).toISOString(),
     clearedAt: r.clearedAt ? new Date(r.clearedAt).toISOString() : null,
   })
 
   res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300')
   return res.status(200).json({
-    open: (openRes.rows as any[]).map(norm),
-    cleared: (clearedRes.rows as any[]).map(norm),
+    open: (openRes.rows as any[]).filter((r) => !isSuspendedFlowAlarm(r)).map(norm),
+    cleared: (clearedRes.rows as any[]).filter((r) => !isSuspendedFlowAlarm(r)).map(norm),
     uncovered,
   })
 }

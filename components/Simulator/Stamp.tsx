@@ -67,12 +67,13 @@ export const Stamp: React.FC<StampProps> = ({ provenance, note }) => {
       <Text
         as="span"
         fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="9.5px"
+        fontSize="12px"
         letterSpacing="0.24em"
         textTransform="uppercase"
         color={color}
         minW={0}
-        whiteSpace="nowrap"
+        whiteSpace={{ base: 'normal', md: 'nowrap' }}
+        overflowWrap="anywhere"
         overflow="hidden"
         textOverflow="ellipsis"
       >

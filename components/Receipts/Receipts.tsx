@@ -163,7 +163,7 @@ export const Receipts: React.FC = () => {
 
   return (
     <Box maxW="1140px" mx="auto" px={SPACING.base} py={SPACING.lg} bg={SEMANTIC_COLORS.bgPrimary} color={SEMANTIC_COLORS.textPrimary}>
-      <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} color={SEMANTIC_COLORS.textPrimary} letterSpacing="-0.01em">
+      <Text as="h1" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} color={SEMANTIC_COLORS.textPrimary} letterSpacing="-0.01em">
         Called It
       </Text>
       <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.sm} maxW="680px">
@@ -363,9 +363,9 @@ export const Receipts: React.FC = () => {
               next
             </Text>
             <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.sm}>
-              <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
+              <NextLink href={`/${chainName}/carry#strats`} style={{ textDecoration: 'underline' }}>
                 <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
-                  see the tracked books → /strats
+                  see the tracked books → /carry#strats
                 </Text>
               </NextLink>
               <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>

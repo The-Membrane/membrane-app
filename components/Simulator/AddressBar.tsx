@@ -23,20 +23,22 @@ const BTN = {
   color: SEMANTIC_COLORS.textPrimary,
   borderRadius: 0,
   fontFamily: TYPOGRAPHY.fontMono,
-  fontSize: '10.5px',
+  fontSize: '12px',
   letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   h: 'auto',
   px: SPACING.base,
   py: SPACING.md,
-  transition: TRANSITIONS.colors,
+  transition: `${TRANSITIONS.colors}, box-shadow 0.15s ease`,
   _hover: {
-    borderColor: SEMANTIC_COLORS.success,
+    borderColor: SEMANTIC_COLORS.borderStrong,
     color: SEMANTIC_COLORS.success,
     bg: 'transparent',
+    boxShadow: 'md',
   },
-  _active: { opacity: 0.85 },
-  _focus: FOCUS_STYLES.ring,
+  _active: { opacity: 0.85, borderColor: SEMANTIC_COLORS.success, boxShadow: 'sm' },
+  _focus: { outline: 'none' },
+  _focusVisible: FOCUS_STYLES.ring,
   _disabled: {
     opacity: 0.35,
     cursor: 'not-allowed',
@@ -51,7 +53,7 @@ const LINK_BTN = {
   borderRadius: 0,
   color: SEMANTIC_COLORS.textSecondary,
   fontFamily: TYPOGRAPHY.fontMono,
-  fontSize: '10.5px',
+  fontSize: '12px',
   letterSpacing: '0.06em',
   h: 'auto',
   minW: 'auto',
@@ -60,7 +62,8 @@ const LINK_BTN = {
   textDecoration: 'underline',
   transition: TRANSITIONS.colors,
   _hover: { color: SEMANTIC_COLORS.success, bg: 'transparent' },
-  _focus: FOCUS_STYLES.ring,
+  _focus: { outline: 'none' },
+  _focusVisible: FOCUS_STYLES.ring,
 }
 
 export interface AddressBarProps {
@@ -128,7 +131,11 @@ export const AddressBar: React.FC<AddressBarProps> = ({
           borderColor={SEMANTIC_COLORS.success}
           color={SEMANTIC_COLORS.bgPrimary}
           fontWeight={TYPOGRAPHY.medium}
-          _hover={{ bg: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.textPrimary }}
+          _hover={{
+            bg: SEMANTIC_COLORS.success,
+            borderColor: SEMANTIC_COLORS.textPrimary,
+            boxShadow: 'md',
+          }}
         >
           {isWalletConnected && walletAddress
             ? 'Use connected wallet'
@@ -199,7 +206,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
         <Text
           id={`${inputId}-error`}
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="11.5px"
+          fontSize="12px"
           color={SEMANTIC_COLORS.danger}
         >
           {error}
@@ -208,7 +215,7 @@ export const AddressBar: React.FC<AddressBarProps> = ({
 
       <Text
         fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="11px"
+        fontSize="12px"
         color={SEMANTIC_COLORS.textTertiary}
         lineHeight={1.6}
       >

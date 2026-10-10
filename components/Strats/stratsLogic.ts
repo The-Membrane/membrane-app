@@ -51,6 +51,8 @@ export type TrackedReturn = {
   flow_count: number
   unpriced_count: number
   status: 'complete' | 'collecting' | 'incomplete'
+  /** The next scan failed; the numeric reading still describes the last complete window. */
+  refresh_failed?: boolean
   note: string
 }
 
@@ -110,19 +112,20 @@ export function aggregateTrackedReturn(
       row.last_complete_block === row.block,
   )
   const ageMs = nowMs - new Date(first.observed_at).getTime()
-  const fresh = Number.isFinite(ageMs) && ageMs >= -5 * 60_000 && ageMs <= 2 * 60 * 60_000
+  // An old complete window is still a valid historical reading. Only reject
+  // invalid or implausibly future timestamps; age is disclosed by the UI.
+  const validTime = Number.isFinite(ageMs) && ageMs >= -5 * 60_000
   const priced = valid.every(
     (row) =>
-      !row.last_error &&
-      ((row.status === 'complete' &&
+      (row.status === 'complete' &&
         row.pnl_usd != null &&
         row.capital_base_usd != null &&
         row.capital_base_usd > 0) ||
-        (row.status === 'empty' && row.pnl_usd === 0 && row.capital_base_usd === 0)),
+      (row.status === 'empty' && row.pnl_usd === 0 && row.capital_base_usd === 0),
   )
   const flowCount = valid.reduce((sum, row) => sum + row.flow_count, 0)
   const unpricedCount = valid.reduce((sum, row) => sum + row.unpriced_count, 0)
-  if (!sameWindow || !priced || !fresh)
+  if (!sameWindow || !priced || !validTime)
     return {
       pnl_usd: null,
       return_pct: null,
@@ -143,8 +146,16 @@ export function aggregateTrackedReturn(
     flow_count: flowCount,
     unpriced_count: 0,
     status: 'complete',
+    refresh_failed: valid.some((row) => Boolean(row.last_error)),
     note,
   }
+}
+
+/** A delayed recorder does not invalidate a complete reading, but must be visible. */
+export function isTrackedReturnStale(endAt: string | null, nowMs = Date.now()): boolean {
+  if (!endAt) return false
+  const ageMs = nowMs - new Date(endAt).getTime()
+  return Number.isFinite(ageMs) && ageMs > 2 * 60 * 60_000
 }
 
 export type DeltaDir = 'up' | 'down' | 'flat'

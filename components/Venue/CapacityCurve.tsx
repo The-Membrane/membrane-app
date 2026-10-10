@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Box, Slider, SliderFilledTrack, SliderThumb, SliderTrack, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 
@@ -26,6 +26,7 @@ import {
   type CapacityReading,
   type CurvePoint,
 } from '@/lib/venueCapacity/capacityCurve'
+import { recordedAgeLabel } from '@/lib/venueCapacity/readingAge'
 
 // SWAP-OUT CAPACITY — owner ask 2026-09-26: "Is swap-out depth 1:1? Show the
 // capacity as a cost range that includes fees." One component, two variants:
@@ -70,17 +71,55 @@ const provenanceLine = (curve: NonNullable<CapacityCurveResponse['curve']>): str
   const sources = Array.from(new Set(curve.markets.map((m) => m.source).filter(Boolean)))
     .map((s) => (s === 'curve get_dy' ? 'Curve get_dy' : s === 'psm tout' ? 'PSM tout' : s))
     .join(' / ')
-  return `on-chain quotes (${sources || 'none'}) · block ${curve.block.toLocaleString('en-US')} · ${curve.observedAt.slice(0, 10)}`
+  const chainTime = curve.sourceBlockTime
+    ? `${curve.sourceBlockTime.slice(0, 16).replace('T', ' ')} UTC`
+    : 'time unknown'
+  return `recorded on-chain quotes (${sources || 'none'}) · block ${curve.block.toLocaleString('en-US')} · chain ${chainTime} · saved ${curve.observedAt.slice(0, 16).replace('T', ' ')} UTC`
+}
+
+const sourceAge = (curve: NonNullable<CapacityCurveResponse['curve']>, nowMs: number | null) =>
+  curve.sourceBlockTime
+    ? (recordedAgeLabel(curve.sourceBlockTime, nowMs) ?? 'checking block age')
+    : 'chain block age unverified'
+
+const routeSteps = (venue: string): string => {
+  if (venue === 'sUSDe')
+    return 'Direct sUSDe → DOLA market. This is a swap quote, not a redemption guarantee.'
+  if (venue === 'sUSDS')
+    return 'Modeled sUSDS redemption → USDS → USDC LitePSM. Share redemption availability is not verified by this quote.'
+  if (venue === 'scrvUSD')
+    return 'Modeled scrvUSD redemption → crvUSD → USDT/USDC markets. Share redemption availability is not verified by this quote.'
+  return 'The quoted route covers only the recorded exit leg, not a guaranteed full withdrawal.'
+}
+
+const unavailableText = (
+  data: CapacityCurveResponse | undefined,
+  isLoading: boolean,
+  isError: boolean,
+) => {
+  if (isLoading) return 'Loading the recorded route…'
+  if (isError) return 'Route reading unavailable. The last quote could not be loaded.'
+  if (data?.unavailableReason === 'not-configured')
+    return 'No modeled swap route is configured for this venue. Use its recorded instant liquidity above.'
+  if (data?.unavailableReason === 'incomplete-latest')
+    return 'No quote for the current route can be verified. The latest pass may be incomplete or use an older route.'
+  return 'No recorded exit quote is available for this venue yet.'
 }
 
 const feeLine = (m: NonNullable<CapacityCurveResponse['curve']>['markets'][number]): string =>
-  m.feeBps == null ? 'fee not read' : m.source === 'psm tout' ? `PSM tout ${Number(m.feeBps.toPrecision(2))} bp` : `pool fee ${Number(m.feeBps.toPrecision(2))} bp, inside get_dy`
+  m.feeBps == null
+    ? 'fee not read'
+    : m.source === 'psm tout'
+      ? `PSM tout ${Number(m.feeBps.toPrecision(2))} bp`
+      : `pool fee ${Number(m.feeBps.toPrecision(2))} bp, inside get_dy`
 
 type ChartDatum = { c: number; cap: number | null; band: [number, number] | null }
 
 /** Dense log-spaced samples so linear-in-cost interpolation draws true on a log axis. */
 function sample(points: CurvePoint[], maxPct: number): ChartDatum[] {
-  const q = points.filter((p) => p.capacityUsd !== null && p.costPct <= maxPct).sort((a, b) => a.costPct - b.costPct)
+  const q = points
+    .filter((p) => p.capacityUsd !== null && p.costPct <= maxPct)
+    .sort((a, b) => a.costPct - b.costPct)
   if (q.length === 0) return []
   const lo = q[0].costPct
   const hi = q[q.length - 1].costPct
@@ -92,35 +131,68 @@ function sample(points: CurvePoint[], maxPct: number): ChartDatum[] {
     out.push({
       c,
       cap: r.capacityUsd,
-      band: r.kind === 'interpolated' ? [r.lowerUsd, r.upperUsd] : r.kind === 'quoted' ? [r.capacityUsd, r.capacityUsd] : null,
+      band:
+        r.kind === 'interpolated'
+          ? [r.lowerUsd, r.upperUsd]
+          : r.kind === 'quoted'
+            ? [r.capacityUsd, r.capacityUsd]
+            : null,
     })
   }
-  for (const p of q) out.push({ c: p.costPct, cap: p.capacityUsd, band: [p.capacityUsd!, p.capacityUsd!] })
+  for (const p of q)
+    out.push({ c: p.costPct, cap: p.capacityUsd, band: [p.capacityUsd!, p.capacityUsd!] })
   return out.sort((a, b) => a.c - b.c)
 }
 
 type ChartProps = { points: CurvePoint[]; costPct: number; maxPct: number }
 
 const CurveChart = lazyChart<ChartProps>((RC) => {
-  const { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Area, ReferenceLine, ReferenceDot, Tooltip } = RC
+  const {
+    ResponsiveContainer,
+    ComposedChart,
+    CartesianGrid,
+    XAxis,
+    YAxis,
+    Area,
+    ReferenceLine,
+    ReferenceDot,
+    Tooltip,
+  } = RC
   return function CapacityCurveChart({ points, costPct, maxPct }: ChartProps) {
     const data = useMemo(() => sample(points, maxPct), [points, maxPct])
     const ticks = points.map((p) => p.costPct).filter((c) => c <= maxPct)
-    const presets = CAPACITY_PRESETS_PCT.filter((c) => c <= maxPct).map((c) => ({ c, r: capacityAt(points, c) })).filter((x) => x.r.capacityUsd !== null)
+    const presets = CAPACITY_PRESETS_PCT.filter((c) => c <= maxPct)
+      .map((c) => ({ c, r: capacityAt(points, c) }))
+      .filter((x) => x.r.capacityUsd !== null)
     const HoverCard = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
       if (!active || !payload?.length) return null
       const d = payload[0]?.payload as ChartDatum | undefined
       if (!d) return null
       const r = capacityAt(points, d.c)
       return (
-        <div style={{ ...(CHART_THEME.tooltip.contentStyle as object), padding: '8px 10px', fontFamily: TYPOGRAPHY.fontMono, fontSize: 11 }}>
-          <div style={{ color: SEMANTIC_COLORS.textSecondary, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+        <div
+          style={{
+            ...(CHART_THEME.tooltip.contentStyle as object),
+            padding: '8px 10px',
+            fontFamily: TYPOGRAPHY.fontMono,
+            fontSize: 11,
+          }}
+        >
+          <div
+            style={{
+              color: SEMANTIC_COLORS.textSecondary,
+              fontSize: 9,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+            }}
+          >
             within {fmtPct(d.c)} cost incl. fees
           </div>
           <div style={{ color: SEMANTIC_COLORS.textPrimary }}>{readingText(r)}</div>
           {r.kind === 'interpolated' && (
             <div style={{ color: SEMANTIC_COLORS.textTertiary, fontSize: 10 }}>
-              quoted: {fmtUsd(r.lowerUsd)} at {fmtPct(r.fromPct)} · {fmtUsd(r.upperUsd)} at {fmtPct(r.toPct)}
+              quoted: {fmtUsd(r.lowerUsd)} at {fmtPct(r.fromPct)} · {fmtUsd(r.upperUsd)} at{' '}
+              {fmtPct(r.toPct)}
             </div>
           )}
         </div>
@@ -135,7 +207,10 @@ const CurveChart = lazyChart<ChartProps>((RC) => {
             dataKey="c"
             type="number"
             scale="log"
-            domain={[ticks[0] ?? CAPACITY_SLIDER_MIN_PCT, ticks[ticks.length - 1] ?? CAPACITY_SLIDER_MAX_PCT]}
+            domain={[
+              ticks[0] ?? CAPACITY_SLIDER_MIN_PCT,
+              ticks[ticks.length - 1] ?? CAPACITY_SLIDER_MAX_PCT,
+            ]}
             ticks={ticks}
             interval={0}
             allowDataOverflow
@@ -149,29 +224,77 @@ const CurveChart = lazyChart<ChartProps>((RC) => {
             domain={[0, 'auto']}
             tick={{ ...CHART_THEME.yAxis.tick, fontFamily: TYPOGRAPHY.fontMono }}
           />
-          <Tooltip content={<HoverCard />} cursor={{ stroke: SEMANTIC_COLORS.borderStrong, strokeWidth: 1 }} />
+          <Tooltip
+            content={<HoverCard />}
+            cursor={{ stroke: SEMANTIC_COLORS.borderStrong, strokeWidth: 1 }}
+          />
           {/* The bracket between quotes: the true curve is somewhere inside it. */}
-          <Area dataKey="band" stroke="none" fill={BAND} fillOpacity={0.16} isAnimationActive={false} connectNulls={false} />
+          <Area
+            dataKey="band"
+            stroke="none"
+            fill={BAND}
+            fillOpacity={0.16}
+            isAnimationActive={false}
+            connectNulls={false}
+          />
           {/* Capacity: area under the line, flat fill (BRAND_CHARTS §3). */}
-          <Area dataKey="cap" stroke={LINE} strokeWidth={2} fill={LINE} fillOpacity={0.3} dot={false} isAnimationActive={false} connectNulls={false} />
+          <Area
+            dataKey="cap"
+            stroke={LINE}
+            strokeWidth={2}
+            fill={LINE}
+            fillOpacity={0.3}
+            dot={false}
+            isAnimationActive={false}
+            connectNulls={false}
+          />
           {presets.map(({ c, r }) => (
-            <ReferenceDot key={`p${c}`} x={c} y={r.capacityUsd as number} r={3} fill={MARK} stroke="none" ifOverflow="visible" />
+            <ReferenceDot
+              key={`p${c}`}
+              x={c}
+              y={r.capacityUsd as number}
+              r={3}
+              fill={MARK}
+              stroke="none"
+              ifOverflow="visible"
+            />
           ))}
-          <ReferenceLine x={costPct} stroke={SEMANTIC_COLORS.textPrimary} strokeOpacity={0.5} strokeDasharray="2 3" ifOverflow="hidden" />
+          <ReferenceLine
+            x={costPct}
+            stroke={SEMANTIC_COLORS.textPrimary}
+            strokeOpacity={0.5}
+            strokeDasharray="2 3"
+            ifOverflow="hidden"
+          />
         </ComposedChart>
       </ResponsiveContainer>
     )
   }
 }, `${CHART_DIMENSIONS.heights.sm}px`)
 
-const Mono: React.FC<{ children: React.ReactNode; color?: string; size?: string; mt?: string | number }> = ({ children, color, size = '11px', mt }) => (
-  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={size} color={color ?? SEMANTIC_COLORS.textSecondary} mt={mt} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+const Mono: React.FC<{
+  children: React.ReactNode
+  color?: string
+  size?: string
+  mt?: string | number
+}> = ({ children, color, size = '11px', mt }) => (
+  <Text
+    fontFamily={TYPOGRAPHY.fontMono}
+    fontSize={size}
+    color={color ?? SEMANTIC_COLORS.textSecondary}
+    mt={mt}
+    sx={{ fontVariantNumeric: 'tabular-nums' }}
+  >
     {children}
   </Text>
 )
 
 /** "0.5% → $X · 1% → $Y · 5% → $Z" */
-export const PresetRow: React.FC<{ points: CurvePoint[]; ceiling: CostCeiling | null; size?: string }> = ({ points, ceiling, size }) => {
+export const PresetRow: React.FC<{
+  points: CurvePoint[]
+  ceiling: CostCeiling | null
+  size?: string
+}> = ({ points, ceiling, size }) => {
   const within = CAPACITY_PRESETS_PCT.filter((c) => !ceiling || c <= ceiling.costPct)
   const past = ceiling && CAPACITY_PRESETS_PCT.some((c) => c > ceiling.costPct)
   return (
@@ -199,7 +322,13 @@ export const PresetRow: React.FC<{ points: CurvePoint[]; ceiling: CostCeiling | 
   )
 }
 
-const Lever: React.FC<{ points: CurvePoint[]; costPct: number; maxPct: number; onChange: (c: number) => void; size?: string }> = ({ points, costPct, maxPct, onChange, size }) => {
+const Lever: React.FC<{
+  points: CurvePoint[]
+  costPct: number
+  maxPct: number
+  onChange: (c: number) => void
+  size?: string
+}> = ({ points, costPct, maxPct, onChange, size }) => {
   const r = capacityAt(points, costPct)
   const levels = points.map((p) => p.costPct)
   return (
@@ -222,14 +351,20 @@ const Lever: React.FC<{ points: CurvePoint[]; costPct: number; maxPct: number; o
         <Text as="span" color={SEMANTIC_COLORS.success}>
           {readingText(r)}
         </Text>
-        {r.kind === 'interpolated' ? ` · between ${fmtUsd(r.lowerUsd)} (${fmtPct(r.fromPct)}) and ${fmtUsd(r.upperUsd)} (${fmtPct(r.toPct)}), both quoted` : ''}
+        {r.kind === 'interpolated'
+          ? ` · between ${fmtUsd(r.lowerUsd)} (${fmtPct(r.fromPct)}) and ${fmtUsd(r.upperUsd)} (${fmtPct(r.toPct)}), both quoted`
+          : ''}
       </Mono>
     </Box>
   )
 }
 
 /** The cost of exiting `sizeUsd` in one go, read off the curve — never extrapolated. */
-export const YourSizeLine: React.FC<{ points: CurvePoint[]; sizeUsd: number; size?: string }> = ({ points, sizeUsd, size }) => {
+export const YourSizeLine: React.FC<{ points: CurvePoint[]; sizeUsd: number; size?: string }> = ({
+  points,
+  sizeUsd,
+  size,
+}) => {
   const r = costAtSize(points, sizeUsd)
   const text =
     r.kind === 'within-first'
@@ -242,8 +377,11 @@ export const YourSizeLine: React.FC<{ points: CurvePoint[]; sizeUsd: number; siz
             ? `beyond quoted depth (last quote ${fmtUsd(r.lastQuotedUsd)} at ${fmtPct(r.lastQuotedPct)})`
             : 'no quote'
   return (
-    <Mono size={size} color={r.kind === 'beyond-quoted-depth' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}>
-      exit your {fmtUsd(sizeUsd)} in one swap: {text}
+    <Mono
+      size={size}
+      color={r.kind === 'beyond-quoted-depth' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.success}
+    >
+      modeled route cost for {fmtUsd(sizeUsd)}: {text}
     </Mono>
   )
 }
@@ -255,9 +393,20 @@ export interface CapacityCurveProps {
   sizeUsd?: number
 }
 
-export const CapacityCurve: React.FC<CapacityCurveProps> = ({ venue, variant = 'full', sizeUsd }) => {
-  const { data, isLoading } = useCapacityCurve(venue)
+export const CapacityCurve: React.FC<CapacityCurveProps> = ({
+  venue,
+  variant = 'full',
+  sizeUsd,
+}) => {
+  const { data, isLoading, isError } = useCapacityCurve(venue)
   const [costPct, setCostPct] = useState<number>(1)
+  const [nowMs, setNowMs] = useState<number | null>(null)
+  useEffect(() => {
+    setNowMs(Date.now())
+    const timer = window.setInterval(() => setNowMs(Date.now()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const shownSize = sizeUsd != null && Number.isFinite(sizeUsd) && sizeUsd > 0 ? sizeUsd : null
   const curve = data?.curve ?? null
   const ceiling = curve ? costCeiling(curve.points, venueReserveUsd(curve.markets)) : null
   const maxPct = ceiling ? ceiling.costPct : CAPACITY_SLIDER_MAX_PCT
@@ -265,17 +414,37 @@ export const CapacityCurve: React.FC<CapacityCurveProps> = ({ venue, variant = '
   const flat = !!ceiling && ceiling.costPct <= CAPACITY_SLIDER_MIN_PCT
 
   if (variant === 'compact') {
-    if (!curve) return null // no swap market recorded (e.g. a lending reserve): nothing to add
+    if (!curve) {
+      if (data?.unavailableReason !== 'incomplete-latest') return null
+      return <Mono mt={SPACING.sm}>Current-route quote unverified · capacity unavailable</Mono>
+    }
     return (
       <Box data-testid="capacity-curve-compact" mt={SPACING.sm}>
         <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
           swap-out capacity · cost incl. fees
         </Mono>
         <PresetRow points={curve.points} ceiling={ceiling} size="11px" />
-        {sizeUsd != null && sizeUsd > 0 && <YourSizeLine points={curve.points} sizeUsd={sizeUsd} size="11px" />}
-        {!flat && <Lever points={curve.points} costPct={Math.min(costPct, maxPct)} maxPct={maxPct} onChange={setCostPct} size="10px" />}
+        {sizeUsd != null && sizeUsd > 0 && (
+          <YourSizeLine points={curve.points} sizeUsd={sizeUsd} size="11px" />
+        )}
+        {!flat && (
+          <Lever
+            points={curve.points}
+            costPct={Math.min(costPct, maxPct)}
+            maxPct={maxPct}
+            onChange={setCostPct}
+            size="10px"
+          />
+        )}
         <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
-          {provenanceLine(curve)}
+          {provenanceLine(curve)} · {sourceAge(curve, nowMs)}
+          {data?.latestPassIncomplete
+            ? ' · latest pass incomplete; showing last complete quote'
+            : ''}
+          {isError ? ' · refresh unavailable' : ''}
+        </Mono>
+        <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
+          Output tokens valued at $1 each · modeled route, not confirmed withdrawal
         </Mono>
       </Box>
     )
@@ -283,45 +452,73 @@ export const CapacityCurve: React.FC<CapacityCurveProps> = ({ venue, variant = '
 
   return (
     <Card variant="default" p={SPACING.base} mt={SPACING.base}>
-      <Eyebrow>swap-out capacity · what exits within a cost, fees included</Eyebrow>
+      <Eyebrow>modeled exit route · cost includes fees</Eyebrow>
       {!curve ? (
-        <Mono mt={SPACING.sm}>
-          {isLoading ? '' : 'No quoted exit curve for this venue — it has no recorded swap market (a lending reserve exits through its instant liquidity above).'}
-        </Mono>
+        <Mono mt={SPACING.sm}>{unavailableText(data, isLoading, isError)}</Mono>
       ) : (
         <>
+          <Box mt={SPACING.md}>
+            {shownSize != null && (
+              <YourSizeLine points={curve.points} sizeUsd={shownSize} size="13px" />
+            )}
+            <Mono size="10px">
+              {routeSteps(venue)} Output tokens are valued at $1 each. Quoted or bounded by saved
+              on-chain depth; not a promise of withdrawal.
+            </Mono>
+          </Box>
           <Box mt={SPACING.sm}>
             {flat && ceiling ? (
               <Mono>
-                All{' '}
+                Quoted or modeled capacity reaches{' '}
                 <Text as="span" color={SEMANTIC_COLORS.success}>
                   {fmtUsd(ceiling.capacityUsd)}
                 </Text>{' '}
-                exits within {fmtPct(ceiling.costPct)} cost; paying more buys nothing.
+                by {fmtPct(ceiling.costPct)} cost. Higher cost limits add no depth in this snapshot;
+                holder withdrawal and fills remain unverified.
               </Mono>
             ) : (
-              <CurveChart points={curve.points} costPct={Math.min(costPct, maxPct)} maxPct={maxPct} />
+              <CurveChart
+                points={curve.points}
+                costPct={Math.min(costPct, maxPct)}
+                maxPct={maxPct}
+              />
             )}
           </Box>
           <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
-            x = max cost incl. fees (log) · y = exit capacity · gold = 0.5 / 1 / 5% · teal band = range between quotes
+            x = max cost incl. fees (log) · y = exit capacity · gold = 0.5 / 1 / 5% · teal band =
+            range between quotes
           </Mono>
           <Box mt={SPACING.sm}>
             <PresetRow points={curve.points} ceiling={ceiling} size="13px" />
           </Box>
-          {sizeUsd != null && sizeUsd > 0 && <YourSizeLine points={curve.points} sizeUsd={sizeUsd} />}
-          {!flat && <Lever points={curve.points} costPct={Math.min(costPct, maxPct)} maxPct={maxPct} onChange={setCostPct} />}
+          {!flat && (
+            <Lever
+              points={curve.points}
+              costPct={Math.min(costPct, maxPct)}
+              maxPct={maxPct}
+              onChange={setCostPct}
+            />
+          )}
           <Box mt={SPACING.sm}>
             {curve.markets.map((m) => (
               <Mono key={m.market} size="11px">
                 {m.route ?? m.market}
-                {m.error ? ` · read failed: ${m.error}` : ` · ${feeLine(m)} · raw reserve ${m.reserveUsd != null ? fmtUsd(m.reserveUsd) : '—'}`}
+                {m.error
+                  ? ` · read failed: ${m.error}`
+                  : ` · ${feeLine(m)} · raw reserve ${m.reserveUsd != null ? fmtUsd(m.reserveUsd) : '—'}`}
               </Mono>
             ))}
           </Box>
           <Stamp>
-            {provenanceLine(curve)}. Cost = 1 − received ÷ (tokens × redemption value). The raw reserve is a ceiling, not an exit at par.
-            {curve.markets.length > 1 ? ' Markets are independent pools, so their capacities add at each cost.' : ''}
+            {provenanceLine(curve)} · {sourceAge(curve, nowMs)}
+            {data?.latestPassIncomplete
+              ? ' · latest pass incomplete; showing last complete quote'
+              : ''}
+            {isError ? ' · refresh unavailable' : ''}. Cost = 1 − received ÷ (tokens × redemption
+            value). The raw reserve is a ceiling, not an exit at par.
+            {curve.markets.length > 1
+              ? ' Markets are independent pools, so their capacities add at each cost.'
+              : ''}
           </Stamp>
         </>
       )}

@@ -38,6 +38,7 @@ export const Hero: React.FC<HeroProps> = ({
   <Box>
     <Eyebrow>Carry</Eyebrow>
     <Text
+      as="h1"
       fontFamily={TYPOGRAPHY.fontDisplay}
       fontSize={TYPOGRAPHY.h1}
       color={SEMANTIC_COLORS.textPrimary}

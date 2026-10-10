@@ -42,6 +42,7 @@
 export const COST_LEVELS_PCT = Object.freeze([0.1, 0.25, 0.5, 1, 2, 5, 10])
 export const MAX_QUOTES_PER_LEVEL = 20
 const WAD = 10n ** 18n
+const MAX_UINT256 = 2n ** 256n - 1n
 
 // --- pure math --------------------------------------------------------------
 
@@ -59,7 +60,10 @@ export function costPct(valueGivenUsd, valueReceivedUsd) {
  * lo must already be known feasible (0 trivially is).
  * Returns { capacityUsd: number|null, quotes } — null if any quote reverted.
  */
-export async function capacityAtCost(quote, { targetPct, lo = 0, hi, maxQuotes = MAX_QUOTES_PER_LEVEL }) {
+export async function capacityAtCost(
+  quote,
+  { targetPct, lo = 0, hi, maxQuotes = MAX_QUOTES_PER_LEVEL },
+) {
   if (!(hi > 0)) return { capacityUsd: 0, quotes: 0 }
   let quotes = 0
   const atHi = await quote(hi)
@@ -107,7 +111,10 @@ export async function buildCurve(quote, reserveUsd, levels = COST_LEVELS_PCT) {
 /** A flat-fee buffer (PSM): cost is the fee up to the buffer, no capacity beyond. */
 export function flatFeeCurve(feePct, bufferUsd, levels = COST_LEVELS_PCT) {
   const ok = Number.isFinite(feePct) && Number.isFinite(bufferUsd)
-  return levels.map((level) => ({ costPct: level, capacityUsd: ok ? (feePct <= level ? bufferUsd : 0) : null }))
+  return levels.map((level) => ({
+    costPct: level,
+    capacityUsd: ok ? (feePct <= level ? bufferUsd : 0) : null,
+  }))
 }
 
 // USD float -> token raw units (bigint), without float blow-up past 2^53.
@@ -135,16 +142,25 @@ const ABI = {
   decimals: [fn('decimals', [], ['uint8'])],
   symbol: [fn('symbol', [], ['string'])],
   balanceOf: [fn('balanceOf', ['address'], ['uint256'])],
+  asset: [fn('asset', [], ['address'])],
   convertToAssets: [fn('convertToAssets', ['uint256'], ['uint256'])],
   previewRedeem: [fn('previewRedeem', ['uint256'], ['uint256'])],
   tout: [fn('tout', [], ['uint256'])],
   gem: [fn('gem', [], ['address'])],
   pocket: [fn('pocket', [], ['address'])],
+  psm: [fn('psm', [], ['address'])],
+  usds: [fn('usds', [], ['address'])],
 }
 
 async function read(client, address, key, args, blockNumber) {
   try {
-    return await client.readContract({ address, abi: ABI[key], functionName: ABI[key][0].name, args, blockNumber })
+    return await client.readContract({
+      address,
+      abi: ABI[key],
+      functionName: ABI[key][0].name,
+      args,
+      blockNumber,
+    })
   } catch {
     return undefined
   }
@@ -156,14 +172,33 @@ async function read(client, address, key, args, blockNumber) {
  * previewRedeem / convertToAssets (1 when the vault charges no withdraw fee).
  */
 export async function readVenueNav(client, venue, blockNumber) {
-  const dec = Number((await read(client, venue.address, 'decimals', [], blockNumber)) ?? venue.decimals ?? 18)
+  const shareDecimals = await read(client, venue.address, 'decimals', [], blockNumber)
+  const asset = await read(client, venue.address, 'asset', [], blockNumber)
+  const underlyingDecimals = await read(client, venue.underlying, 'decimals', [], blockNumber)
+  const dec = Number(shareDecimals)
+  const underlyingDec = Number(underlyingDecimals)
+  if (
+    shareDecimals === undefined ||
+    underlyingDecimals === undefined ||
+    !Number.isInteger(dec) ||
+    !Number.isInteger(underlyingDec) ||
+    dec < 0 ||
+    dec > 36 ||
+    underlyingDec < 0 ||
+    underlyingDec > 36 ||
+    asset === undefined ||
+    lc(asset) !== lc(venue.underlying) ||
+    dec !== venue.decimals
+  )
+    return null
   const one = 10n ** BigInt(dec)
   const assets = await read(client, venue.address, 'convertToAssets', [one], blockNumber)
   const preview = await read(client, venue.address, 'previewRedeem', [one], blockNumber)
-  const underlyingDec = Number((await read(client, venue.underlying, 'decimals', [], blockNumber)) ?? 18)
-  if (assets === undefined) return null
+  if (assets === undefined || assets <= 0n) return null
   const navUsd = rawToNum(assets, underlyingDec)
   const redeemRatio = preview !== undefined && assets > 0n ? Number(preview) / Number(assets) : null
+  if (!Number.isFinite(navUsd) || navUsd <= 0) return null
+  if (redeemRatio !== null && (!Number.isFinite(redeemRatio) || redeemRatio <= 0)) return null
   return { navUsd, redeemRatio, decimals: dec, underlyingDecimals: underlyingDec }
 }
 
@@ -178,6 +213,10 @@ export async function readCurveMarketCurve(client, venue, market, nav, blockNumb
   const c0 = await read(client, market.address, 'coins', [0n], blockNumber)
   const c1 = await read(client, market.address, 'coins', [1n], blockNumber)
   if (c0 === undefined || c1 === undefined) return { error: 'coins() read failed' }
+  if (lc(c0) !== lc(market.token0) || lc(c1) !== lc(market.token1))
+    return { error: 'coins() differ from configured route tokens' }
+  if (lc(market.exitFrom) !== lc(venue.address) && lc(market.exitFrom) !== lc(venue.underlying))
+    return { error: 'exitFrom is not the vault share or underlying asset' }
   let i
   if (lc(c0) === lc(market.exitFrom)) i = 0
   else if (lc(c1) === lc(market.exitFrom)) i = 1
@@ -185,24 +224,42 @@ export async function readCurveMarketCurve(client, venue, market, nav, blockNumb
   const j = 1 - i
   const coinIn = i === 0 ? c0 : c1
   const coinOut = j === 0 ? c0 : c1
-  const decIn = Number((await read(client, coinIn, 'decimals', [], blockNumber)) ?? 18)
-  const decOut = Number((await read(client, coinOut, 'decimals', [], blockNumber)) ?? 18)
-  const symIn = symbols[lc(coinIn)] ?? (await read(client, coinIn, 'symbol', [], blockNumber)) ?? 'in'
-  const symOut = symbols[lc(coinOut)] ?? (await read(client, coinOut, 'symbol', [], blockNumber)) ?? 'out'
+  const decInRaw = await read(client, coinIn, 'decimals', [], blockNumber)
+  const decOutRaw = await read(client, coinOut, 'decimals', [], blockNumber)
+  const decIn = Number(decInRaw)
+  const decOut = Number(decOutRaw)
+  if (
+    decInRaw === undefined ||
+    decOutRaw === undefined ||
+    !Number.isInteger(decIn) ||
+    !Number.isInteger(decOut) ||
+    decIn < 0 ||
+    decIn > 36 ||
+    decOut < 0 ||
+    decOut > 36
+  )
+    return { error: 'pool token decimals read failed' }
+  const symIn =
+    symbols[lc(coinIn)] ?? (await read(client, coinIn, 'symbol', [], blockNumber)) ?? 'in'
+  const symOut =
+    symbols[lc(coinOut)] ?? (await read(client, coinOut, 'symbol', [], blockNumber)) ?? 'out'
   const resOut = await read(client, market.address, 'balances', [BigInt(j)], blockNumber)
   const feeRaw = await read(client, market.address, 'fee', [], blockNumber)
   if (resOut === undefined) return { error: 'balances(j) read failed' }
   const reserveUsd = rawToNum(resOut, decOut)
 
   const sellsVenueToken = lc(market.exitFrom) === lc(venue.address)
-  if (!nav) return { error: 'venue NAV (convertToAssets) read failed' }
+  if (!nav || !Number.isFinite(nav.navUsd) || nav.navUsd <= 0)
+    return { error: 'venue NAV (convertToAssets) invalid' }
   if (!sellsVenueToken && nav.redeemRatio === null) return { error: 'previewRedeem read failed' }
+  if (!sellsVenueToken && (!Number.isFinite(nav.redeemRatio) || nav.redeemRatio <= 0))
+    return { error: 'previewRedeem ratio invalid' }
   // S USD of the venue token -> units of coinIn handed to the pool.
   const unitsIn = (s) => (sellsVenueToken ? s / nav.navUsd : s * nav.redeemRatio)
 
   const quote = async (s) => {
     const dx = usdToRaw(unitsIn(s), decIn)
-    if (dx === 0n) return 0
+    if (dx === 0n) return s === 0 ? 0 : null
     const dy = await read(client, market.address, 'getDy', [BigInt(i), BigInt(j), dx], blockNumber)
     if (dy === undefined) return null
     return costPct(s, rawToNum(dy, decOut))
@@ -234,28 +291,54 @@ export async function readCurveMarketCurve(client, venue, market, nav, blockNumb
 
 /**
  * Sky LitePSM buffer -> flat-fee curve. tout is WAD-scaled; paying gemAmt out
- * costs gemAmt*(1+tout) of USDS, so cost = 1 - redeemRatio/(1+tout). tout >= WAD
- * (the LitePSM HALTED sentinel is uint256 max) ⇒ no capacity at any level.
+ * costs gemAmt*(1+tout) of USDS, so cost = 1 - redeemRatio/(1+tout).
+ * uint256.max is the LitePSM HALTED sentinel. A WAD fee is 100%, not the halt sentinel.
  */
 export async function readPsmMarketCurve(client, venue, market, nav, blockNumber) {
+  if (typeof market.wrapper !== 'string' || !market.wrapper)
+    return { error: 'USDS PSM wrapper address missing' }
+  const wrapperPsm = await read(client, market.wrapper, 'psm', [], blockNumber)
+  const wrapperPocket = await read(client, market.wrapper, 'pocket', [], blockNumber)
+  const wrapperUsds = await read(client, market.wrapper, 'usds', [], blockNumber)
+  if (wrapperPsm === undefined || lc(wrapperPsm) !== lc(market.address))
+    return { error: 'wrapper psm() missing or differs from configured PSM' }
+  if (wrapperPocket === undefined || lc(wrapperPocket) !== lc(market.buffer))
+    return { error: 'wrapper pocket() missing or differs from configured buffer' }
+  if (
+    wrapperUsds === undefined ||
+    lc(wrapperUsds) !== lc(venue.underlying) ||
+    lc(wrapperUsds) !== lc(market.exitFrom)
+  )
+    return { error: 'wrapper usds() missing or differs from vault underlying' }
   const tout = await read(client, market.address, 'tout', [], blockNumber)
   const gem = await read(client, market.address, 'gem', [], blockNumber)
   const pocket = await read(client, market.address, 'pocket', [], blockNumber)
-  if (tout === undefined) return { error: 'tout() read failed' }
-  if (gem !== undefined && lc(gem) !== lc(market.bufferToken)) return { error: `gem() ${gem} != configured bufferToken` }
-  if (pocket !== undefined && lc(pocket) !== lc(market.buffer)) return { error: `pocket() ${pocket} != configured buffer` }
-  const decB = Number((await read(client, market.bufferToken, 'decimals', [], blockNumber)) ?? 6)
+  if (typeof tout !== 'bigint' || (tout > WAD && tout !== MAX_UINT256))
+    return { error: 'tout() read failed or invalid fee' }
+  if (gem === undefined || lc(gem) !== lc(market.bufferToken))
+    return { error: 'gem() missing or differs from configured buffer token' }
+  if (pocket === undefined || lc(pocket) !== lc(market.buffer))
+    return { error: 'pocket() missing or differs from configured buffer' }
+  if (lc(market.exitFrom) !== lc(venue.underlying))
+    return { error: 'PSM exitFrom is not the vault underlying asset' }
+  const decRaw = await read(client, market.bufferToken, 'decimals', [], blockNumber)
+  const decB = Number(decRaw)
+  if (decRaw === undefined || !Number.isInteger(decB) || decB < 0 || decB > 36)
+    return { error: 'buffer token decimals read failed' }
   const bal = await read(client, market.bufferToken, 'balanceOf', [market.buffer], blockNumber)
   if (bal === undefined) return { error: 'buffer balanceOf read failed' }
   const bufferOutUsd = rawToNum(bal, decB)
-  const halted = tout >= WAD
+  const halted = tout === MAX_UINT256
   const toutFrac = halted ? Infinity : Number(tout) / 1e18
   const redeemRatio = nav?.redeemRatio ?? null
-  if (redeemRatio === null) return { error: 'previewRedeem read failed' }
+  if (redeemRatio === null || !Number.isFinite(redeemRatio) || redeemRatio <= 0)
+    return { error: 'previewRedeem ratio invalid' }
   const feePct = halted ? Infinity : (1 - redeemRatio / (1 + toutFrac)) * 100
   // Value given (venue USD) that drains the buffer exactly.
   const bufferGivenUsd = halted ? 0 : (bufferOutUsd * (1 + toutFrac)) / redeemRatio
-  const points = flatFeeCurve(halted ? Infinity : feePct, bufferGivenUsd)
+  const points = halted
+    ? COST_LEVELS_PCT.map((costPct) => ({ costPct, capacityUsd: 0 }))
+    : flatFeeCurve(feePct, bufferGivenUsd)
   return {
     points,
     meta: {
@@ -265,8 +348,9 @@ export async function readPsmMarketCurve(client, venue, market, nav, blockNumber
       feeBps: halted ? null : toutFrac * 1e4,
       halted,
       reserveUsd: bufferOutUsd,
-      route: `redeem ${venue.name} → USDS instantly (ERC-4626), then USDS → USDC 1:1 in the Sky LitePSM minus tout, up to the USDC buffer; USDC counted at $1 (the USDS↔DAI leg is taken at 1:1, not quoted)`,
+      route: `redeem ${venue.name} → USDS, then use the Sky USDS wrapper buyGem route through the shared DAI/USDC LitePSM to receive USDC; the USDC Pocket balance is shared and may change before execution`,
       source: 'psm tout',
+      wrapper: market.wrapper,
       psm: market.address,
       buffer: market.buffer,
     },
@@ -276,7 +360,8 @@ export async function readPsmMarketCurve(client, venue, market, nav, blockNumber
 /** Dispatch one enabled market. Returns {points, meta} or {error}. */
 export async function readMarketCurve(client, venue, market, blockNumber, nav) {
   const n = nav === undefined ? await readVenueNav(client, venue, blockNumber) : nav
-  if (market.kind === 'curve-stableswap') return readCurveMarketCurve(client, venue, market, n, blockNumber)
+  if (market.kind === 'curve-stableswap')
+    return readCurveMarketCurve(client, venue, market, n, blockNumber)
   if (market.kind === 'psm-buffer') return readPsmMarketCurve(client, venue, market, n, blockNumber)
   return { error: `no curve reader for kind '${market.kind}'` }
 }

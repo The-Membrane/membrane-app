@@ -73,7 +73,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="11px"
+          fontSize="12px"
           lineHeight={1.5}
           color={SEMANTIC_COLORS.textSecondary}
           {...tabular}
@@ -94,7 +94,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="10px"
+          fontSize="12px"
           letterSpacing="0.12em"
           textTransform="uppercase"
           color={SEMANTIC_COLORS.textSecondary}
@@ -149,7 +149,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
 
     <Text
       fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="10px"
+      fontSize="12px"
       lineHeight={1.5}
       color={SEMANTIC_COLORS.textTertiary}
       {...tabular}

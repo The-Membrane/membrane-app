@@ -26,10 +26,17 @@ type SeoProps = {
   image?: string
 }
 
-const Seo = ({ title, description = DEFAULT_DESCRIPTION, path, image = DEFAULT_OG_IMAGE }: SeoProps) => {
+const Seo = ({
+  title,
+  description = DEFAULT_DESCRIPTION,
+  path,
+  image = DEFAULT_OG_IMAGE,
+}: SeoProps) => {
   const router = useRouter()
   const routePath = (path ?? router.asPath ?? '/').split(/[?#]/)[0]
-  const canonical = SITE_URL ? `${SITE_URL}${routePath === '/' ? '' : routePath}` || SITE_URL : undefined
+  const canonical = SITE_URL
+    ? `${SITE_URL}${routePath === '/' ? '' : routePath}` || SITE_URL
+    : undefined
   const imageUrl = image.startsWith('http') ? image : SITE_URL ? `${SITE_URL}${image}` : undefined
 
   return (

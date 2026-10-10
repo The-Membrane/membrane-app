@@ -14,14 +14,25 @@ import { footerFor, uncoveredByVenue } from '@/pages/api/_lib/uncovered'
 //    they happened, so they are never written into venue_events — the events
 //    table stays a log of what the recorder itself witnessed.
 // The query lives in pages/api/_lib/venueLogQuery.ts so /api/radar/recap reads
-// the same entries (bounded to a hold window). Cached: s-maxage 300.
+// the same entries (bounded to a hold window). The optional venue query keeps
+// the 50-entry response cap per venue for amount-specific readouts. A missing
+// move in that bounded feed is not evidence that capacity has held steady.
+// Cached: s-maxage 300.
 
 export type { VenueLogEntry }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' })
 
-  const [entries, uncovered] = await Promise.all([fetchVenueLogEntries(), uncoveredByVenue()])
+  const venue = req.query.venue
+  if (venue !== undefined && (typeof venue !== 'string' || !/^[a-zA-Z0-9-]{1,80}$/.test(venue))) {
+    return res.status(400).json({ error: 'invalid venue' })
+  }
+
+  const [entries, uncovered] = await Promise.all([
+    fetchVenueLogEntries({ venue }),
+    uncoveredByVenue(),
+  ])
 
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
   return res.status(200).json({ entries, uncovered, uncovered_footer: footerFor(uncovered) })

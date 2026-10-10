@@ -27,6 +27,7 @@ type Feed = {
   scope: string
   checkedAt: string
   coveredThroughBlock: number
+  coveredThroughAt: string
   items: CapacityChange[]
   limitation: string
   sha256: string
@@ -34,9 +35,33 @@ type Feed = {
 
 const MAX_SCAN_AGE_MS = 30 * 60 * 60 * 1000
 
-export function observationStatus(checkedAt: string, now = Date.now()): 'recent' | 'paused' {
-  const age = now - Date.parse(checkedAt)
-  return age >= 0 && age <= MAX_SCAN_AGE_MS ? 'recent' : 'paused'
+export function observationStatus(
+  checkedAt: string,
+  coveredThroughAt: string,
+  now = Date.now(),
+): 'recent' | 'paused' {
+  const observationAge = now - Date.parse(checkedAt)
+  const coverageAge = now - Date.parse(coveredThroughAt)
+  return observationAge >= 0 &&
+    observationAge <= MAX_SCAN_AGE_MS &&
+    coverageAge >= 0 &&
+    coverageAge <= MAX_SCAN_AGE_MS
+    ? 'recent'
+    : 'paused'
+}
+
+export function verifyFeed(feed: Feed): Omit<Feed, 'sha256'> {
+  const { sha256, ...payload } = feed
+  if (
+    payload.study !== 'morpho-v2-cap-public-feed-v1' ||
+    !Array.isArray(payload.items) ||
+    !Number.isSafeInteger(payload.coveredThroughBlock) ||
+    !Number.isFinite(Date.parse(payload.checkedAt)) ||
+    !Number.isFinite(Date.parse(payload.coveredThroughAt)) ||
+    createHash('sha256').update(JSON.stringify(payload)).digest('hex') !== sha256
+  )
+    throw new Error('Invalid capacity-change feed')
+  return payload
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -48,20 +73,12 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       'data/research/venue-signals/morpho-v2-cap-public-feed.json',
     )
     const feed = JSON.parse(readFileSync(path, 'utf8')) as Feed
-    const { sha256, ...payload } = feed
-    if (
-      payload.study !== 'morpho-v2-cap-public-feed-v1' ||
-      !Array.isArray(payload.items) ||
-      !Number.isSafeInteger(payload.coveredThroughBlock) ||
-      !Number.isFinite(Date.parse(payload.checkedAt)) ||
-      createHash('sha256').update(JSON.stringify(payload)).digest('hex') !== sha256
-    )
-      throw new Error('Invalid capacity-change feed')
+    const payload = verifyFeed(feed)
 
     res.setHeader('Cache-Control', 'private, no-store')
     return res.status(200).json({
       available: true,
-      observationStatus: observationStatus(payload.checkedAt),
+      observationStatus: observationStatus(payload.checkedAt, payload.coveredThroughAt),
       ...payload,
     })
   } catch {

@@ -3,10 +3,9 @@ import { type ComponentStyleConfig } from '@chakra-ui/react'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 
 // Living Typeface buttons: transparent bg, 1px bone hairline, mono uppercase
-// letter-spaced label, SHARP corners. No translateY lift, no glow.
-// - hover      → text brightens to full bone, hairline strengthens
-// - active/sel → phosphor border + phosphor text + raised bg
-// - focus      → crisp phosphor outline (FOCUS_STYLES.ring)
+// letter-spaced label, SHARP corners. Hover lifts with a shadow; only the
+// momentary pressed state changes the border to phosphor. Pointer focus must
+// not masquerade as selection; keyboard focus keeps its accessible ring.
 const HAIRLINE = 'var(--m-border-subtle)'
 const HAIRLINE_STRONG = 'var(--m-border-strong)'
 const INK = 'var(--m-text-primary)'
@@ -26,9 +25,10 @@ export const Button: ComponentStyleConfig = {
     px: 3,
     w: 'full',
     cursor: 'pointer',
-    transition: TRANSITIONS.colors,
-    _focus: FOCUS_STYLES.ring,
+    transition: `${TRANSITIONS.colors}, box-shadow 0.15s ease`,
+    _focus: { outline: 'none' },
     _focusVisible: FOCUS_STYLES.ring,
+    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
   },
   defaultProps: {
     colorScheme: 'primary',
@@ -44,8 +44,9 @@ export const Button: ComponentStyleConfig = {
       borderColor: HAIRLINE_STRONG,
       _hover: {
         color: PHOS,
-        borderColor: PHOS,
+        borderColor: HAIRLINE_STRONG,
         bg: RAISED,
+        boxShadow: 'md',
         _disabled: {
           bg: 'transparent',
           borderColor: HAIRLINE_STRONG,
@@ -56,6 +57,7 @@ export const Button: ComponentStyleConfig = {
         color: PHOS,
         borderColor: PHOS,
         bg: RAISED,
+        boxShadow: 'sm',
       },
       _disabled: {
         opacity: 0.4,
@@ -88,11 +90,12 @@ export const Button: ComponentStyleConfig = {
       border: '1px solid',
       borderColor: HAIRLINE,
       color: INK_DIM,
-      transition: TRANSITIONS.colors,
+      transition: `${TRANSITIONS.colors}, box-shadow 0.15s ease`,
       _hover: {
         color: INK,
         borderColor: HAIRLINE_STRONG,
         bg: 'transparent',
+        boxShadow: 'md',
         _disabled: {
           bg: 'transparent',
           borderColor: HAIRLINE,
@@ -103,6 +106,7 @@ export const Button: ComponentStyleConfig = {
         color: PHOS,
         borderColor: PHOS,
         bg: RAISED,
+        boxShadow: 'sm',
       },
       _disabled: {
         opacity: 0.4,
@@ -114,11 +118,12 @@ export const Button: ComponentStyleConfig = {
       border: '1px solid',
       borderColor: HAIRLINE_STRONG,
       color: INK,
-      transition: TRANSITIONS.colors,
+      transition: `${TRANSITIONS.colors}, box-shadow 0.15s ease`,
       _hover: {
         color: PHOS,
-        borderColor: PHOS,
+        borderColor: HAIRLINE_STRONG,
         bg: RAISED,
+        boxShadow: 'md',
         _disabled: {
           bg: 'transparent',
           borderColor: HAIRLINE_STRONG,
@@ -129,6 +134,7 @@ export const Button: ComponentStyleConfig = {
         color: PHOS,
         borderColor: PHOS,
         bg: RAISED,
+        boxShadow: 'sm',
       },
       _disabled: {
         opacity: 0.4,

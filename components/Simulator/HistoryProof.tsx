@@ -30,14 +30,14 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { tabular } from '@/components/Builder/styles'
-import type { EpisodeVerdict, HistoryEpisode } from '@/lib/position-sim/history'
+import { netKeptUsd, type EpisodeVerdict, type HistoryEpisode } from '@/lib/position-sim/history'
 
 import { useSimHistory } from './hooks/useSimHistory'
 import { usd } from './format'
 
 const HEAD = {
   fontFamily: TYPOGRAPHY.fontMono,
-  fontSize: '10px',
+  fontSize: '12px',
   letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
@@ -258,7 +258,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
   const priced = episodes.filter((e) => e.verdict !== 'unknown')
   const sold = priced.reduce((sum, e) => sum + e.actualSeizedUsd, 0)
   const membrane = priced.reduce((sum, e) => sum + e.membraneSeizedUsd, 0)
-  const netKept = sold - membrane
+  const netKept = netKeptUsd(episodes) ?? 0
   const detailsOpen = expandedAddress === address
   const outcomeLabel = netKept < 0 ? 'Membrane cost you' : 'Membrane Saved You'
   const outcomeValue = netKept < 0 ? `−${usd(-netKept)}` : usd(netKept)
@@ -294,7 +294,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
       <Box display="grid" gap={SPACING.xs} pb={SPACING.md}>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="11px"
+          fontSize="12px"
           letterSpacing="0.06em"
           lineHeight={1.6}
           color={SEMANTIC_COLORS.textSecondary}
@@ -465,7 +465,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
                         <Text
                           key={`${ev.ts}-${ev.collateral}-${j}`}
                           fontFamily={TYPOGRAPHY.fontMono}
-                          fontSize="11px"
+                          fontSize="12px"
                           color={SEMANTIC_COLORS.textTertiary}
                           {...tabular}
                         >
@@ -498,7 +498,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
               <Box display="grid" gap="2px">
                 <Text
                   fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="11.5px"
+                  fontSize="12px"
                   color={SEMANTIC_COLORS.textTertiary}
                   lineHeight={1.6}
                 >

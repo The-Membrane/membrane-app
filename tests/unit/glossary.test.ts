@@ -2,15 +2,44 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { BLIND_SPOT_CLAUSES, GLOSSARY_GROUPS, GLOSSARY_TERMS, buildDefinedTermSet } from '@/components/Glossary/terms'
-import { COVERAGE_CAUTION, COVERAGE_CLEAR } from '@/components/Radar/radarLogic'
-import { BORROW_LTV_GAP, CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
-import { ALARM_THRESHOLDS, HEADROOM_BLIND_SIGNAL, UNCOVERED_SIGNALS } from '@/scripts/lib/alarmRules.mjs'
+import {
+  BLIND_SPOT_CLAUSES,
+  GLOSSARY_GROUPS,
+  GLOSSARY_TERMS,
+  buildDefinedTermSet,
+} from '@/components/Glossary/terms'
+import {
+  COVERAGE_CAUTION,
+  COVERAGE_CLEAR,
+  computeVenueVerdict,
+} from '@/components/Radar/radarLogic'
+import {
+  BORROW_LTV_GAP,
+  CURE_WINDOW_HOURS,
+  MAX_THRESHOLD_TO_DELAY,
+} from '@/lib/position-sim/membrane'
+import {
+  ALARM_THRESHOLDS,
+  HEADROOM_BLIND_SIGNAL,
+  UNCOVERED_SIGNALS,
+} from '@/scripts/lib/alarmRules.mjs'
 
-const alarmRulesSrc = fs.readFileSync(path.resolve(__dirname, '../../scripts/lib/alarmRules.mjs'), 'utf8')
+const alarmRulesSrc = fs.readFileSync(
+  path.resolve(__dirname, '../../scripts/lib/alarmRules.mjs'),
+  'utf8',
+)
 // Every rule in alarmRules.mjs is introduced by a `// --- rule: <kind> (` header.
-const ALARM_KINDS = Array.from(alarmRulesSrc.matchAll(/\/\/ --- rule: ([a-z_]+) \(/g)).map((m) => m[1])
-const termsSrc = fs.readFileSync(path.resolve(__dirname, '../../components/Glossary/terms.ts'), 'utf8')
+const ALARM_KINDS = Array.from(alarmRulesSrc.matchAll(/\/\/ --- rule: ([a-z_]+) \(/g)).map(
+  (m) => m[1],
+)
+const termsSrc = fs.readFileSync(
+  path.resolve(__dirname, '../../components/Glossary/terms.ts'),
+  'utf8',
+)
+const alarmCheckerSrc = fs.readFileSync(
+  path.resolve(__dirname, '../../scripts/check-venue-alarms.mjs'),
+  'utf8',
+)
 const def = (id: string) => GLOSSARY_TERMS.find((t) => t.id === id)!.definition
 
 describe('glossary terms', () => {
@@ -33,9 +62,19 @@ describe('glossary terms', () => {
   it('carries the required legs, verdicts and tiers', () => {
     const ids = new Set(GLOSSARY_TERMS.map((t) => t.id))
     for (const id of [
-      'instant-leg', 'cooldown-leg', 'flow-leg', 'clear', 'caution', 'exposed',
-      'instant-tier', 'cooldown-tier', 'stranded', 'swap-out-capacity', 'blind-spot',
-    ]) expect(ids, id).toContain(id)
+      'instant-leg',
+      'cooldown-leg',
+      'flow-leg',
+      'clear',
+      'caution',
+      'exposed',
+      'instant-tier',
+      'cooldown-tier',
+      'stranded',
+      'swap-out-capacity',
+      'blind-spot',
+    ])
+      expect(ids, id).toContain(id)
   })
 
   it('every term belongs to a rendered group', () => {
@@ -44,7 +83,8 @@ describe('glossary terms', () => {
   })
 
   it('never uses "cooling" in user-facing text', () => {
-    for (const t of GLOSSARY_TERMS) expect(`${t.term} ${t.definition}`.toLowerCase()).not.toContain('cooling')
+    for (const t of GLOSSARY_TERMS)
+      expect(`${t.term} ${t.definition}`.toLowerCase()).not.toContain('cooling')
   })
 
   it('verdict thresholds come from radarLogic', () => {
@@ -54,20 +94,63 @@ describe('glossary terms', () => {
     expect(def('exposed')).toContain('1 day') // COOLDOWN_EXPOSED_SECONDS = 86_400
   })
 
+  it('describes the verdict actually produced for large inventory, missing reads and legacy flow', () => {
+    const base = {
+      venue: 'test-vault',
+      label: 'Test vault',
+      kind: 'atoken-liquidity' as const,
+      usd: 100,
+      tvlUsd: null,
+      cooldownSeconds: null,
+      flow: { worst1dUsd: 100_000, worst7dUsd: 200_000, dayCount: 7 },
+    }
+    const largeInventory = computeVenueVerdict({ ...base, instantUsd: base.usd * COVERAGE_CLEAR })
+    expect(largeInventory.verdict).toBe('caution')
+    expect(largeInventory.prongs.flow).toBeNull()
+    expect(def('instant-leg')).toMatch(/proxy.*not a wallet-specific withdrawal quote/i)
+    expect(def('clear')).toMatch(/inventory alone cannot make a held venue clear/i)
+    expect(def('caution')).toMatch(/even if it exceeds/)
+    expect(def('flow-leg')).toMatch(/excludes legacy flow from the exit verdict/i)
+
+    const noRead = computeVenueVerdict({ ...base, instantUsd: null })
+    expect(noRead.verdict).toBe('caution')
+    expect(def('caution')).toMatch(/no recorded instant inventory or cooldown gate/i)
+    const smallInventory = computeVenueVerdict({ ...base, instantUsd: base.usd / 2 })
+    expect(smallInventory.verdict).toBe('exposed')
+    expect(def('exposed')).toMatch(/inventory covers under/)
+  })
+
+  it('marks flow alarms as suspended until complete daily and window coverage exists', () => {
+    expect(alarmCheckerSrc).toMatch(
+      /UNCERTIFIED_FLOW_KINDS = new Set\(\['net_outflow_streak', 'headroom_thin'\]\)/,
+    )
+    expect(def('net-outflow-streak')).toMatch(
+      /Suspended alarm.*complete days, including quiet days/i,
+    )
+    expect(def('headroom-thin')).toMatch(/Suspended alarm.*complete window.*unavailable/i)
+    expect(def('flow-leg')).toMatch(
+      /maximum observed outflow needs certified complete-window coverage.*otherwise it is unavailable/i,
+    )
+  })
+
   it('carries the liquidation terms, numbers from lib/position-sim/membrane.ts', () => {
     expect(def('liquidation-line')).toContain(`${CURE_WINDOW_HOURS}-hour window`)
     expect(def('window')).toContain(`${CURE_WINDOW_HOURS} hours`)
     const pct = (f: number) => `${Number((f * 100).toFixed(2))}`
     expect(def('window')).toContain(`${pct(BORROW_LTV_GAP)} percentage points`)
     expect(def('break-line')).toContain(`${pct(MAX_THRESHOLD_TO_DELAY)}%`)
-    expect(GLOSSARY_TERMS.find((t) => t.id === 'window')!.term).toBe(`${CURE_WINDOW_HOURS}-hour window`)
+    expect(GLOSSARY_TERMS.find((t) => t.id === 'window')!.term).toBe(
+      `${CURE_WINDOW_HOURS}-hour window`,
+    )
   })
 
   it('builds a DefinedTermSet with one DefinedTerm per entry, anchored', () => {
     const set = buildDefinedTermSet('https://example.test', 'ethereum')
     expect(set['@type']).toBe('DefinedTermSet')
     expect(set.hasDefinedTerm).toHaveLength(GLOSSARY_TERMS.length)
-    expect(set.hasDefinedTerm[0].url).toBe(`https://example.test/ethereum/glossary#${GLOSSARY_TERMS[0].id}`)
+    expect(set.hasDefinedTerm[0].url).toBe(
+      `https://example.test/ethereum/glossary#${GLOSSARY_TERMS[0].id}`,
+    )
   })
 })
 
@@ -94,22 +177,31 @@ describe('glossary cannot drift from the code', () => {
   it('every alarm term states each of its thresholds', () => {
     for (const [kind, th] of Object.entries(ALARM_THRESHOLDS)) {
       const d = GLOSSARY_TERMS.find((t) => t.alarmKind === kind)!.definition
-      for (const [k, v] of Object.entries(th as Record<string, number>)) expect(d, `${kind}.${k}`).toContain(String(v))
+      for (const [k, v] of Object.entries(th as Record<string, number>))
+        expect(d, `${kind}.${k}`).toContain(String(v))
     }
   })
 
   it('the blind-spot term lists exactly the signals the code lists', () => {
-    const known = new Set([...UNCOVERED_SIGNALS.map((u: { id: string }) => u.id), HEADROOM_BLIND_SIGNAL.id])
-    for (const id of Object.keys(BLIND_SPOT_CLAUSES)) expect(known, `clause for unknown signal ${id}`).toContain(id)
-    for (const id of known) expect(Object.keys(BLIND_SPOT_CLAUSES), `no clause for ${id}`).toContain(id)
+    const known = new Set([
+      ...UNCOVERED_SIGNALS.map((u: { id: string }) => u.id),
+      HEADROOM_BLIND_SIGNAL.id,
+    ])
+    for (const id of Object.keys(BLIND_SPOT_CLAUSES))
+      expect(known, `clause for unknown signal ${id}`).toContain(id)
+    for (const id of known)
+      expect(Object.keys(BLIND_SPOT_CLAUSES), `no clause for ${id}`).toContain(id)
     const blind = def('blind-spot')
     for (const id of known) expect(blind).toContain(BLIND_SPOT_CLAUSES[id])
     expect(blind.toLowerCase()).not.toContain('yield')
   })
 
   it('thin headroom says a depth-only venue is judged on swap-out capacity within the cost cap', () => {
-    expect(def('headroom-thin')).toContain(`swap-out capacity within ${ALARM_THRESHOLDS.headroom_thin.poolCostPct}% cost`)
-    expect(def('swap-out-capacity')).toContain(`${ALARM_THRESHOLDS.headroom_thin.poolCostPct}% cost`)
+    expect(def('headroom-thin')).toContain(
+      `swap-out capacity within ${ALARM_THRESHOLDS.headroom_thin.poolCostPct}% cost`,
+    )
+    expect(def('swap-out-capacity')).toContain(
+      `${ALARM_THRESHOLDS.headroom_thin.poolCostPct}% cost`,
+    )
   })
 })
-

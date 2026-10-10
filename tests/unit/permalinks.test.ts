@@ -91,10 +91,17 @@ describe('card summaries read the API response or give up', () => {
     positions: [{ verdict: 'clear' }, { verdict: 'exposed' }],
   }
   it('radar: weakest verdict, total, count', () => {
-    expect(radarCardSummary(radar)).toEqual({ address: a, totalUsd: 250_000, heldCount: 2, worst: 'exposed' })
+    expect(radarCardSummary(radar)).toEqual({
+      address: a,
+      totalUsd: 250_000,
+      heldCount: 2,
+      worst: 'exposed',
+    })
   })
   it('radar: nothing held ⇒ no verdict', () => {
-    expect(radarCardSummary({ ...radar, held_count: 0, total_usd: 0, positions: [] })?.worst).toBeNull()
+    expect(
+      radarCardSummary({ ...radar, held_count: 0, total_usd: 0, positions: [] })?.worst,
+    ).toBeNull()
   })
   it('radar: malformed ⇒ null (plain card)', () => {
     expect(radarCardSummary(null)).toBeNull()
@@ -102,15 +109,52 @@ describe('card summaries read the API response or give up', () => {
     expect(radarCardSummary({ ...radar, total_usd: -5 })).toBeNull()
     expect(radarCardSummary({ ...radar, positions: [{ verdict: 'great' }] })).toBeNull()
   })
-  it('venue: TVL from totalAssets, else instant read; outflows and flags', () => {
+  it('venue: non-Aave TVL from totalAssets, never instant liquidity; outflows and flags', () => {
     const s = venueCardSummary({
       label: 'sUSDe',
-      observed: { observedAt: '2026-09-24T10:00:00Z', instantUsd: 5, params: { totalAssets: '3000000000000000000000000' } },
+      observed: {
+        observedAt: '2026-09-24T10:00:00Z',
+        instantUsd: 5,
+        params: { totalAssets: '3000000000000000000000000' },
+      },
       worstOutflows: { d1: { usd: 1_000_000, date: 'x' }, d7: null },
       alarms: { open: [{}, {}], uncovered: [] },
     })
-    expect(s).toEqual({ label: 'sUSDe', tvlUsd: 3_000_000, worst1dUsd: 1_000_000, worst7dUsd: null, openFlags: 2, observedAt: '2026-09-24' })
-    expect(venueCardSummary({ label: 'aave', observed: { instantUsd: 9, params: { totalAssets: null } } })?.tvlUsd).toBe(9)
+    expect(s).toEqual({
+      label: 'sUSDe',
+      tvlUsd: 3_000_000,
+      worst1dUsd: 1_000_000,
+      worst7dUsd: null,
+      openFlags: 2,
+      observedAt: '2026-09-24',
+    })
+    expect(
+      venueCardSummary({
+        label: 'sUSDe without a total-assets reading',
+        observed: { instantUsd: 9, params: { totalAssets: null } },
+      })?.tvlUsd,
+    ).toBeNull()
+  })
+  it('venue: Aave card uses independently timed supplied stock, never newer cash', () => {
+    const base = {
+      kind: 'atoken-liquidity',
+      label: 'Aave USDe',
+      observed: {
+        block: 200,
+        observedAt: '2026-09-27T12:00:00Z',
+        instantUsd: 9,
+        params: { totalAssets: null },
+      },
+      worstOutflows: { d1: null, d7: null },
+      alarms: { open: [], uncovered: [] },
+    }
+    expect(venueCardSummary(base)?.tvlUsd).toBeNull()
+    expect(
+      venueCardSummary({
+        ...base,
+        suppliedTvl: { usd: 25, block: 100, observedAt: '2026-09-25T08:00:00Z' },
+      }),
+    ).toMatchObject({ tvlUsd: 25, observedAt: '2026-09-25' })
   })
   it('venue: no label ⇒ null', () => {
     expect(venueCardSummary({ error: 'unknown venue' })).toBeNull()

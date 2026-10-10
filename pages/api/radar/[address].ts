@@ -4,7 +4,7 @@ import { isAddress, getAddress, type Address } from 'viem'
 import { getRadarPayload } from '@/pages/api/_lib/radarReads'
 
 // PRIVATE, address-specific. Paste ANY mainnet address → its positions across
-// our four instrumented venues, stressed against our RECORDED capacity + flow
+// our five instrumented venues, stressed against our RECORDED capacity + flow
 // corpus. No wallet connect: this is a standalone decision tool.
 //
 // The full read path lives in pages/api/_lib/radarReads.ts (getRadarPayload) so

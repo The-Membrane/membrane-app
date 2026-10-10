@@ -19,8 +19,8 @@ import { RadarShareCard } from './RadarShareCard'
 import { exportElementAsImage } from '@/services/shareableCard'
 import { radarPermalinkPath } from '@/lib/share/permalink'
 
-// Carry Radar — paste any mainnet address, see its positions across our four
-// instrumented venues, stressed against our RECORDED capacity + flow corpus.
+// Carry Radar — paste any mainnet address, see discovered positions stressed
+// against recorded instant capacity and gates.
 // No wallet connect: a standalone decision tool. Every number is a live chain
 // read or a recorded DB row; nothing is modelled (see /api/radar/[address]).
 
@@ -29,8 +29,7 @@ const LS_KEY = 'carry-radar:last-address'
 type Prong = { level: Verdict; coverage: number | null }
 type InstantProng = Prong & { instantUsd: number }
 type CooldownProng = Prong & { seconds: number }
-type FlowProng = Prong & { worst1dUsd: number; worst7dUsd: number; coverage7d: number | null }
-type Stress = { instant: InstantProng | null; cooldown: CooldownProng | null; flow: FlowProng | null }
+type Stress = { instant: InstantProng | null; cooldown: CooldownProng | null; flow: null }
 
 type Position = {
   venue: string
@@ -103,7 +102,11 @@ const VerdictChip: React.FC<{ verdict: Verdict }> = ({ verdict }) => (
   </Box>
 )
 
-const Fact: React.FC<{ label: string; value: React.ReactNode; muted?: boolean }> = ({ label, value, muted }) => (
+const Fact: React.FC<{ label: string; value: React.ReactNode; muted?: boolean }> = ({
+  label,
+  value,
+  muted,
+}) => (
   <Box>
     <Text
       fontFamily={TYPOGRAPHY.fontMono}
@@ -125,27 +128,18 @@ const Fact: React.FC<{ label: string; value: React.ReactNode; muted?: boolean }>
   </Box>
 )
 
-/** The three stress facts, rendered honestly (null → an explicit "not derivable"). */
+/** Exit stress facts, rendered honestly (null → an explicit "not derivable"). */
 const StressFacts: React.FC<{ stress: Stress }> = ({ stress }) => {
   const instant = stress.instant
-    ? `${fmtUsd(stress.instant.instantUsd)} instant · ${fmtMultiple(stress.instant.coverage ?? 0)} your size`
-    : 'no instant liquidity — cooldown vault (not derivable)'
+    ? `${fmtUsd(stress.instant.instantUsd)} recorded inventory · ${fmtMultiple(stress.instant.coverage ?? 0)} your size; holder exit unverified`
+    : 'no instant inventory read — cooldown vault (not derivable)'
   const cooldown = stress.cooldown
-    ? `${fmtDuration(stress.cooldown.seconds)} gate — 100% of exit delayed`
+    ? `${fmtDuration(stress.cooldown.seconds)} before withdrawal eligibility; completion unverified`
     : 'no cooldown gate recorded'
-  const flow = stress.flow
-    ? `${fmtUsd(stress.flow.worst1dUsd)} worst day · ${fmtMultiple(stress.flow.coverage ?? 0)} your size`
-    : 'no recorded outflow'
-  const flow7 =
-    stress.flow && stress.flow.coverage7d != null
-      ? `${fmtUsd(stress.flow.worst7dUsd)} worst 7d · ${fmtMultiple(stress.flow.coverage7d)} your size`
-      : null
   return (
     <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={SPACING.md} mt={SPACING.md}>
-      <Fact label="Instant capacity" value={instant} muted={!stress.instant} />
+      <Fact label="Recorded liquidity proxy" value={instant} muted={!stress.instant} />
       <Fact label="Cooldown" value={cooldown} muted={!stress.cooldown} />
-      <Fact label="Worst 1-day outflow" value={flow} muted={!stress.flow} />
-      {flow7 && <Fact label="Worst 7-day outflow" value={flow7} />}
     </SimpleGrid>
   )
 }
@@ -153,33 +147,52 @@ const StressFacts: React.FC<{ stress: Stress }> = ({ stress }) => {
 const VenueCard: React.FC<{ p: Position }> = ({ p }) => {
   const { chainName } = useChainRoute()
   return (
-  <Card variant="default" mb={SPACING.base}>
-    <HStack justify="space-between" align="baseline" flexWrap="wrap" gap={SPACING.sm}>
-      <HStack align="baseline" spacing={SPACING.md}>
-        <NextLink href={`/${chainName}/venue/${p.venue}`} style={{ textDecoration: 'underline' }}>
-          <Text as="span" fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h3} color={SEMANTIC_COLORS.textPrimary} _hover={{ color: SEMANTIC_COLORS.success }}>
-            {p.label}
+    <Card variant="default" mb={SPACING.base}>
+      <HStack justify="space-between" align="baseline" flexWrap="wrap" gap={SPACING.sm}>
+        <HStack align="baseline" spacing={SPACING.md}>
+          <NextLink href={`/${chainName}/venue/${p.venue}`} style={{ textDecoration: 'underline' }}>
+            <Text
+              as="span"
+              fontFamily={TYPOGRAPHY.fontDisplay}
+              fontSize={TYPOGRAPHY.h3}
+              color={SEMANTIC_COLORS.textPrimary}
+              _hover={{ color: SEMANTIC_COLORS.success }}
+            >
+              {p.label}
+            </Text>
+          </NextLink>
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="20px"
+            color={SEMANTIC_COLORS.textPrimary}
+          >
+            {fmtUsd(p.usd)}
           </Text>
-        </NextLink>
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="20px" color={SEMANTIC_COLORS.textPrimary}>
-          {fmtUsd(p.usd)}
-        </Text>
-        {p.share_of_tvl != null && (
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.textTertiary}>
-            {fmtPct(p.share_of_tvl)} of TVL
-          </Text>
-        )}
+          {p.share_of_tvl != null && (
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="11px"
+              color={SEMANTIC_COLORS.textTertiary}
+            >
+              {fmtPct(p.share_of_tvl)} of TVL
+            </Text>
+          )}
+        </HStack>
+        <VerdictChip verdict={p.verdict} />
       </HStack>
-      <VerdictChip verdict={p.verdict} />
-    </HStack>
-    <StressFacts stress={p.stress} />
-    <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={VERDICT_COLOR[p.verdict]} mt={SPACING.md}>
-      {p.reason}
-    </Text>
-    {/* Added line, not a verdict input: the cost of exiting THIS position through
+      <StressFacts stress={p.stress} />
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="12px"
+        color={VERDICT_COLOR[p.verdict]}
+        mt={SPACING.md}
+      >
+        {p.reason}
+      </Text>
+      {/* Added line, not a verdict input: the cost of exiting THIS position through
         the venue's swap markets, read off the quoted curve (none for a lending reserve). */}
-    <CapacityCurve venue={p.venue} variant="compact" sizeUsd={p.usd} />
-  </Card>
+      <CapacityCurve venue={p.venue} variant="compact" sizeUsd={p.usd} />
+    </Card>
   )
 }
 
@@ -202,7 +215,8 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
   useEffect(() => {
     if (typeof window === 'undefined') return
     // A permalink (/[chain]/radar/[address]) passes its address in as a prop.
-    const deepLink = initialAddress ?? new URLSearchParams(window.location.search).get('address')?.trim()
+    const deepLink =
+      initialAddress ?? new URLSearchParams(window.location.search).get('address')?.trim()
     if (deepLink && isAddressish(deepLink)) {
       setInput(deepLink)
       window.localStorage.setItem(LS_KEY, deepLink)
@@ -244,7 +258,10 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
     if (!permalink || !router.isReady) return
     if (router.asPath.split(/[?#]/)[0].toLowerCase() === permalink) return
     const address = permalink.slice(permalink.lastIndexOf('/') + 1)
-    router.replace({ pathname: router.pathname, query: { ...router.query, address } }, permalink, { shallow: true, scroll: false })
+    router.replace({ pathname: router.pathname, query: { ...router.query, address } }, permalink, {
+      shallow: true,
+      scroll: false,
+    })
   }, [permalink, router])
 
   const copyShare = async () => {
@@ -272,15 +289,48 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
   const valid = isAddressish(input)
 
   return (
-    <Box maxW="1140px" mx="auto" px={SPACING.base} py={SPACING.lg} bg={SEMANTIC_COLORS.bgPrimary} color={SEMANTIC_COLORS.textPrimary}>
-      <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} color={SEMANTIC_COLORS.textPrimary} letterSpacing="-0.01em">
+    <Box
+      maxW="1140px"
+      mx="auto"
+      px={SPACING.base}
+      py={SPACING.lg}
+      bg={SEMANTIC_COLORS.bgPrimary}
+      color={SEMANTIC_COLORS.textPrimary}
+    >
+      <Text
+        as="h1"
+        fontFamily={TYPOGRAPHY.fontDisplay}
+        fontSize={TYPOGRAPHY.h1}
+        color={SEMANTIC_COLORS.textPrimary}
+        letterSpacing="-0.01em"
+      >
         Carry Radar
       </Text>
-      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.sm} maxW="640px">
-        Paste any mainnet address. See its positions across our four instrumented
-        venues, stressed against the capacity and flow we have actually recorded.
-        No wallet connect — this reads public chain state.
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="12px"
+        color={SEMANTIC_COLORS.textSecondary}
+        mt={SPACING.sm}
+        maxW="640px"
+      >
+        Paste any mainnet address. See discovered positions against recorded liquidity inventory and
+        cooldown gates.
       </Text>
+      <NextLink href={`/${chainName}/alerts`} style={{ textDecoration: 'none' }}>
+        <Text
+          as="span"
+          display="inline-block"
+          mt={SPACING.md}
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12px"
+          color={SEMANTIC_COLORS.textPrimary}
+          borderBottom="1px solid"
+          borderColor={SEMANTIC_COLORS.borderStrong}
+          _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+        >
+          Configure personal alert intent →
+        </Text>
+      </NextLink>
 
       {/* Address input — mono, paste-first. */}
       <HStack mt={SPACING.lg} spacing={SPACING.sm} maxW="720px" flexWrap="wrap">
@@ -323,18 +373,33 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
         </Button>
       </HStack>
       {input.length > 0 && !valid && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.warning} mt={SPACING.sm}>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="11px"
+          color={SEMANTIC_COLORS.warning}
+          mt={SPACING.sm}
+        >
           not a valid 0x address
         </Text>
       )}
 
       {isFetching && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.lg}>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12px"
+          color={SEMANTIC_COLORS.textSecondary}
+          mt={SPACING.lg}
+        >
           reading chain + corpus…
         </Text>
       )}
       {error && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger} mt={SPACING.lg}>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12px"
+          color={SEMANTIC_COLORS.danger}
+          mt={SPACING.lg}
+        >
           {(error as Error).message}
         </Text>
       )}
@@ -349,17 +414,20 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
           />
           {data.held_count === 0 ? (
             <Card variant="subtle" p={SPACING.base}>
-              <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
-                This address holds nothing in sUSDe, sUSDS, scrvUSD, or Aave USDe.
-                The comparator below still shows how each venue would clear a
-                position, at any size.
+              <Text
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="12px"
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                This address holds nothing in sUSDe, sUSDS, scrvUSD, or Aave USDe. The comparator
+                below still shows how each venue would clear a position, at any size.
               </Text>
             </Card>
           ) : (
             data.positions.map((p) => <VenueCard key={p.venue} p={p} />)
           )}
 
-          {/* Comparator: same framework, all four venues at the user's TOTAL size. */}
+          {/* Comparator: same framework, all five venues at the user's TOTAL size. */}
           <SectionHeading
             index="02 /"
             title="If this whole stack sat in one venue"
@@ -389,13 +457,26 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
                 borderBottom={i === data.comparator.length - 1 ? 'none' : '1px solid'}
                 borderColor={SEMANTIC_COLORS.borderSubtle}
               >
-                <NextLink href={`/${chainName}/venue/${c.venue}`} style={{ textDecoration: 'underline' }}>
-                  <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="13px" color={SEMANTIC_COLORS.textPrimary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                <NextLink
+                  href={`/${chainName}/venue/${c.venue}`}
+                  style={{ textDecoration: 'underline' }}
+                >
+                  <Text
+                    as="span"
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="13px"
+                    color={SEMANTIC_COLORS.textPrimary}
+                    _hover={{ color: SEMANTIC_COLORS.success }}
+                  >
                     {c.label}
                   </Text>
                 </NextLink>
                 <Box>
-                  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
+                  <Text
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="12px"
+                    color={SEMANTIC_COLORS.textSecondary}
+                  >
                     {c.reason}
                   </Text>
                   <ComparatorSwapCost venue={c.venue} sizeUsd={c.at_usd} />
@@ -410,7 +491,12 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
           {/* Share line — the user's own result, copyable, never a plug. */}
           <SectionHeading index="03 /" title="Share your read" />
           <Card variant="subtle" p={SPACING.base}>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} lineHeight={1.7}>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="12px"
+              color={SEMANTIC_COLORS.textPrimary}
+              lineHeight={1.7}
+            >
               {data.share_line}
             </Text>
             <HStack mt={SPACING.md} spacing={SPACING.sm}>
@@ -471,23 +557,47 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
 
           {/* Next — kill the dead end. Invite the call, the board, the venue detail. */}
           <Card variant="subtle" p={SPACING.base} mt={SPACING.lg}>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.28em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="10px"
+              letterSpacing="0.28em"
+              textTransform="uppercase"
+              color={SEMANTIC_COLORS.textSecondary}
+            >
               next
             </Text>
             <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.sm}>
               <NextLink href={`/${chainName}/receipts`} style={{ textDecoration: 'underline' }}>
-                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                <Text
+                  as="span"
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="12px"
+                  color={SEMANTIC_COLORS.textSecondary}
+                  _hover={{ color: SEMANTIC_COLORS.success }}
+                >
                   think it holds? call it → /receipts
                 </Text>
               </NextLink>
               <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
-                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                <Text
+                  as="span"
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="12px"
+                  color={SEMANTIC_COLORS.textSecondary}
+                  _hover={{ color: SEMANTIC_COLORS.success }}
+                >
                   the whole board → /carry
                 </Text>
               </NextLink>
-              <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
-                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
-                  what the big books do → /strats
+              <NextLink href={`/${chainName}/carry#strats`} style={{ textDecoration: 'underline' }}>
+                <Text
+                  as="span"
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="12px"
+                  color={SEMANTIC_COLORS.textSecondary}
+                  _hover={{ color: SEMANTIC_COLORS.success }}
+                >
+                  what the big books do → /carry#strats
                 </Text>
               </NextLink>
             </HStack>
@@ -498,7 +608,10 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
   )
 }
 
-const HeaderCell: React.FC<{ children: React.ReactNode; alignRight?: boolean }> = ({ children, alignRight }) => (
+const HeaderCell: React.FC<{ children: React.ReactNode; alignRight?: boolean }> = ({
+  children,
+  alignRight,
+}) => (
   <Text
     fontFamily={TYPOGRAPHY.fontMono}
     fontSize="9px"
@@ -514,22 +627,34 @@ const HeaderCell: React.FC<{ children: React.ReactNode; alignRight?: boolean }> 
 const Provenance: React.FC<{ prov: RadarResponse['provenance'] }> = ({ prov }) => {
   const totalFlowRows = prov.recorded.per_venue.reduce((s, v) => s + v.flow_rows, 0)
   const totalSnapRows = prov.recorded.per_venue.reduce((s, v) => s + v.snapshot_rows, 0)
-  const spans = prov.recorded.per_venue.map((v) => v.flow_span).filter(Boolean) as { start: string; end: string }[]
-  const spanStart = spans.length ? spans.reduce((m, s) => (s.start < m ? s.start : m), spans[0].start) : null
-  const spanEnd = spans.length ? spans.reduce((m, s) => (s.end > m ? s.end : m), spans[0].end) : null
+  const spans = prov.recorded.per_venue.map((v) => v.flow_span).filter(Boolean) as {
+    start: string
+    end: string
+  }[]
+  const spanStart = spans.length
+    ? spans.reduce((m, s) => (s.start < m ? s.start : m), spans[0].start)
+    : null
+  const spanEnd = spans.length
+    ? spans.reduce((m, s) => (s.end > m ? s.end : m), spans[0].end)
+    : null
   return (
     <Box mt={SPACING.xl}>
       <SectionHeading index="04 /" title="Where these numbers come from" />
       <Card variant="subtle" p={SPACING.base}>
         <Stamp>
-          chain-read · positions read live at request time ({new Date(prov.chain_reads.at).toISOString().slice(0, 16).replace('T', ' ')}Z)
-          via {prov.chain_reads.method}. {prov.chain_reads.price_assumption}.
+          chain-read · positions read live at request time (
+          {new Date(prov.chain_reads.at).toISOString().slice(0, 16).replace('T', ' ')}Z) via{' '}
+          {prov.chain_reads.method}. {prov.chain_reads.price_assumption}.
         </Stamp>
         <Stamp>
-          recorded · capacity + flow from the recorder corpus (not re-queried live):{' '}
-          {totalFlowRows.toLocaleString()} flow rows and {totalSnapRows.toLocaleString()} snapshot rows
-          {spanStart && spanEnd ? ` spanning ${spanStart.slice(0, 10)} → ${spanEnd.slice(0, 10)}` : ''};
-          stress uses the trailing {prov.recorded.window} of outflow.
+          recorded · {totalSnapRows.toLocaleString()} capacity snapshots and{' '}
+          {totalFlowRows.toLocaleString()} uncertified historical aggregate flow rows
+          {spanStart && spanEnd
+            ? ` spanning ${spanStart.slice(0, 10)} → ${spanEnd.slice(0, 10)}`
+            : ''}
+          ; requested window {prov.recorded.window}; the flow dates show observed rows, not
+          certified continuous coverage. These rows cannot prove a holder&apos;s exit and are
+          excluded from the verdict.
         </Stamp>
         <Stamp>modelled · none. Every figure above is a chain read or a recorded row.</Stamp>
       </Card>

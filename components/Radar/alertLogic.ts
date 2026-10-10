@@ -7,7 +7,11 @@
 // to the addresses that hold that venue. Silence is NOT all-clear: every surface
 // that renders these carries the held venues' blind-spot footer (pages/api/_lib/uncovered.ts).
 
-import { alarmConsequence } from '@/components/Carry/venueLogLogic'
+import {
+  alarmConsequence,
+  isTermsOnlyNotice,
+  termsSourceUrl,
+} from '@/components/Carry/venueLogLogic'
 
 /** Below this a holding is dust and does not route alerts. */
 export const DUST_USD = 1
@@ -23,13 +27,20 @@ export type WatchLike = {
 export type AlarmLike = {
   venue: string
   kind: string
-  severity: 'watch' | 'alarm'
+  severity: 'watch' | 'alarm' | 'notice' | 'info'
   evidence: Record<string, unknown> | null
   firedAt: string
   clearedAt: string | null
 }
 
 export type Alert = AlarmLike & { text: string; open: boolean }
+
+// The legacy flow recorder has no certified quiet-range coverage. These old
+// rows remain in the DB for audit, but they cannot be actionable alerts until
+// a complete-window evidence source replaces that recorder.
+export const SUSPENDED_FLOW_ALARM_KINDS = ['net_outflow_streak', 'headroom_thin'] as const
+export const isSuspendedFlowAlarm = (a: { kind: string }): boolean =>
+  SUSPENDED_FLOW_ALARM_KINDS.some((kind) => kind === a.kind)
 
 // UNREAD DEPTH ZEROS. Before the depth reader stored null on a failed read (first
 // guarded snapshot 2026-09-25T04:29:56Z), a failed read was stored as depth_usd = 0.
@@ -64,12 +75,18 @@ export const isUnreadDepthAlarm = (a: {
  * when nothing else changed (the whole event was the artefact).
  */
 export const scrubUnreadDepthEvent = <
-  E extends { kind: string; at: string; prev: Record<string, unknown> | null; next: Record<string, unknown> | null },
+  E extends {
+    kind: string
+    at: string
+    prev: Record<string, unknown> | null
+    next: Record<string, unknown> | null
+  },
 >(
   e: E,
 ): E | null => {
   if (e.kind !== 'param_changed') return e
-  const unread = isUnreadDepthZero(e.next?.depth_usd, e.at) || isUnreadDepthZero(e.prev?.depth_usd, e.at)
+  const unread =
+    isUnreadDepthZero(e.next?.depth_usd, e.at) || isUnreadDepthZero(e.prev?.depth_usd, e.at)
   if (!unread) return e
   const strip = (o: Record<string, unknown> | null) => {
     if (!o) return o
@@ -96,7 +113,9 @@ export const heldVenues = (w: WatchLike): string[] => {
       .sort()
   }
   const entry = w.entryPositions ?? []
-  return Array.from(new Set(entry.filter((p) => Number(p.usd) >= DUST_USD).map((p) => p.venue))).sort()
+  return Array.from(
+    new Set(entry.filter((p) => Number(p.usd) >= DUST_USD).map((p) => p.venue)),
+  ).sort()
 }
 
 const toAlert = (a: AlarmLike): Alert => ({
@@ -130,7 +149,9 @@ export const matchAlerts = (
 ): { open: Alert[]; recent: Alert[] } => {
   const holds = new Set(held)
   const since = Date.parse(watchedSince)
-  const mine = alarms.filter((a) => holds.has(a.venue) && !isUnreadDepthAlarm(a))
+  const mine = alarms.filter(
+    (a) => holds.has(a.venue) && !isUnreadDepthAlarm(a) && !isSuspendedFlowAlarm(a),
+  )
   const open = mine
     .filter((a) => a.clearedAt === null)
     .sort((x, y) => Date.parse(y.firedAt) - Date.parse(x.firedAt))
@@ -166,9 +187,9 @@ export const toRss = (args: {
   const body = items
     .map(
       ({ a, at, tag }) => `    <item>
-      <title>${xml(`${a.venue} · ${a.kind.replace(/_/g, ' ')} · ${tag}`)}</title>
+      <title>${xml(isTermsOnlyNotice(a) ? `${a.venue} · official terms-page text notice · ${tag === 'fired' ? 'recorded' : a.kind === 'terms_page_notice' ? 'window ended' : 'old record closed'}` : `${a.venue} · ${a.kind.replace(/_/g, ' ')} · ${tag}`)}</title>
       <description>${xml(`${a.text}. ${args.footer}.`)}</description>
-      <link>${xml(args.radarUrl)}</link>
+      <link>${xml(termsSourceUrl(a) ?? args.radarUrl)}</link>
       <guid isPermaLink="false">${xml(`${a.venue}:${a.kind}:${a.firedAt}:${tag}`)}</guid>
       <pubDate>${new Date(at).toUTCString()}</pubDate>
     </item>`,
@@ -180,7 +201,7 @@ export const toRss = (args: {
     <title>${xml(`Membrane venue alerts · ${short}`)}</title>
     <link>${xml(args.radarUrl)}</link>
     <atom:link href="${xml(args.feedUrl)}" rel="self" type="application/rss+xml" />
-    <description>${xml(`Failure-pattern alarms on the venues ${short} holds. Data compiled by Membrane from its recorded venue corpus. ${args.footer}.`)}</description>
+    <description>${xml(`Recorded venue alerts and official terms-page text notices for venues ${short} holds. Data compiled by Membrane from its recorded venue corpus. ${args.footer}.`)}</description>
 ${body}
   </channel>
 </rss>

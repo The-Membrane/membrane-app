@@ -40,3 +40,7 @@ AGENT_BOARD.md
 
 # Machine-local, reproducible archive-RPC research cache (large raw samples)
 /data/research/venue-signals/
+
+# Hourly route recorder checkpoints (regenerated from finalized chain reads)
+/scripts/route-cohort/.cache/
+/scripts/route-rates/.cache/

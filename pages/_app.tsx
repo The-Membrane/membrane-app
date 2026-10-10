@@ -26,9 +26,12 @@ const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-int
 const loadMotionFeatures = () => import('framer-motion').then((mod) => mod.domMax)
 
 import { lazy } from 'react'
-const ReactQueryDevtools = lazy(() =>
-  import('@tanstack/react-query-devtools').then(m => ({ default: m.ReactQueryDevtools }))
-)
+const ReactQueryDevtools =
+  process.env.NEXT_PUBLIC_MEMBRANE_ACCEPTANCE === '1'
+    ? null
+    : lazy(() =>
+        import('@tanstack/react-query-devtools').then((m) => ({ default: m.ReactQueryDevtools })),
+      )
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -102,7 +105,9 @@ const App = ({ Component, pageProps }: AppProps) => {
               </ChakraProvider>
             </LazyMotion>
           </MotionConfig>
-          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+          {process.env.NODE_ENV === 'development' && ReactQueryDevtools && (
+            <ReactQueryDevtools initialIsOpen={false} />
+          )}
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

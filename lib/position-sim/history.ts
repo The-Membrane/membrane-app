@@ -456,6 +456,17 @@ export interface HistoryEpisode {
   why: string
 }
 
+/** Net collateral kept across priced episodes, including adverse outcomes.
+ * Null means there is no priced dollar claim to make. */
+export function netKeptUsd(episodes: HistoryEpisode[]): number | null {
+  const priced = episodes.filter((episode) => episode.verdict !== 'unknown')
+  if (priced.length === 0) return null
+  return priced.reduce(
+    (sum, episode) => sum + episode.actualSeizedUsd - episode.membraneSeizedUsd,
+    0,
+  )
+}
+
 export interface HistoryTotals {
   /** Collateral that would still be yours: the episodes Membrane avoided entirely. */
   savedUsd: number

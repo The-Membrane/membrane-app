@@ -48,7 +48,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const alarmRes = await db.execute(sql`
     SELECT venue, kind, severity, evidence, fired_at AS "firedAt", cleared_at AS "clearedAt"
     FROM venue_alarms
-    WHERE cleared_at IS NULL OR cleared_at >= ${watch.createdAt}`)
+    WHERE (cleared_at IS NULL OR cleared_at >= ${watch.createdAt})
+      AND kind NOT IN ('net_outflow_streak', 'headroom_thin')`)
   const alarms: AlarmLike[] = (alarmRes.rows as any[]).map((r) => ({
     venue: r.venue,
     kind: r.kind,

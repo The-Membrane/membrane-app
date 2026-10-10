@@ -6,7 +6,6 @@ export type { AddressBarProps } from './AddressBar'
 export { GuaranteeBlock } from './GuaranteeBlock'
 
 export { CarrySection, SimCtaRepeat, focusAddressBar } from './CarrySection'
-export type { CarrySectionProps } from './CarrySection'
 
 export { ClaimsBlock } from './ClaimsBlock'
 

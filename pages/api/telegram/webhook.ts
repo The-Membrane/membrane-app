@@ -14,7 +14,8 @@ import { botConfig, handleUpdate, sendMessage } from '@/scripts/lib/telegramBot.
 // X-Telegram-Bot-Api-Secret-Token.
 //   503 — webhook secret or bot env unset (ships dark)
 //   401 — secret header missing or wrong
-//   200 — any update we accepted, handled or not (a non-2xx makes Telegram retry)
+//   200 — update handled (reply delivery may still fail after the DB write)
+//   503 — handler/storage failed, so Telegram should retry the update
 
 type Sql = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<any[]>
 
@@ -37,19 +38,26 @@ export const createWebhookHandler =
   async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
     const config = botConfig(deps.env)
-    if (!config.webhookSecret || !config.enabled) return res.status(503).json({ error: 'alerts bot not configured' })
+    if (!config.webhookSecret || !config.enabled)
+      return res.status(503).json({ error: 'alerts bot not configured' })
     if (!sameSecret(req.headers['x-telegram-bot-api-secret-token'], config.webhookSecret)) {
       return res.status(401).json({ error: 'bad secret' })
     }
+    let out: Awaited<ReturnType<typeof handleUpdate>>
     try {
-      const out = await handleUpdate(req.body, { sql: deps.sql(), logic, footerFor: deps.footerFor })
-      if (out) {
-        const sent = await sendMessage(config.token, out.chatId, out.text, deps.fetchImpl)
-        if (!sent.ok) console.warn(`telegram webhook: reply failed — ${sent.description ?? sent.error_code}`)
-      }
-    } catch (e) {
-      // Swallow: a 5xx makes Telegram redeliver the same update in a loop.
-      console.warn(`telegram webhook: update failed — ${(e as Error)?.message ?? e}`)
+      out = await handleUpdate(req.body, { sql: deps.sql(), logic, footerFor: deps.footerFor })
+    } catch {
+      // The command was not confirmed as handled. Do not acknowledge it: an
+      // intermittent DB failure must not permanently lose /stop or a link.
+      // Driver errors can contain connection details, so do not log them.
+      console.warn('telegram webhook: update handling failed; requesting retry')
+      return res.status(503).json({ error: 'update not handled' })
+    }
+    if (out) {
+      // A successful handler may already have committed a one-use link. A
+      // reply failure must not replay that command as a new Telegram update.
+      const sent = await sendMessage(config.token, out.chatId, out.text, deps.fetchImpl)
+      if (!sent.ok) console.warn('telegram webhook: reply failed after update handling')
     }
     return res.status(200).json({ ok: true })
   }

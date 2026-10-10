@@ -3,7 +3,13 @@ import { isAddress, getAddress, parseAbiItem, type Address, type PublicClient } 
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { loadVenues, makeClient, getRadarPayload, LABELS, type VenueConfig } from '@/pages/api/_lib/radarReads'
+import {
+  loadVenues,
+  makeClient,
+  getRadarPayload,
+  LABELS,
+  type VenueConfig,
+} from '@/pages/api/_lib/radarReads'
 import { fetchVenueLogEntries } from '@/pages/api/_lib/venueLogQuery'
 import { composeRecap, type AddressFlow } from '@/components/Radar/recapLogic'
 
@@ -14,8 +20,7 @@ import { composeRecap, type AddressFlow } from '@/components/Radar/recapLogic'
 // Window: from the watch's created_at (if the address is tracked) else a trailing
 // --lookback (default 180d). We fetch THEIR own Deposit/Withdraw logs per venue
 // (address filtered on the indexed owner/user/onBehalfOf topic), join each exit
-// to its recorded corpus context (cooldownDuration at that block, that day's
-// venue outflow, worst-day rank), and fold in venue state changes during the
+// to its recorded cooldown context, and fold in venue state changes during the
 // hold window. The portfolio delta (entry snapshot vs live) closes the story.
 //
 // DOMAIN FACT — VERIFIED against mainnet 2026-09-04 (32/32 recent sUSDe Withdraw
@@ -96,7 +101,9 @@ function specFor(venue: VenueConfig, label: string, address: Address): FetchSpec
       args: { reserve },
       classify: (l) => {
         // Supply credits onBehalfOf; Withdraw is emitted by the withdrawing user.
-        const who = String((l.eventName === 'Supply' ? l.args.onBehalfOf : l.args.user) ?? '').toLowerCase()
+        const who = String(
+          (l.eventName === 'Supply' ? l.args.onBehalfOf : l.args.user) ?? '',
+        ).toLowerCase()
         if (who !== addrLc) return null
         const usd = Number(l.args.amount) / 1e18
         return { direction: l.eventName === 'Supply' ? 'deposit' : 'withdraw', usd }
@@ -110,7 +117,13 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 // getLogs over one window with a bounded retry (transient free-tier HTTP blips)
 // and a span-split fallback (should not trigger at CHUNK, but stays safe).
-async function getLogsWindow(client: PublicClient, spec: FetchSpec, from: bigint, to: bigint, tries = 3): Promise<any[]> {
+async function getLogsWindow(
+  client: PublicClient,
+  spec: FetchSpec,
+  from: bigint,
+  to: bigint,
+  tries = 3,
+): Promise<any[]> {
   const base: any = { address: spec.address, events: spec.events, fromBlock: from, toBlock: to }
   if (spec.args) base.args = spec.args
   for (let i = 0; i < tries; i++) {
@@ -152,7 +165,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!addrStr || !isAddress(addrStr)) return res.status(400).json({ error: 'invalid address' })
   const address = getAddress(addrStr) as Address
 
-  const lookbackDays = Math.max(1, Math.min(MAX_LOOKBACK_DAYS, Number(req.query.lookbackDays) || DEFAULT_LOOKBACK_DAYS))
+  const lookbackDays = Math.max(
+    1,
+    Math.min(MAX_LOOKBACK_DAYS, Number(req.query.lookbackDays) || DEFAULT_LOOKBACK_DAYS),
+  )
 
   // ---- watch lookup (entry baseline + since) --------------------------------
   const watchRows = (
@@ -198,7 +214,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return iso
   }
 
-  type RawFlow = { venue: string; label: string; direction: 'deposit' | 'withdraw'; block: bigint; usd: number; txHash: string }
+  type RawFlow = {
+    venue: string
+    label: string
+    direction: 'deposit' | 'withdraw'
+    block: bigint
+    usd: number
+    txHash: string
+  }
   const specs = venues
     .map((v) => specFor(v, LABELS[v.name] ?? v.name, address))
     .filter((s): s is FetchSpec => s !== null)
@@ -237,14 +260,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await Promise.all(uniqBlocks.slice(i, i + 6).map((bn) => blockTime(bn)))
   }
 
-  // ---- join corpus context to each flow (exits get gate + day rank) ---------
+  // ---- join certified context to each flow (exits get cooldown gate) ---------
   const flows: AddressFlow[] = []
   for (const f of rawFlows) {
     const at = blockTimeCache.get(f.block.toString()) as string
     let cooldownSecondsAtEvent: number | null = null
-    let dayOutflowUsd: number | null = null
-    let dayRank: number | null = null
-    let dayRankTotal: number | null = null
 
     // Nearest recorded cooldownDuration ≤ the event's block time (observed OR
     // backfilled) — >0 ⇒ this exit was gated.
@@ -257,30 +277,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ).rows as Array<Record<string, unknown>>
     if (cdRow[0]?.cd != null) cooldownSecondsAtEvent = Number(cdRow[0].cd)
 
-    if (f.direction === 'withdraw') {
-      // That calendar day's total venue outflow + its rank among all outflow days.
-      const dayRow = (
-        await db.execute(sql`
-          WITH daily AS (
-            SELECT date_trunc('day', block_time) AS d, SUM(assets_raw::numeric) / 1e18 AS o
-            FROM venue_flows WHERE venue = ${f.venue} AND direction = 'out'
-            GROUP BY 1
-          ), target AS (
-            SELECT o FROM daily WHERE d = date_trunc('day', ${at}::timestamptz)
-          )
-          SELECT
-            (SELECT o FROM target) AS day_out,
-            (SELECT COUNT(*) FROM daily) AS total_days,
-            (SELECT COUNT(*) FROM daily x WHERE x.o >= (SELECT o FROM target)) AS rank`)
-      ).rows as Array<Record<string, unknown>>
-      const dr = dayRow[0]
-      if (dr && dr.day_out != null) {
-        dayOutflowUsd = Number(dr.day_out)
-        dayRankTotal = dr.total_days != null ? Number(dr.total_days) : null
-        dayRank = dr.rank != null ? Number(dr.rank) : null
-      }
-    }
-
     flows.push({
       venue: f.venue,
       label: f.label,
@@ -289,9 +285,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       usd: f.usd,
       txHash: f.txHash,
       cooldownSecondsAtEvent,
-      dayOutflowUsd,
-      dayRank,
-      dayRankTotal,
+      // The legacy venue_flows recorder has no certified complete day ranges.
+      // A sampled outflow day cannot support a total or worst-day ranking.
+      dayOutflowUsd: null,
+      dayRank: null,
+      dayRankTotal: null,
     })
   }
 
@@ -324,9 +322,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     beats,
     summary,
     provenance: {
-      window: watchedSinceISO ? `since ${watchedSinceISO.slice(0, 10)} (watch)` : `trailing ${lookbackDays}d`,
-      chain_logs: 'Deposit/Withdraw logs filtered to this address on the indexed owner/user topic, live at request time',
-      recorded: 'cooldown gate, day outflow, and worst-day rank read from the venue_snapshots / venue_flows corpus',
+      window: watchedSinceISO
+        ? `since ${watchedSinceISO.slice(0, 10)} (watch)`
+        : `trailing ${lookbackDays}d`,
+      chain_logs:
+        'Deposit/Withdraw logs filtered to this address on the indexed owner/user topic, live at request time',
+      recorded:
+        'cooldown gate read from venue_snapshots; venue outflow totals and day ranks unavailable without certified complete-day flow coverage',
       current_holdings: 'balanceOf + convertToAssets at $1/underlying, live at request time',
       modelled: null,
     },

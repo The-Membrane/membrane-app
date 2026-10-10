@@ -72,7 +72,11 @@ import { fmtLocalClock, fmtLocalDayClock, useLocalZone } from './localClock'
 import Stamp from './Stamp'
 import { stamp as stampFn } from '@/lib/position-sim/types'
 
-const OCT10_PROV = stampFn('dataset', 'measured · 2,350 accounts · on-chain', 'public/data/oct10-2025/evidence.json — every Aave liquidation on 10-11 Oct 2025, judged against its own line.')
+const OCT10_PROV = stampFn(
+  'dataset',
+  'measured · 2,350 accounts · on-chain',
+  'public/data/oct10-2025/evidence.json — every Aave liquidation on 10-11 Oct 2025, judged against its own line.',
+)
 import { OCT10_STAKES_LINE } from '@/lib/position-sim/oct10Totals'
 
 import AddressBar, { type AddressBarProps } from './AddressBar'
@@ -90,6 +94,8 @@ export const HERO_SUBHEAD =
   'would have done to your current position.'
 
 export interface VerdictHeroProps extends AddressBarProps {
+  /** The pasted wallet's shareable proof, immediately below the address control. */
+  addressEvidence?: React.ReactNode
   /** The run. Null while the measured price path is still loading. */
   comparison: Comparison | null
   /** What this carry costs today, and what the deployed slice costs on Membrane. */
@@ -181,12 +187,15 @@ function verdict(
   // Aave's real events; a pasted address only has the run's replay of Aave's mechanics,
   // which is a model, so it is written as one.
   const measuredTs =
-    measured && startTs !== null && stepSeconds !== null ? startTs + measured.t0Index * stepSeconds : null
-  const first = measured && measuredTs !== null
-    ? `${src} closed ${usd(measured.aaveClosedUsd)} of this loan at ${clock(measuredTs)}`
-    : o.source.liquidated && sourceFirst
-      ? `${src} would have closed ${usd(sourceClosed)} of ${whose} loan at ${clock(sourceFirst.ts)}.`
-      : `${src} closes nothing.`
+    measured && startTs !== null && stepSeconds !== null
+      ? startTs + measured.t0Index * stepSeconds
+      : null
+  const first =
+    measured && measuredTs !== null
+      ? `${src} closed ${usd(measured.aaveClosedUsd)} of this loan at ${clock(measuredTs)}`
+      : o.source.liquidated && sourceFirst
+        ? `${src} would have closed ${usd(sourceClosed)} of ${whose} loan at ${clock(sourceFirst.ts)}.`
+        : `${src} closes nothing.`
 
   // The lag is the whole mechanism: the delay window is time, and time is what the
   // reader is being sold. State it in minutes, off the two runs' own event stamps.
@@ -195,19 +204,26 @@ function verdict(
   const plural = (n: number) => (n === 1 ? 'minute' : 'minutes')
   let tail: string | undefined
   if (membraneClosed <= 0) tail = 'and sold nothing'
-  else if (lag === null) tail = membraneCloses.length ? `at ${clock(membraneCloses[0].ts)}` : 'and nothing more'
+  else if (lag === null)
+    tail = membraneCloses.length ? `at ${clock(membraneCloses[0].ts)}` : 'and nothing more'
   else if (lag > 0) tail = `${lag} ${plural(lag)} later`
   else if (lag < 0) tail = `${-lag} ${plural(-lag)} earlier`
   else tail = undefined
-  const second = tail ? `Membrane would have closed ${usd(membraneClosed)} ${tail}.` : `Membrane would have closed ${usd(membraneClosed)}.`
+  const second = tail
+    ? `Membrane would have closed ${usd(membraneClosed)} ${tail}.`
+    : `Membrane would have closed ${usd(membraneClosed)}.`
 
   // The gap, and the prices it is read at. An equity delta is a difference between two
   // balance sheets at ONE moment; the moment is the last minute of the measured path,
   // and the caption says so rather than leaving the reader to assume "today".
   const delta = cmp.equityDeltaUsd
   const n = cmp.source.equitySeries.length
-  const endTs = startTs !== null && stepSeconds !== null && n > 0 ? startTs + (n - 1) * stepSeconds : null
-  const basis = endTs !== null ? `${fmtLocalDayClock(endTs, zone)} prices` : 'the last price of the measured path'
+  const endTs =
+    startTs !== null && stepSeconds !== null && n > 0 ? startTs + (n - 1) * stepSeconds : null
+  const basis =
+    endTs !== null
+      ? `${fmtLocalDayClock(endTs, zone)} prices`
+      : 'the last price of the measured path'
   const caption = `${delta < 0 ? 'less' : 'more'} equity left at ${basis}`
 
   return {
@@ -220,7 +236,11 @@ function verdict(
     // exact thing this rewrite removes.
     secondColor: SEMANTIC_COLORS.textPrimary,
     figureColor:
-      delta > 0 ? SEMANTIC_COLORS.success : delta < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
+      delta > 0
+        ? SEMANTIC_COLORS.success
+        : delta < 0
+          ? SEMANTIC_COLORS.danger
+          : SEMANTIC_COLORS.textPrimary,
   }
 }
 
@@ -230,6 +250,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   mode = LANDING_SIM_MODE,
   heroVariant = HERO_VARIANT,
   history,
+  addressEvidence,
   isDemo,
   startTs,
   stepSeconds,
@@ -278,7 +299,13 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
       alignItems="center"
     >
       {/* Everything above the graph is centred (owner, 2026-09-12). */}
-      <Box display="grid" gap={SPACING.base} alignContent="center" justifyItems={compact ? 'start' : 'center'} textAlign={compact ? 'left' : 'center'}>
+      <Box
+        display="grid"
+        gap={SPACING.base}
+        alignContent="center"
+        justifyItems={compact ? 'start' : 'center'}
+        textAlign={compact ? 'left' : 'center'}
+      >
         {/* THE SUBHEAD (borrower mode only). Owner layout ruling 2026-09-12: one landing
             page — the hero SELLS the carry product by name, then the sim PROVES the rails
             with the borrow verdict below it. One line, above the headline, nothing else
@@ -293,6 +320,21 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
             color={SEMANTIC_COLORS.textSecondary}
           >
             {HERO_SUBHEAD}
+          </Text>
+        )}
+
+        {!isDemo && !v && !historyFirst && (
+          <Text
+            data-testid="sim-position-pending"
+            as="h1"
+            fontFamily={TYPOGRAPHY.fontDisplay}
+            fontSize={compact ? TYPOGRAPHY.h2 : 'clamp(30px, 5vw, 54px)'}
+            lineHeight={1.08}
+            color={SEMANTIC_COLORS.textPrimary}
+          >
+            {addressBar.isLoading
+              ? 'Reading this address’s lending position…'
+              : 'No position verdict is available for this address.'}
           </Text>
         )}
 
@@ -328,7 +370,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               </Text>
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
+                fontSize="12px"
                 letterSpacing="0.06em"
                 color={SEMANTIC_COLORS.textSecondary}
               >
@@ -376,7 +418,8 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               sx={{ textWrap: 'balance' }}
             >
               <Text as="span" color={SEMANTIC_COLORS.danger}>
-                {src} charges {whose} carry {usd(carry.annualCostUsd)} a year, even when the venue pays nothing.
+                {src} charges {whose} carry {usd(carry.annualCostUsd)} a year, even when the venue
+                pays nothing.
               </Text>{' '}
               {/* The 14 days is the owner's own figure (owner statement 2026-09-12);
                   CARRY_CLAIMS[0] and FinePrint's CARRY_TERMS carry the same number and
@@ -401,7 +444,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               </Text>
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
+                fontSize="12px"
                 letterSpacing="0.06em"
                 color={SEMANTIC_COLORS.textSecondary}
               >
@@ -432,7 +475,9 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
             >
               {OCT10_STAKES_LINE}
             </Text>
-              <Box display="flex" justifyContent="center"><Stamp provenance={OCT10_PROV} /></Box>
+            <Box display="flex" justifyContent="center" minW={0} w="100%">
+              <Stamp provenance={OCT10_PROV} />
+            </Box>
 
             <Text
               data-testid="sim-verdict-headline"
@@ -464,7 +509,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               <Text
                 data-testid="sim-verdict-basis"
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
+                fontSize="12px"
                 letterSpacing="0.06em"
                 color={SEMANTIC_COLORS.textSecondary}
               >
@@ -499,12 +544,13 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
         )}
 
         <AddressBar {...addressBar} />
+        {addressEvidence}
 
         {(errors ?? []).map((e) => (
           <Text
             key={e}
             fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="11.5px"
+            fontSize="12px"
             color={SEMANTIC_COLORS.danger}
             lineHeight={1.6}
           >

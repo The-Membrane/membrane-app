@@ -16,6 +16,104 @@
 
 export type CurvePoint = { costPct: number; capacityUsd: number | null }
 
+// Must match scripts/lib/depthCurve.mjs COST_LEVELS_PCT, which writes the rows.
+// The API rejects a latest-block pass missing any of these levels; it must not
+// publish a partial venue curve as if it represented every exit route.
+export const RECORDED_COST_LEVELS_PCT = [0.1, 0.25, 0.5, 1, 2, 5, 10] as const
+
+export type StoredCurveRow = {
+  market: unknown
+  block: unknown
+  observed_at: unknown
+  points: unknown
+  meta: unknown
+}
+
+export type StoredCurvePassRow = StoredCurveRow & { block_row_count: unknown }
+
+/** Exact configured-market and quote-level gate for one recorder pass. */
+export function hasCompleteCurvePass(rows: readonly StoredCurveRow[], expectedMarkets: readonly string[]): boolean {
+  if (expectedMarkets.length === 0 || rows.length !== expectedMarkets.length) return false
+  const expected = new Set(expectedMarkets)
+  if (expected.size !== expectedMarkets.length) return false
+  const seen = new Set<string>()
+  let block: number | null = null
+
+  for (const row of rows) {
+    if (typeof row.market !== 'string' || !expected.has(row.market) || seen.has(row.market)) return false
+    seen.add(row.market)
+    const rowBlock = Number(row.block)
+    if (!Number.isSafeInteger(rowBlock) || rowBlock <= 0 || (block !== null && rowBlock !== block)) return false
+    block = rowBlock
+    if (typeof row.observed_at !== 'string' && !(row.observed_at instanceof Date)) return false
+    if (!Number.isFinite(new Date(row.observed_at).getTime())) return false
+    if (typeof row.meta !== 'object' || row.meta === null || Array.isArray(row.meta)) return false
+    if ((row.meta as Record<string, unknown>).error != null) return false
+    if (!Array.isArray(row.points) || row.points.length !== RECORDED_COST_LEVELS_PCT.length) return false
+    const levels = new Set<number>()
+    let previousCapacity = -Infinity
+    for (const point of row.points) {
+      if (typeof point !== 'object' || point === null || Array.isArray(point)) return false
+      const p = point as Record<string, unknown>
+      if (typeof p.costPct !== 'number' || p.costPct !== RECORDED_COST_LEVELS_PCT[levels.size] || levels.has(p.costPct)) return false
+      if (typeof p.capacityUsd !== 'number' || !Number.isFinite(p.capacityUsd) || p.capacityUsd < 0) return false
+      if (p.capacityUsd < previousCapacity) return false
+      previousCapacity = p.capacityUsd
+      levels.add(p.costPct)
+    }
+  }
+  return seen.size === expected.size
+}
+
+/** Pick a complete pass from DB-ordered newest-first rows, never from a truncated block group. */
+export function selectRecentCompleteCurvePass(
+  rows: readonly StoredCurvePassRow[],
+  expectedMarkets: readonly string[],
+  expectedIdentities: Readonly<Record<string, string>>,
+): { rows: StoredCurvePassRow[]; latestPassIncomplete: boolean } | null {
+  const byBlock = new Map<string, StoredCurvePassRow[]>()
+  for (const row of rows) {
+    const key = String(row.block)
+    const group = byBlock.get(key) ?? []
+    group.push(row)
+    byBlock.set(key, group)
+  }
+  let index = 0
+  for (const group of byBlock.values()) {
+    const count = Number(group[0].block_row_count)
+    if (
+      Number.isSafeInteger(count) &&
+      count === group.length &&
+      group.every((row) => Number(row.block_row_count) === count) &&
+      hasCompleteCurvePass(group, expectedMarkets) &&
+      group.every((row) => {
+        const meta = row.meta as Record<string, unknown>
+        return (
+          typeof row.market === 'string' &&
+          typeof expectedIdentities[row.market] === 'string' &&
+          meta.configIdentity === expectedIdentities[row.market] &&
+          typeof meta.sourceBlockTime === 'string' &&
+          Number.isFinite(Date.parse(meta.sourceBlockTime)) &&
+          typeof meta.sourceBlockHash === 'string' &&
+          /^0x[0-9a-f]{64}$/.test(meta.sourceBlockHash)
+        )
+      }) &&
+      group.every((row) => {
+        const meta = row.meta as Record<string, unknown>
+        const first = group[0].meta as Record<string, unknown>
+        return (
+          meta.sourceBlockTime === first.sourceBlockTime &&
+          meta.sourceBlockHash === first.sourceBlockHash
+        )
+      })
+    ) {
+      return { rows: group, latestPassIncomplete: index > 0 }
+    }
+    index++
+  }
+  return null
+}
+
 export type MarketCurve = {
   market: string
   points: CurvePoint[]
@@ -169,10 +267,16 @@ export function costAtSize(points: CurvePoint[], sizeUsd: number): SizeCostReadi
 /** GET /api/venues/[venue]/capacity-curve — shared by the route and its readers. */
 export type CapacityCurveResponse = {
   venue: string
-  /** null when the recorder has not written a curve for this venue yet. */
+  /** True only when a failed latest pass forced an older complete curve; read curve's original age. */
+  latestPassIncomplete?: boolean
+  /** Why curve is null; never silently publish partial latest-block depth. */
+  unavailableReason?: 'not-configured' | 'no-recording' | 'incomplete-latest'
+  /** null when no complete current recorder pass is available. */
   curve: {
     block: number
     observedAt: string
+    /** Timestamp of the quoted chain block; absent only in legacy callers. */
+    sourceBlockTime?: string
     /** The venue curve: markets summed level by level (combineMarkets). */
     points: CurvePoint[]
     markets: Array<{

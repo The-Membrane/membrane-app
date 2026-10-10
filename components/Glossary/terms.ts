@@ -101,24 +101,21 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     id: 'liquidation-line',
     term: 'Liquidation line',
     group: 'liquidation',
-    definition:
-      `The asset's max LTV. Crossing it does not sell anything: it starts the ${WINDOW}. Your borrow line sits ${fracPoints(BORROW_LTV_GAP)} below it.`,
+    definition: `The asset's max LTV. Crossing it does not sell anything: it starts the ${WINDOW}. Your borrow line sits ${fracPoints(BORROW_LTV_GAP)} below it.`,
     source: LIQ,
   },
   {
     id: 'window',
     term: `${CURE_WINDOW_HOURS}-hour window`,
     group: 'liquidation',
-    definition:
-      `The delay between crossing the liquidation line and any sale: ${CURE_WINDOW_HOURS} hours. Repaying inside it restores your borrow line (the liquidation line minus ${fracPoints(BORROW_LTV_GAP)}) and nothing is sold.`,
+    definition: `The delay between crossing the liquidation line and any sale: ${CURE_WINDOW_HOURS} hours. Repaying inside it restores your borrow line (the liquidation line minus ${fracPoints(BORROW_LTV_GAP)}) and nothing is sold.`,
     source: LIQ,
   },
   {
     id: 'break-line',
     term: 'Break line',
     group: 'liquidation',
-    definition:
-      `The liquidation line raised by a band of ${fracPct(MAX_THRESHOLD_TO_DELAY)} of the line. Past it the ${WINDOW} no longer applies: the sale is immediate and partial, down to the borrow line.`,
+    definition: `The liquidation line raised by a band of ${fracPct(MAX_THRESHOLD_TO_DELAY)} of the line. Past it the ${WINDOW} no longer applies: the sale is immediate and partial, down to the borrow line.`,
     source: LIQ,
   },
 
@@ -128,15 +125,14 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     term: 'Instant leg',
     group: 'legs',
     definition:
-      "Instant withdrawable liquidity divided by your position size. Scored only where instant liquidity is a real read; cooldown vaults have no instant leg.",
+      'Recorded instant venue inventory divided by your position size. This is a size proxy, not a wallet-specific withdrawal quote: permissions, route and execution remain unverified. Scored only where inventory is read; cooldown vaults have no instant leg.',
     source: RADAR,
   },
   {
     id: 'cooldown-leg',
     term: 'Cooldown leg',
     group: 'legs',
-    definition:
-      `The recorded cooldown gate on a cooldown vault. It delays all of an exit regardless of size: up to ${COOLDOWN_LIMIT} is caution, longer than ${COOLDOWN_LIMIT} is exposed.`,
+    definition: `The recorded cooldown gate on a cooldown vault. It delays all of an exit regardless of size: up to ${COOLDOWN_LIMIT} is caution, longer than ${COOLDOWN_LIMIT} is exposed.`,
     source: RADAR,
   },
   {
@@ -144,7 +140,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     term: 'Flow leg',
     group: 'legs',
     definition:
-      "The venue's worst recorded single-day outflow divided by your position size. A large past outflow proves the venue can push size out.",
+      'Historical aggregate outflow is context for how much left a venue in a measured window, not proof that your position can exit. A maximum observed outflow needs certified complete-window coverage; otherwise it is unavailable. Radar excludes legacy flow from the exit verdict.',
     source: RADAR,
   },
 
@@ -153,23 +149,21 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     id: 'clear',
     term: 'Clear',
     group: 'verdicts',
-    definition:
-      `A leg covers your size ${x(COVERAGE_CLEAR)} or more. A venue is clear only when every leg that applies is clear; the venue verdict is its weakest leg, never an average.`,
+    definition: `The ${x(COVERAGE_CLEAR)} size-coverage reference is descriptive, not proof that this wallet can exit. Recorded inventory alone cannot make a held venue clear. A venue verdict uses its weakest applicable leg, never an average; no position to exit is clear.`,
     source: RADAR,
   },
   {
     id: 'caution',
     term: 'Caution',
     group: 'verdicts',
-    definition:
-      `A leg covers your size at least ${x(COVERAGE_CAUTION)} but under ${x(COVERAGE_CLEAR)}, or a cooldown gate is ${COOLDOWN_LIMIT} or shorter. A venue with no recorded capacity or flow is also caution.`,
+    definition: `Recorded instant inventory covers your size at least ${x(COVERAGE_CAUTION)}, even if it exceeds ${x(COVERAGE_CLEAR)}, but holder-specific execution remains unverified; a cooldown gate of ${COOLDOWN_LIMIT} or shorter is also caution. A venue with no recorded instant inventory or cooldown gate is caution.`,
     source: RADAR,
   },
   {
     id: 'exposed',
     term: 'Exposed',
     group: 'verdicts',
-    definition: `A leg covers under ${x(COVERAGE_CAUTION)} your size, or a cooldown gate is longer than ${COOLDOWN_LIMIT}.`,
+    definition: `Recorded instant inventory covers under ${x(COVERAGE_CAUTION)} your size, or a cooldown gate is longer than ${COOLDOWN_LIMIT}; the weakest applicable leg sets the verdict.`,
     source: RADAR,
   },
 
@@ -204,8 +198,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     id: 'swap-out-capacity',
     term: 'Swap-out capacity',
     group: 'depth',
-    definition:
-      `The largest exit from a venue token that stays within a stated cost, fees included, summed across the venue's independent exit pools. Cost is value received against the token's redemption value, both from on-chain quotes at one block; the stable you receive counts at face value. A pool's raw reserve is only its ceiling, not an exit at par. For a venue with no instant-liquidity read, the thin-headroom alarm judges the capacity within ${pct(T.headroom_thin.poolCostPct)} cost.`,
+    definition: `The largest exit from a venue token that stays within a stated cost, fees included, summed across the venue's independent exit pools. Cost is value received against the token's redemption value, both from on-chain quotes at one block; the stable you receive counts at face value. A pool's raw reserve is only its ceiling, not an exit at par. For a venue with no instant-liquidity read, the suspended thin-headroom rule would use capacity within ${pct(T.headroom_thin.poolCostPct)} cost.`,
     source: 'scripts/lib/depthCurve.mjs · lib/venueCapacity/capacityCurve.ts',
   },
 
@@ -215,8 +208,15 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     term: 'Gate change',
     group: 'alarms',
     alarmKind: 'gate_change',
-    definition:
-      `Alarm. A cooldown-duration change, an instant-liquidity shift, or a redemption-terms page edit recorded in the last ${T.gate_change.windowHours} hours.`,
+    definition: `Alarm. A recorded cooldown-duration change or instant-liquidity shift in the last ${T.gate_change.windowHours} hours. A page-text edit alone does not establish that the gate moved.`,
+    source: ALARMS,
+  },
+  {
+    id: 'terms-page-notice',
+    term: 'Terms page notice',
+    group: 'alarms',
+    alarmKind: 'terms_page_notice',
+    definition: `Notice. Each observed edit to the official redemption-terms page gets its own notice for ${T.terms_page_notice.windowHours} hours. Exit impact is unclassified until the changed terms are reviewed; the page edit alone does not prove a cooldown or liquidity change.`,
     source: ALARMS,
   },
   {
@@ -224,8 +224,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     term: 'Fast drawdown',
     group: 'alarms',
     alarmKind: 'drawdown_fast',
-    definition:
-      `Alarm. The venue's capacity (instant liquidity where read, else total assets) is more than ${pct(T.drawdown_fast.alarmFallPct)} below its ${dayWindow(T.drawdown_fast.windowDays)} peak.`,
+    definition: `Alarm. The venue's capacity (instant liquidity where read, else total assets) is more than ${pct(T.drawdown_fast.alarmFallPct)} below its ${dayWindow(T.drawdown_fast.windowDays)} peak.`,
     source: ALARMS,
   },
   {
@@ -233,8 +232,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     term: 'Net outflow streak',
     group: 'alarms',
     alarmKind: 'net_outflow_streak',
-    definition:
-      `Consecutive days of net outflow whose total exceeds ${pct(T.net_outflow_streak.minPctOfTvl)} of TVL. Watch at ${days(T.net_outflow_streak.watchDays)}, alarm at ${T.net_outflow_streak.alarmDays}; a day with no outflow breaks the streak.`,
+    definition: `Suspended alarm. Its intended rule is consecutive days of net outflow whose total exceeds ${pct(T.net_outflow_streak.minPctOfTvl)} of TVL: watch at ${days(T.net_outflow_streak.watchDays)}, alarm at ${T.net_outflow_streak.alarmDays}. Legacy flow rows do not certify complete days, including quiet days, so no streak or break can be trusted yet.`,
     source: ALARMS,
   },
   {
@@ -242,8 +240,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     term: 'Thin headroom',
     group: 'alarms',
     alarmKind: 'headroom_thin',
-    definition:
-      `Instant exit liquidity divided by the venue's worst single-day outflow in the last ${T.headroom_thin.windowDays} days. Watch under ${x(T.headroom_thin.watch)}, alarm under ${x(T.headroom_thin.alarm)}. Where a venue has no instant-liquidity read, its swap-out capacity within ${pct(T.headroom_thin.poolCostPct)} cost is used instead (the raw pool reserve only when no quoted curve exists), and the alarm says so. The vault's own redemption counts as capacity too: with no cooldown it adds to the fast exit; with a cooldown it counts toward the total, and the alarm names the wait. Pool-only headroom stays at ${T.headroom_thin.poolMaxSeverity} unless even the total cannot cover the day.`,
+    definition: `Suspended alarm. Its intended ratio compares instant exit liquidity with the worst observed single-day outflow in a certified complete ${T.headroom_thin.windowDays}-day window: watch under ${x(T.headroom_thin.watch)}, alarm under ${x(T.headroom_thin.alarm)}. Where a venue has no instant-liquidity read, its swap-out capacity within ${pct(T.headroom_thin.poolCostPct)} cost is used instead (the raw pool reserve only when no quoted curve exists). The vault's own redemption counts as capacity too: with no cooldown it adds to the fast exit; with a cooldown it counts toward the total and includes the wait. Pool-only headroom stays at ${T.headroom_thin.poolMaxSeverity} unless even the total cannot cover the day. Legacy flow rows do not certify the complete window, so the ratio and alarm are unavailable.`,
     source: ALARMS,
   },
   {
@@ -251,8 +248,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     term: 'Utilization',
     group: 'alarms',
     alarmKind: 'utilization',
-    definition:
-      `Debt divided by debt plus available liquidity on a lending reserve. Watch above ${pct(T.utilization.watchPct)}, alarm above ${pct(T.utilization.alarmPct)}.`,
+    definition: `Debt divided by debt plus available liquidity on a lending reserve. Watch above ${pct(T.utilization.watchPct)}, alarm above ${pct(T.utilization.alarmPct)}.`,
     source: ALARMS,
   },
   {
@@ -260,8 +256,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     term: 'Depth skew',
     group: 'alarms',
     alarmKind: 'depth_skew',
-    definition:
-      `The larger side of a venue's exit pool as a share of the pool. Watch above ${pct(T.depth_skew.watchPct)}, alarm above ${pct(T.depth_skew.alarmPct)}.`,
+    definition: `The larger side of a venue's exit pool as a share of the pool. Watch above ${pct(T.depth_skew.watchPct)}, alarm above ${pct(T.depth_skew.alarmPct)}.`,
     source: ALARMS,
   },
   {
@@ -269,8 +264,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     term: 'Depth collapse',
     group: 'alarms',
     alarmKind: 'depth_collapse',
-    definition:
-      `The raw swap-out reserve (the swap-into side of the exit pools, at face value) below its ${dayWindow(T.depth_collapse.windowDays)} peak. Watch at a fall above ${pct(T.depth_collapse.watchFallPct)}, alarm above ${pct(T.depth_collapse.alarmFallPct)}.`,
+    definition: `The raw swap-out reserve (the swap-into side of the exit pools, at face value) below its ${dayWindow(T.depth_collapse.windowDays)} peak. Watch at a fall above ${pct(T.depth_collapse.watchFallPct)}, alarm above ${pct(T.depth_collapse.alarmFallPct)}.`,
     source: ALARMS,
   },
   {

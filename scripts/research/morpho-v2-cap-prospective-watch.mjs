@@ -359,10 +359,11 @@ export async function collect({
 }) {
   if (!Number.isSafeInteger(maxChunks) || maxChunks < 1 || maxChunks > MAX_CHUNKS)
     throw new Error('Invalid bounded chunk count')
+  const maxRpcCalls = MAX_RPC_CALLS * maxChunks
   let calls = 0
   const rpc = async (method, params) => {
     diskGuard(out, stat)
-    if (++calls > MAX_RPC_CALLS) throw new Error('Watch RPC call cap reached')
+    if (++calls > maxRpcCalls) throw new Error('Watch RPC call cap reached')
     return rpcRead(method, params)
   }
   if (integer(await rpc('eth_chainId', [])) !== 1) throw new Error('Wrong chain')

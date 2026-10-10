@@ -21,6 +21,7 @@ import {
   DEALLOCATE_TOPIC,
   FRONTIER,
   MAX_ALLOCATION_IDS,
+  MAX_RPC_CALLS,
   collect,
   seal,
   verify,
@@ -436,7 +437,7 @@ test('offline verifier rejects a schema-less downgrade after the first v2 segmen
   assert.throws(() => verify({ out: folder, sources }), /seal or continuity mismatch/)
 })
 
-test('expanded scans keep existing response and RPC limits fail-closed', async () => {
+test('expanded scans keep response and chunk-scaled per-run RPC limits fail-closed', async () => {
   const first = FRONTIER + 1
   const oversizedFolder = out(),
     mock = fixture(first, [log('create', first)])
@@ -448,14 +449,35 @@ test('expanded scans keep existing response and RPC limits fail-closed', async (
   await assert.rejects(run(oversizedRpc, oversizedFolder), /oversized log response/)
   assert.deepEqual(readdirSync(oversizedFolder), [])
 
-  const rpcFolder = out()
-  const logs = [log('create', first)]
-  for (let i = 2; i < 55; i++) logs.push(log('allocate', first + i, 0))
-  const dense = fixture(FRONTIER + 4 * CHUNK_BLOCKS, logs)
+  const denseLogs = [log('create', first)]
+  for (let i = 2; i < 55; i++) denseLogs.push(log('allocate', first + i, 0))
+  const rpcFolder = out(),
+    dense = fixture(FRONTIER + 4 * CHUNK_BLOCKS, denseLogs)
+  const result = await run(dense.rpcRead, rpcFolder, { maxChunks: 4 })
+  assert.equal(result.segmentCount, 4)
+  assert.ok(result.rpcCalls > MAX_RPC_CALLS)
+  assert.ok(result.rpcCalls <= MAX_RPC_CALLS * 4)
+  assert.equal(verify({ out: rpcFolder, sources }).segmentCount, 4)
+
+  const oneChunkLogs = [log('create', first)]
+  for (let i = 2; i < 110; i++) oneChunkLogs.push(log('allocate', first + i, 0))
+  const oneChunkFolder = out(),
+    oneChunk = fixture(FRONTIER + CHUNK_BLOCKS, oneChunkLogs)
   await assert.rejects(
-    run(dense.rpcRead, rpcFolder, { maxChunks: 4 }),
+    run(oneChunk.rpcRead, oneChunkFolder, { maxChunks: 1 }),
     /Watch RPC call cap reached/,
   )
-  assert.ok(dense.calls.length <= 80)
-  assert.ok(verify({ out: rpcFolder, sources }).segmentCount <= 2)
+  assert.ok(oneChunk.calls.length <= MAX_RPC_CALLS)
+  assert.equal(verify({ out: oneChunkFolder, sources }).segmentCount, 0)
+
+  const overBudgetLogs = [log('create', first)]
+  for (let i = 2; i < 350; i++) overBudgetLogs.push(log('allocate', first + i, 0))
+  const overBudgetFolder = out(),
+    overBudget = fixture(FRONTIER + 4 * CHUNK_BLOCKS, overBudgetLogs)
+  await assert.rejects(
+    run(overBudget.rpcRead, overBudgetFolder, { maxChunks: 4 }),
+    /Watch RPC call cap reached/,
+  )
+  assert.ok(overBudget.calls.length <= MAX_RPC_CALLS * 4)
+  assert.equal(verify({ out: overBudgetFolder, sources }).segmentCount, 0)
 })

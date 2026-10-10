@@ -4,7 +4,7 @@ import {
   flowDirection,
   modifiedDietz,
 } from '../../scripts/lib/strat-returns.mjs'
-import { aggregateTrackedReturn } from '@/components/Strats/stratsLogic'
+import { aggregateTrackedReturn, isTrackedReturnStale } from '@/components/Strats/stratsLogic'
 
 const startAt = '2026-09-01T00:00:00.000Z'
 const endAt = '2026-09-11T00:00:00.000Z'
@@ -150,10 +150,35 @@ describe('venue-window aggregation', () => {
         .return_pct,
     ).toBeNull()
   })
-  it('expires completed returns after two hours or an incomplete scan', () => {
+  it('keeps a completed old reading but labels it stale after two hours', () => {
+    const old = new Date(endAt).getTime() + 2 * 60 * 60_000 + 1
+    expect(aggregate([row('a')], ['a'], old)).toMatchObject({
+      status: 'complete',
+      pnl_usd: 20,
+      return_pct: 20,
+      end_at: endAt,
+    })
+    expect(isTrackedReturnStale(endAt, old)).toBe(true)
+    expect(isTrackedReturnStale(endAt, new Date(endAt).getTime() + 2 * 60 * 60_000)).toBe(false)
+  })
+  it('keeps the last complete snapshot when a later refresh fails', () => {
+    expect(aggregate([row('a', { last_error: 'RPC timeout' })], ['a'])).toMatchObject({
+      status: 'complete',
+      pnl_usd: 20,
+      refresh_failed: true,
+    })
+  })
+  it('still suppresses an incomplete scan or invalid timestamp', () => {
     expect(
-      aggregate([row('a')], ['a'], new Date(endAt).getTime() + 2 * 60 * 60_000 + 1).status,
-    ).toBe('incomplete')
-    expect(aggregate([row('a', { last_error: 'RPC timeout' })], ['a']).pnl_usd).toBeNull()
+      aggregate([row('a', { status: 'unpriced_nav', pnl_usd: null })], ['a']).pnl_usd,
+    ).toBeNull()
+    expect(aggregate([row('a', { observed_at: 'not-a-date' })], ['a']).pnl_usd).toBeNull()
+    expect(
+      aggregate(
+        [row('a', { observed_at: endAt })],
+        ['a'],
+        new Date(endAt).getTime() - 5 * 60_000 - 1,
+      ).pnl_usd,
+    ).toBeNull()
   })
 })

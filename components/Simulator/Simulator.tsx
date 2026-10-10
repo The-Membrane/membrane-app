@@ -27,6 +27,7 @@
 // and both are indexable, so the flip is one constant and nothing else.
 
 import { DEMO_BORROWER_MEASURED } from '@/lib/position-sim/demoBorrower'
+import { netKeptUsd } from '@/lib/position-sim/history'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
@@ -68,7 +69,6 @@ import {
   readUrlState,
   runAdapters,
   runComparison,
-  shareUrl,
   stamp,
   toVenueRecall,
   weightedMembraneLine,
@@ -82,11 +82,9 @@ import {
   type VenueRecall,
 } from '@/lib/position-sim'
 
-import ComparisonPanel from './ComparisonPanel'
 import type { ControlValues } from './Controls'
-import DeploymentSection from './DeploymentSection'
-import EventLog from './EventLog'
 import FinePrint from './FinePrint'
+import AddressEvidenceCard from './AddressEvidenceCard'
 import CarrySection from './CarrySection'
 import { usd } from './format'
 import GuaranteeBlock from './GuaranteeBlock'
@@ -104,7 +102,7 @@ import Logo from '@/components/Logo'
  */
 const SECTION = {
   fontFamily: TYPOGRAPHY.fontMono,
-  fontSize: '10px',
+  fontSize: '12px',
   letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
@@ -120,8 +118,8 @@ const SECTION = {
  *   · paddingY SPACING.xl (32px) — the same air above and below every band;
  *   · borderTop on borderStrong — a visible seam between bands, except at the very top
  *     (the hero opens the page and has nothing to be separated from);
- *   · ALTERNATING background — evidence bands (the history proof, the carry section,
- *     the run) sit on bgSecondary and are inset by SPACING.base, so what is measured
+ *   · ALTERNATING background — evidence bands (the history proof and carry section)
+ *     sit on bgSecondary and are inset by SPACING.base, so what is measured
  *     looks different from what is asserted.
  * The page container's own gap is 0: the bands butt against each other, which is what
  * makes the seam and the background change legible. No copy changes with this.
@@ -174,7 +172,7 @@ const Section: React.FC<{
 
 const HEAD = {
   fontFamily: TYPOGRAPHY.fontMono,
-  fontSize: '9px',
+  fontSize: '12px',
   letterSpacing: '0.24em',
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
@@ -223,6 +221,14 @@ const ZERO_CONTROLS: ControlValues = {
   recallRate: 0,
   fastRate: 0,
   deployedUsd: 0,
+}
+
+/** Internal neutral value while a real wallet's venue scan is still in flight. */
+const PENDING_DETECTION: VenueDetection = {
+  status: 'none',
+  detected: [],
+  totalUsd: 0,
+  provenance: stamp('modelled', 'venue scan pending'),
 }
 
 export interface SimulatorProps {
@@ -287,11 +293,14 @@ export const Simulator: React.FC<SimulatorProps> = ({
   const [input, setInput] = useState('')
   const [addressError, setAddressError] = useState<string | null>(null)
   const [isLoading, setLoading] = useState(false)
+  const [submittedAddress, setSubmittedAddress] = useState<`0x${string}` | null>(null)
   const [loaded, setLoaded] = useState<{
     address: `0x${string}`
     results: AdapterResult[]
     detection: VenueDetection
   } | null>(null)
+  /** Invalidates late adapter results when the reader clears or submits another wallet. */
+  const readGeneration = useRef(0)
 
   /**
    * THE H1 TEST's conversion, deduped. One 'run' per address per page load: a reader
@@ -300,8 +309,8 @@ export const Simulator: React.FC<SimulatorProps> = ({
    */
   const landingFired = useRef<Set<string>>(new Set())
 
-  /** Reads an address. Never clears the control overrides — the URL hydration path
-   *  needs to apply them after the read lands.
+  /** Reads an address. Never clears control overrides: shared-link inputs are layered
+   *  over the derived defaults while the slower position adapters are in flight.
    *
    *  `source` says where the address came from: 'wallet' when the connect prefill
    *  supplied it, 'paste' for a typed address and for one hydrated from a shared link.
@@ -313,14 +322,18 @@ export const Simulator: React.FC<SimulatorProps> = ({
         setAddressError(
           'That is not an Ethereum address. It needs to be 0x followed by 40 hex characters.',
         )
-        return
+        return false
       }
+      const generation = ++readGeneration.current
+      setSubmittedAddress(parsed)
+      setLoaded(null)
       setAddressError(null)
       setLoading(true)
       try {
         // Neither call rejects: runAdapters absorbs every adapter throw into a result,
         // and detectVenues returns status 'error' rather than raising.
         const [results, detection] = await Promise.all([runAdapters(parsed), detectVenues(parsed)])
+        if (generation !== readGeneration.current) return false
         setLoaded({ address: parsed, results, detection })
         // Launch instrument: address + protocols only, never the worked example.
         recordSimRead(parsed, results)
@@ -336,8 +349,13 @@ export const Simulator: React.FC<SimulatorProps> = ({
             source,
           })
         }
+        return true
+      } catch {
+        if (generation !== readGeneration.current) return false
+        setAddressError('The position read failed. Your liquidation history can still load below.')
+        return false
       } finally {
-        setLoading(false)
+        if (generation === readGeneration.current) setLoading(false)
       }
     },
     [landingVariant, chainForLinks],
@@ -355,12 +373,12 @@ export const Simulator: React.FC<SimulatorProps> = ({
   const prefilled = useRef<string | null>(null)
   useEffect(() => {
     if (!address || isLoading) return
-    if (input !== '' || loaded !== null) return
+    if (input !== '' || submittedAddress !== null) return
     if (prefilled.current === address) return
     prefilled.current = address
     setInput(address)
     void readAddress(address, 'wallet')
-  }, [address, input, loaded, isLoading, readAddress])
+  }, [address, input, submittedAddress, isLoading, readAddress])
 
   // --------------------------------------------------------------- positions
   // THE DEMO IS PICKED BY MODE, and by nothing else. Neither demo ever leaks into the
@@ -373,10 +391,10 @@ export const Simulator: React.FC<SimulatorProps> = ({
     () => (mode === 'borrower' ? demoBorrowerDetection() : demoDetection()),
     [mode],
   )
-  const isDemo = loaded === null
+  const isDemo = submittedAddress === null
   const positions = useMemo<ProtocolPosition[]>(
-    () => (loaded ? loaded.results.flatMap((r) => r.positions) : [demoPos]),
-    [loaded, demoPos],
+    () => (isDemo ? [demoPos] : (loaded?.results.flatMap((r) => r.positions) ?? [])),
+    [isDemo, loaded, demoPos],
   )
 
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
@@ -393,7 +411,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
   // recorded for the same real address, so both branches are now the same shape and
   // both go through toVenueRecall. A pasted address still only ever gets what
   // detectVenues found for IT.
-  const rawDetection = loaded?.detection ?? demoDet
+  const rawDetection = isDemo ? demoDet : (loaded?.detection ?? PENDING_DETECTION)
   // A venue balance that is already this position's collateral is not recallable venue
   // capital — it is the collateral the recall was supposed to save. Filtering here, on
   // the way in, keeps the cost model, the controls, the deployment section and the
@@ -457,19 +475,29 @@ export const Simulator: React.FC<SimulatorProps> = ({
   // never both, and never the other mode's demo. The hook is shared with HistoryProof
   // through react-query's cache, so this is one request, not two.
   const historyAddress =
-    loaded?.address ?? (mode === 'borrower' ? DEMO_BORROWER_ADDRESS : DEMO_ADDRESS)
+    submittedAddress ?? (mode === 'borrower' ? DEMO_BORROWER_ADDRESS : DEMO_ADDRESS)
   const simHistory = useSimHistory(historyAddress)
-  // The hero's history input. A failed scan reports savedUsd 0, which is exactly the
-  // fallback condition — the hero drops back to the Oct 10 verdict rather than printing
-  // an error where the headline goes. HistoryProof prints the error, in its own block.
+  const currentHistory =
+    simHistory.data?.address.toLowerCase() === historyAddress.toLowerCase()
+      ? simHistory.data
+      : undefined
+  // Use the same NET as the history total and share card, including adverse episodes.
+  // A failed/incomplete scan or non-positive net falls back to the Oct 10 verdict.
+  // The share card can still show a scoped priced-subset result; the bare hero cannot.
   const heroHistory = useMemo(
     () => ({
-      savedUsd: simHistory.data && !simHistory.data.error ? simHistory.data.totals.savedUsd : 0,
-      savedCount: simHistory.data && !simHistory.data.error ? simHistory.data.totals.savedCount : 0,
-      firstEventTs: simHistory.data?.since?.firstEventTs ?? null,
+      savedUsd:
+        currentHistory &&
+        !currentHistory.error &&
+        !currentHistory.events.some((event) => event.unpriced) &&
+        !currentHistory.notScanned?.length
+          ? (netKeptUsd(currentHistory.episodes) ?? 0)
+          : 0,
+      savedCount: currentHistory && !currentHistory.error ? currentHistory.totals.savedCount : 0,
+      firstEventTs: currentHistory?.since?.firstEventTs ?? null,
       loading: simHistory.isPending,
     }),
-    [simHistory.data, simHistory.isPending],
+    [currentHistory, simHistory.isPending],
   )
   /** ?hero=history flips the A/B by LINK, with no deploy. Captured ONCE at hydration
    *  (the page rewrites its own URL and would otherwise drop it) and carried in the
@@ -507,6 +535,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
 
   // --------------------------------------------------------------- url state
   const hydrated = useRef(false)
+  const [urlHydrated, setUrlHydrated] = useState(false)
   useEffect(() => {
     if (!router.isReady || hydrated.current) return
     hydrated.current = true
@@ -519,30 +548,32 @@ export const Simulator: React.FC<SimulatorProps> = ({
     if (s.fastRate !== undefined) patch.fastRate = s.fastRate
     if (s.deployedUsd !== undefined) patch.deployedUsd = s.deployedUsd
     if (s.hero !== undefined) setHeroOverride(s.hero)
-    const run = async () => {
-      if (s.address) {
-        setInput(s.address)
-        await readAddress(s.address)
-      }
-      // Applied after the read so the shared inputs win over the freshly derived
-      // defaults — a link has to reproduce the run it was taken from.
-      if (Object.keys(patch).length) setOverrides(patch)
+    if (s.address) {
+      setInput(s.address)
+      void readAddress(s.address)
     }
-    void run()
+    // Overrides are layered over derived defaults, so they can be hydrated now rather
+    // than waiting for slow adapters. A copied link retains its inputs while pending.
+    if (Object.keys(patch).length) setOverrides(patch)
+    setUrlHydrated(true)
   }, [router.isReady, router.query, readAddress])
 
   const urlState = useMemo(
     () => ({
-      address: loaded?.address,
-      position: selected ? keyOf(selected) : undefined,
-      membraneMaxLtv: selected ? values.membraneMaxLtv : undefined,
-      liqFee: selected ? values.membraneLiqFee : undefined,
-      recallRate: selected ? values.recallRate : undefined,
-      fastRate: selected ? values.fastRate : undefined,
-      deployedUsd: selected ? values.deployedUsd : undefined,
+      address: submittedAddress ?? undefined,
+      position: selected
+        ? keyOf(selected)
+        : submittedAddress
+          ? (selectedKey ?? undefined)
+          : undefined,
+      membraneMaxLtv: selected ? values.membraneMaxLtv : overrides.membraneMaxLtv,
+      liqFee: selected ? values.membraneLiqFee : overrides.membraneLiqFee,
+      recallRate: selected ? values.recallRate : overrides.recallRate,
+      fastRate: selected ? values.fastRate : overrides.fastRate,
+      deployedUsd: selected ? values.deployedUsd : overrides.deployedUsd,
       hero: heroOverride ?? undefined,
     }),
-    [loaded, selected, values, heroOverride],
+    [submittedAddress, selected, selectedKey, values, overrides, heroOverride],
   )
 
   useEffect(() => {
@@ -550,40 +581,26 @@ export const Simulator: React.FC<SimulatorProps> = ({
     // rewrote an indexable canonical URL to /ethereum?p=aave-v3&ltv=…&dep=…, which
     // splits the page's SEO identity and makes a copied link carry demo controls.
     if (hero) return
-    if (!router.isReady || !hydrated.current) return
+    if (!router.isReady || !urlHydrated) return
     const base = router.asPath.split('?')[0]
     const next = base + writeUrlState(urlState)
     if (router.asPath !== next) void router.replace(next, undefined, { shallow: true })
-  }, [router, urlState])
-
-  // ------------------------------------------------------------------ share
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
-  const onCopyLink = useCallback(() => {
-    const url = shareUrl(urlState)
-    if (!url || typeof navigator === 'undefined' || !navigator.clipboard) {
-      setCopyState('failed')
-      return
-    }
-    navigator.clipboard.writeText(url).then(
-      () => setCopyState('copied'),
-      () => setCopyState('failed'),
-    )
-  }, [urlState])
-  useEffect(() => {
-    if (copyState === 'idle') return
-    const t = setTimeout(() => setCopyState('idle'), 2400)
-    return () => clearTimeout(t)
-  }, [copyState])
+  }, [router, urlState, hero, urlHydrated])
 
   // ---------------------------------------------------------------- handlers
   const onSubmitAddress = useCallback(() => {
-    setOverrides({})
-    setSelectedKey(null)
+    if (parseAddress(input)) {
+      setOverrides({})
+      setSelectedKey(null)
+    }
     void readAddress(input)
   }, [input, readAddress])
 
   const onClearAddress = useCallback(() => {
+    readGeneration.current += 1
+    setSubmittedAddress(null)
     setLoaded(null)
+    setLoading(false)
     setOverrides({})
     setSelectedKey(null)
     setAddressError(null)
@@ -611,7 +628,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
     value: input,
     onChange: setInput,
     onSubmit: onSubmitAddress,
-    loadedAddress: loaded?.address ?? null,
+    loadedAddress: submittedAddress,
     onClear: onClearAddress,
     isLoading,
     error: addressError,
@@ -639,19 +656,21 @@ export const Simulator: React.FC<SimulatorProps> = ({
   const finePrintNotes = useMemo<string[] | undefined>(() => {
     const out: string[] = []
     if (isDemo) out.push(DEMO_WALLET_NOTE[mode])
-    const m = simHistory.data?.method
+    if (measuredError)
+      out.push('Measured Oct 10 liquidation statistics unavailable; documented close factor used.')
+    const m = currentHistory?.method
     if (m) out.push(m)
     return out.length > 0 ? out : undefined
-  }, [isDemo, mode, simHistory.data])
+  }, [isDemo, mode, measuredError, currentHistory])
 
   const stamps = useMemo<Provenance[]>(() => {
     const out: Provenance[] = []
     if (scenario) out.push(oct10Provenance(scenario.manifest))
     out.push(MEMBRANE_LTV_PROVENANCE)
-    out.push(detection.provenance)
+    if (isDemo || loaded) out.push(detection.provenance)
     if (isDemo) out.push(demoPos.provenance)
     return out
-  }, [scenario, detection, isDemo, demoPos])
+  }, [scenario, detection, isDemo, loaded, demoPos])
 
   /**
    * WHY IT HELD. Only rendered when the Membrane run finished with no collateral-seizing
@@ -698,6 +717,17 @@ export const Simulator: React.FC<SimulatorProps> = ({
           readNote={readNote}
           heroVariant={heroVariant}
           history={heroHistory}
+          addressEvidence={
+            submittedAddress ? (
+              <AddressEvidenceCard
+                key={submittedAddress}
+                address={submittedAddress}
+                history={currentHistory}
+                loading={simHistory.isPending}
+                failed={simHistory.isError}
+              />
+            ) : null
+          }
           isDemo={isDemo}
           measured={isDemo ? DEMO_BORROWER_MEASURED : null}
           startTs={scenario?.series.startTs ?? null}
@@ -706,7 +736,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
           value={input}
           onChange={setInput}
           onSubmit={onSubmitAddress}
-          loadedAddress={loaded?.address ?? null}
+          loadedAddress={submittedAddress}
           onClear={onClearAddress}
           isLoading={isLoading}
           error={addressError}
@@ -764,7 +794,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
             {heldEvents.length === 0 ? (
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
+                fontSize="12px"
                 color={SEMANTIC_COLORS.textPrimary}
                 {...tabular}
               >
@@ -776,7 +806,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
                   key={`held-${e.minute}-${k}`}
                   title={e.why}
                   fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="11px"
+                  fontSize="12px"
                   color={SEMANTIC_COLORS.textPrimary}
                   {...tabular}
                 >
@@ -809,45 +839,8 @@ export const Simulator: React.FC<SimulatorProps> = ({
           render standalone on the carry page), and it sells with live evidence rather
           than description. Its numbers are fetched or stamped modelled, never invented. */}
           <Section tone="evidence">
-            <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} />
+            <CarrySection />
           </Section>
-
-          {/* THE RUN. Keep the evidence receipt; model inputs remain in FinePrint. */}
-          {selected && (
-            <Section tone="evidence" mark>
-              <Box minW={0} display="grid" gridTemplateColumns="minmax(0, 1fr)" gap={SPACING.md}>
-                <Text {...SECTION}>the run</Text>
-
-                {measuredError && (
-                  <Text {...monoXs} color={SEMANTIC_COLORS.warning} lineHeight={1.6}>
-                    Measured Oct 10 liquidation statistics unavailable · documented close factor
-                    used
-                  </Text>
-                )}
-
-                {comparison && (
-                  <>
-                    <ComparisonPanel
-                      comparison={comparison}
-                      onCopyLink={onCopyLink}
-                      copyState={copyState}
-                    />
-                    <EventLog
-                      source={comparison.source}
-                      membrane={comparison.membrane}
-                      sourceTitle={comparison.position.label}
-                    />
-                  </>
-                )}
-
-                <DeploymentSection
-                  detection={detection}
-                  recallRate={values.recallRate}
-                  fastRate={values.fastRate}
-                />
-              </Box>
-            </Section>
-          )}
 
           {/* 7 — FINE PRINT. Always rendered, never collapsed, last block before the CTA. */}
           <Section>
@@ -884,7 +877,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
               borderColor={SEMANTIC_COLORS.borderStrong}
               borderRadius={0}
               fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="10px"
+              fontSize="12px"
               letterSpacing="0.24em"
               textTransform="uppercase"
               color={SEMANTIC_COLORS.textSecondary}

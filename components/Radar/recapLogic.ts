@@ -14,12 +14,23 @@
 //    rank clause, not a fabricated "1st".
 
 import { fmtUsd, fmtDuration } from './radarLogic'
-import { alarmConsequence, consequence, type Entry as VenueLogEntry } from '@/components/Carry/venueLogLogic'
+import {
+  alarmConsequence,
+  consequence,
+  isTermsOnlyNotice,
+  termsSourceUrl,
+  type Entry as VenueLogEntry,
+} from '@/components/Carry/venueLogLogic'
 
 // 'alarm' joined the venue-log union when the failure-pattern alarm shipped —
 // an alarm open during a hold is legitimate recap material.
 export type Provenance = 'observed' | 'reconstructed' | 'chain-read' | 'recorded' | 'alarm'
-export type BeatKind = 'entered' | 'exit_initiated' | 'exit_landed' | 'venue_param_changed' | 'context'
+export type BeatKind =
+  | 'entered'
+  | 'exit_initiated'
+  | 'exit_landed'
+  | 'venue_param_changed'
+  | 'context'
 
 export type Beat = {
   /** ISO instant this beat happened (or, for a cooldown landing, is projected). */
@@ -29,6 +40,8 @@ export type Beat = {
   kind: BeatKind
   text: string
   provenance: Provenance
+  /** Safe official page link when structured terms evidence supplies one. */
+  sourceUrl?: string
 }
 
 export type FlowDirection = 'deposit' | 'withdraw'
@@ -146,9 +159,10 @@ export function venueEventToBeat(e: VenueLogEntry): Beat {
     venue: e.venue,
     kind: isAlarm ? 'context' : paramish ? 'venue_param_changed' : 'context',
     text: isAlarm
-      ? `${e.venue}: failure-pattern flag during your hold — ${c.text}`
+      ? `${e.venue}: ${isTermsOnlyNotice(e) ? 'official terms-page text notice' : 'venue alert'} during your hold — ${c.text}`
       : `${e.venue}: ${c.text}`,
     provenance: e.provenance,
+    sourceUrl: termsSourceUrl(e) ?? undefined,
   }
 }
 

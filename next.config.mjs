@@ -7,10 +7,18 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  // Keep production and ordinary development unchanged. Next's documented
+  // Webpack memory optimizations trade some compile speed for a lower peak
+  // during the bounded visual-acceptance run on this disk-constrained host.
+  experimental: {
+    webpackMemoryOptimizations: process.env.MEMBRANE_ACCEPTANCE_LOW_MEMORY === '1',
+  },
   // Pages Router SSR functions otherwise externalize the pnpm dependency graph
   // and can exhaust Vercel's file-descriptor limit during cold start (EMFILE).
-  // Bundle those dependencies into the function chunks instead.
-  bundlePagesRouterDependencies: true,
+  // Bundle those dependencies into the function chunks instead. The bounded
+  // local acceptance server externalizes them to test a smaller compile graph;
+  // production and ordinary development retain the existing behavior.
+  bundlePagesRouterDependencies: process.env.MEMBRANE_ACCEPTANCE_EXTERNALIZE_PAGES !== '1',
   // Bundle the wallet packages into the server output instead of leaving their
   // pnpm-linked ESM dependencies for the Vercel function to resolve at runtime.
   // Without this, traced functions can omit transitive files such as mipd and
@@ -54,8 +62,23 @@ const nextConfig = {
     '/blog': ['./content/blog/**'],
     '/blog/[slug]': ['./content/blog/**'],
     '/sitemap.xml': ['./content/blog/**'],
+    '/api/carry/forecast': [
+      './scripts/route-cohort/aug-2026-ab-vault-seed.json',
+      './components/Carry/route-capital.json',
+      './components/Carry/fixtures.ts',
+    ],
+    '/api/carry/forecast-observations': [
+      './scripts/route-cohort/aug-2026-ab-vault-seed.json',
+      './components/Carry/route-capital.json',
+      './components/Carry/fixtures.ts',
+    ],
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { dev, isServer }) => {
+    // A bounded visual-acceptance run should not refill the small Data volume
+    // with Webpack's persistent module cache. Keep normal development unchanged.
+    if (dev && process.env.MEMBRANE_ACCEPTANCE_NO_DISK_CACHE === '1') {
+      config.cache = false;
+    }
     // Ensure chain-registry is properly resolved
     const chainRegistryPath = path.resolve(__dirname, 'node_modules/chain-registry');
     config.resolve.alias = {

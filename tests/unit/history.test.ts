@@ -4,6 +4,7 @@ import {
   DEFAULT_REPLAY_PARAMS,
   EPISODE_GAP_SECONDS,
   clusterEpisodes,
+  netKeptUsd,
   replayEpisode,
   replayLiquidation,
   totalHistory,
@@ -259,6 +260,19 @@ describe('totalHistory', () => {
     expect(t.unknownCount).toBe(1)
     // Re-liquidations included: 2 on the partial, 1 on the broke, 1 on the worse.
     expect(t.membraneLiquidationsTotal).toBe(4)
+  })
+
+  it('uses one net for the history total, hero and share card, including worse episodes', () => {
+    expect(
+      netKeptUsd([
+        mk('saved', 50_000, 0),
+        mk('partial', 10_000, 3_000),
+        mk('worse', 4_000, 4_500),
+        mk('unknown', 999_999, 0),
+      ]),
+    ).toBe(56_500)
+    expect(netKeptUsd([mk('unknown', 999_999, 0)])).toBeNull()
+    expect(netKeptUsd([])).toBeNull()
   })
 
   it('an unpriced episode never becomes a save', () => {

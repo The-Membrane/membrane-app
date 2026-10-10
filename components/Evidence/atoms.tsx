@@ -151,6 +151,9 @@ export const Caveats: React.FC<{ items: string[]; title?: string }> = ({
             fontSize={TYPOGRAPHY.xs}
             color={SEMANTIC_COLORS.textSecondary}
             lineHeight="1.8"
+            flex="1"
+            minW="0"
+            overflowWrap="anywhere"
           >
             {c}
           </Text>

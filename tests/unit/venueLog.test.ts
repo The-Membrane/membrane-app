@@ -5,6 +5,8 @@ import {
   capacityMove,
   consequence,
   fmtDuration,
+  isTermsOnlyNotice,
+  termsSourceUrl,
   type Entry,
 } from '@/components/Carry/venueLogLogic'
 
@@ -88,9 +90,160 @@ describe('VenueLog consequence rendering', () => {
         { content_len: 6300, content_hash: 'bb' },
       ),
     )
-    expect(c.text).toBe('terms page edited (+71 chars) — read it before you rely on it')
+    expect(c.text).toBe(
+      'configured official terms-page text changed (+71 chars) — exit impact unclassified; review the source terms',
+    )
     expect(c.text).not.toContain('aa')
-    expect(c.tone).toBe('warning')
+    expect(c.tone).toBe('normal')
+  })
+
+  it('a terms-only gate alarm reports an unclassified text change, not a moved withdrawal gate', () => {
+    const c = alarmConsequence({
+      ...entry('gate_change', {}, {}),
+      provenance: 'alarm',
+      severity: 'alarm',
+      evidence: {
+        count: 1,
+        latest: {
+          kind: 'terms_page_changed',
+          prev: { content_hash: 'aa' },
+          next: { content_hash: 'bb' },
+        },
+      },
+    })
+    expect(c.text).toContain('configured official terms-page text changed')
+    expect(c.text).toContain('exit impact unclassified')
+    expect(c.text).not.toMatch(/gate moved|withdrawal gate|aa|bb/)
+    expect(c.text).toMatch(/^NOTICE · /)
+    expect(c.tone).toBe('notice')
+    const closed = alarmConsequence({
+      ...entry('gate_change', {}, {}),
+      provenance: 'alarm',
+      cleared: true,
+      evidence: { count: 1, latest: { kind: 'terms_page_changed' } },
+    })
+    expect(closed.text).toMatch(/^NOTICE RECORD CLOSED · /)
+    expect(closed.text).not.toContain('WINDOW ENDED')
+  })
+
+  it('renders the separate terms-page notice kind without gate claims or false reversal on expiry', () => {
+    const open: Entry = {
+      ...entry('terms_page_notice', {}, {}),
+      provenance: 'alarm',
+      severity: 'notice',
+      evidence: { count: 1 },
+    }
+    expect(isTermsOnlyNotice(open)).toBe(true)
+    expect(alarmConsequence(open)).toMatchObject({ tone: 'notice' })
+    expect(alarmConsequence(open).text).toMatch(
+      /^NOTICE · configured official terms-page text changed/,
+    )
+    const ended = alarmConsequence({ ...open, cleared: true })
+    expect(ended.text).toMatch(/^NOTICE WINDOW ENDED · /)
+    expect(ended.text).toContain('recorded 24h detection window')
+    expect(ended.text).not.toMatch(/in the last 24h|gate moved|terms reverted/)
+  })
+
+  it('links only a structured HTTPS source on a terms event', () => {
+    const source = 'https://official.example/terms?section=exit&lang=en'
+    expect(termsSourceUrl({ kind: 'terms_page_notice', evidence: { sourceUrl: source } })).toBe(
+      source,
+    )
+    expect(
+      termsSourceUrl({
+        kind: 'gate_change',
+        evidence: { sourceUrl: source, latest: { kind: 'terms_page_changed' } },
+      }),
+    ).toBe(source)
+    expect(
+      termsSourceUrl({
+        kind: 'gate_change',
+        evidence: { sourceUrl: source, latest: { kind: 'cooldown_duration_changed' } },
+      }),
+    ).toBeNull()
+    for (const bad of [
+      'http://official.example/terms',
+      'javascript:alert(1)',
+      'https://u:p@official.example/terms',
+      'https://official.example/terms\n',
+      '//official.example/terms',
+      'not a url',
+    ]) {
+      expect(termsSourceUrl({ kind: 'terms_page_notice', evidence: { sourceUrl: bad } })).toBeNull()
+    }
+  })
+
+  it('a mixed alarm retains measured cooldown and instant-liquidity changes even when terms changed last', () => {
+    const e: Entry = {
+      ...entry('gate_change', {}, {}),
+      provenance: 'alarm',
+      evidence: {
+        count: 3,
+        latest: { kind: 'terms_page_changed' },
+        events: [
+          { kind: 'terms_page_changed' },
+          {
+            kind: 'instant_liquidity_shift',
+            prev: { instant_usd: 3_000_000 },
+            next: { instant_usd: 2_000_000 },
+          },
+          {
+            kind: 'cooldown_duration_changed',
+            prev: { cooldownDuration: 86_400 },
+            next: { cooldownDuration: 604_800 },
+          },
+        ],
+      },
+    }
+    const c = alarmConsequence(e)
+    expect(isTermsOnlyNotice(e)).toBe(false)
+    expect(c.text).toContain('cooldown duration changed 1d → 7d')
+    expect(c.text).toContain('instant exit capacity shifted $3.00M → $2.00M')
+    expect(c.text).toContain('terms-page text also changed (exit impact unclassified)')
+    expect(c.tone).toBe('danger')
+  })
+
+  it('does not classify a partial multi-event roster as terms-only', () => {
+    const e: Entry = {
+      ...entry('gate_change', {}, {}),
+      provenance: 'alarm',
+      evidence: { count: 2, latest: { kind: 'terms_page_changed' } },
+    }
+    expect(isTermsOnlyNotice(e)).toBe(false)
+    const c = alarmConsequence(e)
+    expect(c.tone).toBe('danger')
+    expect(c.text).toContain('additional event details unavailable')
+  })
+
+  it('does not neutralize a legacy alarm with missing or invalid event count', () => {
+    for (const count of [undefined, 0, -1, 1.5, 'unknown']) {
+      const e: Entry = {
+        ...entry('gate_change', {}, {}),
+        provenance: 'alarm',
+        evidence: { count, latest: { kind: 'terms_page_changed' } },
+      }
+      expect(isTermsOnlyNotice(e)).toBe(false)
+      expect(alarmConsequence(e).tone).toBe('danger')
+      expect(alarmConsequence(e).text).toContain('additional event details unavailable')
+    }
+  })
+
+  it('a measured cooldown alarm retains its timing semantics', () => {
+    const c = alarmConsequence({
+      ...entry('gate_change', {}, {}),
+      provenance: 'alarm',
+      severity: 'alarm',
+      evidence: {
+        count: 1,
+        latest: {
+          kind: 'cooldown_duration_changed',
+          prev: { cooldownDuration: 604800 },
+          next: { cooldownDuration: 86400 },
+        },
+      },
+    })
+    expect(c.text).toContain('cooldown duration changed 7d → 1d')
+    expect(c.text).toContain('review the current exit conditions')
   })
 
   it('param_changed renders each changed key by name, USD keys as dollars', () => {
@@ -124,17 +277,43 @@ describe('VenueLog consequence rendering', () => {
   })
 })
 
-describe('headroom_thin sentence names the capacity it judged', () => {
-  const alarm = (evidence: Record<string, unknown>): Entry => ({
-    venue: 'sUSDe', kind: 'headroom_thin', at: '2026-09-26T00:00:00.000Z', prev: null, next: null,
-    provenance: 'alarm', severity: 'watch', evidence,
+describe('legacy flow alarms', () => {
+  const alarm = (kind: string, cleared: boolean): Entry => ({
+    venue: 'sUSDe',
+    kind,
+    at: '2026-09-26T00:00:00.000Z',
+    prev: null,
+    next: null,
+    provenance: 'alarm',
+    severity: 'alarm',
+    cleared,
+    evidence: {
+      streakDays: 20,
+      cumulativeOutflowUsd: 2e6,
+      worstDayOutflowUsd: 1e6,
+      ratio: 2,
+    },
   })
-  const base = { instantUsd: 2e6, worstDayOutflowUsd: 1e6, windowDays: 90, ratio: 2 }
-  it('curve capacity: "swap-out capacity within 1% cost"', () => {
-    expect(alarmConsequence(alarm({ ...base, source: 'depth_curve', costCapPct: 1 })).text).toContain('swap-out capacity within 1% cost $2.00M')
-  })
-  it('raw fallback says it has no cost bound', () => {
-    expect(alarmConsequence(alarm({ ...base, source: 'depth_usd_raw' })).text).toContain('raw swap-out reserve (no cost bound)')
-    expect(alarmConsequence(alarm({ ...base, source: 'depth_usd' })).text).toContain('raw swap-out reserve (no cost bound)')
+
+  it.each(['net_outflow_streak', 'headroom_thin'])(
+    '%s is retained as an unvalidated historical signal',
+    (kind) => {
+      for (const cleared of [false, true]) {
+        const rendered = alarmConsequence(alarm(kind, cleared))
+        expect(rendered.tone).toBe('muted')
+        expect(rendered.text).toContain('HISTORICAL')
+        expect(rendered.text).toContain('source flow coverage was incomplete')
+        expect(rendered.text).not.toMatch(/20d|\$|2\.0×|one bad day|the book is bleeding/)
+      }
+    },
+  )
+
+  it('keeps unrelated measured alarms actionable', () => {
+    const rendered = alarmConsequence({
+      ...alarm('drawdown_fast', false),
+      evidence: { dropPct: 25, fromValue: 2e6, toValue: 1.5e6, metric: 'instant_usd' },
+    })
+    expect(rendered.tone).toBe('danger')
+    expect(rendered.text).toContain('capacity fell 25%')
   })
 })

@@ -10,7 +10,7 @@ export type OgKind = 'radar' | 'venue' | 'finding'
 export const OG_KINDS: readonly OgKind[] = ['radar', 'venue', 'finding']
 
 type Param = string | string[] | null | undefined
-const first = (v: Param): string | undefined => (Array.isArray(v) ? v[0] : v ?? undefined)
+const first = (v: Param): string | undefined => (Array.isArray(v) ? v[0] : (v ?? undefined))
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/
 /** Venue names come from tools/venue-recorder.config.json (sUSDe, aave-usde…). */
@@ -93,7 +93,8 @@ export function shortAddr(a: string): string {
 }
 
 const VERDICTS: readonly Verdict[] = ['clear', 'caution', 'exposed']
-const isVerdict = (v: unknown): v is Verdict => typeof v === 'string' && (VERDICTS as readonly string[]).includes(v)
+const isVerdict = (v: unknown): v is Verdict =>
+  typeof v === 'string' && (VERDICTS as readonly string[]).includes(v)
 
 export type RadarCardSummary = {
   address: string
@@ -113,7 +114,12 @@ export function radarCardSummary(json: unknown): RadarCardSummary | null {
   if (!address || totalUsd == null || heldCount == null || !Array.isArray(j.positions)) return null
   const verdicts = (j.positions as Array<Record<string, unknown>>).map((p) => p?.verdict)
   if (!verdicts.every(isVerdict)) return null
-  return { address, totalUsd, heldCount, worst: verdicts.length ? worstVerdict(verdicts as Verdict[]) : null }
+  return {
+    address,
+    totalUsd,
+    heldCount,
+    worst: verdicts.length ? worstVerdict(verdicts as Verdict[]) : null,
+  }
 }
 
 export type VenueCardSummary = {
@@ -125,10 +131,7 @@ export type VenueCardSummary = {
   observedAt: string | null
 }
 
-/**
- * Reads the /api/venues/<venue>/summary response. TVL uses the venue page's own rule
- * (totalAssets / 1e18 at $1/stable, else the instant read — components/Venue/VenuePage.tsx).
- */
+/** Reads the venue summary. Aave's supplied TVL carries its own observation time. */
 export function venueCardSummary(json: unknown): VenueCardSummary | null {
   if (!json || typeof json !== 'object') return null
   const j = json as Record<string, any>
@@ -137,9 +140,13 @@ export function venueCardSummary(json: unknown): VenueCardSummary | null {
   const obs = j.observed && typeof j.observed === 'object' ? j.observed : null
   const totalAssets = obs?.params?.totalAssets
   const fromAssets = totalAssets != null ? clampUsd(Number(totalAssets) / 1e18) : null
-  const tvlUsd = fromAssets ?? clampUsd(obs?.instantUsd)
+  const isAToken = j.kind === 'atoken-liquidity'
+  // Exit liquidity is not supplied TVL for any venue. A missing total-assets
+  // reading remains unknown on the share card, just as it does on the page.
+  const tvlUsd = isAToken ? clampUsd(j.suppliedTvl?.usd) : fromAssets
   const open = j.alarms?.open
-  const observedAt = typeof obs?.observedAt === 'string' ? obs.observedAt.slice(0, 10) : null
+  const tvlSourceTime = isAToken && tvlUsd != null ? j.suppliedTvl?.observedAt : obs?.observedAt
+  const observedAt = typeof tvlSourceTime === 'string' ? tvlSourceTime.slice(0, 10) : null
   return {
     label,
     tvlUsd,

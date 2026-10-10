@@ -21,7 +21,6 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { lazyChart } from '@/components/ui/lazyChart'
 
-import { SectionHeading } from './atoms'
 import type { ExitModelVenue } from './types'
 import { CROSSING_STAMP, EXIT_MODEL } from './fixtures'
 import {
@@ -301,12 +300,62 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
 
   return (
     <Box>
-      <SectionHeading
-        index="04 /"
-        title="Higher Yield Comes With Risks"
-        note={`${EXIT_MODEL.alt.name} vs ${EXIT_MODEL.chosen.name} · what you keep after exit costs, over ${HORIZON_DAYS} days, at your size, ×10 and ×100`}
-      />
+      <Box mt={SPACING.xl} mb={SPACING.md} display="grid" gap={SPACING.xs}>
+        <Text
+          as="h2"
+          fontFamily={TYPOGRAPHY.fontDisplay}
+          fontSize="clamp(26px, 4vw, 40px)"
+          lineHeight={1.1}
+          letterSpacing="-0.015em"
+          color={SEMANTIC_COLORS.textPrimary}
+        >
+          What you keep after the exit
+        </Text>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.small}
+          color={SEMANTIC_COLORS.textSecondary}
+        >
+          Compare {EXIT_MODEL.alt.name} with {EXIT_MODEL.chosen.name} after modelled exit costs over{' '}
+          {HORIZON_DAYS} days.
+        </Text>
+      </Box>
       <Card p={SPACING.base}>
+        {crossing !== null && (
+          <Box
+            pb={SPACING.md}
+            mb={SPACING.md}
+            borderBottom="1px solid"
+            borderColor={SEMANTIC_COLORS.borderSubtle}
+            display="grid"
+            gap={SPACING.xs}
+          >
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="10px"
+              letterSpacing="0.18em"
+              textTransform="uppercase"
+              color={SEMANTIC_COLORS.textSecondary}
+            >
+              modelled crossover · {HORIZON_DAYS} days
+            </Text>
+            <Text
+              fontFamily={TYPOGRAPHY.fontDisplay}
+              fontSize="clamp(28px, 4vw, 42px)"
+              lineHeight={1.1}
+              color={SEMANTIC_COLORS.warning}
+            >
+              ~{formatUSD(twoSigFigs(crossing))}
+            </Text>
+            <Text
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.small}
+              color={SEMANTIC_COLORS.textPrimary}
+            >
+              Above this deposit size, the cheaper exit beats the higher yield in this model.
+            </Text>
+          </Box>
+        )}
         <ChartBody
           data={data}
           sizeUsd={size}
@@ -368,26 +417,6 @@ export const CrossingChart: React.FC<CrossingChartProps> = ({ amountUsd }) => {
             ))}
           </HStack>
         </Box>
-
-        {/* The takeaway, in dollars, gold-bordered (§6) */}
-        {crossing !== null && (
-          <Box
-            mt={SPACING.md}
-            p={SPACING.md}
-            border="1px solid"
-            borderColor={SEMANTIC_COLORS.warning}
-            borderRadius={0}
-          >
-            <Text
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize={TYPOGRAPHY.small}
-              color={SEMANTIC_COLORS.warning}
-            >
-              Past ~{formatUSD(twoSigFigs(crossing))} the cheaper venue wins: the higher yield costs
-              more to leave than it pays.
-            </Text>
-          </Box>
-        )}
 
         {/* Lead with the decision. The model details float over the chart without
             changing the card's height. */}

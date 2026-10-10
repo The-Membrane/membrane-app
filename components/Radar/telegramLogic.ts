@@ -9,8 +9,15 @@
 
 import { getAddress } from 'viem'
 
-import { alarmConsequence } from '@/components/Carry/venueLogLogic'
-import { heldVenues, isUnreadDepthAlarm, matchAlerts, type AlarmLike, type WatchLike } from '@/components/Radar/alertLogic'
+import { alarmConsequence, termsSourceUrl } from '@/components/Carry/venueLogLogic'
+import {
+  heldVenues,
+  isSuspendedFlowAlarm,
+  isUnreadDepthAlarm,
+  matchAlerts,
+  type AlarmLike,
+  type WatchLike,
+} from '@/components/Radar/alertLogic'
 
 /** Re-exported so the injected-logic callers (scripts/lib/telegramBot.mjs) reach it. */
 export { heldVenues }
@@ -66,17 +73,15 @@ export type Reply =
  * glossary, which is built from the rule constants.
  */
 export const WATCHED_RISKS = [
-  'its exit gate changes (cooldown length, terms page, instant-exit liquidity)',
-  'its exit capacity falls fast',
-  'withdrawals outrun deposits day after day',
-  'instant exit could not cover its worst recent day of withdrawals',
-  'its swap-out pool drains or goes one-sided',
+  'its recorded cooldown duration or instant-exit liquidity changes',
+  'each observed edit to the configured official terms page opens a separate 24-hour notice; exit impact unclassified',
+  'its recorded exit liquidity or venue assets fall fast',
+  'its swap-out pool loses recorded depth or goes one-sided',
 ] as const
 
 /** Only a lending venue (Aave) has a utilization alarm; the line shows only for its holders. */
 const LENDING_RISK = 'its lending market is almost fully lent out'
 const isLendingVenue = (v: string) => v.startsWith('aave')
-
 
 export const replyText = (r: Reply): string => {
   switch (r.kind) {
@@ -89,9 +94,9 @@ export const replyText = (r: Reply): string => {
         r.openTexts.length
           ? `Right now:\n${r.openTexts.map((t) => `- ${t}`).join('\n')}`
           : venues
-            ? `Right now: no alarm on ${venues}.`
+            ? `Right now: no current venue alert on ${venues}.`
             : null,
-        `This chat gets a message when an alarm starts or ends on ${venues ?? 'a venue this address holds'}:\n${[...WATCHED_RISKS, ...(r.held.some(isLendingVenue) ? [LENDING_RISK] : [])].map((w) => `- ${w}`).join('\n')}`,
+        `This chat gets a message when a venue alert opens or closes on ${venues ?? 'a venue this address holds'}:\n${[...WATCHED_RISKS, ...(r.held.some(isLendingVenue) ? [LENDING_RISK] : [])].map((w) => `- ${w}`).join('\n')}`,
         `Radar profile: ${radarLink(r.address)}`,
         'Data compiled by Membrane · /stop to unsubscribe · /list to see what this chat watches',
       ].filter(Boolean)
@@ -121,7 +126,10 @@ export const replyText = (r: Reply): string => {
 }
 
 /** Texts of the alarms open now on the venues a watch holds (for the welcome). */
-export const openAlertTexts = (watch: WatchLike, alarms: AlarmLike[]): { held: string[]; openTexts: string[] } => {
+export const openAlertTexts = (
+  watch: WatchLike,
+  alarms: AlarmLike[],
+): { held: string[]; openTexts: string[] } => {
   const held = heldVenues(watch)
   const { open } = matchAlerts(held, alarms, watch.createdAt)
   return { held, openTexts: open.map((a) => `${a.venue}: ${a.text}`) }
@@ -143,11 +151,23 @@ export type AlarmRow = AlarmLike & { id: string }
 
 export type DeliveredKey = { subscriptionId: string; alarmId: string; moment: Moment }
 
-export type Delivery = { subscriptionId: string; chatId: string; alarmId: string; moment: Moment; text: string; at: string }
+export type Delivery = {
+  subscriptionId: string
+  chatId: string
+  alarmId: string
+  moment: Moment
+  text: string
+  at: string
+}
 
 const keyOf = (k: DeliveredKey) => `${k.subscriptionId}|${k.alarmId}|${k.moment}`
 
-export const alertMessage = (args: { address: string; alarm: AlarmLike; moment: Moment; footer?: string }): string => {
+export const alertMessage = (args: {
+  address: string
+  alarm: AlarmLike
+  moment: Moment
+  footer?: string
+}): string => {
   const { alarm, moment } = args
   const consequence = alarmConsequence({
     venue: alarm.venue,
@@ -160,9 +180,11 @@ export const alertMessage = (args: { address: string; alarm: AlarmLike; moment: 
     evidence: alarm.evidence,
     cleared: moment === 'cleared',
   }).text
+  const sourceUrl = termsSourceUrl(alarm)
   return [
     `${shortAddr(args.address)} holds ${alarm.venue}`,
     consequence,
+    sourceUrl ? `Source terms: ${sourceUrl}` : null,
     `Radar profile: ${radarLink(args.address)}`,
   ]
     .filter(Boolean)
@@ -199,7 +221,7 @@ export const planDeliveries = (args: {
     const since = Date.parse(s.createdAt)
     const holds = new Set(heldVenues(watch))
     for (const a of args.alarms) {
-      if (!holds.has(a.venue) || isUnreadDepthAlarm(a)) continue
+      if (!holds.has(a.venue) || isUnreadDepthAlarm(a) || isSuspendedFlowAlarm(a)) continue
       const moments: Array<[Moment, string]> = []
       if (Date.parse(a.firedAt) > since) moments.push(['fired', a.firedAt])
       if (a.clearedAt && Date.parse(a.clearedAt) > since) moments.push(['cleared', a.clearedAt])
@@ -211,12 +233,21 @@ export const planDeliveries = (args: {
           alarmId: a.id,
           moment,
           at,
-          text: alertMessage({ address: s.address, alarm: a, moment, footer: args.footerByAddress?.[s.address] }),
+          text: alertMessage({
+            address: s.address,
+            alarm: a,
+            moment,
+            footer: args.footerByAddress?.[s.address],
+          }),
         })
       }
     }
   }
-  candidates.sort((x, y) => Date.parse(x.at) - Date.parse(y.at) || (x.moment === y.moment ? 0 : x.moment === 'fired' ? -1 : 1))
+  candidates.sort(
+    (x, y) =>
+      Date.parse(x.at) - Date.parse(y.at) ||
+      (x.moment === y.moment ? 0 : x.moment === 'fired' ? -1 : 1),
+  )
   const perChat = new Map<string, number>()
   const out: Delivery[] = []
   const dropped = new Map<string, number>()

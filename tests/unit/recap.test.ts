@@ -5,6 +5,7 @@ import {
   deltaSummary,
   flowToBeats,
   rankPhrase,
+  venueEventToBeat,
   type AddressFlow,
   type RecapInputs,
 } from '@/components/Radar/recapLogic'
@@ -63,6 +64,60 @@ describe('rankPhrase — English ordinals, 1 = biggest', () => {
   })
 })
 
+describe('venue alert recap copy', () => {
+  const base: VenueLogEntry = {
+    venue: 'sUSDe',
+    kind: 'gate_change',
+    at: '2026-09-28T00:00:00Z',
+    prev: null,
+    next: null,
+    provenance: 'alarm',
+    severity: 'alarm',
+  }
+
+  it('labels a terms-only alarm as an unclassified source-page notice', () => {
+    const beat = venueEventToBeat({
+      ...base,
+      evidence: { count: 1, latest: { kind: 'terms_page_changed' } },
+    })
+    expect(beat.text).toContain('official terms-page text notice during your hold')
+    expect(beat.text).toContain('exit impact unclassified')
+    expect(beat.text).not.toContain('failure-pattern flag')
+  })
+
+  it('labels the separate terms-page notice kind neutrally', () => {
+    const beat = venueEventToBeat({
+      ...base,
+      kind: 'terms_page_notice',
+      severity: 'notice',
+      evidence: { count: 1, sourceUrl: 'https://official.example/terms' },
+    })
+    expect(beat.text).toContain('official terms-page text notice during your hold')
+    expect(beat.text).toContain('NOTICE · configured official terms-page text changed')
+    expect(beat.sourceUrl).toBe('https://official.example/terms')
+  })
+
+  it('keeps a mixed measured gate alarm visible as a venue alert', () => {
+    const beat = venueEventToBeat({
+      ...base,
+      evidence: {
+        count: 2,
+        latest: { kind: 'terms_page_changed' },
+        events: [
+          { kind: 'terms_page_changed' },
+          {
+            kind: 'cooldown_duration_changed',
+            prev: { cooldownDuration: 86400 },
+            next: { cooldownDuration: 604800 },
+          },
+        ],
+      },
+    })
+    expect(beat.text).toContain('venue alert during your hold')
+    expect(beat.text).toContain('cooldown duration changed 1d → 7d')
+  })
+})
+
 describe('cooldown-gated exit beat — states the gate + projected landing', () => {
   it('renders a sUSDe exit as INITIATED, gated, with an arithmetic landing date', () => {
     const [beat, ...rest] = flowToBeats(susdeExit())
@@ -94,7 +149,9 @@ describe('exit-on-worst-day context ranking — from the recorded corpus', () =>
   })
 
   it('omits the rank clause when the corpus has no ranking (honesty)', () => {
-    const [beat] = flowToBeats(susdeExit({ dayRank: null, dayOutflowUsd: null, dayRankTotal: null }))
+    const [beat] = flowToBeats(
+      susdeExit({ dayRank: null, dayOutflowUsd: null, dayRankTotal: null }),
+    )
     expect(beat.text).not.toMatch(/exit day/)
     expect(beat.text).toMatch(/exit initiated on sUSDe/)
   })

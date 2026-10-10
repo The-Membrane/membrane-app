@@ -46,6 +46,7 @@ import {
   tag,
   verificationRule,
   type GrantRecord,
+  type RuleId,
   type Verdict,
   type WhitelistReach,
 } from './rules'
@@ -62,6 +63,11 @@ export type AdminEventRow = {
   args: Record<string, unknown>
   /** Collector enrichment for events that do not carry the previous value (FiatToken roles…). */
   prev?: string | null
+  /**
+   * Fail-closed audit (PH-12): the collector's read of the previous value at block − 1 FAILED
+   * (not a revert): `prev` null is then "not read", never "none" — judged fail closed.
+   */
+  prevUnread?: boolean
 }
 
 /** Controller of `address` at `block` (collector archive read); null = not classified. */
@@ -85,6 +91,16 @@ export type AdminCtx = {
    * fail closed; a failed read is never "no timelock held it".
    */
   upgradeHoldersUnread?: string[]
+  /**
+   * Fail-closed audit (PH-07): the subject's declared timelocks — what an upgrade with unread
+   * holders is judged against when no power-holding timelock is known.
+   */
+  declaredTimelocks?: string[]
+  /**
+   * Fail-closed audit (CL-07 / PH-11): true when the collector TRIED to classify `address` at
+   * `block` and failed — a null previous holder is then "not read" (fail closed), never "none".
+   */
+  prevUnread?: (address: string, block: number) => boolean
   /** Exact classification at a block (no fallback to head): `null` when not read. */
   ctlExact?: ControllerLookup
   /** contract (lower) → first block with code (an Upgraded in the deploy tx is initialization). */
@@ -358,6 +374,17 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
   // block with code for every emitter). An unknown deploy block is never assumed.
   const isInit = (em: string, block: number) => ctx.deployBlocks[em] === block
   const exact = ctx.ctlExact ?? (() => null)
+  // fail-closed audit (CL-07 / PH-11 / PH-12): why the previous holder of a change is null — its
+  // classification at block − 1 FAILED, or the collector's read of it failed — so the change is
+  // judged fail closed instead of "previous holder unknown: neutral"
+  const prevUnreadOf = (r: AdminEventRow, prevAddr: string | null | undefined) =>
+    prevAddr && !isZero(prevAddr)
+      ? ctx.prevUnread?.(prevAddr, r.block - 1)
+        ? { prevUnread: `${short(prevAddr)} could not be classified at block ${r.block - 1}` }
+        : undefined
+      : r.prevUnread
+        ? { prevUnread: `the previous holder was not read at block ${r.block - 1}` }
+        : undefined
 
   for (const r of sorted) {
     const a = r.args
@@ -440,7 +467,7 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
           const renounced = !!known && isZero(known)
           const v =
             known && !renounced
-              ? classifyControllerChange(before(known), at(next))
+              ? classifyControllerChange(before(known), at(next), prevUnreadOf(r, known))
               : renounced
                 ? classifyControllerChange({ kind: 'zero', address: ZERO }, at(next))
                 : classifyControllerChange(null, at(next))
@@ -462,7 +489,7 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
           )
           break
         }
-        const v = classifyControllerChange(before(prev), at(next))
+        const v = classifyControllerChange(before(prev), at(next), prevUnreadOf(r, prev))
         if (r.event === 'AdminChanged') ad5(v, r, txRows, ctx)
         out.push(
           mk(
@@ -481,6 +508,14 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
       case 'BeaconUpgraded': {
         const impl = lcs(a.implementation ?? a.beacon)
         const v = tag(neutral(), 'logic_change')
+        // fail-closed audit (TV-10): a Kernel SetApp whose app could not be mapped (the app list
+        // was not read): an upgrade of an UNKNOWN app — judged as one, with a read gap
+        if (a.appUnread) {
+          tag(v, 'read_gap')
+          v.notes.push(
+            `Kernel SetApp for app ${short(lcs(a.appId))}: the subject's Aragon apps were not all read — judged as an upgrade of an unknown app (fail closed)`,
+          )
+        }
         if ((ctx.deployBlocks[em] ?? -1) === r.block) {
           tag(v, 'initialization')
         } else {
@@ -827,7 +862,13 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const to = lcs(a.guard ?? a.moduleGuard ?? a.module ?? a.handler)
         // The fallback handler set at Safe setup is initialization.
         const exactBefore = ctx.ctlExact?.(em, r.block - 1) ?? null
-        const init = (ctx.deployBlocks[em] ?? -1) === r.block || exactBefore?.kind === 'eoa'
+        // Fail-closed audit (ST-04 b): initialization only in the Safe's (confirmed) deploy block.
+        // "No code one block earlier" alone is no proof — a false '0x' from an endpoint that could
+        // not serve the block was cached as an EOA and made a module enable "initialization". With
+        // the deploy block unknown it is judged as a change, with a read gap.
+        const dep = ctx.deployBlocks[em]
+        const init = dep === r.block
+        const initUnconfirmed = !init && dep === undefined && exactBefore?.kind === 'eoa'
         // ChangedGuard / ChangedModuleGuard / ChangedFallbackHandler carry only the NEW value.
         // The previous one (review round 5): the last one the events set in this block, else
         // the exact archive read at block − 1 (a guard set before the scan, or by a
@@ -847,22 +888,43 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const complete =
           ctx.scanFrom === undefined ||
           (ctx.deployBlocks[em] !== undefined && ctx.deployBlocks[em] >= ctx.scanFrom)
+        // Fail-closed review (2026-10-10, rules #4): the archive read at block − 1 FAILED. What the
+        // events left (or "none" from a complete scan) is then no proof: a guard set by a
+        // delegatecall or in a lost chunk would be missed, and "none before" made the change an
+        // UPGRADE ("guard added"). Unread: judged fail closed below, with a read gap.
+        const beforeFailed =
+          !!prop && read === undefined && !exactBefore && !!ctx.prevUnread?.(em, r.block - 1)
+        const sameBlock = last && last.block === r.block ? last.value : undefined
         const from: string | undefined =
           r.prev ??
-          (last && last.block === r.block ? last.value : undefined) ??
+          sameBlock ??
           (read !== undefined ? lcs(read) : undefined) ??
-          last?.value ??
-          (prop && complete ? ZERO : undefined)
+          (beforeFailed ? undefined : (last?.value ?? (prop && complete ? ZERO : undefined)))
         if (prop) lastGuard.set(gk, { value: to, block: r.block })
         let v: Verdict
         if (init) v = tag(neutral(), 'initialization')
         else if (prop && from === undefined)
-          v = down(
-            neutral(),
-            'AD-6',
-            `${field.replace('_', ' ')} → ${to}; previous ${field.replace('_', ' ')} not read (the Safe predates the scan): a replacement cannot be ruled out (fail closed)`,
-          )
+          v = beforeFailed
+            ? tag(
+                down(
+                  neutral(),
+                  'AD-6',
+                  `${field.replace('_', ' ')} → ${to}; previous ${field.replace('_', ' ')} not read (the Safe could not be read at block ${r.block - 1}): a replacement cannot be ruled out (fail closed)`,
+                ),
+                'read_gap',
+              )
+            : down(
+                neutral(),
+                'AD-6',
+                `${field.replace('_', ' ')} → ${to}; previous ${field.replace('_', ' ')} not read (the Safe predates the scan): a replacement cannot be ruled out (fail closed)`,
+              )
         else v = classifySafeModuleChange(field, from, to)
+        if (initUnconfirmed) {
+          tag(v, 'read_gap')
+          v.notes.push(
+            "no code one block earlier, but the Safe's deploy block is not confirmed: judged as a change, not as its setup (fail closed)",
+          )
+        }
         out.push(
           mk(
             ctx,
@@ -908,7 +970,11 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const prev = r.prev ? lcs(r.prev) : null
         const role = r.event.replace('Changed', '')
         // previous holder unread: judged against null (an EOA successor is red, never calm)
-        let v = classifyControllerChange(prev ? before(prev) : null, at(next))
+        let v = classifyControllerChange(
+          prev ? before(prev) : null,
+          at(next),
+          prevUnreadOf(r, prev),
+        )
         if (r.event === 'PauserChanged' && isZero(next))
           v = down(v, 'MR-1', 'pauser set to address(0)')
         out.push(
@@ -1008,7 +1074,11 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const ak = `ccip_admin|${lcs(a.token)}`
         const prevAdmin = r.prev ? lcs(r.prev) : (lastOwner.get(ak) ?? null)
         lastOwner.set(ak, next)
-        const v = classifyControllerChange(prevAdmin ? before(prevAdmin) : null, at(next))
+        const v = classifyControllerChange(
+          prevAdmin ? before(prevAdmin) : null,
+          at(next),
+          prevUnreadOf(r, prevAdmin),
+        )
         out.push(
           mk(
             ctx,
@@ -1157,6 +1227,11 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const v = classifyCcip('rebalancer', {
           prevCtl: prevKnown ? before(prev) : null,
           nextCtl: at(next),
+          // fail-closed audit (CL-08 / MISSED-2): a holder whose classification FAILED
+          ...(prevKnown && !before(prev) ? prevUnreadOf(r, prev) : {}),
+          ...(!isZero(next) && !at(next)
+            ? { nextUnread: `${short(next)} (not classified at its block)` }
+            : {}),
         })
         out.push(
           mk(
@@ -1184,10 +1259,10 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const v = isInit(em, r.block)
           ? tag(neutral(), 'initialization')
           : known === undefined
-            ? classifyControllerChange(null, at(next))
+            ? classifyControllerChange(null, at(next), prevUnreadOf(r, null))
             : isZero(known)
               ? tag(neutral(), 'initialization')
-              : classifyControllerChange(before(known), at(next))
+              : classifyControllerChange(before(known), at(next), prevUnreadOf(r, known))
         if (!isInit(em, r.block) && known !== undefined && isZero(known))
           v.notes.push(
             `${name} created on ${short(em)} with manager ${describeController(at(next))}`,
@@ -1248,9 +1323,13 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         let v: Verdict
         if (isInit(em, r.block)) v = tag(neutral(), 'initialization')
         else if (known === undefined || isZero(known)) {
-          v = classifyControllerChange(null, at(next))
+          v = classifyControllerChange(
+            null,
+            at(next),
+            known === undefined ? prevUnreadOf(r, null) : undefined,
+          )
           if (known !== undefined) v.notes.push(`${what} set for the first time`)
-        } else v = classifyControllerChange(before(known), at(next))
+        } else v = classifyControllerChange(before(known), at(next), prevUnreadOf(r, known))
         if (
           !isInit(em, r.block) &&
           (r.event === 'GovernanceSet' || r.event === 'ConfigProviderSet') &&
@@ -1466,7 +1545,7 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         const next = lcs(a.newPauser)
         let v = isZero(prev)
           ? tag(neutral(), 'initialization')
-          : classifyControllerChange(before(prev), at(next))
+          : classifyControllerChange(before(prev), at(next), prevUnreadOf(r, prev))
         if (isZero(next)) v = down(v, 'MR-1', 'pauser set to address(0)')
         out.push(
           mk(
@@ -1502,13 +1581,27 @@ function ad5(v: Verdict, r: AdminEventRow, txRows: AdminEventRow[], ctx: AdminCt
   // With holders resolved at the block, judge against them; otherwise never guess — except that
   // a read that FAILED falls back to the declared timelocks (review round 12: fail closed).
   const unread = (ctx.upgradeHoldersUnread ?? []).includes(`${r.emitter}@${r.block}`)
-  const tls = at
+  let tls = at
     ? at.flatMap(tlOf)
     : ctx.upgradeHoldersAt && !unread
       ? []
       : (ctx.upgradeTimelocks[r.emitter] ?? []).filter(
           (t) => r.block >= (ctx.timelockSince?.[t] ?? 0),
         )
+  // fail-closed audit (PH-07): holders not read and no power-holding timelock known — the
+  // subject's declared timelocks; none either: AD-5 fail closed (it was skipped silently)
+  if (!tls.length && unread && !at) {
+    tls = (ctx.declaredTimelocks ?? []).filter((t) => r.block >= (ctx.timelockSince?.[t] ?? 0))
+    if (!tls.length) {
+      down(
+        v,
+        'AD-5',
+        'the upgrade holders before it were not read and no timelock is known to judge it against (fail closed)',
+      )
+      tag(v, 'read_gap')
+      return
+    }
+  }
   if (!tls.length) return
   // an OZ timelock emits CallExecuted, a Dual Governance timelock ProposalExecuted
   const executed = txRows.some(
@@ -1540,6 +1633,8 @@ export type DvnSignerChange = {
   addedAndRemoved: boolean
   /** The DVN's own setup: it had no code one block before these events. */
   init?: boolean
+  /** Fail-closed audit (LZ-15): `prev` carried from the previous transaction (the archive read failed). */
+  prevCarried?: boolean
 }
 
 export function classifyDvnSignerChanges(
@@ -1566,6 +1661,12 @@ export function classifyDvnSignerChanges(
     }
     const fmt = (x: { quorum: number; signers: number } | null) =>
       x ? `${x.quorum}-of-${x.signers}` : '?'
+    if (r.prevCarried) {
+      tag(v, 'read_gap')
+      v.notes.push(
+        `the state before block ${r.block} was not read: carried from the previous transaction (exact only if no event was lost)`,
+      )
+    }
     return {
       id: `${r.chainId}:${r.tx}:${r.logIndex}:${r.dvn}`,
       subject,
@@ -1603,6 +1704,24 @@ export type ParamTransition = {
   tx?: Hex
   before: unknown
   after: unknown
+  /**
+   * Fail-closed audit (PO-02): the bisection could not narrow this change (a midpoint read
+   * failed): the change is somewhere in (blockFrom, block] and intermediate values were not read.
+   */
+  unresolved?: boolean
+}
+
+/** The rule an unresolved bracket fails closed on (an intermediate value was not read). */
+const UNRESOLVED_RULE: Partial<Record<ParamSpec['rule'], RuleId>> = {
+  rate_provider: 'AD-9',
+  price_oracle: 'AD-9',
+  minter: 'MR-2',
+  bound_upper: 'MR-3',
+  quorum: 'MR-3',
+  quorum_members: 'MR-3',
+  cap: 'MR-4',
+  whitelist_gate: 'MR-5',
+  pauser: 'MR-1',
 }
 
 export function classifyParamTransitions(
@@ -1642,6 +1761,17 @@ export function classifyParamTransitions(
       lastNonZero: last?.value ?? null,
     })
     if (t.blockFrom < t.block - 1) tag(v, 'bracketed')
+    if (t.unresolved) {
+      tag(v, 'bracketed')
+      tag(v, 'read_gap')
+      const rule = UNRESOLVED_RULE[spec.rule]
+      if (rule)
+        down(
+          v,
+          rule,
+          `the change between blocks ${t.blockFrom} and ${t.block} was not resolved: intermediate values were not read (fail closed)`,
+        )
+    }
     const c: ConfigChange = {
       id: `1:param:${t.key}:${t.block}`,
       subject: ctx.subject,

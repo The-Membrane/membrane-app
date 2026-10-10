@@ -32,7 +32,15 @@
 // URLs are never printed: every error string is scrubbed. Resumable: grid samples and log
 // chunks are appended to data/oracle-registry/.cache/*.jsonl and skipped on the next run.
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'fs'
 import { join } from 'path'
 import {
   createPublicClient,
@@ -64,6 +72,7 @@ import {
   sig9,
   storageParams,
 } from './lib/readers.mjs'
+import { crossCheckedRange } from './lib/confirmLogs.mjs'
 
 // Any failure that escapes (a top-level await on an RPC call) prints scrubbed, never the URL.
 guardProcessErrors('oracle-registry collect')
@@ -116,20 +125,32 @@ const logUrls = [
   ...urls.filter((u) => hostOf(u).includes('ankr')),
   ...urls.filter((u) => hostOf(u).includes('infura')),
 ]
-const logClient = logUrls.length
-  ? createPublicClient({
-      chain: defineChain({
-        id: 1,
-        name: 'Ethereum',
-        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-        rpcUrls: { default: { http: logUrls } },
-      }),
-      transport: fallback(
-        logUrls.map((u) => http(u, { timeout: 30_000, retryCount: 1 })),
-        { rank: false },
-      ),
-    })
-  : null
+const logClientOf = (list) =>
+  createPublicClient({
+    chain: defineChain({
+      id: 1,
+      name: 'Ethereum',
+      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+      rpcUrls: { default: { http: list } },
+    }),
+    transport:
+      list.length === 1
+        ? http(list[0], { timeout: 30_000, retryCount: 1 })
+        : fallback(
+            list.map((u) => http(u, { timeout: 30_000, retryCount: 1 })),
+            { rank: false },
+          ),
+  })
+const logClient = logUrls.length ? logClientOf(logUrls) : null
+// Fail-closed audit (MISSED collect.mjs:811): an EMPTY log answer is confirmed on a second,
+// independent endpoint (a distinct host) before it is believed — the governance events feed the
+// config cards' OR-1 / AD-9 rows. No second host: an empty answer is never confirmed (the run
+// stops at that chunk, "re-run to resume"; the cards list the stale window as a read gap).
+const logPair = []
+for (const u of [...logUrls, ...urls])
+  if (!logPair.some((x) => hostOf(x) === hostOf(u))) logPair.push(u)
+const logPrimary = logPair[0] ? logClientOf([logPair[0]]) : null
+const logSecondary = logPair[1] ? logClientOf([logPair[1]]) : null
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 async function retry(fn, tries = 3) {
@@ -162,7 +183,22 @@ const isoName = (ts) =>
     .toISOString()
     .replace(/\.\d{3}Z$/, 'Z')
     .replace(/:/g, '-')
-const writeJson = (path, obj) => writeFileSync(path, JSON.stringify(obj) + '\n')
+// fail-closed audit (PO-07 / MISSED-1): every write goes through a temp file and a rename — a full
+// disk mid-write truncated changes.json, and the config cards then read it as "no events"
+const writeJson = (path, obj) => {
+  const tmp = `${path}.tmp-${process.pid}`
+  try {
+    writeFileSync(tmp, JSON.stringify(obj) + '\n')
+    renameSync(tmp, path)
+  } catch (e) {
+    try {
+      rmSync(tmp, { force: true })
+    } catch {
+      /* the original error is the one to report */
+    }
+    throw e
+  }
+}
 
 // ---- batched reads -------------------------------------------------------------------------
 /**
@@ -362,18 +398,35 @@ function eventPlan(e, head, base) {
   return null
 }
 
-async function getLogsAdaptive(params, depth = 0) {
+async function getLogsAdaptive(params, depth = 0, client = logClient) {
   try {
-    return await retry(() => logClient.getLogs(params), 2)
+    return await retry(() => client.getLogs(params), 2)
   } catch (e) {
     const span = params.toBlock - params.fromBlock
     if (span < 500n || depth > 6) throw e
     const mid = params.fromBlock + span / 2n
-    const a = await getLogsAdaptive({ ...params, toBlock: mid }, depth + 1)
-    const b = await getLogsAdaptive({ ...params, fromBlock: mid + 1n }, depth + 1)
+    const a = await getLogsAdaptive({ ...params, toBlock: mid }, depth + 1, client)
+    const b = await getLogsAdaptive({ ...params, fromBlock: mid + 1n }, depth + 1, client)
     return [...a, ...b]
   }
 }
+
+/**
+ * One range, every piece of it confirmed (throws when it cannot be). Fail-closed review
+ * (2026-10-10, OC-4 / rules #2): the split on a failing primary now happens OUTSIDE the
+ * cross-check (`crossCheckedRange`): each half is checked on its own. It ran inside
+ * `getLogsAdaptive` and only the joined answer was checked, so a false-empty half next to a
+ * non-empty one was accepted, its log lost and the chunk cached as read.
+ */
+const oneRange = (client, params) => (fromBlock, toBlock) =>
+  retry(() => client.getLogs({ ...params, fromBlock, toBlock }), 2)
+const confirmedRange = (params) =>
+  crossCheckedRange(
+    oneRange(logPrimary ?? logClient, params),
+    logSecondary ? oneRange(logSecondary, params) : null,
+    params.fromBlock,
+    params.toBlock,
+  )
 
 const jsonArgs = (args) =>
   Object.fromEntries(
@@ -382,7 +435,7 @@ const jsonArgs = (args) =>
 
 async function scanChunk(from, to, plan) {
   const rows = []
-  const raw = await getLogsAdaptive({
+  const raw = await confirmedRange({
     address: plan.emitters,
     fromBlock: BigInt(from),
     toBlock: BigInt(to),
@@ -773,7 +826,11 @@ const planSets = {
 const chunks = []
 for (let f = run.startBlock; f <= run.endBlock; f += Number(LOG_SPAN))
   chunks.push([f, Math.min(run.endBlock, f + Number(LOG_SPAN) - 1)])
-const logDone = new Set(readLines(LOGS).map((l) => `${l.from}-${l.to}`))
+const logDone = new Set(
+  readLines(LOGS)
+    .filter((l) => l.v === 2)
+    .map((l) => `${l.from}-${l.to}`),
+)
 const logTodo = chunks.filter(([f, t]) => !logDone.has(`${f}-${t}`))
 console.log(
   `event scan: ${plan.emitters.length} emitters + Pyth (${plan.pythIds.length} ids), ${chunks.length} chunks, ${logTodo.length} to scan`,
@@ -782,7 +839,7 @@ let logFail = 0
 await pool(logTodo, LOG_CONCURRENCY, async ([f, t]) => {
   try {
     const rows = await scanChunk(f, t, planSets)
-    appendFileSync(LOGS, JSON.stringify({ from: f, to: t, rows }) + '\n')
+    appendFileSync(LOGS, JSON.stringify({ v: 2, from: f, to: t, rows }) + '\n')
   } catch (e) {
     logFail++
     console.log(`  log chunk ${f}-${t} failed: ${scrub(e?.shortMessage || e?.message)}`)
@@ -801,14 +858,19 @@ const govStart = Math.max(0, run.endBlock - Math.round((GOV_DAYS * 86400) / 12))
 const govChunks = []
 for (let f = govStart; f < run.startBlock; f += Number(LOG_SPAN))
   govChunks.push([f, Math.min(run.startBlock - 1, f + Number(LOG_SPAN) - 1)])
-const govDone = new Set(readLines(GOVF).map((l) => `${l.from}-${l.to}`))
+// only chunks written with the cross-check (v 2) count as done: older ones are read again
+const govDone = new Set(
+  readLines(GOVF)
+    .filter((l) => l.v === 2)
+    .map((l) => `${l.from}-${l.to}`),
+)
 const govTodo = govChunks.filter(([f, t]) => !govDone.has(`${f}-${t}`))
 console.log(
   `governance look-back: ${GOV_DAYS} days, ${govChunks.length} chunks, ${govTodo.length} to scan`,
 )
 await pool(govTodo, LOG_CONCURRENCY, async ([f, t]) => {
   try {
-    const raw = await getLogsAdaptive({
+    const raw = await confirmedRange({
       address: plan.govEmitters,
       // viem's getLogs has no raw `topics`; `events` becomes the topic0 OR-filter.
       events: GOV_EVENTS,
@@ -842,7 +904,7 @@ await pool(govTodo, LOG_CONCURRENCY, async ([f, t]) => {
         })
       }
     }
-    appendFileSync(GOVF, JSON.stringify({ from: f, to: t, rows }) + '\n')
+    appendFileSync(GOVF, JSON.stringify({ v: 2, from: f, to: t, rows }) + '\n')
   } catch (e) {
     logFail++
     console.log(`  governance chunk ${f}-${t} failed: ${scrub(e?.shortMessage || e?.message)}`)
@@ -855,8 +917,15 @@ if (logFail) {
 
 // 4) block timestamps for Chronicle pokes and governance logs (cached: resumable)
 const gridRows = readLines(GRID).sort((a, b) => a.b - b.b)
-const logRows = readLines(LOGS).flatMap((l) => l.rows)
-const govRows = [...readLines(GOVF).flatMap((l) => l.rows), ...logRows.filter((r) => r.k === 'gov')]
+const logRows = readLines(LOGS)
+  .filter((l) => l.v === 2)
+  .flatMap((l) => l.rows)
+const govRows = [
+  ...readLines(GOVF)
+    .filter((l) => l.v === 2)
+    .flatMap((l) => l.rows),
+  ...logRows.filter((r) => r.k === 'gov'),
+]
 const BLOCKTS = join(CACHE, 'blockts.jsonl')
 const blockTs = new Map(readLines(BLOCKTS).map((x) => [x.b, x.ts]))
 const tsTodo = [

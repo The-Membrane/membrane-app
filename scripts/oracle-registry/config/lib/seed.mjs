@@ -26,11 +26,24 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
   }
   const o = oapp.toLowerCase()
   const ep = (sig) => fnAbi(sig)
-  const del = await tryRead(client, endpoint, ep(FN.delegates), 'delegates', [oapp], block)
+  // Fail-closed audit (RC-13, 2026-10-10): every read either succeeds, or REVERTS (a fact: no code
+  // before deployment, no such route — recorded in `reverted`), or STOPS the seed. A failed read
+  // was dropped silently: a missing peer made the replayed route not live (no BR-2), a missing
+  // override fell back to the default — and nothing on disk told it from a revert.
+  s.reverted = []
+  const rawRead = tryRead
+  const readOrThrow = async (c, address, abi, fn, args, b) => {
+    const x = await rawRead(c, address, abi, fn, args, b)
+    if (!x.ok && !x.reverted)
+      throw new Error(`seed ${fn}(${args.join(',')}) on ${address} not read: ${x.error}`)
+    if (!x.ok) s.reverted.push(`${fn}(${args.join(',')})@${address}`)
+    return x
+  }
+  const del = await readOrThrow(client, endpoint, ep(FN.delegates), 'delegates', [oapp], block)
   if (del.ok) s.delegates[o] = del.value.toLowerCase()
   for (const eid of eids) {
     const e = String(eid)
-    const sl = await tryRead(
+    const sl = await readOrThrow(
       client,
       endpoint,
       ep('function defaultSendLibrary(uint32) view returns (address)'),
@@ -38,7 +51,7 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
       [eid],
       block,
     )
-    const rl = await tryRead(
+    const rl = await readOrThrow(
       client,
       endpoint,
       ep('function defaultReceiveLibrary(uint32) view returns (address)'),
@@ -48,7 +61,7 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
     )
     if (sl.ok) s.defaultSendLib[e] = sl.value.toLowerCase()
     if (rl.ok) s.defaultRecvLib[e] = rl.value.toLowerCase()
-    const dt = await tryRead(
+    const dt = await readOrThrow(
       client,
       endpoint,
       ep(FN.defaultReceiveLibraryTimeout),
@@ -58,7 +71,7 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
     )
     if (dt.ok && dt.value[0] !== ZERO)
       s.defaultRecvTimeout[e] = { lib: dt.value[0].toLowerCase(), expiry: Number(dt.value[1]) }
-    const own = await tryRead(
+    const own = await readOrThrow(
       client,
       endpoint,
       ep(FN.getSendLibrary),
@@ -66,7 +79,7 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
       [oapp, eid],
       block,
     )
-    const isDef = await tryRead(
+    const isDef = await readOrThrow(
       client,
       endpoint,
       ep(FN.isDefaultSendLibrary),
@@ -76,7 +89,7 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
     )
     if (own.ok && isDef.ok && !isDef.value)
       (s.sendLib[o] = s.sendLib[o] ?? {})[e] = own.value.toLowerCase()
-    const rown = await tryRead(
+    const rown = await readOrThrow(
       client,
       endpoint,
       ep(FN.getReceiveLibrary),
@@ -86,7 +99,7 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
     )
     if (rown.ok && !rown.value[1])
       (s.recvLib[o] = s.recvLib[o] ?? {})[e] = rown.value[0].toLowerCase()
-    const t = await tryRead(
+    const t = await readOrThrow(
       client,
       endpoint,
       ep(FN.receiveLibraryTimeout),
@@ -111,7 +124,7 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
       ].filter(Boolean),
     )
     for (const lib of libs) {
-      const d = await tryRead(
+      const d = await readOrThrow(
         client,
         lib,
         ep(FN.getAppUlnConfig),
@@ -120,7 +133,7 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
         block,
       )
       if (d.ok) (s.defaults[lib] = s.defaults[lib] ?? {})[e] = ulnFromTuple(d.value)
-      const a = await tryRead(
+      const a = await readOrThrow(
         client,
         lib,
         ep(FN.getAppUlnConfig),
@@ -132,7 +145,7 @@ export async function seedLzState(client, { chainId, endpoint, oapp, eids, block
         ((s.overrides[lib] = s.overrides[lib] ?? {})[o] = s.overrides[lib][o] ?? {})[e] =
           ulnFromTuple(a.value)
     }
-    const p = await tryRead(client, oapp, ep(FN.peers), 'peers', [eid], block)
+    const p = await readOrThrow(client, oapp, ep(FN.peers), 'peers', [eid], block)
     if (p.ok) (s.peers[o] = s.peers[o] ?? {})[e] = String(p.value).toLowerCase()
     s.routes.push(`${o}|${eid}`)
   }

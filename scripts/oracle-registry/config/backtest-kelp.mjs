@@ -25,6 +25,7 @@ import { guardProcessErrors } from '../lib/readers.mjs'
 import {
   ETH,
   clientForChain,
+  clientPairForChain,
   compactLzMetadata,
   fetchLzMetadata,
   firstCodeBlocks,
@@ -62,17 +63,45 @@ const DIR = join(ROOT, 'data', 'oracle-registry', 'config')
 const FIXTURE = join(DIR, 'backtest', 'kelp-rseth.fixture.json')
 const OUT = join(DIR, 'backtest', 'kelp-rseth.expected.json')
 const CACHE = join(DIR, '.cache')
+/**
+ * Fail-closed audit (RC-14): one point read for the fixture, with whether it was READ — a read
+ * that failed (not a revert) REFUSES the fixture (a committed fixture is never built from partial
+ * reads: a failed getConfig was evaluated as "reverted (no DVN)", a closed route); a "no DVN"
+ * revert is recorded as such.
+ */
+function pointReadOf(r, block, eid, direction) {
+  if (!r.ok) throw new Error(`point read at ${block} (eid ${eid} ${direction}) failed: ${r.error}`)
+  if (!r.merged && !r.mergedReverted)
+    throw new Error(
+      `point read at ${block} (eid ${eid} ${direction}): getConfig not read (${r.mergedError})`,
+    )
+  return {
+    block,
+    eid,
+    direction,
+    lib: r.lib,
+    merged: r.merged,
+    ok: true,
+    ...(r.mergedReverted ? { mergedReverted: true } : {}),
+  }
+}
+
 const log = (...a) => console.error(...a)
 
 async function buildFixture() {
   mkdirSync(CACHE, { recursive: true })
-  const { state, logs } = ethereumClients()
+  const { state, logs, logsPrimary, logsSecondary } = ethereumClients()
   const head = Number(await retry(() => state.getBlockNumber())) - 5
   log(
     `head ${head}; scanning Ethereum LZ config for the rsETH adapter from ${ETH.endpointDeployBlock}`,
   )
+  // fail-closed audit (EV-01): every empty chunk confirmed on a second endpoint; an unconfirmed
+  // one stops the backtest (no fixture is written from a scan that may have lost an event)
   let events = await scanLzConfig({
     client: logs,
+    primary: logsPrimary,
+    secondary: logsSecondary,
+    head,
     chainId: 1,
     endpoint: ETH.endpoint,
     libs: [ETH.sendUln302, ETH.receiveUln302],
@@ -119,7 +148,7 @@ async function buildFixture() {
         direction,
         block,
       })
-      pointReads.push({ block, eid: KELP.exploitedEid, direction, lib: r.lib, merged: r.merged })
+      pointReads.push(pointReadOf(r, block, KELP.exploitedEid, direction))
     }
 
   // Remote (Unichain) side of the exploited route: seed + event window + a read at eval time.
@@ -140,8 +169,15 @@ async function buildFixture() {
       eids: [30101],
       block: KELP.remoteWindow.from - 1,
     })
+    const ucPair = await clientPairForChain(uni, { archiveBlock: KELP.remoteWindow.from })
+    if (!ucPair)
+      throw new Error(
+        'Unichain: two independent public RPCs are needed to confirm empty log chunks',
+      )
     let rev = await scanLzConfig({
       client: uc,
+      primary: ucPair.primary,
+      secondary: ucPair.secondary,
       chainId: uni.chainId,
       endpoint: uni.endpoint,
       libs: [...uni.libs.send, ...uni.libs.receive],
@@ -178,7 +214,7 @@ async function buildFixture() {
         direction,
         block: lo,
       })
-      reads.push({ block: lo, eid: 30101, direction, lib: r.lib, merged: r.merged })
+      reads.push(pointReadOf(r, lo, 30101, direction))
     }
     const rFirst = new Map()
     for (const e of rev)
@@ -369,9 +405,11 @@ const brief = (c) => ({
  * regression test toward a detection test). Writes backtest/kelp-rseth.base-rate.json.
  */
 async function buildBaseRate(fx) {
-  const { state, logs } = ethereumClients()
+  const { state, logs, logsPrimary, logsSecondary } = ethereumClients()
   const rows = await scanLogs({
     client: logs,
+    primary: logsPrimary,
+    secondary: logsSecondary,
     chainId: 1,
     addresses: [ETH.receiveUln302],
     topics0: [TOPIC.UlnConfigSet, TOPIC.DefaultUlnConfigsSet],

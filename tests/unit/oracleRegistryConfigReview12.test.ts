@@ -520,6 +520,8 @@ describe('RV12-5 (on-chain #3): the FunctionWhitelisted log read cross-checks em
     'executeWhitelisted(address,uint256,bytes)',
   ])
   const endpoint = (logs: unknown[] | Error) => ({
+    // fail-closed audit (TL-01): the log endpoints also confirm the deployment block (archive)
+    getCode: async () => '0x6080',
     request: async () => {
       if (logs instanceof Error) throw logs
       return logs

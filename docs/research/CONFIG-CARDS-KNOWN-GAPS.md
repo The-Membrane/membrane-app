@@ -1,10 +1,160 @@
-# Config Cards: known gaps (2026-10-07, updated 2026-10-10: review round 12)
+# Config Cards: known gaps (2026-10-07, updated 2026-10-10: review round 12, the fail-closed audit, then its review)
 
 This is the register of what the config cards do NOT do yet, after the final review round (round 8). The design is in [CONFIG-CARDS-DESIGN.md](CONFIG-CARDS-DESIGN.md).
 
-**What gets fixed now and what goes here.** A confirmed bug that can make a dangerous change read calm, hide a red, or misstate chain data was fixed in round 8, and again in review round 9 (the review of the ruling #12–#14 work). Each one has a test that failed before the fix and passes now (`tests/unit/oracleRegistryConfigReview8.test.ts`, `tests/unit/oracleRegistryConfigReview9.test.ts`, for the review of the round-10 work `tests/unit/oracleRegistryConfigReview10.test.ts`, for the review of the round-11 work `tests/unit/oracleRegistryConfigReview11.test.ts`, and for the review of the round-12 work `tests/unit/oracleRegistryConfigReview12.test.ts`). Everything else is listed here: cosmetic issues, latent issues, and anything that needs an owner call. Each entry has an id, the lens that found it, where it lives, what it does to the card, a proposed fix, and why it was not fixed now.
+**What gets fixed now and what goes here.** A confirmed bug that can make a dangerous change read calm, hide a red, or misstate chain data was fixed in round 8, and again in review round 9 (the review of the ruling #12–#14 work). Each one has a test that failed before the fix and passes now (`tests/unit/oracleRegistryConfigReview8.test.ts`, `tests/unit/oracleRegistryConfigReview9.test.ts`, for the review of the round-10 work `tests/unit/oracleRegistryConfigReview10.test.ts`, for the review of the round-11 work `tests/unit/oracleRegistryConfigReview11.test.ts`, for the review of the round-12 work `tests/unit/oracleRegistryConfigReview12.test.ts`, and for the review of the fail-closed audit `tests/unit/oracleRegistryConfigFailClosedReview.test.ts`). Everything else is listed here: cosmetic issues, latent issues, and anything that needs an owner call. Each entry has an id, the lens that found it, where it lives, what it does to the card, a proposed fix, and why it was not fixed now.
 
 Line numbers are as of 2026-10-07 in the `feat/oracle-registry` worktree.
+
+## Review of the fail-closed audit (2026-10-10): 9 confirmed bugs fixed, 7 items registered
+
+Two refuters (on-chain, rules) checked the audit's work against the chain and the code.
+
+**What checked out.**
+
+- 36 config values on the 8 subjects match a `cast` read at head (~26,163,500).
+- 27 historical rows (3–4 per subject) match their receipts: event, emitter and arguments.
+- The 7 pending OZ ops match `getTimestamp`, and the 5 Safe nonces fit. weETH op `0xd6f47cdf` really reverts when simulated, so "stale" is correct.
+- The Kelp backtest output is byte-identical: 227 changes, 55 red, all 5 criteria pass.
+
+**What they found.** Eleven more fail-open paths (some seen by both refuters), grouped into 9 fixes below. Each fix has a test in `tests/unit/oracleRegistryConfigFailClosedReview.test.ts` (41 tests):
+
+- 25 tests fail on the pre-fix files (reconstructed from the working tree before this round) and pass now.
+- 12 tests are controls. One of them runs a copy of the pre-fix oracle-collector code and shows the lost log.
+- 4 tests cover the two new collector helpers (`crossCheckedRange`, `callAddressArgs`), which did not exist before.
+
+| Id | Found by | Where | Was | Now |
+| --- | --- | --- | --- | --- |
+| FR-1 | on-chain #1 | `rules.ts`: `classifyControllerChange`, `classifyRoleGrant`, `classifyParamChange`, `classifyCcip` (rebalancer), `classifyRoleAdminChange` | A PARTLY read holder ranks as a plain contract, and its rank rests on a read gap (modules, proposers, owner() or vote holders not read). It was judged calm: Safe 6-of-11 with unread modules → a plain contract read neutral; a plain contract → a 1 h timelock with unread proposers read "rotation"; DEFAULT_ADMIN to an owner-unread contract read neutral; a price oracle → an owner-unread contract read amber. A fully unread holder was red, so a partial read was judged more leniently than a total failure. | Judged like an unread one: red (AD-3 / AD-4 / MR-2 / CC-3), tagged `read_gap`. It stays calm only when the other side rules a downgrade out: the new holder is immutable or renounced, or (for a gap-ranked new holder) the previous holder already ranks with an EOA. A co-holder resting on a read gap counts as unclassified (AD-4). The round-12 wording "the previous holder's rank rests on a read gap" is kept. |
+| FR-2 | on-chain #1, rules #5 | `engine.ts` `carryHistoryRows` | A row re-derived this run replaced the previous run's red, even when it came back calmer because a read failed under it. Examples: a CCIP re-point read `route_created` once the pool it replaced sat in a lost chunk; a burst grant read `operational` once the grants before it were lost. | A previous red re-derived calmer is KEPT as last judged when any of these holds: the row has `read_gap`; a scan chunk at or before its block was not confirmed; a classification at or before it failed; a parameter read before it failed (parameter rows). The calm row is replaced, tagged `read_gap`, noted "RE-DERIVED CALMER this run (kept from block N)", and listed as a read gap. With every read confirmed, the re-derived verdict stands, so a rule the owner relaxed takes effect. This covers the 30-day grant-rate rule and BR-6 through a lost 0 → A PeerSet too. |
+| FR-3 | on-chain #2, rules #1 | `engine.ts` `carryHistoryRows` | A red whose emitter was not in `raw.admin.scope` was dropped as "left the scope". That scope is built from this run's reads, so a failed power path (its `via` hops missing) or one lost RoleGranted chunk (a proposer Safe) shrank it. On the real weETH files this dropped the 10-day timelock proposer Safe's 3 red AD-1 rows with no carry; 12 red rows sit on emitters that are only dynamically in scope. | "Left the scope" counts only when every read that builds the scope was confirmed (no power `error`, no scan gap). Otherwise the row is carried, noted "its emitter … is not in this run's scope, but that scope rests on a failed read", and listed. |
+| FR-4 | on-chain #3 (+ its UNSURE twin) | `engine.ts` LZ delegate change; `queue.ts` `changeProxyAdmin` | `classifyControllerChange` was called without `prevUnread`. A previous delegate whose classification at block − 1 failed read neutral with no tag (Safe 6-of-11 → Safe 2-of-3). A queued `changeProxyAdmin` on a ProxyAdmin not classified at head read neutral too. | Both pass `prevUnread`: red AD-3 with a read gap, as at every replay call site. |
+| FR-5 | on-chain #4, rules #2 | `collect.mjs` `confirmedRange`; `confirmLogs.mjs` `crossCheckedRange` | The R-5 bug was back in the oracle collector. A failing primary was split inside `getLogsAdaptive`, and only the joined answer was checked: a false-empty half next to a non-empty one was accepted and cached (`AggregatorConfirmed` lost next to `OwnershipTransferred`). A non-empty second-endpoint answer was taken whole (EV-04). | `crossCheckedRange` mirrors `crossCheckedLogs`. A failing primary range is halved OUTSIDE the cross-check, and each half is checked on its own. The second endpoint is read in pieces (halved on failure). A piece it answers empty is re-asked on the first endpoint unless both endpoints answered the whole range empty. A piece neither endpoint reads throws. |
+| FR-6 | rules #3 | `engine.ts` Safe snapshot (`subjectSafes`, `safeCarried`) | A Safe reached only through a holder's `ownedBy` chain left the snapshot when that holder was not read this run (not classified at head, or owner() not read). The run after had no baseline, so a 3-of-5 → 2-of-5 between them never showed. 12 snapshot Safes are not direct holders. | While the tree's reads are incomplete, every previous snapshot Safe stays tracked: re-read at head when classified this run (its diff runs as usual), else carried with its last read. "Incomplete" means any of: a power `error`; a head classification failed; a scan gap; a holder tree node not classified, with owner() not read or not followed, with an Agent's executors not read, or with a timelock's proposers not read. |
+| FR-7 | rules #4 | `adminReplay.ts` Safe `ChangedGuard` / `ChangedModuleGuard` / `ChangedFallbackHandler` | When the archive read at block − 1 FAILED, the previous value fell back to what the events left, or to "none" for a complete scan. A guard set by a delegatecall or in a lost chunk was missed, and a new guard read UPGRADE ("added"). | A failed read at block − 1 leaves the previous value unread, unless the collector read it or an event set it in the same block: red AD-6, tagged `read_gap`. |
+| FR-8 | rules #6 | `engine.ts` `rejudgeRoleHoldersAtHead` | A previous `:role-head:` red was carried only for holders in this run's replay. When its RoleGranted was lost, the red was dropped (red count 1 → 0). | Carried, in effect, tagged `read_gap` and listed, unless this run's events show the role REVOKED from that holder. |
+| FR-9 | rules #7 | `collect-config.mjs`, `admin.mjs` `readOps` / `callAddressArgs`, `queue.ts` `judgeCalls` / `timelockChanges` | A queued op with a call index never seen (QU-05) has a HOLE in `calls`. `for (const c of o.calls) c.data` threw a TypeError and stopped every run while the gap lasted. Nothing calmer was written. | Holes are skipped (`callAddressArgs`). An incomplete op is never hashed or simulated, so it stays `not_run` and is armed past its ETA. The queue skips a null call (the raw file through JSON) and still tags the op `read_gap`. |
+
+**What changes on the cards at the next collection.** Neutral rows judged on a partly read holder turn red with `read_gap`. The on-chain refuter counted the rows these rules judge per subject (AD-4 / AD-3 / MR-2):
+
+| Subject | AD-4 | AD-3 | MR-2 |
+| --- | --- | --- | --- |
+| wstETH | 28 | 15 | 0 |
+| weETH | 33 | 2 | 0 |
+| USDe | 20 | 0 | 20 |
+| rsETH | 10 | 3 | 3 |
+| PT-srUSDe | 9 | 0 | 0 |
+| cbBTC | 0 | 2 | 4 |
+| WBTC | 2 | 1 | 0 |
+| sUSDe | 0 | 0 | 0 |
+
+Rows already live in the data that will change:
+
+- the wstETH silo-rebalancer rows at 25,291,112 and 23,421,859 ("Timelock 3h (bypassers UNREAD)");
+- the wstETH CCIP rebalancer row at 22,225,938;
+- the rsETH grant at 21,101,794 to "Timelock 10d 0x49bd [proposers UNREAD]".
+
+Fail closed has two costs here:
+
+- While any scan gap exists, a previous red re-derived calmer stays red.
+- While any scan gap exists, every previous snapshot Safe stays tracked, including one that truly left the scope. That can add a run-to-run Safe row for it until a run reads everything.
+
+**Registered (not fixed).**
+
+| Id | Found by | Where | Impact | Proposed handling / why not fixed |
+| --- | --- | --- | --- | --- |
+| UQ-41 | rules #1 (residual of FR-3) | `collect-config.mjs` scope (`subjectExtraEmitters`) | An emitter dropped from the scope by a failed read keeps its old reds now (FR-3). But its events are not SCANNED this run, so a NEW red on it is missed until a run reads the scope. The scan gap or power error is listed. | Persist the scope in the state file, and union the previous scope into this run's scan when a scope read failed. This is collector wiring that cannot be run this round. |
+| UQ-42 | on-chain (UNSURE) | `server.ts` `loadConfigInputs` | An existing state file that is unreadable or malformed gives `state null`. The card shows "not available" rather than a read gap, and the change and queue rows are shown without the ST-06 checks. The card is not calm (no "no red flags"), but the failure is not listed. | List an existing-but-unreadable state file as a read gap, and show no unchecked rows. |
+| UQ-43 | on-chain (UNSURE) | `params.mjs` `isAbsent` | A failure that carries no error object (`if (!e) return true`), or a result missing from a short multicall answer, reads as "getter absent". No viem path that produces either was found. | Treat a missing error object or a short answer as a failed read. |
+| UQ-44 | rules (UNSURE) | `holders.mjs` verification | A true top holder missing from the rebuilt top-50 is not caught when only small senders' transfers were lost. This needs a partial non-empty getLogs answer, the same root as UQ-28. | See UQ-28. |
+| UQ-45 | rules (UNSURE) | `collect-config.mjs` peers sweep (~552) | A rejected multicall chunk comes back as per-call failures. These are skipped, with no `lzSweepGaps` entry. PeerSet scan gaps mostly cover it. | Record a sweep gap for every failed call. |
+| UQ-46 | rules (UNSURE) | `collect.mjs` `scanChunk` | A governance-event decode failure on an address that is also a price emitter is dropped silently (the catch block). Low probability. | Record it as `undecodable` regardless of the price role. |
+| UQ-47 | found while fixing FR-5 | `collect.mjs` `scanChunk` (Pyth `PriceFeedUpdate`) | The Pyth price logs still go through `getLogsAdaptive` with no cross-check. They are price history only: no config-card verdict reads them. | Route them through `crossCheckedRange` when the oracle collector is next touched. |
+
+**UQ-28 raised again.** The on-chain refuter raised UQ-28 again: any non-empty first-endpoint answer is accepted, so a partial answer from a lagging node near head is not caught. Chunks within 64 blocks of head are not cached, so the loss lasts one run. The new `crossCheckedRange` has the same limit.
+
+**Gates (2026-10-10, this review):**
+
+- Unit suite: 78 files, 1,626 tests pass (1,585 before + 41 new).
+- Scoped `tsc` (`lib/oracleRegistry/config/*.ts`, `components/OracleRegistry/*`, the oracle pages and API routes, all `oracleRegistryConfig*` tests): 0 errors.
+- `eslint` on the 9 changed or new files: 0 errors, 0 warnings.
+- The Kelp backtest test passes, and `kelp-rseth.expected.json` is unchanged.
+- The collector was not run. Uncommitted.
+
+## Fail-closed audit (2026-10-10): every read site — all 131 FAIL-OPEN findings fixed, 20 of 29 UNSURE fixed, 9 registered
+
+**The invariant (owner standing ruling).** Every chain read whose failure could change a verdict must, on failure:
+
+- (a) produce a listed read gap;
+- (b) never make a change read calmer;
+- (c) never drop a head breach, an in-effect red, a red queue row or a red history row a previous run had (it is carried, marked unconfirmed);
+- (d) never be cached as a success.
+
+Rounds 9–12 found such paths one by one. This audit enumerated them all: 131 FAIL-OPEN findings and 29 UNSURE ones in 14 groups. Many are one site seen by two groups.
+
+**Every FAIL-OPEN finding is FIXED.** Each has a test that failed on the code before the fix and passes now (controls are marked):
+
+- `tests/unit/oracleRegistryConfigFailClosedRpc.test.ts` (32)
+- `…FailClosedClassify.test.ts` (34)
+- `…FailClosedEngine.test.ts` (40)
+- `…FailClosedQueue.test.ts` (37)
+- `…FailClosedExtra.test.ts` (19)
+
+The tests written after their fix were run against the pre-fix files (`git show HEAD:<file>`): all fail there.
+
+The mechanisms and every read site are listed in [CONFIG-CARDS-DESIGN.md](CONFIG-CARDS-DESIGN.md) ("Fail-closed audit"). Uncommitted at the time of writing.
+
+**Collector wiring.** Some fixes live in `collect-config.mjs` itself, which runs only against the network:
+
+- the getCode filter dropped from the discovered-controller scan (EV-09);
+- previous Safes, OZ ops and Dual Governance / MultiSigWallet queues are read again or reported unavailable (M-1, QU-05, PH-02);
+- previous holders and Agent executors are kept as candidates (PH-02, PH-03, MS-3);
+- owner() of `via` hops (MS-1), and an EOA at a block after a confirmed deploy block (ST-04 a);
+- the past-block cache v6, `--no-params` gaps, the Aragon app-id cache, and the ERA-1 owner read.
+
+The engine, queue and helper behaviour they feed is tested. The script itself is not run here (no collector runs this round).
+
+**Old tests updated:**
+
+- the Safe API fixtures now carry the API's real `count` and `operation` (SQ-03 refuses an answer without them);
+- the fake log endpoints answer `getCode` (TL-01 confirms the deployment bound on them);
+- an op whose state is unread is now stage `armed` (DG-02).
+
+**What changes on the cards at the next collection (KG-4).**
+
+- More read gaps:
+  - every unconfirmed scan chunk;
+  - an oracle window that ends below head (today wstETH, weETH, cbBTC and USDe lag about 30,000 blocks);
+  - unread CCIP fields, parameter heads and NTT transceiver types.
+- Carried red history and queue rows where a re-scan loses an event.
+- Some neutral rows turn red with `read_gap`: an unread previous holder, an unclassified co-holder, or a new value.
+- Every scan cache line, the v5 past-block timelock and Aragon trees, and the v1 deploy blocks are read again once.
+
+**Gates (2026-10-10):**
+
+- Unit suite: 77 files, 1,585 tests pass (1,423 before + 162 new).
+- Scoped `tsc` (the 9 touched `lib` TS files, their importers `configViewModel.ts` and the oracle pages / API routes, all `oracleRegistryConfig*` tests): 0 errors.
+- `eslint` on the 33 changed or new files: 0 errors, 0 warnings.
+- The Kelp backtest test passes, and `kelp-rseth.expected.json` is unchanged.
+- The collector was not run.
+
+### KG-7 — CLOSED (fail-closed audit EV-01 / ST-03)
+
+`scanLogs` sends every address group through `crossCheckedLogs` on two distinct hosts and caches only confirmed chunks. A chunk that cannot be confirmed is a scan gap: listed, and what it can hide is carried.
+
+### Registered by the fail-closed audit (UNSURE, not fixed)
+
+| Id | Finding | Where | Impact | Proposed handling / why not fixed |
+| --- | --- | --- | --- | --- |
+| UQ-32 | MISSED-DVN-SETS (in part) | `collect-config.mjs` DVN signer scan | The signer-history scan (DV-1 / DV-2) still covers only the DVNs seen in events. A DVN live at head but missing from the events (a lost UlnConfigSet) gets no signer scan. The head and grace DVNs are now code-probed, and a lost event is a scan gap. | Scan the union of event and head DVNs. Deferred: it costs a second scan per run, and the loss path is already a listed scan gap. |
+| UQ-33 | RC-M9 | `lz.mjs` `clientForChain` | A lagging public remote RPC answers "latest" with old state. Not measured on a live node. | Drop URLs whose latest block is more than N minutes behind wall clock. Needs a threshold from live data. |
+| UQ-34 | M-4 | `collect-config.mjs` Safe polling | Safes deeper in a power's tree (a scheduler, an `ownedBy` hop) are not polled for proposals. wstETH's Linea timelock proposer `0x892b…` is one. | Poll every Safe in the tree. This is a coverage gap, not a failed read, and it costs Safe API budget (5,000 requests / 30 days): owner call. |
+| UQ-35 | TV-17 | `admin.mjs` `holdersOf` → `aclRead` | At a past block (AD-5 holders) an ACL / hasPermission read that failed keeps the candidate with no "unconfirmed" flag. The head side is fail closed; the past-block previous side can be weaker than true. | Return holders plus an `unconfirmed` flag and judge the previous side as a read gap. This is outside the power-path group's map, so it is left for that group's checker. |
+| UQ-36 | DG M4 | `queue.ts` `opStatus`, `admin.mjs` `readDgProposals` | In emergency mode, `execute()` reverts, so a scheduled proposal reads "stale". Yet the execution committee can `emergencyExecute` it. | Mark scheduled proposals armed while emergency mode is active or unread. This is semantics, not a failed read: owner call. |
+| UQ-37 | QU MISSED (undeclared timelocks) | `collect-config.mjs` ops, `subjects.json` | OZ timelocks in a power tree but not in `timelocks` (WBTC / wstETH `0x4483…9449`, wstETH `0xd6b9…0574`) have no pending ops read. | Enumerate ops for every timelock in a power tree, or list "pending ops not read". This is a scope decision. Also verify the RBACTimelock `CallScheduled` shape first. |
+| UQ-38 | PO MISSED (oracle parameter, previous value unknown) | `engine.ts` oracle parameter events | A heartbeat / deviation / quorum event with no `old*` argument and no earlier event in the window is neutral with a note. It is fail-open only when the earlier event was LOST (now a listed stale window or a scan gap upstream), not when it predates the window. | Read the getter at block − 1. A design call. |
+| UQ-39 | PO MISSED (`implOf` proxy coverage) | `collect-config.mjs` `implOf` | Only the EIP-1967 implementation slot is read. A beacon, legacy OZ, EIP-1822 or Gnosis slot-0 proxy is "not a proxy", so its own verification stands. | Read the beacon and legacy slots. This is coverage, not a failed read. |
+| UQ-40 | MISSED-HEAD-UNPINNED (in part) | `collect-config.mjs` head reads | The LayerZero head reads and owner reads are now pinned to `head`. Head classifications (`classify(client, a)`), CCIP and NTT reads still read "latest". | Pin every head read. This is a broad change across `admin.mjs`, left for a later round. |
 
 ## Review round 12 (2026-10-10): the review of the round-12 work — 14 fixed, 1 registered
 
@@ -55,7 +205,7 @@ Only the subjects whose stored data the fixes would change were to be re-collect
 
 KG-1 and KG-2 were closed on 2026-10-08 (uncommitted at the time of writing); see "Closed 2026-10-08" below.
 
-### KG-7: the main log scans do not cross-check empty chunks (registered in review round 12)
+### KG-7: the main log scans do not cross-check empty chunks (registered in review round 12) — CLOSED 2026-10-10 by the fail-closed audit (see above)
 
 - **Lens:** both refuters, UNSURE. The same class as UQ-23 and UQ-28.
 - **Where:** `rpc.mjs` `scanLogs` on the `logs` client (keyed Ankr, Infura as a fallback). It reads the admin and Aragon ACL event scan, the LayerZero config history and the MultiSigWallet submissions.
@@ -363,7 +513,7 @@ The reviewers marked these items UNSURE, so nothing was changed. They are listed
 | UQ-25 | rules, on-chain | `rules.ts` `tokenVoteDecision` | **CLOSED 2026-10-09 (owner ruling): judged against the trailing year's average opposition D; see "Closed 2026-10-09 (round 11)" above.** (a) The Lido Agent exclusion is kept (owner). (b) UQ-26 and UQ-27 stay open. | — |
 | UQ-26 | on-chain | `rules.ts` `isVoteControlled` | A holder is left out as vote-controlled when its rank's base is 7 (it leads back to the vote), ignoring the deferral tail that `rankParts` adds for "its own code may hold other paths". A contract the vote owns (for example a vesting escrow whose recipient votes through it) is left out, so a 6 % vote-owned contract plus 13 small EOAs ranks broadly held `[5]`, above every multisig. The Lido Agent in the Dual Governance era has the same shape (its executor is a contract owned by the DG timelock, so its rank carries one tail step): requiring "no tail" would bring the Agent back in as a voter. No live instance beyond the Agent (the LDO top-30 contracts at head are Safe proxies). | Owner call together with UQ-25: which vote-controlled holders are left out (only an Agent whose executors lead to the vote, or any contract the vote controls). |
 | UQ-27 | on-chain, rules | `rules.ts` `tokenVoteDecision` | Vote delegation is not modelled. Lido Voting delegation is live (640 `AssignDelegate` events; the largest delegate carries about 0.9 % of supply at head), so LDO's k = 1 is unchanged. Under the literal reading delegation cannot raise k; a delegate can only lower it (13 holders of 4 % all delegated to one EOA rank broadly held `[5]` while that EOA can pass a vote). | Owner call. If modelled: group voting power by delegate at the block (`getDelegate`), and rank a delegate as the voter. Review round 11: both refuters raised it again (`getDelegate` / `getDelegatedVotersCount` answer at 26,152,213), and it still fails open in general. Lido is unaffected, because k = 1 is already the floor. |
-| UQ-28 | on-chain | `rpc.mjs` `crossCheckedLogs` | Only EMPTY answers are cross-checked. A non-empty but partial chunk from the primary is accepted. For holder data the on-chain check catches it only if it moves the supply or the top-10 balances; for proposer logs nothing catches it. | Ask both endpoints for every chunk and take the union (doubles the log reads), or cross-check counts per chunk. Not a confirmed failure on any endpoint used. |
+| UQ-28 | on-chain | `rpc.mjs` `crossCheckedLogs` (and, since the fail-closed review, `confirmLogs.mjs` `crossCheckedRange`) | Only EMPTY answers are cross-checked. A non-empty but partial chunk from the primary is accepted. For holder data the on-chain check catches it only if it moves the supply or the top-10 balances; for proposer logs nothing catches it. | Ask both endpoints for every chunk and take the union (doubles the log reads), or cross-check counts per chunk. Not a confirmed failure on any endpoint used. |
 | UQ-29 | rules (raised while fixing RV10-2) | `rules.ts` `tokenVoteParts` | The vote ranks as the weakest set of k holders that passes, k being the SMALLEST passing set. A larger set (k + 1 … 10) in which every member is needed can include a weaker holder (a plain contract) and pass too: it is not considered, so a vote passed by one Safe whale ranks as that Safe even if a plain contract and an EOA could also pass it together. | Owner call: whether "the weakest coalition that can pass it" extends to minimal coalitions larger than k (each member needed). |
 | UQ-30 | on-chain (review round 11) | `rules.ts` `tokenVoteDecision`, the engine's head breaches | **CLOSED 2026-10-09 (round 12, parent decision under the standing rulings): a failed head read never drops a head breach; see "Closed 2026-10-09 (round 12)" above.** Was: a failed D read at head ranked the vote as a plain contract, so its AD-3 head breaches vanished (wstETH 42 → 0 on one transient failure) while only a read-gap line stayed. | — |
 | UQ-31 | rules, on-chain (review round 11) | `rules.ts` `tokenVoteDecision` | **DECIDED 2026-10-09 (round 12, parent decision under the standing rulings): keep strict — a threshold uses the contract's own comparison (Aragon `_isValuePct` is strictly greater-than); see "Closed 2026-10-09 (round 12)" above.** Equality occurs at 11,473,299 and 12,341,644 (three non-Agent holders at exactly 50,000,000 LDO): strict gives k = 2 there, "≥" would give k = 1; the rank is `[2]` either way. | — |

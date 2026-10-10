@@ -794,6 +794,8 @@ describe('UQ-23: proposer-log reads cross-check empty chunks on a second endpoin
     blockNumber: '0x5',
   })
   const ep = (answer: 'logs' | 'empty' | 'fail', t: string) => ({
+    // fail-closed audit (TL-01): the log endpoints also confirm the deployment block (archive)
+    getCode: async () => '0x6080',
     request: async () => {
       if (answer === 'fail') throw new Error('timeout')
       return answer === 'logs' ? [grantLog(t)] : []

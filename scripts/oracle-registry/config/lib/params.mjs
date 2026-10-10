@@ -7,7 +7,7 @@
 // week) is invisible to this method — events are the only way to see those (documented gap).
 
 import { fnAbi } from './abi.mjs'
-import { pool, retry } from './rpc.mjs'
+import { isRevertError, pool, retry } from './rpc.mjs'
 
 const norm = (v) => {
   if (typeof v === 'bigint') return v.toString()
@@ -67,36 +67,81 @@ export function paramsForSubject(params, subjectKey) {
     transitions: (params.transitions ?? [])
       .filter((t) => t.key.startsWith(pre))
       .map((t) => ({ ...t, key: strip(t.key) })),
+    // fail-closed audit (PO-01..03): the reads that failed, and the window start
+    unread: (params.unread ?? [])
+      .filter((u) => u.key.startsWith(pre))
+      .map((u) => ({ ...u, key: strip(u.key) })),
+    ...(params.from !== undefined ? { from: params.from } : {}),
   }
+}
+
+/** "The getter is not there" (it reverts, or returns no / short data): a fact, not a failed read. */
+const isAbsent = (e) => {
+  if (!e) return true // a failure with no error (test fakes, old callers): absent
+  if (isRevertError(e)) return true
+  for (let x = e, i = 0; x && i < 12; x = x.cause, i++)
+    if (
+      /ContractFunctionZeroDataError|AbiDecodingZeroDataError|AbiDecodingDataSizeTooSmallError|PositionOutOfBoundsError/.test(
+        String(x.name ?? ''),
+      )
+    )
+      return true
+  return false
+}
+
+/**
+ * Read every spec at one block with Multicall3: { values: key → value, unread: key → reason }.
+ * Fail-closed audit (PO-01, 2026-10-10): viem returns a REJECTED multicall chunk (a timeout, a
+ * 429, an archive refusal) as a per-call failure and does not throw, so retry() never fired and
+ * every value came back `undefined` — the same as a getter that reverts. A failure that is not
+ * "the getter is not there" is retried (that subset, twice) and, still failing, is UNREAD.
+ */
+export async function readParamsDetailed(client, specs, block) {
+  const live = specs.filter((s) => !s.eventsOnly && s.sig)
+  const values = {}
+  const unread = {}
+  let todo = live
+  for (let attempt = 0; attempt < 3 && todo.length; attempt++) {
+    const res = await retry(() =>
+      client.multicall({
+        contracts: todo.map((s) => {
+          const abi = fnAbi(s.sig)
+          return { address: s.contract, abi, functionName: abi[0].name, args: s.args ?? [] }
+        }),
+        allowFailure: true,
+        blockNumber: block === undefined ? undefined : BigInt(block),
+      }),
+    )
+    const again = []
+    todo.forEach((s, i) => {
+      const r = res[i]
+      if (r?.status !== 'success') {
+        if (isAbsent(r?.error)) return
+        again.push(s)
+        unread[s.key] = String(r?.error?.shortMessage ?? r?.error?.message ?? 'read failed').slice(
+          0,
+          80,
+        )
+        return
+      }
+      delete unread[s.key]
+      const v = Array.isArray(r.result) ? r.result[s.outputIndex ?? 0] : r.result
+      if (s.count) {
+        // `count`: a getter returning a list (HashConsensus getMembers()) is judged on its length
+        // (a single-list output arrives as the list itself, several outputs as a tuple)
+        const list = fnAbi(s.sig)[0].outputs.length > 1 ? v : r.result
+        values[s.key] = Array.isArray(list) ? list.length : undefined
+      } else if (s.decode === 'trimmed_amount') values[s.key] = decodeTrimmedAmount(v, s.decimals)
+      else values[s.key] = norm(v)
+    })
+    todo = again
+  }
+  return { values, unread }
 }
 
 /** Read every spec at one block with Multicall3. Returns key → value (undefined on failure). */
 export async function readParams(client, specs, block) {
-  const live = specs.filter((s) => !s.eventsOnly && s.sig)
-  const res = await retry(() =>
-    client.multicall({
-      contracts: live.map((s) => {
-        const abi = fnAbi(s.sig)
-        return { address: s.contract, abi, functionName: abi[0].name, args: s.args ?? [] }
-      }),
-      allowFailure: true,
-      blockNumber: block === undefined ? undefined : BigInt(block),
-    }),
-  )
-  const out = {}
-  live.forEach((s, i) => {
-    const r = res[i]
-    if (r.status !== 'success') return
-    const v = Array.isArray(r.result) ? r.result[s.outputIndex ?? 0] : r.result
-    if (s.count) {
-      // `count`: a getter returning a list (HashConsensus getMembers()) is judged on its length
-      // (a single-list output arrives as the list itself, several outputs as a tuple)
-      const list = fnAbi(s.sig)[0].outputs.length > 1 ? v : r.result
-      out[s.key] = Array.isArray(list) ? list.length : undefined
-    } else if (s.decode === 'trimmed_amount') out[s.key] = decodeTrimmedAmount(v, s.decimals)
-    else out[s.key] = norm(v)
-  })
-  return out
+  return (await readParamsDetailed(client, specs, block)).values
 }
 
 const same = (a, b) => (a === undefined || b === undefined ? true : String(a) === String(b))
@@ -105,7 +150,13 @@ const same = (a, b) => (a === undefined || b === undefined ? true : String(a) ==
  * Every value change of a getter between two reads (`lo` reads `before`, `hi` reads `last`),
  * each bisected to its exact block and carrying the value read THERE — a pair of changes
  * between two grid points (A → B → C) stays two changes, never one merged A → C row.
- * `read(block)` returns the value (undefined when unreadable: never counted as a change).
+ * `read(block)` returns the value (undefined when unreadable).
+ *
+ * Fail-closed audit (PO-02, 2026-10-10): an unread midpoint is NEVER "unchanged" — it moved the
+ * bracket past the real change and merged A → B → C into one exact-looking A → C (B never
+ * judged). The neighbours m − 1 / m + 1 are tried; all unread, the bracket is emitted UNRESOLVED
+ * ({ unresolved: true }: the change is somewhere in (blockFrom, block], intermediate values not
+ * read — judged fail closed) and the search goes on from its end.
  */
 export async function bisectChanges(read, { lo, before, hi, last }) {
   const out = []
@@ -116,16 +167,37 @@ export async function bisectChanges(read, { lo, before, hi, last }) {
     let a = from
     let b = hi
     let atB = last
+    let unresolved = false
     while (b - a > 1) {
-      const m = Math.floor((a + b) / 2)
-      const x = await read(m)
-      if (x === undefined || same(x, prev)) a = m
+      let m = Math.floor((a + b) / 2)
+      let x = await read(m)
+      if (x === undefined)
+        for (const n of [m - 1, m + 1]) {
+          if (n <= a || n >= b) continue
+          const y = await read(n)
+          if (y !== undefined) {
+            m = n
+            x = y
+            break
+          }
+        }
+      if (x === undefined) {
+        unresolved = true
+        break
+      }
+      if (same(x, prev)) a = m
       else {
         b = m
         atB = x
       }
     }
-    out.push({ block: b, blockFrom: a, before: prev, after: atB })
+    out.push({
+      block: b,
+      blockFrom: a,
+      before: prev,
+      after: atB,
+      ...(unresolved ? { unresolved: true } : {}),
+    })
     from = b
     prev = atB
   }
@@ -134,7 +206,9 @@ export async function bisectChanges(read, { lo, before, hi, last }) {
 
 /**
  * Transitions of every spec over [from, head] on a `step`-block grid, each bisected to the
- * first block that reads the new value. Unreadable points never count as a change.
+ * first block that reads the new value. Fail-closed audit (PO-03): a grid point (or the head)
+ * that was NOT READ is reported in `unread` ({ key, block, reason }) — a change between the
+ * points around it cannot be ruled out (it was skipped silently: an excursion there vanished).
  */
 export async function paramTransitions(
   client,
@@ -144,27 +218,47 @@ export async function paramTransitions(
   const grid = []
   for (let b = from; b < head; b += step) grid.push(b)
   grid.push(head)
-  const reads = await pool(grid, 3, (b) => readParams(client, specs, b))
+  const reads = await pool(grid, 3, (b) => readParamsDetailed(client, specs, b))
   log(`  params: ${grid.length} grid reads`)
   const out = []
+  const unread = []
   for (const s of specs.filter((x) => !x.eventsOnly && x.sig)) {
     let lastIdx = -1
     for (let i = 0; i < grid.length; i++) {
-      const v = reads[i][s.key]
+      if (reads[i].unread[s.key] !== undefined) {
+        unread.push({ key: s.key, block: grid[i], reason: reads[i].unread[s.key] })
+        continue
+      }
+      const v = reads[i].values[s.key]
       if (v === undefined) continue
-      if (lastIdx >= 0 && !same(reads[lastIdx][s.key], v)) {
-        const steps = await bisectChanges(async (m) => (await readParams(client, [s], m))[s.key], {
-          lo: grid[lastIdx],
-          before: reads[lastIdx][s.key],
-          hi: grid[i],
-          last: v,
-        })
-        for (const t of steps) out.push({ key: s.key, contract: s.contract, ...t })
+      if (lastIdx >= 0 && !same(reads[lastIdx].values[s.key], v)) {
+        const steps = await bisectChanges(
+          async (m) => {
+            const r = await readParamsDetailed(client, [s], m)
+            return r.values[s.key]
+          },
+          {
+            lo: grid[lastIdx],
+            before: reads[lastIdx].values[s.key],
+            hi: grid[i],
+            last: v,
+          },
+        )
+        for (const t of steps) {
+          out.push({ key: s.key, contract: s.contract, ...t })
+          if (t.unresolved)
+            unread.push({
+              key: s.key,
+              from: t.blockFrom,
+              to: t.block,
+              reason: 'a bisection read failed: intermediate values not read',
+            })
+        }
       }
       lastIdx = i
     }
   }
-  return { transitions: out, head: reads[reads.length - 1] }
+  return { transitions: out, head: reads[reads.length - 1].values, unread, from }
 }
 
 /**

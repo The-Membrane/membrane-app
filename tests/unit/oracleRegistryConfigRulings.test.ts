@@ -1038,7 +1038,9 @@ describe('review 3: queue', () => {
     expect(out[0].red).toBe(true)
     expect(out[0].ruleIds).toContain('AD-8')
     expect(out[0].tags).toContain('state_unread')
-    expect(out[0].stage).toBe('scheduled')
+    // fail-closed audit (DG-02, 2026-10-10): a state not read may be executable now — counted with
+    // the armed ops (it was 'scheduled': plain pending)
+    expect(out[0].stage).toBe('armed')
   })
 
   it('a pending transferOwnership to an EOA, with the current owner unread, is red', () => {

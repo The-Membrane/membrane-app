@@ -135,6 +135,11 @@ export type EvalCtx = {
    * false so hindsight never leaks into a past verdict; head reads pass true (tag only).
    */
   useDeprecated: boolean
+  /**
+   * Fail-closed audit (RC-04): a DVN counts as known only when its code was READ as present —
+   * a code probe that failed (null) is unknown, never "has code".
+   */
+  requireCode?: boolean
 }
 
 // Sponsored / subsidised / per-asset variants are the same operator running another key set.
@@ -170,7 +175,7 @@ export function dvnInfo(ctx: EvalCtx, chainId: number, address: Address, block: 
     row?.id === 'lz-dead-dvn' ||
     isPlaceholderDvn(a)
   const hasCode = ctx.code ? ctx.code(chainId, a, block) : null
-  const known = !!row && !dead && hasCode !== false
+  const known = !!row && !dead && (ctx.requireCode ? hasCode === true : hasCode !== false)
   return {
     address: a,
     operator: known ? normalizeOperator(row!.id) : null,

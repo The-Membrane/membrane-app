@@ -12,17 +12,25 @@
 //     ring can return false-empty chunks); a chunk that cannot be read ends the stream, and every
 //     snapshot at or after it is an error (a read gap: the vote ranks as a plain contract);
 //   - every snapshot is VERIFIED on chain at its block (archive eth_call): the rebuilt total
-//     supply must equal totalSupply() and the ten largest rebuilt balances must equal
+//     supply must equal totalSupply() and EVERY kept (top-50) rebuilt balance must equal
 //     balanceOf() — a lost chunk changes them. A mismatch, or a read that fails, is an error.
-// Only verified snapshots are cached (top-50 per token per block).
+// Only verified snapshots are cached (top-50 per token per block), written atomically; a cache
+// file that cannot be parsed is rebuilt, not a stop (fail-closed audit TV-15: one torn write
+// stopped every later run).
 
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { keccak256, parseAbi, toHex } from 'viem'
+import { writeJsonAtomic } from './files.mjs'
 import { crossCheckedLogs, retry } from './rpc.mjs'
 
 export const TOP_HOLDERS = 50
-/** Balances re-read on chain at each snapshot block (the cross-check of the rebuilt set). */
-export const VERIFY_TOP = 10
+/**
+ * Balances re-read on chain at each snapshot block (the cross-check of the rebuilt set).
+ * Fail-closed audit (TV-16 / ST-09, 2026-10-10): every kept holder — the rules decide k and the
+ * passing set from ranks up to 50, and only the ten largest were checked, so a lost transfer could
+ * leave a wrong rank-11+ balance cached for good.
+ */
+export const VERIFY_TOP = TOP_HOLDERS
 const TRANSFER = keccak256(toHex('Transfer(address,address,uint256)'))
 const ZERO = '0x0000000000000000000000000000000000000000'
 const ERC20 = parseAbi([
@@ -112,11 +120,27 @@ export async function holderSnapshots({
   log = () => {},
 }) {
   const t = token.toLowerCase()
-  const cache =
-    cacheFile && existsSync(cacheFile) ? JSON.parse(readFileSync(cacheFile, 'utf8')) : {}
+  let cache = {}
+  if (cacheFile && existsSync(cacheFile))
+    try {
+      cache = JSON.parse(readFileSync(cacheFile, 'utf8'))
+    } catch (e) {
+      log(`  holder cache unreadable (${String(e?.message ?? e).slice(0, 60)}): rebuilt`)
+      cache = {}
+    }
   const out = new Map()
   const want = [...new Set(blocks.map(Number))].sort((a, b) => a - b)
-  for (const b of want) if (cache[`${t}@${b}`]) out.set(b, cache[`${t}@${b}`])
+  for (const b of want) {
+    const c = cache[`${t}@${b}`]
+    if (!c) continue
+    // a snapshot cached under a shallower check (VERIFY_TOP was 10) is verified again
+    if ((c.verifiedTop ?? 0) >= Math.min(VERIFY_TOP, c.top?.length ?? 0)) out.set(b, c)
+    else if (state && !(await verifySnapshot(state, t, b, c))) {
+      const v = { ...c, verifiedTop: Math.min(VERIFY_TOP, c.top?.length ?? 0) }
+      cache[`${t}@${b}`] = v
+      out.set(b, v)
+    } else delete cache[`${t}@${b}`]
+  }
   const todo = want.filter((b) => !out.has(b))
   if (!todo.length) return out
   const last = todo.at(-1)
@@ -199,8 +223,8 @@ export async function holderSnapshots({
     }
     const bad = state ? await verifySnapshot(state, t, b, snap) : 'not verified (no archive client)'
     if (bad) out.set(b, { error: `holder set not verified at block ${b}: ${bad}` })
-    else cache[`${t}@${b}`] = snap
+    else cache[`${t}@${b}`] = { ...snap, verifiedTop: Math.min(VERIFY_TOP, snap.top.length) }
   }
-  if (cacheFile) writeFileSync(cacheFile, JSON.stringify(cache) + '\n')
+  if (cacheFile) writeJsonAtomic(cacheFile, cache)
   return out
 }

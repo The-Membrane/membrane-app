@@ -842,3 +842,82 @@ Two refuters reviewed the round-12 work. Every CONFIRMED-BUG is fixed with a fai
 - **Registered: KG-7.** The main event scans (`scanLogs`) do not cross-check empty chunks.
 - **Re-collection: not run.** WBTC, rsETH and wstETH are the subjects whose data the fixes change: RV12-15, KG-6 and RV12-16. Free disk stayed at 534–541 MB, below the 600 MB gate, for the full 10 minutes, so the run stopped before its first subject. No data file changed.
 - **Gates:** unit suite 72 files / 1,423 tests pass; scoped `tsc` clean; `eslint` 0 / 0 on the changed files; Kelp backtest byte-identical (227 changes, 55 red, all 5 criteria pass).
+
+## Fail-closed audit (2026-10-10): every read site, and how it fails closed
+
+**The invariant (owner standing ruling).** Every chain read whose failure could change a verdict must, on failure: (a) produce a listed read gap; (b) never make a change read calmer (neutral or upgrade instead of red); (c) never drop a head breach, an in-effect red, a red queue row or a red history row that a previous run had (it is carried, marked unconfirmed); (d) never be cached as a success. "Failure" covers thrown errors, reverts where a value was expected, null / undefined answers, empty arrays from a failed or false-empty log read, partial multicall results, timeouts and an unreadable previous file.
+
+Rounds 9–12 found such paths one at a time. This audit listed all of them (131 FAIL-OPEN and 29 UNSURE findings across 14 groups) and fixed every FAIL-OPEN one with a test that failed before the fix and passes now. The tests are `tests/unit/oracleRegistryConfigFailClosed{Rpc,Classify,Engine,Queue,Extra}.test.ts`. Registered items are in [CONFIG-CARDS-KNOWN-GAPS.md](CONFIG-CARDS-KNOWN-GAPS.md) ("Fail-closed audit"). Uncommitted at the time of writing.
+
+### Shared mechanisms (one fix each, many sites)
+
+- **Log reads are confirmed or they are gaps** (`rpc.mjs`).
+  - `crossCheckedLogs` is symmetric per 10,000-block piece. A piece is confirmed empty only when both endpoints answered it empty, and the first endpoint is asked again for every empty piece once it was caught answering false-empty. A non-array answer is a failure.
+  - `scanLogs` sends every address group through it, and the two endpoints must be distinct hosts (refused at startup otherwise).
+  - Only confirmed chunks are cached (`{ v: 2, confirmed: true }`); older lines are read again. The cache key hashes the event ABIs, and a chunk within 64 blocks of head is never cached.
+  - A chunk that cannot be confirmed, or that holds a requested log no ABI shape decodes, is a **scan gap** (`raw.scanGaps`): listed on every subject it can hide events from. Without a gap list the scan throws.
+  - `decodeLog` also tries every indexing of a declared event.
+- **A revert is a revert only when it is one.** `isRevertError` treats -32603 without revert data, "gas required exceeds allowance" and "out of gas" as failed reads. `tryRead` returns the revert selector. A LayerZero route is closed, or has no DVN, only on the expected custom errors.
+- **Classification leaves a marker for every failed read** (`admin.mjs`). Each marker is ranked as a plain contract **with a read gap**, listed by `nodeReadGaps`, re-read every run (`hasReadFailure`), and never an upgrade baseline:
+  - a rejected multicall chunk throws instead of reading "no views";
+  - a malformed storage word throws;
+  - `getCode` answering null throws;
+  - an owner() that was not read sets `ownerUnread`;
+  - an Aragon implementation that was not read sets `appUnread`;
+  - Agent permissions that were not read set `executorsUnconfirmed`;
+  - per-role proposer read status, and bypasser count / member marks;
+  - Safe module pages (read to the end, or `modulesUnread`);
+  - a timelock whose `getMinDelay` was not read;
+  - Dual Governance delays and an undecided proposer vote;
+  - a scheduler cycle becomes a plain-contract placeholder.
+  - The past-block cache moved to v6, and a v5 timelock or Aragon tree is read again.
+- **Code bisections are confirmed** (`confirmedFirstCode`, `firstCodeBlocks({ confirm })`). The boundary is re-read on both archive log endpoints. An unconfirmed deploy block is left unknown, which is fail-closed downstream. Deploy-block cache v2 holds confirmed blocks only.
+- **A previous value that was NOT READ is not "none".**
+  - `classifyControllerChange(prev, next, { prevUnread })` gives red AD-3 with `read_gap` unless the new holder ranks at the top. It is used by the history replay (a classification at block − 1 that failed, a previous-value getter that failed) and by the queue (owner, delegate, permission manager or CCIP administrator not read).
+  - The same rule applies to the CCIP rebalancer (`prevUnread` / `nextUnread`), parameter setters (`prevUnread`), role grants (`unclassifiedHolders` gives AD-4), and a new value whose controller was not classified.
+  - Review (FR-1): a PARTLY read holder, whose rank rests on a read gap, is judged the same way. It is red with `read_gap` unless the other side rules a downgrade out: the new holder is immutable or renounced, or (for a gap-ranked new holder) the previous holder already ranks with an EOA. This applies to owner / admin / delegate moves, role grants (and the co-holders they are ranked against), price oracles and rate providers, CCIP rebalancers, and role admins.
+- **History rows are never dropped by a lost event** (`carryHistoryRows`). A previous red row this run did not re-derive is carried as last judged, tagged `read_gap`, with a read gap. It is dropped only when it left the window, or left the scope (`raw.admin.scope`) while every read that builds the scope was confirmed (review, FR-3). A previous red that this run re-derives CALMER is kept as last judged when a read failed under it: the row has `read_gap`, a scan chunk at or before it was not confirmed, or a classification at or before it failed (review, FR-2).
+- **Queue rows are dropped only when their queue was read** (`carryUnreadQueueRows`). A row is resolved only by a status 'ok', by an OZ op re-derived this run, or by a getTimestamp that read 0 or 1. Every other previous row is carried.
+- **Partial reads are not last good reads.** A remote side with a grace config or a DVN code not read keeps the previous snapshot and is not diffed. The same holds for a Safe module list (`modulesReadAt`).
+- **Files.**
+  - The previous run is read as a set (`readPreviousSet`: same subject, same asOf block), and the state is written last.
+  - `--rebuild` refuses an older raw.
+  - The view counts an unreadable or mismatched change or queue file as a read gap, and still counts the reds the state recorded.
+  - Every cache is written atomically, and a torn cache is rebuilt.
+
+### Read sites
+
+| Area | Read site | On failure (fail closed) |
+| --- | --- | --- |
+| Logs | every `scanLogs` (admin, ACL pre-window, discovered controllers, DVN signers, LZ ULN / Endpoint / PeerSet, MultiSigWallet submissions) | cross-checked; unconfirmed chunk → scan gap, not cached; history rows and holders it could hide carried |
+| Logs | `crossCheckedLogs` (proposer / whitelist / RoleGranted for power roles and AD-7 / holder Transfer stream) | symmetric pieces; unconfirmed → throws → the set is unread (gap) |
+| Logs | oracle collector governance and price chunks (`collect.mjs`, `confirmLogs.mjs` `crossCheckedRange`) | every piece cross-checked (a failing primary is halved outside the check; a false-empty piece is re-asked); unconfirmed → the run stops ("re-run to resume"); the card lists a stale oracle window. Pyth price logs are not cross-checked (UQ-47) |
+| Code | `codeAt`, `firstCodeBlock` / `firstCodeBlocks` / holder first code | null throws; boundaries confirmed on both archive endpoints; an EOA at a block after a confirmed deploy block → not classified |
+| Classify | `readViews`, `storage()`, owner, Safe modules, timelock delay / proposers / bypass, DSPause, Aragon Voting / Agent / ACL, Dual Governance | markers above; not cached; listed; never an upgrade baseline |
+| Powers | `resolvePath` (all steps), `holdersOf` (logs for non-enumerable roles, ≤ 200 members, previous holders as candidates) | throws → `power.error` (gap, UQ-30 carry); previous holders kept in scope |
+| LZ head | `peers`, `getSend/ReceiveLibrary`, `getConfig`, `getAppUlnConfig`, timeouts, defaults (pinned to head); eids = events ∪ previous items ∪ peers sweep | a revert of an unexpected error, or a failure → UNREAD row; closed only with `closedRoutes`; a missing side without closure → gap and carried breach |
+| LZ remote | `readRemoteRoute` (clock = Multicall3 `getBlockNumber`, grace DVNs probed), remote list (every live peer, PeerSet fallback), `--no-remote` placeholders | REMOTE UNREAD; partial side not snapshotted; a DVN's code unknown never raises E |
+| LZ queue | the simulation seed, a library switch, the grace config, a direction unknown | BR-1 down, `read_gap`; never skipped as unchanged |
+| NTT | threshold / transceivers / types / peers (sweep 1–70, swept zeros recorded) / mode / owner, remote owner | read gaps; floor and owner breaches carried; queue BR-6 on an unread peer or transceiver list |
+| CCIP | owner / rebalancer / chains / limiters / silo flag and chain rebalancer | gaps on every run (`ccipPoolGaps`); silo flag unread → judged as siloed; queue CC-1 / CC-2 / CC-3 fail closed |
+| Params | grid, bisection and head reads (`readParamsDetailed`) | retried; unread points listed; an unresolved bisection → red with `read_gap`; head not read → gap; queued setter → fail closed |
+| Oracle | `changes.json` (`readOracleChanges`), source classification at its block | missing → gap; unparsable → stop; unclassified source → OR-1 with `read_gap`; stale window → gap |
+| Queues | OZ ops (`readOps`, `timelockExecutors`, previous ops' getTimestamp), Safe Tx Service (validated, paged, nonce required), MultiSigWallet, Dual Governance (every id; delays read directly) | unread → carried rows and a gap; an unconfirmed executor set → "not simulated" (armed); state unread → stage armed |
+| Verification | Sourcify / Blockscout answers, EIP-1967 slot | a malformed 200 → not read; only "verified" is cached; a malformed slot → not read |
+| Files | previous state / changes / queues, `--rebuild` raw, oracle input, caches | torn or unreadable → stop; view → gap and carried reds; atomic writes |
+
+### Review of the fail-closed audit (2026-10-10)
+
+Two refuters re-checked the audit. The chain data, the pending ops and the Kelp backtest checked out. They found 11 more fail-open paths, fixed as FR-1 to FR-9, each with a test that failed before the fix (`tests/unit/oracleRegistryConfigFailClosedReview.test.ts`). The full table and the 7 registered items (UQ-41 to UQ-47) are in [CONFIG-CARDS-KNOWN-GAPS.md](CONFIG-CARDS-KNOWN-GAPS.md) ("Review of the fail-closed audit").
+
+The mechanisms the review added:
+
+- **A partial read ranks like a failed one** (FR-1). A rank that rests on a read gap is never a calm comparison, whether it is on the previous side or the new side.
+- **A red is not made calmer by a failed read** (FR-2). A history row re-derived calmer than the previous run's red, while a read failed under it, keeps the red.
+- **A scope built on a failed read proves nothing** (FR-3), and neither does a Safe set built on one (FR-6). Rows and snapshot Safes are kept while the reads that build them are incomplete.
+- **Every replay and queue call site passes `prevUnread`** (FR-4: the LZ delegate change, a queued `changeProxyAdmin`). The same goes for a Safe guard or fallback handler whose read at block − 1 failed (FR-7).
+- **Every log piece is checked on its own, in both collectors** (FR-5: `crossCheckedRange` in the oracle collector, matching `crossCheckedLogs`).
+- **Head-derived reds are carried when their event is lost** (FR-8: `:role-head:`). They end only on a revocation this run's events show.
+- **A queued op with a lost call index is judged on the calls seen and never crashes the run** (FR-9).
+
+**Gates (2026-10-10):** see the register.

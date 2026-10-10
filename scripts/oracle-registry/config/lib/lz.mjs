@@ -6,23 +6,54 @@
 // registry (canonicalName, id, deprecated). Cached raw for a day under the gitignored cache
 // and compacted into data/oracle-registry/config/lz-metadata.json (only the chains used).
 
-import { existsSync, readFileSync, statSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
-import { decodeAbiParameters } from 'viem'
+import { decodeAbiParameters, keccak256, toHex } from 'viem'
 import { FN, TOPIC, fnAbi, lzEventsOf } from './abi.mjs'
+import { writeJsonAtomic } from './files.mjs'
 import { codeAt, pool, publicClient, retry, scanLogs, scrub, tryRead } from './rpc.mjs'
 
 export const META_URL = 'https://metadata.layerzero-api.com/v1/metadata'
 const DAY = 86_400_000
 
+/**
+ * Fail-closed audit (LZ-13, 2026-10-10): the raw metadata is VALIDATED before it is cached or
+ * used — Ethereum (eid 30101) with this module's endpoint and its ULN302 libraries, and a DVN
+ * registry. Any 200 answer was cached for a day: an error JSON or a renamed field silently dropped
+ * chains, and a queued setConfig whose library direction was then unknown was skipped (no row).
+ */
+export function assertLzMetadata(raw) {
+  const eth = Object.values(raw ?? {}).find((c) => Number(v2Of(c ?? {})?.eid) === 30101)
+  const d = eth ? v2Of(eth) : null
+  const libs = Object.entries(d ?? {})
+    .map(([k, v]) => [k, addrOf(v)])
+    .filter(([, a]) => a)
+  const has = (re, a) => libs.some(([k, x]) => re.test(k) && x === a)
+  if (
+    !d ||
+    addrOf(d.endpointV2) !== ETH.endpoint ||
+    !has(/^send.*uln/i, ETH.sendUln302) ||
+    !has(/^receive.*uln/i, ETH.receiveUln302) ||
+    !Object.keys(eth.dvns ?? {}).length
+  )
+    throw new Error(
+      'LZ metadata malformed: Ethereum endpoint / ULN302 libraries / DVN registry missing',
+    )
+  return raw
+}
+
 export async function fetchLzMetadata(cacheDir, fetchImpl = fetch) {
   const file = join(cacheDir, 'lz-metadata-raw.json')
   if (existsSync(file) && Date.now() - statSync(file).mtimeMs < DAY)
-    return JSON.parse(readFileSync(file, 'utf8'))
+    try {
+      return assertLzMetadata(JSON.parse(readFileSync(file, 'utf8')))
+    } catch {
+      /* a malformed cached copy is fetched again */
+    }
   const res = await retry(() => fetchImpl(META_URL, { headers: { accept: 'application/json' } }))
   if (!res.ok) throw new Error(`LZ metadata HTTP ${res.status}`)
-  const json = await res.json()
-  writeFileSync(file, JSON.stringify(json))
+  const json = assertLzMetadata(await res.json())
+  writeJsonAtomic(file, json)
   return json
 }
 
@@ -131,20 +162,27 @@ export const ETH = {
  */
 export async function scanLzConfig({
   client,
+  primary,
+  secondary,
   chainId,
   endpoint,
   libs,
   oapps,
   from,
   to,
+  head,
   cacheDir,
   span = 500_000,
+  gaps,
   log = () => {},
 }) {
   const set = new Set(oapps.map((a) => a.toLowerCase()))
   const key = [...set].sort().join(',')
+  // fail-closed audit (EV-06): every chunk cross-checked (scanLogs); an unconfirmed one is a gap
+  const common = { client, primary, secondary, head, gaps }
   const libRows = await scanLogs({
-    client,
+    ...common,
+    scan: 'LayerZero ULN config scan',
     chainId,
     addresses: libs,
     topics0: [TOPIC.UlnConfigSet, TOPIC.DefaultUlnConfigsSet],
@@ -166,7 +204,8 @@ export async function scanLzConfig({
     'DefaultReceiveLibraryTimeoutSet',
   ].map((k) => TOPIC[k])
   const epRows = await scanLogs({
-    client,
+    ...common,
+    scan: 'LayerZero Endpoint scan',
     chainId,
     addresses: [endpoint],
     topics0: epTopics,
@@ -182,7 +221,8 @@ export async function scanLzConfig({
   })
   log(`  Endpoint: ${epRows.length} rows`)
   const oappRows = await scanLogs({
-    client,
+    ...common,
+    scan: 'LayerZero PeerSet scan',
     chainId,
     addresses: [...set],
     topics0: [TOPIC.PeerSet],
@@ -207,12 +247,6 @@ export async function scanLzConfig({
 export function remoteReadList(headRoutes, lzEvents, oapps) {
   const byEid = new Map()
   const seen = new Set()
-  for (const [oapp, rows] of headRoutes)
-    for (const r of rows)
-      if (r.direction === 'receive') {
-        byEid.set(r.eid, [...(byEid.get(r.eid) ?? []), { oapp, peer: r.peer }])
-        seen.add(`${String(oapp).toLowerCase()}|${r.eid}`)
-      }
   const tracked = new Set((oapps ?? []).map((o) => String(o).toLowerCase()))
   const last = new Map()
   const now = new Map()
@@ -224,12 +258,66 @@ export function remoteReadList(headRoutes, lzEvents, oapps) {
     now.set(k, peer)
     if (!/^0x0*$/.test(peer)) last.set(k, peer)
   }
+  // Fail-closed audit (RC-07 / RC-M8, 2026-10-10): EVERY (oapp, eid) with a live peer in ANY head
+  // row (send, receive or an unread row) — a send-only row (its receive library reverted) was
+  // skipped, and the remote receive side (packets that mint remotely) was never judged. A row
+  // whose peer was not read uses the last non-zero PeerSet peer.
+  const live = (p) => typeof p === 'string' && /^0x[0-9a-f]+$/i.test(p) && !/^0x0*$/.test(p)
+  for (const [oapp, rows] of headRoutes)
+    for (const r of rows) {
+      const k = `${String(oapp).toLowerCase()}|${r.eid}`
+      if (seen.has(k)) continue
+      const peer = live(r.peer) ? String(r.peer).toLowerCase() : last.get(k)
+      if (!peer) continue
+      byEid.set(r.eid, [...(byEid.get(r.eid) ?? []), { oapp, peer }])
+      seen.add(k)
+    }
   for (const [k, peer] of last) {
     if (seen.has(k) || !/^0x0*$/.test(now.get(k) ?? '0x')) continue
     const [oapp, eid] = k.split('|')
     byEid.set(Number(eid), [...(byEid.get(Number(eid)) ?? []), { oapp, peer, ethPeerZeroed: true }])
   }
   return byEid
+}
+
+/**
+ * Fail-closed audit (LZ-01 / EV-06): the eids whose Ethereum route of `oapp` is read at head — the
+ * eids its events named, every eid its previous run had an item for (a route seen before is read
+ * again, or listed unread, never dropped), and the extra eids a peers() sweep found live.
+ */
+export function headRouteEids(oapp, lzEvents, prevItems = [], swept = []) {
+  const o = String(oapp).toLowerCase()
+  const out = new Set(
+    lzEvents
+      .filter((e) => String(e.oapp ?? '').toLowerCase() === o && e.eid !== undefined)
+      .map((e) => Number(e.eid)),
+  )
+  for (const i of prevItems) {
+    const m = String(i.key ?? '').match(/^bridge\/lz\/1\/(0x[0-9a-f]{40})\/(\d+)\//)
+    if (m && m[1] === o) out.add(Number(m[2]))
+  }
+  for (const e of swept) out.add(Number(e))
+  return [...out]
+}
+
+/**
+ * Fail-closed audit (RC-M7): with the remote reads skipped (--no-remote) every remote side the
+ * collector would have read is a REMOTE UNREAD placeholder, never absent — a first run said "no
+ * red flags" over sides that were never judged.
+ */
+export function skippedRemoteSides(byEid, metadata, reason = 'remote reads skipped (--no-remote)') {
+  const out = []
+  for (const [eid, list] of byEid)
+    for (const x of list)
+      out.push({
+        oapp: x.oapp,
+        eid,
+        chainKey: metadata?.eids?.[eid]?.chainKey ?? String(eid),
+        chainId: metadata?.chains?.[eid]?.chainId ?? null,
+        status: 'remote_unread',
+        reason,
+      })
+  return out
 }
 
 /** Keep only default-config events for eids some tracked route uses (compact fixtures). */
@@ -266,6 +354,21 @@ export const decodeUlnBytes = (bytes) => ulnFromTuple(decodeAbiParameters(ULN_TY
  * Head (or archive) reads of one route direction, straight from the Endpoint and library —
  * the authoritative values the replay is cross-checked against.
  */
+/**
+ * Fail-closed audit (LZ-05 / LZ-07, 2026-10-10): the custom errors whose revert IS a fact about
+ * the route — the Endpoint has no default library for the eid (no library: the side is closed),
+ * the ULN has no DVN at all (AtLeastOneDVN: it verifies nothing), the BlockedMessageLib (it
+ * implements nothing). Any other revert, or a failure, is NOT READ: it was taken as "closed" /
+ * "no DVN", and a misclassified -32603 dropped the route's floor breach.
+ */
+const errSel = (sig) => keccak256(toHex(sig)).slice(0, 10)
+export const LZ_NO_LIBRARY_ERRORS = new Set(
+  ['LZ_DefaultSendLibUnavailable()', 'LZ_DefaultReceiveLibUnavailable()'].map(errSel),
+)
+export const LZ_NO_DVN_ERRORS = new Set(
+  ['LZ_ULN_AtLeastOneDVN()', 'LZ_NotImplemented()', 'NotImplemented()'].map(errSel),
+)
+
 export async function readRoute(client, { endpoint, oapp, eid, direction, block, remoteEid }) {
   const ep = (sig) => fnAbi(sig)
   const libR =
@@ -279,7 +382,14 @@ export async function readRoute(client, { endpoint, oapp, eid, direction, block,
           [oapp, eid],
           block,
         )
-  if (!libR.ok) return { ok: false, error: libR.error, reverted: !!libR.reverted }
+  if (!libR.ok)
+    return {
+      ok: false,
+      error: libR.error,
+      reverted: !!libR.reverted,
+      // closed only on the Endpoint's own "no default library" error
+      closed: !!libR.reverted && LZ_NO_LIBRARY_ERRORS.has(libR.revertSelector ?? ''),
+    }
   const lib = (direction === 'send' ? libR.value : libR.value[0]).toLowerCase()
   const isDefaultR =
     direction === 'send'
@@ -327,7 +437,10 @@ export async function readRoute(client, { endpoint, oapp, eid, direction, block,
           [oapp, eid],
           block,
         )
-    if (t.ok && !/^0x0{40}$/i.test(t.value[0])) {
+    // LZ-09: a timeout read that FAILED is a grace not read (both getters are public mappings: a
+    // revert is never a meaningful answer) — it read as "no grace"
+    if (!t.ok) grace = { unread: true, error: t.error }
+    else if (!/^0x0{40}$/i.test(t.value[0])) {
       const gl = t.value[0].toLowerCase()
       const gc = await tryRead(
         client,
@@ -355,15 +468,28 @@ export async function readRoute(client, { endpoint, oapp, eid, direction, block,
     // getConfig → library.getUlnConfig(oapp, eid): the MERGED config (reverts if no DVN at all).
     merged: cfgR.ok ? decodeUlnBytes(cfgR.value) : null,
     mergedError: cfgR.ok ? undefined : cfgR.error,
-    // the library reverted (no DVN at all: AtLeastOneDVN) vs the read failed (UNREAD)
-    mergedReverted: cfgR.ok ? undefined : !!cfgR.reverted,
+    // the library reverted with its "no DVN at all" error (AtLeastOneDVN / a blocked library) vs
+    // anything else (UNREAD) — LZ-07: a misread revert made the route "blocked (no_dvn)"
+    mergedReverted: cfgR.ok
+      ? undefined
+      : !!cfgR.reverted && LZ_NO_DVN_ERRORS.has(cfgR.revertSelector ?? ''),
     app: appR.ok ? ulnFromTuple(appR.value) : null,
+    // LZ-08: the app override NOT read is unknown — never "no override" (a default merge)
+    ...(appR.ok ? {} : { appUnread: true }),
     grace,
   }
 }
 
-/** Code-presence probes: first block with code for each address (null = never, up to `head`). */
-export async function firstCodeBlocks(client, addresses, minBlockOf, head) {
+/**
+ * Code-presence probes: first block with code for each address (null = never, up to `head`).
+ * Fail-closed audit (FCB-2 / ST-05 / MISSED-4, 2026-10-10): with `confirm` clients (the two
+ * independent archive log endpoints) a bisected boundary is CONFIRMED there — code at it and none
+ * one block before on each. One false "no code" mid-bisection moved the deploy block LATER, and it
+ * was cached for good: a first owner set long after deployment then counted as initialization
+ * (neutral, not AD-3). An unconfirmed boundary is left out ({ unconfirmed }), never cached; the
+ * engine fails closed on an unknown deploy block.
+ */
+export async function firstCodeBlocks(client, addresses, minBlockOf, head, { confirm = [] } = {}) {
   const out = {}
   await pool(addresses, 4, async (a) => {
     const lo0 = Math.max(0, minBlockOf(a))
@@ -382,7 +508,17 @@ export async function firstCodeBlocks(client, addresses, minBlockOf, head) {
       if (await codeAt(client, a, m)) hi = m
       else lo = m
     }
-    out[a] = { firstCode: hi }
+    for (const c of confirm)
+      try {
+        if (!(await codeAt(c, a, hi)) || (await codeAt(c, a, hi - 1))) {
+          out[a] = { unconfirmed: `first code at ${hi} not confirmed on a second endpoint` }
+          return
+        }
+      } catch (e) {
+        out[a] = { unconfirmed: scrub(e?.message ?? e) }
+        return
+      }
+    out[a] = { firstCode: hi, ...(confirm.length ? { confirmed: true } : {}) }
   })
   return out
 }
@@ -403,7 +539,36 @@ export function codeOracleOf(probes) {
  * `archiveBlock` is given, that also serves archive eth_getLogs / eth_getCode at that block
  * (free tiers often refuse old blocks or ranges).
  */
-export async function clientForChain(chain, { archiveBlock } = {}) {
+export async function clientForChain(chain, opts = {}) {
+  const urls = await workingRpcUrls(chain, opts)
+  // One client over every endpoint that answered: a call that fails on one moves to the next.
+  return urls.length ? publicClient(chain.chainId, urls) : null
+}
+
+/**
+ * Two INDEPENDENT clients (distinct hosts) for a log scan on another chain (fail-closed audit
+ * EV-01: an empty chunk is confirmed on the second); null when fewer than two hosts answer.
+ */
+export async function clientPairForChain(chain, opts = {}) {
+  const urls = await workingRpcUrls(chain, opts)
+  const host = (u) => {
+    try {
+      return new URL(u).host
+    } catch {
+      return u
+    }
+  }
+  const pair = []
+  for (const u of urls) if (!pair.some((x) => host(x) === host(u))) pair.push(u)
+  return pair.length >= 2
+    ? {
+        primary: publicClient(chain.chainId, [pair[0]]),
+        secondary: publicClient(chain.chainId, [pair[1]]),
+      }
+    : null
+}
+
+async function workingRpcUrls(chain, { archiveBlock } = {}) {
   const hx = (n) => '0x' + Number(n).toString(16)
   const within = (p) =>
     Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10_000))])
@@ -435,9 +600,7 @@ export async function clientForChain(chain, { archiveBlock } = {}) {
       }
     }),
   )
-  const urls = ok.filter(Boolean)
-  // One client over every endpoint that answered: a call that fails on one moves to the next.
-  return urls.length ? publicClient(chain.chainId, urls) : null
+  return ok.filter(Boolean)
 }
 
 /** Remote side of one route: the peer OApp's config for messages to/from Ethereum (eid 30101). */
@@ -446,12 +609,18 @@ export async function readRemoteRoute(client, chain, peerAddress, localEid = 301
   // can be missing on a lagging node): a receive grace period's expiry is a remote block
   // number, judged against it — a grace counted active a few blocks too long fails closed.
   // null = the block could not be read (every unexpired-looking grace counts).
+  // Fail-closed audit (RC-M4): the remote clock is the EVM's own block.number (Multicall3
+  // getBlockNumber), never eth_blockNumber — on an Arbitrum-stack chain that is the L2 block while
+  // the Endpoint checks a grace expiry against block.number (the L1 block): every live grace
+  // there read as expired. Not read: null (every unexpired-looking grace counts — fail closed).
   let block = null
-  try {
-    block = Number(await client.getBlockNumber())
-  } catch {
-    block = null
-  }
+  const b = await tryRead(
+    client,
+    '0xcA11bde05977b3631167028862bE2a173976CA11',
+    fnAbi('function getBlockNumber() view returns (uint256)'),
+    'getBlockNumber',
+  )
+  if (b.ok) block = Number(b.value)
   const out = {
     chainKey: chain.chainKey,
     chainId: chain.chainId,
@@ -472,7 +641,13 @@ export async function readRemoteRoute(client, chain, peerAddress, localEid = 301
   out.peerBack = back.ok ? String(back.value).toLowerCase() : null
   const dvns = new Set()
   for (const d of Object.values(out.directions))
-    for (const a of [...(d.merged?.requiredDVNs ?? []), ...(d.merged?.optionalDVNs ?? [])])
+    for (const a of [
+      ...(d.merged?.requiredDVNs ?? []),
+      ...(d.merged?.optionalDVNs ?? []),
+      // RC-M3: the old library in its grace period still verifies: its DVNs are probed too
+      ...(d.grace?.config?.requiredDVNs ?? []),
+      ...(d.grace?.config?.optionalDVNs ?? []),
+    ])
       dvns.add(a)
   out.dvnCode = {}
   for (const a of dvns) {
@@ -515,12 +690,18 @@ export async function replayDvnSigners(rows, readState) {
     for (const tx of txs) {
       const r = tx[0]
       let prev = null
+      // fail-closed audit (LZ-15): the state before carried from the previous transaction because
+      // the archive read FAILED — exact only if no event was lost; the row says so (a read gap)
+      let prevCarried = false
       if (r.block !== lastBlock) {
         const s = await readState(dvn, r.block - 1)
         if (s && s.quorum !== null && s.signers !== null) prev = s
         // no code one block earlier: these events are the DVN's own setup (deploy block)
         else if (s?.noCode) initBlock = r.block
-        else prev = carried
+        else {
+          prev = carried
+          prevCarried = !!carried
+        }
       } else prev = carried
       lastBlock = r.block
       // with the state before unknown, the state after is unknown too (an event carries one field)
@@ -556,6 +737,7 @@ export async function replayDvnSigners(rows, readState) {
             : undefined,
         addedAndRemoved: added && removed,
         ...(r.block === initBlock ? { init: true } : {}),
+        ...(prevCarried ? { prevCarried: true } : {}),
       })
       carried = next
     }

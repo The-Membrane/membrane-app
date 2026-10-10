@@ -58,6 +58,7 @@ import {
   isPrivilegedRole,
   controllerRank,
   controllerTree,
+  isNotClassified,
   nodeReadGaps,
   rankHasReadGap,
   compareRank,
@@ -112,7 +113,21 @@ export type HeadRouteRead = {
   mergedError?: string
   mergedReverted?: boolean
   app: UlnConfigRaw | null
-  grace?: { lib: string; expiry: number; config: UlnConfigRaw | null }
+  /** Fail-closed audit (LZ-08): getAppUlnConfig FAILED — the app override is unknown (not "none"). */
+  appUnread?: boolean
+  /**
+   * The old receive library in its grace period. Fail-closed audit (LZ-09): `unread` = the
+   * receive-library timeout itself was not read (a failed read is never "no grace").
+   */
+  grace?:
+    | {
+        lib: string
+        expiry: number
+        config: UlnConfigRaw | null
+        unread?: undefined
+        error?: undefined
+      }
+    | { unread: true; error?: string; lib?: undefined; expiry?: undefined; config?: undefined }
   peer: string
 }
 
@@ -136,7 +151,15 @@ export type RemoteRouteRead = {
         mergedError?: string
         mergedReverted?: boolean
         /** Receive: the old library in its grace period (expiry = REMOTE block); config null = unread. */
-        grace?: { lib: string; expiry: number; config: UlnConfigRaw | null }
+        grace?:
+          | { lib: string; expiry: number; config: UlnConfigRaw | null; unread?: undefined }
+          | {
+              unread: true
+              error?: string
+              lib?: undefined
+              expiry?: undefined
+              config?: undefined
+            }
       } | null
     >
   >
@@ -161,6 +184,8 @@ export type NttHead = {
   pauser: string | null
   paused: boolean | null
   locked: Amount | null
+  /** Fail-closed audit (NB-02): swept chains READ as zero (a chain absent from `peers` is unread). */
+  peersReadZero?: number[]
   /**
    * The remote side of each live peer (admin.mjs readNttRemote), read at head on THAT chain.
    * undefined = not read (--no-remote, or a raw file from before 2026-10-07): a read gap.
@@ -342,9 +367,28 @@ export function nttRemoteGaps(n: NttHead): string[] {
           ]
         : !r.owner
           ? [`NTT manager ${shortAddr(n.manager)}: ${remoteName(r)} owner not read`]
-          : [],
+          : // fail-closed audit (RC-09 / RC-M6): an owner that could not be classified there,
+            // or whose own tree rests on a read gap (proposers, modules, an unread vote)
+            [
+              ...(isNotClassified(r.owner)
+                ? [
+                    `NTT manager ${shortAddr(n.manager)}: ${remoteName(r)} owner ${shortAddr(r.owner.address)} could not be classified there`,
+                  ]
+                : []),
+              ...treeReadGaps([r.owner]),
+              ...nttTypeGapsOf(
+                r.transceivers ?? [],
+                `NTT manager ${shortAddr(n.manager)}: ${remoteName(r)}`,
+              ),
+            ],
   )
 }
+
+/** Fail-closed audit (NB-03): transceivers whose verifier network was not read. */
+const nttTypeGapsOf = (txs: { address: string; type: string | null }[], at: string): string[] =>
+  txs
+    .filter((t) => !t.type)
+    .map((t) => `${at}: transceiver ${shortAddr(lc(t.address))} verifier network not read`)
 
 /** A canonical rollup bridge's L1 side as the collector read it at head (admin.mjs readCanonicalBridge). */
 export type CanonicalHead = {
@@ -382,6 +426,12 @@ export type RawSubject = {
     headRoutes: HeadRouteRead[]
     headDefaults: Record<string, UlnConfigRaw>
     remote: RemoteRouteRead[]
+    /**
+     * Fail-closed audit (LZ-01 / LZ-04 / LZ-05): the Ethereum route sides the collector READ as
+     * closed (a zero peer; the Endpoint's "no default library" revert). Only these are "gone" when
+     * a previous run's side is missing this run — anything else is not read (its breaches carried).
+     */
+    closedRoutes?: { oapp: string; eid: number; direction?: 'send' | 'receive'; why: string }[]
     codeProbes: Record<string, CodeProbe>
     dvnSigner: DvnSignerChange[]
     dvnHead: Record<string, { quorum: number | null; signers: number | null }>
@@ -416,7 +466,8 @@ export type RawSubject = {
     /** `${address}@${block}` and `${address}@head` → classified controller. */
     controllers: Record<string, Controller>
     powers: PowerRead[]
-    timelockAdmins: { timelock: string; role: string; holders: string[] }[]
+    /** `unread` (fail-closed audit PH-13): the admin roles' holders were not read on the timelock. */
+    timelockAdmins: { timelock: string; role: string; holders: string[]; unread?: boolean }[]
     implHistory: QueueCtx['implHistory']
     owners: Record<string, string>
     delegates: Record<string, string>
@@ -454,8 +505,28 @@ export type RawSubject = {
      * classification — that mixes eras (the 2023 Voting path judged on the 2026 controller).
      */
     classifyFailed?: string[]
+    /**
+     * Fail-closed audit (ST-02): every emitter whose events are this subject's this run (its
+     * contracts, timelocks and power-graph controllers). A previous red admin row whose emitter
+     * left it is gone; any other one not re-derived is carried. Absent = everything in scope.
+     */
+    scope?: string[]
+    /** Fail-closed audit (CL-08): addresses whose head classification FAILED (late pool). */
+    headClassifyFailed?: string[]
+    /** Fail-closed audit (LZ-02 / LZ-03 / MS-1): owner() / delegates() reads that failed at head. */
+    ownersUnread?: string[]
+    delegatesUnread?: string[]
+    /** Fail-closed audit (TV-10): declared contracts whose Aragon kernel() / appId() read failed. */
+    aragonAppsUnread?: string[]
   }
-  params: { head: Record<string, unknown>; transitions: ParamTransition[] }
+  params: {
+    head: Record<string, unknown>
+    transitions: ParamTransition[]
+    /** Fail-closed audit (PO-01..03): getter reads that failed (a grid point, a bisection, head). */
+    unread?: { key: string; block?: number; from?: number; to?: number; reason: string }[]
+    /** First block of the grid (rows before it are outside the look-back window). */
+    from?: number
+  }
   queues: {
     ops: TimelockOp[]
     safe: SafeProposal[]
@@ -466,6 +537,11 @@ export type RawSubject = {
     multisigStatus?: { multisig: string; status: 'ok' | 'unavailable'; note?: string }[]
     /** Whether each Dual Governance timelock's proposals were read (its ops are in `ops`). */
     dgStatus?: { timelock: string; status: 'ok' | 'unavailable'; note?: string }[]
+    /**
+     * Fail-closed audit (QU-05 / QU-09): previous OZ timelock ops this run did not re-derive whose
+     * getTimestamp READ cancelled (0) or executed (1) at head (`${timelock}|${opId}`): resolved.
+     */
+    ozResolved?: string[]
   }
   /** Wormhole NTT managers (subject.nttManagers) read at head. */
   ntt?: NttHead[]
@@ -476,6 +552,8 @@ export type RawSubject = {
       pool: string
       owner: string | null
       rebalancer: string | null
+      /** Fail-closed audit (CC-02): getRebalancer FAILED (not a revert: a BurnMint pool has none). */
+      rebalancerUnread?: boolean
       /** Review round 12: getSupportedChains failed — `chains` is empty because it was not read. */
       chainsUnread?: boolean
       chains: {
@@ -498,7 +576,15 @@ export type RawSubject = {
   oracle?: {
     events: OracleGovEvent[]
     window?: { startBlock: number; endBlock: number; days: number }
+    /** Fail-closed audit (PO-07 / MISSED-1): data/oracle-registry/changes.json was not read. */
+    unread?: string
   }
+  /**
+   * Fail-closed audit (EV-01 / KG-7, 2026-10-10): event-scan chunks that could not be confirmed
+   * (an empty answer neither endpoint confirmed, a requested log that does not decode) — each a
+   * read gap on the card, and what they can hide is carried from the previous run.
+   */
+  scanGaps?: { scan: string; from: number; to: number; addresses?: string[]; error: string }[]
   /**
    * UQ-30: the head-state items of the PREVIOUS run (state/<subject>.json `items`, at `asOf`). A
    * breach it recorded that this run cannot re-confirm because a read it depends on failed is
@@ -814,8 +900,20 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     // deployment (owner ruling #7, applied to the LZ delegate in review round 5): later, its
     // initialize() could have been front-run; an unknown deploy block fails closed.
     const dep = contractDeploy(d.oapp)
+    // Fail-closed review (2026-10-10, OC-3): a previous delegate whose classification at block − 1
+    // is missing (the read failed) is NOT READ — red AD-3 with a read gap, as at every replay call
+    // site. It was passed without `prevUnread` and read neutral (Safe 6-of-11 → Safe 2-of-3: calm).
+    const prevDel = d.prev ? ctl(d.prev, d.block - 1) : null
     const v = d.prev
-      ? classifyControllerChange(ctl(d.prev, d.block - 1), ctl(d.next, d.block))
+      ? classifyControllerChange(
+          prevDel,
+          ctl(d.next, d.block),
+          !prevDel && !/^0x0*$/i.test(d.prev)
+            ? {
+                prevUnread: `${shortAddr(lc(d.prev))} could not be classified at block ${d.block - 1}`,
+              }
+            : {},
+        )
       : dep !== undefined && d.block - dep <= OWNER_INIT_WINDOW_BLOCKS
         ? tag(neutral(), 'initialization')
         : down(
@@ -855,13 +953,16 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   const headRoutes: QueueCtx['routes'] = {}
   const headInputs: Record<string, RouteInputs> = {}
   const headOverrides: Record<string, UlnConfigRaw> = {}
+  // fail-closed audit (MISSED-QUEUE-UNREAD-SEED): the route sides not read at head (oapp|eid|dir)
+  // — a queued change on one is judged fail closed (it was judged on the event replay)
   const unreadLocal = new Set<string>()
+  const unreadOverrides: string[] = []
   for (const h of raw.lz.headRoutes) {
     // A getConfig that failed for any reason but a library revert is a failed READ: the route
     // is UNREAD (amber), never "blocked (no_dvn)" with no breach.
     if (!h.merged && !h.mergedReverted) {
       const k = routeKey({ chainId: 1, oapp: h.oapp, eid: h.eid, direction: h.direction })
-      unreadLocal.add(`${lc(h.oapp)}|${h.eid}`)
+      unreadLocal.add(`${lc(h.oapp)}|${h.eid}|${h.direction}`)
       items.push({
         subject: subject.key,
         dimension: 'bridge',
@@ -876,19 +977,19 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       continue
     }
     const cfg = h.merged ? mergeUln(h.merged, undefined) : mergeUln(undefined, undefined)
+    const hg = h.grace && !h.grace.unread ? h.grace : undefined
     const g =
-      h.grace && h.grace.config
-        ? { lib: h.grace.lib, expiry: h.grace.expiry, config: mergeUln(h.grace.config, undefined) }
+      hg && hg.config
+        ? { lib: hg.lib, expiry: hg.expiry, config: mergeUln(hg.config, undefined) }
         : undefined
     // The old library still verifies until its expiry, but its config could not be read: the
     // route's E is unknown (it can only be LOWER than the current library's) — UNREAD, never a
-    // calm route that drops the grace library (review round 5).
+    // calm route that drops the grace library (review round 5). Fail-closed audit (LZ-09): the
+    // receive-library timeout itself not read is the same (it read as "no grace").
     const graceUnread =
       h.direction === 'receive' &&
       !!h.grace &&
-      !h.grace.config &&
-      h.grace.expiry > head &&
-      lc(h.grace.lib) !== lc(h.lib)
+      (!!h.grace.unread || (!!hg && !hg.config && hg.expiry > head && lc(hg.lib) !== lc(h.lib)))
     const def = raw.lz.headDefaults[`${lc(h.lib)}|${h.eid}`]
     const inputs: RouteInputs = {
       chainId: 1,
@@ -907,6 +1008,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     headRoutes[`${r.oapp}|${r.eid}|${r.direction}`] = r
     headInputs[`${r.oapp}|${r.eid}|${r.direction}`] = inputs
     if (h.app) headOverrides[`${lc(h.lib)}|${r.oapp}|${r.eid}`] = h.app
+    else if (h.appUnread) unreadOverrides.push(`${lc(h.lib)}|${r.oapp}|${r.eid}`)
     const replayed = rep.routes.find(
       (x) => x.oapp === r.oapp && x.eid === r.eid && x.direction === r.direction,
     )
@@ -919,12 +1021,13 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     )
       w.push(`replay ≠ head read (replay: ${displayRoute(replayed)})`)
     if (!r.live && !r.peer.match(/^0x0*$/) && r.security.blocked) w.push('route closed')
+    const graceWhat = hg
+      ? `grace library ${lc(hg.lib)} (verifies until block ${hg.expiry}) config not read`
+      : `receive-library timeout (grace period) not read${h.grace?.error ? ` (${h.grace.error})` : ''}`
     if (graceUnread) {
       w.unshift('UNREAD')
-      unreadLocal.add(`${lc(h.oapp)}|${h.eid}`)
-      warnings.push(
-        `${routeKey(r)}: grace library ${lc(h.grace!.lib)} config read failed — route UNREAD`,
-      )
+      unreadLocal.add(`${lc(h.oapp)}|${h.eid}|${h.direction}`)
+      warnings.push(`${routeKey(r)}: ${graceWhat} — route UNREAD`)
     }
     items.push({
       subject: subject.key,
@@ -933,7 +1036,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       chainId: 1,
       block: head,
       display: graceUnread
-        ? `eid ${r.eid} (${opt.eidName(r.eid)}) ${r.direction}: UNREAD — grace library ${lc(h.grace!.lib)} (verifies until block ${h.grace!.expiry}) config not read; current library: ${displayRoute(r)}`
+        ? `eid ${r.eid} (${opt.eidName(r.eid)}) ${r.direction}: UNREAD — ${graceWhat}; current library: ${displayRoute(r)}`
         : `eid ${r.eid} (${opt.eidName(r.eid)}) ${r.direction}: ${displayRoute(r)}`,
       value: {
         E: r.Eeff,
@@ -956,6 +1059,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   // Remote side of every live route (critique fix #3), or REMOTE UNREAD. A failed read never
   // makes a side look closed: an unread direction is UNREAD, an unread peer is assumed live.
   const remoteNow: Record<string, RouteState> = {}
+  const remoteGaps: string[] = []
   for (const rr of raw.lz.remote) {
     // Every remote side that was read is judged (review round 6): a forged packet minted on the
     // remote chain does not need Ethereum to be live — with both Ethereum directions closed, or
@@ -994,12 +1098,38 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         )
         continue
       }
+      // Fail-closed audit (RC-04 / MISSED-REMOTE-DVNCODE / RC-M3): a DVN of this side (its current
+      // or its grace library) whose remote code was NOT read is UNKNOWN — never counted as a DVN
+      // with code (it raised E and suppressed BR-4, with no gap). The side is a partial read: REMOTE
+      // UNREAD (the carry keeps its breaches), and it is not stored as the last good read.
+      const gr0 = dir === 'receive' ? d.grace : undefined
+      const sideDvns = [
+        ...(d.merged?.requiredDVNs ?? []),
+        ...(d.merged?.optionalDVNs ?? []),
+        ...(gr0 && !gr0.unread
+          ? [...(gr0.config?.requiredDVNs ?? []), ...(gr0.config?.optionalDVNs ?? [])]
+          : []),
+      ].map(lc)
+      const codeUnread = [...new Set(sideDvns)].filter(
+        (a) => rr.dvnCode?.[a] === null || rr.dvnCode?.[a] === undefined,
+      )
       const rctx: EvalCtx = {
         registry: opt.registry,
         code: (chainId, a) => (chainId === rr.chainId ? (rr.dvnCode?.[lc(a)] ?? null) : null),
         useDeprecated: true,
+        ...(codeUnread.length ? { requireCode: true } : {}),
       }
       const w: string[] = []
+      if (codeUnread.length) {
+        w.push(
+          'REMOTE UNREAD',
+          `DVN code not read on ${rr.chainKey}: ${codeUnread.map(shortAddr).join(', ')}`,
+        )
+        for (const a of codeUnread)
+          remoteGaps.push(
+            `remote DVN ${shortAddr(a)} code not read on ${rr.chainKey} (eid ${rr.eid})`,
+          )
+      }
       // peerBack null = the read failed: assume the remote OApp still points at Ethereum.
       const peerBack =
         rr.peerBack === null || rr.peerBack === undefined
@@ -1010,9 +1140,10 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       // Its expiry is a REMOTE block: with the remote block unknown it counts as active (fail
       // closed); a grace library whose config was not read leaves the side REMOTE UNREAD.
       const rb = rr.block ?? 0
-      const gr = dir === 'receive' ? d.grace : undefined
+      const gr = gr0 && !gr0.unread ? gr0 : undefined
       const graceActive = !!gr && gr.expiry > rb && lc(gr.lib) !== lc(d.lib)
-      const graceUnread = graceActive && !gr!.config
+      // RC-M1: the remote receive-library timeout itself not read is a grace not read
+      const graceUnread = (graceActive && !gr!.config) || !!gr0?.unread
       const r = evaluateRoute(
         {
           chainId: rr.chainId,
@@ -1031,11 +1162,13 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         },
         rctx,
       )
-      if (graceUnread) w.unshift('REMOTE UNREAD')
+      if (graceUnread && !w.includes('REMOTE UNREAD')) w.unshift('REMOTE UNREAD')
       if (rr.peerBack && rr.peerBack.slice(-40) !== lc(rr.oapp).slice(-40))
         w.push(`remote peer for Ethereum is ${rr.peerBack}, not this OApp`)
       const key = `bridge/lz/${rr.chainId}/${lc(rr.peer ?? '')}/30101/${dir}`
-      remoteNow[key] = r
+      // RC-05 / RC-M2: a PARTIAL read (grace not read, a DVN's code not read) is not the side's
+      // last good read: no snapshot write, no between-runs diff — the previous read is carried
+      if (!graceUnread && !codeUnread.length) remoteNow[key] = r
       items.push({
         subject: subject.key,
         dimension: 'bridge',
@@ -1043,8 +1176,10 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         chainId: rr.chainId,
         block: rr.block ?? 0,
         display: graceUnread
-          ? `eid ${rr.eid} (${rr.chainKey}) remote ${dir}: REMOTE UNREAD — grace library ${lc(gr!.lib)} (verifies until remote block ${gr!.expiry}) config not read; current library: ${displayRoute(r)}`
-          : `eid ${rr.eid} (${rr.chainKey}) remote ${dir}: ${displayRoute(r)}`,
+          ? `eid ${rr.eid} (${rr.chainKey}) remote ${dir}: REMOTE UNREAD — ${gr ? `grace library ${lc(gr.lib)} (verifies until remote block ${gr.expiry}) config not read` : 'receive-library timeout (grace period) not read'}; current library: ${displayRoute(r)}`
+          : codeUnread.length
+            ? `eid ${rr.eid} (${rr.chainKey}) remote ${dir}: REMOTE UNREAD — DVN code not read; ${displayRoute(r)}`
+            : `eid ${rr.eid} (${rr.chainKey}) remote ${dir}: ${displayRoute(r)}`,
         value: {
           E: r.Eeff,
           live: r.live,
@@ -1363,13 +1498,16 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
             ref: `node:${short(x.address)}`,
           })
       // A Dual Governance timelock in EMERGENCY MODE: the execution committee executes without
-      // the after-schedule delay and can reset governance (the stETH-holder veto) — AD-2 at head
-      if (leaf(h).kind === 'aragon_dg' && leaf(h).dg?.emergencyModeActive)
-        breaches.push({
-          ruleId: 'AD-2',
-          message: `${p.label}: ${describeController(leaf(h))} — emergency mode is active`,
-          ref: `node:${short(leaf(h).address)}`,
-        })
+      // the after-schedule delay and can reset governance (the stETH-holder veto) — AD-2 at head.
+      // Fail-closed audit (DG M2): anywhere in the holder's tree (an Agent with several executors
+      // has no single `ownedBy`, so the deferral-chain leaf stopped at the Agent)
+      for (const x of controllerTree(h))
+        if (x.kind === 'aragon_dg' && x.dg?.emergencyModeActive)
+          breaches.push({
+            ruleId: 'AD-2',
+            message: `${p.label}: ${describeController(x, { nested: x !== h })} — emergency mode is active`,
+            ref: `node:${short(x.address)}`,
+          })
       // AD-2 at head (review round 6): a timelock whose no-delay bypass reaches this power is
       // not in its authority path — the head-state twin of a Safe module (above). A whitelist
       // that could not be read is a read gap, not a breach.
@@ -1551,6 +1689,12 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     committeePaths[em] = [...path]
     committeeControllers[em] = [...new Set(on.flatMap((p) => p.holders.map((h) => lc(h.address))))]
   }
+  const upgradeHoldersMissing = Object.entries(raw.admin.upgradeHoldersAt ?? {})
+    .filter(([k, hs]) => {
+      const b = Number(k.split('@')[1]) - 1
+      return hs.some((h) => !raw.admin.controllers[`${lc(h)}@${b}`])
+    })
+    .map(([k]) => k)
   changes.push(
     ...classifyAdminEvents(raw.admin.events, {
       subject: subject.key,
@@ -1562,26 +1706,38 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       ctlPath: (a: string, b: number) =>
         failedAt(a, b) ? ctl(a, b) : (ctl(a, b) ?? headTreeNode(a)),
       ...(raw.admin.txTo ? { txTo: raw.admin.txTo } : {}),
-      ...(raw.admin.upgradeHoldersUnread
-        ? { upgradeHoldersUnread: raw.admin.upgradeHoldersUnread }
+      // fail-closed audit (PH-07): an upgrade holder whose classification at block − 1 is missing
+      // (it FAILED) is not "a plain contract" (no timelock: AD-5 skipped) — those upgrades are
+      // judged as unread holders (the declared timelocks, else AD-5 fail closed)
+      ...(raw.admin.upgradeHoldersUnread || upgradeHoldersMissing.length
+        ? {
+            upgradeHoldersUnread: [
+              ...(raw.admin.upgradeHoldersUnread ?? []),
+              ...upgradeHoldersMissing,
+            ],
+          }
         : {}),
       upgradeHoldersAt: raw.admin.upgradeHoldersAt
         ? Object.fromEntries(
-            Object.entries(raw.admin.upgradeHoldersAt).map(([k, hs]) => {
-              const b = Number(k.split('@')[1]) - 1
-              return [
-                k,
-                hs.map(
-                  (h) =>
-                    raw.admin.controllers[`${lc(h)}@${b}`] ?? {
-                      kind: 'contract' as const,
-                      address: lc(h),
-                    },
-                ),
-              ]
-            }),
+            Object.entries(raw.admin.upgradeHoldersAt)
+              .filter(([k]) => !upgradeHoldersMissing.includes(k))
+              .map(([k, hs]) => {
+                const b = Number(k.split('@')[1]) - 1
+                return [
+                  k,
+                  hs.map(
+                    (h) =>
+                      raw.admin.controllers[`${lc(h)}@${b}`] ?? {
+                        kind: 'contract' as const,
+                        address: lc(h),
+                      },
+                  ),
+                ]
+              }),
           )
         : undefined,
+      declaredTimelocks: subject.timelocks.map(lc),
+      prevUnread: (a: string, b: number) => failedAt(a, b),
       ctlExact: (a: string, b: number) => raw.admin.controllers[`${lc(a)}@${b}`] ?? null,
       deployBlocks: {
         ...Object.fromEntries(
@@ -1642,7 +1798,9 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     const reb = p.rebalancer ? ctlHead(p.rebalancer) : null
     // A 1.6 siloed chain has its OWN rebalancer (getChainRebalancer); the pool-wide one only
     // serves the unsiloed chains (review round 5: WBTC's card showed the unset unsiloed one).
-    const siloed = p.chains.filter((c) => c.siloed)
+    // Fail-closed audit (CC-06): a chain whose siloed flag was NOT read (null) is judged on BOTH
+    // sides — its chain rebalancer as a silo one, and the pool-wide one still counts.
+    const siloed = p.chains.filter((c) => c.siloed || (c.siloed === null && c.rebalancer))
     const unsiloed = p.chains.filter((c) => !c.siloed)
     if (reb && isEoaControlled(reb) && (unsiloed.length || !siloed.length))
       breaches.push({
@@ -1659,7 +1817,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       if (sr && isEoaControlled(sr))
         breaches.push({
           ruleId: 'CC-3',
-          message: `silo rebalancer of chain ${c.selector} is ${describeController(sr)}`,
+          message: `silo rebalancer of chain ${c.selector} is ${describeController(sr)}${c.siloed === null ? ' (whether the chain is siloed was not read: judged as siloed, fail closed)' : ''}`,
           ref: `silo:${c.selector}`,
         })
     }
@@ -1670,11 +1828,15 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
           message: `rate limiter off for chain ${c.selector}`,
           ref: `chain:${c.selector}`,
         })
-    const unreadSilo = siloed.filter((c) => !c.rebalancer).length
+    const unreadSilo = p.chains.filter(
+      (c) => (c.siloed && !c.rebalancer) || c.siloed === null,
+    ).length
     const rebText =
       p.rebalancer && /^0x0{40}$/i.test(p.rebalancer)
         ? 'none set (address 0)'
-        : describeController(reb)
+        : p.rebalancerUnread
+          ? 'NOT READ'
+          : describeController(reb)
     items.push({
       subject: subject.key,
       dimension: 'bridge',
@@ -1685,7 +1847,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       breaches,
       warnings: [
         'CCIP 2.0 committee/CCV verifier set not read in v1',
-        ...(unreadSilo ? [`${unreadSilo} siloed chain rebalancer(s) not read`] : []),
+        ...(unreadSilo ? [`${unreadSilo} siloed chain rebalancer(s) / silo flag(s) not read`] : []),
         ...(p.chainsUnread
           ? ['supported chains not read: rate limiters and silo rebalancers not judged (read gap)']
           : []),
@@ -1859,6 +2021,8 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         continue
       }
       lines.push(`${name} ${describeController(h)}`)
+      // fail-closed audit (DG M3): a committee whose own tree rests on a read gap is listed
+      if (rankHasReadGap(h)) dgGaps.push(...treeReadGaps([h]))
       if (isEoaControlled(h))
         breaches.push({
           ruleId: 'AD-3',
@@ -1947,21 +2111,48 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   // contract; it stays tracked (its `singleton` is kept) so that swap is never silent.
   const isSafeLike = (c: Controller | null | undefined): c is Controller =>
     !!c && (c.kind === 'safe' || !!c.singleton)
-  const safeNow = [...subjectSafes]
-    .map((a) => ctlHead(a))
-    .filter((c): c is Controller => isSafeLike(c))
   const prevSafes = raw.admin.previousSafes
   // Review round 12 (rules #6): a Safe of the last snapshot that this run could not classify
   // keeps its LAST READ in the snapshot (with the block it was read at), as an unread remote route
   // does — it dropped out, so a silent threshold drop across that run was never bracketed. Kept
   // while it is still in this card's scope, or while the scope itself was not read (a power whose
   // holders were not resolved). A read gap meanwhile.
-  const scopeUnread = raw.admin.powers.some((p) => p.error)
+  // Fail-closed review (2026-10-10, rules #3): the Safes reached through a holder's tree are only
+  // as complete as that tree's reads. A holder not classified at head, an owner() not read or not
+  // followed, an Agent's executors or a timelock's proposers not read, or an event chunk not
+  // confirmed (a timelock role grant lost) hides the Safe behind it — it dropped out of the
+  // snapshot and the next run had no baseline (a 3-of-5 → 2-of-5 between them never showed).
+  const hidesSafes = (n: Controller): boolean =>
+    isNotClassified(n) ||
+    (n.kind === 'contract' &&
+      (!!n.ownerUnread ||
+        !!n.ownerNotFollowed ||
+        !!n.executorsUnread ||
+        !!n.executorsUnconfirmed)) ||
+    schedulersUnreadOf(n)
+  const scopeUnread =
+    raw.admin.powers.some((p) => p.error) ||
+    (raw.admin.headClassifyFailed ?? []).length > 0 ||
+    (raw.scanGaps ?? []).length > 0 ||
+    powers.some((p) => p.holders.some((h) => controllerTree(h).some(hidesSafes)))
+  const keepPrevSafe = (a: string) => subjectSafes.has(lc(a)) || scopeUnread
+  // a previous snapshot Safe kept tracked while the scope is unread: re-read at head when it was
+  // classified this run (its diff runs as usual), else carried below
+  const safeNow = [
+    ...new Set([
+      ...subjectSafes,
+      ...Object.keys(prevSafes?.controllers ?? {})
+        .filter(keepPrevSafe)
+        .map(lc),
+    ]),
+  ]
+    .map((a) => ctlHead(a))
+    .filter((c): c is Controller => isSafeLike(c))
   const safeReadAt: Record<string, number> = {}
   const safeCarried: Controller[] = []
   const safeCarriedGaps: string[] = []
   for (const [addr, prev] of Object.entries(prevSafes?.controllers ?? {})) {
-    if (ctlHead(addr) || !(subjectSafes.has(lc(addr)) || scopeUnread)) continue
+    if (ctlHead(addr) || !keepPrevSafe(addr)) continue
     const at = prevSafes!.readAt?.[addr] ?? prevSafes!.block
     safeCarried.push(prev)
     safeReadAt[addr] = at
@@ -1971,7 +2162,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   }
   const tracked = new Set([
     ...safeNow.map((c) => c.address),
-    ...Object.keys(prevSafes?.controllers ?? {}).filter((a) => subjectSafes.has(lc(a))),
+    ...Object.keys(prevSafes?.controllers ?? {}).filter(keepPrevSafe),
   ])
   for (const addr of tracked) {
     const prev = prevSafes?.controllers[addr]
@@ -2144,6 +2335,8 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       (x) => !(prev.modules ?? []).map(lc).includes(lc(x)) && !evModules.has(lc(x)),
     )) {
       const v = classifySafeModuleChange('module_enabled', undefined, m)
+      // SQ-07: bracketed from the run that last READ the module list
+      const modulesSince = prev.modulesReadAt ?? since
       changes.push({
         id: `1:safe-head:${c.address}:module:${m}:${raw.head.block}`,
         subject: subject.key,
@@ -2162,7 +2355,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         announcement,
         chainId: 1,
         block: raw.head.block,
-        blockFrom: since,
+        blockFrom: modulesSince,
       })
     }
   }
@@ -2172,6 +2365,9 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   // heartbeat / deviation / window / quorum parameters (old → new from the event, or from the
   // previous event of the same emitter); upgrades and source swaps are logic changes (AD-9).
   const lastOracle = new Map<string, unknown>()
+  // fail-closed audit (CL-10 / MISSED engine.ts:2201): a source whose controller at its block
+  // could not be classified — listed, and its row judged fail closed (OR-1, read gap)
+  const oracleSourceGaps: string[] = []
   const oracleEvents = [...(raw.oracle?.events ?? [])].sort(
     (x, y) => x.block - y.block || x.logIndex - y.logIndex,
   )
@@ -2205,6 +2401,19 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       after = src
       lastOracle.set(k, src)
       merge(classifyOracleParam('market_source', 'source', before, src, ctl(src, e.block)))
+      if (src && !/^0x0{40}$/.test(src) && !ctl(src, e.block)) {
+        merge(
+          down(
+            neutral(),
+            'OR-1',
+            `new source ${short(src)} could not be classified at block ${e.block} (fail closed: an EOA controller cannot be ruled out)`,
+          ),
+        )
+        tag(v, 'read_gap')
+        oracleSourceGaps.push(
+          `oracle source ${short(src)} at block ${e.block} could not be classified`,
+        )
+      }
       if (/^0x0{40}$/.test(src)) merge(classifyOracleParam('fallback', 'source', before, null))
       else if (
         (before === undefined || (typeof before === 'string' && before !== src)) &&
@@ -2432,12 +2641,47 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     },
     ntt: raw.ntt,
     ccipRemotePools: (pool, selector) => {
-      const c = raw.ccip.pools
-        .find((x) => lc(x.pool) === lc(pool))
-        ?.chains.find((x) => x.selector === selector)
-      if (!c) return raw.ccip.pools.some((x) => lc(x.pool) === lc(pool)) ? [] : null
+      const pl = raw.ccip.pools.find((x) => lc(x.pool) === lc(pool))
+      const c = pl?.chains.find((x) => x.selector === selector)
+      // fail-closed audit (CC-08): a chain missing because the chain LIST was not read is unread
+      if (!c) return pl && !pl.chainsUnread ? [] : null
       return c.remotePools === undefined ? null : c.remotePools
     },
+    // ---- fail-closed audit (2026-10-10): head reads that failed --------------------------------------
+    unreadRoutes: [...unreadLocal],
+    unreadOverrides,
+    ownersUnread: (raw.admin.ownersUnread ?? []).map(lc),
+    delegatesUnread: (raw.admin.delegatesUnread ?? []).map(lc),
+    unclassified: (raw.admin.headClassifyFailed ?? []).map(lc),
+    nttKnownTransceivers: [
+      ...new Set([
+        ...raw.admin.events
+          .filter((e) => e.event === 'TransceiverAdded')
+          .map((e) => lc(String(e.args.transceiver ?? ''))),
+        ...(raw.previousHead?.items ?? [])
+          .filter((i) => i.key.startsWith('bridge/ntt/'))
+          .flatMap((i) =>
+            (
+              (i.value as { transceivers?: { address: string }[] | null } | undefined)
+                ?.transceivers ?? []
+            ).map((t) => lc(t.address)),
+          ),
+      ]),
+    ].filter(Boolean),
+    powerHolderOf: (contract, kind) => {
+      const pw = raw.admin.powers.find((p) => {
+        const sp = specOf(p)
+        return (
+          lc(p.contract) === lc(contract) &&
+          !p.error &&
+          p.holders.length === 1 &&
+          sp?.path.length === 1 &&
+          sp.path[0] === kind
+        )
+      })
+      return pw ? lc(pw.holders[0]) : null
+    },
+    aragonAppsIncomplete: !!raw.admin.aragonAppsUnread?.length,
     aragonAppProxies: raw.admin.aragonApps,
     permissionManagerOf: (app, role) => {
       // the last manager the ACL events set for (app, role)
@@ -2458,7 +2702,26 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     ...safeProposalChanges(raw.queues.safe, q),
     ...multisigSubmissionChanges(raw.queues.multisig ?? [], q),
   ]
-  queue.push(...carryUnreadQueueRows(queue, raw))
+  const carriedQueue = carryUnreadQueueRows(queue, raw)
+  queue.push(...carriedQueue)
+  // fail-closed audit (QU-09 / M-1): a queue carried without a status of its own this run (not
+  // attempted: its power not resolved, the Safe not polled, an OZ op not re-derived) is a read gap
+  const statusOf = new Set([
+    ...raw.queues.safeStatus.map((x) => `safe|${lc(x.safe)}`),
+    ...(raw.queues.multisigStatus ?? []).map((x) => `legacy_multisig|${lc(x.multisig)}`),
+    ...(raw.queues.dgStatus ?? []).map((x) => `dg_timelock|${lc(x.timelock)}`),
+  ])
+  const queueCarryGaps = [
+    ...new Set(
+      carriedQueue
+        .filter((c) => c.queue && !statusOf.has(`${c.queue.kind}|${lc(c.queue.address)}`))
+        .map((c) =>
+          c.queue!.kind === 'oz_timelock'
+            ? `timelock ${short(lc(c.queue!.address))}: op ${String(c.queue!.opId ?? '').slice(0, 10)}… not re-derived from events this run (its last row is carried)`
+            : `queue of ${short(lc(c.queue!.address))} not read this run (its last rows are carried)`,
+        ),
+    ),
+  ]
 
   // Review round 12 (rules #6): the run-to-run diff rows of the previous run (a Safe field or a
   // remote route that changed between two runs, with no event) are history no event re-derives:
@@ -2486,6 +2749,116 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       previous: (raw.previousChanges?.changes ?? []).filter((c) => c.id.includes(':role-head:')),
     }),
   )
+
+  // ---- fail-closed audit (ST-02 / EV-01 / EV-07 / EV-09 / EV-10 / MISSED-1 / PO-02 / PO-03 / NB-06) ---
+  // A red HISTORY row the previous run had that this run did not re-derive is CARRIED — as it was
+  // last judged (red, still in effect or not), tagged `read_gap`, with a read gap — unless it left
+  // the subject's scope (an admin row whose emitter is no longer this card's) or the window (a row
+  // older than this run's scan / look-back). Event-derived rows were rewritten from this run's
+  // events alone, so one lost log chunk (a false-empty answer, a decode failure, a cache deleted
+  // and re-scanned) dropped a red with no trace. Run-only rows keep their own carries above.
+  const historyCarry = carryHistoryRows(changes, raw, subject)
+  if (historyCarry.replaced.length) {
+    const gone = new Set(historyCarry.replaced)
+    for (let i = changes.length - 1; i >= 0; i--) if (gone.has(changes[i].id)) changes.splice(i, 1)
+  }
+  changes.push(...historyCarry.rows)
+
+  // ---- fail-closed audit (2026-10-10): the read gaps of every head read, listed on EVERY run ----------
+  const shortN = (n: number) => n.toLocaleString('en-US')
+  const ctlGapsOf = (
+    a: string | null | undefined,
+    what: string,
+    unread: string,
+    notClassified = 'could not be classified at head',
+  ): string[] => {
+    if (!a) return [unread]
+    if (/^0x0{40}$/i.test(a)) return []
+    const c = ctlHead(a)
+    return c ? treeReadGaps([c]) : [`${what} ${short(lc(a))} ${notClassified}`]
+  }
+  /** CC-02 / CC-04 / CC-06 / CC-07 / MISSED-3: one CCIP pool's read gaps (every run, and the carry). */
+  const ccipPoolGaps = (pool: RawSubject['ccip']['pools'][number]) => {
+    const at = `CCIP pool ${short(lc(pool.pool))}`
+    const reb = pool.rebalancerUnread
+      ? [`${at}: rebalancer not read`]
+      : pool.rebalancer
+        ? ctlGapsOf(pool.rebalancer, `${at}: rebalancer`, `${at}: rebalancer not read`)
+        : []
+    const chains = pool.chainsUnread ? [`${at}: supported chains not read`] : []
+    const silo = (c: (typeof pool.chains)[number]) => {
+      if (c.siloed === null)
+        return [
+          `${at}: whether chain ${c.selector} is siloed was not read`,
+          ...(c.rebalancer
+            ? ctlGapsOf(c.rebalancer, `${at}: silo rebalancer of chain ${c.selector}`, '')
+            : []),
+        ].filter(Boolean)
+      if (!c.siloed) return []
+      return ctlGapsOf(
+        c.rebalancer,
+        `${at}: silo rebalancer of chain ${c.selector}`,
+        `${at}: silo rebalancer of chain ${c.selector} not read`,
+      )
+    }
+    const limiter = (c: (typeof pool.chains)[number]) =>
+      c.inboundEnabled === null || c.outboundEnabled === null
+        ? [`${at}: rate limiter of chain ${c.selector} not read`]
+        : []
+    return { reb, chains, silo, limiter, at }
+  }
+  // NB-03: a transceiver whose verifier network was not read
+  const nttTypeGaps = (n: NttHead) =>
+    (n.transceivers ?? [])
+      .filter((t) => !t.type)
+      .map(
+        (t) =>
+          `NTT manager ${short(n.manager)}: transceiver ${short(lc(t.address))} verifier network not read`,
+      )
+  // the event scans that could not be confirmed (EV-01 / KG-7)
+  const scanGapLines = (raw.scanGaps ?? []).map(
+    (g) =>
+      `${g.scan}: blocks ${shortN(g.from)}–${shortN(g.to)} not confirmed (${g.error}) — events there may be missing`,
+  )
+  const scanGapsOf = (re: RegExp) =>
+    (raw.scanGaps ?? [])
+      .filter((g) => re.test(g.scan))
+      .map(
+        (g) =>
+          `${g.scan}: blocks ${shortN(g.from)}–${shortN(g.to)} not confirmed (${g.error}) — events there may be missing`,
+      )
+  // PO-04: a declared getter that was not read at head
+  const paramHeadGaps = subject.params
+    .filter((sp) => sp.sig && !sp.eventsOnly && raw.params.head[sp.key] === undefined)
+    .map((sp) => `${sp.label}: not read at head`)
+  const paramAddrGaps = subject.params.flatMap((sp) => {
+    const v = raw.params.head[sp.key]
+    return typeof v === 'string' && /^0x[0-9a-f]{40}$/i.test(v)
+      ? ctlGapsOf(v, sp.label, `${sp.label}: not read at head`)
+      : []
+  })
+  // PO-01..03: grid / bisection reads that failed (a change there cannot be ruled out)
+  const paramReadGaps = (raw.params.unread ?? []).map((u) => {
+    const spec = subject.params.find((sp) => sp.key === u.key)
+    const where =
+      u.from !== undefined && u.to !== undefined
+        ? `between blocks ${shortN(u.from)} and ${shortN(u.to)}`
+        : u.block !== undefined
+          ? `at block ${shortN(u.block)}`
+          : ''
+    return `${spec?.label ?? u.key}: read failed ${where} (${u.reason}) — a change there cannot be ruled out`
+  })
+  // PO-07 / MISSED-1 / the stale oracle window
+  const oracleGaps = subject.oracleAssetKey
+    ? [
+        ...(raw.oracle?.unread ? [`oracle governance events not read (${raw.oracle.unread})`] : []),
+        ...(raw.oracle?.window && raw.oracle.window.endBlock < raw.head.block - 300
+          ? [
+              `oracle governance events after block ${shortN(raw.oracle.window.endBlock)} not read (the oracle collector's window ends ${shortN(raw.head.block - raw.oracle.window.endBlock)} blocks below head)`,
+            ]
+          : []),
+      ]
+    : []
 
   // Reads that failed in a way that can HIDE a red flag: the card never says "no red flags"
   // over them (default 2026-10-06). Route sides that were not read are counted apart (UNREAD).
@@ -2609,6 +2982,90 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     // the remote side of a live NTT route: its floor and owner cannot be judged unread
     ...(raw.ntt ?? []).flatMap(nttRemoteGaps),
     ...dgGaps,
+    // ---- fail-closed audit (2026-10-10) ----
+    ...scanGapLines,
+    ...raw.ccip.pools.flatMap((pl) => {
+      const g = ccipPoolGaps(pl)
+      return [...g.reb, ...pl.chains.flatMap((c) => [...g.silo(c), ...g.limiter(c)])]
+    }),
+    ...(raw.ntt ?? []).flatMap(nttTypeGaps),
+    // MISSED (NTT / canonical): the owner / proxy admin tree's own read gaps
+    ...(raw.ntt ?? []).flatMap((n) =>
+      n.owner && ctlHead(n.owner) ? treeReadGaps([ctlHead(n.owner)!]) : [],
+    ),
+    ...(raw.canonical ?? []).flatMap((b) =>
+      b.ossified !== true && b.admin && ctlHead(b.admin) ? treeReadGaps([ctlHead(b.admin)!]) : [],
+    ),
+    ...paramHeadGaps,
+    ...paramAddrGaps,
+    ...paramReadGaps,
+    ...oracleGaps,
+    ...oracleSourceGaps,
+    ...remoteGaps,
+    ...raw.admin.timelockAdmins
+      .filter((t) => t.unread)
+      .map(
+        (t) =>
+          `timelock ${short(lc(t.timelock))}: admin role holders not read (an AD-7 holder cannot be ruled out)`,
+      ),
+    ...(raw.admin.ownersUnread ?? []).map((a) => `owner() of ${short(lc(a))} not read at head`),
+    ...(raw.admin.delegatesUnread ?? []).map(
+      (a) => `LZ delegate of ${short(lc(a))} not read at head`,
+    ),
+    ...(raw.admin.headClassifyFailed ?? []).map(
+      (a) =>
+        `${short(lc(a))} could not be classified at head (a queued change naming it is judged fail closed)`,
+    ),
+    // SQ-07: every snapshot Safe whose modules were not read (also outside every power tree)
+    ...safeNow
+      .filter((c) => c.modulesUnread)
+      .map((c) => `Safe ${short(c.address)}: modules not read (ranked as a plain contract)`),
+    // QU-05: an OZ op whose calls were not all read (a CallScheduled log missing)
+    ...raw.queues.ops
+      .filter((o) => o.callsIncomplete)
+      .map(
+        (o) =>
+          `timelock ${short(lc(o.timelock))}: op ${String(o.id).slice(0, 10)}… — some of its calls were not read (a CallScheduled log is missing)`,
+      ),
+    // DG-02: a Dual Governance proposal whose ETA could not be computed (delays not read)
+    ...raw.queues.ops
+      .filter((o) => o.kind === 'dg' && o.timestamp === null)
+      .map(
+        (o) =>
+          `Dual Governance ${short(lc(o.timelock))}: delays not read — proposal #${o.id} may be executable`,
+      ),
+    ...historyCarry.gaps,
+    // rules #6 (fail-closed review): a `:role-head:` red carried because its grant was not re-read
+    ...changes
+      .filter(
+        (c) =>
+          c.id.includes(':role-head:') &&
+          (c.notes ?? []).some((n) => n.startsWith('CARRIED: the grant behind it was not re-read')),
+      )
+      .map(
+        (c) =>
+          `red row "${c.title}" carried: the grant behind it was not re-read this run and no revocation was seen`,
+      ),
+    ...queueCarryGaps,
+    // NB-06: a transceiver of the history whose verifier network was not read (its rows judge E
+    // fail closed)
+    ...raw.admin.events
+      .filter(
+        (e) =>
+          (e.event === 'TransceiverAdded' || e.event === 'TransceiverRemoved') &&
+          e.args.transceiverType === null,
+      )
+      .map(
+        (e) =>
+          `NTT manager ${short(lc(e.emitter))}: transceiver ${short(lc(String(e.args.transceiver ?? '')))} verifier network not read (history at block ${shortN(e.block)})`,
+      ),
+    // LZ-15: a DVN signer row whose state before was carried, not read
+    ...raw.lz.dvnSigner
+      .filter((d) => d.prevCarried && usedDvns.has(lc(d.dvn)))
+      .map(
+        (d) =>
+          `DVN ${short(lc(d.dvn))}: quorum / signers before block ${shortN(d.block)} not read (carried from the previous transaction)`,
+      ),
   ]
 
   // UQ-30: a head breach the previous run recorded is never dropped by a failed read. The read
@@ -2659,8 +3116,23 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     // a LayerZero route side: re-confirmed only by reading it
     if (key.startsWith('bridge/lz/')) {
       if (cur) return isUnreadSide(cur) ? [`${ROUTE_SIDE_UNREAD}${cur.display}`] : []
-      // an Ethereum side with no live peer (zeroed, no library) is gone, not unread
-      if (key.startsWith('bridge/lz/1/') || key.startsWith('bridge/lz/remote/')) return []
+      // Fail-closed audit (LZ-01 / LZ-04 / LZ-05 / EV-06): an Ethereum side missing this run is
+      // gone ONLY when the collector READ it closed (a zero peer, the Endpoint's "no default
+      // library" revert) — a lost event chunk, a failed or misread peers() / library read left no
+      // item and no gap, and dropped the floor breach
+      if (key.startsWith('bridge/lz/1/')) {
+        const [, , , oapp, eid, dir] = key.split('/')
+        const closed = (raw.lz.closedRoutes ?? []).some(
+          (x) =>
+            lc(x.oapp) === lc(oapp) &&
+            String(x.eid) === eid &&
+            (!x.direction || x.direction === dir),
+        )
+        return closed
+          ? []
+          : [`local route side ${key} not read this run`, ...scanGapsOf(/LayerZero/)]
+      }
+      if (key.startsWith('bridge/lz/remote/')) return []
       const o = lc((p.value as { localOApp?: string } | undefined)?.localOApp ?? '')
       if (!o || !subject.lzOApps.map(lc).includes(o)) return []
       const dir = key.split('/').at(-1)
@@ -2703,8 +3175,19 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       const all = () => [...base, ...pw.holders.flatMap((h) => holderGaps(h, pw.label))]
       if (ref?.startsWith('holder:')) {
         const h = pw.holders.find((x) => short(x.address) === ref.slice(7))
-        // a holder no longer listed is gone (unless the holder list itself was not read)
-        return h ? [...base, ...holderGaps(h, pw.label)] : base
+        // a holder no longer listed is gone (unless the holder list itself was not read, or the
+        // event scan its candidates come from lost a chunk — fail-closed audit EV-07)
+        // MS-3: an Aragon Agent's executors come from the ACL event scan — a chunk of it not
+        // confirmed can hide a weaker executor
+        return h
+          ? [
+              ...base,
+              ...holderGaps(h, pw.label),
+              ...(controllerTree(h).some((x) => (x.version ?? '').startsWith('Aragon Agent'))
+                ? scanGapsOf(/Aragon ACL|admin event scan/)
+                : []),
+            ]
+          : [...base, ...scanGapsOf(/admin event scan|Aragon ACL/)]
       }
       if (ref?.startsWith('node:')) {
         const hs = pw.holders.filter((h) =>
@@ -2715,12 +3198,25 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       }
       return all()
     }
-    if (key.startsWith('admin/timelock_admin/')) return [] // AD-7 does not depend on a rank
+    if (key.startsWith('admin/timelock_admin/')) {
+      // AD-7 does not depend on a rank, but on the holder LIST — fail-closed audit (PH-13 / EV-07):
+      // holders not read on the timelock, or an admin scan chunk not confirmed, keep it
+      const tl = key.slice('admin/timelock_admin/'.length)
+      const t = raw.admin.timelockAdmins.find((x) => lc(x.timelock) === tl)
+      return [
+        ...(t?.unread
+          ? [
+              `timelock ${short(tl)}: admin role holders not read (an AD-7 holder cannot be ruled out)`,
+            ]
+          : []),
+        ...scanGapsOf(/admin event scan/),
+      ]
+    }
     if (key.startsWith('mint/')) {
       const spec = subject.params.find((s) => `mint/${s.key}` === key)
       if (!spec) return []
       const v = raw.params.head[spec.key]
-      if (v === undefined) return [`${spec.label}: not read at head`]
+      if (v === undefined) return [`${spec.label}: not read at head`, ...paramReadGaps]
       return typeof v === 'string' && /^0x[0-9a-f]{40}$/i.test(v)
         ? ctlGaps(v, spec.label, `${spec.label}: not read at head`)
         : []
@@ -2732,35 +3228,24 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         return subject.ccipPools.map(lc).includes(addr)
           ? [`CCIP pool ${short(addr)} not read this run`]
           : []
-      const at = `CCIP pool ${short(addr)}`
-      // review round 12 (rules #3): a chain missing because the chain LIST was not read is unread
-      const chainsGap = pool.chainsUnread ? [`${at}: supported chains not read`] : []
-      const reb = () => ctlGaps(pool.rebalancer, `${at}: rebalancer`, `${at}: rebalancer not read`)
+      // fail-closed audit: the same read gaps the card lists every run (ccipPoolGaps)
+      const g = ccipPoolGaps(pool)
+      const chainsGap = g.chains
       const silo = (sel: string) => {
         const c = pool.chains.find((x) => x.selector === sel)
-        if (!c) return chainsGap
-        if (c.siloed === null) return [`${at}: whether chain ${sel} is siloed was not read`]
-        if (!c.siloed) return []
-        return ctlGaps(
-          c.rebalancer,
-          `${at}: silo rebalancer of chain ${sel}`,
-          `${at}: silo rebalancer of chain ${sel} not read`,
-        )
+        return c ? g.silo(c) : chainsGap
       }
       const limiter = (sel: string) => {
         const c = pool.chains.find((x) => x.selector === sel)
-        if (!c) return chainsGap
-        return c.inboundEnabled === null || c.outboundEnabled === null
-          ? [`${at}: rate limiter of chain ${sel} not read`]
-          : []
+        return c ? g.limiter(c) : chainsGap
       }
-      if (ref === 'rebalancer') return reb()
+      if (ref === 'rebalancer') return g.reb
       if (ref?.startsWith('silo:')) return silo(ref.slice(5))
       if (ref?.startsWith('chain:')) return limiter(ref.slice(6))
       return [
-        ...reb(),
+        ...g.reb,
         ...chainsGap,
-        ...pool.chains.flatMap((c) => [...silo(c.selector), ...limiter(c.selector)]),
+        ...pool.chains.flatMap((c) => [...g.silo(c), ...g.limiter(c)]),
       ]
     }
     if (key.startsWith('bridge/ntt/')) {
@@ -2770,10 +3255,31 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         return (subject.nttManagers ?? []).map(lc).includes(addr)
           ? [`NTT manager ${short(addr)} not read this run`]
           : []
-      const floor =
-        n.threshold === null || n.transceivers === null
+      // fail-closed audit (NB-02 / NB-03): a transceiver whose network was not read, and a chain
+      // live last run that this run did not read (a lost PeerUpdated, a chain outside the sweep)
+      const prevPeers = ((
+        p.value as { peers?: Record<string, { peer: string } | null> } | undefined
+      )?.peers ?? {}) as Record<string, { peer: string } | null>
+      const lostPeers = Object.entries(prevPeers)
+        .filter(
+          ([ch, x]) =>
+            (!x || !/^0x0*$/i.test(x.peer)) &&
+            !(ch in n.peers) &&
+            !((n as NttHead & { peersReadZero?: number[] }).peersReadZero ?? []).includes(
+              Number(ch),
+            ),
+        )
+        .map(
+          ([ch]) =>
+            `NTT manager ${short(n.manager)}: peer for chain ${ch} (live last run) not read this run`,
+        )
+      const floor = [
+        ...(n.threshold === null || n.transceivers === null
           ? [`NTT manager ${short(n.manager)}: threshold / transceivers not read`]
-          : []
+          : []),
+        ...nttTypeGaps(n),
+        ...lostPeers,
+      ]
       const owner = ctlGaps(
         n.owner,
         `NTT manager ${short(n.manager)}: owner`,
@@ -2853,7 +3359,23 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       { kind: 'discourse', status: 'not_ingested' },
     ],
     powers,
-    safeSnapshot: safeCarried.length ? [...safeNow, ...safeCarried] : safeNow,
+    // fail-closed audit (SQ-07): a Safe whose module list was not read this run keeps its LAST READ
+    // list in the snapshot (with the block it was read at): a module enabled silently across the
+    // unread run is still diffed against it next time (an unread run left no baseline)
+    safeSnapshot: [
+      ...safeNow.map((c) => {
+        const prev = prevSafes?.controllers[c.address]
+        if (!c.modulesUnread || !prev || prev.modulesUnread || !Array.isArray(prev.modules))
+          return c
+        return {
+          ...c,
+          modulesUnread: undefined,
+          modules: prev.modules,
+          modulesReadAt: prev.modulesReadAt ?? prevSafes!.readAt?.[c.address] ?? prevSafes!.block,
+        }
+      }),
+      ...safeCarried,
+    ],
     safeReadAt: Object.keys(safeReadAt).length ? safeReadAt : undefined,
     remoteSnapshot:
       Object.keys(remoteNow).length + Object.keys(remoteCarried).length
@@ -2872,10 +3394,137 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       historical: changes.length,
       floorBreaches: floorBreachRoutes(items).length,
     },
-    readGaps: readGaps.length ? readGaps : undefined,
+    readGaps: readGaps.length ? [...new Set(readGaps)] : undefined,
     warnings,
   }
   return { state, changes: changes.sort((a, b) => (b.block ?? 0) - (a.block ?? 0)), queue }
+}
+
+/**
+ * Fail-closed audit (ST-02, 2026-10-10): the previous run's red history rows this run did not
+ * re-derive. Kept as last judged (`red`, `stillInEffect`), tagged `read_gap`, noted "NOT
+ * RE-DERIVED this run (carried from block N)"; each listed as a read gap. Dropped only when the
+ * row left the scope (an admin key whose emitter is not in `raw.admin.scope`) or the window (a row
+ * older than this run's scan start, its oracle window or its parameter look-back). Run-only rows
+ * (`:safe-head:`, `:remote-head:`, `:role-head:`) are carried by their own rules.
+ */
+export function carryHistoryRows(
+  changes: readonly ConfigChange[],
+  raw: Pick<RawSubject, 'previousChanges' | 'admin' | 'scan' | 'oracle' | 'params' | 'scanGaps'>,
+  subject: Pick<ConfigSubject, 'contracts' | 'timelocks' | 'lzOApps' | 'ccipPools' | 'nttManagers'>,
+): { rows: ConfigChange[]; gaps: string[]; replaced: string[] } {
+  const prev = raw.previousChanges
+  if (!prev) return { rows: [], gaps: [], replaced: [] }
+  const byId = new Map(changes.map((c) => [c.id, c]))
+  const have = new Set(byId.keys())
+  // Fail-closed review (2026-10-10, OC-2 / rules #1): the scope is built from THIS run's reads —
+  // power paths resolved at head, timelock role holders from this run's RoleGranted events. A
+  // power whose path read failed (its `via` hops then missing) or an event chunk that was not
+  // confirmed (a proposer Safe's grant lost) SHRINKS it, and "left the scope" dropped the reds of
+  // the emitters it lost (weETH's 10-day timelock proposer Safe: 3 red AD-1 rows, no carry). Such a
+  // scope is no proof an emitter left: its rows are carried.
+  const scopeUnread = raw.admin.powers.some((p) => p.error) || (raw.scanGaps ?? []).length > 0
+  // Fail-closed review (OC-1 / rules #5): what can make a RE-DERIVED row calmer than the red the
+  // previous run judged it — a scan chunk not confirmed at or before it (an earlier event its
+  // verdict replays — the CCIP pool it re-pointed from, the earlier grants of a burst — was lost),
+  // a classification that failed at or before it, a parameter read that failed before it, or a
+  // read gap on the row itself.
+  const classifyFailedBlocks = (raw.admin.classifyFailed ?? [])
+    .map((k) => Number(k.split('@')[1]))
+    .filter((b) => Number.isFinite(b))
+  const gapAtOrBefore = (c: ConfigChange): string | null => {
+    const b = c.block ?? 0
+    const g = (raw.scanGaps ?? []).find((x) => x.from <= b)
+    if (g) return `${g.scan} blocks ${g.from}–${g.to} not confirmed`
+    if (classifyFailedBlocks.some((x) => x <= b)) return 'a classification at or before it failed'
+    if (
+      c.id.startsWith('1:param:') &&
+      (raw.params.unread ?? []).some((u) => (u.block ?? u.from ?? 0) <= b)
+    )
+      return 'a parameter read at or before it failed'
+    return null
+  }
+  const scope = raw.admin.scope
+    ? new Set(
+        [
+          ...raw.admin.scope,
+          ...subject.contracts.map((c) => c.address),
+          ...subject.timelocks,
+          ...subject.lzOApps,
+          ...subject.ccipPools,
+          ...(subject.nttManagers ?? []),
+        ].map(lc),
+      )
+    : null
+  const windowStart = (c: ConfigChange): number | undefined =>
+    c.dimension === 'oracle'
+      ? raw.oracle?.unread
+        ? undefined
+        : raw.oracle?.window?.startBlock
+      : c.dimension === 'mint_redeem' && c.id.startsWith('1:param:')
+        ? raw.params.from
+        : raw.scan.from
+  const rows: ConfigChange[] = []
+  const gaps: string[] = []
+  const replaced: string[] = []
+  for (const c of prev.changes) {
+    if (!c.red || /:(safe-head|remote-head|role-head):/.test(c.id)) continue
+    if (c.state && c.state !== 'historical') continue
+    if (have.has(c.id)) {
+      // Fail-closed review (OC-1 / rules #5): re-derived this run, but CALMER than the red the
+      // previous run judged — and a read this run failed that the verdict can rest on. The red is
+      // kept as last judged (the calm row is replaced), tagged `read_gap`; it was dropped (a CCIP
+      // re-point read `route_created` once the pool it replaced was in a lost chunk; a burst grant
+      // read `operational` once the grants before it were lost). With every read confirmed, the
+      // re-derived verdict stands (a rule the owner relaxed takes effect).
+      const cur = byId.get(c.id)!
+      if (cur.red) continue
+      const why = cur.tags.includes('read_gap') ? 'a read gap on the row' : gapAtOrBefore(cur)
+      if (!why) continue
+      const first = (c.notes ?? [])
+        .map((n) => n.match(/^RE-DERIVED CALMER this run \(kept from block (\d+)\)/)?.[1])
+        .find(Boolean)
+      replaced.push(c.id)
+      rows.push({
+        ...c,
+        tags: [...new Set([...c.tags, 'read_gap' as const])],
+        notes: [
+          ...(c.notes ?? []).filter((n) => !n.startsWith('RE-DERIVED CALMER this run')),
+          `RE-DERIVED CALMER this run (kept from block ${first ?? prev.block}): re-derived as ${cur.severity}${cur.tags.length ? ` [${cur.tags.join(', ')}]` : ''} while ${why} — a failed read never makes a red calmer; kept as last judged`,
+        ],
+      })
+      gaps.push(
+        `red history row "${c.title}" (block ${c.block ?? '?'}) re-derived calmer this run while ${why}: the red is kept`,
+      )
+      continue
+    }
+    const ws = windowStart(c)
+    if (ws !== undefined && (c.block ?? 0) < ws) continue // left the window
+    let scopeNote = ''
+    if (scope && c.key.startsWith('admin/')) {
+      const em = c.key.match(/0x[0-9a-f]{40}/i)?.[0]
+      if (em && !scope.has(lc(em))) {
+        if (!scopeUnread) continue // left the scope (every read that builds it confirmed)
+        scopeNote = ` Its emitter ${shortAddr(lc(em))} is not in this run's scope, but that scope rests on a failed read (a power path or an event chunk not read): it is not proof the emitter left.`
+      }
+    }
+    const first = (c.notes ?? [])
+      .map((n) => n.match(/^NOT RE-DERIVED this run \(carried from block (\d+)\)/)?.[1])
+      .find(Boolean)
+    const from = first ? Number(first) : prev.block
+    rows.push({
+      ...c,
+      tags: [...new Set([...c.tags, 'read_gap' as const])],
+      notes: [
+        ...(c.notes ?? []).filter((n) => !n.startsWith('NOT RE-DERIVED this run')),
+        `NOT RE-DERIVED this run (carried from block ${from}): the event behind it was not read this run — a failed read never drops a red.${scopeNote}`,
+      ],
+    })
+    gaps.push(
+      `red history row "${c.title}" (block ${c.block ?? '?'}) not re-derived this run: carried (an event read may have lost it${scopeNote ? '; its emitter left a scope built on a failed read' : ''})`,
+    )
+  }
+  return { rows, gaps, replaced }
 }
 
 /**
@@ -2893,37 +3542,57 @@ export function carryUnreadQueueRows(
 ): ConfigChange[] {
   const prev = raw.previousQueue
   if (!prev) return []
-  const unread = new Set([
-    ...raw.queues.safeStatus
-      .filter((x) => x.status === 'unavailable')
-      .map((x) => `safe|${lc(x.safe)}`),
+  // Fail-closed audit (QU-09 / QU-05 / M-1 / PH-02, 2026-10-10): a previous row is RESOLVED only
+  // when its queue was positively READ this run — the Safe Tx Service / MultiSigWallet / Dual
+  // Governance status 'ok', or for an OZ timelock op: the op re-derived this run (any state:
+  // executed and cancelled ops are skipped), or its getTimestamp READ 0 / 1 at head. Every other
+  // previous row is carried. Only an explicit 'unavailable' was carried: a queue not attempted (its
+  // power not resolved, a Safe dropped from the poll set) and every OZ op whose CallScheduled was
+  // lost dropped its red rows silently.
+  const ok = new Set([
+    ...raw.queues.safeStatus.filter((x) => x.status === 'ok').map((x) => `safe|${lc(x.safe)}`),
     ...(raw.queues.multisigStatus ?? [])
-      .filter((x) => x.status === 'unavailable')
+      .filter((x) => x.status === 'ok')
       .map((x) => `legacy_multisig|${lc(x.multisig)}`),
     ...(raw.queues.dgStatus ?? [])
-      .filter((x) => x.status === 'unavailable')
+      .filter((x) => x.status === 'ok')
       .map((x) => `dg_timelock|${lc(x.timelock)}`),
   ])
+  const ozRead = new Set([
+    ...raw.queues.ops
+      .filter((o) => o.kind !== 'dg' && !o.callsIncomplete)
+      .map((o) => `${lc(o.timelock)}|${lc(o.id)}`),
+    ...(raw.queues.ozResolved ?? []).map(lc),
+  ])
+  const resolved = (p: ConfigChange) =>
+    p.queue!.kind === 'oz_timelock'
+      ? ozRead.has(`${lc(p.queue!.address)}|${lc(String(p.queue!.opId ?? ''))}`)
+      : ok.has(`${p.queue!.kind}|${lc(p.queue!.address)}`)
   const have = new Set(queue.map((c) => c.id))
   const name = {
     safe: 'Safe Tx Service',
     legacy_multisig: 'MultiSigWallet',
     dg_timelock: 'Dual Governance',
+    oz_timelock: 'timelock',
   }
   const out: ConfigChange[] = []
   for (const p of prev.changes) {
     if (!p.queue || have.has(p.id)) continue
-    if (!unread.has(`${p.queue.kind}|${lc(p.queue.address)}`)) continue
+    if (resolved(p)) continue
     const first = (p.notes ?? [])
       .map((n) => n.match(/^NOT READ this run \(carried from block (\d+)\)/)?.[1])
       .find(Boolean)
     const from = first ? Number(first) : prev.block
+    const what =
+      p.queue.kind === 'oz_timelock'
+        ? `op ${String(p.queue.opId ?? '').slice(0, 10)}… of timelock ${shortAddr(lc(p.queue.address))} was not re-derived (its CallScheduled not read) and its state was not read`
+        : `the ${name[p.queue.kind as keyof typeof name] ?? p.queue.kind} queue of ${shortAddr(lc(p.queue.address))} could not be read`
     out.push({
       ...p,
       tags: [...new Set([...p.tags, 'read_gap' as const])],
       notes: [
         ...(p.notes ?? []).filter((n) => !n.startsWith('NOT READ this run')),
-        `NOT READ this run (carried from block ${from}): the ${name[p.queue.kind as keyof typeof name] ?? p.queue.kind} queue of ${shortAddr(lc(p.queue.address))} could not be read — a failed read never drops a pending row`,
+        `NOT READ this run (carried from block ${from}): ${what} — a failed read never drops a pending row`,
       ],
     })
   }
@@ -3050,7 +3719,24 @@ export function rejudgeRoleHoldersAtHead(
     const name = String(lastE.args.roleName ?? lc(String(lastE.args.role)))
     if (!isPrivilegedRole(name) && !o.administers(em, name)) continue
     const then = o.ctlAt(acct, lastE.block)
-    if (!then || !isEoaControlled(now)) continue
+    // Fail-closed audit (PH-14): the grant-block classification not read this run, or either side
+    // resting on a read gap, is no re-judge — the previous run's :role-head: row is CARRIED (it was
+    // dropped: a red found once vanished on the next unread read)
+    if (!then || rankHasReadGap(then) || rankHasReadGap(now)) {
+      const pre = `1:role-head:${em}:${lc(String(lastE.args.role))}:${acct}:`
+      for (const p of o.previous ?? [])
+        if (p.id.startsWith(pre))
+          added.push({
+            ...p,
+            stillInEffect: true,
+            notes: [
+              ...(p.notes ?? []).filter((n) => !n.startsWith('CARRIED: ')),
+              `CARRIED: the holder ${!then ? 'at its grant block' : 'at head'} was not read this run (block ${o.head}) — kept from the run that found it weakened (block ${p.block}); a failed read never ends a red`,
+            ],
+          })
+      continue
+    }
+    if (!isEoaControlled(now)) continue
     if (compareRank(controllerRank(now), controllerRank(then)) >= 0) continue
     if (
       changes.some(
@@ -3084,6 +3770,31 @@ export function rejudgeRoleHoldersAtHead(
       stillInEffect: true,
       notes: [
         `${name} is held by ${describeController(now)} at head; it was ${describeController(then)} when granted at block ${lastE.block} — weakened since, with no event on this card`,
+      ],
+    })
+  }
+  // Fail-closed review (2026-10-10, rules #6): a previous `:role-head:` row whose holder this run's
+  // events no longer show holding the role — its RoleGranted not re-read (a lost chunk) — was
+  // dropped with its red: only holders in this run's replay were looked at. It is CARRIED unless
+  // this run's events show the role REVOKED from that holder (a confirmed end).
+  const revoked = new Set(
+    events
+      .filter((e) => e.event === 'RoleRevoked')
+      .map((e) => `${lc(e.emitter)}|${lc(String(e.args.role))}|${lc(String(e.args.account))}`),
+  )
+  for (const p of o.previous ?? []) {
+    const m = p.id.match(/^1:role-head:(0x[0-9a-f]{40}):(0x[0-9a-f]+):(0x[0-9a-f]{40}):\d+$/i)
+    if (!m || !p.red) continue
+    const k = `${lc(m[1])}|${lc(m[2])}|${lc(m[3])}`
+    if (held.has(k) || revoked.has(k)) continue
+    if (added.some((x) => x.id === p.id)) continue
+    added.push({
+      ...p,
+      stillInEffect: true,
+      tags: [...new Set([...p.tags, 'read_gap' as const])],
+      notes: [
+        ...(p.notes ?? []).filter((n) => !n.startsWith('CARRIED: ')),
+        `CARRIED: the grant behind it was not re-read this run (block ${o.head}) and no revocation was seen — kept from the run that found it weakened (block ${p.block}); a failed read never ends a red`,
       ],
     })
   }

@@ -178,12 +178,16 @@ describe('Safe Tx Service', () => {
     expect(r.rows).toEqual([])
   })
   it('parses queued proposals', async () => {
+    // the API's answer carries `count` and each row its `operation` (fail-closed audit SQ-03:
+    // an answer without them is refused as malformed)
     const body = {
+      count: 1,
       results: [
         {
           nonce: 737,
           to: '0xE8Dc0Fab349EA169283C48Ccfd09d797E6DB7c94',
           value: '0',
+          operation: 0,
           data: '0x8f2a0bb0',
           confirmations: [{}, {}],
           confirmationsRequired: 5,

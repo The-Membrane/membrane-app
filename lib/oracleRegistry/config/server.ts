@@ -31,6 +31,27 @@ function readJson(path: string): unknown {
   }
 }
 
+/**
+ * Fail-closed audit (ST-06, 2026-10-10): a file read as missing / unreadable / ok — an unreadable
+ * change file is NOT "no changes" (it served 0 red in effect, calm, over a truncated file).
+ */
+function readJsonStatus(path: string): { status: 'missing' | 'unreadable' | 'ok'; value: unknown } {
+  let text: string
+  try {
+    text = readFileSync(path, 'utf8')
+  } catch (e) {
+    return {
+      status: (e as { code?: string })?.code === 'ENOENT' ? 'missing' : 'unreadable',
+      value: null,
+    }
+  }
+  try {
+    return { status: 'ok', value: JSON.parse(text) }
+  } catch {
+    return { status: 'unreadable', value: null }
+  }
+}
+
 function mtime(path: string): string {
   try {
     return String(statSync(path).mtimeMs)
@@ -55,6 +76,38 @@ function asState(raw: unknown, key: string): SubjectState | null {
 function asChanges(raw: unknown): ConfigChange[] {
   const f = raw as ChangesFile | null
   return f && Array.isArray(f.changes) ? f.changes : []
+}
+
+/**
+ * A change / queue file checked against the state it belongs to (ST-06): version 1, this
+ * subject, the same run (asOf block), a list — and, for the change file, as many rows as the
+ * state counted. Anything else is a read gap; the rows are not trusted.
+ */
+function checkedRows(
+  read: { status: 'missing' | 'unreadable' | 'ok'; value: unknown },
+  key: string,
+  state: SubjectState | null,
+  what: string,
+  count?: number,
+): { rows: ConfigChange[]; gap?: string } {
+  if (!state) return { rows: asChanges(read.value) }
+  if (read.status !== 'ok')
+    return { rows: [], gap: `${what} file ${read.status}: red flags may be missing` }
+  const f = read.value as ChangesFile | null
+  if (
+    !f ||
+    f.version !== 1 ||
+    f.subject !== key ||
+    !Array.isArray(f.changes) ||
+    f.asOf?.block !== state.asOf.block
+  )
+    return { rows: [], gap: `${what} file does not match the head state: red flags may be missing` }
+  if (count !== undefined && f.changes.length !== count)
+    return {
+      rows: f.changes,
+      gap: `${what} file holds ${f.changes.length} rows, the head state counted ${count}: red flags may be missing`,
+    }
+  return { rows: f.changes }
 }
 
 let eidMemo: { key: string; names: Record<string, string> } | null = null
@@ -86,13 +139,28 @@ export function loadConfigInputs(subject: ConfigSubject, dir = configDir()): Con
   const key = paths.map(mtime).join('|')
   const hit = inputsMemo.get(`${dir}|${subject.key}`)
   if (hit?.key === key) return hit.inputs
+  const state = asState(readJson(paths[0]), subject.key)
+  const ch = checkedRows(
+    readJsonStatus(paths[1]),
+    subject.key,
+    state,
+    'change history',
+    state?.counts?.historical,
+  )
+  const qu = checkedRows(readJsonStatus(paths[2]), subject.key, state, 'queue')
+  const fileGaps = [ch.gap, qu.gap].filter((g): g is string => !!g)
+  // the reds the state recorded that the rows read here cannot show: still counted (fail closed)
+  const shownRed = [...ch.rows, ...qu.rows].filter((c) => c.red).length
+  const carriedRed = fileGaps.length && state ? Math.max(0, (state.counts?.red ?? 0) - shownRed) : 0
   const inputs: ConfigInputs = {
     subject,
-    state: asState(readJson(paths[0]), subject.key),
-    changes: asChanges(readJson(paths[1])),
-    queue: asChanges(readJson(paths[2])),
+    state,
+    changes: ch.rows,
+    queue: qu.rows,
     eidNames: eidNames(dir),
     oracleEntries: oracleEntries(subject),
+    ...(fileGaps.length ? { fileGaps } : {}),
+    ...(carriedRed ? { carriedRed } : {}),
   }
   inputsMemo.set(`${dir}|${subject.key}`, { key, inputs })
   return inputs

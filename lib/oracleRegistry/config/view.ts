@@ -64,6 +64,13 @@ export type ConfigInputs = {
   eidNames?: Record<string, string>
   /** Oracle-catalog entries for the subject's asset (0 when config-only). */
   oracleEntries?: number
+  /**
+   * Fail-closed audit (ST-06): the change / queue file could not be read or does not match the
+   * head state — read gaps, and the reds the state counted that the rows read cannot show
+   * (`carriedRed`: still counted, in effect).
+   */
+  fileGaps?: string[]
+  carriedRed?: number
 }
 
 /** Quiet historical rows kept by default (every red or still-in-effect row is always kept). */
@@ -836,6 +843,17 @@ export function delayChips(powers: readonly PowerState[]): DelayChip[] {
  * stored trees with the current rules; a tree collected before a rule existed would otherwise
  * render "UNREAD … ranked as a plain contract" while the card counted no read gap.
  */
+/** Reds the head state counted that the change rows read cannot show: counted, in effect (ST-06). */
+export function withCarriedRed(c: ConfigCounts, carried = 0): ConfigCounts {
+  if (!carried) return c
+  return {
+    ...c,
+    redInEffect: c.redInEffect + carried,
+    redTotal: c.redTotal + carried,
+    openRed: c.openRed + carried,
+  }
+}
+
 export function readGapsOf(state: SubjectState | null | undefined): string[] {
   const stored = state?.readGaps ?? []
   const have = new Set(stored)
@@ -863,8 +881,8 @@ export function buildConfigCard(inp: ConfigInputs, opt: BuildCardOptions = {}): 
   const executors = executorsByTimelock(inp.changes)
   const items = state?.items ?? []
   const powers = state?.powers ?? []
-  const readGaps = readGapsOf(state)
-  const counts = countsOf(items, all, readGaps)
+  const readGaps = [...(inp.fileGaps ?? []), ...readGapsOf(state)]
+  const counts = withCarriedRed(countsOf(items, all, readGaps), inp.carriedRed)
   const views = orderTimeline(
     all.map((c) => toChangeView(c, { executors, eidName: (e) => eidName(e) })),
   )
@@ -949,7 +967,14 @@ export function buildConfigSummary(inp: ConfigInputs): ConfigTabSummary {
     symbol: subjectSymbol(subject.label),
     label: subject.label,
     oracleSlug: subject.oracleAssetKey ? subject.oracleAssetKey.toLowerCase() : null,
-    counts: countsOf(state?.items ?? [], [...inp.queue, ...inp.changes], readGapsOf(state)),
+    counts: withCarriedRed(
+      countsOf(
+        state?.items ?? [],
+        [...inp.queue, ...inp.changes],
+        [...(inp.fileGaps ?? []), ...readGapsOf(state)],
+      ),
+      inp.carriedRed,
+    ),
     asOf: state?.asOf ?? null,
   }
 }

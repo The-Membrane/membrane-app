@@ -283,18 +283,48 @@ const plain = (v) => {
   return v
 }
 
-/** Decode one raw log into { event, args } (bigints → decimal strings, addresses lower-case). */
+/** Every choice of `t` of the indices 0..n−1, in order. */
+function choose(n, t, from = 0, acc = [], out = []) {
+  if (acc.length === t) return (out.push([...acc]), out)
+  for (let i = from; i < n; i++) choose(n, t, i + 1, [...acc, i], out)
+  return out
+}
+
+/**
+ * Decode one raw log into { event, args } (bigints → decimal strings, addresses lower-case).
+ * Fail-closed audit (EV-02, 2026-10-10): the same event signature with a DIFFERENT indexing (an
+ * OwnershipTransferred with one indexed argument; an AdminChanged with both) is the same
+ * semantic event — it decoded to null and the scan dropped it (a lost ownership or proxy-admin
+ * transfer). After the declared shapes, every choice of (topics − 1) indexed parameters is tried,
+ * with strict data length. null = it does not decode at all (the scan then reports it).
+ */
 export function decodeLog(log) {
   const hit = BY_TOPIC.get(log.topics?.[0])
   if (!hit) return null
-  for (const item of hit.items) {
+  const tryItem = (item) => {
     try {
       const d = decodeEventLog({ abi: [item], data: log.data, topics: log.topics, strict: true })
       // an event with no parameters (Dual Governance EmergencyModeActivated()) decodes to no args
       return { event: hit.name, args: plain(d.args ?? {}) }
     } catch {
-      /* try the next variant */
+      return null
     }
+  }
+  for (const item of hit.items) {
+    const d = tryItem(item)
+    if (d) return d
+  }
+  const base = hit.items[0]
+  const n = base.inputs?.length ?? 0
+  const t = (log.topics?.length ?? 1) - 1
+  if (t < 0 || t > n) return null
+  for (const idx of choose(n, t)) {
+    const item = {
+      ...base,
+      inputs: base.inputs.map((x, i) => ({ ...x, indexed: idx.includes(i) })),
+    }
+    const d = tryItem(item)
+    if (d) return d
   }
   return null
 }
@@ -664,7 +694,7 @@ export const ARAGON_NS = {
  *     the Kernel consults is one of them).
  * Every other row passes through unchanged. Returns a flat list (SetApp can fan out).
  */
-export function aragonRows(rows, appIds = {}) {
+export function aragonRows(rows, appIds = {}, { incomplete = false } = {}) {
   const ids = Object.fromEntries(
     Object.entries(appIds).map(([k, v]) => [
       String(k).toLowerCase(),
@@ -703,6 +733,15 @@ export function aragonRows(rows, appIds = {}) {
       const ns = String(a.namespace).toLowerCase()
       const appId = String(a.appId).toLowerCase()
       const app = String(a.app).toLowerCase()
+      // fail-closed audit (TV-10): with the appId mapping INCOMPLETE (a kernel() / appId() read
+      // failed) a base SetApp for an unmapped appId may be one of the subject's apps — it stays on
+      // the Kernel as an upgrade marked `appUnread` (it was dropped: the upgrade history lost)
+      if (ns === ARAGON_NS.base && incomplete && !(ids[appId] ?? []).length)
+        out.push({
+          ...row,
+          event: 'Upgraded',
+          args: { implementation: app, via: 'SetApp', appId, kernel: row.emitter, appUnread: true },
+        })
       if (ns === ARAGON_NS.base)
         for (const proxy of ids[appId] ?? [])
           out.push({

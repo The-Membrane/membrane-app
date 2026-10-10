@@ -193,7 +193,10 @@ function rankParts(c: Controller | null | undefined): RankParts {
   if (c.selfRef) return leaf([SELF_BASE])
   // a holder the engine could not classify at head, or a token holder whose classification
   // failed (review round 10, O-1): a read gap (plain contract, no credit)
-  if (c.kind === 'contract' && NOT_CLASSIFIED.has(c.version ?? '')) return GAP_CAP
+  if (isNotClassified(c)) return GAP_CAP
+  // fail-closed audit (2026-10-10): an owner() the code dispatches that was not read (CL-03), an
+  // Aragon app whose implementation was not read (TV-01 / TV-08): read gaps, never calm
+  if (c.kind === 'contract' && (c.ownerUnread || c.appUnread)) return GAP_CAP
   switch (c.kind) {
     case 'immutable':
     case 'zero':
@@ -217,6 +220,15 @@ function rankParts(c: Controller | null | undefined): RankParts {
       // scheduler's class is compared first). An unread scheduler set ranks as a plain
       // contract (fail closed) and is a read gap.
       if (!c.schedulers || c.schedulersUnread) return GAP_CAP
+      // fail-closed audit (DG-01): a Dual Governance after-submit delay that was not read is a
+      // read gap — it ranked as the proposer with 0 credit and NO gap, so a move from it read
+      // calm (even UPGRADE) and the carry found nothing to keep its breaches on
+      if (
+        c.kind === 'aragon_dg' &&
+        c.dg &&
+        (c.dg.afterSubmitDelaySec === null || c.dg.proposerVoteUnread)
+      )
+        return GAP_CAP
       const parts = c.schedulers.map((s) => scheduledParts(c, s))
       // UQ-24: a DSPause's DSAuth authority lets the callers it permits plot: each ranks like a
       // scheduler; callers that could not be enumerated are a read gap (fail closed)
@@ -225,8 +237,9 @@ function rankParts(c: Controller | null | undefined): RankParts {
         else parts.push(...c.dsAuthority.callers.map((s) => scheduledParts(c, s)))
       }
       // nobody can schedule (every proposer revoked): ranked as a plain contract, never stronger
-      // — an empty set read from events could be a false-empty scan
-      if (!parts.length) return leaf([2])
+      // — an empty set read from events could be a false-empty scan. Fail-closed audit (TL-13a):
+      // the bypass still counts (it returned [2] before the bypass, so an EOA bypasser was lost)
+      if (!parts.length) parts.push(leaf([2]))
       // An unrestricted bypass (bypasserExecuteBatch, or a whitelist that could not be read)
       // executes with no delay. UQ-24: ranked as its WEAKEST bypasser with NO credit from this
       // timelock; a bypasser that could not be classified is a read gap (fail closed).
@@ -248,7 +261,12 @@ function rankParts(c: Controller | null | undefined): RankParts {
     case 'contract': {
       // An Aragon Agent acts only for its executors (enumerated from the ACL at the block): it
       // is exactly as strong as the weakest one — no other code path of its own to discount.
-      if (c.executors?.length) return weakestOf(c.executors.map(rankParts))
+      // Fail-closed audit (TV-09): permissions not confirmed (the ACL or a hasPermission read
+      // failed) keep every candidate AND a read gap
+      if (c.executors?.length)
+        return c.executorsUnconfirmed
+          ? capGap(weakestOf(c.executors.map(rankParts)))
+          : weakestOf(c.executors.map(rankParts))
       // review round 12 (rules #4): an Agent whose executors were not found is a read gap
       if (c.executorsUnread) return GAP_CAP
       // review round 10 (R-6): an owner the collector did not follow (hop limit) was not read —
@@ -449,6 +467,15 @@ export function tokenVoteDecision(c: Controller): TokenVoteDecision {
 /** An ordinary signer key: an EOA, or any holder whose rank is that of one key (no read gap). */
 const isKeyParts = (r: RankParts) => !r.gap && r.base[0] <= 1
 const NOT_CLASSIFIED = new Set(['not classified at head', 'holder not classified'])
+/**
+ * A controller the collector could not classify (a read gap): at head, a vote holder, or on a
+ * remote chain (fail-closed audit RC-09: "not classified on bsc" was not recognised — a calm plain
+ * contract with no AD-3 and no gap).
+ */
+export const isNotClassified = (c: Controller | null | undefined): boolean =>
+  !!c &&
+  c.kind === 'contract' &&
+  (NOT_CLASSIFIED.has(c.version ?? '') || /^not classified on /.test(c.version ?? ''))
 const UNCLASSIFIED_HOLDER = (a: string): Controller => ({
   kind: 'contract',
   address: a,
@@ -797,6 +824,23 @@ export function nodeReadGaps(c: Controller): string[] {
         )
     }
   }
+  // fail-closed audit (2026-10-10): the markers a failed read leaves in a classification
+  if (c.kind === 'contract' && c.ownerUnread)
+    out.push(`contract ${a}: owner() not read (ranked as a plain contract)`)
+  if (c.kind === 'contract' && c.appUnread)
+    out.push(`Aragon app ${a}: implementation not read (ranked as a plain contract)`)
+  if (c.kind === 'contract' && c.executorsUnconfirmed)
+    out.push(`Aragon Agent ${a}: executor permissions not read (ranked as a plain contract)`)
+  if (isNotClassified(c) && /^not classified on /.test(c.version ?? ''))
+    out.push(`${a}: ${c.version} (ranked as a plain contract)`)
+  if (c.kind === 'aragon_dg' && c.dg) {
+    if (c.dg.afterSubmitDelaySec === null)
+      out.push(`Dual Governance ${a}: after-submit delay not read (ranked as a plain contract)`)
+    if (c.dg.afterScheduleDelaySec === null)
+      out.push(`Dual Governance ${a}: after-schedule delay not read (a proposal may be executable)`)
+    if (c.dg.proposerVoteUnread)
+      out.push(`Dual Governance ${a}: proposer vote time not read (ranked as a plain contract)`)
+  }
   if (c.kind === 'contract' && c.ownerNotFollowed)
     out.push(
       `contract ${a}: owner ${c.ownerNotFollowed.slice(0, 6)}…${c.ownerNotFollowed.slice(-4)} not followed (owner hop limit; ranked as a plain contract)`,
@@ -909,27 +953,73 @@ export const OWNER_INIT_WINDOW_BLOCKS = 7_200
 export function classifyControllerChange(
   prev: Controller | null,
   next: Controller | null,
+  /**
+   * Fail-closed audit (PH-11 / CL-07, 2026-10-10): `prevUnread` = the previous holder is null
+   * because its READ FAILED (a classification at block − 1 that failed, a getter read that
+   * failed) — not "there was none". Then the change is red AD-3, tagged `read_gap`, unless the
+   * new holder ranks at the top (immutable / renounced): a downgrade cannot be ruled out.
+   */
+  opts: { prevUnread?: string } = {},
 ): Verdict {
   const v = neutral()
   if (!prev) {
     if (!next) return down(v, 'AD-3', 'neither the previous nor the new holder could be classified')
+    if (opts.prevUnread && controllerRank(next)[0] < 6)
+      return tag(
+        down(
+          v,
+          'AD-3',
+          `previous holder not read (${opts.prevUnread}) → ${describeController(next)}: a downgrade cannot be ruled out (fail closed)`,
+        ),
+        'read_gap',
+      )
     // an EOA, or anything that ranks with one (a 1-of-N multisig, a contract an EOA owns)
     if (isEoaControlled(next))
       return down(v, 'AD-3', `previous holder not read → ${describeController(next)}`)
+    // review round 10 (R-3): a new holder resting on a read gap carries an earlier red forward.
+    // Fail-closed review (2026-10-10, OC-1): and it is red — read, it could rank with an EOA
+    // (red just above); unread it was neutral, calmer than the read
+    if (rankHasReadGap(next))
+      return tag(
+        down(
+          v,
+          'AD-3',
+          `previous holder not read → ${describeController(next)}: the new holder's rank rests on a read gap — an EOA behind it cannot be ruled out (fail closed)`,
+        ),
+        'read_gap',
+      )
     v.notes.push(
       `previous holder not read → ${describeController(next)} (not judged as an upgrade)`,
     )
-    // review round 10 (R-3): a new holder resting on a read gap carries an earlier red forward
-    return rankHasReadGap(next) ? tag(v, 'read_gap') : v
+    return v
   }
   const c = compareRank(controllerRank(next), controllerRank(prev))
   if (isEoa(prev) && isEoa(next)) return tag(v, 'rotation')
-  if (c < 0) return down(v, 'AD-3', `${describeController(prev)} → ${describeController(next)}`)
+  const prevGap = rankHasReadGap(prev)
+  const nextGap = rankHasReadGap(next)
+  if (c < 0) {
+    down(v, 'AD-3', `${describeController(prev)} → ${describeController(next)}`)
+    return prevGap || nextGap ? tag(v, 'read_gap') : v
+  }
+  const moved = !next || prev.address.toLowerCase() !== next.address.toLowerCase()
   // Review round 12 (rules #5): a PREVIOUS holder whose rank rests on a read gap ranks as a plain
   // contract only because it was not read — its true rank may be far higher (a 7-day timelock a
-  // Safe 6-of-11 proposes into). A move from it is never an upgrade: neutral, noted, and tagged
-  // so a red before it stays in effect (it read UPGRADE and ended earlier reds on the key).
-  if (c >= 0 && rankHasReadGap(prev)) {
+  // Safe 6-of-11 proposes into). A move from it is never an upgrade.
+  // Fail-closed review (2026-10-10, OC-1): nor is it calm. A PARTLY read previous holder is
+  // judged like a fully unread one (`prevUnread`): red AD-3, tagged `read_gap`, unless the new
+  // holder ranks at the top (immutable / renounced) — a downgrade cannot be ruled out. It read
+  // neutral, more lenient than a total failure (Safe 6-of-11 with an unread module list → a plain
+  // contract was calm; read, it is red).
+  if (prevGap) {
+    if (moved && controllerRank(next)[0] < 6)
+      return tag(
+        down(
+          v,
+          'AD-3',
+          `${describeController(prev)} → ${describeController(next)}: the previous holder's rank rests on a read gap — a downgrade cannot be ruled out (fail closed)`,
+        ),
+        'read_gap',
+      )
     v.notes.push(
       `${describeController(prev)} → ${describeController(next)}: not judged as an upgrade — the previous holder's rank rests on a read gap`,
     )
@@ -938,9 +1028,21 @@ export function classifyControllerChange(
   // Review round 10 (O-2 / R-3, owner: a failed read never ends a red): a new holder whose rank
   // rests on a READ GAP (an unread proposer set, module list, holder concentration…) ranks as a
   // plain contract only because it was not read. That is no upgrade — an EOA → an unread
-  // timelock read UPGRADE and ended the red before it. Neutral, noted, and tagged so the red
-  // before it stays in effect.
-  if (c > 0 && rankHasReadGap(next)) {
+  // timelock read UPGRADE and ended the red before it.
+  // Fail-closed review (2026-10-10, OC-1): its true rank may be as low as an EOA's, so a move to
+  // it from anything above an EOA is red AD-3 (read gap): a plain contract → a 1 h timelock whose
+  // proposers were not read (an EOA proposes, read) was a calm "rotation". From an EOA-ranked
+  // holder nothing can be weaker: neutral, tagged so the red before it stays in effect.
+  if (nextGap) {
+    if (moved && compareRank(controllerRank(prev), [1]) > 0)
+      return tag(
+        down(
+          v,
+          'AD-3',
+          `${describeController(prev)} → ${describeController(next)}: the new holder's rank rests on a read gap — an EOA behind it cannot be ruled out (fail closed)`,
+        ),
+        'read_gap',
+      )
     v.notes.push(
       `${describeController(prev)} → ${describeController(next)}: not judged as an upgrade — the new holder's rank rests on a read gap`,
     )
@@ -1192,9 +1294,34 @@ export function classifyRoleGrant(
   // Review round 6: a contract whose deferral chain ends at an EOA ranks with that EOA (an MCMS
   // owned by a key) — AD-4 needs no holder to rank against.
   if (isEoaControlled(account)) return down(v, 'AD-4', `${role} → ${describeController(account)}`)
-  if (opts.unclassifiedHolders)
-    v.notes.push(
-      `${opts.unclassifiedHolders} current holder(s) of ${role} could not be classified: not ranked against`,
+  // Fail-closed review (2026-10-10, OC-1): a grantee whose rank rests on a READ GAP (an owner()
+  // not read, an unread proposer set, a token vote whose holders were not read) ranks as a plain
+  // contract only because it was not read — an EOA behind it cannot be ruled out. Red AD-4, read
+  // gap. It read neutral: a DEFAULT_ADMIN grant to an owner-unread contract (red when the owner,
+  // an EOA, is read), a grant to the Lido Agent whose vote's holders were not read (k = 1: red).
+  if (rankHasReadGap(account))
+    return tag(
+      down(
+        v,
+        'AD-4',
+        `${role} → ${describeController(account)}: the grantee's rank rests on a read gap — an EOA behind it cannot be ruled out (fail closed)`,
+      ),
+      'read_gap',
+    )
+  // Fail-closed audit (PH-09 / PH-10 / CL-08, 2026-10-10): a holder the grant is ranked against
+  // that could not be classified may rank above the grantee — red AD-4 (read gap) unless the
+  // grantee ranks at the top (immutable / renounced). It was a note, and the grant read neutral.
+  // Fail-closed review (OC-1): a holder whose rank rests on a read gap counts the same — it ranks
+  // as a plain contract only because it was not read, so a grantee could look no weaker than it.
+  const gapHolders = (opts.unclassifiedHolders ?? 0) + holders.filter(rankHasReadGap).length
+  if (gapHolders && controllerRank(account)[0] < 6)
+    return tag(
+      down(
+        v,
+        'AD-4',
+        `${role} → ${describeController(account)}: ${gapHolders} holder(s) it is ranked against could not be classified or rest on a read gap (fail closed)`,
+      ),
+      'read_gap',
     )
   const weakest = holders.reduce<number[] | null>((m, h) => {
     const r = controllerRank(h)
@@ -1383,20 +1510,40 @@ export function classifyRoleAdminChange(
   }
   const c = compareRank(weakest(nextAdmin.holders), weakest(prevAdmin.holders))
   if (c < 0) return down(v, 'AD-3', msg)
+  const prevSideGap = prevAdmin.holders.some((h) => !h || rankHasReadGap(h))
+  const nextSideGap = nextAdmin.holders.some((h) => !h || rankHasReadGap(h))
   // review round 12 (rules #5): a previous admin side not read, or resting on a read gap, is no
-  // baseline to rank an upgrade against
-  if (c >= 0 && prevAdmin.holders.some((h) => !h || rankHasReadGap(h))) {
-    // as for an owner (`classifyControllerChange`): an EOA-controlled new side against an unread
-    // baseline is red
-    if (nextAdmin.holders.some((h) => isEoaControlled(h)))
-      return down(v, 'AD-3', `${msg} (previous admin side not read)`)
+  // baseline to rank an upgrade against. Fail-closed review (2026-10-10, OC-1): as for an owner
+  // (`classifyControllerChange`), a downgrade cannot be ruled out — red AD-3 (read gap) unless
+  // every new admin holder ranks at the top (it was neutral unless the new side was EOA-controlled)
+  if (prevSideGap) {
+    if (nextAdmin.holders.some((h) => controllerRank(h)[0] < 6))
+      return tag(
+        down(
+          v,
+          'AD-3',
+          `${msg}: a previous admin holder was not read or its rank rests on a read gap — a downgrade cannot be ruled out (fail closed)`,
+        ),
+        'read_gap',
+      )
     v.notes.push(
       `${msg}: not judged as an upgrade — a previous admin holder was not read or its rank rests on a read gap`,
     )
     return tag(v, 'read_gap')
   }
-  // review round 10 (R-3): a new admin side resting on a read gap is never an upgrade
-  if (c > 0 && nextAdmin.holders.some(rankHasReadGap)) {
+  // review round 10 (R-3): a new admin side resting on a read gap is never an upgrade.
+  // Fail-closed review (OC-1): it may rank as low as an EOA — red unless the previous side was
+  // itself EOA-ranked (nothing is weaker)
+  if (nextSideGap) {
+    if (compareRank(weakest(prevAdmin.holders), [1]) > 0)
+      return tag(
+        down(
+          v,
+          'AD-3',
+          `${msg}: a new admin holder's rank rests on a read gap — an EOA behind it cannot be ruled out (fail closed)`,
+        ),
+        'read_gap',
+      )
     v.notes.push(`${msg}: not judged as an upgrade — a new admin holder's rank rests on a read gap`)
     return tag(v, 'read_gap')
   }
@@ -1448,7 +1595,14 @@ export function classifyNttThreshold(
 ): Verdict {
   const v = neutral()
   const E = types ? nttEffective(next, types).E : next
-  const prevE = prev !== null && prevTypes ? nttEffective(prev, prevTypes).E : null
+  // Fail-closed audit (NB-03 / NB-06, 2026-10-10): a transceiver whose verifier network was NOT
+  // read counts as a distinct network BEFORE (the most the previous set could reach) and as
+  // nothing AFTER — removing the unread one at an unchanged threshold read calm (both sides lost
+  // the same unknown). E before = min(threshold, distinct known + unknown).
+  const prevE =
+    prev !== null && prevTypes
+      ? Math.min(prev, nttEffective(prev, prevTypes).distinct + prevTypes.filter((t) => !t).length)
+      : null
   if (prev !== null && next < prev) down(v, 'BR-1', `NTT threshold ${prev} → ${next}`)
   else if (prevE !== null && E < prevE)
     down(
@@ -1616,6 +1770,10 @@ export function classifyCcip(
     enabled?: boolean
     prevCtl?: Controller | null
     nextCtl?: Controller | null
+    /** Fail-closed audit (MISSED-2): why the current rebalancer was NOT read (not "none"). */
+    prevUnread?: string
+    /** Fail-closed audit (CL-08): the new rebalancer (non-zero) could not be classified. */
+    nextUnread?: string
   },
 ): Verdict {
   const v = neutral()
@@ -1638,6 +1796,49 @@ export function classifyCcip(
   // previous holder was unread, read calm
   if (isEoaControlled(args.nextCtl))
     return down(v, 'CC-3', `rebalancer → ${describeController(args.nextCtl)}`)
+  // Fail-closed review (2026-10-10, OC-1): a new rebalancer whose rank rests on a read gap could
+  // be EOA-controlled; a previous one resting on a read gap is no baseline (both read calm)
+  if (rankHasReadGap(args.nextCtl))
+    return tag(
+      down(
+        v,
+        'CC-3',
+        `rebalancer → ${describeController(args.nextCtl)}: its rank rests on a read gap — an EOA controller cannot be ruled out (fail closed)`,
+      ),
+      'read_gap',
+    )
+  if (
+    args.prevCtl &&
+    rankHasReadGap(args.prevCtl) &&
+    controllerRank(args.nextCtl)[0] < 6 &&
+    args.prevCtl.address.toLowerCase() !== (args.nextCtl?.address ?? '').toLowerCase()
+  )
+    return tag(
+      down(
+        v,
+        'CC-3',
+        `${describeController(args.prevCtl)} → ${describeController(args.nextCtl)}: the previous rebalancer's rank rests on a read gap — a downgrade cannot be ruled out (fail closed)`,
+      ),
+      'read_gap',
+    )
+  if (args.nextUnread)
+    return tag(
+      down(
+        v,
+        'CC-3',
+        `rebalancer → ${args.nextUnread}: an EOA controller cannot be ruled out (fail closed)`,
+      ),
+      'read_gap',
+    )
+  if (args.prevUnread && controllerRank(args.nextCtl)[0] < 6)
+    return tag(
+      down(
+        v,
+        'CC-3',
+        `rebalancer → ${describeController(args.nextCtl)}; ${args.prevUnread}: a downgrade cannot be ruled out (fail closed)`,
+      ),
+      'read_gap',
+    )
   if (args.prevCtl && compareRank(controllerRank(args.nextCtl), controllerRank(args.prevCtl)) < 0)
     return down(
       v,
@@ -1702,9 +1903,16 @@ export function classifyParamChange(
      * replacement as A → B (a new minter, a new price source), never "set from nothing".
      */
     lastNonZero?: string | null
+    /**
+     * Fail-closed audit (PO-05 / PO-06 / PO-02): the current value was NOT READ (head unread, an
+     * unresolved bracket): judged fail closed — a replacement for an address rule, a loosening for
+     * a bound / quorum, a removal for a gate — tagged `read_gap`. It read "nothing before": calm.
+     */
+    prevUnread?: boolean
   } = {},
 ): Verdict {
   const v = neutral()
+  if (extra.prevUnread) tag(v, 'read_gap')
   switch (spec.rule) {
     case 'pauser': {
       if (typeof next === 'string' && ZERO_ADDR.test(next))
@@ -1729,9 +1937,40 @@ export function classifyParamChange(
         !(typeof prev === 'string' && !ZERO_ADDR.test(prev)) &&
         typeof extra.lastNonZero === 'string' &&
         !ZERO_ADDR.test(extra.lastNonZero)
+      // fail-closed audit (CL-08): a new address whose controller could NOT be classified (null,
+      // or a not-classified marker) — an EOA behind it cannot be ruled out (it read amber / calm)
+      if (nextCtl === null || isNotClassified(nextCtl))
+        return tag(
+          down(
+            v,
+            'MR-2',
+            `${spec.label} → ${next}: its controller could not be classified (fail closed)`,
+          ),
+          'read_gap',
+        )
+      // Fail-closed review (2026-10-10, OC-1): classified, but its rank rests on a read gap (an
+      // owner() not read, an unread proposer set): an EOA behind it cannot be ruled out. A price
+      // oracle moved to an owner-unread contract read amber `logic_change` (red when read).
+      if (rankHasReadGap(nextCtl))
+        return tag(
+          down(
+            v,
+            'MR-2',
+            `${spec.label} → ${describeController(nextCtl)}: its controller's rank rests on a read gap — an EOA behind it cannot be ruled out (fail closed)`,
+          ),
+          'read_gap',
+        )
       const was = viaZero ? extra.lastNonZero! : prev
       const replaced =
-        typeof was === 'string' && !ZERO_ADDR.test(was) && was.toLowerCase() !== next.toLowerCase()
+        (typeof was === 'string' &&
+          !ZERO_ADDR.test(was) &&
+          was.toLowerCase() !== next.toLowerCase()) ||
+        (!!extra.prevUnread &&
+          !(typeof was === 'string' && was.toLowerCase() === next.toLowerCase()))
+      if (extra.prevUnread && was === null)
+        v.notes.push(
+          `${spec.label}: the current value was not read — judged as a replacement (fail closed)`,
+        )
       if (viaZero && replaced) v.notes.push(`re-pointed through address(0): ${was} → 0 → ${next}`)
       // EOA → EOA is a key rotation (AD-3's ruling; design §8 "cbBTC EOA→EOA → neutral").
       if (isEoa(nextCtl) && isEoa(extra.prevCtl) && replaced) return tag(v, 'rotation')
@@ -1739,7 +1978,14 @@ export function classifyParamChange(
       // contract an EOA controls ranks with that EOA (verified or not).
       if (isEoaControlled(nextCtl))
         return down(v, 'MR-2', `${spec.label} → ${describeController(nextCtl)}`)
-      if (spec.rule === 'minter' && replaced) return down(v, 'MR-2', `new minter ${next}`)
+      if (spec.rule === 'minter' && replaced)
+        return down(
+          v,
+          'MR-2',
+          extra.prevUnread && !was
+            ? `new minter ${next}; the current minter was not read at head`
+            : `new minter ${next}`,
+        )
       // A rate provider / oracle replaced by another contract is a logic change of the price
       // source: amber when its source is verified, red when it is not (or cannot be read).
       if (replaced) {
@@ -1760,6 +2006,12 @@ export function classifyParamChange(
     case 'bound_upper': {
       const a = asBig(prev)
       const b = asBig(next)
+      if (a === null && b !== null && extra.prevUnread)
+        return down(
+          v,
+          'MR-3',
+          `${spec.label} → ${b}; the current value was not read: a loosening cannot be ruled out (fail closed)`,
+        )
       if (a === null || b === null) return v
       if (b > a) return down(v, 'MR-3', `${spec.label} ${a} → ${b} (looser)`)
       if (b < a) return up(v, `${spec.label} ${a} → ${b} (tighter)`)
@@ -1769,6 +2021,12 @@ export function classifyParamChange(
     case 'quorum_members': {
       const a = asBig(prev)
       const b = asBig(next)
+      if (a === null && b !== null && extra.prevUnread)
+        return down(
+          v,
+          'MR-3',
+          `${spec.label} → ${b}; the current value was not read: a loosening cannot be ruled out (fail closed)`,
+        )
       if (a === null || b === null) return v
       // quorum lowered = looser; for 'quorum_members' (committee size) MORE members at a fixed
       // quorum lowers the quorum/members ratio = looser.
@@ -1794,8 +2052,17 @@ export function classifyParamChange(
       return v
     }
     case 'whitelist_gate': {
-      if ((prev === true || prev === 'true') && (next === false || next === 'false'))
-        return down(v, 'MR-5', `${spec.label} removed`)
+      if (
+        (prev === true ||
+          prev === 'true' ||
+          (extra.prevUnread && (prev === null || prev === undefined))) &&
+        (next === false || next === 'false')
+      )
+        return down(
+          v,
+          'MR-5',
+          `${spec.label} removed${prev === true || prev === 'true' ? '' : ' (the current gate was not read: fail closed)'}`,
+        )
       return v
     }
     case 'cooldown': {

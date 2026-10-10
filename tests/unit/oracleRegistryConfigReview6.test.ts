@@ -645,6 +645,7 @@ describe('rules #5 AD-6: a pending Safe DELEGATECALL (the Bybit singleton swap) 
         ok: true,
         status: 200,
         json: async () => ({
+          count: 1,
           results: [
             {
               nonce: 7,

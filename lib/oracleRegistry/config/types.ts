@@ -62,6 +62,8 @@ export type Controller = {
    * as a plain contract (a module would execute without signatures) and is a read gap.
    */
   modulesUnread?: boolean
+  /** Fail-closed audit (SQ-07): the block the stored module list was last READ at (a carried list). */
+  modulesReadAt?: number
   guard?: Address
   moduleGuard?: Address
   fallbackHandler?: Address
@@ -107,6 +109,10 @@ export type Controller = {
      * timelock ranks as a plain contract (fail closed).
      */
     holderCtls?: Controller[]
+    /** Fail-closed audit (TL-10 / TL-11): the member count read, or not read; a member not read. */
+    count?: number
+    countUnread?: boolean
+    membersUnread?: boolean
   }
   /**
    * UQ-24 (2026-10-08): a DSPause's DSAuth `authority` (non-zero). DSAuth lets whoever the
@@ -140,6 +146,8 @@ export type Controller = {
     emergencyModeActive: boolean | null
     /** Unix seconds after which the emergency committees lose their powers. */
     emergencyProtectionEndsAfter: number | null
+    /** Fail-closed audit (TV-12): a proposer's Voting check was not decided (its implementation not read). */
+    proposerVoteUnread?: boolean
     /**
      * Read on the governance (DualGovernance) contract: the Reseal Committee (extends a seal of
      * the withdrawal queue / exit bus), the Tiebreaker committee (executes when governance is
@@ -219,6 +227,17 @@ export type Controller = {
    * the contract ranks as a plain contract and is a read gap (fail closed).
    */
   ownerNotFollowed?: Address
+  /**
+   * Fail-closed audit (2026-10-10) markers — each a READ GAP (ranked as a plain contract, listed,
+   * never cached at a past block):
+   *   ownerUnread           an owner() the code dispatches was not read (CL-03);
+   *   appUnread             an Aragon AppProxy whose implementation was not read (TV-01 / TV-08);
+   *   executorsUnconfirmed  an Aragon Agent whose permissions were not all read (TV-09): its
+   *                         candidates are kept, with a gap.
+   */
+  ownerUnread?: boolean
+  appUnread?: boolean
+  executorsUnconfirmed?: boolean
 }
 
 /** One holder of a voting token at a block (UQ-17). `ctl` missing = not classified. */

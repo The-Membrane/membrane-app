@@ -16,7 +16,6 @@ import { FN, SAFE_SLOTS, SLOT, fnAbi, roleHash, roleName, word2addr } from './ab
 import {
   codeAt,
   crossCheckedLogs,
-  getLogsAdaptive,
   isRevertError,
   pool,
   retry,
@@ -118,27 +117,68 @@ const KNOWN_SELECTORS = Object.fromEntries(
     'unpause()',
   ].map((f) => ['0x' + sel(f), f]),
 )
-const wlLogs = new Map() // timelock → Promise<{ target, selector, block }[] | null>
-const deployOf = new Map() // address → Promise<number>
+const wlLogs = new Map() // `${chain}|${timelock}` → Promise<{ target, selector, block }[] | null>
+const deployOf = new Map() // `${chain}|${address}` → Promise<number>
+
+/**
+ * Fail-closed audit (RC-M6): the chain a client reads (1 for Ethereum and for test fakes). Every
+ * memo below is keyed by it, and the Ethereum log endpoints serve chain 1 only — a remote
+ * timelock's proposers were read from ETHEREUM's logs at the same address.
+ */
+const chainOf = (client) => Number(client?.chain?.id ?? 1)
+const ckey = (client, a) => `${chainOf(client)}|${a}`
+
+/**
+ * The first block with code at `a` (the deployment) by bisection, CONFIRMED (fail-closed audit
+ * TL-01 / FCB-1 / FCB-2 / ST-05 / MISSED-3/4): code at the result and none one block before, both
+ * re-read on every `confirm` client (the two independent log endpoints — archive). One false "no
+ * code" mid-bisection (a lagging or pruned ring endpoint) moved the start LATER, so the log scans it
+ * bounds skipped the constructor grants and early whitelist entries, and a cached deploy block made
+ * a late initialize() look like initialization. Throws when the boundary is not confirmed.
+ */
+export async function confirmedFirstCode(client, a, { lo = 0, hi, confirm = [] } = {}) {
+  const checks = confirm.length ? confirm : [client]
+  // code already at the lower bound: deployed at or before it (confirmed there too)
+  if (await codeAt(client, a, lo)) {
+    for (const c of checks)
+      if (!(await codeAt(c, a, lo)))
+        throw new Error(`first code of ${a} not confirmed: no code at ${lo} on a second endpoint`)
+    return lo
+  }
+  let top = hi ?? Number(await retry(() => client.getBlockNumber()))
+  let bottom = lo
+  while (top - bottom > 1) {
+    const m = Math.floor((bottom + top) / 2)
+    if (await codeAt(client, a, m)) top = m
+    else bottom = m
+  }
+  for (const c of checks) {
+    if (!(await codeAt(c, a, top)))
+      throw new Error(`first code of ${a} not confirmed: no code at ${top} on a second endpoint`)
+    if (top > 0 && (await codeAt(c, a, top - 1)))
+      throw new Error(`first code of ${a} not confirmed: code already at ${top - 1}`)
+  }
+  return top
+}
 
 async function firstCodeBlock(client, a) {
-  if (!deployOf.has(a))
+  const k = ckey(client, a)
+  if (!deployOf.has(k))
     deployOf.set(
-      a,
-      (async () => {
-        const head = Number(await retry(() => client.getBlockNumber()))
-        let lo = 0
-        let hi = head
-        while (hi - lo > 1) {
-          const m = Math.floor((lo + hi) / 2)
-          if (await codeAt(client, a, m)) hi = m
-          else lo = m
-        }
-        return hi
-      })(),
+      k,
+      confirmedFirstCode(client, a, {
+        confirm:
+          chainOf(client) === 1 && logClients
+            ? [logClients.primary, logClients.secondary].filter(Boolean)
+            : [],
+      }),
     )
-  return deployOf.get(a)
+  return deployOf.get(k)
 }
+
+/** The log endpoints for `client`'s chain: Ethereum's pair, or the client alone (unconfirmable). */
+const logPairFor = (client) =>
+  chainOf(client) === 1 && logClients ? [logClients.primary, logClients.secondary] : [client, null]
 
 /**
  * FunctionWhitelisted(target, selector) logs of a timelock (null when they could not be read).
@@ -150,9 +190,10 @@ async function firstCodeBlock(client, a) {
  * old callers) the one endpoint's empty answer is unconfirmed: unread.
  */
 async function whitelistLogs(client, a) {
-  if (!wlLogs.has(a))
+  const k = ckey(client, a)
+  if (!wlLogs.has(k))
     wlLogs.set(
-      a,
+      k,
       (async () => {
         try {
           const from = await firstCodeBlock(client, a)
@@ -165,9 +206,8 @@ async function whitelistLogs(client, a) {
               fromBlock: b,
               toBlock: Math.min(head, b + ROLE_LOG_CHUNK - 1),
             }
-            const logs = logClients
-              ? (await crossCheckedLogs(logClients.primary, logClients.secondary, q)).logs
-              : (await crossCheckedLogs(client, null, q)).logs
+            const [lp, ls] = logPairFor(client)
+            const logs = (await crossCheckedLogs(lp, ls, q)).logs
             for (const l of logs)
               out.push({
                 target: ('0x' + l.topics[1].slice(-40)).toLowerCase(),
@@ -181,7 +221,7 @@ async function whitelistLogs(client, a) {
         }
       })(),
     )
-  return wlLogs.get(a)
+  return wlLogs.get(k)
 }
 
 const TOPIC_ROLE_GRANTED = keccak256(toHex('RoleGranted(bytes32,address,address)'))
@@ -193,15 +233,21 @@ const roleLogs = new Map() // timelock → Promise<{ role, account, block }[] | 
 let logClients = null
 export function setLogClients(primary, secondary) {
   logClients = primary ? { primary, secondary: secondary ?? null } : null
+  // the run-scoped memos start over with the run's endpoints
   roleLogs.clear()
   wlLogs.clear()
+  deployOf.clear()
+  notEnumerable.clear()
+  proposerRoleMemo.clear()
+  aclMemo.clear()
 }
 export const ROLE_LOG_CHUNK = 500_000
 /** RoleGranted(role, account) logs of a timelock from its deployment (null when unread). */
 async function roleGrantLogs(client, a) {
-  if (!roleLogs.has(a))
+  const k = ckey(client, a)
+  if (!roleLogs.has(k))
     roleLogs.set(
-      a,
+      k,
       (async () => {
         try {
           const from = await firstCodeBlock(client, a)
@@ -214,9 +260,10 @@ async function roleGrantLogs(client, a) {
               fromBlock: b,
               toBlock: Math.min(head, b + ROLE_LOG_CHUNK - 1),
             }
-            const logs = logClients
-              ? (await crossCheckedLogs(logClients.primary, logClients.secondary, q)).logs
-              : await getLogsAdaptive(client, q)
+            // fail-closed audit (TL-02): never an unchecked read — without a second endpoint an
+            // empty answer is unconfirmed (the set is unread)
+            const [lp, ls] = logPairFor(client)
+            const logs = (await crossCheckedLogs(lp, ls, q)).logs
             for (const l of logs)
               out.push({
                 role: String(l.topics[1]).toLowerCase(),
@@ -230,7 +277,7 @@ async function roleGrantLogs(client, a) {
         }
       })(),
     )
-  return roleLogs.get(a)
+  return roleLogs.get(k)
 }
 
 // Every account the collector's own admin scan saw granted a role, per contract (set from the
@@ -286,27 +333,70 @@ export function hasReadFailure(c, seen = new Set()) {
   if (!c || typeof c !== 'object' || seen.has(c)) return false
   seen.add(c)
   if (c.schedulersUnread || c.modulesUnread || c.bypass?.unread || c.executorsUnread) return true
+  // fail-closed audit: an owner, an Aragon app implementation or an Agent's permissions not read
+  if (c.ownerUnread || c.appUnread || c.executorsUnconfirmed) return true
   // Review round 12 (on-chain #4 / rules #9): also an unrestricted bypass whose bypassers were
   // not all classified (a round-9 entry with no `holderCtls` at all — 19 cached entries of WBTC's
   // 0x4483…9449 rendered "bypassers UNREAD" on every run, although the role reads fine), a vote
   // time that was not read, and a Dual Governance read a rank or a breach rests on (an unread
   // after-submit delay drops the delay credit; an unread emergency mode can hide an AD-2).
   const b = c.bypass
+  // TL-10 / TL-11: an unrestricted bypass with no classified bypasser (a count of 0 is no bypass
+  // at all), an unread count or member, or fewer classified than the members listed
   if (
     b?.scope === 'any' &&
     b.fn === 'bypasserExecuteBatch' &&
-    (!b.holderCtls || b.holderCtls.length < (b.holders?.length ?? 0))
+    (!b.holderCtls?.length ||
+      b.countUnread ||
+      b.membersUnread ||
+      b.holderCtls.length < (b.holders?.length ?? 0))
   )
     return true
   if (c.voting && c.voting.voteTimeSec === null) return true
-  if (c.dg && (c.dg.afterSubmitDelaySec === null || c.dg.emergencyModeActive === null)) return true
+  // TV-03: a threshold not read is read again (it was cached, and re-read only when the token or
+  // the quorum was missing)
+  if (
+    c.voting &&
+    !c.selfRef &&
+    (c.delaySec ?? 0) > 0 &&
+    (c.voting.supportRequiredPct == null || c.voting.minAcceptQuorumPct == null)
+  )
+    return true
+  if (
+    c.dg &&
+    (c.dg.afterSubmitDelaySec === null ||
+      c.dg.afterScheduleDelaySec === null ||
+      c.dg.emergencyModeActive === null ||
+      c.dg.proposerVoteUnread)
+  )
+    return true
   return [
     c.ownedBy,
     ...(c.executors ?? []),
     ...(c.schedulers ?? []),
     ...(c.bypass?.holderCtls ?? []),
     ...(c.dsAuthority?.callers ?? []),
+    // TV-14: a holder of a token vote classified with a read failure inside
+    ...(c.voting?.holders ?? []).map((h) => h.ctl),
   ].some((x) => hasReadFailure(x, seen))
+}
+
+/**
+ * One storage slot as a 32-byte word (fail-closed audit CL-04 / M-2 / PH-06): anything else —
+ * null, '0x', a short or non-string answer — THROWS (a node that cannot serve the block), so it
+ * is retried and never read as "unset".
+ */
+export async function storageWord(client, address, slot, block) {
+  const w = await client.getStorageAt({
+    address,
+    slot,
+    blockNumber: block === undefined ? undefined : BigInt(block),
+  })
+  if (typeof w !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(w))
+    throw new Error(
+      `getStorageAt(${address}, ${slot}) answered ${w === null ? 'null' : typeof w === 'string' ? `"${w.slice(0, 12)}"` : typeof w}`,
+    )
+  return w
 }
 
 /** "The function is not there" (reverts, or returns no / short data) — not a transport failure. */
@@ -332,13 +422,24 @@ async function readViews(client, a, block) {
   const pre = block !== undefined && block < MULTICALL3_BLOCK
   let res = null
   try {
-    res = await retry(() =>
-      client.multicall({
+    res = await retry(async () => {
+      const r = await client.multicall({
         contracts: MC.map(([fn, sig]) => ({ address: a, abi: fnAbi(sig), functionName: fn })),
         allowFailure: true,
         blockNumber: block === undefined ? undefined : BigInt(block),
-      }),
-    )
+      })
+      // Fail-closed audit (CL-02 / RC-M5, 2026-10-10): viem turns a REJECTED aggregate3 chunk (a
+      // network error, a 429, no Multicall3) into a per-call failure carrying that error and does
+      // not throw — every view then read as "not there", and an EOA-owned contract, a Safe 1-of-N
+      // or a timelock with an EOA proposer classified as a calm plain contract (cached at past
+      // blocks). A failure that is not "the function is not there" is a failed read: retried,
+      // then thrown (the classification fails: not classified, a read gap).
+      const bad = (r ?? []).find(
+        (x) => x.status === 'failure' && x.error && !isAbsentResult(x.error),
+      )
+      if (bad) throw bad.error
+      return r
+    })
   } catch (e) {
     if (!pre) throw e
   }
@@ -431,14 +532,15 @@ export async function timelockSchedulers(client, a, block, depth = 0, seen = new
   // nested deeper than this: not read (fail closed — ranked as a plain contract)
   if (depth >= MAX_SCHEDULER_DEPTH) return { schedulers: [], unread: true }
   const rd = (sig, fn, args = []) => readOnce(client, a, sig, fn, args, block)
-  if (!proposerRoleMemo.has(a))
+  const mk = ckey(client, a)
+  if (!proposerRoleMemo.has(mk))
     proposerRoleMemo.set(
-      a,
+      mk,
       rd('function PROPOSER_ROLE() view returns (bytes32)', 'PROPOSER_ROLE').then((p) =>
         (p.ok ? String(p.value) : roleHash('PROPOSER_ROLE')).toLowerCase(),
       ),
     )
-  const proposerRole = await proposerRoleMemo.get(a)
+  const proposerRole = await proposerRoleMemo.get(mk)
   const roles = [proposerRole]
   let adminRead = true
   for (let i = 0; i < 3; i++) {
@@ -459,26 +561,35 @@ export async function timelockSchedulers(client, a, block, depth = 0, seen = new
   const logs = await roleGrantLogs(client, a)
   const holders = new Set()
   const adminHolders = new Set() // holders of a role that administers PROPOSER (not PROPOSER)
-  let enumerated = false
   let proposerCands = 0
+  // Fail-closed audit (TL-06 / TL-08, 2026-10-10): whether EACH role's holders were read. A role is
+  // read when its RoleGranted logs were read, or when the contract enumerated it COMPLETELY (the
+  // count read, every member read, at most 50). One `enumerated` flag for all roles let an admin
+  // role's count stand in for an unread PROPOSER count, and a member that failed was skipped —
+  // either way a proposer (an EOA: AD-3) vanished with no gap. The admin scan's candidates are a
+  // partial, window-limited cross-check, never a read.
+  const unreadRoles = []
   for (const role of roles) {
     const cands = new Set([
       ...(logs ?? [])
         .filter((l) => l.role === role && (block === undefined || l.block <= block))
         .map((l) => l.account),
-      ...(roleCands.get(`${a}|${role}`) ?? []),
+      ...(chainOf(client) === 1 ? (roleCands.get(`${a}|${role}`) ?? []) : []),
     ])
-    const n = notEnumerable.has(a)
+    const n = notEnumerable.has(mk)
       ? { ok: false }
       : await rd(FN.getRoleMemberCount, 'getRoleMemberCount', [role])
-    if (!n.ok && n.reverted) notEnumerable.add(a)
+    if (!n.ok && n.reverted) notEnumerable.add(mk)
+    let complete = false
     if (n.ok) {
-      enumerated = true
+      complete = Number(n.value) <= 50
       for (let i = 0; i < Math.min(Number(n.value), 50); i++) {
         const m = await rd(FN.getRoleMember, 'getRoleMember', [role, BigInt(i)])
         if (m.ok) cands.add(String(m.value).toLowerCase())
+        else complete = false
       }
     }
+    if (!logs && !complete) unreadRoles.push(role)
     if (role === proposerRole) proposerCands = cands.size
     for (const h of cands) {
       if (h === a) continue
@@ -489,16 +600,67 @@ export async function timelockSchedulers(client, a, block, depth = 0, seen = new
       }
     }
   }
-  const unread = (!logs && !enumerated) || proposerCands === 0
+  const unread = unreadRoles.length > 0 || proposerCands === 0
   const schedulers = []
   const delaySetters = []
   for (const h of holders) {
-    if (seen.has(h)) continue
+    // TL-13b: a scheduler already on this control path (an MCMS the timelock owns) is a CYCLE —
+    // ranked as a plain contract, as an owner / bypasser cycle is. It was dropped, so the
+    // timelock ranked as its other (stronger) schedulers.
+    if (seen.has(h)) {
+      schedulers.push({
+        kind: 'contract',
+        address: h,
+        version: 'already on this control path (a cycle): ranked as a plain contract',
+      })
+      continue
+    }
     schedulers.push(await classify(client, h, block, depth + 1, new Set([...seen, a]), 0))
     // review round 9: an admin-role holder that can change the delay at once gets no credit
     if (adminHolders.has(h) && (await canSetDelay(client, a, h, block))) delaySetters.push(h)
   }
   return { schedulers, unread, delaySetters }
+}
+
+/**
+ * Fail-closed audit (PH-13 / EV-07, 2026-10-10): the holders of a declared timelock's admin roles
+ * (AD-7) at head — the candidates the admin scan replayed (`cands`), its own RoleGranted logs
+ * (cross-checked on the second endpoint), and its enumeration where it has one, each confirmed by
+ * hasRole at head (a failed read keeps the candidate: fail closed). `unread` when neither the logs
+ * nor a complete enumeration was read for a role: the AD-7 holder list was then the admin scan
+ * alone (a lost RoleGranted dropped the holder, and its AD-7, with no gap).
+ */
+export async function timelockAdminHolders(client, timelock, roleNames, cands = []) {
+  const a = timelock.toLowerCase()
+  const logs = await roleGrantLogs(client, a)
+  const holders = new Set()
+  let unread = false
+  for (const name of roleNames) {
+    const role = (
+      name === 'DEFAULT_ADMIN_ROLE' ? '0x' + '0'.repeat(64) : roleHash(name)
+    ).toLowerCase()
+    const set = new Set([
+      ...cands.map((x) => String(x).toLowerCase()),
+      ...(logs ?? []).filter((l) => l.role === role).map((l) => l.account),
+    ])
+    let complete = false
+    const n = await readOnce(client, a, FN.getRoleMemberCount, 'getRoleMemberCount', [role])
+    if (n.ok) {
+      complete = Number(n.value) <= 50
+      for (let i = 0; i < Math.min(Number(n.value), 50); i++) {
+        const m = await readOnce(client, a, FN.getRoleMember, 'getRoleMember', [role, BigInt(i)])
+        if (m.ok) set.add(String(m.value).toLowerCase())
+        else complete = false
+      }
+    }
+    if (!logs && !complete) unread = true
+    for (const h of set) {
+      if (h === a) continue
+      const x = await readOnce(client, a, FN.hasRole, 'hasRole', [role, h])
+      if (!x.ok || x.value) holders.add(h)
+    }
+  }
+  return { holders: [...holders], unread }
 }
 
 /**
@@ -528,6 +690,7 @@ export async function timelockBypass(client, a, code, block, depth = 0, seen = n
     )
     if (n.ok && Number(n.value) === 0) return undefined
     const holders = []
+    let membersUnread = false
     for (let i = 0; n.ok && i < Math.min(Number(n.value), 10); i++) {
       const m = await tryRead(
         client,
@@ -538,6 +701,14 @@ export async function timelockBypass(client, a, code, block, depth = 0, seen = n
         block,
       )
       if (m.ok) holders.push(m.value.toLowerCase())
+      else membersUnread = true
+    }
+    // Fail-closed audit (TL-10 / TL-11 / CL-05): an unread count or member is MARKED, so the
+    // past-block cache never keeps it (with no holders read, `holderCtls.length < holders.length`
+    // was 0 < 0: the gap was cached for good, and a red history row could never appear)
+    const marks = {
+      ...(n.ok ? { count: Number(n.value) } : { countUnread: true }),
+      ...(membersUnread ? { membersUnread: true } : {}),
     }
     // UQ-24: the bypassers, classified at the block — the bypass ranks as the weakest of them.
     // An unread member count, a member that could not be read, or one that could not be
@@ -563,7 +734,7 @@ export async function timelockBypass(client, a, code, block, depth = 0, seen = n
           /* not classified: holderCtls stays short — a read gap */
         }
       }
-    return { fn: 'bypasserExecuteBatch', scope: 'any', holders, holderCtls }
+    return { fn: 'bypasserExecuteBatch', scope: 'any', holders, holderCtls, ...marks }
   }
   if (BYPASS_WHITELIST.some((x) => dispatches(code, x))) {
     const logs = await whitelistLogs(client, a)
@@ -619,16 +790,11 @@ export async function classify(client, address, block, depth = 0, seen = new Set
   const r = Object.fromEntries(
     MC.map(([fn], i) => [fn, res[i].status === 'success' ? res[i].result : undefined]),
   )
+  // fail-closed audit (CL-04 / M-2): only a 32-byte word is an answer — a null or short answer (a
+  // node that cannot serve the block) read as "unset": a Safe whose slot 0 was not served became a
+  // plain contract (its 1-of-N EOA rank lost), and a guard read as "none"
   const storage = async (slot) =>
-    word2addr(
-      await retry(() =>
-        client.getStorageAt({
-          address: a,
-          slot: toHex(slot, { size: 32 }),
-          blockNumber: block === undefined ? undefined : BigInt(block),
-        }),
-      ),
-    )
+    word2addr(await retry(() => storageWord(client, a, toHex(slot, { size: 32 }), block)))
   // multisig-shaped views behind a non-canonical singleton / without the dispatch table: kept
   // as information (history can still replay the threshold), ranked as a plain contract
   let multisigLike
@@ -644,18 +810,34 @@ export async function classify(client, address, block, depth = 0, seen = new Set
         owners: r.getOwners.map((o) => String(o).toLowerCase()),
         version: r.VERSION ?? undefined,
       }
-      const mods = await tryRead(
-        client,
-        a,
-        fnAbi(FN.getModulesPaginated),
-        'getModulesPaginated',
-        [SENTINEL, 20n],
-        block,
-      )
       // review round 8: a module read that failed is NOT "no modules" — the Safe then ranks as a
-      // plain contract and the engine reports a read gap (a module executes without signatures)
-      if (mods.ok) c.modules = mods.value[0].map((m) => m.toLowerCase())
-      else c.modulesUnread = true
+      // plain contract and the engine reports a read gap (a module executes without signatures).
+      // Fail-closed audit (SQ-01): the list is read to its END (pages of 20, each from the LAST
+      // module returned — Safe 1.3.0's `next` is the first EXCLUDED one), at most 5 pages; a page
+      // that fails, or a list longer than that, is unread (one page read 20 and called it whole).
+      const modules = []
+      let start = SENTINEL
+      let pages = 0
+      for (;;) {
+        const mods = await tryRead(
+          client,
+          a,
+          fnAbi(FN.getModulesPaginated),
+          'getModulesPaginated',
+          [start, 20n],
+          block,
+        )
+        if (!mods.ok || ++pages > 5) {
+          c.modulesUnread = true
+          break
+        }
+        const page = mods.value[0].map((m) => String(m).toLowerCase())
+        modules.push(...page.filter((m) => !modules.includes(m)))
+        const next = String(mods.value[1] ?? '').toLowerCase()
+        if (!page.length || next === SENTINEL || isZero(next)) break
+        start = page[page.length - 1]
+      }
+      if (!c.modulesUnread) c.modules = modules
       c.guard = await storage(SAFE_SLOTS.guard)
       c.moduleGuard = await storage(SAFE_SLOTS.moduleGuard)
       c.fallbackHandler = await storage(SAFE_SLOTS.fallbackHandler)
@@ -676,6 +858,22 @@ export async function classify(client, address, block, depth = 0, seen = new Set
   if (voting) return voting
   const agent = await aragonAgentOf(client, a, code, block, depth, seen)
   if (agent) return agent
+  // fail-closed audit (TL MISSED admin.mjs:679): timelock CODE whose getMinDelay view did not
+  // answer is re-read; still unread, it is an UNREAD timelock (a read gap), never a calm plain
+  // contract with no schedulers and no bypass
+  if (r.getMinDelay === undefined && isTimelockCode(code)) {
+    const d = await tryRead(client, a, fnAbi(FN.getMinDelay), 'getMinDelay', [], block)
+    if (d.ok) r.getMinDelay = d.value
+    else
+      return {
+        kind: 'oz_timelock',
+        address: a,
+        delaySec: 0,
+        schedulers: [],
+        schedulersUnread: true,
+        version: 'getMinDelay not read',
+      }
+  }
   if (r.getMinDelay !== undefined && isTimelockCode(code)) {
     const c = { kind: 'oz_timelock', address: a, delaySec: Number(r.getMinDelay) }
     const bypass = await timelockBypass(client, a, code, block, depth, seen)
@@ -716,6 +914,18 @@ export async function classify(client, address, block, depth = 0, seen = new Set
     return c
   }
   const c = { kind: 'contract', address: a, ...(multisigLike ?? {}) }
+  // fail-closed audit (CL-03): an owner() the code dispatches that the batch did not answer is
+  // read again directly (a transport failure throws there; inside aggregate3 an out-of-gas looks
+  // like a revert); still not read = `ownerUnread` (a read gap, never cached) — it was a plain
+  // contract with no owner and no marker, so an EOA owner's AD-3 / AD-4 / MR-2 vanished
+  if (r.owner === undefined && dispatches(code, 'owner()')) {
+    try {
+      const x = await pathRead(client, a, FN.owner, 'owner', [], block)
+      if (x.ok) r.owner = x.value
+    } catch {
+      c.ownerUnread = true
+    }
+  }
   const owner = r.owner ? String(r.owner).toLowerCase() : null
   if (owner && !isZero(owner) && owner !== a && !seen.has(owner)) {
     if (ownerHops < MAX_OWNER_HOPS)
@@ -733,6 +943,24 @@ export async function classify(client, address, block, depth = 0, seen = new Set
     else c.ownerNotFollowed = owner
   }
   return c
+}
+
+/**
+ * Fail-closed review (2026-10-10, rules #7): the address-shaped words of a queued op's calls (the
+ * grantees, new owners and providers the queue judges at head). A call index that was never seen
+ * (QU-05: a lost CallScheduled log) leaves a HOLE in `calls` — `for (const c of o.calls) c.data`
+ * threw a TypeError and stopped the whole run while the gap lasted. Holes are skipped.
+ */
+export function callAddressArgs(calls) {
+  const out = []
+  for (const c of calls ?? []) {
+    if (!c) continue
+    for (const m of String(c.data ?? '')
+      .slice(10)
+      .match(/.{64}/g) ?? [])
+      if (/^0{24}[0-9a-f]{40}$/.test(m)) out.push('0x' + m.slice(24))
+  }
+  return out
 }
 
 /** Roles on a declared timelock whose holders belong to the subject's scope (their events too). */
@@ -858,6 +1086,40 @@ async function pathRead(client, address, sig, fn, args, block) {
 
 async function holdersOf(client, contract, role, roleMap, block) {
   const cands = [...(roleMap.get(`${contract}|${role}`) ?? [])]
+  // Fail-closed audit (PH-03, 2026-10-10): on a contract that cannot list its members the holders
+  // came ONLY from the run's admin scan (a lost RoleGranted dropped a holder, and its AD-3, with
+  // no gap). Its own RoleGranted logs for this role are read too (cross-checked on the second
+  // endpoint); a read that cannot be confirmed THROWS (power.error: a read gap the carry follows).
+  const enumerable = await pathRead(
+    client,
+    contract,
+    FN.getRoleMemberCount,
+    'getRoleMemberCount',
+    [role],
+    block,
+  )
+  if (!enumerable.ok && logClients && chainOf(client) === 1) {
+    const from = await firstCodeBlock(client, contract).catch(() => {
+      throw new Error(
+        `the deployment block of ${contract} was not confirmed (RoleGranted not read)`,
+      )
+    })
+    const to = block ?? Number(await retry(() => client.getBlockNumber()))
+    for (let b = from; b <= to; b += ROLE_LOG_CHUNK) {
+      const q = {
+        address: contract,
+        topics0: [TOPIC_ROLE_GRANTED],
+        fromBlock: b,
+        toBlock: Math.min(to, b + ROLE_LOG_CHUNK - 1),
+      }
+      const { logs } = await crossCheckedLogs(logClients.primary, logClients.secondary, q)
+      for (const l of logs)
+        if (String(l.topics?.[1]).toLowerCase() === role) {
+          const acct = ('0x' + String(l.topics[2]).slice(-40)).toLowerCase()
+          if (!cands.includes(acct)) cands.push(acct)
+        }
+    }
+  }
   const out = []
   for (const h of cands) {
     const x = await tryRead(client, contract, fnAbi(FN.hasRole), 'hasRole', [role, h], block)
@@ -884,16 +1146,12 @@ async function holdersOf(client, contract, role, roleMap, block) {
   // event scan floor — Lido's 2023 oracle contracts — has no event to replay). Review round 12:
   // a count or member read that FAILS (not "not enumerable") throws — a silently skipped member
   // is a holder lost with no read gap.
-  const n = await pathRead(
-    client,
-    contract,
-    FN.getRoleMemberCount,
-    'getRoleMemberCount',
-    [role],
-    block,
-  )
+  const n = enumerable
+  // MS-5: more members than read is never "the members read" — it throws (power.error)
+  if (n.ok && Number(n.value) > 200)
+    throw new Error(`${contract}: ${n.value} members of role ${role} — more than the 200 read`)
   if (n.ok)
-    for (let i = 0; i < Math.min(Number(n.value), 50); i++) {
+    for (let i = 0; i < Number(n.value); i++) {
       const m = await pathRead(
         client,
         contract,
@@ -910,27 +1168,39 @@ async function holdersOf(client, contract, role, roleMap, block) {
 
 // ---- Aragon (Lido DAO) ----------------------------------------------------------------------------
 
-const aclMemo = new Map() // `${address}@${block}` → Promise<acl | null>
+const aclMemo = new Map() // `${chain}|${address}@${block}` → Promise<{ acl, unread }>
 
 /**
  * The Aragon ACL that governs `a`: the Kernel answers acl(); an app answers kernel() and its
- * Kernel answers acl(). null = not an Aragon app (or the reads failed).
+ * Kernel answers acl(). Fail-closed audit (TV-09): { acl, unread } — `unread` when a read FAILED
+ * (not a revert / a zero answer): it was null, the same as "not an Aragon app", so an Agent's
+ * executors were never confirmed and nothing said so.
  */
-export async function aclOf(client, a, block) {
-  const k = `${a}@${block ?? 'head'}`
+export async function aclRead(client, a, block) {
+  const k = `${ckey(client, a)}@${block ?? 'head'}`
   if (!aclMemo.has(k))
     aclMemo.set(
       k,
       (async () => {
+        const failed = (x) => !x.ok && !x.reverted
         const direct = await tryRead(client, a, fnAbi(FN.acl), 'acl', [], block)
-        if (direct.ok && !isZero(direct.value)) return direct.value.toLowerCase()
+        if (direct.ok && !isZero(direct.value))
+          return { acl: direct.value.toLowerCase(), unread: false }
         const kern = await tryRead(client, a, fnAbi(FN.kernel), 'kernel', [], block)
-        if (!kern.ok || isZero(kern.value)) return null
+        if (!kern.ok || isZero(kern.value))
+          return { acl: null, unread: failed(direct) || failed(kern) }
         const acl = await tryRead(client, kern.value, fnAbi(FN.acl), 'acl', [], block)
-        return acl.ok && !isZero(acl.value) ? acl.value.toLowerCase() : null
+        return acl.ok && !isZero(acl.value)
+          ? { acl: acl.value.toLowerCase(), unread: false }
+          : { acl: null, unread: failed(acl) || acl.ok }
       })(),
     )
   return aclMemo.get(k)
+}
+
+/** The ACL of `a`, or null (not an Aragon app, or not read — `aclRead` says which). */
+export async function aclOf(client, a, block) {
+  return (await aclRead(client, a, block)).acl
 }
 
 /**
@@ -1000,12 +1270,15 @@ export async function resolvePath(client, { endpoint, contract, path, roleMap, b
           next.push(c) // an ownerless hop (EOA / Safe admin) acts itself
         else throw new Error(`owner() not present on ${c} (declared path ${path.join('>')})`)
       } else if (step === 'eip1967_admin' || step === 'zos_admin') {
+        // fail-closed audit (PH-06): only a 32-byte word answers; a null / short one THROWS (it was
+        // "no admin": no holder, no AD-3, no gap)
         const w = await retry(() =>
-          client.getStorageAt({
-            address: c,
-            slot: step === 'eip1967_admin' ? SLOT.eip1967Admin : SLOT.zosAdmin,
-            blockNumber: block === undefined ? undefined : BigInt(block),
-          }),
+          storageWord(
+            client,
+            c,
+            step === 'eip1967_admin' ? SLOT.eip1967Admin : SLOT.zosAdmin,
+            block,
+          ),
         )
         const a = word2addr(w)
         if (a && !isZero(a)) next.push(a)
@@ -1109,7 +1382,15 @@ export function opsFromEvents(rows, timelock) {
       else ops.set(id, { timelock: t, id, calls: [], salt: r.args.salt })
     }
   }
-  return [...ops.values()].filter((o) => o.calls.length)
+  // fail-closed audit (QU-05): an op whose CallScheduled rows have HOLES (a call index never seen —
+  // a lost log) is marked: judged on the calls seen, flagged, and never a re-derivation that
+  // resolves its previous rows
+  const out = [...ops.values()].filter((o) => o.calls.length)
+  for (const o of out) {
+    const seen = o.calls.filter(Boolean).length
+    if (seen !== o.calls.length) o.callsIncomplete = true
+  }
+  return out
 }
 
 const SCHEDULE_ABI = parseAbi([
@@ -1182,6 +1463,29 @@ export function recoverSalt(input, op) {
 }
 
 /**
+ * Who an OZ timelock's execute() is simulated from (fail-closed audit QU-04 / MS-2, 2026-10-10):
+ *   { from: [0x…dEaD], confirmed: true }   EXECUTOR_ROLE is open (hasRole(EXECUTOR, 0) READ true);
+ *   { from: [h…], confirmed: true }        the candidates whose EXECUTOR_ROLE hasRole confirms at
+ *                                          head (`cands`: the replayed EXECUTOR holders);
+ *   { from: [], confirmed: false }         neither could be read / confirmed.
+ * It fell back to 0x…dEaD when the open-role read failed: the simulation reverted and an ARMED op
+ * read "stale — not executable" (no AD-8, out of the pending count). An unconfirmed set is never
+ * simulated: the op is "could not be simulated" (armed, fail closed).
+ */
+export async function timelockExecutors(client, timelock, cands = []) {
+  const EXECUTOR = roleHash('EXECUTOR_ROLE')
+  const open = await tryRead(client, timelock, fnAbi(FN.hasRole), 'hasRole', [EXECUTOR, ZERO])
+  if (open.ok && open.value)
+    return { from: ['0x000000000000000000000000000000000000dEaD'], confirmed: true }
+  const from = []
+  for (const h of cands) {
+    const x = await tryRead(client, timelock, fnAbi(FN.hasRole), 'hasRole', [EXECUTOR, h])
+    if (x.ok && x.value) from.push(h)
+  }
+  return from.length ? { from, confirmed: true } : { from: [], confirmed: false }
+}
+
+/**
  * Head status of operations: getTimestamp, predecessor, and an execute simulation for ready
  * ones. Reads fail CLOSED: a getTimestamp that cannot be read is `null` (never "cancelled"), a
  * predecessor that cannot be read is `null`, and a simulation that could not be built or whose
@@ -1201,7 +1505,16 @@ export async function readOps(client, ops, { now, executorsOf }) {
       op.predecessorDone = d.ok ? !!d.value : null
     }
     op.simulation = 'not_run'
-    if (op.timestamp !== null && op.timestamp > 1 && op.timestamp <= now && op.predecessorDone) {
+    // Fail-closed review (2026-10-10, rules #7): an op with a call index never seen (QU-05) cannot
+    // be hashed or simulated — its calls array has a HOLE (`op.calls[0].target` threw). It stays
+    // 'not_run': past its ETA it is treated as executable (armed, unverified)
+    if (
+      !op.callsIncomplete &&
+      op.timestamp !== null &&
+      op.timestamp > 1 &&
+      op.timestamp <= now &&
+      op.predecessorDone
+    ) {
       let found = null
       if (op.salt) {
         const salt = String(op.salt).toLowerCase()
@@ -1239,8 +1552,12 @@ export async function readOps(client, ops, { now, executorsOf }) {
           args,
         })
         // Any executor that can run it makes it armed; every executor reverting makes it stale.
-        let result = 'revert'
-        for (const from of await executorsOf(op.timelock)) {
+        // Fail-closed audit (QU-04): only CONFIRMED executors make a revert mean "stale"; an
+        // executor set that was not confirmed is "could not be simulated" (armed, fail closed).
+        const ex = await executorsOf(op.timelock)
+        const set = Array.isArray(ex) ? { from: ex, confirmed: true } : ex
+        let result = set.confirmed && set.from.length ? 'revert' : 'error'
+        for (const from of set.confirmed ? set.from : []) {
           try {
             await client.call({ account: from, to: op.timelock, data, value })
             result = 'ok'
@@ -1250,6 +1567,7 @@ export async function readOps(client, ops, { now, executorsOf }) {
           }
         }
         op.simulation = result
+        op.simulatedFrom = set.from
       }
     }
     delete op.salt
@@ -1268,6 +1586,9 @@ export async function readCcipPool(client, poolAddr) {
     pool: p,
     owner: owner.ok ? owner.value.toLowerCase() : null,
     rebalancer: reb.ok ? reb.value.toLowerCase() : null,
+    // fail-closed audit (CC-02): a getRebalancer that FAILED (not a revert: a BurnMint pool has
+    // none) is marked — it read exactly like "no rebalancer function"
+    ...(!reb.ok && !reb.reverted ? { rebalancerUnread: true } : {}),
     chains: [],
   }
   // Review round 12 (rules #3): a chain list that could not be read is not "no chain" — marked,
@@ -1303,7 +1624,9 @@ export async function readCcipPool(client, poolAddr) {
     const sil = await tryRead(client, p, fnAbi(FN.isSiloed), 'isSiloed', [sel])
     const siloed = sil.ok ? !!sil.value : sil.reverted ? false : null
     let rebalancer = null
-    if (siloed) {
+    // fail-closed audit (CC-06): whether the chain is siloed was not read — its chain rebalancer
+    // is read anyway (it reverts harmlessly on an unsiloed pool), so it can still be judged
+    if (siloed || siloed === null) {
       const cr = await tryRead(client, p, fnAbi(FN.getChainRebalancer), 'getChainRebalancer', [sel])
       rebalancer = cr.ok ? String(cr.value).toLowerCase() : null
     }
@@ -1359,6 +1682,7 @@ export async function classifyDgTimelock(client, a, block, depth = 0, seen = new
   // TimelockedGovernance after an emergency reset) or an unread list adds nothing (fail closed).
   const governance = await addr('getGovernance')
   let proposerVoteSec = 0
+  let proposerVoteUnread = false
   const proposers = []
   // ruling #12: the declared proposers are the timelock's schedulers, classified at the block
   // (an Aragon Voting is a token-holder vote; anything else is classified like any controller)
@@ -1382,10 +1706,25 @@ export async function classifyDgTimelock(client, a, block, depth = 0, seen = new
       }
       const v = await aragonVotingOf(client, acct, await codeAt(client, acct, block), block)
       proposers.push(acct)
+      // fail-closed audit (TV-12): a proposer whose Voting check could not be decided (its
+      // implementation not read) is the unread marker AND the vote time is unread
+      if (v?.appUnread) {
+        proposerVoteUnread = true
+        votes.push(0)
+        schedulers.push(v)
+        continue
+      }
       votes.push(v ? v.delaySec : 0)
       if (v) schedulers.push(v)
-      else if (!seen.has(acct))
-        schedulers.push(await classify(client, acct, block, depth + 1, new Set([...seen, a]), 0))
+      else if (seen.has(acct))
+        // a proposer already on the control path is a CYCLE (ranked as a plain contract), never
+        // dropped (fail-closed audit, TL-13b's Dual Governance twin)
+        schedulers.push({
+          kind: 'contract',
+          address: acct,
+          version: 'already on this control path (a cycle): ranked as a plain contract',
+        })
+      else schedulers.push(await classify(client, acct, block, depth + 1, new Set([...seen, a]), 0))
     }
     if (votes.length) proposerVoteSec = Math.min(...votes)
   }
@@ -1408,6 +1747,7 @@ export async function classifyDgTimelock(client, a, block, depth = 0, seen = new
     dg: {
       proposers,
       proposerVoteSec,
+      ...(proposerVoteUnread ? { proposerVoteUnread: true } : {}),
       afterSubmitDelaySec: submit === null ? null : Number(submit),
       afterScheduleDelaySec: schedule === null ? null : Number(schedule),
       governance,
@@ -1478,8 +1818,17 @@ export const isAragonAppProxyCode = (code) => ARAGON_PROXY_CODE.every((x) => dis
  * duration (a vote is on-chain from StartVote and executes no earlier than voteTime later).
  * undefined = not an Aragon Voting app. A vote time that cannot be read is 0 (fail closed).
  */
-export async function aragonVotingOf(client, a, code, block) {
-  if (!isAragonAppProxyCode(code)) return undefined
+/**
+ * The implementation an Aragon AppProxy serves (fail-closed audit TV-01 / TV-08 / TV-13 / M1):
+ *   { absent: true }           not an AppProxy, or implementation() reverts / is zero;
+ *   { unread: reason }         the read FAILED (not a revert), or a non-zero implementation with
+ *                              no code — it was "not an Aragon app": the Lido Voting / Agent
+ *                              classified as a calm plain contract (cached at past blocks), and
+ *                              wstETH's AD-3 head breaches through the Agent dropped with no gap;
+ *   { impl, implCode }         read.
+ */
+async function aragonAppImpl(client, a, code, block) {
+  if (!isAragonAppProxyCode(code)) return { absent: true }
   const impl = await tryRead(
     client,
     a,
@@ -1488,8 +1837,26 @@ export async function aragonVotingOf(client, a, code, block) {
     [],
     block,
   )
-  if (!impl.ok || isZero(impl.value)) return undefined
+  if (!impl.ok) return impl.reverted ? { absent: true } : { unread: impl.error ?? 'read failed' }
+  if (isZero(impl.value)) return { absent: true }
   const implCode = await codeAt(client, impl.value.toLowerCase(), block)
+  if (!implCode) return { unread: 'its implementation has no code at the block' }
+  return { impl: impl.value.toLowerCase(), implCode }
+}
+
+/** The marker of an Aragon app whose implementation was not read (a read gap, never cached). */
+const appUnreadNode = (a, why) => ({
+  kind: 'contract',
+  address: a,
+  version: `Aragon app: implementation not read (${String(why).slice(0, 60)})`,
+  appUnread: true,
+})
+
+export async function aragonVotingOf(client, a, code, block) {
+  const app = await aragonAppImpl(client, a, code, block)
+  if (app.absent) return undefined
+  if (app.unread) return appUnreadNode(a, app.unread)
+  const implCode = app.implCode
   if (!ARAGON_VOTING_CODE.every((x) => dispatches(implCode, x))) return undefined
   const vt = await tryRead(
     client,
@@ -1711,10 +2078,12 @@ export async function enrichTokenVotes(
         (v.delaySec ?? 0) > 0 &&
         (!v.voting?.holders ||
           decide(v).kind === 'unread' ||
-          (needsHolders ? needsHolders(v) : unsettled(decide(v))))
+          (needsHolders ? needsHolders(v) : unsettled(decide(v))) ||
+          // TV-14: a holder classified with a read failure inside is read again
+          v.voting.holders.some((h) => h.ctl && hasReadFailure(h.ctl)))
       ) {
         for (const h of v.voting?.holders ?? [])
-          if (h.ctl) known.set(`${h.address}@${at}@${v.address}`, h.ctl)
+          if (h.ctl && !hasReadFailure(h.ctl)) known.set(`${h.address}@${at}@${v.address}`, h.ctl)
         if (v.voting)
           for (const f of ['holders', 'truncated', 'holdersUnread', 'defense', 'defenseUnread'])
             delete v.voting[f]
@@ -1725,7 +2094,12 @@ export async function enrichTokenVotes(
   // token + thresholds (a cached classification predates them: read at the block)
   for (const j of jobs) {
     if (!j.v.voting) j.v.voting = { voteTimeSec: j.v.delaySec ?? null, objectionPhaseSec: null }
-    if (!j.v.voting.token || j.v.voting.minAcceptQuorumPct == null)
+    // TV-03: either threshold missing is read again (a null support threshold was never re-read)
+    if (
+      !j.v.voting.token ||
+      j.v.voting.minAcceptQuorumPct == null ||
+      j.v.voting.supportRequiredPct == null
+    )
       Object.assign(j.v.voting, await votingParams(client, j.v.address, j.at))
     // UQ-25: the opposition the holders are judged against (unread = a read gap, fail closed)
     if (!defenseFor) j.v.voting.defenseUnread = 'no vote-history reader'
@@ -1819,21 +2193,19 @@ const ARAGON_AGENT_CODE = ['forward(bytes)', 'execute(address,uint256,bytes)']
  * Aragon Agent.
  */
 export async function aragonAgentOf(client, a, code, block, depth = 0, seen = new Set()) {
-  if (!isAragonAppProxyCode(code)) return undefined
-  const impl = await tryRead(
-    client,
-    a,
-    fnAbi('function implementation() view returns (address)'),
-    'implementation',
-    [],
-    block,
-  )
-  if (!impl.ok || isZero(impl.value)) return undefined
-  const implCode = await codeAt(client, impl.value.toLowerCase(), block)
+  const app = await aragonAppImpl(client, a, code, block)
+  if (app.absent) return undefined
+  if (app.unread) return appUnreadNode(a, app.unread)
+  const implCode = app.implCode
   if (!ARAGON_AGENT_CODE.every((x) => dispatches(implCode, x))) return undefined
-  const acl = await aclOf(client, a, block)
+  const { acl } = await aclRead(client, a, block)
   const holders = []
-  for (const cand of aragonExec.get(a) ?? []) {
+  // fail-closed audit (TV-09 / M2): a permission that could not be read keeps its candidate (the
+  // head side stays as weak) AND marks the Agent unconfirmed — a read gap, so a change FROM it is
+  // never an upgrade and the classification is never cached (a revoked candidate kept silently
+  // made a move away from the Agent read UPGRADE)
+  let unconfirmed = !acl
+  for (const cand of chainOf(client) === 1 ? (aragonExec.get(a) ?? []) : []) {
     let held = false
     for (const role of ARAGON_EXEC_ROLES) {
       const x = acl
@@ -1846,11 +2218,13 @@ export async function aragonAgentOf(client, a, code, block, depth = 0, seen = ne
             block,
           )
         : { ok: false }
+      if (!x.ok) unconfirmed = true
       if (!x.ok || x.value) held = true
     }
     if (held) holders.push(cand)
   }
   const c = { kind: 'contract', address: a, version: 'Aragon Agent' }
+  if (unconfirmed && holders.length) c.executorsUnconfirmed = true
   // the executors are the Agent's controllers: they do not use up the owner-recursion depth
   const executors = []
   for (const h of holders)
@@ -1928,14 +2302,27 @@ export function dgProposalOp(ept, p, { now, afterSubmitDelaySec, afterScheduleDe
  * `max`, oldest first), as TimelockOps. Returns { status: 'ok', ops } or { status:
  * 'unavailable', note } — never a silent empty queue.
  */
-export async function readDgProposals(client, ept, { now, max = 200 } = {}) {
+export async function readDgProposals(client, ept, { now } = {}) {
   const a = ept.toLowerCase()
   const n = await tryRead(client, a, DG_ABI.getProposalsCount, 'getProposalsCount')
   if (!n.ok) return { timelock: a, status: 'unavailable', note: n.error, ops: [] }
-  const c = await classifyDgTimelock(client, a)
+  // Fail-closed audit (DG-07, 2026-10-10): the two delays are read directly (a proposer
+  // classification that threw aborted the run), and EVERY proposal id is read — the newest 200
+  // only returned status 'ok' while an older proposal still submitted / scheduled was dropped,
+  // and its red queue row with it. A delay not read leaves the ETA unread (fail closed).
+  const delay = async (fn) => {
+    const x = await tryRead(client, a, fnAbi(`function ${fn}() view returns (uint32)`), fn)
+    return x.ok ? Number(x.value) : null
+  }
+  const c = {
+    dg: {
+      afterSubmitDelaySec: await delay('getAfterSubmitDelay'),
+      afterScheduleDelaySec: await delay('getAfterScheduleDelay'),
+    },
+  }
   const count = Number(n.value)
   const ops = []
-  for (let id = Math.max(1, count - max + 1); id <= count; id++) {
+  for (let id = 1; id <= count; id++) {
     const x = await tryRead(client, a, DG_ABI.getProposal, 'getProposal', [BigInt(id)])
     if (!x.ok)
       return { timelock: a, status: 'unavailable', note: `proposal ${id}: ${x.error}`, ops: [] }
@@ -2010,13 +2397,19 @@ export async function readNtt(client, manager, chains = [], sweep = []) {
   const threshold = await rd(NTT_ABI.getThreshold, 'getThreshold')
   const txs = await rd(NTT_ABI.getTransceivers, 'getTransceivers')
   const peers = {}
+  // fail-closed audit (queue setPeer, NB-02): the swept chains READ as zero are recorded — a chain
+  // absent from `peers` is then known to be read, never assumed "no peer"
+  const peersReadZero = []
   const named = new Set(chains.map(Number))
   for (const ch of [...named, ...sweep.map(Number).filter((c) => !named.has(c))]) {
     const p = await rd(NTT_ABI.getPeer, 'getPeer', [ch])
     const v = p
       ? { peer: String(p.peerAddress).toLowerCase(), decimals: Number(p.tokenDecimals) }
       : null
-    if (!named.has(ch) && v && /^0x0*$/.test(v.peer)) continue
+    if (!named.has(ch) && v && /^0x0*$/.test(v.peer)) {
+      peersReadZero.push(ch)
+      continue
+    }
     peers[ch] = v
   }
   const transceivers = []
@@ -2033,7 +2426,9 @@ export async function readNtt(client, manager, chains = [], sweep = []) {
   const token = lcA(await rd(NTT_ABI.token, 'token'))
   const mode = await rd(NTT_ABI.getMode, 'getMode')
   let locked = null
-  if (token && Number(mode) === 0) {
+  // fail-closed audit (NB-04): Number(null) === 0 read an unread mode as LOCKING, and a balance of
+  // 0 as the value at risk (fully read, tier 2) — an unread mode leaves the balance unread
+  if (token && mode !== null && Number(mode) === 0) {
     const b = await rd(fnAbi(FN.balanceOf), 'balanceOf', [m], token)
     const d = await rd(fnAbi(FN.decimals), 'decimals', [], token)
     if (b !== null && d !== null) locked = { raw: String(b), decimals: Number(d) }
@@ -2049,6 +2444,7 @@ export async function readNtt(client, manager, chains = [], sweep = []) {
     pauser: lcA(await rd(NTT_ABI.pauser, 'pauser')),
     paused: await rd(NTT_ABI.isPaused, 'isPaused'),
     locked,
+    peersReadZero,
   }
 }
 
@@ -2130,6 +2526,8 @@ export async function readNttRemote(rc, { wormholeChainId, chainId, chainKey, pe
     try {
       return await classify(rc, a)
     } catch {
+      // fail-closed audit (RC-09): a NOT CLASSIFIED marker the rules know (a read gap, ranked as a
+      // plain contract) — it was a calm plain contract: no AD-3, no gap, the carry dropped it
       return {
         kind: 'contract',
         address: a.toLowerCase(),

@@ -52,6 +52,14 @@ export type PointRead = {
   direction: 'send' | 'receive'
   lib: string
   merged: UlnConfigRaw | null
+  /**
+   * Fail-closed audit (RC-14): whether the read succeeded, and whether a null `merged` is the
+   * library's own "no DVN" revert. A null `merged` that is not `mergedReverted` is NOT READ — it
+   * was evaluated as "reverted (no DVN)": a closed route, calmer than the truth.
+   */
+  ok?: boolean
+  error?: string
+  mergedReverted?: boolean
 }
 
 export type LzFixture = {
@@ -141,6 +149,8 @@ export type BacktestOutput = {
     E: number
     display: string
     breaches: { ruleId: string; message: string }[]
+    /** Fail-closed audit (RC-14): the point read was not read (a failed read, not a revert). */
+    unread?: boolean
   }[]
   /** Replay vs on-chain point reads (critique fix #2: cross-check the merge against reads). */
   crossChecks: {
@@ -215,8 +225,15 @@ export function runLzBacktest(fx: LzFixture, evalBlock: number): BacktestOutput 
       replay: displayRoute(r),
       read: pr.merged
         ? `${pr.merged.requiredDVNs.length} required [${pr.merged.requiredDVNs.join(',')}] + ${pr.merged.optionalDVNThreshold}-of-${pr.merged.optionalDVNs.length} optional, ${pr.merged.confirmations} conf`
-        : 'reverted (no DVN)',
-      match: sameCfg(r, pr.merged) && r.lib === pr.lib.toLowerCase(),
+        : pr.mergedReverted
+          ? 'reverted (no DVN)'
+          : `NOT READ${pr.error ? ` (${pr.error})` : ''}`,
+      // a point that was not read never "matches" (fail closed)
+      match:
+        (!!pr.merged || !!pr.mergedReverted) &&
+        typeof pr.lib === 'string' &&
+        sameCfg(r, pr.merged) &&
+        r.lib === pr.lib.toLowerCase(),
     })
   }
 
@@ -235,6 +252,17 @@ export function runLzBacktest(fx: LzFixture, evalBlock: number): BacktestOutput 
     remoteTimeline = rep.changes
     if (rm.evalRead) {
       remoteHeadAtEval = rm.evalRead.reads.map((pr) => {
+        // RC-14: a null config that is not the library's own revert is NOT READ — never "no DVN"
+        if (!pr.merged && !pr.mergedReverted)
+          return {
+            eid: pr.eid,
+            direction: pr.direction,
+            live: true,
+            E: 0,
+            display: `NOT READ${pr.error ? ` (${pr.error})` : ''}`,
+            breaches: [],
+            unread: true,
+          }
         const cfg = pr.merged ? mergeUln(pr.merged, undefined) : mergeUln(undefined, undefined)
         const r = evaluateRoute(
           {

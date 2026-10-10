@@ -204,7 +204,16 @@ export function decodeEvmScript(script: string): Call[] | null {
  * Kernel setApp(base, appId, impl) → upgradeTo(impl) on every app proxy with that appId
  * (`appProxies`; a setApp for another app stays as it is). Pure.
  */
-export function aragonCalls(calls: Call[], appProxies: Record<string, string[]> = {}): Call[] {
+export function aragonCalls(
+  calls: Call[],
+  appProxies: Record<string, string[]> = {},
+  /**
+   * Fail-closed audit (TV-10): the app mapping is INCOMPLETE (a kernel() / appId() read failed):
+   * a setApp(base) whose appId maps to no known proxy is judged as an upgrade on the Kernel (an
+   * upgrade of an unknown app — AD-9 / AD-8), never a plain "setApp" call (neutral).
+   */
+  opts: { unmappedAsUpgrade?: boolean } = {},
+): Call[] {
   const out: Call[] = []
   for (const c of calls) {
     const d = decodeCall(c.data)
@@ -224,7 +233,20 @@ export function aragonCalls(calls: Call[], appProxies: Record<string, string[]> 
       })
     } else if (d && d.fn === 'setApp' && lc(d.args[0] as string) === ARAGON_BASE_NS) {
       const proxies = appProxies[lc(d.args[1] as string)] ?? []
-      if (!proxies.length) out.push(c)
+      if (!proxies.length)
+        out.push(
+          opts.unmappedAsUpgrade
+            ? {
+                target: lc(c.target),
+                value: '0',
+                data: encodeFunctionData({
+                  abi: ROLE_ABI,
+                  functionName: 'upgradeTo',
+                  args: [d.args[2] as VHex],
+                }),
+              }
+            : c,
+        )
       for (const p of proxies)
         out.push({
           target: lc(p),
@@ -493,6 +515,25 @@ export type QueueCtx = {
   aragonAppProxies?: Record<string, string[]>
   /** Aragon: the permission manager of (app, role) at head; null = not read. */
   permissionManagerOf?: (app: string, role: string) => string | null
+  /**
+   * Fail-closed audit (2026-10-10). Head reads that FAILED, so a queued change on them is judged
+   * fail closed (never against the event replay, never "previous holder unknown: neutral"):
+   *   unreadRoutes      `${oapp}|${eid}|${dir}` LayerZero route sides not read at head;
+   *   unreadOverrides   `${lib}|${oapp}|${eid}` app configs (getAppUlnConfig) not read;
+   *   ownersUnread / delegatesUnread   contracts whose owner() / delegates() read failed;
+   *   unclassified      addresses whose head classification FAILED;
+   *   nttKnownTransceivers  every transceiver any read or replay attached to the subject's NTT.
+   */
+  unreadRoutes?: string[]
+  unreadOverrides?: string[]
+  ownersUnread?: string[]
+  delegatesUnread?: string[]
+  unclassified?: string[]
+  nttKnownTransceivers?: string[]
+  /** Declared power holders read at head (fallback for an owner / delegate not read). */
+  powerHolderOf?: (contract: string, kind: 'owner' | 'lz_delegate') => string | null
+  /** An Aragon app mapping that is incomplete (a kernel() / appId() read failed). */
+  aragonAppsIncomplete?: boolean
 }
 
 /** A Wormhole NTT manager as read at head (the shape of engine.ts NttHead the queue needs). */
@@ -504,6 +545,8 @@ export type NttQueueHead = {
     | null
   /** Wormhole chain id → the manager's peer there; null = not read. */
   peers: Record<string, { peer: string } | null>
+  /** Fail-closed audit (NB-02): swept chains READ as zero (a chain absent from `peers` is unread). */
+  peersReadZero?: number[]
 }
 
 /** One CCIP token pool as the collector read it at head. */
@@ -511,6 +554,9 @@ export type CcipPoolHead = {
   pool: string
   owner: string | null
   rebalancer: string | null
+  /** Fail-closed audit (CC-02 / CC-08): getRebalancer / getSupportedChains FAILED. */
+  rebalancerUnread?: boolean
+  chainsUnread?: boolean
   chains: {
     selector: string
     inboundEnabled: boolean | null
@@ -531,6 +577,9 @@ export function callIsForSubject(call: Call, q: QueueCtx): boolean {
   // review round 8: a transceiver of the subject's NTT manager is the subject's
   if ((q.ntt ?? []).some((n) => (n.transceivers ?? []).some((x) => lc(x.address) === t)))
     return true
+  // fail-closed audit (NB-01): a transceiver the replay or an earlier run attached — still the
+  // subject's when this run's transceiver list was not read
+  if ((q.nttKnownTransceivers ?? []).map(lc).includes(t)) return true
   const d = decodeCall(call.data)
   // A ProxyAdmin acts on the proxy named in its call (review round 7): an upgrade or admin
   // change of one of the subject's proxies routed through a ProxyAdmin that is not declared
@@ -629,6 +678,22 @@ class LzSim {
   configOf(lib: string, oapp: string, eid: number) {
     return mergeUln(this.overrideOf(lib, oapp, eid), this.defaultOf(lib, eid))
   }
+  /**
+   * Fail-closed audit (MISSED-QUEUE-LIBSWITCH / LZ-08): why the config `lib` would apply to the
+   * route is NOT KNOWN — its app override was not read at head (and no call of this op set one),
+   * or the library has neither a known default nor an override (a library the replay never
+   * scanned). null = known. It merged undefined into "blocked (no_dvn)": a liveness event.
+   */
+  configUnknown(lib: string, oapp: string, eid: number): string | null {
+    if (/^0x0{40}$/i.test(lib)) return null
+    const k = `${lc(lib)}|${lc(oapp)}|${eid}`
+    if (this.overrides.has(k)) return null
+    if ((this.q.unreadOverrides ?? []).map(lc).includes(k))
+      return `the app config of ${lc(lib).slice(0, 10)}… was not read at head`
+    if (!this.overrideOf(lib, oapp, eid) && !this.defaultOf(lib, eid))
+      return `library ${lc(lib).slice(0, 10)}… has no known default or app config (never read)`
+    return null
+  }
   setOverride(lib: string, oapp: string, eid: number, c: UlnConfigRaw) {
     this.overrides.set(`${lc(lib)}|${lc(oapp)}|${eid}`, c)
   }
@@ -664,23 +729,35 @@ function judgeLz(
   q: QueueCtx,
   sim: LzSim,
 ): Judged[] | null {
+  // Fail-closed audit (MISSED-QUEUE-UNREAD-SEED / MISSED-QUEUE-LIBSWITCH / LZ-08): a route NOT READ
+  // at head, or an after-state whose config is unknown, cannot be judged — BR-1 down, tagged
+  // `read_gap`, and never skipped as "unchanged" (the replay it fell back to may be the stale one)
   const step = (
     oapp: string,
     eid: number,
     dir: 'send' | 'receive',
-    mutate: (x: RouteInputs) => void,
+    mutate: (x: RouteInputs) => string | null | void,
   ) => {
     const inp = sim.get(oapp, eid, dir)
     const before = sim.state(inp)
-    mutate(inp)
+    const why = mutate(inp) || null
     const after = sim.state(inp)
-    return { before, after, changed: routeDiffers(before, after), dir }
+    const headUnread = (q.unreadRoutes ?? []).includes(rk(oapp, eid, dir))
+    const unread = [headUnread ? 'the route was not read at head' : null, why].filter(
+      (x): x is string => !!x,
+    )
+    return { before, after, changed: routeDiffers(before, after) || unread.length > 0, dir, unread }
+  }
+  const failClosed = (v: Verdict, unread: string[]) => {
+    for (const u of unread) down(v, 'BR-1', `${u}: the change cannot be judged (fail closed)`)
+    if (unread.length) tag(v, 'read_gap')
+    return v
   }
   const operatorOf = (x: string) => q.eval.registry.byChain[1]?.[lc(x)]?.id
   const judged = (
     oapp: string,
     eid: number,
-    r: { before: RouteState; after: RouteState; dir: 'send' | 'receive' },
+    r: { before: RouteState; after: RouteState; dir: 'send' | 'receive'; unread?: string[] },
     title: string,
   ): Judged => {
     const v = compareRoute(
@@ -689,6 +766,7 @@ function judgeLz(
       q.lastVerifying?.[rk(oapp, eid, r.dir)],
       q.lastPeer?.[rk(oapp, eid, r.dir)],
     )
+    failClosed(v, r.unread ?? [])
     // lines that say what moved (review round 7: same-operator DVN swaps read X → X)
     const disp = routeChangeDisplays(r.before, r.after, operatorOf)
     v.notes.push(...disp.notes)
@@ -705,7 +783,7 @@ function judgeLz(
       route: { chainId: 1, oapp: lc(oapp), eid, direction: r.dir },
     }
   }
-  const switchLib = (x: RouteInputs, oapp: string, eid: number, newLib: string) => {
+  const switchLib = (x: RouteInputs, oapp: string, eid: number, newLib: string): string | null => {
     if (isZeroAddr(newLib)) {
       x.libIsDefault = true
       x.lib = sim.defaultLib(eid, x.direction) ?? x.lib
@@ -713,9 +791,11 @@ function judgeLz(
       x.libIsDefault = false
       x.lib = lc(newLib)
     }
+    const unknown = sim.configUnknown(x.lib, oapp, eid)
     x.config = sim.configOf(x.lib, oapp, eid)
     const d = sim.defaultOf(x.lib, eid)
     x.defaultConfirmations = d ? mergeUln(undefined, d).confirmations : undefined
+    return unknown
   }
   switch (fn) {
     case 'setConfig': {
@@ -727,7 +807,25 @@ function judgeLz(
       const dir = q.libDirection(lc(lib))
       const out: Judged[] = []
       for (const p of params) {
-        if (Number(p.configType) !== 2 || !dir) continue
+        if (Number(p.configType) !== 2) continue
+        // LZ-13 (queue): a ULN config for a library whose direction is unknown (not in the
+        // metadata) is never skipped silently — a row, judged fail closed
+        if (!dir) {
+          out.push({
+            key: `bridge/lz/1/${lc(oapp)}/${Number(p.eid)}/config`,
+            title: `config eid ${Number(p.eid)} on library ${lc(lib).slice(0, 10)}… (direction unknown)`,
+            v: tag(
+              down(
+                neutral(),
+                'BR-1',
+                `library ${lc(lib)} is not in the LayerZero metadata: its direction is unknown and the config cannot be judged (fail closed)`,
+              ),
+              'read_gap',
+            ),
+            dimension: 'bridge',
+          })
+          continue
+        }
         const raw = decodeAbiParameters(ULN_PARAMS, p.config as VHex)[0]
         const eid = Number(p.eid)
         sim.setOverride(lib, oapp, eid, {
@@ -748,6 +846,7 @@ function judgeLz(
           if (lc(x.lib) === lc(lib)) x.config = sim.configOf(lib, oapp, eid)
           if (x.grace && lc(x.grace.lib) === lc(lib))
             x.grace = { ...x.grace, config: sim.configOf(lib, oapp, eid) }
+          return null
         })
         if (!r.changed) continue
         out.push(
@@ -768,16 +867,20 @@ function judgeLz(
       const dir = fn === 'setSendLibrary' ? 'send' : 'receive'
       const r = step(oapp, eid, dir, (x) => {
         const old = x.lib
-        switchLib(x, oapp, eid, newLib)
+        // LZ-08: the old library in grace keeps the config it HAS (the head read / the working
+        // copy) — recomputing it from a possibly unread override and the default lifted E
+        const oldCfg = x.config
+        const why = switchLib(x, oapp, eid, newLib)
         if (dir === 'receive')
           x.grace =
             grace && grace > 0n && !isZeroAddr(old)
               ? {
                   lib: old,
                   expiry: q.block + Number(grace),
-                  config: sim.configOf(old, oapp, eid),
+                  config: oldCfg,
                 }
               : undefined
+        return why
       })
       if (!r.changed) return []
       return [
@@ -797,6 +900,7 @@ function judgeLz(
           expiry === 0n
             ? undefined
             : { lib: lc(lib), expiry: Number(expiry), config: sim.configOf(lib, oapp, eid) }
+        return expiry === 0n ? null : sim.configUnknown(lib, oapp, eid)
       })
       if (!r.changed) return []
       return [
@@ -814,16 +918,20 @@ function judgeLz(
       const rs = (['receive', 'send'] as const).map((d) =>
         step(t, eid, d, (x) => {
           x.peer = lc(peer)
+          return null
         }),
       )
       const recv = rs[0]
       const v = mergeVerdicts(
         rs.map((r) =>
-          compareRoute(
-            r.before,
-            r.after,
-            q.lastVerifying?.[rk(t, eid, r.dir)],
-            q.lastPeer?.[rk(t, eid, r.dir)],
+          failClosed(
+            compareRoute(
+              r.before,
+              r.after,
+              q.lastVerifying?.[rk(t, eid, r.dir)],
+              q.lastPeer?.[rk(t, eid, r.dir)],
+            ),
+            r.unread,
           ),
         ),
       )
@@ -881,6 +989,28 @@ function judgeNtt(fn: string, args: readonly unknown[], t: string, q: QueueCtx):
   const peerFn = fn === 'setWormholePeer' || fn === 'setAxelarChainId'
   // a manager call on a transceiver (or the reverse), or a contract that is no NTT of this card:
   // not judged, and never read as calm
+  // fail-closed audit (NB-01): a transceiver call while a manager's transceiver list was NOT read —
+  // the target may be its transceiver: BR-6 fail closed (it was "not a Wormhole NTT contract of this
+  // card": neutral, or not this card's at all)
+  const listUnread = (q.ntt ?? []).find((n) => n.transceivers === null)
+  if (!mgr && !tx && peerFn && listUnread) {
+    const chain = String(Number(args[0]))
+    return [
+      {
+        key: `bridge/ntt/${lc(listUnread.manager)}/peer/${chain}`,
+        title: `${fn} on ${short} (an NTT transceiver list was not read)`,
+        v: tag(
+          down(
+            neutral(),
+            'BR-6',
+            `${fn} for chain ${chain} on ${t}: the transceiver list of ${lc(listUnread.manager)} was not read at head — this may be its transceiver's peer (fail closed)`,
+          ),
+          'read_gap',
+        ),
+        dimension: 'bridge',
+      },
+    ]
+  }
   if ((!mgr && !tx) || (tx && !peerFn) || (mgr && peerFn))
     return [
       {
@@ -1002,18 +1132,22 @@ function judgeNtt(fn: string, args: readonly unknown[], t: string, q: QueueCtx):
       const chain = String(Number(chainRaw))
       const next = lc(peerRaw)
       const cur = m.peers[chain]
+      // fail-closed audit (NB-02): a chain absent from the head peers is NOT READ unless the sweep
+      // read it as zero — it was "a new route" (neutral) whatever the peer actually was
+      const readZero = (m.peersReadZero ?? []).map(Number).includes(Number(chain))
       const v =
-        cur === null
-          ? down(
-              neutral(),
-              'BR-6',
-              `NTT peer for chain ${chain} → ${next}; the peer it has now was not read (fail closed)`,
+        cur === null || (cur === undefined && !readZero)
+          ? tag(
+              down(
+                neutral(),
+                'BR-6',
+                `NTT peer for chain ${chain} → ${next}; the peer it has now was not read (fail closed)`,
+              ),
+              'read_gap',
             )
           : classifyPeerChange(cur?.peer ?? null, next)
-      if (cur === undefined)
-        v.notes.push(
-          `no peer for chain ${chain} was read at head (no PeerUpdated event, not a swept EVM chain): judged as a new route`,
-        )
+      if (cur === undefined && readZero)
+        v.notes.push(`the peer for chain ${chain} was read as zero at head: a new route`)
       // a peer that opens a route under the floor is BR-2 (as the executed PeerUpdated)
       const eff = nttEffective(m.threshold, types ?? [])
       if (!/^0x0*$/i.test(next) && (!types || m.threshold === null || eff.E < 2)) {
@@ -1226,7 +1360,9 @@ export function judgeCalls(calls: Call[], q: QueueCtx, opts: JudgeOpts): Judged[
     addedBy: new Map(),
     grants: new Map(),
   }
-  return calls.map((call) => judgeOne(call, q, opts, sim, w))
+  // rules #7 (fail-closed review): a call index never read (QU-05) is a hole — or null once the raw
+  // file went through JSON — and is skipped, never a crash (the op is flagged `callsIncomplete`)
+  return calls.map((call) => (call ? judgeOne(call, q, opts, sim, w) : []))
 }
 
 /** What the earlier calls of one op / proposal changed (each call is judged against it). */
@@ -1272,6 +1408,8 @@ function judgeParamSetter(call: Call, q: QueueCtx): Judged[] | null {
       prevCtl: isAddrStr(prev) ? q.ctl(prev) : null,
       nextVerified: addr ? (q.verified?.(addr) ?? null) : null,
       lastNonZero: q.paramLastNonZero?.[spec.key] ?? null,
+      // PO-05: the current value not read at head is judged fail closed, never "nothing before"
+      prevUnread: prev === undefined,
     })
     if (prev === undefined) v.notes.push(`${spec.label}: the current value was not read at head`)
     return [
@@ -1351,9 +1489,23 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
     case 'setDelegate':
     case 'transferOwnership': {
       const next = lc(d.args[0] as string)
-      const prev = d.fn === 'setDelegate' ? q.delegateOf(t) : q.ownerOf(t)
-      const v = classifyControllerChange(prev ? q.ctl(prev) : null, q.ctl(next))
+      // fail-closed audit (LZ-02 / LZ-03 / MS-1): the current owner / delegate as read at head,
+      // else the declared power's holder read at head; neither = NOT READ (red AD-3, read gap —
+      // it was "previous holder not read: neutral")
+      const kind = d.fn === 'setDelegate' ? 'lz_delegate' : 'owner'
+      const prev =
+        (d.fn === 'setDelegate' ? q.delegateOf(t) : q.ownerOf(t)) ??
+        q.powerHolderOf?.(t, kind) ??
+        null
+      const prevCtl = prev ? q.ctl(prev) : null
       const what = d.fn === 'setDelegate' ? 'LZ delegate' : 'owner'
+      const v = classifyControllerChange(prevCtl, q.ctl(next), {
+        prevUnread: !prev
+          ? `the current ${what} of ${t.slice(0, 10)}… was not read at head`
+          : !prevCtl
+            ? `the current ${what} ${prev.slice(0, 10)}… could not be classified at head`
+            : undefined,
+      })
       return [
         {
           key: `admin/${d.fn === 'setDelegate' ? 'lz-delegate' : 'owner'}/${t}`,
@@ -1394,6 +1546,16 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
             'AD-8',
             `would replace the current implementation ${cur} with ${impl} (${past ? 'a past implementation' : 'scheduled before the current one was installed'})`,
           )
+      } else if (opts.armed && impl !== cur && (!h || installed === undefined)) {
+        // Fail-closed audit (QU-08): the implementation history is incomplete (no Upgraded row, or
+        // none for the current implementation — a lost event chunk): a stale rollback cannot be
+        // ruled out for an op that may execute now
+        down(
+          v,
+          'AD-8',
+          `upgrade history of ${proxy} incomplete${cur ? ` (the install of the current implementation ${cur} was not read)` : ''} — a stale rollback cannot be ruled out (fail closed)`,
+        )
+        tag(v, 'read_gap')
       }
       verificationRule(v, impl, q.verified?.(impl) ?? null)
       const upgraded: Judged = {
@@ -1427,7 +1589,14 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
       // Aragon: the manager of (app, role) grants and revokes it at will (AD-3 on who it is)
       const [next, app, role] = (d.args as string[]).map(lc)
       const prev = q.permissionManagerOf?.(app, role) ?? null
-      const v = classifyControllerChange(prev ? q.ctl(prev) : null, q.ctl(next))
+      // only the current manager can call it: none known = NOT READ (fail closed)
+      const v = classifyControllerChange(prev ? q.ctl(prev) : null, q.ctl(next), {
+        prevUnread: !prev
+          ? 'the current permission manager was not read (no event set it in the scan)'
+          : !q.ctl(prev)
+            ? `the current permission manager ${prev.slice(0, 10)}… could not be classified at head`
+            : undefined,
+      })
       return [
         {
           key: `admin/permission_manager/${app}/${q.roleName(role)}`,
@@ -1442,9 +1611,10 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
     case 'grantRole': {
       const [role, account] = d.args as [string, string]
       const name = q.roleName(lc(role))
-      const holders = (q.roleHolders?.(t, lc(role)) ?? []).map(
-        (h) => q.ctl(h) ?? { kind: 'contract' as const, address: lc(h) },
-      )
+      // fail-closed audit (PH-10 / CL-08): a co-holder not classified at head is counted as NOT
+      // READ (never a calm plain contract the grantee easily outranks)
+      const coIds = q.roleHolders?.(t, lc(role)) ?? []
+      const holders = coIds.map((h) => q.ctl(h)).filter((c): c is Controller => !!c)
       const ever = q.roleEverHolders?.(t, lc(role))
       const admins = q.roleAdmins?.(t) ?? new Set<string>()
       const v = classifyRoleGrant(
@@ -1452,7 +1622,7 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
         q.ctl(lc(account)),
         holders,
         MINT_ROLES.has(name) && ever ? ever.includes(lc(account)) : true,
-        { administersRoles: admins.has(name) },
+        { administersRoles: admins.has(name), unclassifiedHolders: coIds.length - holders.length },
       )
       holdersOf(role)?.add(lc(account))
       // judged as if it executed now (head block) against the executed grant history — and the
@@ -1537,9 +1707,13 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
       }
       const prevRaw = q.paramHead?.[spec.key]
       const prev = typeof prevRaw === 'string' ? lc(prevRaw) : null
+      // PO-06: no declared spec (the fallback key is never read) or the head value not read: the
+      // current provider is unknown — judged as a replacement (fail closed)
       const v = classifyParamChange(spec, prev, next, q.ctl(next), {
         prevCtl: prev ? q.ctl(prev) : null,
         nextVerified: q.verified?.(next) ?? null,
+        lastNonZero: q.paramLastNonZero?.[spec.key] ?? null,
+        prevUnread: prev === null,
       })
       return [
         {
@@ -1560,7 +1734,13 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
         {
           key: `admin/proxy_admin/${lc(proxy)}`,
           title: `proxy admin of ${lc(proxy).slice(0, 10)}… → ${describeController(q.ctl(next))}`,
-          v: classifyControllerChange(q.ctl(t), q.ctl(next)),
+          // fail-closed review (2026-10-10, OC-3 twin): the ProxyAdmin not classified at head is
+          // NOT READ (red AD-3, read gap), never "previous holder not read: neutral"
+          v: classifyControllerChange(q.ctl(t), q.ctl(next), {
+            prevUnread: q.ctl(t)
+              ? undefined
+              : `the ProxyAdmin ${t.slice(0, 10)}… could not be classified at head`,
+          }),
           before: t,
           after: next,
           dimension: 'admin',
@@ -1577,7 +1757,15 @@ function judgeOne(call: Call, q: QueueCtx, opts: JudgeOpts, sim: LzSim, w: Worki
       const v = tag(neutral(), 'logic_change')
       if (isEoaControlled(c))
         down(v, 'MR-2', `contract registry entry ${k.slice(0, 10)}… → ${describeController(c)}`)
-      else {
+      else if (!c && !isZeroAddr(next)) {
+        // fail-closed audit (CL-08): the new entry could not be classified at head
+        down(
+          v,
+          'MR-2',
+          `contract registry entry ${k.slice(0, 10)}… → ${next}: not classified at head (fail closed)`,
+        )
+        tag(v, 'read_gap')
+      } else {
         const ver = q.verified?.(next) ?? null
         if (ver === true) v.notes.push(`registry entry → ${next}: verified source`)
         else {
@@ -1709,8 +1897,11 @@ function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx)
     // Review round 8: a chain the pool does not serve now whose limiter was ON when it was last
     // configured (removed, then re-added with it off) switches it off too.
     const reAddedOff = !c && q.ccipLastLimiterOn?.(t, sel) === true
+    // fail-closed audit (MISSED-1): the chain list not read — the chain may be served with its
+    // limiter on (setChainRateLimiterConfig reverts for a chain not served)
     const wasOn =
       !pool ||
+      (!c && !!pool.chainsUnread) ||
       reAddedOff ||
       (!!c &&
         ((!outb.isEnabled && c.outboundEnabled !== false) ||
@@ -1719,13 +1910,33 @@ function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx)
       down(
         v,
         'CC-2',
-        `rate limiter ${off.join(' + ')} disabled for chain ${sel}${pool ? '' : ' (head state not read)'}${reAddedOff ? ' (re-added after a removal; it was on before)' : ''}`,
+        `rate limiter ${off.join(' + ')} disabled for chain ${sel}${!pool || (!c && pool.chainsUnread) ? ' (head state not read)' : ''}${reAddedOff ? ' (re-added after a removal; it was on before)' : ''}`,
       )
     else if (off.length) v.notes.push(`rate limiter ${off.join(' + ')} off for new chain ${sel}`)
     return { key: `bridge/ccip/${t}/${sel}/rate_limit`, title, v, dimension: 'bridge' }
   }
+  // Fail-closed audit (MISSED-2): why the CURRENT rebalancer is unknown — the pool not read, its
+  // getRebalancer failed, the chain list or the chain's silo flag not read, or a silo rebalancer
+  // not read; a known address whose controller was not classified at head counts too
+  const rebalancerUnread = (sel: string | null, cur: string | null): string | undefined => {
+    if (!pool) return 'the pool was not read at head'
+    if (sel === null) {
+      if (pool.rebalancerUnread) return 'getRebalancer was not read at head'
+    } else {
+      const c = chainOf(sel)
+      if (!c) return pool.chainsUnread ? 'the supported chains were not read at head' : undefined
+      if (c.siloed === null) return `whether chain ${sel} is siloed was not read at head`
+      if (c.siloed && (c.rebalancer === null || c.rebalancer === undefined))
+        return `the silo rebalancer of chain ${sel} was not read at head`
+    }
+    if (cur && !isZeroAddr(cur) && !q.ctl(lc(cur)))
+      return `the current rebalancer ${lc(cur).slice(0, 10)}… could not be classified at head`
+    return undefined
+  }
   // the remote pools a chain accepts now: [] = the pool does not serve the chain; null = unread
   const remotePoolsNow = (sel: string): string[] | null => {
+    // CC-08: a chain list not read is not "the pool does not serve it"
+    if (pool?.chainsUnread && !chainOf(sel)) return null
     if (q.ccipRemotePools) return q.ccipRemotePools(t, sel)
     if (!pool) return null
     const c = chainOf(sel)
@@ -1856,7 +2067,13 @@ function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx)
       const sel = silo ? String(args[0]) : null
       const next = lc((silo ? args[1] : args[0]) as string)
       const cur = silo ? (chainOf(sel!)?.rebalancer ?? null) : (pool?.rebalancer ?? null)
-      const v = classifyCcip('rebalancer', { prevCtl: ctlOrNull(cur), nextCtl: q.ctl(next) })
+      const v = classifyCcip('rebalancer', {
+        prevCtl: ctlOrNull(cur),
+        nextCtl: q.ctl(next),
+        prevUnread: rebalancerUnread(silo ? sel : null, cur),
+        nextUnread:
+          !isZeroAddr(next) && !q.ctl(next) ? `${next} (not classified at head)` : undefined,
+      })
       return one(
         `bridge/ccip/${t}/rebalancer${sel ? `/${sel}` : ''}`,
         `CCIP ${sel ? `silo rebalancer for chain ${sel}` : 'rebalancer'} (can withdraw locked liquidity) → ${describeController(q.ctl(next))}`,
@@ -1879,6 +2096,9 @@ function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx)
           v: classifyCcip('rebalancer', {
             prevCtl: ctlOrNull(chainOf(sel)?.rebalancer),
             nextCtl: q.ctl(next),
+            prevUnread: rebalancerUnread(sel, chainOf(sel)?.rebalancer ?? null),
+            nextUnread:
+              !isZeroAddr(next) && !q.ctl(next) ? `${next} (not classified at head)` : undefined,
           }),
           after: next,
           dimension: 'bridge' as const,
@@ -1916,7 +2136,14 @@ function judgeCcip(fn: string, args: readonly unknown[], t: string, q: QueueCtx)
         {
           key: `admin/ccip_token_admin/${lc(token)}`,
           title: `CCIP token administrator → ${describeController(q.ctl(next))} (pending acceptance)`,
-          v: classifyControllerChange(prev ? q.ctl(prev) : null, q.ctl(next)),
+          // only the current administrator can call it: none known = NOT READ (fail closed)
+          v: classifyControllerChange(prev ? q.ctl(prev) : null, q.ctl(next), {
+            prevUnread: !prev
+              ? 'the current CCIP token administrator was not read (no event set it in the scan)'
+              : !q.ctl(prev)
+                ? `the current administrator ${prev.slice(0, 10)}… could not be classified at head`
+                : undefined,
+          }),
           before: prev ?? undefined,
           after: next,
           dimension: 'admin',
@@ -1952,6 +2179,10 @@ export type TimelockOp = {
    * 'not_run' = could not be built (salt not recovered); 'error' = the RPC failed (not a revert).
    */
   simulation: 'ok' | 'revert' | 'not_run' | 'error'
+  /** Fail-closed audit (QU-05): a call index of the op was never seen (a lost CallScheduled). */
+  callsIncomplete?: boolean
+  /** Fail-closed audit (QU-04): the accounts the execute() simulation ran from. */
+  simulatedFrom?: string[]
 }
 
 export type OpStatus =
@@ -2018,8 +2249,9 @@ export function timelockChanges(ops: TimelockOp[], q: QueueCtx, now: number): Co
     // upgrades they are (judged on the app they act on).
     const calls = dg
       ? aragonCalls(
-          op.calls.flatMap((c) => unwrapCalls(c).calls),
+          op.calls.filter(Boolean).flatMap((c) => unwrapCalls(c).calls),
           q.aragonAppProxies,
+          { unmappedAsUpgrade: !!q.aragonAppsIncomplete },
         )
       : op.calls
     // An op whose state could not be read may be executable right now: judge its calls as
@@ -2030,7 +2262,7 @@ export function timelockChanges(ops: TimelockOp[], q: QueueCtx, now: number): Co
       scheduledBlock: op.scheduledBlock,
     })
     calls.forEach((c, i) => {
-      if (!callIsForSubject(c, q)) return
+      if (!c || !callIsForSubject(c, q)) return
       for (const [k, j] of judged[i].entries()) {
         // AD-8: an ARMED op whose call would break any rule (or one whose state is unread).
         if (judgeArmed && j.v.severity === 'downgrade' && !j.v.ruleIds.includes('AD-8'))
@@ -2049,14 +2281,27 @@ export function timelockChanges(ops: TimelockOp[], q: QueueCtx, now: number): Co
           j.v.notes.push(
             `Dual Governance proposal #${op.id} ${op.status ?? ''}: ${op.status === 'submitted' ? 'not yet scheduled — veto signalling by stETH holders can extend the wait' : 'scheduled'}; execute() is permissionless once the after-schedule delay passes`,
           )
+        if (op.callsIncomplete) {
+          tag(j.v, 'read_gap')
+          j.v.notes.push(
+            'some calls of this op were not read (a CallScheduled log is missing): the op is judged on the calls seen',
+          )
+        }
         out.push(
           toChange(
             j,
             {
               id: `${op.timelock}:${op.id}:${i}${k ? `:${k}` : ''}`,
               state: 'pending',
-              // past its ETA but cannot execute (predecessor missing / execute reverts): stale
-              stage: armed ? 'armed' : st === 'ready_unexecutable' ? 'stale' : 'scheduled',
+              // past its ETA but cannot execute (predecessor missing / execute reverts): stale.
+              // Fail-closed audit (DG-02): a state that was not read may be executable now — counted
+              // with the armed ops (it was "scheduled": plain pending)
+              stage:
+                armed || st === 'unread'
+                  ? 'armed'
+                  : st === 'ready_unexecutable'
+                    ? 'stale'
+                    : 'scheduled',
               block: op.scheduledBlock,
               ts: op.scheduledTs,
               tx: op.scheduledTx,
@@ -2119,12 +2364,14 @@ function delegatecallJudged(safeAddr: string, c: Call): Judged {
 export function safeProposalChanges(rows: SafeProposal[], q: QueueCtx): ConfigChange[] {
   const out: ConfigChange[] = []
   for (const p of rows) {
-    if (!p.data || p.data === '0x') continue
+    // fail-closed audit (M-3): an empty-calldata DELEGATECALL runs the target's fallback AS the
+    // Safe — never skipped as "no call"
+    if ((!p.data || p.data === '0x') && p.operation !== 1) continue
     const to = lc(p.to)
     // Review round 6 (AD-6): a DELEGATECALL runs the target's code AS the Safe. Only a MultiSend
     // library is unwrapped (its entries carry their own operation); anything else is one red row,
     // whatever the target — the call data says nothing about what that code does.
-    const top: Call = { target: to, value: p.value, data: p.data, operation: p.operation }
+    const top: Call = { target: to, value: p.value, data: p.data || '0x', operation: p.operation }
     const viaLib = p.operation === 1 && SAFE_DELEGATE_LIBS.has(to)
     const { calls, via } =
       p.operation === 1 && !viaLib ? { calls: [top], via: undefined } : unwrapCalls(top)
@@ -2157,7 +2404,8 @@ export function safeProposalChanges(rows: SafeProposal[], q: QueueCtx): ConfigCh
           toChange(
             j,
             {
-              id: `safe:${lc(p.safe)}:${p.nonce}:${i}${k ? `:${k}` : ''}`,
+              // M-5: competing proposals at one nonce keep distinct ids (the safeTxHash)
+              id: `safe:${lc(p.safe)}:${p.nonce}:${String(p.safeTxHash ?? '').slice(0, 10)}:${i}${k ? `:${k}` : ''}`,
               state: 'proposed',
               stage: armed ? 'armed' : 'safe_queued',
               ts: p.submissionDate ? Math.floor(Date.parse(p.submissionDate) / 1000) : undefined,

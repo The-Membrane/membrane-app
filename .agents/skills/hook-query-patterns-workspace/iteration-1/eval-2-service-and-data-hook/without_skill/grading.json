@@ -1,0 +1,67 @@
+{
+  "run_id": "eval-2-without_skill",
+  "expectations": [
+    {
+      "text": "Service returns null on error (not throwing)",
+      "passed": true,
+      "evidence": "In acquisition.ts, lines 65-73: the try/catch block catches errors, logs with console.error, and returns null. Lines 61-62: `if (!client || !user) return null`. Function signature returns `Promise<RewardHistoryResponse | null>`. No exceptions thrown to caller."
+    },
+    {
+      "text": "Service has mock data fallback with USE_MOCK_DATA flag and simulated delay",
+      "passed": true,
+      "evidence": "Line 4: `const USE_MOCK_DATA = true`. Lines 55-58: `if (USE_MOCK_DATA) { await new Promise(resolve => setTimeout(resolve, 100)); return getMockRewardHistory(user) }`. Flag, delay, and mock data generator all present."
+    },
+    {
+      "text": "Service validates client for null before querying",
+      "passed": true,
+      "evidence": "Line 61: `if (!client || !user) return null` — checks client for null before the contract query on line 66."
+    },
+    {
+      "text": "Hook includes appState.rpcUrl in query key for multi-chain cache separation",
+      "passed": true,
+      "evidence": "In useAcquisitionRewardHistory.ts, line 19: `queryKey: ['acquisition', 'reward-history', user, appState.rpcUrl]` — rpcUrl included as 4th element in query key."
+    },
+    {
+      "text": "Hook has appropriate staleTime set (not relying on defaults)",
+      "passed": true,
+      "evidence": "Line 22: `staleTime: 1000 * 60 * 5, // 5 minutes` — explicitly set. Uses 5 minutes rather than the 2-minute 'volatile tier' the with_skill version uses, but it is explicitly set and not relying on the default of 0."
+    },
+    {
+      "text": "Hook has enabled gate to prevent premature fetching",
+      "passed": true,
+      "evidence": "Line 21: `enabled: !!user` — prevents query execution when user wallet is not connected."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "The service file is named acquisition.ts (general-purpose) rather than a dedicated file",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The output file is acquisition.ts containing only getRewardHistory. Less specific naming than with_skill's acquisitionRewardHistory.ts."
+    },
+    {
+      "claim": "The hook correctly imports types from the service",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line 4-5 of hook: `import { getRewardHistory } from '@/services/acquisition'` and `import type { RewardHistoryResponse } from '@/services/acquisition'`. The service file exports both, so this is consistent."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Hook has appropriate staleTime set (not relying on defaults)",
+        "reason": "Both with_skill (2 min) and without_skill (5 min) pass this assertion. The assertion doesn't check whether the chosen value is appropriate for the data volatility. For reward history that changes on claim events, 2 minutes (volatile tier) is arguably more correct than 5 minutes. A more discriminating assertion would be: 'staleTime matches the appropriate tier for data volatility (volatile: 1-2min, moderate: 5min, stable: 10-30min)'."
+      },
+      {
+        "reason": "No assertion checks the quality/realism of mock data. The with_skill version generates entries every 3 days with a 'source' field, while the without_skill generates every 2 days with a 'reward_type' field. Neither is wrong, but the field naming convention could matter for downstream consumers."
+      }
+    ],
+    "overall": "Both runs pass all assertions. The eval does not discriminate between them because the assertions test for presence of patterns rather than quality of implementation choices (e.g., appropriate staleTime tier, mock data field naming). Consider tightening the staleTime assertion to test tier appropriateness."
+  }
+}

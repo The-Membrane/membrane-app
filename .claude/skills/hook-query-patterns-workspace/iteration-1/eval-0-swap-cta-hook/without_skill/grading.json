@@ -1,0 +1,53 @@
+{
+  "run_id": "eval-0-without_skill",
+  "expectations": [
+    {
+      "text": "Uses useQuery for message building (not useMutation)",
+      "passed": true,
+      "evidence": "Line 1: `import { useQuery } from '@tanstack/react-query'`. Line 56: `const { data: queryData } = useQuery<QueryData>({...})`. No useMutation import or usage. Message building is correctly done via useQuery."
+    },
+    {
+      "text": "Imports and calls useSimulateAndBroadcast (no custom simulation)",
+      "passed": true,
+      "evidence": "Line 5: `import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'`. Line 100: `const action = useSimulateAndBroadcast({msgs, queryKey: [...], amount, enabled: !!msgs?.length, onSuccess})`. No custom simulation logic."
+    },
+    {
+      "text": "Returns { action, msgs } matching codebase convention",
+      "passed": true,
+      "evidence": "Lines 108-111: `return { action, msgs, }` — matches the standard return shape."
+    },
+    {
+      "text": "Has enabled gates on both message query and simulation",
+      "passed": true,
+      "evidence": "Message query (line 89): `enabled: !!address && !!inputDenom && !!outputDenom && !!amount && parseFloat(amount) > 0`. Simulation (line 104): `enabled: !!msgs?.length`. Both have proper enabled gates. The without-skill version even adds an extra `parseFloat(amount) > 0` guard."
+    },
+    {
+      "text": "Invalidates cache on success via queryClient.invalidateQueries with targeted prefixes",
+      "passed": true,
+      "evidence": "Lines 94-98: `const onSuccess = () => { queryClient.invalidateQueries({ queryKey: ['transmuter'] }); queryClient.invalidateQueries({ queryKey: ['balances'] }); txSuccess?.() }`. Uses targeted prefixes 'transmuter' and 'balances'."
+    },
+    {
+      "text": "Query keys use only primitives (no objects)",
+      "passed": true,
+      "evidence": "Message query key (line 57): `['transmuter_swap', 'msgs', address, inputDenom, outputDenom, amount]` — all string primitives. Simulation query key (line 101): `['transmuter_swap_sim', (msgs?.toString() ?? '0')]` — string primitives. No objects in query keys."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "Extra guard for zero/NaN amounts in queryFn",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Lines 67-69: `if (microAmount === '0' || microAmount === 'NaN') { return { msgs: undefined } }` — additional defensive check beyond what the with_skill version has."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Both with_skill and without_skill outputs pass all 6 assertions for eval-0. This eval does not discriminate between the two — both appear to independently arrive at the correct CTA hook pattern. Consider adding assertions that test for skill-specific commentary (e.g., LAYER comments) or more nuanced patterns to differentiate skill-guided output from baseline."
+  }
+}

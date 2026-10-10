@@ -1,0 +1,427 @@
+{
+  "schema": "morpho_multi_asset_native_history_research_plan_v1",
+  "candidates": [
+    {
+      "id": "08",
+      "symbol": "AUSD",
+      "assetDecimals": 6,
+      "shareDecimals": 18,
+      "scope": "configured_market_research",
+      "discovery": {
+        "path": "data/research/venue-signals/morpho49-native-discovery-2026-10-09-ba8cadb2-c9bf-4d13-9732-dd957f7b030a/vault-08.json",
+        "bytes": 1308804,
+        "fileSha256": "208916ddce82547c3ea696aafcf90840db95862cd02a6eb14bcd0a81457f71bc",
+        "bodySha256": "7c2b0091e99cec14338d789830bff74b4c23c959ba5e21384d32d8724f6a782a"
+      },
+      "subject": {
+        "vault": "0x32401b9fb79065bc15949de0bd43927492f02f0c",
+        "asset": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+        "creationBlockNumber": 24671403
+      },
+      "adapter": "0xa8f4330c0f834bbf1a332fad40bdcca28b5f18bf",
+      "liquidityData": "0x00000000000000000000000000000000efe302beaa2b3e6e1b18d08d69a9012a0000000000000000000000000b2b2b2076d95dda7817e785989fe353fe955ef90000000000000000000000003eba81c6fce96c106843f893fd60e288af7a362e000000000000000000000000870ac11d48b15db9a138cf899d20f13f79ba00bc0000000000000000000000000000000000000000000000000cb2bba6f17b8000",
+      "dependencies": {
+        "parentVault": "0x32401b9fb79065bc15949de0bd43927492f02f0c",
+        "asset": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+        "morpho": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+        "adaptiveCurveIrm": "0x870ac11d48b15db9a138cf899d20f13f79ba00bc"
+      },
+      "runtimes": {
+        "vault": {
+          "runtimeByteLength": 21808,
+          "runtimeKeccak256": "0xa1c249850fed77a482699b5414c432b9bf23b61fc4efe991488c936568a1f87d"
+        },
+        "asset": {
+          "runtimeByteLength": 5937,
+          "runtimeKeccak256": "0x4d91c4f4b6c82a4802d641b9f0698ff096beb3d4c4028a3b25b0d92aab2fc51e"
+        },
+        "adapter": {
+          "runtimeByteLength": 11784,
+          "runtimeKeccak256": "0xb917a1983885cef6f90c4b8bfc98f3359f3ff201ab1330a7ee47cb5630686194"
+        },
+        "asset_implementation_candidate": {
+          "runtimeByteLength": 22835,
+          "runtimeKeccak256": "0x076caa003f1bf1ca31b968cfcbd386d2a82146571c58bb714326106a73391085"
+        }
+      },
+      "implementationCandidates": {
+        "vault": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        },
+        "asset": {
+          "address": "0xc1e3c7d486d6a92fbe920232e439eec2ceb112da",
+          "kind": "erc1967_slot_candidate"
+        },
+        "adapter": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        }
+      }
+    },
+    {
+      "id": "32",
+      "symbol": "EURCV",
+      "assetDecimals": 18,
+      "shareDecimals": 18,
+      "scope": "configured_market_research",
+      "discovery": {
+        "path": "data/research/venue-signals/morpho49-native-discovery-2026-10-09-ba8cadb2-c9bf-4d13-9732-dd957f7b030a/vault-32.json",
+        "bytes": 1097202,
+        "fileSha256": "499a1c331f8ff60b7fcf12967494dfe17c469b455d511600780c3017af582c8f",
+        "bodySha256": "8152689841400617a5ff9afd03d970653c4826f62b09f806ac1b3b26f0c8e9cf"
+      },
+      "subject": {
+        "vault": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+        "asset": "0x5f7827fdeb7c20b443265fc2f40845b715385ff2",
+        "creationBlockNumber": 24019726
+      },
+      "adapter": "0x5e3aca36fe2361e1866752ad74cb429f64cdcf1a",
+      "liquidityData": "0x0000000000000000000000005f7827fdeb7c20b443265fc2f40845b715385ff2000000000000000000000000cbb7c0000ab88b473b1f5afd9ef808440eed33bf000000000000000000000000ba75fd248bf33d669d4c5adf25d3e32779656e47000000000000000000000000870ac11d48b15db9a138cf899d20f13f79ba00bc0000000000000000000000000000000000000000000000000bef55718ad60000",
+      "dependencies": {
+        "parentVault": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+        "asset": "0x5f7827fdeb7c20b443265fc2f40845b715385ff2",
+        "morpho": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+        "adaptiveCurveIrm": "0x870ac11d48b15db9a138cf899d20f13f79ba00bc"
+      },
+      "runtimes": {
+        "vault": {
+          "runtimeByteLength": 21808,
+          "runtimeKeccak256": "0x2e630a46febc2ccfef2b5c23cba80915a1972d8600157dd860402dd43482a6aa"
+        },
+        "asset": {
+          "runtimeByteLength": 708,
+          "runtimeKeccak256": "0x5e4dcb0bb1910f6429e5fe91678990088a51c6d1cfe1b31d05fb9d948cc7867c"
+        },
+        "adapter": {
+          "runtimeByteLength": 11784,
+          "runtimeKeccak256": "0xf0caa51fdc8a2d8ed6d69704ad9f37ef6d6bd85bb25fc9a082b63b2d54e09f89"
+        },
+        "asset_implementation_candidate": {
+          "runtimeByteLength": 13619,
+          "runtimeKeccak256": "0x81cbd0bc26074bbac495d06c81d7ee1efa879c4bce36925702a1dcc04b965c0b"
+        }
+      },
+      "implementationCandidates": {
+        "vault": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        },
+        "asset": {
+          "address": "0xf4ccc80c4b831a0d8d1414f2aca82a3d760ff05b",
+          "kind": "erc1967_slot_candidate"
+        },
+        "adapter": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        }
+      }
+    },
+    {
+      "id": "14",
+      "symbol": "LINK",
+      "assetDecimals": 18,
+      "shareDecimals": 18,
+      "scope": "configured_market_research",
+      "discovery": {
+        "path": "data/research/venue-signals/morpho49-native-discovery-2026-10-09-ba8cadb2-c9bf-4d13-9732-dd957f7b030a/vault-14.json",
+        "bytes": 927962,
+        "fileSha256": "0c6dbcfae994777b6d9803db8fe7b84b27d47f4bc0447f4ee25c67f78c674ccc",
+        "bodySha256": "447886bfcfdfdf29dde1876e2db3156ce9ed7560b6c287104f1b3d5cb8b098c6"
+      },
+      "subject": {
+        "vault": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+        "asset": "0x514910771af9ca656af840dff83e8264ecf986ca",
+        "creationBlockNumber": 24292632
+      },
+      "adapter": "0xd237ccbda4606fd866f82f23417fe05e8e0345bc",
+      "liquidityData": "0x000000000000000000000000514910771af9ca656af840dff83e8264ecf986ca000000000000000000000000911d86c72155c33993d594b0ec7e6206b4c803da000000000000000000000000833b6db67987ac248d4bd1195b91dd953e6db6d1000000000000000000000000870ac11d48b15db9a138cf899d20f13f79ba00bc0000000000000000000000000000000000000000000000000cb2bba6f17b8000",
+      "dependencies": {
+        "parentVault": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+        "asset": "0x514910771af9ca656af840dff83e8264ecf986ca",
+        "morpho": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+        "adaptiveCurveIrm": "0x870ac11d48b15db9a138cf899d20f13f79ba00bc"
+      },
+      "runtimes": {
+        "vault": {
+          "runtimeByteLength": 21808,
+          "runtimeKeccak256": "0xcddbd3f6937d03a42eb201dc2194697b082b3e26162c55f84fcd06d231781967"
+        },
+        "asset": {
+          "runtimeByteLength": 3153,
+          "runtimeKeccak256": "0x77c633ba07c8cb94cd4864092fd8b31e31cf9d065f6fb6acf617298bc0008785"
+        },
+        "adapter": {
+          "runtimeByteLength": 11784,
+          "runtimeKeccak256": "0x599e3f77fdbcc502d987014b2362140968827a4110daea4616c89ce4d97c721c"
+        }
+      },
+      "implementationCandidates": {
+        "vault": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        },
+        "asset": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        },
+        "adapter": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        }
+      }
+    },
+    {
+      "id": "30",
+      "symbol": "PYUSD",
+      "assetDecimals": 6,
+      "shareDecimals": 18,
+      "scope": "configured_market_research",
+      "discovery": {
+        "path": "data/research/venue-signals/morpho49-native-discovery-2026-10-09-ba8cadb2-c9bf-4d13-9732-dd957f7b030a/vault-30.json",
+        "bytes": 904033,
+        "fileSha256": "df3d9b5edd2bbf7a3d1767544b9fc16120a45c93ab678d17e04f67bc8b93d347",
+        "bodySha256": "7c68ba6beba1a82aee1159dd1a78e8003fcdca4732577f5f43d729736cd2e227"
+      },
+      "subject": {
+        "vault": "0xbeef00b5d83c1188f07a5184230a805639c39f04",
+        "asset": "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
+        "creationBlockNumber": 23903157
+      },
+      "adapter": "0x7a4980896bd74dd90fd416cabd9ac7bbf02d2996",
+      "liquidityData": "0x0000000000000000000000006c3ea9036406852006290770bedfcaba0e23a0e80000000000000000000000007f39c581f595b53c5cb19bd0b3f8da6c935e2ca000000000000000000000000027679a17b7419fb10bd9d143f21407760fda5c53000000000000000000000000870ac11d48b15db9a138cf899d20f13f79ba00bc0000000000000000000000000000000000000000000000000bef55718ad60000",
+      "dependencies": {
+        "parentVault": "0xbeef00b5d83c1188f07a5184230a805639c39f04",
+        "asset": "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
+        "morpho": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+        "adaptiveCurveIrm": "0x870ac11d48b15db9a138cf899d20f13f79ba00bc"
+      },
+      "runtimes": {
+        "vault": {
+          "runtimeByteLength": 21808,
+          "runtimeKeccak256": "0xd40a644ba3984c98bcffa15709271ecedf2ff7632d763fad84d7f924bd4f6acd"
+        },
+        "asset": {
+          "runtimeByteLength": 1506,
+          "runtimeKeccak256": "0xbc22d0b1173d9ff26383e64a50a807afa931a2809a7b6bae3b051723a1a9ebe1"
+        },
+        "adapter": {
+          "runtimeByteLength": 11784,
+          "runtimeKeccak256": "0x240db48e947b6d448e5ad6fa7ad07529e8abcaa1ed0fd3671e8856bd36f1483f"
+        }
+      },
+      "implementationCandidates": {
+        "vault": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        },
+        "asset": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        },
+        "adapter": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        }
+      }
+    },
+    {
+      "id": "16",
+      "symbol": "RLUSD",
+      "assetDecimals": 18,
+      "shareDecimals": 18,
+      "scope": "idle_only_research",
+      "discovery": {
+        "path": "data/research/venue-signals/morpho49-native-discovery-2026-10-09-ba8cadb2-c9bf-4d13-9732-dd957f7b030a/vault-16.json",
+        "bytes": 881936,
+        "fileSha256": "23312660a73a56c455bf3ce1e8759ac449c296ea3e9d709ed704cb17c0a8bb05",
+        "bodySha256": "d6567839cef2f04408595188f776bea7b54c14928aaf62a6ea1829351d314aaf"
+      },
+      "subject": {
+        "vault": "0x6dc58a0fdfc8d694e571dc59b9a52eeea780e6bf",
+        "asset": "0x8292bb45bf1ee4d140127049757c2e0ff06317ed",
+        "creationBlockNumber": 24587448
+      },
+      "adapter": "0x0000000000000000000000000000000000000000",
+      "liquidityData": "0x",
+      "dependencies": {
+        "parentVault": null,
+        "asset": null,
+        "morpho": null,
+        "adaptiveCurveIrm": null
+      },
+      "runtimes": {
+        "vault": {
+          "runtimeByteLength": 21808,
+          "runtimeKeccak256": "0x0b10d3ab9979405d0970771ee305d10e8c62ea4afd94a6176a7db3ecd97dfd9a"
+        },
+        "asset": {
+          "runtimeByteLength": 238,
+          "runtimeKeccak256": "0x23fd38dfee1f350e13b663717d03529920d67bb8f2582203b4b29b1e0bfd06b7"
+        },
+        "asset_implementation_candidate": {
+          "runtimeByteLength": 14055,
+          "runtimeKeccak256": "0x77598e1b7a230cd9034edb3e524d6faf036110e996acd9f24c20c872ca7a1807"
+        }
+      },
+      "implementationCandidates": {
+        "vault": {
+          "address": null,
+          "kind": "unknown_direct_or_custom_dispatch"
+        },
+        "asset": {
+          "address": "0x9747a0d261c2d56eb93f542068e5d1e23170fa9e",
+          "kind": "erc1967_slot_candidate"
+        }
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "receipt": {
+        "path": "data/research/venue-signals/local-carry-cash-v1/000000000236.json",
+        "bytes": 64829,
+        "fileSha256": "0ac9f9d4bddae1b115fcd58d00c28ba995903760b2c2d4f3dc44347806a9ed47",
+        "bodySha256": "dc9ecd89dbe3eb7b96ac780c75c6833dbaefb52ae37a2a7cdd1f77d816dd5307"
+      },
+      "source": {
+        "chainId": 1,
+        "blockNumber": "26100913",
+        "blockHash": "0x2fe9266ceaaea215d32a4c5e0701f3c287705f2b976844cf3131534a814aa272",
+        "blockTime": "2026-10-01T23:59:59.000Z"
+      }
+    },
+    {
+      "receipt": {
+        "path": "data/research/venue-signals/local-carry-cash-v1/000000000237.json",
+        "bytes": 64827,
+        "fileSha256": "cdc9ccaeee4bdd5c9c381aadc64f703a94227b133f6007e31860c9cc4ad9417f",
+        "bodySha256": "a2fb28ab9edc1adc01d9295ee15713f6dfe360a0d58c6db98382f9c90f7feaf2"
+      },
+      "source": {
+        "chainId": 1,
+        "blockNumber": "26108081",
+        "blockHash": "0x9f430d0cc4301a9f8ea0315223c2ed6e66373f6454baac771cac7449d725ba37",
+        "blockTime": "2026-10-02T23:59:59.000Z"
+      }
+    }
+  ],
+  "sourcePins": [
+    {
+      "path": "lib/carry/aggregateCashQHoldout.ts",
+      "bytes": 8445,
+      "fileSha256": "c0bf93a75646c393eb31a93170d089f70866d1e36dbfa7f91e973f80823a97b4"
+    },
+    {
+      "path": "lib/carry/conditionalGrossFlowHeadroom.ts",
+      "bytes": 10611,
+      "fileSha256": "365ede1d96b0905e1351c7e28a89f13147bde080485b8eaca8cf31e344bcf440"
+    },
+    {
+      "path": "lib/carry/conditionalSampledCashPathProjection.ts",
+      "bytes": 50272,
+      "fileSha256": "2c4c627060d7e4fc03be097f4a88c1f4e4ea1540e426b2bb03aad9331b9fc2fe"
+    },
+    {
+      "path": "lib/carry/historicalCashContext.ts",
+      "bytes": 15938,
+      "fileSha256": "60b0922e13fd9e93cc15517337c13acd0bcd8c10d1fcc02d2aeae9b6c456d949"
+    },
+    {
+      "path": "lib/carry/historicalCashProjection.ts",
+      "bytes": 10973,
+      "fileSha256": "5bc861eb62118763d278b52cdfca6efe96414d310a76763e0cd2ca94267a9730"
+    },
+    {
+      "path": "lib/carry/historicalCompetingFlowEstimate.ts",
+      "bytes": 10683,
+      "fileSha256": "1a7250ad7aa166a1239b82db2a0bb3375eca682e511dcd05df5a87f27f5a01a1"
+    },
+    {
+      "path": "lib/carry/historicalFlowDuration.ts",
+      "bytes": 8547,
+      "fileSha256": "61ca6b09592e9a167029db9cde0d55fc3eb348d45a2a729152a5ee6ea46b2962"
+    },
+    {
+      "path": "lib/carry/historicalGrossFlowStress.ts",
+      "bytes": 11263,
+      "fileSha256": "3e2b052d6e7c7272eb304515fd8b6d318e1a71b280a6797a385576c78d55f2f6"
+    },
+    {
+      "path": "lib/carry/historicalSampledCashPaths.ts",
+      "bytes": 12739,
+      "fileSha256": "84a4ef46cb2eb081c8657aad739696a8908b84c2a6f1d368f43344bcda1433ce"
+    },
+    {
+      "path": "lib/carry/localHistoricalCashScenario.ts",
+      "bytes": 12468,
+      "fileSha256": "59f58482d368a7353487a14d58ea030026968091f489de685e23de9541caa8e4"
+    },
+    {
+      "path": "lib/carry/localHistoricalSampledCashTimeline.ts",
+      "bytes": 9337,
+      "fileSha256": "8a19ac03e01cdb5b79622db4a72a01de89041322e436d0f0ea7cd1c7c675b946"
+    },
+    {
+      "path": "lib/forecast/exitImpactForecast.ts",
+      "bytes": 32743,
+      "fileSha256": "7cf7f785eb1fdfe5d96bd843d225292459ce2214f87b98935263acd7414ab8e5"
+    },
+    {
+      "path": "package.json",
+      "bytes": 5057,
+      "fileSha256": "d5186c257808af86990aae2565544129aed085322a11e1be771cb132c1ede475"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "bytes": 814546,
+      "fileSha256": "0b09f1f56caa8810a0874c66d5751fdb9ab4edf2153e25d60c82da07da1cf23a"
+    },
+    {
+      "path": "scripts/lib/boundedLocalReceiptFile.mjs",
+      "bytes": 2790,
+      "fileSha256": "4877354b90588f13b6fc0407232adac1dea6095151b3ba53c9d0c64ea4bda013"
+    },
+    {
+      "path": "scripts/research/carry-depth-quote-archive.mjs",
+      "bytes": 56802,
+      "fileSha256": "cff300ba5014a24955f126d7e949f2d3f45778e21e36bbcd20ab06e45cf4fd16"
+    },
+    {
+      "path": "scripts/research/carry-depth-quote-provider-policy.json",
+      "bytes": 556,
+      "fileSha256": "47080961e761b920c7aca196f9048c9f2dbc0ecacce4447bcaf1a7c8e3283197"
+    },
+    {
+      "path": "scripts/research/conditional-cash-time-holdout.mjs",
+      "bytes": 18143,
+      "fileSha256": "b7f14ad73ce1e159c249832907a460dda3f60592fb1c1d5067fd1b733c1952a9"
+    },
+    {
+      "path": "scripts/research/morpho-v2-adapter-capacity-capture.mjs",
+      "bytes": 46974,
+      "fileSha256": "afaa0488e14770547dcd220fde28cd6c29222a1112992906af103660f5628878"
+    },
+    {
+      "path": "scripts/research/usd3-hypothetical-history-capture.mjs",
+      "bytes": 41066,
+      "fileSha256": "dd8fca9cd591eb7d9c44f2a09653620d17c0705493e386fb116ba3b5fe20952b"
+    }
+  ],
+  "initialCandidate": "08",
+  "policy": {
+    "controlsPerJob": 4,
+    "maxStartsPerControl": 138,
+    "totalPhysicalCeiling": 276,
+    "cohortDeadlineMs": 480000,
+    "responseBytes": 65536,
+    "fileBytes": 8388608,
+    "cohortBytes": 33554432,
+    "prejobReserveBytes": 301989888,
+    "reserveBytes": 268435456,
+    "terminalTailBytes": 524288
+  },
+  "allAuthorityFlagsFalse": true,
+  "historicalOwnership": false,
+  "MRaw": null
+}

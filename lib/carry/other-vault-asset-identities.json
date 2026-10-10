@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "chainId": 1,
+  "cohortId": "aug-2026-ab-vault-routes",
+  "purpose": "Independent exact-address vault-to-asset identity evidence; no holder exit or forecast validation",
+  "entries": [
+    {
+      "vault": "0xd166337499e176bbc38a1fbd113ab144e5bd2df7",
+      "asset": "0x23238f20b894f29041f48d88ee91131c395aaa71",
+      "evidenceKind": "official_deployment_documentation",
+      "evidenceUrl": "https://github.com/saturn-organization/saturn-yield-dollar",
+      "exitMechanics": "async_queue"
+    },
+    {
+      "vault": "0x38eeb52f0771140d10c4e9a9a72349a329fe8a6a",
+      "asset": "0x98a878b1cd98131b271883b390f68d2c90674665",
+      "evidenceKind": "official_deployment_documentation",
+      "evidenceUrl": "https://docs.apyx.fi/technical-overview/protocol-contracts-overview",
+      "exitMechanics": "unassessed"
+    },
+    {
+      "vault": "0x273da948aca9261043fbdb2a857bc255ecc29012",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "evidenceKind": "official_deployment_documentation",
+      "evidenceUrl": "https://fluid-support.zendesk.com/hc/en-us/articles/29380248899356-I-deposited-into-Fluid-Lite-USD-but-I-do-not-see-any-earnings",
+      "exitMechanics": "unassessed"
+    },
+    {
+      "vault": "0x99cd4ec3f88a45940936f469e4bb72a2a701eeb9",
+      "asset": "0xdc035d45d973e3ec169d2276ddab16f1e407384f",
+      "evidenceKind": "official_deployment_documentation",
+      "evidenceUrl": "https://github.com/sky-ecosystem/spells-mainnet/blob/master/src/test/addresses_mainnet.sol",
+      "exitMechanics": "unassessed"
+    },
+    {
+      "vault": "0x19ebb35279a16207ec4ba82799cc64715065f7f6",
+      "asset": "0x6ad038ca6c04e885630851278ca0a856ad9a66cc",
+      "evidenceKind": "official_deployment_documentation",
+      "evidenceUrl": "https://github.com/provenance-io/hastra-eth-vault/blob/main/docs/CURATOR_INTEGRATION.md",
+      "exitMechanics": "unassessed"
+    },
+    {
+      "vault": "0x9fb7b4477576fe5b32be4c1843afb1e55f251b33",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "evidenceKind": "fluid_factory_computed_and_listed",
+      "evidenceUrl": "https://github.com/Instadapp/fluid-contracts-public/blob/main/contracts/protocols/lending/lendingFactory/events.sol",
+      "factory": "0x54b91a0d94cb471f37f949c60f7fa7935b551d03",
+      "verificationBlock": 26079829,
+      "verificationBlockHash": "0xc46931b3ea03a1b67482fcf4f7239f027a17c7a4526922017c40fe12c60d1a6b",
+      "exitMechanics": "unassessed"
+    },
+    {
+      "vault": "0x5c20b550819128074fd538edf79791733ccedd18",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "evidenceKind": "fluid_factory_computed_and_listed",
+      "evidenceUrl": "https://github.com/Instadapp/fluid-contracts-public/blob/main/contracts/protocols/lending/lendingFactory/events.sol",
+      "factory": "0x54b91a0d94cb471f37f949c60f7fa7935b551d03",
+      "verificationBlock": 26079829,
+      "verificationBlockHash": "0xc46931b3ea03a1b67482fcf4f7239f027a17c7a4526922017c40fe12c60d1a6b",
+      "exitMechanics": "unassessed"
+    },
+    {
+      "vault": "0x6a29a46e21c730dca1d8b23d637c101cec605c5b",
+      "asset": "0x40d16fc0246ad3160ccc09b8d0d3a2cd28ae6c2f",
+      "evidenceKind": "fluid_factory_computed_and_listed",
+      "evidenceUrl": "https://github.com/Instadapp/fluid-contracts-public/blob/main/contracts/protocols/lending/lendingFactory/events.sol",
+      "factory": "0x54b91a0d94cb471f37f949c60f7fa7935b551d03",
+      "verificationBlock": 26079829,
+      "verificationBlockHash": "0xc46931b3ea03a1b67482fcf4f7239f027a17c7a4526922017c40fe12c60d1a6b",
+      "exitMechanics": "unassessed"
+    },
+    {
+      "vault": "0x4f827a63755855cdf3e8f3bcd20265c833f15033",
+      "asset": "0x40d16fc0246ad3160ccc09b8d0d3a2cd28ae6c2f",
+      "evidenceKind": "official_deployment_documentation",
+      "evidenceUrl": "https://governance.aave.com/t/arfc-risk-stewards-cooldown-reduction-umbrella-pauser-role-reassignment/25068",
+      "exitMechanics": "cooldown_required"
+    },
+    {
+      "vault": "0x056b269eb1f75477a8666ae8c7fe01b64dd55ecc",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "evidenceKind": "official_deployment_documentation",
+      "evidenceUrl": "https://docs.3jane.xyz/developers/addresses.md",
+      "exitMechanics": "unassessed"
+    },
+    {
+      "vault": "0x0af56afbddcb140323445bd7211ba90e54e5fd1c",
+      "asset": "0x59bc9fae5d62b19d4f8d07d758047acb9ee19d34",
+      "evidenceKind": "verified_deployed_source",
+      "evidenceUrl": "https://etherscan.io/address/0x41695d3304e38bc806f077a3541c5cd34f8f034b#code",
+      "implementation": "0x41695d3304e38bc806f077a3541c5cd34f8f034b",
+      "aToken": "0x01e69a58ca3ddc695820ce6f66fbdf3fa55d0545",
+      "verificationBlock": 26080019,
+      "verificationBlockHash": "0xcba995492763cfa851b8de0ceabaf5fab922887d52eb5ee05a05c88c3332366e",
+      "exitMechanics": "unassessed"
+    }
+  ]
+}

@@ -1,0 +1,487 @@
+{
+  "schema": "morpho_native_event_cash_analysis_manifest_v1",
+  "chainId": 1,
+  "informationMode": "retrospective_training",
+  "scope": "native_associated_cash_NET_research_only",
+  "taxonomy": {
+    "namespace": "morpho_v2_native_log",
+    "eventType": "Deposit",
+    "reviewRef": "closed_native_Deposit_ABI_rule_in_pinned_archive_source",
+    "signature": "Deposit(address,address,uint256,uint256)",
+    "topic": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7"
+  },
+  "otherNativeTopics": {
+    "withdraw": "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+    "force": "0xb98216be0267fa550428a584fe6ac1ef0f39788e0198372100e813444afecd29"
+  },
+  "metric": {
+    "method": "ERC20.balanceOf(vault)",
+    "regimeBasis": "chain_asset_decimals_and_metric_only",
+    "policyRegimeVerified": false,
+    "protocolConfigurationStable": false,
+    "holderExitAbilityMeasured": false
+  },
+  "parameters": {
+    "lookbackSeconds": 10368000,
+    "eventResponseWindowSeconds": 259200,
+    "minimumIntervalSeconds": 64800,
+    "maximumGapSeconds": 108000,
+    "horizonSeconds": 86400,
+    "minimumMatchedIntervals": 2,
+    "minimumEventClusters": 2,
+    "maximumScenariosPerSubject": 128
+  },
+  "currentTargetSourceBasis": "each_subject_retained_last_cash_endpoint_analysis_boundary_not_live_quote",
+  "availabilityBasis": "max_original_receipt_clock_and_measured_completed_verification_boundary",
+  "limits": {
+    "maxFileBytes": 8388608,
+    "maxCohortBytes": 33554432,
+    "maxOutputFileBytes": 8388608,
+    "maxOutputCohortBytes": 33554432,
+    "maxReportBytes": 2097152,
+    "preFreeBytes": 301989888,
+    "reserveBytes": 268435456
+  },
+  "originals": [
+    {
+      "id": "cash_audit",
+      "path": "data/research/venue-signals/conditional-sampled-cash-history-v1.audit.json",
+      "bytes": 997443,
+      "fileSha256": "02e5fef639fa564e0b6e07487415aabd673e5055f6e6d9f64c8f76643e0c7917",
+      "bodySha256": "e5a5f563a00e145ea68e034f56c94d26960e2023faf0abe8190a4ae42be46278"
+    },
+    {
+      "id": "cash_pins",
+      "path": "data/research/venue-signals/conditional-sampled-cash-history-v1.pins.json",
+      "bytes": 32683,
+      "fileSha256": "8b40e48d29ab5d39c7e37ca91f2a398f9797ad2da9478a41cff74ee48f20d3b0",
+      "bodySha256": "a3b27d240f0a0e509c8de8a706c4abfdf38a79548d4596cb9c7b7cfdd4ae2a2f"
+    },
+    {
+      "id": "asset_identities",
+      "path": "lib/carry/morpho-v2-asset-identities.json",
+      "bytes": 21809,
+      "fileSha256": "8dd54bbb3dea0842bb67e582f0725adcafb7594107933122c5fa381c083566da",
+      "bodySha256": null
+    },
+    {
+      "id": "pilot_enrollment",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v1/enrollment.json",
+      "bytes": 26105,
+      "fileSha256": "97d8796dc5800412986745aa0bc3cabe2f0f175db2c4cb50b41418819f0000b0",
+      "bodySha256": "9a2d654cfc08c6f46b5992fc00dd5c678904291c291199e09ea5a26d2225f669"
+    },
+    {
+      "id": "pilot_tip",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v1/000000000001.json",
+      "bytes": 54293,
+      "fileSha256": "839fb9f6bb93d92e9e28116b2d9c9cb77d68e7ec5a8c0f4086231478c585f72c",
+      "bodySha256": "187294b4893e9566c4f2b9b79e8e7ebe5141ec5d0a5c0a7d0c85f0bcc7fc7bbb"
+    },
+    {
+      "id": "event_enrollment",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/enrollment.json",
+      "bytes": 26199,
+      "fileSha256": "bf2689f1de9facfbe8eb42eb27e200ccddf2e33cb4967e863af7f9462d0a0a8d",
+      "bodySha256": "00209c67cbad7502d2be7072b0d445f8a0724d953d1a658a4b90d08c81e3295c"
+    },
+    {
+      "id": "event_bundle_1",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000001.json",
+      "bytes": 347725,
+      "fileSha256": "11e931620e383f21cff0de1ab1972b11762b531652802385d693c3e4ac26c8a1",
+      "bodySha256": "8ea0d198f5f90ae87b9f6dc9fdb5f51e8b719ccdaeb74b6eb13c255c0fbdaece"
+    },
+    {
+      "id": "event_bundle_2",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000002.json",
+      "bytes": 162157,
+      "fileSha256": "ae12588649a3e5a68768c80e9409a6ada8fe40bc5dc1a855dd1aea30fcd412cf",
+      "bodySha256": "5695e5bbd308c0dcde45ee674e5dac209d6791511e8e8d393062b3d0dda4224a"
+    },
+    {
+      "id": "event_bundle_3",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000003.json",
+      "bytes": 161816,
+      "fileSha256": "607a21e306e1fc809cfbac2f697fc746741c1a8a6b074f1c07f7f665c275c3af",
+      "bodySha256": "9254097f6a85ce0335bb2d1dfd9c3afe863460e4feb6963ed81cb64aba7ea082"
+    },
+    {
+      "id": "event_bundle_4",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000004.json",
+      "bytes": 127235,
+      "fileSha256": "f018fba37e50434e4e7d7f468f42fca5c50b77ad29dabebece30c38f9c86be42",
+      "bodySha256": "49259bb6ad241b80ec36bf444dc44fc1a6c9935218c3cec755cbca854b717163"
+    },
+    {
+      "id": "event_bundle_5",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000005.json",
+      "bytes": 87847,
+      "fileSha256": "b97bade8ee9eb113abf5e7ad6acfb3d209b348c8bc0110428d864d8a7716b66f",
+      "bodySha256": "eeff909df2c1a1ba676c17395429fa44f94f7caa94fb2791a5346e1b36584cdc"
+    },
+    {
+      "id": "event_bundle_6",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000006.json",
+      "bytes": 85789,
+      "fileSha256": "682335ff2749ae4dd571d3a8498a3e47379d3421dfe8a645f7487c1e401b4bd9",
+      "bodySha256": "4fac571c3912f5606417090af33333c9429e71628727a3240b585b14d0567876"
+    },
+    {
+      "id": "event_bundle_7",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000007.json",
+      "bytes": 113447,
+      "fileSha256": "136e51826b63d4c32a3e0555ec97fd6c033a026abc69c543edf17692507fa1c5",
+      "bodySha256": "eedb9c0931d4f4a201b9eb722f675b4e7fa31498654cdc6f54380977ad01303b"
+    },
+    {
+      "id": "event_bundle_8",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000008.json",
+      "bytes": 156291,
+      "fileSha256": "ce2867160b9097abe5417e31a96bc790706cf0cc75f2ede98d86a1dc7d13ac99",
+      "bodySha256": "e24f1555b90343c974dcd5443ff9ac5b25f46bd2cbf51058db401a19ef9c92ab"
+    },
+    {
+      "id": "event_bundle_9",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000009.json",
+      "bytes": 67573,
+      "fileSha256": "a04a9cb513b590ca1328d42d68d1b1fbd07214307a96f0c35a304f1959a03f2a",
+      "bodySha256": "2a4d96cb5902a80805adba8b22e3087598bbb120b518cd03b8c88b135d012a9e"
+    },
+    {
+      "id": "event_bundle_10",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000010.json",
+      "bytes": 106406,
+      "fileSha256": "44840a42173661ff1abf3f5fd9decf04ad76d958d094878cb25293cd0e55050c",
+      "bodySha256": "411af5755c7ecdea919b23591f2da5cb16eb91162a93eb6031c91e5469319a8a"
+    },
+    {
+      "id": "event_bundle_11",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000011.json",
+      "bytes": 75708,
+      "fileSha256": "a97e79047f5b310a5fb214874921441674336e9564676d90e879a14f0f0a164e",
+      "bodySha256": "376b5ef36f0954fd3e81519eeb3e2549b292a4962a3604e597f7f5d404776a61"
+    },
+    {
+      "id": "event_bundle_12",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000012.json",
+      "bytes": 124780,
+      "fileSha256": "2951b8c1d4f578736df53845f36e306e9f6d4957152b2e9d849f5b2e00c5410a",
+      "bodySha256": "90db1ae6e5ec6c26aad69400a834a7b50326ea34c1be3b8a6d019603a09a93a3"
+    },
+    {
+      "id": "event_bundle_13",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000013.json",
+      "bytes": 101316,
+      "fileSha256": "67317a4b6d4cbe741048d43ba256c3ce54b220f1add9fe14de2ee1b3a72d4736",
+      "bodySha256": "b476d64067b885f95a2d249d481ba9970ccbe80984d473fa5c33080099a648dd"
+    },
+    {
+      "id": "event_bundle_14",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000014.json",
+      "bytes": 55340,
+      "fileSha256": "3d32308a508da6ad997b1cab5a09e86dc10010a044964e0dae1c6089d6d3ae46",
+      "bodySha256": "b098fe066c123dc1e563280a1468351201c6f991931b5fea028191be26fbb634"
+    },
+    {
+      "id": "event_bundle_15",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000015.json",
+      "bytes": 58222,
+      "fileSha256": "3c1bb09c208007b45a3339d90a234ff6a55e8ead5fd3d9a785713ef1274f97f7",
+      "bodySha256": "11cdcf8170927dc8d68e2333da786c980ef664ce6c0079bf1b7209eaab1e66fc"
+    },
+    {
+      "id": "event_bundle_16",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000016.json",
+      "bytes": 75722,
+      "fileSha256": "f8f673f88a9304e7aca7450cc53da72b8e77da6b45b91a4370250a34985fc012",
+      "bodySha256": "5c003509b84ac32e1462a73acfbd00a50306b0254dd5eee90c94ca14b7a5ba05"
+    },
+    {
+      "id": "event_bundle_17",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000017.json",
+      "bytes": 117136,
+      "fileSha256": "28e5940ace2c9dca5fd96a88a6762e71b14c6757183e8103949ea55ebfb736f8",
+      "bodySha256": "e377ac696708701531758011996848aa6956df580478ed088a0502383784aa79"
+    },
+    {
+      "id": "event_bundle_18",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000018.json",
+      "bytes": 98966,
+      "fileSha256": "b9506e0b7a78961ec61efa11e9fc419937d1362c3565fa8b7b44ea5ce333ead7",
+      "bodySha256": "7fb2f30722a22dd78b1d889878471064ee2d3aa43f701e8be0dc61d065a4fd56"
+    },
+    {
+      "id": "event_bundle_19",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000019.json",
+      "bytes": 106144,
+      "fileSha256": "c3d46680b8f8dceec24f61b2527feaa07c00372be4db41646a38ea702bbe655a",
+      "bodySha256": "673cf7d139914cd00f3504ffdd1f167dbab177501ee8461ba128b9d631881961"
+    },
+    {
+      "id": "event_bundle_20",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000020.json",
+      "bytes": 50156,
+      "fileSha256": "b38ff9b86ec409e254410adb27b12989d1b27f158fb696b1be4d7c8ac3e8cff8",
+      "bodySha256": "3c491abae9a242b111b2caa11bc5a34489f0470cc69c8cbe15ca1e1055c2a53c"
+    },
+    {
+      "id": "event_bundle_21",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000021.json",
+      "bytes": 32304,
+      "fileSha256": "733b749d2dd7ea3b798910236a206121bbd8c5893a2e411bd6e94544de2c9898",
+      "bodySha256": "f8485fec779be93f5bd5d1bc0bf3d54da9fd5b089765d6d99dc2150972927b9c"
+    },
+    {
+      "id": "event_bundle_22",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000022.json",
+      "bytes": 50108,
+      "fileSha256": "309b422cf29ea9edd234deed5aaa18ce01ff49bfeec7b07e7b4673c623f9ac2f",
+      "bodySha256": "9ddd0e182609d256ac3bdc37794da9e4d1c040a6e2871748ac267b08d33b123b"
+    },
+    {
+      "id": "event_bundle_23",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000023.json",
+      "bytes": 66730,
+      "fileSha256": "63d4e11d39e5146cf345d0310589c44a36f1ecb6c5ccc3fb401964730b8682f1",
+      "bodySha256": "6193d59892e432f417c7d7020d601d7aabe4a13af1d98ace9a0f6551888ab9c5"
+    },
+    {
+      "id": "event_bundle_24",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000024.json",
+      "bytes": 49362,
+      "fileSha256": "247ec79af39e7d493907e63a41e8428637216b79ee7ec2e261fac2ed5a534500",
+      "bodySha256": "e91c38a523d8b3ab27e56dcbe8d55c70ee46b048f4363f9a0f279defafc872c5"
+    },
+    {
+      "id": "event_bundle_25",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000025.json",
+      "bytes": 60686,
+      "fileSha256": "5019ea554ff8cccf05ba5d2a2893762a8f886a85ae0746285481a7fb8a85f02a",
+      "bodySha256": "6d3aa30db85a243d11e4864b484dcbeb2f1f6052cdbdfa2a84ae7e51ff4cb576"
+    },
+    {
+      "id": "event_bundle_26",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000026.json",
+      "bytes": 49832,
+      "fileSha256": "e90437884c7d5a27e150a9dd3cad589923347ada1ad618f27cc296f7a0026c09",
+      "bodySha256": "b0cb888e5f402d1c69b37f7e1035b8db96f9fbdc62e20102bbdddec31d8cc090"
+    },
+    {
+      "id": "event_bundle_27",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000027.json",
+      "bytes": 32052,
+      "fileSha256": "69729bec02e45b482f2ef068122e7e17b1fa8759a830fa35f309e010bb097dde",
+      "bodySha256": "6d9e939de17415bdfe020ca4f2af74edcf06292b8265dfe0a1f57c26373d8e0e"
+    },
+    {
+      "id": "event_bundle_28",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000028.json",
+      "bytes": 35142,
+      "fileSha256": "d6b348cc7388afc193efc7a6424a9c53e95de28e67fc79d546e20bb7768e0c3f",
+      "bodySha256": "80b8a95b0b5c0a77b9d4bbdaede74e661f857ddf2f47c7c0281961e7dfa479ba"
+    },
+    {
+      "id": "event_bundle_29",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000029.json",
+      "bytes": 59858,
+      "fileSha256": "ff3eb76a35ee9fdf677a2f46a1951f2356f42258cecc01854b63e9e94b1ee427",
+      "bodySha256": "7bde03e6f9b6c069a0ee96f01e219ad4b885b52dc3f42183c419be67ac73a92f"
+    },
+    {
+      "id": "event_bundle_30",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000030.json",
+      "bytes": 57288,
+      "fileSha256": "68f47e19a5141506e822c3401f97ed7b3c085e7e5d8170a5fc47304e52b57443",
+      "bodySha256": "913a70333dd2ad05fd6d5d61ae8a695a0b9eab8cf33b3bf53527fd98623a6bc3"
+    },
+    {
+      "id": "event_bundle_31",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000031.json",
+      "bytes": 66626,
+      "fileSha256": "dfb9e30af6edd90a348dfabe1c66ad4c05b3d4038d67618831cc2659cbff6fb2",
+      "bodySha256": "c252c3dafb85b3df5bc72a093f6af9333a9be6cabf9ecc72de3e807119d58d93"
+    },
+    {
+      "id": "event_bundle_32",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000032.json",
+      "bytes": 66418,
+      "fileSha256": "69b2199af0cc5b65e06ba3bef07282b4d43dba2bd9c0aa28aa03eb9ced7dbdec",
+      "bodySha256": "a302b0cccd23d9ff2e6837953314ec0e6cd45d1b1e5e9d5de816843bde910b33"
+    },
+    {
+      "id": "event_bundle_33",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000033.json",
+      "bytes": 60172,
+      "fileSha256": "76e2b2add0ce86d1b6eb75f572429752c3a2b49f52f53ff30ad1df46b66cf59a",
+      "bodySha256": "568f5d5ce2dd15faf1014a044301581b528718b1de86c3a41ec0b214045c6f0c"
+    },
+    {
+      "id": "event_bundle_34",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000034.json",
+      "bytes": 140654,
+      "fileSha256": "0bf08ae7e375e09d520f14a28a02085299e364d2921f3b022db97275f6e06bdd",
+      "bodySha256": "63f25da5c6b5e2a984b930bb16bd0f7827414dd9ca8e7776728819faf6358c61"
+    },
+    {
+      "id": "event_bundle_35",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000035.json",
+      "bytes": 169844,
+      "fileSha256": "2bfb228afc3ee2d75c62120f7b43d30321e01fac0a847175ac7b2c5cf91ac194",
+      "bodySha256": "3265c5d29d27ebfc63c3eb9bb8bc869f0586339a49bc6d4dd8cf5c669f713dba"
+    },
+    {
+      "id": "event_bundle_36",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000036.json",
+      "bytes": 158562,
+      "fileSha256": "2c31e21cf3e4ce226d5a08e2c82479f50352660486e6c93bc91f666efcb7b78f",
+      "bodySha256": "19dc7c856bcb375a4a5e15bd577b2f69813b8df59bd665053e7bf90710dcd4a5"
+    },
+    {
+      "id": "event_bundle_37",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000037.json",
+      "bytes": 163712,
+      "fileSha256": "dbff30e5882aef27ce80095a458bc1ad3fa2199349d8eb66d23db703b8bf627c",
+      "bodySha256": "8f88cd6f45f42c9a87d6dbe08b0a8b06606823f65c9167b92135bf0434e42252"
+    },
+    {
+      "id": "event_bundle_38",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000038.json",
+      "bytes": 132760,
+      "fileSha256": "e2cbdcc0677f2c3cb86b9245aee657b210699adb6e2ea491df57b2dc316fec2b",
+      "bodySha256": "943c8b82053a9ba9a9a76bb80a067670f427aacc97c0d98f249c90d314a86bc7"
+    },
+    {
+      "id": "event_bundle_39",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000039.json",
+      "bytes": 102764,
+      "fileSha256": "ef4313258bb01121795baec56832ed15dbf8ec18847e26626c2dfd956990db74",
+      "bodySha256": "c6fc00caeb399275788991ac152dc774d15881f89886020284f49f7c8d8f2c33"
+    },
+    {
+      "id": "event_bundle_40",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000040.json",
+      "bytes": 97940,
+      "fileSha256": "0280d1d2a01249a6732bf6622c448b3c1ddeb85ba5a44fb18418ac4b514e1d3d",
+      "bodySha256": "6e11c729e2cf1ed9abf76e2898e1120460b48cecbe7c3f72749a569ae0a4b717"
+    },
+    {
+      "id": "event_bundle_41",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000041.json",
+      "bytes": 119002,
+      "fileSha256": "a28147647a66bdacc4de6f4cc9d58a5dd36e371c99119ed7e3959695449cbcbc",
+      "bodySha256": "f089d2fe4377f1c655e30d4fd1640389051c68dcae6b03df5acdb6542c7e7021"
+    },
+    {
+      "id": "event_bundle_42",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000042.json",
+      "bytes": 97684,
+      "fileSha256": "e8087a4b7ea350b4eae497942e7737e71061bd4db2193205ff977957e9f82daa",
+      "bodySha256": "b3ab94e194bdec2512c06f535b7c2ae3060a03c2808497fcddb6ac019be4b364"
+    },
+    {
+      "id": "event_bundle_43",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000043.json",
+      "bytes": 118330,
+      "fileSha256": "d19ce9282a30b4851518ad14dca44f8c32964cf495497794efe887e9b3a21ef3",
+      "bodySha256": "b6cc27bd7b0703e380250c691bda3182b7728f92eab68a6b301884083cb4af9c"
+    },
+    {
+      "id": "event_bundle_44",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000044.json",
+      "bytes": 162914,
+      "fileSha256": "5000c390e696515909477d03f7969a610bbff5d1692eb88b55ec526aca5eb2db",
+      "bodySha256": "8614258f0999bd937cf8c4c0b07d468fa3bf10f8372a13d12c2e9ec360e478e2"
+    },
+    {
+      "id": "event_bundle_45",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000045.json",
+      "bytes": 137890,
+      "fileSha256": "1214a0585214247d35ec3e6e0ec5d6f8495e0d1ac2879e1d4a938c1729d43a71",
+      "bodySha256": "d9567b4e5b568ca6bb04136ff2af3b2ecf8b92890fb1efabef9fbc0b177af745"
+    },
+    {
+      "id": "event_bundle_46",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000046.json",
+      "bytes": 149492,
+      "fileSha256": "037efae49a162919ae35c3a3d465adbc2fd7d7b3d77a858e36e6da9026cd855c",
+      "bodySha256": "e0a306629ce4be75d95fc0c1386480b0ef43a44791760ca8321c04a1ed362fee"
+    },
+    {
+      "id": "event_bundle_47",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000047.json",
+      "bytes": 144934,
+      "fileSha256": "6621e2baabf433af86e840f109a9879b36482effb057a7a90f19dc9c28724e95",
+      "bodySha256": "9057c948ff379ca8061fd8603e9f8845d523d58707364d4c4e8ddc974fcbfe0c"
+    },
+    {
+      "id": "event_bundle_48",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000048.json",
+      "bytes": 151274,
+      "fileSha256": "4eeffbc49529882e24311a6fbbc94c091978848a93e3cbce26c198125d40ec13",
+      "bodySha256": "837281c9419e2324533be9150d44f0c5353b439ce70e9eb0468d68c3cc871960"
+    },
+    {
+      "id": "event_bundle_49",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000049.json",
+      "bytes": 113024,
+      "fileSha256": "76e83ebf45ed7d19e8a64a97c1d04a17fd277588aea53c23813189b29f93003a",
+      "bodySha256": "90b7afdedb92a19cb2594a44bdfd88667ede633e166a50335a0d2b431841f879"
+    },
+    {
+      "id": "event_bundle_50",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000050.json",
+      "bytes": 197802,
+      "fileSha256": "64b3434836968d29f82f536e6ee2f5767224b1d63a5464cf09ef938981628a07",
+      "bodySha256": "2d2aa752ff8fac148592dd90bc4d37feeffa269ca35b1912167359e46fa7a550"
+    },
+    {
+      "id": "event_bundle_51",
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000051.json",
+      "bytes": 126444,
+      "fileSha256": "f1b35f565e44dbb1b5e54ad478c56e333e67f913e04c6a6b09b4ef538af16cbd",
+      "bodySha256": "c6db0d8fa70ae6b69468988d8c80165fe1971c409a74def9822c0472977b1c45"
+    }
+  ],
+  "sourceDefinitions": [
+    {
+      "path": "lib/carry/eventConditionedNetScenarios.ts",
+      "bytes": 38575,
+      "fileSha256": "86e12b9d7a303a1e46e4cd3541b213d3abfacec4b4a92e5bee3a6e237a29a5e3"
+    },
+    {
+      "path": "lib/carry/conditionalSampledCashPathProjection.ts",
+      "bytes": 50272,
+      "fileSha256": "2c4c627060d7e4fc03be097f4a88c1f4e4ea1540e426b2bb03aad9331b9fc2fe"
+    },
+    {
+      "path": "scripts/lib/boundedLocalReceiptFile.mjs",
+      "bytes": 2790,
+      "fileSha256": "4877354b90588f13b6fc0407232adac1dea6095151b3ba53c9d0c64ea4bda013"
+    },
+    {
+      "path": "scripts/backfill-carry-cash-archive.mjs",
+      "bytes": 23195,
+      "fileSha256": "8eef1dc55b307460fecfb569ace4ca1c401213a743a2ebc735f8de5e8cc0580b"
+    },
+    {
+      "path": "scripts/research/record-carry-morpho-v2-block-archive.mjs",
+      "bytes": 26258,
+      "fileSha256": "fc2e166c467ac5c81822fc877aca45f45b28981fbfbd91410987709d4cdeaf73"
+    },
+    {
+      "path": "scripts/research/carry-sampled-cash-history-pins.mjs",
+      "bytes": 11411,
+      "fileSha256": "7127d1c2ab5afd9380956980a058bb6ddb3cb1e59b10e6f041de117ea299767c"
+    }
+  ],
+  "nativeEventCatalogueComplete": false,
+  "providerOrganizationalIndependence": false,
+  "causal": false,
+  "authenticated": false,
+  "originalAuthority": false,
+  "forecastValidated": false,
+  "calibrated": false,
+  "holderExecutableExit": false,
+  "competingMRaw": null
+}

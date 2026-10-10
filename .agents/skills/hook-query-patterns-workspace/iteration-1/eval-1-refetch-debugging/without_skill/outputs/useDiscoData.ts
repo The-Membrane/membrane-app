@@ -1,0 +1,268 @@
+import React from 'react'
+import { useQuery, useQueries } from '@tanstack/react-query'
+import { useCosmWasmClient } from '@/helpers/cosmwasmClient'
+import useAppState from '@/persisted-state/useAppState'
+import useWallet from '@/hooks/useWallet'
+import {
+    getLTVQueue,
+    getUserDeposits,
+    getUserLockedDeposits,
+    getUserLifetimeRevenue,
+    getPendingClaims,
+    getDailyTVL,
+    getDailyLTV,
+    getRevenueEvents,
+    getAssets,
+    getTotalInsurance
+} from '@/services/disco'
+
+/**
+ * Get all assets that have LTV queues
+ */
+export const useDiscoAssets = () => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'assets', appState.rpcUrl],
+        queryFn: () => getAssets(client || null),
+        enabled: true, // Always enabled for mock data
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+}
+
+/**
+ * Get LTV queue for an asset
+ */
+export const useDiscoLTVQueue = (asset: string) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'ltv_queue', asset, appState.rpcUrl],
+        queryFn: () => getLTVQueue(client || null, asset),
+        enabled: !!client && !!asset,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+}
+
+/**
+ * Get user's deposits for an asset
+ */
+export const useUserDiscoDeposits = (user: string | undefined, asset: string) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'user_deposits', user, asset, appState.rpcUrl],
+        queryFn: () => getUserDeposits(client || null, user || '', asset),
+        enabled: !!user && !!asset, // Enable even without client for mock data
+        staleTime: 1000 * 60 * 2, // 2 minutes
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+}
+
+/**
+ * Get all user deposits across all assets
+ */
+export const useAllUserDiscoDeposits = (user: string | undefined) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+    const { data: assets } = useDiscoAssets()
+
+    // For mock data, ensure we have at least one asset to query
+    const assetsToQuery = assets?.assets && assets.assets.length > 0
+        ? assets.assets
+        : ['ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4'] // Default USDC denom for mock
+
+    return useQueries({
+        queries: assetsToQuery.map((asset: string) => ({
+            queryKey: ['disco', 'user_deposits', user, asset, appState.rpcUrl],
+            queryFn: () => getUserDeposits(client || null, user || '', asset),
+            enabled: !!user && !!asset, // Enable even without client for mock data
+            staleTime: 1000 * 60 * 2,
+            refetchOnWindowFocus: false,
+            refetchOnReconnect: false,
+        }))
+    })
+}
+
+/**
+ * Get user's locked deposits
+ */
+export const useUserLockedDeposits = (user: string | undefined) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'locked_deposits', user, appState.rpcUrl],
+        queryFn: () => getUserLockedDeposits(client || null, user || ''),
+        enabled: !!client && !!user,
+        staleTime: 1000 * 60 * 2,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+}
+
+/**
+ * Get user's lifetime revenue for an asset
+ */
+export const useUserLifetimeRevenue = (user: string | undefined, asset: string) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'lifetime_revenue', user, asset, appState.rpcUrl],
+        queryFn: () => getUserLifetimeRevenue(client || null, user || '', asset),
+        enabled: !!user && !!asset, // Enable even without client for mock data
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+}
+
+/**
+ * Get pending claims for user and asset
+ */
+export const usePendingClaims = (user: string | undefined, asset: string) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'pending_claims', user, asset, appState.rpcUrl],
+        queryFn: () => getPendingClaims(client || null, user || '', asset),
+        enabled: !!client && !!user && !!asset,
+        staleTime: 1000 * 60 * 1, // 1 minute
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+}
+
+/**
+ * Get daily TVL history
+ */
+export const useDailyTVL = () => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'daily_tvl', appState.rpcUrl],
+        queryFn: () => getDailyTVL(client || null),
+        enabled: !!client,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+}
+
+/**
+ * Get daily LTV history for an asset
+ */
+export const useDailyLTV = (asset: string) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'daily_ltv', asset, appState.rpcUrl],
+        queryFn: () => getDailyLTV(client || null, asset),
+        enabled: !!client && !!asset,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+}
+
+/**
+ * Get revenue events for a specific group
+ */
+export const useRevenueEvents = (asset: string, ltv: string, maxBorrowLtv: string) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+
+    return useQuery({
+        queryKey: ['disco', 'revenue_events', asset, ltv, maxBorrowLtv, appState.rpcUrl],
+        queryFn: () => getRevenueEvents(client || null, asset, ltv, maxBorrowLtv),
+        enabled: !!client && !!asset && !!ltv && !!maxBorrowLtv,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+}
+
+/**
+ * Aggregate user metrics
+ */
+export const useDiscoUserMetrics = (user: string | undefined) => {
+    const { appState } = useAppState()
+    const { data: client } = useCosmWasmClient(appState.rpcUrl)
+    const { data: assets } = useDiscoAssets()
+    const { data: dailyTVL } = useDailyTVL()
+    const { data: totalInsurance } = useQuery({
+        queryKey: ['disco', 'total_insurance', appState.rpcUrl],
+        queryFn: () => getTotalInsurance(client || null),
+        enabled: !!client,
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    })
+
+
+    // Get all user deposits
+    const allDepositsQueries = useAllUserDiscoDeposits(user)
+    const deposits = allDepositsQueries
+        .map(q => q.data?.deposits || [])
+        .flat()
+
+
+    // For mock data, ensure we have at least one asset to query
+    const assetsToQuery = assets?.assets && assets.assets.length > 0
+        ? assets.assets
+        : ['ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4'] // Default USDC denom for mock
+
+    // Get pending claims for all assets using useQueries
+    const pendingClaimsQueries = useQueries({
+        queries: assetsToQuery.map((asset: string) => ({
+            queryKey: ['disco', 'pending_claims', user, asset, appState.rpcUrl],
+            queryFn: () => getPendingClaims(client || null, user || '', asset),
+            enabled: !!user && !!asset, // Enable for mock data even without client
+            staleTime: 1000 * 60 * 1,
+            refetchOnWindowFocus: false,
+            refetchOnReconnect: false,
+        }))
+    })
+    const pendingClaims = pendingClaimsQueries
+        .map(q => q.data?.claims || [])
+        .flat()
+
+    // Get lifetime revenue for all assets using useQueries
+    const lifetimeRevenueQueries = useQueries({
+        queries: assetsToQuery.map((asset: string) => ({
+            queryKey: ['disco', 'lifetime_revenue', user, asset, appState.rpcUrl],
+            queryFn: () => getUserLifetimeRevenue(client || null, user || '', asset),
+            enabled: !!user && !!asset, // Enable even without client for mock data
+            staleTime: 1000 * 60 * 5,
+            refetchOnWindowFocus: false,
+            refetchOnReconnect: false,
+        }))
+    })
+    const lifetimeRevenue = lifetimeRevenueQueries
+        .map(q => q.data || [])
+        .flat()
+
+    return {
+        deposits,
+        pendingClaims,
+        lifetimeRevenue,
+        dailyTVL: dailyTVL?.entries || [],
+        totalInsurance: totalInsurance || "0",
+        isLoading: allDepositsQueries.some(q => q.isLoading) ||
+            pendingClaimsQueries.some(q => q.isLoading) ||
+            lifetimeRevenueQueries.some(q => q.isLoading),
+    }
+}
+

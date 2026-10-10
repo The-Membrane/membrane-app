@@ -1,0 +1,28 @@
+{
+  "planSha256": "4d200e6aad83715eabe7ced460aa599615e2627df68d55160f0096baacfef661",
+  "anchorBlock": 26000000,
+  "vault": "0xf1ca44eea3a4effcb195a970a2f1d8553f76f9a1",
+  "routeKey": "USDC → VaultV2 [USDC]",
+  "status": "no_eligible_holder",
+  "row": {
+    "vault": "0xf1ca44eea3a4effcb195a970a2f1d8553f76f9a1",
+    "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "anchorBlock": 26000000,
+    "status": "no_eligible_holder",
+    "baselineIdentity": {
+      "status": "confirmed",
+      "shareDecimals": 18,
+      "assetDecimals": 6
+    },
+    "totalAssetsRaw": "182960658618",
+    "candidateWindow": {
+      "fromBlock": 25995904,
+      "throughBlock": 25999999,
+      "transferLogs": 0,
+      "distinctRecipients": 0,
+      "screened": 0
+    },
+    "screenedCandidates": []
+  },
+  "cellSha256": "088889183eb9d67c1787a3406d221b5d9c6eba9a7b28a3a08d48f82f7a0ce166"
+}

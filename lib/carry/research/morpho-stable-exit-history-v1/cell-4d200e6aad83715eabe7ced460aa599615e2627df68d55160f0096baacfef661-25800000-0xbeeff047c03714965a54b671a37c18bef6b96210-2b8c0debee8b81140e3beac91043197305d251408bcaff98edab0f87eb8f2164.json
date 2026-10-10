@@ -1,0 +1,101 @@
+{
+  "planSha256": "4d200e6aad83715eabe7ced460aa599615e2627df68d55160f0096baacfef661",
+  "anchorBlock": 25800000,
+  "vault": "0xbeeff047c03714965a54b671a37c18bef6b96210",
+  "routeKey": "USDC → VaultV2 [USDC]",
+  "status": "no_eligible_holder",
+  "row": {
+    "vault": "0xbeeff047c03714965a54b671a37c18bef6b96210",
+    "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "anchorBlock": 25800000,
+    "status": "no_eligible_holder",
+    "baselineIdentity": {
+      "status": "confirmed",
+      "shareDecimals": 18,
+      "assetDecimals": 6
+    },
+    "totalAssetsRaw": "14272803607972",
+    "candidateWindow": {
+      "fromBlock": 25795904,
+      "throughBlock": 25799999,
+      "transferLogs": 121,
+      "distinctRecipients": 17,
+      "screened": 8
+    },
+    "screenedCandidates": [
+      {
+        "owner": "0xfb8ad89a67b3d10d54721df1377e5c5d1c9f930f",
+        "discoveryBlock": 25799841,
+        "discoveryBlockHash": "0xc9cfe8e56f2aeddda051af581867926b041eb68bd4e7ae3da5fb2538a0d61d58",
+        "discoveryTransactionHash": "0xe1203f457eaae9a553ab5546d051c4f805377f157f6e30a62260e6ce370d095b",
+        "discoveryLogIndex": 167,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0x255c7705e8bb334dfcae438197f7c4297988085a",
+        "discoveryBlock": 25799841,
+        "discoveryBlockHash": "0xc9cfe8e56f2aeddda051af581867926b041eb68bd4e7ae3da5fb2538a0d61d58",
+        "discoveryTransactionHash": "0xe1203f457eaae9a553ab5546d051c4f805377f157f6e30a62260e6ce370d095b",
+        "discoveryLogIndex": 165,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0xc586fb0a2478e9763d0f857d13ceed8dc414417c",
+        "discoveryBlock": 25799719,
+        "discoveryBlockHash": "0xcd119f3dac07df59929ffca173f101089424f802ab3dd5bf62d4c2f4431923df",
+        "discoveryTransactionHash": "0xbc303efdda004e1c73bf5d88a10f6135526902af831f0326f124e36a5d2dcbca",
+        "discoveryLogIndex": 233,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0x465f60c355a8193ac2bfe0c06fa948d7e3041b81",
+        "discoveryBlock": 25799695,
+        "discoveryBlockHash": "0xa1eb4030117b234313c9d03212829a0bc11861c047ef375ea49aa8b753745a45",
+        "discoveryTransactionHash": "0x48bb328dfcbfc1b8b435cb9f6d0678df68b7f17421c2a5b76419aedd6a838666",
+        "discoveryLogIndex": 264,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0x46c94c0537c6f4462619eada70e9280e593445c8",
+        "discoveryBlock": 25799398,
+        "discoveryBlockHash": "0x2754b481bba19d464072b0e3927717543e1a9ad2917e7dcd22de6adab1c23c1f",
+        "discoveryTransactionHash": "0xd8ccb24c6a1f9e655a862c05ee24df24decab9f7e6e410c9f56d842ba13bb2e6",
+        "discoveryLogIndex": 370,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0xdb55cfab41bf3ff81eaace699c3e141c29d4b5fc",
+        "discoveryBlock": 25799271,
+        "discoveryBlockHash": "0x3dd90816fb9f1bc7e5cbf0026df8c9aa1b20c578d51422e991a35f377241236c",
+        "discoveryTransactionHash": "0x23b07192e9ab5baa0e43dfcdde086ff9d5dce76cc8cde7fc4089b470df9d396a",
+        "discoveryLogIndex": 79,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0xbdc98c6d848899ff2e290111a5fd4d07b32909b5",
+        "discoveryBlock": 25799176,
+        "discoveryBlockHash": "0x9f466c24c522b1ddf2c1484c75c4724f6a758d9a8cf55699dfe59dfdef2c2e58",
+        "discoveryTransactionHash": "0xb833bad94541fdfacde4e0e626aca44e4dac140a0c98a7442a53a257f968de6c",
+        "discoveryLogIndex": 326,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0x1a10f169b99e93107ee80ca5ff2e0215389542cc",
+        "discoveryBlock": 25799119,
+        "discoveryBlockHash": "0x25c83021c14a6f67bb1047b46109984823fb4bad13fcf12e2a15afbc9a5a2f29",
+        "discoveryTransactionHash": "0x4643ab8c544900ef8aa153d1a8d0ebf222c745f9b78a1bb3e7731215a216a16f",
+        "discoveryLogIndex": 272,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      }
+    ]
+  },
+  "cellSha256": "2b8c0debee8b81140e3beac91043197305d251408bcaff98edab0f87eb8f2164"
+}

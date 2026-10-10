@@ -1,0 +1,171 @@
+How can you use color inside of your mobile UI&nbsp;
+design projects to come out looking really mature&nbsp;&nbsp;
+and really seamless and really well thought out&nbsp;
+and not obnoxious and loud? And really the worst&nbsp;&nbsp;
+thing that it could be is distracting. Well,&nbsp;
+you might want to use a little rule or guideline&nbsp;&nbsp;
+called the 60 30 ten rule, which is going to&nbsp;
+help you to understand how to use color, how&nbsp;&nbsp;
+to implement color, and when to break that rule.&nbsp;
+We're going to talk all about that coming up next.
+----
+All right, before we get too far into the&nbsp;
+60 30 ten rule, make sure that you like and&nbsp;&nbsp;
+subscribe to this channel and hit that little Bell&nbsp;
+notification icon. So you know when other videos&nbsp;&nbsp;
+like this one come out, let's jump over to Figma&nbsp;
+so we can talk a little bit about the 63,010 rule.&nbsp;&nbsp;
+I have an image that I pulled from a great blog&nbsp;
+post that will leave a link in the description&nbsp;&nbsp;
+by a designer who's talking about the 60 30&nbsp;
+ten rule. And she has a really great contrast&nbsp;&nbsp;
+to comparison before and after. I thought it&nbsp;
+would be a great use case or case study for us,&nbsp;&nbsp;
+but I've taken that initial UI design that she&nbsp;
+shows in her post and it looks like a yard sale.
+----
+It is really immature. The usage of color is just&nbsp;
+distracting. It's overbearing. I don't know where&nbsp;&nbsp;
+I'm supposed to look or where I'm supposed to&nbsp;
+go. Let's make a little bit of sense with this.
+----
+In our 60 30 ten rule, I have&nbsp;
+three blocks of color up here,&nbsp;&nbsp;
+and each rectangle is 1000 pixels&nbsp;
+wide, which represents our 100%&nbsp;&nbsp;
+of color usage. In our 60 30 ten rule,&nbsp;
+we want to make sure that we're using&nbsp;&nbsp;
+60% of our neutral or our base color. It's going&nbsp;
+to be a neutral color. It could be a creamy color,&nbsp;&nbsp;
+a white color. If you're doing a dark interface,&nbsp;
+it's going to be some sort of dark color.
+----
+Now, later on, we'll talk about how you can flip&nbsp;
+this around and do really bright interfaces and&nbsp;&nbsp;
+use 60% of a brighter color. But for now, let's&nbsp;
+stick with the more neutralized version. 60%&nbsp;&nbsp;
+is going to be this color. So let's just&nbsp;
+take this really quickly and type 600 pixels&nbsp;&nbsp;
+that represents our 60%. Then you're going&nbsp;
+to have some sort of primary color, right?
+----
+This might be a brand color. This primary&nbsp;
+color is important, but it's not going to&nbsp;&nbsp;
+be as important as our call to action&nbsp;
+color. Our secondary color. This one,&nbsp;&nbsp;
+we want to be 30%. So let's do 300 here&nbsp;
+and we'll just pop this up into place.
+----
+And then you guessed it, our call to action.&nbsp;
+It should be used sparingly. Our secondary&nbsp;&nbsp;
+color. This is the thing that says, Click me,&nbsp;
+look at me, I'm active. Do something with me.
+----
+We want that to only be 10%. So&nbsp;
+let's take it down to 100. And&nbsp;&nbsp;
+now we have a color palette that we can&nbsp;
+use for 63 and ten. And you can see this&nbsp;&nbsp;
+60 30 ten is not well represented in this&nbsp;
+version of the design, but I would say it is&nbsp;&nbsp;
+much more represented in this next iterated&nbsp;
+updated version of her design where she's now&nbsp;&nbsp;
+she's really done away with a lot of the&nbsp;
+excess use of color. She stripped it down.
+----
+She's kind of neutralized thing now. Yes,&nbsp;
+there's some other fixes here, some copy fixes,&nbsp;&nbsp;
+some iconography fixes. But even if you kept all&nbsp;
+the other little mistakes in this previous design,&nbsp;&nbsp;
+the color is just heads and shoulders,&nbsp;
+heads and tails, whatever you want to say.&nbsp;&nbsp;
+A much better version of color implementation&nbsp;
+here, much more neutralized here. Right.
+----
+Our primary colors being used for important&nbsp;
+areas. And our call to action color is only&nbsp;&nbsp;
+in very important areas. Click me. Do&nbsp;
+something with me. Pay attention to me.
+----
+This is for you user. These call to&nbsp;
+action areas. And so that's the 60&nbsp;&nbsp;
+30 ten rule. Let's really quickly take&nbsp;
+a look at some other implementations&nbsp;&nbsp;
+of the 60 30 ten. But keep in&nbsp;
+mind, it's just a guideline.
+----
+I'm going to show you some great kind of&nbsp;
+uses of 60 30. But they're breaking it a&nbsp;&nbsp;
+little bit and that's okay with me.&nbsp;
+It should be okay with you as well.&nbsp;&nbsp;
+I pulled some Figma community&nbsp;
+files in here. Now, you might say&nbsp;&nbsp;
+that this neutral color is whatever this&nbsp;
+kind of like grayish color is that works.
+----
+It looks kind of like white, but it's not&nbsp;
+really. But maybe it is white. That's fine.&nbsp;&nbsp;
+And then you might say that&nbsp;
+your secondary color. Right.
+----
+And they're breaking it a little bit&nbsp;
+here is maybe kind of like this bluish&nbsp;&nbsp;
+color. And then your excuse me, your primary&nbsp;
+and then your call to action color is definitely&nbsp;&nbsp;
+discounted kind of purpley color, but that's&nbsp;
+still kind of 60 30 ten. They're throwing some fun&nbsp;&nbsp;
+gradients on the top and playing with it. But I'd&nbsp;
+say this is more of a two color design and they're&nbsp;&nbsp;
+just kind of utilizing some hues of that color.&nbsp;
+Let's do this one over here by Mohit Designs.
+----
+We got a really similar thing happening. We&nbsp;
+got white. Right. And then you're going to see&nbsp;&nbsp;
+throughout over like kind of a span of multiple&nbsp;
+screens that maybe are primary colors, kind of&nbsp;&nbsp;
+this Gray. But that call to action color is really&nbsp;
+this kind of warm kind of burnt Orange color.
+----
+We can see a really beautiful&nbsp;
+color palette. So it's a good&nbsp;&nbsp;
+usage of the rule in UI design. Let's&nbsp;
+look at a couple more examples online.&nbsp;&nbsp;
+Here's some great examples on&nbsp;
+Dribble. This one by Gulam Razul.
+----
+This is an example of kind of the reverse&nbsp;
+of it where your bright color is 60%. Right.&nbsp;&nbsp;
+And then you can see we have 30% is a lighter&nbsp;
+hue, but look still 10% on the actionable colors.&nbsp;&nbsp;
+We're still doing the 60 30 ten. We're&nbsp;
+just using color instead of a neutral.
+----
+That's okay, I'm down with that. Here's another&nbsp;
+one by the same designer. He's just kind of like&nbsp;&nbsp;
+flipped it to a dark interface look. Same kind&nbsp;
+of like guidelines. Even in a dark interface 60%&nbsp;&nbsp;
+is going to be this real dark color,&nbsp;
+30% is going to be these lighter colors.
+----
+He's bringing some gradients into them. That's&nbsp;
+fine with me but only 10% is being used for that&nbsp;&nbsp;
+accent color. Let's do another one by Euroart&nbsp;
+93 again we Zoom in, we see 60% right 30% 10%&nbsp;&nbsp;
+and last one just to drive the idea home one&nbsp;
+more time. This one is by sub one this beautiful&nbsp;&nbsp;
+little bit of UI design here. Even when you have&nbsp;
+images that's fine images are doing their own&nbsp;&nbsp;
+thing but 60% being kind of like this grayish&nbsp;
+neutralized color, 30% for the white cards,&nbsp;&nbsp;
+10% for the call to action buttons and&nbsp;
+there you have it, your 60 30 ten rule.
+----
+I hope you enjoyed that video. If you did make&nbsp;
+sure that you leave a thumbs up subscribe to the&nbsp;&nbsp;
+channel, all that stuff because I make videos like&nbsp;
+this all the time about UI design, about graphic&nbsp;&nbsp;
+design, about web design so make sure that you&nbsp;
+stick around for more videos when they come out.&nbsp;&nbsp;
+If you have any questions, leave those down in&nbsp;
+the comments. I hope you're having an amazing week&nbsp;&nbsp;
+using color in a really beautiful and&nbsp;
+mature way. We'll see you in the next one.

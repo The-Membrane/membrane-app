@@ -1,0 +1,19 @@
+{
+  "eval_id": 1,
+  "eval_name": "refetch-debugging",
+  "prompt": "The disco page keeps refetching slot data every time I switch browser tabs or come back to the window. It's hammering the RPC. Can you figure out what's wrong and fix it?",
+  "assertions": [
+    {
+      "text": "Diagnoses staleTime as the root cause of refetching on tab focus",
+      "type": "reasoning_check"
+    },
+    {
+      "text": "Adds staleTime to relevant queries with appropriate tier values (not arbitrary)",
+      "type": "code_check"
+    },
+    {
+      "text": "Changes are targeted - doesn't wholesale rewrite unrelated code",
+      "type": "code_check"
+    }
+  ]
+}

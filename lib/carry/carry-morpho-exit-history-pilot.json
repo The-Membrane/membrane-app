@@ -1,0 +1,1769 @@
+{
+  "schemaVersion": 1,
+  "study": "carry-morpho-exit-history-panel-v1",
+  "chainId": 1,
+  "mode": "historical_read_only",
+  "prospectiveValidation": false,
+  "futureExitForecast": false,
+  "universe": {
+    "manifestSha256": "8dd54bbb3dea0842bb67e582f0725adcafb7594107933122c5fa381c083566da",
+    "knownVaults": 49,
+    "attemptedVaults": 49
+  },
+  "method": {
+    "anchorSelection": "fixed_block",
+    "holderDiscovery": "positive Transfer recipients strictly before B",
+    "candidateOrder": "most recent transfer first",
+    "candidateLookbackBlocks": 4096,
+    "maxCandidatesPerVault": 4,
+    "sizing": "min(10% anchor holder claim, 0.1% anchor vault totalAssets)",
+    "call": "withdraw(q,holder,holder) from holder at EIP-1898 canonical block hash, 20m gas"
+  },
+  "anchor": {
+    "number": 26052740,
+    "hash": "0xf43d7e3b07870c3eef167f2681d6132a337c1c5eefc4a5223e4fdfd4843ad756",
+    "timestamp": 1790318495
+  },
+  "horizon": {
+    "number": 26053040,
+    "hash": "0x677ad04ddd6f86bcea6112cdbad1c09c3ef95d269362037a051b3389cfe5cc2c",
+    "timestamp": 1790322095,
+    "priorTimestamp": 1790322083,
+    "requestedTimestamp": 1790322095,
+    "realizedLagSeconds": 0
+  },
+  "statusCounts": {
+    "measured": 21,
+    "no_candidate_in_lookback": 15,
+    "no_holder_in_bounded_candidates": 1,
+    "no_pre_anchor_eoa_holder": 10,
+    "unfunded_at_anchor": 2
+  },
+  "baselineCounts": {
+    "success": 18,
+    "evmRevert": 3,
+    "missingRpc": 0,
+    "gasError": 0
+  },
+  "baselineSuccessRiskSet": {
+    "count": 18,
+    "horizonCounts": {
+      "success": 18
+    }
+  },
+  "rows": [
+    {
+      "vault": "0x0026038a7fefef439d94bd99b4a10017e839d3a7",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "1031977",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0x069662d2588fcac24b5c209456db965d151556f0",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "4593721766207",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 3
+      },
+      "discoveredCandidateCount": 1,
+      "screenedCandidates": [
+        {
+          "owner": "0x514272d916419eb3048d8eadebbdff1b116273cd",
+          "discoveryBlock": 26052400,
+          "discoveryBlockHash": "0xeb7a7e608a73090d9ff3dd893833b4a2e3af3ff9471c57f50064f3625dd8cb7a",
+          "discoveryTransactionHash": "0xcf643f618b25a3b3baa58d65f0ee24209abc6febdf146b2476a2bec93705b573",
+          "discoveryLogIndex": 459,
+          "eoa": true,
+          "sharesRaw": "10039607251304848048655",
+          "claimRaw": "10256174089"
+        }
+      ],
+      "holder": "0x514272d916419eb3048d8eadebbdff1b116273cd",
+      "holderDiscovery": {
+        "owner": "0x514272d916419eb3048d8eadebbdff1b116273cd",
+        "discoveryBlock": 26052400,
+        "discoveryBlockHash": "0xeb7a7e608a73090d9ff3dd893833b4a2e3af3ff9471c57f50064f3625dd8cb7a",
+        "discoveryTransactionHash": "0xcf643f618b25a3b3baa58d65f0ee24209abc6febdf146b2476a2bec93705b573",
+        "discoveryLogIndex": 459,
+        "discoveryTimestamp": 1790314379
+      },
+      "qAssetsRaw": "1025617408",
+      "anchorSharesRaw": "10039607251304848048655",
+      "anchorClaimRaw": "10256174089",
+      "anchorCall": {
+        "status": "evm_revert"
+      },
+      "horizonSharesRaw": "10039607251304848048655",
+      "horizonClaimRaw": "10256217590",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "evm_revert"
+      },
+      "horizonClass": "evm_revert"
+    },
+    {
+      "vault": "0x093272c07700d3ca5301c3bf9b3a392624179e2f",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "9770306429231",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 2
+      },
+      "discoveredCandidateCount": 1,
+      "screenedCandidates": [
+        {
+          "owner": "0x514272d916419eb3048d8eadebbdff1b116273cd",
+          "discoveryBlock": 26051192,
+          "discoveryBlockHash": "0xe79e26b37b6a1e36d85cde10078b1419a71054fc17cadc2496f291ac9eb51764",
+          "discoveryTransactionHash": "0x34005f2f3403635535262a67fcd3544e34cc94f00db6449385a2f7519c6fa86d",
+          "discoveryLogIndex": 445,
+          "eoa": true,
+          "sharesRaw": "58488611076774097747969",
+          "claimRaw": "62031303410"
+        }
+      ],
+      "holder": "0x514272d916419eb3048d8eadebbdff1b116273cd",
+      "holderDiscovery": {
+        "owner": "0x514272d916419eb3048d8eadebbdff1b116273cd",
+        "discoveryBlock": 26051192,
+        "discoveryBlockHash": "0xe79e26b37b6a1e36d85cde10078b1419a71054fc17cadc2496f291ac9eb51764",
+        "discoveryTransactionHash": "0x34005f2f3403635535262a67fcd3544e34cc94f00db6449385a2f7519c6fa86d",
+        "discoveryLogIndex": 445,
+        "discoveryTimestamp": 1790299775
+      },
+      "qAssetsRaw": "6203130341",
+      "anchorSharesRaw": "58488611076774097747969",
+      "anchorClaimRaw": "62031303410",
+      "anchorCall": {
+        "status": "evm_revert"
+      },
+      "horizonSharesRaw": "58488611076774097747969",
+      "horizonClaimRaw": "62031715577",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "evm_revert"
+      },
+      "horizonClass": "evm_revert"
+    },
+    {
+      "vault": "0x0bf0164d17469241b6e086da4016dcc54feaa334",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "unfunded_at_anchor",
+      "totalAssetsRaw": "0"
+    },
+    {
+      "vault": "0x153bd1abe60104bd46aa05a27fa12d1346d64a57",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "1146737542574",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0x23f5e9c35820f4bab695ac1f19c203cc3f8e1e11",
+      "expectedAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "status": "measured",
+      "totalAssetsRaw": "62802267285765",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 3
+      },
+      "discoveredCandidateCount": 2,
+      "screenedCandidates": [
+        {
+          "owner": "0x69bb4a5777087a69562164a2b7bf3ce91c3d4b3e",
+          "discoveryBlock": 26049777,
+          "discoveryBlockHash": "0x9b76b99fd3abf2d1f3588bdfaeab0d829ab9076d8f6dc37a0a0dbbd8e6c5775c",
+          "discoveryTransactionHash": "0x9ae93a8188582fdc34abc7a26ee04392247f93cb0a972d65a2c80d79ea86bc13",
+          "discoveryLogIndex": 858,
+          "eoa": true,
+          "sharesRaw": "2225740311060123101835",
+          "claimRaw": "2262018527"
+        }
+      ],
+      "holder": "0x69bb4a5777087a69562164a2b7bf3ce91c3d4b3e",
+      "holderDiscovery": {
+        "owner": "0x69bb4a5777087a69562164a2b7bf3ce91c3d4b3e",
+        "discoveryBlock": 26049777,
+        "discoveryBlockHash": "0x9b76b99fd3abf2d1f3588bdfaeab0d829ab9076d8f6dc37a0a0dbbd8e6c5775c",
+        "discoveryTransactionHash": "0x9ae93a8188582fdc34abc7a26ee04392247f93cb0a972d65a2c80d79ea86bc13",
+        "discoveryLogIndex": 858,
+        "discoveryTimestamp": 1790282639
+      },
+      "qAssetsRaw": "226201852",
+      "anchorSharesRaw": "2225740311060123101835",
+      "anchorClaimRaw": "2262018527",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "222574030381930750293"
+      },
+      "horizonSharesRaw": "2225740311060123101835",
+      "horizonClaimRaw": "2262028837",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "222573015914825902657"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0x2bd3a43863c07b6a01581fada0e1614ca5df0e3d",
+      "expectedAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "313845721388",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 1
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0x32401b9fb79065bc15949de0bd43927492f02f0c",
+      "expectedAsset": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+      "status": "measured",
+      "totalAssetsRaw": "4977088080778",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 1
+      },
+      "discoveredCandidateCount": 1,
+      "screenedCandidates": [
+        {
+          "owner": "0xa817e31c4b9b3a5a596bb2e81d5068030b1778ec",
+          "discoveryBlock": 26049562,
+          "discoveryBlockHash": "0x21ff2875483b950a382d8001c42a1bf5a662e4cd09043029f4055af780d25e58",
+          "discoveryTransactionHash": "0x531d99c35b441d992f6e83c2ad50e1b5325a693e76874d0f16413eae34667ba0",
+          "discoveryLogIndex": 711,
+          "eoa": true,
+          "sharesRaw": "37085351107950662379342",
+          "claimRaw": "38326786837"
+        }
+      ],
+      "holder": "0xa817e31c4b9b3a5a596bb2e81d5068030b1778ec",
+      "holderDiscovery": {
+        "owner": "0xa817e31c4b9b3a5a596bb2e81d5068030b1778ec",
+        "discoveryBlock": 26049562,
+        "discoveryBlockHash": "0x21ff2875483b950a382d8001c42a1bf5a662e4cd09043029f4055af780d25e58",
+        "discoveryTransactionHash": "0x531d99c35b441d992f6e83c2ad50e1b5325a693e76874d0f16413eae34667ba0",
+        "discoveryLogIndex": 711,
+        "discoveryTimestamp": 1790280047
+      },
+      "qAssetsRaw": "3832678683",
+      "anchorSharesRaw": "37085351107950662379342",
+      "anchorClaimRaw": "38326786837",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "3708535110028644261918"
+      },
+      "horizonSharesRaw": "37085351107950662379342",
+      "horizonClaimRaw": "38327018221",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "3708512721277727605621"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0x35cbe8542e70fa2f7f9cdf129f19e593f4b4f560",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "unfunded_at_anchor",
+      "totalAssetsRaw": "0"
+    },
+    {
+      "vault": "0x36cfe1568461e499391ef0a555300f1ae2da2439",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "15643405224198",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 22
+      },
+      "discoveredCandidateCount": 8,
+      "screenedCandidates": [
+        {
+          "owner": "0xc2d9bf7c2b277d054860e35b180ba80f1b0034f4",
+          "discoveryBlock": 26051966,
+          "discoveryBlockHash": "0xfebf370b12d556375eadd69bcef50b7777f4f273f4da39be954e5fdc99040410",
+          "discoveryTransactionHash": "0x5065d5dc6cf123c4e293e7db92df770c997188d1943da4e1f549c9806a9cf694",
+          "discoveryLogIndex": 368,
+          "eoa": false,
+          "sharesRaw": "9025717277437518194921",
+          "claimRaw": "9505695671"
+        },
+        {
+          "owner": "0x8e03609ed680b237c7b6f8020472ca0687308b24",
+          "discoveryBlock": 26051966,
+          "discoveryBlockHash": "0xfebf370b12d556375eadd69bcef50b7777f4f273f4da39be954e5fdc99040410",
+          "discoveryTransactionHash": "0x5065d5dc6cf123c4e293e7db92df770c997188d1943da4e1f549c9806a9cf694",
+          "discoveryLogIndex": 366,
+          "eoa": false,
+          "sharesRaw": "1765535167352445504337697",
+          "claimRaw": "1859424518090"
+        },
+        {
+          "owner": "0x9e472d85bfa9b599f1848d7821095f4fc61430f5",
+          "discoveryBlock": 26051432,
+          "discoveryBlockHash": "0x54dfddaff91521fbf7be7c4ecf04554217ba33089a008b5b79deca7fc3f3a3dd",
+          "discoveryTransactionHash": "0x5d3278f1da9ac00291e9037aa604cad72ca9404e7e27cc6754c67dd9c6f0b862",
+          "discoveryLogIndex": 978,
+          "eoa": false,
+          "sharesRaw": "55462799640852461116238",
+          "claimRaw": "58412254483"
+        },
+        {
+          "owner": "0xa928aa5dfac7fd5cdb5be37f44288b39869dfaea",
+          "discoveryBlock": 26051321,
+          "discoveryBlockHash": "0xd1777769c95bd9fe62930fd9c4e65aef828f564bbb0a3b65240f597b69273d47",
+          "discoveryTransactionHash": "0xaa796f01480b1ad187413c65d462e3ea88c9d2a749bc37f1bf9cc5db5a94917b",
+          "discoveryLogIndex": 218,
+          "eoa": true,
+          "sharesRaw": "15858833792951183785847",
+          "claimRaw": "16702190320"
+        }
+      ],
+      "holder": "0xa928aa5dfac7fd5cdb5be37f44288b39869dfaea",
+      "holderDiscovery": {
+        "owner": "0xa928aa5dfac7fd5cdb5be37f44288b39869dfaea",
+        "discoveryBlock": 26051321,
+        "discoveryBlockHash": "0xd1777769c95bd9fe62930fd9c4e65aef828f564bbb0a3b65240f597b69273d47",
+        "discoveryTransactionHash": "0xaa796f01480b1ad187413c65d462e3ea88c9d2a749bc37f1bf9cc5db5a94917b",
+        "discoveryLogIndex": 218,
+        "discoveryTimestamp": 1790301323
+      },
+      "qAssetsRaw": "1670219032",
+      "anchorSharesRaw": "15858833792951183785847",
+      "anchorClaimRaw": "16702190320",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "1585883379232731024850"
+      },
+      "horizonSharesRaw": "15858833792951183785847",
+      "horizonClaimRaw": "16702328503",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "1585870258774092965983"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0x4ef53d2caa51c447fdfeeedee8f07fd1962c9ee6",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "26751189285416",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 4
+      },
+      "discoveredCandidateCount": 3,
+      "screenedCandidates": [
+        {
+          "owner": "0x5fe8322b31ab454e39aa66650527752d62a5218c",
+          "discoveryBlock": 26052563,
+          "discoveryBlockHash": "0x55c4a22e8e63f8be25ae65948e8b8cb2bf62181936b31c448de4dbc8b58347a0",
+          "discoveryTransactionHash": "0x32c478e43a5c6f17286ecc6e281984a1dcc082c7bc1b089f84d61744d8b6554c",
+          "discoveryLogIndex": 883,
+          "eoa": true,
+          "sharesRaw": "171089961432933970",
+          "claimRaw": "177025"
+        }
+      ],
+      "holder": "0x5fe8322b31ab454e39aa66650527752d62a5218c",
+      "holderDiscovery": {
+        "owner": "0x5fe8322b31ab454e39aa66650527752d62a5218c",
+        "discoveryBlock": 26052563,
+        "discoveryBlockHash": "0x55c4a22e8e63f8be25ae65948e8b8cb2bf62181936b31c448de4dbc8b58347a0",
+        "discoveryTransactionHash": "0x32c478e43a5c6f17286ecc6e281984a1dcc082c7bc1b089f84d61744d8b6554c",
+        "discoveryLogIndex": 883,
+        "discoveryTimestamp": 1790316335
+      },
+      "qAssetsRaw": "17702",
+      "anchorSharesRaw": "171089961432933970",
+      "anchorClaimRaw": "177025",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "17108491957643426"
+      },
+      "horizonSharesRaw": "171089961432933970",
+      "horizonClaimRaw": "177026",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "17108400986075977"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0x56bfa6f53669b836d1e0dfa5e99706b12c373ecf",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "10060093563338",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 1
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0x5dc53a23adc9f2bed98de6f59f7f309a7c71ff2b",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "14658919422071",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 4
+      },
+      "discoveredCandidateCount": 2,
+      "screenedCandidates": [
+        {
+          "owner": "0x5d4c7c8bf46d630dab825faaba6d0d466f6b8523",
+          "discoveryBlock": 26048709,
+          "discoveryBlockHash": "0x0e3163a746d0584d0061a673c9377bb6893979156017d929f3647f204a591f17",
+          "discoveryTransactionHash": "0x33a99f5e28c5fbda81853fe829ee49fa473f02f3f6014ba99e4032df0c272be0",
+          "discoveryLogIndex": 525,
+          "eoa": false,
+          "sharesRaw": "444076355919488254150",
+          "claimRaw": "451336392"
+        },
+        {
+          "owner": "0x085d78fd7ffa668a33beeed3d931a5ebdbcfe16c",
+          "discoveryBlock": 26048709,
+          "discoveryBlockHash": "0x0e3163a746d0584d0061a673c9377bb6893979156017d929f3647f204a591f17",
+          "discoveryTransactionHash": "0x33a99f5e28c5fbda81853fe829ee49fa473f02f3f6014ba99e4032df0c272be0",
+          "discoveryLogIndex": 511,
+          "eoa": false,
+          "sharesRaw": "0",
+          "claimRaw": "0"
+        }
+      ]
+    },
+    {
+      "vault": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+      "expectedAsset": "0x514910771af9ca656af840dff83e8264ecf986ca",
+      "status": "measured",
+      "totalAssetsRaw": "252982519322673862450241",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 14
+      },
+      "discoveredCandidateCount": 2,
+      "screenedCandidates": [
+        {
+          "owner": "0xeb4af6fa3afa08b10d593ec8ff87efb03bc04645",
+          "discoveryBlock": 26052687,
+          "discoveryBlockHash": "0x9032bbd2c4a8f6724170b67267d9a6aa819ddd4e8f12428bcf0c82b51518c583",
+          "discoveryTransactionHash": "0x99be5df00446bdd6c2969b6d5600ff1bf3e3271032321207dfcc46ec40327dd3",
+          "discoveryLogIndex": 456,
+          "eoa": false,
+          "sharesRaw": "139118241056930311133",
+          "claimRaw": "144233339831733560671"
+        },
+        {
+          "owner": "0x20811867707eb9f2c8a1b2bb8bae6ce3f9befbdd",
+          "discoveryBlock": 26050566,
+          "discoveryBlockHash": "0xddf12554e2aaf76b30749fc67f9c5ab377b2db4404bc116c79e4335504a93458",
+          "discoveryTransactionHash": "0xb5356c15f86ea620ccf4621baaa51f9025dcb09a77d659c4ff2d3fdeaafdaa0a",
+          "discoveryLogIndex": 936,
+          "eoa": true,
+          "sharesRaw": "84917870573504735164708",
+          "claimRaw": "88040130403915355181467"
+        }
+      ],
+      "holder": "0x20811867707eb9f2c8a1b2bb8bae6ce3f9befbdd",
+      "holderDiscovery": {
+        "owner": "0x20811867707eb9f2c8a1b2bb8bae6ce3f9befbdd",
+        "discoveryBlock": 26050566,
+        "discoveryBlockHash": "0xddf12554e2aaf76b30749fc67f9c5ab377b2db4404bc116c79e4335504a93458",
+        "discoveryTransactionHash": "0xb5356c15f86ea620ccf4621baaa51f9025dcb09a77d659c4ff2d3fdeaafdaa0a",
+        "discoveryLogIndex": 936,
+        "discoveryTimestamp": 1790292203
+      },
+      "qAssetsRaw": "252982519322673862450",
+      "anchorSharesRaw": "84917870573504735164708",
+      "anchorClaimRaw": "88040130403915355181467",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "244010733907847450872"
+      },
+      "horizonSharesRaw": "84917870573504735164708",
+      "horizonClaimRaw": "88040364607123667568227",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "244010084795397736484"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0x69a238ae7ebeb3c53ff3b544e48b96a2142fc284",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "1266396886766",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 4
+      },
+      "discoveredCandidateCount": 2,
+      "screenedCandidates": [
+        {
+          "owner": "0x0e0c281ff05d34729cd764dcfc4fa999b720407d",
+          "discoveryBlock": 26050478,
+          "discoveryBlockHash": "0xdfb2f2801ec93709249c373c1ba0aea1318057d682eca0a66283aaf44c438974",
+          "discoveryTransactionHash": "0xaa7dde06e1bfbc735ddc78e2a4f2199ff6658cf36ab047349883f154e0dd439a",
+          "discoveryLogIndex": 498,
+          "eoa": false,
+          "sharesRaw": "2275525230482998043811",
+          "claimRaw": "2417041619"
+        },
+        {
+          "owner": "0xc4f6a288374bf4d17b3b09ab3d5115d4d5db6380",
+          "discoveryBlock": 26049344,
+          "discoveryBlockHash": "0x44246e82703167861e65b5681dffc15c1c68418298f155e857d44e59ab90d5e0",
+          "discoveryTransactionHash": "0xf3d38f6d02e9a21148771a889678c133aa5cb9fcb9bd6d75e7d9e485d9df5a91",
+          "discoveryLogIndex": 150,
+          "eoa": false,
+          "sharesRaw": "91521328042844933815",
+          "claimRaw": "97213098"
+        }
+      ]
+    },
+    {
+      "vault": "0x6dc58a0fdfc8d694e571dc59b9a52eeea780e6bf",
+      "expectedAsset": "0x8292bb45bf1ee4d140127049757c2e0ff06317ed",
+      "status": "measured",
+      "totalAssetsRaw": "367395422645597581614357213",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 158
+      },
+      "discoveredCandidateCount": 14,
+      "screenedCandidates": [
+        {
+          "owner": "0x84fade80376dfc7f190d7d48acddbccaa538ea5b",
+          "discoveryBlock": 26052727,
+          "discoveryBlockHash": "0x9e042162ffb998d98ab5a3d60e1812029e27f52fff5198b9c17ef59edf1c4288",
+          "discoveryTransactionHash": "0x4d64aa6c496ff67651ec90a763c8d637f5ef8523ff83afa432138f21feaa8c3d",
+          "discoveryLogIndex": 201,
+          "eoa": false,
+          "sharesRaw": "61994621869402457547090",
+          "claimRaw": "62770996747923021807923"
+        },
+        {
+          "owner": "0xbe6b7dca8d5fce23b07e0da9b01d466b95b3edf3",
+          "discoveryBlock": 26052727,
+          "discoveryBlockHash": "0x9e042162ffb998d98ab5a3d60e1812029e27f52fff5198b9c17ef59edf1c4288",
+          "discoveryTransactionHash": "0x4d64aa6c496ff67651ec90a763c8d637f5ef8523ff83afa432138f21feaa8c3d",
+          "discoveryLogIndex": 199,
+          "eoa": true,
+          "sharesRaw": "59550940303653051828751",
+          "claimRaw": "60296712318222799582385"
+        }
+      ],
+      "holder": "0xbe6b7dca8d5fce23b07e0da9b01d466b95b3edf3",
+      "holderDiscovery": {
+        "owner": "0xbe6b7dca8d5fce23b07e0da9b01d466b95b3edf3",
+        "discoveryBlock": 26052727,
+        "discoveryBlockHash": "0x9e042162ffb998d98ab5a3d60e1812029e27f52fff5198b9c17ef59edf1c4288",
+        "discoveryTransactionHash": "0x4d64aa6c496ff67651ec90a763c8d637f5ef8523ff83afa432138f21feaa8c3d",
+        "discoveryLogIndex": 199,
+        "discoveryTimestamp": 1790318339
+      },
+      "qAssetsRaw": "6029671231822279958238",
+      "anchorSharesRaw": "59550940303653051828751",
+      "anchorClaimRaw": "60296712318222799582385",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "5955094030365305182875"
+      },
+      "horizonSharesRaw": "59733386910686903373222",
+      "horizonClaimRaw": "60481753641956638402591",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "5955063518277748942642"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0x7ceb0f01cb7187a2ebed5661ecc4d5701d8f2350",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "287591954644",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 1
+      },
+      "discoveredCandidateCount": 1,
+      "screenedCandidates": [
+        {
+          "owner": "0xa57dd8773f94cef74094f20099683b371e372af0",
+          "discoveryBlock": 26052710,
+          "discoveryBlockHash": "0x055cb159e6e45467499146c29f47f96d701a8189ae2aeec9ad307107397edc27",
+          "discoveryTransactionHash": "0x482c6fec1393b6b5a23febfe57b2ad1f4bb534baecbb3f8e12b8508f176c8eda",
+          "discoveryLogIndex": 871,
+          "eoa": true,
+          "sharesRaw": "100834706768497172387",
+          "claimRaw": "105690377"
+        }
+      ],
+      "holder": "0xa57dd8773f94cef74094f20099683b371e372af0",
+      "holderDiscovery": {
+        "owner": "0xa57dd8773f94cef74094f20099683b371e372af0",
+        "discoveryBlock": 26052710,
+        "discoveryBlockHash": "0x055cb159e6e45467499146c29f47f96d701a8189ae2aeec9ad307107397edc27",
+        "discoveryTransactionHash": "0x482c6fec1393b6b5a23febfe57b2ad1f4bb534baecbb3f8e12b8508f176c8eda",
+        "discoveryLogIndex": 871,
+        "discoveryTimestamp": 1790318135
+      },
+      "qAssetsRaw": "10569037",
+      "anchorSharesRaw": "100834706768497172387",
+      "anchorClaimRaw": "105690377",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "10083469914228093307"
+      },
+      "horizonSharesRaw": "100834706768497172387",
+      "horizonClaimRaw": "105690980",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "10083412460693841207"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0x85f3d81a39df458e45d5ea20f9eb937faafd282f",
+      "expectedAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "101307376543",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0x8c106eedad96553e64287a5a6839c3cc78afa3d0",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "97288280229919",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 21
+      },
+      "discoveredCandidateCount": 10,
+      "screenedCandidates": [
+        {
+          "owner": "0xfbb6446aa57cbbe2843a3514385f79873d3b7f97",
+          "discoveryBlock": 26052287,
+          "discoveryBlockHash": "0x2974ef64afc51a114ddfa646df4fde7a841ebd451b9651c29f185392f7b8c857",
+          "discoveryTransactionHash": "0x4b5b43b0fa6ade29d8d651a1b202851b60bfead373fd4aced442c672e39058c7",
+          "discoveryLogIndex": 325,
+          "eoa": true,
+          "sharesRaw": "96489177496951259120660",
+          "claimRaw": "100006474752"
+        }
+      ],
+      "holder": "0xfbb6446aa57cbbe2843a3514385f79873d3b7f97",
+      "holderDiscovery": {
+        "owner": "0xfbb6446aa57cbbe2843a3514385f79873d3b7f97",
+        "discoveryBlock": 26052287,
+        "discoveryBlockHash": "0x2974ef64afc51a114ddfa646df4fde7a841ebd451b9651c29f185392f7b8c857",
+        "discoveryTransactionHash": "0x4b5b43b0fa6ade29d8d651a1b202851b60bfead373fd4aced442c672e39058c7",
+        "discoveryLogIndex": 325,
+        "discoveryTimestamp": 1790313011
+      },
+      "qAssetsRaw": "10000647475",
+      "anchorSharesRaw": "96489177496951259120660",
+      "anchorClaimRaw": "100006474752",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "9648917749449672662277"
+      },
+      "horizonSharesRaw": "96489177496951259120660",
+      "horizonClaimRaw": "100006979911",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "9648869010501421283652"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0x8edcc305e633d29bfb383872e79401c506ce9e6f",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "612436534434",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0x9480034d908989b006d78bdbbd7bd509c92e8bbc",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "302746499121",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 6
+      },
+      "discoveredCandidateCount": 1,
+      "screenedCandidates": [
+        {
+          "owner": "0x38afc3aa2c76b4ca1f8e1daba68e998e1f4782db",
+          "discoveryBlock": 26052538,
+          "discoveryBlockHash": "0xe3c3adde9b81f56ba087bf5e65b3a752c28d718c1d0372aa948c2696af6cfb61",
+          "discoveryTransactionHash": "0x4dad9f9e09a2496f4769fc035bc76380cd9238ed1521e3d0beb2cfbe28c9ce51",
+          "discoveryLogIndex": 1545,
+          "eoa": false,
+          "sharesRaw": "116810781617626390116956",
+          "claimRaw": "120272862867"
+        }
+      ]
+    },
+    {
+      "vault": "0x951a9f4a2ce19b9dea6b37e691d076a345b6c0f8",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "5618826844",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "24077549944252",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 10
+      },
+      "discoveredCandidateCount": 2,
+      "screenedCandidates": [
+        {
+          "owner": "0x3bd9248048df95db4fbd748c6cd99c1baa40bad0",
+          "discoveryBlock": 26051963,
+          "discoveryBlockHash": "0x4bd50c77c5a8bd5a872f9780f5cd342278eb01716b3fc3d21540492462ac61bd",
+          "discoveryTransactionHash": "0xebd4b5cd199aa51074b97ddbbfc89cab253b4687517b99a6cb58ef2ec9431977",
+          "discoveryLogIndex": 20,
+          "eoa": false,
+          "sharesRaw": "7655446780945843605060293",
+          "claimRaw": "8077015895482"
+        },
+        {
+          "owner": "0xa41fcb36b7af061e9b377e6d66e621a7c5078073",
+          "discoveryBlock": 26051904,
+          "discoveryBlockHash": "0x9cfbd5f643fef596c2b36dea739b0857cc6a1f9b2e85ff0dcfe6ebc9ac8ab0a6",
+          "discoveryTransactionHash": "0x0fad47acdfd13281ab79ceec4e0891eda9e65d4e618d928e9e1ba6f9154b7972",
+          "discoveryLogIndex": 555,
+          "eoa": false,
+          "sharesRaw": "73151502269759141299072",
+          "claimRaw": "77179799366"
+        }
+      ]
+    },
+    {
+      "vault": "0x9f39b13bb472126d6937bf25a39338e664eefa82",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "13156751568",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0xa1b096268d200d0ecfd57015700f6a0da9c494e2",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "12901277339",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0xabe418cc8c06d265e4eb009c02ea4b265eca7240",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "922806684783",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 8
+      },
+      "discoveredCandidateCount": 1,
+      "screenedCandidates": [
+        {
+          "owner": "0x514272d916419eb3048d8eadebbdff1b116273cd",
+          "discoveryBlock": 26052480,
+          "discoveryBlockHash": "0xb2813c4fc4126be47a405ab9fb0afa8d7b9bb53bf92b5ffd6940ec7d219b6fe2",
+          "discoveryTransactionHash": "0x51cb2346c33b12c7ffeb6eeb506f268b7e7c27038063ca30d43b32f88f9e61fc",
+          "discoveryLogIndex": 67,
+          "eoa": true,
+          "sharesRaw": "2712688534104085602730",
+          "claimRaw": "2754464923"
+        }
+      ],
+      "holder": "0x514272d916419eb3048d8eadebbdff1b116273cd",
+      "holderDiscovery": {
+        "owner": "0x514272d916419eb3048d8eadebbdff1b116273cd",
+        "discoveryBlock": 26052480,
+        "discoveryBlockHash": "0xb2813c4fc4126be47a405ab9fb0afa8d7b9bb53bf92b5ffd6940ec7d219b6fe2",
+        "discoveryTransactionHash": "0x51cb2346c33b12c7ffeb6eeb506f268b7e7c27038063ca30d43b32f88f9e61fc",
+        "discoveryLogIndex": 67,
+        "discoveryTimestamp": 1790315339
+      },
+      "qAssetsRaw": "275446492",
+      "anchorSharesRaw": "2712688534104085602730",
+      "anchorClaimRaw": "2754464923",
+      "anchorCall": {
+        "status": "evm_revert"
+      },
+      "horizonSharesRaw": "2712688534104085602730",
+      "horizonClaimRaw": "2754475865",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "evm_revert"
+      },
+      "horizonClass": "evm_revert"
+    },
+    {
+      "vault": "0xb576765fb15505433af24fee2c0325895c559fb2",
+      "expectedAsset": "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
+      "status": "measured",
+      "totalAssetsRaw": "425161829701894",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 116
+      },
+      "discoveredCandidateCount": 10,
+      "screenedCandidates": [
+        {
+          "owner": "0xeb86a4dbd82f5a8d0bb90703ed26ea6915cecd74",
+          "discoveryBlock": 26052725,
+          "discoveryBlockHash": "0x6752773de1d0e0ed68e6d9b6903e3e2899fbc91f057bef72ceed88556dc66d8c",
+          "discoveryTransactionHash": "0x765c89c8ae70a0b86730f856105022cfaeb5a499115e04832c90fd749151c921",
+          "discoveryLogIndex": 231,
+          "eoa": false,
+          "sharesRaw": "20703994318682377475715",
+          "claimRaw": "41847812710"
+        },
+        {
+          "owner": "0xbe6b7dca8d5fce23b07e0da9b01d466b95b3edf3",
+          "discoveryBlock": 26052725,
+          "discoveryBlockHash": "0x6752773de1d0e0ed68e6d9b6903e3e2899fbc91f057bef72ceed88556dc66d8c",
+          "discoveryTransactionHash": "0x765c89c8ae70a0b86730f856105022cfaeb5a499115e04832c90fd749151c921",
+          "discoveryLogIndex": 229,
+          "eoa": true,
+          "sharesRaw": "111245623022926875983276",
+          "claimRaw": "224854485830"
+        }
+      ],
+      "holder": "0xbe6b7dca8d5fce23b07e0da9b01d466b95b3edf3",
+      "holderDiscovery": {
+        "owner": "0xbe6b7dca8d5fce23b07e0da9b01d466b95b3edf3",
+        "discoveryBlock": 26052725,
+        "discoveryBlockHash": "0x6752773de1d0e0ed68e6d9b6903e3e2899fbc91f057bef72ceed88556dc66d8c",
+        "discoveryTransactionHash": "0x765c89c8ae70a0b86730f856105022cfaeb5a499115e04832c90fd749151c921",
+        "discoveryLogIndex": 229,
+        "discoveryTimestamp": 1790318315
+      },
+      "qAssetsRaw": "22485448583",
+      "anchorSharesRaw": "111245623022926875983276",
+      "anchorClaimRaw": "224854485830",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "11124562302262239219536"
+      },
+      "horizonSharesRaw": "111459331549720887351872",
+      "horizonClaimRaw": "225287104127",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "11124529645679408647192"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xb885f6d448da7e2c642ec31190b629e40e87b069",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "4042621167276",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 9
+      },
+      "discoveredCandidateCount": 2,
+      "screenedCandidates": [
+        {
+          "owner": "0xc13c1c0b5919e2fca746df2e4a25257dab245b67",
+          "discoveryBlock": 26051197,
+          "discoveryBlockHash": "0xe5883a958b1fa64cc010598f3388368c566a8112682747b5e9d5ca51d66cfd9d",
+          "discoveryTransactionHash": "0x783ba30f974123b6e0e2339738805afde792e02eca7d212b920d30ccde7e57e0",
+          "discoveryLogIndex": 491,
+          "eoa": true,
+          "sharesRaw": "393663972802251349110109",
+          "claimRaw": "409426725814"
+        }
+      ],
+      "holder": "0xc13c1c0b5919e2fca746df2e4a25257dab245b67",
+      "holderDiscovery": {
+        "owner": "0xc13c1c0b5919e2fca746df2e4a25257dab245b67",
+        "discoveryBlock": 26051197,
+        "discoveryBlockHash": "0xe5883a958b1fa64cc010598f3388368c566a8112682747b5e9d5ca51d66cfd9d",
+        "discoveryTransactionHash": "0x783ba30f974123b6e0e2339738805afde792e02eca7d212b920d30ccde7e57e0",
+        "discoveryLogIndex": 491,
+        "discoveryTimestamp": 1790299835
+      },
+      "qAssetsRaw": "4042621167",
+      "anchorSharesRaw": "393663972802251349110109",
+      "anchorClaimRaw": "409426725814",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "3886981989193320452365"
+      },
+      "horizonSharesRaw": "393663972802251349110109",
+      "horizonClaimRaw": "409429309760",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "3886957458092662531941"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+      "expectedAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "status": "measured",
+      "totalAssetsRaw": "74478545020094",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 17
+      },
+      "discoveredCandidateCount": 8,
+      "screenedCandidates": [
+        {
+          "owner": "0x0d9552cef778772dd9b79c23ca903a1da96f3589",
+          "discoveryBlock": 26052694,
+          "discoveryBlockHash": "0x9ea12ca200e4c763e6e06ca68fc8e3c58c34de3f5c1848d2daa6a24a44dd7349",
+          "discoveryTransactionHash": "0x9e8fa78d4adc9997fd234a278c1a9fc95185946b407e290b3ff80e0ce97e74d2",
+          "discoveryLogIndex": 210,
+          "eoa": true,
+          "sharesRaw": "25993608509031353132240",
+          "claimRaw": "26689727406"
+        }
+      ],
+      "holder": "0x0d9552cef778772dd9b79c23ca903a1da96f3589",
+      "holderDiscovery": {
+        "owner": "0x0d9552cef778772dd9b79c23ca903a1da96f3589",
+        "discoveryBlock": 26052694,
+        "discoveryBlockHash": "0x9ea12ca200e4c763e6e06ca68fc8e3c58c34de3f5c1848d2daa6a24a44dd7349",
+        "discoveryTransactionHash": "0x9e8fa78d4adc9997fd234a278c1a9fc95185946b407e290b3ff80e0ce97e74d2",
+        "discoveryLogIndex": 210,
+        "discoveryTimestamp": 1790317943
+      },
+      "qAssetsRaw": "2668972740",
+      "anchorSharesRaw": "25993608509031353132240",
+      "anchorClaimRaw": "26689727406",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "2599360850305200577539"
+      },
+      "horizonSharesRaw": "25993608509031353132240",
+      "horizonClaimRaw": "26689879045",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "2599346081934085408180"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xbeef00b5d83c1188f07a5184230a805639c39f04",
+      "expectedAsset": "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "306312580947",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0xbeef088055857739c12cd3765f20b7679def0f51",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "131481185202417",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 63
+      },
+      "discoveredCandidateCount": 26,
+      "screenedCandidates": [
+        {
+          "owner": "0x1428d685f1d73cb5fd581db759cd3ad6deb090ab",
+          "discoveryBlock": 26052452,
+          "discoveryBlockHash": "0x32ba59396ad8acfe6d70fc9fd4e690cf904c37fe5d42696a8c438f3a317c614c",
+          "discoveryTransactionHash": "0x19b14a6ef7ad24cae80e03deca42102135c8d7d33da41ce2a1e908878764eb67",
+          "discoveryLogIndex": 1559,
+          "eoa": true,
+          "sharesRaw": "973512581321233399",
+          "claimRaw": "1005769"
+        }
+      ],
+      "holder": "0x1428d685f1d73cb5fd581db759cd3ad6deb090ab",
+      "holderDiscovery": {
+        "owner": "0x1428d685f1d73cb5fd581db759cd3ad6deb090ab",
+        "discoveryBlock": 26052452,
+        "discoveryBlockHash": "0x32ba59396ad8acfe6d70fc9fd4e690cf904c37fe5d42696a8c438f3a317c614c",
+        "discoveryTransactionHash": "0x19b14a6ef7ad24cae80e03deca42102135c8d7d33da41ce2a1e908878764eb67",
+        "discoveryLogIndex": 1559,
+        "discoveryTimestamp": 1790315003
+      },
+      "qAssetsRaw": "100576",
+      "anchorSharesRaw": "973512581321233399",
+      "anchorClaimRaw": "1005769",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "97350301563148956"
+      },
+      "horizonSharesRaw": "973512581321233399",
+      "horizonClaimRaw": "1005774",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "97349807641383872"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+      "expectedAsset": "0x5f7827fdeb7c20b443265fc2f40845b715385ff2",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "124288231305483813586920782",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 42
+      },
+      "discoveredCandidateCount": 3,
+      "screenedCandidates": [
+        {
+          "owner": "0xeb417305447d7c58f79ce31f0f313d2c1a548f03",
+          "discoveryBlock": 26052690,
+          "discoveryBlockHash": "0x16eb4ef18671443894bf28559fb431d37d9782f97614b5c55b07abb80bba924c",
+          "discoveryTransactionHash": "0x498e8fe93b7d5ec12ba7c914730dc1df3a9bdc89a3b961b610a4a30781c0cf57",
+          "discoveryLogIndex": 191,
+          "eoa": false,
+          "sharesRaw": "98130405729758708897932243",
+          "claimRaw": "100555848836123940689568519"
+        },
+        {
+          "owner": "0x33024d4791413438aa1de6a8b6cb7cceb25459b1",
+          "discoveryBlock": 26052618,
+          "discoveryBlockHash": "0xef9ad61b1d5e4cfd6cbe955a13e5967ac2c1f056df29f4671b60d453e9fdffb9",
+          "discoveryTransactionHash": "0xf5c0839e42207775ba085bf3b9089f9530f73ff31dff6f4328e9d5a4c6c1629c",
+          "discoveryLogIndex": 659,
+          "eoa": false,
+          "sharesRaw": "285588991271896363374122",
+          "claimRaw": "292647760111004113419684"
+        },
+        {
+          "owner": "0x50461744cb3dea4d678be82b8f1b9cead383065d",
+          "discoveryBlock": 26051640,
+          "discoveryBlockHash": "0x29c6144091f2581e7f1fe6661eac0d42aa0268a542f53452ff5d03ce9f95398f",
+          "discoveryTransactionHash": "0xe655eda71345371478dd4744b6aacdfef202a7de50ef0c4159a06f80f2c27ca5",
+          "discoveryLogIndex": 500,
+          "eoa": false,
+          "sharesRaw": "1836213289737138272630694",
+          "claimRaw": "1881598110397862111651065"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff047c03714965a54b671a37c18bef6b96210",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_holder_in_bounded_candidates",
+      "totalAssetsRaw": "12969194234045",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 30
+      },
+      "discoveredCandidateCount": 6,
+      "screenedCandidates": [
+        {
+          "owner": "0x255c7705e8bb334dfcae438197f7c4297988085a",
+          "discoveryBlock": 26052667,
+          "discoveryBlockHash": "0x1b87a947f17c552dad2757d7bf8df756f0db9b7cfe17ef5bf03c5c8c8c860f8f",
+          "discoveryTransactionHash": "0xfe937e0f00467d711465652214bc498d6579f55a9e38fbbdd8ef3814e04c1a5b",
+          "discoveryLogIndex": 294,
+          "eoa": false,
+          "sharesRaw": "20746212508983065132299",
+          "claimRaw": "21290208242"
+        },
+        {
+          "owner": "0x62527606646a8d8147545711e7b57de24cfae0cd",
+          "discoveryBlock": 26052506,
+          "discoveryBlockHash": "0x2039d0e56c906ffd71d29f7e861b5332243245c426a8b81a33f5cd5bbb3fb276",
+          "discoveryTransactionHash": "0x29313e262676e039e506e6787a4a3cdb54628f466f176453ecba9da3531305ae",
+          "discoveryLogIndex": 302,
+          "eoa": false,
+          "sharesRaw": "131803598993949098354",
+          "claimRaw": "135259680"
+        },
+        {
+          "owner": "0xf980740f6c05173d3a3922d82ca550b2912a4def",
+          "discoveryBlock": 26052490,
+          "discoveryBlockHash": "0xd821a89defbcea2f5aa8e32cc4aef3c8a98ce8e9f3ec861e8a8c14d46b3cd192",
+          "discoveryTransactionHash": "0x707701c057116873fc0834034756dfa2002c34fbd878a8a38f719a4857fc94b5",
+          "discoveryLogIndex": 1437,
+          "eoa": false,
+          "sharesRaw": "29233639817854218775985",
+          "claimRaw": "30000188185"
+        },
+        {
+          "owner": "0x269ff1b504ac6d5f93b4e15750c3386b83fa686d",
+          "discoveryBlock": 26052228,
+          "discoveryBlockHash": "0xb24b99db5554d501635d9127c614c43ad0c5889d1aa737f4086a66259dbab556",
+          "discoveryTransactionHash": "0xaa210b0e6740aba019ccfa120304f93e4203f6c89167cbb61cc31d3894f6f368",
+          "discoveryLogIndex": 667,
+          "eoa": false,
+          "sharesRaw": "1793146803659407",
+          "claimRaw": "1840"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff07d991c04cd640de9f15c08ba59c4fedeb7",
+      "expectedAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "2266714430039",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 4
+      },
+      "discoveredCandidateCount": 1,
+      "screenedCandidates": [
+        {
+          "owner": "0x255c7705e8bb334dfcae438197f7c4297988085a",
+          "discoveryBlock": 26051990,
+          "discoveryBlockHash": "0xea97970188d231d4b0787d1edd16aab9f2554951db885837906856c3bc841844",
+          "discoveryTransactionHash": "0xf467647aa7b3a9e646edc6a5790d82ee75c6790e008c0f24e86e8025a2e20d12",
+          "discoveryLogIndex": 533,
+          "eoa": false,
+          "sharesRaw": "2277041120480908796546",
+          "claimRaw": "2341478639"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff0d672ab7f5018dfb614c93981045d4aa98a",
+      "expectedAsset": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "33521899847",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0xbeeff0deac1aba71ef0d88c4291354eb92ef4589",
+      "expectedAsset": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "2187983944434",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0xbeeff2c5bf38f90e3482a8b19f12e5a6d2fca757",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "41315498034849",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 31
+      },
+      "discoveredCandidateCount": 5,
+      "screenedCandidates": [
+        {
+          "owner": "0x255c7705e8bb334dfcae438197f7c4297988085a",
+          "discoveryBlock": 26052540,
+          "discoveryBlockHash": "0xf5ce2dc5607d61ded41f8a18ed4ada788686908089c1e011fe5f9ddc7cdf52f6",
+          "discoveryTransactionHash": "0xef7f7d19eed6f756b2cdc83cd7dd44b05228a57cea46794a38da02db6bd5551a",
+          "discoveryLogIndex": 462,
+          "eoa": false,
+          "sharesRaw": "38904990206902970529014",
+          "claimRaw": "40845606770"
+        },
+        {
+          "owner": "0x5fe8322b31ab454e39aa66650527752d62a5218c",
+          "discoveryBlock": 26052538,
+          "discoveryBlockHash": "0xe3c3adde9b81f56ba087bf5e65b3a752c28d718c1d0372aa948c2696af6cfb61",
+          "discoveryTransactionHash": "0x912f91e8476224f8e11459f9e229278b0177a6a6c79894f58f8b7f205bda6a42",
+          "discoveryLogIndex": 1167,
+          "eoa": true,
+          "sharesRaw": "0",
+          "claimRaw": "0"
+        },
+        {
+          "owner": "0x0bd8754aa5279732544b3de152e438c567ac69a9",
+          "discoveryBlock": 26050415,
+          "discoveryBlockHash": "0x0f25825a00269d16ce1a07ff64da931a3cf00c57f272856ab406404242a01e4e",
+          "discoveryTransactionHash": "0x6ae0ee79c8f951745b1057ce2531ff358a342914c29c23b05ea9c5eac5424470",
+          "discoveryLogIndex": 60,
+          "eoa": true,
+          "sharesRaw": "9525340481022923246172",
+          "claimRaw": "10000473193"
+        }
+      ],
+      "holder": "0x0bd8754aa5279732544b3de152e438c567ac69a9",
+      "holderDiscovery": {
+        "owner": "0x0bd8754aa5279732544b3de152e438c567ac69a9",
+        "discoveryBlock": 26050415,
+        "discoveryBlockHash": "0x0f25825a00269d16ce1a07ff64da931a3cf00c57f272856ab406404242a01e4e",
+        "discoveryTransactionHash": "0x6ae0ee79c8f951745b1057ce2531ff358a342914c29c23b05ea9c5eac5424470",
+        "discoveryLogIndex": 60,
+        "discoveryTimestamp": 1790290379
+      },
+      "qAssetsRaw": "1000047319",
+      "anchorSharesRaw": "9525340481022923246172",
+      "anchorClaimRaw": "10000473193",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "952534047799709377571"
+      },
+      "horizonSharesRaw": "9525340481022923246172",
+      "horizonClaimRaw": "10000533434",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "952528309884024377035"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xbeeff75262b2ec16a3c62a807f02ee7627654931",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "715607949443",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 2
+      },
+      "discoveredCandidateCount": 1,
+      "screenedCandidates": [
+        {
+          "owner": "0x255c7705e8bb334dfcae438197f7c4297988085a",
+          "discoveryBlock": 26050425,
+          "discoveryBlockHash": "0x473bd7dfe1915dcd5d2adcda0b99e8c1013e615f953d5f50f83f271d25f323f5",
+          "discoveryTransactionHash": "0xcff8ea98e6700fc9439d32d3eccd870ba4e0eab97944f27af90131041b37d128",
+          "discoveryLogIndex": 353,
+          "eoa": false,
+          "sharesRaw": "2835618006283135545064",
+          "claimRaw": "2898441415"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeefff4716a49418d69c251cab8759bb107e57c8",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "2173183037052",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 2
+      },
+      "discoveredCandidateCount": 2,
+      "screenedCandidates": [
+        {
+          "owner": "0xe3fcee6b6cd564e073346f71394f60ec9adf5120",
+          "discoveryBlock": 26049979,
+          "discoveryBlockHash": "0x84cb46831c5c71e48831eae22e096e996f20f770d561ee501bc033aaffa54fb9",
+          "discoveryTransactionHash": "0x980762f02a935dba66754837c6dc9dbc7177502ab9562ae42bfbdcb74989220b",
+          "discoveryLogIndex": 492,
+          "eoa": true,
+          "sharesRaw": "236566147894110501187561",
+          "claimRaw": "251210760336"
+        }
+      ],
+      "holder": "0xe3fcee6b6cd564e073346f71394f60ec9adf5120",
+      "holderDiscovery": {
+        "owner": "0xe3fcee6b6cd564e073346f71394f60ec9adf5120",
+        "discoveryBlock": 26049979,
+        "discoveryBlockHash": "0x84cb46831c5c71e48831eae22e096e996f20f770d561ee501bc033aaffa54fb9",
+        "discoveryTransactionHash": "0x980762f02a935dba66754837c6dc9dbc7177502ab9562ae42bfbdcb74989220b",
+        "discoveryLogIndex": 492,
+        "discoveryTimestamp": 1790285087
+      },
+      "qAssetsRaw": "2173183037",
+      "anchorSharesRaw": "236566147894110501187561",
+      "anchorClaimRaw": "251210760336",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "2046494899516737558460"
+      },
+      "horizonSharesRaw": "236566147894110501187561",
+      "horizonClaimRaw": "251213086241",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "2046475951641935046767"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xc21b08c16458202593d4d9b26b9984ee67b38bbd",
+      "expectedAsset": "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
+      "status": "measured",
+      "totalAssetsRaw": "184315384790854",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 10
+      },
+      "discoveredCandidateCount": 5,
+      "screenedCandidates": [
+        {
+          "owner": "0xbe6b7dca8d5fce23b07e0da9b01d466b95b3edf3",
+          "discoveryBlock": 26052227,
+          "discoveryBlockHash": "0x98f5b65964a07b3c084ff4cd6eca0d07393d45f59e6f00222113b831305e2186",
+          "discoveryTransactionHash": "0x8294f520a836c75bbaa7c54f22eabff81ca70921546ef178b49bc22c7796f6c0",
+          "discoveryLogIndex": 157,
+          "eoa": true,
+          "sharesRaw": "32778677341944013212245",
+          "claimRaw": "66318974266"
+        }
+      ],
+      "holder": "0xbe6b7dca8d5fce23b07e0da9b01d466b95b3edf3",
+      "holderDiscovery": {
+        "owner": "0xbe6b7dca8d5fce23b07e0da9b01d466b95b3edf3",
+        "discoveryBlock": 26052227,
+        "discoveryBlockHash": "0x98f5b65964a07b3c084ff4cd6eca0d07393d45f59e6f00222113b831305e2186",
+        "discoveryTransactionHash": "0x8294f520a836c75bbaa7c54f22eabff81ca70921546ef178b49bc22c7796f6c0",
+        "discoveryLogIndex": 157,
+        "discoveryTimestamp": 1790312291
+      },
+      "qAssetsRaw": "6631897426",
+      "anchorSharesRaw": "32778677341944013212245",
+      "anchorClaimRaw": "66318974266",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "3277867733864917836322"
+      },
+      "horizonSharesRaw": "32778677341944013212245",
+      "horizonClaimRaw": "66319222375",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "3277855470919229697564"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xd1e9242e075db4bdd3f3c721d7d5fd4180a94a7e",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "7209964092609",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 4
+      },
+      "discoveredCandidateCount": 2,
+      "screenedCandidates": [
+        {
+          "owner": "0x6e575ae5e1a12e910641183f555fad62ed1481f2",
+          "discoveryBlock": 26052028,
+          "discoveryBlockHash": "0x8f914f05b1eb37462951b81b99c6cdfbec1b0cc790c6cc5a1a97bf0970f45544",
+          "discoveryTransactionHash": "0x5f2cfafeabfa26394798aee75f62199efb6d17b5c71c9e67d1500e38fa809610",
+          "discoveryLogIndex": 1489,
+          "eoa": false,
+          "sharesRaw": "29314809950138440188814",
+          "claimRaw": "30886310414"
+        },
+        {
+          "owner": "0x0e0c281ff05d34729cd764dcfc4fa999b720407d",
+          "discoveryBlock": 26052028,
+          "discoveryBlockHash": "0x8f914f05b1eb37462951b81b99c6cdfbec1b0cc790c6cc5a1a97bf0970f45544",
+          "discoveryTransactionHash": "0x5f2cfafeabfa26394798aee75f62199efb6d17b5c71c9e67d1500e38fa809610",
+          "discoveryLogIndex": 1487,
+          "eoa": false,
+          "sharesRaw": "1738014674079217626362",
+          "claimRaw": "1831185698"
+        }
+      ]
+    },
+    {
+      "vault": "0xd5cce260e7a755ddf0fb9cdf06443d593aaeaa13",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "9855038398866",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 8
+      },
+      "discoveredCandidateCount": 5,
+      "screenedCandidates": [
+        {
+          "owner": "0x5fe8322b31ab454e39aa66650527752d62a5218c",
+          "discoveryBlock": 26052571,
+          "discoveryBlockHash": "0x08596e4dac7bcdcd7ea77417e0ac501289625dfd91f074b871d12637b3421508",
+          "discoveryTransactionHash": "0xe68ac35c38b23683af97fb10743dac0aacf353314c7b7f5f291e8b65f79289cc",
+          "discoveryLogIndex": 401,
+          "eoa": true,
+          "sharesRaw": "4533114895906085769",
+          "claimRaw": "4758990"
+        }
+      ],
+      "holder": "0x5fe8322b31ab454e39aa66650527752d62a5218c",
+      "holderDiscovery": {
+        "owner": "0x5fe8322b31ab454e39aa66650527752d62a5218c",
+        "discoveryBlock": 26052571,
+        "discoveryBlockHash": "0x08596e4dac7bcdcd7ea77417e0ac501289625dfd91f074b871d12637b3421508",
+        "discoveryTransactionHash": "0xe68ac35c38b23683af97fb10743dac0aacf353314c7b7f5f291e8b65f79289cc",
+        "discoveryLogIndex": 401,
+        "discoveryTimestamp": 1790316431
+      },
+      "qAssetsRaw": "475899",
+      "anchorSharesRaw": "4533114895906085769",
+      "anchorClaimRaw": "4758990",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "453311418951879088"
+      },
+      "horizonSharesRaw": "4533114895906085769",
+      "horizonClaimRaw": "4759028",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "453307795936256121"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xd95fe7adf5075fad9d6bf853e0f9fe53369e8d96",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "8071265101050",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "16010734302940",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 15
+      },
+      "discoveredCandidateCount": 3,
+      "screenedCandidates": [
+        {
+          "owner": "0x4e6514b9118c64a4b3df41e03660e55d1e00b646",
+          "discoveryBlock": 26052663,
+          "discoveryBlockHash": "0x79dde62e62aff4b6a9e8dfe45417df332d1c740727549b722aba674c18cc1c98",
+          "discoveryTransactionHash": "0x9818c3b2d331c44cb3d9b226cbfab7c31ce0fb08036cfba22253bfff86bc5c96",
+          "discoveryLogIndex": 358,
+          "eoa": true,
+          "sharesRaw": "3967556382139882500015",
+          "claimRaw": "4081554251"
+        }
+      ],
+      "holder": "0x4e6514b9118c64a4b3df41e03660e55d1e00b646",
+      "holderDiscovery": {
+        "owner": "0x4e6514b9118c64a4b3df41e03660e55d1e00b646",
+        "discoveryBlock": 26052663,
+        "discoveryBlockHash": "0x79dde62e62aff4b6a9e8dfe45417df332d1c740727549b722aba674c18cc1c98",
+        "discoveryTransactionHash": "0x9818c3b2d331c44cb3d9b226cbfab7c31ce0fb08036cfba22253bfff86bc5c96",
+        "discoveryLogIndex": 358,
+        "discoveryTimestamp": 1790317559
+      },
+      "qAssetsRaw": "408155425",
+      "anchorSharesRaw": "3967556382139882500015",
+      "anchorClaimRaw": "4081554251",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "396755638101536425198"
+      },
+      "horizonSharesRaw": "3967556382139882500015",
+      "horizonClaimRaw": "4081584281",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "396752718999447356481"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xe05fadf242331808f504661bea65972594869826",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "measured",
+      "totalAssetsRaw": "19693957680702",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 35
+      },
+      "discoveredCandidateCount": 6,
+      "screenedCandidates": [
+        {
+          "owner": "0x42eadf6fe45b51b729c165c3f636b8ccaa35d705",
+          "discoveryBlock": 26052674,
+          "discoveryBlockHash": "0x96627452e51270c4cad004fc2dd6946ff678678551ad168ad5fb4e2818b42943",
+          "discoveryTransactionHash": "0xe74f065bda5a697702d7874bb7683dc653d09b5bf381bacecc63f1b3ddd20bfe",
+          "discoveryLogIndex": 388,
+          "eoa": false,
+          "sharesRaw": "1312242599203209677614949",
+          "claimRaw": "1331263965430"
+        },
+        {
+          "owner": "0x0e0c281ff05d34729cd764dcfc4fa999b720407d",
+          "discoveryBlock": 26052674,
+          "discoveryBlockHash": "0x96627452e51270c4cad004fc2dd6946ff678678551ad168ad5fb4e2818b42943",
+          "discoveryTransactionHash": "0xe74f065bda5a697702d7874bb7683dc653d09b5bf381bacecc63f1b3ddd20bfe",
+          "discoveryLogIndex": 386,
+          "eoa": false,
+          "sharesRaw": "24048521660720888006286",
+          "claimRaw": "24397112491"
+        },
+        {
+          "owner": "0xd8cdcd1285fa9109decd2a1e9fdbef5d2f7b5801",
+          "discoveryBlock": 26052360,
+          "discoveryBlockHash": "0xe39277c89f4f8bd11e88823a8a20d7115e3fe2df528ba407e656fccfc28c3915",
+          "discoveryTransactionHash": "0x8e58c19e144e409f0f446dca9233a4155f9ad7298085c85943c7a19ff1be26aa",
+          "discoveryLogIndex": 1044,
+          "eoa": true,
+          "sharesRaw": "253747517560500767542052",
+          "claimRaw": "257425667061"
+        }
+      ],
+      "holder": "0xd8cdcd1285fa9109decd2a1e9fdbef5d2f7b5801",
+      "holderDiscovery": {
+        "owner": "0xd8cdcd1285fa9109decd2a1e9fdbef5d2f7b5801",
+        "discoveryBlock": 26052360,
+        "discoveryBlockHash": "0xe39277c89f4f8bd11e88823a8a20d7115e3fe2df528ba407e656fccfc28c3915",
+        "discoveryTransactionHash": "0x8e58c19e144e409f0f446dca9233a4155f9ad7298085c85943c7a19ff1be26aa",
+        "discoveryLogIndex": 1044,
+        "discoveryTimestamp": 1790313899
+      },
+      "qAssetsRaw": "19693957680",
+      "anchorSharesRaw": "253747517560500767542052",
+      "anchorClaimRaw": "257425667061",
+      "anchorCall": {
+        "status": "success",
+        "sharesBurnedRaw": "19412566467413819307527"
+      },
+      "horizonSharesRaw": "253747517560500767542052",
+      "horizonClaimRaw": "257427104086",
+      "horizonHolderCodePresent": false,
+      "horizonCall": {
+        "status": "success",
+        "sharesBurnedRaw": "19412458101364625027624"
+      },
+      "horizonClass": "success"
+    },
+    {
+      "vault": "0xe571b648569619566cf6ce1060c97b621cb635d3",
+      "expectedAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "1490799493020",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 24
+      },
+      "discoveredCandidateCount": 4,
+      "screenedCandidates": [
+        {
+          "owner": "0x8acf95a9d58ca51ed5f2825324419c92c440342b",
+          "discoveryBlock": 26052564,
+          "discoveryBlockHash": "0xcb2db613718eb094d5a9fb591f4e19ccd07f90aa764ff58de01769759e042c50",
+          "discoveryTransactionHash": "0x9390829ea9bdbda3acc6fb9ed891af0f9fc9e2cb55a9c1d7f95745c75cb46d81",
+          "discoveryLogIndex": 192,
+          "eoa": false,
+          "sharesRaw": "9608110055859773876304",
+          "claimRaw": "9896914872"
+        },
+        {
+          "owner": "0x419cdbafa120ad8ce5c9daf662bd56a36ce31533",
+          "discoveryBlock": 26052559,
+          "discoveryBlockHash": "0xea81849331d8a536c289fc4392c35f41165720f5ae230beeb01d4e7c58fb4c9c",
+          "discoveryTransactionHash": "0x883cb3bb908052ef8822328f059d85a1e87d5723e97823db95faed914590eae3",
+          "discoveryLogIndex": 322,
+          "eoa": false,
+          "sharesRaw": "10356906757832934292",
+          "claimRaw": "10668219"
+        },
+        {
+          "owner": "0x05b011922348325e7c9ece372560df92ea699886",
+          "discoveryBlock": 26051060,
+          "discoveryBlockHash": "0xdfa9a1f090572744d7945b11427e5983ead725c2199c460383a7020e8d3c41ac",
+          "discoveryTransactionHash": "0xb2cd4f36b5325c9da22f0943dbb4baaffd288dd126535522e777f1ae99c7c2ac",
+          "discoveryLogIndex": 346,
+          "eoa": false,
+          "sharesRaw": "2889050730247748540312",
+          "claimRaw": "2975891093"
+        },
+        {
+          "owner": "0x6344fec307f50466646338bc1c4eaf41a38cb93d",
+          "discoveryBlock": 26050900,
+          "discoveryBlockHash": "0x95a1b9225b708670dcb354a8fddaf6f1862d0e4192e3a2765ed103781189ec35",
+          "discoveryTransactionHash": "0xa6946b5abbd499de646619c0430e823b78dc1cfba6e723358c23b2bc67b48750",
+          "discoveryLogIndex": 317,
+          "eoa": false,
+          "sharesRaw": "28909785228827630276",
+          "claimRaw": "29778768"
+        }
+      ]
+    },
+    {
+      "vault": "0xebbae8cfabb0092d5b32f00ebee0c8139d24ddcd",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "567477400474",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0xf1ca44eea3a4effcb195a970a2f1d8553f76f9a1",
+      "expectedAsset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "status": "no_candidate_in_lookback",
+      "totalAssetsRaw": "159322331177",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 0
+      },
+      "discoveredCandidateCount": 0,
+      "screenedCandidates": []
+    },
+    {
+      "vault": "0xf3557ad5e984211ac8a0874a670344f2c3376471",
+      "expectedAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "status": "no_pre_anchor_eoa_holder",
+      "totalAssetsRaw": "7330916157947",
+      "candidateWindow": {
+        "fromBlock": 26048644,
+        "throughBlock": 26052739,
+        "transferLogCount": 20
+      },
+      "discoveredCandidateCount": 3,
+      "screenedCandidates": [
+        {
+          "owner": "0x3bd9248048df95db4fbd748c6cd99c1baa40bad0",
+          "discoveryBlock": 26051963,
+          "discoveryBlockHash": "0x4bd50c77c5a8bd5a872f9780f5cd342278eb01716b3fc3d21540492462ac61bd",
+          "discoveryTransactionHash": "0xebd4b5cd199aa51074b97ddbbfc89cab253b4687517b99a6cb58ef2ec9431977",
+          "discoveryLogIndex": 3,
+          "eoa": false,
+          "sharesRaw": "6679161796200830946194217",
+          "claimRaw": "6843703794512"
+        },
+        {
+          "owner": "0x419cdbafa120ad8ce5c9daf662bd56a36ce31533",
+          "discoveryBlock": 26051671,
+          "discoveryBlockHash": "0xa718c75c3e3f0d0d15e0f4a2d4372b12fca7031670eb110b30b8c809aba84260",
+          "discoveryTransactionHash": "0x676377ee869209480117934e7e31f9a51bed19198ffe2bea8b048cc66abdde53",
+          "discoveryLogIndex": 315,
+          "eoa": false,
+          "sharesRaw": "23298469302609363",
+          "claimRaw": "23872"
+        },
+        {
+          "owner": "0x8acf95a9d58ca51ed5f2825324419c92c440342b",
+          "discoveryBlock": 26051369,
+          "discoveryBlockHash": "0xf60badf0dd3c58d2d2ee1aba2388e4ccc626ed049a3f0c4639a0502a5a1db208",
+          "discoveryTransactionHash": "0x214ce913d4292a451399816ed0f277093c67a28ea04e9769cfa8e5b8d66dad30",
+          "discoveryLogIndex": 333,
+          "eoa": false,
+          "sharesRaw": "2289289718086543799",
+          "claimRaw": "2345686"
+        }
+      ]
+    }
+  ]
+}

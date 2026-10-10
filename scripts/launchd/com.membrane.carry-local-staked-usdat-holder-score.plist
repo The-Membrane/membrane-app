@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.membrane.carry-local-staked-usdat-holder-score</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/timeout</string><string>-k</string><string>5s</string><string>390s</string>
+    <string>/bin/sh</string><string>/Users/EBmic/membrane-app/scripts/carry-local-staked-usdat-holder-tick.sh</string><string>score</string>
+  </array>
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key><string>/Users/EBmic/Library/Logs/carry-local-staked-usdat-holder.log</string>
+  <key>StandardOutPath</key><string>/Users/EBmic/Library/Logs/carry-local-staked-usdat-holder.log</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Minute</key><integer>15</integer></dict>
+    <dict><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Minute</key><integer>45</integer></dict>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/EBmic/membrane-app</string>
+</dict>
+</plist>

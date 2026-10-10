@@ -1,0 +1,81 @@
+{
+  "eval_id": 3,
+  "eval_name": "ditto-liquidation-message",
+  "configuration": "with_skill",
+  "expectations": [
+    {
+      "text": "Identifies ALERT as the message type since liquidation risk is a safety/blocking concern",
+      "passed": true,
+      "evidence": "Section 1 heading: 'Primary: ALERT (type `'ALERT'`)'. Explains: 'Liquidation proximity is a safety/risk concern -- the highest priority category in the Ditto system. Per the character guide, ALERTs are proactive (auto-shown) and display as toasts.' Also explains why UPDATE and SHORTCUT are not appropriate. Code objects at lines 157-163 and 167-173 both use `type: 'ALERT'`."
+    },
+    {
+      "text": "Uses danger severity level for near-liquidation scenarios",
+      "passed": true,
+      "evidence": "Line 159: `severity: 'danger'` for the critical tier (mint-liquidation-critical). The warning tier uses `severity: 'warn'` for the pre-warning. The response explicitly explains danger is for 'Critical at 90% of liquidation LTV' while warn is for '75% of liquidation LTV'. The two-tier approach correctly reserves danger for the most critical near-liquidation state."
+    },
+    {
+      "text": "Message text is 1-3 lines, no greetings, no emojis, implication-oriented (explains what it means, not just what it is)",
+      "passed": true,
+      "evidence": "Warning message: 'Collateral at {currentLTV}% LTV -- liquidation starts at {liquidationLTV}%' - one line, states the fact then the implication (liquidation threshold). Critical message: 'Liquidation imminent at {currentLTV}% LTV -- repay debt or add collateral now' - one line, states the risk then actionable steps. Insight: 'Position {ltvGap}% from liquidation -- consider reducing debt or depositing more collateral' - one line with concrete next steps. No greetings ('Hey', 'Hello'), no emojis found. Section 2 explicitly states rationale: 'Uses an em-dash for the characteristic Ditto cadence. One line. No fluff.' and 'no emojis'."
+    },
+    {
+      "text": "Specifies cooldown or anti-annoyance rules (e.g., cooldownSec, frequency limits)",
+      "passed": true,
+      "evidence": "Line 162: `cooldownSec: 300` for critical (5 min). Line 171: `cooldownSec: 600` for warning (10 min). Lines 183-184: `cooldownSec: 0` for panel insights. Section 6 'Anti-Annoyance Rules' provides detailed table and explains 7 suppression conditions: mid-transaction, mid-input, within 90s of another proactive message, same message within cooldown, already liquidated, no position, wallet not connected. Line 304 explains escalation bypass: crossing from warning to critical fires immediately."
+    },
+    {
+      "text": "Provides a DittoMessage object matching the contract interface (id, type, severity, body, when, cooldownSec, showAs)",
+      "passed": true,
+      "evidence": "Lines 156-173 provide full DittoMessage objects with all required fields. Example (lines 157-163): `id: 'mint-liquidation-critical', type: 'ALERT', severity: 'danger', body: 'Liquidation imminent...', when: 'hasPosition && currentLTV >= (liquidationLTV * thresholds.ltvCritical / 100)', cooldownSec: 300, showAs: 'toast'`. Four complete message objects provided (2 ALERTs + 2 INSIGHTs), all with correct field structure. Additionally provides a full DittoPageContract object with facts, thresholds, messages, and shortcuts arrays."
+    },
+    {
+      "text": "Defines numeric threshold conditions for when to trigger (e.g., riskScore >= 85)",
+      "passed": true,
+      "evidence": "Lines 147-149: `thresholds: { ltvWarning: 75, ltvCritical: 90, ltvGapDanger: 5 }`. Section 5 'Threshold and Trigger Conditions' provides a table: 'Warning fires: currentLTV >= liquidationLTV * 0.75', 'Critical fires: currentLTV >= liquidationLTV * 0.90'. The `when` conditions use these thresholds: 'hasPosition && currentLTV >= (liquidationLTV * thresholds.ltvCritical / 100)' and 'hasPosition && currentLTV >= (liquidationLTV * thresholds.ltvWarning / 100) && currentLTV < (liquidationLTV * thresholds.ltvCritical / 100)'."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "Critical alert has maximum priority score of 200",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Section 4 priority table: 'mint-liquidation-critical: Type Score 100 (ALERT) + Severity Score 100 (danger) = Total 200 (highest possible)'. This aligns with MESSAGE_TYPE_PRIORITY.ALERT = 100 described in Section 1."
+    },
+    {
+      "claim": "Thresholds are percentages of liquidation LTV, not hardcoded numbers",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Section 5 explicitly states: 'Rather than hard-coding an LTV number, the warning thresholds are expressed as percentages of the liquidation LTV'. Example: 'Warning fires: currentLTV >= liquidationLTV * 0.75' for liquidationLTV=80% means warning at 60%. This approach is 'resilient to different collateral types having different liquidation LTVs'."
+    },
+    {
+      "claim": "Includes SHORTCUT actions for add collateral and repay debt",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Lines 199-211: Two shortcuts defined - 'mint-add-collateral' with action 'openDepositModal' and 'mint-repay-debt' with action 'openRepayModal', both conditional on warning threshold being met."
+    },
+    {
+      "claim": "Provides ltvGap computation code",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Lines 259-263: `const ltvGap = useMemo(() => { if (!liquidationLTV || !currentLTV) return 0; return Math.max(0, Math.round((liquidationLTV - currentLTV) * 10) / 10) }, [liquidationLTV, currentLTV])`"
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "correct-severity",
+        "reason": "The assertion says 'Uses danger severity' but the output uses both 'danger' AND 'warn' severity levels in a two-tier approach. The assertion passes because danger IS used for near-liquidation, but it does not validate whether the two-tier pattern is appropriate. Consider specifying 'Uses danger severity for the most critical tier' to be more precise."
+      },
+      {
+        "reason": "No assertion checks whether the response correctly integrates with the EXISTING Ditto contract system (referencing real files like portfolioContract.ts, DittoPageContract interface). The with_skill output does this well, referencing manicContract.ts and portfolioContract.ts as established patterns. This is a meaningful quality signal."
+      }
+    ],
+    "overall": "Excellent, comprehensive output. The response goes well beyond minimum requirements with detailed anti-annoyance rules, escalation behavior, trigger events, and a complete contract file. All assertions pass convincingly."
+  }
+}

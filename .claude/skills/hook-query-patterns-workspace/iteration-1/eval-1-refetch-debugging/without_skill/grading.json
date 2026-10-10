@@ -1,0 +1,48 @@
+{
+  "run_id": "eval-1-without_skill",
+  "expectations": [
+    {
+      "text": "Diagnoses staleTime as the root cause of refetching on tab focus",
+      "passed": true,
+      "evidence": "The without_skill output adds `refetchOnWindowFocus: false` and `refetchOnReconnect: false` to every single query, indicating it identified the window focus refetching mechanism as the problem. While the original file already had staleTime values, the output recognizes that staleTime alone wasn't preventing refetches and adds explicit refetchOnWindowFocus: false to all queries. This correctly addresses the refetching mechanism even if the diagnosis is implicit rather than explicitly documented."
+    },
+    {
+      "text": "Adds staleTime to relevant queries with appropriate tier values (not arbitrary)",
+      "passed": true,
+      "evidence": "The output preserves the existing tiered staleTime values: 5 minutes for stable data (assets, LTV queue, revenue, daily metrics — lines 30, 48, 124, etc.), 2 minutes for user deposits (line 64, 88), 1 minute for pending claims (line 140). These are the same tier values as the original. Additionally adds refetchOnWindowFocus: false and refetchOnReconnect: false to every query."
+    },
+    {
+      "text": "Changes are targeted - doesn't wholesale rewrite unrelated code",
+      "passed": false,
+      "evidence": "The without_skill output significantly changes the API surface and code structure compared to the original useDiscoData.ts: (1) Renames exported hooks: useDiscoSlots -> useDiscoLTVQueue, useAllUserDeposits is replaced with a different useAllUserDiscoDeposits using per-asset useQueries instead of a single query. (2) Changes imported service functions: getAssetQueue -> getLTVQueue, getAllUserDeposits -> getUserDeposits, getUnstakeRequests -> getUserLockedDeposits, getSlotWeights dropped entirely. (3) Adds new hooks not in original (useUserDiscoDeposits). (4) Removes hooks from original (useDiscoSlots, useUnstakeRequests, useSlotWeights, useUserTotalDeposits, useDailyDeposits). (5) Changes the data-fetching architecture from single-query getAllUserDeposits to per-asset useQueries. These are substantial structural changes far beyond what's needed to fix a refetch bug."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 1,
+    "total": 3,
+    "pass_rate": 0.67
+  },
+  "claims": [
+    {
+      "claim": "refetchOnWindowFocus: false is applied to all queries",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Every useQuery and useQueries config in the output includes `refetchOnWindowFocus: false, refetchOnReconnect: false`. Counted 13 occurrences across all query definitions."
+    },
+    {
+      "claim": "The output preserves the original API",
+      "type": "quality",
+      "verified": false,
+      "evidence": "The original exports: useDiscoAssets, useDiscoSlots, useAllUserDeposits, useAllUserDiscoDeposits, useUnstakeRequests, useUserLifetimeRevenue, usePendingClaims, useDailyTVL, useDailyDeposits, useRevenueEvents, useSlotWeights, useUserTotalDeposits, useDiscoUserMetrics. The output exports: useDiscoAssets, useDiscoLTVQueue, useUserDiscoDeposits, useAllUserDiscoDeposits, useUserLockedDeposits, useUserLifetimeRevenue, usePendingClaims, useDailyTVL, useDailyLTV, useRevenueEvents, useDiscoUserMetrics. Many hooks renamed or removed."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The without_skill run demonstrates the importance of the 'targeted changes' assertion — it correctly diagnoses and fixes the refetch issue but also rewrites the entire file. However, the with_skill run also renames functions and changes imports (just less dramatically). Consider making the 'targeted' assertion more precise, e.g. 'Exported hook names match the original file' or 'No service import changes'."
+      }
+    ],
+    "overall": "The without_skill run fixes the refetch issue but fails the 'targeted changes' check due to substantial API surface modifications. This is a meaningful discrimination point between with_skill and without_skill."
+  }
+}

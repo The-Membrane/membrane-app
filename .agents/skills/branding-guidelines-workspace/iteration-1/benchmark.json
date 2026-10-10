@@ -1,0 +1,140 @@
+{
+  "metadata": {
+    "skill_name": "branding-guidelines",
+    "skill_path": "/Users/EBmic/membrane-app/.claude/skills/branding-guidelines",
+    "executor_model": "claude-opus-4-6",
+    "analyzer_model": "claude-opus-4-6",
+    "timestamp": "2026-02-27T16:33:05Z",
+    "evals_run": ["settings-page-styling", "alert-banner-colors", "ditto-liquidation-message"],
+    "runs_per_configuration": 3
+  },
+  "configurations": {
+    "with_skill": {
+      "pass_rate": { "mean": 1.00, "stddev": 0.0 },
+      "time_seconds": { "mean": 131.7, "stddev": 49.6 },
+      "tokens": { "mean": 60674, "stddev": 8385 }
+    },
+    "without_skill": {
+      "pass_rate": { "mean": 0.944, "stddev": 0.08 },
+      "time_seconds": { "mean": 134.3, "stddev": 76.4 },
+      "tokens": { "mean": 57574, "stddev": 12888 }
+    }
+  },
+  "runs": [
+    {
+      "eval_name": "settings-page-styling",
+      "with_skill": {
+        "pass_rate": 1.00,
+        "passed": 7,
+        "total": 7,
+        "time_seconds": 115.5,
+        "tokens": 69287,
+        "assertions": {
+          "uses-spacing-constants": true,
+          "uses-semantic-colors": true,
+          "uses-typography": true,
+          "uses-transitions": true,
+          "uses-card-component": true,
+          "has-focus-indicators": true,
+          "dark-theme-appropriate": true
+        }
+      },
+      "without_skill": {
+        "pass_rate": 1.00,
+        "passed": 7,
+        "total": 7,
+        "time_seconds": 101.8,
+        "tokens": 47392,
+        "assertions": {
+          "uses-spacing-constants": true,
+          "uses-semantic-colors": true,
+          "uses-typography": true,
+          "uses-transitions": true,
+          "uses-card-component": true,
+          "has-focus-indicators": true,
+          "dark-theme-appropriate": true
+        }
+      }
+    },
+    {
+      "eval_name": "alert-banner-colors",
+      "with_skill": {
+        "pass_rate": 1.00,
+        "passed": 6,
+        "total": 6,
+        "time_seconds": 79.4,
+        "tokens": 49123,
+        "assertions": {
+          "correct-warning-color": true,
+          "correct-danger-color": true,
+          "uses-glow-effects": true,
+          "uses-standard-transitions": true,
+          "brand-consistent-bg": true,
+          "explains-color-rationale": true
+        }
+      },
+      "without_skill": {
+        "pass_rate": 0.833,
+        "passed": 5,
+        "total": 6,
+        "time_seconds": 59.2,
+        "tokens": 49116,
+        "assertions": {
+          "correct-warning-color": true,
+          "correct-danger-color": true,
+          "uses-glow-effects": true,
+          "uses-standard-transitions": false,
+          "brand-consistent-bg": true,
+          "explains-color-rationale": true
+        }
+      }
+    },
+    {
+      "eval_name": "ditto-liquidation-message",
+      "with_skill": {
+        "pass_rate": 1.00,
+        "passed": 6,
+        "total": 6,
+        "time_seconds": 200.3,
+        "tokens": 63612,
+        "assertions": {
+          "correct-message-type": true,
+          "correct-severity": true,
+          "voice-compliant": true,
+          "includes-cooldown": true,
+          "uses-contract-schema": true,
+          "threshold-based-trigger": true
+        }
+      },
+      "without_skill": {
+        "pass_rate": 1.00,
+        "passed": 6,
+        "total": 6,
+        "time_seconds": 241.8,
+        "tokens": 76214,
+        "assertions": {
+          "correct-message-type": true,
+          "correct-severity": true,
+          "voice-compliant": true,
+          "includes-cooldown": true,
+          "uses-contract-schema": true,
+          "threshold-based-trigger": true
+        }
+      }
+    }
+  ],
+  "run_summary": {
+    "delta": {
+      "pass_rate": "+5.6%",
+      "time_seconds": "-2.6s (faster with skill on avg)",
+      "tokens": "+3100 (more tokens with skill)"
+    }
+  },
+  "notes": [
+    "The skill achieves 100% pass rate (19/19) vs 94.7% without (18/19). The one failure was uses-standard-transitions in alert-banner-colors.",
+    "The without_skill baseline scores well because CLAUDE.md already contains comprehensive design system documentation that the agents can reference.",
+    "Qualitative differences favor the skill: breathing glow animations, glassmorphism effects, dark-mode-only enforcement in settings, and more cyberpunk-authentic styling.",
+    "The skill is complementary to CLAUDE.md — it adds brand identity context (cyberpunk personality, Ditto character voice, visual effects philosophy) that CLAUDE.md doesn't cover.",
+    "Consider adding assertions for brand-specific details like cyberpunk aesthetic, glassmorphism, breathing animations, and monospace HUD patterns to better capture the skill's qualitative advantage."
+  ]
+}

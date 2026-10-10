@@ -1,0 +1,103 @@
+{
+  "study": "aave-usdc-24h-market-cash-flow-pilot-v1",
+  "status": "observed_descriptive_only",
+  "identity": {
+    "market": "Aave V3 USDC",
+    "chainId": 1,
+    "pool": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+    "underlying": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "aToken": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c",
+    "decimals": 6
+  },
+  "coverage": {
+    "fromExclusive": {
+      "number": 26072386,
+      "hash": "0x14dad87fe793cc0ea9863e460373ba13fba7ed36f7cc5a756611cbdc96bc1038",
+      "timestamp": 1790555591
+    },
+    "toInclusive": {
+      "number": 26079860,
+      "hash": "0x25bac1e47e596b773f4f0913f97a23b54cb7e8e54d43925f9d7a46a053281d16",
+      "timestamp": 1790645591
+    },
+    "seconds": 90000,
+    "receiptCount": 30,
+    "receiptSha256": [
+      "ca0c4f8c5b2b76f49aa28eeb1b19a16e013c3774bf17d9862896ff13dc54502e",
+      "632804b958bb6d596e78cbd45fd8311ded7cb140f2f8c73140c54030b598459c",
+      "5bafaa0df2030b2a380f602329cf99251c897b0be294ed33487b4bd58f1e162c",
+      "e4c8c907178d2a328c35c68ad8bbc756612b477978ab8ff78bfaaad6445ed296",
+      "722b7f1efdf27b4d5318e32fab9d8ca0595b79d06e6fde4c47081067dd5af2d7",
+      "9ab7efb386761215554b120ce13eb84322ce087ca35438de104b2bbf6b4706ac",
+      "f480fe08f41efc53c1971f6ad0accc24777d5a03a94e098c6e0330136e821fa0",
+      "6fcf90c92ba6853d836bec48a9a6ae92b9aa011634bb09ef70527310b0efc46e",
+      "4fcd93ebe5a5ec5f57f264cb5c6d0242a0a57b7c63876bea3f738a88e5ab5dfb",
+      "3dcba99da95d539b9cc7cc981b5f9990f1d71e2569c405aaeec1a81508dc0016",
+      "04d2d6686b3b95623063214633a7b4c267a2a62a89637df589d5698718b327a8",
+      "66a0543900ce402bc4863e231985a113fba77570696b99b5abce73ce4f4cf0f6",
+      "4b133b44b750e50c4703600a848d203453d4477f26bc4039066dd5e253ec2c62",
+      "352cb7ceacb668aa91c83f44f7a983b092f7d3d57cab6021149a1a03c3d77ca9",
+      "3526b54508426bf2a6e6c026f6cdd7f582a21ea1f2589187d25b5a0b63124541",
+      "9220b957bf9f08540d681c53de7979cdda29aab3596a8149e206ae8689c92615",
+      "93705af6d666edfff4426ea3e3d466d09a5330bb8d1a5c25d447bbc84a42cedc",
+      "5910caa4c8a4801e189bbe5c362847c399867b8d408c6daece4e4c006730393b",
+      "25e928ba4e26c5468a1cb5c28aa00a40a41b1c33c21b042069624451938845a8",
+      "cdc4376b662904d0e4a34a2cdff39e455983d37109a799e356484dc47a903496",
+      "980c6a4d35846eb8597397da35f225461837d7c2928cdf846b5bc0da4b6399a8",
+      "a94b1daabc2ceb4798f49e66366a7c848e4f814a32c1446b4cf16449eebb6418",
+      "581b3e5497e4f7cebe61ef73363ff91d17636530f194f7d740cc2987f3c65c17",
+      "8c497abe6e0755e6d3213380f5fe6d73965a81cd3153e0e9ba235dde25d2f25d",
+      "2e956ec12ef69157d3b1ff82d6664bd89c38a287a168323bcf9ad861bbd16053",
+      "7e56d6f068aa30a24de6f1a3f4594057b69ae48efe058864735cde6136cdbd4b",
+      "f94a3d39faf3b62905d711cbe12b058117acd4883aaa29e2816bc825847798a3",
+      "0cfaa3c323d60581c22aa5228b6e408afeca5e82ef442c983d12c214bc8c05e3",
+      "7fcaae920da31729f733dcd83ddfdc96ac1b5e71713c797bc6958b73cce8e510",
+      "6935ca607b0854b5a0112f6df85746154959828913cab2cac07d455cd6782c1d"
+    ],
+    "poolChunkCount": 117,
+    "transferChunkCount": 117,
+    "eventHeaderCount": 1488,
+    "eventHeaderSha256": "810d4ef9e44a8e3ba5cede62be12955f4860ed68c5a590ea03b221e65b1b35b4",
+    "sourceStatus": "rpc_returned_complete_and_endpoint_reconciled_single_provider"
+  },
+  "counts": {
+    "poolOperations": 1774,
+    "poolByKind": { "Supply": 466, "Withdraw": 649, "Borrow": 433, "Repay": 226 },
+    "underlyingTransfers": 1830,
+    "cashMovingTransfers": 1830,
+    "grossMismatchedTransactions": 22,
+    "operationOnlyTransactions": 2,
+    "transferOnlyTransactions": 9
+  },
+  "totals": {
+    "grossCashInRaw": "352060735691242",
+    "grossCashOutRaw": "352727310280132",
+    "signedNetCashOutRaw": "666574588890",
+    "endpointCashDeltaRaw": "-666574588890"
+  },
+  "observed24h": {
+    "maximumGrossCashOut": {
+      "startUtc": "2026-09-28T00:35:12.000Z",
+      "endExclusiveUtc": "2026-09-29T00:35:12.000Z",
+      "grossCashInRaw": "350913395356346",
+      "grossCashOutRaw": "352204847830858",
+      "netCashOutRaw": "1291452474512",
+      "grossCashOutUsdc": "352204847.830858",
+      "netCashOutUsdc": "1291452.474512",
+      "transferCount": 1757
+    },
+    "maximumSignedNetCashOut": {
+      "startUtc": "2026-09-28T01:33:12.000Z",
+      "endExclusiveUtc": "2026-09-29T01:33:12.000Z",
+      "grossCashInRaw": "348794385575703",
+      "grossCashOutRaw": "351227908964289",
+      "netCashOutRaw": "2433523388586",
+      "grossCashOutUsdc": "351227908.964289",
+      "netCashOutUsdc": "2433523.388586",
+      "transferCount": 1749
+    },
+    "evaluatedGrossCandidateCount": 41,
+    "evaluatedNetCandidateCount": 72
+  },
+  "caveat": "Observed aggregate market cash flow only. One RPC provider returned the complete queried ranges and USDC transfers reconcile endpoint balances, but offsetting omissions cannot be excluded. No holder-specific exit, likely future duration, forecast validation, or executable alert follows."
+}

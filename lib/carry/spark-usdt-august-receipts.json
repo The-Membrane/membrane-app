@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "chainId": 1,
+  "routeKey": "USDT \u2192 supply on Spark",
+  "sourceArtifact": {
+    "path": "scripts/route-cohort/aug-2026-ab-routes-source.json",
+    "sha256": "a0aee85535cb4c96f09d2f3bce3af3d2bcc9d1e2ee0156e24265111263c4cf63"
+  },
+  "sparkLend": {
+    "pool": "0xc13e21b648a5ee794902342038ff3adab66be987",
+    "usdtAToken": "0xe7df13b8e3d6740fe17cbe928c7334243d86c92f",
+    "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+  },
+  "sparkSavingsUsdtVault": "0xe2e7a17dff93280dec073c995595155283e3c372",
+  "method": "first borrower aToken mint within 5000 blocks after source borrow, with same-receipt Spark Pool Supply and USDT transfer; exceptions checked by Spark Pool Borrow and opposite-direction transfers",
+  "caution": "Receipt evidence proves the same borrower supplied USDT in 13 rows; it does not trace each deposited unit to the preceding borrow. Two of 15 grouped rows fail USDT-supply classification and show SparkLend USDT Borrow, not Withdraw.",
+  "entries": [
+    {
+      "borrower": "0x22539a0ccea56b1404b6ef6e5ee24048100787aa",
+      "sourceBorrowBlock": 25672969,
+      "sourceBorrowTx": "0x5c06f07f0c8ef124c72a2d2c4ac59cc84dea04c15da1b440395b4eec5c41d1c7",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "100000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25672974,
+      "proofTx": "0x390dde32531d16b03023540be6ae6317b2a724731a9b9fb5834fd1b03927e550",
+      "usdtTransferRaw": "100000000100"
+    },
+    {
+      "borrower": "0xed0c6079229e2d407672a117c22b62064f4a4312",
+      "sourceBorrowBlock": 25481249,
+      "sourceBorrowTx": "0xb326842551450fda0899b40bd13df8f941c0c2b78dc661468c606329f5ed512e",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "5500000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25481254,
+      "proofTx": "0x9e602f5db7a0ba4753791954eacaf5b52ce433a2f4524ae2df8fd7f29f45c1c4",
+      "usdtTransferRaw": "5500291678600"
+    },
+    {
+      "borrower": "0xb99a2c4c1c4f1fc27150681b740396f6ce1cbcf5",
+      "sourceBorrowBlock": 25481256,
+      "sourceBorrowTx": "0xcfcf5757493b4ba070af45d1af95a918b4d29282a5f27b5fce08364b85cf9389",
+      "sourceBorrowAsset": null,
+      "sourceBorrowAmountRaw": "5000000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25481265,
+      "proofTx": "0x1f27238370e3d575cae1bfa491e93cf6a917dc2e7021a5062a41c7fb0bf1ce27",
+      "usdtTransferRaw": "5000000000000"
+    },
+    {
+      "borrower": "0xabeafc7c30488e5f887ec1ec87e5d1eed293b728",
+      "sourceBorrowBlock": 25324555,
+      "sourceBorrowTx": "0x01a7fec61df9fc0953217886afbbe00f3ed8e7f6f9d3613ba7774666c105b474",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "3410000000",
+      "sourceTier": "B strong",
+      "classification": "usdc_supply_then_usdt_borrow",
+      "proofBlock": 25324588,
+      "proofTx": "0x1b7d063ffd9297b5c4d9e4c22c1c2d3c07c50f3a51590da04411b06f1d00ef55",
+      "laterBorrowBlock": 25324701,
+      "laterBorrowTx": "0x2605a5c8f9480389a9200194a05c95c4a55afa8fbea9b126ff77ebc51f6754e1"
+    },
+    {
+      "borrower": "0xaf9b98d2acde5f13eaeaeb0101273cdfa86dcc95",
+      "sourceBorrowBlock": 25135447,
+      "sourceBorrowTx": "0x978a4ec5863698bfb7ef1e0ff7dc602a0a5d65d685e35a51c2f1041d8ba935bb",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "5000000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25135461,
+      "proofTx": "0x2bec90f6599d2e24cecb9db1e1bf93807cae343baf5e6cf40569cb4c502610ce",
+      "usdtTransferRaw": "6500000000000"
+    },
+    {
+      "borrower": "0x9996623cb9ede69562537a08d08d606d8d098b9b",
+      "sourceBorrowBlock": 25135588,
+      "sourceBorrowTx": "0x4785c83d832f0d4e7540a58997d47dc3709d966eec667ef525b10e035a0faad6",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "700000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25135599,
+      "proofTx": "0x554bbf2470f236931af5eb40d8f457c20b5c1e935298f27164197097223f0f03",
+      "usdtTransferRaw": "700043840603"
+    },
+    {
+      "borrower": "0x33988614010be265e71ab3a04bd29f0b950bc58c",
+      "sourceBorrowBlock": 25119516,
+      "sourceBorrowTx": "0x7f2d0f74d6629d1abf0a12f4da5c8037b80339848c1d2123cace9bb789488c1d",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "86530181500",
+      "sourceTier": "A atomic",
+      "classification": "spark_lend_usdt_borrow_receipt",
+      "proofBlock": 25119516,
+      "proofTx": "0x7f2d0f74d6629d1abf0a12f4da5c8037b80339848c1d2123cace9bb789488c1d",
+      "usdtTransferRaw": "1300455693564"
+    },
+    {
+      "borrower": "0xff8559f5f4c7c677a1d958313b61dc8b31bb7f47",
+      "sourceBorrowBlock": 25050562,
+      "sourceBorrowTx": "0xa9cab9c94a91aea8121dfd68737864a1002885a2c70b5d6d5b232fe81ccd7fe8",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "3000000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25050567,
+      "proofTx": "0x26697be21216d8df9e0e5d5a82040e7317bd642d39e2fa1e203a02a3bf778391",
+      "usdtTransferRaw": "3000000000000"
+    },
+    {
+      "borrower": "0x7b3e637e0e27a6657cd7c21a5f46f90c6ea72307",
+      "sourceBorrowBlock": 25051085,
+      "sourceBorrowTx": "0x86219dea06ebb57dcb037577d13e81f70628f5e09389d7d7c6043a77b973cec4",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "2000000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25051091,
+      "proofTx": "0xfc225696f2793eee70b26bbd6af412ab1f33755d7796a2db19283b7c8ae77e21",
+      "usdtTransferRaw": "2001014197272"
+    },
+    {
+      "borrower": "0x2154d98c2c07a2d834eb561e84d5be14499a0a0b",
+      "sourceBorrowBlock": 25051355,
+      "sourceBorrowTx": "0x78af1ee69d5c217a942e674f757f3b44ecd91aaa681fe94f08bd90f9a65bb56c",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "885105441727",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25051367,
+      "proofTx": "0xf13d1767bd28f7eb7000f37796fbb07d0d1b268c97e7e8d940763f0fcb171dfe",
+      "usdtTransferRaw": "885105441727"
+    },
+    {
+      "borrower": "0xa65e8ca77d2ccd61e1a57dddfd2ae2669b30a68c",
+      "sourceBorrowBlock": 25051359,
+      "sourceBorrowTx": "0x80967c971304b2076e8f5d7ac142fe43c336396b05e0fa93fc0c18f03bfeb746",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "3150000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25051370,
+      "proofTx": "0x4f9718c372dcc1f4a12ae941edac52a6b6d86fb5ba7d4895a55560ea296647be",
+      "usdtTransferRaw": "3150000000000"
+    },
+    {
+      "borrower": "0xf1c7733131737dc89dcc06034eb57c07b17772ec",
+      "sourceBorrowBlock": 25051598,
+      "sourceBorrowTx": "0xe31a662ff9365d2130e672caf85aee74c41f7fa14c07bf6cf7956b1a25df4f21",
+      "sourceBorrowAsset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "sourceBorrowAmountRaw": "100000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25051605,
+      "proofTx": "0xc60853c1d3bcb3572dc46391c0bc1f94902d49c2bbbac2645f87a96f6910a4bf",
+      "usdtTransferRaw": "100000000168"
+    },
+    {
+      "borrower": "0x1eb322c016815ee5b29c071586c1b75be5934576",
+      "sourceBorrowBlock": 25050973,
+      "sourceBorrowTx": "0x05ac57f1d34e6f9424893c326a234d9704017b8c58735e678dbe1dafe50e6da6",
+      "sourceBorrowAsset": null,
+      "sourceBorrowAmountRaw": "117418341461",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25050992,
+      "proofTx": "0x4aa54a9a4fbad87bc949dae9c8da35bd14d5c1c683269700da35383af0847925",
+      "usdtTransferRaw": "118422843047"
+    },
+    {
+      "borrower": "0xa427def3f920f718a89e5ab473c79c065ab10ef4",
+      "sourceBorrowBlock": 25051286,
+      "sourceBorrowTx": "0x6c1e7b23ac33f0541b8466a15a039b4afa88f378911bc69769b87436bfc7a739",
+      "sourceBorrowAsset": null,
+      "sourceBorrowAmountRaw": "5000000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25051292,
+      "proofTx": "0x126e1c2af1ba942b2e0290fb6f3ee5245c14bc66a2c7c1d0ae576c605d410784",
+      "usdtTransferRaw": "5000000000000"
+    },
+    {
+      "borrower": "0x3051954ae939efc0a1c8e3ac06ef82c827fa8fec",
+      "sourceBorrowBlock": 25051372,
+      "sourceBorrowTx": "0xad55e25f17989ae5037efddbb226b1a59f35e8748ba6b0fbd3a9a3a368d41d47",
+      "sourceBorrowAsset": null,
+      "sourceBorrowAmountRaw": "128000000000",
+      "sourceTier": "B strong",
+      "classification": "spark_lend_usdt_supply_receipt",
+      "proofBlock": 25051402,
+      "proofTx": "0x10e84ea1fa11eca299ecbb031b5ba1ce948e1984b53edcda8a0a282c7aaf9f45",
+      "usdtTransferRaw": "129473483294"
+    }
+  ]
+}

@@ -1,0 +1,5869 @@
+{
+  "schemaVersion": 1,
+  "study": "carry-morpho-v2-stable-holder-exit-history",
+  "chainId": 1,
+  "mode": "historical_read_only",
+  "prospectiveValidated": false,
+  "futureExitForecast": false,
+  "design": {
+    "schemaVersion": 1,
+    "study": "carry-morpho-v2-stable-holder-exit-history",
+    "chainId": 1,
+    "manifestSha256": "8dd54bbb3dea0842bb67e582f0725adcafb7594107933122c5fa381c083566da",
+    "assets": [
+      "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "0xdac17f958d2ee523a2206206994597c13d831ec7"
+    ],
+    "anchors": [
+      25400000,
+      25600000,
+      25800000,
+      26000000
+    ],
+    "horizonsHours": [
+      1,
+      4,
+      24,
+      48,
+      168
+    ],
+    "qLabels": [
+      "fixed_10k",
+      "fixed_100k",
+      "fixed_1m",
+      "vault_0p1pct",
+      "vault_1pct",
+      "vault_5pct"
+    ],
+    "candidateLookbackBlocks": 4096,
+    "candidateLimit": 8,
+    "reservedHoldoutAnchor": 26000000,
+    "cohortSelection": "current pinned tracked-set survivors assessed retrospectively; vaults absent from the current tracked list are not sampled",
+    "episodeIndependence": "anchor clocks must be >168h apart; repeated holder-vault pairs remain dependent clusters",
+    "receiptAndExitMethod": "reuse corrected grid receipt-verified pre-anchor EOA selection, same-holder withdraw(Q,holder,holder), attrition-censored interval labels",
+    "forecast": false,
+    "prospectiveValidated": false
+  },
+  "subjects": [
+    {
+      "vault": "0x0026038a7fefef439d94bd99b4a10017e839d3a7",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24988318,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x069662d2588fcac24b5c209456db965d151556f0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 25192577,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x093272c07700d3ca5301c3bf9b3a392624179e2f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23666454,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x0bf0164d17469241b6e086da4016dcc54feaa334",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24876722,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x153bd1abe60104bd46aa05a27fa12d1346d64a57",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24509998,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x23f5e9c35820f4bab695ac1f19c203cc3f8e1e11",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "creationBlock": 24568955,
+      "routeKey": "USDT → VaultV2 [USDT]"
+    },
+    {
+      "vault": "0x2bd3a43863c07b6a01581fada0e1614ca5df0e3d",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "creationBlock": 24508209,
+      "routeKey": "USDT → VaultV2 [USDT]"
+    },
+    {
+      "vault": "0x35cbe8542e70fa2f7f9cdf129f19e593f4b4f560",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24690858,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x36cfe1568461e499391ef0a555300f1ae2da2439",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24564769,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x4ef53d2caa51c447fdfeeedee8f07fd1962c9ee6",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23641853,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x56bfa6f53669b836d1e0dfa5e99706b12c373ecf",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24507854,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x5dc53a23adc9f2bed98de6f59f7f309a7c71ff2b",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24936277,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x69a238ae7ebeb3c53ff3b544e48b96a2142fc284",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23511349,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x7ceb0f01cb7187a2ebed5661ecc4d5701d8f2350",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23975915,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x85f3d81a39df458e45d5ea20f9eb937faafd282f",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "creationBlock": 24971976,
+      "routeKey": "USDT → VaultV2 [USDT]"
+    },
+    {
+      "vault": "0x8c106eedad96553e64287a5a6839c3cc78afa3d0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23479188,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x8edcc305e633d29bfb383872e79401c506ce9e6f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23735898,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x9480034d908989b006d78bdbbd7bd509c92e8bbc",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 25041831,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x951a9f4a2ce19b9dea6b37e691d076a345b6c0f8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24292417,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23485657,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0x9f39b13bb472126d6937bf25a39338e664eefa82",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24284886,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xa1b096268d200d0ecfd57015700f6a0da9c494e2",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24197148,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xabe418cc8c06d265e4eb009c02ea4b265eca7240",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 25248895,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xb885f6d448da7e2c642ec31190b629e40e87b069",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23885389,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "creationBlock": 23903259,
+      "routeKey": "USDT → VaultV2 [USDT]"
+    },
+    {
+      "vault": "0xbeef088055857739c12cd3765f20b7679def0f51",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23671611,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xbeeff047c03714965a54b671a37c18bef6b96210",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24285335,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xbeeff07d991c04cd640de9f15c08ba59c4fedeb7",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "creationBlock": 24002068,
+      "routeKey": "USDT → VaultV2 [USDT]"
+    },
+    {
+      "vault": "0xbeeff2c5bf38f90e3482a8b19f12e5a6d2fca757",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23671563,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xbeeff75262b2ec16a3c62a807f02ee7627654931",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24992127,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xbeefff4716a49418d69c251cab8759bb107e57c8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24103344,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xd1e9242e075db4bdd3f3c721d7d5fd4180a94a7e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 23933944,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xd5cce260e7a755ddf0fb9cdf06443d593aaeaa13",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24125461,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xd95fe7adf5075fad9d6bf853e0f9fe53369e8d96",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 25331914,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24722518,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xe05fadf242331808f504661bea65972594869826",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24196224,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xe571b648569619566cf6ce1060c97b621cb635d3",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "creationBlock": 23898243,
+      "routeKey": "USDT → VaultV2 [USDT]"
+    },
+    {
+      "vault": "0xebbae8cfabb0092d5b32f00ebee0c8139d24ddcd",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24198550,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xf1ca44eea3a4effcb195a970a2f1d8553f76f9a1",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "creationBlock": 24285515,
+      "routeKey": "USDC → VaultV2 [USDC]"
+    },
+    {
+      "vault": "0xf3557ad5e984211ac8a0874a670344f2c3376471",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "creationBlock": 23898146,
+      "routeKey": "USDT → VaultV2 [USDT]"
+    }
+  ],
+  "schedule": {
+    "head": {
+      "number": 26086713,
+      "hash": "0x5451644faa1d019577852011301a7633e69e9ba0cb72df0f12051cb04a5ff577",
+      "timestamp": 1790728151
+    },
+    "anchors": [
+      {
+        "anchor": {
+          "number": 25400000,
+          "hash": "0xb4d6d97281983161d8a70a98640a697504c91c0e749cfc7deac4af7b9c3ee4dc",
+          "timestamp": 1782455147
+        },
+        "horizons": [
+          {
+            "hours": 1,
+            "status": "fixed",
+            "number": 25400299,
+            "hash": "0xfe9f0dac9babcd61b8f1f9629399532ec9550112c96b9a224a2813ff5421b251",
+            "timestamp": 1782458747,
+            "priorTimestamp": 1782458735,
+            "requestedTimestamp": 1782458747,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 4,
+            "status": "fixed",
+            "number": 25401196,
+            "hash": "0x2ff65292b04b3d07963ec30c4c4be623654132cabaa8d92f9540ecc8d4a54f5b",
+            "timestamp": 1782469547,
+            "priorTimestamp": 1782469535,
+            "requestedTimestamp": 1782469547,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 24,
+            "status": "fixed",
+            "number": 25407173,
+            "hash": "0x8a5299c334a8280100c2124a944ed16c5982728cf0ee0c038ba526053b49ad09",
+            "timestamp": 1782541547,
+            "priorTimestamp": 1782541535,
+            "requestedTimestamp": 1782541547,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 48,
+            "status": "fixed",
+            "number": 25414348,
+            "hash": "0x4f15524b73caf8ee707c435ad9555e0e77041188f233f7d9024603e84955bc35",
+            "timestamp": 1782627947,
+            "priorTimestamp": 1782627935,
+            "requestedTimestamp": 1782627947,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 168,
+            "status": "fixed",
+            "number": 25450183,
+            "hash": "0xdfac7bf2732ed634c61c8614dc14e0bc08edf0f52f73a916799d370afbe11f96",
+            "timestamp": 1783059947,
+            "priorTimestamp": 1783059935,
+            "requestedTimestamp": 1783059947,
+            "realizedLagSeconds": 0
+          }
+        ]
+      },
+      {
+        "anchor": {
+          "number": 25600000,
+          "hash": "0xd5a2949458342c9a23ed719283df4e46f77e6ab8031319b41cba44024693db27",
+          "timestamp": 1784864807
+        },
+        "horizons": [
+          {
+            "hours": 1,
+            "status": "fixed",
+            "number": 25600300,
+            "hash": "0x9397389fd34b5dec0d8eea340ac33610f67f640b3b036b5338434a0e71207d13",
+            "timestamp": 1784868407,
+            "priorTimestamp": 1784868395,
+            "requestedTimestamp": 1784868407,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 4,
+            "status": "fixed",
+            "number": 25601193,
+            "hash": "0x25c48d7d2f7393faa2d0d077fd36959a79e1a2b7a33a04553bea84b5a3293e17",
+            "timestamp": 1784879207,
+            "priorTimestamp": 1784879195,
+            "requestedTimestamp": 1784879207,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 24,
+            "status": "fixed",
+            "number": 25607184,
+            "hash": "0x9c5a4d8ce59272748dcecda2fdfa8d1a12b71cf2e525d9da106285dd9e3916c1",
+            "timestamp": 1784951207,
+            "priorTimestamp": 1784951195,
+            "requestedTimestamp": 1784951207,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 48,
+            "status": "fixed",
+            "number": 25614365,
+            "hash": "0x797a6174e2c7cfb98ccc9fb49a6691c3d08063f2972a13b53b9bbca0b7a603e1",
+            "timestamp": 1785037607,
+            "priorTimestamp": 1785037595,
+            "requestedTimestamp": 1785037607,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 168,
+            "status": "fixed",
+            "number": 25650239,
+            "hash": "0x68c990d293caf05d204bbcc9292fd032a907d7794b612f1f0066b1a65eab9e2d",
+            "timestamp": 1785469607,
+            "priorTimestamp": 1785469595,
+            "requestedTimestamp": 1785469607,
+            "realizedLagSeconds": 0
+          }
+        ]
+      },
+      {
+        "anchor": {
+          "number": 25800000,
+          "hash": "0xeb4ccbdb418b083ebbf646b371092c7c02016194e3a90caba9a9492becba8a2d",
+          "timestamp": 1787273051
+        },
+        "horizons": [
+          {
+            "hours": 1,
+            "status": "fixed",
+            "number": 25800300,
+            "hash": "0x4e2d1824cfc0cd15b5206557f25d1e5025bd030541c20cad04e75ccce167ad66",
+            "timestamp": 1787276651,
+            "priorTimestamp": 1787276639,
+            "requestedTimestamp": 1787276651,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 4,
+            "status": "fixed",
+            "number": 25801194,
+            "hash": "0x027f7d91a5f0fd79f3b10c9a63c314f755626611ef3c09eeb5ffd4b9ece7d551",
+            "timestamp": 1787287451,
+            "priorTimestamp": 1787287439,
+            "requestedTimestamp": 1787287451,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 24,
+            "status": "fixed",
+            "number": 25807179,
+            "hash": "0x234e2bc7ea6315c7baf2809d91e249b2982edbf2d26c69cfdf66dd763775db77",
+            "timestamp": 1787359451,
+            "priorTimestamp": 1787359439,
+            "requestedTimestamp": 1787359451,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 48,
+            "status": "fixed",
+            "number": 25814347,
+            "hash": "0x631010c49cb7f6020ca4dc17146c00907beff711ee5d1cebc2cd18ddee6f3a3e",
+            "timestamp": 1787445851,
+            "priorTimestamp": 1787445839,
+            "requestedTimestamp": 1787445851,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 168,
+            "status": "fixed",
+            "number": 25850230,
+            "hash": "0x0a2b4a2bc77d074dc18f20522da151110a33ab6285039463a5404cb57cb522b3",
+            "timestamp": 1787877851,
+            "priorTimestamp": 1787877839,
+            "requestedTimestamp": 1787877851,
+            "realizedLagSeconds": 0
+          }
+        ]
+      },
+      {
+        "anchor": {
+          "number": 26000000,
+          "hash": "0xaca0179ffd1fa446ca3703890fd201c74ea033856481074663977acd7c69380e",
+          "timestamp": 1789681763
+        },
+        "horizons": [
+          {
+            "hours": 1,
+            "status": "fixed",
+            "number": 26000300,
+            "hash": "0x41b606776df739b86ef3f84ef3ede065e1cb3e579ee3c35b02b266ec18453972",
+            "timestamp": 1789685363,
+            "priorTimestamp": 1789685351,
+            "requestedTimestamp": 1789685363,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 4,
+            "status": "fixed",
+            "number": 26001197,
+            "hash": "0x3a613cb0b91c06cb7f64d92555beb056addc1c549fccb850063d4f8a6ff6c707",
+            "timestamp": 1789696163,
+            "priorTimestamp": 1789696151,
+            "requestedTimestamp": 1789696163,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 24,
+            "status": "fixed",
+            "number": 26007184,
+            "hash": "0x191d9c7a2ac73b195c7cf61ffc19d22912d64a7f947505ab50ccdc8fae2a02bc",
+            "timestamp": 1789768163,
+            "priorTimestamp": 1789768151,
+            "requestedTimestamp": 1789768163,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 48,
+            "status": "fixed",
+            "number": 26014348,
+            "hash": "0xdef0cac370613d438bbc8007ddd50ddb965885b4c32d4dd3092a9066afd3ecef",
+            "timestamp": 1789854563,
+            "priorTimestamp": 1789854551,
+            "requestedTimestamp": 1789854563,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 168,
+            "status": "fixed",
+            "number": 26050100,
+            "hash": "0x15d06c1869066be640ccce8619102f94bb1ced641bbcdb44e2c1fed593676829",
+            "timestamp": 1790286563,
+            "priorTimestamp": 1790286551,
+            "requestedTimestamp": 1790286563,
+            "realizedLagSeconds": 0
+          }
+        ]
+      }
+    ]
+  },
+  "cells": [
+    {
+      "vault": "0x0026038a7fefef439d94bd99b4a10017e839d3a7",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "1017470",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1017"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "10174"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "50873"
+        }
+      ]
+    },
+    {
+      "vault": "0x069662d2588fcac24b5c209456db965d151556f0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "5186448373781",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "5186448373"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "51864483737"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "259322418689"
+        }
+      ]
+    },
+    {
+      "vault": "0x093272c07700d3ca5301c3bf9b3a392624179e2f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "13721562257779",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "13721562257"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "137215622577"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "686078112888"
+        }
+      ]
+    },
+    {
+      "vault": "0x0bf0164d17469241b6e086da4016dcc54feaa334",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "21645455500743",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "21645455500"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "216454555007"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1082272775037"
+        }
+      ]
+    },
+    {
+      "vault": "0x153bd1abe60104bd46aa05a27fa12d1346d64a57",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "2106957307170",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2106957307"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "21069573071"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "105347865358"
+        }
+      ]
+    },
+    {
+      "vault": "0x23f5e9c35820f4bab695ac1f19c203cc3f8e1e11",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "64880085537407",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "64880085537"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "648800855374"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "3244004276870"
+        }
+      ]
+    },
+    {
+      "vault": "0x2bd3a43863c07b6a01581fada0e1614ca5df0e3d",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "605327793555",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "605327793"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "6053277935"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "30266389677"
+        }
+      ]
+    },
+    {
+      "vault": "0x35cbe8542e70fa2f7f9cdf129f19e593f4b4f560",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "7713094312390",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "7713094312"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "77130943123"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "385654715619"
+        }
+      ]
+    },
+    {
+      "vault": "0x36cfe1568461e499391ef0a555300f1ae2da2439",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "7686336412896",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "7686336412"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "76863364128"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "384316820644"
+        }
+      ]
+    },
+    {
+      "vault": "0x4ef53d2caa51c447fdfeeedee8f07fd1962c9ee6",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "29227091394675",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "29227091394"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "292270913946"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1461354569733"
+        }
+      ]
+    },
+    {
+      "vault": "0x56bfa6f53669b836d1e0dfa5e99706b12c373ecf",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "14910825776364",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "14910825776"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "149108257763"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "745541288818"
+        }
+      ]
+    },
+    {
+      "vault": "0x5dc53a23adc9f2bed98de6f59f7f309a7c71ff2b",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "23985455640295",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "23985455640"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "239854556402"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1199272782014"
+        }
+      ]
+    },
+    {
+      "vault": "0x69a238ae7ebeb3c53ff3b544e48b96a2142fc284",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "4975694412974",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "4975694412"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "49756944129"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "248784720648"
+        }
+      ]
+    },
+    {
+      "vault": "0x7ceb0f01cb7187a2ebed5661ecc4d5701d8f2350",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "4679060974832",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "4679060974"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "46790609748"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "233953048741"
+        }
+      ]
+    },
+    {
+      "vault": "0x85f3d81a39df458e45d5ea20f9eb937faafd282f",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "100513038150",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "100513038"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "1005130381"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "5025651907"
+        }
+      ]
+    },
+    {
+      "vault": "0x8c106eedad96553e64287a5a6839c3cc78afa3d0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "82230289907721",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "82230289907"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "822302899077"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "4111514495386"
+        }
+      ]
+    },
+    {
+      "vault": "0x8edcc305e633d29bfb383872e79401c506ce9e6f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "594707112507",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "594707112"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "5947071125"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "29735355625"
+        }
+      ]
+    },
+    {
+      "vault": "0x9480034d908989b006d78bdbbd7bd509c92e8bbc",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "192535706700",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "192535706"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "1925357067"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "9626785335"
+        }
+      ]
+    },
+    {
+      "vault": "0x951a9f4a2ce19b9dea6b37e691d076a345b6c0f8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "818481233582",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "818481233"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "8184812335"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "40924061679"
+        }
+      ]
+    },
+    {
+      "vault": "0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "17695180857967",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "17695180857"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "176951808579"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "884759042898"
+        }
+      ]
+    },
+    {
+      "vault": "0x9f39b13bb472126d6937bf25a39338e664eefa82",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "1147063515192",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1147063515"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "11470635151"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "57353175759"
+        }
+      ]
+    },
+    {
+      "vault": "0xa1b096268d200d0ecfd57015700f6a0da9c494e2",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "12982288056",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "12982288"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "129822880"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "649114402"
+        }
+      ]
+    },
+    {
+      "vault": "0xabe418cc8c06d265e4eb009c02ea4b265eca7240",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "7342316372117",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "7342316372"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "73423163721"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "367115818605"
+        }
+      ]
+    },
+    {
+      "vault": "0xb885f6d448da7e2c642ec31190b629e40e87b069",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "2746257666730",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2746257666"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "27462576667"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "137312883336"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "64000082599724",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "64000082599"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "640000825997"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "3200004129986"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeef088055857739c12cd3765f20b7679def0f51",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "60038501813489",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "60038501813"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "600385018134"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "3001925090674"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff047c03714965a54b671a37c18bef6b96210",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "29219841705152",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "29219841705"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "292198417051"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1460992085257"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff07d991c04cd640de9f15c08ba59c4fedeb7",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "2407696983349",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2407696983"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "24076969833"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "120384849167"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff2c5bf38f90e3482a8b19f12e5a6d2fca757",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "44958304595700",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "44958304595"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "449583045957"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "2247915229785"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff75262b2ec16a3c62a807f02ee7627654931",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "3358359554580",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "3358359554"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "33583595545"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "167917977729"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeefff4716a49418d69c251cab8759bb107e57c8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "450976689623",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "450976689"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "4509766896"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "22548834481"
+        }
+      ]
+    },
+    {
+      "vault": "0xd1e9242e075db4bdd3f3c721d7d5fd4180a94a7e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "7328994669916",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "7328994669"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "73289946699"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "366449733495"
+        }
+      ]
+    },
+    {
+      "vault": "0xd5cce260e7a755ddf0fb9cdf06443d593aaeaa13",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "6020750589627",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "6020750589"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "60207505896"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "301037529481"
+        }
+      ]
+    },
+    {
+      "vault": "0xd95fe7adf5075fad9d6bf853e0f9fe53369e8d96",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "1957174047390",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1957174047"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "19571740473"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "97858702369"
+        }
+      ]
+    },
+    {
+      "vault": "0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "3546063061320",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "3546063061"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "35460630613"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "177303153066"
+        }
+      ]
+    },
+    {
+      "vault": "0xe05fadf242331808f504661bea65972594869826",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "12959716316979",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "12959716316"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "129597163169"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "647985815848"
+        }
+      ]
+    },
+    {
+      "vault": "0xe571b648569619566cf6ce1060c97b621cb635d3",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "4245671169727",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "4245671169"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "42456711697"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "212283558486"
+        }
+      ]
+    },
+    {
+      "vault": "0xebbae8cfabb0092d5b32f00ebee0c8139d24ddcd",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "1039707489412",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1039707489"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "10397074894"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "51985374470"
+        }
+      ]
+    },
+    {
+      "vault": "0xf1ca44eea3a4effcb195a970a2f1d8553f76f9a1",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "5538670872006",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "5538670872"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "55386708720"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "276933543600"
+        }
+      ]
+    },
+    {
+      "vault": "0xf3557ad5e984211ac8a0874a670344f2c3376471",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25400000,
+      "status": "frozen",
+      "totalAssetsRaw": "11247970348910",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "11247970348"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "112479703489"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "562398517445"
+        }
+      ]
+    },
+    {
+      "vault": "0x0026038a7fefef439d94bd99b4a10017e839d3a7",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "1023728",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1023"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "10237"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "51186"
+        }
+      ]
+    },
+    {
+      "vault": "0x069662d2588fcac24b5c209456db965d151556f0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "5160382941123",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "5160382941"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "51603829411"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "258019147056"
+        }
+      ]
+    },
+    {
+      "vault": "0x093272c07700d3ca5301c3bf9b3a392624179e2f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "11172207181997",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "11172207181"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "111722071819"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "558610359099"
+        }
+      ]
+    },
+    {
+      "vault": "0x0bf0164d17469241b6e086da4016dcc54feaa334",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "17731981780091",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "17731981780"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "177319817800"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "886599089004"
+        }
+      ]
+    },
+    {
+      "vault": "0x153bd1abe60104bd46aa05a27fa12d1346d64a57",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "1417601169829",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1417601169"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "14176011698"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "70880058491"
+        }
+      ]
+    },
+    {
+      "vault": "0x23f5e9c35820f4bab695ac1f19c203cc3f8e1e11",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "63487087358351",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "63487087358"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "634870873583"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "3174354367917"
+        }
+      ]
+    },
+    {
+      "vault": "0x2bd3a43863c07b6a01581fada0e1614ca5df0e3d",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "487870980393",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "487870980"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "4878709803"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "24393549019"
+        }
+      ]
+    },
+    {
+      "vault": "0x35cbe8542e70fa2f7f9cdf129f19e593f4b4f560",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "7356250964643",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "7356250964"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "73562509646"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "367812548232"
+        }
+      ]
+    },
+    {
+      "vault": "0x36cfe1568461e499391ef0a555300f1ae2da2439",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "14003675568555",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "14003675568"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "140036755685"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "700183778427"
+        }
+      ]
+    },
+    {
+      "vault": "0x4ef53d2caa51c447fdfeeedee8f07fd1962c9ee6",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "20229725695295",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "20229725695"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "202297256952"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1011486284764"
+        }
+      ]
+    },
+    {
+      "vault": "0x56bfa6f53669b836d1e0dfa5e99706b12c373ecf",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "13839476188466",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "13839476188"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "138394761884"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "691973809423"
+        }
+      ]
+    },
+    {
+      "vault": "0x5dc53a23adc9f2bed98de6f59f7f309a7c71ff2b",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "21474060165562",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "21474060165"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "214740601655"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1073703008278"
+        }
+      ]
+    },
+    {
+      "vault": "0x69a238ae7ebeb3c53ff3b544e48b96a2142fc284",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "1108603283059",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1108603283"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "11086032830"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "55430164152"
+        }
+      ]
+    },
+    {
+      "vault": "0x7ceb0f01cb7187a2ebed5661ecc4d5701d8f2350",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "3933332273625",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "3933332273"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "39333322736"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "196666613681"
+        }
+      ]
+    },
+    {
+      "vault": "0x85f3d81a39df458e45d5ea20f9eb937faafd282f",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "100766430915",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "100766430"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "1007664309"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "5038321545"
+        }
+      ]
+    },
+    {
+      "vault": "0x8c106eedad96553e64287a5a6839c3cc78afa3d0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "78738119177772",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "78738119177"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "787381191777"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "3936905958888"
+        }
+      ]
+    },
+    {
+      "vault": "0x8edcc305e633d29bfb383872e79401c506ce9e6f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "587939810358",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "587939810"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "5879398103"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "29396990517"
+        }
+      ]
+    },
+    {
+      "vault": "0x9480034d908989b006d78bdbbd7bd509c92e8bbc",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "198743929654",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "198743929"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "1987439296"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "9937196482"
+        }
+      ]
+    },
+    {
+      "vault": "0x951a9f4a2ce19b9dea6b37e691d076a345b6c0f8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "610234059201",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "610234059"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "6102340592"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "30511702960"
+        }
+      ]
+    },
+    {
+      "vault": "0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "25672952171931",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "25672952171"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "256729521719"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1283647608596"
+        }
+      ]
+    },
+    {
+      "vault": "0x9f39b13bb472126d6937bf25a39338e664eefa82",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "742194134125",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "742194134"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "7421941341"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "37109706706"
+        }
+      ]
+    },
+    {
+      "vault": "0xa1b096268d200d0ecfd57015700f6a0da9c494e2",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "13103819615",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "13103819"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "131038196"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "655190980"
+        }
+      ]
+    },
+    {
+      "vault": "0xabe418cc8c06d265e4eb009c02ea4b265eca7240",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "1153312765200",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1153312765"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "11533127652"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "57665638260"
+        }
+      ]
+    },
+    {
+      "vault": "0xb885f6d448da7e2c642ec31190b629e40e87b069",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "2489369831133",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2489369831"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "24893698311"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "124468491556"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "69982860383358",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "69982860383"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "699828603833"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "3499143019167"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeef088055857739c12cd3765f20b7679def0f51",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "77099970905982",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "77099970905"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "770999709059"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "3854998545299"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff047c03714965a54b671a37c18bef6b96210",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "16453488138126",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "16453488138"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "164534881381"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "822674406906"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff07d991c04cd640de9f15c08ba59c4fedeb7",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "2340469129299",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2340469129"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "23404691292"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "117023456464"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff2c5bf38f90e3482a8b19f12e5a6d2fca757",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "41547491424768",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "41547491424"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "415474914247"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "2077374571238"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff75262b2ec16a3c62a807f02ee7627654931",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "1280740631119",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1280740631"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "12807406311"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "64037031555"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeefff4716a49418d69c251cab8759bb107e57c8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "1904621477807",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1904621477"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "19046214778"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "95231073890"
+        }
+      ]
+    },
+    {
+      "vault": "0xd1e9242e075db4bdd3f3c721d7d5fd4180a94a7e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "8437434388501",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "8437434388"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "84374343885"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "421871719425"
+        }
+      ]
+    },
+    {
+      "vault": "0xd5cce260e7a755ddf0fb9cdf06443d593aaeaa13",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "5604385399941",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "5604385399"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "56043853999"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "280219269997"
+        }
+      ]
+    },
+    {
+      "vault": "0xd95fe7adf5075fad9d6bf853e0f9fe53369e8d96",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "7984290295265",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "7984290295"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "79842902952"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "399214514763"
+        }
+      ]
+    },
+    {
+      "vault": "0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "18074260801542",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "18074260801"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "180742608015"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "903713040077"
+        }
+      ]
+    },
+    {
+      "vault": "0xe05fadf242331808f504661bea65972594869826",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "22564053003469",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "22564053003"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "225640530034"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1128202650173"
+        }
+      ]
+    },
+    {
+      "vault": "0xe571b648569619566cf6ce1060c97b621cb635d3",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "1589069436631",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1589069436"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "15890694366"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "79453471831"
+        }
+      ]
+    },
+    {
+      "vault": "0xebbae8cfabb0092d5b32f00ebee0c8139d24ddcd",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "524267850090",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "524267850"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "5242678500"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "26213392504"
+        }
+      ]
+    },
+    {
+      "vault": "0xf1ca44eea3a4effcb195a970a2f1d8553f76f9a1",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "3960079677504",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "3960079677"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "39600796775"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "198003983875"
+        }
+      ]
+    },
+    {
+      "vault": "0xf3557ad5e984211ac8a0874a670344f2c3376471",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25600000,
+      "status": "frozen",
+      "totalAssetsRaw": "2296245287181",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2296245287"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "22962452871"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "114812264359"
+        }
+      ]
+    },
+    {
+      "vault": "0x0026038a7fefef439d94bd99b4a10017e839d3a7",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "1029137",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1029"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "10291"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "51456"
+        }
+      ]
+    },
+    {
+      "vault": "0x069662d2588fcac24b5c209456db965d151556f0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "5780986798060",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "5780986798"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "57809867980"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "289049339903"
+        }
+      ]
+    },
+    {
+      "vault": "0x093272c07700d3ca5301c3bf9b3a392624179e2f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "4716790498405",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "4716790498"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "47167904984"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "235839524920"
+        }
+      ]
+    },
+    {
+      "vault": "0x0bf0164d17469241b6e086da4016dcc54feaa334",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "unfunded_at_anchor"
+    },
+    {
+      "vault": "0x153bd1abe60104bd46aa05a27fa12d1346d64a57",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "3224537940273",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "3224537940"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "32245379402"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "161226897013"
+        }
+      ]
+    },
+    {
+      "vault": "0x23f5e9c35820f4bab695ac1f19c203cc3f8e1e11",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "62662626370394",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "62662626370"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "626626263703"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "3133131318519"
+        }
+      ]
+    },
+    {
+      "vault": "0x2bd3a43863c07b6a01581fada0e1614ca5df0e3d",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "574763777120",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "574763777"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "5747637771"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "28738188856"
+        }
+      ]
+    },
+    {
+      "vault": "0x35cbe8542e70fa2f7f9cdf129f19e593f4b4f560",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "unfunded_at_anchor"
+    },
+    {
+      "vault": "0x36cfe1568461e499391ef0a555300f1ae2da2439",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "13274392352554",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "13274392352"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "132743923525"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "663719617627"
+        }
+      ]
+    },
+    {
+      "vault": "0x4ef53d2caa51c447fdfeeedee8f07fd1962c9ee6",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "20406004922592",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "20406004922"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "204060049225"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1020300246129"
+        }
+      ]
+    },
+    {
+      "vault": "0x56bfa6f53669b836d1e0dfa5e99706b12c373ecf",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "13227437705842",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "13227437705"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "132274377058"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "661371885292"
+        }
+      ]
+    },
+    {
+      "vault": "0x5dc53a23adc9f2bed98de6f59f7f309a7c71ff2b",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "20928093489150",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "20928093489"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "209280934891"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1046404674457"
+        }
+      ]
+    },
+    {
+      "vault": "0x69a238ae7ebeb3c53ff3b544e48b96a2142fc284",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "764339602777",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "764339602"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "7643396027"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "38216980138"
+        }
+      ]
+    },
+    {
+      "vault": "0x7ceb0f01cb7187a2ebed5661ecc4d5701d8f2350",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "584375769159",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "584375769"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "5843757691"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "29218788457"
+        }
+      ]
+    },
+    {
+      "vault": "0x85f3d81a39df458e45d5ea20f9eb937faafd282f",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "101014008654",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "101014008"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "1010140086"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "5050700432"
+        }
+      ]
+    },
+    {
+      "vault": "0x8c106eedad96553e64287a5a6839c3cc78afa3d0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "84707098844629",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "84707098844"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "847070988446"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "4235354942231"
+        }
+      ]
+    },
+    {
+      "vault": "0x8edcc305e633d29bfb383872e79401c506ce9e6f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "638193264276",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "638193264"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "6381932642"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "31909663213"
+        }
+      ]
+    },
+    {
+      "vault": "0x9480034d908989b006d78bdbbd7bd509c92e8bbc",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "215359843705",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "215359843"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "2153598437"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "10767992185"
+        }
+      ]
+    },
+    {
+      "vault": "0x951a9f4a2ce19b9dea6b37e691d076a345b6c0f8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "538080453215",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "538080453"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "5380804532"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "26904022660"
+        }
+      ]
+    },
+    {
+      "vault": "0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "27889726398385",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "27889726398"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "278897263983"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1394486319919"
+        }
+      ]
+    },
+    {
+      "vault": "0x9f39b13bb472126d6937bf25a39338e664eefa82",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "415269191685",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "415269191"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "4152691916"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "20763459584"
+        }
+      ]
+    },
+    {
+      "vault": "0xa1b096268d200d0ecfd57015700f6a0da9c494e2",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "13103890625",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "13103890"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "131038906"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "655194531"
+        }
+      ]
+    },
+    {
+      "vault": "0xabe418cc8c06d265e4eb009c02ea4b265eca7240",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "1232444300526",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1232444300"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "12324443005"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "61622215026"
+        }
+      ]
+    },
+    {
+      "vault": "0xb885f6d448da7e2c642ec31190b629e40e87b069",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "2634768908185",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2634768908"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "26347689081"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "131738445409"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "57274316200910",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "57274316200"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "572743162009"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "2863715810045"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeef088055857739c12cd3765f20b7679def0f51",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "92697076564651",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "92697076564"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "926970765646"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "4634853828232"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff047c03714965a54b671a37c18bef6b96210",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "14272803607972",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "14272803607"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "142728036079"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "713640180398"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff07d991c04cd640de9f15c08ba59c4fedeb7",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "2285066949171",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2285066949"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "22850669491"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "114253347458"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff2c5bf38f90e3482a8b19f12e5a6d2fca757",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "40366871026019",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "40366871026"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "403668710260"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "2018343551300"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff75262b2ec16a3c62a807f02ee7627654931",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "985299498093",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "985299498"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "9852994980"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "49264974904"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeefff4716a49418d69c251cab8759bb107e57c8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "1838436455475",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1838436455"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "18384364554"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "91921822773"
+        }
+      ]
+    },
+    {
+      "vault": "0xd1e9242e075db4bdd3f3c721d7d5fd4180a94a7e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "8562783035028",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "8562783035"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "85627830350"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "428139151751"
+        }
+      ]
+    },
+    {
+      "vault": "0xd5cce260e7a755ddf0fb9cdf06443d593aaeaa13",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "7170243815925",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "7170243815"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "71702438159"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "358512190796"
+        }
+      ]
+    },
+    {
+      "vault": "0xd95fe7adf5075fad9d6bf853e0f9fe53369e8d96",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "8029862402990",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "8029862402"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "80298624029"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "401493120149"
+        }
+      ]
+    },
+    {
+      "vault": "0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "17978867382231",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "17978867382"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "179788673822"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "898943369111"
+        }
+      ]
+    },
+    {
+      "vault": "0xe05fadf242331808f504661bea65972594869826",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "22164194890842",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "22164194890"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "221641948908"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1108209744542"
+        }
+      ]
+    },
+    {
+      "vault": "0xe571b648569619566cf6ce1060c97b621cb635d3",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "1651159338788",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1651159338"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "16511593387"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "82557966939"
+        }
+      ]
+    },
+    {
+      "vault": "0xebbae8cfabb0092d5b32f00ebee0c8139d24ddcd",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "357497510389",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "357497510"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "3574975103"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "17874875519"
+        }
+      ]
+    },
+    {
+      "vault": "0xf1ca44eea3a4effcb195a970a2f1d8553f76f9a1",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "2582006377925",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2582006377"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "25820063779"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "129100318896"
+        }
+      ]
+    },
+    {
+      "vault": "0xf3557ad5e984211ac8a0874a670344f2c3376471",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 25800000,
+      "status": "frozen",
+      "totalAssetsRaw": "4132082355329",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "4132082355"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "41320823553"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "206604117766"
+        }
+      ]
+    },
+    {
+      "vault": "0x0026038a7fefef439d94bd99b4a10017e839d3a7",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "1031969",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1031"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "10319"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "51598"
+        }
+      ]
+    },
+    {
+      "vault": "0x069662d2588fcac24b5c209456db965d151556f0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "4639525055774",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "4639525055"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "46395250557"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "231976252788"
+        }
+      ]
+    },
+    {
+      "vault": "0x093272c07700d3ca5301c3bf9b3a392624179e2f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "7336820584936",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "7336820584"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "73368205849"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "366841029246"
+        }
+      ]
+    },
+    {
+      "vault": "0x0bf0164d17469241b6e086da4016dcc54feaa334",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "unfunded_at_anchor"
+    },
+    {
+      "vault": "0x153bd1abe60104bd46aa05a27fa12d1346d64a57",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "1175966031752",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1175966031"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "11759660317"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "58798301587"
+        }
+      ]
+    },
+    {
+      "vault": "0x23f5e9c35820f4bab695ac1f19c203cc3f8e1e11",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "63556107088159",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "63556107088"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "635561070881"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "3177805354407"
+        }
+      ]
+    },
+    {
+      "vault": "0x2bd3a43863c07b6a01581fada0e1614ca5df0e3d",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "494219934777",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "494219934"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "4942199347"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "24710996738"
+        }
+      ]
+    },
+    {
+      "vault": "0x35cbe8542e70fa2f7f9cdf129f19e593f4b4f560",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "unfunded_at_anchor"
+    },
+    {
+      "vault": "0x36cfe1568461e499391ef0a555300f1ae2da2439",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "14161730535868",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "14161730535"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "141617305358"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "708086526793"
+        }
+      ]
+    },
+    {
+      "vault": "0x4ef53d2caa51c447fdfeeedee8f07fd1962c9ee6",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "21092902945405",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "21092902945"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "210929029454"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1054645147270"
+        }
+      ]
+    },
+    {
+      "vault": "0x56bfa6f53669b836d1e0dfa5e99706b12c373ecf",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "10215324591046",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "10215324591"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "102153245910"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "510766229552"
+        }
+      ]
+    },
+    {
+      "vault": "0x5dc53a23adc9f2bed98de6f59f7f309a7c71ff2b",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "16576854761537",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "16576854761"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "165768547615"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "828842738076"
+        }
+      ]
+    },
+    {
+      "vault": "0x69a238ae7ebeb3c53ff3b544e48b96a2142fc284",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "997707664879",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "997707664"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "9977076648"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "49885383243"
+        }
+      ]
+    },
+    {
+      "vault": "0x7ceb0f01cb7187a2ebed5661ecc4d5701d8f2350",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "406738802535",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "406738802"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "4067388025"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "20336940126"
+        }
+      ]
+    },
+    {
+      "vault": "0x85f3d81a39df458e45d5ea20f9eb937faafd282f",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "101236723923",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "101236723"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "1012367239"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "5061836196"
+        }
+      ]
+    },
+    {
+      "vault": "0x8c106eedad96553e64287a5a6839c3cc78afa3d0",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "96379482595909",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "96379482595"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "963794825959"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "4818974129795"
+        }
+      ]
+    },
+    {
+      "vault": "0x8edcc305e633d29bfb383872e79401c506ce9e6f",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "596725133387",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "596725133"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "5967251333"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "29836256669"
+        }
+      ]
+    },
+    {
+      "vault": "0x9480034d908989b006d78bdbbd7bd509c92e8bbc",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "320015722217",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "320015722"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "3200157222"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "16000786110"
+        }
+      ]
+    },
+    {
+      "vault": "0x951a9f4a2ce19b9dea6b37e691d076a345b6c0f8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "6620006892",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "6620006"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "66200068"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "331000344"
+        }
+      ]
+    },
+    {
+      "vault": "0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "20960541957645",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "20960541957"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "209605419576"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1048027097882"
+        }
+      ]
+    },
+    {
+      "vault": "0x9f39b13bb472126d6937bf25a39338e664eefa82",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "18777991168",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "18777991"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "187779911"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "938899558"
+        }
+      ]
+    },
+    {
+      "vault": "0xa1b096268d200d0ecfd57015700f6a0da9c494e2",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "12901272119",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "12901272"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "129012721"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "645063605"
+        }
+      ]
+    },
+    {
+      "vault": "0xabe418cc8c06d265e4eb009c02ea4b265eca7240",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "1122862409127",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1122862409"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "11228624091"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "56143120456"
+        }
+      ]
+    },
+    {
+      "vault": "0xb885f6d448da7e2c642ec31190b629e40e87b069",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "3306072708739",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "3306072708"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "33060727087"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "165303635436"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "58022463270027",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "58022463270"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "580224632700"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "2901123163501"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeef088055857739c12cd3765f20b7679def0f51",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "117941100300627",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "117941100300"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "1179411003006"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "5897055015031"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff047c03714965a54b671a37c18bef6b96210",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "13402779299330",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "13402779299"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "134027792993"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "670138964966"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff07d991c04cd640de9f15c08ba59c4fedeb7",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "2404980536013",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "2404980536"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "24049805360"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "120249026800"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff2c5bf38f90e3482a8b19f12e5a6d2fca757",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "42946618697155",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "42946618697"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "429466186971"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "2147330934857"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeeff75262b2ec16a3c62a807f02ee7627654931",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "721157021534",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "721157021"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "7211570215"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "36057851076"
+        }
+      ]
+    },
+    {
+      "vault": "0xbeefff4716a49418d69c251cab8759bb107e57c8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "1918771933793",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1918771933"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "19187719337"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "95938596689"
+        }
+      ]
+    },
+    {
+      "vault": "0xd1e9242e075db4bdd3f3c721d7d5fd4180a94a7e",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "7303799494110",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "7303799494"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "73037994941"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "365189974705"
+        }
+      ]
+    },
+    {
+      "vault": "0xd5cce260e7a755ddf0fb9cdf06443d593aaeaa13",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "10286318320390",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "10286318320"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "102863183203"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "514315916019"
+        }
+      ]
+    },
+    {
+      "vault": "0xd95fe7adf5075fad9d6bf853e0f9fe53369e8d96",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "8062743683610",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "8062743683"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "80627436836"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "403137184180"
+        }
+      ]
+    },
+    {
+      "vault": "0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "12791765854105",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "12791765854"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "127917658541"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "639588292705"
+        }
+      ]
+    },
+    {
+      "vault": "0xe05fadf242331808f504661bea65972594869826",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "20048183459714",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "20048183459"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "200481834597"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "1002409172985"
+        }
+      ]
+    },
+    {
+      "vault": "0xe571b648569619566cf6ce1060c97b621cb635d3",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "1507212166723",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "1507212166"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "15072121667"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "75360608336"
+        }
+      ]
+    },
+    {
+      "vault": "0xebbae8cfabb0092d5b32f00ebee0c8139d24ddcd",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "566991629316",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "566991629"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "5669916293"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "28349581465"
+        }
+      ]
+    },
+    {
+      "vault": "0xf1ca44eea3a4effcb195a970a2f1d8553f76f9a1",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "routeKey": "USDC → VaultV2 [USDC]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "182960658618",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "182960658"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "1829606586"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "9148032930"
+        }
+      ]
+    },
+    {
+      "vault": "0xf3557ad5e984211ac8a0874a670344f2c3376471",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "routeKey": "USDT → VaultV2 [USDT]",
+      "anchorBlock": 26000000,
+      "status": "frozen",
+      "totalAssetsRaw": "842907859013",
+      "sizes": [
+        {
+          "label": "fixed_10k",
+          "assetsRaw": "10000000000"
+        },
+        {
+          "label": "fixed_100k",
+          "assetsRaw": "100000000000"
+        },
+        {
+          "label": "fixed_1m",
+          "assetsRaw": "1000000000000"
+        },
+        {
+          "label": "vault_0p1pct",
+          "assetsRaw": "842907859"
+        },
+        {
+          "label": "vault_1pct",
+          "assetsRaw": "8429078590"
+        },
+        {
+          "label": "vault_5pct",
+          "assetsRaw": "42145392950"
+        }
+      ]
+    }
+  ],
+  "planSha256": "4d200e6aad83715eabe7ced460aa599615e2627df68d55160f0096baacfef661"
+}

@@ -1,0 +1,56 @@
+{
+  "planSha256": "4d200e6aad83715eabe7ced460aa599615e2627df68d55160f0096baacfef661",
+  "anchorBlock": 26000000,
+  "vault": "0x153bd1abe60104bd46aa05a27fa12d1346d64a57",
+  "routeKey": "USDC → VaultV2 [USDC]",
+  "status": "no_eligible_holder",
+  "row": {
+    "vault": "0x153bd1abe60104bd46aa05a27fa12d1346d64a57",
+    "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "anchorBlock": 26000000,
+    "status": "no_eligible_holder",
+    "baselineIdentity": {
+      "status": "confirmed",
+      "shareDecimals": 18,
+      "assetDecimals": 6
+    },
+    "totalAssetsRaw": "1175966031752",
+    "candidateWindow": {
+      "fromBlock": 25995904,
+      "throughBlock": 25999999,
+      "transferLogs": 4,
+      "distinctRecipients": 3,
+      "screened": 3
+    },
+    "screenedCandidates": [
+      {
+        "owner": "0xf7159535f397a1bf83e97f144301218a62dd85cd",
+        "discoveryBlock": 25998275,
+        "discoveryBlockHash": "0xf73c1a9790c88e7de850ab9e77271a530eebe13c646a9494f5bece752c20da70",
+        "discoveryTransactionHash": "0xad1f509e7775c873b63cd1177dfcf596ab00be256f7b249af3e4060cd29fa94a",
+        "discoveryLogIndex": 189,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0xeb4af6fa3afa08b10d593ec8ff87efb03bc04645",
+        "discoveryBlock": 25998275,
+        "discoveryBlockHash": "0xf73c1a9790c88e7de850ab9e77271a530eebe13c646a9494f5bece752c20da70",
+        "discoveryTransactionHash": "0xad1f509e7775c873b63cd1177dfcf596ab00be256f7b249af3e4060cd29fa94a",
+        "discoveryLogIndex": 187,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0xf30e39528d17a21c87844e63e4e31b58e1f2f159",
+        "discoveryBlock": 25996733,
+        "discoveryBlockHash": "0x1fc4533604bc2f9e8d1bcc72c2212f0a1637bada14919465afcdf49b103093d4",
+        "discoveryTransactionHash": "0x73dfadb0a3a74ff3faeeff1e7b2a3a27fd3447d96cf5129c8ad52d543bc4981e",
+        "discoveryLogIndex": 215,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      }
+    ]
+  },
+  "cellSha256": "8bc2c520fe35b650b205db164084681c6a3b4dcb2477f928f186b5c8d90913b6"
+}

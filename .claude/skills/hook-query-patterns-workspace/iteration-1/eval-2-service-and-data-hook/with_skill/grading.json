@@ -1,0 +1,67 @@
+{
+  "run_id": "eval-2-with_skill",
+  "expectations": [
+    {
+      "text": "Service returns null on error (not throwing)",
+      "passed": true,
+      "evidence": "In acquisitionRewardHistory.ts, lines 70-78: the try/catch block catches errors, logs them with console.error, and returns null. Line 65: `if (!client || !user) return null`. The function signature returns `Promise<RewardHistoryResponse | null>`. No exceptions are thrown to the caller."
+    },
+    {
+      "text": "Service has mock data fallback with USE_MOCK_DATA flag and simulated delay",
+      "passed": true,
+      "evidence": "Line 5: `const USE_MOCK_DATA = true`. Lines 60-63: `if (USE_MOCK_DATA) { await new Promise(resolve => setTimeout(resolve, 100)); return getMockRewardHistory(user) }`. Both the flag and the 100ms simulated delay are present. Mock data generator on lines 24-46 produces realistic reward history entries."
+    },
+    {
+      "text": "Service validates client for null before querying",
+      "passed": true,
+      "evidence": "Line 65: `if (!client || !user) return null` — explicitly checks client for null/falsy before proceeding to the contract query on line 71."
+    },
+    {
+      "text": "Hook includes appState.rpcUrl in query key for multi-chain cache separation",
+      "passed": true,
+      "evidence": "In useAcquisitionRewardHistory.ts, line 22: `queryKey: ['acquisition', 'reward-history', user, appState.rpcUrl]` — appState.rpcUrl is the 4th element in the query key, ensuring different chains produce separate cache entries."
+    },
+    {
+      "text": "Hook has appropriate staleTime set (not relying on defaults)",
+      "passed": true,
+      "evidence": "Line 25: `staleTime: 1000 * 60 * 2, // 2 minutes - volatile tier` — explicitly set with a comment explaining the tier rationale. Not relying on React Query's default of 0."
+    },
+    {
+      "text": "Hook has enabled gate to prevent premature fetching",
+      "passed": true,
+      "evidence": "Line 24: `enabled: !!user` — prevents the query from running when the user wallet is not connected (user is undefined)."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "Service is in a dedicated file (acquisitionRewardHistory.ts) separate from other service functions",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The service file is named acquisitionRewardHistory.ts, containing only the getRewardHistory function and its types. This follows a focused single-responsibility pattern."
+    },
+    {
+      "claim": "The hook imports from the correct service path",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line 4 of the hook: `import { getRewardHistory } from '@/services/acquisition'`. Note: this imports from '@/services/acquisition' but the service file is named 'acquisitionRewardHistory.ts'. This would be a path mismatch unless there's a barrel export. Minor inconsistency."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The hook imports from '@/services/acquisition' but the service output file is 'acquisitionRewardHistory.ts'. No assertion checks that the import path matches the actual service file name. Consider adding: 'Hook import path matches the service file location'."
+      },
+      {
+        "assertion": "Hook has enabled gate to prevent premature fetching",
+        "reason": "The enabled gate `!!user` doesn't check for client availability. When USE_MOCK_DATA is false, the query would fire without a client (though the service handles null client). Consider whether the assertion should be stricter: 'enabled gate includes client check when mock data is disabled'."
+      }
+    ],
+    "overall": "Assertions are comprehensive and well-targeted. The service file naming vs import path gap is worth noting but minor."
+  }
+}

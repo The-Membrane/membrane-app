@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 2,
+  "study": "carry-morpho-v2-holder-exit-history-grid",
+  "chainId": 1,
+  "mode": "historical_read_only",
+  "prospectiveValidated": false,
+  "futureExitForecast": false,
+  "design": {
+    "schemaVersion": 2,
+    "study": "carry-morpho-v2-holder-exit-history-grid",
+    "chainId": 1,
+    "anchors": [
+      26062740,
+      26072740
+    ],
+    "vaults": [
+      "0xb885f6d448da7e2c642ec31190b629e40e87b069",
+      "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+      "0xbeefff4716a49418d69c251cab8759bb107e57c8"
+    ],
+    "horizonsHours": [
+      1,
+      4,
+      24
+    ],
+    "candidateLookbackBlocks": 4096,
+    "candidateLimit": 8,
+    "holderSelection": "newest pre-B receipt-verified EOA with positive shares and >=10000 asset-unit claim; otherwise newest positive-share EOA",
+    "qLabels": [
+      "fixed_10k",
+      "fixed_100k",
+      "fixed_1m",
+      "vault_0p1pct",
+      "vault_1pct",
+      "vault_5pct"
+    ],
+    "call": "withdraw(Q,holder,holder) from same holder at canonical EIP-1898 block hash with 20m gas",
+    "sample": "three feasibility-selected USDC/USDT vaults based on an earlier one-anchor panel; repeated holder/vault/anchor/size rows are dependent",
+    "manifestSha256": "8dd54bbb3dea0842bb67e582f0725adcafb7594107933122c5fa381c083566da",
+    "forecast": false,
+    "prospectiveValidated": false
+  },
+  "schedule": {
+    "design": {
+      "schemaVersion": 2,
+      "study": "carry-morpho-v2-holder-exit-history-grid",
+      "chainId": 1,
+      "anchors": [
+        26062740,
+        26072740
+      ],
+      "vaults": [
+        "0xb885f6d448da7e2c642ec31190b629e40e87b069",
+        "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+        "0xbeefff4716a49418d69c251cab8759bb107e57c8"
+      ],
+      "horizonsHours": [
+        1,
+        4,
+        24
+      ],
+      "candidateLookbackBlocks": 4096,
+      "candidateLimit": 8,
+      "holderSelection": "newest pre-B receipt-verified EOA with positive shares and >=10000 asset-unit claim; otherwise newest positive-share EOA",
+      "qLabels": [
+        "fixed_10k",
+        "fixed_100k",
+        "fixed_1m",
+        "vault_0p1pct",
+        "vault_1pct",
+        "vault_5pct"
+      ],
+      "call": "withdraw(Q,holder,holder) from same holder at canonical EIP-1898 block hash with 20m gas",
+      "sample": "three feasibility-selected USDC/USDT vaults based on an earlier one-anchor panel; repeated holder/vault/anchor/size rows are dependent",
+      "manifestSha256": "8dd54bbb3dea0842bb67e582f0725adcafb7594107933122c5fa381c083566da",
+      "forecast": false,
+      "prospectiveValidated": false
+    },
+    "anchors": [
+      {
+        "anchor": {
+          "number": 26062740,
+          "hash": "0x16d4a2f03d0f692ac829fdef1104084314039d05016d656a42820fde471c70e2",
+          "timestamp": 1790439143
+        },
+        "horizons": [
+          {
+            "hours": 1,
+            "number": 26063039,
+            "hash": "0x895757b74159f06583dc5593007c879806e4828500e14f66f4d6f4b2e66efc7c",
+            "timestamp": 1790442743,
+            "priorTimestamp": 1790442731,
+            "requestedTimestamp": 1790442743,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 4,
+            "number": 26063938,
+            "hash": "0xfb79b4cdab9ce79986cd1e96e3d6f7195b3d156cdbfd39ef03c251b1569e14da",
+            "timestamp": 1790453543,
+            "priorTimestamp": 1790453531,
+            "requestedTimestamp": 1790453543,
+            "realizedLagSeconds": 0
+          },
+          {
+            "hours": 24,
+            "number": 26069906,
+            "hash": "0x1ec57aa9bd821e6153a09353c6470b174eb6bde3193a820a4f9e811661f52694",
+            "timestamp": 1790525543,
+            "priorTimestamp": 1790525531,
+            "requestedTimestamp": 1790525543,
+            "realizedLagSeconds": 0
+          }
+        ]
+      }
+    ]
+  },
+  "planSha256": "82d06633f3e1b8d60ee671526be87d8213b6a491814419c485a1f62edc80c6b8",
+  "rows": [
+    {
+      "vault": "0xb885f6d448da7e2c642ec31190b629e40e87b069",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "anchorBlock": 26062740,
+      "status": "identity_changed"
+    },
+    {
+      "vault": "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+      "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "anchorBlock": 26062740,
+      "status": "identity_changed"
+    },
+    {
+      "vault": "0xbeefff4716a49418d69c251cab8759bb107e57c8",
+      "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "anchorBlock": 26062740,
+      "status": "identity_changed"
+    }
+  ],
+  "aggregates": {
+    "rowStatus": {
+      "identity_changed": 3
+    },
+    "sizeEligibility": {
+      "eligible": 0,
+      "ineligible": 0,
+      "byLabel": {
+        "fixed_10k": 0,
+        "fixed_100k": 0,
+        "fixed_1m": 0,
+        "vault_0p1pct": 0,
+        "vault_1pct": 0,
+        "vault_5pct": 0
+      }
+    },
+    "baselineClass": {},
+    "riskSet": {
+      "sizeRows": 0,
+      "firstLoss": {},
+      "uniqueHolders": 0,
+      "uniqueVaults": 0,
+      "uniqueHolderVaultPairs": 0,
+      "uniqueHolderVaultAnchors": 0,
+      "independentObservations": false
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "eval_id": 2,
+  "eval_name": "alert-banner-colors",
+  "prompt": "What colors should I use for a new alert banner that shows when gas fees are high?",
+  "assertions": []
+}

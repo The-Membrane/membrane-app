@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.membrane.carry-public-direct-exit-score</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/timeout</string>
+    <string>-k</string>
+    <string>5s</string>
+    <string>420s</string>
+    <string>/bin/sh</string>
+    <string>/Users/EBmic/membrane-app/scripts/carry-public-direct-exit-tick.sh</string>
+    <string>score</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PUBLIC_AAVE_COMMON_Q_V3_ENABLED</key><string>1</string>
+  </dict>
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-public-direct-exit.log</string>
+  <key>StandardOutPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-public-direct-exit.log</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Minute</key><integer>1</integer></dict>
+    <dict><key>Minute</key><integer>11</integer></dict>
+    <dict><key>Minute</key><integer>21</integer></dict>
+    <dict><key>Minute</key><integer>31</integer></dict>
+    <dict><key>Minute</key><integer>41</integer></dict>
+    <dict><key>Minute</key><integer>51</integer></dict>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/EBmic/membrane-app</string>
+</dict>
+</plist>

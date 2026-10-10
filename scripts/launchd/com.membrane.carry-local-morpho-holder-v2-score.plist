@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList 1.0//EN">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.membrane.carry-local-morpho-holder-v2-score</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/sh</string>
+    <string>/Users/EBmic/membrane-app/scripts/carry-local-morpho-holder-tick.sh</string>
+    <string>v2score</string>
+  </array>
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key><string>/Users/EBmic/Library/Logs/carry-local-morpho-holder-v2-score.log</string>
+  <key>StandardOutPath</key><string>/Users/EBmic/Library/Logs/carry-local-morpho-holder-v2-score.log</string>
+  <key>StartCalendarInterval</key><array>
+    <dict><key>Minute</key><integer>4</integer></dict>
+    <dict><key>Minute</key><integer>9</integer></dict>
+    <dict><key>Minute</key><integer>14</integer></dict>
+    <dict><key>Minute</key><integer>19</integer></dict>
+    <dict><key>Minute</key><integer>24</integer></dict>
+    <dict><key>Minute</key><integer>29</integer></dict>
+    <dict><key>Minute</key><integer>34</integer></dict>
+    <dict><key>Minute</key><integer>39</integer></dict>
+    <dict><key>Minute</key><integer>44</integer></dict>
+    <dict><key>Minute</key><integer>49</integer></dict>
+    <dict><key>Minute</key><integer>54</integer></dict>
+    <dict><key>Minute</key><integer>59</integer></dict>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/EBmic/membrane-app</string>
+</dict>
+</plist>

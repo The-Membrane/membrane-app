@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "membrane-app",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"],
+      "port": 3005
+    },
+    {
+      "name": "maze-runner-demo",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8933", "-d", "/Users/EBmic/membrane-solidity/q-racing"],
+      "port": 8933
+    },
+    {
+      "name": "membrane-app-prod",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "pnpm build && pnpm exec next start --port 3005"],
+      "port": 3005
+    }
+  ]
+}

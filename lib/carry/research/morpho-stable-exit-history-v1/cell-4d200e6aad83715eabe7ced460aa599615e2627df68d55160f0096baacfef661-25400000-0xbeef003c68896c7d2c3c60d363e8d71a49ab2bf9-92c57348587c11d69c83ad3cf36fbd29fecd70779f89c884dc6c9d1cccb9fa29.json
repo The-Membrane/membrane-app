@@ -1,0 +1,131 @@
+{
+  "planSha256": "4d200e6aad83715eabe7ced460aa599615e2627df68d55160f0096baacfef661",
+  "anchorBlock": 25400000,
+  "vault": "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+  "routeKey": "USDT → VaultV2 [USDT]",
+  "status": "measured",
+  "row": {
+    "vault": "0xbeef003c68896c7d2c3c60d363e8d71a49ab2bf9",
+    "asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+    "anchorBlock": 25400000,
+    "status": "measured",
+    "baselineIdentity": {
+      "status": "confirmed",
+      "shareDecimals": 18,
+      "assetDecimals": 6
+    },
+    "totalAssetsRaw": "64000082599724",
+    "candidateWindow": {
+      "fromBlock": 25395904,
+      "throughBlock": 25399999,
+      "transferLogs": 6,
+      "distinctRecipients": 2,
+      "screened": 2
+    },
+    "screenedCandidates": [
+      {
+        "owner": "0x72d01fa583a971bf3c9448788ee80f2346c860b0",
+        "discoveryBlock": 25399632,
+        "discoveryBlockHash": "0x54304dd8876d7959f4071b69da01a073d25f8ca705c9651d352173f457cb2726",
+        "discoveryTransactionHash": "0xadd9f6ccb2edce244eae1c6f1d74602bc97c976639f78311b041ab9e43eeec84",
+        "discoveryLogIndex": 86,
+        "receiptVerified": true,
+        "status": "eligible_holder",
+        "sharesRaw": "3841427568424447562463",
+        "claimRaw": "3912051193"
+      },
+      {
+        "owner": "0xffff8e7c98fc62dde2081825e7556b05717159c9",
+        "discoveryBlock": 25395911,
+        "discoveryBlockHash": "0x5388704a73d3b576e09bc8430cd7edcc7cadd369d11a2294411ea6aa5c4c4b7f",
+        "discoveryTransactionHash": "0x3e2a37715c4bc43278e9d3f8f78e05c8bed95464a9fef33e57aac4218f517fa4",
+        "discoveryLogIndex": 299,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      }
+    ],
+    "holder": "0x72d01fa583a971bf3c9448788ee80f2346c860b0",
+    "holderDiscovery": {
+      "owner": "0x72d01fa583a971bf3c9448788ee80f2346c860b0",
+      "discoveryBlock": 25399632,
+      "discoveryBlockHash": "0x54304dd8876d7959f4071b69da01a073d25f8ca705c9651d352173f457cb2726",
+      "discoveryTransactionHash": "0xadd9f6ccb2edce244eae1c6f1d74602bc97c976639f78311b041ab9e43eeec84",
+      "discoveryLogIndex": 86,
+      "receiptVerified": true,
+      "status": "eligible_holder",
+      "sharesRaw": "3841427568424447562463",
+      "claimRaw": "3912051193"
+    },
+    "anchorSharesRaw": "3841427568424447562463",
+    "anchorClaimRaw": "3912051193",
+    "sizes": [
+      {
+        "label": "fixed_10k",
+        "assetsRaw": "10000000000",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "fixed_100k",
+        "assetsRaw": "100000000000",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "fixed_1m",
+        "assetsRaw": "1000000000000",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "vault_0p1pct",
+        "assetsRaw": "64000082599",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "vault_1pct",
+        "assetsRaw": "640000825997",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "vault_5pct",
+        "assetsRaw": "3200004129986",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      }
+    ]
+  },
+  "cellSha256": "92c57348587c11d69c83ad3cf36fbd29fecd70779f89c884dc6c9d1cccb9fa29"
+}

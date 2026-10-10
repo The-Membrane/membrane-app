@@ -1,0 +1,9 @@
+{
+  "planSha256": "4d200e6aad83715eabe7ced460aa599615e2627df68d55160f0096baacfef661",
+  "anchorBlock": 26000000,
+  "vault": "0x35cbe8542e70fa2f7f9cdf129f19e593f4b4f560",
+  "routeKey": "USDC → VaultV2 [USDC]",
+  "status": "unfunded_at_anchor",
+  "row": null,
+  "cellSha256": "9837ff53367ed8b4231463d93d5a3967102f35c7f4c260dd6391b5452a70210d"
+}

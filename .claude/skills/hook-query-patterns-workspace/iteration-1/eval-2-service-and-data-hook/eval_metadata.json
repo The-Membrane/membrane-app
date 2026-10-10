@@ -1,0 +1,31 @@
+{
+  "eval_id": 2,
+  "eval_name": "service-and-data-hook",
+  "prompt": "I need a new service function to fetch acquisition reward history from the contract (query msg: { get_reward_history: { user } }) and a corresponding React hook. Follow the existing patterns in the codebase.",
+  "assertions": [
+    {
+      "text": "Service returns null on error (not throwing)",
+      "type": "code_check"
+    },
+    {
+      "text": "Service has mock data fallback with USE_MOCK_DATA flag and simulated delay",
+      "type": "code_check"
+    },
+    {
+      "text": "Service validates client for null before querying",
+      "type": "code_check"
+    },
+    {
+      "text": "Hook includes appState.rpcUrl in query key for multi-chain cache separation",
+      "type": "code_check"
+    },
+    {
+      "text": "Hook has appropriate staleTime set (not relying on defaults)",
+      "type": "code_check"
+    },
+    {
+      "text": "Hook has enabled gate to prevent premature fetching",
+      "type": "code_check"
+    }
+  ]
+}

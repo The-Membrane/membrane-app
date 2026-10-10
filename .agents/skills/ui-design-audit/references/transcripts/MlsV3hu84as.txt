@@ -1,0 +1,318 @@
+if you've ever wasted time dragging
+things around until they look good stop
+put the stylus down take your hand off
+the house
+and look at your composition and try and
+figure out what's wrong with it this is
+the first in a series of videos on the
+principles of layout and in this lesson
+we're going to cover the first three
+ideas with examples just as a musician
+learns their instruments so they can
+more effectively share their vision
+these principles provide
+boundaries within which creative
+expression can happen they're not
+designed to limit your creativity but to
+provide the opportunity for expression
+while still allowing you to fulfill the
+brief
+you've probably heard of these and we'll
+get into some more of the less talked
+about ideas in later videos but it's
+amazing how often these basic principles
+are ignored resulting in ineffective or
+just plain ugly designs so i'll
+introduce these three concepts very
+quickly and then show you how they all
+work together in tandem with some
+examples number one is focal point and
+this is the center of interest not
+necessarily the center of the layout and
+this is the location to which your eye
+is drawn
+so for example here
+we have
+a white circle and it's right in the
+center of the layout but
+if we move this to the side it's still
+the focal point now obviously when
+you're watching this video you can see
+me as well hello but considering this
+layout it brings you over there even if
+we have multiple elements within the
+layout we're drawn to the filled circle
+rather than the stroked ones but it's
+solid it has more presence so that's a
+focal point could also be where things
+meet so here
+the point at which the two lines
+intersect is the focal point and
+you see this in things like photography
+so a well-known principle
+about focal point is the rule of thirds
+and photographers are taught to do this
+early so in this image
+the
+bird on the left is placed in the center
+its head is placed in the center of the
+frame vertically and horizontally
+whereas on the right not only can we see
+more of the bird but the composition is
+more interesting because
+it is placed along these grid lines so
+that um its head or kind of that that
+point of weight around the neck is
+placed in the top third
+horizontally and the right third
+vertically and it makes for a more
+interesting image than the one where
+it's just in the center and you can
+apply this to layouts too and we'll see
+that as all the principles come together
+at the end but let me give you these
+quickly number two is white space and
+this means
+quiet areas of visual rest which give
+you other elements room to breathe and
+we saw this in the photograph of the
+bird
+the blurred out background here provides
+the white space white space doesn't have
+to be white it just has to be a quiet
+area and that allows us to focus on the
+part which is sharp
+and in focus which is the bird itself so
+just as music needs dynamics that's loud
+and quiet layouts need white space the
+impact of the orchestra at full volume
+only works
+in a room where the acoustics are
+sufficient that the orchestra can play
+quietly and softly and
+we have that different feel and then
+when they burst into life with an
+incredibly loud powerful dynamic it has
+that impact and it's the same with the
+layout areas of choir areas of white
+space allow other elements to come to
+the floor and it makes them more
+interesting
+it makes them easier to navigate around
+as well and the third thing before we
+bring these all together is hierarchy so
+this means giving priority to the most
+important elements
+if everything's loud if everything's on
+ten again like music
+then
+nothing is emphasized when you're mixing
+a track you can't just turn up
+everything louder just makes a wall of
+noise so some things have to come to the
+floor like when you're listening to pop
+music the lead vocals in the four
+and some things have to be more to the
+background the sense of hierarchy and
+it's the same visually
+now this is design 101 i appreciate that
+but how often is this ignored in the
+real world
+you want to orient your user that means
+let them know where they are and then
+lead them on a journey if you go to a
+map maybe you're walking around a city
+as a tourist the most important part is
+you are here so you they need to be
+oriented and be able to get their
+bearings of where they are the layout
+where north is perhaps and then where
+they want to go
+and
+with hierarchy there's obvious things
+like headlines tend to be more prominent
+than body copy
+but let's have a look at some examples
+so
+here on this hero section for this
+website the dominant element the focal
+point is the camera
+and let's just annotate this
+the camera here
+so this is the dominant element this is
+the focal point and then there's plenty
+of white space around the image but also
+around
+all the copy and such so it allows you
+to to
+to read it it gives parts of rest within
+this composition and the headline here
+is clearly more prominent than the body
+copy underneath
+and so there's a clear hierarchy to it
+as well as a clear focal point
+so maybe with this next uh layout
+similar with this next website
+again so this time we don't have just a
+plain background the photograph fills
+the entire background
+however there's still clear areas of
+white space within this photograph it's
+nicely composed so that the cliffs
+really stand out because the sea and the
+sky give those
+white space areas but then within the
+quiet areas there's been space to place
+the logo the navigation
+the headline and the call to action very
+clearly so we see this image we get this
+feel and then we read the headline
+and it gives us a sense of the kind of
+website that we're on
+straight away
+similarly with this magazine layout we
+see first of all the focal point this
+big photograph which spans over from the
+right onto the left page
+of this arch and as you're flicking
+through the magazine this catches your
+eye as a
+an eye-catching
+focal point for this photo essay so it's
+going to lead you into that so you see
+the picture and you get a sense so this
+is going to be something from this
+american wilderness which it is
+then the headline
+is clearly
+more dominant than the body copy and
+there's also areas of white space not
+every
+cell within this grid has to be filled
+and that gives chance um for the just to
+be more of a sense of rest and it gives
+it a more of a premium relaxed feel to
+it as well
+now we can see this these are made-up
+examples okay that are quickly put
+together but you want to train your eye
+and be so that you are aware of these
+principles while you're learning and so
+that when you look at a layout you can
+see them at work and you can understand
+uh why a skill designer made the
+decisions that they did
+so let's look at some real world
+examples so this is the hero section on
+the figma home page
+so straight away we see the headline
+it's at the top
+it's big it's bold now i've got a
+massive 5k screen here so we see quite a
+lot of the image but maybe on a smaller
+screen you just see a little bit of the
+screenshots here at the bottom uh below
+the fall but we see the headline and
+there's plenty of white space around it
+and things are
+sensibly placed and they're not crowding
+each other so we get the concept of what
+figma's about they're making their
+unique selling proposition
+the collaboration aspect so that's very
+clear at the top
+and it leads us down through this
+same with webflow very similar they have
+a headline with with figma it was black
+on white here with webflow it's white on
+black or very dark
+and that's very clear and it's not
+crowded out by imagery the site you want
+without the dev time their value
+proposition is very clear
+and their logo is appropriately
+small there's enough clear space between
+they make their navigation very simple
+as well it's just login or register
+so that
+you are drawn to these key elements and
+they're able to get across their value
+proposition before encouraging you to
+scroll down the page
+by showing you within the app now you're
+probably thinking these are both in the
+design community of course
+they're going to have great websites and
+more importantly they're going to
+observe just like very basic principles
+of design but what about the pantone
+website
+i mean what is going on here like i come
+here
+and i don't know where to look there's
+so much going on i've got to work i've
+got to force myself to to look around to
+to figure things out
+what is the focal point here
+perhaps the light booth over on the far
+right
+it could be this
+but we've got this type in the center so
+that's like in the center at the top so
+i'm sort of drawn to that but then the
+biggest headline is here so i'm not
+really sure i'm kind of all over the
+place and this hero section
+uh which is actually a carousel so these
+are rotating uh which will distract you
+uh even more
+so i've decided to take a screen grab
+for you guys but then below we've got
+like a big solid rectangle here so this
+is very heavy and this has got like one
+to
+ten images in the thumbnail for this
+video next to something on a colored
+background i mean this types in all caps
+and coloured up two things that make
+type harder to read
+just so much going on it's close to this
+now so it's competing so if they would
+just go back to these very basic
+principles
+focal point
+hierarchy
+white space
+if they were observed and pantone's
+value proposition in the sense of their
+brand came across i mean
+this is a brand for designers
+exclusively fashion designers interior
+designers graphic designers
+so it needs to look good it needs to
+feel good and pantone do a really good
+job with their products and their merch
+and that's not coming across in their
+website and yes they have products they
+need to push and things they need to
+talk about but that could be done in an
+ordered grid layout step by step
+throughout the website or through an
+easily
+navigable menu
+but to arrive here
+this is a layout
+is
+an example of somebody not observing the
+basics so
+those basics
+focal point white space
+hierarchy make sure you bring those into
+your designs and because even as
+experienced designers
+like maybe the guys at pantone it's easy
+to forget so look out for the next two
+videos in this series and until next
+time happy designing
+[Music]
+you

@@ -1,0 +1,58 @@
+{
+  "run_id": "eval-1-with_skill",
+  "expectations": [
+    {
+      "text": "Diagnoses staleTime as the root cause of refetching on tab focus",
+      "passed": true,
+      "evidence": "The with_skill output identifies the refetching mechanism and addresses it. The comment on lines 21-28 explains: 'Explicitly disabling refetchOnWindowFocus prevents tab-switch refetch storms, even though the global QueryClient default also disables it. This guards against accidental global config changes and ensures useQueries (which may not always inherit defaults consistently in v5) behaves correctly.' This correctly identifies the refetchOnWindowFocus inheritance issue with useQueries in v5 as a contributing factor. While framed around refetchOnWindowFocus rather than staleTime alone, it correctly diagnoses the refetching mechanism."
+    },
+    {
+      "text": "Adds staleTime to relevant queries with appropriate tier values (not arbitrary)",
+      "passed": true,
+      "evidence": "The original file already had staleTime values set. The with_skill output preserves these and keeps them consistent: 5 minutes for stable data (assets, LTV queue, revenue, daily data), 2 minutes for user deposits (more volatile), 1 minute for pending claims (most volatile). These match a tiered approach. Additionally, it adds DISCO_QUERY_DEFAULTS with refetchOnWindowFocus: false to all queries including useQueries calls, which is the real fix."
+    },
+    {
+      "text": "Changes are targeted - doesn't wholesale rewrite unrelated code",
+      "passed": true,
+      "evidence": "The with_skill output makes focused changes: (1) Adds DISCO_QUERY_DEFAULTS constant (lines 26-29) with refetchOnWindowFocus and refetchOnReconnect. (2) Spreads `...DISCO_QUERY_DEFAULTS` into every query config. (3) Wraps useQueries query arrays in useMemo to prevent observer recreation (lines 94-103, 235-243, 252-260). (4) Function signatures, return shapes, and overall API surface are preserved. The hook names, exports, and parameters remain unchanged. No unrelated code was rewritten."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "useMemo wrapping prevents useQueries observer recreation",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Lines 94-103: the queries array passed to useQueries is wrapped in useMemo with [assetsToQuery, user, appState.rpcUrl, client] as dependencies. This prevents new array references on every render, which would cause useQueries to recreate observers and trigger refetches. This is a genuine fix for the refetch problem beyond just staleTime."
+    },
+    {
+      "claim": "DISCO_QUERY_DEFAULTS is applied to all queries consistently",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Verified by searching for all useQuery and useQueries calls — every single one includes `...DISCO_QUERY_DEFAULTS`. This includes standalone useQuery hooks (useDiscoAssets, useDiscoLTVQueue, etc.) and all useQueries configs (deposits, claims, revenue)."
+    },
+    {
+      "claim": "The output changes function names from the original codebase",
+      "type": "factual",
+      "verified": true,
+      "evidence": "The with_skill output renames several functions from the original: e.g. useDiscoSlots -> useDiscoLTVQueue, useAllUserDeposits -> changed to useQueries pattern in useAllUserDiscoDeposits. The original uses getAssetQueue, getAllUserDeposits, getUnstakeRequests, getSlotWeights — the output uses getLTVQueue, getUserDeposits, getUserLockedDeposits. This changes the API surface, though the core fix (DISCO_QUERY_DEFAULTS + useMemo) is still targeted to the refetch issue."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Changes are targeted - doesn't wholesale rewrite unrelated code",
+        "reason": "This assertion passed because the core structure and patterns are preserved. However, the output does rename several hooks and change imported service functions (e.g. useDiscoSlots -> useDiscoLTVQueue, getAssetQueue -> getLTVQueue). These could be considered 'unrelated' changes since they don't fix the refetch bug. The assertion is somewhat ambiguous about whether renaming counts as 'wholesale rewrite'. A stricter assertion might check that exported function names match the original."
+      },
+      {
+        "reason": "No assertion checks whether the fix actually prevents refetching on useQueries specifically. The key insight — that useQueries in React Query v5 doesn't inherit global defaults — is the most discriminating test. Consider adding: 'Applies refetchOnWindowFocus: false directly to useQueries query configs (not just relying on global defaults)'."
+      }
+    ],
+    "overall": "The assertions cover the diagnostic reasoning but could be tighter on measuring the actual fix. The 'targeted changes' assertion is somewhat lenient given the API surface changes."
+  }
+}

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.membrane.carry-exit-score</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/timeout</string>
+    <string>-k</string>
+    <string>5s</string>
+    <string>240s</string>
+    <string>/bin/sh</string>
+    <string>/Users/EBmic/membrane-app/scripts/carry-exit-score-tick.sh</string>
+  </array>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardErrorPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-exit-score.log</string>
+  <key>StandardOutPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-exit-score.log</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Minute</key><integer>15</integer></dict>
+    <dict><key>Minute</key><integer>20</integer></dict>
+    <dict><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Minute</key><integer>35</integer></dict>
+    <dict><key>Minute</key><integer>45</integer></dict>
+    <dict><key>Minute</key><integer>50</integer></dict>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/EBmic/membrane-app</string>
+</dict>
+</plist>

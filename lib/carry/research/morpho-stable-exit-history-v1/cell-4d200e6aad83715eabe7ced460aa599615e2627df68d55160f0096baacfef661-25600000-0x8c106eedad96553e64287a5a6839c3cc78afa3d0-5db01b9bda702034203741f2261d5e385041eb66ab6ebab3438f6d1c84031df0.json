@@ -1,0 +1,257 @@
+{
+  "planSha256": "4d200e6aad83715eabe7ced460aa599615e2627df68d55160f0096baacfef661",
+  "anchorBlock": 25600000,
+  "vault": "0x8c106eedad96553e64287a5a6839c3cc78afa3d0",
+  "routeKey": "USDC → VaultV2 [USDC]",
+  "status": "measured",
+  "row": {
+    "vault": "0x8c106eedad96553e64287a5a6839c3cc78afa3d0",
+    "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "anchorBlock": 25600000,
+    "status": "measured",
+    "baselineIdentity": {
+      "status": "confirmed",
+      "shareDecimals": 18,
+      "assetDecimals": 6
+    },
+    "totalAssetsRaw": "78738119177772",
+    "candidateWindow": {
+      "fromBlock": 25595904,
+      "throughBlock": 25599999,
+      "transferLogs": 11,
+      "distinctRecipients": 4,
+      "screened": 3
+    },
+    "screenedCandidates": [
+      {
+        "owner": "0xd8b444ac665b0de3a9135ad7be1a45f88ac97b3c",
+        "discoveryBlock": 25599237,
+        "discoveryBlockHash": "0x3ef45a684b3102a89ddd35ca5405c302aaf2db1e3297300e5f1e83d133ca070e",
+        "discoveryTransactionHash": "0x87a795a4408541c29cec4c2455411db3798e44da91ffcc7fcce6c8daa1d753c9",
+        "discoveryLogIndex": 46,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      },
+      {
+        "owner": "0x62c84399e66e06b7945cdb6975cc767197e708ee",
+        "discoveryBlock": 25598957,
+        "discoveryBlockHash": "0xd4ad2f31706b2891518bafd2d07377f0e002b51f8bc761529686c9a6b0405fb7",
+        "discoveryTransactionHash": "0x4ae279744795a72ba458fee79b492ebe589ba0b9d6126fc9719bb0e41e134025",
+        "discoveryLogIndex": 161,
+        "receiptVerified": true,
+        "status": "eligible_holder",
+        "sharesRaw": "485794622128363125854",
+        "claimRaw": "500008154"
+      },
+      {
+        "owner": "0x1a9a52e19d939e7f58dd164b9ee582250c060173",
+        "discoveryBlock": 25598438,
+        "discoveryBlockHash": "0xb24f495c9fd2763c57a82067cb6cac5433e113ecfc3fd11941a5ac25bef89e86",
+        "discoveryTransactionHash": "0x4bc029c5cf2f42ebcc8bb1ee6b5bbd9981e3c0aed9d82f2f34ec1e07591c3f67",
+        "discoveryLogIndex": 220,
+        "receiptVerified": true,
+        "status": "eligible_holder",
+        "sharesRaw": "27679114340929741344118",
+        "claimRaw": "28488958601"
+      }
+    ],
+    "holder": "0x1a9a52e19d939e7f58dd164b9ee582250c060173",
+    "holderDiscovery": {
+      "owner": "0x1a9a52e19d939e7f58dd164b9ee582250c060173",
+      "discoveryBlock": 25598438,
+      "discoveryBlockHash": "0xb24f495c9fd2763c57a82067cb6cac5433e113ecfc3fd11941a5ac25bef89e86",
+      "discoveryTransactionHash": "0x4bc029c5cf2f42ebcc8bb1ee6b5bbd9981e3c0aed9d82f2f34ec1e07591c3f67",
+      "discoveryLogIndex": 220,
+      "receiptVerified": true,
+      "status": "eligible_holder",
+      "sharesRaw": "27679114340929741344118",
+      "claimRaw": "28488958601"
+    },
+    "anchorSharesRaw": "27679114340929741344118",
+    "anchorClaimRaw": "28488958601",
+    "sizes": [
+      {
+        "label": "fixed_10k",
+        "assetsRaw": "10000000000",
+        "eligible": true,
+        "reason": null,
+        "baseline": {
+          "state": {
+            "status": "measured",
+            "eoa": true,
+            "sharesRaw": "27679114340929741344118",
+            "previewSharesRaw": "9715733989581096366782"
+          },
+          "call": {
+            "status": "success",
+            "sharesBurnedRaw": "9715733989581096366782"
+          },
+          "class": "success"
+        },
+        "horizons": [
+          {
+            "hours": 1,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "27679114340929741344118",
+              "previewSharesRaw": "9715688531479262598593"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "9715688531479262598593"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 4,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "27679114340929741344118",
+              "previewSharesRaw": "9715551203331361047645"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "9715551203331361047645"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 24,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "0",
+              "previewSharesRaw": "9714639675889942002474"
+            },
+            "call": {
+              "status": "evm_revert"
+            },
+            "class": "holder_attrition"
+          },
+          {
+            "hours": 48,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "0",
+              "previewSharesRaw": "9713559061669108142217"
+            },
+            "call": {
+              "status": "evm_revert"
+            },
+            "class": "holder_attrition"
+          },
+          {
+            "hours": 168,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "0",
+              "previewSharesRaw": "9708184921292585213755"
+            },
+            "call": {
+              "status": "evm_revert"
+            },
+            "class": "holder_attrition"
+          }
+        ],
+        "exitInterval": {
+          "riskSet": true,
+          "firstLoss": {
+            "rightCensoredAtHours": 4
+          },
+          "recovery": null,
+          "censoring": {
+            "afterHours": 4,
+            "atHours": 24,
+            "class": "holder_attrition"
+          },
+          "missingHorizons": 0
+        }
+      },
+      {
+        "label": "fixed_100k",
+        "assetsRaw": "100000000000",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "fixed_1m",
+        "assetsRaw": "1000000000000",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "vault_0p1pct",
+        "assetsRaw": "78738119177",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "vault_1pct",
+        "assetsRaw": "787381191777",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "vault_5pct",
+        "assetsRaw": "3936905958888",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      }
+    ]
+  },
+  "cellSha256": "5db01b9bda702034203741f2261d5e385041eb66ab6ebab3438f6d1c84031df0"
+}

@@ -1,0 +1,517 @@
+{
+  "schema": "morpho_historical_owner_funded_probe_plan_v1",
+  "revision": 2,
+  "chainId": 1,
+  "origins": [
+    "eth-mainnet.g.alchemy.com",
+    "rpc.ankr.com"
+  ],
+  "subjects": [
+    {
+      "id": "EURCV",
+      "vault": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+      "asset": "0x5f7827fdeb7c20b443265fc2f40845b715385ff2",
+      "assetDecimals": 18,
+      "shareDecimals": 18,
+      "candidates": [
+        {
+          "owner": "0x50461744cb3dea4d678be82b8f1b9cead383065d",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000051.json",
+            "format": "paired_bundle",
+            "event": "Deposit",
+            "ownerTopicIndex": 2,
+            "selector": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+              "blockNumber": "25888683",
+              "blockHash": "0x5bfc674880edb50b4a49f3aad5223de395ddaf77a13a3360c4d3473875f13bc7",
+              "transactionHash": "0xd664969350f7e73b42a5374c24d856d11f6fce151b6175e6b12fc6149985be17",
+              "transactionIndex": 111,
+              "logIndex": 173,
+              "topics": [
+                "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+                "0x00000000000000000000000050461744cb3dea4d678be82b8f1b9cead383065d",
+                "0x00000000000000000000000050461744cb3dea4d678be82b8f1b9cead383065d"
+              ],
+              "data": "0x000000000000000000000000000000000000000000000000d02ab486cedc0000000000000000000000000000000000000000000000000000cb85cc856f1bd544"
+            },
+            "eventHeader": {
+              "block": "25888683",
+              "hash": "0x5bfc674880edb50b4a49f3aad5223de395ddaf77a13a3360c4d3473875f13bc7",
+              "timestamp": "1788340943"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true
+          }
+        },
+        {
+          "owner": "0x33024d4791413438aa1de6a8b6cb7cceb25459b1",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000051.json",
+            "format": "paired_bundle",
+            "event": "Deposit",
+            "ownerTopicIndex": 2,
+            "selector": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+              "blockNumber": "25888644",
+              "blockHash": "0x747f4b066044f257554458ccc894f347f5e056de13e173ad4c6e93c0bd13c7a2",
+              "transactionHash": "0xd86f485a3d216695c0d4f76d9c8e284042aa10f41a6a56ad7aa07d9144ed27b3",
+              "transactionIndex": 62,
+              "logIndex": 86,
+              "topics": [
+                "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+                "0x00000000000000000000000033024d4791413438aa1de6a8b6cb7cceb25459b1",
+                "0x00000000000000000000000033024d4791413438aa1de6a8b6cb7cceb25459b1"
+              ],
+              "data": "0x000000000000000000000000000000000000000000000001158e460913d000000000000000000000000000000000000000000000000000010f5d187f00676fc5"
+            },
+            "eventHeader": {
+              "block": "25888644",
+              "hash": "0x747f4b066044f257554458ccc894f347f5e056de13e173ad4c6e93c0bd13c7a2",
+              "timestamp": "1788340475"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true
+          }
+        },
+        {
+          "owner": "0xeb417305447d7c58f79ce31f0f313d2c1a548f03",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000050.json",
+            "format": "paired_bundle",
+            "event": "Deposit",
+            "ownerTopicIndex": 2,
+            "selector": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+              "blockNumber": "25888231",
+              "blockHash": "0x1eb8aac99973852f1e2b4197981ee2b868b3d0861463b97042a9be1809dfac3a",
+              "transactionHash": "0x3e987c63f285323c8995a566c112311e810f8c3bc9f3b21693ad9d394032a7e4",
+              "transactionIndex": 135,
+              "logIndex": 339,
+              "topics": [
+                "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+                "0x000000000000000000000000eb417305447d7c58f79ce31f0f313d2c1a548f03",
+                "0x000000000000000000000000eb417305447d7c58f79ce31f0f313d2c1a548f03"
+              ],
+              "data": "0x000000000000000000000000000000000000000000002717d1072aaa072b00000000000000000000000000000000000000000000000026389806a59e922fceff"
+            },
+            "eventHeader": {
+              "block": "25888231",
+              "hash": "0x1eb8aac99973852f1e2b4197981ee2b868b3d0861463b97042a9be1809dfac3a",
+              "timestamp": "1788335495"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "LINK",
+      "vault": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+      "asset": "0x514910771af9ca656af840dff83e8264ecf986ca",
+      "assetDecimals": 18,
+      "shareDecimals": 18,
+      "candidates": [
+        {
+          "owner": "0x411c50d943d2d7c3f233fe1b0d576533ceae4b67",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000050.json",
+            "format": "paired_bundle",
+            "event": "Withdraw",
+            "ownerTopicIndex": 3,
+            "selector": "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+              "blockNumber": "25888330",
+              "blockHash": "0x6d8ded955370eb5744387ab2cc288dcb4784dd45e5879ee09bf330b018d97069",
+              "transactionHash": "0xdc9b6f4c1f161224f8a9bc8c5c445abb360252fffd7f2a103976b7c0587fbd22",
+              "transactionIndex": 48,
+              "logIndex": 67,
+              "topics": [
+                "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+                "0x000000000000000000000000411c50d943d2d7c3f233fe1b0d576533ceae4b67",
+                "0x000000000000000000000000411c50d943d2d7c3f233fe1b0d576533ceae4b67",
+                "0x000000000000000000000000411c50d943d2d7c3f233fe1b0d576533ceae4b67"
+              ],
+              "data": "0x00000000000000000000000000000000000000000000009246c4c518891f3c5900000000000000000000000000000000000000000000008eae5e3f53f5b15355"
+            },
+            "eventHeader": {
+              "block": "25888330",
+              "hash": "0x6d8ded955370eb5744387ab2cc288dcb4784dd45e5879ee09bf330b018d97069",
+              "timestamp": "1788336695"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true
+          }
+        },
+        {
+          "owner": "0xe060a0f8d142eb74110e3e0c9c03b89baeb0d4df",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000050.json",
+            "format": "paired_bundle",
+            "event": "Withdraw",
+            "ownerTopicIndex": 3,
+            "selector": "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+              "blockNumber": "25888205",
+              "blockHash": "0x24a0c2072b685d39d790ea15a9665bfb9af33f7e283bd97621e2e261f1b9090e",
+              "transactionHash": "0xf1bc5409a5549a98135bdb73a3dea5dc8c8309cbee7875314a80a28b791670b0",
+              "transactionIndex": 72,
+              "logIndex": 311,
+              "topics": [
+                "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+                "0x000000000000000000000000e060a0f8d142eb74110e3e0c9c03b89baeb0d4df",
+                "0x000000000000000000000000e060a0f8d142eb74110e3e0c9c03b89baeb0d4df",
+                "0x000000000000000000000000e060a0f8d142eb74110e3e0c9c03b89baeb0d4df"
+              ],
+              "data": "0x0000000000000000000000000000000000000000000000129501db7c59217f9c0000000000000000000000000000000000000000000000122020127a410647d3"
+            },
+            "eventHeader": {
+              "block": "25888205",
+              "hash": "0x24a0c2072b685d39d790ea15a9665bfb9af33f7e283bd97621e2e261f1b9090e",
+              "timestamp": "1788335183"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true
+          }
+        },
+        {
+          "owner": "0x0c0a924677bffa22991cac1358055c7f00c97f03",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000049.json",
+            "format": "paired_bundle",
+            "event": "Withdraw",
+            "ownerTopicIndex": 3,
+            "selector": "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+              "blockNumber": "25887978",
+              "blockHash": "0xa4d243be0aac166a4bd95f7167a10df574caa98ba4b2d26406bbbc82e617f586",
+              "transactionHash": "0x6d5feac2e08027be6026f36315aa74d230393e49110fa9a24c0439e98b148a30",
+              "transactionIndex": 226,
+              "logIndex": 993,
+              "topics": [
+                "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+                "0x0000000000000000000000000c0a924677bffa22991cac1358055c7f00c97f03",
+                "0x0000000000000000000000000c0a924677bffa22991cac1358055c7f00c97f03",
+                "0x0000000000000000000000000c0a924677bffa22991cac1358055c7f00c97f03"
+              ],
+              "data": "0x00000000000000000000000000000000000000000000000165525769cadf2f7f0000000000000000000000000000000000000000000000015c8c2a7d2430dd1b"
+            },
+            "eventHeader": {
+              "block": "25887978",
+              "hash": "0xa4d243be0aac166a4bd95f7167a10df574caa98ba4b2d26406bbbc82e617f586",
+              "timestamp": "1788332447"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "AUSD",
+      "vault": "0x32401b9fb79065bc15949de0bd43927492f02f0c",
+      "asset": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+      "assetDecimals": 6,
+      "shareDecimals": 18,
+      "candidates": [
+        {
+          "owner": "0x6fe89e702bda744d009b8f12995caf8a0f068aa3",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000002.json",
+            "format": "paired_bundle",
+            "event": "Withdraw",
+            "ownerTopicIndex": 3,
+            "selector": "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0x32401b9fb79065bc15949de0bd43927492f02f0c",
+              "blockNumber": "25880953",
+              "blockHash": "0x0f82c9f5915ae4a789a288aedef03d97caf5f0b369b27f1149dc68062132f1d8",
+              "transactionHash": "0x38be86d34030881609571776d6e81032707ea53e07ca07ace301cefc76ac57f5",
+              "transactionIndex": 325,
+              "logIndex": 834,
+              "topics": [
+                "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+                "0x0000000000000000000000006fe89e702bda744d009b8f12995caf8a0f068aa3",
+                "0x0000000000000000000000006fe89e702bda744d009b8f12995caf8a0f068aa3",
+                "0x0000000000000000000000006fe89e702bda744d009b8f12995caf8a0f068aa3"
+              ],
+              "data": "0x0000000000000000000000000000000000000000000000000000005d21dba000000000000000000000000000000000000000000000005251539bad4b1df886ed"
+            },
+            "eventHeader": {
+              "block": "25880953",
+              "hash": "0x0f82c9f5915ae4a789a288aedef03d97caf5f0b369b27f1149dc68062132f1d8",
+              "timestamp": "1788247907"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true
+          }
+        },
+        {
+          "owner": "0x64471d103a7f77262529383d53bdd28b260b1ae8",
+          "lead": {
+            "originalPath": "data/research/venue-signals/morpho-v2-full-cohort-baseline-raw/0x32401b9fb79065bc15949de0bd43927492f02f0c-24851839.json",
+            "format": "decoded_single_origin_transfer",
+            "event": "Transfer",
+            "ownerTopicIndex": 2,
+            "selector": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+            "selectorDeclaredOnly": true,
+            "eventRow": {
+              "block": 24776701,
+              "blockHash": "0xb81f7d74c35a37bead1ef905c312d17bdbbcafc750b613ee40031599b0fb6eef",
+              "logIndex": 399,
+              "txHash": "0x49d452be51197dc8810cf0f893468952f9760105262383a63c642b0078a06ae1",
+              "from": "0x0000000000000000000000000000000000000000",
+              "to": "0x64471d103a7f77262529383d53bdd28b260b1ae8",
+              "value": "1996873027726590665670045"
+            },
+            "eventHeader": null,
+            "pairedEventHeaders": false,
+            "historicalHintOnly": true
+          }
+        },
+        {
+          "owner": "0xb8cdd52c17b5debec61136edcce5471c16ec3744",
+          "lead": {
+            "originalPath": "data/research/venue-signals/morpho-v2-full-cohort-baseline-raw/0x32401b9fb79065bc15949de0bd43927492f02f0c-24747752.json",
+            "format": "decoded_single_origin_transfer",
+            "event": "Transfer",
+            "ownerTopicIndex": 2,
+            "selector": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+            "selectorDeclaredOnly": true,
+            "eventRow": {
+              "block": 24676685,
+              "blockHash": "0xd5a0a9c76aeda4d2e4aee8dd0b2d13224a8fbb0557c04cdd397469e9606bfee5",
+              "logIndex": 81,
+              "txHash": "0x27c0ec761883c97be6a23507f281e8253cb9a207585f208baf8008f91de67f35",
+              "from": "0x0000000000000000000000000000000000000000",
+              "to": "0xb8cdd52c17b5debec61136edcce5471c16ec3744",
+              "value": "49995000500949804829"
+            },
+            "eventHeader": null,
+            "pairedEventHeaders": false,
+            "historicalHintOnly": true
+          }
+        }
+      ]
+    }
+  ],
+  "leadOriginals": [
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000002.json",
+      "bytes": 162157,
+      "fileSha256": "ae12588649a3e5a68768c80e9409a6ada8fe40bc5dc1a855dd1aea30fcd412cf"
+    },
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000049.json",
+      "bytes": 113024,
+      "fileSha256": "76e83ebf45ed7d19e8a64a97c1d04a17fd277588aea53c23813189b29f93003a"
+    },
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000050.json",
+      "bytes": 197802,
+      "fileSha256": "64b3434836968d29f82f536e6ee2f5767224b1d63a5464cf09ef938981628a07"
+    },
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000051.json",
+      "bytes": 126444,
+      "fileSha256": "f1b35f565e44dbb1b5e54ad478c56e333e67f913e04c6a6b09b4ef538af16cbd"
+    },
+    {
+      "path": "data/research/venue-signals/morpho-v2-full-cohort-baseline-raw/0x32401b9fb79065bc15949de0bd43927492f02f0c-24851839.json",
+      "bytes": 104455,
+      "fileSha256": "16cc5d4638d8406bd15216207c8d545dad093ded963a8793eb6f14d1e66a62f1"
+    },
+    {
+      "path": "data/research/venue-signals/morpho-v2-full-cohort-baseline-raw/0x32401b9fb79065bc15949de0bd43927492f02f0c-24747752.json",
+      "bytes": 2064,
+      "fileSha256": "6e374bc39ea8d2bd39c0cd8178aec815542bdb1103a87aa1b46f105f214e76ba"
+    }
+  ],
+  "sourcePins": [
+    {
+      "path": "scripts/research/usd3-hypothetical-history-capture.mjs",
+      "bytes": 41066,
+      "fileSha256": "dd8fca9cd591eb7d9c44f2a09653620d17c0705493e386fb116ba3b5fe20952b"
+    },
+    {
+      "path": "scripts/research/carry-depth-quote-archive.mjs",
+      "bytes": 56802,
+      "fileSha256": "cff300ba5014a24955f126d7e949f2d3f45778e21e36bbcd20ab06e45cf4fd16"
+    },
+    {
+      "path": "scripts/research/record-carry-morpho-v2-block-archive.mjs",
+      "bytes": 26258,
+      "fileSha256": "fc2e166c467ac5c81822fc877aca45f45b28981fbfbd91410987709d4cdeaf73"
+    },
+    {
+      "path": "scripts/lib/boundedLocalReceiptFile.mjs",
+      "bytes": 2790,
+      "fileSha256": "4877354b90588f13b6fc0407232adac1dea6095151b3ba53c9d0c64ea4bda013"
+    },
+    {
+      "path": "lib/carry/morpho-v2-asset-identities.json",
+      "bytes": 21809,
+      "fileSha256": "8dd54bbb3dea0842bb67e582f0725adcafb7594107933122c5fa381c083566da"
+    },
+    {
+      "path": "node_modules/.pnpm/viem@2.54.6_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/constants/abis.ts",
+      "bytes": 33426,
+      "fileSha256": "f0f851350c730cb258a2fce7043ca65507b7c59ca6497fd50c59fc150a9ef722"
+    },
+    {
+      "path": "node_modules/.pnpm/viem@2.54.6_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/_esm/constants/abis.js",
+      "bytes": 44067,
+      "fileSha256": "220389f965e6b20714a6449923c8f86fc4bd98db0545868ebdcbc7b54e58fe0e"
+    },
+    {
+      "path": "node_modules/.pnpm/viem@2.54.6_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/package.json",
+      "bytes": 7339,
+      "fileSha256": "4bd90627f524e60b107f8e722640d7d2a533dcf472b11c88d4d5fca82ff04783"
+    },
+    {
+      "path": "scripts/research/morpho-observed-funded-holder-probe.mjs",
+      "bytes": 49661,
+      "fileSha256": "6b289520149ceeec0a887c9096bd09d0d8f581fa5984b9b54ff8afd46b249d36"
+    },
+    {
+      "path": "scripts/research/morpho-observed-funded-holder-probe.plan.json",
+      "bytes": 6304,
+      "fileSha256": "914de1f5900a7ddf18977f3f5ca1f68955a6da4155f1bd3775b2ed19fb466f77"
+    },
+    {
+      "path": "tests/unit/morphoObservedFundedHolderProbe.original.test.mjs",
+      "bytes": 28412,
+      "fileSha256": "8b05e308db78ff8a3637558fced5f4161a7293a8ea5e78a42f0f010bc4d5766e"
+    },
+    {
+      "path": "lib/carry/holderOriginCode.ts",
+      "bytes": 378,
+      "fileSha256": "1c517d20fe25ea8d64aac341f82e69f60f04424cccbb56dc3228403859328bf9"
+    },
+    {
+      "path": "scripts/research/conditional-cash-time-holdout.mjs",
+      "bytes": 18143,
+      "fileSha256": "b7f14ad73ce1e159c249832907a460dda3f60592fb1c1d5067fd1b733c1952a9"
+    },
+    {
+      "path": "lib/carry/conditionalSampledCashPathProjection.ts",
+      "bytes": 50272,
+      "fileSha256": "2c4c627060d7e4fc03be097f4a88c1f4e4ea1540e426b2bb03aad9331b9fc2fe"
+    },
+    {
+      "path": "scripts/lib/venue-reads.mjs",
+      "bytes": 31443,
+      "fileSha256": "b681fd74a921c8de31f96251a3975cd237dfd593f92baf17ddc34bf260243935"
+    },
+    {
+      "path": "tools/venue-recorder.config.json",
+      "bytes": 11377,
+      "fileSha256": "bd73e9da600241bcfc9eb94591115aee5e8143ecddafae628d5588b97e5461ae"
+    },
+    {
+      "path": "scripts/research/morpho-probe-raw-body-storage.mjs",
+      "bytes": 8735,
+      "fileSha256": "b89f978f510d449c06f70cf8a30e99028dda4bcc48277c1ccf4be66445cb135d"
+    }
+  ],
+  "sourceClosureBytesMaximum": 6291456,
+  "eventRules": {
+    "Deposit": {
+      "ABI": "Deposit(address indexed sender,address indexed onBehalf,uint256 assets,uint256 shares)",
+      "selector": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+      "ownerTopicIndex": 2,
+      "dataWords": 2
+    },
+    "Withdraw": {
+      "ABI": "Withdraw(address indexed sender,address indexed receiver,address indexed onBehalf,uint256 assets,uint256 shares)",
+      "selector": "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+      "ownerTopicIndex": 3,
+      "dataWords": 2
+    },
+    "Transfer": {
+      "ABI": "Transfer(address indexed from,address indexed to,uint256 value)",
+      "selector": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+      "ownerTopicIndex": 2,
+      "dataWords": 1,
+      "singleOriginDecodedHintsOnly": true
+    }
+  },
+  "budget": {
+    "bootstrap": 4,
+    "sourceBefore": 2,
+    "identityAndRuntime": 30,
+    "ownerCodeAndBalance": 36,
+    "positiveOwnerFullPreviews": 18,
+    "sourceAfter": 2,
+    "maximumPlannedPhysicalStarts": 92,
+    "maximumPhysicalStarts": 100,
+    "maximumLogStarts": 0,
+    "workers": 1
+  },
+  "policy": {
+    "globalDeadlineMs": 120000,
+    "stageWindowMs": 12000,
+    "rpcTimeoutMs": 8000,
+    "perHostSpacingMs": 250,
+    "cleanupGraceMs": 250,
+    "retries": 0,
+    "rawResponseBytes": 65536,
+    "fileBytes": 8388608,
+    "cohortBytes": 10485760,
+    "sourceClosureBytes": 6291456,
+    "reportBytes": 32768,
+    "terminalBytes": 65536,
+    "preFreeBytes": 282066944,
+    "reserveBytes": 268435456,
+    "controlSummaryBytes": 65536
+  },
+  "diskBoundary": "coupled_269MiB_preflight_256MiB_reserve_10MiB_lossless_cohort_3MiB_allocation_slack",
+  "methodBoundary": "unchanged_native_controller_only_no_getLogs",
+  "nativeCallsSource": "EIP1898_blockHash_requireCanonical_true_no_number_fallback",
+  "sourceAndAvailability": "fresh_paired_finalized_source_before_after_brackets_and_actual_post_terminal_retention_clock",
+  "leadEvidenceBoundary": "paired_Deposit_receiver_or_Withdraw_onBehalf_and_decoded_single_origin_Transfer_mint_hint_no_historical_remaining_S",
+  "researchOnly": true,
+  "authenticated": false,
+  "originalAuthority": false,
+  "historicalOwnership": false,
+  "currentWalletControl": false,
+  "profileApproval": false,
+  "sourceImplementationEquivalence": false,
+  "holderExecutableExit": false,
+  "forecastEligibility": false,
+  "calibrated": false,
+  "coveragePromotion": false,
+  "competingMRaw": null,
+  "previousPlanFileSha256": "c5243641dacdb61dc5f20192d49838c03a001a6884d54d8382824594c0e8205f",
+  "storage": {
+    "schema": "morpho_probe_lossless_native_row_storage_v1",
+    "losslessBoundary": "exact_original_controller_fields_raw_response_bytes_once_when_present_null_preserves_missing_controller_capture",
+    "maximumAcceptedAggregateRawResponseBytes": 5242880,
+    "maximumRetainedAggregateRawResponseBytes": 5308416,
+    "singleFailedReadOvershootBytes": 65536,
+    "maximumEncodedNativeRowOverheadBytes": 8192,
+    "fixedWrapperBytes": 2097152,
+    "maximumFiles": 131,
+    "allocationUnitBytes": 4096,
+    "perFileAllocationMarginBytes": 8192,
+    "directoryAllocationMarginBytes": 8192,
+    "allocationSlackBytes": 3145728,
+    "allocationUnitRule": "actual_statfs_unit_must_divide_4096_and_not_exceed_4096",
+    "rawBodyReferenceRule": "same_namespace_physical_id_source_hash_and_raw_body_hash_after_original_observation_equality",
+    "base64BoundRule": "4_times_ceil_retained_raw_bytes_divided_by_3_plus_4_times_maximum_rows_minus_one"
+  }
+}

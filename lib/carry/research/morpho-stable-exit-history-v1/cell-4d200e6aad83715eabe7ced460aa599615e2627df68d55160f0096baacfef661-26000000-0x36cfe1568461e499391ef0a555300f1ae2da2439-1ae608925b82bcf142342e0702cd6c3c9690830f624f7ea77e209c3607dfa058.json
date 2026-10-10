@@ -1,0 +1,473 @@
+{
+  "planSha256": "4d200e6aad83715eabe7ced460aa599615e2627df68d55160f0096baacfef661",
+  "anchorBlock": 26000000,
+  "vault": "0x36cfe1568461e499391ef0a555300f1ae2da2439",
+  "routeKey": "USDC → VaultV2 [USDC]",
+  "status": "measured",
+  "row": {
+    "vault": "0x36cfe1568461e499391ef0a555300f1ae2da2439",
+    "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "anchorBlock": 26000000,
+    "status": "measured",
+    "baselineIdentity": {
+      "status": "confirmed",
+      "shareDecimals": 18,
+      "assetDecimals": 6
+    },
+    "totalAssetsRaw": "14161730535868",
+    "candidateWindow": {
+      "fromBlock": 25995904,
+      "throughBlock": 25999999,
+      "transferLogs": 30,
+      "distinctRecipients": 9,
+      "screened": 1
+    },
+    "screenedCandidates": [
+      {
+        "owner": "0x77cbe909c6fa69d707b12d400432f4723d1373ac",
+        "discoveryBlock": 25999918,
+        "discoveryBlockHash": "0x31e1b0da4c45a8979e47a610dd450c52e70886fca31f3f95a765fde0a11a327c",
+        "discoveryTransactionHash": "0x3476074347b367e4a5dc7e69fec3be195aa0f826904e398ad7a0ae18d07a4efb",
+        "discoveryLogIndex": 259,
+        "receiptVerified": true,
+        "status": "eligible_holder",
+        "sharesRaw": "95085563940746146079491",
+        "claimRaw": "100000235882"
+      }
+    ],
+    "holder": "0x77cbe909c6fa69d707b12d400432f4723d1373ac",
+    "holderDiscovery": {
+      "owner": "0x77cbe909c6fa69d707b12d400432f4723d1373ac",
+      "discoveryBlock": 25999918,
+      "discoveryBlockHash": "0x31e1b0da4c45a8979e47a610dd450c52e70886fca31f3f95a765fde0a11a327c",
+      "discoveryTransactionHash": "0x3476074347b367e4a5dc7e69fec3be195aa0f826904e398ad7a0ae18d07a4efb",
+      "discoveryLogIndex": 259,
+      "receiptVerified": true,
+      "status": "eligible_holder",
+      "sharesRaw": "95085563940746146079491",
+      "claimRaw": "100000235882"
+    },
+    "anchorSharesRaw": "95085563940746146079491",
+    "anchorClaimRaw": "100000235882",
+    "sizes": [
+      {
+        "label": "fixed_10k",
+        "assetsRaw": "10000000000",
+        "eligible": true,
+        "reason": null,
+        "baseline": {
+          "state": {
+            "status": "measured",
+            "eoa": true,
+            "sharesRaw": "95085563940746146079491",
+            "previewSharesRaw": "9508533965128528845625"
+          },
+          "call": {
+            "status": "success",
+            "sharesBurnedRaw": "9508533965128528845625"
+          },
+          "class": "success"
+        },
+        "horizons": [
+          {
+            "hours": 1,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "9508454016209193317457"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "9508454016209193317457"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 4,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "9508212240392082979776"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "9508212240392082979776"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 24,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "9506640478179292431163"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "9506640478179292431163"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 48,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "9504844163422948548148"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "9504844163422948548148"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 168,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "0",
+              "previewSharesRaw": "9495753026488566473295"
+            },
+            "call": {
+              "status": "evm_revert"
+            },
+            "class": "holder_attrition"
+          }
+        ],
+        "exitInterval": {
+          "riskSet": true,
+          "firstLoss": {
+            "rightCensoredAtHours": 48
+          },
+          "recovery": null,
+          "censoring": {
+            "afterHours": 48,
+            "atHours": 168,
+            "class": "holder_attrition"
+          },
+          "missingHorizons": 0
+        }
+      },
+      {
+        "label": "fixed_100k",
+        "assetsRaw": "100000000000",
+        "eligible": true,
+        "reason": null,
+        "baseline": {
+          "state": {
+            "status": "measured",
+            "eoa": true,
+            "sharesRaw": "95085563940746146079491",
+            "previewSharesRaw": "95085339651285288456244"
+          },
+          "call": {
+            "status": "success",
+            "sharesBurnedRaw": "95085339651285288456244"
+          },
+          "class": "success"
+        },
+        "horizons": [
+          {
+            "hours": 1,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "95084540162091933174566"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "95084540162091933174566"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 4,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "95082122403920829797753"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "95082122403920829797753"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 24,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "95066404781792924311624"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "95066404781792924311624"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 48,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "95048441634229485481479"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "95048441634229485481479"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 168,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "0",
+              "previewSharesRaw": "94957530264885664732949"
+            },
+            "call": {
+              "status": "evm_revert"
+            },
+            "class": "holder_attrition"
+          }
+        ],
+        "exitInterval": {
+          "riskSet": true,
+          "firstLoss": {
+            "rightCensoredAtHours": 48
+          },
+          "recovery": null,
+          "censoring": {
+            "afterHours": 48,
+            "atHours": 168,
+            "class": "holder_attrition"
+          },
+          "missingHorizons": 0
+        }
+      },
+      {
+        "label": "fixed_1m",
+        "assetsRaw": "1000000000000",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "vault_0p1pct",
+        "assetsRaw": "14161730535",
+        "eligible": true,
+        "reason": null,
+        "baseline": {
+          "state": {
+            "status": "measured",
+            "eoa": true,
+            "sharesRaw": "95085563940746146079491",
+            "previewSharesRaw": "13465729579704531215271"
+          },
+          "call": {
+            "status": "success",
+            "sharesBurnedRaw": "13465729579704531215271"
+          },
+          "class": "success"
+        },
+        "horizons": [
+          {
+            "hours": 1,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "13465616358199311795155"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "13465616358199311795155"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 4,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "13465273961802132190694"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "13465273961802132190694"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 24,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "13463048074509868682709"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "13463048074509868682709"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 48,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "95085563940746146079491",
+              "previewSharesRaw": "13460504181956330057404"
+            },
+            "call": {
+              "status": "success",
+              "sharesBurnedRaw": "13460504181956330057404"
+            },
+            "class": "success"
+          },
+          {
+            "hours": 168,
+            "identity": {
+              "status": "confirmed",
+              "shareDecimals": 18,
+              "assetDecimals": 6
+            },
+            "state": {
+              "status": "measured",
+              "eoa": true,
+              "sharesRaw": "0",
+              "previewSharesRaw": "13447629558804179565324"
+            },
+            "call": {
+              "status": "evm_revert"
+            },
+            "class": "holder_attrition"
+          }
+        ],
+        "exitInterval": {
+          "riskSet": true,
+          "firstLoss": {
+            "rightCensoredAtHours": 48
+          },
+          "recovery": null,
+          "censoring": {
+            "afterHours": 48,
+            "atHours": 168,
+            "class": "holder_attrition"
+          },
+          "missingHorizons": 0
+        }
+      },
+      {
+        "label": "vault_1pct",
+        "assetsRaw": "141617305358",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      },
+      {
+        "label": "vault_5pct",
+        "assetsRaw": "708086526793",
+        "eligible": false,
+        "reason": "exceeds_anchor_holder_claim",
+        "baseline": null,
+        "horizons": [],
+        "exitInterval": {
+          "riskSet": false
+        }
+      }
+    ]
+  },
+  "cellSha256": "1ae608925b82bcf142342e0702cd6c3c9690830f624f7ea77e209c3607dfa058"
+}

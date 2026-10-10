@@ -1,0 +1,19 @@
+# Morpho VaultV2 retrospective gross-flow archive
+
+This local research archive is separate from the prospective Morpho flow ledger. It enrolls the exact frozen 49 VaultV2 subjects from `loadMorphoFlowSubjects` and currently captures only the RLUSD vault `0x6dc58a0fdfc8d694e571dc59b9a52eeea780e6bf` for one 64-block historical pilot. The anchor is selected by block timestamp near 30 days before the current finalized head. An old block timestamp is never presented as a first observation time.
+
+`node scripts/research/record-carry-morpho-v2-archive-local.mjs --pilot` checks the first two distinct RPC host origins in the configured `RECORDER_RPC_URLS` or `RECORDER_RPC_URL` ring. Select a specific pair by host name, without putting credential-bearing URLs on the command line:
+
+```sh
+node scripts/research/record-carry-morpho-v2-archive-local.mjs --pilot --origins rpc.ankr.com,rpc.flashbots.net
+```
+
+Both origins must agree on the historical anchor boundary, the range end header, the normalized Deposit/Withdraw/ForceDeallocate payload, and the raw combined log witness. Each origin also runs the existing separate-versus-combined topic check. A successful zero-log response produces a quiet range receipt. A failed query or disagreement produces no range receipt and does not advance the cursor. The first enrollment may already exist if a later range query fails; a retry can use another pair of independent origins after rechecking the enrolled anchor.
+
+Enrollment `providerOrigins` names only the pair that selected the timestamp anchor. The range receipt and later header sidecar name their own independent provider pair, which may differ after a retry. The range pair rechecks the enrolled prior/start boundary before sealing; the sidecar pair rereads those boundaries and the range end. The original enrollment is never rewritten to imply those later providers performed the anchor search.
+
+Receipts live under `data/research/venue-signals/local-morpho-v2-retrospective-flow-v1/`. Enrollment and numbered range files use exclusive publication, canonical JSON, SHA-256 body digests, and a previous-receipt digest plus contiguous block/hash cursor. A separate immutable `header-attestation.json` binds the sealed range SHA to later independent rereads of the prior, start, and end block headers. Offline `--verify` succeeds only after all 64 contiguous blocks and the sidecar pass replay. `--verify-partial` requires enrollment and reports an incomplete range or missing sidecar with `complete:false` plus a separate `rangeComplete` flag; without enrollment it errors. It is not a completed pilot verdict. A stranded temporary file from an interrupted publish is ignored only if it has the exact UUID staging suffix; unknown final JSON files still fail replay. This later header attestation strengthens review of the sealed boundaries but is not a substitute for the earlier capture-time provider checks. Each file is at most 16 MiB and writing must leave at least 1 GiB free.
+
+The archive records historical vault contract events. Two agreeing providers do not independently prove that both served all logs. Withdraw rows remain gross contract flow, not reconciled external holder payout. This is retrospective research evidence only: `researchOnly=true`, `prospectiveValidated=false`, and `holderExecutableExit=false`. It must not be added to prospective forecast holdout, source receipt timing, or current executable-exit claims.
+
+The first live pilot covered blocks 25,880,093–25,880,156, a quiet 64-block range with zero events. Ankr and Flashbots supplied the matching raw range observations; the initial Alchemy and Infura pair agreed on the timestamp-selected anchor but rejected the historical log query. The sealed range SHA-256 is `9e0cdee3ed01013eb8cae9d533810f503ee004585f0dc807d74b67ece17a5152`. The later header-attestation SHA-256 is `61d5f7e3b43f0a08279c8abe3021797814cb0e4f0702c35a6c358fe5b3078faf`.

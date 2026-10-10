@@ -1,0 +1,178 @@
+{
+  "schema": "morpho_observed_funded_holder_probe_plan_v1",
+  "chainId": 1,
+  "origins": [
+    "eth-mainnet.g.alchemy.com",
+    "rpc.ankr.com"
+  ],
+  "subjects": [
+    {
+      "id": "EURCV",
+      "vault": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+      "asset": "0x5f7827fdeb7c20b443265fc2f40845b715385ff2",
+      "assetDecimals": 18,
+      "shareDecimals": 18,
+      "candidates": [
+        {
+          "owner": "0x50461744cb3dea4d678be82b8f1b9cead383065d",
+          "leadOrdinal": 51
+        },
+        {
+          "owner": "0x33024d4791413438aa1de6a8b6cb7cceb25459b1",
+          "leadOrdinal": 51
+        },
+        {
+          "owner": "0xeb417305447d7c58f79ce31f0f313d2c1a548f03",
+          "leadOrdinal": 50
+        }
+      ]
+    },
+    {
+      "id": "LINK",
+      "vault": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+      "asset": "0x514910771af9ca656af840dff83e8264ecf986ca",
+      "assetDecimals": 18,
+      "shareDecimals": 18,
+      "candidates": [
+        {
+          "owner": "0x722773298dad266c0c6003fb78e80a1a42c6f340",
+          "leadOrdinal": 49
+        }
+      ]
+    },
+    {
+      "id": "AUSD",
+      "vault": "0x32401b9fb79065bc15949de0bd43927492f02f0c",
+      "asset": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
+      "assetDecimals": 6,
+      "shareDecimals": 18,
+      "candidates": []
+    }
+  ],
+  "leadOriginals": [
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000049.json",
+      "bytes": 113024,
+      "fileSha256": "76e83ebf45ed7d19e8a64a97c1d04a17fd277588aea53c23813189b29f93003a"
+    },
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000050.json",
+      "bytes": 197802,
+      "fileSha256": "64b3434836968d29f82f536e6ee2f5767224b1d63a5464cf09ef938981628a07"
+    },
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000051.json",
+      "bytes": 126444,
+      "fileSha256": "f1b35f565e44dbb1b5e54ad478c56e333e67f913e04c6a6b09b4ef538af16cbd"
+    }
+  ],
+  "sourcePins": [
+    {
+      "path": "scripts/research/usd3-hypothetical-history-capture.mjs",
+      "bytes": 41066,
+      "fileSha256": "dd8fca9cd591eb7d9c44f2a09653620d17c0705493e386fb116ba3b5fe20952b"
+    },
+    {
+      "path": "scripts/research/carry-depth-quote-archive.mjs",
+      "bytes": 56802,
+      "fileSha256": "cff300ba5014a24955f126d7e949f2d3f45778e21e36bbcd20ab06e45cf4fd16"
+    },
+    {
+      "path": "scripts/research/record-carry-morpho-v2-block-archive.mjs",
+      "bytes": 26258,
+      "fileSha256": "fc2e166c467ac5c81822fc877aca45f45b28981fbfbd91410987709d4cdeaf73"
+    },
+    {
+      "path": "scripts/lib/boundedLocalReceiptFile.mjs",
+      "bytes": 2790,
+      "fileSha256": "4877354b90588f13b6fc0407232adac1dea6095151b3ba53c9d0c64ea4bda013"
+    },
+    {
+      "path": "lib/carry/morpho-v2-asset-identities.json",
+      "bytes": 21809,
+      "fileSha256": "8dd54bbb3dea0842bb67e582f0725adcafb7594107933122c5fa381c083566da"
+    },
+    {
+      "path": "node_modules/.pnpm/viem@2.54.6_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/constants/abis.ts",
+      "bytes": 33426,
+      "fileSha256": "f0f851350c730cb258a2fce7043ca65507b7c59ca6497fd50c59fc150a9ef722"
+    },
+    {
+      "path": "node_modules/.pnpm/viem@2.54.6_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/_esm/constants/abis.js",
+      "bytes": 44067,
+      "fileSha256": "220389f965e6b20714a6449923c8f86fc4bd98db0545868ebdcbc7b54e58fe0e"
+    },
+    {
+      "path": "node_modules/.pnpm/viem@2.54.6_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/package.json",
+      "bytes": 7339,
+      "fileSha256": "4bd90627f524e60b107f8e722640d7d2a533dcf472b11c88d4d5fca82ff04783"
+    }
+  ],
+  "sourceClosureBytesMaximum": 6291456,
+  "depositABI": "Deposit(address indexed sender,address indexed onBehalf,uint256 assets,uint256 shares)",
+  "depositTopic": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+  "transferABI": "Transfer(address indexed from,address indexed to,uint256 value)",
+  "transferTopic": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+  "transferRuleSource": "installed_viem_ERC20_ABI_declared_lead_rule_not_deployed_equivalence",
+  "discovery": {
+    "subjectId": "AUSD",
+    "windowBlocks": 64,
+    "shardBlocks": 8,
+    "maxCandidates": 3,
+    "selection": "most_recent_paired_positive_share_receiver_distinct_address",
+    "selectedEventHeaderVerificationOnly": true,
+    "unselectedEventCanonicalHeadersVerified": false,
+    "catalogueComplete": false,
+    "receiverExclusions": [
+      "zero_address",
+      "exact_vault",
+      "paired_current_native_liquidityAdapter"
+    ],
+    "adapterGetterFailure": "unresolved_without_old_adapter_fallback"
+  },
+  "budget": {
+    "bootstrap": 6,
+    "identityAndCodes": 32,
+    "oldLeadBalances": 8,
+    "positiveOldLeadFullPreviews": 8,
+    "logReads": 32,
+    "selectedEventHeaders": 6,
+    "discoveryBalances": 6,
+    "positiveDiscoveryFullPreviews": 6,
+    "remainingSourceHeaders": 2,
+    "maximumPhysicalStarts": 106,
+    "maximumDefaultControllerStarts": 74,
+    "maximumSeparateLogStarts": 32
+  },
+  "policy": {
+    "globalDeadlineMs": 120000,
+    "stageWindowMs": 12000,
+    "rpcTimeoutMs": 8000,
+    "perHostSpacingMs": 250,
+    "cleanupGraceMs": 250,
+    "retries": 0,
+    "rawResponseBytes": 65536,
+    "fileBytes": 8388608,
+    "cohortBytes": 33554432,
+    "reportBytes": 32768,
+    "terminalBytes": 65536,
+    "preFreeBytes": 301989888,
+    "reserveBytes": 268435456
+  },
+  "methodBoundary": "default_controller_unchanged_getLogs_separate_narrow_wrapper",
+  "nativeCallsSource": "EIP1898_blockHash_requireCanonical_true_no_number_fallback",
+  "sourceAndAvailability": "fresh_paired_finalized_source_and_actual_post_terminal_retention_separate",
+  "researchOnly": true,
+  "historicalOwnership": false,
+  "currentWalletControl": false,
+  "authenticated": false,
+  "originalAuthority": false,
+  "profileApproval": false,
+  "sourceImplementationEquivalence": false,
+  "holderExecutableExit": false,
+  "calibrated": false,
+  "coveragePromotion": false,
+  "competingMRaw": null,
+  "revision": 3,
+  "previousPlanFileSha256": "b4e1a2a83eaadc5b20ab0f1a6ba32b85d8a95c294d7393c21ac06f4241eca56c"
+}

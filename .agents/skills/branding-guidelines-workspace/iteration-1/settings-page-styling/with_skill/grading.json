@@ -1,0 +1,86 @@
+{
+  "eval_id": 1,
+  "eval_name": "settings-page-styling",
+  "configuration": "with_skill",
+  "expectations": [
+    {
+      "text": "Imports and uses SPACING or SPACING_PATTERNS from @/config/spacing instead of arbitrary pixel values",
+      "passed": true,
+      "evidence": "Line 21: `import { SPACING, SPACING_PATTERNS } from '@/config/spacing'`. Used extensively throughout: SPACING.base, SPACING.xs, SPACING.sm, SPACING.md, SPACING.lg, SPACING.xl, SPACING['2xl'], SPACING_PATTERNS.pagePadding, SPACING_PATTERNS.sectionGap, SPACING_PATTERNS.formFieldGap, SPACING_PATTERNS.buttonGroupGap, SPACING_PATTERNS.stackSpacing."
+    },
+    {
+      "text": "Imports and uses SEMANTIC_COLORS from @/config/semanticColors",
+      "passed": true,
+      "evidence": "Line 29: `import { SEMANTIC_COLORS } from '@/config/semanticColors'`. Used for textPrimary, textSecondary, textTertiary, borderSubtle, borderMedium, borderStrong, primary, success, warning throughout the component."
+    },
+    {
+      "text": "Imports and uses TYPOGRAPHY from @/helpers/typography",
+      "passed": true,
+      "evidence": "Line 30: `import { TYPOGRAPHY } from '@/helpers/typography'`. Used for TYPOGRAPHY.h1, h3, body, small, xs, label, bold, semibold, medium, normal throughout."
+    },
+    {
+      "text": "Imports from @/config/transitions (TRANSITIONS, HOVER_EFFECTS, or FOCUS_STYLES)",
+      "passed": true,
+      "evidence": "Lines 22-28: `import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES, MOTION_VARIANTS } from '@/config/transitions'`. All five are imported and used: TRANSITIONS.all, TRANSITIONS.transformAndShadow, HOVER_EFFECTS.lift, HOVER_EFFECTS.brighten, HOVER_EFFECTS.borderHighlight, ACTIVE_EFFECTS.press, FOCUS_STYLES.ring, MOTION_VARIANTS.fadeInUp, staggerContainer, staggerItem."
+    },
+    {
+      "text": "Uses the Card component from @/components/ui/Card instead of raw Box with inline card styling",
+      "passed": true,
+      "evidence": "Line 33: `import { Card } from '@/components/ui/Card'`. Used three times: `<Card variant=\"default\">` for Notifications section (line 288), Display section (line 333), and Wallet section (line 459)."
+    },
+    {
+      "text": "Includes _focus or FOCUS_STYLES on interactive elements for accessibility",
+      "passed": true,
+      "evidence": "FOCUS_STYLES.ring used on: Select (Language, line 411), Select (Block Explorer, line 652), IconButton (Copy address, line 520), IconButton (View on explorer, line 540), Buttons (Slippage presets, line 588), Input (Custom slippage, line 614), Button (Reset, line 693), Button (Save, line 713)."
+    },
+    {
+      "text": "No white or light backgrounds; uses dark bg values consistent with the brand (rgba dark or #091326)",
+      "passed": true,
+      "evidence": "Backgrounds used: 'rgba(10, 10, 10, 0.4)' for rows, 'rgba(10, 10, 10, 0.6)' for hover, 'rgb(12, 5, 15)' for inputs, 'rgb(22, 24, 39)' for dropdown options. All are dark values. No white or light backgrounds found."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "Component uses React.memo for performance optimization",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Line 728: `export default memo(SettingsPage)`, line 66: `const SectionHeader = memo(...)`, line 91: `const ToggleRow = memo(...)`"
+    },
+    {
+      "claim": "Component uses useCallback for event handlers",
+      "type": "quality",
+      "verified": true,
+      "evidence": "All handlers (updateNotification, updateDisplay, updateWallet, handleCopyAddress, handleSave, handleReset) use useCallback with proper dependency arrays."
+    },
+    {
+      "claim": "Component uses useMemo for computed values",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Line 239: `const activeNotificationCount = useMemo(...)` for computing active notification count."
+    },
+    {
+      "claim": "Buttons have aria-labels where needed",
+      "type": "quality",
+      "verified": true,
+      "evidence": "IconButtons have aria-label='Copy wallet address' (line 513) and aria-label='View address on block explorer' (line 534). Custom slippage input has aria-label (line 615)."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "uses-spacing-constants",
+        "reason": "Consider also checking that NO arbitrary pixel/rem values appear alongside the constants. This output has 'w=\"80px\"' on line 603 and border-radius strings like '16px' and '8px' throughout, which are not from SPACING constants. The assertion passes because it only checks for imports/usage, not for absence of violations."
+      },
+      {
+        "reason": "No assertion checks for proper aria-labels on interactive elements (icon buttons, custom inputs). The with_skill output does include them, but this would not be caught if omitted."
+      }
+    ],
+    "overall": "Assertions cover the main design system requirements well. The spacing assertion could be strengthened to also check for absence of arbitrary values."
+  }
+}

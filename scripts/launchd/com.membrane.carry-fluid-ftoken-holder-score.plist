@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.membrane.carry-fluid-ftoken-holder-score</string>
+  <key>ProgramArguments</key><array>
+    <string>/opt/homebrew/bin/timeout</string><string>-k</string><string>5s</string><string>165s</string>
+    <string>/bin/sh</string><string>/Users/EBmic/membrane-app/scripts/carry-fluid-ftoken-holder-tick.sh</string><string>score</string>
+  </array>
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key><string>/Users/EBmic/Library/Logs/carry-fluid-ftoken-holder.log</string>
+  <key>StandardOutPath</key><string>/Users/EBmic/Library/Logs/carry-fluid-ftoken-holder.log</string>
+  <key>StartCalendarInterval</key><array>
+    <dict><key>Minute</key><integer>8</integer></dict>
+    <dict><key>Minute</key><integer>18</integer></dict>
+    <dict><key>Minute</key><integer>28</integer></dict>
+    <dict><key>Minute</key><integer>48</integer></dict>
+    <dict><key>Minute</key><integer>58</integer></dict>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/EBmic/membrane-app</string>
+</dict></plist>

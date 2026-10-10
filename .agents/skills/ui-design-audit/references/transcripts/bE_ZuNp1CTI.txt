@@ -1,0 +1,360 @@
+So, last month Persona 5 pretty much consumed
+my life, and if I had just one takeaway, it
+would be that it has the SLICKEST UI I’VE
+EVER SEEN!
+*Persona 5 music*
+MY GOD!
+IT’S SO DYNAMIC!
+SO SMOOTH!
+SO STYLISH! IT’S GORGEOUS!
+THE CHARACTER IS JUST RUNNING THROUGH THE
+VICTORY SCREEN!
+THAT IS SO COOL!
+Sorry.
+So in honor of Persona 5, I just wanna talk
+about some graphic design.
+To put it broadly, Graphic Design is visual
+communication.
+Applied to games it’s your menus, UI, camera
+work, color choice, font choice, animation,
+character design, your presentation of information.
+There is a lot of overlap between graphic
+design and art but graphic design is about
+more than aesthetics.
+Good graphic design in a game is like a good
+translator where it seamlessly and stylishly
+communicates to its players and makes immersing
+yourself in a game a little bit easier.
+Bad graphic design is like a bad translation
+- an obstacle, making it more of a chore to
+get into and taking some of the shine off
+a game.
+I’m going to highlight some great and..
+well.. terrible graphic design in games.
+But before we dive in, here are some rules:
+These examples are chosen based on a combination
+of style and practicality in their design.
+These aren’t ranked since trying to decide
+what is “THE BEST GRAPHIC DESIGN” is... well impossible…
+(unless it’s Persona 5)…
+If there is an example that you are fond of
+that doesn’t make it here, post it in the
+comments.
+I’ll probably do another one of these so
+it may show up there.
+Anyway, first up - a masterclass in communicating
+game mechanics through visuals.
+Good Design
+*Mark of the Ninja music*
+One of the biggest challenges in many stealth
+games is a lack of clarity.
+Too often whether you can be seen or heard
+by an enemy is a mystery.
+It can lead to some frustrating trial and
+error gameplay.
+A good stealth game is like a good puzzle
+game - they work best when you can see all
+the pieces in front of you, just waiting to
+be solved.
+Mark of the Ninja is a game with some very
+intuitive UI and visual cues to tell the player
+everything they need to know so they can confidently
+plan out their moves.
+In Mark of the Ninja, visibility is treated
+as a binary system.
+You are either hidden in shadow or exposed
+in light.
+Characters and objects in shadow are nicely
+defined by white outlines and are fully colored
+when they’re in the light.
+Even your own visibility is smartly indicated
+by subtle changes in lighting and blurring
+effects.
+Any area blocked by a wall is darker until
+it’s within the player’s point of view.
+Any rooms that you are adjacent to are blurred
+and clear up as you peek through vents and
+doors.
+Sound in Mark of the Ninja is just as clear-cut.
+As you make noise, the range of each sound
+is represented by a ring.
+The ring’s size is dependant on the sound
+itself, running will produce medium-sized
+rings, and louder actions like breaking objects
+will make larger rings.
+Every one of your tools is laid out in your
+HUD.
+They are also conveyed through icons on objects
+in the environment like bells or pots.
+These help make your tools easy to use which
+lets you focus on solving the puzzle, rather
+than being caught up in the game’s mechanics.
+It may not make the game more immersive or
+even that much more stylish but Mark of the
+Ninja’s UI is super practical and makes
+playing the game feel like second nature.
+Bad Design
+*Super Smash Bros music*
+Now bad graphic design doesn’t make a bad
+game.
+Smash 4 is great but the menus?
+Eh... not so much.
+Smash 4’s main menu represents the thin
+line between success and failure in graphic
+design.
+On first glance, it looks fine, like a more
+colorful version of the menus from Super Smash
+Bros Brawl, but as you start clicking around
+you’ll notice a problem.
+The organization of the menu is strange, which
+makes navigating the menus feel clunky.
+The menu elements have an inconsistent look
+and aside from the giant SMASH button, there’s
+a serious lack of visual hierarchy.
+The objects in the menu aren't arranged by
+their importance.
+The Multiplayer is the most prominent option
+here as it should be but the other options
+are all fighting for your attention. The biggest
+offender in Smash 4’s menu is riiiiiight
+HERE!
+“GAMES AND MORE” That's the vaguest title
+ever.
+That's like naming the button.
+'Here's some more stuff, I dunno.'
+Now Brawl and Melee had their priorities straight.
+You had Single Player, VS, Online, Vault,
+Options, and Data.
+There you go, The essential categories are
+nice and organized.
+But in Smash 4, Single Player, Vault, and
+Options are all shoved into “Games &amp; More”
+Other menu items are thrown around at random.
+Why is Trophy Rush, a single player minigame,
+not in the Stadium option with the other minigames?
+Why is Challenges not placed in Vault or Single
+Player?
+Why do custom moves have to be set in a separate
+menu and not just on the character select
+screen?
+WHY IS SMASH TOUR ANYWHERE?!?
+Smash 4’s UI issues don’t stop there.
+The UI in Smash Tour is chaotic and overly
+flashy to the point that it makes the game
+harder to play.
+Smash 4’s sloppy design is especially strange
+- the designer worked on Kirby's Air Ride
+and the last two Smash Brothers games, none
+of which have these problems.
+But with the way the menu is now it makes
+finding stuff a total pain, until you just
+memorize it.
+Good Design
+*Brutal Legend music*
+Brutal Legend is a game I DESPERATELY
+want to love... but I only like.
+It’s one of those games that seems to be
+going one way, but then it becomes something
+else entirely and it’s just kind of ehh.
+Despite that, Brutal Legend has 3 really cool
+things going for it.
+One - The main character is just Jack Black
+being himself and that’s usually a good
+time.
+*Jack Black singing* DECAPITATION!
+Two - Exploring the open-world and seeing
+Double Fine’s vision of a crazy heavy metal
+fantasy world is amazing.
+And Three - The UI absolutely NAILS its theme.
+Designed by Joe Kowalski, Brutal Legend’s
+graphic design proudly wears its inspirations
+on its sleeve.
+The type, especially on the headers, is very
+similar to the bold, angular, and gothic typefaces
+of logos from iconic metal bands like Iron
+Maiden, Def Leppard, Motorhead, and Black
+Sabbath.
+The in-game encyclopedia is presented in a
+high schooler's notebook.
+The start of every mission is the cover art
+of a worn out album.
+Every UI element, tutorial, and even certain
+cutscenes use a distinct illustration style
+inspired by medieval and Norse woodcuts which
+mesh extremely well with the heavy metal fantasy.
+The interface also has high contrast with
+the black and white standing out nicely from
+the colorful landscapes.
+I love Brutal Legend’s UI in general, but
+the real standout here is the main menu.
+*Intro Cutscene* “Are you sure you're ready
+for this?
+Because what I hold in my hand is not just
+going to blow your mind.
+It’s going to blow your soul."
+The Main Menu is an interactive FMV that goes
+through a custom made gatefold album of the
+game itself.
+Every option is on a different part of the
+album. New Game and Continue are in the inside
+cover, Chapter Select is found in the back
+where you’d find the tracklist, Multiplayer
+is in the record sleeve and options and extras
+are the record’s A and B sides respectively.
+This menu oozes creativity and it also makes
+a few smart decisions to keep the theme from
+getting in the way of this menu’s usability.
+In the raw footage, the type isn’t actually
+on the album itself - It was edited in post
+to allow it to be made in different languages
+and the footage is sped up to keep navigation
+from feeling too sluggish.
+There is a great behind the scenes video,
+which I'll link below, that shows the designer
+working on the UI of the game.
+It goes over some of the design and editing
+challenges like matching different takes or
+editing out little mistakes.
+It’s great if you're interested in video
+editing.
+Overall, Brutal Legend’s menu is one of
+the more creative uses of FMV that I’ve
+ever seen in a game.
+Bad Design
+*Mario Party 8 music*
+Let’s just get right to it.
+Mario Party 8 is a total eyesore in its menu
+and UI design.
+It's functional - barely - but this presentation
+is just… really poor.
+Here’s a weird thing - the main menu is
+at a 16:9 aspect ratio, but the game itself
+is shown at a 4:3 ratio.
+It's jarring and unnecessary.
+The typography here is some of the worst I’ve
+seen.
+The type in the main menu items are off center.
+The kerning, the spacing between individual
+letters, is uneven in spots, but the biggest
+issue here is the dump truck of different
+typographic styles in the menus.
+Most designers would recommend keeping your
+different font choices and styles down to
+about 2 or 3 at a time.
+The main menu alone has up to 5 different
+fonts and type treatments.
+Here, here, here, here, and here.
+This isn’t even the worst example of this
+in this game.
+Mario Party 8’s typography inconsistently
+switches between using multiple outlines,
+drop shadows, and gradients for contrast.
+Like fonts, it’s a good idea to use these
+effects sparingly on text, but instead the
+game likes to use ALL THREE of these effects
+at once.
+Look at the text that appears at the start
+of someone’s turn.
+The font here has 2 outlines, one of which
+has an ugly golden gradient, and there’s
+also a drop shadow in between this line and
+the red fill.. this is a typographic nightmare.
+There’s NO cohesiveness between modes either.
+The menus, boardgame screen, minigame screen,
+and the result screen all have something unique
+and terrible in their type.
+It’s just all over the place.
+Good Design
+*Dead Space music*
+I can't say I'm really into the Dead Space
+series because I'm what some may call...
+*clears throat*
+a big man baby coward.
+But Dead Space has some nice UI.
+It's almost like a direct evolution of Metroid
+Prime’s helmet HUD where the UI actually
+exists in the world.
+This technique is called Diegetic UI.
+In Dead Space, your character's equipment
+IS the interface.
+The RIG system displays your health on the
+spine of your character with a distinct neon
+color that changes as your health changes.
+The RIG holographic menus themselves are beautifully
+laid out, organized and intuitive with clean
+and easy to read typography and typesetting.
+The neon blue is a strong contrast against
+the rusty and unsaturated oranges, yellows,
+browns, and grays that are common in Dead
+Space’s palette.
+I also appreciate that because the UI is physically
+in front of the character, it makes sense
+that the game doesn’t pause when you dig
+through menus - which was a pretty rare idea
+at the time.
+The holographic design is also applied to
+your weapons with your ammo count placed right
+next to your crosshair and dotted lines and
+shapes appear to explain the dismemberment
+mechanic.
+The ideas here might seem simple, and visually
+it might even be a bit plain but the way Dead
+Space makes a seamless and useful UI blend
+into its world is nothing short of masterful.
+Bad Design
+For our final bad UI entry...
+ugh screw it
+I'm going back to Mario Party 8 because...
+wow.
+This is just all over the place.
+And I mean that literally!
+Nothing really follows a clear grid structure
+which is one of the keys to good UI design.
+Every element here is misaligned or haphazardly
+placed.
+Most of the submenus are weirdly framed with
+these checkered backgrounds.
+The menu elements don’t use this framing
+at all, overlapping the borders.
+Menu headers have this strange ornamental
+design that doesn’t really relate to any
+of the other elements.
+I guess it’s supposed to go with the carnival
+theme but it’s not effective.
+On top of that, we have this faded black bar
+with instructions at the center.
+Character portraits are compressed and awkwardly
+cropped.
+And there are a ton of different button shapes
+and formats throughout the menus with no good
+rhyme or reason.
+I’m sure some of you are asking “What’s
+the big deal?
+They're just menus and interfaces.
+They don’t really matter once you get used
+to them.”
+And you’re not wrong.
+It’s easy to ignore a bad menu..
+most of the time.
+Even great menus like the ones in Persona
+5 occasionally have the same issues as Mario
+Party.
+I mean, you gotta admit, Persona 5's menus
+are pretty busy.
+An interface or menu is like a bridge.
+A well structured one gets you to your destination
+with no problem.
+A rickety one can get you there too, but you’ll
+feel worse about it.
+I’ve mentioned a few basic rules, but a
+UI doesn’t have to follow all of them.
+You need to be careful, though - each rule
+that a design skips increases the risk of
+the design totally falling apart.
+Persona 5 breaks a few of these rules in service
+of its overarching theme.
+Mario Party breaks them for no real benefits.
+A UI designer needs to understand the rules
+and why they exist if they want to break the
+rules effectively.
+*Chill vibes outro music from Persona 5*

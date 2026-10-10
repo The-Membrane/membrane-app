@@ -1,0 +1,45 @@
+# Recomputes the breach-probability surface daily and commits it if it changed.
+#
+# Why a scheduled Action and not an app-runtime job: the app has no database and no
+# job runner (deploys as a Docker image built by docker-image.yml). Its one existing
+# persistence pattern is committing data through the GitHub API (pages/api/feedback.ts).
+# This follows that pattern: the repo is the database, the JSON carries measured_at,
+# and the push to main triggers the existing image rebuild so the deployed app serves
+# the fresh surface.
+#
+# Trigger a manual run (workflow_dispatch) whenever governance changes a liquidation
+# parameter — the cron only covers volatility drift.
+name: breach-surface
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # daily, 06:17 UTC — offset to avoid the top-of-hour crunch
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  recompute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Recompute surface
+        run: node scripts/breach-surface.mjs
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet public/data/breach-surface.json; then
+            echo "surface unchanged — nothing to commit"
+            exit 0
+          fi
+          git config user.name "breach-surface-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/data/breach-surface.json
+          git commit -m "data: refresh breach-probability surface"
+          git push

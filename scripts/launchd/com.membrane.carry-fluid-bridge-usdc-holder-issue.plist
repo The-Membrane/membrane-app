@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.membrane.carry-fluid-bridge-usdc-holder-issue</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>/Users/EBmic/membrane-app/scripts/carry-fluid-bridge-usdc-holder-tick.sh</string>
+    <string>--issue</string>
+  </array>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StartInterval</key>
+  <integer>1800</integer>
+  <key>StandardOutPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-fluid-bridge-usdc-holder-issue.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-fluid-bridge-usdc-holder-issue.log</string>
+  <key>WorkingDirectory</key>
+  <string>/Users/EBmic/membrane-app</string>
+</dict>
+</plist>

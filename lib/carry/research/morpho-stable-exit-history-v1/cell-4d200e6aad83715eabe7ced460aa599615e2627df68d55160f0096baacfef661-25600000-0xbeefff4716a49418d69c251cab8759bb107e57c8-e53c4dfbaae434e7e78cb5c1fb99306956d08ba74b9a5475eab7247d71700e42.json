@@ -1,0 +1,38 @@
+{
+  "planSha256": "4d200e6aad83715eabe7ced460aa599615e2627df68d55160f0096baacfef661",
+  "anchorBlock": 25600000,
+  "vault": "0xbeefff4716a49418d69c251cab8759bb107e57c8",
+  "routeKey": "USDC → VaultV2 [USDC]",
+  "status": "no_eligible_holder",
+  "row": {
+    "vault": "0xbeefff4716a49418d69c251cab8759bb107e57c8",
+    "asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "anchorBlock": 25600000,
+    "status": "no_eligible_holder",
+    "baselineIdentity": {
+      "status": "confirmed",
+      "shareDecimals": 18,
+      "assetDecimals": 6
+    },
+    "totalAssetsRaw": "1904621477807",
+    "candidateWindow": {
+      "fromBlock": 25595904,
+      "throughBlock": 25599999,
+      "transferLogs": 5,
+      "distinctRecipients": 1,
+      "screened": 1
+    },
+    "screenedCandidates": [
+      {
+        "owner": "0xb46dfe10a44761c389ac0b0e3ca8ecac4dcd2184",
+        "discoveryBlock": 25598849,
+        "discoveryBlockHash": "0xbbee7e3fd6609a4012703a5c882c493ee0c6e73833e74a1d7315e6ba81cdd9c6",
+        "discoveryTransactionHash": "0xbd4b6fef24ca6f298af26fd14d639db4285c4986abccf28c1f34f3f5d0b46661",
+        "discoveryLogIndex": 240,
+        "receiptVerified": true,
+        "status": "contract_holder"
+      }
+    ]
+  },
+  "cellSha256": "e53c4dfbaae434e7e78cb5c1fb99306956d08ba74b9a5475eab7247d71700e42"
+}

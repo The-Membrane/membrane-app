@@ -1,0 +1,17 @@
+{
+  "schema": "historical_depth_quote_provider_policy_v1",
+  "policyId": "configured-c1-c3-v1",
+  "providers": [
+    {
+      "alias": "C1",
+      "hostSha256": "0a9987e83822b7b3d03f7f5320943aa72c94555f22734132fe612acebdf21cfb",
+      "uriSha256": "cd765c69cbaa9ef649124b25737c5ca2880bc4b15f7161324fdf37d01c358d4f"
+    },
+    {
+      "alias": "C3",
+      "hostSha256": "87a12a31292e3855972beef9c537b0902d331c45fad91cd5a54221f48a0b0f4a",
+      "uriSha256": "60dc5fa887c479c061d954d0ede3503be417f5782166c57861acc2f815dc336f"
+    }
+  ],
+  "status": "active"
+}

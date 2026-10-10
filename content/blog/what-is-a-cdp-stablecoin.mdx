@@ -1,0 +1,159 @@
+---
+title: "What is a CDP stablecoin? Borrowing without selling"
+description: "A plain-English guide to CDP stablecoins: how borrowing against crypto without selling works, what LTV and liquidation lines mean, and what can go wrong."
+date: "2026-08-24"
+slug: "what-is-a-cdp-stablecoin"
+tags: ["education", "cdp", "borrowing"]
+excerpt: >-
+  A CDP stablecoin lets you borrow dollars against crypto you already own,
+  without selling it. You deposit collateral into a vault, mint a
+  dollar-pegged token against it, and repay whenever you choose. The mechanism
+  is old — it is how DAI started — but the parameters differ meaningfully
+  between protocols, and the parameters are what decide whether you keep your
+  collateral in a bad week. This post walks the whole machine in plain
+  English: what a collateralized debt position actually is, why people borrow
+  instead of selling (and where the tax framing stops being simple), how the
+  stablecoin stays backed, and what the three numbers on every borrow screen
+  — LTV, borrow cap, liquidation line — actually mean. It uses Membrane's
+  real launch parameters as the worked example, labeled as ours: a fixed 3%
+  gap between the borrow cap and the liquidation line, an 8-hour window to
+  cure a breached position before liquidation, and partial liquidation that
+  repays your debt down to the cap instead of closing you out entirely. The
+  risks are ranked honestly, price risk first, oracle and collateral risk
+  named rather than footnoted. Read the canonical post at
+  /blog/what-is-a-cdp-stablecoin.
+tldr:
+  - "A CDP (collateralized debt position) lets you deposit crypto in a vault and mint a dollar-pegged stablecoin against it — you borrow without selling."
+  - "The stablecoin stays backed because every position must hold collateral worth more than its debt; positions that breach the limit get liquidated."
+  - "On Membrane the borrow cap sits a fixed 3% below the liquidation line (B = M − 3%), so every position starts with a built-in buffer."
+  - "Crossing the liquidation line starts an 8-hour window to fix the position; only falling 4% past the line triggers immediate liquidation."
+  - "Liquidation here is partial: it repays your debt back down to the borrow cap, not to zero. The main risk is still a fast fall in collateral price."
+faq:
+  - q: "Is borrowing against crypto safe?"
+    a: "It is a leveraged position, so no — not unconditionally. Your safety is the distance between your LTV and the liquidation line, against how fast your collateral can fall. Mechanisms like Membrane's 8-hour cure window and partial liquidation reduce how punishing a breach is; they do not remove price risk. Borrow well below the cap if you cannot watch the position."
+  - q: "Do I pay tax when I borrow against crypto?"
+    a: "Jurisdiction-dependent, and this is not tax advice. In many jurisdictions taking a loan is not a taxable disposal the way selling is — that difference is a common reason people borrow instead of sell. Rules differ, liquidations may have their own treatment, and you should confirm with a professional in your jurisdiction."
+  - q: "What happens if my collateral price drops?"
+    a: "Your LTV rises as the collateral value falls. If it crosses the liquidation line, an 8-hour timer starts, and you can save the position by adding collateral, repaying debt, or the price recovering. If the timer expires — or the price falls 4% past the line — liquidation runs, and it repays your debt down to the borrow cap rather than closing the whole position."
+  - q: "Where does the stablecoin I borrow come from?"
+    a: "It is minted at the moment you borrow, against your collateral, and burned when you repay. It is not lent out of a pool funded by other depositors — which is the main structural difference between a CDP protocol and a pooled lending market."
+  - q: "Can I lose more than I deposited?"
+    a: "The debt is owed by the vault position, and liquidation repays it by taking collateral from that position — so the collateral you deposited is what is at risk. The stablecoin you borrowed remains yours regardless. You cannot be margin-called for additional funds."
+---
+
+You own crypto. You need dollars — for an expense, an opportunity, or just to
+stop being 100% exposed for a while. The obvious move is to sell. A CDP
+stablecoin exists so that selling is not the only move.
+
+## What is a collateralized debt position?
+
+A **collateralized debt position** (CDP) is a vault inside a smart contract.
+You deposit an asset the protocol accepts as collateral, and the protocol
+lets you mint — literally create — a dollar-pegged token against it. On
+Membrane that token is **CDT**. The vault records your collateral and your
+debt, and the position stays open for as long as you want: there is no fixed
+term and no repayment schedule. Repay the CDT, and the tokens are burned and
+your collateral unlocks.
+
+That is the whole primitive. Everything else — interest rates, liquidation
+rules, oracles — is machinery to keep the borrowed token worth a dollar
+while people do this at scale.
+
+## Why borrow against crypto instead of selling it?
+
+Two reasons, one financial and one practical.
+
+The financial reason: selling ends your exposure. If you sell to raise cash
+and the asset then doubles, the cash cost you the upside. Borrowing keeps
+the position: your collateral stays yours, still in the vault, still
+exposed, while you spend the borrowed dollars.
+
+The practical reason: in many jurisdictions, selling is a taxable disposal
+and taking a loan is not. That difference is jurisdiction-dependent, it has
+edge cases (a liquidation may have its own tax treatment), and nothing here
+is tax advice — but it is a real part of why this mechanism exists.
+
+Borrowing is not free of downside, and it is worth saying plainly before
+any more benefits: you are leveraged, and if your collateral falls far
+enough, the protocol will sell part of it whether you like it or not. The
+rest of this post is mostly about exactly when and how that happens.
+
+## How does the stablecoin stay backed?
+
+Every CDT in circulation was minted against collateral worth more than the
+debt — the protocol requires **overcollateralization** at all times. You
+cannot mint $100 of CDT against $100 of collateral; you mint it against
+meaningfully more, and the protocol enforces a maximum ratio between your
+debt and your collateral value.
+
+When a position's collateral falls too close to its debt, the protocol
+liquidates: it repays debt using the position's collateral before the debt
+can exceed what backs it. Backing, in other words, is not a promise — it is
+a rule with an enforcement mechanism attached.
+
+At launch, Membrane's onboarded collateral is a basket of yield-bearing
+dollar assets (sUSDS, syrupUSDC, scrvUSD), with a broader basket of majors
+planned after deploy.
+
+## What do LTV, the borrow cap, and the liquidation line mean?
+
+**LTV** — loan-to-value — is your debt divided by your collateral's current
+value. Deposit $1,000 and borrow 500 CDT, and your LTV is 50%. It moves
+whenever your collateral price moves.
+
+Every market has two lines above you:
+
+- **The liquidation line (M)** — the maximum LTV a position may reach. Cross it and the position is in breach.
+- **The borrow cap (B)** — the maximum LTV at which you can *open* new debt. On Membrane this is a fixed relationship: `B = M − 3%`. The 3% gap is a protocol constant, not a per-market knob.
+
+The gap means you cannot borrow yourself directly onto the liquidation
+line. A position opened at the cap starts with a 3% cushion by
+construction. As a worked example with our real launch parameters: the
+sUSDS market's liquidation line is 88%, so its borrow cap is 85%.
+
+## What happens if I cross the liquidation line?
+
+This is where Membrane differs most from the venues you may know. Crossing
+the line does not liquidate you. It starts a timer.
+
+- **Cross the line** → an **8-hour window** opens. During it you can save the position three ways: deposit more collateral, repay some debt, or simply have the price recover. Any of the three, at any point inside the window.
+- **Fall 4% past the line** (LTV ≥ M × 1.04) → the window is skipped and liquidation is immediate. The window is protection against ordinary volatility, not against a collapse.
+- **Window expires unsaved** → liquidation runs, and it is **partial**: it repays your debt down to the borrow cap, not to zero. You lose the collateral needed to cover that repayment plus a liquidation fee; the rest of the position survives, back at a safe LTV.
+
+Liquidation is still the thing to avoid — it sells your collateral at a bad
+moment and charges a fee for the privilege. But the failure mode is "lose a
+slice, keep the position," not "wake up to nothing."
+
+## What does borrowing cost?
+
+Interest on the debt. Membrane's borrow rate launched at a **3% base rate**
+and is adaptive — it moves with market conditions, so the number to trust
+is the live one on the [borrow page](/ethereum/mint), not a number in a
+blog post. There is no fixed term and no early-repayment penalty; interest
+accrues while the debt is open.
+
+## What can go wrong?
+
+Ranked by likelihood, not by comfort:
+
+1. **Price risk.** Your collateral falls, your LTV crosses the line, and you are into the 8-hour window — or past the 4% threshold and liquidated immediately. This is the ordinary way CDP borrowers lose money, and no parameter removes it.
+2. **Oracle risk.** The protocol acts on prices from oracles — Membrane's primary source is Uniswap V3 TWAPs, with Chainlink feeds as a secondary cross-check. A wrong price means wrong liquidation decisions. Multiple sources reduce this; nothing eliminates it.
+3. **Collateral risk.** The launch collateral is yield-bearing dollar tokens, which carry the risk of their own underlying protocols. A problem in the venue behind your collateral is a problem for your position, independent of anything Membrane does.
+4. **Smart contract risk.** The vault, the liquidation engine, and the token are code. Code can have bugs. This is true of every DeFi protocol and does not get a pass here.
+
+If you want to see the machine rather than read about it, the
+[app](/ethereum) runs against these exact parameters, and deposits on the
+[earn side](/ethereum/disco) are the other half of the same market.
+
+---
+
+## Provenance
+
+Every parameter above traces to the Membrane contracts (read 2026-08-24):
+the `B = M − 3%` gap (`Constants.sol`, `BORROW_LTV_GAP = 3e16`), the 8-hour
+window (`LiquidationEngine.sol`, `28800` seconds), the 4% immediate
+threshold and the sUSDS 88% line (deploy configuration), partial
+liquidation to the borrow cap (`LiquidationEngine.sol`, restore-to-B), the
+3% launch base rate (deploy configuration), and the oracle hierarchy
+(`UniswapV3Adapter.sol`, `ChainlinkAdapter.sol`). Parameters are
+governance-adjustable; the app always shows the live values.

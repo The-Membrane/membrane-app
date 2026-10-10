@@ -1,0 +1,78 @@
+{
+  "skill_name": "hook-query-patterns",
+  "timestamp": "2026-02-27T16:51:00Z",
+  "configurations": {
+    "with_skill": {
+      "label": "With Skill",
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "per_eval": {
+          "eval-0-swap-cta-hook": 1.0,
+          "eval-1-refetch-debugging": 1.0,
+          "eval-2-service-and-data-hook": 1.0
+        }
+      },
+      "time": {
+        "mean": 281.1,
+        "stddev": 257.5,
+        "per_eval": {
+          "eval-0-swap-cta-hook": 140.0,
+          "eval-1-refetch-debugging": 630.1,
+          "eval-2-service-and-data-hook": 73.3
+        }
+      },
+      "tokens": {
+        "mean": 75207,
+        "stddev": 29474,
+        "per_eval": {
+          "eval-0-swap-cta-hook": 60461,
+          "eval-1-refetch-debugging": 116992,
+          "eval-2-service-and-data-hook": 48167
+        }
+      }
+    },
+    "without_skill": {
+      "label": "Without Skill (Baseline)",
+      "pass_rate": {
+        "mean": 0.93,
+        "stddev": 0.15,
+        "per_eval": {
+          "eval-0-swap-cta-hook": 1.0,
+          "eval-1-refetch-debugging": 0.67,
+          "eval-2-service-and-data-hook": 1.0
+        }
+      },
+      "time": {
+        "mean": 212.6,
+        "stddev": 82.3,
+        "per_eval": {
+          "eval-0-swap-cta-hook": 171.7,
+          "eval-1-refetch-debugging": 324.6,
+          "eval-2-service-and-data-hook": 141.6
+        }
+      },
+      "tokens": {
+        "mean": 68889,
+        "stddev": 11565,
+        "per_eval": {
+          "eval-0-swap-cta-hook": 70175,
+          "eval-1-refetch-debugging": 82347,
+          "eval-2-service-and-data-hook": 54146
+        }
+      }
+    }
+  },
+  "delta": {
+    "pass_rate": "+7%",
+    "time": "+68.5s",
+    "tokens": "+6318"
+  },
+  "analyst_observations": [
+    "Eval 0 (Swap CTA) is non-discriminating - both runs pass all 6 assertions. The codebase has strong enough patterns that even without the skill, Claude discovers the correct architecture. Consider adding assertions about documentation quality (LAYER comments) or staleTime tier selection.",
+    "Eval 1 (Refetch Debugging) is the only discriminating eval. The with-skill run created a shared DISCO_QUERY_DEFAULTS constant and memoized useQueries configs - a targeted, DRY fix. The without-skill run rewrote the file structure, renamed hooks, and changed the API surface - fixing the bug but causing a high blast radius.",
+    "Eval 2 (Service + Data Hook) is non-discriminating. A subtle quality difference exists: with-skill chose 2-minute staleTime (volatile tier) while without-skill chose 5 minutes - the former is more appropriate for reward history that changes between claims. An assertion checking tier appropriateness would capture this.",
+    "The with-skill runs used ~9% more tokens on average (75k vs 69k) and took ~32% longer (281s vs 213s). The extra time/cost came primarily from Eval 1 where the with-skill run was much more thorough in its investigation (630s vs 325s).",
+    "For iteration 2, consider: (1) adding a staleTime tier appropriateness assertion to Eval 2, (2) adding a 'no API surface changes' assertion to Eval 1, (3) replacing Eval 0 with a harder variant that tests edge cases like multi-message CTAs or conditional message building."
+  ]
+}

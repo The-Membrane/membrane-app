@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.membrane.carry-aave-usdc-holder-prospective</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>/Users/EBmic/membrane-app/scripts/carry-aave-usdc-holder-prospective-tick.sh</string>
+  </array>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardErrorPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-aave-usdc-holder-prospective.log</string>
+  <key>StandardOutPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-aave-usdc-holder-prospective.log</string>
+  <key>StartInterval</key>
+  <integer>300</integer>
+  <key>WorkingDirectory</key>
+  <string>/Users/EBmic/membrane-app</string>
+</dict>
+</plist>

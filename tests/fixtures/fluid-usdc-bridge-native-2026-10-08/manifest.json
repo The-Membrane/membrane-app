@@ -1,0 +1,32 @@
+{
+  "schema": "fluid_usdc_bridge_retained_native_wire_fixture_v1",
+  "purpose": "retrospective offline private-issuer regression; no fresh acquisition",
+  "originals": [
+    {
+      "file": "current-capacity-agreement.json",
+      "originalSource": "/private/tmp/fluid-usdc-current-holder-history-2026-10-08T16-27-40-572Z/current-capacity-agreement.json",
+      "bytes": 374666,
+      "fileSha256": "2c34aaec2610d8a93998df3925173d0adb8d8f507c0f140f8682fca7452d360d",
+      "exactOriginalBytes": true
+    },
+    {
+      "file": "server-historical-at-issue.json",
+      "originalSource": "/private/tmp/fluid-usdc-current-holder-history-2026-10-08T16-27-40-572Z/server-historical-at-issue.json",
+      "bytes": 932700,
+      "fileSha256": "7dbaa91282fbf3dd5796b911d7f8ab69440d7c8f9fc4720abdbe6a6ed459c968",
+      "exactOriginalBytes": true
+    }
+  ],
+  "historicalFrames": 12,
+  "actualNativeBatches": 3,
+  "originalAuthority": false,
+  "authenticated": false,
+  "historicalOwnership": false,
+  "executionQualified": false,
+  "calibrated": false,
+  "browserAcceptance": false,
+  "issueClock": "retained actual server issue clock, never Date.now or fabricated later clock",
+  "retentionManifestFileSha256": "5cebe2d22f6254cef2523fb6af68e53903b514a714fd2bb697483306c7b25ebd",
+  "retentionManifestBodySha256": "b1d30e19dc5bef22683a0beddb710a7604ab5f371faf0bb3c5287fa6b7755db2",
+  "sha256": "38ab45428fd3bdd1c2abb72e8083679330058db13c13c165e93b9d753d1bfc31"
+}

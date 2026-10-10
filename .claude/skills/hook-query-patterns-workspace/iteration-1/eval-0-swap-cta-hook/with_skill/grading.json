@@ -1,0 +1,64 @@
+{
+  "run_id": "eval-0-with_skill",
+  "expectations": [
+    {
+      "text": "Uses useQuery for message building (not useMutation)",
+      "passed": true,
+      "evidence": "Line 1: `import { useQuery } from '@tanstack/react-query'`. Line 65: `const { data: queryData } = useQuery<QueryData>({...})`. No useMutation import or usage anywhere. The message-building step correctly uses useQuery as a declarative, reactive computation layer."
+    },
+    {
+      "text": "Imports and calls useSimulateAndBroadcast (no custom simulation)",
+      "passed": true,
+      "evidence": "Line 6: `import useSimulateAndBroadcast from '@/hooks/useSimulateAndBroadcast'`. Line 106: `const action = useSimulateAndBroadcast({msgs, queryKey: [...], amount, enabled: !!msgs?.length, onSuccess})`. No custom simulation logic present."
+    },
+    {
+      "text": "Returns { action, msgs } matching codebase convention",
+      "passed": true,
+      "evidence": "Lines 114-117: `return { action, msgs, }` — exactly matches the standard CTA hook return shape."
+    },
+    {
+      "text": "Has enabled gates on both message query and simulation",
+      "passed": true,
+      "evidence": "Message query (line 94): `enabled: !!address && !!inputDenom && !!outputDenom && !!amount`. Simulation (line 111): `enabled: !!msgs?.length`. Both have proper enabled gates preventing premature execution."
+    },
+    {
+      "text": "Invalidates cache on success via queryClient.invalidateQueries with targeted prefixes",
+      "passed": true,
+      "evidence": "Lines 100-104: `const onSuccess = () => { queryClient.invalidateQueries({ queryKey: ['transmuter'] }); queryClient.invalidateQueries({ queryKey: ['balances'] }); txSuccess?.() }`. Uses targeted prefixes 'transmuter' and 'balances' rather than blanket invalidation."
+    },
+    {
+      "text": "Query keys use only primitives (no objects)",
+      "passed": true,
+      "evidence": "Message query key (line 66): `['transmuter_swap', 'msgs', address, inputDenom, outputDenom, amount]` — all string primitives. Simulation query key (line 108): `['transmuter_swap_sim', (msgs?.toString() ?? '0')]` — string primitives. No objects in any query keys."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "The hook follows a 3-layer pattern: build messages, simulate, broadcast",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Layer 1 is the useQuery for message building (line 65). Layers 2+3 are handled by useSimulateAndBroadcast (line 106), which internally does simulation then broadcast."
+    },
+    {
+      "claim": "Amount is converted from human-readable to micro units using shiftDigits",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line 75: `const microAmount = shiftDigits(amount, 6).dp(0).toString()` — shifts by 6 decimals and truncates."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Query keys use only primitives (no objects)",
+        "reason": "The simulation query key uses `msgs?.toString()` which is a common anti-pattern (toString on an array of complex objects gives '[object Object]' or similar). This could be flagged as a code quality issue, though it technically satisfies the 'primitives only' assertion. Consider an assertion checking that simulation query keys produce stable, meaningful serialization."
+      }
+    ],
+    "overall": "Assertions are well-targeted and cover the core CTA hook pattern comprehensively. The simulation queryKey serialization is a minor gap."
+  }
+}

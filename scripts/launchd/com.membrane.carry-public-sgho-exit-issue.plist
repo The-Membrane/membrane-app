@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.membrane.carry-public-sgho-exit-issue</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/timeout</string>
+    <string>-k</string>
+    <string>5s</string>
+    <string>570s</string>
+    <string>/bin/sh</string>
+    <string>/Users/EBmic/membrane-app/scripts/carry-public-sgho-exit-tick.sh</string>
+    <string>issue</string>
+  </array>
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-public-sgho-exit.log</string>
+  <key>StandardOutPath</key>
+  <string>/Users/EBmic/Library/Logs/carry-public-sgho-exit.log</string>
+  <key>StartCalendarInterval</key>
+  <dict><key>Minute</key><integer>35</integer></dict>
+  <key>WorkingDirectory</key>
+  <string>/Users/EBmic/membrane-app</string>
+</dict>
+</plist>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.membrane.susde-public-pending-exit-score</string>
+  <key>ProgramArguments</key><array>
+    <string>/opt/homebrew/bin/timeout</string><string>-k</string><string>5s</string><string>360s</string>
+    <string>/bin/sh</string><string>/Users/EBmic/membrane-app/scripts/susde-public-exit-tick.sh</string>
+    <string>pending</string><string>score</string>
+  </array>
+  <key>RunAtLoad</key><false/>
+  <key>StandardErrorPath</key><string>/Users/EBmic/Library/Logs/susde-public-pending-exit.log</string>
+  <key>StandardOutPath</key><string>/Users/EBmic/Library/Logs/susde-public-pending-exit.log</string>
+  <key>StartCalendarInterval</key><array>
+    <dict><key>Minute</key><integer>6</integer></dict>
+    <dict><key>Minute</key><integer>16</integer></dict>
+    <dict><key>Minute</key><integer>26</integer></dict>
+    <dict><key>Minute</key><integer>36</integer></dict>
+    <dict><key>Minute</key><integer>46</integer></dict>
+    <dict><key>Minute</key><integer>56</integer></dict>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/EBmic/membrane-app</string>
+</dict></plist>

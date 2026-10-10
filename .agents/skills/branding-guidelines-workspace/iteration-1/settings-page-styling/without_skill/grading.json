@@ -1,0 +1,76 @@
+{
+  "eval_id": 1,
+  "eval_name": "settings-page-styling",
+  "configuration": "without_skill",
+  "expectations": [
+    {
+      "text": "Imports and uses SPACING or SPACING_PATTERNS from @/config/spacing instead of arbitrary pixel values",
+      "passed": true,
+      "evidence": "Line 18: `import { SPACING, SPACING_PATTERNS } from '@/config/spacing'`. Used throughout: SPACING.base, SPACING.xs, SPACING.sm, SPACING.md, SPACING.xl, SPACING.none, SPACING_PATTERNS.sectionGap, SPACING_PATTERNS.formFieldGap, SPACING_PATTERNS.buttonGroupGap."
+    },
+    {
+      "text": "Imports and uses SEMANTIC_COLORS from @/config/semanticColors",
+      "passed": true,
+      "evidence": "Line 20: `import { SEMANTIC_COLORS } from '@/config/semanticColors'`. Used for textPrimary, textSecondary, textTertiary, borderSubtle, borderMedium, borderStrong, bgSecondary throughout."
+    },
+    {
+      "text": "Imports and uses TYPOGRAPHY from @/helpers/typography",
+      "passed": true,
+      "evidence": "Line 21: `import { TYPOGRAPHY } from '@/helpers/typography'`. Used for TYPOGRAPHY.h1, h2, body, small, xs, label, bold, semibold, medium throughout."
+    },
+    {
+      "text": "Imports from @/config/transitions (TRANSITIONS, HOVER_EFFECTS, or FOCUS_STYLES)",
+      "passed": true,
+      "evidence": "Line 19: `import { TRANSITIONS, HOVER_EFFECTS, ACTIVE_EFFECTS, FOCUS_STYLES, MOTION_VARIANTS } from '@/config/transitions'`. Used: TRANSITIONS.all, TRANSITIONS.transformAndShadow, HOVER_EFFECTS.lift, ACTIVE_EFFECTS.press, FOCUS_STYLES.ring, MOTION_VARIANTS.fadeInUp."
+    },
+    {
+      "text": "Uses the Card component from @/components/ui/Card instead of raw Box with inline card styling",
+      "passed": true,
+      "evidence": "Line 22: `import { Card } from '@/components/ui/Card'`. Used three times: `<Card variant=\"default\">` for Notifications (line 252), Display (line 296), and Wallet (line 425) sections."
+    },
+    {
+      "text": "Includes _focus or FOCUS_STYLES on interactive elements for accessibility",
+      "passed": true,
+      "evidence": "FOCUS_STYLES.ring used on: Select (Theme, line 322), Select (Language, line 350), Input (Display name, line 481), Input (Slippage custom, line 525), Input (Gas custom, line 569), Buttons (Slippage presets, line 508), Buttons (Gas presets, line 553), Button (Reset, line 593), Button (Save, line 604)."
+    },
+    {
+      "text": "No white or light backgrounds; uses dark bg values consistent with the brand (rgba dark or #091326)",
+      "passed": true,
+      "evidence": "Uses SEMANTIC_COLORS.bgSecondary for inputs/selects (a dark semantic value). Option styles use `background: '#1a1a2e'` which is a dark blue. No white or light backgrounds found anywhere in the component."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "Component uses React.memo for sub-components",
+      "type": "quality",
+      "verified": true,
+      "evidence": "SectionHeader (line 57) and ToggleRow (line 80) are wrapped in memo. However, the main SettingsPage is NOT wrapped in memo (line 616: `export default SettingsPage`)."
+    },
+    {
+      "claim": "Component uses useCallback for handlers",
+      "type": "quality",
+      "verified": true,
+      "evidence": "handleNotificationChange, handleDisplayChange, handleWalletChange, handleSave, handleReset all use useCallback."
+    },
+    {
+      "claim": "Switches have aria-labels",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Switch elements in the Display and Wallet sections have aria-label props (lines 389, 413, 456). The ToggleRow component also adds aria-label={label} to Switch (line 120)."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Both with_skill and without_skill passed all 7 assertions with 100% pass rate. This indicates the assertions may not be discriminating enough to differentiate skill vs. no-skill outputs. The without_skill output already had access to CLAUDE.md instructions which contain all the design system patterns, making it essentially equivalent. Consider adding assertions that test for deeper brand knowledge (e.g., specific Membrane color patterns, dark-mode-only enforcement, monospace fee displays) that go beyond what CLAUDE.md documents."
+      }
+    ],
+    "overall": "Both outputs are high quality and fully compliant. The assertions correctly verify design system usage but do not differentiate between skill and no-skill because the CLAUDE.md file already provides comprehensive guidance."
+  }
+}

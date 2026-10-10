@@ -1,0 +1,193 @@
+so you know figma but you want to know
+how to design a website app game or any
+other product UI design tools are easy
+to learn and hard to master what helps
+you master them is knowing what exactly
+you need to do so let's learn UI and ux
+design no just what you need to
+get started fundamentals standard
+procedures and helpful resources a
+design starts with a main idea solution
+to a problem or a use case for example I
+really needed a web application to
+collect element specific designs like
+these so designers and Vel opers like
+you and me can find inspiration got a
+good idea let's go step by step step one
+user flow the people you hope to use
+your product probably have certain
+expectations they're looking for some
+info when to buy something or just use
+the service you need to map out that
+main Journey from the moment they land
+on your side till that key objective is
+achieved in this project for example
+when users land on the site they should
+immediately find the category and the
+websites in it we call this a userflow
+diagram step two wireframing from the
+user flow diagram we'll try to create C
+responding screens or pages each page or
+screen is supposed to contribute to
+reaching that key objective in a way if
+users are supposed to shop for something
+then there's a store Page product page
+card payment page and success page you
+can start drawing layouts for different
+screens in the form of wireframes which
+requires real hard thinking and Analysis
+of user Behavior back in 1800s we used
+pen and paper to draw wireframes but
+thanks to technology nowadays we're
+lucky enough to do them on tools like
+balsamic Envision freehand or just fake
+mot fake Jam like a normal person for
+example in this project we want a simple
+and a straight to the point design so
+just one single screen we need some
+navigation in the header and footer our
+main goal is showing users designs in
+different categories how could we
+Implement that maybe a little drop- down
+menu a filter H it has to be simpler and
+more accessible like right in front of
+everyone's eyes how about just a simple
+sidebar with the categories like font
+awesome for example that's a good
+inspiration we also want to showcase
+different designs a lot of them on this
+remain side we have several sources of
+inspiration for this that have proven to
+work like dribble so we need our designs
+in a little grid over here and this grid
+should have a link to the source of the
+design its name and just a simple image
+preview what we just did was a brief
+version of user experience or ux design
+it can be extended and have you go
+through other steps as well depending on
+how complicated your project is step
+three design system this marks the
+beginning of our user interface or UI
+design Journey where we deal with
+visuals every design project is led by
+guideline that specifies reusable
+components as you can imagine this makes
+everything consistent like colors fonts
+buttons forms boxes cards icons and so
+on it can be very big or very small like
+the one we have here starting with
+colors they should reflect your projects
+industry value or brand identity meaning
+logo product or brand colors for this
+project I just know I want it to be in
+dark mode with mostly neutral colors
+like black white and gray and maybe one
+primary Vivid color I'm not really sure
+what I want yet so I'm using real-time
+colors to simulate my color choices on a
+real side making sure they're accessible
+and look good but generally speaking you
+want your colors to be as comprehensive
+as possible for example background color
+text color primary secondary accent and
+semantic colors each of them can have
+different variations too like Shades
+gradients and transparent versions next
+up we have fonts which directly impact
+the readability of your content plus the
+fonts can give off a certain Vibe look
+at these fonts funky elegant serious
+childish and oh God what is this again
+I'm using realtime colors to test out
+some fonts from Google fonts quickly
+which lead me to two fonts space
+grotesque and Ubuntu then I'm using
+types scale to find a good ratio and
+readable sizes for these fonts and make
+a list of them on figma I'm using these
+standard responsive sizes of 18 pixels
+for body text 14 pixels for small text
+and 32 pixels for the title for icons
+there is a massive library of resources
+and plugins on figma itself you can even
+make them yourself like I did here there
+are different types of icons like flat
+skoric glyph duone 3D outlined and so on
+other major parts are buttons inputs
+cards and really whatever your project
+needs for example for this project we
+need buttons category inputs and website
+cards the style I'm choosing is outlined
+and transparent how do you choose a
+style you ask well there are about five
+uh 10 no no no wait wait yeah there's an
+infinite number of styles actually
+that's where you come in to design one
+good news is that there are many
+resources to get inspired like dribble
+behance and even the site we're
+designing right now step four the actual
+designing now you have all the
+ingredients and it's time to cook a
+design let him cook keep these six basic
+design principles in mind visual
+hierarchy helps show the order of
+importance among elements contrast helps
+distinguish elements and make them
+readable or accessible balance helps
+moderate the spacing alignment or the
+placement of different elements
+consistency helps keep elements
+harmonical and avoids user confusion
+Simplicity keeps things clear and a
+straightforward for users and for extra
+interaction feedback keeps users engaged
+and gives them some clear reaction for
+their actions now designing is not just
+assembling the elements you will need to
+test iterate prototype and refine a lot
+in the step nowadays we browse tens of
+applications and websites on a daily
+basis and already have some expectations
+so you don't need to escape the matrix
+or calculate the answer to life universe
+and everything to come up with a design
+that users are already accustomed to the
+only remaining step is filling it up
+with some text like ux copy or marketing
+copy you either use some good old lauram
+ipsum dollar sit and M conector adip
+sync
+AIT or hear me out writing some actual
+content even if they're not going to be
+used at all this helps with testing and
+creates realistic expectations of
+different sections before finalizing
+them by now we're also done assembling
+the design for this project but still
+one step remains bonus step
+illustrations and visuals if you need to
+add graphics there are thousands of free
+and paid resources that provide you with
+them you can make them yourself too
+which is much cooler luckily you don't
+even need fancy software like Adobe
+Illustrator or prre to make
+illustrations you can literally just use
+figma for most of styles or a spline for
+3D designing for this project we didn't
+really plan for any illustration because
+it's supposed to be very minimal the
+good news is that I've turned this
+design into a live site and now you can
+use it to get some Inspirations for
+designing your own project elements you
+can contribute to it too by adding your
+favorite designs to it this is just the
+beginning of a journey from here on you
+can build upon your knowledge by
+designing designing and more designing
+and that's all for this video if you
+liked it make sure you do your magic
+down there and see you on the next one

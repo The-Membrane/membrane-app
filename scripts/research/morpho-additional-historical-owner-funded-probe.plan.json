@@ -1,0 +1,491 @@
+{
+  "schema": "morpho_additional_historical_owner_funded_probe_plan_v1",
+  "revision": 1,
+  "chainId": 1,
+  "origins": [
+    "eth-mainnet.g.alchemy.com",
+    "rpc.ankr.com"
+  ],
+  "subjects": [
+    {
+      "id": "PYUSD_B576",
+      "vault": "0xb576765fb15505433af24fee2c0325895c559fb2",
+      "asset": "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
+      "assetDecimals": 6,
+      "shareDecimals": 18,
+      "candidates": [
+        {
+          "owner": "0xf181e2cc93a47cb4903ac71c23ecb873726dc668",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000049.json",
+            "format": "paired_bundle",
+            "event": "Deposit",
+            "ownerTopicIndex": 2,
+            "selector": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0xb576765fb15505433af24fee2c0325895c559fb2",
+              "blockNumber": "25888044",
+              "blockHash": "0x58fa46de9e8adbde0429ff92e0b639c186d68cc289a15c18a0a9ee7d35c36945",
+              "transactionHash": "0x66f01b42195263ca096cca2e5dbc9ee38a9b6dbb408dbfb3e5425a7703897488",
+              "transactionIndex": 195,
+              "logIndex": 800,
+              "topics": [
+                "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+                "0x000000000000000000000000f181e2cc93a47cb4903ac71c23ecb873726dc668",
+                "0x000000000000000000000000f181e2cc93a47cb4903ac71c23ecb873726dc668"
+              ],
+              "data": "0x000000000000000000000000000000000000000000000000000000000000271000000000000000000000000000000000000000000000000000119b7f09f017b0"
+            },
+            "eventHeader": {
+              "block": "25888044",
+              "hash": "0x58fa46de9e8adbde0429ff92e0b639c186d68cc289a15c18a0a9ee7d35c36945",
+              "timestamp": "1788333251"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true,
+            "originalJsonPointers": {
+              "raw": [
+                "/slices/12/witnesses/0/raw/2",
+                "/slices/12/witnesses/1/raw/2"
+              ],
+              "eventHeaders": [
+                "/slices/12/witnesses/0/eventHeaders/2",
+                "/slices/12/witnesses/1/eventHeaders/2"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "PYUSD_C21B",
+      "vault": "0xc21b08c16458202593d4d9b26b9984ee67b38bbd",
+      "asset": "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
+      "assetDecimals": 6,
+      "shareDecimals": 18,
+      "candidates": [
+        {
+          "owner": "0x38ae19114ab80b6ede8b8fc22c6bc8b9fc6916be",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000044.json",
+            "format": "paired_bundle",
+            "event": "Deposit",
+            "ownerTopicIndex": 2,
+            "selector": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0xc21b08c16458202593d4d9b26b9984ee67b38bbd",
+              "blockNumber": "25886740",
+              "blockHash": "0xf6bc9f954ac3920ea60b1fef085389343dd57c281377c2635989ae887d38097c",
+              "transactionHash": "0xf4f1d68a143fef320bf82c0a62dccf35b74c6bf10aae73f42fcc0a884196acd5",
+              "transactionIndex": 124,
+              "logIndex": 218,
+              "topics": [
+                "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+                "0x00000000000000000000000038ae19114ab80b6ede8b8fc22c6bc8b9fc6916be",
+                "0x00000000000000000000000038ae19114ab80b6ede8b8fc22c6bc8b9fc6916be"
+              ],
+              "data": "0x0000000000000000000000000000000000000000000000000000000037dce4450000000000000000000000000000000000000000000000192b0a2e2331604b6f"
+            },
+            "eventHeader": {
+              "block": "25886740",
+              "hash": "0xf6bc9f954ac3920ea60b1fef085389343dd57c281377c2635989ae887d38097c",
+              "timestamp": "1788317591"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true,
+            "originalJsonPointers": {
+              "raw": [
+                "/slices/10/witnesses/0/raw/0",
+                "/slices/10/witnesses/1/raw/0"
+              ],
+              "eventHeaders": [
+                "/slices/10/witnesses/0/eventHeaders/0",
+                "/slices/10/witnesses/1/eventHeaders/0"
+              ]
+            }
+          }
+        },
+        {
+          "owner": "0x078f748af405dce8c8b72e0a430d8f3061494cbc",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000044.json",
+            "format": "paired_bundle",
+            "event": "Deposit",
+            "ownerTopicIndex": 2,
+            "selector": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0xc21b08c16458202593d4d9b26b9984ee67b38bbd",
+              "blockNumber": "25886725",
+              "blockHash": "0x4d58b88fe0346defd7ac2b9f7018ab59af9da5cd757a80f0920c6c2ce64c3743",
+              "transactionHash": "0x7655204da1d5e7096d5579206576e957436afc00d8be6a323e87d7a9fd69fee4",
+              "transactionIndex": 105,
+              "logIndex": 551,
+              "topics": [
+                "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+                "0x000000000000000000000000078f748af405dce8c8b72e0a430d8f3061494cbc",
+                "0x000000000000000000000000078f748af405dce8c8b72e0a430d8f3061494cbc"
+              ],
+              "data": "0x00000000000000000000000000000000000000000000000000000000c1d2b92800000000000000000000000000000000000000000000005752eec3f71d80837d"
+            },
+            "eventHeader": {
+              "block": "25886725",
+              "hash": "0x4d58b88fe0346defd7ac2b9f7018ab59af9da5cd757a80f0920c6c2ce64c3743",
+              "timestamp": "1788317411"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true,
+            "originalJsonPointers": {
+              "raw": [
+                "/slices/8/witnesses/0/raw/0",
+                "/slices/8/witnesses/1/raw/0"
+              ],
+              "eventHeaders": [
+                "/slices/8/witnesses/0/eventHeaders/0",
+                "/slices/8/witnesses/1/eventHeaders/0"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "LINK",
+      "vault": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+      "asset": "0x514910771af9ca656af840dff83e8264ecf986ca",
+      "assetDecimals": 18,
+      "shareDecimals": 18,
+      "candidates": [
+        {
+          "owner": "0x7de11975b293c3a4aa62fb9505fc2bcc31e28f5d",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000048.json",
+            "format": "paired_bundle",
+            "event": "Withdraw",
+            "ownerTopicIndex": 3,
+            "selector": "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0x610f5b68bd1eed68af649a3fd3dc2caa1ee4ae7e",
+              "blockNumber": "25887829",
+              "blockHash": "0x6e78b1ffde264ca405ef4d70b4d224ecd6e071f772b404f2238f8a4f0005e357",
+              "transactionHash": "0x721d1ab0ff74d939db78a57712c4047bf95512c38c137033c3908a99e834b4ee",
+              "transactionIndex": 86,
+              "logIndex": 324,
+              "topics": [
+                "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+                "0x0000000000000000000000007de11975b293c3a4aa62fb9505fc2bcc31e28f5d",
+                "0x0000000000000000000000007de11975b293c3a4aa62fb9505fc2bcc31e28f5d",
+                "0x0000000000000000000000007de11975b293c3a4aa62fb9505fc2bcc31e28f5d"
+              ],
+              "data": "0x0000000000000000000000000000000000000000000000c738dec503f88c00000000000000000000000000000000000000000000000000c25509e7c34134e6a7"
+            },
+            "eventHeader": {
+              "block": "25887829",
+              "hash": "0x6e78b1ffde264ca405ef4d70b4d224ecd6e071f772b404f2238f8a4f0005e357",
+              "timestamp": "1788330659"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true,
+            "originalJsonPointers": {
+              "raw": [
+                "/slices/16/witnesses/0/raw/1",
+                "/slices/16/witnesses/1/raw/1"
+              ],
+              "eventHeaders": [
+                "/slices/16/witnesses/0/eventHeaders/1",
+                "/slices/16/witnesses/1/eventHeaders/1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "EURCV",
+      "vault": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+      "asset": "0x5f7827fdeb7c20b443265fc2f40845b715385ff2",
+      "assetDecimals": 18,
+      "shareDecimals": 18,
+      "candidates": [
+        {
+          "owner": "0x3d447b2376e35314d953653900a4b87b7ec6bade",
+          "lead": {
+            "originalPath": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000050.json",
+            "format": "paired_bundle",
+            "event": "Withdraw",
+            "ownerTopicIndex": 3,
+            "selector": "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+            "selectorDeclaredOnly": false,
+            "eventRow": {
+              "address": "0xbeef0c075da5d01112ae5cf34d257074fb5ddb2f",
+              "blockNumber": "25888307",
+              "blockHash": "0xe6fe80cab674ad913eb6132b25c96fff6be93ffe05fd56de49c6bcfb3087100d",
+              "transactionHash": "0xf94fc8951ee7d4b2cde34c06a2dd84d596804d020288d740815cb71ea9226e65",
+              "transactionIndex": 251,
+              "logIndex": 418,
+              "topics": [
+                "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+                "0x0000000000000000000000003d447b2376e35314d953653900a4b87b7ec6bade",
+                "0x0000000000000000000000003d447b2376e35314d953653900a4b87b7ec6bade",
+                "0x0000000000000000000000003d447b2376e35314d953653900a4b87b7ec6bade"
+              ],
+              "data": "0x00000000000000000000000000000000000000000000021e19e0c9bab24000000000000000000000000000000000000000000000000002120257e503b1d1b2d2"
+            },
+            "eventHeader": {
+              "block": "25888307",
+              "hash": "0xe6fe80cab674ad913eb6132b25c96fff6be93ffe05fd56de49c6bcfb3087100d",
+              "timestamp": "1788336419"
+            },
+            "pairedEventHeaders": true,
+            "historicalHintOnly": true,
+            "originalJsonPointers": {
+              "raw": [
+                "/slices/13/witnesses/0/raw/0",
+                "/slices/13/witnesses/1/raw/0"
+              ],
+              "eventHeaders": [
+                "/slices/13/witnesses/0/eventHeaders/0",
+                "/slices/13/witnesses/1/eventHeaders/0"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "leadOriginals": [
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000044.json",
+      "bytes": 162914,
+      "fileSha256": "5000c390e696515909477d03f7969a610bbff5d1692eb88b55ec526aca5eb2db"
+    },
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000048.json",
+      "bytes": 151274,
+      "fileSha256": "4eeffbc49529882e24311a6fbbc94c091978848a93e3cbce26c198125d40ec13"
+    },
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000049.json",
+      "bytes": 113024,
+      "fileSha256": "76e83ebf45ed7d19e8a64a97c1d04a17fd277588aea53c23813189b29f93003a"
+    },
+    {
+      "path": "data/research/venue-signals/local-morpho-v2-block-flow-v2/000000000050.json",
+      "bytes": 197802,
+      "fileSha256": "64b3434836968d29f82f536e6ee2f5767224b1d63a5464cf09ef938981628a07"
+    }
+  ],
+  "sourcePins": [
+    {
+      "path": "scripts/research/usd3-hypothetical-history-capture.mjs",
+      "bytes": 41066,
+      "fileSha256": "dd8fca9cd591eb7d9c44f2a09653620d17c0705493e386fb116ba3b5fe20952b"
+    },
+    {
+      "path": "scripts/research/carry-depth-quote-archive.mjs",
+      "bytes": 56802,
+      "fileSha256": "cff300ba5014a24955f126d7e949f2d3f45778e21e36bbcd20ab06e45cf4fd16"
+    },
+    {
+      "path": "scripts/research/record-carry-morpho-v2-block-archive.mjs",
+      "bytes": 26258,
+      "fileSha256": "fc2e166c467ac5c81822fc877aca45f45b28981fbfbd91410987709d4cdeaf73"
+    },
+    {
+      "path": "scripts/lib/boundedLocalReceiptFile.mjs",
+      "bytes": 2790,
+      "fileSha256": "4877354b90588f13b6fc0407232adac1dea6095151b3ba53c9d0c64ea4bda013"
+    },
+    {
+      "path": "lib/carry/morpho-v2-asset-identities.json",
+      "bytes": 21809,
+      "fileSha256": "8dd54bbb3dea0842bb67e582f0725adcafb7594107933122c5fa381c083566da"
+    },
+    {
+      "path": "node_modules/.pnpm/viem@2.54.6_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/constants/abis.ts",
+      "bytes": 33426,
+      "fileSha256": "f0f851350c730cb258a2fce7043ca65507b7c59ca6497fd50c59fc150a9ef722"
+    },
+    {
+      "path": "node_modules/.pnpm/viem@2.54.6_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/_esm/constants/abis.js",
+      "bytes": 44067,
+      "fileSha256": "220389f965e6b20714a6449923c8f86fc4bd98db0545868ebdcbc7b54e58fe0e"
+    },
+    {
+      "path": "node_modules/.pnpm/viem@2.54.6_bufferutil@4.1.0_typescript@5.9.3_utf-8-validate@5.0.10_zod@3.25.76/node_modules/viem/package.json",
+      "bytes": 7339,
+      "fileSha256": "4bd90627f524e60b107f8e722640d7d2a533dcf472b11c88d4d5fca82ff04783"
+    },
+    {
+      "path": "scripts/research/morpho-observed-funded-holder-probe.mjs",
+      "bytes": 49661,
+      "fileSha256": "6b289520149ceeec0a887c9096bd09d0d8f581fa5984b9b54ff8afd46b249d36"
+    },
+    {
+      "path": "scripts/research/morpho-observed-funded-holder-probe.plan.json",
+      "bytes": 6304,
+      "fileSha256": "914de1f5900a7ddf18977f3f5ca1f68955a6da4155f1bd3775b2ed19fb466f77"
+    },
+    {
+      "path": "tests/unit/morphoObservedFundedHolderProbe.original.test.mjs",
+      "bytes": 28412,
+      "fileSha256": "8b05e308db78ff8a3637558fced5f4161a7293a8ea5e78a42f0f010bc4d5766e"
+    },
+    {
+      "path": "lib/carry/holderOriginCode.ts",
+      "bytes": 378,
+      "fileSha256": "1c517d20fe25ea8d64aac341f82e69f60f04424cccbb56dc3228403859328bf9"
+    },
+    {
+      "path": "scripts/research/conditional-cash-time-holdout.mjs",
+      "bytes": 18143,
+      "fileSha256": "b7f14ad73ce1e159c249832907a460dda3f60592fb1c1d5067fd1b733c1952a9"
+    },
+    {
+      "path": "lib/carry/conditionalSampledCashPathProjection.ts",
+      "bytes": 50272,
+      "fileSha256": "2c4c627060d7e4fc03be097f4a88c1f4e4ea1540e426b2bb03aad9331b9fc2fe"
+    },
+    {
+      "path": "scripts/lib/venue-reads.mjs",
+      "bytes": 31443,
+      "fileSha256": "b681fd74a921c8de31f96251a3975cd237dfd593f92baf17ddc34bf260243935"
+    },
+    {
+      "path": "tools/venue-recorder.config.json",
+      "bytes": 11377,
+      "fileSha256": "bd73e9da600241bcfc9eb94591115aee5e8143ecddafae628d5588b97e5461ae"
+    },
+    {
+      "path": "scripts/research/morpho-probe-raw-body-storage.mjs",
+      "bytes": 8735,
+      "fileSha256": "b89f978f510d449c06f70cf8a30e99028dda4bcc48277c1ccf4be66445cb135d"
+    },
+    {
+      "path": "scripts/research/morpho-historical-owner-funded-probe.mjs",
+      "bytes": 44134,
+      "fileSha256": "ddb48d98de52528b73bc25dc8d1639ffe912b26649e7593a59f19a36bdc677b9"
+    },
+    {
+      "path": "scripts/research/morpho-historical-owner-funded-probe.plan.json",
+      "bytes": 23377,
+      "fileSha256": "7299eba2d257a11c8c29ce5bee351b54c28618526af16f96c87fab66bc102822"
+    },
+    {
+      "path": "tests/unit/morphoHistoricalOwnerFundedProbe.original.test.mjs",
+      "bytes": 40843,
+      "fileSha256": "5e8a8faddff9e5bd0489212d19e72e29997e54b05191f324697118ae5d3937e2"
+    },
+    {
+      "path": "scripts/research/morpho-multi-asset-native-history.plan.json",
+      "bytes": 16848,
+      "fileSha256": "7130129a0d942011e5af45987c96845e6fde37a55badbb48f5937fc1da07967f"
+    },
+    {
+      "path": "tests/unit/morphoAdditionalHistoricalOwnerFundedProbe.original.test.mjs",
+      "bytes": 44039,
+      "fileSha256": "2310caef51a812ac36d77f173e7a4cb069ec0c918275e860c211db506b277b7c"
+    }
+  ],
+  "sourceClosureBytesMaximum": 6291456,
+  "eventRules": {
+    "Deposit": {
+      "ABI": "Deposit(address indexed sender,address indexed onBehalf,uint256 assets,uint256 shares)",
+      "selector": "0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7",
+      "ownerTopicIndex": 2,
+      "dataWords": 2
+    },
+    "Withdraw": {
+      "ABI": "Withdraw(address indexed sender,address indexed receiver,address indexed onBehalf,uint256 assets,uint256 shares)",
+      "selector": "0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db",
+      "ownerTopicIndex": 3,
+      "dataWords": 2
+    },
+    "Transfer": {
+      "ABI": "Transfer(address indexed from,address indexed to,uint256 value)",
+      "selector": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+      "ownerTopicIndex": 2,
+      "dataWords": 1,
+      "singleOriginDecodedHintsOnly": true
+    }
+  },
+  "budget": {
+    "bootstrap": 4,
+    "sourceBefore": 2,
+    "identityAndRuntime": 40,
+    "ownerCodeAndBalance": 20,
+    "positiveOwnerFullPreviews": 10,
+    "sourceAfter": 2,
+    "maximumPlannedPhysicalStarts": 78,
+    "maximumPhysicalStarts": 100,
+    "maximumLogStarts": 0,
+    "workers": 1
+  },
+  "policy": {
+    "globalDeadlineMs": 120000,
+    "stageWindowMs": 12000,
+    "rpcTimeoutMs": 8000,
+    "perHostSpacingMs": 250,
+    "cleanupGraceMs": 250,
+    "retries": 0,
+    "rawResponseBytes": 65536,
+    "fileBytes": 8388608,
+    "cohortBytes": 10485760,
+    "sourceClosureBytes": 6291456,
+    "reportBytes": 32768,
+    "terminalBytes": 65536,
+    "preFreeBytes": 282066944,
+    "reserveBytes": 268435456,
+    "controlSummaryBytes": 65536
+  },
+  "diskBoundary": "coupled_269MiB_preflight_256MiB_reserve_10MiB_lossless_cohort_3MiB_allocation_slack",
+  "methodBoundary": "unchanged_native_controller_only_no_getLogs",
+  "nativeCallsSource": "EIP1898_blockHash_requireCanonical_true_no_number_fallback",
+  "sourceAndAvailability": "fresh_paired_finalized_source_before_after_brackets_and_actual_post_terminal_retention_clock",
+  "leadEvidenceBoundary": "paired_Deposit_onBehalf_or_Withdraw_onBehalf_historical_hint_no_historical_remaining_S",
+  "researchOnly": true,
+  "authenticated": false,
+  "originalAuthority": false,
+  "historicalOwnership": false,
+  "currentWalletControl": false,
+  "profileApproval": false,
+  "sourceImplementationEquivalence": false,
+  "holderExecutableExit": false,
+  "forecastEligibility": false,
+  "calibrated": false,
+  "coveragePromotion": false,
+  "competingMRaw": null,
+  "storage": {
+    "schema": "morpho_probe_lossless_native_row_storage_v1",
+    "losslessBoundary": "exact_original_controller_fields_raw_response_bytes_once_when_present_null_preserves_missing_controller_capture",
+    "maximumAcceptedAggregateRawResponseBytes": 5242880,
+    "maximumRetainedAggregateRawResponseBytes": 5308416,
+    "singleFailedReadOvershootBytes": 65536,
+    "maximumEncodedNativeRowOverheadBytes": 8192,
+    "fixedWrapperBytes": 2097152,
+    "maximumFiles": 131,
+    "allocationUnitBytes": 4096,
+    "perFileAllocationMarginBytes": 8192,
+    "directoryAllocationMarginBytes": 8192,
+    "allocationSlackBytes": 3145728,
+    "allocationUnitRule": "actual_statfs_unit_must_divide_4096_and_not_exceed_4096",
+    "rawBodyReferenceRule": "same_namespace_physical_id_source_hash_and_raw_body_hash_after_original_observation_equality",
+    "base64BoundRule": "4_times_ceil_retained_raw_bytes_divided_by_3_plus_4_times_maximum_rows_minus_one"
+  },
+  "forkOrigin": {
+    "producer": {
+      "path": "scripts/research/morpho-historical-owner-funded-probe.mjs",
+      "bytes": 44134,
+      "fileSha256": "ddb48d98de52528b73bc25dc8d1639ffe912b26649e7593a59f19a36bdc677b9"
+    },
+    "plan": {
+      "path": "scripts/research/morpho-historical-owner-funded-probe.plan.json",
+      "bytes": 23377,
+      "fileSha256": "7299eba2d257a11c8c29ce5bee351b54c28618526af16f96c87fab66bc102822"
+    }
+  },
+  "acquisitionScope": "fixed_five_public_historical_owner_hints_four_vaults_current_native_observations_only_no_profiles_or_old_PYUSD_regime_pooling"
+}

@@ -1,0 +1,51 @@
+{
+  "skill_name": "branding-guidelines",
+  "evals": [
+    {
+      "id": 1,
+      "name": "settings-page-styling",
+      "prompt": "I need to build a new settings page for the app — make it look right",
+      "expected_output": "A complete React component using the design system constants (SPACING, SEMANTIC_COLORS, TYPOGRAPHY, TRANSITIONS), Card component, focus indicators, and dark-theme-appropriate styling",
+      "files": [],
+      "assertions": [
+        { "id": "uses-spacing-constants", "text": "Imports and uses SPACING or SPACING_PATTERNS from @/config/spacing instead of arbitrary pixel values", "type": "grep" },
+        { "id": "uses-semantic-colors", "text": "Imports and uses SEMANTIC_COLORS from @/config/semanticColors", "type": "grep" },
+        { "id": "uses-typography", "text": "Imports and uses TYPOGRAPHY from @/helpers/typography", "type": "grep" },
+        { "id": "uses-transitions", "text": "Imports from @/config/transitions (TRANSITIONS, HOVER_EFFECTS, or FOCUS_STYLES)", "type": "grep" },
+        { "id": "uses-card-component", "text": "Uses the Card component from @/components/ui/Card instead of raw Box with inline card styling", "type": "grep" },
+        { "id": "has-focus-indicators", "text": "Includes _focus or FOCUS_STYLES on interactive elements for accessibility", "type": "grep" },
+        { "id": "dark-theme-appropriate", "text": "No white or light backgrounds; uses dark bg values consistent with the brand (rgba dark or #091326)", "type": "manual" }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "alert-banner-colors",
+      "prompt": "What colors should I use for a new alert banner that shows when gas fees are high?",
+      "expected_output": "A response recommending semantic colors (warning=#fbbf24, danger=#ef4444), a React component with glow effects and standard transitions, dark-appropriate backgrounds, and explanation of color rationale",
+      "files": [],
+      "assertions": [
+        { "id": "correct-warning-color", "text": "Uses #fbbf24 (yellow) or SEMANTIC_COLORS.warning for the warning/elevated state", "type": "grep" },
+        { "id": "correct-danger-color", "text": "Uses #ef4444 (red) or SEMANTIC_COLORS.danger for the danger/very-high state", "type": "grep" },
+        { "id": "uses-glow-effects", "text": "Includes glow or shadow effects (box-shadow with rgba glow pattern)", "type": "grep" },
+        { "id": "uses-standard-transitions", "text": "Imports from config/transitions rather than using inline transition strings", "type": "grep" },
+        { "id": "brand-consistent-bg", "text": "Uses dark transparent backgrounds (rgba dark values or matching card BG pattern)", "type": "manual" },
+        { "id": "explains-color-rationale", "text": "The response explains WHY specific colors were chosen in brand context, not just what they are", "type": "manual" }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "ditto-liquidation-message",
+      "prompt": "I'm adding a new Ditto message for when a user's collateral is close to liquidation — how should it look and what should it say?",
+      "expected_output": "A response identifying ALERT type with danger severity, voice-compliant message text (1-3 lines, no greetings/emojis), cooldown rules, DittoMessage contract object, and threshold-based triggers",
+      "files": [],
+      "assertions": [
+        { "id": "correct-message-type", "text": "Identifies ALERT as the message type since liquidation risk is a safety/blocking concern", "type": "manual" },
+        { "id": "correct-severity", "text": "Uses danger severity level for near-liquidation scenarios", "type": "grep" },
+        { "id": "voice-compliant", "text": "Message text is 1-3 lines, no greetings, no emojis, implication-oriented (explains what it means, not just what it is)", "type": "manual" },
+        { "id": "includes-cooldown", "text": "Specifies cooldown or anti-annoyance rules (e.g., cooldownSec, frequency limits)", "type": "grep" },
+        { "id": "uses-contract-schema", "text": "Provides a DittoMessage object matching the contract interface (id, type, severity, body, when, cooldownSec, showAs)", "type": "manual" },
+        { "id": "threshold-based-trigger", "text": "Defines numeric threshold conditions for when to trigger (e.g., riskScore >= 85)", "type": "grep" }
+      ]
+    }
+  ]
+}

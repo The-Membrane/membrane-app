@@ -1,0 +1,75 @@
+{
+  "eval_id": 2,
+  "eval_name": "alert-banner-colors",
+  "configuration": "without_skill",
+  "expectations": [
+    {
+      "text": "Uses #fbbf24 (yellow) or SEMANTIC_COLORS.warning for the warning/elevated state",
+      "passed": true,
+      "evidence": "In GasFeeAlert.tsx line 64: `iconColor: SEMANTIC_COLORS.warning, // #fbbf24`. Line 67: `badgeColor: SEMANTIC_COLORS.warning, // #fbbf24`. In response.md, table explicitly lists SEMANTIC_COLORS.warning = #fbbf24 for the warning state."
+    },
+    {
+      "text": "Uses #ef4444 (red) or SEMANTIC_COLORS.danger for the danger/very-high state",
+      "passed": true,
+      "evidence": "In GasFeeAlert.tsx line 73: `iconColor: SEMANTIC_COLORS.danger, // #ef4444`. Line 76: `badgeColor: SEMANTIC_COLORS.danger, // #ef4444`. In response.md, table explicitly lists SEMANTIC_COLORS.danger = #ef4444 for the danger state."
+    },
+    {
+      "text": "Includes glow or shadow effects (box-shadow with rgba glow pattern)",
+      "passed": true,
+      "evidence": "In GasFeeAlert.tsx line 68: `glowShadow: '0 0 16px rgba(251, 191, 36, 0.12)'` for warning, line 77: `glowShadow: '0 0 16px rgba(239, 68, 68, 0.15)'` for danger. Line 139: `boxShadow={styles.glowShadow}` applied to the container."
+    },
+    {
+      "text": "Imports from config/transitions rather than using inline transition strings",
+      "passed": false,
+      "evidence": "Line 8: `import { TRANSITIONS } from '@/config/transitions'` is present, and line 140: `transition={TRANSITIONS.all}` is used. However, line 130: `transition={{ duration: 0.3, ease: 'easeOut' }}` is an inline Framer Motion transition with arbitrary values rather than using MOTION_VARIANTS or standardized timing from config/transitions. The component mixes standardized and inline transitions. Since the assertion says 'rather than using inline transition strings', the presence of the inline `transition={{ duration: 0.3, ease: 'easeOut' }}` is a partial violation. Grading as FAIL because the component does use inline transition parameters alongside the imported ones."
+    },
+    {
+      "text": "Uses dark transparent backgrounds (rgba dark values or matching card BG pattern)",
+      "passed": true,
+      "evidence": "Warning bg: 'rgba(251, 191, 36, 0.08)' (line 62) - extremely faint yellow tint on dark. Danger bg: 'rgba(239, 68, 68, 0.10)' (line 71) - extremely faint red tint on dark. Both are semi-transparent overlays designed for dark backgrounds. No white or light solid backgrounds found."
+    },
+    {
+      "text": "The response explains WHY specific colors were chosen in brand context, not just what they are",
+      "passed": true,
+      "evidence": "response.md section 'Why these colors' (lines 41-46) explains: 'Backgrounds at 8-10% opacity keep the banner from overpowering surrounding content', 'Borders at 30-40% opacity give visible delineation without harsh lines -- matching the existing border approach in the codebase', 'Heading colors (#fde68a for warning, #fca5a5 for danger) are lighter tints of the base semantic colors. They maintain enough contrast against the dark background for WCAG AA readability', 'Ambient glow is very subtle (12-15% opacity) and adds perceived depth consistent with patterns elsewhere in the app'. Also references the brand system explicitly: 'maps directly to two existing semantic tokens'."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.83
+  },
+  "claims": [
+    {
+      "claim": "Component is accessible with role='alert' and aria-live",
+      "type": "quality",
+      "verified": true,
+      "evidence": "GasFeeAlert.tsx line 141: `role=\"alert\"`, line 142: `aria-live=\"polite\"`. IconButton has aria-label at line 199."
+    },
+    {
+      "claim": "WCAG AA contrast ratios met for heading colors",
+      "type": "factual",
+      "verified": false,
+      "evidence": "response.md claims '#fde68a on rgba(251, 191, 36, 0.08) over #091326 yields a contrast ratio above 8:1'. This specific claim cannot be verified from the outputs alone and would need a contrast calculator. The claim is plausible given the light text on very dark effective background."
+    },
+    {
+      "claim": "Uses FOCUS_STYLES on dismiss button",
+      "type": "quality",
+      "verified": false,
+      "evidence": "The dismiss IconButton at lines 198-210 does NOT have _focus={FOCUS_STYLES.ring}. FOCUS_STYLES was not even imported (line 8 only imports TRANSITIONS). This is a missing accessibility feature."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "uses-standard-transitions",
+        "reason": "This assertion could be more specific about what counts as a violation. The without_skill output imports TRANSITIONS.all but also uses inline Framer Motion transition parameters. The assertion text says 'rather than using inline transition strings' which I interpreted strictly, but reasonable people could disagree. Consider splitting into two assertions: one for CSS transitions (must use TRANSITIONS constants) and one for Framer Motion animations (should use MOTION_VARIANTS or standardized durations)."
+      },
+      {
+        "reason": "No assertion checks whether FOCUS_STYLES is applied to interactive elements in this eval. The without_skill output is missing focus indicators on the dismiss button. Adding a focus-indicators assertion (like eval 1 has) would catch this."
+      }
+    ],
+    "overall": "Good output overall but has a notable gap: no focus indicator on the dismiss button and uses an inline Framer Motion transition. The response.md provides excellent color rationale."
+  }
+}

@@ -1,0 +1,718 @@
+Are you curious about what separates
+top tier UI design that attracts clients
+and lucrative positions from junior level
+designs that struggle to gain you
+any sort of attention?
+Well, the gap isn't always as wide
+as you might think.
+In fact, it's likely
+that you already possess the skills needed
+to elevate your designs
+with just a few minor adjustments.
+So today we're going to examine
+a range of UI design samples
+crafted by both novices and professionals
+to guide you
+on your journey towards
+becoming a first rate designer.
+Let's start
+looking at some login screens
+moving from the most junior up
+to the most senior levels of log in screen
+design.
+This first example
+with no disrespect is a very immature,
+very unfortunate design, and the reason
+that it is is because of the use of color.
+There's probably other issues that
+you could talk about here in this design,
+but if you just fix the color issues
+we're about to talk about, it would ten x
+the effectiveness of this design?
+What's the issues with the color?
+It's just overusing our primary call
+to action.
+Colored that color that pink. Right.
+There could be a great color,
+but it needs to be reserved
+for primary calls to action.
+Primary areas of concern.
+We are using it and reusing it in
+every single area of the form,
+the icon, the text,
+the outline of these inputs fields.
+We're not using any sort of dark text
+anywhere on this light background.
+We got colorful headers and colorful links
+and colorful
+tertiary links down here
+and everything is just screaming at you.
+The old adage
+is that if everything is on fire,
+then nothing is on fire
+and the firefighter doesn't know
+which area to address
+because they're all equally on fire.
+In our usage here, fire just means
+attention and we can't be separating
+or dividing our users
+attention by using color in this way.
+If you fix this usage of color,
+it would fix the interface drastically.
+Let's look at another example that's using
+color in a much more mature way.
+We're starting to leave
+behind those low levels of junior design.
+Start to get into that
+mid-level design work here
+and they're doing color a lot better.
+We're reserving our call to action
+color here.
+This design actually struggles
+with a case of hierarchy issues, right?
+Hierarchy here is pretty poor.
+We drill down
+the form actually looks pretty good here,
+but we have some problems.
+Number one, did you even notice
+that this was a link or she did?
+Because there is no difference
+in the treatment of this
+text to the treatment of the placeholder
+text in the input.
+And there's very little difference between
+the treatment of the label header here
+and the placeholder text.
+There needs to be variation in this text,
+maybe uppercase here, maybe decreasing
+the opacity here, maybe underlining
+or using some other sort of treatment.
+So I know that this is a link
+in bad hierarchy and it only gets worse.
+The bottom of this design.
+I have a big primary call to action
+button, but I also have an equally
+weighted, equally sized call to action
+button here to register.
+This is why quite often
+we see these as a line of text or
+a text link that says
+don't have an account register here.
+They've chosen to challenge the users
+perception of this and stop and guess.
+Am I supposed to click here?
+Am I supposed to click here
+and look out over size?
+The text is here.
+We should be reading this in a hierarchy
+that says, What you're here to do on
+this page is sign in.
+Here's the inputs to sign in.
+Here's what you need to do, and secondary
+or maybe even tertiary.
+If you can't sign in
+because you don't have an account.
+There are some small text links down here.
+This is an issue of hierarchy.
+If you just change the hierarchy
+consolidated of the styles
+and add some contrast between
+certain areas to create that hierarchy,
+this design would be again
+ten next better and you'd start to move
+into more of these senior levels of design
+like we're seeing here.
+This sign up form is much better.
+We have very controlled use of color is
+actually no color here, but that's okay.
+You don't have to have bright colors.
+They're doing a black and white modern
+kind of treatment here.
+That's totally fine.
+My input fields
+actually stand out from the background.
+You can see I have good contrast
+between my placeholder
+active, inactive and my text links
+that have different treatment.
+I have one primary call to action here
+on the screen, which I totally should have
+and I have a good secondary.
+You might even call it a tertiary action.
+Instead of, you know, signing up,
+you can already log in.
+Now, the problem that this design has
+is just a simple one of proximity.
+Just some small spacing changes here
+might help it quite a bit.
+We're actually grouping these items
+together really, really well.
+What?
+We're not grouping together
+well is this lock up icon
+with a headline
+and some sort of subheadline.
+I think what would really help us
+to put this inside of an auto
+layout in Figma or something like that
+and give me some consistent spacing
+because right now it's almost as
+if this icon is close enough to make it
+seem like it's part of this group,
+but it's not. It's not really.
+Same thing with our text.
+It doesn't really feel like
+these two pieces belong together,
+so let's just tighten those up
+and either separate the icon or the logo
+to be higher up or bring it together
+in the lock up to make it feel like one.
+Besides that,
+this is a fairly decent design.
+This is the type of work
+that's hirable, that's desirable,
+that people would see the portfolio.
+But the last kind of tier to step up
+into that perfect login screen design.
+Here's a great example of that,
+where we are doing a fantasy
+stick job of using color hierarchy,
+spacing, layout, bringing in some imagery
+so we don't have such a blah moment,
+but instead
+we have kind of a powerful moment
+where everything is
+really, really interesting.
+Again, we are very specific
+and intentional on the use of color,
+on the use of our call to actions.
+We now actually have labels over here
+and there, a different treatment
+from our placeholder, beautiful
+kind of like imagery.
+So a little subtle background color, hints
+of gradients, tertiary call to actions.
+You have secondary call to actions
+and your big primary.
+This whole flow
+is a very beautiful experience.
+Not only is it
+good user experience has all the good
+design principles being played out here,
+but it's also visually spicy.
+Amazing.
+This is senior level design and this is
+what we all should be shooting for.
+And I'm telling you, as you work your way
+up, there's not that much difference
+between tweaking the color, changing
+the hierarchy, changing the spacing,
+adding some visuals
+and bringing the whole thing together
+to go from junior to senior level design.
+All right, let's dive in and take a look
+at some dashboard design.
+Starting from the most junior working
+our way up to the most senior examples.
+Here we have
+our most junior example of a dashboard
+and the things that are happening here
+that could be improved
+to drastically change this interface
+design is really first again, hierarchy.
+There's a little bit of color usage
+issues here, but mainly it's the emphasis
+being placed on the wrong thing
+when you're designing interfaces
+that are really, really usable,
+like dashboards
+that have graphs and charts
+and a lot of detailed information.
+We need to clear out the design
+and allow the information
+to be the thing that's the focal point.
+The focal point for me right now
+is this giant interface bar
+that I'm paying attention to
+and this giant muted sidebar over here
+on the left hand side.
+This is telling me my avatar, the logo
+to this dashboard, are really,
+really important.
+The word dashboard is really,
+really important.
+And look how much emphasis or focus
+is being put on the actual content
+from supposed to be using.
+Remember, interface
+design is not necessarily like web design.
+We are building
+tools and tools should be simple,
+easy, straightforward, and sometimes
+even a little bit more boring.
+So there's too much design
+being placed here for design sake
+and not a lot of care for our user
+and how they might use the interface.
+They're
+probably not going to use this area
+and this area as much as they're going
+to use this area in this area.
+So this is just an issue of focusing on
+the content that needs to be focused on.
+Let's take a look at our next example.
+And this is an example of overuse
+of the brand color.
+Remember, we said you can't design
+interfaces necessarily like you design
+websites.
+This is a very website thing
+where we use that brand color a lot.
+We're hyper committed to that brand color,
+but it's causing a lot of problems.
+Like, first off, my eye is just confused.
+There's no reason to use the brand color.
+This much brand color
+does not have to be used in
+every pie chart, every box, every graph,
+all of these charts,
+whether they are at a high point,
+a low point, they all look the same to me.
+They're just blending together.
+So this is somebody who probably has
+some brand design experience or website
+design experience, but it has very little
+user interface design experience
+because all of these metrics, all of these
+charts have value on their own,
+but we're not focusing on the value
+that they can bring.
+Some other issues that we're having
+here are an issue of contrast,
+like these notification bubbles
+right here.
+They have really, really bad contrast.
+And you know why?
+Because we're hyper committed to this
+brand green.
+They thought it must be this brand green.
+So my notification bubbles
+that should be very helpful are now lost.
+I can't see them.
+And lastly, we're going to have
+some issues with detached functionality.
+I have a giant top bar up here
+and I'm not sure
+if this is supposed to be a button,
+if it's supposed to be just a statement.
+But I definitely have
+this search button up here
+and I can't really tell if when I search,
+if it's only going to affect things
+in this box or if it's going to start
+affecting things down here below.
+Also, why is this notification up here
+taking up so much space,
+increasing the size of this top bar
+and decreasing the space
+that I have to work
+with important content.
+So we just have some issues of hierarchy
+and overuse of that brand color.
+And if you were to fix
+some of those issues and scale back
+the design and allow the content
+to do the talking for itself,
+you might have an example of this
+more senior level looking dashboard.
+We have stripped away
+a lot of the brand color.
+We don't need it.
+It's not about the brand.
+While you're in here,
+it's about the content and we're
+using color in a really thoughtful way.
+The graphs here speak for themselves.
+The colors punch, it makes it pop out.
+This allows the flags
+to speak for themselves,
+the avatars of these people
+to speak for themselves.
+I can see clear defined areas between
+this section of earnings
+and this section of top selling products.
+But notice how I have reusable headlines
+and it's very, very easy to track along.
+Same thing.
+I have sections here, sections here,
+and it didn't necessarily need to widget
+ties everything
+which is put everything inside of a box
+because I've cleared out all that excess
+design work, all that extra use of color.
+I'm using areas
+in kind of like a nice modern way.
+It's okay
+to have some sort of greeting here,
+but notice how all of this content up here
+is really secondary.
+It's taking a backseat to the main thing.
+The main thing, the main thing.
+Let our navigation
+you really, really simple.
+Let our content do the talking.
+If I was to nitpick at this design
+and just try to improve it,
+I might say that we're taking up
+a little bit too much space.
+There are a little bit hyper committed
+to having this whole box of the logo
+balanced with this box on the left
+hand side, and it doesn't really need
+to be once we've moved into an interface,
+it's not a branding moment anymore.
+It's a moment
+for me to actually interact with the tool.
+I don't want to know
+what brand of the Hammer is.
+I just want to start using the hammer
+when the time comes.
+Same thing with this log out bar.
+I'm sure they were probably trying
+to match what they did on the top,
+but I could just decrease that
+a little bit and that's going to help
+bring it that next little level of senior
+level design work.
+Let's look at one more.
+That is fun, interesting, exciting
+and still has all of those good design
+principles.
+We have good contrast here.
+We have good separation of information.
+I can tell that this search information
+feels very global
+because it's at the top of the rest
+of the global elements.
+And I can tell that when I start to work
+with these filters and interact here, it's
+only going to affect all of the content
+directly in context of it.
+Same thing over here.
+I have reusable patterns
+of these headlines with the body copy
+and the chips or tags that
+give me some sort of legend detail here
+that are showing me
+the colors, the color punches.
+It stands out, right?
+What's really,
+really important seems to stand out here.
+And I think that's okay.
+Now, what's interesting
+about this interface
+and takes it to that next
+level of senior design
+is that it is a bit stylized
+and that's okay.
+We have these heavy
+almost neo brutalism drop shadows.
+They're thick, they're bold,
+they're on purpose,
+and they're using them only in places
+where
+my attention should be like interactivity
+or large important charts.
+But I'm not necessarily
+putting it in every single element.
+So there are some very thoughtful
+design work happening here
+that is modern, it's usable,
+it's stylistic, it's fun, it's
+a nice interface, and in my opinion, very,
+very senior level.
+So you can see the difference
+between these low levels,
+these junior levels into more
+of that mid-level and all the way
+up into those senior levels.
+It's about addressing
+some of those core concepts.
+Remember your interface designers,
+not brand designers.
+You remember that you're going
+to really elevate your UI design work.
+This video is sponsored by Nord Pass,
+which is a way
+for you to organize your online life
+as a freelance business owner.
+I run my agency,
+I run this YouTube channel.
+I run a lot of things
+and I don't have time to write down
+or remember all of my passwords.
+So I use Nord Pass on my mobile device
+on my laptop in Chrome
+through the extension, and it allows me
+to save every password, secure, encrypted,
+and I can even share it with my team or
+anybody that I want to have access to it.
+It is an awesome solution
+to secure your online life.
+Once you create a Nord Pass account,
+you can log in and start
+adding new logins
+and accounts to Nord Pass.
+So just put in the title
+the email, the password.
+You can even have Nord Pass generate
+unique strong encrypted passwords for you
+just like that.
+And then you fill in the website
+all the details, boom, save it away
+and you never have to
+think about it again.
+You simply have to insert it from Nord
+Pass.
+It's going to save you tons of time.
+Never let you forget a password, encrypt
+everything and be secure
+and just run your business
+more efficiently.
+So if you're interested,
+sign up for Nord Pass for a free trial.
+There's a link down the description.
+Definitely worth it. Definitely. Amazing.
+Now let's take a look at some examples
+of complex web applications.
+We're going to be using some concepts here
+that are very similar
+to Zillow or Airbnb or complex web apps.
+Lots of things going on.
+Let's start by taking a look at this
+first junior example,
+which actually is pretty good.
+You're doing a lot of things right here.
+I think the layout is actually not bad.
+It's simple.
+It's to the point
+they controlled and used color wisely.
+They're not overusing it or abusing it.
+But some things that they could
+probably work on is the separation between
+main areas.
+It's probably just the assets
+they chose to use and the colors here
+a little bit hard because our sidebar
+feels a little bit muddy,
+a little bit too close.
+There's like not quite enough contrast
+between the section
+and then our map is really kind
+of gray scale, very neutralized.
+So it feels like it's also very similar.
+There's not distinct areas here
+between MAP main content listing
+and sidebar navigation,
+and that can be troublesome.
+I think they're also using that color
+on the price.
+I don't think it's necessary
+and we have a real contrast issue here
+with certain areas like
+text size here is got to be like
+eight pixels here as well.
+It's eight pixels or something
+and it's also very, very light.
+So if the details there are so light
+that you can't see them,
+why even place them there?
+We're having a trouble
+balancing color and contrast in this
+and you can tell that we're having trouble
+balancing color
+and contrast in this example
+because we are heavy on the drop shadow
+on pretty much everything.
+This white treatment to this dropdown
+probably for
+filtering options
+is probably not going to stand on its own.
+So therefore they had to put
+a heavy drop shadow.
+And that is a really good indicator
+when somebody doesn't know how to use
+color and contrast,
+we start to add line separators,
+they start to add too much drop shadow.
+Let's look at another example of someone
+who's not using as much excessive
+drop shadow, but they're only almost going
+too far in the other direction.
+We have a really dark sidebar
+and that sometimes can be okay,
+but I feel like the contrast here on our
+inactive items is a little bit soft.
+At least the alerts are popping through
+really, really well.
+But we have bad contrast on our logout.
+There's no reason necessarily
+to have that log out.
+Be an emergency error Red.
+We usually reserve the colors red and
+bright green or success and error states.
+These are called system colors
+and they're not being used correctly.
+Now I do like the use of side navigation,
+kind of what we call global navigation.
+Now we have a local navigation.
+I like how this is working.
+You can see that as I start to update
+some of these filters
+here, it's going to directly change
+some of the layout down below.
+But again, we're struggling a little bit
+with contrast and color usage.
+Again, I don't think there's a need
+for the price to be our primary call
+to action.
+Let that live in the spots
+where it actually matters
+on these kind of navigation areas.
+And also
+the outline of my card is so light,
+I can't actually even tell from this
+distance that that outline is even there.
+And so we're having some of that
+separation issue between our background.
+And this is really subtle.
+This is why I would call that
+not a junior level design,
+but a very middle level of design.
+We're doing a lot of things right here,
+but they're just doing a few things wrong.
+Maybe the color usage, the color choice,
+the contrast, some of those things,
+if you just tweak those and change
+those, would start to move
+into senior level design
+like what we're seeing here.
+In this example,
+we're using a nice punchy blue
+that probably in color theory represents
+professionalism, trustworthiness.
+I probably want that
+when I'm looking for real estate.
+So it's a better usage of color.
+But you'll notice
+we're also even in our neutral map,
+we're pulling in
+some of those tones of blue.
+We're doing things
+like primary and secondary,
+using that blue and even tertiary icon
+buttons.
+We're using that blue really, really well.
+And notice
+where we're not using it though,
+inside the cards that have just that
+slight amount of contrast around them.
+So drop shadow needed.
+It's white on white and that's okay.
+I'm not using blue on my price.
+I'm not using blue on my icons
+because they don't need to be aware
+that blue is really popping is in my main
+call to actions, adding a listing.
+And over here in my filter I do think that
+this is a better use
+layout just across the board
+because we have some of that
+global navigation here.
+And what are people doing
+when they come to real estate website?
+They're probably filtering.
+This is making a really complex interface
+so much simpler they don't have to open
+and close that functionality.
+They chose to omit that global navigation
+here on the left hand side.
+Now granted these might be for different
+use cases, but
+this layout is just very, very well done.
+The color
+and the contrast between the map.
+I don't need some sort of separating line.
+It's enough that I can tell
+it's a nice, crisp separation.
+I have controls in here that are nice
+and punchy and they're just using white.
+They are using a little bit of shadow,
+you can tell.
+But it's so subtle, it's so mature.
+I'm not using that same level of shadow,
+if any at all over on
+some of my filter controls.
+So this whole thing is just very light.
+The design is out of the way.
+It's saying, Here's the content,
+the tool is serving the content.
+The tool is not serving
+the brand, it's not serving
+the designer or exploration
+or doing something unique and interesting.
+It's just nice, solid UI design work
+that I would be proud to do,
+I would be proud to showcase.
+And this is what senior level design
+looks like as you move back through
+a little bit more cartoony,
+not using those colors to really capture
+and separate maybe a little too far
+in the other direction, too harsh,
+bad use of those system colors
+into something that's really consist
+really succinct,
+really streamlined, and very, very mature.
+Well, that's it.
+Those are some examples
+of moving on the scale from junior level
+design into mid-level and all the way
+up to those senior levels of design.
+I hope you can really see that
+there's not a lot of difference.
+It's just honing in on
+some of those basics of UI design.
+And if you're interested in learning more
+on moving from junior level
+into becoming a UI master and consider
+taking my three day UI design program,
+the link is down to description.
+It teaches you all of this
+and you get to build multiple capstone
+projects to actually execute and practice
+on all of these things you learn.
+We talk about everything from color
+to spacing and hierarchy,
+prototyping, documentation, handoff,
+all of it.
+Check the link
+down the description for a 30 day UI.
+But also I'd love to hear your thoughts
+in this video,
+so leave those down the comments,
+check the description
+for a bunch of other helpful links
+and if you enjoyed this video,
+make sure you leave a thumbs up.
+Subscribe to the channel.
+I do lots of videos
+about design, development
+and UI design stuff specifically,
+so ring that bells.
+You know, in a new video comes out.
+I hope you're having an amazing week
+of your designing amazing things, making
+amazing things
+and progressing your UI design work.
+See in the next one.

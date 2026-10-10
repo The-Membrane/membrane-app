@@ -1,0 +1,31 @@
+{
+  "eval_id": 0,
+  "eval_name": "swap-cta-hook",
+  "prompt": "Write a hook for the new Swap CTA on the transmuter page. It should take an input asset denom, output asset denom, and amount, then execute a transmuter swap. Put it in components/Transmuter/hooks/useTransmuterSwap.ts",
+  "assertions": [
+    {
+      "text": "Uses useQuery for message building (not useMutation)",
+      "type": "code_check"
+    },
+    {
+      "text": "Imports and calls useSimulateAndBroadcast (no custom simulation)",
+      "type": "code_check"
+    },
+    {
+      "text": "Returns { action, msgs } matching codebase convention",
+      "type": "code_check"
+    },
+    {
+      "text": "Has enabled gates on both message query and simulation",
+      "type": "code_check"
+    },
+    {
+      "text": "Invalidates cache on success via queryClient.invalidateQueries with targeted prefixes",
+      "type": "code_check"
+    },
+    {
+      "text": "Query keys use only primitives (no objects)",
+      "type": "code_check"
+    }
+  ]
+}

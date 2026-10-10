@@ -1,0 +1,87 @@
+{
+  "eval_id": 3,
+  "eval_name": "ditto-liquidation-message",
+  "configuration": "without_skill",
+  "expectations": [
+    {
+      "text": "Identifies ALERT as the message type since liquidation risk is a safety/blocking concern",
+      "passed": true,
+      "evidence": "Section 1 heading: 'Primary: `ALERT` type with `danger` severity'. Explains: 'ALERT is designed for proactive, blocking situations (see portfolio-high-risk and transmuter-no-capacity as precedents in the existing contracts)'. Also explains why UPDATE and INSIGHT are not appropriate: 'UPDATE is for data-changed notifications shown as badges -- too passive' and 'INSIGHT is for panel-only informational content -- too passive for something time-critical'. Code objects at line 127 and 137 both use `type: 'ALERT'`."
+    },
+    {
+      "text": "Uses danger severity level for near-liquidation scenarios",
+      "passed": true,
+      "evidence": "Line 129: `severity: 'danger'` for mint-liquidation-imminent (LTV >= 90%). Section 1 explicitly states: 'This is the highest-priority combination in the system. According to MESSAGE_TYPE_PRIORITY, ALERT = 100 and SEVERITY_PRIORITY danger = 100, giving a combined priority score of 200'. Warning tier uses `severity: 'warn'` (line 139) for the pre-warning at 75%."
+    },
+    {
+      "text": "Message text is 1-3 lines, no greetings, no emojis, implication-oriented (explains what it means, not just what it is)",
+      "passed": true,
+      "evidence": "Danger message: 'Collateral at {currentLTV}% LTV -- liquidation starts at {liquidationLTV}%. Repay or add collateral now' - two short sentences, states the situation then the action. Warning message: 'LTV rising -- now at {currentLTV}% of {liquidationLTV}% max. Consider repaying or adding collateral' - two short sentences. Section 2 rationale: 'Concise: Both are 1-2 lines', 'Actionable: Both tell the user what to do, not just what is wrong', 'No emoji: Consistent with the danger/warn severity styling doing the visual work, not emoji', 'Urgency gradient: danger says now (imperative), warning says consider (advisory)'. No greetings or emojis found."
+    },
+    {
+      "text": "Specifies cooldown or anti-annoyance rules (e.g., cooldownSec, frequency limits)",
+      "passed": true,
+      "evidence": "Line 132: `cooldownSec: 120` for danger (2 min). Line 143: `cooldownSec: 600` for warning (10 min). Section 6 'When NOT to Show the Message' provides 8 detailed suppression conditions: no position/debt, wallet not connected, mid-transaction (LOCKED state), message on cooldown, just completed repay/deposit, data stale/loading, LTV decreasing, mock data mode. Line 378 explains escalation: 'same message will not repeat within its cooldown window unless severity increases -- so if a user goes from warning to danger, the danger alert fires immediately'."
+    },
+    {
+      "text": "Provides a DittoMessage object matching the contract interface (id, type, severity, body, when, cooldownSec, showAs)",
+      "passed": true,
+      "evidence": "Lines 126-144 provide DittoMessage objects within a DittoPageContract structure. Example (lines 127-135): `id: 'mint-liquidation-imminent', type: 'ALERT', severity: 'danger', body: 'Collateral at {currentLTV}% LTV...', when: 'hasDebt && ltvRatio >= thresholds.ltvDanger', cooldownSec: 120, showAs: 'toast', blocks: ['mint', 'loop']`. All required fields present. Also provides shortcuts array (lines 149-162) and a useLiquidationAlert hook (lines 244-283)."
+    },
+    {
+      "text": "Defines numeric threshold conditions for when to trigger (e.g., riskScore >= 85)",
+      "passed": true,
+      "evidence": "Lines 117-119: `thresholds: { ltvWarning: 75, ltvDanger: 90, ltvCritical: 95 }`. Section 5 provides detailed threshold tiers table: Safe (<75%), Warning (75-89% with warn severity), Danger (90-94% with danger severity), Critical (>=95% with danger severity). Explains 'ltvRatio = (currentLTV / liquidationLTV) * 100'. The `when` conditions use these: 'hasDebt && ltvRatio >= thresholds.ltvDanger' and 'hasDebt && ltvRatio >= thresholds.ltvWarning && ltvRatio < thresholds.ltvDanger'."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "References existing portfolioContract.ts patterns as precedent",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Section 1: 'The existing portfolioContract.ts already uses ALERT + danger for portfolio-high-risk when worstRiskScore >= 85, confirming this pattern'. Section 5: 'This matches the riskWarning: 70 threshold already in portfolioContract.ts'. These references to existing code patterns demonstrate genuine codebase awareness."
+    },
+    {
+      "claim": "Provides a useLiquidationAlert hook implementation",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Lines 234-283: Complete hook with wallet check, vault summary integration, LTV ratio computation, and return of showDangerAlert/showWarningAlert/currentLTV/liquidationLTV/ltvRatio. Uses useMemo for performance."
+    },
+    {
+      "claim": "Includes StatusTab integration code",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Lines 166-228: Provides JSX for both danger and warning alerts in the StatusTab, using StatusCard components with appropriate icon colors (red.400 for danger, yellow.400 for warning) and click handlers for opening RepayModal."
+    },
+    {
+      "claim": "Provides global alert integration for dittoMessages.ts",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Lines 288-313: Provides globalAlerts array entries for global-liquidation-danger and global-liquidation-warning with appropriate when conditions and cooldowns."
+    },
+    {
+      "claim": "Uses the existing typo 'liqudationLTV' for compatibility",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Line 260: `const liquidationLTV = vaultSummary.liqudationLTV || 0` with note '(note: the existing codebase uses the typo liqudationLTV -- maintain this for compatibility)'. This demonstrates awareness of actual codebase details."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Both with_skill and without_skill passed all 6 assertions at 100%. Similar to eval 1, the assertions may not be discriminating enough. Both outputs are thorough and high quality. The without_skill output arguably goes further in some areas (StatusTab integration code, global alerts integration, useLiquidationAlert hook), while the with_skill output has richer anti-annoyance detail and cleaner message wording. Consider adding assertions that test for specific brand voice patterns (e.g., em-dash usage, specific cadence) or Ditto character details that would only come from deep brand knowledge."
+      },
+      {
+        "assertion": "voice-compliant",
+        "reason": "This assertion checks for absence of greetings/emojis and length compliance, but does not verify the 'implication-oriented' aspect rigorously. Both outputs pass because both happen to be well-written. A more discriminating test would check for specific linguistic patterns like 'states consequence, not just symptom' or 'provides actionable next step'."
+      }
+    ],
+    "overall": "Both outputs are comprehensive and demonstrate strong understanding of the Ditto system. The assertions correctly verify the required elements but do not differentiate between the two configurations since both had access to the codebase and CLAUDE.md."
+  }
+}

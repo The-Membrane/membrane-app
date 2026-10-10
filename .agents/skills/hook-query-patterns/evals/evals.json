@@ -1,0 +1,44 @@
+{
+  "skill_name": "hook-query-patterns",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Write a hook for the new Swap CTA on the transmuter page. It should take an input asset denom, output asset denom, and amount, then execute a transmuter swap. Put it in components/Transmuter/hooks/useTransmuterSwap.ts",
+      "expected_output": "A CTA hook following the three-layer pattern (useQuery for msgs, useSimulateAndBroadcast, cache invalidation on success) with correct imports, enabled gates, and return shape { action, msgs }",
+      "files": [],
+      "assertions": [
+        "Uses useQuery for message building (not useMutation)",
+        "Imports and calls useSimulateAndBroadcast (no custom simulation)",
+        "Returns { action, msgs } matching codebase convention",
+        "Has enabled gates on both message query and simulation",
+        "Invalidates cache on success via queryClient.invalidateQueries with targeted prefixes",
+        "Query keys use only primitives (no objects)"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "The disco page keeps refetching slot data every time I switch browser tabs or come back to the window. It's hammering the RPC. Can you figure out what's wrong and fix it?",
+      "expected_output": "Identifies missing or insufficient staleTime on the relevant disco data queries, adds appropriate staleTime values, and possibly adjusts refetchOnWindowFocus behavior",
+      "files": [],
+      "assertions": [
+        "Diagnoses staleTime as the root cause of refetching on tab focus",
+        "Adds staleTime to relevant queries with appropriate tier values (not arbitrary)",
+        "Changes are targeted - doesn't wholesale rewrite unrelated code"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I need a new service function to fetch acquisition reward history from the contract (query msg: { get_reward_history: { user } }) and a corresponding React hook. Follow the existing patterns in the codebase.",
+      "expected_output": "A service function with mock data fallback, null client handling, contract address validation, and console.error on failure. Plus a useQuery hook with appropriate staleTime, enabled gate, appState.rpcUrl in query key.",
+      "files": [],
+      "assertions": [
+        "Service returns null on error (not throwing)",
+        "Service has mock data fallback with USE_MOCK_DATA flag and simulated delay",
+        "Service validates client for null before querying",
+        "Hook includes appState.rpcUrl in query key for multi-chain cache separation",
+        "Hook has appropriate staleTime set (not relying on defaults)",
+        "Hook has enabled gate to prevent premature fetching"
+      ]
+    }
+  ]
+}

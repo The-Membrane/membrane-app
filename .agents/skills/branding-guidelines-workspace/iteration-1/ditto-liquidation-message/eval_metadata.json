@@ -1,0 +1,6 @@
+{
+  "eval_id": 3,
+  "eval_name": "ditto-liquidation-message",
+  "prompt": "I'm adding a new Ditto message for when a user's collateral is close to liquidation — how should it look and what should it say?",
+  "assertions": []
+}

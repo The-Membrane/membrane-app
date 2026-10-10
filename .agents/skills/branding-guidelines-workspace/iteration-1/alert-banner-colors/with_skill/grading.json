@@ -1,0 +1,72 @@
+{
+  "eval_id": 2,
+  "eval_name": "alert-banner-colors",
+  "configuration": "with_skill",
+  "expectations": [
+    {
+      "text": "Uses #fbbf24 (yellow) or SEMANTIC_COLORS.warning for the warning/elevated state",
+      "passed": true,
+      "evidence": "Line 70: `accent: SEMANTIC_COLORS.warning, // #fbbf24`. Also lines 71-75 use rgba(251, 191, 36, ...) variants which are the rgba decomposition of #fbbf24. Line 76: `iconColor: SEMANTIC_COLORS.warning`."
+    },
+    {
+      "text": "Uses #ef4444 (red) or SEMANTIC_COLORS.danger for the danger/very-high state",
+      "passed": true,
+      "evidence": "Line 80: `accent: SEMANTIC_COLORS.danger, // #ef4444`. Also lines 81-85 use rgba(239, 68, 68, ...) variants which are the rgba decomposition of #ef4444. Line 86: `iconColor: SEMANTIC_COLORS.danger`."
+    },
+    {
+      "text": "Includes glow or shadow effects (box-shadow with rgba glow pattern)",
+      "passed": true,
+      "evidence": "Multiple glow effects: line 73: `glow: '0 0 20px rgba(251, 191, 36, 0.3)'`, line 74-75: breathing animation with glowIdle/glowPeak, line 83: `glow: '0 0 20px rgba(239, 68, 68, 0.4)'`, line 84-85: danger breathing animation. CSS keyframe animations at lines 195-204 create a breathing glow effect. Line 215: `boxShadow={theme.accent}` on accent bar. Line 227: `filter={\\`drop-shadow(0 0 6px ${theme.accent})\\`}` on icon."
+    },
+    {
+      "text": "Imports from config/transitions rather than using inline transition strings",
+      "passed": true,
+      "evidence": "Lines 14-17: `import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'`. Line 191: `transition={TRANSITIONS.all}`. Line 284: `transition={TRANSITIONS.allQuick}`. No raw inline transition strings like 'all 0.2s' found."
+    },
+    {
+      "text": "Uses dark transparent backgrounds (rgba dark values or matching card BG pattern)",
+      "passed": true,
+      "evidence": "Warning bg: 'rgba(251, 191, 36, 0.08)' (line 71) - extremely faint yellow tint on dark. Danger bg: 'rgba(239, 68, 68, 0.1)' (line 81) - extremely faint red tint on dark. Both are semi-transparent overlays designed for dark backgrounds. Backdrop filter blur at line 186 adds glassmorphism effect. No white or light solid backgrounds."
+    },
+    {
+      "text": "The response explains WHY specific colors were chosen in brand context, not just what they are",
+      "passed": true,
+      "evidence": "Extensive inline comments explain rationale: Lines 47-55 explain the SEVERITY_THEME mapping with 'Warning uses SEMANTIC_COLORS.warning (#fbbf24) -- the mandated yellow for approaching limits / caution states' and 'Danger uses SEMANTIC_COLORS.danger (#ef4444) -- the mandated red for errors / critical issues'. Lines 131-145 explain brand alignment: 'Semantic color system for warning (#fbbf24) and danger (#ef4444) states', 'Glassmorphism background', 'Signature neon glow that breathes via CSS animation', 'Cyberpunk/HUD aesthetic'. The component itself serves as a self-documenting explanation of color choices."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "claims": [
+    {
+      "claim": "Component has breathing glow animation",
+      "type": "quality",
+      "verified": true,
+      "evidence": "CSS keyframes at lines 195-204 define gasFeeAlertBreatheWarning and gasFeeAlertBreatheDanger animations that oscillate between glowIdle and glowPeak box-shadow values."
+    },
+    {
+      "claim": "Component is accessible with role='alert' and aria-live",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Line 182: `role=\"alert\"`, line 183: `aria-live=\"assertive\"`. CloseButton has aria-label at line 291."
+    },
+    {
+      "claim": "Component uses React.memo and performance optimizations",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Line 147: `memo(...)` wraps the component. Lines 149, 151, 158, 162: useMemo and useCallback used for theme, message, handler, and animation values."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "explains-color-rationale",
+        "reason": "This assertion is only meaningful for the without_skill configuration where a response.md exists. For with_skill, only a .tsx file was produced (no response.md), so the rationale is found in code comments. The assertion passes because the code comments are thorough, but consider requiring a separate explanation document for both configurations to make this assertion more consistent."
+      }
+    ],
+    "overall": "Strong output. The breathing glow animation and glassmorphism effects go beyond basic requirements and demonstrate deep brand understanding."
+  }
+}

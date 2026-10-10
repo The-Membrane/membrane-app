@@ -1,0 +1,70 @@
+# Recomputes the breach-probability surface daily and commits it to the
+# production branch if it changed.
+#
+# Why a scheduled Action and not an app-runtime job: the surface is a static
+# JSON the Borrow page fetches (public/data/breach-surface.json). The repo is
+# the database and the JSON carries measured_at.
+#
+# Branches: GitHub only runs scheduled workflows from the default branch
+# (main), so this file lives on main. Production (Vercel) serves
+# evm-migration, and scripts/breach-surface.mjs exists only there, so the job
+# checks out evm-migration, recomputes, and pushes back to evm-migration. Each
+# push triggers a Vercel production deploy.
+#
+# If CoinGecko is unavailable the script still writes a surface with no
+# current-vol pointer. The job keeps the last good surface in that case.
+#
+# Trigger a manual run (workflow_dispatch) whenever governance changes a
+# liquidation parameter. The cron only covers volatility drift.
+name: breach-surface
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # daily, 06:17 UTC, offset to avoid the top-of-hour crunch
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: breach-surface
+  cancel-in-progress: false
+
+jobs:
+  recompute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: evm-migration
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Recompute surface
+        run: node scripts/breach-surface.mjs
+
+      - name: Commit and push to evm-migration if changed
+        run: |
+          if git diff --quiet public/data/breach-surface.json; then
+            echo "surface unchanged, nothing to commit"
+            exit 0
+          fi
+          if ! node -e "const j=require('./public/data/breach-surface.json'); process.exit(j.realized_vol && j.realized_vol.vol != null ? 0 : 1)"; then
+            echo "::warning::realized vol unavailable (CoinGecko); keeping the last good surface"
+            exit 0
+          fi
+          git config user.name "breach-surface-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/data/breach-surface.json
+          git commit -m "data: refresh breach-probability surface"
+          for attempt in 1 2 3; do
+            if git pull --rebase origin evm-migration && git push origin HEAD:evm-migration; then
+              exit 0
+            fi
+            echo "push attempt $attempt failed, retrying"
+            sleep $((attempt * 10))
+          done
+          echo "::error::could not push the refreshed surface to evm-migration"
+          exit 1

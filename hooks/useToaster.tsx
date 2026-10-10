@@ -1,16 +1,7 @@
 import { Link, Text, useToast, UseToastOptions, VStack } from '@chakra-ui/react'
-import { useMemo } from 'react'
 import useWallet from './useWallet'
-import { Chain } from '@chain-registry/types'
 import { useChainRoute } from './useChainRoute'
-
-type Explorer = {
-  name?: string
-  kind?: string
-  url?: string
-  tx_page?: string
-  account_page?: string
-}
+import { getTxExplorerUrl } from '@/helpers/explorer'
 
 export enum ToastTypes {
   Success = 'success',
@@ -33,7 +24,6 @@ type ToastProps = {
   title?: string
   chainName?: string
   txHash?: string
-  explorer?: Explorer
   duration?: number | null,
   shrinkMessage?: boolean
 }
@@ -59,64 +49,55 @@ const defaultSettings: UseToastOptions = {
   },
 }
 
-const ToastContent = ({ message, txHash, explorer }: ToastProps) => {
+type ToastContentProps = {
+  message: JSX.Element | string
+  txHash?: string
+  txLink?: string
+}
+
+const ToastContent = ({ message, txHash, txLink }: ToastContentProps) => {
   const first4 = txHash?.slice(0, 4)
   const last4 = txHash?.slice(-4)
-  const txLink = `https://celatone.osmosis.zone/osmosis-1/txs/${txHash}`
-
-  // console.log("tx ready to toast", txLink)
+  const txLabel = `TxHash: ${[first4, last4].join('...')}`
 
   return (
     <VStack alignItems="flex-start" gap={0} paddingTop={"3%"}>
       {typeof message === "string" ? <span>{message}</span> : message}
-      {!!txHash && (
+      {!!txHash && (txLink ? (
         <Link isExternal href={txLink} style={{ margin: 'unset' }}>
-          TxHash: {[first4, last4].join('...')}
+          {txLabel}
         </Link>
-      )}
+      ) : (
+        // No block explorer on this chain (e.g. local anvil): show the hash, don't link it
+        <Text as="span">{txLabel}</Text>
+      ))}
     </VStack>
   )
-}
-
-export const getExplorer = (chain: Chain | undefined) => {
-  const explorerOrder = ['mintscan', 'atomscan'].reverse()
-  const explorers = chain?.explorers || []
-  // console.log("explorers", explorers) 
-
-  return explorers
-    .filter((explorer) => explorer?.kind)
-    .sort((a: Explorer, b: Explorer) => {
-      const aKind = a?.kind || ''
-      const bKind = b?.kind || ''
-      return explorerOrder.indexOf(bKind) - explorerOrder.indexOf(aKind)
-    })
 }
 
 const useToaster = (): IToaster => {
   const toast = useToast()
   const { chainName } = useChainRoute()
   const { chain } = useWallet(chainName)
-  //@ts-ignore
-  const [_explorer] = useMemo(() => getExplorer(chain), [chain])
 
-  const error = ({ message, txHash, explorer }: ToastProps) => {
+  const error = ({ message, txHash }: ToastProps) => {
     toast({
       ...defaultSettings,
       title: 'Error',
       description: (
-        <ToastContent explorer={explorer || _explorer} message={message} txHash={txHash} />
+        <ToastContent message={message} txHash={txHash} txLink={getTxExplorerUrl(chain, txHash)} />
       ),
       status: ToastTypes.Error,
       position: 'top-right',
     })
   }
-  const success = ({ message, txHash, explorer, shrinkMessage }: ToastProps) => {
-    console.log("success", message, txHash, explorer)
+  const success = ({ message, txHash, shrinkMessage }: ToastProps) => {
+    console.log("success", message, txHash)
     toast({
       ...defaultSettings,
       title: 'Success',
       description: (
-        !shrinkMessage && <ToastContent explorer={explorer || _explorer} message={message} txHash={txHash} shrinkMessage={shrinkMessage} />
+        !shrinkMessage && <ToastContent message={message} txHash={txHash} txLink={getTxExplorerUrl(chain, txHash)} />
       ),
       status: ToastTypes.Success,
       position: 'top-right',
@@ -126,7 +107,7 @@ const useToaster = (): IToaster => {
     toast({
       ...defaultSettings,
       title: 'Pending',
-      description: <ToastContent explorer={_explorer} message={message} txHash={txHash} />,
+      description: <ToastContent message={message} txHash={txHash} txLink={getTxExplorerUrl(chain, txHash)} />,
       status: ToastTypes.Info,
       position: 'top-right',
     })
@@ -135,7 +116,7 @@ const useToaster = (): IToaster => {
     toast({
       ...defaultSettings,
       title: title,
-      description: <ToastContent explorer={_explorer} message={message} />,
+      description: <ToastContent message={message} />,
       status: ToastTypes.Info,
       position: 'top-right',
       duration,

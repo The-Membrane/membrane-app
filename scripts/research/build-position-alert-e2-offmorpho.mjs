@@ -35,8 +35,10 @@ import { datasetPath } from '../lib/datasetsDir.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const OUT = datasetPath(ROOT, 'position-alerts')
 // Test switches: E2OFF_ONLY=eUSDT0-7,silo-129 limits markets, E2OFF_SAMPLES caps the sample count,
-// E2OFF_FILE writes elsewhere (a smoke run must not overwrite the dataset).
+// E2OFF_FILE writes elsewhere (a smoke run must not overwrite the dataset). E2OFF_CACHE names a
+// scratch directory that keeps each market's cohort, so a rerun skips the slow log scans.
 const FILE = process.env.E2OFF_FILE ?? 'e2-offmorpho-nov-2025.json'
+const CACHE = process.env.E2OFF_CACHE ?? null
 const ONLY = process.env.E2OFF_ONLY ? new Set(process.env.E2OFF_ONLY.split(',')) : null
 const MAX_SAMPLES = Number(process.env.E2OFF_SAMPLES ?? Infinity)
 const H = 3600
@@ -54,11 +56,13 @@ const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11'
 const RPC = {
   1: ['https://mainnet.gateway.tenderly.co', 'https://eth.drpc.org', 'https://rpc.mevblocker.io'],
   42161: ['https://arbitrum.gateway.tenderly.co', 'https://arbitrum-one.public.blastapi.io'],
-  43114: ['https://api.avax.network/ext/bc/C/rpc'],
+  43114: ['https://api.avax.network/ext/bc/C/rpc', 'https://avalanche.gateway.tenderly.co'],
   146: ['https://rpc.soniclabs.com', 'https://sonic-rpc.publicnode.com'],
   9745: ['https://rpc.plasma.to'],
 }
 /** Largest eth_getLogs block span each chain's endpoint accepted. */
+/** Sample times read at once per chain. Avalanche archive calls take ~6 s each on its public RPC. */
+const SAMPLE_CONCURRENCY = { 1: 2, 42161: 2, 43114: 8, 146: 2, 9745: 2 }
 const LOG_SPAN = { 1: 10_000, 42161: 400_000, 43114: 400_000, 146: 2_000_000, 9745: 9_000 }
 /** First block with timestamp >= Oct 26, Nov 2 and Nov 16 2025 00:00 UTC. */
 const ANCHORS = {
@@ -742,6 +746,20 @@ async function decimalsOf(chainId, tokens, block) {
   return Object.fromEntries(tokens.map((t, i) => [t, r[i].ok ? num(r[i].value) : 18]))
 }
 
+/** A cohort from the cache directory when present, else computed and saved there. */
+async function cachedCohort(key, compute) {
+  if (!CACHE) return compute()
+  const file = join(CACHE, `cohort-${key}.json`)
+  try {
+    return JSON.parse(await readFile(file, 'utf8'))
+  } catch {
+    const c = await compute()
+    await mkdir(CACHE, { recursive: true })
+    await writeFile(file, JSON.stringify(c))
+    return c
+  }
+}
+
 async function eulerCohort(m) {
   const start = blockAt(m.chainId, SPEC.fromTs)
   const born = await creationBlock(m.chainId, m.vault, start)
@@ -979,7 +997,23 @@ function gearboxReader(g, accounts, dec) {
 
 /** Run every reader of one chain over the sample times, sharing each pass's batch. */
 async function sampleChain(chainId, readers) {
-  for (const t of sampleTimes()) {
+  // Reads run in a pool; records are applied in time order afterwards.
+  const times = sampleTimes()
+  const reads = new Array(times.length)
+  let next = 0
+  const worker = async () => {
+    while (next < times.length) {
+      const i = next++
+      reads[i] = await readSample(chainId, readers, times[i])
+    }
+  }
+  await Promise.all(Array.from({ length: SAMPLE_CONCURRENCY[chainId] ?? 1 }, worker))
+  for (const [blockTs, block, r1, r2, r3] of reads)
+    readers.forEach((r, i) => r.record(blockTs, block, r1[i], r2[i], r3[i]))
+}
+
+async function readSample(chainId, readers, t) {
+  {
     const block = blockAt(chainId, t)
     const run = async (lists) => {
       const flat = lists.flat()
@@ -992,7 +1026,7 @@ async function sampleChain(chainId, readers) {
     const blockTs = num(h[0].value)
     const r2 = await run(readers.map((r, i) => r.pass2(r1[i])))
     const r3 = await run(readers.map((r, i) => r.pass3(r1[i], r2[i])))
-    readers.forEach((r, i) => r.record(blockTs, block, r1[i], r2[i], r3[i]))
+    return [blockTs, block, r1, r2, r3]
   }
 }
 
@@ -1066,7 +1100,33 @@ async function main() {
   const byChain = {}
   const add = (chainId, reader, market) => (byChain[chainId] ??= []).push({ reader, market })
 
-  for (const m of EULER.filter((x) => wanted(x.sym))) {
+  // Setup per market; chains run in parallel, markets on one chain in turn.
+  const setups = []
+  for (const m of EULER.filter((x) => wanted(x.sym))) setups.push([m.chainId, () => setupEuler(m)])
+  for (const s of SILO.filter((x) => wanted(`silo-${x.id}`)))
+    setups.push([s.chainId, () => setupSilo(s)])
+  for (const g of GEARBOX.filter(() => wanted('gearbox')))
+    setups.push([g.chainId, () => setupGearbox(g)])
+  const chains = [...new Set(setups.map(([c]) => c))]
+  await Promise.all(
+    chains.map(async (c) => {
+      for (const [chainId, run] of setups) if (chainId === c) await run()
+    }),
+  )
+  const byOrder = (a, b) =>
+    a.venue.localeCompare(b.venue) ||
+    a.chainId - b.chainId ||
+    String(a.market ?? a.marketId).localeCompare(String(b.market ?? b.marketId))
+  markets.sort(byOrder)
+  cohortLog.sort(byOrder)
+  for (const list of Object.values(byChain)) list.sort((a, b) => byOrder(a.market, b.market))
+  for (const l of liquidations) {
+    const b = await rpc(l.chainId, 'eth_getBlockByNumber', [toHex(l.block), false])
+    l.ts = Number(b.timestamp)
+  }
+  liquidations.sort((a, b) => a.chainId - b.chainId || a.block - b.block)
+
+  async function setupEuler(m) {
     const start = blockAt(m.chainId, SPEC.fromTs)
     const [loan, oracleOf] = await multicall(m.chainId, start, [
       { to: m.vault, fn: 'asset' },
@@ -1078,7 +1138,7 @@ async function main() {
       [...new Set([...m.colls.map(([, a]) => a), m.loanToken])],
       start,
     )
-    const c = await eulerCohort(m)
+    const c = await cachedCohort(`euler-${m.chainId}-${m.sym}`, () => eulerCohort(m))
     cohortLog.push({
       venue: 'euler',
       chainId: m.chainId,
@@ -1126,10 +1186,10 @@ async function main() {
       })
   }
 
-  for (const s of SILO.filter((x) => wanted(`silo-${x.id}`))) {
+  async function setupSilo(s) {
     const start = blockAt(s.chainId, SPEC.fromTs)
     const dec = await decimalsOf(s.chainId, [s.token0, s.token1], start)
-    const c = await siloCohort(s)
+    const c = await cachedCohort(`silo-${s.chainId}-${s.id}`, () => siloCohort(s))
     cohortLog.push({
       venue: 'silo',
       chainId: s.chainId,
@@ -1156,7 +1216,7 @@ async function main() {
     if (c.accounts.length) add(s.chainId, siloReader(s, c.accounts, dec, btc), market)
   }
 
-  for (const g of GEARBOX.filter((x) => wanted('gearbox'))) {
+  async function setupGearbox(g) {
     const start = blockAt(g.chainId, SPEC.fromTs)
     const dec = await decimalsOf(g.chainId, [g.xusd], start)
     const c = await gearboxCohort(g)

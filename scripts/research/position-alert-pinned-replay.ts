@@ -870,6 +870,26 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
     .filter((p): p is Path => p !== null)
 }
 
+/** E2 on one basis: all venues together, and the strict and per-cluster gates per venue. */
+function e2Basis(basis: 'oracle' | 'market', config: AlertConfig) {
+  const paths = e2Paths(basis)
+  const cadence = [{ label: '1 h', everyS: 0 }]
+  const venues = [...new Set(e2Prepared.map((x) => x.venue))]
+  return {
+    runs: runEvent(paths, config, cadence),
+    byVenue: Object.fromEntries(
+      venues.map((v) => {
+        const [r] = runEvent(
+          paths.filter((p) => p.cluster.startsWith(`EV-2/${v}/`)),
+          config,
+          cadence,
+        )
+        return [v, { positions: r.rows.length, gate: r.gate, gateCluster: r.gateCluster }]
+      }),
+    ),
+  }
+}
+
 // ------------------------------------------------------------------ warn-line sweep (loops)
 
 /** Default config with the health-factor warn line at L (critical halfway to 1.00, watch L + 0.10). */
@@ -973,7 +993,7 @@ function main() {
     },
     E2: {
       source:
-        'own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market, DefiLlama CoinGecko prices',
+        'own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market; Euler v2, Silo v2 and Gearbox v3.1 positions read on chain every 2 h (build-position-alert-e2-offmorpho.mjs); DefiLlama CoinGecko prices',
       window: e2.specWindow,
       history: e2.historyWindow,
       positionsReplayed: e2Prepared.length,
@@ -993,12 +1013,8 @@ function main() {
         cluster: x.cluster,
         events: x.oracleEvents.map((e) => e.ts),
       })),
-      oracleBasis: {
-        runs: runEvent(e2Paths('oracle'), config, [{ label: '1 h', everyS: 0 }]),
-      },
-      marketBasis: {
-        runs: runEvent(e2Paths('market'), config, [{ label: '1 h', everyS: 0 }]),
-      },
+      oracleBasis: e2Basis('oracle', config),
+      marketBasis: e2Basis('market', config),
       runs: [] as ReturnType<typeof runEvent>,
     },
     E4: {
@@ -1051,6 +1067,9 @@ function main() {
       console.log(k, r.cadence.padEnd(10), 'strict', JSON.stringify(r.gate))
       console.log(k, r.cadence.padEnd(10), 'cluster', brief(r.gateCluster))
     }
+  for (const b of ['oracleBasis', 'marketBasis'] as const)
+    for (const [v, g] of Object.entries(events.E2[b].byVenue))
+      console.log('E2', b, v, g.positions, JSON.stringify(g.gate), 'cluster', brief(g.gateCluster))
   for (const b of ['oracleBasis', 'marketBasis'] as const)
     for (const r of events.E2[b].runs) {
       console.log('E2', b, JSON.stringify(r.gate), 'cluster', brief(r.gateCluster))

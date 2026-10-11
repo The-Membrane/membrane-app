@@ -203,6 +203,10 @@ export function backendOf(url: string): string {
   return new URL(url).hostname.split('.').slice(-2).join('.')
 }
 const hostOf = (url: string): string => new URL(url).host
+/** The ledger's name for an endpoint: its host, or `env:<host>` for a keyed URL from
+ *  RECORDER_RPC_URL — the same alias rpc-ring.json uses — so a paid tier and the free
+ *  tier of one provider stay apart. Never the path, which can hold a key. */
+const ledgerHost = (url: string): string => (envUrls().includes(url) ? `env:${hostOf(url)}` : hostOf(url))
 /** Error text with every URL cut to its host: viem puts the request URL in its messages,
  *  and a keyed URL carries its key in the path. */
 export const redactUrls = (text: string): string =>
@@ -294,6 +298,7 @@ export interface RpcCall {
    *  per ring: one run can build several rings). With the writer's run id it groups the
    *  first answer, its errors and its second opinion into one piece. */
   piece: number
+  /** Host, or `env:<host>` for a keyed RECORDER_RPC_URL endpoint. */
   host: string
   /** What was asked, from queryOf(): `<Event>@<addresses>`, `#filtered` if args narrowed it. */
   query: string
@@ -474,7 +479,7 @@ export class RpcRing {
       const call: RpcCall = {
         at: new Date(t0).toISOString(),
         piece,
-        host: hostOf(e.url),
+        host: ledgerHost(e.url),
         query,
         fromBlock: args.fromBlock,
         toBlock: args.toBlock,

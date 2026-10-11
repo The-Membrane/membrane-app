@@ -324,6 +324,21 @@ describe('rpc ring ledger: which endpoint answered which range', () => {
     await expect(ring.getLogsWide(q(1_000_000n, 1_009_999n))).resolves.toHaveLength(34)
   })
 
+  it('labels a keyed RECORDER_RPC_URL endpoint env:<host>, apart from the free tier on the same host', async () => {
+    const KEYED_TENDERLY = 'https://mainnet.gateway.tenderly.co/SECRETKEY789'
+    const before = process.env.RECORDER_RPC_URL
+    process.env.RECORDER_RPC_URL = KEYED_TENDERLY
+    try {
+      const { calls, ring } = ledgerRing({ 'mainnet.gateway.tenderly.co': 'empty' }, [[KEYED_TENDERLY, 10_000, 1], [MEVB, 10_000, 50]])
+      await ring.getLogs(q(1_000_000n, 1_009_999n))
+      expect(calls.map((c) => c.host)).toEqual(['env:mainnet.gateway.tenderly.co', 'rpc.mevblocker.io'])
+      expect(JSON.stringify(calls, (_k, v) => (typeof v === 'bigint' ? String(v) : v))).not.toContain('SECRETKEY789')
+    } finally {
+      if (before === undefined) delete process.env.RECORDER_RPC_URL
+      else process.env.RECORDER_RPC_URL = before
+    }
+  })
+
   it('names a query by event and sorted addresses', () => {
     expect(queryOf({ address: ['0xB', '0xa'], event: { name: 'AnswerUpdated' } })).toBe('AnswerUpdated@0xa,0xb')
     expect(queryOf({ address: '0xA', event: { name: 'LiquidationCall' }, args: { user: '0x1' } })).toBe('LiquidationCall@0xa#filtered')

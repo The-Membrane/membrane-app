@@ -15,6 +15,8 @@
  *   --ledger=<file.jsonl>  append every endpoint call (RpcCall, hosts only) to a JSONL
  *          ledger; `node scripts/rpc-scorecard.mjs --file=<file.jsonl>` scores it.
  *   --spot-check=<rate>    re-ask this share of non-empty answers (default 0.05).
+ *   --keyed  also probe the keyed endpoints in .env.local RECORDER_RPC_URL (comma list).
+ *          Their URLs stay in memory; the log, the report and the ledger hold hosts only.
  *
  * feeds: AnswerUpdated round ids are consecutive per aggregator, so a hole is visible
  *   without any reference endpoint: an interior jump in round id is a missing stretch.
@@ -68,7 +70,22 @@ const proxyAbi = [
 ]
 
 const t0 = Date.now()
-const table = await probeRing(CANDIDATES)
+/** Keyed endpoints from .env.local (RECORDER_RPC_URL). Never printed: hosts only. */
+async function keyedUrls() {
+  const { readEnv } = await import('./lib/venue-reads.mjs')
+  let get
+  try {
+    get = readEnv().get
+  } catch {
+    throw new Error('--keyed: no .env.local next to package.json')
+  }
+  const urls = String(get('RECORDER_RPC_URL') ?? '').split(',').map((u) => u.trim()).filter(Boolean)
+  if (urls.length === 0) throw new Error('--keyed: RECORDER_RPC_URL is empty in .env.local')
+  // The ring labels these `env:<host>` in the ledger (rpcRing.ts ledgerHost).
+  process.env.RECORDER_RPC_URL = urls.join(',')
+  return urls
+}
+const table = await probeRing(CANDIDATES, argv.includes('--keyed') ? await keyedUrls() : [])
 const live = table.entries.filter((e) => e.cap > 0)
 console.log(`ring (probed in ${((Date.now() - t0) / 1000).toFixed(0)}s, not saved): ${live.map((e) => `${new URL(e.url).host}@${e.cap}${e.emptyAnswers ? ` (probe empties ${e.emptyAnswers})` : ''}`).join(' · ')}`)
 const report = { mode: MODE, at: new Date().toISOString(), ring: live.map((e) => ({ host: new URL(e.url).host, cap: e.cap, emptyAnswers: e.emptyAnswers ?? 0 })) }

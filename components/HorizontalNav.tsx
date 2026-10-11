@@ -154,6 +154,9 @@ const HorizontalNav = () => {
     return (
         <Box
             as="nav"
+            // Style hook only. styles/news-edition.css restyles the nav while the landing's
+            // news edition is mounted; on every other page nothing matches it.
+            data-site-nav=""
             position="sticky"
             top={0}
             w="full"

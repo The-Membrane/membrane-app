@@ -1,56 +1,68 @@
 {
-  "probedAt": "2026-09-24T00:23:53.862Z",
+  "probedAt": "2026-10-11T14:38:35.830Z",
   "entries": [
     {
       "url": "env:rpc.ankr.com",
       "cap": 10000,
-      "ms": 43,
+      "ms": 67,
       "alive": true
     },
     {
       "url": "https://eth.api.pocket.network",
       "cap": 10000,
-      "ms": 614,
+      "ms": 1130,
       "alive": true
     },
     {
-      "url": "env:mainnet.infura.io",
-      "cap": 10000,
-      "ms": 1103,
+      "url": "https://gateway.tenderly.co/public/mainnet",
+      "cap": 5000,
+      "ms": 131,
+      "alive": true
+    },
+    {
+      "url": "env:rpc.flashbots.net",
+      "cap": 5000,
+      "ms": 359,
       "alive": true
     },
     {
       "url": "https://ethereum.public.blockpi.network/v1/rpc/public",
-      "cap": 500,
-      "ms": 7377,
+      "cap": 5000,
+      "ms": 454,
       "alive": true
     },
     {
       "url": "env:lb.drpc.live",
       "cap": 100,
-      "ms": 54,
+      "ms": 126,
+      "alive": true
+    },
+    {
+      "url": "https://eth.drpc.org",
+      "cap": 100,
+      "ms": 147,
       "alive": true
     },
     {
       "url": "https://eth-pokt.nodies.app",
       "cap": 50,
-      "ms": 47,
+      "ms": 34,
       "alive": true
     },
     {
       "url": "env:eth-mainnet.g.alchemy.com",
       "cap": 10,
-      "ms": 31,
+      "ms": 41,
       "alive": true
     },
     {
       "url": "https://eth-mainnet.public.blastapi.io",
       "cap": 10,
-      "ms": 54,
+      "ms": 59,
       "alive": true
     },
     {
-      "url": "https://gateway.tenderly.co/public/mainnet",
+      "url": "env:mainnet.infura.io",
       "cap": 0,
       "ms": 0,
       "alive": false
@@ -66,12 +78,6 @@
       "cap": 0,
       "ms": 0,
       "alive": false
-    },
-    {
-      "url": "env:rpc.flashbots.net",
-      "cap": 0,
-      "ms": 0,
-      "alive": true
     },
     {
       "url": "https://eth.llamarpc.com",
@@ -90,12 +96,6 @@
       "cap": 0,
       "ms": 0,
       "alive": false
-    },
-    {
-      "url": "https://eth.drpc.org",
-      "cap": 0,
-      "ms": 0,
-      "alive": true
     },
     {
       "url": "https://eth.merkle.io",
@@ -143,7 +143,7 @@
       "url": "https://1rpc.io/eth",
       "cap": 0,
       "ms": 0,
-      "alive": true
+      "alive": false
     }
   ]
 }

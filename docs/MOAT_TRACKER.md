@@ -35,7 +35,7 @@ The article is the sample; the simulator against a live position is the Terminal
 - Provenance stamps everywhere (`components/Simulator/Stamp.tsx`); every landing figure imports from a tested artefact.
 - Radar share line + share-card PNG of the reader's own result (`components/Radar/Radar.tsx:382-420`).
 - Strats board — public list of tracked carry positions with returns and verdicts (`components/Strats/StratsBoard.tsx`).
-- The $1.07B multi-year liquidation corpus renders in the landing band (`lib/position-sim/oct10Totals.ts`).
+- The $1.31B multi-year liquidation corpus renders in the landing band (`lib/position-sim/oct10Totals.ts`).
 
 **Missing**
 - One static OG image for the whole site (`scripts/og-card.mjs` → `public/og.png`); no card per finding, venue or Radar result.

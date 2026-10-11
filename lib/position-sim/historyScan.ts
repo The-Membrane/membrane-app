@@ -70,6 +70,7 @@ import {
   type PriceRound,
 } from './history'
 import { PUBLIC_MAINNET_RPCS } from './rpc'
+import { withoutExcludedLogHosts } from './rpcExclusions'
 
 // ------------------------------------------------------------------ constants
 
@@ -416,9 +417,13 @@ const NOT_SCANNED: NotScanned[] = [
  * Tenderly's public gateway leads because the Oct 10 pull established it as the only
  * keyless endpoint that reliably served both archive state and large getLogs spans
  * (public/data/oct10-2025/manifest.json). RECORDER_RPC_URL's own comma list follows —
- * it is the recorder's ring and is set on the box that runs the hourly tick. Note that
- * two of its members are BUILDER RELAYS (mevblocker, flashbots) which do not serve
- * eth_getLogs at all; viem's fallback moves past them on error.
+ * it is the recorder's ring and is set on the box that runs the hourly tick.
+ *
+ * BUILDER RELAYS ARE DROPPED (board R33, 2026-10-11). Remote copies of that list still
+ * name rpc.flashbots.net and rpc.mevblocker.io. Flashbots answered `[]` for the ranges
+ * it does not serve (it serves only a slice of history), and a viem `fallback` client
+ * takes `[]` as success, so it never moved past Flashbots. MEV Blocker was dead at
+ * every probe. Every source above is filtered through ./rpcExclusions.
  */
 export function historyRpcUrls(): string[] {
   const out: string[] = []
@@ -432,7 +437,7 @@ export function historyRpcUrls(): string[] {
   push(PUBLIC_MAINNET_RPCS[0])
   push(process.env.RECORDER_RPC_URL)
   for (const u of PUBLIC_MAINNET_RPCS.slice(1)) push(u)
-  return out
+  return withoutExcludedLogHosts(out)
 }
 
 export function makeHistoryClient(urls: string[] = historyRpcUrls()): PublicClient {

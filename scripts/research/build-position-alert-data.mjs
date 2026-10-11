@@ -3,7 +3,8 @@
  *
  *   node scripts/research/build-position-alert-data.mjs [--only=hourly,e2,e3,e4,depeg]
  *
- * Writes data/position-alerts/*.json and a manifest with each file's SHA-256. Every value
+ * Writes position-alerts/*.json and a manifest with each file's SHA-256 into the private
+ * datasets repo ($MEMBRANE_DATASETS_DIR, default ../membrane-datasets; board rule N18). Every value
  * is copied from a public, keyless source. Nothing is smoothed or forward-filled: a gap is
  * stored as null (grid series) or simply absent (point series).
  *
@@ -13,8 +14,8 @@
  *   Morpho Blue API                    blue-api.morpho.org/graphql              liquidations + positions
  *   Keyless archive RPCs (rotated)     Tenderly / dRPC / Blast / MEV Blocker / Nodies   archive eth_call
  *
- * E1 (Oct 10 2025) is NOT fetched here: it is public/data/oct10-2025/, already committed
- * with its own provenance. This script never reads .env.local and needs no key.
+ * E1 (Oct 10 2025) is NOT fetched here: it is oct10-2025/ in the datasets repo, with its own
+ * provenance (the app serves a copy at public/data/oct10-2025/). This script never reads .env.local and needs no key.
  */
 
 import { createHash } from 'node:crypto'
@@ -22,8 +23,11 @@ import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { datasetPath } from '../lib/datasetsDir.mjs'
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const OUT = join(ROOT, 'data', 'position-alerts')
+// Board rule N18: the data lives in the private datasets repo, never in this public repo.
+const OUT = datasetPath(ROOT, 'position-alerts')
 
 const BINANCE = 'https://data-api.binance.vision/api/v3/klines'
 const LLAMA = 'https://coins.llama.fi/chart'
@@ -567,7 +571,7 @@ async function main() {
   manifest.generator = 'scripts/research/build-position-alert-data.mjs'
   if (rpcUsed.size)
     manifest.archiveRpcsUsed = [...new Set([...(manifest.archiveRpcsUsed ?? []), ...rpcUsed])]
-  manifest.e1 = 'public/data/oct10-2025/ (committed separately; see its README)'
+  manifest.e1 = 'oct10-2025/ in the datasets repo (its own README and PROVENANCE.md)'
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
 }
 

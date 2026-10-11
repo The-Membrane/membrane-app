@@ -3,6 +3,7 @@ import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 
 import { decodeFlows } from '@/lib/curatorFeed/flows'
+import { seedDir } from '@/lib/curatorFeed/paths'
 import {
   buildAttributionResponse,
   buildExposureResponse,
@@ -20,10 +21,11 @@ import {
 } from '@/lib/curatorFeed/store'
 import handler from '@/pages/api/curator-feed'
 
-// Integrity of the committed dataset (public/data/curator-feed, written by
-// scripts/collect-curator-feed.ts). Skipped when the files are absent.
+// Integrity of the canonical dataset in the private datasets repo
+// ($MEMBRANE_DATASETS_DIR or ../membrane-datasets, dir curator-feed — board rule N18),
+// written by scripts/collect-curator-feed.ts --publish. Skipped when it is not checked out.
 
-const DIR = join(process.cwd(), 'public', 'data', 'curator-feed')
+const DIR = seedDir()
 const has = existsSync(join(DIR, 'feed.json'))
 const load = (n: string) => JSON.parse(readFileSync(join(DIR, n), 'utf8'))
 

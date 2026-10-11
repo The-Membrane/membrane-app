@@ -10,8 +10,10 @@ the Resolv / Stream / msUSD incidents members asked which vaults were exposed. S
 cutting rsETH in 2025 was a signal anyone could have followed.
 
 Page `/[chain]/curator-feed` · API `/api/curator-feed` · data `.data/curator-feed/` (live,
-written by each run) else `public/data/curator-feed/` (committed seed) · collector
-`pnpm curators:feed` (incremental; hourly in `scripts/recorder-tick.sh`).
+written by each run) else `curator-feed/` in the **private** repo `triccs/membrane-datasets`
+(`$MEMBRANE_DATASETS_DIR`, default `../membrane-datasets`; board rule N18 — no copy in
+this public repo; `lib/curatorFeed/paths.ts`) · collector `pnpm curators:feed`
+(incremental; hourly in `scripts/recorder-tick.sh`).
 
 ## Contract terms this lane shares
 
@@ -243,9 +245,9 @@ window — vault wind-downs and broad cuts; the text says so per cluster.
 ## Run it
 
 ```
-pnpm curators:feed                    # incremental from .data/curator-feed (else the seed)
+pnpm curators:feed                    # incremental from .data/curator-feed (else the datasets copy)
 pnpm curators:feed --full             # re-read the whole window (CURATOR_FEED_DAYS, default 182)
-pnpm curators:feed --full --publish   # … and refresh the committed seed
+pnpm curators:feed --full --publish   # … and write the datasets-repo copy + PROVENANCE.md
 pnpm curators:feed --exposure         # force a fresh exposure snapshot
 CURATOR_FEED_TO_BLOCK=<n>             # stop at block n (reproduce a run; check split = full)
 ```
@@ -254,7 +256,10 @@ A full run took 16.4 min on keyless endpoints; an hourly incremental run takes u
 Output: `feed.json` (meta in clear,
 entities/actions/attribution/spikes with hex strings interned), `flows.json`
 (dictionary-encoded daily rows, whole-token units at 6 significant digits),
-`exposure.json`, `state.json`. Budget < 20 MB; a test enforces it.
+`exposure.json`, `state.json`. Budget < 20 MB; a test enforces it. `--publish` also writes
+`PROVENANCE.md` (code commit, window, sha256 of each file); commit it in the datasets repo.
+A deployment needs the datasets repo (or `.data/curator-feed`) on disk; without it the API
+answers 503.
 
 ## API
 

@@ -12,11 +12,10 @@ import {
   parseFeedQuery,
   QueryError,
 } from '@/lib/curatorFeed/service'
+import { liveDir, seedDir } from '@/lib/curatorFeed/paths'
 import {
-  LIVE_DIR,
   parseExposureFile,
   parseFeedFile,
-  SEED_DIR,
   type ExposureFile,
   type FeedFile,
 } from '@/lib/curatorFeed/store'
@@ -34,14 +33,15 @@ import {
 //
 // DATA: written by scripts/collect-curator-feed.ts (pnpm curators:feed). LOCAL-FIRST:
 // .data/curator-feed (the collector's live copy, updated in place by the tick) when it
-// holds a feed, else the committed seed public/data/curator-feed. Read from disk,
-// re-parsed only when the file changes. Status
+// holds a feed, else the canonical copy in the private datasets repo
+// ($MEMBRANE_DATASETS_DIR or ../membrane-datasets, dir curator-feed — board rule N18; no
+// copy in public/). Read from disk, re-parsed only when the file changes. Status
 // (pending / executable / history) is computed against the request clock, so a cap
 // change leaves its timelock window without a re-collect. Cached: s-maxage 300.
 
 const dir = (): string => {
-  const live = join(process.cwd(), LIVE_DIR)
-  return existsSync(join(live, 'feed.json')) ? live : join(process.cwd(), SEED_DIR)
+  const live = liveDir()
+  return existsSync(join(live, 'feed.json')) ? live : seedDir()
 }
 
 type Cached<T> = { path: string; mtimeMs: number; value: T }
@@ -70,7 +70,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     feed = feedCache.value
   } catch (e) {
     return res.status(503).json({
-      error: `curator feed dataset unavailable — run pnpm curators:feed (${String((e as Error).message).slice(0, 120)})`,
+      // The fs code only: the message would carry a server path.
+      error: `curator feed dataset unavailable (${(e as NodeJS.ErrnoException).code ?? 'unreadable'}) — run pnpm curators:feed, or clone triccs/membrane-datasets next to the app (or set MEMBRANE_DATASETS_DIR)`,
     })
   }
   const nowS = Math.floor(Date.now() / 1000)

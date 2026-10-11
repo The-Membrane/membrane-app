@@ -2,13 +2,14 @@
 //
 //   pnpm curators:feed               incremental: read only blocks after the last run
 //   pnpm curators:feed --full        re-read the whole window (CURATOR_FEED_DAYS, default 182)
-//   pnpm curators:feed --publish     also refresh the committed seed (public/data/curator-feed)
+//   pnpm curators:feed --publish     also refresh the canonical copy in the private datasets
+//                                    repo (<datasets>/curator-feed + PROVENANCE.md, board N18)
 //   pnpm curators:feed --exposure    force a fresh exposure snapshot
 //   CURATOR_FEED_TO_BLOCK=<n>        stop at block n instead of the finalized head
 //
-// LOCAL-FIRST (lib/curatorFeed/store.ts): the run resumes from .data/curator-feed (else the
-// committed seed, else a full window) and writes .data/curator-feed. The API reads that live
-// copy before the seed. The window rolls: CURATOR_FEED_MAX_DAYS (default 190) of blocks are
+// LOCAL-FIRST (lib/curatorFeed/paths.ts): the run resumes from .data/curator-feed (else the
+// datasets-repo copy at $MEMBRANE_DATASETS_DIR or ../membrane-datasets, else a full window)
+// and writes .data/curator-feed. The API reads that live copy before the datasets copy. The window rolls: CURATOR_FEED_MAX_DAYS (default 190) of blocks are
 // kept, never less than CURATOR_FEED_DAYS once full; submits still open are never dropped.
 //
 // Each run, over [last block + 1, finalized head]:
@@ -33,6 +34,8 @@
 // RPC: env keys are never printed or stored (labels only). Labels: Morpho API curator
 // registry + vault list, Euler labels entities.json. Prices: Morpho API, collection time.
 
+import { execSync } from 'child_process'
+import { createHash } from 'crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
@@ -72,10 +75,9 @@ import {
   type BlueFlowLog,
   type RatePoint,
 } from '../lib/curatorFeed/spikes'
+import { datasetsRoot, liveDir, seedDir } from '../lib/curatorFeed/paths'
 import {
-  LIVE_DIR,
   SCHEMA,
-  SEED_DIR,
   encodeFeedFile,
   encodeStateFile,
   parseExposureFile,
@@ -243,8 +245,10 @@ interface Prev {
 }
 
 function loadPrev(): Prev | null {
-  for (const rel of [LIVE_DIR, SEED_DIR]) {
-    const dir = join(process.cwd(), rel)
+  for (const [rel, dir] of [
+    ['.data/curator-feed', liveDir()],
+    ['datasets/curator-feed', seedDir()],
+  ]) {
     if (!existsSync(join(dir, 'state.json'))) continue
     try {
       const read = (n: string) => JSON.parse(readFileSync(join(dir, n), 'utf8'))
@@ -277,6 +281,10 @@ const emptyEntities = (): Entities => ({
 async function main() {
   const t0 = Date.now()
   const startedAt = new Date().toISOString()
+  if (PUBLISH && !existsSync(datasetsRoot()))
+    throw new Error(
+      '--publish writes to the private datasets repo: clone triccs/membrane-datasets next to the app or set MEMBRANE_DATASETS_DIR',
+    )
   log(`endpoints: ${rpc.endpoints.map((e) => e.label).join(', ')}`)
   // CURATOR_FEED_TO_BLOCK pins the head (reproducing a run, or checking incremental = full).
   const pinned = process.env.CURATOR_FEED_TO_BLOCK
@@ -1136,9 +1144,11 @@ async function main() {
     spikes: merged.feed.spikes,
   }
 
-  const dirs = uniq([LIVE_DIR, ...(PUBLISH ? [SEED_DIR] : [])])
-  for (const rel of dirs) {
-    const dir = join(process.cwd(), rel)
+  const dirs: [string, string][] = [
+    ['.data/curator-feed', liveDir()],
+    ...(PUBLISH ? [['datasets/curator-feed', seedDir()] as [string, string]] : []),
+  ]
+  for (const [rel, dir] of dirs) {
     mkdirSync(dir, { recursive: true })
     const write = (name: string, obj: unknown) => {
       const s = JSON.stringify(obj) + '\n'
@@ -1158,6 +1168,7 @@ async function main() {
         .map(([k, v]) => `${k} ${(v / 1e6).toFixed(2)} MB`)
         .join(', ')}`,
     )
+    if (rel.startsWith('datasets/')) writeProvenance(dir, meta)
   }
   log(
     `done in ${((Date.now() - t0) / 60000).toFixed(1)} min; getLogs ${JSON.stringify(rpc.logStats)}`,
@@ -1178,6 +1189,42 @@ const CAVEATS = [
   'Euler Earn strategies can accept several collaterals; their exits are listed but not counted in collateral clusters.',
   'A cluster counts an exit only when the vault kept no other market with that collateral capped, read at the exit block; PT exits within 14 days of maturity are excluded as roll-offs.',
 ]
+
+/** PROVENANCE.md for the datasets-repo copy (format of triccs/membrane-datasets README). */
+function writeProvenance(dir: string, meta: FeedMeta): void {
+  const git = (cmd: string) => {
+    try {
+      return execSync(`git ${cmd}`, { cwd: process.cwd(), stdio: ['ignore', 'pipe', 'ignore'] })
+        .toString()
+        .trim()
+    } catch {
+      return 'unknown'
+    }
+  }
+  const rows = ['exposure.json', 'feed.json', 'flows.json', 'state.json'].map((f) => {
+    const buf = readFileSync(join(dir, f))
+    return `| \`${f}\` | ${buf.length} | \`${createHash('sha256').update(buf).digest('hex')}\` |`
+  })
+  const day = (ts: number) => new Date(ts * 1000).toISOString().slice(0, 16).replace('T', ' ')
+  const text = [
+    '# curator-feed — provenance',
+    '',
+    `- **Source:** \`The-Membrane/membrane-app\` branch \`${git('rev-parse --abbrev-ref HEAD')}\` at \`${git('rev-parse HEAD')}\`, written by \`scripts/collect-curator-feed.ts --publish\``,
+    `- **Collected:** ${meta.collectedAt} (${meta.lastRun?.mode ?? 'full'} run)`,
+    `- **Window:** Ethereum mainnet blocks ${meta.fromBlock}–${meta.toBlock} (${day(meta.fromTs)} → ${day(meta.toTs)} UTC, finalized head)`,
+    '- **Status:** CANONICAL. membrane-app reads it here ($MEMBRANE_DATASETS_DIR or ../membrane-datasets) and keeps no copy in `public/` (board rule N18).',
+    '- **Format:** `lib/curatorFeed/store.ts` (schema ' +
+      meta.schema +
+      '); method: `docs/CURATOR_ACTION_FEED.md`.',
+    '',
+    '| file | bytes | sha256 |',
+    '|---|---:|---|',
+    ...rows,
+    '',
+  ].join('\n')
+  writeFileSync(join(dir, 'PROVENANCE.md'), text)
+  log(`wrote ${join('datasets/curator-feed', 'PROVENANCE.md')}`)
+}
 
 function addLogStats(a: FeedMeta['logs'], b: FeedMeta['logs']): FeedMeta['logs'] {
   const sum = (x: Record<string, number>, y: Record<string, number>) => {

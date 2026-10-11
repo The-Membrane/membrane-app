@@ -13,7 +13,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import type { Comparison } from '@/lib/position-sim'
-import { OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
+import { OCT10_STAKES, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 import {
   LABEL,
   NEWS,
@@ -95,7 +95,7 @@ const NewsHeroChart: React.FC = () => (
     </Box>
     <Box flex="999 1 520px" minW={0} display="flex" flexDirection="column" gap="14px">
       <Text fontFamily={NEWS_FONT.mono} fontSize="12px" letterSpacing="0.1em" color={NEWS.muted} {...tabular}>
-        10 Oct 2025 · {OCT10_TOTALS.accounts.toLocaleString('en-US')} liquidated accounts
+        {OCT10_STAKES.date} · {OCT10_TOTALS.accounts.toLocaleString('en-US')} liquidated accounts
       </Text>
       <Box
         role="img"

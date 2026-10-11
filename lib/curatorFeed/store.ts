@@ -8,12 +8,13 @@
  *   state.json     what an incremental run carries over (verified emitters, allocators,
  *                  classifier replay state, last rate per market). Not read by the API.
  *
- * TWO LOCATIONS (local-first, like lib/netApy/store.ts):
- *   LIVE_DIR  .data/curator-feed          the collector's working copy, git-ignored; the
+ * TWO LOCATIONS (local-first, like lib/netApy/store.ts; paths in ./paths.ts):
+ *   live  .data/curator-feed              the collector's working copy, git-ignored; the
  *                                         hourly tick updates it in place
- *   SEED_DIR  public/data/curator-feed    the committed snapshot (`--publish` refreshes it)
- * The API reads LIVE_DIR when it holds a feed, else SEED_DIR. The collector resumes from
- * LIVE_DIR, else from SEED_DIR, else starts a full window.
+ *   seed  <datasets>/curator-feed         the canonical copy in the private datasets repo
+ *                                         (board rule N18); `--publish` refreshes it
+ * The API reads live when it holds a feed, else seed. The collector resumes from live,
+ * else from seed, else starts a full window.
  */
 
 import type { EmitterKind } from './abi'
@@ -22,9 +23,8 @@ import type { AttributionCase, Entities, ExposureVault, FeedAction, SpikeCase } 
 
 export const SCHEMA = 2
 
-/** Relative to the app root (process.cwd()). */
+/** The collector's working copy, relative to the app root (process.cwd()). */
 export const LIVE_DIR = '.data/curator-feed'
-export const SEED_DIR = 'public/data/curator-feed'
 
 export interface FeedMeta {
   schema: number

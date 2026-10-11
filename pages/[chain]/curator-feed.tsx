@@ -3,8 +3,9 @@ import dynamic from 'next/dynamic'
 
 import PageSeo from '@/components/PageSeo'
 
-// Client-rendered: the feed is read from /api/curator-feed (public/data/curator-feed,
-// written by pnpm curators:feed) and its pending / executable status follows the clock.
+// Client-rendered: the feed is read from /api/curator-feed (.data/curator-feed, else the
+// private datasets repo — lib/curatorFeed/paths.ts) and its pending / executable status
+// follows the clock.
 const CuratorFeed = dynamic(
   () => import('@/components/CuratorFeed/CuratorFeed').then((m) => m.CuratorFeed),
   { ssr: false },

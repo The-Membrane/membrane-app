@@ -82,12 +82,26 @@ import {
   type VenueRecall,
 } from '@/lib/position-sim'
 
+import {
+  Kicker,
+  LABEL,
+  NEWS,
+  NEWS_FONT,
+  NewsEditionProvider,
+  NewsMasthead,
+  RailCard,
+  sectionKicker,
+  shortAddress,
+  useNewsEdition,
+} from '@/components/NewsEdition'
+import { OCT10_PRICE_PATH, OCT10_STAKES } from '@/lib/position-sim/oct10Totals'
+
 import ComparisonPanel from './ComparisonPanel'
 import type { ControlValues } from './Controls'
 import DeploymentSection from './DeploymentSection'
 import EventLog from './EventLog'
 import FinePrint from './FinePrint'
-import CarrySection from './CarrySection'
+import CarrySection, { CapacityMoveBody, LIVE_LOG } from './CarrySection'
 import { usd } from './format'
 import GuaranteeBlock from './GuaranteeBlock'
 import HistoryProof from './HistoryProof'
@@ -95,7 +109,8 @@ import { useSimHistory } from './hooks/useSimHistory'
 import { fmtLocalDayClock, useLocalZone } from './localClock'
 import { recordLandingEvent } from './recordLandingEvent'
 import { recordSimRead } from './recordRead'
-import VerdictHero from './VerdictHero'
+import Stamp from './Stamp'
+import VerdictHero, { OCT10_PROV } from './VerdictHero'
 import Logo from '@/components/Logo'
 
 /**
@@ -136,7 +151,55 @@ const Section: React.FC<{
    *  where the 4% window IS the subject, so the one distinctive device on the page
    *  appears at three scales instead of firing once. */
   mark?: boolean
-}> = ({ tone = 'plain', first = false, mark = false, children }) => (
+  /** News edition only: the anchor the "In this edition" index links to. */
+  id?: string
+  /** News edition only: the section head above the band. */
+  kicker?: React.ReactNode
+}> = ({ tone = 'plain', first = false, mark = false, id, kicker, children }) => {
+  const news = useNewsEdition()
+  if (news)
+    return (
+    // THE NEWS BAND: paper throughout (no alternating grounds), a heavy ink rule
+    // above every band but the first, and the numbered kicker. Solid rules only.
+    <Box
+      as="section"
+      id={id}
+      data-news-section={id ? '' : undefined}
+      minW={0}
+      display="grid"
+      gridTemplateColumns="minmax(0, 1fr)"
+      gap="14px"
+      position="relative"
+      mt={first ? 0 : '30px'}
+      pt={first ? '30px' : '12px'}
+      pb={first ? '28px' : 0}
+      borderTop={first ? undefined : '3px solid'}
+      borderColor={NEWS.ink}
+      sx={{ '& *:not(table)': { minWidth: 0 } }}
+    >
+      {mark && (
+        <Text
+          aria-hidden="true"
+          position="absolute"
+          top="10px"
+          right={0}
+          fontFamily={NEWS_FONT.display}
+          fontWeight={700}
+          fontSize="clamp(24px, 3vw, 34px)"
+          lineHeight={1}
+          color={NEWS.accent}
+          opacity={0.55}
+          userSelect="none"
+          pointerEvents="none"
+        >
+          {GUARANTEE.name}
+        </Text>
+      )}
+      {kicker && <Kicker>{kicker}</Kicker>}
+      {children}
+    </Box>
+  )
+  return (
   <Box
     as="section"
     minW={0}
@@ -170,7 +233,8 @@ const Section: React.FC<{
     )}
     {children}
   </Box>
-)
+  )
+}
 
 const HEAD = {
   fontFamily: TYPOGRAPHY.fontMono,
@@ -244,6 +308,13 @@ export interface SimulatorProps {
    * scores. Absent everywhere else, so /[chain]/simulator records nothing.
    */
   landingVariant?: LandingVariant
+  /**
+   * THE NEWS EDITION (owner rulings T20 / Q11). Set only by the landing page,
+   * /[chain]/simulator: the page renders as the newspaper — masthead, rail, index,
+   * numbered kickers, and the --news-* palette (styles/news-edition.css). Absent
+   * everywhere else, where the page renders exactly as before.
+   */
+  edition?: 'news'
 }
 
 export const Simulator: React.FC<SimulatorProps> = ({
@@ -252,7 +323,9 @@ export const Simulator: React.FC<SimulatorProps> = ({
   connectLabel,
   readNote,
   landingVariant,
+  edition,
 }) => {
+  const news = edition === 'news' && !hero
   const router = useRouter()
   const zone = useLocalZone()
   /** Keeps the sibling-mode link on the chain the reader is already on. */
@@ -668,16 +741,59 @@ export const Simulator: React.FC<SimulatorProps> = ({
     return comparison.membrane.events.filter((e) => e.kind === 'recall' || e.kind === 'cure')
   }, [comparison])
 
+  /** News edition: the verdict's kicker names the position on screen. */
+  const verdictKicker = selected ? (
+    <>
+      {sectionKicker('verdict')} · {selected.label} ·{' '}
+      <Text as="span" textTransform="none">
+        {shortAddress(historyAddress)}
+      </Text>{' '}
+      · {selected.collateral.map((c) => c.symbol).join(' + ')} /{' '}
+      {selected.debt.map((d) => d.symbol).join(' + ')}
+    </>
+  ) : (
+    sectionKicker('verdict')
+  )
+
+  /** News edition: the masthead's left rail. Every line is an existing copy source. */
+  const rail = (
+    <>
+      <Text
+        alignSelf="flex-start"
+        border="1px solid"
+        borderColor={NEWS.muted}
+        px="10px"
+        py="6px"
+        {...LABEL}
+        letterSpacing="0.14em"
+        color={NEWS.muted}
+        lineHeight={1.5}
+      >
+        Price path: {OCT10_PRICE_PATH.source} · {OCT10_PRICE_PATH.window}
+      </Text>
+      <RailCard tone={NEWS.danger} label={OCT10_STAKES.headline} testId="sim-oct10-stakes">
+        <Text fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.muted} {...tabular}>
+          {OCT10_STAKES.date} · {OCT10_STAKES.accounts}
+        </Text>
+        <Stamp provenance={OCT10_PROV} />
+      </RailCard>
+      <RailCard tone={NEWS.info} label="latest measured capacity move">
+        <CapacityMoveBody rail />
+        <Stamp provenance={LIVE_LOG} />
+      </RailCard>
+    </>
+  )
+
   // ------------------------------------------------------------------ render
-  return (
+  const page = (
     <Box
-      maxW="1240px"
+      maxW={news ? '1200px' : '1240px'}
       mx="auto"
       // Hero form lives inside the landing's own container: no inset of its own, so the
       // verdict shares the h1's left edge (alignment is grouping).
-      px={hero ? 0 : { base: SPACING.md, md: SPACING.lg }}
+      px={hero || news ? 0 : { base: SPACING.md, md: SPACING.lg }}
       w={hero ? '100%' : undefined}
-      pb={hero ? 0 : SPACING['2xl']}
+      pb={hero || news ? 0 : SPACING['2xl']}
       fontFamily={TYPOGRAPHY.fontMono}
       color={SEMANTIC_COLORS.textPrimary}
       display="grid"
@@ -686,7 +802,8 @@ export const Simulator: React.FC<SimulatorProps> = ({
       {/* 1 — THE HERO. The verdict, the gap, the paste card, the graph that draws
           itself. No eyebrow, no thesis sentence, no disclosure box: those are §7.
           Borderless: it opens the page and has nothing above it to be separated from. */}
-      <Section first>
+      {news && <NewsMasthead rail={rail} />}
+      <Section first id="verdict" kicker={news ? verdictKicker : undefined}>
         <VerdictHero
           comparison={comparison}
           carry={carry}
@@ -727,8 +844,12 @@ export const Simulator: React.FC<SimulatorProps> = ({
                     variant="outline"
                     size="sm"
                     borderRadius={0}
-                    borderColor={active ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.borderStrong}
-                    color={active ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textPrimary}
+                    borderColor={
+                      active ? (news ? NEWS.accent : SEMANTIC_COLORS.success) : SEMANTIC_COLORS.borderStrong
+                    }
+                    color={
+                      active ? (news ? NEWS.accent : SEMANTIC_COLORS.success) : SEMANTIC_COLORS.textPrimary
+                    }
                     whiteSpace="normal"
                     height="auto"
                     minH="36px"
@@ -744,7 +865,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
       </Section>
 
       {/* 2 — THE GUARANTEE, verbatim from GUARANTEE. Limit adjacent, never collapsed. */}
-      <Section>
+      <Section id="guarantee" kicker={news ? sectionKicker('guarantee') : undefined}>
         <GuaranteeBlock />
 
         {/* 2h — WHY IT HELD. Hero form only: the guarantee states the rule, this states
@@ -799,7 +920,11 @@ export const Simulator: React.FC<SimulatorProps> = ({
           actually happened to the address on screen. A wallet with no history says so
           in one line and prints no number — never a manufactured near-miss.
           EVIDENCE band: measured events, not a claim. */}
-          <Section tone="evidence">
+          <Section
+            tone="evidence"
+            id="history"
+            kicker={news ? sectionKicker('history') : undefined}
+          >
             <HistoryProof address={historyAddress} />
           </Section>
 
@@ -808,15 +933,19 @@ export const Simulator: React.FC<SimulatorProps> = ({
           thing below the hero, on BOTH builds (it carries the claims that used to
           render standalone on the carry page), and it sells with live evidence rather
           than description. Its numbers are fetched or stamped modelled, never invented. */}
-          <Section tone="evidence">
+          <Section
+            tone="evidence"
+            id="product"
+            kicker={news ? sectionKicker('product') : undefined}
+          >
             <CarrySection positionDebtUsd={selected?.totalDebtUsd ?? 0} />
           </Section>
 
           {/* THE RUN. Keep the evidence receipt; model inputs remain in FinePrint. */}
           {selected && (
-            <Section tone="evidence" mark>
+            <Section tone="evidence" mark kicker={news ? 'the run' : undefined}>
               <Box minW={0} display="grid" gridTemplateColumns="minmax(0, 1fr)" gap={SPACING.md}>
-                <Text {...SECTION}>the run</Text>
+                {!news && <Text {...SECTION}>the run</Text>}
 
                 {measuredError && (
                   <Text {...monoXs} color={SEMANTIC_COLORS.warning} lineHeight={1.6}>
@@ -850,7 +979,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
           )}
 
           {/* 7 — FINE PRINT. Always rendered, never collapsed, last block before the CTA. */}
-          <Section>
+          <Section id="fine" kicker={news ? sectionKicker('fine') : undefined}>
             <FinePrint
               caveats={runCaveats}
               unpricedSymbols={comparison?.unpricedSymbols ?? []}
@@ -865,72 +994,143 @@ export const Simulator: React.FC<SimulatorProps> = ({
             />
           </Section>
 
-          {/* 8 — BACK TO THE TOP (owner 2026-09-22, replaces the repeated CTA). One control
-          in the section-label style, so it reads as part of the page's own labelling
-          rather than a widget. The hero holds the paste box it scrolls to. */}
-          <Box display="flex" justifyContent="center" pt={SPACING.xl}>
-            <Button
-              type="button"
-              data-testid="sim-jump-top"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              variant="unstyled"
-              display="inline-flex"
-              alignItems="center"
-              gap={SPACING.sm}
-              h="auto"
-              px={SPACING.md}
-              py={SPACING.sm}
-              border="1px solid"
+          {news ? (
+            /* THE NEWS FOOT (canvas): one ruled line — the wordmark, the provenance every
+               claim stands on, back to the top, and the other build. Same controls and
+               test ids as the default foot below; only the arrangement changes. */
+            <Box
+              as="footer"
+              data-testid="sim-footer"
+              mt="34px"
+              pt="16px"
+              borderTop="1px solid"
+              borderColor={NEWS.ink}
+              display="flex"
+              flexWrap="wrap"
+              alignItems="baseline"
+              gap="10px 24px"
+            >
+              <Text
+                as="span"
+                fontFamily={NEWS_FONT.display}
+                fontWeight={700}
+                fontSize="24px"
+                lineHeight={1.1}
+                color={NEWS.ink}
+              >
+                Membrane
+              </Text>
+              <Text as="span" fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.muted}>
+                {GUARANTEE.provenance}
+              </Text>
+              <Box as="span" flexGrow={1} />
+              <Button
+                type="button"
+                data-testid="sim-jump-top"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                variant="unstyled"
+                h="auto"
+                minH="44px"
+                fontFamily={NEWS_FONT.mono}
+                fontSize="12px"
+                fontWeight={400}
+                color={NEWS.ink2}
+                textDecoration="underline"
+                _hover={{ color: NEWS.accent }}
+              >
+                back to the top
+              </Button>
+              <Text as="span" fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.accent}>
+                <NextLink href={`/${chainForLinks}${SIM_ROUTE[OTHER_MODE[mode]]}`}>
+                  {SIM_MODE_LINK_LABEL[OTHER_MODE[mode]]}
+                </NextLink>
+              </Text>
+            </Box>
+          ) : (
+            <>
+            {/* 8 — BACK TO THE TOP (owner 2026-09-22, replaces the repeated CTA). One control
+            in the section-label style, so it reads as part of the page's own labelling
+            rather than a widget. The hero holds the paste box it scrolls to. */}
+            <Box display="flex" justifyContent="center" pt={SPACING.xl}>
+              <Button
+                type="button"
+                data-testid="sim-jump-top"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                variant="unstyled"
+                display="inline-flex"
+                alignItems="center"
+                gap={SPACING.sm}
+                h="auto"
+                px={SPACING.md}
+                py={SPACING.sm}
+                border="1px solid"
+                borderColor={SEMANTIC_COLORS.borderStrong}
+                borderRadius={0}
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="10px"
+                letterSpacing="0.24em"
+                textTransform="uppercase"
+                color={SEMANTIC_COLORS.textSecondary}
+                _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+              >
+                back to the top
+              </Button>
+            </Box>
+
+            {/* FOOTER (brand #4, 2026-09-22): the wordmark at the bottom as well as the top,
+            with the one provenance line every claim on the page stands on. */}
+            <Box
+              as="footer"
+              data-testid="sim-footer"
+              mt={SPACING.xl}
+              pt={SPACING.lg}
+              borderTop="1px solid"
               borderColor={SEMANTIC_COLORS.borderStrong}
-              borderRadius={0}
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="10px"
-              letterSpacing="0.24em"
-              textTransform="uppercase"
-              color={SEMANTIC_COLORS.textSecondary}
-              _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+              display="flex"
+              flexWrap="wrap"
+              alignItems="center"
+              justifyContent="space-between"
+              gap={SPACING.base}
             >
-              back to the top
-            </Button>
-          </Box>
+              <Logo height="28px" />
+              <Text
+                {...monoXs}
+                color={SEMANTIC_COLORS.textTertiary}
+                letterSpacing="0.12em"
+                textAlign="right"
+              >
+                {GUARANTEE.provenance}
+              </Text>
+            </Box>
 
-          {/* FOOTER (brand #4, 2026-09-22): the wordmark at the bottom as well as the top,
-          with the one provenance line every claim on the page stands on. */}
-          <Box
-            as="footer"
-            data-testid="sim-footer"
-            mt={SPACING.xl}
-            pt={SPACING.lg}
-            borderTop="1px solid"
-            borderColor={SEMANTIC_COLORS.borderStrong}
-            display="flex"
-            flexWrap="wrap"
-            alignItems="center"
-            justifyContent="space-between"
-            gap={SPACING.base}
-          >
-            <Logo height="28px" />
-            <Text
-              {...monoXs}
-              color={SEMANTIC_COLORS.textTertiary}
-              letterSpacing="0.12em"
-              textAlign="right"
-            >
-              {GUARANTEE.provenance}
+            {/* 9 — THE OTHER BUILD. Both simulators are live and indexable; only one of them
+            is the landing page (config/simulatorMode.ts). One line, at the foot, so the
+            other ordering is reachable without spending a nav slot on it. Not a section:
+            a footnote below the last band. */}
+            <Text {...monoXs} color={SEMANTIC_COLORS.textSecondary} pt={SPACING.base}>
+              <NextLink href={`/${chainForLinks}${SIM_ROUTE[OTHER_MODE[mode]]}`}>
+                {SIM_MODE_LINK_LABEL[OTHER_MODE[mode]]}
+              </NextLink>
             </Text>
-          </Box>
-
-          {/* 9 — THE OTHER BUILD. Both simulators are live and indexable; only one of them
-          is the landing page (config/simulatorMode.ts). One line, at the foot, so the
-          other ordering is reachable without spending a nav slot on it. Not a section:
-          a footnote below the last band. */}
-          <Text {...monoXs} color={SEMANTIC_COLORS.textSecondary} pt={SPACING.base}>
-            <NextLink href={`/${chainForLinks}${SIM_ROUTE[OTHER_MODE[mode]]}`}>
-              {SIM_MODE_LINK_LABEL[OTHER_MODE[mode]]}
-            </NextLink>
-          </Text>
+            </>
+          )}
         </>
       )}
+    </Box>
+  )
+
+  if (!news) return page
+  return (
+    <Box
+      className="news-edition"
+      w="100%"
+      px={{ base: '16px', md: '24px' }}
+      pt="12px"
+      pb="56px"
+      fontFamily={NEWS_FONT.mono}
+      color={NEWS.ink}
+    >
+      <NewsEditionProvider>{page}</NewsEditionProvider>
     </Box>
   )
 }

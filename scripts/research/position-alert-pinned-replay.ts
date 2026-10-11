@@ -22,7 +22,7 @@
  * (public: per cluster, no position identifier). Deterministic: no network.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 
@@ -44,7 +44,10 @@ import {
 
 const ROOT = process.cwd()
 const PINNED = join(datasetsDir(ROOT), 'position-alerts', 'pinned')
-const E2_FILE = join(datasetsDir(ROOT), 'position-alerts', 'e2-stream-nov-2025.json')
+/** E2 venue files, one shape (markets, positions, liquidations, marketPrices). Morpho first. */
+const E2_FILES = ['e2-stream-nov-2025.json', 'e2-offmorpho-nov-2025.json'].map((f) =>
+  join(datasetsDir(ROOT), 'position-alerts', f),
+)
 const DS = datasetsDir(ROOT)
 const INTERNAL_OUT = join(datasetsDir(ROOT), 'position-alerts', 'pinned-results.json')
 const PUBLIC_OUT = join(ROOT, 'docs', 'research', 'position-alerts-pinned-results.json')
@@ -102,6 +105,9 @@ interface PositionResult {
   criticalFalse: number
   /** Tier at the first read (0 = none). */
   firstReadLevel: number
+  /** First warn-or-higher (critical) message to this position, at or before its breach. */
+  firstWarnTs: number | null
+  firstCriticalTs: number | null
 }
 
 interface Lead {
@@ -156,6 +162,13 @@ function runPath(p: Path, config: AlertConfig, everyS: number): PositionResult {
   const warnS = scoreReplay(r, { minLevel: 2, horizonS: HORIZON_S })
   const critS = scoreReplay(r, { minLevel: 3, horizonS: HORIZON_S })
   const firstRead = r.alerts.filter((a) => a.ts === r.firstEvalTs)
+  const firstAt = (minLevel: 2 | 3) =>
+    r.messages.find(
+      (a) =>
+        a.to >= minLevel &&
+        (a.transition === 'fire' || a.transition === 'escalate') &&
+        (r.liquidatedAt === null || a.ts <= r.liquidatedAt),
+    )?.ts ?? null
   return {
     id: p.id,
     cluster: p.cluster,
@@ -171,6 +184,8 @@ function runPath(p: Path, config: AlertConfig, everyS: number): PositionResult {
     criticalMessages: critS.worsening,
     criticalFalse: critS.falseAlarms,
     firstReadLevel: firstRead.reduce((m, a) => Math.max(m, a.to), 0),
+    firstWarnTs: firstAt(2),
+    firstCriticalTs: firstAt(3),
   }
 }
 
@@ -235,6 +250,53 @@ function gate(clusters: ClusterSummary[]) {
   }
 }
 
+/**
+ * G2 read per cluster (owner ruling 2026-10-11): a breached cluster passes when a warn-or-higher
+ * message to ANY of its members came at or before the cluster's first breach (stamped at the
+ * start of the breach interval, so the message precedes the breach sample). firstBreacherWarned
+ * is the stricter variant: the member that breached first was itself warned first.
+ */
+function clusterGate(rows: PositionResult[]) {
+  const by = new Map<string, PositionResult[]>()
+  for (const r of rows) by.set(r.cluster, [...(by.get(r.cluster) ?? []), r])
+  const perCluster = [...by.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([cluster, rs]) => {
+      const br = rs.filter((r) => r.breachTs !== null)
+      const firstBreachTs = br.length ? Math.min(...br.map((r) => r.breachTs as number)) : null
+      const warns =
+        firstBreachTs === null
+          ? []
+          : rs
+              .map((r) => r.firstWarnTs)
+              .filter((t): t is number => t !== null && t <= firstBreachTs)
+      const earliestWarn = warns.length ? Math.min(...warns) : null
+      const first = br.filter((r) => r.breachTs === firstBreachTs)
+      return {
+        cluster,
+        members: rs.length,
+        breached: br.length,
+        firstBreachTs,
+        earliestWarnTs: earliestWarn,
+        leadS:
+          earliestWarn === null || firstBreachTs === null ? null : firstBreachTs - earliestWarn,
+        passes: br.length === 0 || earliestWarn !== null,
+        firstBreacherWarned:
+          br.length === 0 || first.every((r) => r.warn.alertedBeforeBreach === true),
+        membersWarnedFirst: br.filter((r) => r.warn.alertedBeforeBreach).length,
+      }
+    })
+  const breached = perCluster.filter((c) => c.breached > 0)
+  return {
+    breachedClusters: breached.length,
+    passed: breached.filter((c) => c.passes).length,
+    firstBreacherWarned: breached.filter((c) => c.firstBreacherWarned).length,
+    failed: breached.filter((c) => !c.passes).map((c) => c.cluster),
+    met: breached.every((c) => c.passes),
+    perCluster,
+  }
+}
+
 function runEvent(paths: Path[], config: AlertConfig, cadences = CADENCES) {
   const byCadence = cadences.map(({ label, everyS }) => {
     const rows = paths.map((p) => runPath(p, config, everyS))
@@ -249,6 +311,13 @@ function runEvent(paths: Path[], config: AlertConfig, cadences = CADENCES) {
       gateScoreable: {
         ...gate(summarise(scoreable)),
         startBelowOne: rows.length - scoreable.length,
+      },
+      // The owner's reading of G2 (2026-10-11), on the scoreable paths.
+      gateCluster: {
+        ...clusterGate(scoreable),
+        notScoreableClusters: [...new Set(rows.map((r) => r.cluster))].filter(
+          (c) => !scoreable.some((r) => r.cluster === c),
+        ),
       },
       clusters,
       rows,
@@ -562,27 +631,64 @@ interface E2Point {
   collateralUsd: number | null
   borrow: number | null
   borrowUsd: number | null
+  /** Off-Morpho builder: liquidation threshold at this point (value-weighted over Stream parts). */
+  lt?: number
+  /** Off-Morpho builder: market value of the Stream collateral; null = no market price (xBTC, xETH). */
+  marketValueUsd?: number | null
+  /** Euler / Gearbox: the venue's own risk-adjusted collateral value, all collateral included. */
+  adjustedCollateralUsd?: number | null
 }
 
-const e2 = JSON.parse(readFileSync(E2_FILE, 'utf8'))
+interface E2Market {
+  venue: string
+  chainId: number
+  marketId: string
+  collateral: string
+  loan: string
+  /** Liquidation LTV (Morpho LLTV, Euler liquidation LTV, Silo LT). */
+  lltv: number
+}
+interface E2File {
+  specWindow: { fromTs: number; toTs: number }
+  historyWindow: { fromTs: number; toTs: number }
+  uncovered?: string
+  markets: (Omit<E2Market, 'venue'> & { venue?: string })[]
+  positions: {
+    venue?: string
+    chainId: number
+    marketId: string
+    user: string
+    history: E2Point[]
+  }[]
+  liquidations: { venue?: string; user: string; marketId: string; chainId: number; ts: number }[]
+  marketPrices: Record<string, { series: [number, number][] }>
+}
+const e2Files: E2File[] = E2_FILES.filter((f) => existsSync(f)).map((f) =>
+  JSON.parse(readFileSync(f, 'utf8')),
+)
+const e2 = {
+  specWindow: e2Files[0].specWindow,
+  historyWindow: e2Files[0].historyWindow,
+  uncovered: e2Files.map((f) => f.uncovered).filter(Boolean),
+  liquidations: e2Files.flatMap((f) =>
+    f.liquidations.map((l) => ({ ...l, venue: l.venue ?? 'morpho' })),
+  ),
+}
 const E2_MIN_DEBT = 1_000
-const e2Market = new Map<
-  string,
-  { collateral: string; loan: string; lltv: number; chainId: number }
->(
-  e2.markets.map(
-    (m: { chainId: number; marketId: string; collateral: string; loan: string; lltv: number }) => [
-      `${m.chainId}:${m.marketId}`,
-      m,
-    ],
+const e2Key = (venue: string, chainId: number, marketId: string) =>
+  `${venue}:${chainId}:${marketId.toLowerCase()}`
+const e2Market = new Map<string, E2Market>(
+  e2Files.flatMap((f) =>
+    f.markets.map((m) => {
+      const mm = { ...m, venue: m.venue ?? 'morpho' }
+      return [e2Key(mm.venue, m.chainId, m.marketId), mm] as const
+    }),
   ),
 )
-/** Market price at ts (last point at or before), by collateral symbol. */
-const e2PriceSeries: Record<string, [number, number][]> = Object.fromEntries(
-  Object.entries(e2.marketPrices as Record<string, { series: [number, number][] }>).map(
-    ([k, v]) => [k, v.series],
-  ),
-)
+/** Market price at ts (last point at or before), by collateral symbol. The first file wins. */
+const e2PriceSeries: Record<string, [number, number][]> = {}
+for (const f of e2Files)
+  for (const [k, v] of Object.entries(f.marketPrices)) e2PriceSeries[k] ??= v.series
 function priceAt(series: [number, number][] | undefined, ts: number): number | null {
   if (!series?.length || ts < series[0][0]) return null
   let lo = 0
@@ -598,6 +704,7 @@ function priceAt(series: [number, number][] | undefined, ts: number): number | n
 interface E2Prepared {
   id: string
   cluster: string
+  venue: string
   collateral: string
   lltv: number
   hardcoded: boolean
@@ -608,15 +715,29 @@ interface E2Prepared {
 }
 
 const e2Prepared: E2Prepared[] = []
-const e2OpenedLate: { collateral: string; openedTs: number }[] = []
+const e2OpenedLate: { venue: string; collateral: string; openedTs: number }[] = []
+const e2Mixed: { venue: string; collateral: string; streamShare: number }[] = []
 let e2Dust = 0
-for (const p of e2.positions as {
-  chainId: number
-  marketId: string
-  user: string
-  history: E2Point[]
-}[]) {
-  const m = e2Market.get(`${p.chainId}:${p.marketId}`)!
+/** Dataset bands (sources/clusters.ts): buffer to the line, and debt size. */
+const ltvBand = (lltv: number, ltv: number) => {
+  const d = Math.round((lltv - ltv) * 1e12) / 1e12
+  return d < 0 ? 'd<0' : d < 0.01 ? 'd0-1pp' : d < 0.02 ? 'd1-2pp' : d < 0.05 ? 'd2-5pp' : 'd5pp+'
+}
+const sizeBand = (debt: number) =>
+  debt < 10_000
+    ? 's1k-10k'
+    : debt < 100_000
+      ? 's10k-100k'
+      : debt < 1_000_000
+        ? 's100k-1m'
+        : debt < 10_000_000
+          ? 's1m-10m'
+          : 's10m+'
+for (const p of e2Files.flatMap((f) =>
+  f.positions.map((x) => ({ ...x, venue: x.venue ?? 'morpho' })),
+)) {
+  const m = e2Market.get(e2Key(p.venue, p.chainId, p.marketId))
+  if (!m) throw new Error(`E2: no market ${p.venue} ${p.chainId} ${p.marketId}`)
   const pts = p.history.filter(
     (x) => (x.borrow ?? 0) > 0 && (x.collateral ?? 0) > 0 && x.collateralValue !== null,
   )
@@ -628,23 +749,55 @@ for (const p of e2.positions as {
   // The cohort is the positions open at the window start (as E3 positions_start and E4
   // positions_t0). A position opened mid-collapse against a fixed oracle is not a victim.
   if (pts[0].ts > e2.specWindow.fromTs) {
-    e2OpenedLate.push({ collateral: m.collateral, openedTs: pts[0].ts })
+    e2OpenedLate.push({ venue: m.venue, collateral: m.collateral, openedTs: pts[0].ts })
     continue
+  }
+  // A Euler or Gearbox account that also posts non-Stream collateral is not this event's
+  // position: its health factor rests on the other collateral too. Keep Stream-only accounts.
+  const first = inWin[0]
+  if (first.adjustedCollateralUsd != null && first.collateralValue) {
+    const streamAdj = first.collateralValue * (first.lt ?? m.lltv)
+    const share = streamAdj / first.adjustedCollateralUsd
+    if (share < 0.95) {
+      e2Mixed.push({
+        venue: m.venue,
+        collateral: m.collateral,
+        streamShare: round(share, 3) as number,
+      })
+      continue
+    }
   }
   const sym = m.collateral.startsWith('PT-') ? null : m.collateral
   const series = sym ? e2PriceSeries[sym] : undefined
   const fallback = sym === 'sdeUSD' ? e2PriceSeries['sdeUSD (DefiLlama on-chain)'] : undefined
   const oraclePx = pts.map((x) => (x.collateralValue as number) / (x.collateral as number))
   const hardcoded = Math.max(...oraclePx) - Math.min(...oraclePx) < 1e-9
-  // CoinGecko trades first; DefiLlama's on-chain sdeUSD price fills its gaps.
-  const marketPx = pts.map((x) => priceAt(series, x.ts) ?? priceAt(fallback, x.ts))
-  const liq = (e2.liquidations as { user: string; marketId: string; chainId: number; ts: number }[])
-    .filter((l) => l.user === p.user && l.marketId === p.marketId && l.chainId === p.chainId)
+  // Off-Morpho points carry their own market value (null where no market price exists).
+  // Morpho points: CoinGecko trades first; DefiLlama's on-chain sdeUSD price fills its gaps.
+  const marketPx = pts.map((x) =>
+    x.marketValueUsd !== undefined
+      ? x.marketValueUsd === null
+        ? null
+        : x.marketValueUsd / (x.collateral as number)
+      : (priceAt(series, x.ts) ?? priceAt(fallback, x.ts)),
+  )
+  const liq = e2.liquidations
+    .filter(
+      (l) =>
+        l.venue === p.venue &&
+        l.user.toLowerCase() === p.user.toLowerCase() &&
+        l.marketId.toLowerCase() === p.marketId.toLowerCase() &&
+        l.chainId === p.chainId,
+    )
     .map((l) => l.ts)
     .sort((a, b) => a - b)
   e2Prepared.push({
-    id: `${p.user.slice(2, 14)}`,
-    cluster: `EV-2/morpho/${m.collateral}/${m.loan}/chain-${m.chainId}/lltv-${m.lltv}`,
+    // One wallet can borrow on several markets and chains, and Euler sub-accounts share all
+    // but the last byte: the id keeps that byte and names the market.
+    id: `${p.user.slice(2, 14)}..${p.user.slice(-2)}@${p.venue}:${p.chainId}:${p.marketId.slice(2, 10)}`,
+    // Dataset cluster key: event, venue, collateral, debt, market, LTV band, size band.
+    cluster: `EV-2/${m.venue}/${m.collateral}/${m.loan}/${m.chainId}:${m.marketId.slice(0, 10)}/${ltvBand(first.lt ?? m.lltv, (first.borrow as number) / (first.collateralValue as number))}/${sizeBand(first.borrow as number)}`,
+    venue: m.venue,
     collateral: m.collateral,
     lltv: m.lltv,
     hardcoded,
@@ -656,7 +809,7 @@ for (const p of e2.positions as {
       : detectPriceFreeze(
           pts.map((x, i) => ({ ts: x.ts, oraclePx: oraclePx[i], marketPx: marketPx[i] })),
           m.collateral,
-          `${p.chainId}:${p.marketId}`,
+          e2Key(p.venue, p.chainId, p.marketId),
         ),
     liquidationTs: liq[0] ?? null,
   })
@@ -666,7 +819,7 @@ for (const p of e2.positions as {
   const n = new Map<string, number>()
   for (const x of e2Prepared) n.set(x.cluster, (n.get(x.cluster) ?? 0) + 1)
   for (const x of e2Prepared)
-    if ((n.get(x.cluster) ?? 0) < 3) x.cluster = `EV-2/morpho/${x.collateral}/other`
+    if ((n.get(x.cluster) ?? 0) < 3) x.cluster = `EV-2/${x.venue}/${x.collateral}/other`
 }
 
 /** basis 'oracle': breach at oracle HF < 1 (the venue's line); 'market': at market HF < 1. */
@@ -680,9 +833,17 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
       const pt = (i: number) => x.points[idx[i]]
       const oracle = (i: number) => (pt(i).collateralValue as number) / (pt(i).collateral as number)
       const market = (i: number) => x.marketPx[idx[i]]
+      // Euler and Gearbox: the venue's own risk-adjusted value, so a governance ramp of the
+      // liquidation LTV (Euler, Nov 3 2025) moves HF as it did on chain. Else the market's LT.
+      const lt = (i: number) => {
+        const p = pt(i)
+        if (p.adjustedCollateralUsd != null && (p.collateralValue as number) > 0)
+          return p.adjustedCollateralUsd / (p.collateralValue as number)
+        return p.lt ?? x.lltv
+      }
       const hf = idx.map((_, i) => {
         const px = basis === 'oracle' ? oracle(i) : (market(i) as number)
-        return ((pt(i).collateral as number) * px * x.lltv) / (pt(i).borrow as number)
+        return ((pt(i).collateral as number) * px * lt(i)) / (pt(i).borrow as number)
       })
       return {
         id: x.id,
@@ -693,14 +854,14 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
         snapshot: (i) => ({
           id: x.id,
           ts: pt(i).ts,
-          venue: `Morpho ${x.collateral}`,
+          venue: `${x.venue} ${x.collateral}`,
           collateral: [
             {
               symbol: x.collateral,
               amount: pt(i).collateral as number,
               oraclePriceUsd: oracle(i),
               marketPriceUsd: market(i) ?? undefined,
-              liquidationThreshold: x.lltv,
+              liquidationThreshold: lt(i),
               oracleBasis: x.hardcoded ? 'hardcoded' : 'exchangeRate',
               // Peg = the venue's own price (NAV for xUSD / sdeUSD, $1 for deUSD).
               peg:
@@ -716,6 +877,26 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
       }
     })
     .filter((p): p is Path => p !== null)
+}
+
+/** E2 on one basis: all venues together, and the strict and per-cluster gates per venue. */
+function e2Basis(basis: 'oracle' | 'market', config: AlertConfig) {
+  const paths = e2Paths(basis)
+  const cadence = [{ label: '1 h', everyS: 0 }]
+  const venues = [...new Set(e2Prepared.map((x) => x.venue))]
+  return {
+    runs: runEvent(paths, config, cadence),
+    byVenue: Object.fromEntries(
+      venues.map((v) => {
+        const [r] = runEvent(
+          paths.filter((p) => p.cluster.startsWith(`EV-2/${v}/`)),
+          config,
+          cadence,
+        )
+        return [v, { positions: r.rows.length, gate: r.gate, gateCluster: r.gateCluster }]
+      }),
+    ),
+  }
 }
 
 // ------------------------------------------------------------------ warn-line sweep (loops)
@@ -821,11 +1002,19 @@ function main() {
     },
     E2: {
       source:
-        'own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market, DefiLlama CoinGecko prices',
+        'own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market; Euler v2, Silo v2 and Gearbox v3.1 positions read on chain every 2 h (build-position-alert-e2-offmorpho.mjs); DefiLlama CoinGecko prices',
       window: e2.specWindow,
       history: e2.historyWindow,
       positionsReplayed: e2Prepared.length,
       dustPositionsSkipped: e2Dust,
+      mixedCollateralSkipped: e2Mixed,
+      positionsByVenue: Object.fromEntries(
+        [...new Set(e2Prepared.map((x) => x.venue))].map((v) => [
+          v,
+          e2Prepared.filter((x) => x.venue === v).length,
+        ]),
+      ),
+      noMarketPrice: e2Prepared.filter((x) => x.marketPx.every((v) => v === null)).length,
       openedAfterWindowStart: e2OpenedLate.map((x) => ({ ...x, debtUsdMax: undefined })),
       uncovered: e2.uncovered,
       liquidationsSinceHistoryStart: e2.liquidations.length,
@@ -833,12 +1022,8 @@ function main() {
         cluster: x.cluster,
         events: x.oracleEvents.map((e) => e.ts),
       })),
-      oracleBasis: {
-        runs: runEvent(e2Paths('oracle'), config, [{ label: '1 h', everyS: 0 }]),
-      },
-      marketBasis: {
-        runs: runEvent(e2Paths('market'), config, [{ label: '1 h', everyS: 0 }]),
-      },
+      oracleBasis: e2Basis('oracle', config),
+      marketBasis: e2Basis('market', config),
       runs: [] as ReturnType<typeof runEvent>,
     },
     E4: {
@@ -885,11 +1070,18 @@ function main() {
   console.log(`wrote ${INTERNAL_OUT} (internal, per position)`)
   writeFileSync(PUBLIC_OUT, JSON.stringify(publicCopy(results), null, 1) + '\n')
   console.log(`wrote ${PUBLIC_OUT} (public, per cluster)`)
+  const brief = (g: { perCluster: unknown }) => JSON.stringify({ ...g, perCluster: undefined })
   for (const [k, ev] of Object.entries(events))
-    for (const r of ev.runs) console.log(k, r.cadence.padEnd(10), JSON.stringify(r.gate))
+    for (const r of ev.runs) {
+      console.log(k, r.cadence.padEnd(10), 'strict', JSON.stringify(r.gate))
+      console.log(k, r.cadence.padEnd(10), 'cluster', brief(r.gateCluster))
+    }
+  for (const b of ['oracleBasis', 'marketBasis'] as const)
+    for (const [v, g] of Object.entries(events.E2[b].byVenue))
+      console.log('E2', b, v, g.positions, JSON.stringify(g.gate), 'cluster', brief(g.gateCluster))
   for (const b of ['oracleBasis', 'marketBasis'] as const)
     for (const r of events.E2[b].runs) {
-      console.log('E2', b, JSON.stringify(r.gate))
+      console.log('E2', b, JSON.stringify(r.gate), 'cluster', brief(r.gateCluster))
       for (const x of r.rows)
         console.log(
           '  ',

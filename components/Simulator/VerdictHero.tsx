@@ -66,7 +66,7 @@ import {
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { tabular } from '@/components/Builder/styles'
-import { outcomeLine, type CarryCost, type Comparison } from '@/lib/position-sim'
+import { CARRY_SPREAD_LINE, outcomeLine, type CarryCost, type Comparison } from '@/lib/position-sim'
 
 import { fmtLocalClock, fmtLocalDayClock, useLocalZone } from './localClock'
 import Stamp from './Stamp'
@@ -339,12 +339,6 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
         {text}
       </Text>
     )
-    const carryLine = (
-      <>
-        Membrane is paid out of the yield. If the spread inverts, curators cover 14 days of yield
-        to give you time to act.
-      </>
-    )
 
     return (
       <Box display="grid" gap="26px" minW={0}>
@@ -400,7 +394,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                   </Text>{' '}
                   <Text as="span" color={SEMANTIC_COLORS.success}>
                     <Figures
-                      text="Membrane is paid out of the yield. If the spread inverts, curators cover 14 days of yield to give you time to act."
+                      text={CARRY_SPREAD_LINE}
                       chip
                     />
                   </Text>
@@ -446,7 +440,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                       fixed interest on the deployed {usd(carry.coveredDebtUsd)}, paid or not.
                     </Text>{' '}
                     <Text as="span" color={SEMANTIC_COLORS.success}>
-                      {carryLine}
+                      {CARRY_SPREAD_LINE}
                     </Text>
                   </Text>
                 )}
@@ -593,13 +587,10 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               <Text as="span" color={SEMANTIC_COLORS.danger}>
                 {src} charges {whose} carry {usd(carry.annualCostUsd)} a year, even when the venue pays nothing.
               </Text>{' '}
-              {/* The 14 days is the owner's own figure (owner statement 2026-09-12);
-                  CARRY_CLAIMS[0] and FinePrint's CARRY_TERMS carry the same number and
-                  the three must never drift. It replaces "curator bonds eat it before
-                  you do" — the borrower's benefit is TIME, not a bond. */}
+              {/* CARRY_SPREAD_LINE (lib/position-sim/guarantee.ts): the owner's 14 days,
+                  one source for every site that prints the sentence. */}
               <Text as="span" color={SEMANTIC_COLORS.success}>
-                Membrane is paid out of the yield. If the spread inverts, curators cover 14 days of
-                yield to give you time to act.
+                {CARRY_SPREAD_LINE}
               </Text>
             </Text>
 
@@ -702,11 +693,9 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                   {src} also charges {whose} carry {usd(carry.fixedCostOnCoveredUsd)} a year in
                   fixed interest on the deployed {usd(carry.coveredDebtUsd)}, paid or not.
                 </Text>{' '}
-                {/* Same sentence as the carry hero, same source: owner statement
-                    2026-09-12 for the 14 days. Keep the two in lockstep. */}
+                {/* Same sentence as the carry hero, same source: CARRY_SPREAD_LINE. */}
                 <Text as="span" color={SEMANTIC_COLORS.success}>
-                  Membrane is paid out of the yield. If the spread inverts, curators cover 14 days
-                  of yield to give you time to act.
+                  {CARRY_SPREAD_LINE}
                 </Text>
               </Text>
             )}

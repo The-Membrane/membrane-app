@@ -24,7 +24,13 @@ import {
   WORDMARK_FIT,
 } from '@/components/NewsEdition/tokens'
 import { fmtLocalDateline } from '@/components/Simulator/localClock'
-import { GUARANTEE, LANDING_PASTE_PROMPT, LANDING_TAGLINE } from '@/lib/position-sim/guarantee'
+import {
+  CARRY_CLAIMS,
+  CARRY_SPREAD_LINE,
+  GUARANTEE,
+  LANDING_PASTE_PROMPT,
+  LANDING_TAGLINE,
+} from '@/lib/position-sim/guarantee'
 import {
   OCT10_PRICE_PATH,
   OCT10_SCALE_LINE,
@@ -88,6 +94,12 @@ describe('masthead copy', () => {
 
   it('the scale subline opens with its money figure, so the figure can be set green', () => {
     expect(OCT10_SCALE_LINE.result.startsWith(OCT10_SCALE_LINE.figure)).toBe(true)
+  })
+
+  it("the verdict's carry line names the same covered days as the first carry claim", () => {
+    const days = (t: string) => /curators cover (\d+) days of yield/.exec(t)?.[1]
+    expect(days(CARRY_SPREAD_LINE)).toBeDefined()
+    expect(days(CARRY_SPREAD_LINE)).toBe(days(CARRY_CLAIMS[0]))
   })
 
   it('the dateline is the reader-zone long date', () => {

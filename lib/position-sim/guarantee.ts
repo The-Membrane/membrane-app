@@ -65,12 +65,23 @@ export const LANDING_TAGLINE = `${GUARANTEE.name} Cross the line with time to sp
 export const LANDING_PASTE_PROMPT = 'Paste any Aave, Spark, Morpho or Compound position'
 
 /**
+ * THE CARRY LINE — the verdict hero's answer to the carry bill, verbatim. The 14 days of
+ * yield curators cover is the owner's own figure (owner statement 2026-09-12), the same
+ * number as CARRY_CLAIMS[0] and FinePrint's CARRY_TERMS. It replaces "curator bonds eat
+ * it before you do": the borrower's benefit is TIME, not a bond. VerdictHero prints it
+ * in the carry hero and in the carry line under the Oct-10 verdict, in both editions;
+ * every one of those sites imports it, so they cannot drift.
+ */
+export const CARRY_SPREAD_LINE =
+  'Membrane is paid out of the yield. If the spread inverts, curators cover 14 days of yield to give you time to act.'
+
+/**
  * THE CARRY CLAIMS — comms/marketing claims list, owner, Sep 2026. One line each.
  *
  * Claim 1 is framed as SENIORITY, never impossibility: the spread can invert in a worst
  * case, and what the borrower gets is TIME. The 14 days of yield curators cover is the
- * owner's own figure (owner statement 2026-09-12) — it is the source for every instance
- * of that number on this surface (VerdictHero's carry line, FinePrint's CARRY_TERMS).
+ * owner's own figure (owner statement 2026-09-12) — the same number as VerdictHero's
+ * carry line (CARRY_SPREAD_LINE, above) and FinePrint's CARRY_TERMS.
  * It replaces the vaguer "curators cover it first through required bonds", which named
  * a mechanism instead of the thing the borrower actually receives.
  *

@@ -40,3 +40,15 @@ export function fmtLocalDayClock(ts: number, zone: string | undefined): string {
   const day = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', timeZone: zone })
   return `${day}, ${fmtLocalClock(ts, zone)}`
 }
+
+/** "Saturday, October 10, 2026" — the newspaper masthead's dateline, in the reader's
+ *  own zone. Takes milliseconds (it is "now", not a path timestamp). */
+export function fmtLocalDateline(ms: number, zone: string | undefined): string {
+  return new Date(ms).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: zone,
+  })
+}

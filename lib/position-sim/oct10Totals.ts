@@ -42,9 +42,24 @@ export const OCT10_TOTALS = {
  * THE STAKES LINE, verbatim per owner 2026-09-12: the size, the date, the count, and no
  * other words. It sits directly above the verdict; the verdict stays the headline.
  */
-export const OCT10_STAKES_LINE =
-  `$${Math.round(OCT10_TOTALS.aaveClosedUsd / 1_000_000)}M of loans liquidated on Aave` +
-  ` · 10 Oct 2025 · ${OCT10_TOTALS.accounts.toLocaleString('en-US')} accounts`
+export const OCT10_STAKES = {
+  /** The size. The newspaper landing sets it as the alert card's headline. */
+  headline: `$${Math.round(OCT10_TOTALS.aaveClosedUsd / 1_000_000)}M of loans liquidated on Aave`,
+  /** The date and the count — the alert card's dateline. */
+  date: '10 Oct 2025',
+  accounts: `${OCT10_TOTALS.accounts.toLocaleString('en-US')} accounts`,
+} as const
+
+export const OCT10_STAKES_LINE = `${OCT10_STAKES.headline} · ${OCT10_STAKES.date} · ${OCT10_STAKES.accounts}`
+
+/**
+ * WHERE THE PRICE PATH CAME FROM. One source for FinePrint's standing line and the
+ * newspaper masthead's price-path box, so the two cannot drift.
+ */
+export const OCT10_PRICE_PATH = {
+  source: '1-minute Chainlink rounds',
+  window: '10-11 Oct 2025',
+} as const
 
 /**
  * THE SCALE LINE (owner 2026-09-22): "4% sounds small, but it would've saved $X in the

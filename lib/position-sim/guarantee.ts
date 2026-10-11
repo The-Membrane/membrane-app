@@ -54,6 +54,17 @@ export const GUARANTEE = {
 } as const
 
 /**
+ * THE LANDING TAGLINE (owner, a comment on the newspaper canvas, 2026-10-11). It is the
+ * page title after "Membrane — " and the masthead line under the wordmark. It replaces
+ * "Cross the line and nothing is sold." public/og.png still carries the old line.
+ */
+export const LANDING_TAGLINE = `${GUARANTEE.name} Cross the line with time to spare.`
+
+/** The landing's one invitation. Opens the page meta description; the newspaper
+ *  edition prints it over the paste box. */
+export const LANDING_PASTE_PROMPT = 'Paste any Aave, Spark, Morpho or Compound position'
+
+/**
  * THE CARRY CLAIMS — comms/marketing claims list, owner, Sep 2026. One line each.
  *
  * Claim 1 is framed as SENIORITY, never impossibility: the spread can invert in a worst

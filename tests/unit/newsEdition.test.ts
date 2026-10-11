@@ -18,6 +18,7 @@ import {
   sectionKicker,
   shortAddress,
   splitFigures,
+  WORDMARK_FIT,
 } from '@/components/NewsEdition/tokens'
 import { fmtLocalDateline } from '@/components/Simulator/localClock'
 import { GUARANTEE, LANDING_PASTE_PROMPT, LANDING_TAGLINE } from '@/lib/position-sim/guarantee'
@@ -91,6 +92,22 @@ describe('masthead copy', () => {
 
   it('names both editions', () => {
     expect(EDITION_LABEL).toEqual({ light: 'Day edition', dark: 'Night edition' })
+  })
+})
+
+describe('the wordmark', () => {
+  // The masthead's centre column is 496px at a 1280px viewport and 380px at its tightest
+  // (a 1016px viewport); the measured advance is in WORDMARK_FIT's doc comment.
+  const cqi = Number(/([\d.]+)cqi/.exec(WORDMARK_FIT.size)?.[1]) / 100
+  const fallbackCap = Number(/(\d+)px\)$/.exec(WORDMARK_FIT.fallback)?.[1])
+
+  it('sizes "Membrane" by its column so it never wraps', () => {
+    expect(cqi * WORDMARK_FIT.advanceEm).toBeLessThan(1)
+    expect(cqi * WORDMARK_FIT.advanceEm).toBeGreaterThan(0.9)
+  })
+
+  it('caps the no-container-query fallback inside the widest one-line column', () => {
+    expect(fallbackCap * WORDMARK_FIT.advanceEm).toBeLessThanOrEqual(496)
   })
 })
 

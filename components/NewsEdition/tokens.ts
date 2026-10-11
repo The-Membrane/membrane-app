@@ -54,6 +54,27 @@ export const NEWS_FONT = {
   mono: TYPOGRAPHY.fontMono,
 } as const
 
+/**
+ * THE WORDMARK FIT. "Membrane" in Redaction 700 (public/fonts/redaction/redaction-700.woff2,
+ * unitsPerEm 1000) advances 5.216em by its hmtx widths, 5.196em after the font's GPOS kern
+ * pairs and 5.116em with the wordmark's −0.01em tracking. At the old 112px that is 573px
+ * of ink in a 496px column (1280px viewport), so it broke as "Membra / ne".
+ *
+ * The masthead column is a size container (NewsMasthead), so the size follows the column:
+ * 18.5cqi sets the raw advance at 96.5% of the column (5.216 × 0.185), whatever the
+ * viewport. Over 375–1440px the column runs 343–673px. The 112px cap binds only above a
+ * 605px column (a 637–705px viewport, where the wordmark has a line to itself) and the
+ * 40px floor never does (40 × 5.216 = 209px). `fallback` is for a
+ * browser without container queries: 6.8vw keeps the raw advance within 99.2% of the
+ * column at its tightest point (a 1063px viewport with a 15px scrollbar and 32px of
+ * outer padding, a 380px column), capped at 92px, which fits the widest 496px column.
+ */
+export const WORDMARK_FIT = {
+  advanceEm: 5.216,
+  size: 'clamp(40px, 18.5cqi, 112px)',
+  fallback: 'clamp(40px, 6.8vw, 92px)',
+} as const
+
 /** The masthead's edition line, by the app's theme mode (owner ruling T20). */
 export const EDITION_LABEL = { light: 'Day edition', dark: 'Night edition' } as const
 

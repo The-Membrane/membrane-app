@@ -21,7 +21,7 @@ import { fmtLocalDateline, useLocalZone } from '@/components/Simulator/localCloc
 import { useThemeMode } from '@/hooks/useThemeMode'
 import { LANDING_TAGLINE } from '@/lib/position-sim/guarantee'
 
-import { EDITION_LABEL, NEWS, NEWS_FONT, NEWS_SECTIONS, splitFigures } from './tokens'
+import { EDITION_LABEL, NEWS, NEWS_FONT, NEWS_SECTIONS, WORDMARK_FIT, splitFigures } from './tokens'
 
 export * from './tokens'
 
@@ -142,16 +142,30 @@ export const NewsMasthead: React.FC<{ rail: React.ReactNode }> = ({ rail }) => {
           {rail}
         </Box>
 
-        {/* THE WORDMARK. A div, not an h1: the verdict stays the page's one h1. */}
-        <Box flex="2 1 380px" minW={0} textAlign="center" order={{ base: -1, md: 0 }}>
+        {/* THE WORDMARK. A div, not an h1: the verdict stays the page's one h1. The
+            column is a size container, so the wordmark is sized by the column it sits
+            in rather than the viewport: the column jumps when the masthead wraps
+            (380px at a 1016px viewport, 496px at 1280px), and a vw size cannot follow
+            that. See WORDMARK_FIT for the measured width. */}
+        <Box
+          flex="2 1 380px"
+          minW={0}
+          textAlign="center"
+          order={{ base: -1, md: 0 }}
+          sx={{ containerType: 'inline-size' }}
+        >
           <Text
             as="div"
             fontFamily={NEWS_FONT.display}
             fontWeight={700}
-            fontSize="clamp(56px, 9vw, 112px)"
             lineHeight={0.95}
             letterSpacing="-0.01em"
+            whiteSpace="nowrap"
             color={NEWS.ink}
+            sx={{
+              fontSize: WORDMARK_FIT.fallback,
+              '@supports (width: 1cqi)': { fontSize: WORDMARK_FIT.size },
+            }}
           >
             Membrane
           </Text>

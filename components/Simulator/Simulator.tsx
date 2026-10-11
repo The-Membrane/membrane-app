@@ -761,8 +761,18 @@ export const Simulator: React.FC<SimulatorProps> = ({
     sectionKicker('verdict')
   )
 
+  const leads = heroLeads({ comparison, carry, mode, heroVariant, history: heroHistory })
   /** Whether the Oct-10 verdict leads the hero (the same gate VerdictHero applies). */
-  const oct10Leads = heroLeads({ comparison, carry, mode, heroVariant, history: heroHistory }).oct10
+  const oct10Leads = leads.oct10
+  /**
+   * The scenario fetch is still in flight, so `comparison` is not known yet and the
+   * stakes card cannot render. It is absent from the server render and would pop in
+   * after load, pushing the masthead and the h1 down (worst on a phone). So the card's
+   * slot is held open while loading, unless the other stories already lead the hero
+   * (the same `!carryFirst && !historyFirst` half of the gate). A failed load, or a
+   * load that yields no comparison, releases the slot: nothing is coming.
+   */
+  const oct10Pending = !scenario && !scenarioError && !leads.carryFirst && !leads.historyFirst
 
   /** News edition: the masthead's left rail. Every line is an existing copy source. */
   const rail = (
@@ -771,13 +781,24 @@ export const Simulator: React.FC<SimulatorProps> = ({
       {/* The stakes card keeps origin's condition: it printed only with the Oct-10
           verdict (VerdictHero: v && !carryFirst && !historyFirst), so it is shown
           only when that verdict leads. */}
-      {oct10Leads && (
+      {oct10Leads ? (
         <RailCard tone={NEWS.danger} label={OCT10_STAKES.headline} testId="sim-oct10-stakes">
           <Text fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.muted} {...tabular}>
             {OCT10_STAKES.date} · {OCT10_STAKES.accounts}
           </Text>
           <Stamp provenance={OCT10_PROV} />
         </RailCard>
+      ) : (
+        oct10Pending && (
+          // The card's slot, held while the scenario loads: empty, hidden from assistive
+          // tech, no text, no test id. 81px is the card's rendered height on one headline
+          // line, measured in Chrome with the shipped fonts: 18 (py 9 x 2) + 16.8 (label,
+          // 12px x 1.4) + 18 (dateline, 12px x 1.5) + 20.25 (Stamp, 9.5px x 1.5 + 4 pad +
+          // 2 border) + 8 (two 4px grid gaps) = 81.05. It is the same at base and md: the
+          // headline fills one line at every width except about 320px, 760-780px and
+          // 1010-1110px, where the rail is under 296px and it wraps (98px).
+          <Box aria-hidden="true" minH="81px" />
+        )
       )}
       <RailCard tone={NEWS.info} label="latest measured capacity move">
         <CapacityMoveBody rail />

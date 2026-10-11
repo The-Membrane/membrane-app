@@ -93,6 +93,13 @@ pro rata); Euler Earn `config(strategy).balance` → `convertToAssets`. The API 
 to collateral → vaults (`?view=exposure`) or lists vault → markets → collateral → share
 (`&by=vault`). Vaults ≥ $100k (Morpho API TVL, or on-chain when the API has none).
 
+Morpho Blue positions are valued with interest accrued to the head block
+(`exposure.ts` `accrueMarket`: the IRM's `borrowRateView` at that block and Morpho's
+three-term Taylor compounding), as MetaMorpho's `totalAssets()` counts them. Until
+2026-10-11 they used `market()`'s stored totals; in sdeUSD/USDC, last touched 19 h before
+at 800 %/yr, that counted $9M of Adpend USDC's book value as live. The accrual reproduces
+the incident reconstruction's interest to the unit (`tests/unit/curatorFeedSignals.test.ts`).
+
 Two kinds of reported assets are kept apart from live supply (from the 2025 sdeUSD
 write-offs, `curator-incidents/sdeusd-2025/` in the datasets repo):
 
@@ -175,8 +182,8 @@ $8.46M of AZND/USDC from Alpha USDC Asia V2 in a day. sdeUSD/USDC (91.5 %) has b
 borrowed since 2025-11-04 06:43 UTC; on 2025-11-06 sdeUSD's market price fell from $1.06 to
 $0.10 within four hours (DefiLlama, 12:02 → 16:03 UTC) while its oracle kept pricing it at
 $1.07. Interest at the IRM's top rate took $7.4M of net lent principal to a $9.9B book
-value by 2026-10-11, and two vaults that never removed the market report $786M of total
-assets, $773M of it in this market. `market()` returns stored totals: the text gives
+value by 2026-10-11, and two vaults that never removed the market report $787M of total
+assets, all but $0.16 of it in this market (block 26,170,792). `market()` returns stored totals: the text gives
 the time interest was last accrued (`lastUpdate`), not a growth rate.
 
 Texts state what the chain shows (claim class `measured-change` for market facts,

@@ -8,7 +8,13 @@ import {
   isDirectExit,
   tightestSpanHours,
 } from '@/lib/curatorFeed/clusters'
-import { byCollateral, byCurator, toAssetsDown } from '@/lib/curatorFeed/exposure'
+import {
+  accrueMarket,
+  byCollateral,
+  byCurator,
+  toAssetsDown,
+  wTaylorCompounded,
+} from '@/lib/curatorFeed/exposure'
 import {
   aggregateDaily,
   decodeFlows,
@@ -446,6 +452,29 @@ describe('exposure', () => {
         (r) => r.collateral === RSETH,
       )!.holders,
     ).toHaveLength(2)
+  })
+  it('accrues a market to a timestamp as Morpho Blue does (sdeUSD/USDC at 2026-10-11 16:41)', () => {
+    // market() stored at lastUpdate 1791669731; borrowRateView 253678286208 /s (800 %/yr);
+    // head timestamp 1791736919: interest 166954163397806, as the incident reconstruction read.
+    const w = [
+      9_712_163_870_595_176n,
+      8_218_843_959_406_307_047n,
+      9_712_163_617_095_176n,
+      8_167_662_186_679_483_543n,
+      1_791_669_731n,
+      0n,
+    ]
+    const a = accrueMarket(w, 253_678_286_208n, 1_791_736_919)
+    expect(a[0] - w[0]).toBe(166_954_163_397_806n)
+    expect(a[0]).toBe(9_879_118_033_992_982n)
+    expect(a[2]).toBe(9_879_117_780_492_982n)
+    expect(a[4]).toBe(1_791_736_919n)
+    expect(accrueMarket(w, 253_678_286_208n, 1_791_669_731)).toBe(w)
+    expect(wTaylorCompounded(0n, 100n)).toBe(0n)
+    // A fee mints supply shares to the fee recipient: share count grows, assets per share less.
+    const f = accrueMarket([...w.slice(0, 5), 10n ** 17n], 253_678_286_208n, 1_791_736_919)
+    expect(f[1]).toBeGreaterThan(w[1])
+    expect(f[0]).toBe(a[0])
   })
   it('byCurator sums priced allocations per curator entity', () => {
     const rows = byCurator(vaults, curatorOf)

@@ -62,7 +62,7 @@ import {
   type ClassifyContext,
 } from '../lib/curatorFeed/classify'
 import { decodeLog, type DecodedEvent } from '../lib/curatorFeed/decode'
-import { toAssetsDown } from '../lib/curatorFeed/exposure'
+import { accrueMarket, toAssetsDown } from '../lib/curatorFeed/exposure'
 import {
   aggregateDaily,
   decodeFlows,
@@ -1710,10 +1710,25 @@ async function readExposure(
   const mktRes = await rpc.batch(
     mktIds.map((id) => call(CHAIN.morpho, 'market(bytes32)', [id], block)),
   )
-  const mkt = new Map<string, bigint[]>()
+  const stored = new Map<string, bigint[]>()
   mktIds.forEach((id, i) => {
     const w = dec(MARKET6, mktRes[i]) as bigint[] | null
-    if (w) mkt.set(id, w)
+    if (w) stored.set(id, w)
+  })
+  // Accrue each market to the block's timestamp, as MetaMorpho's totalAssets() does
+  // (exposure.ts accrueMarket): the IRM's borrowRateView at the same block.
+  const toAccrue = [...stored].filter(
+    ([id, w]) =>
+      ent.markets[id]?.irm && ent.markets[id].irm !== ZERO && w[2] > 0n && w[4] < BigInt(ts),
+  )
+  const rates = await rpc.batch(
+    toAccrue.map(([id, w]) => irmRateCall(id, ent, w, block)),
+    30,
+  )
+  const mkt = new Map(stored)
+  toAccrue.forEach(([id, w], i) => {
+    const r = word(rates[i])
+    if (r !== undefined) mkt.set(id, accrueMarket(w, r, ts))
   })
   const v1Alloc = new Map<string, ExposureAlloc[]>()
   v1Pairs.forEach(({ vault, id }, i) => {

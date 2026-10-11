@@ -20,6 +20,39 @@ export const VIRTUAL_ASSETS = 1n
 export const toAssetsDown = (shares: bigint, totalAssets: bigint, totalShares: bigint): bigint =>
   (shares * (totalAssets + VIRTUAL_ASSETS)) / (totalShares + VIRTUAL_SHARES)
 
+const WAD = 10n ** 18n
+
+/** Morpho Blue MathLib.wTaylorCompounded: e^(x·n) − 1, three terms, WAD. */
+export function wTaylorCompounded(x: bigint, n: bigint): bigint {
+  const first = x * n
+  const second = (first * first) / (2n * WAD)
+  const third = (second * first) / (3n * WAD)
+  return first + second + third
+}
+
+/**
+ * market() as Morpho Blue would return it after accruing interest to `now` (its
+ * _accrueInterest; MorphoBalancesLib.expectedMarketBalances): `w` is market()'s six words
+ * (totalSupplyAssets, totalSupplyShares, totalBorrowAssets, totalBorrowShares, lastUpdate,
+ * fee), `ratePerSec` the IRM's borrowRateView at the same block. MetaMorpho's totalAssets()
+ * counts supply this way, so allocations read from stored totals fall short of it by the
+ * interest since lastUpdate: $9M in Adpend USDC on 2026-10-11, in a market at 800 %/yr
+ * last touched 19 h earlier.
+ */
+export function accrueMarket(w: bigint[], ratePerSec: bigint, now: number): bigint[] {
+  const [supply, supplyShares, borrow, borrowShares, lastUpdate, fee] = w
+  const elapsed = BigInt(now) - lastUpdate
+  if (elapsed <= 0n || borrow === 0n) return w
+  const interest = (borrow * wTaylorCompounded(ratePerSec, elapsed)) / WAD
+  const s = supply + interest
+  let ss = supplyShares
+  if (fee !== 0n) {
+    const feeAmount = (interest * fee) / WAD
+    ss += (feeAmount * (supplyShares + VIRTUAL_SHARES)) / (s - feeAmount + VIRTUAL_ASSETS)
+  }
+  return [s, ss, borrow + interest, borrowShares, BigInt(now), fee]
+}
+
 export interface CollateralHolder {
   vault: string
   protocol: Protocol

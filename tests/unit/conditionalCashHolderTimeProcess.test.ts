@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
 import { writeSync } from 'node:fs'
 import { describe, it, expect } from 'vitest'
-import audit from '@/data/research/venue-signals/conditional-sampled-cash-history-v1.audit.json'
+import { loadPinnedAudit } from '../../scripts/research/conditional-cash-time-holdout.mjs'
+const audit = loadPinnedAudit()
 import {
   selectedConditionalSampledCashPathProjection,
   buildConditionalSampledCashPathProjection,

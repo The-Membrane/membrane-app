@@ -38,6 +38,7 @@ const equal = (a: unknown, b: unknown): boolean => {
 
 export const INITIAL_DEPOSIT_MARKETS = [
   { ...DIRECT_SUPPLY_MARKETS.aaveV3Usdc, pool: '0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2' },
+  { ...DIRECT_SUPPLY_MARKETS.aaveV3Usde, pool: '0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2' },
   { ...DIRECT_SUPPLY_MARKETS.sparkLendUsdt, pool: '0xc13e21b648a5ee794902342038ff3adab66be987' },
 ] as const
 export const initialDepositMarket = (routeKey: string, destination: string) =>
@@ -49,7 +50,7 @@ export type InitialDepositNativeFacts = {
   pool: string
   aToken: string
   asset: string
-  assetDecimals: 6
+  assetDecimals: 6 | 18
   configurationRaw: string
   normalizedIncomeRaw: string
   scaledTotalSupplyRaw: string
@@ -99,7 +100,7 @@ export function selectedInitialDepositNativeAgreement(
     if (
       !m ||
       source.asset !== m.underlying.toLowerCase() ||
-      source.assetDecimals !== 6 ||
+      source.assetDecimals !== m.decimals ||
       !record(value) ||
       value.status !== 'agreed_initial_deposit_native_facts' ||
       !equal(nativeIdentity, sourceIdentity) ||
@@ -131,14 +132,14 @@ export function selectedInitialDepositNativeAgreement(
         f.pool !== m.pool ||
         f.aToken !== source.destination ||
         f.asset !== source.asset ||
-        f.assetDecimals !== 6 ||
+        f.assetDecimals !== m.decimals ||
         !raw(f.configurationRaw) ||
         !raw(f.normalizedIncomeRaw) ||
         BigInt(f.normalizedIncomeRaw) === 0n ||
         !raw(f.scaledTotalSupplyRaw) ||
         !raw(f.accruedToTreasuryScaledRaw) ||
         BigInt(f.accruedToTreasuryScaledRaw) >= 1n << 128n ||
-        Number((BigInt(f.configurationRaw) >> 48n) & 255n) !== 6
+        Number((BigInt(f.configurationRaw) >> 48n) & 255n) !== m.decimals
       )
         return null
     }
@@ -209,7 +210,7 @@ export function buildInitialDepositCapacityProjection(
       {
         key: 'cash',
         assetAddress: source.asset,
-        decimals: 6,
+        decimals: source.assetDecimals,
         unit: 'native_underlying_cash',
         negativeHandling: 'clamp_zero',
       },
@@ -225,7 +226,7 @@ export function buildInitialDepositCapacityProjection(
         valuesByChannel: { cash: p[4] },
         provenanceRef: p[1] + ':' + p[2],
       })),
-      outputAsset: { assetAddress: source.asset, decimals: 6 },
+      outputAsset: { assetAddress: source.asset, decimals: source.assetDecimals },
       measurementRule: 'conditional_admitted_deposit_cash_before_floor_then_source_receipt_clip',
       current: {
         sourceAtUtc: source.blockTime,
@@ -306,7 +307,7 @@ export function buildInitialDepositCapacityProjection(
         frozen,
         paused,
         supplyCapAssetsRaw:
-          flags === null ? null : String(((flags >> 116n) & ((1n << 36n) - 1n)) * 1000000n),
+          flags === null ? null : String(((flags >> 116n) & ((1n << 36n) - 1n)) * 10n ** BigInt(source.assetDecimals)),
         scaledTotalSupplyRaw: native?.origins[0].facts.scaledTotalSupplyRaw ?? null,
         accruedToTreasuryScaledRaw: native?.origins[0].facts.accruedToTreasuryScaledRaw ?? null,
         capAssessment: 'display_only_treasury_update_before_validation_unassessed' as const,

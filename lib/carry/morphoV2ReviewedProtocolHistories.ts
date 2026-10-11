@@ -1,4 +1,5 @@
-import usdtFrame from '@/data/research/venue-signals/morpho-usdt-reviewed-protocol-history-2026-10-08.frame.json'
+import type { MorphoV2ProtocolPoint } from './morphoV2HolderTimeProcess'
+import { requiredPinnedForecastArtifact } from './pinnedForecastArtifacts'
 import type { MorphoV2HolderTimeProcessInput } from './morphoV2HolderTimeProcess'
 import {
   approveMorphoV2PinnedProtocolHistory,
@@ -30,7 +31,7 @@ export type ReviewedMorphoV2ProtocolCurrent = ReviewedMorphoV2ProtocolEvidence &
  * remain explicit qualification metadata, never additional current-schema prongs. */
 export type ReviewedMorphoV2ProtocolHistory = ReviewedMorphoV2ProtocolEvidence & {
   history: MorphoV2HolderTimeProcessInput['history']['history']
-  nativeQualification?: typeof usdtFrame.nativeQualification
+  nativeQualification?: { fixedSharesRaw:string; provenance:unknown; points:{source:MorphoV2ProtocolPoint['source'];fixedShareEntitlement:{method:string;sharesRaw:string;assetsRaw:string}}[] }
   protocolOnlyQualification?: {
     semantics: 'protocol_prongs_only_research_S_is_not_holder_entitlement'
     researchSharesRaw: string
@@ -87,7 +88,7 @@ function exact(a: unknown, b: unknown): boolean {
   return Object.is(a, b)
 }
 
-const trustedUsdt = freeze(structuredClone(usdtFrame)) as ReviewedMorphoV2ProtocolHistory
+function trustedUsdtHistory() { return freeze(requiredPinnedForecastArtifact<ReviewedMorphoV2ProtocolHistory>('morpho-usdt-reviewed-protocol-history-2026-10-08.frame.json')) }
 
 // Small reviewed app projections, never raw archive imports. Their fixed frame
 // digests approve exact observational inputs only; native acquisition authority
@@ -571,9 +572,7 @@ export const MORPHO_V2_USDT_REVIEWED_PROTOCOL_HISTORY_PIN = freeze({
 })
 
 /** Retained original capture identities and clocks; historical research only. */
-export const MORPHO_V2_USDT_REVIEWED_PROTOCOL_HISTORY_PROVENANCE = freeze(
-  structuredClone(usdtFrame.nativeQualification.provenance),
-)
+export function morphoV2UsdtReviewedProtocolHistoryProvenance() { return structuredClone(trustedUsdtHistory().nativeQualification?.provenance) }
 
 function coherent(profile: MorphoV2TrustedProfile, history: ReviewedMorphoV2ProtocolHistory) {
   return (
@@ -589,15 +588,17 @@ export function reviewedMorphoV2ProtocolHistory(
   profile: MorphoV2TrustedProfile,
 ): ReviewedMorphoV2ProtocolHistory | null {
   if (!isAppOwnedMorphoV2TrustedProfile(profile)) return null
+  try {
   const history =
     profile.id === 'morpho_v2_usdc_reviewed_protocol_history'
       ? morphoV2PinnedProtocolHistory()
       : profile.id === 'morpho_v2_usdt_reviewed_joint_history'
-        ? structuredClone(trustedUsdt)
+        ? trustedUsdtHistory()
         : Object.hasOwn(trustedObserved, profile.id)
           ? structuredClone(trustedObserved[profile.id])
           : null
   return history && coherent(profile, history) ? history : null
+  } catch { return null }
 }
 
 /** Approval covers the exact complete fixed frame and its external literal pin.
@@ -626,6 +627,7 @@ export function approveReviewedMorphoV2ProtocolHistory(
         exact(structuredClone(candidate), history)
       )
     }
+    const trustedUsdt = trustedUsdtHistory()
     return (
       profile.id === 'morpho_v2_usdt_reviewed_joint_history' &&
       coherent(profile, trustedUsdt) &&

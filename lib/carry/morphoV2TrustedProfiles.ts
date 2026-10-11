@@ -76,6 +76,8 @@ const claims = {
   forecastValidated: false,
   liveAttached: false,
 } as const
+function usdcProfile(): ProfileMetadata | null {
+try {
 const usdcHistory = morphoV2PinnedProtocolHistory()
 const usdc: ProfileMetadata = {
   id: 'morpho_v2_usdc_reviewed_protocol_history',
@@ -104,6 +106,9 @@ const usdc: ProfileMetadata = {
     },
   },
   claims,
+}
+return usdc
+} catch { return null }
 }
 // Reviewed static projection from the USDT 03-plan and externally pinned native
 // archive index. Large plans/receipts are paths and pins, never browser imports.
@@ -556,7 +561,7 @@ const link: ProfileMetadata = {
   },
 }
 
-const profiles = [usdc, usdt, ausd, eurcv, link].map(
+const profiles = [usdt, ausd, eurcv, link].map(
   (profile) => freeze(profile) as MorphoV2TrustedProfile,
 )
 const trustedInstances = new WeakSet<object>(profiles)
@@ -571,6 +576,10 @@ export function resolveMorphoV2TrustedProfile(
 ): MorphoV2TrustedProfile | null {
   if (typeof routeKey !== 'string' || !canonicalAddress(destination) || !canonicalAddress(asset))
     return null
+  if (!profiles.some(p => p.id === 'morpho_v2_usdc_reviewed_protocol_history')) {
+    const usdc = usdcProfile()
+    if (usdc) { const profile = freeze(usdc) as MorphoV2TrustedProfile; profiles.push(profile); trustedInstances.add(profile) }
+  }
   return (
     profiles.find(
       (profile) =>

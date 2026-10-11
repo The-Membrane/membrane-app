@@ -15,7 +15,7 @@ export type InitialDepositQuestion = {
   plannedExitAssetsRaw: string
   horizonHours: number
   asset: string
-  assetDecimals: 6
+  assetDecimals: 6 | 18
 }
 export type InitialDepositScenarioIssue = {
   question: InitialDepositQuestion
@@ -73,10 +73,10 @@ export function changeInitialDepositAmounts(
         plannedExitSize: current.plannedExitEdited ? current.plannedExitSize : value,
       }
 }
-export function initialDepositNativeRaw(value: string): string | null {
-  if (!/^(0|[1-9][0-9]*)(?:\.[0-9]{1,6})?$/.test(value) || value.length > 85) return null
+export function initialDepositNativeRaw(value: string, decimals = 6): string | null {
+  if (![6,18].includes(decimals) || !new RegExp(`^(0|[1-9][0-9]*)(?:\\.[0-9]{1,${decimals}})?$`).test(value) || value.length > 97) return null
   const [whole, fraction = ''] = value.split('.')
-  const n = BigInt(whole) * 1000000n + BigInt(fraction.padEnd(6, '0'))
+  const n = BigInt(whole) * 10n ** BigInt(decimals) + BigInt(fraction.padEnd(decimals, '0'))
   return n > 0n && n < 1n << 256n ? String(n) : null
 }
 export function initialDepositQuestion(
@@ -88,8 +88,8 @@ export function initialDepositQuestion(
   horizonHours: number,
 ): InitialDepositQuestion | null {
   const m = initialDepositMarket(routeKey, destination.toLowerCase())
-  const D = initialDepositNativeRaw(depositSize),
-    Q = initialDepositNativeRaw(plannedExitSize)
+  const D = initialDepositNativeRaw(depositSize, m?.decimals),
+    Q = initialDepositNativeRaw(plannedExitSize, m?.decimals)
   return mode === 'initial_deposit' && m && D && Q && [1, 24, 48, 168].includes(horizonHours)
     ? {
         mode,
@@ -99,7 +99,7 @@ export function initialDepositQuestion(
         plannedExitAssetsRaw: Q,
         horizonHours,
         asset: m.underlying.toLowerCase(),
-        assetDecimals: 6,
+        assetDecimals: m.decimals,
       }
     : null
 }
@@ -113,7 +113,7 @@ export function initialDepositSourceFromWitness(
     witness.routeKey !== question.routeKey ||
     witness.destination.toLowerCase() !== question.destination ||
     witness.assetAddress?.toLowerCase() !== question.asset ||
-    witness.assetDecimals !== 6 ||
+    witness.assetDecimals !== question.assetDecimals ||
     typeof witness.block !== 'string' ||
     !witness.blockHash ||
     !witness.sourceKind
@@ -127,7 +127,7 @@ export function initialDepositSourceFromWitness(
     routeKey: question.routeKey,
     destination: question.destination,
     asset: question.asset,
-    assetDecimals: 6,
+    assetDecimals: question.assetDecimals,
     cashRaw: witness.cashRaw,
     block: witness.block,
     blockHash: witness.blockHash,

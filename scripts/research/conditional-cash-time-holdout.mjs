@@ -9,6 +9,7 @@ const identityFor =
   identityModule.registeredConditionalSampledCashIdentity ??
   identityModule.default?.registeredConditionalSampledCashIdentity
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+const DATASET_ROOT = resolve(process.env.MEMBRANE_DATASETS_DIR || resolve(ROOT, '../membrane-datasets'))
 export const AUDIT_PATH =
   'data/research/venue-signals/conditional-sampled-cash-history-v1.audit.json'
 const PINS_PATH = 'data/research/venue-signals/conditional-sampled-cash-history-v1.pins.json'
@@ -88,8 +89,8 @@ export function authenticateArtifacts(auditText, pinsText) {
 export function loadPinnedAudit() {
   const budget = { maxFileBytes: 2 * 1024 * 1024, maxTotalBytes: 4 * 1024 * 1024, totalBytes: 0 }
   return authenticateArtifacts(
-    readBoundedReceiptFile(resolve(ROOT, AUDIT_PATH), budget),
-    readBoundedReceiptFile(resolve(ROOT, PINS_PATH), budget),
+    readBoundedReceiptFile(resolve(DATASET_ROOT, 'forecasting-cloud', AUDIT_PATH), budget),
+    readBoundedReceiptFile(resolve(DATASET_ROOT, 'forecasting-cloud', PINS_PATH), budget),
   )
 }
 export function validateHistory(h) {

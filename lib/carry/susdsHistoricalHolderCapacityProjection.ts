@@ -1,6 +1,6 @@
 // Conditional source rule: https://github.com/sky-ecosystem/sdai/blob/susds/src/SUsds.sol#L313
 // Recorded hashes retain an observed regime, not deployed-source equivalence.
-import historyData from '@/data/research/venue-signals/susds-pinned-index-history-v1.json'
+import { requiredPinnedForecastArtifact } from './pinnedForecastArtifacts'
 import { CONDITIONAL_FLOW_SOURCE_MAX_AGE_SECONDS } from './conditionalGrossFlowHeadroom'
 import { selectedHolderExitCapacity, type HolderExitCapacityBinding } from './holderExitCapacity'
 import type { ConditionalSampledCashDistribution } from './conditionalSampledCashPathProjection'
@@ -35,10 +35,9 @@ function freeze(v: unknown): void {
     Object.freeze(v)
   }
 }
-freeze(historyData)
-export type SusdsPinnedIndexHistory = typeof historyData
+export type SusdsPinnedIndexHistory = { evidenceTier:string; checkpoints:{bodySha256:string;fileSha256:string;checkpoint:{sha256:string;block:{number:number;hash:string;timestamp:number};captureEndUtc:string;state:{assetsPerShareRaw:string};contract:unknown}}[] }
 export function susdsPinnedIndexHistory(): SusdsPinnedIndexHistory {
-  return structuredClone(historyData)
+  return requiredPinnedForecastArtifact<SusdsPinnedIndexHistory>('susds-pinned-index-history-v1.json')
 }
 export type SusdsHistoricalHolderCapacityInput = {
   history: unknown
@@ -105,6 +104,7 @@ function runs(m: bigint[], elapsed: number, sourceAt: number): Run[] {
   return out
 }
 function verifiedHistory(value: unknown, hash: Hash): SusdsPinnedIndexHistory | null {
+  const historyData = susdsPinnedIndexHistory()
   if (!exact(value, historyData) || hash(JSON.stringify(value)) !== MANIFEST_SHA) return null
   for (const item of historyData.checkpoints) {
     const { sha256, ...body } = item.checkpoint

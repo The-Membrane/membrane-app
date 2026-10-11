@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto'
+import { readAvailablePinnedForecastArtifacts } from '@/lib/carry/pinnedForecastArtifacts.server'
+import { issueMorphoNativeCashOutlook } from '@/lib/carry/morphoNativeCashOutlook.server'
 import { isDeepStrictEqual } from 'node:util'
 
 import type { NextApiRequest, NextApiResponse } from 'next'
@@ -2067,6 +2069,7 @@ function logHolderExitProviderFailure(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  readAvailablePinnedForecastArtifacts()
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
@@ -2245,7 +2248,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .json(
               await withJointHistoricalEvidence(
                 assessmentInput,
-                agreedExecutionResponse(assessmentInput, first, second),
+                { ...agreedExecutionResponse(assessmentInput, first, second),
+                  nativeCashHolderOutlook: await issueMorphoNativeCashOutlook(first, second, assessmentInput.horizonHours) },
                 agreedUmbrellaFinalizedSource(assessmentInput, [first, second]),
                 agreedApyFinalizedSource(assessmentInput, [first, second]),
                 agreedFluidUsdtFinalizedSource(assessmentInput, [first, second]),

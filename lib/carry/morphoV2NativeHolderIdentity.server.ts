@@ -69,6 +69,43 @@ type NativeFacts = {
 const reads = new WeakMap<object, { facts: NativeFacts; digest: string }>()
 const observations = new WeakMap<object, { read: MorphoV2NativeHolderRead; digest: string; assessment?: object }>()
 const assessments = new WeakMap<object, { read: MorphoV2NativeHolderRead; observation: object; digest: string }>()
+const cashReads = new WeakMap<object, { assessment: HolderExitAssessment; digest: string }>()
+
+/** One additional canonical cash read, authorized only by the original holder receipt. */
+export async function readMorphoV2NativeCashForAssessment(
+  assessment: HolderExitAssessment,
+  now: () => number = Date.now,
+) {
+  const read = selectedRead(assessment), facts = nativeFacts(read)
+  if (!read || !facts) return null
+  const started = now(), params = [
+    { to: facts.identity.asset, data: encodeFunctionData({ abi: ABI, functionName: 'balanceOf', args: [facts.identity.destination] }) },
+    { blockHash: facts.source.blockHash, requireCanonical: true },
+  ] as MorphoHolderPositionTrace['params']
+  const expectedParams = digest(params)
+  const result = await (facts.client as NativeClient).request({ method: 'eth_call', params })
+  const completed = now()
+  if (digest(params) !== expectedParams || !Number.isSafeInteger(started) || !Number.isSafeInteger(completed) ||
+      started < Date.parse(facts.source.blockTime) || typeof result !== 'string' || !WORD.test(result) || completed < started ||
+      completed - started > MAX_SPAN_MS || completed - Date.parse(facts.source.blockTime) > 1_800_000) return null
+  const cash = decodeFunctionResult({ abi: ABI, functionName: 'balanceOf', data: result as `0x${string}` })
+  if (encodeFunctionResult({ abi: ABI, functionName: 'balanceOf', result: cash }) !== result) return null
+  const value = freeze({ ...facts.identity, source: clone(facts.source), owner: facts.owner,
+    cashRaw: String(cash), sharesRaw: read.sharesRaw, fullEaRaw: read.fullEaRaw,
+    readAtUtc: new Date(completed).toISOString() })
+  cashReads.set(value, { assessment, digest: digest(value) })
+  return value
+}
+
+/** Metadata copies cannot authorize a live cash/holder forecast. */
+export function selectedMorphoV2NativeCash(
+  value: unknown, assessment: HolderExitAssessment,
+) {
+  if (!value || typeof value !== 'object') return null
+  const stored = cashReads.get(value)
+  return stored && stored.assessment === assessment && selectedRead(assessment) &&
+    stored.digest === digest(value) ? value as NonNullable<Awaited<ReturnType<typeof readMorphoV2NativeCashForAssessment>>> : null
+}
 const factDigest = (facts: NativeFacts) => digest({ ...facts, client: undefined })
 
 /** Reads units and full S at the required native source, never from caller configuration. */

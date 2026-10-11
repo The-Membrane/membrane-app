@@ -216,3 +216,33 @@ describe('Morpho required native holder identity independent of rich profiles', 
     expect(agreement(copied, second.assessment, NOW + 31 * 60_000)).toBeNull()
   })
 })
+
+describe('original native same-source cash binding',()=>{
+  it('reads current cash only from original assessments and rejects copied receipts',async()=>{
+    const { readMorphoV2NativeCashForAssessment, selectedMorphoV2NativeCash } = await import('@/lib/carry/morphoV2NativeHolderIdentity.server')
+    const o=await origin(), cash=await readMorphoV2NativeCashForAssessment(o.assessment,()=>NOW)
+    expect(cash?.cashRaw).toBe('1000000000')
+    expect(cash?.fullEaRaw).toBe('9000000000')
+    expect(selectedMorphoV2NativeCash(cash,o.assessment)).toBe(cash)
+    expect(selectedMorphoV2NativeCash(structuredClone(cash),o.assessment)).toBeNull()
+    expect(await readMorphoV2NativeCashForAssessment(structuredClone(o.assessment),()=>NOW)).toBeNull()
+    o.assessment.capacityQuote!.entitlementRaw='1'
+    expect(selectedMorphoV2NativeCash(cash,o.assessment)).toBeNull()
+  })
+})
+
+describe('server-native cash outlook issuance',()=>{
+ it('issues a selected-horizon conditional cash outlook from original pair receipts, never metadata clones',async()=>{
+  vi.useFakeTimers();vi.setSystemTime(NOW)
+  try{
+   const {issueMorphoNativeCashOutlook}=await import('@/lib/carry/morphoNativeCashOutlook.server')
+   const p=await pair(),a={host:'one.example',assessment:p.first.assessment},b={host:'two.example',assessment:p.second.assessment}
+   const issued=await issueMorphoNativeCashOutlook(a,b,48)
+   expect(issued).not.toBeNull();expect(issued!.owner).toBe(OWNER)
+   expect(issued!.nativeSharesRaw).toBe('1000000000');expect(issued!.fullEntitlementRaw).toBe('9000000000')
+   expect(issued!.horizonHours).toBe(48);expect(issued!.holderExecutableExit).toBe(false)
+   expect(await issueMorphoNativeCashOutlook({...a,assessment:structuredClone(a.assessment)},b,48)).toBeNull()
+   expect(await issueMorphoNativeCashOutlook(a,{...b,host:a.host},48)).toBeNull()
+  }finally{vi.useRealTimers()}
+ })
+})

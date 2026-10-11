@@ -1,3 +1,4 @@
+import { installPinnedForecastArtifact } from '@/lib/carry/pinnedForecastArtifacts'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box,
@@ -3580,6 +3581,17 @@ async function fetchHolderWatchStatus(
 }
 
 export const ForecastWorkbench: React.FC<{ chainName: string }> = ({ chainName }) => {
+  const [, setArtifactEpoch] = useState(0)
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/carry/forecast-artifacts', {signal:controller.signal}).then(r => r.ok ? r.json() : null).then(value => {
+      if (!controller.signal.aborted && Array.isArray(value?.artifacts) && value.artifacts.length <= 8) {
+        for (const artifact of value.artifacts) installPinnedForecastArtifact(artifact.name,artifact.text)
+        setArtifactEpoch(v=>v+1)
+      }
+    }).catch(()=>{})
+    return ()=>controller.abort()
+  }, [])
   const [registry, setRegistry] = useState<CarryForecastRegistry | null>(null)
   const [registryError, setRegistryError] = useState(false)
   const [registryLoading, setRegistryLoading] = useState(true)
@@ -6520,7 +6532,7 @@ export const ForecastWorkbench: React.FC<{ chainName: string }> = ({ chainName }
                 <FormControl
                   isInvalid={
                     Boolean(initialDepositMarket(routeKey, destination.toLowerCase())) &&
-                    !initialDepositNativeRaw(depositSize)
+                    !initialDepositNativeRaw(depositSize, initialDepositMarket(routeKey, destination.toLowerCase())?.decimals)
                   }
                 >
                   <FormLabel htmlFor="forecast-deposit-size" {...labelStyle}>
@@ -6534,7 +6546,7 @@ export const ForecastWorkbench: React.FC<{ chainName: string }> = ({ chainName }
                     autoComplete="off"
                     aria-invalid={
                       Boolean(initialDepositMarket(routeKey, destination.toLowerCase())) &&
-                      !initialDepositNativeRaw(depositSize)
+                      !initialDepositNativeRaw(depositSize, initialDepositMarket(routeKey, destination.toLowerCase())?.decimals)
                     }
                     onChange={(event) => {
                       const next = changeInitialDepositAmounts(

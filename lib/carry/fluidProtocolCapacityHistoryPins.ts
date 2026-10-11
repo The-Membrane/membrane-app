@@ -1,7 +1,7 @@
-import usdc from '@/data/research/venue-signals/fluid-protocol-capacity-history-usdc-oct2-2026-10-07.export.json'
-import usdt from '@/data/research/venue-signals/fluid-protocol-capacity-history-usdt-oct2-2026-10-07.export.json'
-import gho from '@/data/research/venue-signals/fluid-protocol-capacity-history-gho-oct2-2026-10-07.export.json'
-
+import { requiredPinnedForecastArtifact } from './pinnedForecastArtifacts'
+import type { ProtocolIdentity, ProtocolSource } from './conditionalProtocolCapacityProjection'
+type Prongs={sharedLiquidityCashRaw:string;fTokenReportedSupplyRaw:string;resolverSupplyRaw:string;expandedWithdrawalLimitRaw:string}
+type Artifact={sha256:string;subject:ProtocolIdentity;knowledgeCutoffAt:string;baselineProngs:Prongs;targetProngs:Prongs;sourceEvidence:ProtocolSource[];runtimeIdentities:unknown[];baselineLimitParameters:unknown;targetLimitParameters:unknown}
 function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === 'object') {
     for (const child of Object.values(value)) deepFreeze(child)
@@ -9,10 +9,10 @@ function deepFreeze<T>(value: T): T {
   }
   return value
 }
-export const FLUID_PROTOCOL_CAPACITY_HISTORY_PINS = deepFreeze([
+export const FLUID_PROTOCOL_CAPACITY_HISTORY_PINS = Object.freeze([
   {
     id: 'fluid-usdc-oct2-10884s',
-    compact: usdc,
+    get compact() { return deepFreeze(requiredPinnedForecastArtifact<Artifact>('fluid-protocol-capacity-history-usdc-oct2-2026-10-07.export.json')) },
     compactFileName: 'fluid-protocol-capacity-history-usdc-oct2-2026-10-07.export.json',
     compactFileSha256: 'f3911dd6361017f901a12654c83823de78b66e6219036d8eb1b3b66ee6802cf6',
     proofFileName: 'fluid-protocol-capacity-history-usdc-oct2-2026-10-07.json',
@@ -21,7 +21,7 @@ export const FLUID_PROTOCOL_CAPACITY_HISTORY_PINS = deepFreeze([
   },
   {
     id: 'fluid-usdt-oct2-10884s',
-    compact: usdt,
+    get compact() { return deepFreeze(requiredPinnedForecastArtifact<Artifact>('fluid-protocol-capacity-history-usdt-oct2-2026-10-07.export.json')) },
     compactFileName: 'fluid-protocol-capacity-history-usdt-oct2-2026-10-07.export.json',
     compactFileSha256: '86ce18b72109a95e3053cb2e29a97bb888d685a9160ae0f02edd2cfea3d8d060',
     proofFileName: 'fluid-protocol-capacity-history-usdt-oct2-2026-10-07.json',
@@ -30,7 +30,7 @@ export const FLUID_PROTOCOL_CAPACITY_HISTORY_PINS = deepFreeze([
   },
   {
     id: 'fluid-gho-oct2-10884s',
-    compact: gho,
+    get compact() { return deepFreeze(requiredPinnedForecastArtifact<Artifact>('fluid-protocol-capacity-history-gho-oct2-2026-10-07.export.json')) },
     compactFileName: 'fluid-protocol-capacity-history-gho-oct2-2026-10-07.export.json',
     compactFileSha256: '66a5d0b9cdfaf9bb7e8821c100a82c6dd97575ef0e48fd8d8afdcbdb7ce83451',
     proofFileName: 'fluid-protocol-capacity-history-gho-oct2-2026-10-07.json',
@@ -43,11 +43,10 @@ export function fluidProtocolHistoryPinForSubject(value: unknown) {
   const v = value as Record<string, unknown>
   return (
     FLUID_PROTOCOL_CAPACITY_HISTORY_PINS.find(
-      ({ compact: { subject: s } }) =>
-        v.routeKey === s.routeKey &&
-        v.destination === s.destination &&
-        v.asset === s.asset &&
-        v.assetDecimals === s.assetDecimals,
+      (pin) => {
+        try { const s = pin.compact.subject; return v.routeKey === s.routeKey && v.destination === s.destination && v.asset === s.asset && v.assetDecimals === s.assetDecimals }
+        catch { return false }
+      },
     ) ?? null
   )
 }

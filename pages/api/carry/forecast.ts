@@ -12,7 +12,8 @@ import {
   buildAaveSparkCapacityProjection,
   type AaveSparkCapacitySource,
 } from '@/lib/carry/aaveSparkCapacityProjection'
-import aaveFlowDuration from '@/data/research/venue-signals/aave-usdc-flow-stress-duration-v1.json'
+import { requiredPinnedForecastArtifact, hasPinnedForecastArtifact } from '@/lib/carry/pinnedForecastArtifacts'
+import { readAvailablePinnedForecastArtifacts } from '@/lib/carry/pinnedForecastArtifacts.server'
 import {
   buildFluidProtocolCapacityProjection,
   isFluidProtocolProjectionSubject,
@@ -364,11 +365,13 @@ export function aaveSparkCapacityApiFields(input: {
 /** Existing physical-file replay pin plus the independently pinned, joined duration overlay. */
 export function readAaveHistoricalCompetingFlow() {
   try {
+    readAvailablePinnedForecastArtifacts()
+    const aaveFlowDuration = requiredPinnedForecastArtifact<HistoricalGrossFlowSummary & {sourceVerification:string;durationOverlay:{sourceJoinSha256:string;pathsSha256:string}}>('aave-usdc-flow-stress-duration-v1.json')
     const hash = (s: string) => createHash('sha256').update(s).digest('hex')
     // Preserve the historical-suite loader's raw-byte pin and canonical-file contract
     // without importing that suite's collector graph into the API.
     const fd = openSync(
-      join(process.cwd(), 'data/research/venue-signals/aave-usdc-flow-stress-summary-v1.json'),
+      join(process.env.MEMBRANE_DATASETS_DIR || join(process.cwd(), '../membrane-datasets'), 'forecasting-cloud/data/research/venue-signals/aave-usdc-flow-stress-summary-v1.json'),
       'r',
     )
     let text: string
@@ -2057,11 +2060,7 @@ export async function carryForecastRequest(
       // Descriptive sampled paths use verified post-deployment observations;
       // fitted models and Q holdouts retain their independent strict pair gate.
       const fluidNativePin = FLUID_PROTOCOL_CAPACITY_HISTORY_PINS.find(
-        ({ compact: { subject: s } }) =>
-          s.routeKey === routeKey &&
-          s.destination === destination &&
-          s.asset === payoutAsset &&
-          s.asset === cashSubject.asset.toLowerCase(),
+        (pin) => { try { const s=pin.compact.subject; return s.routeKey === routeKey && s.destination === destination && s.asset === payoutAsset && s.asset === cashSubject.asset.toLowerCase() } catch { return false } },
       )
       const fluidSubject = fluidNativePin?.compact.subject ?? null
       const aaveSparkNativeMarket = Object.entries(DIRECT_SUPPLY_MARKETS).find(
@@ -2673,7 +2672,7 @@ export async function carryForecastRequest(
         ...(isInitialDeposit ? { initialDepositProjection } : {}),
         ...(isAaveUsdcCashSubject ? { conditionalGrossFlowHeadroom } : {}),
         ...(aaveSparkCapacityFields ?? {}),
-        ...(isStusdsNativeSubject
+        ...(isStusdsNativeSubject && hasPinnedForecastArtifact('stusds-historical-capacity-2026-10-07T14-29.export.json')
           ? {
               stusdsHistoricalCapacityEvidence: {
                 history: stusdsPinnedProtocolHistory(),
@@ -2688,7 +2687,7 @@ export async function carryForecastRequest(
               },
             }
           : {}),
-        ...(isSusdsNativeSubject
+        ...(isSusdsNativeSubject && hasPinnedForecastArtifact('susds-pinned-index-history-v1.json')
           ? {
               susdsHistoricalCapacityEvidence: {
                 history: susdsPinnedIndexHistory(),
@@ -2958,5 +2957,6 @@ export async function carryForecastRequest(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  readAvailablePinnedForecastArtifacts()
   return carryForecastRequest(req, res)
 }

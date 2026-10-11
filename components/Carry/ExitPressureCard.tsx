@@ -1,3 +1,4 @@
+import { hasPinnedForecastArtifact } from '@/lib/carry/pinnedForecastArtifacts'
 import React, { useMemo } from 'react'
 import { Box, HStack, Link, SimpleGrid, Text, Tooltip, VStack } from '@chakra-ui/react'
 import { sha256, stringToHex } from 'viem'
@@ -3249,7 +3250,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
       !question ||
       requestedRaw !== question.plannedExitAssetsRaw ||
       requestedAssetAddress?.toLowerCase() !== question.asset ||
-      requestedAssetDecimals !== 6
+      requestedAssetDecimals !== question.assetDecimals
     )
       return null
     const selected = issuedInitialDepositScenario(initialDepositIssue, question, timeWitness)
@@ -4186,6 +4187,21 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
     boundHolderAssessment.condition.windowEndInclusive !== null &&
     asOfMs >= (boundHolderAssessment.condition.windowEndInclusive + 1) * 1000
   const holderAssessment = holderWindowExpired ? null : boundHolderAssessment
+  const nativeCashOutlook = holderAssessment?.nativeCashHolderOutlook
+  const nativeCashTime = nativeCashOutlook &&
+    nativeCashOutlook.identity.routeKey === routeKey &&
+    nativeCashOutlook.identity.destination === destination.toLowerCase() &&
+    nativeCashOutlook.owner.toLowerCase() === requestedHolderAddress?.toLowerCase() &&
+    nativeCashOutlook.requestedRaw === requestedRaw &&
+    nativeCashOutlook.horizonHours === horizonHours &&
+    nativeCashOutlook.identity.asset === requestedAssetAddress?.toLowerCase() &&
+    nativeCashOutlook.identity.assetDecimals === requestedAssetDecimals &&
+    nativeCashOutlook.currentSource.block === String(holderAssessment.source.blockNumber) &&
+    nativeCashOutlook.currentSource.blockHash === holderAssessment.source.blockHash.toLowerCase() &&
+    nativeCashOutlook.currentSource.blockTime === holderAssessment.source.blockTime &&
+    nativeCashOutlook.forecastValidated === false && nativeCashOutlook.holderExecutableExit === false &&
+    cashHolderTimeRenderWindow(nativeCashOutlook, asOfMs) ? nativeCashOutlook : null
+  const nativeCashSummary = nativeCashTime?.process.targetSummary ?? null
   const capacitySource =
     protocolCapacity.currentSource ??
     ((sghoCash ?? usd3Cash ?? susdsCash ?? stusdsCash ?? cometCash)
@@ -4310,7 +4326,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
       : null
   const cometHorizon = cometHolder?.horizons[0] ?? null
   const susdsHolderInput =
-    susdsCash && holderProof
+    susdsCash && holderProof && hasPinnedForecastArtifact('susds-pinned-index-history-v1.json')
       ? {
           history: susdsPinnedIndexHistory(),
           capacityAgreement: holderProof.capacityAgreement,
@@ -5159,7 +5175,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
             {initialDeposit && (
               <Text {...labelStyle} mt={SPACING.xs}>
                 {initialDeposit.hypotheticalReceipt.status === 'conditional_source_indexed_receipt'
-                  ? `Hypothetical receipt ${formatExitPressureRaw(initialDeposit.hypotheticalReceipt.entitlementRaw, 6)} ${requestedAssetSymbol}`
+                  ? `Hypothetical receipt ${formatExitPressureRaw(initialDeposit.hypotheticalReceipt.entitlementRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`
                   : 'Receipt unassessed · cash only'}
                 {' · '}SOURCE {utcMinute(initialDeposit.hypotheticalDepositAtUtc)}
               </Text>
@@ -5178,6 +5194,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
           stusdsFuture ||
           cometHorizon ||
           cashTimeSummary ||
+          nativeCashSummary ||
           stusdsTimeSummary ||
           susdeTimeSummary ||
           (isUsd3JointSubject && scenarioMode === 'exit') ||
@@ -5205,6 +5222,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                 stusdsFuture ||
                 cometHorizon ||
                 cashTimeSummary ||
+                nativeCashSummary ||
                 stusdsTimeSummary ||
                 susdeTimeSummary ||
                 (isUsd3JointSubject && scenarioMode === 'exit') ||
@@ -5371,7 +5389,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                       </Text>
                     </Tooltip>
                   }
-                  value={`${formatExitPressureSignedRaw(initialSummary.empiricalP10HeadroomRaw, 6)}–${formatExitPressureSignedRaw(initialSummary.empiricalP90HeadroomRaw, 6)} ${requestedAssetSymbol}`}
+                  value={`${formatExitPressureSignedRaw(initialSummary.empiricalP10HeadroomRaw, requestedAssetDecimals!)}–${formatExitPressureSignedRaw(initialSummary.empiricalP90HeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
                   warning={initialSummary.minimumHeadroomRaw.startsWith('-')}
                   detail={`${initialProcess.targetAtUtc.slice(5, 19).replace('T', ' ')} UTC${cashHolderDurationDetail({ process: initialProcess })}`}
                 />
@@ -5541,6 +5559,28 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                   warning={morphoTimeSummary.minimumHeadroomRaw.startsWith('-')}
                   detail={`${morphoTime.targetAtUtc.slice(5, 19).replace('T', ' ')} UTC${cashHolderDurationDetail(morphoTime)}`}
                 />
+              ) : nativeCashSummary && nativeCashTime ? (
+                <>
+                <Metric
+                  label="Conditional cash exit headroom"
+                  value={`${formatExitPressureSignedRaw(nativeCashSummary.empiricalP10HeadroomRaw, requestedAssetDecimals!)}–${formatExitPressureSignedRaw(nativeCashSummary.empiricalP90HeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
+                  warning={nativeCashSummary.minimumHeadroomRaw.startsWith('-')}
+                  detail={`${nativeCashTime.process.targetAtUtc.slice(5, 19).replace('T', ' ')} UTC${nativeCashTime.shrinkingAlert.shrinkingScenarios ? ' · MAY SHRINK' : ''}${cashHolderDurationDetail(nativeCashTime)}`}
+                />
+
+                <Metric
+                  label="Cash change since historical sample"
+                  value={`${formatExitPressureSignedRaw(nativeCashTime.capacityChange.cashChangeSinceLastHistoricalSampleRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
+                  warning={nativeCashTime.capacityChange.cashChangeSinceLastHistoricalSampleRaw.startsWith('-')}
+                  detail={`Since ${utcMinute(nativeCashTime.capacityChange.historicalSampleAtUtc)} · cash proxy`}
+                />
+                {nativeCashTime.adverseHolderHeadroom && <Metric
+                  label="Adverse flow headroom"
+                  value={`${formatExitPressureSignedRaw(nativeCashTime.adverseHolderHeadroom.minimumRaw, requestedAssetDecimals!)}–${formatExitPressureSignedRaw(nativeCashTime.adverseHolderHeadroom.maximumRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
+                  warning={nativeCashTime.adverseHolderHeadroom.minimumRaw.startsWith('-')}
+                  detail={`Historical net-flow stress · conditional${nativeCashTime.adverseHolderHeadroom.censoredScenarios ? ' · censored paths' : ''}`}
+                />}
+                </>
               ) : cashTimeSummary && cashTime ? (
                 <Metric
                   label={

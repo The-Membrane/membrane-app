@@ -45,7 +45,7 @@ function validSource(s, now) {
     m &&
     s.chainId === 1 &&
     s.asset === m.underlying.toLowerCase() &&
-    s.assetDecimals === 6 &&
+    s.assetDecimals === m.decimals &&
     typeof s.cashRaw === 'string' &&
     /^(0|[1-9][0-9]{0,77})$/.test(s.cashRaw) &&
     BigInt(s.cashRaw) <= MAX &&
@@ -205,7 +205,7 @@ async function sourceNativeFacts(source, { origins, clock = Date.now }, read) {
           pool: m.pool,
           aToken: source.destination,
           asset: source.asset,
-          assetDecimals: 6,
+          assetDecimals: source.assetDecimals,
           configurationRaw: String(reserve.configuration),
           normalizedIncomeRaw: String(index),
           scaledTotalSupplyRaw: String(scaled),

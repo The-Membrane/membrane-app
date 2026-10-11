@@ -1,4 +1,4 @@
-import frame from '@/data/research/venue-signals/morpho-v2-protocol-capacity-history-pilot-2026-10-07T15-32.frame.json'
+import { pinnedMorphoPilotHistory } from './pinnedForecastArtifacts'
 import type { MorphoV2HolderTimeProcessInput } from './morphoV2HolderTimeProcess'
 
 export type MorphoV2Sha256Text = (text: string) => string
@@ -35,18 +35,22 @@ function exact(a: unknown, b: unknown): boolean {
   return Object.is(a, b)
 }
 
-const trusted = freeze(structuredClone(frame)) as MorphoV2HolderTimeProcessInput['history']
+function trustedHistory() {
+  const history = pinnedMorphoPilotHistory()
+  if (!history) throw Error('morpho_pilot_dataset_missing')
+  return freeze(history)
+}
 
-export const MORPHO_V2_PROTOCOL_CAPACITY_HISTORY_PIN = freeze({
+export const MORPHO_V2_PROTOCOL_CAPACITY_HISTORY_PIN = Object.freeze({
   frameSha256: 'd1062504e5d1e01c9183b1bc65654fc6a28c5e82571c0f021a7f3f7ee5ce8c6b',
   rawFileSha256: 'ddf285e8d5209390ce2b8c42867b092fa36ddaf0a8759e2a83dd92805740f970',
   captureReceiptSha256: '4442d5f337123ee4d47e3bce8a02a92909901d43affefe64709f6b41b15dcaa1',
-  knowledgeCutoff: trusted.knowledgeCutoff,
+  get knowledgeCutoff() { return trustedHistory().knowledgeCutoff },
 })
 
 /** Returns a clone of the app-shipped full historical replay frame, never API history. */
 export function morphoV2PinnedProtocolHistory(): MorphoV2HolderTimeProcessInput['history'] {
-  return structuredClone(trusted)
+  return trustedHistory()
 }
 
 /** The fixed frame digest and exact full-frame equality are both required. */
@@ -55,6 +59,7 @@ export function approveMorphoV2PinnedProtocolHistory(
   sha256Text: MorphoV2Sha256Text,
 ): boolean {
   try {
+    const trusted = trustedHistory()
     return (
       sha256Text(JSON.stringify(trusted)) === MORPHO_V2_PROTOCOL_CAPACITY_HISTORY_PIN.frameSha256 &&
       exact(structuredClone(candidate), trusted)

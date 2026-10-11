@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto'
 
 import type { NextApiRequest, NextApiResponse } from 'next'
 
-import flowSummary from '@/data/research/venue-signals/aave-usdc-flow-stress-duration-v1.json'
+import { requiredPinnedForecastArtifact } from '@/lib/carry/pinnedForecastArtifacts'
+import { readAvailablePinnedForecastArtifacts } from '@/lib/carry/pinnedForecastArtifacts.server'
 import { DIRECT_SUPPLY_MARKETS } from '@/lib/carry/directSupplyMarketConstants'
 import {
   projectHistoricalGrossFlowStress,
@@ -36,6 +37,8 @@ export function parseHistoricalFlowStressQuery(query: Record<string, unknown>) {
 }
 
 function verifiedSummary(): HistoricalGrossFlowSummary {
+  readAvailablePinnedForecastArtifacts()
+  const flowSummary = requiredPinnedForecastArtifact<HistoricalGrossFlowSummary & {sourceVerification:string;durationOverlay:{schema:string;sourceJoinSha256:string;pathsSha256:string}}>('aave-usdc-flow-stress-duration-v1.json')
   const digest = createHash('sha256')
     .update(`${JSON.stringify(flowSummary)}\n`)
     .digest('hex')
@@ -65,6 +68,7 @@ function verifiedSummary(): HistoricalGrossFlowSummary {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  readAvailablePinnedForecastArtifacts()
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET')

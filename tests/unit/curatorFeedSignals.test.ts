@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { aprOf, attribute, ratio, SECONDS_PER_YEAR } from '@/lib/curatorFeed/attribution'
+import { detectSpikes, explainSpike, groupFlows, isSpike } from '@/lib/curatorFeed/spikes'
 import {
   clusteredIds,
   detectExitClusters,
@@ -12,10 +13,13 @@ import {
   aggregateDaily,
   decodeFlows,
   encodeFlows,
+  encodeUnitFlows,
+  mergeUnitFlows,
   netPerTx,
   selectLargeWithdrawals,
   toUnits6,
   utcDay,
+  type UnitFlow,
 } from '@/lib/curatorFeed/flows'
 import {
   actionText,
@@ -30,20 +34,26 @@ import {
   buildExposureResponse,
   buildFeedResponse,
   broadExitVaults,
+  buildSpikeResponse,
   buildVaultExposure,
   clusterText,
   collateralMatcher,
   parseFeedQuery,
   QueryError,
+  zeroTimelockFns,
 } from '@/lib/curatorFeed/service'
+import { trimFeed, trimFlows, windowStart } from '@/lib/curatorFeed/window'
 import {
   encodeFeedFile,
+  encodeStateFile,
   intern,
   parseExposureFile,
   parseFeedFile,
   parseFlowsFile,
+  parseStateFile,
   SCHEMA,
   unintern,
+  type CollectorState,
   type ExposureFile,
   type FeedFile,
 } from '@/lib/curatorFeed/store'
@@ -657,6 +667,43 @@ const feed: FeedFile = {
       },
     },
   ],
+  spikes: [
+    {
+      market: mid(1),
+      block: 700,
+      ts: T0 + H,
+      rateBefore: String((4n * 10n ** 16n) / 31_536_000n),
+      rateAfter: String((30n * 10n ** 16n) / 31_536_000n),
+      before: {
+        totalSupplyAssets: '100000000000000000000',
+        totalBorrowAssets: '80000000000000000000',
+      },
+      after: {
+        totalSupplyAssets: '85000000000000000000',
+        totalBorrowAssets: '85000000000000000000',
+      },
+      flows: [
+        {
+          driver: 'vault-reallocation',
+          side: 'supply',
+          sign: -1,
+          assets: '15000000000000000000',
+          vault: v(1),
+          source: 'allocator',
+          tx: '0xr',
+          n: 1,
+        },
+        {
+          driver: 'borrow',
+          side: 'borrow',
+          sign: 1,
+          assets: '5000000000000000000',
+          tx: '0xb',
+          n: 1,
+        },
+      ],
+    },
+  ],
 }
 
 describe('store', () => {
@@ -683,9 +730,108 @@ describe('store', () => {
     expect(parseFeedFile(JSON.parse(JSON.stringify(feed))).actions).toHaveLength(6)
     expect(() => parseFeedFile({ ...feed, meta: { ...feed.meta, schema: 99 } })).toThrow(/schema/)
     expect(() =>
-      parseFeedFile({ meta: feed.meta, entities: {}, actions: [{ id: 1 }], attribution: [] }),
+      parseFeedFile({
+        meta: feed.meta,
+        entities: {},
+        actions: [{ id: 1 }],
+        attribution: [],
+        spikes: [],
+      }),
     ).toThrow(/malformed/)
+    expect(() => parseFeedFile({ ...feed, spikes: undefined })).toThrow(/spikes/)
     expect(() => parseExposureFile({ schema: SCHEMA })).toThrow()
+  })
+
+  it('the collector state round-trips through its interned file', () => {
+    const st: CollectorState = {
+      schema: SCHEMA,
+      chainId: 1,
+      toBlock: 1000,
+      fromBlock: 1,
+      kinds: { [v(1)]: 'mm', [v(66)]: 'v2adapter' },
+      adapters: { [v(66)]: v(4) },
+      allocators: { [v(4)]: [v(7)] },
+      classifier: {
+        open: { [`${v(1)}|cap|${mid(1)}`]: `${mid(9)}:3` },
+        withdrawQ: { [v(1)]: [mid(1)] },
+        supplyQ: {},
+        lastCap: {},
+        lastAaveCollateral: {},
+      },
+      rates: { [mid(1)]: [999, '1234'] },
+      exposureBlock: 990,
+    }
+    expect(parseStateFile(JSON.parse(JSON.stringify(encodeStateFile(st))))).toEqual(st)
+    expect(() => parseStateFile({ schema: 1, table: [] })).toThrow()
+  })
+})
+
+describe('rolling window and merges', () => {
+  const daily = (day: string, out: number, n = 1): UnitFlow => ({
+    day,
+    vault: v(1),
+    target: mid(1),
+    source: 'allocator',
+    out,
+    in: 0,
+    n,
+  })
+  it('merges the boundary day by summing, never doubling a row', () => {
+    const m = mergeUnitFlows(
+      [daily('2026-10-01', 1), daily('2026-10-02', 2)],
+      [daily('2026-10-02', 3), daily('2026-10-03', 4)],
+    )
+    expect(m.map((r) => [r.day, r.out, r.n])).toEqual([
+      ['2026-10-01', 1, 1],
+      ['2026-10-02', 5, 2],
+      ['2026-10-03', 4, 1],
+    ])
+    const back = decodeFlows(encodeUnitFlows(m, 9))
+    expect(back.map((r) => r.out)).toEqual([1, 5, 4])
+  })
+  it('trims by block but keeps submits still open; drops flows before the first day', () => {
+    const acts = [
+      act({ vault: v(1), kind: 'cap_zero', ts: T0, block: 10 }),
+      act({ vault: v(1), kind: 'cap_submit', ts: T0, block: 11 }),
+      act({
+        vault: v(1),
+        kind: 'cap_submit',
+        ts: T0,
+        block: 12,
+        resolution: { how: 'accepted', block: 20, ts: T0, tx: '0x' },
+      }),
+      act({ vault: v(1), kind: 'cap_zero', ts: T0, block: 50 }),
+    ]
+    const r = trimFeed(
+      {
+        entities: feed.entities,
+        actions: acts,
+        attribution: feed.attribution,
+        spikes: feed.spikes,
+      },
+      40,
+    )
+    expect(r.feed.actions.map((a) => a.block)).toEqual([11, 50])
+    expect(r.dropped).toEqual({ actions: 2, attribution: 0, spikes: 0 })
+    expect(
+      trimFeed(
+        {
+          entities: feed.entities,
+          actions: [],
+          attribution: feed.attribution,
+          spikes: feed.spikes,
+        },
+        600,
+      ).dropped,
+    ).toEqual({ actions: 0, attribution: 1, spikes: 0 })
+    expect(
+      trimFlows(
+        [daily('2026-10-01', 1), daily('2026-10-02', 2)],
+        Date.UTC(2026, 9, 2, 5) / 1000,
+      ).map((r) => r.day),
+    ).toEqual(['2026-10-02'])
+    expect(windowStart(1_000_000, 10)).toBe(1_000_000 - 72_000)
+    expect(windowStart(1_000_000, 10, 990_000)).toBe(990_000)
   })
 })
 
@@ -827,6 +973,72 @@ describe('service', () => {
     ).toHaveLength(1)
     expect(() => parseFeedQuery({ by: 'market' })).toThrow(QueryError)
   })
+  it('spike view names who pushed utilization up, with ≈ shares', () => {
+    const { rows: r, total } = buildSpikeResponse(feed, parseFeedQuery({ view: 'spikes' }), compact)
+    expect(total).toBe(1)
+    expect(r).toHaveLength(1)
+    expect(r[0]).toMatchObject({
+      claim: 'observed-driver',
+      top: 'vault-reallocation',
+      utilBefore: 0.8,
+      utilAfter: 1,
+    })
+    expect(r[0].text).toBe(
+      'Borrow APR on rsETH/WETH (94.5% LLTV) went 4.00% → 30.00% after block 700; utilization 80.0% → 100.0%. Utilization rose with: Alpha WETH (Alpha) reallocated 15 WETH out (≈ 71%); new borrows of 5 WETH (≈ 29%)',
+    )
+    expect(
+      buildSpikeResponse(feed, parseFeedQuery({ view: 'spikes', curator: 'beta' }), compact).rows,
+    ).toHaveLength(0)
+    expect(
+      buildSpikeResponse(feed, parseFeedQuery({ view: 'spikes', only: 'reallocation' }), compact)
+        .rows,
+    ).toHaveLength(1)
+    expect(
+      buildSpikeResponse(feed, parseFeedQuery({ view: 'spikes', collateral: 'WETH' }), compact)
+        .rows,
+    ).toHaveLength(0)
+    // minUsd filters on market supply before the block (USD at collection-time prices).
+    const supplyUsd = r[0].supplyUsd ?? 0
+    expect(supplyUsd).toBeGreaterThan(0)
+    expect(
+      buildSpikeResponse(
+        feed,
+        parseFeedQuery({ view: 'spikes', minUsd: String(supplyUsd + 1) }),
+        compact,
+      ).total,
+    ).toBe(0)
+    expect(
+      buildSpikeResponse(
+        feed,
+        parseFeedQuery({ view: 'spikes', minUsd: String(supplyUsd - 1) }),
+        compact,
+      ).total,
+    ).toBe(1)
+  })
+  it('zero-timelock facts come from the vault read: V1 timelock 0, V2 per function', () => {
+    const f2: FeedFile = {
+      ...feed,
+      entities: {
+        ...feed.entities,
+        vaults: {
+          ...feed.entities.vaults,
+          [v(3)]: { ...feed.entities.vaults[v(3)], timelock: 0 },
+          [v(4)]: {
+            ...feed.entities.vaults[v(4)],
+            timelocks: { increaseAbsoluteCap: 0, addAdapter: 259_200, 'adapter.burnShares': 0 },
+          },
+        },
+      },
+    }
+    expect(zeroTimelockFns(f2, v(1))).toEqual([])
+    expect(zeroTimelockFns(f2, v(3))).toEqual(['timelock'])
+    expect(zeroTimelockFns(f2, v(4))).toEqual(['increaseAbsoluteCap', 'adapter.burnShares'])
+    const rows = buildFeedResponse(f2, parseFeedQuery({ limit: '50' }), now).rows
+    expect(rows.find((x) => x.vault === v(4))!.zeroTimelock).toEqual([
+      'increaseAbsoluteCap',
+      'adapter.burnShares',
+    ])
+  })
   it('attribution view states the block-level facts in words', () => {
     const r = buildAttributionResponse(
       feed,
@@ -847,5 +1059,119 @@ describe('service', () => {
       /^Alpha WETH \(Alpha\) withdrew 2K WETH from rsETH\/WETH \(94\.5% LLTV\) in block 500/,
     )
     expect(r[0].text).not.toMatch(/safe|risky/i)
+  })
+})
+
+// ── spike-first attribution ──────────────────────────────────────────────────
+
+describe('rate spikes', () => {
+  const SPY = 31_536_000n
+  const r = (apr: number) => (BigInt(Math.round(apr * 1e6)) * 10n ** 12n) / SPY // per-second WAD
+  const pt = (block: number, apr: number, logIndex = 0) => ({ block, logIndex, rate: r(apr) })
+
+  it('finds a jump and blames the PREVIOUS accrual block (whose interactions set the new rate)', () => {
+    const s = detectSpikes(mid(1), [pt(10, 0.04), pt(20, 0.041), pt(30, 0.2), pt(40, 0.21)])
+    expect(s).toHaveLength(1)
+    expect(s[0]).toMatchObject({ market: mid(1), block: 20, seenAt: 30 })
+    expect(aprOf(s[0].rateAfter)).toBeCloseTo(0.2, 5)
+  })
+  it('uses the carried last point across a run boundary, and sorts unsorted input', () => {
+    expect(
+      detectSpikes(mid(1), [pt(31, 0.3), pt(30, 0.04)], { block: 20, rate: r(0.04) }),
+    ).toHaveLength(1)
+    expect(detectSpikes(mid(1), [pt(30, 0.2)], { block: 20, rate: r(0.04) })[0].block).toBe(20)
+    expect(detectSpikes(mid(1), [pt(30, 0.2)])).toHaveLength(0)
+  })
+  it('needs both the ratio and the APR-point floor', () => {
+    expect(isSpike(r(0.1), r(0.13))).toBe(false) // +3 pp but 1.3×
+    expect(isSpike(r(0.005), r(0.02))).toBe(false) // 4× but +1.5 pp
+    expect(isSpike(r(0.05), r(0.2))).toBe(true)
+  })
+
+  const ADAPTER = v(66)
+  const flowCtx = {
+    vaultOf: (a: string) => (a === v(1) ? v(1) : a === ADAPTER ? v(2) : undefined),
+    reallocationIn: (tx: string, vault: string) =>
+      tx === '0xr' && vault === v(1)
+        ? ('allocator' as const)
+        : tx === '0xp'
+          ? ('public-allocator' as const)
+          : undefined,
+  }
+  it('groups a block’s flows: reallocation vs redemption, adapters mapped to their vault, liquidations split', () => {
+    const rows = groupFlows(
+      [
+        { name: 'Withdraw', tx: '0xr', onBehalf: v(1), assets: 15n },
+        { name: 'Withdraw', tx: '0xu', onBehalf: v(1), assets: 2n },
+        { name: 'Withdraw', tx: '0xp', onBehalf: ADAPTER, assets: 3n },
+        { name: 'Withdraw', tx: '0xd', onBehalf: v(9), assets: 1n },
+        { name: 'Borrow', tx: '0xb', onBehalf: v(9), assets: 5n },
+        { name: 'Liquidate', tx: '0xl', repaidAssets: 4n, badDebtAssets: 1n },
+        { name: 'Supply', tx: '0xs', onBehalf: v(9), assets: 0n },
+      ],
+      flowCtx,
+    )
+    const key = (f: (typeof rows)[number]) =>
+      `${f.driver}:${f.side}:${f.sign}:${f.vault ?? '-'}:${f.source ?? '-'}:${f.assets}`
+    expect(rows.map(key).sort()).toEqual(
+      [
+        `vault-reallocation:supply:-1:${v(1)}:allocator:15`,
+        `vault-redemption:supply:-1:${v(1)}:-:2`,
+        `vault-reallocation:supply:-1:${v(2)}:public-allocator:3`,
+        'supplier-withdrawal:supply:-1:-:-:1',
+        'borrow:borrow:1:-:-:5',
+        'liquidation:borrow:-1:-:-:4',
+        'bad-debt:borrow:-1:-:-:1',
+        'bad-debt:supply:-1:-:-:1',
+      ].sort(),
+    )
+  })
+  it('explains a spike by first-order utilization shares among the flows that pushed it up', () => {
+    const e = explainSpike({
+      market: mid(1),
+      block: 20,
+      ts: T0,
+      rateBefore: r(0.04).toString(),
+      rateAfter: r(0.3).toString(),
+      before: { totalSupplyAssets: '100', totalBorrowAssets: '80' },
+      after: { totalSupplyAssets: '85', totalBorrowAssets: '85' },
+      flows: [
+        {
+          driver: 'vault-reallocation',
+          side: 'supply',
+          sign: -1,
+          assets: '15',
+          vault: v(1),
+          source: 'allocator',
+          tx: '0xr',
+          n: 1,
+        },
+        { driver: 'borrow', side: 'borrow', sign: 1, assets: '5', tx: '0xb', n: 1 },
+        { driver: 'repay', side: 'borrow', sign: -1, assets: '1', tx: '0xq', n: 1 },
+      ],
+    })
+    // supply −15 at S=100, B=80: du = 80·15/100² = 0.12; borrow +5: du = 0.05; repay −1: −0.01
+    expect(e.contributions.map((c) => [c.driver, Number(c.du.toFixed(4))])).toEqual([
+      ['vault-reallocation', 0.12],
+      ['borrow', 0.05],
+      ['repay', -0.01],
+    ])
+    expect(e.top).toBe('vault-reallocation')
+    expect(e.topShare).toBeCloseTo(0.12 / 0.17, 6)
+    expect(e.reallocationShare).toBeCloseTo(0.12 / 0.17, 6)
+    expect(e.utilBefore).toBe(0.8)
+    expect(e.utilAfter).toBe(1)
+  })
+  it('explains without state as zero shares, never a guess', () => {
+    const e = explainSpike({
+      market: mid(1),
+      block: 1,
+      ts: T0,
+      rateBefore: '1',
+      rateAfter: '9',
+      flows: [{ driver: 'borrow', side: 'borrow', sign: 1, assets: '5', tx: '0x', n: 1 }],
+    })
+    expect(e.top).toBeUndefined()
+    expect(e.contributions[0].share).toBe(0)
   })
 })

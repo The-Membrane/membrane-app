@@ -7,10 +7,17 @@ import {
   buildAttributionResponse,
   buildExposureResponse,
   buildFeedResponse,
+  buildSpikeResponse,
   parseFeedQuery,
 } from '@/lib/curatorFeed/service'
 import { compact } from '@/lib/curatorFeed/format'
-import { parseExposureFile, parseFeedFile, parseFlowsFile } from '@/lib/curatorFeed/store'
+import {
+  parseExposureFile,
+  parseFeedFile,
+  parseFlowsFile,
+  parseStateFile,
+  SCHEMA,
+} from '@/lib/curatorFeed/store'
 import handler from '@/pages/api/curator-feed'
 
 // Integrity of the committed dataset (public/data/curator-feed, written by
@@ -27,7 +34,7 @@ describe.skipIf(!has)('curator feed dataset', () => {
 
   it('covers at least 180 days and stays under the 20 MB disk budget', () => {
     expect(feed.meta.toTs - feed.meta.fromTs).toBeGreaterThanOrEqual(180 * 86_400)
-    const bytes = ['feed.json', 'flows.json', 'exposure.json'].reduce(
+    const bytes = ['feed.json', 'flows.json', 'exposure.json', 'state.json'].reduce(
       (s, n) => s + statSync(join(DIR, n)).size,
       0,
     )
@@ -55,6 +62,29 @@ describe.skipIf(!has)('curator feed dataset', () => {
     }
   })
 
+  it('carries a resumable collector state at the same block (incremental runs)', () => {
+    const state = parseStateFile(load('state.json'))
+    expect(state.schema).toBe(SCHEMA)
+    expect(feed.meta.schema).toBe(SCHEMA)
+    expect(state.toBlock).toBe(feed.meta.toBlock)
+    expect(state.fromBlock).toBe(feed.meta.fromBlock)
+    // Every carried open submit still exists in the feed (resume needs it).
+    const ids = new Set(feed.actions.map((a) => a.id))
+    for (const id of Object.values(state.classifier.open)) expect(ids.has(id), id).toBe(true)
+  })
+
+  it('every spike sits inside the window, on a known market, with its flows', () => {
+    expect(feed.spikes.length).toBeGreaterThan(0)
+    for (const s of feed.spikes) {
+      expect(s.block).toBeGreaterThanOrEqual(feed.meta.fromBlock)
+      expect(s.block).toBeLessThanOrEqual(feed.meta.toBlock)
+      expect(feed.entities.markets[s.market], s.market).toBeTruthy()
+      expect(BigInt(s.rateAfter) > BigInt(s.rateBefore)).toBe(true)
+      for (const f of s.flows)
+        if (f.vault) expect(feed.entities.vaults[f.vault], f.vault).toBeTruthy()
+    }
+  })
+
   it('every MetaMorpho market target resolves to market params', () => {
     const missing = feed.actions.filter(
       (a) =>
@@ -74,6 +104,11 @@ describe.skipIf(!has)('curator feed dataset', () => {
       ...buildAttributionResponse(feed, parseFeedQuery({ view: 'attribution' }), compact).map(
         (a) => a.text,
       ),
+      ...buildSpikeResponse(
+        feed,
+        parseFeedQuery({ view: 'spikes', limit: '500' }),
+        compact,
+      ).rows.map((a) => a.text),
     )
     // Names come from the chain and registries (a vault is called "… USDC Safe"); the
     // judgement-word check applies to OUR copy, so entity names are removed first.
@@ -134,6 +169,9 @@ describe.skipIf(!has)('GET /api/curator-feed', () => {
     expect(call({ view: 'exposure' }).body.rows.length).toBeGreaterThan(0)
     expect(call({ view: 'exposure', by: 'vault' }).body.vaults.length).toBeGreaterThan(0)
     expect(Array.isArray(call({ view: 'attribution' }).body.rows)).toBe(true)
+    const spikes = call({ view: 'spikes', limit: '3' }).body
+    expect(spikes.rows.length).toBeLessThanOrEqual(3)
+    expect(spikes.total).toBeGreaterThanOrEqual(spikes.rows.length)
     expect(call({ window: '5' }).status).toBe(400)
     expect(call({ before: 'nope' }).status).toBe(400)
     expect(call({}, 'POST').status).toBe(405)

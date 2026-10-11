@@ -168,3 +168,78 @@ export const decodeFlows = (f: FlowsFile): UnitFlow[] =>
     in: inn,
     n,
   }))
+
+/** Encode rows already in whole-token units (merged / carried rows). */
+export function encodeUnitFlows(rows: UnitFlow[], toBlock: number): FlowsFile {
+  const days: string[] = []
+  const vaults: string[] = []
+  const targets: string[] = []
+  const at = (list: string[], idx: Map<string, number>, k: string): number => {
+    let i = idx.get(k)
+    if (i === undefined) {
+      i = list.length
+      list.push(k)
+      idx.set(k, i)
+    }
+    return i
+  }
+  const di = new Map<string, number>()
+  const vi = new Map<string, number>()
+  const ti = new Map<string, number>()
+  const sorted = [...rows].sort(
+    (a, b) =>
+      a.day.localeCompare(b.day) ||
+      a.vault.localeCompare(b.vault) ||
+      a.target.localeCompare(b.target),
+  )
+  return {
+    schema: SCHEMA,
+    toBlock,
+    days,
+    vaults,
+    targets,
+    rows: sorted.map((f) => [
+      at(days, di, f.day),
+      at(vaults, vi, f.vault),
+      at(targets, ti, f.target),
+      f.source === 'public-allocator' ? 1 : 0,
+      f.out,
+      f.in,
+      f.n,
+    ]),
+  }
+}
+
+/** Base-unit daily rows → whole-token rows (6 significant digits). */
+export const toUnitFlows = (
+  flows: DailyFlow[],
+  decimalsOf: (vault: string) => number,
+): UnitFlow[] =>
+  flows.map((f) => ({
+    day: f.day,
+    vault: f.vault,
+    target: f.target,
+    source: f.source,
+    out: toUnits6(f.out, decimalsOf(f.vault)),
+    in: toUnits6(f.in, decimalsOf(f.vault)),
+    n: f.n,
+  }))
+
+/**
+ * Merge two sets of daily rows (an incremental run's new days onto the carried ones).
+ * The boundary day appears in both; its rows are summed, so a day is never counted twice
+ * as long as the two runs cover disjoint block ranges.
+ */
+export function mergeUnitFlows(a: UnitFlow[], b: UnitFlow[]): UnitFlow[] {
+  const m = new Map<string, UnitFlow>()
+  for (const f of [...a, ...b]) {
+    const k = `${f.day}|${f.vault}|${f.target}|${f.source}`
+    const cur = m.get(k)
+    if (cur) {
+      cur.out = Number((cur.out + f.out).toPrecision(6))
+      cur.in = Number((cur.in + f.in).toPrecision(6))
+      cur.n += f.n
+    } else m.set(k, { ...f })
+  }
+  return [...m.values()]
+}

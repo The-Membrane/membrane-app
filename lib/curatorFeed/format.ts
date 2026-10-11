@@ -209,6 +209,10 @@ export function actionText(e: Entities, a: FeedAction): string {
       return `Removed adapter ${short(a.target ?? '')}`
     case 'v2_submit':
       return `Submitted ${a.note ?? 'a timelocked change'}${a.validAt ? `; executable from ${utc(a.validAt)}` : ''}`
+    case 'writeoff_submit':
+      return `Submitted a write-off of the vault's ${tgt} position (adapter burnShares)${a.validAt ? `; executable from ${utc(a.validAt)}` : ''}`
+    case 'writeoff':
+      return `Wrote off the vault's ${tgt} position (adapter burnShares${a.assets ? `, ≈ ${capText(e, { ...a, capType: undefined }, a.assets)}` : ''})${stillText(e, a)}`
     case 'v2_revoke':
       return `Revoked pending ${a.note ?? 'change'}`
     case 'freeze':

@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from 'fs'
+import { existsSync, readFileSync, statSync } from 'fs'
 import { join } from 'path'
 import type { NextApiRequest, NextApiResponse } from 'next'
 
@@ -7,13 +7,16 @@ import {
   buildAttributionResponse,
   buildExposureResponse,
   buildFeedResponse,
+  buildSpikeResponse,
   buildVaultExposure,
   parseFeedQuery,
   QueryError,
 } from '@/lib/curatorFeed/service'
 import {
+  LIVE_DIR,
   parseExposureFile,
   parseFeedFile,
+  SEED_DIR,
   type ExposureFile,
   type FeedFile,
 } from '@/lib/curatorFeed/store'
@@ -26,23 +29,30 @@ import {
 //   GET /api/curator-feed                    feed (see lib/curatorFeed/service.ts)
 //   GET /api/curator-feed?view=exposure      collateral → vaults at the head block (&by=vault: vault → markets)
 //   GET /api/curator-feed?view=attribution   vault withdrawals vs utilization / rate
+//   GET /api/curator-feed?view=spikes        borrow-rate jumps and who moved the market
+//                                            (&minUsd= market supply floor, &limit=, &only=reallocation|drained)
 //
-// DATA: public/data/curator-feed/*.json written by scripts/collect-curator-feed.ts
-// (pnpm curators:feed). Read from disk, re-parsed only when the file changes. Status
+// DATA: written by scripts/collect-curator-feed.ts (pnpm curators:feed). LOCAL-FIRST:
+// .data/curator-feed (the collector's live copy, updated in place by the tick) when it
+// holds a feed, else the committed seed public/data/curator-feed. Read from disk,
+// re-parsed only when the file changes. Status
 // (pending / executable / history) is computed against the request clock, so a cap
 // change leaves its timelock window without a re-collect. Cached: s-maxage 300.
 
-const DIR = join(process.cwd(), 'public', 'data', 'curator-feed')
+const dir = (): string => {
+  const live = join(process.cwd(), LIVE_DIR)
+  return existsSync(join(live, 'feed.json')) ? live : join(process.cwd(), SEED_DIR)
+}
 
-type Cached<T> = { mtimeMs: number; value: T }
+type Cached<T> = { path: string; mtimeMs: number; value: T }
 let feedCache: Cached<FeedFile> | null = null
 let exposureCache: Cached<ExposureFile> | null = null
 
 function load<T>(name: string, parse: (raw: unknown) => T, cache: Cached<T> | null): Cached<T> {
-  const path = join(DIR, name)
+  const path = join(dir(), name)
   const { mtimeMs } = statSync(path)
-  if (cache && cache.mtimeMs === mtimeMs) return cache
-  return { mtimeMs, value: parse(JSON.parse(readFileSync(path, 'utf8'))) }
+  if (cache && cache.path === path && cache.mtimeMs === mtimeMs) return cache
+  return { path, mtimeMs, value: parse(JSON.parse(readFileSync(path, 'utf8'))) }
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -78,6 +88,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     }
     if (q.view === 'attribution')
       return res.status(200).json({ rows: buildAttributionResponse(feed, q, compact) })
+    if (q.view === 'spikes') return res.status(200).json(buildSpikeResponse(feed, q, compact))
     return res.status(200).json(buildFeedResponse(feed, q, nowS))
   } catch (e) {
     if (e instanceof QueryError) return res.status(400).json({ error: e.message })

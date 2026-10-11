@@ -16,7 +16,15 @@
  * submit(data) → Submit(selector, data, executableAt) → the call itself emits
  * Accept(selector, data) and its own event; cap DECREASES are immediate. A relative cap of
  * WAD means "no relative cap"; 0 means nothing may be allocated.
+ * Vault V2 MorphoMarketV1AdapterV2 (src/adapters/MorphoMarketV1AdapterV2.sol): the adapter
+ * has its OWN timelocks (same Submit/Accept/Revoke events as the vault) for
+ * burnShares(marketId), which zeroes the adapter's record of its shares in a market — the
+ * vault writes the position off — and emits BurnShares.
  * Aave v3: supply/borrow caps are whole tokens and 0 means NO cap (not zero).
+ *
+ * RESUMABLE: the replay state (open submits, queues, last caps) is returned and can be
+ * passed back with the previous run's actions, so an incremental run that only reads new
+ * blocks classifies exactly as one run over the whole range would.
  */
 
 import { V2_SELECTORS, decodeParams, type EmitterKind } from './abi'
@@ -35,19 +43,46 @@ export interface ClassifyContext {
   /** Queue just before the vault's first in-range queue event (archive read). */
   baselineWithdrawQueue?: Record<string, string[]>
   baselineSupplyQueue?: Record<string, string[]>
-  /** Head-time contract reads for still-open submits, keyed `${vault}:${kind}:${target ?? ''}`. */
-  chainValidAt?: Record<string, number>
   /** V2 cap id → decoded idData, for ids seen only in Allocate/Deallocate. */
   v2Ids?: Record<string, V2IdData>
   /** Public allocator singletons; a reallocation they trigger is tagged 'public-allocator'. */
   publicAllocators?: { mm?: string; ee?: string }
   /** V2: was `sender` an allocator of `vault`? Deposit-path allocations are not curator moves. */
   isV2Allocator?(vault: string, sender: string): boolean
+  /** Vault V2 market adapter → its parent vault. */
+  adapterParent?(adapter: string): string | undefined
+}
+
+/** The replay state an incremental run carries over (JSON-safe). */
+export interface ClassifierState {
+  /** Open submits: resolution key → action id. */
+  open: Record<string, string>
+  withdrawQ: Record<string, string[]>
+  supplyQ: Record<string, string[]>
+  /** Last cap seen per `${vault}:${capType}:${target}` (Vault V2), decimal string. */
+  lastCap: Record<string, string>
+  lastAaveCollateral: Record<string, string>
+}
+
+export const emptyClassifierState = (): ClassifierState => ({
+  open: {},
+  withdrawQ: {},
+  supplyQ: {},
+  lastCap: {},
+  lastAaveCollateral: {},
+})
+
+/** Resume input: the carried state and the previous run's actions (resolved in place). */
+export interface Resume {
+  state: ClassifierState
+  actionsById: Map<string, FeedAction>
 }
 
 export interface ClassifyResult {
+  /** New actions only; previous actions resolved by this run are updated in place. */
   actions: FeedAction[]
   reallocations: Reallocation[]
+  state: ClassifierState
   stats: {
     events: number
     supplyQueueReorders: number
@@ -56,8 +91,8 @@ export interface ClassifyResult {
     queueBaselineMissing: number
     v2DepositPathAllocations: number
     duplicatesSkipped: number
-    /** Submits with no resolution event whose head read shows nothing pending. */
-    openButClearedOnChain: number
+    /** Open submits in the resume state whose action was not in the previous run. */
+    resumeOpenMissing: number
     /** Submits accepted in their own transaction (zero timelock), folded into the executed row. */
     sameTxSubmitsFolded: number
   }
@@ -69,6 +104,7 @@ const SUBMIT_KINDS: ReadonlySet<ActionKind> = new Set([
   'timelock_submit',
   'guardian_submit',
   'v2_submit',
+  'writeoff_submit',
 ])
 export const isSubmitKind = (k: ActionKind): boolean => SUBMIT_KINDS.has(k)
 
@@ -82,6 +118,7 @@ export function decodeV2Call(data: string): {
   value?: bigint
   address?: string
   flag?: boolean
+  id?: string
 } {
   const selector = data.slice(0, 10).toLowerCase()
   const fn = V2_SELECTORS[selector] ?? `unknown(${selector})`
@@ -99,6 +136,8 @@ export function decodeV2Call(data: string): {
     }
     if (fn.endsWith('(uint256)'))
       return { selector, fn, value: decodeParams(['uint256'], body)[0] as bigint }
+    if (fn.endsWith('(bytes32)'))
+      return { selector, fn, id: decodeParams(['bytes32'], body)[0] as string }
     if (fn.endsWith('(bytes4,uint256)')) {
       const [sel, value] = decodeParams(['bytes4', 'uint256'], body) as [string, bigint]
       return { selector, fn, address: sel, value }
@@ -111,7 +150,11 @@ export function decodeV2Call(data: string): {
 
 const fnName = (sig: string): string => sig.split('(')[0]
 
-export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): ClassifyResult {
+export function classifyEvents(
+  events: DecodedEvent[],
+  ctx: ClassifyContext,
+  resume?: Resume,
+): ClassifyResult {
   const sorted = [...events].sort(byChainOrder)
   const actions: FeedAction[] = []
   const reallocations: Reallocation[] = []
@@ -122,17 +165,25 @@ export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): Cl
     queueBaselineMissing: 0,
     v2DepositPathAllocations: 0,
     duplicatesSkipped: 0,
-    openButClearedOnChain: 0,
+    resumeOpenMissing: 0,
     sameTxSubmitsFolded: 0,
   }
   const seen = new Set<string>()
+  const prior = resume?.state ?? emptyClassifierState()
   /** Open submit-type actions, keyed by what resolves them. */
   const open = new Map<string, FeedAction>()
-  const withdrawQ = new Map<string, string[]>()
-  const supplyQ = new Map<string, string[]>()
-  /** Last cap seen in range, per `${vault}:${capType}:${target}` (V2 + Aave). */
-  const lastCap = new Map<string, bigint>()
-  const lastAaveCollateral = new Map<string, string>()
+  for (const [key, id] of Object.entries(prior.open)) {
+    const a = resume?.actionsById.get(id)
+    if (a) open.set(key, a)
+    else stats.resumeOpenMissing++
+  }
+  const withdrawQ = new Map<string, string[]>(Object.entries(prior.withdrawQ))
+  const supplyQ = new Map<string, string[]>(Object.entries(prior.supplyQ))
+  /** Last cap seen, per `${vault}:${capType}:${target}` (Vault V2). */
+  const lastCap = new Map<string, bigint>(
+    Object.entries(prior.lastCap).map(([k, v]) => [k, BigInt(v)]),
+  )
+  const lastAaveCollateral = new Map<string, string>(Object.entries(prior.lastAaveCollateral))
 
   const scopeV1 = (k: EmitterKind): Scope => (k === 'ee' ? 'strategy' : 'market')
 
@@ -143,10 +194,12 @@ export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): Cl
     },
   ): FeedAction => {
     const protocol = PROTOCOL_OF[e.kind] as Protocol
+    const adapter = e.kind === 'v2adapter' ? e.emitter : undefined
     const action: FeedAction = {
       id: `${e.tx}:${e.logIndex}`,
       protocol,
-      vault: e.emitter,
+      vault: adapter ? (ctx.adapterParent?.(adapter) ?? adapter) : e.emitter,
+      ...(adapter ? { via: adapter } : {}),
       block: e.block,
       ts: e.ts,
       tx: e.tx,
@@ -167,21 +220,19 @@ export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): Cl
     open.delete(key)
     return a
   }
-  /** Submits whose head-time contract read can replace the derived window. */
-  const chainKeyed: { action: FeedAction; chainKey: string }[] = []
+  /** Open a submit; its window is derived from the timelock until a head read replaces it
+   *  (applyHeadPending). */
   const openSubmit = (
     key: string,
     a: FeedAction,
     e: DecodedEvent,
     derivedDelay: number | undefined,
-    chainKey: string,
   ) => {
     if (a.validAt === undefined && derivedDelay !== undefined) {
       a.validAt = e.ts + derivedDelay
       a.validAtSource = 'derived'
     }
     open.set(key, a)
-    chainKeyed.push({ action: a, chainKey })
   }
 
   for (const e of sorted) {
@@ -206,13 +257,7 @@ export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): Cl
             from: ctx.prevCap?.(v, target, e.block),
             actor: argStr(e, 'caller'),
           })
-          openSubmit(
-            `${v}|cap|${target}`,
-            a,
-            e,
-            ctx.timelockAt?.(v, e.block),
-            `${v}:cap_submit:${target}`,
-          )
+          openSubmit(`${v}|cap|${target}`, a, e, ctx.timelockAt?.(v, e.block))
           break
         }
         case 'SetCap': {
@@ -251,13 +296,7 @@ export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): Cl
         case 'SubmitMarketRemoval': {
           const target = argStr(e, 'id')
           const a = push(e, { kind: 'removal_submit', scope, target, actor: argStr(e, 'caller') })
-          openSubmit(
-            `${v}|removal|${target}`,
-            a,
-            e,
-            ctx.timelockAt?.(v, e.block),
-            `${v}:removal_submit:${target}`,
-          )
+          openSubmit(`${v}|removal|${target}`, a, e, ctx.timelockAt?.(v, e.block))
           break
         }
         case 'RevokePendingMarketRemoval': {
@@ -326,7 +365,7 @@ export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): Cl
             from: cur?.toString(),
             to: argBig(e, 'newTimelock').toString(),
           })
-          openSubmit(`${v}|timelock`, a, e, cur, `${v}:timelock_submit:`)
+          openSubmit(`${v}|timelock`, a, e, cur)
           break
         }
         case 'SetTimelock': {
@@ -362,7 +401,7 @@ export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): Cl
             scope: 'vault',
             to: argStr(e, 'newGuardian'),
           })
-          openSubmit(`${v}|guardian`, a, e, ctx.timelockAt?.(v, e.block), `${v}:guardian_submit:`)
+          openSubmit(`${v}|guardian`, a, e, ctx.timelockAt?.(v, e.block))
           break
         }
         case 'SetGuardian':
@@ -386,6 +425,94 @@ export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): Cl
             to: argStr(e, 'newOwner'),
           })
           break
+      }
+      continue
+    }
+
+    if (e.kind === 'v2adapter') {
+      // Keys are adapter-scoped: the adapter's executableAt is its own mapping.
+      switch (e.name) {
+        case 'Submit': {
+          const data = argStr(e, 'data')
+          const call = decodeV2Call(data)
+          const validAt = Number(argBig(e, 'executableAt'))
+          const a =
+            call.fn.startsWith('burnShares') && call.id
+              ? push(e, {
+                  kind: 'writeoff_submit',
+                  scope: 'market',
+                  target: call.id,
+                  validAt,
+                  validAtSource: 'event',
+                  note: 'adapter burnShares',
+                })
+              : call.fn.startsWith('decreaseTimelock')
+                ? push(e, {
+                    kind: 'timelock_submit',
+                    scope: 'vault',
+                    to: call.value?.toString(),
+                    validAt,
+                    validAtSource: 'event',
+                    note: `adapter decreaseTimelock(${V2_SELECTORS[call.address ?? ''] ? fnName(V2_SELECTORS[call.address ?? '']) : call.address})`,
+                  })
+                : push(e, {
+                    kind: 'v2_submit',
+                    scope: 'vault',
+                    target: call.address,
+                    collateral: [],
+                    validAt,
+                    validAtSource: 'event',
+                    note: `adapter ${fnName(call.fn)}(${call.address ?? call.value?.toString() ?? ''})`,
+                  })
+          open.set(`${v}|v2|${data.toLowerCase()}`, a)
+          break
+        }
+        case 'Accept':
+          resolve(`${v}|v2|${argStr(e, 'data').toLowerCase()}`, e, 'accepted')
+          break
+        case 'Revoke': {
+          const data = argStr(e, 'data')
+          resolve(`${v}|v2|${data.toLowerCase()}`, e, 'revoked')
+          const call = decodeV2Call(data)
+          push(e, {
+            kind: 'v2_revoke',
+            scope: call.id ? 'market' : 'vault',
+            target: call.id,
+            actor: argStr(e, 'sender'),
+            note: `adapter ${fnName(call.fn)}`,
+          })
+          break
+        }
+        case 'BurnShares':
+          push(e, {
+            kind: 'writeoff',
+            scope: 'market',
+            target: argStr(e, 'marketId'),
+            to: argBig(e, 'supplyShares').toString(),
+            note: 'supply shares written off',
+          })
+          break
+        case 'IncreaseTimelock':
+        case 'DecreaseTimelock': {
+          const sel = argStr(e, 'selector')
+          push(e, {
+            kind: 'timelock_set',
+            scope: 'vault',
+            to: argBig(e, 'newDuration').toString(),
+            note: `adapter ${e.name === 'IncreaseTimelock' ? 'increase' : 'decrease'} timelock of ${V2_SELECTORS[sel] ? fnName(V2_SELECTORS[sel]) : sel}`,
+          })
+          break
+        }
+        case 'Abdicate': {
+          const sel = argStr(e, 'selector')
+          push(e, {
+            kind: 'timelock_set',
+            scope: 'vault',
+            to: 'abdicated',
+            note: `adapter abdicated ${V2_SELECTORS[sel] ? fnName(V2_SELECTORS[sel]) : sel} (can never be called again)`,
+          })
+          break
+        }
       }
       continue
     }
@@ -685,21 +812,56 @@ export function classifyEvents(events: DecodedEvent[], ctx: ClassifyContext): Cl
     actions.splice(0, actions.length, ...actions.filter((a) => !drop.has(a.id)))
   }
 
-  // A head-time contract read describes the submit still open at the head: it replaces
-  // the derived window, or — when the contract shows nothing pending — says the outcome
-  // event is missing from the collected logs (counted, never guessed).
-  for (const { action, chainKey } of chainKeyed) {
-    if (action.resolution) continue
-    const chain = ctx.chainValidAt?.[chainKey]
-    if (chain === undefined) continue
-    if (chain > 0) {
-      action.validAt = chain
-      action.validAtSource = 'chain'
-      action.headPending = true
+  const state: ClassifierState = {
+    open: Object.fromEntries([...open.entries()].map(([k, a]) => [k, a.id])),
+    withdrawQ: Object.fromEntries(withdrawQ),
+    supplyQ: Object.fromEntries(supplyQ),
+    lastCap: Object.fromEntries([...lastCap.entries()].map(([k, v]) => [k, v.toString()])),
+    lastAaveCollateral: Object.fromEntries(lastAaveCollateral),
+  }
+  return { actions, reallocations, state, stats }
+}
+
+// ── head reads ─────────────────────────────────────────────────────────────────
+
+/** Key under which the collector files a head read of a still-open V1 / Euler Earn submit. */
+export const headKey = (a: Pick<FeedAction, 'vault' | 'kind' | 'target'>): string =>
+  `${a.vault}:${a.kind}:${a.target ?? ''}`
+
+const HEAD_READ_KINDS: ReadonlySet<ActionKind> = new Set([
+  'cap_submit',
+  'removal_submit',
+  'timelock_submit',
+  'guardian_submit',
+])
+
+/** Open V1 / Euler Earn submits whose window a head read can confirm (Vault V2 windows come
+ *  from the event itself). */
+export const needsHeadRead = (a: FeedAction): boolean =>
+  !a.resolution &&
+  HEAD_READ_KINDS.has(a.kind) &&
+  (a.protocol === 'morpho-v1' || a.protocol === 'euler-earn')
+
+/**
+ * Apply head-time contract reads (pendingCap / config.removableAt / pendingTimelock /
+ * pendingGuardian validAt, keyed by headKey) to open submits: a positive value replaces
+ * the derived window; 0 says nothing is pending although no accept/revoke event was
+ * collected (counted, never guessed). Returns that count.
+ */
+export function applyHeadPending(actions: FeedAction[], reads: Record<string, number>): number {
+  let cleared = 0
+  for (const a of actions) {
+    if (!needsHeadRead(a)) continue
+    const v = reads[headKey(a)]
+    if (v === undefined) continue
+    if (v > 0) {
+      a.validAt = v
+      a.validAtSource = 'chain'
+      a.headPending = true
     } else {
-      action.headPending = false
-      stats.openButClearedOnChain++
+      a.headPending = false
+      cleared++
     }
   }
-  return { actions, reallocations, stats }
+  return cleared
 }

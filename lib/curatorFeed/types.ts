@@ -13,6 +13,7 @@ export type Protocol = 'morpho-v1' | 'morpho-v2' | 'euler-earn' | 'aave-v3'
 export const PROTOCOL_OF: Partial<Record<EmitterKind, Protocol>> = {
   mm: 'morpho-v1',
   v2: 'morpho-v2',
+  v2adapter: 'morpho-v2',
   ee: 'euler-earn',
   aave: 'aave-v3',
 }
@@ -26,6 +27,9 @@ export const PROTOCOL_OF: Partial<Record<EmitterKind, Protocol>> = {
  *   roles       curator_set · allocator_set · guardian_submit · guardian_set · guardian_revoke
  *               · owner_set · sentinel_set
  *   v2 config   adapter_add · adapter_remove · v2_submit (other timelocked call) · v2_revoke
+ *   v2 adapter  writeoff_submit (timelocked burnShares) · writeoff (BurnShares: the adapter
+ *               drops a market position from the vault's books); other adapter calls reuse
+ *               v2_submit / v2_revoke / timelock_set with `via` = the adapter
  *   aave        freeze · unfreeze · pause · unpause · borrow_off · borrow_on · ltv_zero
  *               · collateral_params  (supply/borrow caps reuse cap_raise / cap_cut)
  */
@@ -55,6 +59,8 @@ export type ActionKind =
   | 'adapter_remove'
   | 'v2_submit'
   | 'v2_revoke'
+  | 'writeoff_submit'
+  | 'writeoff'
   | 'freeze'
   | 'unfreeze'
   | 'pause'
@@ -69,6 +75,8 @@ export const EXIT_KINDS: ReadonlySet<ActionKind> = new Set<ActionKind>([
   'cap_zero',
   'removal_submit',
   'market_removed',
+  'writeoff_submit',
+  'writeoff',
 ])
 /** Protocol-level analogues (Aave). Shown beside clusters, never counted as a curator. */
 export const PROTOCOL_EXIT_KINDS: ReadonlySet<ActionKind> = new Set<ActionKind>([
@@ -92,8 +100,11 @@ export interface FeedAction {
   /** `${tx}:${logIndex}` — unique, stable. */
   id: string
   protocol: Protocol
-  /** Emitting vault. For Aave: the PoolConfigurator address. */
+  /** Emitting vault. For Aave: the PoolConfigurator address. For a Vault V2 adapter's
+   *  event: the adapter's parent vault (the adapter is in `via`). */
   vault: string
+  /** Vault V2 adapter that emitted the event, when it was not the vault itself. */
+  via?: string
   kind: ActionKind
   scope: Scope
   /** Market id / strategy / V2 cap id / Aave asset. Absent for vault-wide actions. */
@@ -129,6 +140,9 @@ export interface FeedAction {
    * Undefined when the read was not possible.
    */
   stillCapped?: boolean
+  /** writeoff only: the written-off position in loan-token base units (shares priced at
+   *  the end of the block before), when the collector could read it. */
+  assets?: string
   /** market_removed only: a SubmitMarketRemoval preceded it (forced removal path). */
   forced?: boolean
 }
@@ -219,6 +233,61 @@ export interface AttributionCase {
   after?: MarketState
 }
 
+// ── rate spikes (spike-first attribution) ──────────────────────────────────────
+
+/**
+ * Who moved a market's supply or borrow in the block that set a new borrow rate.
+ *   supply side  vault-reallocation (an allocator moved the vault's money; `source` says
+ *                whether the Public Allocator triggered it) · vault-redemption (the vault
+ *                withdrew to pay its own depositors) · vault-deposit · supplier-withdrawal
+ *                / supplier-deposit (a non-vault supplier) · bad-debt (written off)
+ *   borrow side  borrow · repay · liquidation (repaid) · bad-debt
+ */
+export type SpikeDriver =
+  | 'vault-reallocation'
+  | 'vault-redemption'
+  | 'vault-deposit'
+  | 'supplier-withdrawal'
+  | 'supplier-deposit'
+  | 'borrow'
+  | 'repay'
+  | 'liquidation'
+  | 'bad-debt'
+
+export interface SpikeFlow {
+  driver: SpikeDriver
+  side: 'supply' | 'borrow'
+  /** −1 = the side's total fell (a withdrawal, a repay), +1 = it rose. */
+  sign: 1 | -1
+  /** Magnitude, loan-token base units. Summed per (driver, side, vault). */
+  assets: string
+  /** The vault (a V2 adapter is mapped to its vault). */
+  vault?: string
+  source?: FlowSource
+  /** One transaction of the group, for a link. */
+  tx: string
+  /** Logs summed into this row. */
+  n: number
+}
+
+/**
+ * One jump in a Morpho Blue market's borrow rate, and every supply / borrow change in
+ * the block whose interactions set it. The rate pair comes from consecutive
+ * AccrueInterest logs: accrual i reports the rate that applied since accrual i−1, so the
+ * change between the two rates was made in accrual i−1's block (`block`).
+ */
+export interface SpikeCase {
+  market: string
+  block: number
+  ts: number
+  /** Per-second WAD rates, as decimal strings. */
+  rateBefore: string
+  rateAfter: string
+  before?: MarketState
+  after?: MarketState
+  flows: SpikeFlow[]
+}
+
 // ── labels ─────────────────────────────────────────────────────────────────────
 
 export interface TokenInfo {
@@ -247,6 +316,12 @@ export interface VaultInfo {
   curatorKey: string
   /** Seconds (V1 / Euler Earn). */
   timelock?: number
+  /**
+   * Vault V2 timelocks read at the head, seconds, per function: increaseAbsoluteCap,
+   * increaseRelativeCap, addAdapter, setIsAllocator, and `adapter.burnShares` for its
+   * market adapter. 0 = the curator can do it in one transaction.
+   */
+  timelocks?: Record<string, number>
 }
 export interface CuratorInfo {
   name: string

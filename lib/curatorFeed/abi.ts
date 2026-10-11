@@ -23,6 +23,7 @@
 export type EmitterKind =
   | 'mm'
   | 'v2'
+  | 'v2adapter'
   | 'ee'
   | 'pa'
   | 'eepa'
@@ -102,6 +103,8 @@ const def = (kinds: EmitterKind[], human: string, topic0: string): EventDef => {
   return { name, sig: canonicalSignature(name, inputs), topic0, inputs, kinds }
 }
 
+/** Vault V2 and its market adapter declare the same timelock events. */
+const V2_TIMELOCKED: EmitterKind[] = ['v2', 'v2adapter']
 const VAULTS: EmitterKind[] = ['mm', 'ee', 'v2']
 const V1LIKE: EmitterKind[] = ['mm', 'ee']
 
@@ -200,17 +203,17 @@ export const EVENTS: EventDef[] = [
   ),
   // ── Vault V2 ─────────────────────────────────────────────────────────────────
   def(
-    ['v2'],
+    V2_TIMELOCKED,
     'Submit(bytes4 indexed selector, bytes data, uint256 executableAt)',
     '0x8b18afeb361b83b025999ed5b42f1d90c68aaa5a0fd49c015f04c3b8b81e80eb',
   ),
   def(
-    ['v2'],
+    V2_TIMELOCKED,
     'Accept(bytes4 indexed selector, bytes data)',
     '0x29aa42fc192ff77ef42105abba283197ac841341e196e417a7fc2784cdc4e5fb',
   ),
   def(
-    ['v2'],
+    V2_TIMELOCKED,
     'Revoke(address indexed sender, bytes4 indexed selector, bytes data)',
     '0x70521cf6a7c2458c5ad406081ad7b3bc4afd31b01b586a157a9780fcee6a77cb',
   ),
@@ -270,19 +273,30 @@ export const EVENTS: EventDef[] = [
     '0x8da69db4003c01b5c7be66a7bb5953423222e5118b6af0aadf54e75feef5bc50',
   ),
   def(
-    ['v2'],
+    V2_TIMELOCKED,
     'IncreaseTimelock(bytes4 indexed selector, uint256 newDuration)',
     '0xed380a7a1f0afc99b313ac7d9f1e52e44430d32b4639c7993bd0021974e30c0e',
   ),
   def(
-    ['v2'],
+    V2_TIMELOCKED,
     'DecreaseTimelock(bytes4 indexed selector, uint256 newDuration)',
     '0x488e0bfafe0a9580c2271bee1f563a47d309f0105ca950ea525d909b43b36daf',
   ),
   def(
-    ['v2'],
+    V2_TIMELOCKED,
     'Abdicate(bytes4 indexed selector)',
     '0xa8480b135a28741e8c059528bf8f82de70278485fb86bfc816a183801f0a8570',
+  ),
+  // ── Vault V2 MorphoMarketV1AdapterV2 (own timelocks; Submit/Accept/… above) ──
+  def(
+    ['v2adapter'],
+    'BurnShares(bytes32 indexed marketId, uint256 supplyShares)',
+    '0x82234a83a62d451b7758221f55cd21fe22d35d7798bdfea8a44168fd355880cb',
+  ),
+  def(
+    ['v2adapter'],
+    'SetSkimRecipient(address indexed newSkimRecipient)',
+    '0x2e7908865670e21b9779422cadf5f1cba271a62bb95c71eaaf615c0a1c48ebee',
   ),
   // ── Morpho Public Allocator (one singleton; `vault` is indexed) ──────────────
   def(
@@ -408,6 +422,32 @@ export const EVENTS: EventDef[] = [
     'AccrueInterest(bytes32 indexed id, uint256 prevBorrowRate, uint256 interest, uint256 feeShares)',
     '0x9d9bd501d0657d7dfe415f779a620a62b78bc508ddc0891fbbd8b7ac0f8fce87',
   ),
+  // Morpho Blue supply / borrow flows — read per spike block (spikes.ts).
+  def(
+    ['blue'],
+    'Supply(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets, uint256 shares)',
+    '0xedf8870433c83823eb071d3df1caa8d008f12f6440918c20d75a3602cda30fe0',
+  ),
+  def(
+    ['blue'],
+    'Withdraw(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets, uint256 shares)',
+    '0xa56fc0ad5702ec05ce63666221f796fb62437c32db1aa1aa075fc6484cf58fbf',
+  ),
+  def(
+    ['blue'],
+    'Borrow(bytes32 indexed id, address caller, address indexed onBehalf, address indexed receiver, uint256 assets, uint256 shares)',
+    '0x570954540bed6b1304a87dfe815a5eda4a648f7097a16240dcd85c9b5fd42a43',
+  ),
+  def(
+    ['blue'],
+    'Repay(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets, uint256 shares)',
+    '0x52acb05cebbd3cd39715469f22afbf5a17496295ef3bc9bb5944056c63ccaa09',
+  ),
+  def(
+    ['blue'],
+    'Liquidate(bytes32 indexed id, address indexed caller, address indexed borrower, uint256 repaidAssets, uint256 repaidShares, uint256 seizedAssets, uint256 badDebtAssets, uint256 badDebtShares)',
+    '0xa4946ede45d0c6f06a0f5ce92c9ad3b4751452d2fe0e25010783bcab57a67e41',
+  ),
 ]
 
 /** (kind, topic0) → definition. A shared topic0 resolves per emitter kind. */
@@ -452,6 +492,9 @@ export const V2_SELECTORS: Record<string, string> = {
   '0x9faae464': 'setManagementFeeRecipient(address)',
   '0x3e9d2ac7': 'setForceDeallocatePenalty(address,uint256)',
   '0xaa4abe7f': 'setMaxRate(uint256)',
+  // MorphoMarketV1AdapterV2 timelocked calls (increase/decreaseTimelock and abdicate above)
+  '0x3b2de5ac': 'burnShares(bytes32)',
+  '0x2b30997b': 'setSkimRecipient(address)',
 }
 
 // ── decoder ────────────────────────────────────────────────────────────────────

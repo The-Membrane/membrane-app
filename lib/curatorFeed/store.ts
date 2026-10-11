@@ -1,16 +1,30 @@
 /**
- * The curator-feed dataset on disk: public/data/curator-feed/{feed,flows,exposure}.json.
- * Pure (types + JSON shape checks); the collector writes, the API route reads.
+ * The curator-feed dataset on disk. Pure (types, paths, JSON shape checks); the collector
+ * writes, the API route reads.
  *
- *   feed.json      meta + entities + actions + attribution cases
+ *   feed.json      meta + entities + actions + attribution + rate spikes
  *   flows.json     daily reallocation flows (one row per UTC day × vault × target × source)
- *   exposure.json  per-vault allocations at the head block
- * Split so the page's first request (feed) does not carry the flows table.
+ *   exposure.json  per-vault allocations at the last exposure read
+ *   state.json     what an incremental run carries over (verified emitters, allocators,
+ *                  classifier replay state, last rate per market). Not read by the API.
+ *
+ * TWO LOCATIONS (local-first, like lib/netApy/store.ts):
+ *   LIVE_DIR  .data/curator-feed          the collector's working copy, git-ignored; the
+ *                                         hourly tick updates it in place
+ *   SEED_DIR  public/data/curator-feed    the committed snapshot (`--publish` refreshes it)
+ * The API reads LIVE_DIR when it holds a feed, else SEED_DIR. The collector resumes from
+ * LIVE_DIR, else from SEED_DIR, else starts a full window.
  */
 
-import type { AttributionCase, Entities, ExposureVault, FeedAction } from './types'
+import type { EmitterKind } from './abi'
+import type { ClassifierState } from './classify'
+import type { AttributionCase, Entities, ExposureVault, FeedAction, SpikeCase } from './types'
 
-export const SCHEMA = 1
+export const SCHEMA = 2
+
+/** Relative to the app root (process.cwd()). */
+export const LIVE_DIR = '.data/curator-feed'
+export const SEED_DIR = 'public/data/curator-feed'
 
 export interface FeedMeta {
   schema: number
@@ -35,7 +49,20 @@ export interface FeedMeta {
   }
   counts: Record<string, number>
   /** Thresholds the collector used, so the page can state them. */
-  thresholds: { largeWithdrawUsd: number; exposureMinUsd: number; keptSupplyDrop: number }
+  thresholds: {
+    largeWithdrawUsd: number
+    exposureMinUsd: number
+    keptSupplyDrop: number
+    spikeMinSupplyUsd?: number
+  }
+  /** The run that wrote this file: full window or incremental from the last block. */
+  lastRun?: {
+    mode: 'full' | 'incremental'
+    fromBlock: number
+    toBlock: number
+    startedAt: string
+    minutes: number
+  }
   sources: string[]
   /** Known gaps, in words. */
   caveats: string[]
@@ -46,6 +73,28 @@ export interface FeedFile {
   entities: Entities
   actions: FeedAction[]
   attribution: AttributionCase[]
+  spikes: SpikeCase[]
+}
+
+/** What an incremental run carries over. JSON-safe (bigints as decimal strings). */
+export interface CollectorState {
+  schema: number
+  chainId: 1
+  /** Last block fully processed (finalized when read). */
+  toBlock: number
+  /** First block of the data kept (the rolling window's start). */
+  fromBlock: number
+  /** Verified emitters: vaults, Vault V2 market adapters, Aave configurators. */
+  kinds: Record<string, EmitterKind>
+  /** Vault V2 market adapter → parent vault. */
+  adapters: Record<string, string>
+  /** Vault V2 → every address ever set as its allocator (SetIsAllocator true). */
+  allocators: Record<string, string[]>
+  classifier: ClassifierState
+  /** Morpho Blue market → [block, per-second WAD rate] of its last AccrueInterest. */
+  rates: Record<string, [number, string]>
+  /** Block of the last exposure snapshot. */
+  exposureBlock: number
 }
 /**
  * Daily flows, dictionary-encoded (≈ 75k rows for 182 days would be ≈ 16 MB as objects).
@@ -133,8 +182,33 @@ export function unintern(f: Interned): unknown {
 /** feed.json on disk: meta in clear, the rest interned. */
 export const encodeFeedFile = (feed: FeedFile): unknown => ({
   meta: feed.meta,
-  ...intern({ entities: feed.entities, actions: feed.actions, attribution: feed.attribution }),
+  ...intern({
+    entities: feed.entities,
+    actions: feed.actions,
+    attribution: feed.attribution,
+    spikes: feed.spikes,
+  }),
 })
+
+/** state.json on disk: interned like feed.json. */
+export const encodeStateFile = (st: CollectorState): unknown => ({
+  schema: st.schema,
+  ...intern(st),
+})
+
+export function parseStateFile(input: unknown): CollectorState {
+  if (!isObj(input) || input.schema !== SCHEMA || !Array.isArray(input.table))
+    throw new Error('curator state: bad file')
+  const st = unintern(input as unknown as Interned) as CollectorState
+  if (
+    !isObj(st.kinds) ||
+    !isObj(st.classifier) ||
+    !isObj(st.rates) ||
+    typeof st.toBlock !== 'number'
+  )
+    throw new Error('curator state: missing fields')
+  return st
+}
 
 /** Shape check at the boundary; throws with the first problem found. Accepts the
  *  interned on-disk form and the plain form. */
@@ -146,8 +220,13 @@ export function parseFeedFile(input: unknown): FeedFile {
   if (!isObj(raw) || !isObj(raw.meta)) throw new Error('curator feed: no meta')
   if (raw.meta.schema !== SCHEMA)
     throw new Error(`curator feed: schema ${String(raw.meta.schema)} ≠ ${SCHEMA}`)
-  if (!isObj(raw.entities) || !Array.isArray(raw.actions) || !Array.isArray(raw.attribution))
-    throw new Error('curator feed: missing entities/actions/attribution')
+  if (
+    !isObj(raw.entities) ||
+    !Array.isArray(raw.actions) ||
+    !Array.isArray(raw.attribution) ||
+    !Array.isArray(raw.spikes)
+  )
+    throw new Error('curator feed: missing entities/actions/attribution/spikes')
   for (const a of raw.actions.slice(0, 50)) {
     if (
       !isObj(a) ||

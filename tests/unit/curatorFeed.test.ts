@@ -14,7 +14,14 @@ import {
   type EmitterKind,
   type RawLog,
 } from '@/lib/curatorFeed/abi'
-import { classifyEvents, decodeV2Call, type ClassifyContext } from '@/lib/curatorFeed/classify'
+import {
+  applyHeadPending,
+  classifyEvents,
+  decodeV2Call,
+  headKey,
+  needsHeadRead,
+  type ClassifyContext,
+} from '@/lib/curatorFeed/classify'
 import { decodeLog, type DecodedEvent } from '@/lib/curatorFeed/decode'
 import { keccakHex, keccakText } from '@/lib/curatorFeed/keccak'
 import { secondsLeft, statusOf, toneOf } from '@/lib/curatorFeed/status'
@@ -296,17 +303,51 @@ describe('classify — caps (MetaMorpho)', () => {
   it('a head read replaces the derived window for an open submit, and flags one the chain shows cleared', () => {
     const e1 = ev('mm', 'SubmitCap', { caller: CURATOR, id: M1, cap: 500n }, 10)
     const e2 = ev('mm', 'SubmitCap', { caller: CURATOR, id: M2, cap: 500n }, 11)
-    const { actions, stats } = classifyEvents([e1, e2], {
-      ...baseCtx,
-      chainValidAt: { [`${V}:cap_submit:${M1}`]: 1_999_999_999, [`${V}:cap_submit:${M2}`]: 0 },
-    })
+    const e3 = ev('mm', 'SubmitCap', { caller: CURATOR, id: M3, cap: 500n }, 12)
+    const e4 = ev('mm', 'SetCap', { caller: CURATOR, id: M3, cap: 500n }, 9000)
+    const { actions } = classifyEvents([e1, e2, e3, e4], baseCtx)
+    const reads = {
+      [headKey(actions[0])]: 1_999_999_999,
+      [headKey(actions[1])]: 0,
+      [headKey(actions[2])]: 7,
+    }
+    expect(applyHeadPending(actions, reads)).toBe(1)
     expect(actions[0]).toMatchObject({
       validAt: 1_999_999_999,
       validAtSource: 'chain',
       headPending: true,
     })
     expect(actions[1].headPending).toBe(false)
-    expect(stats.openButClearedOnChain).toBe(1)
+    // A resolved submit is never touched by a head read.
+    expect(actions[2]).toMatchObject({ validAtSource: 'derived', resolution: { how: 'accepted' } })
+    expect(needsHeadRead(actions[2])).toBe(false)
+  })
+  it('resumes: two runs split at any block classify exactly like one run', () => {
+    const run = [
+      ev('mm', 'SubmitCap', { caller: CURATOR, id: M1, cap: 500n }, 10),
+      ev('mm', 'SetWithdrawQueue', { caller: ALLOC, newWithdrawQueue: [M1, M2, M3] }, 11),
+      ev('mm', 'SubmitMarketRemoval', { caller: CURATOR, id: M2 }, 12),
+      ev('mm', 'SetCap', { caller: CURATOR, id: M1, cap: 500n }, 9000),
+      ev('mm', 'SetWithdrawQueue', { caller: ALLOC, newWithdrawQueue: [M1, M3] }, 9100),
+      ev('mm', 'SetSupplyQueue', { caller: ALLOC, newSupplyQueue: [M1] }, 9101),
+      ev('mm', 'SetSupplyQueue', { caller: ALLOC, newSupplyQueue: [] }, 9102),
+    ]
+    const ctx = { ...baseCtx, prevCap: () => '100', baselineSupplyQueue: { [V]: [M1, M3] } }
+    const whole = classifyEvents(run, ctx)
+    const strip = (a: FeedAction[]) => JSON.parse(JSON.stringify(a))
+    for (let cut = 1; cut < run.length; cut++) {
+      const first = classifyEvents(run.slice(0, cut), ctx)
+      const actionsById = new Map(first.actions.map((a) => [a.id, a]))
+      const second = classifyEvents(run.slice(cut), ctx, {
+        state: JSON.parse(JSON.stringify(first.state)),
+        actionsById,
+      })
+      expect(second.stats.resumeOpenMissing).toBe(0)
+      expect(strip([...first.actions, ...second.actions]), `cut ${cut}`).toEqual(
+        strip(whole.actions),
+      )
+      expect(second.state).toEqual(whole.state)
+    }
   })
   it('Euler Earn caps are strategy-scoped and use the Euler event set', () => {
     const strat = '0x5555555555555555555555555555555555555555'
@@ -548,6 +589,72 @@ describe('classify — Vault V2', () => {
       target: marketIdOf(p),
     })
     expect(stats.v2DepositPathAllocations).toBe(1)
+  })
+})
+
+// ── classifier: Vault V2 market adapter ──────────────────────────────────────
+
+describe('classify — Vault V2 adapter (write-offs)', () => {
+  const ADAPTER = '0x6666666666666666666666666666666666666666'
+  const burnData = '0x3b2de5ac' + M1.slice(2)
+  const ctx: ClassifyContext = {
+    ...baseCtx,
+    adapterParent: (a) => (a === ADAPTER ? V2V : undefined),
+  }
+  const adapterEv = (name: string, args: DecodedEvent['args'], block: number) =>
+    ev('v2adapter', name, args, block, ADAPTER)
+
+  it('a timelocked burnShares is a pending write-off on the parent vault; BurnShares executes it', () => {
+    const { actions } = classifyEvents(
+      [
+        adapterEv(
+          'Submit',
+          { selector: '0x3b2de5ac', data: burnData, executableAt: 1_800_000_000n },
+          5,
+        ),
+        adapterEv('Accept', { selector: '0x3b2de5ac', data: burnData }, 9000),
+        adapterEv('BurnShares', { marketId: M1, supplyShares: 123n }, 9000),
+      ],
+      ctx,
+    )
+    expect(actions.map((a) => a.kind)).toEqual(['writeoff_submit', 'writeoff'])
+    expect(actions[0]).toMatchObject({
+      vault: V2V,
+      via: ADAPTER,
+      scope: 'market',
+      target: M1,
+      collateral: [RSETH],
+      validAt: 1_800_000_000,
+    })
+    expect(actions[0].resolution?.how).toBe('accepted')
+    expect(actions[1]).toMatchObject({
+      vault: V2V,
+      via: ADAPTER,
+      target: M1,
+      to: '123',
+      protocol: 'morpho-v2',
+    })
+  })
+  it('a revoked write-off and adapter timelock changes are recorded against the vault', () => {
+    const { actions } = classifyEvents(
+      [
+        adapterEv(
+          'Submit',
+          { selector: '0x3b2de5ac', data: burnData, executableAt: 1_800_000_000n },
+          5,
+        ),
+        adapterEv('Revoke', { sender: ALLOC, selector: '0x3b2de5ac', data: burnData }, 6),
+        adapterEv('IncreaseTimelock', { selector: '0x3b2de5ac', newDuration: 86_400n }, 7),
+      ],
+      ctx,
+    )
+    expect(actions.map((a) => a.kind)).toEqual(['writeoff_submit', 'v2_revoke', 'timelock_set'])
+    expect(actions[0].resolution?.how).toBe('revoked')
+    expect(actions[2].note).toMatch(/^adapter increase timelock of burnShares/)
+    expect(actions.every((a) => a.vault === V2V && a.via === ADAPTER)).toBe(true)
+  })
+  it('decodeV2Call reads the bytes32 market id of a burnShares call', () => {
+    expect(decodeV2Call(burnData)).toMatchObject({ fn: 'burnShares(bytes32)', id: M1 })
   })
 })
 

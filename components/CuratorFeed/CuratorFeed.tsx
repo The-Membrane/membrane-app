@@ -30,6 +30,7 @@ import type {
   FeedResponse,
   FeedRow,
   Group,
+  SpikeView,
   VaultExposureView,
 } from '@/lib/curatorFeed/service'
 import type { Tone } from '@/lib/curatorFeed/status'
@@ -126,6 +127,12 @@ const statusLabel = (r: FeedRow, nowS: number): string => {
   return r.status
 }
 
+/** "zero timelock: increaseAbsoluteCap, addAdapter +1" — V1 / Euler Earn report `timelock`. */
+const zeroText = (fns: string[]): string =>
+  fns.length === 1 && fns[0] === 'timelock'
+    ? 'timelock 0'
+    : `timelock 0: ${fns.slice(0, 2).join(', ')}${fns.length > 2 ? ` +${fns.length - 2}` : ''}`
+
 async function getJson<T>(url: string): Promise<T> {
   const r = await fetch(url)
   const body = await r.json()
@@ -158,6 +165,14 @@ const ActionRow: React.FC<{ r: FeedRow; nowS: number }> = ({ r, nowS }) => (
       <Tag tone={r.tone}>
         {r.inCluster ? `cluster · ${statusLabel(r, nowS)}` : statusLabel(r, nowS)}
       </Tag>
+      {r.zeroTimelock.length > 0 && (
+        <Box
+          as="span"
+          title={`Runs in one transaction at the last read: ${r.zeroTimelock.join(', ')}`}
+        >
+          <Tag tone="grey">{zeroText(r.zeroTimelock)}</Tag>
+        </Box>
+      )}
     </HStack>
     <Mono
       size="12px"
@@ -245,6 +260,16 @@ const VaultExposure: React.FC<{ collateral: string }> = ({ collateral }) => {
           </HStack>
           {open === v.vault && (
             <Box pl={SPACING.base} pb={SPACING.sm}>
+              {Object.keys(v.timelocks).length > 0 && (
+                <Mono size="10.5px" color={SEMANTIC_COLORS.textTertiary}>
+                  Timelocks at the last read:{' '}
+                  {Object.entries(v.timelocks)
+                    .map(
+                      ([f, sec]) => `${f} ${sec === 0 ? '0 (one transaction)' : durationText(sec)}`,
+                    )
+                    .join(' · ')}
+                </Mono>
+              )}
               {v.allocations.map((a) => (
                 <HStack key={`${a.target}:${a.via ?? ''}`} justify="space-between" flexWrap="wrap">
                   <Mono size="11px" color={SEMANTIC_COLORS.textPrimary} title={a.target}>
@@ -385,7 +410,7 @@ const AttributionSection: React.FC<{
       />
       <Mono size="11px">
         Blocks where vault reallocations withdrew at least ${compact(threshold ?? 1_000_000)} (net,
-        per transaction) from a Morpho Blue market and the market's supply fell by{' '}
+        per transaction) from a Morpho Blue market and the market’s supply fell by{' '}
         {((keptDrop ?? 0.2) * 100).toFixed(0)}% or more, the borrow rate jumped (≥ 1.5× and ≥ +2 APR
         points), or utilization ended at 99% or above. Figures compare the end of block b−1 with the
         end of block b; other transactions in the block are included. APR is simple (rate × seconds
@@ -436,6 +461,142 @@ const AttributionSection: React.FC<{
   )
 }
 
+const DRIVER: Record<string, string> = {
+  'vault-reallocation': 'vault reallocation',
+  'vault-redemption': 'vault redemption',
+  'vault-deposit': 'vault deposit',
+  'supplier-withdrawal': 'supplier withdrawal',
+  'supplier-deposit': 'supplier deposit',
+  borrow: 'new borrows',
+  repay: 'repayments',
+  liquidation: 'liquidation',
+  'bad-debt': 'bad debt',
+}
+
+const SpikeSection: React.FC<{ collateral: string; minSupply?: number }> = ({
+  collateral,
+  minSupply,
+}) => {
+  const [only, setOnly] = useState<'' | 'reallocation' | 'drained'>('reallocation')
+  const [minUsd, setMinUsd] = useState(10_000_000)
+  const [limit, setLimit] = useState(25)
+  const params = useMemo(() => {
+    const p = new URLSearchParams({ view: 'spikes', minUsd: String(minUsd), limit: String(limit) })
+    if (only) p.set('only', only)
+    if (collateral) p.set('collateral', collateral)
+    return p.toString()
+  }, [collateral, only, minUsd, limit])
+  const { data, error, isLoading } = useQuery<{ rows: SpikeView[]; total: number }>({
+    queryKey: ['curator_spikes', params],
+    queryFn: () => getJson(`/api/curator-feed?${params}`),
+    staleTime: 5 * 60_000,
+    placeholderData: (prev) => prev,
+  })
+  const rows = data?.rows ?? []
+  return (
+    <Box>
+      <SectionHeading
+        index="06"
+        title="Borrow-rate spikes and who moved the market"
+        note={`${(data?.total ?? 0).toLocaleString()} blocks · claim class: observed driver`}
+      />
+      <Mono size="11px">
+        Morpho Blue markets that curated vaults use, where the borrow rate the market charged jumped
+        (≥ 1.5× and ≥ +2 APR points) between two consecutive accruals, with at least $
+        {compact(minSupply ?? 1_000_000)} supplied before. Every supply, withdrawal, borrow,
+        repayment and liquidation in the block that set the new rate is listed. A vault withdrawal
+        counts as a reallocation when the same transaction holds the allocator’s reallocation leg,
+        else as a redemption. Shares (≈) are first-order effects on utilization at the state before
+        the block, among the flows that pushed it up.
+      </Mono>
+      <HStack mt={SPACING.sm} spacing={SPACING.sm} flexWrap="wrap">
+        <Chip active={only === 'reallocation'} onClick={() => setOnly('reallocation')}>
+          reallocation-led
+        </Chip>
+        <Chip active={only === 'drained'} onClick={() => setOnly('drained')}>
+          utilization ≥ 99%
+        </Chip>
+        <Chip active={only === ''} onClick={() => setOnly('')}>
+          all drivers
+        </Chip>
+        <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
+          market supply ≥
+        </Mono>
+        {[1_000_000, 10_000_000, 50_000_000].map((x) => (
+          <Chip key={x} active={minUsd === x} onClick={() => setMinUsd(x)}>
+            ${compact(x)}
+          </Chip>
+        ))}
+      </HStack>
+      {isLoading && <Mono>loading…</Mono>}
+      {error && <Mono color={SEMANTIC_COLORS.danger}>{String((error as Error).message)}</Mono>}
+      {data && rows.length === 0 && (
+        <Mono size="11px">No spike matches these filters in the collected range.</Mono>
+      )}
+      <Stack spacing={0} mt={SPACING.sm}>
+        {rows.map((s) => (
+          <Box
+            key={`${s.market}:${s.block}`}
+            borderLeft="2px solid"
+            borderColor={
+              s.top === 'vault-reallocation'
+                ? SEMANTIC_COLORS.warning
+                : SEMANTIC_COLORS.borderSubtle
+            }
+            pl={SPACING.sm}
+            py={SPACING.xs}
+            borderBottom="1px solid"
+            borderBottomColor={SEMANTIC_COLORS.borderSubtle}
+          >
+            <HStack spacing={SPACING.sm} flexWrap="wrap">
+              <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
+                {utc(s.ts)}
+              </Mono>
+              {s.supplyUsd !== undefined && (
+                <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
+                  supply ${compact(s.supplyUsd)}
+                </Mono>
+              )}
+              {s.top && (
+                <Tag tone={s.top === 'vault-reallocation' ? 'amber' : 'grey'}>
+                  {DRIVER[s.top]} ≈ {Math.round((s.topShare ?? 0) * 100)}%
+                </Tag>
+              )}
+              {(s.utilAfter ?? 0) >= 0.99 && <Tag tone="amber">utilization ≥ 99%</Tag>}
+            </HStack>
+            <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
+              {s.text}{' '}
+              {uniqTx(s).map((tx, i) => (
+                <Link
+                  key={tx}
+                  href={`${ETHERSCAN}/tx/${tx}`}
+                  isExternal
+                  color={SEMANTIC_COLORS.textTertiary}
+                  fontSize="10px"
+                  mr="4px"
+                >
+                  tx{i ? i + 1 : ''} ↗
+                </Link>
+              ))}
+            </Mono>
+          </Box>
+        ))}
+      </Stack>
+      {data && data.total > rows.length && (
+        <Box mt={SPACING.sm}>
+          <Chip onClick={() => setLimit(Math.min(500, limit + 50))}>
+            {limit >= 500 ? 'filter to see more' : `show more (${data.total - rows.length} left)`}
+          </Chip>
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+/** Transactions behind the drivers that pushed utilization up (largest first), max 3. */
+const uniqTx = (s: SpikeView): string[] =>
+  [...new Set(s.drivers.filter((d) => d.share > 0).map((d) => d.tx))].slice(0, 3)
+
 // ── page body ──────────────────────────────────────────────────────────────────
 
 export const CuratorFeed: React.FC = () => {
@@ -472,11 +633,11 @@ export const CuratorFeed: React.FC = () => {
         Curator action feed
       </Text>
       <Mono size="12px">
-        Supply-cap changes, market removals, queue changes, timelock and role changes by MetaMorpho,
-        Morpho Vault V2 and Euler Earn curators, with Aave v3 cap / freeze changes as the
-        protocol-level comparison. Amber: a submitted change still inside its timelock window (or
-        past it and not yet executed). Grey: history. Red: the same collateral exited by two or more
-        curators inside the window.
+        Supply-cap changes, market removals, write-offs, queue changes, timelock and role changes by
+        MetaMorpho, Morpho Vault V2 and Euler Earn curators, with Aave v3 cap / freeze changes as
+        the protocol-level comparison. Amber: a submitted change still inside its timelock window
+        (or past it and not yet executed). Grey: history. Red: the same collateral exited by two or
+        more curators inside the window.
       </Mono>
       {m && (
         <Stamp>
@@ -484,6 +645,9 @@ export const CuratorFeed: React.FC = () => {
           {utc(m.toTs)} · collected {m.collectedAt.slice(0, 16).replace('T', ' ')} UTC ·{' '}
           {m.logs.chunks.toLocaleString()} log ranges, {m.logs.rechecked.toLocaleString()} re-read
           on a second endpoint, {m.logs.recovered.toLocaleString()} logs recovered by the re-read
+          {m.lastRun
+            ? ` · last run ${m.lastRun.mode}, blocks ${m.lastRun.fromBlock.toLocaleString()}–${m.lastRun.toBlock.toLocaleString()}`
+            : ''}
         </Stamp>
       )}
 
@@ -534,10 +698,11 @@ export const CuratorFeed: React.FC = () => {
             note={`≥ 2 curators · ${windowH}h window · claim class: possible leading signal`}
           />
           <Mono size="11px">
-            An exit counts when a vault set a cap to 0, submitted a forced removal, or removed a
-            market from its withdraw queue, and kept no other market with that collateral capped
-            (read at the exit's block). A cap moved to a new market with the same collateral is a
-            migration and does not count; neither does a PT exit within 14 days of its maturity.
+            An exit counts when a vault set a cap to 0, submitted a forced removal, removed a market
+            from its withdraw queue, or wrote off a Vault V2 adapter position (burnShares), and kept
+            no other market with that collateral capped (read at the exit’s block). A cap moved to a
+            new market with the same collateral is a migration and does not count; neither does a PT
+            exit within 14 days of its maturity.
           </Mono>
           {data.clusters.length === 0 ? (
             <Mono size="11px">
@@ -613,6 +778,7 @@ export const CuratorFeed: React.FC = () => {
         threshold={m?.thresholds.largeWithdrawUsd}
         keptDrop={m?.thresholds.keptSupplyDrop}
       />
+      <SpikeSection collateral={collateral} minSupply={m?.thresholds.spikeMinSupplyUsd} />
 
       {m && (
         <Card variant="subtle" mt={SPACING.xl} p={SPACING.base}>

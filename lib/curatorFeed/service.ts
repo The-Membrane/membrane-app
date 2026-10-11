@@ -16,7 +16,8 @@ import { attribute, type Attribution } from './attribution'
 import { clusteredIds, detectExitClusters, isDirectExit, type ClusterOptions } from './clusters'
 import { byCollateral, type CollateralRow } from './exposure'
 import { actionText, curatorLabel, marketLabel, symbolOf, targetLabel, vaultLabel } from './format'
-import type { ExposureAlloc } from './types'
+import { explainSpike, type SpikeExplanation } from './spikes'
+import type { ExposureAlloc, SpikeDriver } from './types'
 import { secondsLeft, statusOf, toneOf, type Tone } from './status'
 import type { ExposureFile, FeedFile, FeedMeta } from './store'
 import type { ClaimClass } from '../netApy/types'
@@ -36,6 +37,8 @@ const GROUPS: Record<Exclude<Group, 'all'>, ActionKind[]> = {
     'pause',
     'borrow_off',
     'ltv_zero',
+    'writeoff_submit',
+    'writeoff',
   ],
   queues: [
     'market_added',
@@ -71,7 +74,7 @@ const GROUPS: Record<Exclude<Group, 'all'>, ActionKind[]> = {
 const PROTOCOLS: Protocol[] = ['morpho-v1', 'morpho-v2', 'euler-earn', 'aave-v3']
 
 export interface FeedQuery {
-  view: 'feed' | 'exposure' | 'attribution'
+  view: 'feed' | 'exposure' | 'attribution' | 'spikes'
   collateral?: string
   curator?: string
   protocol?: Protocol
@@ -82,7 +85,7 @@ export interface FeedQuery {
   before?: string
   minUsd: number
   market?: string
-  only?: 'spike' | 'drained'
+  only?: 'spike' | 'drained' | 'reallocation'
   /** exposure view: pivot by collateral (default) or list by vault. */
   by: 'collateral' | 'vault'
 }
@@ -91,8 +94,8 @@ const one = (v: string | string[] | undefined): string | undefined => (Array.isA
 
 export function parseFeedQuery(q: Record<string, string | string[] | undefined>): FeedQuery {
   const view = one(q.view) ?? 'feed'
-  if (!['feed', 'exposure', 'attribution'].includes(view))
-    throw new QueryError('view must be feed, exposure or attribution')
+  if (!['feed', 'exposure', 'attribution', 'spikes'].includes(view))
+    throw new QueryError('view must be feed, exposure, attribution or spikes')
   const group = (one(q.group) ?? 'all') as Group
   if (group !== 'all' && !(group in GROUPS))
     throw new QueryError(`group must be one of all, ${Object.keys(GROUPS).join(', ')}`)
@@ -111,8 +114,8 @@ export function parseFeedQuery(q: Record<string, string | string[] | undefined>)
   const minUsd = Number(one(q.minUsd) ?? 0)
   if (!Number.isFinite(minUsd) || minUsd < 0) throw new QueryError('minUsd must be ≥ 0')
   const only = one(q.only) as FeedQuery['only']
-  if (only && only !== 'spike' && only !== 'drained')
-    throw new QueryError('only must be spike or drained')
+  if (only && only !== 'spike' && only !== 'drained' && only !== 'reallocation')
+    throw new QueryError('only must be spike, drained or reallocation')
   const by = (one(q.by) ?? 'collateral') as FeedQuery['by']
   if (by !== 'collateral' && by !== 'vault') throw new QueryError('by must be collateral or vault')
   const market = one(q.market)?.toLowerCase()
@@ -180,7 +183,23 @@ export const CLAIM = {
   row: 'measured-change',
   cluster: 'possible-leading-signal',
   attribution: 'observed-driver',
+  spike: 'observed-driver',
 } as const satisfies Record<string, ClaimClass>
+
+/**
+ * Functions a vault's curator can run in one transaction (timelock 0 at the last read):
+ * V1 / Euler Earn `timelock` = 0 covers cap raises, removals and guardian changes; Vault V2
+ * reports per function (types.ts VaultInfo.timelocks).
+ */
+export function zeroTimelockFns(feed: Pick<FeedFile, 'entities'>, vault: string): string[] {
+  const v = feed.entities.vaults[vault]
+  if (!v) return []
+  if (v.timelocks)
+    return Object.entries(v.timelocks)
+      .filter(([, s]) => s === 0)
+      .map(([f]) => f)
+  return v.timelock === 0 ? ['timelock'] : []
+}
 
 export interface FeedRow extends FeedAction {
   claim: typeof CLAIM.row
@@ -194,6 +213,8 @@ export interface FeedRow extends FeedAction {
   curatorName: string
   targetName: string
   collateralSymbols: string[]
+  /** Functions this vault's curator can run with no timelock (see zeroTimelockFns). */
+  zeroTimelock: string[]
 }
 
 export interface ClusterView extends ExitCluster {
@@ -217,6 +238,7 @@ export interface FeedResponse {
     | 'toTs'
     | 'collectedAt'
     | 'thresholds'
+    | 'lastRun'
     | 'caveats'
     | 'sources'
   > & { now: number; logs: FeedMeta['logs'] }
@@ -250,6 +272,7 @@ export function decorate(
     curatorName: curatorLabel(feed.entities, a.vault),
     targetName: targetLabel(feed.entities, a),
     collateralSymbols: a.collateral.map((c) => symbolOf(feed.entities, c)),
+    zeroTimelock: zeroTimelockFns(feed, a.vault),
   }
 }
 
@@ -363,6 +386,7 @@ export function buildFeedResponse(feed: FeedFile, q: FeedQuery, nowS: number): F
       toTs: feed.meta.toTs,
       collectedAt: feed.meta.collectedAt,
       thresholds: feed.meta.thresholds,
+      lastRun: feed.meta.lastRun,
       caveats: feed.meta.caveats,
       sources: feed.meta.sources,
       logs: feed.meta.logs,
@@ -568,6 +592,9 @@ export interface VaultExposureView {
   protocol: Protocol
   loanSymbol: string
   totalUsd?: number
+  /** Seconds per function from the last read (V1 / Euler Earn: `timelock`). */
+  timelocks: Record<string, number>
+  zeroTimelock: string[]
   allocations: VaultAllocView[]
 }
 
@@ -602,6 +629,12 @@ export function buildVaultExposure(
         protocol: v.protocol,
         loanSymbol: symbolOf(feed.entities, asset),
         totalUsd: v.totalUsd,
+        timelocks:
+          feed.entities.vaults[v.vault]?.timelocks ??
+          (feed.entities.vaults[v.vault]?.timelock !== undefined
+            ? { timelock: feed.entities.vaults[v.vault]!.timelock! }
+            : {}),
+        zeroTimelock: zeroTimelockFns(feed, v.vault),
         allocations: v.allocations.map((a) => ({
           target: a.target,
           targetName: label(a),
@@ -615,4 +648,149 @@ export function buildVaultExposure(
     })
     .sort((a, b) => (b.totalUsd ?? 0) - (a.totalUsd ?? 0))
   return { block: exposure.block, ts: exposure.ts, vaults }
+}
+
+// ── rate spikes ────────────────────────────────────────────────────────────────
+
+export interface SpikeDriverView {
+  driver: SpikeDriver
+  vault?: string
+  vaultName?: string
+  curatorName?: string
+  source?: string
+  /** Whole loan-token units. */
+  amount: number
+  /** First-order utilization change (+ = up) and share of the upward push (0–1). */
+  du: number
+  share: number
+  tx: string
+}
+export interface SpikeView {
+  claim: typeof CLAIM.spike
+  market: string
+  marketName: string
+  collateralSymbol: string
+  loanSymbol: string
+  block: number
+  ts: number
+  aprBefore: number
+  aprAfter: number
+  utilBefore?: number
+  utilAfter?: number
+  /** Market supply before the block, whole loan-token units, and in USD at collection-time prices. */
+  supply?: number
+  supplyUsd?: number
+  top?: SpikeDriver
+  topShare?: number
+  reallocationShare: number
+  drivers: SpikeDriverView[]
+  text: string
+}
+
+const pct1 = (x: number) => `${(x * 100).toFixed(1)}%`
+const pct2 = (x: number) => `${(x * 100).toFixed(2)}%`
+
+/** One factual phrase per driver row. */
+export function driverText(d: SpikeDriverView, loan: string, fmt: (n: number) => string): string {
+  const amt = `${fmt(d.amount)} ${loan}`
+  const who = d.vaultName ? `${d.vaultName}${d.curatorName ? ` (${d.curatorName})` : ''}` : ''
+  switch (d.driver) {
+    case 'vault-reallocation':
+      return `${who} reallocated ${amt} out${d.source === 'public-allocator' ? ' through the Public Allocator' : ''}`
+    case 'vault-redemption':
+      return `${who} withdrew ${amt} to pay its depositors`
+    case 'vault-deposit':
+      return `${who} supplied ${amt}`
+    case 'supplier-withdrawal':
+      return `suppliers outside vaults withdrew ${amt}`
+    case 'supplier-deposit':
+      return `suppliers outside vaults supplied ${amt}`
+    case 'borrow':
+      return `new borrows of ${amt}`
+    case 'repay':
+      return `repayments of ${amt}`
+    case 'liquidation':
+      return `liquidations repaid ${amt}`
+    case 'bad-debt':
+      return `bad debt of ${amt} written off`
+  }
+}
+
+export function spikeText(
+  v: Omit<SpikeView, 'text' | 'claim'>,
+  fmt: (n: number) => string,
+): string {
+  const util =
+    v.utilBefore !== undefined && v.utilAfter !== undefined
+      ? `; utilization ${pct1(v.utilBefore)} → ${pct1(v.utilAfter)}`
+      : ''
+  const pushers = v.drivers.filter((d) => d.share > 0).slice(0, 3)
+  const why = pushers.length
+    ? `. Utilization rose with: ${pushers.map((d) => `${driverText(d, v.loanSymbol, fmt)} (≈ ${Math.round(d.share * 100)}%)`).join('; ')}`
+    : v.utilBefore === undefined
+      ? '. Market state before the block not read'
+      : '. No supply or borrow change in the block pushed utilization up (the rate moved with time at high utilization)'
+  return `Borrow APR on ${v.marketName} went ${pct2(v.aprBefore)} → ${pct2(v.aprAfter)} after block ${v.block}${util}${why}`
+}
+
+/**
+ * Rate spikes, newest first. `minUsd` filters on market supply before the block (USD);
+ * `limit` caps the rows returned, `total` counts every row that matched.
+ */
+export function buildSpikeResponse(
+  feed: FeedFile,
+  q: FeedQuery,
+  fmt: (n: number) => string,
+): { rows: SpikeView[]; total: number } {
+  const coll = collateralMatcher(feed, q.collateral)
+  const cur = curatorMatcher(feed, q.curator)
+  const out: SpikeView[] = []
+  for (const c of feed.spikes) {
+    if (q.market && c.market !== q.market) continue
+    const m = feed.entities.markets[c.market]
+    if (!m || !coll([m.collateral])) continue
+    const e: SpikeExplanation = explainSpike(c)
+    if (q.only === 'reallocation' && e.top !== 'vault-reallocation') continue
+    if (q.only === 'drained' && (e.utilAfter ?? 0) < 0.99) continue
+    if (q.curator && !e.contributions.some((x) => x.vault && cur(x.vault))) continue
+    const loanToken = feed.entities.tokens[m.loan.toLowerCase()]
+    const dec = loanToken?.decimals ?? 18
+    const u = (x: bigint | string) => Number(BigInt(x)) / 10 ** dec
+    const supply = e.supplyBefore !== undefined ? u(e.supplyBefore) : undefined
+    const supplyUsd =
+      supply !== undefined && loanToken?.priceUsd ? supply * loanToken.priceUsd : undefined
+    if (q.minUsd > 0 && (supplyUsd ?? 0) < q.minUsd) continue
+    const drivers: SpikeDriverView[] = e.contributions.map((x) => ({
+      driver: x.driver,
+      vault: x.vault,
+      vaultName: x.vault ? vaultLabel(feed.entities, x.vault) : undefined,
+      curatorName: x.vault ? curatorLabel(feed.entities, x.vault) : undefined,
+      source: x.source,
+      amount: u(x.assets),
+      du: x.du,
+      share: x.share,
+      tx: x.tx,
+    }))
+    const base: Omit<SpikeView, 'text' | 'claim'> = {
+      market: c.market,
+      marketName: marketLabel(feed.entities, c.market),
+      collateralSymbol: symbolOf(feed.entities, m.collateral),
+      loanSymbol: symbolOf(feed.entities, m.loan),
+      block: c.block,
+      ts: c.ts,
+      aprBefore: e.aprBefore,
+      aprAfter: e.aprAfter,
+      utilBefore: e.utilBefore,
+      utilAfter: e.utilAfter,
+      supply,
+      supplyUsd,
+      top: e.top,
+      topShare: e.topShare,
+      reallocationShare: e.reallocationShare,
+      drivers,
+    }
+    out.push({ ...base, claim: CLAIM.spike, text: spikeText(base, fmt) })
+  }
+  out.sort((a, b) => b.block - a.block)
+  return { rows: out.slice(0, q.limit), total: out.length }
 }

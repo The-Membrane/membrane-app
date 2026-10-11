@@ -293,6 +293,9 @@ export class FeedRpc {
       concurrency?: number
       span?: number
       onChunk?: (done: number, total: number) => void
+      /** Stream each chunk's (unioned) logs here instead of returning them — for scans
+       *  too large to hold (Morpho Blue AccrueInterest). Chunks arrive out of order. */
+      onLogs?: (logs: RpcLog[]) => void
     } = {},
   ): Promise<RpcLog[]> {
     const span =
@@ -306,7 +309,11 @@ export class FeedRpc {
       for (;;) {
         const i = next++
         if (i >= chunks.length) return
-        results[i] = await this.chunk(filter, chunks[i][0], chunks[i][1], Boolean(opts.dual))
+        const logs = await this.chunk(filter, chunks[i][0], chunks[i][1], Boolean(opts.dual))
+        if (opts.onLogs) {
+          opts.onLogs(logs)
+          results[i] = []
+        } else results[i] = logs
         opts.onChunk?.(++done, chunks.length)
       }
     }
@@ -314,6 +321,32 @@ export class FeedRpc {
       Array.from({ length: Math.min(opts.concurrency ?? 4, chunks.length) }, worker),
     )
     return results.flat()
+  }
+
+  /**
+   * Many small getLogs (e.g. one block each) as JSON-RPC batches. A query that comes back
+   * EMPTY is asked again through the dual-read chunk path, so a false-empty answer cannot
+   * pass for "nothing happened".
+   */
+  async getLogsMany(
+    queries: { filter: LogFilter; from: number; to: number }[],
+  ): Promise<RpcLog[][]> {
+    const res = await this.batch(
+      queries.map((q) => ({
+        method: 'eth_getLogs',
+        params: [
+          { ...q.filter, fromBlock: '0x' + q.from.toString(16), toBlock: '0x' + q.to.toString(16) },
+        ],
+      })),
+      20,
+    )
+    const out: RpcLog[][] = []
+    for (let i = 0; i < queries.length; i++) {
+      const r = res[i]
+      if (Array.isArray(r) && r.length > 0) out.push(r as RpcLog[])
+      else out.push(await this.chunk(queries[i].filter, queries[i].from, queries[i].to, true))
+    }
+    return out
   }
 
   private async readChunk(e: Endpoint, filter: LogFilter, a: number, b: number): Promise<RpcLog[]> {

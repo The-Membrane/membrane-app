@@ -1,7 +1,7 @@
 /**
  * build-position-alert-data.mjs — the measured inputs for the position-alert back-test.
  *
- *   node scripts/research/build-position-alert-data.mjs [--only=hourly,e2,e3,e4,depeg,e2stream]
+ *   node scripts/research/build-position-alert-data.mjs [--only=hourly,e2,e3,e4,depeg,e2stream,e1l2]
  *
  * Writes position-alerts/*.json and a manifest with each file's SHA-256 into the private
  * datasets repo ($MEMBRANE_DATASETS_DIR, default ../membrane-datasets; board rule N18). Every value
@@ -689,6 +689,33 @@ async function buildE2Stream() {
   }
 }
 
+// ------------------------------------------------------------------ E1 L2 governance tokens
+
+/**
+ * OP and ARB, 1-minute, Oct 10 → 12 2025: the only E1 census collateral with no mainnet
+ * Chainlink round in the spec's E1 pull (recall-coverage data/chain/e1/chainlink_rounds).
+ * Binance spot stands in for the L2 Chainlink feeds the venues read.
+ */
+async function buildE1L2() {
+  const start = ts('2025-10-10T00:00:00Z')
+  const end = ts('2025-10-12T00:00:00Z')
+  const op = await klines('OPUSDT', '1m', 60, start, end)
+  const arb = await klines('ARBUSDT', '1m', 60, start, end)
+  return {
+    file: 'e1-op-arb-1m.json',
+    body: {
+      label:
+        'E1 census OP and ARB collateral, 1-minute spot (proxy for the L2 Chainlink OP/USD and ARB/USD feeds)',
+      source:
+        'Binance public market-data mirror data-api.binance.vision, OPUSDT and ARBUSDT 1m klines',
+      startTs: start,
+      stepS: 60,
+      columns: { opClose: op.close, opLow: op.low, arbClose: arb.close, arbLow: arb.low },
+      gaps: { op: op.gaps, arb: arb.gaps },
+    },
+  }
+}
+
 const BUILDERS = {
   hourly: buildHourly,
   e2: buildE2,
@@ -696,6 +723,7 @@ const BUILDERS = {
   e4: buildE4,
   depeg: buildDepegHistory,
   e2stream: buildE2Stream,
+  e1l2: buildE1L2,
 }
 
 async function main() {

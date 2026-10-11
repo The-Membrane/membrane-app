@@ -45,6 +45,7 @@ import {
 const ROOT = process.cwd()
 const PINNED = join(datasetsDir(ROOT), 'position-alerts', 'pinned')
 const E2_FILE = join(datasetsDir(ROOT), 'position-alerts', 'e2-stream-nov-2025.json')
+const DS = datasetsDir(ROOT)
 const INTERNAL_OUT = join(datasetsDir(ROOT), 'position-alerts', 'pinned-results.json')
 const PUBLIC_OUT = join(ROOT, 'docs', 'research', 'position-alerts-pinned-results.json')
 const H = 3600
@@ -79,6 +80,8 @@ interface Path {
   snapshot: (i: number) => PositionSnapshot
   ctx?: (i: number) => MarketContext
   observedLiquidationTs: number | null
+  /** Score against this breach time instead of the first tick with HF < 1. */
+  knownBreachTs?: number
 }
 
 interface PositionResult {
@@ -124,7 +127,10 @@ function* stepsOf(p: Path): Generator<ReplayStep> {
 }
 
 function runPath(p: Path, config: AlertConfig, everyS: number): PositionResult {
-  const r = replay(stepsOf(p), config, { monitorEveryS: everyS })
+  const r = replay(stepsOf(p), config, {
+    monitorEveryS: everyS,
+    knownLiquidationTs: p.knownBreachTs ?? null,
+  })
   const lead = (minLevel: 2 | 3): Lead => {
     const s = scoreReplay(r, { minLevel, horizonS: HORIZON_S })
     if (r.liquidatedAt === null)
@@ -350,6 +356,189 @@ const e4Paths: Path[] = e4.positions.map(
     }
   },
 )
+
+// ------------------------------------------------------------------ E1 Aave census (pinned Chainlink rounds)
+
+/**
+ * Every account the Oct-10 census includes (1,751, oct10-2025/evidence.json), priced minute
+ * by minute on the Chainlink rounds of the spec's E1 pull (recall-coverage
+ * data/chain/e1/chainlink_rounds, mainnet feeds, seeded at Oct 9 23:59). OP and ARB have no
+ * mainnet round: Binance 1m spot stands in. Each series is scaled so it prints the account's
+ * own state price at the liquidation minute (pStateColl / pStateDebt), so the path ends at the
+ * census's rebased breach. Breach = the first minute with HF < 1 on that path (at the latest
+ * the liquidation minute); the real liquidation time is kept as the observed one.
+ */
+interface CensusRow {
+  user: string
+  chain: string
+  t0Index: number
+  t0Ts: number
+  pStateColl: number | null
+  pStateDebt: number | null
+  collateralUsd: number
+  debtUsd: number
+  liqLine: number
+  collSymbol: string
+  debtSymbol: string
+  excluded: boolean
+}
+const E1_START = Date.UTC(2025, 9, 10) / 1000
+const E1_MINUTES = 2880
+const rounds = (
+  readFileSync(join(DS, 'recall-coverage/data/chain/e1/chainlink_rounds.jsonl'), 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l)) as { feed: string; answer: number; updated_at: number }[]
+).sort((a, b) => a.updated_at - b.updated_at)
+/** Feed answer in force at the end of each minute from Oct 10 00:00 UTC. */
+function minuteGrid(feed: string): (number | null)[] {
+  const rs = rounds.filter((r) => r.feed === feed)
+  const out: (number | null)[] = []
+  let j = -1
+  for (let i = 0; i < E1_MINUTES; i++) {
+    const t = E1_START + i * 60 + 59
+    while (j + 1 < rs.length && rs[j + 1].updated_at <= t) j++
+    out.push(j >= 0 ? rs[j].answer : null)
+  }
+  return out
+}
+const opArb = JSON.parse(readFileSync(join(DS, 'position-alerts/e1-op-arb-1m.json'), 'utf8'))
+const grid: Record<string, (number | null)[]> = {}
+const feedGrid = (feed: string) => (grid[feed] ??= minuteGrid(feed))
+const E1_STABLES = new Set([
+  'USDC',
+  'USDT',
+  'USD₮0',
+  'USDbC',
+  'DAI',
+  'GHO',
+  'LUSD',
+  'sUSD',
+  'PYUSD',
+])
+const ETH_LIKE = new Set(['WETH', 'wstETH', 'rETH', 'weETH', 'cbETH', 'tETH', 'ETHx', 'osETH'])
+const BTC_LIKE = new Set(['WBTC', 'cbBTC', 'tBTC', 'LBTC'])
+const OWN_FEED: Record<string, string> = {
+  LINK: 'LINK / USD',
+  AAVE: 'AAVE / USD',
+  UNI: 'UNI / USD',
+  CRV: 'CRV / USD',
+  ENS: 'ENS / USD',
+  '1INCH': '1INCH / USD',
+  BAL: 'BAL / USD',
+  MKR: 'MKR / USD',
+  USDe: 'USDe / USD',
+  sUSDe: 'USDe / USD',
+}
+/** Unscaled minute series for an asset (null = no source), and where it came from. */
+function rawSeries(sym: string): { px: (number | null)[]; source: string } | null {
+  if (E1_STABLES.has(sym)) return { px: Array(E1_MINUTES).fill(1), source: '$1' }
+  if (ETH_LIKE.has(sym)) return { px: feedGrid('ETH / USD'), source: 'Chainlink ETH / USD' }
+  if (BTC_LIKE.has(sym)) return { px: feedGrid('BTC / USD'), source: 'Chainlink BTC / USD' }
+  if (OWN_FEED[sym]) return { px: feedGrid(OWN_FEED[sym]), source: `Chainlink ${OWN_FEED[sym]}` }
+  if (sym === 'LDO') {
+    const l = feedGrid('LDO / ETH')
+    const e = feedGrid('ETH / USD')
+    return {
+      px: l.map((v, i) => (v === null || e[i] === null ? null : v * (e[i] as number))),
+      source: 'Chainlink LDO / ETH × ETH / USD',
+    }
+  }
+  if (sym === 'OP')
+    return { px: opArb.columns.opClose, source: 'Binance OPUSDT 1m (L2 feed proxy)' }
+  if (sym === 'ARB')
+    return { px: opArb.columns.arbClose, source: 'Binance ARBUSDT 1m (L2 feed proxy)' }
+  return null
+}
+const censusCluster = (sym: string) =>
+  E1_STABLES.has(sym)
+    ? `EV-1/aave/stable_other/${sym}`
+    : sym === 'sUSDe' || sym === 'USDe'
+      ? `EV-1/aave/${sym}`
+      : `EV-1/aave/cross_asset/${sym}`
+
+const census = JSON.parse(readFileSync(join(DS, 'oct10-2025/evidence.json'), 'utf8'))
+  .cohort as CensusRow[]
+const e1CensusSkipped: Record<string, number> = {}
+const e1CensusSources: Record<string, string> = {}
+const e1CensusPaths: Path[] = []
+for (const r of census) {
+  if (r.excluded) {
+    e1CensusSkipped['census-excluded (no rebased breach)'] =
+      (e1CensusSkipped['census-excluded (no rebased breach)'] ?? 0) + 1
+    continue
+  }
+  const c = rawSeries(r.collSymbol)
+  const d = rawSeries(r.debtSymbol)
+  if (!c || !d || !(r.debtUsd > 0) || !(r.collateralUsd > 0)) {
+    const why = !c
+      ? `no price source for ${r.collSymbol}`
+      : !d
+        ? `no price source for ${r.debtSymbol}`
+        : 'no debt'
+    e1CensusSkipped[why] = (e1CensusSkipped[why] ?? 0) + 1
+    continue
+  }
+  e1CensusSources[r.collSymbol] = c.source
+  e1CensusSources[r.debtSymbol] = d.source
+  const i0 = Math.min(r.t0Index, E1_MINUTES - 1)
+  const c0 = c.px[i0]
+  const d0 = d.px[i0]
+  if (!c0 || !d0) {
+    e1CensusSkipped['no price at the liquidation minute'] =
+      (e1CensusSkipped['no price at the liquidation minute'] ?? 0) + 1
+    continue
+  }
+  // Census rows with no collateral series (priced: false) carry the block N-1 snapshot unrebased:
+  // anchor them on the feed's own print at the liquidation minute.
+  const sc = r.pStateColl ?? c0
+  const sd = r.pStateDebt ?? d0
+  const kc = sc / c0
+  const kd = sd / d0
+  const collAmount = r.collateralUsd / sc
+  const debtAmount = r.debtUsd / sd
+  const ts: number[] = []
+  const hf: number[] = []
+  const pc: number[] = []
+  const pd: number[] = []
+  // Through the liquidation minute itself, where the path prints the census state (HF < 1).
+  for (let i = 0; i <= i0; i++) {
+    const a = c.px[i]
+    const b = d.px[i]
+    if (a === null || b === null) continue
+    ts.push(E1_START + i * 60)
+    pc.push(a * kc)
+    pd.push(b * kd)
+    hf.push((collAmount * a * kc * r.liqLine) / (debtAmount * b * kd))
+  }
+  if (!ts.length) {
+    e1CensusSkipped['liquidated in the first minute'] =
+      (e1CensusSkipped['liquidated in the first minute'] ?? 0) + 1
+    continue
+  }
+  e1CensusPaths.push({
+    id: r.user.slice(2, 14),
+    cluster: censusCluster(r.collSymbol),
+    isLooper: false,
+    ts,
+    hf,
+    snapshot: (i) => ({
+      id: r.user,
+      ts: ts[i],
+      venue: `Aave V3 ${r.chain}`,
+      collateral: [
+        {
+          symbol: r.collSymbol,
+          amount: collAmount,
+          oraclePriceUsd: pc[i],
+          liquidationThreshold: r.liqLine,
+        },
+      ],
+      debt: [{ symbol: r.debtSymbol, amount: debtAmount, priceUsd: pd[i] }],
+    }),
+    observedLiquidationTs: r.t0Ts,
+  })
+}
 
 // ------------------------------------------------------------------ E2 Stream xUSD / Elixir deUSD (own pull)
 
@@ -585,6 +774,19 @@ function main() {
   const t0 = Date.now()
   const config = DEFAULT_ALERT_CONFIG
   const events = {
+    E1census: {
+      source:
+        'oct10-2025/evidence.json included census accounts, priced on recall-coverage data/chain/e1/chainlink_rounds (mainnet feeds) and Binance 1m for OP / ARB, each scaled to the account state price at its liquidation minute; breach = first minute with HF < 1 on the path (at the latest the liquidation minute)',
+      window: { fromTs: E1_START, toTs: E1_START + E1_MINUTES * 60 },
+      replayed: e1CensusPaths.length,
+      skipped: e1CensusSkipped,
+      priceSources: e1CensusSources,
+      runs: runEvent(e1CensusPaths, config, [
+        { label: '1 min', everyS: 0 },
+        { label: '5 min', everyS: 300 },
+        { label: '15 min', everyS: 900 },
+      ]),
+    },
     E1: {
       source:
         'recall-coverage EV-1 Morpho rows (inputs/oct10 morpho_liquidations.csv + data/chain/e1); oracle price() per block',

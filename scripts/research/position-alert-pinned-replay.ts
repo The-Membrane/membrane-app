@@ -102,6 +102,9 @@ interface PositionResult {
   criticalFalse: number
   /** Tier at the first read (0 = none). */
   firstReadLevel: number
+  /** First warn-or-higher (critical) message to this position, at or before its breach. */
+  firstWarnTs: number | null
+  firstCriticalTs: number | null
 }
 
 interface Lead {
@@ -156,6 +159,13 @@ function runPath(p: Path, config: AlertConfig, everyS: number): PositionResult {
   const warnS = scoreReplay(r, { minLevel: 2, horizonS: HORIZON_S })
   const critS = scoreReplay(r, { minLevel: 3, horizonS: HORIZON_S })
   const firstRead = r.alerts.filter((a) => a.ts === r.firstEvalTs)
+  const firstAt = (minLevel: 2 | 3) =>
+    r.messages.find(
+      (a) =>
+        a.to >= minLevel &&
+        (a.transition === 'fire' || a.transition === 'escalate') &&
+        (r.liquidatedAt === null || a.ts <= r.liquidatedAt),
+    )?.ts ?? null
   return {
     id: p.id,
     cluster: p.cluster,
@@ -171,6 +181,8 @@ function runPath(p: Path, config: AlertConfig, everyS: number): PositionResult {
     criticalMessages: critS.worsening,
     criticalFalse: critS.falseAlarms,
     firstReadLevel: firstRead.reduce((m, a) => Math.max(m, a.to), 0),
+    firstWarnTs: firstAt(2),
+    firstCriticalTs: firstAt(3),
   }
 }
 
@@ -235,6 +247,53 @@ function gate(clusters: ClusterSummary[]) {
   }
 }
 
+/**
+ * G2 read per cluster (owner ruling 2026-10-11): a breached cluster passes when a warn-or-higher
+ * message to ANY of its members came at or before the cluster's first breach (stamped at the
+ * start of the breach interval, so the message precedes the breach sample). firstBreacherWarned
+ * is the stricter variant: the member that breached first was itself warned first.
+ */
+function clusterGate(rows: PositionResult[]) {
+  const by = new Map<string, PositionResult[]>()
+  for (const r of rows) by.set(r.cluster, [...(by.get(r.cluster) ?? []), r])
+  const perCluster = [...by.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([cluster, rs]) => {
+      const br = rs.filter((r) => r.breachTs !== null)
+      const firstBreachTs = br.length ? Math.min(...br.map((r) => r.breachTs as number)) : null
+      const warns =
+        firstBreachTs === null
+          ? []
+          : rs
+              .map((r) => r.firstWarnTs)
+              .filter((t): t is number => t !== null && t <= firstBreachTs)
+      const earliestWarn = warns.length ? Math.min(...warns) : null
+      const first = br.filter((r) => r.breachTs === firstBreachTs)
+      return {
+        cluster,
+        members: rs.length,
+        breached: br.length,
+        firstBreachTs,
+        earliestWarnTs: earliestWarn,
+        leadS:
+          earliestWarn === null || firstBreachTs === null ? null : firstBreachTs - earliestWarn,
+        passes: br.length === 0 || earliestWarn !== null,
+        firstBreacherWarned:
+          br.length === 0 || first.every((r) => r.warn.alertedBeforeBreach === true),
+        membersWarnedFirst: br.filter((r) => r.warn.alertedBeforeBreach).length,
+      }
+    })
+  const breached = perCluster.filter((c) => c.breached > 0)
+  return {
+    breachedClusters: breached.length,
+    passed: breached.filter((c) => c.passes).length,
+    firstBreacherWarned: breached.filter((c) => c.firstBreacherWarned).length,
+    failed: breached.filter((c) => !c.passes).map((c) => c.cluster),
+    met: breached.every((c) => c.passes),
+    perCluster,
+  }
+}
+
 function runEvent(paths: Path[], config: AlertConfig, cadences = CADENCES) {
   const byCadence = cadences.map(({ label, everyS }) => {
     const rows = paths.map((p) => runPath(p, config, everyS))
@@ -249,6 +308,13 @@ function runEvent(paths: Path[], config: AlertConfig, cadences = CADENCES) {
       gateScoreable: {
         ...gate(summarise(scoreable)),
         startBelowOne: rows.length - scoreable.length,
+      },
+      // The owner's reading of G2 (2026-10-11), on the scoreable paths.
+      gateCluster: {
+        ...clusterGate(scoreable),
+        notScoreableClusters: [...new Set(rows.map((r) => r.cluster))].filter(
+          (c) => !scoreable.some((r) => r.cluster === c),
+        ),
       },
       clusters,
       rows,
@@ -885,11 +951,15 @@ function main() {
   console.log(`wrote ${INTERNAL_OUT} (internal, per position)`)
   writeFileSync(PUBLIC_OUT, JSON.stringify(publicCopy(results), null, 1) + '\n')
   console.log(`wrote ${PUBLIC_OUT} (public, per cluster)`)
+  const brief = (g: { perCluster: unknown }) => JSON.stringify({ ...g, perCluster: undefined })
   for (const [k, ev] of Object.entries(events))
-    for (const r of ev.runs) console.log(k, r.cadence.padEnd(10), JSON.stringify(r.gate))
+    for (const r of ev.runs) {
+      console.log(k, r.cadence.padEnd(10), 'strict', JSON.stringify(r.gate))
+      console.log(k, r.cadence.padEnd(10), 'cluster', brief(r.gateCluster))
+    }
   for (const b of ['oracleBasis', 'marketBasis'] as const)
     for (const r of events.E2[b].runs) {
-      console.log('E2', b, JSON.stringify(r.gate))
+      console.log('E2', b, JSON.stringify(r.gate), 'cluster', brief(r.gateCluster))
       for (const x of r.rows)
         console.log(
           '  ',

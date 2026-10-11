@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-pinned-replay.ts",
- "generatedAt": "2026-10-11T15:14:58.775Z",
+ "generatedAt": "2026-10-11T16:59:08.161Z",
  "config": "DEFAULT_ALERT_CONFIG",
  "definitions": "breach = first tick with HF < 1 on the dataset path, stamped at the previous tick (strict). Lead = breach − start of the earliest warn+ (critical) episode still open. censored = that episode opened at the first read. False alarm = worsening message with no breach in 72h.",
  "events": {
@@ -66,6 +66,272 @@
       "criticalBeforeBreach": 1565,
       "met": false,
       "startBelowOne": 132
+     },
+     "gateCluster": {
+      "breachedClusters": 19,
+      "passed": 19,
+      "firstBreacherWarned": 19,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-1/aave/cross_asset/1INCH",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1760131140,
+        "earliestWarnTs": 1760131020,
+        "leadS": 120,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 3
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/AAVE",
+        "members": 145,
+        "breached": 144,
+        "firstBreachTs": 1760120700,
+        "earliestWarnTs": 1760054400,
+        "leadS": 66300,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 134
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/ARB",
+        "members": 235,
+        "breached": 235,
+        "firstBreachTs": 1760118240,
+        "earliestWarnTs": 1760054400,
+        "leadS": 63840,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 225
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/BAL",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760131620,
+        "earliestWarnTs": 1760131560,
+        "leadS": 60,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/cbBTC",
+        "members": 60,
+        "breached": 59,
+        "firstBreachTs": 1760119440,
+        "earliestWarnTs": 1760054400,
+        "leadS": 65040,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 59
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/cbETH",
+        "members": 2,
+        "breached": 2,
+        "firstBreachTs": 1760121540,
+        "earliestWarnTs": 1760054400,
+        "leadS": 67140,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 2
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/CRV",
+        "members": 14,
+        "breached": 14,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760110260,
+        "leadS": 20460,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 14
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/ENS",
+        "members": 12,
+        "breached": 12,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760110200,
+        "leadS": 20520,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 12
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/LDO",
+        "members": 11,
+        "breached": 11,
+        "firstBreachTs": 1760130780,
+        "earliestWarnTs": 1760110320,
+        "leadS": 20460,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 11
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/LINK",
+        "members": 191,
+        "breached": 191,
+        "firstBreachTs": 1760124480,
+        "earliestWarnTs": 1760054400,
+        "leadS": 70080,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 188
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/OP",
+        "members": 350,
+        "breached": 350,
+        "firstBreachTs": 1760129460,
+        "earliestWarnTs": 1760054400,
+        "leadS": 75060,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 350
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/rETH",
+        "members": 5,
+        "breached": 5,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760108340,
+        "leadS": 22380,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 5
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/tBTC",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760054400,
+        "leadS": 76320,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/tETH",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760131140,
+        "earliestWarnTs": 1760121600,
+        "leadS": 9540,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/UNI",
+        "members": 33,
+        "breached": 33,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760110380,
+        "leadS": 20340,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 33
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/WBTC",
+        "members": 110,
+        "breached": 110,
+        "firstBreachTs": 1760108580,
+        "earliestWarnTs": 1760054400,
+        "leadS": 54180,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 110
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/weETH",
+        "members": 5,
+        "breached": 5,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760108460,
+        "leadS": 22260,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 5
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/WETH",
+        "members": 391,
+        "breached": 374,
+        "firstBreachTs": 1760072040,
+        "earliestWarnTs": 1760054400,
+        "leadS": 17640,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 374
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/wstETH",
+        "members": 37,
+        "breached": 37,
+        "firstBreachTs": 1760109600,
+        "earliestWarnTs": 1760054400,
+        "leadS": 55200,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 37
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/DAI",
+        "members": 2,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/USD₮0",
+        "members": 1,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/USDC",
+        "members": 7,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/USDT",
+        "members": 1,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       }
+      ],
+      "notScoreableClusters": [
+       "EV-1/aave/sUSDe",
+       "EV-1/aave/USDe"
+      ]
      },
      "clusters": [
       {
@@ -440,6 +706,275 @@
       "met": false,
       "startBelowOne": 132
      },
+     "gateCluster": {
+      "breachedClusters": 19,
+      "passed": 17,
+      "firstBreacherWarned": 17,
+      "failed": [
+       "EV-1/aave/cross_asset/1INCH",
+       "EV-1/aave/cross_asset/BAL"
+      ],
+      "met": false,
+      "perCluster": [
+       {
+        "cluster": "EV-1/aave/cross_asset/1INCH",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1760131140,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": false,
+        "firstBreacherWarned": false,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/AAVE",
+        "members": 145,
+        "breached": 144,
+        "firstBreachTs": 1760120700,
+        "earliestWarnTs": 1760054400,
+        "leadS": 66300,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 119
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/ARB",
+        "members": 235,
+        "breached": 235,
+        "firstBreachTs": 1760118240,
+        "earliestWarnTs": 1760054400,
+        "leadS": 63840,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 201
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/BAL",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760131620,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": false,
+        "firstBreacherWarned": false,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/cbBTC",
+        "members": 60,
+        "breached": 59,
+        "firstBreachTs": 1760119440,
+        "earliestWarnTs": 1760054400,
+        "leadS": 65040,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 59
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/cbETH",
+        "members": 2,
+        "breached": 2,
+        "firstBreachTs": 1760121540,
+        "earliestWarnTs": 1760054400,
+        "leadS": 67140,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 2
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/CRV",
+        "members": 14,
+        "breached": 14,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760110500,
+        "leadS": 20220,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 12
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/ENS",
+        "members": 12,
+        "breached": 12,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760110200,
+        "leadS": 20520,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 7
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/LDO",
+        "members": 11,
+        "breached": 11,
+        "firstBreachTs": 1760130780,
+        "earliestWarnTs": 1760110500,
+        "leadS": 20280,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 10
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/LINK",
+        "members": 191,
+        "breached": 191,
+        "firstBreachTs": 1760124480,
+        "earliestWarnTs": 1760054400,
+        "leadS": 70080,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 181
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/OP",
+        "members": 350,
+        "breached": 350,
+        "firstBreachTs": 1760129460,
+        "earliestWarnTs": 1760054400,
+        "leadS": 75060,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 270
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/rETH",
+        "members": 5,
+        "breached": 5,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760108400,
+        "leadS": 22320,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 5
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/tBTC",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760054400,
+        "leadS": 76320,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/tETH",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760131140,
+        "earliestWarnTs": 1760121600,
+        "leadS": 9540,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/UNI",
+        "members": 33,
+        "breached": 33,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760110500,
+        "leadS": 20220,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 19
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/WBTC",
+        "members": 110,
+        "breached": 110,
+        "firstBreachTs": 1760108580,
+        "earliestWarnTs": 1760054400,
+        "leadS": 54180,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 110
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/weETH",
+        "members": 5,
+        "breached": 5,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760108700,
+        "leadS": 22020,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 5
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/WETH",
+        "members": 391,
+        "breached": 374,
+        "firstBreachTs": 1760072040,
+        "earliestWarnTs": 1760054400,
+        "leadS": 17640,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 374
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/wstETH",
+        "members": 37,
+        "breached": 37,
+        "firstBreachTs": 1760109600,
+        "earliestWarnTs": 1760054400,
+        "leadS": 55200,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 37
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/DAI",
+        "members": 2,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/USD₮0",
+        "members": 1,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/USDC",
+        "members": 7,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/USDT",
+        "members": 1,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       }
+      ],
+      "notScoreableClusters": [
+       "EV-1/aave/sUSDe",
+       "EV-1/aave/USDe"
+      ]
+     },
      "clusters": [
       {
        "cluster": "EV-1/aave/cross_asset/1INCH",
@@ -812,6 +1347,275 @@
       "criticalBeforeBreach": 1371,
       "met": false,
       "startBelowOne": 132
+     },
+     "gateCluster": {
+      "breachedClusters": 19,
+      "passed": 17,
+      "firstBreacherWarned": 17,
+      "failed": [
+       "EV-1/aave/cross_asset/1INCH",
+       "EV-1/aave/cross_asset/BAL"
+      ],
+      "met": false,
+      "perCluster": [
+       {
+        "cluster": "EV-1/aave/cross_asset/1INCH",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1760131140,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": false,
+        "firstBreacherWarned": false,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/AAVE",
+        "members": 145,
+        "breached": 144,
+        "firstBreachTs": 1760120700,
+        "earliestWarnTs": 1760054400,
+        "leadS": 66300,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 119
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/ARB",
+        "members": 235,
+        "breached": 235,
+        "firstBreachTs": 1760118240,
+        "earliestWarnTs": 1760054400,
+        "leadS": 63840,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 200
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/BAL",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760131620,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": false,
+        "firstBreacherWarned": false,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/cbBTC",
+        "members": 60,
+        "breached": 59,
+        "firstBreachTs": 1760119440,
+        "earliestWarnTs": 1760054400,
+        "leadS": 65040,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 59
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/cbETH",
+        "members": 2,
+        "breached": 2,
+        "firstBreachTs": 1760121540,
+        "earliestWarnTs": 1760054400,
+        "leadS": 67140,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 2
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/CRV",
+        "members": 14,
+        "breached": 14,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760111100,
+        "leadS": 19620,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 10
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/ENS",
+        "members": 12,
+        "breached": 12,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760110200,
+        "leadS": 20520,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 4
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/LDO",
+        "members": 11,
+        "breached": 11,
+        "firstBreachTs": 1760130780,
+        "earliestWarnTs": 1760123700,
+        "leadS": 7080,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 9
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/LINK",
+        "members": 191,
+        "breached": 191,
+        "firstBreachTs": 1760124480,
+        "earliestWarnTs": 1760054400,
+        "leadS": 70080,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 172
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/OP",
+        "members": 350,
+        "breached": 350,
+        "firstBreachTs": 1760129460,
+        "earliestWarnTs": 1760054400,
+        "leadS": 75060,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 256
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/rETH",
+        "members": 5,
+        "breached": 5,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760108400,
+        "leadS": 22320,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 5
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/tBTC",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760054400,
+        "leadS": 76320,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/tETH",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760131140,
+        "earliestWarnTs": 1760121900,
+        "leadS": 9240,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/UNI",
+        "members": 33,
+        "breached": 33,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760111100,
+        "leadS": 19620,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 18
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/WBTC",
+        "members": 110,
+        "breached": 110,
+        "firstBreachTs": 1760108580,
+        "earliestWarnTs": 1760054400,
+        "leadS": 54180,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 110
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/weETH",
+        "members": 5,
+        "breached": 5,
+        "firstBreachTs": 1760130720,
+        "earliestWarnTs": 1760109300,
+        "leadS": 21420,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 5
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/WETH",
+        "members": 391,
+        "breached": 374,
+        "firstBreachTs": 1760072040,
+        "earliestWarnTs": 1760054400,
+        "leadS": 17640,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 374
+       },
+       {
+        "cluster": "EV-1/aave/cross_asset/wstETH",
+        "members": 37,
+        "breached": 37,
+        "firstBreachTs": 1760109600,
+        "earliestWarnTs": 1760054400,
+        "leadS": 55200,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 37
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/DAI",
+        "members": 2,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/USD₮0",
+        "members": 1,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/USDC",
+        "members": 7,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-1/aave/stable_other/USDT",
+        "members": 1,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       }
+      ],
+      "notScoreableClusters": [
+       "EV-1/aave/sUSDe",
+       "EV-1/aave/USDe"
+      ]
      },
      "clusters": [
       {
@@ -1201,6 +2005,38 @@
       "met": true,
       "startBelowOne": 0
      },
+     "gateCluster": {
+      "breachedClusters": 2,
+      "passed": 2,
+      "firstBreacherWarned": 2,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-1/morpho/sUSDe/not_looper:debt_below_min",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760133683,
+        "earliestWarnTs": 1760126411,
+        "leadS": 7272,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/morpho/sUSDe/other",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760133683,
+        "earliestWarnTs": 1760126411,
+        "leadS": 7272,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       }
+      ],
+      "notScoreableClusters": []
+     },
      "clusters": [
       {
        "cluster": "EV-1/morpho/sUSDe/not_looper:debt_below_min",
@@ -1251,6 +2087,38 @@
       "criticalBeforeBreach": 2,
       "met": true,
       "startBelowOne": 0
+     },
+     "gateCluster": {
+      "breachedClusters": 2,
+      "passed": 2,
+      "firstBreacherWarned": 2,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-1/morpho/sUSDe/not_looper:debt_below_min",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760133683,
+        "earliestWarnTs": 1760126411,
+        "leadS": 7272,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/morpho/sUSDe/other",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760133683,
+        "earliestWarnTs": 1760126411,
+        "leadS": 7272,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       }
+      ],
+      "notScoreableClusters": []
      },
      "clusters": [
       {
@@ -1303,6 +2171,38 @@
       "met": true,
       "startBelowOne": 0
      },
+     "gateCluster": {
+      "breachedClusters": 2,
+      "passed": 2,
+      "firstBreacherWarned": 2,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-1/morpho/sUSDe/not_looper:debt_below_min",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760133683,
+        "earliestWarnTs": 1760126411,
+        "leadS": 7272,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/morpho/sUSDe/other",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760133683,
+        "earliestWarnTs": 1760126411,
+        "leadS": 7272,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       }
+      ],
+      "notScoreableClusters": []
+     },
      "clusters": [
       {
        "cluster": "EV-1/morpho/sUSDe/not_looper:debt_below_min",
@@ -1353,6 +2253,38 @@
       "criticalBeforeBreach": 2,
       "met": true,
       "startBelowOne": 0
+     },
+     "gateCluster": {
+      "breachedClusters": 2,
+      "passed": 2,
+      "firstBreacherWarned": 2,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-1/morpho/sUSDe/not_looper:debt_below_min",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760133683,
+        "earliestWarnTs": 1760126411,
+        "leadS": 7272,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-1/morpho/sUSDe/other",
+        "members": 1,
+        "breached": 1,
+        "firstBreachTs": 1760133683,
+        "earliestWarnTs": 1760126411,
+        "leadS": 7272,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       }
+      ],
+      "notScoreableClusters": []
      },
      "clusters": [
       {
@@ -1416,6 +2348,368 @@
       "criticalBeforeBreach": 0,
       "met": true,
       "startBelowOne": 0
+     },
+     "gateCluster": {
+      "breachedClusters": 0,
+      "passed": 0,
+      "firstBreacherWarned": 0,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-3/aave/eUSDe/other",
+        "members": 4,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/PT-srUSDe-25JUN2026/other",
+        "members": 2,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/PT-sUSDE-7MAY2026/other",
+        "members": 6,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/PT-USDe-27NOV2025/other",
+        "members": 1,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/PT-USDe-7MAY2026/other",
+        "members": 2,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sDAI/other",
+        "members": 1,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/other",
+        "members": 13,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDC/d2-5pp/s10k-100k",
+        "members": 3,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDC/d2-5pp/s1k-10k",
+        "members": 3,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDC/d2-5pp/s1m-10m",
+        "members": 3,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDC/d5pp+/s100k-1m",
+        "members": 8,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDC/d5pp+/s10k-100k",
+        "members": 11,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDC/d5pp+/s10m+",
+        "members": 3,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDC/d5pp+/s1k-10k",
+        "members": 8,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDT/d2-5pp/s100k-1m",
+        "members": 14,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDT/d2-5pp/s10k-100k",
+        "members": 7,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDT/d2-5pp/s10m+",
+        "members": 8,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDT/d2-5pp/s1k-10k",
+        "members": 6,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDT/d2-5pp/s1m-10m",
+        "members": 8,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDT/d5pp+/s100k-1m",
+        "members": 10,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDT/d5pp+/s10k-100k",
+        "members": 9,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDT/d5pp+/s1k-10k",
+        "members": 20,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/sUSDe/USDT/d5pp+/s1m-10m",
+        "members": 9,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/syrupUSDT/other",
+        "members": 9,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/USDe/other",
+        "members": 17,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/USDe/USDC/d5pp+/s1k-10k",
+        "members": 4,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/USDe/USDC/d5pp+/s1m-10m",
+        "members": 4,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/USDe/USDT/d2-5pp/s10m+",
+        "members": 4,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/USDe/USDT/d2-5pp/s1m-10m",
+        "members": 3,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/USDe/USDT/d5pp+/s100k-1m",
+        "members": 4,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/USDe/USDT/d5pp+/s1k-10k",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-3/aave/USDe/USDT/d5pp+/s1m-10m",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       }
+      ],
+      "notScoreableClusters": []
      },
      "clusters": [
       {
@@ -1945,6 +3239,38 @@
        "met": true,
        "startBelowOne": 0
       },
+      "gateCluster": {
+       "breachedClusters": 2,
+       "passed": 2,
+       "firstBreacherWarned": 2,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/morpho/sdeUSD/other",
+         "members": 3,
+         "breached": 2,
+         "firstBreachTs": 1762416000,
+         "earliestWarnTs": 1761436800,
+         "leadS": 979200,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 2
+        },
+        {
+         "cluster": "EV-2/morpho/xUSD/other",
+         "members": 1,
+         "breached": 1,
+         "firstBreachTs": 1763215200,
+         "earliestWarnTs": 1761436800,
+         "leadS": 1778400,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 1
+        }
+       ],
+       "notScoreableClusters": []
+      },
       "clusters": [
        {
         "cluster": "EV-2/morpho/sdeUSD/other",
@@ -1999,6 +3325,38 @@
        "criticalBeforeBreach": 3,
        "met": true,
        "startBelowOne": 0
+      },
+      "gateCluster": {
+       "breachedClusters": 2,
+       "passed": 2,
+       "firstBreacherWarned": 2,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/morpho/sdeUSD/other",
+         "members": 3,
+         "breached": 2,
+         "firstBreachTs": 1762174800,
+         "earliestWarnTs": 1761440400,
+         "leadS": 734400,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 2
+        },
+        {
+         "cluster": "EV-2/morpho/xUSD/other",
+         "members": 1,
+         "breached": 1,
+         "firstBreachTs": 1762171200,
+         "earliestWarnTs": 1761440400,
+         "leadS": 730800,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 1
+        }
+       ],
+       "notScoreableClusters": []
       },
       "clusters": [
        {
@@ -2067,6 +3425,192 @@
       "criticalBeforeBreach": 20,
       "met": true,
       "startBelowOne": 0
+     },
+     "gateCluster": {
+      "breachedClusters": 4,
+      "passed": 4,
+      "firstBreacherWarned": 4,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/not_looper:debt_below_min",
+        "members": 44,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/other",
+        "members": 19,
+        "breached": 13,
+        "firstBreachTs": 1787632691,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4176,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 13
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d0-1pp/s100k-1m",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1787632655,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4140,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 3
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d1-2pp/s100k-1m",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1787632955,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4440,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 3
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s100k-1m",
+        "members": 16,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s10k-100k",
+        "members": 9,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s1k-10k",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s1m-10m",
+        "members": 3,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s100k-1m",
+        "members": 17,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s10k-100k",
+        "members": 22,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s1k-10k",
+        "members": 19,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s1m-10m",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d2-5pp/s100k-1m",
+        "members": 3,
+        "breached": 1,
+        "firstBreachTs": 1787633267,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4752,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d2-5pp/s10k-100k",
+        "members": 4,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d5pp+/s10k-100k",
+        "members": 13,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d5pp+/s1k-10k",
+        "members": 8,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       }
+      ],
+      "notScoreableClusters": []
      },
      "clusters": [
       {
@@ -2315,6 +3859,192 @@
       "met": true,
       "startBelowOne": 0
      },
+     "gateCluster": {
+      "breachedClusters": 4,
+      "passed": 4,
+      "firstBreacherWarned": 4,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/not_looper:debt_below_min",
+        "members": 44,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/other",
+        "members": 19,
+        "breached": 13,
+        "firstBreachTs": 1787632691,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4176,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 13
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d0-1pp/s100k-1m",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1787632655,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4140,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 3
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d1-2pp/s100k-1m",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1787632955,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4440,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 3
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s100k-1m",
+        "members": 16,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s10k-100k",
+        "members": 9,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s1k-10k",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s1m-10m",
+        "members": 3,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s100k-1m",
+        "members": 17,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s10k-100k",
+        "members": 22,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s1k-10k",
+        "members": 19,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s1m-10m",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d2-5pp/s100k-1m",
+        "members": 3,
+        "breached": 1,
+        "firstBreachTs": 1787633267,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4752,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d2-5pp/s10k-100k",
+        "members": 4,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d5pp+/s10k-100k",
+        "members": 13,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d5pp+/s1k-10k",
+        "members": 8,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       }
+      ],
+      "notScoreableClusters": []
+     },
      "clusters": [
       {
        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/not_looper:debt_below_min",
@@ -2562,6 +4292,192 @@
       "met": true,
       "startBelowOne": 0
      },
+     "gateCluster": {
+      "breachedClusters": 4,
+      "passed": 4,
+      "firstBreacherWarned": 4,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/not_looper:debt_below_min",
+        "members": 44,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/other",
+        "members": 19,
+        "breached": 13,
+        "firstBreachTs": 1787632691,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4176,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 13
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d0-1pp/s100k-1m",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1787632655,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4140,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 3
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d1-2pp/s100k-1m",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1787632955,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4440,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 3
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s100k-1m",
+        "members": 16,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s10k-100k",
+        "members": 9,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s1k-10k",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s1m-10m",
+        "members": 3,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s100k-1m",
+        "members": 17,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s10k-100k",
+        "members": 22,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s1k-10k",
+        "members": 19,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s1m-10m",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d2-5pp/s100k-1m",
+        "members": 3,
+        "breached": 1,
+        "firstBreachTs": 1787633267,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4752,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d2-5pp/s10k-100k",
+        "members": 4,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d5pp+/s10k-100k",
+        "members": 13,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d5pp+/s1k-10k",
+        "members": 8,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       }
+      ],
+      "notScoreableClusters": []
+     },
      "clusters": [
       {
        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/not_looper:debt_below_min",
@@ -2808,6 +4724,192 @@
       "criticalBeforeBreach": 20,
       "met": true,
       "startBelowOne": 0
+     },
+     "gateCluster": {
+      "breachedClusters": 4,
+      "passed": 4,
+      "firstBreacherWarned": 4,
+      "failed": [],
+      "met": true,
+      "perCluster": [
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/not_looper:debt_below_min",
+        "members": 44,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/other",
+        "members": 19,
+        "breached": 13,
+        "firstBreachTs": 1787632691,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4176,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 13
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d0-1pp/s100k-1m",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1787632655,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4140,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 3
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d1-2pp/s100k-1m",
+        "members": 3,
+        "breached": 3,
+        "firstBreachTs": 1787632955,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4440,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 3
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s100k-1m",
+        "members": 16,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s10k-100k",
+        "members": 9,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s1k-10k",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d2-5pp/s1m-10m",
+        "members": 3,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s100k-1m",
+        "members": 17,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s10k-100k",
+        "members": 22,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s1k-10k",
+        "members": 19,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDC/d5pp+/s1m-10m",
+        "members": 5,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d2-5pp/s100k-1m",
+        "members": 3,
+        "breached": 1,
+        "firstBreachTs": 1787633267,
+        "earliestWarnTs": 1787628515,
+        "leadS": 4752,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 1
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d2-5pp/s10k-100k",
+        "members": 4,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d5pp+/s10k-100k",
+        "members": 13,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       },
+       {
+        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/USDT/d5pp+/s1k-10k",
+        "members": 8,
+        "breached": 0,
+        "firstBreachTs": null,
+        "earliestWarnTs": null,
+        "leadS": null,
+        "passes": true,
+        "firstBreacherWarned": true,
+        "membersWarnedFirst": 0
+       }
+      ],
+      "notScoreableClusters": []
      },
      "clusters": [
       {

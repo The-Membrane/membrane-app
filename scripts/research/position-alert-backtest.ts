@@ -906,7 +906,7 @@ function main() {
       volatility: `EWMA of 1h log returns, half-life ${VOL_HALF_LIFE_H}h, read from the last completed hour (lookahead-free)`,
       hourly: `synthetic single-collateral positions, debt $100k stable, opened every ${HOURLY_EVERY_D} days at 00:00 UTC at HF ${HF0S.join('/')}, held ${WINDOW_D} days untouched; monitor reads each hourly close; liquidation when the hourly LOW takes HF < 1, stamped at the bar open`,
       e1: 'real Aave V3 accounts liquidated Oct 10 2025 (evidence.json cohort: priced, not excluded, WETH/wstETH/WBTC/cbBTC collateral, stable debt); balances held at their liquidation snapshot and re-priced backwards on the mainnet Chainlink feed in force each minute; liquidation time = the real first liquidation',
-      e2: 'real Morpho Blue positions liquidated in Nov 2025 (WBTC/cbBTC/wstETH collateral, stable loan); hourly collateral and borrow from the Morpho API, priced each minute on Binance spot scaled to Morpho collateral USD; liquidation time = the real first liquidation',
+      e2: 'real Morpho Blue positions liquidated in Nov 2025 (WBTC/cbBTC/wstETH collateral, stable loan); hourly collateral and borrow from the Morpho API, priced each minute on Binance spot scaled to Morpho collateral USD; liquidation time = the real first liquidation. NOT the Recall Coverage Dataset spec E2 (Stream xUSD freeze, Nov 2–12): see e2SpecWindow and depeg.e2DeUSD',
       e4: 'real Morpho PT-reUSD-10DEC2026 positions liquidated Aug 25 2026; hourly collateral/borrow from the Morpho API, priced on the market oracle (archive reads every ~1h, every 5 blocks 01:00-07:00 UTC Aug 25); liquidation time = the real first liquidation',
       falseAlarm:
         'a worsening message at >= the scored level with no liquidation in the next 72h, counted only on positions never liquidated, excluding a message at the first read (a position opened inside a band)',
@@ -1079,6 +1079,29 @@ function main() {
     const o = inForce(e4Oracle, x.liqTs - 3 * H) as { price: number }
     return round((h.collateral * o.price * x.p.lltv) / h.borrow, 4) as number
   })
+  // ---- E2 inside the Recall Coverage Dataset spec window (EV-2: Nov 2–12 2025)
+  // The spec's E2 is the Stream xUSD freeze. This set is only the WBTC/cbBTC/wstETH Morpho
+  // liquidations whose first liquidation falls inside that window: same dates, not the
+  // xUSD-collateral clusters that define the event. Those are covered by the deUSD depeg row.
+  const EV2_START = Date.parse('2025-11-02T00:00:00Z') / 1000
+  const EV2_END = Date.parse('2025-11-13T00:00:00Z') / 1000
+  const inEv2 = (ts: number) => ts >= EV2_START && ts < EV2_END
+  const e2Window = e2Prepared.filter((x) => inEv2(x.liqTs))
+  const e2WindowReplays = e2Window.map((x) =>
+    replay(e2Steps(x), DEFAULT_ALERT_CONFIG, { monitorEveryS: 60, knownLiquidationTs: x.liqTs }),
+  )
+  results.e2SpecWindow = {
+    note: 'Morpho WBTC/cbBTC/wstETH positions first liquidated inside the spec EV-2 window (Nov 2–12 2025), DEFAULT_ALERT_CONFIG, 1-minute monitor. Not the xUSD-collateral clusters.',
+    positionsInData: (e2.morpho.positions as MorphoPosition[]).length,
+    positionsInDataInWindow: (e2.morpho.positions as MorphoPosition[]).filter((p) =>
+      inEv2(p.liquidations[0].ts),
+    ).length,
+    replayedInWindow: e2Window.length,
+    warnPlus: aggregate('DEFAULT_ALERT_CONFIG', scoreAll(e2WindowReplays, 2)),
+    critical: aggregate('DEFAULT_ALERT_CONFIG', scoreAll(e2WindowReplays, 3)),
+  }
+  log('e2 spec window', results.e2SpecWindow)
+
   const AUG25_0400 = Date.parse('2026-08-25T04:00:00Z') / 1000
   const at0400 = inForce(e4Oracle, AUG25_0400)?.price ?? NaN
   const firstDrop = e4Oracle.find((o) => o.ts > AUG25_0400 && o.price < at0400 * 0.999)

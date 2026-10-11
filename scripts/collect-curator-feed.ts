@@ -32,7 +32,9 @@
 //      every Morpho Blue flow in the block that set the new rate (lib/curatorFeed/spikes.ts).
 //  11. Flags (lib/curatorFeed/flags.ts) on the same markets: what the oracle prices from,
 //      whether price() reverts or a feed is stale, the largest borrower (with each exposure
-//      read); and curator shifts between a curator's own vaults followed by cuts.
+//      read), whether a market was fully borrowed at the head and 7 days earlier; and
+//      curator shifts between a curator's own vaults followed by cuts. Exposure carries each
+//      MetaMorpho v1.1 vault's lostAssets() (counted in its totalAssets()).
 //
 // RPC: env keys are never printed or stored (labels only). Labels: Morpho API curator
 // registry + vault list, Euler labels entities.json. Prices: Morpho API, collection time.
@@ -78,6 +80,7 @@ import {
   hasMarketFlag,
   marketFlagKinds,
   revertOnset,
+  utilization,
 } from '../lib/curatorFeed/flags'
 import { keccakText } from '../lib/curatorFeed/keccak'
 import {
@@ -656,6 +659,7 @@ async function main() {
     ),
     ...(refreshExposure ? [...vaultsOf('mm'), ...vaultsOf('v2'), ...vaultsOf('ee')] : []),
   ]).filter((a) => ['mm', 'v2', 'ee'].includes(kindOf.get(a) ?? ''))
+  const lostAssetsOf = new Map<string, bigint>()
   const totalAssetsOf = await readVaultInfo(
     infoTargets,
     kindOf,
@@ -663,6 +667,7 @@ async function main() {
     adapterKind,
     ent,
     toBlock,
+    lostAssetsOf,
   )
 
   // ── curator identity (current registries, every vault we hold) ──
@@ -1014,6 +1019,7 @@ async function main() {
       vaultsOf('v2').filter((a) => tvlOk(a, totalAssetsOf.get(a) ?? 0n)),
       ent,
       usd,
+      lostAssetsOf,
     )
     state.exposureBlock = toBlock
     log(`exposure: ${exposure.vaults.length} vaults at block ${toBlock}`)
@@ -1060,7 +1066,7 @@ async function main() {
   )
   log(`spikes: ${spikes.length} kept`)
 
-  // ── flags 1, 2, 4: oracle kind, reverting / stale, largest borrower ──
+  // ── flags 1, 2, 4, 5: oracle kind, reverting / stale, largest borrower, supply locked ──
   const marketFlags = await readMarketFlags([...universe], {
     head: toBlock,
     headTs: toTs,
@@ -1320,6 +1326,7 @@ async function readVaultInfo(
   adapterKind: Map<string, { kind: string }>,
   ent: Entities,
   block: number,
+  lostOf?: Map<string, bigint>,
 ): Promise<Map<string, bigint>> {
   const res = await rpc.batch(
     targets.flatMap((a) => [
@@ -1351,6 +1358,17 @@ async function readVaultInfo(
     }
     totals.set(a, word(r[5]) ?? 0n)
   })
+  // MetaMorpho v1.1 counts written-off assets in totalAssets(); lostAssets() says how much
+  // (v1.0 has no such getter: the batch answers null).
+  if (lostOf) {
+    const mm = targets.filter((a) => kindOf.get(a) === 'mm')
+    const lost = await rpc.batch(mm.map((a) => call(a, 'lostAssets()', [], block)))
+    mm.forEach((a, i) => {
+      const w = word(lost[i])
+      if (w !== undefined && w > 0n) lostOf.set(a, w)
+      else lostOf.delete(a)
+    })
+  }
   // Vault V2: per-function timelocks, and the market adapter's burnShares timelock.
   const v2 = targets.filter((a) => kindOf.get(a) === 'v2')
   const tl = await rpc.batch(
@@ -1654,6 +1672,7 @@ async function readExposure(
   v2Exposure: string[],
   ent: Entities,
   usd: (token: string | undefined, amount: bigint) => number | undefined,
+  lostAssetsOf: Map<string, bigint> = new Map(),
 ): Promise<ExposureFile> {
   const vaults: ExposureVault[] = []
   const collOf = (id: string) => {
@@ -1665,11 +1684,13 @@ async function readExposure(
     const den = total > sum ? total : sum
     for (const a of allocs)
       a.share = den === 0n ? 0 : Number((BigInt(a.assets) * 1_000_000n) / den) / 1e6
+    const lost = lostAssetsOf.get(vault)
     vaults.push({
       vault,
       protocol,
       totalAssets: total.toString(),
       totalUsd: usd(ent.vaults[vault]?.asset, total),
+      ...(lost ? { lostAssets: lost.toString() } : {}),
       allocations: allocs
         .filter((a) => BigInt(a.assets) > 0n)
         .sort((a, b) => (b.usd ?? 0) - (a.usd ?? 0)),
@@ -2037,10 +2058,11 @@ async function readSpikes(
 }
 
 /**
- * Flags 1, 2 and 4 (lib/curatorFeed/flags.ts) for the given markets. An oracle's inputs
+ * Flags 1, 2, 4 and 5 (lib/curatorFeed/flags.ts) for the given markets. An oracle's inputs
  * are read once (MorphoChainlinkOracleV2 is immutable) and carried in state. Every run:
  * price() and each feed's latestRoundData() at the head; a newly reverting oracle gets
- * a binary search for its first reverting block. With each exposure refresh: the two
+ * a binary search for its first reverting block; market() at the head, and `lockedDays`
+ * earlier for the markets fully borrowed at the head. With each exposure refresh: the two
  * largest borrowers per market (Morpho API ranking), their debt read on chain.
  */
 async function readMarketFlags(
@@ -2224,7 +2246,35 @@ async function readMarketFlags(
     log(`flags: largest borrowers read for ${debt.size} of ${cand.length} markets ≥ $1M borrowed`)
   }
 
-  // 5. Keep the markets that carry a flag.
+  // 5. Flag 5: market() `lockedDays` back for the markets fully borrowed at the head.
+  const full = ms.filter((m) => {
+    const w = mstate.get(m)
+    return w && (utilization(w[0], w[2]) ?? 0) >= FLAG_DEFAULTS.lockedUtil
+  })
+  const prevBlock = Math.max(0, head - FLAG_DEFAULTS.lockedDays * 7200)
+  const [prevHdr, ...prevRes] = await rpc.batch([
+    { method: 'eth_getBlockByNumber', params: [hexN(prevBlock), false] },
+    ...full.map((m) => call(CHAIN.morpho, 'market(bytes32)', [m], prevBlock)),
+  ])
+  const prevTs = parseInt((prevHdr as { timestamp?: string } | null)?.timestamp ?? '0x0', 16)
+  const fill = new Map<string, NonNullable<MarketFlags['fill']>>()
+  full.forEach((m, i) => {
+    const w = mstate.get(m)!
+    const p = dec(MARKET6, prevRes[i]) as bigint[] | null
+    if (!p || !prevTs) return
+    fill.set(m, {
+      block: head,
+      supply: w[0].toString(),
+      borrow: w[2].toString(),
+      lastUpdate: Number(w[4]),
+      prevBlock,
+      prevTs,
+      prevSupply: p[0].toString(),
+      prevBorrow: p[2].toString(),
+    })
+  })
+
+  // 6. Keep the markets that carry a flag.
   const out: Record<string, MarketFlags> = {}
   for (const m of ms) {
     const info = ent.markets[m]
@@ -2244,13 +2294,14 @@ async function readMarketFlags(
       reverting: price === null ? reverts[a] : undefined,
       staleSeconds: times.length ? headTs - Math.min(...times) : undefined,
       borrowers: borrowers[m],
+      fill: fill.get(m),
     }
     // The one-borrower floor uses the borrows read with the borrower (as the API view does).
     const borrowUsd = f.borrowers ? o.usd(info.loan, BigInt(f.borrowers.totalBorrow)) : undefined
     if (hasMarketFlag(f, borrowUsd)) out[m] = f
   }
   log(
-    `flags: ${oracles.length} oracles (${fresh.length} read for the first time), ${[...priceOf.values()].filter((x) => x === null).length} reverting; ${Object.keys(out).length} markets flagged`,
+    `flags: ${oracles.length} oracles (${fresh.length} read for the first time), ${[...priceOf.values()].filter((x) => x === null).length} reverting, ${full.length} markets fully borrowed; ${Object.keys(out).length} markets flagged`,
   )
   return out
 }

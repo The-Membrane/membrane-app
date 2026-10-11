@@ -17,8 +17,10 @@ import { clusteredIds, detectExitClusters, isDirectExit, type ClusterOptions } f
 import { byCollateral, type CollateralRow } from './exposure'
 import {
   FLAG_DEFAULTS,
+  isSupplyLocked,
   marketFlagKinds,
   topBorrowerShare,
+  utilization,
   vaultBorrowerShare,
   type MarketFlagKind,
 } from './flags'
@@ -436,12 +438,17 @@ export interface ExposureHolderView {
   /** Whole loan-token units. */
   amount: number
   usd?: number
+  /** Part of `usd` in markets whose supply is locked (book value, flags.ts flag 5). */
+  lockedUsd?: number
   shareOfVault: number
 }
 export interface ExposureRowView {
   collateral: string
   symbol: string
+  /** Live supply: book value in supply-locked markets excluded. */
   usd: number
+  /** Book value: supply in markets whose supply is locked. */
+  lockedUsd: number
   unpriced: number
   curatorCount: number
   holders: ExposureHolderView[]
@@ -465,16 +472,18 @@ export function buildExposureResponse(
     exposure.vaults.filter((v) => cur(v.vault)),
     curatorOf,
     loanOf,
+    { isLocked: (t) => isLockedMarket(feed, t) },
   )
   return {
     block: exposure.block,
     ts: exposure.ts,
     rows: rows
-      .filter((r) => coll([r.collateral]) && r.usd >= q.minUsd)
+      .filter((r) => coll([r.collateral]) && Math.max(r.usd, r.lockedUsd) >= q.minUsd)
       .map((r) => ({
         collateral: r.collateral,
         symbol: symbolOf(feed.entities, r.collateral),
         usd: r.usd,
+        lockedUsd: r.lockedUsd,
         unpriced: r.unpriced,
         curatorCount: r.curators.length,
         holders: r.holders.map((h) => {
@@ -488,6 +497,7 @@ export function buildExposureResponse(
             loanSymbol: symbolOf(feed.entities, h.loan),
             amount: Number(BigInt(h.assets)) / 10 ** dec,
             usd: h.usd,
+            ...(h.lockedUsd !== undefined ? { lockedUsd: h.lockedUsd } : {}),
             shareOfVault: h.shareOfVault,
           }
         }),
@@ -607,6 +617,8 @@ export interface VaultAllocView {
   via?: string
   /** Short labels of the market's flags (flags.ts), e.g. "oracle reverting". */
   flags?: string[]
+  /** The market's supply is locked (flags.ts flag 5): `usd` is book value. */
+  locked?: boolean
 }
 export interface VaultExposureView {
   vault: string
@@ -614,14 +626,22 @@ export interface VaultExposureView {
   curatorName: string
   protocol: Protocol
   loanSymbol: string
+  /** totalAssets() as the vault reports it, USD. */
   totalUsd?: number
+  /** Of `totalUsd`: allocations in supply-locked markets (book value). */
+  lockedUsd?: number
+  /** Of `totalUsd`: MetaMorpho v1.1 lostAssets(), written off but still counted. */
+  lostUsd?: number
+  /** `totalUsd` less `lockedUsd` and `lostUsd`. */
+  liveUsd?: number
   /** Seconds per function from the last read (V1 / Euler Earn: `timelock`). */
   timelocks: Record<string, number>
   zeroTimelock: string[]
   allocations: VaultAllocView[]
 }
 
-/** vault → markets / strategies → collateral → share of the vault. Largest vaults first. */
+/** vault → markets / strategies → collateral → share of the vault. Largest live supply
+ *  first (`minUsd` filters on the reported total, so a vault of book value stays listed). */
 export function buildVaultExposure(
   feed: FeedFile,
   exposure: ExposureFile,
@@ -645,6 +665,23 @@ export function buildVaultExposure(
     .map((v) => {
       const asset = feed.entities.vaults[v.vault]?.asset ?? ''
       const dec = feed.entities.tokens[asset]?.decimals ?? 18
+      const price = feed.entities.tokens[asset]?.priceUsd
+      const lostRaw =
+        v.lostAssets && price !== undefined
+          ? (Number(BigInt(v.lostAssets)) / 10 ** dec) * price
+          : undefined
+      // Under $1 is rounding left by share math, not a write-off.
+      const lost = lostRaw !== undefined && lostRaw >= 1 ? lostRaw : undefined
+      // An allocation's book value can exceed what the vault reports (a Vault V2 adapter's
+      // expectedSupplyAssets accrues to now; the vault's totalAssets grows at most at its
+      // max rate). The vault-level figure is the part of its reported total.
+      const lockedAll = v.allocations
+        .filter((a) => isLockedMarket(feed, a.target))
+        .reduce((s, a) => s + (a.usd ?? 0), 0)
+      const locked =
+        v.totalUsd !== undefined
+          ? Math.min(lockedAll, Math.max(0, v.totalUsd - (lost ?? 0)))
+          : lockedAll
       return {
         vault: v.vault,
         vaultName: vaultLabel(feed.entities, v.vault),
@@ -652,6 +689,10 @@ export function buildVaultExposure(
         protocol: v.protocol,
         loanSymbol: symbolOf(feed.entities, asset),
         totalUsd: v.totalUsd,
+        ...(locked > 0 ? { lockedUsd: locked } : {}),
+        ...(lost !== undefined ? { lostUsd: lost } : {}),
+        liveUsd:
+          v.totalUsd !== undefined ? Math.max(0, v.totalUsd - locked - (lost ?? 0)) : undefined,
         timelocks:
           feed.entities.vaults[v.vault]?.timelocks ??
           (feed.entities.vaults[v.vault]?.timelock !== undefined
@@ -667,10 +708,11 @@ export function buildVaultExposure(
           share: a.share,
           via: a.via,
           flags: allocFlagLabels(feed, a.target, a.share),
+          ...(isLockedMarket(feed, a.target) ? { locked: true } : {}),
         })),
       }
     })
-    .sort((a, b) => (b.totalUsd ?? 0) - (a.totalUsd ?? 0))
+    .sort((a, b) => (b.liveUsd ?? 0) - (a.liveUsd ?? 0) || (b.totalUsd ?? 0) - (a.totalUsd ?? 0))
   return { block: exposure.block, ts: exposure.ts, vaults }
 }
 
@@ -827,6 +869,7 @@ const FLAG_LABEL: Record<MarketFlagKind, string> = {
   'oracle-reverting': 'oracle reverting',
   'oracle-stale': 'oracle stale',
   'one-borrower': 'one borrower',
+  'supply-locked': 'supply locked (book value)',
 }
 
 const pct0 = (x: number) => `${Math.round(x * 100)}%`
@@ -842,6 +885,12 @@ function borrowUsdOf(feed: FeedFile, market: string, f: MarketFlags): number | u
 export function marketFlagKindsOf(feed: FeedFile, market: string): MarketFlagKind[] {
   const f = feed.flags?.markets[market]
   return f ? marketFlagKinds(f, borrowUsdOf(feed, market, f)) : []
+}
+
+/** Flag 5: supply in this market is book value. */
+export function isLockedMarket(feed: FeedFile, market: string): boolean {
+  const f = feed.flags?.markets[market]
+  return f ? isSupplyLocked(f) : false
 }
 
 /** Labels for one vault allocation; the one-borrower label carries the vault's part. */
@@ -908,6 +957,13 @@ export function marketFlagTexts(
     const total = Number(BigInt(f.borrowers.totalBorrow)) / 10 ** ld
     out.push(
       `One address (${short(f.borrowers.top)}) owes ${pct0(topBorrowerShare(f) ?? 0)} of the market's ${fmt(total)} ${loan} of borrows (block ${f.borrowers.block.toLocaleString('en-US')}).`,
+    )
+  }
+  if (kinds.includes('supply-locked') && f.fill) {
+    const x = f.fill
+    const u = (v: string) => Number(BigInt(v)) / 10 ** ld
+    out.push(
+      `Borrows are ${pct1(utilization(x.supply, x.borrow) ?? 0)} of supply at block ${x.block.toLocaleString('en-US')} and were ${pct1(utilization(x.prevSupply, x.prevBorrow) ?? 0)} at block ${x.prevBlock.toLocaleString('en-US')} (${utc(x.prevTs)}), and the oracle ${f.reverting ? 'reverts' : 'has no market price'}. Suppliers can withdraw only what borrowers repay. market() shows ${fmt(u(x.supply))} ${loan} of supply with interest accrued to ${utc(x.lastUpdate)}; interest adds to it at the borrow rate. This feed counts supply here as book value, apart from live supply.`,
     )
   }
   return out

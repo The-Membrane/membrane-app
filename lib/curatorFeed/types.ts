@@ -208,8 +208,11 @@ export interface ExposureAlloc {
 export interface ExposureVault {
   vault: string
   protocol: Protocol
+  /** totalAssets() as the vault reports it. MetaMorpho v1.1 counts `lostAssets` in it. */
   totalAssets: string
   totalUsd?: number
+  /** MetaMorpho v1.1 lostAssets(): assets written off that totalAssets() still counts. */
+  lostAssets?: string
   allocations: ExposureAlloc[]
 }
 
@@ -411,6 +414,19 @@ export interface MarketFlags {
     totalBorrow: string
     totalSupply: string
     block: number
+  }
+  /** market() supply / borrow assets at the head and `lockedDays` earlier (loan-token base
+   *  units). Read only when borrows are ≥ `lockedUtil` of supply at the head (flag 5). */
+  fill?: {
+    block: number
+    supply: string
+    borrow: string
+    /** market().lastUpdate at the head: interest is accrued in supply / borrow to here. */
+    lastUpdate: number
+    prevBlock: number
+    prevTs: number
+    prevSupply: string
+    prevBorrow: string
   }
 }
 

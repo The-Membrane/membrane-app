@@ -263,12 +263,26 @@ const VaultExposure: React.FC<{ collateral: string }> = ({ collateral }) => {
               </Text>
             </Mono>
             <Mono size="11px">
-              {v.totalUsd !== undefined ? `$${compact(v.totalUsd)}` : v.loanSymbol} ·{' '}
-              {v.allocations.length} allocation{v.allocations.length === 1 ? '' : 's'}
+              {v.liveUsd !== undefined ? `$${compact(v.liveUsd)}` : v.loanSymbol}
+              {v.lockedUsd ? ` + $${compact(v.lockedUsd)} book value` : ''}
+              {v.lostUsd ? ` + $${compact(v.lostUsd)} written off` : ''} · {v.allocations.length}{' '}
+              allocation{v.allocations.length === 1 ? '' : 's'}
             </Mono>
           </HStack>
           {open === v.vault && (
             <Box pl={SPACING.base} pb={SPACING.sm}>
+              {(v.lockedUsd || v.lostUsd) && v.totalUsd !== undefined ? (
+                <Mono size="10.5px" color={SEMANTIC_COLORS.textTertiary}>
+                  totalAssets() reports ${compact(v.totalUsd)}
+                  {v.lockedUsd
+                    ? `; $${compact(v.lockedUsd)} of it is supply in markets whose supply is locked (book value)`
+                    : ''}
+                  {v.lostUsd
+                    ? `; $${compact(v.lostUsd)} of it is lostAssets(), written off and still counted (MetaMorpho v1.1)`
+                    : ''}
+                  .
+                </Mono>
+              ) : null}
               {Object.keys(v.timelocks).length > 0 && (
                 <Mono size="10.5px" color={SEMANTIC_COLORS.textTertiary}>
                   Timelocks at the last read:{' '}
@@ -299,8 +313,10 @@ const VaultExposure: React.FC<{ collateral: string }> = ({ collateral }) => {
                   </Mono>
                   <Mono size="11px">
                     {compact(a.amount)} {v.loanSymbol}
-                    {a.usd !== undefined ? ` ($${compact(a.usd)})` : ''} ·{' '}
-                    {(a.share * 100).toFixed(1)}%
+                    {a.usd !== undefined
+                      ? ` ($${compact(a.usd)}${a.locked ? ' book value' : ''})`
+                      : ''}{' '}
+                    · {(a.share * 100).toFixed(1)}%
                   </Mono>
                 </HStack>
               ))}
@@ -333,7 +349,10 @@ const ExposureSection: React.FC<{ collateral: string }> = ({ collateral }) => {
       />
       <Mono size="11px">
         Supply each vault has in markets backed by the collateral (Morpho Blue positions, Vault V2
-        adapters, Euler Earn strategies) at the head block. USD at collection-time prices.
+        adapters, Euler Earn strategies) at the head block. USD at collection-time prices. Supply in
+        a market whose supply is locked (flag below) is book value and is shown apart. MetaMorpho
+        v1.1 vaults count written-off assets (lostAssets) in totalAssets; the vault view shows them
+        apart.
         {!collateral && ' Rows of at least $1M shown; filter by a symbol to see all.'}
       </Mono>
       <HStack mt={SPACING.sm} spacing={SPACING.sm}>
@@ -370,6 +389,7 @@ const ExposureSection: React.FC<{ collateral: string }> = ({ collateral }) => {
               </Mono>
               <Mono size="11px">
                 ${compact(row.usd)}
+                {row.lockedUsd ? ` + $${compact(row.lockedUsd)} book value` : ''}
                 {row.unpriced ? ` + ${row.unpriced} unpriced` : ''} · {row.holders.length} vault
                 {row.holders.length === 1 ? '' : 's'} · {row.curatorCount} curator
                 {row.curatorCount === 1 ? '' : 's'}
@@ -387,8 +407,10 @@ const ExposureSection: React.FC<{ collateral: string }> = ({ collateral }) => {
                     </Mono>
                     <Mono size="11px">
                       {compact(h.amount)} {h.loanSymbol}
-                      {h.usd !== undefined ? ` ($${compact(h.usd)})` : ''} ·{' '}
-                      {(h.shareOfVault * 100).toFixed(1)}% of vault
+                      {h.usd !== undefined
+                        ? ` ($${compact(h.usd)}${h.lockedUsd ? ` incl. $${compact(h.lockedUsd)} book value` : ''})`
+                        : ''}{' '}
+                      · {(h.shareOfVault * 100).toFixed(1)}% of vault
                     </Mono>
                   </HStack>
                 ))}
@@ -618,6 +640,7 @@ const FLAG_TAG: Record<string, string> = {
   'oracle-reverting': 'oracle reverting',
   'oracle-stale': 'oracle stale',
   'one-borrower': 'one borrower',
+  'supply-locked': 'supply locked',
 }
 
 const FlagsSection: React.FC<{ collateral: string }> = ({ collateral }) => {
@@ -653,8 +676,10 @@ const FlagsSection: React.FC<{ collateral: string }> = ({ collateral }) => {
         Facts that kept depositors from leaving in the 2026 msY and AZND write-offs, read for every
         market curated vaults use: an oracle with no market price in its path (a fixed price, or
         only reported values such as a NAV feed); an oracle whose price() reverts, or whose feed
-        stopped updating; one address owing most of a market&apos;s borrows. And one curator moving
-        a position between its own vaults, then cutting it in the vaults that gave it up.
+        stopped updating; one address owing most of a market&apos;s borrows. From the 2025 sdeUSD
+        write-offs: a market fully borrowed for 7 days with no working market price, whose supply
+        grows as book value. And one curator moving a position between its own vaults, then cutting
+        it in the vaults that gave it up.
       </Mono>
       {isLoading && <Mono>loading…</Mono>}
       {error && <Mono color={SEMANTIC_COLORS.danger}>{String((error as Error).message)}</Mono>}
@@ -697,7 +722,9 @@ const FlagsSection: React.FC<{ collateral: string }> = ({ collateral }) => {
                   ))}
                   {m.curatedUsd !== undefined && (
                     <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
-                      curated supply ${compact(m.curatedUsd)} · {m.vaults.length} vault
+                      curated supply ${compact(m.curatedUsd)}
+                      {m.kinds.includes('supply-locked') ? ' (book value)' : ''} · {m.vaults.length}{' '}
+                      vault
                       {m.vaults.length === 1 ? '' : 's'}
                     </Mono>
                   )}

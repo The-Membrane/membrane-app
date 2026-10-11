@@ -29,17 +29,22 @@ import { gunzipSync } from 'node:zlib'
 import { datasetsDir } from '../lib/datasetsDir.mjs'
 
 import {
+  CORRELATED_LOOP_HF,
   DEFAULT_ALERT_CONFIG,
+  detectPriceFreeze,
   quantile,
   replay,
   scoreReplay,
   type AlertConfig,
+  type MarketContext,
+  type OracleChangeEvent,
   type PositionSnapshot,
   type ReplayStep,
 } from '../../lib/positionAlerts'
 
 const ROOT = process.cwd()
 const PINNED = join(datasetsDir(ROOT), 'position-alerts', 'pinned')
+const E2_FILE = join(datasetsDir(ROOT), 'position-alerts', 'e2-stream-nov-2025.json')
 const INTERNAL_OUT = join(datasetsDir(ROOT), 'position-alerts', 'pinned-results.json')
 const PUBLIC_OUT = join(ROOT, 'docs', 'research', 'position-alerts-pinned-results.json')
 const H = 3600
@@ -71,6 +76,7 @@ interface Path {
   hf: number[]
   /** Builds the snapshot the monitor reads at tick i. */
   snapshot: (i: number) => PositionSnapshot
+  ctx?: (i: number) => MarketContext
   observedLiquidationTs: number | null
 }
 
@@ -97,6 +103,8 @@ interface PositionResult {
 interface Lead {
   alertedBeforeBreach: boolean | null
   leadS: number | null
+  /** Rule whose episode gave the lead. */
+  leadRule: string | null
   /** Lead from the alert to the first OBSERVED liquidation (the position's own Liquidate log). */
   leadToObservedS: number | null
   censored: boolean
@@ -109,6 +117,7 @@ function* stepsOf(p: Path): Generator<ReplayStep> {
       intervalStart: i === 0 ? p.ts[0] : p.ts[i - 1],
       worstHf: p.hf[i],
       snapshot: p.snapshot(i),
+      ctx: p.ctx?.(i),
     }
   }
 }
@@ -118,11 +127,18 @@ function runPath(p: Path, config: AlertConfig, everyS: number): PositionResult {
   const lead = (minLevel: 2 | 3): Lead => {
     const s = scoreReplay(r, { minLevel, horizonS: HORIZON_S })
     if (r.liquidatedAt === null)
-      return { alertedBeforeBreach: null, leadS: null, leadToObservedS: null, censored: false }
+      return {
+        alertedBeforeBreach: null,
+        leadS: null,
+        leadRule: null,
+        leadToObservedS: null,
+        censored: false,
+      }
     const alerted = s.leadS !== null
     return {
       alertedBeforeBreach: alerted,
       leadS: s.leadS,
+      leadRule: s.leadRule,
       leadToObservedS:
         alerted && p.observedLiquidationTs !== null
           ? (s.leadS as number) + (p.observedLiquidationTs - r.liquidatedAt)
@@ -340,6 +356,158 @@ const e4Paths: Path[] = e4.positions.map(
   },
 )
 
+// ------------------------------------------------------------------ E2 Stream xUSD / Elixir deUSD (own pull)
+
+interface E2Point {
+  ts: number
+  collateral: number | null
+  collateralValue: number | null
+  collateralUsd: number | null
+  borrow: number | null
+  borrowUsd: number | null
+}
+
+const e2 = JSON.parse(readFileSync(E2_FILE, 'utf8'))
+const E2_MIN_DEBT = 1_000
+const e2Market = new Map<string, { collateral: string; loan: string; lltv: number; chainId: number }>(
+  e2.markets.map((m: { chainId: number; marketId: string; collateral: string; loan: string; lltv: number }) => [
+    `${m.chainId}:${m.marketId}`,
+    m,
+  ]),
+)
+/** Market price at ts (last point at or before), by collateral symbol. */
+const e2PriceSeries: Record<string, [number, number][]> = Object.fromEntries(
+  Object.entries(e2.marketPrices as Record<string, { series: [number, number][] }>).map(([k, v]) => [
+    k,
+    v.series,
+  ]),
+)
+function priceAt(series: [number, number][] | undefined, ts: number): number | null {
+  if (!series?.length || ts < series[0][0]) return null
+  let lo = 0
+  let hi = series.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (series[mid][0] <= ts) lo = mid
+    else hi = mid - 1
+  }
+  return ts - series[lo][0] <= 3 * H ? series[lo][1] : null
+}
+
+interface E2Prepared {
+  id: string
+  cluster: string
+  collateral: string
+  lltv: number
+  hardcoded: boolean
+  points: E2Point[]
+  marketPx: (number | null)[]
+  oracleEvents: OracleChangeEvent[]
+  liquidationTs: number | null
+}
+
+const e2Prepared: E2Prepared[] = []
+const e2OpenedLate: { collateral: string; openedTs: number }[] = []
+let e2Dust = 0
+for (const p of e2.positions as { chainId: number; marketId: string; user: string; history: E2Point[] }[]) {
+  const m = e2Market.get(`${p.chainId}:${p.marketId}`)!
+  const pts = p.history.filter(
+    (x) => (x.borrow ?? 0) > 0 && (x.collateral ?? 0) > 0 && x.collateralValue !== null,
+  )
+  const inWin = pts.filter((x) => x.ts >= e2.specWindow.fromTs && x.ts <= e2.specWindow.toTs)
+  if (!inWin.length || Math.max(...inWin.map((x) => x.borrow ?? 0)) < E2_MIN_DEBT) {
+    e2Dust++
+    continue
+  }
+  // The cohort is the positions open at the window start (as E3 positions_start and E4
+  // positions_t0). A position opened mid-collapse against a fixed oracle is not a victim.
+  if (pts[0].ts > e2.specWindow.fromTs) {
+    e2OpenedLate.push({ collateral: m.collateral, openedTs: pts[0].ts })
+    continue
+  }
+  const sym = m.collateral.startsWith('PT-') ? null : m.collateral
+  const series = sym ? e2PriceSeries[sym] : undefined
+  const fallback = sym === 'sdeUSD' ? e2PriceSeries['sdeUSD (DefiLlama on-chain)'] : undefined
+  const oraclePx = pts.map((x) => (x.collateralValue as number) / (x.collateral as number))
+  const hardcoded = Math.max(...oraclePx) - Math.min(...oraclePx) < 1e-9
+  // CoinGecko trades first; DefiLlama's on-chain sdeUSD price fills its gaps.
+  const marketPx = pts.map((x) => priceAt(series, x.ts) ?? priceAt(fallback, x.ts))
+  const liq = (e2.liquidations as { user: string; marketId: string; chainId: number; ts: number }[])
+    .filter((l) => l.user === p.user && l.marketId === p.marketId && l.chainId === p.chainId)
+    .map((l) => l.ts)
+    .sort((a, b) => a - b)
+  e2Prepared.push({
+    id: `${p.user.slice(2, 14)}`,
+    cluster: `EV-2/morpho/${m.collateral}/${m.loan}/chain-${m.chainId}/lltv-${m.lltv}`,
+    collateral: m.collateral,
+    lltv: m.lltv,
+    hardcoded,
+    points: pts,
+    marketPx,
+    oracleEvents: detectPriceFreeze(
+      pts.map((x, i) => ({ ts: x.ts, oraclePx: oraclePx[i], marketPx: marketPx[i] })),
+      m.collateral,
+      `${p.chainId}:${p.marketId}`,
+    ),
+    liquidationTs: liq[0] ?? null,
+  })
+}
+// Dataset rule: clusters under 3 members merge into (protocol, collateral, other).
+{
+  const n = new Map<string, number>()
+  for (const x of e2Prepared) n.set(x.cluster, (n.get(x.cluster) ?? 0) + 1)
+  for (const x of e2Prepared) if ((n.get(x.cluster) ?? 0) < 3) x.cluster = `EV-2/morpho/${x.collateral}/other`
+}
+
+/** basis 'oracle': breach at oracle HF < 1 (the venue's line); 'market': at market HF < 1. */
+function e2Paths(basis: 'oracle' | 'market'): Path[] {
+  return e2Prepared
+    .map((x): Path | null => {
+      const idx = x.points
+        .map((_, i) => i)
+        .filter((i) => basis === 'oracle' || x.marketPx[i] !== null)
+      if (!idx.length) return null
+      const pt = (i: number) => x.points[idx[i]]
+      const oracle = (i: number) => (pt(i).collateralValue as number) / (pt(i).collateral as number)
+      const market = (i: number) => x.marketPx[idx[i]]
+      const hf = idx.map((_, i) => {
+        const px = basis === 'oracle' ? oracle(i) : (market(i) as number)
+        return ((pt(i).collateral as number) * px * x.lltv) / (pt(i).borrow as number)
+      })
+      return {
+        id: x.id,
+        cluster: x.cluster,
+        isLooper: true,
+        ts: idx.map((_, i) => pt(i).ts),
+        hf,
+        snapshot: (i) => ({
+          id: x.id,
+          ts: pt(i).ts,
+          venue: `Morpho ${x.collateral}`,
+          collateral: [
+            {
+              symbol: x.collateral,
+              amount: pt(i).collateral as number,
+              oraclePriceUsd: oracle(i),
+              marketPriceUsd: market(i) ?? undefined,
+              liquidationThreshold: x.lltv,
+              oracleBasis: x.hardcoded ? 'hardcoded' : 'exchangeRate',
+              // Peg = the venue's own price (NAV for xUSD / sdeUSD, $1 for deUSD).
+              peg:
+                market(i) === null || x.collateral.startsWith('PT-')
+                  ? undefined
+                  : { class: 'stable', underlying: 'USD', rate: oracle(i) },
+            },
+          ],
+          debt: [{ symbol: 'USDC', amount: pt(i).borrow as number, priceUsd: 1 }],
+        }),
+        ctx: () => ({ oracleEvents: x.oracleEvents, oracleEventsCovered: true }),
+        observedLiquidationTs: x.liquidationTs,
+      }
+    })
+    .filter((p): p is Path => p !== null)
+}
+
 // ------------------------------------------------------------------ warn-line sweep (loops)
 
 /** Default config with the health-factor warn line at L (critical halfway to 1.00, watch L + 0.10). */
@@ -361,6 +529,10 @@ const SWEEP: { label: string; config: AlertConfig }[] = [
     config: hfLineConfig(L),
   })),
   { label: 'cushion burn only (HF tiers off)', config: { ...DEFAULT_ALERT_CONFIG, healthFactor: null } },
+  {
+    label: 'CORRELATED_LOOP_HF (1.05 / 1.02 / 1.01)',
+    config: { ...DEFAULT_ALERT_CONFIG, healthFactor: CORRELATED_LOOP_HF },
+  },
 ]
 
 function sweepRow(label: string, config: AlertConfig) {
@@ -419,6 +591,24 @@ function main() {
       // E3 ticks are about an hour apart, so a finer monitor sees nothing new.
       runs: runEvent(e3Paths, config, CADENCES.slice(0, 1)),
     },
+    E2: {
+      source: 'own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market, DefiLlama CoinGecko prices',
+      window: e2.specWindow,
+      history: e2.historyWindow,
+      positionsReplayed: e2Prepared.length,
+      dustPositionsSkipped: e2Dust,
+      openedAfterWindowStart: e2OpenedLate.map((x) => ({ ...x, debtUsdMax: undefined })),
+      uncovered: e2.uncovered,
+      liquidationsSinceHistoryStart: e2.liquidations.length,
+      priceFreezeEvents: e2Prepared.map((x) => ({ cluster: x.cluster, events: x.oracleEvents.map((e) => e.ts) })),
+      oracleBasis: {
+        runs: runEvent(e2Paths('oracle'), config, [{ label: '1 h', everyS: 0 }]),
+      },
+      marketBasis: {
+        runs: runEvent(e2Paths('market'), config, [{ label: '1 h', everyS: 0 }]),
+      },
+      runs: [] as ReturnType<typeof runEvent>,
+    },
     E4: {
       source: 'recall-coverage EV-4 positions_t0 + oracle (price() per block t0-300..t0+600, every 5th to t0+2h, hourly to t0+24h) + market borrow rate accrual',
       window: { fromTs: e4Ts[0], toTs: e4Ts.at(-1), t0: e4.t0 },
@@ -462,6 +652,25 @@ function main() {
   for (const [k, ev] of Object.entries(events))
     for (const r of ev.runs)
       console.log(k, r.cadence.padEnd(10), JSON.stringify(r.gate))
+  for (const b of ['oracleBasis', 'marketBasis'] as const)
+    for (const r of events.E2[b].runs) {
+      console.log('E2', b, JSON.stringify(r.gate))
+      for (const x of r.rows)
+        console.log(
+          '  ',
+          x.cluster.padEnd(34),
+          'HF0',
+          x.hfFirstRead,
+          'breach',
+          x.breachTs && new Date(x.breachTs * 1000).toISOString().slice(5, 16),
+          'warn',
+          x.warn.leadS,
+          x.warn.leadRule,
+          'crit',
+          x.critical.leadS,
+          x.critical.leadRule,
+        )
+    }
   console.log('E3', JSON.stringify(e3Summary))
   for (const row of loopSweep) console.log('sweep', JSON.stringify(row))
   console.log(`done in ${((Date.now() - t0) / 1000).toFixed(1)}s`)
@@ -470,8 +679,10 @@ function main() {
 /** Per-cluster tables only: the per-position rows stay in the datasets repo (spec G2, board N18). */
 function publicCopy(results: { events: Record<string, { runs: { rows?: unknown }[] }> }) {
   const copy = JSON.parse(JSON.stringify(results))
-  for (const ev of Object.values(copy.events) as { runs: { rows?: unknown }[] }[])
-    for (const r of ev.runs) delete r.rows
+  for (const ev of Object.values(copy.events) as Record<string, { runs?: { rows?: unknown }[] }>[]) {
+    for (const r of (ev as { runs: { rows?: unknown }[] }).runs) delete r.rows
+    for (const sub of [ev.oracleBasis, ev.marketBasis]) for (const r of sub?.runs ?? []) delete r.rows
+  }
   const text = JSON.stringify(copy)
   if (/"id":/.test(text) || /0x[0-9a-fA-F]{40}/.test(text))
     throw new Error('public pinned results still hold a position identifier')

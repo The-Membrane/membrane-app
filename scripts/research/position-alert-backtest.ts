@@ -1334,7 +1334,7 @@ function main() {
   }
   const high = btc.close[highIdx] as number
   const hf0 = Math.max(1.12, (1.02 * high) / (btc.close[lowIdx] as number))
-  results.sampleMessageSynthetic = firstPushedMessage(
+  const synthetic = firstPushedMessage(
     setAndForgetSteps({
       id: SYNTHETIC_ID,
       venue: 'Morpho cbBTC/USDC (synthetic)',
@@ -1347,8 +1347,8 @@ function main() {
       endIdx: lowIdx,
     }),
   )
-  if (results.sampleMessageSynthetic)
-    console.log('\n== sample dry-run message (public)\n' + results.sampleMessageSynthetic.text)
+  results.sampleMessageSynthetic = synthetic
+  if (synthetic) console.log('\n== sample dry-run message (public)\n' + synthetic.text)
 
   writeFileSync(join(DATA, 'backtest-results.json'), JSON.stringify(results, null, 1) + '\n')
   log(`wrote ${join(DATA, 'backtest-results.json')} (internal)`)

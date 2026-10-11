@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-pinned-replay.ts",
- "generatedAt": "2026-10-11T14:42:31.528Z",
+ "generatedAt": "2026-10-11T15:03:23.541Z",
  "config": "DEFAULT_ALERT_CONFIG",
  "definitions": "breach = first tick with HF < 1 on the dataset path, stamped at the previous tick (strict). Lead = breach − start of the earliest warn+ (critical) episode still open. censored = that episode opened at the first read. False alarm = worsening message with no breach in 72h.",
  "events": {
@@ -660,6 +660,157 @@
      ]
     }
    ]
+  },
+  "E2": {
+   "source": "own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market, DefiLlama CoinGecko prices",
+   "window": {
+    "fromTs": 1762041600,
+    "toTs": 1762991940
+   },
+   "history": {
+    "fromTs": 1761436800,
+    "toTs": 1763251200
+   },
+   "positionsReplayed": 4,
+   "dustPositionsSkipped": 23,
+   "openedAfterWindowStart": [
+    {
+     "collateral": "deUSD",
+     "openedTs": 1762444800
+    }
+   ],
+   "uncovered": "Euler, Silo, Gearbox, Fluid and other venues; chains the Morpho API does not serve (Plasma 9745, Avalanche 43114, Sonic 146 per spec §5). Positions closed before the window are excluded by construction.",
+   "liquidationsSinceHistoryStart": 8,
+   "priceFreezeEvents": [
+    {
+     "cluster": "EV-2/morpho/sdeUSD/other",
+     "events": [
+      1762394400
+     ]
+    },
+    {
+     "cluster": "EV-2/morpho/sdeUSD/other",
+     "events": [
+      1761458400
+     ]
+    },
+    {
+     "cluster": "EV-2/morpho/sdeUSD/other",
+     "events": [
+      1761458400
+     ]
+    },
+    {
+     "cluster": "EV-2/morpho/xUSD/other",
+     "events": [
+      1762171200,
+      1762286400,
+      1762369200,
+      1762455600,
+      1762542000,
+      1762714800,
+      1762801200,
+      1762887600,
+      1762974000,
+      1763060400,
+      1763146800,
+      1763233200
+     ]
+    }
+   ],
+   "oracleBasis": {
+    "runs": [
+     {
+      "cadence": "1 h",
+      "everyS": 0,
+      "gate": {
+       "breachedClusters": 2,
+       "clustersAllWarnedBeforeBreach": 2,
+       "breachedPositions": 3,
+       "warnedBeforeBreach": 3,
+       "criticalBeforeBreach": 3,
+       "met": true
+      },
+      "clusters": [
+       {
+        "cluster": "EV-2/morpho/sdeUSD/other",
+        "members": 3,
+        "breached": 2,
+        "warnBeforeBreach": 2,
+        "criticalBeforeBreach": 2,
+        "leadMinS": 979200,
+        "leadMedianS": 1132200,
+        "leadToObservedMedianS": 8391684,
+        "censored": 2,
+        "unbreachedWarned": 1,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 3
+       },
+       {
+        "cluster": "EV-2/morpho/xUSD/other",
+        "members": 1,
+        "breached": 1,
+        "warnBeforeBreach": 1,
+        "criticalBeforeBreach": 1,
+        "leadMinS": 1778400,
+        "leadMedianS": 1778400,
+        "leadToObservedMedianS": null,
+        "censored": 1,
+        "unbreachedWarned": 0,
+        "unbreachedCritical": 0,
+        "warnAtFirstRead": 1
+       }
+      ]
+     }
+    ]
+   },
+   "marketBasis": {
+    "runs": [
+     {
+      "cadence": "1 h",
+      "everyS": 0,
+      "gate": {
+       "breachedClusters": 2,
+       "clustersAllWarnedBeforeBreach": 2,
+       "breachedPositions": 3,
+       "warnedBeforeBreach": 3,
+       "criticalBeforeBreach": 3,
+       "met": true
+      },
+      "clusters": [
+       {
+        "cluster": "EV-2/morpho/sdeUSD/other",
+        "members": 3,
+        "breached": 2,
+        "warnBeforeBreach": 2,
+        "criticalBeforeBreach": 2,
+        "leadMinS": 734400,
+        "leadMedianS": 775800,
+        "leadToObservedMedianS": 8388084,
+        "censored": 2,
+        "unbreachedWarned": 1,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 3
+       },
+       {
+        "cluster": "EV-2/morpho/xUSD/other",
+        "members": 1,
+        "breached": 1,
+        "warnBeforeBreach": 1,
+        "criticalBeforeBreach": 1,
+        "leadMinS": 730800,
+        "leadMedianS": 730800,
+        "leadToObservedMedianS": null,
+        "censored": 1,
+        "unbreachedWarned": 0,
+        "unbreachedCritical": 0,
+        "warnAtFirstRead": 1
+       }
+      ]
+     }
+    ]
+   },
+   "runs": []
   },
   "E4": {
    "source": "recall-coverage EV-4 positions_t0 + oracle (price() per block t0-300..t0+600, every 5th to t0+2h, hourly to t0+24h) + market borrow rate accrual",
@@ -1825,6 +1976,29 @@
     "warned": 0,
     "warnedAtFirstRead": 0,
     "warnPerPositionMonth": 0
+   },
+   "gateMet": true
+  },
+  {
+   "label": "CORRELATED_LOOP_HF (1.05 / 1.02 / 1.01)",
+   "e1": {
+    "breached": 2,
+    "warnedBeforeBreach": 2
+   },
+   "e4": {
+    "breached": 20,
+    "warnedBeforeBreach": 20,
+    "warnedAtFirstRead": 16,
+    "leadMedianS": 4296,
+    "leadMinS": 660,
+    "unbreached": 173,
+    "unbreachedWarned": 51
+   },
+   "e3": {
+    "loops": 214,
+    "warned": 11,
+    "warnedAtFirstRead": 7,
+    "warnPerPositionMonth": 0.086
    },
    "gateMet": true
   }

@@ -51,6 +51,11 @@ export interface ExitCapacityConfig {
   maxAgeS: number
   /** Value: available exit USD / recall needed USD. */
   spec: LevelSpec
+  /**
+   * Capacity burn: share of the trailing peak exit capacity that is gone now (0–1). It warns
+   * while capacity is still above the recall need, as a lock starts. null = off.
+   */
+  burn: { lookbackS: number; spec: LevelSpec } | null
 }
 
 export interface OracleChangeConfig {
@@ -134,6 +139,9 @@ export const DEFAULT_ALERT_CONFIG: AlertConfig = {
       confirm: 1,
       cooldownS: 12 * H,
     },
+    // Off: CAPACITY_BURN_PRESET gave ~3h before the E3 lock but ~5 warn+ per month on calm
+    // Aave Core USDC (memo §7).
+    burn: null,
   },
   oracleChange: {
     windowS: 24 * H,
@@ -173,6 +181,43 @@ export const LIQUIDATION_DISTANCE_PRESET: LiquidationDistanceConfig = {
     dwellS: 2 * H,
     confirm: 1,
     cooldownS: 6 * H,
+  },
+}
+
+/**
+ * Health-factor lines for correlated loops: a USD-yielding or PT collateral against a USD
+ * debt, with a liquidation line near 0.9 (Morpho LLTV 0.915, Aave e-mode). These loops LIVE
+ * at HF 1.01–1.10, so the default 1.30 / 1.15 / 1.05 lines fire on most of them in calm
+ * conditions. Measured on the Recall Coverage Dataset's pinned clusters (memo §1b): warn 1.02
+ * warned all 20 E4 breaches before the breach (16 at the first read, the rest 11+ minutes
+ * ahead) and 2 of 2 in E1, while 11 of 214 E3 loops got a warn (0.086 per position-month)
+ * against 145 under the default lines. Opt-in per position, not the default: the thresholds
+ * were chosen on the same events they were measured on.
+ */
+export const CORRELATED_LOOP_HF: LevelSpec = {
+  direction: 'below',
+  enter: { watch: 1.05, warn: 1.02, critical: 1.01 },
+  band: 0.005,
+  dwellS: 2 * H,
+  confirm: 1,
+  cooldownS: 6 * H,
+}
+
+/**
+ * Exit-capacity burn: share of the trailing 6h peak capacity gone. Measured, not default
+ * (memo §7): on the spec's E3 venue (Aave Core USDC) it warned 2.95h before the full lock,
+ * ahead of the cover ratio, but it raised about 5 warn+ messages per month across 27 calm
+ * months of the same venue. Opt-in: { ...exitCapacity, burn: CAPACITY_BURN_PRESET }.
+ */
+export const CAPACITY_BURN_PRESET: NonNullable<ExitCapacityConfig['burn']> = {
+  lookbackS: 6 * H,
+  spec: {
+    direction: 'above',
+    enter: { watch: 0.3, warn: 0.5, critical: 0.8 },
+    band: 0.1,
+    dwellS: 2 * H,
+    confirm: 1,
+    cooldownS: 12 * H,
   },
 }
 

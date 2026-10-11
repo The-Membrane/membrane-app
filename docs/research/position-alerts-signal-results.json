@@ -1,0 +1,867 @@
+{
+ "generatedBy": "scripts/research/position-alert-signal-backtest.ts",
+ "generatedAt": "2026-10-11T15:02:49.555Z",
+ "exitCapacity": {
+  "venue": "Aave v3 Core USDC",
+  "e3": {
+   "source": "recall-coverage data/chain/e3/usdc_utilization (virtual underlying balance at every state-changing block), read every 5 minutes",
+   "exploit": "2026-04-18 17:35",
+   "fullLock": "2026-04-19 05:32",
+   "fullLockRule": "first block at or after the exploit with utilization >= 99.9% (the dataset E3_LOCK_UTILIZATION)",
+   "ratioOnly": [
+    {
+     "needUsd": 10000000,
+     "firstShort": "2026-04-19 05:25",
+     "firstWarn": {
+      "recall": "2026-04-19 05:25",
+      "burn": null
+     },
+     "leadBeforeShortH": {
+      "any": 0,
+      "recall": 0,
+      "burn": null
+     },
+     "leadBeforeFullLockH": {
+      "any": 0.12,
+      "recall": 0.12,
+      "burn": null
+     },
+     "warnMessages": 6,
+     "preExploitWarns": 0
+    },
+    {
+     "needUsd": 50000000,
+     "firstShort": "2026-04-19 05:00",
+     "firstWarn": {
+      "recall": "2026-04-19 04:20",
+      "burn": null
+     },
+     "leadBeforeShortH": {
+      "any": 0.67,
+      "recall": 0.67,
+      "burn": null
+     },
+     "leadBeforeFullLockH": {
+      "any": 1.2,
+      "recall": 1.2,
+      "burn": null
+     },
+     "warnMessages": 7,
+     "preExploitWarns": 0
+    },
+    {
+     "needUsd": 100000000,
+     "firstShort": "2026-04-19 04:05",
+     "firstWarn": {
+      "recall": "2026-04-19 03:30",
+      "burn": null
+     },
+     "leadBeforeShortH": {
+      "any": 0.58,
+      "recall": 0.58,
+      "burn": null
+     },
+     "leadBeforeFullLockH": {
+      "any": 2.04,
+      "recall": 2.04,
+      "burn": null
+     },
+     "warnMessages": 8,
+     "preExploitWarns": 0
+    },
+    {
+     "needUsd": 250000000,
+     "firstShort": "2026-04-19 02:50",
+     "firstWarn": {
+      "recall": "2026-04-19 01:50",
+      "burn": null
+     },
+     "leadBeforeShortH": {
+      "any": 1,
+      "recall": 1,
+      "burn": null
+     },
+     "leadBeforeFullLockH": {
+      "any": 3.7,
+      "recall": 3.7,
+      "burn": null
+     },
+     "warnMessages": 2,
+     "preExploitWarns": 0
+    }
+   ],
+   "withBurnPreset": [
+    {
+     "needUsd": 10000000,
+     "firstShort": "2026-04-19 05:25",
+     "firstWarn": {
+      "recall": "2026-04-19 05:25",
+      "burn": "2026-04-19 02:35"
+     },
+     "leadBeforeShortH": {
+      "any": 2.83,
+      "recall": 0,
+      "burn": 2.83
+     },
+     "leadBeforeFullLockH": {
+      "any": 2.95,
+      "recall": 0.12,
+      "burn": 2.95
+     },
+     "warnMessages": 14,
+     "preExploitWarns": 0
+    },
+    {
+     "needUsd": 50000000,
+     "firstShort": "2026-04-19 05:00",
+     "firstWarn": {
+      "recall": "2026-04-19 04:20",
+      "burn": "2026-04-19 02:35"
+     },
+     "leadBeforeShortH": {
+      "any": 2.42,
+      "recall": 0.67,
+      "burn": 2.42
+     },
+     "leadBeforeFullLockH": {
+      "any": 2.95,
+      "recall": 1.2,
+      "burn": 2.95
+     },
+     "warnMessages": 15,
+     "preExploitWarns": 0
+    },
+    {
+     "needUsd": 100000000,
+     "firstShort": "2026-04-19 04:05",
+     "firstWarn": {
+      "recall": "2026-04-19 03:30",
+      "burn": "2026-04-19 02:35"
+     },
+     "leadBeforeShortH": {
+      "any": 1.5,
+      "recall": 0.58,
+      "burn": 1.5
+     },
+     "leadBeforeFullLockH": {
+      "any": 2.95,
+      "recall": 2.04,
+      "burn": 2.95
+     },
+     "warnMessages": 16,
+     "preExploitWarns": 0
+    },
+    {
+     "needUsd": 250000000,
+     "firstShort": "2026-04-19 02:50",
+     "firstWarn": {
+      "recall": "2026-04-19 01:50",
+      "burn": "2026-04-19 02:35"
+     },
+     "leadBeforeShortH": {
+      "any": 1,
+      "recall": 1,
+      "burn": 0.25
+     },
+     "leadBeforeFullLockH": {
+      "any": 3.7,
+      "recall": 3.7,
+      "burn": 2.95
+     },
+     "warnMessages": 10,
+     "preExploitWarns": 0
+    }
+   ]
+  },
+  "calm": {
+   "source": "venue-stress/history.json aave-core-usdc cash, hourly, outside the stress windows and E3",
+   "hours": 19696,
+   "months": 27.4,
+   "segments": 46,
+   "ratioOnly": [
+    {
+     "needUsd": 10000000,
+     "warnPlusPerMonth": 2.522,
+     "byKey": {
+      "recall": 69
+     },
+     "byKeyPerMonth": {
+      "recall": 2.522
+     },
+     "preE3Calm30d": {
+      "warnPlus": 0,
+      "byKey": {}
+     }
+    },
+    {
+     "needUsd": 50000000,
+     "warnPlusPerMonth": 5.264,
+     "byKey": {
+      "recall": 144
+     },
+     "byKeyPerMonth": {
+      "recall": 5.264
+     },
+     "preE3Calm30d": {
+      "warnPlus": 0,
+      "byKey": {}
+     }
+    },
+    {
+     "needUsd": 100000000,
+     "warnPlusPerMonth": 6.946,
+     "byKey": {
+      "recall": 190
+     },
+     "byKeyPerMonth": {
+      "recall": 6.946
+     },
+     "preE3Calm30d": {
+      "warnPlus": 0,
+      "byKey": {}
+     }
+    },
+    {
+     "needUsd": 250000000,
+     "warnPlusPerMonth": 1.535,
+     "byKey": {
+      "recall": 42
+     },
+     "byKeyPerMonth": {
+      "recall": 1.535
+     },
+     "preE3Calm30d": {
+      "warnPlus": 0,
+      "byKey": {}
+     }
+    }
+   ],
+   "withBurnPreset": [
+    {
+     "needUsd": 10000000,
+     "warnPlusPerMonth": 7.677,
+     "byKey": {
+      "burn": 141,
+      "recall": 69
+     },
+     "byKeyPerMonth": {
+      "burn": 5.154,
+      "recall": 2.522
+     },
+     "preE3Calm30d": {
+      "warnPlus": 0,
+      "byKey": {}
+     }
+    },
+    {
+     "needUsd": 50000000,
+     "warnPlusPerMonth": 10.418,
+     "byKey": {
+      "recall": 144,
+      "burn": 141
+     },
+     "byKeyPerMonth": {
+      "recall": 5.264,
+      "burn": 5.154
+     },
+     "preE3Calm30d": {
+      "warnPlus": 0,
+      "byKey": {}
+     }
+    },
+    {
+     "needUsd": 100000000,
+     "warnPlusPerMonth": 12.1,
+     "byKey": {
+      "recall": 190,
+      "burn": 141
+     },
+     "byKeyPerMonth": {
+      "recall": 6.946,
+      "burn": 5.154
+     },
+     "preE3Calm30d": {
+      "warnPlus": 0,
+      "byKey": {}
+     }
+    },
+    {
+     "needUsd": 250000000,
+     "warnPlusPerMonth": 6.69,
+     "byKey": {
+      "recall": 42,
+      "burn": 141
+     },
+     "byKeyPerMonth": {
+      "recall": 1.535,
+      "burn": 5.154
+     },
+     "preE3Calm30d": {
+      "warnPlus": 0,
+      "byKey": {}
+     }
+    }
+   ]
+  },
+  "burnSweep": [
+   {
+    "lookbackH": 1,
+    "warn": 0.3,
+    "e3LeadBeforeFullLockH": [
+     2.87,
+     2.87,
+     2.87,
+     2.87
+    ],
+    "e3LeadBeforeShortH": [
+     2.75,
+     2.33,
+     1.42,
+     0.17
+    ],
+    "calmBurnWarnPlusPerMonth": [
+     6.032,
+     6.032,
+     6.032,
+     6.032
+    ],
+    "preE3Calm30dBurnWarnPlus": [
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "lookbackH": 1,
+    "warn": 0.5,
+    "e3LeadBeforeFullLockH": [
+     2.04,
+     2.04,
+     2.04,
+     2.04
+    ],
+    "e3LeadBeforeShortH": [
+     1.92,
+     1.5,
+     0.58,
+     -0.67
+    ],
+    "calmBurnWarnPlusPerMonth": [
+     5.118,
+     5.118,
+     5.118,
+     5.118
+    ],
+    "preE3Calm30dBurnWarnPlus": [
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "lookbackH": 1,
+    "warn": 0.7,
+    "e3LeadBeforeFullLockH": [
+     0.2,
+     0.2,
+     0.2,
+     0.2
+    ],
+    "e3LeadBeforeShortH": [
+     0.08,
+     -0.33,
+     -1.25,
+     -2.5
+    ],
+    "calmBurnWarnPlusPerMonth": [
+     4.167,
+     4.167,
+     4.167,
+     4.167
+    ],
+    "preE3Calm30dBurnWarnPlus": [
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "lookbackH": 6,
+    "warn": 0.3,
+    "e3LeadBeforeFullLockH": [
+     7.45,
+     7.45,
+     7.45,
+     7.45
+    ],
+    "e3LeadBeforeShortH": [
+     7.33,
+     6.92,
+     6,
+     4.75
+    ],
+    "calmBurnWarnPlusPerMonth": [
+     6.324,
+     6.324,
+     6.324,
+     6.324
+    ],
+    "preE3Calm30dBurnWarnPlus": [
+     1,
+     1,
+     1,
+     1
+    ]
+   },
+   {
+    "lookbackH": 6,
+    "warn": 0.5,
+    "e3LeadBeforeFullLockH": [
+     2.95,
+     2.95,
+     2.95,
+     2.95
+    ],
+    "e3LeadBeforeShortH": [
+     2.83,
+     2.42,
+     1.5,
+     0.25
+    ],
+    "calmBurnWarnPlusPerMonth": [
+     5.154,
+     5.154,
+     5.154,
+     5.154
+    ],
+    "preE3Calm30dBurnWarnPlus": [
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "lookbackH": 6,
+    "warn": 0.7,
+    "e3LeadBeforeFullLockH": [
+     2.29,
+     2.29,
+     2.29,
+     2.29
+    ],
+    "e3LeadBeforeShortH": [
+     2.17,
+     1.75,
+     0.83,
+     -0.42
+    ],
+    "calmBurnWarnPlusPerMonth": [
+     4.24,
+     4.24,
+     4.24,
+     4.24
+    ],
+    "preE3Calm30dBurnWarnPlus": [
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "lookbackH": 24,
+    "warn": 0.3,
+    "e3LeadBeforeFullLockH": [
+     7.45,
+     7.45,
+     7.45,
+     7.45
+    ],
+    "e3LeadBeforeShortH": [
+     7.33,
+     6.92,
+     6,
+     4.75
+    ],
+    "calmBurnWarnPlusPerMonth": [
+     7.092,
+     7.092,
+     7.092,
+     7.092
+    ],
+    "preE3Calm30dBurnWarnPlus": [
+     2,
+     2,
+     2,
+     2
+    ]
+   },
+   {
+    "lookbackH": 24,
+    "warn": 0.5,
+    "e3LeadBeforeFullLockH": [
+     4.04,
+     4.04,
+     4.04,
+     4.04
+    ],
+    "e3LeadBeforeShortH": [
+     3.92,
+     3.5,
+     2.58,
+     1.33
+    ],
+    "calmBurnWarnPlusPerMonth": [
+     5.301,
+     5.301,
+     5.301,
+     5.301
+    ],
+    "preE3Calm30dBurnWarnPlus": [
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "lookbackH": 24,
+    "warn": 0.7,
+    "e3LeadBeforeFullLockH": [
+     2.37,
+     2.37,
+     2.37,
+     2.37
+    ],
+    "e3LeadBeforeShortH": [
+     2.25,
+     1.83,
+     0.92,
+     -0.33
+    ],
+    "calmBurnWarnPlusPerMonth": [
+     4.314,
+     4.314,
+     4.314,
+     4.314
+    ],
+    "preE3Calm30dBurnWarnPlus": [
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  ],
+  "medianCalmCapacityUsd": 261647872
+ },
+ "oracleChange": {
+  "note": "Config-card oracle-dimension history (since each subject's collection start) plus parameter diffs between the registry snapshots, through fromRegistryChange. Read-access grants (TollGranted) and tightenings are not messages. Bridge, admin and mint dimensions are out of scope for this rule.",
+  "subjects": 8,
+  "subjectMonths": 263.7,
+  "messagesPerSubjectMonth": 0.064,
+  "warnPlusPerSubjectMonth": 0.027,
+  "perSubject": [
+   {
+    "subject": "cbbtc",
+    "from": "2024-08-20 14:52",
+    "to": "2026-10-10 04:07",
+    "months": 26,
+    "changes": 2,
+    "alertEvents": [
+     {
+      "ts": "2026-04-09 13:15",
+      "kind": "upgrade",
+      "severity": "warn",
+      "origin": "config-card"
+     }
+    ],
+    "messages": {
+     "watch": 0,
+     "warn": 1,
+     "critical": 0
+    },
+    "warnPlusPerMonth": 0.038
+   },
+   {
+    "subject": "pt-srusde",
+    "from": "2024-08-23 06:35",
+    "to": "2026-10-10 02:30",
+    "months": 25.9,
+    "changes": 3,
+    "alertEvents": [
+     {
+      "ts": "2026-06-17 09:01",
+      "kind": "discount_changed",
+      "severity": "warn",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2026-06-22 16:15",
+      "kind": "source_changed",
+      "severity": "warn",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2026-07-08 20:55",
+      "kind": "discount_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     }
+    ],
+    "messages": {
+     "watch": 1,
+     "warn": 2,
+     "critical": 0
+    },
+    "warnPlusPerMonth": 0.077
+   },
+   {
+    "subject": "rseth",
+    "from": "2023-12-10 20:46",
+    "to": "2026-10-10 01:02",
+    "months": 34.5,
+    "changes": 0,
+    "alertEvents": [],
+    "messages": {
+     "watch": 0,
+     "warn": 0,
+     "critical": 0
+    },
+    "warnPlusPerMonth": 0
+   },
+   {
+    "subject": "susde",
+    "from": "2023-10-02 10:04",
+    "to": "2026-10-10 02:22",
+    "months": 36.8,
+    "changes": 1,
+    "alertEvents": [
+     {
+      "ts": "2026-05-25 07:41",
+      "kind": "cap_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     }
+    ],
+    "messages": {
+     "watch": 1,
+     "warn": 0,
+     "critical": 0
+    },
+    "warnPlusPerMonth": 0
+   },
+   {
+    "subject": "usde",
+    "from": "2023-10-02 10:04",
+    "to": "2026-10-10 02:13",
+    "months": 36.8,
+    "changes": 0,
+    "alertEvents": [],
+    "messages": {
+     "watch": 0,
+     "warn": 0,
+     "critical": 0
+    },
+    "warnPlusPerMonth": 0
+   },
+   {
+    "subject": "wbtc",
+    "from": "2024-09-10 21:46",
+    "to": "2026-10-10 00:38",
+    "months": 25.3,
+    "changes": 2,
+    "alertEvents": [
+     {
+      "ts": "2026-05-14 07:31",
+      "kind": "upgrade",
+      "severity": "warn",
+      "origin": "config-card"
+     }
+    ],
+    "messages": {
+     "watch": 0,
+     "warn": 1,
+     "critical": 0
+    },
+    "warnPlusPerMonth": 0.04
+   },
+   {
+    "subject": "weeth",
+    "from": "2023-07-10 16:02",
+    "to": "2026-10-10 00:11",
+    "months": 39.6,
+    "changes": 11,
+    "alertEvents": [
+     {
+      "ts": "2025-02-11 15:56",
+      "kind": "quorum_changed",
+      "severity": "warn",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2025-03-17 01:28",
+      "kind": "quorum_changed",
+      "severity": "warn",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2026-05-25 07:41",
+      "kind": "cap_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2026-07-28 18:09",
+      "kind": "quorum_changed",
+      "severity": "warn",
+      "origin": "config-card"
+     }
+    ],
+    "messages": {
+     "watch": 1,
+     "warn": 3,
+     "critical": 0
+    },
+    "warnPlusPerMonth": 0.076
+   },
+   {
+    "subject": "wsteth",
+    "from": "2023-08-03 13:04",
+    "to": "2026-10-10 00:03",
+    "months": 38.8,
+    "changes": 8,
+    "alertEvents": [
+     {
+      "ts": "2024-01-26 14:27",
+      "kind": "quorum_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2024-08-24 09:09",
+      "kind": "quorum_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2024-10-25 16:03",
+      "kind": "quorum_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2025-05-16 12:17",
+      "kind": "quorum_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2025-08-01 10:23",
+      "kind": "quorum_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2026-04-17 16:42",
+      "kind": "quorum_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     },
+     {
+      "ts": "2026-09-25 12:27",
+      "kind": "quorum_changed",
+      "severity": "watch",
+      "origin": "config-card"
+     }
+    ],
+    "messages": {
+     "watch": 7,
+     "warn": 0,
+     "critical": 0
+    },
+    "warnPlusPerMonth": 0
+   }
+  ]
+ },
+ "lstDepegChainlink": {
+  "source": "Chainlink STETH/ETH (price-history/steth-eth-1h.json, forward-filled hourly)",
+  "from": "2021-08-25 19:00",
+  "to": "2026-10-06 02:00",
+  "calmMonths": 59.5,
+  "calm": {
+   "messages": 6,
+   "warnPlus": 0,
+   "messagesPerMonth": 0.101,
+   "warnPlusPerMonth": 0
+  },
+  "stress2022": [
+   {
+    "ts": "2022-05-12 18:00",
+    "severity": "watch",
+    "bps": 243
+   },
+   {
+    "ts": "2022-05-13 16:00",
+    "severity": "warn",
+    "bps": 439
+   },
+   {
+    "ts": "2022-05-21 18:00",
+    "severity": "warn",
+    "bps": 260
+   },
+   {
+    "ts": "2022-06-08 18:00",
+    "severity": "warn",
+    "bps": 259
+   },
+   {
+    "ts": "2022-06-16 09:00",
+    "severity": "critical",
+    "bps": 610
+   },
+   {
+    "ts": "2022-07-28 10:00",
+    "severity": "warn",
+    "bps": 266
+   }
+  ],
+  "calmEpisodes": [
+   {
+    "ts": "2021-09-09 20:00",
+    "severity": "watch",
+    "bps": 137
+   },
+   {
+    "ts": "2021-10-11 20:00",
+    "severity": "watch",
+    "bps": 109
+   },
+   {
+    "ts": "2021-10-21 20:00",
+    "severity": "watch",
+    "bps": 115
+   },
+   {
+    "ts": "2021-11-28 20:00",
+    "severity": "watch",
+    "bps": 103
+   },
+   {
+    "ts": "2022-11-09 10:00",
+    "severity": "watch",
+    "bps": 102
+   },
+   {
+    "ts": "2022-11-12 10:00",
+    "severity": "watch",
+    "bps": 124
+   }
+  ]
+ }
+}

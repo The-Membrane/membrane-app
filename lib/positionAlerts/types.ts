@@ -83,11 +83,18 @@ export type OracleChangeKind =
   | 'source_changed'
   | 'heartbeat_changed'
   | 'deviation_changed'
+  | 'twap_changed'
   | 'cap_changed'
+  | 'discount_changed'
+  | 'quorum_changed'
+  | 'upgrade'
   | 'paused'
   | 'price_frozen'
 
-/** One oracle-configuration change. The registry that emits these is not built yet. */
+/**
+ * One oracle-configuration change. oracleRegistry.ts adapts the registry's change events
+ * (feat/oracle-registry) into these and detects frozen prices from an oracle path.
+ */
 export interface OracleChangeEvent {
   /** Asset symbol the oracle prices. */
   asset: string
@@ -97,6 +104,11 @@ export interface OracleChangeEvent {
   ts: number
   detail: string
   source: string
+  /**
+   * Direction-aware severity set by the adapter (a raised PT discount is worse than a lowered
+   * one). Absent: ORACLE_CHANGE_SEVERITY[kind].
+   */
+  severity?: Severity
 }
 
 /** Everything outside the position the rules may read. Every field is optional. */

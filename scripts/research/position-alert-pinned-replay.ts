@@ -792,7 +792,9 @@ for (const p of e2Files.flatMap((f) =>
     .map((l) => l.ts)
     .sort((a, b) => a - b)
   e2Prepared.push({
-    id: `${p.user.slice(2, 14)}`,
+    // One wallet can borrow on several markets and chains, and Euler sub-accounts share all
+    // but the last byte: the id keeps that byte and names the market.
+    id: `${p.user.slice(2, 14)}..${p.user.slice(-2)}@${p.venue}:${p.chainId}:${p.marketId.slice(2, 10)}`,
     // Dataset cluster key: event, venue, collateral, debt, market, LTV band, size band.
     cluster: `EV-2/${m.venue}/${m.collateral}/${m.loan}/${m.chainId}:${m.marketId.slice(0, 10)}/${ltvBand(first.lt ?? m.lltv, (first.borrow as number) / (first.collateralValue as number))}/${sizeBand(first.borrow as number)}`,
     venue: m.venue,
@@ -831,7 +833,14 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
       const pt = (i: number) => x.points[idx[i]]
       const oracle = (i: number) => (pt(i).collateralValue as number) / (pt(i).collateral as number)
       const market = (i: number) => x.marketPx[idx[i]]
-      const lt = (i: number) => pt(i).lt ?? x.lltv
+      // Euler and Gearbox: the venue's own risk-adjusted value, so a governance ramp of the
+      // liquidation LTV (Euler, Nov 3 2025) moves HF as it did on chain. Else the market's LT.
+      const lt = (i: number) => {
+        const p = pt(i)
+        if (p.adjustedCollateralUsd != null && (p.collateralValue as number) > 0)
+          return p.adjustedCollateralUsd / (p.collateralValue as number)
+        return p.lt ?? x.lltv
+      }
       const hf = idx.map((_, i) => {
         const px = basis === 'oracle' ? oracle(i) : (market(i) as number)
         return ((pt(i).collateral as number) * px * lt(i)) / (pt(i).borrow as number)

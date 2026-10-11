@@ -109,7 +109,7 @@ import { fmtLocalDayClock, useLocalZone } from './localClock'
 import { recordLandingEvent } from './recordLandingEvent'
 import { recordSimRead } from './recordRead'
 import Stamp from './Stamp'
-import VerdictHero, { OCT10_PROV } from './VerdictHero'
+import VerdictHero, { OCT10_PROV, heroLeads } from './VerdictHero'
 import Logo from '@/components/Logo'
 
 /**
@@ -761,16 +761,24 @@ export const Simulator: React.FC<SimulatorProps> = ({
     sectionKicker('verdict')
   )
 
+  /** Whether the Oct-10 verdict leads the hero (the same gate VerdictHero applies). */
+  const oct10Leads = heroLeads({ comparison, carry, mode, heroVariant, history: heroHistory }).oct10
+
   /** News edition: the masthead's left rail. Every line is an existing copy source. */
   const rail = (
     <>
       <Stamp provenance={PRICE_PATH_PROV} wrap />
-      <RailCard tone={NEWS.danger} label={OCT10_STAKES.headline} testId="sim-oct10-stakes">
-        <Text fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.muted} {...tabular}>
-          {OCT10_STAKES.date} · {OCT10_STAKES.accounts}
-        </Text>
-        <Stamp provenance={OCT10_PROV} />
-      </RailCard>
+      {/* The stakes card keeps origin's condition: it printed only with the Oct-10
+          verdict (VerdictHero: v && !carryFirst && !historyFirst), so it is shown
+          only when that verdict leads. */}
+      {oct10Leads && (
+        <RailCard tone={NEWS.danger} label={OCT10_STAKES.headline} testId="sim-oct10-stakes">
+          <Text fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.muted} {...tabular}>
+            {OCT10_STAKES.date} · {OCT10_STAKES.accounts}
+          </Text>
+          <Stamp provenance={OCT10_PROV} />
+        </RailCard>
+      )}
       <RailCard tone={NEWS.info} label="latest measured capacity move">
         <CapacityMoveBody rail />
         <Stamp provenance={LIVE_LOG} />

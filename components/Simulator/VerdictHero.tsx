@@ -226,6 +226,44 @@ function verdict(
   }
 }
 
+/**
+ * WHICH STORY LEADS THE HERO. The hero's gates as one function, so the hero and the
+ * news masthead's rail cannot disagree: the rail's Oct-10 stakes card shows only when
+ * `oct10` leads, the one verdict variant that printed the stakes line on origin.
+ */
+export function heroLeads({
+  comparison,
+  carry,
+  mode,
+  heroVariant,
+  history,
+}: Pick<VerdictHeroProps, 'comparison' | 'carry' | 'history'> & {
+  mode: SimMode
+  heroVariant: HeroVariant
+}) {
+  // The gate: a priced borrow AND a real deployment. Otherwise the cost story is
+  // unavailable, not small, and it is not told.
+  const carryPriced = !!carry && carry.annualCostUsd > 0 && carry.coveredDebtUsd > 0 && !!comparison
+
+  // HERO VARIANT — the A/B (owner brief 2026-09-12).
+  //
+  // The history hero leads ONLY on a positive, landed number. `savedUsd === 0`, a scan
+  // still in flight, a failed scan (the page passes savedUsd 0 for all three) — every
+  // one of them falls through to the Oct 10 verdict. That is the whole guard against
+  // the failure mode this variant invites: a hero that reads "$0" or blanks entirely on
+  // the majority of wallets, which have never been liquidated at all.
+  const historyFirst =
+    heroVariant === 'history' && !!history && !history.loading && history.savedUsd > 0
+
+  // …and in borrower mode a passed gate still never takes the headline. The history
+  // hero outranks the carry hero too: it is the more specific claim about this wallet.
+  const carryFirst = carryPriced && mode === 'carry' && !historyFirst
+
+  // The Oct-10 verdict: a run on screen and neither other story leading.
+  const oct10 = !!comparison && !carryFirst && !historyFirst
+  return { carryPriced, historyFirst, carryFirst, oct10 }
+}
+
 export const VerdictHero: React.FC<VerdictHeroProps> = ({
   comparison,
   carry,
@@ -251,23 +289,13 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
         ? SEMANTIC_COLORS.danger
         : SEMANTIC_COLORS.textPrimary
 
-  // The gate: a priced borrow AND a real deployment. Otherwise the cost story is
-  // unavailable, not small, and it is not told.
-  const carryPriced = !!carry && carry.annualCostUsd > 0 && carry.coveredDebtUsd > 0 && !!comparison
-
-  // HERO VARIANT — the A/B (owner brief 2026-09-12).
-  //
-  // The history hero leads ONLY on a positive, landed number. `savedUsd === 0`, a scan
-  // still in flight, a failed scan (the page passes savedUsd 0 for all three) — every
-  // one of them falls through to the Oct 10 verdict. That is the whole guard against
-  // the failure mode this variant invites: a hero that reads "$0" or blanks entirely on
-  // the majority of wallets, which have never been liquidated at all.
-  const historyFirst =
-    heroVariant === 'history' && !!history && !history.loading && history.savedUsd > 0
-
-  // …and in borrower mode a passed gate still never takes the headline. The history
-  // hero outranks the carry hero too: it is the more specific claim about this wallet.
-  const carryFirst = carryPriced && mode === 'carry' && !historyFirst
+  const { carryPriced, historyFirst, carryFirst } = heroLeads({
+    comparison,
+    carry,
+    mode,
+    heroVariant,
+    history,
+  })
   const src = comparison?.position.label ?? ''
   const whose = isDemo ? 'this' : 'your'
 

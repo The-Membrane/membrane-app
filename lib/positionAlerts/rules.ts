@@ -48,6 +48,11 @@ export interface RuleInput {
    * current sample's bucket. See engine.ts for the bucket size.
    */
   hfHistory: ReadonlyArray<readonly [number, number]>
+  /**
+   * Total available exit capacity as [bucketStartTs, maxUsdInBucket], oldest first, for the
+   * exit-capacity burn signal. Empty when that signal is off or no reading was fresh.
+   */
+  capHistory?: ReadonlyArray<readonly [number, number]>
   config: AlertConfig
 }
 
@@ -266,9 +271,25 @@ export const depegRule: Rule = {
 
 // ------------------------------------------------------------------ exit capacity vs recall needed
 
+/** Share of the trailing peak capacity that is gone now, 0–1. null without a peak above 0. */
+export function capacityBurn(
+  capHistory: RuleInput['capHistory'],
+  now: number,
+  lookbackS: number,
+  current: number,
+): number | null {
+  let peak = current
+  for (const [t, usd] of capHistory ?? []) {
+    if (t < now - lookbackS || t > now) continue
+    if (usd > peak) peak = usd
+  }
+  if (!Number.isFinite(current) || !(peak > 0)) return null
+  return Math.max(0, 1 - current / peak)
+}
+
 export const exitCapacityRule: Rule = {
   id: 'exit-capacity',
-  evaluate: ({ snapshot, ctx, config }) => {
+  evaluate: ({ snapshot, ctx, capHistory, config }) => {
     const cfg = config.exitCapacity
     if (!cfg) return []
     const fresh = (ctx.capacity ?? []).filter(
@@ -277,7 +298,8 @@ export const exitCapacityRule: Rule = {
     const need = recallNeededUsd(snapshot, cfg.shock, cfg.targetHf)
     const available = fresh.reduce((a, r) => a + Math.max(0, r.availableUsd), 0)
     const value = fresh.length === 0 ? null : need > 0 ? available / need : Infinity
-    return [
+    const venues = fresh.map((r) => r.venue).join(', ') || null
+    const signals: Signal[] = [
       {
         key: 'recall',
         value,
@@ -287,7 +309,7 @@ export const exitCapacityRule: Rule = {
           availableUsd: fresh.length ? available : null,
           recallNeededUsd: need,
           shock: cfg.shock,
-          venues: fresh.map((r) => r.venue).join(', ') || null,
+          venues,
         },
         describe: (t) =>
           recovering(t.kind)
@@ -301,6 +323,43 @@ export const exitCapacityRule: Rule = {
               },
       },
     ]
+    const burnCfg = cfg.burn
+    // The burn only matters while the position could need a recall at all.
+    if (burnCfg && need > 0) {
+      const burn =
+        fresh.length === 0
+          ? null
+          : capacityBurn(capHistory, snapshot.ts, burnCfg.lookbackS, available)
+      const hours = burnCfg.lookbackS / 3600
+      signals.push({
+        key: 'burn',
+        value: burn,
+        spec: burnCfg.spec,
+        uncoveredReason:
+          fresh.length === 0
+            ? 'no fresh venue capacity reading'
+            : burn === null
+              ? 'no capacity above zero in the lookback window'
+              : undefined,
+        evidence: {
+          availableUsd: fresh.length ? available : null,
+          burn,
+          lookbackS: burnCfg.lookbackS,
+          venues,
+        },
+        describe: (t) =>
+          recovering(t.kind)
+            ? {
+                title: `Venue exit capacity steadied`,
+                detail: `${fmtUsd(available)} can leave now.`,
+              }
+            : {
+                title: `Venue exit capacity falling fast: ${fmtUsd(available)}`,
+                detail: `${fmtPct(burn ?? 0, 0)} of the exit capacity went in the last ${hours}h. A recall of ${fmtUsd(need)} may not get out.`,
+              },
+      })
+    }
+    return signals
   },
 }
 
@@ -330,7 +389,10 @@ export const oracleChangeRule: Rule = {
     const recent = (ctx.oracleEvents ?? []).filter(
       (e) => held.has(e.asset) && e.ts <= snapshot.ts && snapshot.ts - e.ts <= cfg.windowS,
     )
-    const worst = recent.reduce((m, e) => Math.max(m, levelOf(ORACLE_CHANGE_SEVERITY[e.kind])), 0)
+    const worst = recent.reduce(
+      (m, e) => Math.max(m, levelOf(e.severity ?? ORACLE_CHANGE_SEVERITY[e.kind])),
+      0,
+    )
     const latest = recent[recent.length - 1]
     return [
       {

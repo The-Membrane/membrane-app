@@ -4,16 +4,18 @@
  *
  *   pnpm tsx scripts/research/position-alert-backtest.ts [--skip-sweeps]
  *
- * Inputs (all committed, all measured — see data/position-alerts/manifest.json):
- *   E1  public/data/oct10-2025/            Oct 10 2025: Chainlink 1m + 2,350 real Aave liquidations
- *   E2  data/position-alerts/e2-nov-2025   Nov 2025: Binance 1m + 146 real Morpho liquidated positions + deUSD
- *   E3  data/position-alerts/e3-apr-2026   Apr 2026 Kelp: rsETH/ETH, Binance 1m, Aave USDe cash
- *   E4  data/position-alerts/e4-aug-2026   Aug 25 2026: PT-reUSD oracle + 20 real Morpho liquidated positions
- *   H   data/position-alerts/hourly-eth-btc  ETH/BTC hourly 2020-01 → 2026-10 (synthetic positions)
- *   D   data/position-alerts/depeg-history   stETH/ETH, USDC, USDe hourly (depeg rule calm rate)
+ * Inputs live in the private datasets repo (board rule N18): $MEMBRANE_DATASETS_DIR, default
+ * ../membrane-datasets. All measured; position-alerts/manifest.json pins each file's SHA-256.
+ *   E1  oct10-2025/                        Oct 10 2025: Chainlink 1m + 2,350 real Aave liquidations
+ *   E2  position-alerts/e2-nov-2025        Nov 2025: Binance 1m + 146 real Morpho liquidated positions + deUSD
+ *   E3  position-alerts/e3-apr-2026        Apr 2026 Kelp: rsETH/ETH, Binance 1m, Aave USDe cash
+ *   E4  position-alerts/e4-aug-2026        Aug 25 2026: PT-reUSD oracle + 20 real Morpho liquidated positions
+ *   H   position-alerts/hourly-eth-btc     ETH/BTC hourly 2020-01 → 2026-10 (synthetic positions)
+ *   D   position-alerts/depeg-history      stETH/ETH, USDC, USDe hourly (depeg rule calm rate)
  *
- * Output: data/position-alerts/backtest-results.json (every table the memo quotes) and a
- * console summary. Deterministic: no randomness, no network.
+ * Output: position-alerts/backtest-results.json in the datasets repo (internal), and the same
+ * tables with no wallet identifier in docs/research/position-alerts-backtest-results.json (the
+ * public copy the memo quotes). Deterministic: no randomness, no network.
  *
  * Definitions of lead time, missed, censored and false alarm are in
  * lib/positionAlerts/backtest.ts and are not restated here.
@@ -21,6 +23,8 @@
 
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+import { datasetsDir } from '../lib/datasetsDir.mjs'
 
 import {
   DEFAULT_ALERT_CONFIG,
@@ -46,10 +50,12 @@ import {
 } from '../../lib/positionAlerts'
 
 const ROOT = process.cwd()
-const DATA = join(ROOT, 'data', 'position-alerts')
+const DATASETS = datasetsDir(ROOT)
+const DATA = join(DATASETS, 'position-alerts')
+const PUBLIC_RESULTS = join(ROOT, 'docs', 'research', 'position-alerts-backtest-results.json')
 const H = 3600
 const D = 86400
-const load = (p: string) => JSON.parse(readFileSync(join(ROOT, p), 'utf8'))
+const load = (p: string) => JSON.parse(readFileSync(join(DATASETS, p), 'utf8'))
 const iso = (t: number) => new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ')
 const round = (v: number | null, dp = 3) => (v === null || !Number.isFinite(v) ? v : +v.toFixed(dp))
 const t0 = Date.now()
@@ -483,10 +489,8 @@ interface CohortRow {
   excluded: boolean
 }
 
-const e1Prices = load('public/data/oct10-2025/prices-1m.json')
-const e1Cohort: CohortRow[] = (
-  load('public/data/oct10-2025/evidence.json').cohort as CohortRow[]
-).filter(
+const e1Prices = load('oct10-2025/prices-1m.json')
+const e1Cohort: CohortRow[] = (load('oct10-2025/evidence.json').cohort as CohortRow[]).filter(
   (r) =>
     r.priced &&
     !r.excluded &&
@@ -725,7 +729,7 @@ function e4Replays(config: AlertConfig, everyS: number): Replay[] {
 
 type DepegSeries = [number, number][]
 
-const e3 = load('data/position-alerts/e3-apr-2026.json')
+const e3 = load('position-alerts/e3-apr-2026.json')
 const E3_INCIDENT = Date.parse('2026-04-18T19:03:59Z') / 1000 // Aave rsETH freeze
 const rsRatio: DepegSeries = (() => {
   const ethByHour = new Map<number, number>(
@@ -896,6 +900,55 @@ function depegStats(series: DepegSeries, cls: 'stable' | 'lst', spec?: LevelSpec
 }
 
 // ------------------------------------------------------------------ main
+
+// ------------------------------------------------------------------ dry-run sample + public copy
+
+const SYNTHETIC_ID = '0x0000000000000000000000000000000000000000'
+
+/** The first warn-or-higher fire or escalation of a replay, formatted as a dry-run message. */
+function firstPushedMessage(steps: Iterable<ReplayStep>): ReturnType<typeof dryRunTelegram> | null {
+  let st = initialEngineState()
+  for (const step of steps) {
+    if (!step.snapshot) continue
+    const r = evaluate(step.snapshot, step.ctx ?? {}, st, DEFAULT_ALERT_CONFIG)
+    st = r.state
+    const n = r.alerts.filter((a) => isNotifiable(a))
+    if (
+      n.some(
+        (a) => a.severity !== 'watch' && (a.transition === 'fire' || a.transition === 'escalate'),
+      )
+    ) {
+      const text = formatPositionAlert({
+        alerts: n,
+        snapshot: step.snapshot,
+        metrics: r.metrics,
+        targetHf: DEFAULT_ALERT_CONFIG.targetHf,
+      })
+      return text ? dryRunTelegram('dry-run', text) : null
+    }
+  }
+  return null
+}
+
+/**
+ * The results with no wallet identifier: the real-replay sample message is swapped for the
+ * synthetic one. Throws if any address or shortened address other than the synthetic one is left.
+ */
+function publicCopy(results: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {
+    ...results,
+    sampleMessage: results.sampleMessageSynthetic ?? null,
+  }
+  delete out.sampleMessageSynthetic
+  const text = JSON.stringify(out)
+  const leaks = [
+    ...(text.match(/0x[0-9a-fA-F]{40}/g) ?? []),
+    ...(text.match(/0x[0-9a-fA-F]{4}\u2026[0-9a-fA-F]{4}/g) ?? []),
+  ].filter((m) => m !== SYNTHETIC_ID && m !== '0x0000\u20260000')
+  if (leaks.length)
+    throw new Error(`public results still hold wallet identifiers: ${leaks.join(', ')}`)
+  return out
+}
 
 function main() {
   const results: Record<string, unknown> = {
@@ -1120,7 +1173,7 @@ function main() {
   log('e4', results.e4Detail)
 
   // ---- depeg: calm rate on history, detection on E2 deUSD and E3 rsETH
-  const depegHist = load('data/position-alerts/depeg-history.json').series
+  const depegHist = load('position-alerts/depeg-history.json').series
   const deusd: DepegSeries = e2.depeg.deUSD.points
   /** One E1 column as a [ts, value] series (1-minute, nulls dropped). */
   const oracleSeries = (col: string): DepegSeries =>
@@ -1261,37 +1314,45 @@ function main() {
   }
   log('e3 capacity', JSON.stringify(results.e3ExitCapacity).slice(0, 2000))
 
-  // ---- one dry-run Telegram message from a real replay (E2's largest position)
+  // ---- dry-run Telegram messages. The real replay (E2's largest position) stays internal.
+  // The public copy shows a synthetic $100k cbBTC/USDC position held untouched on the real
+  // Nov 2025 BTC 1m path, opened at the high before the window low (board rule N18).
   const big = [...e2Prepared].sort(
     (a, b) => b.hist[b.hist.length - 1].borrow - a.hist[a.hist.length - 1].borrow,
   )[0]
-  let st = initialEngineState()
-  let sample: ReturnType<typeof dryRunTelegram> | null = null
-  for (const step of e2Steps(big)) {
-    if (!step.snapshot) continue
-    const r = evaluate(step.snapshot, step.ctx ?? {}, st, DEFAULT_ALERT_CONFIG)
-    st = r.state
-    const n = r.alerts.filter((a) => isNotifiable(a))
-    if (
-      n.some(
-        (a) => a.severity !== 'watch' && (a.transition === 'fire' || a.transition === 'escalate'),
-      )
-    ) {
-      const text = formatPositionAlert({
-        alerts: n,
-        snapshot: step.snapshot,
-        metrics: r.metrics,
-        targetHf: DEFAULT_ALERT_CONFIG.targetHf,
-      })
-      if (text) sample = dryRunTelegram('dry-run', text)
-      break
-    }
+  results.sampleMessage = firstPushedMessage(e2Steps(big))
+  const btc = E2_SPOT.BTC
+  let lowIdx = -1
+  btc.close.forEach((c, i) => {
+    if (c !== null && (lowIdx < 0 || c < (btc.close[lowIdx] as number))) lowIdx = i
+  })
+  let highIdx = 0
+  for (let i = 0; i < lowIdx; i++) {
+    const c = btc.close[i]
+    if (c !== null && c > ((btc.close[highIdx] ?? 0) as number)) highIdx = i
   }
-  results.sampleMessage = sample
-  if (sample) console.log('\n== sample dry-run message\n' + sample.text)
+  const high = btc.close[highIdx] as number
+  const hf0 = Math.max(1.12, (1.02 * high) / (btc.close[lowIdx] as number))
+  const synthetic = firstPushedMessage(
+    setAndForgetSteps({
+      id: SYNTHETIC_ID,
+      venue: 'Morpho cbBTC/USDC (synthetic)',
+      symbol: 'cbBTC',
+      amount: amountForHf(hf0, 100_000, high, 0.86),
+      debtUsd: 100_000,
+      liquidationThreshold: 0.86,
+      grid: btc,
+      startIdx: highIdx,
+      endIdx: lowIdx,
+    }),
+  )
+  results.sampleMessageSynthetic = synthetic
+  if (synthetic) console.log('\n== sample dry-run message (public)\n' + synthetic.text)
 
   writeFileSync(join(DATA, 'backtest-results.json'), JSON.stringify(results, null, 1) + '\n')
-  log('wrote data/position-alerts/backtest-results.json')
+  log(`wrote ${join(DATA, 'backtest-results.json')} (internal)`)
+  writeFileSync(PUBLIC_RESULTS, JSON.stringify(publicCopy(results), null, 1) + '\n')
+  log(`wrote ${PUBLIC_RESULTS} (public, no wallet identifiers)`)
 }
 
 main()

@@ -23,9 +23,15 @@ export interface EngineState {
   trackers: Record<string, TrackerState>
   /** [bucketStartTs, maxHf], oldest first. */
   hfHistory: Array<[number, number]>
+  /** [bucketStartTs, maxAvailableUsd], oldest first (exit-capacity burn). */
+  capHistory?: Array<[number, number]>
 }
 
-export const initialEngineState = (): EngineState => ({ trackers: {}, hfHistory: [] })
+export const initialEngineState = (): EngineState => ({
+  trackers: {},
+  hfHistory: [],
+  capHistory: [],
+})
 
 export interface Evaluation {
   alerts: Alert[]
@@ -35,12 +41,13 @@ export interface Evaluation {
   uncovered: string[]
 }
 
+/** Append a sample to a bucketed trailing-max history (health factor or capacity). */
 function pushHf(
-  history: EngineState['hfHistory'],
+  history: Array<[number, number]>,
   ts: number,
   hf: number,
   lookbackS: number,
-): EngineState['hfHistory'] {
+): Array<[number, number]> {
   if (!(lookbackS > 0) || !Number.isFinite(hf)) return history
   const bucket = Math.max(1, Math.floor(lookbackS / HF_BUCKETS_PER_LOOKBACK))
   const start = Math.floor(ts / bucket) * bucket
@@ -61,6 +68,7 @@ export function validateConfig(config: AlertConfig): void {
     config.depeg?.stable,
     config.depeg?.lst,
     config.exitCapacity?.spec,
+    config.exitCapacity?.burn?.spec,
     config.oracleChange?.spec,
   ]
   for (const s of specs) if (s) validateSpec(s)
@@ -80,12 +88,28 @@ export function evaluate(
     metrics.healthFactor,
     config.cushionBurn?.lookbackS ?? 0,
   )
+  const burnCfg = config.exitCapacity?.burn
+  const fresh = burnCfg
+    ? (ctx.capacity ?? []).filter(
+        (r) =>
+          Number.isFinite(r.availableUsd) &&
+          snapshot.ts - r.asOf <= (config.exitCapacity?.maxAgeS ?? 0),
+      )
+    : []
+  const capHistory = fresh.length
+    ? pushHf(
+        state.capHistory ?? [],
+        snapshot.ts,
+        fresh.reduce((a, r) => a + Math.max(0, r.availableUsd), 0),
+        burnCfg?.lookbackS ?? 0,
+      )
+    : (state.capHistory ?? [])
   const trackers = { ...state.trackers }
   const alerts: Alert[] = []
   const uncovered: string[] = []
 
   for (const rule of rules) {
-    for (const sig of rule.evaluate({ snapshot, metrics, ctx, hfHistory, config })) {
+    for (const sig of rule.evaluate({ snapshot, metrics, ctx, hfHistory, capHistory, config })) {
       const id = `${rule.id}:${sig.key}`
       if (sig.value === null || Number.isNaN(sig.value)) {
         uncovered.push(`${id} — ${sig.uncoveredReason ?? 'no data'}`)
@@ -117,7 +141,7 @@ export function evaluate(
       })
     }
   }
-  return { alerts, state: { trackers, hfHistory }, metrics, uncovered }
+  return { alerts, state: { trackers, hfHistory, capHistory }, metrics, uncovered }
 }
 
 /**

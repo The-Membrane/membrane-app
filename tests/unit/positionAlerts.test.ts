@@ -8,10 +8,18 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
+  CAPACITY_BURN_PRESET,
+  CORRELATED_LOOP_HF,
   DEFAULT_ALERT_CONFIG,
   DEFAULT_PUSH_MIN_SEVERITY,
   LIQUIDATION_DISTANCE_PRESET,
+  VENUE_STRESS_PAUSED,
+  capacityBurn,
+  classifyRegistryChange,
   computeMetrics,
+  detectPriceFreeze,
+  fromRegistryChange,
+  venueStressCapacity,
   dryRunTelegram,
   evaluate,
   formatPositionAlert,
@@ -564,7 +572,7 @@ describe('exit-capacity rule', () => {
   })
 })
 
-describe('oracle-change rule (stub interface)', () => {
+describe('oracle-change rule', () => {
   const cfg = only({ oracleChange: DEFAULT_ALERT_CONFIG.oracleChange })
   const ev = (
     kind: 'feed_replaced' | 'paused' | 'heartbeat_changed',
@@ -596,6 +604,18 @@ describe('oracle-change rule (stub interface)', () => {
     expect(on([ev('paused', 'BTC')])).toHaveLength(0)
   })
 
+  it('uses the severity an adapter set over the kind default', () => {
+    const raised = {
+      ...ev('heartbeat_changed'),
+      kind: 'discount_changed' as const,
+      severity: 'warn' as const,
+    }
+    const r = evalSeq(cfg, [
+      { s: ethPosition(1.5), ctx: { oracleEvents: [raised], oracleEventsCovered: true } },
+    ])
+    expect(r.alerts.map((a) => a.severity)).toEqual(['warn'])
+  })
+
   it('clears once the event ages out of the window', () => {
     const ctx = { oracleEvents: [ev('feed_replaced')], oracleEventsCovered: true }
     const { alerts } = evalSeq(cfg, [
@@ -606,11 +626,173 @@ describe('oracle-change rule (stub interface)', () => {
   })
 })
 
+describe('oracle registry adapter', () => {
+  const c = (
+    kind: Parameters<typeof classifyRegistryChange>[0]['kind'],
+    from?: number,
+    to?: number,
+  ) => classifyRegistryChange({ kind, from, to })
+
+  it('maps feed, source and logic changes to warn and ignores read-access grants', () => {
+    expect(c('aggregator')).toEqual({ kind: 'feed_replaced', severity: 'warn' })
+    expect(c('market_source')).toEqual({ kind: 'source_changed', severity: 'warn' })
+    expect(c('upgrade')).toEqual({ kind: 'upgrade', severity: 'warn' })
+    expect(c('entry_added')?.severity).toBe('watch')
+    expect(c('access')).toBeNull()
+  })
+
+  it('is direction-aware: a loosening is a message, a tightening is not', () => {
+    expect(c('heartbeat', 3600, 86400)).toEqual({ kind: 'heartbeat_changed', severity: 'watch' })
+    expect(c('heartbeat', 86400, 3600)).toBeNull()
+    expect(c('deviation_threshold', 50, 100)?.kind).toBe('deviation_changed')
+    expect(c('deviation_threshold', 100, 50)).toBeNull()
+    expect(c('quorum', 13, 9)).toEqual({ kind: 'quorum_changed', severity: 'warn' })
+    expect(c('quorum', 9, 13)).toBeNull()
+  })
+
+  it('warns when the change can mark the collateral down at once', () => {
+    expect(c('discount', 0, 0.0531)).toEqual({ kind: 'discount_changed', severity: 'warn' })
+    expect(c('discount', 0.0531, 0.0377)?.severity).toBe('watch')
+    expect(c('cap', 1.1, 1.05)).toEqual({ kind: 'cap_changed', severity: 'warn' })
+    expect(c('cap', 1.05, 1.1)?.severity).toBe('watch')
+  })
+
+  it('builds an event for the held asset, with the change in its detail', () => {
+    const e = fromRegistryChange(
+      {
+        kind: 'discount',
+        entryId: 'pt-srusde-22oct2026.aave.linear-discount',
+        param: 'discountRatePerYear',
+        from: '53100000000000000',
+        to: '37700000000000000',
+        ts: T0,
+      },
+      'PT-srUSDe-22OCT2026',
+    )
+    expect(e).toMatchObject({
+      asset: 'PT-srUSDe-22OCT2026',
+      kind: 'discount_changed',
+      severity: 'watch',
+      ts: T0,
+    })
+    expect(e?.detail).toContain('discountRatePerYear')
+    expect(fromRegistryChange({ kind: 'access', entryId: 'x', ts: T0 }, 'ETH')).toBeNull()
+  })
+})
+
+describe('price-freeze detector', () => {
+  const path = (oracle: number[], market: number[]) =>
+    oracle.map((o, i) => ({ ts: T0 + i * H, oraclePx: o, marketPx: market[i] }))
+
+  it('reports once when the oracle holds while the market moves away', () => {
+    const o = Array(10).fill(1)
+    const m = [1, 1, 1, 1, 1, 1, 0.99, 0.97, 0.9, 0.5]
+    const ev = detectPriceFreeze(path(o, m), 'sdeUSD', 'oracle')
+    expect(ev).toHaveLength(1)
+    expect(ev[0]).toMatchObject({ kind: 'price_frozen', asset: 'sdeUSD', ts: T0 + 7 * H })
+  })
+
+  it('stays quiet when the oracle follows the market or the market barely moves', () => {
+    const m = [1, 0.99, 0.98, 0.97, 0.96, 0.95, 0.94, 0.93, 0.92, 0.91]
+    expect(detectPriceFreeze(path(m, m), 'X', 'o')).toHaveLength(0)
+    expect(
+      detectPriceFreeze(path(Array(10).fill(1), Array(10).fill(0.999)), 'X', 'o'),
+    ).toHaveLength(0)
+  })
+
+  it('needs the oracle to move again before a second report', () => {
+    const o = [...Array(8).fill(1), ...Array(8).fill(1.01)]
+    const m = [...Array(7).fill(1), 0.9, ...Array(7).fill(1.01), 0.9]
+    expect(detectPriceFreeze(path(o, m), 'X', 'o').map((e) => e.ts)).toEqual([
+      T0 + 7 * H,
+      T0 + 15 * H,
+    ])
+  })
+})
+
+describe('exit-capacity burn', () => {
+  const cfg = only({
+    exitCapacity: { ...DEFAULT_ALERT_CONFIG.exitCapacity!, burn: CAPACITY_BURN_PRESET },
+  })
+  const s = ethPosition(1.2)
+  const at = (availableUsd: number, h: number) => ({
+    s: { ...s, ts: T0 + h * H },
+    ctx: {
+      capacity: [{ venue: 'aave-core-usdc', availableUsd, asOf: T0 + h * H, provenance: 'test' }],
+    },
+  })
+
+  it('measures the share of the trailing peak that is gone', () => {
+    expect(capacityBurn([[T0, 100]], T0 + H, 6 * H, 40)).toBeCloseTo(0.6)
+    expect(capacityBurn([[T0 - 7 * H, 100]], T0, 6 * H, 40)).toBe(0)
+    expect(capacityBurn([], T0, 6 * H, 0)).toBeNull()
+  })
+
+  it('warns while capacity still covers the recall but is draining fast', () => {
+    const need = recallNeededUsd(s, 0.2, 1.1)
+    const big = need * 100
+    const { alerts } = evalSeq(cfg, [at(big, 0), at(big * 0.7, 1), at(big * 0.4, 2)])
+    const burn = alerts.filter((a) => a.key === 'burn')
+    expect(burn.map((a) => a.severity)).toEqual(['watch', 'warn'])
+    expect(alerts.filter((a) => a.key === 'recall')).toHaveLength(0)
+  })
+
+  it('is off by default', () => {
+    expect(DEFAULT_ALERT_CONFIG.exitCapacity?.burn).toBeNull()
+  })
+
+  it('has no burn signal when the position would need no recall', () => {
+    const calm = { ...ethPosition(3) }
+    const { alerts, uncovered } = evalSeq(cfg, [
+      { s: calm, ctx: at(1e9, 0).ctx },
+      { s: { ...calm, ts: T0 + H }, ctx: at(1e8, 1).ctx },
+    ])
+    expect(alerts).toHaveLength(0)
+    expect(uncovered.flat().join()).not.toContain('exit-capacity:burn')
+  })
+})
+
+describe('venue-stress capacity adapter', () => {
+  const history = {
+    schema: 'venue-stress-history/v1',
+    timeline: { t: [T0, T0 + H, T0 + 2 * H, T0 + 3 * H] },
+    venues: {
+      'aave-core-usdc': { cash: [100, null, 80, 50], flags: [1, 1, 1, 1 | VENUE_STRESS_PAUSED] },
+    },
+  }
+  const src = venueStressCapacity(history, { 'aave-core-usdc': 1 })
+
+  it('reads the last hour at or before ts, priced in USD', () => {
+    expect(src.readingAt('aave-core-usdc', T0 + 30 * 60)).toMatchObject({
+      availableUsd: 100,
+      asOf: T0,
+    })
+    expect(src.readingAt('aave-core-usdc', T0 + 2 * H)).toMatchObject({
+      availableUsd: 80,
+      asOf: T0 + 2 * H,
+    })
+  })
+
+  it('keeps the last read value over an unread hour, with its own timestamp', () => {
+    expect(src.readingAt('aave-core-usdc', T0 + H)).toMatchObject({ availableUsd: 100, asOf: T0 })
+  })
+
+  it('reads a paused venue as zero and knows nothing before its first hour or for an unknown venue', () => {
+    expect(src.readingAt('aave-core-usdc', T0 + 3 * H)?.availableUsd).toBe(0)
+    expect(src.readingAt('aave-core-usdc', T0 - 1)).toBeNull()
+    expect(src.readingAt('spark-usdc', T0)).toBeNull()
+    expect(() => venueStressCapacity({ ...history, schema: 'other/v1' }, {})).toThrow()
+  })
+})
+
 // ------------------------------------------------------------------ engine
 
 describe('engine', () => {
   it('accepts the default config and rejects a mis-ordered one', () => {
     expect(() => validateConfig(DEFAULT_ALERT_CONFIG)).not.toThrow()
+    expect(() =>
+      validateConfig({ ...DEFAULT_ALERT_CONFIG, healthFactor: CORRELATED_LOOP_HF }),
+    ).not.toThrow()
     expect(() =>
       validateConfig({
         ...DEFAULT_ALERT_CONFIG,

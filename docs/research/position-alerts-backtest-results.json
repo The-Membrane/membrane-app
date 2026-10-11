@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-backtest.ts",
- "generatedAt": "2026-10-11T13:32:51.021Z",
+ "generatedAt": "2026-10-11T15:03:41.525Z",
  "defaults": {
   "healthFactor": {
    "direction": "below",
@@ -72,7 +72,8 @@
     "dwellS": 7200,
     "confirm": 1,
     "cooldownS": 43200
-   }
+   },
+   "burn": null
   },
   "oracleChange": {
    "windowS": 86400,
@@ -7886,8 +7887,8 @@
   "dryRun": true,
   "sent": false,
   "to": "dry-run",
-  "text": "[CRITICAL] Morpho cbBTC/USDC · 0xED3A…0A03\n\nHealth factor 1.029\nBelow 1.050. Liquidation starts at 1.00. LTV 83.5% against a 86.0% line.\n\nCollateral $10.63M · debt $8.88M\nLiquidation if cbBTC reaches $98,047 (now $100,935).\nTo get back to HF 1.30: repay $1.85M, or add $2.79M of cbBTC.\n\nDry run: formatted, not sent · 2025-11-06 21:01 UTC",
+  "text": "[WARN] Morpho cbBTC/USDC (synthetic) · 0x0000…0000\n\nHealth factor 1.15\nBelow 1.15. Liquidation starts at 1.00. LTV 74.9% against a 86.0% line.\n\nCollateral $133.6K · debt $100.0K\nLiquidation if cbBTC reaches $79,148 (now $90,934).\nTo get back to HF 1.30: repay $11.6K, or add $17.6K of cbBTC.\n\nDry run: formatted, not sent · 2025-11-18 02:17 UTC",
   "parseMode": null,
-  "chars": 338
+  "chars": 344
  }
 }

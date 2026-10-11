@@ -1,9 +1,10 @@
 /**
  * build-position-alert-data.mjs — the measured inputs for the position-alert back-test.
  *
- *   node scripts/research/build-position-alert-data.mjs [--only=hourly,e2,e3,e4,depeg]
+ *   node scripts/research/build-position-alert-data.mjs [--only=hourly,e2,e3,e4,depeg,e2stream,e1l2]
  *
- * Writes data/position-alerts/*.json and a manifest with each file's SHA-256. Every value
+ * Writes position-alerts/*.json and a manifest with each file's SHA-256 into the private
+ * datasets repo ($MEMBRANE_DATASETS_DIR, default ../membrane-datasets; board rule N18). Every value
  * is copied from a public, keyless source. Nothing is smoothed or forward-filled: a gap is
  * stored as null (grid series) or simply absent (point series).
  *
@@ -13,8 +14,8 @@
  *   Morpho Blue API                    blue-api.morpho.org/graphql              liquidations + positions
  *   Keyless archive RPCs (rotated)     Tenderly / dRPC / Blast / MEV Blocker / Nodies   archive eth_call
  *
- * E1 (Oct 10 2025) is NOT fetched here: it is public/data/oct10-2025/, already committed
- * with its own provenance. This script never reads .env.local and needs no key.
+ * E1 (Oct 10 2025) is NOT fetched here: it is oct10-2025/ in the datasets repo, with its own
+ * provenance (the app serves a copy at public/data/oct10-2025/). This script never reads .env.local and needs no key.
  */
 
 import { createHash } from 'node:crypto'
@@ -22,8 +23,11 @@ import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { datasetPath } from '../lib/datasetsDir.mjs'
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const OUT = join(ROOT, 'data', 'position-alerts')
+// Board rule N18: the data lives in the private datasets repo, never in this public repo.
+const OUT = datasetPath(ROOT, 'position-alerts')
 
 const BINANCE = 'https://data-api.binance.vision/api/v3/klines'
 const LLAMA = 'https://coins.llama.fi/chart'
@@ -530,12 +534,196 @@ async function buildDepegHistory() {
   }
 }
 
+// ------------------------------------------------------------------ E2 spec event: Stream xUSD / Elixir deUSD
+
+/**
+ * The spec's E2 (Recall Coverage Dataset §5: Stream xUSD collapse, Nov 2–12 2025) on Morpho:
+ * every market whose collateral is xUSD, deUSD, sdeUSD or a PT on them, on every chain the
+ * Morpho API serves. Per position, hourly: collateral, its value at the market's OWN oracle
+ * (collateralValue, loan units), its USD value at Morpho's market price feed (collateralUsd),
+ * and debt. Breach can then be read both ways: oracle HF < 1 and market HF < 1.
+ */
+const E2_COLLATERAL_RE = /^(xUSD|deUSD|sdeUSD|xBTC|PT-sw-xUSD.*|PT-sdeUSD.*|PT-xUSD.*|PT-deUSD.*)$/
+const E2_SPEC = { fromTs: ts('2025-11-02T00:00:00Z'), toTs: ts('2025-11-12T23:59:00Z') }
+const E2_HISTORY = { fromTs: ts('2025-10-26T00:00:00Z'), toTs: ts('2025-11-16T00:00:00Z') }
+/** Market price keys per collateral; the token-address keys return no history for xUSD/deUSD. */
+const E2_MARKET_KEYS = {
+  xUSD: 'coingecko:staked-stream-usd',
+  deUSD: 'coingecko:elixir-deusd',
+  sdeUSD: 'coingecko:elixir-staked-deusd',
+  'sdeUSD (DefiLlama on-chain)': 'ethereum:0x5C5b196aBE0d54485975D1Ec29617D42D9198326',
+}
+
+async function e2StreamMarkets() {
+  const seen = new Map()
+  for (const s of ['xUSD', 'deUSD', 'sdeUSD', 'xBTC']) {
+    const d = await morpho(`{ markets(first: 500, where: { search: "${s}" }) { items { marketId
+      morphoBlue { chain { id } } lltv oracleAddress oracle { type }
+      collateralAsset { symbol address decimals } loanAsset { symbol address decimals } } } }`)
+    for (const m of d.markets.items) {
+      const c = m.collateralAsset
+      if (!c || !E2_COLLATERAL_RE.test(c.symbol)) continue
+      const chainId = m.morphoBlue.chain.id
+      seen.set(`${chainId}:${m.marketId}`, {
+        chainId,
+        marketId: m.marketId,
+        collateral: c.symbol,
+        collateralAddress: c.address,
+        collateralDecimals: c.decimals,
+        loan: m.loanAsset.symbol,
+        loanAddress: m.loanAsset.address,
+        loanDecimals: m.loanAsset.decimals,
+        lltv: Number(m.lltv) / 1e18,
+        oracle: m.oracleAddress,
+        oracleType: m.oracle?.type ?? null,
+      })
+    }
+    await sleep(300)
+  }
+  return [...seen.values()].sort(
+    (a, b) => a.chainId - b.chainId || a.marketId.localeCompare(b.marketId),
+  )
+}
+
+async function e2Transactions(m, types, toTs) {
+  const items = []
+  for (let skip = 0; ; skip += 500) {
+    const d =
+      await morpho(`{ marketTransactions(first: 500, skip: ${skip}, orderBy: Timestamp, orderDirection: Asc,
+      where: { marketUniqueKey_in: ["${m.marketId}"], chainId_in: [${m.chainId}], type_in: [${types.join(', ')}],
+        timestamp_lte: ${toTs} }) {
+      items { type txHash timestamp blockNumber user { address }
+        data { ... on MarketTransactionLiquidationData { seizedAssets repaidAssets badDebtAssets } } } } }`)
+    const page = d.marketTransactions.items
+    items.push(...page)
+    if (page.length < 500) break
+    await sleep(300)
+  }
+  return items
+}
+
+async function e2PositionHistory(m, user) {
+  const opt = `options: { startTimestamp: ${E2_HISTORY.fromTs}, endTimestamp: ${E2_HISTORY.toTs}, interval: HOUR }`
+  const d =
+    await morpho(`{ marketPosition(userAddress: "${user}", marketUniqueKey: "${m.marketId}", chainId: ${m.chainId}) {
+    historicalState { collateral(${opt}) { x y } collateralValue(${opt}) { x y } collateralUsd(${opt}) { x y }
+      borrowAssets(${opt}) { x y } borrowAssetsUsd(${opt}) { x y } } } }`)
+  const h = d.marketPosition?.historicalState
+  if (!h) return []
+  const byX = new Map()
+  const put = (series, key, scale) => {
+    for (const p of series ?? []) {
+      const row = byX.get(p.x) ?? { ts: p.x }
+      row[key] = p.y === null || p.y === undefined ? null : Number(p.y) / scale
+      byX.set(p.x, row)
+    }
+  }
+  put(h.collateral, 'collateral', 10 ** m.collateralDecimals)
+  put(h.collateralValue, 'collateralValue', 10 ** m.loanDecimals)
+  put(h.collateralUsd, 'collateralUsd', 1)
+  put(h.borrowAssets, 'borrow', 10 ** m.loanDecimals)
+  put(h.borrowAssetsUsd, 'borrowUsd', 1)
+  return [...byX.values()].sort((a, b) => a.ts - b.ts)
+}
+
+async function buildE2Stream() {
+  const markets = await e2StreamMarkets()
+  const positions = []
+  const liquidations = []
+  const now = Math.floor(Date.now() / 1000)
+  for (const m of markets) {
+    // Every account that ever borrowed or posted collateral up to the end of the spec window.
+    const txs = await e2Transactions(m, ['Borrow', 'SupplyCollateral'], E2_SPEC.toTs)
+    const users = [...new Set(txs.map((t) => t.user.address.toLowerCase()))]
+    let kept = 0
+    for (const u of users) {
+      const hist = await e2PositionHistory(m, u)
+      const inWindow = hist.filter((x) => x.ts >= E2_SPEC.fromTs && x.ts <= E2_SPEC.toTs)
+      if (inWindow.some((x) => (x.borrow ?? 0) > 0 && (x.collateral ?? 0) > 0)) {
+        positions.push({ chainId: m.chainId, marketId: m.marketId, user: u, history: hist })
+        kept++
+      }
+      await sleep(150)
+    }
+    const liqs = await e2Transactions(m, ['Liquidation'], now)
+    for (const l of liqs.filter((x) => Number(x.timestamp) >= E2_HISTORY.fromTs))
+      liquidations.push({
+        chainId: m.chainId,
+        marketId: m.marketId,
+        user: l.user.address.toLowerCase(),
+        ts: Number(l.timestamp),
+        block: Number(l.blockNumber),
+        tx: l.txHash,
+        seized: Number(l.data?.seizedAssets ?? 0) / 10 ** m.collateralDecimals,
+        repaid: Number(l.data?.repaidAssets ?? 0) / 10 ** m.loanDecimals,
+        badDebt: Number(l.data?.badDebtAssets ?? 0) / 10 ** m.loanDecimals,
+      })
+    m.accounts = users.length
+    m.positionsInWindow = kept
+    console.log(
+      `  ${m.chainId} ${m.collateral}/${m.loan} ${m.marketId.slice(0, 10)}: ${users.length} accounts, ${kept} in window`,
+    )
+  }
+  // Independent market prices (CoinGecko trades via DefiLlama). Morpho's own USD feed is kept
+  // per position (collateralUsd) as a cross-check.
+  const marketPrices = {}
+  for (const [sym, key] of Object.entries(E2_MARKET_KEYS)) {
+    marketPrices[sym] = { key, series: await llamaSeries(key, E2_HISTORY.fromTs, E2_HISTORY.toTs) }
+  }
+  return {
+    file: 'e2-stream-nov-2025.json',
+    body: {
+      label:
+        'Recall Coverage Dataset spec E2: Stream xUSD collapse (Nov 2–12 2025), Morpho markets on xUSD / deUSD / sdeUSD',
+      specWindow: E2_SPEC,
+      historyWindow: E2_HISTORY,
+      source:
+        "DefiLlama coins API for marketPrices (CoinGecko ids, hourly). Morpho Blue API: markets(search), marketTransactions (Borrow, SupplyCollateral up to the window end; Liquidation from the history start to the fetch), marketPosition.historicalState HOUR (collateral, collateralValue at the market oracle in loan units, collateralUsd at Morpho's USD price feed, borrowAssets, borrowAssetsUsd)",
+      uncovered:
+        'Euler, Silo, Gearbox, Fluid and other venues; chains the Morpho API does not serve (Plasma 9745, Avalanche 43114, Sonic 146 per spec §5). Positions closed before the window are excluded by construction.',
+      markets,
+      positions,
+      liquidations,
+      marketPrices,
+    },
+  }
+}
+
+// ------------------------------------------------------------------ E1 L2 governance tokens
+
+/**
+ * OP and ARB, 1-minute, Oct 10 → 12 2025: the only E1 census collateral with no mainnet
+ * Chainlink round in the spec's E1 pull (recall-coverage data/chain/e1/chainlink_rounds).
+ * Binance spot stands in for the L2 Chainlink feeds the venues read.
+ */
+async function buildE1L2() {
+  const start = ts('2025-10-10T00:00:00Z')
+  const end = ts('2025-10-12T00:00:00Z')
+  const op = await klines('OPUSDT', '1m', 60, start, end)
+  const arb = await klines('ARBUSDT', '1m', 60, start, end)
+  return {
+    file: 'e1-op-arb-1m.json',
+    body: {
+      label:
+        'E1 census OP and ARB collateral, 1-minute spot (proxy for the L2 Chainlink OP/USD and ARB/USD feeds)',
+      source:
+        'Binance public market-data mirror data-api.binance.vision, OPUSDT and ARBUSDT 1m klines',
+      startTs: start,
+      stepS: 60,
+      columns: { opClose: op.close, opLow: op.low, arbClose: arb.close, arbLow: arb.low },
+      gaps: { op: op.gaps, arb: arb.gaps },
+    },
+  }
+}
+
 const BUILDERS = {
   hourly: buildHourly,
   e2: buildE2,
   e3: buildE3,
   e4: buildE4,
   depeg: buildDepegHistory,
+  e2stream: buildE2Stream,
+  e1l2: buildE1L2,
 }
 
 async function main() {
@@ -567,7 +755,7 @@ async function main() {
   manifest.generator = 'scripts/research/build-position-alert-data.mjs'
   if (rpcUsed.size)
     manifest.archiveRpcsUsed = [...new Set([...(manifest.archiveRpcsUsed ?? []), ...rpcUsed])]
-  manifest.e1 = 'public/data/oct10-2025/ (committed separately; see its README)'
+  manifest.e1 = 'oct10-2025/ in the datasets repo (its own README and PROVENANCE.md)'
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
 }
 

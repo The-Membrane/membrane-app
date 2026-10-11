@@ -631,6 +631,12 @@ interface E2Point {
   collateralUsd: number | null
   borrow: number | null
   borrowUsd: number | null
+  /** Off-Morpho builder: liquidation threshold at this point (value-weighted over Stream parts). */
+  lt?: number
+  /** Off-Morpho builder: market value of the Stream collateral; null = no market price (xBTC, xETH). */
+  marketValueUsd?: number | null
+  /** Euler / Gearbox: the venue's own risk-adjusted collateral value, all collateral included. */
+  adjustedCollateralUsd?: number | null
 }
 
 interface E2Market {
@@ -710,7 +716,23 @@ interface E2Prepared {
 
 const e2Prepared: E2Prepared[] = []
 const e2OpenedLate: { venue: string; collateral: string; openedTs: number }[] = []
+const e2Mixed: { venue: string; collateral: string; streamShare: number }[] = []
 let e2Dust = 0
+/** Dataset bands (sources/clusters.ts): buffer to the line, and debt size. */
+const ltvBand = (lltv: number, ltv: number) => {
+  const d = Math.round((lltv - ltv) * 1e12) / 1e12
+  return d < 0 ? 'd<0' : d < 0.01 ? 'd0-1pp' : d < 0.02 ? 'd1-2pp' : d < 0.05 ? 'd2-5pp' : 'd5pp+'
+}
+const sizeBand = (debt: number) =>
+  debt < 10_000
+    ? 's1k-10k'
+    : debt < 100_000
+      ? 's10k-100k'
+      : debt < 1_000_000
+        ? 's100k-1m'
+        : debt < 10_000_000
+          ? 's1m-10m'
+          : 's10m+'
 for (const p of e2Files.flatMap((f) =>
   f.positions.map((x) => ({ ...x, venue: x.venue ?? 'morpho' })),
 )) {
@@ -730,13 +752,35 @@ for (const p of e2Files.flatMap((f) =>
     e2OpenedLate.push({ venue: m.venue, collateral: m.collateral, openedTs: pts[0].ts })
     continue
   }
+  // A Euler or Gearbox account that also posts non-Stream collateral is not this event's
+  // position: its health factor rests on the other collateral too. Keep Stream-only accounts.
+  const first = inWin[0]
+  if (first.adjustedCollateralUsd != null && first.collateralValue) {
+    const streamAdj = first.collateralValue * (first.lt ?? m.lltv)
+    const share = streamAdj / first.adjustedCollateralUsd
+    if (share < 0.95) {
+      e2Mixed.push({
+        venue: m.venue,
+        collateral: m.collateral,
+        streamShare: round(share, 3) as number,
+      })
+      continue
+    }
+  }
   const sym = m.collateral.startsWith('PT-') ? null : m.collateral
   const series = sym ? e2PriceSeries[sym] : undefined
   const fallback = sym === 'sdeUSD' ? e2PriceSeries['sdeUSD (DefiLlama on-chain)'] : undefined
   const oraclePx = pts.map((x) => (x.collateralValue as number) / (x.collateral as number))
   const hardcoded = Math.max(...oraclePx) - Math.min(...oraclePx) < 1e-9
-  // CoinGecko trades first; DefiLlama's on-chain sdeUSD price fills its gaps.
-  const marketPx = pts.map((x) => priceAt(series, x.ts) ?? priceAt(fallback, x.ts))
+  // Off-Morpho points carry their own market value (null where no market price exists).
+  // Morpho points: CoinGecko trades first; DefiLlama's on-chain sdeUSD price fills its gaps.
+  const marketPx = pts.map((x) =>
+    x.marketValueUsd !== undefined
+      ? x.marketValueUsd === null
+        ? null
+        : x.marketValueUsd / (x.collateral as number)
+      : (priceAt(series, x.ts) ?? priceAt(fallback, x.ts)),
+  )
   const liq = e2.liquidations
     .filter(
       (l) =>
@@ -749,7 +793,8 @@ for (const p of e2Files.flatMap((f) =>
     .sort((a, b) => a - b)
   e2Prepared.push({
     id: `${p.user.slice(2, 14)}`,
-    cluster: `EV-2/${m.venue}/${m.collateral}/${m.loan}/chain-${m.chainId}/lltv-${m.lltv}`,
+    // Dataset cluster key: event, venue, collateral, debt, market, LTV band, size band.
+    cluster: `EV-2/${m.venue}/${m.collateral}/${m.loan}/${m.chainId}:${m.marketId.slice(0, 10)}/${ltvBand(first.lt ?? m.lltv, (first.borrow as number) / (first.collateralValue as number))}/${sizeBand(first.borrow as number)}`,
     venue: m.venue,
     collateral: m.collateral,
     lltv: m.lltv,
@@ -786,9 +831,10 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
       const pt = (i: number) => x.points[idx[i]]
       const oracle = (i: number) => (pt(i).collateralValue as number) / (pt(i).collateral as number)
       const market = (i: number) => x.marketPx[idx[i]]
+      const lt = (i: number) => pt(i).lt ?? x.lltv
       const hf = idx.map((_, i) => {
         const px = basis === 'oracle' ? oracle(i) : (market(i) as number)
-        return ((pt(i).collateral as number) * px * x.lltv) / (pt(i).borrow as number)
+        return ((pt(i).collateral as number) * px * lt(i)) / (pt(i).borrow as number)
       })
       return {
         id: x.id,
@@ -806,7 +852,7 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
               amount: pt(i).collateral as number,
               oraclePriceUsd: oracle(i),
               marketPriceUsd: market(i) ?? undefined,
-              liquidationThreshold: x.lltv,
+              liquidationThreshold: lt(i),
               oracleBasis: x.hardcoded ? 'hardcoded' : 'exchangeRate',
               // Peg = the venue's own price (NAV for xUSD / sdeUSD, $1 for deUSD).
               peg:
@@ -932,6 +978,14 @@ function main() {
       history: e2.historyWindow,
       positionsReplayed: e2Prepared.length,
       dustPositionsSkipped: e2Dust,
+      mixedCollateralSkipped: e2Mixed,
+      positionsByVenue: Object.fromEntries(
+        [...new Set(e2Prepared.map((x) => x.venue))].map((v) => [
+          v,
+          e2Prepared.filter((x) => x.venue === v).length,
+        ]),
+      ),
+      noMarketPrice: e2Prepared.filter((x) => x.marketPx.every((v) => v === null)).length,
       openedAfterWindowStart: e2OpenedLate.map((x) => ({ ...x, debtUsdMax: undefined })),
       uncovered: e2.uncovered,
       liquidationsSinceHistoryStart: e2.liquidations.length,

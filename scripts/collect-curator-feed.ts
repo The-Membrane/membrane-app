@@ -8,7 +8,7 @@
 //
 // LOCAL-FIRST (lib/curatorFeed/store.ts): the run resumes from .data/curator-feed (else the
 // committed seed, else a full window) and writes .data/curator-feed. The API reads that live
-// copy before the seed. The window rolls: CURATOR_FEED_MAX_DAYS (default 200) of blocks are
+// copy before the seed. The window rolls: CURATOR_FEED_MAX_DAYS (default 190) of blocks are
 // kept, never less than CURATOR_FEED_DAYS once full; submits still open are never dropped.
 //
 // Each run, over [last block + 1, finalized head]:
@@ -114,7 +114,7 @@ const FULL = ARGS.has('--full') || process.env.CURATOR_FEED_FULL === '1'
 const PUBLISH = ARGS.has('--publish')
 const FORCE_EXPOSURE = ARGS.has('--exposure')
 const DAYS = Number(process.env.CURATOR_FEED_DAYS ?? 182)
-const MAX_DAYS = Math.max(DAYS, Number(process.env.CURATOR_FEED_MAX_DAYS ?? 200))
+const MAX_DAYS = Math.max(DAYS, Number(process.env.CURATOR_FEED_MAX_DAYS ?? 190))
 const EXPOSURE_MAX_AGE_H = Number(process.env.CURATOR_FEED_EXPOSURE_MAX_AGE_H ?? 6)
 
 const LARGE_WITHDRAW_USD = 1_000_000
@@ -1089,7 +1089,8 @@ async function main() {
     toTs,
     collectedAt: new Date().toISOString(),
     endpoints: rpc.endpoints.map((e) => e.label),
-    logs: rpc.logStats,
+    // Cumulative since the last full run: the page states how the WHOLE dataset was read.
+    logs: prev ? addLogStats(prev.feed.meta.logs, rpc.logStats) : rpc.logStats,
     counts: {
       actions: actions.length,
       newActions: newActions.length,
@@ -1177,6 +1178,23 @@ const CAVEATS = [
   'Euler Earn strategies can accept several collaterals; their exits are listed but not counted in collateral clusters.',
   'A cluster counts an exit only when the vault kept no other market with that collateral capped, read at the exit block; PT exits within 14 days of maturity are excluded as roll-offs.',
 ]
+
+function addLogStats(a: FeedMeta['logs'], b: FeedMeta['logs']): FeedMeta['logs'] {
+  const sum = (x: Record<string, number>, y: Record<string, number>) => {
+    const out = { ...x }
+    for (const [k, v] of Object.entries(y)) out[k] = (out[k] ?? 0) + v
+    return out
+  }
+  return {
+    chunks: a.chunks + b.chunks,
+    rechecked: a.rechecked + b.rechecked,
+    disagreements: a.disagreements + b.disagreements,
+    recovered: a.recovered + b.recovered,
+    emptyConfirmed: a.emptyConfirmed + b.emptyConfirmed,
+    servedBy: sum(a.servedBy, b.servedBy),
+    shortBy: sum(a.shortBy, b.shortBy),
+  }
+}
 
 // ── reads ──────────────────────────────────────────────────────────────────────
 

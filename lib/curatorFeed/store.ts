@@ -37,6 +37,7 @@ export interface FeedMeta {
   collectedAt: string
   /** Endpoint labels only (`env:<host>` or a public host) — never a URL. */
   endpoints: string[]
+  /** getLogs chunks behind the dataset, summed over the full run and every incremental run since. */
   logs: {
     chunks: number
     rechecked: number

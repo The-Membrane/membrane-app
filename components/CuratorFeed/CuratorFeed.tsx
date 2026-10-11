@@ -102,7 +102,11 @@ const Chip: React.FC<{ active?: boolean; onClick?: () => void; children: React.R
   </Box>
 )
 
-const Tag: React.FC<{ tone: Tone; children: React.ReactNode }> = ({ tone, children }) => (
+const Tag: React.FC<{ tone: Tone; wrap?: boolean; children: React.ReactNode }> = ({
+  tone,
+  wrap,
+  children,
+}) => (
   <Text
     as="span"
     fontFamily={TYPOGRAPHY.fontMono}
@@ -113,7 +117,8 @@ const Tag: React.FC<{ tone: Tone; children: React.ReactNode }> = ({ tone, childr
     border="1px solid"
     borderColor={TONE[tone]}
     px="4px"
-    whiteSpace="nowrap"
+    whiteSpace={wrap ? 'normal' : 'nowrap'}
+    overflowWrap="anywhere"
   >
     {children}
   </Text>
@@ -170,7 +175,9 @@ const ActionRow: React.FC<{ r: FeedRow; nowS: number }> = ({ r, nowS }) => (
           as="span"
           title={`Runs in one transaction at the last read: ${r.zeroTimelock.join(', ')}`}
         >
-          <Tag tone="grey">{zeroText(r.zeroTimelock)}</Tag>
+          <Tag tone="grey" wrap>
+            {zeroText(r.zeroTimelock)}
+          </Tag>
         </Box>
       )}
     </HStack>
@@ -390,23 +397,24 @@ const AttributionSection: React.FC<{
   threshold?: number
   keptDrop?: number
 }> = ({ collateral, threshold, keptDrop }) => {
-  const { data, error, isLoading } = useQuery<{ rows: AttributionView[] }>({
-    queryKey: ['curator_attribution', collateral],
+  const [limit, setLimit] = useState(25)
+  const { data, error, isLoading } = useQuery<{ rows: AttributionView[]; total: number }>({
+    queryKey: ['curator_attribution', collateral, limit],
     queryFn: () =>
       getJson(
-        `/api/curator-feed?view=attribution${collateral ? `&collateral=${encodeURIComponent(collateral)}` : ''}`,
+        `/api/curator-feed?view=attribution&limit=${limit}${collateral ? `&collateral=${encodeURIComponent(collateral)}` : ''}`,
       ),
     staleTime: 5 * 60_000,
+    placeholderData: (prev) => prev,
   })
-  const [all, setAll] = useState(false)
-  const rows = data?.rows ?? []
-  const shown = all ? rows : rows.slice(0, 25)
+  const shown = data?.rows ?? []
+  const total = data?.total ?? 0
   return (
     <Box>
       <SectionHeading
         index="05"
         title="Vault withdrawals that moved a market"
-        note={`${rows.length} blocks · claim class: observed driver`}
+        note={`${total.toLocaleString()} blocks · claim class: observed driver`}
       />
       <Mono size="11px">
         Blocks where vault reallocations withdrew at least ${compact(threshold ?? 1_000_000)} (net,
@@ -452,9 +460,11 @@ const AttributionSection: React.FC<{
           </Box>
         ))}
       </Stack>
-      {rows.length > 25 && (
+      {total > shown.length && (
         <Box mt={SPACING.sm}>
-          <Chip onClick={() => setAll(!all)}>{all ? 'show fewer' : `show all ${rows.length}`}</Chip>
+          <Chip onClick={() => setLimit(Math.min(500, limit + 100))}>
+            {limit >= 500 ? 'filter to see more' : `show more (${total - shown.length} left)`}
+          </Chip>
         </Box>
       )}
     </Box>

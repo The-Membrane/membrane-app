@@ -28,7 +28,7 @@ import {
 //
 //   GET /api/curator-feed                    feed (see lib/curatorFeed/service.ts)
 //   GET /api/curator-feed?view=exposure      collateral → vaults at the head block (&by=vault: vault → markets)
-//   GET /api/curator-feed?view=attribution   vault withdrawals vs utilization / rate
+//   GET /api/curator-feed?view=attribution   vault withdrawals vs utilization / rate (&limit=, total)
 //   GET /api/curator-feed?view=spikes        borrow-rate jumps and who moved the market
 //                                            (&minUsd= market supply floor, &limit=, &only=reallocation|drained)
 //
@@ -86,8 +86,10 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
             : buildExposureResponse(feed, exposureCache.value, q),
         )
     }
-    if (q.view === 'attribution')
-      return res.status(200).json({ rows: buildAttributionResponse(feed, q, compact) })
+    if (q.view === 'attribution') {
+      const rows = buildAttributionResponse(feed, q, compact)
+      return res.status(200).json({ rows: rows.slice(0, q.limit), total: rows.length })
+    }
     if (q.view === 'spikes') return res.status(200).json(buildSpikeResponse(feed, q, compact))
     return res.status(200).json(buildFeedResponse(feed, q, nowS))
   } catch (e) {

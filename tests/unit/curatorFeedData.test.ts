@@ -168,7 +168,9 @@ describe.skipIf(!has)('GET /api/curator-feed', () => {
     expect(feed.headers['Cache-Control']).toMatch(/s-maxage=300/)
     expect(call({ view: 'exposure' }).body.rows.length).toBeGreaterThan(0)
     expect(call({ view: 'exposure', by: 'vault' }).body.vaults.length).toBeGreaterThan(0)
-    expect(Array.isArray(call({ view: 'attribution' }).body.rows)).toBe(true)
+    const attribution = call({ view: 'attribution', limit: '3' }).body
+    expect(attribution.rows.length).toBeLessThanOrEqual(3)
+    expect(attribution.total).toBeGreaterThanOrEqual(attribution.rows.length)
     const spikes = call({ view: 'spikes', limit: '3' }).body
     expect(spikes.rows.length).toBeLessThanOrEqual(3)
     expect(spikes.total).toBeGreaterThanOrEqual(spikes.rows.length)

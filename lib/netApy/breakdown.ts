@@ -124,7 +124,7 @@ export const NET_APY_ASSUMPTIONS = [
 
 const toUsd = (raw: bigint, decimals: number): number => Number(raw) / 10 ** decimals
 
-function validShare(name: string, v: number | undefined): number | undefined {
+export function validShare(name: string, v: number | undefined): number | undefined {
   if (v === undefined) return undefined
   // A zero share would print as a 0% Membrane charge. Omit it to show "curator-set".
   if (!Number.isFinite(v) || v <= 0 || v > 1) throw new RangeError(`${name} must be in (0, 1]; omit it to show "curator-set"`)

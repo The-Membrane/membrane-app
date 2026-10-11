@@ -1,0 +1,238 @@
+{
+  "_comment": [
+    "USD stables the carry scout admits (lib/carryScan/universe.ts): a pool enters the universe only when EVERY underlying token is listed here.",
+    "Plain USD stablecoins only. Yield-bearing wrappers (sUSDe, sUSDS, syrupUSDC, ...), tokenized funds (BUIDL, USTB, USDY, mTBILL, ...), PT/SY tokens and non-USD pegs (EURC, EURCV, ZCHF, ...) are left out on purpose.",
+    "Every address was read back on-chain (symbol() and decimals()) at the block in verifiedAt; never add one without that read. Compare addresses lowercase."
+  ],
+  "verifiedAt": {
+    "date": "2026-10-10",
+    "block": 26163743,
+    "note": "symbol() and decimals() read at the finalized block via lib/netApy/rpc.ts netApyClient"
+  },
+  "stables": [
+    {
+      "symbol": "USDS",
+      "address": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USDC",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "decimals": 6,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USDT",
+      "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "decimals": 6,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USDe",
+      "address": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "PYUSD",
+      "address": "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
+      "decimals": 6,
+      "peg": "USD"
+    },
+    {
+      "symbol": "RLUSD",
+      "address": "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USDG",
+      "address": "0xe343167631d89B6Ffc58B88d6b7fB0228795491D",
+      "decimals": 6,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USD0",
+      "address": "0x73A15FeD60Bf67631dC6cd7Bc5B6e8da8190aCF5",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "DAI",
+      "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "GHO",
+      "address": "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USAT",
+      "address": "0x07041776f5007ACa2A54844F50503a18A72A8b68",
+      "decimals": 6,
+      "peg": "USD"
+    },
+    {
+      "symbol": "apxUSD",
+      "address": "0x98A878b1Cd98131B271883B390f68D2c90674665",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "crvUSD",
+      "address": "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "DOLA",
+      "address": "0x865377367054516e17014CcdED1e7d814EDC9ce4",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "FRAX",
+      "address": "0x853d955aCEf822Db058eb8505911ED77F175b99e",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "rUSD",
+      "address": "0x09D4214C03D01F49544C0448DBE3A27f768F2b34",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USD1",
+      "address": "0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "frxUSD",
+      "address": "0xCAcd6fd266aF91b8AeD52aCCc382b4e165586E29",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "fxUSD",
+      "address": "0x085780639CC2cACd35E474e71f4d000e2405d8f6",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "reUSD",
+      "address": "0x57aB1E0003F623289CD798B1824Be09a793e4Bec",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "cUSD",
+      "address": "0xcCcc62962d17b8914c62D74FfB843d73B2a3cccC",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USDf",
+      "address": "0xFa2B947eEc368f42195f24F36d2aF29f7c24CeC2",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USDat",
+      "address": "0x23238f20b894f29041f48D88eE91131C395Aaa71",
+      "decimals": 6,
+      "peg": "USD"
+    },
+    {
+      "symbol": "msUSD",
+      "address": "0xab5eB14c09D416F0aC63661E57EDB7AEcDb9BEfA",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "trUSD",
+      "address": "0xd0580192E98eA6CEB9c7b6191Ed2E27560911697",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "iUSD",
+      "address": "0x48f9e38f3070AD8945DFEae3FA70987722E3D89c",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USDx",
+      "address": "0xa1fA7777974312f7d801A8880714a218F76233f8",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "AUSD",
+      "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+      "decimals": 6,
+      "peg": "USD"
+    },
+    {
+      "symbol": "eUSD",
+      "address": "0xA0d69E286B938e21CBf7E51D71F6A4c8918f482F",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USDtb",
+      "address": "0xC139190F447e929f090Edeb554D95AbB8b18aC1C",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "USDO",
+      "address": "0x8238884Ec9668Ef77B90C6dfF4D1a9F4F4823BFe",
+      "decimals": 18,
+      "peg": "USD"
+    },
+    {
+      "symbol": "LUSD",
+      "address": "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0",
+      "decimals": 18,
+      "peg": "USD"
+    }
+  ],
+  "blueChipCollateral": [
+    {
+      "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    {
+      "address": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+      "symbol": "wstETH",
+      "decimals": 18
+    },
+    {
+      "address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+      "symbol": "WBTC",
+      "decimals": 8
+    },
+    {
+      "address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+      "symbol": "cbBTC",
+      "decimals": 8
+    },
+    {
+      "address": "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
+      "symbol": "weETH",
+      "decimals": 18
+    },
+    {
+      "address": "0xae78736Cd615f374D3085123A210448E74Fc6393",
+      "symbol": "rETH",
+      "decimals": 18
+    }
+  ]
+}

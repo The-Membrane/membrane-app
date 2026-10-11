@@ -1,0 +1,247 @@
+# Weekly carry scout (umbrella product #10) — docs/CARRY_SCOUT.md on the scan branch.
+#
+# Scheduled workflows only run from the default branch, so THIS FILE LIVES ON `main`.
+# It checks out the scan code from another ref and pushes results to the orphan `data`
+# branch; the app reads data/carry-scan/latest.json at request time (no rebuild), and the
+# bot never pushes to the code branches.
+#
+#   code ref   inputs.ref || vars.CARRY_SCAN_REF || 'evm-migration'
+#              (until feat/carry-scout merges, set the repo variable CARRY_SCAN_REF=feat/carry-scout)
+#   secret     NET_APY_RPC_URL only (comma-separated list allowed; every URL is masked)
+#   gate       the scan fails closed: on a hard failure it writes only status.json and exits 1;
+#              a churn hold writes status.json and exits 2 until a dispatch with accept_churn=true.
+#
+# TWO JOBS, so the write token never shares a runner with third-party code:
+#   scan     pnpm install (dependency install scripts run here), the unit tests and the scan,
+#            with a READ-ONLY token. Uploads data/carry-scan as an artifact.
+#   publish  holds `contents: write`; runs no repo or dependency code. Copies the artifact's
+#            JSON onto the data branch, or, when the scan job produced none, writes a failed
+#            status.json naming the stage that failed. The token is passed per command as an
+#            HTTP header, never written to a remote URL or .git/config.
+
+name: carry-scan
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Ref of the scan code (blank = vars.CARRY_SCAN_REF, else evm-migration)"
+        required: false
+        default: ""
+        type: string
+      accept_churn:
+        description: "Publish a result the churn check held (NEW > 15 or ranked count moved > 50%)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: carry-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      reason: ${{ steps.why.outputs.reason }}
+    env:
+      SCAN_REF: ${{ inputs.ref || vars.CARRY_SCAN_REF || 'evm-migration' }}
+    steps:
+      - name: Mask RPC URLs
+        env:
+          NET_APY_RPC_URL: ${{ secrets.NET_APY_RPC_URL }}
+        run: |
+          # GitHub masks a secret only when its WHOLE value appears in a log; mask each
+          # comma-separated URL too. Logs print env:<host> labels only (lib/netApy/rpc.ts).
+          for u in ${NET_APY_RPC_URL//,/ }; do echo "::add-mask::$u"; done
+
+      - name: Check out the scan code
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SCAN_REF }}
+          path: app
+          persist-credentials: false
+
+      - name: Check the scan code exists at the ref
+        id: present
+        working-directory: app
+        run: |
+          if [ ! -f scripts/carry-scan/run.ts ] || ! ls tests/unit/carryScan*.test.ts >/dev/null 2>&1; then
+            echo "::error::no carry-scan code at ref ${SCAN_REF}: set the repo variable CARRY_SCAN_REF=feat/carry-scout until it merges"
+            exit 1
+          fi
+
+      - name: Read the data branch (history for status and churn)
+        id: data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p data/carry-scan
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          url="https://github.com/${GITHUB_REPOSITORY}.git"
+          set +e
+          git -c http.extraheader="$auth" ls-remote --exit-code --heads "$url" data >/dev/null
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            git -c http.extraheader="$auth" clone -q --depth=1 --branch data "$url" data-ro
+            if [ -d data-ro/carry-scan ]; then cp -R data-ro/carry-scan/. data/carry-scan/; fi
+            rm -rf data-ro
+          elif [ "$rc" -eq 2 ]; then
+            echo "no data branch yet: the first run"
+          else
+            echo "::error::could not read the data branch (git exit $rc)"
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install
+        working-directory: app
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests (gate 5)
+        id: tests
+        working-directory: app
+        run: pnpm test:unit tests/unit/carryScan
+
+      - name: Scan
+        id: scan
+        working-directory: app
+        env:
+          NET_APY_RPC_URL: ${{ secrets.NET_APY_RPC_URL }}
+          CARRY_SCAN_ACCEPT_CHURN: ${{ inputs.accept_churn && 'true' || 'false' }}
+        run: pnpm tsx scripts/carry-scan/run.ts --out ../data/carry-scan
+
+      # The scan writes its own status.json (published, held or failed). When it never ran,
+      # name the stage that stopped it; the publish job writes that into status.json.
+      - name: Name the stage that failed
+        id: why
+        if: failure() && steps.scan.outcome == 'skipped'
+        env:
+          O_CHECKOUT: ${{ steps.checkout.outcome }}
+          O_PRESENT: ${{ steps.present.outcome }}
+          O_DATA: ${{ steps.data.outcome }}
+          O_TESTS: ${{ steps.tests.outcome }}
+        run: |
+          if [ "$O_CHECKOUT" != success ]; then r="workflow: scan code checkout failed at ref ${SCAN_REF}"
+          elif [ "$O_PRESENT" != success ]; then r="workflow: no carry-scan code at ref ${SCAN_REF} (set CARRY_SCAN_REF=feat/carry-scout until it merges)"
+          elif [ "$O_DATA" != success ]; then r="workflow: could not read the data branch"
+          elif [ "$O_TESTS" = failure ]; then r="gate 5: carryScan unit tests failed"
+          else r="workflow: Node, pnpm or dependency install failed before the scan"; fi
+          echo "reason=${r//$'\n'/ }" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the scan result
+        if: always() && (steps.scan.outcome == 'success' || steps.scan.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: carry-scan
+          path: data/carry-scan
+          retention-days: 7
+          if-no-files-found: error
+          # a re-run must replace attempt 1's artifact, never publish the older result
+          overwrite: true
+
+  publish:
+    needs: scan
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the data branch (create it on the first run)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init -q data
+          cd data
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          set +e
+          git -c http.extraheader="$auth" ls-remote --exit-code --heads origin data >/dev/null
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            git -c http.extraheader="$auth" fetch -q --depth=1 origin data
+            git checkout -q -b data FETCH_HEAD
+          elif [ "$rc" -eq 2 ]; then
+            git checkout -q --orphan data
+            # Stop Vercel building the data branch (its preview builds are red anyway).
+            echo '{"git":{"deploymentEnabled":false}}' > vercel.json
+          else
+            echo "::error::could not read the data branch (git exit $rc)"
+            exit 1
+          fi
+          mkdir -p carry-scan
+
+      - name: Download the scan result
+        id: dl
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: carry-scan
+          path: result
+
+      - name: Merge the result, or record why there is none
+        env:
+          GOT: ${{ steps.dl.outcome }}
+          REASON: ${{ needs.scan.outputs.reason }}
+          SCAN_RESULT: ${{ needs.scan.result }}
+        run: |
+          # The artifact also carries the data-branch copy the scan started from, so a scan
+          # step that died before writeOutcome leaves last week's status.json in it unchanged:
+          # that is no result. A scan that ran always writes a new one (lastAttempt moves).
+          if [ "$GOT" = success ] && [ -f result/status.json ] \
+            && ! cmp -s result/status.json data/carry-scan/status.json; then
+            # JSON files only, by relative path, no symlinks: the artifact comes from the job
+            # that ran dependency install scripts.
+            (cd result && find . -type f -name '*.json' -print0) | while IFS= read -r -d '' f; do
+              mkdir -p "data/carry-scan/$(dirname "$f")"
+              cp "result/$f" "data/carry-scan/$f"
+            done
+          else
+            node -e '
+              const fs = require("fs");
+              const p = "data/carry-scan/status.json";
+              let prev = {}; try { prev = JSON.parse(fs.readFileSync(p, "utf8")) } catch {}
+              const reason = process.env.REASON || `workflow: scan job ${process.env.SCAN_RESULT} before writing a result`;
+              fs.writeFileSync(p, JSON.stringify({ lastAttempt: Math.floor(Date.now() / 1000), week: prev.week ?? null,
+                ok: false, reason, lastGoodWeek: prev.lastGoodWeek ?? null }, null, 1) + "\n");
+            '
+          fi
+
+      - name: Commit and push to data
+        working-directory: data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SCAN_RESULT: ${{ needs.scan.result }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          week=$(node -e 'try{console.log(require("./carry-scan/status.json").week||"")}catch{console.log("")}')
+          git commit -q -m "carry-scan: ${week} (scan ${SCAN_RESULT})"
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.extraheader="$auth" push -q origin HEAD:data

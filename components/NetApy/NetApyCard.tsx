@@ -25,22 +25,15 @@ import { Card } from '@/components/ui/Card'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import type { LabelClass } from '@/lib/netApy/types'
 import type { NetApyVenueResponse, Serialized } from '@/lib/netApy/service'
 import { venueByKey } from '@/lib/netApy/venues'
+
+import { BreakdownRows, pct } from './BreakdownRows'
 
 type Resp = Serialized<NetApyVenueResponse>
 
 const SIZES = [10_000, 100_000, 1_000_000, 10_000_000] as const
 const sizeLabel = (n: number): string => (n >= 1e6 ? `$${n / 1e6}M` : `$${n / 1e3}K`)
-
-const CLASS_COLOR: Record<LabelClass, string> = {
-  measured: SEMANTIC_COLORS.info,
-  derived: SEMANTIC_COLORS.textSecondary,
-  projected: SEMANTIC_COLORS.warning,
-  reported: SEMANTIC_COLORS.textSecondary,
-  'curator-set': SEMANTIC_COLORS.textSecondary,
-}
 
 const pulse = keyframes`
   0% { opacity: 0.18; }
@@ -48,12 +41,6 @@ const pulse = keyframes`
   100% { opacity: 0.18; }
 `
 
-/** Fraction → "4.37%", real minus sign. */
-const pct = (v: number | null | undefined, dp = 2): string => {
-  if (v === null || v === undefined || !Number.isFinite(v)) return '—'
-  const s = `${(Math.abs(v) * 100).toFixed(dp)}%`
-  return v < 0 ? `−${s}` : s
-}
 const day = (ts: number): string => new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 const daysLeft = (ts: number, nowTs: number): number => Math.max(0, Math.floor((ts - nowTs) / 86_400))
 
@@ -96,12 +83,6 @@ const Preset: React.FC<{ active: boolean; onClick: () => void; children: React.R
   >
     {children}
   </Box>
-)
-
-const ClassTag: React.FC<{ c: LabelClass }> = ({ c }) => (
-  <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="8.5px" letterSpacing="0.14em" textTransform="uppercase" color={CLASS_COLOR[c]}>
-    {c}
-  </Text>
 )
 
 export const useNetApy = (venue: string, sizeUsd: number, side: 'supply' | 'borrow', enabled = true) =>
@@ -179,30 +160,8 @@ export const NetApyCard: React.FC<NetApyCardProps> = ({ venue, defaultSizeUsd = 
             <Mono color={SEMANTIC_COLORS.danger}>This size reverts on-chain: {b.checks.reverts}.</Mono>
           ) : null}
 
-          {/* The breakdown. Each row: op · label · value · claim class. */}
-          <Box as="dl" mt={SPACING.sm} display="grid" gridTemplateColumns="14px 1fr auto auto" columnGap={SPACING.sm} rowGap="2px" alignItems="baseline">
-            {/* Rows are APR (additive); the headline is that net compounded to APY. */}
-            <Box as="span" />
-            <Box as="span" />
-            <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="8.5px" letterSpacing="0.14em" textAlign="right" color={SEMANTIC_COLORS.textTertiary}>
-              APR
-            </Text>
-            <Box as="span" />
-            {b.rows.map((r) => (
-              <React.Fragment key={r.key}>
-                <Mono as="span" color={SEMANTIC_COLORS.textTertiary}>
-                  {r.op}
-                </Mono>
-                <Text as="dt" fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={r.op === '=' ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary} title={r.note}>
-                  {r.label}
-                </Text>
-                <Text as="dd" fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" textAlign="right" color={r.op === '=' ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary} sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                  {r.apr === null ? 'curator-set' : `${r.bound === 'upper' ? '≤ ' : ''}${pct(r.apr)}`}
-                </Text>
-                <ClassTag c={r.labelClass as LabelClass} />
-              </React.Fragment>
-            ))}
-          </Box>
+          {/* The breakdown. Each row: op · label · value · claim class (components/NetApy/BreakdownRows.tsx). */}
+          <BreakdownRows rows={b.rows} />
 
           {/* Incentive expiry — the end date is half the number. */}
           {b.incentives.eligible.map((c) => {

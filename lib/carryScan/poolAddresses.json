@@ -1,0 +1,106 @@
+{
+  "_comment": [
+    "Hand-kept DeFiLlama pool UUID → on-chain deposit/receipt contract, for venues no API resolves (lib/carryScan/verify.ts resolveAddress).",
+    "NEVER GUESS AN ADDRESS: an entry is added only after the contract was read back on-chain (code, asset(), totalAssets within ±15% of DeFiLlama TVL),",
+    "and the scan re-checks all three at every run, so a wrong entry fails closed into the Unverified list. Addresses lowercase.",
+    "Sources for candidate addresses: the net-APY registry, KNOWN_VENUES, tools/venue-recorder.config.json, and the route-cohort seed (onAppAliases.json)."
+  ],
+  "pools": {
+    "8edfdf02-cdbb-43f7-bca6-954e5fe56813": {
+      "address": "0x356b8d89c1e1239cbbb9de4815c39a1474d5ba7d",
+      "kind": "erc4626",
+      "label": "Maple syrupUSDT",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=USDT; totalAssets $286M vs DeFiLlama $683M on 2026-10-10, so the ±15% TVL check fails and the row stays Unverified until the gap is explained",
+      "withdraw": "queued"
+    },
+    "43641cf5-a92e-416b-bce9-27113d3c0db6": {
+      "address": "0x80ac24aa929eaf5013f6436cda2a7ba190f5cc0b",
+      "kind": "erc4626",
+      "label": "Maple syrupUSDC",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=USDC; totalAssets $1.06B vs DeFiLlama $2.82B on 2026-10-10 (TVL check fails); also the exit-queue lane pool maple-syrupusdc",
+      "withdraw": "queued"
+    },
+    "4c004503-9587-46f2-a362-d23a80f4b691": {
+      "address": "0x87b65c4aaffa76881f9e96f3e7ed945ddfc3cd7a",
+      "kind": "erc4626",
+      "label": "Maple syrupUSDG",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=USDG; totalAssets $210M vs DeFiLlama $504M on 2026-10-10 (TVL check fails)",
+      "withdraw": "queued"
+    },
+    "9f71f0fd-cfac-54b1-865e-37338f481708": {
+      "address": "0x99cd4ec3f88a45940936f469e4bb72a2a701eeb9",
+      "kind": "erc4626",
+      "label": "Sky stUSDS",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=USDS; totalAssets matches DeFiLlama; on the app via the /carry route USDS → StUsds"
+    },
+    "d8c4eff5-c8a9-46fc-a888-057c4c668e72": {
+      "address": "0xa3931d71877c0e7a3148cb7eb4463524fec27fbd",
+      "kind": "erc4626",
+      "label": "Sky sUSDS",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=USDS; on the app (recorder sUSDS)"
+    },
+    "c8a24fee-ec00-4f38-86c0-9f6daebc4225": {
+      "address": "0x83f20f44975d03b1b09e64809b757c47f942beea",
+      "kind": "erc4626",
+      "label": "Savings DAI (sDAI)",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=DAI; on the app (KNOWN_VENUES)"
+    },
+    "d646f32f-d5af-4e34-a29f-8ebeea6a8520": {
+      "address": "0xd3fd63209fa2d55b07a0f6db36c2f43900be3094",
+      "kind": "erc4626",
+      "label": "Reservoir wsrUSD",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=rUSD; totalAssets matches DeFiLlama"
+    },
+    "8fa2e60e-365a-41fc-8d50-fadde5041f94": {
+      "address": "0xdbdc1ef57537e34680b898e1febd3d68c7389bcb",
+      "kind": "erc4626",
+      "label": "infiniFi siUSD",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=iUSD; totalAssets matches DeFiLlama"
+    },
+    "e7fdda30-ce71-5dea-8b3a-dd43de77ce55": {
+      "address": "0x280839980a7ed0d7717f64125fe241012e5f5815",
+      "kind": "erc4626",
+      "label": "Tori strUSD",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=trUSD; 7-day unstaking (DeFiLlama poolMeta)",
+      "withdraw": "queued"
+    },
+    "5fd328af-4203-471b-bd16-1705c726d926": {
+      "address": "0x0655977feb2f289a4ab78af67bab0d17aab84367",
+      "kind": "erc4626",
+      "label": "Savings crvUSD (scrvUSD)",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=crvUSD; on the app (recorder scrvUSD)"
+    },
+    "4438dabc-7f0c-430b-8136-2722711ae663": {
+      "address": "0x9fb7b4477576fe5b32be4c1843afb1e55f251b33",
+      "kind": "erc4626",
+      "label": "Fluid fUSDC",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=USDC; totalAssets matches DeFiLlama; address from the route-cohort seed (Fluid USD Coin [USDC])"
+    },
+    "66985a81-9c51-46ca-9977-42b4fe7bc6df": {
+      "address": "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+      "kind": "erc4626",
+      "label": "Ethena sUSDe",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=USDe; on the app (recorder sUSDe)",
+      "withdraw": "queued"
+    },
+    "42523cca-14b0-44f6-95fb-4781069520a5": {
+      "address": "0xcf62f905562626cfcdd2261162a51fd02fc9c5b6",
+      "kind": "erc4626",
+      "label": "Frax sfrxUSD",
+      "verifiedAt": "2026-10-10 block 26163807",
+      "note": "asset()=frxUSD; NOTE lib/position-sim/venues.ts KNOWN_VENUES lists sfrxUSD at 0xcF62F305562bA0170A4fa456be9BcB6fa6Ca6A70, which has NO code on mainnet (read 2026-10-10), so R3 does not dedupe the real vault"
+    }
+  }
+}

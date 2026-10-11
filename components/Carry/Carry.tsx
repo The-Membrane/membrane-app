@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Box, HStack, Text } from '@chakra-ui/react'
 import NextLink from 'next/link'
 
+import { ScoutStrip } from '@/components/CarryScout/ScoutStrip'
 import { DemoBanner } from '@/components/demo'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
@@ -116,6 +117,7 @@ export const Carry: React.FC = () => {
       </Box>
 
       <MarketBoards routesOnly />
+      <ScoutStrip />
 
       {advancedOpen && (
         <Box>

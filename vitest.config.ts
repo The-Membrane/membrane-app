@@ -16,6 +16,9 @@ export default defineConfig({
       exclude: ['**/*.d.ts', '**/codegen/**'],
     },
   },
+  // tsconfig.json keeps `jsx: preserve` for Next; a test that renders a component
+  // (tests/unit/carryScanRender.test.ts) needs Vite's transformer (oxc) to compile JSX.
+  oxc: { jsx: { runtime: 'automatic' } },
   resolve: {
     // Mirrors the `@/*` -> `./*` alias in tsconfig.json.
     alias: { '@': path.resolve(__dirname, '.') },

@@ -1,0 +1,37 @@
+{
+  "_comment": [
+    "R4 of the on-app set (lib/carryScan/onApp.ts): the carry ROUTES shown on /carry (components/Carry/fixtures.ts ROUTES) carry display labels only.",
+    "Each label is keyed `<src> → <dst>` and resolves to the destination contract(s) a borrower's debt went to, read from the route-cohort seed",
+    "scripts/route-cohort/aug-2026-ab-vault-seed.json on origin/chore/data-capture-snapshot (72326cac). Position counts match the ROUTES `pos` field.",
+    "A label that is not one venue is an explicit waiver: it contributes no key, and the reason says why. tests/unit/carryScanDedupe.test.ts fails",
+    "when a ROUTES entry has neither."
+  ],
+  "seed": "72326cac:scripts/route-cohort/aug-2026-ab-vault-seed.json",
+  "routes": {
+    "AUSD → Staked USDat": { "addresses": ["0xd166337499e176bbc38a1fbd113ab144e5bd2df7"], "seedRoute": "AUSD → Staked USDat [USDat]", "positions": 15 },
+    "apxUSD → ApyUSD": { "addresses": ["0x38eeb52f0771140d10c4e9a9a72349a329fe8a6a"], "seedRoute": "apxUSD → ApyUSD [apxUSD]", "positions": 19 },
+    "USDT → Fluid": {
+      "waiver": "ambiguous: the seed splits this label between FluidBridgeAggregatorProxy 0x273da948aca9261043fbdb2a857bc255ecc29012 (15) and Fluid USD Coin 0x9fb7b4477576fe5b32be4c1843afb1e55f251b33 (3); the /carry row is a label, not a venue",
+      "positions": 15
+    },
+    "USDC → Morpho Vault V2": {
+      "waiver": "not one venue: a class of 33 Morpho Vault V2 [USDC] vaults in the seed",
+      "positions": 182
+    },
+    "USDS → StUsds": { "addresses": ["0x99cd4ec3f88a45940936f469e4bb72a2a701eeb9"], "seedRoute": "USDS → StUsds [USDS]", "positions": 21 },
+    "PYUSD → StakingVault": { "addresses": ["0x19ebb35279a16207ec4ba82799cc64715065f7f6"], "seedRoute": "PYUSD → StakingVault [wYLDS]", "positions": 26 },
+    "USDe → Staked USDe": { "addresses": ["0x9d39a5de30e57443bff2a8307a4256c8797a3497"], "seedRoute": "USDe → Staked USDe [USDe]", "positions": 25 },
+    "USDC → USD3": { "addresses": ["0x056b269eb1f75477a8666ae8c7fe01b64dd55ecc"], "seedRoute": "USDC → USD3 [USDC]", "positions": 78 },
+    "RLUSD → Morpho Vault V2": { "addresses": ["0x6dc58a0fdfc8d694e571dc59b9a52eeea780e6bf"], "seedRoute": "RLUSD → VaultV2 [RLUSD]", "positions": 37 },
+    "USDC → Compound": {
+      "waiver": "unresolved: no Compound destination in the seed",
+      "positions": 20
+    },
+    "PYUSD → Morpho Vault V2": {
+      "addresses": ["0xc21b08c16458202593d4d9b26b9984ee67b38bbd", "0xb576765fb15505433af24fee2c0325895c559fb2", "0xbeef00b5d83c1188f07a5184230a805639c39f04"],
+      "seedRoute": "PYUSD → VaultV2 [PYUSD]",
+      "positions": 54
+    },
+    "GHO → UmbrellaStakeToken": { "addresses": ["0x4f827a63755855cdf3e8f3bcd20265c833f15033"], "seedRoute": "GHO → UmbrellaStakeToken [GHO]", "positions": 21 }
+  }
+}

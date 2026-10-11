@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Category and project rules for the carry scout (lib/carryScan/universe.ts, benchmark.ts).",
+    "Categories are DeFiLlama api.llama.fi/protocols `category`, joined on the yields `project` slug.",
+    "A single-exposure pool must be in categoryAllow; a stable LP (exposure=multi, ilRisk=no) in lpCategoryAllow.",
+    "RWA (KYC funds) and Uncollateralized Lending are left out by not being allowed. projectDeny removes a project whatever its category.",
+    "benchmark.borrowRateIsAprProjects: DeFiLlama /lendBorrow `apyBaseBorrow` for these projects is the on-chain currentVariableBorrowRate APR, not an APY",
+    "(read 2026-10-10: Aave v3 DAI 4.94415 / GHO 4.5 / USDe 6.61321 and SparkLend USDC 4.36881 / PYUSD 4.28875 / DAI 4.43637 equal the on-chain APR to 5 dp).",
+    "S3 converts them with aprToApy. Morpho rows are APYs already (3.1028 vs the Morpho API borrowApy 3.1020)."
+  ],
+  "categoryAllow": [
+    "Lending",
+    "CDP",
+    "Yield",
+    "Yield Aggregator",
+    "Risk Curators",
+    "Onchain Capital Allocator",
+    "Basis Trading"
+  ],
+  "categoryFlag": {
+    "Basis Trading": "basis-trading"
+  },
+  "lpCategoryAllow": ["Dexs", "Yield", "Yield Aggregator"],
+  "projectDeny": {
+    "zerobase-cedefi": "CeDeFi: yield is earned off-chain (sources report, 2026-10-10)",
+    "pendle-v2": "Pendle PTs are out of scope for v1 (docs/CARRY_SCOUT.md §7)"
+  },
+  "benchmark": {
+    "aaveV3Project": "aave-v3",
+    "aaveV3PoolMeta": [null, "Prime Instance"],
+    "aaveV3DenyPoolMeta": ["Aave Horizon Market"],
+    "sparkProject": "sparklend",
+    "morphoProject": "morpho-blue",
+    "borrowRateIsAprProjects": ["aave-v3", "sparklend"]
+  }
+}

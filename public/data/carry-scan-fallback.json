@@ -1,0 +1,7901 @@
+{
+ "schemaVersion": 1,
+ "week": "2026-W41",
+ "asOf": 1791693907,
+ "anchor": {
+  "blockNumber": "26166806",
+  "blockTimestamp": "1791692759",
+  "blockHash": "0xd70799ccbda5eac758d1984c4ab5d78bf981a6c5f155a7468d5f4986517f8ed7"
+ },
+ "appSha": "71f32a452fad90cfb894e983c0bdd1620da6129a",
+ "rpc": "env:eth-mainnet.g.alchemy.com",
+ "defaultSizeUsd": 100000,
+ "sizes": [
+  100000,
+  1000000,
+  10000000
+ ],
+ "counts": {
+  "ethStablePools": 1315,
+  "universeSingle": 503,
+  "universeLp": 177,
+  "afterFilters": 80,
+  "afterFiltersLp": 13,
+  "withBenchmark": 63,
+  "positive": 31,
+  "noBenchmark": 17,
+  "onApp": 5,
+  "finalists": 43,
+  "verified": 17,
+  "stable": 42,
+  "ranked": 13,
+  "rankedLp": 0,
+  "unverified": 26,
+  "dropped": 0,
+  "new": 13,
+  "gateTrace": {
+   "universe: an underlying is not a listed USD stable": 529,
+   "filter: more than half the APY is rewards": 25,
+   "filter: category RWA not allowed": 4,
+   "filter: under 30 days of history": 3,
+   "filter: category Uncollateralized Lending not allowed": 5,
+   "universe: market row describes collateral (loan is mintedCoin)": 106,
+   "filter: category Dual-Token Stablecoin not allowed": 1,
+   "filter: no yield": 7,
+   "filter: category Stablecoin Wrapper not allowed": 1,
+   "filter: category Algo-Stables not allowed": 1,
+   "filter: project denied (CeDeFi: yield is earned off-chain (sources report, 2026-10-10))": 1,
+   "filter: TVL under $10M": 539,
+   "carry: (a) not positive at $100K": 30,
+   "carry: 30-day-mean (a) not positive": 2,
+   "LP: (a) not positive": 13,
+   "on the app already": 5,
+   "stability: 90-day σ 1.14pp > 1pp": 1
+  }
+ },
+ "benchmarks": {
+  "USDC": {
+   "bySize": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 USDC",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.049323376167073704,
+      "1m": 0.04997598674143568,
+      "10m": 0.05652445765047969
+     },
+     "borrowUsd": 2273725006.373695
+    },
+    {
+     "venue": "SparkLend USDC",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.04476212068416016,
+      "1m": 0.045701217752668465,
+      "10m": null
+     },
+     "borrowUsd": 43764360.50456
+    },
+    {
+     "venue": "Morpho cbBTC/USDC 86%",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.050483078509746954,
+      "1m": 0.054433324775539194,
+      "10m": 0.09476207371737737
+     },
+     "borrowUsd": 304054974.375067
+    },
+    {
+     "venue": "Morpho WBTC/USDC 86%",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.05138030824307252,
+      "1m": 0.06191887297986666,
+      "10m": 0.17329264050205892
+     },
+     "borrowUsd": 116115297.104844
+    },
+    {
+     "venue": "Morpho wstETH/USDC 86%",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.054587920272382524,
+      "1m": 0.096364538859841,
+      "10m": null
+     },
+     "borrowUsd": 29384061.921108
+    },
+    {
+     "venue": "Morpho WEETH/USDC 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0512671,
+      "1m": 0.0512671,
+      "10m": 0.0512671
+     },
+     "borrowUsd": 39485392
+    },
+    {
+     "venue": "Morpho WETH/USDC 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.050154899999999995,
+      "1m": 0.050154899999999995,
+      "10m": 0.050154899999999995
+     },
+     "borrowUsd": 8361810
+    },
+    {
+     "venue": "Morpho WSTETH/USDC 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.051245700000000005,
+      "1m": 0.051245700000000005,
+      "10m": 0.051245700000000005
+     },
+     "borrowUsd": 11315927
+    }
+   ]
+  },
+  "USDT": {
+   "bySize": {
+    "100k": {
+     "venue": "Morpho wstETH/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.030935519839952783,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 USDT",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.043023846095341094,
+      "1m": 0.04303979747886013,
+      "10m": 0.043199324731967234
+     },
+     "borrowUsd": 2478872531.578182
+    },
+    {
+     "venue": "SparkLend USDT",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.04144716864399115,
+      "1m": 0.050025941463795416,
+      "10m": 0.1397979707711267
+     },
+     "borrowUsd": 312821031.802694
+    },
+    {
+     "venue": "Morpho wstETH/USDT 86%",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.030935519839952783,
+      "1m": 0.0311046959374122,
+      "10m": 0.03279798455900648
+     },
+     "borrowUsd": 121918950.72436
+    },
+    {
+     "venue": "Morpho CBBTC/USDT 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.030961699999999998,
+      "1m": 0.030961699999999998,
+      "10m": 0.030961699999999998
+     },
+     "borrowUsd": 19027186
+    },
+    {
+     "venue": "Morpho WBTC/USDT 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0309523,
+      "1m": 0.0309523,
+      "10m": 0.0309523
+     },
+     "borrowUsd": 78440627
+    },
+    {
+     "venue": "Morpho WBTC/USDT 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0310111,
+      "1m": 0.0310111,
+      "10m": 0.0310111
+     },
+     "borrowUsd": 5653098
+    }
+   ]
+  },
+  "USDe": {
+   "bySize": {
+    "100k": {
+     "venue": "Aave v3 USDe",
+     "stable": "USDe",
+     "apy": 0.06837400902486425,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "Aave v3 USDe",
+     "stable": "USDe",
+     "apy": 0.0683824558066391,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Aave v3 USDe",
+     "stable": "USDe",
+     "apy": 0.06846692729748304,
+     "labelClass": "projected",
+     "source": "onchain"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 USDe",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.06837400902486425,
+      "1m": 0.0683824558066391,
+      "10m": 0.06846692729748304
+     },
+     "borrowUsd": 15595011.346663635
+    }
+   ]
+  },
+  "USDS": {
+   "bySize": {
+    "100k": {
+     "venue": "SparkLend USDS",
+     "stable": "USDS",
+     "apy": 0.044141486592050125,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDS",
+     "stable": "USDS",
+     "apy": 0.044189502817963786,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "SparkLend USDS",
+     "stable": "USDS",
+     "apy": 0.04466978653878395,
+     "labelClass": "projected",
+     "source": "onchain"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "SparkLend USDS",
+     "source": "onchain",
+     "labelClass": "projected",
+     "apyBySize": {
+      "100k": 0.044141486592050125,
+      "1m": 0.044189502817963786,
+      "10m": 0.04466978653878395
+     },
+     "borrowUsd": 845290459.4216428
+    }
+   ]
+  },
+  "DAI": {
+   "bySize": {
+    "100k": {
+     "venue": "SparkLend DAI",
+     "stable": "DAI",
+     "apy": 0.045362484093222376,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "SparkLend DAI",
+     "stable": "DAI",
+     "apy": 0.045362484093222376,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "SparkLend DAI",
+     "stable": "DAI",
+     "apy": 0.045362484093222376,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 DAI",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.050685071011740135,
+      "1m": 0.050685071011740135,
+      "10m": 0.050685071011740135
+     },
+     "borrowUsd": 117654478
+    },
+    {
+     "venue": "SparkLend DAI",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.045362484093222376,
+      "1m": 0.045362484093222376,
+      "10m": 0.045362484093222376
+     },
+     "borrowUsd": 186484517
+    }
+   ]
+  },
+  "PYUSD": {
+   "bySize": {
+    "100k": {
+     "venue": "SparkLend PYUSD",
+     "stable": "PYUSD",
+     "apy": 0.04391973048927259,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "SparkLend PYUSD",
+     "stable": "PYUSD",
+     "apy": 0.04391973048927259,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "SparkLend PYUSD",
+     "stable": "PYUSD",
+     "apy": 0.04391973048927259,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "SparkLend PYUSD",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.04391973048927259,
+      "1m": 0.04391973048927259,
+      "10m": 0.04391973048927259
+     },
+     "borrowUsd": 27004356
+    },
+    {
+     "venue": "Morpho WEETH/PYUSD 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.049982,
+      "1m": 0.049982,
+      "10m": 0.049982
+     },
+     "borrowUsd": 26735224
+    },
+    {
+     "venue": "Aave v3 PYUSD",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.050086771207252405,
+      "1m": 0.050086771207252405,
+      "10m": 0.050086771207252405
+     },
+     "borrowUsd": 6934186
+    }
+   ]
+  },
+  "RLUSD": {
+   "bySize": {
+    "100k": {
+     "venue": "Morpho WBTC/RLUSD 86%",
+     "stable": "RLUSD",
+     "apy": 0.0225672,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "Morpho WBTC/RLUSD 86%",
+     "stable": "RLUSD",
+     "apy": 0.0225672,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Morpho WBTC/RLUSD 86%",
+     "stable": "RLUSD",
+     "apy": 0.0225672,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Morpho WEETH/RLUSD 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0399757,
+      "1m": 0.0399757,
+      "10m": 0.0399757
+     },
+     "borrowUsd": 89000137
+    },
+    {
+     "venue": "SparkLend RLUSD",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.04012479380724544,
+      "1m": 0.04012479380724544,
+      "10m": 0.04012479380724544
+     },
+     "borrowUsd": 12953571
+    },
+    {
+     "venue": "Morpho CBBTC/RLUSD 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.038988,
+      "1m": 0.038988,
+      "10m": 0.038988
+     },
+     "borrowUsd": 11576433
+    },
+    {
+     "venue": "Morpho WBTC/RLUSD 86%",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.0225672,
+      "1m": 0.0225672,
+      "10m": 0.0225672
+     },
+     "borrowUsd": 17601230
+    }
+   ]
+  },
+  "GHO": {
+   "bySize": {
+    "100k": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.04263576872489092,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.04263576872489092,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.04263576872489092,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 GHO",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.04602785990871694,
+      "1m": 0.04602785990871694,
+      "10m": 0.04602785990871694
+     },
+     "borrowUsd": 108518522
+    },
+    {
+     "venue": "Aave v3 Prime Instance GHO",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.04263576872489092,
+      "1m": 0.04263576872489092,
+      "10m": 0.04263576872489092
+     },
+     "borrowUsd": 46937592
+    }
+   ]
+  },
+  "USDtb": {
+   "bySize": {
+    "100k": {
+     "venue": "Aave v3 USDTB",
+     "stable": "USDtb",
+     "apy": 0.06048621886807586,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "Aave v3 USDTB",
+     "stable": "USDtb",
+     "apy": 0.06048621886807586,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Aave v3 USDTB",
+     "stable": "USDtb",
+     "apy": 0.06048621886807586,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "candidates": [
+    {
+     "venue": "Aave v3 USDTB",
+     "source": "defillama",
+     "labelClass": "reported",
+     "apyBySize": {
+      "100k": 0.06048621886807586,
+      "1m": 0.06048621886807586,
+      "10m": 0.06048621886807586
+     },
+     "borrowUsd": 10581181
+    }
+   ]
+  }
+ },
+ "rows": [
+  {
+   "key": "1:0x8ac91877b93330f52b2979a31a4879506021475c",
+   "aliases": [
+    "llama:a295b2bd-0d49-4b01-803a-ff96bdcd0d33"
+   ],
+   "label": "HUMAUSDC",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0x8ac91877b93330f52b2979a31a4879506021475c",
+   "tvlUsd": 12839857,
+   "count": 125,
+   "apy": 0.0757387,
+   "apyBase": 0.0757387,
+   "apyReward": 0,
+   "apyMean30d": 0.0642385,
+   "venueNet": {
+    "100k": {
+     "apy": 0.07515338673108211,
+     "apr": 0.07246333673228163,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.07515338673108211,
+     "apr": 0.07246333673228163,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.030391266046921953,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.030391266046921953,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.019476379315839842,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.07515338673108211,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.07515338673108211,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.639593231251018,
+    "median90": 0.0599189,
+    "spikeRatio": 1.2640202006378622,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.06626065068187548
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 1,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for this venue type"
+    ],
+    "route": "needs an adapter: Morpho Vault V2 reports maxWithdraw = 0, so a CuratorVault could not withdraw"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0xbeef00a59b577423653a1526c7009bde103f542b",
+   "aliases": [
+    "llama:2f5341f4-6c2e-4c65-b2e0-10cd5228ff62"
+   ],
+   "label": "STEAKCUSDC",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0xbeef00a59b577423653a1526c7009bde103f542b",
+   "tvlUsd": 35105127,
+   "count": 110,
+   "apy": 0.07199799999999999,
+   "apyBase": 0.07199799999999999,
+   "apyReward": 0,
+   "apyMean30d": 0.0732732,
+   "venueNet": {
+    "100k": {
+     "apy": 0.07179349001484925,
+     "apr": 0.06933340417963796,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.07000387877727171,
+     "apr": 0.067662273492732,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.07179349001484925,
+     "apr": 0.06933340417963796,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.07000387877727171,
+     "apr": 0.067662273492732,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.027031369330689087,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.024302661024603246,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.027031369330689087,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.024302661024603246,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.028511079315839835,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.07179349001484925,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.07179349001484925,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.07000387877727171,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.07000387877727171,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.5154611758554408,
+    "median90": 0.07199799999999999,
+    "spikeRatio": 1,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.0722841739148361
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 2,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for this venue type"
+    ],
+    "route": "needs an adapter: Morpho Vault V2 reports maxWithdraw = 0, so a CuratorVault could not withdraw"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0x8381a156958711e230f325428b5eb4b6555c75d9",
+   "aliases": [
+    "llama:d437f7b3-09ba-5450-be41-d2b7d0e9406d"
+   ],
+   "label": "SENPYUSDPST",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "PYUSD",
+   "stables": [
+    "PYUSD"
+   ],
+   "exposure": "single",
+   "address": "0x8381a156958711e230f325428b5eb4b6555c75d9",
+   "tvlUsd": 73358727,
+   "count": 47,
+   "apy": 0.0699685,
+   "apyBase": 0.0545629,
+   "apyReward": 0.015405599999999998,
+   "apyMean30d": 0.0776362,
+   "venueNet": {
+    "100k": {
+     "apy": 0.06987325127618262,
+     "apr": 0.06754018470602854,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.06902754118019665,
+     "apr": 0.06674939520981571,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.054488623052619735,
+     "apr": 0.05305593192886543,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.05382912062801048,
+     "apr": 0.05243031233419401,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend PYUSD",
+     "stable": "PYUSD",
+     "apy": 0.04391973048927259,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "SparkLend PYUSD",
+     "stable": "PYUSD",
+     "apy": 0.04391973048927259,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "SparkLend PYUSD",
+     "stable": "PYUSD",
+     "apy": 0.04391973048927259,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.025953520786910024,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "1m": {
+     "apy": 0.025107810690924055,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.010568892563347143,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "1m": {
+     "apy": 0.009909390138737886,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.03371646951072741,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.054488623052619735,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06987325127618262,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.05382912062801048,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06902754118019665,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.5840610324405942,
+    "median90": 0.0799867,
+    "spikeRatio": 0.8747516774663788,
+    "points": 47,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.0540779932279547
+   },
+   "flags": [],
+   "list": "ranked",
+   "rank": 3,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0x55c1b6e461a6334b567baf0feb5d728715446f05",
+   "aliases": [
+    "llama:d73fcfed-a2ca-5314-a94b-a841982df77f"
+   ],
+   "label": "PENDLEUSDC",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0x55c1b6e461a6334b567baf0feb5d728715446f05",
+   "tvlUsd": 62153002,
+   "count": 62,
+   "apy": 0.0666357,
+   "apyBase": 0.0578691,
+   "apyReward": 0.0087666,
+   "apyMean30d": 0.0702184,
+   "venueNet": {
+    "100k": {
+     "apy": 0.06652865986079515,
+     "apr": 0.06440913138657381,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.06558055300952123,
+     "apr": 0.06351977083408072,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.057776142073248125,
+     "apr": 0.0561687251065347,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.05695276826330757,
+     "apr": 0.055390021181390976,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.021766539176634986,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.019879335256852766,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.013014021389087964,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.011251550510639106,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.02545627931583984,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.05777614207324813,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06652865986079515,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.05695276826330757,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06558055300952123,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.6340908618935985,
+    "median90": 0.0682349,
+    "spikeRatio": 0.9765633129087902,
+    "points": 62,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.0586535347472954
+   },
+   "flags": [],
+   "list": "ranked",
+   "rank": 4,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for this venue type"
+    ],
+    "route": "needs an adapter: Morpho Vault V2 reports maxWithdraw = 0, so a CuratorVault could not withdraw"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0xbeeff047c03714965a54b671a37c18bef6b96210",
+   "aliases": [
+    "llama:1b33f341-1dc2-446a-856e-caf900563ae2"
+   ],
+   "label": "RESERVOIRUSDC",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0xbeeff047c03714965a54b671a37c18bef6b96210",
+   "tvlUsd": 12738320,
+   "count": 262,
+   "apy": 0.06620129999999999,
+   "apyBase": 0.0451699,
+   "apyReward": 0.0210314,
+   "apyMean30d": 0.0673427,
+   "venueNet": {
+    "100k": {
+     "apy": 0.06568564608266501,
+     "apr": 0.06361839115027935,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.044818063466871054,
+     "apr": 0.04384276831369333,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.020923525398504852,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.000055942782710892425,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.022580579315839844,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.044818063466871054,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06568564608266501,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.5082828316089782,
+    "median90": 0.06230070000000001,
+    "spikeRatio": 1.062609248371206,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.05673125562365233
+   },
+   "flags": [
+    "source-disagreement",
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 5,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for this venue type"
+    ],
+    "route": "needs an adapter: Morpho Vault V2 reports maxWithdraw = 0, so a CuratorVault could not withdraw"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+   "aliases": [
+    "llama:caa9ffc0-2983-4c18-9556-4e3ad4dfe6ac"
+   ],
+   "label": "ROXUSDCY",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0xe0181090c22579b6a217f1522cbf8c9f1f0c1965",
+   "tvlUsd": 18434447,
+   "count": 201,
+   "apy": 0.0639751,
+   "apyBase": 0.0639751,
+   "apyReward": 0,
+   "apyMean30d": 0.0718934,
+   "venueNet": {
+    "100k": {
+     "apy": 0.06362993135266998,
+     "apr": 0.0616875215408463,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.06362993135266998,
+     "apr": 0.0616875215408463,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.018867810668509816,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.018867810668509816,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.027131279315839835,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.06362993135266998,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06362993135266998,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.9122883304976973,
+    "median90": 0.0655182,
+    "spikeRatio": 0.9764477656590076,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.06604858835452343
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 6,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for this venue type"
+    ],
+    "route": "needs an adapter: Morpho Vault V2 reports maxWithdraw = 0, so a CuratorVault could not withdraw"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0x9fb7b4477576fe5b32be4c1843afb1e55f251b33",
+   "aliases": [
+    "llama:4438dabc-7f0c-430b-8136-2722711ae663"
+   ],
+   "label": "USDC",
+   "protocol": "fluid-lending",
+   "category": "Lending",
+   "kind": "erc4626",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0x9fb7b4477576fe5b32be4c1843afb1e55f251b33",
+   "tvlUsd": 140319670,
+   "count": 863,
+   "apy": 0.0632,
+   "apyBase": 0.0632,
+   "apyReward": null,
+   "apyMean30d": 0.046552100000000006,
+   "venueNet": {
+    "100k": {
+     "apy": 0.06315499206058525,
+     "apr": 0.06124089499694793,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.06275278695456904,
+     "apr": 0.06086251065235389,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.06315499206058525,
+     "apr": 0.06124089499694793,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.06275278695456904,
+     "apr": 0.06086251065235389,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.01839287137642509,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.017051569201900575,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.01839287137642509,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.017051569201900575,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.0017899793158398444,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.06315499206058525,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06315499206058525,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.06275278695456904,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06275278695456904,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.5706852307998352,
+    "median90": 0.0487,
+    "spikeRatio": 1.2977412731006162,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.05520336867096476
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 7,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "ready-cv",
+    "blockers": [
+     "G1: CuratorAllocator requires an 18-decimal paired asset (CuratorAllocator.sol:69-70), so 6-decimal USDC reverts",
+     "G3: no per-venue fork conformance test exists yet (IExternalVenue4626.sol:7-13 requires one)"
+    ],
+    "route": "a CuratorVault curator calls submitCap; after the vault’s 1–14 day timelock anyone calls acceptCap"
+   },
+   "segue": {
+    "kind": "cv-propose",
+    "implId": "erc4626",
+    "venueData": "0x0000000000000000000000009fb7b4477576fe5b32be4c1843afb1e55f251b33"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0x093272c07700d3ca5301c3bf9b3a392624179e2f",
+   "aliases": [
+    "llama:5a55b869-de6e-42ba-9091-6ee0e02525c2"
+   ],
+   "label": "HYPERUSDCA",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0x093272c07700d3ca5301c3bf9b3a392624179e2f",
+   "tvlUsd": 10426724,
+   "count": 313,
+   "apy": 0.0598829,
+   "apyBase": 0.0598829,
+   "apyReward": 0,
+   "apyMean30d": 0.06504349999999999,
+   "venueNet": {
+    "100k": {
+     "apy": 0.05931403451060368,
+     "apr": 0.057621561386134106,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.05931403451060368,
+     "apr": 0.057621561386134106,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.014551913826443517,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.014551913826443517,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.02028137931583983,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.05931403451060368,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05931403451060368,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.7147941334276511,
+    "median90": 0.0635689,
+    "spikeRatio": 0.9420156711851235,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.06219935451546377
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 8,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for this venue type"
+    ],
+    "route": "needs an adapter: Morpho Vault V2 reports maxWithdraw = 0, so a CuratorVault could not withdraw"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0xbeeff2c5bf38f90e3482a8b19f12e5a6d2fca757",
+   "aliases": [
+    "llama:f8d7740c-4cef-420e-a944-1b7caffde643"
+   ],
+   "label": "BBQUSDC",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0xbeeff2c5bf38f90e3482a8b19f12e5a6d2fca757",
+   "tvlUsd": 48850416,
+   "count": 313,
+   "apy": 0.0551487,
+   "apyBase": 0.0551487,
+   "apyReward": 0,
+   "apyMean30d": 0.0572172,
+   "venueNet": {
+    "100k": {
+     "apy": 0.05503603762752905,
+     "apr": 0.0535749252332814,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.054042416353339964,
+     "apr": 0.05263269252892158,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.05503603762752905,
+     "apr": 0.0535749252332814,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.054042416353339964,
+     "apr": 0.05263269252892158,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.010273916943368891,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.0083411986006715,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.010273916943368891,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.0083411986006715,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.012455079315839841,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.05503603762752905,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05503603762752905,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.054042416353339964,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.054042416353339964,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.485663343656038,
+    "median90": 0.0531433,
+    "spikeRatio": 1.037735707041151,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.055359177119362224
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 9,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for this venue type"
+    ],
+    "route": "needs an adapter: Morpho Vault V2 reports maxWithdraw = 0, so a CuratorVault could not withdraw"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0xa2eaad0d586cf9fd73bb2c09cf6a7e3e187d68cd",
+   "aliases": [
+    "llama:d2a99602-b0c7-4f6a-a329-82bdaad3df0c"
+   ],
+   "label": "ARMUSDCS",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0xa2eaad0d586cf9fd73bb2c09cf6a7e3e187d68cd",
+   "tvlUsd": 45124014,
+   "count": 171,
+   "apy": 0.053208000000000005,
+   "apyBase": 0.05311950000000001,
+   "apyReward": 0.0000885,
+   "apyMean30d": 0.05310139999999999,
+   "venueNet": {
+    "100k": {
+     "apy": 0.05309034569359545,
+     "apr": 0.051729027850850866,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.05205441436454339,
+     "apr": 0.05074483765896782,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.0530020413860875,
+     "apr": 0.05164517178821903,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.0519678331047467,
+     "apr": 0.05066253695140668,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.008328225009435287,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.006353196611874924,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.00823992070192734,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.006266615352078238,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.008339279315839832,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.0530020413860875,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05309034569359545,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.0519678331047467,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05205441436454339,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.35644350831455324,
+    "median90": 0.0508277,
+    "spikeRatio": 1.046830763540353,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.053054645060836236
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 10,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for this venue type"
+    ],
+    "route": "needs an adapter: Morpho Vault V2 reports maxWithdraw = 0, so a CuratorVault could not withdraw"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0xbeefff209270748ddd194831b3fa287a5386f5bc",
+   "aliases": [
+    "llama:36977448-9ad9-43ea-85f2-60ee1b92ecd0"
+   ],
+   "label": "BBQUSDC",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "metamorpho",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0xbeefff209270748ddd194831b3fa287a5386f5bc",
+   "tvlUsd": 12745949,
+   "count": 313,
+   "apy": 0.052447299999999995,
+   "apyBase": 0.052447299999999995,
+   "apyReward": 0,
+   "apyMean30d": 0.0544674,
+   "venueNet": {
+    "100k": {
+     "apy": 0.05203902109433098,
+     "apr": 0.05073020592260738,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.05203902109433098,
+     "apr": 0.05073020592260738,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.007276900410170817,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.007276900410170817,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.009705279315839838,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.05203902109433098,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05203902109433098,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.5182580148674043,
+    "median90": 0.049808500000000006,
+    "spikeRatio": 1.0529789092223214,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.05283953823095877
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 11,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "ready-cv",
+    "blockers": [
+     "G1: CuratorAllocator requires an 18-decimal paired asset (CuratorAllocator.sol:69-70), so 6-decimal USDC reverts",
+     "G3: no per-venue fork conformance test exists yet (IExternalVenue4626.sol:7-13 requires one)"
+    ],
+    "route": "a CuratorVault curator calls submitCap; after the vault’s 1–14 day timelock anyone calls acceptCap"
+   },
+   "segue": {
+    "kind": "cv-propose",
+    "implId": "erc4626",
+    "venueData": "0x000000000000000000000000beefff209270748ddd194831b3fa287a5386f5bc"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e",
+   "aliases": [
+    "llama:ff113246-f6e0-4e10-b92c-abd3cd1d7dd6"
+   ],
+   "label": "GTUSDCF",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "morpho-vault-v2",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e",
+   "tvlUsd": 13337870,
+   "count": 312,
+   "apy": 0.046121600000000006,
+   "apyBase": 0.046121600000000006,
+   "apyReward": 0,
+   "apyMean30d": 0.0571433,
+   "venueNet": {
+    "100k": {
+     "apy": 0.04577837893892411,
+     "apr": 0.04476146837470647,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.04577837893892411,
+     "apr": 0.04476146837470647,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.001016258254763945,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.001016258254763945,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.01238117931583984,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.04577837893892411,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04577837893892411,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.6236986658346652,
+    "median90": 0.0531661,
+    "spikeRatio": 0.8675001551740678,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.04467847901704847
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 12,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for this venue type"
+    ],
+    "route": "needs an adapter: Morpho Vault V2 reports maxWithdraw = 0, so a CuratorVault could not withdraw"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0xa8875aaebc4f830524e35d57f9772ffacbdd6c45",
+   "aliases": [
+    "llama:086d98c3-e23e-42b2-9425-cb8915724337"
+   ],
+   "label": "GTUSDCRWA",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "metamorpho",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0xa8875aaebc4f830524e35d57f9772ffacbdd6c45",
+   "tvlUsd": 10879751,
+   "count": 313,
+   "apy": 0.0456909,
+   "apyBase": 0.0456909,
+   "apyReward": 0,
+   "apyMean30d": 0.0556935,
+   "venueNet": {
+    "100k": {
+     "apy": 0.04527476214769351,
+     "apr": 0.04427978114153895,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.04527476214769351,
+     "apr": 0.04427978114153895,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.0005126414635333518,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.0005126414635333518,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.010931379315839838,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.04527476214769351,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04527476214769351,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.5879937851267747,
+    "median90": 0.0529793,
+    "spikeRatio": 0.8624292884201943,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.04526752918357957
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "ranked",
+   "rank": 13,
+   "status": "NEW",
+   "weeksInRow": 1,
+   "persistent": null,
+   "readiness": {
+    "tier": "ready-cv",
+    "blockers": [
+     "G1: CuratorAllocator requires an 18-decimal paired asset (CuratorAllocator.sol:69-70), so 6-decimal USDC reverts",
+     "G3: no per-venue fork conformance test exists yet (IExternalVenue4626.sol:7-13 requires one)"
+    ],
+    "route": "a CuratorVault curator calls submitCap; after the vault’s 1–14 day timelock anyone calls acceptCap"
+   },
+   "segue": {
+    "kind": "cv-propose",
+    "implId": "erc4626",
+    "venueData": "0x000000000000000000000000a8875aaebc4f830524e35d57f9772ffacbdd6c45"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0xdbdc1ef57537e34680b898e1febd3d68c7389bcb",
+   "aliases": [
+    "llama:8fa2e60e-365a-41fc-8d50-fadde5041f94"
+   ],
+   "label": "SIUSD · Staked iUSD",
+   "protocol": "infinifi",
+   "category": "Yield",
+   "kind": "erc4626",
+   "stable": "iUSD",
+   "stables": [
+    "iUSD"
+   ],
+   "exposure": "single",
+   "address": "0xdbdc1ef57537e34680b898e1febd3d68c7389bcb",
+   "tvlUsd": 42837484,
+   "count": 475,
+   "apy": 0.0606065,
+   "apyBase": 0.0606065,
+   "apyReward": null,
+   "apyMean30d": 0.061196099999999996,
+   "venueNet": {
+    "100k": {
+     "apy": 0.06046534943794098,
+     "apr": 0.05870782069147885,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.059223973119579575,
+     "apr": 0.05753653917671045,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.06046534943794098,
+     "apr": 0.05870782069147885,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.059223973119579575,
+     "apr": 0.05753653917671045,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.06046534943794098,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06046534943794098,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.059223973119579575,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.059223973119579575,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.6443449635400026,
+    "median90": 0.059810600000000005,
+    "spikeRatio": 1.0133070057815838,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.061067032155393
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "no-benchmark",
+   "rank": null,
+   "unrankedReason": "no same-stable borrow market",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0xd3fd63209fa2d55b07a0f6db36c2f43900be3094",
+   "aliases": [
+    "llama:d646f32f-d5af-4e34-a29f-8ebeea6a8520"
+   ],
+   "label": "WSRUSD",
+   "protocol": "reservoir-protocol",
+   "category": "CDP",
+   "kind": "erc4626",
+   "stable": "rUSD",
+   "stables": [
+    "rUSD"
+   ],
+   "exposure": "single",
+   "address": "0xd3fd63209fa2d55b07a0f6db36c2f43900be3094",
+   "tvlUsd": 111976643,
+   "count": 394,
+   "apy": 0.0600423,
+   "apyBase": null,
+   "apyReward": null,
+   "apyMean30d": 0.0600423,
+   "venueNet": {
+    "100k": {
+     "apy": 0.05998872746392752,
+     "apr": 0.058258273599436514,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.05951084236056563,
+     "apr": 0.057807332143006256,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.05998872746392752,
+     "apr": 0.058258273599436514,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.05951084236056563,
+     "apr": 0.057807332143006256,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.05998872746392752,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05998872746392752,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.05951084236056563,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05951084236056563,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.46378145996609643,
+    "median90": 0.050035100000000006,
+    "spikeRatio": 1.2000035974745726,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.06022183492535493
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "no-benchmark",
+   "rank": null,
+   "unrankedReason": "no same-stable borrow market",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": "1:0x6859b34a9379122d25a9fa46f0882d434fee36c3",
+   "aliases": [
+    "llama:ca553126-d5b2-48fb-903b-e4585c18eed5"
+   ],
+   "label": "GTMSUSDC",
+   "protocol": "morpho-blue",
+   "category": "Lending",
+   "kind": "metamorpho",
+   "stable": "msUSD",
+   "stables": [
+    "msUSD"
+   ],
+   "exposure": "single",
+   "address": "0x6859b34a9379122d25a9fa46f0882d434fee36c3",
+   "tvlUsd": 18588620,
+   "count": 313,
+   "apy": 0.0017619,
+   "apyBase": 0.0017619,
+   "apyReward": 0,
+   "apyMean30d": 0.0020691,
+   "venueNet": {
+    "100k": {
+     "apy": 0.0017524723376043817,
+     "apr": 0.0017509385496432127,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.0017524723376043817,
+     "apr": 0.0017509385496432127,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.0017524723376043817,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.0017524723376043817,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.955795067935951,
+    "median90": 0.005407499999999999,
+    "spikeRatio": 0.32582524271844665,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": true,
+    "checks": [
+     "code",
+     "asset",
+     "tvl",
+     "trailing-7d vs base APY"
+    ],
+    "trailing7dApy": 0.0020026404954438526
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "no-benchmark",
+   "rank": null,
+   "unrankedReason": "no same-stable borrow market",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:edf44260-d78f-5dab-853a-f89c4f523169"
+   ],
+   "label": "SUSDX",
+   "protocol": "axis",
+   "category": "Basis Trading",
+   "kind": "other",
+   "stable": "USDx",
+   "stables": [
+    "USDx"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 42782121,
+   "count": 36,
+   "apy": 0.173038,
+   "apyBase": 0.173038,
+   "apyReward": null,
+   "apyMean30d": 0.21015440000000002,
+   "venueNet": {
+    "100k": {
+     "apy": 0.17263447984762695,
+     "apr": 0.15925290972732578,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.16908574743553426,
+     "apr": 0.15622203089955813,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.17263447984762695,
+     "apr": 0.15925290972732578,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.16908574743553426,
+     "apr": 0.15622203089955813,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.17263447984762695,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.17263447984762695,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.16908574743553426,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.16908574743553426,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 4.3509530453957534,
+    "median90": 0.19638965,
+    "spikeRatio": 0.8810953123038816,
+    "points": 36,
+    "ok": false,
+    "reason": "90-day σ 4.35pp > 1pp"
+   },
+   "verification": null,
+   "flags": [
+    "basis-trading"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for axis; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:83e4e0e2-1830-510d-8040-2ab064e5d97d"
+   ],
+   "label": "CTZIGUSD1 · ZIG USD1",
+   "protocol": "concrete",
+   "category": "Onchain Capital Allocator",
+   "kind": "other",
+   "stable": "USD1",
+   "stables": [
+    "USD1"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 10112988,
+   "count": 59,
+   "apy": 0.09298730000000001,
+   "apyBase": 0.09298730000000001,
+   "apyReward": null,
+   "apyMean30d": 0.1448131,
+   "venueNet": {
+    "100k": {
+     "apy": 0.09207681914953783,
+     "apr": 0.08808122205500107,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.09207681914953783,
+     "apr": 0.08808122205500107,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.09207681914953783,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.09207681914953783,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 25.082037940216516,
+    "median90": 0,
+    "spikeRatio": null,
+    "points": 59,
+    "ok": false,
+    "reason": "90-day σ 25.08pp > 1pp; 90-day median APY is not positive"
+   },
+   "verification": null,
+   "flags": [],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for concrete; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:f4200c7d-d3fd-5b88-9398-ba66eac63a03"
+   ],
+   "label": "USDC · Sentora USD",
+   "protocol": "sentora-curator",
+   "category": "Risk Curators",
+   "kind": "other",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 95664866,
+   "count": 67,
+   "apy": 0.0757071,
+   "apyBase": 0.0757071,
+   "apyReward": null,
+   "apyMean30d": 0.0741466,
+   "venueNet": {
+    "100k": {
+     "apy": 0.07562804480662669,
+     "apr": 0.07290471871214298,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.07492390851448137,
+     "apr": 0.0722498762971805,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.07562804480662669,
+     "apr": 0.07290471871214298,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.07492390851448137,
+     "apr": 0.0722498762971805,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.030865924122466526,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.029222690761812907,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.030865924122466526,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.029222690761812907,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.02938447931583983,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.07562804480662669,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.07562804480662669,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.07492390851448137,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.07492390851448137,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.9152017937781669,
+    "median90": 0.07085340000000001,
+    "spikeRatio": 1.0685034169143612,
+    "points": 67,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for sentora-curator; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "unresolved",
+    "blockers": [
+     "address not resolved"
+    ],
+    "route": "address not resolved: the scan found no deposit contract for this pool, so its venue type is unknown"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:41e759da-5cfd-45b9-bb50-316a72fcb3b5"
+   ],
+   "label": "SYNUSD+",
+   "protocol": "lagoon",
+   "category": "Onchain Capital Allocator",
+   "kind": "other",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 11752360,
+   "count": 346,
+   "apy": 0.0735259,
+   "apyBase": 0.0735259,
+   "apyReward": null,
+   "apyMean30d": 0.0765643,
+   "venueNet": {
+    "100k": {
+     "apy": 0.07290555181617839,
+     "apr": 0.07037043723584008,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.07290555181617839,
+     "apr": 0.07037043723584008,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.028143431132018226,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.028143431132018226,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.03180217931583984,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.07290555181617839,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.07290555181617839,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.3374643257061889,
+    "median90": 0.0766209,
+    "spikeRatio": 0.9596063215127988,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for lagoon; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "unresolved",
+    "blockers": [
+     "address not resolved"
+    ],
+    "route": "address not resolved: the scan found no deposit contract for this pool, so its venue type is unknown"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:d5959f91-86ce-4177-b234-49e1f17d8f82"
+   ],
+   "label": "USDC",
+   "protocol": "yearn-finance",
+   "category": "Yield Aggregator",
+   "kind": "other",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 11878451,
+   "count": 212,
+   "apy": 0.0706585,
+   "apyBase": 0.0706585,
+   "apyReward": 0,
+   "apyMean30d": 0.0668046,
+   "venueNet": {
+    "100k": {
+     "apy": 0.07006861988945816,
+     "apr": 0.06772277715533831,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.07006861988945816,
+     "apr": 0.06772277715533831,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.025306499205297997,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.025306499205297997,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.022042479315839844,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.07006861988945814,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.07006861988945814,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.5669401691018541,
+    "median90": 0.0637133,
+    "spikeRatio": 1.109007067598131,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for yearn-finance; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "unresolved",
+    "blockers": [
+     "address not resolved"
+    ],
+    "route": "address not resolved: the scan found no deposit contract for this pool, so its venue type is unknown"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:488f06db-5a36-450e-9ba9-b4321be39c7c"
+   ],
+   "label": "USDC",
+   "protocol": "fluid-lite",
+   "category": "Yield Aggregator",
+   "kind": "other",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 43841552,
+   "count": 160,
+   "apy": 0.0684,
+   "apyBase": null,
+   "apyReward": null,
+   "apyMean30d": 0.06953039999999999,
+   "venueNet": {
+    "100k": {
+     "apy": 0.06824433867970799,
+     "apr": 0.06601649590680561,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.0668746290672544,
+     "apr": 0.06473346688496512,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.06824433867970799,
+     "apr": 0.06601649590680561,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.0668746290672544,
+     "apr": 0.06473346688496512,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.023482217995547824,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.021173411314585937,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.023482217995547824,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.021173411314585937,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.02476827931583983,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.06824433867970799,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06824433867970799,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.0668746290672544,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.0668746290672544,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.4891220518402594,
+    "median90": 0.0707,
+    "spikeRatio": 0.9674681753889675,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for fluid-lite; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "unresolved",
+    "blockers": [
+     "address not resolved"
+    ],
+    "route": "address not resolved: the scan found no deposit contract for this pool, so its venue type is unknown"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:8a28570f-2316-488a-94a7-67c87e76c1f1"
+   ],
+   "label": "MSUSD",
+   "protocol": "mainstreet",
+   "category": "Yield",
+   "kind": "other",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 75539738,
+   "count": 286,
+   "apy": 0.0659408,
+   "apyBase": 0.0659408,
+   "apyReward": 0,
+   "apyMean30d": 0.0659998,
+   "venueNet": {
+    "100k": {
+     "apy": 0.06585362254309235,
+     "apr": 0.06377600162759733,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.0650792762775122,
+     "apr": 0.06304923421029172,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.06585362254309235,
+     "apr": 0.06377600162759733,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.0650792762775122,
+     "apr": 0.06304923421029172,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.021091501858932188,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.019378058524843735,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.021091501858932188,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.019378058524843735,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.021237679315839836,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.06585362254309235,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06585362254309235,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.0650792762775122,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.0650792762775122,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 1.0385916737926493,
+    "median90": 0.065991,
+    "spikeRatio": 0.9992392902062402,
+    "points": 91,
+    "ok": false,
+    "reason": "90-day σ 1.04pp > 1pp"
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for mainstreet; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "unresolved",
+    "blockers": [
+     "address not resolved"
+    ],
+    "route": "address not resolved: the scan found no deposit contract for this pool, so its venue type is unknown"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:bf0f95c9-bc46-467d-9762-1d80ff50cd74"
+   ],
+   "label": "SDOLA",
+   "protocol": "inverse-finance-firm",
+   "category": "CDP",
+   "kind": "other",
+   "stable": "DOLA",
+   "stables": [
+    "DOLA"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 17300983,
+   "count": 631,
+   "apy": 0.0652081,
+   "apyBase": 0.0652081,
+   "apyReward": null,
+   "apyMean30d": 0.0602752,
+   "venueNet": {
+    "100k": {
+     "apy": 0.06483336197514245,
+     "apr": 0.06281831929007771,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.06483336197514245,
+     "apr": 0.06281831929007771,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.06483336197514245,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.06483336197514245,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 1.2161194759831977,
+    "median90": 0.06419325000000001,
+    "spikeRatio": 1.015809294590942,
+    "points": 84,
+    "ok": false,
+    "reason": "90-day σ 1.22pp > 1pp"
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for inverse-finance-firm; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:4ae1f481-ae46-5a2c-82a2-13e192180594"
+   ],
+   "label": "USDC · Y10K Capital USD",
+   "protocol": "ember-protocol",
+   "category": "Onchain Capital Allocator",
+   "kind": "other",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 17777976,
+   "count": 84,
+   "apy": 0.0632301,
+   "apyBase": 0.0632301,
+   "apyReward": null,
+   "apyMean30d": 0.1108448,
+   "venueNet": {
+    "100k": {
+     "apy": 0.0628764240581596,
+     "apr": 0.06097884054007789,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.0628764240581596,
+     "apr": 0.06097884054007789,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.01811430337399944,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.01811430337399944,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": 0.06608267931583983,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.0628764240581596,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.0628764240581596,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 4.888785923108966,
+    "median90": 0.0793008,
+    "spikeRatio": 0.7973450456994129,
+    "points": 84,
+    "ok": false,
+    "reason": "90-day σ 4.89pp > 1pp"
+   },
+   "verification": null,
+   "flags": [],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for ember-protocol; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "unresolved",
+    "blockers": [
+     "address not resolved"
+    ],
+    "route": "address not resolved: the scan found no deposit contract for this pool, so its venue type is unknown"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:8edfdf02-cdbb-43f7-bca6-954e5fe56813"
+   ],
+   "label": "USDT · Syrup USDT",
+   "protocol": "maple",
+   "category": "Lending",
+   "kind": "erc4626",
+   "stable": "USDT",
+   "stables": [
+    "USDT"
+   ],
+   "exposure": "single",
+   "address": "0x356b8d89c1e1239cbbb9de4815c39a1474d5ba7d",
+   "tvlUsd": 684244412,
+   "count": 440,
+   "apy": 0.055462,
+   "apyBase": 0.055462,
+   "apyReward": 0,
+   "apyMean30d": 0.050299500000000004,
+   "venueNet": {
+    "100k": {
+     "apy": 0.055453895601245876,
+     "apr": 0.05397090720182614,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.055381062455630785,
+     "apr": 0.053901898352634973,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": 0.05466311708439649,
+     "apr": 0.05322139563529703,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.055453895601245876,
+     "apr": 0.05397090720182614,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.055381062455630785,
+     "apr": 0.053901898352634973,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": 0.05466311708439649,
+     "apr": 0.05322139563529703,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "Morpho wstETH/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.030935519839952783,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.024518375761293093,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.024428762455630786,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": {
+     "apy": 0.02371081708439649,
+     "bound": "exact",
+     "labelClass": "reported"
+    }
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.024518375761293093,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.024428762455630786,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": {
+     "apy": 0.02371081708439649,
+     "bound": "exact",
+     "labelClass": "reported"
+    }
+   },
+   "carryA30d": 0.01936398016004722,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.055453895601245876,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.055453895601245876,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.055381062455630785,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.055381062455630785,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": 0.05466311708439648,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05466311708439648,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.44779515048315605,
+    "median90": 0.0456192,
+    "spikeRatio": 1.2157600308641976,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": false,
+    "checks": [
+     "code",
+     "asset"
+    ],
+    "failed": "totalAssets $289,247,881 is not within ±15% of DeFiLlama's $684,244,412",
+    "trailing7dApy": null
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "totalAssets $289,247,881 is not within ±15% of DeFiLlama's $684,244,412",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:43641cf5-a92e-416b-bce9-27113d3c0db6"
+   ],
+   "label": "USDC · Syrup USDC",
+   "protocol": "maple",
+   "category": "Lending",
+   "kind": "erc4626",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": "0x80ac24aa929eaf5013f6436cda2a7ba190f5cc0b",
+   "tvlUsd": 2816229055,
+   "count": 440,
+   "apy": 0.0524944,
+   "apyBase": 0.0524944,
+   "apyReward": 0,
+   "apyMean30d": 0.051079,
+   "venueNet": {
+    "100k": {
+     "apy": 0.05249253607007651,
+     "apr": 0.05116119492937398,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.05247576665532864,
+     "apr": 0.05114526175382305,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": 0.05230865992381216,
+     "apr": 0.05098647425068746,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.05249253607007651,
+     "apr": 0.05116119492937398,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.05247576665532864,
+     "apr": 0.05114526175382305,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": 0.05230865992381216,
+     "apr": 0.05098647425068746,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.007730415385916352,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.006774548902660174,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": {
+     "apy": 0.002153759923812164,
+     "bound": "exact",
+     "labelClass": "reported"
+    }
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.007730415385916352,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.006774548902660174,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": {
+     "apy": 0.002153759923812164,
+     "bound": "exact",
+     "labelClass": "reported"
+    }
+   },
+   "carryA30d": 0.006316879315839838,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.05249253607007651,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05249253607007651,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.05247576665532864,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05247576665532864,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": 0.05230865992381216,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05230865992381216,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.14061567946949421,
+    "median90": 0.049713,
+    "spikeRatio": 1.0559491481101522,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": false,
+    "checks": [
+     "code",
+     "asset"
+    ],
+    "failed": "totalAssets $1,059,738,884 is not within ±15% of DeFiLlama's $2,816,229,055",
+    "trailing7dApy": null
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "totalAssets $1,059,738,884 is not within ±15% of DeFiLlama's $2,816,229,055",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "needs-adapter",
+    "blockers": [
+     "no adapter for a queued-exit venue"
+    ],
+    "route": "needs an adapter: exits wait on a queue or cooldown, so a vault could not withdraw on demand"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:7c12f175-37bc-41db-967a-1d7f1f4a23c4"
+   ],
+   "label": "LIQUIDUSD",
+   "protocol": "ether.fi-liquid",
+   "category": "Onchain Capital Allocator",
+   "kind": "other",
+   "stable": "USDC",
+   "stables": [
+    "USDC"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 27182574,
+   "count": 255,
+   "apy": 0.0518823,
+   "apyBase": 0.0518823,
+   "apyReward": null,
+   "apyMean30d": 0.0566261,
+   "venueNet": {
+    "100k": {
+     "apy": 0.051692133558959644,
+     "apr": 0.050400422777315344,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.050041364533991814,
+     "apr": 0.04882955818775539,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.051692133558959644,
+     "apr": 0.050400422777315344,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.050041364533991814,
+     "apr": 0.04882955818775539,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.04476212068416016,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "SparkLend USDC",
+     "stable": "USDC",
+     "apy": 0.045701217752668465,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "10m": {
+     "venue": "Morpho WETH/USDC 86%",
+     "stable": "USDC",
+     "apy": 0.050154899999999995,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.006930012874799482,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.004340146781323349,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.006930012874799482,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.004340146781323349,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.011863979315839837,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.051692133558959644,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.051692133558959644,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.050041364533991814,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.050041364533991814,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 1.2867760328749158,
+    "median90": 0.053767699999999995,
+    "spikeRatio": 0.9649343379017514,
+    "points": 91,
+    "ok": false,
+    "reason": "90-day σ 1.29pp > 1pp"
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for ether.fi-liquid; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "unresolved",
+    "blockers": [
+     "address not resolved"
+    ],
+    "route": "address not resolved: the scan found no deposit contract for this pool, so its venue type is unknown"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:4c004503-9587-46f2-a362-d23a80f4b691"
+   ],
+   "label": "USDG · syrupUSDG",
+   "protocol": "maple",
+   "category": "Lending",
+   "kind": "erc4626",
+   "stable": "USDG",
+   "stables": [
+    "USDG"
+   ],
+   "exposure": "single",
+   "address": "0x87b65c4aaffa76881f9e96f3e7ed945ddfc3cd7a",
+   "tvlUsd": 502910969,
+   "count": 121,
+   "apy": 0.0505824,
+   "apyBase": 0.0505824,
+   "apyReward": 0,
+   "apyMean30d": 0.049961399999999996,
+   "venueNet": {
+    "100k": {
+     "apy": 0.05057234407614996,
+     "apr": 0.04933510525839538,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.05048202036329477,
+     "apr": 0.04924912584306985,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": 0.049596217152348715,
+     "apr": 0.04840553511615919,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.05057234407614996,
+     "apr": 0.04933510525839538,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.05048202036329477,
+     "apr": 0.04924912584306985,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": 0.049596217152348715,
+     "apr": 0.04840553511615919,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.05057234407614996,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05057234407614996,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.05048202036329477,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.05048202036329477,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": 0.049596217152348715,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.049596217152348715,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.045077932152860316,
+    "median90": 0.050039499999999994,
+    "spikeRatio": 1.0108494289511285,
+    "points": 91,
+    "ok": true
+   },
+   "verification": {
+    "ok": false,
+    "checks": [
+     "code",
+     "asset"
+    ],
+    "failed": "totalAssets $208,905,725 is not within ±15% of DeFiLlama's $502,910,969",
+    "trailing7dApy": null
+   },
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "totalAssets $208,905,725 is not within ±15% of DeFiLlama's $502,910,969",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:bf6ca887-e357-49ec-8031-0d1a6141c455"
+   ],
+   "label": "STCUSD",
+   "protocol": "cap",
+   "category": "Lending",
+   "kind": "other",
+   "stable": "cUSD",
+   "stables": [
+    "cUSD"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 71742947,
+   "count": 416,
+   "apy": 0.049217199999999996,
+   "apyBase": null,
+   "apyReward": null,
+   "apyMean30d": 0.0592713,
+   "venueNet": {
+    "100k": {
+     "apy": 0.049148693344781634,
+     "apr": 0.04797906707603529,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.04854060931966916,
+     "apr": 0.04739930148217643,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.049148693344781634,
+     "apr": 0.04797906707603529,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.04854060931966916,
+     "apr": 0.04739930148217643,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.04914869334478163,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04914869334478163,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.04854060931966916,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04854060931966916,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.9201213181798569,
+    "median90": 0.0556136,
+    "spikeRatio": 0.8849849677057411,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for cap; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:578cffd4-1470-44d0-8c5d-e9d4bd403651"
+   ],
+   "label": "GHO",
+   "protocol": "fluid-lending",
+   "category": "Lending",
+   "kind": "other",
+   "stable": "GHO",
+   "stables": [
+    "GHO"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 28494085,
+   "count": 709,
+   "apy": 0.049100000000000005,
+   "apyBase": 0.035,
+   "apyReward": 0.0141,
+   "apyMean30d": 0.0582531,
+   "venueNet": {
+    "100k": {
+     "apy": 0.04892828616477849,
+     "apr": 0.047768963077977546,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.04743525942574588,
+     "apr": 0.046344566060000994,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.034877597062469394,
+     "apr": 0.03428315601586966,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.033813321382914575,
+     "apr": 0.03325421953825294,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.04263576872489092,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.04263576872489092,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.04263576872489092,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.006292517439887568,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "1m": {
+     "apy": 0.004799490700854961,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": -0.0077581716624215286,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "1m": {
+     "apy": -0.008822447341976347,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.01561733127510908,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.034877597062469394,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04892828616477849,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.033813321382914575,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04743525942574589,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.6351491879893274,
+    "median90": 0.0546,
+    "spikeRatio": 0.8992673992673993,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for fluid-lending; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:6f5662dc-e05d-5304-a35b-d34cb8c9a4b7"
+   ],
+   "label": "CRVUSD · sDOLA collateral",
+   "protocol": "curve-llamalend",
+   "category": "Lending",
+   "kind": "other",
+   "stable": "crvUSD",
+   "stables": [
+    "crvUSD"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 12000709,
+   "count": 81,
+   "apy": 0.0475131,
+   "apyBase": 0.028474,
+   "apyReward": 0.0190391,
+   "apyMean30d": 0.0463465,
+   "venueNet": {
+    "100k": {
+     "apy": 0.047120452759247415,
+     "apr": 0.04604397088648756,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.028238691473863226,
+     "apr": 0.027847330230684867,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.028238691473863226,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.047120452759247415,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 2.2074577481477946,
+    "median90": 0.0467778,
+    "spikeRatio": 1.015718994907841,
+    "points": 81,
+    "ok": false,
+    "reason": "90-day σ 2.21pp > 1pp"
+   },
+   "verification": null,
+   "flags": [],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for curve-llamalend; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:27af094e-e18f-5eb2-bfbf-1cf24be73057"
+   ],
+   "label": "CRVUSD · sfrxUSD collateral",
+   "protocol": "curve-llamalend",
+   "category": "Lending",
+   "kind": "other",
+   "stable": "crvUSD",
+   "stables": [
+    "crvUSD"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 18919523,
+   "count": 81,
+   "apy": 0.0468362,
+   "apyBase": 0.026584,
+   "apyReward": 0.0202522,
+   "apyMean30d": 0.047865000000000005,
+   "venueNet": {
+    "100k": {
+     "apy": 0.04658994671594025,
+     "apr": 0.04553720924954551,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.026444227830109093,
+     "apr": 0.02610062363850473,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.026444227830109093,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04658994671594025,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 1.1467058718464582,
+    "median90": 0.048254200000000004,
+    "spikeRatio": 0.9706139569198122,
+    "points": 81,
+    "ok": false,
+    "reason": "90-day σ 1.15pp > 1pp"
+   },
+   "verification": null,
+   "flags": [],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for curve-llamalend; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:19d024ed-9c70-4323-9a81-fe873ea5f0e0"
+   ],
+   "label": "SGHO",
+   "protocol": "aave-v3",
+   "category": "Lending",
+   "kind": "other",
+   "stable": "GHO",
+   "stables": [
+    "GHO"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 174538478,
+   "count": 148,
+   "apy": 0.045,
+   "apyBase": 0.045,
+   "apyReward": null,
+   "apyMean30d": 0.045,
+   "venueNet": {
+    "100k": {
+     "apy": 0.04497423248271781,
+     "apr": 0.04399222720148822,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.04474364594866773,
+     "apr": 0.043771540440499204,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.04497423248271781,
+     "apr": 0.04399222720148822,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.04474364594866773,
+     "apr": 0.043771540440499204,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.04263576872489092,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "1m": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.04263576872489092,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Aave v3 Prime Instance GHO",
+     "stable": "GHO",
+     "apy": 0.04263576872489092,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.0023384637578268905,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "1m": {
+     "apy": 0.0021078772237768106,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.0023384637578268905,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "1m": {
+     "apy": 0.0021078772237768106,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.0023642312751090758,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.04497423248271781,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04497423248271781,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.04474364594866773,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04474364594866773,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.12438715849089862,
+    "median90": 0.0425,
+    "spikeRatio": 1.0588235294117647,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for aave-v3; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:f91b2168-c279-475c-a98a-673220f4fee7"
+   ],
+   "label": "YUSD",
+   "protocol": "aegis-yusd",
+   "category": "Basis Trading",
+   "kind": "other",
+   "stable": "USDT",
+   "stables": [
+    "USDT"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 32722550,
+   "count": 536,
+   "apy": 0.044800000000000006,
+   "apyBase": null,
+   "apyReward": null,
+   "apyMean30d": 0.0477499,
+   "venueNet": {
+    "100k": {
+     "apy": 0.044663508472071796,
+     "apr": 0.04369483210103968,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.043471512089091724,
+     "apr": 0.04255314681659394,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.044663508472071796,
+     "apr": 0.04369483210103968,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.043471512089091724,
+     "apr": 0.04255314681659394,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "Morpho wstETH/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.030935519839952783,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.013727988632119013,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.012519212089091725,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.013727988632119013,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.012519212089091725,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.016814380160047215,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.044663508472071796,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.044663508472071796,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.043471512089091724,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.043471512089091724,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.5414463583015448,
+    "median90": 0.0493,
+    "spikeRatio": 0.9087221095334687,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "basis-trading",
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for aegis-yusd; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:4e8cc592-c8d5-4824-8155-128ba521e903"
+   ],
+   "label": "USDT",
+   "protocol": "fluid-lending",
+   "category": "Lending",
+   "kind": "other",
+   "stable": "USDT",
+   "stables": [
+    "USDT"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 130588701,
+   "count": 863,
+   "apy": 0.0401,
+   "apyBase": 0.0401,
+   "apyReward": null,
+   "apyMean30d": 0.0452614,
+   "venueNet": {
+    "100k": {
+     "apy": 0.04006931639866862,
+     "apr": 0.0392873613155784,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.03979526258945287,
+     "apr": 0.03902383087848126,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.04006931639866862,
+     "apr": 0.0392873613155784,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.03979526258945287,
+     "apr": 0.03902383087848126,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "Morpho wstETH/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.030935519839952783,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.009133796558715837,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.008842962589452875,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.009133796558715837,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.008842962589452875,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": null
+   },
+   "carryA30d": 0.014325880160047218,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.04006931639866862,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.04006931639866862,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.03979526258945287,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.03979526258945287,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.49047909023153424,
+    "median90": 0.0449,
+    "spikeRatio": 0.8930957683741647,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for fluid-lending; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:0f67a08c-3f24-4a4b-963e-541f5a5c0364"
+   ],
+   "label": "SUSDF · ERC-4626: USDf → sUSDf",
+   "protocol": "falcon-finance",
+   "category": "Basis Trading",
+   "kind": "other",
+   "stable": "USDf",
+   "stables": [
+    "USDf"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 58434122,
+   "count": 361,
+   "apy": 0.037762500000000004,
+   "apyBase": 0.037762500000000004,
+   "apyReward": null,
+   "apyMean30d": 0.043621400000000005,
+   "venueNet": {
+    "100k": {
+     "apy": 0.037697986347604226,
+     "apr": 0.03700478513150531,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.03712713266000632,
+     "apr": 0.036454518319355686,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.037697986347604226,
+     "apr": 0.03700478513150531,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.03712713266000632,
+     "apr": 0.036454518319355686,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.037697986347604226,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.037697986347604226,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.03712713266000632,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.03712713266000632,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.7532651403413968,
+    "median90": 0.0474053,
+    "spikeRatio": 0.7965881452073925,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "basis-trading",
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for falcon-finance; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:a5d67f7e-5b51-4a9d-969d-caf051a7f5a4"
+   ],
+   "label": "USDT",
+   "protocol": "spark-savings",
+   "category": "Yield",
+   "kind": "other",
+   "stable": "USDT",
+   "stables": [
+    "USDT"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 619515450,
+   "count": 281,
+   "apy": 0.0375,
+   "apyBase": 0.0375,
+   "apyReward": null,
+   "apyMean30d": 0.0354909,
+   "venueNet": {
+    "100k": {
+     "apy": 0.03749394785911165,
+     "apr": 0.036808139716893985,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.03743956637179622,
+     "apr": 0.03675572214596469,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": 0.03690430373869299,
+     "apr": 0.03623964315569124,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.03749394785911165,
+     "apr": 0.036808139716893985,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.03743956637179622,
+     "apr": 0.03675572214596469,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": 0.03690430373869299,
+     "apr": 0.03623964315569124,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    }
+   },
+   "bench": {
+    "100k": {
+     "venue": "Morpho wstETH/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.030935519839952783,
+     "labelClass": "projected",
+     "source": "onchain"
+    },
+    "1m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    },
+    "10m": {
+     "venue": "Morpho WBTC/USDT 86%",
+     "stable": "USDT",
+     "apy": 0.0309523,
+     "labelClass": "reported",
+     "source": "defillama"
+    }
+   },
+   "carryA": {
+    "100k": {
+     "apy": 0.006558428019158867,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.006487266371796221,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": {
+     "apy": 0.00595200373869299,
+     "bound": "exact",
+     "labelClass": "reported"
+    }
+   },
+   "carryABase": {
+    "100k": {
+     "apy": 0.006558428019158867,
+     "bound": "exact",
+     "labelClass": "projected"
+    },
+    "1m": {
+     "apy": 0.006487266371796221,
+     "bound": "exact",
+     "labelClass": "reported"
+    },
+    "10m": {
+     "apy": 0.00595200373869299,
+     "bound": "exact",
+     "labelClass": "reported"
+    }
+   },
+   "carryA30d": 0.004555380160047216,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.03749394785911165,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.03749394785911165,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.03743956637179622,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.03743956637179622,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": 0.03690430373869299,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.03690430373869299,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.3370724595254284,
+    "median90": 0.0325,
+    "spikeRatio": 1.1538461538461537,
+    "points": 84,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for spark-savings; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:a1b05c10-6d01-4b64-9247-4e86ca82a291"
+   ],
+   "label": "SREUSD · Savings reUSD",
+   "protocol": "resupply",
+   "category": "Lending",
+   "kind": "other",
+   "stable": "reUSD",
+   "stables": [
+    "reUSD"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 28147827,
+   "count": 401,
+   "apy": 0.0160663,
+   "apyBase": 0.0160663,
+   "apyReward": null,
+   "apyMean30d": 0.014202900000000001,
+   "venueNet": {
+    "100k": {
+     "apy": 0.016009423766652917,
+     "apr": 0.01588262447415311,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.01551509939077448,
+     "apr": 0.015395970850237091,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.016009423766652917,
+     "apr": 0.01588262447415311,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.01551509939077448,
+     "apr": 0.015395970850237091,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.016009423766652917,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.016009423766652917,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.01551509939077448,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.01551509939077448,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.3259708248486075,
+    "median90": 0.0112994,
+    "spikeRatio": 1.4218719578030692,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for resupply; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:4d48ed69-2a14-4609-91c0-bc129a6dc586"
+   ],
+   "label": "USD0 · EVK Vault eUSD0-4",
+   "protocol": "euler-v2",
+   "category": "Lending",
+   "kind": "other",
+   "stable": "USD0",
+   "stables": [
+    "USD0"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 10676072,
+   "count": 565,
+   "apy": 0.0055961000000000006,
+   "apyBase": 0.0055961000000000006,
+   "apyReward": null,
+   "apyMean30d": 0.0055918999999999995,
+   "venueNet": {
+    "100k": {
+     "apy": 0.005544169203695002,
+     "apr": 0.005528856867665472,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.005544169203695002,
+     "apr": 0.005528856867665472,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.005544169203695002,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.005544169203695002,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.2603980365090172,
+    "median90": 0.0056045999999999995,
+    "spikeRatio": 0.9984833886450417,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for euler-v2; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:3987099a-9165-47a3-a92f-df14e8d60e45"
+   ],
+   "label": "MSUSD · Aggressive",
+   "protocol": "vesper",
+   "category": "Yield Aggregator",
+   "kind": "other",
+   "stable": "msUSD",
+   "stables": [
+    "msUSD"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 31948258,
+   "count": 674,
+   "apy": 0.0008,
+   "apyBase": 0.0008,
+   "apyReward": 0,
+   "apyMean30d": 0.0008887000000000001,
+   "venueNet": {
+    "100k": {
+     "apy": 0.0007975037644791801,
+     "apr": 0.0007971859273249932,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.0007757195054136094,
+     "apr": 0.0007754187905416156,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.0007975037644791801,
+     "apr": 0.0007971859273249932,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": 0.0007757195054136094,
+     "apr": 0.0007754187905416156,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.0007975037644791801,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.0007975037644791801,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": 0.0007757195054136094,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.0007757195054136094,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 0.7986893774503168,
+    "median90": 0.0023,
+    "spikeRatio": 0.34782608695652173,
+    "points": 91,
+    "ok": true
+   },
+   "verification": null,
+   "flags": [
+    "history-90d"
+   ],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for vesper; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  },
+  {
+   "key": null,
+   "aliases": [
+    "llama:a892f0ed-0387-5d9a-b6a8-2ab4e561447f"
+   ],
+   "label": "CTCOLBUSD1 · Colb USD1",
+   "protocol": "concrete",
+   "category": "Onchain Capital Allocator",
+   "kind": "other",
+   "stable": "USD1",
+   "stables": [
+    "USD1"
+   ],
+   "exposure": "single",
+   "address": null,
+   "tvlUsd": 10123032,
+   "count": 59,
+   "apy": 0.0000017,
+   "apyBase": 0.0000017,
+   "apyReward": null,
+   "apyMean30d": 0.1128321,
+   "venueNet": {
+    "100k": {
+     "apy": 0.0000016833708825326966,
+     "apr": 0.0000016833694656655226,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "venueNetBase": {
+    "100k": {
+     "apy": 0.0000016833708825326966,
+     "apr": 0.0000016833694656655226,
+     "labelClass": "projected",
+     "note": "DeFiLlama APY × TVL/(TVL+size)"
+    },
+    "1m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    },
+    "10m": {
+     "apy": null,
+     "apr": null,
+     "labelClass": "projected",
+     "note": "size > 5% of TVL"
+    }
+   },
+   "bench": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryABase": {
+    "100k": null,
+    "1m": null,
+    "10m": null
+   },
+   "carryA30d": null,
+   "carryB": {
+    "100k": {
+     "base": {
+      "apy": 0.0000016833708825326966,
+      "bound": "upper",
+      "labelClass": "projected"
+     },
+     "withRewards": {
+      "apy": 0.0000016833708825326966,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "1m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    },
+    "10m": {
+     "base": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "size > 5% of TVL"
+     },
+     "withRewards": {
+      "apy": null,
+      "bound": "upper",
+      "labelClass": "projected",
+      "note": "if vaults claim rewards (not yet)"
+     }
+    }
+   },
+   "stability": {
+    "sigma90Pp": 44.70470927786091,
+    "median90": 0,
+    "spikeRatio": null,
+    "points": 59,
+    "ok": false,
+    "reason": "90-day σ 44.70pp > 1pp; 90-day median APY is not positive"
+   },
+   "verification": null,
+   "flags": [],
+   "list": "unverified",
+   "rank": null,
+   "unrankedReason": "no address resolver for concrete; add the pool to lib/carryScan/poolAddresses.json",
+   "status": null,
+   "weeksInRow": 0,
+   "persistent": null,
+   "readiness": {
+    "tier": "not-deployable",
+    "blockers": [
+     "asset is not USDC (DeploymentVaultFactory.sol:322, CuratorAllocator.sol:92)"
+    ],
+    "route": "not deployable yet (vaults hold USDC)"
+   },
+   "segue": {
+    "kind": "none"
+   },
+   "breakdown": null
+  }
+ ],
+ "dropped": [],
+ "nowOnApp": [],
+ "sources": [
+  {
+   "name": "defillama /pools",
+   "ok": true,
+   "rows": 16828
+  },
+  {
+   "name": "defillama /lendBorrow",
+   "ok": true,
+   "rows": 2368
+  },
+  {
+   "name": "defillama /protocols",
+   "ok": true,
+   "rows": 8694
+  },
+  {
+   "name": "morpho graphql",
+   "ok": true,
+   "rows": 519
+  },
+  {
+   "name": "merkl",
+   "ok": true,
+   "rows": 58
+  }
+ ],
+ "notes": [
+  "Ethereum stables only · not exhaustive · reported numbers are DeFiLlama’s.",
+  "DeFiLlama’s borrow-rate history (chartLendBorrow) is a paid endpoint, so the 30-day check is the pool’s 30-day mean APY minus this week’s benchmark.",
+  "Vault APYs (MetaMorpho, Morpho Vault V2, other ERC-4626) are DeFiLlama’s reported figures; supply-queue aggregation is out of scope for v1.",
+  "(b) Membrane carry has no borrow term: debt deployed in a canonical venue is paid for with a curator-set share of that venue’s yield, not a borrow rate. With no curator share given it is an upper bound.",
+  "Positive carry means the spread measured at this scan, never a promise.",
+  "On-app route \"USDT → Fluid\" is a waiver: ambiguous: the seed splits this label between FluidBridgeAggregatorProxy 0x273da948aca9261043fbdb2a857bc255ecc29012 (15) and Fluid USD Coin 0x9fb7b4477576fe5b32be4c1843afb1e55f251b33 (3); the /carry row is a label, not a venue.",
+  "On-app route \"USDC → Morpho Vault V2\" is a waiver: not one venue: a class of 33 Morpho Vault V2 [USDC] vaults in the seed.",
+  "On-app route \"USDC → Compound\" is a waiver: unresolved: no Compound destination in the seed."
+ ]
+}

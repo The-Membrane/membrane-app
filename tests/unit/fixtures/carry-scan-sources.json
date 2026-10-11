@@ -1,0 +1,676 @@
+{
+ "_comment": "Small hand-built DeFiLlama/Morpho rows for tests/unit/carryScan*.test.ts, in the live 2026-10-10 shapes (yields.llama.fi/pools, /lendBorrow, api.llama.fi/protocols, Morpho GraphQL markets). Rates in percent as DeFiLlama publishes them. Each pool id names the case it covers.",
+ "pools": [
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-vault-usdc",
+   "project": "morpho-blue",
+   "symbol": "STEAKUSDC",
+   "tvlUsd": 50000000,
+   "apy": 6,
+   "apyBase": 5.8,
+   "apyReward": 0.2,
+   "apyMean30d": 5.9,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-morpho-collateral-usdc",
+   "project": "morpho-blue",
+   "symbol": "USDC",
+   "tvlUsd": 80000000,
+   "apy": 0,
+   "apyBase": 0,
+   "apyReward": null,
+   "apyMean30d": 0,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": false,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-morpho-wsteth-usdt",
+   "project": "morpho-blue",
+   "symbol": "WSTETH",
+   "tvlUsd": 500000000,
+   "apy": 0,
+   "apyBase": 0,
+   "apyReward": null,
+   "apyMean30d": 0,
+   "underlyingTokens": [
+    "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": false,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-morpho-wbtc-rlusd",
+   "project": "morpho-blue",
+   "symbol": "WBTC",
+   "tvlUsd": 60000000,
+   "apy": 0,
+   "apyBase": 0,
+   "apyReward": null,
+   "apyMean30d": 0,
+   "underlyingTokens": [
+    "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-morpho-susde-usdc-idle",
+   "project": "morpho-blue",
+   "symbol": "SUSDE",
+   "tvlUsd": 20000000,
+   "apy": 0,
+   "apyBase": 0,
+   "apyReward": null,
+   "apyMean30d": 0,
+   "underlyingTokens": [
+    "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": false,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-morpho-wsteth-usdc-empty",
+   "project": "morpho-blue",
+   "symbol": "WSTETH",
+   "tvlUsd": 3000000,
+   "apy": 0,
+   "apyBase": 0,
+   "apyReward": null,
+   "apyMean30d": 0,
+   "underlyingTokens": [
+    "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-zero-tvl",
+   "project": "maple",
+   "symbol": "USDC",
+   "tvlUsd": 0,
+   "apy": 7,
+   "apyBase": 7,
+   "apyReward": null,
+   "apyMean30d": 7,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": true,
+   "apyBase7d": null,
+   "pool": "pool-outlier",
+   "project": "maple",
+   "symbol": "USDT",
+   "tvlUsd": 30000000,
+   "apy": 40,
+   "apyBase": 40,
+   "apyReward": null,
+   "apyMean30d": 9,
+   "underlyingTokens": [
+    "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-apy-null-parts",
+   "project": "fluid-lite",
+   "symbol": "USDC",
+   "tvlUsd": 44000000,
+   "apy": 6.83,
+   "apyBase": null,
+   "apyReward": null,
+   "apyMean30d": 6.7,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-apy-ne-sum",
+   "project": "maple",
+   "symbol": "USDT",
+   "tvlUsd": 40000000,
+   "apy": 5,
+   "apyBase": 3,
+   "apyReward": 1,
+   "apyMean30d": 4.9,
+   "underlyingTokens": [
+    "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-reward-heavy",
+   "project": "maple",
+   "symbol": "USDC",
+   "tvlUsd": 40000000,
+   "apy": 8,
+   "apyBase": 2,
+   "apyReward": 6,
+   "apyMean30d": 8,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-eur",
+   "project": "morpho-blue",
+   "symbol": "STEAKEURC",
+   "tvlUsd": 150000000,
+   "apy": 3,
+   "apyBase": 3,
+   "apyReward": null,
+   "apyMean30d": 3,
+   "underlyingTokens": [
+    "0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 10,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-short-history",
+   "project": "maple",
+   "symbol": "USDC",
+   "tvlUsd": 40000000,
+   "apy": 9,
+   "apyBase": 9,
+   "apyReward": null,
+   "apyMean30d": 9,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-uncollateralized",
+   "project": "pareto-credit",
+   "symbol": "USDC",
+   "tvlUsd": 40000000,
+   "apy": 9,
+   "apyBase": 9,
+   "apyReward": null,
+   "apyMean30d": 9,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-cedefi",
+   "project": "zerobase-cedefi",
+   "symbol": "USDT",
+   "tvlUsd": 40000000,
+   "apy": 9,
+   "apyBase": 9,
+   "apyReward": null,
+   "apyMean30d": 9,
+   "underlyingTokens": [
+    "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-crvusd",
+   "project": "crvusd",
+   "symbol": "SCRVUSD",
+   "tvlUsd": 16000000,
+   "apy": 2.8,
+   "apyBase": 2.8,
+   "apyReward": null,
+   "apyMean30d": 2.9,
+   "underlyingTokens": [
+    "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "multi",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-lp-usdc-usdt",
+   "project": "curve-dex",
+   "symbol": "USDC-USDT",
+   "tvlUsd": 20000000,
+   "apy": 6.5,
+   "apyBase": 6.5,
+   "apyReward": null,
+   "apyMean30d": 6.4,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "multi",
+   "ilRisk": "yes",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-lp-il",
+   "project": "curve-dex",
+   "symbol": "USDC-WETH",
+   "tvlUsd": 20000000,
+   "apy": 9,
+   "apyBase": 9,
+   "apyReward": null,
+   "apyMean30d": 9,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-aave-usdc",
+   "project": "aave-v3",
+   "symbol": "USDC",
+   "tvlUsd": 136000000,
+   "apy": 4.19,
+   "apyBase": 4.19,
+   "apyReward": null,
+   "apyMean30d": 4.1,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-spark-usdc",
+   "project": "sparklend",
+   "symbol": "USDC",
+   "tvlUsd": 4500000,
+   "apy": 3.56,
+   "apyBase": 3.56,
+   "apyReward": null,
+   "apyMean30d": 3.5,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": "Aave Horizon Market",
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-aave-horizon-rlusd",
+   "project": "aave-v3",
+   "symbol": "RLUSD",
+   "tvlUsd": 70000000,
+   "apy": 4.99,
+   "apyBase": 4.99,
+   "apyReward": null,
+   "apyMean30d": 4.9,
+   "underlyingTokens": [
+    "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD"
+   ]
+  },
+  {
+   "chain": "Ethereum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-aave-core-rlusd",
+   "project": "aave-v3",
+   "symbol": "RLUSD",
+   "tvlUsd": 850000,
+   "apy": 2.75,
+   "apyBase": 2.75,
+   "apyReward": null,
+   "apyMean30d": 2.7,
+   "underlyingTokens": [
+    "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD"
+   ]
+  },
+  {
+   "chain": "Arbitrum",
+   "stablecoin": true,
+   "exposure": "single",
+   "ilRisk": "no",
+   "poolMeta": null,
+   "count": 200,
+   "outlier": false,
+   "apyBase7d": null,
+   "pool": "pool-other-chain",
+   "project": "aave-v3",
+   "symbol": "USDC",
+   "tvlUsd": 100000000,
+   "apy": 5,
+   "apyBase": 5,
+   "apyReward": null,
+   "apyMean30d": 5,
+   "underlyingTokens": [
+    "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
+   ]
+  }
+ ],
+ "lendBorrow": [
+  {
+   "apyRewardBorrow": null,
+   "totalSupplyUsd": null,
+   "mintedCoin": "USDT",
+   "ltv": 0.915,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ],
+   "pool": "pool-morpho-collateral-usdc",
+   "apyBaseBorrow": 2.2,
+   "totalBorrowUsd": 40000000
+  },
+  {
+   "apyRewardBorrow": null,
+   "totalSupplyUsd": null,
+   "mintedCoin": "USDT",
+   "ltv": 0.86,
+   "underlyingTokens": [
+    "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
+   ],
+   "pool": "pool-morpho-wsteth-usdt",
+   "apyBaseBorrow": 3.1,
+   "totalBorrowUsd": 122000000
+  },
+  {
+   "apyRewardBorrow": null,
+   "totalSupplyUsd": null,
+   "mintedCoin": "RLUSD",
+   "ltv": 0.86,
+   "underlyingTokens": [
+    "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+   ],
+   "pool": "pool-morpho-wbtc-rlusd",
+   "apyBaseBorrow": 2.27,
+   "totalBorrowUsd": 18000000
+  },
+  {
+   "apyRewardBorrow": null,
+   "totalSupplyUsd": null,
+   "mintedCoin": "USDC",
+   "ltv": 0.915,
+   "underlyingTokens": [
+    "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497"
+   ],
+   "pool": "pool-morpho-susde-usdc-idle",
+   "apyBaseBorrow": 0.06,
+   "totalBorrowUsd": 0
+  },
+  {
+   "apyRewardBorrow": null,
+   "totalSupplyUsd": null,
+   "mintedCoin": "USDC",
+   "ltv": 0.86,
+   "underlyingTokens": [
+    "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
+   ],
+   "pool": "pool-morpho-wsteth-usdc-empty",
+   "apyBaseBorrow": 0.5,
+   "totalBorrowUsd": 0
+  },
+  {
+   "apyRewardBorrow": null,
+   "totalSupplyUsd": 2400000000,
+   "mintedCoin": null,
+   "ltv": null,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ],
+   "pool": "pool-aave-usdc",
+   "apyBaseBorrow": 4.94,
+   "totalBorrowUsd": 2270000000
+  },
+  {
+   "apyRewardBorrow": 0,
+   "totalSupplyUsd": 48200000,
+   "mintedCoin": null,
+   "ltv": null,
+   "underlyingTokens": [
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+   ],
+   "pool": "pool-spark-usdc",
+   "apyBaseBorrow": 4.37,
+   "totalBorrowUsd": 43700000
+  },
+  {
+   "apyRewardBorrow": null,
+   "totalSupplyUsd": null,
+   "mintedCoin": null,
+   "ltv": null,
+   "underlyingTokens": [
+    "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD"
+   ],
+   "pool": "pool-aave-horizon-rlusd",
+   "apyBaseBorrow": 3.1,
+   "totalBorrowUsd": 88000000
+  },
+  {
+   "apyRewardBorrow": null,
+   "totalSupplyUsd": null,
+   "mintedCoin": null,
+   "ltv": null,
+   "underlyingTokens": [
+    "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD"
+   ],
+   "pool": "pool-aave-core-rlusd",
+   "apyBaseBorrow": 4.76,
+   "totalBorrowUsd": 2200000
+  }
+ ],
+ "protocols": [
+  {
+   "slug": "morpho-blue",
+   "name": "morpho-blue",
+   "category": "Lending"
+  },
+  {
+   "slug": "aave-v3",
+   "name": "aave-v3",
+   "category": "Lending"
+  },
+  {
+   "slug": "sparklend",
+   "name": "sparklend",
+   "category": "Lending"
+  },
+  {
+   "slug": "maple",
+   "name": "maple",
+   "category": "Lending"
+  },
+  {
+   "slug": "fluid-lite",
+   "name": "fluid-lite",
+   "category": "Yield Aggregator"
+  },
+  {
+   "slug": "pareto-credit",
+   "name": "pareto-credit",
+   "category": "Uncollateralized Lending"
+  },
+  {
+   "slug": "zerobase-cedefi",
+   "name": "zerobase-cedefi",
+   "category": "Basis Trading"
+  },
+  {
+   "slug": "crvusd",
+   "name": "crvusd",
+   "category": "CDP"
+  },
+  {
+   "slug": "curve-dex",
+   "name": "curve-dex",
+   "category": "Dexs"
+  }
+ ],
+ "morphoMarkets": [
+  {
+   "marketId": "0xe7e9694b754c4d4f7e21faf7223f6fa71abaeb10296a4c43a54a7977149687d2",
+   "lltv": 0.86,
+   "loanSymbol": "USDT",
+   "loanAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+   "collateralSymbol": "wstETH",
+   "collateralAddress": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+   "borrowAssetsUsd": 122000000
+  },
+  {
+   "marketId": "0xa128dddc00000000000000000000000000000000000000000000000000000000",
+   "lltv": 0.86,
+   "loanSymbol": "RLUSD",
+   "loanAddress": "0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD",
+   "collateralSymbol": "WBTC",
+   "collateralAddress": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+   "borrowAssetsUsd": 18000000
+  },
+  {
+   "marketId": "0xbbbb000000000000000000000000000000000000000000000000000000000001",
+   "lltv": 0.86,
+   "loanSymbol": "USDC",
+   "loanAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+   "collateralSymbol": "wstETH",
+   "collateralAddress": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+   "borrowAssetsUsd": 0
+  }
+ ]
+}

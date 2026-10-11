@@ -14,6 +14,8 @@ export const INDEXABLE_PATHS = [
   `/${DEFAULT_CHAIN}`,
   `/${DEFAULT_CHAIN}/borrow`,
   `/${DEFAULT_CHAIN}/carry`,
+  // The weekly carry scout: SSR from the data branch, with a committed fallback snapshot.
+  `/${DEFAULT_CHAIN}/carry-scout`,
   `/${DEFAULT_CHAIN}/home`,
   `/${DEFAULT_CHAIN}/landing`,
   `/${DEFAULT_CHAIN}/mint`,

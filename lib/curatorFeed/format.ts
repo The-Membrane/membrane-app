@@ -114,8 +114,8 @@ export function capText(e: Entities, a: FeedAction, raw: string | undefined): st
   const asset = e.vaults[a.vault]?.asset
   const dec = asset ? (e.tokens[asset]?.decimals ?? 18) : 18
   const big = BigInt(raw)
-  // type(uint184).max and similar sentinels read as "unlimited".
-  if (big >= 2n ** 128n) return `unlimited ${symbolOf(e, asset)}`
+  // Sentinels read as "unlimited": Vault V2 type(uint128).max, MetaMorpho type(uint184).max.
+  if (big >= 2n ** 128n - 1n) return `unlimited ${symbolOf(e, asset)}`
   return `${compact(units(big, dec))} ${symbolOf(e, asset)}`
 }
 

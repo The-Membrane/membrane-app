@@ -8,6 +8,7 @@ import {
   buildAttributionResponse,
   buildExposureResponse,
   buildFeedResponse,
+  buildFlagsResponse,
   buildSpikeResponse,
   parseFeedQuery,
 } from '@/lib/curatorFeed/service'
@@ -87,6 +88,20 @@ describe.skipIf(!has)('curator feed dataset', () => {
     }
   })
 
+  it('flags (when collected): every stored market carries a flag and a sentence per flag', () => {
+    if (!feed.flags) return
+    const r = buildFlagsResponse(feed, exposure, parseFeedQuery({ view: 'flags' }), compact)
+    expect(r.markets.length).toBe(Object.keys(feed.flags.markets).length)
+    for (const m of r.markets) {
+      expect(m.kinds.length, m.market).toBeGreaterThan(0)
+      expect(m.texts.length, m.market).toBe(m.kinds.length)
+    }
+    for (const x of feed.flags.shifts) {
+      expect(x.cuts.length).toBeGreaterThan(0)
+      expect(x.day >= new Date(feed.meta.fromTs * 1000).toISOString().slice(0, 10)).toBe(true)
+    }
+  })
+
   it('every MetaMorpho market target resolves to market params', () => {
     const missing = feed.actions.filter(
       (a) =>
@@ -106,6 +121,10 @@ describe.skipIf(!has)('curator feed dataset', () => {
       ...buildAttributionResponse(feed, parseFeedQuery({ view: 'attribution' }), compact).map(
         (a) => a.text,
       ),
+      ...(() => {
+        const f = buildFlagsResponse(feed, exposure, parseFeedQuery({ view: 'flags' }), compact)
+        return [...f.markets.flatMap((m) => m.texts), ...f.shifts.map((x) => x.text)]
+      })(),
       ...buildSpikeResponse(
         feed,
         parseFeedQuery({ view: 'spikes', limit: '500' }),

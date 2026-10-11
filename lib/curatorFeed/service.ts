@@ -15,9 +15,26 @@
 import { attribute, type Attribution } from './attribution'
 import { clusteredIds, detectExitClusters, isDirectExit, type ClusterOptions } from './clusters'
 import { byCollateral, type CollateralRow } from './exposure'
-import { actionText, curatorLabel, marketLabel, symbolOf, targetLabel, vaultLabel } from './format'
+import {
+  FLAG_DEFAULTS,
+  marketFlagKinds,
+  topBorrowerShare,
+  vaultBorrowerShare,
+  type MarketFlagKind,
+} from './flags'
+import {
+  actionText,
+  curatorLabel,
+  durationText,
+  marketLabel,
+  short,
+  symbolOf,
+  targetLabel,
+  utc,
+  vaultLabel,
+} from './format'
 import { explainSpike, type SpikeExplanation } from './spikes'
-import type { ExposureAlloc, SpikeDriver } from './types'
+import type { ExposureAlloc, MarketFlags, SpikeDriver } from './types'
 import { secondsLeft, statusOf, toneOf, type Tone } from './status'
 import type { ExposureFile, FeedFile, FeedMeta } from './store'
 import type { ClaimClass } from '../netApy/types'
@@ -74,7 +91,7 @@ const GROUPS: Record<Exclude<Group, 'all'>, ActionKind[]> = {
 const PROTOCOLS: Protocol[] = ['morpho-v1', 'morpho-v2', 'euler-earn', 'aave-v3']
 
 export interface FeedQuery {
-  view: 'feed' | 'exposure' | 'attribution' | 'spikes'
+  view: 'feed' | 'exposure' | 'attribution' | 'spikes' | 'flags'
   collateral?: string
   curator?: string
   protocol?: Protocol
@@ -94,8 +111,8 @@ const one = (v: string | string[] | undefined): string | undefined => (Array.isA
 
 export function parseFeedQuery(q: Record<string, string | string[] | undefined>): FeedQuery {
   const view = one(q.view) ?? 'feed'
-  if (!['feed', 'exposure', 'attribution', 'spikes'].includes(view))
-    throw new QueryError('view must be feed, exposure, attribution or spikes')
+  if (!['feed', 'exposure', 'attribution', 'spikes', 'flags'].includes(view))
+    throw new QueryError('view must be feed, exposure, attribution, spikes or flags')
   const group = (one(q.group) ?? 'all') as Group
   if (group !== 'all' && !(group in GROUPS))
     throw new QueryError(`group must be one of all, ${Object.keys(GROUPS).join(', ')}`)
@@ -184,6 +201,10 @@ export const CLAIM = {
   cluster: 'possible-leading-signal',
   attribution: 'observed-driver',
   spike: 'observed-driver',
+  /** An oracle's inputs or state, or a market's largest borrower, read at a block. */
+  marketFlag: 'measured-change',
+  /** One curator moving a position between its own vaults, then cutting it. */
+  shift: 'possible-leading-signal',
 } as const satisfies Record<string, ClaimClass>
 
 /**
@@ -584,6 +605,8 @@ export interface VaultAllocView {
   usd?: number
   share: number
   via?: string
+  /** Short labels of the market's flags (flags.ts), e.g. "oracle reverting". */
+  flags?: string[]
 }
 export interface VaultExposureView {
   vault: string
@@ -643,6 +666,7 @@ export function buildVaultExposure(
           usd: a.usd,
           share: a.share,
           via: a.via,
+          flags: allocFlagLabels(feed, a.target, a.share),
         })),
       }
     })
@@ -794,3 +818,239 @@ export function buildSpikeResponse(
   out.sort((a, b) => b.block - a.block)
   return { rows: out.slice(0, q.limit), total: out.length }
 }
+
+// ── flags (lib/curatorFeed/flags.ts) ──────────────────────────────────────────
+
+const FLAG_LABEL: Record<MarketFlagKind, string> = {
+  'oracle-fixed': 'fixed-price oracle',
+  'oracle-reported': 'reported-value oracle',
+  'oracle-reverting': 'oracle reverting',
+  'oracle-stale': 'oracle stale',
+  'one-borrower': 'one borrower',
+}
+
+const pct0 = (x: number) => `${Math.round(x * 100)}%`
+
+/** USD of the market's borrows as read with its largest borrower. */
+function borrowUsdOf(feed: FeedFile, market: string, f: MarketFlags): number | undefined {
+  const m = feed.entities.markets[market]
+  const t = m ? feed.entities.tokens[m.loan.toLowerCase()] : undefined
+  if (!f.borrowers || !t?.priceUsd) return undefined
+  return (Number(BigInt(f.borrowers.totalBorrow)) / 10 ** t.decimals) * t.priceUsd
+}
+
+export function marketFlagKindsOf(feed: FeedFile, market: string): MarketFlagKind[] {
+  const f = feed.flags?.markets[market]
+  return f ? marketFlagKinds(f, borrowUsdOf(feed, market, f)) : []
+}
+
+/** Labels for one vault allocation; the one-borrower label carries the vault's part. */
+function allocFlagLabels(feed: FeedFile, market: string, allocShare: number): string[] | undefined {
+  const f = feed.flags?.markets[market]
+  if (!f) return undefined
+  const kinds = marketFlagKindsOf(feed, market)
+  const out = kinds.filter((k) => k !== 'one-borrower').map((k) => FLAG_LABEL[k])
+  if (kinds.includes('one-borrower')) {
+    const v = vaultBorrowerShare(allocShare, f)
+    out.push(
+      v !== undefined && v >= 0.005
+        ? `one borrower ≈ ${pct0(v)} of vault`
+        : `one borrower (${pct0(topBorrowerShare(f) ?? 0)} of market)`,
+    )
+  }
+  return out.length ? out : undefined
+}
+
+/** 1 collateral unit in loan units, from a 1e36-scaled oracle price. */
+function unitPrice(price: string, collDec: number, loanDec: number): number {
+  return (Number(BigInt(price)) / 1e36) * 10 ** (collDec - loanDec)
+}
+
+/** One factual sentence per flag. */
+export function marketFlagTexts(
+  feed: FeedFile,
+  market: string,
+  f: MarketFlags,
+  kinds: MarketFlagKind[],
+  fmt: (n: number) => string,
+): string[] {
+  const e = feed.entities
+  const m = e.markets[market]
+  const coll = symbolOf(e, m.collateral)
+  const loan = symbolOf(e, m.loan)
+  const cd = e.tokens[m.collateral.toLowerCase()]?.decimals ?? 18
+  const ld = e.tokens[m.loan.toLowerCase()]?.decimals ?? 18
+  const lltv = pct0(Number(BigInt(m.lltv)) / 1e18)
+  const out: string[] = []
+  if (kinds.includes('oracle-fixed'))
+    out.push(
+      `The oracle has no price feed: it prices 1 ${coll} at ${f.price ? fmt(unitPrice(f.price, cd, ld)) : 'a constant'} ${loan} at every block. A fall in ${coll}'s market price does not reach this market; only accrued interest can push a position past its ${lltv} liquidation LTV.`,
+    )
+  if (kinds.includes('oracle-reported')) {
+    const inputs = f.parts.map((p) =>
+      p.role.endsWith('Vault')
+        ? `the ${symbolOf(e, p.address)} vault rate (1 ${symbolOf(e, p.asset ?? '')} taken as 1 ${loan})`
+        : `"${p.description}"`,
+    )
+    out.push(
+      `The oracle prices ${coll} from ${inputs.join(' and ')}: reported values, with no market price in the path. A fall in ${coll}'s market price does not reach this market.`,
+    )
+  }
+  if (kinds.includes('oracle-reverting') && f.reverting)
+    out.push(
+      `price() has reverted since block ${f.reverting.since.toLocaleString('en-US')} (${utc(f.reverting.sinceTs)})${f.reverting.beforeWindow ? ' or earlier' : ''}: liquidations, new borrows and collateral withdrawals from positions with debt revert in this market. Repaying is the only way a borrower can leave.`,
+    )
+  if (kinds.includes('oracle-stale') && f.staleSeconds !== undefined)
+    out.push(
+      `An oracle feed's latestRoundData() reports its last update ${durationText(f.staleSeconds)} before block ${(feed.flags?.block ?? 0).toLocaleString('en-US')}.`,
+    )
+  if (kinds.includes('one-borrower') && f.borrowers) {
+    const total = Number(BigInt(f.borrowers.totalBorrow)) / 10 ** ld
+    out.push(
+      `One address (${short(f.borrowers.top)}) owes ${pct0(topBorrowerShare(f) ?? 0)} of the market's ${fmt(total)} ${loan} of borrows (block ${f.borrowers.block.toLocaleString('en-US')}).`,
+    )
+  }
+  return out
+}
+
+export interface MarketFlagView {
+  claim: typeof CLAIM.marketFlag
+  market: string
+  marketName: string
+  collateralSymbol: string
+  loanSymbol: string
+  oracle: string
+  kinds: MarketFlagKind[]
+  /** What curated vaults supply to it at the last exposure read, USD. */
+  curatedUsd?: number
+  vaults: {
+    vault: string
+    vaultName: string
+    curatorName: string
+    /** Part of the vault in this market (0–1). */
+    share: number
+    usd?: number
+    /** Part of the vault lent to the market's largest borrower (0–1). */
+    borrowerShare?: number
+  }[]
+  texts: string[]
+}
+
+export interface ShiftView {
+  claim: typeof CLAIM.shift
+  curatorName: string
+  market: string
+  marketName: string
+  day: string
+  usd?: number
+  from: { vault: string; vaultName: string; amount: number }[]
+  to: { vault: string; vaultName: string; amount: number }[]
+  cuts: { vault: string; vaultName: string; ts: number; kind: string }[]
+  text: string
+}
+
+const CUT_TEXT: Record<string, string> = {
+  cap_zero: 'set its cap to 0',
+  removal_submit: "submitted the market's removal",
+  market_removed: 'removed the market',
+  writeoff_submit: 'submitted a write-off',
+  writeoff: 'wrote the position off',
+}
+
+export function buildFlagsResponse(
+  feed: FeedFile,
+  exposure: ExposureFile,
+  q: FeedQuery,
+  fmt: (n: number) => string,
+): { block?: number; ts?: number; markets: MarketFlagView[]; shifts: ShiftView[] } {
+  const flags = feed.flags
+  if (!flags) return { markets: [], shifts: [] }
+  const e = feed.entities
+  const coll = collateralMatcher(feed, q.collateral)
+  const cur = curatorMatcher(feed, q.curator)
+  const holders = new Map<string, MarketFlagView['vaults']>()
+  for (const v of exposure.vaults)
+    for (const a of v.allocations) {
+      if (!flags.markets[a.target]) continue
+      const f = flags.markets[a.target]
+      holders.set(a.target, [
+        ...(holders.get(a.target) ?? []),
+        {
+          vault: v.vault,
+          vaultName: vaultLabel(e, v.vault),
+          curatorName: curatorLabel(e, v.vault),
+          share: a.share,
+          usd: a.usd,
+          borrowerShare: vaultBorrowerShare(a.share, f),
+        },
+      ])
+    }
+  const markets: MarketFlagView[] = []
+  for (const [market, f] of Object.entries(flags.markets)) {
+    const m = e.markets[market]
+    if (!m || (q.market && market !== q.market) || !coll([m.collateral])) continue
+    const vs = (holders.get(market) ?? []).sort((a, b) => (b.usd ?? 0) - (a.usd ?? 0))
+    if (q.curator && !vs.some((v) => cur(v.vault))) continue
+    const kinds = marketFlagKinds(f, borrowUsdOf(feed, market, f))
+    if (!kinds.length) continue
+    markets.push({
+      claim: CLAIM.marketFlag,
+      market,
+      marketName: marketLabel(e, market),
+      collateralSymbol: symbolOf(e, m.collateral),
+      loanSymbol: symbolOf(e, m.loan),
+      oracle: f.oracle,
+      kinds,
+      curatedUsd: vs.length ? vs.reduce((s, v) => s + (v.usd ?? 0), 0) : undefined,
+      vaults: vs,
+      texts: marketFlagTexts(feed, market, f, kinds, fmt),
+    })
+  }
+  markets.sort(
+    (a, b) =>
+      Number(b.kinds.includes('oracle-reverting')) - Number(a.kinds.includes('oracle-reverting')) ||
+      (b.curatedUsd ?? 0) - (a.curatedUsd ?? 0),
+  )
+  const byId = new Map(feed.actions.map((a) => [a.id, a]))
+  const shifts: ShiftView[] = []
+  for (const x of flags.shifts) {
+    const m = e.markets[x.market]
+    if (!m || (q.market && x.market !== q.market) || !coll([m.collateral])) continue
+    if (q.curator && ![...x.from, ...x.to].some((v) => cur(v.vault))) continue
+    const loan = symbolOf(e, m.loan)
+    const side = (vs: { vault: string; amount: number }[]) =>
+      vs.map((v) => ({ vault: v.vault, vaultName: vaultLabel(e, v.vault), amount: v.amount }))
+    const from = side(x.from)
+    const to = side(x.to)
+    const cuts = x.cuts.map((c) => ({
+      vault: c.vault,
+      vaultName: vaultLabel(e, c.vault),
+      ts: c.ts,
+      kind: byId.get(c.actionId)?.kind ?? 'cap_zero',
+    }))
+    const curatorName = curatorLabel(e, x.from[0].vault)
+    const who = /^0x[0-9a-f]{40}$/i.test(curatorName)
+      ? `The curator ${short(curatorName)}`
+      : curatorName
+    const list = (vs: { vaultName: string; amount: number }[], sign: string) =>
+      vs.map((v) => `${v.vaultName} ${sign}${fmt(v.amount)} ${loan}`).join(', ')
+    const text =
+      `${who} moved${x.usd !== undefined ? ` ≈ $${fmt(x.usd)} of` : ''} ${marketLabel(e, x.market)} between its own vaults on ${x.day} (net, UTC day): ${list(from, '−')}; ${list(to, '+')}. ` +
+      `Then ${cuts.map((c) => `${c.vaultName} ${CUT_TEXT[c.kind] ?? c.kind} on ${symbolOf(e, m.collateral)} (${utc(c.ts)})`).join('; ')}.`
+    shifts.push({
+      claim: CLAIM.shift,
+      curatorName,
+      market: x.market,
+      marketName: marketLabel(e, x.market),
+      day: x.day,
+      usd: x.usd,
+      from,
+      to,
+      cuts,
+      text,
+    })
+  }
+  return { block: flags.block, ts: flags.ts, markets, shifts }
+}
+
+export { FLAG_DEFAULTS }

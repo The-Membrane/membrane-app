@@ -505,6 +505,9 @@ describe('format', () => {
     const a = act({ vault: v(1), kind: 'cap_raise', ts: T0 })
     expect(capText(entities, a, '5000000000000000000000')).toBe('5K WETH')
     expect(capText(entities, a, (2n ** 184n - 1n).toString())).toBe('unlimited WETH')
+    // Vault V2's "no limit" absolute cap is type(uint128).max.
+    expect(capText(entities, a, (2n ** 128n - 1n).toString())).toBe('unlimited WETH')
+    expect(capText(entities, a, (2n ** 128n - 2n).toString())).not.toBe('unlimited WETH')
     expect(
       capText(entities, { ...a, protocol: 'aave-v3', target: RSETH, capType: 'supply' }, '0'),
     ).toBe('no cap')

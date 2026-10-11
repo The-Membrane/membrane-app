@@ -30,6 +30,8 @@ import type {
   FeedResponse,
   FeedRow,
   Group,
+  MarketFlagView,
+  ShiftView,
   SpikeView,
   VaultExposureView,
 } from '@/lib/curatorFeed/service'
@@ -287,6 +289,13 @@ const VaultExposure: React.FC<{ collateral: string }> = ({ collateral }) => {
                         · via {a.via.slice(0, 6)}…{a.via.slice(-4)}
                       </Text>
                     ) : null}
+                    {a.flags?.map((f) => (
+                      <Box as="span" key={f} ml="6px">
+                        <Tag tone="amber" wrap>
+                          {f}
+                        </Tag>
+                      </Box>
+                    ))}
                   </Mono>
                   <Mono size="11px">
                     {compact(a.amount)} {v.loanSymbol}
@@ -603,6 +612,157 @@ const SpikeSection: React.FC<{ collateral: string; minSupply?: number }> = ({
   )
 }
 
+const FLAG_TAG: Record<string, string> = {
+  'oracle-fixed': 'fixed-price oracle',
+  'oracle-reported': 'reported-value oracle',
+  'oracle-reverting': 'oracle reverting',
+  'oracle-stale': 'oracle stale',
+  'one-borrower': 'one borrower',
+}
+
+const FlagsSection: React.FC<{ collateral: string }> = ({ collateral }) => {
+  const [held, setHeld] = useState(true)
+  const [allMarkets, setAllMarkets] = useState(false)
+  const { data, error, isLoading } = useQuery<{
+    block?: number
+    ts?: number
+    markets: MarketFlagView[]
+    shifts: ShiftView[]
+  }>({
+    queryKey: ['curator_flags', collateral],
+    queryFn: () =>
+      getJson(
+        `/api/curator-feed?view=flags${collateral ? `&collateral=${encodeURIComponent(collateral)}` : ''}`,
+      ),
+    staleTime: 5 * 60_000,
+  })
+  const markets = (data?.markets ?? []).filter(
+    (m) => !held || m.kinds.includes('oracle-reverting') || (m.curatedUsd ?? 0) > 0,
+  )
+  const shownMarkets = allMarkets ? markets : markets.slice(0, 20)
+  return (
+    <Box>
+      <SectionHeading
+        index="07"
+        title="Market and curator flags"
+        note={
+          data?.block ? `block ${data.block.toLocaleString()} · ${utc(data.ts ?? 0)}` : undefined
+        }
+      />
+      <Mono size="11px">
+        Facts that kept depositors from leaving in the 2026 msY and AZND write-offs, read for every
+        market curated vaults use: an oracle with no market price in its path (a fixed price, or
+        only reported values such as a NAV feed); an oracle whose price() reverts, or whose feed
+        stopped updating; one address owing most of a market&apos;s borrows. And one curator moving
+        a position between its own vaults, then cutting it in the vaults that gave it up.
+      </Mono>
+      {isLoading && <Mono>loading…</Mono>}
+      {error && <Mono color={SEMANTIC_COLORS.danger}>{String((error as Error).message)}</Mono>}
+      {data && (
+        <>
+          <HStack mt={SPACING.sm} spacing={SPACING.sm} flexWrap="wrap">
+            <Chip active={held} onClick={() => setHeld(true)}>
+              held by curated vaults or reverting
+            </Chip>
+            <Chip active={!held} onClick={() => setHeld(false)}>
+              all flagged markets
+            </Chip>
+            <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
+              {markets.length} markets · {data.shifts.length} curator shifts
+            </Mono>
+          </HStack>
+          <Stack spacing={0} mt={SPACING.sm}>
+            {shownMarkets.map((m) => (
+              <Box
+                key={m.market}
+                borderLeft="2px solid"
+                borderColor={
+                  m.kinds.includes('oracle-reverting')
+                    ? SEMANTIC_COLORS.danger
+                    : SEMANTIC_COLORS.warning
+                }
+                pl={SPACING.sm}
+                py={SPACING.xs}
+                borderBottom="1px solid"
+                borderBottomColor={SEMANTIC_COLORS.borderSubtle}
+              >
+                <HStack spacing={SPACING.sm} flexWrap="wrap" align="baseline">
+                  <Mono size="12px" color={SEMANTIC_COLORS.textPrimary} title={m.market}>
+                    {m.marketName}
+                  </Mono>
+                  {m.kinds.map((k) => (
+                    <Tag key={k} tone={k === 'oracle-reverting' ? 'red' : 'amber'}>
+                      {FLAG_TAG[k] ?? k}
+                    </Tag>
+                  ))}
+                  {m.curatedUsd !== undefined && (
+                    <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
+                      curated supply ${compact(m.curatedUsd)} · {m.vaults.length} vault
+                      {m.vaults.length === 1 ? '' : 's'}
+                    </Mono>
+                  )}
+                </HStack>
+                {m.texts.map((t) => (
+                  <Mono key={t} size="11.5px" color={SEMANTIC_COLORS.textPrimary}>
+                    {t}
+                  </Mono>
+                ))}
+                {m.vaults.length > 0 && (
+                  <Mono size="10.5px" color={SEMANTIC_COLORS.textTertiary}>
+                    Held by:{' '}
+                    {m.vaults
+                      .slice(0, 6)
+                      .map(
+                        (v) =>
+                          `${v.vaultName} (${v.curatorName}) ${(v.share * 100).toFixed(1)}% of vault` +
+                          (m.kinds.includes('one-borrower') && v.borrowerShare !== undefined
+                            ? `, ≈ ${Math.round(v.borrowerShare * 100)}% lent to that borrower`
+                            : ''),
+                      )
+                      .join(' · ')}
+                    {m.vaults.length > 6 ? ` · +${m.vaults.length - 6} more` : ''}
+                  </Mono>
+                )}
+              </Box>
+            ))}
+          </Stack>
+          {markets.length > 20 && (
+            <Box mt={SPACING.sm}>
+              <Chip onClick={() => setAllMarkets(!allMarkets)}>
+                {allMarkets ? 'show fewer' : `show all ${markets.length}`}
+              </Chip>
+            </Box>
+          )}
+          <Mono size="11px" color={SEMANTIC_COLORS.textSecondary}>
+            Curator shifts (claim class: possible leading signal):{' '}
+            {data.shifts.length === 0 ? 'none in the collected range.' : ''}
+          </Mono>
+          <Stack spacing={0} mt={SPACING.xs}>
+            {data.shifts.map((x) => (
+              <Box
+                key={`${x.market}:${x.day}:${x.curatorName}`}
+                borderLeft="2px solid"
+                borderColor={SEMANTIC_COLORS.warning}
+                pl={SPACING.sm}
+                py={SPACING.xs}
+                borderBottom="1px solid"
+                borderBottomColor={SEMANTIC_COLORS.borderSubtle}
+              >
+                <Mono size="10px" color={SEMANTIC_COLORS.textTertiary}>
+                  {x.day}
+                </Mono>
+                <Mono size="11.5px" color={SEMANTIC_COLORS.textPrimary}>
+                  {x.text}
+                </Mono>
+              </Box>
+            ))}
+          </Stack>
+        </>
+      )}
+    </Box>
+  )
+}
+
 /** Transactions behind the drivers that pushed utilization up (largest first), max 3. */
 const uniqTx = (s: SpikeView): string[] =>
   [...new Set(s.drivers.filter((d) => d.share > 0).map((d) => d.tx))].slice(0, 3)
@@ -789,6 +949,7 @@ export const CuratorFeed: React.FC = () => {
         keptDrop={m?.thresholds.keptSupplyDrop}
       />
       <SpikeSection collateral={collateral} minSupply={m?.thresholds.spikeMinSupplyUsd} />
+      <FlagsSection collateral={collateral} />
 
       {m && (
         <Card variant="subtle" mt={SPACING.xl} p={SPACING.base}>

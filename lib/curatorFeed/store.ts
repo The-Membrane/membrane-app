@@ -19,7 +19,16 @@
 
 import type { EmitterKind } from './abi'
 import type { ClassifierState } from './classify'
-import type { AttributionCase, Entities, ExposureVault, FeedAction, SpikeCase } from './types'
+import type {
+  AttributionCase,
+  Entities,
+  ExposureVault,
+  FeedAction,
+  FeedFlags,
+  MarketFlags,
+  OraclePart,
+  SpikeCase,
+} from './types'
 
 export const SCHEMA = 2
 
@@ -55,6 +64,15 @@ export interface FeedMeta {
     exposureMinUsd: number
     keptSupplyDrop: number
     spikeMinSupplyUsd?: number
+    /** lib/curatorFeed/flags.ts FLAG_DEFAULTS as used. */
+    flags?: {
+      staleHours: number
+      borrowerShare: number
+      vaultBorrowerShare: number
+      minBorrowUsd: number
+      shiftMinUsd: number
+      shiftCutDays: number
+    }
   }
   /** The run that wrote this file: full window or incremental from the last block. */
   lastRun?: {
@@ -75,6 +93,8 @@ export interface FeedFile {
   actions: FeedAction[]
   attribution: AttributionCase[]
   spikes: SpikeCase[]
+  /** Market facts at the head and curator exposure shifts (absent in files from before them). */
+  flags?: FeedFlags
 }
 
 /** What an incremental run carries over. JSON-safe (bigints as decimal strings). */
@@ -96,6 +116,13 @@ export interface CollectorState {
   rates: Record<string, [number, string]>
   /** Block of the last exposure snapshot. */
   exposureBlock: number
+  /** Oracle → its MorphoChainlinkOracleV2 inputs (null: another oracle type). Immutable
+   *  contracts, so read once. */
+  oracles?: Record<string, OraclePart[] | null>
+  /** Oracle → first reverting block found, while price() keeps reverting. */
+  oracleRevert?: Record<string, NonNullable<MarketFlags['reverting']>>
+  /** Market → its largest borrower at the last exposure read. */
+  borrowers?: Record<string, NonNullable<MarketFlags['borrowers']>>
 }
 /**
  * Daily flows, dictionary-encoded (≈ 75k rows for 182 days would be ≈ 16 MB as objects).
@@ -188,6 +215,7 @@ export const encodeFeedFile = (feed: FeedFile): unknown => ({
     actions: feed.actions,
     attribution: feed.attribution,
     spikes: feed.spikes,
+    ...(feed.flags ? { flags: feed.flags } : {}),
   }),
 })
 

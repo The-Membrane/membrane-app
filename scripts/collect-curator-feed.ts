@@ -30,6 +30,9 @@
 //   9. Attribution (withdrawal-first): ≥ $1M net reallocation withdrawals, market + IRM reads.
 //  10. Spikes (spike-first): AccrueInterest rate jumps on markets curated vaults use, then
 //      every Morpho Blue flow in the block that set the new rate (lib/curatorFeed/spikes.ts).
+//  11. Flags (lib/curatorFeed/flags.ts) on the same markets: what the oracle prices from,
+//      whether price() reverts or a feed is stale, the largest borrower (with each exposure
+//      read); and curator shifts between a curator's own vaults followed by cuts.
 //
 // RPC: env keys are never printed or stored (labels only). Labels: Morpho API curator
 // registry + vault list, Euler labels entities.json. Prices: Morpho API, collection time.
@@ -68,6 +71,14 @@ import {
   toUnitFlows,
   type UnitFlow,
 } from '../lib/curatorFeed/flows'
+import {
+  FLAG_DEFAULTS,
+  classifyOracle,
+  detectShifts,
+  hasMarketFlag,
+  marketFlagKinds,
+  revertOnset,
+} from '../lib/curatorFeed/flags'
 import { keccakText } from '../lib/curatorFeed/keccak'
 import {
   detectSpikes,
@@ -95,6 +106,9 @@ import type {
   ExposureAlloc,
   ExposureVault,
   FeedAction,
+  FeedFlags,
+  MarketFlags,
+  OraclePart,
   Protocol,
   Reallocation,
   SpikeCase,
@@ -1046,6 +1060,18 @@ async function main() {
   )
   log(`spikes: ${spikes.length} kept`)
 
+  // ── flags 1, 2, 4: oracle kind, reverting / stale, largest borrower ──
+  const marketFlags = await readMarketFlags([...universe], {
+    head: toBlock,
+    headTs: toTs,
+    windowFrom,
+    windowFromTs,
+    refreshBorrowers: refreshExposure || !state.borrowers,
+    state,
+    ent,
+    usd,
+  })
+
   // ── merge, roll the window, prune, write ──
   const merged = trimFeed(
     {
@@ -1075,6 +1101,29 @@ async function main() {
     ent,
     toBlock,
   )
+  // ── flag 3: curator shifts between its own vaults, followed by cuts ──
+  const shifts = detectShifts(flows, actions, {
+    curatorOf: (v) => ent.vaults[v]?.curatorKey || v,
+    collateralOf: (t) => {
+      const m = ent.markets[t]
+      return m && m.collateral !== ZERO ? lc(m.collateral) : undefined
+    },
+    usd: (t, amount) => {
+      const tok = ent.tokens[lc(ent.markets[t]?.loan ?? '')]
+      return tok?.priceUsd !== undefined ? amount * tok.priceUsd : undefined
+    },
+  })
+  const flags: FeedFlags = { block: toBlock, ts: toTs, markets: marketFlags, shifts }
+  const flagCounts: Record<string, number> = { flagShifts: shifts.length }
+  for (const [m, f] of Object.entries(marketFlags)) {
+    const w = ent.markets[m]
+    for (const k of marketFlagKinds(
+      f,
+      w ? usd(w.loan, BigInt(f.borrowers?.totalBorrow ?? '0')) : undefined,
+    ))
+      flagCounts[`flag:${k}`] = (flagCounts[`flag:${k}`] ?? 0) + 1
+  }
+  log(`flags: ${JSON.stringify(flagCounts)}`)
   const entities = prune(
     ent,
     actions,
@@ -1083,6 +1132,7 @@ async function main() {
     merged.feed.attribution,
     merged.feed.spikes,
     v2Ids,
+    flags,
   )
   state.kinds = Object.fromEntries(kindOf)
   state.toBlock = toBlock
@@ -1115,12 +1165,14 @@ async function main() {
       openButClearedOnChain: clearedOnChain,
       rpcCalls: rpc.calls,
       ...stats,
+      ...flagCounts,
     },
     thresholds: {
       largeWithdrawUsd: LARGE_WITHDRAW_USD,
       exposureMinUsd: EXPOSURE_MIN_USD,
       keptSupplyDrop: KEPT_SUPPLY_DROP,
       spikeMinSupplyUsd: SPIKE_MIN_SUPPLY_USD,
+      flags: FLAG_DEFAULTS,
     },
     lastRun: {
       mode,
@@ -1142,6 +1194,7 @@ async function main() {
     actions,
     attribution: merged.feed.attribution,
     spikes: merged.feed.spikes,
+    flags,
   }
 
   const dirs: [string, string][] = [
@@ -1188,6 +1241,8 @@ const CAVEATS = [
   'Exposure lists vaults with at least $100k (Morpho API TVL, or on-chain total assets when the API has no figure); it is refreshed every few hours, not every run.',
   'Euler Earn strategies can accept several collaterals; their exits are listed but not counted in collateral clusters.',
   'A cluster counts an exit only when the vault kept no other market with that collateral capped, read at the exit block; PT exits within 14 days of maturity are excluded as roll-offs.',
+  'Flags: an oracle is "reported-value" when every input is a feed whose description names a fundamental / NAV / exchange-rate value, or a vault rate into another token; "fixed-price" when it has no input. Oracles of other types are not classified.',
+  'Flags: the largest borrowers are ranked by the Morpho API and their debt read on chain (top two per market, with each exposure read); a curator shift uses daily net flows, so moves inside one day net out.',
 ]
 
 /** PROVENANCE.md for the datasets-repo copy (format of triccs/membrane-datasets README). */
@@ -1981,6 +2036,225 @@ async function readSpikes(
   })
 }
 
+/**
+ * Flags 1, 2 and 4 (lib/curatorFeed/flags.ts) for the given markets. An oracle's inputs
+ * are read once (MorphoChainlinkOracleV2 is immutable) and carried in state. Every run:
+ * price() and each feed's latestRoundData() at the head; a newly reverting oracle gets
+ * a binary search for its first reverting block. With each exposure refresh: the two
+ * largest borrowers per market (Morpho API ranking), their debt read on chain.
+ */
+async function readMarketFlags(
+  markets: string[],
+  o: {
+    head: number
+    headTs: number
+    windowFrom: number
+    windowFromTs: number
+    refreshBorrowers: boolean
+    state: CollectorState
+    ent: Entities
+    usd: (token: string | undefined, amount: bigint) => number | undefined
+  },
+): Promise<Record<string, MarketFlags>> {
+  const { head, headTs, state, ent } = o
+  const oracleCfg = (state.oracles ??= {})
+  const reverts = (state.oracleRevert ??= {})
+  const borrowers = (state.borrowers ??= {})
+  const ms = markets.filter((m) => ent.markets[m])
+  const oracles = uniq(ms.map((m) => lc(ent.markets[m].oracle))).filter((a) => a !== ZERO)
+  const isRevert = (e: unknown) => /revert/i.test(String(e))
+
+  // 1. Inputs, once per oracle.
+  const ROLES = [
+    ['baseFeed1', 'BASE_FEED_1()'],
+    ['baseFeed2', 'BASE_FEED_2()'],
+    ['quoteFeed1', 'QUOTE_FEED_1()'],
+    ['quoteFeed2', 'QUOTE_FEED_2()'],
+    ['baseVault', 'BASE_VAULT()'],
+    ['quoteVault', 'QUOTE_VAULT()'],
+  ] as const
+  const fresh = oracles.filter((a) => !(a in oracleCfg))
+  const cfg = await rpc.batch(fresh.flatMap((a) => ROLES.map(([, sig]) => call(a, sig))))
+  const newParts: OraclePart[] = []
+  for (const [i, a] of fresh.entries()) {
+    const r = cfg.slice(i * 6, i * 6 + 6)
+    if (r.every((x) => x === null)) {
+      // Not a MorphoChainlinkOracleV2 only if a single call confirms the revert.
+      try {
+        await rpc.call('eth_call', call(a, 'BASE_FEED_1()').params)
+      } catch (e) {
+        if (isRevert(e)) oracleCfg[a] = null
+      }
+      continue
+    }
+    const parts: OraclePart[] = []
+    ROLES.forEach(([role], k) => {
+      const x = addrOf(r[k])
+      if (x) parts.push({ role, address: lc(x) })
+    })
+    oracleCfg[a] = parts
+    newParts.push(...parts)
+  }
+  const det = await rpc.batch(
+    newParts.map((p) =>
+      p.role.endsWith('Vault') ? call(p.address, 'asset()') : call(p.address, 'description()'),
+    ),
+  )
+  newParts.forEach((p, i) => {
+    if (p.role.endsWith('Vault')) {
+      const x = addrOf(det[i])
+      if (x) p.asset = lc(x)
+    } else {
+      const d = dec(['string'], det[i])?.[0]
+      if (typeof d === 'string') p.description = d
+    }
+  })
+
+  // 2. price() and each feed's last update at the head.
+  const feeds = uniq(
+    oracles.flatMap((a) =>
+      (oracleCfg[a] ?? []).filter((p) => !p.role.endsWith('Vault')).map((p) => p.address),
+    ),
+  )
+  const res = await rpc.batch([
+    ...oracles.map((a) => call(a, 'price()', [], head)),
+    ...feeds.map((f) => call(f, 'latestRoundData()', [], head)),
+  ])
+  const priceOf = new Map<string, string | null>()
+  for (const [i, a] of oracles.entries()) {
+    const w = word(res[i])
+    if (w !== undefined) {
+      priceOf.set(a, w.toString())
+      continue
+    }
+    // A batch null is a revert; one call confirms it (a transport failure is not).
+    try {
+      const r = await rpc.call<string>('eth_call', call(a, 'price()', [], head).params)
+      const w2 = word(r)
+      if (w2 !== undefined) priceOf.set(a, w2.toString())
+    } catch (e) {
+      if (isRevert(e)) priceOf.set(a, null)
+    }
+  }
+  const updatedAt = new Map<string, number>()
+  feeds.forEach((f, i) => {
+    const r = res[oracles.length + i] as string | null
+    if (r && r.length >= 2 + 64 * 4)
+      updatedAt.set(f, Number(BigInt('0x' + r.slice(2 + 192, 2 + 256))))
+  })
+
+  // 3. When the current run of reverts began (flags.ts revertOnset), for oracles that
+  //    revert now and did not at the last run.
+  const revertsAt =
+    (a: string) =>
+    async (b: number): Promise<boolean> => {
+      try {
+        await rpc.call('eth_call', call(a, 'price()', [], b).params)
+        return false
+      } catch (e) {
+        if (isRevert(e)) return true
+        throw e
+      }
+    }
+  for (const a of oracles) {
+    if (priceOf.get(a) !== null) {
+      if (priceOf.has(a)) delete reverts[a]
+      continue
+    }
+    if (reverts[a]) continue
+    const on = await revertOnset(revertsAt(a), head, o.windowFrom)
+    if (on.beforeWindow) {
+      reverts[a] = { since: o.windowFrom, sinceTs: o.windowFromTs, beforeWindow: true }
+      continue
+    }
+    const h = await rpc.call<{ timestamp: string }>('eth_getBlockByNumber', [hexN(on.since), false])
+    reverts[a] = { since: on.since, sinceTs: parseInt(h.timestamp, 16) }
+    log(`oracle ${a} reverts since block ${on.since}`)
+  }
+
+  // 4. Largest borrowers (with each exposure refresh).
+  const mres = await rpc.batch(ms.map((m) => call(CHAIN.morpho, 'market(bytes32)', [m], head)))
+  const mstate = new Map(ms.map((m, i) => [m, dec(MARKET6, mres[i]) as bigint[] | null]))
+  if (o.refreshBorrowers) {
+    const cand = ms.filter((m) => {
+      const w = mstate.get(m)
+      return w && (o.usd(ent.markets[m].loan, w[2]) ?? 0) >= FLAG_DEFAULTS.minBorrowUsd
+    })
+    const ranked = new Map<string, string[]>()
+    for (const grp of chunked(cand, 20)) {
+      const q = grp
+        .map(
+          (m, i) =>
+            `m${i}: marketPositions(first: 2, orderBy: BorrowShares, orderDirection: Desc, where: { marketUniqueKey_in: ["${m}"], chainId_in: [${CHAIN.morphoApiChainId}] }) { items { user { address } } }`,
+        )
+        .join(' ')
+      const d = await gql<Record<string, { items: { user: { address: string } }[] }>>(`{ ${q} }`)
+      grp.forEach((m, i) => {
+        const users = (d?.[`m${i}`]?.items ?? []).map((x) => lc(x.user.address))
+        if (users.length) ranked.set(m, users)
+      })
+    }
+    const pairs = [...ranked].flatMap(([m, us]) => us.map((u) => ({ m, u })))
+    const pos = await rpc.batch(
+      pairs.map(({ m, u }) => call(CHAIN.morpho, 'position(bytes32,address)', [m, u], head)),
+    )
+    const debt = new Map<string, { u: string; assets: bigint }[]>()
+    pairs.forEach(({ m, u }, i) => {
+      const w = mstate.get(m)
+      const p = dec(['uint256', 'uint256', 'uint256'], pos[i])
+      if (!w || !p) return
+      const shares = p[1] as bigint
+      // Borrow shares → assets, rounded up (SharesMathLib toAssetsUp).
+      const den = w[3] + 1_000_000n
+      const assets = (shares * (w[2] + 1n) + den - 1n) / den
+      debt.set(m, [...(debt.get(m) ?? []), { u, assets }])
+    })
+    for (const [m, list] of debt) {
+      const w = mstate.get(m)!
+      const sorted = list.sort((a, b) => (b.assets > a.assets ? 1 : b.assets < a.assets ? -1 : 0))
+      borrowers[m] = {
+        top: sorted[0].u,
+        topAssets: sorted[0].assets.toString(),
+        secondAssets: sorted[1]?.assets.toString(),
+        totalBorrow: w[2].toString(),
+        totalSupply: w[0].toString(),
+        block: head,
+      }
+    }
+    log(`flags: largest borrowers read for ${debt.size} of ${cand.length} markets ≥ $1M borrowed`)
+  }
+
+  // 5. Keep the markets that carry a flag.
+  const out: Record<string, MarketFlags> = {}
+  for (const m of ms) {
+    const info = ent.markets[m]
+    const a = lc(info.oracle)
+    const parts = oracleCfg[a]
+    if (parts === undefined) continue
+    const times = (parts ?? [])
+      .filter((p) => !p.role.endsWith('Vault'))
+      .map((p) => updatedAt.get(p.address))
+      .filter((x): x is number => x !== undefined && x > 0)
+    const price = priceOf.get(a)
+    const f: MarketFlags = {
+      oracle: a,
+      oracleKind: classifyOracle(parts, info.loan),
+      parts: parts ?? [],
+      price: price ?? undefined,
+      reverting: price === null ? reverts[a] : undefined,
+      staleSeconds: times.length ? headTs - Math.min(...times) : undefined,
+      borrowers: borrowers[m],
+    }
+    // The one-borrower floor uses the borrows read with the borrower (as the API view does).
+    const borrowUsd = f.borrowers ? o.usd(info.loan, BigInt(f.borrowers.totalBorrow)) : undefined
+    if (hasMarketFlag(f, borrowUsd)) out[m] = f
+  }
+  log(
+    `flags: ${oracles.length} oracles (${fresh.length} read for the first time), ${[...priceOf.values()].filter((x) => x === null).length} reverting; ${Object.keys(out).length} markets flagged`,
+  )
+  return out
+}
+
 // ── prune ──────────────────────────────────────────────────────────────────────
 
 /** Keep only the entities the dataset references. */
@@ -1992,6 +2266,7 @@ function prune(
   attribution: AttributionCase[],
   spikes: SpikeCase[],
   v2Ids: Record<string, V2IdData>,
+  flags: FeedFlags,
 ): Entities {
   const usedV2 = new Set(
     actions.filter((a) => a.protocol === 'morpho-v2').map((a) => a.target ?? ''),
@@ -2017,6 +2292,7 @@ function prune(
     ...exposure.vaults.map((x) => x.vault),
     ...attribution.flatMap((c) => c.legs.map((l) => l.vault)),
     ...spikes.flatMap((s) => s.flows.map((f) => f.vault ?? '')),
+    ...flags.shifts.flatMap((x) => [...x.from, ...x.to].map((v) => v.vault)),
   ])
   const vaults = Object.fromEntries(Object.entries(ent.vaults).filter(([a]) => usedVaults.has(a)))
   const usedMarkets = new Set([
@@ -2026,6 +2302,8 @@ function prune(
     ...attribution.map((c) => c.market),
     ...spikes.map((s) => s.market),
     ...Object.values(keptV2).map((d) => d.market ?? ''),
+    ...Object.keys(flags.markets),
+    ...flags.shifts.map((x) => x.market),
   ])
   const markets = Object.fromEntries(
     Object.entries(ent.markets).filter(([id]) => usedMarkets.has(id)),

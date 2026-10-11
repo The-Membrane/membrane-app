@@ -9,14 +9,17 @@ import {
   RpcRing,
   backendOf,
   probeRing,
+  queryOf,
+  redactUrls,
   type RingTable,
+  type RpcCall,
   type TransportFor,
 } from '@/lib/position-sim/rpcRing'
 
 // A fake JSON-RPC network behind viem's `custom` transport, so the ring runs its real
 // client path. Each host is scripted per call: 'honest' serves the chain below, 'empty'
 // answers [] (Pocket's measured failure), 'short' drops half the logs, 'error' fails.
-type Mode = 'honest' | 'empty' | 'short' | 'error'
+type Mode = 'honest' | 'empty' | 'short' | 'error' | 'limited'
 type Script = Mode | ((callNo: number, from: bigint, to: bigint) => Mode)
 
 const AGG = '0x7d4e742018fb52e48b08be73d041c18b21de6fb5'
@@ -62,7 +65,8 @@ function fakeNet(scripts: Record<string, Script>) {
           const s = scripts[host] ?? 'honest'
           const mode = typeof s === 'function' ? s(calls.filter((c) => c.host === host).length, from, to) : s
           calls.push({ host, from, to, mode })
-          if (mode === 'error') throw new Error('429 too many requests')
+          if (mode === 'error') throw new Error(`429 too many requests at ${url}`)
+          if (mode === 'limited') throw Object.assign(new Error('limit exceeded'), { code: -32005 })
           if (mode === 'empty') return []
           const hits = truth(from, to)
           return mode === 'short' ? hits.slice(0, Math.floor(hits.length / 2)) : hits
@@ -228,5 +232,100 @@ describe('rpc ring probe', () => {
     expect(by['rpc.mevblocker.io']).toMatchObject({ cap: 10_000, emptyAnswers: 1 })
     expect(by['gateway.tenderly.co'].cap).toBe(10_000)
     expect(by['gateway.tenderly.co'].emptyAnswers).toBeUndefined()
+  })
+})
+
+describe('rpc ring ledger: which endpoint answered which range', () => {
+  const ledgerRing = (scripts: Record<string, Script>, rows: [string, number, number][], opts: object = {}) => {
+    const net = fakeNet(scripts)
+    const calls: RpcCall[] = []
+    const ring = new RpcRing(table(...rows), { transportFor: net.transportFor, onCall: (c) => calls.push(c), ...opts })
+    return { net, calls, ring }
+  }
+
+  it('records the false empty, who contradicted it, and the piece verdict', async () => {
+    const { calls, ring } = ledgerRing({ 'eth.api.pocket.network': 'empty' }, [[POCKET, 10_000, 1], [TENDERLY, 10_000, 50]])
+    await ring.getLogs(q(1_000_000n, 1_009_999n))
+
+    const piece = calls[0].piece
+    expect(calls.map(({ at, ms, ...c }) => c)).toEqual([
+      { piece, host: 'eth.api.pocket.network', query: `logs@${AGG}`, fromBlock: 1_000_000n, toBlock: 1_009_999n,
+        role: 'first', outcome: 'empty', logs: 0, errorCode: null, verdict: 'recovered', contradicted: true },
+      { piece, host: 'gateway.tenderly.co', query: `logs@${AGG}`, fromBlock: 1_000_000n, toBlock: 1_009_999n,
+        role: 'recheck', outcome: 'logs', logs: 34, errorCode: null, verdict: 'recovered', contradicted: false },
+    ])
+    expect(calls.every((c) => !Number.isNaN(Date.parse(c.at)) && c.ms >= 0)).toBe(true)
+  })
+
+  it('records errors with their code only, and never a key from the URL', async () => {
+    const KEYED = 'https://rpc.ankr.com/eth/SECRETKEY123'
+    // Tenderly is asked first and rate-limits; the keyed Ankr is asked last, and its
+    // error text carries its full URL — the case that leaked keys into scan logs.
+    const { calls, ring } = ledgerRing(
+      { 'gateway.tenderly.co': 'limited', 'rpc.ankr.com': 'error' },
+      [[TENDERLY, 10_000, 1], [KEYED, 10_000, 50]],
+      { cooldownMs: 1 },
+    )
+    const err = await ring.getLogs(q(1_000_000n, 1_009_999n)).catch((e) => e)
+
+    expect(err).toBeInstanceOf(Error)
+    expect(calls.map((c) => [c.host, c.outcome, c.errorCode, c.verdict])).toEqual([
+      ['gateway.tenderly.co', 'error', -32005, 'failed'],
+      // viem wraps an error with no code as UnknownRpcError, code -1.
+      ['rpc.ankr.com', 'error', -1, 'failed'],
+    ])
+    expect(String(err)).toContain('rpc.ankr.com')
+    const leaks = [JSON.stringify(calls, (_k, v) => (typeof v === 'bigint' ? String(v) : v)), JSON.stringify(ring.stats()), String(err)]
+    for (const text of leaks) expect(text).not.toContain('SECRETKEY123')
+    expect(redactUrls(`fetch failed URL: ${KEYED} status 429`)).toBe('fetch failed URL: rpc.ankr.com status 429')
+  })
+
+  it('spot-checks a sampled non-empty answer and catches a short one', async () => {
+    const { calls, ring } = ledgerRing({ 'eth.api.pocket.network': 'short' }, [[POCKET, 10_000, 1], [TENDERLY, 10_000, 50]], {
+      spotCheckRate: 0.5,
+      random: () => 0.1,
+    })
+    const logs = await ring.getLogs(q(1_000_000n, 1_009_999n))
+
+    expect(logs).toHaveLength(34)
+    expect(calls.map((c) => [c.host, c.role, c.outcome, c.contradicted, c.verdict])).toEqual([
+      ['eth.api.pocket.network', 'first', 'logs', true, 'recovered'],
+      ['gateway.tenderly.co', 'spot', 'logs', false, 'recovered'],
+    ])
+    expect(ring.checks()).toMatchObject({ rechecked: 1, spotChecked: 1, recovered: 1 })
+  })
+
+  it('leaves an unsampled non-empty answer single, and numbers each piece', async () => {
+    const { calls, ring } = ledgerRing({}, [[POCKET, 10_000, 1], [TENDERLY, 10_000, 50]], { spotCheckRate: 0.5, random: () => 0.9 })
+    await ring.getLogsWide(q(1_000_000n, 1_029_999n))
+
+    const p0 = calls[0].piece
+    expect(calls.map((c) => [c.piece - p0, c.role, c.verdict])).toEqual([
+      [0, 'first', 'single'],
+      [1, 'first', 'single'],
+      [2, 'first', 'single'],
+    ])
+    expect(ring.checks().spotChecked).toBe(0)
+    // A second ring in the same process keeps numbering: (run, piece) stays unique.
+    const other = ledgerRing({}, [[TENDERLY, 10_000, 1]], { verify: 'none' })
+    await other.ring.getLogs(q(1_000_000n, 1_009_999n))
+    expect(other.calls[0].piece).toBeGreaterThan(calls[2].piece)
+  })
+
+  it('a spot-check that finds no second endpoint leaves the answer single, and the wide scan does not throw', async () => {
+    // Only one backend: the sampled re-ask has nobody to ask.
+    const { calls, ring } = ledgerRing({}, [[TENDERLY, 10_000, 1], [TENDERLY2, 10_000, 2]], { spotCheckRate: 1, random: () => 0 })
+    const { logs, coverage } = await ring.getLogsWideChecked(q(1_000_000n, 1_009_999n))
+
+    expect(logs).toHaveLength(34)
+    expect(coverage).toMatchObject({ confidence: 'verified', unverified: [] })
+    expect(calls.map((c) => [c.role, c.verdict])).toEqual([['first', 'single']])
+    expect(ring.checks()).toMatchObject({ rechecked: 0, spotChecked: 0, unverified: 0 })
+    await expect(ring.getLogsWide(q(1_000_000n, 1_009_999n))).resolves.toHaveLength(34)
+  })
+
+  it('names a query by event and sorted addresses', () => {
+    expect(queryOf({ address: ['0xB', '0xa'], event: { name: 'AnswerUpdated' } })).toBe('AnswerUpdated@0xa,0xb')
+    expect(queryOf({ address: '0xA', event: { name: 'LiquidationCall' }, args: { user: '0x1' } })).toBe('LiquidationCall@0xa#filtered')
   })
 })

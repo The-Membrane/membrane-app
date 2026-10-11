@@ -33,6 +33,16 @@
  * over a window in which it emits nothing, so `[]` passed as proof of a 10k cap. It now
  * asks the live aggregator over a window that ENDS on a known log; an answer without
  * that log proves nothing.
+ *
+ * THE LEDGER (owner 2026-10-11: "an entry in our data that shows which RPC we are
+ * getting things from so that we can evaluate them"). Every endpoint call is reported
+ * to `onCall` as an RpcCall — host, block range, outcome, latency, and the piece's
+ * verdict once reconciled, including whether another endpoint contradicted it. The
+ * R33 audit proved 1,579 corpus events missing but could not say which endpoint
+ * dropped them; a ledger row per call is what answers that next time. Ranges, not
+ * events: a dropped event has no row of its own to tag. `spotCheckRate` re-asks a
+ * fraction of NON-empty answers too, so short answers get a measured rate per host.
+ * lib/position-sim/rpcScorecard.ts turns a ledger into per-endpoint rates.
  */
 import { createPublicClient, fallback, http, parseAbiItem, type PublicClient, type Transport } from 'viem'
 import { mainnet } from 'viem/chains'
@@ -193,6 +203,16 @@ export function backendOf(url: string): string {
   return new URL(url).hostname.split('.').slice(-2).join('.')
 }
 const hostOf = (url: string): string => new URL(url).host
+/** Error text with every URL cut to its host: viem puts the request URL in its messages,
+ *  and a keyed URL carries its key in the path. */
+export const redactUrls = (text: string): string =>
+  text.replace(/https?:\/\/[^\s"'<>)]+/g, (u) => {
+    try {
+      return new URL(u).host
+    } catch {
+      return '<url>'
+    }
+  })
 
 /** An empty answer that no independent endpoint could check. */
 export class RingEmptyUnconfirmedError extends Error {
@@ -255,6 +275,64 @@ export interface RingOptions {
   /** How long an endpoint that contradicted another sits out. Default 6 h — the run. */
   quarantineMs?: number
   transportFor?: TransportFor
+  /** verify 'empty' only: re-ask this fraction of NON-empty answers on an independent
+   *  endpoint (role 'spot'). Measures short answers per host for ~rate extra calls. */
+  spotCheckRate?: number
+  /** Every endpoint call, after its piece is reconciled — the provenance ledger. */
+  onCall?: (call: RpcCall) => void
+  /** Test seam for the spot-check draw. */
+  random?: () => number
+}
+
+/** One endpoint call in the ledger: who served which block range and how it checked
+ *  out. HOSTS ONLY. An error keeps only its numeric code (JSON-RPC code or HTTP status):
+ *  viem's error text carries the request URL, and a keyed URL carries its key. */
+export interface RpcCall {
+  /** ISO time the call started. */
+  at: string
+  /** Sequence number of the piece (one getLogsChecked), unique within the PROCESS (not
+   *  per ring: one run can build several rings). With the writer's run id it groups the
+   *  first answer, its errors and its second opinion into one piece. */
+  piece: number
+  host: string
+  /** What was asked, from queryOf(): `<Event>@<addresses>`, `#filtered` if args narrowed it. */
+  query: string
+  fromBlock: bigint
+  toBlock: bigint
+  /** first — the ring's pick (errors included); recheck — an empty answer, or any answer
+   *  under verify 'all', asked again; spot — a sampled re-ask of a non-empty answer. */
+  role: 'first' | 'recheck' | 'spot'
+  outcome: 'logs' | 'empty' | 'error'
+  logs: number
+  ms: number
+  /** JSON-RPC code or HTTP status of an error; -1 is viem's code for an unknown error. */
+  errorCode: number | null
+  /** The piece's verdict once reconciled. 'failed': no endpoint answered at all. */
+  verdict: PieceCheck | 'failed'
+  /** This answer was missing logs that another endpoint returned. */
+  contradicted: boolean
+}
+
+/** The ledger's name for a getLogs query. Public contract addresses and the event name
+ *  only, so a ledger row can be grouped by what was asked. */
+export function queryOf(args: { address?: unknown; event?: { name?: string }; events?: { name?: string }[]; args?: unknown }): string {
+  const addr =
+    args.address === undefined
+      ? '*'
+      : ([] as unknown[]).concat(args.address).map((a) => String(a).toLowerCase()).sort().join(',')
+  const ev = args.event?.name ?? (args.events ? args.events.map((e) => e.name).join('|') : 'logs')
+  return `${ev}@${addr}${args.args ? '#filtered' : ''}`
+}
+
+/** A numeric error code from a viem error chain, never its text. */
+function errorCodeOf(err: unknown): number | null {
+  let e = err as { code?: unknown; status?: unknown; cause?: unknown } | undefined
+  for (let depth = 0; e && depth < 6; depth++) {
+    if (typeof e.code === 'number') return e.code
+    if (typeof e.status === 'number') return e.status
+    e = e.cause as typeof e
+  }
+  return null
 }
 
 /**
@@ -279,8 +357,10 @@ export interface RingStat {
 }
 /** Run totals of the cross-check. */
 export interface RingChecks {
-  /** Answers re-asked on a second endpoint. */
+  /** Answers a second endpoint answered again. */
   rechecked: number
+  /** Of those, non-empty answers sampled by spotCheckRate. */
+  spotChecked: number
   confirmedEmpty: number
   recovered: number
   unverified: number
@@ -299,11 +379,14 @@ const byPosition = (a: unknown, b: unknown): number => {
   return d !== 0n ? (d < 0n ? -1 : 1) : Number(x.logIndex ?? 0) - Number(y.logIndex ?? 0)
 }
 
+/** Process-wide, so (run, piece) stays unique when one run builds several rings. */
+let pieceSeq = 0
+
 export class RpcRing {
   private cold = new Map<string, number>()
   private quarantine = new Map<string, number>()
   private stat = new Map<string, Stat>()
-  private totals: RingChecks = { rechecked: 0, confirmedEmpty: 0, recovered: 0, unverified: 0 }
+  private totals: RingChecks = { rechecked: 0, spotChecked: 0, confirmedEmpty: 0, recovered: 0, unverified: 0 }
   private inflight = new Map<string, number>()
   private headAt: bigint | null = null
   private headSeen = 0
@@ -320,12 +403,18 @@ export class RpcRing {
   private readonly cooldownMs: number
   private readonly quarantineMs: number
   private readonly transportFor: TransportFor
+  private readonly spotCheckRate: number
+  private readonly onCall?: (call: RpcCall) => void
+  private readonly random: () => number
   constructor(table: RingTable, opts: RingOptions | number = {}) {
     const o: RingOptions = typeof opts === 'number' ? { cooldownMs: opts } : opts
     this.cooldownMs = o.cooldownMs ?? 20_000
     this.quarantineMs = o.quarantineMs ?? RING_STALE_MS
     this.verify = o.verify ?? 'empty'
     this.transportFor = o.transportFor ?? httpTransport
+    this.spotCheckRate = Math.min(1, Math.max(0, o.spotCheckRate ?? 0))
+    this.onCall = o.onCall
+    this.random = o.random ?? Math.random
     this.table = table
     const live = table.entries.filter((e) => e.cap > 0)
     if (live.length === 0) throw new Error('rpc ring: no endpoint serves eth_getLogs — re-probe or add a keyed RPC')
@@ -364,7 +453,11 @@ export class RpcRing {
   private async ask<T>(
     args: { fromBlock: bigint; toBlock: bigint },
     skip: ReadonlySet<string>,
-  ): Promise<{ ok: true; logs: T[]; url: string } | { ok: false; err: unknown }> {
+    role: RpcCall['role'],
+    trail: RpcCall[],
+    query: string,
+    piece: number,
+  ): Promise<{ ok: true; logs: T[]; url: string; call: RpcCall } | { ok: false; err: unknown }> {
     const span = Number(args.toBlock - args.fromBlock + 1n)
     let lastErr: unknown = null
     for (let attempt = 0; attempt < this.table.entries.length; attempt++) {
@@ -378,16 +471,37 @@ export class RpcRing {
       st.calls++
       this.inflight.set(e.url, (this.inflight.get(e.url) ?? 0) + 1)
       const t0 = Date.now()
+      const call: RpcCall = {
+        at: new Date(t0).toISOString(),
+        piece,
+        host: hostOf(e.url),
+        query,
+        fromBlock: args.fromBlock,
+        toBlock: args.toBlock,
+        role,
+        outcome: 'error',
+        logs: 0,
+        ms: 0,
+        errorCode: null,
+        verdict: 'failed',
+        contradicted: false,
+      }
+      trail.push(call)
       try {
         const r = (await this.client(e.url).getLogs(args as any)) as T[]
         st.ok++
         st.blocks += span
         st.ms += Date.now() - t0
         if (r.length === 0) st.empty++
-        return { ok: true, logs: r, url: e.url }
+        call.outcome = r.length === 0 ? 'empty' : 'logs'
+        call.logs = r.length
+        call.ms = Date.now() - t0
+        return { ok: true, logs: r, url: e.url, call }
       } catch (err) {
         st.failed++
         lastErr = err
+        call.ms = Date.now() - t0
+        call.errorCode = errorCodeOf(err)
         this.cold.set(e.url, Date.now() + this.cooldownMs)
       } finally {
         this.inflight.set(e.url, (this.inflight.get(e.url) ?? 1) - 1)
@@ -406,26 +520,51 @@ export class RpcRing {
    * each side that was missing logs is quarantined.
    */
   async getLogsChecked<T>(args: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint; toBlock: bigint }): Promise<CheckedLogs<T>> {
+    const trail: RpcCall[] = []
+    const query = queryOf(args as Parameters<typeof queryOf>[0])
+    const piece = ++pieceSeq
+    // Every call of this piece goes to the ledger with the piece's final verdict.
+    const settle = (verdict: RpcCall['verdict']): void => {
+      for (const c of trail) {
+        c.verdict = verdict
+        this.onCall?.(c)
+      }
+    }
     const span = Number(args.toBlock - args.fromBlock + 1n)
-    const first = await this.ask<T>(args, new Set())
-    if (!first.ok) throw new Error(`rpc ring: no endpoint served getLogs over ${span} blocks: ${String(first.err).slice(0, 160)}`)
+    const first = await this.ask<T>(args, new Set(), 'first', trail, query, piece)
+    if (!first.ok) {
+      settle('failed')
+      throw new Error(`rpc ring: no endpoint served getLogs over ${span} blocks: ${redactUrls(String(first.err)).slice(0, 160)}`)
+    }
     const empty = first.logs.length === 0
-    if (this.verify === 'none' || (this.verify === 'empty' && !empty)) {
+    const spot = this.verify === 'empty' && !empty && this.spotCheckRate > 0 && this.random() < this.spotCheckRate
+    if (this.verify === 'none' || (this.verify === 'empty' && !empty && !spot)) {
       if (empty) this.totals.unverified++
+      settle(empty ? 'unverified' : 'single')
       return { logs: first.logs, check: empty ? 'unverified' : 'single', host: hostOf(first.url) }
     }
-    this.totals.rechecked++
-    const second = await this.ask<T>(args, new Set([backendOf(first.url)]))
+    const second = await this.ask<T>(args, new Set([backendOf(first.url)]), spot ? 'spot' : 'recheck', trail, query, piece)
     if (!second.ok) {
+      // A spot-check is a sample: finding no second endpoint free is no evidence either
+      // way, so the answer stays an ordinary unchecked one. A required re-ask that finds
+      // nobody leaves the piece unverified.
+      if (spot) {
+        settle('single')
+        return { logs: first.logs, check: 'single', host: hostOf(first.url) }
+      }
       this.totals.unverified++
+      settle('unverified')
       return { logs: first.logs, check: 'unverified', host: hostOf(first.url) }
     }
+    this.totals.rechecked++
+    if (spot) this.totals.spotChecked++
     const a = new Set(first.logs.map(keyOf))
     const b = new Set(second.logs.map(keyOf))
     const aShort = [...b].some((k) => !a.has(k))
     const bShort = [...a].some((k) => !b.has(k))
     if (!aShort && !bShort) {
       if (empty) this.totals.confirmedEmpty++
+      settle('agreed')
       return { logs: first.logs, check: 'agreed', host: hostOf(first.url) }
     }
     const union = new Map<string, T>()
@@ -433,13 +572,16 @@ export class RpcRing {
     const contradicted: string[] = []
     if (aShort) {
       this.strike(first.url)
+      first.call.contradicted = true
       contradicted.push(hostOf(first.url))
     }
     if (bShort) {
       this.strike(second.url)
+      second.call.contradicted = true
       contradicted.push(hostOf(second.url))
     }
     this.totals.recovered++
+    settle('recovered')
     const kept = second.logs.length > first.logs.length ? second.url : first.url
     return { logs: [...union.values()].sort(byPosition), check: 'recovered', host: hostOf(kept), contradicted }
   }

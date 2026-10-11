@@ -12,6 +12,9 @@
  *   --concurrency=3  --out=<file>  --verify=empty|all
  *   --db   (aave) diff per 10k-block bucket against the Neon aave_liquidations table and
  *          list every on-chain event the table lacks. Needs .env.local. SELECT only.
+ *   --ledger=<file.jsonl>  append every endpoint call (RpcCall, hosts only) to a JSONL
+ *          ledger; `node scripts/rpc-scorecard.mjs --file=<file.jsonl>` scores it.
+ *   --spot-check=<rate>    re-ask this share of non-empty answers (default 0.05).
  *
  * feeds: AnswerUpdated round ids are consecutive per aggregator, so a hole is visible
  *   without any reference endpoint: an interior jump in round id is a missing stretch.
@@ -20,11 +23,12 @@
  *   evidence of no gap; a shortfall is located to a year here, and to a block range by
  *   re-running against the table's per-chunk counts.
  */
-import { readFileSync, writeFileSync } from 'fs'
+import { appendFileSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { parseAbiItem } from 'viem'
 
 const { probeRing, RpcRing, CANDIDATES } = await import('../lib/position-sim/rpcRing.ts')
+const { scorecard, pieceVerdicts, formatScorecard } = await import('../lib/position-sim/rpcScorecard.ts')
 
 const argv = process.argv.slice(2)
 const flag = (name, dflt) => {
@@ -35,6 +39,20 @@ const MODE = flag('mode', 'feeds')
 const CONC = Number(flag('concurrency', '3'))
 const VERIFY = flag('verify', 'empty')
 const OUT = flag('out', null)
+const LEDGER = flag('ledger', null)
+const SPOT = Number(flag('spot-check', '0.05'))
+const RUN = `audit-${MODE}-${new Date().toISOString()}`
+/** Every call of every ring this run builds (hosts only), for the scorecard. */
+const calls = []
+const ringOpts = (verify) => ({
+  verify,
+  spotCheckRate: verify === 'empty' ? SPOT : 0,
+  onCall: (c) => {
+    const row = { run: RUN, ...c }
+    calls.push(row)
+    if (LEDGER) appendFileSync(LEDGER, JSON.stringify(row, (_k, v) => (typeof v === 'bigint' ? String(v) : v)) + '\n')
+  },
+})
 
 const ANSWER_UPDATED = parseAbiItem('event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)')
 const LIQUIDATION_CALL = parseAbiItem(
@@ -87,7 +105,7 @@ if (MODE === 'feeds') {
   const WINDOWS = [16_400_000n, 18_500_000n, 20_400_000n, 22_300_000n, 24_200_000n, 25_900_000n].map((s) => [s, s + 99_999n])
   report.feeds = []
   for (const verify of ['none', VERIFY]) {
-    const ring = new RpcRing(table, { verify })
+    const ring = new RpcRing(table, ringOpts(verify))
     const client = ring.readClient()
     for (const [name, proxy] of Object.entries(FEEDS)) {
       const aggs = await aggregators(client, proxy)
@@ -106,7 +124,7 @@ if (MODE === 'feeds') {
 
 if (MODE === 'aave') {
   const corpus = JSON.parse(readFileSync(join(process.cwd(), 'public', 'data', 'liquidation-corpus.json'), 'utf8'))
-  const ring = new RpcRing(table, { verify: VERIFY })
+  const ring = new RpcRing(table, ringOpts(VERIFY))
   const client = ring.readClient()
   const POOL = '0x87870Bca3F3fD6335C3F4ce8392D69350B4fa4E2'
   const from = BigInt(corpus.fromBlock)
@@ -221,5 +239,10 @@ if (MODE === 'aave') {
   console.log(JSON.stringify({ ...shown, dbDiff: dbDiff && { buckets: dbDiff.buckets, missingEvents: dbDiff.missingEvents } }, null, 2))
 }
 
+// Per-endpoint scorecard of every call this run made (both rings in feeds mode).
+console.log('\nRPC scorecard (this run):\n' + formatScorecard(scorecard(calls)))
+console.log('pieces by verdict:', JSON.stringify(pieceVerdicts(calls)))
+report.scorecard = scorecard(calls)
+report.pieces = pieceVerdicts(calls)
 if (OUT) writeFileSync(OUT, JSON.stringify(report, (_k, v) => (typeof v === 'bigint' ? String(v) : v), 2) + '\n')
 console.log(`done in ${((Date.now() - t0) / 1000).toFixed(0)}s`)

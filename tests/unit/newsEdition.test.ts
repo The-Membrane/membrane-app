@@ -24,6 +24,7 @@ import { fmtLocalDateline } from '@/components/Simulator/localClock'
 import { GUARANTEE, LANDING_PASTE_PROMPT, LANDING_TAGLINE } from '@/lib/position-sim/guarantee'
 import {
   OCT10_PRICE_PATH,
+  OCT10_SCALE_LINE,
   OCT10_STAKES,
   OCT10_STAKES_LINE,
   OCT10_TOTALS,
@@ -80,6 +81,10 @@ describe('masthead copy', () => {
     expect(`The price path is measured: ${OCT10_PRICE_PATH.source}, ${OCT10_PRICE_PATH.window}.`).toBe(
       'The price path is measured: 1-minute Chainlink rounds, 10-11 Oct 2025.',
     )
+  })
+
+  it('the scale subline opens with its money figure, so the figure can be set green', () => {
+    expect(OCT10_SCALE_LINE.result.startsWith(OCT10_SCALE_LINE.figure)).toBe(true)
   })
 
   it('the dateline is the reader-zone long date', () => {

@@ -83,7 +83,12 @@ const NewsGuaranteeBlock: React.FC = () => (
       </Text>
       {!CORPUS_SCALE_LINE.partial && (
         <Text data-testid="sim-scale-subline" fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.muted}>
-          {OCT10_SCALE_LINE.result} {OCT10_SCALE_LINE.window}.
+          {/* Green means money: the protected figure is set in the money colour, the
+              rest of the line stays muted. `result` opens with `figure` (unit test). */}
+          <Text as="span" color={NEWS.up}>
+            {OCT10_SCALE_LINE.figure}
+          </Text>
+          {OCT10_SCALE_LINE.result.slice(OCT10_SCALE_LINE.figure.length)} {OCT10_SCALE_LINE.window}.
         </Text>
       )}
     </Box>

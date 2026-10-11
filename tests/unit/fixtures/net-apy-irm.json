@@ -1,0 +1,1432 @@
+{
+ "_comment": "Recorded by tests/unit/netApy.live.test.ts (NET_APY_LIVE=1 NET_APY_RECORD=1). Snapshots = inputs read at the pinned block; cases = what each venue’s own IRM getter returned for those inputs plus the size. RPC label only — never a URL.",
+ "anchor": {
+  "chainId": 1,
+  "blockNumber": "26120000n",
+  "blockTimestamp": "1791129035n",
+  "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+ },
+ "rpc": "public:gateway.tenderly.co",
+ "snapshots": [
+  {
+   "venueKey": "aave-v3-usdc",
+   "protocol": "aave-v3",
+   "label": "Aave v3 USDC",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "symbol": "USDC",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "aave-rate-strategy-v2",
+    "strategy": "0x9ec6F08190DeA04A54f8Afc53Db96134e5E3FdFB",
+    "optimalUsageRatioBps": "9400n",
+    "baseVariableBorrowRateBps": "0n",
+    "variableRateSlope1Bps": "440n",
+    "variableRateSlope2Bps": "1000n"
+   },
+   "state": {
+    "kind": "aave-virtual",
+    "virtualUnderlyingBalance": "148547337656783n",
+    "totalDebt": "2259331081796086n",
+    "aToken": "0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c",
+    "variableDebtToken": "0x72E95b8931767C79bA4EeE721354d6E99a61D004",
+    "unbacked": "0n",
+    "reserveFactorBps": "1000n",
+    "supplyCapWhole": "3000000000n",
+    "borrowCapWhole": "2700000000n",
+    "totalSupplied": "2407869837621099n",
+    "storedLiquidityRateRay": "37090096009652009426304396n",
+    "storedVariableBorrowRateRay": "43920789241041742008575303n",
+    "lastUpdateTimestamp": "1791128771n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "protocol": "aave-v3",
+   "label": "Aave v3 USDT",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "symbol": "USDT",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "aave-rate-strategy-v2",
+    "strategy": "0x9ec6F08190DeA04A54f8Afc53Db96134e5E3FdFB",
+    "optimalUsageRatioBps": "9400n",
+    "baseVariableBorrowRateBps": "0n",
+    "variableRateSlope1Bps": "440n",
+    "variableRateSlope2Bps": "1000n"
+   },
+   "state": {
+    "kind": "aave-virtual",
+    "virtualUnderlyingBalance": "182301846281400n",
+    "totalDebt": "2695147587208214n",
+    "aToken": "0x23878914EFE38d27C4D67Ab83ed1b93A74D4086a",
+    "variableDebtToken": "0x6df1C1E379bC5a00a7b4C6e67A203333772f45A8",
+    "unbacked": "0n",
+    "reserveFactorBps": "1000n",
+    "supplyCapWhole": "3480000000n",
+    "borrowCapWhole": "3090000000n",
+    "totalSupplied": "2877439903474182n",
+    "storedLiquidityRateRay": "36958729257761160156334044n",
+    "storedVariableBorrowRateRay": "43842940292637940851158843n",
+    "lastUpdateTimestamp": "1791128963n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "protocol": "aave-v3",
+   "label": "Aave v3 USDe",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+    "symbol": "USDe",
+    "decimals": 18,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "aave-rate-strategy-v2",
+    "strategy": "0x9ec6F08190DeA04A54f8Afc53Db96134e5E3FdFB",
+    "optimalUsageRatioBps": "9000n",
+    "baseVariableBorrowRateBps": "660n",
+    "variableRateSlope1Bps": "25n",
+    "variableRateSlope2Bps": "1200n"
+   },
+   "state": {
+    "kind": "aave-virtual",
+    "virtualUnderlyingBalance": "538064880481012519037010343n",
+    "totalDebt": "16049908157063039029141824n",
+    "aToken": "0x4F5923Fc5FD4a93352581b38B7cD26943012DECF",
+    "variableDebtToken": "0x015396E1F286289aE23a762088E863b3ec465145",
+    "unbacked": "0n",
+    "reserveFactorBps": "2500n",
+    "supplyCapWhole": "700000000n",
+    "borrowCapWhole": "50000000n",
+    "totalSupplied": "554115156419999486403964219n",
+    "storedLiquidityRateRay": "1435495039368863912092436n",
+    "storedVariableBorrowRateRay": "66080457197616144206859199n",
+    "lastUpdateTimestamp": "1791122915n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usds",
+   "protocol": "aave-v3",
+   "label": "Aave v3 USDS",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
+    "symbol": "USDS",
+    "decimals": 18,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "aave-rate-strategy-v2",
+    "strategy": "0x9ec6F08190DeA04A54f8Afc53Db96134e5E3FdFB",
+    "optimalUsageRatioBps": "9200n",
+    "baseVariableBorrowRateBps": "550n",
+    "variableRateSlope1Bps": "75n",
+    "variableRateSlope2Bps": "3500n"
+   },
+   "state": {
+    "kind": "aave-virtual",
+    "virtualUnderlyingBalance": "8468903167514955850041732n",
+    "totalDebt": "337445518899202105922308n",
+    "aToken": "0x32a6268f9Ba3642Dda7892aDd74f1D34469A4259",
+    "variableDebtToken": "0x490E0E6255bF65b43E2e02F7acB783c5e04572Ff",
+    "unbacked": "0n",
+    "reserveFactorBps": "2500n",
+    "supplyCapWhole": "50000000n",
+    "borrowCapWhole": "34200000n",
+    "totalSupplied": "8806265601204168373332460n",
+    "storedLiquidityRateRay": "1589544010936780434489312n",
+    "storedVariableBorrowRateRay": "55312365109304772017924045n",
+    "lastUpdateTimestamp": "1791103499n"
+   }
+  },
+  {
+   "venueKey": "spark-usdc",
+   "protocol": "spark",
+   "label": "SparkLend USDC",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "symbol": "USDC",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "spark-variable-borrow",
+    "strategy": "0xDE99e49E9e42B1d8490C38926e6C9A79010e6eF2",
+    "optimalUsageRatioRay": "980000000000000000000000000n",
+    "baseVariableBorrowRateRay": "0n",
+    "variableRateSlope1Ray": "45367143857123172888736000n",
+    "variableRateSlope2Ray": "150000000000000000000000000n"
+   },
+   "state": {
+    "kind": "spark",
+    "availableLiquidity": "4096595461782n",
+    "totalVariableDebt": "37729884744430n",
+    "aToken": "0x377C3bd93f2a2984E1E7bE6A5C22c525eD4A4815",
+    "variableDebtToken": "0x7B70D04099CB9cfb1Db7B6820baDAfB4C5C70A67",
+    "unbacked": "0n",
+    "reserveFactorBps": "1000n",
+    "supplyCapWhole": "68719476735n",
+    "borrowCapWhole": "68719476735n",
+    "totalSupplied": "41823853322371n",
+    "storedLiquidityRateRay": "33902016737876481829569189n",
+    "storedVariableBorrowRateRay": "41758913809301822364955196n",
+    "lastUpdateTimestamp": "1791123203n"
+   }
+  },
+  {
+   "venueKey": "spark-usdt",
+   "protocol": "spark",
+   "label": "SparkLend USDT",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "symbol": "USDT",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "spark-variable-borrow",
+    "strategy": "0x4FA65B096681bD6FeecF78e5D83096bf4A5762A0",
+    "optimalUsageRatioRay": "950000000000000000000000000n",
+    "baseVariableBorrowRateRay": "0n",
+    "variableRateSlope1Ray": "36367143857123172888736000n",
+    "variableRateSlope2Ray": "150000000000000000000000000n"
+   },
+   "state": {
+    "kind": "spark",
+    "availableLiquidity": "16209000356831n",
+    "totalVariableDebt": "315255584174932n",
+    "aToken": "0xe7dF13b8e3d6740fe17CBE928C7334243d86c92f",
+    "variableDebtToken": "0x529b6158d1D2992E3129F7C69E81a7c677dc3B12",
+    "unbacked": "0n",
+    "reserveFactorBps": "1000n",
+    "supplyCapWhole": "68719476735n",
+    "borrowCapWhole": "68719476735n",
+    "totalSupplied": "331442888327174n",
+    "storedLiquidityRateRay": "33950932637717539894431533n",
+    "storedVariableBorrowRateRay": "39662827829156628877052515n",
+    "lastUpdateTimestamp": "1791124151n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "protocol": "spark",
+   "label": "SparkLend USDS",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xdC035D45d973E3EC169d2276DDab16f1e407384F",
+    "symbol": "USDS",
+    "decimals": 18,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "spark-variable-borrow",
+    "strategy": "0x8a95998639A34462A1FdAaaA5506F66F90Ef2fDd",
+    "optimalUsageRatioRay": "800000000000000000000000000n",
+    "baseVariableBorrowRateRay": "0n",
+    "variableRateSlope1Ray": "47867143857123172888736000n",
+    "variableRateSlope2Ray": "150000000000000000000000000n"
+   },
+   "state": {
+    "kind": "spark",
+    "availableLiquidity": "435431910555386638175534457n",
+    "totalVariableDebt": "967268486910717030786010201n",
+    "aToken": "0xC02aB1A5eaA8d1B114EF786D9bde108cD4364359",
+    "variableDebtToken": "0x8c147debea24Fb98ade8dDa4bf142992928b449e",
+    "unbacked": "0n",
+    "reserveFactorBps": "1000n",
+    "supplyCapWhole": "0n",
+    "borrowCapWhole": "0n",
+    "totalSupplied": "1402635588254962617034072600n",
+    "storedLiquidityRateRay": "25606726271046654367171675n",
+    "storedVariableBorrowRateRay": "41260029927517917549300724n",
+    "lastUpdateTimestamp": "1791128423n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-cbbtc-usdc-86",
+   "protocol": "morpho-blue",
+   "label": "Morpho cbBTC/USDC 86%",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "symbol": "USDC",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "morpho-adaptive-curve",
+    "irm": "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
+    "rateAtTarget": "1479970350n"
+   },
+   "state": {
+    "kind": "morpho-market",
+    "marketId": "0x64d65c9a2d91c36d56fbc42d69e979335320169b3df63bf92789e2c8883fcc64",
+    "loanToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "collateralToken": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+    "oracle": "0xA6D6950c9F177F1De7f7757FB33539e3Ec60182a",
+    "lltv": "860000000000000000n",
+    "totalSupplyAssets": "338750954764531n",
+    "totalSupplyShares": "309465288418542327342n",
+    "totalBorrowAssets": "302667773062698n",
+    "totalBorrowShares": "273125826603197898911n",
+    "lastUpdate": "1791128351n",
+    "fee": "0n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wbtc-usdc-86",
+   "protocol": "morpho-blue",
+   "label": "Morpho WBTC/USDC 86%",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "symbol": "USDC",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "morpho-adaptive-curve",
+    "irm": "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
+    "rateAtTarget": "1507496195n"
+   },
+   "state": {
+    "kind": "morpho-market",
+    "marketId": "0x3a85e619751152991742810df6ec69ce473daef99e28a64ab2340d7b7ccfee49",
+    "loanToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "collateralToken": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    "oracle": "0xDddd770BADd886dF3864029e4B377B5F6a2B6b83",
+    "lltv": "860000000000000000n",
+    "totalSupplyAssets": "130744788734687n",
+    "totalSupplyShares": "114132719604037373968n",
+    "totalBorrowAssets": "115640824667383n",
+    "totalBorrowShares": "99034143860040398115n",
+    "lastUpdate": "1791127991n",
+    "fee": "0n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdc-86",
+   "protocol": "morpho-blue",
+   "label": "Morpho wstETH/USDC 86%",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "symbol": "USDC",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "morpho-adaptive-curve",
+    "irm": "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
+    "rateAtTarget": "1475419924n"
+   },
+   "state": {
+    "kind": "morpho-market",
+    "marketId": "0xb323495f7e4148be5643a4ea4a8221eef163e4bccfdedc2a6f4696baacbc86cc",
+    "loanToken": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "collateralToken": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+    "oracle": "0x48F7E36EB6B826B2dF4B2E630B62Cd25e89E40e2",
+    "lltv": "860000000000000000n",
+    "totalSupplyAssets": "32625944988714n",
+    "totalSupplyShares": "28468128606701759932n",
+    "totalBorrowAssets": "29218940254083n",
+    "totalBorrowShares": "25005548816195582089n",
+    "lastUpdate": "1791127991n",
+    "fee": "0n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdt-86",
+   "protocol": "morpho-blue",
+   "label": "Morpho wstETH/USDT 86%",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "symbol": "USDT",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "morpho-adaptive-curve",
+    "irm": "0x870aC11D48B15DB9a138Cf899d20F13F79Ba00BC",
+    "rateAtTarget": "1128553392n"
+   },
+   "state": {
+    "kind": "morpho-market",
+    "marketId": "0xe7e9694b754c4d4f7e21faf7223f6fa71abaeb10296a4c43a54a7977149687d2",
+    "loanToken": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "collateralToken": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+    "oracle": "0x95DB30fAb9A3754e42423000DF27732CB2396992",
+    "lltv": "860000000000000000n",
+    "totalSupplyAssets": "131988717911269n",
+    "totalSupplyShares": "116287571289013855787n",
+    "totalBorrowAssets": "119000460703897n",
+    "totalBorrowShares": "102859622039951032311n",
+    "lastUpdate": "1791128975n",
+    "fee": "0n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdc-2",
+   "protocol": "euler-v2",
+   "label": "Euler eUSDC-2",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "symbol": "USDC",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "euler-linear-kink",
+    "irm": "0xFCeb8a384877B0f2b17b1d8B352B18bd1b1123B3",
+    "baseRate": "0n",
+    "slope1": "516261061n",
+    "slope2": "20178940043n",
+    "kink": "3865470566n"
+   },
+   "state": {
+    "kind": "euler-vault",
+    "cash": "191756780285n",
+    "totalBorrows": "2037619504795n",
+    "interestFee": "1000n",
+    "storedInterestRateSpy": "3207596382839732646n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdt-2",
+   "protocol": "euler-v2",
+   "label": "Euler eUSDT-2",
+   "anchor": {
+    "chainId": 1,
+    "blockNumber": "26120000n",
+    "blockTimestamp": "1791129035n",
+    "blockHash": "0x719c1d53c96a2c243427e128c4500d1d05b263c31c40932753e413349e2f5746"
+   },
+   "asset": {
+    "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "symbol": "USDT",
+    "decimals": 6,
+    "usdPriceAssumption": 1
+   },
+   "rpc": "public:gateway.tenderly.co",
+   "irm": {
+    "model": "euler-linear-kink",
+    "irm": "0xFCeb8a384877B0f2b17b1d8B352B18bd1b1123B3",
+    "baseRate": "0n",
+    "slope1": "516261061n",
+    "slope2": "20178940043n",
+    "kink": "3865470566n"
+   },
+   "state": {
+    "kind": "euler-vault",
+    "cash": "49620877516n",
+    "totalBorrows": "286482093383n",
+    "interestFee": "1000n",
+    "storedInterestRateSpy": "1889963171945572675n"
+   }
+  }
+ ],
+ "cases": [
+  {
+   "venueKey": "aave-v3-usdc",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "43920790237290950013253930n",
+    "liquidityRate": "37090097716991426665811726n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdc",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "43920607833530532946979749n",
+    "liquidityRate": "37089789646065884959268399n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdc",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "43902557357672531278915416n",
+    "liquidityRate": "37059309613454377926493046n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdc",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "43027320692791107589797346n",
+    "liquidityRate": "35596417631732845536942598n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdc",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "36368756778210694991750313n",
+    "liquidityRate": "25431653483531337044383042n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdc",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "43920790237290950013253930n",
+    "liquidityRate": "37090097716991426665811726n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdc",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "43920984634608771956906011n",
+    "liquidityRate": "37090426045850334224937837n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdc",
+   "side": "borrow",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "43940229969073144378462016n",
+    "liquidityRate": "37122937796269057099647250n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdc",
+   "side": "borrow",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "75788265788508643077225022n",
+    "liquidityRate": "65417828726807346675593595n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "43842940570678800232804000n",
+    "liquidityRate": "36958729737498315016622761n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "43842788203837202370018928n",
+    "liquidityRate": "36958472853490942140634427n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "43827709126950595863773744n",
+    "liquidityRate": "36933054587950770985711411n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "43094115670936354414380293n",
+    "liquidityRate": "35707022123163540197659624n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "37352400677476040646993371n",
+    "liquidityRate": "26825926217491428248481919n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "43842940570678800232804000n",
+    "liquidityRate": "36958729737498315016622761n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "43843103244295557873126087n",
+    "liquidityRate": "36959003999275133697841739n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "side": "borrow",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "43859207932354564265012766n",
+    "liquidityRate": "36986160952356192006885968n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usdt",
+   "side": "borrow",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "67368565727234156539688288n",
+    "liquidityRate": "57843932253559133927452137n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "66080458199507076838295273n",
+    "liquidityRate": "1435512966120447814909682n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "supply",
+   "sizeRaw": "10000000000000000000000n",
+   "onchain": {
+    "borrowRate": "66080456747520066749349458n",
+    "liquidityRate": "1435487028627396570503153n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "supply",
+   "sizeRaw": "1000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "66080313259755598637131797n",
+    "liquidityRate": "1432923848161761683796536n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "supply",
+   "sizeRaw": "50000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "66073799018088222411883410n",
+    "liquidityRate": "1316569002001235540020272n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "supply",
+   "sizeRaw": "500000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "66042294329511936435708944n",
+    "liquidityRate": "754167930686100633815183n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "66080458199507076838295273n",
+    "liquidityRate": "1435512966120447814909682n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "borrow",
+   "sizeRaw": "10000000000000000000000n",
+   "onchain": {
+    "borrowRate": "66080508329513254892229669n",
+    "liquidityRate": "1436408461528876183285045n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "borrow",
+   "sizeRaw": "1000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "66085471200124882231734774n",
+    "liquidityRate": "1525069224259114039988621n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "borrow",
+   "sizeRaw": "50000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "66331108230397346510270319n",
+    "liquidityRate": "5929949483944667633904347n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usde",
+   "side": "borrow",
+   "sizeRaw": "500000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "106066075633022177075754099n",
+    "liquidityRate": "74084904939369945583501736n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usds",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "55312378563943013210047773n",
+    "liquidityRate": "1589612927335067968577376n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usds",
+   "side": "supply",
+   "sizeRaw": "10000000000000000000000n",
+   "onchain": {
+    "borrowRate": "55312024246554881337250013n",
+    "liquidityRate": "1587799727568008573266377n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usds",
+   "side": "supply",
+   "sizeRaw": "1000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "55280523836568716749989118n",
+    "liquidityRate": "1426690426342964108598703n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usds",
+   "side": "supply",
+   "sizeRaw": "50000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "55046779210369152376769389n",
+    "liquidityRate": "236904127564005076471749n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usds",
+   "side": "supply",
+   "sizeRaw": "500000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "55005406604228397570503341n",
+    "liquidityRate": "27360106681665699183871n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usds",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "55312378563943013210047773n",
+    "liquidityRate": "1589612927335067968577376n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usds",
+   "side": "borrow",
+   "sizeRaw": "10000000000000000000000n",
+   "onchain": {
+    "borrowRate": "55321635719437685029588190n",
+    "liquidityRate": "1636994097668360395756298n"
+   }
+  },
+  {
+   "venueKey": "aave-v3-usds",
+   "side": "borrow",
+   "sizeRaw": "1000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "56238094113410195164089482n",
+    "liquidityRate": "6405780900952397433138861n"
+   }
+  },
+  {
+   "venueKey": "spark-usdc",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "41758945394436511775778256n",
+    "liquidityRate": "33902068022743456969714743n"
+   }
+  },
+  {
+   "venueKey": "spark-usdc",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "41748963927260351955247764n",
+    "liquidityRate": "33885863018823220195853278n"
+   }
+  },
+  {
+   "venueKey": "spark-usdc",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "40783872374347894776266170n",
+    "liquidityRate": "32337323007535894368149959n"
+   }
+  },
+  {
+   "venueKey": "spark-usdc",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "19020980647960501778568282n",
+    "liquidityRate": "7033847593480236781991682n"
+   }
+  },
+  {
+   "venueKey": "spark-usdc",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "3223596052942894798104802n",
+    "liquidityRate": "202026517316874413290269n"
+   }
+  },
+  {
+   "venueKey": "spark-usdc",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "41758945394436511775778256n",
+    "liquidityRate": "33902068022743456969714743n"
+   }
+  },
+  {
+   "venueKey": "spark-usdc",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "41770013264290156456016581n",
+    "liquidityRate": "33920041340704285281605867n"
+   }
+  },
+  {
+   "venueKey": "spark-usdc",
+   "side": "borrow",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "42865732379800979799610700n",
+    "liquidityRate": "35722976921157104894622001n"
+   }
+  },
+  {
+   "venueKey": "spark-usdt",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "39663684906342692045702347n",
+    "liquidityRate": "33951676484560121902114300n"
+   }
+  },
+  {
+   "venueKey": "spark-usdt",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "39577606012991645183459248n",
+    "liquidityRate": "33876971863005231282709589n"
+   }
+  },
+  {
+   "venueKey": "spark-usdt",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "36299695998877035455609687n",
+    "liquidityRate": "30978679113307491658030301n"
+   }
+  },
+  {
+   "venueKey": "spark-usdt",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "31636916867943398590588920n",
+    "liquidityRate": "23531262407611805548870268n"
+   }
+  },
+  {
+   "venueKey": "spark-usdt",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "14514584954562098419047719n",
+    "liquidityRate": "4952975315642101776157731n"
+   }
+  },
+  {
+   "venueKey": "spark-usdt",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "39663684906342692045702347n",
+    "liquidityRate": "33951676484560121902114300n"
+   }
+  },
+  {
+   "venueKey": "spark-usdt",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "39754192313166799413459598n",
+    "liquidityRate": "34030229240466285402611247n"
+   }
+  },
+  {
+   "venueKey": "spark-usdt",
+   "side": "borrow",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "48714425588753428821427441n",
+    "liquidityRate": "41831281099525844648266079n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "41260040183078373714097433n",
+    "liquidityRate": "25606739000623557522489477n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "side": "supply",
+   "sizeRaw": "10000000000000000000000n",
+   "onchain": {
+    "borrowRate": "41259746037970034803265979n",
+    "liquidityRate": "25606373898207963385781276n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "side": "supply",
+   "sizeRaw": "1000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "41230646417672622509615953n",
+    "liquidityRate": "25570267374781742938811256n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "side": "supply",
+   "sizeRaw": "50000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "39839924918601029628547708n",
+    "liquidityRate": "23874374623757108231596063n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "side": "supply",
+   "sizeRaw": "500000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "30417544896372728472558673n",
+    "liquidityRate": "13916925334105134451684676n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "41260040183078373714097433n",
+    "liquidityRate": "25606739000623557522489477n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "side": "borrow",
+   "sizeRaw": "10000000000000000000000n",
+   "onchain": {
+    "borrowRate": "41260466745514154658233539n",
+    "liquidityRate": "25607268468330060599721267n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "side": "borrow",
+   "sizeRaw": "1000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "41302696426656468127708020n",
+    "liquidityRate": "25659712866662942442074404n"
+   }
+  },
+  {
+   "venueKey": "spark-usds",
+   "side": "borrow",
+   "sizeRaw": "50000000000000000000000000n",
+   "onchain": {
+    "borrowRate": "43392852361983094394626793n",
+    "liquidityRate": "28322486548288895617458633n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-cbbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1471925471n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-cbbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1471892920n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-cbbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "1468679785n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-cbbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "1330105838n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-cbbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "814773926n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-cbbtc-usdc-86",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1471925471n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-cbbtc-usdc-86",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1471961905n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-cbbtc-usdc-86",
+   "side": "borrow",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "1475568835n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1487974870n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1487889802n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "1479531959n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "1180340474n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wbtc-usdc-86",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "606794530n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wbtc-usdc-86",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1487974870n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wbtc-usdc-86",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1488071057n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wbtc-usdc-86",
+   "side": "borrow",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "1497593656n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdc-86",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1469971805n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdc-86",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1469634040n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdc-86",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "1437190512n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdc-86",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "803244228n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdc-86",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "435965251n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdc-86",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1469971805n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdc-86",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1470349071n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdc-86",
+   "side": "borrow",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "2636744002n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdt-86",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1182579316n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdt-86",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1180266755n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdt-86",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "1123677931n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdt-86",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "897084093n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdt-86",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "459205425n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdt-86",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1182579316n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdt-86",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1185144474n"
+   }
+  },
+  {
+   "venueKey": "morpho-blue-wsteth-usdt-86",
+   "side": "borrow",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "1439096028n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdc-2",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "3207759751538320774n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdc-2",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "2854030620760687157n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdc-2",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "1399051392745427728n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdc-2",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "86504256815342235n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdc-2",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "8996015740247703n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdc-2",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "3207759751538320774n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdc-2",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "3596513730874810050n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdt-2",
+   "side": "supply",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1889967607660608787n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdt-2",
+   "side": "supply",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1835360517783664868n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdt-2",
+   "side": "supply",
+   "sizeRaw": "1000000000000n",
+   "onchain": {
+    "borrowRate": "475430218909513975n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdt-2",
+   "side": "supply",
+   "sizeRaw": "50000000000000n",
+   "onchain": {
+    "borrowRate": "12619644383490788n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdt-2",
+   "side": "supply",
+   "sizeRaw": "500000000000000n",
+   "onchain": {
+    "borrowRate": "1269593847560749n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdt-2",
+   "side": "borrow",
+   "sizeRaw": "0n",
+   "onchain": {
+    "borrowRate": "1889967607660608787n"
+   }
+  },
+  {
+   "venueKey": "euler-v2-eusdt-2",
+   "side": "borrow",
+   "sizeRaw": "10000000000n",
+   "onchain": {
+    "borrowRate": "1955939186862836793n"
+   }
+  }
+ ]
+}

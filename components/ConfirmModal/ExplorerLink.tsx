@@ -2,17 +2,14 @@ import { Text, HStack, Link } from '@chakra-ui/react'
 import React, { useMemo } from 'react'
 import useWallet from '@/hooks/useWallet'
 import { colors } from '@/config/defaults'
+import { getTxExplorerUrl } from '@/helpers/explorer'
 
 export const ExplorerLink = ({ txHash }: { txHash: string | undefined }) => {
   const { chain } = useWallet()
 
   if (!txHash) return null
 
-  // TODO(evm-migration): EVM block explorers expose /tx/<hash>; the base URL comes from the
-  // viem Chain's blockExplorers config (config/evm/chains.ts). Was: Cosmos chain.explorers
-  // priority list + celat.one neutron special-casing (see getExplorer above).
-  const baseUrl = chain?.blockExplorers?.default?.url
-  const txLink = baseUrl ? `${baseUrl.replace(/\/$/, '')}/tx/${txHash}` : undefined
+  const txLink = getTxExplorerUrl(chain, txHash)
 
   if (!txLink) return null
 

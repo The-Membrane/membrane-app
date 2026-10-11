@@ -14,6 +14,9 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import type { Provenance, ProvenanceKind } from '@/lib/position-sim'
+import { useNewsEdition } from '@/components/NewsEdition'
+
+import { fmtLocalClock } from './localClock'
 
 const KIND_COLOR: Record<ProvenanceKind, string> = {
   onchain: SEMANTIC_COLORS.warning,
@@ -41,6 +44,10 @@ export interface StampProps {
  */
 export const Stamp: React.FC<StampProps> = ({ provenance, note }) => {
   const color = KIND_COLOR[provenance.kind]
+  // News edition: the reader's own zone on a 12-hour clock, like every other time on
+  // the page (owner rule; components/Simulator/localClock.ts). Elsewhere unchanged.
+  const news = useNewsEdition()
+  const fetched = (at: number) => (news ? fmtLocalClock(Math.floor(at / 1000), undefined) : clock(at))
   const [mounted, setMounted] = React.useState(false)
   // The clock is client-only: the server and the browser are in different zones and
   // an SSR'd time would mismatch on hydrate.
@@ -77,7 +84,7 @@ export const Stamp: React.FC<StampProps> = ({ provenance, note }) => {
         textOverflow="ellipsis"
       >
         {provenance.label}
-        {provenance.kind === 'onchain' && mounted ? ` · fetched ${clock(provenance.at)}` : ''}
+        {provenance.kind === 'onchain' && mounted ? ` · fetched ${fetched(provenance.at)}` : ''}
         {note ? ` · ${note}` : ''}
       </Text>
     </Box>

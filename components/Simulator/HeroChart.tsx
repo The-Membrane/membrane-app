@@ -14,6 +14,7 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import type { Comparison } from '@/lib/position-sim'
 import { OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
+import { LABEL, NEWS, NEWS_FONT, ONE_DAY_TITLE, useNewsEdition } from '@/components/NewsEdition'
 
 const usdMillions = (value: number): string => `$${Math.round(value / 1_000_000)}M`
 
@@ -42,7 +43,111 @@ export interface HeroChartProps {
   isDemo: boolean
 }
 
-export const HeroChart: React.FC<HeroChartProps> = () => (
+/**
+ * THE NEWS EDITION'S BOX (canvas "Landing", section 02). The protected figure leads in
+ * money green; the two bars are what each engine closed — Aave's in the danger colour,
+ * Membrane's in money green. The title moves to the masthead index, which links here.
+ */
+const NewsHeroChart: React.FC = () => (
+  <Box
+    as="section"
+    id="oneday"
+    data-news-section=""
+    aria-label={ONE_DAY_TITLE}
+    data-testid="sim-oct10-comparison"
+    border="1px solid"
+    borderColor={NEWS.accent}
+    borderRadius={0}
+    px={{ base: '16px', md: '26px' }}
+    py="24px"
+    display="flex"
+    flexWrap="wrap"
+    gap="28px"
+    minW={0}
+  >
+    <Box flex="1 1 260px" minW={0}>
+      <Text
+        fontFamily={NEWS_FONT.mono}
+        fontWeight={700}
+        fontSize="clamp(52px, 8vw, 76px)"
+        lineHeight={1}
+        letterSpacing="-0.02em"
+        color={NEWS.up}
+        {...tabular}
+      >
+        {usdMillions(PROTECTED_DEBT)}
+      </Text>
+      <Text
+        mt="10px"
+        fontFamily={NEWS_FONT.display}
+        fontWeight={700}
+        fontSize={{ base: '22px', md: '26px' }}
+        lineHeight={1.2}
+        color={NEWS.accent}
+      >
+        protected from forced debt closure
+      </Text>
+    </Box>
+    <Box flex="999 1 520px" minW={0} display="flex" flexDirection="column" gap="14px">
+      <Text fontFamily={NEWS_FONT.mono} fontSize="12px" letterSpacing="0.1em" color={NEWS.muted} {...tabular}>
+        10 Oct 2025 · {OCT10_TOTALS.accounts.toLocaleString('en-US')} liquidated accounts
+      </Text>
+      <Box
+        role="img"
+        aria-label={`On 10 October 2025, Aave closed ${usdMillions(AAVE_CLOSED)} of debt and Membrane would have closed ${usdMillions(MEMBRANE_CLOSED)} across the same ${OCT10_TOTALS.accounts.toLocaleString('en-US')} accounts.`}
+        display="grid"
+        gridTemplateColumns={{ base: '84px minmax(0, 1fr)', md: '110px minmax(0, 1fr)' }}
+        gap="12px 14px"
+        alignItems="center"
+      >
+        {rows.map((row) => {
+          const bar = row.label === 'Aave' ? NEWS.danger : NEWS.up
+          return (
+            <React.Fragment key={row.label}>
+              <Text {...LABEL} fontSize="13px" letterSpacing="0.1em" color={NEWS.ink2}>
+                {row.label}
+              </Text>
+              {/* One track width for both rows, so the bars stay to scale. */}
+              <Box display="flex" alignItems="center" gap="10px" minW={0}>
+                <Box flex="1 1 auto" minW={0}>
+                  <Box h="30px" w={`${(row.value / AAVE_CLOSED) * 100}%`} bg={bar} />
+                </Box>
+                <Text
+                  fontFamily={NEWS_FONT.mono}
+                  fontWeight={700}
+                  fontSize="15px"
+                  color={NEWS.ink}
+                  flexShrink={0}
+                  minW="5ch"
+                  textAlign="right"
+                  {...tabular}
+                >
+                  {usdMillions(row.value)}
+                </Text>
+              </Box>
+            </React.Fragment>
+          )
+        })}
+      </Box>
+      <Text
+        fontFamily={NEWS_FONT.mono}
+        fontSize="12px"
+        lineHeight={1.5}
+        color={NEWS.muted}
+        borderTop="1px solid"
+        borderColor={NEWS.rule}
+        pt="10px"
+      >
+        Debt closed across the measured Oct. 10 cohort. Lower is less forced repayment.
+      </Text>
+    </Box>
+  </Box>
+)
+
+export const HeroChart: React.FC<HeroChartProps> = () =>
+  useNewsEdition() ? (
+    <NewsHeroChart />
+  ) : (
   <Box
     data-testid="sim-oct10-comparison"
     border="1px solid"
@@ -69,7 +174,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           lineHeight={1}
           color={SEMANTIC_COLORS.textPrimary}
         >
-          One day. Same accounts.
+          {ONE_DAY_TITLE}
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}

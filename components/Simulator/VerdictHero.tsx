@@ -72,8 +72,10 @@ import { fmtLocalClock, fmtLocalDayClock, useLocalZone } from './localClock'
 import Stamp from './Stamp'
 import { stamp as stampFn } from '@/lib/position-sim/types'
 
-const OCT10_PROV = stampFn('dataset', 'measured · 2,350 accounts · on-chain', 'public/data/oct10-2025/evidence.json — every Aave liquidation on 10-11 Oct 2025, judged against its own line.')
+export const OCT10_PROV = stampFn('dataset', 'measured · 2,350 accounts · on-chain', 'public/data/oct10-2025/evidence.json — every Aave liquidation on 10-11 Oct 2025, judged against its own line.')
 import { OCT10_STAKES_LINE } from '@/lib/position-sim/oct10Totals'
+
+import { Figures, NEWS, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
 
 import AddressBar, { type AddressBarProps } from './AddressBar'
 import HeroChart from './HeroChart'
@@ -268,6 +270,220 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   const carryFirst = carryPriced && mode === 'carry' && !historyFirst
   const src = comparison?.position.label ?? ''
   const whose = isDemo ? 'this' : 'your'
+
+  const news = useNewsEdition()
+  if (news) {
+    // THE NEWS EDITION (canvas "Landing"). Same three stories, same gates, same
+    // sentences and test ids; laid out as a front page: the verdict article on the
+    // left, the paste box as a sidebar, the Oct-10 cohort as its own boxed band below.
+    // Redaction sets the sentences, JetBrains Mono sets every figure inside them. The
+    // stakes line moves to the masthead's rail (Simulator.tsx), so it is not repeated.
+    const headline = {
+      as: 'h1' as const,
+      'data-testid': 'sim-verdict-headline',
+      fontFamily: NEWS_FONT.display,
+      fontWeight: 700,
+      fontSize: 'clamp(30px, 4.6vw, 54px)',
+      lineHeight: 1.08,
+      letterSpacing: '-0.01em',
+      color: NEWS.ink,
+      sx: { textWrap: 'balance' as const },
+    }
+    const subhead =
+      mode === 'borrower' && !hideSubhead ? (
+        <Text
+          data-testid="sim-hero-subhead"
+          fontFamily={NEWS_FONT.mono}
+          fontSize="15px"
+          lineHeight={1.6}
+          maxW="640px"
+          color={NEWS.ink2}
+        >
+          {HERO_SUBHEAD}
+        </Text>
+      ) : null
+    const figureRow = (figure: React.ReactNode, caption: React.ReactNode, testId?: string) => (
+      <Box
+        display="flex"
+        flexWrap="wrap"
+        alignItems="baseline"
+        gap="6px 16px"
+        borderTop="1px solid"
+        borderColor={NEWS.ink}
+        pt="14px"
+        mt="4px"
+      >
+        {figure}
+        <Text
+          data-testid={testId}
+          fontFamily={NEWS_FONT.mono}
+          fontSize="13px"
+          letterSpacing="0.06em"
+          color={NEWS.muted}
+        >
+          {caption}
+        </Text>
+      </Box>
+    )
+    const bigFigure = (text: string, color: string, testId?: string) => (
+      <Text
+        data-testid={testId}
+        fontFamily={NEWS_FONT.mono}
+        fontSize="clamp(40px, 6vw, 64px)"
+        fontWeight={700}
+        lineHeight={1}
+        letterSpacing="-0.02em"
+        color={color}
+        overflowWrap="anywhere"
+        {...tabular}
+      >
+        {text}
+      </Text>
+    )
+    const carryLine = (
+      <>
+        Membrane is paid out of the yield. If the spread inverts, curators cover 14 days of yield
+        to give you time to act.
+      </>
+    )
+
+    return (
+      <Box display="grid" gap="26px" minW={0}>
+        <Box display="flex" flexWrap="wrap" gap="32px" alignItems="flex-start" minW={0}>
+          <Box as="article" flex="2 1 560px" minW={0} display="grid" gap="14px">
+            {historyFirst && history && (
+              <>
+                <Text {...headline} color={SEMANTIC_COLORS.success}>
+                  <Figures text={`${usd(history.savedUsd)} of your collateral would still be yours.`} chip />
+                </Text>
+                {subhead}
+                {figureRow(
+                  bigFigure(usd(history.savedUsd), SEMANTIC_COLORS.success, 'sim-history-hero-number'),
+                  <>
+                    {history.savedCount} liquidation{history.savedCount === 1 ? '' : 's'}
+                    {history.firstEventTs ? ` since ${historyDate(history.firstEventTs)}` : ''}.
+                    Membrane would have recalled instead of selling.
+                  </>,
+                )}
+                {v && (
+                  <Text
+                    data-testid="sim-safety-verdict"
+                    fontFamily={NEWS_FONT.mono}
+                    fontSize="15px"
+                    lineHeight={1.55}
+                    maxW="70ch"
+                  >
+                    <Text as="span" display="block" color={v.firstColor}>
+                      {v.first}
+                    </Text>
+                    <Text as="span" display="block" color={v.secondColor}>
+                      {v.second}
+                    </Text>
+                    <Text as="span" display="block" color={v.figureColor}>
+                      {v.figure}{' '}
+                      <Text as="span" color={NEWS.muted}>
+                        {v.caption}
+                      </Text>
+                    </Text>
+                  </Text>
+                )}
+              </>
+            )}
+
+            {v && carryFirst && carry && (
+              <>
+                <Text {...headline}>
+                  <Text as="span" color={SEMANTIC_COLORS.danger}>
+                    <Figures
+                      text={`${src} charges ${whose} carry ${usd(carry.annualCostUsd)} a year, even when the venue pays nothing.`}
+                      chip
+                    />
+                  </Text>{' '}
+                  <Text as="span" color={SEMANTIC_COLORS.success}>
+                    <Figures
+                      text="Membrane is paid out of the yield. If the spread inverts, curators cover 14 days of yield to give you time to act."
+                      chip
+                    />
+                  </Text>
+                </Text>
+                {subhead}
+                {figureRow(
+                  bigFigure(`−${usd(carry.fixedCostOnCoveredUsd)}/yr`, SEMANTIC_COLORS.danger, 'sim-carry-cost'),
+                  <>fixed interest on the deployed {usd(carry.coveredDebtUsd)}, {src}, paid or not</>,
+                )}
+              </>
+            )}
+
+            {v && !carryFirst && !historyFirst && (
+              <>
+                <Text {...headline}>
+                  <Text as="span" display="block" color={v.firstColor}>
+                    <Figures text={v.first} chip />
+                  </Text>
+                  <Text
+                    as="span"
+                    display="block"
+                    mt="14px"
+                    fontWeight={400}
+                    fontSize={{ base: '22px', md: '26px' }}
+                    lineHeight={1.3}
+                    color={v.secondColor === SEMANTIC_COLORS.textPrimary ? NEWS.ink2 : v.secondColor}
+                  >
+                    <Figures text={v.second} chip />
+                  </Text>
+                </Text>
+                {subhead}
+                {figureRow(bigFigure(v.figure, deltaColor), v.caption, 'sim-verdict-basis')}
+                {carryPriced && carry && (
+                  <Text
+                    data-testid="sim-carry-secondary"
+                    fontFamily={NEWS_FONT.mono}
+                    fontSize="15px"
+                    lineHeight={1.55}
+                    maxW="70ch"
+                  >
+                    <Text as="span" color={SEMANTIC_COLORS.danger}>
+                      {src} also charges {whose} carry {usd(carry.fixedCostOnCoveredUsd)} a year in
+                      fixed interest on the deployed {usd(carry.coveredDebtUsd)}, paid or not.
+                    </Text>{' '}
+                    <Text as="span" color={SEMANTIC_COLORS.success}>
+                      {carryLine}
+                    </Text>
+                  </Text>
+                )}
+              </>
+            )}
+
+            {/* Still loading the run: the subhead holds the article on its own. */}
+            {!historyFirst && !v && subhead}
+
+            {(errors ?? []).map((e) => (
+              <Text
+                key={e}
+                fontFamily={NEWS_FONT.mono}
+                fontSize="12px"
+                color={SEMANTIC_COLORS.danger}
+                lineHeight={1.6}
+              >
+                {e}
+              </Text>
+            ))}
+          </Box>
+
+          <Box flex="1 1 300px" minW={0} alignSelf="flex-start">
+            <AddressBar {...addressBar} />
+          </Box>
+        </Box>
+
+        <HeroChart
+          comparison={comparison}
+          startTs={startTs}
+          stepSeconds={stepSeconds}
+          isDemo={isDemo}
+        />
+      </Box>
+    )
+  }
 
   return (
     <Box

@@ -15,6 +15,12 @@ import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import useWallet from '@/hooks/useWallet'
+import { LANDING_PASTE_PROMPT } from '@/lib/position-sim/guarantee'
+import { LABEL, NEWS, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
+
+/** The page's one action, named. The CTA repeat says it with an arrow ("… ↑"); the
+ *  news edition's paste box uses it as its heading. */
+export const RUN_YOUR_POSITION = 'Run your position'
 
 const BTN = {
   bg: 'transparent',
@@ -105,6 +111,157 @@ export const AddressBar: React.FC<AddressBarProps> = ({
     if (isWalletConnected && walletAddress) onChange(walletAddress)
     else connect()
   }
+
+  const news = useNewsEdition()
+  if (news) {
+    // THE NEWS EDITION'S PASTE BOX (canvas "Landing"): a sidebar card on the card stock,
+    // square, 1px ink, solid edges — reading an address signs nothing, so no dashed
+    // "leads to a signature" edge. Same input id, handlers, labels and states.
+    const link = {
+      bg: 'transparent',
+      border: 0,
+      borderRadius: 0,
+      h: 'auto',
+      minW: 'auto',
+      minH: '32px',
+      px: 0,
+      py: 0,
+      fontFamily: NEWS_FONT.mono,
+      fontSize: '12px',
+      fontWeight: 400,
+      textDecoration: 'underline',
+      _hover: { bg: 'transparent', opacity: 0.85 },
+    }
+    return (
+      <Box
+        as="aside"
+        aria-label={RUN_YOUR_POSITION}
+        border="1px solid"
+        borderColor={NEWS.ink}
+        bg={NEWS.card}
+        p="18px"
+        display="flex"
+        flexDirection="column"
+        gap="12px"
+        w="100%"
+        minW={0}
+      >
+        <Text as="h2" {...LABEL} fontSize="12px" color={NEWS.accent}>
+          {RUN_YOUR_POSITION}
+        </Text>
+        <Text as="label" htmlFor={inputId} fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.ink2}>
+          {LANDING_PASTE_PROMPT}
+        </Text>
+        {primaryConnect && (
+          <Button
+            type="button"
+            onClick={useWalletAddress}
+            {...BTN}
+            w="100%"
+            bg={NEWS.cta}
+            borderColor={NEWS.cta}
+            color={NEWS.onCta}
+            fontWeight={700}
+            _hover={{ bg: NEWS.cta, borderColor: NEWS.ink }}
+          >
+            {isWalletConnected && walletAddress
+              ? 'Use connected wallet'
+              : (connectLabel ?? 'Connect a wallet')}
+          </Button>
+        )}
+        <Box
+          as="form"
+          display="flex"
+          flexDirection="column"
+          gap="12px"
+          w="100%"
+          onSubmit={(e: React.FormEvent) => {
+            e.preventDefault()
+            onSubmit()
+          }}
+        >
+          <Input
+            // Stable anchor: the CTAs under the fold scroll to this element and focus it.
+            id={inputId}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={primaryConnect ? '0x… connect or paste an address' : '0x… paste any address'}
+            aria-label="Ethereum address to read a lending position from"
+            isInvalid={Boolean(error)}
+            aria-describedby={error ? `${inputId}-error` : undefined}
+            minW="0"
+            h="auto"
+            minH="44px"
+            px="10px"
+            py="10px"
+            bg={NEWS.paper}
+            color={NEWS.ink}
+            border={0}
+            borderBottom="2px solid"
+            borderColor={error ? NEWS.danger : NEWS.ink}
+            borderRadius={0}
+            fontFamily={NEWS_FONT.mono}
+            fontSize="15px"
+            _placeholder={{ color: NEWS.muted }}
+            _hover={{ borderColor: error ? NEWS.danger : NEWS.ink }}
+            _focusVisible={{ boxShadow: 'none', borderColor: NEWS.accent }}
+            _invalid={{ boxShadow: 'none', borderColor: NEWS.danger }}
+          />
+          <Button
+            type="submit"
+            isDisabled={isLoading}
+            h="auto"
+            minH="46px"
+            bg={NEWS.ink}
+            color={NEWS.paper}
+            border={0}
+            borderRadius={0}
+            fontFamily={NEWS_FONT.mono}
+            fontWeight={700}
+            fontSize="13px"
+            letterSpacing="0.16em"
+            textTransform="uppercase"
+            _hover={{ bg: NEWS.ink, opacity: 0.9 }}
+            _active={{ opacity: 0.85 }}
+            _disabled={{ opacity: 0.45, cursor: 'not-allowed' }}
+          >
+            {isLoading ? 'Reading…' : loadedAddress ? 'Run another' : 'Run mine'}
+          </Button>
+        </Box>
+        <Box display="flex" flexWrap="wrap" gap="6px 16px">
+          {!primaryConnect && (
+            <Button type="button" onClick={useWalletAddress} {...link} color={NEWS.accent}>
+              {isWalletConnected && walletAddress
+                ? 'Use connected wallet'
+                : 'Connect a wallet to fill this in'}
+            </Button>
+          )}
+          {loadedAddress && (
+            <Button type="button" onClick={onClear} {...link} color={NEWS.ink2}>
+              Back to example
+            </Button>
+          )}
+        </Box>
+        {error && (
+          <Text id={`${inputId}-error`} fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.danger}>
+            {error}
+          </Text>
+        )}
+        <Text
+          fontFamily={NEWS_FONT.mono}
+          fontSize="12px"
+          lineHeight={1.6}
+          color={NEWS.muted}
+          borderTop="1px solid"
+          borderColor={NEWS.rule}
+          pt="10px"
+        >
+          {readNote ?? 'Read-only · no signature · address logged'}
+        </Text>
+      </Box>
+    )
+  }
+
   return (
     <Box
       bg={SEMANTIC_COLORS.bgPrimary}

@@ -12,6 +12,7 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { GUARANTEE } from '@/lib/position-sim'
 import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
+import { NEWS, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
 
 const SCALE = CORPUS_SCALE_LINE.partial ? OCT10_SCALE_LINE : CORPUS_SCALE_LINE
 const SCALE_LEAD = CORPUS_SCALE_LINE.partial
@@ -23,7 +24,76 @@ const SCALE_TAIL = CORPUS_SCALE_LINE.partial
 const WINDOW_FIGURE = CORPUS_SCALE_LINE.partial ? '1' : String(CORPUS_SCALE_LINE.years)
 const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured'
 
-export const GuaranteeBlock: React.FC = () => (
+/**
+ * THE NEWS EDITION (canvas "Landing", section 03): the named guarantee leads, its claim
+ * and limit under it, and the measured scale sits below a rule as the proof. The scale
+ * figure is money, so it is money green and JetBrains Mono; the sentence around it is
+ * Redaction. Same strings and test ids as the default block.
+ *
+ * The "4%." mark stays Redaction, as on the canvas: it is the guarantee's NAME
+ * (GUARANTEE.name), the page's recurring wordmark device, not a measured figure.
+ */
+const NewsGuaranteeBlock: React.FC = () => (
+  <Box data-testid="sim-guarantee" display="grid" gap="12px" minW={0}>
+    <Text
+      fontFamily={NEWS_FONT.display}
+      fontWeight={700}
+      fontSize="clamp(56px, 8vw, 72px)"
+      lineHeight={1}
+      color={NEWS.ink}
+    >
+      {GUARANTEE.name}
+    </Text>
+    <Text fontFamily={NEWS_FONT.mono} fontSize="15px" lineHeight={1.6} color={NEWS.ink} maxW="70ch">
+      {GUARANTEE.claim}
+    </Text>
+    <Text fontFamily={NEWS_FONT.mono} fontSize="15px" lineHeight={1.6} color={NEWS.ink} maxW="70ch">
+      {GUARANTEE.limit}
+    </Text>
+    <Box borderTop="1px solid" borderColor={NEWS.rule} pt="12px" display="grid" gap="6px">
+      <Text
+        data-testid="sim-scale-line"
+        fontFamily={NEWS_FONT.display}
+        fontSize={{ base: '19px', md: '22px' }}
+        lineHeight={1.35}
+        color={NEWS.ink2}
+        maxW="60ch"
+      >
+        {SCALE_LEAD}{' '}
+        <Text
+          as="span"
+          fontFamily={NEWS_FONT.mono}
+          fontWeight={700}
+          fontSize="0.9em"
+          color={NEWS.up}
+          sx={{ fontVariantNumeric: 'tabular-nums' }}
+        >
+          {SCALE.figure}
+        </Text>{' '}
+        {SCALE_TAIL}
+      </Text>
+      <Text
+        fontFamily={NEWS_FONT.mono}
+        fontSize="12px"
+        letterSpacing="0.1em"
+        textTransform="uppercase"
+        color={NEWS.muted}
+      >
+        {WINDOW_FIGURE} {WINDOW_UNIT} · Aave V3
+      </Text>
+      {!CORPUS_SCALE_LINE.partial && (
+        <Text data-testid="sim-scale-subline" fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.muted}>
+          {OCT10_SCALE_LINE.result} {OCT10_SCALE_LINE.window}.
+        </Text>
+      )}
+    </Box>
+  </Box>
+)
+
+export const GuaranteeBlock: React.FC = () =>
+  useNewsEdition() ? (
+    <NewsGuaranteeBlock />
+  ) : (
   <Box
     data-testid="sim-guarantee"
     border="1px solid"

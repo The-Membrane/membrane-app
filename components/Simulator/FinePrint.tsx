@@ -16,7 +16,13 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { GUARANTEE, type Provenance } from '@/lib/position-sim'
-import { CORPUS_COVERAGE_LINE, CORPUS_WORSE_CONTEXT_LINE } from '@/lib/position-sim/oct10Totals'
+import {
+  CORPUS_COVERAGE_LINE,
+  CORPUS_WORSE_CONTEXT_LINE,
+  OCT10_PRICE_PATH,
+} from '@/lib/position-sim/oct10Totals'
+
+import { NEWS, useNewsEdition } from '@/components/NewsEdition'
 
 import Stamp from './Stamp'
 
@@ -31,7 +37,7 @@ const HEAD = {
 /** Fixed, and true whatever the run says. */
 const STANDING = [
   'Membrane has no Ethereum mainnet deployment. Its liquidation lines are modelled, not live protocol settings.',
-  'The price path is measured: 1-minute Chainlink rounds, 10-11 Oct 2025.',
+  `The price path is measured: ${OCT10_PRICE_PATH.source}, ${OCT10_PRICE_PATH.window}.`,
   'The venue recall rate is an assumption and moves the result most.',
   'A simulation is not a forecast.',
 ]
@@ -80,10 +86,19 @@ const Line: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     lineHeight={1.65}
     color={SEMANTIC_COLORS.textSecondary}
     maxW="92ch"
+    sx={{ breakInside: 'avoid' }}
   >
     {children}
   </Text>
 )
+
+/** News edition: the standing lines set as newspaper columns, ruled between. */
+const NEWS_COLUMNS = {
+  columnWidth: '260px',
+  columnGap: '28px',
+  columnRule: `1px solid ${NEWS.rule}`,
+  '& > li': { marginBottom: '8px' },
+}
 
 export const FinePrint: React.FC<FinePrintProps> = ({
   caveats,
@@ -92,7 +107,9 @@ export const FinePrint: React.FC<FinePrintProps> = ({
   borrowRateNote,
   extraNotes,
   assumptionNote,
-}) => (
+}) => {
+  const news = useNewsEdition()
+  return (
   <Box
     as="details"
     data-testid="sim-fineprint"
@@ -141,11 +158,13 @@ export const FinePrint: React.FC<FinePrintProps> = ({
       <Box
         as="ul"
         minW={0}
-        display="grid"
+        display={news ? 'block' : 'grid'}
         gridTemplateColumns="minmax(0, 1fr)"
         gap={SPACING.sm}
-        pl={SPACING.base}
+        pl={news ? 0 : SPACING.base}
+        listStyleType={news ? 'none' : undefined}
         m={0}
+        sx={news ? NEWS_COLUMNS : undefined}
       >
         {STANDING.map((s) => (
           <Line key={s}>{s}</Line>
@@ -186,6 +205,7 @@ export const FinePrint: React.FC<FinePrintProps> = ({
       </Box>
     </Box>
   </Box>
-)
+  )
+}
 
 export default FinePrint

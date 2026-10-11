@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/Card'
 import { MockStamp } from '@/components/demo'
 import { CHART_THEME, CHART_DIMENSIONS } from '@/config/chartTheme'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { NEWS_CHART } from '@/components/NewsEdition/tokens'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
@@ -48,8 +49,11 @@ const HORIZON_DAYS = 90
 // §6: chosen = phosphor, alternative = cyber teal; tiers by opacity + dash.
 // Venue identity only. Good/bad is carried by the SIGN colouring of every number and
 // the zero line, never by the venue hue (owner 2026-09-22).
-const CHOSEN_COLOR = SEMANTIC_COLORS.primary
-const ALT_COLOR = SEMANTIC_COLORS.textPrimary
+// Inside the landing's news edition the two venues take the edition's chart tokens
+// (styles/news-edition.css --news-chart / --news-chart-2); anywhere else the fallback is
+// the app colour exactly as before.
+const CHOSEN_COLOR = NEWS_CHART.primary(SEMANTIC_COLORS.primary)
+const ALT_COLOR = NEWS_CHART.secondary(SEMANTIC_COLORS.textPrimary)
 const TIER_OPACITY: Record<number, number> = { 1: 1.0, 10: 0.72, 100: 0.5 }
 const TIER_DASH: Record<number, string | undefined> = { 1: undefined, 10: '6 3', 100: '2 3' }
 const BAND_OPACITY = 0.24

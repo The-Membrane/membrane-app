@@ -33,6 +33,7 @@ import { tabular } from '@/components/Builder/styles'
 import type { EpisodeVerdict, HistoryEpisode } from '@/lib/position-sim/history'
 
 import { useSimHistory } from './hooks/useSimHistory'
+import { NEWS, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
 import { usd } from './format'
 
 const HEAD = {
@@ -42,6 +43,27 @@ const HEAD = {
   textTransform: 'uppercase' as const,
   color: SEMANTIC_COLORS.textSecondary,
 }
+
+const HISTORY_TITLE = 'what the delay would have done to your own history'
+
+/** The block's title. In the news edition it is the article's Redaction headline (the
+ *  kicker above it carries the index entry); elsewhere it is the mono section label. */
+const HistoryHead: React.FC = () =>
+  useNewsEdition() ? (
+    <Text
+      as="h2"
+      fontFamily={NEWS_FONT.display}
+      fontWeight={700}
+      fontSize={{ base: '22px', md: '24px' }}
+      lineHeight={1.2}
+      color={NEWS.ink}
+      sx={{ '&::first-letter': { textTransform: 'uppercase' } }}
+    >
+      {HISTORY_TITLE}
+    </Text>
+  ) : (
+    <Text {...HEAD}>{HISTORY_TITLE}</Text>
+  )
 
 /** date · venue · sold · membrane would sell · you keep · verdict */
 const COLS = '118px 70px 130px 130px 110px 1fr'
@@ -113,7 +135,10 @@ const SummaryMetric: React.FC<{
   color?: string
   lead?: boolean
   testId?: string
-}> = ({ label, value, color = SEMANTIC_COLORS.textPrimary, lead = false, testId }) => (
+}> = ({ label, value, color = SEMANTIC_COLORS.textPrimary, lead = false, testId }) => {
+  // News edition: every figure is JetBrains Mono, the lead included (owner ruling T20).
+  const news = useNewsEdition()
+  return (
   <Box
     minW={0}
     display="grid"
@@ -127,7 +152,8 @@ const SummaryMetric: React.FC<{
     <Text
       data-testid={testId}
       minW={0}
-      fontFamily={lead ? TYPOGRAPHY.fontDisplay : TYPOGRAPHY.fontMono}
+      fontFamily={lead && !news ? TYPOGRAPHY.fontDisplay : TYPOGRAPHY.fontMono}
+      fontWeight={lead && news ? 700 : undefined}
       fontSize={lead ? 'clamp(28px, 5vw, 48px)' : 'clamp(18px, 2vw, 24px)'}
       lineHeight={lead ? 1 : 1.15}
       letterSpacing={lead ? '-0.015em' : undefined}
@@ -138,7 +164,8 @@ const SummaryMetric: React.FC<{
       {value}
     </Text>
   </Box>
-)
+  )
+}
 
 const HISTORY_PROV = stampFn(
   'onchain',
@@ -182,7 +209,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
         display="grid"
         gap={SPACING.sm}
       >
-        <Text {...HEAD}>what the delay would have done to your own history</Text>
+        <HistoryHead />
         <Box
           h="34px"
           maxW="420px"
@@ -210,7 +237,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
         display="grid"
         gap={SPACING.sm}
       >
-        <Text {...HEAD}>what the delay would have done to your own history</Text>
+        <HistoryHead />
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize="12.5px"
@@ -241,7 +268,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
         display="grid"
         gap={SPACING.sm}
       >
-        <Text {...HEAD}>what the delay would have done to your own history</Text>
+        <HistoryHead />
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize="14px"
@@ -287,7 +314,7 @@ export const HistoryProof: React.FC<HistoryProofProps> = ({ address }) => {
         gap={SPACING.md}
         flexWrap="wrap"
       >
-        <Text {...HEAD}>what the delay would have done to your own history</Text>
+        <HistoryHead />
         <Stamp provenance={HISTORY_PROV} />
       </Box>
 

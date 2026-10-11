@@ -30,7 +30,8 @@ import { useQuery } from '@tanstack/react-query'
 import CrossingChart from '@/components/Carry/CrossingChart'
 import MarketBoards from '@/components/Carry/MarketBoards'
 import StratsBoard from '@/components/Strats/StratsBoard'
-import AddressBar, { type AddressBarProps } from './AddressBar'
+import AddressBar, { RUN_YOUR_POSITION, type AddressBarProps } from './AddressBar'
+import { NEWS, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
 import { capacityMove, type Entry } from '@/components/Carry/venueLogLogic'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
@@ -46,7 +47,7 @@ const STORED_STRATS = stamp(
   'stored · /api/strats',
   'Tracked positions are cached mainnet reads. The scan timestamp, not the API fetch time, determines freshness.',
 )
-const LIVE_LOG = stamp(
+export const LIVE_LOG = stamp(
   'onchain',
   'live · /api/venues/log',
   'Venue state changes recorded hourly; only discrete changes and >20% liquidity moves become entries.',
@@ -126,7 +127,11 @@ const EvidenceDoor: React.FC<{
   open: boolean
   controls: string
   onClick: () => void
-}> = ({ title, body, open, controls, onClick }) => (
+}> = ({ title, body, open, controls, onClick }) => {
+  // News edition: the open/hover state is the section-head colour — green means money.
+  const news = useNewsEdition()
+  const hl = news ? NEWS.accent : SEMANTIC_COLORS.success
+  return (
   <Button
     type="button"
     onClick={onClick}
@@ -146,21 +151,22 @@ const EvidenceDoor: React.FC<{
     whiteSpace="normal"
     textAlign="left"
     border="1px solid"
-    borderColor={open ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.borderSubtle}
+    borderColor={open ? hl : SEMANTIC_COLORS.borderSubtle}
     borderRadius={0}
     bg={SEMANTIC_COLORS.bgPrimary}
     color={SEMANTIC_COLORS.textPrimary}
     transition={TRANSITIONS.colors}
-    _hover={{ borderColor: SEMANTIC_COLORS.success, bg: SEMANTIC_COLORS.bgPrimary }}
+    _hover={{ borderColor: hl, bg: SEMANTIC_COLORS.bgPrimary }}
     _active={{ opacity: 0.85 }}
     _focus={FOCUS_STYLES.ring}
   >
     <Box w="100%">
       <Text
-        fontFamily={TYPOGRAPHY.fontDisplay}
+        fontFamily={news ? NEWS_FONT.display : TYPOGRAPHY.fontDisplay}
+        fontWeight={news ? 700 : undefined}
         fontSize="20px"
         lineHeight={1.15}
-        color={open ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.textPrimary}
+        color={open ? hl : SEMANTIC_COLORS.textPrimary}
       >
         {title}
       </Text>
@@ -179,12 +185,13 @@ const EvidenceDoor: React.FC<{
       fontSize="10px"
       letterSpacing="0.18em"
       textTransform="uppercase"
-      color={SEMANTIC_COLORS.success}
+      color={hl}
     >
       {open ? 'close ↑' : 'open ↓'}
     </Text>
   </Button>
-)
+  )
+}
 
 type StratsSummary = { count: number; total_usd: number; freshest_scan: string | null }
 
@@ -214,6 +221,47 @@ const useVenueLog = () =>
     refetchOnMount: true,
   })
 
+/**
+ * THE NEWEST MEASURED CAPACITY MOVE, with its window ("over 16h") and its date. Rendered
+ * in the carry section's evidence row, or — in the news edition — in the masthead's
+ * rail instead (Simulator.tsx), never both. `rail` sets it at rail-card size.
+ */
+export const CapacityMoveBody: React.FC<{ rail?: boolean }> = ({ rail = false }) => {
+  const { data: log } = useVenueLog()
+  const logPending = !log
+  const newestMove = log?.entries?.map(capacityMove).find((move) => move !== null) ?? null
+  if (logPending) return <Pending />
+  if (!newestMove)
+    return (
+      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
+        No measured capacity change recorded yet.
+      </Text>
+    )
+  return (
+    <Box display="grid" gap={SPACING.xs}>
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize={rail ? '14px' : 'clamp(18px, 2.3vw, 25px)'}
+        fontWeight={rail ? 700 : undefined}
+        lineHeight={rail ? 1.35 : 1.2}
+        color={SEMANTIC_COLORS.textPrimary}
+        sx={{ fontVariantNumeric: 'tabular-nums' }}
+      >
+        {newestMove.venue} exit capacity {newestMove.change}
+      </Text>
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="12px"
+        lineHeight={1.5}
+        color={rail ? SEMANTIC_COLORS.textTertiary : SEMANTIC_COLORS.textSecondary}
+      >
+        {newestMove.metric} · {newestMove.from} → {newestMove.to} {newestMove.window} ·{' '}
+        {new Date(newestMove.at).toISOString().slice(0, 10)}
+      </Text>
+    </Box>
+  )
+}
+
 export interface CarrySectionProps {
   /** The debt on the position currently on screen. 0 when there is none. */
   positionDebtUsd?: number
@@ -228,11 +276,10 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
   const toggle = (p: 'board' | 'strats') => setOpenPanel((cur) => (cur === p ? null : p))
   const { chainName } = useChainRoute()
   const { data: strats } = useStratsSummary()
-  const { data: log } = useVenueLog()
+  // News edition: the capacity move is the masthead rail's card, not a tile here.
+  const news = useNewsEdition()
 
   const stratsPending = !strats
-  const logPending = !log
-  const newestMove = log?.entries?.map(capacityMove).find((move) => move !== null) ?? null
   const scanTime = strats?.freshest_scan ? new Date(strats.freshest_scan) : null
   const scanAgeMs = scanTime ? Date.now() - scanTime.getTime() : Number.POSITIVE_INFINITY
   const scanStale = !Number.isFinite(scanAgeMs) || scanAgeMs > 2 * 60 * 60 * 1000
@@ -253,19 +300,23 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
     >
       {/* a — WHAT IT IS */}
       <Box display="grid" gap={SPACING.sm}>
-        <Text
-          fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="10px"
-          letterSpacing="0.24em"
-          textTransform="uppercase"
-          color={SEMANTIC_COLORS.textSecondary}
-        >
-          the product
-        </Text>
+        {/* News edition: the section kicker ("05 · The product") carries this label. */}
+        {!news && (
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize="10px"
+            letterSpacing="0.24em"
+            textTransform="uppercase"
+            color={SEMANTIC_COLORS.textSecondary}
+          >
+            the product
+          </Text>
+        )}
         <Text
           as="h2"
-          fontFamily={TYPOGRAPHY.fontDisplay}
-          fontSize="clamp(26px, 4vw, 40px)"
+          fontFamily={news ? NEWS_FONT.display : TYPOGRAPHY.fontDisplay}
+          fontWeight={news ? 700 : undefined}
+          fontSize={news ? 'clamp(24px, 3.4vw, 34px)' : 'clamp(26px, 4vw, 40px)'}
           lineHeight={1.1}
           letterSpacing="-0.015em"
           color={SEMANTIC_COLORS.textPrimary}
@@ -292,29 +343,36 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
       <Box display="grid" gap={SPACING.base}>
         <Box
           display="grid"
-          gridTemplateColumns={{
-            base: 'minmax(0, 1fr)',
-            md: 'minmax(0, 1.45fr) minmax(280px, 0.8fr)',
-          }}
-          border="1px solid"
+          gridTemplateColumns={
+            news
+              ? 'minmax(0, 1fr)'
+              : {
+                  base: 'minmax(0, 1fr)',
+                  md: 'minmax(0, 1.45fr) minmax(280px, 0.8fr)',
+                }
+          }
+          border={news ? undefined : '1px solid'}
           borderColor={SEMANTIC_COLORS.borderSubtle}
-          bg={SEMANTIC_COLORS.bgPrimary}
+          borderLeft={news ? '3px solid' : undefined}
+          borderLeftColor={news ? NEWS.info : undefined}
+          bg={news ? NEWS.raised : SEMANTIC_COLORS.bgPrimary}
         >
           <Box
             minW={0}
-            p={{ base: SPACING.base, md: SPACING.lg }}
+            p={news ? { base: SPACING.md, md: SPACING.base } : { base: SPACING.base, md: SPACING.lg }}
             display="grid"
             gap={SPACING.md}
-            borderRight={{ base: 'none', md: '1px solid' }}
-            borderBottom={{ base: '1px solid', md: 'none' }}
+            borderRight={news ? 'none' : { base: 'none', md: '1px solid' }}
+            borderBottom={news ? 'none' : { base: '1px solid', md: 'none' }}
             borderColor={SEMANTIC_COLORS.borderSubtle}
           >
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="10px"
-              letterSpacing="0.24em"
+              fontWeight={news ? 700 : undefined}
+              fontSize={news ? '11px' : '10px'}
+              letterSpacing={news ? '0.12em' : '0.24em'}
               textTransform="uppercase"
-              color={SEMANTIC_COLORS.textSecondary}
+              color={news ? NEWS.info : SEMANTIC_COLORS.textSecondary}
             >
               capital across tracked strategies
             </Text>
@@ -330,7 +388,7 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
                   color={SEMANTIC_COLORS.textPrimary}
                 >
                   measured across{' '}
-                  <Text as="span" color={SEMANTIC_COLORS.success} fontWeight={600}>
+                  <Text as="span" color={news ? NEWS.ink : SEMANTIC_COLORS.success} fontWeight={600}>
                     {strats?.count ?? 0} tracked strategies
                   </Text>
                   , refreshed from stored mainnet reads. Exit capacity is tested below.
@@ -340,52 +398,23 @@ export const CarrySection: React.FC<CarrySectionProps> = ({ positionDebtUsd = 0 
             <Stamp provenance={STORED_STRATS} note={scanNote} />
           </Box>
 
-          <Box p={SPACING.base} display="grid" gap={SPACING.sm} alignContent="space-between">
-            <Box display="grid" gap={SPACING.sm}>
-              <Text
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="10px"
-                letterSpacing="0.24em"
-                textTransform="uppercase"
-                color={SEMANTIC_COLORS.textSecondary}
-              >
-                latest measured capacity move
-              </Text>
-              {logPending ? (
-                <Pending />
-              ) : newestMove ? (
-                <Box display="grid" gap={SPACING.xs}>
-                  <Text
-                    fontFamily={TYPOGRAPHY.fontMono}
-                    fontSize="clamp(18px, 2.3vw, 25px)"
-                    lineHeight={1.2}
-                    color={SEMANTIC_COLORS.textPrimary}
-                    sx={{ fontVariantNumeric: 'tabular-nums' }}
-                  >
-                    {newestMove.venue} exit capacity {newestMove.change}
-                  </Text>
-                  <Text
-                    fontFamily={TYPOGRAPHY.fontMono}
-                    fontSize="12px"
-                    lineHeight={1.5}
-                    color={SEMANTIC_COLORS.textSecondary}
-                  >
-                    {newestMove.metric} · {newestMove.from} → {newestMove.to} {newestMove.window} ·{' '}
-                    {new Date(newestMove.at).toISOString().slice(0, 10)}
-                  </Text>
-                </Box>
-              ) : (
+          {!news && (
+            <Box p={SPACING.base} display="grid" gap={SPACING.sm} alignContent="space-between">
+              <Box display="grid" gap={SPACING.sm}>
                 <Text
                   fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize="12px"
+                  fontSize="10px"
+                  letterSpacing="0.24em"
+                  textTransform="uppercase"
                   color={SEMANTIC_COLORS.textSecondary}
                 >
-                  No measured capacity change recorded yet.
+                  latest measured capacity move
                 </Text>
-              )}
+                <CapacityMoveBody />
+              </Box>
+              <Stamp provenance={LIVE_LOG} />
             </Box>
-            <Stamp provenance={LIVE_LOG} />
-          </Box>
+          )}
         </Box>
 
         <Box
@@ -504,7 +533,7 @@ export const SimCtaRepeat: React.FC<{ addressBar?: AddressBarProps }> = ({ addre
           <AddressBar {...addressBar} inputId="sim-address-input-foot" />
         ) : (
           <Button type="button" onClick={focusAddressBar} {...CTA_BTN} w="fit-content">
-            Run your position ↑
+            {RUN_YOUR_POSITION} ↑
           </Button>
         )}
         <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'none' }}>

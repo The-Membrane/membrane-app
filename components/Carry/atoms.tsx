@@ -5,6 +5,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import { NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
 
 /** Mono 11px uppercase 0.28em eyebrow (proto `.eyebrow`). */
 export const Eyebrow: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -39,10 +40,19 @@ export const SectionHeading: React.FC<{ index: string; title: string; note?: Rea
   index,
   title,
   note,
-}) => (
+}) => {
+  // Inside the landing's news edition a section head is a bold Redaction headline.
+  const news = useNewsEdition()
+  return (
   <HStack align="baseline" spacing={SPACING.md} flexWrap="wrap" mt={SPACING.xl} mb={SPACING.sm}>
     <Eyebrow>{index}</Eyebrow>
-    <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h2} color={SEMANTIC_COLORS.textPrimary} letterSpacing="-0.01em">
+    <Text
+      fontFamily={news ? NEWS_FONT.display : TYPOGRAPHY.fontDisplay}
+      fontWeight={news ? 700 : undefined}
+      fontSize={TYPOGRAPHY.h2}
+      color={SEMANTIC_COLORS.textPrimary}
+      letterSpacing="-0.01em"
+    >
       {title}
     </Text>
     {note && (
@@ -51,7 +61,8 @@ export const SectionHeading: React.FC<{ index: string; title: string; note?: Rea
       </Text>
     )}
   </HStack>
-)
+  )
+}
 
 /**
  * The inline "oracle" chip (proto `.oic`) — opens the oracle-info card. A help

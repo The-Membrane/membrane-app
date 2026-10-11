@@ -10,7 +10,7 @@ export type Entry = {
   /** Start of the window the change was measured over (previous observed snapshot). */
   since?: string | null
   provenance: 'observed' | 'reconstructed' | 'alarm'
-  severity?: 'watch' | 'alarm'
+  severity?: 'watch' | 'alarm' | 'notice' | 'info'
   evidence?: Record<string, unknown> | null
   cleared?: boolean
 }
@@ -83,56 +83,169 @@ export const capacityMove = (
   }
 }
 
-/**
- * Render a fired alarm as a consequence line from its evidence numbers. Every
- * alarm row is danger-toned (open) or muted (cleared). Mirrors the genres in
- * scripts/lib/alarmRules.mjs.
- */
-export const alarmConsequence = (e: Entry): { text: string; tone: 'danger' | 'muted' } => {
-  const tone = e.cleared ? 'muted' : 'danger'
+const gateEvents = (e: Pick<Entry, 'evidence'>): Array<Record<string, unknown>> => {
+  const evidence = e.evidence ?? {}
+  const events = Array.isArray(evidence.events)
+    ? evidence.events.filter(
+        (event): event is Record<string, unknown> =>
+          event !== null && typeof event === 'object' && !Array.isArray(event),
+      )
+    : []
+  if (events.length > 0) return events
+  const latest = evidence.latest
+  return latest !== null && typeof latest === 'object' && !Array.isArray(latest)
+    ? [latest as Record<string, unknown>]
+    : []
+}
+
+/** A changed terms-page hash alone does not establish a moved exit gate. */
+export const isTermsOnlyNotice = (e: Pick<Entry, 'kind' | 'evidence'>): boolean => {
+  if (e.kind === 'terms_page_notice') return true
+  if (e.kind !== 'gate_change') return false
+  const count = Number(e.evidence?.count)
+  if (!Number.isInteger(count) || count <= 0) return false
+  const rawEvents = e.evidence?.events
+  if (Array.isArray(rawEvents)) {
+    return (
+      rawEvents.length === count &&
+      rawEvents.every(
+        (event) =>
+          event !== null &&
+          typeof event === 'object' &&
+          !Array.isArray(event) &&
+          event.kind === 'terms_page_changed',
+      )
+    )
+  }
+  return (
+    count === 1 &&
+    (e.evidence?.latest as Record<string, unknown> | null)?.kind === 'terms_page_changed'
+  )
+}
+
+/** Reject executable, credential-bearing, or ambiguous external links. */
+export const safeHttpsSourceUrl = (value: unknown): string | null => {
+  if (
+    typeof value !== 'string' ||
+    !value.startsWith('https://') ||
+    value !== value.trim() ||
+    /[\\\u0000-\u001f\u007f]/.test(value)
+  )
+    return null
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && url.hostname && !url.username && !url.password
+      ? url.href
+      : null
+  } catch {
+    return null
+  }
+}
+
+/** Only a structured, browser-safe HTTPS URL on a recorded terms change is linkable. */
+export const termsSourceUrl = (e: Pick<Entry, 'kind' | 'evidence'>): string | null => {
+  const hasTermsChange =
+    e.kind === 'terms_page_notice' ||
+    (e.kind === 'gate_change' && gateEvents(e).some((event) => event.kind === 'terms_page_changed'))
+  return hasTermsChange ? safeHttpsSourceUrl(e.evidence?.sourceUrl) : null
+}
+
+/** Render an alarm from its recorded evidence; terms-only changes are notices. */
+export const alarmConsequence = (
+  e: Entry,
+): { text: string; tone: 'danger' | 'muted' | 'notice' } => {
+  // These historical rows came from venue_flows before the recorder could
+  // certify quiet ranges or complete days. Keep the archive visible, but never
+  // restate its streak, worst-day, or headroom numbers as measured facts.
+  if (e.kind === 'net_outflow_streak' || e.kind === 'headroom_thin') {
+    return {
+      text: `HISTORICAL · ${e.kind === 'net_outflow_streak' ? 'outflow streak' : 'thin headroom'} signal withdrawn — source flow coverage was incomplete; the earlier alert cannot be validated`,
+      tone: 'muted',
+    }
+  }
+  const termsOnly = isTermsOnlyNotice(e)
+  const tone = e.cleared ? 'muted' : termsOnly ? 'notice' : 'danger'
   const ev = e.evidence ?? {}
   const sev = (e.severity ?? 'alarm').toUpperCase()
-  const pre = e.cleared ? 'CLEARED · ' : `${sev} · `
+  const pre = termsOnly
+    ? e.cleared
+      ? e.kind === 'terms_page_notice'
+        ? 'NOTICE WINDOW ENDED · '
+        : 'NOTICE RECORD CLOSED · '
+      : 'NOTICE · '
+    : e.kind === 'gate_change' && e.cleared
+      ? 'ALERT WINDOW ENDED · '
+      : e.cleared
+        ? 'CLEARED · '
+        : `${sev} · `
   let body: string
   switch (e.kind) {
     case 'gate_change': {
-      const latest = (ev.latest ?? {}) as Record<string, unknown>
-      body = `the gate moved — ${latest.kind ?? 'event'} in the last 24h (${ev.count ?? 1} total); every exit plan against this venue just changed`
+      const events = gateEvents(e)
+      const cooldown = events.find((event) => event.kind === 'cooldown_duration_changed')
+      const liquidity = events.find((event) => event.kind === 'instant_liquidity_shift')
+      const termsChanged = events.some((event) => event.kind === 'terms_page_changed')
+      const count = Number(ev.count)
+      const rawEvents = ev.events
+      const fullRoster =
+        Number.isInteger(count) &&
+        count > 0 &&
+        (Array.isArray(rawEvents)
+          ? rawEvents.length === count && events.length === count
+          : count === 1 && events.length === 1)
+      const detailsMissing = !fullRoster
+      const missingNote = detailsMissing ? '; additional event details unavailable' : ''
+      const measured: string[] = []
+      if (cooldown) {
+        const beforeValue = (cooldown.prev as Record<string, unknown> | null)?.cooldownDuration
+        const afterValue = (cooldown.next as Record<string, unknown> | null)?.cooldownDuration
+        const before = Number(beforeValue)
+        const after = Number(afterValue)
+        const values =
+          beforeValue != null &&
+          afterValue != null &&
+          Number.isFinite(before) &&
+          Number.isFinite(after)
+            ? ` ${fmtDuration(before)} → ${fmtDuration(after)}`
+            : ''
+        measured.push(`cooldown duration changed${values}`)
+      }
+      if (liquidity) {
+        const beforeValue = (liquidity.prev as Record<string, unknown> | null)?.instant_usd
+        const afterValue = (liquidity.next as Record<string, unknown> | null)?.instant_usd
+        const before = Number(beforeValue)
+        const after = Number(afterValue)
+        const values =
+          beforeValue != null &&
+          afterValue != null &&
+          Number.isFinite(before) &&
+          Number.isFinite(after) &&
+          before >= 0 &&
+          after >= 0
+            ? ` ${fmtUsd(before)} → ${fmtUsd(after)}`
+            : ''
+        measured.push(`instant exit capacity shifted${values}`)
+      }
+      if (measured.length > 0) {
+        body = `${measured.join('; ')} in the recorded 24h detection window${termsChanged ? '; configured official terms-page text also changed (exit impact unclassified)' : ''}${missingNote} — review the current exit conditions`
+      } else if (termsChanged) {
+        // A normalized visible-text hash change does not identify a changed
+        // clause or establish a withdrawal restriction.
+        body = `configured official terms-page text changed in the recorded 24h detection window${missingNote} — exit impact unclassified; review the source terms`
+      } else {
+        body =
+          'venue exit-condition event recorded in the 24h detection window — review the venue log'
+      }
+      break
+    }
+    case 'terms_page_notice': {
+      body =
+        'configured official terms-page text changed in the recorded 24h detection window — exit impact unclassified; review the source terms'
       break
     }
     case 'drawdown_fast': {
       const drop = Number(ev.dropPct)
       body = `capacity fell ${Number.isFinite(drop) ? drop.toFixed(0) : '?'}% — ${fmtUsd(Number(ev.fromValue))} → ${fmtUsd(Number(ev.toValue))} in ≤7d (${ev.metric})`
-      break
-    }
-    case 'net_outflow_streak': {
-      const pct = Number(ev.pctOfTvl)
-      body = `net outflow ${ev.streakDays}d straight — ${fmtUsd(Number(ev.cumulativeOutflowUsd))} out = ${Number.isFinite(pct) ? pct.toFixed(0) : '?'}% of TVL; the book is bleeding`
-      break
-    }
-    case 'headroom_thin': {
-      const ratio = Number(ev.ratio)
-      // evidence.source (checker, 2026-09-26): which capacity was judged —
-      // 'depth_curve' = swap-out capacity within evidence.costCapPct cost incl.
-      // fees (on-chain quotes); 'depth_usd_raw' (legacy 'depth_usd') = the raw
-      // swap-into reserve, a fallback that is NOT executable at par.
-      const cap = Number(ev.costCapPct)
-      const capacity =
-        ev.source === 'depth_curve'
-          ? `swap-out capacity within ${Number.isFinite(cap) ? cap : '?'}% cost`
-          : ev.source === 'depth_usd_raw' || ev.source === 'depth_usd'
-            ? 'raw swap-out reserve (no cost bound)'
-            : 'instant exit'
-      const window = Number.isFinite(Number(ev.windowDays)) ? ` in ${ev.windowDays} d` : ''
-      const head = `${capacity} ${fmtUsd(Number(ev.instantUsd))} vs worst day out${window} ${fmtUsd(Number(ev.worstDayOutflowUsd))} = ${Number.isFinite(ratio) ? ratio.toFixed(1) : '?'}×`
-      // Owner ruling 2026-09-26: the vault's own redemption is capacity too. A
-      // delayed redemption is stated with its cooldown and the total cover.
-      const delay = Number(ev.redemptionDelaySec)
-      const totalRatio = Number(ev.totalRatio)
-      body =
-        Number.isFinite(Number(ev.redemptionUsd)) && delay > 0
-          ? `${head}; the vault's own redemption adds ${fmtUsd(Number(ev.redemptionUsd))} after a ${fmtDuration(delay)} cooldown (${Number.isFinite(totalRatio) ? totalRatio.toFixed(1) : '?'}× in total) — exits past the fast leg wait for the cooldown`
-          : `${head} — one bad day from gating`
       break
     }
     case 'depth_collapse': {
@@ -181,15 +294,18 @@ export const consequence = (e: Entry): { text: string; tone: 'warning' | 'normal
     }
   }
   if (e.kind === 'terms_page_changed') {
-    // The watcher hashes the venue's terms page; a new hash is a changed page. The
-    // hash itself is not information — the fact of the edit is.
+    // A normalized visible-text hash changed. Neither the hash nor a length
+    // delta identifies a changed clause or establishes an exit restriction.
     const a = Number(e.prev?.content_len)
     const b = Number(e.next?.content_len)
     const delta =
       Number.isFinite(a) && Number.isFinite(b) && b !== a
         ? ` (${b > a ? '+' : ''}${b - a} chars)`
         : ''
-    return { text: `terms page edited${delta} — read it before you rely on it`, tone: 'warning' }
+    return {
+      text: `configured official terms-page text changed${delta} — exit impact unclassified; review the source terms`,
+      tone: 'normal',
+    }
   }
   if (e.kind === 'param_changed') {
     // One line per changed key, values formatted by name: *_usd → $, *Duration → time.

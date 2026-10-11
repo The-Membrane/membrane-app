@@ -30,6 +30,7 @@ type Feed = {
   observationStatus?: 'recent' | 'paused'
   checkedAt?: string
   coveredThroughBlock?: number
+  coveredThroughAt?: string
   items: Change[]
   limitation: string
 }
@@ -87,11 +88,12 @@ export const CapacityChanges: React.FC = () => {
             color={SEMANTIC_COLORS.textPrimary}
             mb={SPACING.sm}
           >
-            {data.observationStatus === 'paused' ? 'Watcher paused' : 'Last scanned'} ·{' '}
-            {date(data.checkedAt!)} · block {data.coveredThroughBlock}.{' '}
+            {data.observationStatus === 'paused' ? 'Coverage paused' : 'Covered through'} ·{' '}
+            {date(data.coveredThroughAt!)} · block {data.coveredThroughBlock}. Last checked{' '}
+            {date(data.checkedAt!)}.{' '}
             {data.observationStatus === 'paused'
               ? 'Statuses below are historical and may have changed.'
-              : 'Statuses are as of this scan.'}
+              : 'Statuses are as of the covered block.'}
           </Text>
         )}
         <Text
@@ -125,7 +127,9 @@ export const CapacityChanges: React.FC = () => {
             fontSize={TYPOGRAPHY.small}
             color={SEMANTIC_COLORS.textSecondary}
           >
-            No cap requests in the currently observed window.
+            {data.observationStatus === 'paused'
+              ? 'No cap requests in the covered historical window.'
+              : 'No cap requests in the currently covered window.'}
           </Text>
         ) : (
           <Box>
@@ -149,7 +153,7 @@ export const CapacityChanges: React.FC = () => {
                   textTransform="uppercase"
                 >
                   {data.observationStatus === 'paused' && item.lifecycle === 'queued'
-                    ? 'queued at scan'
+                    ? 'queued at covered block'
                     : item.lifecycle}
                 </Text>
                 <Box>

@@ -32,7 +32,12 @@ import { TRANSITIONS, FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { SectionHeading, Stamp } from '@/components/Carry/atoms'
 import { fmtUsd, type Verdict } from '@/components/Radar/radarLogic'
-import { filterStrats, venueFlows, type StratRow } from '@/components/Strats/stratsLogic'
+import {
+  filterStrats,
+  isTrackedReturnStale,
+  venueFlows,
+  type StratRow,
+} from '@/components/Strats/stratsLogic'
 
 // Carry Strats — the auto-tracked, WALLET-FREE, shareable dashboard. It scans
 // mainnet for real carry positions (scripts/discover-carry-strats.mjs) and shows
@@ -59,13 +64,22 @@ const VERDICT_COLOR: Record<Verdict, string> = {
 }
 
 const day = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : '—')
+const readingTime = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
 
 const VerdictChip: React.FC<{ verdict: Verdict }> = ({ verdict }) => (
   <Box
     as="span"
     display="inline-block"
     fontFamily={TYPOGRAPHY.fontMono}
-    fontSize="10px"
+    fontSize="12px"
     letterSpacing="0.16em"
     textTransform="uppercase"
     color={VERDICT_COLOR[verdict]}
@@ -85,7 +99,7 @@ const ReturnCell: React.FC<{ row: StratRow }> = ({ row }) => {
     return (
       <Text
         fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="10px"
+        fontSize="12px"
         color={SEMANTIC_COLORS.textSecondary}
         title={result?.note}
       >
@@ -94,16 +108,31 @@ const ReturnCell: React.FC<{ row: StratRow }> = ({ row }) => {
     )
   }
   const color = result.pnl_usd >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger
+  const stale = isTrackedReturnStale(result.end_at)
   return (
     <Box title={result.note}>
       <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={color}>
         {result.pnl_usd >= 0 ? '+' : '−'}
         {fmtUsd(Math.abs(result.pnl_usd))}
       </Text>
-      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textSecondary}>
+      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary}>
         {result.return_pct >= 0 ? '+' : ''}
         {result.return_pct.toFixed(2)}% · since {day(result.start_at)}
       </Text>
+      {result.end_at && (
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12px"
+          color={SEMANTIC_COLORS.textSecondary}
+        >
+          {result.refresh_failed
+            ? 'Refresh delayed · last valid as of '
+            : stale
+              ? 'Stale · as of '
+              : 'As of '}
+          {readingTime(result.end_at)}
+        </Text>
+      )}
     </Box>
   )
 }
@@ -118,7 +147,7 @@ const VenueChip: React.FC<{ label: string; verdict: Verdict; href?: string }> = 
       as="span"
       display="inline-block"
       fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="9.5px"
+      fontSize="12px"
       letterSpacing="0.08em"
       color={SEMANTIC_COLORS.textSecondary}
       border="1px solid"
@@ -167,6 +196,7 @@ const StratRowView: React.FC<{
     _focusVisible={FOCUS_STYLES.ring}
     onClick={() => onOpen(s.address)}
     onKeyDown={(e: React.KeyboardEvent) => {
+      if (e.currentTarget !== e.target) return
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
         onOpen(s.address)
@@ -181,7 +211,7 @@ const StratRowView: React.FC<{
       {s.label && s.label !== 'auto' && (
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="9px"
+          fontSize="12px"
           color={SEMANTIC_COLORS.textTertiary}
           letterSpacing="0.08em"
         >
@@ -200,7 +230,7 @@ const StratRowView: React.FC<{
 
     <Wrap spacing="6px">
       {s.held.length === 0 ? (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" color={SEMANTIC_COLORS.textTertiary}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textTertiary}>
           nothing held now
         </Text>
       ) : (
@@ -223,7 +253,7 @@ const StratRowView: React.FC<{
       {s.weakest_venue && (
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="9px"
+          fontSize="12px"
           color={SEMANTIC_COLORS.textTertiary}
           mt="3px"
         >
@@ -234,7 +264,7 @@ const StratRowView: React.FC<{
 
     <Text
       fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="9px"
+      fontSize="12px"
       letterSpacing="0.12em"
       textTransform="uppercase"
       color={SEMANTIC_COLORS.textTertiary}
@@ -251,7 +281,7 @@ const HeaderCell: React.FC<{ children: React.ReactNode; alignRight?: boolean }> 
 }) => (
   <Text
     fontFamily={TYPOGRAPHY.fontMono}
-    fontSize="9px"
+    fontSize="12px"
     letterSpacing="0.16em"
     textTransform="uppercase"
     color={SEMANTIC_COLORS.textTertiary}
@@ -368,7 +398,7 @@ const VerdictHelp: React.FC = () => (
         variant="unstyled"
         h="auto"
         fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="11px"
+        fontSize="12px"
         color={SEMANTIC_COLORS.textSecondary}
         borderBottom="1px solid"
         borderColor={SEMANTIC_COLORS.borderStrong}
@@ -393,22 +423,23 @@ const VerdictHelp: React.FC = () => (
         <PopoverCloseButton aria-label="Close verdict explanation" borderRadius={0} />
         <PopoverBody p={SPACING.base} display="grid" gap={SPACING.sm}>
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" pr={SPACING.lg}>
-            Each venue gets its weakest recorded exit check. A strategy gets its weakest held venue.
+            Each held venue gets its weakest applicable recorded inventory or cooldown check. A
+            strategy gets its weakest held venue. Flow event rows do not establish exit capacity.
           </Text>
           {[
             {
               verdict: 'clear' as const,
-              detail:
-                'Each applicable capacity or flow check covers at least 10× the position; no cooldown gate.',
+              detail: 'No position is held, so there is no venue exit to assess.',
             },
             {
               verdict: 'caution' as const,
               detail:
-                'An applicable check covers 1× to under 10×, a cooldown is up to 24 hours, or no applicable evidence was recorded.',
+                'Recorded instant inventory covers at least 1× the position, a recorded cooldown is up to 24 hours, or no applicable check is available. Inventory does not verify this holder can exit.',
             },
             {
               verdict: 'exposed' as const,
-              detail: 'Coverage is below 1× or a cooldown exceeds 24 hours.',
+              detail:
+                'Recorded instant inventory is below 1× the position or a recorded cooldown exceeds 24 hours.',
             },
           ].map(({ verdict, detail }) => (
             <Box
@@ -419,7 +450,7 @@ const VerdictHelp: React.FC = () => (
             >
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
+                fontSize="12px"
                 fontWeight={700}
                 textTransform="uppercase"
                 color={VERDICT_COLOR[verdict]}
@@ -428,7 +459,7 @@ const VerdictHelp: React.FC = () => (
               </Text>
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
+                fontSize="12px"
                 color={SEMANTIC_COLORS.textSecondary}
                 lineHeight={1.5}
               >
@@ -478,7 +509,7 @@ const CapitalFlow: React.FC<{
       >
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="11px"
+          fontSize="12px"
           color={SEMANTIC_COLORS.textSecondary}
           mt={SPACING.xs}
         >
@@ -495,6 +526,7 @@ const CapitalFlow: React.FC<{
         alignItems="center"
       >
         <Button
+          data-testid="strats-all-venues"
           type="button"
           onClick={() => onSelectVenue('')}
           aria-pressed={!selectedVenue}
@@ -503,14 +535,23 @@ const CapitalFlow: React.FC<{
           whiteSpace="normal"
           textAlign="left"
           border="1px solid"
-          borderColor={selectedVerdict ? flowColor : SEMANTIC_COLORS.borderStrong}
+          borderColor={SEMANTIC_COLORS.borderStrong}
           borderRadius={0}
           p={SPACING.base}
-          _focusVisible={FOCUS_STYLES.ring}
+          boxShadow="none"
+          transition="box-shadow 150ms ease"
+          _hover={{ boxShadow: 'md' }}
+          _active={{ boxShadow: 'sm' }}
+          _focus={{ boxShadow: 'none' }}
+          _focusVisible={{
+            outline: '2px solid',
+            outlineColor: SEMANTIC_COLORS.textPrimary,
+            outlineOffset: '2px',
+          }}
         >
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="10px"
+            fontSize="12px"
             letterSpacing="0.16em"
             textTransform="uppercase"
             color={SEMANTIC_COLORS.textSecondary}
@@ -526,7 +567,7 @@ const CapitalFlow: React.FC<{
           </Text>
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="11px"
+            fontSize="12px"
             color={SEMANTIC_COLORS.textSecondary}
           >
             {rows.length} books · show all venues
@@ -553,6 +594,7 @@ const CapitalFlow: React.FC<{
           {flows.map((flow) => (
             <Button
               key={flow.venue}
+              data-testid="strats-venue-row"
               type="button"
               onClick={() => onSelectVenue(selectedVenue === flow.venue ? '' : flow.venue)}
               aria-pressed={selectedVenue === flow.venue}
@@ -564,7 +606,16 @@ const CapitalFlow: React.FC<{
               alignItems="center"
               gap={SPACING.sm}
               textAlign="left"
-              _focusVisible={FOCUS_STYLES.ring}
+              boxShadow="none"
+              transition="box-shadow 150ms ease"
+              _hover={{ boxShadow: 'md' }}
+              _active={{ boxShadow: 'sm' }}
+              _focus={{ boxShadow: 'none' }}
+              _focusVisible={{
+                outline: '2px solid',
+                outlineColor: SEMANTIC_COLORS.textPrimary,
+                outlineOffset: '2px',
+              }}
             >
               <Text aria-hidden="true" fontFamily={TYPOGRAPHY.fontMono} color={flowColor}>
                 →
@@ -603,7 +654,7 @@ const CapitalFlow: React.FC<{
   )
 }
 
-export const StratsBoard: React.FC = () => {
+export const StratsBoard: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [venue, setVenue] = useState('')
@@ -620,6 +671,7 @@ export const StratsBoard: React.FC = () => {
     },
     staleTime: 1000 * 60 * 5,
     refetchOnMount: true,
+    refetchInterval: 1000 * 60 * 5,
   })
 
   const openRadar = (address: string) => {
@@ -638,10 +690,10 @@ export const StratsBoard: React.FC = () => {
 
   return (
     <Box
-      maxW="1140px"
-      mx="auto"
-      px={SPACING.base}
-      py={SPACING.lg}
+      maxW={embedded ? undefined : '1140px'}
+      mx={embedded ? undefined : 'auto'}
+      px={embedded ? 0 : SPACING.base}
+      py={embedded ? SPACING.base : SPACING.lg}
       bg={SEMANTIC_COLORS.bgPrimary}
       color={SEMANTIC_COLORS.textPrimary}
     >
@@ -660,35 +712,41 @@ export const StratsBoard: React.FC = () => {
         mt={SPACING.sm}
         maxW="680px"
       >
-        Real carry positions, auto-discovered on mainnet across our four instrumented venues —
-        sUSDe, sUSDS, scrvUSD, and Aave USDe. No opt-in, no wallet connect. Each strat is stressed
-        against the capacity and flow we have actually recorded.
+        Real carry positions discovered on mainnet. Each strat is stressed against recorded
+        inventory and cooldowns where available; flow events remain context.
       </Text>
-      <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.md}>
-        <NextLink href={`/${chain}/carry`} style={{ textDecoration: 'none' }}>
-          <Text
-            as="span"
-            display="inline-block"
-            pb={SPACING.xs}
-            borderBottom="1px solid"
-            borderColor={SEMANTIC_COLORS.borderStrong}
-            fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="12px"
-            color={SEMANTIC_COLORS.textSecondary}
-            _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
-          >
-            the board → /carry
-          </Text>
-        </NextLink>
-      </HStack>
+      {!embedded && (
+        <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.md}>
+          <NextLink href={`/${chain}/carry`} style={{ textDecoration: 'none' }}>
+            <Text
+              as="span"
+              display="inline-block"
+              pb={SPACING.xs}
+              borderBottom="1px solid"
+              borderColor={SEMANTIC_COLORS.borderStrong}
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="12px"
+              color={SEMANTIC_COLORS.textSecondary}
+              _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+            >
+              the board → /carry
+            </Text>
+          </NextLink>
+        </HStack>
+      )}
 
       {/* Header stat card — N strats · $ total · corpus provenance + freshness. */}
-      <Card variant="subtle" p={SPACING.base} mt={SPACING.lg}>
-        <HStack spacing={SPACING.xl} flexWrap="wrap" align="baseline">
+      <Card variant="subtle" p={SPACING.base} mt={SPACING.lg} data-testid="strats-summary">
+        <Grid
+          templateColumns={{ base: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' }}
+          gap={SPACING.xl}
+          alignItems="start"
+        >
           <Stat label="Strats tracked" value={data ? String(data.count) : '—'} />
           <Stat label="Total tracked" value={data ? fmtUsd(data.total_usd) : '—'} />
           <Stat
             label="Recorded corpus"
+            wideOnMobile
             value={
               data
                 ? `${data.provenance.recorded.flow_rows.toLocaleString()} flows · ${data.provenance.recorded.snapshot_rows.toLocaleString()} snapshots`
@@ -697,9 +755,10 @@ export const StratsBoard: React.FC = () => {
           />
           <Stat
             label="Positions as of"
+            wideOnMobile
             value={data?.freshest_scan ? day(data.freshest_scan) : 'not yet scanned'}
           />
-        </HStack>
+        </Grid>
         <Stamp>carry radar · recorded corpus · {stampDate}</Stamp>
       </Card>
 
@@ -849,10 +908,10 @@ export const StratsBoard: React.FC = () => {
               <Box px={SPACING.base} pb={SPACING.sm}>
                 <Stamp>
                   carry radar · recorded corpus · {stampDate} — positions are cached chain reads;
-                  capacity + flow are the recorder corpus (trailing{' '}
-                  {data.provenance.recorded.window}). Tracked return is cash-flow adjusted,
-                  nonannualized, and excludes borrowing costs; it appears only when a full priced
-                  flow window exists.
+                  capacity snapshots and flow event rows are recorded observations. Flow rows do not
+                  certify complete time windows or quiet periods and do not set the exit verdict.
+                  Tracked return is cash-flow adjusted, nonannualized, and excludes borrowing costs;
+                  it appears only when a full priced flow window exists.
                 </Stamp>
               </Box>
             </Card>
@@ -863,11 +922,15 @@ export const StratsBoard: React.FC = () => {
   )
 }
 
-const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <Box>
+const Stat: React.FC<{ label: string; value: string; wideOnMobile?: boolean }> = ({
+  label,
+  value,
+  wideOnMobile = false,
+}) => (
+  <Box minW={0} gridColumn={wideOnMobile ? { base: '1 / -1', md: 'auto' } : undefined}>
     <Text
       fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="9px"
+      fontSize="12px"
       letterSpacing="0.16em"
       textTransform="uppercase"
       color={SEMANTIC_COLORS.textTertiary}
@@ -875,7 +938,12 @@ const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
     >
       {label}
     </Text>
-    <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="16px" color={SEMANTIC_COLORS.textPrimary}>
+    <Text
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize="16px"
+      color={SEMANTIC_COLORS.textPrimary}
+      overflowWrap="anywhere"
+    >
       {value}
     </Text>
   </Box>

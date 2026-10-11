@@ -382,9 +382,44 @@ export const venueSnapshots = pgTable(
     strandedUsd: numeric('stranded_usd'),
     params: jsonb('params').notNull(), // raw reads: cooldownDuration, totalAssets, totalSupply, underlyingBalance, silo, notes…
     source: text('source').notNull().default('observed'), // 'observed' | 'backfilled'
+    // NULL on every legacy row. Only the additive atomic-v1 database function
+    // sets TRUE; do not backfill, since its first row must be a new baseline.
+    recorderAtomicV1: boolean('recorder_atomic_v1'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index('venue_snapshots_venue_observed_idx').on(table.venue, table.observedAt)],
+)
+
+// Daily exact-route pilot measurements. Holder stock, debt/holding overlap,
+// destination vault TVL, and rate leg are separate facts with separate keys.
+// Additive DDL: scripts/apply-carry-route-ddl.mjs.
+export const carryRouteHourly = pgTable(
+  'carry_route_hourly',
+  {
+    routeKey: text('route_key').notNull(),
+    kind: text('kind').notNull(),
+    block: bigint('block', { mode: 'bigint' }).notNull(),
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull().defaultNow(),
+    status: text('status').notNull(),
+    data: jsonb('data').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.routeKey, table.kind, table.block] }),
+    index('carry_route_hourly_latest_idx').on(
+      table.routeKey,
+      table.kind,
+      sql`${table.observedAt} DESC`,
+    ),
+    check(
+      'carry_route_hourly_kind_check',
+      sql`${table.kind} IN ('holder_stock', 'spread', 'matched_capital', 'destination_tvl')`,
+    ),
+    check(
+      'carry_route_hourly_status_check',
+      sql`${table.status} IN ('ok', 'incomplete', 'unavailable')`,
+    ),
+  ],
 )
 
 // venue_events — the venue "news tracker": records STATE CHANGES between
@@ -461,7 +496,8 @@ export const venuePredictions = pgTable(
 // unscaled); USD is derived downstream at $1/stable. The unique index on
 // (venue, tx_hash, log_index) makes re-fetch over an already-scanned range
 // idempotent (INSERT ... ON CONFLICT DO NOTHING); the recorder's per-venue
-// cursor is max(block)+1.
+// cursor is the last contiguous sealed range boundary + 1. Legacy rows without
+// receipts are not evidence of complete flow coverage.
 export const venueFlows = pgTable(
   'venue_flows',
   {
@@ -478,6 +514,227 @@ export const venueFlows = pgTable(
   (table) => [
     uniqueIndex('venue_flows_venue_tx_log_idx').on(table.venue, table.txHash, table.logIndex),
     index('venue_flows_venue_block_idx').on(table.venue, table.block),
+  ],
+)
+
+export const venueFlowRangeReceipts = pgTable(
+  'venue_flow_range_receipts',
+  {
+    venue: text('venue').notNull(),
+    fromBlock: bigint('from_block', { mode: 'bigint' }).notNull(),
+    toBlock: bigint('to_block', { mode: 'bigint' }).notNull(),
+    fromHash: text('from_hash').notNull(),
+    toHash: text('to_hash').notNull(),
+    finalizedHeadBlock: bigint('finalized_head_block', { mode: 'bigint' }).notNull(),
+    finalizedHeadHash: text('finalized_head_hash').notNull(),
+    streamsetHash: text('streamset_hash').notNull(),
+    streams: jsonb('streams').notNull(),
+    eventSetHash: text('event_set_hash'), // required by recorder; null old experimental receipts fail validation
+    receiptHash: text('receipt_hash').notNull(),
+    sealedAt: timestamp('sealed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.venue, table.fromBlock] }),
+    uniqueIndex('venue_flow_range_to_unique_idx').on(table.venue, table.toBlock),
+    check(
+      'venue_flow_range_order_check',
+      sql`${table.fromBlock} >= 0 AND ${table.toBlock} >= ${table.fromBlock}`,
+    ),
+    check('venue_flow_range_finality_check', sql`${table.finalizedHeadBlock} >= ${table.toBlock}`),
+  ],
+)
+
+// Prospective USDe sampled-cash research receipts. Payloads remain TEXT so
+// JSON.stringify byte order survives a database roundtrip for SHA verification.
+// Database triggers reject UPDATE/DELETE; new outcomes get a separate score row.
+export const aaveUsdeCashIssues = pgTable(
+  'aave_usde_cash_issues',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    study: text('study').notNull(),
+    anchorId: uuid('anchor_id')
+      .notNull()
+      .references(() => venueSnapshots.id),
+    amountUsd: numeric('amount_usd').notNull(),
+    horizonSeconds: integer('horizon_seconds').notNull(),
+    issuedAt: timestamp('issued_at', { withTimezone: true }).notNull(),
+    persistedAt: timestamp('persisted_at', { withTimezone: true }).notNull(),
+    targetAt: timestamp('target_at', { withTimezone: true }).notNull(),
+    payload: text('payload').notNull(),
+    payloadSha256: text('payload_sha256').notNull(),
+    sourceRowIds: jsonb('source_row_ids').notNull(),
+    sourceRowSetSha256: text('source_row_set_sha256').notNull(),
+    publisherXid: bigint('publisher_xid', { mode: 'bigint' }),
+  },
+  (table) => [
+    uniqueIndex('aave_usde_cash_issues_key_idx').on(
+      table.study,
+      table.anchorId,
+      table.amountUsd,
+      table.horizonSeconds,
+    ),
+    uniqueIndex('aave_usde_cash_issues_payload_sha_idx').on(table.payloadSha256),
+    index('aave_usde_cash_issues_target_idx').on(table.targetAt, table.id),
+    check('aave_usde_cash_issues_amount_check', sql`${table.amountUsd} > 0`),
+    check('aave_usde_cash_issues_horizon_check', sql`${table.horizonSeconds} > 0`),
+    check(
+      'aave_usde_cash_issues_clock_check',
+      sql`${table.persistedAt} >= ${table.issuedAt} AND ${table.persistedAt} <= ${table.issuedAt} + interval '60 seconds' AND ${table.persistedAt} < ${table.targetAt}`,
+    ),
+  ],
+)
+
+export const aaveUsdeCashScores = pgTable(
+  'aave_usde_cash_scores',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    issueId: uuid('issue_id')
+      .notNull()
+      .references(() => aaveUsdeCashIssues.id),
+    scoredAt: timestamp('scored_at', { withTimezone: true }).notNull(),
+    persistedAt: timestamp('persisted_at', { withTimezone: true }).notNull(),
+    payload: text('payload').notNull(),
+    payloadSha256: text('payload_sha256').notNull(),
+    sourceRowIds: jsonb('source_row_ids').notNull(),
+    sourceRowSetSha256: text('source_row_set_sha256').notNull(),
+  },
+  (table) => [
+    uniqueIndex('aave_usde_cash_scores_issue_idx').on(table.issueId),
+    uniqueIndex('aave_usde_cash_scores_payload_sha_idx').on(table.payloadSha256),
+    check(
+      'aave_usde_cash_scores_clock_check',
+      sql`${table.persistedAt} >= ${table.scoredAt} AND ${table.persistedAt} <= ${table.scoredAt} + interval '60 seconds'`,
+    ),
+  ],
+)
+
+export const aaveUsdeCashSchedules = pgTable(
+  // The raw SQL migration also installs the GiST tstzrange overlap exclusion
+  // constraint; this Drizzle mirror does not represent exclusion constraints.
+  'aave_usde_cash_schedules',
+  {
+    manifestSha256: text('manifest_sha256').primaryKey(),
+    payload: text('payload').notNull(),
+    plannedAt: timestamp('planned_at', { withTimezone: true }).notNull(),
+    startAt: timestamp('start_at', { withTimezone: true }).notNull(),
+    endAt: timestamp('end_at', { withTimezone: true }).notNull(),
+    cadenceSeconds: integer('cadence_seconds').notNull(),
+    persistedAt: timestamp('persisted_at', { withTimezone: true }).notNull(),
+    publisherXid: bigint('publisher_xid', { mode: 'bigint' }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('aave_usde_cash_schedules_start_idx').on(table.startAt),
+    check('aave_usde_cash_schedules_sha_check', sql`${table.manifestSha256} ~ '^[0-9a-f]{64}$'`),
+    check('aave_usde_cash_schedules_cadence_check', sql`${table.cadenceSeconds} = 3600`),
+    check(
+      'aave_usde_cash_schedules_time_check',
+      sql`${table.plannedAt} <= ${table.persistedAt} AND ${table.persistedAt} <= ${table.plannedAt} + interval '60 seconds' AND ${table.startAt} >= ${table.persistedAt} + interval '2 hours' AND ${table.endAt} > ${table.startAt} AND ${table.endAt} <= ${table.startAt} + interval '366 days'`,
+    ),
+  ],
+)
+
+export const aaveUsdeCashScheduleConfirmations = pgTable('aave_usde_cash_schedule_confirmations', {
+  manifestSha256: text('manifest_sha256')
+    .primaryKey()
+    .references(() => aaveUsdeCashSchedules.manifestSha256),
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull(),
+  confirmerXid: bigint('confirmer_xid', { mode: 'bigint' }).notNull(),
+})
+
+export const aaveUsdeCashIssueRunConfirmations = pgTable(
+  'aave_usde_cash_issue_run_confirmations',
+  {
+    runId: uuid('run_id').primaryKey(),
+    manifestSha256: text('manifest_sha256')
+      .notNull()
+      .references(() => aaveUsdeCashSchedules.manifestSha256),
+    slotId: text('slot_id').notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull(),
+    confirmerXid: bigint('confirmer_xid', { mode: 'bigint' }).notNull(),
+    resultXid: bigint('result_xid', { mode: 'bigint' }).notNull(),
+  },
+  (table) => [
+    index('aave_usde_cash_issue_run_confirmations_manifest_idx').on(
+      table.manifestSha256,
+      table.slotId,
+    ),
+    check(
+      'aave_usde_cash_issue_run_confirmations_xid_check',
+      sql`${table.confirmerXid} <> ${table.resultXid}`,
+    ),
+  ],
+)
+
+export const aaveUsdeCashIssueAttempts = pgTable(
+  'aave_usde_cash_issue_attempts',
+  {
+    id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+    runId: uuid('run_id').notNull(),
+    amountUsd: numeric('amount_usd').notNull(),
+    horizonSeconds: integer('horizon_seconds').notNull(),
+    phase: text('phase').notNull(),
+    status: text('status').notNull(),
+    reason: text('reason'),
+    issueId: uuid('issue_id').references(() => aaveUsdeCashIssues.id),
+    manifestSha256: text('manifest_sha256').references(() => aaveUsdeCashSchedules.manifestSha256),
+    slotId: text('slot_id'),
+    publisherXid: bigint('publisher_xid', { mode: 'bigint' }),
+    recordedAt: timestamp('recorded_at', { withTimezone: true })
+      .notNull()
+      .default(sql`clock_timestamp()`),
+  },
+  (table) => [
+    uniqueIndex('aave_usde_cash_issue_attempts_arm_phase_idx').on(
+      table.runId,
+      table.amountUsd,
+      table.horizonSeconds,
+      table.phase,
+    ),
+    index('aave_usde_cash_issue_attempts_manifest_idx').on(
+      table.manifestSha256,
+      table.slotId,
+      table.recordedAt,
+    ),
+    check(
+      'aave_usde_cash_issue_attempts_binding_check',
+      sql`(${table.manifestSha256} IS NULL AND ${table.slotId} IS NULL) OR (${table.manifestSha256} IS NOT NULL AND ${table.slotId} ~ '^[0-9a-f]{64}$')`,
+    ),
+    check('aave_usde_cash_issue_attempts_amount_check', sql`${table.amountUsd} > 0`),
+    check('aave_usde_cash_issue_attempts_horizon_check', sql`${table.horizonSeconds} > 0`),
+    check(
+      'aave_usde_cash_issue_attempts_status_check',
+      sql`${table.status} IN ('scheduled', 'issued', 'duplicate', 'abstained', 'failed')`,
+    ),
+    check(
+      'aave_usde_cash_issue_attempts_phase_check',
+      sql`(${table.phase}='start' AND ${table.status}='scheduled' AND ${table.reason} IS NULL AND ${table.issueId} IS NULL) OR (${table.phase}='result' AND ${table.status} IN ('issued', 'duplicate', 'abstained', 'failed') AND ((${table.status} IN ('issued', 'duplicate') AND ${table.issueId} IS NOT NULL AND ${table.reason} IS NULL) OR (${table.status} IN ('abstained', 'failed') AND ${table.issueId} IS NULL AND ${table.reason} IS NOT NULL)))`,
+    ),
+  ],
+)
+
+export const aaveUsdeCashScoreAttempts = pgTable(
+  'aave_usde_cash_score_attempts',
+  {
+    id: bigint('id', { mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+    issueId: uuid('issue_id')
+      .notNull()
+      .references(() => aaveUsdeCashIssues.id),
+    status: text('status').notNull(),
+    reason: text('reason'),
+    recordedAt: timestamp('recorded_at', { withTimezone: true })
+      .notNull()
+      .default(sql`clock_timestamp()`),
+  },
+  (table) => [
+    index('aave_usde_cash_score_attempts_issue_id_idx').on(table.issueId, table.id),
+    check(
+      'aave_usde_cash_score_attempts_status_check',
+      sql`${table.status} IN ('scored', 'already_scored', 'pending', 'failed')`,
+    ),
+    check(
+      'aave_usde_cash_score_attempts_reason_check',
+      sql`(${table.status}='failed' AND ${table.reason} IS NOT NULL) OR (${table.status}<>'failed' AND ${table.reason} IS NULL)`,
+    ),
   ],
 )
 
@@ -522,8 +779,8 @@ export const venueNews = pgTable(
 // 'watch' | 'alarm'; evidence holds the numbers that fired it. The partial
 // unique index (venue, kind) WHERE cleared_at IS NULL enforces the
 // dedupe-while-open rule: never a second open row for the same (venue, kind).
-// The ONLY permitted UPDATEs are cleared_at (once, at clear time) and notified
-// (once, after a channel delivers). Applied by
+// Terms notices instead bind an immutable source_event_id. Delivery claims
+// provide a bounded lease for concurrent checkers. Applied by
 // scripts/apply-venue-recorder-ddl.mjs (manual DDL, IF NOT EXISTS) — keep this
 // drizzle mirror in lockstep.
 export const venueAlarms = pgTable(
@@ -537,13 +794,29 @@ export const venueAlarms = pgTable(
     firedAt: timestamp('fired_at', { withTimezone: true }).notNull().defaultNow(),
     clearedAt: timestamp('cleared_at', { withTimezone: true }), // null = OPEN
     notified: boolean('notified').notNull().default(false),
+    sourceEventId: uuid('source_event_id'),
+    deliveryClaimToken: uuid('delivery_claim_token'),
+    deliveryClaimUntil: timestamp('delivery_claim_until', { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex('venue_alarms_open_unique_idx')
+    uniqueIndex('venue_alarms_condition_open_unique_idx')
       .on(table.venue, table.kind)
-      .where(sql`cleared_at IS NULL`),
+      .where(sql`cleared_at IS NULL AND kind <> 'terms_page_notice'`),
+    uniqueIndex('venue_alarms_source_event_unique_idx')
+      .on(table.sourceEventId)
+      .where(sql`source_event_id IS NOT NULL`),
     index('venue_alarms_venue_fired_idx').on(table.venue, table.firedAt),
   ],
+)
+
+export const venueAlarmTermsMigration = pgTable(
+  'venue_alarm_terms_migration',
+  {
+    singleton: boolean('singleton').primaryKey().default(true),
+    boundaryAt: timestamp('boundary_at', { withTimezone: true }).notNull().defaultNow(),
+    status: text('status').notNull().default('legacy_aggregate_unmapped_pre_boundary'),
+  },
+  (table) => [check('venue_alarm_terms_migration_singleton_check', sql`${table.singleton} = true`)],
 )
 
 // venue_terms — the TERMS-PAGE HASH WATCHER corpus. One row per OBSERVED hash of
@@ -828,7 +1101,9 @@ export const alertSubscriptions = pgTable(
   },
   (table) => [
     uniqueIndex('alert_subscriptions_chat_address_key').on(table.chatId, table.address),
-    index('alert_subscriptions_active_idx').on(table.address).where(sql`stopped_at IS NULL`),
+    index('alert_subscriptions_active_idx')
+      .on(table.address)
+      .where(sql`stopped_at IS NULL`),
   ],
 )
 

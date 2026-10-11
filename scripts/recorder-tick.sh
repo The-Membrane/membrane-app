@@ -25,6 +25,9 @@ echo "=== recorder tick $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 # slope or fee changed). TypeScript via `--import tsx` so it needs no PATH lookup
 # under launchd. Non-fatal — a Merkl or RPC hiccup must never fail the tick.
 /opt/homebrew/bin/node --import tsx scripts/record-net-apy.ts || echo "netapy:record failed (non-fatal)"
+# Curator action feed: incremental — only blocks since the last run (resumes from
+# .data/curator-feed; every log chunk dual-read), exposure refreshed every 6 h. Non-fatal.
+/opt/homebrew/bin/node --import tsx scripts/collect-curator-feed.ts || echo "curators:feed failed (non-fatal)"
 # Terms-page hash watcher — fetches each venue's official terms/redemption page,
 # hashes visible text, and records a change (+ a terms_page_changed event) only
 # when the hash moves. Runs BEFORE alarms so a terms change is in the corpus the

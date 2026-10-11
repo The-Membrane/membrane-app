@@ -1,0 +1,461 @@
+# Daily re-collect of the oracle-registry config cards (docs/research/CONFIG-CARDS-DESIGN.md,
+# "Running the collector in GitHub Actions"). Owner 2026-10-11: "move the re-collect to GitHub
+# Actions".
+#
+# Scheduled workflows only run from the default branch, so THIS FILE LIVES ON `main`. It checks
+# out the collector at the scan ref and commits the re-collected files back to that same branch:
+# the fail-closed carry reads the previous run's committed state/changes/queues files.
+#
+#   code ref   inputs.ref || vars.ORACLE_REGISTRY_REF || 'feat/oracle-registry' (a branch),
+#              resolved once in collect; publish pushes to the ref collect checked out.
+#   secret     RECORDER_RPC_URL only: a comma list with two distinct getLogs hosts (UQ-23). Every
+#              URL in it (unquoted, as readEnv() reads it), and every key inside a URL, is masked
+#              before any other step. It reaches the collector as an environment variable; no
+#              .env.local is written (on a runner, GITHUB_ACTIONS=true, with nothing at the path,
+#              readEnv() reads the environment; everywhere else the file stays the only source).
+#   cache      data/oracle-registry/config/.cache (controllers-at, holders, vote-defense, ...)
+#              through actions/cache; the raw and scan caches are deleted after each subject.
+#   order      least recently tried first: the later of the last success (cursors.json runAt) and
+#              the last start (.cache/attempts.txt). A run cut short by the step timeout is picked
+#              up where it stopped by the next one, and a subject that keeps failing goes to the
+#              back instead of taking every run's time first.
+#
+# TWO JOBS, so the write token never shares a runner with third-party code:
+#   collect  pnpm install (dependency install scripts run here), the config unit tests, the
+#            collector ONE SUBJECT PER PROCESS, the offline Kelp backtest, with a READ-ONLY token.
+#            Uploads data/oracle-registry/config (without .cache) as an artifact.
+#   publish  holds `contents: write`; runs no repo or dependency code. Copies the artifact's
+#            regular JSON files into place, commits as github-actions[bot] and pushes to the scan
+#            branch (rebase and retry on a race, never force). The token is passed per command as
+#            an HTTP header, never written to a remote URL or .git/config.
+# A subject that fails keeps its committed files, the others are published, and the run ends red.
+
+name: oracle-config-collect
+
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+    inputs:
+      subjects:
+        description: "Subjects to re-collect, space-separated (keys of data/oracle-registry/config/subjects.json)"
+        required: false
+        default: "wbtc rseth wsteth usde susde weeth pt-srusde cbbtc"
+        type: string
+      ref:
+        description: "Branch of the collector; the results are committed to it (blank = vars.ORACLE_REGISTRY_REF, else feat/oracle-registry)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oracle-config-collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    # all 8 subjects took ~4 h locally (cbbtc 82 min, rseth 47, ...); a hosted job may run 360 min
+    timeout-minutes: 350
+    permissions:
+      contents: read
+    outputs:
+      ref: ${{ steps.present.outputs.ref }}
+      sha: ${{ steps.present.outputs.sha }}
+      ok: ${{ steps.summary.outputs.ok }}
+      failed: ${{ steps.summary.outputs.failed }}
+      head: ${{ steps.summary.outputs.head }}
+      summary: ${{ steps.summary.outputs.summary }}
+      uploaded: ${{ steps.uploaded.outputs.uploaded }}
+    env:
+      SCAN_REF: ${{ inputs.ref || vars.ORACLE_REGISTRY_REF || 'feat/oracle-registry' }}
+      SUBJECTS_IN: ${{ inputs.subjects || 'wbtc rseth wsteth usde susde weeth pt-srusde cbbtc' }}
+      CONFIG: data/oracle-registry/config
+    steps:
+      - name: Mask RPC URLs
+        env:
+          RECORDER_RPC_URL: ${{ secrets.RECORDER_RPC_URL }}
+        run: |
+          # GitHub masks a secret only when its WHOLE value appears in a log: mask each URL of the
+          # comma list, and each key-like part of one (20+ characters between / ? & = @ : #), so
+          # neither a URL nor a bare key is ever printed. readEnv() strips quotes around the
+          # value, so each URL is masked bare (whitespace and quotes removed), as the collector
+          # uses it; a quoted form still prints masked, since it contains the bare one.
+          set -f
+          value="$(printf '%s' "$RECORDER_RPC_URL" | tr '\n' ',')"
+          if [ -z "$(printf '%s' "$value" | tr -d "[:space:],\"'")" ]; then
+            echo "::error::the RECORDER_RPC_URL secret is not set (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          IFS=',' read -r -a urls <<< "$value"
+          for u in "${urls[@]}"; do
+            u="$(printf '%s' "$u" | tr -d "[:space:]\"'")"
+            if [ -z "$u" ]; then continue; fi
+            echo "::add-mask::$u"
+            for p in $(printf '%s' "${u#*://}" | tr '/?&=@:#' '       '); do
+              if [ "${#p}" -ge 20 ]; then echo "::add-mask::$p"; fi
+            done
+          done
+
+      - name: Resolve the subjects
+        id: subjects
+        run: |
+          set -f
+          list=""
+          for s in $SUBJECTS_IN; do
+            case "$s" in
+              *[!a-z0-9-]*) echo "::error::not a subject key: $s"; exit 1 ;;
+            esac
+            case " $list " in
+              *" $s "*) ;;
+              *) list="${list:+$list }$s" ;;
+            esac
+          done
+          if [ -z "$list" ]; then
+            echo "::error::no subjects to collect"
+            exit 1
+          fi
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+          echo "key=$(printf '%s\n' $list | sort | tr '\n' '+' | sed 's/+$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the collector
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SCAN_REF }}
+          path: app
+          persist-credentials: false
+
+      - name: Check the collector exists at the ref
+        id: present
+        working-directory: app
+        run: |
+          # publish pushes to this ref, so it must be a branch name (that also keeps it to one line
+          # of GITHUB_OUTPUT below)
+          if [ -z "$SCAN_REF" ] || ! git check-ref-format "refs/heads/$SCAN_REF"; then
+            echo "::error::the scan ref is not a valid branch name"
+            exit 1
+          fi
+          if [ ! -f scripts/oracle-registry/config/collect-config.mjs ] || [ ! -f scripts/oracle-registry/config/counts.mjs ]; then
+            echo "::error::no config-card collector at ref ${SCAN_REF}: set the repo variable ORACLE_REGISTRY_REF to the branch that carries it"
+            exit 1
+          fi
+          {
+            echo "ref=$SCAN_REF"
+            echo "sha=$(git rev-parse HEAD)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install
+        working-directory: app
+        run: pnpm install --frozen-lockfile
+
+      - name: Config-card unit tests (gate)
+        working-directory: app
+        run: pnpm test:unit tests/unit/oracleRegistryConfig
+
+      - name: Restore the collector cache
+        uses: actions/cache/restore@v4
+        with:
+          path: app/data/oracle-registry/config/.cache
+          key: oracle-config-cache-${{ steps.subjects.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            oracle-config-cache-${{ steps.subjects.outputs.key }}-
+            oracle-config-cache-
+
+      - name: Count the committed files
+        id: before
+        working-directory: app
+        env:
+          SUBJECTS: ${{ steps.subjects.outputs.list }}
+        run: |
+          node scripts/oracle-registry/config/counts.mjs snapshot "$RUNNER_TEMP/before.json" --dir="$CONFIG" $SUBJECTS
+          test -s "$RUNNER_TEMP/before.json"
+          : > "$RUNNER_TEMP/collected.txt"
+
+      - name: Order the subjects, least recently tried first
+        id: order
+        working-directory: app
+        env:
+          SUBJECTS: ${{ steps.subjects.outputs.list }}
+        run: |
+          # A run cut short by the step timeout still moves forward: the next run starts with the
+          # subjects this one did not reach, and one that failed or timed out (its runAt does not
+          # move, its start in .cache/attempts.txt does) goes to the back. The order is only ever
+          # a permutation of the requested list; failing that, the requested order is kept.
+          set -f
+          order="$(node scripts/oracle-registry/config/counts.mjs order --dir="$CONFIG" --attempts="$CONFIG/.cache/attempts.txt" $SUBJECTS)" || order=""
+          if [ "$(printf '%s\n' $order | sort)" != "$(printf '%s\n' $SUBJECTS | sort)" ]; then
+            echo "::warning::the subjects could not be ordered by their last run: the requested order is kept"
+            order="$SUBJECTS"
+          fi
+          order="$(printf '%s ' $order)"
+          echo "list=${order% }" >> "$GITHUB_OUTPUT"
+          echo "collect order: ${order% }"
+
+      - name: Collect, one subject per process
+        id: collect
+        # leaves ~30 min of the 350-minute job for the backtest, summary and upload
+        timeout-minutes: 320
+        working-directory: app
+        env:
+          RECORDER_RPC_URL: ${{ secrets.RECORDER_RPC_URL }}
+          SUBJECTS: ${{ steps.order.outputs.list }}
+        run: |
+          # One process per subject: one that fails (or runs out of memory) is recorded and the
+          # next still runs. The raw and scan caches are the largest: they go after each subject.
+          # Each start is recorded for the next run's order (.cache is kept by actions/cache).
+          mkdir -p "$CONFIG/.cache"
+          for s in $SUBJECTS; do
+            echo "::group::collect $s"
+            printf '%s %s\n' "$s" "$(date +%s)" >> "$CONFIG/.cache/attempts.txt"
+            rc=0
+            node --max-old-space-size=4096 scripts/oracle-registry/config/collect-config.mjs --only="$s" || rc=$?
+            rm -f "$CONFIG"/.cache/scan-*.jsonl "$CONFIG"/.cache/raw-*.json "$CONFIG"/.cache/*.tmp-*
+            echo "::endgroup::"
+            if [ "$rc" -eq 0 ]; then
+              echo "$s ok" >> "$RUNNER_TEMP/collected.txt"
+            else
+              echo "::error::collect $s failed (exit $rc)"
+              echo "$s failed" >> "$RUNNER_TEMP/collected.txt"
+            fi
+          done
+
+      - name: Summarise the run
+        id: summary
+        if: ${{ !cancelled() && steps.before.outcome == 'success' }}
+        working-directory: app
+        env:
+          SUBJECTS: ${{ steps.subjects.outputs.list }}
+        run: |
+          ok=""
+          failed=""
+          for s in $SUBJECTS; do
+            if grep -qx "$s ok" "$RUNNER_TEMP/collected.txt"; then
+              ok="${ok:+$ok }$s"
+              continue
+            fi
+            failed="${failed:+$failed }$s"
+            # A failed (or timed-out) subject keeps its committed files: a half-written set would
+            # drop the breaches the fail-closed carry reads from them.
+            for d in state changes queues; do
+              f="$CONFIG/$d/$s.json"
+              if git ls-files --error-unmatch -- "$f" >/dev/null 2>&1; then
+                git checkout -q HEAD -- "$f"
+              else
+                rm -f "$f"
+              fi
+            done
+          done
+          node scripts/oracle-registry/config/counts.mjs snapshot "$RUNNER_TEMP/after.json" --dir="$CONFIG" $SUBJECTS
+          node scripts/oracle-registry/config/counts.mjs summary "$RUNNER_TEMP/before.json" "$RUNNER_TEMP/after.json" --ok="${ok// /,}" > "$RUNNER_TEMP/summary.txt"
+          grep -q '^head=' "$RUNNER_TEMP/summary.txt"
+          {
+            echo "ok=$ok"
+            echo "failed=$failed"
+            echo "head=$(sed -n '1s/^head=//p' "$RUNNER_TEMP/summary.txt")"
+            echo "summary<<SUMMARY_EOF"
+            tail -n +2 "$RUNNER_TEMP/summary.txt"
+            echo "SUMMARY_EOF"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo '```'
+            cat "$RUNNER_TEMP/summary.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Kelp backtest (offline, byte-identical)
+        id: backtest
+        if: ${{ !cancelled() && steps.summary.outcome == 'success' }}
+        working-directory: app
+        run: |
+          # Exit 0 only when its gating criteria pass; the committed expected output must not move.
+          node scripts/oracle-registry/config/backtest-kelp.mjs
+          git diff --exit-code --stat -- "$CONFIG/backtest"
+
+      - name: Check no RPC URL or key is in the files
+        id: leak
+        if: ${{ !cancelled() && steps.summary.outcome == 'success' }}
+        working-directory: app
+        env:
+          RECORDER_RPC_URL: ${{ secrets.RECORDER_RPC_URL }}
+        run: |
+          # The artifact and the cache are readable by anyone who can read this public repo. A URL
+          # carrying a key, or the key itself (a 20+ character part with a digit), must not be in
+          # any file. A keyless public URL is not secret: the LayerZero metadata lists them.
+          node - <<'JS'
+          const fs = require('fs')
+          const path = require('path')
+          const secret = new Set()
+          // readEnv() strips quotes around the value: check the bare URLs the collector used
+          const urls = (process.env.RECORDER_RPC_URL || '').split(/[,\n]/).map((s) => s.replace(/["'\s]/g, ''))
+          for (const u of urls.filter(Boolean)) {
+            let x
+            try {
+              x = new URL(u)
+            } catch {
+              secret.add(u)
+              continue
+            }
+            const keys = [...x.pathname.split('/'), ...x.searchParams.values(), x.username, x.password]
+              .filter((p) => p.length >= 20 && /\d/.test(p))
+            if (keys.length) for (const k of [u, ...keys]) secret.add(k)
+          }
+          const hits = []
+          const walk = (d) => {
+            for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+              const p = path.join(d, e.name)
+              if (e.isDirectory()) walk(p)
+              else if (e.isFile()) {
+                const t = fs.readFileSync(p, 'utf8')
+                if ([...secret].some((k) => t.includes(k))) hits.push(p)
+              }
+            }
+          }
+          walk(process.env.CONFIG)
+          for (const h of hits) console.log(`::error::an RPC URL or key is in ${h}`)
+          if (hits.length) process.exit(1)
+          console.log(`no RPC URL or key in ${process.env.CONFIG} (${secret.size} strings checked)`)
+          JS
+
+      - name: Save the collector cache
+        if: ${{ !cancelled() && steps.leak.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: app/data/oracle-registry/config/.cache
+          key: oracle-config-cache-${{ steps.subjects.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload the collected files
+        id: upload
+        if: ${{ !cancelled() && steps.leak.outcome == 'success' && steps.backtest.outcome == 'success' && steps.summary.outputs.ok != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: oracle-config
+          path: |
+            app/data/oracle-registry/config
+            !app/data/oracle-registry/config/.cache
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+          # a re-run must replace attempt 1's artifact, never publish the older result
+          overwrite: true
+
+      - name: Record the upload
+        id: uploaded
+        if: ${{ !cancelled() && steps.upload.outcome == 'success' }}
+        run: echo "uploaded=true" >> "$GITHUB_OUTPUT"
+
+      - name: Fail the run if a subject failed
+        if: ${{ !cancelled() && steps.summary.outputs.failed != '' }}
+        env:
+          FAILED: ${{ steps.summary.outputs.failed }}
+        run: |
+          echo "::error::not collected: ${FAILED} (their committed files were kept; the others are published)"
+          exit 1
+
+  publish:
+    needs: collect
+    if: ${{ !cancelled() && needs.collect.outputs.uploaded == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      # the branch collect checked out, never re-resolved: a variable changed in between must not
+      # send one branch's results to another
+      SCAN_REF: ${{ needs.collect.outputs.ref }}
+    steps:
+      - name: Check out the scan branch at the collected commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.collect.outputs.sha }}
+        run: |
+          case "$SHA" in
+            *[!0-9a-f]* | "") echo "::error::no collected commit id"; exit 1 ;;
+          esac
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          git init -q app
+          cd app
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          # The results go back to the branch the collector ran from; a tag or a commit id has none.
+          if ! git -c http.extraheader="$auth" ls-remote --exit-code --heads origin "refs/heads/$SCAN_REF" >/dev/null; then
+            echo "::error::the scan ref ${SCAN_REF} is not a branch: nothing is published"
+            exit 1
+          fi
+          git -c http.extraheader="$auth" fetch -q --depth=1 origin "$SHA"
+          git checkout -q --detach FETCH_HEAD
+
+      - name: Download the collected files
+        uses: actions/download-artifact@v4
+        with:
+          name: oracle-config
+          path: result
+
+      - name: Copy the collected JSON into place
+        run: |
+          # Regular JSON files only, by relative path: no symlinks, nothing under .cache, nothing
+          # that does not parse. The artifact comes from the job that ran dependency install scripts.
+          dest=app/data/oracle-registry/config
+          n=0
+          while IFS= read -r -d '' f; do
+            if ! jq empty "result/$f" 2>/dev/null; then
+              echo "::error::not JSON: $f"
+              exit 1
+            fi
+            mkdir -p "$dest/$(dirname "$f")"
+            cp "result/$f" "$dest/$f"
+            n=$((n + 1))
+          done < <(cd result && find . -type f -name '*.json' -not -path '*/.cache/*' -print0)
+          echo "copied $n JSON files"
+
+      - name: Commit and push to the scan branch
+        working-directory: app
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OK: ${{ needs.collect.outputs.ok }}
+          HEAD_BLOCK: ${{ needs.collect.outputs.head }}
+          SUMMARY: ${{ needs.collect.outputs.summary }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- data/oracle-registry/config
+          if git diff --cached --quiet; then
+            echo "the collected files match the branch: nothing to commit"
+            exit 0
+          fi
+          {
+            printf 'data(oracle-registry): re-collect %s @ block %s\n\n' "$OK" "$HEAD_BLOCK"
+            printf 'red, in-effect, amber, head-breach and read-gap counts (before -> after):\n%s\n' "$SUMMARY"
+          } > "$RUNNER_TEMP/msg"
+          git commit -q -F "$RUNNER_TEMP/msg"
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          # A commit landed on the branch after the collect: rebase onto it and retry. Never force;
+          # a rebase conflict (the same files changed upstream) stops the run red, unpushed.
+          for attempt in 1 2 3 4 5; do
+            if git -c http.extraheader="$auth" push -q origin "HEAD:refs/heads/$SCAN_REF"; then
+              echo "pushed to ${SCAN_REF}"
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt): rebasing onto the branch tip"
+            git -c http.extraheader="$auth" fetch -q --depth=200 origin "refs/heads/$SCAN_REF"
+            if ! git rebase -q FETCH_HEAD; then
+              git rebase --abort || true
+              echo "::error::the re-collected files conflict with new commits on ${SCAN_REF}: not pushed"
+              exit 1
+            fi
+            sleep $((attempt * 5))
+          done
+          echo "::error::the push to ${SCAN_REF} failed 5 times"
+          exit 1

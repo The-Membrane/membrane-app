@@ -166,6 +166,27 @@ Then:
 - **Linking:** match a Safe transaction to its timelock op by recomputing `hashOperation`.
 - **Also watch:** ether.fi's 2-day Operating Timelock `0xcD425f44…`.
 
+### Running the collector in GitHub Actions
+Owner 2026-10-11: the re-collect runs in GitHub Actions, not on the Mac. The workflow `.github/workflows/oracle-config-collect.yml` lives on `main`, because scheduled workflows run only from the default branch. It checks out the collector at the scan branch and commits the results back to that branch.
+
+- **When:** daily at 05:41 UTC, and on demand. The default subjects are all 8: `wbtc rseth wsteth usde susde weeth pt-srusde cbbtc`.
+- **Secret:** `RECORDER_RPC_URL`. It is the same comma list as in `.env.local`, and it needs two distinct getLogs hosts (UQ-23). Set it under Settings → Secrets and variables → Actions, without quotes (`gh secret set RECORDER_RPC_URL --repo The-Membrane/membrane-app` prompts for it). The logs mask every URL in it, unquoted as the collector reads it, and every key inside a URL. No `.env.local` is written: on a runner (`GITHUB_ACTIONS=true`) with nothing at that path, `readEnv()` reads the environment. Everywhere else the file stays the only source, and a missing file or a dangling symlink still throws. In both modes `get()` returns `undefined` for a missing key.
+- **Variable:** `ORACLE_REGISTRY_REF`, the branch that carries the collector (default `feat/oracle-registry`). The results are committed to it, so it must be a branch, not a tag. The collect job resolves it once; the publish job pushes to the branch the collect job checked out.
+- **Dispatch:** `gh workflow run oracle-config-collect.yml --repo The-Membrane/membrane-app -f subjects="wbtc rseth wsteth"`. Add `-f ref=<branch>` to override the variable.
+- **The collect job** (read-only token):
+  - Runs the config unit tests first, as a gate.
+  - Restores `.cache` from the Actions cache.
+  - Runs the collector one subject per process (`--max-old-space-size=4096`), deleting the raw and scan caches after each subject. Subjects run least recently tried first: by the later of the last success (`cursors.json` `runAt`) and the last start (`.cache/attempts.txt`), through `counts.mjs order`. So a run cut short by the timeout is picked up where it stopped by the next run, and a subject that keeps failing goes to the back instead of using up every run first.
+  - Runs the Kelp backtest offline. It must pass and leave `kelp-rseth.expected.json` byte-identical.
+  - Refuses to upload or cache any file that holds an RPC key.
+  - A subject that fails keeps its committed files, so the fail-closed carry still reads them.
+- **The publish job** (write token, runs no repo or dependency code):
+  - Copies the artifact's JSON files into place.
+  - Commits as `github-actions[bot]`: `data(oracle-registry): re-collect <subjects> @ block <head>`. The body lists each subject's red, in-effect, amber, head-breach and read-gap counts, before -> after (`scripts/oracle-registry/config/counts.mjs`).
+  - Pushes. On a race it rebases and retries. It never force-pushes.
+- **Failure:** the run goes red if any subject failed. The subjects that succeeded are still committed.
+- **Time:** the job stops at 350 minutes (a GitHub-hosted job may run 360), and the collect step at 320. The last local run of all 8 took about 4 hours (from the `runAt` gaps in `cursors.json`: cbbtc 82 min, rseth 47, usde 33, weeth 27, wbtc 24, pt-srusde 15, susde 8, plus wsteth), so one daily run fits all 8 (parent 2026-10-11: raised the limits instead of splitting the cron; Actions minutes are free on a public repo). If a run still overruns, the least-recently-tried order means the next run starts with the subjects it missed.
+
 ## 4. v1 subjects (6)
 | Subject | Covers | Why |
 |---|---|---|

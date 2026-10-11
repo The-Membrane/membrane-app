@@ -7,7 +7,7 @@
 // PublicClient over RECORDER_RPC_URL. Standalone: no Next env injection.
 
 import { createPublicClient, http, fallback, defineChain, isAddress } from 'viem'
-import { readFileSync } from 'fs'
+import { lstatSync, readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 
@@ -15,11 +15,35 @@ const here = dirname(fileURLToPath(import.meta.url))
 export const ROOT = join(here, '..', '..')
 
 // --- .env.local hand-parse (tsx/node get NO Next injection) ----------------
-export function readEnv() {
-  const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
-  const get = (k) =>
-    (env.match(new RegExp(`^${k}=(.*)$`, 'm')) || [])[1]?.trim().replace(/^["']|["']$/g, '')
-  return { get }
+// .env.local is the ONLY source wherever it exists, and everywhere off a GitHub Actions runner:
+// a variable set in the shell never overrides it, fills a gap in it, or stands in for a missing
+// file (which throws, as it always did). On a runner (GITHUB_ACTIONS=true), where secrets arrive
+// as environment variables and are never written to disk, the process environment is read
+// instead, but only when NOTHING is at the path: a dangling symlink, a directory or an
+// unreadable file still throws. Either way get() returns undefined for a key it lacks, so the
+// recorders' `get('DATABASE_URL_UNPOOLED') || get('DATABASE_URL')` fallbacks behave the same.
+const unquote = (v) => v?.trim().replace(/^["']|["']$/g, '')
+
+const nothingAt = (path) => {
+  try {
+    lstatSync(path)
+    return false
+  } catch (e) {
+    return e?.code === 'ENOENT'
+  }
+}
+
+export function readEnv({ root = ROOT, env = process.env } = {}) {
+  const path = join(root, '.env.local')
+  let text
+  try {
+    text = readFileSync(path, 'utf8')
+  } catch (e) {
+    if (e?.code !== 'ENOENT' || env.GITHUB_ACTIONS !== 'true' || !nothingAt(path)) throw e
+    return { get: (k) => unquote(env[k]), source: 'environment' }
+  }
+  const get = (k) => unquote((text.match(new RegExp(`^${k}=(.*)$`, 'm')) || [])[1])
+  return { get, source: '.env.local' }
 }
 
 export function loadConfig() {

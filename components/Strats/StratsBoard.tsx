@@ -33,6 +33,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { SectionHeading, Stamp } from '@/components/Carry/atoms'
 import { fmtUsd, type Verdict } from '@/components/Radar/radarLogic'
 import { filterStrats, venueFlows, type StratRow } from '@/components/Strats/stratsLogic'
+import { NEWS_FIGURE, useNewsEdition } from '@/components/NewsEdition'
 
 // Carry Strats — the auto-tracked, WALLET-FREE, shareable dashboard. It scans
 // mainnet for real carry positions (scripts/discover-carry-strats.mjs) and shows
@@ -449,6 +450,8 @@ const CapitalFlow: React.FC<{
   selectedVerdict: string
   onSelectVenue: (venue: string) => void
 }> = ({ rows, selectedVenue, selectedVerdict, onSelectVenue }) => {
+  // Inside the landing's news edition the total is a Redaction display figure.
+  const news = useNewsEdition()
   const flows = venueFlows(rows)
   const total = flows.reduce((sum, flow) => sum + flow.usd, 0)
   const flowColor = selectedVerdict
@@ -518,7 +521,7 @@ const CapitalFlow: React.FC<{
             tracked books
           </Text>
           <Text
-            fontFamily={TYPOGRAPHY.fontMono}
+            {...(news ? NEWS_FIGURE.display : { fontFamily: TYPOGRAPHY.fontMono })}
             fontSize="23px"
             color={SEMANTIC_COLORS.textPrimary}
           >
@@ -863,22 +866,31 @@ export const StratsBoard: React.FC = () => {
   )
 }
 
-const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <Box>
-    <Text
-      fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="9px"
-      letterSpacing="0.16em"
-      textTransform="uppercase"
-      color={SEMANTIC_COLORS.textTertiary}
-      mb="2px"
-    >
-      {label}
-    </Text>
-    <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="16px" color={SEMANTIC_COLORS.textPrimary}>
-      {value}
-    </Text>
-  </Box>
-)
+/** A stat tile. Inside the landing's news edition its value is a Redaction display
+ *  figure (NEWS_FIGURE.display, owner ruling 2026-10-11); elsewhere unchanged. */
+const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => {
+  const news = useNewsEdition()
+  return (
+    <Box>
+      <Text
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="9px"
+        letterSpacing="0.16em"
+        textTransform="uppercase"
+        color={SEMANTIC_COLORS.textTertiary}
+        mb="2px"
+      >
+        {label}
+      </Text>
+      <Text
+        {...(news ? NEWS_FIGURE.display : { fontFamily: TYPOGRAPHY.fontMono })}
+        fontSize="16px"
+        color={SEMANTIC_COLORS.textPrimary}
+      >
+        {value}
+      </Text>
+    </Box>
+  )
+}
 
 export default StratsBoard

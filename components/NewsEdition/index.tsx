@@ -9,7 +9,8 @@
 //                       local dateline, and the "In this edition" index.
 //   Kicker              the numbered section head ("03 · The guarantee").
 //   RailCard            a severity-bordered alert card (danger / info).
-//   Figures             a Redaction sentence with its figures set in JetBrains Mono.
+//   Figures             a Redaction headline with its figures marked: bold, unbroken,
+//                       optionally chipped, and still Redaction (NEWS_FIGURE.display).
 //
 // The grammar (Grammar canvas, T31): solid rules only, square 1px cards. A dashed edge
 // means "this leads to a signature", and this edition signs nothing.
@@ -21,7 +22,15 @@ import { fmtLocalDateline, useLocalZone } from '@/components/Simulator/localCloc
 import { useThemeMode } from '@/hooks/useThemeMode'
 import { LANDING_TAGLINE } from '@/lib/position-sim/guarantee'
 
-import { EDITION_LABEL, NEWS, NEWS_FONT, NEWS_SECTIONS, WORDMARK_FIT, splitFigures } from './tokens'
+import {
+  EDITION_LABEL,
+  NEWS,
+  NEWS_FIGURE,
+  NEWS_FONT,
+  NEWS_SECTIONS,
+  WORDMARK_FIT,
+  splitFigures,
+} from './tokens'
 
 export * from './tokens'
 
@@ -53,8 +62,10 @@ export const Kicker: React.FC<{ children: React.ReactNode; color?: string }> = (
 )
 
 /**
- * A Redaction line with every figure in JetBrains Mono. `chip` sets the figure on the
- * raised paper, as the canvas does inside the verdict headline.
+ * A Redaction headline with its figures marked. The figures are display figures
+ * (NEWS_FIGURE.display): Redaction 700 at the line's own size, never broken across a
+ * line. `chip` sets each figure on the raised paper, as the canvas does inside the
+ * verdict headline. Owner ruling 2026-10-11: big numbers are Redaction, not Mono.
  */
 export const Figures: React.FC<{ text: string; chip?: boolean }> = ({ text, chip = false }) => (
   <>
@@ -63,14 +74,10 @@ export const Figures: React.FC<{ text: string; chip?: boolean }> = ({ text, chip
         <Text
           as="span"
           key={i}
-          fontFamily={NEWS_FONT.mono}
-          fontWeight={700}
-          fontSize={chip ? '0.78em' : '0.86em'}
-          letterSpacing="-0.01em"
+          {...NEWS_FIGURE.display}
           bg={chip ? NEWS.raised : undefined}
           px={chip ? '6px' : undefined}
           whiteSpace="nowrap"
-          sx={{ fontVariantNumeric: 'tabular-nums' }}
         >
           {run.text}
         </Text>

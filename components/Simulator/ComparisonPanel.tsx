@@ -19,6 +19,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { tabular } from '@/components/Builder/styles'
 import { outcomeLine, type Comparison, type SimRun } from '@/lib/position-sim'
+import { NEWS_FIGURE, useNewsEdition } from '@/components/NewsEdition'
 
 import Stamp from './Stamp'
 import { usd } from './format'
@@ -85,6 +86,22 @@ const Row: React.FC<{ label: string; value: string; color?: string }> = ({
 const liquidations = (run: SimRun): number =>
   run.events.filter((e) => e.kind === 'liquidation').length
 
+/** The column's main value. In the landing's news edition it is a Redaction display
+ *  figure (NEWS_FIGURE.display, owner ruling 2026-10-11); elsewhere unchanged. */
+const MainValue: React.FC<{ color: string; children: React.ReactNode }> = ({ color, children }) => {
+  const news = useNewsEdition()
+  return (
+    <Text
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize="clamp(20px, 3vw, 28px)"
+      {...(news ? NEWS_FIGURE.display : tabular)}
+      color={color}
+    >
+      {children}
+    </Text>
+  )
+}
+
 const EngineColumn: React.FC<{ run: SimRun; title: string; accent: string }> = ({
   run,
   title,
@@ -111,14 +128,7 @@ const EngineColumn: React.FC<{ run: SimRun; title: string; accent: string }> = (
       </Text>
       <Stamp provenance={run.provenance} />
     </Box>
-    <Text
-      fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="clamp(20px, 3vw, 28px)"
-      {...tabular}
-      color={accent}
-    >
-      {usd(run.endEquityUsd)}
-    </Text>
+    <MainValue color={accent}>{usd(run.endEquityUsd)}</MainValue>
     <Box mt={SPACING.xs}>
       <Row label="end equity" value={usd(run.endEquityUsd)} />
       <Row

@@ -2,7 +2,8 @@
 //
 //   1. Copy: the masthead's lines come from copy sources, never typed into the page.
 //   2. The index: one entry per numbered section, in order, with no new titles.
-//   3. Figures: a Redaction headline sets every number in JetBrains Mono.
+//   3. Figures: big numbers are Redaction (owner ruling 2026-10-11, "make the big
+//      numbers redaction, I like how the 4% looks"), every other figure JetBrains Mono.
 //   4. The palette: the night edition is the ruled lamplight table, green means money,
 //      and the layer can only match while a .news-edition root is mounted.
 
@@ -13,6 +14,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   EDITION_LABEL,
+  NEWS_FIGURE,
+  NEWS_FONT,
   NEWS_SECTIONS,
   ONE_DAY_TITLE,
   sectionKicker,
@@ -138,6 +141,46 @@ describe('the index', () => {
 
   it('shortens an address the way the verdict kicker prints it', () => {
     expect(shortAddress('0x7AdA0000000000000000000000000000000d142')).toBe('0x7AdA…d142')
+  })
+})
+
+describe('figure faces (owner ruling 2026-10-11)', () => {
+  const src = (f: string) => readFileSync(join(process.cwd(), f), 'utf8')
+
+  it('display figures are Redaction 700, lining and tabular', () => {
+    expect(NEWS_FIGURE.display.fontFamily).toBe(NEWS_FONT.display)
+    expect(NEWS_FIGURE.display.fontFamily.startsWith("'Redaction News'")).toBe(true)
+    expect(NEWS_FIGURE.display.fontWeight).toBe(700)
+    expect(NEWS_FIGURE.display.sx.fontVariantNumeric).toBe('lining-nums tabular-nums')
+  })
+
+  it('every other figure stays JetBrains Mono, tabular', () => {
+    expect(NEWS_FIGURE.text.fontFamily).toBe(NEWS_FONT.mono)
+    expect(NEWS_FIGURE.text.sx.fontVariantNumeric).toBe('tabular-nums')
+  })
+
+  it('a headline keeps its figures in Redaction: Figures never switches to Mono', () => {
+    const index = src('components/NewsEdition/index.tsx')
+    const at = index.indexOf('export const Figures')
+    const figures = index.slice(at, index.indexOf('\nexport ', at + 1))
+    expect(at).toBeGreaterThan(-1)
+    expect(figures).toContain('NEWS_FIGURE.display')
+    expect(figures).not.toContain('NEWS_FONT.mono')
+  })
+
+  it('every display-figure site on the landing uses the display face', () => {
+    for (const f of [
+      'components/Simulator/VerdictHero.tsx', // big figure
+      'components/Simulator/HeroChart.tsx', // the one-day protected figure
+      'components/Simulator/GuaranteeBlock.tsx', // the scale line's figure
+      'components/Simulator/HistoryProof.tsx', // the history total and its tiles
+      'components/Simulator/CarrySection.tsx', // tracked-strategies tile
+      'components/Simulator/ComparisonPanel.tsx', // end equity per engine
+      'components/Simulator/DeploymentSection.tsx', // detected capital, rates in force
+      'components/Strats/StratsBoard.tsx', // tracked books and header stats
+    ]) {
+      expect(src(f), f).toContain('NEWS_FIGURE.display')
+    }
   })
 })
 

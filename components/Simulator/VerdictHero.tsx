@@ -75,7 +75,7 @@ import { stamp as stampFn } from '@/lib/position-sim/types'
 export const OCT10_PROV = stampFn('dataset', 'measured · 2,350 accounts · on-chain', 'public/data/oct10-2025/evidence.json — every Aave liquidation on 10-11 Oct 2025, judged against its own line.')
 import { OCT10_STAKES_LINE } from '@/lib/position-sim/oct10Totals'
 
-import { Figures, NEWS, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
+import { Figures, NEWS, NEWS_FIGURE, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
 
 import AddressBar, { type AddressBarProps } from './AddressBar'
 import HeroChart from './HeroChart'
@@ -276,7 +276,8 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
     // THE NEWS EDITION (canvas "Landing"). Same three stories, same gates, same
     // sentences and test ids; laid out as a front page: the verdict article on the
     // left, the paste box as a sidebar, the Oct-10 cohort as its own boxed band below.
-    // Redaction sets the sentences, JetBrains Mono sets every figure inside them. The
+    // Redaction sets the sentences and their big numbers (NEWS_FIGURE.display, owner
+    // ruling 2026-10-11); JetBrains Mono sets the body lines and captions. The
     // stakes line moves to the masthead's rail (Simulator.tsx), so it is not repeated.
     const headline = {
       as: 'h1' as const,
@@ -328,14 +329,12 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
     const bigFigure = (text: string, color: string, testId?: string) => (
       <Text
         data-testid={testId}
-        fontFamily={NEWS_FONT.mono}
+        {...NEWS_FIGURE.display}
         fontSize="clamp(40px, 6vw, 64px)"
-        fontWeight={700}
         lineHeight={1}
         letterSpacing="-0.02em"
         color={color}
         overflowWrap="anywhere"
-        {...tabular}
       >
         {text}
       </Text>

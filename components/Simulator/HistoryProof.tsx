@@ -33,7 +33,7 @@ import { tabular } from '@/components/Builder/styles'
 import type { EpisodeVerdict, HistoryEpisode } from '@/lib/position-sim/history'
 
 import { useSimHistory } from './hooks/useSimHistory'
-import { NEWS, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
+import { NEWS, NEWS_FIGURE, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
 import { usd } from './format'
 
 const HEAD = {
@@ -136,7 +136,8 @@ const SummaryMetric: React.FC<{
   lead?: boolean
   testId?: string
 }> = ({ label, value, color = SEMANTIC_COLORS.textPrimary, lead = false, testId }) => {
-  // News edition: every figure is JetBrains Mono, the lead included (owner ruling T20).
+  // News edition: a stat tile's main value is a Redaction display figure, the lead
+  // (the history total) and the other tiles alike (owner ruling 2026-10-11).
   const news = useNewsEdition()
   return (
   <Box
@@ -152,14 +153,13 @@ const SummaryMetric: React.FC<{
     <Text
       data-testid={testId}
       minW={0}
-      fontFamily={lead && !news ? TYPOGRAPHY.fontDisplay : TYPOGRAPHY.fontMono}
-      fontWeight={lead && news ? 700 : undefined}
+      fontFamily={lead ? TYPOGRAPHY.fontDisplay : TYPOGRAPHY.fontMono}
       fontSize={lead ? 'clamp(28px, 5vw, 48px)' : 'clamp(18px, 2vw, 24px)'}
       lineHeight={lead ? 1 : 1.15}
       letterSpacing={lead ? '-0.015em' : undefined}
       color={color}
       overflowWrap="anywhere"
-      {...tabular}
+      {...(news ? NEWS_FIGURE.display : tabular)}
     >
       {value}
     </Text>

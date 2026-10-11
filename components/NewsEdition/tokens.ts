@@ -45,13 +45,46 @@ export const NEWS_CHART = {
 } as const
 
 /**
- * TYPE. Redaction sets headlines and the wordmark only, in its true bold ('Redaction
- * News' is the same files with the 700 face declared; styles/news-edition.css).
- * JetBrains Mono sets body text and EVERY figure.
+ * TYPE. Redaction sets headlines, the wordmark and the big numbers, in its true bold
+ * ('Redaction News' is the same files with the 700 face declared;
+ * styles/news-edition.css). JetBrains Mono sets body text and every other figure.
  */
 export const NEWS_FONT = {
   display: "'Redaction News', 'Redaction', Georgia, 'Times New Roman', serif",
   mono: TYPOGRAPHY.fontMono,
+} as const
+
+/**
+ * FIGURES: which face sets a number. Owner ruling 2026-10-11 ("make the big numbers
+ * redaction, I like how the 4% looks") replaces T20's "every figure is JetBrains Mono".
+ *
+ *   display  Redaction 700. A figure at display size: the figures inside the verdict
+ *            headline (h1), the big-figure blocks (VerdictHero's big figure, the one-day
+ *            protected figure, the history total and headline figure), the scale line
+ *            and its figure, and the main value of a KPI or stat tile. The "4%." mark
+ *            is already Redaction and stays as it is.
+ *   text     JetBrains Mono. Everything else: figures in body text, tables, captions,
+ *            chips and stamps, chart axes and labels, rail-card meta lines, the
+ *            dateline, and the comparison bars' end labels.
+ *
+ * Both ask for tabular numerals; display adds lining. Redaction 700 ships no tnum or
+ * lnum feature (its GSUB has frac, locl, numr, sups only), so in Redaction the request
+ * is inert and the digits stay proportional. It still takes effect on the Georgia
+ * fallback during the font swap, whose default digits are old-style.
+ *
+ * Spread one into a Chakra Text. A money figure keeps its money colour (NEWS.up, or
+ * SEMANTIC_COLORS.success, which the night bridge maps to the same token).
+ */
+export const NEWS_FIGURE = {
+  display: {
+    fontFamily: NEWS_FONT.display,
+    fontWeight: 700,
+    sx: { fontVariantNumeric: 'lining-nums tabular-nums' },
+  },
+  text: {
+    fontFamily: NEWS_FONT.mono,
+    sx: { fontVariantNumeric: 'tabular-nums' },
+  },
 } as const
 
 /**
@@ -135,9 +168,10 @@ export interface Run {
 }
 
 /**
- * Splits a sentence into text and figure runs, so a Redaction headline can set its
- * numbers in JetBrains Mono (owner ruling T20: figures are never Redaction). Joining
- * the runs' text always gives back the input exactly.
+ * Splits a sentence into text and figure runs, so a headline can mark its figures:
+ * bold, never broken across a line, and on a chip when asked (Figures, index.tsx). The
+ * figure runs stay in the headline's own face, Redaction (NEWS_FIGURE.display; owner
+ * ruling 2026-10-11). Joining the runs' text always gives back the input exactly.
  */
 export function splitFigures(text: string): Run[] {
   const runs: Run[] = []

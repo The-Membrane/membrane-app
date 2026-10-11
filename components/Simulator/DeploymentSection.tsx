@@ -13,6 +13,7 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { eyebrow, monoXs, tabular } from '@/components/Builder/styles'
 import type { VenueDetection } from '@/lib/position-sim'
+import { NEWS_FIGURE, useNewsEdition } from '@/components/NewsEdition'
 
 import Stamp from './Stamp'
 import { amt, pct, usd } from './format'
@@ -31,6 +32,22 @@ export interface DeploymentSectionProps {
   /** The recall/fast rates actually in force, which the user may have edited. */
   recallRate: number
   fastRate: number
+}
+
+/** A tile's main value. In the landing's news edition it is a Redaction display figure
+ *  (NEWS_FIGURE.display, owner ruling 2026-10-11); elsewhere unchanged. */
+const MainValue: React.FC<{ color: string; children: React.ReactNode }> = ({ color, children }) => {
+  const news = useNewsEdition()
+  return (
+    <Text
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize="clamp(18px, 2.6vw, 24px)"
+      {...(news ? NEWS_FIGURE.display : tabular)}
+      color={color}
+    >
+      {children}
+    </Text>
+  )
 }
 
 export const DeploymentSection: React.FC<DeploymentSectionProps> = ({
@@ -67,25 +84,13 @@ export const DeploymentSection: React.FC<DeploymentSectionProps> = ({
       <Box display="flex" gap={SPACING.lg} flexWrap="wrap" alignItems="baseline">
         <Box display="grid" gap="2px">
           <Text {...HEAD}>detected on-chain</Text>
-          <Text
-            fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="clamp(18px, 2.6vw, 24px)"
-            {...tabular}
-            color={SEMANTIC_COLORS.info}
-          >
-            {usd(detection.totalUsd)}
-          </Text>
+          <MainValue color={SEMANTIC_COLORS.info}>{usd(detection.totalUsd)}</MainValue>
         </Box>
         <Box display="grid" gap="2px">
           <Text {...HEAD}>recall / fast in force</Text>
-          <Text
-            fontFamily={TYPOGRAPHY.fontMono}
-            fontSize="clamp(18px, 2.6vw, 24px)"
-            {...tabular}
-            color={SEMANTIC_COLORS.warning}
-          >
+          <MainValue color={SEMANTIC_COLORS.warning}>
             {pct(recallRate)} / {pct(fastRate)}
-          </Text>
+          </MainValue>
         </Box>
       </Box>
 

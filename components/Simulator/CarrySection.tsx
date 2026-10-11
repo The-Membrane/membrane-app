@@ -31,7 +31,7 @@ import CrossingChart from '@/components/Carry/CrossingChart'
 import MarketBoards from '@/components/Carry/MarketBoards'
 import StratsBoard from '@/components/Strats/StratsBoard'
 import AddressBar, { RUN_YOUR_POSITION, type AddressBarProps } from './AddressBar'
-import { NEWS, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
+import { NEWS, NEWS_FIGURE, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
 import { capacityMove, type Entry } from '@/components/Carry/venueLogLogic'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
@@ -109,17 +109,23 @@ const Pending: React.FC = () => (
   />
 )
 
-const Figure: React.FC<{ children: React.ReactNode; color?: string }> = ({ children, color }) => (
-  <Text
-    fontFamily={TYPOGRAPHY.fontMono}
-    fontSize="clamp(20px, 3vw, 30px)"
-    lineHeight={1.05}
-    sx={{ fontVariantNumeric: 'tabular-nums' }}
-    color={color ?? SEMANTIC_COLORS.textPrimary}
-  >
-    {children}
-  </Text>
-)
+/** A tile's main value. In the landing's news edition it is a Redaction display figure
+ *  (NEWS_FIGURE.display, owner ruling 2026-10-11); elsewhere unchanged. */
+const Figure: React.FC<{ children: React.ReactNode; color?: string }> = ({ children, color }) => {
+  const news = useNewsEdition()
+  return (
+    <Text
+      {...(news
+        ? NEWS_FIGURE.display
+        : { fontFamily: TYPOGRAPHY.fontMono, sx: { fontVariantNumeric: 'tabular-nums' } })}
+      fontSize="clamp(20px, 3vw, 30px)"
+      lineHeight={1.05}
+      color={color ?? SEMANTIC_COLORS.textPrimary}
+    >
+      {children}
+    </Text>
+  )
+}
 
 const EvidenceDoor: React.FC<{
   title: string

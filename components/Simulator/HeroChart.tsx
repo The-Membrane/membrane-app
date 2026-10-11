@@ -14,7 +14,14 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import type { Comparison } from '@/lib/position-sim'
 import { OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
-import { LABEL, NEWS, NEWS_FONT, ONE_DAY_TITLE, useNewsEdition } from '@/components/NewsEdition'
+import {
+  LABEL,
+  NEWS,
+  NEWS_FIGURE,
+  NEWS_FONT,
+  ONE_DAY_TITLE,
+  useNewsEdition,
+} from '@/components/NewsEdition'
 
 const usdMillions = (value: number): string => `$${Math.round(value / 1_000_000)}M`
 
@@ -45,7 +52,7 @@ export interface HeroChartProps {
 
 /**
  * THE NEWS EDITION'S BOX (canvas "Landing", section 02). The protected figure leads in
- * money green; the two bars are what each engine closed — Aave's in the danger colour,
+ * money green, a Redaction display figure (NEWS_FIGURE.display); the two bars are what each engine closed — Aave's in the danger colour,
  * Membrane's in money green. The title moves to the masthead index, which links here.
  */
 const NewsHeroChart: React.FC = () => (
@@ -67,13 +74,11 @@ const NewsHeroChart: React.FC = () => (
   >
     <Box flex="1 1 260px" minW={0}>
       <Text
-        fontFamily={NEWS_FONT.mono}
-        fontWeight={700}
+        {...NEWS_FIGURE.display}
         fontSize="clamp(52px, 8vw, 76px)"
         lineHeight={1}
         letterSpacing="-0.02em"
         color={NEWS.up}
-        {...tabular}
       >
         {usdMillions(PROTECTED_DEBT)}
       </Text>

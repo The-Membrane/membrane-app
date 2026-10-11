@@ -12,7 +12,7 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { GUARANTEE } from '@/lib/position-sim'
 import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
-import { NEWS, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
+import { NEWS, NEWS_FIGURE, NEWS_FONT, useNewsEdition } from '@/components/NewsEdition'
 
 const SCALE = CORPUS_SCALE_LINE.partial ? OCT10_SCALE_LINE : CORPUS_SCALE_LINE
 const SCALE_LEAD = CORPUS_SCALE_LINE.partial
@@ -27,8 +27,9 @@ const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured
 /**
  * THE NEWS EDITION (canvas "Landing", section 03): the named guarantee leads, its claim
  * and limit under it, and the measured scale sits below a rule as the proof. The scale
- * figure is money, so it is money green and JetBrains Mono; the sentence around it is
- * Redaction. Same strings and test ids as the default block.
+ * line is a display sentence, so its figure is a Redaction display figure in money
+ * green (NEWS_FIGURE.display; owner ruling 2026-10-11) inside the Redaction sentence.
+ * Same strings and test ids as the default block.
  *
  * The "4%." mark stays Redaction, as on the canvas: it is the guarantee's NAME
  * (GUARANTEE.name), the page's recurring wordmark device, not a measured figure.
@@ -60,14 +61,7 @@ const NewsGuaranteeBlock: React.FC = () => (
         maxW="60ch"
       >
         {SCALE_LEAD}{' '}
-        <Text
-          as="span"
-          fontFamily={NEWS_FONT.mono}
-          fontWeight={700}
-          fontSize="0.9em"
-          color={NEWS.up}
-          sx={{ fontVariantNumeric: 'tabular-nums' }}
-        >
+        <Text as="span" {...NEWS_FIGURE.display} color={NEWS.up} whiteSpace="nowrap">
           {SCALE.figure}
         </Text>{' '}
         {SCALE_TAIL}

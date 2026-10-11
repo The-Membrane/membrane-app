@@ -4,7 +4,7 @@
  */
 
 import type { CarryScanView } from './load'
-import type { Carry, CarryB, ScoutStatus } from './types'
+import type { Carry, CarryB, ScoutStatus, Valued, VenueApy } from './types'
 
 export interface StripRow {
   key: string | null
@@ -13,6 +13,9 @@ export interface StripRow {
   stable: string
   rank: number | null
   status: ScoutStatus | null
+  /** The venue APY at $100K (the averaged figure on a vault row) and every source behind it. */
+  venueNet: Valued
+  venueApy: VenueApy
   carryA: Carry | null
   carryB: CarryB
   notDeployable: boolean
@@ -45,6 +48,8 @@ export function stripOf(view: CarryScanView, n = 3): StripPayload {
       stable: r.stable,
       rank: r.rank,
       status: r.status,
+      venueNet: r.venueNet['100k'],
+      venueApy: r.venueApy,
       carryA: r.carryA['100k'],
       carryB: r.carryB['100k'],
       notDeployable: r.readiness.tier === 'not-deployable',

@@ -19,7 +19,14 @@
 
 import type { LabelClass } from '../netApy/types'
 
-export const CARRY_SCAN_SCHEMA_VERSION = 1 as const
+/**
+ * 2 (2026-10-11, owner rulings): rows carry `venueApy` (the averaged vault APY and its
+ * sources) and `alsoBehindRoutes`; the file carries `venueApyRule`. A version-1 file is still
+ * read: lib/carryScan/load.ts upgrades it (its figures stay DeFiLlama's, and say so).
+ */
+export const CARRY_SCAN_SCHEMA_VERSION = 2 as const
+/** Every schema the app can read. */
+export const READABLE_SCHEMA_VERSIONS: readonly number[] = [1, 2]
 
 export const SCAN_SIZES_USD = [100_000, 1_000_000, 10_000_000] as const
 export type ScanSize = (typeof SCAN_SIZES_USD)[number]
@@ -46,7 +53,11 @@ export const THRESHOLDS = {
   maxSpikeRatio: 1.5,
   /** On-chain totalAssets at $1 must sit within ±15% of DeFiLlama tvlUsd. */
   tvlTolerance: 0.15,
-  /** 7-day convertToAssets growth vs apyBase7d (else the base APY): more than 1pp apart is "source disagreement". */
+  /**
+   * "Source disagreement": on an averaged vault row, the figures of one basis (base, or with
+   * rewards) spread more than 1pp; on any other ERC-4626 row, 7-day convertToAssets growth is
+   * more than 1pp from apyBase7d (else the base APY).
+   */
   sourceDisagreementPp: 1.0,
   finalistsRanked: 40,
   finalistsNoBench: 20,
@@ -123,7 +134,10 @@ export interface MorphoVaultInfo {
   name: string
   assetAddress: string
   version: 'v1' | 'v2'
+  /** Morpho API net APY after fees, WITH rewards (fraction). */
   netApy: number | null
+  /** Morpho API net APY after fees, WITHOUT rewards (fraction): `netApyExcludingRewards`. */
+  netApyExcludingRewards: number | null
   fee: number | null
   totalAssetsUsd: number | null
 }
@@ -273,6 +287,48 @@ export interface Verification {
   failed?: string
   /** On-chain share-price growth over 7 days, as an APY. */
   trailing7dApy?: number | null
+  /** Why the 7-day share-price read failed (a young vault, no archive state), when it did. */
+  trailing7dError?: string
+}
+
+// ------------------------------------------------------------------ venue APY sources
+
+/** Who reported an APY figure. Not called `name`: a row carries nothing that reads as a venue-registry name. */
+export type ApySourceId = 'defillama' | 'morpho-api' | 'onchain-7d' | 'onchain-irm'
+export type ApyBasis = 'base' | 'with-rewards'
+
+/** One figure from one source, as stored per row in the weekly file. */
+export interface ApySource {
+  source: ApySourceId
+  /** Reader-facing, e.g. "DeFiLlama apyBase". */
+  label: string
+  basis: ApyBasis
+  /** Fraction per year; null when the source had no figure or failed. Never read as 0. */
+  value: number | null
+  status: 'ok' | 'missing' | 'failed'
+  /** Unix seconds the figure was read (the fetch, or the anchor block for on-chain reads). */
+  asOf: number | null
+  /** A public page for the figure, when there is one. */
+  url: string | null
+  /** True when the figure is part of the row's venue APY (the mean, or the on-chain price). */
+  averaged: boolean
+  note?: string
+}
+
+/**
+ * The venue APY a row is priced from, before the at-size dilution.
+ *   average      a vault row (MetaMorpho, Morpho Vault V2, other ERC-4626): the mean of its
+ *                sources, like for like (lib/carryScan/venueApy.ts VENUE_APY_RULE);
+ *   onchain-irm  a lending reserve priced on-chain through netBreakdown;
+ *   defillama    every other row (LPs, unresolved rows): DeFiLlama's figure.
+ */
+export interface VenueApy {
+  method: 'average' | 'onchain-irm' | 'defillama'
+  base: number | null
+  withRewards: number | null
+  /** Max − min of the averaged figures of each basis (fraction); null with fewer than two. */
+  spread: { base: number | null; withRewards: number | null }
+  sources: ApySource[]
 }
 
 export interface ScoutRow {
@@ -313,6 +369,14 @@ export interface ScoutRow {
   segue: Segue
   /** Serialized NetBreakdown at the default size, for on-chain priced lending rows only. */
   breakdown: unknown | null
+  /** The venue APY before size and every source behind it (schema 2). */
+  venueApy: VenueApy
+  /**
+   * /carry route labels whose seed destinations include this row's contract, where the label
+   * is a route CLASS (more than one contract). A class never hides a vault: the row stays,
+   * with "also behind /carry route <label>" (owner ruling 2, 2026-10-11).
+   */
+  alsoBehindRoutes: string[]
 }
 
 export interface DroppedRow {
@@ -357,6 +421,8 @@ export interface StageCounts {
   positive: number
   noBenchmark: number
   onApp: number
+  /** Rows kept because their contract is only behind a /carry route class (annotated, not hidden). */
+  alsoBehindRoute: number
   finalists: number
   verified: number
   stable: number
@@ -384,6 +450,8 @@ export interface CarryScanFile {
   nowOnApp: NowOnAppRow[]
   sources: { name: string; ok: boolean; rows: number | null }[]
   notes: string[]
+  /** How the venue APY was formed this week (schema 2); the page prints it. */
+  venueApyRule: string
 }
 
 export interface CarryScanStatus {

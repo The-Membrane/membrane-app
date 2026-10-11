@@ -61,6 +61,7 @@ describe('address resolution', () => {
       assetAddress: USDC.address,
       version: 'v2',
       netApy: 0.05,
+      netApyExcludingRewards: 0.045,
       fee: 0.1,
       totalAssetsUsd: tvl,
     })
@@ -98,9 +99,22 @@ describe('on-chain checks', () => {
     totalAssets?: bigint
     prev?: bigint
     now?: bigint
+    /** Seconds the 50,400 blocks behind the anchor span (block timestamps); 7 days by default. */
+    spanSec?: number
+    getBlockFails?: boolean
   }) =>
     ({
       getCode: async () => o.code ?? '0x6000',
+      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => {
+        if (o.getBlockFails) throw new Error('header not found https://rpc.example/key')
+        return {
+          number: blockNumber,
+          timestamp:
+            blockNumber === anchor.blockNumber
+              ? anchor.blockTimestamp
+              : anchor.blockTimestamp - BigInt(o.spanSec ?? 7 * 86_400),
+        }
+      },
       readContract: async ({
         functionName,
         blockNumber,
@@ -133,6 +147,26 @@ describe('on-chain checks', () => {
       sourceDisagreement: false,
     })
     expect(r.trailing7dApy).toBeCloseTo(trailing7dApy(1_000_000n, 1_001_000n)!, 12)
+  })
+
+  it('annualises the 7-day growth over the real time span of its blocks (block timestamps)', async () => {
+    // 2026-10-11 refuter: the 50,400 blocks behind anchor 26,169,675 spanned 7.025 days, not 7.
+    // Annualising over a nominal 7 days overstated the figure (5.625% vs about 5.605%), and the
+    // figure now feeds the averaged venue APY.
+    const span = 7.025 * 86_400
+    const r = await verifyOnChain(fakeClient({ spanSec: span }), anchor, input)
+    const expected = (1_001_000 / 1_000_000) ** ((365 * 86_400) / span) - 1
+    expect(r.trailing7dApy).toBeCloseTo(expected, 12)
+    const nominal = (1_001_000 / 1_000_000) ** (365 / 7) - 1
+    expect(r.trailing7dApy!).toBeLessThan(nominal)
+  })
+
+  it('a block-timestamp read that fails leaves no 7-day figure (listed as failed), not a failed row', async () => {
+    const r = await verifyOnChain(fakeClient({ getBlockFails: true }), anchor, input)
+    expect(r.ok).toBe(true)
+    expect(r.trailing7dApy).toBeNull()
+    expect(r.trailing7dError).toMatch(/7-day share-price read failed/)
+    expect(r.trailing7dError).not.toContain('rpc.example')
   })
 
   it('fails closed on missing code, a wrong asset, or TVL more than 15% off', async () => {

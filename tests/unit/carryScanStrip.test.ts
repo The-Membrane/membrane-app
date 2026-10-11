@@ -13,7 +13,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { ScoutStrip } from '@/components/CarryScout/ScoutStrip'
 import { ZERO_OR_FREE } from '@/lib/carryScan/format'
-import type { CarryScanView } from '@/lib/carryScan/load'
+import { upgradeFile, type CarryScanView } from '@/lib/carryScan/load'
 import { stripOf, type StripPayload } from '@/lib/carryScan/strip'
 import type { CarryScanFile } from '@/lib/carryScan/types'
 
@@ -22,9 +22,11 @@ vi.mock('@/hooks/useChainRoute', () => ({
   useChainRoute: () => ({ chainName: 'ethereum', walletChainName: 'ethereum', isValidChain: true }),
 }))
 
-const fallback = JSON.parse(
+const fallbackRaw = JSON.parse(
   readFileSync(join(__dirname, '..', '..', 'public', 'data', 'carry-scan-fallback.json'), 'utf8'),
 ) as CarryScanFile
+// The snapshot may predate schema 2: the app reads it through the loader's upgrade, so do the tests.
+const fallback = upgradeFile(fallbackRaw)
 
 const render = (payload: StripPayload) => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -54,11 +56,28 @@ describe('the /carry strip, rendered', () => {
     expect(payload.rows.length).toBeGreaterThan(0)
     const html = render(payload)
     for (const r of payload.rows) expect(html).toContain(r.label)
-    // (a) and (b) base on every row that has an (a); (b) alone otherwise.
-    const tags = payload.rows.reduce((n, r) => n + (r.carryA ? 2 : 1), 0)
-    expect(count(html, 'data-label-class=')).toBe(tags)
+    // The venue APY, (a) and (b) base on every row that has an (a); venue and (b) otherwise —
+    // plus one per source inside each venue-APY popover.
+    const tags = payload.rows.reduce((n, r) => n + (r.carryA ? 3 : 2), 0)
+    const sources = payload.rows.reduce((n, r) => n + r.venueApy.sources.length, 0)
+    expect(count(html, 'data-label-class=')).toBe(tags + sources)
     expect(html).toContain('href="/ethereum/carry-scout"')
     expect(html).toContain(' · snapshot')
+  })
+
+  // Owner ruling 1 (2026-10-11): the strip's venue APY opens its sources on hover AND tap/focus.
+  it('the venue APY at $100K opens its sources from a button, not a hover-only title', () => {
+    const html = render(payload)
+    expect(count(html, 'data-testid="apy-sources-trigger"')).toBe(payload.rows.length)
+    expect(count(html, 'data-testid="apy-sources"')).toBe(payload.rows.length)
+    expect(html).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*data-testid="apy-sources-trigger"/)
+    for (const r of payload.rows)
+      for (const src of r.venueApy.sources) expect(html).toContain(src.label)
+    // A strip payload cached before schema 2 has no venueApy: the row still renders.
+    const old = { ...payload, rows: payload.rows.map(({ venueApy: _v, venueNet: _n, ...r }) => r) }
+    const legacy = render(old as unknown as StripPayload)
+    expect(legacy).not.toContain('apy-sources')
+    for (const r of payload.rows) expect(legacy).toContain(r.label)
   })
 
   it('greys a non-USDC row with grayscale and says why', () => {
@@ -67,6 +86,11 @@ describe('the /carry strip, rendered', () => {
     const greyed = render({ ...payload, rows: [other] })
     expect(greyed).toContain('grayscale(1)')
     expect(greyed).not.toMatch(/opacity:\s*0?\.\d/)
+    // A greyed card is a stacking context: it rises while its sources panel is open, or the
+    // next greyed card paints over the panel.
+    expect(greyed).toMatch(
+      /:has\(\[data-apy-open=(?:"|&quot;)true(?:"|&quot;)\]\)\{[^}]*z-index:\s*\d/,
+    )
     expect(greyed).toContain('not deployable yet (vaults hold USDC)')
     const plain = render({ ...payload, rows: [usdc] })
     expect(plain).not.toContain('grayscale(')

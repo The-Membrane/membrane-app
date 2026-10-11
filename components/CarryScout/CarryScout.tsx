@@ -214,7 +214,13 @@ export const CarryScout: React.FC<CarryScoutProps> = ({ view }) => {
         >
           {CARRY_CLAIMS[0]}
         </Text>
-        {CARRY_SCAN_NOTES.map((n) => (
+        {[
+          ...CARRY_SCAN_NOTES,
+          // This file's own rule (an older snapshot says it predates averaging) and its
+          // /carry route notes (classes are annotated, never hidden; unresolved labels).
+          ...(file.venueApyRule ? [file.venueApyRule] : []),
+          ...(file.notes ?? []).filter((n) => n.startsWith('/carry route')),
+        ].map((n) => (
           <Text
             key={n}
             fontFamily={TYPOGRAPHY.fontMono}

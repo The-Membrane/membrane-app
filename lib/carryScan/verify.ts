@@ -13,8 +13,10 @@
  *     (aToken.UNDERLYING_ASSET_ADDRESS(), else ERC-4626 asset());
  *   - supplied value at $1 within ±15% of DeFiLlama's (lendBorrow totalSupplyUsd for a
  *     lending row, whose /pools tvlUsd is supply − borrow; tvlUsd otherwise);
- *   - ERC-4626 vaults: trailing 7-day convertToAssets growth between the anchor and
- *     anchor − 7d; more than 1pp from apyBase7d marks "source disagreement" (a flag, not a fail).
+ *   - ERC-4626 vaults: trailing 7-day convertToAssets growth between the anchor and the block
+ *     50,400 blocks earlier, annualised over the span their block timestamps give (missed slots
+ *     make it longer than 7 days); more than 1pp from apyBase7d marks "source disagreement"
+ *     (a flag, not a fail).
  * An LP pool is checked for code only (no asset/TVL getter in common).
  */
 
@@ -187,8 +189,10 @@ const vaultAbi = [
   },
 ] as const
 
-/** Blocks in 7 days at 12 s slots. */
+/** Blocks in 7 days at 12 s slots, with no missed slot. The real span is read from timestamps. */
 export const BLOCKS_7D = 50_400n
+const SECONDS_7D = 7 * 86_400
+const SECONDS_YEAR = 365 * 86_400
 
 export interface VerifyInput {
   address: string
@@ -209,9 +213,19 @@ export interface VerifyInput {
 export const withinTvl = (onchainUsd: number, reportedUsd: number): boolean =>
   reportedUsd > 0 && Math.abs(onchainUsd - reportedUsd) / reportedUsd <= THRESHOLDS.tvlTolerance
 
-/** Trailing APY from two share prices 7 days apart. */
-export const trailing7dApy = (pricePrev: bigint, priceNow: bigint): number | null =>
-  pricePrev > 0n ? (Number(priceNow) / Number(pricePrev)) ** (365 / 7) - 1 : null
+/**
+ * Trailing APY from two share prices `elapsedSec` apart (7 days by default), compounded over a
+ * 365-day year. 2026-10-11: the 50,400 blocks behind the anchor spanned 7.025 days, and a
+ * nominal 7 days overstated the figure by about 0.02pp at 5.6%.
+ */
+export const trailing7dApy = (
+  pricePrev: bigint,
+  priceNow: bigint,
+  elapsedSec: number = SECONDS_7D,
+): number | null =>
+  pricePrev > 0n && Number.isFinite(elapsedSec) && elapsedSec > 0
+    ? (Number(priceNow) / Number(pricePrev)) ** (SECONDS_YEAR / elapsedSec) - 1
+    : null
 
 export async function verifyOnChain(
   client: PublicClient,
@@ -272,15 +286,21 @@ export async function verifyOnChain(
     checks.push('tvl')
 
     let trailing: number | null = null
+    let trailingError: string | undefined
     let disagree = false
     try {
       const shareDec = Number(await read<number>('decimals'))
       const one = 10n ** BigInt(shareDec)
-      const [now, prev] = await Promise.all([
+      const prevBlock = blockNumber - BLOCKS_7D
+      const [now, prev, prevHeader] = await Promise.all([
         read<bigint>('convertToAssets', [one]),
-        read<bigint>('convertToAssets', [one], blockNumber - BLOCKS_7D),
+        read<bigint>('convertToAssets', [one], prevBlock),
+        client.getBlock({ blockNumber: prevBlock }),
       ])
-      trailing = trailing7dApy(prev, now)
+      // Annualise over the blocks' real span: missed slots make 50,400 blocks longer than 7 days.
+      const elapsed = Number(anchor.blockTimestamp - prevHeader.timestamp)
+      if (!(elapsed > 0)) throw new Error(`block ${prevBlock} is not older than the anchor`)
+      trailing = trailing7dApy(prev, now, elapsed)
       const seven = v.apyBase7dPct !== null && Number.isFinite(v.apyBase7dPct)
       const ref = seven ? v.apyBase7dPct : (v.apyBasePct ?? null)
       if (trailing !== null && ref !== null && Number.isFinite(ref)) {
@@ -289,19 +309,29 @@ export async function verifyOnChain(
       } else {
         checks.push('trailing-7d')
       }
-    } catch {
-      // A vault younger than 7 days, or an RPC without archive state: no cross-check, not a failure.
+    } catch (e) {
+      // A vault younger than 7 days, or an RPC without archive state: no cross-check, not a
+      // failure of the row. The averaged venue APY lists the source as failed, with this reason.
+      trailingError = `7-day share-price read failed: ${oneLine(e)}`
     }
-    return { ok: true, checks, trailing7dApy: trailing, sourceDisagreement: disagree }
+    return {
+      ok: true,
+      checks,
+      trailing7dApy: trailing,
+      ...(trailingError ? { trailing7dError: trailingError } : {}),
+      sourceDisagreement: disagree,
+    }
   } catch (e) {
-    return fail(
-      `read failed: ${(e instanceof Error ? e.message : String(e))
-        .split('\n')[0]
-        .replace(/https?:\/\/\S+/g, '[rpc]')
-        .slice(0, 160)}`,
-    )
+    return fail(`read failed: ${oneLine(e)}`)
   }
 }
+
+/** First line of an error, RPC URLs redacted, at most 160 characters. */
+const oneLine = (e: unknown): string =>
+  (e instanceof Error ? e.message : String(e))
+    .split('\n')[0]
+    .replace(/https?:\/\/\S+/g, '[rpc]')
+    .slice(0, 160)
 
 export async function aTokenOfAt(
   client: PublicClient,

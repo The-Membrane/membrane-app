@@ -1,6 +1,7 @@
 // "New this week" — the top 3 NEW rows of the weekly carry scout, mounted on /carry right
 // after the route board. A link, not a recommendation: the numbers are the spread measured
 // at the last scan, and Membrane carry is a ceiling until a curator sets its share.
+// The venue APY opens its sources on hover, focus or tap (./ApySources.tsx).
 
 import React from 'react'
 import { Box, HStack, Text } from '@chakra-ui/react'
@@ -14,10 +15,11 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
-import { formatCarryB, spread } from '@/lib/carryScan/format'
+import { formatCarryB, pct, spread } from '@/lib/carryScan/format'
 import { NOT_DEPLOYABLE_LABEL } from '@/lib/carryScan/readiness'
 import type { StripPayload } from '@/lib/carryScan/strip'
 
+import { ApySources, methodTag, RAISE_WHEN_OPEN } from './ApySources'
 import { NOT_DEPLOYABLE_FILTER } from './ScoutRow'
 
 export const ScoutStrip: React.FC = () => {
@@ -67,6 +69,7 @@ export const ScoutStrip: React.FC = () => {
               borderColor={SEMANTIC_COLORS.borderSubtle}
               pt={SPACING.xs}
               filter={r.notDeployable ? NOT_DEPLOYABLE_FILTER : undefined}
+              sx={RAISE_WHEN_OPEN}
             >
               <Text
                 fontFamily={TYPOGRAPHY.fontDisplay}
@@ -83,6 +86,31 @@ export const ScoutStrip: React.FC = () => {
                 {r.protocol} · {r.stable}
                 {r.notDeployable ? ` · ${NOT_DEPLOYABLE_LABEL}` : ''}
               </Text>
+              {r.venueApy && r.venueNet ? (
+                // A payload cached before schema 2 has no venueApy: the line is left out.
+                <Box
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="11px"
+                  color={SEMANTIC_COLORS.textSecondary}
+                  sx={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  <Text as="span">venue @ $100K </Text>
+                  <ApySources
+                    venueApy={r.venueApy}
+                    atSize={r.venueNet}
+                    sizeUsd={100_000}
+                    rowLabel={r.label}
+                  >
+                    <Text as="span" color={SEMANTIC_COLORS.textPrimary}>
+                      {r.venueNet.apy === null ? (r.venueNet.note ?? '—') : pct(r.venueNet.apy)}
+                    </Text>{' '}
+                    <Text as="span" fontSize="9.5px" color={SEMANTIC_COLORS.textTertiary}>
+                      {methodTag(r.venueApy)}
+                    </Text>
+                  </ApySources>{' '}
+                  <ClassTag c={r.venueNet.labelClass} />
+                </Box>
+              ) : null}
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
                 fontSize="11px"

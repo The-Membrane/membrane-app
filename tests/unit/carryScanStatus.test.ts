@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
+import { aaveLikeVenues, buildOnAppSet, DEFAULT_ON_APP_INPUTS, keyOf } from '@/lib/carryScan/onApp'
 import { computeStatuses, type CurrentRow } from '@/lib/carryScan/status'
 import type { PastWeek, ScoutList } from '@/lib/carryScan/types'
 
+const AAVE_LIKE = aaveLikeVenues()
 const K = (n: number) => `1:0x${String(n).padStart(40, '0')}`
 const week = (
   w: string,
@@ -75,6 +77,63 @@ describe('S7 status against the last 8 weekly files', () => {
       }),
     ])
     expect(s.nowOnApp).toEqual([expect.objectContaining({ key: K(5) })])
+  })
+
+  // Owner ruling 2 (2026-10-11): a /carry route CLASS never hides a vault. Its contracts are
+  // not in the on-app set, so a ranked row on one stays NEW/STILL (annotated by the scan), and
+  // a past row on one that now fails is DROPPED with its gate — never NOW ON APP.
+  it('a row behind a /carry route class keeps its status; only a specific contract is NOW ON APP', () => {
+    const classVault = '0x' + '11'.repeat(20)
+    const specific = '0x' + '22'.repeat(20)
+    const onApp = buildOnAppSet(
+      {
+        ...DEFAULT_ON_APP_INPUTS,
+        routes: [
+          { src: 'USDC', dst: 'Some Class' },
+          { src: 'USDC', dst: 'One Vault' },
+        ],
+        aliases: {
+          routes: {
+            'USDC → Some Class': { positions: 2, addresses: [classVault, '0x' + '33'.repeat(20)] },
+            'USDC → One Vault': { positions: 1, addresses: [specific] },
+          },
+        },
+      },
+      new Map(AAVE_LIKE.map((d) => [d.venueKey, '0x' + '44'.repeat(20)])),
+    )
+    const kc = keyOf(classVault)
+    const ks = keyOf(specific)
+    expect(onApp.keys.has(kc)).toBe(false)
+    expect(onApp.routeClassOf.get(kc)).toEqual(['USDC → Some Class'])
+    expect(onApp.keys.has(ks)).toBe(true)
+    const row = (key: string, list: ScoutList = 'ranked'): CurrentRow => ({
+      ...cur(1),
+      key,
+      aliases: [`llama:${key}`],
+      list,
+    })
+    const past: PastWeek[] = [
+      {
+        week: '2026-W40',
+        rows: [
+          { key: kc, list: 'ranked', label: 'class vault', aliases: [`llama:${kc}`] },
+          { key: ks, list: 'ranked', label: 'specific vault', aliases: [`llama:${ks}`] },
+        ],
+      },
+    ]
+    const still = computeStatuses([row(kc)], past, onApp.keys, new Map())
+    expect(still.byKey.get(kc)).toMatchObject({ status: 'STILL' })
+    expect(still.nowOnApp.map((r) => r.key)).toEqual([ks])
+    const fresh = computeStatuses([row(kc)], [], onApp.keys, new Map())
+    expect(fresh.byKey.get(kc)).toMatchObject({ status: 'NEW' })
+    const gone = computeStatuses(
+      [],
+      past,
+      onApp.keys,
+      new Map([[`llama:${kc}`, 'carry: (a) not positive at $100K']]),
+    )
+    expect(gone.dropped.map((r) => r.key)).toEqual([kc])
+    expect(gone.nowOnApp.map((r) => r.key)).toEqual([ks])
   })
 
   it('a row still listed but unranked is DROPPED with its reason', () => {

@@ -3,6 +3,9 @@
 // so `reported`). Non-USDC rows are greyed out: "not deployable yet (vaults hold USDC)" — with
 // a grayscale filter, not opacity, so their text keeps its contrast.
 // (b) is "≤ x% · curator-set" until shares are given. An Unverified row has no CTA.
+// The venue APY opens its sources (hover, focus or tap): a vault row's figure is the average of
+// its sources (lib/carryScan/venueApy.ts). A row whose contract is behind a /carry route CLASS
+// stays listed and says so: "also behind /carry route <label>" (owner ruling 2, 2026-10-11).
 
 import React, { useState } from 'react'
 import { Box, Link, Text } from '@chakra-ui/react'
@@ -17,6 +20,8 @@ import { ctaFor, NOT_DEPLOYABLE_LABEL, type LaunchEnv } from '@/lib/carryScan/re
 import { sizeUsdOf, THRESHOLDS, type ScoutRow as Row, type SizeKey } from '@/lib/carryScan/types'
 import type { MembraneShareInput, BreakdownRow } from '@/lib/netApy/breakdown'
 import type { LabelClass } from '@/lib/netApy/types'
+
+import { ApySources, methodTag, RAISE_WHEN_OPEN } from './ApySources'
 
 const Mono: React.FC<{
   children: React.ReactNode
@@ -129,6 +134,7 @@ export const ScoutRowView: React.FC<ScoutRowProps> = ({ row, sizeKey, share, lau
       borderColor={SEMANTIC_COLORS.borderSubtle}
       py={SPACING.sm}
       filter={greyed ? NOT_DEPLOYABLE_FILTER : undefined}
+      sx={RAISE_WHEN_OPEN}
       data-testid="scout-row"
     >
       <Box display="flex" alignItems="baseline" gap={SPACING.sm} flexWrap="wrap">
@@ -157,14 +163,16 @@ export const ScoutRowView: React.FC<ScoutRowProps> = ({ row, sizeKey, share, lau
           <Chip color={SEMANTIC_COLORS.warning}>basis trading</Chip>
         ) : null}
         {row.flags.includes('source-disagreement') ? (
-          <Chip
-            color={SEMANTIC_COLORS.warning}
-            title="7-day on-chain share-price growth is more than 1pp from DeFiLlama’s base APY (its 7-day base APY where published)"
-          >
-            source disagreement
+          <Chip color={SEMANTIC_COLORS.warning} title={disagreementTitle(row)}>
+            source disagreement{spreadPp(row) ? ` · ${spreadPp(row)}` : ''}
           </Chip>
         ) : null}
       </Box>
+      {row.alsoBehindRoutes?.length ? (
+        <Mono size="10px" color={SEMANTIC_COLORS.info}>
+          {row.alsoBehindRoutes.map((l) => `also behind /carry route ${l}`).join(' · ')}
+        </Mono>
+      ) : null}
 
       <Box
         mt={SPACING.xs}
@@ -184,10 +192,22 @@ export const ScoutRowView: React.FC<ScoutRowProps> = ({ row, sizeKey, share, lau
           </Box>
         </Cell>
         <Cell label={`Venue net @ ${sizeLabel(sizeUsdOf(k))}`}>
-          <Mono color={SEMANTIC_COLORS.textPrimary} title={net.note}>
-            {net.apy === null ? (net.note ?? '—') : pct(net.apy)}
-          </Mono>
-          <ClassTag c={net.labelClass} />
+          <ApySources
+            venueApy={row.venueApy}
+            atSize={net}
+            sizeUsd={sizeUsdOf(k)}
+            rowLabel={row.label}
+          >
+            <Mono as="span" color={SEMANTIC_COLORS.textPrimary}>
+              {net.apy === null ? (net.note ?? '—') : pct(net.apy)}
+            </Mono>{' '}
+            <Mono as="span" size="9.5px" color={SEMANTIC_COLORS.textTertiary}>
+              {methodTag(row.venueApy)}
+            </Mono>
+          </ApySources>
+          <Box>
+            <ClassTag c={net.labelClass} />
+          </Box>
         </Cell>
         <Cell label="Benchmark borrow">
           {bench ? (
@@ -331,6 +351,14 @@ export const ScoutRowView: React.FC<ScoutRowProps> = ({ row, sizeKey, share, lau
               </Mono>
               <BreakdownRows rows={breakdown.rows} />
             </>
+          ) : row.venueApy.method === 'average' ? (
+            <Mono size="10.5px">
+              Averaged APY {pct(row.venueApy.withRewards)} (base {pct(row.venueApy.base)}) from{' '}
+              {new Set(row.venueApy.sources.filter((x) => x.averaged).map((x) => x.source)).size}{' '}
+              sources × TVL/(TVL+size) → {pct(net.apy)} at {sizeLabel(sizeUsdOf(k))}. DeFiLlama
+              alone: {pct(row.apy)}. 30-day mean {pct(row.apyMean30d)} (DeFiLlama) − this week’s
+              benchmark = {spread(row.carryA30d)}.
+            </Mono>
           ) : (
             <Mono size="10.5px">
               DeFiLlama APY {pct(row.apy)}
@@ -379,6 +407,20 @@ export const ScoutRowView: React.FC<ScoutRowProps> = ({ row, sizeKey, share, lau
       ) : null}
     </Box>
   )
+}
+
+/** The largest spread across the averaged sources, e.g. "1.32pp", or null. */
+export function spreadPp(row: Row): string | null {
+  const xs = [row.venueApy?.spread.base, row.venueApy?.spread.withRewards].filter(
+    (x): x is number => typeof x === 'number' && Number.isFinite(x),
+  )
+  return xs.length ? `${(Math.max(...xs) * 100).toFixed(2)}pp` : null
+}
+
+function disagreementTitle(row: Row): string {
+  return row.venueApy?.method === 'average'
+    ? `The averaged sources spread more than ${THRESHOLDS.sourceDisagreementPp}pp (max − min of one basis). Open the venue APY to see each one.`
+    : `7-day on-chain share-price growth is more than ${THRESHOLDS.sourceDisagreementPp}pp from DeFiLlama’s base APY (its 7-day base APY where published)`
 }
 
 export default ScoutRowView

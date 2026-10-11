@@ -7,6 +7,12 @@
  * `schemaVersion`. Any failure — network, HTTP, JSON, schema — falls back to the committed
  * snapshot public/data/carry-scan-fallback.json, labelled "fallback snapshot, <week>".
  *
+ * SCHEMAS. Version 2 (2026-10-11) adds the averaged venue APY and its sources per row. A
+ * version-1 file (the data branch until the first version-2 scan, or an old fallback) is
+ * still served: `upgradeFile` gives each row a `venueApy` built from what the file holds —
+ * DeFiLlama's two figures, which priced the row, and the on-chain 7-day figure listed but
+ * not averaged — and a `venueApyRule` that says the snapshot predates averaging.
+ *
  * Banner (docs/CARRY_SCOUT.md §5): when status.ok is false ("Last scan failed <date>:
  * <reason>; showing <week>"), when the result is held for churn review, or when the data
  * is more than 8 days old.
@@ -14,10 +20,15 @@
 
 import {
   CARRY_SCAN_SCHEMA_VERSION,
+  READABLE_SCHEMA_VERSIONS,
   THRESHOLDS,
+  type ApySource,
   type CarryScanFile,
   type CarryScanStatus,
+  type ScoutRow,
+  type VenueApy,
 } from './types'
+import { etherscanUrl, llamaPoolUrl } from './venueApy'
 
 export const CARRY_SCAN_RAW_BASE =
   'https://raw.githubusercontent.com/The-Membrane/membrane-app/data/carry-scan'
@@ -31,16 +42,99 @@ export interface CarryScanView {
   banner: string | null
 }
 
-export function isCarryScanFile(x: unknown): x is CarryScanFile {
-  const f = x as CarryScanFile | null
+/** A file in any schema the app reads (version 1 or 2). Use `upgradeFile` before rendering. */
+export function isReadableCarryScanFile(x: unknown): x is CarryScanFile {
+  const f = x as { schemaVersion?: unknown; week?: unknown; rows?: unknown; asOf?: unknown } | null
   return (
     !!f &&
     typeof f === 'object' &&
-    f.schemaVersion === CARRY_SCAN_SCHEMA_VERSION &&
+    typeof f.schemaVersion === 'number' &&
+    READABLE_SCHEMA_VERSIONS.includes(f.schemaVersion) &&
     typeof f.week === 'string' &&
     Array.isArray(f.rows) &&
     typeof f.asOf === 'number'
   )
+}
+
+/** A file in the current schema. */
+export function isCarryScanFile(x: unknown): x is CarryScanFile {
+  return isReadableCarryScanFile(x) && x.schemaVersion === CARRY_SCAN_SCHEMA_VERSION
+}
+
+export const LEGACY_VENUE_APY_RULE =
+  'This snapshot predates averaging (schema 1): every venue APY is DeFiLlama’s, and the on-chain 7-day figure is listed but not averaged in.'
+
+/** A version-1 row's venue APY, from the fields it has. Figures unchanged: DeFiLlama's. */
+export function legacyVenueApy(
+  r: Pick<ScoutRow, 'apy' | 'apyBase' | 'apyReward' | 'aliases' | 'address' | 'verification'>,
+  fetchedAt: number,
+  anchorTs: number | null,
+): VenueApy {
+  const uuid = r.aliases.find((a) => a.startsWith('llama:'))?.slice('llama:'.length) ?? null
+  const url = uuid ? llamaPoolUrl(uuid) : null
+  const base =
+    r.apyBase !== null && r.apyBase !== undefined
+      ? r.apyBase
+      : Math.max(0, r.apy - Math.max(0, r.apyReward ?? 0))
+  const sources: ApySource[] = [
+    {
+      source: 'defillama',
+      label: 'DeFiLlama apyBase',
+      basis: 'base',
+      value: base,
+      status: 'ok',
+      asOf: fetchedAt,
+      url,
+      averaged: true,
+    },
+    {
+      source: 'defillama',
+      label: 'DeFiLlama apy',
+      basis: 'with-rewards',
+      value: r.apy,
+      status: 'ok',
+      asOf: fetchedAt,
+      url,
+      averaged: true,
+    },
+  ]
+  const t = r.verification?.trailing7dApy
+  if (typeof t === 'number' && Number.isFinite(t))
+    sources.push({
+      source: 'onchain-7d',
+      label: 'On-chain 7-day share-price growth',
+      basis: 'base',
+      value: t,
+      status: 'ok',
+      asOf: anchorTs,
+      url: r.address ? etherscanUrl(r.address) : null,
+      averaged: false,
+      note: 'not averaged: this snapshot predates averaging',
+    })
+  return {
+    method: 'defillama',
+    base,
+    withRewards: r.apy,
+    spread: { base: null, withRewards: null },
+    sources,
+  }
+}
+
+/** Any readable file → the current schema. A version-2 file is returned as is. */
+export function upgradeFile(f: CarryScanFile): CarryScanFile {
+  if (f.schemaVersion === CARRY_SCAN_SCHEMA_VERSION) return f
+  const anchorTs = f.anchor?.blockTimestamp ? Number(f.anchor.blockTimestamp) : null
+  return {
+    ...f,
+    schemaVersion: CARRY_SCAN_SCHEMA_VERSION,
+    counts: { ...f.counts, alsoBehindRoute: f.counts?.alsoBehindRoute ?? 0 },
+    venueApyRule: f.venueApyRule ?? LEGACY_VENUE_APY_RULE,
+    rows: f.rows.map((r) => ({
+      ...r,
+      venueApy: r.venueApy ?? legacyVenueApy(r, f.asOf, anchorTs),
+      alsoBehindRoutes: r.alsoBehindRoutes ?? [],
+    })),
+  }
 }
 
 const day = (ts: number): string => new Date(ts * 1000).toISOString().slice(0, 10)
@@ -97,13 +191,15 @@ export async function loadCarryScan(opts: {
     status && typeof status === 'object' && typeof (status as CarryScanStatus).ok === 'boolean'
       ? (status as CarryScanStatus)
       : null
-  if (isCarryScanFile(latest)) {
-    return { file: latest, source: 'live', status: st, ...bannerFor(latest, 'live', st, nowMs) }
+  if (isReadableCarryScanFile(latest)) {
+    const file = upgradeFile(latest)
+    return { file, source: 'live', status: st, ...bannerFor(file, 'live', st, nowMs) }
   }
   const fb = await opts.fallback()
-  if (!isCarryScanFile(fb))
+  if (!isReadableCarryScanFile(fb))
     throw new Error('carry-scan fallback snapshot is missing or has the wrong schemaVersion')
-  return { file: fb, source: 'fallback', status: st, ...bannerFor(fb, 'fallback', st, nowMs) }
+  const file = upgradeFile(fb)
+  return { file, source: 'fallback', status: st, ...bannerFor(file, 'fallback', st, nowMs) }
 }
 
 /** The committed snapshot, bundled with the server code. */

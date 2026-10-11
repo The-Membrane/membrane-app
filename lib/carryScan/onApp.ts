@@ -9,7 +9,15 @@
  *       market is `1:<morpho>:<marketId>`; an Euler entry is its vault.
  *   R3  KNOWN_VENUES (lib/position-sim/venues.ts), which adds sDAI and sfrxUSD.
  *   R4  the /carry ROUTES labels (components/Carry/fixtures.ts), resolved through
- *       ./onAppAliases.json; a label that is not one venue is an explicit waiver.
+ *       ./onAppAliases.json to the seed's destination contracts. Owner ruling 2 (2026-10-11),
+ *       "we want specific vaults for everything": a venue is on the app ONLY as a specific
+ *       contract.
+ *         one contract      the label is that venue: its key joins the set;
+ *         several           a route CLASS: no key joins the set (a class never hides a vault);
+ *                           each contract maps to the label in `routeClassOf`, and a scout row
+ *                           on one of them says "also behind /carry route <label>";
+ *         none              `unresolved`: counts as nothing, listed in `unresolvedRoutes`.
+ *       There are no waivers.
  *
  * Keys are `1:<lowercase address>` and are compared lowercase.
  */
@@ -31,9 +39,21 @@ export interface OnAppSet {
   keys: Set<string>
   /** key → which lists named it (for the "NOW ON APP" note and the tests). */
   bySource: Map<string, Set<OnAppSource>>
-  waivers: { label: string; reason: string }[]
+  /** key → the /carry route-class labels (several contracts) it is a destination of. Not on the app. */
+  routeClassOf: Map<string, string[]>
+  /** /carry labels the seed resolves to no contract: they count as nothing. */
+  unresolvedRoutes: { label: string; reason: string }[]
   /** R2 Aave/Spark venues whose aToken could not be resolved this run. */
   unresolved: string[]
+}
+
+export interface RouteAlias {
+  seedRoute?: string
+  positions?: number
+  addresses?: string[]
+  /** Why the seed names no contract for this label. */
+  unresolved?: string
+  contract?: string
 }
 
 export interface OnAppInputs {
@@ -41,7 +61,7 @@ export interface OnAppInputs {
   netApyVenues: readonly VenueDef[]
   knownVenues: readonly { address: string }[]
   routes: readonly Pick<Route, 'src' | 'dst'>[]
-  aliases: { routes: Record<string, { addresses?: string[]; waiver?: string }> }
+  aliases: { routes: Record<string, RouteAlias> }
 }
 
 export const routeLabel = (r: Pick<Route, 'src' | 'dst'>): string => `${r.src} → ${r.dst}`
@@ -86,20 +106,53 @@ export function buildOnAppSet(inputs: OnAppInputs, aTokens: ReadonlyMap<string, 
 
   for (const k of inputs.knownVenues) add(keyOf(k.address), 'R3')
 
-  const waivers: OnAppSet['waivers'] = []
+  const routeClassOf: OnAppSet['routeClassOf'] = new Map()
+  const unresolvedRoutes: OnAppSet['unresolvedRoutes'] = []
   for (const r of inputs.routes) {
     const label = routeLabel(r)
     const entry = inputs.aliases.routes[label]
     if (!entry)
       throw new Error(
-        `onAppAliases.json has no entry for the /carry route "${label}" — add its address(es) or a waiver`,
+        `onAppAliases.json has no entry for the /carry route "${label}" — resolve it to its seed contract(s) or mark it unresolved`,
       )
-    if (entry.addresses?.length) for (const a of entry.addresses) add(keyOf(a), 'R4')
-    else if (entry.waiver) waivers.push({ label, reason: entry.waiver })
-    else throw new Error(`onAppAliases.json entry "${label}" has neither addresses nor a waiver`)
+    const addrs = entry.addresses ?? []
+    if (addrs.length === 1) add(keyOf(addrs[0]), 'R4')
+    else if (addrs.length > 1) {
+      for (const a of addrs) {
+        const k = keyOf(a)
+        routeClassOf.set(k, [...(routeClassOf.get(k) ?? []), label])
+      }
+    } else if (entry.unresolved) unresolvedRoutes.push({ label, reason: entry.unresolved })
+    else
+      throw new Error(
+        `onAppAliases.json entry "${label}" has neither addresses nor an unresolved reason`,
+      )
   }
+  // A contract named on its own elsewhere (R1–R4) is on the app; the class note would be noise.
+  for (const k of [...routeClassOf.keys()]) if (keys.has(k)) routeClassOf.delete(k)
 
-  return { keys, bySource, waivers, unresolved }
+  return { keys, bySource, routeClassOf, unresolvedRoutes, unresolved }
+}
+
+/** The weekly file's notes on R4: classes (annotated, not hidden) and unresolved labels. */
+export function onAppRouteNotes(
+  set: Pick<OnAppSet, 'routeClassOf' | 'unresolvedRoutes'>,
+  aliases: OnAppInputs['aliases'] = DEFAULT_ON_APP_INPUTS.aliases,
+): string[] {
+  const classes = new Map<string, number>()
+  for (const [label, e] of Object.entries(aliases.routes))
+    if ((e.addresses?.length ?? 0) > 1) classes.set(label, e.addresses!.length)
+  return [
+    ...[...classes].map(
+      ([label, n]) =>
+        `/carry route "${label}" is a class of ${n} vaults: none is hidden; a scout row on one of them says “also behind /carry route ${label}”.`,
+    ),
+    ...set.unresolvedRoutes.map(
+      // The reason is a sentence; drop its full stop so the note does not end "nothing.).".
+      (u) =>
+        `/carry route "${u.label}" resolves to no specific contract (${u.reason.trim().replace(/\.+$/, '')}).`,
+    ),
+  ]
 }
 
 /** The R2 Aave/Spark venues whose aToken must be read on-chain before building the set. */

@@ -5,7 +5,8 @@
  *   yields.llama.fi/lendBorrow     borrow side, joined to /pools on `pool`
  *   api.llama.fi/protocols         category per project slug
  *   yields.llama.fi/chart/{pool}   stability, finalists only, paced ≤ 20/min
- *   blue-api.morpho.org/graphql    MetaMorpho / Vault V2 addresses; listed markets
+ *   blue-api.morpho.org/graphql    MetaMorpho / Vault V2 addresses and net APY (with and
+ *                                  without rewards, fractions); listed markets
  *   Merkl                          lib/netApy/incentives.ts fetchMerklOpportunities
  *
  * A failed fetch or a failed schema check throws `SourceError`; the scan turns that into a
@@ -242,8 +243,8 @@ export async function fetchChart(
 }
 
 const MORPHO_QUERY = `{
-  v1: vaults(first: 1000, where: { chainId_in: [1], listed: true }) { items { address symbol name asset { address } state { netApy fee totalAssetsUsd } } }
-  v2: vaultV2s(first: 1000, where: { chainId_in: [1], listed: true }) { items { address symbol name asset { address } netApy performanceFee totalAssetsUsd } }
+  v1: vaults(first: 1000, where: { chainId_in: [1], listed: true }) { items { address symbol name asset { address } state { netApy netApyExcludingRewards fee totalAssetsUsd } } }
+  v2: vaultV2s(first: 1000, where: { chainId_in: [1], listed: true }) { items { address symbol name asset { address } netApy netApyExcludingRewards performanceFee totalAssetsUsd } }
   markets(first: 1000, where: { chainId_in: [1], listed: true }) { items { marketId lltv loanAsset { address symbol } collateralAsset { address symbol } state { borrowAssetsUsd } } }
 }`
 
@@ -290,6 +291,8 @@ export async function fetchMorpho(
         assetAddress,
         version,
         netApy: version === 'v1' ? num(state.netApy) : num(x.netApy),
+        netApyExcludingRewards:
+          version === 'v1' ? num(state.netApyExcludingRewards) : num(x.netApyExcludingRewards),
         fee: version === 'v1' ? num(state.fee) : num(x.performanceFee),
         totalAssetsUsd: version === 'v1' ? num(state.totalAssetsUsd) : num(x.totalAssetsUsd),
       })

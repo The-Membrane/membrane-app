@@ -87,6 +87,13 @@
       "verifiedAt": "2026-10-10 block 26163807",
       "note": "asset()=USDC; totalAssets matches DeFiLlama; address from the route-cohort seed (Fluid USD Coin [USDC])"
     },
+    "488f06db-5a36-450e-9ba9-b4321be39c7c": {
+      "address": "0x273da948aca9261043fbdb2a857bc255ecc29012",
+      "kind": "erc4626",
+      "label": "Fluid Lite fLiteUSD",
+      "verifiedAt": "2026-10-11 block 26169803",
+      "note": "DeFiLlama fluid-lite USDC; symbol()=fLiteUSD, asset()=USDC, totalAssets $43.84M vs DeFiLlama $43.80M. On the app: the one-contract /carry route USDT → Fluid (onAppAliases.json), so S5 removes the row"
+    },
     "66985a81-9c51-46ca-9977-42b4fe7bc6df": {
       "address": "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
       "kind": "erc4626",

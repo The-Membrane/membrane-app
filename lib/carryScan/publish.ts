@@ -19,7 +19,7 @@ import { join } from 'path'
 
 import type { ScanOutcome } from './scan'
 import {
-  CARRY_SCAN_SCHEMA_VERSION,
+  READABLE_SCHEMA_VERSIONS,
   THRESHOLDS,
   type CarryScanFile,
   type CarryScanStatus,
@@ -46,7 +46,8 @@ export function readStatus(outDir: string): CarryScanStatus | null {
 
 export function readLatest(outDir: string): CarryScanFile | null {
   const f = readJson<CarryScanFile>(join(outDir, 'latest.json'))
-  return f && f.schemaVersion === CARRY_SCAN_SCHEMA_VERSION ? f : null
+  // Only `counts` is read (gate 1), so a version-1 file still serves.
+  return f && READABLE_SCHEMA_VERSIONS.includes(f.schemaVersion) ? f : null
 }
 
 /** The last `statusWindowWeeks + 1` weekly files, oldest first, trimmed to what status needs. */

@@ -6,8 +6,10 @@
  *  S2 filters  TVL ≥ $10M · count ≥ 30 · !outlier · reward ≤ 50% · category allow · project deny
  *  S3 bench    cheapest same-stable borrow (Aave Core/Prime, Spark, Morpho blue-chip, ≥ $5M borrowed)
  *  S4 columns  (a) market carry · (b) Membrane carry → positive (a) ∧ positive 30-day-mean (a)
- *  S5 dedupe   on-app set (R1–R4 + aliases) by 1:<addr>
- *  S6 finalist chart stability · on-chain verify at the finalized anchor · on-chain pricing of lending rows
+ *              vault rows are priced from the AVERAGE of their sources (./venueApy.ts)
+ *  S5 dedupe   on-app set (R1–R4 + aliases) by 1:<addr>; a /carry route class annotates, never hides
+ *  S6 finalist chart stability · on-chain verify at the finalized anchor · on-chain pricing of
+ *              lending rows · vault rows re-averaged with the on-chain 7-day figure
  *  S7 status   NEW / STILL / RETURNING / DROPPED / NOW ON APP vs the last 8 weekly files
  *  S8 gate     publish, hold (churn) or fail closed
  *
@@ -42,6 +44,7 @@ import {
   buildOnAppSet,
   DEFAULT_ON_APP_INPUTS,
   keyOf,
+  onAppRouteNotes,
   type OnAppInputs,
 } from './onApp'
 import POOL_ADDRESSES from './poolAddresses.json'
@@ -60,7 +63,18 @@ import { stabilityFromChart } from './stability'
 import { computeStatuses, type CurrentRow } from './status'
 import { buildUniverse, poolLabel } from './universe'
 import {
+  averagedVenueApy,
+  isVaultKind,
+  llamaVenueApy,
+  onchainIrmVenueApy,
+  sourcesDisagree,
+  venueColumnsFromAverage,
+  VENUE_APY_RULE,
+  type Onchain7d,
+} from './venueApy'
+import {
   aTokenOfAt,
+  matchMorphoVault,
   resolveAddress,
   supplyBreakdowns,
   verifyOnChain,
@@ -80,6 +94,7 @@ import {
   type CarryB,
   type CarryScanFile,
   type LlamaLendBorrow,
+  type MorphoVaultInfo,
   type PastWeek,
   type PoolAddressEntry,
   type ScoutList,
@@ -87,7 +102,9 @@ import {
   type SizeKey,
   type Stability,
   type StageCounts,
+  type ScoutKind,
   type Valued,
+  type VenueApy,
   type Verification,
 } from './types'
 
@@ -153,6 +170,11 @@ interface Work {
   breakdown: unknown | null
   flags: string[]
   pricedOnchain: boolean
+  /** Set when the row is a vault (VAULT_KINDS): its venue APY is the average of its sources. */
+  vault: { kind: ScoutKind; morpho: MorphoVaultInfo | null } | null
+  venueApy: VenueApy
+  /** /carry route-class labels whose destinations include this row's contract (S5). */
+  alsoBehindRoutes: string[]
 }
 
 function benchForStables(
@@ -181,6 +203,8 @@ function applyCarry(w: Work): void {
 }
 
 const a100 = (w: Work): number => w.carryA['100k']?.apy ?? -Infinity
+/** The venue figure an unranked list sorts on: the averaged one for a vault row. */
+const headlineOf = (w: Work): number => w.venueApy.withRewards ?? headlineApy(w.c.pool)
 const isPositive = (w: Work): boolean => a100(w) > 0 && (w.carryA30d ?? -Infinity) > 0
 
 async function inBatches<T, R>(
@@ -255,6 +279,7 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
       reason: `gate 3: the finalized anchor did not resolve — ${redactError(e)}`,
     }
   }
+  const anchorTs = Number(anchor.blockTimestamp)
   const regSet = await readAllVenues(client, NET_APY_VENUES, rpcLabel, anchor.blockNumber)
   const registryVaultOf = (k: string) => {
     const d = venueByKey(k)
@@ -276,8 +301,35 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
 
   // ---------------------------------------------------------------- S4 columns
   const lbByPool = new Map(lendBorrow.map((r) => [r.pool, r]))
+  const morphoByAddress = new Map(morpho.vaults.map((v) => [v.address.toLowerCase(), v]))
+  /** The vault a row is, from what needs no RPC: the hand-kept table, else a Morpho match. */
+  const vaultOf = (c: Candidate): Work['vault'] => {
+    if (c.exposure !== 'single') return null
+    const hand = poolAddresses[c.pool.pool]
+    if (hand)
+      return isVaultKind(hand.kind)
+        ? { kind: hand.kind, morpho: morphoByAddress.get(hand.address.toLowerCase()) ?? null }
+        : null
+    if (c.pool.project !== 'morpho-blue') return null
+    const m = matchMorphoVault(c, morpho.vaults)
+    return m && 'address' in m
+      ? { kind: m.version === 'v2' ? 'morpho-vault-v2' : 'metamorpho', morpho: m }
+      : null
+  }
   const mkWork = (c: Candidate): Work => {
-    const cols = venueColumnsFromLlama(c.pool)
+    const vault = vaultOf(c)
+    const venueApy = vault
+      ? averagedVenueApy({
+          pool: c.pool,
+          fetchedAt: nowTs,
+          morpho: vault.morpho,
+          kind: vault.kind,
+          address: vault.morpho?.address ?? poolAddresses[c.pool.pool]?.address ?? null,
+        })
+      : llamaVenueApy(c.pool, nowTs)
+    const cols = vault
+      ? venueColumnsFromAverage(venueApy, c.pool.tvlUsd)
+      : venueColumnsFromLlama(c.pool)
     const w: Work = {
       c,
       label: poolLabel(c.pool),
@@ -292,6 +344,9 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
       breakdown: null,
       flags: [...c.flags],
       pricedOnchain: false,
+      vault,
+      venueApy,
+      alsoBehindRoutes: [],
     }
     applyCarry(w)
     return w
@@ -344,6 +399,7 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
     aTokenOf: (pool: string, asset: string) => aTokenOfAt(client, anchor, pool, asset),
   }
   let onAppCount = 0
+  let alsoBehindCount = 0
   const dedupe = async (list: Work[]): Promise<Work[]> => {
     const kept: Work[] = []
     for (const w of list) {
@@ -357,6 +413,14 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
         drop(w.c.pool.pool, 'on the app already')
         continue
       }
+      // A /carry route class (several contracts) never hides a vault: kept, and annotated.
+      const classes = w.resolution.address
+        ? onApp.routeClassOf.get(keyOf(w.resolution.address))
+        : undefined
+      if (classes?.length) {
+        w.alsoBehindRoutes = [...classes]
+        alsoBehindCount++
+      }
       kept.push(w)
     }
     return kept
@@ -365,14 +429,14 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
   const noBenchKept = await dedupe(noBench)
   const lpKept = await dedupe(lpPositive)
   log(
-    `S5 onApp=${onAppCount} positive=${positiveKept.length} noBench=${noBenchKept.length} lp=${lpKept.length}`,
+    `S5 onApp=${onAppCount} alsoBehindRoute=${alsoBehindCount} positive=${positiveKept.length} noBench=${noBenchKept.length} lp=${lpKept.length}`,
   )
 
   // ---------------------------------------------------------------- S6 finalists
   const byA = (x: Work, y: Work) => a100(y) - a100(x)
   const finRanked = [...positiveKept].sort(byA).slice(0, THRESHOLDS.finalistsRanked)
   const finNoBench = [...noBenchKept]
-    .sort((x, y) => headlineApy(y.c.pool) - headlineApy(x.c.pool))
+    .sort((x, y) => headlineOf(y) - headlineOf(x))
     .slice(0, THRESHOLDS.finalistsNoBench)
   const finLp = [...lpKept].sort(byA).slice(0, THRESHOLDS.finalistsLp)
   const finalists = [...finRanked, ...finNoBench, ...finLp].slice(0, THRESHOLDS.finalistsMax)
@@ -426,8 +490,10 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
       checks: v.checks,
       failed: v.failed,
       trailing7dApy: v.trailing7dApy ?? null,
+      ...(v.trailing7dError ? { trailing7dError: v.trailing7dError } : {}),
     }
-    if (v.sourceDisagreement) w.flags.push('source-disagreement')
+    // An averaged vault row flags disagreement from the spread of its sources (below).
+    if (v.sourceDisagreement && !w.vault) w.flags.push('source-disagreement')
   })
   const verifiedCount = attempted.filter((w) => w.verification?.ok).length
   const g3 = checkVerification(attempted.length, verifiedCount, finalists.length)
@@ -481,8 +547,60 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
       w.venueNetBase = cols.venueNetBase
       w.breakdown = serialized
       w.pricedOnchain = true
+      w.venueApy = onchainIrmVenueApy(w.c.pool, nowTs, {
+        base: bySize['100k'].checks.reverts ? null : bySize['100k'].netIncentiveFree.apy,
+        withRewards: bySize['100k'].checks.reverts ? null : bySize['100k'].net.apy,
+        asOf: anchorTs,
+        address: (w.resolution as Exclude<Resolution, { address: null }>).address,
+      })
       applyCarry(w)
     }
+  }
+
+  // Vault finalists: re-average with the on-chain 7-day figure (owner ruling 1, 2026-10-11).
+  for (const w of finalists) {
+    const r = w.resolution?.address
+      ? (w.resolution as Exclude<Resolution, { address: null }>)
+      : null
+    if (!r || !isVaultKind(r.kind) || w.c.exposure !== 'single') {
+      if (w.vault && !w.pricedOnchain) {
+        // Unresolved after all: nothing is known about the venue type, so DeFiLlama's figure.
+        w.vault = null
+        w.venueApy = llamaVenueApy(w.c.pool, nowTs)
+        Object.assign(w, venueColumnsFromLlama(w.c.pool))
+        applyCarry(w)
+      }
+      continue
+    }
+    w.vault = {
+      kind: r.kind,
+      morpho: morphoByAddress.get(r.address.toLowerCase()) ?? w.vault?.morpho ?? null,
+    }
+    const v = w.verification
+    const onchain: Onchain7d =
+      v?.ok && typeof v.trailing7dApy === 'number' && Number.isFinite(v.trailing7dApy)
+        ? { value: v.trailing7dApy, asOf: anchorTs, address: r.address }
+        : {
+            error: !v
+              ? 'not read'
+              : !v.ok
+                ? `not read: verification failed (${v.failed ?? 'unknown'})`
+                : (v.trailing7dError ?? 'no 7-day figure'),
+            asOf: anchorTs,
+            address: r.address,
+          }
+    w.venueApy = averagedVenueApy({
+      pool: w.c.pool,
+      fetchedAt: nowTs,
+      morpho: w.vault.morpho,
+      kind: w.vault.kind,
+      address: r.address,
+      onchain,
+    })
+    Object.assign(w, venueColumnsFromAverage(w.venueApy, w.c.pool.tvlUsd))
+    w.flags = w.flags.filter((f) => f !== 'source-disagreement')
+    if (sourcesDisagree(w.venueApy)) w.flags.push('source-disagreement')
+    applyCarry(w)
   }
 
   // ---------------------------------------------------------------- S7 lists, ranks, status
@@ -522,7 +640,7 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
       continue
     }
     if (isPositive(w)) listed.push({ w, list: 'ranked' })
-    else drop(uuid, 'carry: (a) not positive after on-chain pricing')
+    else drop(uuid, 'carry: (a) not positive after on-chain pricing or averaging')
   }
 
   const order = (x: Work, y: Work) =>
@@ -624,11 +742,16 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
       readiness,
       segue,
       breakdown: w.breakdown,
+      venueApy: w.venueApy,
+      alsoBehindRoutes: w.alsoBehindRoutes,
     }
   })
+  const venueOf = (r: ScoutRow): number => r.venueApy.withRewards ?? r.apy
   rows.sort(
     (x, y) =>
-      listOrder(x.list) - listOrder(y.list) || (x.rank ?? 1e9) - (y.rank ?? 1e9) || y.apy - x.apy,
+      listOrder(x.list) - listOrder(y.list) ||
+      (x.rank ?? 1e9) - (y.rank ?? 1e9) ||
+      venueOf(y) - venueOf(x),
   )
 
   const rankedCount = rows.filter((r) => r.list === 'ranked').length
@@ -642,6 +765,7 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
     positive: positive.length,
     noBenchmark: noBench.length,
     onApp: onAppCount,
+    alsoBehindRoute: rows.filter((r) => r.alsoBehindRoutes.length).length,
     finalists: finalists.length,
     verified: verifiedCount,
     stable: finalists.length - stableFails,
@@ -674,8 +798,9 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
     sources,
     notes: [
       ...CARRY_SCAN_NOTES,
-      ...onApp.waivers.map((x) => `On-app route "${x.label}" is a waiver: ${x.reason}.`),
+      ...onAppRouteNotes(onApp, (deps.onAppInputs ?? DEFAULT_ON_APP_INPUTS).aliases),
     ],
+    venueApyRule: VENUE_APY_RULE,
   }
   const benchmarks: BenchmarksFile = {
     schemaVersion: CARRY_SCAN_SCHEMA_VERSION,

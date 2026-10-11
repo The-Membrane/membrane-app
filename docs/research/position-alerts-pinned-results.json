@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-pinned-replay.ts",
- "generatedAt": "2026-10-11T16:59:08.161Z",
+ "generatedAt": "2026-10-11T17:02:23.291Z",
  "config": "DEFAULT_ALERT_CONFIG",
  "definitions": "breach = first tick with HF < 1 on the dataset path, stamped at the previous tick (strict). Lead = breach − start of the earliest warn+ (critical) episode still open. censored = that episode opened at the first read. False alarm = worsening message with no breach in 72h.",
  "events": {
@@ -3178,11 +3178,14 @@
    "dustPositionsSkipped": 23,
    "openedAfterWindowStart": [
     {
+     "venue": "morpho",
      "collateral": "deUSD",
      "openedTs": 1762444800
     }
    ],
-   "uncovered": "Euler, Silo, Gearbox, Fluid and other venues; chains the Morpho API does not serve (Plasma 9745, Avalanche 43114, Sonic 146 per spec §5). Positions closed before the window are excluded by construction.",
+   "uncovered": [
+    "Euler, Silo, Gearbox, Fluid and other venues; chains the Morpho API does not serve (Plasma 9745, Avalanche 43114, Sonic 146 per spec §5). Positions closed before the window are excluded by construction."
+   ],
    "liquidationsSinceHistoryStart": 8,
    "priceFreezeEvents": [
     {

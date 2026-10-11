@@ -22,7 +22,7 @@
  * (public: per cluster, no position identifier). Deterministic: no network.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 
@@ -44,7 +44,10 @@ import {
 
 const ROOT = process.cwd()
 const PINNED = join(datasetsDir(ROOT), 'position-alerts', 'pinned')
-const E2_FILE = join(datasetsDir(ROOT), 'position-alerts', 'e2-stream-nov-2025.json')
+/** E2 venue files, one shape (markets, positions, liquidations, marketPrices). Morpho first. */
+const E2_FILES = ['e2-stream-nov-2025.json', 'e2-offmorpho-nov-2025.json'].map((f) =>
+  join(datasetsDir(ROOT), 'position-alerts', f),
+)
 const DS = datasetsDir(ROOT)
 const INTERNAL_OUT = join(datasetsDir(ROOT), 'position-alerts', 'pinned-results.json')
 const PUBLIC_OUT = join(ROOT, 'docs', 'research', 'position-alerts-pinned-results.json')
@@ -630,25 +633,56 @@ interface E2Point {
   borrowUsd: number | null
 }
 
-const e2 = JSON.parse(readFileSync(E2_FILE, 'utf8'))
+interface E2Market {
+  venue: string
+  chainId: number
+  marketId: string
+  collateral: string
+  loan: string
+  /** Liquidation LTV (Morpho LLTV, Euler liquidation LTV, Silo LT). */
+  lltv: number
+}
+interface E2File {
+  specWindow: { fromTs: number; toTs: number }
+  historyWindow: { fromTs: number; toTs: number }
+  uncovered?: string
+  markets: (Omit<E2Market, 'venue'> & { venue?: string })[]
+  positions: {
+    venue?: string
+    chainId: number
+    marketId: string
+    user: string
+    history: E2Point[]
+  }[]
+  liquidations: { venue?: string; user: string; marketId: string; chainId: number; ts: number }[]
+  marketPrices: Record<string, { series: [number, number][] }>
+}
+const e2Files: E2File[] = E2_FILES.filter((f) => existsSync(f)).map((f) =>
+  JSON.parse(readFileSync(f, 'utf8')),
+)
+const e2 = {
+  specWindow: e2Files[0].specWindow,
+  historyWindow: e2Files[0].historyWindow,
+  uncovered: e2Files.map((f) => f.uncovered).filter(Boolean),
+  liquidations: e2Files.flatMap((f) =>
+    f.liquidations.map((l) => ({ ...l, venue: l.venue ?? 'morpho' })),
+  ),
+}
 const E2_MIN_DEBT = 1_000
-const e2Market = new Map<
-  string,
-  { collateral: string; loan: string; lltv: number; chainId: number }
->(
-  e2.markets.map(
-    (m: { chainId: number; marketId: string; collateral: string; loan: string; lltv: number }) => [
-      `${m.chainId}:${m.marketId}`,
-      m,
-    ],
+const e2Key = (venue: string, chainId: number, marketId: string) =>
+  `${venue}:${chainId}:${marketId.toLowerCase()}`
+const e2Market = new Map<string, E2Market>(
+  e2Files.flatMap((f) =>
+    f.markets.map((m) => {
+      const mm = { ...m, venue: m.venue ?? 'morpho' }
+      return [e2Key(mm.venue, m.chainId, m.marketId), mm] as const
+    }),
   ),
 )
-/** Market price at ts (last point at or before), by collateral symbol. */
-const e2PriceSeries: Record<string, [number, number][]> = Object.fromEntries(
-  Object.entries(e2.marketPrices as Record<string, { series: [number, number][] }>).map(
-    ([k, v]) => [k, v.series],
-  ),
-)
+/** Market price at ts (last point at or before), by collateral symbol. The first file wins. */
+const e2PriceSeries: Record<string, [number, number][]> = {}
+for (const f of e2Files)
+  for (const [k, v] of Object.entries(f.marketPrices)) e2PriceSeries[k] ??= v.series
 function priceAt(series: [number, number][] | undefined, ts: number): number | null {
   if (!series?.length || ts < series[0][0]) return null
   let lo = 0
@@ -664,6 +698,7 @@ function priceAt(series: [number, number][] | undefined, ts: number): number | n
 interface E2Prepared {
   id: string
   cluster: string
+  venue: string
   collateral: string
   lltv: number
   hardcoded: boolean
@@ -674,15 +709,13 @@ interface E2Prepared {
 }
 
 const e2Prepared: E2Prepared[] = []
-const e2OpenedLate: { collateral: string; openedTs: number }[] = []
+const e2OpenedLate: { venue: string; collateral: string; openedTs: number }[] = []
 let e2Dust = 0
-for (const p of e2.positions as {
-  chainId: number
-  marketId: string
-  user: string
-  history: E2Point[]
-}[]) {
-  const m = e2Market.get(`${p.chainId}:${p.marketId}`)!
+for (const p of e2Files.flatMap((f) =>
+  f.positions.map((x) => ({ ...x, venue: x.venue ?? 'morpho' })),
+)) {
+  const m = e2Market.get(e2Key(p.venue, p.chainId, p.marketId))
+  if (!m) throw new Error(`E2: no market ${p.venue} ${p.chainId} ${p.marketId}`)
   const pts = p.history.filter(
     (x) => (x.borrow ?? 0) > 0 && (x.collateral ?? 0) > 0 && x.collateralValue !== null,
   )
@@ -694,7 +727,7 @@ for (const p of e2.positions as {
   // The cohort is the positions open at the window start (as E3 positions_start and E4
   // positions_t0). A position opened mid-collapse against a fixed oracle is not a victim.
   if (pts[0].ts > e2.specWindow.fromTs) {
-    e2OpenedLate.push({ collateral: m.collateral, openedTs: pts[0].ts })
+    e2OpenedLate.push({ venue: m.venue, collateral: m.collateral, openedTs: pts[0].ts })
     continue
   }
   const sym = m.collateral.startsWith('PT-') ? null : m.collateral
@@ -704,13 +737,20 @@ for (const p of e2.positions as {
   const hardcoded = Math.max(...oraclePx) - Math.min(...oraclePx) < 1e-9
   // CoinGecko trades first; DefiLlama's on-chain sdeUSD price fills its gaps.
   const marketPx = pts.map((x) => priceAt(series, x.ts) ?? priceAt(fallback, x.ts))
-  const liq = (e2.liquidations as { user: string; marketId: string; chainId: number; ts: number }[])
-    .filter((l) => l.user === p.user && l.marketId === p.marketId && l.chainId === p.chainId)
+  const liq = e2.liquidations
+    .filter(
+      (l) =>
+        l.venue === p.venue &&
+        l.user.toLowerCase() === p.user.toLowerCase() &&
+        l.marketId.toLowerCase() === p.marketId.toLowerCase() &&
+        l.chainId === p.chainId,
+    )
     .map((l) => l.ts)
     .sort((a, b) => a - b)
   e2Prepared.push({
     id: `${p.user.slice(2, 14)}`,
-    cluster: `EV-2/morpho/${m.collateral}/${m.loan}/chain-${m.chainId}/lltv-${m.lltv}`,
+    cluster: `EV-2/${m.venue}/${m.collateral}/${m.loan}/chain-${m.chainId}/lltv-${m.lltv}`,
+    venue: m.venue,
     collateral: m.collateral,
     lltv: m.lltv,
     hardcoded,
@@ -722,7 +762,7 @@ for (const p of e2.positions as {
       : detectPriceFreeze(
           pts.map((x, i) => ({ ts: x.ts, oraclePx: oraclePx[i], marketPx: marketPx[i] })),
           m.collateral,
-          `${p.chainId}:${p.marketId}`,
+          e2Key(p.venue, p.chainId, p.marketId),
         ),
     liquidationTs: liq[0] ?? null,
   })
@@ -732,7 +772,7 @@ for (const p of e2.positions as {
   const n = new Map<string, number>()
   for (const x of e2Prepared) n.set(x.cluster, (n.get(x.cluster) ?? 0) + 1)
   for (const x of e2Prepared)
-    if ((n.get(x.cluster) ?? 0) < 3) x.cluster = `EV-2/morpho/${x.collateral}/other`
+    if ((n.get(x.cluster) ?? 0) < 3) x.cluster = `EV-2/${x.venue}/${x.collateral}/other`
 }
 
 /** basis 'oracle': breach at oracle HF < 1 (the venue's line); 'market': at market HF < 1. */
@@ -759,7 +799,7 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
         snapshot: (i) => ({
           id: x.id,
           ts: pt(i).ts,
-          venue: `Morpho ${x.collateral}`,
+          venue: `${x.venue} ${x.collateral}`,
           collateral: [
             {
               symbol: x.collateral,

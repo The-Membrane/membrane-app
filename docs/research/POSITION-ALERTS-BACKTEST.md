@@ -16,10 +16,11 @@ hourly ETH/BTC and on the stress events E1–E4, and their false-alarm rate in c
 > the alert trigger is back-tested on E1–E4 (fires before the breach block for every breached
 > cluster) with its calm-30-day false-alarm rate reported; per-wallet rows are internal only
 
-This memo reads "fires before the breach block for every breached cluster" strictly: every
-breached position in every breached cluster gets a warn-or-higher message at a sample before
-its breach sample. Breach is the first sample with HF < 1 on the position's path, the
-dataset's own test.
+**Owner ruling 2026-10-11: G2 is read per cluster.** A breached cluster passes when a
+warn-or-higher message to any of its members came before the cluster's first breach. Breach is
+the first sample with HF < 1 on a position's path, the dataset's own test. The memo also reports
+two stricter readings: the cluster's first breacher was itself warned first, and every breached
+position was warned first.
 
 | Spec event | Spec definition (§5) | What is replayed now | Match |
 |---|---|---|---|
@@ -63,21 +64,29 @@ position identifier) and `…-signal-results.json`. Every number below is in one
 Every message states the liquidation price and the repay / top-up that restores HF 1.30.
 **Poll every minute** (§9): the full E1 census loses 152 more warnings at a 5-minute poll.
 
-**Gate status against G2** (strict reading, default config; `…-pinned-results.json`):
+**Gate status against G2** (default config, `…-pinned-results.json` `gateCluster` and `gate`):
 
-| Event | Breached clusters, all warned first / breached | Breached positions warned first | Lead | Verdict |
-|---|---|---|---|---|
-| E1, Aave census, 1-min poll | **16 / 19** scoreable clusters | **1,565 / 1,588** (98.6%) | median 16 min, 725 ≥ 1h, 344 censored | **not met**: 23 accounts in the AAVE (10), ARB (10) and LINK (3) clusters fell from HF ≥ 1.5 to < 1 in one oracle update |
-| E1, Morpho USD loops | 2 / 2 | 2 / 2 | 2h 01m, censored (HF 1.0034 at the window start) | met |
-| E2, Morpho, breach on the oracle | 2 / 2 | 3 / 3 | 11–21 days, censored (in warn from the first read) | met on Morpho; other venues not pulled |
-| E2, Morpho, breach on the market price | 2 / 2 | 3 / 3 | 8.5–9.5 days, censored | met on Morpho; other venues not pulled |
-| E3, 214 Aave USD loops | 0 / 0 (no loop breached, lowest HF 1.0065) | — | — | met (vacuous). In-event false alarms: §1b |
-| E4, 193 positions | 4 / 4 | 20 / 20 | 69–79 min, censored (all in critical at t0 − 1h) | met |
+| Event | **Per cluster (the ruling): clusters passed / breached** | First breacher warned first | Every breached position warned first | Lead | Verdict |
+|---|---|---|---|---|---|
+| E1, Aave census, 1-min poll | **19 / 19** scoreable clusters | 19 / 19 | 1,565 / 1,588 (98.6%) | cluster lead 1 min (BAL, 1 account) to 21 h; position median 16 min | **met** |
+| E1, Aave census, 5-min poll | 17 / 19 (1INCH and BAL fail) | 17 / 19 | 1,413 / 1,588 | — | not met at 5 min: poll every minute |
+| E1, Morpho USD loops | 2 / 2 | 2 / 2 | 2 / 2 | 2h 01m, censored (HF 1.0034 at the window start) | met |
+| E2, Morpho, breach on the oracle | 2 / 2 | 2 / 2 | 3 / 3 | 11–21 days, censored (in warn from the first read) | met |
+| E2, Morpho, breach on the market price | 2 / 2 | 2 / 2 | 3 / 3 | 8.5–9.5 days, censored | met |
+| E3, 214 Aave USD loops | 0 / 0 (no loop breached, lowest HF 1.0065) | — | — | — | met (vacuous). In-event false alarms: §1b |
+| E4, 193 positions | 4 / 4 | 4 / 4 | 20 / 20 | 69–79 min, censored (all in critical at t0 − 1h) | met |
 
 132 E1 census accounts are not scoreable: their reconstructed path is already under HF 1 at
 00:00 UTC, so the backward reconstruction does not hold for them (64 hold stable collateral
-against stable debt and 48 volatile against volatile). 30 more never cross 1 on the path. Counting the 132 as
-misses gives 1,565 / 1,720 and 11 / 25 clusters.
+against stable debt and 48 volatile against volatile). 30 more never cross 1 on the path. So 6
+of the 25 census clusters have no scoreable breach: the two one-account clusters sUSDe and USDe,
+and the four stable-collateral clusters (USDC, USDT, DAI, USD₮0). Their liquidations are not
+explained by a price path in the census data. Counting the 132 as misses gives 1,565 / 1,720
+positions and 11 / 25 clusters on the strict reading.
+
+The 23 E1 positions that no reading can warn fell from HF ≥ 1.5 to below 1 in one oracle update
+(AAVE, ARB and LINK clusters). Per cluster they do not fail G2: other members of the same
+clusters were warned hours before the first breach.
 
 **Calm false-alarm rates reported** (G2's second condition):
 

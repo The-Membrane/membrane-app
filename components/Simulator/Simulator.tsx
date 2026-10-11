@@ -1004,16 +1004,11 @@ export const Simulator: React.FC<SimulatorProps> = ({
               alignItems="baseline"
               gap="10px 24px"
             >
-              <Text
-                as="span"
-                fontFamily={NEWS_FONT.display}
-                fontWeight={700}
-                fontSize="24px"
-                lineHeight={1.1}
-                color={NEWS.ink}
-              >
-                Membrane
-              </Text>
+              {/* The wordmark is the brand lockup, as on the default foot (brand #4): the
+                  mark plus "Membrane" in Redaction, so no second text wordmark beside it. */}
+              <Box alignSelf="center">
+                <Logo height="28px" />
+              </Box>
               <Text as="span" fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.muted}>
                 {GUARANTEE.provenance}
               </Text>

@@ -12,7 +12,7 @@
 // The tick itself is lib/netApy/tick.ts (runNetApyTick); this file wires the RPC client
 // and the Merkl fetch into it. A failed Merkl pull skips the campaign diff and keeps the
 // old baseline, so a Merkl outage never reads as "every campaign ended". RPC from
-// .env.local aliases; output prints only the env:<host> label, never a URL.
+// .env.local aliases; output prints only the env:<domain> label, never a URL.
 
 import { fetchMerklOpportunities } from '../lib/netApy/incentives'
 import { readAllVenues } from '../lib/netApy/read'

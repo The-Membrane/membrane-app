@@ -10,7 +10,9 @@
  *  S5 dedupe   on-app set (R1–R4 + aliases) by 1:<addr>; a /carry route class annotates, never hides
  *  S6 finalist chart stability · on-chain verify at the finalized anchor · on-chain pricing of
  *              lending rows · vault rows re-averaged with the on-chain 7-day figure
- *  S7 status   NEW / STILL / RETURNING / DROPPED / NOW ON APP vs the last 8 weekly files
+ *  S7 lists    stability first for every finalist, then address, verification, LP, benchmark,
+ *              carry (./status.ts placeFinalists)
+ *     status   NEW / STILL / RETURNING / DROPPED / NOW ON APP vs the last 8 weekly files
  *  S8 gate     publish, hold (churn) or fail closed
  *
  * Returns an outcome; ./publish.ts writes it. Never throws for a data problem: every
@@ -60,7 +62,7 @@ import {
   type Sleep,
 } from './sources'
 import { stabilityFromChart } from './stability'
-import { computeStatuses, type CurrentRow } from './status'
+import { computeStatuses, placeFinalists, type CurrentRow } from './status'
 import { buildUniverse, poolLabel } from './universe'
 import {
   averagedVenueApy,
@@ -605,43 +607,22 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
 
   // ---------------------------------------------------------------- S7 lists, ranks, status
   const listed: { w: Work; list: ScoutList; reason?: string }[] = []
-  let stableFails = 0
-  for (const w of finalists) {
-    const uuid = w.c.pool.pool
-    if (!w.resolution?.address) {
-      listed.push({
-        w,
-        list: 'unverified',
-        reason:
-          w.resolution && 'reason' in w.resolution ? w.resolution.reason : 'address not resolved',
-      })
-      continue
-    }
-    if (!w.verification?.ok) {
-      listed.push({ w, list: 'unverified', reason: w.verification?.failed ?? 'not verified' })
-      continue
-    }
-    if (!w.stability?.ok) {
-      if (w.stability?.reason?.startsWith('chart unavailable')) {
-        listed.push({ w, list: 'unverified', reason: w.stability.reason })
-      } else {
-        stableFails++
-        drop(uuid, `stability: ${w.stability?.reason ?? 'unknown'}`)
-      }
-      continue
-    }
-    if (w.c.exposure === 'multi') {
-      if (isPositive(w)) listed.push({ w, list: 'lp' })
-      else drop(uuid, 'LP: (a) not positive after pricing')
-      continue
-    }
-    if (!w.bench['100k']) {
-      listed.push({ w, list: 'no-benchmark', reason: 'no same-stable borrow market' })
-      continue
-    }
-    if (isPositive(w)) listed.push({ w, list: 'ranked' })
-    else drop(uuid, 'carry: (a) not positive after on-chain pricing or averaging')
-  }
+  const placed = placeFinalists(
+    finalists.map((w) => ({
+      address: w.resolution?.address ?? null,
+      unresolvedReason: w.resolution && 'reason' in w.resolution ? w.resolution.reason : undefined,
+      verification: w.verification,
+      stability: w.stability,
+      exposure: w.c.exposure,
+      hasBenchmark: Boolean(w.bench['100k']),
+      positive: isPositive(w),
+    })),
+  )
+  finalists.forEach((w, i) => {
+    const p = placed.placements[i]
+    if ('drop' in p) drop(w.c.pool.pool, p.drop)
+    else listed.push({ w, list: p.list, reason: p.reason })
+  })
 
   const order = (x: Work, y: Work) =>
     a100(y) - a100(x) ||
@@ -768,7 +749,7 @@ export async function runCarryScan(deps: ScanDeps): Promise<ScanOutcome> {
     alsoBehindRoute: rows.filter((r) => r.alsoBehindRoutes.length).length,
     finalists: finalists.length,
     verified: verifiedCount,
-    stable: finalists.length - stableFails,
+    stable: placed.stable,
     ranked: rankedCount,
     rankedLp: rows.filter((r) => r.list === 'lp').length,
     unverified: rows.filter((r) => r.list === 'unverified').length,

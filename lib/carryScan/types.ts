@@ -425,6 +425,7 @@ export interface StageCounts {
   alsoBehindRoute: number
   finalists: number
   verified: number
+  /** Finalists whose 90-day stability check passed (an unavailable chart is not a pass). */
   stable: number
   ranked: number
   rankedLp: number

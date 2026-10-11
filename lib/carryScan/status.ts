@@ -120,6 +120,55 @@ export function computeStatuses(
   return { byKey, dropped, nowOnApp, newCount }
 }
 
+/** What S7 needs to know about one finalist to list it, or drop it. */
+export interface FinalistFacts {
+  /** The resolved deposit contract; null when no resolver found one. */
+  address: string | null
+  /** The resolver's reason when `address` is null. */
+  unresolvedReason?: string
+  verification?: { ok: boolean; failed?: string } | null
+  stability?: { ok: boolean; reason?: string } | null
+  exposure: 'single' | 'multi'
+  /** A same-stable borrow benchmark exists at the default size. */
+  hasBenchmark: boolean
+  /** (a) is positive at the default size and on the 30-day mean, after S6 pricing. */
+  positive: boolean
+}
+
+export type FinalistPlacement = { list: ScoutList; reason?: string } | { drop: string }
+
+/**
+ * S7: list or drop each finalist. Stability is checked FIRST, for every finalist: a real
+ * stability failure drops the row whether or not it resolved or verified (2026-W41 listed 9
+ * unresolved, unstable rows as Unverified). A chart that could not be read is not a failure:
+ * the row stays listed as Unverified, with that reason. Then, in order: address, on-chain
+ * verification, LP, benchmark, carry.
+ * `stable` counts the finalists whose stability passed (an unavailable chart is not a pass).
+ */
+export function placeFinalists(finalists: readonly FinalistFacts[]): {
+  placements: FinalistPlacement[]
+  stable: number
+} {
+  const placements = finalists.map((f): FinalistPlacement => {
+    if (!f.stability?.ok) {
+      if (f.stability?.reason?.startsWith('chart unavailable'))
+        return { list: 'unverified', reason: f.stability.reason }
+      return { drop: `stability: ${f.stability?.reason ?? 'unknown'}` }
+    }
+    if (!f.address)
+      return { list: 'unverified', reason: f.unresolvedReason ?? 'address not resolved' }
+    if (!f.verification?.ok)
+      return { list: 'unverified', reason: f.verification?.failed ?? 'not verified' }
+    if (f.exposure === 'multi')
+      return f.positive ? { list: 'lp' } : { drop: 'LP: (a) not positive after pricing' }
+    if (!f.hasBenchmark) return { list: 'no-benchmark', reason: 'no same-stable borrow market' }
+    return f.positive
+      ? { list: 'ranked' }
+      : { drop: 'carry: (a) not positive after on-chain pricing or averaging' }
+  })
+  return { placements, stable: finalists.filter((f) => f.stability?.ok).length }
+}
+
 function persistentOf(
   key: string,
   carryNow: number | null,

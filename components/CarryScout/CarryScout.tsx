@@ -17,7 +17,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { CARRY_SCAN_NOTES } from '@/lib/carryScan/copy'
-import { parseSharePct } from '@/lib/carryScan/format'
+import { parseSharePct, shortAppSha } from '@/lib/carryScan/format'
 import type { CarryScanView } from '@/lib/carryScan/load'
 import { CARRY_SCOUT_LAUNCHED } from '@/lib/carryScan/readiness'
 import type { ScoutRow, SizeKey } from '@/lib/carryScan/types'
@@ -235,8 +235,7 @@ export const CarryScout: React.FC<CarryScoutProps> = ({ view }) => {
         <Stamp>
           {TAB_LABEL.ranked.toUpperCase()} {counts.ranked} · SCAN {file.week} ·{' '}
           {new Date(file.asOf * 1000).toISOString().slice(0, 10)} · BLOCK{' '}
-          {file.anchor?.blockNumber ?? '—'} · {file.rpc} · APP{' '}
-          {file.appSha ? file.appSha.slice(0, 8) : '—'} ·{' '}
+          {file.anchor?.blockNumber ?? '—'} · {file.rpc} · APP {shortAppSha(file.appSha) ?? '—'} ·{' '}
           {view.source === 'live' ? 'DATA BRANCH' : 'FALLBACK SNAPSHOT'} · $1.00/STABLE · NOT A
           FORECAST
         </Stamp>

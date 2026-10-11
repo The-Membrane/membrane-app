@@ -60,7 +60,7 @@ jobs:
           NET_APY_RPC_URL: ${{ secrets.NET_APY_RPC_URL }}
         run: |
           # GitHub masks a secret only when its WHOLE value appears in a log; mask each
-          # comma-separated URL too. Logs print env:<host> labels only (lib/netApy/rpc.ts).
+          # comma-separated URL too. Logs print env:<domain> labels only (lib/netApy/rpc.ts).
           for u in ${NET_APY_RPC_URL//,/ }; do echo "::add-mask::$u"; done
 
       - name: Check out the scan code

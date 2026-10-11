@@ -6,14 +6,14 @@
 //   published → latest.json + weeks/<week>.json + borrow-benchmarks/<week>.json + status.json, exit 0
 //   held      → status.json only ({ok:false, held:true}), exit 2 — rerun with --accept-churn
 //   failed    → status.json only ({ok:false, reason}), exit 1 — the last good latest.json stays live
+// appSha is HEAD, with "-dirty" when the work tree has tracked changes (lib/carryScan/appSha.ts).
 //
 // RPC: lib/netApy/rpc.ts netApyClient (NET_APY_RPC_URL first, env before .env.local, then
-// public archive endpoints). Logs print the `env:<host>` label only; every error goes
-// through redactError. Never imports scripts/lib/venue-reads.mjs (its readEnv throws
-// without .env.local).
+// public archive endpoints). Logs and the weekly file print the `env:<domain>` provider label
+// only (rpcLabel); every error goes through redactError. Never imports
+// scripts/lib/venue-reads.mjs (its readEnv throws without .env.local).
 
-import { execFileSync } from 'child_process'
-
+import { appSha } from '../../lib/carryScan/appSha'
 import { writeOutcome, readLatest, readPastWeeks } from '../../lib/carryScan/publish'
 import { isoWeek, runCarryScan, type ScanOutcome } from '../../lib/carryScan/scan'
 import { netApyClient, redactError } from '../../lib/netApy/rpc'
@@ -21,19 +21,6 @@ import { netApyClient, redactError } from '../../lib/netApy/rpc'
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name)
   return i >= 0 ? process.argv[i + 1] : undefined
-}
-
-function appSha(): string | null {
-  try {
-    return (
-      execFileSync('git', ['rev-parse', 'HEAD'], {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-      }).trim() || null
-    )
-  } catch {
-    return null
-  }
 }
 
 async function main(): Promise<number> {

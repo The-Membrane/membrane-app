@@ -24,6 +24,7 @@ import { getAddress, type PublicClient } from 'viem'
 
 import { netBreakdown, type NetBreakdown } from '../netApy/breakdown'
 import { poolAbi } from '../netApy/read'
+import { redactError } from '../netApy/rpc'
 import type { AssetRef, BlockAnchor } from '../netApy/types'
 import { AAVE_V3_POOL, SPARK_POOL, type VenueDef } from '../netApy/venues'
 import type { IncentiveCampaign } from '../netApy/incentives'
@@ -326,12 +327,9 @@ export async function verifyOnChain(
   }
 }
 
-/** First line of an error, RPC URLs redacted, at most 160 characters. */
-const oneLine = (e: unknown): string =>
-  (e instanceof Error ? e.message : String(e))
-    .split('\n')[0]
-    .replace(/https?:\/\/\S+/g, '[rpc]')
-    .slice(0, 160)
+/** First line of an error, RPC URLs redacted and env RPC hosts masked to their
+ *  `env:<domain>` label (../netApy/rpc.ts redactError), at most 160 characters. */
+const oneLine = (e: unknown): string => redactError(e).slice(0, 160)
 
 export async function aTokenOfAt(
   client: PublicClient,

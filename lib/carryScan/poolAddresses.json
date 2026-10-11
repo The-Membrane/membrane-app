@@ -108,6 +108,13 @@
       "label": "Frax sfrxUSD",
       "verifiedAt": "2026-10-10 block 26163807",
       "note": "asset()=frxUSD; NOTE lib/position-sim/venues.ts KNOWN_VENUES lists sfrxUSD at 0xcF62F305562bA0170A4fa456be9BcB6fa6Ca6A70, which has NO code on mainnet (read 2026-10-10), so R3 does not dedupe the real vault"
+    },
+    "19d024ed-9c70-4323-9a81-fe873ea5f0e0": {
+      "address": "0xe1753f2e00940cc31213dd92013cf019dfe4ca1d",
+      "kind": "erc4626",
+      "label": "Aave sGHO (Savings GHO)",
+      "verifiedAt": "2026-10-11 block 26170760",
+      "note": "DeFiLlama aave-v3 SGHO: the pool's pool_old is 0xe1753f2e…-ethereum and DefiLlama/yield-server src/adaptors/aave-v3 prices SGHO from this contract's totalAssets() and targetRate(). On-chain: name()=symbol()=sGho, asset()=GHO, totalAssets 175.16M GHO vs DeFiLlama $174.88M, targetRate()=450 (4.5%), convertToAssets(1e18)=1.0177e18. NOT on the app: the /carry route GHO → UmbrellaStakeToken is Umbrella stkGHO.v1 (0x4f827a63…, 1.37M GHO), a different contract, so S5 keeps the row. Withdraw path not read (asset GHO: not deployable either way)"
     }
   }
 }

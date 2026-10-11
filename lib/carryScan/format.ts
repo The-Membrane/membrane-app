@@ -22,6 +22,15 @@ export const spread = (v: number | null | undefined, dp = 2): string => {
   return v < 0 ? `−${s}` : `+${s}`
 }
 
+/** The `appSha` suffix for a scan run from a work tree with tracked changes (./appSha.ts). */
+export const DIRTY_SUFFIX = '-dirty'
+
+/** The `appSha` stamp as the page prints it: 8 characters, keeping a `-dirty` suffix. */
+export function shortAppSha(sha: string | null | undefined): string | null {
+  if (!sha) return null
+  return `${sha.slice(0, 8)}${sha.endsWith(DIRTY_SUFFIX) ? DIRTY_SUFFIX : ''}`
+}
+
 export const sizeLabel = (n: number): string => (n >= 1e6 ? `$${n / 1e6}M` : `$${n / 1e3}K`)
 
 export const usdCompact = (n: number): string =>

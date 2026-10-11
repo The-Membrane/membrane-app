@@ -8,8 +8,11 @@
  * for latest-block reads).
  *
  * KEYS NEVER LEAVE THE PROCESS. A URL that came from the env is labelled
- * `env:<host>` (lib/position-sim/rpcRing.ts convention) and only the label is ever
- * returned, stored or rendered.
+ * `env:<domain>`, its provider's registrable domain only (`env:alchemy.com`, `env:quiknode.pro`),
+ * and only the label is ever returned, stored or rendered. The label is published (the
+ * carry-scout weekly file's `rpc`, the net-APY API), so it never carries an account-specific
+ * subdomain (QuickNode `<id>.ethereum-mainnet.quiknode.pro`), a path, a query, a port or
+ * credentials. Errors go through `redactError`, which masks env hosts to the same label.
  */
 
 import { readFileSync } from 'fs'
@@ -34,7 +37,10 @@ function envValue(key: string): string | undefined {
   if (process.env[key]) return process.env[key]
   try {
     const env = readFileSync(join(process.cwd(), '.env.local'), 'utf8')
-    return (env.match(new RegExp(`^${key}=(.*)$`, 'm')) || [])[1]?.trim().replace(/^["']|["']$/g, '') || undefined
+    return (
+      (env.match(new RegExp(`^${key}=(.*)$`, 'm')) || [])[1]?.trim().replace(/^["']|["']$/g, '') ||
+      undefined
+    )
   } catch {
     return undefined
   }
@@ -59,10 +65,31 @@ const host = (u: string): string => {
   }
 }
 
-/** Display label for the endpoint list: env hosts as `env:<host>`, public hosts bare. */
+const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/
+
+/**
+ * The provider part of an RPC URL: its registrable domain, taken as the host's last two
+ * labels (eth-mainnet.g.alchemy.com → alchemy.com, <id>.ethereum-mainnet.quiknode.pro →
+ * quiknode.pro). A two-part public suffix (co.uk) gives only that suffix: less informative,
+ * never more revealing. An IP address has no domain to show.
+ */
+export function providerDomain(u: string): string {
+  let h: string
+  try {
+    h = new URL(u).hostname.toLowerCase().replace(/\.$/, '')
+  } catch {
+    return 'invalid-url'
+  }
+  if (!h) return 'invalid-url'
+  if (h.startsWith('[') || IPV4.test(h)) return 'ip-address'
+  return h.split('.').slice(-2).join('.')
+}
+
+/** Display label for the endpoint list: the first env URL as `env:<domain>`, else the
+ *  first public endpoint's own host as `public:<host>` (a fixed public URL, no account). */
 export function rpcLabel(envUrls: string[]): string {
   const first = envUrls[0]
-  return first ? `env:${host(first)}` : `public:${host(PUBLIC_ARCHIVE_RPCS[0])}`
+  return first ? `env:${providerDomain(first)}` : `public:${host(PUBLIC_ARCHIVE_RPCS[0])}`
 }
 
 let cached: { client: PublicClient; label: string } | null = null
@@ -84,9 +111,44 @@ export function netApyClient(): { client: PublicClient; label: string } {
   return cached
 }
 
+let envHostsCache: string[] | null = null
+
+/** Hostnames of the env RPC URLs, longest first (an alternation then prefers the full host). */
+const envHosts = (envUrls?: string[]): string[] => {
+  const of = (urls: string[]) =>
+    [
+      ...new Set(
+        urls.flatMap((u) => {
+          try {
+            const h = new URL(u).hostname.toLowerCase()
+            return h ? [h] : []
+          } catch {
+            return []
+          }
+        }),
+      ),
+    ].sort((a, b) => b.length - a.length)
+  if (envUrls) return of(envUrls)
+  if (!envHostsCache) envHostsCache = of(envRpcUrls())
+  return envHostsCache
+}
+
+const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 /** First line of an error, with any URL replaced — viem puts the endpoint (and its key)
- *  on later lines and sometimes inline. Use on every message that leaves the server. */
-export function redactError(e: unknown): string {
+ *  on later lines and sometimes inline — and any env RPC host named without a scheme
+ *  (`getaddrinfo ENOTFOUND <host>`) masked to its `env:<domain>` label. Use on every
+ *  message that leaves the server. `envUrls` defaults to this process's env RPC URLs. */
+export function redactError(e: unknown, envUrls?: string[]): string {
   const msg = e instanceof Error ? e.message : String(e)
-  return (msg.split('\n')[0] ?? '').replace(/https?:\/\/\S+/g, '[rpc]').slice(0, 300)
+  let out = (msg.split('\n')[0] ?? '').replace(/(?:https?|wss?):\/\/\S+/gi, '[rpc]')
+  const hosts = envHosts(envUrls)
+  // One pass, so a label already written is never masked again.
+  if (hosts.length)
+    out = out.replace(
+      // the host and anything glued to it (`<host>/<key>`, `<host>:443/...`): only the label stays
+      new RegExp(`(${hosts.map(escapeRe).join('|')})\\S*`, 'gi'),
+      (_m, h: string) => `env:${providerDomain(`https://${h}`)}`,
+    )
+  return out.slice(0, 300)
 }

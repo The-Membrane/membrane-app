@@ -32,7 +32,7 @@ import { NET_APY_VENUES } from '@/lib/netApy/venues'
 //       &protocolShare=&curatorShare=  (0–1, a what-if; omitted = "curator-set")
 //
 // DATA: chain reads at the anchor (lib/netApy/read.ts) over RPC from .env.local
-// aliases (lib/netApy/rpc.ts — only `env:<host>` ever leaves the process), Merkl's
+// aliases (lib/netApy/rpc.ts — only `env:<domain>` ever leaves the process), Merkl's
 // public API for incentives. LOCAL-FIRST: both are kept as JSON under .data/net-apy
 // (lib/netApy/store.ts) — no Neon. A live (finalized-anchor) read is reused for 120 s
 // of wall clock, measured from when it was read (`asOf`), not from its block's time;

@@ -53,8 +53,9 @@ Membrane charge.
 - If Merkl data is missing, the card says "unavailable", not "no incentives". Royco and
   protocol-native programs are declared not covered.
 - RPC URLs come from `.env.local` (`NET_APY_RPC_URL`, `RECORDER_RPC_URL`,
-  `NEXT_PUBLIC_MAINNET_RPC_URL`). Only the `env:<host>` label leaves the process. Every
-  error that is surfaced has URLs redacted.
+  `NEXT_PUBLIC_MAINNET_RPC_URL`). Only the `env:<domain>` label leaves the process: the
+  provider's registrable domain (`env:alchemy.com`), never an account-specific subdomain.
+  Every error that is surfaced has URLs redacted and env RPC hosts masked to that label.
 
 ## Continuous fetch
 

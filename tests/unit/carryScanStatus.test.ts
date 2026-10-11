@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { aaveLikeVenues, buildOnAppSet, DEFAULT_ON_APP_INPUTS, keyOf } from '@/lib/carryScan/onApp'
-import { computeStatuses, type CurrentRow } from '@/lib/carryScan/status'
+import {
+  computeStatuses,
+  placeFinalists,
+  type CurrentRow,
+  type FinalistFacts,
+} from '@/lib/carryScan/status'
 import type { PastWeek, ScoutList } from '@/lib/carryScan/types'
 
 const AAVE_LIKE = aaveLikeVenues()
@@ -152,6 +157,59 @@ describe('S7 status against the last 8 weekly files', () => {
       new Map(),
     )
     expect(keyless.dropped[0]).toMatchObject({ key: K(9), failedGate: 'no address resolver' })
+  })
+
+  // 2026-W41 (run 38159709138): the S7 loop checked the address and the verification before
+  // stability, so 9 unresolved finalists that FAILED stability (CTDEFIUSDT σ 529pp, CTZIGUSD1,
+  // Y10K, SUSDX, …) were listed as Unverified instead of dropped, and counts.stable (42) counted
+  // them as stable (33 passed). Stability applies to every finalist first.
+  it('S7: a real stability failure drops every finalist, resolved or not; stable counts passes only', () => {
+    const base: FinalistFacts = {
+      address: '0x' + '11'.repeat(20),
+      verification: { ok: true },
+      stability: { ok: true },
+      exposure: 'single',
+      hasBenchmark: true,
+      positive: true,
+    }
+    const unstable = { ok: false, reason: '90-day σ 529.39pp > 1pp' }
+    const chartDown = { ok: false, reason: 'chart unavailable: HTTP 429' }
+    const { placements, stable } = placeFinalists([
+      base,
+      {
+        ...base,
+        address: null,
+        unresolvedReason: 'no address resolver for concrete',
+        stability: unstable,
+      },
+      { ...base, verification: { ok: false, failed: 'asset mismatch' }, stability: unstable },
+      { ...base, stability: unstable },
+      {
+        ...base,
+        address: null,
+        unresolvedReason: 'no address resolver for x',
+        stability: chartDown,
+      },
+      { ...base, address: null, unresolvedReason: 'no address resolver for y' },
+      { ...base, verification: { ok: false, failed: 'asset mismatch' } },
+      { ...base, hasBenchmark: false },
+      { ...base, exposure: 'multi', positive: false },
+    ])
+    expect(placements).toEqual([
+      { list: 'ranked' },
+      { drop: 'stability: 90-day σ 529.39pp > 1pp' },
+      { drop: 'stability: 90-day σ 529.39pp > 1pp' },
+      { drop: 'stability: 90-day σ 529.39pp > 1pp' },
+      // "chart unavailable" is not a stability failure: the row stays listed, with that reason.
+      { list: 'unverified', reason: 'chart unavailable: HTTP 429' },
+      // The remaining checks keep their order: address, verification, LP, benchmark, carry.
+      { list: 'unverified', reason: 'no address resolver for y' },
+      { list: 'unverified', reason: 'asset mismatch' },
+      { list: 'no-benchmark', reason: 'no same-stable borrow market' },
+      { drop: 'LP: (a) not positive after pricing' },
+    ])
+    // 9 finalists: 3 failed stability and 1 chart was unavailable, so 5 passed.
+    expect(stable).toBe(5)
   })
 
   it('persistent: (a) positive in at least 3 of the last 4 weekly files, once 4 exist', () => {

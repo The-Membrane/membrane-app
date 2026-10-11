@@ -213,6 +213,33 @@ describe('scout output never mints a venue key', () => {
     expect(set.keys.has(keyOf(res.address!))).toBe(true)
   })
 
+  // 2026-W41 listed DeFiLlama's aave-v3 "SGHO" pool ($174.9M, flat 4.5%) as Unverified with
+  // no address. It is Aave's Savings GHO, sGho (0xe1753f2e…; DeFiLlama's pool_old and its
+  // aave-v3 adapter's SGHO constant; name()/symbol() "sGho", asset() GHO, read 2026-10-11),
+  // an ERC-4626 vault. It is NOT the on-app GHO route's contract, Umbrella stkGHO.v1
+  // (0x4f827a63…), so it resolves, verifies and stays listed; it is not deduped.
+  const SGHO_POOL = '19d024ed-9c70-4323-9a81-fe873ea5f0e0'
+  const S_GHO = '0xe1753f2e00940cc31213dd92013cf019dfe4ca1d'
+  const UMBRELLA_STK_GHO = '0x4f827a63755855cdf3e8f3bcd20265c833f15033'
+
+  it('Aave SGHO resolves to sGho, an ERC-4626 vault that is not the on-app Umbrella stkGHO', async () => {
+    const c = {
+      pool: { pool: SGHO_POOL, project: 'aave-v3', symbol: 'SGHO', poolMeta: null },
+      stables: [{ symbol: 'GHO', address: '0x40d16fc0246ad3160ccc09b8d0d3a2cd28ae6c2f' }],
+    } as unknown as Candidate
+    const res = await resolveAddress(c, {
+      poolAddresses: pools,
+      morphoVaults: [],
+      aTokenOf: async () => {
+        throw new Error('sGho is not an Aave Pool reserve')
+      },
+    })
+    expect(res).toMatchObject({ address: S_GHO, kind: 'erc4626', via: 'poolAddresses.json' })
+    expect(set.keys.has(keyOf(S_GHO))).toBe(false)
+    expect(set.keys.has(keyOf(UMBRELLA_STK_GHO))).toBe(true)
+    expect(set.routeClassOf.has(keyOf(S_GHO))).toBe(false)
+  })
+
   it('no snapshot row is on the app, keyed or not: a keyless row resolves through poolAddresses.json', () => {
     for (const r of [...fallback.rows, ...fallback.dropped]) {
       const addrs = [

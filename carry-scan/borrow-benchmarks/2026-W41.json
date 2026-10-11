@@ -1,22 +1,22 @@
 {
  "schemaVersion": 2,
  "week": "2026-W41",
- "asOf": 1791739684,
- "anchorBlock": "26170632",
+ "asOf": 1791742784,
+ "anchorBlock": "26170888",
  "table": {
   "USDC": {
    "bySize": {
     "100k": {
      "venue": "SparkLend USDC",
      "stable": "USDC",
-     "apy": 0.04476038468961634,
+     "apy": 0.044760402694713,
      "labelClass": "projected",
      "source": "onchain"
     },
     "1m": {
      "venue": "SparkLend USDC",
      "stable": "USDC",
-     "apy": 0.04569929905889374,
+     "apy": 0.0456993134614269,
      "labelClass": "projected",
      "source": "onchain"
     },
@@ -34,55 +34,55 @@
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.05377747236796897,
-      "1m": 0.05443175220596868,
-      "10m": 0.06099693522279596
+      "100k": 0.05326674428051644,
+      "1m": 0.0539204692457654,
+      "10m": 0.06048007640460459
      },
-     "borrowUsd": 2283691521.373473
+     "borrowUsd": 2283818723.006497
     },
     {
      "venue": "SparkLend USDC",
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.04476038468961634,
-      "1m": 0.04569929905889374,
+      "100k": 0.044760402694713,
+      "1m": 0.0456993134614269,
       "10m": null
      },
-     "borrowUsd": 43771154.387247
+     "borrowUsd": 43771340.665951
     },
     {
      "venue": "Morpho cbBTC/USDC 86%",
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.05081603547859024,
-      "1m": 0.054771650254609054,
-      "10m": 0.0951560788994227
+      "100k": 0.05048530796256937,
+      "1m": 0.054438969321323166,
+      "10m": 0.09480330503683303
      },
-     "borrowUsd": 304110103.272382
+     "borrowUsd": 304110778.178781
     },
     {
      "venue": "Morpho WBTC/USDC 86%",
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.05168850697255137,
-      "1m": 0.06223875482667712,
-      "10m": 0.17374102752977033
+      "100k": 0.05089981359664819,
+      "1m": 0.06143557378847467,
+      "10m": 0.17278088042666442
      },
-     "borrowUsd": 116125006.488264
+     "borrowUsd": 116135589.976687
     },
     {
      "venue": "Morpho wstETH/USDC 86%",
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.054970576765041614,
-      "1m": 0.09680955301508591,
+      "100k": 0.054246316050076,
+      "1m": 0.0960365733128209,
       "10m": null
      },
-     "borrowUsd": 29388582.667589
+     "borrowUsd": 29388747.89639
     },
     {
      "venue": "Morpho WSTETH/USDC 86%",
@@ -124,7 +124,7 @@
     "100k": {
      "venue": "Morpho wstETH/USDT 86%",
      "stable": "USDT",
-     "apy": 0.030847381716410324,
+     "apy": 0.03084336041782783,
      "labelClass": "projected",
      "source": "onchain"
     },
@@ -149,33 +149,33 @@
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.043189396371197446,
-      "1m": 0.04320552688044338,
-      "10m": 0.04336684569169344
+      "100k": 0.04316713316466847,
+      "1m": 0.04318325398687014,
+      "10m": 0.043344475911496996
      },
-     "borrowUsd": 2460971059.828222
+     "borrowUsd": 2461154442.443768
     },
     {
      "venue": "SparkLend USDT",
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.041436125101532724,
-      "1m": 0.050032851064896806,
-      "10m": 0.1400013575792831
+      "100k": 0.04143841211737519,
+      "1m": 0.05003512523912128,
+      "10m": 0.14000348222798162
      },
-     "borrowUsd": 312165751.463499
+     "borrowUsd": 312167139.35824
     },
     {
      "venue": "Morpho wstETH/USDT 86%",
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.030847381716410324,
-      "1m": 0.03101604360826419,
-      "10m": 0.03270418093135378
+      "100k": 0.03084336041782783,
+      "1m": 0.03101196881649701,
+      "10m": 0.03269957038062512
      },
-     "borrowUsd": 122032504.576654
+     "borrowUsd": 122070277.029031
     },
     {
      "venue": "Morpho CBBTC/USDT 86%",
@@ -217,21 +217,21 @@
     "100k": {
      "venue": "Aave v3 USDe",
      "stable": "USDe",
-     "apy": 0.06837817014316071,
+     "apy": 0.0683782314799088,
      "labelClass": "projected",
      "source": "onchain"
     },
     "1m": {
      "venue": "Aave v3 USDe",
      "stable": "USDe",
-     "apy": 0.06838685714510091,
+     "apy": 0.06838691805142941,
      "labelClass": "projected",
      "source": "onchain"
     },
     "10m": {
      "venue": "Aave v3 USDe",
      "stable": "USDe",
-     "apy": 0.06847373104947697,
+     "apy": 0.06847378765122436,
      "labelClass": "projected",
      "source": "onchain"
     }
@@ -242,11 +242,11 @@
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.06837817014316071,
-      "1m": 0.06838685714510091,
-      "10m": 0.06847373104947697
+      "100k": 0.0683782314799088,
+      "1m": 0.06838691805142941,
+      "10m": 0.06847378765122436
      },
-     "borrowUsd": 15592168.24965883
+     "borrowUsd": 15599301.710130991
     }
    ]
   },
@@ -255,21 +255,21 @@
     "100k": {
      "venue": "SparkLend USDS",
      "stable": "USDS",
-     "apy": 0.04414175972735646,
+     "apy": 0.04414181779316081,
      "labelClass": "projected",
      "source": "onchain"
     },
     "1m": {
      "venue": "SparkLend USDS",
      "stable": "USDS",
-     "apy": 0.044191034034993394,
+     "apy": 0.04419109195968823,
      "labelClass": "projected",
      "source": "onchain"
     },
     "10m": {
      "venue": "SparkLend USDS",
      "stable": "USDS",
-     "apy": 0.04468390502173752,
+     "apy": 0.04468396153459748,
      "labelClass": "projected",
      "source": "onchain"
     }
@@ -280,11 +280,11 @@
      "source": "onchain",
      "labelClass": "projected",
      "apyBySize": {
-      "100k": 0.04414175972735646,
-      "1m": 0.044191034034993394,
-      "10m": 0.04468390502173752
+      "100k": 0.04414181779316081,
+      "1m": 0.04419109195968823,
+      "10m": 0.04468396153459748
      },
-     "borrowUsd": 823711477.6511414
+     "borrowUsd": 823714943.2135729
     }
    ]
   },
@@ -558,20 +558,20 @@
  },
  "agreement": {
   "USDC": {
-   "onchain": 0.04476038468961634,
+   "onchain": 0.044760402694713,
    "defillama": 0.04465605785294622,
-   "diffPp": 0.010432683667011694
+   "diffPp": 0.010434484176678055
   },
   "USDT": {
-   "onchain": 0.030847381716410324,
+   "onchain": 0.03084336041782783,
    "defillama": 0.0308377,
-   "diffPp": 0.0009681716410324392
+   "diffPp": 0.0005660417827832442
   }
  },
  "rejectedSample": [
   {
    "venue": "Aave v3 USDS",
-   "reason": "under $5M borrowed ($338,459)"
+   "reason": "under $5M borrowed ($338,461)"
   },
   {
    "venue": "Euler eUSDC-2",

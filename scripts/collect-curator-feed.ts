@@ -2178,15 +2178,20 @@ async function readMarketFlags(
         throw e
       }
     }
+  //    The search reaches back to Morpho Blue's deployment, not the window start: an oracle
+  //    that stopped before the window (sdeUSD/USDC: block 24,055,805, 2025-12-20) gets its
+  //    real onset. An entry from an earlier run that stopped at a later floor is redone.
+  const floor = CHAIN.morphoDeploy
   for (const a of oracles) {
     if (priceOf.get(a) !== null) {
       if (priceOf.has(a)) delete reverts[a]
       continue
     }
-    if (reverts[a]) continue
-    const on = await revertOnset(revertsAt(a), head, o.windowFrom)
+    if (reverts[a] && !(reverts[a].beforeWindow && reverts[a].since > floor)) continue
+    const on = await revertOnset(revertsAt(a), head, floor)
     if (on.beforeWindow) {
-      reverts[a] = { since: o.windowFrom, sinceTs: o.windowFromTs, beforeWindow: true }
+      const h = await rpc.call<{ timestamp: string }>('eth_getBlockByNumber', [hexN(floor), false])
+      reverts[a] = { since: floor, sinceTs: parseInt(h.timestamp, 16), beforeWindow: true }
       continue
     }
     const h = await rpc.call<{ timestamp: string }>('eth_getBlockByNumber', [hexN(on.since), false])

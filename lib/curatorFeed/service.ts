@@ -947,7 +947,7 @@ export function marketFlagTexts(
   }
   if (kinds.includes('oracle-reverting') && f.reverting)
     out.push(
-      `price() has reverted since block ${f.reverting.since.toLocaleString('en-US')} (${utc(f.reverting.sinceTs)})${f.reverting.beforeWindow ? ' or earlier' : ''}: liquidations, new borrows and collateral withdrawals from positions with debt revert in this market. Repaying is the only way a borrower can leave.`,
+      `${f.reverting.beforeWindow ? `price() reverts at every block probed back to block ${f.reverting.since.toLocaleString('en-US')} (${utc(f.reverting.sinceTs)})` : `price() has reverted since block ${f.reverting.since.toLocaleString('en-US')} (${utc(f.reverting.sinceTs)})`}: liquidations, new borrows and collateral withdrawals from positions with debt revert in this market. Repaying is the only way a borrower can leave.`,
     )
   if (kinds.includes('oracle-stale') && f.staleSeconds !== undefined)
     out.push(

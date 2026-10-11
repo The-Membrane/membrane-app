@@ -470,10 +470,10 @@ const FILL: NonNullable<MarketFlags['fill']> = {
   prevBorrow: usdc(8_570_000_000),
 }
 const SDE_FLAGS: MarketFlags = {
-  oracle: '0xd634dbbcf06d99edc0e2d6349ef1ea5873d17c02',
+  oracle: '0x65f9f6d537c2d628d1c2663896436817440edb72',
   oracleKind: 'reported',
   parts: [feed1(OTHER, 'RedStone Price Feed for deUSD_FUNDAMENTAL')],
-  reverting: { since: 24_055_805, sinceTs: Date.parse('2025-12-20T19:08:11Z') / 1000 },
+  reverting: { since: 24_055_805, sinceTs: Date.parse('2025-12-20T19:08:47Z') / 1000 },
   fill: FILL,
 }
 
@@ -643,5 +643,34 @@ describe('flag 5: supply locked', () => {
       `market() shows ${compact(9_879_000_000)} USDC of supply with interest accrued to 2026-10-11 16:41 UTC`,
     )
     expect(t).not.toMatch(/undefined|NaN|\b(safe|unsafe|risky|healthy|secure|guarantee)/i)
+    expect(m.texts.join(' ')).toContain(
+      'price() has reverted since block 24,055,805 (2025-12-20 19:08 UTC)',
+    )
+    // Reverting at every probe back to Morpho Blue's deployment: no onset is claimed.
+    const never = buildFlagsResponse(
+      {
+        ...lockedFeed,
+        flags: {
+          ...lockedFeed.flags!,
+          markets: {
+            [M_SDE]: {
+              ...SDE_FLAGS,
+              reverting: {
+                since: 18_883_124,
+                sinceTs: Date.parse('2023-12-28T09:09:23Z') / 1000,
+                beforeWindow: true,
+              },
+            },
+          },
+        },
+      },
+      lockedExposure,
+      parseFeedQuery({ view: 'flags' }),
+      compact,
+    ).markets[0].texts.join(' ')
+    expect(never).toContain(
+      'price() reverts at every block probed back to block 18,883,124 (2023-12-28 09:09 UTC)',
+    )
+    expect(never).not.toContain('has reverted since')
   })
 })

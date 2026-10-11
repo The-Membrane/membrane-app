@@ -401,7 +401,8 @@ export interface MarketFlags {
   /** price() at the head (1e36-scaled decimal string); absent when it reverts. */
   price?: string
   /** price() reverts at the head. `since`: first block of the current run of reverts;
-   *  `beforeWindow`: it reverted at every block probed back to the window's first block. */
+   *  `beforeWindow`: it reverted at every block probed back to `since` (Morpho Blue's
+   *  deployment; the window's first block in files written before 2026-10-11). */
   reverting?: { since: number; sinceTs: number; beforeWindow?: boolean }
   /** Seconds since the OLDEST update among the feeds that answer, at the head. */
   staleSeconds?: number

@@ -40,6 +40,7 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import { stamp } from '@/lib/position-sim/types'
+import { fmtLocalIsoDate, useLocalZone } from './localClock'
 import Stamp from './Stamp'
 
 const STORED_STRATS = stamp(
@@ -234,6 +235,8 @@ const useVenueLog = () =>
  */
 export const CapacityMoveBody: React.FC<{ rail?: boolean }> = ({ rail = false }) => {
   const { data: log } = useVenueLog()
+  // The move's day in the reader's own zone, like every other time on the page.
+  const zone = useLocalZone()
   const logPending = !log
   const newestMove = log?.entries?.map(capacityMove).find((move) => move !== null) ?? null
   if (logPending) return <Pending />
@@ -262,7 +265,7 @@ export const CapacityMoveBody: React.FC<{ rail?: boolean }> = ({ rail = false })
         color={rail ? SEMANTIC_COLORS.textTertiary : SEMANTIC_COLORS.textSecondary}
       >
         {newestMove.metric} · {newestMove.from} → {newestMove.to} {newestMove.window} ·{' '}
-        {new Date(newestMove.at).toISOString().slice(0, 10)}
+        {fmtLocalIsoDate(Date.parse(newestMove.at), zone)}
       </Text>
     </Box>
   )

@@ -23,7 +23,7 @@ import {
   splitFigures,
   WORDMARK_FIT,
 } from '@/components/NewsEdition/tokens'
-import { fmtLocalDateline } from '@/components/Simulator/localClock'
+import { fmtLocalDateline, fmtLocalIsoDate } from '@/components/Simulator/localClock'
 import {
   CARRY_CLAIMS,
   CARRY_SPREAD_LINE,
@@ -108,6 +108,12 @@ describe('masthead copy', () => {
     expect(fmtLocalDateline(Date.UTC(2026, 9, 11, 3), 'America/Los_Angeles')).toBe(
       'Saturday, October 10, 2026',
     )
+  })
+
+  it("the rail's capacity date is the reader-zone day, not the UTC day", () => {
+    const lateEveningLA = Date.UTC(2026, 9, 11, 3) // 8 PM PDT on 10 Oct
+    expect(fmtLocalIsoDate(lateEveningLA, 'UTC')).toBe('2026-10-11')
+    expect(fmtLocalIsoDate(lateEveningLA, 'America/Los_Angeles')).toBe('2026-10-10')
   })
 
   it('names both editions', () => {

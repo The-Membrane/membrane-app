@@ -52,3 +52,17 @@ export function fmtLocalDateline(ms: number, zone: string | undefined): string {
     timeZone: zone,
   })
 }
+
+/** "2026-10-10" — a calendar day in the reader's own zone, in the ISO shape a dated
+ *  meta line already uses. `toISOString().slice(0, 10)` is the UTC day, which is a
+ *  day off for a reader west of UTC in the evening. Takes milliseconds. */
+export function fmtLocalIsoDate(ms: number, zone: string | undefined): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: zone,
+  }).formatToParts(new Date(ms))
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value
+  return `${part('year')}-${part('month')}-${part('day')}`
+}

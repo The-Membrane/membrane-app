@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-pinned-replay.ts",
- "generatedAt": "2026-10-11T17:02:23.291Z",
+ "generatedAt": "2026-10-11T18:18:58.389Z",
  "config": "DEFAULT_ALERT_CONFIG",
  "definitions": "breach = first tick with HF < 1 on the dataset path, stamped at the previous tick (strict). Lead = breach − start of the earliest warn+ (critical) episode still open. censored = that episode opened at the first read. False alarm = worsening message with no breach in 72h.",
  "events": {
@@ -3165,7 +3165,7 @@
    ]
   },
   "E2": {
-   "source": "own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market, DefiLlama CoinGecko prices",
+   "source": "own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market; Euler v2, Silo v2 and Gearbox v3.1 positions read on chain every 2 h (build-position-alert-e2-offmorpho.mjs); DefiLlama CoinGecko prices",
    "window": {
     "fromTs": 1762041600,
     "toTs": 1762991940
@@ -3176,6 +3176,11 @@
    },
    "positionsReplayed": 4,
    "dustPositionsSkipped": 23,
+   "mixedCollateralSkipped": [],
+   "positionsByVenue": {
+    "morpho": 4
+   },
+   "noMarketPrice": 0,
    "openedAfterWindowStart": [
     {
      "venue": "morpho",
@@ -3305,7 +3310,52 @@
        }
       ]
      }
-    ]
+    ],
+    "byVenue": {
+     "morpho": {
+      "positions": 4,
+      "gate": {
+       "breachedClusters": 2,
+       "clustersAllWarnedBeforeBreach": 2,
+       "breachedPositions": 3,
+       "warnedBeforeBreach": 3,
+       "criticalBeforeBreach": 3,
+       "met": true
+      },
+      "gateCluster": {
+       "breachedClusters": 2,
+       "passed": 2,
+       "firstBreacherWarned": 2,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/morpho/sdeUSD/other",
+         "members": 3,
+         "breached": 2,
+         "firstBreachTs": 1762416000,
+         "earliestWarnTs": 1761436800,
+         "leadS": 979200,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 2
+        },
+        {
+         "cluster": "EV-2/morpho/xUSD/other",
+         "members": 1,
+         "breached": 1,
+         "firstBreachTs": 1763215200,
+         "earliestWarnTs": 1761436800,
+         "leadS": 1778400,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 1
+        }
+       ],
+       "notScoreableClusters": []
+      }
+     }
+    }
    },
    "marketBasis": {
     "runs": [
@@ -3392,7 +3442,52 @@
        }
       ]
      }
-    ]
+    ],
+    "byVenue": {
+     "morpho": {
+      "positions": 4,
+      "gate": {
+       "breachedClusters": 2,
+       "clustersAllWarnedBeforeBreach": 2,
+       "breachedPositions": 3,
+       "warnedBeforeBreach": 3,
+       "criticalBeforeBreach": 3,
+       "met": true
+      },
+      "gateCluster": {
+       "breachedClusters": 2,
+       "passed": 2,
+       "firstBreacherWarned": 2,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/morpho/sdeUSD/other",
+         "members": 3,
+         "breached": 2,
+         "firstBreachTs": 1762174800,
+         "earliestWarnTs": 1761440400,
+         "leadS": 734400,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 2
+        },
+        {
+         "cluster": "EV-2/morpho/xUSD/other",
+         "members": 1,
+         "breached": 1,
+         "firstBreachTs": 1762171200,
+         "earliestWarnTs": 1761440400,
+         "leadS": 730800,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 1
+        }
+       ],
+       "notScoreableClusters": []
+      }
+     }
+    }
    },
    "runs": []
   },

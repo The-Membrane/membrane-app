@@ -802,7 +802,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
       )}
       <RailCard tone={NEWS.info} label="latest measured capacity move">
         <CapacityMoveBody rail />
-        <Stamp provenance={LIVE_LOG} />
+        <Stamp provenance={LIVE_LOG} wrap />
       </RailCard>
     </>
   )

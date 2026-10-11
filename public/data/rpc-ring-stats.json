@@ -1,34 +1,96 @@
 {
   "runs": [
     {
-      "run": "aave-episodes",
-      "at": "2026-09-24T02:34:56.492Z",
+      "run": "aave-logs",
+      "at": "2026-10-11T14:39:32.762Z",
       "stats": [
         {
           "host": "rpc.ankr.com",
-          "calls": 5902,
-          "ok": 5902,
+          "calls": 157,
+          "ok": 157,
           "failed": 0,
-          "blocks": 59006316,
-          "avgMs": 93
+          "empty": 38,
+          "falseEmpty": 0,
+          "quarantined": false,
+          "blocks": 784734,
+          "avgMs": 47
+        },
+        {
+          "host": "ethereum.public.blockpi.network",
+          "calls": 47,
+          "ok": 47,
+          "failed": 0,
+          "empty": 38,
+          "falseEmpty": 0,
+          "quarantined": false,
+          "blocks": 234734,
+          "avgMs": 173
+        },
+        {
+          "host": "rpc.flashbots.net",
+          "calls": 1,
+          "ok": 1,
+          "failed": 0,
+          "empty": 1,
+          "falseEmpty": 1,
+          "quarantined": true,
+          "blocks": 5000,
+          "avgMs": 183
+        },
+        {
+          "host": "gateway.tenderly.co",
+          "calls": 3,
+          "ok": 0,
+          "failed": 3,
+          "empty": 0,
+          "falseEmpty": 0,
+          "quarantined": false,
+          "blocks": 0,
+          "avgMs": 0
+        }
+      ],
+      "checks": {
+        "rechecked": 48,
+        "spotChecked": 10,
+        "confirmedEmpty": 38,
+        "recovered": 1,
+        "unverified": 0
+      }
+    },
+    {
+      "run": "aave-episodes",
+      "at": "2026-10-11T15:06:21.139Z",
+      "stats": [
+        {
+          "host": "rpc.ankr.com",
+          "calls": 6288,
+          "ok": 6288,
+          "failed": 0,
+          "empty": 0,
+          "falseEmpty": 0,
+          "quarantined": false,
+          "blocks": 62880000,
+          "avgMs": 91
         },
         {
           "host": "eth.api.pocket.network",
-          "calls": 1,
-          "ok": 1,
+          "calls": 2,
+          "ok": 2,
           "failed": 0,
-          "blocks": 10000,
-          "avgMs": 2308
-        },
-        {
-          "host": "mainnet.infura.io",
-          "calls": 1,
-          "ok": 1,
-          "failed": 0,
-          "blocks": 10000,
-          "avgMs": 2207
+          "empty": 1,
+          "falseEmpty": 1,
+          "quarantined": true,
+          "blocks": 20000,
+          "avgMs": 1451
         }
-      ]
+      ],
+      "checks": {
+        "rechecked": 2,
+        "spotChecked": 2,
+        "confirmedEmpty": 0,
+        "recovered": 1,
+        "unverified": 0
+      }
     }
   ]
 }

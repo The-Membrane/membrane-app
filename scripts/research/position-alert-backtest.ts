@@ -490,9 +490,7 @@ interface CohortRow {
 }
 
 const e1Prices = load('oct10-2025/prices-1m.json')
-const e1Cohort: CohortRow[] = (
-  load('oct10-2025/evidence.json').cohort as CohortRow[]
-).filter(
+const e1Cohort: CohortRow[] = (load('oct10-2025/evidence.json').cohort as CohortRow[]).filter(
   (r) =>
     r.priced &&
     !r.excluded &&
@@ -947,7 +945,8 @@ function publicCopy(results: Record<string, unknown>): Record<string, unknown> {
     ...(text.match(/0x[0-9a-fA-F]{40}/g) ?? []),
     ...(text.match(/0x[0-9a-fA-F]{4}\u2026[0-9a-fA-F]{4}/g) ?? []),
   ].filter((m) => m !== SYNTHETIC_ID && m !== '0x0000\u20260000')
-  if (leaks.length) throw new Error(`public results still hold wallet identifiers: ${leaks.join(', ')}`)
+  if (leaks.length)
+    throw new Error(`public results still hold wallet identifiers: ${leaks.join(', ')}`)
   return out
 }
 

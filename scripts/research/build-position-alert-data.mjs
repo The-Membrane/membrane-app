@@ -580,13 +580,16 @@ async function e2StreamMarkets() {
     }
     await sleep(300)
   }
-  return [...seen.values()].sort((a, b) => a.chainId - b.chainId || a.marketId.localeCompare(b.marketId))
+  return [...seen.values()].sort(
+    (a, b) => a.chainId - b.chainId || a.marketId.localeCompare(b.marketId),
+  )
 }
 
 async function e2Transactions(m, types, toTs) {
   const items = []
   for (let skip = 0; ; skip += 500) {
-    const d = await morpho(`{ marketTransactions(first: 500, skip: ${skip}, orderBy: Timestamp, orderDirection: Asc,
+    const d =
+      await morpho(`{ marketTransactions(first: 500, skip: ${skip}, orderBy: Timestamp, orderDirection: Asc,
       where: { marketUniqueKey_in: ["${m.marketId}"], chainId_in: [${m.chainId}], type_in: [${types.join(', ')}],
         timestamp_lte: ${toTs} }) {
       items { type txHash timestamp blockNumber user { address }
@@ -601,7 +604,8 @@ async function e2Transactions(m, types, toTs) {
 
 async function e2PositionHistory(m, user) {
   const opt = `options: { startTimestamp: ${E2_HISTORY.fromTs}, endTimestamp: ${E2_HISTORY.toTs}, interval: HOUR }`
-  const d = await morpho(`{ marketPosition(userAddress: "${user}", marketUniqueKey: "${m.marketId}", chainId: ${m.chainId}) {
+  const d =
+    await morpho(`{ marketPosition(userAddress: "${user}", marketUniqueKey: "${m.marketId}", chainId: ${m.chainId}) {
     historicalState { collateral(${opt}) { x y } collateralValue(${opt}) { x y } collateralUsd(${opt}) { x y }
       borrowAssets(${opt}) { x y } borrowAssetsUsd(${opt}) { x y } } } }`)
   const h = d.marketPosition?.historicalState
@@ -656,7 +660,9 @@ async function buildE2Stream() {
       })
     m.accounts = users.length
     m.positionsInWindow = kept
-    console.log(`  ${m.chainId} ${m.collateral}/${m.loan} ${m.marketId.slice(0, 10)}: ${users.length} accounts, ${kept} in window`)
+    console.log(
+      `  ${m.chainId} ${m.collateral}/${m.loan} ${m.marketId.slice(0, 10)}: ${users.length} accounts, ${kept} in window`,
+    )
   }
   // Independent market prices (CoinGecko trades via DefiLlama). Morpho's own USD feed is kept
   // per position (collateralUsd) but read a wrong deUSD price before the collapse.
@@ -667,11 +673,12 @@ async function buildE2Stream() {
   return {
     file: 'e2-stream-nov-2025.json',
     body: {
-      label: 'Recall Coverage Dataset spec E2: Stream xUSD collapse (Nov 2–12 2025), Morpho markets on xUSD / deUSD / sdeUSD',
+      label:
+        'Recall Coverage Dataset spec E2: Stream xUSD collapse (Nov 2–12 2025), Morpho markets on xUSD / deUSD / sdeUSD',
       specWindow: E2_SPEC,
       historyWindow: E2_HISTORY,
       source:
-        'DefiLlama coins API for marketPrices (CoinGecko ids, hourly). Morpho Blue API: markets(search), marketTransactions (Borrow, SupplyCollateral up to the window end; Liquidation from the history start to the fetch), marketPosition.historicalState HOUR (collateral, collateralValue at the market oracle in loan units, collateralUsd at Morpho\'s USD price feed, borrowAssets, borrowAssetsUsd)',
+        "DefiLlama coins API for marketPrices (CoinGecko ids, hourly). Morpho Blue API: markets(search), marketTransactions (Borrow, SupplyCollateral up to the window end; Liquidation from the history start to the fetch), marketPosition.historicalState HOUR (collateral, collateralValue at the market oracle in loan units, collateralUsd at Morpho's USD price feed, borrowAssets, borrowAssetsUsd)",
       uncovered:
         'Euler, Silo, Gearbox, Fluid and other venues; chains the Morpho API does not serve (Plasma 9745, Avalanche 43114, Sonic 146 per spec §5). Positions closed before the window are excluded by construction.',
       markets,

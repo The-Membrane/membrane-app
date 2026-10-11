@@ -327,7 +327,9 @@ export const exitCapacityRule: Rule = {
     // The burn only matters while the position could need a recall at all.
     if (burnCfg && need > 0) {
       const burn =
-        fresh.length === 0 ? null : capacityBurn(capHistory, snapshot.ts, burnCfg.lookbackS, available)
+        fresh.length === 0
+          ? null
+          : capacityBurn(capHistory, snapshot.ts, burnCfg.lookbackS, available)
       const hours = burnCfg.lookbackS / 3600
       signals.push({
         key: 'burn',
@@ -339,10 +341,18 @@ export const exitCapacityRule: Rule = {
             : burn === null
               ? 'no capacity above zero in the lookback window'
               : undefined,
-        evidence: { availableUsd: fresh.length ? available : null, burn, lookbackS: burnCfg.lookbackS, venues },
+        evidence: {
+          availableUsd: fresh.length ? available : null,
+          burn,
+          lookbackS: burnCfg.lookbackS,
+          venues,
+        },
         describe: (t) =>
           recovering(t.kind)
-            ? { title: `Venue exit capacity steadied`, detail: `${fmtUsd(available)} can leave now.` }
+            ? {
+                title: `Venue exit capacity steadied`,
+                detail: `${fmtUsd(available)} can leave now.`,
+              }
             : {
                 title: `Venue exit capacity falling fast: ${fmtUsd(available)}`,
                 detail: `${fmtPct(burn ?? 0, 0)} of the exit capacity went in the last ${hours}h. A recall of ${fmtUsd(need)} may not get out.`,

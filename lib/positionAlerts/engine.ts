@@ -27,7 +27,11 @@ export interface EngineState {
   capHistory?: Array<[number, number]>
 }
 
-export const initialEngineState = (): EngineState => ({ trackers: {}, hfHistory: [], capHistory: [] })
+export const initialEngineState = (): EngineState => ({
+  trackers: {},
+  hfHistory: [],
+  capHistory: [],
+})
 
 export interface Evaluation {
   alerts: Alert[]
@@ -88,7 +92,8 @@ export function evaluate(
   const fresh = burnCfg
     ? (ctx.capacity ?? []).filter(
         (r) =>
-          Number.isFinite(r.availableUsd) && snapshot.ts - r.asOf <= (config.exitCapacity?.maxAgeS ?? 0),
+          Number.isFinite(r.availableUsd) &&
+          snapshot.ts - r.asOf <= (config.exitCapacity?.maxAgeS ?? 0),
       )
     : []
   const capHistory = fresh.length

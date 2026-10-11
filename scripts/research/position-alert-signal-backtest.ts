@@ -48,7 +48,8 @@ const D = 86400
 const MONTH = 30 * D
 const iso = (t: number | null) =>
   t === null ? null : new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ')
-const round = (v: number | null, dp = 3) => (v === null || !Number.isFinite(v) ? null : +v.toFixed(dp))
+const round = (v: number | null, dp = 3) =>
+  v === null || !Number.isFinite(v) ? null : +v.toFixed(dp)
 const readJson = (p: string) => JSON.parse(readFileSync(join(DS, p), 'utf8'))
 const readJsonl = (p: string) => {
   const buf = readFileSync(join(DS, p))
@@ -100,7 +101,9 @@ function capacityRun(path: Cap[], needUsd: number, config: AlertConfig) {
   for (const [ts, usd] of path) {
     const r = evaluate(
       recallPosition(needUsd, ts),
-      { capacity: [{ venue: 'aave-core-usdc', availableUsd: usd, asOf: ts, provenance: 'replay' }] },
+      {
+        capacity: [{ venue: 'aave-core-usdc', availableUsd: usd, asOf: ts, provenance: 'replay' }],
+      },
       state,
       config,
     )
@@ -125,9 +128,13 @@ const e3Util = readJsonl('recall-coverage/data/chain/e3/usdc_utilization.jsonl.g
 }[]
 e3Util.sort((a, b) => a.block - b.block)
 const e3Anchors = Object.fromEntries(
-  (readJsonl('recall-coverage/data/chain/e3/anchors.jsonl') as { name: string; ts: number; block: number }[]).map(
-    (a) => [a.name, a],
-  ),
+  (
+    readJsonl('recall-coverage/data/chain/e3/anchors.jsonl') as {
+      name: string
+      ts: number
+      block: number
+    }[]
+  ).map((a) => [a.name, a]),
 )
 const E3_EXPLOIT = e3Anchors.start_exploit.ts
 const E3_FULL_LOCK = e3Util.find((r) => r.ts >= E3_EXPLOIT && r.utilization >= 0.999)?.ts ?? null
@@ -139,7 +146,9 @@ function downsample(rows: { ts: number; usd: number }[], stepS: number): Cap[] {
     if (out.length && out[out.length - 1][0] === b) out[out.length - 1][1] = r.usd
     else {
       // carry the last value over empty buckets
-      if (out.length) for (let t = out[out.length - 1][0] + stepS; t < b; t += stepS) out.push([t, out[out.length - 1][1]])
+      if (out.length)
+        for (let t = out[out.length - 1][0] + stepS; t < b; t += stepS)
+          out.push([t, out[out.length - 1][1]])
       out.push([b, r.usd])
     }
   }
@@ -154,15 +163,28 @@ function e3Runs(config: AlertConfig) {
   return NEEDS.map((need) => {
     const firstShort = e3Path.find(([ts, usd]) => ts >= E3_EXPLOIT && usd < need)?.[0] ?? null
     const r = capacityRun(e3Path, need, config)
-    const lead = (t: number | null, ref: number | null) => (t !== null && ref !== null ? round((ref - t) / H, 2) : null)
+    const lead = (t: number | null, ref: number | null) =>
+      t !== null && ref !== null ? round((ref - t) / H, 2) : null
     return {
       needUsd: need,
       firstShort: iso(firstShort),
       firstWarn: { recall: iso(r.first.recall), burn: iso(r.first.burn) },
-      leadBeforeShortH: { any: lead(r.first.any, firstShort), recall: lead(r.first.recall, firstShort), burn: lead(r.first.burn, firstShort) },
-      leadBeforeFullLockH: { any: lead(r.first.any, E3_FULL_LOCK), recall: lead(r.first.recall, E3_FULL_LOCK), burn: lead(r.first.burn, E3_FULL_LOCK) },
+      leadBeforeShortH: {
+        any: lead(r.first.any, firstShort),
+        recall: lead(r.first.recall, firstShort),
+        burn: lead(r.first.burn, firstShort),
+      },
+      leadBeforeFullLockH: {
+        any: lead(r.first.any, E3_FULL_LOCK),
+        recall: lead(r.first.recall, E3_FULL_LOCK),
+        burn: lead(r.first.burn, E3_FULL_LOCK),
+      },
       warnMessages: r.warnMessages,
-      preExploitWarns: capacityRun(e3Path.filter(([t]) => t < E3_EXPLOIT), need, config).warnMessages,
+      preExploitWarns: capacityRun(
+        e3Path.filter(([t]) => t < E3_EXPLOIT),
+        need,
+        config,
+      ).warnMessages,
     }
   })
 }
@@ -215,7 +237,9 @@ function calmRate(config: AlertConfig) {
       needUsd: need,
       warnPlusPerMonth: round(msgs / months, 3),
       byKey,
-      byKeyPerMonth: Object.fromEntries(Object.entries(byKey).map(([k, n]) => [k, round(n / months, 3)])),
+      byKeyPerMonth: Object.fromEntries(
+        Object.entries(byKey).map(([k, n]) => [k, round(n / months, 3)]),
+      ),
       preE3Calm30d: { warnPlus: pre.warnMessages, byKey: pre.byKey },
     }
   })
@@ -229,7 +253,11 @@ const burnCfg = (lookbackH: number, warn: number): AlertConfig => ({
       lookbackS: lookbackH * H,
       spec: {
         ...CAPACITY_BURN_PRESET.spec,
-        enter: { watch: +(warn * 0.6).toFixed(2), warn, critical: Math.min(0.95, +(warn + 0.3).toFixed(2)) },
+        enter: {
+          watch: +(warn * 0.6).toFixed(2),
+          warn,
+          critical: Math.min(0.95, +(warn + 0.3).toFixed(2)),
+        },
       },
     },
   },
@@ -302,7 +330,15 @@ for (const f of readdirSync(cardDir)) {
       from = a.oldDiscountRatePerYear
       to = a.newDiscountRatePerYear
     }
-    changes.push({ subject: r.subject, origin: 'config-card', kind, entryId: `${r.subject}:${r.key}`, from, to, ts: r.ts })
+    changes.push({
+      subject: r.subject,
+      origin: 'config-card',
+      kind,
+      entryId: `${r.subject}:${r.key}`,
+      from,
+      to,
+      ts: r.ts,
+    })
   }
 }
 // (b) snapshot parameter diffs (the registry's own detector input), neighbour to neighbour.
@@ -314,14 +350,19 @@ for (const f of readdirSync(cardDir)) {
     .map((f) => JSON.parse(readFileSync(join(dir, f), 'utf8')))
   for (let i = 1; i < snaps.length; i++) {
     const prev = new Map(snaps[i - 1].entries.map((e: { id: string }) => [e.id, e]))
-    for (const e of snaps[i].entries as { id: string; params?: Record<string, unknown>; config?: Record<string, unknown> }[]) {
+    for (const e of snaps[i].entries as {
+      id: string
+      params?: Record<string, unknown>
+      config?: Record<string, unknown>
+    }[]) {
       const a = prev.get(e.id) as typeof e | undefined
       if (!a) continue
       for (const src of ['params', 'config'] as const)
         for (const k of Object.keys(e[src] ?? {})) {
           const x = a[src]?.[k]
           const y = e[src]?.[k]
-          if (x == null || y == null || String(x).toLowerCase() === String(y).toLowerCase()) continue
+          if (x == null || y == null || String(x).toLowerCase() === String(y).toLowerCase())
+            continue
           // The card history already holds governance-logged changes; keep only diffs it lacks.
           changes.push({
             subject: e.id.split('.')[0],
@@ -342,7 +383,12 @@ const dedup = changes.filter(
   (c) =>
     c.origin !== 'snapshot-diff' ||
     !changes.some(
-      (o) => o.origin === 'config-card' && o.subject === c.subject && o.kind === c.kind && c.ts - o.ts >= 0 && c.ts - o.ts < 60 * D,
+      (o) =>
+        o.origin === 'config-card' &&
+        o.subject === c.subject &&
+        o.kind === c.kind &&
+        c.ts - o.ts >= 0 &&
+        c.ts - o.ts < 60 * D,
     ),
 )
 
@@ -364,7 +410,9 @@ function oracleChangeRates() {
           id: subject,
           ts: t,
           venue: 'any',
-          collateral: [{ symbol: subject, amount: 1, oraclePriceUsd: 1, liquidationThreshold: 0.8 }],
+          collateral: [
+            { symbol: subject, amount: 1, oraclePriceUsd: 1, liquidationThreshold: 0.8 },
+          ],
           debt: [{ symbol: 'USD', amount: 0.5, priceUsd: 1 }],
         },
         ctx,
@@ -373,7 +421,8 @@ function oracleChangeRates() {
       )
       state = r.state
       for (const a of r.alerts)
-        if (isNotifiable(a) && (a.transition === 'fire' || a.transition === 'escalate')) counts[a.severity]++
+        if (isNotifiable(a) && (a.transition === 'fire' || a.transition === 'escalate'))
+          counts[a.severity]++
     }
     const months = (span.to - span.from) / MONTH
     return {
@@ -382,16 +431,24 @@ function oracleChangeRates() {
       to: iso(span.to),
       months: round(months, 1),
       changes: dedup.filter((c) => c.subject === subject).length,
-      alertEvents: evs.map((e) => ({ ts: iso(e.ts), kind: e.kind, severity: e.severity, origin: e.source })),
+      alertEvents: evs.map((e) => ({
+        ts: iso(e.ts),
+        kind: e.kind,
+        severity: e.severity,
+        origin: e.source,
+      })),
       messages: counts,
       warnPlusPerMonth: round((counts.warn + counts.critical) / months, 3),
     }
   })
   const months = perSubject.reduce((a, s) => a + (s.months ?? 0), 0)
   const warnPlus = perSubject.reduce((a, s) => a + s.messages.warn + s.messages.critical, 0)
-  const all = perSubject.reduce((a, s) => a + s.messages.watch + s.messages.warn + s.messages.critical, 0)
+  const all = perSubject.reduce(
+    (a, s) => a + s.messages.watch + s.messages.warn + s.messages.critical,
+    0,
+  )
   return {
-    note: 'Config-card oracle-dimension history (since each subject\'s collection start) plus parameter diffs between the registry snapshots, through fromRegistryChange. Read-access grants (TollGranted) and tightenings are not messages. Bridge, admin and mint dimensions are out of scope for this rule.',
+    note: "Config-card oracle-dimension history (since each subject's collection start) plus parameter diffs between the registry snapshots, through fromRegistryChange. Read-access grants (TollGranted) and tightenings are not messages. Bridge, admin and mint dimensions are out of scope for this rule.",
     subjects: perSubject.length,
     subjectMonths: round(months, 1),
     messagesPerSubjectMonth: round(all / months, 3),
@@ -450,7 +507,8 @@ function stethChainlink() {
   const stressTo = Date.UTC(2022, 6, 31) / 1000
   const calm = msgs.filter((m) => m.ts < stressFrom || m.ts > stressTo)
   const calmMonths = (last - first - (stressTo - stressFrom)) / MONTH
-  const count = (xs: typeof msgs, sev: string[]) => xs.filter((m) => sev.includes(m.severity)).length
+  const count = (xs: typeof msgs, sev: string[]) =>
+    xs.filter((m) => sev.includes(m.severity)).length
   return {
     source: 'Chainlink STETH/ETH (price-history/steth-eth-1h.json, forward-filled hourly)',
     from: iso(first),
@@ -495,15 +553,18 @@ function main() {
     exitCapacity: {
       venue: 'Aave v3 Core USDC',
       e3: {
-        source: 'recall-coverage data/chain/e3/usdc_utilization (virtual underlying balance at every state-changing block), read every 5 minutes',
+        source:
+          'recall-coverage data/chain/e3/usdc_utilization (virtual underlying balance at every state-changing block), read every 5 minutes',
         exploit: iso(E3_EXPLOIT),
         fullLock: iso(E3_FULL_LOCK),
-        fullLockRule: 'first block at or after the exploit with utilization >= 99.9% (the dataset E3_LOCK_UTILIZATION)',
+        fullLockRule:
+          'first block at or after the exploit with utilization >= 99.9% (the dataset E3_LOCK_UTILIZATION)',
         ratioOnly: e3Runs(ratioOnly),
         withBurnPreset: e3Runs({ ...OFF, exitCapacity: { ...EXIT, burn: CAPACITY_BURN_PRESET } }),
       },
       calm: {
-        source: 'venue-stress/history.json aave-core-usdc cash, hourly, outside the stress windows and E3',
+        source:
+          'venue-stress/history.json aave-core-usdc cash, hourly, outside the stress windows and E3',
         hours: calmHours,
         months: round(calmHours / (MONTH / H), 1),
         segments: calmSegs.length,
@@ -511,7 +572,10 @@ function main() {
         withBurnPreset: calmRate({ ...OFF, exitCapacity: { ...EXIT, burn: CAPACITY_BURN_PRESET } }),
       },
       burnSweep,
-      medianCalmCapacityUsd: quantile(calmSegs.flat().map(([, u]) => u), 0.5),
+      medianCalmCapacityUsd: quantile(
+        calmSegs.flat().map(([, u]) => u),
+        0.5,
+      ),
     },
     oracleChange: oracleChangeRates(),
     lstDepegChainlink: stethChainlink(),
@@ -521,8 +585,15 @@ function main() {
   console.log('calm', JSON.stringify(results.exitCapacity.calm).slice(0, 1500))
   for (const r of burnSweep) console.log('burn', JSON.stringify(r))
   const oc = results.oracleChange
-  console.log('oracle', oc.subjects, oc.subjectMonths, oc.messagesPerSubjectMonth, oc.warnPlusPerSubjectMonth)
-  for (const s of oc.perSubject) console.log('  ', s.subject, s.months, s.changes, JSON.stringify(s.messages))
+  console.log(
+    'oracle',
+    oc.subjects,
+    oc.subjectMonths,
+    oc.messagesPerSubjectMonth,
+    oc.warnPlusPerSubjectMonth,
+  )
+  for (const s of oc.perSubject)
+    console.log('  ', s.subject, s.months, s.changes, JSON.stringify(s.messages))
   const l = results.lstDepegChainlink
   console.log('steth', l.from, l.to, JSON.stringify(l.calm), 'stress', l.stress2022.length)
   console.log(`wrote ${OUT} in ${((Date.now() - t0) / 1000).toFixed(1)}s`)

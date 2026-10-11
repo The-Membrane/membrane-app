@@ -63,7 +63,8 @@ const readJson = (f: string) => {
 /** Cluster id without the venue's contract address (the cluster's venue is in its asset segments). */
 const shortCluster = (c: string | null) =>
   (c ?? 'unclustered').replace(/\/(?:aave-v3|morpho-blue):\d+:0x[0-9a-fA-F]+/, '')
-const round = (v: number | null, dp = 4) => (v === null || !Number.isFinite(v) ? null : +v.toFixed(dp))
+const round = (v: number | null, dp = 4) =>
+  v === null || !Number.isFinite(v) ? null : +v.toFixed(dp)
 
 // ------------------------------------------------------------------ shared scoring
 
@@ -245,7 +246,10 @@ const e1Unreplayable: { cluster: string; reason: string }[] = []
 for (const p of e1.positions) {
   const o = p.oracle ? e1.oracles[p.oracle] : null
   if (!o || !p.collateralUnits || !p.debtUsd) {
-    e1Unreplayable.push({ cluster: shortCluster(p.cluster), reason: 'no oracle path in the pull (chain ' + p.chainId + ')' })
+    e1Unreplayable.push({
+      cluster: shortCluster(p.cluster),
+      reason: 'no oracle path in the pull (chain ' + p.chainId + ')',
+    })
     continue
   }
   const hf = (o.px as number[]).map((px) => (p.collateralUnits * px * p.lltv) / p.debtUsd)
@@ -277,13 +281,7 @@ for (const p of e1.positions) {
 
 const e3 = readJson('e3-loop-paths.json.gz')
 const e3Paths: Path[] = e3.positions.map(
-  (p: {
-    id: string
-    cluster: string
-    lt: number
-    debtUsd: number
-    hf: number[]
-  }): Path => ({
+  (p: { id: string; cluster: string; lt: number; debtUsd: number; hf: number[] }): Path => ({
     id: p.id,
     cluster: shortCluster(p.cluster),
     isLooper: true,
@@ -313,10 +311,7 @@ const e3Paths: Path[] = e3.positions.map(
 const e4 = readJson('e4-looper-paths.json')
 const e4Ts: number[] = [...e4.preT0.ts, ...e4.ticks.ts]
 const e4Px: number[] = [...e4.preT0.px, ...e4.ticks.px]
-const e4Factor = (m: 'usdc' | 'usdt'): number[] => [
-  ...e4.preT0.ts.map(() => 1),
-  ...e4.factor[m],
-]
+const e4Factor = (m: 'usdc' | 'usdt'): number[] => [...e4.preT0.ts.map(() => 1), ...e4.factor[m]]
 const e4F = { usdc: e4Factor('usdc'), usdt: e4Factor('usdt') }
 const e4Paths: Path[] = e4.positions.map(
   (p: {
@@ -369,18 +364,22 @@ interface E2Point {
 
 const e2 = JSON.parse(readFileSync(E2_FILE, 'utf8'))
 const E2_MIN_DEBT = 1_000
-const e2Market = new Map<string, { collateral: string; loan: string; lltv: number; chainId: number }>(
-  e2.markets.map((m: { chainId: number; marketId: string; collateral: string; loan: string; lltv: number }) => [
-    `${m.chainId}:${m.marketId}`,
-    m,
-  ]),
+const e2Market = new Map<
+  string,
+  { collateral: string; loan: string; lltv: number; chainId: number }
+>(
+  e2.markets.map(
+    (m: { chainId: number; marketId: string; collateral: string; loan: string; lltv: number }) => [
+      `${m.chainId}:${m.marketId}`,
+      m,
+    ],
+  ),
 )
 /** Market price at ts (last point at or before), by collateral symbol. */
 const e2PriceSeries: Record<string, [number, number][]> = Object.fromEntries(
-  Object.entries(e2.marketPrices as Record<string, { series: [number, number][] }>).map(([k, v]) => [
-    k,
-    v.series,
-  ]),
+  Object.entries(e2.marketPrices as Record<string, { series: [number, number][] }>).map(
+    ([k, v]) => [k, v.series],
+  ),
 )
 function priceAt(series: [number, number][] | undefined, ts: number): number | null {
   if (!series?.length || ts < series[0][0]) return null
@@ -409,7 +408,12 @@ interface E2Prepared {
 const e2Prepared: E2Prepared[] = []
 const e2OpenedLate: { collateral: string; openedTs: number }[] = []
 let e2Dust = 0
-for (const p of e2.positions as { chainId: number; marketId: string; user: string; history: E2Point[] }[]) {
+for (const p of e2.positions as {
+  chainId: number
+  marketId: string
+  user: string
+  history: E2Point[]
+}[]) {
   const m = e2Market.get(`${p.chainId}:${p.marketId}`)!
   const pts = p.history.filter(
     (x) => (x.borrow ?? 0) > 0 && (x.collateral ?? 0) > 0 && x.collateralValue !== null,
@@ -456,7 +460,8 @@ for (const p of e2.positions as { chainId: number; marketId: string; user: strin
 {
   const n = new Map<string, number>()
   for (const x of e2Prepared) n.set(x.cluster, (n.get(x.cluster) ?? 0) + 1)
-  for (const x of e2Prepared) if ((n.get(x.cluster) ?? 0) < 3) x.cluster = `EV-2/morpho/${x.collateral}/other`
+  for (const x of e2Prepared)
+    if ((n.get(x.cluster) ?? 0) < 3) x.cluster = `EV-2/morpho/${x.collateral}/other`
 }
 
 /** basis 'oracle': breach at oracle HF < 1 (the venue's line); 'market': at market HF < 1. */
@@ -528,7 +533,10 @@ const SWEEP: { label: string; config: AlertConfig }[] = [
     label: `HF warn < ${L}`,
     config: hfLineConfig(L),
   })),
-  { label: 'cushion burn only (HF tiers off)', config: { ...DEFAULT_ALERT_CONFIG, healthFactor: null } },
+  {
+    label: 'cushion burn only (HF tiers off)',
+    config: { ...DEFAULT_ALERT_CONFIG, healthFactor: null },
+  },
   {
     label: 'CORRELATED_LOOP_HF (1.05 / 1.02 / 1.01)',
     config: { ...DEFAULT_ALERT_CONFIG, healthFactor: CORRELATED_LOOP_HF },
@@ -578,13 +586,15 @@ function main() {
   const config = DEFAULT_ALERT_CONFIG
   const events = {
     E1: {
-      source: 'recall-coverage EV-1 Morpho rows (inputs/oct10 morpho_liquidations.csv + data/chain/e1); oracle price() per block',
+      source:
+        'recall-coverage EV-1 Morpho rows (inputs/oct10 morpho_liquidations.csv + data/chain/e1); oracle price() per block',
       window: { fromTs: e1Paths[0]?.ts[0] ?? null, toTs: e1Paths[0]?.ts.at(-1) ?? null },
       unreplayable: e1Unreplayable,
       runs: runEvent(e1Paths, config),
     },
     E3: {
-      source: 'recall-coverage EV-3 positions_start + reserve_state + underlying_prices; HF per tick by the dataset formula (e3.ts:398-407)',
+      source:
+        'recall-coverage EV-3 positions_start + reserve_state + underlying_prices; HF per tick by the dataset formula (e3.ts:398-407)',
       window: { fromTs: e3.startTs, toTs: e3.endTs, ticks: e3.ticks.ts.length },
       datasetMinHf: e3.minHf,
       observedLiquidationsOfLoopers: e3.observedLiquidationsOfLoopers,
@@ -592,7 +602,8 @@ function main() {
       runs: runEvent(e3Paths, config, CADENCES.slice(0, 1)),
     },
     E2: {
-      source: 'own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market, DefiLlama CoinGecko prices',
+      source:
+        'own pull (not a pinned table): Morpho API hourly position history on every xUSD / deUSD / sdeUSD market, DefiLlama CoinGecko prices',
       window: e2.specWindow,
       history: e2.historyWindow,
       positionsReplayed: e2Prepared.length,
@@ -600,7 +611,10 @@ function main() {
       openedAfterWindowStart: e2OpenedLate.map((x) => ({ ...x, debtUsdMax: undefined })),
       uncovered: e2.uncovered,
       liquidationsSinceHistoryStart: e2.liquidations.length,
-      priceFreezeEvents: e2Prepared.map((x) => ({ cluster: x.cluster, events: x.oracleEvents.map((e) => e.ts) })),
+      priceFreezeEvents: e2Prepared.map((x) => ({
+        cluster: x.cluster,
+        events: x.oracleEvents.map((e) => e.ts),
+      })),
       oracleBasis: {
         runs: runEvent(e2Paths('oracle'), config, [{ label: '1 h', everyS: 0 }]),
       },
@@ -610,7 +624,8 @@ function main() {
       runs: [] as ReturnType<typeof runEvent>,
     },
     E4: {
-      source: 'recall-coverage EV-4 positions_t0 + oracle (price() per block t0-300..t0+600, every 5th to t0+2h, hourly to t0+24h) + market borrow rate accrual',
+      source:
+        'recall-coverage EV-4 positions_t0 + oracle (price() per block t0-300..t0+600, every 5th to t0+2h, hourly to t0+24h) + market borrow rate accrual',
       window: { fromTs: e4Ts[0], toTs: e4Ts.at(-1), t0: e4.t0 },
       runs: runEvent(e4Paths, config),
     },
@@ -627,7 +642,10 @@ function main() {
     criticalAnyTime: e3Run.rows.filter((r) => r.criticalMessages > 0).length,
     warnMessages: e3Run.rows.reduce((a, r) => a + r.warnMessages, 0),
     criticalMessages: e3Run.rows.reduce((a, r) => a + r.criticalMessages, 0),
-    warnPerPositionMonth: round(e3Run.rows.reduce((a, r) => a + r.warnMessages, 0) / (e3Paths.length * months), 3),
+    warnPerPositionMonth: round(
+      e3Run.rows.reduce((a, r) => a + r.warnMessages, 0) / (e3Paths.length * months),
+      3,
+    ),
     criticalPerPositionMonth: round(
       e3Run.rows.reduce((a, r) => a + r.criticalMessages, 0) / (e3Paths.length * months),
       3,
@@ -650,8 +668,7 @@ function main() {
   writeFileSync(PUBLIC_OUT, JSON.stringify(publicCopy(results), null, 1) + '\n')
   console.log(`wrote ${PUBLIC_OUT} (public, per cluster)`)
   for (const [k, ev] of Object.entries(events))
-    for (const r of ev.runs)
-      console.log(k, r.cadence.padEnd(10), JSON.stringify(r.gate))
+    for (const r of ev.runs) console.log(k, r.cadence.padEnd(10), JSON.stringify(r.gate))
   for (const b of ['oracleBasis', 'marketBasis'] as const)
     for (const r of events.E2[b].runs) {
       console.log('E2', b, JSON.stringify(r.gate))
@@ -679,9 +696,13 @@ function main() {
 /** Per-cluster tables only: the per-position rows stay in the datasets repo (spec G2, board N18). */
 function publicCopy(results: { events: Record<string, { runs: { rows?: unknown }[] }> }) {
   const copy = JSON.parse(JSON.stringify(results))
-  for (const ev of Object.values(copy.events) as Record<string, { runs?: { rows?: unknown }[] }>[]) {
+  for (const ev of Object.values(copy.events) as Record<
+    string,
+    { runs?: { rows?: unknown }[] }
+  >[]) {
     for (const r of (ev as { runs: { rows?: unknown }[] }).runs) delete r.rows
-    for (const sub of [ev.oracleBasis, ev.marketBasis]) for (const r of sub?.runs ?? []) delete r.rows
+    for (const sub of [ev.oracleBasis, ev.marketBasis])
+      for (const r of sub?.runs ?? []) delete r.rows
   }
   const text = JSON.stringify(copy)
   if (/"id":/.test(text) || /0x[0-9a-fA-F]{40}/.test(text))

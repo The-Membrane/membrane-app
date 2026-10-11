@@ -239,7 +239,20 @@ function runEvent(paths: Path[], config: AlertConfig, cadences = CADENCES) {
   const byCadence = cadences.map(({ label, everyS }) => {
     const rows = paths.map((p) => runPath(p, config, everyS))
     const clusters = summarise(rows)
-    return { cadence: label, everyS, gate: gate(clusters), clusters, rows }
+    // A path already under HF 1 at its first read has no "before": a reconstruction that does
+    // not hold for that account (E1 census). Gate again without those.
+    const scoreable = rows.filter((r) => r.hfFirstRead === null || r.hfFirstRead >= 1)
+    return {
+      cadence: label,
+      everyS,
+      gate: gate(clusters),
+      gateScoreable: {
+        ...gate(summarise(scoreable)),
+        startBelowOne: rows.length - scoreable.length,
+      },
+      clusters,
+      rows,
+    }
   })
   return byCadence
 }
@@ -637,11 +650,14 @@ for (const p of e2.positions as {
     hardcoded,
     points: pts,
     marketPx,
-    oracleEvents: detectPriceFreeze(
-      pts.map((x, i) => ({ ts: x.ts, oraclePx: oraclePx[i], marketPx: marketPx[i] })),
-      m.collateral,
-      `${p.chainId}:${p.marketId}`,
-    ),
+    // A hard-coded oracle never moves, so "frozen" says nothing new: the depeg rule covers it.
+    oracleEvents: hardcoded
+      ? []
+      : detectPriceFreeze(
+          pts.map((x, i) => ({ ts: x.ts, oraclePx: oraclePx[i], marketPx: marketPx[i] })),
+          m.collateral,
+          `${p.chainId}:${p.marketId}`,
+        ),
     liquidationTs: liq[0] ?? null,
   })
 }

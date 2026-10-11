@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-pinned-replay.ts",
- "generatedAt": "2026-10-11T15:10:28.363Z",
+ "generatedAt": "2026-10-11T15:14:58.775Z",
  "config": "DEFAULT_ALERT_CONFIG",
  "definitions": "breach = first tick with HF < 1 on the dataset path, stamped at the previous tick (strict). Lead = breach − start of the earliest warn+ (critical) episode still open. censored = that episode opened at the first read. False alarm = worsening message with no breach in 72h.",
  "events": {
@@ -57,6 +57,15 @@
       "warnedBeforeBreach": 1565,
       "criticalBeforeBreach": 1565,
       "met": false
+     },
+     "gateScoreable": {
+      "breachedClusters": 19,
+      "clustersAllWarnedBeforeBreach": 16,
+      "breachedPositions": 1588,
+      "warnedBeforeBreach": 1565,
+      "criticalBeforeBreach": 1565,
+      "met": false,
+      "startBelowOne": 132
      },
      "clusters": [
       {
@@ -422,6 +431,15 @@
       "criticalBeforeBreach": 1404,
       "met": false
      },
+     "gateScoreable": {
+      "breachedClusters": 19,
+      "clustersAllWarnedBeforeBreach": 9,
+      "breachedPositions": 1588,
+      "warnedBeforeBreach": 1413,
+      "criticalBeforeBreach": 1404,
+      "met": false,
+      "startBelowOne": 132
+     },
      "clusters": [
       {
        "cluster": "EV-1/aave/cross_asset/1INCH",
@@ -785,6 +803,15 @@
       "warnedBeforeBreach": 1382,
       "criticalBeforeBreach": 1371,
       "met": false
+     },
+     "gateScoreable": {
+      "breachedClusters": 19,
+      "clustersAllWarnedBeforeBreach": 9,
+      "breachedPositions": 1588,
+      "warnedBeforeBreach": 1382,
+      "criticalBeforeBreach": 1371,
+      "met": false,
+      "startBelowOne": 132
      },
      "clusters": [
       {
@@ -1165,6 +1192,15 @@
       "criticalBeforeBreach": 2,
       "met": true
      },
+     "gateScoreable": {
+      "breachedClusters": 2,
+      "clustersAllWarnedBeforeBreach": 2,
+      "breachedPositions": 2,
+      "warnedBeforeBreach": 2,
+      "criticalBeforeBreach": 2,
+      "met": true,
+      "startBelowOne": 0
+     },
      "clusters": [
       {
        "cluster": "EV-1/morpho/sUSDe/not_looper:debt_below_min",
@@ -1206,6 +1242,15 @@
       "warnedBeforeBreach": 2,
       "criticalBeforeBreach": 2,
       "met": true
+     },
+     "gateScoreable": {
+      "breachedClusters": 2,
+      "clustersAllWarnedBeforeBreach": 2,
+      "breachedPositions": 2,
+      "warnedBeforeBreach": 2,
+      "criticalBeforeBreach": 2,
+      "met": true,
+      "startBelowOne": 0
      },
      "clusters": [
       {
@@ -1249,6 +1294,15 @@
       "criticalBeforeBreach": 2,
       "met": true
      },
+     "gateScoreable": {
+      "breachedClusters": 2,
+      "clustersAllWarnedBeforeBreach": 2,
+      "breachedPositions": 2,
+      "warnedBeforeBreach": 2,
+      "criticalBeforeBreach": 2,
+      "met": true,
+      "startBelowOne": 0
+     },
      "clusters": [
       {
        "cluster": "EV-1/morpho/sUSDe/not_looper:debt_below_min",
@@ -1290,6 +1344,15 @@
       "warnedBeforeBreach": 2,
       "criticalBeforeBreach": 2,
       "met": true
+     },
+     "gateScoreable": {
+      "breachedClusters": 2,
+      "clustersAllWarnedBeforeBreach": 2,
+      "breachedPositions": 2,
+      "warnedBeforeBreach": 2,
+      "criticalBeforeBreach": 2,
+      "met": true,
+      "startBelowOne": 0
      },
      "clusters": [
       {
@@ -1344,6 +1407,15 @@
       "warnedBeforeBreach": 0,
       "criticalBeforeBreach": 0,
       "met": true
+     },
+     "gateScoreable": {
+      "breachedClusters": 0,
+      "clustersAllWarnedBeforeBreach": 0,
+      "breachedPositions": 0,
+      "warnedBeforeBreach": 0,
+      "criticalBeforeBreach": 0,
+      "met": true,
+      "startBelowOne": 0
      },
      "clusters": [
       {
@@ -1827,15 +1899,11 @@
     },
     {
      "cluster": "EV-2/morpho/sdeUSD/other",
-     "events": [
-      1761458400
-     ]
+     "events": []
     },
     {
      "cluster": "EV-2/morpho/sdeUSD/other",
-     "events": [
-      1761458400
-     ]
+     "events": []
     },
     {
      "cluster": "EV-2/morpho/xUSD/other",
@@ -1867,6 +1935,15 @@
        "warnedBeforeBreach": 3,
        "criticalBeforeBreach": 3,
        "met": true
+      },
+      "gateScoreable": {
+       "breachedClusters": 2,
+       "clustersAllWarnedBeforeBreach": 2,
+       "breachedPositions": 3,
+       "warnedBeforeBreach": 3,
+       "criticalBeforeBreach": 3,
+       "met": true,
+       "startBelowOne": 0
       },
       "clusters": [
        {
@@ -1913,6 +1990,15 @@
        "warnedBeforeBreach": 3,
        "criticalBeforeBreach": 3,
        "met": true
+      },
+      "gateScoreable": {
+       "breachedClusters": 2,
+       "clustersAllWarnedBeforeBreach": 2,
+       "breachedPositions": 3,
+       "warnedBeforeBreach": 3,
+       "criticalBeforeBreach": 3,
+       "met": true,
+       "startBelowOne": 0
       },
       "clusters": [
        {
@@ -1972,6 +2058,15 @@
       "warnedBeforeBreach": 20,
       "criticalBeforeBreach": 20,
       "met": true
+     },
+     "gateScoreable": {
+      "breachedClusters": 4,
+      "clustersAllWarnedBeforeBreach": 4,
+      "breachedPositions": 20,
+      "warnedBeforeBreach": 20,
+      "criticalBeforeBreach": 20,
+      "met": true,
+      "startBelowOne": 0
      },
      "clusters": [
       {
@@ -2211,6 +2306,15 @@
       "criticalBeforeBreach": 20,
       "met": true
      },
+     "gateScoreable": {
+      "breachedClusters": 4,
+      "clustersAllWarnedBeforeBreach": 4,
+      "breachedPositions": 20,
+      "warnedBeforeBreach": 20,
+      "criticalBeforeBreach": 20,
+      "met": true,
+      "startBelowOne": 0
+     },
      "clusters": [
       {
        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/not_looper:debt_below_min",
@@ -2449,6 +2553,15 @@
       "criticalBeforeBreach": 20,
       "met": true
      },
+     "gateScoreable": {
+      "breachedClusters": 4,
+      "clustersAllWarnedBeforeBreach": 4,
+      "breachedPositions": 20,
+      "warnedBeforeBreach": 20,
+      "criticalBeforeBreach": 20,
+      "met": true,
+      "startBelowOne": 0
+     },
      "clusters": [
       {
        "cluster": "EV-4/morpho/PT-reUSD-10DEC2026/not_looper:debt_below_min",
@@ -2686,6 +2799,15 @@
       "warnedBeforeBreach": 20,
       "criticalBeforeBreach": 20,
       "met": true
+     },
+     "gateScoreable": {
+      "breachedClusters": 4,
+      "clustersAllWarnedBeforeBreach": 4,
+      "breachedPositions": 20,
+      "warnedBeforeBreach": 20,
+      "criticalBeforeBreach": 20,
+      "met": true,
+      "startBelowOne": 0
      },
      "clusters": [
       {

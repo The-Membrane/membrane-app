@@ -665,7 +665,7 @@ async function buildE2Stream() {
     )
   }
   // Independent market prices (CoinGecko trades via DefiLlama). Morpho's own USD feed is kept
-  // per position (collateralUsd) but read a wrong deUSD price before the collapse.
+  // per position (collateralUsd) as a cross-check.
   const marketPrices = {}
   for (const [sym, key] of Object.entries(E2_MARKET_KEYS)) {
     marketPrices[sym] = { key, series: await llamaSeries(key, E2_HISTORY.fromTs, E2_HISTORY.toTs) }

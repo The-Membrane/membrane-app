@@ -18,8 +18,9 @@
  * AN EMPTY ANSWER IS NOT A FACT (2026-10-07). Measured against the Chainlink ETH/USD
  * AnswerUpdated scan: eth.api.pocket.network answers a 10,000-block query with `[]`
  * 10–15% of the time (8 of 55 calls) where Tenderly, MEV Blocker and BlockPI all return
- * the same 37–49 logs, and halving to 1,000 blocks does not help (2 of 20). A
- * rate-limited rpc.flashbots.net also answers `[]`. Neither is an error, so the old ring
+ * the same 37–49 logs, and halving to 1,000 blocks does not help (2 of 20).
+ * rpc.flashbots.net also answers `[]`: it serves only a slice of history (board R33,
+ * 2026-10-11), so it is now excluded outright. Neither is an error, so the old ring
  * took them as "no events here" — the 34–35 h holes in the price history. Now:
  *   - every EMPTY answer is re-asked on a second, INDEPENDENT endpoint (another backend,
  *     not another host of the same one) and believed only when both say empty;
@@ -48,6 +49,7 @@ import { createPublicClient, fallback, http, parseAbiItem, type PublicClient, ty
 import { mainnet } from 'viem/chains'
 import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import { isExcludedLogHost, withoutExcludedLogHosts } from './rpcExclusions'
 
 export const CANDIDATES = [
   'https://eth.api.pocket.network',
@@ -55,8 +57,7 @@ export const CANDIDATES = [
   'https://eth.drpc.org',
   'https://ethereum-rpc.publicnode.com',
   'https://eth.llamarpc.com',
-  'https://rpc.mevblocker.io',
-  'https://rpc.flashbots.net/fast',
+  // rpc.mevblocker.io and rpc.flashbots.net are gone: see ./rpcExclusions (board R33).
   'https://eth.merkle.io',
   'https://cloudflare-eth.com',
   'https://eth.api.onfinality.io/public',
@@ -87,13 +88,33 @@ export interface RingTable {
   entries: RingEntry[]
 }
 
+/** Probe sizes, widest first. A size counts only when EVERY anchor in PROBE_ANCHORS comes
+ *  back inside a window of that size ending on it. */
 const PROBE_SIZES = [10_000n, 5_000n, 2_000n, 1_000n, 800n, 600n, 500n, 250n, 100n, 50n, 10n]
-/** The probe window ENDS on a known log, so every probe size must return it: Chainlink
- *  ETH/USD phase-7 aggregator, round 5119, block 21,609,832, log 415. (The pre-2026-10-07
- *  probe asked phase 5, 0x37bC…a9e6, which emits nothing at 21.6M.) */
+/** Each probe window ENDS on a known log, so every probe size must return it. All anchors
+ *  are Chainlink ETH/USD phase-7 aggregator AnswerUpdated logs. (The pre-2026-10-07 probe
+ *  asked phase 5, 0x37bC…a9e6, which emits nothing at 21.6M.) */
 export const PROBE_AGG = '0x7d4e742018fb52e48b08be73d041c18b21de6fb5' as const
+/** Anchor 1: round 5119, block 21,609,832, log 415. */
 export const PROBE_ANCHOR_BLOCK = 21_609_832n
-export const PROBE_ANCHOR_TX = '0xa7a23564357c9813da591112fb95d0a9bceefe9e5babdc5d1846ca713195a761'
+export const PROBE_ANCHOR_TX: `0x${string}` = '0xa7a23564357c9813da591112fb95d0a9bceefe9e5babdc5d1846ca713195a761'
+export interface ProbeAnchor {
+  block: bigint
+  tx: `0x${string}`
+  logIndex: number
+}
+/** ONE ANCHOR IS NOT ENOUGH (board R33, 2026-10-11). An endpoint that serves only a slice
+ *  of history answers correctly around a single anchor and `[]` everywhere else, so the
+ *  probe rated it by the slice. rpc.flashbots.net did exactly this: it serves about
+ *  blocks 22.3M–22.4M, the old anchor sat in its good range, and it scored cap 10,000
+ *  while answering `[]` on 268 of 328 checked 10k ranges that held logs. Anchors far
+ *  apart make a slice-only host fail at least one of them.
+ *  Anchor 2: round 33328, block 25,909,799, log 43 — verified 2026-10-11, when Ankr and
+ *  Infura returned the same 48 logs over [25,900,000, 25,909,999]. */
+export const PROBE_ANCHORS: readonly ProbeAnchor[] = [
+  { block: PROBE_ANCHOR_BLOCK, tx: PROBE_ANCHOR_TX, logIndex: 415 },
+  { block: 25_909_799n, tx: '0x6d43e60129f0609ded446205972c95af41062a0f17595892173ebe9be0b168dd', logIndex: 43 },
+]
 const ANSWER_UPDATED = parseAbiItem(
   'event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)',
 )
@@ -112,7 +133,8 @@ export async function probeRing(
 ): Promise<RingTable> {
   const transportFor = opts.transportFor ?? httpTransport
   const pauseMs = opts.pauseMs ?? 250
-  const urls = [...new Set([...extra, ...candidates])]
+  // An excluded relay is never called, not even for eth_blockNumber (board R33).
+  const urls = withoutExcludedLogHosts([...new Set([...extra, ...candidates])])
   const entries = await Promise.all(
     urls.map(async (url): Promise<RingEntry> => {
       const c = createPublicClient({ chain: mainnet, transport: transportFor(url, { timeout: 12_000, retryCount: 0 }) })
@@ -123,9 +145,11 @@ export async function probeRing(
       }
       let emptyAnswers = 0
       const flagged = () => (emptyAnswers ? { emptyAnswers } : {})
-      for (const n of PROBE_SIZES) {
-        // An answer without the anchor log gets one more try at the same size (Pocket's
-        // empties are intermittent); an error is a refusal at this size.
+      /** Latency of a call whose answer held `a`'s log at size `n`, or null. An answer
+       *  without the anchor log gets one more try at the same size (Pocket's empties are
+       *  intermittent); an error is a refusal at this size. */
+      const askAnchor = async (a: ProbeAnchor, n: bigint): Promise<number | null> => {
+        const tx = a.tx.toLowerCase()
         for (let tryNo = 0; tryNo < 2; tryNo++) {
           const t = Date.now()
           let refused = false
@@ -133,12 +157,10 @@ export async function probeRing(
             const logs = await c.getLogs({
               address: PROBE_AGG,
               event: ANSWER_UPDATED,
-              fromBlock: PROBE_ANCHOR_BLOCK - n + 1n,
-              toBlock: PROBE_ANCHOR_BLOCK,
+              fromBlock: a.block - n + 1n,
+              toBlock: a.block,
             })
-            if (logs.some((l) => l.transactionHash?.toLowerCase() === PROBE_ANCHOR_TX)) {
-              return { url, cap: Number(n), ms: Date.now() - t, alive: true, ...flagged() }
-            }
+            if (logs.some((l) => l.transactionHash?.toLowerCase() === tx)) return Date.now() - t
             emptyAnswers++
           } catch {
             refused = true
@@ -147,6 +169,22 @@ export async function probeRing(
           await new Promise((r) => setTimeout(r, pauseMs))
           if (refused) break
         }
+        return null
+      }
+      for (const n of PROBE_SIZES) {
+        // A size passes only when EVERY anchor comes back; the first anchor that fails
+        // ends this size. `ms` is the slowest passing call at the size that passed.
+        let slowest = 0
+        let passed = true
+        for (const a of PROBE_ANCHORS) {
+          const ms = await askAnchor(a, n)
+          if (ms === null) {
+            passed = false
+            break
+          }
+          slowest = Math.max(slowest, ms)
+        }
+        if (passed) return { url, cap: Number(n), ms: slowest, alive: true, ...flagged() }
       }
       return { url, cap: 0, ms: 0, alive: true, ...flagged() }
     }),
@@ -169,9 +207,17 @@ const resolveAlias = (u: string): string | null => {
   return envUrls().find((x) => new URL(x).host === host) ?? null
 }
 
+/** `t` without its excluded relays (./rpcExclusions, board R33). Handles both a plain URL
+ *  and a saved `env:<host>` alias, since a relay listed in RECORDER_RPC_URL is saved as
+ *  `env:rpc.flashbots.net`. The committed rpc-ring.json still holds such rows. */
+export function withoutExcludedEntries(t: RingTable): RingTable {
+  const excluded = (u: string): boolean => isExcludedLogHost(u.startsWith('env:') ? `https://${u.slice(4)}` : u)
+  return { ...t, entries: t.entries.filter((e) => !excluded(e.url)) }
+}
+
 export function loadRing(): RingTable | null {
   try {
-    const t = JSON.parse(readFileSync(RING_PATH, 'utf8')) as RingTable
+    const t = withoutExcludedEntries(JSON.parse(readFileSync(RING_PATH, 'utf8')) as RingTable)
     const entries = t.entries
       .map((e) => ({ ...e, url: resolveAlias(e.url) }))
       .filter((e): e is RingEntry => e.url !== null)
@@ -187,11 +233,14 @@ export function saveRing(t: RingTable): void {
 
 /** Saved table if fresh, else probe + save. `extra` URLs (e.g. env) are probed too. */
 export async function ensureRing(extra: string[] = [], maxAgeMs = RING_STALE_MS): Promise<RingTable> {
+  // An excluded relay is never in a table, so asking for it would force a re-probe on
+  // every call.
+  const wanted = withoutExcludedLogHosts(extra)
   const saved = loadRing()
-  if (saved && Date.now() - Date.parse(saved.probedAt) < maxAgeMs && extra.every((u) => saved.entries.some((e) => e.url === u))) {
+  if (saved && Date.now() - Date.parse(saved.probedAt) < maxAgeMs && wanted.every((u) => saved.entries.some((e) => e.url === u))) {
     return saved
   }
-  const t = await probeRing(CANDIDATES, extra)
+  const t = await probeRing(CANDIDATES, wanted)
   saveRing(t)
   return t
 }

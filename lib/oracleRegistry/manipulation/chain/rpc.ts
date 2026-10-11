@@ -1,12 +1,16 @@
 /**
  * JSON-RPC reader for the manipulation engine. Server/script side only.
  *
- * Dependency-free (plain fetch) so the build and the fork tests run from a bare
- * checkout. Three things the rest of the engine relies on:
+ * Dependency-free (plain fetch, no packages) so the build and the fork tests run from
+ * a bare checkout. Its only import outside this folder is
+ * lib/position-sim/rpcExclusions, which itself imports nothing. Three things the rest
+ * of the engine relies on:
  *
  *  1. ENDPOINTS: RECORDER_RPC_URL (comma list, from the env or .env.local), then
  *     keyless public archive endpoints. An env URL is only ever shown as
- *     `env:<host>`. Its value is never logged, stored or put in an error.
+ *     `env:<host>`. Its value is never logged, stored or put in an error. The builder
+ *     relays (rpc.flashbots.net, rpc.mevblocker.io) are dropped from the env list:
+ *     see rpcExclusions (board R33, 2026-10-11).
  *  2. MULTICALL: `multicall()` folds view calls into Multicall3.aggregate3 at one
  *     block, with per-call failure allowed, so a 2,000-market enumeration is ~20
  *     eth_calls.
@@ -19,6 +23,7 @@
 
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { withoutExcludedLogHosts } from '../../../position-sim/rpcExclusions'
 import { decodeAbi, encodeAbi, type Fn, type Hex, type AbiValue } from './abi'
 
 export const MULTICALL3 = '0xca11bde05977b3631167028862be2a173976ca11'
@@ -30,11 +35,11 @@ export const PUBLIC_CALL_RPCS = [
   'https://mainnet.gateway.tenderly.co',
 ] as const
 
-/** Keyless endpoints that served a 2,000-block topic-filtered getLogs on 2026-10-07. */
+/** Keyless endpoints that served a 2,000-block topic-filtered getLogs on 2026-10-07.
+ *  rpc.mevblocker.io is gone: it was dead at every probe on 2026-10-11 (board R33). */
 export const PUBLIC_LOG_RPCS = [
   { url: 'https://gateway.tenderly.co/public/mainnet', cap: 10_000 },
   { url: 'https://eth.api.pocket.network', cap: 10_000 },
-  { url: 'https://rpc.mevblocker.io', cap: 10_000 },
   { url: 'https://mainnet.gateway.tenderly.co', cap: 10_000 },
   { url: 'https://ethereum.public.blockpi.network/v1/rpc/public', cap: 5_000 },
 ] as const
@@ -49,11 +54,15 @@ function envValue(key: string): string | undefined {
   }
 }
 
+/** RECORDER_RPC_URL as a list, without the builder relays: remote copies of it still
+ *  name them, and Flashbots answers `[]` outside the slice of history it serves. */
 export function envRpcUrls(): string[] {
-  return String(envValue('RECORDER_RPC_URL') ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
+  return withoutExcludedLogHosts(
+    String(envValue('RECORDER_RPC_URL') ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  )
 }
 
 const hostOf = (u: string): string => {

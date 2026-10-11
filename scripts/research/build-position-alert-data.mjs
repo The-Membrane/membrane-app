@@ -111,7 +111,7 @@ const RPCS = [
   'https://mainnet.gateway.tenderly.co',
   'https://eth.drpc.org',
   'https://eth-mainnet.public.blastapi.io',
-  'https://rpc.mevblocker.io',
+  // rpc.mevblocker.io removed 2026-10-11: dead at every probe (board R33).
   'https://eth-pokt.nodies.app',
 ]
 let rpcCursor = 0

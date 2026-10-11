@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { custom, toHex } from 'viem'
 
 import {
-  PROBE_ANCHOR_BLOCK,
-  PROBE_ANCHOR_TX,
+  PROBE_ANCHORS,
   RingCoverageError,
   RingEmptyUnconfirmedError,
   RpcRing,
@@ -11,6 +10,7 @@ import {
   probeRing,
   queryOf,
   redactUrls,
+  withoutExcludedEntries,
   type RingTable,
   type RpcCall,
   type TransportFor,
@@ -42,21 +42,24 @@ function rawLog(block: bigint, idx: number, tx?: string) {
 }
 
 /** One AnswerUpdated every 300 blocks over [1,000,000, 1,080,000) — an hourly feed —
- *  plus the probe anchor. Nothing in [2,000,000, 2,100,000): a genuinely quiet range. */
+ *  plus every probe anchor. Nothing in [2,000,000, 2,100,000): a genuinely quiet range. */
 const CHAIN = [
   ...Array.from({ length: 267 }, (_, i) => rawLog(1_000_000n + BigInt(i) * 300n, i % 7)),
-  rawLog(PROBE_ANCHOR_BLOCK, 415, PROBE_ANCHOR_TX),
+  ...PROBE_ANCHORS.map((a) => rawLog(a.block, a.logIndex, a.tx)),
 ]
 const truth = (from: bigint, to: bigint) =>
   CHAIN.filter((l) => BigInt(l.blockNumber) >= from && BigInt(l.blockNumber) <= to)
 
 function fakeNet(scripts: Record<string, Script>) {
   const calls: { host: string; from: bigint; to: bigint; mode: Mode }[] = []
+  /** Every request of any method, eth_blockNumber included. */
+  const requests: { host: string; method: string }[] = []
   const transportFor: TransportFor = (url, opts) =>
     custom(
       {
         async request({ method, params }: { method: string; params: any }) {
           const host = new URL(url).host
+          requests.push({ host, method })
           if (method === 'eth_blockNumber') return toHex(HEAD)
           if (method === 'eth_chainId') return '0x1'
           if (method !== 'eth_getLogs') throw new Error(`unexpected ${method}`)
@@ -75,7 +78,7 @@ function fakeNet(scripts: Record<string, Script>) {
       { retryCount: opts.retryCount },
     )
   const of = (host: string) => calls.filter((c) => c.host === host)
-  return { transportFor, calls, of }
+  return { transportFor, calls, requests, of }
 }
 
 const table = (...rows: [url: string, cap: number, ms: number][]): RingTable => ({
@@ -85,7 +88,9 @@ const table = (...rows: [url: string, cap: number, ms: number][]): RingTable => 
 const POCKET = 'https://eth.api.pocket.network'
 const TENDERLY = 'https://gateway.tenderly.co/public/mainnet'
 const TENDERLY2 = 'https://mainnet.gateway.tenderly.co'
-const MEVB = 'https://rpc.mevblocker.io'
+const LLAMA = 'https://eth.llamarpc.com'
+const FLASHBOTS = 'https://rpc.flashbots.net/fast'
+const MEVBLOCKER = 'https://rpc.mevblocker.io'
 const BLOCKPI = 'https://ethereum.public.blockpi.network/v1/rpc/public'
 const q = (fromBlock: bigint, toBlock: bigint) => ({ address: AGG as `0x${string}`, fromBlock, toBlock })
 const blocks = (logs: unknown[]) => logs.map((l) => (l as { blockNumber: bigint }).blockNumber)
@@ -201,7 +206,7 @@ describe('rpc ring: an empty answer is not a fact', () => {
   it('concurrent pieces: every false-empty piece is recovered and the result is complete', async () => {
     // Pocket lies on every other call and is never quarantined, so it keeps taking work.
     const net = fakeNet({ 'eth.api.pocket.network': (n) => (n % 2 === 0 ? 'empty' : 'honest') })
-    const ring = new RpcRing(table([POCKET, 10_000, 1], [TENDERLY, 10_000, 5], [MEVB, 10_000, 9]), {
+    const ring = new RpcRing(table([POCKET, 10_000, 1], [TENDERLY, 10_000, 5], [LLAMA, 10_000, 9]), {
       transportFor: net.transportFor,
       quarantineMs: 0,
     })
@@ -220,18 +225,67 @@ describe('rpc ring probe', () => {
     const net = fakeNet({
       'eth.api.pocket.network': 'empty',
       'ethereum.public.blockpi.network': (_n, from, to) => (to - from + 1n > 5_000n ? 'error' : 'honest'),
-      'rpc.mevblocker.io': (n) => (n === 0 ? 'empty' : 'honest'),
+      'eth.llamarpc.com': (n) => (n === 0 ? 'empty' : 'honest'),
     })
-    const t = await probeRing([], [POCKET, BLOCKPI, MEVB, TENDERLY], { transportFor: net.transportFor, pauseMs: 0 })
+    const t = await probeRing([], [POCKET, BLOCKPI, LLAMA, TENDERLY], { transportFor: net.transportFor, pauseMs: 0 })
     const by = Object.fromEntries(t.entries.map((e) => [new URL(e.url).host, e]))
 
     // The old probe window held no logs, so an all-empty endpoint scored 10,000.
     expect(by['eth.api.pocket.network']).toMatchObject({ cap: 0, alive: true, emptyAnswers: 22 })
     expect(by['ethereum.public.blockpi.network'].cap).toBe(5_000)
     // One empty answer, then the anchor: the cap stands, and the empty is on record.
-    expect(by['rpc.mevblocker.io']).toMatchObject({ cap: 10_000, emptyAnswers: 1 })
+    expect(by['eth.llamarpc.com']).toMatchObject({ cap: 10_000, emptyAnswers: 1 })
     expect(by['gateway.tenderly.co'].cap).toBe(10_000)
     expect(by['gateway.tenderly.co'].emptyAnswers).toBeUndefined()
+  })
+
+  it('rates a range-limited host cap 0, though it passed the old single-anchor probe', async () => {
+    // rpc.flashbots.net's measured shape (board R33): honest around the first anchor,
+    // `[]` everywhere else.
+    const SLICE = 'https://slice-only.example'
+    const net = fakeNet({
+      'slice-only.example': (_n, from, to) => (from >= 21_500_000n && to <= 21_700_000n ? 'honest' : 'empty'),
+    })
+    const t = await probeRing([], [SLICE, TENDERLY], { transportFor: net.transportFor, pauseMs: 0 })
+    const by = Object.fromEntries(t.entries.map((e) => [new URL(e.url).host, e]))
+
+    // The single-anchor probe asked only this window, and the host answered it in full.
+    const first = PROBE_ANCHORS[0]
+    const oldProbe = net.of('slice-only.example').find((c) => c.to === first.block && c.to - c.from + 1n === 10_000n)
+    expect(oldProbe?.mode).toBe('honest')
+    expect(by['slice-only.example']).toMatchObject({ cap: 0, alive: true })
+    expect(by['slice-only.example'].emptyAnswers).toBeGreaterThan(0)
+    expect(by['gateway.tenderly.co']).toMatchObject({ cap: 10_000 })
+  })
+
+  it('never calls an excluded relay, passed as a candidate or as extra, not even for eth_blockNumber', async () => {
+    const net = fakeNet({})
+    const listed = [FLASHBOTS, MEVBLOCKER, POCKET]
+    const asCandidates = await probeRing(listed, [], { transportFor: net.transportFor, pauseMs: 0 })
+    const asExtra = await probeRing([], listed, { transportFor: net.transportFor, pauseMs: 0 })
+
+    for (const t of [asCandidates, asExtra]) expect(t.entries.map((e) => e.url)).toEqual([POCKET])
+    const relayHosts = new Set(['rpc.flashbots.net', 'rpc.mevblocker.io'])
+    expect(net.requests.filter((r) => relayHosts.has(r.host))).toEqual([])
+    // The fake does record eth_blockNumber: Pocket's liveness checks are on file.
+    expect(net.requests.filter((r) => r.host === 'eth.api.pocket.network' && r.method === 'eth_blockNumber')).toHaveLength(2)
+  })
+
+  it('withoutExcludedEntries drops relay URLs and env:<relay> aliases, and keeps the rest in order', () => {
+    const t = table(
+      [TENDERLY, 10_000, 1],
+      [FLASHBOTS, 10_000, 2],
+      [POCKET, 10_000, 3],
+      [MEVBLOCKER, 10_000, 4],
+      ['env:rpc.flashbots.net', 10_000, 5],
+      ['env:rpc.ankr.com', 10_000, 6],
+      [BLOCKPI, 5_000, 7],
+    )
+    const kept = withoutExcludedEntries(t)
+    expect(kept.entries.map((e) => e.url)).toEqual([TENDERLY, POCKET, 'env:rpc.ankr.com', BLOCKPI])
+    expect(kept.probedAt).toBe(t.probedAt)
+    // The input table is left as it was.
+    expect(t.entries).toHaveLength(7)
   })
 })
 
@@ -329,9 +383,9 @@ describe('rpc ring ledger: which endpoint answered which range', () => {
     const before = process.env.RECORDER_RPC_URL
     process.env.RECORDER_RPC_URL = KEYED_TENDERLY
     try {
-      const { calls, ring } = ledgerRing({ 'mainnet.gateway.tenderly.co': 'empty' }, [[KEYED_TENDERLY, 10_000, 1], [MEVB, 10_000, 50]])
+      const { calls, ring } = ledgerRing({ 'mainnet.gateway.tenderly.co': 'empty' }, [[KEYED_TENDERLY, 10_000, 1], [LLAMA, 10_000, 50]])
       await ring.getLogs(q(1_000_000n, 1_009_999n))
-      expect(calls.map((c) => c.host)).toEqual(['env:mainnet.gateway.tenderly.co', 'rpc.mevblocker.io'])
+      expect(calls.map((c) => c.host)).toEqual(['env:mainnet.gateway.tenderly.co', 'eth.llamarpc.com'])
       expect(JSON.stringify(calls, (_k, v) => (typeof v === 'bigint' ? String(v) : v))).not.toContain('SECRETKEY789')
     } finally {
       if (before === undefined) delete process.env.RECORDER_RPC_URL

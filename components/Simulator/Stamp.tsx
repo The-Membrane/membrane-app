@@ -34,6 +34,9 @@ export interface StampProps {
   provenance: Provenance
   /** Optional trailing note appended after the label. */
   note?: string
+  /** Let a long label wrap instead of ending in an ellipsis (a narrow column, e.g. the
+   *  news masthead's rail, where the label is the whole message). Default false. */
+  wrap?: boolean
 }
 
 /**
@@ -42,7 +45,7 @@ export interface StampProps {
  * modelled/mock stamp has no fetch at all — printing a clock on those would claim
  * a freshness that does not exist.
  */
-export const Stamp: React.FC<StampProps> = ({ provenance, note }) => {
+export const Stamp: React.FC<StampProps> = ({ provenance, note, wrap = false }) => {
   const color = KIND_COLOR[provenance.kind]
   // News edition: the reader's own zone on a 12-hour clock, like every other time on
   // the page (owner rule; components/Simulator/localClock.ts). Elsewhere unchanged.
@@ -79,9 +82,10 @@ export const Stamp: React.FC<StampProps> = ({ provenance, note }) => {
         textTransform="uppercase"
         color={color}
         minW={0}
-        whiteSpace="nowrap"
+        whiteSpace={wrap ? 'normal' : 'nowrap'}
         overflow="hidden"
-        textOverflow="ellipsis"
+        textOverflow={wrap ? undefined : 'ellipsis'}
+        lineHeight={wrap ? 1.6 : undefined}
       >
         {provenance.label}
         {provenance.kind === 'onchain' && mounted ? ` · fetched ${fetched(provenance.at)}` : ''}

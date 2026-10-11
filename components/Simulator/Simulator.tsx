@@ -84,7 +84,6 @@ import {
 
 import {
   Kicker,
-  LABEL,
   NEWS,
   NEWS_FONT,
   NewsEditionProvider,
@@ -249,6 +248,13 @@ interface MeasuredLiquidations {
   aaveV3?: { medianRepayFraction?: number; events?: number }
   morphoBlue?: { medianRepayFraction?: number; events?: number }
 }
+
+/** The masthead rail's price-path chip: the measured path, as a provenance stamp like
+ *  every other source line on the page (one chip component, Stamp.tsx). */
+const PRICE_PATH_PROV = stamp(
+  'dataset',
+  `Price path: ${OCT10_PRICE_PATH.source} · ${OCT10_PRICE_PATH.window}`,
+)
 
 const keyOf = (p: ProtocolPosition) => `${p.protocol}:${p.marketId ?? ''}`
 
@@ -758,19 +764,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
   /** News edition: the masthead's left rail. Every line is an existing copy source. */
   const rail = (
     <>
-      <Text
-        alignSelf="flex-start"
-        border="1px solid"
-        borderColor={NEWS.muted}
-        px="10px"
-        py="6px"
-        {...LABEL}
-        letterSpacing="0.14em"
-        color={NEWS.muted}
-        lineHeight={1.5}
-      >
-        Price path: {OCT10_PRICE_PATH.source} · {OCT10_PRICE_PATH.window}
-      </Text>
+      <Stamp provenance={PRICE_PATH_PROV} wrap />
       <RailCard tone={NEWS.danger} label={OCT10_STAKES.headline} testId="sim-oct10-stakes">
         <Text fontFamily={NEWS_FONT.mono} fontSize="12px" color={NEWS.muted} {...tabular}>
           {OCT10_STAKES.date} · {OCT10_STAKES.accounts}

@@ -93,6 +93,32 @@ pro rata); Euler Earn `config(strategy).balance` → `convertToAssets`. The API 
 to collateral → vaults (`?view=exposure`) or lists vault → markets → collateral → share
 (`&by=vault`). Vaults ≥ $100k (Morpho API TVL, or on-chain when the API has none).
 
+Morpho Blue positions are valued with interest accrued to the head block
+(`exposure.ts` `accrueMarket`: the IRM's `borrowRateView` at that block and Morpho's
+three-term Taylor compounding), as MetaMorpho's `totalAssets()` counts them. Until
+2026-10-11 they used `market()`'s stored totals; in sdeUSD/USDC, last touched 19 h before
+at 800 %/yr, that counted $9M of Adpend USDC's book value as live. The accrual reproduces
+the incident reconstruction's interest to the unit (`tests/unit/curatorFeedSignals.test.ts`).
+
+Two kinds of reported assets are kept apart from live supply (from the 2025 sdeUSD
+write-offs, `curator-incidents/sdeusd-2025/` in the datasets repo):
+
+- **Book value.** Supply in a market with the "supply locked" flag (below). The vault view
+  gives `liveUsd` = `totalUsd` − `lockedUsd` − `lostUsd` and ranks by it; the collateral
+  view's `usd` excludes it and `lockedUsd` carries it. Without this, Adpend USDC ($513M)
+  and 1337 USDC ($273M) ranked as the 1st and 4th largest vaults, and sdeUSD as the largest
+  collateral, on $7.4M of net lent principal. A vault's `lockedUsd` is capped at its
+  reported total: a Vault V2 adapter's `expectedSupplyAssets` accrues to now, while the
+  vault's `totalAssets` grows at most at its max rate (Mainstreet USDC: $13.4M in the
+  adapter, $2.65M reported).
+- **Written off, still counted.** MetaMorpho v1.1 keeps written-off assets in
+  `totalAssets()` as `lostAssets()`, so its share price does not fall. The collector reads
+  `lostAssets()` for every MetaMorpho vault (v1.0 has none); the vault view shows it as
+  `lostUsd` when ≥ $1 (smaller is share-math rounding). At block 26,170,664, eleven v1.1
+  vaults carried ≥ $1k of it, among them Gauntlet USDC Frontier ($1.91M, all of its
+  reported total), August AUSD ($674K), Hybrid Tandem Propulsion USDC ($615K), IMF USDS
+  ($819K) and Avantgarde USDC Core ($343K, all of its total: its sdeUSD position).
+
 ## Attribution
 
 For every block where vault reallocations withdrew ≥ $1M net (per transaction, so an
@@ -132,17 +158,19 @@ supply floor, `&limit=`). The page defaults to reallocation-led spikes on market
 
 ## Flags (`lib/curatorFeed/flags.ts`, `?view=flags`)
 
-Four flags (six labels) from the 2026 msY / AZND write-offs (`curator-incidents/msy-aznd-2026/` in the
-datasets repo). Each is read for every market curated vaults use (the spike universe):
+Five flags (seven labels) from the 2026 msY / AZND write-offs (`curator-incidents/msy-aznd-2026/` in the
+datasets repo) and the 2025 sdeUSD write-offs (`curator-incidents/sdeusd-2025/`). Each is read for every
+market curated vaults use (the spike universe):
 
-| Flag                  | Fires when                                                                                                                                                                                                                                                           | Read                                                                                                                          |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| fixed-price oracle    | the MorphoChainlinkOracleV2 has no feed and no vault: `price()` is a constant                                                                                                                                                                                        | inputs once per oracle (immutable), kept in `state.json`                                                                      |
-| reported-value oracle | every input is a reported value — a feed whose `description()` names a fundamental / NAV / exchange-rate / redemption / proof-of-reserve value, or a vault rate whose asset is not the loan token. No market price in the path                                       | same                                                                                                                          |
-| oracle reverting      | `price()` reverts at the head. The text gives the first block of the current run of reverts (`revertOnset`: step back from the head, doubling, to the newest block that answers, then binary search; "or earlier" when every probe back to the window start reverts) | every run                                                                                                                     |
-| oracle stale          | a feed's `latestRoundData()` reports its last update more than 72 h before the head (the oldest feed counts)                                                                                                                                                         | every run                                                                                                                     |
-| one borrower          | one address owes ≥ 50 % of a market's borrows, on a market with ≥ $1M borrowed. Per vault: allocation share × that borrower's debt ÷ the market's supply, shown when ≥ 25 %                                                                                          | with each exposure read: the Morpho API ranks the two largest borrowers; their debt is read on chain (`position`, rounded up) |
-| curator shift         | the same curator's vaults on the same UTC day: one or more net out of a market and one or more net in, each ≥ $1M (daily flows), and a vault that moved out then cut that collateral (cap to 0, removal, write-off) within 7 days                                    | every run, over the window's flows and actions                                                                                |
+| Flag                  | Fires when                                                                                                                                                                                                                                                                                                           | Read                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| fixed-price oracle    | the MorphoChainlinkOracleV2 has no feed and no vault: `price()` is a constant                                                                                                                                                                                                                                        | inputs once per oracle (immutable), kept in `state.json`                                                                      |
+| reported-value oracle | every input is a reported value — a feed whose `description()` names a fundamental / NAV / exchange-rate / redemption / proof-of-reserve value, or a vault rate whose asset is not the loan token. No market price in the path                                                                                       | same                                                                                                                          |
+| oracle reverting      | `price()` reverts at the head. The text gives the first block of the current run of reverts (`revertOnset`: step back from the head, doubling, to the newest block that answers, then binary search, back to Morpho Blue's deployment at block 18,883,124; "every block probed" when every probe back to it reverts) | every run                                                                                                                     |
+| oracle stale          | a feed's `latestRoundData()` reports its last update more than 72 h before the head (the oldest feed counts)                                                                                                                                                                                                         | every run                                                                                                                     |
+| one borrower          | one address owes ≥ 50 % of a market's borrows, on a market with ≥ $1M borrowed. Per vault: allocation share × that borrower's debt ÷ the market's supply, shown when ≥ 25 %                                                                                                                                          | with each exposure read: the Morpho API ranks the two largest borrowers; their debt is read on chain (`position`, rounded up) |
+| supply locked         | borrows ≥ 99.9 % of supply at the head and 7 days (50,400 blocks) earlier, and the oracle reverts or has no market price (fixed / reported). Suppliers can withdraw only what borrowers repay; supply is book value (Exposure)                                                                                       | every run: `market()` at the head, and 7 days back for the markets fully borrowed at the head                                 |
+| curator shift         | the same curator's vaults on the same UTC day: one or more net out of a market and one or more net in, each ≥ $1M (daily flows), and a vault that moved out then cut that collateral (cap to 0, removal, write-off) within 7 days                                                                                    | every run, over the window's flows and actions                                                                                |
 
 Why each matters, from the incident: a reported-value oracle (msY: "RedStone Price Feed
 for MSY_FUNDAMENTAL/USD") or a fixed price (AZND: 1.00) never sees the collateral's market
@@ -150,7 +178,13 @@ price, so no position became liquidatable when msUSD traded at $0.06–0.27; onc
 reverts, Morpho Blue cannot liquidate, lend against the collateral or release collateral
 from a position with debt; Alpha moved $6.7M of msY/USDC from Prime and Core into Delta on
 2026-06-12 and cut Prime's and Core's msY caps three hours later; one address borrowed
-$8.46M of AZND/USDC from Alpha USDC Asia V2 in a day.
+$8.46M of AZND/USDC from Alpha USDC Asia V2 in a day. sdeUSD/USDC (91.5 %) has been fully
+borrowed since 2025-11-04 06:43 UTC; on 2025-11-06 sdeUSD's market price fell from $1.06 to
+$0.10 within four hours (DefiLlama, 12:02 → 16:03 UTC) while its oracle kept pricing it at
+$1.07. Interest at the IRM's top rate took $7.4M of net lent principal to a $9.9B book
+value by 2026-10-11, and two vaults that never removed the market report $787M of total
+assets, all but $0.16 of it in this market (block 26,170,792). `market()` returns stored totals: the text gives
+the time interest was last accrued (`lastUpdate`), not a growth rate.
 
 Texts state what the chain shows (claim class `measured-change` for market facts,
 `possible-leading-signal` for shifts). The reported-value test is a description match: a
@@ -162,11 +196,19 @@ First run (2026-10-11, block 26,169,995): 519 oracles, 167 markets flagged —
 reported-value 88, one borrower 54, stale 20, fixed price 17, reverting 8 (7 oracles); 2
 curator shifts (Alpha msY 2026-06-12; Gauntlet ETH+/WETH 2026-04-13). Largest by curated
 supply: sdeUSD/USDC (91.5 %) — $773M from Adpend USDC and 1337 USDC (≈ 99 % of each),
-oracle reverting since the window start or earlier, one address owing 100 % of its borrows;
+oracle reverting since the window start or earlier (since 2026-10-11 the search reaches back to
+Morpho Blue's deployment: since block 24,055,805, 2025-12-20), one address owing 100 % of its borrows;
 msY/USDC (91.5 %) — $20.3M from Mainstreet USDC (≈ 96 % of the vault lent to one
 borrower), reverting since block 25,367,564. One-borrower markets include cbBTC/USDC (one
 address owes 57 % of $304M), kBTC/RLUSD (70 % of $213M) and wstUSR/USDC (68 % of $205M).
 Resolv's RLP and USR feeds report a last update 204 days old (5 markets).
+
+Supply locked, first run (2026-10-11, block 26,170,664): 57 markets fully borrowed at the
+head, 16 of them flagged. Largest: sdeUSD/USDC (91.5 %, $9.71B book, reverting), msY/USDC
+(86 %, $95.3M, reverting; the Alpha Delta write-off), AZND/USDC ($10M, fixed price),
+ILLIQUID_PERPDEX_COLL/USDC ($844K, fixed), deUSD/USDC (86 %, $348K, fixed; MEV Capital
+Elixir USDC). Held by curated vaults: sdeUSD (Adpend, 1337), msY 91.5 % (two Mainstreet
+USDC vaults), deUSD (MEV Capital Elixir USDC). The rest are dust.
 
 ## Incremental collection
 

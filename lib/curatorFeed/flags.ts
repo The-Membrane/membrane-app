@@ -1,6 +1,6 @@
 /**
- * Four flags, from the msY / AZND write-offs of 2026 (docs/CURATOR_ACTION_FEED.md "Flags").
- * Pure: the collector reads the chain, this file decides.
+ * Five flags, from the msY / AZND write-offs of 2026 and the sdeUSD write-offs of 2025
+ * (docs/CURATOR_ACTION_FEED.md "Flags"). Pure: the collector reads the chain, this file decides.
  *
  * 1. ORACLE KIND. A Morpho Blue oracle that has no market price in its path cannot see a
  *    collateral's market price fall: msY/USDC priced msY from "RedStone Price Feed for
@@ -21,6 +21,13 @@
  *    largest borrower holds ≥ `borrowerShare` of a market's borrows (market ≥
  *    `minBorrowUsd`); per vault, ≥ `vaultBorrowerShare` of the vault is lent to that
  *    borrower (allocation share × the borrower's part of the market's supply).
+ * 5. SUPPLY LOCKED. sdeUSD/USDC (0x0f95…b129) has been fully borrowed since 2025-11-04 and
+ *    its oracle has reverted since 2025-12-20: suppliers can withdraw only what borrowers
+ *    repay, and the supply figure grows at the borrow rate. Its $7.4M of net lent principal
+ *    reads as $9.9B in October 2026, and two vaults that kept it report $513M and $273M of
+ *    total assets. Flagged: borrows ≥ `lockedUtil` of supply at the head and `lockedDays`
+ *    earlier, and the oracle reverts or has no market price (kind fixed / reported). The
+ *    service reports supply in such a market as book value, apart from live supply.
  *
  * Every text built from these is a statement of what the chain shows, never a judgement.
  */
@@ -36,6 +43,8 @@ export const FLAG_DEFAULTS = {
   minBorrowUsd: 1_000_000,
   shiftMinUsd: 1_000_000,
   shiftCutDays: 7,
+  lockedUtil: 0.999,
+  lockedDays: 7,
 }
 export type FlagThresholds = typeof FLAG_DEFAULTS
 
@@ -102,6 +111,31 @@ export type MarketFlagKind =
   | 'oracle-reverting'
   | 'oracle-stale'
   | 'one-borrower'
+  | 'supply-locked'
+
+/** Borrows ÷ supply, 0–1 (undefined when supply is 0). */
+export function utilization(supply: string | bigint, borrow: string | bigint): number | undefined {
+  const s = BigInt(supply)
+  if (s === 0n) return undefined
+  return Number((BigInt(borrow) * 1_000_000n) / s) / 1e6
+}
+
+/** Flag 5: fully borrowed at the head and `lockedDays` earlier, with no working market price. */
+export function isSupplyLocked(
+  m: Pick<MarketFlags, 'fill' | 'reverting' | 'oracleKind'>,
+  t = FLAG_DEFAULTS,
+): boolean {
+  const f = m.fill
+  if (!f) return false
+  const now = utilization(f.supply, f.borrow)
+  const before = utilization(f.prevSupply, f.prevBorrow)
+  if (now === undefined || before === undefined) return false
+  return (
+    now >= t.lockedUtil &&
+    before >= t.lockedUtil &&
+    (Boolean(m.reverting) || oracleKindFlagged(m.oracleKind))
+  )
+}
 
 /** The flags a market carries. `borrowUsd`: the market's borrows in USD (for the floor). */
 export function marketFlagKinds(
@@ -117,6 +151,7 @@ export function marketFlagKinds(
   const share = topBorrowerShare(m)
   if (share !== undefined && share >= t.borrowerShare && (borrowUsd ?? 0) >= t.minBorrowUsd)
     out.push('one-borrower')
+  if (isSupplyLocked(m, t)) out.push('supply-locked')
   return out
 }
 

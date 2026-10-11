@@ -17,6 +17,8 @@ export interface ChainConfig {
   key: string
   chainId: 1
   morpho: string
+  /** First block with Morpho Blue code (an oracle's revert onset is searched back to here). */
+  morphoDeploy: number
   mmFactories: string[]
   v2Factory: string
   /** First block with VaultV2Factory code (allocator history starts here). */
@@ -35,6 +37,7 @@ export const MAINNET: ChainConfig = {
   key: 'ethereum',
   chainId: 1,
   morpho: '0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb',
+  morphoDeploy: 18_883_124, // getCode: empty at 18,883,123, 15,623 bytes at 18,883,124
   mmFactories: [
     '0xa9c3d3a366466fa809d1ae982fb2c46e5fc41101', // MetaMorpho v1.0
     '0x1897a8997241c1cd4bd0698647e4eb7213535c24', // MetaMorpho v1.1

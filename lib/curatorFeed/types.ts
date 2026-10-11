@@ -208,8 +208,11 @@ export interface ExposureAlloc {
 export interface ExposureVault {
   vault: string
   protocol: Protocol
+  /** totalAssets() as the vault reports it. MetaMorpho v1.1 counts `lostAssets` in it. */
   totalAssets: string
   totalUsd?: number
+  /** MetaMorpho v1.1 lostAssets(): assets written off that totalAssets() still counts. */
+  lostAssets?: string
   allocations: ExposureAlloc[]
 }
 
@@ -398,7 +401,8 @@ export interface MarketFlags {
   /** price() at the head (1e36-scaled decimal string); absent when it reverts. */
   price?: string
   /** price() reverts at the head. `since`: first block of the current run of reverts;
-   *  `beforeWindow`: it reverted at every block probed back to the window's first block. */
+   *  `beforeWindow`: it reverted at every block probed back to `since` (Morpho Blue's
+   *  deployment; the window's first block in files written before 2026-10-11). */
   reverting?: { since: number; sinceTs: number; beforeWindow?: boolean }
   /** Seconds since the OLDEST update among the feeds that answer, at the head. */
   staleSeconds?: number
@@ -411,6 +415,19 @@ export interface MarketFlags {
     totalBorrow: string
     totalSupply: string
     block: number
+  }
+  /** market() supply / borrow assets at the head and `lockedDays` earlier (loan-token base
+   *  units). Read only when borrows are ≥ `lockedUtil` of supply at the head (flag 5). */
+  fill?: {
+    block: number
+    supply: string
+    borrow: string
+    /** market().lastUpdate at the head: interest is accrued in supply / borrow to here. */
+    lastUpdate: number
+    prevBlock: number
+    prevTs: number
+    prevSupply: string
+    prevBorrow: string
   }
 }
 

@@ -6,15 +6,23 @@ import {
   detectShifts,
   hasMarketFlag,
   isReportedFeed,
+  isSupplyLocked,
   marketFlagKinds,
   revertOnset,
   topBorrowerShare,
+  utilization,
   vaultBorrowerShare,
   type ShiftContext,
 } from '@/lib/curatorFeed/flags'
+import { byCollateral } from '@/lib/curatorFeed/exposure'
 import type { UnitFlow } from '@/lib/curatorFeed/flows'
 import { compact } from '@/lib/curatorFeed/format'
-import { buildFlagsResponse, buildVaultExposure, parseFeedQuery } from '@/lib/curatorFeed/service'
+import {
+  buildExposureResponse,
+  buildFlagsResponse,
+  buildVaultExposure,
+  parseFeedQuery,
+} from '@/lib/curatorFeed/service'
 import {
   SCHEMA,
   encodeFeedFile,
@@ -440,5 +448,229 @@ describe('flags view', () => {
       markets: [],
       shifts: [],
     })
+  })
+})
+
+// ── flag 5: supply locked (the sdeUSD/USDC write-offs of 2025) ─────────────────
+
+const SDEUSD = '0x5c5b196abe0d54485975d1ec29617d42d9198326'
+const M_SDE = '0x0f9563442d64ab3bd3bcb27058db0b0d4046a4c46f0acd811dacae9551d2b129'
+const ADPEND = '0x55555815a5595991c3a0ff119b59aef6c8b55555'
+const AVANT = '0x5b56f90340dbaa6a8693dadb141d620f0e154fe6'
+const usdc = (n: number) => (BigInt(Math.round(n * 100)) * 10n ** 4n).toString()
+// Market state at the 2026-10-11 head and 7 days earlier (supply = borrow, paper interest).
+const FILL: NonNullable<MarketFlags['fill']> = {
+  block: 26_170_472,
+  supply: usdc(9_879_000_000),
+  borrow: usdc(9_879_000_000),
+  lastUpdate: Date.parse('2026-10-11T16:41:00Z') / 1000,
+  prevBlock: 26_170_472 - 50_400,
+  prevTs: Date.parse('2026-10-04T16:41:00Z') / 1000,
+  prevSupply: usdc(8_570_000_000),
+  prevBorrow: usdc(8_570_000_000),
+}
+const SDE_FLAGS: MarketFlags = {
+  oracle: '0x65f9f6d537c2d628d1c2663896436817440edb72',
+  oracleKind: 'reported',
+  parts: [feed1(OTHER, 'RedStone Price Feed for deUSD_FUNDAMENTAL')],
+  reverting: { since: 24_055_805, sinceTs: Date.parse('2025-12-20T19:08:47Z') / 1000 },
+  fill: FILL,
+}
+
+describe('flag 5: supply locked', () => {
+  it('utilization is borrow ÷ supply; 0 supply has none', () => {
+    expect(utilization('1000', '999')).toBe(0.999)
+    expect(utilization('0', '0')).toBeUndefined()
+  })
+  it('needs ≥ 99.9% borrowed at the head AND 7 days earlier, and no working market price', () => {
+    expect(isSupplyLocked(SDE_FLAGS)).toBe(true)
+    expect(marketFlagKinds(SDE_FLAGS, 9.879e9)).toContain('supply-locked')
+    // Fully borrowed only at the head: a squeeze, not a lock.
+    expect(
+      isSupplyLocked({ ...SDE_FLAGS, fill: { ...FILL, prevBorrow: usdc(8_000_000_000) } }),
+    ).toBe(false)
+    // A market feed that answers: liquidations can still run.
+    expect(isSupplyLocked({ ...SDE_FLAGS, oracleKind: 'market', reverting: undefined })).toBe(false)
+    // A fixed price that answers (deUSD/USDC 86%): no market price can reach it.
+    expect(isSupplyLocked({ ...SDE_FLAGS, oracleKind: 'fixed', reverting: undefined })).toBe(true)
+    expect(isSupplyLocked({ ...SDE_FLAGS, fill: undefined })).toBe(false)
+  })
+
+  const lockedFeed: FeedFile = {
+    ...feed,
+    entities: {
+      ...feed.entities,
+      tokens: { ...feed.entities.tokens, [SDEUSD]: { symbol: 'sdeUSD', decimals: 18 } },
+      markets: {
+        ...feed.entities.markets,
+        [M_SDE]: {
+          loan: USDC,
+          collateral: SDEUSD,
+          oracle: SDE_FLAGS.oracle,
+          irm: OTHER,
+          lltv: '915000000000000000',
+        },
+      },
+      vaults: {
+        ...feed.entities.vaults,
+        [ADPEND]: { protocol: 'morpho-v1', name: 'Adpend USDC', asset: USDC, curatorKey: ADPEND },
+        [AVANT]: {
+          protocol: 'morpho-v1',
+          name: 'Avantgarde USDC Core',
+          asset: USDC,
+          curatorKey: ADPEND,
+        },
+      },
+    },
+    flags: { ...feed.flags!, markets: { ...feed.flags!.markets, [M_SDE]: SDE_FLAGS } },
+  }
+  const lockedExposure: ExposureFile = {
+    ...exposure,
+    vaults: [
+      ...exposure.vaults,
+      {
+        vault: ADPEND,
+        protocol: 'morpho-v1',
+        totalAssets: usdc(505_000_000),
+        totalUsd: 505e6,
+        allocations: [
+          {
+            target: M_SDE,
+            scope: 'market',
+            collateral: [SDEUSD],
+            assets: usdc(504_000_000),
+            usd: 504e6,
+            share: 0.982,
+          },
+          {
+            target: M_OK,
+            scope: 'market',
+            collateral: [WSTETH],
+            assets: usdc(1_000_000),
+            usd: 1e6,
+            share: 0.002,
+          },
+        ],
+      },
+      {
+        vault: AVANT,
+        protocol: 'morpho-v1',
+        totalAssets: usdc(343_175),
+        totalUsd: 343_175,
+        lostAssets: usdc(343_175),
+        allocations: [],
+      },
+    ],
+  }
+
+  it('vault view: book value and written-off assets apart from live supply, ranked by live', () => {
+    const v = buildVaultExposure(
+      lockedFeed,
+      lockedExposure,
+      parseFeedQuery({ view: 'exposure', by: 'vault', minUsd: '0' }),
+    ).vaults
+    const ad = v.find((x) => x.vault === ADPEND)!
+    expect(ad.totalUsd).toBe(505e6)
+    expect(ad.lockedUsd).toBe(504e6)
+    expect(ad.liveUsd).toBe(1e6)
+    expect(ad.allocations.find((a) => a.target === M_SDE)!.locked).toBe(true)
+    expect(ad.allocations.find((a) => a.target === M_SDE)!.flags).toContain(
+      'supply locked (book value)',
+    )
+    expect(ad.allocations.find((a) => a.target === M_OK)!.locked).toBeUndefined()
+    const av = v.find((x) => x.vault === AVANT)!
+    expect(av.lostUsd).toBe(343_175)
+    expect(av.liveUsd).toBe(0)
+    // Rounding dust in lostAssets is not a write-off.
+    const dust = buildVaultExposure(
+      lockedFeed,
+      {
+        ...lockedExposure,
+        vaults: [
+          { ...lockedExposure.vaults[2], lostAssets: '1', totalAssets: usdc(5e6), totalUsd: 5e6 },
+        ],
+      },
+      parseFeedQuery({ view: 'exposure', by: 'vault', minUsd: '0' }),
+    ).vaults[0]
+    expect(dust.lostUsd).toBeUndefined()
+    expect(dust.liveUsd).toBe(5e6)
+    // A Vault V2 adapter's accrued book value can exceed the vault's reported total.
+    const v2 = buildVaultExposure(
+      lockedFeed,
+      { ...lockedExposure, vaults: [{ ...lockedExposure.vaults[1], totalUsd: 2e6 }] },
+      parseFeedQuery({ view: 'exposure', by: 'vault', minUsd: '0' }),
+    ).vaults[0]
+    expect(v2.lockedUsd).toBe(2e6)
+    expect(v2.liveUsd).toBe(0)
+    // Asia (7.71M live) ranks above Adpend (505M reported, 1M live).
+    expect(v.map((x) => x.vault)).toEqual([ASIA, ADPEND, AVANT])
+  })
+  it('collateral view: book value kept apart; a row of book value alone still shows', () => {
+    const rows = byCollateral(
+      lockedExposure.vaults,
+      () => 'c',
+      () => USDC,
+      {
+        isLocked: (t) => t === M_SDE,
+      },
+    )
+    const sde = rows.find((r) => r.collateral === SDEUSD)!
+    expect(sde.usd).toBe(0)
+    expect(sde.lockedUsd).toBe(504e6)
+    expect(sde.holders[0].lockedUsd).toBe(504e6)
+    expect(rows[rows.length - 1].collateral).toBe(SDEUSD)
+    const res = buildExposureResponse(
+      lockedFeed,
+      lockedExposure,
+      parseFeedQuery({ view: 'exposure', minUsd: '1000000' }),
+    )
+    expect(res.rows.find((r) => r.symbol === 'sdeUSD')).toMatchObject({ usd: 0, lockedUsd: 504e6 })
+  })
+  it('states the lock in words, with both blocks and the supply growth', () => {
+    const r = buildFlagsResponse(
+      lockedFeed,
+      lockedExposure,
+      parseFeedQuery({ view: 'flags', collateral: 'sdeUSD' }),
+      compact,
+    )
+    const m = r.markets.find((x) => x.market === M_SDE)!
+    expect(m.kinds).toEqual(['oracle-reported', 'oracle-reverting', 'supply-locked'])
+    const t = m.texts.find((x) => x.startsWith('Borrows are'))!
+    expect(t).toContain('100.0% of supply at block 26,170,472')
+    expect(t).toContain('at block 26,120,072 (2026-10-04 16:41 UTC)')
+    expect(t).toContain('the oracle reverts')
+    expect(t).toContain(
+      `market() shows ${compact(9_879_000_000)} USDC of supply with interest accrued to 2026-10-11 16:41 UTC`,
+    )
+    expect(t).not.toMatch(/undefined|NaN|\b(safe|unsafe|risky|healthy|secure|guarantee)/i)
+    expect(m.texts.join(' ')).toContain(
+      'price() has reverted since block 24,055,805 (2025-12-20 19:08 UTC)',
+    )
+    // Reverting at every probe back to Morpho Blue's deployment: no onset is claimed.
+    const never = buildFlagsResponse(
+      {
+        ...lockedFeed,
+        flags: {
+          ...lockedFeed.flags!,
+          markets: {
+            [M_SDE]: {
+              ...SDE_FLAGS,
+              reverting: {
+                since: 18_883_124,
+                sinceTs: Date.parse('2023-12-28T09:09:23Z') / 1000,
+                beforeWindow: true,
+              },
+            },
+          },
+        },
+      },
+      lockedExposure,
+      parseFeedQuery({ view: 'flags' }),
+      compact,
+    ).markets[0].texts.join(' ')
+    expect(never).toContain(
+      'price() reverts at every block probed back to block 18,883,124 (2023-12-28 09:09 UTC)',
+    )
+    expect(never).not.toContain('has reverted since')
   })
 })

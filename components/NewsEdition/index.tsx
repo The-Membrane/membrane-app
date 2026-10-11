@@ -191,10 +191,28 @@ export const NewsMasthead: React.FC<{ rail: React.ReactNode }> = ({ rail }) => {
             mt="8px"
             {...LABEL}
             color={NEWS.muted}
-            minH="1.5em"
+            // Two lines on a phone (date, then edition), so the slot is held at both
+            // heights before the client clock fills it.
+            minH={{ base: '3em', md: '1.5em' }}
             suppressHydrationWarning
           >
-            {now !== null ? `${fmtLocalDateline(now, zone)} · ${EDITION_LABEL[mode]}` : ' '}
+            {now !== null ? (
+              <>
+                {/* Each half stays whole. On a phone the edition takes its own line and
+                    the separator drops, instead of "Edition" orphaned on a second line. */}
+                <Box as="span" whiteSpace="nowrap">
+                  {fmtLocalDateline(now, zone)}
+                </Box>
+                <Box as="span" display={{ base: 'block', md: 'inline' }} whiteSpace="nowrap">
+                  <Box as="span" display={{ base: 'none', md: 'inline' }}>
+                    {' · '}
+                  </Box>
+                  {EDITION_LABEL[mode]}
+                </Box>
+              </>
+            ) : (
+              ' '
+            )}
           </Text>
         </Box>
 

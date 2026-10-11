@@ -15,6 +15,17 @@ SHA-256. Consumed by `scripts/research/position-alert-backtest.ts`, which writes
 
 E1 (Oct 10 2025) is `public/data/oct10-2025/`, committed with its own provenance.
 
+**These files do not reproduce the Recall Coverage Dataset spec's events exactly** (spec §5;
+memo §1). `e2-nov-2025.json` is November 2025 Morpho BTC/ETH-collateral liquidations plus deUSD.
+Its `label` field says "Stream xUSD / Elixir deUSD collapse", but no xUSD-collateral position is
+in it. The spec's E2 is the xUSD freeze, Nov 2–12. `e3-apr-2026.json` has Aave **USDe** cash. The
+spec's E3 venue is Aave Core **USDC**. The spec's block-pinned tables live on membrane-solidity
+branch `claude/laughing-pasteur-lzifki` under `research/recall-dataset/data/chain/`.
+
+**Per-wallet rows.** `e2-nov-2025.json` and `e4-aug-2026.json` hold Morpho borrower addresses
+(public on-chain data). Spec gate G2 says per-wallet rows are internal only. Whether that covers
+committed research inputs is an open owner decision (memo §1). Do not surface them.
+
 ## Caveats that change conclusions
 
 1. **Spot is not the oracle.** E2 and the hourly history price positions on Binance spot. A

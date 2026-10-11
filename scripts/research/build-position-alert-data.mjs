@@ -292,16 +292,14 @@ async function positionsFor(liqs, lookbackS, keep) {
     if (!keep(l)) continue
     const key = `${l.user}:${l.marketId}`
     if (!seen.has(key)) seen.set(key, { ...l, liquidations: [] })
-    seen
-      .get(key)
-      .liquidations.push({
-        ts: l.ts,
-        block: l.block,
-        tx: l.tx,
-        seized: l.seized,
-        repaid: l.repaid,
-        badDebt: l.badDebt,
-      })
+    seen.get(key).liquidations.push({
+      ts: l.ts,
+      block: l.block,
+      tx: l.tx,
+      seized: l.seized,
+      repaid: l.repaid,
+      badDebt: l.badDebt,
+    })
   }
   const out = []
   for (const p of seen.values()) {
@@ -374,7 +372,8 @@ async function buildE2() {
     file: 'e2-nov-2025.json',
     body: {
       window: [iso(start), iso(end)],
-      label: 'E2 — Nov 2025 drawdown + Stream xUSD / Elixir deUSD collapse',
+      label:
+        'Nov 2025 Morpho BTC/ETH-collateral liquidations + deUSD price. Not the Recall Coverage Dataset spec E2 (Stream xUSD freeze, Nov 2–12): no xUSD-collateral positions',
       spot1m: {
         startTs: start,
         stepSeconds: 60,

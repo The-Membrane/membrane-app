@@ -1,14 +1,30 @@
 # Position alerts — back-test and recommended thresholds
 
-2026-10-07 · branch `feat/position-alert-backtest` · status: **research, dry-run delivery only**
+2026-10-07, revised 2026-10-11 · merged to `evm-migration` in #97; gate and E2 claims corrected
+in this revision · status: **research, dry-run delivery only. The external-alert gate is NOT yet
+met (§1).**
 
-Demand: position alerts, 10 messages from 8 authors. Members who leave positions "set and
-forget" asked for health-factor and liquidation-price alerts. This memo reports what such
-alerts would have done on the measured stress events E1–E4 and on six years of hourly ETH/BTC.
-It also reports the false-alarm rate over 30-day calm windows, as the board gate requires before
-any external alert:
+Demand: position alerts, 10 messages from 8 authors (UMBRELLA data product #7 on the agent
+board). Members who leave positions "set and forget" asked for health-factor and
+liquidation-price alerts. This memo reports what such alerts would have done on six years of
+hourly ETH/BTC and on the stress events E1–E4, and their false-alarm rate in calm markets.
 
-> Alerts must be back-tested on E1–E4, with the false-alarm rate over 30 calm days reported.
+**The gate** is G2 of the Recall Coverage Dataset spec (claude.ai artifact
+`Lm9KrFSbw9zp2FtWhcd3Nm`, §10 build order, phase P1). Verbatim:
+
+> the alert trigger is back-tested on E1–E4 (fires before the breach block for every breached
+> cluster) with its calm-30-day false-alarm rate reported; per-wallet rows are internal only
+
+The first version of this memo paraphrased the gate and dropped two conditions: "every breached
+cluster" and "per-wallet rows are internal only". It also used its own E2. The events are
+defined in spec §5, and this back-test matches them only in part:
+
+| Spec event | Spec definition (§5) | What this back-test replayed | Match |
+|---|---|---|---|
+| E1 (EV-1) | Oct 10–11 2025 cascade. Aave v3 Core: 799 liquidations, $117.35M. The USD-loop line is Morpho sUSDe/USDT at LLTV 91.5% (2 liquidations) | 587 Aave accounts from the committed oct10 census (WETH / wstETH / WBTC / cbBTC collateral, stable debt), priced on the Chainlink feed in force each minute | ⚠ priced volatile clusters only. Not replayed: the Morpho sUSDe/USDT USD-loop cluster, and 1,763 other census accounts (1,003 with unpriced collateral, 599 census-excluded, 100 with stable or LST collateral, 60 with volatile debt, 1 with no debt) |
+| E2 (EV-2) | Stream xUSD collapse, Nov 2–12 2025, multi-chain. ~$285M of loans against xUSD / xBTC / xETH on Euler, Silo, Morpho, Gearbox. Elixir deUSD −98% on Nov 6. Spec data: "to pull; venue ids not yet resolved" | 145 Morpho WBTC / cbBTC / wstETH positions liquidated anywhere in **November** 2025 (46 of them first liquidated inside Nov 2–12), plus the deUSD price series | ⚠ **not the spec's E2.** The xUSD / deUSD-collateral clusters that define the event were not replayed as positions. Only the deUSD depeg alert touches them (§6) |
+| E3 (EV-3) | KelpDAO rsETH exploit from Apr 18 2026 17:35 UTC. Aave Core USDC at ≥ 99.9% utilization for 82.4 h | Synthetic rsETH/ETH loops on a market vs an exchange-rate oracle, synthetic ETH positions, and Aave **USDe** cash | ⚠ **synthetic.** No real E3 positions. The capacity replay uses USDe, not the spec's USDC |
+| E4 (EV-4) | Morpho PT-reUSD-10DEC2026 oracle dip, Aug 25 2026. 19 borrowers (20 borrower-market pairs) at HF 1.0053–1.0238; oracle −0.54% at the first liquidation | The same 20 borrower-market pairs, with real hourly balances and the market oracle read every 5 blocks around the cascade | ✅ matches |
 
 Code: `lib/positionAlerts/` (pure rule engine) · `scripts/research/position-alert-backtest.ts`
 (harness) · `data/position-alerts/` (inputs, manifest, `backtest-results.json`) · tests in
@@ -33,15 +49,26 @@ Code: `lib/positionAlerts/` (pure rule engine) · `scripts/research/position-ale
 
 Every message states the liquidation price and the repay / top-up that restores HF 1.30.
 
-**Gate status, per rule:**
+**Gate status, per rule, against G2.** "Fires before breach" means a warn-or-higher message came
+before the first real liquidation of every replayed position.
 
-| Rule | E1 Oct-10-25 | E2 Nov-25 | E3 Apr-26 Kelp | E4 Aug-25-26 PT-reUSD | 30-day calm false alarms | Gate |
+| Rule | E1 | E2 | E3 | E4 | Calm-30-day false alarms | G2 |
 |---|---|---|---|---|---|---|
-| Health factor tiers | ✅ 587 real accounts | ✅ 145 real positions | ✅ synthetic ETH + rsETH loops (30 Morpho liquidations in the window, none relevant) | ✅ 20 real positions — **cannot warn** (see §5) | ✅ reported (§2) | **passes, with the E4 limit stated** |
-| Cushion burn (critical) | ✅ | ✅ | ✅ | ✅ minutes only | ✅ 0 per position-month | **passes** |
-| Depeg | ✅ stETH/ETH + USDe | ✅ deUSD | ✅ rsETH | n/a (PT has no peg) | ✅ years of USDC / USDe / stETH | **passes for stables; LST needs a synchronous ratio source (§6)** |
-| Exit capacity | — | — | n = 1 episode | — | ❌ no 30-day capacity series here | **fails — keep internal** |
-| Oracle change | — | — | — | — | ❌ no registry to replay | **fails — keep internal** |
+| Health-factor tiers (default config) | fired before breach for **587 / 587** replayed accounts. Spec's USD-loop cluster not replayed | November Morpho set: before breach for **145 / 145**. Inside Nov 2–12: **46 / 46, all ≥ 1h (32 already under 1.15 at the first read); critical 46 / 46, median lead 23h (`results.e2SpecWindow`)**. Spec's xUSD clusters not replayed | synthetic only (§6). One rsETH loop missed by the HF tiers alone, caught by the depeg rule | before breach for **20 / 20**, but only because every pair opened inside critical. The price gave ~4 min (§5) | 0.285 per position-month at warn+, 0 at critical (§2). Market-wide calm windows, not the spec's per-event calm points | **not met**: E1 USD-loop, E2 and E3 defining clusters missing |
+| Cushion burn (critical only) | part of the default critical tier: 0 / 587 missed at a 1-minute poll | 0 / 145 missed | synthetic | minutes of warning only | 0 per position-month | **not met** (same E1 / E2 / E3 gap) |
+| Collateral depeg | Chainlink STETH/ETH and USDe replayed | **deUSD**, the asset behind E2: critical 5h before it fell below $0.50 | rsETH: critical at the first depegged sample | n/a (a PT has no peg) | years of USDC / USDe / stETH (§6) | **stables: closest to met; LSTs need a synchronous ratio source** |
+| Exit capacity | — | — | n = 1, on USDe not USDC | — | none (no 30-day capacity series offline) | **fails, keep internal** |
+| Oracle change | — | — | — | — | none (registry not wired) | **fails, keep internal** |
+
+**Per-wallet rows.** G2 says per-wallet rows are internal only. `data/position-alerts/e2-nov-2025.json`
+and `e4-aug-2026.json` hold Morpho borrower addresses, and §11 shows one shortened address. This
+repo is public. The addresses are public on chain, and the committed `public/data/oct10-2025/evidence.json`
+already lists Aave borrower addresses the same way. **Owner decision needed** on whether G2 covers
+committed research inputs. Until then no surface may show a per-wallet row.
+
+**So no position alert goes external yet.** What is missing for G2: replay the E1 Morpho
+USD-loop cluster, the E2 xUSD / deUSD clusters and real E3 positions from the spec's
+block-pinned tables, and resolve the per-wallet question (§12).
 
 ---
 
@@ -51,7 +78,7 @@ One threshold at a time, scored at that line. Columns: liquidations warned at le
 (hourly) or 15m / 1h before (minute data); false alarms per position per 30 days (a message
 with no liquidation in the next 72h, never-liquidated positions only).
 
-| Line | Hourly 2020→26: warned ≥1h | false alarms /30d | Calm windows: false alarms /30d | E1 (1m): ≥15m / ≥1h | E2 (1m): median lead |
+| Line | Hourly 2020→26: warned ≥1h | false alarms /30d | Calm windows: false alarms /30d | E1 (1m): ≥15m / ≥1h | Nov-2025 Morpho set (1m): median lead |
 |---|---|---|---|---|---|
 | HF < 1.05 | 59.8% | 0.026 | 0 | 74.8% / 46.8% | 28.8h |
 | HF < 1.10 | 80.8% | 0.103 | 0.020 | 97.4% / 92.5% | 93.5h |
@@ -64,6 +91,13 @@ the real lead is longer than measured.
 
 - **Hourly set:** 7,320 synthetic positions over ETH and BTC. Each opens every 2 days at HF 1.25, 1.5 or 2.0, against $100k of stable debt. Each is held untouched for 30 days. **766 liquidations fall on 119 distinct days.** The windows overlap, so 119 is the effective sample, not 766.
 - **Calm set:** 17 non-overlapping 30-day windows in which ETH and BTC each stayed within 10% of their running peak (`calmWindows` in the results). Positions open at HF 1.2, 1.25 and 1.5 on ETH and BTC: 102 position-months.
+- **Warn misses.** Of the 766 hourly-history liquidations, the warn line gave 680 (88.8%) at
+  least 1h of warning, 32 (4.2%) a message with zero lead, and **54 (7.0%) no message at all**.
+  The misses are crashes inside one hourly bar: liquidation is read on the hour's low, while the
+  monitor reads only the hour's close. 48 of the 54 opened at HF 1.5 or 2.0 and fell through 1.15
+  and 1.0 in the same hour. On minute data the warn line missed nothing: 0 of 587 (E1), 0 of 145
+  (November Morpho set), 0 of 20 (E4). So the misses mostly show the hourly bars of the history.
+  The live risk is a crash faster than the poll (§9).
 - **Why 1.15 for warn.** It is where false alarms start to climb fast for little extra lead: 1.10→1.15 adds 8pp of warned liquidations, and 1.15→1.20 adds 4pp but nearly doubles false alarms. The median lead on hourly history is 41h and the p10 is 5h.
 - **Why 1.05 for critical.** It gives zero calm false alarms. By itself it is too late in a fast crash: only 47% of the Oct 10 accounts got an hour. §4 adds the fix.
 - **Watch at 1.30** costs 0.68 messages per position-month, and 29% of positions get one in a month. Positions parked near 1.30 get 1.47. So watch stays in-app (`DEFAULT_PUSH_MIN_SEVERITY = 'warn'`).
@@ -106,8 +140,8 @@ The minute data is the honest test.
 | … + sigma 2 warn / 1 critical | 92.6% / 0.822 | 72.7% / 0.113 | 0.461 / 0 | 98.1% / 86.9% |
 | HF tiers, anti-flap off | 88.4% / 0.759 | 53.1% / 0.044 | 1.296 / 0 | 69.2% / 36.6% |
 
-E2 is ≥ 99% warned ≥1h under every candidate. Nov 2025 was a slow grind, with a median lead
-of 28.8h at the critical line.
+The November-2025 Morpho set is ≥ 99% warned ≥1h under every candidate. Nov 2025 was a slow
+grind for BTC/ETH collateral, with a median lead of 28.8h at the critical line.
 
 Adding burn ≥ 50% as a critical-only trigger lifts Oct-10 critical warning ≥1h from 46.8% to
 86.9%, and ≥15m from 74.8% to 98.1%. Calm-window critical false alarms stay at 0. A lower burn line at warn (30%)
@@ -116,10 +150,11 @@ per position-month) for 2.4pp more warned liquidations, so it is not in the defa
 
 ## 5. E4 (PT-reUSD, Aug 25 2026): no price alert can help a position parked on the line
 
-All 20 liquidated positions sat at **HF 1.005–1.024** for up to 14 days (median 1.012, three
-hours before). The Morpho oracle read 0.97099 at 04:00 UTC. It first ticked down 0.1% at
-**04:33**, and the first liquidation followed at **04:37**. The low was 0.94386, and the oracle
-recovered to 0.968 by 05:19.
+All 20 liquidated borrower-market pairs (19 borrowers) sat at **HF 1.005–1.024** for up to 14
+days (median 1.012, three hours before). This matches the spec's 1.0053–1.0238 at t0. The Morpho
+oracle read 0.97099 at 04:00 UTC. It first ticked down 0.1% at **04:33**, and the first
+liquidation followed at **04:37**, with the oracle down 0.54% (spec §5 agrees). The low was
+0.94386, and the oracle recovered to 0.968 by 05:19.
 
 - Every static line (HF, distance) was breached for the whole window. That means one message at open, then silence. The lead is "12 days", which is censored and meaningless.
 - Cushion burn ≥ 50% fired a median **2.7 minutes** before liquidation. The data cannot do better: the price itself gave about 4 minutes.
@@ -166,6 +201,9 @@ HF 1.10 position as it dipped to ~1.005 and recovered: 1 false alarm in 42 posit
 
 ## 7. Exit capacity vs recall needed (E3) — fails the gate, keep internal
 
+The spec's E3 venue is Aave Core **USDC**. This replay uses Aave **USDe**, the series the
+venue-capacity study had already measured. Re-run it on USDC from the spec's tables (§12).
+
 Aave V3 USDe cash fell from $504M (Apr 18 12:38) through $408M (Apr 19 00:41) to $0 by 12:42.
 For a position whose recall need after a 20% shock is $100M, the rule fired watch at 06:26 and
 went critical at 06:56, at the crossing. The 30 minutes of warning came at watch only. With a
@@ -176,14 +214,22 @@ also n = 1). The next step is a capacity-burn term, the analogue of §4.
 
 No 30-day capacity series is available offline: the venue recorder lives in Neon. So no calm
 false-alarm rate exists and the rule does not pass the gate. `lib/position-sim/measuredCapacity.ts`
-is not on this base; `capacity.ts` fixes the interface it must satisfy.
+exists on `origin/feat/risk-frontier-stress-grid` (`ceab3fbd`) but is not merged into
+`evm-migration`. Its hourly archive history (2023-10 → 2026-10) is the 30-day series this rule
+needs. `capacity.ts` fixes the interface an adapter over it must satisfy.
 
 ## 8. Oracle change — stub, fails the gate
 
-`feat/oracle-registry` is not on this base. `oracleRegistry.ts` fixes the event interface
-(`feed_replaced`, `source_changed`, `heartbeat_changed`, `deviation_changed`, `cap_changed`,
-`paused`, `price_frozen`) and a severity map. With no source wired, the rule reports
-**uncovered**, never "no changes". E4 is the case for building it.
+The registry's change detector is `lib/oracleRegistry/changes.ts` (`detectChanges`,
+`detectChangeSeries`) on `origin/feat/oracle-registry` (`d1d2ca4c`), not merged into
+`evm-migration`. `oracleRegistry.ts` here fixes a stub event interface (`feed_replaced`,
+`source_changed`, `heartbeat_changed`, `deviation_changed`, `cap_changed`, `paused`,
+`price_frozen`) and a severity map. **The two do not match.** The registry emits `aggregator`,
+`heartbeat`, `deviation_threshold`, `twap_window`, `cap`, `discount`, `market_source`, `wiring`,
+`quorum`, `update_model`, `entry_added`, `entry_removed` and `other`. Wiring needs a mapping and
+severities for the kinds the stub lacks (TWAP window, quorum, discount, wiring). E4's oracle was
+a TWAP over a thin pool, so `twap_window` and `market_source` matter most. With no source wired,
+the rule reports **uncovered**, never "no changes".
 
 ## 9. Monitor cadence and anti-flap
 
@@ -196,9 +242,11 @@ is not on this base; `capacity.ts` fixes the interface it must satisfy.
 - **E1 and E2 reconstruct balances backwards** from the liquidation snapshot (E1) or from hourly Morpho history (E2). On E1 the reconstructed path crossed HF 1 before the real liquidation for 403 of 587 accounts: median 4 minutes early, p90 869 minutes. Some accounts changed balances during the day, and liquidators are not instant. The real liquidation time is used for scoring. On E2, 143 of 145 crossed early, median 10.6 minutes, because spot leads the oracle.
 - **Spot is not the oracle** for the hourly set, E2 and the E3 ETH set. Spot lows liquidate slightly earlier than Chainlink would. A spot-driven monitor also warns slightly earlier than an oracle-driven one. E1 and E4 use the venue oracle.
 - **E1 leads cap at about 21h** (the window opens at 00:00 Oct 10). L2 accounts are priced on the mainnet Chainlink feed, the same simplification as `evidence.json`.
-- **Small n where it matters most.** E4 is 20 positions in one 14-minute cascade. E3 rsETH and exit capacity are one episode each. They show mechanism and timing, not rates.
+- **Small n where it matters most.** E4 is 20 borrower-market pairs in one 14-minute cascade. E3 rsETH and exit capacity are one episode each. They show mechanism and timing, not rates.
 - **Precision is low by construction** for a 72h horizon in slow markets: HF < 1.15 has precision 0.19 on hourly history. Most warn messages are not followed by liquidation, because prices recover. That is the cost of 41h median warning. The 72h horizon is a modelling choice.
 - **No interest accrual** in the synthetic positions. Morpho positions carry real accrued debt.
+- **Calm windows are market-wide.** They are 17 30-day windows of low ETH/BTC drawdown with
+  synthetic positions. The spec pulls 30 daily calm points per event. Those were not used.
 
 ## 11. Delivery: dry run only
 
@@ -223,7 +271,19 @@ To get back to HF 1.30: repay $1.85M, or add $2.79M of cbBTC.
 Dry run: formatted, not sent · 2025-11-06 21:01 UTC
 ```
 
-## 12. Reproduce
+## 12. To meet G2
+
+1. Replay the E2 xUSD / deUSD-collateral clusters once the spec resolves their venue ids, and
+   real E3 positions, from the spec's block-pinned tables (membrane-solidity branch
+   `claude/laughing-pasteur-lzifki`, `research/recall-dataset/data/chain/`).
+2. Replay the E1 Morpho sUSDe/USDT USD-loop cluster (spec release 0.2.1 builds 3 positions).
+3. Owner decision on per-wallet rows in committed research data.
+4. Re-run the LST depeg calm rate on a synchronous source: the Chainlink STETH/ETH feed
+   (proxy `0x8639…2812`), hourly from 2021-08, is `public/data/price-history/steth-eth-1h.json`
+   on `origin/feat/risk-frontier-stress-grid`.
+5. Exit capacity and oracle change: wire the sources in §7–§8, then measure their calm rate.
+
+## 13. Reproduce
 
 ```
 node scripts/research/build-position-alert-data.mjs        # ~10 min, keyless; refreshes data/position-alerts/

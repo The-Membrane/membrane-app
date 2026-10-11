@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-backtest.ts",
- "generatedAt": "2026-10-07T02:51:41.318Z",
+ "generatedAt": "2026-10-11T13:32:51.021Z",
  "defaults": {
   "healthFactor": {
    "direction": "below",
@@ -95,7 +95,7 @@
   "volatility": "EWMA of 1h log returns, half-life 24h, read from the last completed hour (lookahead-free)",
   "hourly": "synthetic single-collateral positions, debt $100k stable, opened every 2 days at 00:00 UTC at HF 1.25/1.5/2, held 30 days untouched; monitor reads each hourly close; liquidation when the hourly LOW takes HF < 1, stamped at the bar open",
   "e1": "real Aave V3 accounts liquidated Oct 10 2025 (evidence.json cohort: priced, not excluded, WETH/wstETH/WBTC/cbBTC collateral, stable debt); balances held at their liquidation snapshot and re-priced backwards on the mainnet Chainlink feed in force each minute; liquidation time = the real first liquidation",
-  "e2": "real Morpho Blue positions liquidated in Nov 2025 (WBTC/cbBTC/wstETH collateral, stable loan); hourly collateral and borrow from the Morpho API, priced each minute on Binance spot scaled to Morpho collateral USD; liquidation time = the real first liquidation",
+  "e2": "real Morpho Blue positions liquidated in Nov 2025 (WBTC/cbBTC/wstETH collateral, stable loan); hourly collateral and borrow from the Morpho API, priced each minute on Binance spot scaled to Morpho collateral USD; liquidation time = the real first liquidation. NOT the Recall Coverage Dataset spec E2 (Stream xUSD freeze, Nov 2–12): see e2SpecWindow and depeg.e2DeUSD",
   "e4": "real Morpho PT-reUSD-10DEC2026 positions liquidated Aug 25 2026; hourly collateral/borrow from the Morpho API, priced on the market oracle (archive reads every ~1h, every 5 blocks 01:00-07:00 UTC Aug 25); liquidation time = the real first liquidation",
   "falseAlarm": "a worsening message at >= the scored level with no liquidation in the next 72h, counted only on positions never liquidated, excluding a message at the first read (a position opened inside a band)"
  },
@@ -6840,6 +6840,48 @@
    "modelledCrossedBeforeActual": 3,
    "medianMinutesEarly": 0.4,
    "p90MinutesEarly": 0.4
+  }
+ },
+ "e2SpecWindow": {
+  "note": "Morpho WBTC/cbBTC/wstETH positions first liquidated inside the spec EV-2 window (Nov 2–12 2025), DEFAULT_ALERT_CONFIG, 1-minute monitor. Not the xUSD-collateral clusters.",
+  "positionsInData": 146,
+  "positionsInDataInWindow": 46,
+  "replayedInWindow": 46,
+  "warnPlus": {
+   "variant": "DEFAULT_ALERT_CONFIG",
+   "replays": 46,
+   "liquidations": 46,
+   "liquidationDays": 4,
+   "missed": 0,
+   "censored": 32,
+   "medianLeadMin": 4850.8,
+   "p10LeadMin": 1729.1,
+   "p90LeadMin": 5545.3,
+   "warned15m": 1,
+   "warned1h": 1,
+   "warned4h": 1,
+   "falseAlarmsPer30d": null,
+   "falseAlarmPositionShare": null,
+   "precision": 0.804,
+   "messagesPer30d": 43.441
+  },
+  "critical": {
+   "variant": "DEFAULT_ALERT_CONFIG",
+   "replays": 46,
+   "liquidations": 46,
+   "liquidationDays": 4,
+   "missed": 0,
+   "censored": 3,
+   "medianLeadMin": 1385.4,
+   "p10LeadMin": 192.9,
+   "p90LeadMin": 2306.1,
+   "warned15m": 1,
+   "warned1h": 1,
+   "warned4h": 0.739,
+   "falseAlarmsPer30d": null,
+   "falseAlarmPositionShare": null,
+   "precision": 0.943,
+   "messagesPer30d": 43.441
   }
  },
  "e4Detail": {

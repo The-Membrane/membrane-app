@@ -130,6 +130,44 @@ spike that a borrower caused. Spike-first starts from the rate:
 supply floor, `&limit=`). The page defaults to reallocation-led spikes on markets with
 ≥ $10M supply.
 
+## Flags (`lib/curatorFeed/flags.ts`, `?view=flags`)
+
+Four flags (six labels) from the 2026 msY / AZND write-offs (`curator-incidents/msy-aznd-2026/` in the
+datasets repo). Each is read for every market curated vaults use (the spike universe):
+
+| Flag                  | Fires when                                                                                                                                                                                                                                                           | Read                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| fixed-price oracle    | the MorphoChainlinkOracleV2 has no feed and no vault: `price()` is a constant                                                                                                                                                                                        | inputs once per oracle (immutable), kept in `state.json`                                                                      |
+| reported-value oracle | every input is a reported value — a feed whose `description()` names a fundamental / NAV / exchange-rate / redemption / proof-of-reserve value, or a vault rate whose asset is not the loan token. No market price in the path                                       | same                                                                                                                          |
+| oracle reverting      | `price()` reverts at the head. The text gives the first block of the current run of reverts (`revertOnset`: step back from the head, doubling, to the newest block that answers, then binary search; "or earlier" when every probe back to the window start reverts) | every run                                                                                                                     |
+| oracle stale          | a feed's `latestRoundData()` reports its last update more than 72 h before the head (the oldest feed counts)                                                                                                                                                         | every run                                                                                                                     |
+| one borrower          | one address owes ≥ 50 % of a market's borrows, on a market with ≥ $1M borrowed. Per vault: allocation share × that borrower's debt ÷ the market's supply, shown when ≥ 25 %                                                                                          | with each exposure read: the Morpho API ranks the two largest borrowers; their debt is read on chain (`position`, rounded up) |
+| curator shift         | the same curator's vaults on the same UTC day: one or more net out of a market and one or more net in, each ≥ $1M (daily flows), and a vault that moved out then cut that collateral (cap to 0, removal, write-off) within 7 days                                    | every run, over the window's flows and actions                                                                                |
+
+Why each matters, from the incident: a reported-value oracle (msY: "RedStone Price Feed
+for MSY_FUNDAMENTAL/USD") or a fixed price (AZND: 1.00) never sees the collateral's market
+price, so no position became liquidatable when msUSD traded at $0.06–0.27; once `price()`
+reverts, Morpho Blue cannot liquidate, lend against the collateral or release collateral
+from a position with debt; Alpha moved $6.7M of msY/USDC from Prime and Core into Delta on
+2026-06-12 and cut Prime's and Core's msY caps three hours later; one address borrowed
+$8.46M of AZND/USDC from Alpha USDC Asia V2 in a day.
+
+Texts state what the chain shows (claim class `measured-change` for market facts,
+`possible-leading-signal` for shifts). The reported-value test is a description match: a
+feed with an unreadable description makes the oracle `unknown`, never flagged. Oracles
+that are not MorphoChainlinkOracleV2 are `unknown` too. The borrower ranking comes from the
+Morpho API; only its top two per market are checked on chain.
+
+First run (2026-10-11, block 26,169,995): 519 oracles, 167 markets flagged —
+reported-value 88, one borrower 54, stale 20, fixed price 17, reverting 8 (7 oracles); 2
+curator shifts (Alpha msY 2026-06-12; Gauntlet ETH+/WETH 2026-04-13). Largest by curated
+supply: sdeUSD/USDC (91.5 %) — $773M from Adpend USDC and 1337 USDC (≈ 99 % of each),
+oracle reverting since the window start or earlier, one address owing 100 % of its borrows;
+msY/USDC (91.5 %) — $20.3M from Mainstreet USDC (≈ 96 % of the vault lent to one
+borrower), reverting since block 25,367,564. One-borrower markets include cbBTC/USDC (one
+address owes 57 % of $304M), kBTC/RLUSD (70 % of $213M) and wstUSR/USDC (68 % of $205M).
+Resolv's RLP and USR feeds report a last update 204 days old (5 markets).
+
 ## Incremental collection
 
 Each run reads `[last block + 1, finalized head]` only. The collector state
@@ -270,6 +308,7 @@ GET /api/curator-feed                     open submits, exit clusters, newest ac
     ?window=24..72  ?limit=1..500  ?before=<action id>
 GET /api/curator-feed?view=exposure       [&by=vault] [&collateral=] [&curator=] [&minUsd=]
 GET /api/curator-feed?view=attribution    [&collateral=] [&market=0x…] [&only=spike|drained]
+GET /api/curator-feed?view=flags          [&collateral=] [&curator=] [&market=0x…]
 GET /api/curator-feed?view=spikes         [&collateral=] [&curator=] [&market=0x…]
                                           [&only=reallocation|drained] [&minUsd=] [&limit=]
 ```
@@ -280,7 +319,8 @@ GET /api/curator-feed?view=spikes         [&collateral=] [&curator=] [&market=0x
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | keccak256, ABI catalog + decoder, Vault V2 idData                         | `lib/curatorFeed/{keccak,abi,decode,v2ids}.ts`                                                                                                   |
 | classifier (state replay), status, clusters, flows, exposure, attribution | `lib/curatorFeed/{classify,status,clusters,flows,exposure,attribution}.ts`                                                                       |
-| rate spikes, rolling window                                               | `lib/curatorFeed/{spikes,window}.ts`                                                                                                             |
+| rate spikes, rolling window, flags                                        | `lib/curatorFeed/{spikes,window,flags}.ts`                                                                                                       |
+| incident timelines (market + vault, archive reads)                        | `scripts/research/curator-incident.ts`                                                                                                           |
 | chain config                                                              | `scripts/lib/curator-feed-chain.ts`                                                                                                              |
 | copy, API logic, on-disk format                                           | `lib/curatorFeed/{format,service,store}.ts`                                                                                                      |
 | RPC client (dual-read getLogs, batches, key scrubbing)                    | `scripts/lib/curator-feed-rpc.ts`                                                                                                                |

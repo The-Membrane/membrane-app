@@ -368,3 +368,71 @@ export interface ExitCluster {
   /** Aave freezes / LTV-zero on the same asset inside the cluster's window. */
   protocolActionIds: string[]
 }
+
+// ── flags: market facts at the head, curator exposure shifts (flags.ts) ────────
+
+/**
+ * What a Morpho Blue market's oracle prices the collateral FROM (flags.ts classifyOracle):
+ *   fixed       no feed and no vault: price() is a constant
+ *   reported    every input is a reported value (a NAV / fundamental / exchange-rate feed,
+ *               or a vault rate whose asset is not the loan token) — no market price
+ *   vault-rate  one ERC-4626 vault rate into its own asset, which is the loan token
+ *   market      at least one input is a market price feed
+ *   unknown     not a MorphoChainlinkOracleV2, or a feed whose description is unreadable
+ */
+export type OracleKind = 'fixed' | 'reported' | 'vault-rate' | 'market' | 'unknown'
+
+export interface OraclePart {
+  role: 'baseFeed1' | 'baseFeed2' | 'quoteFeed1' | 'quoteFeed2' | 'baseVault' | 'quoteVault'
+  address: string
+  /** Feed description() when readable. */
+  description?: string
+  /** Vault parts: the vault's asset(). */
+  asset?: string
+}
+
+export interface MarketFlags {
+  oracle: string
+  oracleKind: OracleKind
+  parts: OraclePart[]
+  /** price() at the head (1e36-scaled decimal string); absent when it reverts. */
+  price?: string
+  /** price() reverts at the head. `since`: first block of the current run of reverts;
+   *  `beforeWindow`: it reverted at every block probed back to the window's first block. */
+  reverting?: { since: number; sinceTs: number; beforeWindow?: boolean }
+  /** Seconds since the OLDEST update among the feeds that answer, at the head. */
+  staleSeconds?: number
+  /** Largest borrower at the last exposure read: Morpho API ranking, amounts read on chain
+   *  (loan-token base units). */
+  borrowers?: {
+    top: string
+    topAssets: string
+    secondAssets?: string
+    totalBorrow: string
+    totalSupply: string
+    block: number
+  }
+}
+
+/** One curator's vaults moving a market position between each other on one UTC day,
+ *  followed by the vaults that gave it up cutting that collateral (flags.ts detectShifts). */
+export interface CuratorShift {
+  curator: string
+  market: string
+  day: string
+  /** Net change of each vault's position that day, whole loan-token units. */
+  from: { vault: string; amount: number }[]
+  to: { vault: string; amount: number }[]
+  /** The smaller side (moved out vs moved in), USD at collection-time prices. */
+  usd?: number
+  /** First exit action (cap to 0, removal, write-off) of each from-vault on that collateral. */
+  cuts: { vault: string; actionId: string; ts: number }[]
+}
+
+export interface FeedFlags {
+  block: number
+  ts: number
+  /** Only markets with at least one fact worth showing (flags.ts hasMarketFlag). */
+  markets: Record<string, MarketFlags>
+  shifts: CuratorShift[]
+}

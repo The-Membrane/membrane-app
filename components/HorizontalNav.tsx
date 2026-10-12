@@ -78,8 +78,6 @@ const comingSoonItems = [
     { label: 'Mint', href: '/mint' },
     { label: 'Portfolio', href: '/portfolio' }, // flow.html marks this replaced by Position — keep until owner removes
     { label: 'The Disco', href: '/disco' },
-    // Fully built page that was orphaned from every nav path.
-    { label: 'Boost', href: '/boost' },
     // { label: 'Transmuter', href: '/transmuter' },
     // { label: 'Maze Runners', href: '/maze-runners' },
     // { label: 'Bridge', href: '/bridge' },

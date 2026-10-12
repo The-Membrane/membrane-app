@@ -14,7 +14,7 @@ import assert from 'node:assert'
 /** Mirrors components/Layout.tsx. */
 const EXECUTABLE_ROUTES = [
   '/mint', '/disco', '/transmuter', '/stake', '/manic', '/portfolio', '/earn',
-  '/liquidate', '/lockdrop', '/borrow', '/boost',
+  '/liquidate', '/lockdrop', '/borrow',
 ]
 const isExecutableRoute = (pathname: string) => EXECUTABLE_ROUTES.some((r) => pathname.includes(r))
 

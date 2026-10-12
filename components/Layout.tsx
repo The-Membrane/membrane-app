@@ -37,7 +37,6 @@ const EXECUTABLE_ROUTES = [
   '/liquidate',
   '/lockdrop',
   '/borrow',
-  '/boost',
 ]
 
 const isExecutableRoute = (pathname: string): boolean =>

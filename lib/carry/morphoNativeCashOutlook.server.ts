@@ -30,6 +30,8 @@ export async function issueMorphoNativeCashOutlook(first: Witness, second: Witne
     const outlook = buildFixedEntitlementCashOutlook(input, original=>original===input &&
       !!selectedMorphoV2NativeCash(a,first.assessment) && !!selectedMorphoV2NativeCash(b,second.assessment) &&
       !!resolveMorphoV2NativeHolderIdentity(first.assessment,second.assessment,capacity), text=>createHash('sha256').update(text).digest('hex'))
-    return outlook ? {...outlook,owner:capacity.quote.owner,nativeSharesRaw:a.sharesRaw} : null
+    return outlook ? {...outlook,owner:capacity.quote.owner,nativeSharesRaw:a.sharesRaw,
+      historicalRecovery:{...outlook.historicalRecovery,
+        question:{...outlook.historicalRecovery.question,owner:capacity.quote.owner}}} : null
   } catch { return null }
 }

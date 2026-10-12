@@ -46,6 +46,30 @@ describe('fixed entitlement cash kernel with genuine histories and synthetic cur
   const b=question();b.issuedAtUtc='2026-10-02T00:00:00.000Z';b.currentSource.blockTime=b.issuedAtUtc;b.currentSource.readAt=b.issuedAtUtc
   expect(buildFixedEntitlementCashOutlook(b,()=>true,hash)).toBeNull()
  })
+ it('binds matched historical recovery to exact native question and actual qualified current cash',()=>{
+  const q=question(); q.requestedRaw='1000000000000000000';q.fullEntitlementRaw='2000000000000000000'
+  q.currentSource.cashRaw='2500000000000000000';q.additionalCompetitionRaw='2000000000000000000'
+  const r=buildFixedEntitlementCashOutlook(q,()=>true,hash)!
+  expect(r.historicalRecovery.question).toEqual({identity:q.history.identity,currentSource:q.currentSource,
+    requestedRaw:q.requestedRaw,fullEntitlementRaw:q.fullEntitlementRaw,
+    additionalCompetitionRaw:q.additionalCompetitionRaw,horizonHours:q.horizonHours,issuedAtUtc:q.issuedAtUtc,owner:undefined})
+  expect(r.historicalRecovery.result?.matching.deficitRatio).toBe(0.5)
+  expect(r.historicalRecovery.result?.currentOnset?.by).toBe(q.currentSource.blockTime)
+  expect(r.historicalRecovery.result?.matching.ageStratum).toBe('unknown_left_censored')
+  expect(r.historicalRecovery.result?.forecastValidated).toBe(false)
+  expect(r.historicalRecovery.result?.holderExecutable).toBe(false)
+  q.additionalCompetitionRaw='0'
+  expect(buildFixedEntitlementCashOutlook(q,()=>true,hash)!.historicalRecovery.result?.status).toBe('not_below')
+  q.fullEntitlementRaw='999999999999999999'
+  expect(buildFixedEntitlementCashOutlook(q,()=>true,hash)!.historicalRecovery.unavailableReason).toBe('fixed_entitlement_below_requested')
+ })
+ it('refuses numeric recovery threshold rounding and preserves the exact raw amount',()=>{
+  const q=question();q.requestedRaw='1000000000000000000';q.fullEntitlementRaw='2000000000000000000'
+  q.currentSource.cashRaw='999999999999999999'
+  const r=buildFixedEntitlementCashOutlook(q,()=>true,hash)!
+  expect(r.historicalRecovery.unavailableReason).toBe('raw_threshold_or_deficit_band_not_representable')
+  expect(r.capacityChange.currentHeadroomRaw).toBe('-1')
+ })
  it('extends indexed initial deposit to 18-decimal Aave USDe without rescaling it as USDC',()=>{
   const m=DIRECT_SUPPLY_MARKETS.aaveV3Usde
   const q=initialDepositQuestion('initial_deposit',m.routeKey,m.destination,'1.000000000000000001','1',48)!

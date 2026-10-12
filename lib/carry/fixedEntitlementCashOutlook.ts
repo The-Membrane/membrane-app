@@ -1,6 +1,7 @@
 import { buildConditionalTimeProcess, type ConditionalTimeProcessInput } from '../venueForecast/conditionalTimeProcess'
 import { buildConditionalSampledCashPathProjection, type ConditionalSampledCashHistory, type ConditionalSampledCashCurrentSource } from './conditionalSampledCashPathProjection'
 import { buildConditionalEventImpact } from './conditionalEventImpact'
+import { fixedEntitlementHistoricalRecovery } from './fixedEntitlementHistoricalRecovery'
 
 export type FixedEntitlementCashInput = {
   history: ConditionalSampledCashHistory
@@ -72,7 +73,7 @@ export function buildFixedEntitlementCashOutlook(
       shrinkingAlert:{status:shrinking ? 'conditional_shrinking_capacity' as const : 'no_shrink_in_usable_scenarios' as const,
         shrinkingScenarios:shrinking,usableScenarios:process.scenarios.filter(s=>s.targetHeadroomRaw!==null).length,
         censoredScenarios:process.scenarios.filter(s=>s.targetHeadroomRaw===null).length,calibrated:false as const},
-      adverseEventScenario,adverseHolderHeadroom,
+      adverseEventScenario,adverseHolderHeadroom,historicalRecovery:fixedEntitlementHistoricalRecovery(input),
       process,forecastValidated:false as const,holderExecutableExit:false as const,calibratedProbability:false as const}
   } catch { return null }
 }

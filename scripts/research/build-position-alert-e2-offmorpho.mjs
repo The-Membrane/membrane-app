@@ -1,7 +1,8 @@
 /**
  * build-position-alert-e2-offmorpho.mjs — the spec's E2 (Stream xUSD collapse, Nov 2–12 2025)
- * off Morpho: Euler v2, Silo v2 and Gearbox v3.1 positions against xUSD, xBTC, xETH, deUSD,
- * sdeUSD (and PT-xUSD), read from chain every 2 hours from Oct 26 to Nov 16 2025.
+ * off Morpho: Euler v2, Silo v2, Gearbox v3.1, Compound v3, Enclabs and Abracadabra positions
+ * against xUSD, xBTC, xETH, deUSD, sdeUSD (and PT-xUSD), read from chain every 2 hours from
+ * Oct 26 to Nov 16 2025.
  *
  *   node scripts/research/build-position-alert-e2-offmorpho.mjs
  *
@@ -13,10 +14,15 @@
  * Gearbox credit managers at the Nov 1 2025 block (discovery outputs and scripts kept in the
  * datasets repo under position-alerts/e2-offmorpho-discovery/). The Morpho Blue API does not
  * serve Plasma, Avalanche or Sonic. No Stream or Elixir market exists on Morpho there by Nov 12.
+ * A second scan (2026-10-12, e2-offmorpho-discovery/venues-2/) listed the top 40 holders of each
+ * Stream and Elixir token at Nov 2 and found Compound v3, Enclabs and Abracadabra; Euler on 24
+ * chains, every Gearbox v3 credit manager and Silo v1/v2 everywhere added only dust.
  *
  * Cohort: every account with debt and Stream collateral at the Nov 2 00:00 UTC block (the same
  * rule as E3 positions_start and E4 positions_t0). Accounts come from Borrow logs (Euler), debt
- * share mints (Silo) and creditAccounts() (Gearbox) up to that block.
+ * share mints (Silo), creditAccounts() (Gearbox), SupplyCollateral / TransferCollateral logs
+ * (Compound v3), vToken Transfer logs (Enclabs) and LogBorrow / LogAddCollateral logs
+ * (Abracadabra) up to that block.
  *
  * Per account and sample: collateral units of each Stream asset, their value at the venue's own
  * oracle, the debt valued at the venue's oracle, and the liquidation threshold. Keyless RPCs
@@ -31,6 +37,7 @@ import { fileURLToPath } from 'node:url'
 import { decodeFunctionResult, encodeFunctionData, keccak256, parseAbi, toHex } from 'viem'
 
 import { datasetPath } from '../lib/datasetsDir.mjs'
+import { logs, rpc, SAMPLE_CONCURRENCY } from '../lib/archiveRpc.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const OUT = datasetPath(ROOT, 'position-alerts')
@@ -52,18 +59,7 @@ const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11'
 
 // ------------------------------------------------------------------ chains
 
-/** Keyless archive endpoints, tested 2026-10-11. */
-const RPC = {
-  1: ['https://mainnet.gateway.tenderly.co', 'https://eth.drpc.org', 'https://rpc.mevblocker.io'],
-  42161: ['https://arbitrum.gateway.tenderly.co', 'https://arbitrum-one.public.blastapi.io'],
-  43114: ['https://api.avax.network/ext/bc/C/rpc', 'https://avalanche.gateway.tenderly.co'],
-  146: ['https://rpc.soniclabs.com', 'https://sonic-rpc.publicnode.com'],
-  9745: ['https://rpc.plasma.to'],
-}
-/** Largest eth_getLogs block span each chain's endpoint accepted. */
-/** Sample times read at once per chain. Avalanche archive calls take ~6 s each on its public RPC. */
-const SAMPLE_CONCURRENCY = { 1: 2, 42161: 2, 43114: 8, 146: 2, 9745: 2 }
-const LOG_SPAN = { 1: 10_000, 42161: 400_000, 43114: 400_000, 146: 2_000_000, 9745: 9_000 }
+// Endpoints, log spans and sample concurrency per chain: scripts/lib/archiveRpc.mjs.
 /** First block with timestamp >= Oct 26, Nov 2 and Nov 16 2025 00:00 UTC. */
 const ANCHORS = {
   1: [23_657_911, 23_707_920, 23_808_024],
@@ -79,6 +75,8 @@ const ANCHOR_TS = [HISTORY.fromTs, SPEC.fromTs, HISTORY.toTs]
 const STREAM_ASSETS = {
   // symbol by lower-cased token address, per chain
   1: {
+    '0x15700b564ca08d9439c58ca5053166e8317aa138': 'deUSD',
+    '0x5c5b196abe0d54485975d1ec29617d42d9198326': 'sdeUSD',
     '0xe2fc85bfb48c4cf147921fbe110cf92ef9f26f94': 'xUSD',
     '0xba1edf4a4c7eb8cb0dae0594326179f9c7d909d2': 'PT-xUSD-18DEC2025',
     '0x7e586fbaf3084c0be7ab5c82c04ffd7592723153': 'xETH',
@@ -565,6 +563,51 @@ const GEARBOX = [
   },
 ]
 
+/** Compound v3 comets with deUSD and sdeUSD collateral (liquidate collateral factor 0.90). */
+const COMPOUND = [
+  { chainId: 1, comet: '0x3afdc9bca9213a35503b077a6072f3d0d5ab0840', sym: 'cUSDTv3', loan: 'USDT' },
+  { chainId: 1, comet: '0xc3d688b66703497daa19211eedff47f25384cdc3', sym: 'cUSDCv3', loan: 'USDC' },
+  { chainId: 1, comet: '0x5d409e56d886231adaf00c8775665ad0f9897b56', sym: 'cUSDSv3', loan: 'USDS' },
+].map((c) => ({
+  ...c,
+  curator: 'Gauntlet (Compound risk manager)',
+  stream: [
+    '0x15700b564ca08d9439c58ca5053166e8317aa138',
+    '0x5c5b196abe0d54485975d1ec29617d42d9198326',
+  ],
+}))
+
+/** Enclabs (a Venus isolated-pools fork): the xUSD market of each Core pool. */
+const ENCLABS = [
+  {
+    chainId: 146,
+    pool: 'Core Sonic',
+    comptroller: '0xccadfcfaa71407707fb3dc93d7d83950171aa2c9',
+    vToken: '0x13d79435f306d155ca2b9af77234c84f80506045',
+    token: '0x6202b9f02e30e5e1c62cc01e4305450e5d83b926',
+    sym: 'vxUSD_Core',
+  },
+  {
+    chainId: 9745,
+    pool: 'Core Plasma',
+    comptroller: '0xa3f48548562a30a33257a752d396a20b4413e8e3',
+    vToken: '0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198',
+    token: '0x6eaf19b2fc24552925db245f9ff613157a7dbb4c',
+    sym: 'vXUSD_Core',
+  },
+].map((e) => ({ ...e, curator: 'Enclabs' }))
+
+/** Abracadabra cauldrons on sdeUSD (collaterization rate 90%, MIM debt). */
+const CAULDRONS = [
+  { chainId: 1, cauldron: '0x00380cb5858664078f2289180cc32f74440ac923' },
+  { chainId: 1, cauldron: '0x38e7d1e4e2de5b06b6fc9a91c2c37828854a41bb' },
+].map((c) => ({
+  ...c,
+  token: '0x5c5b196abe0d54485975d1ec29617d42d9198326',
+  bentoBox: '0xd96f48665a1410c0cd669a88898eca36b9fc2cce',
+  curator: 'Abracadabra',
+}))
+
 /** Market price keys (CoinGecko trades via DefiLlama). xBTC and xETH have none. */
 const MARKET_KEYS = {
   xUSD: 'coingecko:staked-stream-usd',
@@ -589,39 +632,59 @@ const ABI = parseAbi([
   'function maxRepay(address borrower) view returns (uint256)',
   'function quote(uint256 baseAmount, address baseToken) view returns (uint256)',
   'function creditAccounts() view returns (address[])',
+  'function creditFacade() view returns (address)',
+  // Compound v3
+  'function numAssets() view returns (uint8)',
+  'function getAssetInfo(uint8 i) view returns ((uint8 offset, address asset, address priceFeed, uint64 scale, uint64 borrowCollateralFactor, uint64 liquidateCollateralFactor, uint64 liquidationFactor, uint128 supplyCap))',
+  'function getPrice(address priceFeed) view returns (uint256)',
+  'function baseToken() view returns (address)',
+  'function baseTokenPriceFeed() view returns (address)',
+  'function borrowBalanceOf(address) view returns (uint256)',
+  'function collateralBalanceOf(address account, address asset) view returns (uint128)',
+  'function isLiquidatable(address) view returns (bool)',
+  // Enclabs (Venus isolated pools)
+  'function getAssetsIn(address) view returns (address[])',
+  'function getAccountLiquidity(address) view returns (uint256, uint256, uint256)',
+  'function markets(address) view returns (bool isListed, uint256 collateralFactorMantissa, uint256 liquidationThresholdMantissa)',
+  'function oracle() view returns (address)',
+  'function borrowBalanceStored(address) view returns (uint256)',
+  'function exchangeRateStored() view returns (uint256)',
+  'function getUnderlyingPrice(address) view returns (uint256)',
+  'function getAllMarkets() view returns (address[])',
+  // Abracadabra
+  'function userBorrowPart(address) view returns (uint256)',
+  'function userCollateralShare(address) view returns (uint256)',
+  'function totalBorrow() view returns (uint128 elastic, uint128 base)',
+  'function COLLATERIZATION_RATE() view returns (uint256)',
+  'function exchangeRate() view returns (uint256)',
+  'function oracleData() view returns (bytes)',
+  'function peek(bytes data) view returns (bool success, uint256 rate)',
+  'function toAmount(address token, uint256 share, bool roundUp) view returns (uint256)',
+  'function getConfig(address silo) view returns ((uint256 daoFee, uint256 deployerFee, address silo, address token, address protectedShareToken, address collateralShareToken, address debtShareToken, address solvencyOracle, address maxLtvOracle, address interestRateModel, uint256 maxLtv, uint256 lt, uint256 liquidationTargetLtv, uint256 liquidationFee, uint256 flashloanFee, address hookReceiver, bool callBeforeQuote))',
   'function calcDebtAndCollateral(address creditAccount, uint8 task) view returns ((uint256 debt, uint256 cumulativeIndexNow, uint256 cumulativeIndexLastUpdate, uint128 cumulativeQuotaInterest, uint256 accruedInterest, uint256 accruedFees, uint256 totalDebtUSD, uint256 totalValue, uint256 totalValueUSD, uint256 twvUSD, uint256 enabledTokensMask, uint256 quotedTokensMask, address[] quotedTokens, address _poolQuotaKeeper))',
 ])
 const T_BORROW = keccak256(toHex('Borrow(address,uint256)'))
 const T_LIQUIDATE = keccak256(toHex('Liquidate(address,address,address,uint256,uint256)'))
 const T_TRANSFER = keccak256(toHex('Transfer(address,address,uint256)'))
+// Silo v2 liquidation hook: LiquidationCall(liquidator, silo, borrower, repay, withdraw, sToken).
+const T_SILO_LIQ = keccak256(toHex('LiquidationCall(address,address,address,uint256,uint256,bool)'))
+// Gearbox v3.1 credit facade: partial liquidation (credit account, token, liquidator, …) and full.
+const T_GB_PARTIAL = keccak256(
+  toHex('PartiallyLiquidateCreditAccount(address,address,address,uint256,uint256,uint256)'),
+)
+const T_GB_LIQ = keccak256(toHex('LiquidateCreditAccount(address,address,address,uint256)'))
 const ZERO_TOPIC = '0x' + '0'.repeat(64)
-
-const cursor = {}
-async function rpc(chainId, method, params, tries = 10) {
-  const urls = RPC[chainId]
-  let last
-  for (let i = 0; i < tries; i++) {
-    const url = urls[((cursor[chainId] ?? 0) + i) % urls.length]
-    try {
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-        signal: AbortSignal.timeout(90_000),
-      })
-      if (r.status === 429 || r.status >= 500) throw new Error(`HTTP ${r.status}`)
-      const j = await r.json()
-      if (j.error) throw new Error(JSON.stringify(j.error).slice(0, 200))
-      return j.result
-    } catch (e) {
-      last = e
-      if (process.env.E2OFF_DEBUG) console.error(`rpc ${chainId} ${method} try ${i}: ${e.message}`)
-      cursor[chainId] = ((cursor[chainId] ?? 0) + 1) % urls.length
-      await sleep(800 * (i + 1))
-    }
-  }
-  throw new Error(`${chainId} ${method}: ${last?.message}`)
-}
+const T_SUPPLY_COLL = keccak256(toHex('SupplyCollateral(address,address,address,uint256)'))
+const T_TRANSFER_COLL = keccak256(toHex('TransferCollateral(address,address,address,uint256)'))
+const T_ABSORB_COLL = keccak256(toHex('AbsorbCollateral(address,address,address,uint256,uint256)'))
+const T_ABSORB_DEBT = keccak256(toHex('AbsorbDebt(address,address,uint256,uint256)'))
+const T_VENUS_LIQ = keccak256(toHex('LiquidateBorrow(address,address,uint256,address,uint256)'))
+const T_LOG_BORROW = keccak256(toHex('LogBorrow(address,address,uint256,uint256)'))
+const T_LOG_ADD_COLL = keccak256(toHex('LogAddCollateral(address,address,uint256)'))
+const T_LOG_LIQ = keccak256(
+  toHex('LogLiquidation(address,address,address,uint256,uint256,uint256)'),
+)
+const pad = (a) => '0x' + '0'.repeat(24) + a.slice(2).toLowerCase()
 
 /** Many view calls at one block through Multicall3. Each result is { ok, value }. */
 async function multicall(chainId, block, calls) {
@@ -657,21 +720,6 @@ async function multicall(chainId, block, calls) {
     })
   }
   return out
-}
-
-async function logs(chainId, address, topics, fromBlock, toBlock) {
-  const found = []
-  const span = LOG_SPAN[chainId]
-  for (let b = fromBlock; b <= toBlock; b += span) {
-    const e = Math.min(toBlock, b + span - 1)
-    found.push(
-      ...(await rpc(chainId, 'eth_getLogs', [
-        { address, topics, fromBlock: toHex(b), toBlock: toHex(e) },
-      ])),
-    )
-    if (chainId === 9745 || chainId === 1) await sleep(120)
-  }
-  return found
 }
 
 /** First block where the contract has code (binary search on eth_getCode). */
@@ -804,6 +852,94 @@ async function gearboxCohort(g) {
     withDebt: r.value?.length ?? 0,
     accounts: (r.value ?? []).map((a) => a.toLowerCase()),
   }
+}
+
+async function compoundCohort(c) {
+  const start = blockAt(c.chainId, SPEC.fromTs)
+  let born = Infinity
+  for (const a of c.stream) born = Math.min(born, await creationBlock(c.chainId, a, start))
+  const found = [
+    ...(await logs(
+      c.chainId,
+      c.comet,
+      [T_SUPPLY_COLL, null, null, c.stream.map(pad)],
+      born,
+      start,
+    )),
+    ...(await logs(
+      c.chainId,
+      c.comet,
+      [T_TRANSFER_COLL, null, null, c.stream.map(pad)],
+      born,
+      start,
+    )),
+  ]
+  const accounts = [...new Set(found.map((l) => addr(l.topics[2])))]
+  const r = await multicall(
+    c.chainId,
+    start,
+    accounts.flatMap((a) => [
+      { to: c.comet, fn: 'borrowBalanceOf', args: [a] },
+      ...c.stream.map((x) => ({ to: c.comet, fn: 'collateralBalanceOf', args: [a, x] })),
+    ]),
+  )
+  const k = 1 + c.stream.length
+  const withDebt = accounts.filter((_, i) => r[k * i].ok && r[k * i].value > 0n)
+  const kept = accounts.filter(
+    (_, i) =>
+      r[k * i].ok &&
+      r[k * i].value > 0n &&
+      c.stream.some((__, j) => r[k * i + 1 + j].ok && r[k * i + 1 + j].value > 0n),
+  )
+  return { born, borrowers: accounts.length, withDebt: withDebt.length, accounts: kept }
+}
+
+async function enclabsCohort(e) {
+  const start = blockAt(e.chainId, SPEC.fromTs)
+  const born = await creationBlock(e.chainId, e.vToken, start)
+  const tr = await logs(e.chainId, e.vToken, [T_TRANSFER], born, start)
+  const holders = [...new Set(tr.map((l) => addr(l.topics[2])))].filter(
+    (a) => a !== '0x0000000000000000000000000000000000000000' && a !== e.vToken,
+  )
+  const [markets] = await multicall(e.chainId, start, [{ to: e.comptroller, fn: 'getAllMarkets' }])
+  const all = markets.value.map((m) => m.toLowerCase())
+  const r = await multicall(
+    e.chainId,
+    start,
+    holders.flatMap((a) => [
+      { to: e.vToken, fn: 'balanceOf', args: [a] },
+      { to: e.comptroller, fn: 'getAssetsIn', args: [a] },
+      ...all.map((m) => ({ to: m, fn: 'borrowBalanceStored', args: [a] })),
+    ]),
+  )
+  const k = 2 + all.length
+  const kept = holders.filter((_, i) => {
+    const bal = r[k * i]
+    const inn = r[k * i + 1]
+    const entered = inn.ok && inn.value.some((m) => m.toLowerCase() === e.vToken)
+    const debt = all.some((__, j) => r[k * i + 2 + j].ok && r[k * i + 2 + j].value > 0n)
+    return bal.ok && bal.value > 0n && entered && debt
+  })
+  return { born, borrowers: holders.length, withDebt: kept.length, accounts: kept, markets: all }
+}
+
+async function cauldronCohort(c) {
+  const start = blockAt(c.chainId, SPEC.fromTs)
+  const born = await creationBlock(c.chainId, c.cauldron, start)
+  const found = await logs(c.chainId, c.cauldron, [[T_LOG_BORROW, T_LOG_ADD_COLL]], born, start)
+  const users = [...new Set(found.flatMap((l) => [addr(l.topics[1]), addr(l.topics[2])]))]
+  const r = await multicall(
+    c.chainId,
+    start,
+    users.flatMap((a) => [
+      { to: c.cauldron, fn: 'userBorrowPart', args: [a] },
+      { to: c.cauldron, fn: 'userCollateralShare', args: [a] },
+    ]),
+  )
+  const kept = users.filter(
+    (_, i) => r[2 * i].ok && r[2 * i].value > 0n && r[2 * i + 1].ok && r[2 * i + 1].value > 0n,
+  )
+  return { born, borrowers: users.length, withDebt: kept.length, accounts: kept }
 }
 
 // ------------------------------------------------------------------ samples
@@ -995,6 +1131,177 @@ function gearboxReader(g, accounts, dec) {
   }
 }
 
+/**
+ * Compound v3: every collateral of the comet at its own price feed and liquidate collateral
+ * factor, so an account with other collateral shows in adjustedCollateralUsd. Factors are read
+ * each sample (a governance upgrade can change them).
+ */
+function compoundReader(c, accounts, assets, baseFeed, baseDec, dec) {
+  const hist = Object.fromEntries(accounts.map((a) => [a, []]))
+  const n = assets.length
+  const per = 1 + n
+  return {
+    hist,
+    pass1: () => [
+      ...accounts.flatMap((a) => [
+        { to: c.comet, fn: 'borrowBalanceOf', args: [a] },
+        ...assets.map((x) => ({ to: c.comet, fn: 'collateralBalanceOf', args: [a, x.asset] })),
+      ]),
+      { to: c.comet, fn: 'getPrice', args: [baseFeed] },
+      ...assets.map((_, i) => ({ to: c.comet, fn: 'getAssetInfo', args: [i] })),
+    ],
+    pass2: (r1) => {
+      const base = accounts.length * per + 1
+      return assets.map((x, i) => ({
+        to: c.comet,
+        fn: 'getPrice',
+        args: [r1[base + i].ok ? r1[base + i].value.priceFeed : x.priceFeed],
+      }))
+    },
+    pass3: () => [],
+    record: (blockTs, block, r1, r2) => {
+      const g = accounts.length * per
+      const basePx = r1[g].ok ? num(r1[g].value) / 1e8 : 1
+      const info = assets.map((x, i) => (r1[g + 1 + i].ok ? r1[g + 1 + i].value : null))
+      const px = assets.map((_, i) => (r2[i].ok ? num(r2[i].value) / 1e8 : 0))
+      accounts.forEach((a, k) => {
+        const debt = r1[k * per]
+        if (!debt.ok || debt.value === 0n) return hist[a].push({ ts: blockTs, block, closed: true })
+        let adjusted = 0
+        const parts = []
+        assets.forEach((x, i) => {
+          const bal = r1[k * per + 1 + i]
+          if (!bal.ok || bal.value === 0n) return
+          const units = num(bal.value) / 10 ** x.decimals
+          const lcf = info[i] ? num(info[i].liquidateCollateralFactor) / 1e18 : x.lcf
+          const usd = units * px[i]
+          adjusted += usd * lcf
+          if (c.stream.includes(x.asset))
+            parts.push({ sym: STREAM_ASSETS[c.chainId][x.asset], units, oracleUsd: usd, lt: lcf })
+        })
+        hist[a].push({
+          ts: blockTs,
+          block,
+          parts,
+          collateralValue: parts.reduce((t, p) => t + p.oracleUsd, 0),
+          borrow: (num(debt.value) / 10 ** baseDec) * basePx,
+          adjustedCollateralUsd: adjusted,
+        })
+      })
+    },
+  }
+}
+
+/**
+ * Enclabs (Venus isolated pools): xUSD supplied as vTokens, debt across every market the
+ * account entered at the pool oracle. getAccountLiquidity works on liquidation thresholds, so
+ * adjusted collateral = borrow + liquidity − shortfall.
+ */
+function enclabsReader(e, accounts, oracle, xDec) {
+  const hist = Object.fromEntries(accounts.map((a) => [a, []]))
+  return {
+    hist,
+    pass1: () => [
+      ...accounts.flatMap((a) => [
+        { to: e.vToken, fn: 'balanceOf', args: [a] },
+        { to: e.comptroller, fn: 'getAssetsIn', args: [a] },
+        { to: e.comptroller, fn: 'getAccountLiquidity', args: [a] },
+      ]),
+      { to: e.vToken, fn: 'exchangeRateStored' },
+      { to: oracle, fn: 'getUnderlyingPrice', args: [e.vToken] },
+      { to: e.comptroller, fn: 'markets', args: [e.vToken] },
+    ],
+    pass2: (r1) =>
+      accounts.flatMap((a, i) =>
+        (r1[3 * i + 1].ok ? r1[3 * i + 1].value : []).flatMap((m) => [
+          { to: m, fn: 'borrowBalanceStored', args: [a] },
+          { to: oracle, fn: 'getUnderlyingPrice', args: [m] },
+        ]),
+      ),
+    pass3: () => [],
+    record: (blockTs, block, r1, r2) => {
+      const g = accounts.length * 3
+      const ex = r1[g].ok ? r1[g].value : 0n
+      const pxRaw = r1[g + 1].ok ? r1[g + 1].value : 0n
+      const lt = r1[g + 2].ok ? num(r1[g + 2].value[2]) / 1e18 : null
+      let k = 0
+      accounts.forEach((a, i) => {
+        const markets = r1[3 * i + 1].ok ? r1[3 * i + 1].value : []
+        let borrowUsd = 0
+        for (let j = 0; j < markets.length; j++, k += 2) {
+          const b = r2[k]
+          const p = r2[k + 1]
+          if (b.ok && p.ok) borrowUsd += (num(b.value) * num(p.value)) / 1e36
+        }
+        const bal = r1[3 * i]
+        const liq = r1[3 * i + 2]
+        if (!(borrowUsd > 0) || !bal.ok) return hist[a].push({ ts: blockTs, block, closed: true })
+        const units = num((bal.value * ex) / 10n ** 18n) / 10 ** xDec
+        // Venus prices are scaled to 36 − underlying decimals.
+        const usd = (num((bal.value * ex) / 10n ** 18n) * num(pxRaw)) / 1e36
+        const adjusted = liq.ok ? borrowUsd + (num(liq.value[1]) - num(liq.value[2])) / 1e18 : null
+        hist[a].push({
+          ts: blockTs,
+          block,
+          parts: units > 0 ? [{ sym: 'xUSD', units, oracleUsd: usd, lt }] : [],
+          collateralValue: usd,
+          borrow: borrowUsd,
+          adjustedCollateralUsd: adjusted,
+        })
+      })
+    },
+  }
+}
+
+/**
+ * Abracadabra cauldron: borrow part × totalBorrow elastic / base (MIM, valued at 1 by the
+ * cauldron), collateral share → BentoBox amount, valued at the cauldron oracle's current rate
+ * (sdeUSD per MIM). A liquidation refreshes the rate first, so peek() is the venue's view.
+ */
+function cauldronReader(c, accounts, cr, oracle, oracleData) {
+  const hist = Object.fromEntries(accounts.map((a) => [a, []]))
+  return {
+    hist,
+    pass1: () => [
+      ...accounts.flatMap((a) => [
+        { to: c.cauldron, fn: 'userBorrowPart', args: [a] },
+        { to: c.cauldron, fn: 'userCollateralShare', args: [a] },
+      ]),
+      { to: c.cauldron, fn: 'totalBorrow' },
+      { to: c.cauldron, fn: 'exchangeRate' },
+      { to: oracle, fn: 'peek', args: [oracleData] },
+    ],
+    pass2: (r1) =>
+      accounts.map((_, i) => ({
+        to: c.bentoBox,
+        fn: 'toAmount',
+        args: [c.token, r1[2 * i + 1].ok ? r1[2 * i + 1].value : 0n, false],
+      })),
+    pass3: () => [],
+    record: (blockTs, block, r1, r2) => {
+      const g = accounts.length * 2
+      const tb = r1[g].ok ? r1[g].value : null
+      const stored = r1[g + 1].ok ? r1[g + 1].value : 0n
+      const pk = r1[g + 2].ok && r1[g + 2].value[0] ? r1[g + 2].value[1] : stored
+      accounts.forEach((a, i) => {
+        const part = r1[2 * i]
+        if (!part.ok || part.value === 0n || !tb)
+          return hist[a].push({ ts: blockTs, block, closed: true })
+        const debt = num((part.value * tb[0]) / (tb[1] || 1n)) / 1e18
+        const units = r2[i].ok ? num(r2[i].value) / 1e18 : 0
+        const usd = pk > 0n ? (units * 1e18) / num(pk) : 0
+        hist[a].push({
+          ts: blockTs,
+          block,
+          parts: units > 0 ? [{ sym: 'sdeUSD', units, oracleUsd: usd, lt: cr }] : [],
+          collateralValue: usd,
+          borrow: debt,
+        })
+      })
+    },
+  }
+}
+
 /** Run every reader of one chain over the sample times, sharing each pass's batch. */
 async function sampleChain(chainId, readers) {
   // Reads run in a pool; records are applied in time order afterwards.
@@ -1107,6 +1414,12 @@ async function main() {
     setups.push([s.chainId, () => setupSilo(s)])
   for (const g of GEARBOX.filter(() => wanted('gearbox')))
     setups.push([g.chainId, () => setupGearbox(g)])
+  for (const c of COMPOUND.filter((x) => wanted(x.sym)))
+    setups.push([c.chainId, () => setupCompound(c)])
+  for (const e of ENCLABS.filter((x) => wanted(x.sym)))
+    setups.push([e.chainId, () => setupEnclabs(e)])
+  for (const c of CAULDRONS.filter((x) => wanted(`cauldron-${x.cauldron.slice(2, 8)}`)))
+    setups.push([c.chainId, () => setupCauldron(c)])
   const chains = [...new Set(setups.map(([c]) => c))]
   await Promise.all(
     chains.map(async (c) => {
@@ -1214,6 +1527,27 @@ async function main() {
     }
     markets.push(market)
     if (c.accounts.length) add(s.chainId, siloReader(s, c.accounts, dec, btc), market)
+    const [cfg] = await multicall(s.chainId, start, [
+      { to: s.config, fn: 'getConfig', args: [s.silo0] },
+    ])
+    const hook = cfg.value.hookReceiver.toLowerCase()
+    const liq = await logs(
+      s.chainId,
+      hook,
+      [T_SILO_LIQ],
+      blockAt(s.chainId, HISTORY.fromTs),
+      blockAt(s.chainId, HISTORY.toTs),
+    )
+    for (const l of liq)
+      liquidations.push({
+        venue: 'silo',
+        chainId: s.chainId,
+        marketId: s.config,
+        user: addr(l.topics[3]),
+        silo: addr(l.topics[2]),
+        block: Number(l.blockNumber),
+        tx: l.transactionHash,
+      })
   }
 
   async function setupGearbox(g) {
@@ -1240,6 +1574,217 @@ async function main() {
     }
     markets.push(market)
     if (c.accounts.length) add(g.chainId, gearboxReader(g, c.accounts, dec), market)
+    const end = blockAt(g.chainId, HISTORY.toTs)
+    const [facade] = await multicall(g.chainId, end, [{ to: g.cm, fn: 'creditFacade' }])
+    const liq = await logs(
+      g.chainId,
+      facade.value.toLowerCase(),
+      [[T_GB_PARTIAL, T_GB_LIQ]],
+      blockAt(g.chainId, HISTORY.fromTs),
+      end,
+    )
+    for (const l of liq)
+      liquidations.push({
+        venue: 'gearbox',
+        chainId: g.chainId,
+        marketId: g.cm,
+        user: addr(l.topics[1]),
+        partial: l.topics[0] === T_GB_PARTIAL,
+        block: Number(l.blockNumber),
+        tx: l.transactionHash,
+      })
+  }
+
+  async function setupCompound(c) {
+    const start = blockAt(c.chainId, SPEC.fromTs)
+    const end = blockAt(c.chainId, HISTORY.toTs)
+    const [nA, base, baseFeed] = await multicall(c.chainId, start, [
+      { to: c.comet, fn: 'numAssets' },
+      { to: c.comet, fn: 'baseToken' },
+      { to: c.comet, fn: 'baseTokenPriceFeed' },
+    ])
+    const infos = await multicall(
+      c.chainId,
+      start,
+      Array.from({ length: Number(nA.value) }, (_, i) => ({
+        to: c.comet,
+        fn: 'getAssetInfo',
+        args: [i],
+      })),
+    )
+    const assets = infos.map((r) => ({
+      asset: r.value.asset.toLowerCase(),
+      priceFeed: r.value.priceFeed,
+      lcf: num(r.value.liquidateCollateralFactor) / 1e18,
+      decimals: Math.round(Math.log10(num(r.value.scale))),
+    }))
+    const dec = await decimalsOf(c.chainId, [base.value.toLowerCase()], start)
+    const cc = await cachedCohort(`compound-${c.chainId}-${c.sym}`, () => compoundCohort(c))
+    cohortLog.push({
+      venue: 'compound',
+      chainId: c.chainId,
+      market: c.sym,
+      ...cc,
+      accounts: cc.accounts.length,
+    })
+    console.log(
+      `  compound ${c.chainId} ${c.sym}: ${cc.borrowers} collateral suppliers ever, ${cc.withDebt} with debt at Nov 2, ${cc.accounts.length} on Elixir collateral`,
+    )
+    const streamInfo = assets.filter((x) => c.stream.includes(x.asset))
+    const market = {
+      venue: 'compound',
+      chainId: c.chainId,
+      marketId: c.comet,
+      marketName: c.sym,
+      collateral: STREAM_ASSETS[c.chainId][c.stream[0]],
+      collaterals: streamInfo.map((x) => ({
+        asset: x.asset,
+        sym: STREAM_ASSETS[c.chainId][x.asset],
+        liquidationLtv: x.lcf,
+        priceFeed: x.priceFeed,
+      })),
+      loan: c.loan,
+      lltv: streamInfo[0]?.lcf ?? 0.9,
+      curator: c.curator,
+      oracle: 'comet price feeds',
+    }
+    markets.push(market)
+    if (cc.accounts.length)
+      add(
+        c.chainId,
+        compoundReader(c, cc.accounts, assets, baseFeed.value, dec[base.value.toLowerCase()], dec),
+        market,
+      )
+    const liq = await logs(
+      c.chainId,
+      c.comet,
+      [[T_ABSORB_COLL, T_ABSORB_DEBT]],
+      blockAt(c.chainId, HISTORY.fromTs),
+      end,
+    )
+    for (const l of liq)
+      liquidations.push({
+        venue: 'compound',
+        chainId: c.chainId,
+        marketId: c.comet,
+        user: addr(l.topics[2]),
+        kind: l.topics[0] === T_ABSORB_DEBT ? 'absorb-debt' : 'absorb-collateral',
+        asset: l.topics[0] === T_ABSORB_COLL ? addr(l.topics[3]) : null,
+        block: Number(l.blockNumber),
+        tx: l.transactionHash,
+      })
+  }
+
+  async function setupEnclabs(e) {
+    const start = blockAt(e.chainId, SPEC.fromTs)
+    const end = blockAt(e.chainId, HISTORY.toTs)
+    const [oracle, mk] = await multicall(e.chainId, start, [
+      { to: e.comptroller, fn: 'oracle' },
+      { to: e.comptroller, fn: 'markets', args: [e.vToken] },
+    ])
+    const dec = await decimalsOf(e.chainId, [e.token], start)
+    const cc = await cachedCohort(`enclabs-${e.chainId}-${e.sym}`, () => enclabsCohort(e))
+    cohortLog.push({
+      venue: 'enclabs',
+      chainId: e.chainId,
+      market: e.sym,
+      ...cc,
+      accounts: cc.accounts.length,
+      markets: undefined,
+    })
+    console.log(
+      `  enclabs ${e.chainId} ${e.sym}: ${cc.borrowers} holders ever, ${cc.accounts.length} with debt on xUSD collateral at Nov 2`,
+    )
+    const market = {
+      venue: 'enclabs',
+      chainId: e.chainId,
+      marketId: e.vToken,
+      marketName: `Enclabs ${e.pool} ${e.sym}`,
+      collateral: 'xUSD',
+      loan: 'pool (USDC.e, scUSD, USDT0, …)',
+      lltv: num(mk.value[2]) / 1e18,
+      curator: e.curator,
+      oracle: oracle.value,
+      comptroller: e.comptroller,
+    }
+    markets.push(market)
+    if (cc.accounts.length)
+      add(e.chainId, enclabsReader(e, cc.accounts, oracle.value, dec[e.token]), market)
+    const liq = await logs(
+      e.chainId,
+      cc.markets,
+      [T_VENUS_LIQ],
+      blockAt(e.chainId, HISTORY.fromTs),
+      end,
+    )
+    for (const l of liq) {
+      // Venus isolated pools index liquidator, borrower and the collateral vToken.
+      const indexed = l.topics.length === 4
+      const borrower = indexed ? addr(l.topics[2]) : addr('0x' + l.data.slice(2 + 64, 2 + 128))
+      const coll = indexed ? addr(l.topics[3]) : addr('0x' + l.data.slice(2 + 192, 2 + 256))
+      if (coll !== e.vToken) continue
+      liquidations.push({
+        venue: 'enclabs',
+        chainId: e.chainId,
+        marketId: e.vToken,
+        user: borrower,
+        repaidIn: l.address.toLowerCase(),
+        block: Number(l.blockNumber),
+        tx: l.transactionHash,
+      })
+    }
+  }
+
+  async function setupCauldron(c) {
+    const start = blockAt(c.chainId, SPEC.fromTs)
+    const end = blockAt(c.chainId, HISTORY.toTs)
+    const [crR, oracle, data] = await multicall(c.chainId, start, [
+      { to: c.cauldron, fn: 'COLLATERIZATION_RATE' },
+      { to: c.cauldron, fn: 'oracle' },
+      { to: c.cauldron, fn: 'oracleData' },
+    ])
+    const cr = num(crR.value) / 1e5
+    const cc = await cachedCohort(`cauldron-${c.chainId}-${c.cauldron}`, () => cauldronCohort(c))
+    cohortLog.push({
+      venue: 'abracadabra',
+      chainId: c.chainId,
+      market: c.cauldron,
+      ...cc,
+      accounts: cc.accounts.length,
+    })
+    console.log(
+      `  abracadabra ${c.chainId} ${c.cauldron.slice(0, 10)}: ${cc.borrowers} users ever, ${cc.accounts.length} with debt at Nov 2`,
+    )
+    const market = {
+      venue: 'abracadabra',
+      chainId: c.chainId,
+      marketId: c.cauldron,
+      marketName: `Cauldron sdeUSD/MIM ${c.cauldron.slice(0, 8)}`,
+      collateral: 'sdeUSD',
+      loan: 'MIM',
+      lltv: cr,
+      curator: c.curator,
+      oracle: oracle.value,
+    }
+    markets.push(market)
+    if (cc.accounts.length)
+      add(c.chainId, cauldronReader(c, cc.accounts, cr, oracle.value, data.value), market)
+    const liq = await logs(
+      c.chainId,
+      c.cauldron,
+      [T_LOG_LIQ],
+      blockAt(c.chainId, HISTORY.fromTs),
+      end,
+    )
+    for (const l of liq)
+      liquidations.push({
+        venue: 'abracadabra',
+        chainId: c.chainId,
+        marketId: c.cauldron,
+        user: addr(l.topics[2]),
+        block: Number(l.blockNumber),
+        tx: l.transactionHash,
+      })
   }
 
   console.log('sampling every 2h, chains in parallel …')
@@ -1268,14 +1813,14 @@ async function main() {
 
   const body = {
     label:
-      'Recall Coverage Dataset spec E2 off Morpho: Euler v2, Silo v2 and Gearbox v3.1 positions on xUSD, xBTC, xETH, deUSD, sdeUSD (Nov 2025)',
+      'Recall Coverage Dataset spec E2 off Morpho: Euler v2, Silo v2, Gearbox v3.1, Compound v3, Enclabs and Abracadabra positions on xUSD, xBTC, xETH, deUSD, sdeUSD (Nov 2025)',
     specWindow: SPEC,
     historyWindow: HISTORY,
     sampleStepS: STEP_S,
     source:
       "Archive eth_call through Multicall3 every 2 hours at the block nearest each time (keyless RPCs per chain); cohort from Borrow logs (Euler), debt-share mints (Silo) and creditAccounts() (Gearbox) up to the Nov 2 block. Collateral and debt valued at each venue's own oracle (Euler accountLiquidity / getQuote, Silo solvency-oracle quotes, Gearbox calcDebtAndCollateral). Market prices: DefiLlama CoinGecko ids, hourly; BTC.b debt at Binance BTCUSDT.",
     uncovered:
-      'xBTC and xETH have no market price series (oracle basis only). Silo and Gearbox liquidation events are not read. Euler on Berachain, BOB, TAC and Swell, and Ethereum Gearbox v3.0 credit managers, are not scanned.',
+      'xBTC and xETH have no market price series (oracle basis only). Liquidations: Euler Liquidate, Silo v2 hook LiquidationCall, Gearbox v3.1 facade (partial and full); a Gearbox credit facade replaced inside the window would be missed.',
     cohort: cohortLog,
     markets,
     positions,

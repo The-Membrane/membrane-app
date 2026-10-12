@@ -32,11 +32,16 @@ import {
   CORRELATED_LOOP_HF,
   DEFAULT_ALERT_CONFIG,
   detectPriceFreeze,
+  fromCompoundGovernance,
+  fromEulerGovernance,
+  fromGearboxConfigurator,
+  fromVenusComptroller,
   quantile,
   replay,
   scoreReplay,
   type AlertConfig,
   type MarketContext,
+  type GovernanceChangeEvent,
   type OracleChangeEvent,
   type PositionSnapshot,
   type ReplayStep,
@@ -108,6 +113,8 @@ interface PositionResult {
   /** First warn-or-higher (critical) message to this position, at or before its breach. */
   firstWarnTs: number | null
   firstCriticalTs: number | null
+  /** Governance-change rule: worsening messages, the first one, and the highest level. */
+  governance: { messages: number; firstTs: number | null; peak: number }
 }
 
 interface Lead {
@@ -169,7 +176,16 @@ function runPath(p: Path, config: AlertConfig, everyS: number): PositionResult {
         (a.transition === 'fire' || a.transition === 'escalate') &&
         (r.liquidatedAt === null || a.ts <= r.liquidatedAt),
     )?.ts ?? null
+  const gov = r.messages.filter(
+    (a) =>
+      a.ruleId === 'governance-change' && (a.transition === 'fire' || a.transition === 'escalate'),
+  )
   return {
+    governance: {
+      messages: gov.length,
+      firstTs: gov[0]?.ts ?? null,
+      peak: gov.reduce((m, a) => Math.max(m, a.to), 0),
+    },
     id: p.id,
     cluster: p.cluster,
     isLooper: p.isLooper,
@@ -637,6 +653,8 @@ interface E2Point {
   marketValueUsd?: number | null
   /** Euler / Gearbox: the venue's own risk-adjusted collateral value, all collateral included. */
   adjustedCollateralUsd?: number | null
+  /** Off-Morpho builder: the Stream collateral by part (symbol, units, oracle USD, LT). */
+  parts?: { sym: string; oracleUsd?: number }[]
 }
 
 interface E2Market {
@@ -711,7 +729,87 @@ interface E2Prepared {
   points: E2Point[]
   marketPx: (number | null)[]
   oracleEvents: OracleChangeEvent[]
+  governanceEvents: GovernanceChangeEvent[]
   liquidationTs: number | null
+  /** Market series that steps the price between reads: the position's largest part. */
+  priceSym: string
+}
+
+/**
+ * Governance changes of the E2 Euler, Gearbox, Compound v3 and Enclabs markets
+ * (build-governance-changes.ts), keyed by market. Morpho Blue, Silo v2 and Abracadabra cauldron
+ * risk parameters cannot change: covered, no events. Oracle swaps found there (a Compound price
+ * feed, an Enclabs pool oracle or asset config) go to the oracle-change rule as feed_replaced.
+ */
+const GOV_FILE = join(datasetsDir(ROOT), 'governance-changes', 'e2-euler-gearbox.json')
+const e2Gov = new Map<string, GovernanceChangeEvent[]>()
+const e2GovOracle = new Map<string, OracleChangeEvent[]>()
+const e2GovCovered = existsSync(GOV_FILE)
+const IMMUTABLE_VENUES = new Set(['morpho', 'silo', 'abracadabra'])
+if (e2GovCovered) {
+  const g = JSON.parse(readFileSync(GOV_FILE, 'utf8')) as {
+    symbols: Record<string, Record<string, string>>
+    events: {
+      venue: string
+      chainId: number
+      address: string
+      market?: string
+      ts: number
+      tx: string
+      name: string
+      args: Record<string, unknown>
+    }[]
+  }
+  const symOf = (chainId: number, a: unknown) =>
+    typeof a === 'string' ? (g.symbols[chainId]?.[a.toLowerCase()] ?? a.toLowerCase()) : undefined
+  for (const r of g.events) {
+    const venue = r.venue === 'enclabs-oracle' ? 'enclabs' : r.venue
+    const market = e2Key(venue, r.chainId, r.market ?? r.address)
+    const ctx = {
+      market,
+      ts: r.ts,
+      source: `${r.venue} ${r.name} ${r.tx.slice(0, 10)}`,
+      symbolOf: (a: string) => g.symbols[r.chainId]?.[a],
+      // Compound: a Configurator change is in force at the next upgrade of the comet.
+      effectiveTs: g.events.find(
+        (u) =>
+          u.venue === 'compound' &&
+          u.name === 'Upgraded' &&
+          u.market === r.market &&
+          u.chainId === r.chainId &&
+          u.ts >= r.ts,
+      )?.ts,
+    }
+    const oracleSwap =
+      r.name === 'UpdateAssetPriceFeed' ||
+      r.name === 'NewPriceOracle' ||
+      r.name === 'TokenConfigAdded'
+    if (oracleSwap) {
+      const asset = symOf(r.chainId, (r.args as { asset?: string }).asset) ?? '*'
+      const ev: OracleChangeEvent = {
+        asset,
+        oracle: market,
+        kind: 'feed_replaced',
+        ts: ctx.effectiveTs && r.name === 'UpdateAssetPriceFeed' ? ctx.effectiveTs : r.ts,
+        detail: `${r.name} ${JSON.stringify(r.args).slice(0, 160)}`,
+        source: ctx.source,
+        severity: 'warn',
+      }
+      e2GovOracle.set(market, [...(e2GovOracle.get(market) ?? []), ev])
+      continue
+    }
+    const e =
+      venue === 'euler'
+        ? fromEulerGovernance(r.name, r.args, ctx)
+        : venue === 'gearbox'
+          ? fromGearboxConfigurator(r.name, r.args, ctx)
+          : venue === 'compound'
+            ? fromCompoundGovernance(r.name, r.args, ctx)
+            : venue === 'enclabs'
+              ? fromVenusComptroller(r.name, r.args, ctx)
+              : null
+    if (e) e2Gov.set(market, [...(e2Gov.get(market) ?? []), e])
+  }
 }
 
 const e2Prepared: E2Prepared[] = []
@@ -804,14 +902,40 @@ for (const p of e2Files.flatMap((f) =>
     points: pts,
     marketPx,
     // A hard-coded oracle never moves, so "frozen" says nothing new: the depeg rule covers it.
-    oracleEvents: hardcoded
-      ? []
-      : detectPriceFreeze(
-          pts.map((x, i) => ({ ts: x.ts, oraclePx: oraclePx[i], marketPx: marketPx[i] })),
-          m.collateral,
-          e2Key(p.venue, p.chainId, p.marketId),
-        ),
+    oracleEvents: [
+      ...(hardcoded
+        ? []
+        : detectPriceFreeze(
+            pts.map((x, i) => ({ ts: x.ts, oraclePx: oraclePx[i], marketPx: marketPx[i] })),
+            m.collateral,
+            e2Key(p.venue, p.chainId, p.marketId),
+          )),
+      // Oracle swaps from governance on a collateral the position holds (any part), or pool-wide.
+      ...(() => {
+        const held = new Set(p.history.flatMap((x) => (x.parts ?? []).map((q) => q.sym)))
+        held.add(m.collateral)
+        return (e2GovOracle.get(e2Key(p.venue, p.chainId, p.marketId)) ?? [])
+          .filter((e) => e.asset === '*' || held.has(e.asset))
+          .map((e) => ({ ...e, asset: m.collateral }))
+      })(),
+    ],
+    // Events on a collateral the position holds (any part) are renamed to the snapshot's one
+    // collateral symbol; events on other collaterals do not touch it.
+    governanceEvents: (() => {
+      const held = new Set(p.history.flatMap((x) => (x.parts ?? []).map((q) => q.sym)))
+      held.add(m.collateral)
+      return (e2Gov.get(e2Key(p.venue, p.chainId, p.marketId)) ?? [])
+        .filter((e) => e.asset === undefined || held.has(e.asset))
+        .map((e) => (e.asset === undefined ? e : { ...e, asset: m.collateral }))
+    })(),
     liquidationTs: liq[0] ?? null,
+    priceSym: (() => {
+      const parts = first.parts
+      const top = parts?.length
+        ? parts.reduce((a, b) => ((b.oracleUsd ?? 0) > (a.oracleUsd ?? 0) ? b : a)).sym
+        : m.collateral
+      return top.startsWith('PT-') ? 'xUSD' : top
+    })(),
   })
 }
 // Dataset rule: clusters under 3 members merge into (protocol, collateral, other).
@@ -826,34 +950,57 @@ for (const p of e2Files.flatMap((f) =>
 function e2Paths(basis: 'oracle' | 'market'): Path[] {
   return e2Prepared
     .map((x): Path | null => {
-      const idx = x.points
-        .map((_, i) => i)
-        .filter((i) => basis === 'oracle' || x.marketPx[i] !== null)
-      if (!idx.length) return null
-      const pt = (i: number) => x.points[idx[i]]
+      // Off Morpho the position is read every 2 h but the market price is hourly. Between two
+      // reads, hold the position and step the market price (scaled from the read by the main
+      // asset's series), so the depeg rule and the market-basis HF see every hourly print.
+      const P = e2PriceSeries[x.priceSym]
+      const ticks: { pi: number; ts: number; mpx: number | null }[] = []
+      x.points.forEach((p, i) => {
+        ticks.push({ pi: i, ts: p.ts, mpx: x.marketPx[i] })
+        const next = x.points[i + 1]?.ts ?? p.ts
+        const base = priceAt(P, p.ts)
+        const read = x.marketPx[i]
+        if (x.venue === 'morpho' || read === null || base === null || !P) return
+        for (const [t, v] of P)
+          if (t > p.ts && t < Math.min(next, p.ts + 3 * H))
+            ticks.push({ pi: i, ts: t, mpx: (read * v) / base })
+      })
+      const use = ticks.filter((k) => basis === 'oracle' || k.mpx !== null)
+      if (!use.length) return null
+      const pt = (i: number) => x.points[use[i].pi]
       const oracle = (i: number) => (pt(i).collateralValue as number) / (pt(i).collateral as number)
-      const market = (i: number) => x.marketPx[idx[i]]
-      // Euler and Gearbox: the venue's own risk-adjusted value, so a governance ramp of the
-      // liquidation LTV (Euler, Nov 3 2025) moves HF as it did on chain. Else the market's LT.
+      const market = (i: number) => use[i].mpx
+      // Euler, Gearbox, Compound, Enclabs: the venue's own risk-adjusted value, so a governance
+      // ramp of the liquidation LTV (Euler, Nov 3 2025) moves HF as it did on chain.
       const lt = (i: number) => {
         const p = pt(i)
         if (p.adjustedCollateralUsd != null && (p.collateralValue as number) > 0)
           return p.adjustedCollateralUsd / (p.collateralValue as number)
         return p.lt ?? x.lltv
       }
-      const hf = idx.map((_, i) => {
+      const hf = use.map((_, i) => {
         const px = basis === 'oracle' ? oracle(i) : (market(i) as number)
         return ((pt(i).collateral as number) * px * lt(i)) / (pt(i).borrow as number)
       })
+      // A liquidation between two reads closes the position before the next one, so the path
+      // never shows HF < 1 (Compound absorbs, Nov 3 and Nov 6). An observed liquidation inside
+      // the read window with no path breach before it is the breach.
+      const tsArr = use.map((k) => k.ts)
+      const firstBreach = hf.findIndex((h) => h < 1)
+      const missed =
+        x.liquidationTs !== null &&
+        x.liquidationTs <= tsArr[tsArr.length - 1] + 3 * H &&
+        (firstBreach === -1 || tsArr[firstBreach] > x.liquidationTs)
       return {
         id: x.id,
         cluster: x.cluster,
         isLooper: true,
-        ts: idx.map((_, i) => pt(i).ts),
+        knownBreachTs: missed ? (x.liquidationTs as number) : undefined,
+        ts: tsArr,
         hf,
         snapshot: (i) => ({
           id: x.id,
-          ts: pt(i).ts,
+          ts: use[i].ts,
           venue: `${x.venue} ${x.collateral}`,
           collateral: [
             {
@@ -872,7 +1019,12 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
           ],
           debt: [{ symbol: 'USDC', amount: pt(i).borrow as number, priceUsd: 1 }],
         }),
-        ctx: () => ({ oracleEvents: x.oracleEvents, oracleEventsCovered: true }),
+        ctx: () => ({
+          oracleEvents: x.oracleEvents,
+          oracleEventsCovered: true,
+          governanceEvents: x.governanceEvents,
+          governanceEventsCovered: IMMUTABLE_VENUES.has(x.venue) || e2GovCovered,
+        }),
         observedLiquidationTs: x.liquidationTs,
       }
     })
@@ -884,8 +1036,29 @@ function e2Basis(basis: 'oracle' | 'market', config: AlertConfig) {
   const paths = e2Paths(basis)
   const cadence = [{ label: '1 h', everyS: 0 }]
   const venues = [...new Set(e2Prepared.map((x) => x.venue))]
+  const runs = runEvent(paths, config, cadence)
+  const rows = runs[0].rows
+  const breached = rows.filter((r) => r.breachTs !== null)
+  const tally = (k: 'warn' | 'critical') =>
+    Object.fromEntries(
+      [...new Set(breached.map((r) => r[k].leadRule ?? 'none'))].map((rule) => [
+        rule,
+        breached.filter((r) => (r[k].leadRule ?? 'none') === rule).length,
+      ]),
+    )
   return {
-    runs: runEvent(paths, config, cadence),
+    runs,
+    // Which rule gave each breached position its earliest warning.
+    firstWarnRule: tally('warn'),
+    firstCriticalRule: tally('critical'),
+    governance: {
+      positionsWithEvents: e2Prepared.filter((x) => x.governanceEvents.length).length,
+      positionsMessaged: rows.filter((r) => r.governance.messages > 0).length,
+      byPeak: Object.fromEntries(
+        [1, 2, 3].map((l) => [l, rows.filter((r) => r.governance.peak === l).length]),
+      ),
+      messages: rows.reduce((a, r) => a + r.governance.messages, 0),
+    },
     byVenue: Object.fromEntries(
       venues.map((v) => {
         const [r] = runEvent(

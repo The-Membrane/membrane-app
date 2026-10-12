@@ -64,6 +64,14 @@ export interface OracleChangeConfig {
   spec: LevelSpec
 }
 
+export interface GovernanceChangeConfig {
+  /** An event keeps the rule raised this long (after a ramp reaches its target). */
+  windowS: number
+  /** A threshold cut is warn when the projected health factor is below this line. */
+  warnHf: number
+  spec: LevelSpec
+}
+
 export interface AlertConfig {
   healthFactor: LevelSpec | null
   /** User-chosen LTV lines. Off by default: health factor already covers the venue's line. */
@@ -73,6 +81,7 @@ export interface AlertConfig {
   depeg: DepegConfig | null
   exitCapacity: ExitCapacityConfig | null
   oracleChange: OracleChangeConfig | null
+  governanceChange: GovernanceChangeConfig | null
   /** Health factor the "what to do" line in a message aims for. */
   targetHf: number
 }
@@ -145,6 +154,20 @@ export const DEFAULT_ALERT_CONFIG: AlertConfig = {
   },
   oracleChange: {
     windowS: 24 * H,
+    spec: {
+      direction: 'above',
+      enter: { watch: 0.5, warn: 1.5, critical: 2.5 },
+      band: 0,
+      dwellS: 0,
+      confirm: 1,
+      cooldownS: 24 * H,
+    },
+  },
+  // Reports itself UNCOVERED until a market's governance source is wired. A threshold cut is
+  // projected per position: critical below HF 1, warn below the 1.15 line (memo §8b).
+  governanceChange: {
+    windowS: 24 * H,
+    warnHf: 1.15,
     spec: {
       direction: 'above',
       enter: { watch: 0.5, warn: 1.5, critical: 2.5 },

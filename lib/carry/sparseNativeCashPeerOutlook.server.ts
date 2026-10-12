@@ -2,20 +2,26 @@ import { loadPinnedAudit } from '../../scripts/research/conditional-cash-time-ho
 import { nativeCashGraphIntervalOutlook, type NativeCashGraphQuestion } from './nativeCashPeerIntervals'
 import type { ConditionalSampledCashHistory } from './conditionalSampledCashPathProjection'
 
-/** Qualification closes over original native receipts; no HTTP evidence or cloned receipts enter here. */
+/**
+ * The issuer may reuse its original authenticated audit array to avoid a second parse.
+ * Its qualifier must bind BOTH original question and array to that loader result and
+ * private native receipts. A transport array or cloned selected history is not proof.
+ */
 export function issueSparseNativeCashPeerOutlook(
   question: NativeCashGraphQuestion,
-  qualifyNativeOriginal: (original: NativeCashGraphQuestion) => boolean,
+  qualifyNativeOriginal: (original: NativeCashGraphQuestion, histories: readonly ConditionalSampledCashHistory[]) => boolean,
+  originalAuthenticatedHistories?: readonly ConditionalSampledCashHistory[],
 ) {
   try {
-    if(!qualifyNativeOriginal(question))return null
-    const audit=loadPinnedAudit()
-    const histories=Object.values(audit.histories) as ConditionalSampledCashHistory[]
-    // The loader validates immutable byte pins, identity, availability and all retained source anchors.
+    const histories=originalAuthenticatedHistories ??
+      Object.values(loadPinnedAudit().histories) as ConditionalSampledCashHistory[]
+    if(!qualifyNativeOriginal(question,histories))return null
     const own=histories.find(h=>h.identity.routeKey===question.history.identity.routeKey &&
       h.identity.destination===question.history.identity.destination)
-    if(!own || JSON.stringify(own)!==JSON.stringify(question.history))return null
+    // Injection preserves the exact selected original, not just equivalent JSON.
+    if(!own || (originalAuthenticatedHistories ? own!==question.history :
+      JSON.stringify(own)!==JSON.stringify(question.history)))return null
     return nativeCashGraphIntervalOutlook(question,histories,(q,hs)=>q===question && hs===histories &&
-      qualifyNativeOriginal(q) && Object.values(audit.histories).includes(own))
+      qualifyNativeOriginal(q,hs))
   } catch { return null }
 }

@@ -15,9 +15,9 @@ export const RPC = {
     'https://ethereum.public.blockpi.network/v1/rpc/public',
     'https://eth.drpc.org',
   ],
-  // BlastAPI now caps eth_getLogs at 10 blocks (tested 2026-10-12). arb1 serves logs but no
-  // archive state: an eth_call there fails and the rotation returns to Tenderly.
-  42161: ['https://arbitrum.gateway.tenderly.co', 'https://arb1.arbitrum.io/rpc'],
+  // BlastAPI now caps eth_getLogs at 10 blocks and arb1.arbitrum.io has no archive state
+  // (tested 2026-10-12): both Tenderly gateways serve archive calls and 400k-block logs.
+  42161: ['https://arbitrum.gateway.tenderly.co', 'https://gateway.tenderly.co/public/arbitrum'],
   43114: ['https://api.avax.network/ext/bc/C/rpc', 'https://avalanche.gateway.tenderly.co'],
   146: ['https://rpc.soniclabs.com', 'https://sonic-rpc.publicnode.com'],
   9745: ['https://rpc.plasma.to'],

@@ -18,7 +18,7 @@ The A1 copy claim's position, one size:
 | Line | Membrane | Aave v3 |
 |---|---|---|
 | Yield earned | Venue supply APR × the debt still deployed. Priced at Membrane's whole book at the venue: the case's book; the floor names none, so the default $50M book. Gross, before Membrane's curator-set share, so an upper bound on what reaches the user (†). | Venue supply APR × the deployed debt, at the position's own size. Nothing is recalled. |
-| Borrow cost | **Unavailable.** Deployed debt carries no interest. The cost is a curator-set share of the venue yield, not fixed pre-launch, so it is never priced. A levered long's interest rate is not fixed either. | Measured hourly variable borrow APR × the debt still owed. |
+| Borrow cost | **Unavailable.** Carry: deployed debt accrues 0%, and carry debt never exceeds the capital still deployed (a recall lowers both, a sale lowers the debt). The cost is a curator-set share of the venue yield, not fixed pre-launch, so it is never priced. Levered long: all its debt is undeployed and pays a variable rate that follows the avoidance rate (owner 2026-10-12, board Q24). That rate has no history pre-launch. | Measured hourly variable borrow APR × the debt still owed. |
 | Collateral sold | The stress engine's sales (`exposedUsd`). Fees omitted, so understated. | Seized collateral, including the liquidation bonus. |
 | Yield given up | What the capital the recalls drew would have earned for the rest of the window. | 0 by construction: a liquidation is paid from collateral, the deployed USDC stays. |
 
@@ -150,6 +150,7 @@ A position opened at the start of each owner-named stress window and held 90 day
 
 - **State the period and n every time.** Example: "Opened at HF 2 any hour from 2024-07-27 to 2026-07-08 and held 90 days (n = 17,052): …". Never extend a figure to 2020–2024. Before 2024-07-27 the yield is unavailable.
 - **History, not odds.** Report what windows earned and sold as quantiles with n. Do not turn window counts into a chance.
+- **Open owner decision: a bound for the levered long's rate.** Q24 bounds the avoidance rate by the venue supply APR in its stress axis. With that bound, the levered long's Membrane borrow cost would be at most the venue supply yield on its debt: about $377 median over 90 days on $40,000 (the Aave yield of the carry rows), less after a sale. This memo does not print that bound without an owner ruling.
 - **Never promise positive carry.** Membrane's borrow cost is a curator-set share of the yield and is not priced here. The yield line is the gross venue yield, an upper bound on what reaches the user.
 - **Name the book.** Membrane's whole book at Aave USDC lowers the rate it earns: the $250M book earned less than the $10M book in the same windows.
 - **Say the line.** At the same 40% start LTV, a levered long on Membrane (line 80%) can sell in more windows than on Aave (threshold 83%).

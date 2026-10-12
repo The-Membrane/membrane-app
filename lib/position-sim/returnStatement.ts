@@ -9,9 +9,11 @@
  * incumbent (Aave v3) for the same position on the same price path:
  *   yield earned       the venue supply APR × the debt still deployed, hour by hour
  *   borrow cost        Aave: the measured variable borrow APR × the debt still owed.
- *                      Membrane: deployed debt carries no interest; the cost is a
- *                      curator-set share of the venue yield (carryCost.ts), not fixed
- *                      pre-launch, so it is UNAVAILABLE, never priced
+ *                      Membrane carry: deployed debt accrues 0%; the cost is a curator-set
+ *                      share of the venue yield (carryCost.ts), not fixed pre-launch, so
+ *                      it is UNAVAILABLE, never priced. Membrane levered long: undeployed
+ *                      debt pays the avoidance rate (owner 2026-10-12), which has no
+ *                      history pre-launch: UNAVAILABLE
  *   collateral sold    each engine's own sales (Aave: seized incl. the liquidation bonus)
  *   yield given up     Membrane: what the capital its recalls drew would have earned for
  *                      the rest of the window. Aave: 0 by construction (no recall; a
@@ -170,10 +172,15 @@ const line = (usd: number | null, basis: string, why: string): Line =>
 
 /** Why Membrane's borrow cost has no number (carryCost.ts header, owner ruling). */
 export const MEMBRANE_BORROW_COST_WHY =
-  'curator-set share of the venue yield; not fixed pre-launch, so not priced (deployed debt carries no interest)'
-/** Why Membrane's undeployed (levered long) debt has no rate. */
+  'curator-set share of the venue yield; not fixed pre-launch, so not priced. Deployed debt accrues 0%, and carry debt never exceeds the capital still deployed'
+/**
+ * Why Membrane's undeployed (levered long) debt has no rate. Owner 2026-10-12 (board Q24):
+ * undeployed debt pays a variable rate that follows the avoidance rate. That rate is a
+ * vault payment rate with no history pre-launch, so it is not priced here. (Q24's stress
+ * axis bounds it by the venue supply APR; a statement does not, without an owner ruling.)
+ */
 export const MEMBRANE_UNDEPLOYED_RATE_WHY =
-  'Membrane interest on undeployed debt is not fixed pre-launch, so not priced'
+  'undeployed debt pays the avoidance rate (owner 2026-10-12); it has no history pre-launch, so not priced'
 
 export interface MembraneReturn {
   /** Gross venue supply yield on the deployed debt, before Membrane's curator-set share:

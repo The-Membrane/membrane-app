@@ -142,6 +142,8 @@ import {
   netApyHistoryFileName,
   incumbentReturn,
   incumbentWindow,
+  MEMBRANE_BORROW_COST_WHY,
+  MEMBRANE_UNDEPLOYED_RATE_WHY,
   membraneWindow,
   netCarry,
   rateSeries,
@@ -1948,8 +1950,8 @@ function runReturns(horizonFilter?: readonly string[]) {
               usd: null,
               why:
                 k.cd.tradeShape === 'carry'
-                  ? 'curator-set share of the venue yield; not fixed pre-launch'
-                  : 'Membrane interest on undeployed debt; not fixed pre-launch',
+                  ? MEMBRANE_BORROW_COST_WHY
+                  : MEMBRANE_UNDEPLOYED_RATE_WHY,
             },
             collateralSold: distOf(a.m.collateralSold),
             yieldGivenUp: distOf(a.m.yieldGivenUp),
@@ -2003,7 +2005,7 @@ function runReturns(horizonFilter?: readonly string[]) {
       yieldEarned:
         'Venue supply APR (net-APY history, sample-and-hold) × the debt still deployed, simple interest. Membrane: priced at its whole book at the venue (the preset’s book; the floor names none, so the default $50M book); the gross venue yield before Membrane’s curator-set share, so an upper bound on what reaches the user. Aave: priced at the position’s own deposit.',
       borrowCost:
-        'Aave: the measured hourly variable borrow APR × the debt still owed. Membrane: unavailable (curator-set share of yield; deployed debt carries no interest).',
+        'Aave: the measured hourly variable borrow APR × the debt still owed. Membrane carry: unavailable (curator-set share of yield; deployed debt accrues 0%). Membrane levered long: unavailable (undeployed debt pays the avoidance rate, owner 2026-10-12, which has no history pre-launch).',
       collateralSold:
         'Membrane: the engine’s exposedUsd (fees omitted; a sale in the held tail after the horizon counts, as in the survival table). Aave: seized collateral incl. the liquidation bonus.',
       yieldGivenUp:

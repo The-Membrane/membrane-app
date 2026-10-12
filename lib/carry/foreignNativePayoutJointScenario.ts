@@ -144,11 +144,14 @@ export function buildForeignNativePayoutJointScenario(original:ForeignNativePayo
     const shrinking=currentHeadroomRaw===null?null:usable.filter(s=>BigInt(s.targetHeadroomRaw!)<BigInt(currentHeadroomRaw!)).length
     return {schema:'foreign_native_payout_joint_scenario_v1' as const,question:q,native:n,conversion:c,mechanism,
       basis:c.kind,scope:c.kind==='original_exact_size_quote'?'fixed_exact_sized_action_only_no_partial_quote':'declared_linear_joint_conversion_assumption',
+      conditionalFinalAmountRequiresUnqualifiedUSDCSettlementFunding:q.routeKey==='PYUSD → StakingVault [wYLDS]',
+      fullRoutePayoutCapacityKnown:false as const,
       process,currentHeadroomRaw,shrinking:{shrinkingScenarios:shrinking,usableScenarios:usable.length,
         censoredScenarios:process.scenarios.length-usable.length},
       nativeFundingDiagnostic:{status:adequateExactQuote?'conditional_exact_action_native_funding_proxy' as const:
         c.kind==='original_exact_size_quote'?'quoted_final_output_below_final_Q' as const:'declared_conversion_not_exact_native_threshold' as const,
         thresholdNativeRaw:adequateExactQuote?c.nativeInputRaw:null,process:nativeFundingProcess,
+        fundingLeg:q.routeKey==='PYUSD → StakingVault [wYLDS]'?'PRIME_wYLDS_first_leg_only':'native_intermediate_cash_leg',
         thresholdIsNotAdditionalCompetition:true as const,finalQDeductedHere:false as const},
       mechanismTiming:{qualifiedReleaseConditions:release??null,
         conditionalMinimumAdditionalDelaySeconds:release?release.conditions.reduce((sum,x)=>sum+x.minimumDelaySeconds,0):null,

@@ -2,11 +2,16 @@
 
 **CRITICAL:** All code changes MUST follow these standardized patterns. No exceptions.
 
-> **Agent Message Board:** shared persistent memory for all agents across ALL Membrane repos
-> (membrane-app, membrane-core, membrane-solidity). `AGENT_BOARD.md` at the repo root is a symlink to
-> the real board at `~/membrane-board/AGENT_BOARD.md`. Read it before substantial work; append
+> **Agent board:** shared memory for all agents in ALL Membrane repos (membrane-app, membrane-core,
+> membrane-solidity), local and cloud. It lives in the git repo `triccs/membrane-board`, cloned on the Mac at
+> `/Users/EBmic/membrane-board` (a cloud session attaches that repo instead). `/Users/EBmic/AGENT_BOARD.md` and the repo-root `AGENT_BOARD.md` are
+> symlinks to that clone's file. **An edit is shared only after it is committed and pushed.** Follow
+> `/Users/EBmic/membrane-board/CLAUDE.md` for every read and write: pull with `--rebase --autostash`
+> first; read with `scripts/board.py toc` and `get`, not a full read; after a write, run the tag check
+> and `scripts/test-board.py`, commit `board: <TAG> <claim>`, and `git push origin HEAD:main`. Append
 > discoveries, decisions, warnings, and failed approaches the moment you learn them (your context can
-> vanish at any time). Protocol: `.claude/skills/agent-message-board/SKILL.md`.
+> vanish at any time). When to write: `.claude/skills/agent-message-board/SKILL.md`. How:
+> `/Users/EBmic/membrane-board/.claude/skills/agent-board/SKILL.md`.
 
 > **Brand direction:** Living Typeface (bone-on-black, phosphor green, sharp corners, hairlines). This
 > supersedes the old cyberpunk navy/purple/glow system. See

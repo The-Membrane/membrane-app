@@ -41,6 +41,9 @@ AGENT_BOARD.md
 # Machine-local, reproducible archive-RPC research cache (large raw samples)
 /data/research/venue-signals/
 
-# Oracle registry collector resumable run cache (deleted after a successful run)
+# Oracle registry collector caches (confirmed log ranges, resumable runs; CI keeps them across runs)
 /data/oracle-registry/.cache/
 /data/oracle-registry/config/.cache/
+
+# net-apy-at-size local-first store (lib/netApy/store.ts) — snapshots + Merkl pull, never committed
+/.data/

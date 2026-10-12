@@ -47,6 +47,8 @@
  *     # rebuild derived episodes after a completed log scan; keep events/log cursors
  *   npx tsx scripts/scan-aave-liquidations.mjs --max-blocks=20000   # smoke run
  *   npx tsx scripts/scan-aave-liquidations.mjs --reset              # drop the cursors
+ *   --spot-check=0.05   share of non-empty getLogs answers re-asked on a second endpoint
+ *                       (ledger: rpc_log_calls; scorecard: scripts/rpc-scorecard.mjs --db)
  */
 
 import { neon } from '@neondatabase/serverless'
@@ -56,6 +58,7 @@ import { writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
 import { readEnv, ROOT } from './lib/venue-reads.mjs'
+import { ensureLedgerTable, insertCalls, ledgerProvenance } from './lib/rpc-ledger.mjs'
 
 // --- env FIRST: historyRpcUrls() reads process.env, and tsx gets no Next injection.
 const { get } = readEnv()
@@ -122,6 +125,9 @@ const PROGRESS_EVERY = Number(flag('progress-every', '500'))
 /** Politeness. A keyless endpoint that 429s costs more time than this ever will. */
 const RPC_GAP_MS = Number(flag('rpc-gap', '35'))
 const BLOCK_TIME_CONCURRENCY = Number(flag('block-concurrency', '4'))
+/** Share of NON-empty getLogs answers the ring re-asks on a second endpoint, so the
+ *  ledger measures short answers per host (empty answers are always re-asked). */
+const SPOT_CHECK = Number(flag('spot-check', '0.05'))
 
 /** Chainlink rounds are fetched in fixed 80,000-block BUCKETS and cached. 80k is not
  *  arbitrary: `feedRounds` carries a hard 40-request budget per aggregator and its span
@@ -147,6 +153,7 @@ if (!dbUrl) {
   process.exit(1)
 }
 const sql = neon(dbUrl)
+await ensureLedgerTable(sql)
 
 /** The same ring the per-wallet scanner uses (Tenderly public gateway first — the only
  *  keyless endpoint the Oct 10 pull found that serves both archive state and wide
@@ -156,7 +163,15 @@ const sql = neon(dbUrl)
 // single free tier carries the job. Re-probed when the saved table is > 6h old.
 const { ensureRing, RpcRing } = await import('../lib/position-sim/rpcRing.ts')
 const ringTable = await ensureRing(historyRpcUrls())
-const ring = new RpcRing(ringTable)
+// THE LEDGER (owner 2026-10-11): every endpoint call lands in rpc_log_calls with the
+// host, block range, outcome and verdict, flushed with each chunk / account commit, so
+// a missing event can be traced to the endpoint that answered its range.
+const RUN = `aave-${PHASE}-${new Date().toISOString()}`
+const pendingCalls = []
+const ring = new RpcRing(ringTable, { spotCheckRate: SPOT_CHECK, onCall: (c) => pendingCalls.push(c) })
+async function flushLedger() {
+  if (pendingCalls.length) await insertCalls(sql, RUN, pendingCalls.splice(0))
+}
 console.log(`rpc ring: ${ringTable.entries.filter((e) => e.cap > 0).map((e) => `${new URL(e.url).host}@${e.cap}`).join(' · ')} (probed ${ringTable.probedAt})`)
 const client = ring.readClient()
 
@@ -335,7 +350,12 @@ async function phaseLogs() {
 
     cursor = to + 1n
     await setCursor('logs', cursor.toString())
+    await flushLedger()
     chunks += 1
+    // Which endpoint served which chunk, and how many empties the ring had to re-ask
+    // (lib/position-sim/rpcRing.ts, 2026-10-07). Without this an audit of the log phase
+    // cannot tell whether a false-empty endpoint ever carried a chunk.
+    if (chunks % 100 === 0) ring.saveStats('aave-logs')
     // Climb back toward the configured chunk once a narrowed span is surviving.
     if (span < CHUNK && chunks % 20 === 0) span = bigMin(span * 2n, CHUNK)
     if (chunks % 100 === 0) {
@@ -354,6 +374,8 @@ async function phaseLogs() {
   }
 
   if (cursor > head) await setCursor('logs_done', '1')
+  await flushLedger()
+  ring.saveStats('aave-logs')
   log(`phase logs complete to ${cursor - 1n} — ${events} events inserted this run`)
   await writeSummary(true)
 }
@@ -693,9 +715,10 @@ async function phaseEpisodes() {
       userCursor = user
       await commitEpisodeAccount(eps, userCursor, nextCurrentParamFallbacks)
       currentParamFallbacks = nextCurrentParamFallbacks
+      await flushLedger()
       ring.saveStats('aave-episodes')
       T.db += Date.now() - tI; T.n.db++
-      console.log('rpc ring:', ring.stats().map((s) => `${s.host} ${s.ok}/${s.calls} ${(s.blocks / 1000).toFixed(0)}k blk ${s.avgMs}ms`).join(' · '),
+      console.log('rpc ring:', ring.stats().map((s) => `${s.host} ${s.ok}/${s.calls}${s.falseEmpty ? ` FALSE-EMPTY x${s.falseEmpty}` : ''} ${(s.blocks / 1000).toFixed(0)}k blk ${s.avgMs}ms`).join(' · '),
         `| t line ${(T.line / 1000).toFixed(1)}s/${T.n.line} rounds ${(T.rounds / 1000).toFixed(1)}s/${T.n.rounds} wrap ${(T.wrap / 1000).toFixed(1)}s/${T.n.wrap} replay ${(T.replay / 1000).toFixed(1)}s/${T.n.replay} db ${(T.db / 1000).toFixed(1)}s/${T.n.db} total ${((Date.now() - started) / 1000).toFixed(0)}s`)
       accounts += 1
       episodes += eps.length
@@ -819,6 +842,12 @@ async function writeSummary(partial) {
     }
   })
 
+  // Which endpoints answered the log scan, from the call ledger (hosts only).
+  const provenance = await ledgerProvenance(sql, {
+    queryLike: 'LiquidationCall@%',
+    fromBlock: AAVE_V3_START_BLOCK,
+    toBlock: scannedTo < AAVE_V3_START_BLOCK ? AAVE_V3_START_BLOCK : scannedTo,
+  })
   const doc = {
     protocol: 'Aave V3 mainnet',
     fromBlock: Number(AAVE_V3_START_BLOCK),
@@ -875,6 +904,7 @@ async function writeSummary(partial) {
       partial,
     }),
     partial,
+    provenance,
     generatedAt: nowIso(),
   }
 

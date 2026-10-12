@@ -1,0 +1,103 @@
+{
+ "generatedAt": "2026-10-07T03:19:25.378Z",
+ "block": 26137767,
+ "venues": [
+  {
+   "venue": "morpho-blue",
+   "readers": 116,
+   "undecoded": 8
+  },
+  {
+   "venue": "aave-v3",
+   "readers": 15,
+   "undecoded": 0
+  },
+  {
+   "venue": "spark",
+   "readers": 5,
+   "undecoded": 0
+  },
+  {
+   "venue": "comp3-usdc",
+   "readers": 13,
+   "undecoded": 0
+  },
+  {
+   "venue": "comp3-weth",
+   "readers": 17,
+   "undecoded": 0
+  },
+  {
+   "venue": "comp3-usdt",
+   "readers": 16,
+   "undecoded": 0
+  },
+  {
+   "venue": "comp3-usds",
+   "readers": 10,
+   "undecoded": 0
+  },
+  {
+   "venue": "comp3-wsteth",
+   "readers": 6,
+   "undecoded": 0
+  }
+ ],
+ "morphoUndecoded": 8,
+ "leavesDiscovered": 127,
+ "leavesAnalysed": 120,
+ "verdicts": {
+  "red": 0,
+  "yellow": 10,
+  "green": 110
+ },
+ "errors": [],
+ "rpcStats": [
+  {
+   "host": "eth.drpc.org",
+   "calls": 345,
+   "failures": 0
+  },
+  {
+   "host": "gateway.tenderly.co",
+   "calls": 345,
+   "failures": 0
+  },
+  {
+   "host": "mainnet.gateway.tenderly.co",
+   "calls": 345,
+   "failures": 0
+  },
+  {
+   "host": "eth.api.pocket.network",
+   "calls": 0,
+   "failures": 0
+  },
+  {
+   "host": "rpc.mevblocker.io",
+   "calls": 0,
+   "failures": 0
+  },
+  {
+   "host": "ethereum.public.blockpi.network",
+   "calls": 0,
+   "failures": 0
+  }
+ ],
+ "falseEmptyLogChunks": 0,
+ "coverageGaps": [
+  "Euler v2, Fluid and Liquity v2 readers are not yet enumerated (hooks: EulerRouter.getQuote/getConfiguredOracle; Fluid resolver; Liquity v2 branch PriceFeed).",
+  "Aave/Spark/Compound downside EV_pt is withheld (no free per-borrower health path); EV_hi uses the aggregate-edge bound.",
+  "Membrane Cdp positions are not yet read, so a leaf used only inside Membrane shows EV = 0 externally.",
+  "ERC-4626 balance-tracking classification is a read-only heuristic; a donation-cost claim is a CANDIDATE until confirmed against source.",
+  "Pull-feed (Pyth/RedStone) free moves use an assumed staleness window and volatility class; set them per leaf in the catalog.",
+  "USD prices for non-stable pool tokens come from the Aave oracle; leaves whose venues do not price a token skip the cost curve.",
+  "v1 is Ethereum mainnet only."
+ ],
+ "rulings": {
+  "red": "R_lo < 1.5, or a hard-red override (read-only reentrancy), or free-move EV ≥ $100k",
+  "yellow": "R_pt < 10, or C_lo < $100M floor, or any free-move EV",
+  "pastAttackMaxRatio": 0.76,
+  "publication": "PUBLIC"
+ }
+}

@@ -300,7 +300,7 @@ test.describe('landing conversion acceptance', () => {
     await expect(page.getByRole('status', { name: 'Loading The Membrane' })).toHaveCount(0)
 
     await expect(page.getByTestId('sim-scale-line')).toContainText(
-      'It would have kept $1.2B of collateral over 3.6 years of Aave V3.',
+      'It would have kept $1.3B of collateral over 3.6 years of Aave V3.',
     )
     await expect(page.getByTestId('sim-scale-subline')).toHaveText(
       '$67M of debt protected from forced closure on 10 Oct 2025 alone.',

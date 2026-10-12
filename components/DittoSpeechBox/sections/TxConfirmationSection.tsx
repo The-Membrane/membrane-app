@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, ExternalLink, AlertTriangle, Loader2 } from 'luci
 import { useDittoConfirmation } from '../hooks/useDittoConfirmation'
 import { getExplorer } from '@/components/ConfirmModal/getExplorer'
 import { shiftDigits } from '@/helpers/math'
+import { getTxExplorerUrl } from '@/helpers/explorer'
 import { useAssetBySymbol } from '@/hooks/useAssets'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
@@ -202,15 +203,7 @@ const TxSuccessView: React.FC<{
         return () => clearTimeout(timer)
     }, [isSuccess, pointsData, previousPoints])
 
-    // Build explorer link
-    // TODO(evm-migration): EVM block explorers expose /tx/<hash>; the base URL comes from the
-    // viem Chain's blockExplorers config (config/evm/chains.ts). Was: Cosmos chain.explorers
-    // priority list + celat.one neutron special-casing.
-    const explorerBaseUrl = chain?.blockExplorers?.default?.url
-    const txLink =
-        explorerBaseUrl && transactionHash
-            ? `${explorerBaseUrl.replace(/\/$/, '')}/tx/${transactionHash}`
-            : undefined
+    const txLink = getTxExplorerUrl(chain, transactionHash)
 
     const first4 = transactionHash?.slice(0, 4) || ''
     const last4 = transactionHash?.slice(-4) || ''

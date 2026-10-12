@@ -24,6 +24,15 @@ import {
   type FrontierEdge,
 } from '@/lib/position-sim/frontier'
 import {
+  DEFAULT_INCUMBENT,
+  INCUMBENT_TWINS,
+  incumbentTwinRunner,
+  type IncumbentCloseFactor,
+  type IncumbentId,
+  type IncumbentRules,
+  type IncumbentTwin,
+} from '@/lib/position-sim/incumbentTwin'
+import {
   BORROW_LTV_GAP,
   LIQ_DEBT_MINIMUM_USD,
   MEMBRANE_CLASS_PARAMS,
@@ -120,6 +129,8 @@ export interface SandboxInputs {
   deployedUsd: number
   capacity: CapacityChoice
   debtMinimumUsd: number
+  /** The incumbent the twin rows run (incumbentTwin.ts). Default DEFAULT_INCUMBENT. */
+  incumbent?: IncumbentId
 }
 
 /** An exit-capacity multiple as typed: up to 4 decimals, no trailing zeros (×0.1119, ×0.5). */
@@ -546,6 +557,98 @@ export function outcomeTitle(r: StressResult): string {
   }
 }
 
+// ------------------------------------------------------------------ twin
+
+/**
+ * The incumbent twin (lib/position-sim/incumbentTwin.ts): what Aave V3, Spark or Morpho Blue
+ * would sell on the same position and the same price path, under its own rules. Every twin
+ * figure is MODELLED and carries the † mark (DESIGN_RULES.md §4: "would …"). Membrane's own
+ * rows carry no mark: they are the node.
+ */
+export const TWIN_MARK = '†'
+
+/** The twin's close factor in words. */
+export function closeFactorText(cf: IncumbentCloseFactor): string {
+  switch (cf.kind) {
+    case 'fixed':
+      return `${pct(cf.fraction)} of the loan per call`
+    case 'whole-loan':
+      return 'none, the whole loan per call'
+    case 'aave-v3.0':
+      return `${pct(cf.defaultFactor, 0)} per call, the whole loan at health factor ${cf.hfThreshold} or under`
+    case 'aave-v3.3':
+      return `${pct(cf.defaultFactor, 0)} per call, the whole loan at health factor ${cf.hfThreshold} or under, under ${usd(cf.minBaseUsd)} a side, or when a partial would leave under ${usd(cf.minLeftoverUsd)}`
+  }
+}
+
+/**
+ * A price ÷ its t0 price as a distance from now: whole %, rounded toward risk (floor of the
+ * drop). Never a bare "0%".
+ */
+export function priceFromNowText(ratio: number): string {
+  if (!Number.isFinite(ratio)) return '—'
+  if (ratio >= 1) return 'at or above the t0 price'
+  const whole = Math.floor((1 - ratio) * 100 + 1e-9)
+  return whole === 0 ? 'under 1% below now' : `${whole}% below now`
+}
+
+/** The footnote every twin block ends on: the rules it ran and the footing of the two figures. */
+export function twinNote(rules: IncumbentRules): string {
+  return (
+    `${TWIN_MARK} Modelled: ${rules.name} rules (${rules.market}: ${pct(rules.liquidationThreshold, 0)} threshold, ` +
+    `${pct(rules.liquidationBonus)} bonus, close factor ${closeFactorText(rules.closeFactor)}) on the same price path, ` +
+    'a liquidation at the first step over the threshold. Its sold figure includes its bonus. ' +
+    "Membrane's sold figure leaves out its fees. A stress scenario, not a forecast."
+  )
+}
+
+/** The twin's rows for the detail panel, after Membrane's own. */
+export function twinRows(t: IncumbentTwin): DetailRow[] {
+  const name = t.rules.name
+  const rows: DetailRow[] = [
+    {
+      label: `${name} would sell ${TWIN_MARK}`,
+      value:
+        t.incumbentSoldUsd > 0
+          ? `${usd(t.incumbentSoldUsd)} · ${usdOrNone(t.incumbentBonusUsd)} of it bonus`
+          : 'none',
+      tone: t.incumbentSoldUsd > 0 ? 'sold' : undefined,
+    },
+    {
+      label: `${name} first liquidation ${TWIN_MARK}`,
+      value:
+        t.incumbentLiquidationPrice === null
+          ? 'none'
+          : `${priceFromNowText(t.incumbentLiquidationPrice)} · at ${duration(t.incumbentTimeToLiquidationSeconds)}`,
+      tone: t.incumbentLiquidationPrice === null ? undefined : 'sold',
+    },
+  ]
+  if (t.incumbentLiquidations > 1)
+    rows.push({
+      label: `${name} liquidation calls ${TWIN_MARK}`,
+      value: String(t.incumbentLiquidations),
+    })
+  if (t.incumbentBadDebtUsd > 0)
+    rows.push({
+      label: `${name} bad debt ${TWIN_MARK}`,
+      value: usd(t.incumbentBadDebtUsd),
+      tone: 'sold',
+    })
+  rows.push({
+    label: 'Membrane first sale price',
+    value:
+      t.membraneLiquidationPrice === null ? 'none' : priceFromNowText(t.membraneLiquidationPrice),
+  })
+  rows.push({ label: `${TWIN_MARK} modelled`, value: twinNote(t.rules) })
+  return rows
+}
+
+/** The swatch cell's twin line: the incumbent's sold figure, marked. */
+export function twinSwatchText(t: IncumbentTwin | null): string | null {
+  if (!t) return null
+  return `${t.rules.name}${TWIN_MARK} ${t.incumbentSoldUsd > 0 ? `${usdShort(t.incumbentSoldUsd)} sold` : 'no sale'}`
+}
+
 // ------------------------------------------------------------------ edges
 
 export type EdgeState = 'found' | 'already' | 'beyond' | 'na'
@@ -785,6 +888,8 @@ export interface LaneSegment {
 
 export interface Lane extends LaneDef {
   result: StressResult | null
+  /** The incumbent twin on the same scenario (†, modelled). Null when not modelled. */
+  twin: IncumbentTwin | null
   leaf: LeafView
   events: LaneEvent[]
   segments: LaneSegment[]
@@ -846,11 +951,19 @@ function laneSignature(r: StressResult | null, missing: string | null): string {
   ].join('|')
 }
 
-/** Run every lane against one position. */
-export function buildTree(position: StressPosition, defs: LaneDef[]): Lane[] {
+/** The twin for a node, or null. `TwinFor` is an `incumbentTwinRunner` for the position. */
+export type TwinFor = (scenario: StressScenario, result: StressResult) => IncumbentTwin | null
+
+/** Run every lane against one position, each with its incumbent twin. */
+export function buildTree(
+  position: StressPosition,
+  defs: LaneDef[],
+  twinFor: TwinFor = incumbentTwinRunner(position),
+): Lane[] {
   const out: Lane[] = []
   for (const d of defs) {
     const result = d.scenario ? runStress(position, d.scenario) : null
+    const twin = d.scenario && result ? twinFor(d.scenario, result) : null
     const parent = d.parent ? out.find((l) => l.id === d.parent) : undefined
     const parentBreach =
       parent?.result &&
@@ -863,6 +976,7 @@ export function buildTree(position: StressPosition, defs: LaneDef[]): Lane[] {
     out.push({
       ...d,
       result,
+      twin,
       leaf: leafView(result, d.missing ?? undefined),
       events: tl.events,
       segments: tl.segments,
@@ -885,6 +999,8 @@ export interface CrashLevel {
   limit: EdgeView
   /** The user's own position run at this drop. */
   node: StressResult
+  /** The incumbent twin at the same drop (†, modelled). */
+  twin: IncumbentTwin | null
   verdict: CrashVerdict
   /**
    * The stamp's glyph and tone: the node's OWN outcome glyph (leafView), so the legend's
@@ -906,6 +1022,7 @@ export function crashLevel(
   node: StressResult,
   userLtv: number,
   line: number,
+  twin: IncumbentTwin | null = null,
 ): CrashLevel {
   const limit = edgeView(reverse, 'start LTV')
   const verdict: CrashVerdict =
@@ -924,6 +1041,7 @@ export function crashLevel(
     title: `−${Math.round(drop * 100)}%`,
     limit,
     node,
+    twin,
     verdict,
     glyph: leaf.glyph,
     tone: leaf.tone,
@@ -1053,6 +1171,10 @@ export interface SwatchCell {
   leaf: LeafView
   /** Compact one-liner (swatchText). */
   text: string
+  /** The incumbent twin on the same scenario (†, modelled). Null when not modelled. */
+  twin: IncumbentTwin | null
+  /** Its compact line (twinSwatchText). */
+  twinText: string | null
 }
 
 export interface SwatchRow {
@@ -1090,8 +1212,13 @@ export function venueLabel(v: VenueStress | undefined, p: StressPosition): strin
   return 'chosen exit'
 }
 
-/** The power-user grid: every price shape × every single-axis venue condition (no combos). */
-export function buildSwatch(position: StressPosition, replay: PriceShape | null): Swatch {
+/** The power-user grid: every price shape × every single-axis venue condition (no combos).
+ *  Each cell carries its incumbent twin; the incumbent has no recall, so it runs once per row. */
+export function buildSwatch(
+  position: StressPosition,
+  replay: PriceShape | null,
+  twinFor: TwinFor = incumbentTwinRunner(position),
+): Swatch {
   const shapes: PriceShape[] = [...DEFAULT_PRICE_SHAPES, ...(replay ? [replay] : [])]
   const venues: (VenueStress | undefined)[] =
     position.tradeShape === 'levered_long'
@@ -1109,12 +1236,15 @@ export function buildSwatch(position: StressPosition, replay: PriceShape | null)
       cells: venues.map((venue, ci) => {
         const scenario: StressScenario = venue ? { price, venue } : { price }
         const result = runStress(position, scenario)
+        const twin = twinFor(scenario, result)
         return {
           key: `${shapeLabel(price)}·${cols[ci]}`,
           scenario,
           result,
           leaf: leafView(result),
           text: swatchText(result),
+          twin,
+          twinText: twinSwatchText(twin),
         }
       }),
     })),
@@ -1130,8 +1260,13 @@ export interface DetailRow {
 }
 
 /** Every field the detail panel shows for one node. `stock` names where the venue stock
- *  comes from (`stockSourceText`): the stock is never a bare dollar figure. */
-export function detailRows(r: StressResult, stock: string): DetailRow[] {
+ *  comes from (`stockSourceText`): the stock is never a bare dollar figure. `twin` adds the
+ *  incumbent's rows (†) after Membrane's own. */
+export function detailRows(
+  r: StressResult,
+  stock: string,
+  twin: IncumbentTwin | null = null,
+): DetailRow[] {
   const rows: DetailRow[] = []
   if (r.outcome === 'not_modelled') {
     rows.push({ label: 'reason', value: notModelledText(r.reason), tone: 'muted' })
@@ -1195,6 +1330,7 @@ export function detailRows(r: StressResult, stock: string): DetailRow[] {
     if (r.badDebtUsd > 0) rows.push({ label: 'bad debt', value: usd(r.badDebtUsd), tone: 'sold' })
     rows.push({ label: 'sale calls', value: String(r.sales) })
     rows.push({ label: 'horizon', value: duration(r.horizonSeconds) })
+    if (twin) rows.push(...twinRows(twin))
   }
   rows.push({ label: 'scenario', value: r.scenarioId })
   rows.push({ label: 'cell key', value: r.cellKey })
@@ -1223,6 +1359,9 @@ export interface ResolvedSelection {
   missing: string | null
   /** Where the node's venue stock comes from, named (`stockSourceText`), for `detailRows`. */
   stock: string
+  /** The incumbent twin of the node, for `detailRows`. Null for an edge node: it runs on a
+   *  re-solved position the twin is not run for. */
+  twin: IncumbentTwin | null
 }
 
 const EDGE_NAME = { breach: 'line crossed', arm: 'window arms', sale: 'first sale' } as const
@@ -1239,6 +1378,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         result: lane.result,
         missing: lane.result ? null : lane.missing,
         stock: stockSourceText(p, lane.scenario?.venue),
+        twin: lane.twin,
       }
     }
     case 'swatch': {
@@ -1251,6 +1391,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
           result: null,
           missing: 'cell not in this grid',
           stock: chosen,
+          twin: null,
         }
       return {
         title: row.label,
@@ -1258,6 +1399,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         result: cell.result,
         missing: null,
         stock: stockSourceText(p, cell.scenario.venue),
+        twin: cell.twin,
       }
     }
     case 'crash': {
@@ -1268,6 +1410,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         result: c.node,
         missing: null,
         stock: chosen,
+        twin: c.twin,
       }
     }
     case 'edge': {
@@ -1302,6 +1445,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         result: view?.node ?? null,
         missing: view?.node ? null : view ? view.hint : 'no such edge on this axis',
         stock: sel.axis === 'capacity' ? `${chosen} × (1 − the cut at this edge)` : chosen,
+        twin: null,
       }
     }
   }
@@ -1311,6 +1455,8 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
 
 export interface FrontierModel {
   sandbox: SandboxPosition
+  /** The incumbent every twin row runs (inputs.incumbent, else DEFAULT_INCUMBENT). */
+  incumbent: IncumbentRules
   dtd: DistanceToDanger
   headline: Headline
   tree: Lane[]
@@ -1329,32 +1475,26 @@ export function computeFrontier(
   const t0 = now()
   const sandbox = buildStressPosition(inputs)
   const p = sandbox.position
+  const incumbent = INCUMBENT_TWINS[inputs.incumbent ?? DEFAULT_INCUMBENT]
+  // One runner for the whole model: the incumbent runs once per price shape.
+  const twinFor = incumbentTwinRunner(p, incumbent)
   const dtd = distanceToDanger(p)
-  const tree = buildTree(p, treeLanes(inputs.capacity, replay, replayMissing))
+  const tree = buildTree(p, treeLanes(inputs.capacity, replay, replayMissing), twinFor)
   const [d50, d60] = REVERSE_SOLVE_DROPS
-  const crash = [
-    crashLevel(
-      d50,
-      dtd.reverse.at50,
-      runStress(p, { price: { kind: 'step', drop: d50 } }),
-      sandbox.startLtv,
-      sandbox.line,
-    ),
-    crashLevel(
-      d60,
-      dtd.reverse.at60,
-      runStress(p, { price: { kind: 'step', drop: d60 } }),
-      sandbox.startLtv,
-      sandbox.line,
-    ),
-  ]
+  const crashAt = (drop: number, reverse: FrontierEdge) => {
+    const scenario: StressScenario = { price: { kind: 'step', drop } }
+    const node = runStress(p, scenario)
+    return crashLevel(drop, reverse, node, sandbox.startLtv, sandbox.line, twinFor(scenario, node))
+  }
+  const crash = [crashAt(d50, dtd.reverse.at50), crashAt(d60, dtd.reverse.at60)]
   return {
     sandbox,
+    incumbent,
     dtd,
     headline: nearestRisk(dtd, sandbox),
     tree,
     crash,
-    swatch: buildSwatch(p, replay),
+    swatch: buildSwatch(p, replay, twinFor),
     computeMs: now() - t0,
   }
 }

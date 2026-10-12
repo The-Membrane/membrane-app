@@ -482,6 +482,68 @@ export function lastFeedUpdate(
   return youngest == null ? null : snapshotTs - youngest
 }
 
+/** What the consensus headline is judged on: an AssetViewResponse satisfies it. */
+export type ConsensusHeroInput = {
+  consensus: Pick<AssetConsensus, 'status' | 'price' | 'minMembers'>
+  cards: readonly Pick<CardView, 'countedInConsensus' | 'freshness'>[]
+  snapshot: { ts: number } | null
+}
+
+/**
+ * Whether the consensus headline rests on stale inputs at the reader's clock `now` (R5,
+ * 2026-10-12: the 44px price printed in full ink however old the snapshot was — on Oct 12 every
+ * asset showed the Oct 5 23:10 median, every clocked member past its own limit).
+ * The threshold is the catalog's own staleness policy, applied at `now` instead of at the read:
+ * "stale when now − updatedAt > heartbeatSeconds + grace", and a stale entry "never counts toward
+ * consensus". So each member that formed the median is still fresh while its age at the read plus
+ * the snapshot's age stays inside its own limit, and the headline is stale once fewer than
+ * `minMembers` are. Fail closed: a member with no update clock (a TWAP, a view over live state)
+ * or an unknown age / limit vouches only at the read itself. Not judged (false) with no clock yet
+ * (server render — like summaryStale), no snapshot, or no consensus (its hero is already muted).
+ */
+export function consensusStaleAt(v: ConsensusHeroInput, now: number | null): boolean {
+  if (now == null || !v.snapshot || v.consensus.status !== 'ok') return false
+  const snapAge = ageAt(v.snapshot.ts, now)
+  let fresh = 0
+  for (const c of v.cards) {
+    if (!c.countedInConsensus) continue
+    const { ageSeconds: age, limitSeconds: limit } = c.freshness
+    const clocked = age != null && Number.isFinite(age) && limit != null && Number.isFinite(limit)
+    if (clocked ? age + snapAge <= limit : snapAge === 0) fresh++
+  }
+  return fresh < Math.max(1, v.consensus.minMembers)
+}
+
+export type ConsensusHero = {
+  /** The headline slot: the price, or the word that replaces it. */
+  text: string
+  /** Muted ink: no price, or a price whose inputs are stale. */
+  muted: boolean
+  /** A stale price, moved off the headline onto the qualifier line and drawn hatched. */
+  hatchedPrice: string | null
+  aria: string
+}
+
+/**
+ * The consensus headline (R5, 2026-10-12). DESIGN_RULES §4, stale data: "Hatch it, never colour
+ * it green." "Suppress the headline while inputs are stale." "Show input ages in the dateline."
+ * Stale (consensusStaleAt): the slot reads "stale" in muted ink and the price moves, hatched, to
+ * the qualifier line; the dateline keeps the input ages (Last update, Read · age).
+ */
+export function consensusHero(v: ConsensusHeroInput, now: number | null): ConsensusHero {
+  if (v.consensus.status !== 'ok' || v.consensus.price == null)
+    return { text: 'no consensus', muted: true, hatchedPrice: null, aria: 'No consensus' }
+  const price = fmtUsd(v.consensus.price)
+  return consensusStaleAt(v, now)
+    ? {
+        text: 'stale',
+        muted: true,
+        hatchedPrice: price,
+        aria: `Consensus stale: ${price} when read`,
+      }
+    : { text: price, muted: false, hatchedPrice: null, aria: `Consensus ${price}` }
+}
+
 export function changesForCard(changes: readonly ChangeItem[], card: CardView): ChangeItem[] {
   const ids = new Set(card.changeIds)
   return changes.filter((c) => ids.has(c.id))

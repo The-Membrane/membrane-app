@@ -25,6 +25,26 @@ async function get(url) {
   }
 }
 
+/**
+ * Blockscout's answer: true = verified, false = not verified, null = not read. A 200 answers only
+ * when it carries a boolean `is_verified`, or — Blockscout's shape for an UNVERIFIED contract — no
+ * verification field at all next to the code it holds (review F5, 2026-10-12: PO-11 required the
+ * boolean, so every unverified implementation read "not read" on every run — weETH L1SyncPool
+ * 0x2e34…085e was a permanent verification_unread). A 404 ("Not found": an address Blockscout does
+ * not know, as a plain EOA gets), any other status or any other shape is not read.
+ */
+function blockscoutAnswer(r) {
+  if (r.status !== 200) return null
+  const b = r.body
+  if (typeof b.is_verified === 'boolean')
+    return !!(b.is_verified || b.is_fully_verified || b.is_partially_verified)
+  if (Object.keys(b).some((k) => /verif/i.test(k))) return null
+  return typeof b.deployed_bytecode === 'string' &&
+    /^0x(?:[0-9a-f]{2})+$/i.test(b.deployed_bytecode)
+    ? false
+    : null
+}
+
 /** true = verified, false = not verified on either service, null = could not be read. */
 export async function sourceVerified(address, chainId = 1) {
   const a = address.toLowerCase()
@@ -40,15 +60,9 @@ export async function sourceVerified(address, chainId = 1) {
   }
   let blockscout = null
   try {
-    const r = await get(`https://eth.blockscout.com/api/v2/smart-contracts/${a}`)
-    // a 200 is an answer only when it says whether the source is verified (a boolean)
-    if (r.status === 200 && typeof r.body?.is_verified === 'boolean')
-      blockscout = !!(
-        r.body.is_verified ||
-        r.body.is_fully_verified ||
-        r.body.is_partially_verified
-      )
-    else if (r.status === 404) blockscout = false
+    blockscout = blockscoutAnswer(
+      await get(`https://eth.blockscout.com/api/v2/smart-contracts/${a}`),
+    )
   } catch (e) {
     void scrub(e)
   }

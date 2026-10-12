@@ -253,7 +253,7 @@ export const ConfigCard: React.FC<{
 
         <Block>
           <Box as="section" aria-labelledby="config-oracle">
-            <BlockTitle id="config-oracle" aside={oracleAside(view.oracle)}>
+            <BlockTitle id="config-oracle" aside={oracleAside(view.oracle, view.asOf)}>
               Oracles
             </BlockTitle>
             {view.oracle.oracleSlug ? (

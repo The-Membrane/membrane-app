@@ -1280,6 +1280,27 @@ export function aragonExecCandidatesFromRows(rows) {
 }
 
 /**
+ * F2 (2026-10-12, weETH: 9 upgrades of 2023-24 red AD-5 on a read gap — the declared path
+ * `call:roleRegistry()>owner` reverts on the implementations before the one that added
+ * roleRegistry(); each of those authorised upgrades `onlyOwner`, and owner() was the Safe
+ * 0xf155…b8a5): the path DECLARED for `block`. `pathBefore` lists { block, path } — a read
+ * below an entry's block uses the path of the lowest such entry, any other read (head: no
+ * block) the current `path`. Only a declaration selects an older path: a revert never does (it stays a
+ * read gap).
+ * Review of F2 (R6, 2026-10-12: the first entry listed above the block was taken — right only
+ * on an ascending list, and the collector loads subjects.json with a bare JSON.parse, never
+ * parseSubjects, whose check enforces that order): the entry with the SMALLEST block above the
+ * read, whatever the order.
+ */
+export function pathAtBlock(path, pathBefore, block) {
+  if (block === undefined || block === null || !pathBefore?.length) return path
+  let at
+  for (const e of pathBefore)
+    if (Number(block) < e.block && (at === undefined || e.block < at.block)) at = e
+  return at?.path ?? path
+}
+
+/**
  * Resolve a PowerSpec path to holder addresses at head. `trail` (a Set, optional) collects the
  * intermediate hops — the ProxyAdmin of an `eip1967_admin` step before its `owner` — whose own
  * events and queued calls belong to the subject (review round 7).
@@ -1296,8 +1317,19 @@ export function aragonExecCandidatesFromRows(rows) {
  *   role:<ROLE>   the holders (a count or member read that fails throws, see holdersOf);
  *   acl_manager   the ACL's permission manager (an ACL that cannot be found is an error; a
  *                 zero manager is no holder).
+ * F2 (2026-10-12): `pathBefore` (the power's declared history, `pathAtBlock`) picks the path read
+ * at a past `block`; a failed read of it throws like any other (fail closed).
  */
-export async function resolvePath(client, { endpoint, contract, path, roleMap, block, trail }) {
+export async function resolvePath(
+  client,
+  { endpoint, contract, path: declared, pathBefore, roleMap, block, trail },
+) {
+  const path = pathAtBlock(declared, pathBefore, block)
+  // a read gap names the path it was read on (an older one with the block it is declared below)
+  const named =
+    path === declared
+      ? path.join('>')
+      : `${path.join('>')}, declared below block ${pathBefore.find((e) => e.path === path).block}`
   let cur = [contract.toLowerCase()]
   for (const [si, step] of path.entries()) {
     if (si > 0 && trail) for (const c of cur) trail.add(c)
@@ -1308,7 +1340,7 @@ export async function resolvePath(client, { endpoint, contract, path, roleMap, b
         if (x.ok) next.push(x.value.toLowerCase())
         else if (si > 0)
           next.push(c) // an ownerless hop (EOA / Safe admin) acts itself
-        else throw new Error(`owner() not present on ${c} (declared path ${path.join('>')})`)
+        else throw new Error(`owner() not present on ${c} (declared path ${named})`)
       } else if (step === 'eip1967_admin' || step === 'zos_admin') {
         // fail-closed audit (PH-06): only a 32-byte word answers; a null / short one THROWS (it was
         // "no admin": no holder, no AD-3, no gap)
@@ -1336,7 +1368,7 @@ export async function resolvePath(client, { endpoint, contract, path, roleMap, b
           [],
           block,
         )
-        if (!x.ok) throw new Error(`${fn}() not present on ${c} (declared path ${path.join('>')})`)
+        if (!x.ok) throw new Error(`${fn}() not present on ${c} (declared path ${named})`)
         next.push(x.value.toLowerCase())
       } else if (step.startsWith('role:')) {
         next.push(...(await holdersOf(client, c, roleHash(step.slice(5)), roleMap, block)))
@@ -1372,6 +1404,35 @@ export async function resolvePath(client, { endpoint, contract, path, roleMap, b
     cur = [...new Set(next)]
   }
   return cur
+}
+
+/**
+ * F4 (2026-10-12): an upgrade-holder read that failed (resolvePath threw) at the block before an
+ * upgrade / admin change. `${proxy}@${block}` joins `acc.unread` (AD-5 judges it fail closed) and
+ * its scrubbed error joins `acc.why` — the card lists the gap with it (it reached `warnings`
+ * only); an error with no text still gives a reason. Returns the key.
+ * Review of F4 (R4, 2026-10-12: the collector did this inline and no test failed without it —
+ * every F4 test passed a ready-made raw field).
+ */
+export function recordUpgradeHoldersUnread(acc, proxy, block, err) {
+  const k = `${proxy}@${block}`
+  acc.unread.push(k)
+  acc.why[k] = scrub(err?.message).trim() || 'read failed (no error text)'
+  return k
+}
+
+/**
+ * R4 (2026-10-12): a subject's share of `recordUpgradeHoldersUnread` — the keys of its own proxies
+ * (`subjectAddrs`) WITH their reasons, as the raw `admin` fields; neither field when none of its
+ * proxies is unread.
+ */
+export function upgradeHoldersUnreadFor(acc, subjectAddrs) {
+  const mine = (k) => subjectAddrs.has(k.split('@')[0])
+  if (!acc.unread.some(mine)) return {}
+  return {
+    upgradeHoldersUnread: acc.unread.filter(mine),
+    upgradeHoldersUnreadWhy: Object.fromEntries(Object.entries(acc.why).filter(([k]) => mine(k))),
+  }
 }
 
 // ---- OZ timelock operations ----------------------------------------------------------------------

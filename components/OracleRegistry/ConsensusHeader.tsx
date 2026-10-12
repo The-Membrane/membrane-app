@@ -18,6 +18,7 @@ import {
   COLOUR_META,
   COLOUR_ORDER,
   type ColourMeta,
+  consensusHero,
   displayLabel,
   fmtBps,
   fmtDuration,
@@ -30,6 +31,14 @@ import {
 // The hero number: the asset's consensus (median of its fresh market feeds), with the
 // facts that qualify it on one line, and the colour counts — which double as filters. Basis
 // cards above / below market are tallied apart (they are not outliers) and filter the same way.
+// R5 (2026-10-12: the 44px price printed in full ink however old the snapshot was). DESIGN_RULES
+// §4, stale data: "Hatch it, never colour it green." "Suppress the headline while inputs are
+// stale." "Show input ages in the dateline." Once the members that formed the median are past
+// their own limits at the reader's clock (consensusStaleAt), the headline reads "stale" in muted
+// ink, the price moves hatched onto the qualifier line, and the dateline keeps the ages.
+
+/** The stale-data hatch (the sparkline's diagonal), behind a price that is no longer current. */
+const STALE_HATCH = `repeating-linear-gradient(45deg, ${SEMANTIC_COLORS.borderStrong} 0 1px, transparent 1px 4px)`
 
 const Stat: React.FC<{ k: string; v: React.ReactNode }> = ({ k, v }) => (
   <HStack spacing="6px" align="baseline">
@@ -107,6 +116,7 @@ export const ConsensusHeader: React.FC<{
   const members = view.cards.filter((x) => x.role === 'member').length
   const reference = c.reference ? view.cards.find((x) => x.id === c.reference?.id) : undefined
   const snapAge = view.snapshot && now != null ? ageAt(view.snapshot.ts, now) : null
+  const hero = consensusHero(view, now)
   const lastUpdate = ok ? lastFeedUpdate(view.cards, view.snapshot?.ts) : null
   const hasBasis = view.cards.some((x) => x.tone === 'basis')
 
@@ -132,16 +142,24 @@ export const ConsensusHeader: React.FC<{
           fontSize={{ base: '32px', md: '44px' }}
           lineHeight={1.1}
           fontWeight={TYPOGRAPHY.medium}
-          color={ok ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textTertiary}
-          aria-label={ok ? `Consensus ${fmtUsd(c.price)}` : 'No consensus'}
+          color={hero.muted ? SEMANTIC_COLORS.textTertiary : SEMANTIC_COLORS.textPrimary}
+          aria-label={hero.aria}
         >
-          {ok ? fmtUsd(c.price) : 'no consensus'}
+          {hero.text}
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize={TYPOGRAPHY.xs}
           color={SEMANTIC_COLORS.textSecondary}
         >
+          {hero.hatchedPrice && (
+            <>
+              <Text as="span" px="3px" bgImage={STALE_HATCH}>
+                {hero.hatchedPrice}
+              </Text>{' '}
+              when read ·{' '}
+            </>
+          )}
           {ok
             ? `median of ${c.memberIds.length} market feed${c.memberIds.length === 1 ? '' : 's'} (${members} listed)`
             : c.reason === 'members_disagree'

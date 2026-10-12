@@ -1140,17 +1140,33 @@ describe('UI: every reason is shown, and the amber / red chips differ', () => {
 
 describe('UI: "not collected" never reads as zero or calm', () => {
   it('the Oracles block of a subject with no oracle asset says "not collected", else its window', () => {
+    // F6 (2026-10-12): the aside takes the card's head; a window ending at the head is "last"
+    const head = { block: 2_000_000, ts: 1_000_000 }
     expect(
-      oracleAside({ oracleSlug: null, entries: 0, changes: 0, collected: false, windowDays: null }),
+      oracleAside(
+        {
+          oracleSlug: null,
+          entries: 0,
+          changes: 0,
+          collected: false,
+          windowDays: null,
+          windowEnd: null,
+        },
+        head,
+      ),
     ).toBe('not collected')
     expect(
-      oracleAside({
-        oracleSlug: 'weeth',
-        entries: 3,
-        changes: 2,
-        collected: true,
-        windowDays: 180,
-      }),
+      oracleAside(
+        {
+          oracleSlug: 'weeth',
+          entries: 3,
+          changes: 2,
+          collected: true,
+          windowDays: 180,
+          windowEnd: head,
+        },
+        head,
+      ),
     ).toBe('2 config changes · last 180 d')
     expect(dimensionFilterLabel('oracle', 0, false)).toMatch(/not collected/)
     expect(dimensionFilterLabel('admin', 4, true)).toBe('Admin 4')

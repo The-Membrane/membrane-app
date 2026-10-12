@@ -38,6 +38,7 @@ import {
   routeTags,
 } from './bridgeRules'
 import { compactRoute, replayLz, routeChangeDisplays, routeKey, type LzEvent } from './lzReplay'
+import { oracleWindowGap } from './oracleWindow'
 import {
   multisigSubmissionChanges,
   safeProposalChanges,
@@ -91,6 +92,9 @@ import {
   type RouteInputs,
 } from './uln'
 import { amountToNumber, formatParamAmount, valueAtRisk, type Amount } from './value'
+
+/** The oracle-window read-gap threshold (R5, 2026-10-12): one value, shared with the card. */
+export { ORACLE_WINDOW_GAP_BLOCKS } from './oracleWindow'
 
 /** Lido Dual Governance committee fields of a timelock's `dg` (card order). */
 const DG_COMMITTEE_FIELDS = [
@@ -486,6 +490,11 @@ export type RawSubject = {
      * read (resolvePath threw): AD-5 judges them against the declared timelock (fail closed).
      */
     upgradeHoldersUnread?: string[]
+    /**
+     * F4 (2026-10-12): `${proxy}@${block}` → why its upgrade holders were not read (the scrubbed
+     * error; it reached `warnings` only) — the card lists the gap with it.
+     */
+    upgradeHoldersUnreadWhy?: Record<string, string>
     /** First block with code of every admin-event emitter (initialization = its deploy block). */
     deployBlocks?: Record<string, number>
     /** Source verification of implementations / providers / oracle sources (Sourcify, Blockscout). */
@@ -575,7 +584,7 @@ export type RawSubject = {
    */
   oracle?: {
     events: OracleGovEvent[]
-    window?: { startBlock: number; endBlock: number; days: number }
+    window?: { startBlock: number; endBlock: number; days: number; endTs?: number }
     /** Fail-closed audit (PO-07 / MISSED-1): data/oracle-registry/changes.json was not read. */
     unread?: string
   }
@@ -855,9 +864,21 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   // never replaced by the head one (fail closed); a key never requested still falls back to head
   const classifyFailed = new Set((raw.admin.classifyFailed ?? []).map(lc))
   const failedAt = (addr: string, block: number) => classifyFailed.has(`${lc(addr)}@${block}`)
-  const ctl = (addr: string, block: number): Controller | null =>
-    raw.admin.controllers[`${lc(addr)}@${block}`] ??
-    (failedAt(addr, block) ? null : (raw.admin.controllers[`${lc(addr)}@head`] ?? null))
+  // F4 (2026-10-12, weETH: 4 AD-4 rows red on a timelock whose proposers were unread at the grant
+  // block, listed nowhere): every controller looked up at a past block, so the read gaps a
+  // history row was judged on are listed with it (`pastReadGaps`)
+  const lookedUp = new Map<number, Set<string>>()
+  const lookUp = (addr: string, block: number) => {
+    const s = lookedUp.get(block) ?? new Set<string>()
+    lookedUp.set(block, s.add(lc(addr)))
+  }
+  const ctl = (addr: string, block: number): Controller | null => {
+    lookUp(addr, block)
+    return (
+      raw.admin.controllers[`${lc(addr)}@${block}`] ??
+      (failedAt(addr, block) ? null : (raw.admin.controllers[`${lc(addr)}@head`] ?? null))
+    )
+  }
   const ctlHead = (addr: string) => raw.admin.controllers[`${lc(addr)}@head`] ?? null
   // Source verification of an implementation / provider / oracle source; null = not read.
   const verified = (addr: string): boolean | null => raw.admin.verification?.[lc(addr)] ?? null
@@ -1747,7 +1768,10 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         : undefined,
       declaredTimelocks: subject.timelocks.map(lc),
       prevUnread: (a: string, b: number) => failedAt(a, b),
-      ctlExact: (a: string, b: number) => raw.admin.controllers[`${lc(a)}@${b}`] ?? null,
+      ctlExact: (a: string, b: number) => {
+        lookUp(a, b)
+        return raw.admin.controllers[`${lc(a)}@${b}`] ?? null
+      },
       deployBlocks: {
         ...Object.fromEntries(
           Object.entries(raw.admin.deployBlocks ?? {}).map(([k, b]) => [lc(k), b]),
@@ -2377,6 +2401,8 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   // fail-closed audit (CL-10 / MISSED engine.ts:2201): a source whose controller at its block
   // could not be classified — listed, and its row judged fail closed (OR-1, read gap)
   const oracleSourceGaps: string[] = []
+  // R3 (2026-10-12): `${source}@${block}` already listed here — F4's past-read line repeated it
+  const oracleSourceListed = new Set<string>()
   const oracleEvents = [...(raw.oracle?.events ?? [])].sort(
     (x, y) => x.block - y.block || x.logIndex - y.logIndex,
   )
@@ -2422,6 +2448,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         oracleSourceGaps.push(
           `oracle source ${short(src)} at block ${e.block} could not be classified`,
         )
+        oracleSourceListed.add(`${src}@${e.block}`)
       }
       if (/^0x0{40}$/.test(src)) merge(classifyOracleParam('fallback', 'source', before, null))
       else if (
@@ -2858,17 +2885,251 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
           : ''
     return `${spec?.label ?? u.key}: read failed ${where} (${u.reason}) — a change there cannot be ruled out`
   })
-  // PO-07 / MISSED-1 / the stale oracle window
+  // PO-07 / MISSED-1 / the stale oracle window. R5 (2026-10-12: the card's heading said "last
+  // 180 d" up to a day below the head while this listed a gap past 300 blocks): one threshold,
+  // ORACLE_WINDOW_GAP_BLOCKS, shared with the heading (oracleAside).
   const oracleGaps = subject.oracleAssetKey
     ? [
         ...(raw.oracle?.unread ? [`oracle governance events not read (${raw.oracle.unread})`] : []),
-        ...(raw.oracle?.window && raw.oracle.window.endBlock < raw.head.block - 300
+        ...(raw.oracle?.window && oracleWindowGap(raw.oracle.window.endBlock, raw.head.block)
           ? [
               `oracle governance events after block ${shortN(raw.oracle.window.endBlock)} not read (the oracle collector's window ends ${shortN(raw.head.block - raw.oracle.window.endBlock)} blocks below head)`,
             ]
           : []),
       ]
     : []
+  // F4 (2026-10-12, weETH re-collect: 13 rows tagged read_gap on a card listing ONE read gap —
+  // RV11-1: a card never renders a read gap it does not count). The past reads a history row
+  // rests on. (a) AD-5: the upgrade holders not read at the block before an upgrade judged fail
+  // closed on them (the collector sent that to `warnings` only) — one line per proxy
+  const blockRange = (bs: number[]) => {
+    const lo = Math.min(...bs)
+    const hi = Math.max(...bs)
+    return lo === hi ? `block ${shortN(lo)}` : `blocks ${shortN(lo)}–${shortN(hi)}`
+  }
+  const upgradeAuthorityGaps = (() => {
+    const why = new Map(
+      Object.entries(raw.admin.upgradeHoldersUnreadWhy ?? {}).map(([k, w]) => [lc(k), w]),
+    )
+    const holdersAt = new Map(
+      Object.entries(raw.admin.upgradeHoldersAt ?? {}).map(([k, hs]) => [lc(k), hs]),
+    )
+    const byProxy = new Map<string, { blocks: number[]; why: Set<string> }>()
+    for (const k of new Set(
+      [...(raw.admin.upgradeHoldersUnread ?? []), ...upgradeHoldersMissing].map(lc),
+    )) {
+      const proxy = k.split('@')[0]
+      const b = Number(k.split('@')[1])
+      // only an upgrade whose verdict rests on it (one its declared timelock executed does not)
+      const rests = changes.some(
+        (c) =>
+          c.block === b &&
+          c.ruleIds.includes('AD-5') &&
+          c.tags.includes('read_gap') &&
+          lc(c.key).endsWith(`/${proxy}`),
+      )
+      if (!rests) continue
+      const g = byProxy.get(proxy) ?? { blocks: [], why: new Set<string>() }
+      g.blocks.push(b)
+      const missing = (holdersAt.get(k) ?? []).filter(
+        (h) => !raw.admin.controllers[`${lc(h)}@${b - 1}`],
+      )
+      const w =
+        why.get(k) ??
+        (missing.length
+          ? `holder ${missing.map((h) => short(lc(h))).join(', ')} could not be classified at block ${shortN(b - 1)}`
+          : undefined)
+      if (w) g.why.add(w.replace(/0x[0-9a-fA-F]{40}/g, (m) => short(lc(m))))
+      byProxy.set(proxy, g)
+    }
+    return [...byProxy].map(([proxy, g]) => {
+      const bs = [...new Set(g.blocks)].sort((x, y) => x - y)
+      const many = bs.length > 1
+      return `upgrade holders of ${short(proxy)} not read before the upgrade${many ? 's' : ''} at block${many ? 's' : ''} ${bs.map(shortN).join(', ')}${g.why.size ? ` (${[...g.why].join('; ')})` : ''} — who authorised ${many ? 'them' : 'it'} is unknown (AD-5 judged fail closed)`
+    })
+  })()
+  // (b) the controllers a row tagged read_gap was judged on at its block (or the one before): a
+  // gap in a PAST read (weETH: timelock 0x8221…9f2a, proposers unread at the grant blocks, holds
+  // no power at head — no head tree lists it), or a classification there that failed. A tree gap
+  // the head lists already (the same line) is not repeated.
+  const pastReadGaps = (() => {
+    const blocks = new Set(
+      changes
+        .filter((c) => c.tags.includes('read_gap') && c.block !== undefined)
+        .flatMap((c) => [c.block!, c.block! - 1]),
+    )
+    const tree = new Map<string, number[]>()
+    const failed = new Map<string, number[]>()
+    for (const b of blocks)
+      for (const a of lookedUp.get(b) ?? []) {
+        if (/^0x0{40}$/.test(a)) continue
+        const c = raw.admin.controllers[`${a}@${b}`]
+        // never read at the block: judged on the head read (its gaps are head ones); with none,
+        // not classified — a committee path still falls back to its head power-tree node
+        const h = c || failedAt(a, b) ? null : ctlHead(a)
+        if (c) for (const g of treeReadGaps([c])) tree.set(g, [...(tree.get(g) ?? []), b])
+        else if (h) for (const g of treeReadGaps([h])) tree.set(g, tree.get(g) ?? [])
+        // R3 (2026-10-12): an oracle source the OR-1 line lists already (it was counted twice)
+        else if (oracleSourceListed.has(`${a}@${b}`)) continue
+        else {
+          failed.set(a, [...(failed.get(a) ?? []), b])
+          const n = failedAt(a, b) ? null : headTreeNode(a)
+          if (n) for (const g of treeReadGaps([n])) tree.set(g, tree.get(g) ?? [])
+        }
+      }
+    return [
+      ...[...tree].map(([g, bs]) => ({
+        base: g,
+        line: bs.length ? `${g} — read at ${blockRange(bs)}` : g,
+      })),
+      ...[...failed].map(([a, bs]) => {
+        const line = `${short(a)} could not be classified at ${blockRange(bs)} (a history row judged on it is fail closed)`
+        return { base: line, line }
+      }),
+    ]
+  })()
+  // R3 (2026-10-12, review of F4: RV11-1 held for the weETH shapes only — the rows below were
+  // tagged READ GAP / VERIFICATION LOOKUP FAILED on a card that listed none of their causes). The
+  // remaining reads a row rests on, each from the read that failed:
+  const blockList = (bs: number[]) => {
+    const u = [...new Set(bs)].sort((x, y) => x - y)
+    return `block${u.length > 1 ? 's' : ''} ${u.map(shortN).join(', ')}`
+  }
+  const rowsById = new Map<string, ConfigChange[]>()
+  for (const c of changes) {
+    const k = c.id.split(':').slice(0, 3).join(':')
+    rowsById.set(k, [...(rowsById.get(k) ?? []), c])
+  }
+  const rowsOf = (r: AdminEventRow) => rowsById.get(`${r.chainId}:${r.tx}:${r.logIndex}`) ?? []
+  // (a) PH-12: the collector's read of the previous holder / value at block − 1 FAILED (a FiatToken
+  // role getter, a Dual Governance getter, the ACL's permission manager: `prevUnread`) — a row
+  // judged without it (no `before`) is fail closed: red, or tagged read_gap
+  const prevValueGaps = (() => {
+    const by = new Map<string, number[]>()
+    for (const r of raw.admin.events) {
+      if (!r.prevUnread) continue
+      for (const c of rowsOf(r)) {
+        if (c.before !== undefined && c.before !== null) continue
+        const failClosed =
+          c.tags.includes('read_gap') ||
+          (c.red && (c.notes ?? []).some((x) => x.includes('not read')))
+        if (!failClosed) continue
+        const em = short(lc(r.emitter))
+        const head = c.title.includes(': ')
+          ? c.title.slice(0, c.title.indexOf(': '))
+          : `${r.event} of ${em}`
+        const noun =
+          typeof c.after === 'string' && /^0x[0-9a-f]{40}$/i.test(c.after) ? 'holder' : 'value'
+        const k = `${head.includes(em) ? head : `${head} on ${em}`}: previous ${noun}`
+        by.set(k, [...(by.get(k) ?? []), r.block - 1])
+      }
+    }
+    return [...by].map(
+      ([k, bs]) => `${k} not read at ${blockList(bs)} (a history row judged on it is fail closed)`,
+    )
+  })()
+  // (c) AD-9: a source verification that was not read (null: Sourcify and Blockscout gave no answer
+  // — F5: a Blockscout 404 is one —, a proxy's implementation slot not read, or never looked up).
+  // Every row judged on it is VERIFICATION LOOKUP FAILED (fail closed)
+  const verificationGaps = (() => {
+    const by = new Map<string, number[]>()
+    for (const c of [...changes, ...queue]) {
+      if (!c.tags.includes('verification_unread')) continue
+      const named = new Set<string>(typeof c.after === 'string' ? [lc(c.after)] : [])
+      for (const x of c.notes ?? [])
+        if (x.includes('source verification could not be read'))
+          for (const m of x.matchAll(/0x[0-9a-fA-F]{40}/g)) named.add(lc(m[0]))
+      for (const a of named)
+        if (/^0x[0-9a-f]{40}$/.test(a) && verified(a) === null)
+          by.set(a, [...(by.get(a) ?? []), ...(c.block !== undefined ? [c.block] : [])])
+    }
+    return [...by].map(
+      ([a, bs]) =>
+        `source verification of ${short(a)} not read${bs.length ? ` — the row${new Set(bs).size > 1 ? 's' : ''} at ${blockList(bs)}` : ''} judged fail closed (AD-9)`,
+    )
+  })()
+  // (d) TV-10: the subject's Aragon app ids not all read (kernel() / appId() failed; `warnings`
+  // only) — a Kernel SetApp for an app they do not map is judged as an upgrade of an unknown app
+  const aragonGaps = (() => {
+    const apps = (raw.admin.aragonAppsUnread ?? []).map(lc)
+    const byKernel = new Map<string, number[]>()
+    for (const r of raw.admin.events)
+      if (r.args.appUnread && rowsOf(r).some((c) => c.tags.includes('read_gap'))) {
+        const k = lc(String(r.args.kernel ?? r.emitter))
+        byKernel.set(k, [...(byKernel.get(k) ?? []), r.block])
+      }
+    if (!apps.length && !byKernel.size) return []
+    const at = [...byKernel].map(([k, bs]) => `Kernel ${short(k)} at ${blockList(bs)}`)
+    return [
+      `Aragon app ids ${apps.length ? `of ${apps.map(short).join(', ')} ` : ''}not read (kernel() / appId()): a Kernel SetApp for an app they do not map is judged as an upgrade of an unknown app (fail closed)${at.length ? ` — ${at.join('; ')}` : ''}`,
+    ]
+  })()
+  // (e) a committee member change whose transaction recipient was not read (eth_getTransactionByHash
+  // failed) while a path execution follows it: proof (a) of the declared path could not be tried
+  const recipientGaps = changes
+    .filter(
+      (c) =>
+        c.tags.includes('read_gap') &&
+        c.tx !== undefined &&
+        c.block !== undefined &&
+        (c.notes ?? []).some((x) => x.includes("the transaction's recipient was not read")),
+    )
+    .map(
+      (c) =>
+        `transaction ${short(c.tx!)} at block ${shortN(c.block!)}: recipient not read — ${c.title.split(':')[0]} could not be matched to its delayed governance path (AD-5 judged fail closed)`,
+    )
+  // (f) ST-04 b: a Safe change with the Safe's deploy block unknown and no code one block before
+  // (no proof of its setup: an endpoint that could not serve the block reads '0x') — judged as a
+  // change, never as the setup
+  const safeDeployGaps = (() => {
+    const by = new Map<string, number[]>()
+    for (const c of changes) {
+      const m = c.key.match(/^admin\/safe\/(0x[0-9a-f]{40})\//)
+      if (!m || !c.tags.includes('read_gap') || c.block === undefined) continue
+      if (contractDeploy(m[1]) !== undefined) continue
+      if (raw.admin.controllers[`${m[1]}@${c.block - 1}`]?.kind !== 'eoa') continue
+      by.set(m[1], [...(by.get(m[1]) ?? []), c.block])
+    }
+    return [...by].map(
+      ([s, bs]) =>
+        `Safe ${short(s)}: deploy block not read — no code one block before its change at ${blockList(bs)} is no proof of its setup (judged as a change, fail closed)`,
+    )
+  })()
+  // (g) QU-08: a queued upgrade on a proxy whose implementation history is incomplete (no Upgraded
+  // row read for its current implementation) — a stale rollback cannot be ruled out
+  const implHistoryGaps = [
+    ...new Set(
+      queue
+        .filter(
+          (c) =>
+            c.tags.includes('read_gap') &&
+            c.ruleIds.includes('AD-8') &&
+            c.key.startsWith('admin/implementation/') &&
+            (c.notes ?? []).some((x) => x.startsWith('upgrade history of')),
+        )
+        .map(
+          (c) =>
+            `upgrade history of ${short(lc(c.key.split('/')[2]))} incomplete (the install of its current implementation not read): a queued upgrade on it is judged fail closed (AD-8, a stale rollback cannot be ruled out)`,
+        ),
+    ),
+  ]
+  // (h) LZ-13 (queue): a queued setConfig on a library the LayerZero metadata does not list — its
+  // direction is unknown, so the config cannot be judged
+  const lzLibraryGaps = [
+    ...new Set(
+      queue.flatMap((c) => {
+        if (!c.tags.includes('read_gap') || !c.key.startsWith('bridge/lz/')) return []
+        const lib = (c.notes ?? [])
+          .map((x) => x.match(/library (0x[0-9a-f]{40}) is not in the LayerZero metadata/)?.[1])
+          .find(Boolean)
+        if (!lib) return []
+        const [, , , oapp, eid] = c.key.split('/')
+        return [
+          `LayerZero library ${short(lib)} not in the LayerZero metadata (direction unknown): a queued setConfig for ${short(oapp)} eid ${eid} cannot be judged (fail closed)`,
+        ]
+      }),
+    ),
+  ]
 
   // Reads that failed in a way that can HIDE a red flag: the card never says "no red flags"
   // over them (default 2026-10-06). Route sides that were not read are counted apart (UNREAD).
@@ -3076,7 +3337,17 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
         (d) =>
           `DVN ${short(lc(d.dvn))}: quorum / signers before block ${shortN(d.block)} not read (carried from the previous transaction)`,
       ),
+    ...upgradeAuthorityGaps,
+    ...prevValueGaps,
+    ...verificationGaps,
+    ...aragonGaps,
+    ...recipientGaps,
+    ...safeDeployGaps,
+    ...implHistoryGaps,
+    ...lzLibraryGaps,
   ]
+  // F4 (b): after every head line, so a gap the head already lists is not counted twice
+  for (const p of pastReadGaps) if (!readGaps.includes(p.base)) readGaps.push(p.line)
 
   // UQ-30: a head breach the previous run recorded is never dropped by a failed read. The read
   // gaps each breach depends on (the engine's own read-gap lines, so they are listed once):
@@ -3895,7 +4166,9 @@ export function ccipRemotePoolsReplay(
  *     change on the key set.
  * A same-rank rotation (tagged `rotation`: EOA → EOA, a Safe owner swap) carries the downgrade
  * forward instead of ending it, and a change that does not move the value (before = after)
- * ends nothing. Role keys are SETS of holders: a grant to another account never ends a red one;
+ * ends nothing. So does a change whose value rests on a read gap (`read_gap`); one whose only
+ * read gap is who authorised it (`authority_unread`, F1) moves the value like a read one.
+ * Role keys are SETS of holders: a grant to another account never ends a red one;
  * a minter key ends only when the minter is removed (an allowance change is not a removal).
  */
 export function markStillInEffect(changes: ConfigChange[]): void {
@@ -3906,6 +4179,9 @@ export function markStillInEffect(changes: ConfigChange[]): void {
     .map((x) => x.c)
   for (const c of ordered) byKey.set(c.key, [...(byKey.get(c.key) ?? []), c])
   const str = (x: unknown): string | null => (typeof x === 'string' ? lc(x) : null)
+  // the VALUE a change set rests on a read gap — not only who authorised it (F1)
+  const valueGap = (c: ConfigChange) =>
+    c.tags.includes('read_gap') && !c.tags.includes('authority_unread')
   for (const [key, list] of byKey) {
     // Oracle committee member sets (ruling #13): `before` = the members a change removed,
     // `after` = the ones it added. A red change stays in effect while any member it added is
@@ -3939,12 +4215,16 @@ export function markStillInEffect(changes: ConfigChange[]): void {
       const after: string | null = str(c.after)
       // a rotation, and (review round 10, R-3) a move to a holder whose rank rests on a read gap,
       // carry an open red forward: a failed read never ends a red
+      // F1 (2026-10-12, weETH: 6 replaced implementations "still in effect", counted as open
+      // reds): a row whose only read gap is WHO authorised it (`authority_unread`, AD-5) set a
+      // value read in full — it moves the value and carries its own red. It never ends a red
+      // whose own value rests on a read gap (a Kernel SetApp of an unmapped app shares the key).
       const moved =
-        before !== null &&
-        before !== after &&
-        !c.tags.includes('rotation') &&
-        !c.tags.includes('read_gap')
-      if (moved) open = open.filter((o) => str(o.after) !== before)
+        before !== null && before !== after && !c.tags.includes('rotation') && !valueGap(c)
+      if (moved)
+        open = open.filter(
+          (o) => str(o.after) !== before || (c.tags.includes('authority_unread') && valueGap(o)),
+        )
       if (!isSet && after !== null) last = after
       if (c.red) open.push(c)
     }

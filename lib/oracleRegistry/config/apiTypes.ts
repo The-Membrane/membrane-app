@@ -281,6 +281,11 @@ export type ConfigCardView = {
     collected: boolean
     /** The window they cover (days), when known. */
     windowDays: number | null
+    /**
+     * Where that window ends (F6, 2026-10-12: the heading said "last 180 d" over a window that
+     * ended 6 days below the card's head). `ts` null: the oracle collector did not record it.
+     */
+    windowEnd: { block: number; ts: number | null } | null
   }
   admin: { powers: PowerView[]; items: ItemView[] }
   mint: { items: ItemView[] }

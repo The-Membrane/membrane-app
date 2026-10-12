@@ -55,6 +55,7 @@ import {
   readNtt,
   readNttRemote,
   readOps,
+  recordUpgradeHoldersUnread,
   resolvePath,
   coHolderReads,
   roleHoldersFromEvents,
@@ -66,6 +67,7 @@ import {
   timelockAdminHolders,
   timelockExecutors,
   TIMELOCK_SCOPE_ROLES,
+  upgradeHoldersUnreadFor,
   WORMHOLE_EVM_CHAINS,
   nttRemoteTargets,
   voteDefense,
@@ -1060,10 +1062,15 @@ for (const e of oracleChanges.events ?? [])
 // AD-5: the upgrade power's holders at the block BEFORE each upgrade / admin change, so a
 // timelock is only expected in transactions after it actually held that power.
 const upgradeHoldersAt = {}
-const upgradeHoldersUnread = []
+// F4 (2026-10-12): the keys not read AND why — the card lists the gap (it reached `warnings`
+// only). R4 (2026-10-12): recorded and filed per subject by admin.mjs helpers (it was inline here,
+// and no test failed without it)
+const upgradeHoldersUnread = { unread: [], why: {} }
+// F2 (2026-10-12): the whole spec — its declared path history (`pathBefore`) picks the path read
+// at the block before each upgrade (weETH: owner() before the implementation adding roleRegistry())
 const upgradeSpecs = new Map()
 for (const s of subjects)
-  for (const p of s.powers) if (p.power === 'upgrade') upgradeSpecs.set(p.contract, p.path)
+  for (const p of s.powers) if (p.power === 'upgrade') upgradeSpecs.set(p.contract, p)
 for (const r of adminRows) {
   if (
     !['Upgraded', 'AdminChanged', 'BeaconUpgraded'].includes(r.event) ||
@@ -1077,12 +1084,13 @@ for (const r of adminRows) {
     hs = await resolvePath(client, {
       endpoint: ETH.endpoint,
       contract: r.emitter,
-      path: upgradeSpecs.get(r.emitter),
+      path: upgradeSpecs.get(r.emitter).path,
+      pathBefore: upgradeSpecs.get(r.emitter).pathBefore,
       roleMap,
       block: r.block - 1,
     })
   } catch (e) {
-    upgradeHoldersUnread.push(`${r.emitter}@${r.block}`)
+    recordUpgradeHoldersUnread(upgradeHoldersUnread, r.emitter, r.block, e)
     ctx.warnings.push(`upgrade holders of ${r.emitter}@${r.block - 1}: ${scrub(e?.message)}`)
     continue
   }
@@ -1985,13 +1993,7 @@ for (const s of subjects) {
       upgradeHoldersAt: Object.fromEntries(
         Object.entries(upgradeHoldersAt).filter(([k]) => subjectAddrs.has(k.split('@')[0])),
       ),
-      ...(upgradeHoldersUnread.some((k) => subjectAddrs.has(k.split('@')[0]))
-        ? {
-            upgradeHoldersUnread: upgradeHoldersUnread.filter((k) =>
-              subjectAddrs.has(k.split('@')[0]),
-            ),
-          }
-        : {}),
+      ...upgradeHoldersUnreadFor(upgradeHoldersUnread, subjectAddrs),
       previousSafes: (() => {
         const prev = prevState(s.key)
         if (!prev?.safeSnapshot) return undefined

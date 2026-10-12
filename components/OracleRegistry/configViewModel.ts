@@ -24,6 +24,7 @@ import type {
   RouteRowView,
   RouteSideView,
 } from '@/lib/oracleRegistry/config/apiTypes'
+import { oracleWindowGap } from '@/lib/oracleRegistry/config/oracleWindow'
 import type { ChangeTag, Dimension, ValueAtRisk } from '@/lib/oracleRegistry/config/types'
 import { valueAtRiskLabel } from '@/lib/oracleRegistry/config/value'
 
@@ -166,8 +167,18 @@ export function compactDigits(s: string): string {
 
 export type TagChip = { label: string; loud: boolean; tone?: 'danger' | 'warning' }
 
+/**
+ * Tags that never print (R5, 2026-10-12: `authority_unread` had no TAG_LABEL entry, so a quiet
+ * "authority unread" word printed beside the loud READ GAP chip on the same row — one fact
+ * twice). It only refines how the engine carries the row: the row also shouts READ GAP, and its
+ * AD-5 note says the upgrade holders before it were not read.
+ */
+const UNPRINTED_TAGS: ReadonlySet<ChangeTag> = new Set<ChangeTag>(['authority_unread'])
+
 export function tagChips(tags: readonly ChangeTag[]): TagChip[] {
-  return tags.map((t) => TAG_LABEL[t] ?? { label: t.replace(/_/g, ' '), loud: false })
+  return tags
+    .filter((t) => !UNPRINTED_TAGS.has(t))
+    .map((t) => TAG_LABEL[t] ?? { label: t.replace(/_/g, ' '), loud: false })
 }
 
 /** Border / glyph colour of a loud tag chip: red for a chip that explains a red row, else amber. */
@@ -596,15 +607,39 @@ export function blockAside(available: boolean, n: number, one: string, many = `$
   return available ? plural(n, one, many) : 'not collected'
 }
 
+/** "Oct 5 UTC"; "Oct 5, 2025 UTC" when the year is not the head's, or the head is unknown. */
+function dayUtc(ts: number, headTs: number): string {
+  const d = new Date(ts * 1000)
+  const day = `${d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })} ${d.getUTCDate()}`
+  return headTs && new Date(headTs * 1000).getUTCFullYear() === d.getUTCFullYear()
+    ? `${day} UTC`
+    : `${day}, ${d.getUTCFullYear()} UTC`
+}
+
 /**
  * The Oracles block's aside (review round 5): "not collected" when the subject's oracle
  * governance events are not collected (no oracle asset, or no collector output) — never
  * "0 config changes" — else the count over the window the collector covers.
+ * F6 (2026-10-12, weETH head 26,173,524: "last 180 d" over a window that ended at 26,129,366,
+ * 6 days earlier — the oracle collector's changes.json is not refreshed): "last N d" only when
+ * the window reaches the card's head; otherwise where it ends ("180 d to Oct 5 UTC").
+ * An unknown end or head never earns "last".
+ * R5 (2026-10-12, review of F6: "last" up to a day — 7,200 blocks — below the head, while the
+ * engine listed the window as a read gap past 300 blocks, so a window 1,000 blocks short read
+ * "last 180 d" beside its own read-gap line): one threshold, the engine's
+ * ORACLE_WINDOW_GAP_BLOCKS — "last" only when the engine lists no oracle-window gap. The end
+ * date names its time zone.
  */
-export function oracleAside(o: ConfigCardView['oracle']): string {
+export function oracleAside(o: ConfigCardView['oracle'], asOf: ConfigCardView['asOf']): string {
   if (!o.collected) return 'not collected'
   const n = plural(o.changes, 'config change')
-  return o.windowDays ? `${n} · last ${o.windowDays} d` : n
+  if (!o.windowDays) return n
+  const end = o.windowEnd
+  if (!end) return `${n} · ${o.windowDays} d`
+  if (asOf.block > 0 && !oracleWindowGap(end.block, asOf.block))
+    return `${n} · last ${o.windowDays} d`
+  const to = end.ts != null ? dayUtc(end.ts, asOf.ts) : `block ${end.block.toLocaleString('en-US')}`
+  return `${n} · ${o.windowDays} d to ${to}`
 }
 
 /** A timeline filter button: "Admin 4", or "Oracles: not collected" (never a zero nobody read). */

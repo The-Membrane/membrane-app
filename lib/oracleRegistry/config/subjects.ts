@@ -75,6 +75,7 @@ export function parseSubjects(raw: unknown): SubjectsFile {
     keys.add(s.key)
     if (!CLASSES.includes(s.class)) fail(`${where}: class ${s.class}`)
     const declared = new Set<string>()
+    const deployOf = new Map<string, number>()
     for (const c of s.contracts) {
       if (!ADDR.test(c.address))
         fail(`${where}: contract address ${c.address} must be lower-case hex`)
@@ -84,6 +85,7 @@ export function parseSubjects(raw: unknown): SubjectsFile {
         fail(`${where}: ${c.address} deployBlock`)
       if (c.chainId !== 1) fail(`${where}: v1 subjects are Ethereum-only contracts`)
       declared.add(c.address)
+      deployOf.set(c.address, c.deployBlock)
     }
     for (const a of [
       ...s.lzOApps,
@@ -105,6 +107,25 @@ export function parseSubjects(raw: unknown): SubjectsFile {
       if (!declared.has(p.contract)) fail(`${where}: power on undeclared contract ${p.contract}`)
       if (!p.path.length || !p.path.every((x) => STEP.test(x)))
         fail(`${where}: power path ${p.path.join(' → ')}`)
+      // F2 (2026-10-12): the path's declared history — upgrade powers only (AD-5 is the one read
+      // at a past block: on another power it would be a declaration nothing reads), each entry
+      // after the contract's deployment and after the previous one, with valid steps
+      if (p.pathBefore !== undefined) {
+        if (p.power !== 'upgrade' || !Array.isArray(p.pathBefore) || !p.pathBefore.length)
+          fail(
+            `${where}: power ${p.label} pathBefore is read only for an upgrade power's past holders`,
+          )
+        let floor = deployOf.get(p.contract) as number
+        for (const e of p.pathBefore) {
+          if (!Number.isInteger(e?.block) || e.block <= floor)
+            fail(
+              `${where}: power ${p.label} pathBefore blocks must ascend, each after the contract's deploy block`,
+            )
+          if (!Array.isArray(e.path) || !e.path.length || !e.path.every((x) => STEP.test(x)))
+            fail(`${where}: power ${p.label} pathBefore path ${(e.path ?? []).join(' → ')}`)
+          floor = e.block
+        }
+      }
       // functions a timelock whitelist may pass without exercising the power: signatures or selectors
       if (
         p.bypassExclude !== undefined &&

@@ -309,6 +309,19 @@ export type PowerSpec = {
   power: 'upgrade' | 'mint' | 'bridge_config' | 'oracle' | 'pause' | 'caps' | 'roles'
   contract: Address
   path: string[]
+  /**
+   * F2 (2026-10-12, weETH: 9 upgrades of 2023-24 red AD-5 on a read gap — `roleRegistry()` reverts
+   * on an implementation older than the one that added it): the path's HISTORY, upgrade powers
+   * only (AD-5 reads their holders at the block before each upgrade; a head read always uses
+   * `path`). Each entry: at a block BELOW `block` the holders were found by its `path` — `block` is
+   * the upgrade that installed the implementation authorising the power the newer way. Ascending
+   * (parseSubjects checks it); a read at block b uses the entry with the lowest block above b,
+   * else `path` (R6, 2026-10-12: whatever the order — the collector reads subjects.json with a
+   * bare JSON.parse, so `pathAtBlock` no longer leans on it). Declared from the verified
+   * source and an on-chain read, never inferred: an undeclared revert stays a read gap, and a
+   * failed read of a declared older path is one too.
+   */
+  pathBefore?: { block: number; path: string[] }[]
   label: string
   /**
    * Functions (signatures or 4-byte selectors) a timelock's whitelist bypass may let through
@@ -535,8 +548,20 @@ export type ChangeTag =
   /**
    * Review round 10 (R-3): the new holder's rank rests on a READ GAP — not judged as an upgrade,
    * and (like a rotation) a red before it is carried forward: a failed read never ends a red.
+   * (F1, 2026-10-12: not when the row is also `authority_unread` — see there.) R2 (2026-10-12):
+   * also a new holder that could not be classified at all (red AD-3; it was untagged).
    */
   | 'read_gap'
+  /**
+   * F1 (2026-10-12, weETH re-collect): AD-5 — the upgrade holders before the change were not read,
+   * so WHO authorised it is unknown; the value it set (an Upgraded / BeaconUpgraded log's
+   * implementation or beacon) was read in full. Set only when that is the row's ONLY read gap
+   * (`read_gap` is set too): such a row moves the value like a read one, so it ends the red it
+   * replaced and carries its own (`markStillInEffect`). Review of F1 (R1, 2026-10-12): never on
+   * an AdminChanged — its value is a holder whose rank may be unread with no `read_gap` tag (a
+   * new admin that could not be classified — R2: now `read_gap`), and it ended the red before it.
+   */
+  | 'authority_unread'
   | 'send_side'
   | 'grace_period'
   | 'blocked'
@@ -551,7 +576,10 @@ export type ChangeTag =
   | 'state_unread'
   /** new implementation / provider source checked: NOT verified on Sourcify or Blockscout */
   | 'unverified'
-  /** the source-verification lookup FAILED (fail closed, but not "checked, not verified") */
+  /**
+   * the source-verification lookup FAILED (fail closed, but not "checked, not verified"). R3
+   * (2026-10-12): the card lists each such address (`source verification of … not read`)
+   */
   | 'verification_unread'
   /** a wider DVN set at the same effective threshold (amber, owner ruling 2026-10-06 #6) */
   | 'wider_dvn_set'
@@ -701,8 +729,11 @@ export type SubjectState = {
    * side weakened while closed and reopened is compared with the config it last ran with).
    */
   remoteLastVerifying?: Record<string, RouteState>
-  /** The oracle governance events this card covers (absent: not collected for this subject). */
-  oracleWindow?: { startBlock: number; endBlock: number; days: number }
+  /**
+   * The oracle governance events this card covers (absent: not collected for this subject).
+   * `endTs`: the time of `endBlock`, as collect.mjs writes it (absent from an older changes.json).
+   */
+  oracleWindow?: { startBlock: number; endBlock: number; days: number; endTs?: number }
   items: StateItem[]
   counts: {
     red: number

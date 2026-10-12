@@ -861,6 +861,18 @@ export function readGapsOf(state: SubjectState | null | undefined): string[] {
   return [...stored, ...found.filter((g) => !have.has(g))]
 }
 
+/**
+ * Where the oracle governance window ends (F6, 2026-10-12): the block, and its time when the
+ * oracle collector recorded one. A field that is not a finite number is unknown — the card then
+ * never says the window reaches its head.
+ */
+export function oracleWindowEnd(
+  w: SubjectState['oracleWindow'] | null | undefined,
+): ConfigCardView['oracle']['windowEnd'] {
+  if (!w || !Number.isFinite(w.endBlock)) return null
+  return { block: w.endBlock, ts: Number.isFinite(w.endTs) ? (w.endTs as number) : null }
+}
+
 export type BuildCardOptions = {
   /** Quiet historical rows to keep; 'all' returns the full history. */
   keep?: number | 'all'
@@ -928,6 +940,7 @@ export function buildConfigCard(inp: ConfigInputs, opt: BuildCardOptions = {}): 
       // (review round 7: the filter said "not collected" yet filtered 2 rows)
       collected: !!oracleSlug && (!!state || all.some((c) => c.dimension === 'oracle')),
       windowDays: state?.oracleWindow?.days ?? null,
+      windowEnd: oracleWindowEnd(state?.oracleWindow),
     },
     admin: {
       powers: powerViews(powers, items),

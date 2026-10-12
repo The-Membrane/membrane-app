@@ -468,6 +468,14 @@
             "call:roleRegistry()",
             "owner"
           ],
+          "pathBefore": [
+            {
+              "block": 23089686,
+              "path": [
+                "owner"
+              ]
+            }
+          ],
           "label": "Upgrade weETH"
         },
         {
@@ -477,6 +485,14 @@
             "call:roleRegistry()",
             "owner"
           ],
+          "pathBefore": [
+            {
+              "block": 23089686,
+              "path": [
+                "owner"
+              ]
+            }
+          ],
           "label": "Upgrade eETH"
         },
         {
@@ -485,6 +501,14 @@
           "path": [
             "call:roleRegistry()",
             "owner"
+          ],
+          "pathBefore": [
+            {
+              "block": 22131382,
+              "path": [
+                "owner"
+              ]
+            }
           ],
           "label": "Upgrade LiquidityPool"
         },

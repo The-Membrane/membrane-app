@@ -962,8 +962,17 @@ export function classifyControllerChange(
   opts: { prevUnread?: string } = {},
 ): Verdict {
   const v = neutral()
+  // Review of R1 (R2, 2026-10-12: an EOA → an unclassified admin ended the Safe → EOA red before
+  // it, and the card did not count the gap): a NEW holder that could not be classified (`next`
+  // null — its classification failed or is missing) is a read gap on the value, like a new holder
+  // whose rank rests on one: red AD-3, tagged `read_gap` so a red before it is carried forward
+  // and the gap is listed (pastReadGaps). It was red with no tag, here and at c < 0 below.
   if (!prev) {
-    if (!next) return down(v, 'AD-3', 'neither the previous nor the new holder could be classified')
+    if (!next)
+      return tag(
+        down(v, 'AD-3', 'neither the previous nor the new holder could be classified'),
+        'read_gap',
+      )
     if (opts.prevUnread && controllerRank(next)[0] < 6)
       return tag(
         down(
@@ -999,7 +1008,8 @@ export function classifyControllerChange(
   const nextGap = rankHasReadGap(next)
   if (c < 0) {
     down(v, 'AD-3', `${describeController(prev)} → ${describeController(next)}`)
-    return prevGap || nextGap ? tag(v, 'read_gap') : v
+    // R2 (2026-10-12): a null `next` ranks lowest — red, and a read gap like a ranked one
+    return prevGap || nextGap || !next ? tag(v, 'read_gap') : v
   }
   const moved = !next || prev.address.toLowerCase() !== next.address.toLowerCase()
   // Review round 12 (rules #5): a PREVIOUS holder whose rank rests on a read gap ranks as a plain

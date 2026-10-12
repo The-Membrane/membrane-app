@@ -93,7 +93,8 @@ export type AdminCtx = {
   upgradeHoldersUnread?: string[]
   /**
    * Fail-closed audit (PH-07): the subject's declared timelocks — what an upgrade with unread
-   * holders is judged against when no power-holding timelock is known.
+   * holders is judged against when no power-holding timelock is known — each only from its deploy
+   * block (`deployBlocks`; F3, 2026-10-12).
    */
   declaredTimelocks?: string[]
   /**
@@ -1663,6 +1664,22 @@ function ad5(v: Verdict, r: AdminEventRow, txRows: AdminEventRow[], ctx: AdminCt
   // With holders resolved at the block, judge against them; otherwise never guess — except that
   // a read that FAILED falls back to the declared timelocks (review round 12: fail closed).
   const unread = (ctx.upgradeHoldersUnread ?? []).includes(`${r.emitter}@${r.block}`)
+  // F1 (2026-10-12, weETH: 6 replaced implementations "still in effect"): a read gap here is on
+  // WHO authorised the change, not on the value it set — tagged `authority_unread` when it is the
+  // row's only one (a Kernel SetApp of an unmapped app is already `read_gap` on its VALUE and
+  // keeps carrying a red before it).
+  // Review of F1 (R1, 2026-10-12: an AdminChanged EOA → an unclassified admin ended the Safe →
+  // EOA red before it): only on an Upgraded / BeaconUpgraded row — its value (an implementation
+  // or beacon address, read in full from the log) carries no rank. An AdminChanged value is a
+  // holder whose rank may be unread with no `read_gap` tag (classifyControllerChange: a `next`
+  // that could not be classified was a plain c < 0 red — R2, 2026-10-12: now tagged `read_gap`
+  // there) — its read gap stays on the value.
+  const valueRead =
+    (r.event === 'Upgraded' || r.event === 'BeaconUpgraded') && !v.tags.includes('read_gap')
+  const authorityGap = () => {
+    tag(v, 'read_gap')
+    if (valueRead) tag(v, 'authority_unread')
+  }
   let tls = at
     ? at.flatMap(tlOf)
     : ctx.upgradeHoldersAt && !unread
@@ -1673,14 +1690,19 @@ function ad5(v: Verdict, r: AdminEventRow, txRows: AdminEventRow[], ctx: AdminCt
   // fail-closed audit (PH-07): holders not read and no power-holding timelock known — the
   // subject's declared timelocks; none either: AD-5 fail closed (it was skipped silently)
   if (!tls.length && unread && !at) {
-    tls = (ctx.declaredTimelocks ?? []).filter((t) => r.block >= (ctx.timelockSince?.[t] ?? 0))
+    // F3 (2026-10-12, weETH: 2023 upgrades "judged against" 0xcd42…5d7a, deployed in 2025):
+    // `timelockSince` covers only the timelocks holding an upgrade power at head — each declared
+    // timelock is floored at its deploy block too (one that did not exist executed nothing)
+    tls = (ctx.declaredTimelocks ?? []).filter(
+      (t) => r.block >= Math.max(ctx.timelockSince?.[t] ?? 0, ctx.deployBlocks[t] ?? 0),
+    )
     if (!tls.length) {
       down(
         v,
         'AD-5',
         'the upgrade holders before it were not read and no timelock is known to judge it against (fail closed)',
       )
-      tag(v, 'read_gap')
+      authorityGap()
       return
     }
   }
@@ -1699,7 +1721,7 @@ function ad5(v: Verdict, r: AdminEventRow, txRows: AdminEventRow[], ctx: AdminCt
     // Review of lane E (2026-10-11): judged against the declared timelock only because the
     // holders were not read (read holders could be no timelock, or one that did execute it): the
     // red rests on that read gap — tagged like the branch above
-    if (unread && !at) tag(v, 'read_gap')
+    if (unread && !at) authorityGap()
   }
 }
 

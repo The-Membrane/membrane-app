@@ -26,7 +26,6 @@ const EXACT_TITLES: Record<string, string> = {
   '/lockdrop': 'Membrane | Lockdrop',
   '/management': 'Membrane | Management',
   '/manic': 'Membrane | Manic',
-  '/nft': 'Membrane | NFT',
   '/stake': 'Membrane | Stake',
   '/terms': 'Membrane | Terms of Service',
   '/tournament': 'Membrane | Tournament',

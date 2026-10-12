@@ -23,7 +23,6 @@ const ROUTES = [
   '/ethereum/disco',
   '/ethereum/maze-runners',
   '/osmosis', // stale bookmark — must render (redirects to /ethereum), not crash
-  '/nft',
   '/bid',
   '/lockdrop',
   '/manic',

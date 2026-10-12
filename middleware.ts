@@ -30,7 +30,6 @@ const TOP_LEVEL_ROUTES = new Set([
     'stake',
     'terms',
     'lockdrop',
-    'nft',
     'tournament',
     'proto',
     'sensory',

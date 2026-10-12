@@ -33,7 +33,9 @@ const nextConfig = {
       { source: '/:chain/flywheel', destination: '/:chain', permanent: true },
       { source: '/:chain/lockdrop', destination: '/:chain', permanent: true },
       { source: '/:chain/manic', destination: '/:chain', permanent: true },
-      { source: '/:chain/isolated/:marketAddress/:symbol*', destination: '/:chain/isolated', permanent: true },
+      // /:chain/isolated itself was removed 2026-10-12 (docs/CUTS-2026-10-12.md), so its
+      // old deep links now land on the chain root instead of a 404.
+      { source: '/:chain/isolated/:marketAddress/:symbol*', destination: '/:chain', permanent: true },
     ]
   },
   typescript: {

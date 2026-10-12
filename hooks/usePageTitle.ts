@@ -21,7 +21,6 @@ const EXACT_TITLES: Record<string, string> = {
   '/[chain]/cityscape': 'Membrane | Cityscape',
   '/[chain]/liquidate': 'Membrane | Liquidate',
   '/[chain]/manic': 'Membrane | Manic',
-  '/[chain]/isolated': 'Membrane | Isolated Markets',
   '/[chain]/transmuter': 'Membrane | Transmuter',
   '/bid': 'Membrane | Bid',
   '/borrow': 'Membrane | Borrow',
@@ -48,7 +47,6 @@ const SEGMENT_TITLES: Array<[string, string]> = [
   ['/cityscape', 'Cityscape'],
   ['/liquidate', 'Liquidate'],
   ['/manic', 'Manic'],
-  ['/isolated', 'Isolated Markets'],
   ['/transmuter', 'Transmuter'],
 ]
 

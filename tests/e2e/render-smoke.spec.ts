@@ -21,7 +21,6 @@ const ROUTES = [
   '/ethereum/portfolio',
   '/ethereum/transmuter',
   '/ethereum/disco',
-  '/ethereum/isolated',
   '/ethereum/maze-runners',
   '/osmosis', // stale bookmark — must render (redirects to /ethereum), not crash
   '/nft',

@@ -1,0 +1,309 @@
+# Hourly venue recorder (agent board Q23). It takes over from the Mac LaunchAgent
+# com.membrane.venue-observations, which stops whenever the Mac disk is full.
+#
+# Scheduled workflows only run from the default branch, so THIS FILE LIVES ON `main`. It
+# checks out the recorder code at another ref and runs one bounded tick.
+#
+#   code ref   inputs.ref || vars.VENUE_RECORDER_REF || 'evm-migration'
+#   output     Neon only: venue_snapshots, venue_events, venue_predictions, venue_flows,
+#              venue_depth_curves, venue_terms, venue_news and venue_alarms, the tables that
+#              pages/api/venues/*, pages/api/sim/venue-capacity.ts and the radar read. Nothing
+#              goes to this repo, to an artifact or to a cache. This repo is PUBLIC (its run logs
+#              and artifacts are public too), and data lives only in Neon or in the private
+#              triccs/membrane-datasets (board N18).
+#   secrets    RECORDER_RPC_URL       the keyed mainnet RPC list of the RPC ring (a comma list;
+#                                     makeClient in scripts/lib/venue-reads.mjs drops the R33
+#                                     relays rpc.flashbots.net and rpc.mevblocker.io)
+#              RECORDER_DATABASE_URL  the Neon connection string
+#              Every URL, key, password and host in them is masked before any other step. The
+#              recorder reads .env.local only (readEnv() in scripts/lib/venue-reads.mjs), so the
+#              run writes one with mode 600 after the dependency install and the unit tests, and
+#              deletes it in the last step. It is never uploaded or cached.
+#   logs       A stage's stdout is discarded, as on the Mac: it prints venue values. Its stderr
+#              goes to a runner file. Only a failed stage prints the last lines of that file, with
+#              each URL replaced by <url>. The job summary holds stage, status, exit and seconds.
+#   alarms     Telegram stays dark: the .env.local has no bot variables, so check-venue-alarms.mjs
+#              records alarms and leaves them notified=false.
+#
+# ONE JOB with a read-only token. The run pushes nothing to GitHub, so no job holds a write token.
+#
+# Stages, in the order of scripts/recorder-tick.sh (the Neon recorder). A required stage that
+# fails, or runs out of time, makes the run red. The other stages still run, as on the Mac.
+#   liquidity      record-venue-liquidity.mjs          required  180 s
+#   depth          record-depth-curves.mjs             required  150 s
+#   venue_flows    record-venue-flows.mjs --chunk 200  required  300 s  (Neon cursor, ON CONFLICT)
+#   event_drivers  record-venue-event-drivers.mjs      optional  150 s
+#   news           fetch-venue-news.mjs                required  150 s
+#   terms          watch-venue-terms.mjs               required  150 s
+#   alarms         check-venue-alarms.mjs              required  120 s  (last: reads this tick)
+# Liveness: liquidity and depth write rows on every tick and exit 1 when Neon fails, so they turn
+# the run red. news and terms exit 0 even when every Neon write fails (each venue's error is
+# non-fatal; measured 2026-10-12 against an unreachable Neon host). Their "ok" means "ran".
+# Not here: the route flows, the net-APY tick and the historical depth archive of the Mac tick.
+# Their code is not on evm-migration, or they keep state in local files that a runner loses.
+
+name: venue-recorder
+
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Ref of the recorder code (blank = vars.VENUE_RECORDER_REF, else evm-migration)"
+        required: false
+        default: ""
+        type: string
+      stages:
+        description: "Stages to run, space-separated (blank = all)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: venue-recorder
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    # the tick has a 30-minute budget (the Mac tick's TOTAL_SECONDS); install and tests take ~3
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      CODE_REF: ${{ inputs.ref || vars.VENUE_RECORDER_REF || 'evm-migration' }}
+      ALL_STAGES: liquidity depth venue_flows event_drivers news terms alarms
+      STAGES_IN: ${{ inputs.stages }}
+    steps:
+      - name: Mask the secrets
+        env:
+          RECORDER_RPC_URL: ${{ secrets.RECORDER_RPC_URL }}
+          RECORDER_DATABASE_URL: ${{ secrets.RECORDER_DATABASE_URL }}
+        run: |
+          # GitHub masks a secret only when its WHOLE value appears in a log. Mask each URL of the
+          # RPC list and each key-like part of one (20+ characters between / ? & = @ : #), and the
+          # database URL, its user:password, its password and its host.
+          set -f
+          rpc="$(printf '%s' "$RECORDER_RPC_URL" | tr '\n' ',')"
+          if [ -z "$(printf '%s' "$rpc" | tr -d "[:space:],\"'")" ]; then
+            echo "::error::the RECORDER_RPC_URL secret is not set (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          IFS=',' read -r -a urls <<< "$rpc"
+          for u in "${urls[@]}"; do
+            u="$(printf '%s' "$u" | tr -d "[:space:]\"'")"
+            if [ -z "$u" ]; then continue; fi
+            echo "::add-mask::$u"
+            for p in $(printf '%s' "${u#*://}" | tr '/?&=@:#' '       '); do
+              if [ "${#p}" -ge 20 ]; then echo "::add-mask::$p"; fi
+            done
+          done
+          db="$(printf '%s' "$RECORDER_DATABASE_URL" | tr -d "[:space:]\"'")"
+          if [ -z "$db" ]; then
+            echo "::error::the RECORDER_DATABASE_URL secret is not set (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          echo "::add-mask::$db"
+          rest="${db#*://}"
+          case "$rest" in
+            *@*)
+              userinfo="${rest%%@*}"
+              echo "::add-mask::$userinfo"
+              pw="${userinfo#*:}"
+              if [ -n "$pw" ] && [ "$pw" != "$userinfo" ]; then echo "::add-mask::$pw"; fi
+              rest="${rest#*@}"
+              ;;
+          esac
+          host="${rest%%[/?]*}"
+          host="${host%%:*}"
+          if [ -n "$host" ]; then echo "::add-mask::$host"; fi
+          case "$db" in
+            postgres://* | postgresql://*) ;;
+            *) echo "::error::RECORDER_DATABASE_URL is not a postgres:// URL"; exit 1 ;;
+          esac
+
+      - name: Resolve the stages
+        id: stages
+        run: |
+          set -f
+          list=""
+          for s in ${STAGES_IN:-$ALL_STAGES}; do
+            case " $ALL_STAGES " in
+              *" $s "*) ;;
+              *) echo "::error::not a stage: $s (stages: $ALL_STAGES)"; exit 1 ;;
+            esac
+            case " $list " in
+              *" $s "*) ;;
+              *) list="${list:+$list }$s" ;;
+            esac
+          done
+          if [ -z "$list" ]; then
+            echo "::error::no stages to run"
+            exit 1
+          fi
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the recorder code
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CODE_REF }}
+          path: app
+          persist-credentials: false
+
+      - name: Check the recorder code exists at the ref
+        id: present
+        working-directory: app
+        run: |
+          missing=""
+          for f in scripts/lib/venue-reads.mjs tools/venue-recorder.config.json \
+            scripts/record-venue-liquidity.mjs scripts/record-depth-curves.mjs \
+            scripts/record-venue-flows.mjs scripts/record-venue-event-drivers.mjs \
+            scripts/fetch-venue-news.mjs scripts/watch-venue-terms.mjs scripts/check-venue-alarms.mjs; do
+            if [ ! -f "$f" ]; then missing="${missing:+$missing }$f"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::no venue recorder at ref ${CODE_REF}: missing ${missing}"
+            exit 1
+          fi
+          if [ -e .env.local ] || [ -L .env.local ]; then
+            echo "::error::the ref carries a .env.local: refusing to run"
+            exit 1
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      # No secret is in the environment or on disk during the install and the tests.
+      - name: Install
+        working-directory: app
+        run: pnpm install --frozen-lockfile
+
+      - name: Recorder unit tests (gate)
+        working-directory: app
+        run: pnpm test:unit tests/unit/venueReads tests/unit/rpcExclusions tests/unit/venueNews tests/unit/termsNormalize tests/unit/alarms
+
+      - name: Write the recorder env file
+        working-directory: app
+        env:
+          RECORDER_RPC_URL: ${{ secrets.RECORDER_RPC_URL }}
+          RECORDER_DATABASE_URL: ${{ secrets.RECORDER_DATABASE_URL }}
+        run: |
+          # readEnv() reads KEY=value lines and strips one pair of quotes. Write the bare values on
+          # one line each: the RPC list joined by commas, the database URL as is.
+          set -f
+          rpc=""
+          usable=0
+          IFS=',' read -r -a urls <<< "$(printf '%s' "$RECORDER_RPC_URL" | tr '\n' ',')"
+          for u in "${urls[@]}"; do
+            u="$(printf '%s' "$u" | tr -d "[:space:]\"'")"
+            if [ -z "$u" ]; then continue; fi
+            rpc="${rpc:+$rpc,}$u"
+            # makeClient drops these R33 relays (EXCLUDED_RPC_HOSTS); one other host must remain
+            h="${u#*://}"
+            h="${h%%[/?#]*}"
+            h="${h##*@}"
+            h="$(printf '%s' "${h%%:*}" | tr '[:upper:]' '[:lower:]')"
+            case "${h%.}" in
+              rpc.flashbots.net | rpc.mevblocker.io) ;;
+              *) usable=$((usable + 1)) ;;
+            esac
+          done
+          if [ "$usable" -eq 0 ]; then
+            echo "::error::RECORDER_RPC_URL has no host outside the R33 exclusions (rpc.flashbots.net, rpc.mevblocker.io)"
+            exit 1
+          fi
+          db="$(printf '%s' "$RECORDER_DATABASE_URL" | tr -d "[:space:]\"'")"
+          umask 077
+          printf 'RECORDER_RPC_URL=%s\nDATABASE_URL=%s\n' "$rpc" "$db" > .env.local
+          echo "wrote .env.local (${usable} usable RPC URL(s), mode $(stat -c %a .env.local))"
+
+      - name: Run one tick
+        id: tick
+        # the 30-minute tick budget plus the 5-second kill grace of each stage
+        timeout-minutes: 32
+        working-directory: app
+        env:
+          STAGES: ${{ steps.stages.outputs.list }}
+          TOTAL_SECONDS: 1800
+        run: |
+          set -f
+          logs="$RUNNER_TEMP/stage-logs"
+          mkdir -p "$logs"
+          deadline=$(( $(date +%s) + TOTAL_SECONDS ))
+          failed=""
+          {
+            echo "### venue-recorder tick"
+            echo
+            echo "Code: \`${CODE_REF}\` @ \`$(git rev-parse --short HEAD)\`. Output: Neon. Stage output is not logged."
+            echo
+            echo "| stage | need | status | exit | seconds |"
+            echo "|---|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          # name | need | seconds | script and arguments (a fixed table: no input reaches it)
+          while IFS='|' read -r name need limit cmd; do
+            case " $STAGES " in
+              *" $name "*) ;;
+              *) continue ;;
+            esac
+            left=$(( deadline - $(date +%s) ))
+            if [ "$left" -le 0 ]; then
+              status="total_runtime_bound"
+              rc=""
+              secs=0
+            else
+              budget=$(( limit < left ? limit : left ))
+              start=$(date +%s)
+              rc=0
+              # timeout signals the stage's whole process group; KILL 5 s after TERM.
+              # $cmd is split on purpose: script and arguments from the fixed table.
+              # shellcheck disable=SC2086
+              timeout --kill-after=5 "$budget" node $cmd > /dev/null 2> "$logs/$name.err" || rc=$?
+              secs=$(( $(date +%s) - start ))
+              case "$rc" in
+                0) status="ok" ;;
+                124 | 137) status="timeout" ;;
+                *) status="failed" ;;
+              esac
+            fi
+            echo "$name: $status (exit ${rc:-none}, ${secs}s, $need)"
+            echo "| $name | $need | $status | ${rc:-} | $secs |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$status" != ok ]; then
+              if [ -s "$logs/$name.err" ]; then
+                echo "::group::$name stderr (last 20 lines, URLs replaced)"
+                tail -n 20 "$logs/$name.err" \
+                  | sed -E 's#[A-Za-z][A-Za-z0-9+.-]*://[^[:space:]"'"'"'<>()]+#<url>#g' \
+                  | cut -c1-300
+                echo "::endgroup::"
+              fi
+              if [ "$need" = required ]; then failed="${failed:+$failed }$name"; fi
+            fi
+          done <<'STAGE_TABLE'
+          liquidity|required|180|scripts/record-venue-liquidity.mjs
+          depth|required|150|scripts/record-depth-curves.mjs
+          venue_flows|required|300|scripts/record-venue-flows.mjs --chunk 200
+          event_drivers|optional|150|scripts/record-venue-event-drivers.mjs --limit 8
+          news|required|150|scripts/fetch-venue-news.mjs
+          terms|required|150|scripts/watch-venue-terms.mjs
+          alarms|required|120|scripts/check-venue-alarms.mjs
+          STAGE_TABLE
+          if [ -n "$failed" ]; then
+            echo "::error::required stage(s) not complete: ${failed}. The other stages wrote their rows."
+            exit 1
+          fi
+
+      - name: Delete the recorder env file
+        if: always()
+        run: rm -f app/.env.local

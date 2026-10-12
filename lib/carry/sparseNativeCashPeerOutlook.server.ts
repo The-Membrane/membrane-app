@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { loadPinnedAudit } from '../../scripts/research/conditional-cash-time-holdout.mjs'
 import { nativeCashGraphIntervalOutlook, type NativeCashGraphQuestion } from './nativeCashPeerIntervals'
 import type { ConditionalSampledCashHistory } from './conditionalSampledCashPathProjection'
@@ -22,6 +23,6 @@ export function issueSparseNativeCashPeerOutlook(
     if(!own || (originalAuthenticatedHistories ? own!==question.history :
       JSON.stringify(own)!==JSON.stringify(question.history)))return null
     return nativeCashGraphIntervalOutlook(question,histories,(q,hs)=>q===question && hs===histories &&
-      qualifyNativeOriginal(q,hs))
+      qualifyNativeOriginal(q,hs),text=>createHash('sha256').update(text).digest('hex'))
   } catch { return null }
 }

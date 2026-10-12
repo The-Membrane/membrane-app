@@ -1,3 +1,4 @@
+import { unconditionedNativeCashPeerAnalogues } from './unconditionedNativeCashPeerAnalogues'
 import { nativeVenueMaxFlow, type VenueFlowDefinition } from './sparseVenueFlowOutlook'
 import type { FixedEntitlementCashInput } from './fixedEntitlementCashOutlook'
 import type { ConditionalSampledCashHistory } from './conditionalSampledCashPathProjection'
@@ -9,6 +10,7 @@ export function nativeCashGraphIntervalOutlook(
   original: NativeCashGraphQuestion,
   histories: readonly ConditionalSampledCashHistory[],
   qualifyOriginal: (question: NativeCashGraphQuestion, histories: readonly ConditionalSampledCashHistory[]) => boolean,
+  hash?: (text:string)=>string,
 ) {
   try {
     if (!qualifyOriginal(original, histories)) return null
@@ -69,6 +71,7 @@ export function nativeCashGraphIntervalOutlook(
       summary:values.length?{minimumHeadroomRaw:String(values[0]),maximumHeadroomRaw:String(values.at(-1)),
         p10HeadroomRaw:String(values[Math.floor((values.length-1)*.1)]),p90HeadroomRaw:String(values[Math.floor((values.length-1)*.9)])}:null,
       usableIntervals:values.length,censoredIntervals:scenarios.length-values.length,
+      peerAnalogScenarios:hash?unconditionedNativeCashPeerAnalogues(q,histories,hash):null,
       peerGate:{candidateSameRouteAssetUnitsHistories:peers.length,selectedPeers:0,
         reason:'original_reviewed_incident_metadata_and_mechanism_regime_not_available' as const},
       accounting:'NET_already_includes_other_users_additional_M_separate_Q_once' as const,

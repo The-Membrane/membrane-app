@@ -1877,7 +1877,7 @@ async function aragonAppImpl(client, a, code, block) {
     [],
     block,
   )
-  if (!impl.ok) return impl.reverted ? { absent: true } : { unread: impl.error ?? 'read failed' }
+  if (!impl.ok) return impl.reverted ? { absent: true } : { unread: impl.error || 'read failed' }
   if (isZero(impl.value)) return { absent: true }
   const implCode = await codeAt(client, impl.value.toLowerCase(), block)
   if (!implCode) return { unread: 'its implementation has no code at the block' }

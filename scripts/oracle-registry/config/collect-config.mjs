@@ -399,7 +399,8 @@ const resolveAll = async () => {
           contract: p.contract,
           holders: [],
           ...(prevHolders.length ? { via: prevHolders } : {}),
-          error: scrub(e?.message),
+          // never "": the engine reads a truthy error as "unread" (third review)
+          error: scrub(e?.message).trim() || 'read failed (no error text)',
         })
       }
     }

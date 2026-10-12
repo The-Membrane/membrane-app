@@ -377,7 +377,7 @@ const KIND_TEXT = {
  * part (primary / cross-check / state). Scrubbed: no URL, subdomain, path, port or key.
  */
 export function describeRpcError(e, { label, role } = {}) {
-  if (e?.rpcDescribed) return scrub(e.message)
+  if (e?.rpcDescribed) return scrub(e.message).trim() || 'read failed (no error text)'
   const c = classifyRpcError(e)
   const host = label ?? (c.url ? hostLabel(c.url) : null)
   let head = c.status !== undefined ? `HTTP ${c.status}` : KIND_TEXT[c.kind]?.(c)
@@ -390,7 +390,9 @@ export function describeRpcError(e, { label, role } = {}) {
     detail = null
   const where = `${host ? ` from ${host}` : ''}${role ? ` (${role})` : ''}`
   const d = detail ? `: ${scrub(detail).slice(0, 80)}` : ''
-  return scrub(`${head}${where}${d}`)
+  // never "": callers read a non-empty description as "unread" (third review: an error whose
+  // message starts with a newline described as "" and a failed read counted as read)
+  return scrub(`${head}${where}${d}`).trim() || `read failed (no error text)${where}`
 }
 /**
  * The error a read throws after its retries: message = `describeRpcError`, the original as

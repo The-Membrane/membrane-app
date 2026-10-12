@@ -23,6 +23,7 @@ import {
   registerRpcSecrets,
   retryRpc,
   rpcFailure,
+  tryRead,
   rpcTuning,
   scrub,
 } from '@/scripts/oracle-registry/config/lib/rpc.mjs'
@@ -547,5 +548,47 @@ describe('lane T (5): a deploy block not confirmed after retries is a READ GAP t
     expect(gaps).toHaveLength(1)
     expect(gaps[0]).toContain(`deploy block of ${EMITTER} not confirmed after retries`)
     expect(gaps[0]).toContain('HTTP 429 from infura.io (cross-check)')
+  })
+})
+
+describe('third review: a failed read never describes as "" (callers read a non-empty error as unread)', () => {
+  const blank = () => new Error('\nupstream said nothing')
+  it('describeRpcError and rpcFailure give text for an error whose message starts with a newline', () => {
+    expect(describeRpcError(blank()).trim()).not.toBe('')
+    expect(describeRpcError(blank(), { label: 'infura.io', role: 'cross-check' })).toContain(
+      'infura.io',
+    )
+    const f = rpcFailure(blank())
+    expect(String(f.message).trim()).not.toBe('')
+    // an already-described failure with no text is not "" either
+    expect(describeRpcError(Object.assign(new Error(''), { rpcDescribed: true })).trim()).not.toBe(
+      '',
+    )
+  })
+  it('tryRead on a client that throws such an error: ok false, error non-empty', async () => {
+    const client = {
+      readContract: async () => {
+        throw blank()
+      },
+      request: async () => {
+        throw blank()
+      },
+    }
+    const r = (await tryRead(
+      client as never,
+      '0x0000000000000000000000000000000000000001',
+      [
+        {
+          type: 'function',
+          name: 'owner',
+          inputs: [],
+          outputs: [{ type: 'address' }],
+          stateMutability: 'view',
+        },
+      ] as never,
+      'owner',
+    )) as { ok: boolean; error?: string }
+    expect(r.ok).toBe(false)
+    expect(String(r.error ?? '').trim()).not.toBe('')
   })
 })

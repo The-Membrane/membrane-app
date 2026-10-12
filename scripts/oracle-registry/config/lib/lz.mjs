@@ -515,7 +515,7 @@ export async function firstCodeBlocks(client, addresses, minBlockOf, head, { con
           return
         }
       } catch (e) {
-        out[a] = { unconfirmed: scrub(e?.message ?? e) }
+        out[a] = { unconfirmed: scrub(e?.message ?? e).trim() || 'read failed (no error text)' }
         return
       }
     out[a] = { firstCode: hi, ...(confirm.length ? { confirmed: true } : {}) }

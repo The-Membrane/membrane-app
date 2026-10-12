@@ -34,11 +34,26 @@ export function loadConfig() {
 // Accepts a single URL or a comma-separated list. Prefer setting
 // RECORDER_RPC_URLS in .env.local; the free tiers rate-limit after heavy
 // getLogs backfills, and a fallback ring keeps the hourly tick alive.
+//
+// Builder relays are dropped (board R33, 2026-10-11): rpc.flashbots.net answers `[]` for
+// the ranges it does not serve, and a fallback takes `[]` as success, so a getLogs window
+// becomes a permanent hole once the cursor moves past it. Remote copies of
+// RECORDER_RPC_URL still list it. Same list as lib/position-sim/rpcExclusions.ts (node
+// cannot import that .ts here); tests/unit/rpcExclusions.test.ts keeps the two in sync.
+export const EXCLUDED_RPC_HOSTS = ['rpc.flashbots.net', 'rpc.mevblocker.io']
+const isExcludedRpc = (u) => {
+  try {
+    return EXCLUDED_RPC_HOSTS.includes(new URL(u).hostname.toLowerCase().replace(/\.$/, ''))
+  } catch {
+    return false
+  }
+}
 export function makeClient(rpcUrl) {
   const urls = String(rpcUrl)
     .split(',')
     .map((u) => u.trim())
     .filter(Boolean)
+    .filter((u) => !isExcludedRpc(u))
   const mainnet = defineChain({
     id: 1,
     name: 'Ethereum',

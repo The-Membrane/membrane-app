@@ -46,3 +46,6 @@ AGENT_BOARD.md
 
 # Resumable raw cache of scripts/position-sim/build-venue-stress-history.mjs (per-block venue reads)
 /data/venue-stress/cache/
+
+# net-apy-at-size local-first store (lib/netApy/store.ts) — snapshots + Merkl pull, never committed
+/.data/

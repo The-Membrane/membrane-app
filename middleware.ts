@@ -29,7 +29,6 @@ const TOP_LEVEL_ROUTES = new Set([
     'borrow',
     'stake',
     'terms',
-    'lockdrop',
     'tournament',
     'proto',
     'sensory',

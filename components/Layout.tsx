@@ -34,7 +34,6 @@ const EXECUTABLE_ROUTES = [
   '/portfolio',
   '/earn',
   '/liquidate',
-  '/lockdrop',
   '/borrow',
 ]
 

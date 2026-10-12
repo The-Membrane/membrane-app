@@ -24,7 +24,6 @@ const ROUTES = [
   '/ethereum/maze-runners',
   '/osmosis', // stale bookmark — must render (redirects to /ethereum), not crash
   '/bid',
-  '/lockdrop',
   '/manic',
 ]
 

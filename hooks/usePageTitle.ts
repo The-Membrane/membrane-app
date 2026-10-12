@@ -23,7 +23,6 @@ const EXACT_TITLES: Record<string, string> = {
   '/[chain]/transmuter': 'Membrane | Transmuter',
   '/bid': 'Membrane | Bid',
   '/borrow': 'Membrane | Borrow',
-  '/lockdrop': 'Membrane | Lockdrop',
   '/management': 'Membrane | Management',
   '/manic': 'Membrane | Manic',
   '/stake': 'Membrane | Stake',

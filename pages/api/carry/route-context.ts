@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { readRoutePrimaryCashFacts } from '@/lib/carry/routePrimaryCashFacts.server'
 import { readAavePrimaryEventFacts } from '@/lib/carry/aavePrimaryEventFacts.server'
 
 import { createHash } from 'node:crypto'
@@ -774,7 +775,8 @@ export function createRouteContextHandler(readers: SourceReaders = DEFAULT_READE
       .status(200)
       .json(
         { ...buildRouteEventContext(question, venue, { event, news, capacity }, nowMs, newsSource.id),
-          primaryEvents: readAavePrimaryEventFacts(question, nowMs) },
+          primaryEvents: readAavePrimaryEventFacts(question, nowMs),
+          measuredCashFacts: readRoutePrimaryCashFacts(question, capacity, nowMs) },
       )
   }
 }

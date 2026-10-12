@@ -1,5 +1,6 @@
 import type { ConditionalSampledCashHistory } from './conditionalSampledCashPathProjection'
 import type { FixedEntitlementCashOutlook } from './fixedEntitlementCashOutlook'
+import { primaryMeasuredSourceLink } from './primaryMeasuredSourceLinks'
 
 type Qualified = FixedEntitlementCashOutlook & { owner: string }
 /** Capacity facts are primary native measurements, not a news story or a causal driver.
@@ -10,11 +11,14 @@ export function buildNativePrimaryEventImpact(original: Qualified,
 ) {
   if (!qualifyOriginal(original, originalHistory)) return null
   const value = structuredClone(original), s = value.currentSource
+  const linkage = primaryMeasuredSourceLink(value.identity.routeKey, value.identity.destination)
+  if (!linkage || linkage.lane !== 'native_cash') return null
   const history = originalHistory ? structuredClone(originalHistory) : null
   if (history && !['routeKey','destination','asset','assetDecimals'].every(k =>
     (history.identity as any)[k] === (value.identity as any)[k])) return null
   const previous = history?.points.at(-1)
-  if (!previous || !/^0x[0-9a-f]{40}$/.test(value.owner) || s.sourceKind !== 'live_read_only_two_origin_finalized' ||
+  if (!previous || !/^0x[0-9a-f]{40}$/.test(value.owner) ||
+      !['live_read_only_two_origin_finalized','manifest_bound_ledger'].includes(s.sourceKind) ||
       Date.parse(s.readAt) > Date.parse(value.issuedAtUtc) ||
       Date.parse(history!.witness.availableAt) > Date.parse(value.issuedAtUtc) ||
       Date.parse(previous[3]) >= Date.parse(s.blockTime)) return null
@@ -23,7 +27,7 @@ export function buildNativePrimaryEventImpact(original: Qualified,
     additionalCompetitionRaw: value.additionalCompetitionRaw, issuedAtUtc: value.issuedAtUtc }
   const change = BigInt(s.cashRaw) - BigInt(previous[4])
   return { schema: 'native_primary_event_impact_v1' as const, question,
-    currentSource: s, affected: { ...value.identity, version: 'morpho_v2' as const },
+    currentSource: s, affected: { ...value.identity, version: linkage.mechanism }, sourceLinkage: linkage,
     facts: [
       { kind: 'native_cash_observation' as const, classification: 'measured_change' as const,
         block: previous[1], blockHash: previous[2], occurredAtUtc: previous[3],
@@ -32,7 +36,8 @@ export function buildNativePrimaryEventImpact(original: Qualified,
       { kind: 'native_cash_observation' as const, classification: 'measured_change' as const,
         block: s.block, blockHash: s.blockHash, occurredAtUtc: s.blockTime,
         availableAtUtc: s.readAt, cashRaw: s.cashRaw,
-        provenance: 'original_two_provider_finalized_read' as const, receiptSha256: null },
+        provenance: s.sourceKind === 'manifest_bound_ledger' ? 'original_manifest_bound_ledger' as const :
+          'original_two_provider_finalized_read' as const, receiptSha256: s.receiptSha256 ?? null },
     ],
     measuredCashChangeRaw: String(change),
     direction: change < 0n ? 'shrinking' as const : change > 0n ? 'growing' as const : 'unchanged' as const,

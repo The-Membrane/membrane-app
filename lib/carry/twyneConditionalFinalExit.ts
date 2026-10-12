@@ -23,6 +23,7 @@ export function buildTwyneConditionalFinalExit(a:HolderExitAssessment,q:HolderEx
  maturityWithinHorizon:maturity?Date.parse(question.targetAtUtc)>=maturity.expiryUnix*1000:null,
  conditionalFinalConversion:payout,scenarios:[{state:'PT_not_released_or_not_converted' as const,finalUsdeRaw:'0',requestedHeadroomRaw:String(-BigInt(q.assetsRaw))},
  {state:'if_PT_released_and_declared_exact_size_USDe_conversion_holds' as const,finalUsdeRange:payout?{minimumRaw:payout.minimumOutputRaw,maximumRaw:payout.maximumOutputRaw}:null,requestedHeadroom:conversionHeadroom(payout,q.assetsRaw),symbolicFinalAmount:'USDe_from_PT(returned_PT)',unresolvedLegs:[...(!delivered?['borrower_PT_release']:[]),...(!payout?['PT_to_USDe_conversion_or_mature_SY_redemption']:[])]}],
+ assumptions:['borrower_release_repeats_current_PT_simulation','exact_returned_PT_size_conversion_scenario_unchanged','mature_PT_requires_SY_redemption_and_final_USDe_conversion_not_parity'],
  futureReleaseAtUtc:null,duration:'release_and_conversion_time_censored' as const,expiryAloneProvesUsdePayout:false as const,
  calibratedProbability:false as const,holderExecutableExit:false as const,minedFinalPayout:false as const,forecastValidated:false as const,scenarioRangeIsCapacityBound:false as const}
  }catch{return null}

@@ -30,7 +30,8 @@ export function buildHastraConditionalFinalExit(a:HolderExitAssessment,q:HolderE
  scenarios:[{state:'not_released_or_not_administratively_settled' as const,finalPyusdRaw:'0',requestedHeadroomRaw:String(-BigInt(q.assetsRaw))},
  {state:'if_new_PRIME_delivered_admin_settlement_and_exact_conversion_assumptions_hold' as const,finalPyusdRange:payout?{minimumRaw:payout.minimumOutputRaw,maximumRaw:payout.maximumOutputRaw}:null,requestedHeadroom:conversionHeadroom(payout,q.assetsRaw),
  symbolicFinalAmount:'PYUSD_from_USDC(admin_settlement(wYLDS_from_PRIME))',unresolvedLegs:[...(!delivered?['new_PRIME_delivery']:[]),...(!settlement?['administrator_wYLDS_to_USDC_amount_and_fee']:[]),...(!payout?['USDC_to_PYUSD_exact_size_conversion']:[])]}],
- futureSettlementAtUtc:null,duration:'administrator_release_time_censored' as const,futureConversionHeldConditional:true as const,
+ assumptions:['new_PRIME_redemption_repeats_current_simulation','administrator_authorizes_and_funds_exact_settlement_amount','declared_settlement_amount_is_after_assumed_administrator_fee','exact_size_USDC_to_PYUSD_scenario_unchanged'],
+ settlementFeeKnown:false as const,futureSettlementAtUtc:null,duration:'administrator_release_time_censored' as const,futureConversionHeldConditional:true as const,
  calibratedProbability:false as const,holderExecutableExit:false as const,minedFinalPayout:false as const,forecastValidated:false as const,scenarioRangeIsCapacityBound:false as const}
  }catch{return null}
 }

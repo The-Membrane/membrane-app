@@ -1,4 +1,5 @@
 // Separate full-app proposal only: never loaded by the 192 MiB recovery gate.
+require('./forecasting-cloud-full-app-network-guard.cjs')
 const v8 = require('node:v8')
 if (v8.getHeapStatistics().heap_size_limit > 2368 * 1024 * 1024)
   throw new Error('full_app_node_heap_contract_exceeded')

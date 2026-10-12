@@ -120,10 +120,12 @@ def main():
                 except ConnectionRefusedError: pass
             guard = str(pathlib.Path(__file__).with_name('forecasting-cloud-full-app-node-guard.cjs').resolve())
             if kind != 'selftest' and guard not in spec['pins']: raise RuntimeError('node_guard_not_sealed')
+            network_guard = str(pathlib.Path(__file__).with_name('forecasting-cloud-full-app-network-guard.cjs').resolve())
+            if kind != 'selftest' and network_guard not in spec['pins']: raise RuntimeError('network_guard_not_sealed')
             node_options = '--max-old-space-size=2304 --max-semi-space-size=16 --require=' + guard
             env = {'PATH': str(pathlib.Path(spec['argv'][0]).parent) + ':/usr/bin:/bin', 'HOME': str(run), 'TMPDIR': str(run),
                 'MEMBRANE_DATASETS_DIR': spec['datasetsRoot'], 'NODE_OPTIONS': node_options, 'CI': '1',
-                'NEXT_TELEMETRY_DISABLED': '1', 'NO_COLOR': '1'}
+                'NEXT_TELEMETRY_DISABLED': '1', 'NO_COLOR': '1', 'MEMBRANE_CLOUD_STAGE_KIND': kind}
             additions = spec.get('nonsecretEnv', {})
             if not isinstance(additions, dict) or any(k not in ['MEMBRANE_CLOUD_ACCEPTANCE', 'MEMBRANE_CLOUD_BROWSER_OUTPUT'] for k in additions):
                 raise RuntimeError('nonsecret_env_not_allowlisted')
@@ -163,6 +165,8 @@ def main():
                                 environment = pathlib.Path('/proc/' + str(pid) + '/environ').read_bytes().split(b'\0')
                                 options = next((v.split(b'=', 1)[1] for v in environment if v.startswith(b'NODE_OPTIONS=')), b'')
                                 if options != node_options.encode(): raise RuntimeError('node_guard_or_heap_env_changed')
+                                stage = next((v.split(b'=', 1)[1] for v in environment if v.startswith(b'MEMBRANE_CLOUD_STAGE_KIND=')), b'')
+                                if stage != kind.encode(): raise RuntimeError('node_stage_kind_env_changed')
                                 cmd = pathlib.Path('/proc/' + str(pid) + '/cmdline').read_bytes().split(b'\0')
                                 for index, arg in enumerate(cmd):
                                     text = arg.decode(errors='replace')
@@ -205,6 +209,28 @@ def main():
             except Exception as error:
                 reason = reason or 'cleanup_inventory_failed:' + type(error).__name__
                 survivors = {-1: {'birth': 'UNKNOWN_CLEANUP_NOT_PROVEN'}}
+            ledger = run / 'run/network-access.jsonl'; ledger_count = 0; blocked_count = 0; ledger_sha = None
+            try:
+                if ledger.is_symlink(): raise RuntimeError('network_ledger_symlink')
+                if ledger.exists():
+                    if not ledger.is_file() or ledger.stat().st_size > MIB: raise RuntimeError('network_ledger_bound')
+                    with open(ledger, 'rb') as handle: body = handle.read(MIB + 1)
+                    if len(body) > MIB: raise RuntimeError('network_ledger_bound')
+                    ledger_sha = hashlib.sha256(body).hexdigest()
+                    for line in body.splitlines():
+                        item = json.loads(line)
+                        if not isinstance(item, dict) or set(item) != {'schema','stage','hook','host','method','outcome'} or \
+                                item['schema'] != 'full_app_node_host_access_v1' or item['stage'] != kind or \
+                                item['outcome'] not in ['allowed','blocked'] or \
+                                item['hook'] not in ['fetch','http.request','http.get','https.request','https.get'] or \
+                                not isinstance(item['host'], str) or len(item['host']) > 256 or \
+                                not isinstance(item['method'], str) or len(item['method']) > 16:
+                            raise RuntimeError('network_ledger_invalid')
+                        ledger_count += 1; blocked_count += item['outcome'] == 'blocked'
+                    if blocked_count: raise RuntimeError('blocked_node_host_access_recorded')
+            except Exception as error:
+                reason = reason or 'network_audit_failed:' + str(error)
+            if identity_violations: reason = reason or 'owned_pid_identity_changed'
             port_closed = None
             if kind in ['bounded-http', 'chromium-browser']:
                 try:
@@ -223,6 +249,8 @@ def main():
                 'allDescendantsClean': not survivors and not identity_violations, 'knownDescendantsClean': not survivors,
                 'identityViolations': identity_violations, 'unknownReusedIdentitiesNeverSignalled': True, 'diskAvailableBytes': free(),
                 'serverPort3005Closed': port_closed,
+                'nodeHostAccessLedger': {'path': str(ledger), 'sha256': ledger_sha, 'rows': ledger_count, 'blockedRows': blocked_count,
+                    'scope': 'userspace_fetch_http_https_only_not_raw_native_kernel_denial'},
                 'enforcement': {'aggregateRss': 'sampled_50ms_transient_overshoot_possible', 'memoryAndSwapHardControls': False,
                     'parentCgroupSharedWithOrdinaryServices': True, 'cpu': 'inherited_two_core_affinity_not_hard_cpu_quota',
                     'network': 'existing_environment_allowlist_unchanged_no_new_kernel_denial'},

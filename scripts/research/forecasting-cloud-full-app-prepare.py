@@ -104,6 +104,8 @@ def main():
     pins[str(launcher.resolve())] = sha(launcher)
     guard = source / 'scripts/research/forecasting-cloud-full-app-node-guard.cjs'
     pins[str(guard.resolve())] = sha(guard)
+    network_guard = source / 'scripts/research/forecasting-cloud-full-app-network-guard.cjs'
+    pins[str(network_guard.resolve())] = sha(network_guard)
     spec = {'schema':'cloud-full-app-reviewed-launcher-v1','kind':a.kind,'reviewStatus':'PENDING_PARENT_REVIEW',
         'sourceCommit':a.expected_commit,'checkout':str(dest.resolve()),'argv':argv,
         'datasetsRoot':str(pathlib.Path(a.datasets).resolve()),

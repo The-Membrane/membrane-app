@@ -1,3 +1,4 @@
+import { selectedForeignFinalExit } from '@/lib/carry/foreignFinalExitReceipt'
 import { selectedPrimaryProtocolRules } from '@/lib/carry/primaryProtocolRules'
 import { selectedSaturnTicketMechanism } from '@/lib/carry/saturnTicketMechanismReceipt'
 import { selectedNativeCashHolderOutlook } from '@/lib/carry/nativeCashHolderOutlookReceipt'
@@ -1420,6 +1421,9 @@ export type ExitPressureCardProps = {
   historicalMarketGrossFlow?: HistoricalMarketGrossFlowResponse | null
   morphoPayout: ExitPressureMorphoPayout | null
   holderTimeProcessIssue?: HolderTimeProcessIssue | null
+  primeSharesRaw?: string | null
+  ptRaw?: string | null
+  collateralVault?: string | null
   saturnRequestTokenId?: string | null
   holderSaturnForecastIssue?: SaturnAppForecastIssue | null
   holderMorphoV2IdleJointIssue?: ExitPressureMorphoV2IdleJointIssue | null
@@ -3244,6 +3248,9 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
   holderTimeProcessIssue: holderTimeProcessIssueInput = null,
   holderMorphoV2IdleJointIssue: holderMorphoV2IdleJointIssueRaw = null,
   holderSaturnForecastIssue = null,
+  primeSharesRaw = null,
+  ptRaw = null,
+  collateralVault = null,
   saturnRequestTokenId = null,
   holderCapacityAgreement: holderCapacityAgreementRaw = null,
   holderStusdsProtocolCapacityEvidence: holderStusdsProtocolEvidenceRaw = null,
@@ -4250,6 +4257,8 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
   const holderAssessment = holderWindowExpired ? null : boundHolderAssessment
   const saturnTicketMechanism = holderAssessment ? selectedSaturnTicketMechanism(holderAssessment.saturnTicketMechanismIssue,
     holderAssessment,{routeKey,destination,owner:requestedHolderAddress,requestedRaw,payoutAsset:requestedAssetAddress,horizonHours,asOfMs,ticketId:saturnRequestTokenId}) : null
+  const foreignFinalExit = holderAssessment ? selectedForeignFinalExit(holderAssessment.foreignConditionalFinalExitIssue,
+    holderAssessment,{...holderQuestion,primeSharesRaw,ptRaw,collateralVault}) : null
   const nativeCashOutlook = holderAssessment && requestedHolderAddress && requestedRaw &&
     requestedAssetAddress && requestedAssetDecimals !== null && requestedAssetDecimals !== undefined
     ? selectedNativeCashHolderOutlook(holderAssessment.nativeCashHolderOutlookIssue, {
@@ -4889,6 +4898,13 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
               />
             )}
             {cashShare && <Metric label="Q / current cash" value={cashShare} />}
+            {foreignFinalExit && <Metric
+              label={<Tooltip label="Conditional on repeating the measured first leg and completing each final-asset conversion. Release, settlement fees and conversion times are unresolved; these are alternative mechanism assumptions, not executable payout or probability bounds."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Conditional final exit†</Text></Tooltip>}
+              value={foreignFinalExit.schema==='hastra_conditional_final_exit_v1'?'wYLDS → USDC → PYUSD':'PT → USDe'}
+              detail={foreignFinalExit.schema==='hastra_conditional_final_exit_v1'
+                ? `${foreignFinalExit.firstLeg?.simulatedWyldsRaw ? formatExitPressureRaw(foreignFinalExit.firstLeg.simulatedWyldsRaw,6)+' wYLDS simulated · ' : ''}Administrator timing unknown · conversion assumed`
+                : `${foreignFinalExit.firstLeg.simulatedReturnedPtRaw ? formatExitPressureRaw(foreignFinalExit.firstLeg.simulatedReturnedPtRaw,18)+' PT simulated · ' : ''}Release and conversion timing unknown`}
+            />}
             {saturnTicketMechanism && <Metric
               label={<Tooltip label="Whole owned ticket only. If delivered and exact-size conversion quote remains unchanged. Release and funding times, unknown claim fees and route execution remain unverified. These states are not a future price or capacity bound."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Owned ticket scenario†</Text></Tooltip>}
               value={`0 / ${formatExitPressureRaw(saturnTicketMechanism.currentExactSizeAusdQuoteRaw,6)} AUSD`}

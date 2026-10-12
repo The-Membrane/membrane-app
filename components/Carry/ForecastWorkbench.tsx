@@ -7583,6 +7583,9 @@ export const ForecastWorkbench: React.FC<{ chainName: string }> = ({ chainName }
                 initialDepositIssue={initialDepositIssue}
                 routeKey={routeKey}
                 destination={destination}
+                primeSharesRaw={assessmentKind==='pyusd_staking'?rawExitAmount(primeShares,6):null}
+                ptRaw={isTwynePt?rawExitAmount(twynePtSize,18):null}
+                collateralVault={isTwynePt?twyneCollateralVault.trim().toLowerCase():null}
                 requestedAmount={exitSize}
                 requestedRaw={exitPressureRequestedRaw}
                 requestedAssetSymbol={assetUnit}

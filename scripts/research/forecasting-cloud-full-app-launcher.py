@@ -44,7 +44,7 @@ def main():
         run = root / (kind + '-' + str(time.time_ns())); run.mkdir(mode=0o700)
         tracked = {}; child = None; reason = None; exit_code = None; before_pins = False; after_pins = False
         peak_rss = peak_threads = peak_processes = peak_cgroup = peak_swap_growth = 0
-        initial_cgroup = None; subreaper = False; signals = []; disk_start = None; root_birth = None
+        initial_cgroup = None; subreaper = False; signals = []; disk_start = None; root_birth = None; env_keys = []
         baseline_children = {p: v['birth'] for p, v in rows().items() if v['parent'] == os.getpid()}
         affinity = sorted(os.sched_getaffinity(0))[:2]
         def free():
@@ -118,6 +118,7 @@ def main():
                 if not isinstance(output, str) or not pathlib.Path(output).is_absolute() or not pathlib.Path(output).resolve().is_relative_to(root.resolve()):
                     raise RuntimeError('browser_output_outside_evidence_root')
             env.update(additions)
+            env_keys = sorted(additions)
             if kind != 'selftest': env.update(NODE_ENV='production', PLAYWRIGHT_BASE_URL='http://127.0.0.1:3005')
             def setup_child(): os.sched_setaffinity(0, affinity)
             with open(run / 'stdout.log', 'wb') as out, open(run / 'stderr.log', 'wb') as err:
@@ -200,7 +201,7 @@ def main():
                 'peakAggregateRssBytes': peak_rss, 'peakProcesses': peak_processes, 'peakThreadsObservedSeparately': peak_threads,
                 'initialCgroup': initial_cgroup, 'peakParentCgroupMemoryBytes': peak_cgroup, 'peakParentCgroupSwapGrowthBytes': peak_swap_growth,
                 'cpuAffinity': affinity, 'subreaperEnabled': subreaper, 'trackedPidBirths': tracked,
-                'rootPidBirth': root_birth, 'reviewedNonsecretEnvKeys': sorted(spec.get('nonsecretEnv', {})),
+                'rootPidBirth': root_birth, 'reviewedNonsecretEnvKeys': env_keys,
                 'cleanupSignals': signals, 'survivingPidBirths': {p: v['birth'] for p, v in survivors.items()},
                 'allDescendantsClean': not survivors, 'diskAvailableBytes': free(),
                 'serverPort3005Closed': port_closed,

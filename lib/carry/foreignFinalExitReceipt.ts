@@ -6,17 +6,20 @@ import {buildTwyneConditionalFinalExit} from './twyneConditionalFinalExit'
 export type ForeignFinalExitQuestion=HolderExitViewQuestion&{primeSharesRaw:string|null;ptRaw:string|null;collateralVault:string|null}
 export type ForeignFinalExitIssue=Readonly<{kind:'foreign_conditional_final_exit_receipt'}>
 const retained=new WeakMap<object,{model:ForeignConditionalFinalExit;seal:string}>()
+const canonical=(value:unknown):unknown=>Array.isArray(value)?['array',value.map(canonical)]:
+ value!==null&&typeof value==='object'?['object',Object.keys(value).sort().map(key=>[key,canonical((value as Record<string,unknown>)[key])])]:[value===null?'null':typeof value,value]
+const equivalent=(left:unknown,right:unknown)=>JSON.stringify(canonical(left))===JSON.stringify(canonical(right))
 function matches(m:ForeignConditionalFinalExit,a:HolderExitAssessment,q:ForeignFinalExitQuestion){
  const p=m.question,issue=Date.parse(p.issuedAtUtc)
  if(p.owner!==q.owner?.toLowerCase()||p.routeKey!==q.routeKey||p.destination!==q.destination.toLowerCase()||p.requestedRaw!==q.requestedRaw||p.asset!==q.payoutAsset?.toLowerCase()||p.horizonSeconds!==q.horizonHours*3600||
- !Number.isSafeInteger(q.asOfMs)||q.asOfMs<issue||q.asOfMs>Date.parse(m.sourceProofValidUntil)||q.asOfMs>=Date.parse(p.targetAtUtc)||JSON.stringify(p.currentSource)!==JSON.stringify(a.source))return false
+ !Number.isSafeInteger(q.asOfMs)||q.asOfMs<issue||q.asOfMs>Date.parse(m.sourceProofValidUntil)||q.asOfMs>=Date.parse(p.targetAtUtc)||!equivalent(p.currentSource,a.source))return false
  if(m.schema==='hastra_conditional_final_exit_v1'&&m.firstLeg?.inputPrimeRaw!==undefined&&m.firstLeg.inputPrimeRaw!==q.primeSharesRaw)return false
  if(m.schema==='twyne_conditional_final_exit_v1'&&(m.firstLeg.requestedPtRaw!==q.ptRaw||m.firstLeg.collateralVault.toLowerCase()!==q.collateralVault?.toLowerCase()))return false
  const request={routeKey:q.routeKey,destinationAddress:p.destination as `0x${string}`,owner:p.owner as `0x${string}`,assetAddress:p.asset as `0x${string}`,assetsRaw:p.requestedRaw,nowMs:issue,horizonSeconds:p.horizonSeconds}
  // Current API issues symbolic missing-conversion states only. A future numeric
  // conversion enrollment needs its own original quote agreement and receipt path.
  const rebuilt=m.schema==='hastra_conditional_final_exit_v1'?buildHastraConditionalFinalExit(a,request,()=>true):buildTwyneConditionalFinalExit(a,request,()=>true)
- return rebuilt!==null&&JSON.stringify(rebuilt)===JSON.stringify(m)
+ return rebuilt!==null&&equivalent(rebuilt,m)
 }
 /** Selection and post-retention identity/mutation binding for the Workbench's own
  * successful API response; this is not arbitrary JSON authenticity. */

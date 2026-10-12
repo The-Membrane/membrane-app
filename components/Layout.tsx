@@ -37,7 +37,6 @@ const EXECUTABLE_ROUTES = [
   '/liquidate',
   '/lockdrop',
   '/borrow',
-  '/position',
   '/boost',
   '/isolated',
 ]

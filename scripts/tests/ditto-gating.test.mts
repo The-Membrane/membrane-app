@@ -14,7 +14,7 @@ import assert from 'node:assert'
 /** Mirrors components/Layout.tsx. */
 const EXECUTABLE_ROUTES = [
   '/mint', '/disco', '/transmuter', '/stake', '/manic', '/portfolio', '/earn',
-  '/liquidate', '/lockdrop', '/borrow', '/position', '/boost', '/isolated',
+  '/liquidate', '/lockdrop', '/borrow', '/boost', '/isolated',
 ]
 const isExecutableRoute = (pathname: string) => EXECUTABLE_ROUTES.some((r) => pathname.includes(r))
 
@@ -22,7 +22,7 @@ let n = 0
 const ok = (c: boolean, what: string) => { assert.ok(c, what); n++ }
 
 // --- executable surfaces get him -------------------------------------------
-for (const p of ['/[chain]/mint', '/[chain]/borrow', '/[chain]/position', '/[chain]/earn']) {
+for (const p of ['/[chain]/mint', '/[chain]/borrow', '/[chain]/earn']) {
   ok(isExecutableRoute(p), `${p} is executable -> Ditto mounts`)
 }
 

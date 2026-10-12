@@ -71,7 +71,6 @@ const comingSoonItems = [
     // Direct door to the Levels directory (Transmuter, Manic, Stake, Maze Runners) —
     // previously only discoverable by completing the Home fingerprint-scan ritual.
     { label: 'Levels', href: '/levels' },
-    { label: 'Position', href: '/position' },
     { label: 'Borrow', href: '/borrow' },
     // Carry promoted to top-level (carry-first ruling) — no longer listed here.
     { label: 'Earn', href: '/earn' },

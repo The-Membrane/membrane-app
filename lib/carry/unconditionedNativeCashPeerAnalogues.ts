@@ -23,8 +23,13 @@ export function unconditionedNativeCashPeerAnalogues(q:NativeCashGraphQuestion,
  for(const peer of candidates){
   const labels=incidents?.byDestination[peer.identity.destination]
   if(labels?.some(id=>incidents!.targetIncidentIds.includes(id))){excluded.push({destination:peer.identity.destination,sourceIndex:null,targetIndex:null,reason:'known_shared_incident'});continue}
-  // Fixed newest two source intervals per subject before validity/arithmetic checks: no survivor selection.
-  const points=peer.points.slice(-3);omittedHistoricalIntervals+=Math.max(0,peer.points.length-3)
+  // Uniform manifest availability is authoritative; never invent per-anchor receipt clocks.
+  // Remove knowledge after the issue/source cutoff BEFORE selecting the newest two intervals.
+  // Gap, zero-start and arithmetic checks still happen only after that fixed selection.
+  const available=Date.parse(peer.witness.availableAt)
+  const eligiblePoints=Number.isSafeInteger(available)&&available<=issue
+    ? peer.points.filter(point=>{const at=Date.parse(point[3]);return Number.isSafeInteger(at)&&at<source&&at<=available}) : []
+  const points=eligiblePoints.slice(-3);omittedHistoricalIntervals+=Math.max(0,eligiblePoints.length-3)
   for(let i=1;i<points.length;i++){
    const a=points[i-1],b=points[i],dt=Date.parse(b[3])-Date.parse(a[3])
    if(!Number.isSafeInteger(dt)||dt<=0||dt>91800000||Date.parse(b[3])>=source||Date.parse(peer.witness.availableAt)>issue||Date.parse(peer.witness.availableAt)<Date.parse(b[3])){
@@ -54,7 +59,7 @@ export function unconditionedNativeCashPeerAnalogues(q:NativeCashGraphQuestion,
   summary:values.length?{minimumHeadroomRaw:String(values[0]),maximumHeadroomRaw:String(values.at(-1)),p10HeadroomRaw:String(values[Math.floor((values.length-1)*.1)]),p90HeadroomRaw:String(values[Math.floor((values.length-1)*.9)])}:null,
   candidatePeerSubjects:candidates.length,matchedPeerSubjects:new Set(scenarios.map(p=>p.peerIdentity.destination)).size,
   usableIntervals:values.length,censoredIntervals:scenarios.length-values.length,omittedHistoricalIntervals,
-  selection:'newest_two_retained_intervals_per_peer_before_validity_and_arithmetic_checks' as const,
+  selection:'newest_two_known_pre_source_intervals_per_peer_before_gap_and_arithmetic_checks' as const,
   sizing:'target_source_cash_times_peer_NET_change_over_peer_start_cash_times_interval_ms_then_times_source_age_plus_H_floor' as const,
   assumption:'relative_peer_NET_rate_transfers_to_target_cash_inventory_fixed_Ea_unchanged_authority_and_regime' as const,
   incidentConditioned:false as const,unknownIncidentLabelsPermittedForUnconditionedAnalogues:true as const,

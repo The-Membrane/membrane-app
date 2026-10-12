@@ -60,3 +60,27 @@ it('retains selected arithmetic censorship instead of swapping in older donor su
  expect(result.scenarios.at(-1)!.capacityRaw).toBeNull()
  expect(result.omittedHistoricalIntervals).toBeGreaterThan(0)
 })
+
+it('future appended anchors cannot displace known donors or change the actual issued graph model',()=>{
+ const {question:q,histories}=originals(),peer=histories.find(h=>h.identity.destination!==q.history.identity.destination&&h.identity.routeKey===q.history.identity.routeKey)!
+ const originalHistories=[q.history,peer]
+ const baseline=nativeCashGraphIntervalOutlook(q,originalHistories,(v,h)=>v===q&&h===originalHistories,hash)!
+ assertPositive(baseline.peerAnalogScenarios?.matchedPeerSubjects)
+ const extended=structuredClone(peer),last=extended.points.at(-1)!
+ // Counterfactual future anchors are not promoted as authenticated captures. The genuine retained
+ // prefix and uniform original receipt clock remain identical; even invalid future cash stays unread.
+ for(let i=1;i<=4;i++)extended.points.push([last[0]+i,String(BigInt(last[1])+BigInt(i)),`0x${'f'.repeat(64)}`,
+  new Date(Date.parse(q.issuedAtUtc)+i*86400000).toISOString(),'not_native_cash'])
+ const extendedHistories=[q.history,extended]
+ const withFuture=nativeCashGraphIntervalOutlook(q,extendedHistories,(v,h)=>v===q&&h===extendedHistories,hash)!
+ expect(withFuture).toEqual(baseline)
+ // Keeping only the original eligible prefix is an independent counterfactual, not a rebuilt selector.
+ expect(withFuture.peerAnalogScenarios!.scenarios.map(p=>p.targetPointSha256)).toEqual(baseline.peerAnalogScenarios!.scenarios.map(p=>p.targetPointSha256))
+})
+function assertPositive(value:number|undefined){expect(value).toBeGreaterThan(0)}
+it('a donor history unavailable at issue supplies no intervals despite older source times',()=>{
+ const {question:q,histories}=originals(),peer=structuredClone(histories.find(h=>h.identity.destination!==q.history.identity.destination&&h.identity.routeKey===q.history.identity.routeKey)!)
+ peer.witness.availableAt=new Date(Date.parse(q.issuedAtUtc)+1).toISOString()
+ const result=unconditionedNativeCashPeerAnalogues(q,[peer],hash)
+ expect(result.scenarios).toHaveLength(0);expect(result.usableIntervals).toBe(0);expect(result.omittedHistoricalIntervals).toBe(0)
+})

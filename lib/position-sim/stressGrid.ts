@@ -84,18 +84,19 @@
  *  - After the shape ends the price holds at its last value for one full window plus a
  *    step, so every armed timer resolves inside the horizon (no grid-end guess). A rate
  *    stress that outlasts the shape holds the price to the spike's end first.
- *  - RATE (`StressScenario.rate`, optional): the debt accrues the shape's borrow APR for the
- *    spike's duration, compounded per grid step as the venue indexes compound (Aave,
- *    Morpho), and nothing after it. It applies to the WHOLE debt: the incumbent venue's
- *    rule. Master differs: deployed (covered) debt accrues 0% (Cdp._accruePosition STEP 1b,
- *    Cdp.sol:5736-5761 @ 10626e40) and other debt keeps the rate struck when it was
- *    borrowed, so a venue spike does not reach existing Membrane debt (Recall Coverage
- *    Dataset spec §4.6, MR-CODE). The rate stress is that what-if, not master. A projected
- *    path (rateSpike.ts, from `rateSpikeAxis`) holds utilization fixed. Between two of its
- *    points the APR is the HIGHER of the two, so interest is never understated where the
- *    path is monotone between points (every rateSpikeAxis path is). A path is never
- *    extrapolated past its last point. Capital recalled during the spike gives up the
- *    shape's supply APR from its recall to the spike's end (`yieldGivenUpUsd`).
+ *  - RATE (`StressScenario.rate`, optional): the shape is the rate on UNDEPLOYED debt, the
+ *    avoidance-rate path. Deployed (covered) debt accrues 0% (Cdp._accruePosition STEP 1b,
+ *    Cdp.sol:5736-5761 @ 10626e40). Undeployed debt follows the Cdp formula whose base
+ *    rate is the avoidance rate (board OWNER CORRECTION 2026-09-09), and that rate is
+ *    VARIABLE: it re-rates existing undeployed debt (owner 2026-10-12, a new addition). So
+ *    each step the debt above the principal still deployed (deployed − recalled) accrues the
+ *    shape's APR, compounded per step, for the spike's duration and not after. A levered
+ *    long deploys nothing, so all of its debt accrues. A projected path (rateSpike.ts, from
+ *    `rateSpikeAxis`) holds utilization fixed. Between two of its points the APR is the
+ *    HIGHER of the two, so interest is never understated where the path is monotone between
+ *    points (every rateSpikeAxis path is). A path is never extrapolated past its last point.
+ *    Capital recalled during the spike gives up the shape's supply APR from its recall to
+ *    the spike's end (`yieldGivenUpUsd`).
  *  - OMITTED: the keeper fee ramp `min((L − T)/L, 20%)`, gas stipend and protocol
  *    `_liqFee` (LE:1817-1835) — they are paid from collateral, even on a recall-only cure,
  *    so `exposedUsd` UNDERSTATES what leaves the position; interest accrual outside a rate
@@ -456,9 +457,10 @@ export interface RateShapePoint {
 }
 
 /**
- * The borrow rate the debt accrues during a rate stress. `supplyApr` is what the venue pays
- * its suppliers at the same moment. It prices the yield recalled capital gives up. Without
- * it, `yieldGivenUpUsd` is null.
+ * The rate during a rate stress. `borrowApr` is what UNDEPLOYED debt accrues: Membrane's
+ * avoidance rate (header: RATE). `supplyApr` is what the venue pays its suppliers at the
+ * same moment. It prices the yield recalled capital gives up. Without it,
+ * `yieldGivenUpUsd` is null.
  */
 export type RateShape =
   /** One borrow APR held from t0. */
@@ -619,9 +621,10 @@ export interface StressModelled extends StressResultBase {
   /** Seconds from t0 when the venue first answers (after a freeze). Null if never needed / levered_long. */
   recallOpensAtSeconds: number | null
   /**
-   * Interest the rate stress added to the debt, USD: the spike's borrow cost. It is what
-   * moves the LTV toward the line with the price held. Null without a rate stress: the grid
-   * then omits interest (header), which is not 0.
+   * Interest the rate stress added to the undeployed debt, USD: the spike's borrow cost. It
+   * is what moves the LTV toward the line with the price held. 0 while every dollar of debt
+   * is deployed. Null without a rate stress: the grid then omits interest (header), which is
+   * not 0.
    */
   interestUsd: number | null
   /**
@@ -1038,8 +1041,8 @@ const YEAR_SECONDS = 365 * 86_400
 
 /** A rate stress resolved onto the walk's grid. */
 interface RateSteps {
-  /** Debt factor at step i: the borrow APR compounded over step i (t_{i-1} → t_i). growth[0] = 1. */
-  growth: Float64Array
+  /** Log of the undeployed debt's growth over step i (t_{i-1} → t_i): APR × years. [0] = 0. */
+  logGrowth: Float64Array
   /** Yield per $ recalled at step i, from t_i to the spike's end. Null without a supply APR. */
   forgone: Float64Array | null
 }
@@ -1049,7 +1052,7 @@ function rateSteps(n: NormalizedStress, length: number): RateSteps | null {
   if (r === undefined) return null
   const step = n.stepSeconds
   const end = r.hours * 3600
-  const growth = new Float64Array(length).fill(1)
+  const logGrowth = new Float64Array(length)
   // ∫ supply APR dt over step i, in years of yield per $.
   const supplyYears = new Float64Array(length)
   let lo = 0
@@ -1074,17 +1077,17 @@ function rateSteps(n: NormalizedStress, length: number): RateSteps | null {
         if (r.t[k] >= t1) break
       }
     }
-    growth[i] = Math.exp((b * (t1 - t0)) / YEAR_SECONDS)
+    logGrowth[i] = (b * (t1 - t0)) / YEAR_SECONDS
     supplyYears[i] = (s * (t1 - t0)) / YEAR_SECONDS
   }
-  if (r.kind === 'hold' && r.supply === undefined) return { growth, forgone: null }
+  if (r.kind === 'hold' && r.supply === undefined) return { logGrowth, forgone: null }
   const forgone = new Float64Array(length)
   let after = 0 // Σ supplyYears over the steps after i
   for (let i = length - 1; i >= 0; i--) {
     forgone[i] = Math.expm1(after)
     after += supplyYears[i]
   }
-  return { growth, forgone }
+  return { logGrowth, forgone }
 }
 
 /** Why a sale ran — see `StressModelled.saleReason`. */
@@ -1165,10 +1168,12 @@ function walk(n: NormalizedStress, ratios: readonly number[], rate: RateSteps | 
     const coll = collBase * r
     if (!(debt > DUST_USD)) continue // nothing owed: nothing can breach
     if (rate) {
-      // The rate stress: the debt accrues over the step that just ended (header: RATE).
-      const grown = debt * rate.growth[i]
-      interest += grown - debt
-      debt = grown
+      // The rate stress: the debt above the principal still deployed accrues over the step
+      // that just ended (header: RATE). Deployed debt accrues 0%.
+      const undeployed = Math.max(0, debt - Math.max(0, pos.dep - drawn))
+      const accrued = undeployed * Math.expm1(rate.logGrowth[i])
+      interest += accrued
+      debt += accrued
     }
     if (!(coll > DUST_USD)) {
       // Collateral worth (next to) nothing with debt owed: the LTV is unbounded — a
@@ -1350,7 +1355,8 @@ function walk(n: NormalizedStress, ratios: readonly number[], rate: RateSteps | 
 /**
  * Recall that would hold the LTV at the line through the trough with nothing sold. With a
  * rate stress the trough is the step where the ACCRUED debt stands furthest over the line
- * (the debt grown by the spike, nothing repaid). Without one it is the lowest price.
+ * (the undeployed debt grown by the spike, nothing recalled or repaid). Without one it is
+ * the lowest price.
  */
 function recallNeeded(
   n: NormalizedStress,
@@ -1364,11 +1370,12 @@ function recallNeeded(
     for (const x of ratios) if (x < minRatio) minRatio = x
     return Math.max(0, d - line * c * minRatio)
   }
+  const undeployed = Math.max(0, d - n.pos.dep)
   let need = 0
-  let g = 1
+  let logG = 0
   for (let i = 0; i < ratios.length; i++) {
-    g *= rate.growth[i]
-    const over = d * g - line * c * ratios[i]
+    logG += rate.logGrowth[i]
+    const over = d + undeployed * Math.expm1(logG) - line * c * ratios[i]
     if (over > need) need = over
   }
   return need

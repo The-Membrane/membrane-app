@@ -9,11 +9,20 @@
  * structurally (`RateSpikeAxisInput` lists only the fields used here). So this branch builds
  * without lib/netApy, and the real type is assignable once both sit on one branch.
  *
- * WHAT IT GIVES. One 'path' shape per axis level, carrying the level's borrow APR (what the
- * debt accrues) and supply APR (what recalled capital gives up). The id names the venue,
- * the anchor block, the level and its utilization, e.g.
- * 'morpho-blue-cbbtc-usdc-86@26120000:stress-u100', so a cell key and a scenario id say
- * where the path comes from.
+ * WHAT IT GIVES. One 'path' shape per axis level. The id names the venue, the anchor block,
+ * the level and its utilization, e.g. 'morpho-blue-cbbtc-usdc-86@26120000:stress-u100', so a
+ * cell key and a scenario id say where the path comes from. Both of the shape's rates are
+ * the level's SUPPLY APR:
+ *   rate on undeployed debt  Membrane's avoidance rate (stressGrid.ts header: RATE) is the
+ *                            AUM-weighted realized payment rate of the cheapest
+ *                            redemption-exposed curator vaults
+ *                            (CuratorRegistry._refreshAvoidanceRate). A vault pays out of its
+ *                            realized gain, which its venue's supply APR bounds. So the supply
+ *                            APR is the avoidance rate's UPPER bound when the cheapest bucket
+ *                            sits at this venue. Any lag or smoothing between the venue and
+ *                            the avoidance rate would lower a spike. The venue's borrow APR is
+ *                            the incumbent's rule, not Membrane's, and is not used.
+ *   yield given up           what recalled capital stops earning at the venue.
  *
  * WHAT IT CLAIMS. The axis's own claim class: a stress scenario with utilization held fixed
  * for the whole horizon (`assumption`, RATE_PATH_ASSUMPTION). In a real spike borrowers
@@ -25,7 +34,6 @@ import type { RateShape, RateStress } from './stressGrid'
 /** One projected point (lib/netApy/types.ts `RatePathPoint`, the fields used here). */
 export interface RateSpikePointInput {
   t: number
-  borrowApr: number
   supplyApr: number
 }
 
@@ -76,7 +84,8 @@ export function rateSpikeShapes(axis: RateSpikeAxisInput): RateSpikeShape[] {
     shape: {
       kind: 'path',
       id: rateSpikeShapeId(axis, level),
-      points: level.path.map((p) => ({ t: p.t, borrowApr: p.borrowApr, supplyApr: p.supplyApr })),
+      // The supply APR on both sides: see the header (WHAT IT GIVES).
+      points: level.path.map((p) => ({ t: p.t, borrowApr: p.supplyApr, supplyApr: p.supplyApr })),
     },
   }))
 }

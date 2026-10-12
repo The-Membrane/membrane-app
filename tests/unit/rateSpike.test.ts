@@ -182,7 +182,8 @@ describe('fixture — the real rateSpikeAxis() at block 26,120,000, checked agai
     const s1 = bps(irm.variableRateSlope1Bps)
     const s2 = bps(irm.variableRateSlope2Bps)
     for (const l of axisOf('aave-v3-usdc').levels) {
-      expect(new Set(l.path.map((p) => p.borrowApr)).size).toBe(1)
+      expect(new Set(l.borrowApr).size).toBe(1)
+      expect(new Set(l.supplyApr).size).toBe(1)
     }
     expect(levelOf('aave-v3-usdc', 'kink').borrowAprNow).toBeCloseTo(base + s1, 9)
     expect(levelOf('aave-v3-usdc', 'stress', 1).borrowAprNow).toBeCloseTo(base + s1 + s2, 9)
@@ -276,31 +277,58 @@ describe('rate stress — interest accrual moves the LTV toward the line', () =>
     expect(r.timeToSaleSeconds! - r.timeToArmSeconds!).toBe(8 * 3600)
   })
 
-  it('recall needed reads the ACCRUED debt: d·G − L·c at the spike end, with the price held', () => {
-    const p = pos({ tradeShape: 'carry', deployedUsd: 79_000, exitCapacityPreset: 'optimistic' })
+  it('only UNDEPLOYED debt accrues: deployed debt pays 0% (Cdp STEP 1b), the rest the avoidance rate', () => {
+    const half = pos({
+      debtUsd: 50_000,
+      tradeShape: 'carry',
+      deployedUsd: 20_000,
+      exitCapacityPreset: 'optimistic',
+    })
+    const r = modelled(run(half, { shape: hold(0.5), hours: 30 * 24 }))
+    expect(r.interestUsd).toBeCloseTo(30_000 * Math.expm1((0.5 * 30 * DAY) / YEAR), 6)
+    // All of it deployed: the highest APR any path carries, for a month, moves nothing.
+    const full = pos({ tradeShape: 'carry', deployedUsd: 79_000, exitCapacityPreset: 'optimistic' })
+    const none = modelled(run(full, { shape: hold(RATE_MAX_APR), hours: 30 * 24 }))
+    expect(none.interestUsd).toBe(0)
+    expect(none.outcome).toBe('no_breach')
+    // A levered long deploys nothing: all of its debt accrues.
+    const ll = modelled(run(pos({ debtUsd: 50_000 }), { shape: hold(0.5), hours: 30 * 24 }))
+    expect(ll.interestUsd).toBeCloseTo(50_000 * Math.expm1((0.5 * 30 * DAY) / YEAR), 6)
+  })
+
+  it('recall needed reads the ACCRUED debt: d + u·(G − 1) − L·c at the spike end, with the price held', () => {
+    const p = pos({
+      tradeShape: 'carry',
+      deployedUsd: 40_000,
+      exitCapacityPreset: 'optimistic',
+    })
     const r = modelled(run(p, { shape: hold(0.5), hours: 30 * 24 }))
     const g = Math.exp((0.5 * 30 * DAY) / YEAR)
-    expect(r.recallNeededUsd).toBeCloseTo(79_000 * g - 0.8 * C, 6)
+    expect(r.recallNeededUsd).toBeCloseTo(79_000 + 39_000 * (g - 1) - 0.8 * C, 6)
     // Without a rate the old formula stands: nothing over the line, nothing needed.
     expect(modelled(run(p, undefined)).recallNeededUsd).toBe(0)
   })
 
   it('a carry recall cures a rate-driven breach; the recalled capital gives up the supply APR to the spike end', () => {
-    // LTV 0.795 at a 0.80 line: the line is crossed after ~4.6 days at 50%. The recall
-    // restores the borrow LTV (0.77); climbing back to 0.80 would take ~28 days, so one recall.
+    // $39,500 undeployed at 50%: the line is crossed after ~9.2 days. The recall restores the
+    // borrow LTV (0.77) with deployed principal, so $40,000 stays undeployed. Back to 0.80
+    // would take ~27 days more, so one recall inside 12 days.
     const p = pos({
       debtUsd: 79_500,
       tradeShape: 'carry',
-      deployedUsd: 79_500,
+      deployedUsd: 40_000,
       exitCapacityPreset: 'optimistic',
     })
-    const hours = 10 * 24
+    const hours = 12 * 24
     const r = modelled(run(p, { shape: hold(0.5, 0.4), hours }, { stepSeconds: 60 }))
     expect(r.outcome).toBe('recall_cured')
     expect(r.recallDrawnUsd).toBeGreaterThan(0)
     const tRecall = r.timeToBreachSeconds!
     const expected = r.recallDrawnUsd! * Math.expm1((0.4 * (hours * 3600 - tRecall)) / YEAR)
     expect(r.yieldGivenUpUsd).toBeCloseTo(expected, 6)
+    // The recall repaid deployed debt with deployed principal: the undeployed $39,500 kept
+    // accruing through it, so the interest is the whole spike on that amount.
+    expect(r.interestUsd).toBeCloseTo(39_500 * Math.expm1((0.5 * hours * 3600) / YEAR), 6)
     // The same spike with no supply APR prices no yield given up.
     expect(
       modelled(run(p, { shape: hold(0.5), hours }, { stepSeconds: 60 })).yieldGivenUpUsd,
@@ -554,11 +582,21 @@ describe('rate frontier — duration axis', () => {
   })
 
   it('ample recall on a carry: the line is crossed, but nothing arms or sells inside 30 days', () => {
-    const p = pos({ tradeShape: 'carry', deployedUsd: 79_000, exitCapacityPreset: 'optimistic' })
-    const ax = rateDurationFrontier(p, hold(0.5), { stepSeconds: 1800 })
+    // $39,000 undeployed at 200%: crossed after ~9 days; each recall restores the borrow LTV.
+    const p = pos({ tradeShape: 'carry', deployedUsd: 40_000, exitCapacityPreset: 'optimistic' })
+    const ax = rateDurationFrontier(p, hold(2), { stepSeconds: 1800 })
     expect(ax.breach.status).toBe('found')
     expect(ax.arm).toEqual({ status: 'beyond_range', unit: 'days', max: 30 })
     expect(ax.sale).toEqual({ status: 'beyond_range', unit: 'days', max: 30 })
+  })
+
+  it('a carry with all of its debt deployed has no rate edge on either axis', () => {
+    const p = pos({ tradeShape: 'carry', deployedUsd: 79_000, exitCapacityPreset: 'optimistic' })
+    const beyond = { status: 'beyond_range', unit: 'days', max: 30 }
+    const d = rateDurationFrontier(p, hold(RATE_MAX_APR), { stepSeconds: 3600 })
+    expect([d.breach, d.arm, d.sale]).toEqual([beyond, beyond, beyond])
+    const l = rateLevelFrontier(p, { stepSeconds: 3600 })
+    expect(l.breach).toEqual({ status: 'beyond_range', unit: 'pct', max: RATE_MAX_APR })
   })
 
   it('no-delay class: no arm edge; already over the line: already', () => {
@@ -575,10 +613,14 @@ describe('rate frontier — duration axis', () => {
   })
 
   it('real Morpho cbBTC/USDC at 100%: the line is crossed where the curve law says, a little early (toward risk)', () => {
-    // Morpho LLTV 86% line, start LTV 80%. Law: r(t) = r0·exp(50t/yr) until 800%, so
+    // A levered long (all debt undeployed), Morpho LLTV 86% line, start LTV 80%. The shape is
+    // the supply APR (rateSpike.ts). At 100% utilization and a 0 fee it equals the borrow
+    // APR, so the law holds: r(t) = r0·exp(50t/yr) until 800%, and
     // ∫r dt = r0·(yr/50)·(exp(50T/yr) − 1) = ln(0.86/0.80) at T ≈ 22 days (before the cap).
     const shape = shapeOf('morpho-blue-cbbtc-usdc-86', 'stress', 1)
-    const r0 = levelOf('morpho-blue-cbbtc-usdc-86', 'stress', 1).borrowApr[0]
+    const l = levelOf('morpho-blue-cbbtc-usdc-86', 'stress', 1)
+    expect(l.supplyApr).toEqual(l.borrowApr)
+    const r0 = l.supplyApr[0]
     const truthDays = (Math.log(1 + (Math.log(0.86 / 0.8) * 50) / r0) * 365) / 50
     expect(truthDays).toBeGreaterThan(21)
     expect(truthDays).toBeLessThan(23)
@@ -591,7 +633,7 @@ describe('rate frontier — duration axis', () => {
     expect(ax.breach.triggersAt).toBeLessThan(truthDays + 0.07)
     expect(ax.breach.triggersAt).toBeGreaterThan(truthDays - 0.3)
     expect(ax.breach.display).toBe(Math.floor(ax.breach.triggersAt - 1e-9))
-    // A static 14.4% curve (Aave USDC at 100%) needs ~0.5 years: beyond the 30-day path.
+    // Aave USDC at 100% supplies a flat ~13%: ~0.56 years to the line, beyond the 30-day path.
     const aave = rateDurationFrontier(p, shapeOf('aave-v3-usdc', 'stress', 1), {
       stepSeconds: 1800,
     })
@@ -704,9 +746,11 @@ describe('rateSpike adapter — rateSpikeAxis() levels as rate shapes', () => {
     for (const [i, s] of shapes.entries()) {
       expect(s.assumption).toBe(a.assumption)
       expect(s.shape.points.length).toBe(a.levels[i].path.length)
+      // The rate on undeployed debt is the venue's SUPPLY APR (the avoidance rate's upper
+      // bound), never its borrow APR.
       expect(s.shape.points[3]).toEqual({
         t: a.levels[i].path[3].t,
-        borrowApr: a.levels[i].path[3].borrowApr,
+        borrowApr: a.levels[i].path[3].supplyApr,
         supplyApr: a.levels[i].path[3].supplyApr,
       })
       expect(rateSpikeShapeId(a, a.levels[i])).toBe(s.shape.id)
@@ -722,12 +766,12 @@ describe('rateSpike adapter — rateSpikeAxis() levels as rate shapes', () => {
     }
   })
 
-  it('real numbers: Morpho cbBTC/USDC pinned at 100% for 7 days on $80k of carry debt', () => {
+  it('real numbers: Morpho cbBTC/USDC pinned at 100% for 7 days on $80k of carry debt, half deployed', () => {
     const p = pos({
       debtUsd: 80_000,
       line: 0.86,
       tradeShape: 'carry',
-      deployedUsd: 80_000,
+      deployedUsd: 40_000,
       exitCapacityPreset: EXIT_CAPACITY_DEFAULT_PRESET,
     })
     const l = levelOf('morpho-blue-cbbtc-usdc-86', 'stress', 1)
@@ -738,13 +782,14 @@ describe('rateSpike adapter — rateSpikeAxis() levels as rate shapes', () => {
         { stepSeconds: 600 },
       ),
     )
-    // Bounds from the law. ∫r dt / yr from 0 to T, for r(t) = r0·exp(50t/yr) (no cap inside 7 days).
-    // The engine reads the higher of two 6-hourly points, so its rate at t is at most r(t + 6 h).
-    const integral = (T: number) => (l.borrowApr[0] / 50) * Math.expm1((50 * T) / YEAR)
+    // Only the $40k undeployed accrues. Bounds from the law: ∫r dt / yr from 0 to T, for
+    // r(t) = r0·exp(50t/yr) (no cap inside 7 days). The engine reads the higher of two
+    // 6-hourly points, so its rate at t is at most r(t + 6 h).
+    const integral = (T: number) => (l.supplyApr[0] / 50) * Math.expm1((50 * T) / YEAR)
     const lead = 6 * 3600
-    const lower = 80_000 * Math.expm1((1 - MORPHO_WEXP_REL) * integral(7 * DAY))
+    const lower = 40_000 * Math.expm1((1 - MORPHO_WEXP_REL) * integral(7 * DAY))
     const upper =
-      80_000 * Math.expm1((1 + MORPHO_WEXP_REL) * (integral(7 * DAY + lead) - integral(lead)))
+      40_000 * Math.expm1((1 + MORPHO_WEXP_REL) * (integral(7 * DAY + lead) - integral(lead)))
     expect(r.interestUsd!).toBeGreaterThanOrEqual(lower)
     expect(r.interestUsd!).toBeLessThanOrEqual(upper)
     expect(r.outcome).toBe('no_breach')

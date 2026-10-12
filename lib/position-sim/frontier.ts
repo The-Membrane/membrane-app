@@ -74,7 +74,9 @@
  *             shortest spike, in whole DAYS, that breaches, arms or sells. A path is never
  *             searched past its last point.
  *   level     at a given duration (default 7 days, RISK_FRONTIER_DESIGN.md §7 v2), the
- *             lowest held borrow APR, in whole %, that breaches, arms or sells.
+ *             lowest APR held on UNDEPLOYED debt, in whole %, that breaches, arms or sells.
+ *             Deployed debt accrues 0%, and a recall repays debt with deployed principal,
+ *             so a carry with all of its debt deployed has no rate edge at all.
  * Days are not a FrontierUnit: the price and venue axes keep their units, so readers that
  * switch on FrontierUnit stay exhaustive. A rate edge is a FrontierEdge<RateFrontierUnit>.
  */
@@ -122,8 +124,9 @@ export const DEFAULT_RATE_LEVEL_HOURS = 7 * 24
 /**
  * The level axis is searched up to 800% APR: the highest borrow rate Morpho's
  * AdaptiveCurveIrm returns, 4 × its 200% rateAtTarget ceiling (lib/netApy/irm/morpho.ts
- * CURVE_STEEPNESS, MAX_RATE_AT_TARGET). cbBTC/USDC held at 100% utilization reaches it
- * inside 30 days (tests/unit/fixtures/rate-spike-axis.json).
+ * CURVE_STEEPNESS, MAX_RATE_AT_TARGET), so no supply APR a projected path carries is
+ * higher. cbBTC/USDC held at 100% utilization reaches it inside 30 days
+ * (tests/unit/fixtures/rate-spike-axis.json).
  */
 export const RATE_MAX_APR = 8
 /**
@@ -549,9 +552,9 @@ export function rateDurationFrontier(
 }
 
 /**
- * Lowest borrow APR (whole %) held for `hours` (default 7 days) that breaches / arms / sells
- * at the reference price shape. Searched up to RATE_MAX_APR. The held APR carries no supply
- * side: this axis reads the outcome, not the yield given up.
+ * Lowest APR on undeployed debt (whole %) held for `hours` (default 7 days) that breaches /
+ * arms / sells at the reference price shape. Searched up to RATE_MAX_APR. The held APR
+ * carries no supply side: this axis reads the outcome, not the yield given up.
  */
 export function rateLevelFrontier(
   position: StressPosition,

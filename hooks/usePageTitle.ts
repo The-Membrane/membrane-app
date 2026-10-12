@@ -11,7 +11,6 @@ const EXACT_TITLES: Record<string, string> = {
   '/[chain]/disco': 'Membrane | Disco',
   '/[chain]/flywheel': 'Membrane | Flywheel',
   '/[chain]/headquarters': 'Membrane | Headquarters',
-  '/[chain]/levels': 'Membrane | Levels',
   '/[chain]/mint': 'Membrane | Mint',
   '/[chain]/stake': 'Membrane | Stake',
   '/[chain]/portfolio': 'Membrane | Portfolio',
@@ -57,7 +56,6 @@ export const usePageTitle = (): string => {
     const view = typeof query.view === 'string' ? query.view : undefined
     if (view === 'lobby') return 'Membrane | Lobby'
     if (view === 'about') return 'Membrane | About'
-    if (view === 'levels') return 'Membrane | Levels'
     return 'Membrane | Storefront'
   }
 

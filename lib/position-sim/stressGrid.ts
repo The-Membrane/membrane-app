@@ -82,12 +82,25 @@
  *    refills across the horizon.
  *  - Debt (CDT) is held at $1; the price shape moves the whole collateral value.
  *  - After the shape ends the price holds at its last value for one full window plus a
- *    step, so every armed timer resolves inside the horizon (no grid-end guess).
+ *    step, so every armed timer resolves inside the horizon (no grid-end guess). A rate
+ *    stress that outlasts the shape holds the price to the spike's end first.
+ *  - RATE (`StressScenario.rate`, optional): the debt accrues the shape's borrow APR for the
+ *    spike's duration, compounded per grid step as the venue indexes compound (Aave,
+ *    Morpho), and nothing after it. It applies to the WHOLE debt: the incumbent venue's
+ *    rule. Master differs: deployed (covered) debt accrues 0% (Cdp._accruePosition STEP 1b,
+ *    Cdp.sol:5736-5761 @ 10626e40) and other debt keeps the rate struck when it was
+ *    borrowed, so a venue spike does not reach existing Membrane debt (Recall Coverage
+ *    Dataset spec §4.6, MR-CODE). The rate stress is that what-if, not master. A projected
+ *    path (rateSpike.ts, from `rateSpikeAxis`) holds utilization fixed. Between two of its
+ *    points the APR is the HIGHER of the two, so interest is never understated where the
+ *    path is monotone between points (every rateSpikeAxis path is). A path is never
+ *    extrapolated past its last point. Capital recalled during the spike gives up the
+ *    shape's supply APR from its recall to the spike's end (`yieldGivenUpUsd`).
  *  - OMITTED: the keeper fee ramp `min((L − T)/L, 20%)`, gas stipend and protocol
  *    `_liqFee` (LE:1817-1835) — they are paid from collateral, even on a recall-only cure,
- *    so `exposedUsd` UNDERSTATES what leaves the position; interest accrual; the
- *    gas-indexed debt floor (LE:2719-2720); slippage and MEV; the 2 × delay stale-timer
- *    amnesty (LE:1590-1594, cannot bind: every timer resolves at its expiry here).
+ *    so `exposedUsd` UNDERSTATES what leaves the position; interest accrual outside a rate
+ *    stress; the gas-indexed debt floor (LE:2719-2720); slippage and MEV; the 2 × delay
+ *    stale-timer amnesty (LE:1590-1594, cannot bind: every timer resolves at its expiry here).
  */
 
 import { DelayTimer } from './curePath'
@@ -434,9 +447,50 @@ export interface VenueStress {
   exitCapacityPreset?: ExitCapacityPresetId
 }
 
+/** One point of a projected rate path: APRs as fractions per year (0.12 = 12%) at `t`. */
+export interface RateShapePoint {
+  /** Seconds from t0. */
+  t: number
+  borrowApr: number
+  supplyApr: number
+}
+
+/**
+ * The borrow rate the debt accrues during a rate stress. `supplyApr` is what the venue pays
+ * its suppliers at the same moment. It prices the yield recalled capital gives up. Without
+ * it, `yieldGivenUpUsd` is null.
+ */
+export type RateShape =
+  /** One borrow APR held from t0. */
+  | { kind: 'hold'; borrowApr: number; supplyApr?: number }
+  /**
+   * A projected path: one level of `rateSpikeAxis` (lib/netApy/ratePath.ts), via
+   * rateSpike.ts. The first point is at t = 0 and every next `t` is larger.
+   */
+  | { kind: 'path'; id: string; points: readonly RateShapePoint[] }
+
+/** A borrow-rate spike: its shape and its duration. */
+export interface RateStress {
+  shape: RateShape
+  /**
+   * How long the spike lasts, hours from t0. The debt accrues for this long and not after.
+   * A path must cover it. At most MAX_RATE_HOURS.
+   */
+  hours: number
+}
+
+/** The longest rate stress the grid walks: one year. */
+export const MAX_RATE_HOURS = 365 * 24
+
 export interface StressScenario {
   price: PriceShape
   venue?: VenueStress
+  /**
+   * A borrow-rate spike (header: RATE). Absent, the normalized inputs and so every cell key
+   * are byte-identical to a scenario without the field (it is written to the key only when
+   * set), so STRESS_CODE_VERSION stands.
+   */
+  rate?: RateStress
 }
 
 export interface StressRunOptions {
@@ -493,6 +547,7 @@ export type NotModelledReason =
   /** A carry position with deployed capital and no explicit exit capacity (ruling 5). */
   | 'no_exit_capacity'
   | 'line_out_of_class_range'
+  /** A price shape or a rate stress that cannot be walked. */
   | 'invalid_shape'
   | 'invalid_venue'
   | 'no_recall_levered_long'
@@ -563,6 +618,20 @@ export interface StressModelled extends StressResultBase {
   recallDrawnUsd: number | null
   /** Seconds from t0 when the venue first answers (after a freeze). Null if never needed / levered_long. */
   recallOpensAtSeconds: number | null
+  /**
+   * Interest the rate stress added to the debt, USD: the spike's borrow cost. It is what
+   * moves the LTV toward the line with the price held. Null without a rate stress: the grid
+   * then omits interest (header), which is not 0.
+   */
+  interestUsd: number | null
+  /**
+   * Yield given up, USD: the supply yield the recalled capital would have earned at the
+   * shape's supply APR, from each recall to the spike's end. This is the "forgone carry after
+   * a recall unwinds P" of the Recall Coverage Dataset spec (§4, unwind cost). 0 when nothing
+   * was recalled during the spike. Null without a rate stress, for a shape with no supply
+   * APR, and for levered_long (nothing is deployed).
+   */
+  yieldGivenUpUsd: number | null
   horizonSeconds: number
 }
 
@@ -580,6 +649,10 @@ type NormPrice =
   | { kind: 'linear'; drop: number; hours: number }
   | { kind: 'wick'; drop: number; hours: number; recover: number }
   | { kind: 'replay'; id: string; ratios: number[] }
+
+type NormRate =
+  | { kind: 'hold'; borrow: number; supply?: number; hours: number }
+  | { kind: 'path'; id: string; t: number[]; borrow: number[]; supply: number[]; hours: number }
 
 interface NormalizedStress {
   pos: {
@@ -601,6 +674,8 @@ interface NormalizedStress {
   /** `exit`: the scenario's absolute exit-capacity preset (`VenueStress.exitCapacityPreset`);
    *  the key only when set. Its capacity and lock are already resolved into `pos`. */
   venue: { mult: number; freezeHours: number; exit?: string }
+  /** The scenario's rate stress; the key only when set. */
+  rate?: NormRate
   stepSeconds: number
 }
 
@@ -642,6 +717,31 @@ function normalizePrice(p: PriceShape): NormPrice {
       }
     case 'replay':
       return { kind: 'replay', id: String(p.id), ratios: normalizeReplay(p.ratios) }
+  }
+}
+
+/** APRs keep 8 decimals on a path (like replay ratios), 6 on a held APR (like a drop). */
+function normalizeRate(r: RateStress): NormRate {
+  const hours = hrs(r.hours)
+  const s = r.shape
+  if (s.kind === 'hold') {
+    return {
+      kind: 'hold',
+      borrow: frac(s.borrowApr),
+      // Written only when set, like every optional input.
+      ...(s.supplyApr !== undefined ? { supply: frac(s.supplyApr) } : {}),
+      hours,
+    }
+  }
+  // Anything else is read as a path. A shape with no points fails validate().
+  const pts = Array.isArray(s.points) ? s.points : []
+  return {
+    kind: 'path',
+    id: String(s.id),
+    t: pts.map((p) => q(p.t, 3)),
+    borrow: pts.map((p) => q(p.borrowApr, 8)),
+    supply: pts.map((p) => q(p.supplyApr, 8)),
+    hours,
   }
 }
 
@@ -723,8 +823,23 @@ function normalize(
       // Written only when set: a scenario without it keeps its key byte for byte.
       ...(venueExit !== undefined ? { exit: String(venueExit) } : {}),
     },
+    ...(scenario.rate !== undefined ? { rate: normalizeRate(scenario.rate) } : {}),
     stepSeconds,
   }
+}
+
+function validateRate(r: NormRate): boolean {
+  if (!(r.hours >= 0 && r.hours <= MAX_RATE_HOURS)) return false
+  if (r.kind === 'hold') return r.borrow >= 0 && (r.supply === undefined || r.supply >= 0)
+  const m = r.t.length
+  if (m < 2 || r.t[0] !== 0) return false
+  for (let k = 0; k < m; k++) {
+    if (!(r.borrow[k] >= 0) || !(r.supply[k] >= 0) || !Number.isFinite(r.t[k])) return false
+    if (k > 0 && !(r.t[k] > r.t[k - 1])) return false
+  }
+  // No extrapolation: the spike ends inside the projected path. Compared on the key's own
+  // hour grid (rounding is monotone), so a spike exactly as long as the path stays valid.
+  return r.hours <= hrs(r.t[m - 1] / 3600)
 }
 
 function validate(n: NormalizedStress): NotModelledReason | null {
@@ -746,6 +861,7 @@ function validate(n: NormalizedStress): NotModelledReason | null {
     if (price.kind !== 'step' && !(price.hours > 0)) return 'invalid_shape'
     if (price.kind === 'wick' && !(price.recover >= 0 && price.recover <= 1)) return 'invalid_shape'
   }
+  if (n.rate !== undefined && !validateRate(n.rate)) return 'invalid_shape'
   if (!(venue.mult >= 0) || !(venue.freezeHours >= 0)) return 'invalid_venue'
   if (
     venue.exit !== undefined &&
@@ -810,11 +926,26 @@ function canonicalOf(n: NormalizedStress): string {
           digest: hash64(n.price.ratios.join(',')),
         }
       : n.price
+  const r = n.rate
+  const rate =
+    r === undefined
+      ? undefined
+      : r.kind === 'hold'
+        ? r
+        : {
+            kind: 'path',
+            id: r.id,
+            n: r.t.length,
+            digest: hash64(`${r.t.join(',')}|${r.borrow.join(',')}|${r.supply.join(',')}`),
+            hours: r.hours,
+          }
   return stableStringify({
     v: STRESS_CODE_VERSION,
     pos: n.pos,
     price,
     venue: n.venue,
+    // Written only when set: a scenario without a rate keeps its key byte for byte.
+    ...(rate !== undefined ? { rate } : {}),
     step: n.stepSeconds,
   })
 }
@@ -834,11 +965,14 @@ function scenarioIdOf(n: NormalizedStress): string {
   const exit = n.venue.exit !== undefined ? `@exit-${n.venue.exit}` : ''
   const cap = n.venue.mult === 1 ? '' : `@cap-x${n.venue.mult}`
   const freeze = n.venue.freezeHours > 0 ? `@freeze-${n.venue.freezeHours}h` : ''
-  return base + exit + cap + freeze
+  const r = n.rate
+  const rate =
+    r === undefined ? '' : `@rate-${r.kind === 'hold' ? pctId(r.borrow) : r.id}-${r.hours}h`
+  return base + exit + cap + freeze + rate
 }
 
 /** A scenario's machine id, e.g. 'step-25', 'wick-25-4h@cap-x0.1', 'linear-25-24h@freeze-8h',
- *  'step-25@exit-aave-usdc-floor-typical'. */
+ *  'step-25@exit-aave-usdc-floor-typical', 'step-0@rate-48.6-168h' (a held 48.6% APR, 7 days). */
 export function stressScenarioId(scenario: StressScenario, opts: StressRunOptions = {}): string {
   const probe: StressPosition = {
     collateralUsd: 1,
@@ -887,11 +1021,70 @@ function ratioPath(n: NormalizedStress): number[] {
       path = p.ratios.slice()
       break
   }
+  if (n.rate !== undefined) {
+    // A rate stress that outlasts the shape: hold the price to the spike's end.
+    const cover = Math.ceil((n.rate.hours * 3600) / step) + 1
+    const held = path[path.length - 1]
+    while (path.length < cover) path.push(held)
+  }
   const window = MEMBRANE_CLASS_PARAMS[n.pos.cls].windowSeconds
   const tail = (window > 0 ? Math.ceil(window / step) : 0) + 1
   const last = path[path.length - 1]
   for (let k = 0; k < tail; k++) path.push(last)
   return path
+}
+
+const YEAR_SECONDS = 365 * 86_400
+
+/** A rate stress resolved onto the walk's grid. */
+interface RateSteps {
+  /** Debt factor at step i: the borrow APR compounded over step i (t_{i-1} → t_i). growth[0] = 1. */
+  growth: Float64Array
+  /** Yield per $ recalled at step i, from t_i to the spike's end. Null without a supply APR. */
+  forgone: Float64Array | null
+}
+
+function rateSteps(n: NormalizedStress, length: number): RateSteps | null {
+  const r = n.rate
+  if (r === undefined) return null
+  const step = n.stepSeconds
+  const end = r.hours * 3600
+  const growth = new Float64Array(length).fill(1)
+  // ∫ supply APR dt over step i, in years of yield per $.
+  const supplyYears = new Float64Array(length)
+  let lo = 0
+  for (let i = 1; i < length; i++) {
+    const t0 = (i - 1) * step
+    if (!(t0 < end)) break
+    const t1 = Math.min(i * step, end)
+    let b: number
+    let s: number
+    if (r.kind === 'hold') {
+      b = r.borrow
+      s = r.supply ?? 0
+    } else {
+      // The points bracketing [t0, t1]: the last at or before t0 through the first at or
+      // after t1. Their highest APR, so interest is never understated (header: RATE).
+      while (lo + 1 < r.t.length && r.t[lo + 1] <= t0) lo++
+      b = r.borrow[lo]
+      s = r.supply[lo]
+      for (let k = lo + 1; k < r.t.length; k++) {
+        if (r.borrow[k] > b) b = r.borrow[k]
+        if (r.supply[k] > s) s = r.supply[k]
+        if (r.t[k] >= t1) break
+      }
+    }
+    growth[i] = Math.exp((b * (t1 - t0)) / YEAR_SECONDS)
+    supplyYears[i] = (s * (t1 - t0)) / YEAR_SECONDS
+  }
+  if (r.kind === 'hold' && r.supply === undefined) return { growth, forgone: null }
+  const forgone = new Float64Array(length)
+  let after = 0 // Σ supplyYears over the steps after i
+  for (let i = length - 1; i >= 0; i--) {
+    forgone[i] = Math.expm1(after)
+    after += supplyYears[i]
+  }
+  return { growth, forgone }
 }
 
 /** Why a sale ran — see `StressModelled.saleReason`. */
@@ -916,9 +1109,13 @@ interface Walk {
   recallStockUsd: number
   recallDrawnUsd: number
   recallOpensAt: number | null
+  /** Null without a rate stress. */
+  interestUsd: number | null
+  /** Null without a rate stress or without its supply APR. */
+  forgoneUsd: number | null
 }
 
-function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
+function walk(n: NormalizedStress, ratios: readonly number[], rate: RateSteps | null): Walk {
   const { pos } = n
   const params = MEMBRANE_CLASS_PARAMS[pos.cls]
   const line = pos.line
@@ -947,11 +1144,32 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
   let saleAt: number | null = null
   let saleReason: SaleReason | null = null
   let peak = debt / collBase
+  let interest = 0
+  let forgone = 0
+  // Yield given up: what a step's committed recalls drew forgoes the supply yield from that
+  // step to the spike's end. Settled at the next step's start (and once after the loop), so
+  // no commit path below needs to know about it.
+  let drawnSettled = 0
+  let stepAt = 0
+  const settleForgone = () => {
+    if (rate?.forgone && drawn > drawnSettled) {
+      forgone += (drawn - drawnSettled) * rate.forgone[stepAt]
+    }
+    drawnSettled = drawn
+  }
 
   for (let i = 0; i < ratios.length; i++) {
+    settleForgone()
+    stepAt = i
     const r = ratios[i]
     const coll = collBase * r
     if (!(debt > DUST_USD)) continue // nothing owed: nothing can breach
+    if (rate) {
+      // The rate stress: the debt accrues over the step that just ended (header: RATE).
+      const grown = debt * rate.growth[i]
+      interest += grown - debt
+      debt = grown
+    }
     if (!(coll > DUST_USD)) {
       // Collateral worth (next to) nothing with debt owed: the LTV is unbounded — a
       // breach, past every threshold. A keeper's call recalls first; whatever the recall
@@ -1089,6 +1307,7 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
     }
     if (sales >= MAX_STRESS_SALES) break
   }
+  settleForgone()
 
   const collEnd = collBase * ratios[ratios.length - 1]
   const owed = debt > DUST_USD
@@ -1123,7 +1342,36 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
     recallStockUsd: stock,
     recallDrawnUsd: drawn,
     recallOpensAt: breachAt === null ? null : breachAt + freezeSteps,
+    interestUsd: rate ? interest : null,
+    forgoneUsd: rate?.forgone ? forgone : null,
   }
+}
+
+/**
+ * Recall that would hold the LTV at the line through the trough with nothing sold. With a
+ * rate stress the trough is the step where the ACCRUED debt stands furthest over the line
+ * (the debt grown by the spike, nothing repaid). Without one it is the lowest price.
+ */
+function recallNeeded(
+  n: NormalizedStress,
+  ratios: readonly number[],
+  rate: RateSteps | null,
+): number {
+  const { c, d, line } = n.pos
+  if (!rate) {
+    // A loop, not Math.min(...ratios): spreading a long path (~120k+ points) overflows the stack.
+    let minRatio = Infinity
+    for (const x of ratios) if (x < minRatio) minRatio = x
+    return Math.max(0, d - line * c * minRatio)
+  }
+  let need = 0
+  let g = 1
+  for (let i = 0; i < ratios.length; i++) {
+    g *= rate.growth[i]
+    const over = d * g - line * c * ratios[i]
+    if (over > need) need = over
+  }
+  return need
 }
 
 // ------------------------------------------------------------------ run
@@ -1145,13 +1393,11 @@ export function runStress(
   if (reason) return { ...base, outcome: 'not_modelled', reason }
 
   const ratios = ratioPath(n)
-  const w = walk(n, ratios)
+  const rate = rateSteps(n, ratios.length)
+  const w = walk(n, ratios, rate)
   const params = MEMBRANE_CLASS_PARAMS[n.pos.cls]
   const carry = n.pos.shape === 'carry'
   const secs = (i: number | null) => (i === null ? null : i * n.stepSeconds)
-  // A loop, not Math.min(...ratios): spreading a long path (~120k+ points) overflows the stack.
-  let minRatio = Infinity
-  for (const x of ratios) if (x < minRatio) minRatio = x
 
   return {
     ...base,
@@ -1173,10 +1419,12 @@ export function runStress(
     timeToBreachSeconds: secs(w.breachAt),
     timeToArmSeconds: secs(w.armAt),
     timeToSaleSeconds: secs(w.saleAt),
-    recallNeededUsd: carry ? Math.max(0, n.pos.d - n.pos.line * n.pos.c * minRatio) : null,
+    recallNeededUsd: carry ? recallNeeded(n, ratios, rate) : null,
     recallAvailableUsd: carry ? w.recallStockUsd : null,
     recallDrawnUsd: carry ? w.recallDrawnUsd : null,
     recallOpensAtSeconds: carry ? secs(w.recallOpensAt) : null,
+    interestUsd: w.interestUsd,
+    yieldGivenUpUsd: carry ? w.forgoneUsd : null,
     horizonSeconds: (ratios.length - 1) * n.stepSeconds,
   }
 }
@@ -1209,6 +1457,11 @@ export interface StressGridOptions extends StressRunOptions {
   shapes?: readonly PriceShape[]
   capacityMults?: readonly number[]
   freezeHours?: readonly number[]
+  /**
+   * Rate stresses: one row per price shape each. None by default: a rate comes from a
+   * venue's projected path (rateSpike.ts), never from an APR made up here.
+   */
+  rates?: readonly RateStress[]
 }
 
 export interface StressCell {
@@ -1217,9 +1470,10 @@ export interface StressCell {
 }
 
 /**
- * The grid's scenarios: every price shape × every venue condition. Venue conditions are
- * single-axis (a capacity multiplier OR a freeze), never combined; a levered_long position
- * gets the baseline row only — it has no recall rows.
+ * The grid's scenarios: every price shape × every venue condition, then every price shape ×
+ * every rate stress. Each row is single-axis (a capacity multiplier OR a freeze OR a rate),
+ * never combined. A levered_long position gets no venue rows (it has no recall), but it
+ * gets the rate rows: its debt accrues too.
  */
 export function stressGridScenarios(
   tradeShape: TradeShape,
@@ -1235,7 +1489,11 @@ export function stressGridScenarios(
           ),
           ...(opts.freezeHours ?? DEFAULT_FREEZE_HOURS).map((h) => ({ freezeHours: h })),
         ]
-  return shapes.flatMap((price) => venues.map((venue) => (venue ? { price, venue } : { price })))
+  const rates = opts.rates ?? []
+  return shapes.flatMap((price) => [
+    ...venues.map((venue) => (venue ? { price, venue } : { price })),
+    ...rates.map((rate) => ({ price, rate })),
+  ])
 }
 
 /** Run the whole grid for one position. */

@@ -63,9 +63,24 @@
  * NO COMBINED ROUTE. Venue axes are solved at an explicit, named reference price shock —
  * never folded into one "cheapest route to red" (RISK_FRONTIER_DESIGN.md §2): that would
  * hide an exchange rate between the price axis and the venue axis.
+ *
+ * RATE AXES (stressGrid.ts header: RATE). A stronger rate stress grows the debt at least as
+ * fast, so the line is crossed no later and the sale-path entry never falls
+ * (tests/unit/rateSpike.test.ts ladders). What follows the crossing can differ, as on the
+ * reverse solve's LTV axis (the debt-floor band), so the same guards solve it. Two axes,
+ * each at a named reference price shape (default: the price held, so the distance is the
+ * rate's alone):
+ *   duration  at a given rate shape (a held APR, or a projected `rateSpikeAxis` path), the
+ *             shortest spike, in whole DAYS, that breaches, arms or sells. A path is never
+ *             searched past its last point.
+ *   level     at a given duration (default 7 days, RISK_FRONTIER_DESIGN.md §7 v2), the
+ *             lowest held borrow APR, in whole %, that breaches, arms or sells.
+ * Days are not a FrontierUnit: the price and venue axes keep their units, so readers that
+ * switch on FrontierUnit stay exhaustive. A rate edge is a FrontierEdge<RateFrontierUnit>.
  */
 
 import {
+  MAX_RATE_HOURS,
   STRESS_CODE_VERSION,
   STRESS_DEFAULT_STEP_SECONDS,
   STRESS_LABEL,
@@ -73,6 +88,7 @@ import {
   runStress,
   stressRank,
   type PriceShape,
+  type RateShape,
   type StressPosition,
   type StressResult,
   type StressRunOptions,
@@ -95,6 +111,29 @@ export const HOURS_TOL = 1e-4
 export const DEFAULT_VENUE_REFERENCE: PriceShape = { kind: 'step', drop: 0.25 }
 /** The reverse solve's two shocks (RISK_FRONTIER_DESIGN.md §2, "Additions"). */
 export const REVERSE_SOLVE_DROPS = [0.5, 0.6] as const
+/** Rate axes are solved with the price held unless the caller names a shock. */
+export const DEFAULT_RATE_REFERENCE: PriceShape = { kind: 'step', drop: 0 }
+/** A held APR's duration axis is searched up to 30 days, `rateSpikeAxis`'s default horizon. */
+export const DEFAULT_MAX_RATE_DAYS = 30
+/** Bisection tolerance on days: the same 0.36 s as HOURS_TOL. */
+export const DAYS_TOL = HOURS_TOL / 24
+/** The level axis holds each APR for 7 days: the 7d horizon of RISK_FRONTIER_DESIGN.md §7 (v2). */
+export const DEFAULT_RATE_LEVEL_HOURS = 7 * 24
+/**
+ * The level axis is searched up to 800% APR: the highest borrow rate Morpho's
+ * AdaptiveCurveIrm returns, 4 × its 200% rateAtTarget ceiling (lib/netApy/irm/morpho.ts
+ * CURVE_STEEPNESS, MAX_RATE_AT_TARGET). cbBTC/USDC held at 100% utilization reaches it
+ * inside 30 days (tests/unit/fixtures/rate-spike-axis.json).
+ */
+export const RATE_MAX_APR = 8
+/**
+ * Grid step for the rate axes unless the caller names one: 10 minutes. Interest moves the
+ * LTV over days, and accrual is exact at any step (a partial step accrues its part), so
+ * with the price held the edge does not depend on the step. Only the keeper cadence does.
+ * Measured 2026-10-12 on a 30-day Morpho path: the two axes cost ~2.5 s at the 60 s price
+ * grid and ~0.3 s at 600 s.
+ */
+export const RATE_DEFAULT_STEP_SECONDS = 600
 
 // -------------------------------------------------------------------- types
 
@@ -107,13 +146,15 @@ export type ShapeFamily =
 export const STEP_FAMILY: ShapeFamily = { kind: 'step' }
 
 export type FrontierUnit = 'pct' | 'hours'
+/** Units of the rate axes: whole days (duration) and whole % APR (level). */
+export type RateFrontierUnit = 'days' | 'pct'
 
 export type NotApplicableReason = 'no_delay_class' | 'levered_long_no_recall' | 'not_modelled'
 
-export type FrontierEdge =
+export type FrontierEdge<U extends string = FrontierUnit> =
   | {
       status: 'found'
-      unit: FrontierUnit
+      unit: U
       /** Largest whole unit with no trigger in [0, display]; the edge is in (display, display + 1]. */
       display: number
       /** Nothing in [0, safeBelow] triggers (native units). */
@@ -125,9 +166,9 @@ export type FrontierEdge =
       at: StressResult
     }
   /** Triggers with no shock at all. */
-  | { status: 'already'; unit: FrontierUnit; at: StressResult }
+  | { status: 'already'; unit: U; at: StressResult }
   /** Never triggers inside the searched range [0, max]. */
-  | { status: 'beyond_range'; unit: FrontierUnit; max: number }
+  | { status: 'beyond_range'; unit: U; max: number }
   | { status: 'not_applicable'; reason: NotApplicableReason }
 
 export type BisectResult =
@@ -162,12 +203,12 @@ export function bisectEdge(
   return { status: 'found', safeBelow: a, triggersAt: b, iterations }
 }
 
-interface AxisSpec {
+interface AxisSpec<U extends string = FrontierUnit> {
   run: (x: number) => StressResult
   hi: number
   tol: number
-  unit: FrontierUnit
-  /** Display units per native unit: 100 for a fraction shown in %, 1 for hours. */
+  unit: U
+  /** Display units per native unit: 100 for a fraction shown in %, 1 for hours or days. */
   scale: number
 }
 
@@ -180,10 +221,10 @@ interface AxisSpec {
  * over a narrow sold island into the recall_liquidated gap behind it (87 for an edge at
  * 86.11%).
  */
-function snapTowardRisk(
+function snapTowardRisk<U extends string>(
   safeBelow: number,
   triggersAt: number,
-  spec: AxisSpec,
+  spec: AxisSpec<U>,
   triggers: (x: number) => boolean,
 ): number {
   let d = Math.max(0, Math.floor(safeBelow * spec.scale))
@@ -205,7 +246,7 @@ const ENTRY_TOL_REL = 1e-12
  * band, see the header). The sale-path entry ("rank >= recall_liquidated") is monotone;
  * the floor's sold island can only open at it.
  */
-function bisectSale(spec: AxisSpec): BisectResult {
+function bisectSale<U extends string>(spec: AxisSpec<U>): BisectResult {
   const rankAt = (x: number) => stressRank(spec.run(x))
   const sells = (x: number) => rankAt(x) >= STRESS_SEVERITY.sold
   const onSalePath = (x: number) => rankAt(x) >= STRESS_SEVERITY.recall_liquidated
@@ -239,7 +280,10 @@ function bisectSale(spec: AxisSpec): BisectResult {
  * stops for a larger one. The scan finds the first whole unit that triggers; the
  * bisection's own edge is kept only when it lies at or below that unit.
  */
-function firstTriggeringUnit(spec: AxisSpec, triggers: (x: number) => boolean): number | null {
+function firstTriggeringUnit<U extends string>(
+  spec: AxisSpec<U>,
+  triggers: (x: number) => boolean,
+): number | null {
   const units = Math.ceil(spec.hi * spec.scale - 1e-9)
   for (let k = 1; k <= units; k++) {
     if (triggers(Math.min(spec.hi, k / spec.scale))) return k
@@ -256,8 +300,8 @@ function firstTriggeringUnit(spec: AxisSpec, triggers: (x: number) => boolean): 
  * 50% step and cures above). So when the first node past the breach triggers, that node
  * IS the edge.
  */
-function breachEntryEdge(
-  spec: AxisSpec,
+function breachEntryEdge<U extends string>(
+  spec: AxisSpec<U>,
   minRank: number,
   triggers: (x: number) => boolean,
 ): BisectResult | null {
@@ -271,7 +315,7 @@ function breachEntryEdge(
   return breach.status === 'found' && triggers(breach.triggersAt) ? breach : null
 }
 
-function solveEdge(spec: AxisSpec, minRank: number): FrontierEdge {
+function solveEdge<U extends string>(spec: AxisSpec<U>, minRank: number): FrontierEdge<U> {
   const triggers = (x: number) => stressRank(spec.run(x)) >= minRank
   if (triggers(0)) return { status: 'already', unit: spec.unit, at: spec.run(0) }
   const atBreach = breachEntryEdge(spec, minRank, triggers)
@@ -302,7 +346,9 @@ function solveEdge(spec: AxisSpec, minRank: number): FrontierEdge {
   }
 }
 
-const notApplicable = (reason: NotApplicableReason): FrontierEdge => ({
+const notApplicable = <U extends string = FrontierUnit>(
+  reason: NotApplicableReason,
+): FrontierEdge<U> => ({
   status: 'not_applicable',
   reason,
 })
@@ -415,6 +461,127 @@ export function freezeFrontier(
   return venueAxis(position, reference, { run, hi, tol: HOURS_TOL, unit: 'hours', scale: 1 })
 }
 
+// -------------------------------------------------------------- rate axes
+
+export interface RateAxis<U extends RateFrontierUnit> {
+  /** The named price shape the rate axis is solved at. */
+  reference: PriceShape
+  breach: FrontierEdge<U>
+  arm: FrontierEdge<U>
+  sale: FrontierEdge<U>
+}
+
+export interface RateDurationAxis extends RateAxis<'days'> {
+  shape: RateShape
+}
+
+export interface RateLevelAxis extends RateAxis<'pct'> {
+  /** How long each APR is held. */
+  hours: number
+}
+
+export interface RateFrontierOptions extends StressRunOptions {
+  /** Grid step. Default RATE_DEFAULT_STEP_SECONDS (600), not the price grid's 60. */
+  stepSeconds?: number
+  /** Default: DEFAULT_RATE_REFERENCE, the price held. */
+  reference?: PriceShape
+  /** Venue condition held fixed while the rate grows. Default: baseline. */
+  venue?: VenueStress
+}
+
+function rateAxis<U extends RateFrontierUnit>(
+  position: StressPosition,
+  reference: PriceShape,
+  spec: AxisSpec<U>,
+): RateAxis<U> {
+  if (spec.run(0).outcome === 'not_modelled' || spec.run(spec.hi).outcome === 'not_modelled') {
+    const na = notApplicable<U>('not_modelled')
+    return { reference, breach: na, arm: na, sale: na }
+  }
+  return {
+    reference,
+    breach: solveEdge(spec, STRESS_SEVERITY.recall_cured),
+    arm:
+      position.membraneClass === 'no-delay'
+        ? notApplicable<U>('no_delay_class')
+        : solveEdge(spec, STRESS_SEVERITY.armed_cured),
+    sale: solveEdge(spec, STRESS_SEVERITY.sold),
+  }
+}
+
+/** The longest duration a shape can be searched over, days: a path's last point, else 30. */
+export function rateShapeMaxDays(shape: RateShape): number {
+  if (shape.kind === 'hold') return DEFAULT_MAX_RATE_DAYS
+  const last = shape.points[shape.points.length - 1]
+  return last ? Math.min(last.t / 86_400, MAX_RATE_HOURS / 24) : 0
+}
+
+/**
+ * Shortest spike of `shape` (whole days, from t0) that breaches / arms / sells at the
+ * reference price shape. Severity x is the duration; x = 0 is the reference with no rate.
+ */
+export function rateDurationFrontier(
+  position: StressPosition,
+  shape: RateShape,
+  opts: RateFrontierOptions & { maxDays?: number } = {},
+): RateDurationAxis {
+  const reference = opts.reference ?? DEFAULT_RATE_REFERENCE
+  const runOpts = { ...opts, stepSeconds: opts.stepSeconds ?? RATE_DEFAULT_STEP_SECONDS }
+  const run = (days: number) =>
+    runStress(
+      position,
+      {
+        price: reference,
+        venue: opts.venue,
+        ...(days > 0 ? { rate: { shape, hours: days * 24 } } : {}),
+      },
+      runOpts,
+    )
+  const hi = Math.min(opts.maxDays ?? Infinity, rateShapeMaxDays(shape))
+  if (!(hi > 0)) {
+    const na = notApplicable<'days'>('not_modelled')
+    return { shape, reference, breach: na, arm: na, sale: na }
+  }
+  return {
+    shape,
+    ...rateAxis(position, reference, { run, hi, tol: DAYS_TOL, unit: 'days', scale: 1 }),
+  }
+}
+
+/**
+ * Lowest borrow APR (whole %) held for `hours` (default 7 days) that breaches / arms / sells
+ * at the reference price shape. Searched up to RATE_MAX_APR. The held APR carries no supply
+ * side: this axis reads the outcome, not the yield given up.
+ */
+export function rateLevelFrontier(
+  position: StressPosition,
+  opts: RateFrontierOptions & { hours?: number } = {},
+): RateLevelAxis {
+  const reference = opts.reference ?? DEFAULT_RATE_REFERENCE
+  const hours = opts.hours ?? DEFAULT_RATE_LEVEL_HOURS
+  const runOpts = { ...opts, stepSeconds: opts.stepSeconds ?? RATE_DEFAULT_STEP_SECONDS }
+  const run = (apr: number) =>
+    runStress(
+      position,
+      {
+        price: reference,
+        venue: opts.venue,
+        rate: { shape: { kind: 'hold', borrowApr: apr }, hours },
+      },
+      runOpts,
+    )
+  return {
+    hours,
+    ...rateAxis(position, reference, {
+      run,
+      hi: RATE_MAX_APR,
+      tol: FRACTION_TOL,
+      unit: 'pct',
+      scale: 100,
+    }),
+  }
+}
+
 // ----------------------------------------------------------- reverse solve
 
 /**
@@ -479,6 +646,8 @@ export interface DistanceToDanger {
   capacity: VenueAxis
   freeze: VenueAxis
   reverse: { family: ShapeFamily; at50: FrontierEdge; at60: FrontierEdge }
+  /** Present only when the caller asks for the rate axes (`DistanceToDangerOptions.rate`). */
+  rate?: { level: RateLevelAxis; duration: RateDurationAxis | null }
 }
 
 export interface DistanceToDangerOptions extends StressRunOptions {
@@ -486,6 +655,11 @@ export interface DistanceToDangerOptions extends StressRunOptions {
   venueReference?: PriceShape
   reverseFamily?: ShapeFamily
   maxFreezeHours?: number
+  /**
+   * The rate axes. Off by default (they add a few hundred runs). `shape` (e.g. a venue's
+   * projected path, rateSpike.ts) adds the duration axis; the level axis needs none.
+   */
+  rate?: { shape?: RateShape; levelHours?: number; reference?: PriceShape }
 }
 
 /** Every axis for one position. Several hundred stressGrid runs; pure and deterministic. */
@@ -510,5 +684,22 @@ export function distanceToDanger(
       at50: reverseSolveLtv(position, d50, { ...opts, family: reverseFamily }),
       at60: reverseSolveLtv(position, d60, { ...opts, family: reverseFamily }),
     },
+    ...(opts.rate
+      ? {
+          rate: {
+            level: rateLevelFrontier(position, {
+              stepSeconds: opts.stepSeconds,
+              reference: opts.rate.reference,
+              hours: opts.rate.levelHours,
+            }),
+            duration: opts.rate.shape
+              ? rateDurationFrontier(position, opts.rate.shape, {
+                  stepSeconds: opts.stepSeconds,
+                  reference: opts.rate.reference,
+                })
+              : null,
+          },
+        }
+      : {}),
   }
 }

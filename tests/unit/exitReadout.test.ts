@@ -15,6 +15,7 @@ import {
   computeFrontier,
   exitReadoutVenueOf,
   exitReadoutView,
+  sandboxExitReadout,
   usdDown,
   type SandboxInputs,
 } from '@/components/RiskFrontier/viewModel'
@@ -29,6 +30,13 @@ import {
   type ExitReadoutResult,
   type ExitReadoutVenue,
 } from '@/lib/position-sim/exitReadout'
+import {
+  ETH_USD_FEED,
+  ETH_USD_MAX_AGE_MS,
+  decodeEthUsdRound,
+  ethUsdFresh,
+  type EthUsdSpot,
+} from '@/lib/position-sim/ethUsdSpot'
 
 const DATA = path.resolve(__dirname, '../../public/data/venue-stress')
 const read = (f: string) => JSON.parse(readFileSync(path.join(DATA, f), 'utf8'))
@@ -55,6 +63,22 @@ function ok(r: ExitReadoutResult): ExitReadout {
 
 const priceFor = (v: ExitReadoutVenue) =>
   EXIT_READOUT_VENUE_LEVELS[v].symbol === 'WETH' ? { priceUsd: ETH_USD } : {}
+
+/**
+ * A real Chainlink ETH/USD round: `latestRoundData()` on the mainnet proxy, read 2026-10-12
+ * 01:39 UTC through ethereum-rpc.publicnode.com and the Tenderly gateway (both agreed):
+ * answer 254758984536 at 8 decimals = $2,547.58984536, updatedAt 2026-10-12T01:06:11Z.
+ */
+const REAL_ROUND = [
+  129127208515966895839n,
+  254758984536n,
+  1791767149n,
+  1791767171n,
+  129127208515966895839n,
+] as const
+const SPOT = decodeEthUsdRound(REAL_ROUND, 8) as EthUsdSpot
+const SPOT_AT = SPOT.updatedAtMs
+const viewOpts = { ethUsd: SPOT, nowMs: SPOT_AT + 600_000 }
 
 // ---------------------------------------------------------------- the data
 
@@ -344,16 +368,14 @@ describe('exitReadoutView', () => {
     )
     const weth = exitReadoutView(1e6, 'aave-core-weth')
     expect(weth.lead).toBeNull()
-    expect(weth.missing).toBe('WETH needs a USD price')
-    expect(exitReadoutView(1e6, 'aave-core-weth', { priceUsd: ETH_USD }).lead).toBe(
-      'In stress, exits shrink to $55M.',
-    )
+    expect(weth.missing).toBe('no ETH price yet')
+    expect(weth.rows.map((r) => r.missing)).toEqual(Array(4).fill('no ETH price yet'))
   })
 
   it('never uses a verdict word or a bare 0', () => {
     for (const v of VENUES) {
       for (const d of [0, 14_200, 5e6, 5e7, 5e8]) {
-        const view = exitReadoutView(d, v, priceFor(v))
+        const view = exitReadoutView(d, v, viewOpts)
         const text = [
           view.lead,
           view.detail,
@@ -385,5 +407,76 @@ describe('computeFrontier exposes the readout', () => {
     expect(computeFrontier(long, null, undefined, () => 0).exit.missing).toBe(
       'no venue (levered long)',
     )
+  })
+})
+
+describe('ETH/USD spot (Chainlink) prices a WETH venue', () => {
+  it('decodes the real round', () => {
+    expect(ETH_USD_FEED).toBe('0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419')
+    expect(SPOT.priceUsd).toBe(2547.58984536)
+    expect(new Date(SPOT.updatedAtMs).toISOString()).toBe('2026-10-12T01:06:11.000Z')
+    expect(SPOT.roundId).toBe(129127208515966895839n)
+    expect(SPOT.source).toBe('Chainlink ETH/USD')
+  })
+
+  it('refuses a round with no price, never $0', () => {
+    expect(decodeEthUsdRound([1n, 0n, 1n, 1n, 1n], 8)).toBeNull()
+    expect(decodeEthUsdRound([1n, -5n, 1n, 1n, 1n], 8)).toBeNull()
+    expect(decodeEthUsdRound([1n, 5n, 1n, 0n, 1n], 8)).toBeNull()
+    expect(decodeEthUsdRound(REAL_ROUND, -1)).toBeNull()
+  })
+
+  it('is fresh up to exactly 2 × the 1 h heartbeat', () => {
+    expect(ETH_USD_MAX_AGE_MS).toBe(2 * 3_600_000)
+    expect(ethUsdFresh(SPOT, SPOT_AT + ETH_USD_MAX_AGE_MS)).toBe(true)
+    expect(ethUsdFresh(SPOT, SPOT_AT + ETH_USD_MAX_AGE_MS + 1)).toBe(false)
+    expect(ethUsdFresh(SPOT, SPOT_AT - 1)).toBe(false)
+  })
+
+  it('a fresh price gives the WETH readout and names its source', () => {
+    const v = exitReadoutView(1e6, 'aave-core-weth', viewOpts)
+    // p5 stress cash 22,292.001 WETH × $2,547.59 = $56.79M
+    expect(v.crossoverUsd).toBeCloseTo(22_292.001 * 2547.58984536, 4)
+    expect(v.lead).toBe('In stress, exits shrink to $56M.')
+    expect(v.detail).toBe('No limit at your size; binds above $56M.†')
+    expect(v.floorLine).toBe('If every depositor exits at once: $10,880 of your $1.0M.†')
+    expect(v.credit).toBe(
+      'Idle cash in stress hours, Aave WETH, 2023-10 → 2026-10. Measured history, not a forecast. ETH $2,548 · Chainlink ETH/USD · 01:06 UTC.',
+    )
+    expect(v.rows.slice(1).map((r) => r.cash)).toEqual(['$498M', '$56M', '$15'])
+  })
+
+  it('a stale or undated price is withheld, with its age', () => {
+    const stale = exitReadoutView(1e6, 'aave-core-weth', {
+      ethUsd: SPOT,
+      nowMs: SPOT_AT + 3 * 3_600_000,
+    })
+    expect(stale.lead).toBeNull()
+    expect(stale.missing).toBe('the ETH price is 3.0 h old; the limit is 2 h')
+    expect(stale.credit).not.toContain('ETH $')
+    expect(exitReadoutView(1e6, 'aave-core-weth', { ethUsd: SPOT }).missing).toBe(
+      'the ETH price needs the time now',
+    )
+    expect(
+      exitReadoutView(1e6, 'aave-core-weth', { ethUsd: SPOT, nowMs: SPOT_AT - 1 }).missing,
+    ).toBe('the ETH price is later than the time now')
+  })
+
+  it('a stablecoin venue ignores the ETH price', () => {
+    const v = exitReadoutView(14_200, 'aave-core-usdc', viewOpts)
+    expect(v.lead).toBe('In stress, exits shrink to $38M.')
+    expect(v.credit).not.toContain('ETH $')
+  })
+
+  it('sandboxExitReadout prices the sandbox at an ETH venue', () => {
+    const inputs: SandboxInputs = {
+      ...DEFAULT_INPUTS,
+      capacity: { kind: 'preset', preset: 'aave-weth-50m-typical' },
+    }
+    expect(computeFrontier(inputs, null, undefined, () => 0).exit.missing).toBe('no ETH price yet')
+    const v = sandboxExitReadout(inputs, viewOpts)
+    expect(v.venue).toBe('aave-core-weth')
+    expect(v.depositUsd).toBe(14_200)
+    expect(v.detail).toBe('No limit at your size; binds above $56M.†')
   })
 })

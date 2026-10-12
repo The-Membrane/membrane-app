@@ -27,15 +27,22 @@
  *             that stock.
  *
  * READING THE LEVELS
- *  - Cash and f are ranked SEPARATELY over the same stress hours: a level's C and f need not
- *    come from one hour, so C / f is not the venue's supply at that level. On 'now' they
- *    come from one reading.
- *  - They are single readings, not the 'held' basis of the engine presets: a one-hour dip the
- *    hourly keeper retries past counts here. 'min' is at or below the presets' 'worst'.
+ *  - Cash and f are ranked SEPARATELY over the same stress hours. Each figure is still its
+ *    model's percentile (the headline rises with C alone, the floor with f alone), but C / f
+ *    is not the venue's supply at a level. On 'now' they come from one reading.
+ *  - Cash is in absolute USD across three years of venue growth. Aave USDC's p5 cash hours
+ *    (cash ≤ $39M, 324 of 6,467) are 173 in 2023, at a median supply of $422M; the venue held
+ *    $2.40B at the data's end. f is size-free; cash is not.
+ *  - A stress hour is ANY hour inside a stress window, on single readings. The engine presets
+ *    take each event's first 8 h from onset on the 'held' basis. So 'min' is at or below the
+ *    presets' 'worst': equal where both are the Kelp Apr-2026 lock (Aave USDC $6,402 vs
+ *    $7,085), lower where a deep hour sits outside any onset's 8 h (Spark USDS f 14.8% vs
+ *    25.2%).
  *  - Steakhouse USDC: its cash is the vault's pro-rata share of each Morpho market's idle cash
  *    (history.json `semantics.cash`), not first in line — conservative on (ii).
- *  - Stablecoins are held at $1 (VENUE_STABLE_SYMBOLS). WETH needs `priceUsd`, else there is
- *    no readout: unknown is unknown, never 0.
+ *  - Stablecoins are held at $1 (VENUE_STABLE_SYMBOLS). WETH needs `priceUsd` (the view
+ *    passes the live Chainlink round, ethUsdSpot.ts), else there is no readout: unknown is
+ *    unknown, never 0.
  *  - Descriptive history, not a forecast. No cash ÷ flow clock (board, 2026-09-27 EXIT
  *    CAPACITY PERSISTENCE).
  */

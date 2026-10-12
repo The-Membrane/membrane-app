@@ -18,12 +18,19 @@ import {
   type ExitCapacityFloorId,
 } from '@/lib/position-sim/exitCapacityAnalogs'
 import {
+  ETH_USD_MAX_AGE_MS,
+  ethUsdAgeMs,
+  ethUsdFresh,
+  type EthUsdSpot,
+} from '@/lib/position-sim/ethUsdSpot'
+import {
   EXIT_READOUT_SOURCE,
+  EXIT_READOUT_VENUE_LEVELS,
   exitReadoutLevels,
   exitReadoutVenueName,
   isExitReadoutVenue,
+  type ExitNowReading,
   type ExitReadoutLevel,
-  type ExitReadoutOptions,
   type ExitReadoutResult,
   type ExitReadoutUnavailable,
   type ExitReadoutVenue,
@@ -545,8 +552,35 @@ export function exitReadoutVenueOf(capacity: CapacityChoice): string | null {
   return knownPreset(capacity.preset)?.source?.venue ?? null
 }
 
-function readoutMissing(r: ExitReadoutUnavailable, venueName: string): string {
-  return r.reason === 'unknown_venue' ? `no measured stress levels for ${venueName}` : r.detail
+function readoutMissing(
+  r: ExitReadoutUnavailable,
+  venueName: string,
+  priceMissing: string | null,
+): string {
+  if (r.reason === 'unknown_venue') return `no measured stress levels for ${venueName}`
+  if (r.reason === 'no_price' && priceMissing) return priceMissing
+  return r.detail
+}
+
+export interface ExitReadoutViewOptions {
+  /** The venue's live reading for the 'now' row. */
+  now?: ExitNowReading
+  /** The time now, ms since epoch: ages the 'now' reading and the ETH price. */
+  nowMs?: number
+  /** The live ETH/USD round (ethUsdSpot.ts) that prices a WETH venue. Withheld when stale. */
+  ethUsd?: EthUsdSpot | null
+}
+
+/** Why a WETH venue has no usable ETH price; null when the round is fresh at `nowMs`. */
+function ethPriceMissing(s: EthUsdSpot | null | undefined, nowMs: number | undefined) {
+  if (!s) return 'no ETH price yet'
+  if (nowMs === undefined || !Number.isFinite(nowMs)) return 'the ETH price needs the time now'
+  const age = ethUsdAgeMs(s, nowMs)
+  if (age < 0) return 'the ETH price is later than the time now'
+  if (!ethUsdFresh(s, nowMs)) {
+    return `the ETH price is ${(age / 3_600_000).toFixed(1)} h old; the limit is ${ETH_USD_MAX_AGE_MS / 3_600_000} h`
+  }
+  return null
 }
 
 function utcHourMinute(iso: string): string {
@@ -557,12 +591,13 @@ function utcHourMinute(iso: string): string {
 /**
  * The exit readout for a deposit at a measured venue: the §5b sentence at the headline level,
  * and one row per level (now, typical, bad, worst). `opts.now` is the live reading; without
- * one the 'now' row says so. A stale reading withholds its row (design rules §4).
+ * one the 'now' row says so. A WETH venue is priced by `opts.ethUsd`. A stale reading or
+ * price is withheld, with its age (design rules §4).
  */
 export function exitReadoutView(
   depositUsd: number,
   venue: string | null,
-  opts: ExitReadoutOptions = {},
+  opts: ExitReadoutViewOptions = {},
 ): ExitReadoutView {
   const d = Number.isFinite(depositUsd) ? Math.max(0, depositUsd) : 0
   const base = { depositUsd: d, footnote: EXIT_READOUT_FOOTNOTE }
@@ -585,7 +620,12 @@ export function exitReadoutView(
   }
   const venueName = exitReadoutVenueName(venue)
 
-  const rows: ExitReadoutRow[] = exitReadoutLevels(d, venue, opts).map((r) => {
+  const weth = EXIT_READOUT_VENUE_LEVELS[venue].symbol === 'WETH'
+  const priceMissing = weth ? ethPriceMissing(opts.ethUsd, opts.nowMs) : null
+  const priceUsd = weth && priceMissing === null ? opts.ethUsd?.priceUsd : undefined
+  const levelOpts = { now: opts.now, nowMs: opts.nowMs, priceUsd }
+
+  const rows: ExitReadoutRow[] = exitReadoutLevels(d, venue, levelOpts).map((r) => {
     const label =
       r.level !== 'now'
         ? EXIT_LEVEL_LABEL[r.level]
@@ -601,7 +641,7 @@ export function exitReadoutView(
         floor: '—',
         binds: false,
         exceedsVenue: false,
-        missing: readoutMissing(r, venueName),
+        missing: readoutMissing(r, venueName, priceMissing),
         result: r,
       }
     }
@@ -618,7 +658,11 @@ export function exitReadoutView(
     }
   })
 
-  const credit = `Idle cash in stress hours, ${venueName}, ${EXIT_READOUT_SOURCE.from.slice(0, 7)} → ${EXIT_READOUT_SOURCE.to.slice(0, 7)}. Measured history, not a forecast.`
+  const ethCredit =
+    priceUsd !== undefined && opts.ethUsd
+      ? ` ETH ${usd(priceUsd)} · ${opts.ethUsd.source} · ${utcHourMinute(new Date(opts.ethUsd.updatedAtMs).toISOString())}.`
+      : ''
+  const credit = `Idle cash in stress hours, ${venueName}, ${EXIT_READOUT_SOURCE.from.slice(0, 7)} → ${EXIT_READOUT_SOURCE.to.slice(0, 7)}. Measured history, not a forecast.${ethCredit}`
   const h = rows.find((r) => r.level === EXIT_READOUT_HEADLINE_LEVEL)!.result
   if (h.kind !== 'readout') {
     return {
@@ -631,7 +675,7 @@ export function exitReadoutView(
       crossoverUsd: null,
       rows,
       credit,
-      missing: readoutMissing(h, venueName),
+      missing: readoutMissing(h, venueName, priceMissing),
     }
   }
   const detail =
@@ -655,6 +699,22 @@ export function exitReadoutView(
     credit,
     missing: null,
   }
+}
+
+/** The readout for a sandbox position: its deployed amount at its chosen venue. A levered
+ *  long deploys nothing, and a bound or a custom multiple names no venue. */
+export function sandboxExitReadout(
+  inputs: SandboxInputs,
+  opts: ExitReadoutViewOptions = {},
+): ExitReadoutView {
+  if (inputs.tradeShape !== 'carry') {
+    return { ...exitReadoutView(0, null), missing: 'no venue (levered long)' }
+  }
+  return exitReadoutView(
+    buildStressPosition(inputs).deployedUsd,
+    exitReadoutVenueOf(inputs.capacity),
+    opts,
+  )
 }
 
 // ---------------------------------------------------------------- outcomes
@@ -1806,7 +1866,8 @@ export interface FrontierModel {
   tree: Lane[]
   crash: CrashLevel[]
   swatch: Swatch
-  /** The per-user exit readout at the chosen venue. No live reading: its 'now' row says so. */
+  /** The per-user exit readout at the chosen venue, without live inputs: its 'now' row and a
+   *  WETH venue say so. The page re-runs `sandboxExitReadout` with them on a tick, not this. */
   exit: ExitReadoutView
   computeMs: number
 }
@@ -1842,10 +1903,7 @@ export function computeFrontier(
     tree,
     crash,
     swatch: buildSwatch(p, replay, incumbent, twinFor),
-    exit:
-      inputs.tradeShape === 'carry'
-        ? exitReadoutView(sandbox.deployedUsd, exitReadoutVenueOf(inputs.capacity))
-        : { ...exitReadoutView(0, null), missing: 'no venue (levered long)' },
+    exit: sandboxExitReadout(inputs),
     computeMs: now() - t0,
   }
 }

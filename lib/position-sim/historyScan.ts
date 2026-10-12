@@ -218,7 +218,7 @@ const wstEthAbi = [
  *  (public/data/oct10-2025/manifest.json) but scripts/build-oct10-dataset.ts consumes a
  *  CSV produced outside the repo, so no feed address is committed anywhere. These are
  *  the canonical mainnet proxies and each one's `description()` is checkable on chain. */
-const FEEDS = {
+export const FEEDS = {
   ETH_USD: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419' as Address,
   BTC_USD: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c' as Address,
   STETH_USD: '0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8' as Address,

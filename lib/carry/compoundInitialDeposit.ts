@@ -17,7 +17,10 @@ export function selectedCompoundInitialDepositAgreement(v:unknown,s:ConditionalS
  const a=v as CompoundInitialDepositAgreement
  if(s.routeKey!=='USDC → supply on Compound v3'||s.destination!=='0xc3d688b66703497daa19211eedff47f25384cdc3'||s.asset!=='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'||s.assetDecimals!==6||
  !a||a.status!=='agreed_compound_initial_deposit_facts'||!Array.isArray(a.origins)||a.origins.length!==2||
- JSON.stringify(a.currentSource)!==JSON.stringify(s)||!Number.isSafeInteger(now)||
+ JSON.stringify(a.currentSource)!==JSON.stringify(s)||!Number.isSafeInteger(now)||s.chainId!==1||
+ !['manifest_bound_ledger','live_read_only_two_origin_finalized'].includes(s.sourceKind)||
+ !raw(s.cashRaw)||!/^[1-9][0-9]*$/.test(s.block)||!/^0x[a-f0-9]{64}$/.test(s.blockHash)||
+ !Number.isFinite(Date.parse(s.blockTime))||!Number.isFinite(Date.parse(s.readAt))||Date.parse(s.blockTime)>Date.parse(s.readAt)||Date.parse(s.readAt)>now||
  !Number.isFinite(Date.parse(a.readAt))||Date.parse(a.readAt)<Date.parse(s.readAt)||Date.parse(a.readAt)>now||now-Date.parse(s.blockTime)>1800000)return null
  const seen=new Set<string>()
  for(const o of a.origins){const f=o.facts

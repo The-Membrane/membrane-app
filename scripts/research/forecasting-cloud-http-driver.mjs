@@ -8,7 +8,10 @@ const args=process.argv.slice(2)
 const fixtureMode=args.length===3&&args[2]==='--fixture'
 if((args.length!==2&&!fixtureMode)||args[0]!=='--output')throw Error('usage: node scripts/research/forecasting-cloud-http-driver.mjs --output /workspace/work/forecasting-full-app-http [--fixture]')
 const output=resolve(args[1]),rel=relative(ROOT,output)
-if(!rel||rel.startsWith('..')||rel.startsWith('/'))throw Error('output_must_be_workspace_work_child')
+const home=process.env.HOME,approvedHomeRoot='/workspace/membrane-datasets/forecasting-cloud/full-app-plan/runs'
+const homeRel=home?relative(approvedHomeRoot,resolve(home)):null
+const evidenceOutput=home&&homeRel&&!homeRel.startsWith('..')&&!homeRel.startsWith('/')&&output===resolve(home,'run/http')
+if((!rel||rel.startsWith('..')||rel.startsWith('/'))&&!evidenceOutput)throw Error('output_must_be_supervised_HOME_run_http_or_workspace_work_child')
 mkdirSync(output,{recursive:true})
 const usdc='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',owner='0x0000000000000000000000000000000000000001'
 const manifest={schema:'forecasting_bounded_http_manifest_v1',base:BASE,maxRequests:MAX_REQUESTS,

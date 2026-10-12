@@ -106,7 +106,18 @@ async function chunk(
       })
       if (r.status === 429 || r.status >= 500) throw new Error(`HTTP ${r.status}`)
       const j = await r.json()
-      if (j.error) throw new Error(JSON.stringify(j.error).slice(0, 160))
+      if (j.error) {
+        const msg = JSON.stringify(j.error).slice(0, 160)
+        // An endpoint with a smaller range cap: split the range rather than give up.
+        if (/range|too many/i.test(msg) && !/rate/i.test(msg) && e - b >= 100) {
+          const mid = Math.floor((b + e) / 2)
+          return [
+            ...(await chunk(url, address, topics, b, mid)),
+            ...(await chunk(url, address, topics, mid + 1, e)),
+          ]
+        }
+        throw new Error(msg)
+      }
       return j.result
     } catch (err) {
       last = err

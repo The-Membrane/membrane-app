@@ -13,8 +13,11 @@
 #              before any other step. It reaches the collector as an environment variable; no
 #              .env.local is written (on a runner, GITHUB_ACTIONS=true, with nothing at the path,
 #              readEnv() reads the environment; everywhere else the file stays the only source).
-#   cache      data/oracle-registry/config/.cache (controllers-at, holders, vote-defense, ...)
-#              through actions/cache; the raw and scan caches are deleted after each subject.
+#   cache      data/oracle-registry/config/.cache (controllers-at, holders, vote-defense, scan
+#              chunks, ...) through actions/cache, restored from the newest save of any run. The
+#              raw caches (per run) are deleted after each subject; the scan caches hold confirmed
+#              chunks only, so they are kept across subjects and runs and the confirmed range
+#              grows run by run (first CI run 2026-10-11: they were deleted after every subject).
 #   order      least recently tried first: the later of the last success (cursors.json runAt) and
 #              the last start (.cache/attempts.txt). A run cut short by the step timeout is picked
 #              up where it stopped by the next one, and a subject that keeps failing goes to the
@@ -24,11 +27,16 @@
 #   collect  pnpm install (dependency install scripts run here), the config unit tests, the
 #            collector ONE SUBJECT PER PROCESS, the offline Kelp backtest, with a READ-ONLY token.
 #            Uploads data/oracle-registry/config (without .cache) as an artifact.
-#   publish  holds `contents: write`; runs no repo or dependency code. Copies the artifact's
-#            regular JSON files into place, commits as github-actions[bot] and pushes to the scan
-#            branch (rebase and retry on a race, never force). The token is passed per command as
-#            an HTTP header, never written to a remote URL or .git/config.
+#   publish  holds `contents: write`; runs no repo or dependency code. Refuses a jump in read
+#            gaps (below), copies the artifact's regular JSON files into place, commits as
+#            github-actions[bot] and pushes to the scan branch (rebase and retry on a race, never
+#            force). The token is passed per command as an HTTP header, never written to a remote
+#            URL or .git/config.
 # A subject that fails keeps its committed files, the others are published, and the run ends red.
+# A subject whose read gaps more than doubled AND rose by more than 20 against the branch is a
+# transport failure until shown otherwise (first CI run 2026-10-11: 204 of 214 new gaps were one
+# log endpoint over its rate limit): nothing is published and the run ends red, unless a dispatch
+# sets allow_gap_jump. The scheduled run never sets it.
 
 name: oracle-config-collect
 
@@ -47,6 +55,11 @@ on:
         required: false
         default: ""
         type: string
+      allow_gap_jump:
+        description: "Publish even if a subject's read gaps more than doubled and rose by more than 20 (what a transport failure looks like); the scheduled run never sets it"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -54,6 +67,12 @@ permissions:
 concurrency:
   group: oracle-config-collect
   cancel-in-progress: false
+
+# every run: step as bash -eo pipefail (GitHub's default without `shell:` is bash -e, no
+# pipefail; the workflow tests run each step under -eo pipefail)
+defaults:
+  run:
+    shell: bash
 
 jobs:
   collect:
@@ -128,6 +147,10 @@ jobs:
           ref: ${{ env.SCAN_REF }}
           path: app
           persist-credentials: false
+          # the history (commits and trees, no old file contents): counts.mjs names the collector
+          # that wrote the committed files, so the summary says when before and after differ
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Check the collector exists at the ref
         id: present
@@ -164,15 +187,37 @@ jobs:
 
       - name: Config-card unit tests (gate)
         working-directory: app
-        run: pnpm test:unit tests/unit/oracleRegistryConfig
+        run: |
+          # The gate tests the CODE. Some tests read the committed cards and pin what a person
+          # measured on them (a vote count, a head block, no UNREAD label). This workflow's own
+          # re-collects move those, and a bad one (first CI run 2026-10-11: transport gaps; review
+          # finding 2) stopped every later run here, before the collect that repairs it. So the
+          # tests read the cards as the newest commit to them NOT written by this workflow left
+          # them (what its author tested), and the checked-out cards are put back for the collect.
+          # The bot's own output is held by the publish guard and review, not by this gate.
+          bot='41898282+github-actions[bot]@users.noreply.github.com'
+          base="$(git log --format='%H %ae' -- "$CONFIG" | awk -v bot="$bot" '!found && $2 != bot { print $1; found = 1 }')"
+          if [ -n "$base" ] && ! git diff --quiet "$base" HEAD -- "$CONFIG"; then
+            echo "the tests read $CONFIG as of $base (its newest commit not written by this workflow)"
+            git restore --source="$base" --worktree -- "$CONFIG"
+          fi
+          rc=0
+          pnpm test:unit tests/unit/oracleRegistryConfig || rc=$?
+          git restore --source=HEAD --worktree -- "$CONFIG"
+          if [ -n "$(git status --porcelain --untracked-files=all -- "$CONFIG")" ]; then
+            echo "::error::$CONFIG does not match the checked-out commit after the tests: nothing is collected"
+            exit 1
+          fi
+          exit "$rc"
 
       - name: Restore the collector cache
         uses: actions/cache/restore@v4
         with:
           path: app/data/oracle-registry/config/.cache
           key: oracle-config-cache-${{ steps.subjects.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          # the newest save of ANY run (a prefix restores the most recently created match): the
+          # confirmed scan chunks of a subset dispatch are not lost to an older full-set save
           restore-keys: |
-            oracle-config-cache-${{ steps.subjects.outputs.key }}-
             oracle-config-cache-
 
       - name: Count the committed files
@@ -181,7 +226,7 @@ jobs:
         env:
           SUBJECTS: ${{ steps.subjects.outputs.list }}
         run: |
-          node scripts/oracle-registry/config/counts.mjs snapshot "$RUNNER_TEMP/before.json" --dir="$CONFIG" $SUBJECTS
+          node scripts/oracle-registry/config/counts.mjs snapshot "$RUNNER_TEMP/before.json" --dir="$CONFIG" --repo=. $SUBJECTS
           test -s "$RUNNER_TEMP/before.json"
           : > "$RUNNER_TEMP/collected.txt"
 
@@ -190,6 +235,11 @@ jobs:
         working-directory: app
         env:
           SUBJECTS: ${{ steps.subjects.outputs.list }}
+          # The scheduled run collects only the PER_RUN stalest subjects (first CI run 2026-10-11:
+          # a cold run of all 8 is ~29k paced cross-check requests, ~8 h, over the 320-minute step
+          # and the second log endpoint's daily credits). It rotates through them while the kept
+          # scan cache warms. A dispatch collects every subject it names.
+          PER_RUN: ${{ github.event_name == 'schedule' && (vars.ORACLE_CONFIG_SUBJECTS_PER_RUN || '2') || '' }}
         run: |
           # A run cut short by the step timeout still moves forward: the next run starts with the
           # subjects this one did not reach, and one that failed or timed out (its runAt does not
@@ -200,6 +250,12 @@ jobs:
           if [ "$(printf '%s\n' $order | sort)" != "$(printf '%s\n' $SUBJECTS | sort)" ]; then
             echo "::warning::the subjects could not be ordered by their last run: the requested order is kept"
             order="$SUBJECTS"
+          fi
+          if [ -n "$PER_RUN" ]; then
+            case "$PER_RUN" in
+              *[!0-9]* | 0*) echo "::warning::ORACLE_CONFIG_SUBJECTS_PER_RUN is not a positive whole number: every subject is collected" ;;
+              *) order="$(printf '%s\n' $order | head -n "$PER_RUN")" ;;
+            esac
           fi
           order="$(printf '%s ' $order)"
           echo "list=${order% }" >> "$GITHUB_OUTPUT"
@@ -215,7 +271,9 @@ jobs:
           SUBJECTS: ${{ steps.order.outputs.list }}
         run: |
           # One process per subject: one that fails (or runs out of memory) is recorded and the
-          # next still runs. The raw and scan caches are the largest: they go after each subject.
+          # next still runs. The raw caches are per run: they go after each subject, with any torn
+          # temp file. The scan caches stay: they hold confirmed chunks only (an unconfirmed chunk
+          # is a scan gap, never cached), so each run confirms only what is still missing.
           # Each start is recorded for the next run's order (.cache is kept by actions/cache).
           mkdir -p "$CONFIG/.cache"
           for s in $SUBJECTS; do
@@ -223,7 +281,7 @@ jobs:
             printf '%s %s\n' "$s" "$(date +%s)" >> "$CONFIG/.cache/attempts.txt"
             rc=0
             node --max-old-space-size=4096 scripts/oracle-registry/config/collect-config.mjs --only="$s" || rc=$?
-            rm -f "$CONFIG"/.cache/scan-*.jsonl "$CONFIG"/.cache/raw-*.json "$CONFIG"/.cache/*.tmp-*
+            rm -f "$CONFIG"/.cache/raw-*.json "$CONFIG"/.cache/*.tmp-*
             echo "::endgroup::"
             if [ "$rc" -eq 0 ]; then
               echo "$s ok" >> "$RUNNER_TEMP/collected.txt"
@@ -238,7 +296,9 @@ jobs:
         if: ${{ !cancelled() && steps.before.outcome == 'success' }}
         working-directory: app
         env:
-          SUBJECTS: ${{ steps.subjects.outputs.list }}
+          # the subjects THIS run set out to collect (a scheduled run takes PER_RUN of them): one
+          # it did not reach is failed; one the cap left for a later run is neither
+          SUBJECTS: ${{ steps.order.outputs.list }}
         run: |
           ok=""
           failed=""
@@ -259,7 +319,7 @@ jobs:
               fi
             done
           done
-          node scripts/oracle-registry/config/counts.mjs snapshot "$RUNNER_TEMP/after.json" --dir="$CONFIG" $SUBJECTS
+          node scripts/oracle-registry/config/counts.mjs snapshot "$RUNNER_TEMP/after.json" --dir="$CONFIG" --repo=. $SUBJECTS
           node scripts/oracle-registry/config/counts.mjs summary "$RUNNER_TEMP/before.json" "$RUNNER_TEMP/after.json" --ok="${ok// /,}" > "$RUNNER_TEMP/summary.txt"
           grep -q '^head=' "$RUNNER_TEMP/summary.txt"
           {
@@ -295,10 +355,21 @@ jobs:
           # The artifact and the cache are readable by anyone who can read this public repo. A URL
           # carrying a key, or the key itself (a 20+ character part with a digit), must not be in
           # any file. A keyless public URL is not secret: the LayerZero metadata lists them.
+          # Nor may a FULL host of the secret (a host label in an error message): the collector
+          # names a provider by its registrable domain only (quiknode.pro, infura.io), so a host
+          # below it (`<id>.ethereum-mainnet.quiknode.pro`: an account id) in a file is a leak.
+          # A host the LayerZero metadata lists (rpc.ankr.com) is public. Never printed.
           node - <<'JS'
           const fs = require('fs')
           const path = require('path')
           const secret = new Set()
+          const hosts = new Set()
+          // a provider's registrable domain: the last two labels, three under a two-label suffix
+          const TWO = new Set(['co.uk', 'org.uk', 'ac.uk', 'com.au', 'net.au', 'co.jp', 'com.br', 'co.kr', 'com.cn', 'co.nz', 'co.in', 'com.sg', 'com.hk'])
+          const provider = (h) => {
+            const p = h.split('.').filter(Boolean)
+            return p.slice(TWO.has(p.slice(-2).join('.')) ? -3 : -2).join('.')
+          }
           // readEnv() strips quotes around the value: check the bare URLs the collector used
           const urls = (process.env.RECORDER_RPC_URL || '').split(/[,\n]/).map((s) => s.replace(/["'\s]/g, ''))
           for (const u of urls.filter(Boolean)) {
@@ -312,22 +383,45 @@ jobs:
             const keys = [...x.pathname.split('/'), ...x.searchParams.values(), x.username, x.password]
               .filter((p) => p.length >= 20 && /\d/.test(p))
             if (keys.length) for (const k of [u, ...keys]) secret.add(k)
+            const host = x.hostname.toLowerCase()
+            const ip = /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.startsWith('[')
+            if (host && (ip || host !== provider(host))) hosts.add(host)
+          }
+          for (const f of ['lz-metadata.json', '.cache/lz-metadata-raw.json']) {
+            let listed = ''
+            try {
+              listed = fs.readFileSync(path.join(process.env.CONFIG, f), 'utf8').toLowerCase()
+            } catch {}
+            for (const m of listed.matchAll(/https?:\/\/([a-z0-9.-]+)/g)) hosts.delete(m[1])
+          }
+          // Case-blind (review of lane E, 2026-10-11): a host is case-insensitive, and the engine
+          // lowercases what it keys on, so a key can come back lowercased. Both sides are
+          // compared ASCII-lowercased.
+          const keyBufs = [...secret].map((k) => Buffer.from(k.toLowerCase()))
+          const hostBufs = [...hosts].map((h) => Buffer.from(h))
+          const lower = (b) => {
+            for (let i = 0; i < b.length; i++) if (b[i] >= 65 && b[i] <= 90) b[i] += 32
+            return b
           }
           const hits = []
+          const hostHits = []
+          // bytes, not text: a scan cache kept across runs can outgrow the longest string
           const walk = (d) => {
             for (const e of fs.readdirSync(d, { withFileTypes: true })) {
               const p = path.join(d, e.name)
               if (e.isDirectory()) walk(p)
               else if (e.isFile()) {
-                const t = fs.readFileSync(p, 'utf8')
-                if ([...secret].some((k) => t.includes(k))) hits.push(p)
+                const t = lower(fs.readFileSync(p))
+                if (keyBufs.some((k) => t.indexOf(k) >= 0)) hits.push(p)
+                else if (hostBufs.some((h) => t.indexOf(h) >= 0)) hostHits.push(p)
               }
             }
           }
           walk(process.env.CONFIG)
           for (const h of hits) console.log(`::error::an RPC URL or key is in ${h}`)
-          if (hits.length) process.exit(1)
-          console.log(`no RPC URL or key in ${process.env.CONFIG} (${secret.size} strings checked)`)
+          for (const h of hostHits) console.log(`::error::a full RPC host of the secret is in ${h}`)
+          if (hits.length || hostHits.length) process.exit(1)
+          console.log(`no RPC URL or key in ${process.env.CONFIG} (${secret.size} strings and ${hosts.size} hosts checked)`)
           JS
 
       - name: Save the collector cache
@@ -402,6 +496,57 @@ jobs:
         with:
           name: oracle-config
           path: result
+
+      - name: Refuse a jump in read gaps
+        env:
+          # a dispatch input only; on a schedule this is false
+          ALLOW_GAP_JUMP: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_gap_jump == true }}
+        run: |
+          # A transport failure (a log endpoint over its rate limit) reads as a jump in read gaps:
+          # the carry keeps every red, but the card is rewritten around reads that did not happen.
+          # Each subject's read gaps in the artifact against the branch at the collected commit:
+          # more than doubled AND up by more than 20 is not published, unless the dispatch set
+          # allow_gap_jump. jq only. A subject with no committed state yet has no card to rewrite.
+          dest=app/data/oracle-registry/config
+          if [ ! -d result/state ]; then
+            echo "::error::the artifact has no state files: nothing is published"
+            exit 1
+          fi
+          gaps() {
+            jq 'if ((.readGaps // []) | type) == "array" then (.readGaps // []) | length else error("readGaps is not a list") end' "$1"
+          }
+          jumped=""
+          while IFS= read -r -d '' f; do
+            s="${f#state/}"
+            s="${s%.json}"
+            case "$s" in
+              "" | *[!a-z0-9-]*) echo "::error::not a subject state file: $f"; exit 1 ;;
+            esac
+            if [ ! -f "$dest/$f" ]; then
+              continue
+            fi
+            # one plain count each: a file of several JSON values prints several lines, which the
+            # integer test below would read as "no jump"
+            if ! b="$(gaps "$dest/$f")" || ! a="$(gaps "result/$f")" ||
+              case "$b:$a" in *[!0-9:]* | :* | *: | *:*:*) true ;; *) false ;; esac; then
+              echo "::error::the read gaps of $s could not be counted: nothing is published"
+              exit 1
+            fi
+            echo "$s: read gaps $b -> $a"
+            if [ "$a" -gt $((2 * b)) ] && [ $((a - b)) -gt 20 ]; then
+              jumped="${jumped:+$jumped, }$s ($b -> $a)"
+            fi
+          done < <(cd result && find state -maxdepth 1 -type f -name '*.json' -print0 | sort -z)
+          if [ -z "$jumped" ]; then
+            echo "no jump in read gaps"
+            exit 0
+          fi
+          if [ "$ALLOW_GAP_JUMP" = "true" ]; then
+            echo "::warning::read gaps jumped: ${jumped}. Published: this dispatch set allow_gap_jump"
+            exit 0
+          fi
+          echo "::error::read gaps more than doubled and rose by more than 20: ${jumped}. A transport failure (an RPC endpoint over its rate limit) reads like this, so nothing is published. Check the collect log; re-run, or dispatch with allow_gap_jump=true to publish anyway."
+          exit 1
 
       - name: Copy the collected JSON into place
         run: |

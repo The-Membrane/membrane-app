@@ -57,6 +57,7 @@ it('preserves source receipt while refusing to invent an unsupported receiver ca
  expect(a.status).toBe('agreed_erc4626_initial_deposit_facts')
  expect(a.origins[0].facts.maxDepositRaw).toBeNull();expect(a.origins[0].facts.maxDepositStatus).toBe('unavailable')
  expect(selectedErc4626InitialDepositAgreement(a,t.s,t.d,receiver,now)).not.toBeNull()
+ expect(selectedErc4626InitialDepositAgreement(a,Object.fromEntries(Object.entries(t.s).reverse()) as typeof t.s,t.d,receiver,now)).not.toBeNull()
  for(const o of t.options.origins)o.client={...o.client,readContract:async(args:any)=>{
    if(args.functionName==='previewDeposit')throw Error('unsupported_method')
    return base(args)

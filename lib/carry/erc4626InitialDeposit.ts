@@ -47,7 +47,7 @@ export function selectedErc4626InitialDepositAgreement(v:unknown,s:ConditionalSa
  try{
  const m=erc4626InitialDepositMarket(s.routeKey,s.destination),a=v as Erc4626InitialDepositAgreement
  if(!m||s.asset!==m.underlying||s.assetDecimals!==m.decimals||!raw(d)||d==='0'||
- (receiver!==null&&!/^0x[0-9a-f]{40}$/.test(receiver))||!a||a.status!=='agreed_erc4626_initial_deposit_facts'||JSON.stringify(a.currentSource)!==JSON.stringify(s)||
+ (receiver!==null&&!/^0x[0-9a-f]{40}$/.test(receiver))||!a||a.status!=='agreed_erc4626_initial_deposit_facts'||JSON.stringify(Object.entries(a.currentSource).sort(([a],[b])=>a.localeCompare(b)))!==JSON.stringify(Object.entries(s).sort(([a],[b])=>a.localeCompare(b)))||
  !Number.isSafeInteger(now)||s.chainId!==1||!['manifest_bound_ledger','live_read_only_two_origin_finalized'].includes(s.sourceKind)||
  !raw(s.cashRaw)||!/^[1-9][0-9]*$/.test(s.block)||!/^0x[a-f0-9]{64}$/.test(s.blockHash)||
  !Number.isFinite(Date.parse(s.blockTime))||!Number.isFinite(Date.parse(s.readAt))||Date.parse(s.blockTime)>Date.parse(s.readAt)||Date.parse(s.readAt)>now||now-Date.parse(s.blockTime)>1800000||

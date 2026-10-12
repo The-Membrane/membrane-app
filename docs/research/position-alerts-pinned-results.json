@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-pinned-replay.ts",
- "generatedAt": "2026-10-12T01:09:57.246Z",
+ "generatedAt": "2026-10-12T01:54:14.364Z",
  "config": "DEFAULT_ALERT_CONFIG",
  "definitions": "breach = first tick with HF < 1 on the dataset path, stamped at the previous tick (strict). Lead = breach − start of the earliest warn+ (critical) episode still open. censored = that episode opened at the first read. False alarm = worsening message with no breach in 72h.",
  "events": {
@@ -3593,67 +3593,21 @@
       1762981340,
       1763059652,
       1763150728,
-      1763237919
-     ]
-    },
-    {
-     "cluster": "EV-2/enclabs/xUSD/other",
-     "events": []
-    },
-    {
-     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
-     "events": [
-      1762175334,
-      1762283333,
-      1762369453,
-      1762456514,
-      1762540243,
-      1762720936,
-      1762802050,
-      1762890279,
-      1762981340,
-      1763059652,
-      1763150728,
-      1763237919
-     ]
-    },
-    {
-     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
-     "events": [
-      1762175334,
-      1762283333,
-      1762369453,
-      1762456514,
-      1762540243,
-      1762720936,
-      1762802050,
-      1762890279,
-      1762981340,
-      1763059652,
-      1763150728,
-      1763237919
-     ]
-    },
-    {
-     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
-     "events": [
-      1762175334,
-      1762283333,
-      1762369453,
-      1762456514,
-      1762540243,
-      1762720936,
-      1762802050,
-      1762890279,
-      1762981340,
-      1763059652,
-      1763150728,
-      1763237919
+      1763237919,
+      1747499969,
+      1749139871
      ]
     },
     {
      "cluster": "EV-2/enclabs/xUSD/other",
      "events": [
+      1747499969,
+      1749139871
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+     "events": [
       1762175334,
       1762283333,
       1762369453,
@@ -3665,7 +3619,66 @@
       1762981340,
       1763059652,
       1763150728,
-      1763237919
+      1763237919,
+      1747499969,
+      1749139871
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+     "events": [
+      1762175334,
+      1762283333,
+      1762369453,
+      1762456514,
+      1762540243,
+      1762720936,
+      1762802050,
+      1762890279,
+      1762981340,
+      1763059652,
+      1763150728,
+      1763237919,
+      1747499969,
+      1749139871
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+     "events": [
+      1762175334,
+      1762283333,
+      1762369453,
+      1762456514,
+      1762540243,
+      1762720936,
+      1762802050,
+      1762890279,
+      1762981340,
+      1763059652,
+      1763150728,
+      1763237919,
+      1747499969,
+      1749139871
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/other",
+     "events": [
+      1762175334,
+      1762283333,
+      1762369453,
+      1762456514,
+      1762540243,
+      1762720936,
+      1762802050,
+      1762890279,
+      1762981340,
+      1763059652,
+      1763150728,
+      1763237919,
+      1747499969,
+      1749139871
      ]
     },
     {
@@ -3682,18 +3695,25 @@
       1762981340,
       1763059652,
       1763150728,
-      1763237919
+      1763237919,
+      1747499969,
+      1749139871
      ]
     },
     {
      "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
      "events": [
-      1762175334
+      1762175334,
+      1747499969,
+      1749139871
      ]
     },
     {
      "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
-     "events": []
+     "events": [
+      1747499969,
+      1749139871
+     ]
     },
     {
      "cluster": "EV-2/euler/xETH/other",
@@ -5166,7 +5186,14 @@
       1762977847,
       1763064169,
       1763150491,
-      1763236813
+      1763236813,
+      1759851747,
+      1759852510,
+      1759853970,
+      1759855119,
+      1759856039,
+      1759856113,
+      1761139908
      ]
     },
     {
@@ -5184,7 +5211,14 @@
       1762977847,
       1763064169,
       1763150491,
-      1763236813
+      1763236813,
+      1759851747,
+      1759852510,
+      1759853970,
+      1759855119,
+      1759856039,
+      1759856113,
+      1761139908
      ]
     },
     {
@@ -6012,26 +6046,26 @@
       "cadence": "1 h",
       "everyS": 0,
       "gate": {
-       "breachedClusters": 16,
-       "clustersAllWarnedBeforeBreach": 16,
-       "breachedPositions": 60,
-       "warnedBeforeBreach": 60,
-       "criticalBeforeBreach": 60,
+       "breachedClusters": 17,
+       "clustersAllWarnedBeforeBreach": 17,
+       "breachedPositions": 63,
+       "warnedBeforeBreach": 63,
+       "criticalBeforeBreach": 62,
        "met": true
       },
       "gateScoreable": {
-       "breachedClusters": 16,
-       "clustersAllWarnedBeforeBreach": 16,
-       "breachedPositions": 60,
-       "warnedBeforeBreach": 60,
-       "criticalBeforeBreach": 60,
+       "breachedClusters": 17,
+       "clustersAllWarnedBeforeBreach": 17,
+       "breachedPositions": 63,
+       "warnedBeforeBreach": 63,
+       "criticalBeforeBreach": 62,
        "met": true,
        "startBelowOne": 0
       },
       "gateCluster": {
-       "breachedClusters": 16,
-       "passed": 16,
-       "firstBreacherWarned": 16,
+       "breachedClusters": 17,
+       "passed": 17,
+       "firstBreacherWarned": 17,
        "failed": [],
        "met": true,
        "perCluster": [
@@ -6049,13 +6083,13 @@
         {
          "cluster": "EV-2/compound/deUSD/other",
          "members": 9,
-         "breached": 4,
-         "firstBreachTs": 1762444739,
+         "breached": 5,
+         "firstBreachTs": 1762176659,
          "earliestWarnTs": 1761436811,
-         "leadS": 1007928,
+         "leadS": 739848,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 4
+         "membersWarnedFirst": 5
         },
         {
          "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
@@ -6082,13 +6116,13 @@
         {
          "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
          "members": 4,
-         "breached": 3,
-         "firstBreachTs": 1762444739,
+         "breached": 4,
+         "firstBreachTs": 1762441136,
          "earliestWarnTs": 1761436811,
-         "leadS": 1007928,
+         "leadS": 1004325,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 3
+         "membersWarnedFirst": 4
         },
         {
          "cluster": "EV-2/enclabs/xUSD/other",
@@ -6126,13 +6160,13 @@
         {
          "cluster": "EV-2/euler/deUSD/other",
          "members": 5,
-         "breached": 0,
-         "firstBreachTs": null,
-         "earliestWarnTs": null,
-         "leadS": null,
+         "breached": 1,
+         "firstBreachTs": 1762265831,
+         "earliestWarnTs": 1761436801,
+         "leadS": 829030,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 0
+         "membersWarnedFirst": 1
         },
         {
          "cluster": "EV-2/euler/sdeUSD/other",
@@ -6507,15 +6541,15 @@
        {
         "cluster": "EV-2/compound/deUSD/other",
         "members": 9,
-        "breached": 4,
-        "warnBeforeBreach": 4,
-        "criticalBeforeBreach": 4,
-        "leadMinS": 244733,
-        "leadMedianS": 1007928,
-        "leadToObservedMedianS": 1011960,
-        "censored": 3,
-        "unbreachedWarned": 5,
-        "unbreachedCritical": 2,
+        "breached": 5,
+        "warnBeforeBreach": 5,
+        "criticalBeforeBreach": 5,
+        "leadMinS": 244791,
+        "leadMedianS": 1004325,
+        "leadToObservedMedianS": 1010316,
+        "censored": 4,
+        "unbreachedWarned": 4,
+        "unbreachedCritical": 1,
         "warnAtFirstRead": 8
        },
        {
@@ -6549,15 +6583,15 @@
        {
         "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
         "members": 4,
-        "breached": 3,
-        "warnBeforeBreach": 3,
-        "criticalBeforeBreach": 3,
-        "leadMinS": 640704,
-        "leadMedianS": 1007928,
-        "leadToObservedMedianS": 1013460,
-        "censored": 3,
-        "unbreachedWarned": 1,
-        "unbreachedCritical": 1,
+        "breached": 4,
+        "warnBeforeBreach": 4,
+        "criticalBeforeBreach": 4,
+        "leadMinS": 637101,
+        "leadMedianS": 1006608,
+        "leadToObservedMedianS": 1009374,
+        "censored": 4,
+        "unbreachedWarned": 0,
+        "unbreachedCritical": 0,
         "warnAtFirstRead": 4
        },
        {
@@ -6605,15 +6639,15 @@
        {
         "cluster": "EV-2/euler/deUSD/other",
         "members": 5,
-        "breached": 0,
-        "warnBeforeBreach": 0,
+        "breached": 1,
+        "warnBeforeBreach": 1,
         "criticalBeforeBreach": 0,
-        "leadMinS": null,
-        "leadMedianS": null,
-        "leadToObservedMedianS": null,
-        "censored": 0,
-        "unbreachedWarned": 5,
-        "unbreachedCritical": 5,
+        "leadMinS": 371429,
+        "leadMedianS": 371429,
+        "leadToObservedMedianS": 371429,
+        "censored": 1,
+        "unbreachedWarned": 4,
+        "unbreachedCritical": 4,
         "warnAtFirstRead": 5
        },
        {
@@ -7068,22 +7102,23 @@
      }
     ],
     "firstWarnRule": {
-     "health-factor": 55,
+     "health-factor": 58,
      "collateral-depeg": 5
     },
     "firstCriticalRule": {
-     "health-factor": 51,
-     "collateral-depeg": 9
+     "health-factor": 53,
+     "collateral-depeg": 9,
+     "none": 1
     },
     "governance": {
-     "positionsWithEvents": 139,
-     "positionsMessaged": 127,
+     "positionsWithEvents": 170,
+     "positionsMessaged": 143,
      "byPeak": {
-      "1": 66,
-      "2": 59,
-      "3": 2
+      "1": 71,
+      "2": 62,
+      "3": 10
      },
-     "messages": 240
+     "messages": 259
     },
     "byVenue": {
      "morpho": {
@@ -7166,9 +7201,9 @@
       "gate": {
        "breachedClusters": 2,
        "clustersAllWarnedBeforeBreach": 2,
-       "breachedPositions": 7,
-       "warnedBeforeBreach": 7,
-       "criticalBeforeBreach": 7,
+       "breachedPositions": 9,
+       "warnedBeforeBreach": 9,
+       "criticalBeforeBreach": 9,
        "met": true
       },
       "gateCluster": {
@@ -7181,13 +7216,13 @@
         {
          "cluster": "EV-2/compound/deUSD/other",
          "members": 9,
-         "breached": 4,
-         "firstBreachTs": 1762444739,
+         "breached": 5,
+         "firstBreachTs": 1762176659,
          "earliestWarnTs": 1761436811,
-         "leadS": 1007928,
+         "leadS": 739848,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 4
+         "membersWarnedFirst": 5
         },
         {
          "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
@@ -7214,13 +7249,13 @@
         {
          "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
          "members": 4,
-         "breached": 3,
-         "firstBreachTs": 1762444739,
+         "breached": 4,
+         "firstBreachTs": 1762441136,
          "earliestWarnTs": 1761436811,
-         "leadS": 1007928,
+         "leadS": 1004325,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 3
+         "membersWarnedFirst": 4
         }
        ],
        "notScoreableClusters": []
@@ -7229,30 +7264,30 @@
      "euler": {
       "positions": 137,
       "gate": {
-       "breachedClusters": 5,
-       "clustersAllWarnedBeforeBreach": 5,
-       "breachedPositions": 33,
-       "warnedBeforeBreach": 33,
+       "breachedClusters": 6,
+       "clustersAllWarnedBeforeBreach": 6,
+       "breachedPositions": 34,
+       "warnedBeforeBreach": 34,
        "criticalBeforeBreach": 33,
        "met": true
       },
       "gateCluster": {
-       "breachedClusters": 5,
-       "passed": 5,
-       "firstBreacherWarned": 5,
+       "breachedClusters": 6,
+       "passed": 6,
+       "firstBreacherWarned": 6,
        "failed": [],
        "met": true,
        "perCluster": [
         {
          "cluster": "EV-2/euler/deUSD/other",
          "members": 5,
-         "breached": 0,
-         "firstBreachTs": null,
-         "earliestWarnTs": null,
-         "leadS": null,
+         "breached": 1,
+         "firstBreachTs": 1762265831,
+         "earliestWarnTs": 1761436801,
+         "leadS": 829030,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 0
+         "membersWarnedFirst": 1
         },
         {
          "cluster": "EV-2/euler/sdeUSD/other",
@@ -7694,17 +7729,17 @@
       "gate": {
        "breachedClusters": 32,
        "clustersAllWarnedBeforeBreach": 32,
-       "breachedPositions": 162,
-       "warnedBeforeBreach": 162,
-       "criticalBeforeBreach": 121,
+       "breachedPositions": 165,
+       "warnedBeforeBreach": 165,
+       "criticalBeforeBreach": 124,
        "met": true
       },
       "gateScoreable": {
        "breachedClusters": 32,
        "clustersAllWarnedBeforeBreach": 32,
-       "breachedPositions": 162,
-       "warnedBeforeBreach": 162,
-       "criticalBeforeBreach": 121,
+       "breachedPositions": 165,
+       "warnedBeforeBreach": 165,
+       "criticalBeforeBreach": 124,
        "met": true,
        "startBelowOne": 0
       },
@@ -7729,13 +7764,13 @@
         {
          "cluster": "EV-2/compound/deUSD/other",
          "members": 9,
-         "breached": 5,
-         "firstBreachTs": 1762196397,
+         "breached": 6,
+         "firstBreachTs": 1762176659,
          "earliestWarnTs": 1761436811,
-         "leadS": 759586,
+         "leadS": 739848,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 5
+         "membersWarnedFirst": 6
         },
         {
          "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
@@ -7762,13 +7797,13 @@
         {
          "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
          "members": 4,
-         "breached": 3,
-         "firstBreachTs": 1762196397,
+         "breached": 4,
+         "firstBreachTs": 1762192631,
          "earliestWarnTs": 1761436811,
-         "leadS": 759586,
+         "leadS": 755820,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 3
+         "membersWarnedFirst": 4
         },
         {
          "cluster": "EV-2/enclabs/xUSD/other",
@@ -7806,13 +7841,13 @@
         {
          "cluster": "EV-2/euler/deUSD/other",
          "members": 5,
-         "breached": 4,
-         "firstBreachTs": 1762239542,
+         "breached": 5,
+         "firstBreachTs": 1762235940,
          "earliestWarnTs": 1761436801,
-         "leadS": 802741,
+         "leadS": 799139,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 4
+         "membersWarnedFirst": 5
         },
         {
          "cluster": "EV-2/euler/sdeUSD/other",
@@ -8110,15 +8145,15 @@
        {
         "cluster": "EV-2/compound/deUSD/other",
         "members": 9,
-        "breached": 5,
-        "warnBeforeBreach": 5,
-        "criticalBeforeBreach": 4,
-        "leadMinS": 61197,
-        "leadMedianS": 759586,
-        "leadToObservedMedianS": 1011960,
-        "censored": 4,
-        "unbreachedWarned": 4,
-        "unbreachedCritical": 1,
+        "breached": 6,
+        "warnBeforeBreach": 6,
+        "criticalBeforeBreach": 6,
+        "leadMinS": 64801,
+        "leadMedianS": 755820,
+        "leadToObservedMedianS": 1010316,
+        "censored": 5,
+        "unbreachedWarned": 3,
+        "unbreachedCritical": 0,
         "warnAtFirstRead": 8
        },
        {
@@ -8152,15 +8187,15 @@
        {
         "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
         "members": 4,
-        "breached": 3,
-        "warnBeforeBreach": 3,
-        "criticalBeforeBreach": 3,
-        "leadMinS": 392362,
-        "leadMedianS": 802731,
-        "leadToObservedMedianS": 1013460,
-        "censored": 3,
-        "unbreachedWarned": 1,
-        "unbreachedCritical": 1,
+        "breached": 4,
+        "warnBeforeBreach": 4,
+        "criticalBeforeBreach": 4,
+        "leadMinS": 388596,
+        "leadMedianS": 903533.5,
+        "leadToObservedMedianS": 1009374,
+        "censored": 4,
+        "unbreachedWarned": 0,
+        "unbreachedCritical": 0,
         "warnAtFirstRead": 4
        },
        {
@@ -8208,15 +8243,15 @@
        {
         "cluster": "EV-2/euler/deUSD/other",
         "members": 5,
-        "breached": 4,
-        "warnBeforeBreach": 4,
+        "breached": 5,
+        "warnBeforeBreach": 5,
         "criticalBeforeBreach": 4,
-        "leadMinS": 802741,
-        "leadMedianS": 813571.5,
-        "leadToObservedMedianS": null,
-        "censored": 4,
-        "unbreachedWarned": 1,
-        "unbreachedCritical": 1,
+        "leadMinS": 371429,
+        "leadMedianS": 799139,
+        "leadToObservedMedianS": 371429,
+        "censored": 5,
+        "unbreachedWarned": 0,
+        "unbreachedCritical": 0,
         "warnAtFirstRead": 5
        },
        {
@@ -8239,7 +8274,7 @@
         "breached": 6,
         "warnBeforeBreach": 6,
         "criticalBeforeBreach": 2,
-        "leadMinS": 10838,
+        "leadMinS": 14495,
         "leadMedianS": 233959.5,
         "leadToObservedMedianS": null,
         "censored": 4,
@@ -8573,25 +8608,26 @@
      }
     ],
     "firstWarnRule": {
-     "health-factor": 131,
-     "collateral-depeg": 31
+     "health-factor": 134,
+     "collateral-depeg": 30,
+     "governance-change": 1
     },
     "firstCriticalRule": {
-     "health-factor": 76,
+     "health-factor": 78,
      "oracle-change": 2,
-     "collateral-depeg": 41,
+     "collateral-depeg": 42,
      "none": 41,
      "cushion-burn": 2
     },
     "governance": {
-     "positionsWithEvents": 139,
-     "positionsMessaged": 93,
+     "positionsWithEvents": 170,
+     "positionsMessaged": 96,
      "byPeak": {
-      "1": 55,
-      "2": 37,
+      "1": 57,
+      "2": 38,
       "3": 1
      },
-     "messages": 96
+     "messages": 100
     },
     "byVenue": {
      "morpho": {
@@ -8674,9 +8710,9 @@
       "gate": {
        "breachedClusters": 2,
        "clustersAllWarnedBeforeBreach": 2,
-       "breachedPositions": 8,
-       "warnedBeforeBreach": 8,
-       "criticalBeforeBreach": 7,
+       "breachedPositions": 10,
+       "warnedBeforeBreach": 10,
+       "criticalBeforeBreach": 10,
        "met": true
       },
       "gateCluster": {
@@ -8689,13 +8725,13 @@
         {
          "cluster": "EV-2/compound/deUSD/other",
          "members": 9,
-         "breached": 5,
-         "firstBreachTs": 1762196397,
+         "breached": 6,
+         "firstBreachTs": 1762176659,
          "earliestWarnTs": 1761436811,
-         "leadS": 759586,
+         "leadS": 739848,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 5
+         "membersWarnedFirst": 6
         },
         {
          "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
@@ -8722,13 +8758,13 @@
         {
          "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
          "members": 4,
-         "breached": 3,
-         "firstBreachTs": 1762196397,
+         "breached": 4,
+         "firstBreachTs": 1762192631,
          "earliestWarnTs": 1761436811,
-         "leadS": 759586,
+         "leadS": 755820,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 3
+         "membersWarnedFirst": 4
         }
        ],
        "notScoreableClusters": []
@@ -8739,8 +8775,8 @@
       "gate": {
        "breachedClusters": 15,
        "clustersAllWarnedBeforeBreach": 15,
-       "breachedPositions": 99,
-       "warnedBeforeBreach": 99,
+       "breachedPositions": 100,
+       "warnedBeforeBreach": 100,
        "criticalBeforeBreach": 75,
        "met": true
       },
@@ -8754,13 +8790,13 @@
         {
          "cluster": "EV-2/euler/deUSD/other",
          "members": 5,
-         "breached": 4,
-         "firstBreachTs": 1762239542,
+         "breached": 5,
+         "firstBreachTs": 1762235940,
          "earliestWarnTs": 1761436801,
-         "leadS": 802741,
+         "leadS": 799139,
          "passes": true,
          "firstBreacherWarned": true,
-         "membersWarnedFirst": 4
+         "membersWarnedFirst": 5
         },
         {
          "cluster": "EV-2/euler/sdeUSD/other",

@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-signal-backtest.ts",
- "generatedAt": "2026-10-12T01:11:20.821Z",
+ "generatedAt": "2026-10-12T01:54:18.697Z",
  "exitCapacity": {
   "venue": "Aave v3 Core USDC",
   "e3": {
@@ -1508,19 +1508,19 @@
   },
   "e2EulerGearbox": {
    "note": "The E2 Euler borrow vaults, the Gearbox Plasma credit manager, the Compound v3 comets and the Enclabs pools, per market and collateral, May 1 to Nov 16 2025. Subjects are only those with at least one event, so the per-month rate is an upper bound.",
-   "subjects": 53,
-   "calmSubjectMonths": 307.4,
+   "subjects": 88,
+   "calmSubjectMonths": 510.4,
    "calmMessages": {
-    "watch": 23,
+    "watch": 30,
     "warn": 2,
-    "critical": 10
+    "critical": 14
    },
-   "calmWarnPlusPerSubjectMonth": 0.039,
-   "calmAnyPerSubjectMonth": 0.1139,
+   "calmWarnPlusPerSubjectMonth": 0.0313,
+   "calmAnyPerSubjectMonth": 0.0901,
    "stressMessages": {
-    "watch": 36,
+    "watch": 60,
     "warn": 2,
-    "critical": 2
+    "critical": 4
    },
    "subjectsWithEvents": [
     {
@@ -1749,6 +1749,94 @@
      ]
     },
     {
+     "subject": "compound:1:0x3afdc9bca9213a35503b077a6072f3d0d5ab0840:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+     "events": [
+      {
+       "ts": "2025-08-06 19:40",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2: liquidate collateral factor 90.0% → 88.0%"
+      }
+     ]
+    },
+    {
+     "subject": "compound:1:0x3afdc9bca9213a35503b077a6072f3d0d5ab0840:*",
+     "events": [
+      {
+       "ts": "2025-11-04 19:57",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "withdraw or transfer paused"
+      }
+     ]
+    },
+    {
+     "subject": "compound:1:0x5d409e56d886231adaf00c8775665ad0f9897b56:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+     "events": [
+      {
+       "ts": "2025-08-06 19:40",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2: liquidate collateral factor 90.0% → 88.0%"
+      }
+     ]
+    },
+    {
+     "subject": "compound:1:0x5d409e56d886231adaf00c8775665ad0f9897b56:0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+     "events": [
+      {
+       "ts": "2025-08-06 19:40",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0: liquidate collateral factor 87.0% → 85.0%"
+      }
+     ]
+    },
+    {
+     "subject": "compound:1:0x5d409e56d886231adaf00c8775665ad0f9897b56:*",
+     "events": [
+      {
+       "ts": "2025-11-04 19:57",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "withdraw or transfer paused"
+      }
+     ]
+    },
+    {
+     "subject": "compound:1:0xc3d688b66703497daa19211eedff47f25384cdc3:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+     "events": [
+      {
+       "ts": "2025-08-06 19:40",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2: liquidate collateral factor 89.5% → 88.0%"
+      }
+     ]
+    },
+    {
+     "subject": "compound:1:0xc3d688b66703497daa19211eedff47f25384cdc3:0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+     "events": [
+      {
+       "ts": "2025-08-06 19:40",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0: liquidate collateral factor 87.0% → 85.0%"
+      }
+     ]
+    },
+    {
+     "subject": "compound:1:0xc3d688b66703497daa19211eedff47f25384cdc3:*",
+     "events": [
+      {
+       "ts": "2025-11-04 19:57",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "withdraw or transfer paused"
+      }
+     ]
+    },
+    {
      "subject": "euler:146:0x196f3c7443e940911ee2bb88e019fd71400349d9:0xb38d431e932fea77d1df0ae0dfe4400c97e597b8",
      "events": [
       {
@@ -1829,6 +1917,551 @@
        "kind": "rate_model_changed",
        "severity": "watch",
        "detail": "interest rate model → 0xA63222DcF3154B2b169f853E744E8e5147D26791"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:xUSD",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "xUSD: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "xUSD: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "xUSD: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:vscUSD_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vscUSD_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vscUSD_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vscUSD_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:vEURC_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vEURC_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vEURC_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vEURC_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:venclabsVeETH_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "venclabsVeETH_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "venclabsVeETH_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "venclabsVeETH_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:venclabsVeUSD_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "venclabsVeUSD_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "venclabsVeUSD_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "venclabsVeUSD_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:vwmetaUSD_Core",
+     "events": [
+      {
+       "ts": "2025-08-14 20:41",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "vwmetaUSD_Core: liquidation threshold 88.0% → 0.0%"
+      },
+      {
+       "ts": "2025-08-14 21:48",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vwmetaUSD_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-08-14 21:48",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vwmetaUSD_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-08-14 21:48",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vwmetaUSD_Core: action 2 paused"
+      },
+      {
+       "ts": "2025-08-14 21:49",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vwmetaUSD_Core: action 6 paused"
+      },
+      {
+       "ts": "2025-08-14 21:49",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vwmetaUSD_Core: action 7 paused"
+      },
+      {
+       "ts": "2025-08-14 21:50",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vwmetaUSD_Core: action 8 paused"
+      },
+      {
+       "ts": "2025-08-14 21:59",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "vwmetaUSD_Core: market unlisted"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:*",
+     "events": [
+      {
+       "ts": "2025-08-14 21:49",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vwmetaUSD_Core: repay paused"
+      },
+      {
+       "ts": "2025-08-14 21:49",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vwmetaUSD_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-08-14 21:49",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vwmetaUSD_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-09-30 11:14",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "liquidation incentive → 1.050"
+      },
+      {
+       "ts": "2025-10-10 23:08",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "liquidation incentive → 1.100"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "xUSD: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "xUSD: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "xUSD: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vwS_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vwS_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vwS_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vUSDCe_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vUSDCe_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vUSDCe_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vscUSD_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vscUSD_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vscUSD_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vscETH_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vscETH_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vscETH_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vEURC_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vEURC_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vEURC_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vstS_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vstS_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vstS_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vU$D_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vU$D_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vU$D_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vWETH_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vWETH_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vWETH_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "venclabsVeETH_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "venclabsVeETH_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "venclabsVeETH_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "venclabsVeUSD_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "venclabsVeUSD_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "venclabsVeUSD_Core: liquidation paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:vU$D_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vU$D_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vU$D_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vU$D_Core: action 2 paused"
+      },
+      {
+       "ts": "2025-11-11 10:25",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vU$D_Core: action 1 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:vwS_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vwS_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vwS_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vwS_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:vUSDCe_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vUSDCe_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vUSDCe_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vUSDCe_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:vscETH_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vscETH_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vscETH_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vscETH_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:vstS_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vstS_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vstS_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vstS_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:146:0x13d79435f306d155ca2b9af77234c84f80506045:vWETH_Core",
+     "events": [
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vWETH_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vWETH_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-04 14:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vWETH_Core: action 2 paused"
       }
      ]
     },
@@ -2135,6 +2768,399 @@
        "kind": "collateral_disabled",
        "severity": "critical",
        "detail": "waPlaUSDT0: liquidation threshold → 0"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:9745:0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198:*",
+     "events": [
+      {
+       "ts": "2025-10-07 16:55",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "liquidation incentive → 1.050"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "xUSD: repay paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "xUSD: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "xUSD: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vplUSD_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vplUSD_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vplUSD_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vsplUSD_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vsplUSD_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vsplUSD_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vsUSDe_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vsUSDe_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vsUSDe_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vUSDe_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vUSDe_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vUSDe_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vUSDT0_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vUSDT0_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vUSDT0_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vWETH_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vWETH_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vWETH_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "vWXPL_Core: repay paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vWXPL_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "vWXPL_Core: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:02",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "xUSD: repay paused"
+      },
+      {
+       "ts": "2025-11-07 16:02",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "xUSD: liquidation paused"
+      },
+      {
+       "ts": "2025-11-07 16:02",
+       "kind": "paused",
+       "severity": "warn",
+       "detail": "xUSD: liquidation paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:9745:0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198:vUSDT0_Core",
+     "events": [
+      {
+       "ts": "2025-10-22 14:51",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "vUSDT0_Core: liquidation threshold 85.0% → 0.0%"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vUSDT0_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vUSDT0_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vUSDT0_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:9745:0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198:vUSDe_Core",
+     "events": [
+      {
+       "ts": "2025-10-22 14:52",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "vUSDe_Core: liquidation threshold 85.0% → 0.0%"
+      },
+      {
+       "ts": "2025-10-22 21:59",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "vUSDe_Core: liquidation threshold 90.0% → 0.0%"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vUSDe_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vUSDe_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vUSDe_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:9745:0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198:xUSD",
+     "events": [
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "xUSD: action 0 paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "xUSD: action 1 paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "xUSD: action 2 paused"
+      },
+      {
+       "ts": "2025-11-07 16:02",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "xUSD: action 0 paused"
+      },
+      {
+       "ts": "2025-11-07 16:02",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "xUSD: action 1 paused"
+      },
+      {
+       "ts": "2025-11-07 16:02",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "xUSD: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:9745:0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198:vsplUSD_Core",
+     "events": [
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vsplUSD_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vsplUSD_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vsplUSD_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:9745:0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198:vplUSD_Core",
+     "events": [
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vplUSD_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vplUSD_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vplUSD_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:9745:0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198:vsUSDe_Core",
+     "events": [
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vsUSDe_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vsUSDe_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-07 16:00",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vsUSDe_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:9745:0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198:vWETH_Core",
+     "events": [
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vWETH_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vWETH_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vWETH_Core: action 2 paused"
+      }
+     ]
+    },
+    {
+     "subject": "enclabs:9745:0xbad1e57ebf56bacb7c39e3ddcd8fe4dcc2fd4198:vWXPL_Core",
+     "events": [
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vWXPL_Core: action 0 paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vWXPL_Core: action 1 paused"
+      },
+      {
+       "ts": "2025-11-07 16:01",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "vWXPL_Core: action 2 paused"
       }
      ]
     },

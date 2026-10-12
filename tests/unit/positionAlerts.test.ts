@@ -736,6 +736,23 @@ describe('governance-change rule', () => {
     expect(governanceSeverity(cut(0.5), s, 1.15)?.severity).toBe('watch')
   })
 
+  it('judges a cut against the old threshold, not an effective one that carries other collateral', () => {
+    // Effective LT 0.95 (the venue's risk-adjusted value includes other collateral).
+    const s: PositionSnapshot = {
+      ...ethPosition(1.5),
+      collateral: [{ symbol: 'ETH', amount: 100, oraclePriceUsd: 1, liquidationThreshold: 0.95 }],
+      debt: [{ symbol: 'USDC', amount: 80, priceUsd: 1 }],
+    }
+    // A raise 0.90 → 0.92 is not a cut, though 0.92 < 0.95.
+    expect(
+      governanceSeverity(cut(0.92, { threshold: { from: 0.9, to: 0.92 } }), s, 1.15),
+    ).toBeNull()
+    // A cut 0.90 → 0.80 removes value × 0.10: HF (95 − 10) / 80 = 1.0625.
+    const r = governanceSeverity(cut(0.8, { threshold: { from: 0.9, to: 0.8 } }), s, 1.15)
+    expect(r?.projectedHf).toBeCloseTo(1.0625, 9)
+    expect(r?.severity).toBe('warn')
+  })
+
   it('a static source filters by market, window and held asset', () => {
     const src = staticGovernanceSource([
       cut(0.8),

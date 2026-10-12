@@ -1,9 +1,10 @@
 # Position alerts — back-test and recommended thresholds
 
-2026-10-07, revised 2026-10-11 (three times) · merged to `evm-migration` in #97, #98 and #99 ·
-this revision reads G2 per cluster (owner ruling) and replays E2 on every venue: Morpho, Euler,
-Silo and Gearbox · status: **research, dry-run delivery only. G2 is met on the per-cluster reading
-for every replayed cluster (§1). Delivery stays off until the outbox gates pass.**
+2026-10-07, revised 2026-10-11 and 2026-10-12 · merged to `evm-migration` in #97, #98, #99 and
+#101 · this revision completes E2 (Compound v3, Enclabs and Abracadabra added: $285.9M of debt,
+the spec's ~$285M) and wires a governance-change source · status: **research, dry-run delivery
+only. G2 is met on the per-cluster reading for every replayed cluster (§1). Delivery stays off
+until the outbox gates pass.**
 
 Demand: position alerts, 10 messages from 8 authors (UMBRELLA data product #7 on the agent
 board). Members who leave positions "set and forget" asked for health-factor and
@@ -25,7 +26,7 @@ position was warned first.
 | Spec event | Spec definition (§5) | What is replayed now | Match |
 |---|---|---|---|
 | E1 (EV-1) | Oct 10–11 2025 cascade. Aave v3 Core: 799 liquidations, $117.35M. The USD-loop line is Morpho sUSDe/USDT at LLTV 91.5% | (a) **Every account the Oct-10 census includes** (1,750, 25 collateral clusters), minute by minute on the Chainlink rounds of the spec's E1 pull (OP and ARB on Binance 1m). (b) The **Morpho USD-loop positions** (spec release 0.2.1: 3 rows, 2 with a mainnet oracle path), on the market oracle at every block | ✅ all clusters. 599 census-excluded accounts (no rebased breach) are listed, not scored |
-| E2 (EV-2) | Stream xUSD collapse, Nov 2–12 2025, multi-chain, ~$285M of loans against xUSD / xBTC / xETH on Euler, Silo, Morpho, Gearbox. Elixir deUSD −98% on Nov 6. Spec data: "to pull; venue ids not yet resolved" | (a) **Every Morpho market** on xUSD, deUSD, sdeUSD or a PT on them that the Morpho API serves (Ethereum, Arbitrum, World Chain: 18 markets), hourly. (b) **Every Stream-collateral borrower on 19 Euler v2 borrow vaults, 8 Silo v2 markets and the Gearbox v3.1 Plasma credit manager** (Ethereum, Arbitrum, Avalanche, Sonic, Plasma), read on chain every 2 h at each venue's own oracle and risk-adjusted value. Both on the venue oracle and on the market price | ✅ $252M of debt at the window start, against the spec's ~$285M. Not scanned: Euler on Berachain, BOB, TAC and Swell, Gearbox v3.0 on Ethereum. Morpho has no Stream market on Sonic, Avalanche or Plasma |
+| E2 (EV-2) | Stream xUSD collapse, Nov 2–12 2025, multi-chain, ~$285M of loans against xUSD / xBTC / xETH on Euler, Silo, Morpho, Gearbox. Elixir deUSD −98% on Nov 6. Spec data: "to pull; venue ids not yet resolved" | (a) **Every Morpho market** on xUSD, deUSD, sdeUSD or a PT on them that the Morpho API serves (Ethereum, Arbitrum, World Chain: 18 markets), hourly. (b) **Every Stream- or Elixir-collateral borrower on 19 Euler v2 borrow vaults, 8 Silo v2 markets, the Gearbox v3.1 Plasma credit manager, 3 Compound v3 comets, 2 Enclabs pools and 2 Abracadabra cauldrons** (Ethereum, Arbitrum, Avalanche, Sonic, Plasma), read on chain every 2 h at each venue's own oracle and risk-adjusted value, with hourly market prices between reads. Both on the venue oracle and on the market price | ✅ **$285.9M of debt at the window start**, the spec's ~$285M. A holder scan of every Stream and Elixir token found Compound, Enclabs and Abracadabra. Euler on 24 chains, every Gearbox v3 credit manager and Silo v1/v2 everywhere add only dust |
 | E3 (EV-3) | KelpDAO rsETH exploit from Apr 18 2026 17:35 UTC. Aave Core USDC at ≥ 99.9% utilization for 82.4 h | The **214 Aave Core pure USD loops** of the spec's `positions_start`, on the dataset's own HF path model; exit capacity on **Aave Core USDC** from the spec's per-block table | ✅ matches |
 | E4 (EV-4) | Morpho PT-reUSD-10DEC2026 oracle dip, Aug 25 2026 | **All 193 positions at t0** (149 loopers in 15 clusters + 44 below $1,000 of debt), on the observed oracle at every block from t0 − 300, with debt accrued on the market rate | ✅ matches |
 
@@ -56,6 +57,7 @@ position identifier) and `…-signal-results.json`. Every number below is in one
 | Collateral depeg, stable (bps below $1, or below the venue's NAV for a yield-bearing stable) | 50 | 150 | 500 | 2 samples to confirm · band 20 · 2h |
 | Collateral depeg, LST (bps below underlying × redemption rate), **on a synchronous ratio** | 100 | 250 | 600 | 2 samples · band 30 · 2h |
 | Oracle change (registry adapter, direction-aware; frozen-price detector) | per change kind (§8) | | | 24h window |
+| Governance change (Euler, Gearbox, Compound v3, Enclabs, Aave v3): threshold cut projected on the position | cut, HF stays ≥ 1.15 | projected HF < 1.15; ramp to 0; collateral forbidden | projected HF < 1; LT set to 0; repay paused | 24h window, ramps held to their end (§8b) |
 | Distance to liquidation price | opt-in only (`LIQUIDATION_DISTANCE_PRESET`) | | | |
 | LTV | opt-in user lines only (`ltvLines`) | | | |
 | Exit capacity vs recall needed | internal only (§7) | | | |
@@ -71,8 +73,8 @@ Every message states the liquidation price and the repay / top-up that restores 
 | E1, Aave census, 1-min poll | **19 / 19** scoreable clusters | 19 / 19 | 1,565 / 1,588 (98.6%) | cluster lead 1 min (BAL, 1 account) to 21 h; position median 16 min | **met** |
 | E1, Aave census, 5-min poll | 17 / 19 (1INCH and BAL fail) | 17 / 19 | 1,413 / 1,588 | — | not met at 5 min: poll every minute |
 | E1, Morpho USD loops | 2 / 2 | 2 / 2 | 2 / 2 | 2h 01m, censored (HF 1.0034 at the window start) | met |
-| E2, all venues, breach on the venue oracle | **14 / 14** (Morpho 2, Euler 5, Silo 6, Gearbox 1) | 14 / 14 | 53 / 53 | 49 of 53 censored (in warn from the first read). Uncensored: 33–256 h | met |
-| E2, all venues, breach on the market price | **26 / 26** (Morpho 2, Euler 15, Silo 8, Gearbox 1) | 26 / 26 | 145 / 145 | 114 of 145 censored. Uncensored: median 3.1 h, min 0 (warned at the last 2-hour read before HF fell below 1) | met |
+| E2, all venues, breach on the venue oracle | **17 / 17** (Morpho 2, Compound 2, Euler 6, Silo 6, Gearbox 1) | 17 / 17 | 63 / 63 | 58 of 63 censored (in warn from the first read). Uncensored: 34–258 h | met |
+| E2, all venues, breach on the market price | **32 / 32** (Morpho 2, Abracadabra 1, Compound 2, Euler 15, Silo 8, Enclabs 3, Gearbox 1) | 32 / 32 | 165 / 165 | 128 of 165 censored. Uncensored: median 3.3 h, min 0 (warned at the last read before HF fell below 1) | met |
 | E3, 214 Aave USD loops | 0 / 0 (no loop breached, lowest HF 1.0065) | — | — | — | met (vacuous). In-event false alarms: §1b |
 | E4, 193 positions | 4 / 4 | 4 / 4 | 20 / 20 | 69–79 min, censored (all in critical at t0 − 1h) | met |
 
@@ -98,6 +100,8 @@ clusters were warned hours before the first breach.
 | Stable depeg (USDC, USDe) | 0.087 / 0.032 warn+ per 30 days | §6 |
 | Oracle change | 0.027 warn+ per asset-month over 264 asset-months | §8 |
 | Exit capacity (ratio) | 0 in the 30 days before E3; 1.5–6.9 warn+ per month across 27 calm months | §7 |
+| Governance change, Aave v3 Ethereum Core | 0.0013 warn+ per collateral-month over 1,486.5 calm months (2 critical: CRV Aug 2023, rsETH May 2026); e-mode drops 0.079 per month for an e-mode holder | §8b |
+| Governance change, the E2 markets (May–Oct 2025) | 0.031 warn+ per market-collateral month over 510 months (upper bound: subjects with any event) | §8b |
 
 **Per-wallet rows: internal only.** Owner ruling 2026-10-11: yes to data privacy. The raw
 inputs, which hold Morpho borrower addresses and Aave census accounts, moved out of this public
@@ -109,13 +113,15 @@ data files. Removing them needs a history rewrite, which is an owner decision (b
 Every breached cluster of E1–E4 had a warn-or-higher message before its first breach, the calm
 false-alarm rates are reported, and the per-wallet rows are internal. What G2 does not settle:
 
-- **Coverage.** E2 holds $252M of the spec's ~$285M (§1b). The unscanned Euler and Gearbox
-  deployments may hold the rest.
 - **Censored leads.** Most E2–E4 positions sat in warn or critical from the first read. There
   the alert is a standing warning, not a timely one.
-- **Governance moves no price rule sees.** On Nov 4 the governor of an Avalanche Euler vault
+- **Governance can act faster than any alert.** On Nov 4 the governor of an Avalanche Euler vault
   liquidated a deUSD position with $1.15M of debt at venue HF 1.06. It set the LTV to 0 inside
-  the liquidation transaction (§1b). The position had a standing HF warning, but nothing warned of the act.
+  the liquidation transaction (§1b). The governance-change rule reports it, but only after the
+  fact. The position had a standing HF warning. Slower changes it does warn of: Gearbox forbade
+  xUSD on Oct 31 and ramped its threshold to 0 over Nov 3–5 (§8b).
+- **E2 is reconstructed every 2 hours.** A borrower who acted between two reads is seen only at
+  the next read. Three liquidations fell between reads and are scored at their own time (§10).
 
 **So no position alert goes external yet.** Delivery stays dry-run until the gates of the
 PERSONAL ALERT OUTBOX board entry (2026-09-27) pass and the owner turns it on.
@@ -171,19 +177,27 @@ HF 1.059) and the World Chain position above while it was open.
 - **Price sources disagree on sdeUSD.** CoinGecko trades had it 3.5% under the DefiLlama on-chain price by Nov 3 18:00 and 15% under by Nov 4 18:00, while the on-chain price held 1.069 until Nov 6. The replay uses CoinGecko trades, with the on-chain price only to fill gaps.
 
 **E2 off Morpho** (`build-position-alert-e2-offmorpho.mjs`, every 2 h, Oct 26 → Nov 16). The
-cohort is every account with debt at the Nov 2 block that held a Stream collateral: 167 Euler
-accounts from Borrow logs, 72 Silo accounts from debt-share mints and 30 Gearbox credit accounts.
-After the $1,000 dust line, 1 Euler account with other collateral (Stream share of its adjusted
-collateral under 95%) and the Gearbox accounts with no debt, 191 positions remain: Euler 137,
-Silo 52, Gearbox 2. They carried $241.6M of debt at the window start (Euler $179.5M, Silo $61.8M,
-Gearbox $0.2M).
+cohort is every account with debt at the Nov 2 block that held a Stream or Elixir collateral:
+167 Euler accounts from Borrow logs, 72 Silo accounts from debt-share mints, 30 Gearbox credit
+accounts, 21 Compound v3 accounts from SupplyCollateral logs, 11 Enclabs accounts from vToken
+transfers and 14 Abracadabra accounts from cauldron logs. After the $1,000 dust line, 1 Euler
+account with other collateral and the Gearbox accounts with no debt, 223 positions remain:
+Euler 137, Silo 52, Compound 20, Enclabs 11, Gearbox 2, Abracadabra 1. They carried $275.3M of
+debt at the window start (Euler $179.5M, Silo $61.8M, Compound $29.6M, Enclabs $3.5M,
+Abracadabra $0.6M, Gearbox $0.2M). With Morpho's $10.6M, E2 holds **$285.9M**, the spec's ~$285M.
 
-- **One owner holds 80% of it.** One owner's Euler sub-accounts and Silo positions carry $192.3M, $84.2M of it on Plasma Euler eUSDT0-7 alone. The same owner holds the $8.65M Ethereum sdeUSD position on Morpho. (Who, and the transactions below, are in the datasets repo: per-wallet rows stay internal.) Read the per-cluster gate with that in mind: one owner's warnings dominate the dollar count.
-- **The venue oracles did not follow the market.** Euler and Silo valued xUSD at its NAV, about $1.266, through the window. So the oracle breaches came slowly: 50 positions on 12 clusters, the first on Nov 3 at 13:57 (Gearbox), the first Silo one at 23:02 that day, the first Euler one on Nov 6 at 14:29.
-- **What took them below 1 on the oracle.** Interest at a frozen collateral value for 31. Collateral withdrawn for 15: on Nov 3–4 these borrowers pulled xUSD out at the NAV price, down to the borrow limit, and interest did the rest. Those were not set-and-forget positions. The oracle price for 3 (xBTC, xETH). A liquidation-LTV change for 1 (Gearbox).
-- **Euler ramped liquidation LTVs down 1–2 points on Nov 3** (from about 10:00 UTC on Plasma eUSDT0-7, emsUSD-3, eplUSD-2 and Ethereum eUSDC-64, eWETH-33, eWBTC-9). The replay reads HF from the venue's own risk-adjusted value (`accountLiquidity`, Gearbox `twvUSD`), so the ramp moves HF as it did on chain. With the config LT the replay overstated HF by up to 0.035 after Nov 3.
-- **On the market price** 142 of 159 priced positions breached, the first on Nov 3 at 04:55 (Silo, Sonic). Every one was warned first, 111 of them from the first read. The 31 uncensored leads are short: median 3.1 h. The xUSD market fell from above the warn line to below 1 within hours on Nov 3–4. 32 xBTC and xETH positions have no market price and are scored on the oracle only.
-- **Liquidations were few and mostly forced.** Euler logged 16 liquidations on the cohort's vaults from Oct 26 to Nov 16. 11 hit accounts outside the Stream cohort and 1 a $229 dust position. 4 are one deUSD sub-account on Avalanche eUSDt-3 on Nov 4, 14:17–16:48 UTC: each transaction from the vault's governor set the deUSD liquidation LTV to 0, liquidated, then set it back to 0.925 (the vault's `GovSetLTV`, `GovSetMaxLiquidationDiscount` and `Liquidate` events in each transaction). Venue HF was 1.06 at the read before. Silo and Gearbox liquidation events are not read.
+The first scan looked only at the venues the spec names. A second one listed the top 40 holders
+of every Stream and Elixir token at Nov 2 and found Compound v3, Enclabs and Abracadabra. Euler
+on 24 chains (Berachain, BOB, TAC and Swell included), all 70 Gearbox v3 credit managers on
+Ethereum and Silo v1/v2 on every chain added $5 of debt (`position-alerts/e2-offmorpho-discovery/`
+in the datasets repo).
+
+- **One owner holds 74% of it.** One owner's accounts on Euler, Silo, Compound, Enclabs and Morpho carry $210.3M, $84.2M of it on Plasma Euler eUSDT0-7 alone. (Who, and the transactions below, are in the datasets repo: per-wallet rows stay internal.) Read the per-cluster gate with that in mind: one owner's warnings dominate the dollar count.
+- **Most venue oracles did not follow the market.** Euler, Silo, Gearbox and Enclabs valued xUSD at its NAV, about $1.266, through the window. Compound's deUSD feed did follow it: $0.996 at 13:59 on Nov 6, $0.082 at 15:59. 60 positions on 15 clusters breached on the oracle, the first on Nov 3 at 13:30 (a Compound account absorbed between two reads).
+- **What took them below 1 on the oracle.** Interest at a frozen collateral value for 32. Collateral withdrawn for 16: on Nov 3–4 these borrowers pulled xUSD out at the NAV price, down to the borrow limit, and interest did the rest. Those were not set-and-forget positions. The oracle price for 11 (8 Compound deUSD, xBTC, xETH). A liquidation-threshold change for 1 (Gearbox).
+- **Euler ramped liquidation LTVs down 1–2 points on Nov 3** (from about 10:00 UTC on Plasma eUSDT0-7, emsUSD-3, eplUSD-2 and Ethereum eUSDC-64, eWETH-33, eWBTC-9). The replay reads HF from each venue's own risk-adjusted value (Euler `accountLiquidity`, Gearbox `twvUSD`, Compound's per-asset factors, Enclabs' comptroller liquidity), so the ramp moves HF as it did on chain. With the config LT the replay overstated HF by up to 0.035 after Nov 3.
+- **On the market price** 162 positions on 30 clusters breached, the first on Nov 3 at 04:55 (Silo, Sonic). Every one was warned first, 125 of them from the first read. The 37 uncensored leads are short: median 3.3 h. The xUSD market fell from above the warn line to below 1 within hours on Nov 3–4. 32 xBTC and xETH positions have no market price and are scored on the oracle only.
+- **Liquidations of replayed positions: 13.** 9 Compound accounts were absorbed between Nov 3 13:30 and Nov 6 22:35, all after the deUSD feed fell. One Gearbox account was partly liquidated on Nov 3 at 16:34, 2.5 h after its breach. 2 Morpho positions were liquidated later (Nov 20, Apr 2026). On Nov 4, 14:17–16:48 UTC, the governor of Avalanche Euler eUSDt-3 liquidated one deUSD sub-account in 4 transactions. Each set the deUSD liquidation LTV to 0, liquidated, then set it back to 0.925 (the vault's `GovSetLTV`, `GovSetMaxLiquidationDiscount` and `Liquidate` events). Venue HF was 1.06 at the read before. Every one of the 13 had a warning before its breach.
 
 ---
 
@@ -382,6 +396,54 @@ committee rotations were watch only. Bridge, admin and mint changes are out of t
 **Gate.** No E1–E4 breach followed a registry change, so this rule can only be judged on its
 calm rate, which is low. It stays internal until the registry is merged and read live.
 
+## 8b. Governance change — wired
+
+A venue can move health factor with no price move: it cuts or ramps a liquidation threshold,
+disables a collateral or pauses repay. `lib/positionAlerts/governance.ts` adapts the events of
+five venues into `GovernanceChangeEvent`s:
+
+- Euler v2 borrow vaults: `GovSetLTV`, `GovSetHookConfig`, `GovSetMaxLiquidationDiscount`, rate model and governor changes.
+- Gearbox v3 CreditConfigurators: threshold set or ramped, token forbidden, expiry, borrowing stopped.
+- Compound v3: Configurator factor changes, in force at the comet upgrade, and the comet's `PauseAction`.
+- Enclabs (Venus isolated-pools Comptrollers): threshold changes, paused actions, unlisting.
+- Aave v3 PoolConfigurator: collateral configuration, freeze and pause, and e-mode changes.
+
+Morpho Blue market parameters, Silo v2 configs and Abracadabra cauldron risk parameters cannot
+change, so those markets are covered with no events. A price-feed swap found in these logs goes
+to the oracle-change rule as `feed_replaced`.
+
+**Severity is projected per position.** A threshold cut is scored by the health factor the
+position would have once it fully applies: critical below 1, warn below 1.15, watch otherwise. A
+raise is not a message. A threshold set to 0 at once, or paused repay, is critical. A ramp to 0
+is warn until its last 6 hours. The rule reports itself uncovered for a market with no source.
+`scripts/research/build-governance-changes.ts` reads the events on keyless archive RPCs, and
+every log range is read on two endpoints with equal counts.
+
+**In E2** the rule messaged 143 of the 223 off-Morpho positions on the venue-oracle run:
+
+- 125 Euler positions: 63 watch and 60 warn, mostly from the Nov 3 ramps. 2 critical, from the Nov 4 zero-LTV transactions on Avalanche eUSDt-3: the liquidated sub-account (after the fact) and a second deUSD account in that vault.
+- 8 Compound positions got the Nov 4 withdraw pause (watch). The cUSDS borrowers had repaid before it.
+- 8 Enclabs positions went critical when the pool paused every action, repay and liquidation included, on every market: 6 on Sonic on Nov 4 at 14:01, 2 on Plasma on Nov 7 at 16:00. The borrower cannot act.
+- 2 Gearbox positions got the Oct 31 ban on new xUSD and the Nov 3–5 ramp of its threshold from 0.90 to 0 (warn). That ramp took one of them below 1 and into a partial liquidation.
+
+It gave the earliest warning to one breached position (Euler, Sonic). The others sat in HF warn
+from the first read. Enclabs also raised the xUSD threshold on Sonic from 0.90 to 0.92 on Nov 3
+(no message: a raise).
+
+**Calm rates** (`…-signal-results.json` `governanceChange`). The holder sits at HF 1.30 under the
+threshold in force before each change; changes inside 24 hours merge into one message. Stress
+windows (E1, E2, E3) are counted apart.
+
+| Series | Collateral-months | Warn+ per month | Any message per month | Notes |
+|---|---|---|---|---|
+| Aave v3 Ethereum Core, base changes | 1,486.5 | 0.0013 | 0.027 | 2 critical: CRV threshold 61% → 41% (Aug 2023), rsETH threshold → 0 and pause (May 2026) |
+| Aave v3 Ethereum Core, e-mode drops | 292.4 | 0.079 | 0.079 | an asset dropped from an e-mode category: only that category's holders |
+| E2 markets, May 1 – Oct 25 2025 | 510.4 | 0.031 | 0.090 | upper bound (subjects with an event). Mostly Euler curators setting a collateral's threshold to 0 at once |
+
+In the E1 and E3 windows Aave's changes touch no replayed position. On Oct 11 2025 it added two
+e-mode categories. In Apr 2026 it froze rsETH 1.5 h after the exploit and paused it on Apr 23.
+It also set WETH's borrow LTV to 0 and froze it, with the liquidation threshold unchanged.
+
 ## 9. Monitor cadence and anti-flap
 
 - **On ETH and BTC collateral, cadence matters only for critical.** Warn (HF < 1.15) kept ≥ 99.7% warned ≥1h on the 587 volatile E1 accounts from a 1-minute to a 60-minute poll. Critical HF < 1.05 alone missed 1 / 29 / 36 / 173 of 587 at 1 / 5 / 15 / 60-minute polls. The default critical tier, which adds burn, missed 0 / 0 / 0 / 22.
@@ -396,7 +458,7 @@ calm rate, which is low. It stays internal until the registry is merged and read
 - **Spot is not the oracle** for the hourly set, E2 and the E3 ETH set. Spot lows liquidate slightly earlier than Chainlink would. A spot-driven monitor also warns slightly earlier than an oracle-driven one. E1 and E4 use the venue oracle.
 - **E1 leads cap at about 21h** (the window opens at 00:00 Oct 10). L2 accounts are priced on the mainnet Chainlink feed, the same simplification as `evidence.json`.
 - **Small n where it matters most.** E4 is 20 breached pairs in one 14-minute cascade. E2 on Morpho is 4 positions, and one owner holds 80% of the E2 debt off Morpho. E3 rsETH and exit capacity are one episode each. They show mechanism and timing, not rates.
-- **E2 off Morpho is read every 2 hours.** A lead of 0 there means the warning came at the last read before HF fell below 1, up to 2 h before the crossing. A position that opened and closed between two reads is not seen.
+- **E2 off Morpho is read every 2 hours.** A lead of 0 there means the warning came at the last read before HF fell below 1, up to 2 h before the crossing. Between two reads the position is held and the market price steps hourly. A borrower action inside an interval is seen at the next read. Two Enclabs positions re-levered or withdrew on Nov 3 while xUSD fell 9.7%; at the 12:00 print the depeg rule was already at warn. Three liquidations fell between reads (2 Compound absorbs, the Euler forced liquidation); they are scored as the breach at their own time. A position that opened and closed between two reads is not seen.
 - **The loop preset and the burn sweep were chosen on the events they are scored on.** Treat their numbers as in-sample.
 - **Precision is low by construction** for a 72h horizon in slow markets: HF < 1.15 has precision 0.19 on hourly history. Most warn messages are not followed by liquidation, because prices recover. That is the cost of 41h median warning. The 72h horizon is a modelling choice.
 - **No interest accrual** in the synthetic positions. Morpho positions carry real accrued debt.
@@ -431,18 +493,17 @@ Dry run: formatted, not sent · 2025-11-18 02:17 UTC
 
 ## 12. To meet G2
 
-Done: every E1 cluster, the E3 USD loops, all E4 positions, E2 on Morpho, Euler, Silo and
-Gearbox, the per-wallet ruling, the per-cluster reading (owner ruling 2026-10-11, board T34), the
-LST calm rate on Chainlink, and the exit-capacity and oracle-change sources. Under the ruling,
-the 23 E1 one-update crashes do not fail G2. Still open:
+Done: every E1 cluster, the E3 USD loops, all E4 positions, E2 on all seven venues ($285.9M),
+the per-wallet ruling, the per-cluster reading (owner ruling 2026-10-11, board T34), the LST calm
+rate on Chainlink, and the exit-capacity, oracle-change and governance-change sources. Still open:
 
-1. **E2 venues not scanned:** Euler on Berachain, BOB, TAC and Swell, and Gearbox v3.0 on
-   Ethereum. They may hold the ~$33M between the replayed $252M and the spec's ~$285M. The
-   spec still lists the E2 venue ids as unresolved (MQ-7). The discovery scans are in
-   `position-alerts/e2-offmorpho-discovery/` of the datasets repo.
-2. **A governance-change source.** The oracle-change rule reads oracle changes only. Euler's
-   `GovSetLTV` (ramps and the zero-LTV forced liquidation of Nov 4) and Gearbox LT changes move
-   HF with no price move. Read them as change events, like the oracle registry.
+1. **E2 corners not checked:** archive state on Monad, Etherlink and Somnia (no keyless archive
+   RPC), Dolomite on Botanix and Polygon zkEVM, Silo v2 on Injective, X Layer, MegaETH, Pharos
+   and XDC. The holder scan misses a venue holding less than the 40th holder of a token. The
+   spec lists the E2 venue ids as unresolved (MQ-7): `venues-2/RESULT.json` in the datasets repo
+   resolves them.
+2. **Governance sources for the live monitor.** The adapters are tested on the replay. A live
+   source needs the same reads per market the user holds, with the 6-hour ramp escalation.
 3. **rsETH depeg on a synchronous ratio.** Read the Kelp rate provider and a Curve or Balancer
    rsETH/ETH pool at the same block.
 4. **Exit capacity:** a venue-specific baseline before any alert (§7).
@@ -455,7 +516,8 @@ Clone `triccs/membrane-datasets` next to this repo (or set `MEMBRANE_DATASETS_DI
 
 ```
 node scripts/research/build-position-alert-data.mjs        # keyless; refreshes position-alerts/ in the datasets repo
-node scripts/research/build-position-alert-e2-offmorpho.mjs # keyless, ~20 min; E2 on Euler, Silo, Gearbox (E2OFF_CACHE=<dir> keeps cohorts)
+node scripts/research/build-position-alert-e2-offmorpho.mjs # keyless, ~10–20 min; E2 off Morpho, six venues (E2OFF_CACHE=<dir> keeps cohorts)
+pnpm tsx scripts/research/build-governance-changes.ts      # keyless; governance events (--only=e2,aave), every range on two endpoints
 pnpm tsx scripts/research/position-alert-backtest.ts       # ~14 min; --skip-sweeps for the tier tables only
 pnpm tsx scripts/research/position-alert-pinned-replay.ts  # ~1 min; the spec's clusters (§1b)
 pnpm tsx scripts/research/position-alert-signal-backtest.ts # seconds; exit capacity, oracle change, LST depeg (§6–§8)

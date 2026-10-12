@@ -69,17 +69,29 @@ export const GOVERNANCE_CHANGE_SEVERITY: Record<GovernanceChangeKind, Severity> 
   expiry_set: 'warn',
 }
 
-/** Health factor once a threshold change on `asset` fully applies, at today's prices. */
+/**
+ * Health factor once a threshold change on `asset` fully applies, at today's prices. With `from`
+ * (the asset's threshold before the change) the leg loses value × (from − to); without it the
+ * leg's threshold is replaced. The delta form is right when the leg's threshold is an effective
+ * one that also carries other collateral (a venue's risk-adjusted value).
+ */
 export function projectedHealthFactor(
   snapshot: PositionSnapshot,
   asset: string,
   threshold: number,
+  from?: number,
 ): number | null {
   if (!snapshot.collateral.some((c) => c.symbol === asset)) return null
   let weighted = 0
   for (const c of snapshot.collateral)
     weighted +=
-      c.amount * c.oraclePriceUsd * (c.symbol === asset ? threshold : c.liquidationThreshold)
+      c.amount *
+      c.oraclePriceUsd *
+      (c.symbol !== asset
+        ? c.liquidationThreshold
+        : from === undefined
+          ? threshold
+          : c.liquidationThreshold - Math.max(0, from - threshold))
   const debt = snapshot.debt.reduce((a, d) => a + d.amount * d.priceUsd, 0)
   return debt > 0 ? weighted / debt : Infinity
 }
@@ -107,11 +119,11 @@ export function governanceSeverity(
   if (e.asset === undefined) return { severity: to === 0 ? 'critical' : 'watch', projectedHf: null }
   const leg = snapshot.collateral.find((c) => c.symbol === e.asset)
   if (!leg) return null
-  // A cut: lower than where it started, or lower than the venue's threshold now (mid-ramp).
-  const from = e.threshold.from ?? leg.liquidationThreshold
-  if (!(to < Math.max(from, leg.liquidationThreshold) - 1e-9)) return null
+  // A cut: lower than where it started. Without a start, lower than the leg's threshold now.
+  const from = e.threshold.from
+  if (!(to < (from ?? leg.liquidationThreshold) - 1e-9)) return null
   if (to === 0) return { severity: 'critical', projectedHf: 0 }
-  const hf = projectedHealthFactor(snapshot, e.asset, to)
+  const hf = projectedHealthFactor(snapshot, e.asset, to, from)
   if (hf === null) return null
   return { severity: hf < 1 ? 'critical' : hf < warnHf ? 'warn' : 'watch', projectedHf: hf }
 }

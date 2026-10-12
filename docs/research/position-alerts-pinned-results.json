@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-pinned-replay.ts",
- "generatedAt": "2026-10-11T20:39:19.198Z",
+ "generatedAt": "2026-10-12T01:09:57.246Z",
  "config": "DEFAULT_ALERT_CONFIG",
  "definitions": "breach = first tick with HF < 1 on the dataset path, stamped at the previous tick (strict). Lead = breach − start of the earliest warn+ (critical) episode still open. censored = that episode opened at the first read. False alarm = worsening message with no breach in 72h.",
  "events": {
@@ -3174,8 +3174,8 @@
     "fromTs": 1761436800,
     "toTs": 1763251200
    },
-   "positionsReplayed": 195,
-   "dustPositionsSkipped": 100,
+   "positionsReplayed": 227,
+   "dustPositionsSkipped": 114,
    "mixedCollateralSkipped": [
     {
      "venue": "euler",
@@ -3185,8 +3185,11 @@
    ],
    "positionsByVenue": {
     "morpho": 4,
+    "abracadabra": 1,
+    "compound": 20,
     "euler": 137,
     "silo": 52,
+    "enclabs": 11,
     "gearbox": 2
    },
    "noMarketPrice": 32,
@@ -3199,9 +3202,9 @@
    ],
    "uncovered": [
     "Euler, Silo, Gearbox, Fluid and other venues; chains the Morpho API does not serve (Plasma 9745, Avalanche 43114, Sonic 146 per spec §5). Positions closed before the window are excluded by construction.",
-    "xBTC and xETH have no market price series (oracle basis only). Silo and Gearbox liquidation events are not read. Euler on Berachain, BOB, TAC and Swell, and Ethereum Gearbox v3.0 credit managers, are not scanned."
+    "xBTC and xETH have no market price series (oracle basis only). Liquidations: Euler Liquidate, Silo v2 hook LiquidationCall, Gearbox v3.1 facade (partial and full); a Gearbox credit facade replaced inside the window would be missed."
    ],
-   "liquidationsSinceHistoryStart": 24,
+   "liquidationsSinceHistoryStart": 179,
    "priceFreezeEvents": [
     {
      "cluster": "EV-2/morpho/sdeUSD/other",
@@ -3235,6 +3238,106 @@
      ]
     },
     {
+     "cluster": "EV-2/abracadabra/sdeUSD/other",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/other",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/other",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+     "events": [
+      1762242947,
+      1762293407,
+      1762322255,
+      1762387127
+     ]
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+     "events": [
+      1762394351
+     ]
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s1m-10m",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s1m-10m",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s1m-10m",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/other",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/other",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/other",
+     "events": [
+      1762394351
+     ]
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/other",
+     "events": [
+      1762394351
+     ]
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/other",
+     "events": [
+      1762242947,
+      1762293407,
+      1762322255,
+      1762387127
+     ]
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/other",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/compound/deUSD/other",
+     "events": []
+    },
+    {
      "cluster": "EV-2/euler/xUSD/other",
      "events": [
       1762192631,
@@ -3477,6 +3580,122 @@
      ]
     },
     {
+     "cluster": "EV-2/enclabs/xUSD/other",
+     "events": [
+      1762175334,
+      1762283333,
+      1762369453,
+      1762456514,
+      1762540243,
+      1762720936,
+      1762802050,
+      1762890279,
+      1762981340,
+      1763059652,
+      1763150728,
+      1763237919
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/other",
+     "events": []
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+     "events": [
+      1762175334,
+      1762283333,
+      1762369453,
+      1762456514,
+      1762540243,
+      1762720936,
+      1762802050,
+      1762890279,
+      1762981340,
+      1763059652,
+      1763150728,
+      1763237919
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+     "events": [
+      1762175334,
+      1762283333,
+      1762369453,
+      1762456514,
+      1762540243,
+      1762720936,
+      1762802050,
+      1762890279,
+      1762981340,
+      1763059652,
+      1763150728,
+      1763237919
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+     "events": [
+      1762175334,
+      1762283333,
+      1762369453,
+      1762456514,
+      1762540243,
+      1762720936,
+      1762802050,
+      1762890279,
+      1762981340,
+      1763059652,
+      1763150728,
+      1763237919
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/other",
+     "events": [
+      1762175334,
+      1762283333,
+      1762369453,
+      1762456514,
+      1762540243,
+      1762720936,
+      1762802050,
+      1762890279,
+      1762981340,
+      1763059652,
+      1763150728,
+      1763237919
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
+     "events": [
+      1762175334,
+      1762283333,
+      1762369453,
+      1762456514,
+      1762540243,
+      1762720936,
+      1762802050,
+      1762890279,
+      1762981340,
+      1763059652,
+      1763150728,
+      1763237919
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
+     "events": [
+      1762175334
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
+     "events": []
+    },
+    {
      "cluster": "EV-2/euler/xETH/other",
      "events": []
     },
@@ -4930,6 +5149,42 @@
       1763150728,
       1763183447,
       1763237919
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/other",
+     "events": [
+      1762178277,
+      1762293373,
+      1762336534,
+      1762379695,
+      1762466017,
+      1762545166,
+      1762725144,
+      1762811466,
+      1762891525,
+      1762977847,
+      1763064169,
+      1763150491,
+      1763236813
+     ]
+    },
+    {
+     "cluster": "EV-2/enclabs/xUSD/other",
+     "events": [
+      1762178277,
+      1762293373,
+      1762336534,
+      1762379695,
+      1762466017,
+      1762545166,
+      1762725144,
+      1762811466,
+      1762891525,
+      1762977847,
+      1763064169,
+      1763150491,
+      1763236813
      ]
     },
     {
@@ -5757,29 +6012,117 @@
       "cadence": "1 h",
       "everyS": 0,
       "gate": {
-       "breachedClusters": 14,
-       "clustersAllWarnedBeforeBreach": 14,
-       "breachedPositions": 53,
-       "warnedBeforeBreach": 53,
-       "criticalBeforeBreach": 53,
+       "breachedClusters": 16,
+       "clustersAllWarnedBeforeBreach": 16,
+       "breachedPositions": 60,
+       "warnedBeforeBreach": 60,
+       "criticalBeforeBreach": 60,
        "met": true
       },
       "gateScoreable": {
-       "breachedClusters": 14,
-       "clustersAllWarnedBeforeBreach": 14,
-       "breachedPositions": 53,
-       "warnedBeforeBreach": 53,
-       "criticalBeforeBreach": 53,
+       "breachedClusters": 16,
+       "clustersAllWarnedBeforeBreach": 16,
+       "breachedPositions": 60,
+       "warnedBeforeBreach": 60,
+       "criticalBeforeBreach": 60,
        "met": true,
        "startBelowOne": 0
       },
       "gateCluster": {
-       "breachedClusters": 14,
-       "passed": 14,
-       "firstBreacherWarned": 14,
+       "breachedClusters": 16,
+       "passed": 16,
+       "firstBreacherWarned": 16,
        "failed": [],
        "met": true,
        "perCluster": [
+        {
+         "cluster": "EV-2/abracadabra/sdeUSD/other",
+         "members": 1,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/other",
+         "members": 9,
+         "breached": 4,
+         "firstBreachTs": 1762444739,
+         "earliestWarnTs": 1761436811,
+         "leadS": 1007928,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 4
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+         "members": 4,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s1m-10m",
+         "members": 3,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+         "members": 4,
+         "breached": 3,
+         "firstBreachTs": 1762444739,
+         "earliestWarnTs": 1761436811,
+         "leadS": 1007928,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 3
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/other",
+         "members": 5,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+         "members": 3,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
+         "members": 3,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
         {
          "cluster": "EV-2/euler/deUSD/other",
          "members": 5,
@@ -5872,9 +6215,9 @@
          "cluster": "EV-2/euler/xUSD/other",
          "members": 30,
          "breached": 3,
-         "firstBreachTs": 1762743276,
+         "firstBreachTs": 1762750788,
          "earliestWarnTs": 1761436800,
-         "leadS": 1306476,
+         "leadS": 1313988,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -5894,9 +6237,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d1-2pp/s10k-100k",
          "members": 15,
          "breached": 15,
-         "firstBreachTs": 1762750837,
+         "firstBreachTs": 1762757945,
          "earliestWarnTs": 1761436800,
-         "leadS": 1314037,
+         "leadS": 1321145,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 15
@@ -5905,9 +6248,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d1-2pp/s1k-10k",
          "members": 10,
          "breached": 10,
-         "firstBreachTs": 1762706518,
+         "firstBreachTs": 1762711148,
          "earliestWarnTs": 1761436800,
-         "leadS": 1269718,
+         "leadS": 1274348,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 10
@@ -5916,9 +6259,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d2-5pp/s10k-100k",
          "members": 3,
          "breached": 3,
-         "firstBreachTs": 1762686178,
+         "firstBreachTs": 1762689549,
          "earliestWarnTs": 1761436800,
-         "leadS": 1249378,
+         "leadS": 1252749,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -6004,9 +6347,9 @@
          "cluster": "EV-2/gearbox/xUSD/other",
          "members": 2,
          "breached": 1,
-         "firstBreachTs": 1762178277,
+         "firstBreachTs": 1762181944,
          "earliestWarnTs": 1761436800,
-         "leadS": 741477,
+         "leadS": 745144,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
@@ -6059,9 +6402,9 @@
          "cluster": "EV-2/silo/xUSD/other",
          "members": 18,
          "breached": 7,
-         "firstBreachTs": 1762210926,
+         "firstBreachTs": 1762214346,
          "earliestWarnTs": 1761436800,
-         "leadS": 774126,
+         "leadS": 777546,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 7
@@ -6070,9 +6413,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d2-5pp/s10k-100k",
          "members": 3,
          "breached": 1,
-         "firstBreachTs": 1763004179,
+         "firstBreachTs": 1763013531,
          "earliestWarnTs": 1761436800,
-         "leadS": 1567379,
+         "leadS": 1576731,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
@@ -6081,9 +6424,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d5pp+/s10k-100k",
          "members": 5,
          "breached": 1,
-         "firstBreachTs": 1762332596,
+         "firstBreachTs": 1762336741,
          "earliestWarnTs": 1761436800,
-         "leadS": 895796,
+         "leadS": 899941,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
@@ -6092,9 +6435,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d5pp+/s1k-10k",
          "members": 4,
          "breached": 3,
-         "firstBreachTs": 1762294220,
+         "firstBreachTs": 1762297146,
          "earliestWarnTs": 1761436800,
-         "leadS": 857420,
+         "leadS": 860346,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -6103,9 +6446,9 @@
          "cluster": "EV-2/silo/xUSD/USDC.e/146:0x60109eab/d5pp+/s10k-100k",
          "members": 6,
          "breached": 3,
-         "firstBreachTs": 1762223871,
+         "firstBreachTs": 1762228740,
          "earliestWarnTs": 1761436800,
-         "leadS": 787071,
+         "leadS": 791940,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -6148,7 +6491,77 @@
       },
       "clusters": [
        {
-        "cluster": "EV-2/euler/deUSD/other",
+        "cluster": "EV-2/abracadabra/sdeUSD/other",
+        "members": 1,
+        "breached": 0,
+        "warnBeforeBreach": 0,
+        "criticalBeforeBreach": 0,
+        "leadMinS": null,
+        "leadMedianS": null,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 1,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 0
+       },
+       {
+        "cluster": "EV-2/compound/deUSD/other",
+        "members": 9,
+        "breached": 4,
+        "warnBeforeBreach": 4,
+        "criticalBeforeBreach": 4,
+        "leadMinS": 244733,
+        "leadMedianS": 1007928,
+        "leadToObservedMedianS": 1011960,
+        "censored": 3,
+        "unbreachedWarned": 5,
+        "unbreachedCritical": 2,
+        "warnAtFirstRead": 8
+       },
+       {
+        "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+        "members": 4,
+        "breached": 0,
+        "warnBeforeBreach": 0,
+        "criticalBeforeBreach": 0,
+        "leadMinS": null,
+        "leadMedianS": null,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 4,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 3
+       },
+       {
+        "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s1m-10m",
+        "members": 3,
+        "breached": 0,
+        "warnBeforeBreach": 0,
+        "criticalBeforeBreach": 0,
+        "leadMinS": null,
+        "leadMedianS": null,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 3,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 1
+       },
+       {
+        "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+        "members": 4,
+        "breached": 3,
+        "warnBeforeBreach": 3,
+        "criticalBeforeBreach": 3,
+        "leadMinS": 640704,
+        "leadMedianS": 1007928,
+        "leadToObservedMedianS": 1013460,
+        "censored": 3,
+        "unbreachedWarned": 1,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 4
+       },
+       {
+        "cluster": "EV-2/enclabs/xUSD/other",
         "members": 5,
         "breached": 0,
         "warnBeforeBreach": 0,
@@ -6159,6 +6572,48 @@
         "censored": 0,
         "unbreachedWarned": 5,
         "unbreachedCritical": 4,
+        "warnAtFirstRead": 3
+       },
+       {
+        "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+        "members": 3,
+        "breached": 0,
+        "warnBeforeBreach": 0,
+        "criticalBeforeBreach": 0,
+        "leadMinS": null,
+        "leadMedianS": null,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 3,
+        "unbreachedCritical": 3,
+        "warnAtFirstRead": 1
+       },
+       {
+        "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
+        "members": 3,
+        "breached": 0,
+        "warnBeforeBreach": 0,
+        "criticalBeforeBreach": 0,
+        "leadMinS": null,
+        "leadMedianS": null,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 2,
+        "unbreachedCritical": 2,
+        "warnAtFirstRead": 1
+       },
+       {
+        "cluster": "EV-2/euler/deUSD/other",
+        "members": 5,
+        "breached": 0,
+        "warnBeforeBreach": 0,
+        "criticalBeforeBreach": 0,
+        "leadMinS": null,
+        "leadMedianS": null,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 5,
+        "unbreachedCritical": 5,
         "warnAtFirstRead": 5
        },
        {
@@ -6265,8 +6720,8 @@
         "breached": 3,
         "warnBeforeBreach": 3,
         "criticalBeforeBreach": 3,
-        "leadMinS": 920784,
-        "leadMedianS": 1306476,
+        "leadMinS": 928804,
+        "leadMedianS": 1313988,
         "leadToObservedMedianS": null,
         "censored": 2,
         "unbreachedWarned": 26,
@@ -6293,8 +6748,8 @@
         "breached": 15,
         "warnBeforeBreach": 15,
         "criticalBeforeBreach": 15,
-        "leadMinS": 1314037,
-        "leadMedianS": 1327935,
+        "leadMinS": 1321145,
+        "leadMedianS": 1331947,
         "leadToObservedMedianS": null,
         "censored": 15,
         "unbreachedWarned": 0,
@@ -6307,8 +6762,8 @@
         "breached": 10,
         "warnBeforeBreach": 10,
         "criticalBeforeBreach": 10,
-        "leadMinS": 1269718,
-        "leadMedianS": 1269718,
+        "leadMinS": 1274348,
+        "leadMedianS": 1274348,
         "leadToObservedMedianS": null,
         "censored": 10,
         "unbreachedWarned": 0,
@@ -6321,8 +6776,8 @@
         "breached": 3,
         "warnBeforeBreach": 3,
         "criticalBeforeBreach": 3,
-        "leadMinS": 1249378,
-        "leadMedianS": 1291482,
+        "leadMinS": 1252749,
+        "leadMedianS": 1295945,
         "leadToObservedMedianS": null,
         "censored": 3,
         "unbreachedWarned": 0,
@@ -6433,9 +6888,9 @@
         "breached": 1,
         "warnBeforeBreach": 1,
         "criticalBeforeBreach": 1,
-        "leadMinS": 741477,
-        "leadMedianS": 741477,
-        "leadToObservedMedianS": null,
+        "leadMinS": 745144,
+        "leadMedianS": 745144,
+        "leadToObservedMedianS": 750854,
         "censored": 1,
         "unbreachedWarned": 1,
         "unbreachedCritical": 1,
@@ -6503,8 +6958,8 @@
         "breached": 7,
         "warnBeforeBreach": 7,
         "criticalBeforeBreach": 7,
-        "leadMinS": 102445,
-        "leadMedianS": 1216644,
+        "leadMinS": 107782,
+        "leadMedianS": 1220336,
         "leadToObservedMedianS": null,
         "censored": 6,
         "unbreachedWarned": 11,
@@ -6517,8 +6972,8 @@
         "breached": 1,
         "warnBeforeBreach": 1,
         "criticalBeforeBreach": 1,
-        "leadMinS": 1567379,
-        "leadMedianS": 1567379,
+        "leadMinS": 1576731,
+        "leadMedianS": 1576731,
         "leadToObservedMedianS": null,
         "censored": 1,
         "unbreachedWarned": 2,
@@ -6531,8 +6986,8 @@
         "breached": 1,
         "warnBeforeBreach": 1,
         "criticalBeforeBreach": 1,
-        "leadMinS": 157262,
-        "leadMedianS": 157262,
+        "leadMinS": 162001,
+        "leadMedianS": 162001,
         "leadToObservedMedianS": null,
         "censored": 0,
         "unbreachedWarned": 4,
@@ -6545,8 +7000,8 @@
         "breached": 3,
         "warnBeforeBreach": 3,
         "criticalBeforeBreach": 3,
-        "leadMinS": 118886,
-        "leadMedianS": 157262,
+        "leadMinS": 122406,
+        "leadMedianS": 162001,
         "leadToObservedMedianS": null,
         "censored": 1,
         "unbreachedWarned": 1,
@@ -6559,8 +7014,8 @@
         "breached": 3,
         "warnBeforeBreach": 3,
         "criticalBeforeBreach": 3,
-        "leadMinS": 787071,
-        "leadMedianS": 799498,
+        "leadMinS": 791940,
+        "leadMedianS": 802741,
         "leadToObservedMedianS": null,
         "censored": 3,
         "unbreachedWarned": 3,
@@ -6612,6 +7067,24 @@
       ]
      }
     ],
+    "firstWarnRule": {
+     "health-factor": 55,
+     "collateral-depeg": 5
+    },
+    "firstCriticalRule": {
+     "health-factor": 51,
+     "collateral-depeg": 9
+    },
+    "governance": {
+     "positionsWithEvents": 139,
+     "positionsMessaged": 127,
+     "byPeak": {
+      "1": 66,
+      "2": 59,
+      "3": 2
+     },
+     "messages": 240
+    },
     "byVenue": {
      "morpho": {
       "positions": 4,
@@ -6651,6 +7124,103 @@
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
+        }
+       ],
+       "notScoreableClusters": []
+      }
+     },
+     "abracadabra": {
+      "positions": 1,
+      "gate": {
+       "breachedClusters": 0,
+       "clustersAllWarnedBeforeBreach": 0,
+       "breachedPositions": 0,
+       "warnedBeforeBreach": 0,
+       "criticalBeforeBreach": 0,
+       "met": true
+      },
+      "gateCluster": {
+       "breachedClusters": 0,
+       "passed": 0,
+       "firstBreacherWarned": 0,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/abracadabra/sdeUSD/other",
+         "members": 1,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        }
+       ],
+       "notScoreableClusters": []
+      }
+     },
+     "compound": {
+      "positions": 20,
+      "gate": {
+       "breachedClusters": 2,
+       "clustersAllWarnedBeforeBreach": 2,
+       "breachedPositions": 7,
+       "warnedBeforeBreach": 7,
+       "criticalBeforeBreach": 7,
+       "met": true
+      },
+      "gateCluster": {
+       "breachedClusters": 2,
+       "passed": 2,
+       "firstBreacherWarned": 2,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/compound/deUSD/other",
+         "members": 9,
+         "breached": 4,
+         "firstBreachTs": 1762444739,
+         "earliestWarnTs": 1761436811,
+         "leadS": 1007928,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 4
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+         "members": 4,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s1m-10m",
+         "members": 3,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+         "members": 4,
+         "breached": 3,
+         "firstBreachTs": 1762444739,
+         "earliestWarnTs": 1761436811,
+         "leadS": 1007928,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 3
         }
        ],
        "notScoreableClusters": []
@@ -6765,9 +7335,9 @@
          "cluster": "EV-2/euler/xUSD/other",
          "members": 30,
          "breached": 3,
-         "firstBreachTs": 1762743276,
+         "firstBreachTs": 1762750788,
          "earliestWarnTs": 1761436800,
-         "leadS": 1306476,
+         "leadS": 1313988,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -6787,9 +7357,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d1-2pp/s10k-100k",
          "members": 15,
          "breached": 15,
-         "firstBreachTs": 1762750837,
+         "firstBreachTs": 1762757945,
          "earliestWarnTs": 1761436800,
-         "leadS": 1314037,
+         "leadS": 1321145,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 15
@@ -6798,9 +7368,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d1-2pp/s1k-10k",
          "members": 10,
          "breached": 10,
-         "firstBreachTs": 1762706518,
+         "firstBreachTs": 1762711148,
          "earliestWarnTs": 1761436800,
-         "leadS": 1269718,
+         "leadS": 1274348,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 10
@@ -6809,9 +7379,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d2-5pp/s10k-100k",
          "members": 3,
          "breached": 3,
-         "firstBreachTs": 1762686178,
+         "firstBreachTs": 1762689549,
          "earliestWarnTs": 1761436800,
-         "leadS": 1249378,
+         "leadS": 1252749,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -6940,9 +7510,9 @@
          "cluster": "EV-2/silo/xUSD/other",
          "members": 18,
          "breached": 7,
-         "firstBreachTs": 1762210926,
+         "firstBreachTs": 1762214346,
          "earliestWarnTs": 1761436800,
-         "leadS": 774126,
+         "leadS": 777546,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 7
@@ -6951,9 +7521,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d2-5pp/s10k-100k",
          "members": 3,
          "breached": 1,
-         "firstBreachTs": 1763004179,
+         "firstBreachTs": 1763013531,
          "earliestWarnTs": 1761436800,
-         "leadS": 1567379,
+         "leadS": 1576731,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
@@ -6962,9 +7532,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d5pp+/s10k-100k",
          "members": 5,
          "breached": 1,
-         "firstBreachTs": 1762332596,
+         "firstBreachTs": 1762336741,
          "earliestWarnTs": 1761436800,
-         "leadS": 895796,
+         "leadS": 899941,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
@@ -6973,9 +7543,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d5pp+/s1k-10k",
          "members": 4,
          "breached": 3,
-         "firstBreachTs": 1762294220,
+         "firstBreachTs": 1762297146,
          "earliestWarnTs": 1761436800,
-         "leadS": 857420,
+         "leadS": 860346,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -6984,9 +7554,9 @@
          "cluster": "EV-2/silo/xUSD/USDC.e/146:0x60109eab/d5pp+/s10k-100k",
          "members": 6,
          "breached": 3,
-         "firstBreachTs": 1762223871,
+         "firstBreachTs": 1762228740,
          "earliestWarnTs": 1761436800,
-         "leadS": 787071,
+         "leadS": 791940,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -7028,6 +7598,60 @@
        "notScoreableClusters": []
       }
      },
+     "enclabs": {
+      "positions": 11,
+      "gate": {
+       "breachedClusters": 0,
+       "clustersAllWarnedBeforeBreach": 0,
+       "breachedPositions": 0,
+       "warnedBeforeBreach": 0,
+       "criticalBeforeBreach": 0,
+       "met": true
+      },
+      "gateCluster": {
+       "breachedClusters": 0,
+       "passed": 0,
+       "firstBreacherWarned": 0,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/enclabs/xUSD/other",
+         "members": 5,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+         "members": 3,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
+         "members": 3,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        }
+       ],
+       "notScoreableClusters": []
+      }
+     },
      "gearbox": {
       "positions": 2,
       "gate": {
@@ -7049,9 +7673,9 @@
          "cluster": "EV-2/gearbox/xUSD/other",
          "members": 2,
          "breached": 1,
-         "firstBreachTs": 1762178277,
+         "firstBreachTs": 1762181944,
          "earliestWarnTs": 1761436800,
-         "leadS": 741477,
+         "leadS": 745144,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
@@ -7068,36 +7692,124 @@
       "cadence": "1 h",
       "everyS": 0,
       "gate": {
-       "breachedClusters": 26,
-       "clustersAllWarnedBeforeBreach": 26,
-       "breachedPositions": 145,
-       "warnedBeforeBreach": 145,
-       "criticalBeforeBreach": 108,
+       "breachedClusters": 32,
+       "clustersAllWarnedBeforeBreach": 32,
+       "breachedPositions": 162,
+       "warnedBeforeBreach": 162,
+       "criticalBeforeBreach": 121,
        "met": true
       },
       "gateScoreable": {
-       "breachedClusters": 26,
-       "clustersAllWarnedBeforeBreach": 26,
-       "breachedPositions": 145,
-       "warnedBeforeBreach": 145,
-       "criticalBeforeBreach": 108,
+       "breachedClusters": 32,
+       "clustersAllWarnedBeforeBreach": 32,
+       "breachedPositions": 162,
+       "warnedBeforeBreach": 162,
+       "criticalBeforeBreach": 121,
        "met": true,
        "startBelowOne": 0
       },
       "gateCluster": {
-       "breachedClusters": 26,
-       "passed": 26,
-       "firstBreacherWarned": 26,
+       "breachedClusters": 32,
+       "passed": 32,
+       "firstBreacherWarned": 32,
        "failed": [],
        "met": true,
        "perCluster": [
         {
+         "cluster": "EV-2/abracadabra/sdeUSD/other",
+         "members": 1,
+         "breached": 1,
+         "firstBreachTs": 1762246740,
+         "earliestWarnTs": 1762196345,
+         "leadS": 50395,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 1
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/other",
+         "members": 9,
+         "breached": 5,
+         "firstBreachTs": 1762196397,
+         "earliestWarnTs": 1761436811,
+         "leadS": 759586,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 5
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+         "members": 4,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s1m-10m",
+         "members": 3,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+         "members": 4,
+         "breached": 3,
+         "firstBreachTs": 1762196397,
+         "earliestWarnTs": 1761436811,
+         "leadS": 759586,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 3
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/other",
+         "members": 5,
+         "breached": 4,
+         "firstBreachTs": 1762171143,
+         "earliestWarnTs": 1761436800,
+         "leadS": 734343,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 4
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+         "members": 3,
+         "breached": 3,
+         "firstBreachTs": 1762174740,
+         "earliestWarnTs": 1761436800,
+         "leadS": 737940,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 3
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
+         "members": 3,
+         "breached": 1,
+         "firstBreachTs": 1762171143,
+         "earliestWarnTs": 1761436800,
+         "leadS": 734343,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 1
+        },
+        {
          "cluster": "EV-2/euler/deUSD/other",
          "members": 5,
          "breached": 4,
-         "firstBreachTs": 1762233646,
+         "firstBreachTs": 1762239542,
          "earliestWarnTs": 1761436801,
-         "leadS": 796845,
+         "leadS": 802741,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -7106,9 +7818,9 @@
          "cluster": "EV-2/euler/sdeUSD/other",
          "members": 6,
          "breached": 6,
-         "firstBreachTs": 1762233646,
+         "firstBreachTs": 1762235940,
          "earliestWarnTs": 1761436800,
-         "leadS": 796846,
+         "leadS": 799140,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 6
@@ -7117,9 +7829,9 @@
          "cluster": "EV-2/euler/xUSD/msUSD/9745:0xf90cf999/d5pp+/s10k-100k",
          "members": 6,
          "breached": 6,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 6
@@ -7139,9 +7851,9 @@
          "cluster": "EV-2/euler/xUSD/plUSD/9745:0x27934d48/d5pp+/s100k-1m",
          "members": 3,
          "breached": 3,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761566399,
-         "leadS": 604684,
+         "leadS": 604744,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -7150,9 +7862,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d1-2pp/s10k-100k",
          "members": 15,
          "breached": 15,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762163794,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 726994,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 15
@@ -7161,9 +7873,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d1-2pp/s1k-10k",
          "members": 10,
          "breached": 10,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762163794,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 726994,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 10
@@ -7183,9 +7895,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d5pp+/s10k-100k",
          "members": 3,
          "breached": 3,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -7194,9 +7906,9 @@
          "cluster": "EV-2/euler/xUSD/USDC.e/146:0x196f3c74/d5pp+/s10k-100k",
          "members": 5,
          "breached": 4,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -7205,9 +7917,9 @@
          "cluster": "EV-2/euler/xUSD/USDC/1:0x01864ae3/d5pp+/s10k-100k",
          "members": 4,
          "breached": 4,
-         "firstBreachTs": 1762171019,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436811,
-         "leadS": 734208,
+         "leadS": 734332,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -7216,9 +7928,9 @@
          "cluster": "EV-2/euler/xUSD/USDT0/9745:0x57c58234/d5pp+/s100k-1m",
          "members": 10,
          "breached": 7,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 7
@@ -7227,9 +7939,9 @@
          "cluster": "EV-2/euler/xUSD/USDT0/9745:0x57c58234/d5pp+/s10k-100k",
          "members": 6,
          "breached": 6,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 6
@@ -7238,9 +7950,9 @@
          "cluster": "EV-2/euler/xUSD/USDT0/9745:0x57c58234/d5pp+/s1m-10m",
          "members": 3,
          "breached": 2,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 2
@@ -7260,9 +7972,9 @@
          "cluster": "EV-2/gearbox/xUSD/other",
          "members": 2,
          "breached": 1,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
@@ -7293,9 +8005,9 @@
          "cluster": "EV-2/silo/xUSD/other",
          "members": 18,
          "breached": 17,
-         "firstBreachTs": 1762145707,
+         "firstBreachTs": 1762149546,
          "earliestWarnTs": 1761436800,
-         "leadS": 708907,
+         "leadS": 712746,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 17
@@ -7315,9 +8027,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d5pp+/s10k-100k",
          "members": 5,
          "breached": 4,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -7326,9 +8038,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d5pp+/s1k-10k",
          "members": 4,
          "breached": 4,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -7337,9 +8049,9 @@
          "cluster": "EV-2/silo/xUSD/USDC.e/146:0x60109eab/d5pp+/s10k-100k",
          "members": 6,
          "breached": 6,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 6
@@ -7348,9 +8060,9 @@
          "cluster": "EV-2/silo/xUSD/USDC.e/146:0x60109eab/d5pp+/s1k-10k",
          "members": 4,
          "breached": 4,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -7359,9 +8071,9 @@
          "cluster": "EV-2/silo/xUSD/USDC/1:0xb0b37f55/d5pp+/s10k-100k",
          "members": 3,
          "breached": 1,
-         "firstBreachTs": 1762228583,
-         "earliestWarnTs": 1762178207,
-         "leadS": 50376,
+         "firstBreachTs": 1762228740,
+         "earliestWarnTs": 1762174740,
+         "leadS": 54000,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
@@ -7370,9 +8082,9 @@
          "cluster": "EV-2/silo/xUSD/USDC/43114:0x6b13d486/d5pp+/s1m-10m",
          "members": 3,
          "breached": 3,
-         "firstBreachTs": 1762184306,
-         "earliestWarnTs": 1762176995,
-         "leadS": 7311,
+         "firstBreachTs": 1762185578,
+         "earliestWarnTs": 1762174740,
+         "leadS": 10838,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -7382,17 +8094,129 @@
       },
       "clusters": [
        {
+        "cluster": "EV-2/abracadabra/sdeUSD/other",
+        "members": 1,
+        "breached": 1,
+        "warnBeforeBreach": 1,
+        "criticalBeforeBreach": 1,
+        "leadMinS": 50395,
+        "leadMedianS": 50395,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 0,
+        "unbreachedCritical": 0,
+        "warnAtFirstRead": 0
+       },
+       {
+        "cluster": "EV-2/compound/deUSD/other",
+        "members": 9,
+        "breached": 5,
+        "warnBeforeBreach": 5,
+        "criticalBeforeBreach": 4,
+        "leadMinS": 61197,
+        "leadMedianS": 759586,
+        "leadToObservedMedianS": 1011960,
+        "censored": 4,
+        "unbreachedWarned": 4,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 8
+       },
+       {
+        "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+        "members": 4,
+        "breached": 0,
+        "warnBeforeBreach": 0,
+        "criticalBeforeBreach": 0,
+        "leadMinS": null,
+        "leadMedianS": null,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 4,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 3
+       },
+       {
+        "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s1m-10m",
+        "members": 3,
+        "breached": 0,
+        "warnBeforeBreach": 0,
+        "criticalBeforeBreach": 0,
+        "leadMinS": null,
+        "leadMedianS": null,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 3,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 1
+       },
+       {
+        "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+        "members": 4,
+        "breached": 3,
+        "warnBeforeBreach": 3,
+        "criticalBeforeBreach": 3,
+        "leadMinS": 392362,
+        "leadMedianS": 802731,
+        "leadToObservedMedianS": 1013460,
+        "censored": 3,
+        "unbreachedWarned": 1,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 4
+       },
+       {
+        "cluster": "EV-2/enclabs/xUSD/other",
+        "members": 5,
+        "breached": 4,
+        "warnBeforeBreach": 4,
+        "criticalBeforeBreach": 3,
+        "leadMinS": 55712,
+        "leadMedianS": 399596,
+        "leadToObservedMedianS": null,
+        "censored": 2,
+        "unbreachedWarned": 1,
+        "unbreachedCritical": 0,
+        "warnAtFirstRead": 3
+       },
+       {
+        "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+        "members": 3,
+        "breached": 3,
+        "warnBeforeBreach": 3,
+        "criticalBeforeBreach": 3,
+        "leadMinS": 0,
+        "leadMedianS": 0,
+        "leadToObservedMedianS": null,
+        "censored": 0,
+        "unbreachedWarned": 0,
+        "unbreachedCritical": 0,
+        "warnAtFirstRead": 1
+       },
+       {
+        "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
+        "members": 3,
+        "breached": 1,
+        "warnBeforeBreach": 1,
+        "criticalBeforeBreach": 0,
+        "leadMinS": 734343,
+        "leadMedianS": 734343,
+        "leadToObservedMedianS": null,
+        "censored": 1,
+        "unbreachedWarned": 1,
+        "unbreachedCritical": 1,
+        "warnAtFirstRead": 1
+       },
+       {
         "cluster": "EV-2/euler/deUSD/other",
         "members": 5,
         "breached": 4,
         "warnBeforeBreach": 4,
         "criticalBeforeBreach": 4,
-        "leadMinS": 796845,
-        "leadMedianS": 807430,
+        "leadMinS": 802741,
+        "leadMedianS": 813571.5,
         "leadToObservedMedianS": null,
         "censored": 4,
         "unbreachedWarned": 1,
-        "unbreachedCritical": 0,
+        "unbreachedCritical": 1,
         "warnAtFirstRead": 5
        },
        {
@@ -7400,9 +8224,9 @@
         "members": 6,
         "breached": 6,
         "warnBeforeBreach": 6,
-        "criticalBeforeBreach": 4,
-        "leadMinS": 796845,
-        "leadMedianS": 818015,
+        "criticalBeforeBreach": 3,
+        "leadMinS": 799139,
+        "leadMedianS": 820746,
         "leadToObservedMedianS": null,
         "censored": 6,
         "unbreachedWarned": 0,
@@ -7415,8 +8239,8 @@
         "breached": 6,
         "warnBeforeBreach": 6,
         "criticalBeforeBreach": 2,
-        "leadMinS": 7193,
-        "leadMedianS": 233875.5,
+        "leadMinS": 10838,
+        "leadMedianS": 233959.5,
         "leadToObservedMedianS": null,
         "censored": 4,
         "unbreachedWarned": 0,
@@ -7429,7 +8253,7 @@
         "breached": 23,
         "warnBeforeBreach": 23,
         "criticalBeforeBreach": 17,
-        "leadMinS": 0,
+        "leadMinS": 60,
         "leadMedianS": 732609,
         "leadToObservedMedianS": null,
         "censored": 15,
@@ -7443,8 +8267,8 @@
         "breached": 3,
         "warnBeforeBreach": 3,
         "criticalBeforeBreach": 1,
-        "leadMinS": 482285,
-        "leadMedianS": 511085,
+        "leadMinS": 482345,
+        "leadMedianS": 511145,
         "leadToObservedMedianS": null,
         "censored": 2,
         "unbreachedWarned": 0,
@@ -7457,7 +8281,7 @@
         "breached": 15,
         "warnBeforeBreach": 15,
         "criticalBeforeBreach": 15,
-        "leadMinS": 732609,
+        "leadMinS": 726994,
         "leadMedianS": 732609,
         "leadToObservedMedianS": null,
         "censored": 15,
@@ -7471,8 +8295,8 @@
         "breached": 10,
         "warnBeforeBreach": 10,
         "criticalBeforeBreach": 10,
-        "leadMinS": 732609,
-        "leadMedianS": 732609,
+        "leadMinS": 726994,
+        "leadMedianS": 726994,
         "leadToObservedMedianS": null,
         "censored": 10,
         "unbreachedWarned": 0,
@@ -7486,7 +8310,7 @@
         "warnBeforeBreach": 3,
         "criticalBeforeBreach": 3,
         "leadMinS": 732609,
-        "leadMedianS": 732609,
+        "leadMedianS": 734343,
         "leadToObservedMedianS": null,
         "censored": 3,
         "unbreachedWarned": 0,
@@ -7499,8 +8323,8 @@
         "breached": 3,
         "warnBeforeBreach": 3,
         "criticalBeforeBreach": 1,
-        "leadMinS": 11304,
-        "leadMedianS": 732609,
+        "leadMinS": 11898,
+        "leadMedianS": 734343,
         "leadToObservedMedianS": null,
         "censored": 2,
         "unbreachedWarned": 0,
@@ -7513,7 +8337,7 @@
         "breached": 4,
         "warnBeforeBreach": 4,
         "criticalBeforeBreach": 4,
-        "leadMinS": 78402,
+        "leadMinS": 80136,
         "leadMedianS": 559769,
         "leadToObservedMedianS": null,
         "censored": 2,
@@ -7527,8 +8351,8 @@
         "breached": 4,
         "warnBeforeBreach": 4,
         "criticalBeforeBreach": 3,
-        "leadMinS": 734208,
-        "leadMedianS": 734208,
+        "leadMinS": 734332,
+        "leadMedianS": 734332,
         "leadToObservedMedianS": null,
         "censored": 4,
         "unbreachedWarned": 0,
@@ -7541,8 +8365,8 @@
         "breached": 7,
         "warnBeforeBreach": 7,
         "criticalBeforeBreach": 3,
-        "leadMinS": 71935,
-        "leadMedianS": 734283,
+        "leadMinS": 71995,
+        "leadMedianS": 734343,
         "leadToObservedMedianS": null,
         "censored": 6,
         "unbreachedWarned": 3,
@@ -7555,8 +8379,8 @@
         "breached": 6,
         "warnBeforeBreach": 6,
         "criticalBeforeBreach": 4,
-        "leadMinS": 50354,
-        "leadMedianS": 734283,
+        "leadMinS": 54000,
+        "leadMedianS": 734343,
         "leadToObservedMedianS": null,
         "censored": 5,
         "unbreachedWarned": 0,
@@ -7569,8 +8393,8 @@
         "breached": 2,
         "warnBeforeBreach": 2,
         "criticalBeforeBreach": 2,
-        "leadMinS": 7193,
-        "leadMedianS": 370738,
+        "leadMinS": 10838,
+        "leadMedianS": 372590.5,
         "leadToObservedMedianS": null,
         "censored": 1,
         "unbreachedWarned": 1,
@@ -7597,9 +8421,9 @@
         "breached": 1,
         "warnBeforeBreach": 1,
         "criticalBeforeBreach": 1,
-        "leadMinS": 734283,
-        "leadMedianS": 734283,
-        "leadToObservedMedianS": null,
+        "leadMinS": 734343,
+        "leadMedianS": 734343,
+        "leadToObservedMedianS": 750854,
         "censored": 1,
         "unbreachedWarned": 1,
         "unbreachedCritical": 1,
@@ -7639,7 +8463,7 @@
         "breached": 17,
         "warnBeforeBreach": 17,
         "criticalBeforeBreach": 12,
-        "leadMinS": 7212,
+        "leadMinS": 10838,
         "leadMedianS": 732609,
         "leadToObservedMedianS": null,
         "censored": 11,
@@ -7667,8 +8491,8 @@
         "breached": 4,
         "warnBeforeBreach": 4,
         "criticalBeforeBreach": 1,
-        "leadMinS": 5865,
-        "leadMedianS": 732609,
+        "leadMinS": 10838,
+        "leadMedianS": 734343,
         "leadToObservedMedianS": null,
         "censored": 3,
         "unbreachedWarned": 1,
@@ -7681,8 +8505,8 @@
         "breached": 4,
         "warnBeforeBreach": 4,
         "criticalBeforeBreach": 3,
-        "leadMinS": 11304,
-        "leadMedianS": 11304,
+        "leadMinS": 11898,
+        "leadMedianS": 11898,
         "leadToObservedMedianS": null,
         "censored": 1,
         "unbreachedWarned": 0,
@@ -7695,8 +8519,8 @@
         "breached": 6,
         "warnBeforeBreach": 6,
         "criticalBeforeBreach": 2,
-        "leadMinS": 11304,
-        "leadMedianS": 732609,
+        "leadMinS": 11898,
+        "leadMedianS": 734343,
         "leadToObservedMedianS": null,
         "censored": 4,
         "unbreachedWarned": 0,
@@ -7709,8 +8533,8 @@
         "breached": 4,
         "warnBeforeBreach": 4,
         "criticalBeforeBreach": 3,
-        "leadMinS": 11304,
-        "leadMedianS": 461447.5,
+        "leadMinS": 11898,
+        "leadMedianS": 462314.5,
         "leadToObservedMedianS": null,
         "censored": 2,
         "unbreachedWarned": 0,
@@ -7723,8 +8547,8 @@
         "breached": 1,
         "warnBeforeBreach": 1,
         "criticalBeforeBreach": 1,
-        "leadMinS": 50376,
-        "leadMedianS": 50376,
+        "leadMinS": 54000,
+        "leadMedianS": 54000,
         "leadToObservedMedianS": null,
         "censored": 0,
         "unbreachedWarned": 2,
@@ -7737,8 +8561,8 @@
         "breached": 3,
         "warnBeforeBreach": 3,
         "criticalBeforeBreach": 3,
-        "leadMinS": 7311,
-        "leadMedianS": 7311,
+        "leadMinS": 10838,
+        "leadMedianS": 10838,
         "leadToObservedMedianS": null,
         "censored": 0,
         "unbreachedWarned": 0,
@@ -7748,6 +8572,27 @@
       ]
      }
     ],
+    "firstWarnRule": {
+     "health-factor": 131,
+     "collateral-depeg": 31
+    },
+    "firstCriticalRule": {
+     "health-factor": 76,
+     "oracle-change": 2,
+     "collateral-depeg": 41,
+     "none": 41,
+     "cushion-burn": 2
+    },
+    "governance": {
+     "positionsWithEvents": 139,
+     "positionsMessaged": 93,
+     "byPeak": {
+      "1": 55,
+      "2": 37,
+      "3": 1
+     },
+     "messages": 96
+    },
     "byVenue": {
      "morpho": {
       "positions": 4,
@@ -7792,6 +8637,103 @@
        "notScoreableClusters": []
       }
      },
+     "abracadabra": {
+      "positions": 1,
+      "gate": {
+       "breachedClusters": 1,
+       "clustersAllWarnedBeforeBreach": 1,
+       "breachedPositions": 1,
+       "warnedBeforeBreach": 1,
+       "criticalBeforeBreach": 1,
+       "met": true
+      },
+      "gateCluster": {
+       "breachedClusters": 1,
+       "passed": 1,
+       "firstBreacherWarned": 1,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/abracadabra/sdeUSD/other",
+         "members": 1,
+         "breached": 1,
+         "firstBreachTs": 1762246740,
+         "earliestWarnTs": 1762196345,
+         "leadS": 50395,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 1
+        }
+       ],
+       "notScoreableClusters": []
+      }
+     },
+     "compound": {
+      "positions": 20,
+      "gate": {
+       "breachedClusters": 2,
+       "clustersAllWarnedBeforeBreach": 2,
+       "breachedPositions": 8,
+       "warnedBeforeBreach": 8,
+       "criticalBeforeBreach": 7,
+       "met": true
+      },
+      "gateCluster": {
+       "breachedClusters": 2,
+       "passed": 2,
+       "firstBreacherWarned": 2,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/compound/deUSD/other",
+         "members": 9,
+         "breached": 5,
+         "firstBreachTs": 1762196397,
+         "earliestWarnTs": 1761436811,
+         "leadS": 759586,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 5
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s100k-1m",
+         "members": 4,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDS/1:0x5d409e56/d5pp+/s1m-10m",
+         "members": 3,
+         "breached": 0,
+         "firstBreachTs": null,
+         "earliestWarnTs": null,
+         "leadS": null,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 0
+        },
+        {
+         "cluster": "EV-2/compound/deUSD/USDT/1:0x3afdc9bc/d2-5pp/s1m-10m",
+         "members": 4,
+         "breached": 3,
+         "firstBreachTs": 1762196397,
+         "earliestWarnTs": 1761436811,
+         "leadS": 759586,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 3
+        }
+       ],
+       "notScoreableClusters": []
+      }
+     },
      "euler": {
       "positions": 111,
       "gate": {
@@ -7799,7 +8741,7 @@
        "clustersAllWarnedBeforeBreach": 15,
        "breachedPositions": 99,
        "warnedBeforeBreach": 99,
-       "criticalBeforeBreach": 76,
+       "criticalBeforeBreach": 75,
        "met": true
       },
       "gateCluster": {
@@ -7813,9 +8755,9 @@
          "cluster": "EV-2/euler/deUSD/other",
          "members": 5,
          "breached": 4,
-         "firstBreachTs": 1762233646,
+         "firstBreachTs": 1762239542,
          "earliestWarnTs": 1761436801,
-         "leadS": 796845,
+         "leadS": 802741,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -7824,9 +8766,9 @@
          "cluster": "EV-2/euler/sdeUSD/other",
          "members": 6,
          "breached": 6,
-         "firstBreachTs": 1762233646,
+         "firstBreachTs": 1762235940,
          "earliestWarnTs": 1761436800,
-         "leadS": 796846,
+         "leadS": 799140,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 6
@@ -7835,9 +8777,9 @@
          "cluster": "EV-2/euler/xUSD/msUSD/9745:0xf90cf999/d5pp+/s10k-100k",
          "members": 6,
          "breached": 6,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 6
@@ -7857,9 +8799,9 @@
          "cluster": "EV-2/euler/xUSD/plUSD/9745:0x27934d48/d5pp+/s100k-1m",
          "members": 3,
          "breached": 3,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761566399,
-         "leadS": 604684,
+         "leadS": 604744,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -7868,9 +8810,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d1-2pp/s10k-100k",
          "members": 15,
          "breached": 15,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762163794,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 726994,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 15
@@ -7879,9 +8821,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d1-2pp/s1k-10k",
          "members": 10,
          "breached": 10,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762163794,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 726994,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 10
@@ -7901,9 +8843,9 @@
          "cluster": "EV-2/euler/xUSD/scUSD/146:0xb38d431e/d5pp+/s10k-100k",
          "members": 3,
          "breached": 3,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
@@ -7912,9 +8854,9 @@
          "cluster": "EV-2/euler/xUSD/USDC.e/146:0x196f3c74/d5pp+/s10k-100k",
          "members": 5,
          "breached": 4,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -7923,9 +8865,9 @@
          "cluster": "EV-2/euler/xUSD/USDC/1:0x01864ae3/d5pp+/s10k-100k",
          "members": 4,
          "breached": 4,
-         "firstBreachTs": 1762171019,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436811,
-         "leadS": 734208,
+         "leadS": 734332,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -7934,9 +8876,9 @@
          "cluster": "EV-2/euler/xUSD/USDT0/9745:0x57c58234/d5pp+/s100k-1m",
          "members": 10,
          "breached": 7,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 7
@@ -7945,9 +8887,9 @@
          "cluster": "EV-2/euler/xUSD/USDT0/9745:0x57c58234/d5pp+/s10k-100k",
          "members": 6,
          "breached": 6,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 6
@@ -7956,9 +8898,9 @@
          "cluster": "EV-2/euler/xUSD/USDT0/9745:0x57c58234/d5pp+/s1m-10m",
          "members": 3,
          "breached": 2,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 2
@@ -7999,9 +8941,9 @@
          "cluster": "EV-2/silo/xUSD/other",
          "members": 18,
          "breached": 17,
-         "firstBreachTs": 1762145707,
+         "firstBreachTs": 1762149546,
          "earliestWarnTs": 1761436800,
-         "leadS": 708907,
+         "leadS": 712746,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 17
@@ -8021,9 +8963,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d5pp+/s10k-100k",
          "members": 5,
          "breached": 4,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -8032,9 +8974,9 @@
          "cluster": "EV-2/silo/xUSD/scUSD/146:0x0f9341f6/d5pp+/s1k-10k",
          "members": 4,
          "breached": 4,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -8043,9 +8985,9 @@
          "cluster": "EV-2/silo/xUSD/USDC.e/146:0x60109eab/d5pp+/s10k-100k",
          "members": 6,
          "breached": 6,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 6
@@ -8054,9 +8996,9 @@
          "cluster": "EV-2/silo/xUSD/USDC.e/146:0x60109eab/d5pp+/s1k-10k",
          "members": 4,
          "breached": 4,
-         "firstBreachTs": 1762169409,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 732609,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 4
@@ -8065,9 +9007,9 @@
          "cluster": "EV-2/silo/xUSD/USDC/1:0xb0b37f55/d5pp+/s10k-100k",
          "members": 3,
          "breached": 1,
-         "firstBreachTs": 1762228583,
-         "earliestWarnTs": 1762178207,
-         "leadS": 50376,
+         "firstBreachTs": 1762228740,
+         "earliestWarnTs": 1762174740,
+         "leadS": 54000,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1
@@ -8076,12 +9018,66 @@
          "cluster": "EV-2/silo/xUSD/USDC/43114:0x6b13d486/d5pp+/s1m-10m",
          "members": 3,
          "breached": 3,
-         "firstBreachTs": 1762184306,
-         "earliestWarnTs": 1762176995,
-         "leadS": 7311,
+         "firstBreachTs": 1762185578,
+         "earliestWarnTs": 1762174740,
+         "leadS": 10838,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 3
+        }
+       ],
+       "notScoreableClusters": []
+      }
+     },
+     "enclabs": {
+      "positions": 11,
+      "gate": {
+       "breachedClusters": 3,
+       "clustersAllWarnedBeforeBreach": 3,
+       "breachedPositions": 8,
+       "warnedBeforeBreach": 8,
+       "criticalBeforeBreach": 6,
+       "met": true
+      },
+      "gateCluster": {
+       "breachedClusters": 3,
+       "passed": 3,
+       "firstBreacherWarned": 3,
+       "failed": [],
+       "met": true,
+       "perCluster": [
+        {
+         "cluster": "EV-2/enclabs/xUSD/other",
+         "members": 5,
+         "breached": 4,
+         "firstBreachTs": 1762171143,
+         "earliestWarnTs": 1761436800,
+         "leadS": 734343,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 4
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s100k-1m",
+         "members": 3,
+         "breached": 3,
+         "firstBreachTs": 1762174740,
+         "earliestWarnTs": 1761436800,
+         "leadS": 737940,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 3
+        },
+        {
+         "cluster": "EV-2/enclabs/xUSD/pool (USDC.e, scUSD, USDT0, …)/146:0x13d79435/d5pp+/s1k-10k",
+         "members": 3,
+         "breached": 1,
+         "firstBreachTs": 1762171143,
+         "earliestWarnTs": 1761436800,
+         "leadS": 734343,
+         "passes": true,
+         "firstBreacherWarned": true,
+         "membersWarnedFirst": 1
         }
        ],
        "notScoreableClusters": []
@@ -8108,9 +9104,9 @@
          "cluster": "EV-2/gearbox/xUSD/other",
          "members": 2,
          "breached": 1,
-         "firstBreachTs": 1762171083,
+         "firstBreachTs": 1762171143,
          "earliestWarnTs": 1761436800,
-         "leadS": 734283,
+         "leadS": 734343,
          "passes": true,
          "firstBreacherWarned": true,
          "membersWarnedFirst": 1

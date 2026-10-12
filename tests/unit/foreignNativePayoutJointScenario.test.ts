@@ -30,6 +30,9 @@ describe('foreign native to final joint conditional mechanics; actual enrollment
    expect(r.shrinking.shrinkingScenarios).toBe(1);expect(r.shrinking.censoredScenarios).toBe(0)
    expect(r.holderExecutableExit).toBe(false);expect(r.forecastValidated).toBe(false)
    expect(r.actualApiEnrollment).toBe('required_original_native_history_and_conversion_receipts_not_enrolled')
+   expect(r.mechanismTiming.fullRouteDeliveryAndRecoveryCensored).toBe(true)
+   expect(r.mechanismTiming.fundingTimeIsNotDeliveryTime).toBe(true)
+   if(i===1)expect(r.mechanismTiming.additionalFundingProngs[0].asset).toBe('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')
   }
  })
  it('never scales an exact sized quote and censors smaller native cash paths',()=>{
@@ -46,6 +49,32 @@ describe('foreign native to final joint conditional mechanics; actual enrollment
   const usable=r.process.scenarios.filter(s=>s.targetHeadroomRaw!==null)
   expect(usable.map(s=>s.targetHeadroomRaw)).toEqual(['10'])
   expect(r.shrinking.censoredScenarios).toBe(1)
+  expect(r.nativeFundingDiagnostic.thresholdNativeRaw).toBe('60')
+  expect(r.nativeFundingDiagnostic.process?.targetSummary?.minimumHeadroomRaw).toBe('-60')
+  expect(r.nativeFundingDiagnostic.process?.targetSummary?.maximumHeadroomRaw).toBe('40')
+  expect(r.nativeFundingDiagnostic.finalQDeductedHere).toBe(false)
+  expect(r.mechanismTiming.fullRouteDeliveryAndRecoveryCensored).toBe(true)
+  v.conversion.finalOutputRaw='99'
+  const inadequate=buildForeignNativePayoutJointScenario(v,x=>x===v,c=>c===quote)!
+  expect(inadequate.nativeFundingDiagnostic.status).toBe('quoted_final_output_below_final_Q')
+  expect(inadequate.nativeFundingDiagnostic.thresholdNativeRaw).toBeNull()
+  expect(inadequate.nativeFundingDiagnostic.process).toBeNull()
+ })
+ it('requires separately original-qualified bounded release terms and retains unknown administrator timing',()=>{
+  const v=input(1),source=v.native.source,p=v.native.provenance
+  v.mechanicalRelease={routeKey:v.question.routeKey,destination:v.question.destination,owner:v.question.owner,
+   nativeAsset:v.question.nativeAsset,finalAsset:v.question.finalAsset,source,availableAtUtc:v.question.issuedAtUtc,
+   minimumNativeAmountRaw:'0',maximumNativeAmountRaw:'100',
+   conditions:([ 'native_release','queue_or_administrator_processing','intermediate_conversion','final_conversion'] as const)
+    .map(kind=>({kind,minimumDelaySeconds:60,maximumDelaySeconds:kind==='queue_or_administrator_processing'?null:120,provenance:p}))}
+  expect(buildForeignNativePayoutJointScenario(v,x=>x===v)).toBeNull()
+  const release=v.mechanicalRelease,r=buildForeignNativePayoutJointScenario(v,x=>x===v,()=>false,x=>x===release)!
+  expect(r.mechanismTiming.conditionalMinimumAdditionalDelaySeconds).toBe(240)
+  expect(r.mechanismTiming.conditionalMaximumAdditionalDelaySeconds).toBeNull()
+  expect(r.mechanismTiming.fullRouteDeliveryAndRecoveryCensored).toBe(true)
+  expect(r.mechanismTiming.additionalFundingProngs[0].qualified).toBe(false)
+  const copy=structuredClone(v)
+  expect(buildForeignNativePayoutJointScenario(copy,()=>true,()=>false,x=>x===release)).toBeNull()
  })
  it('rejects copied originals, future terms/history availability, changedsource, foreignunits and oversizedquotes',()=>{
   const v=input();expect(buildForeignNativePayoutJointScenario(structuredClone(v),x=>x===v)).toBeNull()

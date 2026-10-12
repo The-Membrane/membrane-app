@@ -9,7 +9,8 @@ export const FOREIGN_JOINT_NATIVE_REQUIREMENTS = [
   { routeKey:'PYUSD → StakingVault [wYLDS]', destination:'0x19ebb35279a16207ec4ba82799cc64715065f7f6',
     nativeAsset:'0x6ad038ca6c04e885630851278ca0a856ad9a66cc', nativeDecimals:6,
     finalAsset:'0x6c3ea9036406852006290770bedfcaba0e23a0e8', finalDecimals:6,
-    remainingInputs:['owned_full_PRIME_wYLDS_entitlement_at_source','wYLDS_cash_and_compatible_native_history',
+    remainingInputs:['owned_full_PRIME_wYLDS_entitlement_at_source','wYLDS_cash_and_compatible_native_history_PRIME_first_leg_only',
+      'administrator_USDC_settlement_cash_6_decimals_and_same_source_compatible_USDC_history_separate_bottleneck',
       'owned_redemption_and_administrator_settlement_terms','exact_size_wYLDS_USDC_PYUSD_conversion_or_declared_joint_terms'] },
   { routeKey:'USDe → AaveV3ATokenWrapper [PT-srUSDe-22OCT2026]', destination:'0x0af56afbddcb140323445bd7211ba90e54e5fd1c',
     nativeAsset:'0x59bc9fae5d62b19d4f8d07d758047acb9ee19d34', nativeDecimals:18,
@@ -24,6 +25,14 @@ export const FOREIGN_JOINT_NATIVE_REQUIREMENTS = [
 ] as const
 type Source = { chainId:1; block:string; blockHash:string; blockTime:string; readAt:string }
 type Provenance = { datasetSha256:string; receiptSha256:string; contractAddress:string; method:string; reviewRef:string }
+export type ForeignMechanicalReleaseConditions = {
+  routeKey:string; destination:string; owner:string; nativeAsset:string; finalAsset:string;
+  source:Source; availableAtUtc:string; minimumNativeAmountRaw:string; maximumNativeAmountRaw:string;
+  /** Serial delay bounds begin only after the native action is funded. Null upper
+   * bounds preserve discretionary processing censorship, never imply zero delay. */
+  conditions:{ kind:'native_release'|'queue_or_administrator_processing'|'intermediate_conversion'|'final_conversion';
+    minimumDelaySeconds:number; maximumDelaySeconds:number|null; provenance:Provenance }[]
+}
 type Terms = { nativeAsset:string; nativeDecimals:number; finalAsset:string; finalDecimals:number;
   source:Source; availableAtUtc:string; provenance:Provenance; mechanismAssumptions:string[] }
 export type ForeignJointConversion = Terms & (
@@ -38,6 +47,7 @@ export type ForeignNativePayoutJointInput = {
     additionalCompetitionNativeRaw:string; regime:string; provenance:Provenance;
     history:ConditionalTimeProcessInput['observations'] }
   conversion:ForeignJointConversion
+  mechanicalRelease?:ForeignMechanicalReleaseConditions
 }
 const MAX=(1n<<256n)-1n
 const raw=(v:unknown):v is string=>typeof v==='string'&&/^(0|[1-9][0-9]{0,77})$/.test(v)&&BigInt(v)<=MAX
@@ -54,10 +64,12 @@ const provenance=(v:Provenance)=>v&&sha(v.datasetSha256)&&sha(v.receiptSha256)&&
  * API enrollment for these required native/history/conversion inputs remains open. */
 export function buildForeignNativePayoutJointScenario(original:ForeignNativePayoutJointInput,
   qualifyOriginalNativeAndHistory:(v:ForeignNativePayoutJointInput)=>boolean,
-  qualifyOriginalExactQuote:(v:ForeignJointConversion)=>boolean=()=>false) {
+  qualifyOriginalExactQuote:(v:ForeignJointConversion)=>boolean=()=>false,
+  qualifyOriginalMechanicalRelease:(v:ForeignMechanicalReleaseConditions)=>boolean=()=>false) {
   try {
     if(!original||qualifyOriginalNativeAndHistory(original)!==true)return null
     const exactApproved=original.conversion?.kind==='original_exact_size_quote'&&qualifyOriginalExactQuote(original.conversion)===true
+    const releaseApproved=original.mechanicalRelease!==undefined&&qualifyOriginalMechanicalRelease(original.mechanicalRelease)===true
     const input=structuredClone(original),q=input.question,n=input.native,c=input.conversion
     const mechanism=FOREIGN_JOINT_NATIVE_REQUIREMENTS.find(m=>m.routeKey===q.routeKey&&m.destination===q.destination)
     if(!mechanism||!address(q.owner)||!['nativeAsset','nativeDecimals','finalAsset','finalDecimals'].every(k=>(q as any)[k]===(mechanism as any)[k])||
@@ -76,6 +88,20 @@ export function buildForeignNativePayoutJointScenario(original:ForeignNativePayo
       if(!raw(c.numeratorFinalRaw)||!raw(c.denominatorNativeRaw)||c.denominatorNativeRaw==='0'||!raw(c.feeFinalRaw)||
         !c.declarationRef||c.declarationRef.length>512)return null
     }else return null
+    const release=input.mechanicalRelease
+    if(release){
+      if(!releaseApproved||release.routeKey!==q.routeKey||release.destination!==q.destination||release.owner!==q.owner||
+        release.nativeAsset!==q.nativeAsset||release.finalAsset!==q.finalAsset||!same(release.source,n.source)||
+        !utc(release.availableAtUtc)||Date.parse(release.availableAtUtc)>Date.parse(q.issuedAtUtc)||
+        Date.parse(release.availableAtUtc)<Date.parse(n.source.blockTime)||
+        !raw(release.minimumNativeAmountRaw)||!raw(release.maximumNativeAmountRaw)||
+        release.minimumNativeAmountRaw!=='0'||BigInt(release.maximumNativeAmountRaw)<BigInt(n.fullEntitlementRaw)||
+        !Array.isArray(release.conditions)||release.conditions.length!==4)return null
+      const kinds=['native_release','queue_or_administrator_processing','intermediate_conversion','final_conversion']
+      if(new Set(release.conditions.map(x=>x.kind)).size!==4||release.conditions.some(x=>!kinds.includes(x.kind)||
+        !provenance(x.provenance)||!Number.isSafeInteger(x.minimumDelaySeconds)||x.minimumDelaySeconds<0||x.minimumDelaySeconds>2592000||
+        (x.maximumDelaySeconds!==null&&(!Number.isSafeInteger(x.maximumDelaySeconds)||x.maximumDelaySeconds<x.minimumDelaySeconds||x.maximumDelaySeconds>2592000))))return null
+    }
     const channel={key:'cash',assetAddress:q.nativeAsset,decimals:q.nativeDecimals,
       unit:'native_intermediate_cash',negativeHandling:'clamp_zero' as const}
     if(n.history.some(o=>!same(o.channels,[channel])||o.regime!==n.regime||Object.keys(o.valuesByChannel).join(',')!=='cash'))return null
@@ -102,6 +128,16 @@ export function buildForeignNativePayoutJointScenario(original:ForeignNativePayo
       issueAtUtc:q.issuedAtUtc,requestedRaw:q.requestedFinalRaw,horizonHours:q.horizonHours,maxHistoricalGapSeconds:91800}
     const process=buildConditionalTimeProcess(approved,candidate=>same(candidate,approved),measure)
     if(!process)return null
+    // An independently known exact action can have a native funding threshold
+    // even when partial FINAL conversion quotes are unavailable. This second
+    // diagnostic never feeds back into NET, M, Ea or the final-Q arithmetic.
+    const adequateExactQuote=c.kind==='original_exact_size_quote'&&BigInt(c.finalOutputRaw)>=BigInt(q.requestedFinalRaw)
+    const nativeFundingProcess=adequateExactQuote?buildConditionalTimeProcess({ ...approved,
+      outputAsset:{assetAddress:q.nativeAsset,decimals:q.nativeDecimals},requestedRaw:c.nativeInputRaw,
+      measurementRule:'native_exact_action_funding_threshold_only_not_final_holder_exit'},()=>true,state=>{
+        const cash=BigInt(state.cash),afterM=cash>M?cash-M:0n
+        return{availableRaw:String(afterM),entitlementRaw:n.fullEntitlementRaw}
+      }):null
     let currentHeadroomRaw:string|null=null
     try {currentHeadroomRaw=String(BigInt(measure({cash:n.cashRaw}).availableRaw)-BigInt(q.requestedFinalRaw))}catch{}
     const usable=process.scenarios.filter(s=>s.targetHeadroomRaw!==null)
@@ -110,8 +146,24 @@ export function buildForeignNativePayoutJointScenario(original:ForeignNativePayo
       basis:c.kind,scope:c.kind==='original_exact_size_quote'?'fixed_exact_sized_action_only_no_partial_quote':'declared_linear_joint_conversion_assumption',
       process,currentHeadroomRaw,shrinking:{shrinkingScenarios:shrinking,usableScenarios:usable.length,
         censoredScenarios:process.scenarios.length-usable.length},
+      nativeFundingDiagnostic:{status:adequateExactQuote?'conditional_exact_action_native_funding_proxy' as const:
+        c.kind==='original_exact_size_quote'?'quoted_final_output_below_final_Q' as const:'declared_conversion_not_exact_native_threshold' as const,
+        thresholdNativeRaw:adequateExactQuote?c.nativeInputRaw:null,process:nativeFundingProcess,
+        thresholdIsNotAdditionalCompetition:true as const,finalQDeductedHere:false as const},
+      mechanismTiming:{qualifiedReleaseConditions:release??null,
+        conditionalMinimumAdditionalDelaySeconds:release?release.conditions.reduce((sum,x)=>sum+x.minimumDelaySeconds,0):null,
+        conditionalMaximumAdditionalDelaySeconds:release&&release.conditions.every(x=>x.maximumDelaySeconds!==null)?
+          release.conditions.reduce((sum,x)=>sum+x.maximumDelaySeconds!,0):null,
+        fullRouteDeliveryAndRecoveryCensored:!release||release.conditions.some(x=>x.maximumDelaySeconds===null)||
+          q.routeKey==='PYUSD → StakingVault [wYLDS]',
+        fundingTimeIsNotDeliveryTime:true as const,
+        additionalFundingProngs:q.routeKey==='PYUSD → StakingVault [wYLDS]'?[{
+          asset:'0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',decimals:6,
+          kind:'administrator_USDC_settlement_cash_and_compatible_history_separate_from_PRIME_wYLDS_inventory',
+          qualified:false as const}]:[],
+        exactQuotePartialConversionTimingKnown:false as const},
       accounting:'historical_NET_includes_other_users_native_M_once_final_Q_once_after_conversion' as const,
-      durationAndRecoveryBasis:'sampled_conditional_shortfall_onset_recovery_brackets_not_matched_historical_recovery' as const,
+      durationAndRecoveryBasis:'sampled_conditional_funding_proxy_shortfall_recovery_not_full_route_delivery_or_matched_historical_recovery' as const,
       actualApiEnrollment:'required_original_native_history_and_conversion_receipts_not_enrolled' as const,
       continuousCapacityKnown:false as const,calibrated:false as const,causalNewsEffect:false as const,
       holderExecutableExit:false as const,forecastValidated:false as const}

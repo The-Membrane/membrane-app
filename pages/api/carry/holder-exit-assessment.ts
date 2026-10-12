@@ -1,3 +1,4 @@
+import { issueFluidNativeCashAliasOutlook, type FluidNativeCashAliasOutlook } from '@/lib/carry/fluidNativeCashAliasOutlook.server'
 import { issueForeignConditionalFinalExit, type ForeignConditionalFinalExit } from '@/lib/carry/foreignFinalExitIssuer.server'
 import { buildSaturnOwnedTicketConditionalMechanism } from '@/lib/carry/saturnOwnedTicketConditionalMechanism'
 import { createHash } from 'node:crypto'
@@ -191,6 +192,7 @@ export type HolderExitAssessmentApiRequest = HolderExitAssessmentRequest & {
   forecastSourceReference?: HolderExitForecastSourceReference
 }
 export type HolderExitAssessmentApiView = HolderExitAssessmentView & {
+  fluidNativeCashAliasOutlook?: FluidNativeCashAliasOutlook | null
   foreignConditionalFinalExit?: ForeignConditionalFinalExit | null
   executionAgreement?: HolderExitConditionalProjectionEvidence
   capacityAgreement?: HolderExitCapacityAgreement
@@ -682,6 +684,7 @@ export async function withFluidUsdtBridgeJointHistoricalEvidence<T extends objec
     fluidUsdtBridgeJointCurrentEvidence?: FluidUsdtBridgeJointCurrentEvidence
     fluidUsdtBridgeJointHistoricalEvidence?: FluidUsdtBridgeJointHistoricalEvidence
     fluidUsdtBridgeJointIssuedAtUtc?: string
+    fluidNativeCashAliasOutlook?: FluidNativeCashAliasOutlook | null
   }
 > {
   try {
@@ -754,6 +757,9 @@ export async function withFluidUsdtBridgeJointHistoricalEvidence<T extends objec
       asOfMs: Date.now(),
     })
     if (!original || !fact || original.fact !== fact) return response
+    // This current diagnostic survives absent richer historical artifacts.
+    // Wallet-history aliasing still requires exact measurement agreement.
+    response={...response,fluidNativeCashAliasOutlook:issueFluidNativeCashAliasOutlook(original,{...binding,asOfMs:Date.now()},H as number)}
     const finalized = await readFluidUsdtBridgeJointHistoricalEvidenceAtIssue(original, {
       ...binding,
       asOfMs: Date.now(),

@@ -15,6 +15,7 @@
 // tsx/node get NO Next env injection — .env.local is parsed by hand below.
 
 import { neon } from '@neondatabase/serverless'
+import { ensureLedgerTable } from './lib/rpc-ledger.mjs'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -302,6 +303,12 @@ await sql`CREATE TABLE IF NOT EXISTS aave_liquidations (
 await sql`CREATE INDEX IF NOT EXISTS aave_liquidations_user_block_idx ON aave_liquidations ("user", block, log_index)`
 await sql`CREATE INDEX IF NOT EXISTS aave_liquidations_block_idx ON aave_liquidations (block)`
 await sql`CREATE INDEX IF NOT EXISTS aave_liquidations_time_idx ON aave_liquidations (block_time)`
+
+// rpc_log_calls — the RPC call ledger: one row per endpoint call the ring made while
+// building a dataset (which host answered which block range, and whether a second
+// endpoint contradicted it). Hosts only. Owner 2026-10-11. The DDL lives in
+// scripts/lib/rpc-ledger.mjs so every writer creates it the same way.
+await ensureLedgerTable(sql)
 
 // aave_liquidation_episodes — one row per EPISODE (events within 24h of each
 // other on one account are ONE episode: one crash, one position), each replayed

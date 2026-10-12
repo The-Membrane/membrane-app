@@ -81,10 +81,32 @@ export interface CompareOptions {
    */
   sourceRepayFraction: number
   sourceRepayFractionLabel: string
+  /**
+   * The source protocol's close factor as a RULE, read per liquidation from the position's
+   * state. Wins over `sourceRepayFraction` when set. The incumbent twin (incumbentTwin.ts)
+   * sets it to run each venue's real rule; the Oct 10 replay leaves it unset and repays the
+   * measured fraction.
+   */
+  sourceCloseFactor?: SourceCloseFactor
   scenarioLabel: string
   /** `liqDebtMinimum` in USD. Defaults to the deployed $2,000. 0 disables the floor. */
   debtMinimumUsd?: number
 }
+
+/** The share of the loan one liquidation may repay, 0–1, from the state at that event. */
+export type SourceCloseFactor = (s: {
+  healthFactor: number
+  collateralUsd: number
+  debtUsd: number
+  /** The collateral-weighted liquidation bonus the engine applies. */
+  bonus: number
+}) => number
+
+/** What the source engine reads from the options. */
+export type SourceOptions = Pick<
+  CompareOptions,
+  'venue' | 'sourceRepayFraction' | 'sourceRepayFractionLabel' | 'sourceCloseFactor'
+>
 
 interface Leg {
   symbol: string
@@ -96,8 +118,10 @@ interface Leg {
 /** A single episode may not run more than this many sales. Mirrors cureWalk. */
 const MAX_SALES = 20
 
-/** The SOURCE engine's own throttle: one liquidation per minute at most. */
-const MIN_SOURCE_EVENT_GAP_MINUTES = 1
+/** The SOURCE engine's own throttle, named as one liquidation per minute. The test is
+ *  `i − lastEvent > gap`, so two events are at least TWO steps apart: one every other minute
+ *  on the 1-minute tape. */
+export const MIN_SOURCE_EVENT_GAP_MINUTES = 1
 
 function valueOf(legs: Leg[], path: PricePath, i: number, fallback: Record<string, number>): number {
   let total = 0
@@ -130,8 +154,13 @@ function makeLegs(src: { symbol: string; amount: number }[]): Leg[] {
  * The SOURCE protocol's engine: a close-factor share of the loan is repaid and the
  * liquidator seizes that value plus the liquidation bonus. Repeats while the position
  * stays unhealthy. No cure window, no recall — those do not exist here.
+ * The share repaid is `opts.sourceCloseFactor` when set, else the fixed measured fraction.
  */
-function runSource(position: ProtocolPosition, path: PricePath, opts: CompareOptions): SimRun {
+export function runSource(
+  position: ProtocolPosition,
+  path: PricePath,
+  opts: SourceOptions,
+): SimRun {
   const coll = makeLegs(position.collateral)
   const debt = makeLegs(position.debt)
   const fallbackC = Object.fromEntries(position.collateral.map((c) => [c.symbol, c.priceUsd]))
@@ -169,7 +198,10 @@ function runSource(position: ProtocolPosition, path: PricePath, opts: CompareOpt
     if (Number.isFinite(ltv)) peakLtv = Math.max(peakLtv, ltv)
 
     if (ltv > line && d > 0 && i - lastEvent > MIN_SOURCE_EVENT_GAP_MINUTES) {
-      const repay = Math.min(d, fullRepayValue(d, opts.sourceRepayFraction))
+      const fraction = opts.sourceCloseFactor
+        ? opts.sourceCloseFactor({ healthFactor: line / ltv, collateralUsd: c, debtUsd: d, bonus })
+        : opts.sourceRepayFraction
+      const repay = Math.min(d, fullRepayValue(d, fraction))
       const wantSeize = repay * (1 + bonus)
       const got = seizeProRata(coll, wantSeize, path, i, fallbackC)
       // The liquidator only repays what the seized collateral actually covered.
@@ -197,7 +229,7 @@ function runSource(position: ProtocolPosition, path: PricePath, opts: CompareOpt
         penaltyUsd: penalty,
         why:
           `LTV crossed the ${(line * 100).toFixed(1)}% liquidation threshold. ` +
-          `${opts.sourceRepayFractionLabel} of the loan was repaid and the liquidator ` +
+          `${opts.sourceCloseFactor ? `${(fraction * 100).toFixed(0)}% (${opts.sourceRepayFractionLabel})` : opts.sourceRepayFractionLabel} of the loan was repaid and the liquidator ` +
           `took ${(bonus * 100).toFixed(1)}% on top as the bonus.`,
       })
     }
@@ -226,7 +258,9 @@ function runSource(position: ProtocolPosition, path: PricePath, opts: CompareOpt
     provenance: stamp(
       'modelled',
       `${position.label} engine · modelled`,
-      'Liquidation threshold and bonus read on-chain. Repay size taken from measured Oct 10 liquidation events, not from the documented close factor.',
+      opts.sourceCloseFactor
+        ? `Liquidation threshold and bonus read on-chain. Repay size from the venue's close-factor rule: ${opts.sourceRepayFractionLabel}.`
+        : 'Liquidation threshold and bonus read on-chain. Repay size taken from measured Oct 10 liquidation events, not from the documented close factor.',
     ),
     caveats: [
       'Liquidations are modelled as firing at the first minute the oracle prints above the threshold. A real liquidation needs a profitable liquidator to show up in that minute; in practice some fire late, and a few never fire.',

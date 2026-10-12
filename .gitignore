@@ -49,3 +49,6 @@ AGENT_BOARD.md
 
 # exit-queue ledger (local-first; scripts/record-exit-queues.ts)
 /data/exit-queue/
+
+# net-apy-at-size local-first store (lib/netApy/store.ts) — snapshots + Merkl pull, never committed
+/.data/

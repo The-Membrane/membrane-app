@@ -16,6 +16,7 @@ import { exitTime, type ExitTime, type ExitTimeInput } from '@/lib/exitQueue/ris
 import type { VenueKey } from '@/lib/exitQueue/types'
 import { venueByKey } from '@/lib/exitQueue/venues'
 import {
+  EXIT_CAPACITY_ANALOG_VENUES,
   EXIT_CAPACITY_BOOKS,
   type ExitCapacityFloorId,
 } from '@/lib/position-sim/exitCapacityAnalogs'
@@ -27,12 +28,43 @@ import {
   type ExitQueueUnknownReason,
 } from '@/lib/position-sim/exitQueueAxis'
 import {
+  ETH_USD_MAX_AGE_MS,
+  ethUsdAgeMs,
+  ethUsdFresh,
+  type EthUsdSpot,
+} from '@/lib/position-sim/ethUsdSpot'
+import {
+  EXIT_READOUT_SOURCE,
+  EXIT_READOUT_VENUE_LEVELS,
+  exitReadoutLevels,
+  exitReadoutVenueName,
+  isExitReadoutVenue,
+  type ExitNowReading,
+  type ExitReadoutLevel,
+  type ExitReadoutResult,
+  type ExitReadoutUnavailable,
+  type ExitReadoutVenue,
+} from '@/lib/position-sim/exitReadout'
+import {
   DEFAULT_VENUE_REFERENCE,
   REVERSE_SOLVE_DROPS,
   distanceToDanger,
+  shapeWithDrop,
   type DistanceToDanger,
   type FrontierEdge,
+  type ShapeFamily,
 } from '@/lib/position-sim/frontier'
+import {
+  DEFAULT_INCUMBENT,
+  INCUMBENT_ORDER,
+  INCUMBENT_READ_BLOCK,
+  INCUMBENT_TWINS,
+  incumbentTwinRunner,
+  type IncumbentCloseFactor,
+  type IncumbentId,
+  type IncumbentRules,
+  type IncumbentTwin,
+} from '@/lib/position-sim/incumbentTwin'
 import {
   BORROW_LTV_GAP,
   LIQ_DEBT_MINIMUM_USD,
@@ -47,6 +79,7 @@ import {
   EXIT_CAPACITY_DEFAULT_PRESET,
   EXIT_CAPACITY_PRESETS,
   STRESS_CODE_VERSION,
+  STRESS_DEFAULT_STEP_SECONDS,
   STRESS_LABEL,
   exitCapacityFloorOf,
   runStress,
@@ -130,6 +163,8 @@ export interface SandboxInputs {
   deployedUsd: number
   capacity: CapacityChoice
   debtMinimumUsd: number
+  /** The incumbent the twin rows run (incumbentTwin.ts). Default DEFAULT_INCUMBENT. */
+  incumbent?: IncumbentId
 }
 
 /** An exit-capacity multiple as typed: up to 4 decimals, no trailing zeros (×0.1119, ×0.5). */
@@ -220,6 +255,21 @@ export const LOADOUTS: readonly Loadout[] = [
     },
   },
 ]
+
+/**
+ * Whether the inputs ARE this loadout. The incumbent is a lens on the position, not part of
+ * it: picking a loadout keeps the incumbent, and the incumbent never deselects a loadout.
+ */
+export function loadoutMatches(l: Loadout, inputs: SandboxInputs): boolean {
+  const { incumbent: _a, ...a } = l.inputs
+  const { incumbent: _b, ...b } = inputs
+  return JSON.stringify(a) === JSON.stringify(b)
+}
+
+/** A loadout's inputs with the incumbent the reader chose. */
+export function applyLoadout(l: Loadout, inputs: SandboxInputs): SandboxInputs {
+  return inputs.incumbent === undefined ? l.inputs : { ...l.inputs, incumbent: inputs.incumbent }
+}
 
 export interface ClassView {
   cls: MembraneClass
@@ -438,6 +488,246 @@ export function exitChipText(sb: SandboxPosition): string | null {
   return `${usdOrNone(sb.exitCapacityUsd)}${mult}${lock} · ${name}`
 }
 
+// ------------------------------------------------------------ exit readout
+
+// The per-user readout (lib/position-sim/exitReadout.ts): "of your $X deposited, $Y exits
+// within 8h", and the deposit above which that binds. Board design rules §5b: the statistic
+// (a venue's stress cash) becomes analysis ("In stress, exits shrink to $203M. No limit at
+// your size; binds above $203M."). Every $ figure rounds DOWN, toward risk.
+
+/** USD rounded down, short: $2.3B, $38M, $5.1M, $14,200. A figure under $1 is "none". */
+export function usdDown(n: number | null | undefined): string {
+  if (n === null || n === undefined || !Number.isFinite(n)) return '—'
+  const a = Math.max(0, n)
+  if (a < 1) return 'none'
+  if (a >= 1e9) return `$${(Math.floor(a / 1e8) / 10).toFixed(1)}B`
+  if (a >= 1e7) return `$${Math.floor(a / 1e6)}M`
+  if (a >= 1e6) return `$${(Math.floor(a / 1e5) / 10).toFixed(1)}M`
+  return usd(Math.floor(a))
+}
+
+/** The level the sentence states: the typical stress event, the engine's default level
+ *  (EXIT_CAPACITY_DEFAULT_PRESET, owner ruling 2026-10-07). The rows show the bad end. */
+export const EXIT_READOUT_HEADLINE_LEVEL: ExitReadoutLevel = 'typical'
+
+export const EXIT_READOUT_FOOTNOTE = '† modelled, not a guarantee'
+
+const EXIT_LEVEL_LABEL: Readonly<Record<Exclude<ExitReadoutLevel, 'now'>, string>> = {
+  typical: 'typical stress event',
+  bad: 'bad stress event (p10)',
+  worst: 'worst stress event',
+}
+
+export interface ExitReadoutRow {
+  level: ExitReadoutLevel
+  /** 'now · 01:00 UTC', 'typical stress event', 'bad stress event (p10)', 'worst stress event'. */
+  label: string
+  /** The venue's idle cash: what exits shrink to. The headline binds above it. */
+  cash: string
+  /** Headline (cash vs book): '$14,200 of $14,200'. */
+  reachable: string
+  /** Floor (every depositor exits at once): '$1,588'. */
+  floor: string
+  binds: boolean
+  exceedsVenue: boolean
+  /** Why the level has no readout; null when it has one. */
+  missing: string | null
+  result: ExitReadoutResult
+}
+
+export interface ExitReadoutView {
+  venue: ExitReadoutVenue | null
+  venueName: string | null
+  depositUsd: number
+  /** 'In stress, exits shrink to $203M.' Null with `missing`. */
+  lead: string | null
+  /** 'No limit at your size; binds above $203M.†' or 'Binds at your size: $203M of your
+   *  $500M exits within 8h.†' */
+  detail: string | null
+  /** 'If every depositor exits at once: $1,588 of your $14,200.†' Null with no deposit. */
+  floorLine: string | null
+  /** The headline level's crossover deposit, USD. Null with `missing`. */
+  crossoverUsd: number | null
+  rows: ExitReadoutRow[]
+  /** Provenance, a small right-aligned credit line. */
+  credit: string | null
+  footnote: string
+  /** Why the sentence is withheld; null when it is shown. */
+  missing: string | null
+}
+
+/** The measured venue (summary.json id) behind a capacity choice; null for a bound or a custom
+ *  multiple, which name no venue. */
+export function exitReadoutVenueOf(capacity: CapacityChoice): string | null {
+  if (capacity.kind !== 'preset') return null
+  return knownPreset(capacity.preset)?.source?.venue ?? null
+}
+
+function readoutMissing(
+  r: ExitReadoutUnavailable,
+  venueName: string,
+  priceMissing: string | null,
+): string {
+  if (r.reason === 'unknown_venue') return `no measured stress levels for ${venueName}`
+  if (r.reason === 'no_price' && priceMissing) return priceMissing
+  return r.detail
+}
+
+export interface ExitReadoutViewOptions {
+  /** The venue's live reading for the 'now' row. */
+  now?: ExitNowReading
+  /** The time now, ms since epoch: ages the 'now' reading and the ETH price. */
+  nowMs?: number
+  /** The live ETH/USD round (ethUsdSpot.ts) that prices a WETH venue. Withheld when stale. */
+  ethUsd?: EthUsdSpot | null
+}
+
+/** Why a WETH venue has no usable ETH price; null when the round is fresh at `nowMs`. */
+function ethPriceMissing(s: EthUsdSpot | null | undefined, nowMs: number | undefined) {
+  if (!s) return 'no ETH price yet'
+  if (nowMs === undefined || !Number.isFinite(nowMs)) return 'the ETH price needs the time now'
+  const age = ethUsdAgeMs(s, nowMs)
+  if (age < 0) return 'the ETH price is later than the time now'
+  if (!ethUsdFresh(s, nowMs)) {
+    return `the ETH price is ${(age / 3_600_000).toFixed(1)} h old; the limit is ${ETH_USD_MAX_AGE_MS / 3_600_000} h`
+  }
+  return null
+}
+
+function utcHourMinute(iso: string): string {
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? iso : `${d.toISOString().slice(11, 16)} UTC`
+}
+
+/**
+ * The exit readout for a deposit at a measured venue: the §5b sentence at the headline level,
+ * and one row per level (now, typical, bad, worst). `opts.now` is the live reading; without
+ * one the 'now' row says so. A WETH venue is priced by `opts.ethUsd`. A stale reading or
+ * price is withheld, with its age (design rules §4).
+ */
+export function exitReadoutView(
+  depositUsd: number,
+  venue: string | null,
+  opts: ExitReadoutViewOptions = {},
+): ExitReadoutView {
+  const d = Number.isFinite(depositUsd) ? Math.max(0, depositUsd) : 0
+  const base = { depositUsd: d, footnote: EXIT_READOUT_FOOTNOTE }
+  const none = (missing: string): ExitReadoutView => ({
+    ...base,
+    venue: null,
+    venueName: null,
+    lead: null,
+    detail: null,
+    floorLine: null,
+    crossoverUsd: null,
+    rows: [],
+    credit: null,
+    missing,
+  })
+  if (venue === null) return none('no venue chosen: the exit readout needs a measured venue')
+  if (!isExitReadoutVenue(venue)) {
+    const name = EXIT_CAPACITY_ANALOG_VENUES.find((v) => v.venue === venue)?.name ?? venue
+    return none(`no measured stress levels for ${name}`)
+  }
+  const venueName = exitReadoutVenueName(venue)
+
+  const weth = EXIT_READOUT_VENUE_LEVELS[venue].symbol === 'WETH'
+  const priceMissing = weth ? ethPriceMissing(opts.ethUsd, opts.nowMs) : null
+  const priceUsd = weth && priceMissing === null ? opts.ethUsd?.priceUsd : undefined
+  const levelOpts = { now: opts.now, nowMs: opts.nowMs, priceUsd }
+
+  const rows: ExitReadoutRow[] = exitReadoutLevels(d, venue, levelOpts).map((r) => {
+    const label =
+      r.level !== 'now'
+        ? EXIT_LEVEL_LABEL[r.level]
+        : r.kind === 'readout'
+          ? `now · ${utcHourMinute(r.asOf)}`
+          : 'now'
+    if (r.kind === 'unavailable') {
+      return {
+        level: r.level,
+        label,
+        cash: '—',
+        reachable: '—',
+        floor: '—',
+        binds: false,
+        exceedsVenue: false,
+        missing: readoutMissing(r, venueName, priceMissing),
+        result: r,
+      }
+    }
+    return {
+      level: r.level,
+      label,
+      cash: usdDown(r.cashUsd),
+      reachable: `${usdDown(r.reachableUsd)} of ${usdDown(d)}`,
+      floor: usdDown(r.floorUsd),
+      binds: r.binds,
+      exceedsVenue: r.exceedsVenue,
+      missing: null,
+      result: r,
+    }
+  })
+
+  const ethCredit =
+    priceUsd !== undefined && opts.ethUsd
+      ? ` ETH ${usd(priceUsd)} · ${opts.ethUsd.source} · ${utcHourMinute(new Date(opts.ethUsd.updatedAtMs).toISOString())}.`
+      : ''
+  const credit = `Idle cash in the first 8h of stress events, ${venueName}, ${EXIT_READOUT_SOURCE.from.slice(0, 7)} → ${EXIT_READOUT_SOURCE.to.slice(0, 7)}. Measured history, not a forecast.${ethCredit}`
+  const h = rows.find((r) => r.level === EXIT_READOUT_HEADLINE_LEVEL)!.result
+  if (h.kind !== 'readout') {
+    return {
+      ...base,
+      venue,
+      venueName,
+      lead: null,
+      detail: null,
+      floorLine: null,
+      crossoverUsd: null,
+      rows,
+      credit,
+      missing: readoutMissing(h, venueName, priceMissing),
+    }
+  }
+  const detail =
+    d === 0
+      ? `Binds above ${usdDown(h.crossoverUsd)}.†`
+      : h.binds
+        ? `Binds at your size: ${usdDown(h.reachableUsd)} of your ${usdDown(d)} exits within 8h.†`
+        : `No limit at your size; binds above ${usdDown(h.crossoverUsd)}.†`
+  return {
+    ...base,
+    venue,
+    venueName,
+    lead: `In stress, exits shrink to ${usdDown(h.cashUsd)}.`,
+    detail: h.exceedsVenue ? `${detail} Your size exceeds this venue's history.` : detail,
+    floorLine:
+      d === 0
+        ? null
+        : `If every depositor exits at once: ${usdDown(h.floorUsd)} of your ${usdDown(d)}.†`,
+    crossoverUsd: h.crossoverUsd,
+    rows,
+    credit,
+    missing: null,
+  }
+}
+
+/** The readout for a sandbox position: its deployed amount at its chosen venue. A levered
+ *  long deploys nothing, and a bound or a custom multiple names no venue. */
+export function sandboxExitReadout(
+  inputs: SandboxInputs,
+  opts: ExitReadoutViewOptions = {},
+): ExitReadoutView {
+  if (inputs.tradeShape !== 'carry') {
+    return { ...exitReadoutView(0, null), missing: 'no venue (levered long)' }
+  }
+  return exitReadoutView(
+    buildStressPosition(inputs).deployedUsd,
+    exitReadoutVenueOf(inputs.capacity),
+    opts,
+  )
+}
+
 // ---------------------------------------------------------------- outcomes
 
 /** Glyph per outcome. Colour is never the only carrier: every glyph has its own shape. */
@@ -554,6 +844,147 @@ export function outcomeTitle(r: StressResult): string {
     case 'sold':
       return `Collateral sold: ${usd(r.exposedUsd)}`
   }
+}
+
+// ------------------------------------------------------------------ twin
+
+/**
+ * The incumbent twin (lib/position-sim/incumbentTwin.ts): what Aave V3, Spark or Morpho Blue
+ * would sell on the same position and the same price path, under its own rules. Every twin
+ * figure is MODELLED and carries the † mark (DESIGN_RULES.md §4: "would …"). Membrane's own
+ * rows carry no mark: they are the node.
+ */
+export const TWIN_MARK = '†'
+
+/** The twin's close factor in words. */
+export function closeFactorText(cf: IncumbentCloseFactor): string {
+  switch (cf.kind) {
+    case 'fixed':
+      return `${pct(cf.fraction)} of the loan per call`
+    case 'whole-loan':
+      return 'none, the whole loan per call'
+    case 'aave-v3.0':
+      return `${pct(cf.defaultFactor, 0)} per call, the whole loan at health factor ${cf.hfThreshold} or under`
+    case 'aave-v3.3':
+      return `${pct(cf.defaultFactor, 0)} per call, the whole loan at health factor ${cf.hfThreshold} or under, under ${usd(cf.minBaseUsd)} a side, or when a partial would leave under ${usd(cf.minLeftoverUsd)}`
+  }
+}
+
+/**
+ * A price ÷ its t0 price as a distance from now: whole %, rounded toward risk (floor of the
+ * drop). Never a bare "0%".
+ */
+export function priceFromNowText(ratio: number): string {
+  if (!Number.isFinite(ratio)) return '—'
+  if (ratio >= 1) return 'at or above the t0 price'
+  const whole = Math.floor((1 - ratio) * 100 + 1e-9)
+  return whole === 0 ? 'under 1% below now' : `${whole}% below now`
+}
+
+/** The footnote every twin block ends on: the rules it ran and the footing of the two figures. */
+export function twinNote(rules: IncumbentRules): string {
+  return (
+    `${TWIN_MARK} Modelled: ${rules.name} rules (${rules.market}: ${pct(rules.liquidationThreshold, 0)} threshold, ` +
+    `${pct(rules.liquidationBonus)} bonus, close factor ${closeFactorText(rules.closeFactor)}) on the same price path, ` +
+    'a liquidation at the first step over the threshold. Its sold figure includes its bonus. ' +
+    "Membrane's sold figure leaves out its fees. A stress scenario, not a forecast."
+  )
+}
+
+/** The twin's rows for the detail panel, after Membrane's own. */
+export function twinRows(t: IncumbentTwin): DetailRow[] {
+  const name = t.rules.name
+  const rows: DetailRow[] = [
+    {
+      label: `${name} would sell ${TWIN_MARK}`,
+      value:
+        t.incumbentSoldUsd > 0
+          ? `${usd(t.incumbentSoldUsd)} · ${usdOrNone(t.incumbentBonusUsd)} of it bonus`
+          : 'none',
+      tone: t.incumbentSoldUsd > 0 ? 'sold' : undefined,
+      group: 'twin',
+    },
+    {
+      group: 'twin',
+      label: `${name} first liquidation ${TWIN_MARK}`,
+      value:
+        t.incumbentLiquidationPrice === null
+          ? 'none'
+          : `${priceFromNowText(t.incumbentLiquidationPrice)} · at ${duration(t.incumbentTimeToLiquidationSeconds)}`,
+      tone: t.incumbentLiquidationPrice === null ? undefined : 'sold',
+    },
+  ]
+  if (t.incumbentLiquidations > 1)
+    rows.push({
+      label: `${name} liquidation calls ${TWIN_MARK}`,
+      value: String(t.incumbentLiquidations),
+      group: 'twin',
+    })
+  if (t.incumbentBadDebtUsd > 0)
+    rows.push({
+      label: `${name} bad debt ${TWIN_MARK}`,
+      value: usd(t.incumbentBadDebtUsd),
+      tone: 'sold',
+      group: 'twin',
+    })
+  rows.push({
+    label: 'Membrane first sale price',
+    value:
+      t.membraneLiquidationPrice === null ? 'none' : priceFromNowText(t.membraneLiquidationPrice),
+    group: 'twin',
+  })
+  rows.push({ label: `${TWIN_MARK} modelled`, value: twinNote(t.rules), group: 'twin', wide: true })
+  return rows
+}
+
+/** The twin in one short word pair, for a tree leaf or a swatch row: 'Aave† $33.0k',
+ *  'Aave† no sale'. The † marks it modelled; the accessible label spells out "would sell". */
+export function twinShortText(t: IncumbentTwin | null): string | null {
+  if (!t) return null
+  return `${t.rules.shortName}${TWIN_MARK} ${t.incumbentSoldUsd > 0 ? usdShort(t.incumbentSoldUsd) : 'no sale'}`
+}
+
+/** The twin's one line under a tree leaf or a crash level: 'Aave V3† would sell $33.0k'. */
+export function twinLineText(t: IncumbentTwin | null): string | null {
+  if (!t) return null
+  const sold = t.incumbentSoldUsd > 0 ? usdShort(t.incumbentSoldUsd) : 'nothing'
+  return `${t.rules.name}${TWIN_MARK} would sell ${sold}`
+}
+
+export interface IncumbentChoiceView {
+  id: IncumbentId
+  name: string
+  /** '83% threshold · 5.0% bonus'. */
+  sub: string
+  /** 'WETH collateral · close factor 50% per call, …'. */
+  detail: string
+  provenance: string
+}
+
+/** The incumbent picker's chips, in picker order. Every figure is a read parameter. */
+export const INCUMBENT_CHOICES: readonly IncumbentChoiceView[] = INCUMBENT_ORDER.map((id) => {
+  const r = INCUMBENT_TWINS[id]
+  return {
+    id,
+    name: r.name,
+    sub: `${pct(r.liquidationThreshold, 0)} threshold · ${pct(r.liquidationBonus)} bonus`,
+    detail: `${r.market} · close factor ${closeFactorText(r.closeFactor)}`,
+    provenance: r.provenance,
+  }
+})
+
+/** The fine-print paragraph on the twin: each venue's rules, from the same constants. */
+export function twinFinePrint(): string {
+  const venues = INCUMBENT_ORDER.map((id) => {
+    const r = INCUMBENT_TWINS[id]
+    return `${r.name} (${r.market}): ${pct(r.liquidationThreshold, 0)} threshold, ${pct(r.liquidationBonus)} bonus, close factor ${closeFactorText(r.closeFactor)}.`
+  }).join(' ')
+  return (
+    `What Aave V3, Spark or Morpho Blue would sell on the same position and the same price path, under its own rules, read at mainnet block ${INCUMBENT_READ_BLOCK.toLocaleString('en-US')}. ` +
+    `${venues} A liquidation fires at the first step over the threshold, and again at most every other step while the position stays over. ` +
+    "Its sold figure includes the liquidator's bonus. Membrane's sold figure leaves out its fees. " +
+    `Gas, MEV, slippage and a liquidator who does not show up are left out. Every twin figure is modelled and marked ${TWIN_MARK}.`
+  )
 }
 
 // ------------------------------------------------------------------ edges
@@ -795,6 +1226,8 @@ export interface LaneSegment {
 
 export interface Lane extends LaneDef {
   result: StressResult | null
+  /** The incumbent twin on the same scenario (†, modelled). Null when not modelled. */
+  twin: IncumbentTwin | null
   leaf: LeafView
   events: LaneEvent[]
   segments: LaneSegment[]
@@ -856,11 +1289,19 @@ function laneSignature(r: StressResult | null, missing: string | null): string {
   ].join('|')
 }
 
-/** Run every lane against one position. */
-export function buildTree(position: StressPosition, defs: LaneDef[]): Lane[] {
+/** The twin for a node, or null. `TwinFor` is an `incumbentTwinRunner` for the position. */
+export type TwinFor = (scenario: StressScenario, result: StressResult) => IncumbentTwin | null
+
+/** Run every lane against one position, each with its incumbent twin. */
+export function buildTree(
+  position: StressPosition,
+  defs: LaneDef[],
+  twinFor: TwinFor = incumbentTwinRunner(position),
+): Lane[] {
   const out: Lane[] = []
   for (const d of defs) {
     const result = d.scenario ? runStress(position, d.scenario) : null
+    const twin = d.scenario && result ? twinFor(d.scenario, result) : null
     const parent = d.parent ? out.find((l) => l.id === d.parent) : undefined
     const parentBreach =
       parent?.result &&
@@ -873,6 +1314,7 @@ export function buildTree(position: StressPosition, defs: LaneDef[]): Lane[] {
     out.push({
       ...d,
       result,
+      twin,
       leaf: leafView(result, d.missing ?? undefined),
       events: tl.events,
       segments: tl.segments,
@@ -895,6 +1337,8 @@ export interface CrashLevel {
   limit: EdgeView
   /** The user's own position run at this drop. */
   node: StressResult
+  /** The incumbent twin at the same drop (†, modelled). */
+  twin: IncumbentTwin | null
   verdict: CrashVerdict
   /**
    * The stamp's glyph and tone: the node's OWN outcome glyph (leafView), so the legend's
@@ -916,6 +1360,7 @@ export function crashLevel(
   node: StressResult,
   userLtv: number,
   line: number,
+  twin: IncumbentTwin | null = null,
 ): CrashLevel {
   const limit = edgeView(reverse, 'start LTV')
   const verdict: CrashVerdict =
@@ -934,6 +1379,7 @@ export function crashLevel(
     title: `−${Math.round(drop * 100)}%`,
     limit,
     node,
+    twin,
     verdict,
     glyph: leaf.glyph,
     tone: leaf.tone,
@@ -1063,17 +1509,26 @@ export interface SwatchCell {
   leaf: LeafView
   /** Compact one-liner (swatchText). */
   text: string
+  /** The incumbent twin on the same scenario (†, modelled). Null when not modelled. */
+  twin: IncumbentTwin | null
 }
 
 export interface SwatchRow {
   key: string
   label: string
   cells: SwatchCell[]
+  /** The row's incumbent twin: a venue condition changes nothing for the incumbent (no recall),
+   *  so it is ONE figure per price shape. Null when no cell of the row is modelled. */
+  twin: IncumbentTwin | null
+  /** Its short line under the row label (twinShortText), or null. */
+  twinText: string | null
 }
 
 export interface Swatch {
   cols: string[]
   rows: SwatchRow[]
+  /** What the row labels' second line is: 'Aave† would sell'. */
+  twinHead: string
 }
 
 export function shapeLabel(s: PriceShape): string {
@@ -1100,8 +1555,14 @@ export function venueLabel(v: VenueStress | undefined, p: StressPosition): strin
   return 'chosen exit'
 }
 
-/** The power-user grid: every price shape × every single-axis venue condition (no combos). */
-export function buildSwatch(position: StressPosition, replay: PriceShape | null): Swatch {
+/** The power-user grid: every price shape × every single-axis venue condition (no combos).
+ *  Each cell carries its incumbent twin; the incumbent has no recall, so it runs once per row. */
+export function buildSwatch(
+  position: StressPosition,
+  replay: PriceShape | null,
+  incumbent: IncumbentRules = INCUMBENT_TWINS[DEFAULT_INCUMBENT],
+  twinFor: TwinFor = incumbentTwinRunner(position, incumbent),
+): Swatch {
   const shapes: PriceShape[] = [...DEFAULT_PRICE_SHAPES, ...(replay ? [replay] : [])]
   const venues: (VenueStress | undefined)[] =
     position.tradeShape === 'levered_long'
@@ -1113,10 +1574,9 @@ export function buildSwatch(position: StressPosition, replay: PriceShape | null)
   const cols = venues.map((v) => venueLabel(v, position))
   return {
     cols,
-    rows: shapes.map((price) => ({
-      key: shapeLabel(price),
-      label: shapeLabel(price),
-      cells: venues.map((venue, ci) => {
+    twinHead: `${incumbent.shortName}${TWIN_MARK} would sell`,
+    rows: shapes.map((price) => {
+      const cells: SwatchCell[] = venues.map((venue, ci) => {
         const scenario: StressScenario = venue ? { price, venue } : { price }
         const result = runStress(position, scenario)
         return {
@@ -1125,9 +1585,18 @@ export function buildSwatch(position: StressPosition, replay: PriceShape | null)
           result,
           leaf: leafView(result),
           text: swatchText(result),
+          twin: twinFor(scenario, result),
         }
-      }),
-    })),
+      })
+      const twin = cells.find((c) => c.twin)?.twin ?? null
+      return {
+        key: shapeLabel(price),
+        label: shapeLabel(price),
+        cells,
+        twin,
+        twinText: twinShortText(twin),
+      }
+    }),
   }
 }
 
@@ -1137,11 +1606,20 @@ export interface DetailRow {
   label: string
   value: string
   tone?: Tone
+  /** 'twin': an incumbent-twin row (†), shown as its own block after Membrane's facts. */
+  group?: 'twin'
+  /** Prose, not a figure: shown full width. */
+  wide?: boolean
 }
 
 /** Every field the detail panel shows for one node. `stock` names where the venue stock
- *  comes from (`stockSourceText`): the stock is never a bare dollar figure. */
-export function detailRows(r: StressResult, stock: string): DetailRow[] {
+ *  comes from (`stockSourceText`): the stock is never a bare dollar figure. `twin` adds the
+ *  incumbent's rows (†) after Membrane's own. */
+export function detailRows(
+  r: StressResult,
+  stock: string,
+  twin: IncumbentTwin | null = null,
+): DetailRow[] {
   const rows: DetailRow[] = []
   if (r.outcome === 'not_modelled') {
     rows.push({ label: 'reason', value: notModelledText(r.reason), tone: 'muted' })
@@ -1205,6 +1683,7 @@ export function detailRows(r: StressResult, stock: string): DetailRow[] {
     if (r.badDebtUsd > 0) rows.push({ label: 'bad debt', value: usd(r.badDebtUsd), tone: 'sold' })
     rows.push({ label: 'sale calls', value: String(r.sales) })
     rows.push({ label: 'horizon', value: duration(r.horizonSeconds) })
+    if (twin) rows.push(...twinRows(twin))
   }
   rows.push({ label: 'scenario', value: r.scenarioId })
   rows.push({ label: 'cell key', value: r.cellKey })
@@ -1234,9 +1713,72 @@ export interface ResolvedSelection {
   missing: string | null
   /** Where the node's venue stock comes from, named (`stockSourceText`), for `detailRows`. */
   stock: string
+  /** The incumbent twin of the node, for `detailRows`. Null when there is none. */
+  twin: IncumbentTwin | null
 }
 
 const EDGE_NAME = { breach: 'line crossed', arm: 'window arms', sale: 'first sale' } as const
+
+export type EdgeAxis = 'price' | 'wick' | 'capacity' | 'freeze'
+export type EdgeKind = 'breach' | 'arm' | 'sale'
+/** The incumbent twin of each edge node the panel can select (null: no twin for it). */
+export type EdgeTwins = Record<EdgeAxis, Partial<Record<EdgeKind, IncumbentTwin | null>>>
+
+/** frontier.ts's 1-minute wick family (`distanceToDanger`, default step). */
+const ONE_STEP_WICK: ShapeFamily = { kind: 'wick', hours: STRESS_DEFAULT_STEP_SECONDS / 3600 }
+
+/** The scenario frontier.ts runs at shock `x` on one axis. */
+function edgeScenario(axis: EdgeAxis, x: number, dtd: DistanceToDanger): StressScenario {
+  switch (axis) {
+    case 'price':
+      return { price: shapeWithDrop(dtd.price.family, x) }
+    case 'wick':
+      return { price: shapeWithDrop(ONE_STEP_WICK, x) }
+    case 'capacity':
+      return { price: dtd.capacity.reference, venue: { capacityMult: 1 - x } }
+    case 'freeze':
+      return { price: dtd.freeze.reference, venue: { freezeHours: x } }
+  }
+}
+
+/**
+ * The twin of an edge node. The node is the scenario at `triggersAt` (0 when it triggers with
+ * no shock), rebuilt here; the rebuilt scenario must reproduce the node's cell key, or there
+ * is no twin rather than the twin of another node.
+ */
+function edgeTwin(
+  position: StressPosition,
+  axis: EdgeAxis,
+  edge: FrontierEdge | null,
+  dtd: DistanceToDanger,
+  twinFor: TwinFor,
+): IncumbentTwin | null {
+  if (!edge || (edge.status !== 'found' && edge.status !== 'already')) return null
+  if (edge.at.outcome === 'not_modelled') return null
+  const scenario = edgeScenario(axis, edge.status === 'found' ? edge.triggersAt : 0, dtd)
+  if (runStress(position, scenario).cellKey !== edge.at.cellKey) return null
+  return twinFor(scenario, edge.at)
+}
+
+/** Every selectable edge node's twin. Venue edges run on the reference step, so they share
+ *  its incumbent run. */
+export function buildEdgeTwins(
+  position: StressPosition,
+  dtd: DistanceToDanger,
+  twinFor: TwinFor,
+): EdgeTwins {
+  const t = (axis: EdgeAxis, e: FrontierEdge) => edgeTwin(position, axis, e, dtd, twinFor)
+  return {
+    price: {
+      breach: t('price', dtd.price.breach),
+      arm: t('price', dtd.price.arm),
+      sale: t('price', dtd.price.sale),
+    },
+    wick: { sale: t('wick', dtd.saleAtShock) },
+    capacity: { arm: t('capacity', dtd.capacity.arm), sale: t('capacity', dtd.capacity.sale) },
+    freeze: { arm: t('freeze', dtd.freeze.arm), sale: t('freeze', dtd.freeze.sale) },
+  }
+}
 
 export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSelection {
   const p = m.sandbox.position
@@ -1250,6 +1792,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         result: lane.result,
         missing: lane.result ? null : lane.missing,
         stock: stockSourceText(p, lane.scenario?.venue),
+        twin: lane.twin,
       }
     }
     case 'swatch': {
@@ -1262,6 +1805,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
           result: null,
           missing: 'cell not in this grid',
           stock: chosen,
+          twin: null,
         }
       return {
         title: row.label,
@@ -1269,6 +1813,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         result: cell.result,
         missing: null,
         stock: stockSourceText(p, cell.scenario.venue),
+        twin: cell.twin,
       }
     }
     case 'exitQueue': {
@@ -1282,6 +1827,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
           result: null,
           missing: q.missing ?? 'no exit-queue venue',
           stock: chosen,
+          twin: null,
         }
       return {
         title: `Exit queue · ${row.name}`,
@@ -1289,6 +1835,8 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         result: row.state === 'live' ? (q.runs?.atBufferTarget ?? null) : null,
         missing: row.stateNote ?? 'no run',
         stock: `the vault's ${BUFFER_TEXT}: the ${row.name} queue (${row.p90Text} at p90) pays nothing inside the call`,
+        // No incumbent twin: the incumbents have no buffer-only queue venue to compare.
+        twin: null,
       }
     }
     case 'crash': {
@@ -1299,6 +1847,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         result: c.node,
         missing: null,
         stock: chosen,
+        twin: c.twin,
       }
     }
     case 'edge': {
@@ -1333,6 +1882,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         result: view?.node ?? null,
         missing: view?.node ? null : view ? view.hint : 'no such edge on this axis',
         stock: sel.axis === 'capacity' ? `${chosen} × (1 − the cut at this edge)` : chosen,
+        twin: view?.node ? (m.edgeTwins[sel.axis][sel.edge] ?? null) : null,
       }
     }
   }
@@ -1624,12 +2174,19 @@ export function exitQueueView(position: StressPosition, ctx: ExitQueueContext): 
 
 export interface FrontierModel {
   sandbox: SandboxPosition
+  /** The incumbent every twin row runs (inputs.incumbent, else DEFAULT_INCUMBENT). */
+  incumbent: IncumbentRules
   dtd: DistanceToDanger
+  /** The twin of each selectable edge node. */
+  edgeTwins: EdgeTwins
   headline: Headline
   tree: Lane[]
   crash: CrashLevel[]
   swatch: Swatch
   exitQueue: ExitQueueView
+  /** The per-user exit readout at the chosen venue, without live inputs: its 'now' row and a
+   *  WETH venue say so. The page re-runs `sandboxExitReadout` with them on a tick, not this. */
+  exit: ExitReadoutView
   computeMs: number
 }
 
@@ -1644,33 +2201,29 @@ export function computeFrontier(
   const t0 = now()
   const sandbox = buildStressPosition(inputs)
   const p = sandbox.position
+  const incumbent = INCUMBENT_TWINS[inputs.incumbent ?? DEFAULT_INCUMBENT]
+  // One runner for the whole model: the incumbent runs once per price shape.
+  const twinFor = incumbentTwinRunner(p, incumbent)
   const dtd = distanceToDanger(p)
-  const tree = buildTree(p, treeLanes(inputs.capacity, replay, replayMissing))
+  const tree = buildTree(p, treeLanes(inputs.capacity, replay, replayMissing), twinFor)
   const [d50, d60] = REVERSE_SOLVE_DROPS
-  const crash = [
-    crashLevel(
-      d50,
-      dtd.reverse.at50,
-      runStress(p, { price: { kind: 'step', drop: d50 } }),
-      sandbox.startLtv,
-      sandbox.line,
-    ),
-    crashLevel(
-      d60,
-      dtd.reverse.at60,
-      runStress(p, { price: { kind: 'step', drop: d60 } }),
-      sandbox.startLtv,
-      sandbox.line,
-    ),
-  ]
+  const crashAt = (drop: number, reverse: FrontierEdge) => {
+    const scenario: StressScenario = { price: { kind: 'step', drop } }
+    const node = runStress(p, scenario)
+    return crashLevel(drop, reverse, node, sandbox.startLtv, sandbox.line, twinFor(scenario, node))
+  }
+  const crash = [crashAt(d50, dtd.reverse.at50), crashAt(d60, dtd.reverse.at60)]
   return {
     sandbox,
+    incumbent,
     dtd,
+    edgeTwins: buildEdgeTwins(p, dtd, twinFor),
     headline: nearestRisk(dtd, sandbox),
     tree,
     crash,
-    swatch: buildSwatch(p, replay),
+    swatch: buildSwatch(p, replay, incumbent, twinFor),
     exitQueue: exitQueueView(p, exitQueue),
+    exit: sandboxExitReadout(inputs),
     computeMs: now() - t0,
   }
 }

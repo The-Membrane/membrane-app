@@ -1181,6 +1181,36 @@ export function runStress(
   }
 }
 
+/** What one node's walk runs on. */
+export interface StressWalkInputs {
+  /** The normalized t0 collateral and debt, USD. */
+  collateralUsd: number
+  debtUsd: number
+  /** Collateral price ÷ its t0 price per step, the hold tail included (`ratioPath`). */
+  ratios: number[]
+  stepSeconds: number
+}
+
+/**
+ * The exact inputs `runStress` walks for one node: normalized, validated, the same price
+ * path to the step. Null when the node is not modelled. The incumbent twin
+ * (incumbentTwin.ts) runs on these, so the incumbent and Membrane see the same move.
+ */
+export function stressWalkInputs(
+  position: StressPosition,
+  scenario: StressScenario,
+  opts: StressRunOptions = {},
+): StressWalkInputs | null {
+  const n = normalize(position, scenario, opts)
+  if (validate(n)) return null
+  return {
+    collateralUsd: n.pos.c,
+    debtUsd: n.pos.d,
+    ratios: ratioPath(n),
+    stepSeconds: n.stepSeconds,
+  }
+}
+
 // ------------------------------------------------------------------ grid
 
 /** Week-1 price shapes (RISK_FRONTIER_DESIGN.md §7). Data, so the UI can change it. */

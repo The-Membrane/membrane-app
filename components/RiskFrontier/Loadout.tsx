@@ -21,13 +21,18 @@ import {
   EXIT_CAPACITY_VENUES,
   exitCapacityPresetId,
 } from '@/lib/position-sim/stressGrid'
+import { DEFAULT_INCUMBENT, type IncumbentId } from '@/lib/position-sim/incumbentTwin'
 import type { MembraneClass } from '@/lib/position-sim/membrane'
 
 import { Eyebrow, Panel } from './atoms'
 import {
+  INCUMBENT_CHOICES,
   LOADOUTS,
+  TWIN_MARK,
+  applyLoadout,
   classView,
   clampLine,
+  loadoutMatches,
   multText,
   pct,
   usd,
@@ -425,9 +430,9 @@ export const LoadoutPanel: React.FC<{
       : ltv > sandbox.recallTarget
         ? SEMANTIC_COLORS.warning
         : SEMANTIC_COLORS.textPrimary
-  const activeLoadout = LOADOUTS.find(
-    (l) => JSON.stringify(l.inputs) === JSON.stringify(inputs),
-  )?.id
+  const activeLoadout = LOADOUTS.find((l) => loadoutMatches(l, inputs))?.id
+  const incumbent: IncumbentId = inputs.incumbent ?? DEFAULT_INCUMBENT
+  const incumbentChoice = INCUMBENT_CHOICES.find((c) => c.id === incumbent) ?? INCUMBENT_CHOICES[0]
   const setClass = (cls: MembraneClass) =>
     onChange({ ...inputs, membraneClass: cls, line: clampLine(inputs.line, cls) })
 
@@ -440,7 +445,7 @@ export const LoadoutPanel: React.FC<{
             <Chip
               key={l.id}
               active={activeLoadout === l.id}
-              onClick={() => onChange(l.inputs)}
+              onClick={() => onChange(applyLoadout(l, inputs))}
               label={`Loadout ${l.name}: ${l.sub}`}
             >
               <Box textAlign="left" w="100%">
@@ -630,6 +635,41 @@ export const LoadoutPanel: React.FC<{
         <Readout>
           a liquidation never leaves debt under this; it repays all (a short recall sells the rest)
         </Readout>
+      </Group>
+
+      <Group label={`Incumbent twin ${TWIN_MARK}`}>
+        <SimpleGrid columns={3} spacing={SPACING.sm}>
+          {INCUMBENT_CHOICES.map((c) => (
+            <Chip
+              key={c.id}
+              active={incumbent === c.id}
+              onClick={() => set('incumbent', c.id)}
+              label={`Incumbent twin ${c.name}: ${c.sub}`}
+              title={c.provenance}
+            >
+              <Box textAlign="left" w="100%">
+                <Text fontSize={TYPOGRAPHY.label}>{c.name}</Text>
+                <Text fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
+                  {c.sub}
+                </Text>
+              </Box>
+            </Chip>
+          ))}
+        </SimpleGrid>
+        <Box mt={SPACING.sm}>
+          <Readout>
+            what {incumbentChoice.name} would sell at the same shock, under its own rules (modelled)
+          </Readout>
+        </Box>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.label}
+          color={SEMANTIC_COLORS.textTertiary}
+          mt={SPACING.sm}
+          lineHeight={1.5}
+        >
+          {incumbentChoice.detail}. {incumbentChoice.provenance}
+        </Text>
       </Group>
     </Panel>
   )

@@ -70,6 +70,7 @@ import {
   type PriceRound,
 } from './history'
 import { PUBLIC_MAINNET_RPCS } from './rpc'
+import { withoutExcludedLogHosts } from './rpcExclusions'
 
 // ------------------------------------------------------------------ constants
 
@@ -218,7 +219,7 @@ const wstEthAbi = [
  *  (public/data/oct10-2025/manifest.json) but scripts/build-oct10-dataset.ts consumes a
  *  CSV produced outside the repo, so no feed address is committed anywhere. These are
  *  the canonical mainnet proxies and each one's `description()` is checkable on chain. */
-const FEEDS = {
+export const FEEDS = {
   ETH_USD: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419' as Address,
   BTC_USD: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c' as Address,
   STETH_USD: '0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8' as Address,
@@ -416,9 +417,13 @@ const NOT_SCANNED: NotScanned[] = [
  * Tenderly's public gateway leads because the Oct 10 pull established it as the only
  * keyless endpoint that reliably served both archive state and large getLogs spans
  * (public/data/oct10-2025/manifest.json). RECORDER_RPC_URL's own comma list follows —
- * it is the recorder's ring and is set on the box that runs the hourly tick. Note that
- * two of its members are BUILDER RELAYS (mevblocker, flashbots) which do not serve
- * eth_getLogs at all; viem's fallback moves past them on error.
+ * it is the recorder's ring and is set on the box that runs the hourly tick.
+ *
+ * BUILDER RELAYS ARE DROPPED (board R33, 2026-10-11). Remote copies of that list still
+ * name rpc.flashbots.net and rpc.mevblocker.io. Flashbots answered `[]` for the ranges
+ * it does not serve (it serves only a slice of history), and a viem `fallback` client
+ * takes `[]` as success, so it never moved past Flashbots. MEV Blocker was dead at
+ * every probe. Every source above is filtered through ./rpcExclusions.
  */
 export function historyRpcUrls(): string[] {
   const out: string[] = []
@@ -432,7 +437,7 @@ export function historyRpcUrls(): string[] {
   push(PUBLIC_MAINNET_RPCS[0])
   push(process.env.RECORDER_RPC_URL)
   for (const u of PUBLIC_MAINNET_RPCS.slice(1)) push(u)
-  return out
+  return withoutExcludedLogHosts(out)
 }
 
 export function makeHistoryClient(urls: string[] = historyRpcUrls()): PublicClient {

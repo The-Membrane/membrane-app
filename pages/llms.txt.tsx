@@ -30,7 +30,6 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     '## Key pages',
     '',
     `- ${origin}/ethereum — liquidation counterfactual with measured data`,
-    `- ${origin}/ethereum/landing — product overview: borrow against BTC, keep the BTC`,
     `- ${origin}/ethereum/borrow — mint CDT against collateral`,
     `- ${origin}/blog — CDP and stablecoin explainers`,
     `- ${origin}/sitemap.xml — full indexable page list`,

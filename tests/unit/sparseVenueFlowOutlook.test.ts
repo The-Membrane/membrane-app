@@ -18,7 +18,7 @@ it('applies NET, explicit additional M and Q once, under required original quali
  expect(r.forecastValidated).toBe(false)
 })
 it('excludes target subjects, shared incidents, future knowledge and incompatible mechanisms before peer selection',()=>{
- for(const patch of [{subjectId:'new'},{incidentIds:['own']},{availableAtUtc:'2026-10-12T00:00:00.000Z'},{version:'2'},{decimals:18}]){
+ for(const patch of [{subjectId:'new'},{subjectId:undefined},{incidentIds:undefined},{incidentIds:['own']},{availableAtUtc:'2026-10-12T00:00:00.000Z'},{version:'2'},{decimals:18}]){
   const q=input();Object.assign(q.donors[0],patch);expect(buildSparseVenueFlowOutlook(q,()=>true)).toBeNull()
  }
 })

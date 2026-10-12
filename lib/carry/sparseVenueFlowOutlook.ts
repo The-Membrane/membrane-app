@@ -66,7 +66,8 @@ export function buildSparseVenueFlowOutlook(input:SparseVenueFlowInput,qualifyOr
     input.donors.forEach((p,index)=>{
       const clocks=[p.sourceAtUtc,p.targetAtUtc,p.availableAtUtc]
       const dt=Date.parse(p.targetAtUtc)-Date.parse(p.sourceAtUtc)
-      let reason=p.subjectId===input.subjectId?'target_subject_excluded':
+      let reason=!text(p.subjectId)||!Array.isArray(p.incidentIds)||p.incidentIds.length>64||p.incidentIds.some(id=>!text(id))?'invalid_peer_metadata':
+        p.subjectId===input.subjectId?'target_subject_excluded':
         p.incidentIds?.some(id=>input.incidentIds.includes(id))?'shared_incident_excluded':
         ['mechanismFamily','version','cashMeaning','assetRisk','asset','decimals'].some(k=>p[k as keyof PeerFlowInterval]!==d[k as keyof VenueFlowDefinition])?'incompatible_peer':
         clocks.some(t=>!utc(t))||!Number.isSafeInteger(dt)||dt<=0||dt>91800000?'historical_gap_or_clock':

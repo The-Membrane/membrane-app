@@ -6,6 +6,18 @@ Connected conditional holder models now cover **23 core groups**: the three Flui
 
 **Initial-deposit scope:** The [inspected engine](../../lib/carry/initialDepositCapacityProjection.ts#L39) registers **Aave USDC, Spark USDT and supplemental Aave USDe**. Deposit D is hypothetical and uses native asset units. The model adds D to venue cash before historical net-flow paths and subtracts planned exit Q once. A valid projection always has a cash-only process; its separate receipt-clipped holder process is null unless native agreement supports a nonzero hypothetical receipt. Receipt index and future income stay constant. Admission is blocked under reference rules or unknown; no deposit is marked admitted. Cap validation and deployed-version equivalence remain unqualified. The **23 existing-holder conditional models** do not establish initial-deposit coverage: the [Morpho joint input](../../lib/carry/morphoV2JointStockProjection.ts#L34) contains no deposit or post-deposit transition. This inspected scope does not establish successful deposits, calibrated future forecasts or validated holder exits.
 
+## 2026-10-12 — All 49 Morpho API paths and existing-card rendering tested offline
+
+The actual holder API passes 55 checks: all 49 frozen Morpho destinations, the exact roster, one-hour and 168-hour horizons, and conflicting/unavailable/mutated-source cash refusals. Tests use explicitly synthetic current RPC results with genuine authenticated histories. The optional cash result never promotes holder execution or calibration. This establishes offline API coverage, not 49 live qualifications.
+
+Two actual existing-card rendering checks cover headroom, cash change, sampled shortage/recovery and adverse-flow metrics. Owner, requested Q, horizon, scenario and expiry changes hide the outlook. A displayed current source with conflicting block, cash or units also hides it. Shrinking scenarios set the metric warning even before Q is exhausted.
+
+Linux execution keeps the 192 MiB old-space ceiling, 384 MiB aggregate RSS ceiling and original deadline/disk limits. Worker resource limits and explicit nursery limits reduce test overhead. The roster test releases mock references and runs garbage collection between cases. The card runs through the installed scoped TypeScript loader without a second test runner.
+
+The sparse-flow module passes a strict isolated type check. The broader core type check reaches the 192 MiB heap ceiling before producing diagnostics. It remains unaccepted. The original rich holder API suite still needs its excluded native USDT fixture. Current dataset main `504fcfeb3fc55cec3d210ca2bf1abfaa8b62ba4e` still lacks the excluded rich inputs. Cloud provider bindings and RPC/Morpho egress are unconfigured. Full live and broad build qualification remain open.
+
+Exact Linux proof/spec/log hashes are in the private `membrane-datasets/forecasting-cloud/linux-recovery/acceptance.json` record. Earlier failed attempts remain retained as failures.
+
 ## 2026-10-11 — Cloud conditional cash continuation
 
 The cloud task branch reconciles the frozen overlay with upstream `d65957d71a35f9d784f884b8068642934fae9b34`. The fixed-entitlement cash kernel replays every one of the 49 Morpho cash histories without requiring a rich protocol profile. Its roster test uses genuine authenticated histories and explicitly synthetic current sources. This does not qualify 49 live forecasts or promote the 42 remaining rich profiles.

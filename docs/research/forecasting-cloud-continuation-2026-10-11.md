@@ -1,5 +1,15 @@
 # Forecasting cloud continuation — 2026-10-11
 
+## 2026-10-12 continuation status
+
+The native cash API gate is repaired. Its expanded test covers the actual handler and private receipt issuer for all 49 Morpho subjects, selected horizons and invalid optional cash reads. The existing card is rendered with the app theme and tested for complete question/source invalidation. Current RPC results are synthetic in these tests. All historical inputs retain their original authenticated hashes.
+
+The Linux worker has an explicit 192 MiB old-generation ceiling and 2 MiB young-generation resource limit. The launcher uses a 1 MiB nursery. All jobs retain the 384 MiB aggregate RSS guard, 60-second cooperative deadline and disk reserve. The API roster suite enables explicit collection between cases. The card uses the installed scoped loader with runtime/dependency pins sealed. No limit was raised.
+
+The isolated sparse-flow type check passes. Core type-check compilation exhausts its sealed heap and remains unaccepted. The older API fixture and rich normalized histories are still absent from newly inspected private datasets main `504fcfeb`. Provider credentials and RPC/Morpho hosts remain unconfigured in the current managed runtime. Full live qualification remains blocked on those inputs.
+
+The sections below preserve the original October 11 handoff and checkpoint facts. Later Linux acceptance is recorded in the private datasets repository.
+
 The user asked to try Codex Cloud. Preserve the current branch and existing private evidence bundles. Stop preparing new local runtime jobs. This handoff does not establish that cloud files, dependency boundaries, secrets, or runtime have been provisioned.
 
 ## Accepted Morpho work

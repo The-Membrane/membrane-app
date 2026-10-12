@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": [
+    "../../lib/carry/fixedEntitlementCashOutlook.ts",
+    "../../lib/carry/sparseVenueFlowOutlook.ts",
+    "../../lib/carry/pinnedForecastArtifacts.server.ts",
+    "../../lib/carry/morphoNativeCashOutlook.server.ts",
+    "../../lib/carry/initialDepositCapacityProjection.ts"
+  ],
+  "exclude": ["../../node_modules", "../../contracts/generated"]
+}

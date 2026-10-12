@@ -4199,6 +4199,12 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
     nativeCashOutlook.currentSource.block === String(holderAssessment.source.blockNumber) &&
     nativeCashOutlook.currentSource.blockHash === holderAssessment.source.blockHash.toLowerCase() &&
     nativeCashOutlook.currentSource.blockTime === holderAssessment.source.blockTime &&
+    (!timeWitness || (timeWitness.block === nativeCashOutlook.currentSource.block &&
+      timeWitness.blockHash === nativeCashOutlook.currentSource.blockHash &&
+      timeWitness.observedAt === nativeCashOutlook.currentSource.blockTime &&
+      timeWitness.cashRaw === nativeCashOutlook.currentSource.cashRaw &&
+      timeWitness.assetDecimals === nativeCashOutlook.identity.assetDecimals &&
+      (!timeWitness.assetAddress || timeWitness.assetAddress.toLowerCase() === nativeCashOutlook.identity.asset))) &&
     nativeCashOutlook.forecastValidated === false && nativeCashOutlook.holderExecutableExit === false &&
     cashHolderTimeRenderWindow(nativeCashOutlook, asOfMs) ? nativeCashOutlook : null
   const nativeCashSummary = nativeCashTime?.process.targetSummary ?? null
@@ -5564,7 +5570,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                 <Metric
                   label="Conditional cash exit headroom"
                   value={`${formatExitPressureSignedRaw(nativeCashSummary.empiricalP10HeadroomRaw, requestedAssetDecimals!)}–${formatExitPressureSignedRaw(nativeCashSummary.empiricalP90HeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
-                  warning={nativeCashSummary.minimumHeadroomRaw.startsWith('-')}
+                  warning={nativeCashSummary.minimumHeadroomRaw.startsWith('-') || nativeCashTime.shrinkingAlert.shrinkingScenarios > 0}
                   detail={`${nativeCashTime.process.targetAtUtc.slice(5, 19).replace('T', ' ')} UTC${nativeCashTime.shrinkingAlert.shrinkingScenarios ? ' · MAY SHRINK' : ''}${cashHolderDurationDetail(nativeCashTime)}`}
                 />
 

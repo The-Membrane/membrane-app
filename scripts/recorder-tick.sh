@@ -11,6 +11,12 @@ echo "=== recorder tick $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 # a quote hiccup must never fail the capacity/flows tick.
 /opt/homebrew/bin/node scripts/record-depth-curves.mjs || echo "depth-curves:record failed (non-fatal)"
 /opt/homebrew/bin/node scripts/record-venue-flows.mjs --chunk 2000
+# Exit-queue ledger (Lido, beacon, ether.fi, Kelp, sUSDe, Maple; local JSON under
+# data/exit-queue/). Resumes from each ledger's cursor, so an hourly run scans ~300
+# blocks; --max-chunks 12 (60k blocks) bounds a catch-up after a pause, and the next
+# tick continues it. `node --import tsx`, not the .bin/tsx shim: the shim needs node
+# on PATH, which launchd's bare environment lacks. Non-fatal.
+/opt/homebrew/bin/node --import tsx scripts/record-exit-queues.ts --run --max-chunks 12 || echo "exitq:record failed (non-fatal)"
 # Bounded transaction-class reconciliation for NEW Curve depth events. Never
 # blocks the next capacity tick if an archive RPC is unavailable.
 /opt/homebrew/bin/node scripts/record-venue-event-drivers.mjs --limit 8 || echo "drivers:reconcile failed (non-fatal)"

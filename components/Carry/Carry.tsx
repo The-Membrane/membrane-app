@@ -3,6 +3,7 @@ import { Box, HStack, Text } from '@chakra-ui/react'
 import NextLink from 'next/link'
 
 import { DemoBanner } from '@/components/demo'
+import ExitQueueCard from '@/components/Venue/ExitQueueCard'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
@@ -137,6 +138,7 @@ export const Carry: React.FC = () => {
       <Timeline />
       <VenueLog />
       <CapacityChanges />
+      <ExitQueueCard />
       <VenueNews />
 
       <ExecSheet config={exec} onClose={() => setExec(null)} />

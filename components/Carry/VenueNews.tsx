@@ -77,7 +77,7 @@ export const VenueNews: React.FC = () => {
   return (
     <Box>
       <SectionHeading
-        index="08 /"
+        index="09 /"
         title="What's being said"
         note="raw headlines, newest first — information, not endorsement; we do not summarize or score"
       />

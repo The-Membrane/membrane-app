@@ -1,5 +1,6 @@
 import { DIRECT_SUPPLY_MARKETS } from './directSupplyMarketConstants'
 import { compoundInitialDepositReceipt, selectedCompoundInitialDepositAgreement } from './compoundInitialDeposit'
+import { ERC4626_INITIAL_DEPOSIT_MARKETS, selectedErc4626InitialDepositAgreement,erc4626InitialDepositMarket } from './erc4626InitialDeposit'
 import {
   selectedConditionalSampledCashPathProjection,
   type ConditionalSampledCashCurrentSource,
@@ -42,6 +43,7 @@ export const INITIAL_DEPOSIT_MARKETS = [
   { ...DIRECT_SUPPLY_MARKETS.aaveV3Usde, pool: '0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2' },
   { ...DIRECT_SUPPLY_MARKETS.sparkLendUsdt, pool: '0xc13e21b648a5ee794902342038ff3adab66be987' },
   { ...DIRECT_SUPPLY_MARKETS.compoundV3Usdc, pool: DIRECT_SUPPLY_MARKETS.compoundV3Usdc.destination.toLowerCase() },
+  ...ERC4626_INITIAL_DEPOSIT_MARKETS,
 ] as const
 export const initialDepositMarket = (routeKey: string, destination: string) =>
   INITIAL_DEPOSIT_MARKETS.find(
@@ -76,6 +78,7 @@ export type InitialDepositProjectionInput = {
   asOfMs: number
   nativeAgreement?: unknown
   nativeUnavailableReason?: string
+  receiver?: string | null
 }
 
 /** Native WadRayMath half-up arithmetic, with the same uint256 intermediate guards. */
@@ -100,7 +103,7 @@ export function selectedInitialDepositNativeAgreement(
     const { readAt: _cashReadAt, ...sourceIdentity } = source
     const { readAt: nativeCashReadAt, ...nativeIdentity } = nativeSource ?? {}
     if (
-      !m || m.routeKey === DIRECT_SUPPLY_MARKETS.compoundV3Usdc.routeKey ||
+      !m || m.routeKey === DIRECT_SUPPLY_MARKETS.compoundV3Usdc.routeKey || erc4626InitialDepositMarket(source.routeKey,source.destination) ||
       source.asset !== m.underlying.toLowerCase() ||
       source.assetDecimals !== m.decimals ||
       !record(value) ||
@@ -200,7 +203,11 @@ export function buildInitialDepositCapacityProjection(
     )
     const compound = selectedCompoundInitialDepositAgreement(input.nativeAgreement,source,input.asOfMs)
     const compoundReceipt=compound?compoundInitialDepositReceipt(input.depositAssetsRaw,compound.origins[0].facts.baseSupplyIndexRaw):null
-    const receipt = compoundReceipt ?? (native
+    const receiver=input.receiver??null
+    if(receiver!==null&&!/^0x[0-9a-f]{40}$/.test(receiver))return unavailable('invalid_initial_deposit_receiver')
+    const erc4626=selectedErc4626InitialDepositAgreement(input.nativeAgreement,source,input.depositAssetsRaw,receiver,input.asOfMs)
+    const ercReceipt=erc4626?{mintedSharesRaw:erc4626.origins[0].facts.mintedSharesRaw,entitlementRaw:erc4626.origins[0].facts.entitlementRaw}:null
+    const receipt = ercReceipt ?? compoundReceipt ?? (native
       ? sourceIndexedInitialReceipt(
           input.depositAssetsRaw,
           native.origins[0].facts.normalizedIncomeRaw,
@@ -267,6 +274,7 @@ export function buildInitialDepositCapacityProjection(
         plannedExitAssetsRaw: input.plannedExitAssetsRaw,
         horizonHours: input.horizonHours,
         asOf: new Date(input.asOfMs).toISOString(),
+        receiver,
       },
       target: {
         sourceAt: source.blockTime,
@@ -286,7 +294,11 @@ export function buildInitialDepositCapacityProjection(
         observed: false as const,
       },
       hypotheticalReceipt:
-        compoundReceipt && compound ? {status:'conditional_source_comet_principal_receipt' as const,
+        ercReceipt && erc4626 ? {status:'conditional_source_erc4626_preview_receipt' as const,...ercReceipt,
+          depositAssetsRaw:input.depositAssetsRaw,shareDecimals:erc4626.origins[0].facts.shareDecimals,
+          previewAt:source.blockTime,nativeFactsReadAt:erc4626.readAt,receiver,
+          previewPath:'previewDeposit_D_then_previewRedeem_full_minted_S_at_source' as const,
+          sourcePreviewHeldConstant:true as const} : compoundReceipt && compound ? {status:'conditional_source_comet_principal_receipt' as const,
           ...compoundReceipt,baseSupplyIndexRaw:compound.origins[0].facts.baseSupplyIndexRaw,
           indexAt:source.blockTime,nativeFactsReadAt:compound.readAt,
           indexPath:'held_constant_at_source_index' as const,newAccountWithoutDebtAssumed:true as const} : receipt && native
@@ -307,7 +319,8 @@ export function buildInitialDepositCapacityProjection(
             ),
       admission: {
         status:
-          active === false || frozen === true || paused === true || compound?.origins[0].facts.supplyPaused === true || ((native || compound) && !receipt)
+          active === false || frozen === true || paused === true || compound?.origins[0].facts.supplyPaused === true ||
+          (erc4626?.origins[0].facts.maxDepositRaw!=null&&BigInt(input.depositAssetsRaw)>BigInt(erc4626.origins[0].facts.maxDepositRaw)) || ((native || compound || erc4626) && !receipt)
             ? ('blocked_under_reference_rules' as const)
             : ('unknown' as const),
         active,
@@ -315,6 +328,9 @@ export function buildInitialDepositCapacityProjection(
         paused,
         compoundSupplyPaused:compound?.origins[0].facts.supplyPaused??null,
         newAccountWithoutDebtAssumed:compound?true:null,
+        receiver,
+        receiverMaxDepositRaw:erc4626?.origins[0].facts.maxDepositRaw??null,
+        receiverCapAssessment:erc4626?(receiver?'source_maxDeposit_only_other_admission_rules_unassessed':'anonymous_preview_receiver_admission_unassessed'):null,
         supplyCapAssetsRaw:
           flags === null ? null : String(((flags >> 116n) & ((1n << 36n) - 1n)) * 10n ** BigInt(source.assetDecimals)),
         scaledTotalSupplyRaw: native?.origins[0].facts.scaledTotalSupplyRaw ?? null,
@@ -322,7 +338,7 @@ export function buildInitialDepositCapacityProjection(
         capAssessment: 'display_only_treasury_update_before_validation_unassessed' as const,
         deployedVersionEquivalence: 'conditional_unverified' as const,
       },
-      nativeAgreement: native ?? compound,
+      nativeAgreement: native ?? compound ?? erc4626,
       cashOnlyProcess,
       process,
       evidence: structuredClone(cash.evidence),
@@ -337,6 +353,7 @@ export function buildInitialDepositCapacityProjection(
         grossFlowAdded: false,
         sourceReceiptIndexAndFutureIncomeHeldConstant: true,
         tokenTransferAndWithdrawEligibilityUnchanged: true,
+        depositCashRetainedInMeasuredChannelAssumed: Boolean(erc4626InitialDepositMarket(source.routeKey,source.destination)),
       },
       sourceReferences: [
         'https://raw.githubusercontent.com/aave/aave-v3-origin/main/src/contracts/protocol/libraries/logic/SupplyLogic.sol',

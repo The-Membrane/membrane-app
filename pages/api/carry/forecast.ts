@@ -1803,6 +1803,8 @@ export async function carryForecastRequest(
   const question = isInitialDeposit && req.method === 'POST' ? (req.body ?? {}) : req.query
   const depositAssetsRaw = isInitialDeposit ? question.depositAssetsRaw : null
   const plannedExitAssetsRaw = isInitialDeposit ? question.plannedExitAssetsRaw : null
+  const depositReceiver=isInitialDeposit&&question.receiver!=null?question.receiver:null
+  if(depositReceiver!==null&&(typeof depositReceiver!=='string'||!/^0x[0-9a-f]{40}$/.test(depositReceiver)))return res.status(400).json({error:'invalid_initial_deposit_receiver'})
   const nativeRaw = (v: unknown): v is string =>
     typeof v === 'string' &&
     /^(0|[1-9][0-9]{0,77})$/.test(v) &&
@@ -1815,9 +1817,9 @@ export async function carryForecastRequest(
     Array.isArray(question.destination) || typeof question.destination !== 'string'
       ? null
       : question.destination.toLowerCase()
-  // Pilot principals and withdrawals are explicit native six-decimal amounts.
+  // Initial principals and planned withdrawals use each registered native asset's units.
   const amountRaw = isInitialDeposit
-    ? `${BigInt(plannedExitAssetsRaw) / 1000000n}.${(BigInt(plannedExitAssetsRaw) % 1000000n).toString().padStart(6, '0')}`
+    ? (()=>{const decimals=initialDepositMarket(typeof routeKey==='string'?routeKey:'',destination??'')?.decimals??6,scale=10n**BigInt(decimals);return `${BigInt(plannedExitAssetsRaw)/scale}.${(BigInt(plannedExitAssetsRaw)%scale).toString().padStart(decimals,'0')}`})()
     : Array.isArray(question.amountUnits)
       ? null
       : question.amountUnits
@@ -2602,6 +2604,8 @@ export async function carryForecastRequest(
               readConfiguredInitialDepositNativeFacts(sampledProjectionCurrent, {
                 cache: true,
                 signal: nativeReadController.signal,
+                depositAssetsRaw,
+                receiver:depositReceiver,
               }).catch(() => ({
                 status: 'unavailable',
                 reason: 'initial_deposit_native_read_failed',
@@ -2629,8 +2633,9 @@ export async function carryForecastRequest(
             plannedExitAssetsRaw,
             horizonHours,
             asOfMs: Date.now(),
+            receiver:depositReceiver,
             nativeAgreement:
-              ['agreed_initial_deposit_native_facts','agreed_compound_initial_deposit_facts'].includes(nativeFacts.status) ? nativeFacts : null,
+              ['agreed_initial_deposit_native_facts','agreed_compound_initial_deposit_facts','agreed_erc4626_initial_deposit_facts'].includes(nativeFacts.status) ? nativeFacts : null,
             nativeUnavailableReason:
               nativeFacts.status === 'unavailable' ? nativeFacts.reason : undefined,
           },

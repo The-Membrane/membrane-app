@@ -16,6 +16,7 @@ export type InitialDepositQuestion = {
   horizonHours: number
   asset: string
   assetDecimals: 6 | 18
+  receiver?: string | null
 }
 export type InitialDepositScenarioIssue = {
   question: InitialDepositQuestion
@@ -86,11 +87,12 @@ export function initialDepositQuestion(
   depositSize: string,
   plannedExitSize: string,
   horizonHours: number,
+  receiver: string | null = null,
 ): InitialDepositQuestion | null {
   const m = initialDepositMarket(routeKey, destination.toLowerCase())
   const D = initialDepositNativeRaw(depositSize, m?.decimals),
     Q = initialDepositNativeRaw(plannedExitSize, m?.decimals)
-  return mode === 'initial_deposit' && m && D && Q && [1, 24, 48, 168].includes(horizonHours)
+  return mode === 'initial_deposit' && m && D && Q && (receiver===null||/^0x[0-9a-f]{40}$/.test(receiver)) && [1, 24, 48, 168].includes(horizonHours)
     ? {
         mode,
         routeKey,
@@ -100,6 +102,7 @@ export function initialDepositQuestion(
         horizonHours,
         asset: m.underlying.toLowerCase(),
         assetDecimals: m.decimals,
+        receiver,
       }
     : null
 }
@@ -170,7 +173,8 @@ export function initialDepositIssueFromResponse(
     projection.request.mode !== question.mode ||
     projection.request.depositAssetsRaw !== question.depositAssetsRaw ||
     projection.request.plannedExitAssetsRaw !== question.plannedExitAssetsRaw ||
-    projection.request.horizonHours !== question.horizonHours
+    projection.request.horizonHours !== question.horizonHours ||
+    projection.request.receiver !== (question.receiver??null)
   )
     return null
   return structuredClone({
@@ -218,6 +222,7 @@ export function issuedInitialDepositScenario(
       plannedExitAssetsRaw: expected.plannedExitAssetsRaw,
       horizonHours: expected.horizonHours,
       asOfMs: issueAtMs,
+      receiver:expected.receiver??null,
       nativeAgreement: p.nativeAgreement,
       nativeUnavailableReason: receipt.status === 'unavailable' ? receipt.reason : undefined,
     },

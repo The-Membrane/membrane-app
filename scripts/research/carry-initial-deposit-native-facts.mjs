@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { createPublicClient, http, parseAbi } from 'viem'
 import { readEnv } from '../lib/venue-reads.mjs'
 import { selectedCompoundInitialDepositAgreement } from '../../lib/carry/compoundInitialDeposit.ts'
+import {erc4626InitialDepositMarket,selectedErc4626InitialDepositAgreement} from '../../lib/carry/erc4626InitialDeposit.ts'
 import {
   initialDepositMarket,
   selectedInitialDepositNativeAgreement,
@@ -26,6 +27,10 @@ const abi = parseAbi([
   'function totalsBasic() view returns (uint64 baseSupplyIndex,uint64 baseBorrowIndex,uint64 trackingSupplyIndex,uint64 trackingBorrowIndex,uint104 totalSupplyBase,uint104 totalBorrowBase,uint40 lastAccrualTime,uint8 pauseFlags)',
   'function getUtilization() view returns (uint256)',
   'function getSupplyRate(uint256) view returns (uint64)',
+  'function asset() view returns (address)',
+  'function previewDeposit(uint256) view returns (uint256)',
+  'function previewRedeem(uint256) view returns (uint256)',
+  'function maxDeposit(address) view returns (uint256)',
 ])
 function host(url) {
   try {
@@ -145,7 +150,7 @@ async function sharedReadResult(work, signal) {
     signal.removeEventListener('abort', cancel)
   }
 }
-async function sourceNativeFacts(source, { origins, clock = Date.now }, read) {
+async function sourceNativeFacts(source, { origins, clock = Date.now,depositAssetsRaw,receiver=null }, read) {
   try {
     const call = async (launch) => {
       read.guard()
@@ -170,6 +175,18 @@ async function sourceNativeFacts(source, { origins, clock = Date.now }, read) {
       return unavailable('native_source_header_disagreement')
     const facts = await Promise.all(
       origins.map(async ({ client }) => {
+        if (erc4626InitialDepositMarket(source.routeKey,source.destination)) {
+          if(typeof depositAssetsRaw!=='string'||!/^[1-9][0-9]{0,77}$/.test(depositAssetsRaw)||BigInt(depositAssetsRaw)>MAX||
+            (receiver!==null&&!/^0x[0-9a-f]{40}$/.test(receiver)))throw Error('native_erc4626_question_invalid')
+          const contract=(address,functionName,args=[])=>call(()=>client.readContract({address,abi,functionName,args,blockNumber}))
+          const asset=await contract(source.destination,'asset'),assetDecimals=await contract(source.asset,'decimals'),shareDecimals=await contract(source.destination,'decimals')
+          const minted=await contract(source.destination,'previewDeposit',[BigInt(depositAssetsRaw)])
+          if(typeof asset!=='string'||asset.toLowerCase()!==source.asset||Number(assetDecimals)!==source.assetDecimals||!Number.isInteger(Number(shareDecimals))||Number(shareDecimals)<0||Number(shareDecimals)>36||!uint(minted)||minted===0n)throw Error('native_erc4626_identity_or_mint_invalid')
+          const ea=await contract(source.destination,'previewRedeem',[minted])
+          const max=receiver===null?null:await contract(source.destination,'maxDeposit',[receiver])
+          if(!uint(ea)||ea===0n||(max!==null&&!uint(max)))throw Error('native_erc4626_preview_invalid')
+          return {vault:source.destination,asset:source.asset,assetDecimals:source.assetDecimals,shareDecimals:Number(shareDecimals),depositAssetsRaw,mintedSharesRaw:String(minted),entitlementRaw:String(ea),receiver,maxDepositRaw:max===null?null:String(max)}
+        }
         if (source.routeKey === 'USDC → supply on Compound v3') {
           const contract = (functionName,args=[]) => call(()=>client.readContract({address:source.destination,abi,functionName,args,blockNumber}))
           const asset=await contract('baseToken'),decimals=await contract('decimals'),paused=await contract('isSupplyPaused')
@@ -239,7 +256,7 @@ async function sourceNativeFacts(source, { origins, clock = Date.now }, read) {
     const now = clock()
     if (!validSource(source, now)) return unavailable('initial_deposit_source_stale')
     const result = {
-      status: source.routeKey === 'USDC → supply on Compound v3' ? 'agreed_compound_initial_deposit_facts' : 'agreed_initial_deposit_native_facts',
+      status: erc4626InitialDepositMarket(source.routeKey,source.destination) ? 'agreed_erc4626_initial_deposit_facts' : source.routeKey === 'USDC → supply on Compound v3' ? 'agreed_compound_initial_deposit_facts' : 'agreed_initial_deposit_native_facts',
       currentSource: structuredClone(source),
       readAt: new Date(now).toISOString(),
       origins: origins.map((o, i) => ({
@@ -248,7 +265,7 @@ async function sourceNativeFacts(source, { origins, clock = Date.now }, read) {
       })),
     }
     return (
-      (source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(result,source,now) : selectedInitialDepositNativeAgreement(result, source, now)) ??
+      (erc4626InitialDepositMarket(source.routeKey,source.destination) ? selectedErc4626InitialDepositAgreement(result,source,depositAssetsRaw,receiver,now) : source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(result,source,now) : selectedInitialDepositNativeAgreement(result, source, now)) ??
       unavailable('native_facts_disagreeing')
     )
   } catch {
@@ -327,14 +344,14 @@ export async function readConfiguredInitialDepositNativeFacts(source, options = 
     // Facts at one immutable source survive a later cash read at that same
     // source. Their original read clocks are returned unchanged.
     const { readAt: _cashReadAt, ...sourceIdentity } = source
-    const key = sha(JSON.stringify(sourceIdentity) + '\0' + selected.join('\0'))
+    const key = sha(JSON.stringify(sourceIdentity) + '\0' + selected.join('\0')+'\0'+JSON.stringify([options.depositAssetsRaw??null,options.receiver??null]))
     const cached = cache.get(key),
       now = (options.clock ?? Date.now)()
     if (
       options.cache !== false &&
       cached &&
       now - Date.parse(cached.readAt) <= CACHE_TTL &&
-      (source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(cached,source,now) : selectedInitialDepositNativeAgreement(cached, source, now))
+      (erc4626InitialDepositMarket(source.routeKey,source.destination) ? selectedErc4626InitialDepositAgreement(cached,source,options.depositAssetsRaw,options.receiver??null,now) : source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(cached,source,now) : selectedInitialDepositNativeAgreement(cached, source, now))
     )
       return structuredClone(cached)
     if (pending.has(key)) return sharedReadResult(pending.get(key), options.signal)
@@ -357,7 +374,7 @@ export async function readConfiguredInitialDepositNativeFacts(source, options = 
         const result = await boundedRead(budget, () =>
           sourceNativeFacts(source, { ...options, origins }, budget),
         )
-        if (options.cache !== false && ['agreed_initial_deposit_native_facts','agreed_compound_initial_deposit_facts'].includes(result.status)) {
+        if (options.cache !== false && ['agreed_initial_deposit_native_facts','agreed_compound_initial_deposit_facts','agreed_erc4626_initial_deposit_facts'].includes(result.status)) {
           if (cache.size >= CACHE_LIMIT) cache.delete(cache.keys().next().value)
           cache.set(key, structuredClone(result))
         }

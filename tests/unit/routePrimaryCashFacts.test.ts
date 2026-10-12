@@ -64,6 +64,9 @@ describe('primary measured cash facts exact frozen source linkage', () => {
       const r = buildNativePrimaryEventImpact(o, (v, history) => v === o && history === h, h)!
       expect(r).not.toBeNull(); expect(r.sourceLinkage.versionEvidence).toBe('route_mechanism_label_not_verified_deployed_code_version')
       expect(r.question.owner).toBe(o.owner); expect(r.facts[1].provenance).toBe('original_manifest_bound_ledger')
+      expect(r.holderImpact.currentCapacityProxyRaw).toBe('20000')
+      expect(r.holderImpact.currentHeadroomRaw).toBe('10000')
+      expect(r.holderImpact.executableCapacity).toBe(false)
       expect(buildNativePrimaryEventImpact(structuredClone(o), v => v === o, h)).toBeNull()
     }
   })

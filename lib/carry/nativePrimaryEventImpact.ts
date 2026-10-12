@@ -11,6 +11,8 @@ export function buildNativePrimaryEventImpact(original: Qualified,
 ) {
   if (!qualifyOriginal(original, originalHistory)) return null
   const value = structuredClone(original), s = value.currentSource
+  if (!['routeKey','destination','asset','assetDecimals'].every(k =>
+    (s as any)[k] === (value.identity as any)[k])) return null
   const linkage = primaryMeasuredSourceLink(value.identity.routeKey, value.identity.destination)
   if (!linkage || linkage.lane !== 'native_cash') return null
   const history = originalHistory ? structuredClone(originalHistory) : null
@@ -26,6 +28,8 @@ export function buildNativePrimaryEventImpact(original: Qualified,
     horizonHours: value.horizonHours, fullEntitlementRaw: value.fullEntitlementRaw,
     additionalCompetitionRaw: value.additionalCompetitionRaw, issuedAtUtc: value.issuedAtUtc }
   const change = BigInt(s.cashRaw) - BigInt(previous[4])
+  const cash = BigInt(s.cashRaw), m = BigInt(value.additionalCompetitionRaw), ea = BigInt(value.fullEntitlementRaw)
+  const afterM = cash > m ? cash - m : 0n, capacity = afterM < ea ? afterM : ea
   return { schema: 'native_primary_event_impact_v1' as const, question,
     currentSource: s, affected: { ...value.identity, version: linkage.mechanism }, sourceLinkage: linkage,
     facts: [
@@ -40,6 +44,10 @@ export function buildNativePrimaryEventImpact(original: Qualified,
           'original_two_provider_finalized_read' as const, receiptSha256: s.receiptSha256 ?? null },
     ],
     measuredCashChangeRaw: String(change),
+    holderImpact: { currentCapacityProxyRaw: String(capacity),
+      currentHeadroomRaw: String(capacity - BigInt(value.requestedRaw)),
+      meaning: 'qualified_fixed_entitlement_native_cash_proxy_Q_once_additional_M_separate' as const,
+      executableCapacity: false as const },
     direction: change < 0n ? 'shrinking' as const : change > 0n ? 'growing' as const : 'unchanged' as const,
     conditionalScenario: value.adverseHolderHeadroom ? {
       kind: 'historical_adverse_net_persists' as const,

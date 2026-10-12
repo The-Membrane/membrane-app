@@ -1,3 +1,4 @@
+import { selectedRouteMeasuredCashFacts } from '@/lib/carry/routeMeasuredCashFactsBinding'
 import { selectedRouteWireContext } from '@/lib/carry/routeWireBinding'
 import { selectedForeignFinalExit } from '@/lib/carry/foreignFinalExitReceipt'
 import { selectedPrimaryProtocolRules } from '@/lib/carry/primaryProtocolRules'
@@ -4639,6 +4640,14 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
       ? matchingRouteEventContext(eventContextInput, eventQuestion, expectedEventEnrollment, asOfMs)
       : null
 
+  const measuredCashFacts = eventQuestion && eventContext ? selectedRouteMeasuredCashFacts(
+    eventContext.measuredCashFacts,eventQuestion,
+    currentCash?.assetAddress && currentCash.block && currentCash.blockHash ? {
+      routeKey,destination:destination.toLowerCase(),assetAddress:currentCash.assetAddress.toLowerCase(),
+      assetDecimals:currentCash.assetDecimals,cashRaw:currentCash.cashRaw,block:currentCash.block,
+      blockHash:currentCash.blockHash,observedAt:currentCash.observedAt,
+    } : null,asOfMs) : null
+
   const eventImpactIssuedAt = conditionalEventImpactIssuedAt(conditionalEventImpactInput)
   const conditionalEventImpact =
     scenarioMode === 'exit' &&
@@ -6117,6 +6126,18 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
           >
             <Text {...labelStyle}>CONTEXT</Text>
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={SPACING.base} mt={SPACING.sm}>
+              {measuredCashFacts?.measuredHistoricalCashChangeRaw !== null && measuredCashFacts?.measuredHistoricalCashChangeRaw !== undefined && <Metric
+                label="Recorded cash change"
+                value={`${formatExitPressureApproxRaw(measuredCashFacts.measuredHistoricalCashChangeRaw,requestedAssetDecimals!)} ${requestedAssetSymbol}`}
+                detail={`Native history · ${utcMinute(measuredCashFacts.evidence.facts.at(-1)!.occurredAtUtc)}`}
+                adverse={BigInt(measuredCashFacts.measuredHistoricalCashChangeRaw)<0n}
+              />}
+              {measuredCashFacts?.targetAtUtc && <Metric
+                label={<Tooltip label="If the selected historical net cash change persists. Aggregate cash only; holder entitlement and competing exits are assessed separately. This is not a causal news estimate or executable payout."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Cash stress scenario†</Text></Tooltip>}
+                value={measuredCashFacts.endpointCensored?'CENSORED':`${formatExitPressureApproxRaw(measuredCashFacts.conditionalCashProxyRaw!,requestedAssetDecimals!)} ${requestedAssetSymbol}`}
+                detail={`If historical cash pace repeats · ${horizonHours}H · ${utcMinute(measuredCashFacts.targetAtUtc)}`}
+                adverse={measuredCashFacts.endpointCensored || (measuredCashFacts.conditionalCashDeltaRaw!==null && BigInt(measuredCashFacts.conditionalCashDeltaRaw)<0n)}
+              />}
               {eventQuestion && selectedRouteWireContext(eventContext.wireStories,eventQuestion,asOfMs)?.stories.filter(s=>s.displayHeadline).slice(0,1).map(s=><Metric
                 key={s.story.id}
                 label="Measured story†"

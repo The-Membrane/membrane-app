@@ -34,6 +34,10 @@ const LINES = (tapeWindow: string | null): { head: string; body: string }[] => [
     body: "Everyone exits: every depositor races for the exit at once and a recall gets its pro-rata share, the venue's cash divided by everything deposited. It is not what depositors could actually withdraw in those events. On the same event it never pays more than cash vs book for a book the venue could hold. For a book larger than the venue's whole supply in that window the observed history is not an analog (if Membrane's deposit added to the supply, the venue would have been a different venue): those levels (some $250M books) are marked 'book exceeds the venue', and on the same event they are the only ones that pay less than everyone exits. The ×1 bound (everything comes back in every scenario) is an upper bound, never a default. The grid's capacity cuts are measured at the default level (Aave USDC: its $50M book's bad event and its everyone-exits floor, each ÷ its $50M typical event) and multiply whatever you chose: each column names its level, and away from the default it shows the product. The tree's everyone-exits lane runs the venue and level you chose.",
   },
   {
+    head: 'Exit queues',
+    body: "An LST or a vault with a withdrawal queue pays a recall only after its queue. The wait is the exit-queue ledger's p90 request-to-claimable time over the last 30 days: measured history, not a forecast. It runs as a freeze from the first breach, at the held −25% step; the exit capacity stays the one you chose. Master recalls at once, so this is modelled. A wait that is only a lower bound runs twice: at the bound and never paid. A venue with no measured wait runs nothing; it is never a zero wait. A ledger reading over 30 hours old is hatched with its age and runs nothing.",
+  },
+  {
     head: 'Left out',
     body: 'The keeper fee ramp, gas stipend and protocol liquidation fee (all paid from collateral, so "sold" understates what leaves), interest accrual, the gas-indexed debt floor, slippage and MEV.',
   },
@@ -47,7 +51,7 @@ const LINES = (tapeWindow: string | null): { head: string; body: string }[] => [
   },
   {
     head: 'Also not modelled yet',
-    body: 'Live venue reads and staleness hatching, the 7-day trend line, change cards, the novelty banner, LST exit queues and oracle-lag scenarios. This page is a sandbox for the engine only.',
+    body: 'Live venue reads and staleness hatching, the 7-day trend line, change cards, the novelty banner and oracle-lag scenarios. This page is a sandbox for the engine only.',
   },
 ]
 

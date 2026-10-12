@@ -11,6 +11,9 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
+import type { ExitQueueFeed } from '@/lib/exitQueue/feed'
+import type { ExitTimeInput } from '@/lib/exitQueue/riskFrontier'
+import type { VenueKey } from '@/lib/exitQueue/types'
 import { loadOct10 } from '@/lib/position-sim/scenario'
 import { oct10ReplayShape, type PriceShape } from '@/lib/position-sim/stressGrid'
 
@@ -25,6 +28,7 @@ import {
 } from './atoms'
 import { CrashTest } from './CrashTest'
 import { DangerRulers } from './DangerRulers'
+import { ExitQueues } from './ExitQueues'
 import { FinePrint } from './FinePrint'
 import { LeafDetail } from './LeafDetail'
 import { LoadoutPanel } from './Loadout'
@@ -241,7 +245,28 @@ export const RiskFrontier: React.FC = () => {
   const [pending, setPending] = useState(true)
   const [selection, setSelection] = useState<Selection>({ kind: 'lane', id: 'step25' })
   const [view, setView] = useState<'tree' | 'swatch'>('tree')
+  const [queueInputs, setQueueInputs] = useState<ExitTimeInput[] | null>(null)
+  const [queueMissing, setQueueMissing] = useState('exit-queue ledger loading')
+  const [queueVenue, setQueueVenue] = useState<VenueKey | null>(null)
   const first = useRef(true)
+
+  // The exit-queue ledger (GET /api/venues/exit-queues). Local-first: a host without the
+  // ledger files answers 'no_local_ledger', and the panel says so. Staleness is judged per
+  // venue in the view model, against the clock at compute time.
+  useEffect(() => {
+    let live = true
+    fetch('/api/venues/exit-queues')
+      .then((r) => (r.ok ? (r.json() as Promise<ExitQueueFeed>) : Promise.reject(r.status)))
+      .then((feed) => {
+        if (!live) return
+        if (feed.status === 'ok' && feed.riskFrontier.length) setQueueInputs(feed.riskFrontier)
+        else setQueueMissing('no exit-queue ledger on this host')
+      })
+      .catch(() => live && setQueueMissing('exit-queue ledger unavailable'))
+    return () => {
+      live = false
+    }
+  }, [])
 
   // The Oct 10 tape: measured ETH oracle path, used as a relative shape.
   useEffect(() => {
@@ -268,7 +293,14 @@ export const RiskFrontier: React.FC = () => {
     first.current = false
     const id = window.setTimeout(() => {
       try {
-        setModel(computeFrontier(inputs, replay, replayMissing))
+        setModel(
+          computeFrontier(inputs, replay, replayMissing, undefined, {
+            inputs: queueInputs,
+            missing: queueMissing,
+            nowMs: Date.now(),
+            venue: queueVenue,
+          }),
+        )
         setError(null)
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
@@ -277,7 +309,7 @@ export const RiskFrontier: React.FC = () => {
       }
     }, wait)
     return () => window.clearTimeout(id)
-  }, [inputs, replay, replayMissing])
+  }, [inputs, replay, replayMissing, queueInputs, queueMissing, queueVenue])
 
   const sandbox = useMemo(() => buildStressPosition(inputs), [inputs])
 
@@ -289,6 +321,13 @@ export const RiskFrontier: React.FC = () => {
         <Headline model={model} />
         <DangerRulers model={model} selected={selection} onSelect={setSelection} />
         <CrashTest model={model} selected={selection} onSelect={setSelection} />
+        <ExitQueues
+          model={model}
+          onPick={(venue) => {
+            setQueueVenue(venue)
+            setSelection({ kind: 'exitQueue', venue })
+          }}
+        />
         <Panel>
           <SectionHead
             title={view === 'tree' ? 'Scenario tree' : 'Swatch'}

@@ -44,10 +44,9 @@ def main():
         run = root / (kind + '-' + str(time.time_ns())); run.mkdir(mode=0o700)
         tracked = {}; child = None; reason = None; exit_code = None; before_pins = False; after_pins = False
         peak_rss = peak_threads = peak_processes = peak_cgroup = peak_swap_growth = 0
-        initial_cgroup = None; subreaper = False; signals = []; disk_start = None
+        initial_cgroup = None; subreaper = False; signals = []; disk_start = None; root_birth = None
         baseline_children = {p: v['birth'] for p, v in rows().items() if v['parent'] == os.getpid()}
         affinity = sorted(os.sched_getaffinity(0))[:2]
-        if len(affinity) != 2: raise RuntimeError('two_cpu_affinity_unavailable')
         def free():
             s = os.statvfs(run); return s.f_bavail * s.f_frsize
         def pins():
@@ -60,7 +59,7 @@ def main():
         def inventory():
             all_rows = rows()
             live = {p for p, v in all_rows.items() if tracked.get(p) == v['birth']}
-            if child and child.pid in all_rows: live.add(child.pid)
+            if child and child.pid in all_rows and all_rows[child.pid]['birth'] == root_birth: live.add(child.pid)
             # Subreaper-adopted grandchildren remain ours even after setsid/double fork.
             live |= {p for p, v in all_rows.items() if v['parent'] == os.getpid() and baseline_children.get(p) != v['birth']}
             while True:
@@ -86,7 +85,12 @@ def main():
                     if st[19] == v['birth']: os.kill(p, sig); signals.append({'pid': p, 'birth': v['birth'], 'signal': sig})
                 except (OSError, ProcessLookupError): pass
         try:
-            if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0: raise RuntimeError('subreaper_unavailable')
+            if len(affinity) != 2: raise RuntimeError('two_cpu_affinity_unavailable')
+            libc = ctypes.CDLL(None, use_errno=True)
+            if libc.prctl(36, 1, 0, 0, 0) != 0: raise RuntimeError('subreaper_unavailable')
+            verified = ctypes.c_int(0)
+            if libc.prctl(37, ctypes.byref(verified), 0, 0, 0) != 0 or verified.value != 1:
+                raise RuntimeError('subreaper_verification_failed')
             subreaper = True
             initial_cgroup = cgroup()
             if initial_cgroup['memory.max'] - initial_cgroup['memory.current'] < 8192 * MIB: raise RuntimeError('initial_memory_headroom')
@@ -104,11 +108,26 @@ def main():
             env = {'PATH': str(pathlib.Path(spec['argv'][0]).parent) + ':/usr/bin:/bin', 'HOME': str(run), 'TMPDIR': str(run),
                 'MEMBRANE_DATASETS_DIR': spec['datasetsRoot'], 'NODE_OPTIONS': node_options, 'CI': '1',
                 'NEXT_TELEMETRY_DISABLED': '1', 'NO_COLOR': '1'}
+            additions = spec.get('nonsecretEnv', {})
+            if not isinstance(additions, dict) or any(k not in ['MEMBRANE_CLOUD_ACCEPTANCE', 'MEMBRANE_CLOUD_BROWSER_OUTPUT'] for k in additions):
+                raise RuntimeError('nonsecret_env_not_allowlisted')
+            if 'MEMBRANE_CLOUD_ACCEPTANCE' in additions and additions['MEMBRANE_CLOUD_ACCEPTANCE'] != '1':
+                raise RuntimeError('nonsecret_acceptance_value_invalid')
+            if 'MEMBRANE_CLOUD_BROWSER_OUTPUT' in additions:
+                output = additions['MEMBRANE_CLOUD_BROWSER_OUTPUT']
+                if not isinstance(output, str) or not pathlib.Path(output).is_absolute() or not pathlib.Path(output).resolve().is_relative_to(root.resolve()):
+                    raise RuntimeError('browser_output_outside_evidence_root')
+            env.update(additions)
             if kind != 'selftest': env.update(NODE_ENV='production', PLAYWRIGHT_BASE_URL='http://127.0.0.1:3005')
             def setup_child(): os.sched_setaffinity(0, affinity)
             with open(run / 'stdout.log', 'wb') as out, open(run / 'stderr.log', 'wb') as err:
                 child = subprocess.Popen(spec['argv'], cwd=spec['checkout'], env=env, start_new_session=True,
                     preexec_fn=setup_child, stdout=out, stderr=err)
+                # An exited root remains a zombie until poll/wait and retains its identity.
+                # Capture birth before either operation; never attribute a reused PID.
+                root_birth = rows().get(child.pid, {}).get('birth')
+                if root_birth is None: raise RuntimeError('root_birth_unavailable')
+                tracked[child.pid] = root_birth
                 while True:
                     child.poll(); live = active(); rss = sum(v['rss'] for v in live.values())
                     threads = sum(v['threads'] for v in live.values()); current = cgroup()
@@ -181,6 +200,7 @@ def main():
                 'peakAggregateRssBytes': peak_rss, 'peakProcesses': peak_processes, 'peakThreadsObservedSeparately': peak_threads,
                 'initialCgroup': initial_cgroup, 'peakParentCgroupMemoryBytes': peak_cgroup, 'peakParentCgroupSwapGrowthBytes': peak_swap_growth,
                 'cpuAffinity': affinity, 'subreaperEnabled': subreaper, 'trackedPidBirths': tracked,
+                'rootPidBirth': root_birth, 'reviewedNonsecretEnvKeys': sorted(spec.get('nonsecretEnv', {})),
                 'cleanupSignals': signals, 'survivingPidBirths': {p: v['birth'] for p, v in survivors.items()},
                 'allDescendantsClean': not survivors, 'diskAvailableBytes': free(),
                 'serverPort3005Closed': port_closed,

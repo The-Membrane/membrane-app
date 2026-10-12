@@ -1,6 +1,6 @@
 /**
  * ethUsdSpot — the live ETH/USD price: Chainlink's mainnet ETH/USD feed, `latestRoundData()`
- * through the proxy (historyScan.ts FEEDS.ETH_USD). The Risk Frontier spec names this source
+ * through the proxy (chainlinkFeeds.ts FEEDS.ETH_USD). The Risk Frontier spec names this source
  * (docs/RISK_FRONTIER_DESIGN.md §4 MARKET, "Chainlink spot"). The exit readout needs it to
  * price a WETH venue's cash (exitReadout.ts).
  *
@@ -14,7 +14,7 @@
 
 import type { PublicClient } from 'viem'
 
-import { FEEDS } from './historyScan'
+import { FEEDS } from './chainlinkFeeds'
 import { MEASURED_STALE_CADENCES } from './measuredCapacity'
 import { getMainnetClient } from './rpc'
 

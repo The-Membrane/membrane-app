@@ -28,6 +28,27 @@ def rows():
         except (OSError, ValueError, IndexError): pass
     return result
 
+def select_owned_rows(all_rows, tracked, root_pid, root_birth, supervisor_pid, baseline_children):
+    """Pure identity selector. Established births never change, even after adoption."""
+    violations = [{'pid': p, 'expectedBirth': birth, 'observedBirth': all_rows[p]['birth']}
+                  for p, birth in tracked.items() if p in all_rows and all_rows[p]['birth'] != birth]
+    if root_pid in all_rows and root_birth is not None and all_rows[root_pid]['birth'] != root_birth:
+        violation = {'pid': root_pid, 'expectedBirth': root_birth, 'observedBirth': all_rows[root_pid]['birth']}
+        if violation not in violations: violations.append(violation)
+    excluded = {v['pid'] for v in violations}
+    live = {p for p, v in all_rows.items() if tracked.get(p) == v['birth']}
+    if root_pid in all_rows and all_rows[root_pid]['birth'] == root_birth: live.add(root_pid)
+    live |= {p for p, v in all_rows.items() if v['parent'] == supervisor_pid and
+             baseline_children.get(p) != v['birth'] and p not in excluded}
+    live -= excluded
+    while True:
+        more = live | {p for p, v in all_rows.items() if v['parent'] in live and p not in excluded}
+        if more == live: break
+        live = more
+    for p in live:
+        if p not in tracked: tracked[p] = all_rows[p]['birth']
+    return {p: all_rows[p] for p in live}, violations
+
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument('--spec', required=True); parser.add_argument('--sha256', required=True)
     args = parser.parse_args()
@@ -44,7 +65,7 @@ def main():
         run = root / (kind + '-' + str(time.time_ns())); run.mkdir(mode=0o700)
         tracked = {}; child = None; reason = None; exit_code = None; before_pins = False; after_pins = False
         peak_rss = peak_threads = peak_processes = peak_cgroup = peak_swap_growth = 0
-        initial_cgroup = None; subreaper = False; signals = []; disk_start = None; root_birth = None; env_keys = []
+        initial_cgroup = None; subreaper = False; signals = []; disk_start = None; root_birth = None; env_keys = []; identity_violations = []
         baseline_children = {p: v['birth'] for p, v in rows().items() if v['parent'] == os.getpid()}
         affinity = sorted(os.sched_getaffinity(0))[:2]
         def free():
@@ -58,16 +79,11 @@ def main():
                 if str(pathlib.Path(p).resolve()) != target: raise RuntimeError('symlink_drift')
         def inventory():
             all_rows = rows()
-            live = {p for p, v in all_rows.items() if tracked.get(p) == v['birth']}
-            if child and child.pid in all_rows and all_rows[child.pid]['birth'] == root_birth: live.add(child.pid)
-            # Subreaper-adopted grandchildren remain ours even after setsid/double fork.
-            live |= {p for p, v in all_rows.items() if v['parent'] == os.getpid() and baseline_children.get(p) != v['birth']}
-            while True:
-                more = live | {p for p, v in all_rows.items() if v['parent'] in live}
-                if more == live: break
-                live = more
-            for p in live: tracked[p] = all_rows[p]['birth']
-            return {p: all_rows[p] for p in live}
+            live, violations = select_owned_rows(all_rows, tracked, child.pid if child else None,
+                                                 root_birth, os.getpid(), baseline_children)
+            for violation in violations:
+                if violation not in identity_violations: identity_violations.append(violation)
+            return live
         def active(): return {p: v for p, v in inventory().items() if not v['zombie']}
         def reap():
             # Do not reap subprocess root before Popen has consumed its status.
@@ -131,6 +147,7 @@ def main():
                 tracked[child.pid] = root_birth
                 while True:
                     child.poll(); live = active(); rss = sum(v['rss'] for v in live.values())
+                    if identity_violations: raise RuntimeError('owned_pid_identity_changed')
                     threads = sum(v['threads'] for v in live.values()); current = cgroup()
                     peak_rss = max(peak_rss, rss); peak_processes = max(peak_processes, len(live)); peak_threads = max(peak_threads, threads)
                     peak_cgroup = max(peak_cgroup, current['memory.current'])
@@ -195,7 +212,7 @@ def main():
                 except ConnectionRefusedError: port_closed = True
                 except OSError: port_closed = False
                 if not port_closed: reason = reason or 'server_listener_survived'
-            proof = {'schema': 'cloud-full-app-launcher-proof-v1', 'status': 'PASS' if reason is None and not survivors else 'FAIL',
+            proof = {'schema': 'cloud-full-app-launcher-proof-v1', 'status': 'PASS' if reason is None and not survivors and not identity_violations else 'FAIL',
                 'reason': reason, 'kind': kind, 'specSha256': args.sha256, 'argv': spec['argv'], 'exitCode': exit_code,
                 'pinsCheckedBefore': before_pins, 'pinsCheckedAfter': after_pins, 'elapsedSeconds': time.monotonic() - started,
                 'peakAggregateRssBytes': peak_rss, 'peakProcesses': peak_processes, 'peakThreadsObservedSeparately': peak_threads,
@@ -203,7 +220,8 @@ def main():
                 'cpuAffinity': affinity, 'subreaperEnabled': subreaper, 'trackedPidBirths': tracked,
                 'rootPidBirth': root_birth, 'reviewedNonsecretEnvKeys': env_keys,
                 'cleanupSignals': signals, 'survivingPidBirths': {p: v['birth'] for p, v in survivors.items()},
-                'allDescendantsClean': not survivors, 'diskAvailableBytes': free(),
+                'allDescendantsClean': not survivors and not identity_violations, 'knownDescendantsClean': not survivors,
+                'identityViolations': identity_violations, 'unknownReusedIdentitiesNeverSignalled': True, 'diskAvailableBytes': free(),
                 'serverPort3005Closed': port_closed,
                 'enforcement': {'aggregateRss': 'sampled_50ms_transient_overshoot_possible', 'memoryAndSwapHardControls': False,
                     'parentCgroupSharedWithOrdinaryServices': True, 'cpu': 'inherited_two_core_affinity_not_hard_cpu_quota',

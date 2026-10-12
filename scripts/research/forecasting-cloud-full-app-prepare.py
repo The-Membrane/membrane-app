@@ -1,12 +1,47 @@
 #!/usr/bin/env python3
 """Prepare immutable source copy and proposed seals only; never runs an app job."""
-import argparse, hashlib, io, json, pathlib, subprocess, tarfile
+import argparse, hashlib, io, json, pathlib, re, shutil, subprocess, tarfile
 
 def sha(p):
     h = hashlib.sha256()
     with open(p, 'rb') as f:
         for b in iter(lambda: f.read(262144), b''): h.update(b)
     return h.hexdigest()
+
+def seal_runtime_closure(binaries, pins, links):
+    """Read-only loader metadata for known installed ELF binaries/libraries only."""
+    pending = [pathlib.Path(p).resolve() for p in binaries]; seen = set()
+    while pending:
+        path = pending.pop()
+        if path in seen: continue
+        if not path.is_file(): raise RuntimeError('runtime_library_missing:' + str(path))
+        seen.add(path); pins[str(path)] = sha(path)
+        with open(path, 'rb') as f: elf = f.read(4) == b'\x7fELF'
+        if not elf: continue
+        result = subprocess.run(['/usr/bin/ldd', str(path)], capture_output=True, text=True,
+            timeout=4, env={'PATH':'/usr/bin:/bin','LC_ALL':'C'})
+        body = result.stdout + result.stderr
+        if 'not found' in body: raise RuntimeError('runtime_library_unresolved:' + str(path))
+        if result.returncode and 'statically linked' not in body and 'not a dynamic executable' not in body:
+            raise RuntimeError('runtime_loader_metadata_failed:' + str(path))
+        for line in body.splitlines():
+            if not line.strip() or 'linux-vdso.so' in line or 'statically linked' in line or 'not a dynamic executable' in line: continue
+            match = re.search(r'(?:=>\s*)?(/[^\s]+)\s+\(', line)
+            if not match: raise RuntimeError('runtime_loader_line_unrecognized:' + line)
+            library = pathlib.Path(match.group(1))
+            links[str(library)] = str(library.resolve())
+            pending.append(library.resolve())
+    return sorted(str(p) for p in seen)
+
+def seal_tree(root, pins, links):
+    root = pathlib.Path(root)
+    if not root.exists(): raise RuntimeError('browser_resource_tree_missing:' + str(root))
+    for p in root.rglob('*'):
+        if p.is_symlink():
+            links[str(p)] = str(p.resolve())
+            if not p.exists(): raise RuntimeError('browser_resource_broken_link:' + str(p))
+            if p.is_file(): pins[str(p.resolve())] = sha(p.resolve())
+        elif p.is_file(): pins[str(p.resolve())] = sha(p)
 
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument('--source', required=True)
@@ -45,6 +80,26 @@ def main():
     if not isinstance(argv, list) or not argv or not all(isinstance(v, str) for v in argv): raise RuntimeError('argv_invalid')
     if not pathlib.Path(argv[0]).is_absolute(): raise RuntimeError('absolute_executable_required')
     pins[str(pathlib.Path(argv[0]).resolve())] = sha(argv[0])
+    links[argv[0]] = str(pathlib.Path(argv[0]).resolve())
+    node = pathlib.Path(shutil.which('node')).resolve()
+    links[shutil.which('node')] = str(node)
+    runtime_closure = seal_runtime_closure([node, pathlib.Path(argv[0]).resolve()], pins, links)
+    browser_closure = None
+    if a.kind == 'chromium-browser':
+        browser = pathlib.Path('/usr/lib/chromium/chromium')
+        wrapper = pathlib.Path('/usr/bin/chromium')
+        if not browser.is_file() or not wrapper.is_file(): raise RuntimeError('installed_browser_missing')
+        pins[str(wrapper)] = sha(wrapper)
+        seal_tree('/usr/lib/chromium', pins, links)
+        seal_tree('/usr/share/fonts', pins, links)
+        seal_tree('/etc/fonts', pins, links)
+        seal_tree('/var/cache/fontconfig', pins, links)
+        elf_resources = []
+        for p in pathlib.Path('/usr/lib/chromium').rglob('*'):
+            if p.is_file():
+                with open(p, 'rb') as f:
+                    if f.read(4) == b'\x7fELF': elf_resources.append(p)
+        browser_closure = seal_runtime_closure(elf_resources, pins, links)
     launcher = source / 'scripts/research/forecasting-cloud-full-app-launcher.py'
     pins[str(launcher.resolve())] = sha(launcher)
     guard = source / 'scripts/research/forecasting-cloud-full-app-node-guard.cjs'
@@ -54,6 +109,7 @@ def main():
         'datasetsRoot':str(pathlib.Path(a.datasets).resolve()),
         'evidenceRoot':str(pathlib.Path(a.datasets).resolve() / 'forecasting-cloud/full-app-plan/runs'),
         'pins':pins,'links':links,
+        'nodeRuntimeClosure':runtime_closure,'browserRuntimeClosure':browser_closure,
         'limitsAreSampledNotHardCgroupControls':True}
     content = json.dumps(spec, indent=2) + '\n'; digest = hashlib.sha256(content.encode()).hexdigest()
     path = dest.parent / ('proposed-' + a.kind + '-' + digest + '.spec.json')

@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest'
 import { classifyAdminEvents, type AdminEventRow } from '@/lib/oracleRegistry/config/adminReplay'
 import { markStillInEffect } from '@/lib/oracleRegistry/config/engine'
 import { classifyControllerChange } from '@/lib/oracleRegistry/config/rules'
-import type { Controller } from '@/lib/oracleRegistry/config/types'
+import type { ConfigChange, Controller } from '@/lib/oracleRegistry/config/types'
 
 type Hx = `0x${string}`
 const A = (n: string) => ('0x' + n.repeat(40).slice(0, 40)) as Hx
@@ -150,6 +150,37 @@ describe('R1: `authority_unread` only on a row whose value carries no rank (Upgr
     expect(toUnclassified.tags).toContain('read_gap')
     expect(toUnclassified.tags).not.toContain('authority_unread')
   })
+
+  // S1 (2026-10-12: R1 was unpinned — with R2 in place the test above passes with R1 reverted,
+  // because R2 already tags the null `next` read_gap). Here the new admin IS classified (rank read,
+  // no gap on the value): only R1's event check keeps the row a plain `read_gap`.
+  it('AdminChanged to a CLASSIFIED admin on unread upgrade holders: plain read_gap, the red before it stays in effect (was authority_unread, ended)', () => {
+    const [b1, b2] = [DEPLOY + 100, DEPLOY + 200]
+    const SAFE_B: Controller = { kind: 'safe', address: A('8'), threshold: 3, signers: 5 }
+    const byAddr: Record<string, Controller> = { ...ctls, [SAFE_B.address]: SAFE_B }
+    const out = classifyAdminEvents(
+      [adminChanged(b1, SAFE.address, EOA.address), adminChanged(b2, EOA.address, SAFE_B.address)],
+      {
+        // the Safe → EOA move on read holders (no timelock held the power); the next on unread ones
+        ...ctx([`${PROXY}@${b2}`], { [`${PROXY}@${b1}`]: [SAFE] }),
+        ctl: (x: string) => byAddr[x] ?? null,
+      },
+    )
+    markStillInEffect(out)
+    const [safeToEoa, toSafe] = out
+    expect(safeToEoa.red).toBe(true)
+    expect(safeToEoa.ruleIds).toContain('AD-3')
+    // EOA → a Safe ranks up; red only on AD-5 (no CallExecuted from the declared timelock, the
+    // holders before it unread)
+    expect(toSafe.red).toBe(true)
+    expect(toSafe.ruleIds).toContain('AD-5')
+    expect(toSafe.after).toBe(SAFE_B.address)
+    // a row judged on a failed read never ends a red: Safe → EOA stays in effect
+    expect(out.map((c) => !!c.stillInEffect)).toEqual([true, true])
+    // R1: an AdminChanged value is a holder — its read gap stays on the value
+    expect(toSafe.tags).toContain('read_gap')
+    expect(toSafe.tags).not.toContain('authority_unread')
+  })
 })
 
 // Review of R1 (R2, 2026-10-12): the hole under R1 is in classifyControllerChange — a NEW holder
@@ -234,5 +265,136 @@ describe('R2: a new holder that could not be classified is a read gap on the val
     expect(out.map((c) => c.red)).toEqual([true, true])
     expect(out.map((c) => c.tags)).toEqual([[], []])
     expect(out.map((c) => !!c.stillInEffect)).toEqual([false, true])
+  })
+})
+
+// Review of F1 (S3, 2026-10-12): F1's guard — "never end a red whose own value rests on a read
+// gap" — ran only when the ENDING row was `authority_unread`. A fully read, clean Upgraded on the
+// Kernel key (the Kernel's own core-namespace SetApp) still ended an earlier Kernel SetApp red of
+// an UNMAPPED app (`appUnread`, read_gap on its value): an Upgraded log carries only the new
+// implementation, so the clean row's `before` was inferred from the key's last value — the other
+// app's implementation (abi.mjs aragonRows: SetApp(core) and the unmapped SetApp(base) both stay
+// on the Kernel's key). Only a row that names the value it replaced is evidence the same slot moved.
+describe('S3: a red whose value rests on a read gap is never ended by a row whose `before` is inferred', () => {
+  const K = A('9')
+  // synthetic app ids: the Kernel's own (core namespace) and an app the subject does not map
+  const CORE_ID = '0x' + 'c0'.repeat(32)
+  const APP_ID = '0x' + 'a0'.repeat(32)
+  const appUnread = (b: number, impl: string) =>
+    upgraded(K, b, impl, { via: 'SetApp', appId: APP_ID, kernel: K, appUnread: true })
+  const core = (b: number, impl: string) =>
+    upgraded(K, b, impl, { via: 'SetApp', appId: CORE_ID, kernel: K })
+  const kctx = (unread: string[], read: Record<string, Controller[]>, bad: string[]) => ({
+    ...ctx(unread, read),
+    deployBlocks: { [K]: 1 },
+    verified: (x: string) => !bad.includes(x),
+  })
+
+  it('Kernel SetApp of an unmapped app (red AD-5/AD-9), then a clean core upgrade on read holders: the app red stays in effect (was ended)', () => {
+    const out = classifyAdminEvents(
+      [appUnread(100, A('a')), core(300, A('c'))],
+      kctx([`${K}@100`], { [`${K}@300`]: [SAFE] }, [A('a')]),
+    )
+    markStillInEffect(out)
+    const [app, kernel] = out
+    expect(app.key).toBe(kernel.key)
+    expect(app.red).toBe(true)
+    expect(app.ruleIds).toEqual(expect.arrayContaining(['AD-5', 'AD-9']))
+    expect(app.tags).toEqual(['logic_change', 'read_gap', 'unverified'])
+    // the core upgrade is read in full: clean, no gap of any kind
+    expect(kernel.red).toBe(false)
+    expect(kernel.tags).toEqual(['logic_change'])
+    // which slot the unmapped SetApp moved is not known: the Kernel's own upgrade never ends it
+    expect(out.map((c) => !!c.stillInEffect)).toEqual([true, false])
+  })
+
+  it('the same on synthetic rows: a clean row with no `before` never ends a value-gap red on its key (was ended)', () => {
+    const ch = (o: Partial<ConfigChange>): ConfigChange =>
+      ({
+        id: String(o.block),
+        subject: 'z',
+        dimension: 'admin',
+        key: `admin/implementation/${K}`,
+        title: '',
+        state: 'historical',
+        stage: 'executed',
+        severity: 'neutral',
+        floorBreach: false,
+        red: false,
+        ruleIds: [],
+        tags: ['logic_change'],
+        unannounced: null,
+        announcement: 'not_checked',
+        chainId: 1,
+        ...o,
+      }) as ConfigChange
+    const gap = ch({
+      block: 100,
+      after: A('a'),
+      red: true,
+      severity: 'downgrade',
+      ruleIds: ['AD-9'],
+      tags: ['logic_change', 'read_gap', 'unverified'],
+    })
+    const clean = ch({ block: 300, after: A('c') })
+    markStillInEffect([gap, clean])
+    expect(gap.stillInEffect).toBe(true)
+    expect(clean.stillInEffect).toBeFalsy()
+  })
+
+  it('control: a clean core upgrade still ends an earlier core red read in full (no gap: one slot)', () => {
+    const out = classifyAdminEvents(
+      [core(100, A('a')), core(300, A('c'))],
+      kctx([], { [`${K}@100`]: [SAFE], [`${K}@300`]: [SAFE] }, [A('a')]),
+    )
+    markStillInEffect(out)
+    expect(out.map((c) => c.red)).toEqual([true, false])
+    expect(out.map((c) => c.tags.includes('read_gap'))).toEqual([false, false])
+    expect(out.map((c) => !!c.stillInEffect)).toEqual([false, false])
+  })
+
+  it('control: a row that NAMES the value it replaced still ends a value-gap red (an owner moved off an unclassified holder)', () => {
+    const X = A('7')
+    const owner = (block: number, before: string, after: string, o: Partial<ConfigChange> = {}) =>
+      ({
+        id: String(block),
+        subject: 'z',
+        dimension: 'admin',
+        key: `admin/owner/${PROXY}`,
+        title: '',
+        state: 'historical',
+        stage: 'executed',
+        severity: 'neutral',
+        floorBreach: false,
+        red: false,
+        ruleIds: [],
+        tags: [],
+        unannounced: null,
+        announcement: 'not_checked',
+        chainId: 1,
+        block,
+        before,
+        after,
+        ...o,
+      }) as ConfigChange
+    // EOA → X (X not classified: red AD-3 on a read gap), then X → a read Safe: the event names X
+    const gap = owner(100, A('e'), X, {
+      red: true,
+      severity: 'downgrade',
+      ruleIds: ['AD-3'],
+      tags: ['read_gap'],
+    })
+    const moved = owner(200, X, SAFE.address, { severity: 'upgrade' })
+    markStillInEffect([gap, moved])
+    expect(gap.stillInEffect).toBeFalsy()
+    // same, with a neutral (non-upgrade) move: the named `before` alone is the evidence
+    const gap2 = owner(100, A('e'), X, {
+      red: true,
+      severity: 'downgrade',
+      ruleIds: ['AD-3'],
+      tags: ['read_gap'],
+    })
+    markStillInEffect([gap2, owner(200, X, A('b'))])
+    expect(gap2.stillInEffect).toBeFalsy()
   })
 })

@@ -22,6 +22,12 @@ import type {
   ParamSpec,
 } from '@/lib/oracleRegistry/config/types'
 import type { DvnRegistry } from '@/lib/oracleRegistry/config/uln'
+import {
+  buildConfigCard,
+  buildConfigSummary,
+  readGapsOf,
+  type ConfigInputs,
+} from '@/lib/oracleRegistry/config/view'
 
 import { causeListed, restsOnAGap } from './oracleRegistryReadGapCause'
 
@@ -838,5 +844,24 @@ describe('RV11-1 (every shape): a row that rests on a read gap always rests on o
     expect(unlisted.map((c) => `${c.key}@${c.block ?? 'queued'} [${c.tags.join(',')}]`)).toEqual([])
     // counted once each
     expect(new Set(gaps).size).toBe(gaps.length)
+  })
+
+  // S1 (2026-10-12): the view lists the rows of a STORED card whose cause its read gaps do not name
+  // (oracleRegistryConfigStoredReadGaps.test.ts); on every shape the current engine builds it names
+  // each cause already — the card adds no line and counts nothing twice.
+  it('(control) S1: the card built from these shapes gets no untraced-rows line — its lines are the stored ones', () => {
+    const out = build()
+    const inputs: ConfigInputs = {
+      subject: subject(),
+      state: out.state,
+      changes: out.changes,
+      queue: out.queue,
+    }
+    const card = buildConfigCard(inputs)
+    expect([...out.changes, ...out.queue].filter(restsOnAGap).length).toBeGreaterThan(0)
+    expect(card.readGaps).toEqual(readGapsOf(out.state))
+    expect((card.readGaps ?? []).join('\n')).not.toMatch(/judged on reads that failed/)
+    expect(card.counts.readGaps).toBe(readGapsOf(out.state).length)
+    expect(buildConfigSummary(inputs).counts.readGaps).toBe(card.counts.readGaps)
   })
 })

@@ -24,6 +24,7 @@ import {
   bandLabel,
   bandsLine,
   basisTallyOf,
+  calmInkAt,
   type CardFilter,
   changesForCard,
   colourCountsOf,
@@ -55,9 +56,18 @@ const REDUCED_MOTION = {
   },
 }
 
-/** Unix seconds, refreshed every 30 s after mount (null during SSR so markup matches). */
-function useNowSeconds(intervalMs = 30_000): number | null {
-  const [now, setNow] = useState<number | null>(null)
+/**
+ * The page clock in unix seconds: the server's clock (getServerSideProps) for the server render
+ * and the first client render — so hydration markup matches — then the reader's, every 30 s.
+ * (review/S5, 2026-10-12: it was null during SSR, and a null clock never judged the consensus
+ * stale, so first paint, no-JS readers and link previews printed a 6-day-old price in full ink.
+ * DESIGN_RULES §4 "Suppress the headline while inputs are stale"; §9 "Layout shift: reserve space
+ * for every client-only element (clock …)" — with the server's clock the hero and the dateline
+ * ages render the same before and after hydration.) Null only when no server clock was passed;
+ * every judgement then fails closed (consensusStaleAt treats no clock as stale).
+ */
+function useNowSeconds(initial: number | null = null, intervalMs = 30_000): number | null {
+  const [now, setNow] = useState<number | null>(initial)
   useEffect(() => {
     const tick = () => setNow(Math.floor(Date.now() / 1000))
     tick()
@@ -80,6 +90,8 @@ export type OracleRegistryProps = {
   initialConfigIndex?: ConfigIndexResponse | null
   initialConfig?: ConfigCardView | null
   initialView?: ConfigView
+  /** The server's clock at render (unix s), so the first paint judges staleness like the client. */
+  serverNow?: number | null
 }
 
 export const OracleRegistry: React.FC<OracleRegistryProps> = ({
@@ -89,13 +101,14 @@ export const OracleRegistry: React.FC<OracleRegistryProps> = ({
   initialConfigIndex = null,
   initialConfig = null,
   initialView = 'oracles',
+  serverNow = null,
 }) => {
   const router = useRouter()
   const [slug, setSlug] = useState(initialSlug)
   const [mode, setMode] = useState<ConfigView>(initialView)
   const [historyAll, setHistoryAll] = useState(false)
   const [filter, setFilter] = useState<CardFilter | null>(null)
-  const now = useNowSeconds()
+  const now = useNowSeconds(serverNow)
 
   const index = useQuery<OracleIndexResponse>({
     queryKey: ['oracle-registry', 'index'],
@@ -189,6 +202,9 @@ export const OracleRegistry: React.FC<OracleRegistryProps> = ({
   const counts = useMemo(() => colourCountsOf(view?.cards ?? []), [view])
   const basis = useMemo(() => basisTallyOf(view?.cards ?? []), [view])
   const groups = useMemo(() => groupCards(filterCards(view?.cards ?? [], filter)), [view, filter])
+  // DESIGN_RULES §2 "One state owns the screen": while the consensus is not current at the page
+  // clock, no card on it is green (review/S5, 2026-10-12).
+  const calmInk = view ? calmInkAt(view, now) : true
 
   return (
     <Box
@@ -322,6 +338,7 @@ export const OracleRegistry: React.FC<OracleRegistryProps> = ({
                         consensusSeries={view.history.consensus}
                         changes={changesForCard(view.changes, c)}
                         voteNote={voteNote(c, view.consensus)}
+                        calmInk={calmInk}
                       />
                     ))}
                   </Grid>

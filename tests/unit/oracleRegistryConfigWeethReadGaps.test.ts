@@ -25,6 +25,12 @@ import { buildSubject, type RawSubject } from '@/lib/oracleRegistry/config/engin
 import type { ConfigSubject, Controller } from '@/lib/oracleRegistry/config/types'
 import type { DvnRegistry } from '@/lib/oracleRegistry/config/uln'
 import {
+  buildConfigCard,
+  buildConfigSummary,
+  readGapsOf,
+  type ConfigInputs,
+} from '@/lib/oracleRegistry/config/view'
+import {
   recordUpgradeHoldersUnread as recordUnreadJs,
   upgradeHoldersUnreadFor as unreadForJs,
 } from '@/scripts/oracle-registry/config/lib/admin.mjs'
@@ -365,6 +371,28 @@ describe('F4: every read gap a history row rests on is listed and counted on the
 // =====================================================================================================
 // RV11-1, generic: F4's weETH-only test here was replaced by the every-shape test (R3, 2026-10-12:
 // oracleRegistryConfigReadGapCauses.test.ts); `causeListed` is shared (oracleRegistryReadGapCause.ts).
+
+// S1 (2026-10-12): the view lists the rows of a STORED card whose cause its read gaps do not name
+// (oracleRegistryConfigStoredReadGaps.test.ts) — on the weETH shapes the current engine builds, it
+// names every cause already: the card adds nothing (no double count).
+describe('S1 (control): the weETH card the current engine builds gets no untraced-rows line', () => {
+  it('every read_gap row is listed by the engine; the card lines equal the stored ones', () => {
+    const s = subject()
+    const out = build(s, rawOf())
+    const tagged = out.changes.filter((c) => c.tags.includes('read_gap'))
+    expect(tagged.length).toBeGreaterThanOrEqual(GRANTS.length + UP_2023.length)
+    const inputs: ConfigInputs = {
+      subject: s,
+      state: out.state,
+      changes: out.changes,
+      queue: out.queue,
+    }
+    const card = buildConfigCard(inputs)
+    expect(card.readGaps).toEqual(readGapsOf(out.state))
+    expect((card.readGaps ?? []).join('\n')).not.toMatch(/judged on reads that failed/)
+    expect(buildConfigSummary(inputs).counts.readGaps).toBe(readGapsOf(out.state).length)
+  })
+})
 
 // =====================================================================================================
 // Review of R1 (R2, 2026-10-12): a NEW owner whose classification at the block FAILED was red AD-3

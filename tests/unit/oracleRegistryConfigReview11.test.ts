@@ -242,7 +242,14 @@ describe('RV11-1: a card never renders a read gap it does not count', () => {
     const card = getConfigCard('wsteth', {}, FROZEN)!
     const labels = card.admin.powers.flatMap((p) => p.holders.map((h) => h.label)).join('\n')
     expect(labels).not.toMatch(/vote history UNREAD|holder concentration UNREAD/)
-    expect(card.readGaps).toEqual(state.readGaps ?? [])
+    // S1 (2026-10-12): this frozen card predates F4 / R3 — its 2 rows at 22,225,938 rest on the
+    // bypassers of Timelock 0x4483…9449 not read, a cause its stored lines do not name: one more
+    // counted line (no vote-history line either way)
+    expect(card.readGaps).toEqual([
+      ...(state.readGaps ?? []),
+      "2 history rows were judged on reads that failed (fail closed; this card's data does not name the read): owner of 0xa586…9fa7: EOA 0x8761…df34 → Timelock 3h 0x4483…9449 (block 22,225,938); CCIP token administrator → Timelock 3h 0x4483…9449 (block 22,225,938)",
+    ])
+    expect(card.counts.readGaps).toBe((state.readGaps ?? []).length + 1)
     // round 12: the re-collection could not read the Linea bridge timelock's proposers (KG-6);
     // a label that says UNREAD is always a counted read gap — never a silent one (RV11-1)
     for (const m of labels.matchAll(/(0x[0-9a-f]{4}…[0-9a-f]{4}) \[proposers UNREAD/g))

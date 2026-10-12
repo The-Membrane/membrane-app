@@ -9,6 +9,10 @@
 //     ("stale when now − updatedAt > heartbeatSeconds + grace", and a stale entry "never counts
 //     toward consensus") judged at the reader's clock: the headline is stale once fewer than
 //     `minMembers` of the members that formed it are still inside their own limit.
+//     (review/S5, 2026-10-12: that threshold printed a median over members already past their
+//     limit in full ink, and no clock — every server render — was never stale. S5 suppresses on
+//     ANY counted member past its limit and treats no clock as stale; the pins below that S5
+//     changed say so, and oracleRegistryUiHonestyS5.test.ts carries the new rule.)
 // (d) `authority_unread` (F1) had no TAG_LABEL entry, so a quiet "authority unread" word printed
 //     beside the loud READ GAP chip on the same row — one fact twice (DESIGN_RULES §3).
 
@@ -65,10 +69,11 @@ describe('R5 (c): the consensus headline is suppressed and hatched while its inp
     })
   })
 
-  it('stale once fewer than minMembers members are inside their own limit — ETH at 71,149 s (was fresh at any age); 71,148 s is not (control)', () => {
+  it('ETH at 71,149 s is stale (was fresh at any age); S5: so is 71,148 s — its TWAP and first member are past theirs — and only the read itself is current (control)', () => {
     expect(consensusStaleAt(view(ETH), SNAP_TS + 71_149)).toBe(true)
-    expect(consensusStaleAt(view(ETH), SNAP_TS + 71_148)).toBe(false)
-    expect(consensusHero(view(ETH), SNAP_TS + 71_148)).toEqual({
+    expect(consensusStaleAt(view(ETH), SNAP_TS + 71_148)).toBe(true)
+    expect(consensusStaleAt(view(ETH), SNAP_TS)).toBe(false)
+    expect(consensusHero(view(ETH), SNAP_TS)).toEqual({
       text: '$4,512.33',
       muted: false,
       hatchedPrice: null,
@@ -104,22 +109,30 @@ describe('R5 (c): the consensus headline is suppressed and hatched while its inp
     expect(consensusStaleAt(v, SNAP_TS + 4_190)).toBe(false)
   })
 
-  it('(control) no clock yet (server render), no consensus, or no snapshot: not judged stale', () => {
-    expect(consensusHero(view(WEETH), null).text).toBe('$4,512.33')
+  it('S5: no clock (a render with no clock passed) or no snapshot is stale, fail closed (was "$4,512.33" in full ink with now null); no consensus is not judged (control)', () => {
+    expect(consensusHero(view(WEETH), null)).toEqual({
+      text: 'stale',
+      muted: true,
+      hatchedPrice: '$4,512.33',
+      aria: 'Consensus stale: $4,512.33 when read',
+    })
     expect(consensusHero(view(WEETH, { status: 'insufficient' }), OCT12)).toEqual({
       text: 'no consensus',
       muted: true,
       hatchedPrice: null,
       aria: 'No consensus',
     })
-    expect(consensusStaleAt(view(WEETH, { snapshotTs: null }), OCT12)).toBe(false)
+    expect(consensusStaleAt(view(WEETH, { snapshotTs: null }), OCT12)).toBe(true)
+    expect(consensusStaleAt(view(WEETH, { status: 'insufficient' }), OCT12)).toBe(false)
   })
 
   it('the header renders its hero from consensusHero, hatches the stale price, and keeps the input ages in the dateline (was its own full-ink ternary)', () => {
     const h = src('components/OracleRegistry/ConsensusHeader.tsx')
     expect(h).toMatch(/consensusHero\(view, now\)/)
     expect(h).toMatch(/hero\.hatchedPrice/)
-    expect(h).toMatch(/repeating-linear-gradient/)
+    // S5: the hatch is the stale glyph before the figure, not a fill behind it (§6 "no chips
+    // behind figures") — was /repeating-linear-gradient/
+    expect(h).toMatch(/\{STALE_HATCH_GLYPH\}/)
     expect(h).not.toMatch(/color=\{ok \? SEMANTIC_COLORS\.textPrimary/)
     // (control) the dateline still carries the input ages
     expect(h).toMatch(/k="Last update"/)

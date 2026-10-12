@@ -14,10 +14,12 @@ import {
   bandLabel,
   basisTallyLine,
   type BasisFilter,
+  calmInkAt,
   type CardFilter,
   COLOUR_META,
   COLOUR_ORDER,
   type ColourMeta,
+  colourToken,
   consensusHero,
   displayLabel,
   fmtBps,
@@ -26,6 +28,7 @@ import {
   fmtUtc,
   lastFeedUpdate,
   PROVIDER_LABEL,
+  STALE_HATCH_GLYPH,
 } from './viewModel'
 
 // The hero number: the asset's consensus (median of its fresh market feeds), with the
@@ -36,9 +39,17 @@ import {
 // stale." "Show input ages in the dateline." Once the members that formed the median are past
 // their own limits at the reader's clock (consensusStaleAt), the headline reads "stale" in muted
 // ink, the price moves hatched onto the qualifier line, and the dateline keeps the ages.
-
-/** The stale-data hatch (the sparkline's diagonal), behind a price that is no longer current. */
-const STALE_HATCH = `repeating-linear-gradient(45deg, ${SEMANTIC_COLORS.borderStrong} 0 1px, transparent 1px 4px)`
+// (review/S5, 2026-10-12: three holes in R5.)
+//   1. Under the "stale" headline the counts still printed a green "● N within band". §2: "One
+//      state owns the screen." "Calm is ink only." §4: "Hatch it, never colour it green." While
+//      calm is in ink (calmInkAt: stale, no consensus or no clock) the ● takes muted ink, and
+//      OracleRegistry passes the same flag to every card, strip, basis bar and tab mark.
+//   2. The hatch was a background fill with padding behind the figure. §6: "No card fills, no
+//      chips behind figures." The hatch is now the stale glyph before the figure (░, §2 "Every
+//      colour carries a glyph: ● ▲ ✖ ░"), muted ink, nothing drawn behind it.
+//   3. `now` is the page clock: the server's at first render (§9 "reserve space for every
+//      client-only element (clock …)" — the hero and the dateline ages render the same on the
+//      server and on hydration, so nothing shifts), the reader's after mount.
 
 const Stat: React.FC<{ k: string; v: React.ReactNode }> = ({ k, v }) => (
   <HStack spacing="6px" align="baseline">
@@ -117,6 +128,7 @@ export const ConsensusHeader: React.FC<{
   const reference = c.reference ? view.cards.find((x) => x.id === c.reference?.id) : undefined
   const snapAge = view.snapshot && now != null ? ageAt(view.snapshot.ts, now) : null
   const hero = consensusHero(view, now)
+  const calmInk = calmInkAt(view, now)
   const lastUpdate = ok ? lastFeedUpdate(view.cards, view.snapshot?.ts) : null
   const hasBasis = view.cards.some((x) => x.tone === 'basis')
 
@@ -154,7 +166,10 @@ export const ConsensusHeader: React.FC<{
         >
           {hero.hatchedPrice && (
             <>
-              <Text as="span" px="3px" bgImage={STALE_HATCH}>
+              <Text as="span" color={SEMANTIC_COLORS.textTertiary}>
+                <Text as="span" aria-hidden="true">
+                  {STALE_HATCH_GLYPH}
+                </Text>{' '}
                 {hero.hatchedPrice}
               </Text>{' '}
               when read ·{' '}
@@ -214,7 +229,7 @@ export const ConsensusHeader: React.FC<{
         {COLOUR_ORDER.map((colour) => (
           <FilterButton
             key={colour}
-            meta={COLOUR_META[colour]}
+            meta={{ ...COLOUR_META[colour], token: colourToken(colour, calmInk) }}
             n={counts[colour]}
             active={filter === colour}
             onClick={() => onFilter(filter === colour ? null : colour)}

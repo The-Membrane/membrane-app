@@ -7,19 +7,22 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 
 import { configTabLabel, configTabMarks, smallText, type TabEntry } from './configViewModel'
-import { COLOUR_META, tabLabel, tabMarks } from './viewModel'
+import { colourToken, summaryCalmInkAt, tabLabel, tabMarks } from './viewModel'
 
 // Asset picker: a roving-tabindex tablist (arrows / Home / End), horizontally scrollable on
 // phones. Each tab carries its status marks — ▼n / ▲n outlier counts, ● when calm, × when
 // the asset has no consensus — then its config marks: ■n open red flags, ◐n pending changes.
 // Config-only subjects (no oracle in the catalog, e.g. rsETH) get a tab of their own.
+// (review/S5, 2026-10-12: a calm tab drew a green ● from a 6-day-old read.) DESIGN_RULES §2 "One
+// state owns the screen", §4 "Hatch it, never colour it green": the ● is green only while the
+// index's freshWindow says that asset's median is current at `now` (summaryCalmInkAt), else ink.
 
 export const AssetTabs: React.FC<{
   assets: TabEntry[]
   selected: string
   onSelect: (slug: string) => void
   panelId: string
-  /** Client clock (unix s; null during SSR): marks stale config output. */
+  /** Page clock (unix s; the server's at first render, the reader's after mount). */
   now?: number | null
 }> = ({ assets, selected, onSelect, panelId, now = null }) => {
   const refs = useRef<(HTMLButtonElement | null)[]>([])
@@ -78,6 +81,7 @@ export const AssetTabs: React.FC<{
       >
         {assets.map((a, i) => {
           const active = a.slug === selected
+          const calmInk = a.oracle ? summaryCalmInkAt(a.oracle, now) : true
           const label = [
             a.oracle ? tabLabel(a.oracle) : `${a.symbol} (config only)`,
             configTabLabel(a.config, now),
@@ -104,7 +108,10 @@ export const AssetTabs: React.FC<{
               py={SPACING.sm}
               mb="-1px"
               borderBottom="2px solid"
-              borderColor={active ? SEMANTIC_COLORS.primary : 'transparent'}
+              // (review/S5, 2026-10-12: the selected tab's underline was --m-primary, the same
+              // green as --m-success, under a "stale" headline) — selection is ink. DESIGN_RULES §2:
+              // "Green means money or profit only." "Labels are muted ink and are never coloured."
+              borderColor={active ? SEMANTIC_COLORS.textPrimary : 'transparent'}
               bg="transparent"
               whiteSpace="nowrap"
               transition={TRANSITIONS.colors}
@@ -130,7 +137,7 @@ export const AssetTabs: React.FC<{
                   <Text
                     as="span"
                     key={m.colour}
-                    color={COLOUR_META[m.colour].token}
+                    color={colourToken(m.colour, calmInk)}
                     fontSize="10px"
                   >
                     {m.glyph}

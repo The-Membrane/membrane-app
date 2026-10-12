@@ -768,7 +768,11 @@ describe('PO-07 / MISSED-1 / MISSED stale window: the oracle governance input', 
         oracle: { events: [], window: { startBlock: 1, endBlock: HEAD1 - 30_000, days: 180 } },
       }),
     ).state
-    expect(gaps(st)).toMatch(/oracle governance events after block/)
+    // S4 (2026-10-12): in the reader's words; no end time in this window, so the hole is in blocks
+    // (was "oracle governance events after block 29,970,000 not read (the oracle collector's …)")
+    expect(gaps(st)).toMatch(
+      /oracle governance changes: last 30,000 blocks not read \(after block 29,970,000\)/,
+    )
   })
   it('CL-10: a source moved to a contract that could not be classified is red OR-1 with a read gap', () => {
     const src = A('5')

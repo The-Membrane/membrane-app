@@ -38,7 +38,7 @@ import {
   routeTags,
 } from './bridgeRules'
 import { compactRoute, replayLz, routeChangeDisplays, routeKey, type LzEvent } from './lzReplay'
-import { oracleWindowGap } from './oracleWindow'
+import { oracleWindowGapLine } from './oracleWindow'
 import {
   multisigSubmissionChanges,
   safeProposalChanges,
@@ -2888,14 +2888,18 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   // PO-07 / MISSED-1 / the stale oracle window. R5 (2026-10-12: the card's heading said "last
   // 180 d" up to a day below the head while this listed a gap past 300 blocks): one threshold,
   // ORACLE_WINDOW_GAP_BLOCKS, shared with the heading (oracleAside).
+  // S4 (2026-10-12: an end block that was not a finite number — or no window in an events file
+  // that was read — failed the threshold compare, so nothing was listed while the card hedged
+  // "180 d"; and the line spoke the collector's words): oracleWindowGapLine lists that as "window
+  // end not read", and the hole in the reader's words. An unread events file has its own line.
+  const oracleWindowLine =
+    raw.oracle && (raw.oracle.window || !raw.oracle.unread)
+      ? oracleWindowGapLine(raw.oracle.window, raw.head)
+      : null
   const oracleGaps = subject.oracleAssetKey
     ? [
         ...(raw.oracle?.unread ? [`oracle governance events not read (${raw.oracle.unread})`] : []),
-        ...(raw.oracle?.window && oracleWindowGap(raw.oracle.window.endBlock, raw.head.block)
-          ? [
-              `oracle governance events after block ${shortN(raw.oracle.window.endBlock)} not read (the oracle collector's window ends ${shortN(raw.head.block - raw.oracle.window.endBlock)} blocks below head)`,
-            ]
-          : []),
+        ...(oracleWindowLine ? [oracleWindowLine] : []),
       ]
     : []
   // F4 (2026-10-12, weETH re-collect: 13 rows tagged read_gap on a card listing ONE read gap —
@@ -4168,6 +4172,10 @@ export function ccipRemotePoolsReplay(
  * forward instead of ending it, and a change that does not move the value (before = after)
  * ends nothing. So does a change whose value rests on a read gap (`read_gap`); one whose only
  * read gap is who authorised it (`authority_unread`, F1) moves the value like a read one.
+ * A move ends a red whose OWN value rests on a read gap only when the change names the value it
+ * replaced in its `before` (S3): a `before` inferred from the key's last value may be another
+ * slot's (Kernel SetApps of different apps share the kernel key; an Upgraded row is never an
+ * upgrade, so no sweep above reaches them).
  * Role keys are SETS of holders: a grant to another account never ends a red one;
  * a minter key ends only when the minter is removed (an allowance change is not a removal).
  */
@@ -4211,7 +4219,10 @@ export function markStillInEffect(changes: ConfigChange[]): void {
       const closed = !!c.route && (c.after as { live?: boolean } | undefined)?.live === false
       if (c.severity === 'upgrade' || (closed && !c.red) || c.tags.includes('route_removed'))
         open = []
-      const before: string | null = str(c.before) ?? (isSet ? null : last)
+      // `named`: the row's own event names the value it replaced; otherwise `before` is inferred
+      // from the key's last value
+      const named = str(c.before)
+      const before: string | null = named ?? (isSet ? null : last)
       const after: string | null = str(c.after)
       // a rotation, and (review round 10, R-3) a move to a holder whose rank rests on a read gap,
       // carry an open red forward: a failed read never ends a red
@@ -4219,11 +4230,20 @@ export function markStillInEffect(changes: ConfigChange[]): void {
       // reds): a row whose only read gap is WHO authorised it (`authority_unread`, AD-5) set a
       // value read in full — it moves the value and carries its own red. It never ends a red
       // whose own value rests on a read gap (a Kernel SetApp of an unmapped app shares the key).
+      // S3 (review of F1, 2026-10-12: a clean, fully read core-namespace Upgraded on the Kernel
+      // ended an earlier Kernel SetApp red of an UNMAPPED app — F1's guard ran only when the
+      // ending row was `authority_unread`): a red whose own value rests on a read gap is ended
+      // only by a row that NAMES the value it replaced, never by a `before` inferred from the
+      // key's last value. One key may hold several slots (abi.mjs aragonRows: SetApp(core) and an
+      // unmapped SetApp(base) both land on the Kernel's key, and a change row carries no app id):
+      // the last value may be another slot's, so it is no evidence this one moved.
       const moved =
         before !== null && before !== after && !c.tags.includes('rotation') && !valueGap(c)
       if (moved)
         open = open.filter(
-          (o) => str(o.after) !== before || (c.tags.includes('authority_unread') && valueGap(o)),
+          (o) =>
+            str(o.after) !== before ||
+            (valueGap(o) && (named === null || c.tags.includes('authority_unread'))),
         )
       if (!isSet && after !== null) last = after
       if (c.red) open.push(c)

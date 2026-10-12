@@ -23,6 +23,12 @@ import { assetSlug, buildAssetView, buildIndex, findAssetKey } from '@/lib/oracl
 //
 // ?view=config server-renders the selected asset's CONFIG CARD instead (trust configuration
 // and change timeline); config-only subjects (?asset=rseth) always open in that view.
+//
+// Every path passes the server's clock (serverNow, unix s): the page judges staleness at it for
+// the server render and the first client render (review/S5, 2026-10-12: with no clock on the
+// server the consensus was never judged stale, so first paint, no-JS readers and link previews
+// printed a 6-day-old price in full ink — DESIGN_RULES §4 "Suppress the headline while inputs
+// are stale"; §9 no layout shift between server and client).
 
 type Props = {
   index: OracleIndexResponse | null
@@ -31,6 +37,7 @@ type Props = {
   configIndex: ConfigIndexResponse | null
   config: ConfigCardView | null
   view: 'oracles' | 'config'
+  serverNow: number
 }
 
 function configIndexOrNull(): ConfigIndexResponse | null {
@@ -49,6 +56,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
   if (!supportedChains.some((c) => c.name === chainName)) {
     return { redirect: { destination: `/${DEFAULT_CHAIN}/oracles`, permanent: false } }
   }
+  const serverNow = Math.floor(Date.now() / 1000)
   const requested = typeof context.query.asset === 'string' ? context.query.asset : DEFAULT_ASSET
   const wantsConfig = context.query.view === 'config'
   const configIndex = configIndexOrNull()
@@ -78,6 +86,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
         configIndex,
         config: readConfig(slug),
         view: 'config',
+        serverNow,
       }),
     ) as Props
     return { props }
@@ -102,6 +111,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
         configIndex,
         config,
         view,
+        serverNow,
       }),
     ) as Props
     return { props }
@@ -114,12 +124,21 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
         configIndex,
         config: null,
         view: 'oracles',
+        serverNow,
       },
     }
   }
 }
 
-export default function OraclesPage({ index, asset, slug, configIndex, config, view }: Props) {
+export default function OraclesPage({
+  index,
+  asset,
+  slug,
+  configIndex,
+  config,
+  view,
+  serverNow,
+}: Props) {
   return (
     <>
       <PageSeo
@@ -134,6 +153,7 @@ export default function OraclesPage({ index, asset, slug, configIndex, config, v
         initialConfigIndex={configIndex}
         initialConfig={config}
         initialView={view}
+        serverNow={serverNow}
       />
     </>
   )

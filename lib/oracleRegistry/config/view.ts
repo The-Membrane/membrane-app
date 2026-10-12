@@ -33,6 +33,7 @@ import type {
   RouteSideView,
 } from './apiTypes'
 import { floorBreachRoutes } from './bridgeRules'
+import { causeListed, restsOnAGap } from './readGapCause'
 import { describeController, formatDelay, RULES, treeReadGaps } from './rules'
 import { compareValueAtRisk, valueAtRiskLabel } from './value'
 import type {
@@ -862,6 +863,60 @@ export function readGapsOf(state: SubjectState | null | undefined): string[] {
 }
 
 /**
+ * A row's title in the untraced-rows line: its (…) / […] notes dropped (a rank note can outrun the
+ * address after it: `Timelock 3h (bypass: …, bypassers UNREAD: …) 0x4483…9449`), hashes shortened,
+ * capped. The full title is on the row.
+ */
+const UNTRACED_TITLE_MAX = 90
+function untracedTitle(title: string): string {
+  // a note follows a space; `address(0)` keeps its (0)
+  let t = title
+  for (let prev = ''; prev !== t; ) {
+    prev = t
+    t = t.replace(/\s+\([^()[\]]*\)|\s+\[[^()[\]]*\]/g, '')
+  }
+  t = (t.trim() || title).replace(/0x[0-9a-fA-F]{41,}/g, (h) => `${h.slice(0, 6)}…${h.slice(-4)}`)
+  return t.length > UNTRACED_TITLE_MAX ? `${t.slice(0, UNTRACED_TITLE_MAX - 1)}…` : t
+}
+
+/**
+ * S1 (2026-10-12, the committed weETH card: 14 rows tagged READ GAP / VERIFICATION LOOKUP FAILED,
+ * ONE read gap listed — collected before F4 / R3 named their causes; RV11-1: a card never renders
+ * a read gap it does not count). The rows that rest on a read gap (`read_gap`,
+ * `verification_unread`) whose cause no listed line names (`causeListed`, R3) — a STORED card's
+ * engine did not list it — are listed and counted here, as one line naming each row. A card built
+ * by the current engine lists every cause (R3's every-shape test): nothing is added there.
+ */
+export function untracedRowGaps(
+  rows: readonly ConfigChange[],
+  listed: readonly string[],
+): string[] {
+  const loose = rows
+    .filter((c) => restsOnAGap(c) && !causeListed(c, listed))
+    .map((c, i) => ({ c, i }))
+    .sort(
+      (x, y) =>
+        (x.c.block ?? Number.MAX_SAFE_INTEGER) - (y.c.block ?? Number.MAX_SAFE_INTEGER) ||
+        x.i - y.i,
+    )
+    .map((x) => x.c)
+  if (!loose.length) return []
+  const label = (c: ConfigChange) =>
+    `${untracedTitle(c.title)} (${c.block !== undefined ? `block ${c.block.toLocaleString('en-US')}` : 'queued'})`
+  const n = loose.length
+  const what = loose.every((c) => c.state === 'historical') ? 'history row' : 'row'
+  return [
+    `${n} ${what}${n === 1 ? ' was' : 's were'} judged on reads that failed (fail closed; this card's data does not name the read): ${loose.map(label).join('; ')}`,
+  ]
+}
+
+/** Every read gap the card lists and counts: the file gaps, the stored and tree ones, and S1's. */
+export function cardReadGaps(inp: ConfigInputs): string[] {
+  const listed = [...(inp.fileGaps ?? []), ...readGapsOf(inp.state)]
+  return [...listed, ...untracedRowGaps([...inp.queue, ...inp.changes], listed)]
+}
+
+/**
  * Where the oracle governance window ends (F6, 2026-10-12): the block, and its time when the
  * oracle collector recorded one. A field that is not a finite number is unknown — the card then
  * never says the window reaches its head.
@@ -893,7 +948,7 @@ export function buildConfigCard(inp: ConfigInputs, opt: BuildCardOptions = {}): 
   const executors = executorsByTimelock(inp.changes)
   const items = state?.items ?? []
   const powers = state?.powers ?? []
-  const readGaps = [...(inp.fileGaps ?? []), ...readGapsOf(state)]
+  const readGaps = cardReadGaps(inp)
   const counts = withCarriedRed(countsOf(items, all, readGaps), inp.carriedRed)
   const views = orderTimeline(
     all.map((c) => toChangeView(c, { executors, eidName: (e) => eidName(e) })),
@@ -981,11 +1036,7 @@ export function buildConfigSummary(inp: ConfigInputs): ConfigTabSummary {
     label: subject.label,
     oracleSlug: subject.oracleAssetKey ? subject.oracleAssetKey.toLowerCase() : null,
     counts: withCarriedRed(
-      countsOf(
-        state?.items ?? [],
-        [...inp.queue, ...inp.changes],
-        [...(inp.fileGaps ?? []), ...readGapsOf(state)],
-      ),
+      countsOf(state?.items ?? [], [...inp.queue, ...inp.changes], cardReadGaps(inp)),
       inp.carriedRed,
     ),
     asOf: state?.asOf ?? null,

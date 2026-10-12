@@ -22,6 +22,7 @@ import {
   type HistorySeries,
 } from './classify'
 import { DEFAULT_BANDS_BPS } from './consensus'
+import { consensusFreshWindow } from './consensusClock'
 import {
   countedColour,
   encodeColours,
@@ -483,6 +484,13 @@ export function buildIndex(model: RegistryModel): OracleIndexResponse {
         members: a.consensus.status === 'ok' ? a.consensus.memberIds.length : 0,
         spreadBps: a.consensus.spreadBps,
         referenceUsd: a.consensus.reference?.usd ?? null,
+        // (review/S5, 2026-10-12: tabs drew a green ● from a 6-day-old read) — the same
+        // window the panel's headline is judged by, so the tab can say when it stops vouching.
+        freshWindow: consensusFreshWindow({
+          consensus: a.consensus,
+          cards: a.cards,
+          readTs: latest?.ts,
+        }),
       },
       counts: colourCounts(a.cards),
       cards: a.cards.length,

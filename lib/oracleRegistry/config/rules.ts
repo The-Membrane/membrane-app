@@ -1300,7 +1300,13 @@ export function classifyRoleGrant(
   else if (opts.administersRoles && !PRIVILEGED_ROLES.has(role))
     v.notes.push(`${role} administers another role: judged privileged`)
   // A privileged grantee that could not be classified is never judged calm (fail closed).
-  if (!account) return down(v, 'AD-4', `${role} → an account that could not be classified`)
+  // S2 (review of R2, 2026-10-12: an UPGRADER_ROLE grant — or a Solady RoleSet, rewritten to
+  // RoleGranted — to an account whose classification FAILED was red AD-4 with no tag, so the
+  // failed read was listed nowhere, the account in `classifyFailed` or not): a read gap on the
+  // value, tagged `read_gap` like a grantee whose rank rests on one — the card lists it
+  // (pastReadGaps: "0x… could not be classified at block N").
+  if (!account)
+    return tag(down(v, 'AD-4', `${role} → an account that could not be classified`), 'read_gap')
   // Review round 6: a contract whose deferral chain ends at an EOA ranks with that EOA (an MCMS
   // owned by a key) — AD-4 needs no holder to rank against.
   if (isEoaControlled(account)) return down(v, 'AD-4', `${role} → ${describeController(account)}`)
@@ -1519,9 +1525,32 @@ export function classifyRoleAdminChange(
     return v
   }
   const c = compareRank(weakest(nextAdmin.holders), weakest(prevAdmin.holders))
-  if (c < 0) return down(v, 'AD-3', msg)
   const prevSideGap = prevAdmin.holders.some((h) => !h || rankHasReadGap(h))
   const nextSideGap = nextAdmin.holders.some((h) => !h || rankHasReadGap(h))
+  // S2 (2026-10-12): a side's holders that could not be classified, said as such — the card's
+  // past-read line ("0x… could not be classified at block N") is traced to this row by its notes
+  // (causeListed: the row names role hashes, never the holder; `describeController` says "unknown")
+  const unclassified = (a: { holders: (Controller | null)[] }, which: string) => {
+    const k = a.holders.filter((h) => !h).length
+    return k ? ` (${k} ${which} admin holder(s) could not be classified)` : ''
+  }
+  // S2 (review of R2, 2026-10-12: R_SAFE → R_EOA, then R_EOA → an admin role whose holder could
+  // not be classified — the second, a plain red, ended the first and its gap was listed nowhere):
+  // the c < 0 check ran BEFORE the read-gap sides. A null holder ranks lowest ([0]) and a holder
+  // whose rank rests on a read gap ranks as a plain contract, so a weaker-looking side is no read:
+  // red AD-3 tagged `read_gap`, like `classifyControllerChange` (R2) — a red before it stays in
+  // effect and the gap is listed.
+  if (c < 0) {
+    if (!prevSideGap && !nextSideGap) return down(v, 'AD-3', msg)
+    return tag(
+      down(
+        v,
+        'AD-3',
+        `${msg}: an admin holder was not read or its rank rests on a read gap${unclassified(prevAdmin, 'previous')}${unclassified(nextAdmin, 'new')} — not judged on a read (fail closed)`,
+      ),
+      'read_gap',
+    )
+  }
   // review round 12 (rules #5): a previous admin side not read, or resting on a read gap, is no
   // baseline to rank an upgrade against. Fail-closed review (2026-10-10, OC-1): as for an owner
   // (`classifyControllerChange`), a downgrade cannot be ruled out — red AD-3 (read gap) unless
@@ -1532,12 +1561,12 @@ export function classifyRoleAdminChange(
         down(
           v,
           'AD-3',
-          `${msg}: a previous admin holder was not read or its rank rests on a read gap — a downgrade cannot be ruled out (fail closed)`,
+          `${msg}: a previous admin holder was not read or its rank rests on a read gap${unclassified(prevAdmin, 'previous')} — a downgrade cannot be ruled out (fail closed)`,
         ),
         'read_gap',
       )
     v.notes.push(
-      `${msg}: not judged as an upgrade — a previous admin holder was not read or its rank rests on a read gap`,
+      `${msg}: not judged as an upgrade — a previous admin holder was not read or its rank rests on a read gap${unclassified(prevAdmin, 'previous')}`,
     )
     return tag(v, 'read_gap')
   }

@@ -5,7 +5,7 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TYPOGRAPHY } from '@/helpers/typography'
 
 import {
-  COLOUR_META,
+  colourToken,
   fmtBps,
   fmtShortUtc,
   fmtUsd,
@@ -27,12 +27,21 @@ export type SparklineProps = {
   usd: readonly (number | null)[]
   consensus: readonly (number | null)[]
   colours: string
+  /** Green cells in ink (review/S5, 2026-10-12: DESIGN_RULES §2 "One state owns the screen"). */
+  calmInk: boolean
   ts: readonly number[]
   /** Accessible summary of the whole series. */
   label: string
 }
 
-export const Sparkline: React.FC<SparklineProps> = ({ usd, consensus, colours, ts, label }) => {
+export const Sparkline: React.FC<SparklineProps> = ({
+  usd,
+  consensus,
+  colours,
+  calmInk,
+  ts,
+  label,
+}) => {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const hatchId = `hatch-${uid}`
   const geo = useMemo(() => sparkGeometry(usd, consensus, W, H), [usd, consensus])
@@ -141,7 +150,7 @@ export const Sparkline: React.FC<SparklineProps> = ({ usd, consensus, colours, t
               width={c.w + 0.05}
               height={c.h}
               style={{
-                fill: c.colour === 'stale' ? `url(#${hatchId})` : COLOUR_META[c.colour].token,
+                fill: c.colour === 'stale' ? `url(#${hatchId})` : colourToken(c.colour, calmInk),
               }}
             />
           ))}

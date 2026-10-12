@@ -86,15 +86,16 @@ const raw = (window: Window) =>
     oracle: { events: [], window },
     warnings: [],
   }) as RawSubject
-const card = (window: Window = WINDOW) => {
-  const out = buildSubject(subject, raw(window), {
+const cardOf = (r: RawSubject, s: ConfigSubject = subject) => {
+  const out = buildSubject(s, r, {
     registry,
     eidName: () => 'arbitrum',
     roleName: (h) => h,
     endpoint: '0x1a44076050125825900e736c501f859c50fe728c',
   })
-  return buildConfigCard({ subject, state: out.state, changes: [], queue: [] })
+  return buildConfigCard({ subject: s, state: out.state, changes: [], queue: [] })
 }
+const card = (window: Window = WINDOW) => cardOf(raw(window))
 const oracle = (o: Partial<ConfigCardView['oracle']> = {}): ConfigCardView['oracle'] => ({
   oracleSlug: 'weeth',
   entries: 3,
@@ -111,8 +112,9 @@ describe('F6: the Oracles heading says where the oracle window ends when it ends
     const c = card()
     expect(c.asOf).toEqual(HEAD)
     expect(oracleAside(c.oracle, c.asOf)).toBe('0 config changes · 180 d to Oct 5 UTC')
-    // (control) the same card already lists the unread blocks as a read gap
-    expect(c.readGaps?.some((g) => g.includes('after block 26,129,366 not read'))).toBe(true)
+    // (control) the same card already lists the unread blocks as a read gap (S4: in the reader's
+    // words, was "oracle governance events after block 26,129,366 not read (…)")
+    expect(c.readGaps?.some((g) => g.includes('(after Oct 5 UTC, block 26,129,366)'))).toBe(true)
   })
 
   it('the card carries where the window ends, block and time (was its length only)', () => {
@@ -182,7 +184,7 @@ describe('F6: the Oracles heading says where the oracle window ends when it ends
 // R5 (2026-10-12): the heading and the read-gap line judge the same window by the same rule.
 describe('R5: one threshold — "last N d" only when the engine lists no oracle-window gap', () => {
   const oracleWindowGap = (c: ReturnType<typeof card>) =>
-    (c.readGaps ?? []).some((g) => g.startsWith('oracle governance events after block'))
+    (c.readGaps ?? []).some((g) => g.startsWith('oracle governance changes: last '))
   const lagged = (lagBlocks: number) =>
     card({ ...WINDOW, endBlock: HEAD.block - lagBlocks, endTs: HEAD.ts - lagBlocks * 12 })
 
@@ -211,5 +213,103 @@ describe('R5: one threshold — "last N d" only when the engine lists no oracle-
     expect(vm).not.toMatch(/ORACLE_WINDOW_LAG_(SEC|BLOCKS)/)
     expect(vm).toMatch(/ORACLE_WINDOW_GAP_BLOCKS|oracleWindowGap/)
     expect(src('lib/oracleRegistry/config/engine.ts')).not.toMatch(/raw\.head\.block - 300\b/)
+  })
+})
+
+// S4 (2026-10-12): the oracle-window read gap, engine side. (a) An end block that is not a finite
+// number (NaN, null, a string — or no window at all in an events file that WAS read): the
+// threshold compare `NaN < head - 300` is false, so the engine listed no gap while the card hedged
+// "180 d" over it — an unknown read that was neither listed nor counted. (b) The line spoke the
+// collector's language ("oracle governance events after block 26,129,366 not read (the oracle
+// collector's window ends 44,158 blocks below head)"); it now says how much is missing and from
+// when, in the heading's own date format, and keeps the block for auditors. Each test failed on
+// the code before the fix unless it is marked (control).
+describe("S4: the oracle-window read gap in the reader's words; an unknown end fails closed", () => {
+  const windowGaps = (c: ReturnType<typeof card>) =>
+    (c.readGaps ?? []).filter((g) => g.startsWith('oracle governance changes: '))
+  const atHead = { ...WINDOW, endBlock: HEAD.block, endTs: HEAD.ts }
+
+  it('weETH: "last 6 days not read (after Oct 5 UTC, block 26,129,366)" (was "oracle governance events after block 26,129,366 not read (the oracle collector\'s window ends 44,158 blocks below head)")', () => {
+    const c = card()
+    expect(windowGaps(c)).toEqual([
+      'oracle governance changes: last 6 days not read (after Oct 5 UTC, block 26,129,366)',
+    ])
+    // the line and the heading name the same day, in the same words
+    expect(oracleAside(c.oracle, c.asOf)).toBe('0 config changes · 180 d to Oct 5 UTC')
+  })
+
+  it('the hole is floored: hours under a day, singular units (was blocks below head)', () => {
+    const at = (lagBlocks: number, lagSec: number) =>
+      windowGaps(card({ ...WINDOW, endBlock: HEAD.block - lagBlocks, endTs: HEAD.ts - lagSec }))
+    // 1,000 blocks, 3 h 20 m
+    expect(at(1_000, 12_000)).toEqual([
+      'oracle governance changes: last 3 hours not read (after Oct 11 UTC, block 26,172,524)',
+    ])
+    expect(at(301, 3_612)).toEqual([
+      'oracle governance changes: last 1 hour not read (after Oct 12 UTC, block 26,173,223)',
+    ])
+    expect(at(7_300, DAY + 600)).toEqual([
+      'oracle governance changes: last 1 day not read (after Oct 11 UTC, block 26,166,224)',
+    ])
+  })
+
+  it('a window ending in an earlier year names its year (was blocks below head)', () => {
+    const c = card({ ...WINDOW, endBlock: 22_000_000, endTs: WINDOW.endTs - 365 * DAY })
+    expect(windowGaps(c)).toEqual([
+      'oracle governance changes: last 371 days not read (after Oct 5, 2025 UTC, block 22,000,000)',
+    ])
+  })
+
+  it('no usable end time: the hole in blocks, never an invented time (was "… the oracle collector\'s window ends … below head")', () => {
+    const { endTs: _drop, ...noTs } = WINDOW
+    void _drop
+    const blocks = [
+      'oracle governance changes: last 44,158 blocks not read (after block 26,129,366)',
+    ]
+    expect(windowGaps(card(noTs))).toEqual(blocks)
+    // an end time after the head's (clock skew), or under an hour, says blocks too
+    expect(windowGaps(card({ ...WINDOW, endTs: HEAD.ts + 60 }))).toEqual(blocks)
+    expect(windowGaps(card({ ...WINDOW, endTs: HEAD.ts - 3_000 }))).toEqual(blocks)
+    expect(windowGaps(card({ ...WINDOW, endTs: NaN }))).toEqual(blocks)
+  })
+
+  it('(a) an end block that is not a finite number is a listed, counted read gap (was none: the card hedged "180 d" over a gap it never listed)', () => {
+    const base = card(atHead).counts.readGaps ?? 0
+    for (const endBlock of [NaN, undefined, null, '26129366', Infinity]) {
+      const c = card({ ...WINDOW, endBlock } as unknown as Window)
+      expect([String(endBlock), windowGaps(c)]).toEqual([
+        String(endBlock),
+        ['oracle governance changes: window end not read'],
+      ])
+      expect([String(endBlock), c.counts.readGaps]).toEqual([String(endBlock), base + 1])
+      // (control) the heading's hedge, unchanged
+      expect(oracleAside(c.oracle, c.asOf)).toBe('0 config changes · 180 d')
+    }
+  })
+
+  it('(a) an events file read with no window at all is a listed, counted read gap (was none)', () => {
+    const c = cardOf({ ...raw(WINDOW), oracle: { events: [] } })
+    expect(windowGaps(c)).toEqual(['oracle governance changes: window end not read'])
+    expect(c.counts.readGaps).toBe((card(atHead).counts.readGaps ?? 0) + 1)
+  })
+
+  it('(control) a window that reaches the head lists no oracle-window line', () => {
+    expect(windowGaps(card(atHead))).toEqual([])
+    expect(
+      windowGaps(card({ ...WINDOW, endBlock: HEAD.block - ORACLE_WINDOW_GAP_BLOCKS })),
+    ).toEqual([])
+  })
+
+  it('(control) changes.json not read: its own line only, never a second window line', () => {
+    const c = cardOf({ ...raw(WINDOW), oracle: { events: [], unread: 'changes.json missing' } })
+    expect(c.readGaps?.filter((g) => g.startsWith('oracle governance'))).toEqual([
+      'oracle governance events not read (changes.json missing)',
+    ])
+  })
+
+  it('(control) a subject outside the oracle catalog lists no oracle line, whatever the window', () => {
+    const s = { ...subject, oracleAssetKey: null }
+    for (const w of [WINDOW, { ...WINDOW, endBlock: NaN }])
+      expect((cardOf(raw(w), s).readGaps ?? []).filter((g) => g.startsWith('oracle'))).toEqual([])
   })
 })

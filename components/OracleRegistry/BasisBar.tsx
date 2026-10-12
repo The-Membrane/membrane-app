@@ -5,17 +5,20 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import type { BasisInfo, Colour } from '@/lib/oracleRegistry/types'
 
-import { basisBar, COLOUR_META, fmtBps } from './viewModel'
+import { basisBar, colourToken, fmtBps } from './viewModel'
 
 // The structural gap between a basis feed (exchange rate, CAPO cap, fixed schedule, peg
 // assumption) and the market consensus. Centre tick = market; shaded = the asset's band;
 // marker = this feed. The scale always holds the marker, so a large basis reads as large.
+// (review/S5, 2026-10-12: a green marker under a "stale" headline) — the marker's colour comes
+// from colourToken(colour, calmInk): DESIGN_RULES §2 "One state owns the screen".
 
-export const BasisBar: React.FC<{ basis: BasisInfo; bandBps: number; colour: Colour }> = ({
-  basis,
-  bandBps,
-  colour,
-}) => {
+export const BasisBar: React.FC<{
+  basis: BasisInfo
+  bandBps: number
+  colour: Colour
+  calmInk: boolean
+}> = ({ basis, bandBps, colour, calmInk }) => {
   const g = basisBar(basis.bps, bandBps)
   return (
     <Box>
@@ -70,7 +73,7 @@ export const BasisBar: React.FC<{ basis: BasisInfo; bandBps: number; colour: Col
           w="3px"
           ml="-1px"
           left={`${g.markerPct}%`}
-          bg={COLOUR_META[colour].token}
+          bg={colourToken(colour, calmInk)}
         />
       </Box>
       <HStack

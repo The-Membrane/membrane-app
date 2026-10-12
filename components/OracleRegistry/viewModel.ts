@@ -7,6 +7,7 @@
 
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { countedColour, decodeColours } from '@/lib/oracleRegistry/apiTypes'
+import { consensusFreshWindow, staleAt } from '@/lib/oracleRegistry/consensusClock'
 import type {
   AssetSummary,
   CardView,
@@ -490,28 +491,63 @@ export type ConsensusHeroInput = {
 }
 
 /**
- * Whether the consensus headline rests on stale inputs at the reader's clock `now` (R5,
- * 2026-10-12: the 44px price printed in full ink however old the snapshot was — on Oct 12 every
- * asset showed the Oct 5 23:10 median, every clocked member past its own limit).
- * The threshold is the catalog's own staleness policy, applied at `now` instead of at the read:
- * "stale when now − updatedAt > heartbeatSeconds + grace", and a stale entry "never counts toward
- * consensus". So each member that formed the median is still fresh while its age at the read plus
- * the snapshot's age stays inside its own limit, and the headline is stale once fewer than
- * `minMembers` are. Fail closed: a member with no update clock (a TWAP, a view over live state)
- * or an unknown age / limit vouches only at the read itself. Not judged (false) with no clock yet
- * (server render — like summaryStale), no snapshot, or no consensus (its hero is already muted).
+ * Whether the consensus headline rests on stale inputs at the reader's clock `now`.
+ * R5 (2026-10-12: the 44px price printed in full ink however old the snapshot was — on Oct 12
+ * every asset showed the Oct 5 23:10 median, every clocked member past its own limit).
+ * (review/S5, 2026-10-12: R5 called it stale only once fewer than minMembers members were inside
+ * their limits — a median over members already past theirs printed in full ink for hours; a
+ * reader clock behind the read was clamped to age 0, so a TWAP member counted as fresh; and with
+ * no clock — every server render, the page is getServerSideProps — it was never judged, so first
+ * paint, no-JS readers and link previews got a 6-day-old price in full ink.)
+ * DESIGN_RULES §4, stale data: "Suppress the headline while inputs are stale." Stale unless the
+ * clock is known and every member that formed the median is inside its own limit
+ * (lib/oracleRegistry/consensusClock: clocked members by age at the read + time since the read,
+ * members with no update clock only at the read itself; a clock behind the read is unknown, not
+ * fresh). No clock is stale too (fail closed): the page passes the server's clock for its first
+ * render, so this branch is only a guard. Not judged (false) with no consensus: there is no
+ * price to suppress and its hero is already muted.
  */
 export function consensusStaleAt(v: ConsensusHeroInput, now: number | null): boolean {
-  if (now == null || !v.snapshot || v.consensus.status !== 'ok') return false
-  const snapAge = ageAt(v.snapshot.ts, now)
-  let fresh = 0
-  for (const c of v.cards) {
-    if (!c.countedInConsensus) continue
-    const { ageSeconds: age, limitSeconds: limit } = c.freshness
-    const clocked = age != null && Number.isFinite(age) && limit != null && Number.isFinite(limit)
-    if (clocked ? age + snapAge <= limit : snapAge === 0) fresh++
-  }
-  return fresh < Math.max(1, v.consensus.minMembers)
+  if (v.consensus.status !== 'ok') return false
+  return staleAt(
+    consensusFreshWindow({ consensus: v.consensus, cards: v.cards, readTs: v.snapshot?.ts }),
+    now,
+  )
+}
+
+/**
+ * Whether calm (green, "within band") is drawn in ink on this screen at `now`
+ * (review/S5, 2026-10-12: under a "stale" headline the header still printed a green
+ * "● N within band" and green cards from the Oct 5 read). DESIGN_RULES §2: "One state owns the
+ * screen." "Calm is ink only." §4: "Hatch it, never colour it green." Green only while the
+ * consensus is ok AND current at `now`; any other state — stale, no consensus, no clock — owns
+ * the screen and calm takes ink.
+ */
+export function calmInkAt(v: ConsensusHeroInput, now: number | null): boolean {
+  return v.consensus.status !== 'ok' || consensusStaleAt(v, now)
+}
+
+/**
+ * The same judgement for an asset tab, from the index's freshWindow (computed server-side by the
+ * same consensusFreshWindow). A summary with no window — none could vouch, or an older payload —
+ * draws its calm mark in ink (fail closed).
+ */
+export function summaryCalmInkAt(
+  a: { consensus: Pick<AssetSummary['consensus'], 'status' | 'freshWindow'> },
+  now: number | null,
+): boolean {
+  return a.consensus.status !== 'ok' || staleAt(a.consensus.freshWindow, now)
+}
+
+/**
+ * The colour a verdict is drawn in. With calm in ink (calmInkAt / summaryCalmInkAt), green takes
+ * the stale state's muted ink; the glyph (●) and words still carry the verdict, so nothing is
+ * lost — DESIGN_RULES §2 "Every colour carries a glyph". Red and gold are kept: they are
+ * warnings, and withholding a warning is the less conservative reading of "one state owns the
+ * screen".
+ */
+export function colourToken(colour: Colour, calmInk: boolean): string {
+  return calmInk && colour === 'green' ? COLOUR_META.stale.token : COLOUR_META[colour].token
 }
 
 export type ConsensusHero = {
@@ -529,7 +565,14 @@ export type ConsensusHero = {
  * it green." "Suppress the headline while inputs are stale." "Show input ages in the dateline."
  * Stale (consensusStaleAt): the slot reads "stale" in muted ink and the price moves, hatched, to
  * the qualifier line; the dateline keeps the input ages (Last update, Read · age).
+ * (review/S5, 2026-10-12: the hatch was a background fill with padding behind the figure — a chip,
+ * which §6 forbids: "no chips behind figures".) The hatch is now the stale glyph itself,
+ * STALE_HATCH_GLYPH (░, COLOUR_META.stale — §2 "Every colour carries a glyph: ● ▲ ✖ ░"), set before
+ * the figure in muted ink, with nothing drawn behind it.
  */
+/** The hatch a stale figure carries: the stale state's own glyph, never a fill behind it. */
+export const STALE_HATCH_GLYPH = COLOUR_META.stale.glyph
+
 export function consensusHero(v: ConsensusHeroInput, now: number | null): ConsensusHero {
   if (v.consensus.status !== 'ok' || v.consensus.price == null)
     return { text: 'no consensus', muted: true, hatchedPrice: null, aria: 'No consensus' }

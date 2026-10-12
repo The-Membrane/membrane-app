@@ -24,7 +24,7 @@ import type {
   RouteRowView,
   RouteSideView,
 } from '@/lib/oracleRegistry/config/apiTypes'
-import { oracleWindowGap } from '@/lib/oracleRegistry/config/oracleWindow'
+import { oracleWindowGap, utcDay } from '@/lib/oracleRegistry/config/oracleWindow'
 import type { ChangeTag, Dimension, ValueAtRisk } from '@/lib/oracleRegistry/config/types'
 import { valueAtRiskLabel } from '@/lib/oracleRegistry/config/value'
 
@@ -607,15 +607,6 @@ export function blockAside(available: boolean, n: number, one: string, many = `$
   return available ? plural(n, one, many) : 'not collected'
 }
 
-/** "Oct 5 UTC"; "Oct 5, 2025 UTC" when the year is not the head's, or the head is unknown. */
-function dayUtc(ts: number, headTs: number): string {
-  const d = new Date(ts * 1000)
-  const day = `${d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })} ${d.getUTCDate()}`
-  return headTs && new Date(headTs * 1000).getUTCFullYear() === d.getUTCFullYear()
-    ? `${day} UTC`
-    : `${day}, ${d.getUTCFullYear()} UTC`
-}
-
 /**
  * The Oracles block's aside (review round 5): "not collected" when the subject's oracle
  * governance events are not collected (no oracle asset, or no collector output) — never
@@ -638,7 +629,8 @@ export function oracleAside(o: ConfigCardView['oracle'], asOf: ConfigCardView['a
   if (!end) return `${n} · ${o.windowDays} d`
   if (asOf.block > 0 && !oracleWindowGap(end.block, asOf.block))
     return `${n} · last ${o.windowDays} d`
-  const to = end.ts != null ? dayUtc(end.ts, asOf.ts) : `block ${end.block.toLocaleString('en-US')}`
+  // S4 (2026-10-12): utcDay is shared with the engine's read-gap line — both name the same day
+  const to = end.ts != null ? utcDay(end.ts, asOf.ts) : `block ${end.block.toLocaleString('en-US')}`
   return `${n} · ${o.windowDays} d to ${to}`
 }
 

@@ -16,6 +16,7 @@ import type {
   UpdateModel,
 } from './catalog'
 import type { ChangeKind } from './changes'
+import type { FreshWindow } from './consensusClock'
 import type {
   AssetConsensus,
   CardVerdict,
@@ -45,6 +46,12 @@ export type AssetSummary = {
     members: number
     spreadBps: number | null
     referenceUsd: number | null
+    /**
+     * Reader clocks at which every member of the median is inside its own limit
+     * (consensusClock.consensusFreshWindow); null when none can vouch for it. Absent (an older
+     * payload) reads as null: the tab's calm mark is then drawn in ink, never green (S5).
+     */
+    freshWindow?: FreshWindow | null
   }
   counts: ColourCounts
   cards: number

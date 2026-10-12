@@ -15,6 +15,7 @@ import {
   CLASS_LABEL,
   COLOUR_META,
   colourLabel,
+  colourToken,
   describeCard,
   displayLabel,
   fmtBps,
@@ -28,6 +29,10 @@ import {
 // One small card per oracle, data.chain.link-style: provider + class, label, USD price,
 // deviation vs the asset consensus (glyph + colour + signed bps), the 30-day sparkline over
 // the consensus line, age + heartbeat, and the mechanism behind a toggle.
+// (review/S5, 2026-10-12: cards stayed green under a "stale" headline.) DESIGN_RULES §2 "One
+// state owns the screen", "Calm is ink only"; §4 "Hatch it, never colour it green": every colour
+// on the card comes from colourToken(colour, calmInk), so green takes muted ink whenever the
+// page's consensus is not current (calmInkAt); the ● glyph and the words keep the verdict.
 
 const BORDER_STYLE: Record<CardView['colour'], 'solid' | 'dashed' | 'dotted'> = {
   green: 'solid',
@@ -62,6 +67,8 @@ export type OracleCardProps = {
   changes: ChangeItem[]
   /** Why a market member is not in this median (viewModel.voteNote); null when it votes. */
   voteNote?: string | null
+  /** Calm drawn in ink, never green (viewModel.calmInkAt for the page's consensus at its clock). */
+  calmInk: boolean
 }
 
 export const OracleCard: React.FC<OracleCardProps> = ({
@@ -70,10 +77,12 @@ export const OracleCard: React.FC<OracleCardProps> = ({
   consensusSeries,
   changes,
   voteNote = null,
+  calmInk,
 }) => {
   const [open, setOpen] = useState(false)
   const panelId = `mech-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const meta = COLOUR_META[card.colour]
+  const token = colourToken(card.colour, calmInk)
   const native = nativeLine(card)
   const fresh = freshnessLine(card)
   const stat = card.history ? historyStat(card.history.summary) : null
@@ -84,7 +93,7 @@ export const OracleCard: React.FC<OracleCardProps> = ({
       p={SPACING.md}
       borderLeftWidth="3px"
       borderLeftStyle={BORDER_STYLE[card.colour]}
-      borderLeftColor={meta.token}
+      borderLeftColor={token}
       display="flex"
       flexDirection="column"
       gap={SPACING.sm}
@@ -113,7 +122,7 @@ export const OracleCard: React.FC<OracleCardProps> = ({
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize="13px"
           lineHeight={1}
-          color={meta.token}
+          color={token}
           title={colourLabel(card.colour, card.tone)}
           aria-hidden="true"
         >
@@ -149,7 +158,7 @@ export const OracleCard: React.FC<OracleCardProps> = ({
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
             fontSize={TYPOGRAPHY.xs}
-            color={meta.token}
+            color={token}
             whiteSpace="nowrap"
           >
             {meta.glyph} {fmtBps(card.deviationBps)}
@@ -180,6 +189,7 @@ export const OracleCard: React.FC<OracleCardProps> = ({
           usd={card.history.usd}
           consensus={consensusSeries}
           colours={card.history.colours}
+          calmInk={calmInk}
           ts={historyTs}
           label={
             stat?.measured
@@ -206,7 +216,14 @@ export const OracleCard: React.FC<OracleCardProps> = ({
         </Box>
       )}
 
-      {card.basis && <BasisBar basis={card.basis} bandBps={card.bandBps} colour={card.colour} />}
+      {card.basis && (
+        <BasisBar
+          basis={card.basis}
+          bandBps={card.bandBps}
+          colour={card.colour}
+          calmInk={calmInk}
+        />
+      )}
 
       <Box
         fontFamily={TYPOGRAPHY.fontMono}

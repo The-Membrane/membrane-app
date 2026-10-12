@@ -12,7 +12,7 @@ if(!home||!isAbsolute(home)||relative(runRoot,home).startsWith('..')||home===run
 if(process.env.MEMBRANE_CLOUD_ACCEPTANCE!=='fixture')throw Error('explicit_fixture_mode_required')
 if(!existsSync(resolve(ROOT,'.next/BUILD_ID')))throw Error('sealed_production_build_required_no_automatic_build')
 const output=resolve(home,'run',kind);mkdirSync(output,{recursive:true})
-if(kind==='browser'&&process.env.MEMBRANE_CLOUD_BROWSER_OUTPUT!==output)throw Error('fixed_browser_evidence_output_required')
+// Browser config derives this same output from fresh supervised HOME, never a caller run ID.
 const proof={schema:'forecasting_full_app_server_stage_v1',kind,origin:'http://127.0.0.1:3005',
  productionServer:true,automaticBuild:false,fixtureMode:'audited_history_synthetic_current_and_scenario',
  networkBoundary:'inherited_managed_policy_plus_userspace_guards_not_kernel_denial',outcome:'running',

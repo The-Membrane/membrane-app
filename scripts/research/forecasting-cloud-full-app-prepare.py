@@ -47,12 +47,15 @@ def main():
     parser = argparse.ArgumentParser(); parser.add_argument('--source', required=True)
     parser.add_argument('--expected-commit', required=True); parser.add_argument('--datasets', required=True)
     parser.add_argument('--destination', required=True); parser.add_argument('--kind', required=True)
+    parser.add_argument('--reuse-snapshot', action='store_true')
+    parser.add_argument('--build-proof'); parser.add_argument('--build-spec')
     parser.add_argument('--argv-json', required=True); parser.add_argument('--data-pins-json', required=True)
     a = parser.parse_args(); source = pathlib.Path(a.source).resolve(); dest = pathlib.Path(a.destination)
     def git(*args): return subprocess.check_output(['git', *args], cwd=source, text=True).strip()
     if git('rev-parse', 'HEAD') != a.expected_commit or git('status', '--porcelain'):
         raise RuntimeError('final_source_not_clean_exact_commit')
-    if dest.exists(): raise RuntimeError('destination_must_be_new_no_overwrite')
+    if dest.exists() and not a.reuse_snapshot: raise RuntimeError('destination_must_be_new_no_overwrite')
+    if a.reuse_snapshot and not dest.is_dir(): raise RuntimeError('shared_snapshot_missing')
     if a.kind not in ['full-typecheck','production-build','bounded-http','chromium-browser']:
         raise RuntimeError('job_kind_invalid')
     archive = subprocess.check_output(['git', 'archive', '--format=tar', a.expected_commit], cwd=source)
@@ -63,11 +66,51 @@ def main():
             if path.is_absolute() or '..' in path.parts or not (member.isfile() or member.isdir()):
                 raise RuntimeError('archive_unsafe_member')
             if any(part.startswith('.env') for part in path.parts): raise RuntimeError('source_env_file_forbidden')
-        dest.mkdir(parents=True, mode=0o700)
-        tar.extractall(dest, filter='data')
+        if a.reuse_snapshot:
+            for member in tar.getmembers():
+                if member.isfile():
+                    target = dest / member.name
+                    if target.is_symlink() or not target.is_file() or sha(target) != hashlib.sha256(tar.extractfile(member).read()).hexdigest():
+                        raise RuntimeError('shared_source_snapshot_drift:' + member.name)
+        else:
+            dest.mkdir(parents=True, mode=0o700)
+            tar.extractall(dest, filter='data')
     dependencies = (source / 'node_modules').resolve()
-    (dest / 'node_modules').symlink_to(dependencies, target_is_directory=True)
-    pins = {str(p.resolve()): sha(p) for p in dest.rglob('*') if p.is_file() and not p.is_symlink()}
+    if a.reuse_snapshot:
+        if not (dest / 'node_modules').is_symlink() or (dest / 'node_modules').resolve() != dependencies:
+            raise RuntimeError('shared_dependency_link_drift')
+    else: (dest / 'node_modules').symlink_to(dependencies, target_is_directory=True)
+    pins = {str(p.resolve()): sha(p) for p in dest.rglob('*') if p.is_file() and not p.is_symlink() and '.next' not in p.relative_to(dest).parts}
+    artifact_lineage = None
+    if a.kind in ['bounded-http','chromium-browser']:
+        if not a.reuse_snapshot or not a.build_proof or not a.build_spec:
+            raise RuntimeError('post_success_build_proof_and_shared_snapshot_required')
+        proof_path = pathlib.Path(a.build_proof).resolve(); build_spec_path = pathlib.Path(a.build_spec).resolve()
+        proof = json.loads(proof_path.read_text()); build_spec = json.loads(build_spec_path.read_text())
+        if proof.get('status') != 'PASS' or proof.get('kind') != 'production-build' or proof.get('exitCode') != 0 or not proof.get('pinsCheckedBefore') or not proof.get('pinsCheckedAfter') or not proof.get('allDescendantsClean'):
+            raise RuntimeError('production_build_not_accepted')
+        if proof.get('specSha256') != sha(build_spec_path) or build_spec.get('sourceCommit') != a.expected_commit or pathlib.Path(build_spec.get('checkout','')).resolve() != dest.resolve():
+            raise RuntimeError('production_build_lineage_mismatch')
+        for path,digest in build_spec['pins'].items():
+            if sha(path) != digest: raise RuntimeError('accepted_build_input_drift:' + path)
+        for path,target in build_spec['links'].items():
+            if str(pathlib.Path(path).resolve()) != target: raise RuntimeError('accepted_build_link_drift')
+        if not (dest / '.next/BUILD_ID').is_file(): raise RuntimeError('production_build_artifacts_missing')
+        artifacts = {}
+        for path in (dest / '.next').rglob('*'):
+            if path.is_symlink(): raise RuntimeError('build_artifact_symlink_forbidden')
+            if path.is_file() and 'cache' not in path.relative_to(dest / '.next').parts:
+                artifacts[str(path.resolve())] = sha(path)
+        manifest = {'schema':'cloud-production-artifact-seal-v1','sourceCommit':a.expected_commit,'checkout':str(dest.resolve()),
+            'acceptedBuildProof':str(proof_path),'acceptedBuildProofSha256':sha(proof_path),
+            'acceptedBuildSpecSha256':sha(build_spec_path),'excludedMutablePaths':['.next/cache'], 'pins':artifacts}
+        body = json.dumps(manifest,indent=2)+'\n'; digest = hashlib.sha256(body.encode()).hexdigest()
+        manifest_path = dest.parent / ('production-artifacts-'+digest+'.json')
+        if manifest_path.exists() and manifest_path.read_text()!=body: raise RuntimeError('artifact_manifest_collision')
+        manifest_path.write_text(body); manifest_path.chmod(0o400)
+        pins.update(artifacts); pins[str(manifest_path)] = digest
+        pins[str(proof_path)] = sha(proof_path); pins[str(build_spec_path)] = sha(build_spec_path)
+        artifact_lineage = {'manifest':str(manifest_path),'sha256':digest,'acceptedBuildProofSha256':sha(proof_path)}
     links = {str(dest / 'node_modules'): str(dependencies)}
     # Existing installed graph is sealed in place, never duplicated or installed.
     for p in dependencies.rglob('*'):
@@ -112,6 +155,8 @@ def main():
         'evidenceRoot':str(pathlib.Path(a.datasets).resolve() / 'forecasting-cloud/full-app-plan/runs'),
         'pins':pins,'links':links,
         'nodeRuntimeClosure':runtime_closure,'browserRuntimeClosure':browser_closure,
+        'productionArtifactLineage':artifact_lineage,
+        'nonsecretEnv':{'MEMBRANE_CLOUD_ACCEPTANCE':'fixture'},
         'limitsAreSampledNotHardCgroupControls':True}
     content = json.dumps(spec, indent=2) + '\n'; digest = hashlib.sha256(content.encode()).hexdigest()
     path = dest.parent / ('proposed-' + a.kind + '-' + digest + '.spec.json')

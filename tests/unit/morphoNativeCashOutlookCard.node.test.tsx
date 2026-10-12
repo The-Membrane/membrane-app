@@ -11,20 +11,21 @@ import {renderToStaticMarkup} from 'react-dom/server'
 import {ChakraProvider} from '@chakra-ui/react'
 import {createHash} from 'node:crypto'
 import theme from '../../theme'
-import {cashHolderDurationDetail,ExitPressureCard,type ExitPressureCardProps} from '@/components/Carry/ExitPressureCard'
+import {cashHolderDurationDetail,nativeInventoryAnalogueRows,ExitPressureCard,type ExitPressureCardProps} from '@/components/Carry/ExitPressureCard'
 import {loadPinnedAudit} from '../../scripts/research/conditional-cash-time-holdout.mjs'
 import {buildFixedEntitlementCashOutlook} from '@/lib/carry/fixedEntitlementCashOutlook'
 import type {ConditionalSampledCashHistory} from '@/lib/carry/conditionalSampledCashPathProjection'
 const now=Date.parse('2026-10-12T12:00:00.000Z'),owner='0x0000000000000000000000000000000000000001'
 function fixture(cashRaw="1000000"):ExitPressureCardProps {
- const history=Object.values(loadPinnedAudit().histories).find((h:any)=>h.identity.destination==='0x069662d2588fcac24b5c209456db965d151556f0') as ConditionalSampledCashHistory
+ const histories=Object.values(loadPinnedAudit().histories) as ConditionalSampledCashHistory[]
+ const history=histories.find(h=>h.identity.destination==='0x069662d2588fcac24b5c209456db965d151556f0')!
  const currentSource={...history.identity,chainId:1 as const,cashRaw,block:'26200000',blockHash:`0x${'a'.repeat(64)}`,blockTime:new Date(now-60000).toISOString(),readAt:new Date(now).toISOString(),sourceKind:'live_read_only_two_origin_finalized' as const}
  // Authentic histories, explicitly synthetic current source and transport view. Native branding has its own API tests.
  const input={history,currentSource,fullEntitlementRaw:'9000000000',requestedRaw:'1000000',additionalCompetitionRaw:'0',horizonHours:48,issuedAtUtc:new Date(now).toISOString()}
  const outlook=buildFixedEntitlementCashOutlook(input,v=>v===input,s=>createHash('sha256').update(s).digest('hex'))!
  outlook.historicalRecovery.question.owner=owner
  const originalModel={...outlook,owner,nativeSharesRaw:'1000000000'}, graphQuestion={...input,owner}
- const graph=nativeCashGraphIntervalOutlook(graphQuestion,[history],q=>q===graphQuestion)
+ const graph=nativeCashGraphIntervalOutlook(graphQuestion,histories,(q,h)=>q===graphQuestion&&h===histories,s=>createHash('sha256').update(s).digest('hex'))
  const model={...originalModel,sparsePeerOutlook:graph,primaryEventImpact:buildNativePrimaryEventImpact(originalModel,(v,h)=>v===originalModel && h===history,history)}
  const issue=retainNativeCashHolderOutlook(model,200,{routeKey:history.identity.routeKey,destination:history.identity.destination,owner,requestedRaw:input.requestedRaw,asset:history.identity.asset,assetDecimals:6,horizonHours:48,source:{blockNumber:26200000,blockHash:currentSource.blockHash,blockTime:currentSource.blockTime},asOfMs:now})!
  assert.ok(issue)
@@ -34,8 +35,10 @@ function fixture(cashRaw="1000000"):ExitPressureCardProps {
   holderAssessment:{status:'assessed',routeKey:history.identity.routeKey,destinationAddress:history.identity.destination,owner,request:{assetsRaw:'1000000',assetAddress:history.identity.asset,horizonHours:48},source:{chainId:1,blockNumber:26200000,blockHash:currentSource.blockHash as `0x${string}`,blockTime:currentSource.blockTime,finalized:true,originValidation:'two_provider'},stages:[],finalPayout:{status:'unassessed',assetAddress:history.identity.asset,amountRaw:null},forecast:{status:'unvalidated',futureExit:null,exitDurationHours:null,prospectiveValidated:false},nativeCashHolderOutlook:model,nativeCashHolderOutlookIssue:issue}}
 }
 const render=(p:ExitPressureCardProps)=>renderToStaticMarkup(<ChakraProvider theme={theme}><ExitPressureCard {...p}/></ChakraProvider>)
+const withoutStyles=(html:string)=>html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/g,'')
+const visibleText=(html:string)=>withoutStyles(html).replace(/<[^>]*>/g,' ').replace(/&#x27;/g,"'").replace(/&amp;/g,'&').replace(/\s+/g,' ').trim()
 it('renders actual existing-card cash impact, sampled duration and adverse-flow metrics',()=>{
- const p=fixture(),html=render(p)
+ const p=fixture(),html=withoutStyles(render(p))
  assert.match(html,/Conditional cash exit headroom/)
  assert.match(html,/Cash change since historical sample/)
  assert.match(html,/Matched historical recovery/)
@@ -43,7 +46,8 @@ it('renders actual existing-card cash impact, sampled duration and adverse-flow 
  assert.match(html,/SHORTFALL/)
  assert.match(html,/Adverse flow headroom/)
  assert.match(html,/Inventory graph headroom/)
- assert.match(html,/own intervals/)
+ assert.match(html,/48h own NET/)
+ assert.match(visibleText(html),new RegExp(`${p.holderAssessment!.nativeCashHolderOutlook!.sparsePeerOutlook!.usableIntervals} intervals`))
  assert.match(html,/measured capacity change/)
  assert.match(html,/CONDITIONAL HOLDER OUTLOOK/)
 })
@@ -129,4 +133,37 @@ it('renders retained exact owned-ticket conditional amounts and drops mismatched
  const p={...fixture(),routeKey:q.routeKey,destination:q.destinationAddress,requestedRaw:q.assetsRaw,requestedAssetAddress:q.assetAddress,requestedAssetSymbol:'AUSD',saturnRequestTokenId:'7',currentCash:null,holderAssessment:{...a,saturnTicketMechanism:model,saturnTicketMechanismIssue:retainSaturnTicketMechanism(model,200,a,question)}} as ExitPressureCardProps
  assert.match(render(p),/Owned ticket scenario/);assert.match(render(p),/claim fee unknown/)
  for(const patch of [{requestedHolderAddress:'0x'+'2'.repeat(40)},{requestedRaw:'2'},{horizonHours:24},{saturnRequestTokenId:'8'}])assert.doesNotMatch(render({...p,...patch}),/Owned ticket scenario/)
+})
+
+it('renders distinct own and authenticated peer alternatives with retained counts, exact elapsed and separate pace/inventory units',()=>{
+ const p=fixture(),model=p.holderAssessment!.nativeCashHolderOutlook!,graph=model.sparsePeerOutlook!,peer=graph.peerAnalogScenarios!
+ assert.ok(peer.matchedPeerSubjects>0);assert.ok(peer.usableIntervals>0)
+ const rows=nativeInventoryAnalogueRows(model,6,'USDC'),text=visibleText(render(p))
+ const ownStart=text.indexOf('Inventory graph headroom'),peerStart=text.indexOf('Peer NET analogue headroom')
+ const paceStart=text.indexOf('Observed maximum NET outflow pace'),inventoryStart=text.indexOf('Whole-inventory depletion bound')
+ assert.ok(ownStart>=0&&peerStart>ownStart&&paceStart>peerStart&&inventoryStart>paceStart)
+ const ownText=text.slice(ownStart,peerStart),peerText=text.slice(peerStart,paceStart)
+ assert.ok(ownText.includes(rows.ownDetail));assert.ok(peerText.includes(rows.peerValue));assert.ok(peerText.includes(rows.peerDetail))
+ assert.ok(peerText.includes(`${peer.matchedPeerSubjects} peers`));assert.ok(peerText.includes(`${peer.usableIntervals} intervals`))
+ assert.ok(peerText.includes('172860s elapsed'));assert.ok(peerText.includes('unconditioned'))
+ assert.doesNotMatch(peerText,/own NET/)
+ const paceText=text.slice(paceStart,inventoryStart),inventoryText=text.slice(inventoryStart)
+ assert.ok(paceText.includes(rows.observedPaceValue));assert.ok(paceText.includes('USDC/h'));assert.ok(paceText.includes('Sampled own NET'))
+ assert.ok(inventoryText.includes(rows.theoreticalInventoryValue));assert.ok(inventoryText.includes('Theoretical cash-only bound'))
+ assert.ok(inventoryText.includes('no time guarantee'));assert.doesNotMatch(inventoryText.split('Cash change since historical sample')[0],/USDC\/h/)
+})
+it('refuses mismatched peer clocks, asset units, self donors and probability claims while retaining independent own evidence',()=>{
+ const p=fixture(),m=p.holderAssessment!.nativeCashHolderOutlook!,q={routeKey:p.routeKey,destination:p.destination,owner,requestedRaw:p.requestedRaw!,asset:p.requestedAssetAddress!,assetDecimals:6,horizonHours:48,source:p.holderAssessment!.source,asOfMs:now}
+ for(const mutate of [
+  (v:typeof m)=>{v.sparsePeerOutlook!.peerAnalogScenarios!.targetAtUtc='2026-10-13T12:00:00.000Z'},
+  (v:typeof m)=>{v.sparsePeerOutlook!.peerAnalogScenarios!.scenarios[0].peerIdentity.assetDecimals=18},
+  (v:typeof m)=>{v.sparsePeerOutlook!.peerAnalogScenarios!.scenarios[0].peerIdentity.destination=v.identity.destination},
+  (v:typeof m)=>{v.sparsePeerOutlook!.peerAnalogScenarios!.scenarios[0].historyEvidence.availableAt='2026-10-13T12:00:00.000Z'},
+  (v:typeof m)=>{(v.sparsePeerOutlook!.peerAnalogScenarios as any).calibratedProbability=true},
+ ]){const bad=structuredClone(m);mutate(bad);assert.equal(retainNativeCashHolderOutlook(bad,200,q),null)}
+ const ownOnly=structuredClone(m);ownOnly.sparsePeerOutlook!.peerAnalogScenarios=null
+ const issue=retainNativeCashHolderOutlook(ownOnly,200,q);assert.ok(issue)
+ const html=visibleText(render({...p,holderAssessment:{...p.holderAssessment!,nativeCashHolderOutlook:ownOnly,nativeCashHolderOutlookIssue:issue}}))
+ assert.match(html,/Inventory graph headroom/);assert.match(html,/48h own NET/)
+ assert.doesNotMatch(html,/Peer NET analogue headroom/)
 })

@@ -31,6 +31,7 @@ import { fileURLToPath } from 'node:url'
 import { decodeFunctionResult, encodeFunctionData, keccak256, parseAbi, toHex } from 'viem'
 
 import { datasetPath } from '../lib/datasetsDir.mjs'
+import { LOG_SPAN, RPC, SAMPLE_CONCURRENCY } from '../lib/archiveRpc.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const OUT = datasetPath(ROOT, 'position-alerts')
@@ -52,18 +53,7 @@ const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11'
 
 // ------------------------------------------------------------------ chains
 
-/** Keyless archive endpoints, tested 2026-10-11. */
-const RPC = {
-  1: ['https://mainnet.gateway.tenderly.co', 'https://eth.drpc.org', 'https://rpc.mevblocker.io'],
-  42161: ['https://arbitrum.gateway.tenderly.co', 'https://arbitrum-one.public.blastapi.io'],
-  43114: ['https://api.avax.network/ext/bc/C/rpc', 'https://avalanche.gateway.tenderly.co'],
-  146: ['https://rpc.soniclabs.com', 'https://sonic-rpc.publicnode.com'],
-  9745: ['https://rpc.plasma.to'],
-}
-/** Largest eth_getLogs block span each chain's endpoint accepted. */
-/** Sample times read at once per chain. Avalanche archive calls take ~6 s each on its public RPC. */
-const SAMPLE_CONCURRENCY = { 1: 2, 42161: 2, 43114: 8, 146: 2, 9745: 2 }
-const LOG_SPAN = { 1: 10_000, 42161: 400_000, 43114: 400_000, 146: 2_000_000, 9745: 9_000 }
+// Endpoints, log spans and sample concurrency per chain: scripts/lib/archiveRpc.mjs.
 /** First block with timestamp >= Oct 26, Nov 2 and Nov 16 2025 00:00 UTC. */
 const ANCHORS = {
   1: [23_657_911, 23_707_920, 23_808_024],
@@ -589,11 +579,20 @@ const ABI = parseAbi([
   'function maxRepay(address borrower) view returns (uint256)',
   'function quote(uint256 baseAmount, address baseToken) view returns (uint256)',
   'function creditAccounts() view returns (address[])',
+  'function creditFacade() view returns (address)',
+  'function getConfig(address silo) view returns ((uint256 daoFee, uint256 deployerFee, address silo, address token, address protectedShareToken, address collateralShareToken, address debtShareToken, address solvencyOracle, address maxLtvOracle, address interestRateModel, uint256 maxLtv, uint256 lt, uint256 liquidationTargetLtv, uint256 liquidationFee, uint256 flashloanFee, address hookReceiver, bool callBeforeQuote))',
   'function calcDebtAndCollateral(address creditAccount, uint8 task) view returns ((uint256 debt, uint256 cumulativeIndexNow, uint256 cumulativeIndexLastUpdate, uint128 cumulativeQuotaInterest, uint256 accruedInterest, uint256 accruedFees, uint256 totalDebtUSD, uint256 totalValue, uint256 totalValueUSD, uint256 twvUSD, uint256 enabledTokensMask, uint256 quotedTokensMask, address[] quotedTokens, address _poolQuotaKeeper))',
 ])
 const T_BORROW = keccak256(toHex('Borrow(address,uint256)'))
 const T_LIQUIDATE = keccak256(toHex('Liquidate(address,address,address,uint256,uint256)'))
 const T_TRANSFER = keccak256(toHex('Transfer(address,address,uint256)'))
+// Silo v2 liquidation hook: LiquidationCall(liquidator, silo, borrower, repay, withdraw, sToken).
+const T_SILO_LIQ = keccak256(toHex('LiquidationCall(address,address,address,uint256,uint256,bool)'))
+// Gearbox v3.1 credit facade: partial liquidation (credit account, token, liquidator, …) and full.
+const T_GB_PARTIAL = keccak256(
+  toHex('PartiallyLiquidateCreditAccount(address,address,address,uint256,uint256,uint256)'),
+)
+const T_GB_LIQ = keccak256(toHex('LiquidateCreditAccount(address,address,address,uint256)'))
 const ZERO_TOPIC = '0x' + '0'.repeat(64)
 
 const cursor = {}
@@ -1214,6 +1213,27 @@ async function main() {
     }
     markets.push(market)
     if (c.accounts.length) add(s.chainId, siloReader(s, c.accounts, dec, btc), market)
+    const [cfg] = await multicall(s.chainId, start, [
+      { to: s.config, fn: 'getConfig', args: [s.silo0] },
+    ])
+    const hook = cfg.value.hookReceiver.toLowerCase()
+    const liq = await logs(
+      s.chainId,
+      hook,
+      [T_SILO_LIQ],
+      blockAt(s.chainId, HISTORY.fromTs),
+      blockAt(s.chainId, HISTORY.toTs),
+    )
+    for (const l of liq)
+      liquidations.push({
+        venue: 'silo',
+        chainId: s.chainId,
+        marketId: s.config,
+        user: addr(l.topics[3]),
+        silo: addr(l.topics[2]),
+        block: Number(l.blockNumber),
+        tx: l.transactionHash,
+      })
   }
 
   async function setupGearbox(g) {
@@ -1240,6 +1260,25 @@ async function main() {
     }
     markets.push(market)
     if (c.accounts.length) add(g.chainId, gearboxReader(g, c.accounts, dec), market)
+    const end = blockAt(g.chainId, HISTORY.toTs)
+    const [facade] = await multicall(g.chainId, end, [{ to: g.cm, fn: 'creditFacade' }])
+    const liq = await logs(
+      g.chainId,
+      facade.value.toLowerCase(),
+      [[T_GB_PARTIAL, T_GB_LIQ]],
+      blockAt(g.chainId, HISTORY.fromTs),
+      end,
+    )
+    for (const l of liq)
+      liquidations.push({
+        venue: 'gearbox',
+        chainId: g.chainId,
+        marketId: g.cm,
+        user: addr(l.topics[1]),
+        partial: l.topics[0] === T_GB_PARTIAL,
+        block: Number(l.blockNumber),
+        tx: l.transactionHash,
+      })
   }
 
   console.log('sampling every 2h, chains in parallel …')
@@ -1275,7 +1314,7 @@ async function main() {
     source:
       "Archive eth_call through Multicall3 every 2 hours at the block nearest each time (keyless RPCs per chain); cohort from Borrow logs (Euler), debt-share mints (Silo) and creditAccounts() (Gearbox) up to the Nov 2 block. Collateral and debt valued at each venue's own oracle (Euler accountLiquidity / getQuote, Silo solvency-oracle quotes, Gearbox calcDebtAndCollateral). Market prices: DefiLlama CoinGecko ids, hourly; BTC.b debt at Binance BTCUSDT.",
     uncovered:
-      'xBTC and xETH have no market price series (oracle basis only). Silo and Gearbox liquidation events are not read. Euler on Berachain, BOB, TAC and Swell, and Ethereum Gearbox v3.0 credit managers, are not scanned.',
+      'xBTC and xETH have no market price series (oracle basis only). Liquidations: Euler Liquidate, Silo v2 hook LiquidationCall, Gearbox v3.1 facade (partial and full); a Gearbox credit facade replaced inside the window would be missed.',
     cohort: cohortLog,
     markets,
     positions,

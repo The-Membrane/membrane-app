@@ -30,6 +30,7 @@ const hfOnly: AlertConfig = {
   depeg: null,
   exitCapacity: null,
   oracleChange: null,
+  governanceChange: null,
 }
 
 /** Hourly grid from a close list; lows default to the closes. */

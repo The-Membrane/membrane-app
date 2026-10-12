@@ -70,6 +70,7 @@ export function validateConfig(config: AlertConfig): void {
     config.exitCapacity?.spec,
     config.exitCapacity?.burn?.spec,
     config.oracleChange?.spec,
+    config.governanceChange?.spec,
   ]
   for (const s of specs) if (s) validateSpec(s)
 }

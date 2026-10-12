@@ -17,7 +17,7 @@
  * Deterministic: no network.
  */
 
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 
@@ -27,12 +27,17 @@ import {
   CAPACITY_BURN_PRESET,
   DEFAULT_ALERT_CONFIG,
   evaluate,
+  fromAaveConfigurator,
+  fromEulerGovernance,
+  fromGearboxConfigurator,
   fromRegistryChange,
+  governanceSeverity,
   initialEngineState,
   isNotifiable,
   quantile,
   venueStressCapacity,
   type AlertConfig,
+  type GovernanceChangeEvent,
   type OracleChangeEvent,
   type PositionSnapshot,
   type RegistryChangeKind,
@@ -68,6 +73,7 @@ const OFF: AlertConfig = {
   depeg: null,
   exitCapacity: null,
   oracleChange: null,
+  governanceChange: null,
   targetHf: DEFAULT_ALERT_CONFIG.targetHf,
 }
 
@@ -392,6 +398,235 @@ const dedup = changes.filter(
     ),
 )
 
+// ------------------------------------------------------------------ governance change
+
+interface GovRow {
+  venue?: string
+  chainId: number
+  address: string
+  market?: string
+  ts: number
+  tx: string
+  name: string
+  args: Record<string, unknown>
+}
+
+/**
+ * Messages a holder of each collateral would get from governance changes, per collateral-month.
+ * The holder sits at HF 1.30 (the watch line) under the threshold in force just before each
+ * change. Changes on one collateral inside 24h merge into one message at the worst severity, as
+ * the rule's 24h window does. Stress windows (E1 Oct 9–13 2025, E2 Oct 26–Nov 16 2025, E3 Apr
+ * 17–26 2026) are left out of the calm count and reported apart.
+ */
+function governanceChangeRates() {
+  const dir = join(DS, 'governance-changes')
+  const STRESS: [number, number][] = [
+    [Date.parse('2025-10-09T00:00:00Z') / 1000, Date.parse('2025-10-13T00:00:00Z') / 1000],
+    [Date.parse('2025-10-26T00:00:00Z') / 1000, Date.parse('2025-11-16T00:00:00Z') / 1000],
+    [Date.parse('2026-04-17T00:00:00Z') / 1000, Date.parse('2026-04-26T00:00:00Z') / 1000],
+  ]
+  const inStress = (t: number) => STRESS.some(([a, b]) => t >= a && t < b)
+  const stressOverlap = (from: number, to: number) =>
+    STRESS.reduce((a, [x, y]) => a + Math.max(0, Math.min(to, y) - Math.max(from, x)), 0)
+  const HOLDER_HF = 1.3
+  const warnHf = DEFAULT_ALERT_CONFIG.governanceChange?.warnHf ?? 1.15
+
+  /** Score one subject's events: merge within 24h, severity for a holder at HF 1.30. */
+  function score(
+    subject: string,
+    evs: GovernanceChangeEvent[],
+    span: { from: number; to: number },
+    ltBefore: (e: GovernanceChangeEvent) => number,
+  ) {
+    const counts = {
+      calm: { watch: 0, warn: 0, critical: 0 },
+      stress: { watch: 0, warn: 0, critical: 0 },
+    }
+    const kept: { ts: string; kind: string; severity: string; detail: string }[] = []
+    let open: { until: number; level: number; stress: boolean } | null = null
+    const lv = { watch: 1, warn: 2, critical: 3 } as const
+    const name = ['', 'watch', 'warn', 'critical'] as const
+    const flush = () => {
+      if (open && open.level > 0)
+        counts[open.stress ? 'stress' : 'calm'][name[open.level] as 'watch']++
+    }
+    for (const e of evs.sort((a, b) => a.ts - b.ts)) {
+      const lt = ltBefore(e)
+      const snap: PositionSnapshot = {
+        id: subject,
+        ts: e.ts,
+        venue: 'any',
+        collateral: [
+          {
+            symbol: e.asset ?? subject,
+            amount: HOLDER_HF / lt,
+            oraclePriceUsd: 1,
+            liquidationThreshold: lt,
+          },
+        ],
+        debt: [{ symbol: 'USD', amount: 1, priceUsd: 1 }],
+      }
+      const s = governanceSeverity(e, snap, warnHf)
+      if (!s) continue
+      kept.push({ ts: iso(e.ts) ?? '', kind: e.kind, severity: s.severity, detail: e.detail })
+      const level = lv[s.severity]
+      if (open && e.ts <= open.until) {
+        open.level = Math.max(open.level, level)
+        continue
+      }
+      flush()
+      open = { until: e.ts + 24 * H, level, stress: inStress(e.ts) }
+    }
+    flush()
+    const months = (span.to - span.from) / MONTH
+    const stressMonths = stressOverlap(span.from, span.to) / MONTH
+    return {
+      subject,
+      months: round(months, 2),
+      calmMonths: round(months - stressMonths, 2),
+      counts,
+      events: kept,
+    }
+  }
+
+  function summary(rows: ReturnType<typeof score>[], note: string) {
+    const calmMonths = rows.reduce((a, r) => a + (r.calmMonths ?? 0), 0)
+    const c = rows.reduce(
+      (a, r) => ({
+        watch: a.watch + r.counts.calm.watch,
+        warn: a.warn + r.counts.calm.warn,
+        critical: a.critical + r.counts.calm.critical,
+      }),
+      { watch: 0, warn: 0, critical: 0 },
+    )
+    const st = rows.reduce(
+      (a, r) => ({
+        watch: a.watch + r.counts.stress.watch,
+        warn: a.warn + r.counts.stress.warn,
+        critical: a.critical + r.counts.stress.critical,
+      }),
+      { watch: 0, warn: 0, critical: 0 },
+    )
+    return {
+      note,
+      subjects: rows.length,
+      calmSubjectMonths: round(calmMonths, 1),
+      calmMessages: c,
+      calmWarnPlusPerSubjectMonth:
+        calmMonths > 0 ? round((c.warn + c.critical) / calmMonths, 4) : null,
+      calmAnyPerSubjectMonth:
+        calmMonths > 0 ? round((c.watch + c.warn + c.critical) / calmMonths, 4) : null,
+      stressMessages: st,
+      subjectsWithEvents: rows
+        .filter((r) => r.events.length)
+        .map((r) => ({ subject: r.subject, events: r.events })),
+    }
+  }
+
+  const out: Record<string, unknown> = {
+    definition:
+      'A holder of the collateral at HF 1.30 under the threshold in force just before each change; changes inside 24h merge into one message at the worst severity. A threshold raise and a change on another collateral are not messages.',
+  }
+
+  // Aave v3 Ethereum Core: every reserve that was ever collateral, from its listing.
+  const aaveFile = join(dir, 'aave-v3-ethereum-core.json')
+  if (existsSync(aaveFile)) {
+    const f = JSON.parse(readFileSync(aaveFile, 'utf8')) as {
+      symbols: Record<string, string>
+      events: GovRow[]
+      toTs: number
+    }
+    const byAsset = new Map<string, GovRow[]>()
+    for (const r of f.events) {
+      const a = String((r.args as { asset?: string }).asset ?? '').toLowerCase()
+      if (a) byAsset.set(a, [...(byAsset.get(a) ?? []), r])
+    }
+    const rows = []
+    for (const [asset, list] of byAsset) {
+      const symbol = f.symbols[asset] ?? asset
+      let prev: number | undefined
+      const evs: GovernanceChangeEvent[] = []
+      const ltAt: number[] = []
+      let everCollateral = false
+      for (const r of list) {
+        const ev = fromAaveConfigurator(r.name, r.args, {
+          market: 'aave-v3-core',
+          ts: r.ts,
+          source: r.tx,
+          symbolOf: (a) => f.symbols[a],
+          previousThreshold: r.name === 'CollateralConfigurationChanged' ? prev : undefined,
+        })
+        const before = prev
+        if (r.name === 'CollateralConfigurationChanged') {
+          prev = Number(r.args.liquidationThreshold) / 1e4
+          if (prev > 0) everCollateral = true
+        }
+        // The first configuration is the listing: not a change to a holder.
+        if (ev && !(r.name === 'CollateralConfigurationChanged' && before === undefined)) {
+          evs.push(ev)
+          ltAt.push(before ?? prev ?? 0.8)
+        }
+      }
+      if (!everCollateral) continue
+      const from = list[0].ts
+      const idx = new Map(evs.map((e, i) => [e, ltAt[i]]))
+      rows.push(score(symbol, evs, { from, to: f.toTs }, (e) => Math.max(0.01, idx.get(e) ?? 0.8)))
+    }
+    out.aaveV3EthereumCore = summary(
+      rows,
+      'Aave v3 Ethereum Core PoolConfigurator, each collateral from its listing to Oct 1 2026. E-mode category changes are not scored (they apply per category).',
+    )
+  } else
+    out.aaveV3EthereumCore = { note: 'governance-changes/aave-v3-ethereum-core.json not built' }
+
+  // E2 Euler and Gearbox markets, May 1 → Oct 26 2025 (calm) and the E2 window (stress).
+  const e2File = join(dir, 'e2-euler-gearbox.json')
+  if (existsSync(e2File)) {
+    const f = JSON.parse(readFileSync(e2File, 'utf8')) as {
+      window: { fromTs: number; toTs: number }
+      symbols: Record<string, Record<string, string>>
+      events: GovRow[]
+    }
+    const subjects = new Map<
+      string,
+      { evs: GovernanceChangeEvent[]; lt: Map<GovernanceChangeEvent, number> }
+    >()
+    const lastLt = new Map<string, number>()
+    for (const r of f.events) {
+      const market = `${r.venue}:${r.chainId}:${(r.market ?? r.address).toLowerCase()}`
+      const ctx = {
+        market,
+        ts: r.ts,
+        source: r.tx,
+        symbolOf: (a: string) => f.symbols[r.chainId]?.[a],
+      }
+      const ev =
+        r.venue === 'euler'
+          ? fromEulerGovernance(r.name, r.args, ctx)
+          : fromGearboxConfigurator(r.name, r.args, ctx)
+      if (!ev) continue
+      const key = `${market}:${ev.asset ?? '*'}`
+      const s = subjects.get(key) ?? {
+        evs: [] as GovernanceChangeEvent[],
+        lt: new Map<GovernanceChangeEvent, number>(),
+      }
+      const before = ev.threshold?.from ?? lastLt.get(key) ?? 0.9
+      s.evs.push(ev)
+      s.lt.set(ev, before > 0 ? before : 0.9)
+      if (ev.threshold) lastLt.set(key, ev.threshold.to)
+      subjects.set(key, s)
+    }
+    const rows = [...subjects].map(([k, s]) =>
+      score(k, s.evs, { from: f.window.fromTs, to: f.window.toTs }, (e) => s.lt.get(e) ?? 0.9),
+    )
+    out.e2EulerGearbox = summary(
+      rows,
+      'The E2 Euler borrow vaults and the Gearbox Plasma credit manager, per market and collateral, May 1 to Nov 16 2025. Subjects are only those with at least one event, so the per-month rate is an upper bound.',
+    )
+  } else out.e2EulerGearbox = { note: 'governance-changes/e2-euler-gearbox.json not built' }
+  return out
+}
+
 function oracleChangeRates() {
   const perSubject = Object.entries(subjectSpan).map(([subject, span]) => {
     const evs = dedup
@@ -578,6 +813,7 @@ function main() {
       ),
     },
     oracleChange: oracleChangeRates(),
+    governanceChange: governanceChangeRates(),
     lstDepegChainlink: stethChainlink(),
   }
   writeFileSync(OUT, JSON.stringify(results, null, 1) + '\n')

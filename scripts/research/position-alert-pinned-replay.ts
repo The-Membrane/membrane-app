@@ -32,11 +32,14 @@ import {
   CORRELATED_LOOP_HF,
   DEFAULT_ALERT_CONFIG,
   detectPriceFreeze,
+  fromEulerGovernance,
+  fromGearboxConfigurator,
   quantile,
   replay,
   scoreReplay,
   type AlertConfig,
   type MarketContext,
+  type GovernanceChangeEvent,
   type OracleChangeEvent,
   type PositionSnapshot,
   type ReplayStep,
@@ -108,6 +111,8 @@ interface PositionResult {
   /** First warn-or-higher (critical) message to this position, at or before its breach. */
   firstWarnTs: number | null
   firstCriticalTs: number | null
+  /** Governance-change rule: worsening messages, the first one, and the highest level. */
+  governance: { messages: number; firstTs: number | null; peak: number }
 }
 
 interface Lead {
@@ -169,7 +174,16 @@ function runPath(p: Path, config: AlertConfig, everyS: number): PositionResult {
         (a.transition === 'fire' || a.transition === 'escalate') &&
         (r.liquidatedAt === null || a.ts <= r.liquidatedAt),
     )?.ts ?? null
+  const gov = r.messages.filter(
+    (a) =>
+      a.ruleId === 'governance-change' && (a.transition === 'fire' || a.transition === 'escalate'),
+  )
   return {
+    governance: {
+      messages: gov.length,
+      firstTs: gov[0]?.ts ?? null,
+      peak: gov.reduce((m, a) => Math.max(m, a.to), 0),
+    },
     id: p.id,
     cluster: p.cluster,
     isLooper: p.isLooper,
@@ -637,6 +651,8 @@ interface E2Point {
   marketValueUsd?: number | null
   /** Euler / Gearbox: the venue's own risk-adjusted collateral value, all collateral included. */
   adjustedCollateralUsd?: number | null
+  /** Off-Morpho builder: the Stream collateral by part (symbol, units, oracle USD, LT). */
+  parts?: { sym: string }[]
 }
 
 interface E2Market {
@@ -711,7 +727,45 @@ interface E2Prepared {
   points: E2Point[]
   marketPx: (number | null)[]
   oracleEvents: OracleChangeEvent[]
+  governanceEvents: GovernanceChangeEvent[]
   liquidationTs: number | null
+}
+
+/**
+ * Governance changes of the E2 Euler and Gearbox markets (build-governance-changes.ts), keyed
+ * by market. Morpho Blue and Silo v2 market rules cannot change: covered, no events.
+ */
+const GOV_FILE = join(datasetsDir(ROOT), 'governance-changes', 'e2-euler-gearbox.json')
+const e2Gov = new Map<string, GovernanceChangeEvent[]>()
+const e2GovCovered = existsSync(GOV_FILE)
+if (e2GovCovered) {
+  const g = JSON.parse(readFileSync(GOV_FILE, 'utf8')) as {
+    symbols: Record<string, Record<string, string>>
+    events: {
+      venue: string
+      chainId: number
+      address: string
+      market?: string
+      ts: number
+      tx: string
+      name: string
+      args: Record<string, unknown>
+    }[]
+  }
+  for (const r of g.events) {
+    const market = e2Key(r.venue, r.chainId, r.market ?? r.address)
+    const ctx = {
+      market,
+      ts: r.ts,
+      source: `${r.venue} ${r.name} ${r.tx.slice(0, 10)}`,
+      symbolOf: (a: string) => g.symbols[r.chainId]?.[a],
+    }
+    const e =
+      r.venue === 'euler'
+        ? fromEulerGovernance(r.name, r.args, ctx)
+        : fromGearboxConfigurator(r.name, r.args, ctx)
+    if (e) e2Gov.set(market, [...(e2Gov.get(market) ?? []), e])
+  }
 }
 
 const e2Prepared: E2Prepared[] = []
@@ -811,6 +865,15 @@ for (const p of e2Files.flatMap((f) =>
           m.collateral,
           e2Key(p.venue, p.chainId, p.marketId),
         ),
+    // Events on a collateral the position holds (any part) are renamed to the snapshot's one
+    // collateral symbol; events on other collaterals do not touch it.
+    governanceEvents: (() => {
+      const held = new Set(p.history.flatMap((x) => (x.parts ?? []).map((q) => q.sym)))
+      held.add(m.collateral)
+      return (e2Gov.get(e2Key(p.venue, p.chainId, p.marketId)) ?? [])
+        .filter((e) => e.asset === undefined || held.has(e.asset))
+        .map((e) => (e.asset === undefined ? e : { ...e, asset: m.collateral }))
+    })(),
     liquidationTs: liq[0] ?? null,
   })
 }
@@ -872,7 +935,12 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
           ],
           debt: [{ symbol: 'USDC', amount: pt(i).borrow as number, priceUsd: 1 }],
         }),
-        ctx: () => ({ oracleEvents: x.oracleEvents, oracleEventsCovered: true }),
+        ctx: () => ({
+          oracleEvents: x.oracleEvents,
+          oracleEventsCovered: true,
+          governanceEvents: x.governanceEvents,
+          governanceEventsCovered: x.venue === 'morpho' || x.venue === 'silo' || e2GovCovered,
+        }),
         observedLiquidationTs: x.liquidationTs,
       }
     })
@@ -884,8 +952,29 @@ function e2Basis(basis: 'oracle' | 'market', config: AlertConfig) {
   const paths = e2Paths(basis)
   const cadence = [{ label: '1 h', everyS: 0 }]
   const venues = [...new Set(e2Prepared.map((x) => x.venue))]
+  const runs = runEvent(paths, config, cadence)
+  const rows = runs[0].rows
+  const breached = rows.filter((r) => r.breachTs !== null)
+  const tally = (k: 'warn' | 'critical') =>
+    Object.fromEntries(
+      [...new Set(breached.map((r) => r[k].leadRule ?? 'none'))].map((rule) => [
+        rule,
+        breached.filter((r) => (r[k].leadRule ?? 'none') === rule).length,
+      ]),
+    )
   return {
-    runs: runEvent(paths, config, cadence),
+    runs,
+    // Which rule gave each breached position its earliest warning.
+    firstWarnRule: tally('warn'),
+    firstCriticalRule: tally('critical'),
+    governance: {
+      positionsWithEvents: e2Prepared.filter((x) => x.governanceEvents.length).length,
+      positionsMessaged: rows.filter((r) => r.governance.messages > 0).length,
+      byPeak: Object.fromEntries(
+        [1, 2, 3].map((l) => [l, rows.filter((r) => r.governance.peak === l).length]),
+      ),
+      messages: rows.reduce((a, r) => a + r.governance.messages, 0),
+    },
     byVenue: Object.fromEntries(
       venues.map((v) => {
         const [r] = runEvent(

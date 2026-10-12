@@ -111,6 +111,43 @@ export interface OracleChangeEvent {
   severity?: Severity
 }
 
+/**
+ * What a venue's governance changed. A change of the market's own rules moves health factor
+ * or the borrower's options with no price move: Euler cut liquidation LTVs on Nov 3 2025 and
+ * liquidated a position at HF 1.06 by setting its LTV to 0 on Nov 4 (memo §1b).
+ */
+export type GovernanceChangeKind =
+  /** Liquidation threshold set or ramped to a new value. Severity is projected per position. */
+  | 'liquidation_threshold_changed'
+  /** Collateral no longer counts: liquidation threshold set to 0, or the token removed. */
+  | 'collateral_disabled'
+  /** Repay, withdraw or liquidation stopped. The borrower cannot act. */
+  | 'paused'
+  /** No new supply or borrow, or the token is being wound down. Repay still works. */
+  | 'frozen'
+  | 'liquidation_bonus_changed'
+  | 'rate_model_changed'
+  | 'governor_changed'
+  /** The market or credit manager gets an end date. */
+  | 'expiry_set'
+
+/** One governance change. governance.ts adapts Euler, Gearbox and Aave v3 events into these. */
+export interface GovernanceChangeEvent {
+  /** Market the change applies to: Euler borrow vault, Gearbox credit manager, Aave pool. */
+  market: string
+  /** Collateral or reserve symbol it touches. Absent: the whole market. */
+  asset?: string
+  kind: GovernanceChangeKind
+  /** Epoch seconds. */
+  ts: number
+  detail: string
+  source: string
+  /** liquidation_threshold_changed: thresholds 0–1, and when a ramp reaches `to`. */
+  threshold?: { from?: number; to: number; fullAtTs?: number }
+  /** Severity fixed by the adapter. Absent: projected per position (governance.ts). */
+  severity?: Severity
+}
+
 /** Everything outside the position the rules may read. Every field is optional. */
 export interface MarketContext {
   /** USD price of each peg underlying, e.g. { ETH: 2650 }. */
@@ -123,6 +160,13 @@ export interface MarketContext {
   oracleEvents?: OracleChangeEvent[]
   /** False when no oracle-change source is wired. The rule then reports itself uncovered. */
   oracleEventsCovered?: boolean
+  /** Governance changes of the position's market (any age; the rule windows them). */
+  governanceEvents?: GovernanceChangeEvent[]
+  /**
+   * False when no governance source is wired for the market. A market whose rules cannot
+   * change (Morpho Blue, Silo v2) is covered with no events.
+   */
+  governanceEventsCovered?: boolean
 }
 
 export type TransitionKind = 'fire' | 'escalate' | 'ease' | 'clear' | 'suppressed'

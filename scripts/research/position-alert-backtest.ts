@@ -71,6 +71,7 @@ const OFF: AlertConfig = {
   depeg: null,
   exitCapacity: null,
   oracleChange: null,
+  governanceChange: null,
   targetHf: 1.3,
 }
 const ANTI_FLAP = { band: 0.03, dwellS: 2 * H, confirm: 1, cooldownS: 6 * H }

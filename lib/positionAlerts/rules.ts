@@ -9,6 +9,7 @@ import type { AlertConfig } from './config'
 import { fmtBps, fmtHf, fmtPct, fmtPrice, fmtUsd } from './format'
 import type { LevelSpec } from './levels'
 import { recallNeededUsd, type PositionMetrics } from './metrics'
+import { governanceSeverity } from './governance'
 import { ORACLE_CHANGE_SEVERITY } from './oracleRegistry'
 import type { Level, MarketContext, PositionSnapshot, TransitionKind } from './types'
 import { levelOf } from './types'
@@ -21,6 +22,7 @@ export type RuleId =
   | 'collateral-depeg'
   | 'exit-capacity'
   | 'oracle-change'
+  | 'governance-change'
 
 export interface TransitionInfo {
   kind: TransitionKind
@@ -421,6 +423,72 @@ export const oracleChangeRule: Rule = {
   },
 }
 
+// ------------------------------------------------------------------ governance change
+
+export const governanceChangeRule: Rule = {
+  id: 'governance-change',
+  evaluate: ({ snapshot, ctx, config }) => {
+    const cfg = config.governanceChange
+    if (!cfg) return []
+    if (!ctx.governanceEventsCovered) {
+      return [
+        {
+          key: 'governance',
+          value: null,
+          spec: cfg.spec,
+          uncoveredReason: 'no governance source for this market',
+          evidence: {},
+          describe: () => ({ title: '', detail: '' }),
+        },
+      ]
+    }
+    const held = new Set([
+      ...snapshot.collateral.map((c) => c.symbol),
+      ...snapshot.debt.map((d) => d.symbol),
+    ])
+    // A ramp stays live until it reaches its target, then for the usual window.
+    const live = (ctx.governanceEvents ?? []).filter(
+      (e) =>
+        e.ts <= snapshot.ts &&
+        (e.asset === undefined || held.has(e.asset)) &&
+        snapshot.ts - Math.max(e.ts, e.threshold?.fullAtTs ?? e.ts) <= cfg.windowS,
+    )
+    const scored = live
+      .map((e) => ({ e, s: governanceSeverity(e, snapshot, cfg.warnHf) }))
+      .filter((x): x is { e: (typeof live)[number]; s: NonNullable<typeof x.s> } => x.s !== null)
+    const worst = scored.reduce((m, x) => Math.max(m, levelOf(x.s.severity)), 0)
+    const top = scored.find((x) => levelOf(x.s.severity) === worst) ?? scored[scored.length - 1]
+    return [
+      {
+        key: 'governance',
+        value: worst,
+        spec: cfg.spec,
+        evidence: {
+          events: scored.length,
+          kind: top?.e.kind ?? null,
+          asset: top?.e.asset ?? null,
+          projectedHf: top?.s.projectedHf ?? null,
+        },
+        describe: (t) =>
+          recovering(t.kind)
+            ? {
+                title: `No recent rule changes on your market`,
+                detail: `None in the last ${cfg.windowS / 3600}h that touch your position.`,
+              }
+            : {
+                title: `${snapshot.venue} changed its rules${top?.e.asset ? ` for ${top.e.asset}` : ''}`,
+                detail: scored
+                  .map(
+                    ({ e, s }) =>
+                      `${e.detail}${s.projectedHf !== null && Number.isFinite(s.projectedHf) ? ` — your health factor once it applies: ${fmtHf(s.projectedHf)}` : ''}`,
+                  )
+                  .join('; '),
+              },
+      },
+    ]
+  },
+}
+
 export const ALL_RULES: readonly Rule[] = [
   healthFactorRule,
   ltvRule,
@@ -429,4 +497,5 @@ export const ALL_RULES: readonly Rule[] = [
   depegRule,
   exitCapacityRule,
   oracleChangeRule,
+  governanceChangeRule,
 ]

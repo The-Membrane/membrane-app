@@ -16,6 +16,14 @@ import {
   VENUE_STRESS_PAUSED,
   capacityBurn,
   classifyRegistryChange,
+  EULER_OP,
+  fromAaveConfigurator,
+  fromEulerGovernance,
+  fromGearboxConfigurator,
+  governanceSeverity,
+  projectedHealthFactor,
+  staticGovernanceSource,
+  type GovernanceChangeEvent,
   computeMetrics,
   detectPriceFreeze,
   fromRegistryChange,
@@ -108,6 +116,7 @@ const only = (cfg: Partial<AlertConfig>): AlertConfig => ({
   depeg: null,
   exitCapacity: null,
   oracleChange: null,
+  governanceChange: null,
   targetHf: 1.3,
   ...cfg,
 })
@@ -623,6 +632,244 @@ describe('oracle-change rule', () => {
       { s: { ...ethPosition(1.5), ts: T0 + 25 * H }, ctx },
     ])
     expect(alerts.map((a) => a.transition)).toEqual(['fire', 'clear'])
+  })
+})
+
+describe('governance-change rule', () => {
+  const cfg = only({ governanceChange: DEFAULT_ALERT_CONFIG.governanceChange })
+  const cut = (to: number, extra: Partial<GovernanceChangeEvent> = {}): GovernanceChangeEvent => ({
+    market: 'euler:1:0xvault',
+    asset: 'ETH',
+    kind: 'liquidation_threshold_changed',
+    ts: T0 - 60,
+    detail: `ETH: liquidation LTV 83% → ${to * 100}%`,
+    source: 'test',
+    threshold: { from: 0.83, to },
+    ...extra,
+  })
+  const on = (hf: number, events: GovernanceChangeEvent[]) =>
+    evalSeq(cfg, [
+      { s: ethPosition(hf), ctx: { governanceEvents: events, governanceEventsCovered: true } },
+    ]).alerts
+
+  it('is uncovered while no governance source is wired for the market', () => {
+    const r = evalSeq(cfg, [{ s: ethPosition(1.5), ctx: { governanceEvents: [cut(0.8)] } }])
+    expect(r.alerts).toHaveLength(0)
+    expect(r.uncovered[0].join()).toContain('no governance source')
+  })
+
+  it('projects a threshold cut onto the position: watch, warn below 1.15, critical below 1', () => {
+    // HF 1.5 × 0.80 / 0.83 = 1.446: watch. HF 1.18 × 0.80 / 0.83 = 1.137: warn.
+    expect(on(1.5, [cut(0.8)]).map((a) => a.severity)).toEqual(['watch'])
+    expect(on(1.18, [cut(0.8)]).map((a) => a.severity)).toEqual(['warn'])
+    // HF 1.03 × 0.80 / 0.83 = 0.993: critical.
+    expect(on(1.03, [cut(0.8)]).map((a) => a.severity)).toEqual(['critical'])
+    expect(on(1.18, [cut(0.8)])[0].detail).toContain('health factor once it applies: 1.14')
+  })
+
+  it('is silent on a raise and on a collateral the position does not hold', () => {
+    expect(on(1.05, [cut(0.86)])).toHaveLength(0)
+    expect(on(1.05, [cut(0.5, { asset: 'BTC' })])).toHaveLength(0)
+  })
+
+  it('is critical when the collateral is disabled or repay is paused', () => {
+    const disabled = cut(0, { kind: 'collateral_disabled' })
+    expect(on(3, [disabled]).map((a) => a.severity)).toEqual(['critical'])
+    const paused: GovernanceChangeEvent = {
+      market: 'euler:1:0xvault',
+      kind: 'paused',
+      ts: T0 - 60,
+      detail: 'repay disabled',
+      source: 'test',
+    }
+    expect(on(3, [paused]).map((a) => a.severity)).toEqual(['critical'])
+  })
+
+  it('keeps a ramp live until it reaches its target, then clears after the window', () => {
+    const ramp = cut(0.8, {
+      ts: T0 - 60,
+      threshold: { from: 0.83, to: 0.8, fullAtTs: T0 + 48 * H },
+    })
+    const ctx = { governanceEvents: [ramp], governanceEventsCovered: true }
+    const { alerts } = evalSeq(cfg, [
+      { s: ethPosition(1.18), ctx },
+      { s: { ...ethPosition(1.18), ts: T0 + 60 * H }, ctx },
+      { s: { ...ethPosition(1.18), ts: T0 + 73 * H }, ctx },
+    ])
+    expect(alerts.map((a) => [a.transition, a.severity])).toEqual([
+      ['fire', 'warn'],
+      ['clear', 'warn'],
+    ])
+    expect(alerts[1].ts).toBe(T0 + 73 * H)
+  })
+
+  it('projects health factor on the cut leg only', () => {
+    const s: PositionSnapshot = {
+      ...ethPosition(1.5),
+      collateral: [
+        { symbol: 'ETH', amount: 10, oraclePriceUsd: 3000, liquidationThreshold: 0.8 },
+        { symbol: 'BTC', amount: 1, oraclePriceUsd: 60000, liquidationThreshold: 0.75 },
+      ],
+      debt: [{ symbol: 'USDC', amount: 50000, priceUsd: 1 }],
+    }
+    // (10 × 3000 × 0.5 + 60000 × 0.75) / 50000 = 1.2
+    expect(projectedHealthFactor(s, 'ETH', 0.5)).toBeCloseTo(1.2, 9)
+    expect(governanceSeverity(cut(0.5), s, 1.15)?.severity).toBe('watch')
+  })
+
+  it('a static source filters by market, window and held asset', () => {
+    const src = staticGovernanceSource([
+      cut(0.8),
+      cut(0.8, { market: 'other' }),
+      cut(0.8, { asset: 'BTC' }),
+    ])
+    expect(src.eventsBetween(T0 - H, T0, 'euler:1:0xvault', ['ETH'])).toHaveLength(1)
+  })
+})
+
+describe('governance adapters', () => {
+  const ctx = {
+    market: 'm',
+    ts: T0,
+    source: 'test',
+    symbolOf: (a: string) => ({ '0xcoll': 'deUSD', '0xtok': 'xUSD' })[a],
+  }
+
+  it('Euler GovSetLTV: a ramped cut, a zero (forced liquidation of Nov 4 2025) and a restore', () => {
+    const ramp = fromEulerGovernance(
+      'GovSetLTV',
+      {
+        collateral: '0xCOLL',
+        borrowLTV: 9000,
+        liquidationLTV: 9300,
+        initialLiquidationLTV: 9500,
+        targetTimestamp: BigInt(T0 + 7 * 24 * H),
+        rampDuration: 7 * 24 * H,
+      },
+      ctx,
+    )
+    expect(ramp).toMatchObject({
+      asset: 'deUSD',
+      kind: 'liquidation_threshold_changed',
+      threshold: { from: 0.95, to: 0.93, fullAtTs: T0 + 7 * 24 * H },
+    })
+    const zero = fromEulerGovernance(
+      'GovSetLTV',
+      {
+        collateral: '0xcoll',
+        borrowLTV: 0,
+        liquidationLTV: 0,
+        initialLiquidationLTV: 9250,
+        targetTimestamp: T0,
+        rampDuration: 0,
+      },
+      ctx,
+    )
+    expect(zero?.kind).toBe('collateral_disabled')
+    const restore = fromEulerGovernance(
+      'GovSetLTV',
+      {
+        collateral: '0xcoll',
+        borrowLTV: 9000,
+        liquidationLTV: 9250,
+        initialLiquidationLTV: 0,
+        targetTimestamp: T0,
+        rampDuration: 0,
+      },
+      ctx,
+    )
+    const pos: PositionSnapshot = {
+      ...ethPosition(1.06),
+      collateral: [
+        { symbol: 'deUSD', amount: 1.32e6, oraclePriceUsd: 1, liquidationThreshold: 0.925 },
+      ],
+      debt: [{ symbol: 'USDt', amount: 1.15e6, priceUsd: 1 }],
+    }
+    expect(governanceSeverity(restore!, pos, 1.15)).toBeNull()
+    expect(governanceSeverity(zero!, pos, 1.15)?.severity).toBe('critical')
+  })
+
+  it('Euler hooks: repay disabled is critical, liquidation disabled warn, deposit disabled frozen', () => {
+    const hook = (ops: number, target = '0x0000000000000000000000000000000000000000') =>
+      fromEulerGovernance('GovSetHookConfig', { newHookTarget: target, newHookedOps: ops }, ctx)
+    expect(hook(EULER_OP.repay)).toMatchObject({ kind: 'paused' })
+    expect(hook(EULER_OP.repay)?.severity).toBeUndefined()
+    expect(hook(EULER_OP.liquidate)).toMatchObject({ kind: 'paused', severity: 'warn' })
+    expect(hook(EULER_OP.deposit | EULER_OP.borrow)).toMatchObject({ kind: 'frozen' })
+    expect(hook(0)).toBeNull()
+    expect(
+      fromEulerGovernance(
+        'GovSetGovernorAdmin',
+        { newGovernorAdmin: '0x0000000000000000000000000000000000000000' },
+        ctx,
+      ),
+    ).toBeNull()
+  })
+
+  it('Gearbox: a ramp to a lower threshold, a forbidden token and an expiry', () => {
+    const ramp = fromGearboxConfigurator(
+      'ScheduleTokenLiquidationThresholdRamp',
+      {
+        token: '0xTOK',
+        liquidationThresholdInitial: 9000,
+        liquidationThresholdFinal: 8500,
+        timestampRampStart: T0,
+        timestampRampEnd: T0 + 10 * H,
+      },
+      ctx,
+    )
+    expect(ramp).toMatchObject({
+      asset: 'xUSD',
+      threshold: { from: 0.9, to: 0.85, fullAtTs: T0 + 10 * H },
+    })
+    expect(fromGearboxConfigurator('ForbidToken', { token: '0xtok' }, ctx)).toMatchObject({
+      kind: 'frozen',
+      severity: 'warn',
+    })
+    expect(
+      fromGearboxConfigurator('SetExpirationDate', { expirationDate: T0 + 30 * 24 * H }, ctx)?.kind,
+    ).toBe('expiry_set')
+    expect(
+      fromGearboxConfigurator(
+        'SetMaxDebtPerBlockMultiplier',
+        { maxDebtPerBlockMultiplier: 4 },
+        ctx,
+      ),
+    ).toBeNull()
+  })
+
+  it('Aave: a threshold change against the previous value, freeze, pause and their reversal', () => {
+    const same = fromAaveConfigurator(
+      'CollateralConfigurationChanged',
+      { asset: '0xtok', ltv: 8000, liquidationThreshold: 8300, liquidationBonus: 10500 },
+      { ...ctx, previousThreshold: 0.83 },
+    )
+    expect(same).toBeNull()
+    const lower = fromAaveConfigurator(
+      'CollateralConfigurationChanged',
+      { asset: '0xtok', ltv: 0, liquidationThreshold: 7800, liquidationBonus: 10500 },
+      { ...ctx, previousThreshold: 0.83 },
+    )
+    expect(lower).toMatchObject({
+      kind: 'liquidation_threshold_changed',
+      threshold: { from: 0.83, to: 0.78 },
+    })
+    expect(fromAaveConfigurator('ReserveFrozen', { asset: '0xtok', frozen: true }, ctx)?.kind).toBe(
+      'frozen',
+    )
+    expect(fromAaveConfigurator('ReserveFrozen', { asset: '0xtok' }, ctx)?.kind).toBe('frozen')
+    expect(fromAaveConfigurator('ReserveFrozen', { asset: '0xtok', frozen: false }, ctx)).toBeNull()
+    expect(fromAaveConfigurator('ReservePaused', { asset: '0xtok', paused: true }, ctx)?.kind).toBe(
+      'paused',
+    )
+    expect(fromAaveConfigurator('ReserveUnpaused', { asset: '0xtok' }, ctx)).toBeNull()
+    expect(
+      fromAaveConfigurator(
+        'AssetCollateralInEModeChanged',
+        { asset: '0xtok', categoryId: 1, collateral: false },
+        ctx,
+      ),
+    ).toMatchObject({ market: 'm:emode-1', severity: 'warn' })
   })
 })
 

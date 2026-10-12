@@ -1,3 +1,4 @@
+import { selectedNativeCashHolderOutlook } from '@/lib/carry/nativeCashHolderOutlookReceipt'
 import { hasPinnedForecastArtifact } from '@/lib/carry/pinnedForecastArtifacts'
 import React, { useMemo } from 'react'
 import { Box, HStack, Link, SimpleGrid, Text, Tooltip, VStack } from '@chakra-ui/react'
@@ -2310,10 +2311,18 @@ export function cashHolderDurationDetail(
 ) {
   const issue = Date.parse(value.process.issueAtUtc),
     target = Date.parse(value.process.targetAtUtc)
-  const runs = value.process.scenarios
+  const usable = value.process.scenarios.filter(s => s.status === 'conditional_path' &&
+    s.targetHeadroomRaw !== null && s.points.length > 0)
+  // A truncated sampled run cannot prove persistence through the selected horizon.
+  if (!usable.length) return ' · DURATION CENSORED'
+  const runs = usable
     .flatMap((s) => s.sampledShortfalls)
     .filter((r) => !r.recovery || Date.parse(r.recovery.by) > issue)
-  if (!runs.length) return ''
+  if (!runs.length) {
+    return usable.length === value.process.scenarios.length
+      ? ' · NO SAMPLED SHORTFALL'
+      : ' · NO SHORTFALL IN USABLE PATHS · PARTIAL'
+  }
   const bounds = runs.map((r) => {
     // Future exposure starts at issue, even when a source-age episode started earlier.
     const startLower = Math.max(issue, r.onset.after === null ? issue : Date.parse(r.onset.after)),
@@ -2330,11 +2339,33 @@ export function cashHolderDurationDetail(
   const upper = censored ? null : Math.max(...bounds.map((b) => b.upper!))
   const unit = (upper ?? lower) < 60000 ? 's' : (upper ?? lower) < 3600000 ? 'min' : 'h',
     scale = unit === 's' ? 1000 : unit === 'min' ? 60000 : 3600000
+  const partial = value.process.scenarios.some(s => s.status === 'censored_path') ? ' · PARTIAL' : ''
   const roundedLower = Math.floor((lower / scale) * 10) / 10
   if (censored)
-    return roundedLower === 0 ? ' · SHORTFALL AT TARGET' : ` · SHORTFALL ≥${roundedLower}${unit}`
+    return (roundedLower === 0 ? ' · SHORTFALL AT TARGET' : ` · SHORTFALL ≥${roundedLower}${unit}`) + partial
   const roundedUpper = Math.ceil((upper! / scale) * 10) / 10
-  return ` · SHORTFALL ${roundedLower}–${roundedUpper}${unit}`
+  return ` · SHORTFALL ${roundedLower}–${roundedUpper}${unit}${partial}`
+}
+
+export function nativeHistoricalRecoveryRow(value: NonNullable<HolderExitAssessmentView['nativeCashHolderOutlook']>) {
+  const envelope = value.historicalRecovery, result = envelope.result
+  if (!result || result.status === 'unavailable') return {
+    value: '—', detail: envelope.unavailableReason === 'fixed_entitlement_below_requested'
+      ? 'Full entitlement below requested exit'
+      : 'Recovery evidence unavailable',
+  }
+  if (result.status === 'not_below') return { value: 'NOT BELOW Q', detail: 'Current cash proxy · additional M separate' }
+  const counts = result.counts, middle = result.orderStatisticsHours.p50
+  // These are empirical sampled-episode order bounds, including censored upper bounds.
+  const lower = middle ? Math.floor(middle.lower * 10) / 10 : null
+  const upper = middle?.upper == null ? null : Math.ceil(middle.upper * 10) / 10
+  return {
+    value: lower === null ? 'NO MATCHED EPISODES' : upper === null ? `≥${lower}h` : `${lower}–${upper}h`,
+    detail: `${counts.matchedDonors} matched · ${counts.sampledRecoveryBracketByHorizon} bracketed ≤${value.horizonHours}h` +
+      `${counts.censoredBeforeHorizon ? ` · ${counts.censoredBeforeHorizon} censored before horizon` : ''}` +
+      `${result.matching.ageStratum === 'unknown_left_censored' ? ' · onset unknown' : ''}` +
+      `${result.supportGate.passed ? '' : ' · sparse'} · sampled analogue†`,
+  }
 }
 
 function susdeFundingDetail(process: SusdeHolderTimeProcessModel['active']['funding']) {
@@ -4187,7 +4218,13 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
     boundHolderAssessment.condition.windowEndInclusive !== null &&
     asOfMs >= (boundHolderAssessment.condition.windowEndInclusive + 1) * 1000
   const holderAssessment = holderWindowExpired ? null : boundHolderAssessment
-  const nativeCashOutlook = holderAssessment?.nativeCashHolderOutlook
+  const nativeCashOutlook = holderAssessment && requestedHolderAddress && requestedRaw &&
+    requestedAssetAddress && requestedAssetDecimals !== null && requestedAssetDecimals !== undefined
+    ? selectedNativeCashHolderOutlook(holderAssessment.nativeCashHolderOutlookIssue, {
+        routeKey, destination, owner: requestedHolderAddress, requestedRaw,
+        asset: requestedAssetAddress, assetDecimals: requestedAssetDecimals, horizonHours,
+        source: holderAssessment.source, asOfMs,
+      }) : null
   const nativeCashTime = nativeCashOutlook &&
     nativeCashOutlook.identity.routeKey === routeKey &&
     nativeCashOutlook.identity.destination === destination.toLowerCase() &&
@@ -5200,7 +5237,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
           stusdsFuture ||
           cometHorizon ||
           cashTimeSummary ||
-          nativeCashSummary ||
+          nativeCashTime ||
           stusdsTimeSummary ||
           susdeTimeSummary ||
           (isUsd3JointSubject && scenarioMode === 'exit') ||
@@ -5228,7 +5265,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                 stusdsFuture ||
                 cometHorizon ||
                 cashTimeSummary ||
-                nativeCashSummary ||
+                nativeCashTime ||
                 stusdsTimeSummary ||
                 susdeTimeSummary ||
                 (isUsd3JointSubject && scenarioMode === 'exit') ||
@@ -5565,15 +5602,20 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                   warning={morphoTimeSummary.minimumHeadroomRaw.startsWith('-')}
                   detail={`${morphoTime.targetAtUtc.slice(5, 19).replace('T', ' ')} UTC${cashHolderDurationDetail(morphoTime)}`}
                 />
-              ) : nativeCashSummary && nativeCashTime ? (
+              ) : nativeCashTime ? (
                 <>
                 <Metric
                   label="Conditional cash exit headroom"
-                  value={`${formatExitPressureSignedRaw(nativeCashSummary.empiricalP10HeadroomRaw, requestedAssetDecimals!)}–${formatExitPressureSignedRaw(nativeCashSummary.empiricalP90HeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
-                  warning={nativeCashSummary.minimumHeadroomRaw.startsWith('-') || nativeCashTime.shrinkingAlert.shrinkingScenarios > 0}
+                  value={nativeCashSummary ? `${formatExitPressureSignedRaw(nativeCashSummary.empiricalP10HeadroomRaw, requestedAssetDecimals!)}–${formatExitPressureSignedRaw(nativeCashSummary.empiricalP90HeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}` : '—'}
+                  warning={!!nativeCashSummary?.minimumHeadroomRaw.startsWith('-') || nativeCashTime.shrinkingAlert.shrinkingScenarios > 0}
                   detail={`${nativeCashTime.process.targetAtUtc.slice(5, 19).replace('T', ' ')} UTC${nativeCashTime.shrinkingAlert.shrinkingScenarios ? ' · MAY SHRINK' : ''}${cashHolderDurationDetail(nativeCashTime)}`}
                 />
 
+                <Metric
+                  label={<Tooltip label="Same owner, requested amount, asset, horizon and current source. Empirical matched historical episodes under unchanged entitlement and regime assumptions; sampled crossings, censorship and unknown onset remain. No calibrated recovery odds or executable exit claim."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Matched historical recovery†</Text></Tooltip>}
+                  value={nativeHistoricalRecoveryRow(nativeCashTime).value}
+                  detail={nativeHistoricalRecoveryRow(nativeCashTime).detail}
+                />
                 <Metric
                   label="Cash change since historical sample"
                   value={`${formatExitPressureSignedRaw(nativeCashTime.capacityChange.cashChangeSinceLastHistoricalSampleRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}

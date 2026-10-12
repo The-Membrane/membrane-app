@@ -65,4 +65,39 @@ Run `python scripts/research/forecasting-linux-seal.py` from the task checkout. 
 
 Future venue onboarding: define the exact payout asset, deployed mechanism family/version, native cash meaning, graph source/sink and bottleneck edges through `VenueFlowDefinition`. Supply independently qualified current receipts before calling `buildSparseVenueFlowOutlook`. Retain peer publication times and incident identifiers. Configure app-native acquisition through the existing recorder registry. Add a chronological holdout before any calibration or coverage promotion. The abstract model cannot substitute for native queue, conversion or final-token payout evidence.
 
-Remaining inputs: the excluded rich normalized histories and original receipts are absent from the attached archive, current canonical datasets and inspected capture-snapshot branch. The cloud runtime has no configured provider pair or credentials and its network policy does not allow public RPC or Morpho API hosts. The native API integration gate still exceeds 384 MiB aggregate RSS. Full coverage is open while these conditions remain.
+Remaining inputs: the excluded rich normalized histories and original receipts are absent from the attached archive, current canonical datasets and inspected capture-snapshot branch. The cloud runtime has no configured provider pair or credentials and its network policy does not allow public RPC or Morpho API hosts. The native API integration gate now passes under 384 MiB aggregate RSS with collection between cases. Full coverage is open while these conditions remain.
+
+
+## 2026-10-12 recovery receipt correction
+
+Matched historical recovery now travels through the native issuer, actual holder API, separately retained browser receipt and existing Card.
+The engine consumer reads `sampledCapacity.duration.historicalRecovery`. It binds owner, exact Q, full Ea, additional M, horizon, asset/units and current source.
+Historical NET already includes competing users. The wrapper deducts additional M once and compares capacity with Q once.
+Q-relative normalization checks exact raw threshold and deficit categories. Unrepresentable boundaries abstain rather than round into adequate/recovered states.
+Ea below Q remains a structural limitation. Future availability stays invisible, long gaps retain unknown onset, and unverified regime stays assumed unchanged.
+Recovery bounds are empirical sampled-episode analogues. Censored upper bounds and sparse support remain visible. No calibrated or executable claim follows.
+
+The Card distinguishes adequate complete paths, partial coverage and all-censored duration. Truncated paths never supply horizon-duration bounds.
+The separately retained receipt rejects copies, question/source substitutions, nested recovery bindings and post-selection mutation.
+The actual themed Card gate exercises below-Q sparse matching and summary-null censorship, as well as owner/Q/horizon/current cash/source/expiry changes.
+A separate fresh reviewer identified the truncated-duration bug. The parent personally verified the correction and ran all source gates.
+
+The focused strict recovery type gate checks the kernel, engine and retained receipt with real imports under the unchanged 192 MiB heap ceiling.
+It replaces no broad-build claim. The previous broad typecheck heap failure remains retained and unaccepted.
+A separate public-pair enrollment policy permits finite header agreement and an optional Morpho schema probe only.
+It never replaces active C1/C3. Archive, native cash and holder qualification remain outside its enrolled scope.
+
+Pending supplement: parent reports 480,499 bytes and ZIP SHA256 `183ecb7608b53e55c521d0fea3be882644ff13f53e9228c14b67ee20188e37f1`.
+It has not been transmitted or verified in this cloud filesystem. The nine normalized inputs and original USDT fixture remain distinct lineages.
+Original raw SHA256: `b7692d3a529ce28e70b71ab6a0457ad9519ff7ba874501bbdabac101fb58e6d5`.
+Original body SHA256: `6a74a2667603aca92e46efff37cf04c3ea4ac9b74def98f98726a35d3d529a07`.
+Parent reports all 126 retained response integrity checks passed. This original capture is not a normalized frame capture donor.
+Mac public-provider attempts failed TLS before any RPC response. That establishes neither provider support nor refusal.
+No egress change or secret transfer has occurred. Cloud provider qualification awaits explicit enrollment and enforced egress readiness.
+
+Remaining venue/mechanism scope: frozen 25/67 remains unchanged, with 21/63 native cash replay and all 49 Morpho histories.
+Seven rich Morpho histories remain distinct from 42 native cash-only histories. Optional nine rich normalized inputs and the original API capture are still absent.
+Hastra PYUSD, Saturn stakedUSDat→AUSD, Twyne PT→USDe and Fluid USDT→USDC bridge require native final-payout/conversion evidence.
+Initial-deposit outlooks remain current admission/reference scenarios, not future claims. Causal news effects and future authority/fee/share changes remain unqualified.
+Sparse/new-protocol peer and graph abstractions retain native-unit, incident, availability and mechanism qualification gates.
+No production deployment, financial transaction, calibrated coverage promotion or resource-limit increase occurred.

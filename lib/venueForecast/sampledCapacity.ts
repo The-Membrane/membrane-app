@@ -392,7 +392,7 @@ export function measureSampledCapacityPersistence(
           firstObservedAt: sample.observedAt,
           lastObservedAt: sample.observedAt,
           sampledSpanHours: 0,
-          startCrossing: boundedStart
+          startCrossing: boundedStart && prior
             ? { after: prior.observedAt, atOrBefore: sample.observedAt }
             : null,
           endCrossing: null,

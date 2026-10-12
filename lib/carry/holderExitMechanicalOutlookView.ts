@@ -1,3 +1,4 @@
+import type { NativeCashHolderOutlookIssue } from './nativeCashHolderOutlookReceipt'
 import type { HolderExitCapacityAgreement } from './holderExitCapacity'
 import type { FixedEntitlementCashOutlook } from './fixedEntitlementCashOutlook'
 import type { HolderExitAssessment } from './holderExitAssessment'
@@ -17,6 +18,7 @@ export type HolderExitMechanicalEnvelope = {
   outlook: HolderExitMechanicalOutlook
 }
 export type HolderExitAssessmentView = HolderExitAssessment & {
+  nativeCashHolderOutlookIssue?: NativeCashHolderOutlookIssue | null
   nativeCashHolderOutlook?: (FixedEntitlementCashOutlook & { owner: string; nativeSharesRaw: string }) | null
   mechanicalOutlook?: HolderExitMechanicalEnvelope | null
   capacityAgreement?: HolderExitCapacityAgreement

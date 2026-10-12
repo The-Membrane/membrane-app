@@ -1,3 +1,4 @@
+import { retainNativeCashHolderOutlook } from '@/lib/carry/nativeCashHolderOutlookReceipt'
 import { installPinnedForecastArtifact } from '@/lib/carry/pinnedForecastArtifacts'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -5373,7 +5374,12 @@ export const ForecastWorkbench: React.FC<{ chainName: string }> = ({ chainName }
           setLiveExit({
             status: 'assessment_result',
             assessment: withMatchingHolderMechanicalOutlook(
-              result as HolderExitAssessmentView,
+              { ...result, nativeCashHolderOutlookIssue: retainNativeCashHolderOutlook(
+                (result as HolderExitAssessmentView).nativeCashHolderOutlook, response.status, {
+                  routeKey, destination, owner, requestedRaw: assessmentAssetsRaw,
+                  asset: request.payoutAsset, assetDecimals: exitAssetDecimals, horizonHours,
+                  source: result.source, asOfMs: Date.now(),
+                }), } as HolderExitAssessmentView,
               owner,
               Date.now(),
             ),

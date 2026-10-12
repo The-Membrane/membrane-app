@@ -5,7 +5,8 @@ import {mkdirSync,writeFileSync} from 'node:fs'
 import {resolve,relative} from 'node:path'
 const ROOT='/workspace/work', BASE='http://127.0.0.1:3005', MAX_REQUESTS=16,MAX_BYTES=1048576,TIMEOUT_MS=10000
 const args=process.argv.slice(2)
-if(args.length!==2||args[0]!=='--output')throw Error('usage: node scripts/research/forecasting-cloud-http-driver.mjs --output /workspace/work/forecasting-full-app-http')
+const fixtureMode=args.length===3&&args[2]==='--fixture'
+if((args.length!==2&&!fixtureMode)||args[0]!=='--output')throw Error('usage: node scripts/research/forecasting-cloud-http-driver.mjs --output /workspace/work/forecasting-full-app-http [--fixture]')
 const output=resolve(args[1]),rel=relative(ROOT,output)
 if(!rel||rel.startsWith('..')||rel.startsWith('/'))throw Error('output_must_be_workspace_work_child')
 mkdirSync(output,{recursive:true})
@@ -13,8 +14,8 @@ const usdc='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',owner='0x000000000000000
 const manifest={schema:'forecasting_bounded_http_manifest_v1',base:BASE,maxRequests:MAX_REQUESTS,
  maxResponseBytes:MAX_BYTES,timeoutMs:TIMEOUT_MS,redirects:0,concurrency:1,
  transport:'node_http_direct_ipv4_loopback_no_proxy',
- allowedMethods:{GET:['/ethereum/carry','/api/carry/forecast-universe','/api/carry/forecast-artifacts','/api/carry/route-context'],POST:['/api/carry/holder-exit-assessment']},
- mode:'read_only_provider_unavailable_no_live_qualification',
+ allowedMethods:{GET:['/ethereum/carry','/api/carry/forecast-universe','/api/carry/forecast-artifacts','/api/carry/route-context',...(fixtureMode?['/api/carry/cloud-acceptance-holder','/cloud-acceptance/holder']:[])],POST:['/api/carry/holder-exit-assessment']},
+ mode:fixtureMode?'read_only_explicit_synthetic_holder_fixture_no_live_qualification':'read_only_provider_unavailable_no_live_qualification',
  networkBoundary:'userspace_localhost_driver_only_not_kernel_wide_denial',requests:[]}
 const records=[]
 function progress(){writeFileSync(resolve(output,'receipt.json'),JSON.stringify({schema:'forecasting_bounded_http_receipt_v1',outcome:'running',requestCount:manifest.requests.length,completedRequests:records.length,records,liveProviderQualified:false,financialTransactions:false,productionDeployment:false},null,2)+'\n')}
@@ -71,6 +72,19 @@ try{
   routeKey:group.routeKey,destinationAddress:dest,owner,assetsRaw:'1000000',horizonHours:24})
  errorResponse(holder,503,'holder_exit_assessment_unavailable')
  check(holder,holder.json().nativeCashHolderOutlook==null,'no_cash_claim_without_current_original_provider_receipts')
+ if(fixtureMode){
+  for(const variant of ['adequate','below','censored']){
+   const r=await request(`fixture_${variant}`,`/api/carry/cloud-acceptance-holder?variant=${variant}`),f=r.json()
+   const assessment=f.props?.holderAssessment,model=assessment?.nativeCashHolderOutlook
+   check(r,r.record.status===200&&f.fixtureKind==='audited-history-synthetic-current-and-scenario'&&!!model,'explicit_synthetic_fixture_label')
+   check(r,model.owner===assessment.owner&&model.requestedRaw===assessment.request?.assetsRaw&&model.horizonHours===assessment.request?.horizonHours&&model.identity?.asset===assessment.request?.assetAddress,'fixture_question_binding')
+   check(r,model.forecastValidated===false&&model.holderExecutableExit===false&&model.calibratedProbability===false,'fixture_no_live_forecast_execution_or_calibration')
+   if(variant==='censored')check(r,model.process.targetSummary===null&&model.process.scenarios.every(x=>x.status==='censored_path'&&x.targetHeadroomRaw===null),'all_censored_fixture')
+   if(variant==='adequate')check(r,model.process.scenarios.every(x=>x.status==='conditional_path'&&x.targetHeadroomRaw==='1'&&x.sampledShortfalls.length===0),'adequate_no_shortfall_fixture')
+  }
+  const fixturePage=await request('holder_fixture_page','/cloud-acceptance/holder')
+  check(fixturePage,fixturePage.record.status===200&&fixturePage.text.includes('__NEXT_DATA__'),'explicit_fixture_page_html')
+ }
  outcome='passed'
 }catch(error){failure=error instanceof Error?error.message:'driver_failure'}finally{
  writeFileSync(resolve(output,'receipt.json'),JSON.stringify({schema:'forecasting_bounded_http_receipt_v1',outcome,failure,

@@ -23,6 +23,29 @@ elif kind == 'detached-child':
         os._exit(0)
     os.waitpid(first, 0)
     time.sleep(.1)
+elif kind == 'detached-port-child':
+    import socket
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Do not reuse another listener or signal services; the launcher first requires a vacant port.
+    listener.bind(('127.0.0.1', 3005)); listener.listen(1)
+    read_end, write_end = os.pipe()
+    first = os.fork()
+    if first == 0:
+        os.close(read_end); os.setsid()
+        second = os.fork()
+        if second == 0:
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            print(json.dumps({'fixture': kind, 'detachedPid': os.getpid(), 'parentPid': os.getppid(),
+                'listener': '127.0.0.1:3005', 'expectedLauncherReason': 'descendants_survived_root',
+                'expectedPortClosedAfterCleanup': True}), flush=True)
+            os.write(write_end, b'R'); os.close(write_end)
+            time.sleep(12) # Finite fallback; reviewer runs only through supervisor.
+            listener.close(); os._exit(0)
+        listener.close(); os.close(write_end); os._exit(0)
+    os.close(write_end)
+    if os.read(read_end, 1) != b'R': raise RuntimeError('detached_listener_handshake_failed')
+    os.close(read_end); listener.close(); os.waitpid(first, 0)
+    time.sleep(.1) # Permit the supervisor to inventory the detached birth before root exits.
 elif kind == 'pid-reuse-selector':
     import importlib.util, pathlib
     path = pathlib.Path(__file__).with_name('forecasting-cloud-full-app-launcher.py')

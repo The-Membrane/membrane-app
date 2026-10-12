@@ -57,6 +57,13 @@ def main():
     if kind not in DEADLINES or spec['schema'] != 'cloud-full-app-reviewed-launcher-v1': raise RuntimeError('spec_schema')
     required = 'parent-reviewed-selftest-only' if kind == 'selftest' else 'parent-reviewed-full-app'
     if spec.get('reviewStatus') != required: raise RuntimeError('parent_review_required')
+    fixture_port = spec.get('selftestPort3005', False)
+    if not isinstance(fixture_port, bool): raise RuntimeError('selftest_port_flag_invalid')
+    if fixture_port and (kind != 'selftest' or len(spec.get('argv', [])) != 3 or
+            pathlib.Path(spec['argv'][1]).resolve() != pathlib.Path(__file__).with_name('forecasting-cloud-full-app-selftest.py').resolve() or
+            spec['argv'][2] != 'detached-port-child'):
+        raise RuntimeError('selftest_port_scope_invalid')
+    check_server_port = kind in ['bounded-http', 'chromium-browser'] or fixture_port
     root = pathlib.Path(spec['evidenceRoot']); root.mkdir(parents=True, exist_ok=True)
     shared = pathlib.Path(spec['datasetsRoot']) / 'forecasting-cloud/linux-recovery/gate.lock'
     with open(shared, 'a') as lock:
@@ -113,7 +120,7 @@ def main():
             if free() < 8192 * MIB: raise RuntimeError('disk_start_floor')
             disk_start = free()
             pins(); before_pins = True
-            if kind in ['bounded-http', 'chromium-browser']:
+            if check_server_port:
                 try:
                     with socket.create_connection(('127.0.0.1', 3005), timeout=.25):
                         raise RuntimeError('server_port_already_in_use')
@@ -232,7 +239,7 @@ def main():
                 reason = reason or 'network_audit_failed:' + str(error)
             if identity_violations: reason = reason or 'owned_pid_identity_changed'
             port_closed = None
-            if kind in ['bounded-http', 'chromium-browser']:
+            if check_server_port:
                 try:
                     with socket.create_connection(('127.0.0.1', 3005), timeout=.25): port_closed = False
                 except ConnectionRefusedError: port_closed = True
@@ -248,7 +255,7 @@ def main():
                 'cleanupSignals': signals, 'survivingPidBirths': {p: v['birth'] for p, v in survivors.items()},
                 'allDescendantsClean': not survivors and not identity_violations, 'knownDescendantsClean': not survivors,
                 'identityViolations': identity_violations, 'unknownReusedIdentitiesNeverSignalled': True, 'diskAvailableBytes': free(),
-                'serverPort3005Closed': port_closed,
+                'serverPort3005Closed': port_closed, 'selftestPort3005': fixture_port,
                 'nodeHostAccessLedger': {'path': str(ledger), 'sha256': ledger_sha, 'rows': ledger_count, 'blockedRows': blocked_count,
                     'scope': 'userspace_fetch_http_https_only_not_raw_native_kernel_denial'},
                 'enforcement': {'aggregateRss': 'sampled_50ms_transient_overshoot_possible', 'memoryAndSwapHardControls': False,

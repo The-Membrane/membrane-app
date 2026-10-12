@@ -1,6 +1,11 @@
 import { defineConfig } from 'vitest/config'
 import path from 'node:path'
+const gateTemporaryDirectory = process.env.TMPDIR
+if (!gateTemporaryDirectory || !path.isAbsolute(gateTemporaryDirectory) ||
+    !gateTemporaryDirectory.startsWith('/workspace/membrane-datasets/forecasting-cloud/linux-recovery/'))
+  throw new Error('forecasting_gate_private_cache_directory_required')
 export default defineConfig({
+  cacheDir: path.join(gateTemporaryDirectory, 'vite-cache'),
   oxc: { jsx: { runtime: 'automatic' } },
   resolve: { alias: { '@': path.resolve(__dirname, '../..') } },
   test: { environment: 'node', maxWorkers: 1, fileParallelism: false,

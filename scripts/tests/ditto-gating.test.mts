@@ -31,7 +31,7 @@ for (const p of ['/[chain]/mint', '/[chain]/borrow', '/[chain]/position', '/[cha
 // scoped to the user's own position; there is no position here, so anything he said
 // would have to be invented.
 for (const p of ['/[chain]', '/[chain]/evidence', '/[chain]/simulator', '/[chain]/builder',
-                 '/[chain]/defend', '/[chain]/carry', '/[chain]/membrane-dashboard',
+                 '/[chain]/defend', '/[chain]/carry',
                  '/[chain]/radar', '/[chain]/landing', '/[chain]/about']) {
   ok(!isExecutableRoute(p), `${p} is not executable -> no Ditto`)
 }

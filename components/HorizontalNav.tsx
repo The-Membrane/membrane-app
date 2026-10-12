@@ -62,8 +62,6 @@ const navItems = [
     { label: 'Home', href: '/home' },
     { label: 'Builder', href: '/builder' },
     { label: 'Defend', href: '/defend' },
-    // Promoted out of the removed Dashboards menu — it stands on its own.
-    { label: 'Membrane', href: '/membrane-dashboard' },
     // Lore/marketing page — kept reachable, but numbers-first surfaces lead the nav.
     { label: 'About', href: '/about' },
 ];
@@ -96,7 +94,7 @@ const comingSoonItems = [
 // Dashboards menu removed (owner ruling, Aug 31 2026):
 //   - Acquisition — the underlying feature does not exist yet
 //   - LTVs        — these updates belong on the Disco / Defend pages, not a separate dashboard
-//   - Membrane    — promoted to a solo top-level nav item above
+//   - Membrane    — page removed 2026-10-12 (mock data; docs/CUTS-2026-10-12.md)
 // Emptied rather than deleted: both render sites are guarded by `dashboards.length > 0`,
 // so the menu disappears while the markup stays ready to restore. The pages themselves
 // are untouched and still reachable by direct URL.

@@ -25,7 +25,6 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     'Disallow: /*/control-room',
     'Disallow: /*/maze-runners',
     'Disallow: /*/ltv-dashboard',
-    'Disallow: /*/membrane-dashboard',
     'Disallow: /*/tournament',
     // about is internal until its placeholder copy is replaced with real
     // company facts (docs/GEO_AUDIT.md trust-anchor finding); levels is a sim.

@@ -1,3 +1,4 @@
+import morphoCashRegistrations from './morpho-v2-asset-identities.json'
 import type { nativeCashGraphIntervalOutlook } from './nativeCashPeerIntervals'
 import { matchingNativePrimaryEventImpact, type NativePrimaryEventImpact } from './nativePrimaryEventImpact'
 import type { FixedEntitlementCashOutlook } from './fixedEntitlementCashOutlook'
@@ -35,8 +36,36 @@ function matches(m: NativeCashHolderModel, q: NativeCashHolderQuestion) {
     if (JSON.stringify(g.identity) !== JSON.stringify(m.identity) || JSON.stringify(g.currentSource) !== JSON.stringify(m.currentSource) ||
         g.owner !== m.owner || g.requestedRaw !== m.requestedRaw || g.fullEntitlementRaw !== m.fullEntitlementRaw ||
         g.additionalCompetitionRaw !== m.additionalCompetitionRaw || g.horizonHours !== m.horizonHours || g.issuedAtUtc !== m.issuedAtUtc ||
-        graph.holderExecutableExit !== false || graph.forecastValidated !== false || graph.calibratedProbability !== false) return false
+        graph.holderExecutableExit !== false || graph.forecastValidated !== false || graph.calibratedProbability !== false ||
+        m.currentSource.chainId !== 1 || m.currentSource.asset !== m.identity.asset || m.currentSource.assetDecimals !== m.identity.assetDecimals) return false
+    const peer = graph.peerAnalogScenarios
+    if (peer) {
+      if (peer.schema !== 'unconditioned_native_cash_peer_analogues_v1' ||
+          peer.scope !== 'unconditioned_relative_NET_peer_analogues' ||
+          peer.compatibility !== 'registered_chain1_MorphoV2_cash_inventory_same_underlying_address_and_decimals' ||
+          peer.targetAtUtc !== m.process.targetAtUtc || peer.incidentConditioned !== false ||
+          peer.forecastValidated !== false || peer.holderExecutableExit !== false || peer.calibratedProbability !== false ||
+          peer.accounting !== 'peer_NET_already_includes_other_users_no_own_NET_blend_additional_M_separate_Q_once' ||
+          !Array.isArray(peer.scenarios) || peer.scenarios.length > 96 ||
+          peer.scenarios.some(p => p.peerIdentity.destination === m.identity.destination ||
+            p.peerIdentity.asset !== m.identity.asset || p.peerIdentity.assetDecimals !== m.identity.assetDecimals ||
+            !morphoCashRegistrations.entries.some(e => e.vault === p.peerIdentity.destination && e.asset === p.peerIdentity.asset) ||
+            !/^[a-f0-9]{64}$/.test(p.sourcePointSha256) || !/^[a-f0-9]{64}$/.test(p.targetPointSha256) ||
+            !Number.isSafeInteger(Date.parse(p.sourceAtUtc)) || !Number.isSafeInteger(Date.parse(p.targetAtUtc)) ||
+            !Number.isSafeInteger(Date.parse(p.historyEvidence.availableAt)) ||
+            Date.parse(p.sourceAtUtc) >= Date.parse(p.targetAtUtc) ||
+            Date.parse(p.targetAtUtc) >= Date.parse(m.currentSource.blockTime) ||
+            Date.parse(p.targetAtUtc) > Date.parse(p.historyEvidence.availableAt) ||
+            Date.parse(p.historyEvidence.availableAt) > Date.parse(m.issuedAtUtc) ||
+            (p.censored ? p.capacityRaw !== null || p.headroomRaw !== null : p.capacityRaw === null || p.headroomRaw === null))) return false
+    }
   }
+  const observedNet = m.adverseEventScenario
+  if (observedNet && (JSON.stringify(observedNet.input.currentSource) !== JSON.stringify(m.currentSource) ||
+      JSON.stringify(observedNet.input.history.identity) !== JSON.stringify(m.identity) ||
+      observedNet.input.question.requestedRaw !== m.requestedRaw || observedNet.input.question.horizonHours !== m.horizonHours ||
+      observedNet.input.question.issuedAtUtc !== m.issuedAtUtc || observedNet.causalNewsEffect !== false ||
+      observedNet.calibrated !== false || observedNet.holderExecutableExit !== false)) return false
   if (m.primaryEventImpact && !matchingNativePrimaryEventImpact(m.primaryEventImpact,m)) return false
   return m.identity.routeKey === q.routeKey && m.identity.destination === q.destination.toLowerCase() &&
     m.owner.toLowerCase() === q.owner.toLowerCase() && m.requestedRaw === q.requestedRaw &&

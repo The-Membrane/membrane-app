@@ -6,7 +6,7 @@ const home = process.env.HOME
 const root = '/workspace/membrane-datasets/forecasting-cloud/full-app-plan/runs'
 if (!home || !path.isAbsolute(home) || home === root || path.relative(root, home).startsWith('..'))
   throw Error('full_app_network_guard_evidence_HOME_invalid')
-if (!['production-build', 'bounded-http', 'chromium-browser', 'selftest'].includes(stage))
+if (!['full-typecheck', 'production-build', 'bounded-http', 'chromium-browser', 'selftest'].includes(stage))
   throw Error('full_app_network_guard_stage_invalid')
 const directory = path.join(home, 'run'), ledger = path.join(directory, 'network-access.jsonl')
 fs.mkdirSync(directory, { recursive: true })

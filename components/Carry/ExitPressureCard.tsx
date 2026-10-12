@@ -2370,6 +2370,31 @@ export function nativeHistoricalRecoveryRow(value: NonNullable<HolderExitAssessm
   }
 }
 
+export function nativeInventoryAnalogueRows(value: NonNullable<HolderExitAssessmentView['nativeCashHolderOutlook']>, decimals: number, symbol: string) {
+  const graph = value.sparsePeerOutlook, peer = graph?.peerAnalogScenarios
+  const elapsedMs = Date.parse(value.issuedAtUtc) - Date.parse(value.currentSource.blockTime) + value.horizonHours * 3600000
+  const elapsed = `${elapsedMs / 1000}s elapsed`
+  const band = (summary: {p10HeadroomRaw:string;p90HeadroomRaw:string} | null | undefined) => summary
+    ? `${formatExitPressureSignedRaw(summary.p10HeadroomRaw, decimals)}–${formatExitPressureSignedRaw(summary.p90HeadroomRaw, decimals)} ${symbol}` : '—'
+  const intervals = value.adverseEventScenario?.scenarios ?? []
+  let pace: { numerator: bigint; denominator: bigint; fromIndex: number; toIndex: number } | null = null
+  for (const interval of intervals) {
+    const numerator = -BigInt(interval.historicalNetRaw), denominator = BigInt(interval.donorDurationMs)
+    if (numerator <= 0n || denominator <= 0n) continue
+    if (!pace || numerator * pace.denominator > pace.numerator * denominator)
+      pace = { numerator, denominator, fromIndex: interval.fromIndex, toIndex: interval.toIndex }
+  }
+  return {
+    ownDetail: `${value.horizonHours}h own NET ${band(graph?.summary)} · ${graph?.usableIntervals ?? 0} intervals${graph?.censoredIntervals ? ` · ${graph.censoredIntervals} censored` : ''} · ${elapsed}`,
+    peerValue: band(peer?.summary),
+    peerDetail: peer ? `${peer.matchedPeerSubjects} peers · ${peer.usableIntervals} intervals${peer.censoredIntervals ? ` · ${peer.censoredIntervals} censored` : ''} · ${elapsed} · unconditioned†`
+      : 'No compatible peer interval model',
+    observedPaceValue: pace ? `${formatExitPressureSignedRaw(String(pace.numerator * 3600000n / pace.denominator), decimals)} ${symbol}/h` : '—',
+    observedPaceDetail: `Sampled own NET${pace ? ` · refs ${pace.fromIndex}→${pace.toIndex}` : ''}`,
+    theoreticalInventoryValue: `${formatExitPressureSignedRaw(value.currentSource.cashRaw, decimals)} ${symbol}`,
+  }
+}
+
 function susdeFundingDetail(process: SusdeHolderTimeProcessModel['active']['funding']) {
   const sourceHeadroom = process.scenarios[0]?.points[0]?.headroomRaw
   const thins =
@@ -5632,12 +5657,30 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                   value={nativeHistoricalRecoveryRow(nativeCashTime).value}
                   detail={nativeHistoricalRecoveryRow(nativeCashTime).detail}
                 />
-                {nativeCashTime.sparsePeerOutlook && <Metric
-                  label="Inventory graph headroom"
+                {nativeCashTime.sparsePeerOutlook && <>
+                <Metric
+                  label={<Tooltip label="Current single cash-inventory edge clipped by your full entitlement. Own historical NET rates repeat separately over source age plus the selected horizon, under unchanged entitlement and regime. Cash-only capacity proxy; sampled bounds are uncalibrated."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Inventory graph headroom†</Text></Tooltip>}
                   value={`${formatExitPressureSignedRaw(nativeCashTime.sparsePeerOutlook.currentGraphHeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
                   warning={nativeCashTime.sparsePeerOutlook.currentGraphHeadroomRaw.startsWith('-')}
-                  detail={`${nativeCashTime.sparsePeerOutlook.summary ? `${horizonHours}h ${formatExitPressureSignedRaw(nativeCashTime.sparsePeerOutlook.summary.p10HeadroomRaw, requestedAssetDecimals!)}–${formatExitPressureSignedRaw(nativeCashTime.sparsePeerOutlook.summary.p90HeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol} · ` : ''}${nativeCashTime.sparsePeerOutlook.usableIntervals} own intervals${nativeCashTime.sparsePeerOutlook.censoredIntervals ? ' · partial' : ''} · peer evidence pending`}
+                  detail={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).ownDetail}
+                />
+                {nativeCashTime.sparsePeerOutlook.peerAnalogScenarios && <Metric
+                  label={<Tooltip label="Alternative to own NET: relative NET rates from other registered Ethereum Morpho V2 cash inventories with the same underlying address and decimals scale to your current cash. Newest two retained intervals per peer; unchanged regime assumed. Unknown incident labels permit unconditioned analogues only. Own and peer NET are never added. Retained point digests, unavailable intervals and arithmetic censorship remain; no calibrated probability or executable exit claim."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Peer NET analogue headroom†</Text></Tooltip>}
+                  value={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).peerValue}
+                  warning={nativeCashTime.sparsePeerOutlook.peerAnalogScenarios.summary?.minimumHeadroomRaw.startsWith('-')}
+                  detail={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).peerDetail}
                 />}
+                <Metric
+                  label={<Tooltip label="Largest sampled own historical NET cash decrease divided by its observed interval. This is net inventory depletion, not gross withdrawals or an instantaneous maximum, and it does not guarantee a future pace."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Observed maximum NET outflow pace</Text></Tooltip>}
+                  value={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).observedPaceValue}
+                  detail={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).observedPaceDetail}
+                />
+                <Metric
+                  label={<Tooltip label="The whole current native cash inventory could deplete under an extreme cash-only scenario. This amount is a point-in-time inventory bound, not an observed withdrawal pace, a time-to-empty estimate or a guarantee. New replenishment and executable route restrictions are outside this bound."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Whole-inventory depletion bound†</Text></Tooltip>}
+                  value={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).theoreticalInventoryValue}
+                  detail="Theoretical cash-only bound · no time guarantee"
+                />
+                </>}
                 <Metric
                   label="Cash change since historical sample"
                   value={`${formatExitPressureSignedRaw((nativeCashTime.primaryEventImpact?.measuredCashChangeRaw ?? nativeCashTime.capacityChange.cashChangeSinceLastHistoricalSampleRaw), requestedAssetDecimals!)} ${requestedAssetSymbol}`}

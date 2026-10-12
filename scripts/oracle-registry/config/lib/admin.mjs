@@ -161,6 +161,45 @@ export async function confirmedFirstCode(client, a, { lo = 0, hi, confirm = [] }
   return top
 }
 
+/**
+ * Lane T (2026-10-11): a deploy block whose confirmation failed after the retries, as a SCAN GAP
+ * (the engine lists `raw.scanGaps` as read gaps; the collector files it on every subject whose
+ * scope holds the address). Its range is the candidate block when the probe named one, else the
+ * whole history: the deploy block is unknown, which the replay already judges fail closed.
+ */
+export function deployBlockGap(address, reason, head) {
+  const m = /first code at (\d+)/.exec(String(reason ?? ''))
+  const at = m ? Number(m[1]) : null
+  const a = String(address).toLowerCase()
+  return {
+    scan: 'deploy-block confirmation',
+    from: at ?? 0,
+    to: at ?? Number(head),
+    addresses: [a],
+    error: `deploy block of ${a} not confirmed after retries (${scrub(reason).slice(0, 120)}); left unknown`,
+  }
+}
+
+/**
+ * Review of lane T (PLAUSIBLE #3): a subject's card carries the PoolSet / AdministratorTransferred
+ * rows of ANY emitter (the shared CCIP TokenAdminRegistry; the engine keeps those naming one of
+ * the subject's tokens), but its gaps were only those of emitters in its scope — a failed
+ * deploy-block confirmation of that registry was never counted on the card it bears on. Returns
+ * whether `gap` is such a deploy-block gap for a subject with these `tokens`.
+ */
+export function ccipDeployGapOnCard(gap, adminRows, tokens) {
+  if (gap?.scan !== 'deploy-block confirmation') return false
+  const lc = (x) => String(x ?? '').toLowerCase()
+  const mine = new Set([...(tokens ?? [])].map(lc))
+  const at = new Set((gap.addresses ?? []).map(lc))
+  return (adminRows ?? []).some(
+    (r) =>
+      (r.event === 'PoolSet' || r.event === 'AdministratorTransferred') &&
+      at.has(lc(r.emitter)) &&
+      mine.has(lc(r.args?.token)),
+  )
+}
+
 async function firstCodeBlock(client, a) {
   const k = ckey(client, a)
   if (!deployOf.has(k))
@@ -1099,9 +1138,10 @@ async function holdersOf(client, contract, role, roleMap, block) {
     block,
   )
   if (!enumerable.ok && logClients && chainOf(client) === 1) {
-    const from = await firstCodeBlock(client, contract).catch(() => {
+    const from = await firstCodeBlock(client, contract).catch((e) => {
+      // lane T: the reason (host label + status / error class) is kept
       throw new Error(
-        `the deployment block of ${contract} was not confirmed (RoleGranted not read)`,
+        `the deployment block of ${contract} was not confirmed (${scrub(e?.message ?? e).slice(0, 100)}; RoleGranted not read)`,
       )
     })
     const to = block ?? Number(await retry(() => client.getBlockNumber()))
@@ -2136,10 +2176,17 @@ export async function enrichTokenVotes(
     }
     // one classification per (holder, block, vote)
     const memo = new Map()
+    // lane T: the log line counts the classifications that HAD holder data, and the snapshots
+    // that errored (it said "N given holder data" when every snapshot had failed)
+    let given = 0
+    let errored = 0
+    let firstError = null
     for (const j of js) {
       const snap = snaps.get(j.at)
       if (!snap || snap.error) {
         j.v.voting.holdersUnread = snap?.error ?? 'holder snapshot missing'
+        errored++
+        firstError ??= j.v.voting.holdersUnread
         continue
       }
       const vt = j.v.voting
@@ -2150,6 +2197,7 @@ export async function enrichTokenVotes(
       if (vt.defenseUnread) continue
       vt.holders = []
       vt.truncated = true
+      given++
       for (const [i, [addr, bal]] of snap.top.entries()) {
         const mk = `${addr}@${j.at}@${j.v.address}`
         if (!memo.has(mk))
@@ -2170,7 +2218,9 @@ export async function enrichTokenVotes(
         if (d.kind === 'broad' && (d.k !== null || !j.head)) break
       }
     }
-    log(`  token vote ${token.slice(0, 10)}…: ${js.length} classification(s) given holder data`)
+    log(
+      `  token vote ${token.slice(0, 10)}…: ${given} of ${js.length} classification(s) given holder data${errored ? `; ${errored} holder snapshot(s) errored (${scrub(firstError).slice(0, 100)})` : ''}`,
+    )
   }
   return jobs.length
 }

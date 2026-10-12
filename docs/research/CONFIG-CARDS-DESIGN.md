@@ -172,17 +172,19 @@ Owner 2026-10-11: the re-collect runs in GitHub Actions, not on the Mac. The wor
 - **When:** daily at 05:41 UTC, and on demand. The default subjects are all 8: `wbtc rseth wsteth usde susde weeth pt-srusde cbbtc`.
 - **Secret:** `RECORDER_RPC_URL`. It is the same comma list as in `.env.local`, and it needs two distinct getLogs hosts (UQ-23). Set it under Settings → Secrets and variables → Actions, without quotes (`gh secret set RECORDER_RPC_URL --repo The-Membrane/membrane-app` prompts for it). The logs mask every URL in it, unquoted as the collector reads it, and every key inside a URL. No `.env.local` is written: on a runner (`GITHUB_ACTIONS=true`) with nothing at that path, `readEnv()` reads the environment. Everywhere else the file stays the only source, and a missing file or a dangling symlink still throws. In both modes `get()` returns `undefined` for a missing key.
 - **Variable:** `ORACLE_REGISTRY_REF`, the branch that carries the collector (default `feat/oracle-registry`). The results are committed to it, so it must be a branch, not a tag. The collect job resolves it once; the publish job pushes to the branch the collect job checked out.
-- **Dispatch:** `gh workflow run oracle-config-collect.yml --repo The-Membrane/membrane-app -f subjects="wbtc rseth wsteth"`. Add `-f ref=<branch>` to override the variable.
+- **Dispatch:** `gh workflow run oracle-config-collect.yml --repo The-Membrane/membrane-app -f subjects="wbtc rseth wsteth"`. Add `-f ref=<branch>` to override the variable, and `-f allow_gap_jump=true` to publish past the read-gap guard (below).
 - **The collect job** (read-only token):
-  - Runs the config unit tests first, as a gate.
-  - Restores `.cache` from the Actions cache.
-  - Runs the collector one subject per process (`--max-old-space-size=4096`), deleting the raw and scan caches after each subject. Subjects run least recently tried first: by the later of the last success (`cursors.json` `runAt`) and the last start (`.cache/attempts.txt`), through `counts.mjs order`. So a run cut short by the timeout is picked up where it stopped by the next run, and a subject that keeps failing goes to the back instead of using up every run first.
+  - Runs the config unit tests first, as a gate. The gate tests the code, so it reads the cards as the newest commit to `data/oracle-registry/config` NOT written by this workflow left them (the files that commit's author tested), and puts the checked-out cards back for the collect. Some tests pin values a person measured on the cards, and this workflow's re-collects move them: a bad re-collect would otherwise stop every later run at the gate, before the collect that repairs it (review of the first CI run, finding 2). A failing test, or a test that leaves a file in the cards, still stops the run.
+  - Checks out the collector with its history (`fetch-depth: 0`, `filter: blob:none`: commits and trees, no old file contents), so `counts.mjs` can name the collector that wrote the committed files.
+  - Restores `.cache` from the newest Actions cache save of any run (one `restore-keys` prefix; the subject set is only in the saved key).
+  - Runs the collector one subject per process (`--max-old-space-size=4096`), deleting the raw caches (per run) after each subject. The scan caches hold confirmed chunks only, so they are kept across subjects and runs: each run confirms only what is still missing. Subjects run least recently tried first: by the later of the last success (`cursors.json` `runAt`) and the last start (`.cache/attempts.txt`), through `counts.mjs order`. So a run cut short by the timeout is picked up where it stopped by the next run, and a subject that keeps failing goes to the back instead of using up every run first.
   - Runs the Kelp backtest offline. It must pass and leave `kelp-rseth.expected.json` byte-identical.
-  - Refuses to upload or cache any file that holds an RPC key.
+  - Refuses to upload or cache any file that holds an RPC key, a keyed URL, or a FULL host of the secret: a host below its provider's registrable domain (`<id>.ethereum-mainnet.quiknode.pro`), unless the LayerZero metadata lists it as public. The collector names a provider by its registrable domain only. The search ignores case (a host is case-insensitive, and the engine lowercases what it keys on). Nothing found is printed.
   - A subject that fails keeps its committed files, so the fail-closed carry still reads them.
 - **The publish job** (write token, runs no repo or dependency code):
+  - Refuses a jump in read gaps (jq only): if any subject's read gaps in the artifact more than doubled AND rose by more than 20 against the branch at the collected commit, nothing is committed and the run ends red. A transport failure looks exactly like this. Only a dispatch with `allow_gap_jump=true` publishes past it; the scheduled run never sets it. A subject with no committed state yet is not checked.
   - Copies the artifact's JSON files into place.
-  - Commits as `github-actions[bot]`: `data(oracle-registry): re-collect <subjects> @ block <head>`. The body lists each subject's red, in-effect, amber, head-breach and read-gap counts, before -> after (`scripts/oracle-registry/config/counts.mjs`).
+  - Commits as `github-actions[bot]`: `data(oracle-registry): re-collect <subjects> @ block <head>`. The body lists each subject's red, in-effect, amber, head-breach and read-gap counts, before -> after (`scripts/oracle-registry/config/counts.mjs`). When the before files were written by different collector code (the trees of `scripts/oracle-registry`, `lib/oracleRegistry`, `scripts/lib/venue-reads.mjs` and `subjects.json` at the commit that last wrote `state/<subject>.json`), the line ends `before = older collector <sha>`.
   - Pushes. On a race it rebases and retries. It never force-pushes.
 - **Failure:** the run goes red if any subject failed. The subjects that succeeded are still committed.
 - **Time:** the job stops at 350 minutes (a GitHub-hosted job may run 360), and the collect step at 320. The last local run of all 8 took about 4 hours (from the `runAt` gaps in `cursors.json`: cbbtc 82 min, rseth 47, usde 33, weeth 27, wbtc 24, pt-srusde 15, susde 8, plus wsteth), so one daily run fits all 8 (parent 2026-10-11: raised the limits instead of splitting the cron; Actions minutes are free on a public repo). If a run still overruns, the least-recently-tried order means the next run starts with the subjects it missed.
@@ -942,3 +944,50 @@ The mechanisms the review added:
 - **A queued op with a lost call index is judged on the calls seen and never crashes the run** (FR-9).
 
 **Gates (2026-10-10):** see the register.
+
+## 2026-10-11 first CI run (run 38159707123, data commit d078fcf0)
+
+The first CI run was also the first run anywhere of the fail-closed code (d1d2ca4c). Its before files were round-8 output (1c94be6e). wbtc, rseth and wstETH were collected. Fresh reviewers and a judge checked the result. **None of the 214 new read gaps and none of the 17 new reds comes from the chain.**
+
+**Findings**
+- 204 scan-chunk gaps ("HTTP request failed.") came from the SECOND log endpoint of the UQ-23 pair. That endpoint confirms an empty chunk in 10,000-block pieces with 2 workers and 2 tries. At about 255 credits per getLogs, that is over a free tier's credit rate. The same host answered `eth_getCode` without trouble.
+- The workflow deleted `.cache/scan-*.jsonl` after every subject, so confirmed chunks never built up from run to run.
+- The holder stream stopped at its first failed chunk. That one stop drove 15 of the 16 new wstETH reds and 43 of the 44 read-gap rows.
+- The gap text dropped the host and the HTTP status, so the gaps could not be diagnosed.
+- Deploy-block confirmations failed now and then ("4 NOT confirmed" wstETH, "1" wbtc). They were not counted as read gaps.
+- The AD-5 committee branch did not tag `read_gap`. So 7 wstETH reds that rest only on a read gap (e.g. `1:0x2aac8dd0…:21`: the Dual Governance path whose Aragon vote's holder concentration was unread) showed as evidenced DOWNGRADE breaches with no READ GAP chip, and `counts.mjs` undercounted read-gap rows.
+- `rejudgeRoleHoldersAtHead` ended a red AD-4 grant without checking scan gaps. A clearance could be derived through an unconfirmed range of the emitter.
+- `admin.mjs` logged "N classification(s) given holder data" even when every snapshot had errored.
+- The leak check did not look for host labels, such as an account's QuickNode subdomain.
+- The summary compared counts from two collector versions without saying so.
+
+**Fixed: engine labels and workflow (lane E).** Each fix has a test that failed before it, in `tests/unit/oracleRegistryConfigFailClosedCiRun.test.ts` and `tests/unit/oracleRegistryConfigWorkflow.test.ts`.
+- **AD-5.** `committeePathWeakness` returns `{ reason, readGap }`. An unclassified path or committee controller, or a rank that rests on a read gap, tags the row `read_gap`, as at the other fail-closed sites. The verdict stays red. `committeePathTooWeak` keeps returning the reason.
+- **AD-4 re-judge.** A red stays in effect when any scan gap on its emitter lies at or before head, not only one between the grant and head: a gap before the grant can hide the revoke of a weaker co-holder the grant was ranked against (review finding 1). A gap with no address list covers every emitter. `gapAtOrBefore` (the OC-1 carry) is unchanged.
+- **AD-5, the three paths the review found untagged** (review finding 3). The verdicts stay red; each now carries `read_gap` and says which read is missing:
+  - the transaction's recipient was not read (the collector writes null when `eth_getTransactionByHash` fails) while a path execution follows the member events, so the "sent to the path" proof could not be tried. The note no longer says "the transaction was not sent to the path";
+  - a declared power over the committee was not read (`holders: []` with an error). The engine passes `committeePathsUnread`, so the row says "no delayed governance path is known" instead of "the committee has no declared path", and a weakness ranked against the controllers that were read is a read gap too;
+  - an upgrade whose holders were not read, judged against the declared timelock (its sibling branch, with no timelock known, was already tagged).
+- **Summary.** `counts.mjs snapshot --repo` records which collector wrote each subject's files. The summary line says `before = older collector <sha>`, or "collector unknown" at the edge of a shallow clone.
+- **Workflow.**
+  - Scan caches are kept across subjects and runs.
+  - The cache restores the newest save of any run.
+  - The leak check flags full secret hosts and searches files as bytes, since a kept scan cache can outgrow a string. It ignores case (review finding 4: a mixed-case host passed).
+  - The publish guard (above) blocks a jump in read gaps. A state file whose read gaps are not one plain count (several JSON values in one file) stops it too (review nit: it read as "no jump").
+  - The unit-test gate reads the cards of the newest commit not written by this workflow (review finding 2: Review11 fails on the d078fcf0 cards, so the gate stopped every later run before the collect that repairs them). Checked: with the fixes of both lanes, all 33 `oracleRegistryConfig*` files pass on the 1c94be6e cards, which is what the gate now reads.
+
+**Fixed: transport (lane T), from its own report.** See that lane's commit for the details and tests.
+- `rpc.mjs`: a per-host limiter and retries with backoff on 429, 5xx and timeouts, honouring Retry-After. The error names the provider's registrable domain, its role and the HTTP status.
+- `holders.mjs`: the stream goes on past a failed chunk and records the unread range. Every snapshot at or after that range is a read gap.
+- A deploy-block confirmation that fails after its retries becomes a scan gap, so it is counted.
+- `admin.mjs`: the holder-data log line counts only the snapshots that were read.
+
+**Open**
+- The committed wstETH, rseth and wbtc files are still the d078fcf0 output, and they carry the transport gaps. The next run re-collects them. The guard compares against those inflated numbers, so it does not block a recovery, and the gate no longer reads them.
+- `tests/unit/oracleRegistryConfigReview11.test.ts` still fails LOCALLY on the d078fcf0 cards: "every Lido vote node carries D" (0 of 98), because their holder concentration is unread. Its pins (13 votes, ids 193–205, the 365 days to the head) are measured at one head, so even a clean re-collect moves them. Reverting the d078fcf0 cards, or making the test independent of the committed cards, is the parent's decision.
+- The collector does not list an unread transaction recipient in the card's read gaps (`collect-config.mjs`, lane T's file); the row's `read_gap` tag is the only mark.
+- The scan cache now outlives code versions. Any change to decoding, filtering or confirmation must bump `SCAN_CACHE_VERSION`; nothing enforces it. A scan gap lists every address of its scan even when only one address group failed (it over-blocks, the safe way).
+- The leak check misses an account label without its provider domain (`<id>.ethereum-mainnet`); the collector strips such labels before writing. It also refuses a public shared host of the secret (`mainnet.infura.io`) in any file; none holds one today, and it fails safe.
+- Relaxing the OC-1 carry (`gapAtOrBefore`: any scan gap at or before a row) is an owner decision. It is not changed.
+- Nothing prunes the scan cache, so dead chunk alignments stay in it. The Actions cache evicts the oldest saves past 10 GB per repo.
+- The 20-gap / ×2 guard thresholds come from the first run, not from a measurement of normal run-to-run noise.

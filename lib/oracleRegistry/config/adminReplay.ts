@@ -144,6 +144,12 @@ export type AdminCtx = {
    */
   committeePaths?: Record<string, string[]>
   /**
+   * Review of lane E (2026-10-11): per committee (lower), the declared powers over it whose
+   * holders were NOT READ (the collector writes `holders: []` with an error). Its path and its
+   * controllers are then incomplete: an AD-5 red on the committee rests on that read gap.
+   */
+  committeePathsUnread?: Record<string, string[]>
+  /**
    * UQ-19 (2026-10-08): per oracle committee contract (lower), the holders of the declared powers
    * over it — its controllers. A member change made through a path controller is neutral only
    * when that controller, ranked at block − 1 (a timelock as its weakest proposer, ruling #12),
@@ -229,44 +235,92 @@ export function committeePathVia(
 }
 
 /**
+ * Why a committee path does not count (UQ-19). `readGap`: the weakness rests on an input that was
+ * NOT READ (a controller not classified, or ranked on a read gap: holder concentration, proposers,
+ * a Safe's modules) — the row then carries the `read_gap` tag, like every other fail-closed red.
+ * `false`: both sides were read, and the path ranks too low.
+ */
+export type CommitteePathWeakness = { reason: string; readGap: boolean }
+
+/**
  * UQ-19: why the path controller `via` that made a committee member change does NOT count as the
  * delayed governance path, or null when it does. Ranked at block − 1 (the lookup falls back to
  * head): a timelock as its weakest proposer (ruling #12), a token vote by holder concentration
  * (UQ-17). Fail closed: a path controller or committee controller that was not classified, or
- * whose rank rests on a read gap, does not count.
+ * whose rank rests on a read gap, does not count — and says so (`readGap`, first CI run
+ * 2026-10-11: such a red showed as an evidenced downgrade with no READ GAP chip).
  */
-export function committeePathTooWeak(
+export function committeePathWeakness(
+  ctx: Pick<AdminCtx, 'ctl' | 'ctlPath' | 'committeeControllers' | 'committeePathsUnread'>,
+  committee: string,
+  via: string,
+  block: number,
+): CommitteePathWeakness | null {
+  const w = committeePathWeaknessRead(ctx, committee, via, block)
+  // Review of lane E (2026-10-11): a declared power over the committee NOT READ — its holders
+  // (the committee's controllers) are missing from the comparison, and one weaker than the path
+  // would clear it: the weakness rests on that read gap
+  const unreadPowers = ctx.committeePathsUnread?.[lcs(committee)] ?? []
+  if (!w || w.readGap || !unreadPowers.length) return w
+  return {
+    reason: `${w.reason}; the declared power over the committee was not read (${unreadPowers.join('; ')}; fail closed)`,
+    readGap: true,
+  }
+}
+
+function committeePathWeaknessRead(
   ctx: Pick<AdminCtx, 'ctl' | 'ctlPath' | 'committeeControllers'>,
   committee: string,
   via: string,
   block: number,
-): string | null {
+): CommitteePathWeakness | null {
+  const gap = (reason: string) => ({ reason, readGap: true })
   const ctl = ctx.ctlPath ?? ctx.ctl
   const p = ctl(via, block - 1)
-  if (!p) return `${short(via)} could not be classified (fail closed)`
+  if (!p) return gap(`${short(via)} could not be classified (fail closed)`)
   if (rankHasReadGap(p))
-    return `its rank rests on a read gap (${describeController(p)}; fail closed)`
+    return gap(`its rank rests on a read gap (${describeController(p)}; fail closed)`)
   const holders = ctx.committeeControllers?.[lcs(committee)] ?? []
   const rp = controllerRank(p)
   if (!holders.length) {
     // no declared power over the committee: at least a multisig behind a delay credit
     if ((rp[0] ?? 0) >= 4 && (rp[3] ?? 0) > 0) return null
-    return `the committee has no declared controller, and ${describeController(p)} ranks below a multisig behind a delay of 24 h or more`
+    return {
+      reason: `the committee has no declared controller, and ${describeController(p)} ranks below a multisig behind a delay of 24 h or more`,
+      readGap: false,
+    }
   }
   const prev = holders.map((h) => ctl(h, block - 1))
   const unread = holders.filter((_, i) => !prev[i])
   if (unread.length)
-    return `the committee's controller ${unread.map(short).join(', ')} could not be classified (fail closed)`
+    return gap(
+      `the committee's controller ${unread.map(short).join(', ')} could not be classified (fail closed)`,
+    )
   const cs = prev as Controller[]
-  const gap = cs.find(rankHasReadGap)
-  if (gap)
-    return `the committee's controller rests on a read gap (${describeController(gap)}; fail closed)`
+  const gapped = cs.find(rankHasReadGap)
+  if (gapped)
+    return gap(
+      `the committee's controller rests on a read gap (${describeController(gapped)}; fail closed)`,
+    )
   const weakest = cs.reduce((m, c) =>
     compareRank(controllerRank(c), controllerRank(m)) < 0 ? c : m,
   )
   if (compareRank(rp, controllerRank(weakest)) < 0)
-    return `${describeController(p)} ranks below the committee's controller ${describeController(weakest)}`
+    return {
+      reason: `${describeController(p)} ranks below the committee's controller ${describeController(weakest)}`,
+      readGap: false,
+    }
   return null
+}
+
+/** UQ-19, the reason only (`committeePathWeakness` also says whether it rests on a read gap). */
+export function committeePathTooWeak(
+  ctx: Pick<AdminCtx, 'ctl' | 'ctlPath' | 'committeeControllers' | 'committeePathsUnread'>,
+  committee: string,
+  via: string,
+  block: number,
+): string | null {
+  return committeePathWeakness(ctx, committee, via, block)?.reason ?? null
 }
 
 const lcs = (x: unknown) => String(x ?? '').toLowerCase()
@@ -708,28 +762,56 @@ export function classifyAdminEvents(rows: AdminEventRow[], ctx: AdminCtx): Confi
         // a path execution that ran in the transaction but did not make the change (review round 9)
         const ran = txRows.find((x) => PATH_EXEC_EVENTS.has(x.event) && path.includes(x.emitter))
         // UQ-19: the path controller that made it must not rank below the committee's controller
-        const weakPath = via ? committeePathTooWeak(ctx, em, lcs(via.emitter), r.block) : null
+        const weakPath = via ? committeePathWeakness(ctx, em, lcs(via.emitter), r.block) : null
         if (isInit(em, r.block)) tag(v, 'initialization')
-        else if (via && weakPath)
+        else if (via && weakPath) {
           down(
             v,
             'AD-5',
-            `oracle committee members changed through ${short(via.emitter)} (${via.event}), which does not count as the delayed governance path: ${weakPath}`,
+            `oracle committee members changed through ${short(via.emitter)} (${via.event}), which does not count as the delayed governance path: ${weakPath.reason}`,
           )
-        else if (via)
+          // First CI run (2026-10-11): a red that rests only on an UNREAD input (holder
+          // concentration, proposers, a controller not classified) is tagged like every other
+          // fail-closed red (sites above and below): READ GAP chip, read-gap row count
+          if (weakPath.readGap) tag(v, 'read_gap')
+        } else if (via)
           v.notes.push(
             `through the declared delayed governance path: ${via.event} from ${short(via.emitter)} in this transaction`,
           )
-        else
+        else {
+          // Review of lane E (2026-10-11): a red that rests on a read that did not happen is
+          // tagged read_gap, like every other fail-closed red. (1) The transaction's recipient
+          // not read (collect-config writes null when eth_getTransactionByHash fails) while a
+          // path execution follows the member events: proof (a) could not be tried. (2) A
+          // declared power over the committee not read: the path is incomplete (none known at
+          // all when it was the only one).
+          const lastMember = Math.max(...mine.map((x) => x.logIndex))
+          const toUnread =
+            !ctx.txTo?.[r.tx] &&
+            txRows.some(
+              (x) =>
+                PATH_EXEC_EVENTS.has(x.event) &&
+                path.includes(lcs(x.emitter)) &&
+                x.logIndex > lastMember,
+            )
+          const unreadPowers = ctx.committeePathsUnread?.[em] ?? []
+          const powersNote = unreadPowers.length
+            ? `the declared power over the committee was not read (${unreadPowers.join('; ')}; fail closed)`
+            : ''
           down(
             v,
             'AD-5',
             !path.length
-              ? 'oracle committee members changed, and the committee has no declared delayed governance path (fail closed)'
-              : ran
-                ? `oracle committee members changed outside the declared delayed governance path: ${ran.event} from ${short(ran.emitter)} runs in this transaction, but it did not make this change (the transaction was not sent to the path, and no executed call to ${short(em)} names the member)`
-                : `oracle committee members changed outside the declared delayed governance path: no CallExecuted / ProposalExecuted / ExecuteVote from ${path.map(short).join('/')} in this transaction`,
+              ? unreadPowers.length
+                ? `oracle committee members changed, and no delayed governance path is known: ${powersNote}`
+                : 'oracle committee members changed, and the committee has no declared delayed governance path (fail closed)'
+              : (ran
+                  ? `oracle committee members changed outside the declared delayed governance path: ${ran.event} from ${short(ran.emitter)} runs in this transaction, but it did not make this change (${toUnread ? "the transaction's recipient was not read (fail closed)" : 'the transaction was not sent to the path'}, and no executed call to ${short(em)} names the member)`
+                  : `oracle committee members changed outside the declared delayed governance path: no CallExecuted / ProposalExecuted / ExecuteVote from ${path.map(short).join('/')} in this transaction`) +
+                  (powersNote ? `; ${powersNote}` : ''),
           )
+          if (toUnread || unreadPowers.length) tag(v, 'read_gap')
+        }
         if (added.length && removed.length && !isRed(v)) tag(v, 'rotation')
         const members = (n: number | null) =>
           n === null ? '? members' : `${n} ${n === 1 ? 'member' : 'members'}`
@@ -1608,12 +1690,17 @@ function ad5(v: Verdict, r: AdminEventRow, txRows: AdminEventRow[], ctx: AdminCt
     (x) =>
       (x.event === 'CallExecuted' || x.event === 'ProposalExecuted') && tls.includes(x.emitter),
   )
-  if (!executed)
+  if (!executed) {
     down(
       v,
       'AD-5',
       `no CallExecuted / ProposalExecuted from ${tls.map(short).join('/')} in this transaction${unread && !at ? ' (the upgrade holders before it were not read: judged against the declared timelock)' : ''}`,
     )
+    // Review of lane E (2026-10-11): judged against the declared timelock only because the
+    // holders were not read (read holders could be no timelock, or one that did execute it): the
+    // red rests on that read gap — tagged like the branch above
+    if (unread && !at) tag(v, 'read_gap')
+  }
 }
 
 // ---- DVN signer sets ------------------------------------------------------------------------------

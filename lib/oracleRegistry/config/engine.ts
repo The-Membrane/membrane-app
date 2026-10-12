@@ -1668,6 +1668,10 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
   // through a path controller that ranks BELOW them (its weakest proposer) is red.
   const committeePaths: Record<string, string[]> = {}
   const committeeControllers: Record<string, string[]> = {}
+  // Review of lane E (2026-10-11): a declared power over the committee whose holders were NOT
+  // READ (`holders: []` + error) leaves the path and the controllers incomplete — an AD-5 red on
+  // the committee rests on that read gap (it read as "no declared delayed governance path")
+  const committeePathsUnread: Record<string, string[]> = {}
   // a path controller nested in a head tree (the DG timelock under the Agent): found there
   const treeNodes = new Map<string, Controller>()
   for (const [k, c] of Object.entries(raw.admin.controllers))
@@ -1688,6 +1692,10 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
     if (!on.length) for (const t of subject.timelocks) path.add(lc(t))
     committeePaths[em] = [...path]
     committeeControllers[em] = [...new Set(on.flatMap((p) => p.holders.map((h) => lc(h.address))))]
+    const unread = raw.admin.powers
+      .filter((p) => lc(p.contract) === em && p.error)
+      .map((p) => `${p.label}: holders not resolved (${p.error})`)
+    if (unread.length) committeePathsUnread[em] = unread
   }
   const upgradeHoldersMissing = Object.entries(raw.admin.upgradeHoldersAt ?? {})
     .filter(([k, hs]) => {
@@ -1703,6 +1711,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       timelockSince,
       committeePaths,
       committeeControllers,
+      committeePathsUnread,
       ctlPath: (a: string, b: number) =>
         failedAt(a, b) ? ctl(a, b) : (ctl(a, b) ?? headTreeNode(a)),
       ...(raw.admin.txTo ? { txTo: raw.admin.txTo } : {}),
@@ -2747,6 +2756,7 @@ export function buildSubject(subject: ConfigSubject, raw: RawSubject, opt: Build
       subject: subject.key,
       announcement,
       previous: (raw.previousChanges?.changes ?? []).filter((c) => c.id.includes(':role-head:')),
+      scanGaps: raw.scanGaps,
     }),
   )
 
@@ -3628,9 +3638,39 @@ export function rejudgeRoleHoldersAtHead(
     announcement: AnnouncementStatus
     /** Review round 12: the previous run's `:role-head:` rows (carried while unread at head). */
     previous?: ConfigChange[]
+    /**
+     * First CI run (2026-10-11, UQ-21 class): this run's unconfirmed event-scan chunks
+     * (`raw.scanGaps`). A red is never ended on a replay a gap can falsify: one on the emitter
+     * between the grant and head may hide a revoke-then-regrant, or the grant the clearance
+     * re-judges; one BEFORE the grant may hide the revoke of a co-holder it was ranked against
+     * (the holders are the replay of every earlier event). So any gap on the emitter at or before
+     * head counts. A gap with no address list covers every emitter (fail closed).
+     */
+    scanGaps?: RawSubject['scanGaps']
   },
 ): ConfigChange[] {
   const byId = new Map(changes.map((c) => [c.id, c]))
+  // Review of lane E (2026-10-11): no lower bound — a gap wholly before the grant can hide the
+  // revoke of a weaker co-holder, and the replay then ranks the grant against a holder that no
+  // longer had the role
+  // Second review (2026-10-11): a row's emitter is not always the address its logs were read
+  // from. Aragon rows are ACL SetPermission logs rewritten onto the app (abi.mjs aragonRows:
+  // emitter = app, args.acl = the ACL), so a gap in the ACL's scan covers the app's replay too.
+  const sourcesOf = new Map<string, Set<string>>()
+  for (const e of events) {
+    const acl = (e.args as Record<string, unknown> | undefined)?.acl
+    if (typeof acl !== 'string' || !acl) continue
+    const k = lc(e.emitter)
+    const src = sourcesOf.get(k) ?? new Set<string>([k])
+    src.add(lc(acl))
+    sourcesOf.set(k, src)
+  }
+  const gapOver = (emitter: string) => {
+    const src = sourcesOf.get(emitter) ?? new Set<string>([emitter])
+    return (o.scanGaps ?? []).find(
+      (g) => g.from <= o.head && (!g.addresses?.length || g.addresses.some((a) => src.has(lc(a)))),
+    )
+  }
   const holders = new Map<string, Set<string>>()
   // grants of the current holding period per `${contract}|${role}|${account}`, with the holders
   // just before each (what the replay ranked it against)
@@ -3707,6 +3747,17 @@ export function rejudgeRoleHoldersAtHead(
         administersRoles: o.administers(em, name),
       })
       if (isRed(v)) continue
+      // First CI run (2026-10-11, UQ-21 / fail closed): the replay this clearance stands on — the
+      // grant still held, the holders it was ranked against — is only as good as the scan. A
+      // chunk of the emitter not confirmed at any block up to head may hold a revoke and a
+      // re-grant, the grant itself, or the revoke of a co-holder it was ranked against: the red
+      // stays in effect, and says why.
+      const g = gapOver(em)
+      if (g) {
+        const note = `STILL IN EFFECT at head (block ${o.head}): the grantee now ranks as ${describeController(now)}, but ${g.scan} blocks ${g.from}–${g.to} of ${shortA(em)} were not confirmed (${g.error}) — a failed read never ends a red`
+        if (!(row.notes ?? []).includes(note)) row.notes = [...(row.notes ?? []), note]
+        continue
+      }
       row.stillInEffect = false
       row.notes = [
         ...(row.notes ?? []),

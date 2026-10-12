@@ -2,12 +2,19 @@
 // Per-subject counts of the config-card files, for the re-collect summary
 // (.github/workflows/oracle-config-collect.yml: "before -> after" in the commit body).
 //
-//   node scripts/oracle-registry/config/counts.mjs snapshot <out.json> [--dir=<config dir>] <subject>...
+//   node scripts/oracle-registry/config/counts.mjs snapshot <out.json> [--dir=<config dir>] [--repo=<git work tree>] <subject>...
 //        counts of <dir>/{state,changes,queues}/<subject>.json + the subject's cursor head
-//        (dir: data/oracle-registry/config); a subject with no files yet is recorded as null
+//        (dir: data/oracle-registry/config); a subject with no files yet is recorded as null.
+//        --repo: also records which collector wrote each subject's files (`collector`: the last
+//        commit of state/<subject>.json and the tree of the collector code at it; a file not yet
+//        committed was written by the work tree's code). Read-only git; no network.
 //   node scripts/oracle-registry/config/counts.mjs summary <before.json> <after.json> [--ok=a,b]
 //        prints "head=<block>" (the highest head among the --ok subjects), then one line per
-//        subject (before -> after; a subject not in --ok is listed as FAILED)
+//        subject (before -> after; a subject not in --ok is listed as FAILED). When both
+//        snapshots carry `collector` and the code differs, the line says
+//        "before = older collector <sha>": the counts are not like for like (first CI run
+//        2026-10-11: the before files were round-8 code at 1c94be6e, the after the fail-closed
+//        code — 214 new read gaps read as a regression of the chain).
 //   node scripts/oracle-registry/config/counts.mjs order [--dir=<config dir>] [--attempts=<file>] <subject>...
 //        prints the subjects least recently tried first: the later of the last success
 //        (cursors.json bySubject.<s>.runAt) and the last start (<file>: "<subject> <epoch s>"
@@ -15,10 +22,12 @@
 //        picked up where it stopped, and a subject that keeps failing goes to the back instead
 //        of taking every run's time first.
 //
-// Reads only committed-format JSON: no RPC, no network, no dependencies.
+// Reads only committed-format JSON (and, with --repo, read-only git): no RPC, no network, no
+// dependencies.
 
-import { readFileSync, realpathSync, writeFileSync } from 'fs'
-import { dirname, join, resolve } from 'path'
+import { execFileSync } from 'child_process'
+import { existsSync, readFileSync, realpathSync, writeFileSync } from 'fs'
+import { dirname, join, relative, resolve } from 'path'
 import { fileURLToPath } from 'url'
 
 export const CONFIG_DIR = join(
@@ -77,9 +86,94 @@ function readCursors(dir) {
   }
 }
 
-export function snapshot(dir, keys) {
+/**
+ * The code that writes the config-card files: the collector, the engine it runs, the shared env
+ * reader and the subject list. Two snapshots written by different trees of these are not counts
+ * of the same thing.
+ */
+export const COLLECTOR_PATHS = [
+  'scripts/oracle-registry',
+  'lib/oracleRegistry',
+  'scripts/lib/venue-reads.mjs',
+  'data/oracle-registry/config/subjects.json',
+]
+
+/** git in `repo`, stdout trimmed; null when it fails (never throws, never prints). */
+function git(repo, args) {
+  try {
+    return execFileSync('git', ['-C', repo, ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    return null
+  }
+}
+
+/** The collector code at `rev`: the object ids of COLLECTOR_PATHS there; null if none exists. */
+function codeAt(repo, rev) {
+  const ids = COLLECTOR_PATHS.map(
+    (p) => git(repo, ['rev-parse', '--verify', '--quiet', `${rev}:${p}`]) || '-',
+  )
+  return ids.every((x) => x === '-') ? null : ids.join(',')
+}
+
+/** A commit at the edge of a shallow clone: its history (and so its writer) is not known. */
+function isShallowEdge(repo, sha) {
+  if (git(repo, ['rev-parse', '--is-shallow-repository']) !== 'true') return false
+  const f = git(repo, ['rev-parse', '--git-path', 'shallow'])
+  if (!f) return true
+  const p = resolve(repo, f)
+  return !existsSync(p) || readFileSync(p, 'utf8').split('\n').includes(sha)
+}
+
+/**
+ * Which collector wrote `file` (a path inside the git work tree `repo`):
+ *   - not committed as it is (modified or new): this work tree's code — `{ sha: null, code }`,
+ *     `code` marked `+dirty` when the collector code itself has local changes;
+ *   - committed: the last commit that touched it, and the collector code at that commit
+ *     (`code: null` when that commit is the edge of a shallow clone: unknown, not "the same").
+ */
+export function collectorOf(repo, file) {
+  const top = git(repo, ['rev-parse', '--show-toplevel'])
+  if (!top) return { sha: null, code: null }
+  const rel = relative(realpathSync(top), realpathSync(file))
+  const status = git(repo, ['status', '--porcelain', '--', rel])
+  if (status === null) return { sha: null, code: null }
+  if (status !== '') {
+    const code = codeAt(repo, 'HEAD')
+    const dirty = git(repo, ['status', '--porcelain', '--', ...COLLECTOR_PATHS])
+    return { sha: null, code: code && dirty !== '' ? `${code}+dirty` : code }
+  }
+  const sha = git(repo, ['log', '-1', '--format=%H', '--no-renames', '--', rel]) || null
+  if (!sha) return { sha: null, code: null }
+  return { sha, code: isShallowEdge(repo, sha) ? null : codeAt(repo, sha) }
+}
+
+export function snapshot(dir, keys, o = {}) {
   const cursors = readCursors(dir)
-  return Object.fromEntries(keys.map((k) => [k, subjectCounts(dir, k, cursors)]))
+  return Object.fromEntries(
+    keys.map((k) => {
+      const c = subjectCounts(dir, k, cursors)
+      if (c && o.repo) c.collector = collectorOf(o.repo, join(dir, 'state', `${k}.json`))
+      return [k, c]
+    }),
+  )
+}
+
+/**
+ * "; before = older collector <sha>" when the before and after files were written by different
+ * collector code (both recorded); "; before = collector unknown ..." when either side's code
+ * could not be read. Nothing when not recorded, or the same code wrote both.
+ */
+export function collectorNote(b, a) {
+  const pb = b?.collector
+  const pa = a?.collector
+  if (!pb || !pa) return ''
+  if (pb.code && pa.code && pb.code === pa.code) return ''
+  const sha = pb.sha ? pb.sha.slice(0, 8) : 'uncommitted files'
+  if (pb.code && pa.code) return `; before = older collector ${sha}`
+  return `; before = collector unknown (last written in ${sha})`
 }
 
 /** "<subject> <epoch seconds>" lines -> { subject: latest start in ms }; other lines ignored. */
@@ -142,7 +236,7 @@ export function summarize(before, after, ok) {
       continue
     }
     const parts = FIELDS.map(([f, label]) => `${label} ${pair(b?.[f], a[f])}`)
-    lines.push(`${k}: ${parts.join(', ')} (head ${pair(b?.head, a.head)})`)
+    lines.push(`${k}: ${parts.join(', ')} (head ${pair(b?.head, a.head)}${collectorNote(b, a)})`)
   }
   return { head: heads.length ? Math.max(...heads) : null, text: lines.join('\n') }
 }
@@ -154,9 +248,12 @@ function main(argv) {
   if (cmd === 'snapshot') {
     const [out, ...keys] = pos
     if (!out || !keys.length)
-      throw new Error('usage: counts.mjs snapshot <out.json> [--dir=<config dir>] <subject>...')
+      throw new Error(
+        'usage: counts.mjs snapshot <out.json> [--dir=<config dir>] [--repo=<git work tree>] <subject>...',
+      )
     const dir = opt('dir') ? resolve(opt('dir')) : CONFIG_DIR
-    writeFileSync(out, JSON.stringify(snapshot(dir, keys), null, 1) + '\n')
+    const repo = opt('repo') ? resolve(opt('repo')) : undefined
+    writeFileSync(out, JSON.stringify(snapshot(dir, keys, { repo }), null, 1) + '\n')
     return
   }
   if (cmd === 'summary') {

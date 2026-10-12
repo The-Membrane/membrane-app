@@ -9,21 +9,45 @@
 //
 // Fail closed, at every step:
 //   - every empty log chunk is asked again on a second endpoint (`crossCheckedLogs`; the shared
-//     ring can return false-empty chunks); a chunk that cannot be read ends the stream, and every
-//     snapshot at or after it is an error (a read gap: the vote ranks as a plain contract);
+//     ring can return false-empty chunks); a chunk that cannot be read is retried with backoff,
+//     and if it still fails its RANGE is recorded as unread and the stream goes on (lane T,
+//     2026-10-11: one failed chunk used to stop the whole ~15M-block LDO stream). Every snapshot
+//     at or after the first unread range is an error that names the unread ranges (a read gap:
+//     the vote ranks as a plain contract) — its balances depend on them;
 //   - every snapshot is VERIFIED on chain at its block (archive eth_call): the rebuilt total
 //     supply must equal totalSupply() and EVERY kept (top-50) rebuilt balance must equal
 //     balanceOf() — a lost chunk changes them. A mismatch, or a read that fails, is an error.
 // Only verified snapshots are cached (top-50 per token per block), written atomically; a cache
 // file that cannot be parsed is rebuilt, not a stop (fail-closed audit TV-15: one torn write
 // stopped every later run).
+// Resume (lane T): the balances after the last chunk of the CONFIRMED PREFIX (every chunk from
+// the start read, none unread before it, at least CHECKPOINT_MARGIN blocks below the last block
+// asked) are checkpointed in the same cache, every CHECKPOINT_EVERY chunks and where the prefix
+// ends (before the first chunk past it is applied: the saved balances are those AT its block). A
+// later run whose blocks all lie after it streams from there — after the checkpoint itself is
+// VERIFIED on chain like a snapshot (totalSupply() and the top-50 balanceOf() at its block); an
+// unverified checkpoint is dropped and the stream starts over. Every snapshot built on it is
+// verified as before, and a failed verification drops the checkpoint too.
 
 import { existsSync, readFileSync } from 'fs'
 import { keccak256, parseAbi, toHex } from 'viem'
 import { writeJsonAtomic } from './files.mjs'
-import { crossCheckedLogs, retry } from './rpc.mjs'
+import { crossCheckedLogs, describeRpcError, retryRpc } from './rpc.mjs'
 
 export const TOP_HOLDERS = 50
+/** Tries of one chunk's whole cross-checked read (each getLogs inside retries on its own). */
+export const HOLDER_CHUNK_TRIES = 3
+/** The checkpoint stays this far below the last block asked (a lagging log node near head). */
+export const CHECKPOINT_MARGIN = 64
+/** Chunks between two checkpoint writes (a run cut short keeps its progress). */
+export const CHECKPOINT_EVERY = 100
+/**
+ * After this many chunks in a row fail (an endpoint down or out of quota), the rest of the
+ * stream is recorded as ONE unread range without asking (each failed chunk costs its full backoff;
+ * a down host would otherwise hold the run for hours). Fail closed either way.
+ */
+export const HOLDER_MAX_CONSECUTIVE_FAILURES = 8
+const CHECKPOINT_VERSION = 1
 /**
  * Balances re-read on chain at each snapshot block (the cross-check of the rebuilt set).
  * Fail-closed audit (TV-16 / ST-09, 2026-10-10): every kept holder — the rules decide k and the
@@ -68,6 +92,9 @@ export function applyTransfer(balances, log) {
   return d
 }
 
+/** A verification that could not be READ (not a mismatch). */
+const readFailed = (why) => String(why).startsWith('verification read failed')
+
 /**
  * Verify one rebuilt snapshot at its block: totalSupply() and the VERIFY_TOP largest balances.
  * Returns null when every value matches, else why not (fail closed: a failed read is a mismatch).
@@ -78,7 +105,7 @@ export async function verifySnapshot(state, token, block, snap) {
     // one eth_call each (not Multicall3: it does not exist before block 14,353,601, and a voting
     // token's history starts earlier — LDO in 2020)
     const read = (functionName, args = []) =>
-      retry(() =>
+      retryRpc(() =>
         state.readContract({
           address: token,
           abi: ERC20,
@@ -97,7 +124,7 @@ export async function verifySnapshot(state, token, block, snap) {
       if (BigInt(bals[i]) !== BigInt(b)) return `rebuilt balance of ${a} ≠ balanceOf() at the block`
     return null
   } catch (e) {
-    return `verification read failed (${String(e?.shortMessage ?? e?.message ?? e).slice(0, 80)})`
+    return `verification read failed (${describeRpcError(e).slice(0, 80)})`
   }
 }
 
@@ -144,19 +171,62 @@ export async function holderSnapshots({
   const todo = want.filter((b) => !out.has(b))
   if (!todo.length) return out
   const last = todo.at(-1)
-  const chunks = []
-  for (let a = from; a <= last; a += span) chunks.push([a, Math.min(last, a + span - 1)])
   const balances = new Map()
   let supply = 0n
+  // lane T: resume from a verified checkpoint when every block asked lies after it
+  let start = from
+  const ckKey = `${t}@checkpoint`
+  const ck = cache[ckKey]
+  if (ck) {
+    const usable =
+      ck.v === CHECKPOINT_VERSION &&
+      ck.from === from &&
+      Number.isInteger(ck.block) &&
+      ck.block >= from &&
+      ck.block < todo[0] &&
+      Array.isArray(ck.balances) &&
+      typeof ck.supply === 'string'
+    let bad = usable ? null : 'not usable for these blocks'
+    let m = null
+    if (usable)
+      try {
+        m = new Map(ck.balances.map(([a, v]) => [String(a), BigInt(v)]))
+        const top = topBalances(m).map(([a, v]) => [a, v.toString()])
+        bad = state
+          ? await verifySnapshot(state, t, ck.block, { supply: ck.supply, top })
+          : 'not verified (no archive client)'
+      } catch (e) {
+        bad = `unreadable (${String(e?.message ?? e).slice(0, 60)})`
+      }
+    if (!bad) {
+      for (const [a, v] of m) balances.set(a, v)
+      supply = BigInt(ck.supply)
+      start = ck.block + 1
+      log(`  holders of ${t.slice(0, 10)}…: resumed from the checkpoint at block ${ck.block}`)
+    } else if ((usable && !readFailed(bad)) || ck.from !== from || ck.v !== CHECKPOINT_VERSION) {
+      // a checkpoint that does NOT MATCH the chain (or of another stream start) is dropped; one
+      // whose verification read failed, or that is merely later than a block asked now, is not
+      // used this run and kept for the next
+      delete cache[ckKey]
+      log(`  holders of ${t.slice(0, 10)}…: checkpoint at ${ck.block} dropped (${bad})`)
+    }
+  }
+  const chunks = []
+  for (let a = start; a <= last; a += span) chunks.push([a, Math.min(last, a + span - 1)])
   let next = 0 // index into todo
   let corrected = 0
+  // lane T: one chunk's cross-checked read, retried with the same backoff as every RPC read
   const fetchChunk = ([a, b]) =>
-    crossCheckedLogs(logClients.primary, logClients.secondary, {
-      address: t,
-      topics0: [TRANSFER],
-      fromBlock: a,
-      toBlock: b,
-    })
+    retryRpc(
+      () =>
+        crossCheckedLogs(logClients.primary, logClients.secondary, {
+          address: t,
+          topics0: [TRANSFER],
+          fromBlock: a,
+          toBlock: b,
+        }),
+      { tries: HOLDER_CHUNK_TRIES },
+    )
   const snapshotUpTo = (block) => {
     while (next < todo.length && todo[next] <= block) {
       const top = topBalances(balances)
@@ -170,10 +240,45 @@ export async function holderSnapshots({
       next++
     }
   }
+  // the confirmed prefix: balances after chunk end `ckAt` (no unread chunk at or before it)
+  let ckAt = null
+  let ckDirty = false
+  // the block through which `balances` / `supply` have been applied (review of lane T: the
+  // checkpoint used to be saved after the loop with the balances of the WHOLE stream — the tail
+  // chunk above the margin, every chunk after an unread one — labelled `ckAt`; a resume then
+  // applied those transfers twice). A checkpoint is written only while the two agree: once, just
+  // before the first chunk that does not extend the prefix changes anything.
+  let appliedTo = start - 1
+  const ckLimit = last - CHECKPOINT_MARGIN
+  const saveCheckpoint = () => {
+    if (ckAt === null || !ckDirty || appliedTo !== ckAt) return
+    const bal = []
+    for (const [a, v] of balances) if (v !== 0n) bal.push([a, v.toString()])
+    cache[ckKey] = {
+      v: CHECKPOINT_VERSION,
+      from,
+      block: ckAt,
+      supply: supply.toString(),
+      balances: bal,
+    }
+    ckDirty = false
+    if (cacheFile) writeJsonAtomic(cacheFile, cache)
+  }
   const t0 = Date.now()
   const inflight = new Map()
-  let failedAt = null
+  const unread = [] // { from, to, error } in block order
+  let failedInRow = 0
   for (let i = 0; i < chunks.length; i++) {
+    if (failedInRow >= HOLDER_MAX_CONSECUTIVE_FAILURES) {
+      // the rest of the stream: one unread range, not asked (fail closed)
+      unread.push({
+        from: chunks[i][0],
+        to: last,
+        error: `not asked: ${failedInRow} chunks in a row failed (last: ${unread.at(-1).error})`,
+      })
+      snapshotUpTo(last)
+      break
+    }
     for (let j = i; j < Math.min(chunks.length, i + concurrency); j++)
       if (!inflight.has(j))
         inflight.set(
@@ -182,12 +287,21 @@ export async function holderSnapshots({
         )
     const r = await inflight.get(i)
     inflight.delete(i)
-    if (r.error) {
-      failedAt = chunks[i][0]
-      break
-    }
-    if (r.corrected) corrected++
     const [a, b] = chunks[i]
+    // a chunk that will not extend the confirmed prefix (unread, after an unread one, or above
+    // the margin): the prefix ends here — checkpoint it BEFORE this chunk changes the balances
+    const extendsPrefix = !r.error && !unread.length && b <= ckLimit
+    if (!extendsPrefix) saveCheckpoint()
+    if (r.error) {
+      // lane T: the range is UNREAD (every snapshot at or after it fails closed below); the
+      // stream goes on, so later ranges are read and only this one is missing
+      unread.push({ from: a, to: b, error: describeRpcError(r.error) })
+      failedInRow++
+      snapshotUpTo(b)
+      continue
+    }
+    failedInRow = 0
+    if (r.corrected) corrected++
     const logs = r.logs
       .filter((l) => !l.removed)
       .sort(
@@ -202,18 +316,39 @@ export async function holderSnapshots({
       snapshotUpTo(lb - 1)
       supply += applyTransfer(balances, l)
     }
+    appliedTo = b
     snapshotUpTo(b)
+    if (extendsPrefix) {
+      ckAt = b
+      ckDirty = true
+      if (i % CHECKPOINT_EVERY === CHECKPOINT_EVERY - 1) saveCheckpoint()
+    }
     if (i % 100 === 99)
       log(
         `  holders of ${t.slice(0, 10)}…: ${i + 1}/${chunks.length} chunks, ${balances.size} accounts, ${Math.round((Date.now() - t0) / 1000)} s`,
       )
   }
-  // drain (a failure leaves requests in flight)
+  // drain (nothing should be left in flight)
   await Promise.allSettled([...inflight.values()])
   if (corrected) log(`  holders of ${t.slice(0, 10)}…: ${corrected} false-empty chunk(s) corrected`)
+  if (unread.length)
+    log(
+      `  holders of ${t.slice(0, 10)}…: ${unread.length} of ${chunks.length} chunk(s) unread (${unread[0].from}–${unread[0].to}: ${unread[0].error})`,
+    )
+  saveCheckpoint()
+  let ckFailed = false
   for (const b of todo) {
-    if (failedAt !== null && b >= failedAt) {
-      out.set(b, { error: `Transfer logs not read from block ${failedAt}` })
+    const before = unread.filter((g) => g.from <= b)
+    if (before.length) {
+      const shown = before
+        .slice(0, 3)
+        .map((g) => `${g.from}–${g.to}`)
+        .join(', ')
+      const more = before.length > 3 ? ` and ${before.length - 3} more` : ''
+      out.set(b, {
+        error: `Transfer logs not read from block ${before[0].from} (unread: ${shown}${more}; ${before[0].error})`,
+        unread: before,
+      })
       continue
     }
     const snap = out.get(b)
@@ -222,9 +357,14 @@ export async function holderSnapshots({
       continue
     }
     const bad = state ? await verifySnapshot(state, t, b, snap) : 'not verified (no archive client)'
-    if (bad) out.set(b, { error: `holder set not verified at block ${b}: ${bad}` })
-    else cache[`${t}@${b}`] = { ...snap, verifiedTop: Math.min(VERIFY_TOP, snap.top.length) }
+    if (bad) {
+      out.set(b, { error: `holder set not verified at block ${b}: ${bad}` })
+      // a snapshot that does not MATCH the chain: a transfer was lost somewhere before it, maybe
+      // inside the checkpointed prefix — the checkpoint is dropped (the next run starts over)
+      if (!readFailed(bad)) ckFailed = true
+    } else cache[`${t}@${b}`] = { ...snap, verifiedTop: Math.min(VERIFY_TOP, snap.top.length) }
   }
+  if (ckFailed) delete cache[ckKey]
   if (cacheFile) writeJsonAtomic(cacheFile, cache)
   return out
 }

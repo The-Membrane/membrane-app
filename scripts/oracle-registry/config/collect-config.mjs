@@ -39,9 +39,11 @@ import {
 import {
   aragonExecCandidatesFromRows,
   callAddressArgs,
+  ccipDeployGapOnCard,
   classify,
   confirmedFirstCode,
   dgCommitteeAddresses,
+  deployBlockGap,
   enrichTokenVotes,
   hasReadFailure,
   MULTICALL3_BLOCK,
@@ -1225,7 +1227,14 @@ const deployBlocks = existsSync(DEPLOY_CACHE) ? JSON.parse(readFileSync(DEPLOY_C
   let unconfirmed = 0
   for (const [a, p] of Object.entries(probes)) {
     if (p.firstCode) deployBlocks[a] = p.firstCode
-    else if (p.unconfirmed) unconfirmed++
+    else if (p.unconfirmed) {
+      unconfirmed++
+      // lane T (2026-10-11): a confirmation that failed after the retries is a READ GAP, not a
+      // log line only — listed (and counted) on the card of every subject whose scope holds the
+      // emitter. The deploy block stays unknown (never cached), which the replay already judges
+      // fail closed (no "initialization" without it).
+      scanGaps.push(deployBlockGap(a, p.unconfirmed, head))
+    }
   }
   writeJson(DEPLOY_CACHE, deployBlocks)
   log(
@@ -1871,11 +1880,15 @@ for (const s of subjects) {
   // fail-closed audit (EV-01 / KG-7): the scan gaps that can hide this subject's events — a scan of
   // one of its emitters, an LZ / DVN scan when it has OApps, its ACL's scan, the peers sweep
   const scope = new Set([...subjectAddrs, ...extraForSubject, ...s.lzOApps].map(lc))
+  const cardTokens = s.contracts.filter((c) => c.role === 'token').map((c) => lc(c.address))
   const myScanGaps = [...scanGaps, ...lzSweepGaps].filter(
     (g) =>
       (/LayerZero|DVN/.test(g.scan) && s.lzOApps.length) ||
       (g.addresses ?? []).some((a) => scope.has(lc(a))) ||
-      (s.aragonAcl && (g.addresses ?? []).map(lc).includes(lc(s.aragonAcl))),
+      (s.aragonAcl && (g.addresses ?? []).map(lc).includes(lc(s.aragonAcl))) ||
+      // lane T review: the deploy block of an out-of-scope emitter whose PoolSet /
+      // AdministratorTransferred rows for this subject's tokens go on its card
+      ccipDeployGapOnCard(g, adminRows, cardTokens),
   )
   // the previous run's queues that this run did not read at all are reported unavailable
   const prevQ = prevRows('queues', s.key)?.changes ?? []

@@ -5,17 +5,501 @@
 //
 // URLs carry keys: nothing here ever prints one. Errors go through scrub().
 
+import { AsyncLocalStorage, AsyncResource } from 'node:async_hooks'
 import { createHash } from 'crypto'
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { createPublicClient, defineChain, fallback, http } from 'viem'
 import { readEnv } from '../../../lib/venue-reads.mjs'
-import { scrub } from '../../lib/readers.mjs'
+import { scrub as scrubUrls } from '../../lib/readers.mjs'
 import { EVENT_SIGS, decodeLog } from './abi.mjs'
 import { writeJsonAtomic } from './files.mjs'
 
-export { scrub }
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// ---- transport (lane T, 2026-10-11) -----------------------------------------------------------
+// The first CI run lost 204 scan chunks to "HTTP request failed." from the SECOND log endpoint
+// (the UQ-23 cross-check host): every empty primary range was confirmed there in 10k-block
+// pieces, unpaced, retried twice at 400 / 800 ms — over a free tier's credit rate — and the gap
+// text kept neither the host nor the HTTP status. Here: (1) a per-host limiter paces the
+// cross-check host; (2) `retryRpc` retries transient failures (429, 5xx, timeouts, no response)
+// with exponential backoff + jitter, honouring Retry-After, and never retries a deterministic
+// revert or a refused block range (the caller splits that); (3) every failure is DESCRIBED with
+// the provider's registrable domain and the HTTP status or error class, never a URL, a
+// subdomain, a path, a port or a key. Only how reads are made, retried and described changed:
+// a read that still fails is the same failure (a gap) it was.
+
+/**
+ * Transport tuning, read at call time. Production defaults; under vitest (`VITEST`) the waits
+ * default to ~0 so suites that fake failing endpoints keep their timing. An explicit env value
+ * always wins:
+ *   ORACLE_REGISTRY_RPC_TRIES            tries for a transient failure (default 5)
+ *   ORACLE_REGISTRY_RPC_BACKOFF_MS       first backoff (default 1000; doubles per try, jittered)
+ *   ORACLE_REGISTRY_RPC_BACKOFF_CAP_MS   one wait at most (default 20000; Retry-After clamped)
+ *   ORACLE_REGISTRY_RPC_RETRY_BUDGET_MS  all waits of one call at most (default 60000)
+ *   ORACLE_REGISTRY_XCHECK_INTERVAL_MS   cross-check host: min ms between request starts
+ *                                        (default 1000 = 1 req/s, one in flight)
+ */
+export function rpcTuning(env = process.env) {
+  const testing = !!env.VITEST
+  const num = (k, d) => {
+    const v = Number(env[k])
+    return env[k] !== undefined && env[k] !== '' && Number.isFinite(v) && v >= 0 ? v : d
+  }
+  return {
+    tries: Math.max(1, Math.floor(num('ORACLE_REGISTRY_RPC_TRIES', 5))),
+    baseMs: num('ORACLE_REGISTRY_RPC_BACKOFF_MS', testing ? 1 : 1000),
+    capMs: num('ORACLE_REGISTRY_RPC_BACKOFF_CAP_MS', testing ? 10 : 20_000),
+    budgetMs: num('ORACLE_REGISTRY_RPC_RETRY_BUDGET_MS', testing ? 50 : 60_000),
+    crossCheckIntervalMs: num('ORACLE_REGISTRY_XCHECK_INTERVAL_MS', testing ? 0 : 1000),
+  }
+}
+
+// Public suffixes with two labels (a registrable domain is then three labels).
+const TWO_LABEL_SUFFIX = new Set([
+  'co.uk',
+  'org.uk',
+  'ac.uk',
+  'com.au',
+  'net.au',
+  'co.jp',
+  'com.br',
+  'co.kr',
+  'com.cn',
+  'co.nz',
+  'co.in',
+  'com.sg',
+  'com.hk',
+])
+/**
+ * The provider label of an RPC URL: its REGISTRABLE domain only (rpc.ankr.com → ankr.com,
+ * <id>.ethereum-mainnet.quiknode.pro → quiknode.pro). Never a subdomain (an account id), a path
+ * (a key), a port, a query or credentials. An IP host is "an IP host".
+ */
+export function hostLabel(u) {
+  let h
+  try {
+    h = new URL(String(u)).hostname.toLowerCase()
+  } catch {
+    return null
+  }
+  if (!h) return null
+  if (h.includes(':') || h.startsWith('[') || /^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return 'an IP host'
+  const parts = h.split('.').filter(Boolean)
+  if (parts.length <= 2) return parts.join('.')
+  const last2 = parts.slice(-2).join('.')
+  return TWO_LABEL_SUFFIX.has(last2) ? parts.slice(-3).join('.') : last2
+}
+
+// Every key-bearing part of the configured RPC URLs (path segments, query values, subdomains,
+// credentials): redacted from any message, wherever a provider echoes it without the scheme.
+const secrets = new Set()
+const rpcHosts = new Map() // configured hostname → its label
+const rpcDomains = new Set() // the configured registrable domains (any subdomain of one → it)
+// Network names shared by every account of a provider (mainnet.infura.io, eth-mainnet.g.alchemy
+// .com, drpc's ?network=ethereum): not secrets, so the WORD "mainnet" in a message is not "[key]".
+// An account's own subdomain (a QuickNode id), path key or query key is never one of these.
+const PUBLIC_LABELS = new Set(['mainnet', 'ethereum', 'ethereum-mainnet', 'eth-mainnet'])
+export function registerRpcSecrets(urls) {
+  for (const raw of urls ?? []) {
+    const u = String(raw)
+    let x
+    try {
+      x = new URL(u)
+    } catch {
+      if (u.length >= 8) secrets.add(u)
+      continue
+    }
+    const label = hostLabel(u)
+    const keep = (label ?? '').split('.').filter(Boolean).length
+    if (label) rpcHosts.set(x.hostname.toLowerCase(), label)
+    if (label && label.includes('.') && label !== 'an IP host') rpcDomains.add(label)
+    const labels = x.hostname.split('.')
+    for (const l of labels.slice(0, Math.max(0, labels.length - keep)))
+      if (l.length >= 6 && !PUBLIC_LABELS.has(l.toLowerCase())) secrets.add(l)
+    for (const s of x.pathname.split('/')) {
+      let d = s
+      try {
+        d = decodeURIComponent(s)
+      } catch {
+        /* the raw segment */
+      }
+      if (s.length >= 8 && !PUBLIC_LABELS.has(s.toLowerCase())) secrets.add(s)
+      if (d.length >= 8 && !PUBLIC_LABELS.has(d.toLowerCase())) secrets.add(d)
+    }
+    for (const [, v] of x.searchParams)
+      if (v.length >= 8 && !PUBLIC_LABELS.has(v.toLowerCase())) secrets.add(v)
+    if (x.username) secrets.add(x.username)
+    if (x.password) secrets.add(x.password)
+  }
+}
+// A key-like token: 24+ of [A-Za-z0-9_-] with a digit and a letter, not 0x-prefixed (addresses,
+// hashes and selectors stay readable).
+const KEYLIKE =
+  /(?<![0-9A-Za-z_-])(?!0x)(?=[0-9A-Za-z_-]*\d)(?=[0-9A-Za-z_-]*[A-Za-z])[0-9A-Za-z_-]{24,}(?![0-9A-Za-z_-])/g
+// A host written without its scheme, with a port or a path ("rpc.ankr.com/eth/…",
+// "lb.drpc.org:8443/…"): a provider echoing its own URL. Replaced whole, like a URL.
+const HOSTPART = String.raw`(?:[A-Za-z0-9-]+|\[key\])`
+const BARE_URL = new RegExp(
+  String.raw`(?<![\w@.-])${HOSTPART}(?:\.${HOSTPART})*\.[A-Za-z]{2,}(?::\d{1,5})?(?:\/\S*|(?<=:\d{1,5}))`,
+  'g',
+)
+// An IP host (v4, or v6 in brackets), with its port and path: never written, configured or not.
+const IP_HOST = new RegExp(
+  String.raw`(?<![\w.])(?:(?:\d{1,3}\.){3}\d{1,3}(?![\d.]*\d)|\[[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*\])(?::\d{1,5})?(?:\/\S*)?`,
+  'g',
+)
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// a configured host named alone: its label; ANY subdomain chain of a configured registrable
+// domain (one already partly "[key]"-redacted too): the domain only
+const hostsToLabels = (s) => {
+  let out = s
+  for (const [h, label] of rpcHosts)
+    if (out.toLowerCase().includes(h)) out = out.replace(new RegExp(escapeRe(h), 'gi'), label)
+  for (const d of rpcDomains)
+    if (out.toLowerCase().includes(d))
+      out = out.replace(
+        new RegExp(String.raw`(?<![\w@.-])(?:${HOSTPART}\.)+${escapeRe(d)}(?![\w-])`, 'gi'),
+        d,
+      )
+  return out
+}
+// Review of lane T (PLAUSIBLE #2): the secret pass ran FIRST and mangled a configured hostname
+// ("abc12.ethereum-mainnet.quiknode.pro" → "abc12.[key].quiknode.pro") before the host pass
+// looked for it, so a subdomain label under 6 characters survived; an IP host with a port
+// ("10.1.2.3:8545") survived every pass. Hosts are now replaced before AND after the secrets.
+const redactSecrets = (s) => {
+  // (an IP host first: its port goes with it, never "an IP host:8545")
+  let out = s.replace(BARE_URL, '[rpc]').replace(IP_HOST, 'an IP host')
+  out = hostsToLabels(out)
+  for (const k of [...secrets].sort((a, b) => b.length - a.length))
+    if (out.includes(k)) out = out.split(k).join('[key]')
+  out = hostsToLabels(out.replace(BARE_URL, '[rpc]'))
+  out = out.replace(IP_HOST, 'an IP host')
+  return out.replace(KEYLIKE, '[key]')
+}
+/**
+ * Error text that is safe to log, cache and commit (the repo is PUBLIC): every URL is replaced
+ * (`readers.mjs` scrub: first line, 160 chars) after every registered key part and every key-like
+ * token is redacted — before the cut, so a key split at the 160th character cannot survive.
+ */
+export const scrub = (msg) => scrubUrls(redactSecrets(String(msg ?? '')))
+
+/** The HTTP status / Retry-After of the request in flight, noted by `notingFetch`. */
+const httpCtx = new AsyncLocalStorage()
+/**
+ * viem 2.54 returns a non-OK answer whose body is a JSON-RPC error as an RPC error, without the
+ * HTTP status or headers: this fetch notes them on the current attempt (`retryRpc`).
+ */
+export async function notingFetch(input, init) {
+  const r = await fetch(input, init)
+  if (r.ok) return r
+  const ra = r.headers?.get?.('retry-after')
+  const c = httpCtx.getStore()
+  if (c) {
+    c.status = r.status
+    if (ra) c.retryAfter = ra
+  }
+  // Review of lane T (PLAUSIBLE #1): viem's OWN retry (retryCount 1 on a non-paced host, a
+  // fallback ring's rounds) sleeps the full Retry-After before `retryRpc` sees the error — an
+  // hour-long header held the read an hour. viem reads the header from this answer: clamp it to
+  // the per-wait cap (the original value stays noted above; `retryRpc` clamps it the same way).
+  const ms = parseRetryAfter(ra)
+  const capMs = rpcTuning().capMs
+  if (ms === null || ms <= capMs || !r.headers) return r
+  const headers = new Headers(r.headers)
+  headers.set('retry-after', String(Math.floor(capMs / 1000)))
+  return new Response(r.body, { status: r.status, statusText: r.statusText, headers })
+}
+
+/** Retry-After (seconds or an HTTP date) in ms; null when absent or unparsable. */
+export function parseRetryAfter(v, now = Date.now()) {
+  if (v === undefined || v === null || v === '') return null
+  const s = String(v).trim()
+  if (/^\d+(\.\d+)?$/.test(s)) return Math.round(Number(s) * 1000)
+  const t = Date.parse(s)
+  return Number.isFinite(t) ? Math.max(0, t - now) : null
+}
+
+const RANGE_RE =
+  /block range|range (?:is )?too (?:large|wide|big)|range exceeds|exceeds? (?:the )?(?:max(?:imum)? )?(?:block )?range|limit of \d+|more than \d+ (?:results|logs|blocks)|query returned more than|response size|results? (?:set )?(?:is )?too large|too many (?:results|logs|blocks)|range too large|ranges over \d+/i
+const RATE_RE =
+  /rate.?limit|too many requests|request rate|daily request|exceeded (?:the |its )?(?:quota|capacity|credits?|compute units|throughput)|capacity (?:exceeded|limit)|compute units|credits? (?:limit|exceeded)/i
+const TIMEOUT_RE = /timed? ?out|took too long|timeout/i
+const GENERIC_RE =
+  /^(?:HTTP request failed\.?|The request took too long to respond\.?|The request timed out\.?|An unknown RPC error occurred\.?|Request exceeds defined limit\.?|An internal error was received\.?|Requested resource not available\.?)$/i
+
+/**
+ * What a failed read was, from a viem error chain (or a test fake):
+ *   { kind, status, code, url, retryAfterMs, netCode, detail }
+ * kind: 'revert' (deterministic: never retried) | 'range' (a refused block range / result size:
+ * never retried, the caller splits) | 'rate-limit' | 'server' (5xx / 408) | 'network' (no
+ * response) | 'timeout' | 'internal' (-32603 without revert data) | 'unserved' (null / non-array
+ * answer) | 'other'.
+ */
+export function classifyRpcError(e) {
+  let status
+  let code
+  let url
+  let retryAfterMs = null
+  let netCode
+  let detail = null
+  let explicit = null
+  let http = false
+  let timeoutNamed = false
+  const texts = []
+  for (let x = e, i = 0; x && i < 12; x = x.cause, i++) {
+    if (typeof x !== 'object' && typeof x !== 'function') {
+      texts.push(String(x))
+      break
+    }
+    if (!explicit && typeof x.rpcKind === 'string' && x.rpcKind) explicit = x.rpcKind
+    if (status === undefined && Number.isInteger(x.status) && x.status >= 100) status = x.status
+    if (status === undefined && Number.isInteger(x.rpcHttpStatus)) status = x.rpcHttpStatus
+    if (code === undefined && typeof x.code === 'number') code = x.code
+    if (netCode === undefined && typeof x.code === 'string' && /^[A-Z][A-Z0-9_]{2,}$/.test(x.code))
+      netCode = x.code
+    if (!url && typeof x.url === 'string') url = x.url
+    if (/HttpRequestError/.test(String(x.name ?? ''))) http = true
+    if (/TimeoutError/.test(String(x.name ?? ''))) timeoutNamed = true
+    let ra = null
+    try {
+      ra = parseRetryAfter(x.headers?.get?.('retry-after'))
+    } catch {
+      ra = null
+    }
+    ra ??= parseRetryAfter(x.rpcRetryAfter)
+    const bo = x.data?.backoff_seconds ?? x.data?.data?.backoff_seconds
+    if (ra === null && Number.isFinite(Number(bo)) && bo !== null) ra = Number(bo) * 1000
+    if (ra !== null && retryAfterMs === null) retryAfterMs = ra
+    const t = `${x.details ?? ''}\n${x.shortMessage ?? ''}\n${x.message ?? ''}`
+    texts.push(t)
+    if (detail === null)
+      for (const c of [x.details, x.shortMessage, x.message]) {
+        const s = typeof c === 'string' ? c.split('\n')[0].trim() : ''
+        if (s && !GENERIC_RE.test(s)) {
+          detail = s
+          break
+        }
+      }
+  }
+  const text = texts.join('\n')
+  if (status === undefined) {
+    const m = /\bStatus:? (\d{3})\b|\bHTTP (\d{3})\b/.exec(text)
+    if (m) status = Number(m[1] ?? m[2])
+  }
+  if (retryAfterMs === null) {
+    const m = /retry (?:in|after) (\d+(?:\.\d+)?) ?(ms|s|sec|secs|seconds?)?\b/i.exec(text)
+    if (m) retryAfterMs = Math.round(Number(m[1]) * (m[2] === 'ms' ? 1 : 1000))
+  }
+  let kind
+  if (isRevertError(e)) kind = 'revert'
+  else if (RANGE_RE.test(text) && status !== 429) kind = 'range'
+  else if (status === 429 || code === -32005 || RATE_RE.test(text)) kind = 'rate-limit'
+  else if (status !== undefined && (status >= 500 || status === 408)) kind = 'server'
+  else if (explicit) kind = explicit
+  else if (timeoutNamed || TIMEOUT_RE.test(text)) kind = 'timeout'
+  else if (code === -32603) kind = 'internal'
+  else if (http && status === undefined) kind = 'network'
+  else kind = 'other'
+  return { kind, status, code, url, retryAfterMs, netCode, detail }
+}
+
+/** Tries per kind: deterministic answers once, transient failures `tries` times. */
+export function triesFor(kind, tries) {
+  switch (kind) {
+    case 'revert':
+    case 'range':
+      return 1
+    case 'rate-limit':
+    case 'server':
+    case 'network':
+      return tries
+    case 'timeout':
+    case 'internal':
+    case 'unserved':
+      return Math.min(tries, 3)
+    default:
+      return Math.min(tries, 2)
+  }
+}
+
+/**
+ * One RPC read, retried by what failed (`triesFor`): exponential backoff from `baseMs`, doubled
+ * per try and jittered to [½, 1] of it, each wait ≤ `capMs`, a Retry-After (header, Infura's
+ * `backoff_seconds`, "retry in Ns") honoured as a floor, and all waits of the call ≤ `budgetMs`.
+ * Throws the last error. `opts` override `rpcTuning()`; `onRetry({ attempt, kind, delayMs })`.
+ */
+export async function retryRpc(fn, opts = {}) {
+  const t = { ...rpcTuning(), ...opts }
+  const rnd = t.random ?? Math.random
+  let waited = 0
+  for (let i = 0; ; i++) {
+    const ctx = {}
+    try {
+      return await httpCtx.run(ctx, fn)
+    } catch (e) {
+      if (ctx.status && e && typeof e === 'object')
+        try {
+          e.rpcHttpStatus ??= ctx.status
+          if (ctx.retryAfter) e.rpcRetryAfter ??= ctx.retryAfter
+        } catch {
+          /* a frozen error: classified without the noted status */
+        }
+      const c = classifyRpcError(e)
+      if (i + 1 >= triesFor(c.kind, t.tries)) throw e
+      const exp = Math.min(t.capMs, t.baseMs * 2 ** i)
+      let d = exp / 2 + rnd() * (exp / 2)
+      if (c.retryAfterMs !== null) d = Math.max(d, Math.min(c.retryAfterMs, t.capMs))
+      if (waited + d > t.budgetMs) throw e
+      waited += d
+      t.onRetry?.({ attempt: i + 1, kind: c.kind, delayMs: d })
+      await sleep(d)
+    }
+  }
+}
+
+const KIND_TEXT = {
+  revert: () => 'reverted',
+  range: () => 'block range refused',
+  'rate-limit': (c) => (c.code !== undefined ? `rate limited (RPC ${c.code})` : 'rate limited'),
+  server: () => 'server error',
+  network: (c) => `HTTP request failed (no response${c.netCode ? `, ${c.netCode}` : ''})`,
+  timeout: () => 'timeout',
+  internal: (c) => `RPC internal error (${c.code ?? -32603})`,
+  unserved: () => 'not served',
+  other: (c) => (c.code !== undefined ? `RPC error ${c.code}` : null),
+}
+/**
+ * A failed read in words: "HTTP 429 from infura.io (cross-check)", "timeout from ankr.com
+ * (primary)", "rate limited (RPC -32005) from infura.io (cross-check): <provider text>". The
+ * host is `label` (the client's) or the error's own URL as a LABEL; `role` names the endpoint's
+ * part (primary / cross-check / state). Scrubbed: no URL, subdomain, path, port or key.
+ */
+export function describeRpcError(e, { label, role } = {}) {
+  if (e?.rpcDescribed) return scrub(e.message)
+  const c = classifyRpcError(e)
+  const host = label ?? (c.url ? hostLabel(c.url) : null)
+  let head = c.status !== undefined ? `HTTP ${c.status}` : KIND_TEXT[c.kind]?.(c)
+  let detail = c.detail
+  if (!head) {
+    head = detail ?? String(e?.message ?? e ?? 'read failed')
+    detail = null
+  }
+  if (detail && (detail.toLowerCase() === head.toLowerCase() || /^HTTP \d{3}$/i.test(detail)))
+    detail = null
+  const where = `${host ? ` from ${host}` : ''}${role ? ` (${role})` : ''}`
+  const d = detail ? `: ${scrub(detail).slice(0, 80)}` : ''
+  return scrub(`${head}${where}${d}`)
+}
+/**
+ * The error a read throws after its retries: message = `describeRpcError`, the original as
+ * `cause` (so `isRevertError` still sees a revert), `rpcKind` / `rpcStatus` for callers.
+ */
+export function rpcFailure(e, { client, role, label } = {}) {
+  if (e?.rpcDescribed) return e
+  const msg = describeRpcError(e, {
+    label: label ?? client?.rpcLabel,
+    role: role ?? client?.rpcRole,
+  })
+  const c = classifyRpcError(e)
+  const err = new Error(msg, { cause: e })
+  err.name = 'RpcReadFailure'
+  err.shortMessage = msg
+  err.rpcDescribed = true
+  err.rpcFailedKind = c.kind
+  if (c.status !== undefined) err.rpcStatus = c.status
+  return err
+}
+
+/**
+ * A per-host limiter: at most `maxInFlight` requests at once, request STARTS at least
+ * `minIntervalMs` apart, FIFO. `penalize(ms)` holds every later start (a Retry-After). The queued
+ * function runs in its caller's async context (the attempt's HTTP-status note).
+ */
+export function createLimiter({ minIntervalMs = 0, maxInFlight = 1 } = {}) {
+  const queue = []
+  let active = 0
+  let nextAt = 0
+  let timer = null
+  const pump = () => {
+    while (active < maxInFlight && queue.length) {
+      const wait = nextAt - Date.now()
+      if (wait > 0) {
+        if (!timer)
+          timer = setTimeout(() => {
+            timer = null
+            pump()
+          }, wait)
+        return
+      }
+      const job = queue.shift()
+      active++
+      nextAt = Date.now() + minIntervalMs
+      Promise.resolve()
+        .then(job.fn)
+        .then(job.resolve, job.reject)
+        .then(() => {
+          active--
+          pump()
+        })
+    }
+  }
+  return {
+    minIntervalMs,
+    run(fn) {
+      return new Promise((resolve, reject) => {
+        queue.push({ fn: AsyncResource.bind(fn), resolve, reject })
+        pump()
+      })
+    },
+    penalize(ms) {
+      if (ms > 0) nextAt = Math.max(nextAt, Date.now() + ms)
+    },
+    get pending() {
+      return queue.length + active
+    },
+  }
+}
+const limiters = new Map()
+/** The process-wide limiter of a URL's host (shared by every client that reaches that host). */
+export function hostLimiter(url, opts) {
+  let k
+  try {
+    k = new URL(String(url)).host
+  } catch {
+    k = String(url)
+  }
+  if (!limiters.has(k)) limiters.set(k, createLimiter(opts))
+  return limiters.get(k)
+}
+/**
+ * A viem transport whose every request goes through `limiter`. A rate-limited answer holds the
+ * whole host for its Retry-After (else two intervals).
+ */
+export function pacedTransport(transport, limiter) {
+  return (opts) => {
+    const t = transport(opts)
+    return {
+      ...t,
+      request: (args, o) =>
+        limiter.run(async () => {
+          try {
+            return await t.request(args, o)
+          } catch (e) {
+            const c = classifyRpcError(e)
+            if (c.kind === 'rate-limit') {
+              const ra = c.retryAfterMs ?? parseRetryAfter(httpCtx.getStore()?.retryAfter)
+              limiter.penalize(
+                Math.min(ra ?? 2 * limiter.minIntervalMs, rpcTuning().capMs || Infinity),
+              )
+            }
+            throw e
+          }
+        }),
+    }
+  }
+}
 
 export async function retry(fn, tries = 3, base = 400) {
   let last
@@ -70,22 +554,12 @@ export function ethereumClients() {
     .map((s) => s.trim())
     .filter(Boolean)
   if (!urls.length) throw new Error('RECORDER_RPC_URL missing from .env.local')
+  // lane T: every key-bearing part of these URLs is redacted from any message (`scrub`)
+  registerRpcSecrets(urls)
   const logUrls = [
     ...urls.filter((u) => hostOf(u).includes('ankr')),
     ...urls.filter((u) => hostOf(u).includes('infura')),
   ]
-  const mk = (list, timeout) =>
-    createPublicClient({
-      chain: chainDef(1, list),
-      transport:
-        list.length === 1
-          ? http(list[0], { timeout, retryCount: 1 })
-          : fallback(
-              list.map((u) => http(u, { timeout, retryCount: 1 })),
-              { rank: false },
-            ),
-      batch: { multicall: false },
-    })
   // Archive reads go to the keyed endpoint first (the free tiers refuse old blocks).
   const ordered = [...logUrls, ...urls.filter((u) => !logUrls.includes(u))]
   // UQ-23: two INDEPENDENT log endpoints (no fallback between them), so an empty answer from
@@ -100,11 +574,39 @@ export function ethereumClients() {
     throw new Error(
       'RECORDER_RPC_URL needs two distinct log hosts (an empty getLogs answer is confirmed on the second; an endpoint never cross-checks itself)',
     )
+  // lane T (2026-10-11): the cross-check host is PACED — one request in flight, starts at least
+  // ORACLE_REGISTRY_XCHECK_INTERVAL_MS apart (1 req/s), shared by every client that reaches that
+  // host (the state ring and the logs fallback include it). Its viem-internal retry is off: each
+  // retry is `retryRpc`'s, and each one is paced. The primary keeps its concurrency.
+  const xHost = hostOf(pair[1])
+  const xLimiter = hostLimiter(pair[1], { minIntervalMs: rpcTuning().crossCheckIntervalMs })
+  const tr = (u, timeout) => {
+    const paced = hostOf(u) === xHost
+    const h = http(u, { timeout, retryCount: paced ? 0 : 1, fetchFn: notingFetch })
+    return paced ? pacedTransport(h, xLimiter) : h
+  }
+  const mk = (list, timeout, role) => {
+    const c = createPublicClient({
+      chain: chainDef(1, list),
+      transport:
+        list.length === 1
+          ? tr(list[0], timeout)
+          : fallback(
+              list.map((u) => tr(u, timeout)),
+              { rank: false },
+            ),
+      batch: { multicall: false },
+    })
+    // the provider LABEL (registrable domain) of a one-host client, and the endpoint's part
+    if (list.length === 1) c.rpcLabel = hostLabel(list[0])
+    c.rpcRole = role
+    return c
+  }
   return {
-    state: mk(ordered, 30_000),
-    logs: mk(logUrls.length ? logUrls : urls, 45_000),
-    logsPrimary: mk([pair[0]], 45_000),
-    logsSecondary: mk([pair[1]], 45_000),
+    state: mk(ordered, 30_000, 'state'),
+    logs: mk(logUrls.length ? logUrls : urls, 45_000, 'logs'),
+    logsPrimary: mk([pair[0]], 45_000, 'primary'),
+    logsSecondary: mk([pair[1]], 45_000, 'cross-check'),
   }
 }
 
@@ -147,7 +649,7 @@ async function secondaryPieces(client, q) {
     out.push({
       fromBlock: a,
       toBlock: b,
-      logs: await getLogsOnce(client, { ...q, fromBlock: a, toBlock: b }),
+      logs: await getLogsOnce(client, { ...q, fromBlock: a, toBlock: b }, 'cross-check'),
     })
   }
   return out
@@ -170,7 +672,7 @@ export async function crossCheckedLogs(primary, secondary, q, depth = 0) {
   let a = null
   let aErr = null
   try {
-    a = await getLogsOnce(primary, q)
+    a = await getLogsOnce(primary, q, 'primary')
   } catch (e) {
     aErr = e
   }
@@ -205,7 +707,11 @@ export async function crossCheckedLogs(primary, secondary, q, depth = 0) {
     }
     if (primaryEmptyHolds) continue // both endpoints answered this range empty
     // asked again on the first endpoint, for exactly this piece (throws when it fails)
-    const again = await getLogsOnce(primary, { ...q, fromBlock: p.fromBlock, toBlock: p.toBlock })
+    const again = await getLogsOnce(
+      primary,
+      { ...q, fromBlock: p.fromBlock, toBlock: p.toBlock },
+      'primary',
+    )
     if (again.length) {
       out.push(...again)
       corrected = true
@@ -225,18 +731,28 @@ export function publicClient(chainId, urls) {
   })
 }
 
-/** One raw eth_getLogs request (retried, never split). */
-async function getLogsOnce(client, { address, topics0, fromBlock, toBlock }) {
+/**
+ * One raw eth_getLogs request (retried, never split). Lane T: retried by what failed
+ * (`retryRpc`: 429 / 5xx / timeout / no response with backoff, a refused range not at all — the
+ * caller splits it); the final error names the host LABEL, the endpoint's `role` and the HTTP
+ * status or error class (`rpcFailure`).
+ */
+async function getLogsOnce(client, { address, topics0, fromBlock, toBlock }, role) {
   const hx = (n) => '0x' + BigInt(n).toString(16)
-  return retry(async () => {
-    const r = await client.request({
-      method: 'eth_getLogs',
-      params: [{ address, topics: [topics0], fromBlock: hx(fromBlock), toBlock: hx(toBlock) }],
+  try {
+    return await retryRpc(async () => {
+      const r = await client.request({
+        method: 'eth_getLogs',
+        params: [{ address, topics: [topics0], fromBlock: hx(fromBlock), toBlock: hx(toBlock) }],
+      })
+      // fail-closed audit (EV-03): null / {} is a FAILED read, never an empty answer
+      if (!Array.isArray(r))
+        throw Object.assign(new Error('non-array eth_getLogs answer'), { rpcKind: 'unserved' })
+      return r
     })
-    // fail-closed audit (EV-03): null / {} is a FAILED read, never an empty answer
-    if (!Array.isArray(r)) throw new Error('non-array eth_getLogs answer')
-    return r
-  }, 2)
+  } catch (e) {
+    throw rpcFailure(e, { client, role })
+  }
 }
 
 /**
@@ -360,7 +876,10 @@ export async function scanLogs({
         })
         raw.push(...r.logs)
       } catch (e) {
-        error = scrub(e?.shortMessage || e?.message || e)
+        // lane T: the gap says which host failed and how (status / error class), never a URL.
+        // A failure is a gap even when it describes as nothing (second review: an error whose
+        // message starts with a newline described as "" and the chunk counted as confirmed).
+        error = describeRpcError(e) || 'read failed (no error text)'
       }
     }
     const rows = []
@@ -490,24 +1009,24 @@ export function revertSelectorOf(e) {
  */
 export async function tryRead(client, address, abi, functionName, args = [], blockNumber) {
   try {
-    const value = await retry(
-      () =>
-        client.readContract({
-          address,
-          abi,
-          functionName,
-          args,
-          blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
-        }),
-      2,
-      300,
+    // lane T: a revert is answered once (deterministic); 429 / 5xx / timeouts back off
+    const value = await retryRpc(() =>
+      client.readContract({
+        address,
+        abi,
+        functionName,
+        args,
+        blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
+      }),
     )
     return { ok: true, value }
   } catch (e) {
     const reverted = isRevertError(e)
     return {
       ok: false,
-      error: scrub(e?.shortMessage || e?.message || e),
+      error: reverted
+        ? scrub(e?.shortMessage || e?.message || e)
+        : describeRpcError(e, { label: client?.rpcLabel, role: client?.rpcRole }),
       reverted,
       ...(reverted ? { revertSelector: revertSelectorOf(e) } : {}),
     }
@@ -521,19 +1040,27 @@ export async function tryRead(client, address, abi, functionName, args = [], blo
  * weakest-holder bar and moved code bisections.
  */
 export async function codeAt(client, address, blockNumber) {
-  const c = await retry(
-    async () => {
+  // lane T: the deploy-block bisection and its confirmation on the two log endpoints read here —
+  // retried with backoff (`retryRpc`); the final error names the host label and the status
+  let c
+  try {
+    c = await retryRpc(async () => {
       const x = await client.getCode({
         address,
         blockNumber: blockNumber === undefined ? undefined : BigInt(blockNumber),
       })
-      if (x === null) throw new Error(`eth_getCode of ${address} answered null (not served)`)
+      if (x === null)
+        throw Object.assign(new Error(`eth_getCode of ${address} answered null (not served)`), {
+          rpcKind: 'unserved',
+        })
       if (x !== undefined && typeof x !== 'string')
-        throw new Error(`eth_getCode of ${address} answered a non-string`)
+        throw Object.assign(new Error(`eth_getCode of ${address} answered a non-string`), {
+          rpcKind: 'unserved',
+        })
       return x
-    },
-    3,
-    300,
-  )
+    })
+  } catch (e) {
+    throw rpcFailure(e, { client })
+  }
   return c && c !== '0x' ? c : null
 }

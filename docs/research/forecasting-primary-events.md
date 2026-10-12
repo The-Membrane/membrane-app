@@ -12,6 +12,17 @@ asset, unit or version cannot receive those facts. At most twenty facts are
 returned, after the collection became available. These old configuration
 changes do not establish today's configuration; the source lacks block hashes.
 
+The actual API also returns `conditionalScenarios` for the latest recorded
+pause and freeze parameter separately, selected before the twenty-fact display
+limit. Each preserves original bounded typed event arguments and source block/
+log index. The explicit assumption is that this last recorded parameter remains
+unchanged through issue+H. A true pause conditionally bounds deposits and exits
+at zero; a true freeze bounds new deposits at zero while imposing no withdrawal
+bound from that parameter. A false flag imposes no bound from that flag and
+does not establish an executable deposit or exit. Other protocol checks and
+current configuration remain unknown. The dataset contains no supply-cap event,
+so no cap amount or NET flow magnitude is invented.
+
 This follows Q13's measured-change layer. The separately authored Wire branch
 `7c9112d` is recorded on the synced board, but its git object is not in this
 checkout. None of its code or board prose has been overwritten. Its anomaly

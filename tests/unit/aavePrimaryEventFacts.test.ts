@@ -14,9 +14,22 @@ describe('genuine pinned Aave primary governance facts', () => {
       expect(f.publishedAtUtc).toBeNull()
     }
     expect(r.scenario).toBeNull(); expect(r.currentConfigurationKnown).toBe(false)
+    expect(r.conditionalScenarios.length).toBeGreaterThan(0)
+    expect(new Set(r.conditionalScenarios.map(s => s.parameter)).size).toBe(r.conditionalScenarios.length)
+    for (const s of r.conditionalScenarios) {
+      expect(s.sourceEvent.affected.asset).toBe(q.payoutAsset)
+      expect(s.sourceEvent.originalArgs[s.parameter]).toBe(s.value)
+      expect(s.currentConfigurationKnown).toBe(false)
+      expect(s.targetAtUtc).toBe('2026-10-14T12:00:00.000Z')
+      expect(s.initialDepositUpperBoundRaw).toBe(s.value ? '0' : null)
+      expect(s.holderExitUpperBoundRaw).toBe(s.parameter === 'paused' && s.value ? '0' : null)
+      const displayedSameParameter = r.facts.filter(f => f.title === s.sourceEvent.title)
+      for (const f of displayedSameParameter) expect(BigInt(f.block)).toBeLessThanOrEqual(BigInt(s.sourceEvent.block))
+    }
   })
   it('does not use a future collection or cross-bind another asset, version or contract', () => {
     expect(readAavePrimaryEventFacts(q, Date.parse('2026-10-11T12:00:00Z')).facts).toEqual([])
+    expect(readAavePrimaryEventFacts(q, Date.parse('2026-10-11T12:00:00Z')).conditionalScenarios).toEqual([])
     for (const bad of [{ ...q, payoutAsset: '0x' + '1'.repeat(40) }, { ...q, destination: '0x' + '2'.repeat(40) },
       { ...q, routeKey: 'USDC → MorphoVaultV2' }, { ...q, assetDecimals: 18 }])
       expect(readAavePrimaryEventFacts(bad, Date.parse('2026-10-12T12:00:00Z')).status).toBe('subject_not_enrolled')

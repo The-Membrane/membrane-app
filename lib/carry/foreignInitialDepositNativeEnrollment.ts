@@ -25,7 +25,10 @@ export function enrollForeignInitialDepositNativeReceipt(
   qualifyOriginal: (q: ForeignInitialDepositQuestion, origins: readonly [ForeignInitialDepositMethodOrigin, ForeignInitialDepositMethodOrigin]) => boolean,
 ): ForeignInitialDepositNativeReceipt | null {
   try {
-    if (!qualifyOriginal(question, origins)) return null
+    if (!qualifyOriginal(question, origins) || !question.originalDeposit ||
+        !/^0x[a-f0-9]{40}$/.test(question.originalDeposit.asset) ||
+        !Number.isInteger(question.originalDeposit.decimals) || question.originalDeposit.decimals < 0 || question.originalDeposit.decimals > 36 ||
+        !raw(question.originalDeposit.raw) || question.originalDeposit.raw === '0') return null
     const [a,b] = origins
     if (!hash(a.hostSha256) || !hash(b.hostSha256) || a.hostSha256 === b.hostSha256 ||
         !equal(a.source, question.source) || !equal(b.source, question.source) ||

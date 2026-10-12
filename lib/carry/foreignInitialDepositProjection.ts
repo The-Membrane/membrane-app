@@ -8,7 +8,16 @@ export const FOREIGN_INITIAL_DEPOSIT_MECHANISMS = [
 ] as const
 export const foreignInitialDepositMechanism=(routeKey:string,destination:string)=>FOREIGN_INITIAL_DEPOSIT_MECHANISMS.find(m=>m.routeKey===routeKey&&m.destination===destination.toLowerCase())
 export type ForeignInitialDepositSource={chainId:1;block:string;blockHash:string;blockTime:string;readAt:string}
-export type ForeignInitialDepositQuestion={routeKey:string;destination:string;nativeDepositRaw:string;nativeDecimals:number;plannedFinalExitRaw:string;finalDecimals:number;receiver:string|null;horizonHours:number;issuedAtUtc:string;source:ForeignInitialDepositSource}
+export type ForeignInitialDepositQuestion={routeKey:string;destination:string;
+ /** The amount entered in the original route asset. Never reused as native raw D. */
+ originalDeposit:{asset:string;decimals:number;raw:string};
+ nativeDepositRaw:string;nativeDecimals:number;plannedFinalExitRaw:string;finalDecimals:number;receiver:string|null;horizonHours:number;issuedAtUtc:string;source:ForeignInitialDepositSource}
+export type ForeignInitialDepositAcquisition={
+ kind:'exact_original_to_native_source_quote'|'declared_original_to_native_funding_scenario';
+ inputAsset:string;inputDecimals:number;inputRaw:string;outputAsset:string;outputDecimals:number;outputRaw:string;
+ source:ForeignInitialDepositSource;availableAtUtc:string;provenanceRef:string;
+ declaredBy:'user'|'research'|null;assumptions:string[];
+}
 export type ForeignInitialDepositNativeReceipt={question:ForeignInitialDepositQuestion;nativeAsset:string;mintedSharesRaw:string;shareDecimals:number;fullNativeEntitlementRaw:string;maxDepositRaw:string|null;maxDepositStatus:'quoted'|'unavailable'|'not_requested';acquiredAtUtc:string;origins:[string,string];method:'previewDeposit_D_then_previewRedeem_full_minted_S';evidenceRefs:string[]}
 export type ForeignInitialDepositConversion = {
  kind:'exact_source_quote'|'explicit_conditional_rate_fee_scenario';inputAsset:string;outputAsset:string;
@@ -36,13 +45,23 @@ export function foreignInitialDepositRateScenario(receipt:ForeignInitialDepositN
  }catch{return null}
 }
 /** Qualify original native reads and exact quote receipts before any clone/transport. */
-export function buildForeignInitialDepositProjection(input:{question:ForeignInitialDepositQuestion;nativeReceipt:ForeignInitialDepositNativeReceipt|null;conversion:ForeignInitialDepositConversion|null},qualifyOriginal:(v:typeof input)=>boolean,qualifyExactQuote:(v:ForeignInitialDepositConversion)=>boolean=()=>false){
+export function buildForeignInitialDepositProjection(input:{question:ForeignInitialDepositQuestion;nativeAcquisition:ForeignInitialDepositAcquisition|null;nativeReceipt:ForeignInitialDepositNativeReceipt|null;conversion:ForeignInitialDepositConversion|null},qualifyOriginal:(v:typeof input)=>boolean,qualifyExactQuote:(v:ForeignInitialDepositConversion)=>boolean=()=>false,qualifyAcquisitionQuote:(v:ForeignInitialDepositAcquisition)=>boolean=()=>false){
  try{
  if(!input||!qualifyOriginal(input)|| (input.nativeReceipt && !originalQualifiedForeignNativeReceipt(input.nativeReceipt)))return null
  const exactApproved=input.conversion?.kind==='exact_source_quote'&&qualifyExactQuote(input.conversion)
+ const acquisitionApproved=input.nativeAcquisition?.kind==='exact_original_to_native_source_quote'&&qualifyAcquisitionQuote(input.nativeAcquisition)
  input=structuredClone(input)
  const q=input.question,m=foreignInitialDepositMechanism(q.routeKey,q.destination),s=q.source,issue=Date.parse(q.issuedAtUtc)
- if(!m||!raw(q.nativeDepositRaw)||q.nativeDepositRaw==='0'||!raw(q.plannedFinalExitRaw)||q.plannedFinalExitRaw==='0'||!Number.isInteger(q.nativeDecimals)||q.nativeDecimals<0||q.nativeDecimals>36||q.nativeDecimals!==m.nativeDecimals||q.finalDecimals!==m.finalDecimals||!Number.isInteger(q.finalDecimals)||q.finalDecimals<0||q.finalDecimals>36||!Number.isFinite(q.horizonHours)||q.horizonHours<1||q.horizonHours>720||!utc(q.issuedAtUtc)||s.chainId!==1||!/^[1-9][0-9]*$/.test(s.block)||!/^0x[0-9a-f]{64}$/.test(s.blockHash)||!utc(s.blockTime)||!utc(s.readAt)||Date.parse(s.blockTime)>Date.parse(s.readAt)||Date.parse(s.readAt)>issue||issue-Date.parse(s.blockTime)>1800000||(q.receiver!==null&&!/^0x[0-9a-f]{40}$/.test(q.receiver)))return null
+ if(!m||!q.originalDeposit||q.originalDeposit.asset!==m.finalAsset||q.originalDeposit.decimals!==m.finalDecimals||!raw(q.originalDeposit.raw)||q.originalDeposit.raw==='0'||!raw(q.nativeDepositRaw)||q.nativeDepositRaw==='0'||!raw(q.plannedFinalExitRaw)||q.plannedFinalExitRaw==='0'||!Number.isInteger(q.nativeDecimals)||q.nativeDecimals<0||q.nativeDecimals>36||q.nativeDecimals!==m.nativeDecimals||q.finalDecimals!==m.finalDecimals||!Number.isInteger(q.finalDecimals)||q.finalDecimals<0||q.finalDecimals>36||!Number.isFinite(q.horizonHours)||q.horizonHours<1||q.horizonHours>720||!utc(q.issuedAtUtc)||s.chainId!==1||!/^[1-9][0-9]*$/.test(s.block)||!/^0x[0-9a-f]{64}$/.test(s.blockHash)||!utc(s.blockTime)||!utc(s.readAt)||Date.parse(s.blockTime)>Date.parse(s.readAt)||Date.parse(s.readAt)>issue||issue-Date.parse(s.blockTime)>1800000||(q.receiver!==null&&!/^0x[0-9a-f]{40}$/.test(q.receiver)))return null
+ const acquisition=input.nativeAcquisition
+ if(acquisition&&(!['exact_original_to_native_source_quote','declared_original_to_native_funding_scenario'].includes(acquisition.kind)||
+ acquisition.inputAsset!==q.originalDeposit.asset||acquisition.inputDecimals!==q.originalDeposit.decimals||acquisition.inputRaw!==q.originalDeposit.raw||
+ acquisition.outputAsset!==m.nativeAsset||acquisition.outputDecimals!==q.nativeDecimals||acquisition.outputRaw!==q.nativeDepositRaw||
+ semantic(acquisition.source)!==semantic(s)||!utc(acquisition.availableAtUtc)||Date.parse(acquisition.availableAtUtc)>issue||Date.parse(acquisition.availableAtUtc)<Date.parse(s.blockTime)||
+ !acquisition.provenanceRef||acquisition.provenanceRef.length>512||!Array.isArray(acquisition.assumptions)||acquisition.assumptions.some(x=>typeof x!=='string'||!x||x.length>512)||
+ (acquisition.kind==='exact_original_to_native_source_quote'?!acquisitionApproved||acquisition.declaredBy!==null:
+ !['user','research'].includes(acquisition.declaredBy??'')||!acquisition.assumptions.length)))return null
+ if(input.nativeReceipt&&!acquisition)return null
  const r=input.nativeReceipt
  if(r&&(semantic(r.question)!==semantic(q)||r.nativeAsset!==m.nativeAsset||!raw(r.mintedSharesRaw)||r.mintedSharesRaw==='0'||!raw(r.fullNativeEntitlementRaw)||!Number.isInteger(r.shareDecimals)||r.shareDecimals<0||r.shareDecimals>36||r.shareDecimals!==m.shareDecimals||!utc(r.acquiredAtUtc)||Date.parse(r.acquiredAtUtc)>issue||Date.parse(r.acquiredAtUtc)<Date.parse(s.blockTime)||r.origins.length!==2||r.origins[0]===r.origins[1]||r.origins.some(h=>!/^[a-f0-9]{64}$/.test(h))||r.method!=='previewDeposit_D_then_previewRedeem_full_minted_S'||r.evidenceRefs.length===0||r.evidenceRefs.some(x=>typeof x!=='string'||!x||x.length>512)||
  (q.receiver===null?(r.maxDepositRaw!==null||r.maxDepositStatus!=='not_requested'):r.maxDepositStatus==='quoted'?!raw(r.maxDepositRaw):r.maxDepositStatus!=='unavailable'||r.maxDepositRaw!==null)))return null
@@ -51,6 +70,10 @@ export function buildForeignInitialDepositProjection(input:{question:ForeignInit
  const output=c?BigInt(c.outputRaw):null
  return {schema:'foreign_initial_deposit_projection_v1' as const,status:'conditional_multi_leg_initial_deposit' as const,
  question:q,mechanism:m,nativeReceipt:r,
+ nativeAcquisition:{basis:acquisition?.kind??'original_to_native_acquisition_pending',
+ originalDeposit:q.originalDeposit,nativeDepositRaw:q.nativeDepositRaw,relationship:acquisition,
+ sourceQuoteQualified:!!acquisitionApproved,executed:false as const,
+ direction:'original_route_asset_to_native_deposit_asset' as const},
  firstLeg:{nativeAsset:m.nativeAsset,nativeDecimals:q.nativeDecimals,depositRaw:q.nativeDepositRaw,
  receiptStatus:r?'source_preview_qualified' as const:'required_native_preview_pending' as const,
  fullNativeEntitlementRaw:r?.fullNativeEntitlementRaw??null,
@@ -60,8 +83,8 @@ export function buildForeignInitialDepositProjection(input:{question:ForeignInit
  conditionalOutputRaw:c?.outputRaw??null,conditionalHeadroomRaw:output===null?null:String(output-BigInt(q.plannedFinalExitRaw)),
  basis:c?.kind??'conversion_dimensions_pending',conversion:c},
  duration:{sourceObservationAt:s.blockTime,mechanicalEarliestAt:null,recoveryForecast:null,reason:'queue_administration_maturity_and_conversion_availability_require_separate_terms'},
- originalLabelDepositAcquisition:'unassessed' as const,depositAdmitted:false as const,depositExecuted:false as const,
- nativeDeployedMethodsQualified:!!r,originalAssetAcquisitionQualified:false as const,allIntermediateLegsExecutable:false as const,
+ originalLabelDepositAcquisition:acquisitionApproved?'exact_source_quote_only' as const:acquisition?'declared_funding_scenario_only' as const:'unassessed' as const,depositAdmitted:false as const,depositExecuted:false as const,
+ nativeDeployedMethodsQualified:!!r,originalAssetAcquisitionQualified:!!acquisitionApproved,allIntermediateLegsExecutable:false as const,
  holderExecutableExit:false as const,forecastValidated:false as const,calibratedProbability:false as const}
  }catch{return null}
 }

@@ -29,7 +29,7 @@ function fixture(twyne:boolean):ExitPressureCardProps{
 }
 for(const twyne of [false,true]){
  it(`actual Card preserves ${twyne?'Twyne':'Hastra'} source identity when object property order changes`,()=>{
-  const p=fixture(twyne),assessment={...p.holderAssessment!,source:Object.fromEntries(Object.entries(p.holderAssessment!.source).reverse()) as typeof p.holderAssessment.source}
+  const p=fixture(twyne),assessment={...p.holderAssessment!,source:Object.fromEntries(Object.entries(p.holderAssessment!.source).reverse()) as NonNullable<ExitPressureCardProps['holderAssessment']>['source']}
   assert.match(render({...p,holderAssessment:assessment}),/Conditional final exit/)
  })
  it(`actual Card renders retained ${twyne?'Twyne':'Hastra'} final-asset mechanism without invented parity or final payment`,()=>{

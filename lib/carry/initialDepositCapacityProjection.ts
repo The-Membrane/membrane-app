@@ -1,5 +1,5 @@
 import { DIRECT_SUPPLY_MARKETS } from './directSupplyMarketConstants'
-import { compoundInitialDepositReceipt, selectedCompoundInitialDepositAgreement } from './compoundInitialDeposit'
+import { compoundReceiverInitialDepositReceipt, selectedCompoundInitialDepositAgreement } from './compoundInitialDeposit'
 import { ERC4626_INITIAL_DEPOSIT_MARKETS, selectedErc4626InitialDepositAgreement,erc4626InitialDepositMarket,initialDepositPreviewMechanism } from './erc4626InitialDeposit'
 import {
   selectedConditionalSampledCashPathProjection,
@@ -201,10 +201,10 @@ export function buildInitialDepositCapacityProjection(
       source,
       input.asOfMs,
     )
-    const compound = selectedCompoundInitialDepositAgreement(input.nativeAgreement,source,input.asOfMs)
-    const compoundReceipt=compound?compoundInitialDepositReceipt(input.depositAssetsRaw,compound.origins[0].facts.baseSupplyIndexRaw):null
     const receiver=input.receiver??null
     if(receiver!==null&&!/^0x[0-9a-f]{40}$/.test(receiver))return unavailable('invalid_initial_deposit_receiver')
+    const compound = selectedCompoundInitialDepositAgreement(input.nativeAgreement,source,input.asOfMs,receiver)
+    const compoundReceipt=compound?compoundReceiverInitialDepositReceipt(input.depositAssetsRaw,compound.origins[0].facts):null
     const erc4626=selectedErc4626InitialDepositAgreement(input.nativeAgreement,source,input.depositAssetsRaw,receiver,input.asOfMs)
     const ercReceipt=erc4626?{mintedSharesRaw:erc4626.origins[0].facts.mintedSharesRaw,entitlementRaw:erc4626.origins[0].facts.entitlementRaw}:null
     const receipt = ercReceipt ?? compoundReceipt ?? (native
@@ -301,7 +301,7 @@ export function buildInitialDepositCapacityProjection(
           sourcePreviewHeldConstant:true as const} : compoundReceipt && compound ? {status:'conditional_source_comet_principal_receipt' as const,
           ...compoundReceipt,baseSupplyIndexRaw:compound.origins[0].facts.baseSupplyIndexRaw,
           indexAt:source.blockTime,nativeFactsReadAt:compound.readAt,
-          indexPath:'held_constant_at_source_index' as const,newAccountWithoutDebtAssumed:true as const} : receipt && native
+          indexPath:'held_constant_at_source_index' as const,newAccountWithoutDebtAssumed:receiver===null} : receipt && native
           ? {
               status: 'conditional_source_indexed_receipt' as const,
               ...receipt,
@@ -311,7 +311,7 @@ export function buildInitialDepositCapacityProjection(
               indexPath: 'held_constant_at_source_index' as const,
             }
           : unavailable(
-              native
+              compound?.origins[0].facts.accountStatus==='unavailable' ? 'receiver_account_or_borrow_index_unavailable' : native
                 ? 'zero_scaled_mint_or_native_ray_overflow'
                 : input.nativeAgreement
                   ? 'native_facts_invalid_or_disagreeing'
@@ -320,14 +320,15 @@ export function buildInitialDepositCapacityProjection(
       admission: {
         status:
           active === false || frozen === true || paused === true || compound?.origins[0].facts.supplyPaused === true ||
-          (erc4626?.origins[0].facts.maxDepositRaw!=null&&BigInt(input.depositAssetsRaw)>BigInt(erc4626.origins[0].facts.maxDepositRaw)) || ((native || compound || erc4626) && !receipt)
+          (erc4626?.origins[0].facts.maxDepositRaw!=null&&BigInt(input.depositAssetsRaw)>BigInt(erc4626.origins[0].facts.maxDepositRaw)) || ((native || erc4626) && !receipt)
             ? ('blocked_under_reference_rules' as const)
             : ('unknown' as const),
         active,
         frozen,
         paused,
         compoundSupplyPaused:compound?.origins[0].facts.supplyPaused??null,
-        newAccountWithoutDebtAssumed:compound?true:null,
+        newAccountWithoutDebtAssumed:compound?receiver===null:null,
+        compoundReceiverAccountStatus:compound?.origins[0].facts.accountStatus??null,
         receiver,
         receiverMaxDepositRaw:erc4626?.origins[0].facts.maxDepositRaw??null,
         receiverMaxDepositStatus:erc4626?.origins[0].facts.maxDepositStatus??null,

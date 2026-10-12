@@ -27,6 +27,8 @@ const abi = parseAbi([
   'function totalsBasic() view returns (uint64 baseSupplyIndex,uint64 baseBorrowIndex,uint64 trackingSupplyIndex,uint64 trackingBorrowIndex,uint104 totalSupplyBase,uint104 totalBorrowBase,uint40 lastAccrualTime,uint8 pauseFlags)',
   'function getUtilization() view returns (uint256)',
   'function getSupplyRate(uint256) view returns (uint64)',
+  'function getBorrowRate(uint256) view returns (uint64)',
+  'function userBasic(address) view returns (int104 principal,uint64 baseTrackingIndex,uint64 baseTrackingAccrued,uint16 assetsIn,uint8 reserved)',
   'function asset() view returns (address)',
   'function previewDeposit(uint256) view returns (uint256)',
   'function previewRedeem(uint256) view returns (uint256)',
@@ -197,7 +199,19 @@ async function sourceNativeFacts(source, { origins, clock = Date.now,depositAsse
             !uint(stored)||!uint(last)||!uint(rate)||last>timestamp||rate>=1n<<64n)throw Error('native_compound_facts_invalid')
           const accrued=stored+stored*rate*(timestamp-last)/10n**18n
           if(accrued===0n||accrued>=1n<<64n)throw Error('native_compound_index_overflow')
-          return {comet:source.destination,asset:source.asset,assetDecimals:6,baseSupplyIndexRaw:String(accrued),supplyPaused:paused}
+          let accountStatus=receiver===null?'anonymous_reference':'unavailable',receiverPrincipalRaw=null,baseBorrowIndexRaw=null
+          if(receiver!==null){
+            if(!/^0x[0-9a-f]{40}$/.test(receiver))throw Error('native_compound_receiver_invalid')
+            try{
+              const user=await contract('userBasic',[receiver]),borrowRate=await contract('getBorrowRate',[utilization])
+              const principal=user[0],storedBorrow=totals[1]
+              if(typeof principal!=='bigint'||principal<-(1n<<103n)||principal>=1n<<103n||!uint(storedBorrow)||!uint(borrowRate)||borrowRate>=1n<<64n)throw Error('native_compound_account_invalid')
+              const accruedBorrow=storedBorrow+storedBorrow*borrowRate*(timestamp-last)/10n**18n
+              if(accruedBorrow===0n||accruedBorrow>=1n<<64n)throw Error('native_compound_borrow_index_invalid')
+              accountStatus='quoted';receiverPrincipalRaw=String(principal);baseBorrowIndexRaw=String(accruedBorrow)
+            }catch{read.guard()}
+          }
+          return {comet:source.destination,asset:source.asset,assetDecimals:6,baseSupplyIndexRaw:String(accrued),supplyPaused:paused,receiver,accountStatus,receiverPrincipalRaw,baseBorrowIndexRaw}
         }
         const reserve = await call(() =>
           client.readContract({
@@ -266,7 +280,7 @@ async function sourceNativeFacts(source, { origins, clock = Date.now,depositAsse
       })),
     }
     return (
-      (erc4626InitialDepositMarket(source.routeKey,source.destination) ? selectedErc4626InitialDepositAgreement(result,source,depositAssetsRaw,receiver,now) : source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(result,source,now) : selectedInitialDepositNativeAgreement(result, source, now)) ??
+      (erc4626InitialDepositMarket(source.routeKey,source.destination) ? selectedErc4626InitialDepositAgreement(result,source,depositAssetsRaw,receiver,now) : source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(result,source,now,receiver) : selectedInitialDepositNativeAgreement(result, source, now)) ??
       unavailable('native_facts_disagreeing')
     )
   } catch {
@@ -274,7 +288,7 @@ async function sourceNativeFacts(source, { origins, clock = Date.now,depositAsse
   }
 }
 
-/** At most eight sequential requests per origin, with one shared finite acquisition budget. */
+/** At most ten sequential requests per origin (receiver Comet), with one shared finite acquisition budget. */
 export async function readInitialDepositNativeFacts(source, options = {}) {
   const read = acquisition(options.signal)
   return boundedRead(read, () => sourceNativeFacts(source, options, read))
@@ -352,7 +366,7 @@ export async function readConfiguredInitialDepositNativeFacts(source, options = 
       options.cache !== false &&
       cached &&
       now - Date.parse(cached.readAt) <= CACHE_TTL &&
-      (erc4626InitialDepositMarket(source.routeKey,source.destination) ? selectedErc4626InitialDepositAgreement(cached,source,options.depositAssetsRaw,options.receiver??null,now) : source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(cached,source,now) : selectedInitialDepositNativeAgreement(cached, source, now))
+      (erc4626InitialDepositMarket(source.routeKey,source.destination) ? selectedErc4626InitialDepositAgreement(cached,source,options.depositAssetsRaw,options.receiver??null,now) : source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(cached,source,now,options.receiver??null) : selectedInitialDepositNativeAgreement(cached, source, now))
     )
       return structuredClone(cached)
     if (pending.has(key)) return sharedReadResult(pending.get(key), options.signal)

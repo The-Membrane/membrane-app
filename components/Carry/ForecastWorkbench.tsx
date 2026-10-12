@@ -1,3 +1,4 @@
+import { retainForeignFinalExit } from '@/lib/carry/foreignFinalExitReceipt'
 import { retainSaturnTicketMechanism } from '@/lib/carry/saturnTicketMechanismReceipt'
 import { retainNativeCashHolderOutlook } from '@/lib/carry/nativeCashHolderOutlookReceipt'
 import { installPinnedForecastArtifact } from '@/lib/carry/pinnedForecastArtifacts'
@@ -5375,7 +5376,11 @@ export const ForecastWorkbench: React.FC<{ chainName: string }> = ({ chainName }
           setLiveExit({
             status: 'assessment_result',
             assessment: withMatchingHolderMechanicalOutlook(
-              { ...result, saturnTicketMechanismIssue: retainSaturnTicketMechanism(
+              { ...result, foreignConditionalFinalExitIssue: retainForeignFinalExit(
+                (result as HolderExitAssessmentView).foreignConditionalFinalExit,response.status,result as HolderExitAssessmentView,{
+                  routeKey,destination,owner,requestedRaw:assessmentAssetsRaw,payoutAsset:request.payoutAsset,horizonHours,asOfMs:Date.now(),
+                  primeSharesRaw:primeSharesRaw??null,ptRaw:ptRaw??null,collateralVault:collateralVault??null,
+                }),saturnTicketMechanismIssue: retainSaturnTicketMechanism(
                 (result as HolderExitAssessmentView).saturnTicketMechanism,response.status,result as HolderExitAssessmentView,{
                   routeKey,destination,owner,requestedRaw:assessmentAssetsRaw,payoutAsset:request.payoutAsset,horizonHours,asOfMs:Date.now(),ticketId:requestTokenId??null,
                 }),nativeCashHolderOutlookIssue: retainNativeCashHolderOutlook(

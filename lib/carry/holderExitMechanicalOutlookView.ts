@@ -1,3 +1,5 @@
+import type { ForeignConditionalFinalExit } from './foreignFinalExitIssuer.server'
+import type { ForeignFinalExitIssue } from './foreignFinalExitReceipt'
 import type { SaturnOwnedTicketConditionalMechanism } from './saturnOwnedTicketConditionalMechanism'
 import type { SaturnTicketMechanismIssue } from './saturnTicketMechanismReceipt'
 import type { NativeCashHolderModel, NativeCashHolderOutlookIssue } from './nativeCashHolderOutlookReceipt'
@@ -20,6 +22,8 @@ export type HolderExitMechanicalEnvelope = {
   outlook: HolderExitMechanicalOutlook
 }
 export type HolderExitAssessmentView = HolderExitAssessment & {
+  foreignConditionalFinalExit?: ForeignConditionalFinalExit | null
+  foreignConditionalFinalExitIssue?: ForeignFinalExitIssue | null
   saturnTicketMechanism?: SaturnOwnedTicketConditionalMechanism | null
   saturnTicketMechanismIssue?: SaturnTicketMechanismIssue | null
   nativeCashHolderOutlookIssue?: NativeCashHolderOutlookIssue | null

@@ -1,6 +1,6 @@
 import {it,expect} from 'vitest'
 import {createHash} from 'node:crypto'
-import {ERC4626_INITIAL_DEPOSIT_MARKETS,selectedErc4626InitialDepositAgreement} from '@/lib/carry/erc4626InitialDeposit'
+import {ERC4626_INITIAL_DEPOSIT_MARKETS,selectedErc4626InitialDepositAgreement,initialDepositPreviewMechanism} from '@/lib/carry/erc4626InitialDeposit'
 import {readInitialDepositNativeFacts} from '@/scripts/research/carry-initial-deposit-native-facts.mjs'
 import {buildInitialDepositCapacityProjection} from '@/lib/carry/initialDepositCapacityProjection'
 import {buildConditionalSampledCashPathProjection,type ConditionalSampledCashHistory} from '@/lib/carry/conditionalSampledCashPathProjection'
@@ -22,8 +22,8 @@ function setup(m:typeof ERC4626_INITIAL_DEPOSIT_MARKETS[number],withReceiver=fal
  }}
  return{s,d,q,minted,ea,requests:()=>requests,options:{clock:()=>now,depositAssetsRaw:d,receiver:withReceiver?receiver:null,origins:[{url:'https://one.example',client},{url:'https://two.example',client}]}}
 }
-it('qualifies full minted receipt previews for all49Morpho and both savings vaults with genuine history, without rich profiles',async()=>{
- expect(ERC4626_INITIAL_DEPOSIT_MARKETS).toHaveLength(51)
+it('qualifies source receipt proxy plumbing for all60native vault subjects with genuine history, without claiming admission or exit mechanisms',async()=>{
+ expect(ERC4626_INITIAL_DEPOSIT_MARKETS).toHaveLength(60)
  expect(ERC4626_INITIAL_DEPOSIT_MARKETS.filter(m=>/VaultV2/.test(m.routeKey))).toHaveLength(49)
  const histories=Object.values(loadPinnedAudit().histories) as ConditionalSampledCashHistory[]
  for(const m of ERC4626_INITIAL_DEPOSIT_MARKETS){
@@ -42,6 +42,38 @@ it('qualifies full minted receipt previews for all49Morpho and both savings vaul
  expect(projection.process?.scenarios[0].points[0].headroomRaw).toBe(String(t.ea-BigInt(t.q)))
  expect(projection.admission.status).toBe('unknown');expect(projection.admission.receiverMaxDepositRaw).toBeNull()
  expect(projection.holderExecutableExit).toBe(false);expect(projection.depositAdmitted).toBe(false)
+ expect(projection.receiptMechanism?.nativeMethodSupport).toBe('requires_actual_two_origin_source_reads')
+ expect(projection.receiptMechanism?.receiptIsRouteExitCapacity).toBe(false)
+ }
+})
+it('preserves source receipt while refusing to invent an unsupported receiver cap, and abstains on absent mint preview',async()=>{
+ const t=setup(ERC4626_INITIAL_DEPOSIT_MARKETS[0],true)
+ const base=t.options.origins[0].client.readContract
+ for(const o of t.options.origins)o.client={...o.client,readContract:async(args:any)=>{
+   if(args.functionName==='maxDeposit')throw Error('unsupported_method')
+   return base(args)
+ }}
+ const a=await readInitialDepositNativeFacts(t.s,t.options)
+ expect(a.status).toBe('agreed_erc4626_initial_deposit_facts')
+ expect(a.origins[0].facts.maxDepositRaw).toBeNull();expect(a.origins[0].facts.maxDepositStatus).toBe('unavailable')
+ expect(selectedErc4626InitialDepositAgreement(a,t.s,t.d,receiver,now)).not.toBeNull()
+ for(const o of t.options.origins)o.client={...o.client,readContract:async(args:any)=>{
+   if(args.functionName==='previewDeposit')throw Error('unsupported_method')
+   return base(args)
+ }}
+ expect((await readInitialDepositNativeFacts(t.s,t.options)).status).toBe('unavailable')
+})
+it('keeps all9mechanism limitations explicit rather than labeling source previews as qualified route exits',()=>{
+ const expected:Record<string,string>={
+ 'apxUSD → ApyUSD [apxUSD]':'apy_deposit_preview_candidate','GHO → sGho [GHO]':'sgho_source_preview_candidate',
+ 'GHO → UmbrellaStakeToken [GHO]':'umbrella_source_preview_candidate','USDC → USD3 [USDC]':'usd3_strategy_preview_candidate',
+ 'USDe → Staked USDe [USDe]':'ethena_source_preview','USDC → Fluid USD Coin [USDC]':'fluid_ftoken_preview_candidate',
+ 'USDT → fToken [USDT]':'fluid_ftoken_preview_candidate','GHO → fToken [GHO]':'fluid_ftoken_preview_candidate',
+ 'USDC → FluidBridgeAggregatorProxy [USDC]':'fluid_bridge_preview_candidate'}
+ for(const [routeKey,kind]of Object.entries(expected)){
+ expect(ERC4626_INITIAL_DEPOSIT_MARKETS.some(m=>m.routeKey===routeKey)).toBe(true)
+ const mechanism=initialDepositPreviewMechanism(routeKey)
+ expect(mechanism.kind).toBe(kind);expect(mechanism.executable).toBe(false);expect(mechanism.limits.length).toBeGreaterThan(0)
  }
 })
 it('binds explicit receiver cap and D independently and rejects origin disagreements',async()=>{

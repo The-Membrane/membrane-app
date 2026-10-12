@@ -183,9 +183,10 @@ async function sourceNativeFacts(source, { origins, clock = Date.now,depositAsse
           const minted=await contract(source.destination,'previewDeposit',[BigInt(depositAssetsRaw)])
           if(typeof asset!=='string'||asset.toLowerCase()!==source.asset||Number(assetDecimals)!==source.assetDecimals||!Number.isInteger(Number(shareDecimals))||Number(shareDecimals)<0||Number(shareDecimals)>36||!uint(minted)||minted===0n)throw Error('native_erc4626_identity_or_mint_invalid')
           const ea=await contract(source.destination,'previewRedeem',[minted])
-          const max=receiver===null?null:await contract(source.destination,'maxDeposit',[receiver])
+          let max=null,maxDepositStatus=receiver===null?'not_requested':'unavailable'
+          if(receiver!==null){try{max=await contract(source.destination,'maxDeposit',[receiver]);maxDepositStatus='quoted'}catch{read.guard()}}
           if(!uint(ea)||ea===0n||(max!==null&&!uint(max)))throw Error('native_erc4626_preview_invalid')
-          return {vault:source.destination,asset:source.asset,assetDecimals:source.assetDecimals,shareDecimals:Number(shareDecimals),depositAssetsRaw,mintedSharesRaw:String(minted),entitlementRaw:String(ea),receiver,maxDepositRaw:max===null?null:String(max)}
+          return {vault:source.destination,asset:source.asset,assetDecimals:source.assetDecimals,shareDecimals:Number(shareDecimals),depositAssetsRaw,mintedSharesRaw:String(minted),entitlementRaw:String(ea),receiver,maxDepositRaw:max===null?null:String(max),maxDepositStatus}
         }
         if (source.routeKey === 'USDC → supply on Compound v3') {
           const contract = (functionName,args=[]) => call(()=>client.readContract({address:source.destination,abi,functionName,args,blockNumber}))

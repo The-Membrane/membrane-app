@@ -1,6 +1,6 @@
 import { DIRECT_SUPPLY_MARKETS } from './directSupplyMarketConstants'
 import { compoundInitialDepositReceipt, selectedCompoundInitialDepositAgreement } from './compoundInitialDeposit'
-import { ERC4626_INITIAL_DEPOSIT_MARKETS, selectedErc4626InitialDepositAgreement,erc4626InitialDepositMarket } from './erc4626InitialDeposit'
+import { ERC4626_INITIAL_DEPOSIT_MARKETS, selectedErc4626InitialDepositAgreement,erc4626InitialDepositMarket,initialDepositPreviewMechanism } from './erc4626InitialDeposit'
 import {
   selectedConditionalSampledCashPathProjection,
   type ConditionalSampledCashCurrentSource,
@@ -330,7 +330,8 @@ export function buildInitialDepositCapacityProjection(
         newAccountWithoutDebtAssumed:compound?true:null,
         receiver,
         receiverMaxDepositRaw:erc4626?.origins[0].facts.maxDepositRaw??null,
-        receiverCapAssessment:erc4626?(receiver?'source_maxDeposit_only_other_admission_rules_unassessed':'anonymous_preview_receiver_admission_unassessed'):null,
+        receiverMaxDepositStatus:erc4626?.origins[0].facts.maxDepositStatus??null,
+        receiverCapAssessment:erc4626?(erc4626.origins[0].facts.maxDepositStatus==='quoted'?'source_maxDeposit_only_other_admission_rules_unassessed':'receiver_admission_unassessed'):null,
         supplyCapAssetsRaw:
           flags === null ? null : String(((flags >> 116n) & ((1n << 36n) - 1n)) * 10n ** BigInt(source.assetDecimals)),
         scaledTotalSupplyRaw: native?.origins[0].facts.scaledTotalSupplyRaw ?? null,
@@ -339,6 +340,8 @@ export function buildInitialDepositCapacityProjection(
         deployedVersionEquivalence: 'conditional_unverified' as const,
       },
       nativeAgreement: native ?? compound ?? erc4626,
+      receiptMechanism:erc4626InitialDepositMarket(source.routeKey,source.destination)?initialDepositPreviewMechanism(source.routeKey):null,
+      executionLimits:erc4626?['source_preview_receipt_only_not_route_exit_capacity','cooldown_queue_receipt_fees_and_slashing_unmodeled','adapter_pullability_cash_retention_and_future_permissions_unmodeled']:[],
       cashOnlyProcess,
       process,
       evidence: structuredClone(cash.evidence),

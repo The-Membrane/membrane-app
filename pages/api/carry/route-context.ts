@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { readAavePrimaryEventFacts } from '@/lib/carry/aavePrimaryEventFacts.server'
 
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -772,7 +773,8 @@ export function createRouteContextHandler(readers: SourceReaders = DEFAULT_READE
     return res
       .status(200)
       .json(
-        buildRouteEventContext(question, venue, { event, news, capacity }, nowMs, newsSource.id),
+        { ...buildRouteEventContext(question, venue, { event, news, capacity }, nowMs, newsSource.id),
+          primaryEvents: readAavePrimaryEventFacts(question, nowMs) },
       )
   }
 }

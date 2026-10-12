@@ -1,4 +1,5 @@
 import type { CarryForecastRegistry } from './forecastRegistry'
+import type { readAavePrimaryEventFacts } from './aavePrimaryEventFacts.server'
 import { resolveRouteNewsSource } from './routeNewsSources'
 
 const ADDRESS = /^0x[0-9a-f]{40}$/
@@ -123,6 +124,7 @@ type ContextCapacity =
   | { status: 'source_unavailable'; reason: 'source_unavailable' }
 
 export type RouteEventContext = {
+  primaryEvents?: ReturnType<typeof readAavePrimaryEventFacts>
   status: 'route_event_context'
   question: RouteEventQuestion
   venue: string | null

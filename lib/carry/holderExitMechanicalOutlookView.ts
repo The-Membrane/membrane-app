@@ -1,4 +1,6 @@
-import type { NativeCashHolderOutlookIssue } from './nativeCashHolderOutlookReceipt'
+import type { SaturnOwnedTicketConditionalMechanism } from './saturnOwnedTicketConditionalMechanism'
+import type { SaturnTicketMechanismIssue } from './saturnTicketMechanismReceipt'
+import type { NativeCashHolderModel, NativeCashHolderOutlookIssue } from './nativeCashHolderOutlookReceipt'
 import type { HolderExitCapacityAgreement } from './holderExitCapacity'
 import type { FixedEntitlementCashOutlook } from './fixedEntitlementCashOutlook'
 import type { HolderExitAssessment } from './holderExitAssessment'
@@ -18,8 +20,10 @@ export type HolderExitMechanicalEnvelope = {
   outlook: HolderExitMechanicalOutlook
 }
 export type HolderExitAssessmentView = HolderExitAssessment & {
+  saturnTicketMechanism?: SaturnOwnedTicketConditionalMechanism | null
+  saturnTicketMechanismIssue?: SaturnTicketMechanismIssue | null
   nativeCashHolderOutlookIssue?: NativeCashHolderOutlookIssue | null
-  nativeCashHolderOutlook?: (FixedEntitlementCashOutlook & { owner: string; nativeSharesRaw: string }) | null
+  nativeCashHolderOutlook?: NativeCashHolderModel | null
   mechanicalOutlook?: HolderExitMechanicalEnvelope | null
   capacityAgreement?: HolderExitCapacityAgreement
   executionAgreement?: HolderExitConditionalProjectionEvidence

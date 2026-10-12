@@ -1,3 +1,5 @@
+import { selectedPrimaryProtocolRules } from '@/lib/carry/primaryProtocolRules'
+import { selectedSaturnTicketMechanism } from '@/lib/carry/saturnTicketMechanismReceipt'
 import { selectedNativeCashHolderOutlook } from '@/lib/carry/nativeCashHolderOutlookReceipt'
 import { hasPinnedForecastArtifact } from '@/lib/carry/pinnedForecastArtifacts'
 import React, { useMemo } from 'react'
@@ -2354,7 +2356,7 @@ export function nativeHistoricalRecoveryRow(value: NonNullable<HolderExitAssessm
       ? 'Full entitlement below requested exit'
       : 'Recovery evidence unavailable',
   }
-  if (result.status === 'not_below') return { value: 'NOT BELOW Q', detail: 'Current cash proxy · additional M separate' }
+  if (result.status === 'not_below') return { value: 'REQUESTED EXIT COVERED', detail: 'Current cash proxy · competing exits accounted separately' }
   const counts = result.counts, middle = result.orderStatisticsHours.p50
   // These are empirical sampled-episode order bounds, including censored upper bounds.
   const lower = middle ? Math.floor(middle.lower * 10) / 10 : null
@@ -2946,17 +2948,18 @@ const Metric: React.FC<{
   value: React.ReactNode
   detail?: React.ReactNode
   warning?: boolean
-}> = ({ label, value, detail, warning = false }) => (
-  <Box minW={0}>
+  adverse?: boolean
+}> = ({ label, value, detail, warning = false, adverse = false }) => (
+  <Box minW={0} data-adverse={adverse ? 'true' : undefined}>
     <Text {...labelStyle}>{label}</Text>
     <Text
       fontFamily={TYPOGRAPHY.fontMono}
       fontSize={TYPOGRAPHY.h4}
-      color={warning ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.textPrimary}
+      color={adverse ? SEMANTIC_COLORS.danger : warning ? SEMANTIC_COLORS.warning : SEMANTIC_COLORS.textPrimary}
       overflowWrap="anywhere"
       mt={SPACING.xs}
     >
-      {value}
+      {adverse && <span aria-label="Adverse outlook">↓ </span>}{value}
     </Text>
     {detail && (
       <Text
@@ -3273,6 +3276,8 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
       depositAmount,
       requestedAmount,
       horizonHours,
+      requestedHolderAddressRaw && /^0x[0-9a-fA-F]{40}$/.test(requestedHolderAddressRaw)
+        ? requestedHolderAddressRaw.toLowerCase() : null,
     ),
   )
   const issuedInitialDeposit = useMemo(() => {
@@ -4218,6 +4223,8 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
     boundHolderAssessment.condition.windowEndInclusive !== null &&
     asOfMs >= (boundHolderAssessment.condition.windowEndInclusive + 1) * 1000
   const holderAssessment = holderWindowExpired ? null : boundHolderAssessment
+  const saturnTicketMechanism = holderAssessment ? selectedSaturnTicketMechanism(holderAssessment.saturnTicketMechanismIssue,
+    holderAssessment,{routeKey,destination,owner:requestedHolderAddress,requestedRaw,payoutAsset:requestedAssetAddress,horizonHours,asOfMs,ticketId:saturnRequestTokenId}) : null
   const nativeCashOutlook = holderAssessment && requestedHolderAddress && requestedRaw &&
     requestedAssetAddress && requestedAssetDecimals !== null && requestedAssetDecimals !== undefined
     ? selectedNativeCashHolderOutlook(holderAssessment.nativeCashHolderOutlookIssue, {
@@ -4245,6 +4252,9 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
     nativeCashOutlook.forecastValidated === false && nativeCashOutlook.holderExecutableExit === false &&
     cashHolderTimeRenderWindow(nativeCashOutlook, asOfMs) ? nativeCashOutlook : null
   const nativeCashSummary = nativeCashTime?.process.targetSummary ?? null
+  const nativeCashAdverse = !!nativeCashTime && (
+    nativeCashTime.capacityChange.currentHeadroomRaw.startsWith('-') ||
+    !!nativeCashSummary?.minimumHeadroomRaw.startsWith('-') || nativeCashTime.shrinkingAlert.shrinkingScenarios > 0)
   const capacitySource =
     protocolCapacity.currentSource ??
     ((sghoCash ?? usd3Cash ?? susdsCash ?? stusdsCash ?? cometCash)
@@ -4854,6 +4864,11 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
               />
             )}
             {cashShare && <Metric label="Q / current cash" value={cashShare} />}
+            {saturnTicketMechanism && <Metric
+              label={<Tooltip label="Whole owned ticket only. If delivered and exact-size conversion quote remains unchanged. Release and funding times, unknown claim fees and route execution remain unverified. These states are not a future price or capacity bound."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Owned ticket scenario†</Text></Tooltip>}
+              value={`0 / ${formatExitPressureRaw(saturnTicketMechanism.currentExactSizeAusdQuoteRaw,6)} AUSD`}
+              detail={`If withheld / delivered · release time unknown${saturnTicketMechanism.claimFeeBasis==='unknown'?' · claim fee unknown':''}`}
+            />}
             {(holderAssessment || mechanicalRow) && (
               <Box
                 title={
@@ -5217,7 +5232,7 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
             </Text>
             {initialDeposit && (
               <Text {...labelStyle} mt={SPACING.xs}>
-                {initialDeposit.hypotheticalReceipt.status === 'conditional_source_indexed_receipt'
+                {'entitlementRaw' in initialDeposit.hypotheticalReceipt
                   ? `Hypothetical receipt ${formatExitPressureRaw(initialDeposit.hypotheticalReceipt.entitlementRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`
                   : 'Receipt unassessed · cash only'}
                 {' · '}SOURCE {utcMinute(initialDeposit.hypotheticalDepositAtUtc)}
@@ -5607,7 +5622,8 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                 <Metric
                   label="Conditional cash exit headroom"
                   value={nativeCashSummary ? `${formatExitPressureSignedRaw(nativeCashSummary.empiricalP10HeadroomRaw, requestedAssetDecimals!)}–${formatExitPressureSignedRaw(nativeCashSummary.empiricalP90HeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}` : '—'}
-                  warning={!!nativeCashSummary?.minimumHeadroomRaw.startsWith('-') || nativeCashTime.shrinkingAlert.shrinkingScenarios > 0}
+                  warning={nativeCashAdverse}
+                  adverse={nativeCashAdverse}
                   detail={`${nativeCashTime.process.targetAtUtc.slice(5, 19).replace('T', ' ')} UTC${nativeCashTime.shrinkingAlert.shrinkingScenarios ? ' · MAY SHRINK' : ''}${cashHolderDurationDetail(nativeCashTime)}`}
                 />
 
@@ -5616,11 +5632,17 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                   value={nativeHistoricalRecoveryRow(nativeCashTime).value}
                   detail={nativeHistoricalRecoveryRow(nativeCashTime).detail}
                 />
+                {nativeCashTime.sparsePeerOutlook && <Metric
+                  label="Inventory graph headroom"
+                  value={`${formatExitPressureSignedRaw(nativeCashTime.sparsePeerOutlook.currentGraphHeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
+                  warning={nativeCashTime.sparsePeerOutlook.currentGraphHeadroomRaw.startsWith('-')}
+                  detail={`${nativeCashTime.sparsePeerOutlook.summary ? `${horizonHours}h ${formatExitPressureSignedRaw(nativeCashTime.sparsePeerOutlook.summary.p10HeadroomRaw, requestedAssetDecimals!)}–${formatExitPressureSignedRaw(nativeCashTime.sparsePeerOutlook.summary.p90HeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol} · ` : ''}${nativeCashTime.sparsePeerOutlook.usableIntervals} own intervals${nativeCashTime.sparsePeerOutlook.censoredIntervals ? ' · partial' : ''} · peer evidence pending`}
+                />}
                 <Metric
                   label="Cash change since historical sample"
-                  value={`${formatExitPressureSignedRaw(nativeCashTime.capacityChange.cashChangeSinceLastHistoricalSampleRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
+                  value={`${formatExitPressureSignedRaw((nativeCashTime.primaryEventImpact?.measuredCashChangeRaw ?? nativeCashTime.capacityChange.cashChangeSinceLastHistoricalSampleRaw), requestedAssetDecimals!)} ${requestedAssetSymbol}`}
                   warning={nativeCashTime.capacityChange.cashChangeSinceLastHistoricalSampleRaw.startsWith('-')}
-                  detail={`Since ${utcMinute(nativeCashTime.capacityChange.historicalSampleAtUtc)} · cash proxy`}
+                  detail={`Since ${utcMinute(nativeCashTime.capacityChange.historicalSampleAtUtc)} · ${nativeCashTime.primaryEventImpact ? 'measured capacity change' : 'cash proxy'}`}
                 />
                 {nativeCashTime.adverseHolderHeadroom && <Metric
                   label="Adverse flow headroom"
@@ -6035,6 +6057,13 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
           >
             <Text {...labelStyle}>CONTEXT</Text>
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={SPACING.base} mt={SPACING.sm}>
+              {eventQuestion && selectedPrimaryProtocolRules(eventContext.primaryEvents,eventQuestion,asOfMs) && <Metric
+                label="Primary protocol rule†"
+                value={<Link href={eventContext.primaryEvents!.conditionalScenarios[0].sourceEvent.primarySource.url} isExternal rel="noopener noreferrer" color={SEMANTIC_COLORS.textPrimary}>
+                  {eventContext.primaryEvents!.conditionalScenarios.map(s=>s.parameter==='liquidationThresholdBps' ? `Collateral threshold ${Number(s.value)/100}%` : `${s.parameter==='paused'?'Pause':'Freeze'} ${s.value?'on':'off'}`).join(' · ')}
+                </Link>}
+                detail={`If recorded rules persist · current state unknown · ${utcMinute(eventContext.primaryEvents!.conditionalScenarios[0].sourceEvent.occurredAtUtc)}`}
+              />}
               <Metric
                 label="Event"
                 value={

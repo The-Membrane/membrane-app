@@ -101,3 +101,43 @@ Hastra PYUSD, Saturn stakedUSDat→AUSD, Twyne PT→USDe and Fluid USDT→USDC b
 Initial-deposit outlooks remain current admission/reference scenarios, not future claims. Causal news effects and future authority/fee/share changes remain unqualified.
 Sparse/new-protocol peer and graph abstractions retain native-unit, incident, availability and mechanism qualification gates.
 No production deployment, financial transaction, calibrated coverage promotion or resource-limit increase occurred.
+
+
+## Successor integration and current-risk repair
+
+Current negative source-bound headroom now marks the native row adverse even when future paths are entirely censored.
+The value uses the existing danger token and downward glyph. Future duration remains censored, and labels stay neutral.
+Recovery uses reader-facing requested-exit and competing-exit wording. Browser receipts provide selection binding and post-retention copy/mutation checks.
+They are not arbitrary-JSON authenticity validators. Server original-receipt qualification remains separate authority.
+
+Initial-deposit acquisition now enrolls all 21 native cash groups and 63 core destinations, plus separate supplemental Aave USDe.
+This is adapter plumbing, not qualification of every deployed mint method or live coverage promotion.
+Four direct indexed/Compound adapters and 60 source-preview candidates require actual same-source two-origin native reads.
+Unsupported mint previews abstain without a formula fallback. Missing receiver caps remain unknown. The UI explicitly binds an entered receiver.
+Mechanism limits preserve cooldown, queues, claim fees, slashing, strategy shutdown, Fluid indexed liquidity and adapter pullability.
+Observed source previews remain conditional on hypothetical retained deposit cash and unchanged receipt parameters.
+
+Native sparse inventory graphs now use original authenticated histories, current native cash/full Ea and adjacent compatible own intervals.
+The API and Card consume current inventory headroom and selected-horizon own-interval bands. Censored intervals remain partial.
+Compatible peer transfer is not promoted. Original incident and mechanism-regime metadata remain required.
+
+Primary event context reuses exact pinned Aave governance logs. Genuine USDC/USDe facts contain collateral-threshold changes, not pause/freeze changes.
+Latest thresholds are 7800/7500 bps. Conditional collateral-value rules use a common quote currency, not raw asset or debt units.
+Borrower state, prices, eMode and current configuration remain unknown. No calibrated or causal news-to-NET magnitude is invented.
+Morpho capacity changes are separate measured native facts. Historical adverse NET stress stays an explicit conditional assumption.
+The Q13 Wire source branch was not available in this checkout. Existing author work is unchanged.
+
+Owned Saturn tickets now have exact-source whole-ticket conditional final-AUSD states in the actual API, retained receipt and Card.
+The optional quote agreement and independently requested ticket ID are checked separately from the general assessment comparator.
+Zero delivery and delivered-at-unchanged-exact-size-quote states remain conditional. Release time and claim fees stay unknown.
+No mined payment is required for this transparently conditional mechanism model. No quote is scaled from the ticket size to requested Q.
+
+Remaining final-asset mechanisms: Hastra PRIME→wYLDS queue, administrator wYLDS→USDC settlement and USDC→PYUSD conversion.
+Twyne returns PT and still needs qualified PT→USDe conversion or maturity state. Fluid's ten retained final-USDT quotes exist upstream.
+Their original files are not present in this Cloud package. Reuse and authenticate them before any new acquisition.
+Fluid's remaining mechanism gap is complete route payout, not lack of prior conversion quote research.
+
+Full application/type/build/HTTP/browser acceptance is required and still pending its separately reviewed Cloud plan.
+Existing recovery contracts remain unchanged. The separate plan uses supervised sampled resource enforcement, not writable child cgroups or hard swap containment.
+Guarded synthetic browser fixtures test actual Card rendering and ordinary Carry hydration. They do not qualify live native forecasts or the entire Workbench acquisition flow.
+No broader acceptance job runs before review of exact sealed source and plan. No production deployment or financial transaction occurred.

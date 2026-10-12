@@ -1,3 +1,8 @@
+import {nativeCashGraphIntervalOutlook} from '@/lib/carry/nativeCashPeerIntervals'
+import {buildNativePrimaryEventImpact} from '@/lib/carry/nativePrimaryEventImpact'
+import {buildSaturnOwnedTicketConditionalMechanism} from '@/lib/carry/saturnOwnedTicketConditionalMechanism'
+import {retainSaturnTicketMechanism} from '@/lib/carry/saturnTicketMechanismReceipt'
+import {saturnTicketFixture} from './fixtures/saturnTicketMechanismFixture'
 import { retainNativeCashHolderOutlook, selectedNativeCashHolderOutlook } from '@/lib/carry/nativeCashHolderOutlookReceipt'
 import React from 'react'
 import {it} from 'node:test'
@@ -18,7 +23,9 @@ function fixture(cashRaw="1000000"):ExitPressureCardProps {
  const input={history,currentSource,fullEntitlementRaw:'9000000000',requestedRaw:'1000000',additionalCompetitionRaw:'0',horizonHours:48,issuedAtUtc:new Date(now).toISOString()}
  const outlook=buildFixedEntitlementCashOutlook(input,v=>v===input,s=>createHash('sha256').update(s).digest('hex'))!
  outlook.historicalRecovery.question.owner=owner
- const model={...outlook,owner,nativeSharesRaw:'1000000000'}
+ const originalModel={...outlook,owner,nativeSharesRaw:'1000000000'}, graphQuestion={...input,owner}
+ const graph=nativeCashGraphIntervalOutlook(graphQuestion,[history],q=>q===graphQuestion)
+ const model={...originalModel,sparsePeerOutlook:graph,primaryEventImpact:buildNativePrimaryEventImpact(originalModel,(v,h)=>v===originalModel && h===history,history)}
  const issue=retainNativeCashHolderOutlook(model,200,{routeKey:history.identity.routeKey,destination:history.identity.destination,owner,requestedRaw:input.requestedRaw,asset:history.identity.asset,assetDecimals:6,horizonHours:48,source:{blockNumber:26200000,blockHash:currentSource.blockHash,blockTime:currentSource.blockTime},asOfMs:now})!
  assert.ok(issue)
  return {routeKey:history.identity.routeKey,destination:history.identity.destination,requestedAmount:'1',requestedRaw:'1000000',requestedAssetSymbol:'USDC',requestedAssetAddress:history.identity.asset,requestedAssetDecimals:6,horizonHours:48,asOfMs:now,requestedHolderAddress:owner,
@@ -32,9 +39,12 @@ it('renders actual existing-card cash impact, sampled duration and adverse-flow 
  assert.match(html,/Conditional cash exit headroom/)
  assert.match(html,/Cash change since historical sample/)
  assert.match(html,/Matched historical recovery/)
- assert.match(html,/NOT BELOW Q/)
+ assert.match(html,/REQUESTED EXIT COVERED/)
  assert.match(html,/SHORTFALL/)
  assert.match(html,/Adverse flow headroom/)
+ assert.match(html,/Inventory graph headroom/)
+ assert.match(html,/own intervals/)
+ assert.match(html,/measured capacity change/)
  assert.match(html,/CONDITIONAL HOLDER OUTLOOK/)
 })
 it('removes the native outlook after owner, Q, horizon, source or scenario changes',()=>{
@@ -86,10 +96,17 @@ it('does not extend a truncated shortfall through the horizon and renders the ce
  const p=fixture('200000'), a=p.holderAssessment!, m=a.nativeCashHolderOutlook!
  for(const s of m.process.scenarios) {s.status='censored_path';s.targetHeadroomRaw=null;s.points=s.points.slice(0,2);s.sampledShortfalls=[{onset:{after:null,by:m.process.issueAtUtc},recovery:null,leftCensored:true,rightCensored:true}] as any}
  m.process.targetSummary=null
+ m.shrinkingAlert.shrinkingScenarios=0
+ m.shrinkingAlert.usableScenarios=0
+ m.shrinkingAlert.censoredScenarios=m.process.scenarios.length
+ assert.ok(m.capacityChange.currentHeadroomRaw.startsWith('-'))
  assert.equal(cashHolderDurationDetail(m),' · DURATION CENSORED')
  a.nativeCashHolderOutlookIssue=retainNativeCashHolderOutlook(m,200,{routeKey:p.routeKey,destination:p.destination,owner,requestedRaw:p.requestedRaw!,asset:p.requestedAssetAddress!,assetDecimals:6,horizonHours:48,source:a.source,asOfMs:now})!
  const html=render(p)
  assert.match(html,/DURATION CENSORED/)
+ assert.match(html,/data-adverse="true"/)
+ assert.match(html,/var\(--m-danger\)/)
+ assert.match(html,/aria-label="Adverse outlook"/)
  assert.match(html,/Matched historical recovery/)
  assert.doesNotMatch(html,/SHORTFALL ≥48/)
 })
@@ -103,4 +120,13 @@ it('rejects nested result clocks, question identity and amount substitutions bef
   const bad=structuredClone(m);Object.assign(bad.historicalRecovery.question,patch)
   assert.equal(retainNativeCashHolderOutlook(bad,200,q),null)
  }
+})
+
+it('renders retained exact owned-ticket conditional amounts and drops mismatched owner/amount/horizon',()=>{
+ const {assessment:a,request:q}=saturnTicketFixture();a.forecast={status:'unvalidated',futureExit:null,exitDurationHours:null,prospectiveValidated:false}
+ const model=buildSaturnOwnedTicketConditionalMechanism(a,q,(original,request)=>original===a&&request===q)!
+ const question={routeKey:q.routeKey,destination:q.destinationAddress,owner:q.owner,requestedRaw:q.assetsRaw,payoutAsset:q.assetAddress,horizonHours:48,asOfMs:now,ticketId:'7'}
+ const p={...fixture(),routeKey:q.routeKey,destination:q.destinationAddress,requestedRaw:q.assetsRaw,requestedAssetAddress:q.assetAddress,requestedAssetSymbol:'AUSD',saturnRequestTokenId:'7',currentCash:null,holderAssessment:{...a,saturnTicketMechanism:model,saturnTicketMechanismIssue:retainSaturnTicketMechanism(model,200,a,question)}} as ExitPressureCardProps
+ assert.match(render(p),/Owned ticket scenario/);assert.match(render(p),/claim fee unknown/)
+ for(const patch of [{requestedHolderAddress:'0x'+'2'.repeat(40)},{requestedRaw:'2'},{horizonHours:24},{saturnRequestTokenId:'8'}])assert.doesNotMatch(render({...p,...patch}),/Owned ticket scenario/)
 })

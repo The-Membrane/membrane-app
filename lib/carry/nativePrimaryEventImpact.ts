@@ -1,12 +1,18 @@
+import type { ConditionalSampledCashHistory } from './conditionalSampledCashPathProjection'
 import type { FixedEntitlementCashOutlook } from './fixedEntitlementCashOutlook'
 
 type Qualified = FixedEntitlementCashOutlook & { owner: string }
 /** Capacity facts are primary native measurements, not a news story or a causal driver.
  * The issuer must approve its original two-provider receipt before this copy is made. */
-export function buildNativePrimaryEventImpact(original: Qualified, qualifyOriginal: (v: Qualified) => boolean) {
-  if (!qualifyOriginal(original)) return null
+export function buildNativePrimaryEventImpact(original: Qualified,
+  qualifyOriginal: (v: Qualified, history: ConditionalSampledCashHistory | null) => boolean,
+  originalHistory: ConditionalSampledCashHistory | null = original.adverseEventScenario?.input.history ?? null,
+) {
+  if (!qualifyOriginal(original, originalHistory)) return null
   const value = structuredClone(original), s = value.currentSource
-  const history = value.adverseEventScenario?.input.history
+  const history = originalHistory ? structuredClone(originalHistory) : null
+  if (history && !['routeKey','destination','asset','assetDecimals'].every(k =>
+    (history.identity as any)[k] === (value.identity as any)[k])) return null
   const previous = history?.points.at(-1)
   if (!previous || !/^0x[0-9a-f]{40}$/.test(value.owner) || s.sourceKind !== 'live_read_only_two_origin_finalized' ||
       Date.parse(s.readAt) > Date.parse(value.issuedAtUtc) ||

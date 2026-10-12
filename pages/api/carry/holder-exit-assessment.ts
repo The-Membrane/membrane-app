@@ -1,3 +1,4 @@
+import { buildSaturnOwnedTicketConditionalMechanism } from '@/lib/carry/saturnOwnedTicketConditionalMechanism'
 import { createHash } from 'node:crypto'
 import { readAvailablePinnedForecastArtifacts } from '@/lib/carry/pinnedForecastArtifacts.server'
 import { issueMorphoNativeCashOutlook } from '@/lib/carry/morphoNativeCashOutlook.server'
@@ -1521,6 +1522,20 @@ function agreedExecutionResponse(
     ...(susdeIssuance ? { susdeCurrentProtocolCapacityEvidence: susdeIssuance.evidence } : {}),
     ...(susdeIssuance?.envelope ? { susdeHolderForecastEnvelope: susdeIssuance.envelope } : {}),
   }
+  // Optional quotes require their own original agreement: the general assessment
+  // comparator deliberately excludes them and cannot grant conversion authority.
+  const ticketOriginal = withAgreedOptionalEvidence(first.assessment, second.assessment)
+  const ticketAssessment = holderExitAssessmentResponse(ticketOriginal)
+  const ticketRequest = {routeKey:input.routeKey,destinationAddress:input.destinationAddress,
+    owner:input.owner,assetAddress:ticketAssessment.request.assetAddress,assetsRaw:input.assetsRaw,
+    nowMs:Date.now(),horizonSeconds:input.horizonHours*3600}
+  response.saturnTicketMechanism = buildSaturnOwnedTicketConditionalMechanism(ticketAssessment,ticketRequest,
+    (a,q)=>a===ticketAssessment && q===ticketRequest && first.host!==second.host &&
+      sameHolderExitAssessment(first.assessment,second.assessment) &&
+      !!ticketOriginal.stakedUsdatCondition?.existingTicketConversionQuote &&
+      input.requestTokenId === ticketOriginal.stakedUsdatCondition?.existingTicketId &&
+      isCurrentHolderExitAssessment(first.assessment,ticketRequest.nowMs) &&
+      isCurrentHolderExitAssessment(second.assessment,ticketRequest.nowMs))
   const subject = resolveIssuedHolderExitSubject(input.routeKey, input.destinationAddress)
   if (
     !subject?.canonicalFinalAsset ||

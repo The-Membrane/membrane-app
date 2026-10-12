@@ -1,6 +1,11 @@
+import type { nativeCashGraphIntervalOutlook } from './nativeCashPeerIntervals'
+import { matchingNativePrimaryEventImpact, type NativePrimaryEventImpact } from './nativePrimaryEventImpact'
 import type { FixedEntitlementCashOutlook } from './fixedEntitlementCashOutlook'
 
-export type NativeCashHolderModel = FixedEntitlementCashOutlook & { owner: string; nativeSharesRaw: string }
+export type NativeCashHolderModel = FixedEntitlementCashOutlook & { owner: string; nativeSharesRaw: string;
+  sparsePeerOutlook?: ReturnType<typeof nativeCashGraphIntervalOutlook>
+  primaryEventImpact?: NativePrimaryEventImpact | null
+}
 export type NativeCashHolderQuestion = {
   routeKey: string; destination: string; owner: string; requestedRaw: string
   asset: string; assetDecimals: number; horizonHours: number
@@ -24,6 +29,15 @@ function matches(m: NativeCashHolderModel, q: NativeCashHolderQuestion) {
         result.regimeBasis !== 'assumed_unchanged' ||
         result.forecastValidated !== false || result.holderExecutable !== false ||
         result.continuousPathKnown !== false))) return false
+  const graph = m.sparsePeerOutlook
+  if (graph) {
+    const g = graph.question
+    if (JSON.stringify(g.identity) !== JSON.stringify(m.identity) || JSON.stringify(g.currentSource) !== JSON.stringify(m.currentSource) ||
+        g.owner !== m.owner || g.requestedRaw !== m.requestedRaw || g.fullEntitlementRaw !== m.fullEntitlementRaw ||
+        g.additionalCompetitionRaw !== m.additionalCompetitionRaw || g.horizonHours !== m.horizonHours || g.issuedAtUtc !== m.issuedAtUtc ||
+        graph.holderExecutableExit !== false || graph.forecastValidated !== false || graph.calibratedProbability !== false) return false
+  }
+  if (m.primaryEventImpact && !matchingNativePrimaryEventImpact(m.primaryEventImpact,m)) return false
   return m.identity.routeKey === q.routeKey && m.identity.destination === q.destination.toLowerCase() &&
     m.owner.toLowerCase() === q.owner.toLowerCase() && m.requestedRaw === q.requestedRaw &&
     m.identity.asset === q.asset.toLowerCase() && m.identity.assetDecimals === q.assetDecimals &&

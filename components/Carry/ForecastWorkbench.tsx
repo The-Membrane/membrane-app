@@ -1,3 +1,4 @@
+import { retainSaturnTicketMechanism } from '@/lib/carry/saturnTicketMechanismReceipt'
 import { retainNativeCashHolderOutlook } from '@/lib/carry/nativeCashHolderOutlookReceipt'
 import { installPinnedForecastArtifact } from '@/lib/carry/pinnedForecastArtifacts'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
@@ -5374,7 +5375,10 @@ export const ForecastWorkbench: React.FC<{ chainName: string }> = ({ chainName }
           setLiveExit({
             status: 'assessment_result',
             assessment: withMatchingHolderMechanicalOutlook(
-              { ...result, nativeCashHolderOutlookIssue: retainNativeCashHolderOutlook(
+              { ...result, saturnTicketMechanismIssue: retainSaturnTicketMechanism(
+                (result as HolderExitAssessmentView).saturnTicketMechanism,response.status,result as HolderExitAssessmentView,{
+                  routeKey,destination,owner,requestedRaw:assessmentAssetsRaw,payoutAsset:request.payoutAsset,horizonHours,asOfMs:Date.now(),ticketId:requestTokenId??null,
+                }),nativeCashHolderOutlookIssue: retainNativeCashHolderOutlook(
                 (result as HolderExitAssessmentView).nativeCashHolderOutlook, response.status, {
                   routeKey, destination, owner, requestedRaw: assessmentAssetsRaw,
                   asset: request.payoutAsset, assetDecimals: exitAssetDecimals, horizonHours,
@@ -6133,6 +6137,7 @@ export const ForecastWorkbench: React.FC<{ chainName: string }> = ({ chainName }
             depositSize,
             exitSize,
             horizonHours,
+            /^0x[0-9a-fA-F]{40}$/.test(holderAddress.trim()) ? holderAddress.trim().toLowerCase() : null,
           )
           if (depositQuestion) {
             const result = await loadInitialDepositForecast(
@@ -6184,6 +6189,7 @@ export const ForecastWorkbench: React.FC<{ chainName: string }> = ({ chainName }
     validExitSize,
     scenarioMode,
     depositSize,
+    holderAddress,
   ])
 
   useEffect(() => {

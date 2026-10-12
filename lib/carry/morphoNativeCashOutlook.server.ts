@@ -1,3 +1,5 @@
+import { issueSparseNativeCashPeerOutlook } from './sparseNativeCashPeerOutlook.server'
+import { buildNativePrimaryEventImpact } from './nativePrimaryEventImpact'
 import { createHash } from 'node:crypto'
 import { loadPinnedAudit } from '../../scripts/research/conditional-cash-time-holdout.mjs'
 import type { HolderExitAssessment } from './holderExitAssessment'
@@ -18,7 +20,7 @@ export async function issueMorphoNativeCashOutlook(first: Witness, second: Witne
     if (!a || !b || !selectedMorphoV2NativeCash(a,first.assessment) || !selectedMorphoV2NativeCash(b,second.assessment) ||
         a.cashRaw !== b.cashRaw || a.fullEaRaw !== b.fullEaRaw || a.sharesRaw !== b.sharesRaw ||
         JSON.stringify(a.source)!==JSON.stringify(b.source)) return null
-    const audit = loadPinnedAudit(), history = Object.values(audit.histories).find((h:any)=>
+    const audit = loadPinnedAudit(), histories = Object.values(audit.histories) as ConditionalSampledCashHistory[], history = histories.find((h:any)=>
       h.identity.routeKey===identity.routeKey && h.identity.destination===identity.destination) as ConditionalSampledCashHistory | undefined
     if (!history) return null
     const issuedAtUtc = new Date().toISOString(), readAt = a.readAtUtc > b.readAtUtc ? a.readAtUtc : b.readAtUtc
@@ -30,8 +32,16 @@ export async function issueMorphoNativeCashOutlook(first: Witness, second: Witne
     const outlook = buildFixedEntitlementCashOutlook(input, original=>original===input &&
       !!selectedMorphoV2NativeCash(a,first.assessment) && !!selectedMorphoV2NativeCash(b,second.assessment) &&
       !!resolveMorphoV2NativeHolderIdentity(first.assessment,second.assessment,capacity), text=>createHash('sha256').update(text).digest('hex'))
-    return outlook ? {...outlook,owner:capacity.quote.owner,nativeSharesRaw:a.sharesRaw,
-      historicalRecovery:{...outlook.historicalRecovery,
-        question:{...outlook.historicalRecovery.question,owner:capacity.quote.owner}}} : null
+    if (!outlook) return null
+    const model = {...outlook,owner:capacity.quote.owner,nativeSharesRaw:a.sharesRaw,
+      historicalRecovery:{...outlook.historicalRecovery,question:{...outlook.historicalRecovery.question,owner:capacity.quote.owner}}}
+    const graphQuestion = {...input,owner:capacity.quote.owner}
+    const originalsStillQualified = () => !!selectedMorphoV2NativeCash(a,first.assessment) &&
+      !!selectedMorphoV2NativeCash(b,second.assessment) &&
+      !!resolveMorphoV2NativeHolderIdentity(first.assessment,second.assessment,capacity)
+    return {...model,
+      sparsePeerOutlook:issueSparseNativeCashPeerOutlook(graphQuestion,(q,hs)=>q===graphQuestion && hs===histories && originalsStillQualified(),histories),
+      primaryEventImpact:buildNativePrimaryEventImpact(model,(v,h)=>v===model && h===history && originalsStillQualified(),history),
+    }
   } catch { return null }
 }

@@ -2,30 +2,107 @@
   "schema": "forecasting_full_app_access_preparation_v1",
   "evidenceKind": "static_source_inspection_not_executed_access_proof",
   "fixedCommands": {
-    "httpJobArgv": ["node", "--max-old-space-size=2304", "scripts/research/forecasting-cloud-server-stage.mjs", "http"],
-    "browserJobArgv": ["node", "--max-old-space-size=2304", "scripts/research/forecasting-cloud-server-stage.mjs", "browser"],
-    "productionServer": ["node", "node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3005"],
+    "httpJobArgv": [
+      "node",
+      "--max-old-space-size=2304",
+      "scripts/research/forecasting-cloud-server-stage.mjs",
+      "http"
+    ],
+    "browserJobArgv": [
+      "node",
+      "--max-old-space-size=2304",
+      "scripts/research/forecasting-cloud-server-stage.mjs",
+      "browser"
+    ],
+    "productionServer": [
+      "node",
+      "node_modules/next/dist/bin/next",
+      "start",
+      "--hostname",
+      "127.0.0.1",
+      "--port",
+      "3005"
+    ],
     "noAutomaticBuild": true,
     "requiredFixtureValue": "MEMBRANE_CLOUD_ACCEPTANCE=fixture",
     "requiredEvidenceHomePrefix": "/workspace/membrane-datasets/forecasting-cloud/full-app-plan/runs/",
-    "outputsRelativeToEvidenceHome": ["run/http", "run/browser"]
+    "outputsRelativeToEvidenceHome": [
+      "run/http",
+      "run/browser"
+    ]
   },
   "finiteStages": {
-    "readiness": {"origin": "http://127.0.0.1:3005", "path": "/api/carry/forecast-universe", "maxRequests": 16, "requestDeadlineMs": 1000, "responseBytesMax": 1048576, "totalDeadlineMs": 20000},
-    "http": {"deadlineMs": 100000, "maxRequests": 16, "requestDeadlineMs": 10000, "responseBytesMax": 1048576, "redirects": 0},
-    "browser": {"deadlineMs": 300000, "workers": 1, "config": "scripts/research/forecasting-cloud.playwright.config.ts"},
-    "directChildCleanup": {"termWaitMs": 2000, "killWaitMs": 2000, "separateSupervisorVerifiesBirthsDescendantsAndClosedPort": 3005}
+    "readiness": {
+      "origin": "http://127.0.0.1:3005",
+      "path": "/api/carry/forecast-universe",
+      "maxRequests": 16,
+      "requestDeadlineMs": 1000,
+      "responseBytesMax": 1048576,
+      "totalDeadlineMs": 20000
+    },
+    "http": {
+      "deadlineMs": 100000,
+      "maxRequests": 16,
+      "requestDeadlineMs": 10000,
+      "responseBytesMax": 1048576,
+      "redirects": 0
+    },
+    "browser": {
+      "deadlineMs": 300000,
+      "workers": 1,
+      "config": "scripts/research/forecasting-cloud.playwright.config.ts"
+    },
+    "directChildCleanup": {
+      "termWaitMs": 2000,
+      "killWaitMs": 2000,
+      "separateSupervisorVerifiesBirthsDescendantsAndClosedPort": 3005
+    }
   },
   "sourceAccessInventory": [
-    {"source": "pages/[chain]/carry.tsx and config/chains.ts", "access": "actual local page /ethereum/carry; no /1/carry substitution"},
-    {"source": "pages/api/carry/forecast-universe.ts", "access": "repository fixtures, seed, recorder config, verified markets; no acquisition"},
-    {"source": "pages/api/carry/forecast-artifacts.ts and lib/carry/pinnedForecastArtifacts.server.ts", "access": "bounded canonical private dataset files, exact existing pins; optional missing evidence omitted"},
-    {"source": "pages/api/carry/route-context.ts and db/index.ts", "access": "lazy DATABASE_URL only at use; source readers may use DB; absent configuration returns source-unavailable context. No database secret supplied."},
-    {"source": "pages/api/carry/holder-exit-assessment.ts", "access": "existing C1/C3 provider policy; unavailable providers must return explicit503. Existing policy is not substituted."},
-    {"source": "config/evm/chains.ts", "access": "default local-origin EVM RPC 127.0.0.1:8545, otherwise rpc-not-configured.invalid. Browser driver aborts all non3005 requests; no live source qualification."},
-    {"source": "components/Carry/ForecastWorkbench.tsx", "access": "browser-relative carry context/forecast/holder endpoints; fixture page limits synthetic proof to labeled acceptance path"},
-    {"source": "next.config.mjs", "access": "local webpack/module traces and redirects; production build may statically evaluate application imports. No host capability inferred from successful import."},
-    {"source": "scripts/research/forecasting-cloud.playwright.config.ts", "access": "installed /usr/bin/chromium; production server already supervised; no autobuild/dev. Browser request routing aborts nonlocalhost3005."}
+    {
+      "source": "pages/[chain]/carry.tsx and config/chains.ts",
+      "access": "actual local page /ethereum/carry; no /1/carry substitution"
+    },
+    {
+      "source": "pages/api/carry/forecast-universe.ts",
+      "access": "repository fixtures, seed, recorder config, verified markets; no acquisition"
+    },
+    {
+      "source": "pages/api/carry/forecast-artifacts.ts and lib/carry/pinnedForecastArtifacts.server.ts",
+      "access": "bounded canonical private dataset files, exact existing pins; optional missing evidence omitted"
+    },
+    {
+      "source": "pages/api/carry/route-context.ts and db/index.ts",
+      "access": "lazy DATABASE_URL only at use; source readers may use DB; absent configuration returns source-unavailable context. No database secret supplied."
+    },
+    {
+      "source": "pages/api/carry/holder-exit-assessment.ts",
+      "access": "existing C1/C3 provider policy; unavailable providers must return explicit503. Existing policy is not substituted."
+    },
+    {
+      "source": "config/evm/chains.ts",
+      "access": "default local-origin EVM RPC 127.0.0.1:8545, otherwise rpc-not-configured.invalid. Browser driver aborts all non3005 requests; no live source qualification."
+    },
+    {
+      "source": "components/Carry/ForecastWorkbench.tsx",
+      "access": "browser-relative carry context/forecast/holder endpoints; fixture page limits synthetic proof to labeled acceptance path"
+    },
+    {
+      "source": "next.config.mjs",
+      "access": "local webpack/module traces and redirects; production build may statically evaluate application imports. No host capability inferred from successful import."
+    },
+    {
+      "source": "scripts/research/forecasting-cloud.playwright.config.ts",
+      "access": "installed /usr/bin/chromium; production server already supervised; no autobuild/dev. Browser request routing aborts nonlocalhost3005."
+    },
+    {
+      "source": "pages/_app.tsx:11 Inter from next/font/google",
+      "access": "Production build font acquisition can request fonts.googleapis.com CSS and fonts.gstatic.com font bytes; successful build requires actual managed policy/access evidence or already authenticated local cache. Production serving uses emitted font assets; no new host enrollment performed."
+    },
+    {
+      "source": "scripts/research/forecasting-cloud-full-app-launcher.py",
+      "access": "NEXT_TELEMETRY_DISABLED=1 is explicit scrubbed launcher environment; absence of a telemetry log is not kernel denial proof."
+    }
   ],
   "networkScope": {
     "driverEnrolledHost": "127.0.0.1:3005",
@@ -34,7 +111,11 @@
     "nodeUserspaceGuardInheritedFromSupervisor": true,
     "kernelWideNetworkDenialClaim": false,
     "nativeChildOrLibraryGuardCoverageNotAssumed": true,
-    "unexpectedAccessMeansFailedAcceptance": "Inspect actual guard/log/policy evidence; do not infer kernel denial from userspace instrumentation. No fallback host acquisition."
+    "unexpectedAccessMeansFailedAcceptance": "Inspect actual guard/log/policy evidence; do not infer kernel denial from userspace instrumentation. No fallback host acquisition.",
+    "potentialBuildFontHosts": [
+      "fonts.googleapis.com",
+      "fonts.gstatic.com"
+    ]
   },
   "state": "prepared_not_executed_not_accepted",
   "financialTransactions": false,

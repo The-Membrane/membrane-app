@@ -39,6 +39,7 @@ import {
   subjectSymbol,
   trimTimeline,
 } from '@/lib/oracleRegistry/config/view'
+import { FROZEN } from './oracleRegistryFrozenConfig'
 
 const A = (n: number) => `0x${n.toString(16).padStart(40, '0')}`
 const TX = `0x${'ab'.repeat(32)}`
@@ -576,20 +577,27 @@ describe('collector output (data/oracle-registry/config)', () => {
     })
   }
 
-  it('pending timelock rows carry an ETA and name who can execute them', () => {
-    let n = 0
-    for (const s of index.subjects) {
-      const card = getConfigCard(s.slug)!
-      for (const r of card.timeline.rows.filter(
-        (x) => x.state === 'pending' && x.queue?.kind === 'oz_timelock',
-      )) {
-        n++
-        expect(r.eta).not.toBeNull()
-        expect(r.executableBy).toEqual(expect.any(String))
+  // the per-row rule holds on every card, live included; n > 0 is measured on the frozen copy of
+  // commit 1c94be6e (16 pending rows): the CI re-collect (first run 2026-10-11) moves the live
+  // data/oracle-registry/config, and a re-collect that finds every op executed must not fail it
+  for (const [dir, label] of [
+    [undefined, 'live'],
+    [FROZEN, 'frozen 1c94be6e'],
+  ] as const)
+    it(`pending timelock rows carry an ETA and name who can execute them (${label})`, () => {
+      let n = 0
+      for (const s of index.subjects) {
+        const card = getConfigCard(s.slug, {}, dir)!
+        for (const r of card.timeline.rows.filter(
+          (x) => x.state === 'pending' && x.queue?.kind === 'oz_timelock',
+        )) {
+          n++
+          expect(r.eta).not.toBeNull()
+          expect(r.executableBy).toEqual(expect.any(String))
+        }
       }
-    }
-    expect(n).toBeGreaterThan(0)
-  })
+      if (dir) expect(n).toBeGreaterThan(0)
+    })
 
   it('the open-execution Strata op reads "anyone"; Safe queue rows carry a Safe link', () => {
     const pt = index.subjects.find((s) => s.subject === 'pt-srusde')

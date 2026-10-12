@@ -34,6 +34,7 @@ import {
   type ConfigInputs,
 } from '@/lib/oracleRegistry/config/view'
 import { voteDefense } from '@/scripts/oracle-registry/config/lib/admin.mjs'
+import { FROZEN } from './oracleRegistryFrozenConfig'
 import { FIXTURE_TS, defenseOf, tokenVote, voteData } from './oracleRegistryVoteFixtures'
 
 type Hx = `0x${string}`
@@ -203,11 +204,25 @@ describe('RV11-1: a card never renders a read gap it does not count', () => {
       expect(found.filter((g) => !listed.has(g))).toEqual([])
       expect(card.counts.readGaps).toBe((card.readGaps ?? []).length)
     })
+    // the label rule of the MEASURED test below, on the live card (a re-collect can add UNREAD
+    // labels the frozen copy never had: the first CI run put 26 on wstETH)
+    it(`${s.key} (committed data): a label that says UNREAD is always a counted read gap`, () => {
+      const card = getConfigCard(s.key)
+      if (!card) return
+      const labels = card.admin.powers.flatMap((p) => p.holders.map((h) => h.label)).join('\n')
+      if (/UNREAD/.test(labels)) expect(card.counts.readGaps).toBeGreaterThan(0)
+      for (const m of labels.matchAll(/(0x[0-9a-f]{4}…[0-9a-f]{4}) \[proposers UNREAD/g))
+        expect(card.readGaps).toContain(
+          `timelock ${m[1]}: proposers not read (ranked as a plain contract)`,
+        )
+    })
   }
 
+  // measured on the frozen copy of commit 1c94be6e: the CI re-collect (first run 2026-10-11) moves
+  // the live data/oracle-registry/config under every value pinned here
   it('wstETH (MEASURED, head 26,152,213; re-collected at 26,158,320 in round 12): every Lido vote node carries D read at the head block — 13 votes, D = 279,135.7 LDO, k = 1 — and no vote-history gap', () => {
     const s = subjects.find((x) => x.key === 'wsteth')!
-    const state = loadConfigInputs(s).state!
+    const state = loadConfigInputs(s, FROZEN).state!
     const votes = state.powers
       .flatMap((p) => [...p.holders, ...(p.weakest ? [p.weakest] : [])])
       .flatMap(controllerTree)
@@ -224,7 +239,7 @@ describe('RV11-1: a card never renders a read gap it does not count', () => {
       expect(tokenVoteDecision(v)).toMatchObject({ kind: 'one', k: 1, settled: true })
       expect(controllerRank(v)[0]).toBe(1)
     }
-    const card = getConfigCard('wsteth')!
+    const card = getConfigCard('wsteth', {}, FROZEN)!
     const labels = card.admin.powers.flatMap((p) => p.holders.map((h) => h.label)).join('\n')
     expect(labels).not.toMatch(/vote history UNREAD|holder concentration UNREAD/)
     expect(card.readGaps).toEqual(state.readGaps ?? [])

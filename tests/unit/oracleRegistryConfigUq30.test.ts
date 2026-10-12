@@ -26,6 +26,7 @@ import type {
 import type { DvnRegistry } from '@/lib/oracleRegistry/config/uln'
 import { breachesOf, countsOf } from '@/lib/oracleRegistry/config/view'
 import { hasReadFailure } from '@/scripts/oracle-registry/config/lib/admin.mjs'
+import { FROZEN } from './oracleRegistryFrozenConfig'
 import { defenseOf, tokenVote, voteData } from './oracleRegistryVoteFixtures'
 
 // ---- fixtures -------------------------------------------------------------------------------------
@@ -598,8 +599,10 @@ describe('UQ-30: breaches recorded before refs existed (legacy state files)', ()
     expect(again.items[0].breaches).toHaveLength(1)
     expect(again.items[0].breaches[0].unconfirmed).toBeUndefined()
   })
+  // measured on the frozen copy of commit 1c94be6e (40 AD-3 breaches, last vote 205): the CI
+  // re-collect (first run 2026-10-11) moves the live data/oracle-registry/config
   it('the committed wstETH card: a failed vote-history read at head keeps all its head breaches (was 42 → 0)', () => {
-    const file = join(process.cwd(), 'data/oracle-registry/config/state/wsteth.json')
+    const file = join(FROZEN, 'state/wsteth.json')
     const st = JSON.parse(readFileSync(file, 'utf8')) as SubjectState
     const before = breachCount(st)
     const ad3 = st.items.flatMap((i) => i.breaches).filter((b) => b.ruleId === 'AD-3').length

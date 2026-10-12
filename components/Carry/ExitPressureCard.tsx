@@ -5687,18 +5687,19 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
                 <Metric
                   label={<Tooltip label="Current single cash-inventory edge clipped by your full entitlement. Own historical NET rates repeat separately over source age plus the selected horizon, under unchanged entitlement and regime. Cash-only capacity proxy; sampled bounds are uncalibrated."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Inventory graph headroom†</Text></Tooltip>}
                   value={`${formatExitPressureSignedRaw(nativeCashTime.sparsePeerOutlook.currentGraphHeadroomRaw, requestedAssetDecimals!)} ${requestedAssetSymbol}`}
-                  warning={nativeCashTime.sparsePeerOutlook.currentGraphHeadroomRaw.startsWith('-')}
+                  adverse={nativeCashTime.sparsePeerOutlook.currentGraphHeadroomRaw.startsWith('-')}
                   detail={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).ownDetail}
                 />
                 {nativeCashTime.sparsePeerOutlook.peerAnalogScenarios && <Metric
                   label={<Tooltip label="Alternative to own NET: relative NET rates from other registered Ethereum Morpho V2 cash inventories with the same underlying address and decimals scale to your current cash. Newest two retained intervals per peer; unchanged regime assumed. Unknown incident labels permit unconditioned analogues only. Own and peer NET are never added. Retained point digests, unavailable intervals and arithmetic censorship remain; no calibrated probability or executable exit claim."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Peer NET analogue headroom†</Text></Tooltip>}
                   value={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).peerValue}
-                  warning={nativeCashTime.sparsePeerOutlook.peerAnalogScenarios.summary?.minimumHeadroomRaw.startsWith('-')}
+                  adverse={nativeCashTime.sparsePeerOutlook.peerAnalogScenarios.summary?.minimumHeadroomRaw.startsWith('-')}
                   detail={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).peerDetail}
                 />}
                 <Metric
                   label={<Tooltip label="Largest sampled own historical NET cash decrease divided by its observed interval. This is net inventory depletion, not gross withdrawals or an instantaneous maximum, and it does not guarantee a future pace."><Text as="span" cursor="help" tabIndex={0} _focusVisible={FOCUS_STYLES.ring}>Observed maximum NET outflow pace</Text></Tooltip>}
                   value={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).observedPaceValue}
+                  adverse={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).observedPaceValue!=='—'}
                   detail={nativeInventoryAnalogueRows(nativeCashTime, requestedAssetDecimals!, requestedAssetSymbol).observedPaceDetail}
                 />
                 <Metric

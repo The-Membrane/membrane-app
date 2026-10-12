@@ -121,6 +121,8 @@ export interface IncumbentRules {
   id: IncumbentId
   /** 'Aave V3'. */
   name: string
+  /** 'Aave': where a line has room for one word. */
+  shortName: string
   /** 'WETH collateral' / 'WETH/USDC 86% market'. */
   market: string
   liquidationThreshold: number
@@ -137,6 +139,7 @@ export const INCUMBENT_TWINS: Readonly<Record<IncumbentId, IncumbentRules>> = {
   'aave-v3': {
     id: 'aave-v3',
     name: 'Aave V3',
+    shortName: 'Aave',
     market: 'WETH collateral',
     liquidationThreshold: 0.83,
     liquidationBonus: 0.05,
@@ -153,6 +156,7 @@ export const INCUMBENT_TWINS: Readonly<Record<IncumbentId, IncumbentRules>> = {
   spark: {
     id: 'spark',
     name: 'Spark',
+    shortName: 'Spark',
     market: 'WETH collateral',
     liquidationThreshold: 0.86,
     liquidationBonus: 0.05,
@@ -163,6 +167,7 @@ export const INCUMBENT_TWINS: Readonly<Record<IncumbentId, IncumbentRules>> = {
   'morpho-blue': {
     id: 'morpho-blue',
     name: 'Morpho Blue',
+    shortName: 'Morpho',
     market: 'WETH/USDC 86% market',
     liquidationThreshold: MORPHO_WETH_USDC_LLTV,
     liquidationBonus: morphoLiquidationBonus(MORPHO_WETH_USDC_LLTV),

@@ -15,6 +15,7 @@ import { GlyphMark, Panel, REDUCED_MOTION_SX, SectionHead, TONE_COLOR } from './
 import {
   leafView,
   pct,
+  twinLineText,
   usd,
   type CrashLevel,
   type FrontierModel,
@@ -43,13 +44,14 @@ const Level: React.FC<{
     c.limit.state === 'found' ? (c.limit.at as number) : c.limit.state === 'beyond' ? c.line : null
   const sold = c.node.outcome === 'sold' ? c.node.exposedUsd : 0
   const leaf = leafView(c.node)
+  const twin = twinLineText(c.twin)
   return (
     <Box
       as="button"
       type="button"
       onClick={onSelect}
       aria-pressed={active}
-      aria-label={`Crash test ${c.title}: ${word}${sold > 0 ? `, ${usd(sold)} sold` : ''}. ${c.summary}. Show this node.`}
+      aria-label={`Crash test ${c.title}: ${word}${sold > 0 ? `, ${usd(sold)} sold` : ''}. ${c.summary}.${twin ? ` ${twin}, modelled.` : ''} Show this node.`}
       textAlign="left"
       position="relative"
       border="1px solid"
@@ -209,6 +211,17 @@ const Level: React.FC<{
           {leaf.title} · {leaf.short}
         </Text>
       </HStack>
+      {twin && (
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.label}
+          color={SEMANTIC_COLORS.textTertiary}
+          mb={SPACING.xs}
+          sx={{ fontVariantNumeric: 'tabular-nums' }}
+        >
+          {twin}
+        </Text>
+      )}
       <Text
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize={TYPOGRAPHY.label}

@@ -11,13 +11,22 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DEFAULT_INPUTS,
+  INCUMBENT_CHOICES,
   LOADOUTS,
+  applyLoadout,
   computeFrontier,
   detailRows,
+  edgeView,
+  loadoutMatches,
   priceFromNowText,
+  resolveSelection,
   stockSourceText,
   TWIN_MARK,
+  twinFinePrint,
+  twinLineText,
+  twinShortText,
   type FrontierModel,
+  type Selection,
 } from '@/components/RiskFrontier/viewModel'
 import { measuredRepayFraction, runComparison } from '@/lib/position-sim/compare'
 import {
@@ -488,13 +497,33 @@ describe('incumbent twin — parity with the Oct 10 replay (runComparison)', () 
 
 // --------------------------------------------------------------- view model
 
+/** Every edge the detail panel can select (viewModel `Selection` kind 'edge'). */
+const EDGE_SELECTIONS: Extract<Selection, { kind: 'edge' }>[] = [
+  { kind: 'edge', axis: 'price', edge: 'breach' },
+  { kind: 'edge', axis: 'price', edge: 'arm' },
+  { kind: 'edge', axis: 'price', edge: 'sale' },
+  { kind: 'edge', axis: 'wick', edge: 'sale' },
+  { kind: 'edge', axis: 'capacity', edge: 'arm' },
+  { kind: 'edge', axis: 'capacity', edge: 'sale' },
+  { kind: 'edge', axis: 'freeze', edge: 'arm' },
+  { kind: 'edge', axis: 'freeze', edge: 'sale' },
+]
+
 describe('incumbent twin — view model', () => {
   const replay = oct10ReplayShape(PRICES, 'WETH')
 
   /** Every twin string the screen shows. */
   function twinStrings(m: FrontierModel): string[] {
-    const out: string[] = []
-    for (const row of m.swatch.rows) for (const c of row.cells) out.push(c.twinText ?? '')
+    const out: string[] = [m.swatch.twinHead, twinFinePrint()]
+    for (const row of m.swatch.rows) out.push(row.twinText ?? '')
+    for (const lane of m.tree)
+      out.push(twinLineText(lane.twin) ?? '', twinShortText(lane.twin) ?? '')
+    for (const c of m.crash) out.push(twinLineText(c.twin) ?? '')
+    for (const sel of EDGE_SELECTIONS) {
+      const r = resolveSelection(m, sel)
+      if (r.result)
+        for (const row of detailRows(r.result, r.stock, r.twin)) out.push(row.label, row.value)
+    }
     for (const lane of m.tree)
       if (lane.result)
         for (const r of detailRows(
@@ -517,13 +546,83 @@ describe('incumbent twin — view model', () => {
       )
     for (const c of m.crash) expect(c.twin).not.toBeNull()
     for (const row of m.swatch.rows)
-      for (const c of row.cells) {
-        expect(c.twin === null).toBe(c.result.outcome === 'not_modelled')
-        if (c.twin) expect(c.twinText).toContain(TWIN_MARK)
-      }
+      for (const c of row.cells) expect(c.twin === null).toBe(c.result.outcome === 'not_modelled')
     // −25% step lane: Aave would take the whole loan plus its bonus.
     const lane = m.tree.find((l) => l.id === 'step25')!
     expect(lane.twin!.incumbentSoldUsd).toBeCloseTo(31_400 * 1.05, 6)
+    expect(twinLineText(lane.twin)).toBe(`Aave V3${TWIN_MARK} would sell $33.0k`)
+    expect(twinLineText(m.tree.find((l) => l.id === 'step10')!.twin)).toBe(
+      `Aave V3${TWIN_MARK} would sell nothing`,
+    )
+    expect(twinShortText(lane.twin)).toBe(`Aave${TWIN_MARK} $33.0k`)
+    expect(twinShortText(null)).toBeNull()
+  })
+
+  it('gives the swatch ONE twin figure per row: a venue condition changes nothing for it', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, replay)
+    expect(m.swatch.twinHead).toBe(`Aave${TWIN_MARK} would sell`)
+    expect(m.swatch.rows.length).toBe(6) // five shapes and the Oct 10 replay
+    for (const row of m.swatch.rows) {
+      expect(row.twin, row.label).not.toBeNull()
+      for (const c of row.cells)
+        if (c.twin) expect(c.twin.incumbentSoldUsd).toBe(row.twin!.incumbentSoldUsd)
+    }
+    const text = (label: string) => m.swatch.rows.find((r) => r.label === label)!.twinText
+    expect(text('−10% step')).toBe(`Aave${TWIN_MARK} no sale`)
+    expect(text('−25% step')).toBe(`Aave${TWIN_MARK} $33.0k`)
+  })
+
+  it('puts a twin on every selectable edge node, and only on the node itself', () => {
+    const m = computeFrontier(DEFAULT_INPUTS, replay)
+    const ref = m.tree.find((l) => l.id === 'step25')!.twin!
+    let found = 0
+    for (const sel of EDGE_SELECTIONS) {
+      const r = resolveSelection(m, sel)
+      if (!r.result || r.result.outcome === 'not_modelled') {
+        expect(r.twin, JSON.stringify(sel)).toBeNull()
+        continue
+      }
+      expect(r.twin, JSON.stringify(sel)).not.toBeNull()
+      found++
+      // The twin stands next to the edge node, not another node.
+      expect(r.twin!.membraneSoldUsd).toBe(r.result.exposedUsd)
+      // Venue edges run on the −25% reference step: the incumbent sells what it does there.
+      if (sel.axis === 'capacity' || sel.axis === 'freeze')
+        expect(r.twin!.incumbentSoldUsd).toBe(ref.incumbentSoldUsd)
+    }
+    expect(found).toBeGreaterThanOrEqual(4)
+    // The price-axis sale edge: the node is the held step at the edge.
+    const sale = m.dtd.price.sale
+    if (sale.status !== 'found') throw new Error('the default position has a sale edge')
+    const t = m.edgeTwins.price.sale!
+    expect(t.events[0]?.minute ?? 1).toBe(1)
+    expect(edgeView(sale, 'drop').node?.cellKey).toBe(sale.at.cellKey)
+  })
+
+  it('keeps the incumbent when a loadout is picked, and never deselects a loadout', () => {
+    const spark = { ...DEFAULT_INPUTS, incumbent: 'spark' as const }
+    expect(loadoutMatches(LOADOUTS[0], spark)).toBe(true)
+    for (const l of LOADOUTS) {
+      const next = applyLoadout(l, spark)
+      expect(next.incumbent).toBe('spark')
+      expect(loadoutMatches(l, next)).toBe(true)
+    }
+    expect(applyLoadout(LOADOUTS[1], DEFAULT_INPUTS)).toBe(LOADOUTS[1].inputs)
+    expect(loadoutMatches(LOADOUTS[1], DEFAULT_INPUTS)).toBe(false)
+  })
+
+  it('builds the picker and the fine print from the read parameters', () => {
+    expect(INCUMBENT_CHOICES.map((c) => c.id)).toEqual(INCUMBENT_ORDER)
+    expect(INCUMBENT_CHOICES.map((c) => c.sub)).toEqual([
+      '83% threshold · 5.0% bonus',
+      '86% threshold · 5.0% bonus',
+      '86% threshold · 4.4% bonus',
+    ])
+    const fp = twinFinePrint()
+    for (const id of INCUMBENT_ORDER) expect(fp).toContain(INCUMBENT_TWINS[id].name)
+    expect(fp).toContain('block 23,543,615')
+    expect(fp).toContain("includes the liquidator's bonus")
+    expect(fp).toContain('leaves out its fees')
   })
 
   it('runs the chosen incumbent', () => {
@@ -541,6 +640,14 @@ describe('incumbent twin — view model', () => {
     const twin = rows.filter((r) => r.label.startsWith('Aave V3'))
     expect(twin.length).toBeGreaterThanOrEqual(2)
     for (const r of twin) expect(r.label.endsWith(TWIN_MARK)).toBe(true)
+    // Every twin row is grouped apart from Membrane's facts; only the note is prose.
+    const grouped = rows.filter((r) => r.group === 'twin')
+    expect(grouped.map((r) => r.label)).toEqual([
+      ...twin.map((r) => r.label),
+      'Membrane first sale price',
+      `${TWIN_MARK} modelled`,
+    ])
+    expect(grouped.filter((r) => r.wide).map((r) => r.label)).toEqual([`${TWIN_MARK} modelled`])
     expect(rows.find((r) => r.label === `Aave V3 would sell ${TWIN_MARK}`)!.value).toBe(
       '$32,970 · $1,570 of it bonus',
     )

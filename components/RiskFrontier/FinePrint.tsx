@@ -10,7 +10,7 @@ import { FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 
 import { Panel } from './atoms'
-import { STRESS_CODE_VERSION, STRESS_LABEL } from './viewModel'
+import { STRESS_CODE_VERSION, STRESS_LABEL, TWIN_MARK, twinFinePrint } from './viewModel'
 
 const LINES = (tapeWindow: string | null): { head: string; body: string }[] => [
   {
@@ -40,6 +40,10 @@ const LINES = (tapeWindow: string | null): { head: string; body: string }[] => [
   {
     head: 'Distances',
     body: 'Each figure is the largest whole unit with no trigger, so the edge lies just past it: rounded toward risk. Venue axes are solved at a named −25% step, never folded into one combined route.',
+  },
+  {
+    head: `Incumbent twin ${TWIN_MARK}`,
+    body: twinFinePrint(),
   },
   {
     head: 'Oct 10 replay',

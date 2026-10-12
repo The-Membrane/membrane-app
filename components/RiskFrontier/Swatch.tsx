@@ -1,5 +1,6 @@
 // The swatch: the power-user grid (design §2). Every price shape × every single-axis venue
-// condition, the same keyed nodes as the tree. Never a combined route.
+// condition, the same keyed nodes as the tree. Never a combined route. Under each row label
+// sits the incumbent twin (†, modelled): one figure per price shape, since it has no recall.
 
 import React from 'react'
 import { Box, HStack, Text } from '@chakra-ui/react'
@@ -33,7 +34,27 @@ export const Swatch: React.FC<{
       >
         <thead>
           <tr>
-            <Box as="th" />
+            <Box
+              as="th"
+              scope="col"
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.label}
+              fontWeight={400}
+              letterSpacing="0.12em"
+              textTransform="uppercase"
+              color={SEMANTIC_COLORS.textTertiary}
+              textAlign="left"
+              verticalAlign="bottom"
+              pb={SPACING.xs}
+              pr={SPACING.sm}
+            >
+              <Text as="span" display="block" fontSize={TYPOGRAPHY.label}>
+                shape
+              </Text>
+              <Text as="span" display="block" fontSize={TYPOGRAPHY.label}>
+                {swatch.twinHead}
+              </Text>
+            </Box>
             {swatch.cols.map((c) => (
               <Box
                 as="th"
@@ -68,7 +89,18 @@ export const Swatch: React.FC<{
                 whiteSpace="nowrap"
                 pr={SPACING.sm}
               >
-                {row.label}
+                <Text as="span" display="block" fontSize={TYPOGRAPHY.label}>
+                  {row.label}
+                </Text>
+                <Text
+                  as="span"
+                  display="block"
+                  fontSize={TYPOGRAPHY.label}
+                  color={SEMANTIC_COLORS.textTertiary}
+                  sx={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {row.twinText ?? 'not modelled'}
+                </Text>
               </Box>
               {row.cells.map((cell, ci) => {
                 const active =

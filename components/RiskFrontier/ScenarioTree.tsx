@@ -12,7 +12,16 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 
 import { GlyphMark, HATCH, Legend, REDUCED_MOTION_SX, TONE_COLOR } from './atoms'
-import { TIME_TICKS, duration, timeX, type Lane, type LaneEvent, type Selection } from './viewModel'
+import {
+  TIME_TICKS,
+  duration,
+  timeX,
+  twinLineText,
+  twinShortText,
+  type Lane,
+  type LaneEvent,
+  type Selection,
+} from './viewModel'
 
 const GRID = {
   display: 'grid',
@@ -280,6 +289,8 @@ export const ScenarioTree: React.FC<{
         const trunkContinues = topIndex < tops.length - 1
         const active = selected?.kind === 'lane' && selected.id === lane.id
         const leafColor = TONE_COLOR[lane.leaf.tone]
+        const twin = twinShortText(lane.twin)
+        const twinSpoken = twinLineText(lane.twin)
         return (
           <Box
             key={`${lane.id}:${lane.signature}`}
@@ -287,7 +298,7 @@ export const ScenarioTree: React.FC<{
             type="button"
             onClick={() => onSelect({ kind: 'lane', id: lane.id })}
             aria-pressed={active}
-            aria-label={`${lane.label}, ${lane.sub}: ${lane.leaf.title}, ${lane.leaf.short}. Show detail.`}
+            aria-label={`${lane.label}, ${lane.sub}: ${lane.leaf.title}, ${lane.leaf.short}.${twinSpoken ? ` ${twinSpoken}, modelled.` : ''} Show detail.`}
             {...GRID}
             w="100%"
             textAlign="left"
@@ -358,6 +369,19 @@ export const ScenarioTree: React.FC<{
                 >
                   {lane.leaf.short}
                 </Text>
+                {twin && (
+                  <Text
+                    as="span"
+                    display="block"
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize={TYPOGRAPHY.label}
+                    color={SEMANTIC_COLORS.textTertiary}
+                    noOfLines={1}
+                    sx={{ fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {twin}
+                  </Text>
+                )}
               </Box>
             </HStack>
           </Box>

@@ -54,6 +54,7 @@ import {
   type PriceShape,
   type StressModelled,
   type StressPosition,
+  type StressRunOptions,
   type TradeShape,
 } from './stressGrid'
 
@@ -346,9 +347,15 @@ export function caseBorrowCap(c: SetAndForgetCase): number {
   return membraneBorrowLtv(c.line)
 }
 
-/** One engine run. Throws on `not_modelled` — every case here is a modelled position. */
-export function runCase(c: SetAndForgetCase, shape: PriceShape, ltv: number): StressModelled {
-  const r = runStress(casePosition(c, ltv), { price: shape })
+/** One engine run. Throws on `not_modelled` — every case here is a modelled position.
+ *  `opts.trace` adds the per-step money moves (returnStatement.ts); nothing else changes. */
+export function runCase(
+  c: SetAndForgetCase,
+  shape: PriceShape,
+  ltv: number,
+  opts: StressRunOptions = {},
+): StressModelled {
+  const r = runStress(casePosition(c, ltv), { price: shape }, opts)
   if (r.outcome === 'not_modelled') {
     throw new Error(`set-and-forget: not modelled (${r.reason}) at ltv ${ltv} on ${r.scenarioId}`)
   }

@@ -126,12 +126,18 @@ function makeLegs(src: { symbol: string; amount: number }[]): Leg[] {
   return src.map((l) => ({ symbol: l.symbol, amount: l.amount, value: 0 }))
 }
 
+/** What the SOURCE engine reads from `CompareOptions`. */
+export type IncumbentOptions = Pick<
+  CompareOptions,
+  'venue' | 'sourceRepayFraction' | 'sourceRepayFractionLabel'
+>
+
 /**
  * The SOURCE protocol's engine: a close-factor share of the loan is repaid and the
  * liquidator seizes that value plus the liquidation bonus. Repeats while the position
  * stays unhealthy. No cure window, no recall — those do not exist here.
  */
-function runSource(position: ProtocolPosition, path: PricePath, opts: CompareOptions): SimRun {
+function runSource(position: ProtocolPosition, path: PricePath, opts: IncumbentOptions): SimRun {
   const coll = makeLegs(position.collateral)
   const debt = makeLegs(position.debt)
   const fallbackC = Object.fromEntries(position.collateral.map((c) => [c.symbol, c.priceUsd]))
@@ -573,6 +579,20 @@ export function runComparison(
     unpricedSymbols,
     scenarioLabel: opts.scenarioLabel,
   }
+}
+
+/**
+ * The SOURCE engine alone: what the incumbent does to this position on this path. For a
+ * caller that runs Membrane on another engine and must not mix two Membrane engines in one
+ * result: the set-and-forget return statement (returnStatement.ts) runs Membrane on
+ * stressGrid, the engine its survival table used, and the incumbent here.
+ */
+export function runIncumbent(
+  position: ProtocolPosition,
+  path: PricePath,
+  opts: IncumbentOptions,
+): SimRun {
+  return runSource(position, path, opts)
 }
 
 /** Measured repay fractions from the Oct 10 dataset, per protocol. */

@@ -442,6 +442,25 @@ export interface StressScenario {
 export interface StressRunOptions {
   /** Grid step for synthetic shapes. A replay always runs on its own step. Default 60. */
   stepSeconds?: number
+  /**
+   * Also return `trace`: one row per step where a call moved money. Off by default. It
+   * changes no other output and is not part of the cell key. The return statement
+   * (returnStatement.ts) needs WHEN a recall drew deployed capital, to price the yield
+   * that capital stopped earning.
+   */
+  trace?: boolean
+}
+
+/** One step where a call moved money. Sums over a run equal `recallDrawnUsd` and
+ *  `exposedUsd`. */
+export interface StressTraceEvent {
+  /** Seconds from t0 (step index × step). Can pass the horizon: the engine holds the last
+   *  price for one window after it (ratioPath), so a late timer can still sell. */
+  seconds: number
+  /** Deployed capital the call's recall drew (repays debt). */
+  recallUsd: number
+  /** Collateral the call sold, USD at that step's price. Fees omitted, like `exposedUsd`. */
+  soldUsd: number
 }
 
 export type StressOutcome =
@@ -564,6 +583,8 @@ export interface StressModelled extends StressResultBase {
   /** Seconds from t0 when the venue first answers (after a freeze). Null if never needed / levered_long. */
   recallOpensAtSeconds: number | null
   horizonSeconds: number
+  /** Only with `StressRunOptions.trace`. */
+  trace?: StressTraceEvent[]
 }
 
 export type StressResult = StressModelled | StressNotModelled
@@ -916,9 +937,11 @@ interface Walk {
   recallStockUsd: number
   recallDrawnUsd: number
   recallOpensAt: number | null
+  /** Per-step money moves, when traced: [step, recall, sold]. */
+  moves: [number, number, number][] | null
 }
 
-function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
+function walk(n: NormalizedStress, ratios: readonly number[], traced = false): Walk {
   const { pos } = n
   const params = MEMBRANE_CLASS_PARAMS[pos.cls]
   const line = pos.line
@@ -947,6 +970,10 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
   let saleAt: number | null = null
   let saleReason: SaleReason | null = null
   let peak = debt / collBase
+  const moves: [number, number, number][] | null = traced ? [] : null
+  const move = (i: number, recall: number, sold: number) => {
+    if (moves && (recall > 0 || sold > 0)) moves.push([i, recall, sold])
+  }
 
   for (let i = 0; i < ratios.length; i++) {
     const r = ratios[i]
@@ -979,9 +1006,11 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
         // The recall repaid the whole debt: the recall-only lane (LE:1623-1658).
         recallCures++
         timer.clearAfterSale()
+        move(i, recall, 0)
         continue
       }
       const seized = Math.max(0, coll)
+      move(i, recall, seized)
       sales++
       exposed += seized
       soldBase += collBase
@@ -1020,6 +1049,7 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
       closed += recall
       debt -= recall
       recallCures++
+      move(i, recall, 0)
       timer.clearAfterSale()
       continue
     }
@@ -1034,6 +1064,7 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
       drawn += recall
       closed += recall + seized
       debt -= recall + seized
+      move(i, recall, seized)
       collBase = (coll - seized) / r
       timer.clearAfterSale()
       if (seized > 0) {
@@ -1054,6 +1085,7 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
       drawn += recall
       closed += recall
       debt -= recall
+      move(i, recall, 0)
       armed = true
       if (armAt === null) armAt = i
       continue
@@ -1074,6 +1106,7 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
     drawn += recall
     closed += recall + seized
     debt -= recall + seized
+    move(i, recall, seized)
     collBase = (coll - seized) / r
     // The recall covered the whole target: the call committed, the timer (if any) was
     // cleared on the sale path, and the position is still over the line. Not a cure.
@@ -1123,6 +1156,7 @@ function walk(n: NormalizedStress, ratios: readonly number[]): Walk {
     recallStockUsd: stock,
     recallDrawnUsd: drawn,
     recallOpensAt: breachAt === null ? null : breachAt + freezeSteps,
+    moves,
   }
 }
 
@@ -1145,7 +1179,7 @@ export function runStress(
   if (reason) return { ...base, outcome: 'not_modelled', reason }
 
   const ratios = ratioPath(n)
-  const w = walk(n, ratios)
+  const w = walk(n, ratios, opts.trace === true)
   const params = MEMBRANE_CLASS_PARAMS[n.pos.cls]
   const carry = n.pos.shape === 'carry'
   const secs = (i: number | null) => (i === null ? null : i * n.stepSeconds)
@@ -1178,6 +1212,15 @@ export function runStress(
     recallDrawnUsd: carry ? w.recallDrawnUsd : null,
     recallOpensAtSeconds: carry ? secs(w.recallOpensAt) : null,
     horizonSeconds: (ratios.length - 1) * n.stepSeconds,
+    ...(w.moves
+      ? {
+          trace: w.moves.map(([i, recallUsd, soldUsd]) => ({
+            seconds: i * n.stepSeconds,
+            recallUsd,
+            soldUsd,
+          })),
+        }
+      : {}),
   }
 }
 

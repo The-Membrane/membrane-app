@@ -42,6 +42,17 @@
  * measures each COPY CLAIM (CLAIMS below) directly, per position size; written to
  * data/price-history/cache/set-and-forget/claims/ and merged by --report as `claims`.
  *
+ *   ./node_modules/.bin/tsx scripts/position-sim/set-and-forget-sim.ts --returns [--horizons=90d]
+ * the RETURN STATEMENT (board Q20, the return half): for each A1 case, every start hour whose
+ * window the measured rate series cover — what the deployed debt earned, the borrow cost, the
+ * collateral sold on Membrane and on the incumbent (Aave v3, compare.ts `runIncumbent`), and
+ * the yield the recalled capital gave up (lib/position-sim/returnStatement.ts). Venue yield is
+ * the net-APY history (private datasets repo, net-apy-history/aave-v3-usdc-1h.json, built by
+ * build-net-apy-history.ts from lib/netApy's pinned reads; board rule N18); a window it does
+ * not cover is counted as unavailable, never priced. Writes the canonical
+ * set-and-forget-returns/set-and-forget-returns.json in the datasets repo and the copy the UI
+ * serves, public/data/price-history/set-and-forget-returns.json.
+ *
  * EVERY "is it sold?" IS ONE stressGrid `runStress` CALL (lib/position-sim/setAndForget.ts
  * header): the measured window becomes a `replay` shape; the start LTV is bisected with
  * frontier.ts's `bisectEdge`. Nothing here re-implements a mechanic.
@@ -121,6 +132,27 @@ import {
   type ExitCapacityPresetId,
   type TradeShape,
 } from '../../lib/position-sim/stressGrid'
+import { measuredRepayFraction } from '../../lib/position-sim/compare'
+import { datasetsDir } from '../lib/datasetsDir.mjs'
+import {
+  covers,
+  distOf,
+  historySeries,
+  NET_APY_HISTORY_DIR,
+  netApyHistoryFileName,
+  incumbentReturn,
+  incumbentWindow,
+  membraneWindow,
+  netCarry,
+  rateSeries,
+  windowTimes,
+  type IncumbentParams,
+  type IncumbentReturn,
+  type Line,
+  type MembraneReturn,
+  type NetApyHistoryFile,
+  type RateSeries,
+} from '../../lib/position-sim/returnStatement'
 
 const ROOT = process.cwd()
 const DATA = path.join(ROOT, 'public/data/price-history')
@@ -1437,7 +1469,573 @@ function seed(caseIds: readonly string[]) {
   }
 }
 
-if (args.has('report')) {
+// ------------------------------------------------------------ return statement (Q20)
+
+const RETURNS_OUT = path.join(DATA, 'set-and-forget-returns.json')
+/** The net-APY history is fetched data: it lives in the private datasets repo (board rule N18).
+ *  The return statement is an aggregate a doc cites and the UI serves: its canonical file is in
+ *  the datasets repo, and public/data keeps the served copy. */
+const NET_APY_HISTORY_FILE = netApyHistoryFileName(['aave-v3-usdc'], 1)
+const RETURNS_DATASET_DIR = 'set-and-forget-returns'
+const VENUE_STRESS_HISTORY = path.join(ROOT, 'public/data/venue-stress/history.json')
+const OCT10_PROTOCOLS = path.join(ROOT, 'public/data/oct10-2025/protocols.json')
+
+/**
+ * The statements to measure. A1 mirrors the A1 copy claim (CLAIMS): ETH, delayed class, HF 2,
+ * the deployed debt at Aave USDC under each book's typical and bad event and the floor, plus a
+ * levered long — at the table's size ($100,000 of collateral, $40,000 of debt).
+ */
+interface ReturnDef {
+  id: string
+  label: string
+  claimId: string
+  /** lib/netApy venue key of the deployment venue (the supply series). */
+  venueKey: string
+  /** venue-stress history key of the same venue (the incumbent's borrow series). */
+  borrowVenueKey: string
+  incumbentLabel: string
+  horizons: readonly string[]
+  collateralUsd: number
+}
+
+const RETURNS: readonly ReturnDef[] = [
+  {
+    id: 'A1',
+    label:
+      'ETH, opened at HF 2 and left alone; the debt deployed at Aave USDC (carry) or swapped back into ETH (levered long). Membrane against Aave v3 on the same price path.',
+    claimId: 'A1',
+    venueKey: 'aave-v3-usdc',
+    borrowVenueKey: 'aave-core-usdc',
+    incumbentLabel: 'Aave v3 WETH collateral, USDC debt',
+    horizons: ['30d', '90d', '365d'],
+    collateralUsd: SET_AND_FORGET_COLLATERAL_USD,
+  },
+]
+
+/** Named starts: a position opened at the close of the hour that begins each owner-named
+ *  stress window (scripts/position-sim/build-venue-stress-history.mjs NAMED_EVENTS). */
+const NAMED_STARTS: readonly { id: string; label: string; openIso: string }[] = [
+  {
+    id: 'named-2024-08-05',
+    label: 'opened 2024-08-03, before the yen-carry unwind',
+    openIso: '2024-08-03T00:00Z',
+  },
+  {
+    id: 'named-2024-12',
+    label: 'opened 2024-12-03, at the Dec-2024 leverage peak',
+    openIso: '2024-12-03T00:00Z',
+  },
+  {
+    id: 'named-2025-04',
+    label: 'opened 2025-04-05, before the Apr-2025 tariff crash',
+    openIso: '2025-04-05T00:00Z',
+  },
+  {
+    id: 'named-2025-10-10',
+    label: 'opened 2025-10-09 12:00, before the Oct-2025 liquidation cascade',
+    openIso: '2025-10-09T12:00Z',
+  },
+  {
+    id: 'named-2026-02',
+    label: 'opened 2026-01-30, before the Feb-2026 ETH drawdown',
+    openIso: '2026-01-30T00:00Z',
+  },
+  {
+    id: 'named-2026-04-kelp',
+    label: 'opened 2026-04-16, before the Apr-2026 Kelp freeze',
+    openIso: '2026-04-16T00:00Z',
+  },
+  {
+    id: 'named-2026-08-ptreusd',
+    label: 'opened 2026-08-22, before the Aug-2026 PT-reUSD cascade',
+    openIso: '2026-08-22T00:00Z',
+  },
+]
+
+const cents = (x: number) => Math.round(x * 100) / 100
+const lineOut = (l: Line) =>
+  l.usd === null ? { usd: null, why: l.why } : { usd: cents(l.usd), basis: l.basis }
+
+function membraneOut(r: MembraneReturn) {
+  return {
+    yieldEarned: lineOut(r.yieldEarned),
+    borrowCost: lineOut(r.borrowCost),
+    collateralSold: lineOut(r.collateralSold),
+    yieldGivenUp: lineOut(r.yieldGivenUp),
+    recallDrawnUsd: cents(r.recallDrawnUsd),
+  }
+}
+
+function incumbentOut(r: IncumbentReturn) {
+  return {
+    yieldEarned: lineOut(r.yieldEarned),
+    borrowCost: lineOut(r.borrowCost),
+    netCarry: lineOut(netCarry(r)),
+    collateralSold: lineOut(r.collateralSold),
+    liquidationPenalty: lineOut(r.liquidationPenalty),
+    yieldGivenUp: lineOut(r.yieldGivenUp),
+  }
+}
+
+/** The borrow series: the hourly on-chain variable borrow APR (venue-stress history `apr`, %),
+ *  stamped at the block read. One missing hour is a hole (gap 1.5 h). */
+function borrowSeries(venueKey: string): { series: RateSeries; source: string } {
+  const vs = JSON.parse(fs.readFileSync(VENUE_STRESS_HISTORY, 'utf8')) as {
+    generatedAt: string
+    timeline: { t: number[]; dt: number[] }
+    venues: Record<string, { apr: (number | null)[] }>
+  }
+  const v = vs.venues[venueKey]
+  if (!v) throw new Error(`venue-stress history: no ${venueKey}`)
+  const points: { t: number; apr: number }[] = []
+  vs.timeline.t.forEach((t, i) => {
+    const a = v.apr[i]
+    if (a !== null && a !== undefined)
+      points.push({ t: t + Math.max(0, vs.timeline.dt[i]), apr: a / 100 })
+  })
+  const source = `public/data/venue-stress/history.json ${venueKey} apr (hourly archive reads, generated ${vs.generatedAt.slice(0, 10)})`
+  return {
+    series: rateSeries(`venue-stress:${venueKey}:borrowApr`, source, points, 1.5 * 3600),
+    source,
+  }
+}
+
+/** Why a window is not covered, as a countable class (no timestamps). */
+function uncoveredClass(s: RateSeries, fromTs: number, toTs: number): string | null {
+  const c = covers(s, fromTs, toTs)
+  if (c.ok) return null
+  if (!s.t.length || fromTs < s.t[0]) return `${s.id}: window starts before the series`
+  if (toTs > s.t[s.t.length - 1] + s.maxGapSeconds) return `${s.id}: window ends after the series`
+  return `${s.id}: a sample gap inside the window`
+}
+
+interface Acc {
+  m: {
+    yieldEarned: number[]
+    yieldGivenUp: number[]
+    collateralSold: number[]
+    recallDrawn: number[]
+  }
+  i: {
+    yieldEarned: number[]
+    borrowCost: number[]
+    netCarry: number[]
+    collateralSold: number[]
+    liquidationPenalty: number[]
+  }
+  mSold: number
+  iSold: number
+  recalled: number
+  worst: {
+    mostSold: { start: number; usd: number } | null
+    leastYield: { start: number; usd: number } | null
+    incumbentMostSold: { start: number; usd: number } | null
+  }
+}
+
+const newAcc = (): Acc => ({
+  m: { yieldEarned: [], yieldGivenUp: [], collateralSold: [], recallDrawn: [] },
+  i: { yieldEarned: [], borrowCost: [], netCarry: [], collateralSold: [], liquidationPenalty: [] },
+  mSold: 0,
+  iSold: 0,
+  recalled: 0,
+  worst: { mostSold: null, leastYield: null, incumbentMostSold: null },
+})
+
+const usd = (l: Line) => l.usd
+
+function runReturns(horizonFilter?: readonly string[]) {
+  const t0 = Date.now()
+  const DATASETS = datasetsDir(ROOT)
+  const historyPath = path.join(DATASETS, NET_APY_HISTORY_DIR, NET_APY_HISTORY_FILE)
+  const hist = JSON.parse(fs.readFileSync(historyPath, 'utf8')) as NetApyHistoryFile
+  const protocols = JSON.parse(fs.readFileSync(OCT10_PROTOCOLS, 'utf8')) as {
+    measuredLiquidations: Parameters<typeof measuredRepayFraction>[1]
+  }
+  const repay = measuredRepayFraction('aave-v3', protocols.measuredLiquidations)
+  const out: unknown[] = []
+  const sources: Record<string, unknown> = {}
+
+  for (const rd of RETURNS) {
+    const cl = CLAIMS.find((x) => x.id === rd.claimId)!
+    const def = PATHS[cl.pathId]
+    const line = membraneMaxLtv(def.symbol)
+    if (line === null) throw new Error(`${def.symbol}: no Membrane line`)
+    const ltv = cl.ltv(line)
+    const p = def.build()
+    const cov = pathCoverage(p)
+    if (!cov) throw new Error(`${cl.pathId}: empty path`)
+    const debtUsd = ltv * rd.collateralUsd
+
+    const hv = hist.venues[rd.venueKey]
+    if (!hv) throw new Error(`net-apy history: no ${rd.venueKey}`)
+    const borrow = borrowSeries(rd.borrowVenueKey)
+    const incSupply = historySeries(hist, rd.venueKey, 'supplyApr@0')
+    const ti = hv.columns.indexOf('blockTs')
+    const lti = hv.columns.indexOf('wethLtBps')
+    const bi = hv.columns.indexOf('wethBonusBps')
+    const paramRows = hv.rows.filter((r) => r[lti] != null && r[bi] != null) as number[][]
+    /** Aave v3 WETH params at the last sample at or before ts. */
+    const paramsAt = (ts: number): IncumbentParams | null => {
+      let lo = 0
+      let hi = paramRows.length - 1
+      if (hi < 0 || paramRows[0][ti] > ts) return null
+      while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1
+        if (paramRows[mid][ti] <= ts) lo = mid
+        else hi = mid - 1
+      }
+      return {
+        label: rd.incumbentLabel,
+        liquidationThreshold: paramRows[lo][lti] / 1e4,
+        liquidationBonus: paramRows[lo][bi] / 1e4 - 1,
+        repayFraction: repay.fraction,
+        repayFractionLabel: repay.label,
+      }
+    }
+
+    const cases = cl.caseIds.map((caseId) => {
+      const cd = CASES.find((x) => x.id === caseId)
+      if (!cd) throw new Error(`returns: unknown case ${caseId}`)
+      const preset = cd.preset ? EXIT_CAPACITY_PRESETS[cd.preset] : null
+      // The book whose deposit sets the supply APR: the preset's book; the floor names none, so
+      // the default book; levered long deploys nothing.
+      const bookUsd =
+        cd.tradeShape !== 'carry'
+          ? null
+          : (preset?.bookUsd ??
+            EXIT_CAPACITY_BOOKS.find((b) => b.id === EXIT_CAPACITY_DEFAULT_BOOK)!.usd)
+      const supply =
+        bookUsd === null ? null : historySeries(hist, rd.venueKey, `supplyApr@${bookUsd}`)
+      const c: SetAndForgetCase = {
+        line,
+        membraneClass: cl.membraneClass,
+        tradeShape: cd.tradeShape,
+        exitCapacityPreset: cd.preset,
+        collateralUsd: rd.collateralUsd,
+      }
+      return { caseId, cd, preset, bookUsd, supply, c }
+    })
+
+    sources[rd.id] = {
+      price: def.source,
+      netApy: {
+        file: `membrane-datasets/${NET_APY_HISTORY_DIR}/${NET_APY_HISTORY_FILE} (private, board rule N18)`,
+        venueKey: rd.venueKey,
+        generatedAt: hist.generatedAt,
+        source: hist.source,
+        strideHours: hist.strideSeconds / 3600,
+        samples: hv.rows.length,
+        failedSamples: hv.failures.length,
+        firstReadable: { iso: iso(hv.firstReadable.t), block: hv.firstReadable.b },
+        lastUnreadable: hv.lastUnreadable
+          ? {
+              iso: iso(hv.lastUnreadable.t),
+              block: hv.lastUnreadable.b,
+              why: hv.lastUnreadable.why,
+            }
+          : null,
+        last: iso(hv.rows[hv.rows.length - 1][ti] as number),
+      },
+      borrow: {
+        source: borrow.source,
+        first: iso(borrow.series.t[0]),
+        last: iso(borrow.series.t[borrow.series.t.length - 1]),
+      },
+      incumbent: {
+        label: rd.incumbentLabel,
+        params:
+          'liquidation threshold and bonus of Aave v3 WETH, read at the sample at or before the window start (net-apy history wethLtBps / wethBonusBps); held for the window',
+        repayFraction: repay.fraction,
+        repayFractionLabel: repay.label,
+        engine:
+          'compare.ts runIncumbent: at each step over the threshold, the repay share is repaid and the bonus seized on top',
+      },
+    }
+
+    for (const hz of rd.horizons) {
+      if (horizonFilter && !horizonFilter.includes(hz)) continue
+      const h = SET_AND_FORGET_HORIZONS.find((x) => x.label === hz)!
+      const minr = windowMinRatios(p, h.hours, def.resolution)
+      const accs = cases.map(() => newAcc())
+      const unavailable = new Map<string, number>()
+      let nSurvival = 0
+      let first: number | null = null
+      let last: number | null = null
+      const named = new Map<number, (typeof NAMED_STARTS)[number]>()
+      for (const ns of NAMED_STARTS) {
+        const s = Math.round((Date.parse(ns.openIso) / 1000 - p.startTs) / 3600) - 1
+        named.set(s, ns)
+      }
+      const namedOut: Record<string, unknown>[] = []
+      for (let s = cov.fromIndex; s + h.hours <= cov.toIndex; s++) {
+        if (!Number.isFinite(minr[s])) continue
+        nSurvival++
+        const { openTs, closeTs } = windowTimes(p, s, h.hours)
+        const params = paramsAt(openTs)
+        let why: string | null =
+          uncoveredClass(borrow.series, openTs, closeTs) ??
+          (incSupply ? uncoveredClass(incSupply, openTs, closeTs) : 'no net-APY history') ??
+          (params ? null : 'no Aave v3 WETH parameters at the window start')
+        for (const k of cases) if (!why && k.supply) why = uncoveredClass(k.supply, openTs, closeTs)
+        const ns = named.get(s)
+        if (why) {
+          unavailable.set(why, (unavailable.get(why) ?? 0) + 1)
+          if (ns)
+            namedOut.push({
+              id: ns.id,
+              label: ns.label,
+              open: iso(openTs),
+              close: iso(closeTs),
+              unavailable: why,
+            })
+          continue
+        }
+        first ??= s
+        last = s
+        const iRun = incumbentWindow(
+          rd.collateralUsd,
+          debtUsd,
+          p,
+          s,
+          h.hours,
+          def.resolution,
+          params!,
+        )!
+        const iBase = {
+          startTs: openTs,
+          horizonSeconds: h.hours * 3600,
+          startDebtUsd: debtUsd,
+          run: iRun,
+          supply: incSupply,
+          borrow: borrow.series,
+        }
+        const iCarry = incumbentReturn({ ...iBase, deployedUsd: debtUsd })
+        const iLong = incumbentReturn({ ...iBase, deployedUsd: 0 })
+        const iLiqs = iRun.events.filter((e) => e.kind === 'liquidation').length
+        const perCase: Record<string, unknown> = {}
+        cases.forEach((k, ci) => {
+          const mw = membraneWindow(k.c, ltv, p, s, h.hours, def.resolution, k.supply)!
+          const ir = k.cd.tradeShape === 'carry' ? iCarry : iLong
+          const a = accs[ci]
+          const m = mw.ret
+          a.m.yieldEarned.push(usd(m.yieldEarned)!)
+          a.m.yieldGivenUp.push(usd(m.yieldGivenUp)!)
+          a.m.collateralSold.push(usd(m.collateralSold)!)
+          a.m.recallDrawn.push(m.recallDrawnUsd)
+          a.i.yieldEarned.push(usd(ir.yieldEarned)!)
+          a.i.borrowCost.push(usd(ir.borrowCost)!)
+          a.i.netCarry.push(usd(netCarry(ir))!)
+          a.i.collateralSold.push(usd(ir.collateralSold)!)
+          a.i.liquidationPenalty.push(usd(ir.liquidationPenalty)!)
+          if (m.collateralSold.usd! > 0) a.mSold++
+          if (ir.collateralSold.usd! > 0) a.iSold++
+          if (m.recallDrawnUsd > 0) a.recalled++
+          const w = a.worst
+          if (m.collateralSold.usd! > 0 && (!w.mostSold || m.collateralSold.usd! > w.mostSold.usd))
+            w.mostSold = { start: s, usd: m.collateralSold.usd! }
+          if (
+            k.cd.tradeShape === 'carry' &&
+            (!w.leastYield || m.yieldEarned.usd! < w.leastYield.usd)
+          )
+            w.leastYield = { start: s, usd: m.yieldEarned.usd! }
+          if (
+            ir.collateralSold.usd! > 0 &&
+            (!w.incumbentMostSold || ir.collateralSold.usd! > w.incumbentMostSold.usd)
+          )
+            w.incumbentMostSold = { start: s, usd: ir.collateralSold.usd! }
+          if (ns) {
+            perCase[k.caseId] = {
+              membrane: {
+                ...membraneOut(m),
+                outcome: mw.run.outcome,
+                saleReason: mw.run.saleReason,
+              },
+              incumbent: { ...incumbentOut(ir), liquidations: iLiqs },
+            }
+          }
+        })
+        if (ns)
+          namedOut.push({
+            id: ns.id,
+            label: ns.label,
+            open: iso(openTs),
+            close: iso(closeTs),
+            cases: perCase,
+          })
+      }
+      // Named windows with no complete window (past the data's end, or a gap) say so.
+      for (const ns of NAMED_STARTS) {
+        if (!namedOut.some((x) => x.id === ns.id)) {
+          namedOut.push({
+            id: ns.id,
+            label: ns.label,
+            open: ns.openIso,
+            unavailable: `no complete ${hz} window in the price data`,
+          })
+        }
+      }
+
+      /** One window re-run for its full statement (the extremes). */
+      const statementAt = (k: (typeof cases)[number], s: number) => {
+        const { openTs, closeTs } = windowTimes(p, s, h.hours)
+        const mw = membraneWindow(k.c, ltv, p, s, h.hours, def.resolution, k.supply)!
+        const iRun = incumbentWindow(
+          rd.collateralUsd,
+          debtUsd,
+          p,
+          s,
+          h.hours,
+          def.resolution,
+          paramsAt(openTs)!,
+        )!
+        const ir = incumbentReturn({
+          startTs: openTs,
+          horizonSeconds: h.hours * 3600,
+          startDebtUsd: debtUsd,
+          deployedUsd: k.cd.tradeShape === 'carry' ? debtUsd : 0,
+          run: iRun,
+          supply: incSupply,
+          borrow: borrow.series,
+        })
+        return {
+          open: iso(openTs),
+          close: iso(closeTs),
+          membrane: {
+            ...membraneOut(mw.ret),
+            outcome: mw.run.outcome,
+            saleReason: mw.run.saleReason,
+          },
+          incumbent: {
+            ...incumbentOut(ir),
+            liquidations: iRun.events.filter((e) => e.kind === 'liquidation').length,
+          },
+        }
+      }
+
+      const n = first === null ? 0 : accs[0].m.yieldEarned.length
+      const period =
+        first === null
+          ? null
+          : {
+              firstOpen: iso(windowTimes(p, first, h.hours).openTs),
+              lastOpen: iso(windowTimes(p, last!, h.hours).openTs),
+            }
+      cases.forEach((k, ci) => {
+        const a = accs[ci]
+        out.push({
+          statementId: rd.id,
+          caseId: k.caseId,
+          exitCapacity: k.preset
+            ? { id: k.preset.id, label: k.preset.label, mult: k.preset.mult }
+            : null,
+          yieldPricedAtBookUsd: k.bookUsd,
+          horizon: hz,
+          pathId: cl.pathId,
+          membraneClass: cl.membraneClass,
+          line,
+          ltv,
+          ltvLabel: cl.ltvLabel,
+          collateralUsd: rd.collateralUsd,
+          debtUsd,
+          period,
+          n,
+          nSurvival,
+          unavailable: Object.fromEntries([...unavailable.entries()].sort((x, y) => y[1] - x[1])),
+          membrane: {
+            yieldEarned: distOf(a.m.yieldEarned),
+            borrowCost: {
+              usd: null,
+              why:
+                k.cd.tradeShape === 'carry'
+                  ? 'curator-set share of the venue yield; not fixed pre-launch'
+                  : 'Membrane interest on undeployed debt; not fixed pre-launch',
+            },
+            collateralSold: distOf(a.m.collateralSold),
+            yieldGivenUp: distOf(a.m.yieldGivenUp),
+            recallDrawn: distOf(a.m.recallDrawn),
+            windowsWithSale: a.mSold,
+            windowsWithRecall: a.recalled,
+          },
+          incumbent: {
+            yieldEarned: distOf(a.i.yieldEarned),
+            borrowCost: distOf(a.i.borrowCost),
+            netCarry: distOf(a.i.netCarry),
+            collateralSold: distOf(a.i.collateralSold),
+            liquidationPenalty: distOf(a.i.liquidationPenalty),
+            windowsWithSale: a.iSold,
+          },
+          windows: {
+            named: namedOut.map(({ cases: perCase, ...x }) =>
+              perCase ? { ...x, ...((perCase as Record<string, object>)[k.caseId] ?? {}) } : x,
+            ),
+            membraneMostSold: a.worst.mostSold ? statementAt(k, a.worst.mostSold.start) : null,
+            membraneLeastYield: a.worst.leastYield
+              ? statementAt(k, a.worst.leastYield.start)
+              : null,
+            incumbentMostSold: a.worst.incumbentMostSold
+              ? statementAt(k, a.worst.incumbentMostSold.start)
+              : null,
+          },
+        })
+        const d = (x: ReturnType<typeof distOf>) =>
+          x ? `$${x.median.toFixed(0)} (p10 $${x.p10.toFixed(0)}, p90 $${x.p90.toFixed(0)})` : '—'
+        console.log(
+          `returns ${rd.id} ${k.caseId} ${hz}: n=${n} of ${nSurvival} | Membrane yield ${d(distOf(a.m.yieldEarned))}, given up ${d(distOf(a.m.yieldGivenUp))}, sold in ${a.mSold} | ` +
+            `Aave yield ${d(distOf(a.i.yieldEarned))}, borrow ${d(distOf(a.i.borrowCost))}, sold in ${a.iSold}`,
+        )
+      })
+    }
+  }
+
+  const file = {
+    schema: 'set-and-forget-returns/v1',
+    generatedAt: new Date().toISOString(),
+    codeVersion: STRESS_CODE_VERSION,
+    label: 'Historical replay over a named period. Not a forecast, not a probability.',
+    method: {
+      window:
+        'A position opened at the close of an hour and left alone for the horizon. Every start hour whose window all the rate series cover (stride 1h).',
+      membrane:
+        'One traced stressGrid runStress replay per window, the same replay and case as the survival table (set-and-forget-ltv.json); the trace times each recall draw.',
+      incumbent:
+        'compare.ts runIncumbent on the same replay: the same collateral and start debt on Aave v3.',
+      yieldEarned:
+        'Venue supply APR (net-APY history, sample-and-hold) × the debt still deployed, simple interest. Membrane: priced at its whole book at the venue (the preset’s book; the floor names none, so the default $50M book); the gross venue yield before Membrane’s curator-set share, so an upper bound on what reaches the user. Aave: priced at the position’s own deposit.',
+      borrowCost:
+        'Aave: the measured hourly variable borrow APR × the debt still owed. Membrane: unavailable (curator-set share of yield; deployed debt carries no interest).',
+      collateralSold:
+        'Membrane: the engine’s exposedUsd (fees omitted; a sale in the held tail after the horizon counts, as in the survival table). Aave: seized collateral incl. the liquidation bonus.',
+      yieldGivenUp:
+        'Membrane: what the capital the recalls drew would have earned for the rest of the window. Aave: 0 by construction (no recall).',
+      summary:
+        'Quantiles (lower nearest rank) over the n windows of the named period. History, not odds.',
+    },
+    notModelled: [
+      'Membrane’s curator-set share of the yield (never priced pre-launch)',
+      'Membrane’s liquidation fee and the fee on a recall cure (LiquidationEngine STEP 2.5): the Membrane sold figure is understated',
+      'interest accrual on the debt and compounding of the yield',
+      'gas, slippage, MEV; incentives (Merkl)',
+      'Aave parameter changes inside a window (held at the start)',
+      'an Aave liquidation needs a liquidator in that half hour: modelled as always present',
+    ],
+    sources,
+    statements: out,
+    seconds: (Date.now() - t0) / 1000,
+  }
+  const body = JSON.stringify(file, null, 1) + '\n'
+  const canonical = path.join(DATASETS, RETURNS_DATASET_DIR, 'set-and-forget-returns.json')
+  fs.mkdirSync(path.dirname(canonical), { recursive: true })
+  fs.writeFileSync(canonical, body)
+  fs.writeFileSync(RETURNS_OUT, body)
+  console.log(
+    `wrote ${canonical} and the served copy ${path.relative(ROOT, RETURNS_OUT)} in ${file.seconds.toFixed(0)}s`,
+  )
+}
+
+if (args.has('returns')) {
+  runReturns(args.get('horizons')?.split(','))
+} else if (args.has('report')) {
   report()
 } else if (args.has('seed')) {
   seed(args.get('seed')!.split(','))

@@ -301,7 +301,9 @@ export function buildInitialDepositCapacityProjection(
           sourcePreviewHeldConstant:true as const} : compoundReceipt && compound ? {status:'conditional_source_comet_principal_receipt' as const,
           ...compoundReceipt,baseSupplyIndexRaw:compound.origins[0].facts.baseSupplyIndexRaw,
           indexAt:source.blockTime,nativeFactsReadAt:compound.readAt,
-          indexPath:'held_constant_at_source_index' as const,newAccountWithoutDebtAssumed:receiver===null} : receipt && native
+          indexPath:'held_constant_at_source_index' as const,newAccountWithoutDebtAssumed:receiver===null,
+          roundingReference:'CometCore_present_value_floor_supply_principal_floor_borrow_principal_ceil' as const,
+          sourceImplementationEquivalence:false as const} : receipt && native
           ? {
               status: 'conditional_source_indexed_receipt' as const,
               ...receipt,

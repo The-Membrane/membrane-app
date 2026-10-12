@@ -95,6 +95,12 @@ export function governanceSeverity(
   warnHf: number,
 ): { severity: Severity; projectedHf: number | null } | null {
   if (e.severity) return { severity: e.severity, projectedHf: null }
+  // A ramp to zero gives holders time: warn until 6h before it ends, then critical.
+  if (e.kind === 'collateral_disabled' && e.threshold?.fullAtTs !== undefined) {
+    const ramped = e.threshold.fullAtTs - e.ts > 3600
+    const late = snapshot.ts >= e.threshold.fullAtTs - 6 * 3600
+    return { severity: ramped && !late ? 'warn' : 'critical', projectedHf: null }
+  }
   if (e.kind !== 'liquidation_threshold_changed' || !e.threshold)
     return { severity: GOVERNANCE_CHANGE_SEVERITY[e.kind], projectedHf: null }
   const to = e.threshold.to

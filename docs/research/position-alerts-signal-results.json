@@ -1,6 +1,6 @@
 {
  "generatedBy": "scripts/research/position-alert-signal-backtest.ts",
- "generatedAt": "2026-10-11T15:02:49.555Z",
+ "generatedAt": "2026-10-12T01:11:20.821Z",
  "exitCapacity": {
   "venue": "Aave v3 Core USDC",
   "e3": {
@@ -787,6 +787,1677 @@
     "warnPlusPerMonth": 0
    }
   ]
+ },
+ "governanceChange": {
+  "definition": "A holder of the collateral at HF 1.30 under the threshold in force just before each change; changes inside 24h merge into one message at the worst severity. A threshold raise and a change on another collateral are not messages.",
+  "aaveV3EthereumCoreEmode": {
+   "note": "Aave v3 Ethereum Core e-mode changes (an asset dropped from a category, a category threshold set), for a holder in that category at HF 1.30. Per asset-month over the asset listing span: an upper bound, since few holders use each category.",
+   "subjects": 9,
+   "calmSubjectMonths": 292.4,
+   "calmMessages": {
+    "watch": 0,
+    "warn": 23,
+    "critical": 0
+   },
+   "calmWarnPlusPerSubjectMonth": 0.0786,
+   "calmAnyPerSubjectMonth": 0.0786,
+   "stressMessages": {
+    "watch": 0,
+    "warn": 0,
+    "critical": 0
+   },
+   "subjectsWithEvents": [
+    {
+     "subject": "wstETH (e-mode)",
+     "events": [
+      {
+       "ts": "2024-11-21 11:58",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "wstETH: no longer collateral in e-mode 3"
+      }
+     ]
+    },
+    {
+     "subject": "WBTC (e-mode)",
+     "events": [
+      {
+       "ts": "2025-01-25 13:16",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "WBTC: no longer collateral in e-mode 4"
+      },
+      {
+       "ts": "2025-04-03 08:24",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "WBTC: no longer collateral in e-mode 7"
+      },
+      {
+       "ts": "2025-06-02 13:53",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "WBTC: no longer collateral in e-mode 16"
+      }
+     ]
+    },
+    {
+     "subject": "USDC (e-mode)",
+     "events": [
+      {
+       "ts": "2024-11-18 11:25",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDC: no longer collateral in e-mode 2"
+      },
+      {
+       "ts": "2025-04-30 11:07",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDC: no longer collateral in e-mode 9"
+      },
+      {
+       "ts": "2025-05-04 17:41",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDC: no longer collateral in e-mode 8"
+      },
+      {
+       "ts": "2025-05-11 14:48",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDC: no longer collateral in e-mode 11"
+      },
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDC: no longer collateral in e-mode 10"
+      },
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDC: no longer collateral in e-mode 13"
+      },
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDC: no longer collateral in e-mode 15"
+      }
+     ]
+    },
+    {
+     "subject": "USDT (e-mode)",
+     "events": [
+      {
+       "ts": "2024-12-02 09:46",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDT: no longer collateral in e-mode 2"
+      },
+      {
+       "ts": "2025-04-30 11:07",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDT: no longer collateral in e-mode 9"
+      },
+      {
+       "ts": "2025-05-04 17:41",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDT: no longer collateral in e-mode 8"
+      },
+      {
+       "ts": "2025-05-11 14:48",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDT: no longer collateral in e-mode 11"
+      },
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDT: no longer collateral in e-mode 10"
+      },
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDT: no longer collateral in e-mode 13"
+      },
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDT: no longer collateral in e-mode 15"
+      }
+     ]
+    },
+    {
+     "subject": "USDe (e-mode)",
+     "events": [
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDe: no longer collateral in e-mode 14"
+      }
+     ]
+    },
+    {
+     "subject": "ETHx (e-mode)",
+     "events": [
+      {
+       "ts": "2024-11-21 11:58",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "ETHx: no longer collateral in e-mode 3"
+      }
+     ]
+    },
+    {
+     "subject": "tBTC (e-mode)",
+     "events": [
+      {
+       "ts": "2025-03-11 10:10",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "tBTC: no longer collateral in e-mode 6"
+      }
+     ]
+    },
+    {
+     "subject": "cbBTC (e-mode)",
+     "events": [
+      {
+       "ts": "2025-03-11 10:10",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "cbBTC: no longer collateral in e-mode 5"
+      }
+     ]
+    },
+    {
+     "subject": "USDS (e-mode)",
+     "events": [
+      {
+       "ts": "2024-11-18 11:25",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDS: no longer collateral in e-mode 2"
+      },
+      {
+       "ts": "2025-04-30 11:07",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDS: no longer collateral in e-mode 9"
+      },
+      {
+       "ts": "2025-05-04 17:41",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDS: no longer collateral in e-mode 8"
+      },
+      {
+       "ts": "2025-05-11 14:48",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDS: no longer collateral in e-mode 11"
+      },
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDS: no longer collateral in e-mode 10"
+      },
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDS: no longer collateral in e-mode 13"
+      },
+      {
+       "ts": "2025-05-27 18:51",
+       "kind": "liquidation_threshold_changed",
+       "severity": "warn",
+       "detail": "USDS: no longer collateral in e-mode 15"
+      }
+     ]
+    }
+   ]
+  },
+  "aaveV3EthereumCore": {
+   "note": "Aave v3 Ethereum Core PoolConfigurator, each collateral from its listing to Oct 1 2026, base threshold, freeze and pause changes. E-mode changes are scored apart (aaveV3EthereumCoreEmode).",
+   "subjects": 54,
+   "calmSubjectMonths": 1486.5,
+   "calmMessages": {
+    "watch": 38,
+    "warn": 0,
+    "critical": 2
+   },
+   "calmWarnPlusPerSubjectMonth": 0.0013,
+   "calmAnyPerSubjectMonth": 0.0269,
+   "stressMessages": {
+    "watch": 2,
+    "warn": 0,
+    "critical": 1
+   },
+   "subjectsWithEvents": [
+    {
+     "subject": "WETH",
+     "events": [
+      {
+       "ts": "2026-04-19 02:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "WETH: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "USDC",
+     "events": [
+      {
+       "ts": "2024-04-10 21:55",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "USDC: liquidation threshold 80.0% → 79.0%"
+      },
+      {
+       "ts": "2024-05-11 16:47",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "USDC: liquidation threshold 79.0% → 78.0%"
+      }
+     ]
+    },
+    {
+     "subject": "DAI",
+     "events": [
+      {
+       "ts": "2024-04-10 21:55",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "DAI: liquidation threshold 80.0% → 79.0%"
+      },
+      {
+       "ts": "2024-04-30 15:24",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "DAI: liquidation threshold 79.0% → 77.0%"
+      }
+     ]
+    },
+    {
+     "subject": "CRV",
+     "events": [
+      {
+       "ts": "2023-08-09 14:59",
+       "kind": "liquidation_threshold_changed",
+       "severity": "critical",
+       "detail": "CRV: liquidation threshold 61.0% → 41.0%"
+      },
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "CRV: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
+     "events": [
+      {
+       "ts": "2026-01-25 17:44",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "SNX",
+     "events": [
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "SNX: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "BAL",
+     "events": [
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "BAL: liquidation threshold 62.0% → 59.0%"
+      }
+     ]
+    },
+    {
+     "subject": "UNI",
+     "events": [
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "UNI: liquidation threshold 77.0% → 74.0%"
+      },
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "UNI: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "ENS",
+     "events": [
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "ENS: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "1INCH",
+     "events": [
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "1INCH: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "FRAX",
+     "events": [
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "FRAX: liquidation threshold 75.0% → 72.0%"
+      }
+     ]
+    },
+    {
+     "subject": "USDT",
+     "events": [
+      {
+       "ts": "2024-04-10 21:55",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "USDT: liquidation threshold 80.0% → 79.0%"
+      },
+      {
+       "ts": "2024-05-11 16:47",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "USDT: liquidation threshold 79.0% → 78.0%"
+      }
+     ]
+    },
+    {
+     "subject": "LUSD",
+     "events": [
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "LUSD: liquidation threshold 80.0% → 77.0%"
+      }
+     ]
+    },
+    {
+     "subject": "sDAI",
+     "events": [
+      {
+       "ts": "2024-04-10 21:55",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "sDAI: liquidation threshold 80.0% → 79.0%"
+      },
+      {
+       "ts": "2024-04-30 15:24",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "sDAI: liquidation threshold 79.0% → 77.0%"
+      },
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "sDAI: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "STG",
+     "events": [
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "STG: liquidation threshold 40.0% → 37.0%"
+      },
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "STG: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "KNC",
+     "events": [
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "KNC: liquidation threshold 40.0% → 37.0%"
+      },
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "KNC: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "FXS",
+     "events": [
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "FXS: liquidation threshold 45.0% → 42.0%"
+      },
+      {
+       "ts": "2024-03-27 14:36",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "FXS: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "ETHx",
+     "events": [
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "ETHx: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PYUSD",
+     "events": [
+      {
+       "ts": "2025-10-15 20:16",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PYUSD: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "rsETH",
+     "events": [
+      {
+       "ts": "2025-04-30 10:03",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "rsETH: reserve frozen"
+      },
+      {
+       "ts": "2026-04-18 19:03",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "rsETH: reserve frozen"
+      },
+      {
+       "ts": "2026-04-23 14:54",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "rsETH: reserve paused"
+      },
+      {
+       "ts": "2026-05-06 18:12",
+       "kind": "liquidation_threshold_changed",
+       "severity": "critical",
+       "detail": "rsETH: liquidation threshold 75.0% → 0.0%"
+      },
+      {
+       "ts": "2026-05-06 18:12",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "rsETH: reserve paused"
+      },
+      {
+       "ts": "2026-05-06 18:12",
+       "kind": "liquidation_threshold_changed",
+       "severity": "critical",
+       "detail": "rsETH: liquidation threshold 75.0% → 0.0%"
+      },
+      {
+       "ts": "2026-05-06 18:12",
+       "kind": "paused",
+       "severity": "critical",
+       "detail": "rsETH: reserve paused"
+      }
+     ]
+    },
+    {
+     "subject": "PT-eUSDE-29MAY2025",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-eUSDE-29MAY2025: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PT-sUSDE-31JUL2025",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-sUSDE-31JUL2025: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PT-USDe-31JUL2025",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-USDe-31JUL2025: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PT-eUSDE-14AUG2025",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-eUSDE-14AUG2025: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "eUSDe",
+     "events": [
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "eUSDe: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "FBTC",
+     "events": [
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "FBTC: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PT-sUSDE-25SEP2025",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-sUSDE-25SEP2025: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PT-USDe-25SEP2025",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-USDe-25SEP2025: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "ezETH",
+     "events": [
+      {
+       "ts": "2026-09-20 15:06",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "ezETH: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PT-sUSDE-27NOV2025",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-sUSDE-27NOV2025: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PT-USDe-27NOV2025",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-USDe-27NOV2025: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PT-USDe-5FEB2026",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-USDe-5FEB2026: reserve frozen"
+      }
+     ]
+    },
+    {
+     "subject": "PT-sUSDE-5FEB2026",
+     "events": [
+      {
+       "ts": "2026-09-20 15:15",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "PT-sUSDE-5FEB2026: reserve frozen"
+      }
+     ]
+    }
+   ]
+  },
+  "e2EulerGearbox": {
+   "note": "The E2 Euler borrow vaults, the Gearbox Plasma credit manager, the Compound v3 comets and the Enclabs pools, per market and collateral, May 1 to Nov 16 2025. Subjects are only those with at least one event, so the per-month rate is an upper bound.",
+   "subjects": 53,
+   "calmSubjectMonths": 307.4,
+   "calmMessages": {
+    "watch": 23,
+    "warn": 2,
+    "critical": 10
+   },
+   "calmWarnPlusPerSubjectMonth": 0.039,
+   "calmAnyPerSubjectMonth": 0.1139,
+   "stressMessages": {
+    "watch": 36,
+    "warn": 2,
+    "critical": 2
+   },
+   "subjectsWithEvents": [
+    {
+     "subject": "euler:1:0x01864ae3c7d5f507cc4c24ca67b4cabbdda37ecd:*",
+     "events": [
+      {
+       "ts": "2025-09-17 08:10",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-09-28 09:32",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xa8fBCa8c60a9B7DBF7575bfbE830417F013db8b6"
+      },
+      {
+       "ts": "2025-09-28 20:42",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xcAe0A39B45Ee9C3213f64392FA6DF30CE034C9F9"
+      },
+      {
+       "ts": "2025-09-28 20:42",
+       "kind": "governor_changed",
+       "severity": "watch",
+       "detail": "governor → 0x7d07BFdd01422D7b655B333157eB551B9712dCd8"
+      },
+      {
+       "ts": "2025-09-29 07:23",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x8506f5f5f31B2cC7e3deBeCb9816ef4b5a877211"
+      },
+      {
+       "ts": "2025-11-03 10:05",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x1F0084cdeC166342385f7a176D9989272308C7A6"
+      },
+      {
+       "ts": "2025-11-06 08:45",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x52b457acDBEe07363104E17dc58aECaDA2768764"
+      },
+      {
+       "ts": "2025-11-10 08:35",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      }
+     ]
+    },
+    {
+     "subject": "euler:1:0x211711f277f146fc947d7053b41bb71bb5b5fc2c:*",
+     "events": [
+      {
+       "ts": "2025-09-17 08:10",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-09-28 09:40",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x43edA5DEC38dC084C5B395D35c3c71D29776D995"
+      },
+      {
+       "ts": "2025-09-28 20:43",
+       "kind": "governor_changed",
+       "severity": "watch",
+       "detail": "governor → 0x7d07BFdd01422D7b655B333157eB551B9712dCd8"
+      },
+      {
+       "ts": "2025-09-28 20:54",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x7d07BFdd01422D7b655B333157eB551B9712dCd8"
+      },
+      {
+       "ts": "2025-09-29 09:31",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xD382e1FF0185a25A32D191433eC177b83f113427"
+      },
+      {
+       "ts": "2025-09-29 09:35",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xeF76ebea5ffAA6d3F0299c33AA111fC333af9036"
+      },
+      {
+       "ts": "2025-11-03 10:11",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x8c3850fcced96475eE52b1E5d71B1a9114DCDcA7"
+      },
+      {
+       "ts": "2025-11-06 08:48",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x52b457acDBEe07363104E17dc58aECaDA2768764"
+      },
+      {
+       "ts": "2025-11-10 08:35",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      }
+     ]
+    },
+    {
+     "subject": "euler:1:0x038dd0eb275b7de3b07884f1fa106ed6423c45f2:*",
+     "events": [
+      {
+       "ts": "2025-09-17 08:10",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-09-28 09:38",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xE32Bd673df800d51A8B28522ea9D81237D808F97"
+      },
+      {
+       "ts": "2025-09-28 20:44",
+       "kind": "governor_changed",
+       "severity": "watch",
+       "detail": "governor → 0x7d07BFdd01422D7b655B333157eB551B9712dCd8"
+      },
+      {
+       "ts": "2025-09-28 21:00",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xeF76ebea5ffAA6d3F0299c33AA111fC333af9036"
+      },
+      {
+       "ts": "2025-11-03 10:10",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x8c3850fcced96475eE52b1E5d71B1a9114DCDcA7"
+      },
+      {
+       "ts": "2025-11-06 08:46",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x52b457acDBEe07363104E17dc58aECaDA2768764"
+      },
+      {
+       "ts": "2025-11-10 08:35",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      }
+     ]
+    },
+    {
+     "subject": "euler:1:0x211711f277f146fc947d7053b41bb71bb5b5fc2c:xBTC",
+     "events": [
+      {
+       "ts": "2025-09-28 20:33",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "xBTC: liquidation LTV 94.0% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:1:0x038dd0eb275b7de3b07884f1fa106ed6423c45f2:xETH",
+     "events": [
+      {
+       "ts": "2025-09-28 20:34",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "xETH: liquidation LTV 94.0% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:1:0x01864ae3c7d5f507cc4c24ca67b4cabbdda37ecd:xUSD",
+     "events": [
+      {
+       "ts": "2025-11-03 10:05",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "xUSD: liquidation LTV 95.0% → 93.0% over 1.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:1:0x01864ae3c7d5f507cc4c24ca67b4cabbdda37ecd:PT-xUSD-18DEC2025",
+     "events": [
+      {
+       "ts": "2025-11-03 10:05",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "PT-xUSD-18DEC2025: liquidation LTV 94.0% → 93.0% over 1.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:1:0x038dd0eb275b7de3b07884f1fa106ed6423c45f2:xBTC",
+     "events": [
+      {
+       "ts": "2025-11-03 10:10",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "xBTC: liquidation LTV 94.0% → 92.0% over 1.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:1:0x211711f277f146fc947d7053b41bb71bb5b5fc2c:xETH",
+     "events": [
+      {
+       "ts": "2025-11-03 10:11",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "xETH: liquidation LTV 94.0% → 92.0% over 1.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:146:0x196f3c7443e940911ee2bb88e019fd71400349d9:0xb38d431e932fea77d1df0ae0dfe4400c97e597b8",
+     "events": [
+      {
+       "ts": "2025-05-01 10:11",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "0xb38d431e932fea77d1df0ae0dfe4400c97e597b8: liquidation LTV 93.5% → 91.5% over 1344.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:146:0xb38d431e932fea77d1df0ae0dfe4400c97e597b8:0x196f3c7443e940911ee2bb88e019fd71400349d9",
+     "events": [
+      {
+       "ts": "2025-05-01 10:11",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "0x196f3c7443e940911ee2bb88e019fd71400349d9: liquidation LTV 93.5% → 91.5% over 1344.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:146:0x196f3c7443e940911ee2bb88e019fd71400349d9:0xe385b4a4ba16fdabd2ecb9c0dda206c9fa2748a3",
+     "events": [
+      {
+       "ts": "2025-05-13 09:38",
+       "kind": "collateral_disabled",
+       "severity": "warn",
+       "detail": "0xe385b4a4ba16fdabd2ecb9c0dda206c9fa2748a3: liquidation LTV 91.5% → 0.0% over 1344.0h"
+      },
+      {
+       "ts": "2025-05-13 09:40",
+       "kind": "collateral_disabled",
+       "severity": "warn",
+       "detail": "0xe385b4a4ba16fdabd2ecb9c0dda206c9fa2748a3: liquidation LTV 91.5% → 0.0% over 1344.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:146:0xb38d431e932fea77d1df0ae0dfe4400c97e597b8:0xe385b4a4ba16fdabd2ecb9c0dda206c9fa2748a3",
+     "events": [
+      {
+       "ts": "2025-05-13 09:38",
+       "kind": "collateral_disabled",
+       "severity": "warn",
+       "detail": "0xe385b4a4ba16fdabd2ecb9c0dda206c9fa2748a3: liquidation LTV 91.5% → 0.0% over 1344.0h"
+      },
+      {
+       "ts": "2025-05-13 09:40",
+       "kind": "collateral_disabled",
+       "severity": "warn",
+       "detail": "0xe385b4a4ba16fdabd2ecb9c0dda206c9fa2748a3: liquidation LTV 91.5% → 0.0% over 1344.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:146:0x196f3c7443e940911ee2bb88e019fd71400349d9:*",
+     "events": [
+      {
+       "ts": "2025-07-10 09:45",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x0Cd08B170C9b1b5190Ad2cc459242d81e2A7C90A"
+      },
+      {
+       "ts": "2025-11-02 22:11",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xA63222DcF3154B2b169f853E744E8e5147D26791"
+      }
+     ]
+    },
+    {
+     "subject": "euler:146:0xb38d431e932fea77d1df0ae0dfe4400c97e597b8:*",
+     "events": [
+      {
+       "ts": "2025-11-02 22:11",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xA63222DcF3154B2b169f853E744E8e5147D26791"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0x57c582346b7d49a46af3745a8278917d1c1311b8:*",
+     "events": [
+      {
+       "ts": "2025-09-23 07:24",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-09-23 07:24",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xc01B7474d43d36187D1baEAeB35079571D16C7fC"
+      },
+      {
+       "ts": "2025-09-23 08:54",
+       "kind": "governor_changed",
+       "severity": "watch",
+       "detail": "governor → 0x7d07BFdd01422D7b655B333157eB551B9712dCd8"
+      },
+      {
+       "ts": "2025-09-25 10:37",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x4671C33b4c1F3935E848B6d0d8f46Ad9dB9c4F65"
+      },
+      {
+       "ts": "2025-09-26 03:09",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xa9DbB0Db7Cf238338D2080E42EF6053a94D6e223"
+      },
+      {
+       "ts": "2025-11-03 09:52",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x4928D2f9b70A2958B16aB910074061202D4eea2d"
+      },
+      {
+       "ts": "2025-11-06 08:26",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xaf33B5f3d81ddD86B7Cd0dcD1C0b083E0e0Fc876"
+      },
+      {
+       "ts": "2025-11-06 15:21",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0x57c582346b7d49a46af3745a8278917d1c1311b8:xUSD",
+     "events": [
+      {
+       "ts": "2025-11-03 09:42",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "xUSD: liquidation LTV 95.0% → 94.0% over 0.5h"
+      },
+      {
+       "ts": "2025-11-03 10:33",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "xUSD: liquidation LTV 94.0% → 93.0% over 1.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0x57c582346b7d49a46af3745a8278917d1c1311b8:0xdae8065f86783d26c308a851ce28bf56b1384599",
+     "events": [
+      {
+       "ts": "2025-09-30 13:54",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "0xdae8065f86783d26c308a851ce28bf56b1384599: liquidation LTV 94.0% → 0.0%"
+      },
+      {
+       "ts": "2025-10-25 18:53",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "0xdae8065f86783d26c308a851ce28bf56b1384599: liquidation LTV 94.0% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0x3799251bd81925cfccf2992f10af27a4e62bf3f7:*",
+     "events": [
+      {
+       "ts": "2025-10-02 22:03",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-10-02 22:03",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xf41D1f354f04A2887682ba3585Bf6cCca0a24551"
+      },
+      {
+       "ts": "2025-10-02 22:03",
+       "kind": "governor_changed",
+       "severity": "watch",
+       "detail": "governor → 0x9b3CeB22Cab2F1b9Ace4CD3132C8a123552eDa2c"
+      },
+      {
+       "ts": "2025-11-10 18:50",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xCBD292531911476cD057a12d01f51608F795664A"
+      },
+      {
+       "ts": "2025-11-10 18:50",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      },
+      {
+       "ts": "2025-11-10 18:50",
+       "kind": "governor_changed",
+       "severity": "watch",
+       "detail": "governor → 0xfD30738fcB5eb5Ba418a84e672007912F991E539"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0xf90cf999de728a582e154f926876b70e93a747b7:*",
+     "events": [
+      {
+       "ts": "2025-10-03 06:44",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x15E731F8f433e0de58e1dF13b372E4bc8970F36c"
+      },
+      {
+       "ts": "2025-10-03 06:44",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-11-03 09:52",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x4928D2f9b70A2958B16aB910074061202D4eea2d"
+      },
+      {
+       "ts": "2025-11-04 15:31",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x3f73A623F4384D41126310aEf6A54F1AD92aE146"
+      },
+      {
+       "ts": "2025-11-06 08:28",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xaf33B5f3d81ddD86B7Cd0dcD1C0b083E0e0Fc876"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0xf675fbe777e992f5d5d84adf41161dc0f20104a6:*",
+     "events": [
+      {
+       "ts": "2025-10-03 14:16",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xf41D1f354f04A2887682ba3585Bf6cCca0a24551"
+      },
+      {
+       "ts": "2025-10-03 14:16",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-10-04 20:55",
+       "kind": "governor_changed",
+       "severity": "watch",
+       "detail": "governor → 0xddedB1F2d1dd0b0455Fe5277632c84f57f894011"
+      },
+      {
+       "ts": "2025-11-03 16:58",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      },
+      {
+       "ts": "2025-11-04 08:59",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      },
+      {
+       "ts": "2025-11-04 17:42",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xb532EC1c7C50f191b7FF8be001d2a9f68875Ebf8"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0x27934d4879fc28a74703726edae15f757e45a48a:*",
+     "events": [
+      {
+       "ts": "2025-10-15 07:59",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x8B45E7c15a511b8520109Ca55f3B250073242345"
+      },
+      {
+       "ts": "2025-10-15 07:59",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-10-15 08:29",
+       "kind": "governor_changed",
+       "severity": "watch",
+       "detail": "governor → 0x7d07BFdd01422D7b655B333157eB551B9712dCd8"
+      },
+      {
+       "ts": "2025-11-03 09:52",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x4928D2f9b70A2958B16aB910074061202D4eea2d"
+      },
+      {
+       "ts": "2025-11-06 08:27",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xaf33B5f3d81ddD86B7Cd0dcD1C0b083E0e0Fc876"
+      },
+      {
+       "ts": "2025-11-10 07:30",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0x57c582346b7d49a46af3745a8278917d1c1311b8:0x27934d4879fc28a74703726edae15f757e45a48a",
+     "events": [
+      {
+       "ts": "2025-10-17 14:06",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "0x27934d4879fc28a74703726edae15f757e45a48a: liquidation LTV 94.0% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0x27934d4879fc28a74703726edae15f757e45a48a:xUSD",
+     "events": [
+      {
+       "ts": "2025-11-03 09:52",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "xUSD: liquidation LTV 94.0% → 93.0% over 1.0h"
+      }
+     ]
+    },
+    {
+     "subject": "euler:9745:0xf90cf999de728a582e154f926876b70e93a747b7:xUSD",
+     "events": [
+      {
+       "ts": "2025-11-03 09:52",
+       "kind": "liquidation_threshold_changed",
+       "severity": "watch",
+       "detail": "xUSD: liquidation LTV 94.0% → 93.0% over 1.0h"
+      }
+     ]
+    },
+    {
+     "subject": "gearbox:9745:0x4ba181f9e38bdf5c17777ddddddbe83b7de65f80:xUSD",
+     "events": [
+      {
+       "ts": "2025-10-31 08:42",
+       "kind": "frozen",
+       "severity": "warn",
+       "detail": "xUSD: forbidden as collateral"
+      },
+      {
+       "ts": "2025-11-03 13:07",
+       "kind": "collateral_disabled",
+       "severity": "warn",
+       "detail": "xUSD: liquidation threshold ramps 90.0% → 0.0% by 2025-11-05T13:07Z"
+      }
+     ]
+    },
+    {
+     "subject": "gearbox:9745:0x4ba181f9e38bdf5c17777ddddddbe83b7de65f80:waPlaUSDT0",
+     "events": [
+      {
+       "ts": "2025-09-28 19:57",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "waPlaUSDT0: liquidation threshold → 0"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0xa45189636c04388adbb4d865100dd155e55682ec:*",
+     "events": [
+      {
+       "ts": "2025-05-07 10:00",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x0D29FCec554fB3217bf9039cCEA4795967fd6B68"
+      },
+      {
+       "ts": "2025-05-07 10:00",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-11-06 15:30",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xC0d56d334a8c388921790540Df84d284Bbae858c"
+      },
+      {
+       "ts": "2025-11-06 15:30",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0xe1e549c965a4a0514d9bf80161d32924b8694822:*",
+     "events": [
+      {
+       "ts": "2025-05-23 13:37",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x1C3BCd16C147B7e40B7bE98B6611046Fd0299EB7"
+      },
+      {
+       "ts": "2025-05-23 13:48",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0xa446938b0204aa4055cdfed68ddf0e0d1bab3e9e:0x902714c7661697c873c76dec426b63b2593ecc0a",
+     "events": [
+      {
+       "ts": "2025-05-30 14:39",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "0x902714c7661697c873c76dec426b63b2593ecc0a: liquidation LTV 82.5% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0xa446938b0204aa4055cdfed68ddf0e0d1bab3e9e:0x76de251bee4a3b902857f6a0fce8a320c4167e40",
+     "events": [
+      {
+       "ts": "2025-05-30 14:39",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "0x76de251bee4a3b902857f6a0fce8a320c4167e40: liquidation LTV 77.5% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0x8f23da78e3f31ab5deb75dc3282198bed630ffde:*",
+     "events": [
+      {
+       "ts": "2025-07-16 04:03",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-07-16 04:03",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x9832045dD1fcA184179799fFCd91afeBD227C0AE"
+      },
+      {
+       "ts": "2025-07-16 04:03",
+       "kind": "paused",
+       "severity": "watch",
+       "detail": "a hook contract now gates operations 7151"
+      },
+      {
+       "ts": "2025-07-16 04:03",
+       "kind": "governor_changed",
+       "severity": "watch",
+       "detail": "governor → 0x69cC425B1E5f302e7Db4E5d125ab984EC5186364"
+      },
+      {
+       "ts": "2025-08-09 20:48",
+       "kind": "paused",
+       "severity": "watch",
+       "detail": "a hook contract now gates operations 7151"
+      },
+      {
+       "ts": "2025-08-12 09:02",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x2203A87Ab229d4C62f6327a7d281eFE5f2A9fa37"
+      },
+      {
+       "ts": "2025-08-12 12:15",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x578Dd6714Ae9E80e597aeD6E618AE1d18752F563"
+      },
+      {
+       "ts": "2025-08-12 13:22",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x2203A87Ab229d4C62f6327a7d281eFE5f2A9fa37"
+      },
+      {
+       "ts": "2025-08-12 13:27",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x578Dd6714Ae9E80e597aeD6E618AE1d18752F563"
+      },
+      {
+       "ts": "2025-08-23 21:44",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x2203A87Ab229d4C62f6327a7d281eFE5f2A9fa37"
+      },
+      {
+       "ts": "2025-08-23 22:08",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x578Dd6714Ae9E80e597aeD6E618AE1d18752F563"
+      },
+      {
+       "ts": "2025-10-06 20:45",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xc9E57dC1f6aBd65Fd143Ebc5FDC3594DCe39fb50"
+      },
+      {
+       "ts": "2025-11-05 08:28",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x2cB2f4D5BD80b80B573E836C2E2768354f8fa3b6"
+      },
+      {
+       "ts": "2025-11-13 14:13",
+       "kind": "paused",
+       "severity": "watch",
+       "detail": "a hook contract now gates operations 7167"
+      },
+      {
+       "ts": "2025-11-14 09:13",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0x99dC1532dF97001A064E7A1477cF1B44B27b3404"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0x8f23da78e3f31ab5deb75dc3282198bed630ffde:0x175d85246fa2232edbc3c32a88dbf88df0980f6a",
+     "events": [
+      {
+       "ts": "2025-07-17 16:27",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "0x175d85246fa2232edbc3c32a88dbf88df0980f6a: liquidation LTV 96.0% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0xa446938b0204aa4055cdfed68ddf0e0d1bab3e9e:0x4a6016a5a9312a9c0a4fc9b6e4c861cbeae120f0",
+     "events": [
+      {
+       "ts": "2025-10-22 14:10",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "0x4a6016a5a9312a9c0a4fc9b6e4c861cbeae120f0: liquidation LTV 96.5% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0xa446938b0204aa4055cdfed68ddf0e0d1bab3e9e:*",
+     "events": [
+      {
+       "ts": "2025-10-28 18:12",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xbD742EfdA0b97fA5c80c36c76D79dE32b81eE6D1"
+      },
+      {
+       "ts": "2025-11-04 14:17",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 12.87%"
+      },
+      {
+       "ts": "2025-11-04 14:17",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-11-04 14:29",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 12.87%"
+      },
+      {
+       "ts": "2025-11-04 14:29",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-11-04 14:46",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 12.87%"
+      },
+      {
+       "ts": "2025-11-04 14:46",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      },
+      {
+       "ts": "2025-11-04 16:48",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 12.87%"
+      },
+      {
+       "ts": "2025-11-04 16:48",
+       "kind": "liquidation_bonus_changed",
+       "severity": "watch",
+       "detail": "max liquidation discount 15.00%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0xa446938b0204aa4055cdfed68ddf0e0d1bab3e9e:deUSD",
+     "events": [
+      {
+       "ts": "2025-11-04 14:17",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "deUSD: liquidation LTV 92.5% → 0.0%"
+      },
+      {
+       "ts": "2025-11-04 14:29",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "deUSD: liquidation LTV 92.5% → 0.0%"
+      },
+      {
+       "ts": "2025-11-04 14:46",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "deUSD: liquidation LTV 92.5% → 0.0%"
+      },
+      {
+       "ts": "2025-11-04 16:48",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "deUSD: liquidation LTV 92.5% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0x39de0f00189306062d79edec6dca5bb6bfd108f9:0xe91b2ed7ef022bbc2532e0865919c7988eba1fcb",
+     "events": [
+      {
+       "ts": "2025-11-06 15:22",
+       "kind": "collateral_disabled",
+       "severity": "critical",
+       "detail": "0xe91b2ed7ef022bbc2532e0865919c7988eba1fcb: liquidation LTV 92.5% → 0.0%"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0x39de0f00189306062d79edec6dca5bb6bfd108f9:*",
+     "events": [
+      {
+       "ts": "2025-11-06 15:22",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      },
+      {
+       "ts": "2025-11-06 15:30",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xC0d56d334a8c388921790540Df84d284Bbae858c"
+      }
+     ]
+    },
+    {
+     "subject": "euler:43114:0x2137568666f12fc5a026f5430ae7194f1c1362ab:*",
+     "events": [
+      {
+       "ts": "2025-11-06 15:22",
+       "kind": "frozen",
+       "severity": "watch",
+       "detail": "deposit, borrow or withdraw disabled"
+      },
+      {
+       "ts": "2025-11-06 15:30",
+       "kind": "rate_model_changed",
+       "severity": "watch",
+       "detail": "interest rate model → 0xC0d56d334a8c388921790540Df84d284Bbae858c"
+      }
+     ]
+    }
+   ]
+  }
  },
  "lstDepegChainlink": {
   "source": "Chainlink STETH/ETH (price-history/steth-eth-1h.json, forward-filled hourly)",

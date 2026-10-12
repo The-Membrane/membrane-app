@@ -544,6 +544,7 @@ function governanceChangeRates() {
       if (a) byAsset.set(a, [...(byAsset.get(a) ?? []), r])
     }
     const rows = []
+    const emodeRows = []
     for (const [asset, list] of byAsset) {
       const symbol = f.symbols[asset] ?? asset
       let prev: number | undefined
@@ -572,11 +573,20 @@ function governanceChangeRates() {
       if (!everCollateral) continue
       const from = list[0].ts
       const idx = new Map(evs.map((e, i) => [e, ltAt[i]]))
-      rows.push(score(symbol, evs, { from, to: f.toTs }, (e) => Math.max(0.01, idx.get(e) ?? 0.8)))
+      // E-mode changes reach only the positions in that category: scored apart.
+      const base = evs.filter((e) => e.market === 'aave-v3-core')
+      const emode = evs.filter((e) => e.market !== 'aave-v3-core')
+      rows.push(score(symbol, base, { from, to: f.toTs }, (e) => Math.max(0.01, idx.get(e) ?? 0.8)))
+      if (emode.length)
+        emodeRows.push(score(`${symbol} (e-mode)`, emode, { from, to: f.toTs }, () => 0.9))
     }
+    out.aaveV3EthereumCoreEmode = summary(
+      emodeRows,
+      'Aave v3 Ethereum Core e-mode changes (an asset dropped from a category, a category threshold set), for a holder in that category at HF 1.30. Per asset-month over the asset listing span: an upper bound, since few holders use each category.',
+    )
     out.aaveV3EthereumCore = summary(
       rows,
-      'Aave v3 Ethereum Core PoolConfigurator, each collateral from its listing to Oct 1 2026. E-mode category changes are not scored (they apply per category).',
+      'Aave v3 Ethereum Core PoolConfigurator, each collateral from its listing to Oct 1 2026, base threshold, freeze and pause changes. E-mode changes are scored apart (aaveV3EthereumCoreEmode).',
     )
   } else
     out.aaveV3EthereumCore = { note: 'governance-changes/aave-v3-ethereum-core.json not built' }
@@ -613,6 +623,8 @@ function governanceChangeRates() {
                 ? fromVenusComptroller(r.name, r.args, ctx)
                 : null
       if (!ev) continue
+      // A collateral going from 0 to a threshold is a listing: nobody held it against the line.
+      if (ev.threshold && ev.threshold.from === 0) continue
       const key = `${market}:${ev.asset ?? '*'}`
       const s = subjects.get(key) ?? {
         evs: [] as GovernanceChangeEvent[],

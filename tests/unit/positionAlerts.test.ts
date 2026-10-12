@@ -688,6 +688,22 @@ describe('governance-change rule', () => {
     expect(on(3, [paused]).map((a) => a.severity)).toEqual(['critical'])
   })
 
+  it('a ramp to zero is warn while there is time, critical in its last 6h', () => {
+    const toZero = cut(0, {
+      kind: 'collateral_disabled',
+      threshold: { from: 0.83, to: 0, fullAtTs: T0 + 48 * H },
+    })
+    const ctx = { governanceEvents: [toZero], governanceEventsCovered: true }
+    const { alerts } = evalSeq(cfg, [
+      { s: ethPosition(3), ctx },
+      { s: { ...ethPosition(3), ts: T0 + 43 * H }, ctx },
+    ])
+    expect(alerts.map((a) => [a.transition, a.severity])).toEqual([
+      ['fire', 'warn'],
+      ['escalate', 'critical'],
+    ])
+  })
+
   it('keeps a ramp live until it reaches its target, then clears after the window', () => {
     const ramp = cut(0.8, {
       ts: T0 - 60,

@@ -941,22 +941,35 @@ for (const p of e2Files.flatMap((f) =>
 function e2Paths(basis: 'oracle' | 'market'): Path[] {
   return e2Prepared
     .map((x): Path | null => {
-      const idx = x.points
-        .map((_, i) => i)
-        .filter((i) => basis === 'oracle' || x.marketPx[i] !== null)
-      if (!idx.length) return null
-      const pt = (i: number) => x.points[idx[i]]
+      // Off Morpho the position is read every 2 h but the market price is hourly. Between two
+      // reads, hold the position and step the market price (scaled from the read by the main
+      // asset's series), so the depeg rule and the market-basis HF see every hourly print.
+      const P = e2PriceSeries[x.collateral.startsWith('PT-') ? 'xUSD' : x.collateral]
+      const ticks: { pi: number; ts: number; mpx: number | null }[] = []
+      x.points.forEach((p, i) => {
+        ticks.push({ pi: i, ts: p.ts, mpx: x.marketPx[i] })
+        const next = x.points[i + 1]?.ts ?? p.ts
+        const base = priceAt(P, p.ts)
+        const read = x.marketPx[i]
+        if (x.venue === 'morpho' || read === null || base === null || !P) return
+        for (const [t, v] of P)
+          if (t > p.ts && t < Math.min(next, p.ts + 3 * H))
+            ticks.push({ pi: i, ts: t, mpx: (read * v) / base })
+      })
+      const use = ticks.filter((k) => basis === 'oracle' || k.mpx !== null)
+      if (!use.length) return null
+      const pt = (i: number) => x.points[use[i].pi]
       const oracle = (i: number) => (pt(i).collateralValue as number) / (pt(i).collateral as number)
-      const market = (i: number) => x.marketPx[idx[i]]
-      // Euler and Gearbox: the venue's own risk-adjusted value, so a governance ramp of the
-      // liquidation LTV (Euler, Nov 3 2025) moves HF as it did on chain. Else the market's LT.
+      const market = (i: number) => use[i].mpx
+      // Euler, Gearbox, Compound, Enclabs: the venue's own risk-adjusted value, so a governance
+      // ramp of the liquidation LTV (Euler, Nov 3 2025) moves HF as it did on chain.
       const lt = (i: number) => {
         const p = pt(i)
         if (p.adjustedCollateralUsd != null && (p.collateralValue as number) > 0)
           return p.adjustedCollateralUsd / (p.collateralValue as number)
         return p.lt ?? x.lltv
       }
-      const hf = idx.map((_, i) => {
+      const hf = use.map((_, i) => {
         const px = basis === 'oracle' ? oracle(i) : (market(i) as number)
         return ((pt(i).collateral as number) * px * lt(i)) / (pt(i).borrow as number)
       })
@@ -964,11 +977,11 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
         id: x.id,
         cluster: x.cluster,
         isLooper: true,
-        ts: idx.map((_, i) => pt(i).ts),
+        ts: use.map((k) => k.ts),
         hf,
         snapshot: (i) => ({
           id: x.id,
-          ts: pt(i).ts,
+          ts: use[i].ts,
           venue: `${x.venue} ${x.collateral}`,
           collateral: [
             {

@@ -1,3 +1,4 @@
+import {foreignFinalExitFixture as fixture} from './fixtures/foreignFinalExitFixture'
 import {it,expect} from 'vitest'
 import type {HolderExitAssessment} from '@/lib/carry/holderExitAssessment'
 import type {HolderExitMechanicalRequest} from '@/lib/carry/holderExitMechanicalProjection'
@@ -8,12 +9,7 @@ import {issueForeignConditionalFinalExit} from '@/lib/carry/foreignFinalExitIssu
 import {retainForeignFinalExit,selectedForeignFinalExit} from '@/lib/carry/foreignFinalExitReceipt'
 import type {HolderExitAssessmentRequest} from '@/lib/carry/holderExitAssessment'
 const now=Date.parse('2026-10-12T12:00:00.000Z'),owner='0x0000000000000000000000000000000000000001'
-function fixture(twyne=false){
- const route=twyne?'USDe → AaveV3ATokenWrapper [PT-srUSDe-22OCT2026]':'PYUSD → StakingVault [wYLDS]',destination=twyne?'0x0af56afbddcb140323445bd7211ba90e54e5fd1c':'0x19ebb35279a16207ec4ba82799cc64715065f7f6',asset=twyne?'0x4c9edd5852cd905f086c759e8383e09bff1e68b3':'0x6c3ea9036406852006290770bedfcaba0e23a0e8'
- const q={routeKey:route,destinationAddress:destination,owner,assetAddress:asset,assetsRaw:twyne?'1000000000000000000':'1000000',nowMs:now,horizonSeconds:48*3600} as HolderExitMechanicalRequest
- const a={status:'partial',routeKey:route,destinationAddress:destination,owner,request:{assetsRaw:q.assetsRaw,assetAddress:asset,horizonHours:48},source:{chainId:1,blockNumber:26200000,blockHash:'0x'+'a'.repeat(64),blockTime:new Date(now-60000).toISOString(),originValidation:'two_provider'},finalPayout:{assetAddress:asset,status:'unassessed',amountRaw:null},stages:twyne?[{name:'pt_redemption',assetAddress:'0x59bc9fae5d62b19d4f8d07d758047acb9ee19d34',status:'simulated',amountRaw:'2000000000000000000',relatedToRequest:false}]:[{name:'prime_redemption',assetAddress:destination,status:'simulated',amountRaw:'3000000',relatedToRequest:false}],...(twyne?{twyneCondition:{collateralVault:'0x'+'b'.repeat(40),requestedPtRaw:'2000000000000000000',status:'observed',reason:null,simulatedReturnedPtRaw:'2000000000000000001'}}:{pyusdStakingCondition:{requestedPrimeSharesRaw:'3000000',holderPrimeSharesRaw:'4000000',maxRedeemRaw:'4000000',previewWyldsRaw:'2500000',simulatedWyldsRaw:'2499999',stakingPaused:false,holderFrozen:false,reason:'prime_to_wylds_callable'},pyusdYieldQueueCondition:{holder:owner,existingWyldsSharesRaw:'900000',pendingSharesRaw:'800000',pendingUsdcRaw:'700000',pendingSinceUnix:String(now/1000-3600),yieldPaused:false,yieldFrozen:false,redeemVault:'0x'+'c'.repeat(40),requestAssessed:false,completion:'admin_gated_unassessed',usdcPayout:'not_attested'}})} as unknown as HolderExitAssessment
- return{a,q}
-}
+
 function conversion(a:HolderExitAssessment,inputAsset:string,inputDecimals:number,inputRaw:string,outputAsset:string,outputDecimals:number,min:string,max=min):ConditionalMultilegConversion{return{inputAsset,inputDecimals,inputRaw,outputAsset,outputDecimals,minimumOutputRaw:min,maximumOutputRaw:max,basis:'declared_user_scenario',reference:'explicit synthetic user scenario for test',availableAtUtc:new Date(now).toISOString(),currentSource:null}}
 it('Hastra keeps independent new PRIME and existing queue lineages without an invented settlement or parity',()=>{
  const {a,q}=fixture(),r=buildHastraConditionalFinalExit(a,q,(v,w)=>v===a&&w===q)!

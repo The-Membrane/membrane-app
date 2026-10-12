@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { exitTime, type ExitTimeInput } from '@/lib/exitQueue/riskFrontier'
 import { label, type VenueKey } from '@/lib/exitQueue/types'
 import {
+  QUEUE_BUFFER_TARGET_SHARE,
   exitQueueAxis,
-  exitQueueScenario,
+  queueVenuePosition,
   runExitQueueGrid,
   runExitQueueStress,
   type ExitQueueAxis,
@@ -97,7 +98,6 @@ describe('rule 1: a position token resolves to the ledger venue', () => {
     const a = measured(exitQueueAxis('wstETH', FEED, { nowMs: NOW }))
     expect(a.venue).toBe('lido-steth')
     expect(a.exitTime.seconds).toBe(111 * H)
-    expect(a.freezeHours).toBe(111)
     expect(a.exitTime.source).toBe('measured_quantile')
     expect(a.exitTime.atLeast).toBe(false)
   })
@@ -105,16 +105,15 @@ describe('rule 1: a position token resolves to the ledger venue', () => {
   it('sUSDe uses the recorder key and resolves to its 1-day cooldown', () => {
     const a = measured(exitQueueAxis('sUSDe', FEED, { nowMs: NOW }))
     expect(a.venue).toBe('sUSDe')
-    expect(a.freezeHours).toBe(24)
+    expect(a.exitTime.seconds).toBe(D)
   })
 
   it('negative control: a token no ledger covers is unknown, never 0', () => {
     for (const asset of ['sUSDS', 'aEthUSDC', 'rETH', '']) {
       const a = exitQueueAxis(asset, FEED, { nowMs: NOW })
       expect(a).toMatchObject({ status: 'unknown', reason: 'unmapped_venue', venue: null })
-      expect(a).not.toHaveProperty('freezeHours')
-      expect(exitQueueScenario(step(0.25), a)).toBeNull()
-      expect(runExitQueueStress(carry(), step(0.25), a).result).toBeNull()
+      expect(a).not.toHaveProperty('exitTime')
+      expect(runExitQueueStress(carry(), step(0.25), a).atBufferTarget).toBeNull()
     }
   })
 })
@@ -130,17 +129,15 @@ describe('rule 2: unknown is not zero', () => {
     })
   })
 
-  it('negative control: a floor-only cooldown of 0 with nothing measured runs no 0 h freeze', () => {
+  it('negative control: a floor-only cooldown of 0 with nothing measured runs nothing', () => {
     const feed = [input('kelp-rseth', { advertisedCooldownS: 0 })]
     const a = exitQueueAxis('rsETH', feed, { nowMs: NOW })
     expect(a).toMatchObject({ status: 'unknown', reason: 'no_exit_time', venue: 'kelp-rseth' })
     const s = runExitQueueStress(carry(), step(0.25), a)
-    expect(s.scenario).toBeNull()
-    expect(s.result).toBeNull()
-    // A 0 h freeze would have read as an instant exit and cured this position.
-    expect(runStress(carry(), { price: step(0.25), venue: { freezeHours: 0 } }).outcome).toBe(
-      'recall_cured',
-    )
+    expect(s.atBufferTarget).toBeNull()
+    expect(s.bufferDrained).toBeNull()
+    // Falling back to the chosen (liquid) exit would have cured this position.
+    expect(runStress(carry(), { price: step(0.25) }).outcome).toBe('recall_cured')
   })
 
   it('two inputs for one venue are refused, not picked between', () => {
@@ -205,59 +202,56 @@ describe('rule 3: freshness uses the ledger rule (0 ≤ age ≤ 30 h)', () => {
   })
 })
 
-// ------------------------------------------------------------------ rule 4: a freeze, not a capacity
+// ------------------------------------------------------------------ rule 4: only the buffer is liquid
 
-describe('rule 4: the axis is a venue freeze on the given price shape', () => {
-  it('equals a hand-set freeze exactly (same cell), and leaves the position alone', () => {
+describe('rule 4: a queue venue recalls only its buffer, whatever the queue length', () => {
+  it('runs the buffer at target and drained, as a fixed stock, and leaves the position alone', () => {
     const a = measured(exitQueueAxis('stETH', FEED, { nowMs: NOW }))
     const pos = carry()
     const before = JSON.stringify(pos)
     const s = runExitQueueStress(pos, step(0.25), a)
-    expect(s.scenario).toEqual({ price: step(0.25), venue: { freezeHours: 111 } })
-    expect(s.result).toEqual(runStress(pos, { price: step(0.25), venue: { freezeHours: 111 } }))
+    const at = { ...pos, exitCapacityUsd: 500, exitCapacityPreset: undefined }
+    const drained = { ...pos, exitCapacityUsd: 0, exitCapacityPreset: undefined }
+    expect(s.atBufferTarget).toEqual(runStress(at, { price: step(0.25) }))
+    expect(s.bufferDrained).toEqual(runStress(drained, { price: step(0.25) }))
     expect(JSON.stringify(pos)).toBe(before)
+    expect(QUEUE_BUFFER_TARGET_SHARE).toBe(0.05) // DeploymentVaultBase.sol:254 bufferBps = 500
   })
 
-  it('a queue inside the 8 h window cures; a Lido-length queue misses it and sells', () => {
-    const maple = sm(
-      runExitQueueStress(
-        carry(),
-        step(0.25),
-        measured(exitQueueAxis('syrupUSDC', FEED, { nowMs: NOW })),
-      ).result,
-    )
-    expect(maple.outcome).toBe('armed_cured')
-    expect(maple.recallOpensAtSeconds).toBe(60 + 7 * 60) // 384 s rounds up to 7 one-minute steps
-    const lido = sm(
-      runExitQueueStress(
-        carry(),
-        step(0.25),
-        measured(exitQueueAxis('wstETH', FEED, { nowMs: NOW })),
-      ).result,
-    )
-    expect(lido.outcome).toBe('sold')
-    expect(lido.recallDrawnUsd).toBe(0)
-    expect(stressRank(lido)).toBeGreaterThan(stressRank(maple))
+  it('no freeze: the queue time is in no run', () => {
+    const s = runExitQueueStress(carry(), step(0.25), exitQueueAxis('stETH', FEED, { nowMs: NOW }))
+    expect(s.atBufferTarget!.scenarioId).not.toMatch(/freeze/)
+    expect(s.atBufferTarget!.cellKey).not.toMatch(/freeze/)
   })
 
-  it('a longer measured queue never ranks below a shorter one (same shock)', () => {
-    const ranks = ['syrupUSDC', 'sUSDe', 'stETH', 'rsETH'].map((asset) =>
-      stressRank(
-        runExitQueueStress(carry(), step(0.25), exitQueueAxis(asset, FEED, { nowMs: NOW })).result!,
-      ),
-    )
-    for (let i = 1; i < ranks.length; i++) expect(ranks[i]).toBeGreaterThanOrEqual(ranks[i - 1])
-    // Not vacuous: the 6.4 min queue cures, the 24 h one does not.
-    expect(ranks[0]).toBeLessThan(ranks[1])
+  it('negative control: a 6.4 min queue and a ≥ 21 d queue give the same runs (owner, 2026-10-12)', () => {
+    const outcomes = ['syrupUSDC', 'sUSDe', 'stETH', 'rsETH'].map((asset) => {
+      const s = runExitQueueStress(carry(), step(0.25), exitQueueAxis(asset, FEED, { nowMs: NOW }))
+      return [s.atBufferTarget!.cellKey, s.bufferDrained!.cellKey]
+    })
+    for (const o of outcomes) expect(o).toEqual(outcomes[0])
   })
 
-  it('the position keeps its own exit capacity: without one the engine still refuses', () => {
-    const r = runExitQueueStress(
-      carry({ exitCapacityPreset: undefined }),
+  it('the buffer replaces the chosen exit capacity, even the optimistic bound', () => {
+    // carry() chose 'optimistic' (×1): with it, recall cures the −25% step.
+    const liquid = sm(runStress(carry(), { price: step(0.25) }))
+    expect(liquid.outcome).toBe('recall_cured')
+    const s = runExitQueueStress(
+      carry(),
       step(0.25),
-      measured(exitQueueAxis('stETH', FEED, { nowMs: NOW })),
-    ).result!
-    expect(r).toMatchObject({ outcome: 'not_modelled', reason: 'no_exit_capacity' })
+      exitQueueAxis('syrupUSDC', FEED, { nowMs: NOW }),
+    )
+    expect(sm(s.bufferDrained).recallDrawnUsd).toBe(0)
+    expect(sm(s.atBufferTarget).recallDrawnUsd).toBeLessThanOrEqual(500)
+    expect(stressRank(sm(s.bufferDrained))).toBeGreaterThan(stressRank(liquid))
+  })
+
+  it('queueVenuePosition clamps the share and leaves a levered long unchanged', () => {
+    expect(queueVenuePosition(carry(), 2).exitCapacityUsd).toBe(10_000)
+    expect(queueVenuePosition(carry(), -1).exitCapacityUsd).toBe(0)
+    expect(queueVenuePosition(carry(), NaN).exitCapacityUsd).toBe(0)
+    const lev = carry({ tradeShape: 'levered_long', deployedUsd: undefined })
+    expect(queueVenuePosition(lev, 0.05)).toBe(lev)
   })
 
   it('a levered long has no recall: the engine says so, and the label still travels', () => {
@@ -266,7 +260,11 @@ describe('rule 4: the axis is a venue freeze on the given price shape', () => {
       step(0.25),
       exitQueueAxis('stETH', FEED, { nowMs: NOW }),
     )
-    expect(s.result).toMatchObject({ outcome: 'not_modelled', reason: 'no_recall_levered_long' })
+    expect(s.atBufferTarget).toMatchObject({
+      outcome: 'not_modelled',
+      reason: 'no_recall_levered_long',
+    })
+    expect(s.range).toBeNull()
     expect(measured(s.axis).exitTime.label.text).toBe('measured history, not a forecast')
   })
 })
@@ -283,7 +281,7 @@ describe('rule 5: every result carries the exit time with its label', () => {
       text: 'measured history, not a forecast',
     })
     expect(a.stressLabel).toBe(STRESS_LABEL)
-    expect(s.result!.label).toBe(STRESS_LABEL)
+    expect(s.atBufferTarget!.label).toBe(STRESS_LABEL)
     expect(a.exitTime.anchor).toEqual(ANCHOR)
     expect(a.provenance).toContain('block 26129440')
     expect(a.provenance).toContain('not a forecast')
@@ -327,59 +325,46 @@ describe('rule 5: every result carries the exit time with its label', () => {
   })
 })
 
-// ------------------------------------------------------------------ rules 6-7 (refuter findings 1-2)
+// ------------------------------------------------------------------ the buffer range
 
-describe('rule 6: a lower-bound exit time is a range, not a point', () => {
-  // A Maple-like queue: 90 requests paid in 5 min, 15 stalled for 5 h, so p90 is not reached.
-  const stalled = [
-    input('maple-syrupusdc', {
-      requestToExit: { p50S: 300, p90S: null, atLeastS: 5 * H, n: 105 },
-      oldestOpenAgeS: 5 * H,
-    }),
-  ]
-
-  it('runs the bound as the best case and adds the never-paid case', () => {
-    const s = runExitQueueStress(
-      carry(),
-      step(0.25),
-      exitQueueAxis('syrupUSDC', stalled, { nowMs: NOW }),
-    )
-    expect(s.exitTimeIs).toBe('lower_bound')
-    expect(s.result!.outcome).toBe('armed_cured') // paid at exactly 5 h: inside the 8 h window
-    expect(s.resultIfNeverPaid!.outcome).toBe('sold') // never paid in time
-    expect(s.range).toEqual({ mildest: s.result, severest: s.resultIfNeverPaid })
-    expect(sm(s.resultIfNeverPaid).recallDrawnUsd).toBe(0)
+describe('the buffer range: target and drained, neither is "best"', () => {
+  it('orders the two runs by stressRank', () => {
+    // LTV 61.3% at −25% crosses the 0.80 line; the $500 buffer cannot restore it.
+    const s = runExitQueueStress(carry(), step(0.25), exitQueueAxis('stETH', FEED, { nowMs: NOW }))
+    expect(s.range).not.toBeNull()
+    expect(stressRank(s.range!.severest)).toBeGreaterThanOrEqual(stressRank(s.range!.mildest))
+    expect([s.atBufferTarget, s.bufferDrained]).toContain(s.range!.mildest)
+    expect([s.atBufferTarget, s.bufferDrained]).toContain(s.range!.severest)
   })
 
-  it('neither end is "best": the floor close can make paying at the bound the severer end', () => {
-    // Refuter repro: loan < 2·dMin, so the ask escalates to the whole loan; a recall at 1 h
-    // falls short and the floor close sells the rest, while with no recall the wick recovers.
+  it('the floor close can make the buffer the severer end', () => {
+    // Refuter repro (2026-10-05): loan < 2·dMin, so the ask escalates to the whole loan; a
+    // recall that falls short triggers the floor close, while with no recall the wick recovers.
     const small = carry({
       collateralUsd: 3_500,
       debtUsd: 3_000,
       line: 0.9,
       deployedUsd: 2_500,
-      exitCapacityUsd: 2_500,
       exitCapacityPreset: undefined,
     })
     const feed = [
-      input('maple-syrupusdc', { requestToExit: { p50S: 60, p90S: null, atLeastS: H, n: 20 } }),
+      input('maple-syrupusdc', { requestToExit: { p50S: 60, p90S: 120, atLeastS: null, n: 20 } }),
     ]
     const s = runExitQueueStress(
       small,
       { kind: 'wick', drop: 0.068, hours: 4 },
       exitQueueAxis('syrupUSDC', feed, { nowMs: NOW }),
     )
-    expect(sm(s.result)).toMatchObject({ outcome: 'sold', saleReason: 'floor' })
-    expect(s.resultIfNeverPaid!.outcome).toBe('armed_cured')
-    expect(s.range).toEqual({ mildest: s.resultIfNeverPaid, severest: s.result })
+    const target = sm(s.atBufferTarget)
+    const drained = sm(s.bufferDrained)
+    expect(drained.recallDrawnUsd).toBe(0)
+    if (stressRank(target) > stressRank(drained))
+      expect(s.range).toEqual({ mildest: s.bufferDrained, severest: s.atBufferTarget })
+    else expect(s.range).toEqual({ mildest: s.atBufferTarget, severest: s.bufferDrained })
   })
 
-  it('the never-paid freeze never opens, on every week-1 shape and both classes', () => {
-    const feed = [
-      input('maple-syrupusdc', { requestToExit: { p50S: 60, p90S: null, atLeastS: H, n: 20 } }),
-    ]
-    const a = exitQueueAxis('syrupUSDC', feed, { nowMs: NOW })
+  it('the drained run draws nothing, on every week-1 shape and both classes', () => {
+    const a = exitQueueAxis('stETH', FEED, { nowMs: NOW })
     const shapes: PriceShape[] = [
       ...DEFAULT_PRICE_SHAPES,
       { kind: 'linear', drop: 0.4, hours: 72 },
@@ -389,77 +374,55 @@ describe('rule 6: a lower-bound exit time is a range, not a point', () => {
       const line = membraneClass === 'no-delay' ? 0.9 : 0.8
       for (const price of shapes) {
         const s = runExitQueueStress(carry({ membraneClass, line }), price, a)
-        const never = s.resultIfNeverPaid
-        if (!never) continue
-        const n = sm(never)
-        expect(n.recallDrawnUsd).toBe(0)
-        if (n.recallOpensAtSeconds !== null)
-          expect(n.recallOpensAtSeconds).toBeGreaterThan(n.horizonSeconds)
+        const d = s.bufferDrained!
+        if (d.outcome === 'not_modelled') continue
+        expect(d.recallDrawnUsd).toBe(0)
+        if (s.atBufferTarget!.outcome !== 'not_modelled')
+          expect(s.atBufferTarget!.recallDrawnUsd).toBeLessThanOrEqual(500 + 1e-6)
       }
     }
   })
 
-  it('a floor-only cooldown that wins is a lower bound too', () => {
+  it('negative control: a lower bound under 1 s is unknown, and runs nothing', () => {
+    const feed = [
+      input('maple-syrupusdc', { requestToExit: { p50S: null, p90S: null, atLeastS: 0, n: 1 } }),
+    ]
+    const a = exitQueueAxis('syrupUSDC', feed, { nowMs: NOW })
+    expect(a).toMatchObject({ status: 'unknown', reason: 'no_exit_time' })
+    expect(runExitQueueStress(carry(), step(0.25), a).atBufferTarget).toBeNull()
+  })
+
+  it('a floor-only cooldown that wins is a lower bound ("≥")', () => {
     const feed = [
       input('kelp-rseth', {
         requestToExit: { p50S: H, p90S: 2 * H, atLeastS: null, n: 40 },
         advertisedCooldownS: 9 * H,
       }),
     ]
-    const s = runExitQueueStress(carry(), step(0.25), exitQueueAxis('rsETH', feed, { nowMs: NOW }))
-    expect(measured(s.axis).exitTime).toMatchObject({
+    expect(measured(exitQueueAxis('rsETH', feed, { nowMs: NOW })).exitTime).toMatchObject({
       source: 'advertised_cooldown',
       atLeast: true,
     })
-    expect(s.exitTimeIs).toBe('lower_bound')
-    expect(s.range).not.toBeNull()
   })
 
-  it('negative control: a lower bound under 1 s is unknown, not an instant exit at one end', () => {
-    const feed = [
-      input('maple-syrupusdc', { requestToExit: { p50S: null, p90S: null, atLeastS: 0, n: 1 } }),
-    ]
-    const a = exitQueueAxis('syrupUSDC', feed, { nowMs: NOW })
-    expect(a).toMatchObject({ status: 'unknown', reason: 'no_exit_time' })
-    expect(runExitQueueStress(carry(), step(0.25), a).result).toBeNull()
-  })
-
-  it('a not-modelled never-paid run is null, not an "other end"', () => {
-    const a = exitQueueAxis(
-      'syrupUSDC',
-      [input('maple-syrupusdc', { requestToExit: { p50S: 60, p90S: null, atLeastS: H, n: 20 } })],
-      { nowMs: NOW },
-    )
-    const s = runExitQueueStress(
-      carry({ tradeShape: 'levered_long', deployedUsd: undefined, exitCapacityPreset: undefined }),
-      step(0.25),
-      a,
-    )
-    expect(s.result!.outcome).toBe('not_modelled')
-    expect(s.resultIfNeverPaid).toBeNull()
-    expect(s.range).toBeNull()
-  })
-
-  it('an estimate (quantile reached) has no range', () => {
-    const s = runExitQueueStress(carry(), step(0.25), exitQueueAxis('stETH', FEED, { nowMs: NOW }))
-    expect(s.exitTimeIs).toBe('estimate')
-    expect(s.resultIfNeverPaid).toBeNull()
-  })
-
-  it('Kelp (≥ 21 d) is a lower bound too; both ends sell', () => {
-    const s = runExitQueueStress(carry(), step(0.25), exitQueueAxis('rsETH', FEED, { nowMs: NOW }))
-    expect(s.exitTimeIs).toBe('lower_bound')
-    expect([s.result!.outcome, s.resultIfNeverPaid!.outcome]).toEqual(['sold', 'sold'])
-  })
-
-  it('an unknown axis has neither end', () => {
+  it('an unknown axis has neither run', () => {
     const s = runExitQueueStress(carry(), step(0.25), exitQueueAxis('sUSDS', FEED, { nowMs: NOW }))
-    expect(s).toMatchObject({ result: null, resultIfNeverPaid: null, exitTimeIs: null })
+    expect(s).toMatchObject({ atBufferTarget: null, bufferDrained: null, range: null })
+  })
+
+  it('a stale axis runs nothing', () => {
+    const s = runExitQueueStress(
+      carry(),
+      step(0.25),
+      exitQueueAxis('stETH', FEED, { nowMs: (ANCHOR.ts + 31 * H) * 1000 }),
+    )
+    expect(s.axis).toMatchObject({ status: 'unknown', reason: 'stale' })
+    expect(s.atBufferTarget).toBeNull()
   })
 })
 
 describe('rule 7: a stall below 10% of the cohort stays visible', () => {
-  it('names the oldest open wait but never folds it into the freeze', () => {
+  it('names the oldest open wait, and it enters no run', () => {
     const feed = [
       input('maple-syrupusdc', {
         requestToExit: { p50S: 300, p90S: 300, atLeastS: null, n: 100 },
@@ -467,7 +430,7 @@ describe('rule 7: a stall below 10% of the cohort stays visible', () => {
       }),
     ]
     const a = measured(exitQueueAxis('syrupUSDC', feed, { nowMs: NOW }))
-    expect(a.freezeHours).toBe(300 / 3600)
+    expect(a.exitTime.seconds).toBe(300)
     expect(a.oldestOpenAgeS).toBe(5 * H)
     expect(a.provenance).toContain('the oldest open request has waited 5.0 h')
     // No stall note when the head is younger than the exit time.
@@ -485,14 +448,16 @@ describe('the exit-queue grid row', () => {
     expect(row).toHaveLength(DEFAULT_PRICE_SHAPES.length)
     row.forEach((cell, i) => {
       expect(cell.axis).toBe(a)
-      expect(cell.scenario).toEqual({ price: DEFAULT_PRICE_SHAPES[i], venue: { freezeHours: 111 } })
-      expect(cell.result!.label).toBe(STRESS_LABEL)
+      expect(cell.atBufferTarget).toEqual(
+        runStress(queueVenuePosition(carry(), 0.05), { price: DEFAULT_PRICE_SHAPES[i] }),
+      )
+      expect(cell.atBufferTarget!.label).toBe(STRESS_LABEL)
     })
   })
 
   it('negative control: an unknown axis runs nothing on any shape', () => {
     const row = runExitQueueGrid(carry(), exitQueueAxis('sUSDS', FEED, { nowMs: NOW }))
     expect(row).toHaveLength(DEFAULT_PRICE_SHAPES.length)
-    expect(row.every((c) => c.scenario === null && c.result === null)).toBe(true)
+    expect(row.every((c) => c.atBufferTarget === null && c.bufferDrained === null)).toBe(true)
   })
 })

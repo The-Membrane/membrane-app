@@ -20,8 +20,10 @@ import {
   type ExitCapacityFloorId,
 } from '@/lib/position-sim/exitCapacityAnalogs'
 import {
+  QUEUE_BUFFER_TARGET_SHARE,
   exitQueueAxis,
   runExitQueueStress,
+  type ExitQueueStress,
   type ExitQueueUnknownReason,
 } from '@/lib/position-sim/exitQueueAxis'
 import {
@@ -1272,7 +1274,7 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
     case 'exitQueue': {
       const q = m.exitQueue
       const row = q.rows.find((r) => r.venue === sel.venue) ?? q.selected
-      const step = `held −${Math.round(EXIT_QUEUE_STEP * 100)}% step`
+      const step = `held ${STEP_TEXT} step`
       if (!row)
         return {
           title: 'Exit queue',
@@ -1283,13 +1285,10 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
         }
       return {
         title: `Exit queue · ${row.name}`,
-        sub: `${step} · recall paid after ${row.p90Text} (p90)`,
-        result: row.state === 'live' ? row.result : null,
-        missing:
-          row.state === 'stale'
-            ? `stale ledger, ${row.ageText}: the last reading is not run`
-            : row.leaf.short,
-        stock: `${chosen} · paid after the ${row.name} queue`,
+        sub: `${step} · recall = the ${BUFFER_TEXT} at target`,
+        result: row.state === 'live' ? (q.runs?.atBufferTarget ?? null) : null,
+        missing: row.stateNote ?? 'no run',
+        stock: `the vault's ${BUFFER_TEXT}: the ${row.name} queue (${row.p90Text} at p90) pays nothing inside the call`,
       }
     }
     case 'crash': {
@@ -1342,18 +1341,19 @@ export function resolveSelection(m: FrontierModel, sel: Selection): ResolvedSele
 // ------------------------------------------------------------ exit queues
 
 /**
- * The exit-queue axis (lib/position-sim/exitQueueAxis.ts) on screen: recall from an LST or a
- * vault with a withdrawal queue arrives after the venue's MEASURED wait (the ledger's
- * `ExitTimeInput`, p90 request → claimable over 30 days), run as a freeze at the same named
- * step as the other venue axes. Copy rules (DESIGN_RULES §4, §5b):
+ * The exit-queue axis (lib/position-sim/exitQueueAxis.ts) on screen. Owner, 2026-10-12: "no
+ * matter how long the queue is, whatever is liquid at the time the window is over or breached
+ * is what will be used." The liquidation recalls inside the call, and a queue pays nothing
+ * there, so a queue venue recalls only its vault buffer: 5% at target, nothing if drained. The
+ * queue time never changes the outcome; it says how long the rest stays locked. Copy rules
+ * (DESIGN_RULES §4, §5b):
  *  - a stale ledger (anchor over 30 h old, the ledger's own rule) is HATCHED with its age; it
  *    runs nothing and gets no finding, never a live reading;
  *  - unknown is never zero: a venue with no exit time runs nothing;
- *  - the finding is analysis, not a percentile: the wait against the window, or the dollars
- *    the queue adds to the sale against instant recall (what master does today).
+ *  - the finding is analysis: what the liquidation can use, and the dollars it sells.
  */
 
-/** The exit-queue rows run at the named −25% step, like the other venue axes. */
+/** The exit-queue runs use the held −25% step, like the other venue axes. */
 export const EXIT_QUEUE_STEP = 0.25
 
 /** What the page knows about the exit-queue ledger. Mirrors `replay` / `replayMissing`. */
@@ -1381,8 +1381,6 @@ export interface ExitQueueRow {
   venue: VenueKey
   /** 'Lido stETH' */
   name: string
-  /** 'Lido': the venue in a sentence. */
-  short: string
   /** The position token the axis resolves ('stETH'). */
   asset: string
   state: ExitQueueState
@@ -1396,20 +1394,11 @@ export interface ExitQueueRow {
   oldestText: string | null
   /** 'block 26,130,296 · 2h old'. */
   ageText: string
-  /** The p90 against the class window (e.g. 14 for 112 h vs 8 h). Null with no window. */
-  windowMultiple: number | null
-  /** The −25% step with recall paid after the queue. Live only. */
-  result: StressResult | null
-  /** Lower bound only: the same step when recall never arrives. */
-  resultIfNeverPaid: StressResult | null
-  leaf: LeafView
-  /** The row's outcome line; a lower bound names both ends. */
-  evidence: string
-  /** One sentence of analysis. Live rows only: suppressed while stale (§4). */
+  /** Why a stale or unknown row runs nothing. Null when live. */
+  stateNote: string | null
+  /** One sentence of analysis. Live carry rows only: suppressed while stale (§4). */
   finding: string | null
-  /** The evidence under the finding: this queue against instant recall, at the same step. */
-  comparison: string | null
-  /** The label of the exit time, and where it comes from. */
+  /** What the p90 rests on, in the page's units, with its label. */
   credit: string
 }
 
@@ -1421,19 +1410,24 @@ export interface ExitQueueView {
   missing: string | null
   /** The ledger's oldest anchor and its age, for the dateline. */
   dateline: string | null
-  /** True when any row is stale: the panel then hatches and drops its headline. */
+  /** True when any row is stale: those rows are hatched. */
   stale: boolean
-  /** The same step with instant recall (master today), the comparison every row is read against. */
-  instant: StressResult | null
-  windowHours: number
+  /** The held step with recall = the buffer, at target and drained. Null when no row is live. */
+  runs: ExitQueueStress | null
+  /** The same step with the position's chosen (liquid) exit: what a liquid venue would do. */
+  liquid: StressResult | null
+  /** The evidence under the finding: the buffer range against a liquid venue. */
+  comparison: string | null
   /** Why no row runs (levered long). */
   note: string | null
 }
 
 const H = 3600
+const STEP_TEXT = `−${Math.round(EXIT_QUEUE_STEP * 100)}%`
+const BUFFER_TEXT = `${Math.round(QUEUE_BUFFER_TARGET_SHARE * 100)}% buffer`
 
-/** An exit time in the window's unit: minutes under 1 h, one decimal under 10 h, then whole
- *  hours. A lower bound floors, so its "≥" stays true. */
+/** An exit time: minutes under 1 h, one decimal under 10 h, then whole hours. A lower bound
+ *  floors, so its "≥" stays true. */
 export function queueTimeText(seconds: number, atLeast = false): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '—'
   const r = atLeast ? Math.floor : Math.round
@@ -1459,12 +1453,6 @@ export function anchorAgeText(ageSeconds: number): string {
   return h ? `${d}d ${h}h old` : `${d}d old`
 }
 
-/** A multiple of the window, floored so it never overstates: 14×, 4.5×. */
-export function windowMultipleText(m: number, atLeast = false): string {
-  const body = m >= 10 ? `${Math.floor(m)}` : (Math.floor(m * 10) / 10).toFixed(1)
-  return `${atLeast ? '≥' : ''}${body}×`
-}
-
 function queueDepthText(q: ExitTimeInput['queueDepth']): string {
   let units: number | null = null
   if (q.amount != null && /^\d+$/.test(q.amount)) units = Number(q.amount) / 10 ** q.decimals
@@ -1483,6 +1471,22 @@ function queueDepthText(q: ExitTimeInput['queueDepth']): string {
   return parts.length ? parts.join(' · ') : '—'
 }
 
+/** What the p90 rests on, in the page's units (the axis provenance prints days). */
+function exitTimeCredit(t: ExitTime): string {
+  const n = t.n.toLocaleString('en-US')
+  const what =
+    t.source === 'measured_quantile'
+      ? t.venue === 'beacon-exit'
+        ? `p90 of beacon schedule readings, last ${t.windowDays} d`
+        : `p90 request → claimable, last ${t.windowDays} d, n=${n}`
+      : t.source === 'measured_at_least'
+        ? `p90 not reached in ${t.windowDays} d: the oldest open wait, n=${n}`
+        : t.source === 'advertised_cooldown'
+          ? 'the on-chain cooldown'
+          : 'beacon exit schedule + withdrawability delay'
+  return `${what} · block ${t.anchor.block.toLocaleString('en-US')} · ${t.label.text}`
+}
+
 /** Why a venue with a ledger input has no exit time, in the reader's words. */
 const EXIT_QUEUE_UNKNOWN_TEXT: Record<ExitQueueUnknownReason, string> = {
   unmapped_venue: 'no ledger covers this token',
@@ -1493,100 +1497,86 @@ const EXIT_QUEUE_UNKNOWN_TEXT: Record<ExitQueueUnknownReason, string> = {
 }
 
 /** An outcome in a sentence: 'sold ($23.6k of collateral)'. */
-const leafPhrase = (l: LeafView): string => `${l.title.toLowerCase()} (${l.short})`
-
-/** What the p90 rests on, in the page's units (the axis provenance prints days). */
-function exitTimeCredit(t: ExitTime): string {
-  const what =
-    t.source === 'measured_quantile'
-      ? t.venue === 'beacon-exit'
-        ? `p90 of beacon schedule readings, last ${t.windowDays} d`
-        : `p90 request → claimable, last ${t.windowDays} d, n=${t.n.toLocaleString('en-US')}`
-      : t.source === 'measured_at_least'
-        ? `p90 not reached in ${t.windowDays} d: the oldest open wait, n=${t.n.toLocaleString('en-US')}`
-        : t.source === 'advertised_cooldown'
-          ? 'the on-chain cooldown'
-          : 'beacon exit schedule + withdrawability delay'
-  return `${what} · block ${t.anchor.block.toLocaleString('en-US')} · ${t.label.text}`
+const leafPhrase = (r: StressResult): string => {
+  const l = leafView(r)
+  return `${l.title.toLowerCase()} (${l.short})`
 }
 
 const sold = (r: StressResult | null): number =>
   r && r.outcome !== 'not_modelled' ? r.exposedUsd : 0
 
 /**
- * The finding for one live row (DESIGN_RULES §5b: analysis, not a percentile):
- *  - the wait outlasts the window: say by how much, and that recall can't come from there;
- *  - else, if the queue adds a sale at the step against instant recall: say the dollars;
- *  - else, the queue adds no sale at the step.
- * A lower bound inside the window says so: the real wait may be longer.
+ * The finding for one live row (DESIGN_RULES §5b: analysis, not a percentile). The queue time
+ * is named, then set aside: the liquidation uses only what is liquid, the buffer. The dollars
+ * are the step's sale across the buffer range (target to drained).
  */
 export function exitQueueFinding(
-  row: Pick<ExitQueueRow, 'asset' | 'short'>,
+  asset: string,
   t: ExitTime,
-  windowHours: number,
-  queued: StressResult | null,
-  instant: StressResult | null,
+  runs: Pick<ExitQueueStress, 'atBufferTarget' | 'bufferDrained'>,
 ): string {
-  const lead = `Your ${row.asset} exit takes ${queueTimeText(t.seconds, t.atLeast)} at p90`
-  const windowS = windowHours * H
-  if (windowS > 0 && t.seconds > windowS) {
-    const m = t.seconds / windowS
-    const by =
-      m >= 2
-        ? `${windowMultipleText(m, t.atLeast)} the ${windowHours}h window`
-        : `past the ${windowHours}h window`
-    return `${lead}, ${by}, so recall can't come from ${row.short}.`
-  }
-  if (t.atLeast) return `${lead}, a lower bound: the real wait may be longer.`
-  const extra = sold(queued) - sold(instant)
-  if (extra >= 0.5)
-    return `${lead}, yet a −${Math.round(EXIT_QUEUE_STEP * 100)}% step sells ${usd(extra)} before it lands.`
-  return windowS > 0
-    ? `${lead}, inside the ${windowHours}h window: at −${Math.round(EXIT_QUEUE_STEP * 100)}% it adds no sale.`
-    : `${lead}: at −${Math.round(EXIT_QUEUE_STEP * 100)}% it adds no sale.`
+  const lead = `Your ${asset} exit takes ${queueTimeText(t.seconds, t.atLeast)} at p90, and a liquidation can't wait for it.`
+  const lo = Math.min(sold(runs.atBufferTarget), sold(runs.bufferDrained))
+  const hi = Math.max(sold(runs.atBufferTarget), sold(runs.bufferDrained))
+  const sale =
+    hi < 0.5
+      ? `and a held ${STEP_TEXT} step sells nothing`
+      : usd(lo) === usd(hi)
+        ? `so a held ${STEP_TEXT} step sells ${usd(hi)}`
+        : `so a held ${STEP_TEXT} step sells ${usd(lo)} to ${usd(hi)}`
+  return `${lead} Only the ${BUFFER_TEXT} is liquid, ${sale}.`
 }
 
 /** The exit-queue panel for one position: one row per ledger venue a position token exits through. */
 export function exitQueueView(position: StressPosition, ctx: ExitQueueContext): ExitQueueView {
-  const windowHours = classView(position.membraneClass).windowHours
   const price: PriceShape = { kind: 'step', drop: EXIT_QUEUE_STEP }
   const carry = position.tradeShape === 'carry'
-  const instant = carry ? runStress(position, { price }) : null
   const empty = (missing: string): ExitQueueView => ({
     rows: [],
     selected: null,
     missing,
     dateline: null,
     stale: false,
-    instant,
-    windowHours,
+    runs: null,
+    liquid: null,
+    comparison: null,
     note: null,
   })
   if (!ctx.inputs) return empty(ctx.missing)
 
-  const rows: ExitQueueRow[] = []
+  const venues: { input: ExitTimeInput; name: string; asset: string }[] = []
   for (const input of ctx.inputs) {
     const def = venueByKey(input.venue)
     const asset = def?.aliases?.assets?.[0]
     // A queue no position token exits through (the beacon queue) has no row here. A
     // duplicate venue is one row: the axis reads it as invalid input.
-    if (!def || !asset || rows.some((r) => r.venue === input.venue)) continue
-    const name = def.label
-    const short = name.split(' ')[0]
-    const axis = exitQueueAxis(asset, ctx.inputs, { nowMs: ctx.nowMs, q: 'p90' })
-    const ageText = `block ${input.anchor.block.toLocaleString('en-US')} · ${anchorAgeText(
-      ctx.nowMs / 1000 - input.anchor.ts,
-    )}`
+    if (!def || !asset || venues.some((v) => v.input.venue === input.venue)) continue
+    venues.push({ input, name: def.label, asset })
+  }
+  if (!venues.length) return empty('no exit-queue venue in the ledger')
+
+  const axes = venues.map((v) =>
+    exitQueueAxis(v.asset, ctx.inputs!, { nowMs: ctx.nowMs, q: 'p90' }),
+  )
+  // Every queue venue pays the same inside the call (its buffer), so one pair of runs serves
+  // every live row.
+  const firstLive = axes.find((a) => a.status === 'measured')
+  const runs = firstLive ? runExitQueueStress(position, price, firstLive) : null
+  const liquid = runs && carry ? runStress(position, { price }) : null
+
+  const rows: ExitQueueRow[] = venues.map(({ input, name, asset }, i) => {
+    const axis = axes[i]
+    const age = anchorAgeText(ctx.nowMs / 1000 - input.anchor.ts)
     const stale = axis.status === 'unknown' && axis.reason === 'stale'
     // A stale row keeps its last reading, to hatch it; it never runs.
     const t = axis.status === 'measured' ? axis.exitTime : stale ? exitTime(input, 'p90') : null
     const p50 = axis.status === 'measured' || stale ? exitTime(input, 'p50') : null
     const oldest = input.oldestOpenAgeS
-    const base = {
+    return {
       venue: input.venue,
       name,
-      short,
       asset,
+      state: axis.status === 'measured' ? 'live' : stale ? 'stale' : 'unknown',
       exitTime: t,
       p50Text: p50 ? queueTimeText(p50.seconds, p50.atLeast) : '—',
       p90Text: t ? queueTimeText(t.seconds, t.atLeast) : '—',
@@ -1595,66 +1585,22 @@ export function exitQueueView(position: StressPosition, ctx: ExitQueueContext): 
         t && oldest != null && oldest > t.seconds
           ? `oldest open ${queueTimeText(oldest, true).slice(1)}`
           : null,
-      ageText,
-      windowMultiple: t && windowHours > 0 ? t.seconds / (windowHours * H) : null,
+      ageText: `block ${input.anchor.block.toLocaleString('en-US')} · ${age}`,
+      stateNote:
+        axis.status === 'measured'
+          ? null
+          : stale
+            ? `stale, ${age}: not run`
+            : `${EXIT_QUEUE_UNKNOWN_TEXT[axis.reason]}: not run`,
+      finding:
+        axis.status === 'measured' && carry && runs
+          ? exitQueueFinding(asset, axis.exitTime, runs)
+          : null,
       credit: t ? exitTimeCredit(t) : '',
     }
-    if (axis.status === 'unknown') {
-      rows.push({
-        ...base,
-        state: stale ? 'stale' : 'unknown',
-        result: null,
-        resultIfNeverPaid: null,
-        leaf: stale
-          ? { glyph: '░', tone: 'muted', title: 'Stale', short: 'last reading, not live' }
-          : {
-              glyph: '░',
-              tone: 'muted',
-              title: 'No exit time',
-              short: EXIT_QUEUE_UNKNOWN_TEXT[axis.reason],
-            },
-        evidence: stale
-          ? `not run: ${anchorAgeText(ctx.nowMs / 1000 - input.anchor.ts)}`
-          : `not run: ${EXIT_QUEUE_UNKNOWN_TEXT[axis.reason]}`,
-        finding: null,
-        comparison: null,
-      })
-      continue
-    }
-    const run = runExitQueueStress(position, price, axis)
-    const leaf = leafView(run.result)
-    const never = run.resultIfNeverPaid ? leafView(run.resultIfNeverPaid) : null
-    rows.push({
-      ...base,
-      state: 'live',
-      result: run.result,
-      resultIfNeverPaid: run.resultIfNeverPaid,
-      leaf,
-      evidence: !never
-        ? leaf.short
-        : never.title === leaf.title && never.short === leaf.short
-          ? `${leaf.short} (at the bound or never paid)`
-          : `at the bound: ${leaf.short} · never paid: ${never.short}`,
-      finding: carry
-        ? exitQueueFinding({ asset, short }, axis.exitTime, windowHours, run.result, instant)
-        : null,
-      comparison:
-        carry && instant
-          ? `Held −${Math.round(EXIT_QUEUE_STEP * 100)}% †: through the queue, ${
-              never
-                ? `at the bound ${leafPhrase(leaf)}, never paid ${leafPhrase(never)}`
-                : leafPhrase(leaf)
-            }. Instant recall (master today): ${leafPhrase(leafView(instant))}.`
-          : null,
-      credit: exitTimeCredit(axis.exitTime),
-    })
-  }
-  if (!rows.length) return empty('no exit-queue venue in the ledger')
+  })
 
-  const oldest = ctx.inputs
-    .filter((i) => rows.some((r) => r.venue === i.venue))
-    .map((i) => i.anchor)
-    .reduce((a, b) => (b.ts < a.ts ? b : a))
+  const oldest = venues.map((v) => v.input.anchor).reduce((a, b) => (b.ts < a.ts ? b : a))
   const stale = rows.some((r) => r.state === 'stale')
   return {
     rows,
@@ -1664,8 +1610,12 @@ export function exitQueueView(position: StressPosition, ctx: ExitQueueContext): 
       ctx.nowMs / 1000 - oldest.ts,
     )}${stale ? ' · stale, not live' : ''}`,
     stale,
-    instant,
-    windowHours,
+    runs,
+    liquid,
+    comparison:
+      runs?.atBufferTarget && runs.bufferDrained && liquid
+        ? `Held ${STEP_TEXT} †: ${BUFFER_TEXT} at target, ${leafPhrase(runs.atBufferTarget)}; buffer drained, ${leafPhrase(runs.bufferDrained)}. A liquid venue (your chosen exit): ${leafPhrase(liquid)}.`
+        : null,
     note: carry ? null : 'Levered long: no recall, so no exit queue applies.',
   }
 }

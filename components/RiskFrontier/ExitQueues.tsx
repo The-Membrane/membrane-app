@@ -1,7 +1,8 @@
-// Exit queues: recall from an LST or a vault with a withdrawal queue arrives after the venue's
-// measured wait (lib/position-sim/exitQueueAxis.ts). One row per ledger venue, each run at the
-// held −25% step against instant recall. A stale ledger is hatched with its age and runs
-// nothing (DESIGN_RULES §4); the headline is suppressed while it is stale.
+// Exit queues (lib/position-sim/exitQueueAxis.ts). A liquidation recalls only what is liquid
+// inside the call, and a queue pays nothing there, whatever its length (owner, 2026-10-12). So
+// the finding is the held −25% step with recall = the vault buffer, at target and drained. Each
+// row's measured queue time says how long the rest stays locked. A stale ledger is hatched with
+// its age and runs nothing (DESIGN_RULES §4); the headline is suppressed while it is stale.
 
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'
@@ -12,15 +13,15 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import type { VenueKey } from '@/lib/exitQueue/types'
 
-import { GlyphMark, HATCH, Panel, SectionHead, TONE_COLOR } from './atoms'
+import { GlyphMark, HATCH, Panel, SectionHead } from './atoms'
 import { EXIT_QUEUE_STEP, type ExitQueueRow, type FrontierModel } from './viewModel'
 
 const STEP = `−${Math.round(EXIT_QUEUE_STEP * 100)}%`
 
-// Phones keep two columns, venue and outcome: the outcome/$ column always shows (§8).
+// Phones keep the venue and its p90; p50 and the queue fold into the venue's second line.
 const COLS = {
-  base: 'minmax(0, 1fr) minmax(0, 1fr)',
-  md: 'minmax(0, 1.4fr) 72px 72px minmax(0, 1.2fr) minmax(0, 1.4fr)',
+  base: 'minmax(0, 1fr) auto',
+  md: 'minmax(0, 1.6fr) 72px 72px minmax(0, 1.4fr)',
 }
 
 /** A light hatch for a whole stale row: the figures stay legible on it. */
@@ -66,14 +67,13 @@ const Row: React.FC<{ row: ExitQueueRow; active: boolean; onPick: () => void }> 
   onPick,
 }) => {
   const live = row.state === 'live'
-  const color = TONE_COLOR[row.leaf.tone]
   return (
     <Box
       as="button"
       type="button"
       onClick={onPick}
       aria-pressed={active}
-      aria-label={`${row.name}: p90 ${row.p90Text}${live ? '' : `, ${row.state === 'stale' ? 'stale' : 'no exit time'}, ${row.ageText}`}. ${row.evidence}. Show this node.`}
+      aria-label={`${row.name}: p90 ${row.p90Text}${row.stateNote ? `, ${row.stateNote}` : ''}. Pick as where your recall sits.`}
       display="grid"
       gridTemplateColumns={COLS}
       gap={SPACING.sm}
@@ -84,7 +84,7 @@ const Row: React.FC<{ row: ExitQueueRow; active: boolean; onPick: () => void }> 
       px={SPACING.sm}
       py={SPACING.sm}
       borderTop="1px solid"
-      borderColor={active ? color : SEMANTIC_COLORS.borderSubtle}
+      borderColor={active ? SEMANTIC_COLORS.textSecondary : SEMANTIC_COLORS.borderSubtle}
       // Stale and unknown rows are hatched, never coloured: the last reading is not live.
       bgImage={live ? undefined : ROW_HATCH}
       cursor="pointer"
@@ -93,40 +93,37 @@ const Row: React.FC<{ row: ExitQueueRow; active: boolean; onPick: () => void }> 
       transition={TRANSITIONS.colors}
     >
       <Box minW={0}>
-        <Cell muted={!live}>
-          {row.name}
-          <Text as="span" color={SEMANTIC_COLORS.textTertiary}>
-            {' '}
-            · {row.asset}
-          </Text>
-        </Cell>
+        <Box display="flex" gap={SPACING.sm} alignItems="baseline" minW={0}>
+          {!live && <GlyphMark glyph="░" tone="muted" size="12px" title={row.stateNote ?? ''} />}
+          <Cell muted={!live}>
+            {row.name}
+            <Text as="span" color={SEMANTIC_COLORS.textTertiary}>
+              {' '}
+              · {row.asset}
+            </Text>
+          </Cell>
+        </Box>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
           fontSize={TYPOGRAPHY.label}
           color={SEMANTIC_COLORS.textTertiary}
           mt={SPACING.xs}
         >
-          {/* on phones the p50/p90 columns fold in here */}
+          {/* on phones the p50 and queue columns fold in here */}
           <Box as="span" display={{ base: 'inline', md: 'none' }}>
-            p50 {row.p50Text} · p90 {row.p90Text} ·{' '}
+            p50 {row.p50Text} · {row.queueText} ·{' '}
           </Box>
-          {row.ageText}
+          {row.stateNote ?? row.ageText}
           {row.oldestText ? ` · ${row.oldestText}` : ''}
         </Text>
       </Box>
       <Cell hideBase muted={!live}>
         {row.p50Text}
       </Cell>
-      <Cell hideBase muted={!live}>
-        {row.p90Text}
-      </Cell>
+      <Cell muted={!live}>{row.p90Text}</Cell>
       <Cell hideBase muted>
         {row.queueText}
       </Cell>
-      <Box display="flex" gap={SPACING.sm} alignItems="baseline" minW={0}>
-        <GlyphMark glyph={row.leaf.glyph} tone={row.leaf.tone} size="12px" title={row.leaf.title} />
-        <Cell muted={!live}>{row.evidence}</Cell>
-      </Box>
     </Box>
   )
 }
@@ -141,7 +138,7 @@ export const ExitQueues: React.FC<{
     <Panel>
       <SectionHead
         title="Exit queues"
-        kicker={`recall waits for the venue's queue · held ${STEP} step · pick where your recall sits`}
+        kicker={`a liquidation uses only what is liquid · held ${STEP} step · pick where your recall sits`}
       />
       {q.dateline && (
         <Text
@@ -193,7 +190,7 @@ export const ExitQueues: React.FC<{
               >
                 {sel.state === 'stale'
                   ? `${sel.name}: last reading ${sel.ageText}. Stale, not live: nothing is run on it.`
-                  : `${sel.name}: ${sel.leaf.short}. Nothing is run.`}
+                  : `${sel.name}: ${sel.stateNote}.`}
               </Text>
             </Box>
           )}
@@ -206,14 +203,14 @@ export const ExitQueues: React.FC<{
               {q.note}
             </Text>
           )}
-          {sel && sel.state === 'live' && sel.comparison && (
+          {sel && sel.state === 'live' && q.comparison && (
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.label}
               color={SEMANTIC_COLORS.textSecondary}
               mt={SPACING.sm}
             >
-              {sel.comparison}
+              {q.comparison}
             </Text>
           )}
 
@@ -227,9 +224,8 @@ export const ExitQueues: React.FC<{
             >
               <HeadCell>venue</HeadCell>
               <HeadCell hideBase>p50</HeadCell>
-              <HeadCell hideBase>p90</HeadCell>
+              <HeadCell>p90</HeadCell>
               <HeadCell hideBase>queue now</HeadCell>
-              <HeadCell>{`at ${STEP}`}</HeadCell>
             </Box>
             {q.rows.map((row) => (
               <Row
@@ -248,7 +244,7 @@ export const ExitQueues: React.FC<{
               textAlign="right"
               mt={SPACING.sm}
             >
-              {sel.credit} · † modelled, not a guarantee
+              {sel.credit} · the queue time is not in the run · † modelled, not a guarantee
             </Text>
           )}
         </>

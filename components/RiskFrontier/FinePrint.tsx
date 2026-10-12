@@ -35,7 +35,7 @@ const LINES = (tapeWindow: string | null): { head: string; body: string }[] => [
   },
   {
     head: 'Exit queues',
-    body: "An LST or a vault with a withdrawal queue pays a recall only after its queue. The wait is the exit-queue ledger's p90 request-to-claimable time over the last 30 days: measured history, not a forecast. It runs as a freeze from the first breach, at the held −25% step; the exit capacity stays the one you chose. Master recalls at once, so this is modelled. A wait that is only a lower bound runs twice: at the bound and never paid. A venue with no measured wait runs nothing; it is never a zero wait. A ledger reading over 30 hours old is hatched with its age and runs nothing.",
+    body: "A liquidation recalls only what is liquid inside the call, when the window ends or the band is breached. A withdrawal queue (Lido, ether.fi, Kelp, the sUSDe cooldown, Maple) pays nothing there, whatever its length, and a recall starts no unstake. So a queue venue recalls only its vault buffer: 5% of what you deployed at the buffer's target, nothing if other exits drained it. Both assume your whole book recalls at once. The queue time, the exit-queue ledger's p90 request-to-claimable time over 30 days (measured history, not a forecast), is in no run: it says how long the rest stays locked. A venue with no measured wait runs nothing. A ledger reading over 30 hours old is hatched with its age and runs nothing.",
   },
   {
     head: 'Left out',

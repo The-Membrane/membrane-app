@@ -1,8 +1,18 @@
 /**
  * exitQueueAxis — the exit-queue axis of Risk Frontier (docs/RISK_FRONTIER_DESIGN.md, v2
- * item 1: "LST exit-queue ledger (Lido first): the exit-queue axis"). It lets a venue's
- * MEASURED withdrawal-queue time drive the stress engine (stressGrid.ts) as a venue freeze:
- * recall asked for at the first breach arrives that long after it.
+ * item 1: "LST exit-queue ledger (Lido first): the exit-queue axis"). It resolves a position
+ * token to its venue's MEASURED withdrawal-queue time, and runs the stress engine
+ * (stressGrid.ts) with what such a venue can actually pay inside a liquidation: its buffer.
+ *
+ * CORRECTED 2026-10-12 (owner): "no matter how long the queue is, whatever is liquid at the
+ * time the window is over or breached is what will be used." The first version ran the queue
+ * time as a venue freeze (recall filed at the first breach, paid after the wait). Nothing
+ * files such a request. The liquidation engine recalls synchronously inside the call
+ * (membrane-solidity LiquidationEngine step 1.5: `retrievableCdt` → `repayUserDebt`), bounded
+ * by `idle + CDT buffer + _venueLiquid()` (DeploymentVaultBase `_liquidCdt`). A queue venue's
+ * `_venueLiquid()` is 0 (DeploymentVaultUSDe.sol:14: "under cooldown the venue reads as
+ * ILLIQUID"), and `repayUserDebt` starts no unstake. So the queue time never changes the
+ * outcome. It says how long the rest stays locked after the sale.
  *
  * Input: the exit-queue ledger's per-venue `ExitTimeInput` (lib/exitQueue/riskFrontier.ts,
  * `exitTimeInput(metrics, 30)`; the `riskFrontier` array of GET /api/venues/exit-queues).
@@ -25,35 +35,26 @@
  *     sUSDe). A token no ledger venue covers is `unknown` 'unmapped_venue'.
  *  2. UNKNOWN IS NOT ZERO. A covered venue with no input is 'no_ledger'; an input with no
  *     exit time (exitTime() null) is 'no_exit_time'; two inputs for one venue is
- *     'invalid_input'. An unknown axis builds NO scenario and runs NO stress: the bridge
- *     returns null, never `freezeHours: 0` (which would read as an instant exit).
+ *     'invalid_input'. An unknown axis runs NO stress: the bridge returns null results.
  *  3. FRESHNESS. The input's anchor must be 'recent' under the ledger's own rule
  *     (lib/exitQueue/feed.ts `observationStatus`: 0 ≤ age ≤ 30 h at `nowMs`), else
- *     'stale'. `nowMs` is a parameter; the clock is never read.
- *  4. A FREEZE, NOT A CAPACITY. The scenario is `{ price, venue: { freezeHours } }` with
- *     freezeHours = seconds / 3600. It sets no capacityMult and does not touch the
- *     position: its exit capacity stays whatever the caller gave (explicit, never assumed;
- *     owner ruling 2026-10-04). One venue condition per scenario: the axis is never
- *     combined with another (RISK_FRONTIER_DESIGN.md: no combined axes).
- *  5. LABEL TRAVELS. `runExitQueueStress` returns { axis, scenario, result }; the result
- *     never leaves without the exit time and its label. `atLeast` (print "≥") is kept.
- *  6. A LOWER BOUND IS TWO RUNS, NOT A POINT. When the exit time is only a lower bound
- *     (p90 not reached, the beacon floor, a floor-only cooldown), the real freeze is anywhere
- *     from the bound to never. The run returns `exitTimeIs: 'lower_bound'`, the run at the
- *     bound, `resultIfNeverPaid` (a freeze that outlasts the horizon) and `range`, the two
- *     ordered by stressRank. Neither end is "best": the outcome is NOT monotone in the freeze
- *     (a late recall that falls short of an ask escalated to the whole loan triggers the
- *     floor close and sells, where no recall lets a wick recover). The two runs bracket the
- *     freeze, not necessarily every outcome in between. A lower bound under 1 s says nothing
- *     about the wait and is 'no_exit_time'.
- *  7. A STALL STAYS VISIBLE. `oldestOpenAgeS` (the oldest open request's wait) travels with
- *     the axis and is named in the provenance when it exceeds the exit time. It never enters
- *     the freeze: it does not bound a new request's wait.
- *
- * MODELLED, NOT MASTER: master recalls synchronously (lib/position-sim/venues.ts, LE:1453).
- * A queue venue cannot pay inside the call, so the freeze is a stand-in for "the request
- * is filed at the first breach and paid after the measured wait"; the whole stock then
- * opens at once (stressGrid's freeze gate). A freeze longer than the horizon never opens.
+ *     'stale', and a stale venue runs nothing: the ledger is what says the venue still
+ *     queues (sUSDe is liquid again if Ethena sets its cooldown to 0). `nowMs` is a
+ *     parameter; the clock is never read.
+ *  4. ONLY THE BUFFER IS LIQUID. A queue venue pays nothing from the queue inside the call,
+ *     whatever its length, so the run replaces the position's exit capacity with the vault
+ *     buffer: `exitCapacityUsd = deployed × share`. It sets no freeze. Two runs bracket the
+ *     buffer: at its target (QUEUE_BUFFER_TARGET_SHARE, `bufferBps` 500 = 5%) and drained
+ *     (0: other withdrawals emptied it, and a queue venue cannot refill it). Both assume the
+ *     whole book recalls at once, like the cash-vs-book levels. `range` orders the two by
+ *     stressRank; neither is "best" (the floor close makes the outcome non-monotone in the
+ *     stock). The queue time is in none of the runs.
+ *  5. LABEL TRAVELS. `runExitQueueStress` returns { axis, atBufferTarget, bufferDrained,
+ *     range }; a result never leaves without the exit time and its label. `atLeast` (print
+ *     "≥") is kept. A lower bound under 1 s says nothing about the wait and is 'no_exit_time'.
+ *  6. A STALL STAYS VISIBLE. `oldestOpenAgeS` (the oldest open request's wait) travels with
+ *     the axis and is named in the provenance when it exceeds the exit time. It does not bound
+ *     a new request's wait.
  */
 
 import { observationStatus } from '../exitQueue/feed'
@@ -70,7 +71,6 @@ import {
   type StressPosition,
   type StressResult,
   type StressRunOptions,
-  type StressScenario,
 } from './stressGrid'
 
 export type ExitQueueUnknownReason =
@@ -94,9 +94,7 @@ export interface ExitQueueMeasured {
   venue: VenueKey
   /** Seconds, source, atLeast, label, anchor, n, coverage: show them together. */
   exitTime: ExitTime
-  /** exitTime.seconds / 3600, the engine's unit. */
-  freezeHours: number
-  /** The oldest open request's wait at the anchor (shown, never folded into freezeHours). */
+  /** The oldest open request's wait at the anchor (shown; it enters no run). */
   oldestOpenAgeS: number | null
   anchorAgeHours: number
   stressLabel: typeof STRESS_LABEL
@@ -209,7 +207,6 @@ export function exitQueueAxis(
     asset,
     venue,
     exitTime: t,
-    freezeHours: t.seconds / 3600,
     oldestOpenAgeS: oldest,
     anchorAgeHours: (opts.nowMs / 1000 - t.anchor.ts) / 3600,
     stressLabel: STRESS_LABEL,
@@ -217,61 +214,63 @@ export function exitQueueAxis(
   }
 }
 
-/** The stress scenario for one price shape, or null when the axis is unknown (never a 0 h freeze). */
-export function exitQueueScenario(price: PriceShape, axis: ExitQueueAxis): StressScenario | null {
-  if (axis.status !== 'measured') return null
-  return { price, venue: { freezeHours: axis.freezeHours } }
+/**
+ * The vault buffer at its target, as a share of the vault: membrane-solidity
+ * DeploymentVaultBase.sol:254 `bufferBps = 500`. Governance can set 200–2500 bps (:79-80).
+ */
+export const QUEUE_BUFFER_TARGET_SHARE = 0.05
+
+/**
+ * The position as a queue venue holds it at the liquidation call: its exit capacity is the
+ * buffer share of what it deployed, with no preset, multiple or lock. A levered long has no
+ * recall and is returned unchanged (the engine refuses it).
+ */
+export function queueVenuePosition(p: StressPosition, bufferShare: number): StressPosition {
+  if (p.tradeShape !== 'carry') return p
+  const share = Number.isFinite(bufferShare) ? Math.min(1, Math.max(0, bufferShare)) : 0
+  return {
+    ...p,
+    exitCapacityUsd: (p.deployedUsd ?? 0) * share,
+    exitCapacityPreset: undefined,
+    exitCapacityMult: undefined,
+  }
 }
 
 export interface ExitQueueStress {
   /** Carries the exit time and its label (or why it is unknown). */
   axis: ExitQueueAxis
-  scenario: StressScenario | null
-  /** Null when the axis is unknown: nothing was run. */
-  result: StressResult | null
-  /** 'lower_bound': `result` is the run AT the bound; show it with `resultIfNeverPaid`. Null if unknown. */
-  exitTimeIs: 'estimate' | 'lower_bound' | null
-  /**
-   * Lower bound only: the same shock with a freeze that outlasts the horizon (recall never
-   * arrives). Null otherwise, or when that run is not modelled.
-   */
-  resultIfNeverPaid: StressResult | null
-  /** Lower bound only: the two runs ordered by stressRank (neither is "best"). */
+  /** Recall = the buffer at its 5% target. Null when the axis is unknown: nothing was run. */
+  atBufferTarget: StressResult | null
+  /** Recall = nothing: the buffer drained. Null when the axis is unknown. */
+  bufferDrained: StressResult | null
+  /** The two runs ordered by stressRank (neither is "best"). Null if either is not modelled. */
   range: { mildest: StressResult; severest: StressResult } | null
 }
 
-/** Run one price shape with the venue's measured exit time as the freeze. */
+/** Run one price shape with the venue's liquid part only: the buffer, at target and drained. */
 export function runExitQueueStress(
   position: StressPosition,
   price: PriceShape,
   axis: ExitQueueAxis,
   opts: StressRunOptions = {},
 ): ExitQueueStress {
-  const scenario = exitQueueScenario(price, axis)
-  if (!scenario || axis.status !== 'measured') {
-    return { axis, scenario, result: null, exitTimeIs: null, resultIfNeverPaid: null, range: null }
-  }
-  const result = runStress(position, scenario, opts)
-  if (!axis.exitTime.atLeast) {
-    return { axis, scenario, result, exitTimeIs: 'estimate', resultIfNeverPaid: null, range: null }
-  }
-  // A freeze one hour past the horizon never opens: recall never arrives in the run.
-  const run =
-    result.outcome === 'not_modelled'
-      ? null
-      : runStress(
-          position,
-          { price, venue: { freezeHours: result.horizonSeconds / 3600 + 1 } },
-          opts,
-        )
-  const neverPaid = run && run.outcome !== 'not_modelled' ? run : null
+  if (axis.status !== 'measured')
+    return { axis, atBufferTarget: null, bufferDrained: null, range: null }
+  // A levered long has nothing deployed, so no queue applies: a venue condition draws the
+  // engine's own refusal ('no_recall_levered_long') instead of a plain price run.
+  const run = (share: number) =>
+    position.tradeShape === 'carry'
+      ? runStress(queueVenuePosition(position, share), { price }, opts)
+      : runStress(position, { price, venue: { capacityMult: share } }, opts)
+  const atBufferTarget = run(QUEUE_BUFFER_TARGET_SHARE)
+  const bufferDrained = run(0)
   const range =
-    neverPaid && result.outcome !== 'not_modelled'
-      ? stressRank(neverPaid) >= stressRank(result)
-        ? { mildest: result, severest: neverPaid }
-        : { mildest: neverPaid, severest: result }
+    atBufferTarget.outcome !== 'not_modelled' && bufferDrained.outcome !== 'not_modelled'
+      ? stressRank(bufferDrained) >= stressRank(atBufferTarget)
+        ? { mildest: atBufferTarget, severest: bufferDrained }
+        : { mildest: bufferDrained, severest: atBufferTarget }
       : null
-  return { axis, scenario, result, exitTimeIs: 'lower_bound', resultIfNeverPaid: neverPaid, range }
+  return { axis, atBufferTarget, bufferDrained, range }
 }
 
 /** The exit-queue row of the grid: one node per price shape (default: the week-1 shapes). */

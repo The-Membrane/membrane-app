@@ -14,14 +14,14 @@ import {
   queueTimeText,
   resolveSelection,
   usd,
-  windowMultipleText,
   type ExitQueueContext,
   type ExitQueueView,
   type SandboxInputs,
 } from '@/components/RiskFrontier/viewModel'
 import type { ExitTimeInput } from '@/lib/exitQueue/riskFrontier'
 import { label, type VenueKey } from '@/lib/exitQueue/types'
-import { runStress } from '@/lib/position-sim/stressGrid'
+import { queueVenuePosition } from '@/lib/position-sim/exitQueueAxis'
+import { runStress, type StressResult } from '@/lib/position-sim/stressGrid'
 
 // ------------------------------------------------------------------ fixtures
 
@@ -30,6 +30,7 @@ const D = 86_400
 const ANCHOR = { block: 26_130_296, ts: 1_791_246_000 } // 2026-10-06T00:20Z
 const LIVE_NOW = (ANCHOR.ts + 2 * H) * 1000
 const STALE_NOW = (ANCHOR.ts + 7 * D + 3 * H) * 1000
+const STEP = { price: { kind: 'step' as const, drop: 0.25 } }
 
 /** A ledger input shaped like the 2026-10-05 keyed-RPC readings (board, exit-queue lane). */
 function input(venue: VenueKey, o: Partial<ExitTimeInput> = {}): ExitTimeInput {
@@ -80,9 +81,11 @@ const pos = (inp: SandboxInputs = DEFAULT_INPUTS) => buildStressPosition(inp).po
 
 const row = (v: ExitQueueView, venue: VenueKey) => v.rows.find((r) => r.venue === venue)!
 
+const sold = (r: StressResult | null) => (r && r.outcome !== 'not_modelled' ? r.exposedUsd : 0)
+
 /** Every string the panel prints for one view. */
 function visible(v: ExitQueueView): string[] {
-  const out = [v.missing ?? '', v.dateline ?? '', v.note ?? '']
+  const out = [v.missing ?? '', v.dateline ?? '', v.note ?? '', v.comparison ?? '']
   for (const r of v.rows)
     out.push(
       r.name,
@@ -92,11 +95,8 @@ function visible(v: ExitQueueView): string[] {
       r.queueText,
       r.oldestText ?? '',
       r.ageText,
-      r.leaf.title,
-      r.leaf.short,
-      r.evidence,
+      r.stateNote ?? '',
       r.finding ?? '',
-      r.comparison ?? '',
       r.credit,
     )
   return out
@@ -105,7 +105,7 @@ function visible(v: ExitQueueView): string[] {
 // ------------------------------------------------------------------ format
 
 describe('exit queues — format', () => {
-  it('prints a wait in the window unit; a lower bound floors so "≥" stays true', () => {
+  it('prints a wait in hours; a lower bound floors so "≥" stays true', () => {
     expect(queueTimeText(384)).toBe('6m')
     expect(queueTimeText(30)).toBe('<1m')
     expect(queueTimeText(7.56 * H)).toBe('7.6h')
@@ -115,159 +115,111 @@ describe('exit queues — format', () => {
     expect(queueTimeText(-1)).toBe('—')
   })
 
-  it('floors the window multiple and the anchor age', () => {
-    expect(windowMultipleText(112.1 / 8)).toBe('14×')
-    expect(windowMultipleText(36.5 / 8)).toBe('4.5×')
-    expect(windowMultipleText(505.9 / 8, true)).toBe('≥63×')
+  it('floors the anchor age', () => {
     expect(anchorAgeText(2 * H + 59 * 60)).toBe('2h old')
     expect(anchorAgeText(7 * D + 3 * H)).toBe('7d 3h old')
     expect(anchorAgeText(-5)).toBe('ahead of this clock')
   })
 })
 
-// ------------------------------------------------------------------ live
+// ------------------------------------------------------------------ the owner's rule
 
-describe('exit queues — live ledger', () => {
-  it('states the Lido finding as analysis: the wait against the window', () => {
+describe('exit queues — only what is liquid at the call is used (owner, 2026-10-12)', () => {
+  it('runs the held −25% step with recall = the vault buffer, at target and drained', () => {
+    const p = pos()
+    const v = exitQueueView(p, ctx())
+    expect(v.runs?.atBufferTarget).toEqual(runStress(queueVenuePosition(p, 0.05), STEP))
+    expect(v.runs?.bufferDrained).toEqual(runStress(queueVenuePosition(p, 0), STEP))
+    expect(v.liquid).toEqual(runStress(p, STEP))
+  })
+
+  it('negative control: a 6-minute queue and a ≥ 21-day queue sell the same', () => {
     const v = exitQueueView(pos(), ctx())
-    const lido = row(v, 'lido-steth')
-    expect(lido.state).toBe('live')
-    expect(lido.finding).toBe(
-      "Your stETH exit takes 112h at p90, 14× the 8h window, so recall can't come from Lido.",
-    )
-    expect(lido.p50Text).toBe('23h')
-    expect(lido.p90Text).toBe('112h')
-    expect(lido.queueText).toBe('131.8k stETH · 514 requests')
-    expect(lido.oldestText).toBe('oldest open 140h')
-    expect(lido.windowMultiple).toBeCloseTo(112.1 / 8, 6)
-    expect(lido.credit).toBe(
-      'p90 request → claimable, last 30 d, n=2,843 · block 26,130,296 · measured history, not a forecast',
-    )
-    expect(v.selected?.venue).toBe('lido-steth')
-    expect(v.stale).toBe(false)
-    expect(v.dateline).toBe('exit-queue ledger · block 26,130,296 · 2h old')
+    const tail = (f: string | null) => f!.slice(f!.indexOf('Only the'))
+    expect(tail(row(v, 'maple-syrupusdc').finding)).toBe(tail(row(v, 'lido-steth').finding))
+    expect(tail(row(v, 'kelp-rseth').finding)).toBe(tail(row(v, 'lido-steth').finding))
   })
 
-  it('runs the queue as a freeze at the held −25% step', () => {
+  it('states the Lido finding as analysis: the wait, set aside, and the dollars sold', () => {
     const p = pos()
-    const lido = row(exitQueueView(p, ctx()), 'lido-steth')
-    const direct = runStress(p, {
-      price: { kind: 'step', drop: 0.25 },
-      venue: { freezeHours: 112.1 },
-    })
-    expect(lido.result?.cellKey).toBe(direct.cellKey)
-    expect(lido.result?.outcome).toBe(direct.outcome)
-  })
-
-  it('a short queue that still loses to the step names the dollars it adds', () => {
-    const p = pos()
-    const v = exitQueueView(p, ctx({ venue: 'maple-syrupusdc' }))
-    const maple = row(v, 'maple-syrupusdc')
-    const queued = maple.result!
-    const instant = v.instant!
-    expect(queued.outcome).toBe('sold')
-    expect(instant.outcome).not.toBe('sold')
-    const extra =
-      (queued.outcome === 'not_modelled' ? 0 : queued.exposedUsd) -
-      (instant.outcome === 'not_modelled' ? 0 : instant.exposedUsd)
-    expect(maple.finding).toBe(
-      `Your syrupUSDC exit takes 6m at p90, yet a −25% step sells ${usd(extra)} before it lands.`,
+    const v = exitQueueView(p, ctx())
+    const target = sold(runStress(queueVenuePosition(p, 0.05), STEP))
+    const drained = sold(runStress(queueVenuePosition(p, 0), STEP))
+    expect(row(v, 'lido-steth').finding).toBe(
+      "Your stETH exit takes 112h at p90, and a liquidation can't wait for it. " +
+        `Only the 5% buffer is liquid, so a held −25% step sells ${usd(target)} to ${usd(drained)}.`,
     )
-    expect(maple.comparison).toMatch(/^Held −25% †: through the queue, sold \(/)
-    expect(maple.comparison).toContain('Instant recall (master today): recall restored')
-    expect(v.selected?.venue).toBe('maple-syrupusdc')
+    expect(row(v, 'lido-steth').finding).toContain('$19,151 to $23,588')
+    // The same position recalls in time from a liquid venue: the queue is what sells.
+    expect(v.liquid?.outcome).toBe('recall_cured')
+    expect(v.comparison).toBe(
+      'Held −25% †: 5% buffer at target, sold ($19.2k of collateral); buffer drained, sold ' +
+        '($23.6k of collateral). A liquid venue (your chosen exit): recall restored (recalled $4,010).',
+    )
   })
 
-  it('a queue inside the window that adds no sale says so', () => {
-    // LTV 30%: −25% never reaches the line, with or without the queue.
+  it('a lower bound keeps its "≥"', () => {
+    expect(row(exitQueueView(pos(), ctx()), 'kelp-rseth').finding).toMatch(
+      /^Your rsETH exit takes ≥505h at p90, and a liquidation can't wait for it\./,
+    )
+  })
+
+  it('equal ends say one figure; no sale says so', () => {
+    const tight = LOADOUTS.find((l) => l.id === 'tight-carry')!.inputs
+    expect(row(exitQueueView(pos(tight), ctx()), 'lido-steth').finding).toMatch(
+      /so a held −25% step sells \$30,000\.$/,
+    )
+    // LTV 30%: −25% never reaches the line.
     const low = pos({ ...DEFAULT_INPUTS, collateralUsd: 100_000, debtUsd: 30_000 })
-    const maple = row(exitQueueView(low, ctx()), 'maple-syrupusdc')
-    expect(maple.finding).toBe(
-      'Your syrupUSDC exit takes 6m at p90, inside the 8h window: at −25% it adds no sale.',
-    )
-    // The wait past the window is still the finding for Lido, whatever the step does.
-    expect(row(exitQueueView(low, ctx()), 'lido-steth').finding).toContain(
-      "so recall can't come from Lido",
+    expect(row(exitQueueView(low, ctx()), 'maple-syrupusdc').finding).toBe(
+      "Your syrupUSDC exit takes 6m at p90, and a liquidation can't wait for it. " +
+        'Only the 5% buffer is liquid, and a held −25% step sells nothing.',
     )
   })
 
-  it('a lower bound prints "≥" and runs both ends', () => {
-    const kelp = row(exitQueueView(pos(), ctx()), 'kelp-rseth')
-    expect(kelp.p90Text).toBe('≥505h')
-    expect(kelp.finding).toBe(
-      "Your rsETH exit takes ≥505h at p90, ≥63× the 8h window, so recall can't come from Kelp.",
-    )
-    expect(kelp.resultIfNeverPaid).not.toBeNull()
-    // Both ends sell the same here (−25% jumps past the band): said once.
-    expect(kelp.evidence).toBe('$23.6k of collateral (at the bound or never paid)')
-    expect(kelp.comparison).toContain('at the bound sold (')
-    expect(kelp.comparison).toContain('never paid sold (')
-  })
-
-  it('a lower bound whose two ends differ names both', () => {
-    // LTV 65.9%: −25% lands inside the band, so the window arms. Recall at the 2 h bound
-    // cures; recall that never arrives sells at expiry.
-    const inBand = pos({ ...DEFAULT_INPUTS, debtUsd: 29_000 })
-    const v = exitQueueView(
-      inBand,
-      ctx({
-        inputs: [
-          input('kelp-rseth', { requestToExit: { p50S: null, p90S: null, atLeastS: 2 * H, n: 9 } }),
-        ],
-      }),
-    )
-    const kelp = v.rows[0]
-    expect(kelp.result?.outcome).toBe('armed_cured')
-    expect(kelp.resultIfNeverPaid?.outcome).toBe('sold')
-    expect(kelp.evidence).toMatch(
-      /^at the bound: armed at .* · never paid: \$[\d.,k]+ of collateral$/,
-    )
-    expect(kelp.finding).toBe(
-      'Your rsETH exit takes ≥2.0h at p90, a lower bound: the real wait may be longer.',
-    )
-  })
-
-  it('a lower bound inside the window never claims the queue fits', () => {
-    const v = exitQueueView(
-      pos(),
-      ctx({
-        inputs: [
-          input('maple-syrupusdc', {
-            requestToExit: { p50S: null, p90S: null, atLeastS: 2 * H, n: 4 },
-          }),
-        ],
-      }),
-    )
-    expect(v.rows[0].finding).toBe(
-      'Your syrupUSDC exit takes ≥2.0h at p90, a lower bound: the real wait may be longer.',
-    )
-  })
-
-  it('the no-delay class has no window to compare: it reads the step instead', () => {
+  it('the no-delay class reads the same: the call happens at the line', () => {
     const nd = LOADOUTS.find((l) => l.id === 'no-delay')!.inputs
-    const v = exitQueueView(pos(nd), ctx())
-    expect(v.windowHours).toBe(0)
-    const lido = row(v, 'lido-steth')
-    expect(lido.windowMultiple).toBeNull()
-    expect(lido.finding).toMatch(/^Your stETH exit takes 112h at p90, yet a −25% step sells \$/)
-    expect(lido.finding).not.toMatch(/window/)
+    const f = row(exitQueueView(pos(nd), ctx()), 'lido-steth').finding!
+    expect(f).toMatch(/^Your stETH exit takes 112h at p90/)
+    expect(f).toMatch(/sells \$75,000\.$/)
+    expect(f).not.toMatch(/window/)
   })
 
   it('levered long: rows show the readings, nothing claims a recall', () => {
     const lev = LOADOUTS.find((l) => l.id === 'levered')!.inputs
     const v = exitQueueView(pos(lev), ctx())
     expect(v.note).toBe('Levered long: no recall, so no exit queue applies.')
-    expect(v.instant).toBeNull()
-    for (const r of v.rows) {
-      expect(r.finding).toBeNull()
-      expect(r.comparison).toBeNull()
-    }
-    expect(row(v, 'lido-steth').result?.outcome).toBe('not_modelled')
+    expect(v.liquid).toBeNull()
+    expect(v.comparison).toBeNull()
+    for (const r of v.rows) expect(r.finding).toBeNull()
+    expect(v.runs?.atBufferTarget?.outcome).toBe('not_modelled')
+  })
+})
+
+// ------------------------------------------------------------------ the rows
+
+describe('exit queues — rows carry the measured queue', () => {
+  it('shows p50, p90, the queue and a stall the p90 hides', () => {
+    const lido = row(exitQueueView(pos(), ctx()), 'lido-steth')
+    expect(lido.state).toBe('live')
+    expect(lido.p50Text).toBe('23h')
+    expect(lido.p90Text).toBe('112h')
+    expect(lido.queueText).toBe('131.8k stETH · 514 requests')
+    expect(lido.oldestText).toBe('oldest open 140h')
+    expect(lido.stateNote).toBeNull()
+    expect(lido.credit).toBe(
+      'p90 request → claimable, last 30 d, n=2,843 · block 26,130,296 · measured history, not a forecast',
+    )
   })
 
   it('a queue no position token exits through has no row (the beacon queue)', () => {
     const v = exitQueueView(pos(), ctx())
     expect(v.rows.map((r) => r.venue)).toEqual(['lido-steth', 'kelp-rseth', 'maple-syrupusdc'])
+    expect(v.selected?.venue).toBe('lido-steth')
+    expect(exitQueueView(pos(), ctx({ venue: 'maple-syrupusdc' })).selected?.venue).toBe(
+      'maple-syrupusdc',
+    )
+    expect(v.dateline).toBe('exit-queue ledger · block 26,130,296 · 2h old')
   })
 })
 
@@ -277,17 +229,14 @@ describe('exit queues — stale, unknown and missing are never shown as live', (
   it('a stale ledger is hatched with its age, runs nothing and has no finding', () => {
     const v = exitQueueView(pos(), ctx({ nowMs: STALE_NOW }))
     expect(v.stale).toBe(true)
+    expect(v.runs).toBeNull()
+    expect(v.comparison).toBeNull()
     expect(v.dateline).toBe('exit-queue ledger · block 26,130,296 · 7d 3h old · stale, not live')
     for (const r of v.rows) {
       expect(r.state).toBe('stale')
-      expect(r.leaf.glyph).toBe('░') // hatched
-      expect(r.leaf.tone).toBe('muted') // never coloured, never green
-      expect(r.result).toBeNull()
-      expect(r.resultIfNeverPaid).toBeNull()
       expect(r.finding).toBeNull() // the headline is suppressed while stale
-      expect(r.comparison).toBeNull()
+      expect(r.stateNote).toBe('stale, 7d 3h old: not run')
       expect(r.ageText).toBe('block 26,130,296 · 7d 3h old')
-      expect(r.evidence).toBe('not run: 7d 3h old')
     }
     // The last reading stays visible, hatched, so the reader sees what went stale.
     expect(row(v, 'lido-steth').p90Text).toBe('112h')
@@ -304,7 +253,9 @@ describe('exit queues — stale, unknown and missing are never shown as live', (
     const old = { block: 26_100_000, ts: ANCHOR.ts - 3 * D }
     const v = exitQueueView(pos(), ctx({ inputs: [{ ...LIDO, anchor: old }, MAPLE] }))
     expect(row(v, 'lido-steth').state).toBe('stale')
+    expect(row(v, 'lido-steth').finding).toBeNull()
     expect(row(v, 'maple-syrupusdc').state).toBe('live')
+    expect(row(v, 'maple-syrupusdc').finding).not.toBeNull()
     expect(v.dateline).toBe('exit-queue ledger · block 26,100,000 · 3d 2h old · stale, not live')
   })
 
@@ -313,9 +264,9 @@ describe('exit queues — stale, unknown and missing are never shown as live', (
     const r = v.rows[0]
     expect(r.state).toBe('unknown')
     expect(r.p90Text).toBe('—')
-    expect(r.result).toBeNull()
     expect(r.finding).toBeNull()
-    expect(r.leaf).toMatchObject({ glyph: '░', tone: 'muted', short: 'nothing measured yet' })
+    expect(r.stateNote).toBe('nothing measured yet: not run')
+    expect(v.runs).toBeNull()
   })
 
   it('no ledger: no rows, and the reason is shown', () => {
@@ -334,23 +285,22 @@ describe('exit queues — stale, unknown and missing are never shown as live', (
 // ------------------------------------------------------------------ model wiring
 
 describe('exit queues — model and selection', () => {
-  it('computeFrontier carries the exit-queue view; selection resolves to its node', () => {
+  it('computeFrontier carries the exit-queue view; selection resolves to the buffer node', () => {
     const m = computeFrontier(DEFAULT_INPUTS, null, undefined, undefined, ctx())
-    const lido = row(m.exitQueue, 'lido-steth')
     const sel = resolveSelection(m, { kind: 'exitQueue', venue: 'lido-steth' })
     expect(sel.title).toBe('Exit queue · Lido stETH')
-    expect(sel.sub).toBe('held −25% step · recall paid after 112h (p90)')
-    expect(sel.result?.cellKey).toBe(lido.result?.cellKey)
-    expect(sel.stock).toContain('paid after the Lido stETH queue')
+    expect(sel.sub).toBe('held −25% step · recall = the 5% buffer at target')
+    expect(sel.result?.cellKey).toBe(m.exitQueue.runs?.atBufferTarget?.cellKey)
+    expect(sel.stock).toBe(
+      "the vault's 5% buffer: the Lido stETH queue (112h at p90) pays nothing inside the call",
+    )
   })
 
   it('a stale selection resolves to no result, and says why', () => {
     const m = computeFrontier(DEFAULT_INPUTS, null, undefined, undefined, ctx({ nowMs: STALE_NOW }))
     const sel = resolveSelection(m, { kind: 'exitQueue', venue: 'lido-steth' })
     expect(sel.result).toBeNull()
-    expect(sel.missing).toBe(
-      'stale ledger, block 26,130,296 · 7d 3h old: the last reading is not run',
-    )
+    expect(sel.missing).toBe('stale, 7d 3h old: not run')
   })
 
   it('keeps the copy rules on every loadout, live and stale', () => {
@@ -363,13 +313,14 @@ describe('exit queues — model and selection', () => {
           /\bfree\b|interest-free|\bsafe\b|\bok\b|win rate|confidence|% of users/i,
         )
         expect(text.split(STRESS_LABEL).join(''), l.id).not.toMatch(/probab|odds|chance|likely/i)
+        expect(text, l.id).not.toMatch(/freeze|window/i) // the queue is not a wait the call makes
       }
     }
   })
 })
 
 describe('exit queues — fine print', () => {
-  it('no longer lists LST exit queues as not modelled, and explains the axis', () => {
+  it('no longer lists LST exit queues as not modelled, and states the liquid-only rule', () => {
     const src = readFileSync(
       path.resolve(__dirname, '../../components/RiskFrontier/FinePrint.tsx'),
       'utf8',
@@ -377,6 +328,7 @@ describe('exit queues — fine print', () => {
     const notYet = src.slice(src.indexOf("head: 'Also not modelled yet'"))
     expect(notYet).not.toMatch(/exit queue/i)
     expect(src).toContain("head: 'Exit queues'")
+    expect(src).toContain('pays nothing there, whatever its length')
     expect(src).toContain('is hatched with its age and runs nothing')
   })
 })

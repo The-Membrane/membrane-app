@@ -22,7 +22,6 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     'Disallow: /sensory/',
     'Disallow: /*/acquisition-sim',
     'Disallow: /*/acquisition-dashboard',
-    'Disallow: /*/control-room',
     'Disallow: /*/maze-runners',
     'Disallow: /*/ltv-dashboard',
     'Disallow: /*/tournament',

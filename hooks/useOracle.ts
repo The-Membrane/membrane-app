@@ -1,14 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { getPublicClient } from '@/services/chain/client'
-import {
-  getOracleConfig,
-  getOraclePricesByDenom,
-  getOracleSourcesByDenom,
-} from '@/services/chain/oracle'
+import { getOraclePricesByDenom } from '@/services/chain/oracle'
 import { useBasket } from './useCDP'
-import { AssetInfo } from '@/contracts/codegen/oracle/Oracle.types'
 import useAppState from '@/persisted-state/useAppState'
-import { useRouter } from 'next/router'
 import { useChainRoute } from './useChainRoute'
 
 /**
@@ -39,41 +33,6 @@ export const useOraclePrice = () => {
     },
     refetchInterval: false,
     enabled: !!basket,
-    staleTime: 1000 * 30,
-  })
-}
-
-export const useOracleConfig = () => {
-  const { appState } = useAppState()
-  const router = useRouter()
-
-  return useQuery({
-    queryKey: ['oracleConfig', router.pathname, appState.rpcUrl],
-    queryFn: async () => {
-      if (!router.pathname.endsWith('/control-room')) return
-      return getOracleConfig(getPublicClient())
-    },
-    refetchInterval: false,
-    enabled: true,
-    staleTime: 1000 * 30,
-  })
-}
-
-export const useOracleAssetInfos = (assetInfos: AssetInfo[]) => {
-  const { appState } = useAppState()
-  const router = useRouter()
-
-  return useQuery({
-    queryKey: ['oracleAssetInfos', router.pathname, appState.rpcUrl],
-    queryFn: async () => {
-      if (!router.pathname.endsWith('/control-room') && !router.pathname.endsWith('/isolated')) return []
-      // TODO(evm-migration): denom-keyed source fetch is stubbed (no denom→bytes32
-      // registry; source shape changed). Returns null until consumers move to
-      // getSource(bytes32).
-      return getOracleSourcesByDenom(getPublicClient())
-    },
-    refetchInterval: false,
-    enabled: !!assetInfos,
     staleTime: 1000 * 30,
   })
 }

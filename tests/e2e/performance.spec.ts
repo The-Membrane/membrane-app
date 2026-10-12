@@ -20,7 +20,6 @@ const KEY_ROUTES = [
   { path: '/neutron/transmuter', name: 'Transmuter' },
   { path: '/neutron/flywheel', name: 'Flywheel' },
   { path: '/neutron/visualize', name: 'Visualize' },
-  { path: '/neutron/control-room', name: 'Control Room' },
   { path: '/neutron/headquarters', name: 'Headquarters' },
 ]
 

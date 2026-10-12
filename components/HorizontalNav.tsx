@@ -87,7 +87,6 @@ const comingSoonItems = [
     // { label: 'Manic', href: '/manic' }, //There is 190 TVL in here so whoever's that is can just type /manic
     // { label: 'Isolated Markets', href: '/isolated' }, //Remove supplied CDT Trix
     // { label: 'Stake', href: '/stake' },
-    // { label: 'Control Room', href: '/control-room' },
 ];
 
 // Dashboards menu removed (owner ruling, Aug 31 2026):

@@ -654,7 +654,7 @@ interface E2Point {
   /** Euler / Gearbox: the venue's own risk-adjusted collateral value, all collateral included. */
   adjustedCollateralUsd?: number | null
   /** Off-Morpho builder: the Stream collateral by part (symbol, units, oracle USD, LT). */
-  parts?: { sym: string }[]
+  parts?: { sym: string; oracleUsd?: number }[]
 }
 
 interface E2Market {
@@ -731,6 +731,8 @@ interface E2Prepared {
   oracleEvents: OracleChangeEvent[]
   governanceEvents: GovernanceChangeEvent[]
   liquidationTs: number | null
+  /** Market series that steps the price between reads: the position's largest part. */
+  priceSym: string
 }
 
 /**
@@ -927,6 +929,13 @@ for (const p of e2Files.flatMap((f) =>
         .map((e) => (e.asset === undefined ? e : { ...e, asset: m.collateral }))
     })(),
     liquidationTs: liq[0] ?? null,
+    priceSym: (() => {
+      const parts = first.parts
+      const top = parts?.length
+        ? parts.reduce((a, b) => ((b.oracleUsd ?? 0) > (a.oracleUsd ?? 0) ? b : a)).sym
+        : m.collateral
+      return top.startsWith('PT-') ? 'xUSD' : top
+    })(),
   })
 }
 // Dataset rule: clusters under 3 members merge into (protocol, collateral, other).
@@ -944,7 +953,7 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
       // Off Morpho the position is read every 2 h but the market price is hourly. Between two
       // reads, hold the position and step the market price (scaled from the read by the main
       // asset's series), so the depeg rule and the market-basis HF see every hourly print.
-      const P = e2PriceSeries[x.collateral.startsWith('PT-') ? 'xUSD' : x.collateral]
+      const P = e2PriceSeries[x.priceSym]
       const ticks: { pi: number; ts: number; mpx: number | null }[] = []
       x.points.forEach((p, i) => {
         ticks.push({ pi: i, ts: p.ts, mpx: x.marketPx[i] })
@@ -973,11 +982,21 @@ function e2Paths(basis: 'oracle' | 'market'): Path[] {
         const px = basis === 'oracle' ? oracle(i) : (market(i) as number)
         return ((pt(i).collateral as number) * px * lt(i)) / (pt(i).borrow as number)
       })
+      // A liquidation between two reads closes the position before the next one, so the path
+      // never shows HF < 1 (Compound absorbs, Nov 3 and Nov 6). An observed liquidation inside
+      // the read window with no path breach before it is the breach.
+      const tsArr = use.map((k) => k.ts)
+      const firstBreach = hf.findIndex((h) => h < 1)
+      const missed =
+        x.liquidationTs !== null &&
+        x.liquidationTs <= tsArr[tsArr.length - 1] + 3 * H &&
+        (firstBreach === -1 || tsArr[firstBreach] > x.liquidationTs)
       return {
         id: x.id,
         cluster: x.cluster,
         isLooper: true,
-        ts: use.map((k) => k.ts),
+        knownBreachTs: missed ? (x.liquidationTs as number) : undefined,
+        ts: tsArr,
         hf,
         snapshot: (i) => ({
           id: x.id,

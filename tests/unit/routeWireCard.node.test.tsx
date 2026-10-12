@@ -36,7 +36,7 @@ it('actual Card consumes genuine Wire service/bridge/context outputs for exact A
  const html=render(f.props)
  assert.match(html,/Measured story†/);assert.ok(html.includes(escape(story.displayHeadline!)))
  const clock=new Date(story.story.at*1000).toISOString().slice(5,16).replace('T',' ')
- assert.ok(html.includes(clock));assert.match(html,/reading 10-12 12:00 UTC/);assert.match(html,/venue history/)
+ assert.ok(html.includes(clock));assert.match(html,/reading 2026-10-12 12:00 UTC/);assert.match(html,/venue history/)
  assert.doesNotMatch(html,/Primary protocol rule|causal NET|Forecast validated/)
  }
 })

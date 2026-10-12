@@ -3,7 +3,12 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { readEnv } from '../../scripts/lib/venue-reads.mjs'
+import { readEnv as readEnvMjs } from '../../scripts/lib/venue-reads.mjs'
+
+// readEnv's `env` takes its type from its default, process.env (NodeJS.ProcessEnv, where Next
+// requires NODE_ENV); these tests pass plain maps
+const readEnv = (o: { root?: string; env?: Record<string, string> } = {}) =>
+  readEnvMjs(o as Parameters<typeof readEnvMjs>[0])
 
 // .github/workflows/oracle-config-collect.yml runs the collector with no .env.local: the
 // RECORDER_RPC_URL secret arrives as an environment variable and is never written to disk.

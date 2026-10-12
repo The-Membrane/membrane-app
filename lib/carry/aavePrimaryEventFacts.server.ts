@@ -17,9 +17,7 @@ type PrimaryLogFact = ReviewedPrimaryEvent & {
   block: string
   logIndex: number
 }
-type ProtocolRuleScenario = {
-  parameter: 'paused' | 'frozen'
-  value: boolean
+type ProtocolRuleScenarioBase = {
   sourceEvent: PrimaryLogFact
   assumption: 'latest_recorded_parameter_unchanged_through_issue_plus_H'
   targetAtUtc: string
@@ -32,6 +30,20 @@ type ProtocolRuleScenario = {
   causalNewsEffect: false
   holderExecutableExit: false
 }
+type ProtocolRuleScenario = ProtocolRuleScenarioBase & (
+  { parameter: 'paused' | 'frozen'; value: boolean }
+  | { parameter: 'liquidationThresholdBps'; value: string
+      collateralValueRule: {
+        applicability: 'sole_collateral_standard_mode_fixed_prices'
+        valueUnit: 'same_quote_currency_value_not_asset_raw'
+        relation: 'remaining_collateral_value_gte_debt_value_times_10000_div_threshold_bps'
+        numerator: '10000'
+        denominatorBps: string
+      }
+      borrowerStateKnown: false
+      pricesKnown: false
+      eModeKnown: false }
+)
 
 function args(value: unknown): Record<string, string | boolean | number> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
@@ -48,7 +60,7 @@ function args(value: unknown): Record<string, string | boolean | number> | null 
 export function readAavePrimaryEventFacts(question: RouteEventQuestion, cutoffMs: number) {
   const subject = SUBJECTS.find(s => s.routeKey === question.routeKey && s.destination === question.destination &&
     s.asset === question.payoutAsset && s.assetDecimals === question.assetDecimals)
-  const base = { schema: 'route_primary_event_facts_v1' as const, question,
+  const base = { schema: 'route_primary_event_facts_v1' as const, question, issuedAtUtc: new Date(cutoffMs).toISOString(),
     association: 'primary_facts_not_causal_news_effect' as const,
     version: 'aave_v3_ethereum_core' as const,
     historicalStateOnly: true, currentConfigurationKnown: false,
@@ -95,6 +107,26 @@ export function readAavePrimaryEventFacts(question: RouteEventQuestion, cutoffMs
         holderExitUpperBoundRaw: parameter === 'paused' && blocked ? '0' : null,
         currentConfigurationKnown: false, otherProtocolChecksKnown: false,
         causalNewsEffect: false, holderExecutableExit: false })
+    }
+    const collateral = eligible.find((e: any) => e.name === 'CollateralConfigurationChanged')
+    // A zero threshold contributes no positive borrowing coverage; do not divide
+    // by zero or substitute LTV. The most recent valid recorded setting wins.
+    if (collateral && typeof collateral.args.liquidationThreshold === 'string' &&
+        /^(0|[1-9][0-9]{0,4})$/.test(collateral.args.liquidationThreshold) &&
+        BigInt(collateral.args.liquidationThreshold) > 0n && BigInt(collateral.args.liquidationThreshold) <= 10000n) {
+      const value = collateral.args.liquidationThreshold as string
+      conditionalScenarios.push({ parameter: 'liquidationThresholdBps', value,
+        sourceEvent: fact(collateral),
+        assumption: 'latest_recorded_parameter_unchanged_through_issue_plus_H', targetAtUtc,
+        initialDepositBlockedByThisParameter: false, holderExitBlockedByThisParameter: false,
+        initialDepositUpperBoundRaw: null, holderExitUpperBoundRaw: null,
+        currentConfigurationKnown: false, otherProtocolChecksKnown: false,
+        causalNewsEffect: false, holderExecutableExit: false,
+        collateralValueRule: { applicability: 'sole_collateral_standard_mode_fixed_prices',
+          valueUnit: 'same_quote_currency_value_not_asset_raw',
+          relation: 'remaining_collateral_value_gte_debt_value_times_10000_div_threshold_bps',
+          numerator: '10000', denominatorBps: value },
+        borrowerStateKnown: false, pricesKnown: false, eModeKnown: false })
     }
     return { ...base, status: 'recorded_primary_facts' as const, sourceSha256: SHA,
       availableAtUtc: body.fetchedAt, blockHashEvidence: 'not_recorded' as const, facts, conditionalScenarios }

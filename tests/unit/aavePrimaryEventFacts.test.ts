@@ -18,14 +18,31 @@ describe('genuine pinned Aave primary governance facts', () => {
     expect(new Set(r.conditionalScenarios.map(s => s.parameter)).size).toBe(r.conditionalScenarios.length)
     for (const s of r.conditionalScenarios) {
       expect(s.sourceEvent.affected.asset).toBe(q.payoutAsset)
-      expect(s.sourceEvent.originalArgs[s.parameter]).toBe(s.value)
+      expect(s.sourceEvent.originalArgs[s.parameter === 'liquidationThresholdBps' ? 'liquidationThreshold' : s.parameter]).toBe(s.value)
       expect(s.currentConfigurationKnown).toBe(false)
       expect(s.targetAtUtc).toBe('2026-10-14T12:00:00.000Z')
-      expect(s.initialDepositUpperBoundRaw).toBe(s.value ? '0' : null)
+      expect(s.initialDepositUpperBoundRaw).toBe(s.parameter !== 'liquidationThresholdBps' && s.value ? '0' : null)
       expect(s.holderExitUpperBoundRaw).toBe(s.parameter === 'paused' && s.value ? '0' : null)
       const displayedSameParameter = r.facts.filter(f => f.title === s.sourceEvent.title)
       for (const f of displayedSameParameter) expect(BigInt(f.block)).toBeLessThanOrEqual(BigInt(s.sourceEvent.block))
     }
+    const threshold = r.conditionalScenarios.find(s => s.parameter === 'liquidationThresholdBps')!
+    expect(threshold.value).toBe('7800')
+    expect(threshold.parameter).toBe('liquidationThresholdBps')
+    if (threshold.parameter === 'liquidationThresholdBps') {
+      expect(threshold.collateralValueRule.denominatorBps).toBe('7800')
+      expect(threshold.collateralValueRule.valueUnit).toBe('same_quote_currency_value_not_asset_raw')
+      expect(threshold.borrowerStateKnown).toBe(false); expect(threshold.eModeKnown).toBe(false)
+    }
+    expect(r.conditionalScenarios.some(s => s.parameter === 'paused' || s.parameter === 'frozen')).toBe(false)
+  })
+  it('uses the actual latest USDe threshold without substituting its zero LTV', () => {
+    const usde = { ...q, routeKey: 'USDe → supply on Aave V3', destination: '0x4f5923fc5fd4a93352581b38b7cd26943012decf',
+      payoutAsset: '0x4c9edd5852cd905f086c759e8383e09bff1e68b3', assetDecimals: 18 }
+    const r = readAavePrimaryEventFacts(usde, Date.parse('2026-10-12T12:00:00Z'))
+    const rule = r.conditionalScenarios.find(s => s.parameter === 'liquidationThresholdBps')!
+    expect(rule.value).toBe('7500'); expect(rule.sourceEvent.originalArgs.ltv).toBe('0')
+    expect(rule.holderExitUpperBoundRaw).toBeNull(); expect(rule.initialDepositUpperBoundRaw).toBeNull()
   })
   it('does not use a future collection or cross-bind another asset, version or contract', () => {
     expect(readAavePrimaryEventFacts(q, Date.parse('2026-10-11T12:00:00Z')).facts).toEqual([])

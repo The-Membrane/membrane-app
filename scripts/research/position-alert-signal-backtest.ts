@@ -28,9 +28,11 @@ import {
   DEFAULT_ALERT_CONFIG,
   evaluate,
   fromAaveConfigurator,
+  fromCompoundGovernance,
   fromEulerGovernance,
   fromGearboxConfigurator,
   fromRegistryChange,
+  fromVenusComptroller,
   governanceSeverity,
   initialEngineState,
   isNotifiable,
@@ -603,7 +605,13 @@ function governanceChangeRates() {
       const ev =
         r.venue === 'euler'
           ? fromEulerGovernance(r.name, r.args, ctx)
-          : fromGearboxConfigurator(r.name, r.args, ctx)
+          : r.venue === 'gearbox'
+            ? fromGearboxConfigurator(r.name, r.args, ctx)
+            : r.venue === 'compound'
+              ? fromCompoundGovernance(r.name, r.args, ctx)
+              : r.venue === 'enclabs'
+                ? fromVenusComptroller(r.name, r.args, ctx)
+                : null
       if (!ev) continue
       const key = `${market}:${ev.asset ?? '*'}`
       const s = subjects.get(key) ?? {
@@ -621,7 +629,7 @@ function governanceChangeRates() {
     )
     out.e2EulerGearbox = summary(
       rows,
-      'The E2 Euler borrow vaults and the Gearbox Plasma credit manager, per market and collateral, May 1 to Nov 16 2025. Subjects are only those with at least one event, so the per-month rate is an upper bound.',
+      'The E2 Euler borrow vaults, the Gearbox Plasma credit manager, the Compound v3 comets and the Enclabs pools, per market and collateral, May 1 to Nov 16 2025. Subjects are only those with at least one event, so the per-month rate is an upper bound.',
     )
   } else out.e2EulerGearbox = { note: 'governance-changes/e2-euler-gearbox.json not built' }
   return out

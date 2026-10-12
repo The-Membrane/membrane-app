@@ -15,7 +15,9 @@ export const RPC = {
     'https://ethereum.public.blockpi.network/v1/rpc/public',
     'https://eth.drpc.org',
   ],
-  42161: ['https://arbitrum.gateway.tenderly.co', 'https://arbitrum-one.public.blastapi.io'],
+  // BlastAPI now caps eth_getLogs at 10 blocks (tested 2026-10-12). arb1 serves logs but no
+  // archive state: an eth_call there fails and the rotation returns to Tenderly.
+  42161: ['https://arbitrum.gateway.tenderly.co', 'https://arb1.arbitrum.io/rpc'],
   43114: ['https://api.avax.network/ext/bc/C/rpc', 'https://avalanche.gateway.tenderly.co'],
   146: ['https://rpc.soniclabs.com', 'https://sonic-rpc.publicnode.com'],
   9745: ['https://rpc.plasma.to'],
@@ -59,12 +61,30 @@ export async function rpc(chainId, method, params, tries = 10) {
   throw new Error(`${chainId} ${method}: ${last?.message}`)
 }
 
-/**
- * eth_getLogs over [fromBlock, toBlock] in chunks of the chain's span. An endpoint can answer
- * a range with a false `[]` (board R33), so a chunk is never split or skipped silently: a
- * failing chunk throws after the retries.
- */
-export async function logs(chainId, address, topics, fromBlock, toBlock, span = LOG_SPAN[chainId]) {
+/** One JSON-RPC call on one endpoint, with a few retries. */
+async function rpcOn(url, method, params, tries = 4) {
+  let last
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+        signal: AbortSignal.timeout(90_000),
+      })
+      if (r.status === 429 || r.status >= 500) throw new Error(`HTTP ${r.status}`)
+      const j = await r.json()
+      if (j.error) throw new Error(JSON.stringify(j.error).slice(0, 200))
+      return j.result
+    } catch (e) {
+      last = e
+      await sleep(800 * (i + 1))
+    }
+  }
+  throw new Error(`${url} ${method}: ${last?.message}`)
+}
+
+async function logsChunked(chainId, address, topics, fromBlock, toBlock, span) {
   const found = []
   for (let b = fromBlock; b <= toBlock; b += span) {
     const e = Math.min(toBlock, b + span - 1)
@@ -74,6 +94,33 @@ export async function logs(chainId, address, topics, fromBlock, toBlock, span = 
       ])),
     )
     if (chainId === 9745 || chainId === 1) await sleep(120)
+  }
+  return found
+}
+
+/**
+ * eth_getLogs over [fromBlock, toBlock]. The chain's first endpoint reads in its own span when
+ * LOG_SPAN_BY_URL gives one; a failed range falls back to the chain's span across all
+ * endpoints. An endpoint can answer a range with a false `[]` (board R33), so a chunk is never
+ * skipped silently: a chunk that fails everywhere throws.
+ */
+export async function logs(chainId, address, topics, fromBlock, toBlock) {
+  const span = LOG_SPAN[chainId]
+  const first = RPC[chainId]?.[0]
+  const big = LOG_SPAN_BY_URL[first]
+  if (!big) return logsChunked(chainId, address, topics, fromBlock, toBlock, span)
+  const found = []
+  for (let b = fromBlock; b <= toBlock; b += big) {
+    const e = Math.min(toBlock, b + big - 1)
+    try {
+      found.push(
+        ...(await rpcOn(first, 'eth_getLogs', [
+          { address, topics, fromBlock: toHex(b), toBlock: toHex(e) },
+        ])),
+      )
+    } catch {
+      found.push(...(await logsChunked(chainId, address, topics, b, e, span)))
+    }
   }
   return found
 }

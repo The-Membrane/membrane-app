@@ -18,6 +18,9 @@ import {
   classifyRegistryChange,
   EULER_OP,
   fromAaveConfigurator,
+  fromCompoundGovernance,
+  fromVenusComptroller,
+  VENUS_ACTION,
   fromEulerGovernance,
   fromGearboxConfigurator,
   governanceSeverity,
@@ -836,6 +839,79 @@ describe('governance adapters', () => {
         ctx,
       ),
     ).toBeNull()
+  })
+
+  it('Compound v3: a factor cut in force at the upgrade, and pauses', () => {
+    const cut = fromCompoundGovernance(
+      'UpdateAssetLiquidateCollateralFactor',
+      {
+        cometProxy: '0xc',
+        asset: '0xTOK',
+        oldLiquidateCF: 900000000000000000n,
+        newLiquidateCF: 800000000000000000n,
+      },
+      { ...ctx, effectiveTs: T0 + H },
+    )
+    expect(cut).toMatchObject({
+      asset: 'xUSD',
+      threshold: { from: 0.9, to: 0.8, fullAtTs: T0 + H },
+    })
+    const pause = (a: Partial<Record<string, boolean>>) =>
+      fromCompoundGovernance(
+        'PauseAction',
+        {
+          supplyPaused: false,
+          transferPaused: false,
+          withdrawPaused: false,
+          absorbPaused: false,
+          buyPaused: false,
+          ...a,
+        },
+        ctx,
+      )
+    expect(pause({ supplyPaused: true })).toMatchObject({ kind: 'paused' })
+    expect(pause({ supplyPaused: true })?.severity).toBeUndefined()
+    expect(pause({ absorbPaused: true })).toMatchObject({ kind: 'paused', severity: 'warn' })
+    expect(pause({ withdrawPaused: true })).toMatchObject({ kind: 'frozen' })
+    expect(pause({})).toBeNull()
+  })
+
+  it('Venus / Enclabs: threshold change, repay pause is pool-wide, unpause is silent', () => {
+    expect(
+      fromVenusComptroller(
+        'NewLiquidationThreshold',
+        {
+          vToken: '0xtok',
+          oldLiquidationThresholdMantissa: 900000000000000000n,
+          newLiquidationThresholdMantissa: 920000000000000000n,
+        },
+        ctx,
+      ),
+    ).toMatchObject({ asset: 'xUSD', threshold: { from: 0.9, to: 0.92 } })
+    const repay = fromVenusComptroller(
+      'ActionPausedMarket',
+      { vToken: '0xother', action: VENUS_ACTION.repay, pauseState: true },
+      ctx,
+    )
+    expect(repay).toMatchObject({ kind: 'paused' })
+    expect(repay?.asset).toBeUndefined()
+    expect(
+      fromVenusComptroller(
+        'ActionPausedMarket',
+        { vToken: '0xtok', action: VENUS_ACTION.repay, pauseState: false },
+        ctx,
+      ),
+    ).toBeNull()
+    expect(
+      fromVenusComptroller(
+        'ActionPausedMarket',
+        { vToken: '0xtok', action: VENUS_ACTION.mint, pauseState: true },
+        ctx,
+      ),
+    ).toMatchObject({ asset: 'xUSD', kind: 'frozen' })
+    expect(fromVenusComptroller('MarketUnlisted', { vToken: '0xtok' }, ctx)?.kind).toBe(
+      'collateral_disabled',
+    )
   })
 
   it('Aave: a threshold change against the previous value, freeze, pause and their reversal', () => {

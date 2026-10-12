@@ -147,6 +147,26 @@ export const AAVE_CONFIGURATOR_EVENTS = [
   'event AssetCollateralInEModeChanged(address indexed asset, uint8 categoryId, bool collateral)',
 ] as const
 
+/**
+ * Compound v3. A Configurator change takes effect when the comet proxy is upgraded
+ * (`Upgraded`), usually in the same governance transaction. PauseAction is on the comet.
+ */
+export const COMPOUND_GOVERNANCE_EVENTS = [
+  'event UpdateAssetLiquidateCollateralFactor(address indexed cometProxy, address indexed asset, uint64 oldLiquidateCF, uint64 newLiquidateCF)',
+  'event UpdateAssetPriceFeed(address indexed cometProxy, address indexed asset, address oldPriceFeed, address newPriceFeed)',
+  'event PauseAction(bool supplyPaused, bool transferPaused, bool withdrawPaused, bool absorbPaused, bool buyPaused)',
+  'event Upgraded(address indexed implementation)',
+] as const
+
+/** Venus isolated-pools Comptroller (Enclabs). Arguments are not indexed, except MarketUnlisted. */
+export const VENUS_COMPTROLLER_EVENTS = [
+  'event NewLiquidationThreshold(address vToken, uint256 oldLiquidationThresholdMantissa, uint256 newLiquidationThresholdMantissa)',
+  'event ActionPausedMarket(address vToken, uint8 action, bool pauseState)',
+  'event MarketUnlisted(address indexed vToken)',
+  'event NewPriceOracle(address oldPriceOracle, address newPriceOracle)',
+  'event NewLiquidationIncentive(uint256 oldLiquidationIncentiveMantissa, uint256 newLiquidationIncentiveMantissa)',
+] as const
+
 // ------------------------------------------------------------------ adapters
 
 type Args = Record<string, unknown>
@@ -318,6 +338,125 @@ export function fromGearboxConfigurator(
     case 'SetMaxDebtPerBlockMultiplier':
       return n(args.maxDebtPerBlockMultiplier) === 0
         ? { ...base, kind: 'frozen', detail: 'new borrowing stopped' }
+        : null
+    default:
+      return null
+  }
+}
+
+/**
+ * One Compound v3 event as a change, or null. `effectiveTs` is the comet upgrade that put a
+ * Configurator change in force. UpdateAssetPriceFeed is an oracle change: oracleRegistry's
+ * kind 'feed_replaced', not a governance change, so it returns null here.
+ */
+export function fromCompoundGovernance(
+  name: string,
+  args: Args,
+  ctx: AdapterCtx & { effectiveTs?: number },
+): GovernanceChangeEvent | null {
+  const base = { market: ctx.market, ts: ctx.ts, source: ctx.source }
+  const e18 = (v: unknown) => n(v) / 1e18
+  switch (name) {
+    case 'UpdateAssetLiquidateCollateralFactor': {
+      const asset = sym(ctx, args.asset)
+      const from = e18(args.oldLiquidateCF)
+      const to = e18(args.newLiquidateCF)
+      const fullAtTs = ctx.effectiveTs ?? ctx.ts
+      const detail = `${asset}: liquidate collateral factor ${(from * 100).toFixed(1)}% → ${(to * 100).toFixed(1)}%`
+      if (to === 0)
+        return {
+          ...base,
+          asset,
+          kind: 'collateral_disabled',
+          detail,
+          threshold: { from, to, fullAtTs },
+        }
+      return {
+        ...base,
+        asset,
+        kind: 'liquidation_threshold_changed',
+        detail,
+        threshold: { from, to, fullAtTs },
+      }
+    }
+    case 'PauseAction':
+      // Repaying is a supply of the base asset: a supply pause stops repay.
+      if (args.supplyPaused)
+        return { ...base, kind: 'paused', detail: 'supply (and so repay) paused' }
+      if (args.absorbPaused)
+        return { ...base, kind: 'paused', severity: 'warn', detail: 'liquidation (absorb) paused' }
+      if (args.withdrawPaused || args.transferPaused)
+        return { ...base, kind: 'frozen', detail: 'withdraw or transfer paused' }
+      return null
+    default:
+      return null
+  }
+}
+
+/** Venus isolated-pools action ids (ComptrollerStorage.Action). */
+export const VENUS_ACTION = {
+  mint: 0,
+  redeem: 1,
+  borrow: 2,
+  repay: 3,
+  seize: 4,
+  liquidate: 5,
+  transfer: 6,
+  enterMarket: 7,
+  exitMarket: 8,
+} as const
+
+/** One Venus isolated-pools Comptroller event (Enclabs) as a change, or null. */
+export function fromVenusComptroller(
+  name: string,
+  args: Args,
+  ctx: AdapterCtx,
+): GovernanceChangeEvent | null {
+  const base = { market: ctx.market, ts: ctx.ts, source: ctx.source }
+  switch (name) {
+    case 'NewLiquidationThreshold': {
+      const asset = sym(ctx, args.vToken)
+      const from = n(args.oldLiquidationThresholdMantissa) / 1e18
+      const to = n(args.newLiquidationThresholdMantissa) / 1e18
+      const detail = `${asset}: liquidation threshold ${(from * 100).toFixed(1)}% → ${(to * 100).toFixed(1)}%`
+      if (to === 0)
+        return {
+          ...base,
+          asset,
+          kind: 'collateral_disabled',
+          detail,
+          threshold: { from, to: 0, fullAtTs: ctx.ts },
+        }
+      return {
+        ...base,
+        asset,
+        kind: 'liquidation_threshold_changed',
+        detail,
+        threshold: { from, to, fullAtTs: ctx.ts },
+      }
+    }
+    case 'ActionPausedMarket': {
+      if (args.pauseState === false) return null
+      const asset = sym(ctx, args.vToken)
+      const action = n(args.action)
+      // Repay or liquidation stopped on any market of the pool touches every borrower in it.
+      if (action === VENUS_ACTION.repay)
+        return { ...base, kind: 'paused', detail: `${asset}: repay paused` }
+      if (action === VENUS_ACTION.liquidate || action === VENUS_ACTION.seize)
+        return { ...base, kind: 'paused', severity: 'warn', detail: `${asset}: liquidation paused` }
+      return { ...base, asset, kind: 'frozen', detail: `${asset}: action ${action} paused` }
+    }
+    case 'MarketUnlisted': {
+      const asset = sym(ctx, args.vToken)
+      return { ...base, asset, kind: 'collateral_disabled', detail: `${asset}: market unlisted` }
+    }
+    case 'NewLiquidationIncentive':
+      return n(args.newLiquidationIncentiveMantissa) > n(args.oldLiquidationIncentiveMantissa)
+        ? {
+            ...base,
+            kind: 'liquidation_bonus_changed',
+            detail: `liquidation incentive → ${(n(args.newLiquidationIncentiveMantissa) / 1e18).toFixed(3)}`,
+          }
         : null
     default:
       return null

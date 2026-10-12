@@ -40,8 +40,10 @@ import {
 import { datasetsDir } from '../lib/datasetsDir.mjs'
 import {
   AAVE_CONFIGURATOR_EVENTS,
+  COMPOUND_GOVERNANCE_EVENTS,
   EULER_GOVERNANCE_EVENTS,
   GEARBOX_CONFIGURATOR_EVENTS,
+  VENUS_COMPTROLLER_EVENTS,
 } from '../../lib/positionAlerts/governance'
 
 const ROOT = process.cwd()
@@ -61,6 +63,15 @@ const AAVE_CORE = {
 }
 
 const EULER_ABI = parseAbi(EULER_GOVERNANCE_EVENTS)
+const COMPOUND_ABI = parseAbi(COMPOUND_GOVERNANCE_EVENTS)
+const VENUS_ABI = parseAbi(VENUS_COMPTROLLER_EVENTS)
+// Venus ResilientOracle: a new main / pivot / fallback oracle for an asset.
+const RESILIENT_ABI = parseAbi([
+  'event TokenConfigAdded(address indexed asset, address indexed mainOracle, address indexed pivotOracle, address fallbackOracle)',
+])
+/** Compound v3 Configurator on Ethereum (cometProxy is indexed in its events). */
+const COMPOUND_CONFIGURATOR = '0x316f9708bb98af7da9c68c1c3b5e79039cd336e3'
+const pad = (a: string) => ('0x' + '0'.repeat(24) + a.slice(2).toLowerCase()) as Hex
 const GEARBOX_ABI = parseAbi(GEARBOX_CONFIGURATOR_EVENTS)
 const AAVE_ABI = parseAbi(AAVE_CONFIGURATOR_EVENTS)
 const VIEW_ABI = parseAbi([
@@ -247,7 +258,10 @@ interface E2Market {
   chainId: number
   marketId: string
   marketName: string
-  collaterals?: { vault: string; asset: string; sym: string }[]
+  collateral: string
+  oracle?: string
+  comptroller?: string
+  collaterals?: { vault?: string; asset: string; sym: string }[]
 }
 
 async function e2() {
@@ -264,7 +278,8 @@ async function e2() {
     const sym = (symbols[chainId] ??= {})
     const euler = markets.filter((m) => m.venue === 'euler' && m.chainId === chainId)
     if (euler.length) {
-      for (const m of euler) for (const c of m.collaterals ?? []) sym[c.vault.toLowerCase()] = c.sym
+      for (const m of euler)
+        for (const c of m.collaterals ?? []) if (c.vault) sym[c.vault.toLowerCase()] = c.sym
       const logs = await verifiedLogs(
         chainId,
         euler.map((m) => m.marketId),
@@ -308,12 +323,85 @@ async function e2() {
       })
       console.log(`  gearbox ${chainId} ${g.marketName}: configurator ${cc}, ${rows.length} events`)
     }
+    for (const c of markets.filter((m) => m.venue === 'compound' && m.chainId === chainId)) {
+      const comet = c.marketId.toLowerCase()
+      for (const x of c.collaterals ?? []) sym[x.asset.toLowerCase()] = x.sym
+      const cfg = await verifiedLogs(
+        chainId,
+        COMPOUND_CONFIGURATOR,
+        [selectors(COMPOUND_ABI).slice(0, 2), pad(comet)],
+        from,
+        to,
+      )
+      const own = await verifiedLogs(chainId, comet, [selectors(COMPOUND_ABI).slice(2)], from, to)
+      const rows = await decodeAll(chainId, COMPOUND_ABI, [...cfg, ...own])
+      events.push(...rows.map((r) => ({ ...r, venue: 'compound', market: comet })))
+      scanned.push({
+        venue: 'compound',
+        chainId,
+        market: comet,
+        configurator: COMPOUND_CONFIGURATOR,
+        fromBlock: from,
+        toBlock: to,
+        events: rows.length,
+      })
+      console.log(`  compound ${chainId} ${c.marketName}: ${rows.length} events`)
+    }
+    for (const e of markets.filter((m) => m.venue === 'enclabs' && m.chainId === chainId)) {
+      const vToken = e.marketId.toLowerCase()
+      sym[vToken] = e.collateral
+      const comp = String(e.comptroller).toLowerCase()
+      const rows = await decodeAll(
+        chainId,
+        VENUS_ABI,
+        await verifiedLogs(chainId, comp, [selectors(VENUS_ABI)], from, to),
+      )
+      for (const r of rows) {
+        const v = String((r.args as { vToken?: string }).vToken ?? '').toLowerCase()
+        if (v && !sym[v]) sym[v] = await call<string>(chainId, v, 'symbol', [], to)
+      }
+      // The pool oracle's TokenConfigAdded events (any asset; the replay keeps the held ones).
+      const oracleRows = e.oracle
+        ? await decodeAll(
+            chainId,
+            RESILIENT_ABI,
+            await verifiedLogs(
+              chainId,
+              e.oracle.toLowerCase(),
+              [selectors(RESILIENT_ABI)],
+              from,
+              to,
+            ),
+          )
+        : []
+      for (const r of oracleRows) {
+        const a = String((r.args as { asset?: string }).asset ?? '').toLowerCase()
+        if (a && !sym[a]) sym[a] = await call<string>(chainId, a, 'symbol', [], to)
+      }
+      events.push(...rows.map((r) => ({ ...r, venue: 'enclabs', market: vToken })))
+      events.push(...oracleRows.map((r) => ({ ...r, venue: 'enclabs-oracle', market: vToken })))
+      scanned.push({
+        venue: 'enclabs',
+        chainId,
+        market: vToken,
+        comptroller: comp,
+        oracle: e.oracle,
+        fromBlock: from,
+        toBlock: to,
+        events: rows.length,
+        oracleEvents: oracleRows.length,
+      })
+      console.log(
+        `  enclabs ${chainId} ${e.marketName}: ${rows.length} comptroller events, ${oracleRows.length} oracle config events`,
+      )
+    }
   }
   write('e2-euler-gearbox.json', {
-    label: 'Governance events of the E2 Euler and Gearbox markets, May 1 2025 to Nov 16 2025',
+    label:
+      'Governance events of the E2 Euler, Gearbox, Compound v3 and Enclabs markets, May 1 2025 to Nov 16 2025 (Morpho Blue, Silo v2 and Abracadabra cauldron risk parameters cannot change)',
     window: { fromTs: CALM_FROM, toTs: E2_TO },
     source:
-      'eth_getLogs on keyless archive RPCs (scripts/lib/archiveRpc.mjs), every range read on two endpoints with equal counts. Euler: the borrow vaults. Gearbox: CreditManager.creditConfigurator() at the window end.',
+      'eth_getLogs on keyless archive RPCs (scripts/lib/archiveRpc.mjs), every range read on two endpoints with equal counts. Euler: the borrow vaults. Gearbox: CreditManager.creditConfigurator() at the window end. Compound v3: the Configurator filtered by comet, and the comet (PauseAction, Upgraded). Enclabs: the pool Comptroller, and TokenConfigAdded on the pool oracle.',
     scanned,
     symbols,
     events,

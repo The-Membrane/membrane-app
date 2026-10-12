@@ -112,17 +112,8 @@ def main():
         pins[str(proof_path)] = sha(proof_path); pins[str(build_spec_path)] = sha(build_spec_path)
         artifact_lineage = {'manifest':str(manifest_path),'sha256':digest,'acceptedBuildProofSha256':sha(proof_path)}
     links = {str(dest / 'node_modules'): str(dependencies)}
-    # Observed Vitest output is a generated results record, not installed software.
-    # Exclude this exact root cache file only; do not exempt package caches/code.
-    mutable_result = '.vite/vitest/da39a3ee5e6b4b0d3255bfef95601890afd80709/results.json'
-    excluded_mutable = []
     # Existing installed graph is sealed in place, never duplicated or installed.
     for p in dependencies.rglob('*'):
-        if p.relative_to(dependencies).as_posix() == mutable_result and p.is_file() and not p.is_symlink():
-            excluded_mutable.append({'path':str(p),'relativePath':mutable_result,
-                'kind':'generated_vitest_result_cache_not_software',
-                'reason':'focused Vitest rewrites results.json; all other installed files and links remain sealed'})
-            continue
         if p.is_symlink(): links[str(p)] = str(p.resolve())
         elif p.is_file(): pins[str(p.resolve())] = sha(p)
     for p, digest in json.loads(pathlib.Path(a.data_pins_json).read_text()).items():
@@ -163,7 +154,6 @@ def main():
         'datasetsRoot':str(pathlib.Path(a.datasets).resolve()),
         'evidenceRoot':str(pathlib.Path(a.datasets).resolve() / 'forecasting-cloud/full-app-plan/runs'),
         'pins':pins,'links':links,
-        'excludedMutableRuntimeCaches':excluded_mutable,
         'nodeRuntimeClosure':runtime_closure,'browserRuntimeClosure':browser_closure,
         'productionArtifactLineage':artifact_lineage,
         'nonsecretEnv':{'MEMBRANE_CLOUD_ACCEPTANCE':'fixture'},

@@ -65,7 +65,12 @@ function matches(m: NativeCashHolderModel, q: NativeCashHolderQuestion) {
       JSON.stringify(observedNet.input.history.identity) !== JSON.stringify(m.identity) ||
       observedNet.input.question.requestedRaw !== m.requestedRaw || observedNet.input.question.horizonHours !== m.horizonHours ||
       observedNet.input.question.issuedAtUtc !== m.issuedAtUtc || observedNet.causalNewsEffect !== false ||
-      observedNet.calibrated !== false || observedNet.holderExecutableExit !== false)) return false
+      observedNet.calibrated !== false || observedNet.holderExecutableExit !== false ||
+      !Array.isArray(observedNet.scenarios) || observedNet.scenarios.length > 119 ||
+      observedNet.scenarios.some(p => !/^-(?:[1-9][0-9]{0,77})$/.test(p.historicalNetRaw) ||
+        !Number.isSafeInteger(p.donorDurationMs) || p.donorDurationMs <= 0 ||
+        !Number.isSafeInteger(p.fromIndex) || !Number.isSafeInteger(p.toIndex) ||
+        p.fromIndex < 0 || p.toIndex >= 120 || p.toIndex <= p.fromIndex))) return false
   if (m.primaryEventImpact && !matchingNativePrimaryEventImpact(m.primaryEventImpact,m)) return false
   return m.identity.routeKey === q.routeKey && m.identity.destination === q.destination.toLowerCase() &&
     m.owner.toLowerCase() === q.owner.toLowerCase() && m.requestedRaw === q.requestedRaw &&

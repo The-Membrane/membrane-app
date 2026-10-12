@@ -1,3 +1,4 @@
+import { selectedRouteWireContext } from '@/lib/carry/routeWireBinding'
 import { selectedForeignFinalExit } from '@/lib/carry/foreignFinalExitReceipt'
 import { selectedPrimaryProtocolRules } from '@/lib/carry/primaryProtocolRules'
 import { selectedSaturnTicketMechanism } from '@/lib/carry/saturnTicketMechanismReceipt'
@@ -6116,6 +6117,12 @@ export const ExitPressureCard: React.FC<ExitPressureCardProps> = ({
           >
             <Text {...labelStyle}>CONTEXT</Text>
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={SPACING.base} mt={SPACING.sm}>
+              {eventQuestion && selectedRouteWireContext(eventContext.wireStories,eventQuestion,asOfMs)?.stories.filter(s=>s.displayHeadline).slice(0,1).map(s=><Metric
+                key={s.story.id}
+                label="Measured story†"
+                value={s.displayHeadline}
+                detail={`${utcMinute(new Date(s.story.at*1000).toISOString())} · reading ${s.sourceReadingAtUtc?utcMinute(s.sourceReadingAtUtc):'unknown'} · ${s.association==='same_native_venue_measured_change'?'venue history':s.association==='same_payout_asset_price_context'?'asset price context':'collateral price context'}`}
+              />)}
               {eventQuestion && selectedPrimaryProtocolRules(eventContext.primaryEvents,eventQuestion,asOfMs) && <Metric
                 label="Primary protocol rule†"
                 value={<Link href={eventContext.primaryEvents!.conditionalScenarios[0].sourceEvent.primarySource.url} isExternal rel="noopener noreferrer" color={SEMANTIC_COLORS.textPrimary}>

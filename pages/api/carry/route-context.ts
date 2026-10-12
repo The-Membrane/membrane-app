@@ -1,3 +1,4 @@
+import { readRouteWireContext } from '@/lib/carry/routeWireContext.server'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { readRoutePrimaryCashFacts } from '@/lib/carry/routePrimaryCashFacts.server'
 import { readAavePrimaryEventFacts } from '@/lib/carry/aavePrimaryEventFacts.server'
@@ -774,7 +775,7 @@ export function createRouteContextHandler(readers: SourceReaders = DEFAULT_READE
     return res
       .status(200)
       .json(
-        { ...buildRouteEventContext(question, venue, { event, news, capacity }, nowMs, newsSource.id),
+        { ...buildRouteEventContext(question, venue, { event, news, capacity }, nowMs, newsSource.id, readRouteWireContext(question,nowMs)),
           primaryEvents: readAavePrimaryEventFacts(question, nowMs),
           measuredCashFacts: readRoutePrimaryCashFacts(question, capacity, nowMs) },
       )

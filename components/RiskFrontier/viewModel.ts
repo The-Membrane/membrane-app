@@ -482,8 +482,8 @@ export function exitChipText(sb: SandboxPosition): string | null {
 
 // The per-user readout (lib/position-sim/exitReadout.ts): "of your $X deposited, $Y exits
 // within 8h", and the deposit above which that binds. Board design rules §5b: the statistic
-// (idle cash p5) becomes analysis ("In stress, exits shrink to $38M. No limit at your size;
-// binds above $38M."). Every $ figure rounds DOWN, toward risk.
+// (a venue's stress cash) becomes analysis ("In stress, exits shrink to $203M. No limit at
+// your size; binds above $203M."). Every $ figure rounds DOWN, toward risk.
 
 /** USD rounded down, short: $2.3B, $38M, $5.1M, $14,200. A figure under $1 is "none". */
 export function usdDown(n: number | null | undefined): string {
@@ -496,26 +496,27 @@ export function usdDown(n: number | null | undefined): string {
   return usd(Math.floor(a))
 }
 
-/** The level the sentence states: the bad stress hour, as in the §5b example. */
-export const EXIT_READOUT_HEADLINE_LEVEL: ExitReadoutLevel = 'p5'
+/** The level the sentence states: the typical stress event, the engine's default level
+ *  (EXIT_CAPACITY_DEFAULT_PRESET, owner ruling 2026-10-07). The rows show the bad end. */
+export const EXIT_READOUT_HEADLINE_LEVEL: ExitReadoutLevel = 'typical'
 
 export const EXIT_READOUT_FOOTNOTE = '† modelled, not a guarantee'
 
 const EXIT_LEVEL_LABEL: Readonly<Record<Exclude<ExitReadoutLevel, 'now'>, string>> = {
-  p50: 'typical stress hour',
-  p5: 'bad stress hour (p5)',
-  min: 'worst stress reading',
+  typical: 'typical stress event',
+  bad: 'bad stress event (p10)',
+  worst: 'worst stress event',
 }
 
 export interface ExitReadoutRow {
   level: ExitReadoutLevel
-  /** 'now · 01:00 UTC', 'typical stress hour', 'bad stress hour (p5)', 'worst stress reading'. */
+  /** 'now · 01:00 UTC', 'typical stress event', 'bad stress event (p10)', 'worst stress event'. */
   label: string
   /** The venue's idle cash: what exits shrink to. The headline binds above it. */
   cash: string
   /** Headline (cash vs book): '$14,200 of $14,200'. */
   reachable: string
-  /** Floor (every depositor exits at once): '$831'. */
+  /** Floor (every depositor exits at once): '$1,588'. */
   floor: string
   binds: boolean
   exceedsVenue: boolean
@@ -528,12 +529,12 @@ export interface ExitReadoutView {
   venue: ExitReadoutVenue | null
   venueName: string | null
   depositUsd: number
-  /** 'In stress, exits shrink to $38M.' Null with `missing`. */
+  /** 'In stress, exits shrink to $203M.' Null with `missing`. */
   lead: string | null
-  /** 'No limit at your size; binds above $38M.†' or 'Binds at your size: $38M of your $50M
-   *  exits within 8h.†' */
+  /** 'No limit at your size; binds above $203M.†' or 'Binds at your size: $203M of your
+   *  $500M exits within 8h.†' */
   detail: string | null
-  /** 'If every depositor exits at once: $831 of your $14,200.†' Null with no deposit. */
+  /** 'If every depositor exits at once: $1,588 of your $14,200.†' Null with no deposit. */
   floorLine: string | null
   /** The headline level's crossover deposit, USD. Null with `missing`. */
   crossoverUsd: number | null
@@ -662,7 +663,7 @@ export function exitReadoutView(
     priceUsd !== undefined && opts.ethUsd
       ? ` ETH ${usd(priceUsd)} · ${opts.ethUsd.source} · ${utcHourMinute(new Date(opts.ethUsd.updatedAtMs).toISOString())}.`
       : ''
-  const credit = `Idle cash in stress hours, ${venueName}, ${EXIT_READOUT_SOURCE.from.slice(0, 7)} → ${EXIT_READOUT_SOURCE.to.slice(0, 7)}. Measured history, not a forecast.${ethCredit}`
+  const credit = `Idle cash in the first 8h of stress events, ${venueName}, ${EXIT_READOUT_SOURCE.from.slice(0, 7)} → ${EXIT_READOUT_SOURCE.to.slice(0, 7)}. Measured history, not a forecast.${ethCredit}`
   const h = rows.find((r) => r.level === EXIT_READOUT_HEADLINE_LEVEL)!.result
   if (h.kind !== 'readout') {
     return {

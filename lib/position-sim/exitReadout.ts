@@ -1,141 +1,338 @@
 /**
  * exitReadout — the per-user exit readout: "of your $X deposited, $Y exits within 8 h", and
- * the CROSSOVER deposit above which exit capacity binds. PURE. The venue stress levels below
- * are copied from public/data/venue-stress/summary.json (`analogs`, `venues.*.symbol`);
- * tests/unit/exitReadout.test.ts reads that file and fails on any drift.
+ * the CROSSOVER deposit above which exit capacity binds. PURE.
  *
- * LEVELS
- *   'p50'  the median stress hour              ┐ summary.json `analogs.<venue>`: percentiles
- *   'p5'   the 5th-percentile stress hour      │ over every hourly reading inside a stress
- *   'min'  the lowest stress reading           ┘ window, 2023-10 → 2026-10 (`stressHours`)
- *   'now'  one reading the caller passes in (cash and supply in token units, with its time).
- *          Refused as 'stale' when older than MEASURED_STALE_CADENCES × the 1 h cadence
- *          (measuredCapacity.ts rule 3): a stale reading is never shown as now.
+ * The stress levels are the ENGINE'S (owner, 2026-10-12): each venue's stress events
+ * (venueStressAnalogs.ts: the same windows, the 72 h merge, the 'held' basis with its 1 h
+ * retry), read over the 8 h from onset. The cash levels are generated between the markers
+ * below by scripts/position-sim/exit-readout-levels.ts --emit (stressEventCash.ts);
+ * tests/unit/exitReadout.test.ts recomputes them from public/data/venue-stress and fails on
+ * any drift. The floor is the engine's own floor preset (EXIT_CAPACITY_FLOOR_ROWS).
  *
- * TWO MODELS — the engine's (exitCapacityAnalogs.ts header, owner ruling 2026-10-07):
- *   HEADLINE  cash vs book with YOUR DEPOSIT as the book: D × m(D) = min(D, C), C the venue's
- *             idle cash at the level. Assumptions (i)–(iv) of that header hold: the deposit
- *             recalls at once; the cash is first come and already net of every other
- *             withdrawal in the hour; the recall does not start a run; the stock does not
- *             refill.
- *   FLOOR     pro-rata: every depositor exits at once, and the deposit gets f = cash / supply
- *             of itself, D × f, whatever its size.
+ * LEVELS (nearest rank, as the engine presets)
+ *   'typical'  the median stress event
+ *   'bad'      the 10th-percentile event
+ *   'worst'    the worst event
+ *   'now'      one reading the caller passes in (cash and supply in token units, with its
+ *              time). Refused as 'stale' when older than MEASURED_STALE_CADENCES × the 1 h
+ *              cadence (measuredCapacity.ts rule 3): a stale reading is never shown as now.
+ *
+ * TWO MODELS (exitCapacityAnalogs.ts header, owner ruling 2026-10-07)
+ *   HEADLINE  cash vs book with YOUR DEPOSIT as the book: D × m(D) = min(D, C). C is the
+ *             venue's held idle cash over the 8 h at the level's event, events ranked on cash.
+ *             Assumptions (i)–(iv) of that header hold: the deposit recalls at once at the
+ *             onset; the cash is first come and already net of every other withdrawal in the
+ *             hour; the recall does not start a run; the stock does not refill.
+ *   FLOOR     pro-rata: every depositor exits at once, and the deposit gets f of itself,
+ *             D × f, whatever its size. f is the engine's floor preset at the venue and level,
+ *             events ranked on f, so the two models can name different events.
  *   CROSSOVER the headline binds above D* = C. At or below it the whole deposit exits on the
  *             headline. The floor binds at every size while f < 1.
- *   WITHIN 8 H the engine's venue stock (stressGrid.ts "MODELLED, NOT MASTER"): one stock,
- *             drawn down and never refilled across the 8 h delay window. A level's cash is
- *             that stock.
+ *   WITHIN 8 H the Membrane delay window. The engine draws one venue stock across it and never
+ *             refills it (stressGrid.ts "MODELLED, NOT MASTER"). A level's cash is that stock.
  *
  * READING THE LEVELS
- *  - Cash and f are ranked SEPARATELY over the same stress hours. Each figure is still its
- *    model's percentile (the headline rises with C alone, the floor with f alone), but C / f
- *    is not the venue's supply at a level. On 'now' they come from one reading.
- *  - Cash is in absolute USD across three years of venue growth. Aave USDC's p5 cash hours
- *    (cash ≤ $39M, 324 of 6,467) are 173 in 2023, at a median supply of $422M; the venue held
- *    $2.40B at the data's end. f is size-free; cash is not.
- *  - A stress hour is ANY hour inside a stress window, on single readings. The engine presets
- *    take each event's first 8 h from onset on the 'held' basis. So 'min' is at or below the
- *    presets' 'worst': equal where both are the Kelp Apr-2026 lock (Aave USDC $6,402 vs
- *    $7,085), lower where a deep hour sits outside any onset's 8 h (Spark USDS f 14.8% vs
- *    25.2%).
+ *  - Cash and f are ranked separately. Each figure is its own model's level (the headline
+ *    rises with C alone, the floor with f alone), but C / f is not the supply at a level.
+ *  - SCALE (scripts/position-sim/stress-cash-scale-test.ts, pre-registered 2026-10-12): within
+ *    a venue, event cash scales with supply, elasticity 1.01 (95% CI 0.84–1.17). So a level's
+ *    cash describes the venue at its size then, not now. Out of sample, neither absolute cash
+ *    nor f × the later supply predicts the later half well (mean |ln error| 1.70 and 1.60;
+ *    9 and 6 cell wins): the share itself drifts between eras. The levels stay absolute, as
+ *    the engine's cash vs book does. Rescaling is an owner decision.
  *  - Steakhouse USDC: its cash is the vault's pro-rata share of each Morpho market's idle cash
  *    (history.json `semantics.cash`), not first in line — conservative on (ii).
- *  - Stablecoins are held at $1 (VENUE_STABLE_SYMBOLS). WETH needs `priceUsd` (the view
- *    passes the live Chainlink round, ethUsdSpot.ts), else there is no readout: unknown is
- *    unknown, never 0.
+ *  - Stablecoins are held at $1 (VENUE_STABLE_SYMBOLS). WETH stays in ETH and needs
+ *    `priceUsd` (the view passes the live Chainlink round, ethUsdSpot.ts), else there is no
+ *    readout: unknown is unknown, never 0.
  *  - Descriptive history, not a forecast. No cash ÷ flow clock (board, 2026-09-27 EXIT
  *    CAPACITY PERSISTENCE).
  */
 
-import { EXIT_CAPACITY_ANALOG_VENUES } from './exitCapacityAnalogs'
+import {
+  EXIT_CAPACITY_ANALOG_DATA_THROUGH,
+  EXIT_CAPACITY_ANALOG_VENUES,
+  EXIT_CAPACITY_FLOOR_ROWS,
+} from './exitCapacityAnalogs'
 import { MEASURED_DEFAULT_CADENCE_MS, MEASURED_STALE_CADENCES } from './measuredCapacity'
+import type { ExitReadoutCashRow, StressEventLevel } from './stressEventCash'
 import { VENUE_STABLE_SYMBOLS } from './venueStressAnalogs'
 import { withdrawableFraction } from './venueStressRules'
 
 // ------------------------------------------------------------------- data
 
 export const EXIT_READOUT_SOURCE = {
-  file: 'public/data/venue-stress/summary.json',
-  generatedAt: '2026-10-07T04:31:50.006Z',
+  file: 'public/data/venue-stress/history.json',
+  /** The history's first hour. */
   from: '2023-10-01T00:00Z',
-  to: '2026-10-07T01:00Z',
+  /** The history's last hour, the engine presets' too. */
+  to: EXIT_CAPACITY_ANALOG_DATA_THROUGH,
 } as const
 
-/** One venue's stress levels, summary.json `analogs.<venue>`. Token units; f in percent. */
-export interface VenueStressCashLevels {
-  readonly symbol: string
-  /** Hourly readings inside stress windows that the percentiles rank. */
-  readonly stressHours: number
-  /** `stressCash`: the venue's idle cash, token units. */
-  readonly cash: { readonly p50: number; readonly p5: number; readonly min: number }
-  /** `stressCashFracPct`: f = cash / supply, percent. */
-  readonly fracPct: { readonly p50: number; readonly p5: number; readonly min: number }
-}
-
+// <generated:exit-readout-levels>
+/** Held idle cash over the 8 h from onset at each venue's typical, bad (p10) and worst
+ *  stress event, token units (WETH in ETH). 10 venues. */
 export const EXIT_READOUT_VENUE_LEVELS = {
   'aave-core-usdc': {
+    venue: 'aave-core-usdc',
     symbol: 'USDC',
-    stressHours: 6467,
-    cash: { p50: 248929094, p5: 38994236, min: 6402 },
-    fracPct: { p50: 11.741, p5: 5.858, min: 0 },
+    events: 33,
+    cash8: {
+      typical: {
+        cash: 203125083,
+        supply: 1527126779,
+        event: 'Aave USDC, ETH -11% 2024-08-27',
+        onset: '2024-08-27T22:00Z',
+      },
+      bad: {
+        cash: 45158910,
+        supply: 1018900472,
+        event: 'Aave USDC, util ≥95% 2024-03-13',
+        onset: '2024-03-13T03:00Z',
+      },
+      worst: {
+        cash: 7085,
+        supply: 2633752857,
+        event: 'Aave USDC, Kelp Apr-2026',
+        onset: '2026-04-19T04:00Z',
+      },
+    },
   },
   'aave-core-usdt': {
+    venue: 'aave-core-usdt',
     symbol: 'USDT',
-    stressHours: 6467,
-    cash: { p50: 376821969, p5: 50870265, min: 1463 },
-    fracPct: { p50: 15.97, p5: 4.948, min: 0 },
+    events: 40,
+    cash8: {
+      typical: {
+        cash: 293497196,
+        supply: 2953126771,
+        event: 'Aave USDT, ETH -16% 2024-12-19',
+        onset: '2024-12-19T17:00Z',
+      },
+      bad: {
+        cash: 39161517,
+        supply: 446087153,
+        event: 'Aave USDT, ETH -11.5% 2024-01-03',
+        onset: '2024-01-03T12:00Z',
+      },
+      worst: {
+        cash: 2648,
+        supply: 3534374209,
+        event: 'Aave USDT, Kelp Apr-2026',
+        onset: '2026-04-19T01:00Z',
+      },
+    },
   },
-  'aave-core-weth': {
-    symbol: 'WETH',
-    stressHours: 6467,
-    cash: { p50: 195730.748, p5: 22292.001, min: 0.006 },
-    fracPct: { p50: 13.45, p5: 1.088, min: 0 },
-  },
-  'spark-dai': {
-    symbol: 'DAI',
-    stressHours: 6467,
-    cash: { p50: 87255256, p5: 5463782, min: 0 },
-    fracPct: { p50: 10.99, p5: 0.909, min: 0 },
-  },
-  'spark-usdc': {
-    symbol: 'USDC',
-    stressHours: 1181,
-    cash: { p50: 9037680, p5: 5151173, min: 1150011 },
-    fracPct: { p50: 18.075, p5: 9.755, min: 2.235 },
-  },
-  'spark-usds': {
-    symbol: 'USDS',
-    stressHours: 2927,
-    cash: { p50: 118797436, p5: 40071915, min: 30604856 },
-    fracPct: { p50: 27.758, p5: 19.94, min: 14.845 },
-  },
-  'spark-usdt': {
-    symbol: 'USDT',
-    stressHours: 2360,
-    cash: { p50: 93430754, p5: 6255207, min: 2861 },
-    fracPct: { p50: 23.713, p5: 4.886, min: 0.001 },
-  },
-  'spark-weth': {
-    symbol: 'WETH',
-    stressHours: 6467,
-    cash: { p50: 56944.831, p5: 29283.978, min: 5877.259 },
-    fracPct: { p50: 16.637, p5: 10.017, min: 2.539 },
+  'aave-core-usde': {
+    venue: 'aave-core-usde',
+    symbol: 'USDe',
+    events: 14,
+    cash8: {
+      typical: {
+        cash: 152188792,
+        supply: 819414970,
+        event: 'Aave USDe, ETH -12.4% 2025-11-13',
+        onset: '2025-11-13T18:00Z',
+      },
+      bad: {
+        cash: 60399,
+        supply: 1019549271,
+        event: 'Aave USDe, Kelp Apr-2026',
+        onset: '2026-04-19T08:42Z',
+      },
+      worst: {
+        cash: 10149,
+        supply: 193671195,
+        event: 'Aave USDe, util ≥95% 2026-05-06',
+        onset: '2026-05-06T18:53Z',
+      },
+    },
   },
   'morpho-steakhouse-usdc': {
+    venue: 'morpho-steakhouse-usdc',
     symbol: 'USDC',
-    stressHours: 4953,
-    cash: { p50: 15162686, p5: 5536955, min: 435797 },
-    fracPct: { p50: 11.325, p5: 7.507, min: 0.734 },
+    events: 26,
+    cash8: {
+      typical: {
+        cash: 15011500,
+        supply: 163564600,
+        event: 'Steakhouse USDC, ETH -11.5% 2025-06-13',
+        onset: '2025-06-13T01:00Z',
+      },
+      bad: {
+        cash: 2592825,
+        supply: 53923963,
+        event: 'Steakhouse USDC, util ≥95% 2024-11-09',
+        onset: '2024-11-09T07:00Z',
+      },
+      worst: {
+        cash: 1668478,
+        supply: 58109859,
+        event: 'Steakhouse USDC, util ≥95% 2024-11-19',
+        onset: '2024-11-19T05:00Z',
+      },
+    },
   },
-} as const satisfies Record<string, VenueStressCashLevels>
+  'spark-usdc': {
+    venue: 'spark-usdc',
+    symbol: 'USDC',
+    events: 9,
+    cash8: {
+      typical: {
+        cash: 7943928,
+        supply: 50001235,
+        event: 'Spark USDC, ETH -10.4% 2025-12-01',
+        onset: '2025-12-01T15:00Z',
+      },
+      bad: {
+        cash: 1900325,
+        supply: 51464085,
+        event: 'Spark USDC, util ≥95% 2025-04-16',
+        onset: '2025-04-16T09:00Z',
+      },
+      worst: {
+        cash: 1900325,
+        supply: 51464085,
+        event: 'Spark USDC, util ≥95% 2025-04-16',
+        onset: '2025-04-16T09:00Z',
+      },
+    },
+  },
+  'spark-usdt': {
+    venue: 'spark-usdt',
+    symbol: 'USDT',
+    events: 12,
+    cash8: {
+      typical: {
+        cash: 25871043,
+        supply: 297929541,
+        event: 'Spark USDT, ETH -10.4% 2025-12-01',
+        onset: '2025-12-01T15:00Z',
+      },
+      bad: {
+        cash: 4377,
+        supply: 403348520,
+        event: 'Spark USDT, util ≥99% 2026-05-20',
+        onset: '2026-05-20T09:00Z',
+      },
+      worst: {
+        cash: 4320,
+        supply: 457784663,
+        event: 'Spark USDT, util ≥99% 2026-05-08',
+        onset: '2026-05-08T11:00Z',
+      },
+    },
+  },
+  'spark-dai': {
+    venue: 'spark-dai',
+    symbol: 'DAI',
+    events: 42,
+    cash8: {
+      typical: {
+        cash: 60701401,
+        supply: 1108999501,
+        event: 'Spark DAI, ETH -29.3% 2025-02-02',
+        onset: '2025-02-02T22:00Z',
+      },
+      bad: {
+        cash: 6163,
+        supply: 872957474,
+        event: 'Spark DAI, util ≥99% 2024-01-30',
+        onset: '2024-01-30T10:00Z',
+      },
+      worst: {
+        cash: 0,
+        supply: 1135498330,
+        event: 'Spark DAI, util ≥99% 2024-10-31',
+        onset: '2024-10-31T23:00Z',
+      },
+    },
+  },
+  'spark-usds': {
+    venue: 'spark-usds',
+    symbol: 'USDS',
+    events: 12,
+    cash8: {
+      typical: {
+        cash: 99471850,
+        supply: 434503163,
+        event: 'Spark USDS, ETH -10.1% 2026-02-03',
+        onset: '2026-02-05T15:00Z',
+      },
+      bad: {
+        cash: 48641475,
+        supply: 146023890,
+        event: 'Spark USDS, ETH -10.4% 2025-12-01',
+        onset: '2025-12-01T15:00Z',
+      },
+      worst: {
+        cash: 30604856,
+        supply: 95889233,
+        event: 'Spark USDS, Kelp Apr-2026',
+        onset: '2026-04-18T20:00Z',
+      },
+    },
+  },
+  'aave-core-weth': {
+    venue: 'aave-core-weth',
+    symbol: 'WETH',
+    events: 31,
+    cash8: {
+      typical: {
+        cash: 205795.505,
+        supply: 1854186.052,
+        event: 'Aave WETH, ETH -29.3% 2025-02-02',
+        onset: '2025-02-02T22:00Z',
+      },
+      bad: {
+        cash: 94999.666,
+        supply: 1025742.058,
+        event: 'Aave WETH, Aug-2024 yen-carry unwind',
+        onset: '2024-08-05T00:00Z',
+      },
+      worst: {
+        cash: 0.008,
+        supply: 2711287.683,
+        event: 'Aave WETH, Kelp Apr-2026',
+        onset: '2026-04-18T20:00Z',
+      },
+    },
+  },
+  'spark-weth': {
+    venue: 'spark-weth',
+    symbol: 'WETH',
+    events: 29,
+    cash8: {
+      typical: {
+        cash: 55859.674,
+        supply: 350368.714,
+        event: 'Spark WETH, ETH -14.8% 2025-02-24',
+        onset: '2025-02-24T22:00Z',
+      },
+      bad: {
+        cash: 32333.994,
+        supply: 306243.97,
+        event: 'Spark WETH, ETH -29.3% 2025-02-02',
+        onset: '2025-02-02T22:00Z',
+      },
+      worst: {
+        cash: 8172.561,
+        supply: 254803.479,
+        event: 'Spark WETH, Kelp Apr-2026',
+        onset: '2026-04-18T20:00Z',
+      },
+    },
+  },
+} as const satisfies Record<string, ExitReadoutCashRow>
+// </generated:exit-readout-levels>
 
-/** A summary.json venue id. */
+/** A history.json venue id with readout levels. */
 export type ExitReadoutVenue = keyof typeof EXIT_READOUT_VENUE_LEVELS
 
-export type ExitReadoutLevel = 'now' | 'p50' | 'p5' | 'min'
+export type ExitReadoutLevel = 'now' | StressEventLevel
 
 /** Display order: now first, then deeper into stress. */
-export const EXIT_READOUT_LEVELS: readonly ExitReadoutLevel[] = ['now', 'p50', 'p5', 'min']
+export const EXIT_READOUT_LEVELS: readonly ExitReadoutLevel[] = ['now', 'typical', 'bad', 'worst']
 
 export function isExitReadoutVenue(v: string): v is ExitReadoutVenue {
   return Object.prototype.hasOwnProperty.call(EXIT_READOUT_VENUE_LEVELS, v)
@@ -186,15 +383,22 @@ export interface ExitReadout {
   /** deposit > crossover: less than the whole deposit exits on the headline. */
   readonly binds: boolean
   /**
-   * The floor pays more than the headline: deposit > cash / f. On 'now' that is a deposit
-   * larger than the venue's whole supply, which the observed venue is no analog for. Flagged,
-   * not dropped (owner ruling 2026-10-07, `bookExceedsVenue`).
+   * The deposit is larger than the venue's whole supply at the level's event (on 'now', at the
+   * reading). The observed venue is no analog for it: if the deposit had been in it, it would
+   * have been a different venue. Flagged, not dropped (owner ruling 2026-10-07,
+   * `bookExceedsVenue`).
    */
   readonly exceedsVenue: boolean
+  /** The venue's supply at the level's event or the reading, USD. */
+  readonly supplyUsd: number
   /** 'now': the reading's time. A stress level: the end of the measured range. */
   readonly asOf: string
   /** Hours since the 'now' reading; null for a stress level. */
   readonly ageHours: number | null
+  /** The headline's event ('Aave USDC, Kelp Apr-2026'); null for 'now'. */
+  readonly event: string | null
+  /** The floor's event, which can differ (module header); null for 'now'. */
+  readonly floorEvent: string | null
 }
 
 export type ExitReadoutRefusal =
@@ -250,7 +454,7 @@ export function exitReadout(
   if (!isExitReadoutVenue(venue)) {
     return refuse('unknown_venue', `${venue} has no measured stress levels`)
   }
-  const v: VenueStressCashLevels = EXIT_READOUT_VENUE_LEVELS[venue]
+  const v: ExitReadoutCashRow = EXIT_READOUT_VENUE_LEVELS[venue]
 
   let unitUsd = 1
   if (!VENUE_STABLE_SYMBOLS.includes(v.symbol)) {
@@ -261,8 +465,11 @@ export function exitReadout(
   }
 
   let cash: number
+  let supply: number
   let f: number
   let asOf: string = EXIT_READOUT_SOURCE.to
+  let event: string | null = null
+  let floorEvent: string | null = null
   let ageHours: number | null = null
   if (level === 'now') {
     const r = opts.now
@@ -285,11 +492,17 @@ export function exitReadout(
     f = fr
     // A paused reserve answers nothing, whatever its balance (venueStressRules).
     cash = fr === 0 ? 0 : r.cash
+    supply = r.supply
     asOf = r.asOf
     ageHours = ageMs / HOUR_MS
   } else {
-    cash = v.cash[level]
-    f = Math.min(1, Math.max(0, v.fracPct[level] / 100))
+    const floor = EXIT_CAPACITY_FLOOR_ROWS.find((r) => r.venue === venue && r.level === level)
+    if (!floor) return refuse('unknown_venue', `${venue} has no engine floor at ${level}`)
+    cash = v.cash8[level].cash
+    supply = v.cash8[level].supply
+    event = v.cash8[level].event
+    f = Math.min(1, Math.max(0, floor.mult))
+    floorEvent = `${floor.venueName}, ${floor.event}`
   }
 
   const cashUsd = Math.max(0, cash) * unitUsd
@@ -309,9 +522,12 @@ export function exitReadout(
     floorUsd,
     crossoverUsd: cashUsd,
     binds: d > cashUsd,
-    exceedsVenue: floorUsd > reachableUsd,
+    exceedsVenue: d > supply * unitUsd,
+    supplyUsd: supply * unitUsd,
     asOf,
     ageHours,
+    event,
+    floorEvent,
   }
 }
 

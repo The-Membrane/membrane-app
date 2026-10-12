@@ -2,6 +2,7 @@ import type { CarryForecastRegistry } from './forecastRegistry'
 import type { readAavePrimaryEventFacts } from './aavePrimaryEventFacts.server'
 import type { readRoutePrimaryCashFacts } from './routePrimaryCashFacts.server'
 import { resolveRouteNewsSource } from './routeNewsSources'
+import {selectedRouteWireContext,type RouteWireContext} from './routeWireBinding'
 
 const ADDRESS = /^0x[0-9a-f]{40}$/
 const RAW = /^(0|[1-9][0-9]*)$/
@@ -125,6 +126,7 @@ type ContextCapacity =
   | { status: 'source_unavailable'; reason: 'source_unavailable' }
 
 export type RouteEventContext = {
+  wireStories?: RouteWireContext
   measuredCashFacts?: ReturnType<typeof readRoutePrimaryCashFacts>
   primaryEvents?: ReturnType<typeof readAavePrimaryEventFacts>
   status: 'route_event_context'
@@ -434,6 +436,7 @@ export function buildRouteEventContext(
   sources: RouteEventContextSources,
   nowMs = Date.now(),
   newsSource = venue,
+  wireStories?: RouteWireContext,
 ): RouteEventContext {
   if (
     !validRouteEventQuestion(question) ||
@@ -458,6 +461,7 @@ export function buildRouteEventContext(
     holderExecutableExit: false,
     coverage: ROUTE_EVENT_FEED_COVERAGE,
     newsCoverage: ROUTE_NEWS_FEED_COVERAGE,
+    ...(selectedRouteWireContext(wireStories,question,nowMs)?{wireStories}:{}),
   }
 }
 

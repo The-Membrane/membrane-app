@@ -4,6 +4,9 @@ import type {HolderExitMechanicalRequest} from '@/lib/carry/holderExitMechanical
 import {buildHastraConditionalFinalExit} from '@/lib/carry/hastraConditionalFinalExit'
 import {buildTwyneConditionalFinalExit} from '@/lib/carry/twyneConditionalFinalExit'
 import type {ConditionalMultilegConversion} from '@/lib/carry/conditionalMultilegConversion'
+import {issueForeignConditionalFinalExit} from '@/lib/carry/foreignFinalExitIssuer.server'
+import {retainForeignFinalExit,selectedForeignFinalExit} from '@/lib/carry/foreignFinalExitReceipt'
+import type {HolderExitAssessmentRequest} from '@/lib/carry/holderExitAssessment'
 const now=Date.parse('2026-10-12T12:00:00.000Z'),owner='0x0000000000000000000000000000000000000001'
 function fixture(twyne=false){
  const route=twyne?'USDe → AaveV3ATokenWrapper [PT-srUSDe-22OCT2026]':'PYUSD → StakingVault [wYLDS]',destination=twyne?'0x0af56afbddcb140323445bd7211ba90e54e5fd1c':'0x19ebb35279a16207ec4ba82799cc64715065f7f6',asset=twyne?'0x4c9edd5852cd905f086c759e8383e09bff1e68b3':'0x6c3ea9036406852006290770bedfcaba0e23a0e8'
@@ -50,4 +53,31 @@ it('rejects copies before qualification, wrong holder/Q/source, future quotes an
  expect(buildTwyneConditionalFinalExit(a,q,()=>true,{conversion:c,qualifyConversion:()=>true})!.conditionalFinalConversion).toBeNull()
  c.inputDecimals=18;c.availableAtUtc=new Date(now+1).toISOString();expect(buildTwyneConditionalFinalExit(a,q,()=>true,{conversion:c,qualifyConversion:()=>true})!.conditionalFinalConversion).toBeNull()
  c.availableAtUtc=new Date(now).toISOString();c.basis='qualified_current_exact_size_quote';c.currentSource={...a.source,blockNumber:26200001};expect(buildTwyneConditionalFinalExit(a,q,()=>true,{conversion:c,qualifyConversion:()=>true})!.conditionalFinalConversion).toBeNull()
+})
+it('issues only from original agreeing entire source/queue/first-leg bodies and exact separate share probes',()=>{
+ for(const twyne of [false,true]){
+ const {a,q}=fixture(twyne),b=structuredClone(a);a.source.originValidation='single_provider';b.source.originValidation='single_provider'
+ const first={host:'one.example',assessment:a},second={host:'two.example',assessment:b},input={...q,horizonHours:48,...(twyne?{ptRaw:a.twyneCondition!.requestedPtRaw,collateralVault:a.twyneCondition!.collateralVault}:{primeSharesRaw:a.pyusdStakingCondition!.requestedPrimeSharesRaw})} as unknown as HolderExitAssessmentRequest
+ const qualify=(x:typeof first,y:typeof second)=>x===first&&y===second
+ expect(issueForeignConditionalFinalExit(input,first,second,now,qualify)).not.toBeNull()
+ expect(a.source.originValidation).toBe('single_provider')
+ expect(issueForeignConditionalFinalExit(input,{...first},second,now,qualify)).toBeNull()
+ expect(issueForeignConditionalFinalExit({...input,...(twyne?{ptRaw:'1'}:{primeSharesRaw:'1'})},first,second,now,qualify)).toBeNull()
+ if(twyne)b.twyneCondition!.simulatedReturnedPtRaw='1';else b.pyusdYieldQueueCondition!.pendingUsdcRaw='1'
+ expect(issueForeignConditionalFinalExit(input,first,second,now,qualify)).toBeNull()
+ }
+})
+it('retains successful own transport and rejects copied receipt, changed probe/source and selected model mutation',()=>{
+ for(const twyne of [false,true]){
+ const {a,q}=fixture(twyne),model=twyne?buildTwyneConditionalFinalExit(a,q,()=>true)!:buildHastraConditionalFinalExit(a,q,()=>true)!
+ const question={routeKey:q.routeKey,destination:q.destinationAddress,owner:q.owner,requestedRaw:q.assetsRaw,payoutAsset:q.assetAddress,horizonHours:48,asOfMs:now,primeSharesRaw:twyne?null:a.pyusdStakingCondition!.requestedPrimeSharesRaw,ptRaw:twyne?a.twyneCondition!.requestedPtRaw:null,collateralVault:twyne?a.twyneCondition!.collateralVault:null}
+ const issue=retainForeignFinalExit(model,200,a,question)!
+ expect(issue).not.toBeNull();expect(retainForeignFinalExit(model,500,a,question)).toBeNull()
+ expect(selectedForeignFinalExit({...issue},a,question)).toBeNull()
+ expect(selectedForeignFinalExit(issue,a,{...question,requestedRaw:'2'})).toBeNull()
+ expect(selectedForeignFinalExit(issue,a,{...question,...(twyne?{ptRaw:'2'}:{primeSharesRaw:'2'})})).toBeNull()
+ const changed=structuredClone(a);changed.source.blockNumber++;expect(selectedForeignFinalExit(issue,changed,question)).toBeNull()
+ const selected=selectedForeignFinalExit(issue,a,question)!;selected.scenarios[0].requestedHeadroomRaw='0'
+ expect(selectedForeignFinalExit(issue,a,question)).toBeNull()
+ }
 })

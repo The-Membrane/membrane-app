@@ -1,3 +1,4 @@
+import { issueForeignConditionalFinalExit, type ForeignConditionalFinalExit } from '@/lib/carry/foreignFinalExitIssuer.server'
 import { buildSaturnOwnedTicketConditionalMechanism } from '@/lib/carry/saturnOwnedTicketConditionalMechanism'
 import { createHash } from 'node:crypto'
 import { readAvailablePinnedForecastArtifacts } from '@/lib/carry/pinnedForecastArtifacts.server'
@@ -190,6 +191,7 @@ export type HolderExitAssessmentApiRequest = HolderExitAssessmentRequest & {
   forecastSourceReference?: HolderExitForecastSourceReference
 }
 export type HolderExitAssessmentApiView = HolderExitAssessmentView & {
+  foreignConditionalFinalExit?: ForeignConditionalFinalExit | null
   executionAgreement?: HolderExitConditionalProjectionEvidence
   capacityAgreement?: HolderExitCapacityAgreement
   stusdsCurrentProtocolCapacityEvidence?: NonNullable<
@@ -1524,6 +1526,9 @@ function agreedExecutionResponse(
   }
   // Optional quotes require their own original agreement: the general assessment
   // comparator deliberately excludes them and cannot grant conversion authority.
+  response.foreignConditionalFinalExit=issueForeignConditionalFinalExit(input,first,second,Date.now(),(a,b)=>
+    a===first&&b===second&&sameHolderExitAssessment(a.assessment,b.assessment)&&
+    isCurrentHolderExitAssessment(a.assessment,Date.now())&&isCurrentHolderExitAssessment(b.assessment,Date.now()))
   const ticketOriginal = withAgreedOptionalEvidence(first.assessment, second.assessment)
   const ticketAssessment = holderExitAssessmentResponse(ticketOriginal)
   const ticketRequest = {routeKey:input.routeKey,destinationAddress:input.destinationAddress,

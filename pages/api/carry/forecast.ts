@@ -2630,7 +2630,7 @@ export async function carryForecastRequest(
             horizonHours,
             asOfMs: Date.now(),
             nativeAgreement:
-              nativeFacts.status === 'agreed_initial_deposit_native_facts' ? nativeFacts : null,
+              ['agreed_initial_deposit_native_facts','agreed_compound_initial_deposit_facts'].includes(nativeFacts.status) ? nativeFacts : null,
             nativeUnavailableReason:
               nativeFacts.status === 'unavailable' ? nativeFacts.reason : undefined,
           },

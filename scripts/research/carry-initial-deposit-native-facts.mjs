@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto'
 import { createPublicClient, http, parseAbi } from 'viem'
 import { readEnv } from '../lib/venue-reads.mjs'
+import { selectedCompoundInitialDepositAgreement } from '../../lib/carry/compoundInitialDeposit.ts'
 import {
   initialDepositMarket,
   selectedInitialDepositNativeAgreement,
@@ -19,6 +20,12 @@ const abi = parseAbi([
   'function getReserveData(address) view returns ((uint256 configuration,uint128 liquidityIndex,uint128 currentLiquidityRate,uint128 variableBorrowIndex,uint128 currentVariableBorrowRate,uint128 currentStableBorrowRate,uint40 lastUpdateTimestamp,uint16 id,address aTokenAddress,address stableDebtTokenAddress,address variableDebtTokenAddress,address interestRateStrategyAddress,uint128 accruedToTreasury,uint128 unbacked,uint128 isolationModeTotalDebt))',
   'function getReserveNormalizedIncome(address) view returns (uint256)',
   'function scaledTotalSupply() view returns (uint256)',
+  'function baseToken() view returns (address)',
+  'function decimals() view returns (uint8)',
+  'function isSupplyPaused() view returns (bool)',
+  'function totalsBasic() view returns (uint64 baseSupplyIndex,uint64 baseBorrowIndex,uint64 trackingSupplyIndex,uint64 trackingBorrowIndex,uint104 totalSupplyBase,uint104 totalBorrowBase,uint40 lastAccrualTime,uint8 pauseFlags)',
+  'function getUtilization() view returns (uint256)',
+  'function getSupplyRate(uint256) view returns (uint64)',
 ])
 function host(url) {
   try {
@@ -163,6 +170,17 @@ async function sourceNativeFacts(source, { origins, clock = Date.now }, read) {
       return unavailable('native_source_header_disagreement')
     const facts = await Promise.all(
       origins.map(async ({ client }) => {
+        if (source.routeKey === 'USDC → supply on Compound v3') {
+          const contract = (functionName,args=[]) => call(()=>client.readContract({address:source.destination,abi,functionName,args,blockNumber}))
+          const asset=await contract('baseToken'),decimals=await contract('decimals'),paused=await contract('isSupplyPaused')
+          const totals=await contract('totalsBasic'),utilization=await contract('getUtilization'),rate=await contract('getSupplyRate',[utilization])
+          const timestamp=BigInt(Date.parse(source.blockTime)/1000),last=totals[6],stored=totals[0]
+          if(typeof asset!=='string'||asset.toLowerCase()!==source.asset||Number(decimals)!==6||typeof paused!=='boolean'||
+            !uint(stored)||!uint(last)||!uint(rate)||last>timestamp||rate>=1n<<64n)throw Error('native_compound_facts_invalid')
+          const accrued=stored+stored*rate*(timestamp-last)/10n**18n
+          if(accrued===0n||accrued>=1n<<64n)throw Error('native_compound_index_overflow')
+          return {comet:source.destination,asset:source.asset,assetDecimals:6,baseSupplyIndexRaw:String(accrued),supplyPaused:paused}
+        }
         const reserve = await call(() =>
           client.readContract({
             address: m.pool,
@@ -221,7 +239,7 @@ async function sourceNativeFacts(source, { origins, clock = Date.now }, read) {
     const now = clock()
     if (!validSource(source, now)) return unavailable('initial_deposit_source_stale')
     const result = {
-      status: 'agreed_initial_deposit_native_facts',
+      status: source.routeKey === 'USDC → supply on Compound v3' ? 'agreed_compound_initial_deposit_facts' : 'agreed_initial_deposit_native_facts',
       currentSource: structuredClone(source),
       readAt: new Date(now).toISOString(),
       origins: origins.map((o, i) => ({
@@ -230,7 +248,7 @@ async function sourceNativeFacts(source, { origins, clock = Date.now }, read) {
       })),
     }
     return (
-      selectedInitialDepositNativeAgreement(result, source, now) ??
+      (source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(result,source,now) : selectedInitialDepositNativeAgreement(result, source, now)) ??
       unavailable('native_facts_disagreeing')
     )
   } catch {
@@ -238,7 +256,7 @@ async function sourceNativeFacts(source, { origins, clock = Date.now }, read) {
   }
 }
 
-/** Five sequential requests per origin, with one shared finite acquisition budget. */
+/** At most eight sequential requests per origin, with one shared finite acquisition budget. */
 export async function readInitialDepositNativeFacts(source, options = {}) {
   const read = acquisition(options.signal)
   return boundedRead(read, () => sourceNativeFacts(source, options, read))
@@ -316,7 +334,7 @@ export async function readConfiguredInitialDepositNativeFacts(source, options = 
       options.cache !== false &&
       cached &&
       now - Date.parse(cached.readAt) <= CACHE_TTL &&
-      selectedInitialDepositNativeAgreement(cached, source, now)
+      (source.routeKey === 'USDC → supply on Compound v3' ? selectedCompoundInitialDepositAgreement(cached,source,now) : selectedInitialDepositNativeAgreement(cached, source, now))
     )
       return structuredClone(cached)
     if (pending.has(key)) return sharedReadResult(pending.get(key), options.signal)
@@ -339,7 +357,7 @@ export async function readConfiguredInitialDepositNativeFacts(source, options = 
         const result = await boundedRead(budget, () =>
           sourceNativeFacts(source, { ...options, origins }, budget),
         )
-        if (options.cache !== false && result.status === 'agreed_initial_deposit_native_facts') {
+        if (options.cache !== false && ['agreed_initial_deposit_native_facts','agreed_compound_initial_deposit_facts'].includes(result.status)) {
           if (cache.size >= CACHE_LIMIT) cache.delete(cache.keys().next().value)
           cache.set(key, structuredClone(result))
         }

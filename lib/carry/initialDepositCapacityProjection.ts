@@ -1,4 +1,5 @@
 import { DIRECT_SUPPLY_MARKETS } from './directSupplyMarketConstants'
+import { compoundInitialDepositReceipt, selectedCompoundInitialDepositAgreement } from './compoundInitialDeposit'
 import {
   selectedConditionalSampledCashPathProjection,
   type ConditionalSampledCashCurrentSource,
@@ -40,6 +41,7 @@ export const INITIAL_DEPOSIT_MARKETS = [
   { ...DIRECT_SUPPLY_MARKETS.aaveV3Usdc, pool: '0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2' },
   { ...DIRECT_SUPPLY_MARKETS.aaveV3Usde, pool: '0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2' },
   { ...DIRECT_SUPPLY_MARKETS.sparkLendUsdt, pool: '0xc13e21b648a5ee794902342038ff3adab66be987' },
+  { ...DIRECT_SUPPLY_MARKETS.compoundV3Usdc, pool: DIRECT_SUPPLY_MARKETS.compoundV3Usdc.destination.toLowerCase() },
 ] as const
 export const initialDepositMarket = (routeKey: string, destination: string) =>
   INITIAL_DEPOSIT_MARKETS.find(
@@ -98,7 +100,7 @@ export function selectedInitialDepositNativeAgreement(
     const { readAt: _cashReadAt, ...sourceIdentity } = source
     const { readAt: nativeCashReadAt, ...nativeIdentity } = nativeSource ?? {}
     if (
-      !m ||
+      !m || m.routeKey === DIRECT_SUPPLY_MARKETS.compoundV3Usdc.routeKey ||
       source.asset !== m.underlying.toLowerCase() ||
       source.assetDecimals !== m.decimals ||
       !record(value) ||
@@ -196,12 +198,14 @@ export function buildInitialDepositCapacityProjection(
       source,
       input.asOfMs,
     )
-    const receipt = native
+    const compound = selectedCompoundInitialDepositAgreement(input.nativeAgreement,source,input.asOfMs)
+    const compoundReceipt=compound?compoundInitialDepositReceipt(input.depositAssetsRaw,compound.origins[0].facts.baseSupplyIndexRaw):null
+    const receipt = compoundReceipt ?? (native
       ? sourceIndexedInitialReceipt(
           input.depositAssetsRaw,
           native.origins[0].facts.normalizedIncomeRaw,
         )
-      : null
+      : null)
     const flags = native ? BigInt(native.origins[0].facts.configurationRaw) : null
     const active = flags === null ? null : Boolean((flags >> 56n) & 1n)
     const frozen = flags === null ? null : Boolean((flags >> 57n) & 1n)
@@ -282,7 +286,10 @@ export function buildInitialDepositCapacityProjection(
         observed: false as const,
       },
       hypotheticalReceipt:
-        receipt && native
+        compoundReceipt && compound ? {status:'conditional_source_comet_principal_receipt' as const,
+          ...compoundReceipt,baseSupplyIndexRaw:compound.origins[0].facts.baseSupplyIndexRaw,
+          indexAt:source.blockTime,nativeFactsReadAt:compound.readAt,
+          indexPath:'held_constant_at_source_index' as const,newAccountWithoutDebtAssumed:true as const} : receipt && native
           ? {
               status: 'conditional_source_indexed_receipt' as const,
               ...receipt,
@@ -300,12 +307,14 @@ export function buildInitialDepositCapacityProjection(
             ),
       admission: {
         status:
-          active === false || frozen === true || paused === true || (native && !receipt)
+          active === false || frozen === true || paused === true || compound?.origins[0].facts.supplyPaused === true || ((native || compound) && !receipt)
             ? ('blocked_under_reference_rules' as const)
             : ('unknown' as const),
         active,
         frozen,
         paused,
+        compoundSupplyPaused:compound?.origins[0].facts.supplyPaused??null,
+        newAccountWithoutDebtAssumed:compound?true:null,
         supplyCapAssetsRaw:
           flags === null ? null : String(((flags >> 116n) & ((1n << 36n) - 1n)) * 10n ** BigInt(source.assetDecimals)),
         scaledTotalSupplyRaw: native?.origins[0].facts.scaledTotalSupplyRaw ?? null,
@@ -313,7 +322,7 @@ export function buildInitialDepositCapacityProjection(
         capAssessment: 'display_only_treasury_update_before_validation_unassessed' as const,
         deployedVersionEquivalence: 'conditional_unverified' as const,
       },
-      nativeAgreement: native,
+      nativeAgreement: native ?? compound,
       cashOnlyProcess,
       process,
       evidence: structuredClone(cash.evidence),
@@ -332,6 +341,7 @@ export function buildInitialDepositCapacityProjection(
       sourceReferences: [
         'https://raw.githubusercontent.com/aave/aave-v3-origin/main/src/contracts/protocol/libraries/logic/SupplyLogic.sol',
         'https://raw.githubusercontent.com/sparkdotfi/sparklend-v1-core/master/contracts/protocol/libraries/logic/SupplyLogic.sol',
+        'https://raw.githubusercontent.com/compound-finance/comet/main/contracts/Comet.sol',
       ],
       depositAdmitted: false as const,
       depositExecuted: false as const,

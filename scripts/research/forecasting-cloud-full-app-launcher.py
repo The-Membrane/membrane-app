@@ -111,7 +111,7 @@ def main():
             additions = spec.get('nonsecretEnv', {})
             if not isinstance(additions, dict) or any(k not in ['MEMBRANE_CLOUD_ACCEPTANCE', 'MEMBRANE_CLOUD_BROWSER_OUTPUT'] for k in additions):
                 raise RuntimeError('nonsecret_env_not_allowlisted')
-            if 'MEMBRANE_CLOUD_ACCEPTANCE' in additions and additions['MEMBRANE_CLOUD_ACCEPTANCE'] != '1':
+            if 'MEMBRANE_CLOUD_ACCEPTANCE' in additions and additions['MEMBRANE_CLOUD_ACCEPTANCE'] != 'fixture':
                 raise RuntimeError('nonsecret_acceptance_value_invalid')
             if 'MEMBRANE_CLOUD_BROWSER_OUTPUT' in additions:
                 output = additions['MEMBRANE_CLOUD_BROWSER_OUTPUT']

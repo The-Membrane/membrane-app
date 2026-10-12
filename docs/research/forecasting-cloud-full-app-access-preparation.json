@@ -115,7 +115,42 @@
     "potentialBuildFontHosts": [
       "fonts.googleapis.com",
       "fonts.gstatic.com"
-    ]
+    ],
+    "nodeGuardHookCoverage": [
+      "globalThis.fetch",
+      "node:http.request",
+      "node:http.get",
+      "node:https.request",
+      "node:https.get"
+    ],
+    "nodeGuardMetadata": "stage, hook, normalized host:port, method, outcome only; no paths/query/credentials/options/env dump",
+    "stageSpecificNodeHostEnrollment": {
+      "production-build": {
+        "GET_https_443": [
+          "fonts.googleapis.com",
+          "fonts.gstatic.com"
+        ]
+      },
+      "bounded-http": {
+        "GET_POST_HEAD_http_3005": [
+          "127.0.0.1"
+        ]
+      },
+      "chromium-browser": {
+        "GET_POST_HEAD_http_3005": [
+          "127.0.0.1"
+        ]
+      },
+      "selftest": {}
+    },
+    "blockedAccessLedgerFailsStageEvenIfCaught": true,
+    "unsupportedHookCoverage": [
+      "raw sockets",
+      "native libraries",
+      "Chromium native transport beyond Playwright routing",
+      "kernel-wide denial"
+    ],
+    "nodeGuardFile": "scripts/research/forecasting-cloud-full-app-network-guard.cjs"
   },
   "state": "prepared_not_executed_not_accepted",
   "financialTransactions": false,

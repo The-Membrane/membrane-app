@@ -1,0 +1,20 @@
+{
+  "schema": "full_app_node_host_guard_static_review_cases_v1",
+  "state": "prepared_not_executed",
+  "allowed": [
+    {"stage":"production-build","hook":"https.get","url":"https://fonts.googleapis.com/css2?family=Inter","loggedHost":"fonts.googleapis.com:443","loggedMethod":"GET"},
+    {"stage":"production-build","hook":"fetch","url":"https://fonts.gstatic.com/font.woff2","loggedHost":"fonts.gstatic.com:443","loggedMethod":"GET"},
+    {"stage":"bounded-http","hook":"http.request","url":"http://127.0.0.1:3005/api/carry/holder-exit-assessment","method":"POST"},
+    {"stage":"chromium-browser","hook":"fetch","url":"http://127.0.0.1:3005/api/carry/forecast-universe","method":"GET"}
+  ],
+  "blocked": [
+    {"stage":"bounded-http","url":"https://fonts.googleapis.com/css2?family=Inter","reason":"fonts_build_only"},
+    {"stage":"production-build","url":"https://fonts.gstatic.com/font.woff2","method":"POST","reason":"fonts_GET_only"},
+    {"stage":"production-build","url":"https://eth.llamarpc.com","reason":"RPC_not_font_build_scope"},
+    {"stage":"chromium-browser","url":"http://127.0.0.1:8545","reason":"port_not3005"},
+    {"stage":"bounded-http","url":"http://localhost:3005","reason":"host_not_exact127"},
+    {"stage":"bounded-http","url":"http://127.0.0.1:3005","method":"DELETE","reason":"read_only_method_not_enrolled"},
+    {"stage":"selftest","url":"http://127.0.0.1:3005","reason":"selftest_no_network_enrollment"}
+  ],
+  "refutationRequirements": ["Blocked ledger event fails stage even when handler catches thrown guard error", "URL paths/query/credentials never appear in ledger", "Invalid targets log fixed invalid sentinel", "Native/raw socket coverage never inferred", "Stage kind is launcher-controlled, immutable in descendants", "Existing managed egress policy remains unchanged and authoritative"]
+}

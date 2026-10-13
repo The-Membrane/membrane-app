@@ -403,6 +403,15 @@ class TestGate(unittest.TestCase):
         g["pass"][:2] = True
         self.assertTrue(G.gate_summary(g)["passes"])
 
+    def test_intraday_peak(self):
+        blocks = [100, 200]
+        A = np.zeros((1, 2), dtype=np.int64)  # round trip inside the day: in $10M, out $10M + $1,100
+        ev = [10**13, -(10**13 + 1_100 * 10**6)]
+        g = G.gate_pairs(A, np.ones_like(A, dtype=bool), blocks, [0, 0], [120, 180], ev)
+        self.assertFalse(g["pass"][0])
+        pk = G.intraday_peaks(g, blocks, [0, 0], [120, 180], ev)
+        self.assertEqual(pk[0], 1e13)
+
     def test_interest_diagnostic(self):
         blocks = [100, 200]
         A = np.array([[10**12, 10**12 + 10**9]], dtype=np.int64)  # +0.1% with no event

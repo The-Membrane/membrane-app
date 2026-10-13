@@ -128,6 +128,12 @@ class FakeRpc(B.Rpc):
         if method == "eth_call":
             block = int(params[1], 16)
             data = bytes.fromhex(params[0]["data"][2:])
+            if data[:4] != B.SEL["aggregate3"]:  # direct call
+                ok, ret = self.chain.sub(block, params[0]["to"], data)
+                out = "0x" + ret.hex()
+                if validate:
+                    validate(out)
+                return out
             calls = decode_calldata(data)
             out = "0x" + encode_result([self.chain.sub(block, t, d) for t, _, d in calls]).hex()
             if validate:
@@ -418,6 +424,75 @@ class TestStoreAndResume(unittest.TestCase):
             a = pop["USDC"]["rows"][123][0]
             self.assertEqual(recs[late]["bal"][("USDC", a)], chain.balance(a, blk))
             self.assertEqual(by[("asof", "USDC")]["block"], 5000)
+
+
+class TestEndToEndWrite(unittest.TestCase):
+    def test_population_validate_write(self):
+        import pandas as pd
+        rng = random.Random(3)
+        U = {r: sorted({"0x" + "%040x" % rng.getrandbits(160) for _ in range(60)}) for r in B.RESERVE_ORDER}
+        big = set(U["USDC"][10:15]) | set(U["USDT"][20:23])
+
+        class SelChain(FakeChain):
+            def balance(self, addr, block):  # only `big` addresses ever reach $1M, and only at some blocks
+                v = FakeChain.balance(addr, block)
+                return v % (10**12 - 1) if addr not in big or block % 2 else 10**12 + v
+
+        chain = SelChain(unlisted_usdt_before=1010)
+        flows = pd.DataFrame([
+            {"event_type": "supply", "reserve": "USDC", "user_id": U["USDC"][0], "amount_usd": 1_000_000.0},
+            {"event_type": "supply", "reserve": "USDC", "user_id": U["USDC"][1], "amount_usd": 999_999.99},
+            {"event_type": "withdraw", "reserve": "USDT", "user_id": U["USDT"][2], "amount_usd": 5_000_000.0},
+        ])
+        with tempfile.TemporaryDirectory() as d:
+            rpc = FakeRpc(chain)
+            ctx = TestStoreAndResume._ctx(None, d, rpc)
+            ctx._U = U
+            B.phase_monthly(ctx, U)
+            pop = B.phase_population(ctx, U, flows)
+            exp_bal = {r: {a for (_, blk, rr, a, v) in B.monthly_table(ctx, U) if rr == r and isinstance(v, int)
+                           and v >= B.THRESHOLD_RAW} for r in B.RESERVE_ORDER}
+            got = {r: {row[0] for row in pop[r]["rows"]} for r in B.RESERVE_ORDER}
+            self.assertEqual(exp_bal["USDC"], set(U["USDC"][10:15]))
+            self.assertEqual(got["USDC"], exp_bal["USDC"] | {U["USDC"][0]})  # $999,999.99 does not qualify
+            self.assertEqual(got["USDT"], exp_bal["USDT"])  # withdraw events never qualify
+            self.assertEqual(pop["USDC"]["n_event_only"], 1)
+            B.phase_daily(ctx, pop)
+            recs = B.daily_records(ctx, pop)
+            rs_rows = B.reserve_state_rows(ctx, recs)
+            ddir = Path(d) / "ds"
+            (ddir / "rate-spike-flows").mkdir(parents=True)
+            hist = ["date,datetime_utc,symbol,total_liquidity_raw,total_debt_raw,utilization_pct,liquidity_rate_pct,variable_borrow_pct"]
+            for i, day in enumerate(B.daily_dates()[1:30]):
+                prev = (day - B.dt.timedelta(days=1)).isoformat()
+                hist.append(f"{prev},{prev} 23:00:00,USDC,{(10**15 + 1000 + i + 1) / 1e6 * 1.001},0,0,0,0")
+            (ddir / B.RESERVE_HISTORY_REL).write_text("\n".join(hist) + "\n")
+            val = B.phase_validate(ctx, pop, recs, rs_rows, ddir)
+            self.assertEqual(val["a"]["n"], 20)
+            self.assertEqual(val["a"]["n_equal"], 20)
+            self.assertEqual(val["b"]["USDC"]["n_days"], 29)
+            self.assertAlmostEqual(val["b"]["USDC"]["median_abs_rel_diff"], 0.001 / 1.001, places=6)
+            self.assertGreater(val["d"]["USDT"]["by_curve_abi"]["not_listed"], 0)
+            ctx.state["sessions"] = [{"start_utc": "x", "end_utc": "y", "code": {"sha": "abc", "branch": "b", "path": "p"},
+                                      "counts": rpc.counts}]
+            meta = B.build_run_meta(ctx, ctx.work)
+            files = B.phase_write(ctx, U, pop, recs, rs_rows, val, meta)
+            md = B.provenance_md(meta, files, val, pop)
+            self.assertIn("daily-balances-usdc.csv.gz", md)
+            for name in ("blocks.csv", "monthly-balances-usdc.csv.gz", "monthly-balances-usdt.csv.gz", "panel-population.csv",
+                         "daily-balances-usdc.csv.gz", "daily-balances-usdt.csv.gz", "reserve-state.csv", "run-log.json"):
+                self.assertIn(name, files)
+            dbal = pd.read_csv(Path(d) / "out" / "daily-balances-usdc.csv.gz", dtype={"balance_raw": "Int64"})
+            self.assertEqual(len(dbal), len(pop["USDC"]["rows"]) * (len(B.daily_dates()) + 1))
+            row = dbal.iloc[5]
+            blk = recs[row["snapshot"]]["block"]
+            self.assertEqual(int(row["balance_raw"]), chain.balance(row["address"], blk))
+            mb = pd.read_csv(Path(d) / "out" / "monthly-balances-usdt.csv.gz")
+            self.assertTrue((mb["status"] == "empty").any() or (mb["balance_raw"].notna()).all())
+            rsdf = pd.read_csv(Path(d) / "out" / "reserve-state.csv")
+            self.assertEqual(len(rsdf), 2 * (len(B.daily_dates()) + 1))
+            bl = pd.read_csv(Path(d) / "out" / "blocks.csv")
+            self.assertTrue((bl.loc[bl["kind"] == "daily", "proof"] == "ok").all())
 
 
 class TestRpcPolicy(unittest.TestCase):

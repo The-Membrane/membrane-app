@@ -680,8 +680,10 @@ def write_provenance(out: Path, manifest: dict, checks: dict) -> None:
     sess_lines = []
     for s in manifest["sessions"]:
         c = s.get("code", {})
+        end = (f" FAILED ({s['failed']}); its outputs were rewritten by a later session" if s.get("failed") else
+               " STOPPED (see events.jsonl)" if s.get("stopped") else "")
         sess_lines.append(f"  {', '.join(s['phases'])}: HEAD `{c.get('sha')}`; builder `{c.get('file_last_commit')}`"
-                          f" (sha256 `{c.get('file_sha256')}`){' DIRTY' if c.get('dirty') else ''}.")
+                          f" (sha256 `{c.get('file_sha256')}`){' DIRTY' if c.get('dirty') else ''}{end}.")
     g = (manifest["sessions"] or [{}])[-1].get("code", {})
     h = manifest["http"]
     lines = [
@@ -777,6 +779,9 @@ def main(argv=None) -> int:
     except FetchStop as e:
         print(f"STOP: {e}", file=sys.stderr)
         rc = 2
+    except Exception as e:
+        session["failed"] = f"{type(e).__name__}: {e}"
+        raise
     finally:
         session["ended"] = now_utc()
         session["http"] = http_.stats()

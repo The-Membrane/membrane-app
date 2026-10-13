@@ -1,0 +1,122 @@
+# DRAFT — not enabled; needs owner approval (Q25)
+#
+# Prereg T5.4 (triccs/membrane-board design/VALIDATION_PREREG.md, commit 506e7c5). This file sits in
+# scripts/research/validation/drafts/, NOT in .github/workflows/, so GitHub never runs it.
+# Read drafts/README.md before enabling: it needs owner approval, a write deploy key for
+# triccs/membrane-datasets stored as the secret DATASETS_DEPLOY_KEY, and a copy of this file in
+# .github/workflows/ on the membrane-app DEFAULT branch (GitHub only runs schedules from there).
+#
+# Daily, UTC:
+#   00:07  m1_issue.py (T5.1) then deribit_chain_snapshot.py (T5.2), both with --commit
+#   00:37  m1_score.py (T5.3) with --commit
+# Code always comes from branch research/validation-pilots; data goes to triccs/membrane-datasets main.
+# issuedAt is the real run time: a delayed run issues late (its own asof), a missed day stays missing.
+
+name: m1-live (DRAFT)
+
+on:
+  schedule:
+    - cron: "7 0 * * *"    # 00:07 UTC  (written "07 0 * * *" in the prereg brief)
+    - cron: "37 0 * * *"   # 00:37 UTC
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "issue (issuer + chain snapshot) or score"
+        required: true
+        default: score
+        type: choice
+        options: [issue, score]
+
+permissions:
+  contents: read   # membrane-app is only read; datasets writes use the deploy key
+
+concurrency:
+  group: m1-live
+  cancel-in-progress: false
+
+jobs:
+  issue:
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '7 0 * * *') ||
+      (github.event_name == 'workflow_dispatch' && inputs.job == 'issue')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out membrane-app (research/validation-pilots)
+        uses: actions/checkout@v4
+        with:
+          repository: The-Membrane/membrane-app
+          ref: research/validation-pilots
+          path: app
+
+      - name: Check out membrane-datasets (deploy key, write)
+        uses: actions/checkout@v4
+        with:
+          repository: triccs/membrane-datasets
+          ref: main
+          path: datasets
+          ssh-key: ${{ secrets.DATASETS_DEPLOY_KEY }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install numpy (the only dependency)
+        run: python -m pip install "numpy==2.5.3"
+
+      - name: Git identity for the datasets commits
+        working-directory: datasets
+        run: |
+          git config user.name "membrane-validation-bot"
+          git config user.email "membrane-validation-bot@users.noreply.github.com"
+
+      - name: Issue the day's M1 forecasts (T5.1)
+        run: >-
+          python3 app/scripts/research/validation/m1_issue.py
+          --datasets datasets --out datasets --commit
+
+      - name: Raw Deribit option-chain snapshot (T5.2)
+        if: always()   # the snapshot is independent of the issue outcome
+        run: >-
+          python3 app/scripts/research/validation/deribit_chain_snapshot.py
+          --out datasets --commit
+
+  score:
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '37 0 * * *') ||
+      (github.event_name == 'workflow_dispatch' && inputs.job == 'score')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out membrane-app (research/validation-pilots)
+        uses: actions/checkout@v4
+        with:
+          repository: The-Membrane/membrane-app
+          ref: research/validation-pilots
+          path: app
+
+      - name: Check out membrane-datasets (deploy key, write)
+        uses: actions/checkout@v4
+        with:
+          repository: triccs/membrane-datasets
+          ref: main
+          path: datasets
+          ssh-key: ${{ secrets.DATASETS_DEPLOY_KEY }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install numpy (the only dependency)
+        run: python -m pip install "numpy==2.5.3"
+
+      - name: Git identity for the datasets commits
+        working-directory: datasets
+        run: |
+          git config user.name "membrane-validation-bot"
+          git config user.email "membrane-validation-bot@users.noreply.github.com"
+
+      - name: Score resolved rows (T5.3)
+        run: >-
+          python3 app/scripts/research/validation/m1_score.py
+          --datasets datasets --out datasets --commit

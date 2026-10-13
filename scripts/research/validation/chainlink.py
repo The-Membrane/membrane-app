@@ -389,8 +389,8 @@ class Feed:
 
 def window_min(rounds, t_a, t_b):
     """Minimum answer over (t_a, t_b] from a round list: the round in force at t_a (largest updatedAt
-    <= t_a) plus every round with updatedAt in (t_a, t_b]. Returns (min Round, n rounds used) or
-    (None, 0) when the list does not reach back to t_a (no in-force round known)."""
+    <= t_a) plus every round with updatedAt in (t_a, t_b]. Returns (min Round, rounds used, in-force
+    round first) or (None, []) when the list does not reach back to t_a (no in-force round known)."""
     in_force, used = None, []
     for r in sorted(rounds, key=lambda x: (x.updated_at, x.round_id)):
         if r.updated_at <= t_a:
@@ -398,6 +398,6 @@ def window_min(rounds, t_a, t_b):
         elif r.updated_at <= t_b:
             used.append(r)
     if in_force is None:
-        return None, 0
+        return None, []
     used = [in_force] + used
-    return min(used, key=lambda x: (x.answer, x.updated_at)), len(used)
+    return min(used, key=lambda x: (x.answer, x.updated_at)), used

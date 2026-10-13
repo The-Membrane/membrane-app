@@ -121,6 +121,9 @@ class TestChecks(unittest.TestCase):
         self.assertEqual(x["hours_gt_1pct"], 1)
         y = F.rel_diff_stats(a, b, to_ts=T0 + 2 * H)
         self.assertEqual(y["hours_both_present"], 1)
+        py = F.per_year(a, b, T0, T0 + 3 * H)
+        self.assertEqual(list(py), ["2015"])
+        self.assertEqual(py["2015"]["hours_both_present"], 2)
 
 
 class TestHoldoutRule(unittest.TestCase):

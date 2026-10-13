@@ -390,6 +390,19 @@ def rel_diff_stats(a: dict, b: dict, col: str = "close", from_ts: int | None = N
             "hours_gt_1pct": sum(1 for v in vals if v > 0.01)}
 
 
+def per_year(a: dict, b: dict, lo: int, hi: int) -> dict:
+    """rel_diff_stats restricted to each UTC calendar year in [lo, hi] (source agreement by year)."""
+    out = {}
+    for y in range(dt.datetime.fromtimestamp(lo, dt.timezone.utc).year,
+                   dt.datetime.fromtimestamp(hi, dt.timezone.utc).year + 1):
+        y0 = int(dt.datetime(y, 1, 1, tzinfo=dt.timezone.utc).timestamp())
+        y1 = int(dt.datetime(y + 1, 1, 1, tzinfo=dt.timezone.utc).timestamp()) - STEP
+        x = rel_diff_stats(a, b, "close", max(lo, y0), min(hi, y1))
+        out[str(y)] = {k: x[k] for k in ("hours_both_present", "median_abs_rel_diff", "p99_abs_rel_diff",
+                                         "hours_gt_1pct")}
+    return out
+
+
 def leveraged(base: str, all_bases: set[str]) -> bool:
     """A leveraged token comes as a pair X+UP / X+DOWN (or BULL/BEAR) of base assets on the exchange."""
     for s1, s2 in LEVERAGED_SUFFIX_PAIRS:
@@ -871,6 +884,11 @@ def phase_check(work: Path, out: Path, sel: dict) -> dict:
         ref = load_grid_file(p)
         res["inputs"][f"binance-klines/{p.name}"] = {"sha256": sha256_file(p), "bytes": p.stat().st_size}
         res["cross_check"][key] = rel_diff_stats(grids[cb], ref, "close", lo, hi)
+        res["cross_check"][key]["by_year"] = per_year(grids[cb], ref, lo, hi)
+    bc = res["cross_check"]["bitstamp_vs_coinbase_btc_close"]
+    bc["by_year"] = per_year(grids["bitstamp-btc-usd"], grids["coinbase-btc-usd"],
+                             int(dt.datetime.strptime(bc["from"], "%Y-%m-%dT%H:%M:%SZ").replace(
+                                 tzinfo=dt.timezone.utc).timestamp()), END_OPEN)
     (out / "checks.json").write_text(json.dumps(res, indent=1) + "\n")
     return res
 
@@ -1027,6 +1045,9 @@ def write_provenance(out: Path, manifest: dict, checks: dict, sel: dict) -> None
         f"low > high {tot('low_gt_high')}, non-positive prices {tot('nonpositive_price_values')}, negative volume "
         f"{tot('negative_volume')}, file matches raw: {all(c['file_matches_raw'] for c in ser.values())}. "
         "Null hours per year, zero-volume hours per year and per-series counts are in `checks.json`.",
+        *[f"Zero-volume hours by year, {sid} (flat source-filled candles {c['zero_volume_flat_hours']}): "
+          + ", ".join(f"{y} {n}" for y, n in c["zero_volume_hours_by_year"].items()) + "."
+          for sid, c in ser.items() if c["zero_volume_hours"] > 100],
         "",
         f"Partial Binance klines (close time before the end of the hour, kept as returned): {tot('partial_klines')}"
         + (" — " + "; ".join(f"{sid} {', '.join(p['open'] + ' closes ' + p['closeTime'] for p in c['partial_klines_list'])}"
@@ -1042,6 +1063,10 @@ def write_provenance(out: Path, manifest: dict, checks: dict, sel: dict) -> None
             lines.append(f"- `{key}` ({x['from']} → {x['to']}): {x['hours_both_present']} hours, median "
                          f"{fmt_rel(x['median_abs_rel_diff'])}, p99 {fmt_rel(x['p99_abs_rel_diff'])}, max "
                          f"{fmt_rel(x['max_abs_rel_diff'])} at {x['max_at']}, {x['hours_gt_1pct']} hours > 1 %.")
+            if x.get("by_year"):
+                lines.append("  By year (median / p99 / hours > 1 %): " + "; ".join(
+                    f"{y} {fmt_rel(v['median_abs_rel_diff'])} / {fmt_rel(v['p99_abs_rel_diff'])} / {v['hours_gt_1pct']}"
+                    for y, v in x["by_year"].items()) + ".")
     for k, v in checks.get("inputs", {}).items():
         lines.append(f"  Input `{k}` sha256 `{v['sha256']}` ({v['bytes']} bytes).")
     lines += ["", "## Files", "", "| file | bytes | sha256 |", "|---|---:|---|"]

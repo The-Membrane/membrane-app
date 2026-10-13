@@ -89,7 +89,7 @@ DECISIONS = [
      "decision": "Morpho oracle price() / 1e24 = USDC per collateral token (price is scaled 1e36 x 10^(6 - 18); sdeUSD, msY and AZND are 18-decimal, USDC 6). Compared with the DefiLlama USD price taking 1 USDC = 1 USD (no USDC/USD conversion).",
      "reason": "The prereg lists no USDC series as an I3 input; USDC's deviation is far below the 2 % threshold. Literal reading of 'oracle / market - 1'."},
     {"id": "D6", "topic": "sdeUSD oracle path (I3)",
-     "decision": "sdeUSD oracle = sdeusd-usdc-market.json series[].oraclePrice (weekly), linearly interpolated in time between weekly points (unobserved outside the first/last point). Cross-checked against the Morpho API hourly collateralValue/collateral in e2-stream-nov-2025.json positions (reported, not used).",
+     "decision": "sdeUSD oracle = sdeusd-usdc-market.json series[].oraclePrice (weekly), using only samples before the cutoff (T0, or the secondary reference), linearly interpolated in time between them, the last one held for up to 10.5 d (unobserved before the first sample). Cross-checked against the Morpho API hourly collateralValue/collateral in e2-stream-nov-2025.json positions (reported, not used).",
      "reason": "The oracle is sdeUSD convertToAssets x a RedStone deUSD_FUNDAMENTAL feed that answered exactly 1.0 from 2025-05-14; both move smoothly, so interpolation is the closest reconstruction of the on-chain value at each hour."},
     {"id": "D7", "topic": "which market price series (I3)",
      "decision": "For each token both the on-chain address key and, where the datasets already name one, the coingecko key were pulled from coins.llama.fi. Primary key = the key with the most samples in [first oracle observation, T0) (a count, value-blind); ties go to the address key. All samples of the primary key from every listed file (the frozen pull, sdeusd-price-defillama.json, e2-stream-nov-2025.json marketPrices) are unioned, de-duplicated by timestamp (frozen pull first). The other key is computed as a sensitivity and does not decide. The market price at time h is the latest sample with h - 6 h < ts <= h; otherwise unobserved. A token with no listed key is 'not testable' for I3.",
@@ -110,7 +110,7 @@ DECISIONS = [
      "decision": "sdeUSD: replay all events[] in (block, logIndex) order (AccrueInterest adds interest to supply and borrow assets and feeShares to supply shares; Supply/Withdraw; Borrow/Repay; Liquidate removes repaidShares + badDebtShares from the borrower and the total, repaidAssets + badDebtAssets from borrow, badDebtAssets from supply), sampled at every whole hour (state after events with ts <= h), from the first whole hour after market creation. msY/AZND: per-borrower borrow shares from marketEvents (Borrow +, Repay -, Liquidate -repaidShares -badDebtShares) for blocks <= the row block; totalBorrowShares = their sum (exact: only these events change it; the rows carry no share totals); borrower debt = shares / totalBorrowShares x row.totalBorrowAssets; free liquidity = row.totalSupplyAssets - row.totalBorrowAssets. Fires iff top-1 shares >= 50 % of total AND free liquidity < top-1 debt. Morpho virtual shares ignored (<= 1e-6 relative). Stored (last-booked) totals are used without accruing to the sample instant (accrual moves supply and borrow equally, so free liquidity is unchanged). marketEvents carry no timestamp: event times (reporting only) come from linear block->time interpolation between rows[] (block, ts) points, extrapolated at 12 s/block beyond the ends.",
      "reason": "T2.2 'borrower debt rebuilt from market Borrow/Repay/Liquidate share events, market totals from the same files'. Hourly sampling for sdeUSD matches the I4 'rebuilt hourly' grid and ignores intra-hour transients."},
     {"id": "D13", "topic": "I4 hardcoded",
-     "decision": "Hardcoded at time h iff (a) fixed-price oracle: no feeds and no vaults in the oracle configuration recorded in the datasets (sdeUSD oracleGetters: BASE_FEED_1 and BASE_VAULT set -> not fixed; msY findings: baseFeed1 set -> not fixed; AZND findings: feeds none, vaults none, price 1e24 constant -> fixed), OR (b) the Morpho oracle price() answer itself (not a sub-feed) is unchanged in its own sample series for >= 30 days: h - (time of the first sample of the current run of identical answers) >= 30 d, and, on the weekly sdeUSD series, the next sample after h (if any) is also identical (otherwise the answer at h is not known to be unchanged). Utilization = borrow / supply (0 when supply = 0), >= 90 % checked in integers.",
+     "decision": "Hardcoded at time h iff (a) fixed-price oracle: no feeds and no vaults in the oracle configuration recorded in the datasets (sdeUSD oracleGetters: BASE_FEED_1 and BASE_VAULT set -> not fixed; msY findings: baseFeed1 set -> not fixed; AZND findings: feeds none, vaults none, price 1e24 constant -> fixed), OR (b) the Morpho oracle price() answer itself (not a sub-feed) is unchanged in its own sample series for >= 30 days: h - (time of the first sample of the current run of identical answers) >= 30 d, and, on the weekly sdeUSD series, the next sample after h (if any, among samples before the cutoff) is also identical (otherwise the answer at h is not known to be unchanged). Utilization = borrow / supply (0 when supply = 0), >= 90 % checked in integers.",
      "reason": "As instructed: 'check from the oracle series itself'. The next-sample condition is the conservative reading for a weekly series."},
     {"id": "D14", "topic": "not testable / not applicable",
      "decision": "Oct 10: I1p not testable (no convertToAssets input named), I2 not testable (no per-account data), I4 not applicable (Aave oracles move; never fires, counted as 'did not fire'). AZND: I1p not testable.",
@@ -384,6 +384,29 @@ def hardcoded_series(sample_ts, sample_vals, fixed_price, next_must_match):
     return f
 
 
+def oracle_path(series, cutoff):
+    """D6 + D1: sdeUSD oracle (USDC per sdeUSD) at time h from weekly series[].oraclePrice samples with ts < cutoff:
+    linear interpolation between bracketing samples, the last sample held for up to HOLD_WEEKLY after it, None before the first."""
+    pts = [(r["ts"], int(r["oraclePrice"]) / USDC_PER_TOKEN_SCALE) for r in series
+           if r["ts"] < cutoff and r.get("oraclePrice") not in (None, "", "REVERT")]
+    oT = np.array([t for t, _ in pts], dtype=float)
+    oV = np.array([v for _, v in pts])
+
+    def f(h):
+        if not len(oT) or h < oT[0] or h - oT[-1] >= HOLD_WEEKLY:
+            return None
+        return float(np.interp(h, oT, oV))
+    return f, (int(oT[0]) if len(oT) else None)
+
+
+def hardcoded_before(series, fixed, cutoff):
+    """D13 on the weekly sdeUSD series using only samples with ts < cutoff (D1)."""
+    ss = [r for r in series if r["ts"] < cutoff]
+    return hardcoded_series([r["ts"] for r in ss],
+                            [(r["oraclePrice"] if r.get("oraclePrice") not in (None, "", "REVERT") else None) for r in ss],
+                            fixed, next_must_match=True)
+
+
 def run_sdeusd(inp, out_dir, csvs):
     t0 = T0["sdeUSD"]
     mk = inp.load("curator-incidents/sdeusd-2025/sdeusd-usdc-market.json")
@@ -463,12 +486,10 @@ def run_sdeusd(inp, out_dir, csvs):
                               "top1_share", "top1_debt_usdc", "cond", "fired"], rows2)
 
     # ---- I4 (hourly utilization + hardcoded from series[].oraclePrice)
-    ots = [r["ts"] for r in series]
-    ovals = [(r["oraclePrice"] if r.get("oraclePrice") not in (None, "", "REVERT") else None) for r in series]
     og = mk["oracleGetters"]
     zero = "0x" + "0" * 64
     fixed = all(og.get(k, zero) == zero for k in ("BASE_FEED_1()", "BASE_FEED_2()", "QUOTE_FEED_1()", "QUOTE_FEED_2()", "BASE_VAULT()", "QUOTE_VAULT()"))
-    hc = hardcoded_series(ots, ovals, fixed, next_must_match=True)
+    hc = hardcoded_before(series, fixed, t0)
     U = [util_ge_90(S, B) for (_, S, B, _, _, _) in states]
     H = [hc(h) for h in T]
     fired_u = persist(T, E, O, U, I4_HOURS)
@@ -483,8 +504,7 @@ def run_sdeusd(inp, out_dir, csvs):
     csvs["sdeUSD-I4.csv"] = (["t_utc", "ts", "observed", "utilization", "util_ge_90", "util_sustained_72h", "hardcoded", "cond", "fired"], rows4)
 
     # ---- I3 (hourly oracle vs market)
-    oT = np.array([r["ts"] for r in series if r.get("oraclePrice") not in (None, "", "REVERT")], dtype=float)
-    oV = np.array([int(r["oraclePrice"]) / USDC_PER_TOKEN_SCALE for r in series if r.get("oraclePrice") not in (None, "", "REVERT")])
+    oracle_at, o_first = oracle_path(series, t0)
     cands_raw = frozen_pull_samples(pull)
     addr = "ethereum:0x5c5b196abe0d54485975d1ec29617d42d9198326"
     cg = "coingecko:elixir-staked-deusd"
@@ -499,17 +519,17 @@ def run_sdeusd(inp, out_dir, csvs):
         addr: union_samples(cands_raw.get(addr, []), old_pts, e2_pts.get(addr, [])),
         cg: union_samples(cands_raw.get(cg, []), e2_pts.get(cg, [])),
     }
-    primary, counts = choose_key(cands, int(oT[0]), t0)
+    primary, counts = choose_key(cands, o_first, t0)
     i3 = {}
     for key, (sts, svals) in cands.items():
         if not sts:
             i3[key] = not_testable("not listed on DefiLlama", t0)
             continue
-        g = hourly_grid(max(int(oT[0]), sts[0]), t0)
+        g = hourly_grid(max(o_first, sts[0]), t0)
         Tg, Og, Cg, rows3 = [], [], [], []
         for h in g:
             m = latest_within(sts, svals, h, MARKET_MAX_AGE)
-            o = float(np.interp(h, oT, oV)) if oT[0] <= h <= oT[-1] else None
+            o = oracle_at(h)
             ok = m is not None and o is not None and m > 0
             c = ok and (o / m - 1) >= I3_GAP
             Tg.append(h); Og.append(ok); Cg.append(c)
@@ -528,6 +548,8 @@ def run_sdeusd(inp, out_dir, csvs):
 
     # oracle cross-check vs the Morpho API hourly oracle (e2-stream positions)
     diffs = []
+    oT = np.array([r["ts"] for r in series if r.get("oraclePrice") not in (None, "", "REVERT")], dtype=float)
+    oV = np.array([int(r["oraclePrice"]) / USDC_PER_TOKEN_SCALE for r in series if r.get("oraclePrice") not in (None, "", "REVERT")])
     for p in e2["positions"]:
         if p["marketId"].lower() != mk["market"].lower():
             continue
@@ -541,20 +563,22 @@ def run_sdeusd(inp, out_dir, csvs):
 
     # secondary reference (not deciding): same point sets clipped at the lockout time
     sec = {}
+    hc_ref = hardcoded_before(series, fixed, SDEUSD_LOCKOUT_REF)
     for name, (TT, EE, OO, CC, n) in {
         "I1p": ([r["ts"] for r in series], ends_with_hold([r["ts"] for r in series], HOLD_WEEKLY), O_I1p(series), C_I1p(series), 1),
         "I2": (T, E, O, C2, 1),
-        "I4": (T, E, O, C4, 1),
+        "I4": (T, E, O, [fu and hc_ref(h) for fu, h in zip(fired_u, T)], 1),
     }.items():
         rr = evaluate(TT, EE, OO, CC, n, SDEUSD_LOCKOUT_REF)
         sec[name] = {"leadDays": rr["leadDays"], "warned9d": rr["warned9d"], "status": rr["status"], "firstFire": rr["firstFire"]}
     # I3 vs ref with the primary key
     sts, svals = cands[primary]
-    g = hourly_grid(max(int(oT[0]), sts[0]), SDEUSD_LOCKOUT_REF)
+    oracle_ref, o_first_ref = oracle_path(series, SDEUSD_LOCKOUT_REF)
+    g = hourly_grid(max(o_first_ref, sts[0]), SDEUSD_LOCKOUT_REF)
     Og, Cg = [], []
     for h in g:
         m = latest_within(sts, svals, h, MARKET_MAX_AGE)
-        o = float(np.interp(h, oT, oV)) if oT[0] <= h <= oT[-1] else None
+        o = oracle_ref(h)
         ok = m is not None and o is not None and m > 0
         Og.append(ok); Cg.append(ok and (o / m - 1) >= I3_GAP)
     rr = evaluate(g, [h + HOUR for h in g], Og, Cg, I3_HOURS, SDEUSD_LOCKOUT_REF)
@@ -788,7 +812,27 @@ def run_oct10(inp, csvs):
 # ----------------------------------------------------------------------------- I5
 
 I5_PATTERN = re.compile(r"\b(Elixir|Accountable|Main ?Street|Mu Digital|sunset|attest\w*|verification)\b", re.I)
+I5_ISSUER_ASSET = {"elixir": "sdeUSD", "accountable": "msY", "mainstreet": "msY", "mudigital": "AZND"}
 DATE_RE = re.compile(r"(\d{4}-\d{2}(?:-\d{2})?)")
+
+
+TESTABLE_INPUTS = {
+    ("sdeUSD", "I1p"): "sdeusd-usdc-market.json series[].collateralRate (weekly)",
+    ("msY", "I1p"): "msy-usdc-alpha-delta.json rows[].collateralConvertToAssets1e18 (daily)",
+    ("sdeUSD", "I2"): "sdeusd-usdc-market.json events[] replay (totals + borrower shares), hourly",
+    ("msY", "I2"): "msy-usdc-alpha-delta.json marketEvents[] borrower shares + rows[] totals (daily)",
+    ("AZND", "I2"): "aznd-usdc-alpha-asia.json marketEvents[] borrower shares + rows[] totals (daily)",
+    ("sdeUSD", "I3"): "series[].oraclePrice (weekly, interpolated) vs DefiLlama sdeUSD price (hourly grid)",
+    ("msY", "I3"): "rows[].oraclePrice vs DefiLlama msY price at row times (daily)",
+    ("AZND", "I3"): "rows[].oraclePrice vs DefiLlama AZND price at row times (daily)",
+    ("ETH", "I3"): "price-history eth-usd-1h oracle vs binance (hourly)",
+    ("BTC", "I3"): "price-history btc-usd-1h oracle vs binance (hourly)",
+    ("stETH", "I3"): "depeg-history stethEth vs the 1.00 ETH reference (hourly grid)",
+    ("USDe", "I3"): "depeg-history usde vs the 1.00 USD reference (hourly grid)",
+    ("sdeUSD", "I4"): "events[] replay utilization (hourly) + series[].oraclePrice hardcoded test",
+    ("msY", "I4"): "rows[] utilization + rows[].oraclePrice hardcoded test (daily)",
+    ("AZND", "I4"): "rows[] utilization (daily) + fixed-price oracle (no feeds, no vaults)",
+}
 
 
 def run_i5(inp):
@@ -807,10 +851,11 @@ def run_i5(inp):
                 date = m.group(1) if m else None
                 prec = "day" if date and len(date) == 10 else ("month" if date else None)
                 leads = {}
+                concerns = sorted({I5_ISSUER_ASSET[k.lower().replace(" ", "")] for k in hits if k.lower().replace(" ", "") in I5_ISSUER_ASSET} & set(assets)) or assets
                 if prec == "day":
                     t = int(datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
-                    leads = {a: round((T0[a] - t) / DAY, 2) for a in assets}
-                out.append({"incident": inc, "file": rel, "path": f"{arr}[{i}]", "date": date, "datePrecision": prec,
+                    leads = {a: round((T0[a] - t) / DAY, 2) for a in concerns}
+                out.append({"incident": inc, "file": rel, "path": f"{arr}[{i}]", "concerns": concerns, "date": date, "datePrecision": prec,
                             "dateField": dsrc, "keywords": hits, "text": (el.get("fact") or el.get("what") or "")[:400],
                             "source": el.get("source"), "leadDaysVsT0_dayStart": leads})
     return {"note": "Descriptive only (T2.2). No false-fire rate is measurable, so I5 carries no PASS weight.", "events": out,
@@ -877,20 +922,29 @@ def main():
     csvs = {}
 
     sde, sde_checks, sde_sens, sde_sec = run_sdeusd(inp, a.out, csvs)
+    # D13 (a): fixed-price oracle = no feeds and no vaults, from the oracle configuration in findings.json
+    mf = inp.load("curator-incidents/msy-aznd-2026/findings.json")["markets"]
+    fixed = {m: not any(k.lower().startswith(("basefeed", "quotefeed", "basevault", "quotevault")) for k in mf[m]["oracle"])
+             and mf[m]["oracle"].get("feeds", "none") == "none" and mf[m]["oracle"].get("vaults", "none") == "none"
+             for m in ("msY/USDC", "AZND/USDC")}
     msy, msy_checks, msy_sens = run_morpho_rows(inp, "msY", "curator-incidents/msy-aznd-2026/msy-usdc-alpha-delta.json",
                                                 "curator-incidents/msy-aznd-2026/msy-price-defillama-2026-04-01_2026-08-15-1h.json",
-                                                ["ethereum:0x890a5122aa1da30fec4286de7904ff808f0bd74a"], False, csvs)
+                                                ["ethereum:0x890a5122aa1da30fec4286de7904ff808f0bd74a"], fixed["msY/USDC"], csvs)
     msy_rev, _, _ = run_morpho_rows(inp, "msY", "curator-incidents/msy-aznd-2026/msy-usdc-alpha-delta.json",
                                     "curator-incidents/msy-aznd-2026/msy-price-defillama-2026-04-01_2026-08-15-1h.json",
-                                    ["ethereum:0x890a5122aa1da30fec4286de7904ff808f0bd74a"], False, csvs, revert_as_last=True, write_csv=False)
+                                    ["ethereum:0x890a5122aa1da30fec4286de7904ff808f0bd74a"], fixed["msY/USDC"], csvs, revert_as_last=True, write_csv=False)
     aznd, aznd_checks, aznd_sens = run_morpho_rows(inp, "AZND", "curator-incidents/msy-aznd-2026/aznd-usdc-alpha-asia.json",
                                                    "curator-incidents/msy-aznd-2026/aznd-price-defillama-2026-03-01_2026-08-15-1h.json",
-                                                   ["ethereum:0x52c66b5e7f8fde20843de900c5c8b4b0f23708a0", "coingecko:mu-digital-aznd"], True, csvs)
+                                                   ["ethereum:0x52c66b5e7f8fde20843de900c5c8b4b0f23708a0", "coingecko:mu-digital-aznd"], fixed["AZND/USDC"], csvs)
     inp.load("curator-incidents/msy-aznd-2026/msusd-price-defillama-2026-04-01_2026-08-15-1h.json")  # hashed; context only
     oct10 = run_oct10(inp, csvs)
     i5 = run_i5(inp)
 
     assets = {"sdeUSD": sde, "msY": msy, "AZND": aznd, **oct10}
+    for asset, inds in assets.items():
+        for I, r in inds.items():
+            if r.get("testable"):
+                r["reason"] = "inputs present: " + TESTABLE_INPUTS.get((asset, I), TESTABLE_INPUTS.get(("*", I), ""))
     verdict = pass_line(assets)
 
     results = {
@@ -906,6 +960,16 @@ def main():
                       "I4Persistence": {"hourly": I4_HOURS, "dailyPoints": I4_DAILY_POINTS}, "I4UnchangedDays": 30},
         "T0": {k: iso(v) for k, v in T0.items()},
         "inputs": inp.used,
+        "runLog": {
+            "firstRun": {"at": "2026-10-13T00:05:06Z", "codeSha256": "ff090c5cbf3528022b03222c78d5a8f838bafa2f2f0ffef92d44b7d457c3d7da", "verdict": "FAIL"},
+            "changesAfterFirstRun": [
+                "sdeUSD oracle path (I3) and the I4 hardcoded test now read only weekly oracle samples dated before the cutoff (T0 or the secondary reference), the last held <= 10.5 d, so no post-cutoff sample is used (D1); before, the last pre-T0 week was interpolated toward the first post-T0 sample. D6/D13 wording updated to match. No indicator value, episode, lead or rate changed (the oracle was flat at 1.0705667 from 2025-11-06).",
+                "msY/AZND fixed-price flags (D13 a) are now derived in code from findings.json markets[*].oracle (AZND: feeds none, vaults none -> fixed; msY: baseFeed1 set -> not fixed) instead of literal True/False arguments with the same values. No output changed.",
+                "Reporting only: every testable indicator x asset now carries a 'reason' naming its inputs (T2 asks for testable yes/no + reason).",
+                "I5 (descriptive only): lead vs T0 is now given only for the asset the issuer text concerns (Elixir -> sdeUSD, Accountable/Main Street -> msY, Mu Digital -> AZND) instead of every asset of the incident.",
+            ],
+            "thresholdsOrWindowsChanged": False,
+        },
         "decisions": DECISIONS,
         "incidents": {inc: {a: {I: strip(assets[a][I]) for I in SCORED} for a in al} for inc, al in INCIDENTS.items()},
         "sdeUSD_secondaryLockoutRef_notDeciding": {"ref": iso(SDEUSD_LOCKOUT_REF), "byIndicator": sde_sec},

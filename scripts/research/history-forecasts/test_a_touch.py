@@ -529,5 +529,113 @@ class TestAction(unittest.TestCase):
         self.assertEqual(rows[2]["status"], "deeper_than_grid")
 
 
+class TestPanelFixes(unittest.TestCase):
+    levels = TestAction.levels
+    probs = TestAction.probs
+
+    def test_fmt_p_never_prints_zero(self):
+        self.assertEqual(A.fmt_p(0.0), "<0.1%\u2020")
+        self.assertEqual(A.fmt_p(0.0004), "<0.1%\u2020")
+        self.assertEqual(A.fmt_p(3.66e-05), "<0.1%\u2020")
+        self.assertEqual(A.fmt_p(0.001), "0.1%\u2020")
+        self.assertEqual(A.fmt_p(0.07), "7.0%\u2020")
+        self.assertEqual(A.fmt_p(0.9996), ">99.9%\u2020")
+        self.assertEqual(A.fmt_p(1.0), ">99.9%\u2020")
+        self.assertEqual(A.fmt_p(0.07, dagger=False), "7.0%")
+        for p in np.linspace(0, 1, 2001):
+            self.assertNotIn(A.fmt_p(p, dagger=False), ("0.0%", "100.0%"))
+
+    def test_fmt_bound(self):
+        self.assertEqual(A.fmt_bound("<", 0.0001), "<0.1%\u2020")
+        self.assertEqual(A.fmt_bound("<", 0.004), "<0.4%\u2020")
+        self.assertEqual(A.fmt_bound(">", 0.07), ">7.0%\u2020")
+        self.assertEqual(A.fmt_bound(">", 0.0002), ">0.02%\u2020")
+
+    def test_current_line_display_outside_grid(self):
+        hc = {"touched": 3, "windows": 50, "period": ["2020-04-09T00:00:00Z", "2026-10-01T00:00:00Z"]}
+        d, p, st = A.current_line_display(self.levels, self.probs, -0.01, "HIGH", hc)
+        self.assertTrue(d.startswith(">90.0%\u2020 HIGH"), d)
+        self.assertEqual(st, "shallower_than_grid")
+        d, p, st = A.current_line_display(self.levels, self.probs, -0.45, "MEDIUM", hc)
+        self.assertTrue(d.startswith("<0.5%\u2020 MEDIUM"), d)
+        self.assertNotIn("touched", d)
+        d, p, st = A.current_line_display(self.levels, (0.9,) * 9 + (0.0,), -0.45, "HIGH", hc)
+        self.assertTrue(d.startswith("<0.1%\u2020 HIGH"), d)
+        d, p, st = A.current_line_display(self.levels, self.probs, -0.25, "HIGH", hc)
+        self.assertEqual(d, "4.0%\u2020 HIGH")
+        d, p, st = A.current_line_display(self.levels, self.probs, -0.25, "LOW", hc)
+        self.assertTrue(d.startswith("touched in 3 of 50 non-overlapping windows at -25%"), d)
+        self.assertEqual(A.level_toward_risk(self.levels, -0.27), -0.25)
+        self.assertEqual(A.level_toward_risk(self.levels, -0.01), -0.02)
+        self.assertEqual(A.level_toward_risk(self.levels, -0.50), -0.40)
+
+    def test_action_rows_line_shallower_than_grid(self):
+        C, LT, S = 10.0, 0.83, 4000.0
+        D = C * LT * S * 0.99  # line at -1%: outside the grid
+        rows = A.action_rows(self.levels, list(self.probs), D, C, LT, S, targets=(0.95, 0.10))
+        self.assertEqual(rows[0]["status"], "shallower_than_grid")
+        self.assertNotIn("no repay needed", rows[0]["text"])
+        self.assertEqual(rows[0]["repay_upper_bound"], 340)  # 33200*(0.99-0.98) = 332 -> 340
+        self.assertIn(">90.0%", rows[0]["text"])
+        self.assertTrue(rows[1]["text"].startswith("Repay $"), rows[1]["text"])
+        D_in = C * LT * S * 0.75  # line at -25%: inside the grid -> Z above p(-2%) implies no repay
+        r = A.action_rows(self.levels, list(self.probs), D_in, C, LT, S, targets=(0.95,))[0]
+        self.assertTrue(r["text"].startswith("no repay needed"), r["text"])
+
+    def test_action_rows_line_beyond_grid(self):
+        C, LT, S = 10.0, 0.83, 4000.0
+        D = C * LT * S * 0.55  # line at -45%
+        rows = A.action_rows(self.levels, list(self.probs), D, C, LT, S, targets=(0.001, 0.01))
+        self.assertEqual(rows[0]["status"], "deeper_than_grid")
+        self.assertIn("line beyond \u221240%: 7d <0.5%\u2020", rows[0]["text"])
+        self.assertNotIn("Repay", rows[0]["text"])
+        self.assertEqual(rows[1]["text"], "no repay needed")  # solved line inside the grid, current line deeper
+
+    def test_coverage_nontrivial(self):
+        cells = [
+            {"fold": "2021Q1", "ybar": "0", "pbar": "0.001", "n_w": "100", "covered": "1"},   # trivial -> out
+            {"fold": "2021Q1", "ybar": "0", "pbar": "0.02", "n_w": "100", "covered": "0"},    # kept
+            {"fold": "2026Q3", "ybar": "0.1", "pbar": "0.0", "n_w": "10", "covered": "0"},    # kept (ybar > 0)
+            {"fold": "2026Q3", "ybar": "0", "pbar": "0.05", "n_w": "10", "covered": "1"},     # pbar = 0.05 < 0.1 -> out
+            {"fold": "2026Q3", "ybar": "0.5", "pbar": "0.4", "n_w": "10", "covered": "1"},    # kept
+        ]
+        c = A.coverage_nontrivial(cells, {"2026Q3"})
+        self.assertEqual(c["n_cells_excluded"], 2)
+        self.assertAlmostEqual(c["cov_nontrivial"], 1 / 3)
+        self.assertAlmostEqual(c["cov_recent_nontrivial"], 1 / 2)
+        self.assertAlmostEqual(c["cov_registered_recomputed"], 3 / 5)
+        self.assertAlmostEqual(c["cov_recent_registered_recomputed"], 2 / 3)
+
+    def test_level_means(self):
+        cells = [{"k": "-0.005", "n_rows": "100", "pbar": "0.2", "ybar": "0.1"},
+                 {"k": "-0.005", "n_rows": "300", "pbar": "0.1", "ybar": "0.05"},
+                 {"k": "-0.05", "n_rows": "400", "pbar": "0.01", "ybar": "0"}]
+        m = A.level_means(cells)
+        self.assertAlmostEqual(m["-0.005"]["mean_forecast"], 0.125)
+        self.assertAlmostEqual(m["-0.005"]["realized_frequency"], 0.0625)
+        self.assertAlmostEqual(m["-0.005"]["forecast_over_realized"], 2.0)
+        self.assertIsNone(m["-0.05"]["forecast_over_realized"])
+        self.assertEqual(list(m), ["-0.005", "-0.05"])
+
+    def test_write_rounds_csv(self):
+        import csv, gzip, tempfile
+        R = lambda agg, ans, ts: {"roundId": (5 << 64) | agg, "answer": ans, "updatedAt": ts}
+        rounds = {"ETH": [R(10, 270000000000, A.DATA_END - 100), R(11, 271000000000, A.DATA_END + 50),
+                          R(12, 272000000000, A.DATA_END + 7200)]}
+        live = {"ETH": {"description": "ETH / USD"}}
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "r.csv.gz")
+            n = A.write_rounds_csv(path, live, rounds, A.DATA_END + 3600)
+            with gzip.open(path, "rt") as f:
+                rows = list(csv.DictReader(f))
+        self.assertEqual(n, 3)
+        self.assertEqual([r["role"] for r in rows],
+                         ["in_force_at_data_end", "after_data_end_up_to_asof", "after_asof_not_used"])
+        self.assertEqual(rows[1]["aggregatorRoundId"], "11")
+        self.assertEqual(rows[1]["phaseId"], "5")
+        self.assertEqual(rows[1]["roundId"], str((5 << 64) | 11))
+        self.assertEqual(float(rows[1]["price"]), 2710.0)
+
+
 if __name__ == "__main__":
     unittest.main()

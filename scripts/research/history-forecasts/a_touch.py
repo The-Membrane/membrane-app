@@ -833,17 +833,82 @@ def floor_pct_toward_risk(y):
     return int(math.floor(round(abs(y) * 100.0, 7)))
 
 
-def action_rows(levels, probs7, D, C, LT, S, targets=ACTION_Z):
+def fmt_p(p, dagger=True):
+    """Displayed probability (DESIGN_RULES section 4: never print 0%). Anything that rounds to 0.0% at one
+    decimal (exact zeros included) prints '<0.1%'; anything that rounds to 100.0% prints '>99.9%'."""
+    p = float(p)
+    s = f"{p:.1%}"
+    if p <= 0 or s == "0.0%":
+        s = "<0.1%"
+    elif s == "100.0%":
+        s = ">99.9%"
+    return s + ("\u2020" if dagger else "")
+
+
+def fmt_bound(op, p, dagger=True):
+    """'< p(-40%)' / '> p(-2%)' bounds, keeping the no-0% rule: '<' with a sub-0.1% bound prints '<0.1%'."""
+    s = fmt_p(p, dagger=False)
+    if op == "<":
+        out = s if s.startswith("<") else "<" + s
+    else:
+        if s.startswith("<"):
+            out = f">{float(p) * 100:.2g}%"
+        elif s.startswith(">"):
+            out = s
+        else:
+            out = ">" + s
+    return out + ("\u2020" if dagger else "")
+
+
+def level_toward_risk(levels, y):
+    """Grid level used for a history count at distance y: the deepest level at or shallower than y
+    (clamped to the grid)."""
+    cand = [k for k in levels if k >= y]
+    return cand[-1] if cand else levels[0]
+
+
+def current_line_display(levels, probs, y_now, label, hc):
+    """Current-line P(y, T) display. HIGH/MEDIUM shows the probability, or '> p(-2%)' / '< p(-40%)' outside
+    the grid. LOW/STALE shows the history count (hc) at the level toward risk."""
+    p, st = p_at_distance(levels, probs, y_now)
+    if label in ("HIGH", "MEDIUM"):
+        if st == "ok":
+            return f"{fmt_p(p)} {label}", p, st
+        if st == "shallower_than_grid":
+            return f"{fmt_bound('>', probs[0])} {label} (line shallower than \u2212{abs(levels[0]):.0%})", None, st
+        return f"{fmt_bound('<', probs[-1])} {label} (line beyond \u2212{abs(levels[-1]):.0%})", None, st
+    txt = (f"touched in {hc['touched']} of {hc['windows']} non-overlapping windows at {level_toward_risk(levels, y_now):+.0%}, "
+           f"{hc['period'][0][:10]}..{hc['period'][1][:10]}" + (" [hatched]" if label == "STALE" else ""))
+    return txt, p, st
+
+
+def action_rows(levels, probs7, D, C, LT, S, targets=ACTION_Z, y_now=None):
+    """ACTION rows at T = 7 d. y_now = current line distance (default: from D, C, LT, S). 'no repay needed'
+    is printed only when it is implied: the current line is at or deeper than the solved line, or Z is above
+    p(-2%) and the current line is inside the grid. Outside the grid the row uses '> p(-2%)' / '< p(-40%)'."""
+    if y_now is None:
+        y_now = D / (C * LT * S) - 1.0
     rows = []
     for Z in targets:
         ys, st = solve_distance(levels, probs7, Z)
-        row = {"Z": Z, "status": st}
+        row = {"Z": Z, "status": st, "y_now": y_now}
         if st == "shallower_than_grid":
-            row.update(repay=0, text=f"no repay needed (7d P \u2264 {Z:.0%} already at > \u2212{abs(levels[0]):.0%})")
+            if y_now <= levels[0]:
+                row.update(repay=0, text=f"no repay needed (7d \u2264 {fmt_p(probs7[0])} < {Z:.0%} at the line "
+                                         f"\u2212{floor_pct_toward_risk(y_now)}%)")
+            else:
+                X, raw = repay_amount(D, C, LT, S, levels[0])
+                row.update(repay_upper_bound=X, repay_raw=raw,
+                           text=f"Repay \u2264 ${X:,} \u2192 line at \u2212{abs(levels[0]):.0%} \u2192 7d < {Z:.0%} "
+                                f"(now 7d {fmt_bound('>', probs7[0])}: line shallower than \u2212{abs(levels[0]):.0%})")
         elif st == "deeper_than_grid":
             X, raw = repay_amount(D, C, LT, S, levels[-1])
-            row.update(repay_lower_bound=X, text=f"Repay > ${X:,} \u2192 line beyond \u2212{abs(levels[-1]):.0%} "
-                                                f"\u2192 7d < {Z:.0%} not reachable inside the grid")
+            if y_now < levels[-1]:
+                row.update(text=f"line beyond \u2212{abs(levels[-1]):.0%}: 7d {fmt_bound('<', probs7[-1])}; "
+                                f"7d {Z:.0%} not resolvable inside the grid")
+            else:
+                row.update(repay_lower_bound=X, text=f"Repay > ${X:,} \u2192 line beyond \u2212{abs(levels[-1]):.0%} "
+                                                    f"\u2192 7d < {Z:.0%} not reachable inside the grid")
         else:
             X, raw = repay_amount(D, C, LT, S, ys)
             row["y_star"] = ys
@@ -1665,17 +1730,77 @@ def fetch_dvol_candle(asset, open_ts):
         return None
 
 
-def run_panel(series, out_dir, input_meta, try_rpc=True, log=print):
+def coverage_nontrivial(cells, last_folds):
+    """Coverage after excluding trivial cells (ybar == 0 and pbar < 1/n_w), reported beside the registered
+    cov (which is not changed). cells: dicts with fold, ybar, pbar, n_w, covered."""
+    def cov_flag(v):
+        return v.strip() in ("1", "True", "true") if isinstance(v, str) else bool(v)
+
+    def frac(cs):
+        return float(np.mean([cov_flag(c["covered"]) for c in cs])) if cs else None
+    keep = [c for c in cells if not (float(c["ybar"]) == 0.0 and float(c["pbar"]) < 1.0 / int(c["n_w"]))]
+    rec_all = [c for c in cells if c["fold"] in last_folds]
+    rec = [c for c in keep if c["fold"] in last_folds]
+    return {"cov_nontrivial": frac(keep), "cov_recent_nontrivial": frac(rec),
+            "n_cells": len(cells), "n_cells_excluded": len(cells) - len(keep), "n_cells_nontrivial": len(keep),
+            "n_cells_recent": len(rec_all), "n_cells_recent_nontrivial": len(rec),
+            "cov_registered_recomputed": frac(cells), "cov_recent_registered_recomputed": frac(rec_all),
+            "rule": "exclude cells with ybar == 0 and pbar < 1/n_w; reported only, the registered label is unchanged"}
+
+
+def level_means(cells):
+    """Per-level mean forecast vs realized test frequency, row-weighted over fold cells."""
+    out = {}
+    for k in sorted({float(c["k"]) for c in cells}, reverse=True):
+        cs = [c for c in cells if float(c["k"]) == k]
+        n = sum(int(c["n_rows"]) for c in cs)
+        mp = sum(int(c["n_rows"]) * float(c["pbar"]) for c in cs) / n
+        my = sum(int(c["n_rows"]) * float(c["ybar"]) for c in cs) / n
+        out[repr(k)] = {"n_rows": n, "mean_forecast": mp, "realized_frequency": my,
+                        "forecast_over_realized": (mp / my) if my > 0 else None}
+    return out
+
+
+def read_coverage_cells(path):
+    with open(path, newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def write_rounds_csv(path, live, live_rounds, asof_ts):
+    """Every Chainlink round used for the panel: the round in force at DATA_END and every round after it."""
+    rows = []
+    for a, rounds in live_rounds.items():
+        dec = FEEDS[a][1]
+        for r in rounds:
+            role = ("in_force_at_data_end" if r["updatedAt"] <= DATA_END else
+                    "after_data_end_up_to_asof" if r["updatedAt"] <= asof_ts else "after_asof_not_used")
+            rows.append([a, live[a]["description"], FEEDS[a][0], dec, str(r["roundId"]), r["roundId"] >> 64,
+                         r["roundId"] & ((1 << 64) - 1), str(r["answer"]), repr(r["answer"] / 10 ** dec),
+                         r["updatedAt"], iso(r["updatedAt"]), role])
+    write_csv_gz(path, ["asset", "description", "proxy", "decimals", "roundId", "phaseId", "aggregatorRoundId",
+                        "answer_raw", "price", "updatedAt", "updatedAt_iso", "role"], rows)
+    return len(rows)
+
+
+def run_panel(series, out_dir, input_meta, try_rpc=True, log=print, results_dir=None, results_sha256=None):
     path = os.path.join(out_dir, "panel.json")
     if os.path.exists(path):
         raise SystemExit(f"STOP: {path} exists.")
     warnings.filterwarnings("ignore", category=FutureWarning, message=".*penalty.*")
-    with open(os.path.join(out_dir, "results.json")) as f:
+    results_dir = results_dir or out_dir
+    res_path = os.path.join(results_dir, "results.json")
+    res_sha = sha256_file(res_path)
+    if results_sha256 is not None and res_sha != results_sha256:
+        raise SystemExit(f"STOP: results.json sha256 {res_sha} != expected {results_sha256}")
+    with open(res_path) as f:
         res = json.load(f)
+    cov_path = os.path.join(results_dir, "coverage.csv")
+    cov_cells = read_coverage_cells(cov_path)
     N = series["oracle:ETH"].N
     qs = N  # Q_start = DATA_END
     panel = {"phase": "panel", "prereg": PREREG, "code": code_meta(), "inputs": input_meta,
-             "results_sha256": sha256_file(os.path.join(out_dir, "results.json")),
+             "results_sha256": res_sha, "results_path": os.path.abspath(res_path),
+             "coverage_csv_sha256": sha256_file(cov_path),
              "fit": "each shipped rung refit once on all labelled origins with t + T <= DATA_END "
                     f"({iso(DATA_END)}); recency weights age from DATA_END",
              "assets": {}, "asof": {}, "notes": []}
@@ -1714,6 +1839,13 @@ def run_panel(series, out_dir, input_meta, try_rpc=True, log=print):
     panel["asof"] = asof_info
     panel["live_chainlink"] = live
     asof_ts = utc(asof_info["asof"])
+    if live_rounds:
+        rpath = os.path.join(out_dir, "panel-chainlink-rounds.csv.gz")
+        n_r = write_rounds_csv(rpath, live, live_rounds, asof_ts)
+        panel["chainlink_rounds_file"] = {"file": "panel-chainlink-rounds.csv.gz", "rows": n_r,
+                                          "sha256": sha256_file(rpath),
+                                          "columns": "asset, description, proxy, decimals, roundId, phaseId, "
+                                                     "aggregatorRoundId, answer_raw, price, updatedAt, updatedAt_iso, role"}
     for a in ASSETS:
         ser = series[f"oracle:{a}"]
         prim = res["primary"][a]["per_T"]
@@ -1767,12 +1899,20 @@ def run_panel(series, out_dir, input_meta, try_rpc=True, log=print):
             lab = pc["confidence_label"]
             row = {"shipped_rung": ship, "label": lab["label"], "n_w_total": lab["n_w_total"],
                    "period": lab["period"], "levels": {}}
+            setname = "d" if ship == "d" else "full"
+            sc = [c for c in cov_cells if c["truth"] == "oracle" and c["asset"] == a and c["T"] == T_LABEL[T_h]
+                  and c["set"] == setname and c["rung"] == ship]
+            last4 = set(sorted({c["fold"] for c in sc})[-4:])
+            row["coverage_nontrivial"] = coverage_nontrivial(sc, last4)
+            row["coverage_nontrivial"]["cov_registered"] = lab["cov"]
+            row["coverage_nontrivial"]["cov_recent_registered"] = lab["cov_recent"]
+            row["forecast_vs_realized_by_level"] = level_means(sc)
             for j, k in enumerate(ser.levels):
                 p = float(fixed[ship][ti, j])
                 hc = history_count(ser, T_h, j)
                 cellv = {"history_count": hc}
                 if lab["label"] in ("HIGH", "MEDIUM"):
-                    cellv["display"] = (f"{p:.1%}† {lab['label']} n={lab['n_w_total']:.0f} "
+                    cellv["display"] = (f"{fmt_p(p)} {lab['label']} n={lab['n_w_total']:.0f} "
                                         f"{lab['period'][0][:10]}..{lab['period'][1][:10]}")
                     cellv["p"] = p
                 else:
@@ -1801,21 +1941,18 @@ def run_panel(series, out_dir, input_meta, try_rpc=True, log=print):
     probs7 = [float(v) for v in panel["assets"]["ETH"]["grids_fixed_all_rungs_not_for_display"][ship7][ti7]]
     P_liq = D / (C * LT)
     y_now = P_liq / S - 1.0
-    computed = action_rows(LEVELS["ETH"], probs7, D, C, LT, S)
+    computed = action_rows(LEVELS["ETH"], probs7, D, C, LT, S, y_now=y_now)
     cur = {}
     for ti, T_h in enumerate(HORIZONS_H):
         shipT = prim[T_LABEL[T_h]]["shipped_rung"]
         labT = prim[T_LABEL[T_h]]["confidence_label"]["label"]
         pT = [float(v) for v in panel["assets"]["ETH"]["grids_fixed_all_rungs_not_for_display"][shipT][ti]]
-        p, st = p_at_distance(LEVELS["ETH"], pT, y_now)
-        j25 = LEVELS["ETH"].index(-0.25)
-        hc = history_count(ser, T_h, j25)
+        jl = LEVELS["ETH"].index(level_toward_risk(LEVELS["ETH"], y_now))
+        hc = history_count(ser, T_h, jl)
+        disp, p, st = current_line_display(LEVELS["ETH"], pT, y_now, labT, hc)
         cur[T_LABEL[T_h]] = {"label": labT, "rung": shipT, "P_computed_not_for_display_unless_HIGH_MEDIUM": p,
-                             "status": st,
-                             "display": (f"{p:.1%}† {labT}" if labT in ("HIGH", "MEDIUM") and p is not None else
-                                         f"touched in {hc['touched']} of {hc['windows']} non-overlapping windows "
-                                         f"(-25%), {hc['period'][0][:10]}..{hc['period'][1][:10]}")}
-    hc7 = history_count(ser, ACTION_T_H, LEVELS["ETH"].index(-0.25))
+                             "status": st, "display": disp}
+    hc7 = history_count(ser, ACTION_T_H, LEVELS["ETH"].index(level_toward_risk(LEVELS["ETH"], y_now)))
     panel["action_example"] = {
         "label": "EXAMPLE position (not a real position; no number goes into app code)",
         "position": {"collateral": f"{C:g} ETH", "LT": LT, "spot_S": S, "spot_source": s_src,
@@ -1824,7 +1961,8 @@ def run_panel(series, out_dir, input_meta, try_rpc=True, log=print):
         "seven_day_label": lab7, "seven_day_rung": ship7,
         "action_rows_displayed": lab7 in ("HIGH", "MEDIUM"),
         "display": ([r["text"] for r in computed] if lab7 in ("HIGH", "MEDIUM") else
-                    [f"touched in {hc7['touched']} of {hc7['windows']} non-overlapping 7d windows at -25%, "
+                    [f"touched in {hc7['touched']} of {hc7['windows']} non-overlapping 7d windows at "
+                     f"{level_toward_risk(LEVELS['ETH'], y_now):+.0%}, "
                      f"{hc7['period'][0][:10]}..{hc7['period'][1][:10]} (no action row: 7d label {lab7})"]),
         "computed_not_for_display_unless_HIGH_MEDIUM": computed,
         "current_line_by_horizon": cur,
@@ -1857,6 +1995,9 @@ def main(argv=None):
     ap.add_argument("--phase", choices=("dryrun", "run", "panel", "manifest"), required=True)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--no-rpc", action="store_true")
+    ap.add_argument("--results-dir", help="panel: directory holding the scored results.json and coverage.csv "
+                                          "(default --out); read in place, never copied")
+    ap.add_argument("--results-sha256", help="panel: expected sha256 of results.json (STOP on mismatch)")
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
     if a.phase == "manifest":
@@ -1873,7 +2014,8 @@ def main(argv=None):
     elif a.phase == "run":
         run_all(series, a.out, meta, workers=a.workers, log=log)
     elif a.phase == "panel":
-        run_panel(series, a.out, meta, try_rpc=not a.no_rpc, log=log)
+        run_panel(series, a.out, meta, try_rpc=not a.no_rpc, log=log, results_dir=a.results_dir,
+                  results_sha256=a.results_sha256)
     return 0
 
 

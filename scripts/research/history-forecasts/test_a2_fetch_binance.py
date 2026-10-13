@@ -65,9 +65,20 @@ class TestBuildGrid(unittest.TestCase):
         with self.assertRaises(ValueError):
             A.build_grid([bad], end_open_ms=T0)
         bad = kline(T0)
-        bad[6] = T0 + H  # close time must be open + 1 h - 1 ms
+        bad[6] = T0 + H  # close time must lie inside the hour
         with self.assertRaises(ValueError):
             A.build_grid([bad], end_open_ms=T0)
+
+    def test_truncated_kline_is_data(self):
+        # Binance cuts the kline of an hour with an exchange halt short (closeTime = halt time)
+        short = kline(T0 + H)
+        short[6] = T0 + H + 1753429
+        flat = kline(T0 + 2 * H, o="335", h="335", lo="335", c="335", v="0.00000000")
+        flat[6] = T0 + 2 * H  # closeTime == openTime, zero volume
+        rows = [kline(T0), short, flat]
+        g = A.build_grid(rows, end_open_ms=T0 + 2 * H)
+        self.assertEqual(g["columns"]["close"], ["11", "11", "335"])
+        self.assertEqual(A.truncated_opens(rows), [T0 + H, T0 + 2 * H])
 
     def test_order_problems(self):
         self.assertEqual(A.order_problems([1, 2, 2, 1, 3]), {"duplicate_opens": 1, "unsorted_opens": 1})

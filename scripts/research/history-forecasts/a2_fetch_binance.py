@@ -135,12 +135,20 @@ def row_problems(r) -> list[str]:
         out.append("openTime")
     elif r[0] % STEP_MS:
         out.append("misaligned")
-    if not isinstance(r[6], int) or isinstance(r[6], bool) or (isinstance(r[0], int) and r[6] != r[0] + STEP_MS - 1):
+    # closeTime must lie inside the hour. Binance truncates the kline of an hour in which the
+    # exchange halted (closeTime = the halt time); that kline is present data, not a problem.
+    if not isinstance(r[6], int) or isinstance(r[6], bool) or (
+            isinstance(r[0], int) and not r[0] <= r[6] <= r[0] + STEP_MS - 1):
         out.append("closeTime")
     for k in range(1, 6):
         if not isinstance(r[k], str) or not _NUM.match(r[k]):
             out.append(COLUMNS[k - 1])
     return out
+
+
+def truncated_opens(rows: list) -> list[int]:
+    """Opens of valid klines whose closeTime ends before the hour does (exchange halts)."""
+    return [r[0] for r in rows if not row_problems(r) and r[6] < r[0] + STEP_MS - 1]
 
 
 def order_problems(opens: list[int]) -> dict:
@@ -602,6 +610,8 @@ def phase_check(work: Path, out: Path) -> dict:
             "file_matches_raw": rebuilt["columns"] == grid["columns"] and rebuilt["startTs"] == grid["startTs"],
             "schema_problems": schema,
             **order_problems([r[0] for r in in_window]),
+            "truncated_klines": len(trunc := truncated_opens(in_window)),
+            "truncated_kline_opens": [iso_utc(o // 1000) for o in trunc],
             **coverage(grid),
             **value_checks(grid),
         }
@@ -689,6 +699,8 @@ def write_provenance(out: Path, manifest: dict, checks: dict) -> None:
         f"- **Builder:** `The-Membrane/membrane-app` branch `{g.get('branch')}`, `{g.get('path')}`. By session",
         "  (phases: HEAD; last commit touching the builder; its sha256):",
         *sess_lines,
+        "  Sessions without the fetch phase read the cached raw responses (sha256-verified against the request log)",
+        "  and make no request.",
         f"- **Fetch window (UTC):** {manifest['fetchWindowUtc'][0]} → {manifest['fetchWindowUtc'][1]}. "
         f"{h['requests']} HTTP requests, {h['retries']} retries, {h['pages']} pages.",
         f"- **End:** the kline opening {manifest['endOpenUtc']}, inclusive.",
@@ -715,6 +727,9 @@ def write_provenance(out: Path, manifest: dict, checks: dict) -> None:
         f"{tot('duplicate_opens')}, unsorted opens {tot('unsorted_opens')}, schema problems {schema}, "
         f"low > min(open, close) {tot('low_gt_min_open_close')}, high < max(open, close) {tot('high_lt_max_open_close')}, "
         f"negative values {neg}. Zero values per pair are in `checks.json`.",
+        f"Truncated klines (closeTime inside the hour: the exchange halted) are kept as data: {tot('truncated_klines')} "
+        f"across pairs at {len({o for s, _ in PAIRS for o in checks['pairs'][s]['truncated_kline_opens']})} distinct "
+        "hours (listed per pair in `checks.json`).",
     ]
     for symbol, x in checks.get("cross_check", {}).items():
         cc = x["close_vs_binance"]

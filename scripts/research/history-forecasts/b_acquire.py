@@ -1461,10 +1461,11 @@ def provenance_md(run_meta: dict, files: dict, val: dict, pop: dict) -> str:
         f"  (sha256 `{LENDER_FLOWS_SHA256}`).",
         f"- **Builder:** `The-Membrane/membrane-app` branch `{g.get('branch')}`, `{g.get('path')}`. By session (phases: HEAD;",
         "  last commit touching the builder; its sha256 when recorded):",
-        *[f"  {', '.join(x['phases'])}: HEAD `{x['code'].get('sha')}`; builder `{x['code'].get('file_last_commit') or x['code'].get('sha')}`"
+        *[f"  {', '.join(x['phases'])}: HEAD `{x['code'].get('sha')}`; builder "
+          f"`{x['code'].get('file_last_commit') or x['code'].get('file_last_commit_derived')}`"
           + (f" (sha256 `{x['code']['file_sha256']}`)" if x['code'].get('file_sha256') else "") + "."
           for x in run_meta["sessions"] if x.get("status") == "ok"],
-        "  The builder's only change after the fetch commit adds `file_last_commit` / `file_sha256` to this metadata.",
+        "  Builder commits after the fetch commit change only run metadata and this file's text, not acquisition.",
         f"- **Fetch window (UTC):** {run_meta['fetch_window_utc'][0]} → {run_meta['fetch_window_utc'][1]} (sessions that made RPC requests).",
         f"- **Snapshots:** daily 00:00Z {DAILY_START} → {DAILY_END} ({len(daily_dates())} days); block = the largest",
         "  block with timestamp < T, proved by `block_ts < T <= next_ts` in `blocks.csv`. Monthly selection = the 1st of",
@@ -1587,12 +1588,29 @@ def main(argv=None) -> int:
     return 0 if status == "ok" else 2
 
 
+def builder_commit_at(head: str | None) -> str | None:
+    """Last commit touching this file as of `head` (for sessions recorded before file_last_commit)."""
+    if not head:
+        return None
+    root = repo_root()
+    rel = str(Path(__file__).resolve().relative_to(root))
+    try:
+        return subprocess.check_output(["git", "-C", str(root), "log", "-1", "--format=%H", head, "--", rel],
+                                       text=True).strip() or None
+    except Exception:  # pragma: no cover
+        return None
+
+
 def build_run_meta(ctx: Ctx, work: Path) -> dict:
     events = []
     ep = work / "events.jsonl"
     if ep.exists():
         events = [json.loads(l) for l in ep.read_text().splitlines() if l.strip()]
     sessions = ctx.state.get("sessions", [])
+    for sess in sessions:
+        code = sess.get("code") or {}
+        if code.get("sha") and not code.get("file_last_commit"):
+            code["file_last_commit_derived"] = builder_commit_at(code["sha"])
     tot = {"http_requests": 0, "retries": 0, "failures": 0, "rate_limit_retries": 0, "transient_retries": 0,
            "by_method": {}, "by_phase": {}, "seconds_in_requests": 0.0}
     for s in sessions:

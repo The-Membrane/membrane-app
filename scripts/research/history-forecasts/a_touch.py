@@ -1358,7 +1358,10 @@ def git_info(path):
                                capture_output=True, text=True).stdout.strip()
         br = subprocess.run(["git", "-C", d, "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True,
                             text=True).stdout.strip()
-        return {"commit": sha, "branch": br, "dirty_code_files": dirty.splitlines() if dirty else []}
+        fc = subprocess.run(["git", "-C", d, "log", "-1", "--format=%H", "--", "a_touch.py"], capture_output=True,
+                            text=True).stdout.strip()
+        return {"head_commit": sha, "a_touch_last_commit": fc, "branch": br,
+                "dirty_code_files": dirty.splitlines() if dirty else []}
     except Exception as e:  # pragma: no cover
         return {"error": str(e)}
 

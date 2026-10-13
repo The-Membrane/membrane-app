@@ -1144,6 +1144,27 @@ def run_gate(ctx: Ctx, which: str, anchors: dict[str, tuple], labels: list[str],
         causes["fail_by_day_top"] = sorted(days.items(), key=lambda x: -x[1])[:20]
         causes["fail_abs_diff_usd_quantiles"] = {str(q): round(float(np.quantile(np.abs(G["diff"][fail]), q)) / 1e6, 2)
                                                  for q in (0.5, 0.9, 0.99, 1.0)}
+    # Diagnostics only, NOT the preregistered gate: the same pairs judged by (a) the interest-adjusted
+    # residual and (b) the G.2 residual with the tolerance taken on the intraday peak balance.
+    has = G["n_ev"] > 0
+    alt_a = res_ok
+    tol_pk = np.maximum(GATE_ABS_RAW, np.floor(G["peak"] / GATE_REL_DEN))
+    alt_b = G["pass"] | (np.abs(G["diff"]) <= tol_pk)
+    diag = {"note": "diagnostics only; the gate verdict above uses the preregistered G.2 rule",
+            "interest_adjusted_residual": {"share_pass": float(alt_a.mean()) if len(alt_a) else None,
+                                           "share_pass_with_event": float(alt_a[has].mean()) if has.any() else None,
+                                           "rule": "|a1 - (a0/I0 + sum(scaled deltas)) * I1| <= max($10, 0.1% of max(a0, a1))"},
+            "tolerance_on_intraday_peak": {"share_pass": float(alt_b.mean()) if len(alt_b) else None,
+                                           "share_pass_with_event": float(alt_b[has].mean()) if has.any() else None,
+                                           "rule": "G.2 residual <= max($10, 0.1% of max(a0, a1, intraday peak))"}}
+    by_year = {}
+    yrs = np.asarray([labels[int(p)][:4] for p in G["p"]]) if len(G["p"]) else np.zeros(0, dtype=str)
+    for y in sorted(set(yrs.tolist())):
+        m = yrs == y
+        me = m & has
+        by_year[y] = {"n_pairs": int(m.sum()), "share_pass": float(G["pass"][m].mean()),
+                      "n_pairs_with_event": int(me.sum()),
+                      "share_pass_with_event": float(G["pass"][me].mean()) if me.any() else None}
     exact = np.abs(G["diff"]) <= 1000  # within 0.001 USD
     out = {"which": which, "rule": f"|anchor change - summed G.2 event change| <= max($10, 0.1% of the larger anchor); "
                                    f"pass iff share >= {GATE_SHARE} on all pairs AND on pairs holding >= 1 event",
@@ -1151,7 +1172,8 @@ def run_gate(ctx: Ctx, which: str, anchors: dict[str, tuple], labels: list[str],
                                "in block (B_d, B_d+1]",
            "pooled": pooled, "per_reserve": per, "passes": pooled["passes"],
            "share_within_0.001usd": float(exact.mean()) if len(exact) else None,
-           "worst20_by_diff_over_tol": wrows, "failure_causes": causes}
+           "worst20_by_diff_over_tol": wrows, "failure_causes": causes, "by_year": by_year,
+           "diagnostics_not_gate": diag}
     return out
 
 
@@ -1638,7 +1660,9 @@ def provenance_md(ctx: Ctx, meta: dict, files: dict) -> str:
         *[f"  {', '.join(x['phases'])}: HEAD `{x['code'].get('sha')}`; builder `{x['code'].get('file_last_commit')}` "
           f"(sha256 `{x['code'].get('file_sha256')}`){' DIRTY' if x['code'].get('dirty') else ''}." for x in sess],
         f"- **Fetch window (UTC):** {meta['fetch_window_utc'][0]} → {meta['fetch_window_utc'][1]}.",
-        "- **Status:** CANONICAL, FROZEN (inputs to Q26 B-gradient; do not refetch or edit).",
+        ("- **Status:** CANONICAL, FROZEN (inputs to Q26 B-gradient; do not refetch or edit)." if gate.get("passes") else
+         "- **Status:** FROZEN raw acquisition (logs, decoded events, block timestamps; do not refetch or edit). The G.2"
+         "\n  validation gate FAILED, so the run stopped: no extended universe and no new-address anchors were built."),
         "- **Units:** raw integers in 6-decimal underlying units (÷ 1e6 = USD); `index_ray` ÷ 1e27.",
         "- **Formats:**",
         "  - `raw-logs-{usdc,usdt}-<period>.csv.gz`: every log as returned (address, block, tx hash, tx index, log index,",

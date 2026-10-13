@@ -568,6 +568,33 @@ def gate_pairs(A, valid, snap_blocks, ev_addr, ev_block, ev_delta, ev_scaled=Non
     return out
 
 
+def intraday_peaks(g: dict, snap_blocks, ev_addr, ev_block, ev_delta):
+    """For each failing pair of g: max over its events of anchor0 + cumulative G.2 delta (raw);
+    for passing pairs max(a0, a1). Events must be in chain order."""
+    import numpy as np
+    peak = np.maximum(g["a0"], g["a1"]).astype(np.float64)
+    fail = np.nonzero(~g["pass"])[0]
+    if not len(fail):
+        return peak
+    key_pos = {(int(g["addr"][i]), int(g["p"][i])): i for i in fail}
+    cur = {k: int(g["a0"][i]) for k, i in key_pos.items()}
+    p_ev = pair_index(snap_blocks, ev_block)
+    ea = np.asarray(ev_addr)
+    want = np.zeros(len(ea), dtype=bool)
+    fa = np.asarray([k[0] for k in key_pos], dtype=np.int64)
+    fp = np.asarray([k[1] for k in key_pos], dtype=np.int64)
+    if len(ea):
+        code = ea.astype(np.int64) * 100_000 + p_ev
+        want = np.isin(code, fa * 100_000 + fp)
+    for j in np.nonzero(want)[0]:
+        k = (int(ea[j]), int(p_ev[j]))
+        cur[k] += int(ev_delta[j])
+        i = key_pos[k]
+        if cur[k] > peak[i]:
+            peak[i] = cur[k]
+    return peak
+
+
 def gate_summary(g: dict) -> dict:
     import numpy as np
     n = int(len(g["pass"]))
@@ -1052,11 +1079,12 @@ def run_gate(ctx: Ctx, which: str, anchors: dict[str, tuple], labels: list[str],
         d = decode_reserve(ctx, r)
         ea, eb, ed, es, _ = events_for(d, addrs)
         g = gate_pairs(A, valid, blocks, ea, eb, ed, ev_scaled=es, income=incomes[r])
+        g["peak"] = intraday_peaks(g, blocks, ea, eb, ed)
         per[r] = gate_summary(g)
         g["reserve"] = np.full(len(g["pass"]), r, dtype=object)
         g["address"] = np.asarray(addrs, dtype=object)[g["addr"]] if len(g["addr"]) else np.zeros(0, dtype=object)
         allrows.append(g)
-    keys = ["reserve", "address", "p", "a0", "a1", "ev", "n_ev", "diff", "tol", "pass", "res_interest"]
+    keys = ["reserve", "address", "p", "a0", "a1", "ev", "n_ev", "diff", "tol", "pass", "res_interest", "peak"]
     G = {k: np.concatenate([g[k] for g in allrows]) for k in keys}
     pooled = gate_summary(G)
     # worst 20 by |diff| / tol
@@ -1071,6 +1099,7 @@ def run_gate(ctx: Ctx, which: str, anchors: dict[str, tuple], labels: list[str],
                       "diff_usd": round(G["diff"][i] / 1e6, 2), "tol_usd": round(G["tol"][i] / 1e6, 2),
                       "ratio": round(float(ratio[i]), 3), "n_events": int(G["n_ev"][i]),
                       "interest_adjusted_diff_usd": round(float(G["res_interest"][i]) / 1e6, 2),
+                      "intraday_peak_usd": round(float(G["peak"][i]) / 1e6, 2),
                       "pass": bool(G["pass"][i])})
     # failure causes
     fail = ~G["pass"]
@@ -1083,6 +1112,20 @@ def run_gate(ctx: Ctx, which: str, anchors: dict[str, tuple], labels: list[str],
         "rule": ("interest_explained: |a1 - (a0/I0 + sum(delta/index)) * I1| <= tol, I = normalized income at the "
                  "snapshot block from reserve-state.csv (diagnostic only; the gate itself ignores interest per G.2)"),
     }
+    if fail.any():
+        floor = G["tol"] == GATE_ABS_RAW
+        causes["fail_both_anchors_zero"] = int((fail & (G["a0"] == 0) & (G["a1"] == 0)).sum())
+        causes["fail_tol_at_10usd_floor"] = int((fail & floor).sum())
+        causes["fail_interest_explained_at_floor"] = int((fail & res_ok & floor).sum())
+        causes["fail_interest_explained_above_floor"] = int((fail & res_ok & ~floor).sum())
+        pk = G["peak"][fail]
+        rate = np.abs(G["diff"][fail]) / np.maximum(pk, 1.0)
+        causes["fail_intraday_peak_usd_quantiles"] = {str(q): round(float(np.quantile(pk, q)) / 1e6, 2)
+                                                      for q in (0.1, 0.5, 0.9)}
+        causes["fail_abs_diff_over_intraday_peak_quantiles"] = {str(q): float(np.quantile(rate, q))
+                                                                for q in (0.1, 0.5, 0.9, 1.0)}
+        causes["note"] = ("intraday peak = max of anchor0 + cumulative G.2 deltas over the pair's events; "
+                          "|diff| / peak is the implied interest on the largest intraday position")
     fu = fail & ~res_ok
     if fu.any():
         days = {}
@@ -1099,7 +1142,7 @@ def run_gate(ctx: Ctx, which: str, anchors: dict[str, tuple], labels: list[str],
             k = f"{G['reserve'][i]} {labels[int(G['p'][i])]}"
             days[k] = days.get(k, 0) + 1
         causes["fail_by_day_top"] = sorted(days.items(), key=lambda x: -x[1])[:20]
-        causes["fail_abs_diff_usd_quantiles"] = {q: round(float(np.quantile(np.abs(G["diff"][fail]), q)) / 1e6, 2)
+        causes["fail_abs_diff_usd_quantiles"] = {str(q): round(float(np.quantile(np.abs(G["diff"][fail]), q)) / 1e6, 2)
                                                  for q in (0.5, 0.9, 0.99, 1.0)}
     exact = np.abs(G["diff"]) <= 1000  # within 0.001 USD
     out = {"which": which, "rule": f"|anchor change - summed G.2 event change| <= max($10, 0.1% of the larger anchor); "

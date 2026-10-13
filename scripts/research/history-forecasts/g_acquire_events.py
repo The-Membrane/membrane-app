@@ -1020,8 +1020,8 @@ def load_anchor_matrix(path_or_rows, labels: list[str]):
     valid = np.zeros((len(addrs), len(labels)), dtype=bool)
     ok = (df["status"] == "") & (df["balance_raw"] != "")
     sub = df[ok]
-    ri = sub["address"].map(a_ix).to_numpy()
-    ci = sub["snapshot"].map(lab_ix).to_numpy()
+    ri = sub["address"].map(a_ix).to_numpy().astype(np.int64)
+    ci = sub["snapshot"].map(lab_ix).to_numpy().astype(np.int64)
     A[ri, ci] = sub["balance_raw"].astype("int64").to_numpy()
     valid[ri, ci] = True
     return addrs, A, valid
@@ -1620,14 +1620,15 @@ def provenance_md(ctx: Ctx, meta: dict, files: dict) -> str:
         x = dec.get(r, {})
         lines.append(f"{r}: {x.get('n_logs')} logs; by type {json.dumps(x.get('by_type'))}; other known "
                      f"{json.dumps(x.get('other_known'))}; unknown topic0 {json.dumps(x.get('unknown_topic0'))}.")
+    f5 = lambda v: "n/a" if v is None else f"{v:.5f}"  # noqa: E731
     if gate:
         p = gate["pooled"]
-        lines += ["", f"Gate on P_r: {'PASS' if gate['passes'] else 'FAIL'} — {p['share_pass']:.5f} of {p['n_pairs']} pairs, "
-                      f"{p['share_pass_with_event']:.5f} of {p['n_pairs_with_event']} pairs holding an event."]
+        lines += ["", f"Gate on P_r: {'PASS' if gate['passes'] else 'FAIL'} — {f5(p['share_pass'])} of {p['n_pairs']} pairs, "
+                      f"{f5(p['share_pass_with_event'])} of {p['n_pairs_with_event']} pairs holding an event."]
     if gnew:
         p = gnew["pooled"]
-        lines += [f"Gate on new anchors: {'PASS' if gnew['passes'] else 'FAIL'} — {p['share_pass']:.5f} of {p['n_pairs']} "
-                  f"pairs, {p['share_pass_with_event']:.5f} of {p['n_pairs_with_event']} pairs holding an event."]
+        lines += [f"Gate on new anchors: {'PASS' if gnew['passes'] else 'FAIL'} — {f5(p['share_pass'])} of {p['n_pairs']} "
+                  f"pairs, {f5(p['share_pass_with_event'])} of {p['n_pairs_with_event']} pairs holding an event."]
     if uni:
         lines += [f"Extended universe: " + "; ".join(
             f"{r} {uni[r]['n_rule']} reach $1M ({uni[r]['n_new']} new vs P_r {uni[r]['n_P_r']})" for r in RESERVE_ORDER) + "."]

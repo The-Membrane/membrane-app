@@ -51,9 +51,14 @@ class TestParsers(unittest.TestCase):
         t = T0 * 1000
         r = [t, "10.00", "12.50", "9.00", "11.00", "100.1", t + H * 1000 - 1, "0", 1, "0", "0", "0"]
         self.assertEqual(F.parse_binance(json.dumps([r]).encode()), [(T0, "10", "12.5", "9", "11", "100.1")])
-        r[6] = t + H * 1000
-        with self.assertRaises(ValueError):
-            F.parse_binance(json.dumps([r]).encode())
+        self.assertEqual(F.binance_partial_klines(json.dumps([r]).encode()), [])
+        r[6] = t + 2845256  # trading stopped inside the hour: kept, counted as partial
+        self.assertEqual(F.parse_binance(json.dumps([r]).encode())[0][0], T0)
+        self.assertEqual(F.binance_partial_klines(json.dumps([r]).encode()), [(T0, t + 2845256)])
+        for bad in (t + H * 1000, t):
+            r[6] = bad
+            with self.assertRaises(ValueError):
+                F.parse_binance(json.dumps([r]).encode())
 
 
 class TestGrid(unittest.TestCase):

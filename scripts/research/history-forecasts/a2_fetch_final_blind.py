@@ -203,19 +203,29 @@ def parse_coinbase(body: bytes) -> list[tuple]:
     return out
 
 
-def parse_binance(body: bytes) -> list[tuple]:
-    """Binance klines body -> [(ts, o, h, l, c, v)]; checks the 1 h close time."""
+def _binance_rows(body: bytes) -> list:
     rows = json.loads(body)
     if not isinstance(rows, list):
         raise ValueError(f"binance body is not an array: {body[:200]!r}")
-    out = []
     for r in rows:
-        if not isinstance(r, list) or len(r) != 12 or not isinstance(r[0], int) or isinstance(r[0], bool):
+        if (not isinstance(r, list) or len(r) != 12 or not isinstance(r[0], int) or isinstance(r[0], bool)
+                or not isinstance(r[6], int) or isinstance(r[6], bool)):
             raise ValueError(f"binance row shape: {r!r}")
-        if r[0] % 1000 or r[6] != r[0] + STEP * 1000 - 1:
+        # A kline opens on the hour. Its close time is open + 1 h - 1 ms, or earlier when trading
+        # stopped inside the hour (e.g. the 2020-12-21 halt): kept and counted as a partial kline.
+        if r[0] % 1000 or not r[0] < r[6] <= r[0] + STEP * 1000 - 1:
             raise ValueError(f"binance open/close time: {r[0]} {r[6]}")
-        out.append((parse_ts(r[0] // 1000), *(norm_num(r[k]) for k in range(1, 6))))
-    return out
+    return rows
+
+
+def parse_binance(body: bytes) -> list[tuple]:
+    """Binance klines body -> [(ts, o, h, l, c, v)]."""
+    return [(parse_ts(r[0] // 1000), *(norm_num(r[k]) for k in range(1, 6))) for r in _binance_rows(body)]
+
+
+def binance_partial_klines(body: bytes) -> list[tuple[int, int]]:
+    """(open s, close time ms) of every kline that closes before the end of its hour."""
+    return [(r[0] // 1000, r[6]) for r in _binance_rows(body) if r[6] != r[0] + STEP * 1000 - 1]
 
 
 PARSERS = {"bitstamp": parse_bitstamp, "coinbase": parse_coinbase, "binance": parse_binance}
@@ -830,7 +840,14 @@ def phase_check(work: Path, out: Path, sel: dict) -> dict:
         grid = {"startTs": d["startTs"], "count": d["count"], "columns": d["columns"],
                 "rows": rebuilt["rows"], "lastOpenTs": rebuilt["lastOpenTs"]}
         grids[s["id"]] = grid
+        partial = []
+        if s["kind"] == "binance":
+            for rec in pages:
+                partial += [(t, ms) for t, ms in binance_partial_klines(read_raw(work, rec)) if t <= END_OPEN]
         res["series"][s["id"]] = {
+            "partial_klines": len(partial),
+            "partial_klines_list": [{"open": iso_utc(t), "closeTime": dt.datetime.fromtimestamp(
+                ms / 1000, dt.timezone.utc).isoformat(timespec="milliseconds")} for t, ms in partial],
             "file": path.name, "asset": s["asset"], "pages": len(pages),
             "pages_empty": sum(1 for p in pages if not p.get("rows")),
             "rows_fetched": len(rows), "rows_after_end_dropped": len(rows) - len(in_window),
@@ -1010,6 +1027,10 @@ def write_provenance(out: Path, manifest: dict, checks: dict, sel: dict) -> None
         f"low > high {tot('low_gt_high')}, non-positive prices {tot('nonpositive_price_values')}, negative volume "
         f"{tot('negative_volume')}, file matches raw: {all(c['file_matches_raw'] for c in ser.values())}. "
         "Null hours per year, zero-volume hours per year and per-series counts are in `checks.json`.",
+        "",
+        f"Partial Binance klines (close time before the end of the hour, kept as returned): {tot('partial_klines')}"
+        + (" — " + "; ".join(f"{sid} {', '.join(p['open'] + ' closes ' + p['closeTime'] for p in c['partial_klines_list'])}"
+                             for sid, c in ser.items() if c["partial_klines"]) if tot("partial_klines") else "") + ".",
         "",
         "## Cross-checks (source agreement, |a/b − 1| on hourly closes, both present; p99 = nearest rank)",
         "",

@@ -369,5 +369,25 @@ class TestEndToEndSynthetic(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(out, "manifest.json")))
 
 
+class TestWithdrawalLoader(unittest.TestCase):
+    def test_unix_seconds_and_window(self):
+        import gzip
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "f.csv.gz")
+            with gzip.open(path, "wt") as f:
+                f.write("event_type,date,datetime_utc,reserve,user_id,amount_usd,supply_apr,apr_bucket\n")
+                f.write("withdraw,2024-01-01,2024-01-01 00:00:00,USDC,0xAB,5.0,1,x\n")
+                f.write("withdraw,2024-01-01,2024-01-01 12:00:00,USDC,0xab,7.0,1,x\n")
+                f.write("supply,2024-01-01,2024-01-01 13:00:00,USDC,0xab,100.0,1,x\n")
+                f.write("withdraw,2024-01-02,2024-01-02 00:00:00,USDC,0xab,11.0,1,x\n")
+            wd = B.load_withdrawals(path)
+            t0 = B.day_ts("2024-01-01")
+            self.assertEqual(list(wd[("USDC", "0xab")][0]), [t0, t0 + 43200, t0 + 86400])
+            # window (T_d, T_(d+1)]: excludes the event at exactly T_d, includes the one at T_(d+1)
+            self.assertEqual(B.withdraw_sum(wd, "USDC", "0xab", t0, t0 + 86400), 18.0)
+            self.assertEqual(B.withdraw_sum(wd, "USDT", "0xab", t0, t0 + 86400), 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()

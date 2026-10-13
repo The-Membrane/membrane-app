@@ -9,6 +9,7 @@ comes from that file. Changing one is a deviation. Inputs: membrane-datasets `de
 Phases (run in this order, fresh --out to reproduce):
   python3 b_behavior.py --datasets DIR --out DIR --phase dryrun    rows, units, feature coverage per fold
   python3 b_behavior.py --datasets DIR --out DIR --phase run       B1 + B2 fit/score ONCE + B5 -> results.json ...
+  python3 b_behavior.py --datasets DIR --out DIR --phase deviation corrected corroboration (DEVIATIONS) -> deviations.json
   python3 b_behavior.py --datasets DIR --out DIR --phase manifest  sha256 of every output -> manifest.json
 The dry run computes no exit, episode response, rate or score. The run phase refuses to overwrite an
 existing results.json (scored once).
@@ -449,8 +450,10 @@ def load_withdrawals(path):
     df = pd.read_csv(path, dtype={"event_type": str, "datetime_utc": str, "reserve": str, "user_id": str,
                                   "amount_usd": float})
     df = df[df["event_type"] == "withdraw"]
-    ts = (pd.to_datetime(df["datetime_utc"], format="%Y-%m-%d %H:%M:%S", utc=True).astype("int64")
-          // 10 ** 9).to_numpy()
+    # DEVIATION 1 (post-score fix): pandas >= 3 parses to datetime64[us], so astype("int64") // 1e9 was not
+    # unix seconds. Seconds are now taken as (t - epoch) // 1 s, independent of the datetime resolution.
+    dtt = pd.to_datetime(df["datetime_utc"], format="%Y-%m-%d %H:%M:%S", utc=True)
+    ts = ((dtt - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta(seconds=1)).to_numpy(np.int64)
     df = df.assign(ts=ts, addr=df["user_id"].str.lower())
     out = {}
     for (r, a), g in df.groupby(["reserve", "addr"], sort=False):
@@ -1322,7 +1325,7 @@ def run_on(d, wd, shas, out_dir, t0, log=print):
     write_json(os.path.join(out_dir, "venue-view.json"), b1["venue_view"])
     summary = {
         "prereg": PREREG, "datasets_commit": DATASETS_COMMIT, "inputs_sha256": shas, "code": code_meta(),
-        "decisions": DECISIONS, "deviations": [],
+        "decisions": DECISIONS, "deviations": DEVIATIONS,
         "days": {"first": d.days[0], "last": d.days[-1], "n": d.D, "asof": d.asof},
         "rows": {"candidate": int(len(rows["t"])), "kept": int(rows["feat_ok"].sum())},
         "curve_days_missing_while_listed": {
@@ -1356,17 +1359,57 @@ def phase_manifest(out_dir, log=print):
     return man
 
 
+DEVIATIONS = [
+    {
+        "id": 1,
+        "date": "2026-10-13",
+        "found": "after the single scored run (results.json from code 786837e, kept unchanged)",
+        "what": "B2 corroboration share (B.2, reported, never deciding) read 0.0 at both horizons. load_withdrawals "
+                "converted datetime_utc to unix seconds with astype('int64') // 1e9, but pandas 3 parses to "
+                "datetime64[us], so every withdraw timestamp was 1000x too small and no event fell in any "
+                "(T_d, T_(d+h)] window.",
+        "fix": "seconds = (t - 1970-01-01Z) // 1 s (resolution-independent); unit test added. Only the "
+               "corroboration share is recomputed (phase 'deviation'), written to deviations.json. No fit, "
+               "prediction, Brier, BSS, CI, verdict, B1 or B5 number changes: none of them read withdrawals.",
+    },
+]
+
+
+def phase_deviation(datasets_dir, out_dir, log=print):
+    """Recompute only the corroboration share with the fixed loader (DEVIATIONS 1). results.json is untouched."""
+    res_path = os.path.join(out_dir, "results.json")
+    with open(res_path) as f:
+        res = json.load(f)
+    shas = verify_inputs(datasets_dir)
+    d = load_all(datasets_dir, with_monthly=False)
+    rows = build_rows(d)
+    wd = load_withdrawals(os.path.join(datasets_dir, INPUTS["lender_flows"][0]))
+    folds = fold_list()
+    q0, q1 = d.day_index[folds[0][1]], d.day_index[folds[-1][2]]
+    out = {"deviations": DEVIATIONS, "results_json_sha256": sha256_file(res_path), "inputs_sha256": shas,
+           "code": code_meta(), "corroboration_corrected": {}, "corroboration_in_results_json": {}}
+    for h in HORIZONS:
+        te = np.nonzero(rows["feat_ok"] & rows[f"res{h}"] & (rows["t"] >= q0) & (rows["t"] < q1))[0]
+        out["corroboration_corrected"][HNAME[h]] = corroboration(d, rows, h, te, wd)
+        out["corroboration_in_results_json"][HNAME[h]] = res["b2"]["horizons"][HNAME[h]]["corroboration"]
+    write_json(os.path.join(out_dir, "deviations.json"), out)
+    log(f"deviation: corrected corroboration -> {out_dir}/deviations.json")
+    return out
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--datasets", required=False, help="membrane-datasets checkout")
     ap.add_argument("--out", required=True)
-    ap.add_argument("--phase", choices=("dryrun", "run", "manifest"), required=True)
+    ap.add_argument("--phase", choices=("dryrun", "run", "deviation", "manifest"), required=True)
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
     if a.phase == "dryrun":
         phase_dryrun(a.datasets, a.out)
     elif a.phase == "run":
         phase_run(a.datasets, a.out)
+    elif a.phase == "deviation":
+        phase_deviation(a.datasets, a.out)
     else:
         phase_manifest(a.out)
 

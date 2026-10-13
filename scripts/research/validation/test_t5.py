@@ -5,7 +5,9 @@ deribit_chain_snapshot.py). Every RPC and HTTP call is mocked; nothing touches t
 Run:  python3 scripts/research/validation/test_t5.py      (or python3 -m pytest that file)
 """
 import bisect
+import contextlib
 import gzip
+import io
 import json
 import math
 import os
@@ -62,24 +64,10 @@ def split_phases(rounds, switch_ts, first_phase=3):
     return {first_phase: a, first_phase + 1: b}
 
 
-def n_visible(rounds, now):
-    return bisect.bisect_right([r[1] for r in rounds], now) if len(rounds) < 64 else _nv(rounds, now)
-
-
-def _nv(rounds, now):
-    ups = getattr(rounds, "_ups", None)
-    if ups is None:
-        ups = [r[1] for r in rounds]
-        _UPS[id(rounds)] = ups
-    return bisect.bisect_right(ups, now)
-
-
-_UPS = {}
-
-
 def brute_answer_at(rounds, ts):
     """Reference: the round with the largest updatedAt <= ts (rounds sorted by updatedAt), or None."""
-    i = bisect.bisect_right([r[1] for r in rounds] if not hasattr(rounds, "ups") else rounds.ups, ts)
+    ups = getattr(rounds, "ups", None) or [r[1] for r in rounds]
+    i = bisect.bisect_right(ups, ts)
     return rounds[i - 1] if i else None
 
 
@@ -96,9 +84,11 @@ class FakeChain:
         self.proxies = {}
         self.aggs = {}
         n = 1
+        self.ups = {}
         for addr, phases in feeds.items():
             agg_addrs = {}
             for p in phases:
+                self.ups[id(phases[p])] = [r[1] for r in phases[p]]
                 a = "0x" + format(0xA000 + n, "040x")
                 n += 1
                 agg_addrs[p] = a
@@ -110,7 +100,7 @@ class FakeChain:
         self.n_calls = 0
 
     def _visible(self, rounds):
-        return [r for r in rounds if r[1] <= self.now]
+        return rounds[:bisect.bisect_right(self.ups[id(rounds)], self.now)]
 
     def _enc_round(self, rid, ans, upd):
         return "0x" + word(rid) + word(ans) + word(upd) + word(upd) + word(rid)
@@ -205,14 +195,13 @@ def make_grid(rounds, start, last_open):
     n = (last_open - start) // HOUR + 1
     ups = [r[1] for r in rounds]
     oracle, low = [], []
-    j = 0
     for i in range(n):
         h0 = start + i * HOUR
         h1 = h0 + HOUR
-        f = brute_answer_at(rounds, h0)
-        vals = [f[0]] + [a for a, u in rounds if h0 < u <= h1]
-        e = brute_answer_at(rounds, h1)
-        oracle.append(round(e[0] / 1e8, 2))
+        i0 = bisect.bisect_right(ups, h0)   # rounds[i0-1] is in force at h0
+        i1 = bisect.bisect_right(ups, h1)   # rounds[i0:i1] have updatedAt in (h0, h1]
+        vals = [rounds[i0 - 1][0]] + [a for a, _ in rounds[i0:i1]]
+        oracle.append(round(rounds[i1 - 1][0] / 1e8, 2))
         low.append(round(min(vals) / 1e8, 2))
     return t1.PriceGrid(start, HOUR, {"oracle": oracle, "oracleLow": low, "binanceLow": low})
 
@@ -266,8 +255,12 @@ class TestAnswerAt(unittest.TestCase):
                     self.phases[5][-1][1], first, self.now]
         crossed = 0
         for ts in ts_list:
-            r = self.feed.answer_at(int(ts))
             exp = self._expect(int(ts))
+            if exp is None:  # before the first round of the first phase
+                with self.assertRaises(LookupError):
+                    self.feed.answer_at(int(ts))
+                continue
+            r = self.feed.answer_at(int(ts))
             self.assertEqual((r.answer, r.updated_at), exp, msg=f"ts={ts}")
             phase = 5 if exp[1] < self.switch else 6
             self.assertEqual(r.phase, phase)
@@ -439,7 +432,7 @@ class TestIssuer(IssuerBase):
             self.assertEqual(len(closes), 91)
             self.assertEqual([c["source"] for c in closes[:5]], ["chainlink"] * 5)
             self.assertEqual({c["source"] for c in closes[5:]}, {"price-history"})
-            self.assertEqual(closes[5]["hourOpen"], t1.iso(self.hist_last_open - 2 * HOUR))
+            self.assertEqual(closes[5]["hourOpen"], t1.iso(self.ASOF - 5 * DAY - HOUR))
             for c in closes[:5]:
                 exp = brute_answer_at(all_rounds[a], self.ASOF - c["k"] * DAY)
                 self.assertEqual((c["answer"], c["updatedAt"]), exp)
@@ -462,10 +455,16 @@ class TestIssuer(IssuerBase):
         self.assertEqual(doc["kind"], "live")
         self.assertEqual(doc["nRows"], 2 * 5 * 5)
         for a in ("ETH", "BTC"):
-            exp = brute_answer_at(self.w.rounds[a], issued)
+            # D2: S is the answer in force at asof; latestRoundData at issue is reference only
+            exp_asof = brute_answer_at(self.w.rounds[a], self.ASOF)
             s = doc["inputs"][a]["S"]
-            self.assertEqual((s["answer"], s["updatedAt"]), exp)
-            self.assertEqual(s["updatedAfterAsof"], exp[1] > self.ASOF)
+            self.assertEqual((s["close"]["answer"], s["close"]["updatedAt"]), exp_asof)
+            self.assertLessEqual(s["close"]["updatedAt"], self.ASOF)
+            self.assertEqual(s["price"], doc["inputs"][a]["rv"]["closes"][0]["price"])
+            exp = brute_answer_at(self.w.rounds[a], issued)
+            ref = s["latestRoundDataAtIssue_referenceOnly"]
+            self.assertEqual((ref["answer"], ref["updatedAt"]), exp)
+            self.assertEqual(ref["updatedAfterAsof"], exp[1] > self.ASOF)
         for row in doc["grid"]:
             S = doc["inputs"][row["asset"]]["S"]["price"]
             self.assertEqual(row["S"], S)
@@ -517,11 +516,10 @@ class TestIssuer(IssuerBase):
         with self.assertRaises(SystemExit):
             self.run_issue(self.ASOF + 7 * 60)
 
-    def test_no_issuedAt_option(self):
-        ap_help = m1_issue.main.__code__.co_consts
-        self.assertFalse(any(isinstance(c, str) and "issued" in c.lower() and c.startswith("--") for c in ap_help))
-        with self.assertRaises(SystemExit):
-            m1_issue.main(["--datasets", "x", "--out", "y", "--issued-at", "1"])
+    def test_no_option_sets_issue_time(self):
+        for opt in ("--issued-at", "--issuedAt", "--asof", "--now", "--time"):
+            with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+                m1_issue.main(["--datasets", "x", "--out", "y", opt, "1"])
 
 
 # ---------------------------------------------------------------------------------------------
@@ -614,6 +612,33 @@ class TestScorer(IssuerBase):
         a.pop("rpc"), b.pop("rpc")
         self.assertEqual(a, b)
 
+    def test_pre_issue_min_and_exclusion(self):
+        # D5: a level touched in (asof, issuedAt] was knowable at issue; the row is excluded, never scored
+        issued = self.ASOF + 40 * 60
+        self.run_issue(issued)
+        orig = m1_score.truth_chain
+        def fake(rounds, row):
+            t = orig(rounds, row)
+            if t is not None:
+                rr = self.w.rounds[row["asset"]]
+                pre = [x[0] / 1e8 for x in rr if self.ASOF < x[1] <= issued]
+                self.assertEqual(t["preIssueMin"], min(pre) if pre else None)
+                if row["asset"] == "ETH" and row["T"] == 1 and row["k"] == -0.05:
+                    t = dict(t, preIssueMin=row["L"] * 0.99)
+            return t
+        m1_score.truth_chain = fake
+        try:
+            self.score(self.ASOF + DAY + RESOLVE_PAD)
+        finally:
+            m1_score.truth_chain = orig
+        rows = self.load("scores.json")["rows"]
+        ex = [r for r in rows if r["status"] == "excluded_touched_before_issue"]
+        self.assertEqual(len(ex), 1)
+        self.assertIsNone(ex[0]["y"])
+        h = self.load("summary.json")["perHorizon"]["1"]
+        self.assertEqual(h["nRowsExcludedTouchedBeforeIssue"], 1)
+        self.assertEqual(h["nRowsResolved"], 9)
+
     def test_scorer_refuses_broken_chain(self):
         p, _, _ = self.run_issue(self.ASOF + 7 * 60)
         with open(p, "ab") as f:
@@ -645,7 +670,8 @@ class TestSnapshot(unittest.TestCase):
                 self.assertEqual(os.path.getsize(p), n)
                 self.assertEqual(sha256_file(p), sha)
                 self.assertIn(f"| `{fname}` | {n} | `{sha}` |", man)
-            raw = gzip.decompress(open(os.path.join(day, "index_ETH_20261020T000705Z.json.gz"), "rb").read())
+            with open(os.path.join(day, "index_ETH_20261020T000705Z.json.gz"), "rb") as f:
+                raw = gzip.decompress(f.read())
             self.assertEqual(json.loads(raw)["result"]["index_price"], 2400.5)
             self.assertTrue(any("kind=option" in u and "expired=false" in u for u in der.urls))
             with self.assertRaises(SystemExit):
@@ -653,7 +679,7 @@ class TestSnapshot(unittest.TestCase):
             # a later snapshot the same day appends to the manifest
             snap.snapshot(out, get=der, clock=lambda: ts + 3600, log=quiet)
             with open(os.path.join(day, "MANIFEST.md")) as f:
-                self.assertEqual(f.read().count("| `"), 12)
+                self.assertEqual(sum(line.startswith("| `") for line in f), 12)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -685,7 +711,8 @@ class TestNoRpcUrlInOutputs(IssuerBase):
         for root, _, files in os.walk(self.out):
             for fn in files:
                 p = os.path.join(root, fn)
-                data = open(p, "rb").read()
+                with open(p, "rb") as f:
+                    data = f.read()
                 if fn.endswith(".gz"):
                     data = gzip.decompress(data)
                 text = data.decode("utf-8", "replace").lower()

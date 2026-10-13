@@ -59,7 +59,7 @@ def load_rows(day_dir):
                       "asof": doc["asof"], "nRows": len(doc["grid"])})
         for g in doc["grid"]:
             rows.append({"date": date, "file": name, "asset": g["asset"], "T": int(g["T"]), "k": g["k"],
-                         "asof": int(doc["asof"]), "asofIso": iso(doc["asof"]),
+                         "asof": int(doc["asof"]), "asofIso": iso(doc["asof"]), "issuedAt": int(doc["issuedAt"]),
                          "resolvesAt": int(doc["asof"]) + int(g["T"]) * DAY, "S": g["S"], "L": g["L"],
                          "p_raw": g["p_raw"], "p_cal": g["p_cal"]})
     return rows, files
@@ -70,15 +70,21 @@ def truth_price_history(grids, row):
     lo = grids[row["asset"]].window_min("oracleLow", a, end - HOUR)
     if lo is None:
         return None
+    # D5: hourly lows cannot isolate (asof, issuedAt]; use every hour overlapping it (conservative)
+    pre = grids[row["asset"]].window_min("oracleLow", a, (row["issuedAt"] // HOUR) * HOUR)
     return {"source": "price-history oracleLow", "min": lo,
-            "hours": {"firstOpen": iso(a), "lastOpen": iso(end - HOUR)}}
+            "hours": {"firstOpen": iso(a), "lastOpen": iso(end - HOUR)},
+            "preIssueMin": pre, "preIssueBasis": "hourly lows of hours overlapping (asof, issuedAt]"}
 
 
 def truth_chain(rounds, row):
     m, used = cl.window_min(rounds, row["asof"], row["resolvesAt"])
     if m is None:
         return None
+    pre = [r for r in used[1:] if r.updated_at <= row["issuedAt"]]  # rounds written in (asof, issuedAt]
     return {"source": "chainlink rounds", "min": m.price(), "minRoundId": str(m.round_id),
+            "preIssueMin": min(r.price() for r in pre) if pre else None,
+            "preIssueBasis": "rounds written in (asof, issuedAt]",
             "minUpdatedAt": m.updated_at, "nRounds": len(used),
             "inForceAtStart": {"roundId": str(used[0].round_id), "updatedAt": used[0].updated_at,
                                "price": used[0].price()},
@@ -125,6 +131,11 @@ def score(out_dir, grids, price_meta, rpc, clock=time.time, log=print, code=None
 
     for r in rows:
         if "truth" not in r:
+            continue
+        pre = r["truth"].get("preIssueMin")
+        if pre is not None and pre <= r["L"]:
+            # D5: the level was touched after asof but before issue, so the outcome was knowable at issue
+            r["status"] = "excluded_touched_before_issue"
             continue
         r["status"] = "resolved"
         r["y"] = 1 if r["truth"]["min"] <= r["L"] else 0
@@ -180,6 +191,7 @@ def summarize(rows, files, now):
             "nIssueDaysResolved": n_days, "nRows": len(rs), "nRowsResolved": len(res),
             "nRowsPaired": len(paired), "nRowsPending": sum(r.get("status") == "pending" for r in rs),
             "nRowsUnresolved": sum(r.get("status") == "unresolved" for r in rs),
+            "nRowsExcludedTouchedBeforeIssue": sum(r.get("status") == "excluded_touched_before_issue" for r in rs),
             "truthSources": sources, "baseRate": float(y.mean()) if paired else None,
             "brier": brier, "bss": bss, "reliability": rel,
             "passLine": {"applied": False, "nIssueDaysResolved": n_days, "requiredBeforeAnyPassLine": MIN_DAYS_PASS},

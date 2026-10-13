@@ -53,10 +53,9 @@ NOTES = [
     "end_timestamp = asof-1h (Deribit end is inclusive), so the candle opening at asof (still open) is not "
     "requested; any row opening after asof-1h that comes back anyway is discarded. Refused if the candle is "
     "absent, non-positive, or issuedAt - asof < 60 s.",
-    "S = Chainlink proxy latestRoundData() read at issue. The S round may have been written after asof "
-    "(inputs.<asset>.S.updatedAfterAsof); prereg T5.1 also says the issuer never reads a price after asof. "
-    "The answer in force AT asof is recorded as RV close k=0 (inputs.<asset>.rv.closes[0]), so either "
-    "reading can be audited.",
+    "S = the Chainlink answer in force AT asof (= RV close k=0, inputs.<asset>.rv.closes[0]), per prereg "
+    "deviation D2: T5.1 named latestRoundData() at issue but also forbids any price after asof. "
+    "latestRoundData() at issue is kept in inputs.<asset>.S.latestRoundDataAtIssue_referenceOnly.",
     "RV daily close P_k (k=0..90) = Chainlink answer in force at asof - k*86400. Source: price-history "
     "`oracle` of the hour opening at asof - k*86400 - 3600 when that hour is inside the frozen file "
     "(values rounded to cents there), else Chainlink answer_at on a public RPC (round with the largest "
@@ -235,13 +234,18 @@ def issue(out_dir, grids, price_meta, maps, cal_meta, rpc, http_get=None, clock=
                          "the DVOL candle closing at asof may not be final. Run again a minute later.")
 
     feeds = {a: cl.Feed(rpc, cl.FEEDS[a], clock=clock) for a in ASSETS}
-    spot = {a: feeds[a].latest_round_data() for a in ASSETS}  # S first: closest to issuedAt
+    spot = {a: feeds[a].latest_round_data() for a in ASSETS}  # reference only (prereg deviation D2)
     inputs, grid = {}, []
     for a in ASSETS:
         lr = spot[a]
-        S = lr.price()
         dv = dvol_candle(a, asof, issued_at, get=http_get)
         closes, check = rv_closes(grids[a], feeds[a], asof)
+        # D2: S is the Chainlink answer in force AT asof (closes[0]), never a round written after asof,
+        # so no forecast input post-dates the start of its window (asof, asof + T].
+        s_close = closes[0]
+        if s_close["k"] != 0 or s_close["price"] is None:
+            raise SystemExit(f"STOP: {a}: no Chainlink answer in force at asof {iso(asof)}")
+        S = s_close["price"]
         prices = [c["price"] for c in closes]
         sig = {"DVOL": _sigma(dv["sigma"])}
         for name, K in t1.RV_DAYS.items():
@@ -250,16 +254,19 @@ def issue(out_dir, grids, price_meta, maps, cal_meta, rpc, http_get=None, clock=
         for c in closes:
             src_counts[c["source"]] = src_counts.get(c["source"], 0) + 1
         inputs[a] = {
-            "S": {"source": "chainlink latestRoundData() at issue", "feed": cl.FEEDS[a],
-                  "decimals": cl.DECIMALS, **lr.to_json(), "updatedAtIso": iso(lr.updated_at),
-                  "ageSecondsAtIssue": issued_at - lr.updated_at, "updatedAfterAsof": lr.updated_at > asof},
+            "S": {"source": "chainlink answer in force at asof (= rv.closes[0]); prereg deviation D2",
+                  "feed": cl.FEEDS[a], "decimals": cl.DECIMALS, "price": S, "close": s_close,
+                  "latestRoundDataAtIssue_referenceOnly": {
+                      **lr.to_json(), "updatedAtIso": iso(lr.updated_at),
+                      "ageSecondsAtIssue": issued_at - lr.updated_at, "updatedAfterAsof": lr.updated_at > asof}},
             "DVOL": dv,
             "rv": {"closes": closes, "sourceCounts": src_counts, "switchCheck": check,
                    "estimator": "t1_touch.realized_vol (T1.2)"},
             "sigma": sig,
         }
         grid += build_grid(a, S, sig, maps, asof)
-        log(f"{a}: S={S:.2f} (round {lr.phase}/{lr.agg}, updated {iso(lr.updated_at)}) "
+        log(f"{a}: S={S:.2f} (in force at asof: round {s_close.get('phaseId')}/{s_close.get('aggregatorRoundId')}, "
+            f"source {s_close['source']}; latest at issue {lr.price():.2f}) "
             f"DVOL={sig['DVOL']} RV30={sig['RV30']} RV90={sig['RV90']} closes {src_counts}")
 
     doc = {

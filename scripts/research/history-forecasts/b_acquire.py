@@ -730,7 +730,11 @@ def git_info() -> dict:
         branch = subprocess.check_output(["git", "-C", str(root), "rev-parse", "--abbrev-ref", "HEAD"], text=True).strip()
         rel = str(Path(__file__).resolve().relative_to(root))
         dirty = subprocess.check_output(["git", "-C", str(root), "status", "--porcelain", "--", rel], text=True).strip()
-        return {"sha": sha, "branch": branch, "path": rel, "dirty": bool(dirty)}
+        last = subprocess.check_output(["git", "-C", str(root), "log", "-1", "--format=%H", "--", rel], text=True).strip()
+        # HEAD can move for unrelated files on a shared branch; the file's own last commit and
+        # content hash identify the code that ran.
+        return {"sha": sha, "branch": branch, "path": rel, "dirty": bool(dirty), "file_last_commit": last,
+                "file_sha256": sha256_file(Path(__file__).resolve())}
     except Exception as e:  # pragma: no cover
         return {"error": str(e)}
 
@@ -1455,8 +1459,13 @@ def provenance_md(run_meta: dict, files: dict, val: dict, pop: dict) -> str:
         f"  Pool `{POOL}`; aUSDC `{RESERVES['USDC']['atoken']}`; aUSDT `{RESERVES['USDT']['atoken']}`.",
         f"  Address universe `U_r` = every `user_id` of the reserve in `lender-retention/lender_flows_raw.csv.gz`",
         f"  (sha256 `{LENDER_FLOWS_SHA256}`).",
-        f"- **Builder:** `The-Membrane/membrane-app` branch `{g.get('branch')}` at `{g.get('sha')}`, `{g.get('path')}`.",
-        f"- **Fetch window (UTC):** {run_meta['fetch_window_utc'][0]} → {run_meta['fetch_window_utc'][1]}.",
+        f"- **Builder:** `The-Membrane/membrane-app` branch `{g.get('branch')}`, `{g.get('path')}`. By session (phases: HEAD;",
+        "  last commit touching the builder; its sha256 when recorded):",
+        *[f"  {', '.join(x['phases'])}: HEAD `{x['code'].get('sha')}`; builder `{x['code'].get('file_last_commit') or x['code'].get('sha')}`"
+          + (f" (sha256 `{x['code']['file_sha256']}`)" if x['code'].get('file_sha256') else "") + "."
+          for x in run_meta["sessions"] if x.get("status") == "ok"],
+        "  The builder's only change after the fetch commit adds `file_last_commit` / `file_sha256` to this metadata.",
+        f"- **Fetch window (UTC):** {run_meta['fetch_window_utc'][0]} → {run_meta['fetch_window_utc'][1]} (sessions that made RPC requests).",
         f"- **Snapshots:** daily 00:00Z {DAILY_START} → {DAILY_END} ({len(daily_dates())} days); block = the largest",
         "  block with timestamp < T, proved by `block_ts < T <= next_ts` in `blocks.csv`. Monthly selection = the 1st of",
         f"  each month {MONTHLY_START} → {MONTHLY_END} ({len(monthly_dates())}). Asof = latest block at build time:",
@@ -1593,8 +1602,9 @@ def build_run_meta(ctx: Ctx, work: Path) -> dict:
         for k in ("by_method", "by_phase"):
             for kk, vv in (c.get(k) or {}).items():
                 tot[k][kk] = tot[k].get(kk, 0) + vv
-    starts = [s["start_utc"] for s in sessions]
-    ends = [s.get("end_utc") for s in sessions if s.get("end_utc")]
+    net = [s for s in sessions if (s.get("counts") or {}).get("http_requests", 0) > 0]
+    starts = [s["start_utc"] for s in net]
+    ends = [s.get("end_utc") for s in net if s.get("end_utc")]
     return {
         "dataset": "depositor-balances",
         "prereg": PREREG,

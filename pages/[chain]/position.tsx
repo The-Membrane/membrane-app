@@ -13,7 +13,7 @@ const PositionPage = () => (
     <PageSeo
       seoClass="app"
       title="Membrane — Your liquidation line"
-      description="Paste an address: your liquidation price on Aave, Spark, Morpho or Compound, how far it sits from today's price, how often ETH or BTC moved that far before, and what repay or top-up moves it."
+      description="Paste an address: your liquidation price on Aave, Spark, Morpho or Compound, how far it sits from today's price, the forecast chance ETH or BTC reaches it within 1 to 30 days with its likely range, and the repay or top-up that moves it."
     />
     <PositionV0 />
   </>

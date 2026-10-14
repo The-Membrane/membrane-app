@@ -6,7 +6,7 @@
 // line; the dense instrument panel. Every figure comes from an adapter read, the generated
 // history table or a contract constant (DESIGN_RULES §4: no mockup numbers).
 
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import { Box } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
@@ -37,6 +37,11 @@ import {
 } from './viewModel'
 
 const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+
+/** The table's age never changes while the page is open; nothing to subscribe to. */
+const noSubscribe = () => () => {}
+const clientStale = () => isStale(TOUCH_TABLE, Date.now())
+const serverStale = () => false
 
 /** Before any read: what the page will read, so the gap in coverage is stated up front. */
 const COVERAGE = `Reads ${ADAPTER_ORDER.filter((a) => a.id !== 'fluid')
@@ -153,8 +158,10 @@ export const PositionV0: React.FC = () => {
   const readId = `${address ?? ''}#${form.nonce}`
   const selectedKey = picked && picked.read === readId ? picked.key : null
   const onSelect = useCallback((key: string) => setPicked({ read: readId, key }), [readId])
-  // Read once per mount: whether the table's last observed hour is too old to quote.
-  const [stale] = useState(() => isStale(TOUCH_TABLE, Date.now()))
+  // Whether the table's last observed hour is too old to quote. Read from the client clock
+  // AFTER hydration (the server snapshot is "not stale"), so a server and a browser on
+  // different clocks never render different markup.
+  const stale = useSyncExternalStore(noSubscribe, clientStale, serverStale)
 
   const items = useMemo(() => readStatus(ADAPTER_ORDER, results), [results])
   const state = useMemo(() => pageState(address !== null, items, results, TOUCH_TABLE), [address, items, results])

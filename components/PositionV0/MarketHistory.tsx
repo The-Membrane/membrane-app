@@ -9,7 +9,15 @@ import { Box, Text } from '@chakra-ui/react'
 import { SPACING } from '@/config/spacing'
 import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { confidenceOf, formatBand, formatChance, touchAtLevel } from '@/lib/position/touch'
-import { HORIZON_IDS, HORIZON_WORDS, periodYears, shortSha, type HistoryAsset, type TouchTable } from '@/lib/position/touchHistory'
+import {
+  HORIZON_IDS,
+  HORIZON_WORDS,
+  periodYears,
+  shortSha,
+  type HistoryAsset,
+  type HorizonId,
+  type TouchTable,
+} from '@/lib/position/touchHistory'
 
 import { STALE_HATCH } from './forecastMarks'
 import { Credit, Headline, Kicker, Section, Small } from './primitives'
@@ -19,9 +27,24 @@ import { MARKET_LEVELS, forecastFooter } from './viewModel'
 const CELL = { fontFamily: NEWS_FONT.mono, fontSize: { base: TYPE.label, md: TYPE.body }, py: '5px', px: '4px', textAlign: 'right' as const }
 const HEAD = { ...CELL, ...CAPS, fontSize: TYPE.label, fontWeight: 700, color: NEWS.muted }
 
+/** "4 of 5" checks held, or "no checks". */
+const heldOf = (t: TouchTable, asset: HistoryAsset, h: HorizonId): string => {
+  const c = t.assets[asset].fall[h].confidence
+  return c.checks === 0 ? 'no checks' : `held ${c.held} of ${c.checks}`
+}
+
+/** "2024–26" from a span's own dates. */
+const spanYears = (span: { from: string; to: string }): string =>
+  `${span.from.slice(0, 4)}–${span.to.slice(2, 4)}`
+
 const AssetTable: React.FC<{ t: TouchTable; asset: HistoryAsset; stale: boolean }> = ({ t, asset, stale }) => (
   <Box minW={0}>
-    <Box as="table" w="100%" sx={{ borderCollapse: 'collapse' }} aria-label={`Chance ${asset} falls by at least 10, 20 or 30 percent`}>
+    <Box
+      as="table"
+      w="100%"
+      sx={{ borderCollapse: 'collapse' }}
+      aria-label={`Chance ${asset} falls by at least ${MARKET_LEVELS.slice(0, -1).join(', ')} or ${MARKET_LEVELS[MARKET_LEVELS.length - 1]} percent`}
+    >
       <Box as="thead">
         <Box as="tr" borderBottom={`1px solid ${NEWS.ruleStrong}`}>
           <Text as="th" {...HEAD} textAlign="left" pl={0} color={NEWS.ink}>
@@ -58,6 +81,9 @@ const AssetTable: React.FC<{ t: TouchTable; asset: HistoryAsset; stale: boolean 
             })}
             <Text as="td" {...CELL} pr={0} fontSize={TYPE.label} color={NEWS.ink2}>
               {confidenceOf(t, asset, 'fall', h).label}
+              <Text as="span" display="block" color={NEWS.muted}>
+                {heldOf(t, asset, h)}
+              </Text>
             </Text>
           </Box>
         ))}
@@ -78,8 +104,8 @@ export const MarketHistory: React.FC<{ t: TouchTable; stale: boolean }> = ({ t, 
       <AssetTable t={t} asset="BTC" stale={stale} />
     </Box>
     <Small>
-      Under each chance, its likely range (90%). Confidence is preliminary: a horizon holds when 2024–26 stayed inside
-      the range 2021–23 gave.
+      Under each chance, its likely range (90%). Confidence is preliminary: “held k of n” counts the fall sizes where{' '}
+      {spanYears(t.period.test)} stayed inside the range {spanYears(t.period.calib)} gave.
     </Small>
     <Text fontFamily={NEWS_FONT.display} fontStyle="italic" fontSize={TYPE.body} color={NEWS.ink2}>
       Paste an address above for the chance at your own line.

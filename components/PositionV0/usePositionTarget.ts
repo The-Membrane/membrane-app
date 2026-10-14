@@ -3,12 +3,12 @@
 // DERIVED, NOT SYNCED. The target is, in order: the wallet's address when the reader asked
 // for it and the wallet has reported one; the address the reader submitted; the URL's
 // ?address= (a shared link). Nothing is copied between these in an effect: the target is
-// derived on every render, and only event handlers change a request. A submit also writes
-// the address into the URL, so every read is shareable.
+// derived on every render, and only event handlers change a request. A submit, and a
+// wallet that connects, write the address into the URL, so every read is shareable.
 // Read-only throughout: connecting supplies an address; nothing is signed.
 
-import { useCallback, useState } from 'react'
-import { useRouter } from 'next/router'
+import { useCallback, useEffect, useState } from 'react'
+import { useRouter, type NextRouter } from 'next/router'
 
 import useWallet from '@/hooks/useWallet'
 import { parseAddress } from '@/lib/position-sim/rpc'
@@ -27,19 +27,52 @@ export interface PositionTarget {
   walletConnected: boolean
 }
 
+type Address = `0x${string}`
+
+/** A shared link's ?address=, raw and parsed. */
+function urlAddress(router: NextRouter): { raw: string | null; parsed: Address | null } {
+  const raw = router.isReady && typeof router.query.address === 'string' ? router.query.address : null
+  return { raw, parsed: raw === null ? null : parseAddress(raw) }
+}
+
+/** A broken ?address= with nothing else to read gets the box's own message, not silence. */
+const urlErrorOf = (raw: string | null, parsed: Address | null, target: Address | null): string | null =>
+  raw && parsed === null && target === null ? BAD_ADDRESS : null
+
+/** Writes an address into ?address=, shallow, so the page does not remount and the read can be shared. */
+function useReplaceAddress(router: NextRouter): (a: Address) => void {
+  return useCallback(
+    (a: Address) => {
+      if (router.query.address === a) return
+      void router.replace({ pathname: router.pathname, query: { ...router.query, address: a } }, undefined, {
+        shallow: true,
+        scroll: false,
+      })
+    },
+    [router],
+  )
+}
+
 export function usePositionTarget(): PositionTarget {
   const router = useRouter()
   const { address: wallet, isWalletConnected, connect } = useWallet()
   const [wantsWallet, setWantsWallet] = useState(false)
   const [typed, setTyped] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [requested, setRequested] = useState<`0x${string}` | null>(null)
+  const [requested, setRequested] = useState<Address | null>(null)
   const [nonce, setNonce] = useState(0)
+  const replaceAddress = useReplaceAddress(router)
 
-  const fromUrl =
-    router.isReady && typeof router.query.address === 'string' ? parseAddress(router.query.address) : null
+  const url = urlAddress(router)
   const fromWallet = wantsWallet && wallet ? parseAddress(wallet) : null
-  const target = fromWallet ?? requested ?? fromUrl
+  const target = fromWallet ?? requested ?? url.parsed
+  const urlError = urlErrorOf(url.raw, url.parsed, target)
+
+  // A wallet that connects after the tap becomes the target on its own; the URL follows it
+  // (an external system kept in step), so a wallet read is as shareable as a pasted one.
+  useEffect(() => {
+    if (fromWallet) replaceAddress(fromWallet)
+  }, [fromWallet, replaceAddress])
 
   const submit = useCallback(
     (raw: string) => {
@@ -53,15 +86,9 @@ export function usePositionTarget(): PositionTarget {
       setRequested(parsed)
       // The same address again is a deliberate re-read; a new one reads by changing target.
       if (parsed === target) setNonce((n) => n + 1)
-      // Shallow, so the page does not remount; the address rides in the URL to share.
-      if (router.query.address !== parsed) {
-        void router.replace({ pathname: router.pathname, query: { ...router.query, address: parsed } }, undefined, {
-          shallow: true,
-          scroll: false,
-        })
-      }
+      replaceAddress(parsed)
     },
-    [router, target],
+    [replaceAddress, target],
   )
 
   const onWallet = useCallback(() => {
@@ -79,10 +106,10 @@ export function usePositionTarget(): PositionTarget {
   return {
     target,
     nonce,
-    // Untouched, the box shows the address being read.
-    input: typed ?? target ?? '',
+    // Untouched, the box shows the address being read (or the broken one from the link).
+    input: typed ?? target ?? (urlError ? url.raw : null) ?? '',
     setInput: setTyped,
-    error,
+    error: error ?? urlError,
     submit,
     onWallet,
     walletConnected: Boolean(isWalletConnected && wallet),

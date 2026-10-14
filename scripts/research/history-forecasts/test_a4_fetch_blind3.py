@@ -25,6 +25,8 @@ class TestExclusions(unittest.TestCase):
         self.assertEqual(A.exclusion_reason("WBETH", bases), "wrapped/staked")
         self.assertEqual(A.exclusion_reason("BTCUP", bases), "leveraged token")
         self.assertEqual(A.exclusion_reason("SOXLB", bases), "tokenized stock")
+        self.assertEqual(A.exclusion_reason("NVDAB", bases), "tokenized stock")
+        self.assertIsNone(A.exclusion_reason("ARB", bases))  # a B suffix alone is not a stock
         self.assertIsNone(A.exclusion_reason("ATOM", bases))
 
 
@@ -32,7 +34,7 @@ class TestSelect(unittest.TestCase):
     def test_window_exclusions_and_first_kline(self):
         ranked = [{"symbol": f"T{i}USDT", "baseAsset": f"T{i}", "quoteVolume": str(1000 - i), "rank": i}
                   for i in range(1, 131)]
-        ranked[40]["baseAsset"] = "USDC"   # rank 41: excluded, never probed
+        ranked[40]["baseAsset"] = "USDC"   # rank 41: excluded (binding: first kline is early)
         ranked[41]["baseAsset"] = "DOT"    # rank 42: already used
         probed = []
 
@@ -43,9 +45,11 @@ class TestSelect(unittest.TestCase):
         self.assertEqual([r["rank"] for r in table], list(range(41, 121)))
         self.assertEqual(table[0]["excluded"], "stablecoin/fiat/pegged")
         self.assertEqual(table[1]["excluded"], "already used (A3 ten)")
-        self.assertNotIn("T41USDT", probed)
+        self.assertIn("T41USDT", probed)       # every rank in the window is probed
         self.assertNotIn("T121USDT", probed)
+        self.assertTrue(table[0]["exclusionBinding"])   # early first kline, removed only by the exclusion
         self.assertFalse(table[2]["keep"])  # first kline after 2022-01-01
+        self.assertFalse(table[2]["exclusionBinding"])
         self.assertEqual(len(kept), 80 - 3)
         self.assertEqual(kept[0]["rank"], 44)
         self.assertEqual(kept[0]["firstKlineOpen"], F.iso_utc(OLD))

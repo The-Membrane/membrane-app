@@ -35,6 +35,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -55,10 +56,13 @@ WORKERS = 4
 
 A3_TEN = {"NEAR", "ZEC", "UNI", "QNT", "TRX", "INJ", "BAT", "FIL", "AAVE", "DOT"}
 USED = {"ETH/BTC": F.CORE, "A2 eight": F.A22_HOLDOUTS, "A3 ten": A3_TEN}
-# Tokenized stocks carry no tag in exchangeInfo. Named from the 2026-10-13 snapshot; every
-# Binance tokenized-stock pair was listed in 2025 or later, so the first-kline rule excludes any
-# not named here as well.
-TOKENIZED_STOCKS = {"SPCXB", "SNDKB", "SOXLB"}
+# Tokenized stocks carry no tag in exchangeInfo (no field or permission group marks them). They
+# are named: the three seen in the 2026-10-13 snapshot, plus the twelve in ranks 41-120 of the
+# 2026-10-14 snapshot (named after that snapshot was read). Every rank in the window is probed for
+# its first kline, and an exclusion is reported as binding only if that pair's first kline is
+# before 2022-01-01; no tokenized-stock exclusion is binding (all were listed in 2026).
+TOKENIZED_STOCKS = {"SPCXB", "SNDKB", "SOXLB", "MUB", "INTCB", "MSTRB", "SKHYB", "CRCLB", "KORUB", "NVDAB",
+                    "SNXXB", "GOOGLB", "AMDB", "SOXSB", "QQQB"}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -82,20 +86,21 @@ def exclusion_reason(base: str, all_bases: set[str]) -> str | None:
 
 
 def select(ranked: list[dict], all_bases: set[str], first_open) -> tuple[list[dict], list[dict]]:
-    """Rank window -> (table, kept). first_open(symbol) -> (open s, raw text) is called only for
-    pairs that pass the exclusions."""
+    """Rank window -> (table, kept). first_open(symbol) -> (open s, raw text) is called for every
+    pair in the window. An exclusion is binding when the pair's first kline is before the cutoff
+    (the pair would otherwise be kept)."""
     table, kept = [], []
     for p in ranked[RANK_FROM - 1:RANK_TO]:
         row = dict(p)
         row["excluded"] = exclusion_reason(p["baseAsset"], all_bases)
-        row["keep"] = False
-        if row["excluded"] is None:
-            ts, raw = first_open(p["symbol"])
-            row.update({"firstKlineOpen": F.iso_utc(ts), "firstKlineOpenTs": ts, "firstKlineRaw": raw,
-                        "keep": ts < F.FIRST_KLINE_BEFORE})
-            if row["keep"]:
-                kept.append({"symbol": p["symbol"], "baseAsset": p["baseAsset"], "rank": p["rank"],
-                             "firstKlineOpen": row["firstKlineOpen"]})
+        ts, raw = first_open(p["symbol"])
+        early = ts < F.FIRST_KLINE_BEFORE
+        row.update({"firstKlineOpen": F.iso_utc(ts), "firstKlineOpenTs": ts, "firstKlineRaw": raw,
+                    "keep": row["excluded"] is None and early,
+                    "exclusionBinding": row["excluded"] is not None and early})
+        if row["keep"]:
+            kept.append({"symbol": p["symbol"], "baseAsset": p["baseAsset"], "rank": p["rank"],
+                         "firstKlineOpen": row["firstKlineOpen"]})
         table.append(row)
     return table, kept
 
@@ -182,8 +187,8 @@ def phase_select(work: Path, http_: F.Http) -> dict:
     ranked, all_bases = F.rank_usdt_pairs(ei, tk)
 
     def first_open(sym):
-        body, _ = F.cached_get(work, http_, log, "select", f"first-{sym}", F.binance_klines_url(sym, 0, 1),
-                               F.parse_binance)
+        body, _ = F.cached_get(work, http_, log, "select", f"first-{sym}",
+                               F.binance_klines_url(urllib.parse.quote(sym, safe=""), 0, 1), F.parse_binance)
         rows = F.parse_binance(body)
         if len(rows) != 1:
             raise F.FetchStop(f"first-kline probe for {sym} returned {len(rows)} rows")
@@ -373,8 +378,11 @@ def write_provenance(out: Path, manifest: dict, checks: dict, sel: dict) -> None
         sess.append(f"  {', '.join(x['phases'])}: HEAD `{c.get('sha')}`; {files}.")
     g = (manifest["sessions"] or [{}])[-1].get("code", {})
     kept = ", ".join(f"{k['symbol']} (rank {k['rank']}, first kline {k['firstKlineOpen'][:10]})" for k in sel["kept"])
-    notkept = ", ".join(f"{r['rank']} {r['symbol']} ({r['excluded'] or 'first kline ' + r['firstKlineOpen'][:10]})"
-                        for r in sel["window"] if not r["keep"])
+    binding = ", ".join(f"{r['rank']} {r['symbol']} ({r['excluded']}, first kline {r['firstKlineOpen'][:10]})"
+                        for r in sel["window"] if r["exclusionBinding"])
+    nonbinding = ", ".join(f"{r['rank']} {r['symbol']} ({r['excluded'] + ', ' if r['excluded'] else ''}"
+                           f"first kline {r['firstKlineOpen'][:10]})"
+                           for r in sel["window"] if not r["keep"] and not r["exclusionBinding"])
     lines = [
         "# blind3-prices — provenance", "",
         f"**Status: {STATUS}.**", "",
@@ -387,9 +395,13 @@ def write_provenance(out: Path, manifest: dict, checks: dict, sel: dict) -> None
         f"{sel['exchangeInfo']['serverTimeUtc']}), `ticker/24hr` fetched {sel['ticker24hr']['fetchedAt']} (24 h window to "
         f"{sel['ticker24hr']['maxCloseTimeUtc']}). {sel['usdtTradingSpotPairs']} USDT TRADING spot pairs ranked.",
         f"- **Kept ({len(sel['kept'])}):** {kept}.",
-        f"- **Ranks {RANK_FROM}–{RANK_TO} not kept:** {notkept}.",
-        "- Tokenized stocks carry no exchangeInfo tag; they are a named list, and every Binance tokenized-stock",
-        "  pair was listed in 2025 or later, so the first-kline rule excludes them too.",
+        f"- **Binding exclusions** (first kline before 2022-01-01, removed only by an exclusion): {binding}.",
+        f"- **Not kept, first kline on or after 2022-01-01** (any exclusion here is not binding): {nonbinding}.",
+        "- Every rank in the window was probed for its first kline. Tokenized stocks carry no exchangeInfo tag",
+        "  (no field or permission group marks them), so they are a named list; the twelve in this window were",
+        "  named after the snapshot was read. None of those exclusions is binding (all were listed in 2026), so",
+        "  the kept list does not depend on them. The symbol in the probe URL is percent-encoded (one pair has a",
+        "  non-ASCII symbol).",
         "- Raw bodies byte-for-byte: `binance-selection-exchangeInfo.json`, `binance-selection-ticker-24hr.json`;",
         "  rank table with exclusion reasons and first-kline raw text: `binance-selection.json`.", "",
         "## Fetch", "",

@@ -201,8 +201,9 @@ A test pins both, including that they differ.
 
 ### Delay class: no-delay collateral
 
-Membrane has two liquidation-delay classes, and the simulator and the Oct 10 census run
-every position in its own. **One definition** decides the class for both:
+Membrane has two liquidation-delay classes. The simulator runs every position in its own,
+and the Oct 10 census does wherever its data can see the collateral (below). **One
+definition** decides the class for both:
 `lib/position-sim/collateralClass.ts`. Neither engine keeps a stable list of its own.
 
 **The contract rule.** There is no stablecoin label in the contracts. `ee680ded`
@@ -219,42 +220,69 @@ the deploy script, which lists all three launch stables (sUSDS, syrupUSDC, scrvU
 assumption: only a no-delay listing can carry one. **For a volatile asset that implies a
 listing the deploy does not have** (it lists WETH at 90%, delayed): the census keeps the
 contract rule anyway. On Oct 10 that is one WETH/WETH Aave e-mode account on a 94.6% line,
-with no dollar effect (`meta.delayClass.lineRule`). The stable set is the union of the two
-old lists (`HELD_AT_ONE`, the census `STABLES`) plus USDe and sUSDe. Those two are stable
-for the class but **measured**, not held at $1: USDe really moved on Oct 10 and has its
-own series.
+with no dollar effect (`meta.delayClass.lineRule`).
+
+**The stable set** is the union of the two old lists (`HELD_AT_ONE`, the census
+`STABLES`), the deploy's launch stables syrupUSDC and scrvUSD, and the synthetic dollars.
+Three kinds, all stable for the class:
+
+- **Held at $1.00:** USDC, USDT, DAI, GHO, USDS and the rest. The yield-bearing receipts
+  (sDAI, sUSDS, syrupUSDC, scrvUSD) accrue above $1, but over a two-day window their path
+  is flat, which is what a ratio needs. A simulator position in one is valued at $1.00 a
+  unit, which understates its level.
+- **Measured, not held at $1:** USDe and sUSDe. USDe really moved on Oct 10 and has its own
+  series.
+- **Off peg, not held at $1, and unpriced:** sUSD. It traded well under $1.00 through 2025
+  and the dataset has no series for it. In the census it appears only as debt, on Optimism,
+  so those 4 events drop out as unpriced debt and the cohort is 2,347 accounts, not 2,350.
 
 | Rule | Contract (membrane-solidity master `16e12329`) | Simulator |
 |---|---|---|
 | The listing's one parameter is an immutable LTV cap | `Collateral.sol:75`; immutable via `LtvCapImmutable`, `Collateral.sol:383-385` | — (no listing exists; the cap is modelled per symbol) |
-| Class is derived: `_noDelay(cap) = cap > MAX_LTV_HARD_CAP` (strict) | `Collateral.sol:424-426` | `collateralClass.ts:112` `lineIsNoDelay`; `:103` `isNoDelayCollateral` (stable ⇒ no-delay, MODELLED) |
+| Class is derived: `_noDelay(cap) = cap > MAX_LTV_HARD_CAP` (strict) | `Collateral.sol:424-426` | `collateralClass.ts:134` `lineIsNoDelay`; `:125` `isNoDelayCollateral` (stable ⇒ no-delay, MODELLED) |
 | `MAX_LTV_HARD_CAP = 9e17`, `NO_DELAY_LTV_HARD_CAP = 96e16` | `lib/Constants.sol:23`, `:32` | `collateralClass.ts:42`, `:46` (re-exported by `membrane.ts`) |
-| A delayed asset's max LTV is clamped to its cap (≤ 90%) | `Collateral.sol:538-540`, `:562` | `membrane.ts:106` `membraneMaxLtv` (clamps at the class cap, `collateralClass.ts:117`) |
+| A delayed asset's max LTV is clamped to its cap (≤ 90%) | `Collateral.sol:538-540`, `:562` | `membrane.ts:106` `membraneMaxLtv` (clamps at the class cap, `collateralClass.ts:139`); a split half, `compare.ts:534` |
 | A no-delay asset has no window (`max_threshold_to_delay == 0`) | `Collateral.sol:430-432`; deploy `script/DeployFullSystem.s.sol:1127` | `curePath.ts:226` (the no-delay timer ignores the band) |
-| Launch listing: sUSDS, syrupUSDC, scrvUSD at 96e16; WETH at 90e16 | `script/DeployFullSystem.s.sol:269-272` | the stable ⇒ no-delay assumption, `collateralClass.ts:103` |
+| Launch listing: sUSDS, syrupUSDC, scrvUSD at 96e16; WETH at 90e16 | `script/DeployFullSystem.s.sol:269-272` | the stable ⇒ no-delay assumption, `collateralClass.ts:125` |
 | Instant mode: threshold = line, `currentLtv > threshold` ⇒ Immediate | `LiquidationEngine.sol:1572-1576`, `:1694-1703` | `curePath.ts:226` (`sell`, reason `instant`, strict `>`) |
 | A timer can never arm in instant mode | `LiquidationEngine.sol:1708-1710` (`InstantModeNotLiquidatable`) | `curePath.ts:226` (never returns `arm`) |
 | No-delay walk: sold at t0, walks on, sold again on a later breach | as above, plus the repay-to-cap `LiquidationEngine.sol:2204-2238` | `curePath.ts:393`, `:470` (`cureWalk` `noDelay`, outcome `sold-no-delay`) |
-| Stable and volatile collateral may not share a position | `Cdp.sol:1650-1651` → `MixedDelayClassCollateral`, `Collateral.sol:789-793` | `collateralClass.ts:135` `delayClassOf` → `'mixed'` |
+| Stable and volatile collateral may not share a position | `Cdp.sol:1650-1651` → `MixedDelayClassCollateral`, `Collateral.sol:789-793` | `collateralClass.ts:157` `delayClassOf` → `'mixed'` |
 | Every call recalls first, toward the WHOLE debt | `repayTarget = totalDebt` `LiquidationEngine.sol:1319`; Step 1.5 sends `min(retrievable, repayTarget - totalRepaid)` `:1450-1453` | `compare.ts:345-352` (recall `min(available, debt)` at every keeper call) |
 | Paid recall-only lane: post-recall LTV ≤ line ⇒ fee, nothing sold, timer deleted | `LiquidationEngine.sol:1603-1658` (trigger `:1623`, runs before classification; fee base `min(target, recalled)` `:1653-1654`; fee `:1821-1838`, `:1877`, `:1887`; sale steps skipped `:1137-1141`) | `compare.ts:365` (at a breach, a sale, or inside the window) |
 | Still over the line: breach call arms with the recall kept; in-window call reverts | `TimerStarted` lane; `TimerActive` revert `:1690` | `compare.ts:400` (arm), `:396` (hold: no state change) |
 | Still over the line at a sale: only the post-recall shortfall is sold | Steps 3-5 after Step 1.5 | `compare.ts:438` |
-| Post-check: a liquidation may not raise LTV | `Cdp.sol:2494-2498` (`LiquidationRaisedLtv`) | **not modelled** — caveat, `compare.ts:660` |
+| Post-check: a liquidation may not raise LTV | `Cdp.sol:2494-2498` (`LiquidationRaisedLtv`) | **not modelled** — caveat, `compare.ts:663` |
 
-**Mixed collateral: split in the simulator, excluded in the census.**
+**Mixed collateral: split in the simulator, walked as before in the census.**
 
-- *Simulator* (`compare.ts:480` `splitByDelayClass`). A pasted position holding both
-  classes is run as the **two isolated positions** Membrane would make the borrower hold.
+- *Simulator* (`compare.ts:534` `splitByDelayClass`). A pasted position holding both
+  kinds is run as the **two isolated positions** Membrane would make the borrower hold.
   The debt, and any deployed venue capital, is split pro-rata to collateral value at
   minute 0, so both halves open at the position's own LTV (the neutral split). Each half
-  runs in its own class against its own line, and the halves are summed into one run. The
-  split is modelled, and the run says so in a caveat: a borrower could split differently.
-- *Census* (`scripts/build-evidence.ts:665-682`). A liquidated account whose collateral
-  spans both classes is a position that cannot exist on Membrane, so there is nothing to
-  compare. It is **excluded from both sides**, like an unlocated line, and counted under
-  `meta.excluded.byReason.mixedDelayClass`. An account that is both unlocated and mixed
-  keeps the earlier, unlocated reason.
+  keeps its OWN modelled line: the page always passes a line override (the blended line
+  by default), so each half's line is scaled by override / whole-position line
+  (`compare.ts:551`) — at the default exactly its own line, and a user edit moves both by
+  the same factor — then clamped to its class's cap (96% stable, 90% otherwise). A half
+  with no modelled LTV on any leg (e.g. GHO) runs at the whole position's scaled line, and
+  the run says so. Each half is labelled from the class it actually runs in, and the
+  halves are summed into one run. The split is modelled: a borrower could split
+  differently.
+- *Census* (`scripts/build-evidence.ts:718`). The CSV names only the reserves that were
+  seized. An account with a stable AND a volatile reserve seized is `mixed`: a position
+  Membrane would not hold in one piece, but the data cannot say how it would have been
+  split. The headline walks it delayed on its first leg, exactly as before this rule, and
+  removing such accounts from both sides is published as `meta.sensitivity.mixedExcluded`
+  (16 priced accounts on Oct 10: Aave $0.65M, Membrane $0.71M).
+
+**What the census can see.** Because the CSV names only the seized reserves, the class of
+most accounts is unknowable from it. `seenCollateralShare` is the seized reserves at
+block N-1 over the account's total collateral (`scripts/build-evidence.ts:569-585`); the
+class is applied only where it is ≥ 95% (shares a little above 1 are the oracle mismatch
+in `meta.anchor`). Everywhere else the class is `unknown` and the account walks the window
+as before, unless its line is above 90%. Of the 71 priced accounts whose seized collateral
+is all stablecoins, 53 are unknown on that test. The full composition of every account
+comes from on-chain reads of every reserve (the Q28 full-coverage census), not this CSV.
 
 **The venue recall, and the paid recall-only lane.** Every keeper call runs Step 1.5
 before it classifies anything, and Step 1.5 recalls toward the **whole debt**, not the
@@ -289,15 +317,14 @@ its flat fee is a stand-in for the contract's ramp, so a revert computed from it
 an artefact of the model. Every run states this caveat.
 
 **What it did to the Oct 10 census** (`meta.delayClass`, `meta.sensitivity.stablesDelayed`).
-73 priced accounts are no-delay (72 on stable collateral, 1 a WETH/WETH account with a
-94.6% line). None of them would have cured in a window (`time.noDelay`), and every one
-has a flat or never-recovering path, so selling at t0 instead of at the 8h expiry moves
-**no dollar**: the same-rows delta is $0.00. All of the headline change is the 19
-mixed-class accounts leaving both sides: priced 748 → 732 accounts, Aave $34.69M →
-$34.03M, Membrane $22.19M → $21.48M. `stablesDelayed` reproduces the old headline exactly.
-Under the per-sale liquidity cap (`meta.sensitivity.liquidityBound`) the class does move
-dollars, because a capped no-delay remainder is sold the next minute instead of earning a
-fresh window.
+19 priced accounts are no-delay: 18 whose collateral the CSV sees is all stablecoins, and 1
+WETH/WETH account on a 94.6% line. None of them would have cured in a window
+(`time.noDelay`), and every one has a flat or never-recovering path, so selling at t0
+instead of at the 8h expiry moves **no dollar**: the same-rows delta is $0.00, and the
+headline is the pre-rule headline (priced Aave $34.69M, Membrane $22.19M). Under the
+per-sale liquidity cap (`meta.sensitivity.liquidityBound`) the class can move dollars,
+because a capped no-delay remainder is sold the next minute instead of earning a fresh
+window.
 
 ---
 
@@ -402,6 +429,9 @@ editable in the UI, because they are the variable that moves the result most.
 14. **The `LiquidationRaisedLtv` post-check is not modelled** (`Cdp.sol:2494-2498`). §3.
 15. **The wallet-history replay (`history.ts`) still grants every collateral the 8h
     window.** Only the Oct 10 comparison and the census apply the delay class.
+16. **The census cannot see most accounts' collateral.** Its CSV names only the seized
+    reserves, so the delay class is applied only where they are ≥ 95% of the collateral.
+    Full composition needs on-chain reads (the Q28 full-coverage census). §3.
 
 ---
 

@@ -82,7 +82,6 @@ import {
   type AaveMarket,
   type AaveRead,
 } from './aaveRead'
-import type { AaveEventRecord } from '../aave'
 import { Blocks } from './blocks'
 import { pmap } from './calls'
 import {
@@ -213,7 +212,11 @@ export interface EngineOptions {
   pollSeconds?: number
   readConcurrency?: number
   ownClusters?: readonly string[]
-  walkOnAfterT0BandSale?: boolean
+  /**
+   * SENSITIVITY ONLY: stop a delayed position after its t0 band sale (kernel.ts). Default false:
+   * it walks on, as the census.
+   */
+  stopAfterT0BandSale?: boolean
   /** Kernel grid end (the census's 2,879); default: none. */
   lastMinute?: number
   /** Seconds before a chain that is behind stops holding the others (live 300; historical never). */
@@ -226,6 +229,12 @@ export interface EngineOptions {
    * and tests: the stream is then reproducible). Live: false — a pass never holds a minute.
    */
   awaitReconciliation?: boolean
+  /**
+   * Give up (run() throws) after this many consecutive failures of the same minute. Live:
+   * never — the stream waits and retries with backoff (the stats file shows it). Historical runs
+   * and tests: 30, so a deterministic error ends the run instead of retrying forever.
+   */
+  maxMinuteFailures?: number
   /**
    * Aave V3 instances outside the registry to bring into scope: labels of KNOWN_NON_REGISTRY_AAVE
    * (`horizon`) or provider addresses. Default none (an owner decision).
@@ -253,12 +262,11 @@ interface ActivePosition {
 }
 
 type Read =
-  | { kind: 'aave'; read: AaveRead; atNm1: AaveEventRecord | null }
+  | { kind: 'aave'; read: AaveRead; treasuryFee: bigint | null }
   | {
       kind: 'morpho'
       open: boolean
       record: MorphoEventRecord
-      atNm1: MorphoEventRecord | null
       market: MorphoMarketLive
       usd: UsdMode
     }
@@ -311,9 +319,9 @@ function stubPosition(pid: string, walked: boolean): PositionState {
 
 export class LiveEngine {
   readonly opts: Required<
-    Omit<EngineOptions, 'endMinute' | 'walkOnAfterT0BandSale' | 'chainConfig'>
+    Omit<EngineOptions, 'endMinute' | 'stopAfterT0BandSale' | 'chainConfig'>
   > &
-    Pick<EngineOptions, 'endMinute' | 'walkOnAfterT0BandSale'>
+    Pick<EngineOptions, 'endMinute' | 'stopAfterT0BandSale'>
   readonly rt = {} as Record<ChainKey, ChainRt>
   state!: EngineState
   private committed = ''
@@ -362,6 +370,7 @@ export class LiveEngine {
       catchupMinutesPerMinute: DEFAULTS.catchupMinutesPerMinute,
       maxGapMinutes: DEFAULTS.maxGapMinutes,
       awaitReconciliation: options.mode !== 'live',
+      maxMinuteFailures: options.mode === 'live' ? Infinity : 30,
       allowAaveProviders: [],
       ...options,
     } as LiveEngine['opts']
@@ -406,7 +415,7 @@ export class LiveEngine {
   private addReader(c: ChainKey, m: AaveMarket) {
     const rt = this.rt[c]
     if (rt.aave.has(m.pool)) return
-    rt.aave.set(m.pool, new AaveReader(this.deps.rpc, rt.cfg, m, async (n) => (await rt.blocks.header(n)).ts))
+    rt.aave.set(m.pool, new AaveReader(this.deps.rpc, rt.cfg, m))
     rt.scanner.setAavePools([...rt.aave.keys()])
   }
 
@@ -806,6 +815,8 @@ export class LiveEngine {
         this.rollback()
         this.consuming = []
         this.state.counters.errors++
+        if (failures >= this.opts.maxMinuteFailures)
+          throw new Error(`minute ${m} failed ${failures} times in a row: ${(e as Error).message}`)
         await backoff(Math.min(120_000, 2_000 * 2 ** Math.min(6, failures - 1)))
       }
     }
@@ -844,7 +855,8 @@ export class LiveEngine {
     )
     for (const p of stepping) {
       const gone = missing.get(p.saved.chain)
-      const lacking = gone ? Object.values(p.saved.legKeys).filter((x) => gone.has(x)) : []
+      let lacking = gone ? Object.values(p.saved.legKeys).filter((x) => gone.has(x)) : []
+      if (!lacking.length) lacking = this.ratiosMissing(p, k)
       if (lacking.length) {
         this.recordGap(p, k, lacking)
         continue
@@ -1044,6 +1056,27 @@ export class LiveEngine {
     return r
   }
 
+  /**
+   * The legs whose ratio at minute m would be missing (null, zero, negative). The engine never
+   * steps a kernel with one (a gap instead), so the kernels' `missingPrice` never acts.
+   */
+  private ratiosMissing(p: ActivePosition, m: number): string[] {
+    const prices = this.rt[p.saved.chain].prices
+    const price = (legKey: string) => {
+      const k = p.saved.legKeys[legKey]
+      return k ? prices.get(m, k) : undefined
+    }
+    const out = new Set<string>()
+    p.kernels.forEach((k, i) => {
+      if (k.isDone) return
+      for (const leg of [...p.specs[i].collateral, ...p.specs[i].debt]) {
+        const r = legRatio(leg, p.saved.anchors, price)
+        if (r == null || !(r > 0)) out.add(leg.key ? (p.saved.legKeys[leg.key] ?? leg.key) : leg.symbol)
+      }
+    })
+    return [...out]
+  }
+
   private stepPosition(p: ActivePosition, m: number): StreamRecord[] {
     const prices = this.rt[p.saved.chain].prices
     const price = (legKey: string) => {
@@ -1087,11 +1120,9 @@ export class LiveEngine {
       const isOpen = opening.has(eventKey(e))
       if (e.protocol === 'aave-v3') {
         const reader = await this.aaveReader(e)
-        const read = await reader.read(e)
+        // The re-read, and the protocol fee from the receipt (the census's source).
+        const [read, treasuryFee] = await Promise.all([reader.read(e), reader.treasuryFee(e)])
         if (!read.hfExact) this.state.counters.hfMismatch++
-        // Not located at the N prices: the N-1 prices, balances accrued to ts(N).
-        const atNm1 =
-          isOpen && !read.record.atN.liquidatable ? await reader.locateAtNm1(e, read) : null
         // The real side falls back to the minute path when the re-read lacks a block-N price.
         const missing = [e.debtAsset, e.collateralAsset].filter((a) => {
           const r = read.record.position.find((x) => x.asset === a)
@@ -1103,7 +1134,7 @@ export class LiveEngine {
             await this.minuteBlock(e.chain, m),
             missing.map((a) => aaveKey(reader.setup!.oracle, a)),
           )
-        reads.set(eventKey(e), { kind: 'aave', read, atNm1 })
+        reads.set(eventKey(e), { kind: 'aave', read, treasuryFee })
       } else {
         const core = this.core(e.chain)
         await core.ensureSetup(e.block - 1)
@@ -1118,7 +1149,6 @@ export class LiveEngine {
           kind: 'morpho',
           open: isOpen,
           record: got?.record ?? (await rt.morpho.readLater(e)),
-          atNm1: got?.atNm1 ?? null,
           market,
           usd,
         })
@@ -1138,19 +1168,17 @@ export class LiveEngine {
       const read = reads.get(eventKey(e))!
       const known = this.known(e.pid) || out.some((r) => r.kind === 'open' && r.pid === e.pid)
       if (read.kind === 'aave') {
-        const real = this.aaveReal(e as AaveLiquidation, read.read, m)
+        const real = this.aaveReal(e as AaveLiquidation, read.read, m, read.treasuryFee)
         if (known) {
           out.push(real)
           this.touch(e.pid, m)
           continue
         }
-        const pool = (e as AaveLiquidation).pool
-        const spec = aaveSpec(read.atNm1 ?? read.read.record, this.window, pool)
-        const open = openRecordOf(spec, this.cluster(spec)) as LiveRecord
-        if (read.atNm1 && isWalked(spec)) {
-          open.priceBasis = 'N-1'
-          ctr.locatedAtNm1++
-        }
+        // The census's spec: located at block N, else N-1 (`priceBasis`), pid with the pool.
+        const spec = aaveSpec(read.read.record, this.window)
+        if (spec.pid !== e.pid) throw new Error(`spec pid ${spec.pid} != event pid ${e.pid}`)
+        const open = openRecordOf(spec, this.cluster(spec))
+        if (open.priceBasis === 'N-1') ctr.locatedAtNm1++
         out.push(open, real)
         const oracle = read.read.raw.setup.oracle
         out.push(...this.startPosition(spec, { kind: 'usd' }, m, (k) => aaveKey(oracle, k)))
@@ -1163,16 +1191,14 @@ export class LiveEngine {
           continue
         }
         const spec = morphoSpec(
-          read.atNm1 ?? read.record,
+          read.record,
           { collateral: read.market.collateralSymbol, loan: read.market.loanSymbol },
           usdPerUnit,
           this.window,
         )
-        const open = openRecordOf(spec, this.cluster(spec)) as LiveRecord
-        if (read.atNm1 && isWalked(spec)) {
-          open.priceBasis = 'N-1'
-          ctr.locatedAtNm1++
-        }
+        if (spec.pid !== e.pid) throw new Error(`spec pid ${spec.pid} != event pid ${e.pid}`)
+        const open = openRecordOf(spec, this.cluster(spec))
+        if (open.priceBasis === 'N-1') ctr.locatedAtNm1++
         out.push(open, real)
         out.push(...this.startPosition(spec, read.usd, m, (k) => morphoKey(k)))
       }
@@ -1180,7 +1206,7 @@ export class LiveEngine {
     return out
   }
 
-  private aaveReal(e: AaveLiquidation, r: AaveRead, m: number) {
+  private aaveReal(e: AaveLiquidation, r: AaveRead, m: number, treasuryFee: bigint | null) {
     const setup = r.raw.setup
     const dec = (a: string) => {
       const x = setup.assets.find((y) => y.address === a)
@@ -1188,12 +1214,22 @@ export class LiveEngine {
       return x.decimals
     }
     const unit = Number(setup.baseUnit)
-    const fee = aaveProtocolFee(
+    // The fee the treasury received (the receipt) — the census's figure; the LiquidationLogic
+    // arithmetic only when the receipt has no such transfer. They differ by the aToken's
+    // scaled-balance rounding on some events (counted).
+    const computed = aaveProtocolFee(
       BigInt(e.liquidatedCollateralAmount),
       r.fee.bonus,
       r.fee.feePct,
       r.fee.revision,
     )
+    const ctr = this.state.counters
+    if (treasuryFee === null) ctr.feeFromArithmetic++
+    else {
+      ctr.feeFromReceipt++
+      if (treasuryFee !== computed) ctr.feeScaledRounding++
+    }
+    const fee = treasuryFee ?? computed
     const prices = this.rt[e.chain].prices
     return aaveRealRecord(
       e,
@@ -1219,7 +1255,7 @@ export class LiveEngine {
     if (!isWalked(spec)) return []
     const specs = kernelSpecs(spec, this.window, {
       lastMinute: this.opts.lastMinute,
-      walkOnAfterT0BandSale: this.opts.walkOnAfterT0BandSale,
+      stopAfterT0BandSale: this.opts.stopAfterT0BandSale,
     })
     const usdPerUnit = this.usdFn(spec.chain as ChainKey, usd)
     const kernels = specs.map((s) => new MembraneKernel({ ...s, usdPerUnit }))
@@ -1403,7 +1439,8 @@ export class LiveEngine {
           const prices = this.rt[e.chain].prices
           const keys = Object.values(p.saved.legKeys)
           await prices.ensure(k, block, [...keys, ...(p.saved.usd.kind === 'aave' ? [p.saved.usd.key] : [])])
-          const lacking = await prices.retryMissing(k, keys)
+          let lacking = await prices.retryMissing(k, keys)
+          if (!lacking.length) lacking = this.ratiosMissing(p, k)
           if (lacking.length) {
             this.recordGap(p, k, lacking)
             continue

@@ -25,7 +25,7 @@ import { decodeJsonl } from '@/lib/wavefront/stream'
 const HEADER: LiveHeader = {
   kind: 'header',
   format: 'wavefront-stream',
-  schema: 1,
+  schema: 2,
   window: { startTs: 1_700_000_040, stepSeconds: 60, minutes: 0 },
   engine: 'wavefront-live',
   mode: 'live',

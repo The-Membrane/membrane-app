@@ -23,7 +23,7 @@ primary_region = "iad"
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"   # crash-day peak measured at 381 MB RSS (docs §8)
+  memory = "512mb"   # crash-day peak measured at 340 MB RSS (docs §8)
   processes = ["worker"]
 
 [deploy]

@@ -15,7 +15,14 @@
  * the stream and the state always agree.
  */
 import type { KernelSpec } from '../kernel'
-import type { PositionState, ReplayState, StreamRecord, StreamWindow, TickRecord } from '../stream'
+import type {
+  PositionState,
+  ReplayState,
+  STREAM_SCHEMA,
+  StreamRecord,
+  StreamWindow,
+  TickRecord,
+} from '../stream'
 import type { LiqEvent } from './codec'
 import type { ChainKey } from './config'
 import type { ChunkProvenance, ScanStats } from './logs'
@@ -41,19 +48,21 @@ export interface TickGaps {
 }
 
 /**
- * A stream record as the live engine writes it: schema v1 plus optional fields —
+ * A stream record as the live engine writes it: schema v2 (lib/wavefront/stream.ts — pool-
+ * qualified Aave pids, `priceBasis` on a walked open, real seized including the Aave protocol
+ * fee) plus optional live-only fields that every v2 reader ignores —
  *   backfilled  processed after its minute had ended by more than backfillLagSeconds
- *   late        found by the reconciliation pass after the primary scan had missed it
+ *   late        found by the reconciliation pass (or a lagging chain's catch-up) after the
+ *               primary minute had passed
  *   eventTs     a late record's own event time (its `ts` is the append time)
- *   priceBasis  (open) 'N-1' when the position was located at the N-1 prices (see aaveRead.ts)
  *   protocolFeeUsd (real, Aave) the liquidation protocol fee inside seizedUsd
- *   gaps        (tick) minutes positions were not stepped for a missing oracle value
+ *   gaps        (tick) minutes positions were not stepped for a missing oracle value, lagging
+ *               chains, positions closed for a silent oracle
  */
 export type LiveRecord = StreamRecord & {
   backfilled?: true
   late?: true
   eventTs?: number
-  priceBasis?: 'N-1'
   protocolFeeUsd?: number | null
   gaps?: TickGaps
 }
@@ -61,7 +70,7 @@ export type LiveRecord = StreamRecord & {
 export interface LiveHeader {
   kind: 'header'
   format: 'wavefront-stream'
-  schema: 1
+  schema: typeof STREAM_SCHEMA
   window: StreamWindow
   engine: 'wavefront-live'
   mode: 'live' | 'historical'
@@ -152,6 +161,14 @@ export interface Counters {
   pollErrors: number
   /** Reloads from the sink after a commit whose outcome was unknown had landed. */
   sinkReloads: number
+  /**
+   * Aave protocol fees taken from the receipt's treasury Transfer (the census's source), from
+   * the LiquidationLogic arithmetic (no transfer in the receipt), and receipt fees one or more
+   * units off the arithmetic (the aToken's scaled-balance rounding).
+   */
+  feeFromReceipt: number
+  feeFromArithmetic: number
+  feeScaledRounding: number
   closedPositions: number
   errors: number
   hfMismatch: number
@@ -184,6 +201,9 @@ export const emptyCounters = (): Counters => ({
   catchupMinutes: 0,
   pollErrors: 0,
   sinkReloads: 0,
+  feeFromReceipt: 0,
+  feeFromArithmetic: 0,
+  feeScaledRounding: 0,
   closedPositions: 0,
   errors: 0,
   hfMismatch: 0,

@@ -33,7 +33,7 @@ function spec(r: () => number, noDelay: boolean): KernelSpec {
   const ltv0 = line * (1 + (r() - 0.3) * 0.05)
   const coll = 10_000 + r() * 1e6
   return {
-    pid: 'aave-v3:base:0x01',
+    pid: 'aave-v3:base:0x0000000000000000000000000000000000000001:0x01',
     collateral: [
       { key: 'a', symbol: 'WETH', value0: coll * 0.7 },
       { key: 'b', symbol: 'cbBTC', value0: coll * 0.3 },
@@ -51,7 +51,11 @@ function spec(r: () => number, noDelay: boolean): KernelSpec {
     startTs: 1_700_000_040,
     stepSeconds: 60,
     lastMinute: Number.MAX_SAFE_INTEGER,
-    walkOnAfterT0BandSale: r() < 0.5,
+    stopAfterT0BandSale: r() < 0.5,
+    // As the engine builds them (positions.ts kernelSpecs): the engine owns the gap policy. The
+    // walks below feed a missing cbBTC value 5% of the time, so the carried ratios are part of
+    // what a snapshot must restore.
+    missingPrice: 'carry-forward',
   }
 }
 

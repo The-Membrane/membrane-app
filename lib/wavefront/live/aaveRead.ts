@@ -15,21 +15,22 @@
  * record built here has exactly the shape the pull wrote (aave-events.jsonl.gz), so the census's
  * spec builder (lib/wavefront/aave.ts) takes it unchanged.
  *
- * LOCATING AT N-1 PRICES (`locateAtNm1`). Prices read at the END of block N hide a breach when an
- * oracle update lands later in block N than the liquidation (Oct 10: e.g. Optimism block
- * 142266057 — liquidations at logs 217/357, the OP feed update at log 464). When the position is
- * not liquidatable at N prices, it is re-tested at the N-1 prices with every balance accrued to
- * ts(N) — the state the liquidation itself saw — using Aave's own index math (aave-v3-origin
- * v3.5.0, the Oct 10 pools' revision 9):
- *   normalizedIncome(t) = rayMul(RAY + rate·Δt / SECONDS_PER_YEAR, liquidityIndex)
- *                                          (MathUtils.sol:23-34, ReserveLogic.sol:39-54)
- *   normalizedDebt(t)   = rayMul(RAY + x + rayMul(x, x/2 + rayMul(x, x/6)), variableBorrowIndex),
- *                         x = rate·Δt / SECONDS_PER_YEAR      (MathUtils.sol:79-84, ReserveLogic.sol:63-78)
- *   aToken balance      = rayMulFloor(scaledBalance, normalizedIncome)   (TokenMath.sol:66-71)
- *   debt balance        = rayMulCeil(scaledDebt, normalizedDebt)         (TokenMath.sol:108-113)
- * (checked on every use: accrued to ts(N-1) the same math must give the balances read at N-1).
+ * LOCATING AT N-1 PRICES. Prices read at the END of block N hide a breach when an oracle update
+ * lands later in block N than the liquidation (Oct 10: e.g. Optimism block 142266057 —
+ * liquidations at logs 217/357, the OP feed update at log 464). The record therefore also
+ * carries the pull's `recomputedNm1` (the health factor of the N-1 composition at the N-1
+ * prices, which equals getUserAccountData at N-1 to the wei) and every reserve's `priceNm1`; the
+ * census's spec builder (lib/wavefront/aave.ts `aavePositionSpec`) tries block N, then block N-1,
+ * and records `priceBasis` — the engine does not decide it on its own.
  *
- * THE PROTOCOL FEE (`protocolFee`). LiquidationCall's liquidatedCollateralAmount is the
+ * THE PROTOCOL FEE, AS THE CENSUS READS IT (`treasuryFee`): the collateral aToken's
+ * Transfer(borrower -> RESERVE_TREASURY_ADDRESS) in the liquidation's own receipt, after the
+ * previous LiquidationCall of the transaction and before this one (scripts/oct10-coverage/
+ * fees.ts, the census's source for every one of its 3,114 events). It is the fee after the
+ * aToken's scaled-balance rounding — one unit below the LiquidationLogic arithmetic for some
+ * events. When the receipt has no such transfer, the arithmetic below is the fallback (counted).
+ *
+ * THE PROTOCOL FEE, ARITHMETIC (`aaveProtocolFee`). LiquidationCall's liquidatedCollateralAmount is the
  * LIQUIDATOR's share; the collateral taken from the borrower also includes the liquidation
  * protocol fee sent to the treasury. aave-v3-origin v3.5.0 LiquidationLogic.sol:
  *   :224-237  liquidationBonus = the e-mode category's when the collateral is in the borrower's
@@ -44,6 +45,7 @@
  */
 import { parseAbi } from 'viem'
 import {
+  aTokenAbi,
   dataProviderAbi,
   erc20Abi,
   oracleAbi,
@@ -59,19 +61,17 @@ import type { ChainKey } from '../../../scripts/oct10-coverage/rpc'
 import type { AaveEventRecord, AaveReserveRead } from '../aave'
 import { multicall } from './calls'
 import type { AaveLiquidation } from './codec'
-import type { ChainConfig } from './config'
+import { AAVE_LIQUIDATION_CALL_TOPIC, type ChainConfig } from './config'
 import type { LiveRpc } from './rpc'
 
 const lc = (s: string) => s.toLowerCase()
 const WAD = 10n ** 18n
-const RAY = 10n ** 27n
-const HALF_RAY = RAY / 2n
-const SECONDS_PER_YEAR = 365n * 24n * 3600n
 
 const registryAbi = parseAbi(['function getAddressesProvidersList() view returns (address[])'])
 const marketIdAbi = parseAbi(['function getMarketId() view returns (string)'])
-const scaledAbi = parseAbi(['function scaledBalanceOf(address user) view returns (uint256)'])
 const poolProviderAbi = parseAbi(['function ADDRESSES_PROVIDER() view returns (address)'])
+const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+const pad32 = (a: string) => '0x' + a.slice(2).toLowerCase().padStart(64, '0')
 
 export interface AaveMarket {
   provider: string
@@ -359,25 +359,6 @@ const bonusOf = (cfg: bigint) => (cfg >> 32n) & 0xffffn
 const decimalsOf = (cfg: bigint) => Number((cfg >> 48n) & 0xffn)
 const protocolFeeOf = (cfg: bigint) => (cfg >> 152n) & 0xffffn
 
-// ------------------------------------------------------------------ Aave math (v3.5.0)
-
-const rayMul = (a: bigint, b: bigint) => (a * b + HALF_RAY) / RAY
-const rayMulFloor = (a: bigint, b: bigint) => (a * b) / RAY
-const rayMulCeil = (a: bigint, b: bigint) => (a * b + RAY - 1n) / RAY
-
-/** MathUtils.calculateLinearInterest × liquidityIndex (ReserveLogic.getNormalizedIncome). */
-export function normalizedIncome(rate: bigint, last: bigint, index: bigint, t: bigint): bigint {
-  if (t === last) return index
-  return rayMul(RAY + (rate * (t - last)) / SECONDS_PER_YEAR, index)
-}
-
-/** MathUtils.calculateCompoundedInterest × variableBorrowIndex (ReserveLogic.getNormalizedDebt). */
-export function normalizedDebt(rate: bigint, last: bigint, index: bigint, t: bigint): bigint {
-  if (t === last) return index
-  const x = (rate * (t - last)) / SECONDS_PER_YEAR
-  return rayMul(RAY + x + rayMul(x, x / 2n + rayMul(x, x / 6n)), index)
-}
-
 // ------------------------------------------------------------------ protocol fee
 
 const PCT = 10_000n
@@ -426,8 +407,15 @@ export interface AaveRead {
   priceN: (asset: string) => bigint | null
   /** Liquidation bonus and protocol fee (bps) that applied to this event's collateral. */
   fee: { bonus: bigint; feePct: bigint; revision: number }
-  /** The raw reads, for `locateAtNm1`. */
+  /** The raw reads (setup for the real side). */
   raw: { u: UserState; bp: BlockState; bn: BlockState; setup: AaveLiveSetup }
+}
+
+interface RawReceiptLog {
+  address: string
+  topics: string[]
+  data: string
+  logIndex: string
 }
 
 export interface AaveReaderStats {
@@ -437,8 +425,6 @@ export interface AaveReaderStats {
   blockStates: number
   userReads: number
   setupRefreshes: number
-  locatedAtNm1: number
-  accrualCheckFailed: number
 }
 
 /** One pool's Aave reader: setup, per-block state cache, per-event re-read. */
@@ -452,16 +438,12 @@ export class AaveReader {
     blockStates: 0,
     userReads: 0,
     setupRefreshes: 0,
-    locatedAtNm1: 0,
-    accrualCheckFailed: 0,
   }
 
   constructor(
     readonly rpc: LiveRpc,
     readonly cfg: ChainConfig,
     readonly market: AaveMarket,
-    /** Block timestamp (the accrual check of `locateAtNm1`). */
-    readonly blockTs?: (n: number) => Promise<number>,
   ) {}
 
   async ensureSetup(block: number, force = false): Promise<AaveLiveSetup> {
@@ -575,7 +557,7 @@ export class AaveReader {
     return true
   }
 
-  /** The pull's record shape from the reads; `prices` / `balances` let the N-1 basis reuse it. */
+  /** The pull's record shape from the reads (position at N-1, prices at N-1 and N). */
   private record(
     ev: AaveLiquidation,
     setup: AaveLiveSetup,
@@ -586,6 +568,7 @@ export class AaveReader {
   ): AaveEventRecord {
     const S = pullSetup(setup)
     const atN = computeHf(S, u, bp, pricesN)
+    const nm1 = computeHf(S, u, bp, pricesNm1)
     const liq = atN.missingPrice.length === 0 && atN.healthFactor < WAD
     const em = u.eMode ? bp.emode.get(u.eMode) : undefined
     const position: AaveReserveRead[] = []
@@ -627,12 +610,16 @@ export class AaveReader {
       debt_asset: ev.debtAsset,
       eMode: u.eMode,
       position,
+      // The pull's N-1 recompute (the census locates at N-1 from its health factor).
+      recomputedNm1: { healthFactor: nm1.healthFactor.toString() },
       atN: {
         hf: Number(atN.healthFactor) / 1e18,
         liquidatable: liq,
         healthFactor: atN.healthFactor.toString(),
       },
       hfNm1: Number(u.account.healthFactor) / 1e18,
+      // The pull writes the pool on records outside the Core pool only.
+      ...(setup.pool !== this.cfg.aavePool ? { pool: setup.pool } : {}),
     }
   }
 
@@ -691,76 +678,89 @@ export class AaveReader {
     }
   }
 
+  private receipts = new Map<string, Promise<{ blockHash: string; status: string; logs: RawReceiptLog[] } | null>>()
+  private aTokens = new Map<string, Promise<{ aToken: string; treasury: string }>>()
+  readonly feeStats = { receipts: 0, fromReceipt: 0, noTransfer: 0 }
+
+  /** The collateral reserve's aToken and its RESERVE_TREASURY_ADDRESS (cached per asset). */
+  private aTokenOf(asset: string, block: number) {
+    const a = lc(asset)
+    let p = this.aTokens.get(a)
+    if (!p) {
+      p = (async () => {
+        const [rd] = await multicall(
+          this.rpc,
+          this.cfg.chain,
+          [{ target: this.market.pool, abi: poolAbi, fn: 'getReserveData', args: [a] }],
+          block,
+        )
+        if (!rd.ok) throw new Error(`${this.cfg.chain} getReserveData(${a}) failed at ${block}`)
+        const aToken = lc(String((rd.value as { aTokenAddress: string }).aTokenAddress))
+        const [tr] = await multicall(
+          this.rpc,
+          this.cfg.chain,
+          [{ target: aToken, abi: aTokenAbi, fn: 'RESERVE_TREASURY_ADDRESS' }],
+          block,
+        )
+        if (!tr.ok) throw new Error(`${this.cfg.chain} RESERVE_TREASURY_ADDRESS of ${aToken} failed`)
+        return { aToken, treasury: lc(String(tr.value)) }
+      })()
+      p.catch(() => this.aTokens.delete(a))
+      this.aTokens.set(a, p)
+    }
+    return p
+  }
+
+  private receipt(tx: string) {
+    let p = this.receipts.get(tx)
+    if (!p) {
+      p = (async () => {
+        this.feeStats.receipts++
+        const a = await this.rpc.request(this.cfg.chain, 'eth_getTransactionReceipt', [tx])
+        const r = a.result as { blockHash?: string; status?: string; logs?: RawReceiptLog[] } | null
+        if (!r || !Array.isArray(r.logs)) return null
+        return { blockHash: lc(String(r.blockHash)), status: String(r.status), logs: r.logs }
+      })()
+      p.catch(() => this.receipts.delete(tx))
+      this.receipts.set(tx, p)
+      if (this.receipts.size > 256) this.receipts.delete(this.receipts.keys().next().value!)
+    }
+    return p
+  }
+
   /**
-   * Not liquidatable at the N prices: test the N-1 prices with every balance accrued to ts(N)
-   * (see the header). Returns the record on that basis (priceN := the N-1 price, balances
-   * accrued, atN recomputed) when it locates, else null.
+   * The protocol fee the treasury received for this liquidation, from its receipt (see the
+   * header), or null when the receipt has no such transfer (then the caller uses the arithmetic).
    */
-  async locateAtNm1(ev: AaveLiquidation, read: AaveRead): Promise<AaveEventRecord | null> {
-    const { u, bp, setup } = read.raw
-    const P = ev.block - 1
-    const held = setup.assets
-      .map((a, k) => ({ a, k }))
-      .filter(({ k }) => u.reserves[k].aToken > 0n || u.reserves[k].variableDebt > 0n)
-    const rd = await multicall(
-      this.rpc,
-      this.cfg.chain,
-      held.map(({ a }) => ({ target: setup.pool, abi: poolAbi, fn: 'getReserveData', args: [a.address] })),
-      P,
+  async treasuryFee(ev: AaveLiquidation): Promise<bigint | null> {
+    const [at, r] = await Promise.all([this.aTokenOf(ev.collateralAsset, ev.block - 1), this.receipt(ev.tx)])
+    if (!r) return null
+    if (ev.blockHash && r.blockHash !== ev.blockHash)
+      throw new Error(`${this.cfg.chain} receipt of ${ev.tx} is in block ${r.blockHash}, the log in ${ev.blockHash}`)
+    const logs = r.logs.map((l) => ({
+      i: Number(BigInt(l.logIndex)),
+      address: lc(l.address),
+      topics: l.topics.map(lc),
+      data: l.data,
+    }))
+    const prevLiq = Math.max(
+      -1,
+      ...logs.filter((l) => l.topics[0] === AAVE_LIQUIDATION_CALL_TOPIC && l.i < ev.logIndex).map((l) => l.i),
     )
-    const reserveData = rd.map((r) => {
-      if (!r.ok) throw new Error(`${this.cfg.chain} getReserveData failed at ${P}`)
-      return r.value as {
-        liquidityIndex: bigint
-        currentLiquidityRate: bigint
-        variableBorrowIndex: bigint
-        currentVariableBorrowRate: bigint
-        lastUpdateTimestamp: number
-        aTokenAddress: string
-      }
-    })
-    const scaled = await multicall(
-      this.rpc,
-      this.cfg.chain,
-      reserveData.map((d) => ({ target: d.aTokenAddress, abi: scaledAbi, fn: 'scaledBalanceOf', args: [ev.user] })),
-      P,
+    const transfers = logs.filter(
+      (l) =>
+        l.address === at.aToken &&
+        l.topics[0] === TRANSFER_TOPIC &&
+        l.topics[1] === pad32(ev.user) &&
+        l.topics[2] === pad32(at.treasury) &&
+        l.i > prevLiq &&
+        l.i < ev.logIndex,
     )
-    const accrue = (t: bigint) => {
-      const reserves = u.reserves.map((r) => ({ ...r }))
-      held.forEach(({ k }, i) => {
-        const d = reserveData[i]
-        const last = BigInt(d.lastUpdateTimestamp)
-        if (u.reserves[k].aToken > 0n && scaled[i].ok)
-          reserves[k].aToken = rayMulFloor(
-            scaled[i].value as bigint,
-            normalizedIncome(d.currentLiquidityRate, last, d.liquidityIndex, t),
-          )
-        if (u.reserves[k].variableDebt > 0n)
-          reserves[k].variableDebt = rayMulCeil(
-            u.scaledVariableDebt[k],
-            normalizedDebt(d.currentVariableBorrowRate, last, d.variableBorrowIndex, t),
-          )
-      })
-      return { ...u, reserves }
+    if (!transfers.length) {
+      this.feeStats.noTransfer++
+      return null
     }
-    // Self-check: accrued to ts(N-1), the math must give back the balances read at N-1.
-    if (this.blockTs) {
-      const tP = BigInt(await this.blockTs(P))
-      const back = accrue(tP)
-      const same = held.every(
-        ({ k }) =>
-          back.reserves[k].aToken === u.reserves[k].aToken &&
-          back.reserves[k].variableDebt === u.reserves[k].variableDebt,
-      )
-      if (!same) {
-        this.stats.accrualCheckFailed++
-        return null
-      }
-    }
-    const uN = accrue(BigInt(ev.ts))
-    const rec = this.record(ev, setup, uN, bp, bp.prices, bp.prices)
-    if (!rec.atN.liquidatable) return null
-    this.stats.locatedAtNm1++
-    return rec
+    this.feeStats.fromReceipt++
+    return BigInt(transfers[transfers.length - 1].data)
   }
 }

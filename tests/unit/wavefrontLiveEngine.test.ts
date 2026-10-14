@@ -78,10 +78,13 @@ describe('live engine: the minute loop on a scripted chain', () => {
     expect(opens.map((r) => r.pid)).toEqual([pidA, pidAL, pidC, pidB, pidD, pidF])
     expect(opens.find((r) => r.pid === pidB)).toMatchObject({
       walked: false,
-      reason: 'not located: HF at block N >= 1 on every event (1)',
       line: 0.83,
       ltv0: 0.746269,
     })
+    // The census's reason: not liquidatable at the block N nor the block N-1 prices.
+    const reasonB = opens.find((r) => r.pid === pidB)!
+    expect(reasonB.kind === 'open' && reasonB.reason).toMatch(/at both the block N-1 and the block N oracle prices/)
+    expect(reasonB.kind === 'open' && reasonB.priceBasis).toBeUndefined()
     expect(recs.some((r) => r.kind === 'mem' && r.pid === pidB)).toBe(false)
     expect(opens.find((r) => r.pid === pidA)).toMatchObject({
       walked: true,
@@ -92,7 +95,7 @@ describe('live engine: the minute loop on a scripted chain', () => {
       collUsd: 20000,
       debtUsd: 17000,
     })
-    expect(opens.find((r) => r.pid === pidA)!.priceBasis).toBeUndefined()
+    expect(opens.find((r) => r.pid === pidA)!.priceBasis).toBe('N')
     expect(opens.find((r) => r.pid === pidAL)).toMatchObject({ walked: true, ltv0: 0.85 })
     expect(opens.find((r) => r.pid === pidC)).toMatchObject({ walked: true, line: 0.86, protocol: 'morpho-blue' })
     // A's second liquidation is a real record only.

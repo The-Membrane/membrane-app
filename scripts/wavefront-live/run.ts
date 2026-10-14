@@ -26,7 +26,9 @@
  *   --max-gap-minutes N        close a position whose oracle is silent this many minutes (default 60)
  *   --allow-aave-provider a,b  bring Aave V3 instances OUTSIDE the registry into scope: `horizon`
  *                              or provider addresses (default none — an owner decision)
- *   --poll-seconds N / --concurrency N / --own-clusters A,B / --walk-on true|false
+ *   --walk-on true|false       walk on after a t0 band sale (default true, as the census; false =
+ *                              the stop-after-one-repay sensitivity)
+ *   --poll-seconds N / --concurrency N / --own-clusters A,B
  *   --grid-end-minute N        kernel grid end (the census's is 2879); default none
  *
  * Environment (optional, owner-provided; docs/WAVEFRONT_LIVE_ENGINE.md §4):
@@ -168,7 +170,8 @@ async function main() {
       ...(o['poll-seconds'] ? { pollSeconds: Number(o['poll-seconds']) } : {}),
       ...(o.concurrency ? { readConcurrency: Number(o.concurrency) } : {}),
       ...(o['own-clusters'] ? { ownClusters: o['own-clusters'].split(',') } : {}),
-      ...(o['walk-on'] ? { walkOnAfterT0BandSale: o['walk-on'] === 'true' } : {}),
+      // --walk-on false: the old stop after a t0 band sale (a sensitivity); default: walk on.
+      ...(o['walk-on'] ? { stopAfterT0BandSale: o['walk-on'] === 'false' } : {}),
       ...(o['grid-end-minute'] ? { lastMinute: Number(o['grid-end-minute']) } : {}),
       ...(o['reconcile-budget-seconds'] ? { reconcileBudgetSeconds: Number(o['reconcile-budget-seconds']) } : {}),
       ...(o['reconcile-max-catchup'] ? { reconcileMaxCatchupMinutes: Number(o['reconcile-max-catchup']) } : {}),

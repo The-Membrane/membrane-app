@@ -98,7 +98,6 @@ const symbolOf = (r: SubResult): string => {
 
 export interface MorphoReaderStats {
   opens: number
-  locatedAtNm1: number
   priceReads: number
   liquidatableN: number
   notLiquidatableN: number
@@ -110,7 +109,6 @@ export class MorphoReader {
   private codeChecked = false
   readonly stats: MorphoReaderStats = {
     opens: 0,
-    locatedAtNm1: 0,
     priceReads: 0,
     liquidatableN: 0,
     notLiquidatableN: 0,
@@ -194,14 +192,12 @@ export class MorphoReader {
   }
 
   /**
-   * The pull's per-event record for a Liquidate that opens a position. When the position is not
-   * liquidatable at the price read at the END of block N but is at the N-1 price (with the debt
-   * accrued to ts(N) — an oracle update later in block N than the liquidation hides the breach),
-   * `atNm1` is the record on that basis (priceN := the N-1 price).
+   * The pull's per-event record for a Liquidate that opens a position, `priceNm1` included: the
+   * census's spec builder (lib/wavefront/morpho.ts) locates at the block-N price, else at the N-1
+   * price with the debt accrued to ts(N) (an oracle update later in block N than the liquidation
+   * hides the breach), and records `priceBasis`.
    */
-  async readOpen(
-    ev: MorphoLiquidation,
-  ): Promise<{ record: MorphoEventRecord; market: MorphoMarketLive; atNm1: MorphoEventRecord | null }> {
+  async readOpen(ev: MorphoLiquidation): Promise<{ record: MorphoEventRecord; market: MorphoMarketLive }> {
     const P = ev.block - 1
     const m = await this.market(ev.marketId, P)
     const st = await multicall(
@@ -274,36 +270,13 @@ export class MorphoReader {
       collateralDecimals: m.collateralDecimals,
       lltv: m.lltv,
       positionNm1: { borrowShares: borrowShares.toString(), collateral: collateral.toString() },
+      priceNm1: priceNm1?.toString() ?? null,
       priceN: priceN?.toString() ?? null,
       borrowedNAccrued: x.borrowedN.toString(),
       ltvN: x.ltvN,
       liquidatableN: x.liquidatableN,
     }
-    let atNm1: MorphoEventRecord | null = null
-    if (!x.liquidatableN && priceNm1 !== null && priceNm1 > 0n) {
-      const y = morphoAtN({
-        borrowShares,
-        collateral,
-        totalBorrowAssets,
-        totalBorrowShares,
-        lastUpdate,
-        rate,
-        tsN: ev.ts,
-        priceN: priceNm1,
-        lltv: BigInt(m.lltv),
-      })
-      if (y.liquidatableN) {
-        this.stats.locatedAtNm1++
-        atNm1 = {
-          ...record,
-          priceN: priceNm1.toString(),
-          borrowedNAccrued: y.borrowedN.toString(),
-          ltvN: y.ltvN,
-          liquidatableN: true,
-        }
-      }
-    }
-    return { record, market: m, atNm1 }
+    return { record, market: m }
   }
 
   /** The minimal record the real side needs for a later Liquidate (price at its own N). */

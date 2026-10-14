@@ -21,7 +21,7 @@ COPY lib ./lib
 COPY scripts/oct10-coverage ./scripts/oct10-coverage
 COPY scripts/wavefront-live ./scripts/wavefront-live
 
-# Memory measured 2026-10-14 (docs §8): ~150 MB RSS calm, 381 MB in the Oct 10 crash replay; cap the heap.
+# Memory measured 2026-10-14 (docs §8): ~150 MB RSS calm, 340 MB in the Oct 10 crash replay (walk-on); cap the heap.
 ENV NODE_OPTIONS=--max-old-space-size=384
 ENTRYPOINT ["npx", "tsx", "scripts/wavefront-live/run.ts"]
 CMD ["--mode", "live", "--out", "/data/stream.jsonl", "--stats", "/data/stats.json"]

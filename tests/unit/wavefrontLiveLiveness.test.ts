@@ -224,7 +224,11 @@ describe('live engine: reconciliation dedupe after failed passes (the reviewer r
     expect(flaky.reals).toEqual(clean.reals)
     expect(new Set(flaky.reals).size).toBe(3)
     expect(flaky.st.totals.real.repaidUsd).toBe(clean.st.totals.real.repaidUsd)
-    expect(flaky.st.totals.real.repaidUsd).toBe(24_600)
+    // All three real records, once each ($49,200 when the pruned keys were re-found) …
+    const repaid = (rs: LiveRecord[]) => rs.reduce((a, r) => a + (r.kind === 'real' ? (r.repaidUsd ?? 0) : 0), 0)
+    expect(repaid(flaky.sink.records)).toBe(24_600)
+    // … and the schema-v2 totals: real over WALKED positions (B, not located, is out).
+    expect(flaky.st.totals.real.repaidUsd).toBe(17_100)
     // The last pass reached back to the last success (minute 59): 240 minutes, past the window.
     expect(flaky.e.state.chains.base!.reconciledTo).toBeGreaterThan(blockAt(S(299)))
   })
@@ -370,6 +374,24 @@ describe('live engine: reconciliation is off the minute path and cancelled at it
   })
 })
 
+describe('live engine: the Aave protocol fee is the receipt\'s treasury transfer (the census\'s source)', () => {
+  it('uses the transfer when it differs from the arithmetic, the arithmetic when there is none', async () => {
+    const base = await runAll()
+    const fake = new FakeChain(chainSpec())
+    const txA = fake.spec.logs.find((l) => l.block === 1165)!.tx.toLowerCase()
+    fake.feeDelta[txA] = -(10n ** 15n) // 0.001 WETH less than the arithmetic ($2 at $2,000)
+    const { sink, e } = await runAll(fake)
+    const realOf = (rs: LiveRecord[]) => rs.find((r) => r.kind === 'real' && r.tx === txA)!
+    const a = realOf(base.sink.records)
+    const b = realOf(sink.records)
+    expect(b.kind === 'real' && b.seizedUsd).toBeCloseTo((a.kind === 'real' ? a.seizedUsd! : 0) - 2, 2)
+    expect(b.protocolFeeUsd).toBeCloseTo(a.protocolFeeUsd! - 2, 2)
+    expect(e.state.counters.feeScaledRounding).toBe(1)
+    expect(e.state.counters.feeFromReceipt).toBe(e.state.counters.eventsByChain.base - 1) // all Aave events
+    expect(e.state.counters.feeFromArithmetic).toBe(0)
+  })
+})
+
 describe('live engine: lifecycle and state', () => {
   it('a position whose oracle stays silent is closed after maxGapMinutes, with the reason', async () => {
     const fake = new FakeChain(chainSpec())
@@ -389,6 +411,19 @@ describe('live engine: lifecycle and state', () => {
     const tick9 = sink.records.find((r) => r.kind === 'tick' && r.minute === 9)!
     expect(tick9.gaps!.positions).toBe(3)
     expect(e.status().openPositions).toBeLessThan(3)
+  })
+
+  it('a minute that fails every time ends a historical run instead of retrying forever', async () => {
+    class Broken extends MemorySink {
+      async commit(): Promise<void> {
+        throw new Error('disk full')
+      }
+    }
+    const e = engine(new FakeChain(chainSpec()), new Broken(), { maxMinuteFailures: 4 })
+    await e.init()
+    await expect(e.run()).rejects.toThrow(/minute 3 failed 4 times in a row: disk full/)
+    // Live, the default is to keep retrying (with backoff): the stream waits.
+    expect(new LiveEngine({ rpc: new FakeChain(chainSpec()), clock: new SimClock(0), sink: new MemorySink(), head: clockHead() }, { ...OPTS, mode: 'live' }).opts.maxMinuteFailures).toBe(Infinity)
   })
 
   it('the gap positions survive a restart', async () => {

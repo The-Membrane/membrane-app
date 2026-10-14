@@ -21,6 +21,7 @@ import {
   type Hex,
 } from 'viem'
 import {
+  aTokenAbi,
   dataProviderAbi,
   erc20Abi,
   irmAbi,
@@ -37,6 +38,7 @@ import {
   AAVE_LIQUIDATION_CALL_TOPIC,
   CHAIN_CONFIG,
   MORPHO_LIQUIDATE_TOPIC,
+  aaveProtocolFee,
   type LiveRpc,
 } from '../../lib/wavefront/live'
 
@@ -210,6 +212,7 @@ const extraAbi = parseAbi([
 ])
 
 const ABIS: Abi[] = [
+  aTokenAbi,
   providerAbi,
   poolAbi,
   dataProviderAbi,
@@ -225,6 +228,9 @@ const ABIS: Abi[] = [
 const ceilDiv = (a: bigint, b: bigint) => (a + b - 1n) / b
 
 export const CORE_DATA_PROVIDER = '0x00000000000000000000000000000000000000d1'
+/** Every fake aToken's RESERVE_TREASURY_ADDRESS. */
+export const TREASURY = '0x00000000000000000000000000000000000077e5'
+const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
 
 export class FakeChain implements LiveRpc {
   readonly calls: { method: string; group: string; params: unknown[] }[] = []
@@ -234,6 +240,11 @@ export class FakeChain implements LiveRpc {
   headLag: Record<string, number> = {}
   /** Groups that answer these price reads (block, asset or Morpho oracle) as 0. */
   priceFault: { groups: string[]; bad: (block: number, key: string) => boolean } | null = null
+  /**
+   * Units added to the treasury Transfer of a liquidation (by tx) in its receipt — the aToken's
+   * scaled-balance rounding makes the real transfer differ from the LiquidationLogic arithmetic.
+   */
+  feeDelta: Record<string, bigint> = {}
   /** Highest toBlock any eth_getLogs asked for. */
   maxLogsTo = 0
   /** Backend groups this fake serves (each with one host, `<group>.host`). */
@@ -316,6 +327,8 @@ export class FakeChain implements LiveRpc {
       }
       case 'eth_getCode':
         return ans('0x6080')
+      case 'eth_getTransactionReceipt':
+        return ans(this.receipt(String(params[0]).toLowerCase()))
       case 'eth_getLogs': {
         const f = params[0] as { address?: string[]; topics: string[][]; fromBlock: string; toBlock: string }
         const from = Number(BigInt(f.fromBlock))
@@ -358,6 +371,38 @@ export class FakeChain implements LiveRpc {
       }
     }
     throw new Error(`fake: ${method} not scripted`)
+  }
+
+  /**
+   * A receipt with the tx's scripted logs and, before every Aave LiquidationCall, the collateral
+   * aToken's Transfer(user -> TREASURY, fee) — the fee by the LiquidationLogic arithmetic plus
+   * `feeDelta`. null for an unknown tx.
+   */
+  private receipt(tx: string) {
+    const own = this.spec.logs.filter((l) => lc(l.tx) === tx)
+    if (!own.length) return null
+    const out: { address: string; topics: string[]; data: string; logIndex: string }[] = []
+    for (const l of own) {
+      if (lc(l.topics[0]) === AAVE_LIQUIDATION_CALL_TOPIC) {
+        const market = this.allMarkets().find((m) => m.pool === lc(l.address))
+        const collateral = '0x' + l.topics[1].slice(26)
+        const r = market?.reserves.find((x) => lc(x.address) === collateral)
+        if (r) {
+          const liquidated = BigInt('0x' + l.data.slice(2 + 64, 2 + 128))
+          const fee =
+            aaveProtocolFee(liquidated, BigInt(r.bonus ?? 10_500), BigInt(r.protocolFee ?? 1000), 9) +
+            (this.feeDelta[lc(l.tx)] ?? 0n)
+          out.push({
+            address: lc(r.address),
+            topics: [TRANSFER_TOPIC, l.topics[3], '0x' + TREASURY.slice(2).padStart(64, '0')],
+            data: '0x' + fee.toString(16).padStart(64, '0'),
+            logIndex: '0x' + (l.logIndex - 1).toString(16),
+          })
+        }
+      }
+      out.push({ address: l.address, topics: l.topics, data: l.data, logIndex: '0x' + l.logIndex.toString(16) })
+    }
+    return { blockHash: blockHash(this.spec.chain, own[0].block), status: '0x1', logs: out }
   }
 
   private decode(data: Hex): { abi: Abi; fn: string; args: readonly unknown[] } {
@@ -439,6 +484,7 @@ export class FakeChain implements LiveRpc {
         .map((m) => m.provider)
     const fork = S.forks?.find((x) => lc(x.pool) === to)
     if (fork && fn === 'ADDRESSES_PROVIDER') return fork.provider ?? undefined
+    if (fn === 'RESERVE_TREASURY_ADDRESS') return TREASURY
     const byProvider = markets.find((m) => m.provider === to)
     if (byProvider) {
       if (fn === 'getPool') return byProvider.pool

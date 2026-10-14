@@ -4,16 +4,17 @@
  * (scripts/oct10-coverage/census.ts), field for field:
  *
  *   spec      lib/wavefront/aave.ts `aavePositionSpec` / lib/wavefront/morpho.ts
- *             `morphoPositionSpec` (composition, line, LTV0, delay class, the mixed split)
- *   open      the census's open record (cluster from the primary collateral leg)
- *   real      `aaveRealUsd` / `morphoRealUsd` (block-N protocol-oracle prices)
+ *             `morphoPositionSpec` (composition, line, LTV0, delay class, the mixed split, the
+ *             price basis: block N, else N-1)
+ *   open      the census's open record (cluster from the primary collateral leg; `priceBasis`)
+ *   real      `aaveRealUsd` (block-N prices; seized = the event amount + the protocol fee) /
+ *             `morphoRealUsd`
  *   kernels   one `MembraneKernel` per half, the census's parameters
  *
  * ONE DIFFERENCE BY CONSTRUCTION. The census sees a position's whole window, so when its FIRST
- * event is not located (HF at N >= 1) and a LATER one is, it anchors t0 at the later one (one
- * account on Oct 10-11). A live stream cannot look ahead and the schema allows one `open` per
- * pid: such a position opens `walked: false` at its first event and its later events are real
- * records only.
+ * event is not located (at block N nor N-1) and a LATER one is, it anchors t0 at the later one.
+ * A live stream cannot look ahead and the schema allows one `open` per pid: such a position
+ * opens `walked: false` at its first event and its later events are real records only.
  *
  * Kernels are serialized for the durable state by snapshotting their fields (kernel.ts and
  * DelayTimer keep plain TypeScript-private fields); `restoreKernel` refuses a snapshot whose
@@ -34,12 +35,12 @@ import {
   pathAnchors,
   streamLegs,
   type AaveEventRecord,
+  type AaveFeeRecord,
   type PositionSpec,
 } from '../aave'
 import { clusterAssigner, primarySymbol } from '../cluster'
 import { MembraneKernel, type KernelLeg, type KernelSpec } from '../kernel'
 import { morphoPositionSpec, morphoRealUsd, type MorphoEventRecord } from '../morpho'
-import { aavePid } from '../pid'
 import { roundUsd, type OpenRecord, type RealRecord } from '../stream'
 import { normUnits, type AaveLiquidation, type MorphoLiquidation } from './codec'
 
@@ -62,7 +63,8 @@ export interface WindowParams {
 export interface KernelParams {
   /** Last grid minute (the census's grid end). Live: no grid end. */
   lastMinute: number
-  walkOnAfterT0BandSale?: boolean
+  /** SENSITIVITY ONLY (kernel.ts): stop after the t0 band sale. Default: walk on, as the census. */
+  stopAfterT0BandSale?: boolean
 }
 
 export const NO_GRID_END = Number.MAX_SAFE_INTEGER
@@ -102,13 +104,17 @@ export function usdPerUnitFn(
 }
 
 /** The census's Aave spec, with the pool-qualified pid (lib/wavefront/pid.ts). */
-export function aaveSpec(read: AaveEventRecord, w: WindowParams, pool: string): PositionSpec {
-  const s = aavePositionSpec([read], {
+/**
+ * The census's spec of an Aave position from its first event's re-read. The census decides the
+ * price basis (block N, else N-1 — `recomputedNm1` / `priceNm1` in the record) and builds the
+ * pool-qualified pid (the record carries `pool` outside the Core pool, as the pull's).
+ */
+export function aaveSpec(read: AaveEventRecord, w: WindowParams): PositionSpec {
+  return aavePositionSpec([read], {
     startTs: w.startTs,
     stepSeconds: w.stepSeconds,
     debtMinimumUsd: LIQ_DEBT_MINIMUM_USD,
   })
-  return { ...s, pid: aavePid(s.chain, pool, s.owner) }
 }
 
 export function morphoSpec(
@@ -159,7 +165,10 @@ export function openRecordOf(s: PositionSpec, cluster: string): OpenRecord {
     walked,
   }
   if (!walked) open.reason = s.reason ?? 'not walked'
-  if (walked && s.t0) open.t0 = { block: s.t0.block, ts: s.t0.ts, minute: s.t0.minute }
+  if (walked && s.t0) {
+    open.t0 = { block: s.t0.block, ts: s.t0.ts, minute: s.t0.minute }
+    open.priceBasis = s.t0.priceBasis
+  }
   if (walked && s.halves.length > 1) {
     open.subs = s.halves.map((h) => ({
       sub: h.sub as number,
@@ -201,9 +210,13 @@ export function kernelSpecs(
       startTs: w.startTs,
       stepSeconds: w.stepSeconds,
       lastMinute: k.lastMinute,
-      ...(k.walkOnAfterT0BandSale !== undefined
-        ? { walkOnAfterT0BandSale: k.walkOnAfterT0BandSale }
-        : {}),
+      ...(k.stopAfterT0BandSale ? { stopAfterT0BandSale: true } : {}),
+      // Missing prices: the ENGINE owns the gap policy — a position whose held leg has no value
+      // at a minute is not stepped at all (a gap, flagged on the tick, closed after
+      // maxGapMinutes), and every ratio is checked before a kernel is stepped, so nothing is ever
+      // carried forward. The kernel's own 'throw' would turn a slip into a minute retried
+      // forever (a stalled stream); declared explicitly here so the policy lives in one place.
+      missingPrice: 'carry-forward',
     }
   })
 }
@@ -245,21 +258,37 @@ export function aaveRealRecord(
   fallbackUsd: (asset: string) => number | null,
   protocolFeeRaw = 0n,
 ): LiveRealRecord {
-  const row = (collateralRaw: bigint) => ({
+  const L = BigInt(ev.liquidatedCollateralAmount)
+  // The census's real side: seized = everything taken from the borrower (the event's amount +
+  // the protocol fee), the fee record's shape (the census reads the treasury transfer; the
+  // engine inverts LiquidationLogic exactly — aaveRead.ts `aaveProtocolFee`).
+  const fee: AaveFeeRecord = {
     chain: ev.chain,
     block_number: ev.block,
-    ts: ev.ts,
-    tx_hash: ev.tx,
     log_index: ev.logIndex,
-    user: ev.user,
-    collateral_asset: ev.collateralAsset,
-    debt_asset: ev.debtAsset,
-    debt_to_cover_normalized: String(normUnits(ev.debtToCover, decimals.debt)),
-    liquidated_collateral_normalized: String(normUnits(collateralRaw, decimals.collateral)),
-  })
-  const L = BigInt(ev.liquidatedCollateralAmount)
-  const r = aaveRealUsd(row(L + protocolFeeRaw), read, fallbackUsd)
-  const fee = aaveRealUsd(row(protocolFeeRaw), read, fallbackUsd)
+    tx_hash: ev.tx,
+    protocolFeeRaw: protocolFeeRaw.toString(),
+    collateralSeizedTotalRaw: (L + protocolFeeRaw).toString(),
+  }
+  const r = aaveRealUsd(
+    {
+      chain: ev.chain,
+      block_number: ev.block,
+      ts: ev.ts,
+      tx_hash: ev.tx,
+      log_index: ev.logIndex,
+      user: ev.user,
+      collateral_asset: ev.collateralAsset,
+      debt_asset: ev.debtAsset,
+      debt_to_cover_normalized: String(normUnits(ev.debtToCover, decimals.debt)),
+      liquidated_collateral_normalized: String(normUnits(L, decimals.collateral)),
+      pool: ev.pool,
+    },
+    read,
+    fee,
+    decimals.collateral,
+    fallbackUsd,
+  )
   return {
     kind: 'real',
     seq: 0,
@@ -270,7 +299,7 @@ export function aaveRealRecord(
     logIndex: ev.logIndex,
     repaidUsd: r.repaidUsd,
     seizedUsd: r.seizedUsd,
-    protocolFeeUsd: roundUsd(fee.seizedUsd),
+    protocolFeeUsd: roundUsd(r.protocolFeeUsd),
   }
 }
 

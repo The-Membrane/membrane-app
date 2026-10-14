@@ -39,7 +39,7 @@ const MIGRATION = path.join(__dirname, '../../db/migrations-pending/2026-10-14_w
 const HEADER: LiveHeader = {
   kind: 'header',
   format: 'wavefront-stream',
-  schema: 1,
+  schema: 2,
   window: { startTs: 1_700_000_040, stepSeconds: 60, minutes: 0 },
   engine: 'wavefront-live',
   mode: 'live',

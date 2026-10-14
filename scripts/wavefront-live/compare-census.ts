@@ -6,7 +6,10 @@
  *     [--census <replay.jsonl.gz | wavefront-replay.json>] [--from ISO --to ISO] [--out report.json]
  *
  * Default census: $MEMBRANE_DATASETS_DIR/oct10-2025/coverage/replay.jsonl.gz, else the served
- * public/data/oct10-2025/wavefront-replay.json (the same records, compact form).
+ * public/data/oct10-2025/wavefront-replay.json (the same records, compact form). Both schema 2
+ * since membrane-app 30a4011 (full scope, pool-qualified pids, N-1 locate, the fee in seized —
+ * the live engine's rules); a schema-1 census is still read, with the 2.1 rules below as
+ * by-design differences.
  *
  * Compared, per pid: the open record (every field: line, class, walked, reason, legs, t0, subs,
  * USD …), every real record with ts before the slice end, every mem record with minute before
@@ -22,7 +25,9 @@
  * missing in the live stream, live positions the census does not have — except the by-design
  * categories below, each listed with its members. The exit code is 1 when differences > 0.
  *
- * What the live engine does differently BY DESIGN (owner review 2.1), and how it is compared:
+ * Against a SCHEMA-1 census, what the live engine does differently BY DESIGN (owner review 2.1),
+ * and how it is compared (against schema 2 only the scope and cold-start items apply, and
+ * `protocolFeeUsd`, a live-only field, is reported, not compared):
  *   - pids carry the Aave pool: Core-pool ids are mapped back to the census's legacy form;
  *     positions on the other pools (mainnet Lido, EtherFi) are outside the census and listed;
  *   - Morpho Blue positions on a chain where the census has no Morpho position at all (the
@@ -96,13 +101,13 @@ const strip = <T extends StreamRecord>(r: T) => {
   return rest
 }
 
-function loadCensus(path: string): { startTs: number; records: StreamRecord[] } {
+function loadCensus(path: string): { startTs: number; schema: number; records: StreamRecord[] } {
   if (path.endsWith('.gz')) {
     const { header, records } = decodeJsonl(gunzipSync(readFileSync(path)).toString('utf8'))
-    return { startTs: header.window.startTs, records }
+    return { startTs: header.window.startTs, schema: header.schema, records }
   }
   const c = JSON.parse(readFileSync(path, 'utf8'))
-  return { startTs: c.window.startTs, records: decodeCompact(c) }
+  return { startTs: c.window.startTs, schema: c.schema, records: decodeCompact(c) }
 }
 
 function main() {
@@ -117,9 +122,13 @@ function main() {
   const census = loadCensus(censusPath)
   const liveText = readFileSync(o.live, 'utf8')
   const liveRaw = decodeJsonl(liveText)
-  // Pool-qualified Aave ids -> the census's ids (Core pool only).
+  // A schema-1 census (Core pool only, 3-part Aave ids, seized without the protocol fee, no
+  // N-1 locate): pool-qualified ids are mapped back and the 2.1 rules are by-design differences.
+  // A schema-2 census follows the same rules as the live engine: compared as is.
+  const v1 = census.schema < 2
   const nonCore = new Set<string>()
   const mapPid = (pid: string) => {
+    if (!v1) return pid
     const p = parseAnyPid(pid)
     if (p.protocol === 'aave-v3' && p.market && p.market !== AAVE_CORE_POOL[p.chain]) {
       nonCore.add(pid)
@@ -170,7 +179,7 @@ function main() {
   const extra = [...livePids].filter((p) => !censusOpen.has(p) && !nonCore.has(p) && !morphoOutOfScope(p))
   const common = [...censusPids].filter((p) => livePids.has(p))
   const nm1 = new Set(
-    liveOpens.filter((r) => (r as { priceBasis?: string }).priceBasis === 'N-1').map((r) => mapPid(r.pid)),
+    v1 ? liveOpens.filter((r) => r.priceBasis === 'N-1').map((r) => mapPid(r.pid)) : [],
   )
 
   const byPid = (recs: StreamRecord[]) => {
@@ -201,7 +210,7 @@ function main() {
   for (const pid of common) {
     const c = C.get(pid)!
     const l = L.get(pid)!
-    const d = diff(strip(c.open!), strip(l.open!)).filter((x) => !x.startsWith('.priceBasis'))
+    const d = diff(strip(c.open!), strip(l.open!)).filter((x) => !v1 || !x.startsWith('.priceBasis'))
     const sink = nm1.has(pid) ? byDesign : diffs
     if (d.length) sink.push({ pid, what: nm1.has(pid) ? 'open (located at N-1)' : 'open', detail: d })
     const cr = c.real.filter((r) => r.ts < endTs)
@@ -214,7 +223,13 @@ function main() {
       if (!lr[i]) return
       const x = strip(lr[i]) as RealRecord & { protocolFeeUsd?: number | null }
       let y: Record<string, unknown> = { ...x }
-      if (x.protocolFeeUsd !== undefined) {
+      if (x.protocolFeeUsd !== undefined && !v1) {
+        // v2: seized includes the fee on both sides; protocolFeeUsd is a live-only field.
+        feeUsd += x.protocolFeeUsd ?? 0
+        const { protocolFeeUsd, ...rest } = x
+        void protocolFeeUsd
+        y = rest
+      } else if (x.protocolFeeUsd !== undefined) {
         // The census's seized is the liquidator's share: compare seized - fee (cents, so +-0.01).
         const fee = x.protocolFeeUsd ?? 0
         feeUsd += fee
@@ -284,7 +299,7 @@ function main() {
     while (li < lRec.length && lRec[li].seq < t.seq) {
       const r = lRec[li++] as StreamRecord & { protocolFeeUsd?: number | null }
       if (r.kind === 'real') {
-        lFee += r.protocolFeeUsd ?? 0
+        if (v1) lFee += r.protocolFeeUsd ?? 0
         lReals++
       }
       applyRecord(lFold, r)

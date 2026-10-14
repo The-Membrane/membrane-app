@@ -370,13 +370,16 @@ async function readComet(
     // Comet exposes `isLiquidatable` as a bool, not a ratio, so the health factor is
     // derived: how far the borrow sits under the weighted liquidation line.
     healthFactor: ratio(totalCollateralUsd * weightedLine, totalDebtUsd),
-    provenance: stamp(
-      'onchain',
-      `compound v3 · ${rpcLabel()}`,
-      `Comet ${comet} (${market.name}), base token ${baseToken}. Prices from Comet.getPrice at 1e8${
-        market.quote === 'USD' ? ' (USD feeds)' : `, quoted in ${market.quote} and converted at ${market.quote}/USD $${quoteUsd} (feed ${market.quoteUsdFeed})`
-      }; collateral decimals from AssetInfo.scale; borrow/liquidate collateral factors at 1e18. Borrow APR annualised from getBorrowRate(getUtilization()) × ${SECONDS_PER_YEAR}s. Every call read block ${block}.`,
-    ),
+    provenance: {
+      ...stamp(
+        'onchain',
+        `compound v3 · ${rpcLabel()}`,
+        `Comet ${comet} (${market.name}), base token ${baseToken}. Prices from Comet.getPrice at 1e8${
+          market.quote === 'USD' ? ' (USD feeds)' : `, quoted in ${market.quote} and converted at ${market.quote}/USD $${quoteUsd} (feed ${market.quoteUsdFeed})`
+        }; collateral decimals from AssetInfo.scale; borrow/liquidate collateral factors at 1e18. Borrow APR annualised from getBorrowRate(getUtilization()) × ${SECONDS_PER_YEAR}s. Every call read block ${block}.`,
+      ),
+      block: Number(block),
+    },
   }
 }
 

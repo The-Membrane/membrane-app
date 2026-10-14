@@ -191,8 +191,8 @@ export const Instrument: React.FC<{ view: PositionView; failures: ReadStatusItem
             </Small>
           )}
           <Small>
-            Prices: {view.priceSource} · read {fmtUtc(p.provenance.at)} · {p.provenance.label} · no
-            block number recorded
+            Prices: {view.priceSource} · read {fmtUtc(p.provenance.at)} · {p.provenance.label} ·{' '}
+            {p.provenance.block !== undefined ? `block ${p.provenance.block}` : 'no block number recorded'}
           </Small>
           {p.provenance.detail && (
             <Box as="details">

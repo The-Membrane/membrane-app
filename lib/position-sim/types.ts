@@ -21,6 +21,8 @@ export interface Provenance {
   at: number
   /** Optional extra detail shown on hover / in the receipt. */
   detail?: string
+  /** The block every on-chain call of the read was pinned to, when one was. */
+  block?: number
 }
 
 export const stamp = (

@@ -362,7 +362,7 @@ export const morphoBlueAdapter: LendingAdapter = {
         // Morpho exposes no health factor. Derived the way isHealthy() decides:
         // maxBorrow = collateralValue * lltv, HF = maxBorrow / borrowed.
         healthFactor: ratio(collateralValueUsd * r.lltv, debtValueUsd),
-        provenance: stamp('onchain', `morpho blue · ${rpcLabel()}`, details),
+        provenance: { ...stamp('onchain', `morpho blue · ${rpcLabel()}`, details), block: Number(block) },
       })
     })
 

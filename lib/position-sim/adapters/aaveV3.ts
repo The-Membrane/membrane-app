@@ -659,15 +659,18 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
           ltv: ratio(totalDebtUsd, totalCollateralUsd),
           liquidationLtv,
           healthFactor,
-          provenance: stamp(
-            'onchain',
-            `${tag} · ${rpcLabel()}`,
-            `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, all resolved from PoolAddressesProvider ${config.addressesProvider}. Totals from getUserAccountData in base units (BASE_CURRENCY_UNIT 1e${baseDecimals}); per-asset prices from getAssetsPrices; thresholds in bps. Every call read block ${block}.${
-              emode
-                ? ` E-mode category ${emode.category} (${emode.layout}): its thresholds apply to ${emode.inCategory.size} collateral asset(s)${emode.priceSource ? `; the category prices from ${emode.priceSource}, which these legs do not apply` : ''}.`
-                : ''
-            }`,
-          ),
+          provenance: {
+            ...stamp(
+              'onchain',
+              `${tag} · ${rpcLabel()}`,
+              `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, all resolved from PoolAddressesProvider ${config.addressesProvider}. Totals from getUserAccountData in base units (BASE_CURRENCY_UNIT 1e${baseDecimals}); per-asset prices from getAssetsPrices; thresholds in bps. Every call read block ${block}.${
+                emode
+                  ? ` E-mode category ${emode.category} (${emode.layout}): its thresholds apply to ${emode.inCategory.size} collateral asset(s)${emode.priceSource ? `; the category prices from ${emode.priceSource}, which these legs do not apply` : ''}.`
+                  : ''
+              }`,
+            ),
+            block: Number(block),
+          },
         },
       ]
     },

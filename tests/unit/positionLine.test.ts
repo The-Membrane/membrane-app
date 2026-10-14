@@ -288,6 +288,18 @@ describe('classifyRisk', () => {
     expect(mz.Wm).toBeCloseTo(28_500, 9)
   })
 
+  it('the ratio base is the asset whose move reaches the line soonest: by weight, not dollars', () => {
+    // wstETH $90k at LT 0.81 (72.9k weighted) beside weETH $81k at LT 0.95 (76.95k) against
+    // $125k of WETH: wstETH is the larger dollar leg, weETH the nearer line.
+    const s = snap(position([coll('wstETH', 30, 3000, 0.81), coll('weETH', 30, 2700, 0.95)], [debt('WETH', 50, 2500)]))
+    const b = classifyRisk(s)
+    expect(b).toMatchObject({ kind: 'ratio', base: 'weETH', quote: 'WETH' })
+    const m = lineModel(s, b)!
+    const B = 72_900 + 76_950 - 125_000
+    expect(lineDistance(m)).toBeCloseTo(B / 76_950, 12) // 32.3%
+    expect(B / 72_900).toBeGreaterThan(lineDistance(m)) // wstETH's line (34.1%) is farther
+  })
+
   it('WETH collateral against wstETH debt is a WETH/wstETH line, named for its own assets', () => {
     const s = snap(position([coll('WETH', 40, 2500, 0.95)], [debt('wstETH', 25, 3000)]))
     const b = classifyRisk(s)
@@ -545,10 +557,15 @@ describe('reverse solve', () => {
       const step = unitStep(r.symbol, r.kind === 'repay' ? 0.999892 : 2499.2)
       const apply = (units: number) =>
         r.kind === 'repay' ? afterRepay(m, units * 0.999892, false) : afterAdd(m, units * 2499.2 * 0.83, true)
+      // Accrue then repay: D·g − X leaves more debt than (D − X)·g, and must hold too.
+      const accrueFirst = (units: number) =>
+        r.kind === 'repay' ? afterRepay(accrued(m), units * 0.999892, false) : accrued(apply(units))
+      const worst = (units: number) => Math.min(lineDistance(accrued(apply(units))), lineDistance(accrueFirst(units)))
       expect(lineDistance(accrued(apply(r.amount)))).toBeGreaterThanOrEqual(L - 1e-12)
-      expect(lineDistance(accrued(apply(r.amount - step)))).toBeLessThan(L)
-      // The stated line −Y% is the one left AFTER the buffer's interest, and Y ≥ L*.
-      expect(r.newDistancePct).toBe(floorPct(lineDistance(accrued(apply(r.amount)))))
+      expect(lineDistance(accrueFirst(r.amount))).toBeGreaterThanOrEqual(L - 1e-12)
+      expect(worst(r.amount - step)).toBeLessThan(L)
+      // The stated line −Y% is the one left AFTER the buffer's interest, either way, and Y ≥ L*.
+      expect(r.newDistancePct).toBe(floorPct(worst(r.amount)))
       expect(r.newDistancePct).toBeGreaterThanOrEqual(r.level)
       expect(r.history.level).toBe(r.newDistancePct)
     }
@@ -571,6 +588,9 @@ describe('reverse solve', () => {
           expect(r.text).not.toMatch(/\$/)
           const after = lineDistance({ ...m, D: (m.D - shown * px) * g })
           expect(after).toBeGreaterThanOrEqual(r.newDistancePct / 100 - 1e-12)
+          // 0xa56d's 14d row reached 44.9990% when interest accrued before the repay: no more.
+          const accrueThenRepay = lineDistance({ ...m, D: m.D * g - shown * px })
+          expect(accrueThenRepay).toBeGreaterThanOrEqual(r.newDistancePct / 100 - 1e-12)
         }
       }
     }

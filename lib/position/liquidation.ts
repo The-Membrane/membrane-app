@@ -62,12 +62,20 @@ interface NamedLeg {
   side: 'collateral' | 'debt'
   symbol: string
   usd: number
+  /** What the leg weighs against the line: collateral at its threshold, debt in full. */
+  weighted: number
 }
 
 function namedLegs(s: PositionSnapshot): NamedLeg[] {
   const legs: NamedLeg[] = [
-    ...s.collateral.map((c) => ({ side: 'collateral' as const, symbol: c.symbol, usd: c.amount * c.oraclePriceUsd })),
-    ...s.debt.map((d) => ({ side: 'debt' as const, symbol: d.symbol, usd: d.amount * d.priceUsd })),
+    ...s.collateral.map((c) => {
+      const usd = c.amount * c.oraclePriceUsd
+      return { side: 'collateral' as const, symbol: c.symbol, usd, weighted: usd * c.liquidationThreshold }
+    }),
+    ...s.debt.map((d) => {
+      const usd = d.amount * d.priceUsd
+      return { side: 'debt' as const, symbol: d.symbol, usd, weighted: usd }
+    }),
   ].filter((l) => l.usd > 0)
   const gross = legs.reduce((a, l) => a + l.usd, 0)
   return legs.filter((l) => l.usd >= DUST_SHARE * gross)
@@ -125,15 +133,24 @@ const bySize = (legs: NamedLeg[], side: NamedLeg['side'], keep: (sym: string) =>
 
 /**
  * The ratio for a position whose family legs sit on both sides. The quote is the largest
- * family debt asset; the base, the largest family asset that is not the quote, collateral
- * first (WETH collateral against wstETH debt is a WETH/wstETH line). With no such asset —
- * the same asset on both sides — no ratio exists and no price moves the line.
+ * family debt asset. The base is the family asset (not the quote) whose move reaches the
+ * line SOONEST: the largest net weighted exposure |Σ collateral·LT − Σ debt| in it, since
+ * the distance is (W − D) / that exposure. By weight, not dollars: with unequal thresholds
+ * the larger dollar leg can be the farther line. WETH collateral against wstETH debt is a
+ * WETH/wstETH line. With no such asset — the same asset on both sides — no ratio exists
+ * and no price moves the line.
  */
 function ratioBasis(legs: NamedLeg[], asset: HistoryAsset): RiskBasis {
   const inF = (sym: string) => assetClassOf(sym) === asset
   const quote = bySize(legs, 'debt', inF)[0]
-  const notQuote = (sym: string) => inF(sym) && sym !== quote
-  const base = bySize(legs, 'collateral', notQuote)[0] ?? bySize(legs, 'debt', notQuote)[0]
+  const exposure = new Map<string, number>()
+  for (const l of legs) {
+    if (!inF(l.symbol) || l.symbol === quote) continue
+    exposure.set(l.symbol, (exposure.get(l.symbol) ?? 0) + (l.side === 'collateral' ? l.weighted : -l.weighted))
+  }
+  // First of equal exposures wins (leg order), so the choice is stable.
+  let base: string | undefined
+  for (const [sym, e] of exposure) if (base === undefined || Math.abs(e) > Math.abs(exposure.get(base)!)) base = sym
   if (base === undefined) return { kind: 'dominant', reason: `Both sides are ${quote}: only interest moves the line.` }
   return {
     kind: 'ratio',

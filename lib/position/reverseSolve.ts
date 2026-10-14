@@ -147,7 +147,10 @@ function addLeg(s: PositionSnapshot, m: LineModel): (Leg & { moving: boolean }) 
  * ACCRUAL BUFFER. A row must still hold when the reader acts, not only at read time: debt
  * keeps accruing. Every amount is solved so the line stays at or past L* after this many
  * hours of interest on ALL debt, at the highest borrow APR the read reports (or
- * FALLBACK_BORROW_APR where a venue's rate was not read, e.g. Morpho).
+ * FALLBACK_BORROW_APR where a venue's rate was not read, e.g. Morpho), whichever way the
+ * hours fall: repaid now and accruing after, (D − X)·g, or accruing first and repaid at the
+ * end, D·g − X — the second leaves more debt, so it is the one that binds. A top-up holds
+ * either way alike.
  */
 export const ACCRUAL_BUFFER_HOURS = 24
 export const FALLBACK_BORROW_APR = 0.25
@@ -233,11 +236,11 @@ export function reverseSolve(
     })
   }
 
-  /** Smallest multiple of `step` from `start` whose result still holds after accrual. */
-  const settle = (start: number, step: number, apply: (units: number) => LineModel, L: number, max: number) => {
+  /** Smallest multiple of `step` from `start` whose worst-case distance `reach` is ≥ L. */
+  const settle = (start: number, step: number, reach: (units: number) => number, L: number, max: number) => {
     let units = start
     for (let i = 0; i < 10_000 && units <= max; i++) {
-      if (lineDistance(accrued(apply(units))) >= L - 1e-12) return units
+      if (reach(units) >= L - 1e-12) return units
       units = ceilTo(units + step, step)
     }
     return null
@@ -260,11 +263,15 @@ export function reverseSolve(
       const exact = repayFor(m, L, rLeg.moving)
       if (exact > 0) {
         const step = unitStep(rLeg.symbol, rLeg.priceUsd)
-        const apply = (units: number) => afterRepay(m, units * rLeg.priceUsd, rLeg.moving)
+        // Both readings of the buffer: repay now then accrue, and accrue then repay.
+        const reach = (units: number) => {
+          const X = units * rLeg.priceUsd
+          return Math.min(lineDistance(accrued(afterRepay(m, X, rLeg.moving))), lineDistance(afterRepay(accrued(m), X, rLeg.moving)))
+        }
         // Repaying all of the leg is not a lever: it leaves no line to move.
-        const units = settle(ceilTo(exact / rLeg.priceUsd, step), step, apply, L, rLeg.amount - step)
+        const units = settle(ceilTo(exact / rLeg.priceUsd, step), step, reach, L, rLeg.amount - step)
         if (units !== null && units < rLeg.amount) {
-          const Y = floorPct(lineDistance(accrued(apply(units))))
+          const Y = floorPct(reach(units))
           push({
             kind: 'repay',
             targetPct,
@@ -286,10 +293,10 @@ export function reverseSolve(
       const weighted = addFor(m, L, aLeg.moving)
       if (weighted > 0) {
         const step = unitStep(aLeg.symbol, aLeg.priceUsd)
-        const apply = (units: number) => afterAdd(m, units * aLeg.priceUsd * aLeg.lt, aLeg.moving)
-        const units = settle(ceilTo(weighted / (aLeg.lt * aLeg.priceUsd), step), step, apply, L, Number.POSITIVE_INFINITY)
+        const reach = (units: number) => lineDistance(accrued(afterAdd(m, units * aLeg.priceUsd * aLeg.lt, aLeg.moving)))
+        const units = settle(ceilTo(weighted / (aLeg.lt * aLeg.priceUsd), step), step, reach, L, Number.POSITIVE_INFINITY)
         if (units !== null) {
-          const Y = floorPct(lineDistance(accrued(apply(units))))
+          const Y = floorPct(reach(units))
           push({
             kind: 'add',
             targetPct,

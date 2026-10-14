@@ -366,18 +366,22 @@ async function avalancheCount() {
   const to = await lastLE(END_TS)
   const counts: Record<string, number | string> = {}
   for (const url of urls) {
-    try {
-      const r = (await rpc(url, 'eth_getLogs', [
-        {
-          address: pool,
-          topics: [LIQUIDATION_CALL_TOPIC],
-          fromBlock: '0x' + from.toString(16),
-          toBlock: '0x' + to.toString(16),
-        },
-      ])) as unknown[]
-      counts[new URL(url).host] = r.length
-    } catch (e) {
-      counts[new URL(url).host] = `error: ${(e as Error).message}`
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const r = (await rpc(url, 'eth_getLogs', [
+          {
+            address: pool,
+            topics: [LIQUIDATION_CALL_TOPIC],
+            fromBlock: '0x' + from.toString(16),
+            toBlock: '0x' + to.toString(16),
+          },
+        ])) as unknown[]
+        counts[new URL(url).host] = r.length
+        break
+      } catch (e) {
+        counts[new URL(url).host] = `error: ${(e as Error).message}`
+        await new Promise((res) => setTimeout(res, 3000 * (attempt + 1)))
+      }
     }
   }
   return {

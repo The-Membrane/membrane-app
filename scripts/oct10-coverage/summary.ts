@@ -704,12 +704,19 @@ the CSVs lack are read the same way into the \`*-extra\` files. Out of scope: ev
       const sc = JSON.parse(readFileSync(join(out, 'events-scan.json'), 'utf8')) as {
         outOfScope?: { avalanche?: { liquidationCalls?: Record<string, unknown> } }
       }
-      return JSON.stringify(sc.outOfScope?.avalanche?.liquidationCalls ?? 'not counted')
+      const c = sc.outOfScope?.avalanche?.liquidationCalls
+      return c
+        ? Object.entries(c)
+            .map(([h, n]) => `${typeof n === 'number' ? n : 'error'} (${h})`)
+            .join(', ')
+        : 'not counted'
     } catch {
       return 'not counted'
     }
   })()} Aave V3 LiquidationCalls in the window, not pulled), Aave V2, and V3 forks (Spark, Seamless,
-ZeroLend, Avalon, ...), listed per chain in \`events-scan.json\` under \`otherEmitters\`.
+ZeroLend, Avalon, ...), listed per chain in \`events-scan.json\` under \`otherEmitters\`. No
+emitter outside the registries carries an Aave V3 market id (the mainnet registry lists Core, Lido
+and EtherFi; an Aave market missing from it would have shown up there).
 
 - **Source**: membrane-app \`scripts/oct10-coverage/pull-onchain.ts\` (+ modules beside it), branch
   \`${branch}\`, commit \`${commit}\`${dirty ? ' (WARNING: script dir had uncommitted changes when this was written)' : ''}.

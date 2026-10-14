@@ -1,12 +1,14 @@
 /**
- * The reverse solve, written as actions (DESIGN_RULES §7): "Repay $X → line at −Y% → 7d: Z%".
+ * The reverse solve, written as actions (DESIGN_RULES §7; FORECAST_VISUALS.md "Move your
+ * line"): "Repay $X · line −Y% · Z% (lo–hi)".
  *
- * For each target Z of 7-day HISTORY frequency, find the smallest table level L* whose
- * frequency is at or below Z, then the repay (or top-up) that moves the line to L*. Amounts
- * round UP (repay to $10; top-up to 0.01 ETH-family, 0.0001 BTC-family, otherwise a step
- * worth ≥ $10), Y is the floor of the distance the
- * ROUNDED amount reaches, and Z' is the table frequency at Y. Every amount comes from the
- * live position; nothing here is a constant except the targets.
+ * On the SAME model and the SELECTED horizon as the forecast above it: for each target Z
+ * of the horizon's point forecast, find the smallest table level L* whose forecast is at
+ * or below Z, then the repay (or top-up) that moves the line to L*. Amounts round UP
+ * (repay to $10; top-up to 0.01 ETH-family, 0.0001 BTC-family, otherwise a step worth
+ * ≥ $10), Y is the floor of the distance the ROUNDED amount reaches, and Z' (with its band)
+ * is the forecast at Y. Every amount comes from the live position; nothing here is a
+ * constant except the targets.
  *
  * Closed forms (B = W − D; E = Wm − Dm for a fall, Dm − Wm for a rise; see liquidation.ts):
  *   repay a held debt X        x' = (B + X) / E            X = L·E − B
@@ -22,19 +24,19 @@ import type { PositionSnapshot } from '@/lib/positionAlerts/types'
 import { amountStepFor, ceilTo, fmtAmount, fmtMove, fmtUsd, stepDecimals } from './format'
 import { lineDistance, type LineModel } from './liquidation'
 import { historyAssetFor } from './snapshot'
-import { atOrBelow, floorPct, formatFrequency, touchAtLevel, type TouchFrequency } from './touch'
+import { atOrBelow, floorPct, formatBand, formatChance, touchAtLevel, type TouchFrequency } from './touch'
 import type { Direction, HistoryAsset, HorizonId, TouchTable } from './touchHistory'
 
-/** The horizon the action rows quote. */
-export const REVERSE_SOLVE_HORIZON: HorizonId = '7d'
-/** 7-day history frequencies the rows solve for, in percent. */
+/** The horizon the page opens on; the reader's tab choice replaces it. */
+export const DEFAULT_HORIZON: HorizonId = '7d'
+/** Point forecasts (at the selected horizon) the rows solve for, in percent. */
 export const REVERSE_SOLVE_TARGETS_PCT = [10, 5, 1] as const
 /** Repay amounts round up to this many dollars. */
 export const REPAY_ROUND_USD = 10
 
 export interface ActionRow {
   kind: 'repay' | 'add'
-  /** The 7d target this row was solved for, in percent. */
+  /** The target this row was solved for, in percent of the selected horizon's forecast. */
   targetPct: number
   /** L*: the smallest table level at or below the target. */
   level: number
@@ -48,9 +50,13 @@ export interface ActionRow {
   direction: Direction
   /** Y: the floored distance the rounded amount reaches. */
   newDistancePct: number
-  /** Z': the 7d frequency at Y. */
+  horizon: HorizonId
+  /** Z' and its band: the forecast at Y, at the selected horizon. */
   history: TouchFrequency
+  /** "Repay $480 · line −22% · 5% (3–7%)" */
   text: string
+  /** The curve's dot label: "Repay $480 → 5%" */
+  short: string
 }
 
 /** Smallest level whose `horizon` frequency is at or below `targetPct`, or null. */
@@ -139,6 +145,7 @@ export function reverseSolve(
   m: LineModel,
   t: TouchTable,
   asset: HistoryAsset,
+  horizon: HorizonId = DEFAULT_HORIZON,
 ): ActionRow[] {
   if (!(m.D > 0)) return []
   const now = lineDistance(m)
@@ -148,21 +155,28 @@ export function reverseSolve(
   const rLeg = repayLeg(s, m)
   const aLeg = addLeg(s, m)
 
-  const push = (row: Omit<ActionRow, 'history' | 'text'> & { history: TouchFrequency | null }) => {
+  const push = (row: Omit<ActionRow, 'history' | 'text' | 'short' | 'horizon'> & { history: TouchFrequency | null }) => {
     if (!row.history) return
     const key = `${row.kind}:${row.newDistancePct}`
     if (seen.has(key)) return
     seen.add(key)
-    const tail = `line at ${fmtMove(row.newDistancePct, row.direction)} → ${REVERSE_SOLVE_HORIZON}: ${formatFrequency(row.history.touched, row.history.n)}`
+    const h = row.history
+    const chance = formatChance(h.touched, h.n)
     const what =
       row.kind === 'repay'
         ? `Repay ${fmtUsd(row.amount)}${debtLegs > 1 ? ` of ${row.symbol}` : ''}`
         : `Add ${fmtAmount(row.amount, row.amountDecimals)} ${row.symbol}`
-    rows.push({ ...row, history: row.history, text: `${what} → ${tail}` })
+    rows.push({
+      ...row,
+      horizon,
+      history: h,
+      text: `${what} · line ${fmtMove(row.newDistancePct, row.direction)} · ${chance} (${formatBand(h.lo, h.hi, h.n)})`,
+      short: `${what} → ${chance}`,
+    })
   }
 
   for (const targetPct of REVERSE_SOLVE_TARGETS_PCT) {
-    const level = levelForTarget(t, asset, m.direction, REVERSE_SOLVE_HORIZON, targetPct)
+    const level = levelForTarget(t, asset, m.direction, horizon, targetPct)
     if (level === null) continue // no level in the table reaches this target
     const L = level / 100
     if (now >= L) continue // already at or past the target level: a no-op row
@@ -184,7 +198,7 @@ export function reverseSolve(
           amountUsd: X,
           direction: m.direction,
           newDistancePct: Y,
-          history: touchAtLevel(t, asset, m.direction, REVERSE_SOLVE_HORIZON, Y),
+          history: touchAtLevel(t, asset, m.direction, horizon, Y),
         })
       }
     }
@@ -207,7 +221,7 @@ export function reverseSolve(
           amountUsd: N * aLeg.priceUsd,
           direction: m.direction,
           newDistancePct: Y,
-          history: touchAtLevel(t, asset, m.direction, REVERSE_SOLVE_HORIZON, Y),
+          history: touchAtLevel(t, asset, m.direction, horizon, Y),
         })
       }
     }

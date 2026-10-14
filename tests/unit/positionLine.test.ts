@@ -72,15 +72,29 @@ function position(c: CollateralLeg[], d: DebtLeg[], over: Partial<ProtocolPositi
 }
 const snap = (p: ProtocolPosition) => toSnapshot(p).snapshot
 
-/** A synthetic table: touched/n = f(L) per horizon, so targets land on known levels. */
-function syntheticTable(f: (L: number) => number, n = 1000): TouchTable {
-  const row = { n, from: '2020-01-01', to: '2026-01-01', touched: Array.from({ length: 60 }, (_, i) => Math.round(n * f(i + 1))) }
-  const dir = { '1d': row, '3d': row, '7d': row, '14d': row, '30d': row }
+/**
+ * A synthetic table: touched/n = f(L) (the 1d row at `oneDay`·f), a band of ±2pp, so
+ * targets land on known levels and the band text is predictable.
+ */
+function syntheticTable(f: (L: number) => number, n = 1000, oneDay = 1): TouchTable {
+  const row = (k: number) => {
+    const touched = Array.from({ length: 60 }, (_, i) => Math.round(n * k * f(i + 1)))
+    return {
+      n,
+      from: '2021-03-25',
+      to: '2026-10-05',
+      touched,
+      lo: touched.map((x) => Math.max(0, x - 20)),
+      hi: touched.map((x) => Math.min(n, x + 20)),
+      confidence: { label: 'medium' as const, held: 3, checks: 5, detail: [] },
+    }
+  }
+  const dir = { '1d': row(oneDay), '3d': row(1), '7d': row(1), '14d': row(1), '30d': row(1) }
   return {
     ...TOUCH_TABLE,
     assets: {
-      ETH: { feed: 'Chainlink ETH/USD', oracleGradeFrom: '', fall: dir, rise: dir },
-      BTC: { feed: 'Chainlink BTC/USD', oracleGradeFrom: '', fall: dir, rise: dir },
+      ETH: { feed: 'Chainlink ETH/USD', fall: dir, rise: dir },
+      BTC: { feed: 'Chainlink BTC/USD', fall: dir, rise: dir },
     },
   }
 }
@@ -337,15 +351,24 @@ describe('reverse solve', () => {
     const m = lineModel(s, classifyRisk(s))!
     const rows = reverseSolve(s, m, LINEAR, 'ETH')
     expect(rows.map((r) => r.text)).toEqual([
-      // 0.21·33,200 − 5,200 = 1,772 → $1,780 → D 26,220 → 21.02% → L 21 → 10%
-      'Repay $1,780 → line at −21% → 7d: 10%',
-      'Repay $3,440 → line at −26% → 7d: 5%',
-      'Repay $4,760 → line at −30% → 7d: 1%',
+      // 0.21·33,200 − 5,200 = 1,772 → $1,780 → D 26,220 → 21.02% → L 21 → 10% (8–12%)
+      'Repay $1,780 · line −21% · 10% (8–12%)',
+      'Repay $3,440 · line −26% · 5% (3–7%)',
+      'Repay $4,760 · line −30% · 1% (0–3%)',
       // (0.21·33,200 − 5,200)/0.79 = 2,243.04 weighted → /(0.83·4000) = 0.6756 → 0.68 WETH
-      'Add 0.68 WETH → line at −21% → 7d: 10%',
-      'Add 1.40 WETH → line at −26% → 7d: 5%',
-      'Add 2.05 WETH → line at −30% → 7d: 1%',
+      'Add 0.68 WETH · line −21% · 10% (8–12%)',
+      'Add 1.40 WETH · line −26% · 5% (3–7%)',
+      'Add 2.05 WETH · line −30% · 1% (0–3%)',
     ])
+    expect(rows.map((r) => r.short)).toEqual([
+      'Repay $1,780 → 10%',
+      'Repay $3,440 → 5%',
+      'Repay $4,760 → 1%',
+      'Add 0.68 WETH → 10%',
+      'Add 1.40 WETH → 5%',
+      'Add 2.05 WETH → 1%',
+    ])
+    expect(rows.every((r) => r.horizon === '7d')).toBe(true)
     for (const r of rows) {
       expect(r.newDistancePct).toBeGreaterThanOrEqual(r.level)
       expect(r.history.pct).toBeLessThanOrEqual(r.targetPct + 1e-9)
@@ -371,14 +394,29 @@ describe('reverse solve', () => {
     const s = snap(p)
     const m = lineModel(s, classifyRisk(s))!
     const rows = reverseSolve(s, m, LINEAR, 'ETH')
-    expect(rows[0].text).toMatch(/^Repay \$[\d,]+ → line at \+21% → 7d: 10%$/)
+    expect(rows[0].text).toMatch(/^Repay \$[\d,]+ · line \+21% · 10% \(8–12%\)$/)
     const add = rows.find((r) => r.kind === 'add')!
     expect(add.symbol).toBe('USDC')
     expect(add.amount % 10).toBe(0)
-    expect(add.text).toMatch(/^Add [\d,]+ USDC → line at \+\d+% → 7d: \d+%$/)
+    expect(add.text).toMatch(/^Add [\d,]+ USDC · line \+\d+% · \d+% \(\d+–\d+%\)$/)
   })
 
-  it('on the real table: every row meets its target and names a 7d history frequency', () => {
+  it('solves on the selected horizon', () => {
+    // The 1d row is half the others: ≤ 10% from L = 11, ≤ 5% from L = 21, ≤ 1% from L = 29.
+    const T = syntheticTable((L) => Math.max(0, (31 - L) / 100), 1000, 0.5)
+    const p = position([coll('WETH', 10, 4000, 0.83)], [debt('USDC', 28_000, 1)]) // 15.66% away
+    const s = snap(p)
+    const m = lineModel(s, classifyRisk(s))!
+    const day = reverseSolve(s, m, T, 'ETH', '1d')
+    const week = reverseSolve(s, m, T, 'ETH', '7d')
+    expect(day.every((r) => r.horizon === '1d')).toBe(true)
+    // 10% at 1d is already met at 15%; 5% needs −21%, 1% needs −29%.
+    expect(day.filter((r) => r.kind === 'repay').map((r) => r.level)).toEqual([21, 29])
+    expect(week.filter((r) => r.kind === 'repay').map((r) => r.level)).toEqual([21, 26, 30])
+    for (const r of day) expect(r.history).toEqual(touchAtLevel(T, 'ETH', 'fall', '1d', r.newDistancePct))
+  })
+
+  it('on the real table: every row meets its target and quotes the forecast with its band', () => {
     const p = position([coll('WETH', 10, 4000, 0.83)], [debt('USDC', 28_000, 1)])
     const s = snap(p)
     const rows = reverseSolve(s, lineModel(s, classifyRisk(s))!, TOUCH_TABLE, 'ETH')

@@ -1,24 +1,35 @@
 /**
- * History frequency at a distance: "ETH fell 27% or more within 7 days on 3% of days".
+ * The forecast at a distance: "Chance ETH touches your line within 7 days: 12%, likely
+ * 9–15%" (FORECAST_VISUALS.md). Each value is the share of past daily origins that touched
+ * that line, with its 90% block-bootstrap band; see touchHistory.ts for the period.
  *
  * TOWARD RISK. A distance is floored to a whole percent before the lookup, and the table
  * is monotone non-increasing in the level, so the floor can only pick the LARGER (riskier)
- * frequency. A displayed frequency is rounded UP for the same reason (formatFrequency).
+ * chance. A displayed chance is rounded UP; a band is widened outward (low floored, high
+ * ceiled). The table is at 1% steps, so no interpolation is ever needed.
  *
- * The `confidence` slot is typed for the Q26 labels but is always null today: those labels
- * are not published for app use. The UI renders nothing for null.
+ * CONFIDENCE is a typed slot. Today it carries the preliminary t1 span check
+ * (source 't1-span-check'); Q26's published labels replace it (source 'q26') without
+ * touching any reader.
  */
 
 import {
   HORIZON_IDS,
+  type ConfidenceLabel,
   type Direction,
   type HistoryAsset,
   type HorizonId,
   type TouchTable,
 } from './touchHistory'
 
-/** Q26 confidence labels. Not published for app use yet — every value today is null. */
-export type HistoryConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'insufficient' | 'STALE'
+export interface ForecastConfidence {
+  label: ConfidenceLabel
+  /** "held in 4 of 5 checks" / "no checks" */
+  basis: string
+  /** True until the Q26 test reports. */
+  preliminary: boolean
+  source: 't1-span-check' | 'q26'
+}
 
 export interface TouchFrequency {
   asset: HistoryAsset
@@ -28,10 +39,15 @@ export interface TouchFrequency {
   level: number
   touched: number
   n: number
-  /** touched / n × 100, unrounded. */
+  /** touched / n × 100, unrounded: the point forecast. */
   pct: number
+  /** The 90% band, as counts out of n and as percent. */
+  lo: number
+  hi: number
+  loPct: number
+  hiPct: number
   period: { from: string; to: string }
-  confidence: HistoryConfidence | null
+  confidence: ForecastConfidence | null
 }
 
 /**
@@ -48,7 +64,18 @@ export type TouchLookup =
   /** Distance past the table's last level (60%): no row to quote. */
   | { kind: 'beyond'; maxLevel: number }
 
-/** Frequency at a whole-percent level. Null when the level is outside the table. */
+/** "held in 4 of 5 checks", from the table's preliminary span check. */
+export function confidenceOf(t: TouchTable, asset: HistoryAsset, direction: Direction, horizon: HorizonId): ForecastConfidence {
+  const c = t.assets[asset][direction][horizon].confidence
+  return {
+    label: c.label,
+    basis: c.checks === 0 ? 'no checks' : `held in ${c.held} of ${c.checks} checks`,
+    preliminary: t.confidenceRule.preliminary,
+    source: 't1-span-check',
+  }
+}
+
+/** Forecast at a whole-percent level. Null when the level is outside the table. */
 export function touchAtLevel(
   t: TouchTable,
   asset: HistoryAsset,
@@ -58,22 +85,43 @@ export function touchAtLevel(
 ): TouchFrequency | null {
   if (!Number.isInteger(level) || level < t.levels.min || level > t.levels.max) return null
   const r = t.assets[asset][direction][horizon]
-  const touched = r.touched[level - t.levels.min]
+  const i = level - t.levels.min
   return {
     asset,
     direction,
     horizon,
     level,
-    touched,
+    touched: r.touched[i],
     n: r.n,
-    pct: (touched / r.n) * 100,
+    pct: (r.touched[i] / r.n) * 100,
+    lo: r.lo[i],
+    hi: r.hi[i],
+    loPct: (r.lo[i] / r.n) * 100,
+    hiPct: (r.hi[i] / r.n) * 100,
     period: { from: r.from, to: r.to },
-    confidence: null,
+    confidence: confidenceOf(t, asset, direction, horizon),
   }
 }
 
+/** Every level from `from` to `to`, for a curve. Levels outside the table are skipped. */
+export function touchCurve(
+  t: TouchTable,
+  asset: HistoryAsset,
+  direction: Direction,
+  horizon: HorizonId,
+  from: number,
+  to: number,
+): TouchFrequency[] {
+  const out: TouchFrequency[] = []
+  for (let L = from; L <= to; L++) {
+    const f = touchAtLevel(t, asset, direction, horizon, L)
+    if (f) out.push(f)
+  }
+  return out
+}
+
 /**
- * Frequency at a distance (a fraction, 0.27 = 27%). The level is floor(distance%).
+ * Forecast at a distance (a fraction, 0.27 = 27%). The level is floor(distance%).
  * Returns why there is no row when the distance is outside 1%–60%.
  */
 export function lookupTouch(
@@ -90,7 +138,7 @@ export function lookupTouch(
   return row ? { kind: 'row', row } : { kind: 'beyond', maxLevel: t.levels.max }
 }
 
-/** The lookup as the brief states it: the row, or null when outside the table. */
+/** The lookup as a row, or null when outside the table. */
 export function touchAt(
   t: TouchTable,
   asset: HistoryAsset,
@@ -102,30 +150,36 @@ export function touchAt(
   return l.kind === 'row' ? l.row : null
 }
 
-/** One row per horizon, in horizon order. Null entries are outside the table. */
-export function touchByHorizon(
-  t: TouchTable,
-  asset: HistoryAsset,
-  direction: Direction,
-  distance: number,
-): TouchFrequency[] {
-  return HORIZON_IDS.map((h) => touchAt(t, asset, direction, h, distance)).filter(
-    (r): r is TouchFrequency => r !== null,
-  )
+/** One row per horizon, in horizon order. Levels outside the table give no row. */
+export function touchByHorizon(t: TouchTable, asset: HistoryAsset, direction: Direction, distance: number): TouchFrequency[] {
+  return HORIZON_IDS.map((h) => touchAt(t, asset, direction, h, distance)).filter((r): r is TouchFrequency => r !== null)
 }
 
 /**
- * A frequency for display, rounded toward risk: up to a whole percent. A frequency above
- * 0 but under 1% reads "<1%", and none at all reads "0%"; neither is rounded to a figure
- * the history does not contain.
+ * A chance for display, rounded toward risk: up to a whole percent. Above 0 but under 1%
+ * reads "<1%"; none at all reads "0%". Neither invents a figure the history lacks.
  */
-export function formatFrequency(touched: number, n: number): string {
-  if (!(n > 0)) throw new Error('formatFrequency: n must be positive')
+export function formatChance(touched: number, n: number): string {
+  if (!(n > 0)) throw new Error('formatChance: n must be positive')
   if (touched <= 0) return '0%'
   const pct = (touched / n) * 100
   if (pct < 1) return '<1%'
   return `${Math.ceil(pct - 1e-9)}%`
 }
 
-/** The 7d, 5% etc. target test in integers: touched / n ≤ pct / 100. */
+/** The band for display, widened outward: "9–15%", or "0–1%". One value when they meet. */
+export function formatBand(lo: number, hi: number, n: number): string {
+  if (!(n > 0)) throw new Error('formatBand: n must be positive')
+  const a = Math.floor((lo / n) * 100 + 1e-9)
+  const b = Math.ceil((hi / n) * 100 - 1e-9)
+  return a === b ? `${a}%` : `${a}–${b}%`
+}
+
+/** "Confidence: medium · held in 4 of 5 checks · preliminary" */
+export function confidenceLine(c: ForecastConfidence | null): string | null {
+  if (!c) return null
+  return `Confidence: ${c.label} · ${c.basis}${c.preliminary ? ' · preliminary' : ''}`
+}
+
+/** The target test in integers: touched / n ≤ pct / 100. */
 export const atOrBelow = (touched: number, n: number, pct: number): boolean => touched * 100 <= pct * n

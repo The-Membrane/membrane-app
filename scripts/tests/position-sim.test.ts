@@ -959,6 +959,8 @@ test('the stable definition is the single source for the simulator and the censu
     'USDbC',
     'sDAI',
     'sUSDS',
+    'syrupUSDC',
+    'scrvUSD',
   ]) {
     assert.ok(heldAtOne(sym) && isNoDelayCollateral(sym), `${sym}: stable, held at $1, no-delay`)
   }

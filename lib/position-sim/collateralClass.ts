@@ -47,7 +47,14 @@ export const NO_DELAY_LTV_HARD_CAP = 0.96
 
 /**
  * Dollar stables whose Oct 10 path is a flat $1.00. The union of the old
- * scenario.ts `HELD_AT_ONE` and the old build-evidence.ts `STABLES`.
+ * scenario.ts `HELD_AT_ONE` and the old build-evidence.ts `STABLES`, plus the deploy's two
+ * other no-delay launch stables, syrupUSDC and scrvUSD (DeployFullSystem.s.sol:269-271).
+ *
+ * The YIELD-BEARING ones — sDAI, sUSDS, syrupUSDC, scrvUSD — are receipts that accrue
+ * above $1, so $1.00 is not their level. They are held FLAT because over a two-day window
+ * their accrual is a few basis points and every census figure reads a price RATIO, which a
+ * flat path gets right. A simulator position in one is valued at $1.00 a unit, which
+ * understates its level: a known simplification, not a measurement.
  */
 const HELD_AT_ONE_SYMBOLS = [
   'USDC',
@@ -66,6 +73,8 @@ const HELD_AT_ONE_SYMBOLS = [
   'USDbC',
   'sDAI',
   'sUSDS',
+  'syrupUSDC',
+  'scrvUSD',
 ] as const
 
 /**

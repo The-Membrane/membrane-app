@@ -23,7 +23,7 @@ import { MAX_LTV_HARD_CAP, MEMBRANE_ASSET_LTV, membraneMaxLtv } from '@/lib/posi
 import { HELD_AT_ONE } from '@/lib/position-sim/scenario'
 
 describe('the stable definition', () => {
-  it('is the union of the two old lists plus the measured synthetic dollars', () => {
+  it('is the union of the two old lists, the deploy launch stables and the synthetic dollars', () => {
     const oldHeldAtOne = ['USDC', 'USDT', 'DAI', 'USDS', 'GHO', 'sDAI', 'sUSDS']
     const oldCensusStables = [
       'USDC',
@@ -41,9 +41,24 @@ describe('the stable definition', () => {
       'MAI',
       'USDbC',
     ]
-    const union = new Set([...oldHeldAtOne, ...oldCensusStables, 'USDe', 'sUSDe'])
+    // DeployFullSystem.s.sol:269-271 lists sUSDS, syrupUSDC and scrvUSD at the 96% cap.
+    const deployLaunchStables = ['sUSDS', 'syrupUSDC', 'scrvUSD']
+    const union = new Set([
+      ...oldHeldAtOne,
+      ...oldCensusStables,
+      ...deployLaunchStables,
+      'USDe',
+      'sUSDe',
+    ])
     expect(new Set(STABLE_SYMBOLS)).toEqual(union)
     expect(STABLE_SYMBOLS.length).toBe(union.size)
+  })
+
+  it('holds the yield-bearing launch stables flat, like sDAI and sUSDS', () => {
+    for (const s of ['sDAI', 'sUSDS', 'syrupUSDC', 'scrvUSD']) {
+      expect(heldAtOne(s)).toBe(true)
+      expect(isNoDelayCollateral(s)).toBe(true)
+    }
   })
 
   it('keeps USDe and sUSDe stable for the class but measured, never held at $1', () => {

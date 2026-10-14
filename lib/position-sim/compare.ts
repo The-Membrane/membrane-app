@@ -34,11 +34,11 @@ import {
 } from './collateralClass'
 import { DelayTimer } from './curePath'
 import {
-  applyRecall,
   fullRepayValue,
   membraneBorrowLtv,
   membraneRepayValue,
   weightedMembraneLine,
+  CURE_WINDOW_HOURS,
   CURE_WINDOW_SECONDS,
   LIQ_DEBT_MINIMUM_USD,
   MAX_THRESHOLD_TO_DELAY,
@@ -257,15 +257,6 @@ interface MembraneSubRun {
 }
 
 /**
- * The paid RECALL-ONLY lane, in the event log's words. LiquidationEngine.sol:1603-1658:
- * when this call's venue recall alone brings the position back to or under its line, the
- * timer is deleted, nothing is sold, and the keeper is paid the ordinary fee from the
- * borrower's collateral on min(restore-to-cap target, recalled) (:1653-1654).
- */
-const RECALL_ONLY_WHY =
-  'Venue capital alone brought the position back under its line; the keeper is paid the fee from collateral (recall-only lane, LiquidationEngine.sol:1603-1658)'
-
-/**
  * Walks ONE isolated Membrane position: partial repay back to the borrow cap, recall from
  * deployment venues before touching collateral, and — in the delayed class — an 8-hour
  * cure window. A position in the no-delay class has no window: it is sold the minute it
@@ -315,6 +306,10 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
   let venueDrawn = 0
   /** Capital still in venues. Falls as capital is recalled; equity counts it. */
   const deployedStart = sub.venue?.deployedUsd ?? 0
+  const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
+  /** Cumulative ceilings on what the venue can return: synchronously, and inside 8h. */
+  const recallRate = clamp01(sub.venue?.recallRate ?? 0)
+  const fastRate = clamp01(sub.venue?.fastRate ?? 0)
 
   for (let i = 0; i < path.count; i++) {
     let c = valueOf(coll, path, i, fallbackC)
@@ -324,19 +319,108 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
     let ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
     if (Number.isFinite(ltv)) peakLtv = Math.max(peakLtv, ltv)
 
+    /** A window was running coming into this minute (so its fast capital has arrived). */
+    const windowRan = timer.armed
     const act = d > 0 ? timer.step(i, ltv) : ({ kind: 'none' } as const)
+    const ts = path.startTs + i * path.stepSeconds
 
+    /**
+     * A KEEPER CALL happens when the timer arms (the breach call that starts it), when it
+     * says sell (band break, expiry, or a no-window position over its line), and during the
+     * window only when venue capital not yet drawn has arrived. Every call runs Step 1.5
+     * first: it recalls venue capital toward the WHOLE debt — `repayTarget = totalDebt`
+     * (LiquidationEngine.sol:1319), sending `min(retrievable, repayTarget - totalRepaid)`
+     * (:1450-1453) — before anything is classified.
+     *
+     * WHAT IS RETRIEVABLE, mapped onto the two existing inputs: a call at an arm minute,
+     * or a sale with no window running, recalls synchronously — up to `recallRate` of the
+     * deployed capital in all. A call during the window draws on capital that ARRIVES
+     * inside it — up to `fastRate` in all — and a sale that ends a window can use either.
+     * Both are cumulative ceilings: a dollar drawn once is gone.
+     */
     if (act.kind === 'arm' || act.kind === 'hold' || act.kind === 'sell') {
       const brokeWindow = act.kind === 'sell' && act.reason === 'band'
-      /** The no-delay class: instant mode, no window ever (LiquidationEngine.sol:1572). */
+      /** No window for this position: instant mode (LiquidationEngine.sol:1572). */
       const instant = act.kind === 'sell' && act.reason === 'instant'
-      const inCureWindow = act.kind !== 'sell'
+      const ceiling =
+        act.kind === 'hold'
+          ? fastRate
+          : act.kind === 'sell' && windowRan
+            ? Math.max(recallRate, fastRate)
+            : recallRate
+      const available = Math.max(0, deployedStart * ceiling - venueDrawn)
+      const recalled = Math.min(available, d)
+      const dPost = d - recalled
+      const ltvPost = c > 0 ? dPost / c : dPost > 0 ? Infinity : 0
+      /** What an ordinary liquidation of THIS breach would repay, on the PRE-recall state. */
+      const targetPre = membraneRepayValue(d, c, cap, dMin)
 
-      // A breach that opens INSIDE the band arms the timer and sells nothing.
-      if (act.kind === 'arm') {
+      /** Commits a recall: the debt falls by `usd`, the venue by the same. */
+      const commitRecall = (usd: number) => {
+        venueDrawn += usd
+        const share = d > 0 ? Math.min(1, usd / d) : 0
+        for (const leg of debt) leg.amount *= 1 - share
+      }
+
+      if (recalled > 0 && ltvPost <= line) {
+        // STEP 2.5, THE PAID RECALL-ONLY LANE (LiquidationEngine.sol:1603-1658): the
+        // recall alone brought the position to or under its line (:1623). It fires before
+        // any classification — at the breach, during the window, or at a sale. Any timer is
+        // deleted, nothing is sold (:1137-1141), and the call is paid the ordinary fee from
+        // collateral on min(restore-to-cap target at the pre-recall state, recalled)
+        // (:1653-1654). One event, one fee.
+        commitRecall(recalled)
+        const feeUsd = seizeProRata(coll, fee * Math.min(targetPre, recalled), path, i, fallbackC)
+        penaltyPaid += feeUsd
+        c = valueOf(coll, path, i, fallbackC)
+        d = valueOf(debt, path, i, fallbackD)
+        ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
+        timer.clearAfterSale()
         events.push({
           minute: i,
-          ts: path.startTs + i * path.stepSeconds,
+          ts,
+          kind: act.kind === 'hold' ? 'cure' : 'recall',
+          ltv,
+          line,
+          repaidUsd: recalled,
+          seizedUsd: feeUsd,
+          recalledUsd: recalled,
+          penaltyUsd: feeUsd,
+          why:
+            who +
+            (act.kind === 'hold'
+              ? `Venue capital arrived inside the ${CURE_WINDOW_HOURS}-hour window: ${fmt(recalled)} brought the position back under its ${(line * 100).toFixed(1)}% line, so nothing was sold. `
+              : `Venues returned ${fmt(recalled)}, which brought the position back under its ${(line * 100).toFixed(1)}% line, so nothing was sold. `) +
+            `The call still pays the liquidation fee from collateral: ${fmt(feeUsd)}.`,
+        })
+      } else if (act.kind === 'hold') {
+        // Still over the line even with the new capital: the call would revert TimerActive
+        // (Step 1.5/2.5 run first, then :1690), so the recall rolls back and nothing
+        // changes. Inside the band and inside the window, the engine sells nothing.
+      } else if (act.kind === 'arm') {
+        // The breach call. Its recall commits (the timer-start lane pays no fee) and, still
+        // over the line, the timer stays armed with the reduced debt.
+        if (recalled > 0) {
+          commitRecall(recalled)
+          c = valueOf(coll, path, i, fallbackC)
+          d = valueOf(debt, path, i, fallbackD)
+          ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
+          events.push({
+            minute: i,
+            ts,
+            kind: 'recall',
+            ltv,
+            line,
+            repaidUsd: recalled,
+            seizedUsd: 0,
+            recalledUsd: recalled,
+            penaltyUsd: 0,
+            why: `${who}Venues returned ${fmt(recalled)}. The position is still over its ${(line * 100).toFixed(1)}% line, so the ${CURE_WINDOW_HOURS}-hour window opens with that debt repaid.`,
+          })
+        }
+        events.push({
+          minute: i,
+          ts,
           kind: 'breach',
           ltv,
           line,
@@ -347,111 +431,62 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
           why:
             who +
             `LTV crossed the ${(line * 100).toFixed(1)}% line and opened the ` +
-            `${CURE_WINDOW_SECONDS / 3600}-hour window. Nothing is sold while the position stays ` +
+            `${CURE_WINDOW_HOURS}-hour window. Nothing is sold while the position stays ` +
             `under ${(breakLine * 100).toFixed(1)}% — the price coming back, or venue capital ` +
             `arriving, ends it with no liquidation at all.`,
         })
-      }
-
-      if (act.kind !== 'sell' || sales < MAX_SALES) {
-        const needed = membraneRepayValue(d, c, cap, dMin)
-        const remainingVenue = sub.venue
-          ? { ...sub.venue, deployedUsd: Math.max(0, sub.venue.deployedUsd - venueDrawn) }
-          : null
-        const recall = applyRecall(needed, remainingVenue)
-
-        if (inCureWindow && !recall.cured) {
-          // PROTECTED. In band, inside the window, and venue capital cannot close the
-          // call on its own: the engine sells nothing this minute. A cure by price
-          // counts exactly as much as a cure by recall — the timer's own `ltv <= line`
-          // branch clears it, which re-arms a full fresh window on a later breach
-          // (SavedByDelay, LiquidationEngine.sol:1362-1382).
-        } else if (recall.cured && inCureWindow) {
-          // Fast capital covered the whole call inside the 8h window: nothing is sold, but
-          // this is the PAID recall-only lane (LiquidationEngine.sol:1603-1658): the timer
-          // is deleted and the keeper is paid the fee from collateral. Fee base =
-          // min(restore-to-cap target, recalled) (:1653-1654) — `needed` here, because the
-          // venue repays exactly the target.
-          venueDrawn += needed
-          const share = d > 0 ? needed / d : 0
+      } else if (sales < MAX_SALES) {
+        // A SALE (band break, expiry, or no window). The recall commits first; only the
+        // shortfall to the borrow cap, sized on the POST-recall state, comes out of
+        // collateral, with the fee on top.
+        if (recalled > 0) commitRecall(recalled)
+        const cNow = valueOf(coll, path, i, fallbackC)
+        const dNow = valueOf(debt, path, i, fallbackD)
+        const needed = membraneRepayValue(dNow, cNow, cap, dMin)
+        let repaid = recalled
+        let seized = 0
+        let penalty = 0
+        if (needed > 0) {
+          const got = seizeProRata(coll, needed * (1 + fee), path, i, fallbackC)
+          const fromColl = got / (1 + fee)
+          penalty = got - fromColl
+          penaltyPaid += penalty
+          seized = got
+          repaid += fromColl
+          const share = dNow > 0 ? Math.min(1, fromColl / dNow) : 0
           for (const leg of debt) leg.amount *= 1 - share
-          const feeUsd = seizeProRata(coll, fee * needed, path, i, fallbackC)
-          penaltyPaid += feeUsd
-          c = valueOf(coll, path, i, fallbackC)
-          d = valueOf(debt, path, i, fallbackD)
-          ltv = c > 0 ? d / c : 0
-          timer.clearAfterSale()
-          events.push({
-            minute: i,
-            ts: path.startTs + i * path.stepSeconds,
-            kind: 'cure',
-            ltv,
-            line,
-            repaidUsd: needed,
-            seizedUsd: feeUsd,
-            recalledUsd: needed,
-            penaltyUsd: feeUsd,
-            why: `${who}Cured inside the ${CURE_WINDOW_SECONDS / 3600}-hour window, with no collateral sold. ${RECALL_ONLY_WHY}: ${fmt(feeUsd)} on the ${fmt(needed)} recalled.`,
-          })
-        } else {
-          venueDrawn += recall.recalledUsd
-          let repaid = recall.recalledUsd
-          let seized = 0
-          let penalty = 0
-          /** The venue alone covered the call: the paid recall-only lane, nothing sold. */
-          const recallOnly = recall.recalledUsd > 0 && !(recall.shortfallUsd > 0)
-          if (recall.shortfallUsd > 0) {
-            const want = recall.shortfallUsd * (1 + fee)
-            const got = seizeProRata(coll, want, path, i, fallbackC)
-            const fromColl = got / (1 + fee)
-            penalty = got - fromColl
-            penaltyPaid += penalty
-            repaid += fromColl
-            seized = got
-          }
-          const share = d > 0 ? Math.min(1, repaid / d) : 0
-          for (const leg of debt) leg.amount *= 1 - share
-          if (recallOnly) {
-            // LiquidationEngine.sol:1603-1658 — the fee, on min(target, recalled)
-            // (:1653-1654), is the only collateral that leaves.
-            const base = Math.min(needed, recall.recalledUsd)
-            penalty = seizeProRata(coll, fee * base, path, i, fallbackC)
-            penaltyPaid += penalty
-            seized = penalty
-          }
-          c = valueOf(coll, path, i, fallbackC)
-          d = valueOf(debt, path, i, fallbackD)
-          ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
-          if (repaid > 0) sales++
-          // The sale deletes the timer (:1421-1423); the position is live afterwards
-          // and a later breach opens a FULL fresh delay.
-          timer.clearAfterSale()
-
-          const detail =
-            recall.recalledUsd > 0
-              ? `Venues returned ${fmt(recall.recalledUsd)} of the ${fmt(needed)} call; only the ${fmt(recall.shortfallUsd)} shortfall came out of collateral. The repay restores the position to the ${(cap * 100).toFixed(1)}% borrow cap, not to zero.`
-              : `Partial liquidation repaid ${fmt(repaid)} — enough to restore the ${(cap * 100).toFixed(1)}% borrow cap, not the whole loan.`
-          events.push({
-            minute: i,
-            ts: path.startTs + i * path.stepSeconds,
-            kind: recallOnly ? 'recall' : 'liquidation',
-            ltv,
-            line,
-            repaidUsd: repaid,
-            seizedUsd: seized,
-            recalledUsd: recall.recalledUsd,
-            penaltyUsd: penalty,
-            why:
-              who +
-              (recallOnly
-                ? `Venues answered the whole ${fmt(needed)} call — the debt came down without selling collateral. ${RECALL_ONLY_WHY}: ${fmt(penalty)}.`
-                : instant
-                  ? `No-delay class — sold the minute the line was crossed; no window exists for this collateral. ${detail}`
-                  : brokeWindow && seized > 0
-                    ? `Broke the ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% window — LTV ${(ltv * 100).toFixed(1)}% is past ${(breakLine * 100).toFixed(1)}%, so the cure clock no longer applies and the sale is immediate. ${recall.recalledUsd > 0 ? `Venues returned ${fmt(recall.recalledUsd)} first; ` : ''}${fmt(seized)} of collateral covered the rest, restoring the ${(cap * 100).toFixed(1)}% borrow cap, not zero.`
-                    : detail),
-          })
         }
+        c = valueOf(coll, path, i, fallbackC)
+        d = valueOf(debt, path, i, fallbackD)
+        ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
+        if (repaid > 0) sales++
+        // The sale deletes the timer (:1421-1423); the position is live afterwards
+        // and a later breach opens a FULL fresh delay.
+        timer.clearAfterSale()
+
+        const capPct = `${(cap * 100).toFixed(1)}%`
+        const detail =
+          recalled > 0
+            ? `Venues returned ${fmt(recalled)} first; ${fmt(seized)} of collateral covered the rest, restoring the ${capPct} borrow cap, not zero.`
+            : `Partial liquidation repaid ${fmt(repaid)} — enough to restore the ${capPct} borrow cap, not the whole loan.`
+        events.push({
+          minute: i,
+          ts,
+          kind: seized > 0 ? 'liquidation' : 'recall',
+          ltv,
+          line,
+          repaidUsd: repaid,
+          seizedUsd: seized,
+          recalledUsd: recalled,
+          penaltyUsd: penalty,
+          why:
+            who +
+            (instant
+              ? `No ${CURE_WINDOW_HOURS}-hour window for this collateral — sold the minute LTV crossed the ${(line * 100).toFixed(1)}% line. ${detail}`
+              : brokeWindow
+                ? `Broke the ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% window — LTV is past ${(breakLine * 100).toFixed(1)}%, so the cure clock no longer applies and the sale is immediate. ${detail}`
+                : detail),
+        })
       }
     }
 
@@ -616,11 +651,13 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   )
   if (opts.venue) {
     caveats.push(
-      'When venue capital alone brings the position back under its line, nothing is sold — but the keeper is still paid the liquidation fee from collateral (the recall-only lane, LiquidationEngine.sol:1603-1658). Here that fee is the flat modelled rate on the recalled amount, never more than the restore-to-cap target (:1653-1654).',
+      `Every call recalls venue capital first, toward the whole debt: at the breach, at a sale, and inside the ${CURE_WINDOW_HOURS}-hour window when capital arrives. If that alone brings the position back under its line, nothing is sold, but the call still pays the liquidation fee from collateral, on at most what a normal liquidation would have repaid. If not, the recall stays and only the rest is sold. Recall rate is what returns at once; fast rate is what can arrive inside the ${CURE_WINDOW_HOURS} hours.`,
     )
   }
   caveats.push(
-    'Not modelled: the contract reverts any liquidation that would leave the position’s LTV higher than before it (LiquidationRaisedLtv, Cdp.sol:2494-2498). The flat fee here is a stand-in for the contract’s fee ramp, so a revert computed from it would be an artefact of the model rather than a property of the contract.',
+    // Cdp.sol:2494-2498 reverts LiquidationRaisedLtv. Not modelled: the flat fee is a
+    // stand-in for the contract's fee ramp, so a revert computed from it would be an artefact.
+    'Not modelled: on-chain, a liquidation that would leave LTV higher than before it does not go through. The fee here is a flat stand-in, so that check is left out rather than faked.',
   )
   if (derived.unknown.length) {
     caveats.push(

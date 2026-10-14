@@ -461,35 +461,31 @@ test('recalled capital is equity-neutral — a recall is not free money', () => 
   assert.ok(cmp.equityDeltaUsd > 0, 'but with recall available Membrane does come out ahead')
 })
 
-test('a deep venue lets Membrane cure without SELLING collateral — and the keeper is paid', () => {
-  // UPDATED 2026-10-14. This used to assert the cure cost nothing. The contract now pays
-  // the keeper on the RECALL-ONLY lane (LiquidationEngine.sol:1603-1658): a venue recall
-  // that alone brings the position back under its line sells nothing, but the ordinary fee
-  // is taken from collateral on min(restore-to-cap target, recalled) (:1653-1654).
+test('a deep venue lets Membrane cure without SELLING collateral — and the call is paid', () => {
+  // UPDATED 2026-10-14, twice. This used to assert the cure cost nothing. The contract pays
+  // the call on the RECALL-ONLY lane (LiquidationEngine.sol:1603-1658), and its Step 1.5
+  // recalls toward the WHOLE debt (repayTarget = totalDebt, :1319; :1450-1453) at the very
+  // call that would start the timer. So a deep venue repays the loan at the first breach:
+  // one event, one fee, on min(restore-to-cap target, recalled) (:1653-1654), nothing sold.
   const { path, unpriced } = crashPath()
   const venue = { recallRate: 0.98, fastRate: 0.98, deployedUsd: 400_000, provenance: {} as never }
   const cmp = runComparison(crashTestPosition(), path, unpriced, { ...baseOpts, venue })
-  const cures = cmp.membrane.events.filter((e) => e.kind === 'cure')
-  assert.ok(cures.length > 0, 'the cure window fired')
-  assert.ok(
-    cures.every((e) => Math.abs(e.seizedUsd - e.penaltyUsd) < 1e-9),
-    'a cure sells no collateral beyond the fee',
-  )
-  for (const e of cures) {
-    close(e.penaltyUsd, baseOpts.membraneLiqFee * e.recalledUsd, 'fee = rate x recalled', 1e-6)
-    assert.ok(e.why.includes('recall-only lane'), 'and the event says which lane paid it')
-  }
-  assert.ok(cmp.membrane.penaltyPaidUsd > 0, 'the recall-only cure costs the keeper fee')
+  const ev = cmp.membrane.events
+  assert.strictEqual(ev.length, 1, 'one call, at the first breach')
+  assert.strictEqual(ev[0].kind, 'recall', 'answered by the venue alone')
   close(
-    cmp.membrane.penaltyPaidUsd,
-    cmp.membrane.events.reduce((a, e) => a + e.penaltyUsd, 0),
-    'every fee paid is on an event',
+    ev[0].recalledUsd,
+    crashTestPosition().totalDebtUsd,
+    'the recall repays the whole debt',
     1e-6,
   )
+  close(ev[0].seizedUsd, ev[0].penaltyUsd, 'no collateral leaves beyond the fee', 1e-9)
   assert.ok(
-    !cmp.membrane.events.some((e) => e.kind === 'liquidation'),
-    'and nothing was liquidated: the fee is not a sale',
+    ev[0].penaltyUsd > 0 && ev[0].penaltyUsd < baseOpts.membraneLiqFee * ev[0].recalledUsd,
+    'the fee is on the restore-to-cap target, not on the whole recall',
   )
+  close(cmp.membrane.penaltyPaidUsd, ev[0].penaltyUsd, 'and it is the only fee', 1e-9)
+  close(cmp.membrane.endDebtUsd, 0, 'the loan is repaid', 1e-6)
 })
 
 test('the recall rate is the dominant variable once it binds', () => {
@@ -1102,7 +1098,7 @@ test('the simulator sells stable collateral the first minute it is over its line
     `sold at the first minute over the ${line} line (minute ${crossed})`,
   )
   assert.ok(
-    first.why.startsWith('No-delay class — sold the minute the line was crossed'),
+    first.why.startsWith('No 8-hour window for this collateral — sold the minute LTV crossed'),
     'and says why',
   )
   assert.ok(
@@ -1115,32 +1111,159 @@ test('the simulator sells stable collateral the first minute it is over its line
   )
 })
 
-test('a no-delay recall that covers the call pays the keeper and sells nothing else', () => {
+/** ETH flat at 4000, then a step to `to` at minute `at` that holds. */
+function ethStep(count: number, at: number, to: number) {
+  const eth = Array.from({ length: count }, (_, i) => (i < at ? 4000 : to))
+  return buildPricePath(
+    {
+      startTs: 1_760_054_400,
+      stepSeconds: 60,
+      count,
+      columns: { ethOracle: eth, btcOracle: eth.map(() => 100_000) },
+      carried: {},
+    },
+    fakeManifest,
+    ['USDC', 'WETH'],
+  )
+}
+const venueOf = (deployedUsd: number, recallRate = 1, fastRate = 1) => ({
+  recallRate,
+  fastRate,
+  deployedUsd,
+  provenance: {} as never,
+})
+
+test('Run D: a no-window position that the venue brings under its line sells nothing', () => {
+  // $100k USDC against 21 WETH of debt. ETH steps 4000 -> 4200 at minute 3: debt $88.2k,
+  // LTV 88.2% over the 87% USDC line. The venue returns $12.5k: LTV 75.7%, under the line.
+  // Contract: Step 1.5 recalls, Step 2.5 sees LTV <= line -> recall-only lane. Paid, unsold.
   const pos = legPosition([{ symbol: 'USDC', amount: 100_000, price: 1 }], {
     symbol: 'WETH',
     amount: 21,
     price: 4000,
   })
-  const { path, unpriced } = ethRamp(40, 2)
-  const venue = { recallRate: 1, fastRate: 1, deployedUsd: 1_000_000, provenance: {} as never }
-  const cmp = runComparison(pos, path, unpriced, { ...baseOpts, venue })
+  const { path, unpriced } = ethStep(30, 3, 4200)
+  const cmp = runComparison(pos, path, unpriced, { ...baseOpts, venue: venueOf(12_500) })
   const ev = cmp.membrane.events
-  assert.ok(
-    ev.length > 0 && ev.every((e) => e.kind === 'recall'),
-    'every call answered by the venue',
+  assert.strictEqual(ev.length, 1, 'one call')
+  assert.strictEqual(ev[0].kind, 'recall')
+  assert.strictEqual(ev[0].minute, 3, 'at the minute the line was crossed')
+  close(ev[0].ltv, (88_200 - 12_500) / (100_000 - ev[0].penaltyUsd), 'LTV ~75.7% afterwards', 1e-9)
+  const targetPre = membraneRepayValue(88_200, 100_000, 0.84, LIQ_DEBT_MINIMUM_USD)
+  close(
+    ev[0].penaltyUsd,
+    baseOpts.membraneLiqFee * Math.min(targetPre, 12_500),
+    'fee on min(target at the pre-recall state, recalled)',
+    1e-6,
   )
-  for (const e of ev) {
-    close(e.penaltyUsd, baseOpts.membraneLiqFee * e.recalledUsd, 'fee on the recalled amount', 1e-6)
-    close(e.seizedUsd, e.penaltyUsd, 'the fee is the only collateral that leaves', 1e-9)
-    assert.ok(e.why.includes('recall-only lane, LiquidationEngine.sol:1603-1658'))
-  }
-  assert.ok(cmp.membrane.penaltyPaidUsd > 0, 'the recall-only lane is PAID')
+  close(ev[0].seizedUsd, ev[0].penaltyUsd, 'the fee is the only collateral that leaves', 1e-9)
   assert.ok(
-    cmp.membrane.caveats.some(
-      (c) => c.includes('LiquidationRaisedLtv') && c.includes('Cdp.sol:2494-2498'),
-    ),
+    cmp.membrane.caveats.some((c) => c.includes('higher than before')),
     'the un-modelled post-check is a stated caveat',
   )
+})
+
+test('Run E: a delayed position the venue cures at the breach never opens a window', () => {
+  // 100 WETH at $4,000 against $300k: ETH -7% at minute 2 puts LTV at 80.6%, over the 80%
+  // line. The breach call recalls $20k first: LTV 75.3%, under the line -> recall-only lane
+  // at that minute. No timer, no 8-hour hold, nothing sold.
+  const { path, unpriced } = bandPath(0.07, 600, false)
+  const cmp = runComparison(bandPosition(), path, unpriced, { ...baseOpts, venue: venueOf(20_000) })
+  const ev = cmp.membrane.events
+  assert.strictEqual(ev.length, 1, 'one call')
+  assert.strictEqual(ev[0].kind, 'recall')
+  assert.strictEqual(ev[0].minute, 2, 'at the first breach')
+  assert.ok(!ev.some((e) => e.kind === 'breach'), 'no window was opened')
+  const targetPre = membraneRepayValue(300_000, 372_000, 0.77, LIQ_DEBT_MINIMUM_USD)
+  close(ev[0].penaltyUsd, baseOpts.membraneLiqFee * Math.min(targetPre, 20_000), 'the fee', 1e-6)
+})
+
+test('Run F: an underwater position and a deep venue take the lane ONCE, with one fee', () => {
+  // ETH halves at minute 3: $300k of debt against $200k of collateral, 150% LTV. The venue
+  // repays the whole debt in the one call, so the lane fires once — never a second fee.
+  const { path, unpriced } = bandPath(0.5, 60, false)
+  const cmp = runComparison(bandPosition(), path, unpriced, {
+    ...baseOpts,
+    venue: venueOf(1_000_000),
+  })
+  const ev = cmp.membrane.events
+  assert.strictEqual(ev.length, 1, 'one call')
+  assert.strictEqual(ev[0].kind, 'recall')
+  close(ev[0].recalledUsd, 300_000, 'the whole debt', 1e-6)
+  close(cmp.membrane.endDebtUsd, 0, 'repaid', 1e-6)
+  const targetPre = membraneRepayValue(300_000, 200_000, 0.77, LIQ_DEBT_MINIMUM_USD)
+  close(
+    cmp.membrane.penaltyPaidUsd,
+    baseOpts.membraneLiqFee * Math.min(targetPre, 300_000),
+    'one fee, on the target',
+    1e-6,
+  )
+})
+
+test('capital that arrives inside the window cures it, and the call is paid', () => {
+  // Nothing returns at once (recallRate 0), all of it can arrive inside 8h (fastRate 1). The
+  // breach call opens the window; the first call after the capital arrives brings the
+  // position under its line and takes the recall-only lane: a cure, with its fee.
+  const { path, unpriced } = bandPath(0.07, 600, false)
+  const cmp = runComparison(bandPosition(), path, unpriced, {
+    ...baseOpts,
+    venue: venueOf(20_000, 0, 1),
+  })
+  const ev = cmp.membrane.events
+  assert.deepStrictEqual(
+    ev.map((e) => [e.minute, e.kind]),
+    [
+      [2, 'breach'],
+      [3, 'cure'],
+    ],
+    'window, then cured by arriving capital',
+  )
+  assert.ok(ev[1].penaltyUsd > 0 && ev[1].seizedUsd === ev[1].penaltyUsd, 'paid, nothing sold')
+  assert.ok(!ev.some((e) => e.kind === 'liquidation'), 'and no sale follows')
+})
+
+test('capital that cannot cure the window does not move it — the call would revert', () => {
+  // Only $1k can arrive: 299k / 372k is still over the line, so the call reverts
+  // (TimerActive) and its recall rolls back. The window runs to expiry as if it never came.
+  const { path, unpriced } = bandPath(0.07, 600, false)
+  const cmp = runComparison(bandPosition(), path, unpriced, {
+    ...baseOpts,
+    venue: venueOf(1_000, 0, 1),
+  })
+  const ev = cmp.membrane.events
+  assert.deepStrictEqual(
+    ev.map((e) => e.kind),
+    ['breach', 'liquidation'],
+    'no recall inside the window',
+  )
+  close(ev[1].recalledUsd, 1_000, 'by expiry the capital has arrived, and the sale uses it', 1e-9)
+})
+
+test('a partial recall at the breach commits, and the window opens with the debt reduced', () => {
+  // Same 7% drop, but only $1k comes back: 299k / 372k = 80.4%, still over the 80% line.
+  // The breach call's recall commits (the timer-start lane pays no fee) and the window
+  // opens. No capital arrives during the window (fastRate 0), so nothing happens until
+  // expiry, where only the shortfall to the cap — on the post-recall debt — is sold.
+  const { path, unpriced } = bandPath(0.07, 600, false)
+  const cmp = runComparison(bandPosition(), path, unpriced, {
+    ...baseOpts,
+    venue: venueOf(1_000, 1, 0),
+  })
+  const ev = cmp.membrane.events
+  assert.deepStrictEqual(
+    ev.map((e) => [e.minute, e.kind]),
+    [
+      [2, 'recall'],
+      [2, 'breach'],
+      [2 + Math.round(CURE_WINDOW_SECONDS / 60), 'liquidation'],
+    ],
+    'recall, window, sale at expiry',
+  )
+  assert.strictEqual(ev[0].penaltyUsd, 0, 'no fee for the timer-start call')
+  const sale = ev[2]
+  const needed = membraneRepayValue(299_000, 372_000, 0.77, LIQ_DEBT_MINIMUM_USD)
+  close(sale.repaidUsd, needed, 'the sale restores the cap from the post-recall debt', 1e-6)
+  close(sale.recalledUsd, 0, 'the venue had nothing left to give', 1e-9)
 })
 
 test('a mixed position is split into the two positions Membrane would hold', () => {

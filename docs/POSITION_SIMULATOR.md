@@ -168,9 +168,12 @@ the on-chain liquidation bonus. The share is the **measured median** from the Oc
 events (Aave 57.8%; Morpho 100% — Morpho has no close factor and 65.5% of its
 liquidations were full), not the documented close factor.
 
-**Membrane engine.** On breach: compute the partial repay that restores the borrow cap,
-recall from deployment venues first, take only the shortfall out of collateral, and allow
-an 8-hour cure window in which fast venue capital can save the position with nothing sold.
+**Membrane engine.** Every call recalls from deployment venues first, toward the whole
+debt. If that alone brings the position back under its line, nothing is sold and the call
+is paid its fee (the recall-only lane, below). Otherwise a breach inside the band opens the
+8-hour window, and a sale takes only the shortfall to the borrow cap out of collateral. A
+position with no window (stablecoin collateral) is sold at the line. See *Delay class*
+below.
 
 **Equity is `collateral + deployed − debt` in both runs.** This is load-bearing. An
 earlier version left deployed capital off the balance sheet, which made every recall look
@@ -233,8 +236,11 @@ own series.
 | A timer can never arm in instant mode | `LiquidationEngine.sol:1708-1710` (`InstantModeNotLiquidatable`) | `curePath.ts:226` (never returns `arm`) |
 | No-delay walk: sold at t0, walks on, sold again on a later breach | as above, plus the repay-to-cap `LiquidationEngine.sol:2204-2238` | `curePath.ts:393`, `:470` (`cureWalk` `noDelay`, outcome `sold-no-delay`) |
 | Stable and volatile collateral may not share a position | `Cdp.sol:1650-1651` → `MixedDelayClassCollateral`, `Collateral.sol:789-793` | `collateralClass.ts:135` `delayClassOf` → `'mixed'` |
-| Paid recall-only lane: a recall that alone cures pays the keeper's fee | `LiquidationEngine.sol:1603-1658` (trigger `:1623`, fee base `:1653-1654`, fee `:1821-1838`, `:1877`, `:1887`, sale steps skipped `:1137-1141`) | `compare.ts:359` (in-window cure), `:392`/`:404` (sale whose shortfall is zero) |
-| Post-check: a liquidation may not raise LTV | `Cdp.sol:2494-2498` (`LiquidationRaisedLtv`) | **not modelled** — caveat, `compare.ts:587` |
+| Every call recalls first, toward the WHOLE debt | `repayTarget = totalDebt` `LiquidationEngine.sol:1319`; Step 1.5 sends `min(retrievable, repayTarget - totalRepaid)` `:1450-1453` | `compare.ts:345-352` (recall `min(available, debt)` at every keeper call) |
+| Paid recall-only lane: post-recall LTV ≤ line ⇒ fee, nothing sold, timer deleted | `LiquidationEngine.sol:1603-1658` (trigger `:1623`, runs before classification; fee base `min(target, recalled)` `:1653-1654`; fee `:1821-1838`, `:1877`, `:1887`; sale steps skipped `:1137-1141`) | `compare.ts:365` (at a breach, a sale, or inside the window) |
+| Still over the line: breach call arms with the recall kept; in-window call reverts | `TimerStarted` lane; `TimerActive` revert `:1690` | `compare.ts:400` (arm), `:396` (hold: no state change) |
+| Still over the line at a sale: only the post-recall shortfall is sold | Steps 3-5 after Step 1.5 | `compare.ts:438` |
+| Post-check: a liquidation may not raise LTV | `Cdp.sol:2494-2498` (`LiquidationRaisedLtv`) | **not modelled** — caveat, `compare.ts:660` |
 
 **Mixed collateral: split in the simulator, excluded in the census.**
 
@@ -250,13 +256,32 @@ own series.
   `meta.excluded.byReason.mixedDelayClass`. An account that is both unlocated and mixed
   keeps the earlier, unlocated reason.
 
-**The paid recall-only lane.** When venue capital alone brings a position back to or under
-its line, nothing is sold, the timer is deleted, and the keeper is still paid the ordinary
-fee from the borrower's collateral, on `min(restore-to-cap target, recalled)`. It applies
-in both classes. Before this lane a recall that cured a position paid nobody; the
-simulator used to say "no fee was paid", and that wording is gone. The simulator's fee is
-the flat modelled rate, not the contract's fee ramp. The census credits no recall, so it
-never enters this lane.
+**The venue recall, and the paid recall-only lane.** Every keeper call runs Step 1.5
+before it classifies anything, and Step 1.5 recalls toward the **whole debt**, not the
+restore-to-cap amount (`repayTarget = totalDebt`, `LiquidationEngine.sol:1319`;
+`:1450-1453`). The simulator models a call at the breach (the call that would start the
+timer), at a sale (band break, expiry, or a no-window position over its line), and inside
+the window when venue capital it has not yet drawn has arrived. At each, it recalls
+`R = min(available, debt)`:
+
+- **Available** maps onto the two inputs. At the breach, or a sale with no window
+  running, the recall is synchronous: up to `recallRate` of the deployed capital in all.
+  Inside the window, capital that arrives counts: up to `fastRate` in all; a sale that
+  ends a window can use either. Both are cumulative ceilings.
+- **After the recall the LTV is at or under the line** → the recall-only lane
+  (`:1603-1658`, trigger `:1623`). Nothing is sold, any timer is deleted, and the call
+  is paid the fee from collateral on `min(restore-to-cap target at the PRE-recall state,
+  R)` (`:1653-1654`). One event, one fee. It applies in both classes, at the breach,
+  during the window, and at a sale. An underwater position with a deep venue takes it
+  once, not twice.
+- **Still over the line.** At the breach, the recall stays and the timer arms with the
+  smaller debt (the timer-start call pays no fee). Inside the window, the call would
+  revert `TimerActive`, so the recall rolls back and nothing changes. At a sale, only the
+  shortfall to the borrow cap — sized on the post-recall state — comes out of
+  collateral, with the fee on top.
+
+The simulator's fee is the flat modelled rate, not the contract's fee ramp. The census
+credits no recall, so it never enters this lane.
 
 **The post-check, a caveat only.** `Cdp.sol:2494-2498` reverts any liquidation that leaves
 the position's LTV higher than before it. The simulator does **not** model that revert:

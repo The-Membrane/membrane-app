@@ -2110,7 +2110,7 @@ def phase_write_holdout(ctx: Ctx, run_meta_fn) -> dict:
 
 
 def _f5(v) -> str:
-    return "n/a" if v is None else f"{v:.5f}"
+    return "n/a" if v is None else f"{v:.6f}"
 
 
 def _session_lines(st: dict) -> list[str]:

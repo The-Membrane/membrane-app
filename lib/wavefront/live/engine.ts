@@ -262,7 +262,7 @@ interface ActivePosition {
 }
 
 type Read =
-  | { kind: 'aave'; read: AaveRead; treasuryFee: bigint | null }
+  | { kind: 'aave'; read: AaveRead; fee: Awaited<ReturnType<AaveReader['treasuryFee']>> }
   | {
       kind: 'morpho'
       open: boolean
@@ -296,6 +296,28 @@ interface ReconPass {
 }
 
 const emptyGaps = (): TickGaps => ({ positionMinutes: 0, positions: 0, sample: [] })
+
+/** The engine state format this build reads and writes (state.ts EngineState.v). */
+export const ENGINE_STATE_VERSION = 3
+
+/**
+ * Parse a committed state, refusing any other format version (v2 states hold kernels saved
+ * without `missingPrice` and lack this build's counters: resuming them is not safe). Counters a
+ * state lacks start at 0, never NaN.
+ */
+function checkedState(text: string): EngineState {
+  const s = parseState<EngineState>(text)
+  if (s.v !== ENGINE_STATE_VERSION)
+    throw new Error(
+      `engine state v${s.v} is not the v${ENGINE_STATE_VERSION} this engine reads` +
+        (s.v === 2
+          ? ' (v2 was written before the schema-v2 rebase: its kernels have no missingPrice option and it lacks the receipt-fee and pid counters)'
+          : '') +
+        ': start a new stream (a new --out file or --stream id)',
+    )
+  s.counters = { ...emptyCounters(), ...s.counters }
+  return s
+}
 
 /** A reducer entry for a closed position that gets another record (its open is in the stream). */
 function stubPosition(pid: string, walked: boolean): PositionState {
@@ -336,6 +358,8 @@ export class LiveEngine {
   private passes = new Map<ChainKey, ReconPass>()
   /** Passes consumed by the minute being processed (dropped once its commit lands). */
   private consuming: ReconPass[] = []
+  /** Minute failures, kept across rollbacks (the state's counter is restored by each). */
+  private errorTotal = 0
   /** Poll failures per chain and the wall time of the next try. */
   private pollFail = new Map<ChainKey, { n: number; at: number }>()
   /** What the engine is doing now (status / stall diagnosis). */
@@ -522,8 +546,7 @@ export class LiveEngine {
   }
 
   private restore(text: string) {
-    const s = parseState<EngineState>(text)
-    if (s.v !== 2) throw new Error(`engine state v${s.v}: this engine reads v2 (start a new stream)`)
+    const s = checkedState(text)
     this.state = s
     this.window = s.header.window
     this.replay = loadReplay(s.replay)
@@ -568,8 +591,7 @@ export class LiveEngine {
   async init(): Promise<'created' | 'resumed'> {
     const text = await this.deps.sink.load()
     if (text) {
-      const s = parseState<EngineState>(text)
-      if (s.v !== 2) throw new Error(`engine state v${s.v}: this engine reads v2 (start a new stream)`)
+      const s = checkedState(text)
       const chains = s.header.chains.join()
       if (chains !== this.opts.chains.join())
         throw new Error(`stream was created for chains ${chains}, not ${this.opts.chains.join()}`)
@@ -604,7 +626,7 @@ export class LiveEngine {
       createdAt: new Date(this.deps.clock.now()).toISOString(),
     }
     this.state = {
-      v: 2,
+      v: ENGINE_STATE_VERSION,
       header,
       seq: 0,
       lastTs: -Infinity,
@@ -814,7 +836,9 @@ export class LiveEngine {
         this.log(`minute ${m}: ${(e as Error).message} (attempt ${failures}; rolled back)`)
         this.rollback()
         this.consuming = []
-        this.state.counters.errors++
+        // The rollback restored the committed count: keep counting across retries.
+        this.errorTotal = Math.max(this.errorTotal, this.state.counters.errors) + 1
+        this.state.counters.errors = this.errorTotal
         if (failures >= this.opts.maxMinuteFailures)
           throw new Error(`minute ${m} failed ${failures} times in a row: ${(e as Error).message}`)
         await backoff(Math.min(120_000, 2_000 * 2 ** Math.min(6, failures - 1)))
@@ -1121,7 +1145,7 @@ export class LiveEngine {
       if (e.protocol === 'aave-v3') {
         const reader = await this.aaveReader(e)
         // The re-read, and the protocol fee from the receipt (the census's source).
-        const [read, treasuryFee] = await Promise.all([reader.read(e), reader.treasuryFee(e)])
+        const [read, fee] = await Promise.all([reader.read(e), reader.treasuryFee(e)])
         if (!read.hfExact) this.state.counters.hfMismatch++
         // The real side falls back to the minute path when the re-read lacks a block-N price.
         const missing = [e.debtAsset, e.collateralAsset].filter((a) => {
@@ -1134,7 +1158,7 @@ export class LiveEngine {
             await this.minuteBlock(e.chain, m),
             missing.map((a) => aaveKey(reader.setup!.oracle, a)),
           )
-        reads.set(eventKey(e), { kind: 'aave', read, treasuryFee })
+        reads.set(eventKey(e), { kind: 'aave', read, fee })
       } else {
         const core = this.core(e.chain)
         await core.ensureSetup(e.block - 1)
@@ -1168,15 +1192,14 @@ export class LiveEngine {
       const read = reads.get(eventKey(e))!
       const known = this.known(e.pid) || out.some((r) => r.kind === 'open' && r.pid === e.pid)
       if (read.kind === 'aave') {
-        const real = this.aaveReal(e as AaveLiquidation, read.read, m, read.treasuryFee)
+        const real = this.aaveReal(e as AaveLiquidation, read.read, m, read.fee)
         if (known) {
           out.push(real)
           this.touch(e.pid, m)
           continue
         }
         // The census's spec: located at block N, else N-1 (`priceBasis`), pid with the pool.
-        const spec = aaveSpec(read.read.record, this.window)
-        if (spec.pid !== e.pid) throw new Error(`spec pid ${spec.pid} != event pid ${e.pid}`)
+        const spec = this.pidChecked(aaveSpec(read.read.record, this.window), e)
         const open = openRecordOf(spec, this.cluster(spec))
         if (open.priceBasis === 'N-1') ctr.locatedAtNm1++
         out.push(open, real)
@@ -1190,13 +1213,15 @@ export class LiveEngine {
           this.touch(e.pid, m)
           continue
         }
-        const spec = morphoSpec(
-          read.record,
-          { collateral: read.market.collateralSymbol, loan: read.market.loanSymbol },
-          usdPerUnit,
-          this.window,
+        const spec = this.pidChecked(
+          morphoSpec(
+            read.record,
+            { collateral: read.market.collateralSymbol, loan: read.market.loanSymbol },
+            usdPerUnit,
+            this.window,
+          ),
+          e,
         )
-        if (spec.pid !== e.pid) throw new Error(`spec pid ${spec.pid} != event pid ${e.pid}`)
         const open = openRecordOf(spec, this.cluster(spec))
         if (open.priceBasis === 'N-1') ctr.locatedAtNm1++
         out.push(open, real)
@@ -1206,7 +1231,28 @@ export class LiveEngine {
     return out
   }
 
-  private aaveReal(e: AaveLiquidation, r: AaveRead, m: number, treasuryFee: bigint | null) {
+  /**
+   * The spec's pid must be the event's (the real records carry the event's). A mismatch is an
+   * inconsistency in the engine's own inputs: historical runs throw (an equivalence run must fail
+   * loudly); live, the position opens walked:false under the event's pid, with the reason, and is
+   * counted — a throw would fail the minute on every retry and stall every chain.
+   */
+  private pidChecked(spec: ReturnType<typeof aaveSpec>, e: LiqEvent): ReturnType<typeof aaveSpec> {
+    if (spec.pid === e.pid) return spec
+    const msg = `spec pid ${spec.pid} != event pid ${e.pid}`
+    if (this.opts.mode !== 'live') throw new Error(msg)
+    this.state.counters.pidMismatch++
+    this.log(`PID MISMATCH: ${msg}; opened walked:false`)
+    return { ...spec, pid: e.pid, located: false, t0: undefined, reason: `not walked: ${msg} (engine inconsistency)` }
+  }
+
+  private aaveReal(
+    e: AaveLiquidation,
+    r: AaveRead,
+    m: number,
+    receipt: Awaited<ReturnType<AaveReader['treasuryFee']>>,
+  ) {
+    const treasuryFee = receipt.fee
     const setup = r.raw.setup
     const dec = (a: string) => {
       const x = setup.assets.find((y) => y.address === a)
@@ -1224,6 +1270,7 @@ export class LiveEngine {
       r.fee.revision,
     )
     const ctr = this.state.counters
+    if (receipt.source === 'block-mismatch') ctr.feeReceiptBlockMismatch++
     if (treasuryFee === null) ctr.feeFromArithmetic++
     else {
       ctr.feeFromReceipt++

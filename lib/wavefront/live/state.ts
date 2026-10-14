@@ -169,6 +169,13 @@ export interface Counters {
   feeFromReceipt: number
   feeFromArithmetic: number
   feeScaledRounding: number
+  /** Receipts from another block than the log on two backends (the arithmetic was used). */
+  feeReceiptBlockMismatch: number
+  /**
+   * Live: positions opened walked:false because the spec's pid did not equal the event's (an
+   * inconsistency in the engine's inputs; historical runs throw instead).
+   */
+  pidMismatch: number
   closedPositions: number
   errors: number
   hfMismatch: number
@@ -204,6 +211,8 @@ export const emptyCounters = (): Counters => ({
   feeFromReceipt: 0,
   feeFromArithmetic: 0,
   feeScaledRounding: 0,
+  feeReceiptBlockMismatch: 0,
+  pidMismatch: 0,
   closedPositions: 0,
   errors: 0,
   hfMismatch: 0,
@@ -226,7 +235,11 @@ export interface SavedReplay {
 }
 
 export interface EngineState {
-  v: 2
+  /**
+   * 3: schema-v2 header, receipt-fee and pid counters, kernels saved with `missingPrice` (a v2
+   * state is refused: kernels restored from it would throw on a missing price).
+   */
+  v: 3
   header: LiveHeader
   seq: number
   lastTs: number

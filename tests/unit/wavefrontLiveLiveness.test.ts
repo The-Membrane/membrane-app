@@ -392,6 +392,137 @@ describe('live engine: the Aave protocol fee is the receipt\'s treasury transfer
   })
 })
 
+describe('live engine: a stale receipt never stalls the stream (closure review, item 1)', () => {
+  /** Answers the FIRST receipt of a tx (or every one, `always`) from another block. */
+  class StaleReceipt extends FakeChain {
+    served = new Set<string>()
+    always = false
+    receiptCalls = 0
+    async request(chain: ChainKey, method: string, params: unknown[], opts?: CallOpts): Promise<RpcAnswer> {
+      const a = await super.request(chain, method, params, opts)
+      if (method !== 'eth_getTransactionReceipt' || !a.result) return a
+      this.receiptCalls++
+      const tx = String(params[0])
+      if (!this.always && this.served.has(tx)) return a
+      this.served.add(tx)
+      return { ...a, result: { ...(a.result as object), blockHash: '0x' + 'ee'.repeat(32) } }
+    }
+  }
+
+  it('a receipt from another block is dropped and re-asked on another backend: same stream, no error', async () => {
+    const base = await runAll()
+    const fake = new StaleReceipt(chainSpec())
+    const { sink, e } = await runAll(fake)
+    expect(e.state.counters.errors).toBe(0)
+    expect(sink.records).toEqual(base.sink.records) // the fees are the receipt's, as without the fault
+    const stats = [...e.rt.base.aave.values()].reduce((a, r) => a + r.feeStats.blockMismatch, 0)
+    expect(stats).toBe(6) // one stale answer per Aave liquidation tx, each dropped and re-asked
+    expect(e.state.counters.feeReceiptBlockMismatch).toBe(0) // every re-ask was good
+    expect(e.state.counters.feeFromArithmetic).toBe(0)
+  })
+
+  it('a receipt from another block on every backend: the arithmetic fee, counted, and the minute succeeds', async () => {
+    const fake = new StaleReceipt(chainSpec())
+    fake.always = true
+    const { e } = await runAll(fake)
+    expect(e.state.counters.errors).toBe(0)
+    expect(e.state.counters.feeReceiptBlockMismatch).toBe(6)
+    expect(e.state.counters.feeFromArithmetic).toBe(6)
+    expect(e.state.counters.feeFromReceipt).toBe(0)
+  })
+})
+
+describe('live engine: the spec pid and the event pid (closure review, item 2)', () => {
+  const ALT = '0x0000000000000000000000000000000000000a11'
+  class AltCore extends FakeChain {
+    get cfg() {
+      return { ...CHAIN_CONFIG.base, aavePool: ALT }
+    }
+  }
+  const altSpec = () => {
+    const s = chainSpec()
+    s.logs = s.logs.map((l) => (l.address.toLowerCase() === CHAIN_CONFIG.base.aavePool ? { ...l, address: ALT } : l))
+    return s
+  }
+
+  it('a chainConfig override of the Core pool: the record carries the pool it was read from, pids agree', async () => {
+    const { sink, e } = await runAll(new AltCore(altSpec()), {
+      chainConfig: { base: { ...CHAIN_CONFIG.base, aavePool: ALT } },
+    })
+    expect(e.state.counters.errors).toBe(0)
+    expect(e.state.counters.pidMismatch).toBe(0)
+    const opens = sink.records.filter((r) => r.kind === 'open').map((r) => r.pid)
+    expect(opens).toContain(`aave-v3:base:${ALT}:${A}`)
+    expect(opens.filter((p) => p.startsWith('aave-v3:base:' + CHAIN_CONFIG.base.aavePool))).toEqual([])
+  })
+
+  it('a mismatch opens the position walked:false live (counted), and fails a historical run', async () => {
+    const poison = (e: LiveEngine) => {
+      const reader = e.rt.base.aave.get(CHAIN_CONFIG.base.aavePool)!
+      const read = reader.read.bind(reader)
+      reader.read = async (ev) => {
+        const r = await read(ev)
+        if (ev.user === D) r.record.pool = ALT // an inconsistent input
+        return r
+      }
+    }
+    // Live: the minute succeeds; D opens walked:false with the reason, under the event's pid.
+    const fake = new FakeChain(chainSpec())
+    const clock = new SimClock(S(3) * 1000)
+    const head: HeadFn = async (_c, _b, nowSec) => {
+      fake.spec.head = blockAt(nowSec)
+      return fake.spec.head
+    }
+    const sink = new MemorySink()
+    const live = engine(fake, sink, { mode: 'live' }, clock, head)
+    await live.init()
+    poison(live)
+    await live.run()
+    expect(live.state.counters.errors).toBe(0)
+    expect(live.state.counters.pidMismatch).toBe(1)
+    const openD = sink.records.find((r) => r.kind === 'open' && r.pid === pidD)!
+    expect(openD).toMatchObject({ walked: false })
+    expect(openD.kind === 'open' && openD.reason).toMatch(/spec pid .* != event pid .*engine inconsistency/)
+    expect(sink.records.some((r) => r.kind === 'mem' && r.pid === pidD)).toBe(false)
+    expect(sink.records.filter((r) => r.kind === 'real' && r.pid === pidD)).toHaveLength(1)
+    replay(sink.records)
+    // Historical: it throws (an equivalence run must fail loudly).
+    const hist = engine(new FakeChain(chainSpec()), new MemorySink(), { maxMinuteFailures: 2 })
+    await hist.init()
+    poison(hist)
+    await expect(hist.run()).rejects.toThrow(/spec pid .* != event pid/)
+  })
+})
+
+describe('live engine: the state format (closure review, item 3)', () => {
+  it('refuses a v2 state with a clear message; counters a v3 state lacks start at 0', async () => {
+    const one = await runAll(undefined, { endMinute: 6 })
+    const st = JSON.parse(one.sink.state!)
+    expect(st.v).toBe(3)
+    // A v2 state (before the schema-v2 rebase).
+    const old = new MemorySink()
+    old.header = one.sink.header
+    old.records = [...one.sink.records]
+    old.state = JSON.stringify({ ...st, v: 2 })
+    await expect(engine(new FakeChain(chainSpec()), old).init()).rejects.toThrow(
+      /engine state v2 is not the v3 this engine reads \(v2 was written before the schema-v2 rebase.*start a new stream/,
+    )
+    // A v3 state without a counter: resumed with it at 0, and it counts from there.
+    const thin = new MemorySink()
+    thin.header = one.sink.header
+    thin.records = [...one.sink.records]
+    const { feeFromReceipt, ...rest } = st.counters
+    void feeFromReceipt
+    thin.state = JSON.stringify({ ...st, counters: rest })
+    const b = engine(new FakeChain(chainSpec()), thin, {}, new SimClock(S(6) * 1000 + 40_000))
+    expect(await b.init()).toBe('resumed')
+    expect(b.state.counters.feeFromReceipt).toBe(0)
+    await b.run()
+    expect(Number.isFinite(b.state.counters.feeFromReceipt)).toBe(true)
+    expect(b.state.counters.feeFromReceipt).toBeGreaterThan(0)
+  })
+})
+
 describe('live engine: lifecycle and state', () => {
   it('a position whose oracle stays silent is closed after maxGapMinutes, with the reason', async () => {
     const fake = new FakeChain(chainSpec())
@@ -422,6 +553,8 @@ describe('live engine: lifecycle and state', () => {
     const e = engine(new FakeChain(chainSpec()), new Broken(), { maxMinuteFailures: 4 })
     await e.init()
     await expect(e.run()).rejects.toThrow(/minute 3 failed 4 times in a row: disk full/)
+    // Counted across rollbacks (each rollback restores the committed count).
+    expect(e.state.counters.errors).toBe(4)
     // Live, the default is to keep retrying (with backoff): the stream waits.
     expect(new LiveEngine({ rpc: new FakeChain(chainSpec()), clock: new SimClock(0), sink: new MemorySink(), head: clockHead() }, { ...OPTS, mode: 'live' }).opts.maxMinuteFailures).toBe(Infinity)
   })

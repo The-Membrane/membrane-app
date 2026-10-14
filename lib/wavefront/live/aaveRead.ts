@@ -57,7 +57,7 @@ import {
 } from '../../../scripts/oct10-coverage/abi'
 import { computeHf } from '../../../scripts/oct10-coverage/aaveEvents'
 import type { AaveSetup } from '../../../scripts/oct10-coverage/aaveOracle'
-import type { ChainKey } from '../../../scripts/oct10-coverage/rpc'
+import { NoBackendError, type ChainKey } from '../../../scripts/oct10-coverage/rpc'
 import type { AaveEventRecord, AaveReserveRead } from '../aave'
 import { multicall } from './calls'
 import type { AaveLiquidation } from './codec'
@@ -618,8 +618,10 @@ export class AaveReader {
         healthFactor: atN.healthFactor.toString(),
       },
       hfNm1: Number(u.account.healthFactor) / 1e18,
-      // The pull writes the pool on records outside the Core pool only.
-      ...(setup.pool !== this.cfg.aavePool ? { pool: setup.pool } : {}),
+      // Always the pool this reader reads (the pull writes it outside the Core pool only, and
+      // the census's aavePoolOf falls back to AAVE_CORE_POOL): the spec's pid is then built from
+      // the same pool as the event's, whatever chainConfig says the Core pool is.
+      pool: setup.pool,
     }
   }
 
@@ -678,9 +680,12 @@ export class AaveReader {
     }
   }
 
-  private receipts = new Map<string, Promise<{ blockHash: string; status: string; logs: RawReceiptLog[] } | null>>()
+  private receipts = new Map<
+    string,
+    Promise<{ blockHash: string; status: string; logs: RawReceiptLog[]; group: string } | null>
+  >()
   private aTokens = new Map<string, Promise<{ aToken: string; treasury: string }>>()
-  readonly feeStats = { receipts: 0, fromReceipt: 0, noTransfer: 0 }
+  readonly feeStats = { receipts: 0, fromReceipt: 0, noTransfer: 0, blockMismatch: 0 }
 
   /** The collateral reserve's aToken and its RESERVE_TREASURY_ADDRESS (cached per asset). */
   private aTokenOf(asset: string, block: number) {
@@ -711,15 +716,17 @@ export class AaveReader {
     return p
   }
 
-  private receipt(tx: string) {
-    let p = this.receipts.get(tx)
+  private receipt(tx: string, excludeGroups?: string[]) {
+    let p = excludeGroups ? undefined : this.receipts.get(tx)
     if (!p) {
       p = (async () => {
         this.feeStats.receipts++
-        const a = await this.rpc.request(this.cfg.chain, 'eth_getTransactionReceipt', [tx])
+        const a = await this.rpc.request(this.cfg.chain, 'eth_getTransactionReceipt', [tx], {
+          ...(excludeGroups ? { excludeGroups } : {}),
+        })
         const r = a.result as { blockHash?: string; status?: string; logs?: RawReceiptLog[] } | null
         if (!r || !Array.isArray(r.logs)) return null
-        return { blockHash: lc(String(r.blockHash)), status: String(r.status), logs: r.logs }
+        return { blockHash: lc(String(r.blockHash)), status: String(r.status), logs: r.logs, group: a.group }
       })()
       p.catch(() => this.receipts.delete(tx))
       this.receipts.set(tx, p)
@@ -730,13 +737,32 @@ export class AaveReader {
 
   /**
    * The protocol fee the treasury received for this liquidation, from its receipt (see the
-   * header), or null when the receipt has no such transfer (then the caller uses the arithmetic).
+   * header). `fee` is null — the caller then uses the arithmetic — when the receipt has no such
+   * transfer, or when the receipt is from another block than the log (a stale or reorged answer)
+   * on the backend that answered AND on another one: a bad receipt is never cached, so it can
+   * never fail a minute for good.
    */
-  async treasuryFee(ev: AaveLiquidation): Promise<bigint | null> {
-    const [at, r] = await Promise.all([this.aTokenOf(ev.collateralAsset, ev.block - 1), this.receipt(ev.tx)])
-    if (!r) return null
-    if (ev.blockHash && r.blockHash !== ev.blockHash)
-      throw new Error(`${this.cfg.chain} receipt of ${ev.tx} is in block ${r.blockHash}, the log in ${ev.blockHash}`)
+  async treasuryFee(
+    ev: AaveLiquidation,
+  ): Promise<{ fee: bigint | null; source: 'receipt' | 'no-transfer' | 'no-receipt' | 'block-mismatch' }> {
+    const at = await this.aTokenOf(ev.collateralAsset, ev.block - 1)
+    let r = await this.receipt(ev.tx)
+    if (r && ev.blockHash && r.blockHash !== ev.blockHash) {
+      // A receipt from another block: drop it and ask another backend group once.
+      this.feeStats.blockMismatch++
+      this.receipts.delete(ev.tx)
+      try {
+        r = await this.receipt(ev.tx, [r.group])
+      } catch (err) {
+        if (!(err instanceof NoBackendError)) throw err
+        r = null
+      }
+      if (r && r.blockHash !== ev.blockHash) {
+        this.receipts.delete(ev.tx)
+        return { fee: null, source: 'block-mismatch' }
+      }
+    }
+    if (!r) return { fee: null, source: 'no-receipt' }
     const logs = r.logs.map((l) => ({
       i: Number(BigInt(l.logIndex)),
       address: lc(l.address),
@@ -758,9 +784,9 @@ export class AaveReader {
     )
     if (!transfers.length) {
       this.feeStats.noTransfer++
-      return null
+      return { fee: null, source: 'no-transfer' }
     }
     this.feeStats.fromReceipt++
-    return BigInt(transfers[transfers.length - 1].data)
+    return { fee: BigInt(transfers[transfers.length - 1].data), source: 'receipt' }
   }
 }

@@ -49,6 +49,15 @@ The Oct 10 census writes the same stream from the recorded window; `--mode histo
 | missing prices | kernels built with `missingPrice: 'carry-forward'` explicitly, never reached: the engine checks every ratio before stepping and records a gap instead (§3) | the gap tests; the kernel snapshot test |
 | walk-on | the kernel walks on after a t0 band sale by default (as the census); `--walk-on false` → `stopAfterT0BandSale`, the sensitivity | CLI |
 
+
+### Closure review — three fixes
+
+| item | fix | test |
+| --- | --- | --- |
+| MEDIUM: one stale receipt stalled live for good | a receipt whose blockHash is not the log's is dropped from the cache and asked once more on another backend group; still from another block → the LiquidationLogic arithmetic is used (`feeReceiptBlockMismatch`, `feeFromArithmetic`) and the minute succeeds. The minute-error counter now survives the rollback of each retry | the reviewer's repro (stale first answer): same stream, 0 errors; stale on every backend: arithmetic fee, counted |
+| LOW: a pid mismatch threw (live: a stall) | root cause: the Aave record now always carries the pool it was read from, so a `chainConfig` override of the Core pool cannot rebuild another pid. A remaining mismatch opens the position `walked: false` live, with the reason, counted (`pidMismatch`); historical runs still throw | an overridden Core pool; a forced mismatch live and historical |
+| LOW: state version | engine state **v3**; a v2 state is refused with a message saying why (kernels saved without `missingPrice`, missing counters) — start a new stream; counters a state lacks start at 0 | a v2 state refused; a counter removed from a v3 state resumes at 0 |
+
 ---
 
 ## 1. Code
@@ -69,7 +78,7 @@ The Oct 10 census writes the same stream from the recorded window; `--mode histo
 | `scripts/wavefront-live/run.ts` | CLI (`--mode live|historical`, `--from`, `--to`, `--chains`, `--out`, `--sink file|postgres`, `--stats`, `--allow-aave-provider`, …) |
 | `scripts/wavefront-live/compare-census.ts` | the historical-equivalence check (§6) |
 | `scripts/wavefront-live/make-fixture.ts` | the readers' test fixture from the pull's records |
-| `tests/unit/wavefrontLive*.test.ts` | 84 tests (§7); `wavefrontLiveFake.ts` / `wavefrontLiveScenario.ts` / `wavefrontLivePg.ts` are their scripted chain, scenario and throwaway Postgres |
+| `tests/unit/wavefrontLive*.test.ts` | 89 tests (§7); `wavefrontLiveFake.ts` / `wavefrontLiveScenario.ts` / `wavefrontLivePg.ts` are their scripted chain, scenario and throwaway Postgres |
 | `db/migrations-pending/2026-10-14_wavefront_live.sql` | the Postgres tables — **not applied** |
 | `deploy/wavefront-live/{Dockerfile,fly.toml}` | the worker image and a Fly.io config — **not deployed** |
 
@@ -366,7 +375,7 @@ engine on this branch with `--walk-on true`, the census's kernel default):
 
 ## 7. Tests
 
-`npx vitest run tests/unit/wavefrontLive*.test.ts` — 84 tests:
+`npx vitest run tests/unit/wavefrontLive*.test.ts` — 89 tests:
 
 - `wavefrontLiveCodec` — both topics decoded from real Oct 10 logs to the CSV rows; a log from
   another registry pool gets that pool's pid; foreign topic / bad shape refused; units equal the
@@ -384,7 +393,7 @@ engine on this branch with `--walk-on true`, the census's kernel default):
   heads; a false empty and a short answer caught by the second backend, the host quarantined; an
   event both primary backends missed back as `late` through the background reconciliation; an
   unconfirmable empty not believed.
-- `wavefrontLiveLiveness` — the protocol fee taken from the receipt's treasury transfer when it
+- `wavefrontLiveLiveness` — a stale receipt dropped and re-asked (never a stall); a pid mismatch (live: walked:false; historical: throws); the v3 state format; the protocol fee taken from the receipt's treasury transfer when it
   differs from the arithmetic; a minute that fails every time ends a historical run; scope
   (forks, a V2-like pool, a non-registry instance excluded and counted; a pool the registry adds mid-stream found; the allow-list; a Morpho signature off the
   singleton); **the reviewer's dedupe repro** (3 failed passes → no duplicate real, $24,600) and

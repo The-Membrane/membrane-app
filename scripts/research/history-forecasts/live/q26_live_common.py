@@ -88,7 +88,9 @@ FROZEN_A3_SHA256 = "17a1299c3f6b51f14afa345e6838e8ed57f43b990ac0a0ea6de7dc8cf944
 HORIZONS_H = A3.HORIZONS_H
 T_LABEL = A3.T_LABEL
 LEVELS = A3.LEVELS
-RUNGS = ("a", "f", "fb")
+RUNGS = ("a", "f", "fb")                               # the A3 refit (issued by every model version)
+SCORED_RUNGS = ("a", "f", "fb", "fbL")                 # every rung a row may carry (fbL from model A5 on)
+ROW_OPTIONAL = ("model", "estimateRange", "a3")        # copied into the outcome when the row has them
 REGIMES = A3.REGIMES
 
 RESOLVE_MARGIN = 900                                   # L.4: first scorer run >= 15 min after asof + T
@@ -871,7 +873,7 @@ def load_frozen_a3(datasets):
 
 
 CODE_FILES = ("live/q26_live_common.py", "live/q26_live_issue.py", "live/q26_live_score.py",
-              "a3_touch.py", "a2_touch.py", "a_touch.py")
+              "live/q26_live_a5.py", "a5_touch.py", "a4_touch.py", "a3_touch.py", "a2_touch.py", "a_touch.py")
 
 
 def code_meta(expect_commit=None):
@@ -1055,6 +1057,7 @@ def resolve_row(row, rounds, kidx, coverage, now):
     w = round_window(rounds, a, asof, end, issued)
     out = {k: row[k] for k in ("date", "asset", "T", "T_h", "k", "asof", "issuedAt", "resolvesAt", "S", "L",
                                "regime", "shipped", "p", "frozen_label")}
+    out.update({k: row[k] for k in ROW_OPTIONAL if k in row})
     out.update(scoredAt=now, scoredAtIso=iso(now))
     if w is None:
         out.update(status="unresolved", reason="no round in force at asof in the store", y=None)
@@ -1075,7 +1078,8 @@ def resolve_row(row, rounds, kidx, coverage, now):
         return out, None
     y = int(w["minPrice"] <= L)
     out.update(status="resolved", y=y,
-               brier={r: ((row["p"][r] - y) ** 2 if row["p"].get(r) is not None else None) for r in RUNGS})
+               brier={r: ((row["p"][r] - y) ** 2 if row["p"].get(r) is not None else None)
+                      for r in SCORED_RUNGS if r in row["p"]})
     if a in BINANCE_PAIRS:
         b = binance_window(kidx or {}, asof, int(row["T_h"]))
         sec = {"source": f"binance {BINANCE_PAIRS[a]} hourly lows", "minLow": b["minLow"], "nHours": b["nHours"],

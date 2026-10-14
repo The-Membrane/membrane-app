@@ -5,10 +5,16 @@
 
 Optional real-data check (reads membrane-datasets, ~1 min): Q26_DATASETS=<membrane-datasets> runs
 test_refit_at_data_end_matches_a3_dev (the live refit at asof = DATA_END equals results-dev.json p_data_end).
+With also Q26_A5_OUT=<A5 dev output dir>: the A5 part at asof = DATA_END equals the A5 results-dev.json fbL.
+Optional scratch-copy check: Q26_LIVE_DIR=<membrane-datasets>/forecasts/q26-touch-live copies that directory to a
+temporary root (the real directory is only read, and checked unchanged) and issues one model-A5 day after its last
+issue file, then scores the mixed A3/A5 rows.
 """
 import gzip
+import hashlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -169,6 +175,49 @@ def fake_forecaster(seen):
     return f
 
 
+# ---------------------------------------------------------------------------------------------
+# Model A5 fakes
+# ---------------------------------------------------------------------------------------------
+A5_SHIP = {"ETH": {"6h": "fbL", "1d": "f", "3d": "f", "7d": "fbL", "14d": "f", "30d": "a"},
+           "BTC": {"6h": "f", "1d": "fbL", "3d": "f", "7d": "f", "14d": "f", "30d": "f"},
+           "stETH": {"6h": "a", "1d": "f", "3d": "fbL", "7d": "f", "14d": "a", "30d": "a"}}
+
+
+def fake_frozen_a5():
+    def g(lab):
+        return {"after": lab, "dev": lab, "outcome": "not HIGH", "n_ep": 14, "basis": "held in 2 of 3 checks",
+                "per_source_rule": "held"}
+    lab = {"pooled": "MEDIUM", "low": g("HIGH"), "mid": g("MEDIUM"), "high": g("LOW")}
+    return {"shipped": A5_SHIP,
+            "labels": {a: {C.T_LABEL[T]: {r: {repr(float(k)): lab for k in C.LEVELS[a]} for r in ("a", "f", "fbL")}
+                           for T in C.HORIZONS_H} for a in C.ASSETS}}
+
+
+def write_frozen_a5(d, doc=None):
+    path = os.path.join(d, "frozen-a5.json")
+    raw = json.dumps(doc or fake_frozen_a5()).encode()
+    with open(path, "wb") as f:
+        f.write(raw)
+    return path, hashlib.sha256(raw).hexdigest()
+
+
+def fake_a5_forecaster(seen):
+    base = fake_forecaster(seen)
+
+    def f(datasets, rounds, asof, log=print):
+        out = base(datasets, rounds, asof, log=log)
+        for a in C.ASSETS:
+            fa = out[a]
+            gl = np.clip(fa["raw"]["f"] * 1.1, 0, 1)
+            fa["raw"]["fbL"], fa["fixed"]["fbL"] = gl, C.A.monotone_fix(gl[None])[0]
+            fa["betas_fbL"] = {C.T_LABEL[T]: {"0": {"beta": 1.0, "n_eval": 9}} for T in C.HORIZONS_H}
+            p = np.array([fa["fixed"][A5_SHIP[a][C.T_LABEL[T]]][ti] for ti, T in enumerate(C.HORIZONS_H)])
+            fa["range_lo"], fa["range_hi"] = np.clip(p - 0.05, 0, 1), np.clip(p + 0.05, 0, 1)
+            fa["range_days"] = {C.T_LABEL[T]: 100 for T in C.HORIZONS_H}
+        return out
+    return f
+
+
 class LiveEnv:
     """A temporary output root with fake chain, Binance, clock and frozen inputs."""
 
@@ -188,9 +237,10 @@ class LiveEnv:
         self.chain.block_ts = int(self.clock())
         return C.RpcClient(post=self.chain.post, sleep=lambda s: None)
 
-    def issue(self):
+    def issue(self, **kw):
+        kw.setdefault("forecaster", fake_forecaster(self.seen))
         return I.issue(self.root, "unused", self.rpc(), http_get=self.binance.get, clock=self.clock,
-                       forecaster=fake_forecaster(self.seen), code={"commit": "test"}, log=QUIET)
+                       code={"commit": "test"}, log=QUIET, **kw)
 
     def score(self):
         return SC.score(self.root, self.rpc(), http_get=self.binance.get, clock=self.clock, code={}, log=QUIET)
@@ -517,6 +567,206 @@ class TestEndToEnd(unittest.TestCase):
             env.close()
 
 
+class TestModelA5(unittest.TestCase):
+    """The issuer with --frozen-a5: schema 2 + model field, chain continuity from an A3 file, mixed scoring."""
+
+    def setUp(self):
+        self.env = LiveEnv(U("2026-10-14T00:17:30Z"))
+        self.fz = write_frozen_a5(self.env.root)
+
+    def tearDown(self):
+        self.env.close()
+
+    def issue_a5(self, **kw):
+        return self.env.issue(forecaster=fake_a5_forecaster(self.env.seen), frozen_a5=self.fz, **kw)
+
+    def test_a5_issue_after_a3_issue(self):
+        _, doc1, sha1 = self.env.issue()                                   # model A3 (schema 1, no model field)
+        self.assertEqual(doc1["schema"], I.SCHEMA)
+        self.assertNotIn("model", doc1)
+        self.assertTrue(all("model" not in r and "fbL" not in r["p"] for r in doc1["rows"]))
+        self.env.clock.t += C.DAY
+        path2, doc2, sha2 = self.issue_a5()
+        self.assertEqual(doc2["schema"], "q26-touch-live/issue/2")
+        self.assertEqual(list(doc2)[:2], ["schema", "model"])
+        self.assertEqual(doc2["model"], "A5")
+        self.assertEqual((doc2["prevFile"], doc2["prevSha256"]), ("2026-10-14.json", sha1))
+        self.assertEqual(C.verify_chain(C.issues_dir(C.live_dir(self.env.root))), [])
+        self.assertEqual(doc2["rungs"], ["a", "f", "fb", "fbL"])
+        self.assertEqual(doc2["shipped"], A5_SHIP)
+        self.assertEqual(doc2["shippedA3"], fake_frozen()["shipped"])
+        self.assertEqual(doc2["inputs"]["frozenA5"], {"path": self.fz[0], "sha256": self.fz[1]})
+        self.assertEqual(doc2["nRows"], 144)
+        self.assertEqual(list(doc2)[-2:], ["nRows", "rows"])
+        with open(path2, "rb") as f:
+            self.assertEqual(json.loads(f.read()), json.loads(json.dumps(C.clean(doc2))))
+        for r in doc2["rows"]:
+            ship = A5_SHIP[r["asset"]][r["T"]]
+            self.assertEqual(r["model"], "A5")
+            self.assertEqual(r["shipped"], ship)
+            self.assertEqual(r["p_shipped"], r["p"][ship])
+            self.assertEqual(set(r["p"]), {"a", "f", "fb", "fbL"})
+            er = r["estimateRange"]
+            self.assertEqual((er["wording"], er["rung"]), ("estimate range", ship))
+            self.assertTrue(er["lo"] <= r["p_shipped"] <= er["hi"])
+            self.assertEqual(r["a3"]["shipped"], fake_frozen()["shipped"][r["asset"]][r["T"]])
+            self.assertEqual(r["a3"]["p_shipped"], r["p"][r["a3"]["shipped"]])
+            self.assertEqual(r["a3"]["frozen_label"]["label"], "MEDIUM")         # the A3 label (regime low)
+            self.assertEqual(r["frozen_label"]["label"], "HIGH")                 # the A5 label (regime low)
+            self.assertEqual(r["frozen_label"]["basis"], "held in 2 of 3 checks")
+            self.assertTrue(r["frozen_label"]["basisSource"].startswith("frozen-a5"))
+        r1 = next(r for r in doc1["rows"] if r["asset"] == "BTC" and r["T"] == "3d" and r["k"] == -0.1)
+        r2 = next(r for r in doc2["rows"] if r["asset"] == "BTC" and r["T"] == "3d" and r["k"] == -0.1)
+        self.assertEqual({k: r1["p"][k] for k in C.RUNGS}, {k: r2["p"][k] for k in C.RUNGS})   # A3 rungs unchanged
+
+    def test_a5_refuses_wrong_sha_and_basis_mismatch(self):
+        with self.assertRaises(SystemExit):
+            self.env.issue(forecaster=fake_a5_forecaster(self.env.seen), frozen_a5=(self.fz[0], "0" * 64))
+        idir = C.issues_dir(C.live_dir(self.env.root))
+        self.assertEqual(C.list_issue_files(idir), [])                      # nothing written
+        with self.assertRaises(SystemExit):
+            self.env.issue(basis_final=("x", "0" * 64))                     # basis without the A5 freeze
+        hdr = "asset,T,k,rung,regime,shipped,label,basis,blind4_R,blind4_n_ep\n"
+        bad = hdr + "ETH,6h,-0.02,fbL,low,1,LOW,held in 3 of 4 checks,1.0,20\n"
+        bp = os.path.join(self.env.root, "basis-final.csv")
+        with open(bp, "w") as f:
+            f.write(bad)
+        with open(bp, "rb") as f:
+            bsha = hashlib.sha256(f.read()).hexdigest()
+        with self.assertRaises(SystemExit):                                 # label differs from the freeze
+            self.issue_a5(basis_final=(bp, bsha))
+        self.assertEqual(C.list_issue_files(idir), [])
+
+    def test_a5_basis_final(self):
+        lines = ["asset,T,k,rung,regime,shipped,label,basis,blind4_R,blind4_n_ep"]
+        for a in C.ASSETS:
+            for T in C.HORIZONS_H:
+                for k in C.LEVELS[a]:
+                    for g, lab in (("low", "HIGH"), ("mid", "MEDIUM"), ("high", "LOW")):
+                        lines.append(f"{a},{C.T_LABEL[T]},{k},{A5_SHIP[a][C.T_LABEL[T]]},{g},1,{lab},"
+                                     "held in 3 of 4 checks,1.0,20")
+        bp = os.path.join(self.env.root, "basis-final.csv")
+        with open(bp, "w") as f:
+            f.write("\n".join(lines) + "\n")
+        with open(bp, "rb") as f:
+            bsha = hashlib.sha256(f.read()).hexdigest()
+        _, doc, _ = self.issue_a5(basis_final=(bp, bsha))
+        self.assertEqual(doc["inputs"]["basisFinal"], {"path": bp, "sha256": bsha})
+        self.assertTrue(all(r["frozen_label"]["basis"] == "held in 3 of 4 checks" for r in doc["rows"]))
+        self.assertTrue(all(r["frozen_label"]["basisSource"].startswith("basis-final") for r in doc["rows"]))
+
+    def test_mixed_scoring(self):
+        self.env.issue()                                                    # day 1: model A3
+        self.env.clock.t = U("2026-10-15T00:17:30Z")
+        self.issue_a5()                                                     # day 2: model A5
+        self.env.clock.t = U("2026-10-16T00:17:30Z")
+        self.issue_a5()                                                     # day 3: model A5
+        self.env.clock.t = U("2026-10-16T00:47:10Z")
+        summ, new = self.env.score()
+        old = [o for o in new if o["date"] == "2026-10-14"]
+        a5 = [o for o in new if o["date"] == "2026-10-15"]
+        self.assertTrue(old and a5)
+        for o in old:
+            self.assertNotIn("model", o)
+            self.assertNotIn("estimateRange", o)
+            if o["status"] == "resolved":
+                self.assertEqual(set(o["brier"]), {"a", "f", "fb"})
+        for o in a5:
+            self.assertEqual(o["model"], "A5")
+            self.assertEqual(o["shipped"], A5_SHIP[o["asset"]][o["T"]])
+            self.assertIn("lo", o["estimateRange"])
+            self.assertIn("shipped", o["a3"])
+            if o["status"] == "resolved":
+                self.assertEqual(set(o["brier"]), {"a", "f", "fb", "fbL"})
+        c = summ["cells"]["ETH"]["6h"]["-0.02"]["pooled"]
+        self.assertEqual(c["fbL"]["n"], sum(o["status"] == "resolved" and o["asset"] == "ETH" and o["T"] == "6h"
+                                            and o["k"] == -0.02 for o in a5))           # fbL: A5 rows only
+        self.assertEqual(c["f"]["n"], c["fbL"]["n"] + sum(o["status"] == "resolved" and o["asset"] == "ETH" and
+                                                          o["T"] == "6h" and o["k"] == -0.02 for o in old))
+        lc = summ["liveCheck"]["ETH"]["6h"]["-0.02"]["low"]
+        self.assertEqual((lc["rung"], lc["model"]), ("fbL", "A5"))          # the current (A5) shipped rung
+        self.assertEqual(lc["n"], c["fbL"]["n"])
+        lc2 = summ["liveCheck"]["BTC"]["6h"]["-0.02"]["low"]
+        self.assertEqual((lc2["rung"], lc2["model"]), ("f", "A5"))
+        self.assertEqual(lc2["n"], summ["cells"]["BTC"]["6h"]["-0.02"]["pooled"]["f"]["n"])   # f over both models
+
+
+def _tree_sha(d):
+    out = {}
+    for root, _, files in os.walk(d):
+        for n in files:
+            p = os.path.join(root, n)
+            with open(p, "rb") as f:
+                out[os.path.relpath(p, d)] = hashlib.sha256(f.read()).hexdigest()
+    return out
+
+
+@unittest.skipUnless(os.environ.get("Q26_LIVE_DIR"), "set Q26_LIVE_DIR=<.../forecasts/q26-touch-live> to run")
+class TestModelA5ScratchCopy(unittest.TestCase):
+    """One model-A5 issue on a scratch copy of the real live directory, then mixed scoring. The store update is
+    replaced by synthetic hourly rounds (same answer as the last stored round) up to the injected clock."""
+
+    def synthetic_update(self, ldir, clock):
+        def upd(ldir_, rpc, http_get=None, clock=clock, log=print):
+            now = int(clock())
+            for a in C.ASSETS:
+                path = C.round_store_path(ldir_, a)
+                rs = C.read_round_store(path)
+                last = rs[-1]
+                new = [C.Round(last.round_id + j, last.answer, last.updated_at + j * C.HOUR)
+                       for j in range(1, (now - last.updated_at) // C.HOUR + 1)]
+                C.append_rounds(path, new, rs)
+                C.append_fetch_log(os.path.join(ldir_, C.ROUNDS_SUB, "fetch-log.jsonl"),
+                                   {"kind": "chainlink", "asset": a, "mode": "synthetic-test", "coveredThrough": now,
+                                    "fetchedAt": now, "appended": len(new)})
+            return {"rpc": None}, {}
+        return upd
+
+    def test_scratch_issue_and_score(self):
+        real = os.environ["Q26_LIVE_DIR"]
+        before = _tree_sha(real)
+        files = C.list_issue_files(os.path.join(real, C.ISSUES_SUB))
+        self.assertTrue(files)
+        last_date, last_name = files[-1]
+        with open(os.path.join(real, C.ISSUES_SUB, last_name), "rb") as f:
+            last_raw = f.read()
+        last_doc = json.loads(last_raw)
+        with tempfile.TemporaryDirectory() as tmp:
+            ldir = os.path.join(tmp, C.LIVE_REL)
+            shutil.copytree(real, ldir)
+            fz = write_frozen_a5(tmp)
+            clock = Clock(C.floor_hour(int(last_doc["issuedAt"])) // C.DAY * C.DAY + C.DAY + 1050)   # next day 00:17:30
+            ds = os.environ.get("Q26_DATASETS")
+            patches = [mock.patch.object(C, "update_all_stores", self.synthetic_update(ldir, clock))]
+            if not ds:
+                patches += [mock.patch.object(C, "verify_frozen_inputs", lambda d: {"x": {"sha256": "0" * 64}}),
+                            mock.patch.object(C, "load_frozen_a3", lambda d: fake_frozen())]
+            for p in patches:
+                p.start()
+            try:
+                seen = []
+                path, doc, sha = I.issue(tmp, ds or "unused", None, clock=clock, forecaster=fake_a5_forecaster(seen),
+                                         code={"commit": "test"}, log=QUIET, frozen_a5=fz)
+                self.assertEqual((doc["schema"], doc["model"]), ("q26-touch-live/issue/2", "A5"))
+                self.assertEqual(doc["prevFile"], last_name)
+                self.assertEqual(doc["prevSha256"], hashlib.sha256(last_raw).hexdigest())
+                self.assertEqual(C.verify_chain(C.issues_dir(ldir)), [])
+                self.assertEqual(doc["nRows"], last_doc["nRows"])
+                if ds:
+                    self.assertEqual(doc["shippedA3"], last_doc["shipped"])
+                clock.t += C.DAY + 1800                                     # next day 00:47:30: day-2 6h/1d due
+                summ, new = SC.score(tmp, None, clock=clock, code={}, log=QUIET)
+                kinds = {o.get("model", "A3") for o in new}
+                self.assertEqual(kinds, {"A3", "A5"})
+                self.assertTrue(all(set(o["brier"]) == {"a", "f", "fb", "fbL"} for o in new
+                                    if o.get("model") == "A5" and o["status"] == "resolved"))
+                self.assertTrue(all("fbL" not in o.get("brier", {}) for o in new if "model" not in o))
+            finally:
+                for p in patches:
+                    p.stop()
+        self.assertEqual(_tree_sha(real), before)                           # the real directory is unchanged
+
+
 @unittest.skipUnless(os.environ.get("Q26_DATASETS"), "set Q26_DATASETS=<membrane-datasets> for the real-data check")
 class TestRealData(unittest.TestCase):
     def test_refit_at_data_end_matches_a3_dev(self):
@@ -536,6 +786,35 @@ class TestRealData(unittest.TestCase):
                 self.assertEqual(fc["betas"][C.T_LABEL[T]]["beta"], ref["beta_data_end"])
                 for r in C.RUNGS:
                     np.testing.assert_array_equal(fc["fixed"][r][ti], np.array(ref["p_data_end"][r]))
+
+
+    @unittest.skipUnless(os.environ.get("Q26_A5_OUT"), "set Q26_A5_OUT=<A5 dev output dir> for the A5 check")
+    def test_a5_at_data_end_matches_a5_dev(self):
+        import q26_live_a5 as Q5
+        ds, out = os.environ["Q26_DATASETS"], os.environ["Q26_A5_OUT"]
+        with open(os.path.join(out, "results-dev.json")) as f:
+            dev = json.load(f)
+        with open(os.path.join(out, "frozen-a5.json")) as f:
+            fz = json.load(f)
+        D = C.M2.build_dev_series(ds)
+        rng = np.random.default_rng([Q5.RANGE_SEED, C.DATA_END])
+        for a in C.ASSETS:
+            g, go = D[f"long:{a}"], D[f"oracle:{a}"]
+            sl = C.A3.S3(g.name, a, g.truth, g.close, g.low, g.levels, C.A3.BASE_DEV, C.A3.BASE_DEV + 3600 * g.start_i)
+            so = sl if go is g else C.A3.S3(go.name, a, go.truth, go.close, go.low, go.levels, C.A3.BASE_DEV,
+                                            C.A3.BASE_DEV + 3600 * go.start_i)
+            fc = Q5.a5_extend(C.forecast_series(sl, so, C.DATA_END), sl, so, C.DATA_END, fz["shipped"][a], rng)
+            for ti, T in enumerate(C.HORIZONS_H):
+                ref = dev["per_asset"][a][C.T_LABEL[T]]
+                np.testing.assert_array_equal(fc["fixed"]["fbL"][ti], np.array(ref["p_data_end"]["fbL"]))
+                self.assertEqual({k: v["beta"] for k, v in fc["betas_fbL"][C.T_LABEL[T]].items()},
+                                 {str(k): v for k, v in ref["betas_data_end"].items()})
+                for r in ("a", "f"):
+                    np.testing.assert_array_equal(fc["fixed"][r][ti], np.array(ref["p_data_end"][r]))
+            lo, hi = fc["range_lo"], fc["range_hi"]
+            p = np.array([fc["fixed"][fz["shipped"][a][C.T_LABEL[T]]][ti] for ti, T in enumerate(C.HORIZONS_H)])
+            self.assertTrue(np.all(lo <= p) and np.all(p <= hi))
+            np.testing.assert_allclose(p, np.array(fz["range_data_end"][a]["p"]))
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 """Q26 live forecast log -- daily ISSUER (HISTORY_TOUCH_LIVE.md L.2, L.3, L.6).
 
   python3 q26_live_issue.py --datasets <membrane-datasets> --out <root> [--expect-commit <sha>]
+      [--frozen-a5 <rel> --frozen-a5-sha256 <sha> [--basis-final <rel> --basis-final-sha256 <sha>]]
 
 Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3c61, sha256 8961eb5c...).
 
@@ -15,6 +16,11 @@ Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3
   live hours built from rounds with updatedAt <= asof only), and writes one row per (asset, T, level).
 - Writes <out>/forecasts/q26-touch-live/issues/YYYY-MM-DD.json (never rewritten; prevSha256 = sha256 of the
   previous issue file, genesis 64 zeros) and appends issues/chain.jsonl. Git is left to the workflow.
+- Model A5 (HISTORY_TOUCH_PREREG_A5.md A5.5; only with --frozen-a5 and its sha256): schema
+  q26-touch-live/issue/2 with a top-level `model` field; the same A3 rungs plus (fbL), the A5 shipped rung per
+  (asset, T) with its estimate range, A5 label and basis string; the A3 shipped rung and label under `a3` in
+  every row (q26_live_a5.py). Without the flag nothing changes. Earlier issue files are never rewritten; the
+  hash chain runs through the change unchanged.
 """
 import argparse
 import json
@@ -68,9 +74,13 @@ def last_frozen_hour_check(rounds, asset, fc):
             "lowMatchesRounded": round(float(low[0]), dp) == fc["frozen_oracle_low_last"]}
 
 
-def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=None, code=None, log=print):
+def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=None, code=None, log=print,
+          frozen_a5=None, basis_final=None):
     """One live issue. `clock`, the transports and `forecaster` are injectable for the offline tests only;
-    the CLI always uses the real wall clock, the public endpoints and the A3 refit."""
+    the CLI always uses the real wall clock, the public endpoints and the A3 refit (model A5: plus fbL).
+    frozen_a5 / basis_final: None, or (path relative to datasets, sha256) -- model A5 when frozen_a5 is given."""
+    if basis_final is not None and frozen_a5 is None:
+        raise SystemExit("STOP: --basis-final needs --frozen-a5")
     issued_at = int(clock())
     asof = C.floor_hour(issued_at)
     date = C.utc_date(issued_at)
@@ -80,7 +90,13 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
     C.check_store_clock(ldir, issued_at)
     frozen_inputs = C.verify_frozen_inputs(datasets)
     frozen = C.load_frozen_a3(datasets)
-    log(f"issue {date}: issuedAt {C.iso(issued_at)} asof {C.iso(asof)}; prev {prev_name or 'genesis'}")
+    Q5 = fz5 = bf5 = None
+    if frozen_a5 is not None:
+        import q26_live_a5 as Q5
+        fz5 = Q5.load_frozen_a5(datasets, *frozen_a5)
+        bf5 = Q5.load_basis_final(datasets, *basis_final) if basis_final is not None else None
+    log(f"issue {date}: issuedAt {C.iso(issued_at)} asof {C.iso(asof)}; prev {prev_name or 'genesis'}"
+        + (f"; model {Q5.MODEL_VERSION}" if Q5 else ""))
 
     updates, errors = C.update_all_stores(ldir, rpc, http_get=http_get, clock=clock, log=log)
     rounds, coverage = {}, {}
@@ -109,7 +125,9 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
             binance_meta[pair] = {**C.file_meta(path, os.path.relpath(path, ldir)),
                                   "nKlines": len(C.read_binance_store(path))}
 
-    forecaster = forecaster or C.model_forecasts
+    if forecaster is None:
+        forecaster = ((lambda d, r, t, log=print: Q5.a5_forecasts(d, r, t, fz5, log=log)) if Q5
+                      else C.model_forecasts)
     t0 = time.time()
     upto_asof = {a: [x for x in rounds[a] if x.updated_at <= asof] for a in C.ASSETS}   # no price after asof
     fc = forecaster(datasets, upto_asof, asof, log=log)
@@ -128,9 +146,15 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
                      "regime": f["regime"], "rv_pct": f["rv_pct"], "sigma_hat": f["sigma_hat"],
                      "sigma_ref": f["sigma_ref"], "liveHoursSpliced": f.get("live_hours"),
                      "roundsUsed": f.get("rounds_used"), "betas": f["betas"], "nTrain": f["n_train"]}
+        if Q5:
+            assets[a]["betasFbL"] = f["betas_fbL"]
+            assets[a]["estimateRangeDays"] = f.get("range_days")
         if "frozen_oracle_close_last" in f:
             assets[a]["lastFrozenHourCheck"] = last_frozen_hour_check(rounds[a], a, f)
-    rows = C.issue_rows(fc, frozen, spot, asof, issued_at)
+    if Q5:
+        rows = Q5.issue_rows_a5(fc, frozen, fz5, spot, asof, issued_at, bf5)
+    else:
+        rows = C.issue_rows(fc, frozen, spot, asof, issued_at)
     for r in rows:
         r["date"] = date
     doc = {
@@ -148,6 +172,21 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
         "rowWindow": "(asof, asof + T]; L = S * (1 + k); resolvesAt = asof + T",
         "decisions": DECISIONS, "nRows": len(rows), "rows": rows,
     }
+    if Q5:
+        doc = {"schema": Q5.SCHEMA_V2, "model": Q5.MODEL_VERSION,
+               **{k: v for k, v in doc.items() if k != "schema"}}
+        doc["what"] = ("Q26 live price-touch forecasts (model A5: A5 shipped rung with estimate range, A5 labels "
+                       "and basis; A3 rungs a, f, fb and A5 rung fbL issued beside), one issue per UTC day")
+        doc["prereg"] = {**C.PREREG, "modelA5": {k: Q5.M5.PREREG[k] for k in ("repo", "path", "commit", "sha256")}}
+        doc["inputs"]["frozenA5"] = {"path": frozen_a5[0], "sha256": frozen_a5[1]}
+        if basis_final is not None:
+            doc["inputs"]["basisFinal"] = {"path": basis_final[0], "sha256": basis_final[1]}
+        doc["rungs"] = list(Q5.SCORED_RUNGS)
+        doc["shipped"] = fz5["shipped"]
+        doc["shippedA3"] = frozen["shipped"]
+        doc["estimateRangeWording"] = Q5.RANGE_WORDING
+        doc["decisions"] = DECISIONS + Q5.DECISIONS_A5
+        doc = {k: doc[k] for k in [x for x in doc if x not in ("nRows", "rows")] + ["nRows", "rows"]}
     data = C.dumps_with_rows(doc)
     path = os.path.join(idir, date + ".json")
     try:
@@ -168,12 +207,22 @@ def main(argv=None):
     ap.add_argument("--out", required=True, help="root that holds forecasts/q26-touch-live/")
     ap.add_argument("--expect-commit", default=None, help="refuse unless the code checkout is at this commit")
     ap.add_argument("--max-calls", type=int, default=20000, help="RPC call budget for this run")
+    ap.add_argument("--frozen-a5", default=None, help="model A5: frozen-a5.json path relative to --datasets")
+    ap.add_argument("--frozen-a5-sha256", default=None, help="model A5: the registered sha256 of that file")
+    ap.add_argument("--basis-final", default=None, help="model A5: basis-final.csv (blind-4 phase) path")
+    ap.add_argument("--basis-final-sha256", default=None, help="model A5: the registered sha256 of that file")
     a = ap.parse_args(argv)
+    if (a.frozen_a5 is None) != (a.frozen_a5_sha256 is None):
+        raise SystemExit("STOP: --frozen-a5 and --frozen-a5-sha256 go together")
+    if (a.basis_final is None) != (a.basis_final_sha256 is None):
+        raise SystemExit("STOP: --basis-final and --basis-final-sha256 go together")
     code = C.code_meta(expect_commit=a.expect_commit)
     if a.expect_commit and code["dirty"]:
         raise SystemExit(f"STOP: code files differ from the pinned commit: {code['dirty']}")
     rpc = C.RpcClient(max_calls=a.max_calls, log=lambda m: print(m, file=sys.stderr))
-    issue(a.out, a.datasets, rpc, code=code, log=lambda *x: print(*x, flush=True))
+    issue(a.out, a.datasets, rpc, code=code, log=lambda *x: print(*x, flush=True),
+          frozen_a5=(a.frozen_a5, a.frozen_a5_sha256) if a.frozen_a5 else None,
+          basis_final=(a.basis_final, a.basis_final_sha256) if a.basis_final else None)
     return 0
 
 

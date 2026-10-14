@@ -47,6 +47,11 @@ DECISIONS = [
     "check (shipped rung, per asset, T, level, regime): 0.67 <= R <= 1.5 and n_ep >= 10. Live STALE: rows of "
     "the last 90 resolved issue days of that T, R outside [0.5, 2.0] with n_ep >= 5. Both are reported with "
     "applied = false until 90 resolved issue days for that T.",
+    "Model versions (A5.5): from the A5 change date the rows carry model = A5, the A5 shipped rung and an fbL p; "
+    "earlier rows (no model field, the A3 model) are never rewritten. Cells report every rung over the rows that "
+    "carry it (fbL: A5 rows only; a, f, fb: all rows, the same estimators in both versions). The live check and "
+    "live STALE use the shipped rung of the cell's latest resolved row (the current model, named as 'model' when "
+    "the row has one), over every resolved row that carries that rung.",
 ]
 
 
@@ -91,6 +96,17 @@ def load_outcomes(sdir):
     return out
 
 
+def rung_stats(rows):
+    """cell_stats per rung: the A3 rungs always (None when absent, as before); fbL only when some row carries it."""
+    out = {r: C.cell_stats(rows, r) for r in C.RUNGS}
+    for r in C.SCORED_RUNGS:
+        if r not in out:
+            st = C.cell_stats(rows, r)
+            if st is not None:
+                out[r] = st
+    return out
+
+
 def summarize(outcomes, rows, pending, now):
     res = [o for o in outcomes if o["status"] == "resolved"]
     days_T = {C.T_LABEL[T]: sorted({o["date"] for o in res if o["T"] == C.T_LABEL[T]}) for T in C.HORIZONS_H}
@@ -121,7 +137,7 @@ def summarize(outcomes, rows, pending, now):
                 if und:
                     groups["undefined"] = und
                 cells.setdefault(a, {}).setdefault(TL, {})[kk] = {
-                    g: {r: C.cell_stats(v, r) for r in C.RUNGS} for g, v in groups.items() if v}
+                    g: rung_stats(v) for g, v in groups.items() if v}
                 sec = [dict(o, y=o["secondary"]["y"]) for o in rs
                        if o.get("secondary", {}).get("status") == "resolved"]
                 if sec:
@@ -129,8 +145,9 @@ def summarize(outcomes, rows, pending, now):
                     for g in C.REGIMES:
                         sg[g] = [o for o in sec if o["regime"] == g]
                     secondary.setdefault(a, {}).setdefault(TL, {})[kk] = {
-                        g: {r: C.cell_stats(v, r) for r in C.RUNGS} for g, v in sg.items() if v}
-                ship = rs[0]["shipped"]
+                        g: rung_stats(v) for g, v in sg.items() if v}
+                latest = max(rs, key=lambda o: (o["date"], int(o["issuedAt"])))
+                ship, model = latest["shipped"], latest.get("model")
                 for g in C.REGIMES:
                     gr = groups[g]
                     if not gr:
@@ -141,14 +158,14 @@ def summarize(outcomes, rows, pending, now):
                     live_check.setdefault(a, {}).setdefault(TL, {}).setdefault(kk, {})[g] = {
                         "rung": ship, "R_live": st["R"], "n_ep": st["n_ep"], "n": st["n"],
                         "pass": bool(C.r_inside(st["R"], *C.LIVE_CHECK_R) and st["n_ep"] >= C.LIVE_CHECK_NEP),
-                        "applied": applied}
+                        "applied": applied, **({"model": model} if model else {})}
                     gl = [o for o in gr if o["date"] in last]
                     s2 = C.cell_stats(gl, ship) if gl else None
                     if s2 is not None:
                         live_stale.setdefault(a, {}).setdefault(TL, {}).setdefault(kk, {})[g] = {
                             "rung": ship, "R_live": s2["R"], "n_ep": s2["n_ep"], "n": s2["n"],
                             "stale": bool(s2["n_ep"] >= C.STALE_NEP and not C.r_inside(s2["R"], *C.STALE_R)),
-                            "applied": applied}
+                            "applied": applied, **({"model": model} if model else {})}
     return {"resolvedIssueDaysPerHorizon": {TL: len(v) for TL, v in days_T.items()}, "counts": counts,
             "cells": cells, "secondary": secondary, "liveCheck": live_check, "liveStale": live_stale,
             "passLine": f"No pass line is applied before {C.MIN_DAYS_PASS} resolved issue days per horizon (L.5); "

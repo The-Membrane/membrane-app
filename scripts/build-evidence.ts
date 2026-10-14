@@ -1704,6 +1704,24 @@ const stableLegs = (rows: any[]) => {
   }
 }
 const linesAbove90 = (rows: any[]) => rows.filter((r) => lineIsNoDelay(r.liqLine)).length
+/**
+ * THE LINE RULE'S IMPLICATION, stated. A line above 90% is only possible for a no-delay
+ * listing (Collateral.sol:424-426, :538-540), so the rule follows the contract. For a
+ * VOLATILE asset that is a no-delay listing the deploy does not have — it lists WETH at 90e16,
+ * delayed (DeployFullSystem.s.sol:272). These rows are Aave e-mode lines.
+ */
+const volatileLineRows = included.filter(
+  (r) => lineIsNoDelay(r.liqLine) && !isNoDelayCollateral(r.collSymbol),
+)
+const volatileLineIdx = new Set(volatileLineRows.map((r) => cohort.indexOf(r)))
+/** What walking those rows delayed instead would change, per-row rounded like the headline. */
+const volatileLineEffectUsd = walkInputs.reduce(
+  (s, w, i) =>
+    volatileLineIdx.has(i)
+      ? s + cohort[i].membraneClosedUsd - +cureWalk({ ...w, noDelay: false }).closedUsd.toFixed(2)
+      : s,
+  0,
+)
 /** The seen-collateral share, bucketed. Partitions the rows. */
 const SHARE_BUCKETS: [string, (x: number) => boolean][] = [
   ['<0.25', (x) => x < 0.25],
@@ -1797,6 +1815,24 @@ const delayClassMeta = {
     cohort: linesAbove90(cohort),
     included: linesAbove90(included),
     priced: linesAbove90(pricedRows),
+  },
+  lineRule: {
+    rule:
+      'A line above 90% is no-delay whatever the composition: only a listing capped above ' +
+      'MAX_LTV_HARD_CAP can carry one (Collateral.sol:424-426, :538-540).',
+    implication:
+      'For VOLATILE collateral that means a no-delay listing of an asset the deploy does not ' +
+      'list that way: DeployFullSystem.s.sol:272 lists WETH at 90e16, delayed. These rows ' +
+      'are Aave e-mode lines; the census follows the contract rule, not the deploy.',
+    volatileAccounts: volatileLineRows.length,
+    volatileAccountsList: volatileLineRows.map((r) => ({
+      account: `${r.chain}:${r.user}`,
+      collSymbol: r.collSymbol,
+      debtSymbol: r.debtSymbol,
+      liqLine: r.liqLine,
+    })),
+    /** Headline minus the same rows walked delayed. */
+    dollarEffectUsd: r2(volatileLineEffectUsd),
   },
   mixedInCohort: cohort.filter((r) => r.delayClass === 'mixed').length,
 }

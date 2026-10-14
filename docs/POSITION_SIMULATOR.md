@@ -213,7 +213,10 @@ line, every time, with no band and no timer.
 "stable ⇒ no-delay" is **our assumption about how a stable would be listed**. It mirrors
 the deploy script, which lists all three launch stables (sUSDS, syrupUSDC, scrvUSD) at the
 96% no-delay cap and WETH at 90% with the 4% window. A line above 90% is not an
-assumption: only a no-delay listing can carry one. The stable set is the union of the two
+assumption: only a no-delay listing can carry one. **For a volatile asset that implies a
+listing the deploy does not have** (it lists WETH at 90%, delayed): the census keeps the
+contract rule anyway. On Oct 10 that is one WETH/WETH Aave e-mode account on a 94.6% line,
+with no dollar effect (`meta.delayClass.lineRule`). The stable set is the union of the two
 old lists (`HELD_AT_ONE`, the census `STABLES`) plus USDe and sUSDe. Those two are stable
 for the class but **measured**, not held at $1: USDe really moved on Oct 10 and has its
 own series.

@@ -504,9 +504,9 @@ class TestMaxima(unittest.TestCase):
         d.index = np.array([r[5] for r in rows], dtype=object)
         d.index_f = np.array([r[5] / RAY for r in rows])
         best, blk, final = G.balance_maxima(d, 100, idx[3])
-        self.assertAlmostEqual(best[a], 2e12, delta=2)
+        self.assertEqual(best[a], 2 * 10**12)
         self.assertEqual(int(blk[a]), 10)
-        self.assertAlmostEqual(best[b], 9e11 * 1.2, delta=2)   # grows with the index to asof: $1.08M
+        self.assertEqual(best[b], G.ray_mul(9 * 10**11, idx[3]))   # grows with the index to asof: $1.08M
         self.assertEqual(int(blk[b]), 100)
         self.assertEqual(final.tolist(), [0, 9 * 10**11])
 

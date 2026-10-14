@@ -1330,7 +1330,8 @@ def reconstruction_checks(ctx: Ctx, asof_anchors: dict[str, dict[str, int]]) -> 
 
 
 def balance_maxima(d: Decoded, asof_block: int, asof_income: int):
-    """Per address id: max event-reconstructed balance (6-decimal units) over every moment, with its block.
+    """Per address id: max event-reconstructed balance (6-decimal units, exact integer ray math) over
+    every moment, with its block.
 
     Scaled balance s changes only at events; between events the balance s * I(t) grows with the
     index, so the maximum over an interval is at its end. Candidates: s before and after each
@@ -1338,8 +1339,9 @@ def balance_maxima(d: Decoded, asof_block: int, asof_income: int):
     import numpy as np
     n = len(d.addrs)
     if len(d.addr) == 0:
-        return np.zeros(n), np.zeros(n, dtype=np.int64), np.zeros(n, dtype=np.int64)
+        return np.zeros(n, dtype=object), np.zeros(n, dtype=np.int64), np.zeros(n, dtype=np.int64)
     m = d.block <= asof_block
+    pos_m = np.nonzero(m)[0]
     addr, sc, idxf, blk = d.addr[m], d.scaled[m], d.index_f[m], d.block[m]
     order = np.argsort(addr, kind="stable")  # rows already in (block, log, sub) order
     a_s, s_s, i_s, b_s = addr[order], sc[order], idxf[order], blk[order]
@@ -1348,21 +1350,25 @@ def balance_maxima(d: Decoded, asof_block: int, asof_income: int):
     seg_base = np.repeat(cs[starts] - s_s[starts], np.diff(np.r_[starts, len(a_s)]))
     after = cs - seg_base
     before = after - s_s
-    cand = np.maximum(before, after).astype(np.float64) * i_s
-    best = np.full(n, -np.inf)
+    s_max = np.maximum(before, after)
+    cand = s_max.astype(np.float64) * i_s  # float picks the row; the value is then recomputed exactly
     best_blk = np.zeros(n, dtype=np.int64)
     seg_id = np.repeat(np.arange(len(starts)), np.diff(np.r_[starts, len(a_s)]))
     ord2 = np.lexsort((-cand, seg_id))
     first = np.r_[0, np.nonzero(np.diff(seg_id[ord2]))[0] + 1]
     rows = ord2[first]
-    best[a_s[rows]] = cand[rows]
-    best_blk[a_s[rows]] = b_s[rows]
+    best = np.zeros(n, dtype=object)
+    for rr in rows:
+        a = int(a_s[rr])
+        best[a] = ray_mul(int(s_max[rr]), int(d.index[pos_m[order[rr]]]))
+        best_blk[a] = b_s[rr]
     final = np.zeros(n, dtype=np.int64)
     np.add.at(final, addr, sc)
-    fin_bal = final.astype(np.float64) * (asof_income / RAY)
-    upd = fin_bal > best
-    best[upd] = fin_bal[upd]
-    best_blk[upd] = asof_block
+    for a in range(n):
+        fb = ray_mul(int(final[a]), asof_income)
+        if fb > best[a]:
+            best[a] = fb
+            best_blk[a] = asof_block
     return best, best_blk, final
 
 
@@ -1386,6 +1392,7 @@ def b1_population(ctx: Ctx) -> dict[str, dict[str, str]]:
 
 
 def phase_universe(ctx: Ctx) -> None:
+    import numpy as np
     if ctx.mode == "main":
         gate = ctx.state.get("gate")
         if not gate or not gate.get("passes"):
@@ -1401,7 +1408,7 @@ def phase_universe(ctx: Ctx) -> None:
         best, best_blk, final = balance_maxima(d, asof, inc)
         fb, cnt = first_event(d)
         rows = []
-        reach = best >= THRESHOLD_RAW
+        reach = np.asarray([int(b) >= THRESHOLD_RAW for b in best], dtype=bool)
         members = set(int(i) for i in reach.nonzero()[0])
         for a in pop[r]:
             if a in d.addr_ids:
@@ -1412,7 +1419,7 @@ def phase_universe(ctx: Ctx) -> None:
             fbi = int(fb[i])
             rows.append({"address": a, "in_P_r": int(a in pop[r]), "P_r_rule": pop[r].get(a, ""),
                          "reaches_1M_by_events": int(bool(reach[i])), "new": int(bool(reach[i]) and a not in pop[r]),
-                         "max_event_balance_raw": from_units(int(round(best[i])), dec), "max_at_block": int(best_blk[i]),
+                         "max_event_balance_raw": from_units(int(best[i]), dec), "max_at_block": int(best_blk[i]),
                          "recon_balance_asof_raw": from_units(ray_mul(int(final[i]), inc), dec),
                          "first_event_block": fbi, "first_event_utc": B.iso_utc(tsl[fbi]),
                          "n_balance_events": int(cnt[i])})
@@ -1464,7 +1471,8 @@ def phase_anchors(ctx: Ctx) -> None:
     for r in ctx.order:
         for s, b, due in plan[r]["snaps"]:
             for ci, ch in enumerate(B.chunk(due)):
-                if not ctx.anchor_store.has((s, r, ci)):
+                rec = ctx.anchor_store.get((s, r, ci))
+                if rec is None or rec["first"] != ch[0] or rec["n"] != len(ch) or rec["block"] != b:
                     tasks.append((s, b, r, ci, ch))
     print(f"anchors: {len(tasks)} multicall requests to do", flush=True)
 
@@ -2335,6 +2343,15 @@ def main(argv=None) -> int:
             ap.error("holdout mode needs --main-work-dir on its first run")
         if args.main_work_dir:
             main_state = json.loads((Path(args.main_work_dir) / "state.json").read_text())
+    for prev in ctx.state.get("sessions", []):
+        if not prev.get("status"):
+            prev["status"] = "interrupted (process ended before it recorded counts)"
+    import signal
+
+    def _term(signum, frame):
+        raise B.TerminalError(f"signal {signum}")
+
+    signal.signal(signal.SIGTERM, _term)
     phases = (HOLDOUT_PHASES if holdout else PHASES) if args.phases == "all" else tuple(
         p.strip() for p in args.phases.split(","))
     session = {"start_utc": utcnow(), "code": git_info(), "phases": list(phases), "phase_seconds": {}}

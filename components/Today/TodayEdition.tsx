@@ -13,47 +13,22 @@ import { CAPS, DASH, LEAD_MIN_H, TARGET } from './newsStyle'
 import { Opportunities } from './Opportunities'
 import { BODY_ID, HOME_COPY, regimeHome, type HomeBody, type HomeJump } from './regimeHome'
 import { Safety } from './Safety'
-import { DAGGER_NOTE, regimeCredit, regimeRows } from './todayCopy'
+import { DAGGER_NOTE, METHOD_JUMP, regimeCredit, regimeRows } from './todayCopy'
 
 // THE TODAY EDITION (/[chain]/today): the newspaper masthead with the weather strip, then
 // the body the M0 regime gives the screen (components/Today/regimeHome.ts): Opportunities
-// when calm, Safety when choppy or when no regime is known. The other body is one jump
-// line below it, opening in place; then how the regime is set, and the dagger note. The
-// `.news-edition` root switches on the newspaper token layer (styles/news-edition.css).
+// when calm, Safety when choppy or when no regime is known. Below it, two folds, each one
+// jump line until opened (in place, or by its #id): the other body, then how the regime
+// is set (#regime). Then the dagger note. The `.news-edition` root switches on the
+// newspaper token layer (styles/news-edition.css).
 
 const ROWS = regimeRows()
 const CREDIT = regimeCredit()
 
+/** How the regime is set: the M0 rule as label/value rows, with its provenance. */
 function RegimeMethod() {
   return (
-    <Box
-      as="section"
-      aria-labelledby="regime-method"
-      data-news-section="regime"
-      pt={{ base: SPACING.lg, md: SPACING.xl }}
-      maxW="720px"
-    >
-      <Text
-        as="p"
-        fontFamily={NEWS_FONT.mono}
-        fontSize={TYPOGRAPHY.label}
-        color={NEWS.accent}
-        sx={CAPS}
-      >
-        The regime
-      </Text>
-      <Text
-        as="h2"
-        id="regime-method"
-        fontFamily={NEWS_FONT.display}
-        fontWeight={TYPOGRAPHY.bold}
-        fontSize="22px"
-        lineHeight="28px"
-        color={NEWS.ink}
-        pb={SPACING.sm}
-      >
-        How the regime is set
-      </Text>
+    <Box maxW="720px" pb={SPACING.sm}>
       <Box
         as="dl"
         display="grid"
@@ -128,18 +103,29 @@ function LeadSkeleton() {
   )
 }
 
-/** The other body, collapsed to its one jump line; it opens in place (and on its #id). */
-function Jump({ jump, nowMs }: { jump: HomeJump; nowMs: number }) {
+/**
+ * A section folded to its one jump line (Redaction italic, 44px). It opens in place, or
+ * when the URL's hash is its #id; its content is drawn only once open, so a folded body
+ * fetches nothing.
+ */
+function Fold({
+  id,
+  summary,
+  children,
+}: {
+  id: string
+  summary: string
+  children: () => React.ReactNode
+}) {
   const [open, setOpen] = useState(false)
-  const id = BODY_ID[jump.body]
   useEffect(() => {
     const check = () => {
-      if (window.location.hash === jump.href) setOpen(true)
+      if (window.location.hash === `#${id}`) setOpen(true)
     }
     check()
     window.addEventListener('hashchange', check)
     return () => window.removeEventListener('hashchange', check)
-  }, [jump.href])
+  }, [id])
   return (
     <Box
       as="details"
@@ -148,7 +134,6 @@ function Jump({ jump, nowMs }: { jump: HomeJump; nowMs: number }) {
       open={open}
       onToggle={(e: React.SyntheticEvent<HTMLElement>) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
       borderTop={`1px solid ${NEWS.ruleStrong}`}
-      mt={SPACING.base}
     >
       <Box
         as="summary"
@@ -165,9 +150,20 @@ function Jump({ jump, nowMs }: { jump: HomeJump; nowMs: number }) {
         _hover={{ color: NEWS.accent }}
         sx={{ listStyle: 'none', '&::-webkit-details-marker': { display: 'none' } }}
       >
-        {jump.text}
+        {summary}
       </Box>
-      {open && <Body which={jump.body} kicker={HOME_COPY.name[jump.body]} nowMs={nowMs} />}
+      {open && children()}
+    </Box>
+  )
+}
+
+/** The other body, folded to its jump line. */
+function Jump({ jump, nowMs }: { jump: HomeJump; nowMs: number }) {
+  return (
+    <Box mt={SPACING.base}>
+      <Fold id={BODY_ID[jump.body]} summary={jump.text}>
+        {() => <Body which={jump.body} kicker={HOME_COPY.name[jump.body]} nowMs={nowMs} />}
+      </Fold>
     </Box>
   )
 }
@@ -204,7 +200,9 @@ export function TodayEdition() {
       <Box maxW="1200px" mx="auto" pb={SPACING['2xl']}>
         <Masthead />
         <RegimeHomeBody />
-        <RegimeMethod />
+        <Fold id="regime" summary={METHOD_JUMP}>
+          {() => <RegimeMethod />}
+        </Fold>
         <Text
           as="p"
           pt={SPACING.lg}

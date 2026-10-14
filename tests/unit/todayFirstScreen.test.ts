@@ -10,7 +10,7 @@ import {
   type NetApyList,
 } from '@/components/Today/opportunitiesView'
 import { SAFETY_COPY } from '@/components/Today/safetyView'
-import { datelineShort, TAGLINE } from '@/components/Today/todayCopy'
+import { DAGGER_NOTE, datelineShort, METHOD_JUMP, TAGLINE } from '@/components/Today/todayCopy'
 import { STRIP_COPY, weatherView } from '@/components/Weather/weatherView'
 import { HOUR_MS, type M0Result } from '@/lib/regime/m0'
 import type { WeatherResponse } from '@/lib/weather/handler'
@@ -175,6 +175,8 @@ describe('banned words (DESIGN_RULES §4)', () => {
       ...Object.values(HOME_COPY.name),
       ...Object.values(HOME_COPY.jump),
       HOME_COPY.byDefault,
+      METHOD_JUMP,
+      DAGGER_NOTE,
       ...Object.values(STRIP_COPY),
     ].join(' | ')
     expect(all).not.toMatch(/\b(safe|safely|ok|okay|good|great|best|free)\b/i)

@@ -16,6 +16,9 @@ export const TAGLINE = `${GUARANTEE.name} Cross the line with time to spare.`
 /** The one footer disclaimer (DESIGN_RULES §3): every modelled figure carries the †. */
 export const DAGGER_NOTE = '† modelled, not a guarantee'
 
+/** The method section's jump line: it stays folded below the bodies until opened. */
+export const METHOD_JUMP = 'How the regime is set →'
+
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 

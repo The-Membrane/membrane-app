@@ -475,11 +475,6 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
               next
             </Text>
             <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.sm}>
-              <NextLink href={`/${chainName}/receipts`} style={{ textDecoration: 'underline' }}>
-                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
-                  think it holds? call it → /receipts
-                </Text>
-              </NextLink>
               <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
                 <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
                   the whole board → /carry

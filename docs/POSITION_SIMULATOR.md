@@ -283,7 +283,7 @@ Four kinds, all stable for the class:
 | Instant mode: threshold = line, `currentLtv > threshold` ⇒ Immediate | `LiquidationEngine.sol:1572-1576`, `:1694-1703` | `curePath.ts:226` (`sell`, reason `instant`, strict `>`) |
 | A timer can never arm in instant mode | `LiquidationEngine.sol:1708-1710` (`InstantModeNotLiquidatable`) | `curePath.ts:226` (never returns `arm`) |
 | No-delay walk: sold at t0, walks on, sold again on a later breach | as above, plus the repay-to-cap `LiquidationEngine.sol:2204-2238` | `curePath.ts:393`, `:470` (`cureWalk` `noDelay`, outcome `sold-no-delay`) |
-| Delayed, already past the band at t0: Immediate, then the position walks on (a later breach opens a fresh window, a later band break sells again) | `LiquidationEngine.sol:1390` (Immediate); the timer is deleted after ANY sale and the position stays live, `:1421-1423` | `cureWalk` (outcome `sold-at-t0` names the first sale; the walk continues — the old stop after one repay is `stopAfterT0BandSale`, published as `meta.sensitivity.noWalkOnAfterT0BandSale`) |
+| Delayed, already past the band at t0: Immediate, then the position walks on (a later breach opens a fresh window, a later band break sells again) | `LiquidationEngine.sol:1694-1703` (Immediate, `:1698`); a sale leaves no timer (a band break or an expiry deletes it, `:1724-1727`; an Immediate sale never had one) and the position stays live | `cureWalk` (outcome `sold-at-t0` names the first sale; the walk continues — the old stop after one repay is `stopAfterT0BandSale`, published as `meta.sensitivity.noWalkOnAfterT0BandSale`) |
 | Stable and volatile collateral may not share a position | `Cdp.sol:1650-1651` → `MixedDelayClassCollateral`, `Collateral.sol:789-793` | `collateralClass.ts:186` `delayClassOf` → `'mixed'` |
 | Every call recalls first, toward the WHOLE debt | `repayTarget = totalDebt` `LiquidationEngine.sol:1319`; Step 1.5 sends `min(retrievable, repayTarget - totalRepaid)` `:1450-1453` | `compare.ts:347-353` (recall `min(available, debt)` at every keeper call) |
 | Paid recall-only lane: post-recall LTV ≤ line ⇒ fee, nothing sold, timer deleted | `LiquidationEngine.sol:1603-1658` (trigger `:1623`, runs before classification; fee base `min(target, recalled)` `:1653-1654`; fee `:1821-1838`, `:1877`, `:1887`; sale steps skipped `:1137-1141`) | `compare.ts:366` (at a breach, a sale, or inside the window) |
@@ -392,8 +392,9 @@ instead of earning a fresh one.
 
 **A sale at t0 past the band walks on** (2026-10-14, `meta.sensitivity.noWalkOnAfterT0BandSale`).
 `cureWalk` used to sell a delayed account already past line × 1.04 at t0 once and stop
-walking it, while every other sale walked on. The contract deletes the timer after any sale
-and the position stays live (`LiquidationEngine.sol:1421-1423`), so the census now walks it
+walking it, while every other sale walked on. In the contract a sale leaves no timer (a band
+break or an expiry deletes it, `LiquidationEngine.sol:1724-1727` at `16e12329`; an Immediate
+sale, `:1694-1703`, never had one) and the position stays live, so the census now walks it
 on like the simulator does. On Oct 10 that moves one priced account (mainnet `0x9bafc9…`,
 sold again later): Membrane **+$13,303.43** on both sets (priced $22,191,189.76 →
 $22,204,493.19; all included $54,158,792.83 → $54,172,096.26), no outcome changes, and a

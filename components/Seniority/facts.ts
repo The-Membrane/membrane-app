@@ -61,7 +61,7 @@ const SHARED = {
    */
   bridge: {
     eyebrow: 'Tested on a real day',
-    line: 'With borrower-first liquidation a breach inside the 4% band gets eight hours; a return under the line clears it; past the band, or still over the line at expiry, the position is repaid to its cap. Stablecoin collateral gets no window†. Replayed on 10 Oct 2025 against the same oracle rounds Aave liquidated on, that closes 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
+    line: 'With borrower-first liquidation a breach inside the 4% band gets eight hours; a return under the line clears it; past the band, or still over the line at expiry, the position is repaid to its cap. Stablecoin collateral gets no window†. Replayed on 10 Oct 2025 against mainnet Chainlink oracle rounds, that closes 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
     /** † on "Stablecoin collateral gets no window": modelled (collateralClass.ts). */
     footnote: MODELLED_FOOTNOTE,
     cite: 'public/data/oct10-2025/evidence.json debt.priced (747 accounts: Aave $34.69M, Membrane $22.20M) · lib/position-sim/curePath.ts (the walk) · contracts/LiquidationEngine.sol:2099-2103 (band), :1362-1382 (re-arm), :1388-1392 (expiry, band break), :2241-2269 ($2,000 floor)',
@@ -88,7 +88,7 @@ const BC_CTA = 'See what you’d have kept on 10 Oct 2025'
 
 const BC_BRIDGE = {
   ...SHARED.bridge,
-  line: 'Replayed on 10 Oct 2025 against the same oracle rounds Aave liquidated on, Membrane’s rules close 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Stablecoin collateral gets no window†. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
+  line: 'Replayed on 10 Oct 2025 against mainnet Chainlink oracle rounds, Membrane’s rules close 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Stablecoin collateral gets no window†. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
 }
 
 

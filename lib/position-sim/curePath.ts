@@ -72,6 +72,33 @@
  *       break can sell again. The walk carries the reduced debt and collateral
  *       forward and keeps going, capped at `maxSales` sales.
  *
+ * (vii) THE NO-DELAY CLASS, AND THE PAID RECALL-ONLY LANE. (Cited at membrane-solidity
+ *       master 16e12329; clauses (i)-(vi) cite the 2026-09-14 read and its line numbers.)
+ *       A listing whose immutable `max_ltv_cap` is above MAX_LTV_HARD_CAP (90%) is in the
+ *       NO-DELAY class (`_noDelay`, Collateral.sol:424-426) and must carry
+ *       `max_threshold_to_delay == 0` (Collateral.sol:430-432). The engine then runs in
+ *       instant mode: `p.instantMode = _instantMode[key] || (address(v) != address(0) &&
+ *       p.avgMaxThresholdToDelay == 0)` (LiquidationEngine.sol:1572); the threshold IS the
+ *       line and `aboveThreshold = currentLtv > threshold` (:1573-1576), which classifies
+ *       `Immediate` (:1694-1703); a timer can never arm (`InstantModeNotLiquidatable`,
+ *       :1708-1710). So a no-delay position is sold the minute its LTV is over the line
+ *       (strict `>`), every time: no window, no band, no cure. The sale is the same
+ *       repay-to-cap, and the position walks on and is sold again on a later breach.
+ *       `noDelay` on DelayTimerOptions / CureWalkInput selects it; WHICH collateral is
+ *       no-delay is collateralClass.ts's call (MODELLED: stable => no-delay listing, as the
+ *       deploy lists sUSDS / syrupUSDC / scrvUSD). The classes never share a position
+ *       (Cdp.sol:1650-1651, `MixedDelayClassCollateral`, Collateral.sol:789-793).
+ *
+ *       RECALL-ONLY LANE, both classes (LiquidationEngine.sol:1603-1658): when this call's
+ *       Step 1.5 venue recall ALONE brings the position back to or under its line
+ *       (:1623, `totalRepaid != 0 && currentLtv <= avgMaxLtv`), any timer is deleted,
+ *       nothing is sold (the queue / sell-wall steps are skipped, :1137-1141), and the
+ *       keeper is paid the ordinary Step-9 fee from the borrower's collateral (:1821-1838,
+ *       :1877, :1887) on `min(restore-to-borrow-cap target, recalled)` (:1653-1654). It
+ *       reverts if the position was not over its line BEFORE the recall (:1644). This
+ *       timer does not model recall — compare.ts layers it on top; the census credits no
+ *       recall at all.
+ *
  * ---------------------------------------------------------------------------
  * PRICE INPUT
  * ---------------------------------------------------------------------------
@@ -96,6 +123,11 @@ export type CureOutcome =
   | 'sold-at-expiry'
   /** Already past the band at t0 — no delay is ever granted. */
   | 'sold-at-t0'
+  /**
+   * NO-DELAY CLASS (clause vii): over the line at t0, sold at t0, and sold again at
+   * every later minute the walk finds it back over the line. No window ever exists.
+   */
+  | 'sold-no-delay'
   /** The price grid ended inside an unresolved delay. Conservative: sell. */
   | 'sold-at-grid-end'
   /** No usable price series for this account: fall back to the one-repay figure. */
@@ -121,8 +153,14 @@ export type DelayAction =
   | { kind: 'hold' }
   /** Back under the line: the timer is deleted (SavedByDelay, :1362-1382). */
   | { kind: 'save' }
-  /** Sell now. `band` = BrokeWindow/Immediate (:1388-1390); `expiry` = DelayExpired. */
-  | { kind: 'sell'; reason: 'band' | 'expiry' }
+  /**
+   * Sell now. `band` = BrokeWindow/Immediate (:1388-1390); `expiry` = DelayExpired;
+   * `instant` = the no-delay class over its line (instant mode, clause vii).
+   */
+  | { kind: 'sell'; reason: SaleReason }
+
+/** Why the timer said sell. */
+export type SaleReason = 'band' | 'expiry' | 'instant'
 
 export interface DelayTimerOptions {
   /** The liquidation line (max LTV) this position is judged against. */
@@ -137,6 +175,12 @@ export interface DelayTimerOptions {
    * stands, and a later breach does not restart it. Default false.
    */
   noEarlyClear?: boolean
+  /**
+   * The NO-DELAY class (clause vii): the timer never arms. Over the line (strict `>`)
+   * sells at once with reason `instant`; at or under it does nothing. `band` and
+   * `delaySteps` are ignored. Default false.
+   */
+  noDelay?: boolean
 }
 
 /**
@@ -149,9 +193,12 @@ export class DelayTimer {
   readonly breakLine: number
   readonly delaySteps: number
   readonly noEarlyClear: boolean
+  readonly noDelay: boolean
 
   /** Step index the running timer started at, or null when nothing is armed. */
   private startedAt: number | null = null
+  /** No-delay only: the position is over its line and has not been sold since. */
+  private overLine = false
   /** How many separate times the position crossed above its line. */
   breaches = 0
   /** First step index back under the line, or null. */
@@ -162,6 +209,7 @@ export class DelayTimer {
     this.breakLine = opts.line * (1 + opts.band)
     this.delaySteps = Math.max(1, Math.round(opts.delaySteps))
     this.noEarlyClear = opts.noEarlyClear ?? false
+    this.noDelay = opts.noDelay ?? false
   }
 
   get armed(): boolean {
@@ -171,9 +219,22 @@ export class DelayTimer {
   /** The timer is deleted when a sale runs (LiquidationEngine.sol:1421-1423). */
   clearAfterSale(): void {
     this.startedAt = null
+    this.overLine = false
   }
 
   step(i: number, ltv: number): DelayAction {
+    if (this.noDelay) {
+      // Instant mode (LiquidationEngine.sol:1572-1576): the threshold is the line itself
+      // and nothing ever arms (:1708-1710). A breach is counted once per crossing — a
+      // minute still over the line after a sale that could not run is the same breach.
+      if (ltv > this.line) {
+        if (!this.overLine) this.breaches++
+        this.overLine = true
+        return { kind: 'sell', reason: 'instant' }
+      }
+      this.overLine = false
+      return { kind: 'none' }
+    }
     if (this.startedAt !== null) {
       if (ltv <= this.line) {
         if (this.firstCureIndex === null) this.firstCureIndex = i
@@ -240,6 +301,14 @@ export interface CureWalkInput {
   maxSales?: number
   /** See DelayTimerOptions.noEarlyClear. Default false. */
   noEarlyClear?: boolean
+  /**
+   * The NO-DELAY class (clause vii). Breached at t0, the position is sold at t0 (the same
+   * repay-to-cap and floor), then the walk goes on and sells again at every later minute
+   * it is back over the line, up to `maxSales`. Outcome `sold-no-delay`; with no series,
+   * one repay and `sold-immediately-no-series` as for any row. `band` is ignored.
+   * Default false — the delayed class, unchanged.
+   */
+  noDelay?: boolean
   /**
    * EXECUTION BOUND, off by default. The contract's repay-to-cap is sized from the ORACLE
    * value of the collateral and assumes the sale clears at that price, so on an illiquid
@@ -316,10 +385,12 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
     }
   }
 
+  const noDelay = input.noDelay ?? false
   const breakLine = line * (1 + band)
 
   // Past the band at t0: `Immediate` (LiquidationEngine.sol:1390). No delay exists.
-  if (ltv0 > breakLine) {
+  // (The no-delay class has no band: it is sold at t0 below and walks on.)
+  if (!noDelay && ltv0 > breakLine) {
     return {
       closedUsd: oneRepay,
       closedAtIndex: 0,
@@ -330,8 +401,9 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
     }
   }
 
-  // Inside the band but over the line, and we have nothing to walk: fall back to the
-  // shipped figure rather than inventing a cure we cannot observe.
+  // Inside the band but over the line (or no-delay and over the line), and we have
+  // nothing to walk: fall back to the shipped figure rather than inventing a cure we
+  // cannot observe.
   const usable = ratios && ratios.length > 1
   if (!usable) {
     return {
@@ -350,9 +422,13 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
   // Ceil: the sale fires on the first grid point at or past `startTime + delay`.
   const delaySteps = Math.max(1, Math.ceil(delaySeconds / stepSeconds))
 
-  const timer = new DelayTimer({ line, band, delaySteps, noEarlyClear: input.noEarlyClear })
-  // Armed at t0 by the breach the census located: TimerStarted (:1393-1419).
-  timer.step(0, ltv0)
+  const timer = new DelayTimer({
+    line,
+    band,
+    delaySteps,
+    noEarlyClear: input.noEarlyClear,
+    noDelay,
+  })
 
   /** Debt and collateral carried forward across sales. `collBase` is on the t0 basis:
    *  the value at minute i is `collBase * ratios[i]`. */
@@ -365,7 +441,7 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
   let lastRatio = 1
 
   /** One sale at minute i, price ratio r. Returns false when the episode is over. */
-  const sell = (i: number, r: number, reason: 'band' | 'expiry'): boolean => {
+  const sell = (i: number, r: number, reason: SaleReason): boolean => {
     const collAt = collBase * r
     let repaid = membraneRepayValue(debt, collAt, cap, dMin)
     if (repaid > repayCap) repaid = repayCap
@@ -376,7 +452,8 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
     sales++
     if (firstIndex === null) {
       firstIndex = i
-      firstOutcome = reason === 'band' ? 'sold-at-band' : 'sold-at-expiry'
+      firstOutcome =
+        reason === 'band' ? 'sold-at-band' : reason === 'instant' ? 'sold-no-delay' : 'sold-at-expiry'
     }
     debt -= repaid
     collBase = r > 0 ? (collAt - seized) / r : 0
@@ -384,7 +461,12 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
     return debt > 1e-6 && collBase > 1e-6 && sales < maxSales
   }
 
-  for (let i = 1; i < n; i++) {
+  // t0. Delayed: armed by the breach the census located, TimerStarted (:1393-1419).
+  // No-delay: sold now, instant mode (clause vii) — `live` is false if that sale ended it.
+  const act0 = timer.step(0, ltv0)
+  const live = act0.kind === 'sell' ? sell(0, 1, act0.reason) : true
+
+  for (let i = 1; live && i < n; i++) {
     const raw = series[i]
     // Oracle gap: carry the last observation forward. The delay is wall time and
     // keeps running through a gap.

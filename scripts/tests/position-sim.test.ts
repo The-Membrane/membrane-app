@@ -34,7 +34,7 @@ import {
   priceAt,
 } from '../../lib/position-sim/scenario'
 import { demoPosition } from '../../lib/position-sim/demo'
-import { cureWalk } from '../../lib/position-sim/curePath'
+import { DelayTimer, cureWalk } from '../../lib/position-sim/curePath'
 import { isNoDelayCollateral } from '../../lib/position-sim/collateralClass'
 import { readUrlState, writeUrlState } from '../../lib/position-sim/share'
 import {
@@ -695,6 +695,74 @@ test('an oracle gap carries the last print forward and does not stop the clock',
   const r = cureWalk({ ...walkBase, debtUsd: 810, collateralUsd: 1000, ratios })
   assert.strictEqual(r.outcome, 'sold-at-expiry')
   assert.strictEqual(r.closedAtIndex, 480, 'the delay is wall time, not tick time')
+})
+
+// ============== the NO-DELAY class (curePath.ts clause vii, LiquidationEngine.sol:1572)
+test('a no-delay timer never arms: it sells over the line and not AT the line', () => {
+  const t = new DelayTimer({ line: 0.9, band: 0.04, delaySteps: 480, noDelay: true })
+  assert.deepStrictEqual(t.step(0, 0.9), { kind: 'none' }, 'ltv == line is not over it (strict >, :1576)')
+  assert.deepStrictEqual(t.step(1, 0.85), { kind: 'none' }, 'under the line: nothing')
+  assert.deepStrictEqual(
+    t.step(2, 0.9001),
+    { kind: 'sell', reason: 'instant' },
+    'over the line by a hair: sold at once, inside what would have been the band',
+  )
+  assert.strictEqual(t.armed, false, 'no timer exists in instant mode (:1708-1710)')
+  assert.deepStrictEqual(t.step(3, 0.95), { kind: 'sell', reason: 'instant' }, 'still over: sell again')
+  assert.strictEqual(t.breaches, 1, 'one crossing, however many minutes it stays over')
+  t.clearAfterSale()
+  assert.deepStrictEqual(t.step(4, 0.91), { kind: 'sell', reason: 'instant' }, 'after a sale, a new breach')
+  assert.strictEqual(t.breaches, 2, 'counted as a second crossing')
+  assert.strictEqual(t.firstCureIndex, null, 'and nothing is ever a cure — there is no window')
+  // The same LTVs on a delayed timer arm a window instead.
+  const d = new DelayTimer({ line: 0.9, band: 0.04, delaySteps: 480 })
+  assert.deepStrictEqual(d.step(0, 0.9001), { kind: 'arm' }, 'the delayed class arms')
+})
+
+test('cureWalk no-delay: sold at t0, then sold again on a later breach', () => {
+  // 81% at t0 on an 80% line — INSIDE the 83.2% break line, so the delayed class would
+  // open a window. No-delay sells at t0, walks on, and sells again when the price falls
+  // far enough to put the post-sale position back over its line.
+  const ratios = [1, ...new Array(30).fill(1), ...new Array(30).fill(0.9)]
+  const r = cureWalk({ ...walkBase, debtUsd: 810_000, collateralUsd: 1_000_000, ratios, noDelay: true })
+  assert.strictEqual(r.outcome, 'sold-no-delay')
+  assert.strictEqual(r.closedAtIndex, 0, 'the first sale is at t0, not at minute 480')
+  assert.strictEqual(r.minutesToFirstCure, null, 'no window, so no cure')
+  assert.strictEqual(r.sales, 2, 'the walk went on and sold the later breach')
+  assert.strictEqual(r.breaches, 2)
+  const first = membraneRepayValue(810_000, 1_000_000, 0.77)
+  const debt1 = 810_000 - first
+  const coll1 = 1_000_000 - first
+  const second = membraneRepayValue(debt1, coll1 * 0.9, 0.77)
+  close(r.closedUsd, first + second, 'repay to cap at t0, then repay to cap at minute 31', 1e-6)
+  // The delayed class on the same path: armed at t0 inside the band, and only sold when
+  // the drop at minute 31 takes it to 0.81 / 0.9 = 90%, past the 83.2% break line.
+  const delayed = cureWalk({ ...walkBase, debtUsd: 810_000, collateralUsd: 1_000_000, ratios })
+  assert.strictEqual(delayed.outcome, 'sold-at-band', 'the delayed class waits for the band')
+  assert.strictEqual(delayed.closedAtIndex, 31, 'and does not sell at t0')
+})
+
+test('cureWalk no-delay: a stable/stable flat path closes exactly one repay', () => {
+  // USDC collateral, USDT debt: both legs held at $1, so the ratio is flat 1.0.
+  const ratios = flatAfter(1, 600)
+  const r = cureWalk({ ...walkBase, line: 0.92, debtUsd: 930_000, collateralUsd: 1_000_000, ratios, noDelay: true })
+  assert.strictEqual(r.outcome, 'sold-no-delay')
+  assert.strictEqual(r.sales, 1, 'restored to the cap once, the flat path never re-breaches')
+  close(r.closedUsd, membraneRepayValue(930_000, 1_000_000, 0.89), 'one repay to cap', 1e-6)
+})
+
+test('cureWalk no-delay: no series is one repay, unlocated is unlocated', () => {
+  const none = cureWalk({ ...walkBase, debtUsd: 810, collateralUsd: 1000, ratios: null, noDelay: true })
+  assert.strictEqual(none.outcome, 'sold-immediately-no-series', 'as for any row with no series')
+  close(none.closedUsd, membraneRepayValue(810, 1000, 0.77), 'one repay to cap', 1e-9)
+  const under = cureWalk({ ...walkBase, debtUsd: 700, collateralUsd: 1000, ratios: flatAfter(1, 10), noDelay: true })
+  assert.strictEqual(under.outcome, 'sold-immediately-unlocated-line', 'no breach to sell on')
+})
+
+test('cureWalk no-delay ignores the band: past it at t0 is still sold-no-delay', () => {
+  const r = cureWalk({ ...walkBase, debtUsd: 900, collateralUsd: 1000, ratios: flatAfter(2, 60), noDelay: true })
+  assert.strictEqual(r.outcome, 'sold-no-delay', 'not sold-at-t0: there is no band to be past')
+  close(r.closedUsd, membraneRepayValue(900, 1000, 0.77), 'and the dollars are the one repay', 1e-9)
 })
 
 // ========================= the simulator runs the SAME window as the census

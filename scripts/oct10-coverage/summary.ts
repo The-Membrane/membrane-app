@@ -343,10 +343,41 @@ export async function summaryStep(ctx: Ctx, appRoot: string) {
     }
   const vlog = new JsonlStore<CheckRecord>(join(ctx.stateDir, 'verify.jsonl'))
   const outputs = [...new Set([...vlog.map.values()].map((r) => r.output))].sort()
+  // Unit of work per output (a minute of a chain, or one event-step call) and how many exist, so
+  // the table shows the share of units re-asked, not just a count of checks.
+  const keyedSize = (f: string) =>
+    existsSync(join(ctx.stateDir, f)) ? new JsonlStore(join(ctx.stateDir, f)).size : 0
+  const units: Record<string, number> = {
+    'minute-blocks': 4 * STEPS,
+    'aave-oracle-1m': 4 * STEPS,
+    'morpho-oracle-1m': 2 * STEPS,
+    'aave-events': keyedSize('aave-events-calls.jsonl'),
+    'morpho-events': keyedSize('morpho-events-calls.jsonl'),
+  }
+  const unitOf = (o: string, key: string) => {
+    const k = key.slice(o.length + 1)
+    if (k.startsWith('setup:')) return null
+    if (o === 'minute-blocks' || o.endsWith('-1m')) return k.split(':').slice(0, 2).join(':')
+    return k.replace(/:requery$/, '')
+  }
   const vrows = outputs.map((o) => {
-    const rows = [...vlog.map.values()].filter((r) => r.output === o)
+    const entries = [...vlog.map.entries()].filter(([, r]) => r.output === o)
+    const rows = entries.map(([, r]) => r)
+    const unitSet = new Set(
+      entries.map(([k]) => unitOf(o, k)).filter((u): u is string => u !== null),
+    )
+    const sampleUnits = new Set(
+      entries
+        .filter(([, r]) => r.reason === 'sample')
+        .map(([k]) => unitOf(o, k))
+        .filter((u): u is string => u !== null),
+    )
     return {
       o,
+      units: units[o] ?? 0,
+      unitsChecked: unitSet.size,
+      sampleUnits: sampleUnits.size,
+      setup: entries.filter(([k]) => unitOf(o, k) === null).length,
       checked: rows.length,
       sample: rows.filter((r) => r.reason === 'sample').length,
       anomaly: rows.filter((r) => r.reason === 'anomaly').length,
@@ -378,11 +409,24 @@ export async function summaryStep(ctx: Ctx, appRoot: string) {
         kind: string
         matchRate?: number
         minutesMatch?: number
-        feed?: { aggregators: { continuous: boolean; backendsAgreeing: number }[] }
-        feeds?: { aggregators: { continuous: boolean; backendsAgreeing: number }[] }[]
+        mismatchUnexplained?: number
+        maxAgeSecOfLoggedRoundNotYetServed?: number
+        feed?: {
+          aggregators: { continuous: boolean; confirmed: boolean; typeAndVersion: string | null }[]
+        }
+        feeds?: {
+          aggregators: { continuous: boolean; confirmed: boolean; typeAndVersion: string | null }[]
+        }[]
       }[]
     >
+    quarantinedForLogs: { chain: string; host: string; aggregator: string; missing: number }[]
   }>(join(out, 'chainlink-check.json'))
+  const aggs = cl
+    ? Object.values(cl.chains)
+        .flat()
+        .flatMap((r) => [...(r.feed ? [r.feed] : []), ...(r.feeds ?? [])])
+        .flatMap((f) => f.aggregators)
+    : []
   const md = `# Oct 10-11 2025 on-chain pull (protocol oracles, minute blocks, liquidation positions)
 
 Every liquidated Aave V3 and Morpho Blue position in \`../aave_liquidations_enriched.csv\` and
@@ -421,10 +465,11 @@ ${files.map((x) => `| \`${x.f}\` | ${x.size.toLocaleString('en-US')} | \`${x.sha
   \`getUserReserveData\` for EVERY reserve (one Multicall3); per (chain, block) for N-1 and N,
   \`getAssetsPrices\`, \`Pool.getConfiguration\` of every reserve and every e-mode category's
   collateral config + bitmap (all four pools are revision 9, v3.2+ e-mode). HF is recomputed as
-  GenericLogic does (collateral counted iff the user's collateral bit is set and the reserve LT != 0;
-  e-mode LT iff the reserve's bit is set in the user's category bitmap; floor division to base;
-  percentMul / wadDiv half-up) and compared with \`getUserAccountData\`. HF at N keeps the N-1
-  composition and LTs and uses block-N prices.
+  GenericLogic does with the v3.5 rounding: collateral counted iff the user's collateral bit is set
+  and the reserve LT != 0, bal = floor(aToken * price / 10^dec); e-mode LT iff the reserve's bit is
+  set in the user's category bitmap; debt = ceil(debt * price / 10^dec) per reserve;
+  HF = floor(sum(bal * LT) * 1e18 / (totalDebt * 1e4)). It is compared with
+  \`getUserAccountData\` at N-1. HF at N keeps the N-1 composition and LTs and uses block-N prices.
 - **Morpho events**: position, market, params and \`price()\` at N-1; \`borrowRateView\` at N-1;
   \`price()\` at N; interest accrued to ts(N) with wTaylorCompounded; borrowed = shares -> assets
   rounded UP (VIRTUAL_SHARES 1e6, VIRTUAL_ASSETS 1); liquidatable iff borrowed > maxBorrow.
@@ -441,11 +486,22 @@ be byte-equal; a disagreement goes to a third group and the loser is quarantined
 answered re-asked). Setup reads (addresses, reserve lists, sources, market params, feed state) are
 verified at 100%.
 
-| output | checked | sample | anomaly | requery | agree | disagree | unresolved |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-${vrows.map((v) => `| ${v.o} | ${v.checked} | ${v.sample} | ${v.anomaly} | ${v.requery} | ${v.agree} | ${v.disagree} | ${v.unresolved} |`).join('\n')}
+Units are minutes of a chain (minute paths) or keyed event-step calls (events). "units checked"
+counts units re-asked for any reason; "sample units" the deterministic sample alone (>= 3% required).
 
-Quarantined hosts: ${quarantined.length ? quarantined.map((q) => `${q.chain} ${q.host} (${q.reason})`).join('; ') : 'none'}.
+| output | units | units checked | sample units | sample % | setup checks | checks | anomaly | requery | agree | disagree | unresolved |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+${vrows.map((v) => `| ${v.o} | ${v.units || ''} | ${v.unitsChecked} | ${v.sampleUnits} | ${v.units ? ((100 * v.sampleUnits) / v.units).toFixed(2) + '%' : ''} | ${v.setup} | ${v.checked} | ${v.anomaly} | ${v.requery} | ${v.agree} | ${v.disagree} | ${v.unresolved} |`).join('\n')}
+
+Quarantined hosts (all calls): ${quarantined.length ? quarantined.map((q) => `${q.chain} ${q.host} (${q.reason})`).join('; ') : 'none: no backend disagreed with another on any re-asked value'}.
+Quarantined for getLogs only (chainlink check): ${cl?.quarantinedForLogs?.length ? cl.quarantinedForLogs.map((q) => `${q.chain} ${q.host} (short by ${q.missing} logs on ${q.aggregator})`).join('; ') : 'none'}.
+
+## Results
+
+- Aave HF recompute at N-1 equals \`getUserAccountData\` to the wei for ${summary.aave.events.hfNm1RecomputeExact} of ${summary.aave.events.events} events.
+- Aave: ${summary.aave.fullPath} of ${summary.aave.accounts} (chain, user) accounts have every held reserve priced at every minute; ${summary.aave.locatedHfNBelow1} have HF_N < 1 (located), ${summary.aave.unlocatedHfNAtLeast1} have HF_N >= 1 for every event. Of the census's ${summary.aave.census.excludedAccounts} excluded accounts, ${summary.aave.census.nowLocatedHfNBelow1} are now located.
+- Morpho: ${summary.morpho.fullOraclePath} of ${summary.morpho.positions} positions have a full oracle path; ${summary.morpho.ltvNAboveLltv} are liquidatable at N (LTV_N > LLTV).
+- Assets without a full path: ${Object.keys(summary.assetsWithoutFullPath).length ? JSON.stringify(summary.assetsWithoutFullPath) : 'none'}.
 
 ${
   cl
@@ -456,7 +512,21 @@ ${
               `${c} ${r.symbol} ${r.kind}${r.matchRate !== undefined ? ` ${(r.matchRate * 100).toFixed(2)}% minutes match` : ''}`,
           ),
         )
-        .join('; ')}.`
+        .join(
+          '; ',
+        )}. Feeds behind them: ${aggs.length} aggregators, ${aggs.filter((a) => a.continuous).length} with continuous round ids, ${aggs.filter((a) => a.confirmed).length} confirmed by two backends; types ${[...new Set(aggs.map((a) => a.typeAndVersion))].join(', ')}. Mainnet sources are Chainlink SVR \`DualAggregator\` feeds, which serve a transmitted round with a delay: every mismatching minute there holds an older round (unexplained: ${Object.values(
+        cl.chains,
+      )
+        .flat()
+        .reduce(
+          (x, r) => x + (r.mismatchUnexplained ?? 0),
+          0,
+        )}), the newest unserved round at most ${Math.max(
+        0,
+        ...Object.values(cl.chains)
+          .flat()
+          .map((r) => r.maxAgeSecOfLoggedRoundNotYetServed ?? 0),
+      )} s old.`
     : ''
 }
 

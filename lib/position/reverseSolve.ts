@@ -56,6 +56,10 @@ export interface ActionRow {
   horizon: HorizonId
   /** Z' and its band: the forecast at Y, at the selected horizon. */
   history: TouchFrequency
+  /** "Repay 480 USDC" */
+  action: string
+  /** "line −22%" */
+  line: string
   /** "Repay 480 USDC · line −22% · 5% (3–7%)" */
   text: string
   /** The curve's dot label: "Repay 480 USDC → 5%" */
@@ -202,7 +206,9 @@ export function reverseSolve(
   const rLeg = repayLeg(s, m)
   const aLeg = addLeg(s, m)
 
-  const push = (row: Omit<ActionRow, 'history' | 'text' | 'short' | 'horizon'> & { history: TouchFrequency | null }) => {
+  const push = (
+    row: Omit<ActionRow, 'history' | 'action' | 'line' | 'text' | 'short' | 'horizon'> & { history: TouchFrequency | null },
+  ) => {
     // Past the table's last level there is no forecast to print: say so, not "no lever".
     if (!row.history) {
       pastTable.add(row.kind)
@@ -215,11 +221,14 @@ export function reverseSolve(
     const chance = formatChance(h.touched, h.n)
     // The token amount is the action: a stable at $0.9999 repaid as "$X" would fall short.
     const what = `${row.kind === 'repay' ? 'Repay' : 'Add'} ${fmtAmount(row.amount, row.amountDecimals)} ${row.symbol}`
+    const line = `line ${fmtMove(row.newDistancePct, row.direction)}`
     rows.push({
       ...row,
       horizon,
       history: h,
-      text: `${what} · line ${fmtMove(row.newDistancePct, row.direction)} · ${chance} (${formatBand(h.lo, h.hi, h.n)})`,
+      action: what,
+      line,
+      text: `${what} · ${line} · ${chance} (${formatBand(h.lo, h.hi, h.n)})`,
       short: `${what} → ${chance}`,
     })
   }

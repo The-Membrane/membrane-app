@@ -29,6 +29,7 @@ import {
   TOUCH_TABLE,
   assertTouchTable,
   isStale,
+  staleDays,
   meanN,
   periodYears,
   shortSha,
@@ -332,6 +333,9 @@ describe('forecast lookup', () => {
     expect(STALE_AFTER_DAYS).toBe(30)
     expect(isStale(t, end + 29 * 86_400_000)).toBe(false)
     expect(isStale(t, end + 31 * 86_400_000)).toBe(true)
+    // The age the withheld line quotes: whole days, null while fresh.
+    expect(staleDays(t, end + 29 * 86_400_000)).toBeNull()
+    expect(staleDays(t, end + 45.6 * 86_400_000)).toBe(45)
   })
 })
 

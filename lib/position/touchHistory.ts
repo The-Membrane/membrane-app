@@ -174,3 +174,8 @@ export const STALE_AFTER_DAYS = 30
 export function isStale(t: TouchTable, nowMs: number): boolean {
   return nowMs - Date.parse(t.period.dataEnd) > STALE_AFTER_DAYS * 86_400_000
 }
+
+/** Whole days since the table's last observed hour when it is STALE; null while fresh. */
+export function staleDays(t: TouchTable, nowMs: number): number | null {
+  return isStale(t, nowMs) ? Math.floor((nowMs - Date.parse(t.period.dataEnd)) / 86_400_000) : null
+}

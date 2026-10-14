@@ -520,6 +520,9 @@ describe('reverse solve', () => {
       'Add 2.05 WETH → 1%',
     ])
     expect(rows.every((r) => r.horizon === '7d')).toBe(true)
+    // The row's parts: the action and its line carry no chance, so STALE can print them alone.
+    expect(rows[0]).toMatchObject({ action: 'Repay 1,780 USDC', line: 'line −21%' })
+    for (const r of rows) expect(r.text.startsWith(`${r.action} · ${r.line} · `)).toBe(true)
     for (const r of rows) {
       expect(r.newDistancePct).toBeGreaterThanOrEqual(r.level)
       expect(r.history.pct).toBeLessThanOrEqual(r.targetPct + 1e-9)

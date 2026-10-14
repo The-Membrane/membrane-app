@@ -50,12 +50,16 @@ const VenueLink: React.FC<{ href: string; venue: string; label: string; top?: bo
   </Link>
 )
 
-/** Why there are no rows, in one sentence the reader can check. */
-function emptyCopy(view: PositionView, horizon: HorizonId): string | null {
+/**
+ * Why there are no rows, in one sentence the reader can check. While STALE, the reasons
+ * that quote the model's chances ("already 5% or less") give way to the withheld line.
+ */
+function emptyCopy(view: PositionView, horizon: HorizonId, stale: boolean): string | null {
   if (view.hero.kind === 'unsplit') return null // the hero already says why
   if (view.basis.kind !== 'history' || !view.forecast) return 'No action rows without a forecast.'
   if (view.hero.kind === 'unreachable') return `A ${view.hero.direction} alone does not reach this line.`
   const { reason, met, beyond, pastTable } = view.forecast.byHorizon[horizon].solve
+  if (stale && (reason === 'met' || reason === 'beyond')) return null
   if (reason === 'no-lever') return 'No repay or top-up fits this position.'
   if (reason === 'beyond-table') {
     const lever = pastTable.length > 1 ? 'repay or top-up' : pastTable[0] === 'repay' ? 'repay' : 'top-up'
@@ -67,15 +71,25 @@ function emptyCopy(view: PositionView, horizon: HorizonId): string | null {
   return `Within ${HORIZON_WORDS[horizon]}: ${parts.join('; ')}.`
 }
 
-export const Actions: React.FC<{ view: PositionView; horizon: HorizonId; address: string }> = ({ view, horizon, address }) => {
+export const Actions: React.FC<{
+  view: PositionView
+  horizon: HorizonId
+  address: string
+  /** Days since the forecast's data ended, when it is STALE: its chances are withheld. */
+  staleDays: number | null
+}> = ({ view, horizon, address, staleDays }) => {
   if (view.hero.kind === 'no-debt') return null
   const venue = view.label.split(' · ')[0]
+  const stale = staleDays !== null && view.forecast !== null
   const rows = view.forecast?.byHorizon[horizon].actions ?? []
-  const empty = rows.length === 0 ? emptyCopy(view, horizon) : null
+  const empty = rows.length === 0 ? emptyCopy(view, horizon, stale) : null
+  // STALE hides the model's numbers (DESIGN_RULES §4): the action and its line stay.
+  const label = (a: (typeof rows)[number]) => (stale ? `${a.action} · ${a.line}†` : `${a.text}†`)
 
   return (
     <Section id="actions">
       <Kicker>Move your line · within {HORIZON_WORDS[horizon]}</Kicker>
+      {stale && <Small color={NEWS.ink2}>Chances withheld · forecast data {staleDays} days old</Small>}
       {rows.length > 0 ? (
         <Box display="grid" gridTemplateColumns={{ base: '1fr', lg: '1fr 1fr' }} columnGap={SPACING.lg} minW={0}>
           {(['repay', 'add'] as const).map((kind) => {
@@ -85,10 +99,10 @@ export const Actions: React.FC<{ view: PositionView; horizon: HorizonId; address
               <Box key={kind} borderTop={`1px solid ${NEWS.rule}`} minW={0}>
                 {group.map((a) =>
                   view.appUrl ? (
-                    <VenueLink key={a.text} href={view.appUrl} venue={venue} label={`${a.text}†`} />
+                    <VenueLink key={a.text} href={view.appUrl} venue={venue} label={label(a)} />
                   ) : (
                     <Mono key={a.text} minH="44px" py={SPACING.xs} borderBottom={`1px solid ${NEWS.rule}`}>
-                      {a.text}†
+                      {label(a)}
                     </Mono>
                   ),
                 )}

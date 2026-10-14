@@ -113,7 +113,9 @@ export const ForecastBlock: React.FC<{
   const hf = f.byHorizon[horizon]
   const marks = curveMarks(f, hf)
   const verb = f.direction === 'fall' ? 'falls' : 'rises'
-  const summary = hf.at
+  const summary = stale
+    ? `Chance ${f.asset} ${verb}: withheld, the history ends ${t.period.dataEnd.slice(0, 10)}, over ${STALE_AFTER_DAYS} days ago.`
+    : hf.at
     ? `Chance ${f.asset} ${verb} to your line (${fmtMove(hf.at.level, f.direction)}) within ${HORIZON_WORDS[horizon]}: ${formatChance(hf.at.touched, hf.at.n)}, likely ${formatBand(hf.at.lo, hf.at.hi, hf.at.n)}. Curve from ${fmtMove(hf.range.from, f.direction)} to ${fmtMove(hf.range.to, f.direction)}.`
     : `Chance ${f.asset} ${verb} ${hf.range.from}% to ${hf.range.to}% within ${HORIZON_WORDS[horizon]}.`
 

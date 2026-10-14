@@ -12,7 +12,7 @@ import { Box } from '@chakra-ui/react'
 import { SPACING } from '@/config/spacing'
 import { NEWS } from '@/components/NewsEdition/tokens'
 import { DEFAULT_HORIZON } from '@/lib/position/reverseSolve'
-import { TOUCH_TABLE, isStale, type HorizonId } from '@/lib/position/touchHistory'
+import { TOUCH_TABLE, staleDays, type HorizonId } from '@/lib/position/touchHistory'
 
 import { Actions } from './Actions'
 import { AddressForm } from './AddressForm'
@@ -40,8 +40,8 @@ const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
 
 /** The table's age never changes while the page is open; nothing to subscribe to. */
 const noSubscribe = () => () => {}
-const clientStale = () => isStale(TOUCH_TABLE, Date.now())
-const serverStale = () => false
+const clientStaleDays = () => staleDays(TOUCH_TABLE, Date.now())
+const serverStaleDays = () => null
 
 /** Before any read: what the page will read, so the gap in coverage is stated up front. */
 const COVERAGE = `Reads ${ADAPTER_ORDER.filter((a) => a.id !== 'fluid')
@@ -85,8 +85,9 @@ const Positions: React.FC<{
   onSelect: (key: string) => void
   failures: ReadStatusItem[]
   address: string
-  stale: boolean
-}> = ({ views, selected, onSelect, failures, address, stale }) => {
+  /** Days the forecast's data is past STALE, or null while fresh. */
+  staleAge: number | null
+}> = ({ views, selected, onSelect, failures, address, staleAge }) => {
   // One horizon drives the forecast, the curve and the levers (FORECAST_VISUALS.md §3).
   const [horizon, setHorizon] = useState<HorizonId>(DEFAULT_HORIZON)
   const hasLine = selected.hero.kind !== 'no-debt'
@@ -94,8 +95,8 @@ const Positions: React.FC<{
     <>
       {views.length > 1 && <PositionPicker views={views} selectedKey={selected.key} onSelect={onSelect} />}
       <Hero view={selected} />
-      <ForecastBlock view={selected} horizon={horizon} onHorizon={setHorizon} stale={stale} t={TOUCH_TABLE} />
-      <Actions view={selected} horizon={horizon} address={address} />
+      <ForecastBlock view={selected} horizon={horizon} onHorizon={setHorizon} stale={staleAge !== null} t={TOUCH_TABLE} />
+      <Actions view={selected} horizon={horizon} address={address} staleDays={staleAge} />
       {/* With no debt there is no line for the window to sit on. */}
       {hasLine && <MembraneLine />}
       <Rule strong mt={SPACING.xl} />
@@ -119,8 +120,9 @@ const Body: React.FC<{
   readId: string
   selected: PositionView | null
   onSelect: (key: string) => void
-  stale: boolean
-}> = ({ state, address, items, readId, selected, onSelect, stale }) => {
+  staleAge: number | null
+}> = ({ state, address, items, readId, selected, onSelect, staleAge }) => {
+  const stale = staleAge !== null
   if (state.kind === 'idle') return <MarketHistory t={TOUCH_TABLE} stale={stale} />
   if (!address) return null
   if (state.kind === 'reading') return <Reading address={address} />
@@ -141,7 +143,7 @@ const Body: React.FC<{
       onSelect={onSelect}
       failures={items.filter((i) => i.state === 'error')}
       address={address}
-      stale={stale}
+      staleAge={staleAge}
     />
   )
 }
@@ -158,10 +160,10 @@ export const PositionV0: React.FC = () => {
   const readId = `${address ?? ''}#${form.nonce}`
   const selectedKey = picked && picked.read === readId ? picked.key : null
   const onSelect = useCallback((key: string) => setPicked({ read: readId, key }), [readId])
-  // Whether the table's last observed hour is too old to quote. Read from the client clock
-  // AFTER hydration (the server snapshot is "not stale"), so a server and a browser on
-  // different clocks never render different markup.
-  const stale = useSyncExternalStore(noSubscribe, clientStale, serverStale)
+  // Days since the table's last observed hour when it is too old to quote, else null. Read
+  // from the client clock AFTER hydration (the server snapshot is "not stale"), so a server
+  // and a browser on different clocks never render different markup. Whole days: stable.
+  const staleAge = useSyncExternalStore(noSubscribe, clientStaleDays, serverStaleDays)
 
   const items = useMemo(() => readStatus(ADAPTER_ORDER, results), [results])
   const state = useMemo(() => pageState(address !== null, items, results, TOUCH_TABLE), [address, items, results])
@@ -190,7 +192,7 @@ export const PositionV0: React.FC = () => {
         </Box>
         <Rule mt={SPACING.base} />
 
-        <Body state={state} address={address} items={items} readId={readId} selected={selected} onSelect={onSelect} stale={stale} />
+        <Body state={state} address={address} items={items} readId={readId} selected={selected} onSelect={onSelect} staleAge={staleAge} />
       </Box>
     </Box>
   )

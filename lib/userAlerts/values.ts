@@ -1,7 +1,7 @@
 /**
  * CURRENT VALUES for user threshold alerts. Server-side. One reading per
  * (metric, subject), each naming its true source and its as-of, each classified
- * ok / stale / unavailable by that source's own cadence × 2 (evaluate.ts readingFrom).
+ * ok / stale / unavailable by that source's own cadence × 2 (freshness.ts classify — the same max ages the UI uses).
  * A stale or unavailable reading is never evaluated (evaluate.ts).
  *
  *  price        Chainlink USD aggregator proxies on Ethereum mainnet, read through
@@ -31,23 +31,27 @@ import { loadLatestSnapshotSet } from '@/lib/netApy/store'
 import { asOfOf } from '@/lib/netApy/types'
 import { venueByKey } from '@/lib/netApy/venues'
 
-import { readingFrom, readingKey, type Reading } from './evaluate'
+import { readingKey, type Reading } from './evaluate'
+import {
+  APR_ANCHOR_MAX_AGE_S,
+  APR_READ_MAX_AGE_S,
+  CHAINLINK_HEARTBEAT_S,
+  classify,
+  NET_APY_REUSE_S,
+  UTILIZATION_MAX_AGE_S,
+  type Raw,
+} from './freshness'
 import { parseSubject, PRICE_ASSETS, type Metric, type PriceAsset } from './metrics'
+
+// The max ages live in ./freshness (shared with the UI); re-exported for callers here.
+export { APR_ANCHOR_MAX_AGE_S, APR_READ_MAX_AGE_S, NET_APY_REUSE_S, UTILIZATION_MAX_AGE_S }
 
 type Sql = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<any[]>
 
 export const CHAINLINK_FEEDS: Record<PriceAsset, { proxy: `0x${string}`; description: string; decimals: number; heartbeatS: number }> = {
-  ETH: { proxy: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', description: 'ETH / USD', decimals: 8, heartbeatS: 3600 },
-  BTC: { proxy: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c', description: 'BTC / USD', decimals: 8, heartbeatS: 3600 },
+  ETH: { proxy: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', description: 'ETH / USD', decimals: 8, heartbeatS: CHAINLINK_HEARTBEAT_S },
+  BTC: { proxy: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c', description: 'BTC / USD', decimals: 8, heartbeatS: CHAINLINK_HEARTBEAT_S },
 }
-
-export const RECORDER_CADENCE_S = 3600
-export const UTILIZATION_MAX_AGE_S = 2 * RECORDER_CADENCE_S
-/** The net-APY route's live-read reuse window (pages/api/net-apy LATEST_MAX_AGE_S). */
-export const NET_APY_REUSE_S = 120
-export const APR_READ_MAX_AGE_S = 2 * NET_APY_REUSE_S
-/** The finalized anchor is ~13–19 min old when read (lib/netApy/read.ts resolveAnchor). */
-export const APR_ANCHOR_MAX_AGE_S = 2 * 19 * 60
 
 const AGGREGATOR_ABI = [
   { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] },
@@ -80,12 +84,12 @@ export type ValueSources = {
 
 export type Need = { metric: Metric; subject: string }
 
-const unavailable = (source: string, reason: string): Reading => ({ status: 'unavailable', source, reason })
+const unavailable = (source: string, reason: string): Raw => ({ status: 'unavailable', source, reason })
 
-/** Chainlink USD price for one asset, feed identity re-checked on every read. */
-export const chainlinkPrice =
-  (client: () => ContractReader, nowMs: () => number = Date.now) =>
-  async (asset: PriceAsset): Promise<Reading> => {
+/** Chainlink USD price for one asset, feed identity re-checked on every read. Unclassified. */
+export const chainlinkRaw =
+  (client: () => ContractReader) =>
+  async (asset: PriceAsset): Promise<Raw> => {
     const feed = CHAINLINK_FEEDS[asset]
     const source = `Chainlink ${feed.description}`
     try {
@@ -97,22 +101,16 @@ export const chainlinkPrice =
       }
       const [, answer, , updatedAt] = round as readonly [bigint, bigint, bigint, bigint, bigint]
       if (typeof answer !== 'bigint' || answer <= 0n) return unavailable(source, 'no positive answer')
-      return readingFrom({
-        value: Number(answer) / 10 ** feed.decimals,
-        asOfMs: Number(updatedAt) * 1000,
-        nowMs: nowMs(),
-        maxAgeS: 2 * feed.heartbeatS,
-        source,
-      })
+      return { status: 'raw', value: Number(answer) / 10 ** feed.decimals, asOfMs: Number(updatedAt) * 1000, source, maxAgeS: 2 * feed.heartbeatS }
     } catch (e) {
       return unavailable(source, redactError(e))
     }
   }
 
-/** The recorder's latest observed utilization for one venue (the venue page's stat). */
-export const recorderUtilization =
-  (sql: () => Sql, nowMs: () => number = Date.now) =>
-  async (venue: string): Promise<Reading> => {
+/** The recorder's latest observed utilization for one venue (the venue page's stat). Unclassified. */
+export const utilizationRaw =
+  (sql: () => Sql) =>
+  async (venue: string): Promise<Raw> => {
     const source = 'Membrane recorder · debt / (debt + available)'
     try {
       const [row] = await sql()`
@@ -123,14 +121,8 @@ export const recorderUtilization =
         LIMIT 1`
       if (!row) return unavailable(source, 'no observed snapshot')
       const u = row.utilizationPct === null || row.utilizationPct === undefined ? null : Number(row.utilizationPct)
-      if (u === null) return unavailable(source, 'no utilization in the latest snapshot')
-      return readingFrom({
-        value: u,
-        asOfMs: new Date(row.observedAt).getTime(),
-        nowMs: nowMs(),
-        maxAgeS: UTILIZATION_MAX_AGE_S,
-        source,
-      })
+      if (u === null || !Number.isFinite(u)) return unavailable(source, 'no utilization in the latest snapshot')
+      return { status: 'raw', value: u, asOfMs: new Date(row.observedAt).getTime(), source, maxAgeS: UTILIZATION_MAX_AGE_S }
     } catch (e) {
       return unavailable(source, redactError(e))
     }
@@ -146,10 +138,10 @@ export type AprSnapshot = {
   block: string
 }
 
-/** Supply APR now, in percent, from a net-APY snapshot. */
-export const netApySupplyApr =
-  (read: (venueKey: string) => Promise<AprSnapshot>, nowMs: () => number = Date.now) =>
-  async (venue: string): Promise<Reading> => {
+/** Supply APR now, in percent, from a net-APY snapshot. Unclassified (two ages: read, anchor). */
+export const aprRaw =
+  (read: (venueKey: string) => Promise<AprSnapshot>) =>
+  async (venue: string): Promise<Raw> => {
     const label = venueByKey(venue)?.label ?? venue
     let snap: AprSnapshot
     try {
@@ -157,19 +149,32 @@ export const netApySupplyApr =
     } catch (e) {
       return unavailable(`${label} supply APR · on-chain`, redactError(e))
     }
-    const source = `${label} supply APR · on-chain at block ${snap.block}`
-    const now = nowMs()
-    if (now - snap.readAtS * 1000 > APR_READ_MAX_AGE_S * 1000) {
-      return { status: 'stale', value: snap.supplyApr * 100, asOf: new Date(snap.anchorTs * 1000).toISOString(), source, maxAgeS: APR_READ_MAX_AGE_S }
-    }
-    return readingFrom({
+    return {
+      status: 'raw',
       value: snap.supplyApr * 100,
       asOfMs: snap.anchorTs * 1000,
-      nowMs: now,
+      source: `${label} supply APR · on-chain at block ${snap.block}`,
       maxAgeS: APR_ANCHOR_MAX_AGE_S,
-      source,
-    })
+      readAtMs: snap.readAtS * 1000,
+      readMaxAgeS: APR_READ_MAX_AGE_S,
+    }
   }
+
+/** Classified readers (fetch + judge now) — the shapes tests and one-off callers use. */
+export const chainlinkPrice =
+  (client: () => ContractReader, nowMs: () => number = Date.now) =>
+  async (asset: PriceAsset): Promise<Reading> =>
+    classify(await chainlinkRaw(client)(asset), nowMs())
+
+export const recorderUtilization =
+  (sql: () => Sql, nowMs: () => number = Date.now) =>
+  async (venue: string): Promise<Reading> =>
+    classify(await utilizationRaw(sql)(venue), nowMs())
+
+export const netApySupplyApr =
+  (read: (venueKey: string) => Promise<AprSnapshot>, nowMs: () => number = Date.now) =>
+  async (venue: string): Promise<Reading> =>
+    classify(await aprRaw(read)(venue), nowMs())
 
 /**
  * The real net-APY read for one venue. NEVER saves its one-venue set: the route's
@@ -194,15 +199,23 @@ async function readAprSnapshot(venueKey: string): Promise<AprSnapshot> {
   }
 }
 
-/** A tiny TTL cache for good readings (an unavailable one is retried next read). */
-const ttl = <A extends string>(ms: number, fn: (a: A) => Promise<Reading>) => {
-  const memo = new Map<A, { at: number; r: Reading }>()
+/**
+ * A TTL cache over RAW values: a hit is re-classified against the clock on every
+ * use, so a cached value turns stale exactly when an uncached one would. An
+ * unavailable result is not cached (retried next read).
+ */
+export const cachedSource = <A extends string>(ms: number, fetchRaw: (a: A) => Promise<Raw>, nowMs: () => number = Date.now) => {
+  const memo = new Map<A, { at: number; raw: Raw }>()
   return async (a: A): Promise<Reading> => {
+    const now = nowMs()
     const hit = memo.get(a)
-    if (hit && Date.now() - hit.at < ms) return hit.r
-    const r = await fn(a)
-    if (r.status !== 'unavailable') memo.set(a, { at: Date.now(), r })
-    return r
+    let raw: Raw
+    if (hit && now - hit.at < ms) raw = hit.raw
+    else {
+      raw = await fetchRaw(a)
+      if (raw.status !== 'unavailable') memo.set(a, { at: now, raw })
+    }
+    return classify(raw, nowMs())
   }
 }
 
@@ -215,9 +228,9 @@ let live: ValueSources | null = null
  */
 export const liveSources = (sql: () => Sql): ValueSources =>
   (live ??= {
-    price: ttl(60_000, chainlinkPrice(() => getMainnetClient() as unknown as ContractReader)),
-    utilization: ttl(60_000, recorderUtilization(sql)),
-    apr: ttl(NET_APY_REUSE_S * 1000, netApySupplyApr(readAprSnapshot)),
+    price: cachedSource(60_000, chainlinkRaw(() => getMainnetClient() as unknown as ContractReader)),
+    utilization: cachedSource(60_000, utilizationRaw(sql)),
+    apr: cachedSource(NET_APY_REUSE_S * 1000, aprRaw(readAprSnapshot)),
   })
 
 /** One reading per distinct need, in parallel. Never rejects. */
@@ -236,7 +249,7 @@ export async function readValues(needs: readonly Need[], sources: ValueSources):
       } else if (n.metric === 'apr' && s?.kind === 'venue') {
         r = await sources.apr(s.venue)
       } else {
-        r = unavailable('none', 'unsupported subject')
+        r = { status: 'unavailable', source: 'none', reason: 'unsupported subject' }
       }
       out.set(key, r)
     }),

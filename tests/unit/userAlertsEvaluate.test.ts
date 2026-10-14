@@ -19,6 +19,7 @@ import { allowListFrom, liveAllowList } from '@/lib/userAlerts/subjects'
 import {
   APR_ANCHOR_MAX_AGE_S,
   APR_READ_MAX_AGE_S,
+  cachedSource,
   chainlinkPrice,
   CHAINLINK_FEEDS,
   netApySupplyApr,
@@ -91,6 +92,13 @@ describe('evaluate', () => {
     expect(evaluate(t(), gone)).toEqual({ kind: 'skipped', reason: 'unavailable', crossed: false })
     expect(evaluate(t(), undefined)).toEqual({ kind: 'skipped', reason: 'unavailable', crossed: false })
     expect(evaluate(t(), ok(NaN))).toEqual({ kind: 'skipped', reason: 'unavailable', crossed: false })
+  })
+  it('a reading older than the one the state last moved on is superseded, never evaluated', () => {
+    const crossed = t({ crossedAt: '2026-10-14T11:30:00Z', lastAsOf: '2026-10-14T11:30:00.000Z' })
+    const older: Reading = { status: 'ok', value: 10, asOf: '2026-10-14T11:00:00.000Z', source: 'x' }
+    expect(evaluate(crossed, older)).toEqual({ kind: 'skipped', reason: 'superseded', crossed: true })
+    // the same as-of (same reading again) is evaluated as usual
+    expect(evaluate(crossed, { ...older, asOf: '2026-10-14T11:30:00.000Z' })).toEqual({ kind: 'cleared', value: 10 })
   })
   it('repeated reads are idempotent and a value hovering at the line does not flap', () => {
     // Drive a tiny state machine with a series of reads; count transitions.
@@ -245,6 +253,29 @@ describe('values — net-APY supply APR (injected read)', () => {
     expect((await netApySupplyApr(async () => snap({ readAtS: NOW / 1000 - APR_READ_MAX_AGE_S - 1 }), () => NOW)('aave-v3-usde')).status).toBe('stale')
     expect((await netApySupplyApr(async () => snap({ anchorTs: NOW / 1000 - APR_ANCHOR_MAX_AGE_S - 1 }), () => NOW)('aave-v3-usde')).status).toBe('stale')
     expect((await netApySupplyApr(async () => Promise.reject(new Error('reverted')), () => NOW)('aave-v3-usde')).status).toBe('unavailable')
+  })
+})
+
+describe('cachedSource — a cache hit ages like an uncached value', () => {
+  it('re-classifies the cached raw value against the clock on every hit', async () => {
+    let clock = NOW
+    let fetches = 0
+    const src = cachedSource(
+      3_600_000, // a long TTL: the hit must still turn stale on its own
+      async () => (fetches++, { status: 'raw' as const, value: 44, asOfMs: NOW - 7_000_000, source: 's', maxAgeS: 7200 }),
+      () => clock,
+    )
+    expect((await src('aave-v3-usde')).status).toBe('ok')
+    clock += 300_000 // the as-of is now past 2h
+    expect((await src('aave-v3-usde')).status).toBe('stale')
+    expect(fetches).toBe(1)
+  })
+  it('an unavailable result is not cached', async () => {
+    let fetches = 0
+    const src = cachedSource(60_000, async () => (fetches++, { status: 'unavailable' as const, source: 's', reason: 'down' }), () => NOW)
+    await src('x')
+    await src('x')
+    expect(fetches).toBe(2)
   })
 })
 

@@ -10,6 +10,7 @@ import {
   checkThreshold,
   describeThreshold,
   formatValue,
+  MAX_ACTIVE_PER_OWNER,
   METRIC_DP,
   METRIC_LABEL,
   subjectLabel,
@@ -30,23 +31,61 @@ export const controlTitle = (metric: Metric, subject: string): string => `${subj
 
 /**
  * The input's prefill: the CURRENT live value at the metric's display precision, or
- * '' when there is no live value. Never a made-up default.
+ * '' when there is no live value — or when it is stale (the evaluator would skip it,
+ * so offering it as "now" would mislead). Never a made-up default.
  */
-export const prefillText = (metric: Metric, current: number | null | undefined): string =>
-  current === null || current === undefined || !Number.isFinite(current) ? '' : current.toFixed(METRIC_DP[metric])
+export const prefillText = (metric: Metric, current: number | null | undefined, stale = false): string =>
+  stale || current === null || current === undefined || !Number.isFinite(current) ? '' : current.toFixed(METRIC_DP[metric])
 
-/** Typed text → number. Tolerates "$", "%", thousands commas and spaces; '' → NaN. */
+export const STALE_LINE = 'Not checked until the value is fresh.'
+
+/** The small line under the control: the value's as-of, or that it is stale. */
+export const stampText = (asOf: string | null | undefined, hasValue: boolean, stale: boolean): string => {
+  if (stale) return STALE_LINE
+  const at = asOf && hasValue ? `value as of ${asOf.slice(0, 16).replace('T', ' ')} UTC · ` : ''
+  return `${at}checked each time your feed is read`
+}
+
+export type Parsed = { ok: true; value: number } | { ok: false; message: string }
+
+/** Thousands separators: 1,234 · 12,345,678.9 (groups of exactly three). */
+const THOUSANDS = /^\d{1,3}(,\d{3})+(\.\d+)?$/
+/** One comma, no dot: the comma is the decimal mark (4,5 · 87,5). */
+const DECIMAL_COMMA = /^\d+,\d+$/
+const PLAIN = /^-?(\d+(\.\d*)?|\.\d+)$/
+
+/**
+ * Typed text → number, never guessing a 10× wrong value. "$", "%" and spaces are
+ * dropped. A comma is read as a thousands separator ONLY in strict groups of three
+ * (1,234.5); a single comma with no dot is the decimal mark (4,5 → 4.5); any other
+ * comma (1,23,4 · 4,5.6) is refused with a message rather than read either way.
+ */
+export const parseNumber = (text: string): Parsed => {
+  const s = text.replace(/[$%\s]/g, '')
+  if (s === '') return { ok: false, message: 'Enter a number.' }
+  let norm = s
+  if (s.includes(',')) {
+    if (THOUSANDS.test(s)) norm = s.replace(/,/g, '')
+    else if (DECIMAL_COMMA.test(s)) norm = s.replace(',', '.')
+    else return { ok: false, message: 'Use a dot for decimals, like 4.5.' }
+  }
+  if (!PLAIN.test(norm)) return { ok: false, message: 'Enter a plain number, like 4.5.' }
+  return { ok: true, value: Number(norm) }
+}
+
+/** parseNumber, as a number (NaN when it does not parse). */
 export const parseInput = (text: string): number => {
-  const s = text.replace(/[$%,\s]/g, '')
-  return s === '' ? NaN : Number(s)
+  const p = parseNumber(text)
+  return p.ok ? p.value : NaN
 }
 
 /** Every problem with the draft, in display order (threshold, address, opt-in). */
 export const draftErrors = (metric: Metric, draft: Draft, needsAddress: boolean): FieldError[] => {
   const out: FieldError[] = []
-  if (draft.input.trim() === '') out.push({ field: 'threshold', message: 'Enter a number.' })
+  const p = parseNumber(draft.input)
+  if (!p.ok) out.push({ field: 'threshold', message: p.message })
   else {
-    const c = checkThreshold(metric, parseInput(draft.input))
+    const c = checkThreshold(metric, p.value)
     if (!c.ok) out.push({ field: 'threshold', message: c.message })
   }
   if (needsAddress && !ADDRESS_RE.test(draft.address.trim())) out.push({ field: 'address', message: 'Enter a 0x address.' })
@@ -80,8 +119,10 @@ export const relationLine = (
   direction: Direction,
   threshold: number,
   current: number | null | undefined,
+  stale = false,
 ): string | null => {
-  if (current === null || current === undefined || !Number.isFinite(current) || !Number.isFinite(threshold)) return null
+  // A stale value is not "now": no distance, no "fires on the first check".
+  if (stale || current === null || current === undefined || !Number.isFinite(current) || !Number.isFinite(threshold)) return null
   const now = formatValue(metric, current)
   if (isPast(direction, current, threshold)) return `Now ${now}: already at or ${direction} it. Fires on the first check.`
   const gap =
@@ -117,7 +158,7 @@ export const submitOutcome = (status: number, body: SubmitResult | null): Outcom
   if (status === 200 && body?.feedUrl) {
     return { phase: 'success', feedUrl: body.feedUrl, telegramLink: body.telegramLink ?? null, id: body.id ?? null }
   }
-  if (status === 409) return { phase: 'cap', message: `${body?.max ?? 25} alerts max per feed. Stop one first.` }
+  if (status === 409) return { phase: 'cap', message: `${body?.max ?? MAX_ACTIVE_PER_OWNER} alerts max per feed. Stop one, or start a new feed.` }
   if (status === 400) {
     const f = body?.field
     const field = f === 'threshold' || f === 'optIn' ? f : f === 'ownerKey' ? 'address' : null
@@ -131,6 +172,7 @@ export const submitOutcome = (status: number, body: SubmitResult | null): Outcom
 export type OutcomeView =
   | { kind: 'stored'; feedUrl: string; telegramLink: string | null; id: string | null }
   | { kind: 'field'; error: FieldError }
+  | { kind: 'cap'; message: string }
   | { kind: 'message'; message: string }
 
 /**
@@ -143,12 +185,19 @@ export const outcomeView = (out: Outcome, addressFieldShown: boolean): OutcomeVi
     return { kind: 'field', error: { field: out.field, message: out.message } }
   }
   if (out.phase === 'unknownFeed') return { kind: 'message', message: 'Alerts are down right now. Try later.' }
+  // A full feed is not a dead end: the control offers "manage" and "start a new feed".
+  if (out.phase === 'cap') return { kind: 'cap', message: out.message }
   return { kind: 'message', message: out.message }
 }
 
 /** "Stored: ETH price below $2,500.00" */
 export const successLine = (metric: Metric, subject: string, direction: Direction, threshold: number): string =>
   `Stored: ${describeThreshold({ metric, subject, direction, threshold })}`
+
+/** The token-gated page that lists a feed's thresholds with Stop buttons. */
+export const manageHref = (token: string): string => `/alerts/${token}`
+
+export const LINK_WARNING = 'Anyone with this link can read these alerts.'
 
 /** The feed token inside a feed URL (to add the next alert to the same feed). */
 export const tokenFromFeedUrl = (url: string): string | null => /\/api\/alerts\/feed\/([0-9a-f]{64})/.exec(url)?.[1] ?? null

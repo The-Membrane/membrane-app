@@ -179,7 +179,7 @@ describe('planThresholdDeliveries', () => {
       delivered: [{ eventId: 'new', chatId: '200' }],
     })
     expect(out.map((d) => [d.eventId, d.chatId])).toEqual([['new', '100']])
-    expect(out[0].text).toBe('ETH price reached $2,498.10 (alert: below $2,500.00)\nChainlink ETH / USD · as of 2026-10-14 11:58 UTC\n/stop to unlink this chat')
+    expect(out[0].text).toBe('ETH price reached $2,498.10 (alert: below $2,500.00)\nChainlink ETH / USD · as of 2026-10-14 11:58 UTC\n/stop ends every alert in this chat')
   })
   it('caps per chat per run, oldest first, reporting the overflow', () => {
     const overflow: Array<[string, number]> = []
@@ -257,6 +257,21 @@ describe('sendThresholdAlerts', () => {
     expect(await sendThresholdAlerts(w.sql, { logic, config: lit, fetchImpl, log: silent })).toEqual({ sent: 0, failed: 1 })
     expect(w.ledger.size).toBe(0)
     expect(w.stopped).toEqual(['100'])
+  })
+
+  it('a group that became a supergroup: links AND the delivery ledger move, so nothing is re-sent', async () => {
+    const w = world()
+    const { fetchImpl } = tgStub(() => ({ ok: false, error_code: 400, description: 'group upgraded', parameters: { migrate_to_chat_id: -100999 } }))
+    await sendThresholdAlerts(w.sql, { logic, config: lit, fetchImpl, log: silent })
+    const moved = w.calls.find((c) => c.q.startsWith('UPDATE user_alert_deliveries x SET chat_id'))
+    expect(moved?.values.slice(0, 2)).toEqual(['-100999', '100'])
+    expect(moved?.q).toContain('NOT EXISTS')
+    expect(w.calls.some((c) => c.q.startsWith('UPDATE user_alert_chat_links l SET chat_id'))).toBe(true)
+    expect(w.ledger.size).toBe(0) // this event's claim released: it goes to the new id next run
+  })
+
+  it('/stop says exactly what it ends (addresses too)', () => {
+    expect(replyText({ kind: 'th_linked', active: 1 })).toContain('/stop ends every alert in this chat (feeds and Radar addresses)')
   })
 
   it('log lines carry counts only — never a threshold, value or owner', async () => {

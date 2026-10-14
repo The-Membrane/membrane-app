@@ -539,7 +539,9 @@ export async function sendThresholdAlerts(sql, { logic, config, evaluate = null,
     const to = migratedTo(r)
     if (to) {
       // A group became a supergroup: move its links (a feed the new chat already
-      // links is stopped on the old id) and let the next run deliver to the new id.
+      // links is stopped on the old id) AND its delivery ledger — otherwise every
+      // event already sent to the old id would be re-sent to the new one — and let
+      // the next run deliver this event to the new id.
       await release(d)
       skip.add(d.chatId)
       try {
@@ -548,6 +550,10 @@ export async function sendThresholdAlerts(sql, { logic, config, evaluate = null,
           WHERE l.chat_id = ${d.chatId}
             AND NOT EXISTS (SELECT 1 FROM user_alert_chat_links t WHERE t.chat_id = ${to} AND t.owner_id = l.owner_id)`
         await sql`UPDATE user_alert_chat_links SET stopped_at = now() WHERE chat_id = ${d.chatId} AND stopped_at IS NULL`
+        await sql`
+          UPDATE user_alert_deliveries x SET chat_id = ${to}
+          WHERE x.chat_id = ${d.chatId}
+            AND NOT EXISTS (SELECT 1 FROM user_alert_deliveries y WHERE y.chat_id = ${to} AND y.event_id = x.event_id)`
         log('telegram threshold alerts: chat migrated to a supergroup — links moved, sends next run')
       } catch (e) {
         log(`telegram threshold alerts: chat migration failed — ${e?.name ?? 'error'}`)

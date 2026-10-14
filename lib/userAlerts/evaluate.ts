@@ -13,6 +13,11 @@
  * stored state stands and the feed says the threshold was not checked. Evaluating
  * the same reading twice is a no-op the second time (the state already moved), so
  * repeated feed reads are idempotent; the store backs this with a compare-and-set.
+ *
+ * OUT-OF-ORDER READINGS: two server instances can hold different cached readings.
+ * A reading measured BEFORE the one the threshold last moved on (`lastAsOf`) is
+ * SUPERSEDED and never evaluated, so an older cache cannot clear a newer crossing
+ * (or re-cross a newer clear). The store guards the same condition in SQL.
  */
 
 import { hysteresisBand, type Direction, type Metric } from './metrics'
@@ -28,10 +33,14 @@ export type ThresholdState = {
   threshold: number
   /** Start of the current crossing; null when not crossed. */
   crossedAt: string | null
+  /** As-of of the reading the stored state last moved on; null before the first. */
+  lastAsOf?: string | null
 }
 
+export type SkipReason = 'stale' | 'unavailable' | 'superseded'
+
 export type Evaluation =
-  | { kind: 'skipped'; reason: 'stale' | 'unavailable'; crossed: boolean }
+  | { kind: 'skipped'; reason: SkipReason; crossed: boolean }
   | { kind: 'crossed'; value: number }
   | { kind: 'cleared'; value: number }
   | { kind: 'held'; value: number; crossed: boolean }
@@ -52,6 +61,7 @@ export const evaluate = (t: ThresholdState, reading: Reading | undefined | null)
   if (reading.status === 'stale') return { kind: 'skipped', reason: 'stale', crossed }
   const value = reading.value
   if (!Number.isFinite(value)) return { kind: 'skipped', reason: 'unavailable', crossed }
+  if (t.lastAsOf && Date.parse(reading.asOf) < Date.parse(t.lastAsOf)) return { kind: 'skipped', reason: 'superseded', crossed }
   if (!crossed) return isPast(t.direction, value, t.threshold) ? { kind: 'crossed', value } : { kind: 'held', value, crossed }
   return isBack(t.metric, t.direction, value, t.threshold) ? { kind: 'cleared', value } : { kind: 'held', value, crossed }
 }

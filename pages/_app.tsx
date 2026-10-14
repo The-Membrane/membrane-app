@@ -51,6 +51,8 @@ export const queryClient = new QueryClient({
 import '../styles/fonts.css';
 import '../styles/global.css';
 import '../styles/themes.css';
+// Newspaper token layer: matches only while a .news-edition root is mounted.
+import '../styles/news-edition.css';
 import Seo from '@/components/Seo'
 import NeonBootSplash from '@/components/ui/NeonBootSplash'
 import { usePageTitle } from '@/hooks/usePageTitle'

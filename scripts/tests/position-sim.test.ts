@@ -505,14 +505,18 @@ test('a deep venue lets Membrane cure without SELLING collateral — and the cal
 })
 
 test('the recall rate is the dominant variable once it binds', () => {
-  const { path, unpriced } = crashPath()
-  // Deployed capital is sized so the RATE actually binds. At 400k even a 10% rate
-  // covers the whole call, so every rate gives the same answer — a real property of
-  // the engine, not a bug, but useless as a test of sensitivity.
+  // The recall rate is the capital a full 8h window brings, so it binds at EXPIRY: an 8%
+  // drop holds the position in band (300k / 368k = 81.5% vs the 80% line, 83.2% break)
+  // until the window ends. A band break minutes after the breach only gets the fast share
+  // (here 0), so a crash path would not exercise the rate at all.
+  // Deployed capital is sized so the RATE actually binds: at 95% the recall alone gets
+  // the position under its line (the paid recall-only lane, only the fee leaves); at 10%
+  // it does not, and the shortfall is sold from collateral with the fee on top.
+  const { path, unpriced } = bandPath(0.08, 600, false)
   const mk = (recallRate: number) =>
-    runComparison(crashTestPosition(), path, unpriced, {
+    runComparison(bandPosition(), path, unpriced, {
       ...baseOpts,
-      venue: { recallRate, fastRate: 0, deployedUsd: 60_000, provenance: {} as never },
+      venue: { recallRate, fastRate: 0, deployedUsd: 30_000, provenance: {} as never },
     })
   const deep = mk(0.95)
   const shallow = mk(0.1)
@@ -1488,6 +1492,47 @@ test('the breach draws only the fast share; the sale that ends the window draws 
     1e-6,
   )
   close(cmp.membrane.endDeployedUsd, 0, 'the venue is drawn to its recall rate', 1e-9)
+})
+
+test('a band break minutes after the breach draws only the fast share, not the recall rate', () => {
+  // The common Oct 10 shape: breach in band at minute 2 (ETH 4000 -> 3720, LTV 80.6%), band
+  // broken at minute 3 (ETH 3500, LTV 85.7% > 83.2%). A cooldown venue (recall 0.3, fast 0,
+  // $40k) has had one minute, not the window: it returns nothing, and the band sale runs
+  // exactly as with no venue at all. Only a sale at EXPIRY may draw the recall rate.
+  const eth = [4000, 4000, 3720, ...new Array(60).fill(3500)]
+  const { path, unpriced } = buildPricePath(
+    {
+      startTs: 1_760_054_400,
+      stepSeconds: 60,
+      count: eth.length,
+      columns: { ethOracle: eth, btcOracle: eth.map(() => 100_000) },
+      carried: {},
+    },
+    fakeManifest,
+    ['WETH', 'USDC'],
+  )
+  const withVenue = runComparison(bandPosition(), path, unpriced, {
+    ...baseOpts,
+    venue: venueOf(40_000, 0.3, 0),
+  })
+  const noVenue = runComparison(bandPosition(), path, unpriced, { ...baseOpts, venue: null })
+  const ev = withVenue.membrane.events
+  assert.deepStrictEqual(
+    ev.map((e) => [e.minute, e.kind]),
+    [
+      [2, 'breach'],
+      [3, 'liquidation'],
+    ],
+    'breach, then the band sale — no recall, no recall-only lane',
+  )
+  assert.strictEqual(ev[1].recalledUsd, 0, 'nothing recalled at a band break one minute in')
+  close(
+    ev[1].seizedUsd,
+    noVenue.membrane.events.find((e) => e.kind === 'liquidation')!.seizedUsd,
+    'the band sale sells what it sells with no venue',
+    1e-9,
+  )
+  close(withVenue.membrane.endDeployedUsd, 40_000, 'the cooldown capital stays deployed', 1e-9)
 })
 
 test('collateral wiped with debt left and no venue: no $0 events, never a "recall"', () => {

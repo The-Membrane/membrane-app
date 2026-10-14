@@ -323,8 +323,6 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
     let ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
     if (Number.isFinite(ltv)) peakLtv = Math.max(peakLtv, ltv)
 
-    /** A window was running coming into this minute: a sale now ENDS a window. */
-    const windowRan = timer.armed
     const act = d > 0 ? timer.step(i, ltv) : ({ kind: 'none' } as const)
     const ts = path.startTs + i * path.stepSeconds
 
@@ -341,16 +339,19 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
      *   - a call at the breach (arm), inside the window (hold), or at a sale with no window
      *     (instant, or Immediate past the band with no timer) can recall only what is there
      *     NOW or inside the 8h: up to `fastRate` of the deployed capital, cumulative;
-     *   - a sale that ENDS a window (band break or expiry after the timer armed) can draw up
-     *     to `recallRate` of it, cumulative — the slower capital has had the window to come.
+     *   - a sale at EXPIRY — the full 8h window has run — can draw up to `recallRate` of
+     *     it, cumulative: the slower capital has had the whole window to come. A band break
+     *     can happen minutes after the breach (on Oct 10 the median priced band sale came 4
+     *     minutes after its breach), so it gets only `fastRate`, like any other early call.
      * A dollar drawn once is gone. A venue with a cooldown (sUSDe: recall 0.3, fast 0)
-     * therefore returns nothing at the breach and only at the end of a window.
+     * therefore returns nothing at the breach or at a band break, only at expiry.
      */
     if (act.kind === 'arm' || act.kind === 'hold' || act.kind === 'sell') {
       const brokeWindow = act.kind === 'sell' && act.reason === 'band'
       /** No window for this position: instant mode (LiquidationEngine.sol:1572). */
       const instant = act.kind === 'sell' && act.reason === 'instant'
-      const ceiling = act.kind === 'sell' && windowRan ? Math.max(recallRate, fastRate) : fastRate
+      const ceiling =
+        act.kind === 'sell' && act.reason === 'expiry' ? Math.max(recallRate, fastRate) : fastRate
       const available = Math.max(0, deployedStart * ceiling - venueDrawn)
       const recalled = Math.min(available, d)
       const dPost = d - recalled
@@ -678,7 +679,7 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   )
   if (opts.venue) {
     caveats.push(
-      `Every call recalls venue capital first, toward the whole debt. At the breach, and at a sale with no ${CURE_WINDOW_HOURS}-hour window, only the fast share is there to recall; a sale that ends a window can draw up to the recall rate. If the recall alone brings the position back under its line, nothing is sold, but the call still pays the liquidation fee from collateral, on at most what a normal liquidation would have repaid. If not, the recall stays and only the rest is sold.`,
+      `Every call recalls venue capital first, toward the whole debt. At the breach, and at a sale with no ${CURE_WINDOW_HOURS}-hour window, only the fast share is there to recall; only a sale after the full ${CURE_WINDOW_HOURS} hours can draw up to the recall rate. If the recall alone brings the position back under its line, nothing is sold, but the call still pays the liquidation fee from collateral, on at most what a normal liquidation would have repaid. If not, the recall stays and only the rest is sold.`,
     )
   }
   caveats.push(

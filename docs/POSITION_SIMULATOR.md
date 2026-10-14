@@ -345,9 +345,11 @@ call inside the window finds nothing new). At each, it recalls `R = min(availabl
 - **Available** maps onto the two inputs, conservatively, so both stay meaningful (the
   page clamps `fastRate` ≤ `recallRate`, `Controls.tsx:301-313`). A call at the breach,
   inside the window, or at a sale with no window running can recall only what is there now
-  or inside the 8 hours: up to `fastRate` of the deployed capital, cumulative. A sale that
-  ENDS a window (band break or expiry after the timer armed) can draw up to `recallRate`,
-  cumulative. A cooldown venue (sUSDe: recall 0.3, fast 0) returns nothing at the breach.
+  or inside the 8 hours: up to `fastRate` of the deployed capital, cumulative. Only a sale
+  at EXPIRY, after the full 8-hour window has run, can draw up to `recallRate`, cumulative.
+  A band break gets `fastRate` like any early call: it can come minutes after the breach
+  (the median priced band sale on Oct 10 came 4 minutes after its breach). A cooldown venue
+  (sUSDe: recall 0.3, fast 0) returns nothing at the breach or at a band break.
 - **After the recall the LTV is at or under the line** → the recall-only lane
   (`:1603-1658`, trigger `:1623`). Nothing is sold, any timer is deleted, and the call
   is paid the fee from collateral on `min(restore-to-cap target at the PRE-recall state,

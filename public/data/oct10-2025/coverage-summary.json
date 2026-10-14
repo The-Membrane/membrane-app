@@ -117,33 +117,33 @@
    "real": {
     "positions": 3157,
     "events": 3991,
-    "repaidUsd": 186009210.18,
-    "seizedUsd": 196149736.16,
+    "repaidUsd": 186004821.14,
+    "seizedUsd": 196145154.69,
     "badDebtUsd": 275716.58,
-    "unpricedEvents": 10,
-    "unpricedPositions": 10
+    "unpricedEvents": 13,
+    "unpricedPositions": 13
    },
    "mem": {
     "positions": 3157,
-    "repaidUsd": 149618915.15,
-    "soldUsd": 149576521.07,
+    "repaidUsd": 149618755.49,
+    "soldUsd": 149576361.41,
     "sales": 3240,
     "positionsSold": 2536,
     "positionsSoldAtGridEnd": 72,
     "positionsKept": 621,
-    "unpricedSales": 9,
-    "unpricedPositions": 10
+    "unpricedSales": 11,
+    "unpricedPositions": 13
    }
   },
   "all": {
    "real": {
     "positions": 3163,
     "events": 3997,
-    "repaidUsd": 186019070.55,
-    "seizedUsd": 196161267.95,
+    "repaidUsd": 186014681.51,
+    "seizedUsd": 196156686.48,
     "badDebtUsd": 275716.58,
-    "unpricedEvents": 10,
-    "unpricedPositions": 10
+    "unpricedEvents": 13,
+    "unpricedPositions": 13
    }
   },
   "byProtocol": {
@@ -173,22 +173,22 @@
     "real": {
      "positions": 744,
      "events": 885,
-     "repaidUsd": 39580167.84,
-     "seizedUsd": 41543427.83,
+     "repaidUsd": 39575778.8,
+     "seizedUsd": 41538846.36,
      "badDebtUsd": 275716.58,
-     "unpricedEvents": 10,
-     "unpricedPositions": 10
+     "unpricedEvents": 13,
+     "unpricedPositions": 13
     },
     "mem": {
      "positions": 744,
-     "repaidUsd": 17451734.59,
-     "soldUsd": 17438908.18,
+     "repaidUsd": 17451574.93,
+     "soldUsd": 17438748.52,
      "sales": 520,
      "positionsSold": 503,
      "positionsSoldAtGridEnd": 14,
      "positionsKept": 241,
-     "unpricedSales": 9,
-     "unpricedPositions": 10
+     "unpricedSales": 11,
+     "unpricedPositions": 13
     }
    }
   },
@@ -285,22 +285,22 @@
     "real": {
      "positions": 552,
      "events": 617,
-     "repaidUsd": 19204439.9,
-     "seizedUsd": 20067990.97,
+     "repaidUsd": 19200050.86,
+     "seizedUsd": 20063409.5,
      "badDebtUsd": 617.42,
-     "unpricedEvents": 2,
-     "unpricedPositions": 2
+     "unpricedEvents": 5,
+     "unpricedPositions": 5
     },
     "mem": {
      "positions": 552,
-     "repaidUsd": 8189443.37,
-     "soldUsd": 8188643.41,
+     "repaidUsd": 8189283.71,
+     "soldUsd": 8188483.75,
      "sales": 352,
      "positionsSold": 339,
      "positionsSoldAtGridEnd": 11,
      "positionsKept": 213,
-     "unpricedSales": 1,
-     "unpricedPositions": 2
+     "unpricedSales": 3,
+     "unpricedPositions": 5
     }
    },
    "morpho-blue:mainnet": {
@@ -338,15 +338,15 @@
   "ETH": {
    "positions": 1023,
    "walked": 1023,
-   "realRepaidUsdWalked": 75748164.35,
-   "memRepaidUsd": 60569955.74,
+   "realRepaidUsdWalked": 75748158.76,
+   "memRepaidUsd": 60569950.09,
    "positionsSold": 805
   },
   "BTC": {
    "positions": 689,
    "walked": 689,
-   "realRepaidUsdWalked": 74214529.25,
-   "memRepaidUsd": 18905568.15,
+   "realRepaidUsdWalked": 74210145.8,
+   "memRepaidUsd": 18905414.14,
    "positionsSold": 415
   },
   "OP": {
@@ -439,7 +439,7 @@
  "sensitivity": {
   "walkOnAfterT0BandSale": {
    "rule": "cureWalk sells a delayed position already past line x (1 + band) at t0 ONCE and stops walking it; every other sale walks on. This rebuild walks those on too.",
-   "memRepaidUsd": 155419376.15,
+   "memRepaidUsd": 155419216.49,
    "deltaUsd": 5800461,
    "positionsChanged": 72,
    "positionsSoldAtT0PastBand": 677

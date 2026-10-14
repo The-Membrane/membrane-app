@@ -1,0 +1,36 @@
+{
+  "move24hP95": 0.08141851540844403,
+  "gapP99": 0.007311082682097922,
+  "gapP999": 0.016709005278119516,
+  "gapQuantile": "p99.9",
+  "n": {
+    "move24h": 56911,
+    "gap": 56944
+  },
+  "period": {
+    "from": "2020-01-15T22:00:00Z",
+    "to": "2026-10-06T03:00:00Z",
+    "move24h": {
+      "from": "2020-01-16T22:00:00Z",
+      "to": "2026-10-06T03:00:00Z"
+    },
+    "gap": {
+      "from": "2020-01-15T22:00:00Z",
+      "to": "2026-10-06T03:00:00Z"
+    }
+  },
+  "method": {
+    "quantile": "linear interpolation between order statistics (Hyndman & Fan type 7, the numpy and R default): sort the n values ascending as x[0..n−1]; h = (n − 1)·p; q = x[⌊h⌋] + (h − ⌊h⌋)·(x[⌊h⌋+1] − x[⌊h⌋])",
+    "move24h": "m_t = |oracle_t / oracle_{t−24h} − 1| at every hour end t where both values are observed (oracle column as built: the Chainlink ETH/USD answer in force at each hour end)",
+    "gap": "g_t = |oracle_t / coinbase_t − 1| at every hour end t where both values are observed (coinbase column: the Coinbase Exchange ETH-USD 1h candle close)",
+    "timestamps": "hour-end UTC (price-history convention: index i opens at startTs + i·3600; value = price at the end of that hour)"
+  },
+  "source": {
+    "repo": "triccs/membrane-datasets",
+    "commit": "42c792dfde51b3dc3b1f394044613fca3a2b141d",
+    "path": "price-history/eth-usd-1h.json",
+    "sha256": "48b53d72351dbba6b05939a75660babc361678304747bf764d59e97d968bd26c"
+  },
+  "generatedAt": "2026-10-14T01:09:09.280Z",
+  "generatedBy": "scripts/regime/build-m0-thresholds.mjs"
+}

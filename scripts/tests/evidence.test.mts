@@ -148,7 +148,8 @@ assert.ok(
   'every unlocated-line row really is still under its line AFTER the rebase',
 )
 assert.ok(
-  excMixed.length > 0 && excMixed.every((r) => r.delayClass === 'mixed' && r.ltv0 > r.liqLine - EPS),
+  excMixed.length > 0 &&
+    excMixed.every((r) => r.delayClass === 'mixed' && r.ltv0 > r.liqLine - EPS),
   'every mixed-class row is a BREACHED account whose collateral spans both delay classes',
 )
 assert.ok(
@@ -405,7 +406,9 @@ const ber = excMeta.byExclusionRule
 assert.strictEqual(ber.unlocatedLine.accounts, excUnlocated.length, 'byExclusionRule: unlocated')
 assert.strictEqual(ber.mixedDelayClass.accounts, excMixed.length, 'byExclusionRule: mixed')
 assert.ok(
-  Math.abs(ber.unlocatedLine.aaveClosedUsd + ber.mixedDelayClass.aaveClosedUsd - excMeta.aaveClosedUsd) < 1,
+  Math.abs(
+    ber.unlocatedLine.aaveClosedUsd + ber.mixedDelayClass.aaveClosedUsd - excMeta.aaveClosedUsd,
+  ) < 1,
   'the two rules partition the excluded Aave dollars',
 )
 assert.ok(
@@ -659,9 +662,19 @@ checks += 4
 // ADDED 2026-10-14. A no-delay row (stable collateral, or its own line above 90%) is sold
 // the minute it is over its line (curePath.ts clause vii): no window, so never cured.
 const dc = (doc.meta as any).delayClass
-assert.ok(dc && typeof dc.rule === 'string' && dc.sources.length > 5, 'meta.delayClass states its rule and cites')
-assert.ok(dc.stableSymbols.includes('USDC') && dc.stableSymbols.includes('USDe'), 'the shared stable list')
-assert.deepStrictEqual(dc.measuredStables, ['USDe', 'sUSDe'], 'USDe/sUSDe are measured, not held at $1')
+assert.ok(
+  dc && typeof dc.rule === 'string' && dc.sources.length > 5,
+  'meta.delayClass states its rule and cites',
+)
+assert.ok(
+  dc.stableSymbols.includes('USDC') && dc.stableSymbols.includes('USDe'),
+  'the shared stable list',
+)
+assert.deepStrictEqual(
+  dc.measuredStables,
+  ['USDe', 'sUSDe'],
+  'USDe/sUSDe are measured, not held at $1',
+)
 for (const [label, rows] of [
   ['cohort', doc.cohort as any[]],
   ['included', inc],
@@ -700,7 +713,9 @@ assert.strictEqual(
   'the histogram counts the no-delay sales',
 )
 assert.ok(
-  ndInc.filter((r) => r.outcome === 'sold-no-delay').every((r) => r.closedAtIndex === 0 && r.minutesToFirstCure === null),
+  ndInc
+    .filter((r) => r.outcome === 'sold-no-delay')
+    .every((r) => r.closedAtIndex === 0 && r.minutesToFirstCure === null),
   'and every one of them is sold at t0 with no cure',
 )
 assert.ok(
@@ -711,11 +726,18 @@ assert.ok(
   inc.filter((r) => r.liqLine > 0.9).every((r) => r.delayClass === 'no-delay'),
   'every included line above 90% is no-delay — only that class can carry one',
 )
-assert.strictEqual(dc.linesAbove90.included, inc.filter((r) => r.liqLine > 0.9).length, 'lines > 90% counted')
+assert.strictEqual(
+  dc.linesAbove90.included,
+  inc.filter((r) => r.liqLine > 0.9).length,
+  'lines > 90% counted',
+)
 // The cure diagnostic: no window, so never cured, and the dropped count stays visible.
 const ndCur = cur.filter((r: any) => r.cure!.noWindow)
 assert.ok(
-  ndCur.every((r: any) => r.delayClass === 'no-delay' && !r.cure!.curedInWindow && r.cure!.minutesToCure === null),
+  ndCur.every(
+    (r: any) =>
+      r.delayClass === 'no-delay' && !r.cure!.curedInWindow && r.cure!.minutesToCure === null,
+  ),
   'a no-delay row is never curedInWindow',
 )
 assert.strictEqual(doc.time.noDelay!.accounts, ndCur.length, 'time.noDelay.accounts recomputes')
@@ -726,7 +748,10 @@ assert.strictEqual(
 )
 // The old all-delayed treatment, published as a sensitivity: it IS the previous headline.
 const sd = (doc.meta as any).sensitivity.stablesDelayed
-assert.ok(sd && sd.priced.accounts > D.priced.accounts, 'stablesDelayed keeps the mixed rows the rule excludes')
+assert.ok(
+  sd && sd.priced.accounts > D.priced.accounts,
+  'stablesDelayed keeps the mixed rows the rule excludes',
+)
 assert.ok(
   Math.abs(sd.pricedDeltaUsd - (D.priced.membraneClosedUsd - sd.priced.membraneClosedUsd)) < 1,
   'its priced delta is the subtraction it claims',

@@ -25,7 +25,22 @@ import { HELD_AT_ONE } from '@/lib/position-sim/scenario'
 describe('the stable definition', () => {
   it('is the union of the two old lists plus the measured synthetic dollars', () => {
     const oldHeldAtOne = ['USDC', 'USDT', 'DAI', 'USDS', 'GHO', 'sDAI', 'sUSDS']
-    const oldCensusStables = ['USDC', 'USDT', 'USD₮0', 'USDT0', 'DAI', 'GHO', 'LUSD', 'USDS', 'sUSD', 'FRAX', 'USDC.e', 'crvUSD', 'MAI', 'USDbC']
+    const oldCensusStables = [
+      'USDC',
+      'USDT',
+      'USD₮0',
+      'USDT0',
+      'DAI',
+      'GHO',
+      'LUSD',
+      'USDS',
+      'sUSD',
+      'FRAX',
+      'USDC.e',
+      'crvUSD',
+      'MAI',
+      'USDbC',
+    ]
     const union = new Set([...oldHeldAtOne, ...oldCensusStables, 'USDe', 'sUSDe'])
     expect(new Set(STABLE_SYMBOLS)).toEqual(union)
     expect(STABLE_SYMBOLS.length).toBe(union.size)

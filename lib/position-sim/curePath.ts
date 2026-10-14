@@ -453,7 +453,11 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
     if (firstIndex === null) {
       firstIndex = i
       firstOutcome =
-        reason === 'band' ? 'sold-at-band' : reason === 'instant' ? 'sold-no-delay' : 'sold-at-expiry'
+        reason === 'band'
+          ? 'sold-at-band'
+          : reason === 'instant'
+            ? 'sold-no-delay'
+            : 'sold-at-expiry'
     }
     debt -= repaid
     collBase = r > 0 ? (collAt - seized) / r : 0

@@ -228,7 +228,7 @@ own series.
 | Launch listing: sUSDS, syrupUSDC, scrvUSD at 96e16; WETH at 90e16 | `script/DeployFullSystem.s.sol:269-272` | the stable ⇒ no-delay assumption, `collateralClass.ts:101` |
 | Instant mode: threshold = line, `currentLtv > threshold` ⇒ Immediate | `LiquidationEngine.sol:1572-1576`, `:1694-1703` | `curePath.ts:226` (`sell`, reason `instant`, strict `>`) |
 | A timer can never arm in instant mode | `LiquidationEngine.sol:1708-1710` (`InstantModeNotLiquidatable`) | `curePath.ts:226` (never returns `arm`) |
-| No-delay walk: sold at t0, walks on, sold again on a later breach | as above, plus the repay-to-cap `LiquidationEngine.sol:2204-2238` | `curePath.ts:393`, `:466` (`cureWalk` `noDelay`, outcome `sold-no-delay`) |
+| No-delay walk: sold at t0, walks on, sold again on a later breach | as above, plus the repay-to-cap `LiquidationEngine.sol:2204-2238` | `curePath.ts:393`, `:470` (`cureWalk` `noDelay`, outcome `sold-no-delay`) |
 | Stable and volatile collateral may not share a position | `Cdp.sol:1650-1651` → `MixedDelayClassCollateral`, `Collateral.sol:789-793` | `collateralClass.ts:133` `delayClassOf` → `'mixed'` |
 | Paid recall-only lane: a recall that alone cures pays the keeper's fee | `LiquidationEngine.sol:1603-1658` (trigger `:1623`, fee base `:1653-1654`, fee `:1821-1838`, `:1877`, `:1887`, sale steps skipped `:1137-1141`) | `compare.ts:359` (in-window cure), `:392`/`:404` (sale whose shortfall is zero) |
 | Post-check: a liquidation may not raise LTV | `Cdp.sol:2494-2498` (`LiquidationRaisedLtv`) | **not modelled** — caveat, `compare.ts:587` |
@@ -241,7 +241,7 @@ own series.
   minute 0, so both halves open at the position's own LTV (the neutral split). Each half
   runs in its own class against its own line, and the halves are summed into one run. The
   split is modelled, and the run says so in a caveat: a borrower could split differently.
-- *Census* (`scripts/build-evidence.ts:665-677`). A liquidated account whose collateral
+- *Census* (`scripts/build-evidence.ts:665-682`). A liquidated account whose collateral
   spans both classes is a position that cannot exist on Membrane, so there is nothing to
   compare. It is **excluded from both sides**, like an unlocated line, and counted under
   `meta.excluded.byReason.mixedDelayClass`. An account that is both unlocated and mixed

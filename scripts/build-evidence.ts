@@ -662,7 +662,12 @@ function buildCohort(opts: CohortOpts = {}) {
     // --- the delay class, from collateralClass.ts — the SAME rule the simulator runs ---
     // Every collateral symbol the account was liquidated against, and its own line: a line
     // above 90% can only be a no-delay listing (Collateral.sol:424-426, :538-540).
-    const delayClass: DelayClass = allDelayed ? 'delayed' : delayClassOf(evs.map((e) => e.csym), lt)
+    const delayClass: DelayClass = allDelayed
+      ? 'delayed'
+      : delayClassOf(
+          evs.map((e) => e.csym),
+          lt,
+        )
     /**
      * Stable and volatile collateral in one position cannot exist on Membrane: the CDP
      * reverts `MixedDelayClassCollateral` when the second class enters (Cdp.sol:1650-1651,
@@ -2274,8 +2279,9 @@ const doc = {
      */
     noDelay: {
       accounts: cur.filter((r) => r.cure.noWindow).length,
-      wouldHaveCuredWithWindow: cur.filter((r) => r.cure.noWindow && r.cure.wouldHaveCuredWithWindow)
-        .length,
+      wouldHaveCuredWithWindow: cur.filter(
+        (r) => r.cure.noWindow && r.cure.wouldHaveCuredWithWindow,
+      ).length,
       note:
         'No-delay accounts (stable collateral, or a line above 90%) are sold the minute they ' +
         'are over their line, so they cannot cure in a window and count as not cured. This ' +

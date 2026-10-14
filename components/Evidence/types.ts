@@ -36,7 +36,10 @@ export interface EvidenceMeta {
     reason: string
     rebasedIntoBreach: number
     /** The two exclusion rules, a partition of the excluded rows. */
-    byExclusionRule?: Record<'unlocatedLine' | 'mixedDelayClass', { accounts: number; aaveClosedUsd: number }>
+    byExclusionRule?: Record<
+      'unlocatedLine' | 'mixedDelayClass',
+      { accounts: number; aaveClosedUsd: number }
+    >
     /** Mutually exclusive reasons, in priority order; includes `mixedDelayClass`. */
     byReason?: Record<string, { accounts: number; aaveClosedUsd: number }>
   }

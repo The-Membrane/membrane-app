@@ -992,7 +992,90 @@ export const CuratorFeed: React.FC = () => {
   )
 }
 
-/** Compact card: open clusters and the next timelocks to elapse. Links to the full page. */
+// ── compact card ─────────────────────────────────────────────────────────────────
+// Mounted on data pages (the Today edition's Safety body; the venue page), so it
+// follows the newspaper rules (membrane-board design/DESIGN_RULES.md) on every page it
+// sits on: a hairline rule instead of a filled card, no amber (amber means only the 8h
+// window: a pending timelock is ink), red with ✖ only for a cluster of exits (curated
+// capital leaving), muted ink for history, nothing under 11px, 44px targets. Its
+// colours are the app tokens, so it reads in both app themes and inside the edition.
+
+const CARD_LABEL = {
+  fontFamily: TYPOGRAPHY.fontMono,
+  fontSize: '11px',
+  lineHeight: '16px',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase' as const,
+}
+
+/** The card's short form of a cluster ("2 curators exited LBTC within 15h"); the full
+ *  sentence (lib/curatorFeed/service.ts clusterText) is its tooltip and on the full page. */
+const clusterLine = (c: ClusterView): string => {
+  const h = c.tightestHours < 1 ? '<1h' : `${Math.round(c.tightestHours)}h`
+  const unread = c.text.includes('remaining caps not read') ? ' · caps partly unread' : ''
+  return `${c.curators.length} curators exited ${c.symbol} within ${h}${unread}`
+}
+
+const CardRow: React.FC<{ r: FeedRow; nowS: number }> = ({ r, nowS }) => {
+  const red = r.tone === 'red'
+  const history = r.tone === 'grey'
+  const status = r.inCluster ? `cluster · ${statusLabel(r, nowS)}` : statusLabel(r, nowS)
+  return (
+    <Box borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} py={SPACING.sm}>
+      <HStack spacing={SPACING.sm} flexWrap="wrap" align="baseline">
+        <Mono size="11px" as="span" color={SEMANTIC_COLORS.textTertiary}>
+          {utc(r.ts)}
+        </Mono>
+        <Mono size="11px" as="span" color={SEMANTIC_COLORS.textTertiary}>
+          {PROTOCOL[r.protocol]}
+        </Mono>
+        <Mono size="13px" as="span" color={SEMANTIC_COLORS.textPrimary} title={r.vault}>
+          {r.vaultName}
+        </Mono>
+        <Mono size="11px" as="span" title={r.curatorName}>
+          {/* An unnamed curator is its address: shortened, so it never takes a line. */}
+          {/^0x[0-9a-fA-F]{40}$/.test(r.curatorName) ? `${r.curatorName.slice(0, 6)}…${r.curatorName.slice(-4)}` : r.curatorName}
+        </Mono>
+      </HStack>
+      <Text
+        {...CARD_LABEL}
+        color={red ? SEMANTIC_COLORS.danger : history ? SEMANTIC_COLORS.textSecondary : SEMANTIC_COLORS.textPrimary}
+        overflowWrap="anywhere"
+      >
+        {red && (
+          <Box as="span" aria-hidden="true" mr="0.4em">
+            ✖
+          </Box>
+        )}
+        {status}
+        {r.zeroTimelock.length > 0 && (
+          <Box as="span" color={SEMANTIC_COLORS.textSecondary} title={`Runs in one transaction at the last read: ${r.zeroTimelock.join(', ')}`}>
+            {' · '}
+            {zeroText(r.zeroTimelock)}
+          </Box>
+        )}
+      </Text>
+      <Mono size="13px" color={history ? SEMANTIC_COLORS.textSecondary : SEMANTIC_COLORS.textPrimary}>
+        {r.text}{' '}
+        <Link
+          href={`${ETHERSCAN}/tx/${r.tx}`}
+          isExternal
+          display="inline-block"
+          py="14px"
+          my="-14px"
+          px="4px"
+          fontSize="11px"
+          color={SEMANTIC_COLORS.textSecondary}
+        >
+          tx ↗
+        </Link>
+      </Mono>
+    </Box>
+  )
+}
+
+/** Compact feed: open exit clusters, the next timelocks to elapse, the latest exits.
+ *  Links to the full page. */
 export const CuratorFeedCard: React.FC = () => {
   const { chainName } = useChainRoute()
   const { data, isError } = useQuery<FeedResponse>({
@@ -1007,9 +1090,46 @@ export const CuratorFeedCard: React.FC = () => {
   const empty = !!data && data.clusters.length === 0 && pending.length === 0 && data.rows.length === 0
   const collected = data ? Date.parse(data.meta.collectedAt) : NaN
   return (
-    <Card p={SPACING.base}>
-      <HStack justify="space-between" align="baseline">
-        <Eyebrow>Curator actions</Eyebrow>
+    <Box
+      as="section"
+      aria-label="Curator actions"
+      borderTop="1px solid"
+      borderColor={SEMANTIC_COLORS.borderStrong}
+      pt={SPACING.sm}
+    >
+      <Text {...CARD_LABEL} color={SEMANTIC_COLORS.textSecondary}>
+        Curator actions
+      </Text>
+      {/* Unavailable is said in words, never left as an endless "loading…". */}
+      {!data && !isError && <Mono size="13px">—</Mono>}
+      {!data && isError && (
+        <Mono size="13px" color={SEMANTIC_COLORS.textPrimary}>
+          <Box as="span" aria-hidden="true" mr="0.4em">
+            ░
+          </Box>
+          Feed unavailable.
+        </Mono>
+      )}
+      {empty && <Mono size="13px">No curator exit in the feed window.</Mono>}
+      {data?.clusters.slice(0, 2).map((c) => (
+        <Mono key={`${c.collateral}:${c.start}`} size="13px" color={SEMANTIC_COLORS.danger} title={c.text}>
+          <Box as="span" aria-hidden="true" mr="0.4em">
+            ✖
+          </Box>
+          {clusterLine(c)} ({utc(c.end).slice(0, 10)})
+        </Mono>
+      ))}
+      {/* Compact: the full feed is one link away. */}
+      {pending.slice(0, 2).map((r) => (
+        <CardRow key={r.id} r={r} nowS={nowS} />
+      ))}
+      {data?.rows.slice(0, 2).map((r) => (
+        <CardRow key={r.id} r={r} nowS={nowS} />
+      ))}
+      <HStack justify="space-between" align="center" spacing={SPACING.base} flexWrap="wrap">
+        <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
+          {Number.isFinite(collected) ? `collected ${utc(Math.floor(collected / 1000))}` : ''}
+        </Mono>
         <Link
           as={NextLink}
           href={`/${chainName}/curator-feed`}
@@ -1017,41 +1137,15 @@ export const CuratorFeedCard: React.FC = () => {
           alignItems="center"
           minH="44px"
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="11px"
-          color={SEMANTIC_COLORS.textSecondary}
+          fontSize="13px"
+          color={SEMANTIC_COLORS.textPrimary}
+          textDecoration="underline"
+          textUnderlineOffset="3px"
         >
-          full feed →
+          Full feed →
         </Link>
       </HStack>
-      {/* Unavailable is said in words, never left as an endless "loading…". */}
-      {!data && !isError && <Mono size="11px">loading…</Mono>}
-      {!data && isError && (
-        <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
-          <Box as="span" aria-hidden="true" mr="0.4em">
-            ░
-          </Box>
-          Curator feed unavailable.
-        </Mono>
-      )}
-      {empty && <Mono size="12px">No curator exit in the feed window.</Mono>}
-      {data?.clusters.slice(0, 2).map((c) => (
-        <Mono key={`${c.collateral}:${c.start}`} size="12px" color={SEMANTIC_COLORS.danger}>
-          <Box as="span" aria-hidden="true" mr="0.3em">
-            ✖
-          </Box>
-          {c.text} ({utc(c.end).slice(0, 10)})
-        </Mono>
-      ))}
-      {pending.slice(0, 3).map((r) => (
-        <ActionRow key={r.id} r={r} nowS={nowS} />
-      ))}
-      {data?.rows.slice(0, 3).map((r) => (
-        <ActionRow key={r.id} r={r} nowS={nowS} />
-      ))}
-      {Number.isFinite(collected) && (
-        <Mono size="11px">collected {utc(Math.floor(collected / 1000))}</Mono>
-      )}
-    </Card>
+    </Box>
   )
 }
 

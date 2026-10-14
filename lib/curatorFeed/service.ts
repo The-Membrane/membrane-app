@@ -1132,12 +1132,22 @@ export interface OracleGapMarketView {
   collateralSymbol: string
   loanSymbol: string
   oracle: string
-  /** What curated vaults supply to it at the last exposure read, USD. */
+  /** The $ exposed: what curated vaults supply to it at the last exposure read, USD. */
   curatedUsd?: number
+  /** Supply-locked market (flag 5): curatedUsd is book value, not live supply. */
+  locked: boolean
   vaults: { vault: string; vaultName: string; curatorName: string; share: number; usd?: number }[]
   i3: I3Result
   /** The newest observed point's two prices (oracle in USD via DefiLlama's loan price). */
   latest?: { ts: number; oracleUsd: number; marketUsd: number; marketConfidence?: number }
+  /** The newest point when it was priced but below MIN_PRICE_CONFIDENCE (not counted). */
+  lastRaw?: {
+    ts: number
+    oracleUsd: number
+    marketUsd: number
+    marketConfidence?: number
+    rawGap: number
+  }
   /** The last 2 × persistence points, oldest first; gap null = unobserved. */
   series: { ts: number; gap: number | null }[]
 }
@@ -1166,22 +1176,39 @@ export interface OracleGapResponse {
   counts: Record<I3State, number>
   /** Curated supply (USD, last exposure read) in the markets of each state. */
   curatedUsd: Record<I3State, number>
+  /** Markets of each state with at least EXPOSED_MIN_USD of curated supply. */
+  exposed: Record<I3State, number>
+  /** Below this curated supply a market counts as having no curated exposure. */
+  exposedMinUsd: number
   markets: OracleGapMarketView[]
   total: number
 }
 
-const STATE_ORDER: Record<I3State, number> = {
-  fired: 0,
-  building: 1,
-  below: 2,
-  stale: 3,
-  unobserved: 4,
+/** A curated allocation under $1 rounds to nothing: no curated exposure. */
+export const EXPOSED_MIN_USD = 1
+
+/** Fired, then above the line for under 24 h, then the rest. Stale: as of its last point. */
+function rankOf(r: I3Result): number {
+  const above = r.hoursAboveConsecutive
+  switch (r.state) {
+    case 'fired':
+      return 0
+    case 'building':
+      return 1
+    case 'stale':
+      return above >= r.persistence ? 0 : above > 0 ? 1 : 2
+    case 'below':
+      return 2
+    default:
+      return 3
+  }
 }
 
 /**
  * Every market the gap series holds, plus held markets it never observed (no DefiLlama
  * price, or a reverting oracle since the first run), evaluated at `nowS`. Sorted fired
- * first, then by consecutive hours above the line, then by curated supply.
+ * first, then above the line for under 24 h, then the rest; inside each, by the $ exposed
+ * (curated supply), then by consecutive hours above the line.
  */
 export function buildOracleGapResponse(
   feed: FeedFile,
@@ -1208,6 +1235,8 @@ export function buildOracleGapResponse(
   })
   const counts = zero()
   const curatedUsd = zero()
+  const exposed = zero()
+  const empty = { counts, curatedUsd, exposed, exposedMinUsd: EXPOSED_MIN_USD }
   const meta: OracleGapResponse['meta'] = {
     now: nowS,
     measured: Boolean(lastRun),
@@ -1222,8 +1251,7 @@ export function buildOracleGapResponse(
     exposureBlock: exposure.block,
     exposureTs: exposure.ts,
   }
-  if (!decoded || !lastRun)
-    return { meta, constants, record, counts, curatedUsd, markets: [], total: 0 }
+  if (!decoded || !lastRun) return { meta, constants, record, ...empty, markets: [], total: 0 }
 
   const holders = new Map<string, OracleGapMarketView['vaults']>()
   for (const v of exposure.vaults)
@@ -1258,6 +1286,7 @@ export function buildOracleGapResponse(
     const obs: GapObservation[] = decoded.byMarket.get(market) ?? []
     const i3 = evaluateI3(obs, constants, nowS)
     const lastObs = [...obs].reverse().find((o) => o.gap !== null)
+    const newest = obs[obs.length - 1]
     all.push({
       claim: CLAIM.oracleGap,
       market,
@@ -1266,6 +1295,7 @@ export function buildOracleGapResponse(
       loanSymbol: symbolOf(e, m.loan),
       oracle: m.oracle.toLowerCase(),
       curatedUsd: vs.length ? vs.reduce((s, v) => s + (v.usd ?? 0), 0) : undefined,
+      locked: isLockedMarket(feed, market),
       vaults: vs,
       i3,
       latest:
@@ -1277,30 +1307,34 @@ export function buildOracleGapResponse(
               marketConfidence: lastObs.marketConfidence,
             }
           : undefined,
+      lastRaw:
+        newest?.rawGap !== undefined &&
+        newest.oracleUsd !== undefined &&
+        newest.marketUsd !== undefined
+          ? {
+              ts: newest.ts,
+              oracleUsd: newest.oracleUsd,
+              marketUsd: newest.marketUsd,
+              marketConfidence: newest.marketConfidence,
+              rawGap: newest.rawGap,
+            }
+          : undefined,
       series: obs.slice(-need).map((o) => ({ ts: o.ts, gap: o.gap })),
     })
   }
   for (const x of all) {
     counts[x.i3.state]++
     curatedUsd[x.i3.state] += x.curatedUsd ?? 0
+    if ((x.curatedUsd ?? 0) >= EXPOSED_MIN_USD) exposed[x.i3.state]++
   }
   all.sort(
     (a, b) =>
-      Number(b.i3.state === 'fired') - Number(a.i3.state === 'fired') ||
-      b.i3.hoursAboveConsecutive - a.i3.hoursAboveConsecutive ||
-      STATE_ORDER[a.i3.state] - STATE_ORDER[b.i3.state] ||
+      rankOf(a.i3) - rankOf(b.i3) ||
       (b.curatedUsd ?? 0) - (a.curatedUsd ?? 0) ||
+      b.i3.hoursAboveConsecutive - a.i3.hoursAboveConsecutive ||
       (a.market < b.market ? -1 : 1),
   )
-  return {
-    meta,
-    constants,
-    record,
-    counts,
-    curatedUsd,
-    markets: all.slice(0, q.limit),
-    total: all.length,
-  }
+  return { meta, constants, record, ...empty, markets: all.slice(0, q.limit), total: all.length }
 }
 
 export { FLAG_DEFAULTS }

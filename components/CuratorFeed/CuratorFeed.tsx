@@ -35,6 +35,7 @@ import {
   HOLD_SECONDS,
   i3Headline,
   MARKET_HOLD_SECONDS,
+  MIN_PRICE_CONFIDENCE,
   recordCaveats,
   recordCredit,
   recordLines,
@@ -285,7 +286,9 @@ function gapStatus(m: OracleGapMarketView, r: OracleGapResponse): string {
     case 'building':
       return `▲ ${i3.hoursAboveConsecutive} of ${i3.persistence} h above ${line}`
     case 'unobserved':
-      return 'no point this hour (oracle reverts, or no fresh DefiLlama price)'
+      return m.lastRaw
+        ? `no point this hour: DefiLlama confidence ${m.lastRaw.marketConfidence} under ${MIN_PRICE_CONFIDENCE} (raw ${gapText(m.lastRaw.rawGap)}, not counted)`
+        : 'no point this hour (oracle reverts, or no fresh DefiLlama price)'
     case 'stale':
       return `░ last point ${durationText(r.meta.now - (i3.lastTs ?? 0))} ago`
     default:
@@ -293,19 +296,21 @@ function gapStatus(m: OracleGapMarketView, r: OracleGapResponse): string {
   }
 }
 
-/** "Held: Vault (Curator) 12.3% · … · $10M curated supply" */
+/** The $ exposed (DESIGN_RULES §4): curated supply at the last exposure read. */
+function exposedText(m: OracleGapMarketView, minUsd: number): string {
+  if (m.curatedUsd === undefined) return 'no curated supply (no curated vault holds it)'
+  if (m.curatedUsd < minUsd) return `under $${minUsd} curated supply`
+  return `$${compact(m.curatedUsd)} curated supply${m.locked ? ' (book value: supply locked)' : ''}`
+}
+
+/** "Held: Vault (Curator) 12.3% · …" */
 function heldText(m: OracleGapMarketView): string {
   if (!m.vaults.length) return 'No curated vault holds it at the last exposure read.'
   const list = m.vaults
     .slice(0, 3)
     .map((v) => `${v.vaultName} (${v.curatorName}) ${(v.share * 100).toFixed(1)}%`)
     .join(' · ')
-  const more = m.vaults.length > 3 ? ` · +${m.vaults.length - 3} more` : ''
-  const usd =
-    m.curatedUsd === undefined
-      ? ''
-      : ` · ${m.curatedUsd >= 1 ? `$${compact(m.curatedUsd)}` : '< $1'} curated supply`
-  return `Held: ${list}${more}${usd}`
+  return `Held: ${list}${m.vaults.length > 3 ? ` · +${m.vaults.length - 3} more` : ''}`
 }
 
 const GapRow: React.FC<{
@@ -331,6 +336,9 @@ const GapRow: React.FC<{
           )}
         </HStack>
       </HStack>
+      <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
+        {exposedText(m, r.exposedMinUsd)}
+      </Mono>
       <Mono size="11px" color={fired ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}>
         {gapStatus(m, r)}
       </Mono>
@@ -426,14 +434,16 @@ const GapFinding: React.FC<{ r: OracleGapResponse; collateral: string }> = ({ r,
       )}
       {!meta.stale && counts.fired > 0 && (
         <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
-          ${compact(r.curatedUsd.fired)} of curated supply in them (last exposure read).
+          {r.exposed.fired
+            ? `$${compact(r.curatedUsd.fired)} of curated supply in ${r.exposed.fired} of them (last exposure read).`
+            : `None holds $${r.exposedMinUsd} or more of curated supply (last exposure read).`}
         </Mono>
       )}
       <Mono size="11px">
         Oracle: price() at the head block, in loan token × DefiLlama&apos;s loan-token price.
         Market: DefiLlama&apos;s collateral price. Fires after {constants.persistenceHours} hourly
-        points in a row at ≥ {line}. A revert, or a price over {MARKET_HOLD_SECONDS / 3600} h old,
-        is no point.
+        points in a row at ≥ {line}. A revert, a price over {MARKET_HOLD_SECONDS / 3600} h old or a
+        DefiLlama confidence under {MIN_PRICE_CONFIDENCE} is no point.
       </Mono>
       <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
         {r.total} markets · {counts.fired} fired · {counts.building} above {line} for under{' '}
@@ -450,13 +460,17 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
   onWatch,
 }) => {
   const [all, setAll] = useState(false)
+  const [dust, setDust] = useState(false)
   // Stale: the markets that were above the line at their last point, hatched.
   const above = r.markets.filter((m) =>
     r.meta.stale
       ? m.i3.hoursAboveConsecutive > 0
       : m.i3.state === 'fired' || m.i3.state === 'building',
   )
-  const rows = all ? r.markets : above
+  const shown = all ? r.markets : above
+  // Markets without curated exposure sit below a one-line fold, never hidden.
+  const held = shown.filter((m) => (m.curatedUsd ?? 0) >= r.exposedMinUsd)
+  const unheld = shown.filter((m) => (m.curatedUsd ?? 0) < r.exposedMinUsd)
   return (
     <Box
       display="grid"
@@ -465,15 +479,24 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
       mt={SPACING.sm}
     >
       <Box minW={0} bgImage={r.meta.stale ? HATCH : undefined}>
-        {rows.length === 0 && !r.meta.stale && (
+        {shown.length === 0 && !r.meta.stale && (
           <Mono size="11px">
             No market is {thresholdText(r.constants)} or more above its DefiLlama price at the
             newest point.
           </Mono>
         )}
-        {rows.map((m) => (
+        {held.map((m) => (
           <GapRow key={m.market} m={m} r={r} onWatch={onWatch} />
         ))}
+        {unheld.length > 0 && (
+          <Box mt={SPACING.sm}>
+            <Chip active={dust} onClick={() => setDust(!dust)}>
+              {dust ? 'hide' : 'show'} {unheld.length} more with under ${r.exposedMinUsd} of curated
+              exposure
+            </Chip>
+          </Box>
+        )}
+        {dust && unheld.map((m) => <GapRow key={m.market} m={m} r={r} onWatch={onWatch} />)}
         {r.markets.length > above.length && (
           <Box mt={SPACING.sm}>
             <Chip onClick={() => setAll(!all)}>
@@ -1487,7 +1510,8 @@ const OracleGapLine: React.FC<{ r: OracleGapResponse; href: string }> = ({ r, hr
     ? 'Oracle gap: not measured yet.'
     : m.stale
       ? `Oracle gap: last point ${durationText(m.now - (m.lastRunTs ?? 0))} ago.`
-      : i3Headline(r.counts.fired, r.constants)
+      : i3Headline(r.counts.fired, r.constants) +
+        (r.exposed.fired ? ` · $${compact(r.curatedUsd.fired)} curated supply` : '')
   return (
     <Box borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
       <Link

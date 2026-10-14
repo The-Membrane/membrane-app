@@ -221,10 +221,11 @@ what it prices AT, against the market, every collector run — Q25 T2's indicato
 | gap | `oracle / market − 1`. Oracle = the market's Morpho `price()` at the head block (the flags read), `/1e36 × 10^(collateral decimals − loan decimals)` loan tokens per whole collateral token (Morpho Blue IOracle), × DefiLlama's USD price of the loan token — no token is taken as $1. Market = DefiLlama's USD price of the collateral (`coins.llama.fi/prices/current`, keyless, ≤ 100 coins per call). |
 | condition | `gap ≥ 2 %`, one-sided (the oracle prices the collateral above the market). |
 | fired | 24 consecutive OBSERVED hourly points with the condition (T2 D3): fires at the 24th point, never back-dated. |
-| unobserved | `price()` reverts (D9), no DefiLlama price, a sample ≥ 6 h old (D7), or on-chain vs DefiLlama decimals that disagree. Never a 0; it breaks a run, as a missing hour does. |
+| unobserved | `price()` reverts (D9), no DefiLlama price, a sample ≥ 6 h old (D7), on-chain vs DefiLlama decimals that disagree, or a DefiLlama `confidence` under 0.9 (the lower of the two prices; not in T2, whose prices were frozen pulls). Never a 0; it breaks a run, as a missing hour does. A low-confidence point keeps its raw prices and gap in the store for audit; the cut is applied when the store is read. |
 | consecutive | Points deduplicated per UTC hour (newest wins), ≤ 1.5 h apart (D2's 1.5× cadence hold, for run-time jitter). |
 | stale | the newest run is > 3 h old: the page hatches the module and withholds the headline. |
 | markets | every Morpho Blue market curated vaults hold at the exposure read, with a collateral and an oracle (~300). Euler Earn strategies have no Morpho oracle. Held markets never observed are listed as unobserved. |
+| order | fired, then above the line for under 24 h, then the rest; inside each, by the $ exposed (curated supply at the exposure read; book value in a supply-locked market, labelled), then hours above. Markets with under $1 of curated exposure sit below a one-line fold on the page. |
 
 The constants (2 %, 24 h, 2 daily points) are not written in code: `lib/curatorFeed/i3Record.generated.json`
 holds them and T2's I3 record, built by `node scripts/curator-feed/build-i3-record.mjs` from
@@ -253,7 +254,9 @@ Dry run (keyless RPC + DefiLlama, writes nothing):
 env -u CURATOR_FEED_RPC_URLS -u RECORDER_RPC_URL pnpm curators:feed --oracle-gap-only --dry-run --limit=25
 ```
 
-On 2026-10-14 (block 26,187,350, all 300 held markets): 280 observed; 3 oracles revert
+On 2026-10-14 (block 26,187,700, all 300 held markets, a real run): 278 observed, 2 at
+DefiLlama confidence 0.85 (armUSDCp/WBTC, armUSDTp/WBTC) not counted. Earlier the same day
+(block 26,187,350, before the confidence cut): 280 observed; 3 oracles revert
 (sdeUSD/USDC, two msY/USDC); 17 collaterals have no DefiLlama price (sUSDv, sETHv, RLP, rRLP,
 expired PTs, liUSD-1w, BOBO, sNUSD, GOOGL / NVDA / TSLA, ROY-ST-apyUSD). Above 2 % at that
 point: deUSD/USDC (fixed 1.0 oracle, DefiLlama $0.00000001), USR / wstUSR / aprUSR / MC-USR
@@ -406,6 +409,8 @@ GET /api/curator-feed?view=spikes         [&collateral=] [&curator=] [&market=0x
                                           [&only=reallocation|drained] [&minUsd=] [&limit=]
 GET /api/curator-feed?view=oracle-gap     [&collateral=] [&curator=] [&market=0x…] [&limit=]
                                           no oracle-gap.json yet = 200, meta.measured false
+CURATOR_FEED_NOW=<unix s>                 pins the API's request clock outside production
+                                          (reproduce a checkpoint or a replayed series)
 ```
 
 ## Files

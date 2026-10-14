@@ -52,6 +52,15 @@ import {
 // (pending / executable / history) is computed against the request clock, so a cap
 // change leaves its timelock window without a re-collect. Cached: s-maxage 300.
 
+// CURATOR_FEED_NOW=<unix s> pins the request clock outside production, to reproduce what
+// the page showed at a time (a checkpoint, a replayed series). Ignored in production.
+const clockNow = (): number => {
+  const pinned = Number(process.env.CURATOR_FEED_NOW)
+  return process.env.NODE_ENV !== 'production' && Number.isFinite(pinned) && pinned > 0
+    ? Math.floor(pinned)
+    : Math.floor(Date.now() / 1000)
+}
+
 const dir = (): string => {
   const live = liveDir()
   return existsSync(join(live, 'feed.json')) ? live : seedDir()
@@ -88,7 +97,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       error: `curator feed dataset unavailable (${(e as NodeJS.ErrnoException).code ?? 'unreadable'}) — run pnpm curators:feed, or clone triccs/membrane-datasets next to the app (or set MEMBRANE_DATASETS_DIR)`,
     })
   }
-  const nowS = Math.floor(Date.now() / 1000)
+  const nowS = clockNow()
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
   try {
     if (q.view === 'exposure') {

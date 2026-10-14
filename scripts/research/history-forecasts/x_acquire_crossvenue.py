@@ -794,7 +794,8 @@ class Ctx:
             self._blocks = load_blocks(self.ddir / BLOCKS_REL)
         return self._blocks
 
-    def selected(self) -> list[dict]:
+    def selected(self, full: bool = False) -> list[dict]:
+        """Selected tokens (with the exact deployment block once known); full=True ignores --tokens."""
         sel = self.get("select")
         if not sel:
             raise B.TerminalError("selection not made (run the tvl phase)")
@@ -802,7 +803,7 @@ class Ctx:
         dep = self.get("deploy") or {}
         out = []
         for a in sel["selected"]:
-            if self.only_tokens is not None and a not in self.only_tokens:
+            if not full and self.only_tokens is not None and a not in self.only_tokens:
                 continue
             t = dict(by[a])
             if a in dep:
@@ -1555,7 +1556,7 @@ def comet_prepanel_blocks(ctx: Ctx, t: dict) -> list[tuple[str, int]]:
 
 
 def phase_prices(ctx: Ctx) -> None:
-    toks = ctx.selected()
+    toks = ctx.selected(full=True)
     pools = (ctx.get("preflight") or {}).get("sanity", {})
     store = B.JsonlStore(ctx.work / "prices.jsonl")
     plan = []
@@ -1583,7 +1584,7 @@ def phase_prices(ctx: Ctx) -> None:
 
 def load_prices(ctx: Ctx) -> dict[str, dict[str, dict]]:
     """token -> label -> parsed price (or None); also '_block' map label -> block."""
-    toks = ctx.selected()
+    toks = ctx.selected(full=True)
     pools = (ctx.get("preflight") or {}).get("sanity", {})
     store = B.JsonlStore(ctx.work / "prices.jsonl")
     ncalls = {t["address"]: len(price_calls(t, pools.get(t["address"], {}).get("pool") or MULTICALL3)) for t in toks}

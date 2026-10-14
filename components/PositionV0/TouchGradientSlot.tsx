@@ -123,6 +123,8 @@ const Curve: React.FC<TouchGradientSlotProps & { uid: string; width: number; hei
   const line = curve.map((c) => pt(c.level, c.pct)).join(' ')
   const band = [...curve.map((c) => pt(c.level, c.hiPct)), ...[...curve].reverse().map((c) => pt(c.level, c.loPct))].join(' ')
   const font = { fontFamily: NEWS_FONT.mono, fontSize: TYPE_PX.label }
+  // Lane labels can cross the curve, the band or the ring: a paper halo keeps them legible.
+  const halo = { ...font, paintOrder: 'stroke' as const, stroke: NEWS.paper, strokeWidth: 3, strokeLinejoin: 'round' as const }
   const pctTxt = (v: number) => `${v}%`
   const anchor = (px: number) => anchorAt(px, M.left, pw)
   const dx = (px: number) => (anchor(px) === 'end' ? -10 : 10)
@@ -188,6 +190,24 @@ const Curve: React.FC<TouchGradientSlotProps & { uid: string; width: number; hei
         how far {asset} {direction === 'fall' ? 'falls' : 'rises'} from today
       </text>
 
+      {/* the reader's line: a gold ring, its label in the top lane. Drawn before the levers,
+          so their haloed labels stay on top of the ring where they cross it. */}
+      {you && (
+        <g>
+          <line x1={x(you.level)} x2={x(you.level)} y1={M.top + LANE + 3} y2={y(you.pct) - 8} stroke={NEWS.accent} strokeDasharray="1 2" />
+          <circle cx={x(you.level)} cy={y(you.pct)} r={7} fill="none" stroke={NEWS.accent} strokeWidth={2} />
+          <text
+            x={x(you.level) + dx(x(you.level)) / 2}
+            y={M.top + LANE}
+            textAnchor={anchor(x(you.level))}
+            fill={NEWS.accent}
+            style={{ ...halo, fontWeight: 700 }}
+          >
+            {you.label}
+          </text>
+        </g>
+      )}
+
       {/* where each action moves the line: paper dots, ink stroke; labels in lanes below
           the reader's, each with a dotted leader down to its dot */}
       {actions.map((a, i) => {
@@ -198,29 +218,12 @@ const Curve: React.FC<TouchGradientSlotProps & { uid: string; width: number; hei
           <g key={`${a.level}-${a.label}`}>
             <line x1={px} x2={px} y1={ly + 3} y2={py - 5} stroke={NEWS.accent} strokeDasharray="1 2" />
             <circle cx={px} cy={py} r={4} fill={NEWS.paper} stroke={NEWS.ink} strokeWidth={1.5} />
-            <text x={px + dx(px) / 2} y={ly} textAnchor={anchor(px)} fill={NEWS.accent} style={font}>
+            <text x={px + dx(px) / 2} y={ly} textAnchor={anchor(px)} fill={NEWS.accent} style={halo}>
               {a.label}
             </text>
           </g>
         )
       })}
-
-      {/* the reader's line: a gold ring, its label in the top lane */}
-      {you && (
-        <g>
-          <line x1={x(you.level)} x2={x(you.level)} y1={M.top + LANE + 3} y2={y(you.pct) - 8} stroke={NEWS.accent} strokeDasharray="1 2" />
-          <circle cx={x(you.level)} cy={y(you.pct)} r={7} fill="none" stroke={NEWS.accent} strokeWidth={2} />
-          <text
-            x={x(you.level) + dx(x(you.level)) / 2}
-            y={M.top + LANE}
-            textAnchor={anchor(x(you.level))}
-            fill={NEWS.accent}
-            style={{ ...font, fontWeight: 700 }}
-          >
-            {you.label}
-          </text>
-        </g>
-      )}
     </svg>
   )
 }

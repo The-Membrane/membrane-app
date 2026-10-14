@@ -127,6 +127,172 @@ const dataProviderAbi = [
   },
 ] as const
 
+/**
+ * E-MODE. A borrower in an efficiency-mode category is liquidated at the CATEGORY's
+ * threshold for every collateral asset in that category, not at the reserve's own (which
+ * can be 0 for an asset that is collateral only inside e-mode). Two layouts are live:
+ *   v3.2+ (Aave V3 mainnet)   getEModeCategoryCollateralConfig + a per-category collateral
+ *                             bitmap indexed by reserve id (Pool.getReserveData(asset).id)
+ *   v3.0/3.1 (Spark)          getEModeCategoryData + the asset's own category
+ *                             (PoolDataProvider.getReserveEModeCategory)
+ * Both verified on mainnet 2026-10-14 (0x902f…eb38: category 47, legs reproduce the
+ * protocol health factor 1.02940 exactly).
+ */
+const emodePoolAbi = [
+  { type: 'function', name: 'getUserEMode', stateMutability: 'view', inputs: [{ name: 'user', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'getEModeCategoryCollateralConfig',
+    stateMutability: 'view',
+    inputs: [{ name: 'id', type: 'uint8' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'ltv', type: 'uint16' },
+          { name: 'liquidationThreshold', type: 'uint16' },
+          { name: 'liquidationBonus', type: 'uint16' },
+        ],
+      },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'getEModeCategoryCollateralBitmap',
+    stateMutability: 'view',
+    inputs: [{ name: 'id', type: 'uint8' }],
+    outputs: [{ type: 'uint128' }],
+  },
+  {
+    type: 'function',
+    name: 'getEModeCategoryData',
+    stateMutability: 'view',
+    inputs: [{ name: 'id', type: 'uint8' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'ltv', type: 'uint16' },
+          { name: 'liquidationThreshold', type: 'uint16' },
+          { name: 'liquidationBonus', type: 'uint16' },
+          { name: 'priceSource', type: 'address' },
+          { name: 'label', type: 'string' },
+        ],
+      },
+    ],
+  },
+  {
+    // Only `id` is used; the struct is ReserveDataLegacy (v3.2) / ReserveData (v3.0).
+    type: 'function',
+    name: 'getReserveData',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'configuration', type: 'uint256' },
+          { name: 'liquidityIndex', type: 'uint128' },
+          { name: 'currentLiquidityRate', type: 'uint128' },
+          { name: 'variableBorrowIndex', type: 'uint128' },
+          { name: 'currentVariableBorrowRate', type: 'uint128' },
+          { name: 'currentStableBorrowRate', type: 'uint128' },
+          { name: 'lastUpdateTimestamp', type: 'uint40' },
+          { name: 'id', type: 'uint16' },
+          { name: 'aTokenAddress', type: 'address' },
+          { name: 'stableDebtTokenAddress', type: 'address' },
+          { name: 'variableDebtTokenAddress', type: 'address' },
+          { name: 'interestRateStrategyAddress', type: 'address' },
+          { name: 'accruedToTreasury', type: 'uint128' },
+          { name: 'unbacked', type: 'uint128' },
+          { name: 'isolationModeTotalDebt', type: 'uint128' },
+        ],
+      },
+    ],
+  },
+] as const
+
+const emodeDataProviderAbi = [
+  {
+    type: 'function',
+    name: 'getReserveEModeCategory',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+] as const
+
+export interface EModeThresholds {
+  category: number
+  /** Which layout answered. */
+  layout: 'v3.2 bitmap' | 'v3.0 category'
+  /** Lowercased token → the category threshold and LTV, for in-category collateral only. */
+  inCategory: Map<string, { lt: number; ltv: number }>
+  /** v3.0 categories may price their assets from a separate source; noted, not applied. */
+  priceSource: string | null
+}
+
+/** Is reserve `id` set in an e-mode collateral bitmap? */
+export const inBitmap = (bitmap: bigint, id: number): boolean => ((bitmap >> BigInt(id)) & 1n) === 1n
+
+/**
+ * The thresholds a user's e-mode category applies, or null when the user is not in one.
+ * Throws when the user IS in a category but neither layout answers: falling back to the
+ * reserve thresholds would misstate the line.
+ */
+export async function readEModeThresholds(
+  client: ReturnType<typeof getMainnetClient>,
+  pool: `0x${string}`,
+  dataProvider: `0x${string}`,
+  user: `0x${string}`,
+  collateralTokens: `0x${string}`[],
+  tag: string,
+): Promise<EModeThresholds | null> {
+  const head = await mc<bigint>(client, [{ address: pool, abi: emodePoolAbi, functionName: 'getUserEMode', args: [user] }])
+  const category = Number(unwrap(head[0], `${tag}: Pool.getUserEMode()`))
+  if (category === 0) return null
+  if (collateralTokens.length === 0) return { category, layout: 'v3.2 bitmap', inCategory: new Map(), priceSource: null }
+
+  // v3.2+: category config + collateral bitmap by reserve id.
+  const v32 = await mc<unknown>(client, [
+    { address: pool, abi: emodePoolAbi, functionName: 'getEModeCategoryCollateralConfig', args: [category] },
+    { address: pool, abi: emodePoolAbi, functionName: 'getEModeCategoryCollateralBitmap', args: [category] },
+    ...collateralTokens.map((t) => ({ address: pool, abi: emodePoolAbi, functionName: 'getReserveData', args: [t] })),
+  ])
+  const cfg = optional(v32[0]) as { ltv: number; liquidationThreshold: number } | null
+  const bitmap = optional(v32[1]) as bigint | null
+  if (cfg && bitmap !== null) {
+    const inCategory = new Map<string, { lt: number; ltv: number }>()
+    collateralTokens.forEach((t, i) => {
+      const rd = unwrap(v32[2 + i], `${tag}: Pool.getReserveData(${t}).id`) as { id: number }
+      if (inBitmap(bitmap, Number(rd.id))) {
+        inCategory.set(t.toLowerCase(), { lt: Number(cfg.liquidationThreshold) / 10_000, ltv: Number(cfg.ltv) / 10_000 })
+      }
+    })
+    return { category, layout: 'v3.2 bitmap', inCategory, priceSource: null }
+  }
+
+  // v3.0 / 3.1: one category per asset.
+  const v30 = await mc<unknown>(client, [
+    { address: pool, abi: emodePoolAbi, functionName: 'getEModeCategoryData', args: [category] },
+    ...collateralTokens.map((t) => ({ address: dataProvider, abi: emodeDataProviderAbi, functionName: 'getReserveEModeCategory', args: [t] })),
+  ])
+  const data = unwrap(v30[0], `${tag}: e-mode category ${category} (neither getEModeCategoryCollateralConfig nor getEModeCategoryData answered)`) as {
+    ltv: number
+    liquidationThreshold: number
+    priceSource: string
+  }
+  const inCategory = new Map<string, { lt: number; ltv: number }>()
+  collateralTokens.forEach((t, i) => {
+    const assetCat = Number(unwrap(v30[1 + i], `${tag}: getReserveEModeCategory(${t})`) as bigint)
+    if (assetCat === category) {
+      inCategory.set(t.toLowerCase(), { lt: Number(data.liquidationThreshold) / 10_000, ltv: Number(data.ltv) / 10_000 })
+    }
+  })
+  const ps = data.priceSource && !/^0x0{40}$/i.test(data.priceSource) ? data.priceSource : null
+  return { category, layout: 'v3.0 category', inCategory, priceSource: ps }
+}
+
 const oracleAbi = [
   {
     type: 'function',
@@ -335,6 +501,14 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
         ]),
       ])
       const prices = unwrap(priceRes[0], `${tag}: AaveOracle.getAssetsPrices()`)
+      const emode = await readEModeThresholds(
+        client,
+        pool,
+        dataProvider,
+        user,
+        active.filter((a) => a.aTokenBalance > 0n && a.collateralEnabled).map((a) => a.token),
+        tag,
+      )
 
       const collateral: CollateralLeg[] = []
       const debt: DebtLeg[] = []
@@ -342,8 +516,10 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
       active.forEach((a, i) => {
         const cfg = unwrap(cfgRes[i], `${tag}: getReserveConfigurationData(${a.symbol})`)
         const decimals = Number(cfg[0] as bigint)
-        const maxLtv = Number(cfg[1] as bigint) / 10_000 // bps
-        const liqThreshold = Number(cfg[2] as bigint) / 10_000 // bps
+        // In e-mode, an in-category collateral asset takes the category's thresholds.
+        const em = emode?.inCategory.get(a.token.toLowerCase())
+        const maxLtv = em ? em.ltv : Number(cfg[1] as bigint) / 10_000 // bps
+        const liqThreshold = em ? em.lt : Number(cfg[2] as bigint) / 10_000 // bps
         // liquidationBonus is bps-of-par: 10500 = the liquidator receives 105% of the
         // repaid value, i.e. a 5% bonus. Subtract par to get the bonus itself.
         const liqBonus = Math.max(0, Number(cfg[3] as bigint) / 10_000 - 1)
@@ -427,7 +603,11 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
           provenance: stamp(
             'onchain',
             `${tag} · ${rpcLabel()}`,
-            `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, all resolved from PoolAddressesProvider ${config.addressesProvider}. Totals from getUserAccountData in base units (BASE_CURRENCY_UNIT 1e${baseDecimals}); per-asset prices from getAssetsPrices; thresholds in bps.`,
+            `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, all resolved from PoolAddressesProvider ${config.addressesProvider}. Totals from getUserAccountData in base units (BASE_CURRENCY_UNIT 1e${baseDecimals}); per-asset prices from getAssetsPrices; thresholds in bps.${
+              emode
+                ? ` E-mode category ${emode.category} (${emode.layout}): its thresholds apply to ${emode.inCategory.size} collateral asset(s)${emode.priceSource ? `; the category prices from ${emode.priceSource}, which these legs do not apply` : ''}.`
+                : ''
+            }`,
           ),
         },
       ]

@@ -104,13 +104,45 @@ const erc20Abi = [
 
 // ----------------------------------------------------------------- deployments
 
-/** The three mainnet Comets. Compound deploys a new contract per base asset, so this
- *  list is the enumeration — there is no on-chain registry to resolve it from. */
+/**
+ * The three mainnet Comets. Compound deploys a new contract per base asset, so this
+ * list is the enumeration — there is no on-chain registry to resolve it from.
+ *
+ * QUOTE CURRENCY. `Comet.getPrice` returns each feed's own unit. cUSDCv3 and cUSDTv3 use
+ * USD feeds ("USDC / USD", "ETH / USD", …). cWETHv3 uses ETH feeds ("wstETH / ETH CAPO",
+ * "CBETH / ETH", …) and a "Constant price feed" of exactly 1 for its WETH base — verified
+ * on mainnet 2026-10-14. Its prices are converted to USD at Chainlink ETH/USD, read
+ * through the same Comet's getPrice; nothing is assumed.
+ */
 export const COMET_MAINNET_MARKETS = [
-  { address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3', name: 'cUSDCv3' },
-  { address: '0xA17581A9E3356d9A858b789D68B4d866e593aE94', name: 'cWETHv3' },
-  { address: '0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840', name: 'cUSDTv3' },
-] as const satisfies readonly { address: `0x${string}`; name: string }[]
+  { address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3', name: 'cUSDCv3', quote: 'USD', quoteUsdFeed: null },
+  {
+    address: '0xA17581A9E3356d9A858b789D68B4d866e593aE94',
+    name: 'cWETHv3',
+    quote: 'ETH',
+    // Chainlink ETH/USD proxy (the feed membrane-datasets price-history records).
+    quoteUsdFeed: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+  },
+  { address: '0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840', name: 'cUSDTv3', quote: 'USD', quoteUsdFeed: null },
+] as const satisfies readonly CometMarket[]
+
+export interface CometMarket {
+  address: `0x${string}`
+  name: string
+  /** The unit Comet.getPrice reports for this market's feeds. */
+  quote: 'USD' | 'ETH'
+  /** A feed giving one quote unit in USD; null when the quote already is USD. */
+  quoteUsdFeed: `0x${string}` | null
+}
+
+/**
+ * A Comet price (1e8-scaled, in the market's quote unit) in USD. `quoteUsd` is one quote
+ * unit in USD (1 for a USD market). Pure, so the conversion is unit-tested.
+ */
+export function cometPriceUsd(priceRaw: bigint, quoteUsd: number): number {
+  if (!(quoteUsd > 0)) throw new Error('cometPriceUsd: the quote unit has no USD price')
+  return toNumber(priceRaw, PRICE_DECIMALS) * quoteUsd
+}
 
 /** Comet PRICE_SCALE. */
 const PRICE_DECIMALS = 8
@@ -131,10 +163,7 @@ interface AssetInfo {
 
 // -------------------------------------------------------------------- adapter
 
-async function readComet(
-  market: { address: `0x${string}`; name: string },
-  user: `0x${string}`,
-): Promise<ProtocolPosition | null> {
+async function readComet(market: CometMarket, user: `0x${string}`): Promise<ProtocolPosition | null> {
   const client = getMainnetClient()
   const comet = market.address
   const tag = `compound v3 (${market.name})`
@@ -188,7 +217,15 @@ async function readComet(
     tailCalls.push({ address: comet, abi: cometAbi, functionName: 'getPrice', args: [h.info.priceFeed] })
     tailCalls.push({ address: h.info.asset, abi: erc20Abi, functionName: 'symbol' })
   }
+  // The quote unit's USD price comes last so the indices above stay put.
+  if (market.quoteUsdFeed) tailCalls.push({ address: comet, abi: cometAbi, functionName: 'getPrice', args: [market.quoteUsdFeed] })
   const tailRes = await mc<unknown>(client, tailCalls)
+  let quoteUsd = 1
+  if (market.quoteUsdFeed) {
+    const raw = unwrap(tailRes[tailRes.length - 1], `${tag}: getPrice(${market.quote}/USD feed ${market.quoteUsdFeed})`) as bigint
+    quoteUsd = toNumber(raw, PRICE_DECIMALS)
+    if (!(quoteUsd > 0)) throw new Error(`${tag}: ${market.quote}/USD feed ${market.quoteUsdFeed} returned 0`)
+  }
 
   const basePriceRaw = unwrap(tailRes[0], `${tag}: getPrice(baseTokenPriceFeed ${baseFeed})`) as bigint
   if (basePriceRaw === 0n) throw new Error(`${tag}: base price feed ${baseFeed} returned 0`)
@@ -196,7 +233,12 @@ async function readComet(
   // A symbol is a label, not a number — an unreadable one (e.g. bytes32 symbols) may
   // fall back to the address without violating the no-invented-numbers rule.
   const baseSymbol = (optional(tailRes[2]) as string | null) ?? shortAddress(baseToken)
-  const basePriceUsd = toNumber(basePriceRaw, PRICE_DECIMALS)
+  // An ETH-quoted Comet prices its own WETH base at exactly 1 ETH; anything else means the
+  // quote-unit assumption above is wrong for this market, so stop rather than misprice.
+  if (market.quote === 'ETH' && basePriceRaw !== 10n ** BigInt(PRICE_DECIMALS)) {
+    throw new Error(`${tag}: expected the base feed ${baseFeed} to price the base at 1 ${market.quote}, got ${basePriceRaw}`)
+  }
+  const basePriceUsd = cometPriceUsd(basePriceRaw, quoteUsd)
 
   // Borrow APR: per-second rate at 1e18, annualised. Optional — null if it fails.
   const utilization = optional(tailRes[3]) as bigint | null
@@ -220,7 +262,7 @@ async function readComet(
     }
     const symbol = (optional(tailRes[5 + i * 2]) as string | null) ?? shortAddress(h.info.asset)
     const decimals = decimalsFromScale(h.info.scale, `${tag}: AssetInfo.scale for ${symbol}`)
-    const priceUsd = toNumber(priceRaw, PRICE_DECIMALS)
+    const priceUsd = cometPriceUsd(priceRaw, quoteUsd)
     const amount = toNumber(h.balance, decimals)
     return {
       symbol,
@@ -275,7 +317,9 @@ async function readComet(
     provenance: stamp(
       'onchain',
       `compound v3 · ${rpcLabel()}`,
-      `Comet ${comet} (${market.name}), base token ${baseToken}. Prices from Comet.getPrice at 1e8; collateral decimals from AssetInfo.scale; borrow/liquidate collateral factors at 1e18. Borrow APR annualised from getBorrowRate(getUtilization()) × ${SECONDS_PER_YEAR}s.`,
+      `Comet ${comet} (${market.name}), base token ${baseToken}. Prices from Comet.getPrice at 1e8${
+        market.quote === 'USD' ? ' (USD feeds)' : `, quoted in ${market.quote} and converted at ${market.quote}/USD $${quoteUsd} (feed ${market.quoteUsdFeed})`
+      }; collateral decimals from AssetInfo.scale; borrow/liquidate collateral factors at 1e18. Borrow APR annualised from getBorrowRate(getUtilization()) × ${SECONDS_PER_YEAR}s.`,
     ),
   }
 }

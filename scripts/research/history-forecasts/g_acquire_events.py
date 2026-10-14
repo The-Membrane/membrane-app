@@ -1124,6 +1124,31 @@ def run_gate(ctx: Ctx, which: str, anchors: dict[str, tuple], labels: list[str],
                                                       for q in (0.1, 0.5, 0.9)}
         causes["fail_abs_diff_over_intraday_peak_quantiles"] = {str(q): float(np.quantile(rate, q))
                                                                 for q in (0.1, 0.5, 0.9, 1.0)}
+        fa = {}
+        for i in np.nonzero(fail)[0]:
+            k = f"{G['reserve'][i]} {short_addr(G['address'][i])}"
+            fa[k] = fa.get(k, 0) + 1
+        causes["fail_n_distinct_addresses"] = len(fa)
+        causes["fail_by_address_top10"] = sorted(fa.items(), key=lambda x: -x[1])[:10]
+        seen, distinct = set(), []
+        for i in np.argsort(-(np.abs(G["diff"]).astype(np.float64) / G["tol"]), kind="stable"):
+            if G["pass"][i]:
+                break
+            k = (G["reserve"][i], G["address"][i])
+            if k in seen:
+                continue
+            seen.add(k)
+            p_ = int(G["p"][i])
+            distinct.append({"reserve": G["reserve"][i], "address": short_addr(G["address"][i]),
+                             "day": f"{labels[p_]}→{labels[p_ + 1]}", "anchor0_usd": round(G["a0"][i] / 1e6, 2),
+                             "anchor1_usd": round(G["a1"][i] / 1e6, 2), "event_sum_usd": round(G["ev"][i] / 1e6, 2),
+                             "diff_usd": round(G["diff"][i] / 1e6, 2), "tol_usd": round(G["tol"][i] / 1e6, 2),
+                             "intraday_peak_usd": round(float(G["peak"][i]) / 1e6, 2),
+                             "interest_adjusted_diff_usd": round(float(G["res_interest"][i]) / 1e6, 2),
+                             "n_events": int(G["n_ev"][i])})
+            if len(distinct) == 20:
+                break
+        causes["worst20_distinct_addresses"] = distinct
         causes["note"] = ("intraday peak = max of anchor0 + cumulative G.2 deltas over the pair's events; "
                           "|diff| / peak is the implied interest on the largest intraday position")
     fu = fail & ~res_ok

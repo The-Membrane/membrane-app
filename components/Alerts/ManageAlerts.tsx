@@ -113,16 +113,35 @@ const FeedLink: React.FC<{ token: string; siteUrl: string }> = ({ token, siteUrl
   )
 }
 
+/** The way on from an empty or invalid feed: a 44px target, not a small text link. */
+const RadarLink: React.FC = () => (
+  <Button {...ACTION} as={NextLink} href="/ethereum/radar" variant="ghost" mt={SPACING.sm} _focus={FOCUS_STYLES.ring}>
+    Set an alert on Radar →
+  </Button>
+)
+
 const Empty: React.FC<{ text: string }> = ({ text }) => (
   <Box {...RULE} py={SPACING.md}>
     <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
       {text}
     </Text>
-    <NextLink href="/ethereum/radar" style={{ textDecoration: 'underline' }}>
-      <Text as="span" {...MONO} _focus={FOCUS_STYLES.ring}>
-        Set one on Radar →
-      </Text>
-    </NextLink>
+    <RadarLink />
+  </Box>
+)
+
+/** An error is never a dead end: an unknown link leads to Radar; anything else can retry. */
+const ErrorState: React.FC<{ status: number; onRetry: () => void }> = ({ status, onRetry }) => (
+  <Box mt={SPACING.lg}>
+    <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.danger} role="alert">
+      ✖ {ERROR_TEXT(status)}
+    </Text>
+    {status === 404 ? (
+      <RadarLink />
+    ) : (
+      <Button {...ACTION} variant="ghost" mt={SPACING.sm} onClick={onRetry}>
+        Try again
+      </Button>
+    )}
   </Box>
 )
 
@@ -164,13 +183,7 @@ export const ManageAlerts: React.FC<{ token: string; siteUrl: string }> = ({ tok
           Reading your alerts…
         </Text>
       )}
-      {q.isError && (
-        <Box mt={SPACING.lg}>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.danger} role="alert">
-            ✖ {ERROR_TEXT(q.error.status)}
-          </Text>
-        </Box>
-      )}
+      {q.isError && <ErrorState status={q.error.status} onRetry={() => void q.refetch()} />}
 
       {q.data && (
         <>
@@ -202,12 +215,13 @@ export const ManageAlerts: React.FC<{ token: string; siteUrl: string }> = ({ tok
           )}
 
           <FeedLink token={token} siteUrl={siteUrl} />
+
+          {/* Only when a feed was read: on an error nothing was checked. */}
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary} mt={SPACING.lg}>
+            Data compiled by Membrane · checked each time this page or your feed is read
+          </Text>
         </>
       )}
-
-      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary} mt={SPACING.lg}>
-        Data compiled by Membrane · checked each time this page or your feed is read
-      </Text>
     </Box>
   )
 }

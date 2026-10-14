@@ -1176,6 +1176,8 @@ export interface OracleGapResponse {
   counts: Record<I3State, number>
   /** Curated supply (USD, last exposure read) in the markets of each state. */
   curatedUsd: Record<I3State, number>
+  /** The part of curatedUsd that is book value (supply-locked markets, flag 5). */
+  bookUsd: Record<I3State, number>
   /** Markets of each state with at least EXPOSED_MIN_USD of curated supply. */
   exposed: Record<I3State, number>
   /** Below this curated supply a market counts as having no curated exposure. */
@@ -1236,7 +1238,8 @@ export function buildOracleGapResponse(
   const counts = zero()
   const curatedUsd = zero()
   const exposed = zero()
-  const empty = { counts, curatedUsd, exposed, exposedMinUsd: EXPOSED_MIN_USD }
+  const bookUsd = zero()
+  const empty = { counts, curatedUsd, bookUsd, exposed, exposedMinUsd: EXPOSED_MIN_USD }
   const meta: OracleGapResponse['meta'] = {
     now: nowS,
     measured: Boolean(lastRun),
@@ -1325,6 +1328,7 @@ export function buildOracleGapResponse(
   for (const x of all) {
     counts[x.i3.state]++
     curatedUsd[x.i3.state] += x.curatedUsd ?? 0
+    if (x.locked) bookUsd[x.i3.state] += x.curatedUsd ?? 0
     if ((x.curatedUsd ?? 0) >= EXPOSED_MIN_USD) exposed[x.i3.state]++
   }
   all.sort(

@@ -75,6 +75,29 @@ const feed = {
   actions: [],
   attribution: [],
   spikes: [],
+  // A: fixed-price oracle, fully borrowed now and 7 days back: supply locked (book value).
+  flags: {
+    block: 100,
+    ts: NOW,
+    markets: {
+      [A]: {
+        oracle: tok('7'),
+        oracleKind: 'fixed',
+        parts: [],
+        fill: {
+          block: 100,
+          supply: '100',
+          borrow: '100',
+          lastUpdate: NOW,
+          prevBlock: 50,
+          prevTs: NOW - 7 * 86_400,
+          prevSupply: '100',
+          prevBorrow: '100',
+        },
+      },
+    },
+    shifts: [],
+  },
 }
 const exposure = {
   schema: SCHEMA,
@@ -196,6 +219,7 @@ describe('GET /api/curator-feed?view=oracle-gap', () => {
     })
     expect(b.exposed).toEqual({ fired: 1, building: 1, below: 1, stale: 0, unobserved: 2 })
     expect(b.exposedMinUsd).toBe(1)
+    expect(b.bookUsd).toEqual({ fired: 4_000_000, building: 0, below: 0, stale: 0, unobserved: 0 })
     expect(
       b.markets.map((m: any) => [m.market, m.i3.state, m.i3.hoursAboveConsecutive, m.curatedUsd]),
     ).toEqual([
@@ -210,7 +234,7 @@ describe('GET /api/curator-feed?view=oracle-gap', () => {
     expect(f.latest).toBeUndefined()
     expect(f.lastRaw).toMatchObject({ rawGap: 0.4, marketConfidence: 0.5, ts: NOW - H })
     expect(f.series.every((p: any) => p.gap === null)).toBe(true)
-    expect(b.markets[0].locked).toBe(false)
+    expect(b.markets.map((m: any) => m.locked)).toEqual([true, false, false, false, false, false])
     const a = b.markets[0]
     expect(a).toMatchObject({
       claim: 'possible-leading-signal',

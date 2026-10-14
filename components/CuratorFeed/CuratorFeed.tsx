@@ -303,6 +303,13 @@ function exposedText(m: OracleGapMarketView, minUsd: number): string {
   return `$${compact(m.curatedUsd)} curated supply${m.locked ? ' (book value: supply locked)' : ''}`
 }
 
+/** "$787M (book value: supply locked)" / "$5M (incl. $1M book value)" / "$5M" */
+function usdWithBook(total: number, book: number): string {
+  if (book > 0 && book >= total * 0.999) return `$${compact(total)} (book value: supply locked)`
+  if (book > 0) return `$${compact(total)} (incl. $${compact(book)} book value)`
+  return `$${compact(total)}`
+}
+
 /** "Held: Vault (Curator) 12.3% · …" */
 function heldText(m: OracleGapMarketView): string {
   if (!m.vaults.length) return 'No curated vault holds it at the last exposure read.'
@@ -435,7 +442,7 @@ const GapFinding: React.FC<{ r: OracleGapResponse; collateral: string }> = ({ r,
       {!meta.stale && counts.fired > 0 && (
         <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
           {r.exposed.fired
-            ? `$${compact(r.curatedUsd.fired)} of curated supply in ${r.exposed.fired} of them (last exposure read).`
+            ? `Curated supply in ${r.exposed.fired} of them, last exposure read: ${usdWithBook(r.curatedUsd.fired, r.bookUsd.fired)}.`
             : `None holds $${r.exposedMinUsd} or more of curated supply (last exposure read).`}
         </Mono>
       )}
@@ -1511,7 +1518,9 @@ const OracleGapLine: React.FC<{ r: OracleGapResponse; href: string }> = ({ r, hr
     : m.stale
       ? `Oracle gap: last point ${durationText(m.now - (m.lastRunTs ?? 0))} ago.`
       : i3Headline(r.counts.fired, r.constants) +
-        (r.exposed.fired ? ` · $${compact(r.curatedUsd.fired)} curated supply` : '')
+        (r.exposed.fired
+          ? ` · curated supply ${usdWithBook(r.curatedUsd.fired, r.bookUsd.fired)}`
+          : '')
   return (
     <Box borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
       <Link

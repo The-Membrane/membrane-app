@@ -12,8 +12,14 @@ description: >-
 
 # Free disk space
 
-`scripts/disk-cleanup.sh` (repo root) does the work. This skill is the procedure that makes
-running it with `--apply` safe: **dry run → show the user → apply only what they approved → report**.
+`disk-cleanup.sh` does the work. This skill is the procedure that makes running it with `--apply`
+safe: **dry run → show the user → apply only what they approved → report**.
+
+**Find the script first.** Use the first of these that exists; the commands below call it
+`scripts/disk-cleanup.sh`, so substitute the path you found:
+
+1. `scripts/disk-cleanup.sh` in the membrane-app repo root (canonical copy)
+2. `~/.claude/skills/free-disk-space/disk-cleanup.sh` (the copy installed with this skill globally)
 
 ## What the script can and cannot touch
 
@@ -31,7 +37,7 @@ It never touches git history, the main checkout of any repo, Docker volumes, hid
 
 ### 1. Dry run
 
-From the membrane-app root:
+Run the script from any directory:
 
 ```sh
 scripts/disk-cleanup.sh
@@ -113,6 +119,6 @@ cp -R ~/.disk-cleanup/worktree-backups/membrane-app/foo-<stamp>/. ~/code/membran
 - Remove a worktree once its branch merges: `git worktree remove <path>`.
 - Use pnpm in worktrees, never npm. pnpm shares one package store, so each extra worktree costs
   little.
-- To use this skill outside membrane-app, copy `.claude/skills/free-disk-space/` to
-  `~/.claude/skills/` and `scripts/disk-cleanup.sh` to somewhere on `PATH`, then call it by that
-  path.
+- To use this skill from any repo, install it globally from a membrane-app checkout:
+  `mkdir -p ~/.claude/skills/free-disk-space && cp .claude/skills/free-disk-space/SKILL.md ~/.claude/skills/free-disk-space/ && cp scripts/disk-cleanup.sh ~/.claude/skills/free-disk-space/`.
+  Re-run that after the script changes.

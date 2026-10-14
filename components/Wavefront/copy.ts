@@ -58,14 +58,14 @@ export function headlineCount(frame: Pick<WavefrontFrame, 'coverage'> | null, st
   return frame && !stale ? fmtInt(frame.coverage.total) : '—'
 }
 
-/** Coverage, once: the share of the liquidated positions (the headline) shown on both sides. */
+/**
+ * Coverage as n of total (DESIGN_RULES, Real vs Membrane comparisons: "state coverage (n of
+ * total) on the page") — the positions shown on both sides out of every liquidated one.
+ */
 export function coverageText(frame: Pick<WavefrontFrame, 'coverage'> | null): string {
   if (!frame || frame.coverage.total === 0) return NBSP
   const { walked, total } = frame.coverage
-  const pct = fmtPctFloor(walked, total)
-  return walked === total
-    ? `Same positions on both sides (${pct})`
-    : `Same ${fmtInt(walked)} positions on both sides (${pct})`
+  return `Same ${fmtInt(walked)} of ${fmtInt(total)} on both sides (${fmtPctFloor(walked, total)})`
 }
 
 export interface LegendDatum {

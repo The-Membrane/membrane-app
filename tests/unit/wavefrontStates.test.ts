@@ -231,8 +231,8 @@ describe('copy: what the kicker and headline may say', () => {
   it('stale withholds the headline number; coverage says n of N once', () => {
     expect(headlineCount(complete, false)).toBe('10')
     expect(headlineCount(complete, true)).toBe('—')
-    expect(coverageText(complete)).toBe('Same positions on both sides (100%)')
-    expect(coverageText(partial)).toBe('Same 9 positions on both sides (90%)')
+    expect(coverageText(complete)).toBe('Same 10 of 10 on both sides (100%)')
+    expect(coverageText(partial)).toBe('Same 9 of 10 on both sides (90%)')
   })
 
   it('$ to two significant figures', () => {

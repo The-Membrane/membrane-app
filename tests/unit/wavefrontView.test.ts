@@ -138,7 +138,7 @@ describe('wavefront page wiring (server render)', () => {
     // headline: every liquidated position (coverage.total)
     expect(page).toContain('5 positions liquidated so far')
     // coverage: n of N, once
-    expect(page).toContain('Same 4 positions on both sides (80%)')
+    expect(page).toContain('Same 4 of 5 on both sides (80%)')
     expect(page).toContain('1 not compared: not liquidatable when rechecked')
     // $: the reducer's totals, walked positions only, two significant figures
     expect(f.totals.real.repaidUsd).toBe(1_234_567 + 2_000_000 + 450_000 + 300_000)

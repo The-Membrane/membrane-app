@@ -15,13 +15,14 @@ import {
   recordCredit,
   recordLines,
   thresholdText,
+  type GapInputs,
   type GapObservation,
   type I3Record,
 } from '@/lib/curatorFeed/oracleGap'
 import { datasetsRoot } from '@/lib/curatorFeed/paths'
 import { parseOracleGapFile } from '@/lib/curatorFeed/store'
 import recordJson from '@/lib/curatorFeed/i3Record.generated.json'
-// @ts-expect-error — plain ESM builder, no type declarations
+// A plain ESM builder; its types are inferred (allowJs).
 import { buildI3Record } from '../../scripts/curator-feed/build-i3-record.mjs'
 
 const record = recordJson as unknown as I3Record
@@ -216,7 +217,7 @@ describe('observeGap', () => {
     expect(obs.gap).toBeCloseTo(3600 / 3500 - 1, 6)
   })
   it('a revert, a missing or old price is an unobserved point, never a 0', () => {
-    const base = {
+    const base: GapInputs = {
       ts,
       block: 1,
       price: '1' + '0'.repeat(24),
@@ -225,9 +226,8 @@ describe('observeGap', () => {
       loan: usdc,
       collateral: { price: 1, timestamp: ts },
     }
-    const reason = (o: Partial<typeof base> & Record<string, unknown>) =>
-      observeGap({ ...base, ...o } as Parameters<typeof observeGap>[0])
-    expect(reason({ price: null as never })).toMatchObject({
+    const reason = (o: Partial<GapInputs>) => observeGap({ ...base, ...o })
+    expect(reason({ price: null })).toMatchObject({
       reason: 'oracle-reverts',
       obs: { gap: null },
     })
@@ -239,6 +239,10 @@ describe('observeGap', () => {
     )
     expect(reason({ collateral: { price: 1, timestamp: ts - 6 * H + 1 } }).reason).toBeUndefined()
     expect(reason({ collateralDecimals: undefined }).reason).toBe('no-decimals')
+    expect(reason({ collateral: { price: 1, timestamp: ts, decimals: 6 } }).reason).toBe(
+      'decimals-disagree',
+    )
+    expect(reason({ collateral: { price: 1, timestamp: ts, decimals: 18 } }).reason).toBeUndefined()
     expect(reason({ price: '0' }).reason).toBe('zero-price')
   })
 })

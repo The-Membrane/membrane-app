@@ -357,6 +357,7 @@ export type UnobservedReason =
   | 'oracle-reverts'
   | 'oracle-unread'
   | 'no-decimals'
+  | 'decimals-disagree'
   | 'no-loan-price'
   | 'loan-price-old'
   | 'no-market-price'
@@ -394,6 +395,12 @@ export function observeGap(i: GapInputs): { obs: GapObservation; reason?: Unobse
   const cd = i.collateralDecimals ?? i.collateral?.decimals
   const ld = i.loanDecimals ?? i.loan?.decimals
   if (cd === undefined || ld === undefined) return none('no-decimals')
+  // Token decimals read on chain vs DefiLlama's: a disagreement makes the scale unknown.
+  if (
+    (i.collateral?.decimals !== undefined && i.collateral.decimals !== cd) ||
+    (i.loan?.decimals !== undefined && i.loan.decimals !== ld)
+  )
+    return none('decimals-disagree')
   if (!i.loan || !(i.loan.price > 0)) return none('no-loan-price')
   if (i.ts - i.loan.timestamp >= MARKET_HOLD_SECONDS) return none('loan-price-old')
   if (!i.collateral || !(i.collateral.price > 0)) return none('no-market-price')

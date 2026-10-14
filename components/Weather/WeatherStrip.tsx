@@ -1,12 +1,11 @@
-import React, { memo, useEffect, useState, type ReactNode } from 'react'
+import React, { memo, type ReactNode } from 'react'
 import { Box, Flex, Text } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
 
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
-import type { WeatherResponse } from '@/lib/weather/handler'
 
+import { useNow, useWeather } from './useWeather'
 import { weatherView, type WeatherView } from './weatherView'
 
 // THE WEATHER STRIP — the masthead's dateline: the M0 regime, the DVOL daily move as a
@@ -35,23 +34,6 @@ const WIDE_FLEX: Responsive = { base: 'none', lg: 'flex' }
 const XL_ONLY: Responsive = { base: 'none', xl: 'inline' }
 /** A faint ink hatch: the strip's stale / unavailable texture (never a colour). */
 const HATCH = 'repeating-linear-gradient(-45deg, var(--news-rule) 0 1px, transparent 1px 6px)'
-
-async function fetchWeather(): Promise<WeatherResponse> {
-  const res = await fetch('/api/weather')
-  if (!res.ok) throw new Error(`weather ${res.status}`)
-  return res.json()
-}
-
-/** The reader's clock, ticking, so the ages stay true between refetches. Null until mount. */
-function useNow(everyMs: number): number | null {
-  const [now, setNow] = useState<number | null>(null)
-  useEffect(() => {
-    setNow(Date.now())
-    const id = setInterval(() => setNow(Date.now()), everyMs)
-    return () => clearInterval(id)
-  }, [everyMs])
-  return now
-}
 
 /** One dateline item, unbroken. `sep` prints a middot before it. */
 function Item({
@@ -215,14 +197,7 @@ function NarrowAgesRow({ v }: { v: WeatherView }) {
 
 export const WeatherStrip = memo(function WeatherStrip({ lead }: WeatherStripProps) {
   const now = useNow(15_000)
-  const q = useQuery({
-    queryKey: ['weather'],
-    queryFn: fetchWeather,
-    refetchInterval: 60_000,
-    staleTime: 55_000,
-    refetchOnMount: true,
-    retry: 1,
-  })
+  const q = useWeather()
   // Before the clock mounts, judge ages at the server's read time.
   const v = weatherView({ status: q.status, data: q.data, nowMs: now ?? q.data?.now ?? 0 })
 

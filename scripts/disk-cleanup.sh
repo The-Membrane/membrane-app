@@ -17,11 +17,15 @@
 #   --only LIST   Comma-separated subset of: artifacts,caches,worktrees,report
 #   --apply       Actually delete. Without it the script only reports.
 #   --yes         Don't prompt. Worktrees with unsaved work are still skipped
-#                 unless --park is also given.
+#                 unless --park is also given. Without a terminal (e.g. run by
+#                 an agent) --apply deletes nothing unless --yes is given.
 #   --park        For worktrees with uncommitted changes: commit them locally as
 #                 a WIP commit (nothing is pushed), back up gitignored files such
 #                 as .env, then remove the folder. The branch keeps the work.
 #                 Restore commands go to ~/.disk-cleanup/worktrees.log.
+#
+# Refuses to run as root. In containers where root is the normal user, set
+# DISK_CLEANUP_ALLOW_ROOT=1.
 #
 # Never touched: git history and branches, Docker volumes, chain/node data
 # dirs, Downloads, hidden dirs such as ~/.vscode or ~/.nvm, and ~/Library
@@ -51,6 +55,10 @@ while [ $# -gt 0 ]; do
   shift
 done
 case "$OLDER" in ''|*[!0-9]*) echo "--older must be a whole number of days" >&2; exit 1 ;; esac
+if [ "$(id -u)" -eq 0 ] && [ "${DISK_CLEANUP_ALLOW_ROOT:-0}" != 1 ]; then
+  echo "Refusing to run as root: it would clean root's home, not yours. Run without sudo." >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------- helpers ---
 
@@ -69,11 +77,19 @@ human() {
 size_kb() { du -sk "$@" 2>/dev/null | awk '{ s += $1 } END { print s + 0 }'; }
 free_kb() { df -kP "$HOME" | awk 'NR == 2 { print $4 }'; }
 
+# Prompts only when stdin is a terminal. Anything else (agents, cron, pipes)
+# counts as "no", so --apply alone can never delete unattended.
+UNANSWERED=0
 confirm() {
   [ "$YES" -eq 1 ] && return 0
+  if [ ! -t 0 ]; then
+    UNANSWERED=$((UNANSWERED + 1))
+    echo "  skipped: no terminal to confirm \"$1\"" >&2
+    return 1
+  fi
   local ans
-  printf '%s [y/N] ' "$1" > /dev/tty 2>/dev/null || return 1
-  read -r ans < /dev/tty || return 1
+  printf '%s [y/N] ' "$1" >&2
+  read -r ans || return 1
   case "$ans" in y|Y|yes|YES) return 0 ;; esac
   return 1
 }
@@ -491,6 +507,10 @@ echo
 if [ $APPLY -eq 1 ]; then
   AFTER=$(free_kb)
   echo "${B}Freed $(human $((AFTER - BEFORE)))${R}. Free space now: $(human "$AFTER")"
+  if [ $UNANSWERED -gt 0 ]; then
+    echo "$UNANSWERED step(s) were skipped because there was no terminal to confirm them."
+    echo "Review the list above, then re-run with --apply --yes to clean it."
+  fi
 else
   echo "${B}Estimated reclaimable: ~$(human "$TOTAL_KB")${R} (plus Docker and worktrees, listed above)"
   echo "Next: scripts/disk-cleanup.sh --apply    (add --park to also clear worktrees with unsaved work)"

@@ -23,12 +23,15 @@ import { DEFAULT_DIRECTION, DIRECTIONS, type Direction, type Metric } from '@/li
 import {
   controlTitle,
   feedStorageKey,
+  LINK_WARNING,
+  manageHref,
   OPT_IN_TEXT,
   outcomeView,
   parseInput,
   prefillText,
   relationLine,
   requestBody,
+  stampText,
   submitOutcome,
   successLine,
   tokenFromFeedUrl,
@@ -47,6 +50,12 @@ export interface AlertMeAtProps {
   currentValue: number | null
   /** When currentValue was measured (ISO), for the stamp. */
   asOf?: string | null
+  /**
+   * The live value is older than its source's max age (lib/userAlerts/freshness.ts).
+   * Then: no prefill, no distance-from-now line, and "Not checked until the value is
+   * fresh." — the evaluator skips a stale value, so the UI must not promise a check.
+   */
+  stale?: boolean
   /** The address on the page (pasted or connected). Absent → the control asks for one. */
   ownerAddress?: string | null
   /** False when the parent renders one shared address input for several controls. */
@@ -281,10 +290,24 @@ const ThresholdField: React.FC<{
   </Flex>
 )
 
-const ValueStamp: React.FC<{ asOf: string | null | undefined }> = ({ asOf }) => (
+const ValueStamp: React.FC<{ text: string }> = ({ text }) => (
   <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xs}>
-    {asOf ? `value as of ${asOf.slice(0, 16).replace('T', ' ')} UTC · ` : ''}checked each time your feed is read
+    {text}
   </Text>
+)
+
+/** A full feed: manage it (stop some) or start a new feed for this address. */
+const CapActions: React.FC<{ manage: string | null; onNewFeed: () => void }> = ({ manage, onNewFeed }) => (
+  <Flex gap={SPACING.sm} flexWrap="wrap" mt={SPACING.xs}>
+    {manage && (
+      <Button {...ACTION} variant="ghost" as="a" href={manage}>
+        Manage alerts
+      </Button>
+    )}
+    <Button {...ACTION} variant="ghost" onClick={onNewFeed}>
+      Start a new feed
+    </Button>
+  </Flex>
 )
 
 /** After a store: the feed link, copy, Telegram (only when on), stop, set another. */
@@ -293,6 +316,8 @@ const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () =
   const [copied, setCopied] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const uid = useId()
+  const token = tokenFromFeedUrl(stored.feedUrl)
+  const manage = token ? manageHref(token) : null
 
   const copy = async () => {
     try {
@@ -317,7 +342,7 @@ const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () =
       {!stopped && (
         <>
           <Text {...LABEL} mt={SPACING.sm}>
-            your rss feed · keep it private
+            your rss feed
           </Text>
           <Text
             as="a"
@@ -333,6 +358,9 @@ const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () =
             _focus={FOCUS_STYLES.ring}
           >
             {stored.feedUrl}
+          </Text>
+          <Text {...NOTE} mt={SPACING.xs}>
+            {LINK_WARNING}
           </Text>
         </>
       )}
@@ -352,6 +380,11 @@ const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () =
             Stop this alert
           </Button>
         )}
+        {manage && (
+          <Button {...ACTION} variant="ghost" as="a" href={manage}>
+            Manage alerts
+          </Button>
+        )}
         <Button {...ACTION} variant="ghost" onClick={onReset}>
           Set another
         </Button>
@@ -365,7 +398,16 @@ const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () =
 
 type FormProps = Omit<AlertMeAtProps, 'collapsible'> & { telegramOn: boolean }
 
-const AlertForm: React.FC<FormProps> = ({ metric, subject, currentValue, asOf, ownerAddress, askAddress = true, telegramOn }) => {
+const AlertForm: React.FC<FormProps> = ({
+  metric,
+  subject,
+  currentValue,
+  asOf,
+  stale = false,
+  ownerAddress,
+  askAddress = true,
+  telegramOn,
+}) => {
   const uid = useId()
   // null = untouched: the input shows the live prefill, and follows it if it arrives late.
   const [typed, setTyped] = useState<string | null>(null)
@@ -377,15 +419,16 @@ const AlertForm: React.FC<FormProps> = ({ metric, subject, currentValue, asOf, o
   const [message, setMessage] = useState<string | null>(null)
   const [serverError, setServerError] = useState<FieldError | null>(null)
   const [stored, setStored] = useState<Stored | null>(null)
+  const [capped, setCapped] = useState(false)
 
   const title = controlTitle(metric, subject)
   const needsAddress = !ownerAddress
   const ownAddressInput = needsAddress && askAddress
   const address = ownerAddress ?? addressInput
-  const input = typed ?? prefillText(metric, currentValue)
+  const input = typed ?? prefillText(metric, currentValue, stale)
   const draft = { input, direction, optIn, address }
   const errors = visibleErrors(metric, draft, needsAddress, tried, serverError)
-  const relation = errors.threshold ? null : relationLine(metric, direction, parseInput(input), currentValue)
+  const relation = errors.threshold ? null : relationLine(metric, direction, parseInput(input), currentValue, stale)
   const ids = { threshold: `${uid}-th`, address: `${uid}-addr`, optIn: `${uid}-opt`, msg: `${uid}-msg` }
 
   const reset = () => {
@@ -395,12 +438,14 @@ const AlertForm: React.FC<FormProps> = ({ metric, subject, currentValue, asOf, o
     setTyped(null)
     setMessage(null)
     setServerError(null)
+    setCapped(false)
   }
 
   const submit = async () => {
     setTried(true)
     setServerError(null)
     setMessage(null)
+    setCapped(false)
     const shown = visibleErrors(metric, draft, needsAddress, true, null)
     if (shown.threshold || shown.address || shown.optIn) return
     const threshold = parseInput(input)
@@ -414,8 +459,18 @@ const AlertForm: React.FC<FormProps> = ({ metric, subject, currentValue, asOf, o
     const view = outcomeView(out, ownAddressInput)
     if (view.kind === 'stored') setStored({ ...view, text: successLine(metric, subject, direction, threshold) })
     else if (view.kind === 'field') setServerError(view.error)
-    else setMessage(view.message)
+    else {
+      setMessage(view.message)
+      setCapped(view.kind === 'cap')
+    }
   }
+
+  // The full feed is this browser's stored one: forget it, and the retry mints a new feed.
+  const startNewFeed = () => {
+    writeToken(address, null)
+    void submit()
+  }
+  const fullToken = capped ? readToken(address) : null
 
   if (stored) return <StoredPanel stored={stored} telegramOn={telegramOn} onReset={reset} />
 
@@ -452,8 +507,9 @@ const AlertForm: React.FC<FormProps> = ({ metric, subject, currentValue, asOf, o
 
       <OptInBox checked={optIn} onChange={setOptIn} error={errors.optIn} errorId={ids.optIn} />
       {message && <ErrorLine id={ids.msg}>{message}</ErrorLine>}
+      {capped && <CapActions manage={fullToken ? manageHref(fullToken) : null} onNewFeed={startNewFeed} />}
 
-      <ValueStamp asOf={currentValue !== null ? asOf : null} />
+      <ValueStamp text={stampText(asOf, currentValue !== null, stale)} />
     </Box>
   )
 }

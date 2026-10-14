@@ -96,6 +96,7 @@ export const VenueAlerts: React.FC<{ venue: string }> = ({ venue }) => {
               subject={subject}
               currentValue={v.utilization.value}
               asOf={v.utilization.asOf}
+              stale={v.utilization.stale}
               ownerAddress={owner}
               askAddress={false}
             />
@@ -108,6 +109,7 @@ export const VenueAlerts: React.FC<{ venue: string }> = ({ venue }) => {
               subject={subject}
               currentValue={v.apr?.value ?? null}
               asOf={v.apr?.asOf ?? null}
+              stale={v.apr?.stale ?? false}
               ownerAddress={owner}
               askAddress={false}
             />
@@ -131,6 +133,7 @@ export const VenueCardAlert: React.FC<{ venue: string; address: string }> = ({ v
         subject={subject}
         currentValue={v.utilization.value}
         asOf={v.utilization.asOf}
+        stale={v.utilization.stale}
         ownerAddress={address}
         collapsible
       />
@@ -143,6 +146,7 @@ export const VenueCardAlert: React.FC<{ venue: string; address: string }> = ({ v
         subject={subject}
         currentValue={v.apr?.value ?? null}
         asOf={v.apr?.asOf ?? null}
+        stale={v.apr?.stale ?? false}
         ownerAddress={address}
         collapsible
       />

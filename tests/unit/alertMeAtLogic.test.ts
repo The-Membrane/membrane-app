@@ -4,9 +4,14 @@ import {
   controlTitle,
   draftErrors,
   feedStorageKey,
+  LINK_WARNING,
+  manageHref,
   OPT_IN_TEXT,
   outcomeView,
   parseInput,
+  parseNumber,
+  STALE_LINE,
+  stampText,
   prefillText,
   relationLine,
   requestBody,
@@ -34,6 +39,14 @@ describe('prefill — the live value, never a made-up default', () => {
     expect(prefillText('price', undefined)).toBe('')
     expect(prefillText('apr', NaN)).toBe('')
   })
+  it('a STALE value is no prefill, no "now" line, and the stamp says it is not checked', () => {
+    expect(prefillText('utilization', 44.2, true)).toBe('')
+    expect(relationLine('utilization', 'above', 44, 44.2, true)).toBeNull()
+    expect(stampText('2026-10-14T09:00:00.000Z', true, true)).toBe(STALE_LINE)
+    expect(STALE_LINE).toBe('Not checked until the value is fresh.')
+    expect(stampText('2026-10-14T09:00:00.000Z', true, false)).toBe('value as of 2026-10-14 09:00 UTC · checked each time your feed is read')
+    expect(stampText(null, false, false)).toBe('checked each time your feed is read')
+  })
 })
 
 describe('validation', () => {
@@ -41,6 +54,20 @@ describe('validation', () => {
     expect(parseInput('$2,500.50')).toBe(2500.5)
     expect(parseInput(' 50 % ')).toBe(50)
     expect(Number.isNaN(parseInput(''))).toBe(true)
+  })
+  it('a comma is a thousands separator only in groups of three; a lone comma is the decimal mark', () => {
+    expect(parseNumber('4,5')).toEqual({ ok: true, value: 4.5 })
+    expect(parseNumber('87,5')).toEqual({ ok: true, value: 87.5 })
+    expect(parseNumber('1,234.5')).toEqual({ ok: true, value: 1234.5 })
+    expect(parseNumber('12,345,678')).toEqual({ ok: true, value: 12345678 })
+    expect(parseNumber('1,23,4')).toEqual({ ok: false, message: 'Use a dot for decimals, like 4.5.' })
+    expect(parseNumber('4,5.6')).toEqual({ ok: false, message: 'Use a dot for decimals, like 4.5.' })
+    expect(parseNumber('0x10')).toEqual({ ok: false, message: 'Enter a plain number, like 4.5.' })
+    expect(parseNumber('1e2').ok).toBe(false)
+    expect(parseNumber('')).toEqual({ ok: false, message: 'Enter a number.' })
+    // the 10x trap: "87,5" must never become 875
+    expect(draftErrors('utilization', draft({ input: '87,5' }), false)).toEqual([])
+    expect(draftErrors('utilization', draft({ input: '1,23,4' }), false)[0].message).toBe('Use a dot for decimals, like 4.5.')
   })
   it('every field: threshold, address (only when asked), opt-in', () => {
     expect(draftErrors('utilization', draft(), true)).toEqual([])
@@ -91,7 +118,8 @@ describe('submitOutcome — every API answer has a state', () => {
     expect(submitOutcome(200, { feedUrl: 'f', telegramLink: 't' })).toMatchObject({ telegramLink: 't' })
   })
   it('cap, invalid, unknown feed, rate limit, down', () => {
-    expect(submitOutcome(409, { error: 'cap', max: 25 })).toEqual({ phase: 'cap', message: '25 alerts max per feed. Stop one first.' })
+    expect(submitOutcome(409, { error: 'cap', max: 25 })).toEqual({ phase: 'cap', message: '25 alerts max per feed. Stop one, or start a new feed.' })
+    expect(submitOutcome(409, null)).toEqual({ phase: 'cap', message: '25 alerts max per feed. Stop one, or start a new feed.' })
     expect(submitOutcome(400, { error: 'invalid', field: 'threshold', message: 'Enter a % from 0 to 100.' })).toEqual({
       phase: 'invalid',
       field: 'threshold',
@@ -115,7 +143,9 @@ describe('outcomeView — where each answer shows', () => {
     const addr = { phase: 'invalid' as const, field: 'address' as const, message: 'Enter a 0x address.' }
     expect(outcomeView(addr, true).kind).toBe('field')
     expect(outcomeView(addr, false)).toEqual({ kind: 'message', message: 'Enter a 0x address.' })
-    expect(outcomeView({ phase: 'cap', message: 'm' }, false)).toEqual({ kind: 'message', message: 'm' })
+    // a full feed is not a dead end: the control offers manage + start a new feed
+    expect(outcomeView({ phase: 'cap', message: 'm' }, false)).toEqual({ kind: 'cap', message: 'm' })
+    expect(outcomeView({ phase: 'error', message: 'down' }, false)).toEqual({ kind: 'message', message: 'down' })
     expect(outcomeView({ phase: 'unknownFeed' }, false)).toEqual({ kind: 'message', message: 'Alerts are down right now. Try later.' })
   })
 })
@@ -139,6 +169,8 @@ describe('request and feed plumbing', () => {
     expect(tokenFromFeedUrl(`https://membrane.money/api/alerts/feed/${token}?format=rss`)).toBe(token)
     expect(tokenFromFeedUrl('https://membrane.money/api/alerts/feed/nope')).toBeNull()
     expect(feedStorageKey(ADDR)).toBe(`membrane:alerts:feed:${ADDR.toLowerCase()}`)
+    expect(manageHref(token)).toBe(`/alerts/${token}`)
+    expect(LINK_WARNING).toBe('Anyone with this link can read these alerts.')
   })
   it('titles', () => {
     expect(controlTitle('utilization', 'venue:aave-v3-usde')).toBe('Aave v3 USDe utilization')

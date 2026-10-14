@@ -33,8 +33,9 @@
  *   6. reconcile every `reconcileEveryMinutes`, the trailing window is re-scanned on other
  *               backends; a missed liquidation is processed then, its records flagged
  *               `late: true` (ts = the append time, `eventTs` = its own) — the stream stays
- *               ordered. A reconciliation that cannot run (backends down) is retried next time
- *               from where the last one succeeded; it never blocks the stream;
+ *               ordered. A chain's pass has a 120 s budget; one that cannot run (independent
+ *               backends down or rate-limiting) is retried next time from where the last one
+ *               succeeded, so it never holds the stream;
  *   7. commit   the records and the state in one sink commit.
  *
  * A minute processed more than `backfillLagSeconds` after it ended (a restart after downtime,
@@ -468,15 +469,18 @@ export class LiveEngine {
   }
 
   /** Scan one chain's new confirmed blocks into `pending`. Mutates the chain state only on success. */
-  async poll(c: ChainKey): Promise<void> {
+  async poll(c: ChainKey, needTs?: number): Promise<void> {
     const rt = this.rt[c]
     const cs = this.cs(c)
     const head = await this.deps.head(c, rt.blocks, this.deps.clock.now() / 1000)
     if (head === null) return
     const target = head - rt.cfg.confirmations
     if (target <= cs.scannedTo) return
-    const { events, chunks } = await rt.scanner.scan(cs.scannedTo + 1, target)
+    // Not far enough yet for the minute being waited on: wait rather than scan a partial range
+    // (a scan costs a logs call and, when empty, its re-ask).
     const h = await rt.blocks.header(target)
+    if (needTs !== undefined && h.ts < needTs) return
+    const { events, chunks } = await rt.scanner.scan(cs.scannedTo + 1, target)
     const known = new Set([...cs.pending.map(eventKey), ...cs.seen.map(([k]) => k)])
     for (const e of events) if (!known.has(eventKey(e))) cs.pending.push(e)
     cs.chunks.push(...chunks)
@@ -516,7 +520,7 @@ export class LiveEngine {
         }
         // Chains are polled in parallel; each mutates only its own state, and only on success.
         this.phase = `poll ${due.join(',')} for minute ${m}`
-        const polled = await Promise.allSettled(due.map((c) => this.poll(c)))
+        const polled = await Promise.allSettled(due.map((c) => this.poll(c, E)))
         this.phase = 'idle'
         const failed = polled.find((p): p is PromiseRejectedResult => p.status === 'rejected')
         if (failed) throw failed.reason

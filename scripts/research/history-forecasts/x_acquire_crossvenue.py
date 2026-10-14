@@ -83,7 +83,7 @@ GATE_SHARE = 0.99
 RANGE_MAX = G.RANGE_MAX         # 50,000 blocks
 RANGE_MIN = G.RANGE_MIN         # 1,000 blocks
 LOGS_INTERVAL_S = G.LOGS_INTERVAL_S   # <= 2 requests/s over all log workers
-LOGS_WORKERS = 3
+LOGS_WORKERS = 4
 TARGET_LOGS_PER_RANGE = 6_000   # the endpoint caps a response at 10,000 logs for ranges > 10,000 blocks
 MIN_SIZE_RETRIES = 5            # an error at the minimum range size: wait 30 s and retry, then stop
 RETRY_WAIT_S = 30
@@ -1046,6 +1046,7 @@ def fetch_token(store, client, key: str, start: int, end: int, log_event, sleep=
     then the run stops."""
     stats = {"ranges_ok": 0, "splits": 0, "min_size_retries": 0, "logs": 0}
     size = RANGE_MAX
+    cap = float(RANGE_MAX)   # after an error at span s the next ranges start at <= s/2, growing 10% per success
     for glo, ghi in G.uncovered(start, end, store.done(key)):
         pos = glo
         while pos <= ghi:
@@ -1064,6 +1065,7 @@ def fetch_token(store, client, key: str, start: int, end: int, log_event, sleep=
                         halves = G.split_range(lo, h)
                         if halves is not None:
                             logs = None
+                            cap = max(float(RANGE_MIN), min(cap, (h - lo + 1) / 2))
                             stats["splits"] += 1
                             client.counts["splits"] += 1
                             log_event({"type": "split", "src": "logs", "token": key, "range": [lo, h],
@@ -1088,7 +1090,8 @@ def fetch_token(store, client, key: str, start: int, end: int, log_event, sleep=
                 store.save(key, lo, h, logs)
                 stats["ranges_ok"] += 1
                 stats["logs"] += len(logs)
-                size = next_size(len(logs), h - lo + 1)
+                cap = min(float(RANGE_MAX), cap * 1.1)
+                size = min(next_size(len(logs), h - lo + 1), int(cap))
                 if progress:
                     progress(key, h, len(logs))
             pos = hi + 1

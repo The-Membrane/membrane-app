@@ -122,6 +122,10 @@ OTHER_SIGS = {
     "Initialized": "Initialized(address,address,address,address,uint8,string,string,bytes)",
     "Upgraded": "Upgraded(address)",
     "AdminChanged": "AdminChanged(address,address)",
+    # GhoAToken (the GHO reserve's aToken before its upgrade to a standard aToken): no aToken balance change
+    "FeesDistributedToTreasury": "FeesDistributedToTreasury(address,address,uint256)",
+    "VariableDebtTokenSet": "VariableDebtTokenSet(address)",
+    "GhoTreasuryUpdated": "GhoTreasuryUpdated(address,address)",
 }
 # (topics incl. topic0, data words) for the four decoded types
 LAYOUT = {"Mint": (3, 3), "Burn": (3, 3), "BalanceTransfer": (3, 2), "Transfer": (3, 1)}

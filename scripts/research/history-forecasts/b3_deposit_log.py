@@ -13,7 +13,8 @@ code sha, prevFile / prevSha256 (genesis = 64 zeros), and one row per (reserve, 
 shipped rung, label, holdout outcome, capped text, history count. `issues/chain.jsonl` appends one line per
 issue. Scoring (for a future scorer, not built): a row resolves once events through asof + h are acquired; y per
 B-gradient G.3 on the intraday event path from the asof anchor (y_all rows are history only and never scored).
-Addresses are public on-chain data; no identity is attached.
+The hash chain is verified link by link before every write. Addresses are public on-chain data; no identity is
+attached.
 """
 import argparse
 import hashlib

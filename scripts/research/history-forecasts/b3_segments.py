@@ -18,6 +18,7 @@ Phases (one fresh --out, in this order):
   --phase holdout         per-reserve holdout rule + pooling-term test ONCE -> results-holdout.json
   --phase manifest        sha256 of every output
 --workers N (default 2) sets the fit processes (fork; BLAS pinned to one thread).
+After the holdout phase: python3 b3_deposit_log.py --b3-out OUT --out SCRATCH --dry-run (B3.9, never scheduled).
 
 Addresses are public on-chain data. This code attaches no identity, label or name to any address.
 Light models only (sklearn logistic + empirical-Bayes shrinkage).

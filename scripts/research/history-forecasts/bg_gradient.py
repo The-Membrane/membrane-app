@@ -20,6 +20,7 @@ Phases (run in this order with one fresh --out):
   python3 bg_gradient.py --datasets DIR --out DIR --phase dryrun-holdout  holdout rows and caps; no outcome
   python3 bg_gradient.py --datasets DIR --out DIR --phase blind           holdout blind check ONCE -> results-blind.json
   python3 bg_gradient.py --datasets DIR --out DIR --phase manifest        sha256 of every output
+--workers N (default 4) sets the fit processes of the run phase (fork; BLAS pinned to one thread for determinism).
 The run and blind phases refuse to overwrite their results. The blind phase refuses unless the frozen
 shipped-models.json exists and matches the sha256 recorded by the freeze phase.
 

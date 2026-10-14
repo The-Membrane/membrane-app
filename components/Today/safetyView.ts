@@ -28,15 +28,14 @@ import {
 
 export const SAFETY_COPY = {
   positionKicker: 'Your position',
-  headline: 'See what your positions can exit now.',
+  headline: 'Can your positions exit now?',
   deck: 'Read-only. No signature.',
   inputLabel: 'Ethereum address',
   placeholder: '0x…',
   action: 'Check on Radar →',
   invalid: 'Not an Ethereum address.',
   useWallet: 'Use connected wallet',
-  alarmsKicker: 'Venue alarms',
-  curatorLabel: 'Curator exits',
+  alarmsKicker: 'Alarms',
   alarmsUnavailable: 'Venue alarms unavailable',
   openVenue: 'Open venue →',
 } as const
@@ -66,7 +65,7 @@ export interface AlarmRowView {
   label: string
   severity: 'Alarm' | 'Watch'
   finding: AlarmFinding
-  /** "fired 7 Oct 05:49 UTC". */
+  /** When it fired: "7 Oct 05:49 UTC". */
   fired: string
   href: string
 }
@@ -74,10 +73,12 @@ export interface AlarmRowView {
 export interface AlarmsView {
   state: 'loading' | 'error' | 'none' | 'open' | 'stale'
   hatched: boolean
-  /** "2 venue alarms open." / "No venue alarm open." */
+  /** Under the "Alarms" kicker: "2 open." / "None open." */
   headline: string | null
   withheld: string | null
-  /** "as of 14:45 UTC": the newest venue reading the checker judged. */
+  /** "as of 14:45 UTC": the newest venue reading the checker judged. Printed when none
+   *  is open (silence needs its as-of); open alarms carry their own times, and data past
+   *  RECORDER_MAX_AGE_MS is withheld either way. */
   asOf: string | null
   rows: AlarmRowView[]
 }
@@ -179,7 +180,7 @@ export function alarmsView(input: {
       label: labelOf(a.venue),
       severity: a.severity === 'watch' ? 'Watch' : 'Alarm',
       finding: alarmFinding(a),
-      fired: `fired ${utcClock(Date.parse(a.firedAt), nowMs)}`,
+      fired: utcClock(Date.parse(a.firedAt), nowMs),
       href: venueHref(chain, a.venue),
     }))
 
@@ -197,13 +198,7 @@ export function alarmsView(input: {
   }
   const asOf = `as of ${utcClock(at, nowMs)}`
   if (rows.length === 0) {
-    return { ...base, state: 'none', headline: 'No venue alarm open.', asOf }
+    return { ...base, state: 'none', headline: 'None open.', asOf }
   }
-  return {
-    ...base,
-    state: 'open',
-    headline: `${rows.length} venue alarm${rows.length === 1 ? '' : 's'} open.`,
-    asOf,
-    rows,
-  }
+  return { ...base, state: 'open', headline: `${rows.length} open.`, rows }
 }

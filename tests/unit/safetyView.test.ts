@@ -104,7 +104,7 @@ describe('alarmsView', () => {
     expect(view(ok({ open: [] }))).toEqual({
       state: 'none',
       hatched: false,
-      headline: 'No venue alarm open.',
+      headline: 'None open.',
       withheld: null,
       asOf: 'as of 12:08 UTC',
       rows: [],
@@ -123,12 +123,13 @@ describe('alarmsView', () => {
       }),
     )
     expect(v.state).toBe('open')
-    expect(v.headline).toBe('2 venue alarms open.')
+    expect(v.headline).toBe('2 open.')
+    expect(v.asOf).toBeNull()
     expect(v.rows.map((r) => [r.label, r.severity, r.finding.lead, r.href])).toEqual([
       ['scrvUSD', 'Alarm', 'Swap pool fell', '/ethereum/venue/scrvUSD'],
       ['Aave v3 USDe', 'Watch', 'Lent out', '/ethereum/venue/aave-v3-usde'],
     ])
-    expect(v.rows[0].fired).toBe('fired 11:30 UTC')
+    expect(v.rows[0].fired).toBe('11:30 UTC')
   })
 
   it('stale venue data (the production case): headline withheld, age said once, rows hatched', () => {

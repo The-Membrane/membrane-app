@@ -46,7 +46,7 @@ export const RECORDER_VENUES = ['sUSDe', 'aave-v3-usde', 'sUSDS', 'scrvUSD'] as 
 export const SIZES = [10_000, 100_000, 1_000_000, 10_000_000] as const
 export const DEFAULT_SIZE = 100_000
 /** Venues in the table under the headline venue (the headline is not repeated there). */
-export const RATES_SHOWN = 4
+export const RATES_SHOWN = 3
 
 /**
  * The recorder runs hourly (scripts/recorder-tick.sh), and the strats refresh and the
@@ -61,7 +61,7 @@ export const RECORDER_MAX_AGE_MS = 2 * HOUR_MS
 export const NET_APY_MAX_AGE_MS = 30 * 60_000
 
 export const OPP_COPY = {
-  ratesKicker: 'Next highest',
+  ratesKicker: 'Runners-up',
   exitsKicker: 'Exits',
   demandKicker: 'Demand',
   venue: 'Venue',
@@ -79,7 +79,7 @@ export const OPP_COPY = {
   demandUnavailable: 'Tracked capital unavailable',
   notRead: 'not read',
   unavailable: 'unavailable',
-  ratesCredit: "Net of the venue's fee · rewards per Merkl",
+  ratesCredit: 'After venue fees · rewards per Merkl',
   exitsCredit: 'Swap pools are reserves, not quotes',
 } as const
 
@@ -144,7 +144,7 @@ export interface LeadView {
   /** What the size would earn in a year at that rate: "$4,364" + "a year†". The size is
    *  the lever's selected preset, right under it, so it is not printed twice. */
   hero: { figure: string; unit: string } | null
-  /** "Highest of 13 venues · block 26,187,572 · 15m ago". */
+  /** "Highest of 13 · block 26,187,572 · 15m ago". */
   credit: string | null
   /** The headline venue's page, where one exists. */
   href: string | null
@@ -242,7 +242,7 @@ export function leadView(input: {
     state: 'ready',
     headline: { lead: `${top.label} pays`, figure: supplyPct(apr), tail: 'APR†' },
     hero: { figure: usdWhole(apr * list.sizeUsd), unit: 'a year†' },
-    credit: `${ranked.length === 1 ? 'The only venue read' : `Highest of ${ranked.length} venues`} · ${where}`,
+    credit: `${ranked.length === 1 ? 'Only venue read' : `Highest of ${ranked.length}`} · ${where}`,
     href: hasVenuePage(top.venueKey) ? venueHref(chain, top.venueKey) : null,
   }
 }
@@ -316,7 +316,7 @@ export interface ExitRow {
 export interface ExitsView {
   state: 'loading' | 'ready' | 'stale' | 'error'
   hatched: boolean
-  /** "Every exit read holds more than $100k." */
+  /** "All 4 exits hold over $100k." */
   headline: string | null
   /** "Thinnest: scrvUSD, $21.6M." */
   deck: string | null
@@ -418,8 +418,8 @@ export function exitsView(input: {
     hatched: false,
     headline:
       under === 0
-        ? `Every exit read holds more than ${size}.`
-        : `${under} of ${caps.length} exits hold less than ${size}.`,
+        ? `All ${caps.length} exits hold over ${size}.`
+        : `${under} of ${caps.length} exits hold under ${size}.`,
     deck: `Thinnest: ${thinLabel}, ${usdShort(thinnest.cap.usd)}.`,
   }
 }

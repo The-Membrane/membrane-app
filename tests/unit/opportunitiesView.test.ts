@@ -118,7 +118,7 @@ describe('leadView (the rate headline)', () => {
     // $100k × 4.36462% a year, rounded down: the $ the reader would earn (moss).
     expect(v.hero).toEqual({ figure: '$4,364', unit: 'a year†' })
     // Six ranked: the reverting venue is out; Aave USDS ranks on its on-chain rate only.
-    expect(v.credit).toBe('Highest of 6 venues · block 26,187,572 · 15m ago')
+    expect(v.credit).toBe('Highest of 6 · block 26,187,572 · 15m ago')
     expect(v.href).toBeNull()
   })
 
@@ -165,10 +165,14 @@ describe('ratesView (the ranked table)', () => {
     expect(v.state).toBe('ready')
     expect(v.aprHead).toBe('APR at $100k†')
     expect(v.rows).toHaveLength(RATES_SHOWN)
-    expect(v.rows.map((r) => r.label)).toEqual(['Euler eUSDC-2', 'Aave v3 USDC', 'SparkLend USDC', 'Aave v3 USDe'])
+    expect(v.rows.map((r) => r.label)).toEqual(['Euler eUSDC-2', 'Aave v3 USDC', 'SparkLend USDC'])
     expect(v.rows[0]).toMatchObject({ apr: '4.31%', borrow: '4.93%', rewards: null, href: null })
-    expect(v.rows[3].href).toBe('/ethereum/venue/aave-v3-usde')
     expect(v.excluded).toBe('1 venue reverts at $100k (over the supply cap)')
+  })
+
+  it('a row links its venue page where one exists', () => {
+    const l = list({ venues: [venue('x', 'X', 0.05), venue('aave-v3-usde', 'Aave v3 USDe', 0.04)] })
+    expect(rates(ok(l)).rows[0]).toMatchObject({ label: 'Aave v3 USDe', href: '/ethereum/venue/aave-v3-usde' })
   })
 
   it('prints reported rewards beside the on-chain rate, with their end date', () => {
@@ -226,7 +230,7 @@ describe('exitsView (exits against the size)', () => {
   it('fresh: every exit holds more than the size, and the thinnest is named', () => {
     const v = exits(summaries(FRESH))
     expect(v.state).toBe('ready')
-    expect(v.headline).toBe('Every exit read holds more than $100k.')
+    expect(v.headline).toBe('All 4 exits hold over $100k.')
     expect(v.deck).toBe('Thinnest: scrvUSD, $21.6M.')
     expect(v.rows.map((r) => [r.label, r.figure, r.how, r.age, r.href])).toEqual([
       ['sUSDe', '$48.0M', 'swap pool', '22m', '/ethereum/venue/sUSDe'],
@@ -237,7 +241,7 @@ describe('exitsView (exits against the size)', () => {
   })
 
   it('a size above some exits counts them', () => {
-    expect(exits(summaries(FRESH), 50_000_000).headline).toBe('2 of 4 exits hold less than $50M.')
+    expect(exits(summaries(FRESH), 50_000_000).headline).toBe('2 of 4 exits hold under $50M.')
   })
 
   it('stale (the recorder stopped): headline withheld, rows hatched with their ages', () => {

@@ -1,6 +1,6 @@
 import React, { memo, useId, useState, useSyncExternalStore, type FormEvent } from 'react'
 import { useRouter } from 'next/router'
-import { Box, Flex, Grid, Input, Text } from '@chakra-ui/react'
+import { Box, Flex, Grid, Input, Text, VisuallyHidden } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
 import { TRANSITIONS } from '@/config/transitions'
@@ -139,7 +139,10 @@ function AlarmRow({ r }: { r: AlarmRowView }) {
           </Text>
           <ActionLink href={r.href}>{r.label} →</ActionLink>
         </Flex>
-        <Credit>{r.fired}</Credit>
+        <Credit>
+          <VisuallyHidden>fired </VisuallyHidden>
+          {r.fired}
+        </Credit>
       </Flex>
       <Text fontFamily={NEWS_FONT.mono} fontSize="13px" lineHeight="20px" color={NEWS.ink} sx={TABULAR}>
         {f.lead}{' '}
@@ -208,10 +211,10 @@ export const Safety = memo(function Safety({ kicker, nowMs, id }: SafetyProps) {
           <Alarms nowMs={nowMs} />
         </Box>
       </Grid>
-      {/* The card carries its own kicker ("Curator actions") and its own states. */}
-      <Module label={SAFETY_COPY.curatorLabel}>
+      {/* The card draws its own rule and label ("Curator actions") and owns its states. */}
+      <Box pt={SPACING.base} pb={SPACING.sm}>
         <CuratorFeedCard />
-      </Module>
+      </Box>
     </Box>
   )
 })

@@ -4,22 +4,24 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export const fmtInt = (n: number) => Math.round(n).toLocaleString('en-US')
 
-/** $ to three significant figures: $840, $45.6K, $1.23M, $186M. */
+/**
+ * $ to two significant figures (chart-design: a headline number is repeatable out loud, and
+ * no more precise than it deserves): $840, $4.5K, $1.2M, $190M.
+ */
 export function fmtUsd(x: number): string {
   const v = Math.abs(x)
   const sign = x < 0 ? '−' : ''
-  if (v < 999.5) return `${sign}$${Math.round(v)}`
+  if (v < 0.5) return '$0'
+  const r = Number(v.toPrecision(2))
   const units: [number, string][] = [
-    [1e3, 'K'],
-    [1e6, 'M'],
     [1e9, 'B'],
+    [1e6, 'M'],
+    [1e3, 'K'],
   ]
-  for (let i = 0; i < units.length; i++) {
-    const [div, suffix] = units[i]
-    const scaled = Number((v / div).toPrecision(3))
-    if (scaled < 1000 || i === units.length - 1) return `${sign}$${scaled}${suffix}`
+  for (const [div, suffix] of units) {
+    if (r >= div) return `${sign}$${Number((r / div).toPrecision(2))}${suffix}`
   }
-  return `${sign}$${v}`
+  return `${sign}$${r}`
 }
 
 /**

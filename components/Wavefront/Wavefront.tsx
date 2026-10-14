@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState, useId } from 'react'
 import {
   AspectRatio,
   Box,
@@ -7,7 +7,9 @@ import {
   Container,
   Flex,
   Grid,
+  HStack,
   Text,
+  VisuallyHidden,
   VStack,
 } from '@chakra-ui/react'
 
@@ -18,39 +20,34 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { resolveColor } from '@/helpers/resolveToken'
 import { useThemeMode } from '@/hooks/useThemeMode'
 import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
-import {
-  CURE_WINDOW_HOURS,
-  LIQ_DEBT_MINIMUM_USD,
-  MAX_THRESHOLD_TO_DELAY,
-} from '@/lib/position-sim/membrane'
 
 import { Bars, barsNote } from './Bars'
 import {
-  chainList,
-  displayName,
-  fmtClock,
-  fmtInt,
-  fmtPctFloor,
-  fmtUsd,
-  fmtWindow,
-  notComparedLine,
-} from './format'
-import { panelGeometry, type PanelGeometry } from './geometry'
-import { LegendItem } from './Glyph'
+  coverageText,
+  ENGINE_LINE,
+  gridEndText,
+  headlineCount,
+  kickerText,
+  memStates,
+  NBSP,
+  scaleNote,
+  unpricedText,
+  type LegendDatum,
+} from './copy'
+import { chainList, displayName, fmtClock, fmtInt, fmtUsd, notComparedLine } from './format'
+import { choosePerHex, panelGeometry, type PanelGeometry } from './geometry'
+import { Glyph, LegendItem } from './Glyph'
 import { HexPanel } from './HexPanel'
 import { useElementSize, useWavefrontStream, type WavefrontMode } from './hooks'
-import { MARK_TOKEN, type MarkKind, type MarkPalette } from './marks'
+import type { WavefrontStream } from './hooks/useWavefrontStream'
+import { ageAlphas, MARK_TOKEN, type MarkPalette } from './marks'
 import { BIN_SECONDS, type WavefrontFrame } from './model'
 
 /** Live only when the flag is on AND the endpoint answers (owner, 2026-10-14). */
 export const WAVEFRONT_LIVE_FLAG = process.env.NEXT_PUBLIC_WAVEFRONT_LIVE === '1'
 
-const ENGINE_LINE =
-  `Membrane side: the position simulator (${CURE_WINDOW_HOURS}h window within ` +
-  `${Math.round(MAX_THRESHOLD_TO_DELAY * 100)}% of the line, none for stablecoins†; ` +
-  `repay to cap; $${LIQ_DEBT_MINIMUM_USD.toLocaleString('en-US')} floor).`
-
-const NBSP = ' '
+/** Below this width the panels stack and a compact comparison table leads. */
+const TWO_UP = '@media screen and (min-width: 600px)'
 
 const mono = { fontFamily: TYPOGRAPHY.fontMono, sx: { fontVariantNumeric: 'tabular-nums' } }
 
@@ -87,18 +84,16 @@ function usePrefersReducedMotion(): boolean {
 
 interface MastheadProps {
   kicker: string
-  liquidated: number | null
+  count: string
   realUsd: number | null
   memUsd: number | null
-  walked: number | null
-  total: number | null
-  /** null: the stream has no position that is not walked, so the line is not shown at all. */
+  coverage: string
   notComparedText: string | null
   clock: string
   lastHour: number | null
 }
 
-/** Kicker → headline → deck, the figures; the clock on the right. */
+/** Kicker → headline, the figures; the clock on the right. */
 const Masthead = memo(function Masthead(p: MastheadProps) {
   return (
     <Flex
@@ -106,7 +101,7 @@ const Masthead = memo(function Masthead(p: MastheadProps) {
       direction={{ base: 'column', md: 'row' }}
       justify="space-between"
       align={{ base: 'stretch', md: 'flex-end' }}
-      gap={{ base: SPACING.sm, md: SPACING.xl }}
+      gap={{ base: SPACING.xs, md: SPACING.xl }}
       borderTop="3px double"
       borderColor={SEMANTIC_COLORS.borderStrong}
       pt={SPACING.sm}
@@ -122,34 +117,24 @@ const Masthead = memo(function Masthead(p: MastheadProps) {
           color={SEMANTIC_COLORS.textPrimary}
         >
           <Text as="span" {...mono}>
-            {p.liquidated === null ? '—' : fmtInt(p.liquidated)}
+            {p.count}
           </Text>{' '}
-          {p.liquidated === 1 ? 'position' : 'positions'} liquidated so far
+          {p.count === '1' ? 'position' : 'positions'} liquidated so far
         </Text>
-        <Text
-          fontFamily={TYPOGRAPHY.fontDisplay}
-          fontStyle="italic"
-          fontSize={TYPOGRAPHY.h4}
-          color={SEMANTIC_COLORS.textSecondary}
-        >
-          One hex per liquidated position.
-        </Text>
+        {/* On phones the comparison table carries the $; from 600 px this line does. */}
         <Text
           {...mono}
           fontSize={TYPOGRAPHY.small}
           fontWeight={TYPOGRAPHY.semibold}
           color={SEMANTIC_COLORS.textPrimary}
+          display="none"
+          sx={{ ...mono.sx, [TWO_UP]: { display: 'block' } }}
         >
           Debt force-closed: real {p.realUsd === null ? '—' : fmtUsd(p.realUsd)} · Membrane{' '}
           {p.memUsd === null ? '—' : fmtUsd(p.memUsd)}†
         </Text>
-        {/* Both lines hold their height, so the panels never jump during play. */}
         <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
-          {p.walked !== null && p.total
-            ? `Same ${fmtInt(p.walked)} positions on both sides · ` +
-              `${fmtInt(p.walked)} of ${fmtInt(p.total)} liquidated ` +
-              `(${fmtPctFloor(p.walked, p.total)})`
-            : NBSP}
+          {p.coverage}
         </Text>
         {p.notComparedText !== null ? (
           <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary}>
@@ -181,17 +166,110 @@ const Masthead = memo(function Masthead(p: MastheadProps) {
   )
 })
 
-interface LegendDatum {
-  kind: MarkKind
-  count: number
-  label: string
+const cellBase: React.CSSProperties = {
+  fontFamily: TYPOGRAPHY.fontMono,
+  fontSize: TYPOGRAPHY.xs,
+  padding: 'var(--chakra-space-1) 0',
+  borderBottom: `1px solid ${SEMANTIC_COLORS.borderSubtle}`,
+  fontVariantNumeric: 'tabular-nums',
+  fontWeight: 'normal',
 }
+const cellLabel: React.CSSProperties = {
+  ...cellBase,
+  textAlign: 'left',
+  color: SEMANTIC_COLORS.textSecondary,
+}
+const cellNum: React.CSSProperties = {
+  ...cellBase,
+  textAlign: 'right',
+  color: SEMANTIC_COLORS.textPrimary,
+}
+const cellHead: React.CSSProperties = {
+  ...cellBase,
+  textAlign: 'right',
+  fontSize: TYPOGRAPHY.label,
+  textTransform: 'uppercase',
+  letterSpacing: '0.28em',
+  color: SEMANTIC_COLORS.textSecondary,
+}
+const glyphRow: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'var(--chakra-space-1)',
+}
+
+/**
+ * Phones (< 600 px), where the panels stack: the comparison itself, both sides in one table
+ * on the first screen. Same reducer counts as the legends it replaces. Plain elements: it
+ * re-renders every frame.
+ */
+const CompareTable = memo(function CompareTable({
+  realSold,
+  states,
+  realUsd,
+  memUsd,
+}: {
+  realSold: number
+  states: LegendDatum[]
+  realUsd: number
+  memUsd: number
+}) {
+  const rows: { kind?: LegendDatum['kind']; label: string; real: string; mem: string }[] = [
+    ...states.map((s) => ({
+      kind: s.kind,
+      label: s.label,
+      real: s.kind === 'sold' ? fmtInt(realSold) : '—',
+      mem: fmtInt(s.count),
+    })),
+    { label: 'debt force-closed', real: fmtUsd(realUsd), mem: `${fmtUsd(memUsd)}†` },
+  ]
+  return (
+    <Box sx={{ [TWO_UP]: { display: 'none' } }}>
+      <table
+        style={{ width: '100%', borderCollapse: 'collapse' }}
+        aria-label="Real and Membrane side by side"
+      >
+        <thead>
+          <tr>
+            <th style={cellLabel}>
+              <VisuallyHidden>State</VisuallyHidden>
+            </th>
+            <th style={cellHead}>Real</th>
+            <th style={cellHead}>Membrane†</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.label}>
+              <th style={cellLabel} scope="row">
+                <span style={glyphRow}>
+                  {r.kind ? <Glyph kind={r.kind} /> : null}
+                  <span>{r.label}</span>
+                </span>
+              </th>
+              <td style={cellNum}>{r.real}</td>
+              <td style={cellNum}>{r.mem}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Box>
+  )
+})
 
 const sameLegend = (a: LegendDatum[], b: LegendDatum[]) =>
   a.length === b.length && a.every((x, i) => x.count === b[i].count && x.label === b[i].label)
 
 const PanelHeader = memo(
-  function PanelHeader({ title, items }: { title: string; items: LegendDatum[] }) {
+  function PanelHeader({
+    title,
+    items,
+    note,
+  }: {
+    title: string
+    items: LegendDatum[]
+    note?: string
+  }) {
     return (
       <VStack
         align="stretch"
@@ -200,15 +278,25 @@ const PanelHeader = memo(
         borderColor={SEMANTIC_COLORS.borderSubtle}
         pb={SPACING.xs}
       >
-        <Eyebrow>{title}</Eyebrow>
-        {/* Same height on both sides at lg+, so the two panels start on the same line. */}
+        <Flex justify="space-between" align="baseline" gap={SPACING.sm}>
+          <Eyebrow>{title}</Eyebrow>
+          {note ? (
+            <Text {...mono} fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary}>
+              {note}
+            </Text>
+          ) : null}
+        </Flex>
+        {/* Legends from 600 px (phones read the table); the same height on both sides at
+            lg+, so the two panels start on the same line. */}
         <Flex
           wrap="wrap"
           columnGap={SPACING.md}
           rowGap={SPACING.xs}
           align="center"
           alignContent="flex-start"
+          display="none"
           minH={{ base: '18px', lg: '40px', xl: '18px' }}
+          sx={{ [TWO_UP]: { display: 'flex' } }}
         >
           {items.map((it) => (
             <LegendItem key={it.label} kind={it.kind} count={fmtInt(it.count)} label={it.label} />
@@ -217,7 +305,7 @@ const PanelHeader = memo(
       </VStack>
     )
   },
-  (a, b) => a.title === b.title && sameLegend(a.items, b.items),
+  (a, b) => a.title === b.title && a.note === b.note && sameLegend(a.items, b.items),
 )
 
 const Controls = memo(function Controls(p: {
@@ -264,17 +352,9 @@ const Controls = memo(function Controls(p: {
       >
         {p.playing ? 'Pause' : 'Play'}
       </Button>
-      <Text
-        as="label"
-        htmlFor={id}
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize={TYPOGRAPHY.label}
-        textTransform="uppercase"
-        letterSpacing="0.28em"
-        color={SEMANTIC_COLORS.textSecondary}
-      >
+      <VisuallyHidden as="label" htmlFor={id}>
         Time
-      </Text>
+      </VisuallyHidden>
       <chakra.input
         id={id}
         type="range"
@@ -299,7 +379,15 @@ const Controls = memo(function Controls(p: {
   )
 })
 
-const Colophon = memo(function Colophon({ note, credit }: { note: string; credit: string }) {
+const Colophon = memo(function Colophon({
+  gridEnd,
+  unpriced,
+  credit,
+}: {
+  gridEnd: string
+  unpriced: string
+  credit: string
+}) {
   return (
     <>
       <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
@@ -316,7 +404,14 @@ const Colophon = memo(function Colophon({ note, credit }: { note: string; credit
         pt={SPACING.sm}
       >
         <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
-          {note}
+          {MODELLED_FOOTNOTE}
+          {gridEnd ? (
+            <>
+              {' · '}
+              <Glyph kind="gridEnd" /> {gridEnd}
+            </>
+          ) : null}
+          {unpriced ? ` · ${unpriced}` : ''}
         </Text>
         <Text
           {...mono}
@@ -334,7 +429,11 @@ const Colophon = memo(function Colophon({ note, credit }: { note: string; credit
 const EMPTY_GEOMETRY: PanelGeometry = {
   xs: new Float32Array(0),
   ys: new Float32Array(0),
+  real: new Uint8Array(0),
+  mem: new Uint8Array(0),
   rho: 1,
+  markPx: 0,
+  perHex: 1,
   labels: [],
   layout: { scale: 1, clusters: [] },
 }
@@ -342,6 +441,7 @@ const EMPTY_GEOMETRY: PanelGeometry = {
 interface SideProps {
   title: string
   legend: LegendDatum[]
+  note?: string
   frame: WavefrontFrame | null
   codes: Uint8Array | null
   geometry: PanelGeometry
@@ -349,13 +449,16 @@ interface SideProps {
   size: { width: number; height: number }
   sizeRef?: React.RefObject<HTMLDivElement>
   ariaLabel: string
-  bars: { values: number[]; note: string; ariaLabel: string } | null
+  showLabels: boolean
+  stale: boolean
+  bars: { values: number[]; caption: string; note: string; ariaLabel: string } | null
   loadingText: string
 }
 
 const Side: React.FC<SideProps> = ({
   title,
   legend,
+  note,
   frame,
   codes,
   geometry,
@@ -363,12 +466,14 @@ const Side: React.FC<SideProps> = ({
   size,
   sizeRef,
   ariaLabel,
+  showLabels,
+  stale,
   bars,
   loadingText,
 }) => (
   <VStack as="section" align="stretch" spacing={SPACING.sm} minW={0}>
-    <PanelHeader title={title} items={legend} />
-    <AspectRatio ratio={{ base: 1, lg: 740 / 390 }} w="100%">
+    <PanelHeader title={title} items={legend} note={note} />
+    <AspectRatio ratio={{ base: 1.2, lg: 740 / 440 }} w="100%">
       <Box ref={sizeRef}>
         {frame && codes ? (
           <HexPanel
@@ -378,6 +483,8 @@ const Side: React.FC<SideProps> = ({
             geometry={geometry}
             palette={palette}
             ariaLabel={ariaLabel}
+            showLabels={showLabels}
+            stale={stale}
             emptyText={frame.n === 0 ? 'No liquidations yet' : undefined}
           />
         ) : (
@@ -401,6 +508,7 @@ const Side: React.FC<SideProps> = ({
         max={frame.bars.max}
         fromTs={frame.bars.fromTs}
         toTs={frame.bars.toTs}
+        caption={bars.caption}
         note={bars.note}
         ariaLabel={bars.ariaLabel}
       />
@@ -410,6 +518,215 @@ const Side: React.FC<SideProps> = ({
   </VStack>
 )
 
+// ------------------------------------------------------------------ the view
+
+export interface WavefrontViewProps {
+  frame: WavefrontFrame | null
+  mode: WavefrontMode
+  status: WavefrontStream['status']
+  error: string | null
+  windowRange: { startTs: number; endTs: number } | null
+  updatedAt: number | null
+  stale: boolean
+  staleSince: number | null
+  /** Live was asked for and did not answer: the replay is shown, and the kicker says so. */
+  liveUnavailable: boolean
+  start: number
+  end: number
+  t: number
+  playing: boolean
+  onToggle: () => void
+  onSeek: (t: number) => void
+  protocols: string[]
+  chains: string[]
+  /** Walked positions per cluster over the whole stream (sizes the marks once). */
+  clusterTotals: { name: string; count: number }[]
+}
+
+/**
+ * The page, as a pure function of the stream's state (tests render it server-side). Every
+ * count and $ is the reducer's (frame.totals, frame.coverage, frame.pending); the only
+ * derived figure is Membrane "sold" net of the grid-end positions drawn apart.
+ */
+export const WavefrontView: React.FC<WavefrontViewProps> = (v) => {
+  const { frame, onSeek, start, end } = v
+
+  const { mode: theme } = useThemeMode()
+  const palette = useMemo<MarkPalette>(() => {
+    const p = {
+      sold: resolveColor(MARK_TOKEN.sold),
+      armed: resolveColor(MARK_TOKEN.armed),
+      gridEnd: resolveColor(MARK_TOKEN.gridEnd),
+      kept: resolveColor(MARK_TOKEN.kept),
+      pending: resolveColor(MARK_TOKEN.pending),
+      bg: resolveColor(SEMANTIC_COLORS.bgPrimary),
+    }
+    return { ...p, ageAlpha: ageAlphas(p.sold, p.bg) }
+    // theme: re-resolve the tokens when the theme flips
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme])
+
+  // Both panels are the same size (one grid track each); measure one.
+  const sizeRef = useRef<HTMLDivElement>(null)
+  const size = useElementSize(sizeRef)
+  const perHex = useMemo(
+    () => choosePerHex(v.clusterTotals, size.width, size.height),
+    [v.clusterTotals, size.width, size.height],
+  )
+  const geometry = useMemo(
+    () =>
+      frame && size.width > 0 && size.height > 0
+        ? panelGeometry(frame, size.width, size.height, perHex)
+        : EMPTY_GEOMETRY,
+    [frame, size.width, size.height, perHex],
+  )
+
+  const onScrub = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onSeek(Math.min(end, start + Number(e.target.value) * BIN_SECONDS))
+    },
+    [onSeek, start, end],
+  )
+
+  const loadingText =
+    v.status === 'error' || (v.status === 'ready' && !frame)
+      ? `Replay did not load${v.error ? ` (${v.error})` : ''}.`
+      : 'Loading…'
+
+  const T = frame?.totals
+  const states = useMemo(() => (frame ? memStates(frame) : []), [frame])
+  const realLegend = useMemo<LegendDatum[]>(
+    () => (frame ? [{ kind: 'sold', count: frame.coverage.walked, label: 'sold' }] : []),
+    [frame],
+  )
+  const credit = v.protocols.length
+    ? `${v.protocols.map(displayName).join(' + ')} · ${chainList(v.chains)} · protocol oracle prices`
+    : NBSP
+  const stale = v.stale
+  const memAria = frame
+    ? `Membrane simulator, modelled: ${states.map((s) => `${fmtInt(s.count)} ${s.label.replace('†', '')}`).join(', ')}.`
+    : ''
+
+  return (
+    <Container
+      maxW="1600px"
+      px={SPACING_PATTERNS.pagePadding}
+      py={{ base: SPACING.base, lg: SPACING.lg }}
+    >
+      <VStack align="stretch" spacing={{ base: SPACING.md, lg: SPACING.md }}>
+        <Masthead
+          kicker={kickerText({
+            mode: v.mode,
+            status: v.status,
+            frame,
+            windowRange: v.windowRange,
+            updatedAt: v.updatedAt,
+            stale,
+            staleSince: v.staleSince,
+            liveUnavailable: v.liveUnavailable,
+          })}
+          count={headlineCount(frame, stale)}
+          realUsd={T ? T.real.repaidUsd : null}
+          memUsd={T ? T.mem.repaidUsd : null}
+          coverage={coverageText(frame)}
+          notComparedText={
+            !frame || frame.notCompared.inStream === 0 ? null : notComparedLine(frame.notCompared)
+          }
+          clock={frame ? fmtClock(frame.t) : NBSP}
+          lastHour={frame ? frame.lastHour : null}
+        />
+
+        {frame && T ? (
+          <CompareTable
+            realSold={frame.coverage.walked}
+            states={states}
+            realUsd={T.real.repaidUsd}
+            memUsd={T.mem.repaidUsd}
+          />
+        ) : null}
+
+        <Grid
+          templateColumns="minmax(0, 1fr)"
+          columnGap={{ base: SPACING.lg, xl: SPACING.xl }}
+          rowGap={SPACING.lg}
+          sx={{ [TWO_UP]: { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } }}
+        >
+          <Side
+            title="Real · measured"
+            legend={realLegend}
+            note={frame ? scaleNote(perHex) : undefined}
+            frame={frame}
+            codes={frame ? geometry.real : null}
+            geometry={geometry}
+            palette={palette}
+            size={size}
+            sizeRef={sizeRef}
+            ariaLabel={
+              frame ? `Real, measured: ${fmtInt(frame.coverage.walked)} positions sold.` : ''
+            }
+            showLabels
+            stale={stale}
+            bars={
+              frame
+                ? {
+                    values: frame.bars.real,
+                    caption: 'Sold per 10 min',
+                    note: barsNote(frame.bars.max),
+                    ariaLabel: `Real: positions sold per 10 minutes over the last 12 hours; peak ${fmtInt(Math.max(0, ...frame.bars.real))}.`,
+                  }
+                : null
+            }
+            loadingText={loadingText}
+          />
+          <Side
+            title="Membrane (simulator)†"
+            legend={states}
+            frame={frame}
+            codes={frame ? geometry.mem : null}
+            geometry={geometry}
+            palette={palette}
+            size={size}
+            ariaLabel={memAria}
+            showLabels={false}
+            stale={stale}
+            bars={
+              frame
+                ? {
+                    values: frame.bars.mem,
+                    caption: '',
+                    note: 'same scale',
+                    ariaLabel: `Membrane simulator, modelled: positions first sold per 10 minutes over the last 12 hours, same scale, windows still open at the data end left out; peak ${fmtInt(Math.max(0, ...frame.bars.mem))}.`,
+                  }
+                : null
+            }
+            loadingText={loadingText}
+          />
+        </Grid>
+
+        {v.mode === 'replay' ? (
+          <Controls
+            playing={v.playing}
+            disabled={!frame}
+            steps={Math.max(1, Math.ceil((end - start) / BIN_SECONDS))}
+            step={Math.round((v.t - start) / BIN_SECONDS)}
+            valueText={frame ? fmtClock(frame.t) : undefined}
+            onToggle={v.onToggle}
+            onScrub={onScrub}
+          />
+        ) : null}
+
+        <Colophon
+          gridEnd={gridEndText(frame, v.windowRange)}
+          unpriced={unpricedText(frame)}
+          credit={credit}
+        />
+      </VStack>
+    </Container>
+  )
+}
+
+// ------------------------------------------------------------------ the container
+
 export interface WavefrontProps {
   /** Initial playhead (unix s), e.g. from ?t=. Disables auto-play. */
   initialT?: number | null
@@ -417,13 +734,13 @@ export interface WavefrontProps {
 
 /**
  * Real vs Membrane liquidation wavefront (Q28). One hex per liquidated position the simulator
- * walks, grouped by collateral; Real (measured) on the left, the same positions under
- * Membrane's position simulator on the right. Port of the owner's canvas (board
- * Wavefront.dc.html) onto the app's tokens. Every count and $ total is the stream reducer's
- * (components/Wavefront/model.ts).
+ * walks (or per few, on a phone), grouped by collateral; Real (measured) beside the same
+ * positions under Membrane's position simulator. Port of the owner's canvas (board
+ * Wavefront.dc.html) onto the app's tokens.
  */
 export const Wavefront: React.FC<WavefrontProps> = ({ initialT = null }) => {
   const [mode, setMode] = useState<WavefrontMode>(WAVEFRONT_LIVE_FLAG ? 'live' : 'replay')
+  const [liveUnavailable, setLiveUnavailable] = useState(false)
   const reducedMotion = usePrefersReducedMotion()
   const stream = useWavefrontStream({
     mode,
@@ -432,166 +749,32 @@ export const Wavefront: React.FC<WavefrontProps> = ({ initialT = null }) => {
   })
   // Live was asked for but the endpoint did not answer: show the replay, and say so.
   useEffect(() => {
-    if (stream.mode === 'live' && stream.status === 'unavailable') setMode('replay')
+    if (stream.mode === 'live' && stream.status === 'unavailable') {
+      setLiveUnavailable(true)
+      setMode('replay')
+    }
   }, [stream.mode, stream.status])
 
-  const { frame, seek, start, end } = stream
-  const isLive = stream.mode === 'live' && stream.status === 'ready'
-
-  const { mode: theme } = useThemeMode()
-  const palette = useMemo<MarkPalette>(
-    () => ({
-      sold: resolveColor(MARK_TOKEN.sold),
-      armed: resolveColor(MARK_TOKEN.armed),
-      kept: resolveColor(MARK_TOKEN.kept),
-    }),
-    // theme: re-resolve the tokens when the theme flips
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [theme],
-  )
-
-  // Both panels are the same size (one grid track each); measure one.
-  const sizeRef = useRef<HTMLDivElement>(null)
-  const size = useElementSize(sizeRef)
-  const geometry = useMemo(
-    () =>
-      frame && size.width > 0 && size.height > 0
-        ? panelGeometry(frame, size.width, size.height)
-        : EMPTY_GEOMETRY,
-    [frame, size.width, size.height],
-  )
-
-  const onScrub = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      seek(Math.min(end, start + Number(e.target.value) * BIN_SECONDS))
-    },
-    [seek, start, end],
-  )
-
-  const kicker = isLive
-    ? `Live · updated ${stream.updatedAt ? fmtClock(stream.updatedAt) : '—'}`
-    : `Replay · ${stream.window ? fmtWindow(stream.window.startTs, stream.window.endTs) : '…'}`
-  const loadingText =
-    stream.status === 'error' || (stream.status === 'ready' && !frame)
-      ? `Replay did not load${stream.error ? ` (${stream.error})` : ''}.`
-      : 'Loading…'
-
-  const T = frame?.totals
-  const realLegend = useMemo<LegendDatum[]>(
-    () => (frame ? [{ kind: 'sold', count: frame.coverage.walked, label: 'sold' }] : []),
-    [frame],
-  )
-  const memLegend = useMemo<LegendDatum[]>(
-    () =>
-      frame
-        ? [
-            { kind: 'sold', count: frame.totals.mem.positionsSold, label: 'partly or fully sold' },
-            { kind: 'armed', count: frame.totals.mem.positionsArmed, label: 'in 8h window' },
-            { kind: 'kept', count: frame.totals.mem.positionsKept, label: 'kept' },
-          ]
-        : [],
-    [frame],
-  )
-
-  const unpricedReal = T?.real.unpricedEvents ?? 0
-  const unpricedMem = T?.mem.unpricedSales ?? 0
-  const note =
-    MODELLED_FOOTNOTE +
-    (unpricedReal || unpricedMem
-      ? ` · $ skips sales with no USD price: ${fmtInt(unpricedReal)} real, ${fmtInt(unpricedMem)} simulated`
-      : '')
-  const credit = stream.protocols.length
-    ? `${stream.protocols.map(displayName).join(' + ')} · ${chainList(stream.chains)} · protocol oracle prices`
-    : NBSP
-
   return (
-    <Container
-      maxW="1600px"
-      px={SPACING_PATTERNS.pagePadding}
-      py={{ base: SPACING.base, lg: SPACING.lg }}
-    >
-      <VStack align="stretch" spacing={{ base: SPACING.base, lg: SPACING.md }}>
-        <Masthead
-          kicker={kicker}
-          liquidated={frame ? frame.coverage.total : null}
-          realUsd={T ? T.real.repaidUsd : null}
-          memUsd={T ? T.mem.repaidUsd : null}
-          walked={frame ? frame.coverage.walked : null}
-          total={frame ? frame.coverage.total : null}
-          notComparedText={
-            !frame || frame.notCompared.inStream === 0 ? null : notComparedLine(frame.notCompared)
-          }
-          clock={frame ? fmtClock(frame.t) : NBSP}
-          lastHour={frame ? frame.lastHour : null}
-        />
-
-        <Grid
-          templateColumns={{ base: 'minmax(0, 1fr)', lg: 'repeat(2, minmax(0, 1fr))' }}
-          columnGap={{ base: SPACING.lg, xl: SPACING.xl }}
-          rowGap={SPACING.lg}
-        >
-          <Side
-            title="Real · measured"
-            legend={realLegend}
-            frame={frame}
-            codes={frame ? frame.real : null}
-            geometry={geometry}
-            palette={palette}
-            size={size}
-            sizeRef={sizeRef}
-            ariaLabel={
-              frame ? `Real, measured: ${fmtInt(frame.coverage.walked)} positions sold.` : ''
-            }
-            bars={
-              frame
-                ? {
-                    values: frame.bars.real,
-                    note: barsNote(frame.bars.max),
-                    ariaLabel: `Real: positions sold per 10 minutes over the last 12 hours; peak ${fmtInt(Math.max(...frame.bars.real))}.`,
-                  }
-                : null
-            }
-            loadingText={loadingText}
-          />
-          <Side
-            title="Membrane · same positions (simulator)"
-            legend={memLegend}
-            frame={frame}
-            codes={frame ? frame.mem : null}
-            geometry={geometry}
-            palette={palette}
-            size={size}
-            ariaLabel={
-              frame
-                ? `Membrane simulator, same positions: ${fmtInt(frame.totals.mem.positionsSold)} partly or fully sold, ` +
-                  `${fmtInt(frame.totals.mem.positionsArmed)} in the 8-hour window, ${fmtInt(frame.totals.mem.positionsKept)} kept.`
-                : ''
-            }
-            bars={
-              frame
-                ? {
-                    values: frame.bars.mem,
-                    note: 'same scale',
-                    ariaLabel: `Membrane simulator: positions sold per 10 minutes over the last 12 hours, same scale; peak ${fmtInt(Math.max(...frame.bars.mem))}.`,
-                  }
-                : null
-            }
-            loadingText={loadingText}
-          />
-        </Grid>
-
-        <Controls
-          playing={stream.playing}
-          disabled={!frame}
-          steps={Math.max(1, Math.ceil((end - start) / BIN_SECONDS))}
-          step={Math.round((stream.t - start) / BIN_SECONDS)}
-          valueText={frame ? fmtClock(frame.t) : undefined}
-          onToggle={stream.togglePlay}
-          onScrub={onScrub}
-        />
-
-        <Colophon note={note} credit={credit} />
-      </VStack>
-    </Container>
+    <WavefrontView
+      frame={stream.frame}
+      mode={stream.mode}
+      status={stream.status}
+      error={stream.error}
+      windowRange={stream.window}
+      updatedAt={stream.updatedAt}
+      stale={stream.stale}
+      staleSince={stream.staleSince}
+      liveUnavailable={liveUnavailable}
+      start={stream.start}
+      end={stream.end}
+      t={stream.t}
+      playing={stream.playing}
+      onToggle={stream.togglePlay}
+      onSeek={stream.seek}
+      protocols={stream.protocols}
+      chains={stream.chains}
+      clusterTotals={stream.clusterTotals}
+    />
   )
 }

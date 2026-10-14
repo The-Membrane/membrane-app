@@ -3,17 +3,17 @@ import { sql } from 'drizzle-orm'
 import type { StreamRecord } from '@/lib/wavefront/stream'
 
 /**
- * The live wavefront's event store: Postgres table
+ * The live wavefront's event store (server-only): Postgres table
  *
  *   wavefront_events(seq bigserial, ts timestamptz, kind text, pid text, body jsonb)
  *
- * one row per schema-v1 stream record (lib/wavefront/stream.ts), written by the live engine
- * in seq order (a single writer, so seq commits in order and `seq > after` paging never
- * skips a row). `body` is the record itself; `seq` and `kind` come from their columns, `pid`
- * from the body or its column, `ts` (unix seconds) from the body or the column.
+ * one row per stream record (lib/wavefront/stream.ts, the schema STREAM_SCHEMA names), written
+ * by the live engine in seq order (a single writer, so seq commits in order and `seq > after`
+ * paging never skips a row). `body` is the record itself; `seq` and `kind` come from their
+ * columns, `pid` from the body or its column, `ts` (unix seconds) from the body or the column.
  *
  * The table does not exist yet (the live engine's DDL is pending owner approval); the route
- * answers 503 until it does.
+ * answers 503 until it does. Lives outside pages/ so it is not itself an API route.
  */
 
 export const WAVEFRONT_PAGE_DEFAULT = 2000
@@ -29,11 +29,17 @@ export interface WavefrontEventRow {
 
 const KINDS = new Set(['open', 'real', 'mem', 'tick'])
 
-/** A row as a stream record, or null when it is not one. */
+/** A row as a stream record, or null when it is not one (unknown kind, unparseable body…). */
 export function rowToRecord(row: WavefrontEventRow): StreamRecord | null {
   if (!KINDS.has(row.kind)) return null
-  const body =
-    typeof row.body === 'string' ? (JSON.parse(row.body) as unknown) : (row.body as unknown)
+  let body: unknown = row.body
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body)
+    } catch {
+      return null
+    }
+  }
   if (!body || typeof body !== 'object') return null
   const b = body as Record<string, unknown>
   const seq = Number(row.seq)

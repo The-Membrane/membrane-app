@@ -72,12 +72,16 @@
  * minute's in-force oracle price applies.
  *
  * STATE PARTITION. Every walked position that has been opened is in exactly one state:
- *   sold   at least one Membrane sale so far (either half of a split counts),
- *   armed  never sold, and a delay timer is running on it now,
- *   kept   never sold, no timer running.
- * So positionsSold + positionsArmed + positionsKept == coverage.walked at every tick. The
- * census sells every timer still running when the grid ends (the conservative grid-end
- * sale), so the final tick has positionsArmed == 0.
+ *   pending  no Membrane decision on it yet (opened, the engine has not spoken),
+ *   sold     at least one Membrane sale so far (either half of a split counts),
+ *   armed    never sold, and a delay timer is running on it now,
+ *   kept     decided, never sold, no timer running.
+ * So positionsSold + positionsArmed + positionsKept + `ReplayState.pending` ==
+ * coverage.walked at every record. `pending` is NOT a Totals field (ticks do not carry it):
+ * in the recorded census every walked position's first decision shares its open's ts, so
+ * pending is 0 at every tick; a live engine can open a position before deciding on it, and
+ * that position must not read as kept. The census sells every timer still running when the
+ * grid ends (the conservative grid-end sale), so the final tick has positionsArmed == 0.
  *
  * ---------------------------------------------------------------------------
  * FILES
@@ -400,6 +404,8 @@ export interface ReplayState {
   order: string[]
   coverage: { walked: number; total: number }
   totals: Totals
+  /** Walked positions with no Membrane decision yet (see STATE PARTITION; not in Totals). */
+  pending: number
   lastTick: TickRecord | null
   ticks: number
 }
@@ -412,19 +418,30 @@ export function createReplayState(): ReplayState {
     order: [],
     coverage: { walked: 0, total: 0 },
     totals: emptyTotals(),
+    pending: 0,
     lastTick: null,
     ticks: 0,
   }
 }
 
-type MemStatus = 'sold' | 'armed' | 'kept'
+type MemStatus = 'pending' | 'sold' | 'armed' | 'kept'
 const statusOf = (p: PositionState): MemStatus =>
-  p.mem.sales > 0 ? 'sold' : p.mem.armedMask !== 0 ? 'armed' : 'kept'
+  p.mem.sales > 0
+    ? 'sold'
+    : p.mem.armedMask !== 0
+      ? 'armed'
+      : p.mem.arms + p.mem.saves > 0
+        ? 'kept'
+        : 'pending'
 const STATUS_KEY = {
   sold: 'positionsSold',
   armed: 'positionsArmed',
   kept: 'positionsKept',
 } as const
+const bumpStatus = (state: ReplayState, status: MemStatus, by: number) => {
+  if (status === 'pending') state.pending += by
+  else state.totals.mem[STATUS_KEY[status]] += by
+}
 
 export interface ApplyOptions {
   /** Check every tick against the fold so far (default true). */
@@ -469,7 +486,7 @@ export function applyRecord(
       state.coverage.total++
       if (rec.walked) {
         state.coverage.walked++
-        T.mem.positionsKept++
+        state.pending++ // no decision yet: neither sold, armed nor kept
       }
       return state
     }
@@ -533,8 +550,8 @@ export function applyRecord(
       }
       const after = statusOf(p)
       if (after !== before) {
-        T.mem[STATUS_KEY[before]]--
-        T.mem[STATUS_KEY[after]]++
+        bumpStatus(state, before, -1)
+        bumpStatus(state, after, 1)
       }
       return state
     }

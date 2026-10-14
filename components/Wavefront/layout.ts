@@ -10,13 +10,13 @@
  *     HX_W = 6.93), in layout units; the panel scale (`scale`, px per unit) is capped at
  *     MAX_SCALE = 3 like the canvas, so the first few hexes are not gigantic.
  *
- * Deviation from the canvas: it placed every cluster in a 4-column grid of EQUAL cells sized
- * for the largest cluster, which leaves a 3 px hex at the end of the Oct 10 replay on a
- * 740 px panel (and ~1.5 px at 390 px). Here each cluster gets a cell of its own size (label
- * on top) and the cells are placed in first-hit order by an in-order skyline (each goes to
- * the lowest spot that fits, so small clusters fill the space beside large ones), at the
- * largest scale that fits the panel. Hexes stay readable on a phone. Gaps and labels are in
- * screen px.
+ * Deviation from the canvas: it placed every cluster in a 4-column grid of EQUAL square cells
+ * sized for the largest cluster, which leaves a 3 px hex at the end of the Oct 10 replay on a
+ * 740 px panel (and ~1.5 px at 390 px). Here each cluster gets a cell of its own size — the
+ * cluster's tight hexagonal bounding box with its label on top — and the cells are placed in
+ * first-hit order by an in-order skyline (each goes to the lowest spot that fits, so small
+ * clusters fill the space beside large ones), at the largest scale that fits the panel.
+ * Gaps and labels are in screen px.
  */
 
 export const HEX_SIDE = 4
@@ -29,6 +29,11 @@ export const MAX_SCALE = 3
 /** Axial coordinates of the spiral, grown on demand (shared, append-only). */
 const SPIRAL_Q: number[] = [0]
 const SPIRAL_R: number[] = [0]
+/** Running extents of slots 0..k (layout units, hex centres). */
+const EXT_MIN_X: number[] = [0]
+const EXT_MAX_X: number[] = [0]
+const EXT_MIN_Y: number[] = [0]
+const EXT_MAX_Y: number[] = [0]
 let spiralRing = 0
 
 /** Grow the spiral to at least n slots (the canvas `spiralTo`). */
@@ -47,8 +52,15 @@ export function ensureSpiral(n: number): void {
     let r = spiralRing
     for (let d = 0; d < 6; d++) {
       for (let s = 0; s < spiralRing; s++) {
+        const k = SPIRAL_Q.length
         SPIRAL_Q.push(q)
         SPIRAL_R.push(r)
+        const x = HEX_W * (q + r / 2)
+        const y = ROW_STEP * r
+        EXT_MIN_X.push(Math.min(EXT_MIN_X[k - 1], x))
+        EXT_MAX_X.push(Math.max(EXT_MAX_X[k - 1], x))
+        EXT_MIN_Y.push(Math.min(EXT_MIN_Y[k - 1], y))
+        EXT_MAX_Y.push(Math.max(EXT_MAX_Y[k - 1], y))
         q += dirs[d][0]
         r += dirs[d][1]
       }
@@ -56,15 +68,13 @@ export function ensureSpiral(n: number): void {
   }
 }
 
-/** Offset of spiral slot k from its cluster's centre, in layout units. */
+/** Offset of spiral slot k from its cluster's origin, in layout units. */
 export function slotOffset(k: number): { x: number; y: number } {
   ensureSpiral(k + 1)
-  const q = SPIRAL_Q[k]
-  const r = SPIRAL_R[k]
-  return { x: HEX_W * (q + r / 2), y: ROW_STEP * r }
+  return { x: HEX_W * (SPIRAL_Q[k] + SPIRAL_R[k] / 2), y: ROW_STEP * SPIRAL_R[k] }
 }
 
-/** Fill `xs`/`ys` with the offsets of slots 0..n-1 (layout units). */
+/** The offsets of slots 0..n-1 (layout units). */
 export function slotOffsets(n: number): { xs: Float64Array; ys: Float64Array } {
   ensureSpiral(n)
   const xs = new Float64Array(n)
@@ -85,11 +95,18 @@ export function ringOf(n: number): number {
 }
 
 /**
- * Radius (layout units) of the smallest circle around a cluster of n hexes: the farthest
- * centre in ring R is R·HEX_W away, plus a hex's circumradius (HEX_SIDE).
+ * The tight box around a cluster of n hexes, relative to its spiral origin (layout units,
+ * hex edges included: ±HEX_W/2 across, ±HEX_SIDE up and down).
  */
-export function clusterRadius(n: number): number {
-  return n <= 0 ? 0 : ringOf(n) * HEX_W + HEX_SIDE
+export function clusterBox(n: number): { x0: number; x1: number; y0: number; y1: number } {
+  if (n <= 0) return { x0: 0, x1: 0, y0: 0, y1: 0 }
+  ensureSpiral(n)
+  return {
+    x0: EXT_MIN_X[n - 1] - HEX_W / 2,
+    x1: EXT_MAX_X[n - 1] + HEX_W / 2,
+    y0: EXT_MIN_Y[n - 1] - HEX_SIDE,
+    y1: EXT_MAX_Y[n - 1] + HEX_SIDE,
+  }
 }
 
 // ----------------------------------------------------------------- packing
@@ -98,7 +115,7 @@ export interface PackOptions {
   /** Panel size, px. */
   width: number
   height: number
-  /** Height reserved above each cluster for its label, px. */
+  /** Height reserved above each cluster for its label, px (0: no labels). */
   labelPx: number
   /** Label width per cluster, px (a cell is never narrower than its label). */
   labelWidths: readonly number[]
@@ -109,11 +126,14 @@ export interface PackOptions {
 }
 
 export interface ClusterPlacement {
-  /** Centre, px. */
-  x: number
-  y: number
-  /** Bounding radius, px. */
-  r: number
+  /** The cluster's spiral origin (slot 0's centre), px. */
+  ox: number
+  oy: number
+  /** The hexes' box, px. */
+  boxX: number
+  boxY: number
+  boxW: number
+  boxH: number
   /** Label box (top-left), px; the label sits right above its cluster. */
   labelX: number
   labelY: number
@@ -139,7 +159,7 @@ interface Seg {
 
 /**
  * Skyline bottom-left placement, in order: each cell goes to the lowest spot where it fits
- * (leftmost on a tie), so the clusters already placed never move when a later one is added at
+ * (leftmost on a tie), so the cells already placed never move when a later one is added at
  * the same scale. Returns the cells' top-left corners, or null when one does not fit.
  */
 function skyline(
@@ -186,14 +206,6 @@ function skyline(
   return out
 }
 
-function cellsAt(diam: readonly number[], lw: readonly number[], s: number, o: PackOptions) {
-  // Each cell carries its trailing gaps; the panel is grown by one gap to match.
-  return diam.map((d, i) => ({
-    w: Math.max(s * d, lw[i]) + o.gapPx,
-    h: o.labelPx + s * d + o.rowGapPx,
-  }))
-}
-
 /**
  * Place clusters at scale s (px per unit), in the given order. Null when they do not fit.
  * Exposed for the stability test: at a fixed scale, appending a cluster never moves the
@@ -204,9 +216,13 @@ export function placeAt(
   s: number,
   o: PackOptions,
 ): ClusterPlacement[] | null {
-  const diam = counts.map((n) => 2 * clusterRadius(n))
+  const boxes = counts.map(clusterBox)
   const lw = counts.map((_, i) => Math.min(o.labelWidths[i] ?? 0, o.width))
-  const cells = cellsAt(diam, lw, s, o)
+  // Each cell carries its trailing gaps; the panel is grown by one gap to match.
+  const cells = boxes.map((b, i) => ({
+    w: Math.max(s * (b.x1 - b.x0), lw[i]) + o.gapPx,
+    h: o.labelPx + s * (b.y1 - b.y0) + o.rowGapPx,
+  }))
   const pos = skyline(cells, o.width + o.gapPx, o.height + o.rowGapPx)
   if (!pos) return null
   // centre the packed block in the panel
@@ -219,20 +235,27 @@ export function placeAt(
   const dx = Math.max(0, (o.width - maxX) / 2)
   const dy = Math.max(0, (o.height - maxY) / 2)
   return pos.map((p, i) => {
+    const b = boxes[i]
+    const cellX = dx + p.x
+    const cellY = dy + p.y
     const cellW = cells[i].w - o.gapPx
     const cellH = cells[i].h - o.rowGapPx
-    const r = (s * diam[i]) / 2
-    const x = dx + p.x + cellW / 2
-    const y = dy + p.y + o.labelPx + r
+    const boxW = s * (b.x1 - b.x0)
+    const boxH = s * (b.y1 - b.y0)
+    const boxX = cellX + (cellW - boxW) / 2
+    const boxY = cellY + o.labelPx
     return {
-      x,
-      y,
-      r,
-      labelX: x - lw[i] / 2,
-      labelY: dy + p.y,
+      ox: boxX - s * b.x0,
+      oy: boxY - s * b.y0,
+      boxX,
+      boxY,
+      boxW,
+      boxH,
+      labelX: cellX + (cellW - lw[i]) / 2,
+      labelY: cellY,
       labelW: lw[i],
-      cellX: dx + p.x,
-      cellY: dy + p.y,
+      cellX,
+      cellY,
       cellW,
       cellH,
     }

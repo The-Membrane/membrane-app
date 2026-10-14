@@ -1,28 +1,35 @@
 /**
- * The wavefront timeline: an append-only list of schema-v1 stream records (lib/wavefront/stream.ts)
- * folded with THE reducer, `applyRecord`, up to a playhead time.
+ * The wavefront timeline: schema-v2 stream records (lib/wavefront/stream.ts) folded with THE
+ * reducer, `applyRecord`, up to a playhead time.
  *
  * Every count and $ total on the page is the reducer's own (`ReplayState.totals`,
- * `.coverage`); nothing here adds up records. What this file adds is an INDEX of the open
- * records (cluster, spiral slot, walked or not, reason), built as records arrive, so the
- * panels can draw one hex per position, and per-position marks read from the reducer's
- * per-position state.
+ * `.coverage`, `.pending`); nothing here adds up records. What this file adds is an INDEX of
+ * the open records (cluster, spiral slot, walked or not, reason) and of each position's first
+ * Membrane sale (when, and why), built as records arrive, so the panels can draw one mark per
+ * position from the reducer's per-position state.
  *
  * Only WALKED positions are drawn, on both sides: the same positions. A position the
  * simulator does not walk is counted in coverage (n of N) with a short reason, never drawn.
  *
- * Playhead semantics: "at time T" is every record with ts < T, plus the tick stamped T (a tick
- * at T summarises exactly the records before it, and sorts first among records at T). So at
- * every 10-minute boundary the fold equals that tick's totals — the reducer verifies it.
+ * Two modes:
+ *   retain (replay)   every record is kept; the playhead can move anywhere. Forward folds only
+ *                     the new records; back refolds from the start (the whole Oct 10-11
+ *                     stream folds in a few ms).
+ *   stream (live)     records are folded as they arrive and dropped: memory is the reducer's
+ *                     state plus this per-position index, never the record history. The
+ *                     playhead is always "now".
  *
- * Moving forward folds only the new records; moving back refolds from the start (the whole
- * Oct 10-11 stream, 18,484 records, folds in a few ms).
+ * Playhead semantics (retain): "at time T" is every record with ts < T, plus the tick stamped
+ * T (a tick at T summarises exactly the records before it, and sorts first among records at
+ * T). So at every 10-minute boundary the fold equals that tick's totals — the reducer
+ * verifies it.
  */
 
 import {
   applyRecord,
   createReplayState,
   type ReplayState,
+  type SaleWhy,
   type StreamRecord,
   type Totals,
 } from '@/lib/wavefront/stream'
@@ -34,14 +41,22 @@ export const BAR_BINS = 72
 
 /** Mark codes, per drawn position, per side. */
 export const MARK = {
-  /** Membrane only: never sold, no 8h window running. */
-  kept: 0,
+  /** Membrane only: walked, no Membrane decision yet (live). Drawn neutral. */
+  pending: 0,
+  /** Membrane only: decided, never sold, no 8h window running. */
+  kept: 1,
   /** Membrane only: never sold, an 8h window running now. */
-  armed: 1,
+  armed: 2,
+  /**
+   * Membrane only: first "sale" is the census's conservative grid-end sale — an 8h window
+   * still running when the data ends, counted as sold by assumption. Drawn hatched.
+   */
+  gridEnd: 3,
   /** Sold; + age bucket 0..4 (newest .. oldest). */
-  sold: 2,
+  sold: 4,
 } as const
 export const AGE_BUCKETS = 5
+export const CODE_COUNT = MARK.sold + AGE_BUCKETS
 
 /**
  * Age bucket of an event `ageBins` 10-minute bins old (the canvas `redAge`):
@@ -61,6 +76,13 @@ export interface WavefrontFrame {
   /** The reducer's coverage and totals, as they stand at t. */
   coverage: { walked: number; total: number }
   totals: Totals
+  /** The reducer's walked positions with no Membrane decision yet. */
+  pending: number
+  /**
+   * Positions whose first Membrane "sale" is the grid-end sale (a window still running when
+   * the data ends). The reducer counts them in positionsSold; the page draws them apart.
+   */
+  gridEnd: number
   /**
    * Opened positions not walked (coverage.total − coverage.walked), with the short
    * reader-facing reasons (from the open records), largest first.
@@ -71,7 +93,7 @@ export interface WavefrontFrame {
     /** Positions not walked anywhere in the stream held (0: the line need not be reserved). */
     inStream: number
   }
-  /** Walked positions first liquidated in the hour before t. */
+  /** Walked positions first liquidated in the hour before t (t − 3600 < open ts). */
   lastHour: number
   /** Clusters hit so far (walked positions), in first-hit order; `index` is the timeline's. */
   clusters: { index: number; name: string; count: number }[]
@@ -81,7 +103,10 @@ export interface WavefrontFrame {
   slot: Uint32Array
   real: Uint8Array
   mem: Uint8Array
-  /** Positions sold per 10-minute bin over the last 12 h (drawn positions). */
+  /**
+   * Positions first sold per 10-minute bin over the last 12 h (drawn positions). Grid-end
+   * "sales" are left out: they are an assumption at the data's end, not a decision.
+   */
   bars: { real: number[]; mem: number[]; max: number; fromTs: number; toTs: number }
 }
 
@@ -95,12 +120,23 @@ export function reasonPhrase(reason: string | undefined): string {
   return 'not simulated yet'
 }
 
+export interface TimelineOptions {
+  /** Keep every record so the playhead can move anywhere (replay). Default true. */
+  retain?: boolean
+}
+
 export class WavefrontTimeline {
+  readonly retain: boolean
   private recs: StreamRecord[] = []
   private state: ReplayState = createReplayState()
   private cursor = 0
-  /** First Membrane sale per position, unix s — an index the fold fills, not a total. */
-  private firstSaleTs = new Map<string, number>()
+  private held = 0
+  private seqHeld = 0
+  private firstTsHeld: number | null = null
+  private lastTsHeld: number | null = null
+  private lastTickTsHeld: number | null = null
+  /** First Membrane sale per position (an index the fold fills, not a total). */
+  private firstSale = new Map<string, { ts: number; why: SaleWhy | undefined }>()
   /** One entry per open record, in seq order. */
   private openSeq: number[] = []
   private openPid: string[] = []
@@ -117,63 +153,96 @@ export class WavefrontTimeline {
   readonly protocols = new Set<string>()
   readonly chains = new Set<string>()
 
+  constructor(opts: TimelineOptions = {}) {
+    this.retain = opts.retain ?? true
+  }
+
+  /** Records appended so far (held or, in stream mode, folded and dropped). */
   get length(): number {
-    return this.recs.length
+    return this.held
   }
   get lastSeq(): number {
-    return this.recs.length ? this.recs[this.recs.length - 1].seq : 0
+    return this.seqHeld
   }
   get firstTs(): number | null {
-    return this.recs.length ? this.recs[0].ts : null
+    return this.firstTsHeld
   }
   get lastTs(): number | null {
-    return this.recs.length ? this.recs[this.recs.length - 1].ts : null
+    return this.lastTsHeld
+  }
+  /** ts of the newest tick appended (live freshness). */
+  get lastTickTs(): number | null {
+    return this.lastTickTsHeld
+  }
+  /** Walked positions per cluster over everything appended, in first-hit order. */
+  clusterTotals(): number[] {
+    return this.clusterSize.slice()
   }
 
   /**
    * Append records. Idempotent by seq: anything at or below the last seq already held (or
    * repeated within `incoming`) is ignored, so overlapping or repeated pages merge safely.
-   * Returns how many records were added. Throws if time would go backwards.
+   * Returns how many records were added. Throws if time would go backwards, or (stream mode)
+   * on any record the reducer refuses.
    */
   append(incoming: readonly StreamRecord[]): number {
-    const fresh = incoming.filter((r) => r.seq > this.lastSeq).sort((a, b) => a.seq - b.seq)
+    const fresh = incoming.filter((r) => r.seq > this.seqHeld).sort((a, b) => a.seq - b.seq)
     let added = 0
     for (const r of fresh) {
-      if (r.seq <= this.lastSeq) continue // duplicate seq inside this batch
-      const lastTs = this.lastTs
-      if (lastTs !== null && r.ts < lastTs) {
-        throw new Error(`wavefront: seq ${r.seq} at ts ${r.ts} goes back from ${lastTs}`)
+      if (r.seq <= this.seqHeld) continue // duplicate seq inside this batch
+      if (this.lastTsHeld !== null && r.ts < this.lastTsHeld) {
+        throw new Error(`wavefront: seq ${r.seq} at ts ${r.ts} goes back from ${this.lastTsHeld}`)
       }
-      this.recs.push(r)
+      // stream mode folds first, so a record the reducer refuses leaves no trace in the index
+      if (!this.retain) this.fold(r)
+      else this.recs.push(r)
+      if (r.kind === 'open') this.indexOpen(r)
+      if (r.kind === 'tick') this.lastTickTsHeld = r.ts
+      this.seqHeld = r.seq
+      this.lastTsHeld = r.ts
+      if (this.firstTsHeld === null) this.firstTsHeld = r.ts
+      this.held++
       added++
-      if (r.kind === 'open') {
-        this.openSeq.push(r.seq)
-        this.openPid.push(r.pid)
-        this.openTs.push(r.ts)
-        this.openReason.push(r.reason)
-        this.protocols.add(r.protocol)
-        this.chains.add(r.chain)
-        if (!r.walked) {
-          this.unwalkedOpens++
-          this.openCluster.push(-1)
-          this.openSlot.push(-1)
-          continue
-        }
-        let c = this.clusterIdx.get(r.cluster)
-        if (c === undefined) {
-          c = this.clusterNames.length
-          this.clusterIdx.set(r.cluster, c)
-          this.clusterNames.push(r.cluster)
-          this.clusterSize.push(0)
-        }
-        this.openCluster.push(c)
-        this.openSlot.push(this.clusterSize[c]++)
-      }
     }
     return added
   }
 
-  /** Index of the first record NOT included at playhead t. */
+  private indexOpen(r: Extract<StreamRecord, { kind: 'open' }>) {
+    this.openSeq.push(r.seq)
+    this.openPid.push(r.pid)
+    this.openTs.push(r.ts)
+    this.openReason.push(r.reason)
+    this.protocols.add(r.protocol)
+    this.chains.add(r.chain)
+    if (!r.walked) {
+      this.unwalkedOpens++
+      this.openCluster.push(-1)
+      this.openSlot.push(-1)
+      return
+    }
+    let c = this.clusterIdx.get(r.cluster)
+    if (c === undefined) {
+      c = this.clusterNames.length
+      this.clusterIdx.set(r.cluster, c)
+      this.clusterNames.push(r.cluster)
+      this.clusterSize.push(0)
+    }
+    this.openCluster.push(c)
+    this.openSlot.push(this.clusterSize[c]++)
+  }
+
+  private fold(r: StreamRecord) {
+    applyRecord(this.state, r)
+    if (
+      r.kind === 'mem' &&
+      (r.event === 'sell' || r.event === 'sell-instant') &&
+      !this.firstSale.has(r.pid)
+    ) {
+      this.firstSale.set(r.pid, { ts: r.ts, why: r.why })
+    }
+  }
+
+  /** Index of the first record NOT included at playhead t (retain mode). */
   private cutAt(t: number): number {
     let lo = 0
     let hi = this.recs.length
@@ -187,25 +256,19 @@ export class WavefrontTimeline {
     return lo
   }
 
-  /** Fold to playhead t with the reducer and return the reducer's state (do not mutate). */
+  /**
+   * Fold to playhead t with the reducer and return the reducer's state (do not mutate). In
+   * stream mode everything appended is already folded; t is ignored.
+   */
   foldTo(t: number): ReplayState {
+    if (!this.retain) return this.state
     const cut = this.cutAt(t)
     if (cut < this.cursor) {
       this.state = createReplayState()
       this.cursor = 0
-      this.firstSaleTs.clear()
+      this.firstSale.clear()
     }
-    for (; this.cursor < cut; this.cursor++) {
-      const r = this.recs[this.cursor]
-      applyRecord(this.state, r)
-      if (
-        r.kind === 'mem' &&
-        (r.event === 'sell' || r.event === 'sell-instant') &&
-        !this.firstSaleTs.has(r.pid)
-      ) {
-        this.firstSaleTs.set(r.pid, r.ts)
-      }
-    }
+    for (; this.cursor < cut; this.cursor++) this.fold(this.recs[this.cursor])
     return this.state
   }
 
@@ -233,6 +296,7 @@ export class WavefrontTimeline {
     const reasons = new Map<string, number>()
     let n = 0
     let lastHour = 0
+    let gridEnd = 0
     for (let i = 0; i < opened; i++) {
       const c = this.openCluster[i]
       if (c < 0) {
@@ -251,13 +315,24 @@ export class WavefrontTimeline {
       if (openTs > t - 3600) lastHour++
       const realBin = binOf(openTs)
       real[n] = MARK.sold + ageBucket(nowBin - realBin)
-      if (realBin >= fromBin) barsReal[realBin - fromBin]++
+      if (realBin >= fromBin && realBin <= nowBin) barsReal[realBin - fromBin]++
+      // Membrane: the reducer's status, with the grid-end assumption drawn apart.
       if (p.mem.sales > 0) {
-        const saleBin = binOf(this.firstSaleTs.get(pid) ?? openTs)
-        mem[n] = MARK.sold + ageBucket(nowBin - saleBin)
-        if (saleBin >= fromBin && saleBin <= nowBin) barsMem[saleBin - fromBin]++
+        const first = this.firstSale.get(pid)
+        if (first?.why === 'grid-end') {
+          mem[n] = MARK.gridEnd
+          gridEnd++
+        } else {
+          const saleBin = binOf(first?.ts ?? openTs)
+          mem[n] = MARK.sold + ageBucket(nowBin - saleBin)
+          if (saleBin >= fromBin && saleBin <= nowBin) barsMem[saleBin - fromBin]++
+        }
+      } else if (p.mem.armedMask !== 0) {
+        mem[n] = MARK.armed
+      } else if (p.mem.arms + p.mem.saves > 0) {
+        mem[n] = MARK.kept
       } else {
-        mem[n] = p.mem.armedMask !== 0 ? MARK.armed : MARK.kept
+        mem[n] = MARK.pending
       }
       n++
     }
@@ -271,6 +346,8 @@ export class WavefrontTimeline {
       seq: s.seq,
       coverage: { ...s.coverage },
       totals: { real: { ...T.real }, mem: { ...T.mem } },
+      pending: s.pending,
+      gridEnd,
       notCompared: {
         count: s.coverage.total - s.coverage.walked,
         reasons: [...reasons]
@@ -288,7 +365,7 @@ export class WavefrontTimeline {
       bars: {
         real: barsReal,
         mem: barsMem,
-        max: Math.max(1, ...barsReal, ...barsMem),
+        max: Math.max(0, ...barsReal, ...barsMem),
         fromTs: fromBin * BIN_SECONDS,
         toTs: (nowBin + 1) * BIN_SECONDS,
       },

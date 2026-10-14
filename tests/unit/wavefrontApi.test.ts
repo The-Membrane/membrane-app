@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import handler from '@/pages/api/wavefront/stream'
-import { isMissingTable, rowToRecord } from '@/pages/api/_lib/wavefrontEvents'
+import { isMissingTable, rowToRecord } from '@/lib/wavefront/server/events'
 import { aavePid } from '@/lib/wavefront/pid'
 
 import { mockRes } from './fixtures/mockApiRes'
@@ -67,6 +67,7 @@ describe('wavefront_events rows', () => {
   })
 
   it('rejects rows that are not records', () => {
+    expect(rowToRecord({ seq: 4, ts: null, kind: 'tick', pid: null, body: '{"ts":' })).toBeNull()
     expect(rowToRecord({ seq: 1, ts: null, kind: 'header', pid: null, body: {} })).toBeNull()
     expect(rowToRecord({ seq: 0, ts: null, kind: 'tick', pid: null, body: { ts: 1 } })).toBeNull()
     expect(rowToRecord({ seq: 2, ts: null, kind: 'open', pid: null, body: { ts: 1 } })).toBeNull()

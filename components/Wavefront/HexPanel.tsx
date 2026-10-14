@@ -20,6 +20,10 @@ interface HexPanelProps {
   /** The panel's whole content as a sentence (the canvas is not readable by AT). */
   ariaLabel: string
   emptyText?: string
+  /** Print the cluster labels (the page prints them once, on the Real panel). */
+  showLabels?: boolean
+  /** Stale live data: hatch the panel over (DESIGN_RULES §4). */
+  stale?: boolean
 }
 
 /**
@@ -34,6 +38,8 @@ export const HexPanel: React.FC<HexPanelProps> = memo(function HexPanel({
   palette,
   ariaLabel,
   emptyText,
+  showLabels = true,
+  stale = false,
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -52,7 +58,7 @@ export const HexPanel: React.FC<HexPanelProps> = memo(function HexPanel({
     ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.clearRect(0, 0, w, h)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    drawMarks({ ctx, codes, xs: geometry.xs, ys: geometry.ys, rho: geometry.rho, palette })
+    drawMarks({ ctx, codes, xs: geometry.xs, ys: geometry.ys, rho: geometry.rho, palette, dpr })
   }, [codes, geometry, palette, width, height])
 
   return (
@@ -64,7 +70,7 @@ export const HexPanel: React.FC<HexPanelProps> = memo(function HexPanel({
       />
       {/* Plain elements with inline position: a styled component per changing left/top
           would mint a new CSS class every frame. */}
-      {geometry.labels.map((l) => (
+      {(showLabels ? geometry.labels : []).map((l) => (
         <div
           key={l.key}
           aria-hidden="true"
@@ -86,6 +92,18 @@ export const HexPanel: React.FC<HexPanelProps> = memo(function HexPanel({
           {l.text}
         </div>
       ))}
+      {stale ? (
+        <Box
+          aria-hidden="true"
+          position="absolute"
+          inset={0}
+          pointerEvents="none"
+          sx={{
+            backgroundImage: `repeating-linear-gradient(45deg, ${SEMANTIC_COLORS.bgPrimary} 0 3px, transparent 3px 7px)`,
+            opacity: 0.85,
+          }}
+        />
+      ) : null}
       {emptyText ? (
         <Text
           position="absolute"

@@ -1,10 +1,12 @@
 /**
- * Live source for the wavefront: pages of schema-v1 records from /api/wavefront/stream,
- * folded into a WavefrontTimeline. Pure enough to test without a network: the fetcher is
- * injected.
+ * Live source for the wavefront: pages of stream records (the schema lib/wavefront/stream.ts
+ * reads) from /api/wavefront/stream, folded into a WavefrontTimeline. Pure enough to test
+ * without a network: the fetcher is injected.
  */
+/** Live data older than this is stale: the headline is withheld and the panels hatched. */
+export const LIVE_STALE_AFTER_S = 180
 
-import type { StreamRecord } from '@/lib/wavefront/stream'
+import { STREAM_SCHEMA, type StreamRecord } from '@/lib/wavefront/stream'
 
 import type { WavefrontTimeline } from './model'
 
@@ -16,7 +18,7 @@ export const LIVE_MAX_PAGES = 50
 
 /** The endpoint's 200 body. `next` is the seq to ask after for more, or null when caught up. */
 export interface StreamPage {
-  schema: 1
+  schema: number
   after: number
   records: StreamRecord[]
   next: number | null
@@ -45,6 +47,12 @@ export const httpPageFetcher =
     const body = (await res.json()) as StreamPage
     if (!body || !Array.isArray(body.records)) {
       throw new LiveUnavailableError(502, 'live stream: malformed page')
+    }
+    if (body.schema !== STREAM_SCHEMA) {
+      throw new LiveUnavailableError(
+        502,
+        `live stream: schema ${body.schema}, this page reads ${STREAM_SCHEMA}`,
+      )
     }
     return body
   }

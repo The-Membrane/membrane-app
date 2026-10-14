@@ -95,9 +95,14 @@ describe('wavefront timeline: the reducer fold at the playhead', () => {
       expect(f.real).toHaveLength(f.n)
       expect(f.mem).toHaveLength(f.n)
       expect(count(f.real, (c) => c >= MARK.sold)).toBe(f.n)
-      expect(count(f.mem, (c) => c >= MARK.sold)).toBe(m.positionsSold)
+      // the reducer's sold = drawn sold + drawn grid-end (a window open at the data end)
+      expect(count(f.mem, (c) => c >= MARK.sold)).toBe(m.positionsSold - f.gridEnd)
+      expect(count(f.mem, (c) => c === MARK.gridEnd)).toBe(f.gridEnd)
       expect(count(f.mem, (c) => c === MARK.armed)).toBe(m.positionsArmed)
       expect(count(f.mem, (c) => c === MARK.kept)).toBe(m.positionsKept)
+      expect(count(f.mem, (c) => c === MARK.pending)).toBe(f.pending)
+      // the recorded census decides every position at its open: nothing pending at a tick
+      expect(f.pending).toBe(0)
       expect(m.positionsSold + m.positionsArmed + m.positionsKept).toBe(f.coverage.walked)
       expect(f.clusters.reduce((s, c) => s + c.count, 0)).toBe(f.n)
       expect(f.notCompared.count).toBe(f.coverage.total - f.coverage.walked)
@@ -114,6 +119,16 @@ describe('wavefront timeline: the reducer fold at the playhead', () => {
     expect(f.totals.mem.positionsSold).toBe(walked.mem.positionsSold)
     expect(f.totals.mem.positionsKept).toBe(walked.mem.positionsKept)
     expect(f.totals.mem.positionsArmed).toBe(0)
+    // grid-end, drawn apart: positions whose FIRST sale is the grid-end sale (from the records)
+    const first = new Map<string, string | undefined>()
+    for (const r of records)
+      if (r.kind === 'mem' && r.event.startsWith('sell') && !first.has(r.pid))
+        first.set(r.pid, r.why)
+    const gridEndFirst = [...first.values()].filter((w) => w === 'grid-end').length
+    expect(gridEndFirst).toBeGreaterThan(0)
+    expect(f.gridEnd).toBe(gridEndFirst)
+    // ...and none of them before the data end
+    expect(freshTimeline().frameAt(END - 600).gridEnd).toBe(0)
     expect(f.notCompared.count).toBe(summary.coverage.notWalked)
     expect(f.notCompared.inStream).toBe(summary.coverage.notWalked)
     // each census reason maps to one short reader-facing phrase
@@ -139,11 +154,13 @@ describe('wavefront timeline: the reducer fold at the playhead', () => {
     expect(f.bars.real).toHaveLength(72)
     expect(f.bars.toTs).toBe(T)
     expect(f.bars.max).toBe(Math.max(...f.bars.real, ...f.bars.mem))
-    const firstSales = new Map<string, number>()
+    const firstSales = new Map<string, { ts: number; why?: string }>()
     for (const r of included(T))
       if (r.kind === 'mem' && r.event.startsWith('sell') && !firstSales.has(r.pid))
-        firstSales.set(r.pid, r.ts)
-    const inWindow = [...firstSales.values()].filter((ts) => ts >= from).length
+        firstSales.set(r.pid, { ts: r.ts, why: r.why })
+    const inWindow = [...firstSales.values()].filter(
+      (x) => x.ts >= from && x.why !== 'grid-end',
+    ).length
     expect(f.bars.mem.reduce((a, b) => a + b, 0)).toBe(inWindow)
   })
 

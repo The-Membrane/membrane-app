@@ -7,7 +7,7 @@ import corpus from '@/public/data/liquidation-corpus.json'
 // stakes of the window it is measured in.
 //
 // Every figure here is a sum over the cohort in public/data/oct10-2025/evidence.json,
-// hard-coded so the landing hero never blocks on a 2,350-row fetch. The constant can
+// hard-coded so the landing hero never blocks on a 2,347-row fetch. The constant can
 // therefore DRIFT from the data, which is exactly what tests/unit/oct10Totals.test.ts
 // exists to prevent: it re-derives all five fields from the JSON and fails on a dollar.
 // Change the evidence file, change these numbers.
@@ -22,22 +22,27 @@ import corpus from '@/public/data/liquidation-corpus.json'
 // moves. An account the census can see is all stable collateral is sold the minute it is
 // over its line instead of walking the 8h window, but on this day every such path is flat
 // or never comes back under its line, so selling at t0 and at the 8h expiry repay the same.
+//
+// MOVED 2026-10-14: sUSD is no longer pinned at $1 (it traded well off its peg in 2025).
+// The census has no sUSD series, so the 4 events with sUSD debt (3 Optimism accounts) drop
+// out as unpriced debt: 2,350 -> 2,347 accounts, -$2,314 closed by Aave, -$2,392 by
+// Membrane, -$6,084 collateral at risk. The headline $144M is unchanged.
 
 /** Measured Oct 10-11 2025 totals. Recomputed from the evidence JSON by the unit test. */
 export const OCT10_TOTALS = {
   /** Distinct liquidated accounts in the cohort. `cohort.length`. */
-  accounts: 2350,
+  accounts: 2347,
   /** Liquidation events in the source window, before the unpriced drop. `meta.sourceEvents`. */
   events: 3111,
   /** Σ aaveClosedUsd over the cohort — what the venues actually closed, in USD. */
-  aaveClosedUsd: 144_239_544,
+  aaveClosedUsd: 144_237_230,
   /** Σ membraneClosedUsd over the cohort — what the 4%/8h window + repay-to-cap would
    *  have closed on the same accounts, same prices, no deployment assumed. */
-  membraneClosedUsd: 77_064_039,
+  membraneClosedUsd: 77_061_647,
   /** aaveClosedUsd − membraneClosedUsd. The day's "4% would have saved" figure. */
-  keptUsd: 67_175_505,
+  keptUsd: 67_175_583,
   /** Σ collateralUsd over the cohort — the pre-liquidation collateral standing behind it. */
-  collateralAtRiskUsd: 637_388_334,
+  collateralAtRiskUsd: 637_382_250,
   /** The chains the cohort spans, in first-seen order. */
   chains: ['mainnet', 'arbitrum', 'base', 'optimism'],
   source: 'public/data/oct10-2025/evidence.json (Σ aaveClosedUsd over the cohort)',

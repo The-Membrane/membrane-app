@@ -60,7 +60,7 @@ const Step: React.FC<{
  * inside the band starts the delay; a return under the line clears it and a later
  * breach starts a fresh one; a move past line x (1 + band) sells at that minute; still
  * over the line at expiry sells at that minute. The census figure above is the SUM of
- * those sales. This lens shows how the 2,350 accounts resolved and what the delay was
+ * those sales. This lens shows how the 2,347 accounts resolved and what the delay was
  * worth against one immediate repay to cap.
  *
  * Path-dependent, and says so: Oct 10 was a sharp wick with a partial recovery.

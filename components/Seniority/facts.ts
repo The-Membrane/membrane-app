@@ -384,7 +384,7 @@ export const CDT_LINE = {
 // ---------------------------------------------------------------------------
 export const CLOSE = {
   eyebrow: 'Counterfactual · 10 Oct 2025',
-  headline: 'What this order did to 2,350 real liquidations.',
+  headline: 'What this order did to 2,347 real liquidations.',
   cta: 'Run yours through the same day',
   href: '/simulator',
   evidenceHref: '/evidence',

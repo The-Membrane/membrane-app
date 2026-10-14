@@ -951,7 +951,6 @@ test('the stable definition is the single source for the simulator and the censu
     'GHO',
     'LUSD',
     'USDS',
-    'sUSD',
     'FRAX',
     'USDC.e',
     'crvUSD',
@@ -969,6 +968,10 @@ test('the stable definition is the single source for the simulator and the censu
     assert.ok(isNoDelayCollateral(sym), `${sym} is stable for the delay class`)
     assert.ok(!heldAtOne(sym) && !HELD_AT_ONE.includes(sym), `${sym} is measured, NOT held at $1`)
   }
+  assert.ok(
+    isNoDelayCollateral('sUSD') && !heldAtOne('sUSD') && !HELD_AT_ONE.includes('sUSD'),
+    'sUSD is stable for the class but traded off its peg, so it is never pinned at $1',
+  )
   assert.ok(!isNoDelayCollateral('WETH') && !isNoDelayCollateral('wstETH'), 'volatile is delayed')
   // The census publishes the list it ran on; it must be this one.
   const evidence = JSON.parse(fs.readFileSync('public/data/oct10-2025/evidence.json', 'utf8'))

@@ -213,7 +213,7 @@ const DEMO_WALLET_NOTE: Record<SimMode, string> = {
     'borrows and deploys to see yours.',
   borrower:
     'The default wallet is a real Aave V3 account that was liquidated on 10 Oct 2025, ' +
-    'selected from the 2,350 measured accounts in public/data/oct10-2025/evidence.json. ' +
+    'selected from the 2,347 measured accounts in public/data/oct10-2025/evidence.json. ' +
     'It had no deployment and none is assumed; paste any address to read a live position.',
 }
 

@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest'
 import {
   MEASURED_STABLES,
   NO_DELAY_LTV_HARD_CAP,
+  OFF_PEG_STABLES,
   STABLE_SYMBOLS,
   delayClassOf,
   hardCapFor,
@@ -68,6 +69,13 @@ describe('the stable definition', () => {
       expect(isNoDelayCollateral(s)).toBe(true)
       expect(heldAtOne(s)).toBe(false)
     }
+  })
+
+  it('keeps sUSD stable for the class but off its peg: not held at $1, and unpriced', () => {
+    expect([...OFF_PEG_STABLES]).toEqual(['sUSD'])
+    expect(isStable('sUSD')).toBe(true)
+    expect(isNoDelayCollateral('sUSD')).toBe(true)
+    expect(heldAtOne('sUSD')).toBe(false)
   })
 
   it('is what scenario.ts HELD_AT_ONE is derived from', () => {

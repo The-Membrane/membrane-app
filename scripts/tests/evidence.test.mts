@@ -888,17 +888,19 @@ const debtHtml = render(React.createElement(DebtLens, { debt: doc.debt, byAsset:
 // priced count drops 749 -> 748 and allIncluded 1,752 -> 1,751, and the priced gap FLIPS
 // - Membrane now closes LESS than Aave on the primary set.
 //
-// 2026-10-14: the delay-class rule (lib/position-sim/collateralClass.ts) leaves every figure
-// here unchanged. No row leaves the set, and on this day the no-delay walk moves no dollar.
+// 2026-10-14: the delay-class rule (lib/position-sim/collateralClass.ts) moves no figure
+// here — on this day the no-delay walk moves no dollar. sUSD stopped being pinned at $1 and
+// has no series, so its 3 Optimism debt accounts drop out as unpriced debt: priced 748 ->
+// 747, allIncluded 1,751 -> 1,748, and the two priced medians move by a tenth.
 has(debtHtml, '$34.7M', 'DebtLens Aave total (priced set)')
 has(debtHtml, '$22.2M', 'DebtLens Membrane total (priced set)')
-has(debtHtml, '748', 'DebtLens account count == priced rows')
-has(debtHtml, '1,751', 'DebtLens also shows the allIncluded account count')
+has(debtHtml, '747', 'DebtLens account count == priced rows')
+has(debtHtml, '1,748', 'DebtLens also shows the allIncluded account count')
 has(debtHtml, '$47.5M', 'DebtLens allIncluded Aave total')
 has(debtHtml, '$54.2M', 'DebtLens allIncluded Membrane total')
 has(debtHtml, 'WETH', 'DebtLens per-asset table')
-has(debtHtml, '50.8%', 'DebtLens Aave median (priced)')
-has(debtHtml, '49.5%', 'DebtLens Membrane median (priced) — a real partial, not the floor artefact')
+has(debtHtml, '50.7%', 'DebtLens Aave median (priced)')
+has(debtHtml, '49.4%', 'DebtLens Membrane median (priced) — a real partial, not the floor artefact')
 // The PRIMARY set now says Membrane closes LESS debt. The lens has to render that
 // direction too, not only the "more" one it used to print.
 has(debtHtml, 'less debt closed', 'DebtLens states the direction of the gap honestly')
@@ -914,10 +916,10 @@ has(timeHtml, '8h', 'TimeLens Membrane window')
 // print the account was actually taken at, which is what the borrower experienced.
 // UPDATED 2026-09-14 (second pass): the cure sample is the priced set (748 rows) and
 // wstETH rows walk the ETH path times a constant wrap rate, so all three move again.
-// 2026-10-14: the 20 no-delay rows in the cure sample have no window, so they count as not
-// cured — none would have cured on price anyway, so the percentages do not move.
-has(timeHtml, '69.79%', 'TimeLens cured pct')
-has(timeHtml, '57.62%', 'TimeLens healthy-at-8h pct')
+// 2026-10-14: the 19 no-delay rows in the cure sample have no window, so they count as not
+// cured — none would have cured on price anyway. The sample is 747 after sUSD left.
+has(timeHtml, '69.88%', 'TimeLens cured pct')
+has(timeHtml, '57.7%', 'TimeLens healthy-at-8h pct')
 has(timeHtml, '43 min', 'TimeLens median cure time')
 // The no-delay histogram row renders, with its count.
 has(
@@ -939,7 +941,7 @@ has(timeHtml, 'the contract grants no window to this class', 'and says why')
 
 // ---- CohortLens ----------------------------------------------------------
 const cohortHtml = render(React.createElement(CohortLens, { rows: doc.cohort }))
-has(cohortHtml, 'Showing 100 of 2,350', 'CohortLens states its cap explicitly')
+has(cohortHtml, 'Showing 100 of 2,347', 'CohortLens states its cap explicitly')
 has(cohortHtml, 'wstETH/USDC', 'CohortLens renders the largest position')
 has(cohortHtml, 'Membrane worse', 'CohortLens exposes the losing filter')
 
@@ -985,8 +987,8 @@ const base = {
 }
 
 const all = probe(base)
-assert.strictEqual(all.total, 2350, 'unfiltered total')
-assert.strictEqual(all.matched, 2350, 'unfiltered matched')
+assert.strictEqual(all.total, 2347, 'unfiltered total')
+assert.strictEqual(all.matched, 2347, 'unfiltered matched')
 assert.strictEqual(all.visible.length, 100, 'limit caps visible rows')
 checks += 3
 
@@ -1013,7 +1015,7 @@ checks++
 checks += 2
 
 const better = probe({ ...base, outcome: 'membraneLess' })
-assert.strictEqual(better.matched + worse.matched, 2350, 'the two outcome filters partition')
+assert.strictEqual(better.matched + worse.matched, 2347, 'the two outcome filters partition')
 checks += 1
 
 const curedF = probe({ ...base, outcome: 'cured' })

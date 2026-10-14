@@ -65,7 +65,6 @@ const HELD_AT_ONE_SYMBOLS = [
   'GHO',
   'LUSD',
   'USDS',
-  'sUSD',
   'FRAX',
   'USDC.e',
   'crvUSD',
@@ -85,20 +84,34 @@ const HELD_AT_ONE_SYMBOLS = [
  */
 export const MEASURED_STABLES: readonly string[] = ['USDe', 'sUSDe']
 
+/**
+ * Dollar stables that are stable for the DELAY CLASS but traded off their peg, so they are
+ * NOT held at $1 either — and, unlike USDe, the Oct 10 dataset has no series for them, so
+ * they are UNPRICED. sUSD (Synthetix) spent much of 2025 well under $1.00; pinning it flat
+ * would invent a peg the market did not hold. In the census it appears only as a debt leg
+ * on Optimism, so those events drop out as unpriced debt (meta.unpricedEventsDropped).
+ */
+export const OFF_PEG_STABLES: readonly string[] = ['sUSD']
+
 /** Every symbol modelled as stable collateral. */
-export const STABLE_SYMBOLS: readonly string[] = [...HELD_AT_ONE_SYMBOLS, ...MEASURED_STABLES]
+export const STABLE_SYMBOLS: readonly string[] = [
+  ...HELD_AT_ONE_SYMBOLS,
+  ...MEASURED_STABLES,
+  ...OFF_PEG_STABLES,
+]
 
 const STABLE_SET: ReadonlySet<string> = new Set(STABLE_SYMBOLS)
-const MEASURED_SET: ReadonlySet<string> = new Set(MEASURED_STABLES)
+/** Stable for the class, but never pinned at $1. */
+const NOT_AT_ONE_SET: ReadonlySet<string> = new Set([...MEASURED_STABLES, ...OFF_PEG_STABLES])
 
 /** True when `symbol` is modelled as a dollar stable (held at $1 or measured). */
 export function isStable(symbol: string): boolean {
   return STABLE_SET.has(symbol)
 }
 
-/** A stable whose Oct 10 price path is a flat $1.00: stable and not measured. */
+/** A stable whose Oct 10 price path is a flat $1.00: stable, not measured, not off-peg. */
 export function heldAtOne(symbol: string): boolean {
-  return STABLE_SET.has(symbol) && !MEASURED_SET.has(symbol)
+  return STABLE_SET.has(symbol) && !NOT_AT_ONE_SET.has(symbol)
 }
 
 /**

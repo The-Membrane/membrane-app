@@ -76,7 +76,7 @@ import {
   MEASURED_STABLES,
   STABLE_SYMBOLS,
   delayClassOf,
-  heldAtOne,
+  heldFlat,
   isNoDelayCollateral,
   lineIsNoDelay,
   type DelayClass,
@@ -102,11 +102,16 @@ const OUT = path.join(DATA_DIR, 'evidence.json')
 /** Hard cap on sales per episode. The contract re-arms after every repay-to-cap. */
 const MAX_SALES = 20
 
-// STABLES: there is no local list. A stable leg is priced as a flat $1.00 series exactly
-// when `heldAtOne(symbol)` — the one stable definition in lib/position-sim/collateralClass.ts,
+// STABLES: there is no local list. A stable leg is priced as a flat 1.0 series exactly
+// when `heldFlat(symbol)` — the one stable definition in lib/position-sim/collateralClass.ts,
 // which the per-address simulator reads too. It excludes the MEASURED stables (USDe,
 // sUSDe): this dataset has no series for them, so they stay unpriced rather than being
 // pinned at $1. Their DELAY CLASS is still no-delay (see `delayClassOf` below).
+// `heldFlat` covers both the $1.00 stables AND the yield-bearing receipts (sDAI, sUSDS,
+// syrupUSDC, scrvUSD), which the SIMULATOR holds at the position's read price, not $1.00
+// (a level ~1.12 for syrupUSDC). The census reads only price RATIOS — LTV_t / LTV_0 —
+// and a flat series at 1.0 and a flat series at the read price give the same ratio, so
+// one flat 1.0 serves both here and no census figure depends on the level.
 /**
  * ---------------------------------------------------------------------------
  * wstETH = ETH/USD x A CONSTANT WRAP RATE. THE MARKET STETH/ETH FEED IS NOT AAVE'S.
@@ -200,7 +205,7 @@ const idx = (ts: number) => Math.max(0, Math.min(NP - 1, Math.floor((ts - P0) / 
 /** A stable leg is a flat 1.0 series; that is a real series, not a missing one. */
 const FLAT: number[] = new Array(NP).fill(1)
 const seriesFor = (s: string): number[] | null =>
-  heldAtOne(s)
+  heldFlat(s)
     ? FLAT
     : WSTETH.has(s)
       ? WSTETH_MODE === 'market'
@@ -297,7 +302,7 @@ const SEED: Record<Feed, number> = {
 /** 'WSTETH' is a COMPOSITE leg: the ETH-denominated feed times ETH/USD. */
 type Leg = Feed | 'WSTETH' | 'STABLE' | null
 const feedFor = (s: string): Leg =>
-  heldAtOne(s)
+  heldFlat(s)
     ? 'STABLE'
     : WSTETH.has(s)
       ? 'WSTETH'
@@ -310,7 +315,7 @@ const feedFor = (s: string): Leg =>
 /** What a symbol's price series actually IS, published per class in meta. */
 type PriceClass = 'exact' | 'stableFlat' | 'proxied' | 'unpriced'
 const priceClass = (s: string): PriceClass =>
-  heldAtOne(s)
+  heldFlat(s)
     ? 'stableFlat'
     : EXACT_FEED.has(s)
       ? 'exact'
@@ -656,8 +661,8 @@ function buildCohort(opts: CohortOpts = {}) {
     const i0 = idx(f.ts)
     const cs = seriesFor(f.csym)
     const ds = seriesFor(f.dsym)
-    const collIsStable = heldAtOne(f.csym)
-    const debtIsStable = heldAtOne(f.dsym)
+    const collIsStable = heldFlat(f.csym)
+    const debtIsStable = heldFlat(f.dsym)
 
     // --- rebase from the SNAPSHOT block to the LIQUIDATING block --------------
     // p_state is what block N-1 could see, p_liq what block N could. Both come from the
@@ -683,7 +688,7 @@ function buildCohort(opts: CohortOpts = {}) {
         pStateC = impliedC.p
         pLiqC = impliedC.p * move
       }
-      if (impliedD && dp.state > 0 && !heldAtOne(f.dsym)) {
+      if (impliedD && dp.state > 0 && !heldFlat(f.dsym)) {
         const move = countBlockNRound ? dp.liq / dp.state : 1
         pStateD = impliedD.p
         pLiqD = impliedD.p * move

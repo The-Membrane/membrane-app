@@ -44,8 +44,11 @@ import { DelayTimer, cureWalk } from '../../lib/position-sim/curePath'
 import {
   MEASURED_STABLES,
   STABLE_SYMBOLS,
+  YIELD_BEARING_STABLES,
   delayClassOf,
   heldAtOne,
+  heldAtReadPrice,
+  heldFlat,
   isNoDelayCollateral,
   lineIsNoDelay,
 } from '../../lib/position-sim/collateralClass'
@@ -953,12 +956,17 @@ test('the stable definition is the single source for the simulator and the censu
     'crvUSD',
     'MAI',
     'USDbC',
-    'sDAI',
-    'sUSDS',
-    'syrupUSDC',
-    'scrvUSD',
   ]) {
     assert.ok(heldAtOne(sym) && isNoDelayCollateral(sym), `${sym}: stable, held at $1, no-delay`)
+  }
+  assert.deepStrictEqual([...YIELD_BEARING_STABLES], ['sDAI', 'sUSDS', 'syrupUSDC', 'scrvUSD'])
+  for (const sym of YIELD_BEARING_STABLES) {
+    assert.ok(isNoDelayCollateral(sym), `${sym} is stable for the delay class`)
+    assert.ok(
+      !heldAtOne(sym) && !HELD_AT_ONE.includes(sym) && heldAtReadPrice(sym),
+      `${sym} accrues above $1: held at its read price, NOT at $1`,
+    )
+    assert.ok(heldFlat(sym), `${sym} is still a flat series for the census's ratios`)
   }
   assert.deepStrictEqual([...MEASURED_STABLES], ['USDe', 'sUSDe'])
   for (const sym of MEASURED_STABLES) {
@@ -982,6 +990,90 @@ test('the stable definition is the single source for the simulator and the censu
     const src = fs.readFileSync(f, 'utf8')
     assert.ok(!/'USDbC'|'crvUSD'|'sUSDS'/.test(src), `${f} has no stable list of its own`)
     assert.ok(src.includes('collateralClass'), `${f} reads collateralClass.ts`)
+  }
+})
+
+test('a syrupUSDC position is held at its read price, not $1 — no false minute-0 sale', () => {
+  // The review run: Morpho syrupUSDC/USDC, LTV 0.857 against LLTV 0.915, syrupUSDC read at
+  // $1.12. Pinned at $1.00 the collateral lost ~11% at minute 0 (LTV 0.96 > 0.915) and
+  // BOTH sides "liquidated at 10 Oct 00:00". Held at its read price on a flat path, it
+  // survives on both sides.
+  const read = 1.12
+  const collUsd = 1_000_000
+  const debtUsd = 857_000
+  const pos: ProtocolPosition = {
+    protocol: 'morpho-blue',
+    label: 'syrupUSDC/USDC',
+    collateral: [
+      {
+        symbol: 'syrupUSDC',
+        address: '0x' + '8'.repeat(40),
+        decimals: 6,
+        amount: collUsd / read,
+        priceUsd: read,
+        valueUsd: collUsd,
+        liquidationThreshold: 0.915,
+        maxLtv: 0.915,
+        liquidationBonus: 0.0264,
+      },
+    ],
+    debt: [
+      {
+        symbol: 'USDC',
+        address: '0x' + '9'.repeat(40),
+        decimals: 6,
+        amount: debtUsd,
+        priceUsd: 1,
+        valueUsd: debtUsd,
+        borrowApr: null,
+      },
+    ],
+    totalCollateralUsd: collUsd,
+    totalDebtUsd: debtUsd,
+    ltv: debtUsd / collUsd,
+    liquidationLtv: 0.915,
+    healthFactor: (0.915 * collUsd) / debtUsd,
+    provenance: { kind: 'mock', label: 'test', at: 0, detail: 'test' },
+  }
+  const {
+    path,
+    unpriced,
+    heldAtReadPrice: readPriced,
+  } = buildPricePath(
+    {
+      startTs: 1_760_054_400,
+      stepSeconds: 60,
+      count: 120,
+      columns: { ethOracle: new Array(120).fill(4000), btcOracle: new Array(120).fill(100_000) },
+      carried: {},
+    },
+    fakeManifest,
+    ['syrupUSDC', 'USDC'],
+  )
+  assert.deepStrictEqual(readPriced, ['syrupUSDC'], 'listed as held at its read price')
+  assert.deepStrictEqual(unpriced, [], 'and NOT as unpriced')
+  assert.strictEqual(path.series.syrupUSDC, undefined, 'no $1 series: the run reads priceUsd')
+  assert.ok(path.series.USDC, 'USDC keeps its flat $1.00 series')
+  assert.ok(debtUsd / (collUsd / read) > 0.915, 'a $1.00 pin would have put it over the LLTV')
+
+  const cmp = runComparison(pos, path, unpriced, {
+    ...baseOpts,
+    membraneMaxLtv: 0.915,
+    venue: null,
+  })
+  assert.deepStrictEqual(cmp.source.events, [], 'Morpho: no liquidation on a flat path')
+  assert.deepStrictEqual(cmp.membrane.events, [], 'Membrane: no liquidation on a flat path')
+  close(cmp.source.endEquityUsd, collUsd - debtUsd, 'source equity intact', 1e-6)
+  close(cmp.membrane.endEquityUsd, collUsd - debtUsd, 'Membrane equity intact', 1e-6)
+  assert.deepStrictEqual(cmp.heldAtReadPriceSymbols, ['syrupUSDC'])
+  assert.deepStrictEqual(cmp.unpricedSymbols, [])
+  for (const run of [cmp.source, cmp.membrane]) {
+    assert.ok(
+      run.caveats.some((c) =>
+        c.startsWith('Held flat at the price read for this position, not at $1.00: syrupUSDC.'),
+      ),
+      `${run.engine} run says so`,
+    )
   }
 })
 

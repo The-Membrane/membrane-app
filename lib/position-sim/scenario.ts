@@ -5,7 +5,7 @@
  * scripts/build-oct10-dataset.ts. Nothing is synthesised. Gaps stay null.
  */
 
-import { STABLE_SYMBOLS, heldAtOne } from './collateralClass'
+import { STABLE_SYMBOLS, heldAtOne, heldAtReadPrice } from './collateralClass'
 import { stamp, type PricePath, type Provenance } from './types'
 
 export interface Oct10Series {
@@ -36,7 +36,10 @@ export const OCT10_DATA_PATH = '/data/oct10-2025'
  * liquidations early (the BTC oracle bottomed 4 min late and 1.14% above spot).
  *
  * A symbol absent from this map is NOT priced — it is held flat and reported in
- * `Comparison.unpricedSymbols` rather than being silently approximated.
+ * `Comparison.unpricedSymbols` rather than being silently approximated. Two stable
+ * groups are the exception: `HELD_AT_ONE` gets a flat $1.00 series, and the yield-bearing
+ * receipts are held at the position's read price and reported in
+ * `Comparison.heldAtReadPriceSymbols` (`buildPricePath`).
  */
 export const SYMBOL_TO_SERIES: Record<string, string> = {
   WETH: 'ethOracle',
@@ -59,7 +62,9 @@ export const SYMBOL_TO_SERIES: Record<string, string> = {
  * Stablecoins we hold at $1 across the window, and say so. DERIVED from the one stable
  * definition in collateralClass.ts — do not hand-edit a list here. USDe and sUSDe are
  * NOT here: they are stables for the delay class, but USDe is the one that actually
- * moved, and it has a measured series (`MEASURED_STABLES`).
+ * moved, and it has a measured series (`MEASURED_STABLES`). Nor are the yield-bearing
+ * receipts (sDAI, sUSDS, syrupUSDC, scrvUSD): they are held flat at the position's own
+ * read price, not at $1 (`YIELD_BEARING_STABLES`).
  */
 export const HELD_AT_ONE: readonly string[] = STABLE_SYMBOLS.filter(heldAtOne)
 
@@ -90,15 +95,19 @@ export function oct10Provenance(manifest: Oct10Manifest): Provenance {
 
 /**
  * Builds a price path covering exactly the symbols asked for.
- * Returns the path plus the list of symbols it could not price.
+ * Returns the path, the symbols it could not price, and the yield-bearing stable receipts
+ * it deliberately gives NO series: those are held flat at the position's own read price
+ * (compare.ts falls back to each leg's `priceUsd` when the path has no series), which is
+ * their level, where $1.00 is not. They are not unpriced — their path is known to be flat.
  */
 export function buildPricePath(
   series: Oct10Series,
   manifest: Oct10Manifest,
   symbols: string[],
-): { path: PricePath; unpriced: string[] } {
+): { path: PricePath; unpriced: string[]; heldAtReadPrice: string[] } {
   const out: Record<string, (number | null)[]> = {}
   const unpriced: string[] = []
+  const readPriced: string[] = []
   const flat = (v: number) => new Array<number | null>(series.count).fill(v)
 
   for (const sym of Array.from(new Set(symbols))) {
@@ -107,6 +116,8 @@ export function buildPricePath(
       out[sym] = series.columns[col]
     } else if (heldAtOne(sym)) {
       out[sym] = flat(1)
+    } else if (heldAtReadPrice(sym)) {
+      readPriced.push(sym)
     } else {
       unpriced.push(sym)
     }
@@ -120,6 +131,7 @@ export function buildPricePath(
       provenance: oct10Provenance(manifest),
     },
     unpriced,
+    heldAtReadPrice: readPriced,
   }
 }
 

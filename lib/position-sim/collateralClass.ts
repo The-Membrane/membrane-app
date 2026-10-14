@@ -47,14 +47,8 @@ export const NO_DELAY_LTV_HARD_CAP = 0.96
 
 /**
  * Dollar stables whose Oct 10 path is a flat $1.00. The union of the old
- * scenario.ts `HELD_AT_ONE` and the old build-evidence.ts `STABLES`, plus the deploy's two
- * other no-delay launch stables, syrupUSDC and scrvUSD (DeployFullSystem.s.sol:269-271).
- *
- * The YIELD-BEARING ones — sDAI, sUSDS, syrupUSDC, scrvUSD — are receipts that accrue
- * above $1, so $1.00 is not their level. They are held FLAT because over a two-day window
- * their accrual is a few basis points and every census figure reads a price RATIO, which a
- * flat path gets right. A simulator position in one is valued at $1.00 a unit, which
- * understates its level: a known simplification, not a measurement.
+ * scenario.ts `HELD_AT_ONE` and the old build-evidence.ts `STABLES`, less the
+ * yield-bearing receipts below.
  */
 const HELD_AT_ONE_SYMBOLS = [
   'USDC',
@@ -70,11 +64,24 @@ const HELD_AT_ONE_SYMBOLS = [
   'crvUSD',
   'MAI',
   'USDbC',
-  'sDAI',
-  'sUSDS',
-  'syrupUSDC',
-  'scrvUSD',
 ] as const
+
+/**
+ * YIELD-BEARING dollar receipts — sDAI, sUSDS, syrupUSDC, scrvUSD (the last three are the
+ * deploy's no-delay launch stables, DeployFullSystem.s.sol:269-271). Stable for the DELAY
+ * CLASS, but they accrue above $1 (syrupUSDC reads about $1.12), so $1.00 is NOT their
+ * level and they are never pinned there.
+ *
+ * Over a two-day window their accrual is a few basis points, so they are held FLAT — at
+ * the level the position itself was read at:
+ *   - the simulator leaves them out of the price path, so compare.ts values them at the
+ *     position's own `priceUsd` every minute. Pinning them at $1.00 would mark a syrupUSDC
+ *     position ~11% under its read value and liquidate it at minute 0 on both sides.
+ *     They are listed as `heldAtReadPrice`, not as unpriced, and every run says so.
+ *   - the census reads only price RATIOS, where flat at $1 and flat at the read price are
+ *     the same series (`heldFlat`).
+ */
+export const YIELD_BEARING_STABLES: readonly string[] = ['sDAI', 'sUSDS', 'syrupUSDC', 'scrvUSD']
 
 /**
  * Synthetic dollars that are stable for the DELAY CLASS but are NOT held at $1: USDe is
@@ -96,22 +103,44 @@ export const OFF_PEG_STABLES: readonly string[] = ['sUSD']
 /** Every symbol modelled as stable collateral. */
 export const STABLE_SYMBOLS: readonly string[] = [
   ...HELD_AT_ONE_SYMBOLS,
+  ...YIELD_BEARING_STABLES,
   ...MEASURED_STABLES,
   ...OFF_PEG_STABLES,
 ]
 
 const STABLE_SET: ReadonlySet<string> = new Set(STABLE_SYMBOLS)
+const YIELD_BEARING_SET: ReadonlySet<string> = new Set(YIELD_BEARING_STABLES)
 /** Stable for the class, but never pinned at $1. */
-const NOT_AT_ONE_SET: ReadonlySet<string> = new Set([...MEASURED_STABLES, ...OFF_PEG_STABLES])
+const NOT_AT_ONE_SET: ReadonlySet<string> = new Set([
+  ...YIELD_BEARING_STABLES,
+  ...MEASURED_STABLES,
+  ...OFF_PEG_STABLES,
+])
 
-/** True when `symbol` is modelled as a dollar stable (held at $1 or measured). */
+/** True when `symbol` is modelled as a dollar stable (held at $1, held flat at its read
+ *  price, measured, or off-peg). */
 export function isStable(symbol: string): boolean {
   return STABLE_SET.has(symbol)
 }
 
-/** A stable whose Oct 10 price path is a flat $1.00: stable, not measured, not off-peg. */
+/** A stable whose Oct 10 price path is a flat $1.00: stable, not yield-bearing, not
+ *  measured, not off-peg. */
 export function heldAtOne(symbol: string): boolean {
   return STABLE_SET.has(symbol) && !NOT_AT_ONE_SET.has(symbol)
+}
+
+/** A yield-bearing dollar receipt: held flat at the position's own read price, not $1. */
+export function heldAtReadPrice(symbol: string): boolean {
+  return YIELD_BEARING_SET.has(symbol)
+}
+
+/**
+ * A stable whose Oct 10 path is FLAT — at $1.00 (`heldAtOne`) or at its read price
+ * (`heldAtReadPrice`). For a reader of price RATIOS only (the census), the two are the
+ * same series, so it may price both as a flat 1.0.
+ */
+export function heldFlat(symbol: string): boolean {
+  return heldAtOne(symbol) || heldAtReadPrice(symbol)
 }
 
 /**

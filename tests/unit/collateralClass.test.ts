@@ -14,8 +14,11 @@ import {
   OFF_PEG_STABLES,
   STABLE_SYMBOLS,
   delayClassOf,
+  YIELD_BEARING_STABLES,
   hardCapFor,
   heldAtOne,
+  heldAtReadPrice,
+  heldFlat,
   isNoDelayCollateral,
   isStable,
   lineIsNoDelay,
@@ -55,11 +58,19 @@ describe('the stable definition', () => {
     expect(STABLE_SYMBOLS.length).toBe(union.size)
   })
 
-  it('holds the yield-bearing launch stables flat, like sDAI and sUSDS', () => {
-    for (const s of ['sDAI', 'sUSDS', 'syrupUSDC', 'scrvUSD']) {
-      expect(heldAtOne(s)).toBe(true)
+  it('holds the yield-bearing receipts flat at their read price, not at $1', () => {
+    // syrupUSDC reads ~$1.12: a $1.00 pin would mark it ~11% under and sell it at minute 0.
+    expect([...YIELD_BEARING_STABLES]).toEqual(['sDAI', 'sUSDS', 'syrupUSDC', 'scrvUSD'])
+    for (const s of YIELD_BEARING_STABLES) {
+      expect(heldAtOne(s)).toBe(false)
+      expect(heldAtReadPrice(s)).toBe(true)
+      expect(heldFlat(s)).toBe(true)
+      expect(HELD_AT_ONE).not.toContain(s)
       expect(isNoDelayCollateral(s)).toBe(true)
     }
+    expect(heldAtReadPrice('USDC')).toBe(false)
+    expect(heldFlat('USDC')).toBe(true)
+    expect(heldFlat('USDe')).toBe(false)
   })
 
   it('keeps USDe and sUSDe stable for the class but measured, never held at $1', () => {

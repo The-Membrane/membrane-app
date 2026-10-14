@@ -30,6 +30,7 @@ import {
   MAX_LTV_HARD_CAP,
   NO_DELAY_LTV_HARD_CAP,
   delayClassOf,
+  heldAtReadPrice,
   isNoDelayCollateral,
 } from './collateralClass'
 import { DelayTimer } from './curePath'
@@ -711,12 +712,24 @@ export function runComparison(
 ): Comparison {
   const source = runSource(position, path, opts)
   const membrane = runMembrane(position, path, opts)
+  // Yield-bearing stable receipts with no series on the path are held flat at the
+  // position's own read price (valueOf falls back to `priceUsd`) — not $1.00, and not
+  // unpriced. Both runs value them that way, so both say so.
+  const heldAtReadPriceSymbols = Array.from(
+    new Set([...position.collateral, ...position.debt].map((l) => l.symbol)),
+  ).filter((s) => heldAtReadPrice(s) && !path.series[s])
+  if (heldAtReadPriceSymbols.length) {
+    const note = `Held flat at the price read for this position, not at $1.00: ${heldAtReadPriceSymbols.join(', ')}. ${heldAtReadPriceSymbols.length > 1 ? 'These are yield-bearing dollar receipts that trade' : 'This is a yield-bearing dollar receipt that trades'} above $1.00, and the Oct 10 data has no series for ${heldAtReadPriceSymbols.length > 1 ? 'them' : 'it'}; over two days the yield moves it a few basis points at most.`
+    source.caveats.push(note)
+    membrane.caveats.push(note)
+  }
   return {
     position,
     source,
     membrane,
     equityDeltaUsd: membrane.endEquityUsd - source.endEquityUsd,
     unpricedSymbols,
+    heldAtReadPriceSymbols,
     scenarioLabel: opts.scenarioLabel,
   }
 }

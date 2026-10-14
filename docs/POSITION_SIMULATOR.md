@@ -224,12 +224,20 @@ with no dollar effect (`meta.delayClass.lineRule`).
 
 **The stable set** is the union of the two old lists (`HELD_AT_ONE`, the census
 `STABLES`), the deploy's launch stables syrupUSDC and scrvUSD, and the synthetic dollars.
-Three kinds, all stable for the class:
+Four kinds, all stable for the class:
 
-- **Held at $1.00:** USDC, USDT, DAI, GHO, USDS and the rest. The yield-bearing receipts
-  (sDAI, sUSDS, syrupUSDC, scrvUSD) accrue above $1, but over a two-day window their path
-  is flat, which is what a ratio needs. A simulator position in one is valued at $1.00 a
-  unit, which understates its level.
+- **Held at $1.00:** USDC, USDT, DAI, GHO, USDS and the rest.
+- **Held flat at the read price, not at $1.00:** the yield-bearing receipts sDAI, sUSDS,
+  syrupUSDC and scrvUSD (`YIELD_BEARING_STABLES`). They accrue above $1 (syrupUSDC reads
+  about $1.12), so a $1.00 pin would mark a position in one ~11% under its own value and
+  sell it at minute 0 on both sides (a Morpho syrupUSDC/USDC position at LTV 0.857 against
+  an LLTV of 0.915 did exactly that). Over two days their accrual is a few basis points,
+  so the path is flat: the simulator gives them no series and values each leg at the
+  position's own `priceUsd` every minute (`scenario.ts` `buildPricePath`). They are listed
+  in `Comparison.heldAtReadPriceSymbols`, not as unpriced, and every run says so in a
+  caveat. The census reads only price ratios, where flat at $1.00 and flat at the read
+  price are the same series, so it prices both kinds as a flat 1.0 (`heldFlat`); no
+  census figure moves (and no Oct 10 census event has a yield-bearing leg).
 - **Measured, not held at $1:** USDe and sUSDe. USDe really moved on Oct 10 and has its own
   series.
 - **Off peg, not held at $1, and unpriced:** sUSD. It traded well under $1.00 through 2025
@@ -239,30 +247,30 @@ Three kinds, all stable for the class:
 | Rule | Contract (membrane-solidity master `16e12329`) | Simulator |
 |---|---|---|
 | The listing's one parameter is an immutable LTV cap | `Collateral.sol:75`; immutable via `LtvCapImmutable`, `Collateral.sol:383-385` | — (no listing exists; the cap is modelled per symbol) |
-| Class is derived: `_noDelay(cap) = cap > MAX_LTV_HARD_CAP` (strict) | `Collateral.sol:424-426` | `collateralClass.ts:134` `lineIsNoDelay`; `:125` `isNoDelayCollateral` (stable ⇒ no-delay, MODELLED) |
+| Class is derived: `_noDelay(cap) = cap > MAX_LTV_HARD_CAP` (strict) | `Collateral.sol:424-426` | `collateralClass.ts:163` `lineIsNoDelay`; `:154` `isNoDelayCollateral` (stable ⇒ no-delay, MODELLED) |
 | `MAX_LTV_HARD_CAP = 9e17`, `NO_DELAY_LTV_HARD_CAP = 96e16` | `lib/Constants.sol:23`, `:32` | `collateralClass.ts:42`, `:46` (re-exported by `membrane.ts`) |
-| A delayed asset's max LTV is clamped to its cap (≤ 90%) | `Collateral.sol:538-540`, `:562` | `membrane.ts:106` `membraneMaxLtv` (clamps at the class cap, `collateralClass.ts:139`); a split half, `compare.ts:536` |
+| A delayed asset's max LTV is clamped to its cap (≤ 90%) | `Collateral.sol:538-540`, `:562` | `membrane.ts:106` `membraneMaxLtv` (clamps at the class cap, `collateralClass.ts:168`); a split half, `compare.ts:544` |
 | A no-delay asset has no window (`max_threshold_to_delay == 0`) | `Collateral.sol:430-432`; deploy `script/DeployFullSystem.s.sol:1127` | `curePath.ts:226` (the no-delay timer ignores the band) |
-| Launch listing: sUSDS, syrupUSDC, scrvUSD at 96e16; WETH at 90e16 | `script/DeployFullSystem.s.sol:269-272` | the stable ⇒ no-delay assumption, `collateralClass.ts:125` |
+| Launch listing: sUSDS, syrupUSDC, scrvUSD at 96e16; WETH at 90e16 | `script/DeployFullSystem.s.sol:269-272` | the stable ⇒ no-delay assumption, `collateralClass.ts:154` |
 | Instant mode: threshold = line, `currentLtv > threshold` ⇒ Immediate | `LiquidationEngine.sol:1572-1576`, `:1694-1703` | `curePath.ts:226` (`sell`, reason `instant`, strict `>`) |
 | A timer can never arm in instant mode | `LiquidationEngine.sol:1708-1710` (`InstantModeNotLiquidatable`) | `curePath.ts:226` (never returns `arm`) |
 | No-delay walk: sold at t0, walks on, sold again on a later breach | as above, plus the repay-to-cap `LiquidationEngine.sol:2204-2238` | `curePath.ts:393`, `:470` (`cureWalk` `noDelay`, outcome `sold-no-delay`) |
-| Stable and volatile collateral may not share a position | `Cdp.sol:1650-1651` → `MixedDelayClassCollateral`, `Collateral.sol:789-793` | `collateralClass.ts:157` `delayClassOf` → `'mixed'` |
-| Every call recalls first, toward the WHOLE debt | `repayTarget = totalDebt` `LiquidationEngine.sol:1319`; Step 1.5 sends `min(retrievable, repayTarget - totalRepaid)` `:1450-1453` | `compare.ts:346-352` (recall `min(available, debt)` at every keeper call) |
-| Paid recall-only lane: post-recall LTV ≤ line ⇒ fee, nothing sold, timer deleted | `LiquidationEngine.sol:1603-1658` (trigger `:1623`, runs before classification; fee base `min(target, recalled)` `:1653-1654`; fee `:1821-1838`, `:1877`, `:1887`; sale steps skipped `:1137-1141`) | `compare.ts:365` (at a breach, a sale, or inside the window) |
-| Still over the line: breach call arms with the recall kept; in-window call reverts | `TimerStarted` lane; `TimerActive` revert `:1690` | `compare.ts:402` (arm), `:396` (hold: no state change) |
-| Still over the line at a sale: Step 2 sizes the target at the POST-recall LTV on the PRE-recall loan; collateral covers the target less the recall | `_getRepayQuantities` `LiquidationEngine.sol:2663-2732` (`totalDebt` `:1311`, `:2671`; `currentLtv` read `:1554`); sell wall `remaining = repayTarget - totalRepaid` `:2261` | `compare.ts:445`, `membrane.ts:226` (`membraneSaleAfterRecall`) |
-| Post-check: a liquidation may not raise LTV | `Cdp.sol:2494-2498` (`LiquidationRaisedLtv`) | **not modelled** — caveat, `compare.ts:663` |
+| Stable and volatile collateral may not share a position | `Cdp.sol:1650-1651` → `MixedDelayClassCollateral`, `Collateral.sol:789-793` | `collateralClass.ts:186` `delayClassOf` → `'mixed'` |
+| Every call recalls first, toward the WHOLE debt | `repayTarget = totalDebt` `LiquidationEngine.sol:1319`; Step 1.5 sends `min(retrievable, repayTarget - totalRepaid)` `:1450-1453` | `compare.ts:347-353` (recall `min(available, debt)` at every keeper call) |
+| Paid recall-only lane: post-recall LTV ≤ line ⇒ fee, nothing sold, timer deleted | `LiquidationEngine.sol:1603-1658` (trigger `:1623`, runs before classification; fee base `min(target, recalled)` `:1653-1654`; fee `:1821-1838`, `:1877`, `:1887`; sale steps skipped `:1137-1141`) | `compare.ts:366` (at a breach, a sale, or inside the window) |
+| Still over the line: breach call arms with the recall kept; in-window call reverts | `TimerStarted` lane; `TimerActive` revert `:1690` | `compare.ts:403` (arm), `:397` (hold: no state change) |
+| Still over the line at a sale: Step 2 sizes the target at the POST-recall LTV on the PRE-recall loan; collateral covers the target less the recall | `_getRepayQuantities` `LiquidationEngine.sol:2663-2732` (`totalDebt` `:1311`, `:2671`; `currentLtv` read `:1554`); sell wall `remaining = repayTarget - totalRepaid` `:2261` | `compare.ts:446`, `membrane.ts:226` (`membraneSaleAfterRecall`) |
+| Post-check: a liquidation may not raise LTV | `Cdp.sol:2494-2498` (`LiquidationRaisedLtv`) | **not modelled** — caveat, `compare.ts:671` |
 
 **Mixed collateral: split in the simulator, walked as before in the census.**
 
-- *Simulator* (`compare.ts:536` `splitByDelayClass`). A pasted position holding both
+- *Simulator* (`compare.ts:544` `splitByDelayClass`). A pasted position holding both
   kinds is run as the **two isolated positions** Membrane would make the borrower hold.
   The debt, and any deployed venue capital, is split pro-rata to collateral value at
   minute 0, so both halves open at the position's own LTV (the neutral split). Each half
   keeps its OWN modelled line: the page always passes a line override (the blended line
   by default), so each half's line is scaled by override / whole-position line
-  (`compare.ts:553`) — at the default exactly its own line, and a user edit moves both by
+  (`compare.ts:561`) — at the default exactly its own line, and a user edit moves both by
   the same factor — then clamped to its class's cap (96% stable, 90% otherwise). A half
   with no modelled LTV on any leg (e.g. GHO) runs at the whole position's scaled line, and
   the run says so. Each half is labelled from the class it actually runs in, and the
@@ -422,7 +430,9 @@ editable in the UI, because they are the variable that moves the result most.
    make the real outcome worse than these runs, not better.
 5. **Only Chainlink ETH/USD and BTC/USD are priced.** Any other collateral is held flat
    across the window and named in `Comparison.unpricedSymbols`. A position in an unpriced
-   asset understates its own risk.
+   asset understates its own risk. The dollar stables are held at $1.00 and the
+   yield-bearing receipts at their read price (`Comparison.heldAtReadPriceSymbols`); both
+   are known flat, not unpriced.
 6. **eMode is reflected only through the aggregate.** Aave's `getUserAccountData` applies
    eMode, isolation mode and collateral flags, so the totals are right, but the per-leg
    thresholds shown are the reserve's base values.

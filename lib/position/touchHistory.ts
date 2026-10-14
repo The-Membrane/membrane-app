@@ -46,7 +46,7 @@ export interface TouchRow {
   to: string
   /** touched[L − levels.min] = origins whose window touched L%. */
   touched: number[]
-  /** 90% block-bootstrap band of the same count, per level. */
+  /** 90% block-bootstrap band of the same count, per level; `hi` floored at 3T (bootstrap.bandTopFloor). */
   lo: number[]
   hi: number[]
   confidence: CellConfidence
@@ -71,7 +71,16 @@ export interface TouchTable {
     /** End of the last hour the table observed (ISO). */
     dataEnd: string
   }
-  bootstrap: { scheme: string; replicates: number; seed: number; prng: string; band: number; percentile: string }
+  bootstrap: {
+    scheme: string
+    replicates: number
+    seed: number
+    prng: string
+    band: number
+    percentile: string
+    /** How the band's top is floored: 3T of n, the rule of three on independent windows. */
+    bandTopFloor: string
+  }
   confidenceRule: {
     levels: number[]
     highMinChecks: number

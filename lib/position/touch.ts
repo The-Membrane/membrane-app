@@ -168,8 +168,9 @@ export function formatChance(touched: number, n: number): string {
 }
 
 /**
- * The upper end of the band in percent, rounded up. With no touches anywhere in the
- * bootstrap the band's top is the rule of three, 3/n — never 0.
+ * The upper end of the band in percent, rounded up. The generated table's `hi` is already
+ * floored at the rule of three on independent windows, 3T/n (build-touch-history.mjs
+ * floorBandTop); a zero `hi` (a hand-built table) still reads the plain 3/n, never 0.
  */
 export function bandTopPct(hi: number, n: number): number {
   const top = hi > 0 ? (hi / n) * 100 : (3 / n) * 100

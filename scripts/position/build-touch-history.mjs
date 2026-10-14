@@ -66,6 +66,21 @@ export const T1_LEVELS = [5, 10, 15, 20, 30]
 
 export const BOOTSTRAP = { replicates: 2000, seed: 20261012, band: 0.9, minBlockDays: 30, blockPerHorizonDays: 2 }
 
+/**
+ * The band's top is floored at the rule of three on INDEPENDENT windows. Daily origins give
+ * n overlapping T-day windows, but only about n/T of them share no day, so a cell the
+ * history never (or seldom) touched is bounded above by 3/(n/T) = 3T/n, not by 3/n or by
+ * a bootstrap over overlapping windows that can come out tighter still. In counts of n:
+ * 3T touches. BTC 30d: ~66 independent windows, so no tighter than ~4.6%, not "up to 1%".
+ */
+export const bandTopFloor = (horizonDays) => 3 * horizonDays
+
+/** `hi` with every level raised to at least the floor (and never past n). */
+export function floorBandTop(hi, horizonDays, n) {
+  const f = Math.min(n, bandTopFloor(horizonDays))
+  return hi.map((h) => Math.max(h, f))
+}
+
 /** The preliminary label rule. Swappable: the page reads only `label`, `held`, `checks`. */
 export const CONFIDENCE_RULE = { highMinChecks: 4, mediumMinShare: 0.5 }
 
@@ -86,6 +101,7 @@ export const METHOD =
   'A fall of L touches when the lowest hourly oracle low in the next T days is at or below start × (1 − L); a rise of L when the highest hourly oracle high is at or above start × (1 + L). ' +
   'Rows follow validation/t1: calib origins whose window ends by 2024-01-01, test origins from 2024-01-01 whose window ends by 2026-10-06 03:00 UTC; the forecast pools both. ' +
   'Band: 90% moving-block bootstrap (blocks of max(30, 2T) days that never span the purged 2024-01-01 seam, 2000 replicates, seed 20261012). ' +
+  'The band top is floored at 3T/n, the rule of three on the n/T non-overlapping T-day windows (overlapping daily windows are not independent), wherever the bootstrap top is tighter; the confidence check uses the unfloored calibration band. ' +
   'Confidence (preliminary): a check is a t1 level (5, 10, 15, 20, 30%) with at least one touch in either span; it holds when the 2024–26 frequency lies inside the 90% band built from 2021–23 rows only. ' +
   'High if every check holds and there are at least 4, medium if at least half hold, low otherwise, untested with no checks.'
 
@@ -388,7 +404,9 @@ export function build(root = process.cwd()) {
         const rows = ours[a.id][h.days]
         const deepest = rows.map((r) => r[dir])
         const touched = touchedCounts(deepest)
-        const { lo, hi } = bandFromDraw(draws[h.days], deepest)
+        const band = bandFromDraw(draws[h.days], deepest)
+        const lo = band.lo
+        const hi = floorBandTop(band.hi, h.days, rows.length)
 
         // Confidence: the calib-only band against the test-span frequency, at t1's levels.
         const calib = rows.filter((r) => r.split === 'calib').map((r) => r[dir])
@@ -448,6 +466,7 @@ export function build(root = process.cwd()) {
         prng: 'xoshiro128** seeded by splitmix32',
         band: BOOTSTRAP.band,
         percentile: 'nearest rank, lower floored, upper ceiled',
+        bandTopFloor: '3T touches of n: the rule of three on the n/T non-overlapping T-day windows',
       },
       confidenceRule: {
         levels: T1_LEVELS,

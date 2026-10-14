@@ -14,7 +14,9 @@ import {
   CONFIDENCE_RULE,
   T1_LEVELS,
   bandFromDraw,
+  bandTopFloor,
   blockDraw,
+  floorBandTop,
   confidenceLabel,
   crossCheckT1,
   makeRng,
@@ -99,6 +101,23 @@ describe('forecast table: shape', () => {
     expect(t.confidenceRule).toMatchObject({ levels: [5, 10, 15, 20, 30], highMinChecks: 4, mediumMinShare: 0.5, preliminary: true })
     expect(t.method).toMatch(/High if every check holds and there are at least 4, medium if at least half hold, low otherwise, untested/)
     expect(t.method).toMatch(/90% moving-block bootstrap \(blocks of max\(30, 2T\) days that never span the purged 2024-01-01 seam/)
+    expect(t.method).toMatch(/band top is floored at 3T\/n, the rule of three on the n\/T non-overlapping T-day windows/)
+    expect(t.bootstrap.bandTopFloor).toMatch(/^3T touches of n/)
+  })
+
+  it('every band top is at least the rule of three on independent windows, 3T of n', () => {
+    const days = Object.fromEntries(t.horizons.map((h) => [h.id, h.days]))
+    for (const a of ASSETS)
+      for (const d of DIRS)
+        for (const h of HORIZON_IDS) {
+          const r = t.assets[a][d][h]
+          for (const hi of r.hi) expect(hi).toBeGreaterThanOrEqual(Math.min(r.n, 3 * days[h]))
+        }
+    // BTC 30d: ~1,963 daily origins are only ~65 windows that share no day. A 47% fall
+    // never happened, and the band says so honestly: up to 3·30/1,963 = 4.6%, not 1%.
+    const btc30 = t.assets.BTC.fall['30d']
+    expect(btc30.touched[47 - 1]).toBe(0)
+    expect(formatBand(btc30.lo[47 - 1], btc30.hi[47 - 1], btc30.n)).toBe('up to 5%')
   })
 
   it('n per horizon is t1’s row count per asset (calib + test)', () => {
@@ -195,6 +214,13 @@ describe('the builder’s pure parts', () => {
     expect(d30.b).toBe(60)
     expect(d30.nb).toBe(17)
     for (const s of d30.starts.flat()) expect(s >= 0 && s <= 980 - 60).toBe(true)
+  })
+
+  it('floors a band top at 3T, and never past n', () => {
+    expect(bandTopFloor(30)).toBe(90)
+    expect(floorBandTop([500, 120, 40, 0], 30, 1963)).toEqual([500, 120, 90, 90])
+    expect(floorBandTop([2, 0], 1, 2021)).toEqual([3, 3])
+    expect(floorBandTop([0], 30, 50)).toEqual([50])
   })
 
   it('a block never spans a seam (the purged 2024-01-01 gap)', () => {

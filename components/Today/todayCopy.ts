@@ -13,6 +13,9 @@ import { M0_THRESHOLDS_FILE, type M0ThresholdsFile } from '@/lib/regime/threshol
  */
 export const TAGLINE = `${GUARANTEE.name} Cross the line with time to spare.`
 
+/** The one footer disclaimer (DESIGN_RULES §3): every modelled figure carries the †. */
+export const DAGGER_NOTE = '† modelled, not a guarantee'
+
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 

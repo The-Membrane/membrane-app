@@ -6,8 +6,9 @@ import { TodayEdition } from '@/components/Today/TodayEdition'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
 
 // The Today edition: the newspaper masthead with the market weather strip (gas, the DVOL
-// daily move, the M0 regime) and how the regime is set. UNLINKED while it is built (not in
-// the nav), so seoClass `app`: noindex. Invalid chains redirect server-side, as on
+// daily move, the M0 regime), then Opportunities when calm or Safety when choppy, and how
+// the regime is set. First in the nav, but still seoClass `app` (noindex) while the owner
+// decides whether '/' points here. Invalid chains redirect server-side, as on
 // pages/[chain]/glossary.tsx.
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const chainParam = context.params?.chain
@@ -23,7 +24,7 @@ const TodayPage = () => (
     <PageSeo
       seoClass="app"
       title="Membrane — Today"
-      description="Market weather: the calm or choppy regime from Chainlink and Coinbase, the daily ETH move the options market prices, and the Ethereum base fee, with every input's age."
+      description="Market weather: the calm or choppy regime from Chainlink and Coinbase, with every input's age. Calm leads with venue rates at your size; choppy leads with your position, venue alarms and curator exits."
     />
     <TodayEdition />
   </>

@@ -141,7 +141,7 @@ const Body: React.FC<{
       views={state.views}
       selected={selected}
       onSelect={onSelect}
-      failures={items.filter((i) => i.state === 'error')}
+      failures={items.filter((i) => i.state === 'error' || (i.skipped?.length ?? 0) > 0)}
       address={address}
       staleAge={staleAge}
     />

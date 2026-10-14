@@ -103,6 +103,8 @@ export interface ReadStatusItem {
   state: ReadState
   positions: number
   message?: string
+  /** Sub-markets (Comets) a sanity check dropped from a read that otherwise stands. */
+  skipped?: { market: string; reason: string }[]
 }
 
 /** Every adapter starts 'pending'; each result replaces its slot when it lands. */
@@ -119,6 +121,7 @@ export function readStatus(
       state: r.status,
       positions: r.positions.length,
       message: r.message,
+      ...(r.skipped?.length ? { skipped: r.skipped } : {}),
     }
   })
 }
@@ -145,7 +148,10 @@ export function statusWord(s: ReadStatusItem): string {
  */
 export function statusSentence(items: ReadStatusItem[]): string {
   const names = (pred: (i: ReadStatusItem) => boolean) => items.filter(pred).map((i) => i.label)
-  const read = names((i) => i.state === 'ok' || i.state === 'empty')
+  // A read that dropped a Comet says which, in place: "Compound V3 (cUSDCv3 skipped)".
+  const read = items
+    .filter((i) => i.state === 'ok' || i.state === 'empty')
+    .map((i) => (i.skipped?.length ? `${i.label} (${i.skipped.map((s) => s.market).join(', ')} skipped)` : i.label))
   const pending = names((i) => i.state === 'pending')
   const failed = names((i) => i.state === 'error')
   const unsupported = names((i) => i.state === 'unsupported')

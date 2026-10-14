@@ -19,7 +19,7 @@ import { aaveV3Adapter, sparkAdapter } from './aaveV3'
 import { compoundV3Adapter } from './compoundV3'
 import { fluidAdapter } from './fluid'
 import { morphoBlueAdapter } from './morphoBlue'
-import { UnsupportedError, type LendingAdapter } from './types'
+import { PartialReadError, UnsupportedError, type LendingAdapter } from './types'
 
 export * from './types'
 export {
@@ -36,7 +36,7 @@ export {
   SPARK_MAINNET_ADDRESSES_PROVIDER,
 } from './aaveV3'
 export { morphoBlueAdapter, MORPHO_BLUE_MAINNET, MORPHO_DOLLAR_ASSUMPTION_NOTE } from './morphoBlue'
-export { compoundV3Adapter, COMET_MAINNET_MARKETS, BASE_IN_QUOTE_RANGE, checkBaseInQuote, cometPriceUsd, type CometMarket } from './compoundV3'
+export { compoundV3Adapter, COMET_MAINNET_MARKETS, checkBaseInQuote, collectComets, cometPriceUsd, type CometMarket } from './compoundV3'
 export { fluidAdapter, FLUID_UNSUPPORTED_MESSAGE } from './fluid'
 
 /** Read order is display order. Aave first because it is the deepest market. */
@@ -55,7 +55,22 @@ export async function runAdapter(
 ): Promise<AdapterResult> {
   const startedAt = Date.now()
   try {
-    const positions = await adapter.read(address)
+    const positions = await adapter.read(address).catch((e: unknown) => {
+      // A sub-market dropped on a sanity check: keep what was read, and name what was not.
+      if (e instanceof PartialReadError && e.positions.length > 0) return e
+      throw e
+    })
+    if (positions instanceof PartialReadError) {
+      return {
+        protocol: adapter.id,
+        label: adapter.label,
+        status: 'ok',
+        positions: positions.positions,
+        skipped: positions.skipped,
+        fetchedAt: Date.now(),
+        tookMs: Date.now() - startedAt,
+      }
+    }
     return {
       protocol: adapter.id,
       label: adapter.label,
@@ -77,6 +92,7 @@ export async function runAdapter(
       status: unsupported ? 'unsupported' : 'error',
       positions: [],
       message,
+      ...(e instanceof PartialReadError ? { skipped: e.skipped } : {}),
       fetchedAt: Date.now(),
       tookMs: Date.now() - startedAt,
     }

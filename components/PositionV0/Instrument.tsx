@@ -209,11 +209,19 @@ export const Instrument: React.FC<{ view: PositionView; failures: ReadStatusItem
               <Small overflowWrap="anywhere">{p.provenance.detail}</Small>
             </Box>
           )}
-          {failures.map((f) => (
-            <Small key={f.protocol} color={NEWS.ink2} overflowWrap="anywhere">
-              ✖ {f.label} failed: {f.message ?? 'no message'}
-            </Small>
-          ))}
+          {failures.map((f) =>
+            f.state === 'error' ? (
+              <Small key={f.protocol} color={NEWS.ink2} overflowWrap="anywhere">
+                ✖ {f.label} failed: {f.message ?? 'no message'}
+              </Small>
+            ) : (
+              (f.skipped ?? []).map((s) => (
+                <Small key={`${f.protocol}:${s.market}`} color={NEWS.ink2} overflowWrap="anywhere">
+                  ✖ {f.label}: {s.market} skipped: {s.reason}
+                </Small>
+              ))
+            ),
+          )}
         </Box>
       </Section>
     </Box>

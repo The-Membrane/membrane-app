@@ -26,7 +26,18 @@
 
 import { getMainnetClient, rpcLabel, toNumber } from '../rpc'
 import { stamp, type CollateralLeg, type DebtLeg, type ProtocolPosition } from '../types'
-import { decimalsFromScale, mc, optional, pinBlock, ratio, unwrap, type Call, type LendingAdapter } from './types'
+import {
+  PartialReadError,
+  SanityCheckError,
+  decimalsFromScale,
+  mc,
+  optional,
+  pinBlock,
+  ratio,
+  unwrap,
+  type Call,
+  type LendingAdapter,
+} from './types'
 
 // ----------------------------------------------------------------------- ABIs
 
@@ -110,6 +121,10 @@ const erc20Abi = [
 
 // ----------------------------------------------------------------- deployments
 
+/** The two base checks every Comet uses but cWBTCv3 (see BASE CHECK below). */
+const CONSTANT: BaseCheck = { kind: 'constant' }
+const USD_BAND: BaseCheck = { kind: 'band', min: 0.5, max: 2 }
+
 /**
  * The mainnet Comets: every proxy the Compound III Configurator
  * (0x316f9708bB98af7dA9c68C1C3b5e79039cD336E3) has a factory for — its SetFactory events
@@ -126,36 +141,64 @@ const erc20Abi = [
  * A non-USD Comet's prices are converted at one more feed read through the same Comet's
  * getPrice: Chainlink ETH/USD, Compound's own wstETH/USD CAPO feed (the one cUSDCv3 prices
  * wstETH with), Chainlink BTC/USD — all 8 decimals, checked at read time. Nothing assumed.
+ *
+ * BASE CHECK. Each Comet's base, priced in its quote unit, must look like that unit: it
+ * catches a unit mix-up (a USD feed where ETH was assumed reads ~2,500), never a depeg.
+ *   cWETHv3, cwstETHv3   a "Constant price feed": exactly 1e8
+ *   USD Comets           0.5–2 (USDC read 0.8833 on cUSDCv3's own feed, 11 Mar 2023)
+ *   cWBTCv3              0.5–1.5 (WBTC / BTC)
+ * A Comet that fails it is dropped with that message; the other Comets still read.
  */
 export const COMET_MAINNET_MARKETS = [
-  { address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3', name: 'cUSDCv3', quote: 'USD', quoteUsdFeed: null },
+  {
+    address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3',
+    name: 'cUSDCv3',
+    quote: 'USD',
+    quoteUsdFeed: null,
+    baseCheck: USD_BAND,
+  },
   {
     address: '0xA17581A9E3356d9A858b789D68B4d866e593aE94',
     name: 'cWETHv3',
     quote: 'ETH',
     // Chainlink ETH/USD proxy (the feed membrane-datasets price-history records).
     quoteUsdFeed: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+    baseCheck: CONSTANT,
   },
-  { address: '0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840', name: 'cUSDTv3', quote: 'USD', quoteUsdFeed: null },
+  {
+    address: '0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840',
+    name: 'cUSDTv3',
+    quote: 'USD',
+    quoteUsdFeed: null,
+    baseCheck: USD_BAND,
+  },
   {
     address: '0x3D0bb1ccaB520A66e607822fC55BC921738fAFE3',
     name: 'cwstETHv3',
     quote: 'wstETH',
     // "wstETH / USD CAPO SVR Price Feed": Compound's wstETH/USD feed in cUSDCv3 and cUSDTv3.
     quoteUsdFeed: '0xA2699232B341881B1Ed85d91592b7c259E029aCf',
+    baseCheck: CONSTANT,
   },
-  { address: '0x5D409e56D886231aDAf00c8775665AD0f9897b56', name: 'cUSDSv3', quote: 'USD', quoteUsdFeed: null },
+  {
+    address: '0x5D409e56D886231aDAf00c8775665AD0f9897b56',
+    name: 'cUSDSv3',
+    quote: 'USD',
+    quoteUsdFeed: null,
+    baseCheck: USD_BAND,
+  },
   {
     address: '0xe85Dc543813B8c2CFEaAc371517b925a166a9293',
     name: 'cWBTCv3',
     quote: 'BTC',
     // Chainlink BTC/USD proxy (the feed membrane-datasets price-history records).
     quoteUsdFeed: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c',
+    baseCheck: { kind: 'band', min: 0.5, max: 1.5 },
   },
 ] as const satisfies readonly CometMarket[]
 
-/** A Comet's base asset is worth about one quote unit; outside this, the quote unit is wrong. */
-export const BASE_IN_QUOTE_RANGE = { min: 0.9, max: 1.1 } as const
+/** How the base, priced in its quote unit, must look (see BASE CHECK above). */
+export type BaseCheck = { kind: 'constant' } | { kind: 'band'; min: number; max: number }
 
 export interface CometMarket {
   address: `0x${string}`
@@ -164,6 +207,7 @@ export interface CometMarket {
   quote: 'USD' | 'ETH' | 'wstETH' | 'BTC'
   /** A feed giving one quote unit in USD; null when the quote already is USD. */
   quoteUsdFeed: `0x${string}` | null
+  baseCheck: BaseCheck
 }
 
 /**
@@ -176,18 +220,51 @@ export function cometPriceUsd(priceRaw: bigint, quoteUsd: number): number {
 }
 
 /**
- * The check that the quote unit is right: the base asset priced in it is near 1 (USDC in
- * USD, WETH in ETH, WBTC in BTC). A USD feed in an "ETH" market would read ~2,500 here.
+ * The check that the quote unit is right, and nothing more: a constant-feed Comet prices
+ * its base at exactly 1e8; the others within a band wide enough for any depeg yet ~1,000×
+ * short of an ETH or BTC price read as USD. Throws a SanityCheckError, which drops only
+ * this Comet.
  */
-export function checkBaseInQuote(market: Pick<CometMarket, 'name' | 'quote'>, basePriceRaw: bigint): void {
+export function checkBaseInQuote(market: Pick<CometMarket, 'name' | 'quote' | 'baseCheck'>, basePriceRaw: bigint): void {
+  const c = market.baseCheck
   const v = toNumber(basePriceRaw, PRICE_DECIMALS)
-  if (!(v >= BASE_IN_QUOTE_RANGE.min && v <= BASE_IN_QUOTE_RANGE.max)) {
-    throw new Error(`compound v3 (${market.name}): its base priced at ${v} ${market.quote}, expected about 1; the quote unit is not ${market.quote}`)
+  if (c.kind === 'constant') {
+    if (basePriceRaw !== 10n ** BigInt(PRICE_DECIMALS)) {
+      throw new SanityCheckError(`its base priced at ${v} ${market.quote} on a constant feed, expected exactly 1`)
+    }
+    return
   }
+  if (!(v >= c.min && v <= c.max)) {
+    throw new SanityCheckError(`its base priced at ${v} ${market.quote}, outside ${c.min}–${c.max}; the quote unit is not ${market.quote}`)
+  }
+}
+
+/**
+ * The adapter's result from every Comet's settled read: positions from the ones that read,
+ * a named entry for each one a sanity check dropped. Any other failure (a revert, a missing
+ * value) is still fatal: a silently half-read Compound position would under-report.
+ */
+export function collectComets(
+  markets: readonly Pick<CometMarket, 'name'>[],
+  settled: PromiseSettledResult<ProtocolPosition | null>[],
+): { positions: ProtocolPosition[]; skipped: { market: string; reason: string }[] } {
+  const positions: ProtocolPosition[] = []
+  const skipped: { market: string; reason: string }[] = []
+  settled.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      if (r.value) positions.push(r.value)
+    } else if (r.reason instanceof SanityCheckError) {
+      skipped.push({ market: markets[i].name, reason: r.reason.message })
+    } else {
+      throw r.reason
+    }
+  })
+  return { positions, skipped }
 }
 
 /** Comet PRICE_SCALE. */
 const PRICE_DECIMALS = 8
+
 /** Comet FACTOR_SCALE. */
 const FACTOR_DECIMALS = 18
 const SECONDS_PER_YEAR = 31_536_000
@@ -278,13 +355,13 @@ async function readComet(
     const what = `${tag}: ${market.quote}/USD feed ${market.quoteUsdFeed}`
     const raw = unwrap(tailRes[tailRes.length - 2], `${what} getPrice`) as bigint
     const feedDecimals = Number(unwrap(tailRes[tailRes.length - 1], `${what} decimals()`))
-    if (feedDecimals !== PRICE_DECIMALS) throw new Error(`${what} has ${feedDecimals} decimals, expected ${PRICE_DECIMALS}`)
+    if (feedDecimals !== PRICE_DECIMALS) throw new SanityCheckError(`${what} has ${feedDecimals} decimals, expected ${PRICE_DECIMALS}`)
     quoteUsd = toNumber(raw, PRICE_DECIMALS)
-    if (!(quoteUsd > 0)) throw new Error(`${what} returned 0`)
+    if (!(quoteUsd > 0)) throw new SanityCheckError(`${what} returned 0`)
   }
 
   const basePriceRaw = unwrap(tailRes[0], `${tag}: getPrice(baseTokenPriceFeed ${baseFeed})`) as bigint
-  if (basePriceRaw === 0n) throw new Error(`${tag}: base price feed ${baseFeed} returned 0`)
+  if (basePriceRaw === 0n) throw new SanityCheckError(`base price feed ${baseFeed} returned 0`)
   const baseDecimals = Number(unwrap(tailRes[1], `${tag}: decimals() on base token ${baseToken}`))
   // A symbol is a label, not a number — an unreadable one (e.g. bytes32 symbols) may
   // fall back to the address without violating the no-invented-numbers rule.
@@ -314,7 +391,7 @@ async function readComet(
       `${tag}: getPrice(${h.info.priceFeed}) for collateral ${h.info.asset}`,
     ) as bigint
     if (priceRaw === 0n) {
-      throw new Error(`${tag}: price feed ${h.info.priceFeed} returned 0 for collateral ${h.info.asset}`)
+      throw new SanityCheckError(`price feed ${h.info.priceFeed} returned 0 for collateral ${h.info.asset}`)
     }
     const symbol = (optional(tailRes[5 + i * 2]) as string | null) ?? shortAddress(h.info.asset)
     const decimals = decimalsFromScale(h.info.scale, `${tag}: AssetInfo.scale for ${symbol}`)
@@ -391,10 +468,13 @@ export const compoundV3Adapter: LendingAdapter = {
   async read(user: `0x${string}`): Promise<ProtocolPosition[]> {
     // The Comets are independent contracts; read them concurrently, at one pinned block. A
     // revert in one is fatal for the whole adapter — a half-read Compound position would
-    // under-report the user's real exposure, which is the failure mode we refuse.
+    // under-report the user's real exposure, which is the failure mode we refuse. A Comet
+    // a sanity check drops is NAMED instead (PartialReadError), and the rest still read.
     const client = getMainnetClient()
     const block = await pinBlock(client)
-    const results = await Promise.all(COMET_MAINNET_MARKETS.map((m) => readComet(client, block, m, user)))
-    return results.filter((p): p is ProtocolPosition => p !== null)
+    const settled = await Promise.allSettled(COMET_MAINNET_MARKETS.map((m) => readComet(client, block, m, user)))
+    const { positions, skipped } = collectComets(COMET_MAINNET_MARKETS, settled)
+    if (skipped.length > 0) throw new PartialReadError(positions, skipped)
+    return positions
   },
 }

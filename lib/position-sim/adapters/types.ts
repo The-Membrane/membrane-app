@@ -34,6 +34,33 @@ export class UnsupportedError extends Error {
   }
 }
 
+/**
+ * A check that a protocol's own numbers are in the unit the adapter assumes failed for ONE
+ * sub-market (one Comet). That market is dropped with this message; the others stand. A
+ * revert or a missing value is not this: those still fail the whole read.
+ */
+export class SanityCheckError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'SanityCheckError'
+  }
+}
+
+/**
+ * Thrown by an adapter that read some sub-markets and dropped others on a sanity check.
+ * Carries what it did read; the registry reports both (status 'ok' with `skipped`, or
+ * 'error' when nothing was left).
+ */
+export class PartialReadError extends Error {
+  constructor(
+    readonly positions: ProtocolPosition[],
+    readonly skipped: { market: string; reason: string }[],
+  ) {
+    super(skipped.map((s) => `${s.market} skipped: ${s.reason}`).join('; '))
+    this.name = 'PartialReadError'
+  }
+}
+
 // ------------------------------------------------------------------ multicall
 
 /** One entry of a viem `multicall({ allowFailure: true })` response. */

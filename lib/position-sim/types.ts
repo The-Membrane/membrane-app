@@ -97,6 +97,11 @@ export interface AdapterResult {
   positions: ProtocolPosition[]
   /** Plain-language reason when status is 'error' or 'unsupported'. Shown verbatim. */
   message?: string
+  /**
+   * Sub-markets (one Comet) a sanity check dropped from an otherwise good read, each with
+   * its reason. Shown verbatim; the rest of the read stands.
+   */
+  skipped?: { market: string; reason: string }[]
   fetchedAt: number
   /** Milliseconds the read took, for the receipt. */
   tookMs?: number

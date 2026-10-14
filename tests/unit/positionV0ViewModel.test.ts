@@ -73,6 +73,12 @@ describe('read status', () => {
     expect(items[2].message).toBe('morpho blue: HTTP 500')
     expect(statusSentence(items)).toBe('Aave V3 / Spark / Compound V3 read · Morpho Blue failed · Fluid not supported yet')
     expect(statusSentence(readStatus(ORDER, {}))).toBe('Aave V3 / Spark / Morpho Blue / Compound V3 / Fluid reading…')
+    // A Compound read that dropped one Comet on a sanity check names it in place.
+    const partial = readStatus(ORDER, {
+      'compound-v3': { ...result('compound-v3', 'ok', [pos('compound-v3', [coll('WETH', 1, 4000, 0.83)], [], 'Compound V3 · USDC')]), skipped: [{ market: 'cUSDTv3', reason: 'its base priced at 3 USD, outside 0.5–2' }] },
+    })
+    expect(partial.find((i) => i.protocol === 'compound-v3')?.skipped).toEqual([{ market: 'cUSDTv3', reason: 'its base priced at 3 USD, outside 0.5–2' }])
+    expect(statusSentence(partial)).toBe('Compound V3 (cUSDTv3 skipped) read · Aave V3 / Spark / Morpho Blue / Fluid reading…')
   })
 })
 

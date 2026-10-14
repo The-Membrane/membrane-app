@@ -5,13 +5,18 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  BASE_IN_QUOTE_RANGE,
   COMET_MAINNET_MARKETS,
+  PartialReadError,
+  SanityCheckError,
   checkBaseInQuote,
+  collectComets,
   cometPriceUsd,
   inBitmap,
   readEModeThresholds,
+  runAdapter,
+  type LendingAdapter,
 } from '@/lib/position-sim/adapters'
+import type { ProtocolPosition } from '@/lib/position-sim/types'
 
 describe('Compound V3 quote currency', () => {
   it('lists all six mainnet Comets with their quote unit and USD feed', () => {
@@ -58,17 +63,59 @@ describe('Compound V3 quote currency', () => {
     expect(cometPriceUsd(100_237_524n, 83594.32226006)).toBeCloseTo(83792.88, 1)
   })
 
-  it('the base priced near 1 quote unit is the check that the quote unit is right', () => {
-    expect(() => checkBaseInQuote({ name: 'cUSDCv3', quote: 'USD' }, 99_981_588n)).not.toThrow()
-    expect(() => checkBaseInQuote({ name: 'cUSDSv3', quote: 'USD' }, 99_982_933n)).not.toThrow()
-    expect(() => checkBaseInQuote({ name: 'cWETHv3', quote: 'ETH' }, 100_000_000n)).not.toThrow()
-    expect(() => checkBaseInQuote({ name: 'cwstETHv3', quote: 'wstETH' }, 100_000_000n)).not.toThrow()
-    expect(() => checkBaseInQuote({ name: 'cWBTCv3', quote: 'BTC' }, 99_849_880n)).not.toThrow()
-    // A USD feed where ETH was expected: WETH at $2,512 is not ~1 ETH.
-    expect(() => checkBaseInQuote({ name: 'cWETHv3', quote: 'ETH' }, 251_212_633_111n)).toThrow(/quote unit is not ETH/)
-    // A BTC-quoted market read as USD: WBTC at 0.9985 "USD".
-    expect(() => checkBaseInQuote({ name: 'cWBTCv3', quote: 'BTC' }, 8_352_176_861_319n)).toThrow(/quote unit is not BTC/)
-    expect(BASE_IN_QUOTE_RANGE).toEqual({ min: 0.9, max: 1.1 })
+  it('the base check catches a unit mix-up, never a depeg', () => {
+    const by = Object.fromEntries(COMET_MAINNET_MARKETS.map((m) => [m.name, m]))
+    const ok = (name: string, raw: bigint) => expect(() => checkBaseInQuote(by[name], raw)).not.toThrow()
+    const bad = (name: string, raw: bigint) => expect(() => checkBaseInQuote(by[name], raw)).toThrow(SanityCheckError)
+    // USDC on cUSDCv3's own base feed at block 16803500 (11 Mar 2023): 0.8833. A depeg reads.
+    ok('cUSDCv3', 88_330_000n)
+    ok('cUSDCv3', 99_981_588n)
+    ok('cUSDSv3', 99_982_933n)
+    ok('cUSDTv3', 50_000_000n)
+    // An ETH price read as USD on a USD Comet: ~1,000× out.
+    bad('cUSDCv3', 251_212_633_111n)
+    // Constant-feed Comets price their base at exactly 1: anything else is not their feed.
+    ok('cWETHv3', 100_000_000n)
+    ok('cwstETHv3', 100_000_000n)
+    bad('cWETHv3', 99_999_999n)
+    bad('cWETHv3', 251_212_633_111n) // a USD feed where ETH was assumed
+    // WBTC / BTC: a dip reads; a USD price where BTC was assumed does not.
+    ok('cWBTCv3', 99_849_880n)
+    ok('cWBTCv3', 60_000_000n)
+    bad('cWBTCv3', 8_352_176_861_319n)
+    expect(by.cUSDCv3.baseCheck).toEqual({ kind: 'band', min: 0.5, max: 2 })
+    expect(by.cWBTCv3.baseCheck).toEqual({ kind: 'band', min: 0.5, max: 1.5 })
+    expect(by.cwstETHv3.baseCheck).toEqual({ kind: 'constant' })
+  })
+
+  it('a Comet a sanity check drops is named; the other Comets still read; a revert still fails the read', () => {
+    const p = { protocol: 'compound-v3', label: 'Compound V3 · WETH' } as unknown as ProtocolPosition
+    const markets = [{ name: 'cUSDCv3' }, { name: 'cWETHv3' }, { name: 'cUSDTv3' }]
+    const out = collectComets(markets, [
+      { status: 'rejected', reason: new SanityCheckError('its base priced at 3 USD, outside 0.5–2; the quote unit is not USD') },
+      { status: 'fulfilled', value: p },
+      { status: 'fulfilled', value: null },
+    ])
+    expect(out.positions).toEqual([p])
+    expect(out.skipped).toEqual([{ market: 'cUSDCv3', reason: 'its base priced at 3 USD, outside 0.5–2; the quote unit is not USD' }])
+    expect(() => collectComets(markets, [{ status: 'rejected', reason: new Error('borrowBalanceOf() reverted') }, { status: 'fulfilled', value: p }, { status: 'fulfilled', value: null }])).toThrow(/reverted/)
+  })
+
+  it('the registry keeps what a partial read got, and names what it dropped', async () => {
+    const p = { protocol: 'compound-v3', label: 'Compound V3 · WETH', collateral: [], debt: [] } as unknown as ProtocolPosition
+    const skipped = [{ market: 'cUSDCv3', reason: 'its base priced at 3 USD, outside 0.5–2' }]
+    const adapter = (positions: ProtocolPosition[]): LendingAdapter => ({
+      id: 'compound-v3',
+      label: 'Compound V3',
+      read: async () => {
+        throw new PartialReadError(positions, skipped)
+      },
+    })
+    const partial = await runAdapter(adapter([p]), '0x0000000000000000000000000000000000000001')
+    expect(partial).toMatchObject({ status: 'ok', positions: [p], skipped })
+    // Nothing left: an error that says which Comet and why, not "no position found".
+    const none = await runAdapter(adapter([]), '0x0000000000000000000000000000000000000001')
+    expect(none).toMatchObject({ status: 'error', positions: [], skipped, message: 'cUSDCv3 skipped: its base priced at 3 USD, outside 0.5–2' })
   })
 })
 

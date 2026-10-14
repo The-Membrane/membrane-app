@@ -11,7 +11,7 @@ import { STEPS, type Ctx } from './ctx'
 import { aaveEvents, morphoEvents } from './inputs'
 import { CHAINS, type ChainKey } from './rpc'
 import { JsonlStore, readJson, writeJson } from './store'
-import type { CheckRecord } from './verify'
+import { inSample, type CheckRecord } from './verify'
 
 const gz = (p: string) => JSON.parse(gunzipSync(readFileSync(p)).toString())
 const gzLines = (p: string) =>
@@ -345,15 +345,20 @@ export async function summaryStep(ctx: Ctx, appRoot: string) {
   const outputs = [...new Set([...vlog.map.values()].map((r) => r.output))].sort()
   // Unit of work per output (a minute of a chain, or one event-step call) and how many exist, so
   // the table shows the share of units re-asked, not just a count of checks.
-  const keyedSize = (f: string) =>
-    existsSync(join(ctx.stateDir, f)) ? new JsonlStore(join(ctx.stateDir, f)).size : 0
-  const units: Record<string, number> = {
-    'minute-blocks': 4 * STEPS,
-    'aave-oracle-1m': 4 * STEPS,
-    'morpho-oracle-1m': 2 * STEPS,
-    'aave-events': keyedSize('aave-events-calls.jsonl'),
-    'morpho-events': keyedSize('morpho-events-calls.jsonl'),
+  const keyedKeys = (f: string) =>
+    existsSync(join(ctx.stateDir, f)) ? [...new JsonlStore(join(ctx.stateDir, f)).map.keys()] : []
+  const minuteUnits = (chains: string[]) =>
+    chains.flatMap((c) => Array.from({ length: STEPS }, (_, i) => `${c}:${i}`))
+  const allUnits: Record<string, string[]> = {
+    'minute-blocks': minuteUnits(CHAINS),
+    'aave-oracle-1m': minuteUnits(CHAINS),
+    'morpho-oracle-1m': minuteUnits(['mainnet', 'base']),
+    'aave-events': keyedKeys('aave-events-calls.jsonl'),
+    'morpho-events': keyedKeys('morpho-events-calls.jsonl'),
   }
+  // The key each step hashed to decide sample membership.
+  const sampleKey = (o: string, u: string) =>
+    o === 'minute-blocks' ? u.replace(':', ':minute:') : u
   const unitOf = (o: string, key: string) => {
     const k = key.slice(o.length + 1)
     if (k.startsWith('setup:')) return null
@@ -366,17 +371,19 @@ export async function summaryStep(ctx: Ctx, appRoot: string) {
     const unitSet = new Set(
       entries.map(([k]) => unitOf(o, k)).filter((u): u is string => u !== null),
     )
-    const sampleUnits = new Set(
-      entries
-        .filter(([, r]) => r.reason === 'sample')
-        .map(([k]) => unitOf(o, k))
-        .filter((u): u is string => u !== null),
-    )
+    // Deterministic sample: every unit whose key hashes under the rate. It must all have been
+    // re-asked (as 'sample', or earlier as 'anomaly' when it was also anomalous).
+    const sampled = (allUnits[o] ?? []).filter((u) => inSample(sampleKey(o, u)))
+    const sampleUnits = {
+      size: sampled.length,
+      covered: sampled.filter((u) => unitSet.has(u)).length,
+    }
     return {
       o,
-      units: units[o] ?? 0,
+      units: (allUnits[o] ?? []).length,
       unitsChecked: unitSet.size,
       sampleUnits: sampleUnits.size,
+      sampleCovered: sampleUnits.covered,
       setup: entries.filter(([k]) => unitOf(o, k) === null).length,
       checked: rows.length,
       sample: rows.filter((r) => r.reason === 'sample').length,
@@ -486,12 +493,13 @@ be byte-equal; a disagreement goes to a third group and the loser is quarantined
 answered re-asked). Setup reads (addresses, reserve lists, sources, market params, feed state) are
 verified at 100%.
 
-Units are minutes of a chain (minute paths) or keyed event-step calls (events). "units checked"
-counts units re-asked for any reason; "sample units" the deterministic sample alone (>= 3% required).
+Units are minutes of a chain (minute paths) or keyed event-step calls (events). "sample" is the
+deterministic sample (units whose key hashes under 4%; >= 3% required) and how many of them were
+re-asked; "units checked" counts units re-asked for any reason (sample, anomaly, requery).
 
-| output | units | units checked | sample units | sample % | setup checks | checks | anomaly | requery | agree | disagree | unresolved |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-${vrows.map((v) => `| ${v.o} | ${v.units || ''} | ${v.unitsChecked} | ${v.sampleUnits} | ${v.units ? ((100 * v.sampleUnits) / v.units).toFixed(2) + '%' : ''} | ${v.setup} | ${v.checked} | ${v.anomaly} | ${v.requery} | ${v.agree} | ${v.disagree} | ${v.unresolved} |`).join('\n')}
+| output | units | sample | sample % | sample re-asked | units checked | checked % | setup checks | checks | anomaly | requery | agree | disagree | unresolved |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+${vrows.map((v) => `| ${v.o} | ${v.units || ''} | ${v.sampleUnits || ''} | ${v.units ? ((100 * v.sampleUnits) / v.units).toFixed(2) + '%' : ''} | ${v.units ? v.sampleCovered : ''} | ${v.unitsChecked} | ${v.units ? ((100 * v.unitsChecked) / v.units).toFixed(1) + '%' : ''} | ${v.setup} | ${v.checked} | ${v.anomaly} | ${v.requery} | ${v.agree} | ${v.disagree} | ${v.unresolved} |`).join('\n')}
 
 Quarantined hosts (all calls): ${quarantined.length ? quarantined.map((q) => `${q.chain} ${q.host} (${q.reason})`).join('; ') : 'none: no backend disagreed with another on any re-asked value'}.
 Quarantined for getLogs only (chainlink check): ${cl?.quarantinedForLogs?.length ? cl.quarantinedForLogs.map((q) => `${q.chain} ${q.host} (short by ${q.missing} logs on ${q.aggregator})`).join('; ') : 'none'}.

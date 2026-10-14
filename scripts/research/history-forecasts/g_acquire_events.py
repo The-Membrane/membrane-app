@@ -2020,12 +2020,14 @@ UNIVERSE_COLS = ["reserve", "address", "in_P_r", "P_r_rule", "reaches_1M_by_even
                  "max_at_block", "recon_balance_asof_raw", "first_event_block", "first_event_utc", "n_balance_events"]
 
 
-def _finish(out: Path, files: list[str], prov_fn) -> dict:
+def _finish(out: Path, files: list[str], prov_fn, subdirs: tuple = ()) -> dict:
+    """Remove stale files in `out` and in the named subdirectories only, then write PROVENANCE.md."""
     keep = set(files) | {"PROVENANCE.md"}
-    for p in out.rglob("*"):
-        if p.is_file():
-            rel = str(p.relative_to(out))
-            if rel not in keep and (p.parent == out or p.parent.parent == out):
+    for d in (out, *[out / x for x in subdirs]):
+        if not d.is_dir():
+            continue
+        for p in d.iterdir():
+            if p.is_file() and str(p.relative_to(out)) not in keep:
                 p.unlink()
     info = {n: {"bytes": (out / n).stat().st_size, "sha256": B.sha256_file(out / n)} for n in sorted(files)}
     (out / "PROVENANCE.md").write_text(prov_fn(info))
@@ -2110,7 +2112,7 @@ def phase_write_holdout(ctx: Ctx, run_meta_fn) -> dict:
     run_meta = run_meta_fn()
     (out / "run-log.json").write_text(json.dumps(run_meta, indent=1, default=str) + "\n")
     files.append("run-log.json")
-    return _finish(out, files, lambda info: provenance_holdout_md(ctx, run_meta, info))
+    return _finish(out, files, lambda info: provenance_holdout_md(ctx, run_meta, info), subdirs=ctx.order)
 
 
 def _f5(v) -> str:

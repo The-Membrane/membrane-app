@@ -75,7 +75,9 @@ const OUTCOME_ROWS: { key: string; label: string; note: string; walked: boolean;
   // LiquidationEngine.sol:1572-1576 — sold the minute it is over its line, every time.
   // walked: false — it is walked, but there is no window to walk, and the stat above
   // counts the accounts the WINDOW could be walked for.
-  { key: 'sold-no-delay', label: 'Stablecoin collateral (or a line above 90%): no 8-hour window, sold at the line', note: 'Membrane gives this collateral no window', walked: false, tone: 'bad' },
+  // The † (stablecoins get no window: modelled) is footnoted once, under the Evidence
+  // page's caveats (MODELLED_FOOTNOTE).
+  { key: 'sold-no-delay', label: 'Stablecoin collateral (or a line above 90%): no 8-hour window†, sold at the line', note: 'Membrane gives this collateral no window†', walked: false, tone: 'bad' },
   // 'sold-immediately-unlocated-line' used to live here. Those accounts are now
   // EXCLUDED from both sides of every total after the block-1 rebase (meta.excluded),
   // so they are not part of this histogram at all — showing them as a 0-row would
@@ -100,7 +102,7 @@ export const TimeLens: React.FC<{ time: TimeSummary; cureModel: CureModel }> = (
           label="Time Membrane grants"
           value={`${cureModel.delaySeconds / 3600}h`}
           tone="good"
-          sub={`within ${(cureModel.band * 100).toFixed(0)}% of the line · none for stablecoins`}
+          sub={`within ${(cureModel.band * 100).toFixed(0)}% of the line · none for stablecoins†`}
         />
         <Stat
           label="Worth, against one repay"

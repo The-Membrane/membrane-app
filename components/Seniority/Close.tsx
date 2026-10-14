@@ -78,6 +78,13 @@ export const Close: React.FC<{ initialDoc?: EvidenceDoc | null; num?: string }> 
             </HStack>
           ))}
         </VStack>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          color={SEMANTIC_COLORS.textTertiary}
+        >
+          {CLOSE.contains.footnote}
+        </Text>
         <Cite>{CLOSE.contains.cite}</Cite>
       </VStack>
 

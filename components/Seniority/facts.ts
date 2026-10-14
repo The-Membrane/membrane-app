@@ -13,6 +13,8 @@
  * backed by realized outcomes; docs/MYCELIUM_NARRATIVE.md honesty boundaries.
  */
 
+import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
+
 // NOTE: lib/position-sim/guarantee.ts CARRY_CLAIMS are NOT imported wholesale. Two of
 // the four fail against the contracts as worded (fee is taken from collateral,
 // LiquidationEngine.sol:1553-1563; the "when exit is blocked" condition names no
@@ -31,6 +33,8 @@ export interface HeroCopy {
   readonly bridge: {
     readonly eyebrow: string
     readonly line: string
+    /** The one footer line for the † in `line` (DESIGN_RULES.md §3). Rendered. */
+    readonly footnote: string
     readonly cite: string
     readonly note: string
   }
@@ -57,7 +61,9 @@ const SHARED = {
    */
   bridge: {
     eyebrow: 'Tested on a real day',
-    line: 'With borrower-first liquidation a breach inside the 4% band gets eight hours; a return under the line clears it; past the band, or still over the line at expiry, the position is repaid to its cap. Stablecoin collateral gets no window. Replayed on 10 Oct 2025 against the same oracle rounds Aave liquidated on, that closes 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
+    line: 'With borrower-first liquidation a breach inside the 4% band gets eight hours; a return under the line clears it; past the band, or still over the line at expiry, the position is repaid to its cap. Stablecoin collateral gets no window†. Replayed on 10 Oct 2025 against the same oracle rounds Aave liquidated on, that closes 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
+    /** † on "Stablecoin collateral gets no window": modelled (collateralClass.ts). */
+    footnote: MODELLED_FOOTNOTE,
     cite: 'public/data/oct10-2025/evidence.json debt.priced (747 accounts: Aave $34.69M, Membrane $22.19M) · lib/position-sim/curePath.ts (the walk) · contracts/LiquidationEngine.sol:2099-2103 (band), :1362-1382 (re-arm), :1388-1392 (expiry, band break), :2241-2269 ($2,000 floor)',
     note: 'Six census passes on 14 Sep, each refuted by a separate agent. What survived: the priced-set sign (Membrane closes less) under every control except pricing wstETH on the market stETH feed Aave does not use. What did not: the shipped $39.2M / 27.2% (one repay, no delay, 599 accounts credited with a breach nobody can locate); a $35.0M cure figure (price-recovery cure the engine did not implement); "Membrane closes more" ($31.9M of it was the wrong wstETH feed, the rest one unpriced AAVE-collateral whale).',
   },
@@ -82,7 +88,7 @@ const BC_CTA = 'See what you’d have kept on 10 Oct 2025'
 
 const BC_BRIDGE = {
   ...SHARED.bridge,
-  line: 'Replayed on 10 Oct 2025 against the same oracle rounds Aave liquidated on, Membrane’s rules close 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Stablecoin collateral gets no window. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
+  line: 'Replayed on 10 Oct 2025 against the same oracle rounds Aave liquidated on, Membrane’s rules close 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Stablecoin collateral gets no window†. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
 }
 
 
@@ -393,12 +399,17 @@ export const CLOSE = {
    * (the cohort rows) with the builder's own rule for "closes more" (strict >,
    * scripts/build-evidence.ts). Owner, 14 Sep: predict the questions and answer them
    * with numbers. Regenerate these lines when the census is rebuilt.
+   *
+   * Line 2's 18 / 53 are PRICED rows (the paragraph is about the 747): priced, not mixed,
+   * first seized leg a stable — 71 rows; 18 with seenCollateralShare >= 0.95 (composition
+   * seen: all stablecoins), 53 below it (meta.delayClass.stableLegs.priced). The data
+   * confirms their COMPOSITION, not the no-window rule, which is modelled: hence the †.
    */
   contains: {
     title: 'What the number contains',
     lines: [
       'Two sets, never folded. 747 accounts whose collateral the day’s feeds price minute by minute: Aave closed $34.7M, Membrane $22.2M, 36.0% less. 1,001 accounts on collateral they cannot price (AAVE, LINK, OP, ARB, UNI, CRV): the engine can only repay to cap once, and with them added in Membrane closes 14.1% more. The lens above shows both.',
-      'What Membrane’s figure is: a breach inside the 4% band waits eight hours; a return under the line clears the timer and a later breach starts a fresh one; a move past line × 1.04, or still over the line at expiry, repays to the borrow cap at that minute’s price; the position then re-arms. Stablecoin collateral has no window and is repaid to cap the minute it crosses; the data confirms that for 18 accounts, and for 55 more it cannot see what else they held. Aave’s figure is every hit on the account across 10 and 11 Oct, measured.',
+      'What Membrane’s figure is: a breach inside the 4% band waits eight hours; a return under the line clears the timer and a later breach starts a fresh one; a move past line × 1.04, or still over the line at expiry, repays to the borrow cap at that minute’s price; the position then re-arms. Stablecoin collateral has no window† and is repaid to cap the minute it crosses. For 18 of the 747 the data confirms the collateral was all stablecoins; for 53 more it cannot see what else they held. Aave’s figure is every hit on the account across 10 and 11 Oct, measured.',
       'Five wallets are 75% of the $12.5M difference. Without the largest it is 30% less; without the five, 14.6% less. The sign holds; the size is a handful of whales.',
       '133 wallets held the whole day, $110.7M of debt. One is 58.6% of that: a $64.9M wstETH loan Aave closed 4.4% of.',
       'Under $2,000 of debt both venues close the loan whole: 930 accounts, Aave a median 99.9%, Membrane 100%; Aave’s own leftover rule and Membrane’s $2,000 minimum agree, and both exist for the same reason: below it an Ethereum liquidation costs more in gas than it recovers, so the contract indexes the floor to the gas price rather than to a choice of ours. Between $2,000 and $4,000 the minimum still closes the loan where Aave took half: 161 accounts, 150 closed whole. From $4,000 up the median account loses 49.8% of the loan to Aave and 32.3% to Membrane, across 657 accounts.',
@@ -407,6 +418,8 @@ export const CLOSE = {
       'Stress it, priced set: cap each repay at the largest single Aave repay on that asset that day, $20.8M; price the day from Aave’s own snapshot instead of the round log, $17.5M; give the 19 accounts with no window the eight hours too, $22.2M, unchanged, since none of them came back under its line; put wstETH on the market stETH feed Aave does not use, $54.3M. Every one keeps Membrane under Aave’s $34.7M except the last, and that feed is the wrong one.',
       'The Chainlink aggregator in this dataset is not the one Aave read that day: none of Aave’s own prices match a round in it (median gap 0.6%, worst 5.7%). Aave’s side is priced by Aave; Membrane’s walk uses the log as a ratio path. The Aave-anchored line above is the same model on Aave’s prices.',
     ],
+    /** The one footer line for the † in line 2 (DESIGN_RULES.md §3). Rendered. */
+    footnote: MODELLED_FOOTNOTE,
     cite: 'public/data/oct10-2025/evidence.json (debt.priced, debt.allIncluded, meta.cureModel, meta.sensitivity, meta.anchor, meta.excluded.byReason, cohort rows) · scripts/build-evidence.ts · contracts/LiquidationEngine.sol:2246-2248 (floor = max(liqDebtMinimum, gas stipend × CHUNK_GAS_MULT))',
   },
 

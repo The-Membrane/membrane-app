@@ -222,6 +222,18 @@ listing the deploy does not have** (it lists WETH at 90%, delayed): the census k
 contract rule anyway. On Oct 10 that is one WETH/WETH Aave e-mode account on a 94.6% line,
 with no dollar effect (`meta.delayClass.lineRule`).
 
+**Marked as modelled where readers see it.** Every reader-facing statement that stablecoin
+collateral gets no window carries a †, and the surface prints one footer line,
+"† modelled, not a guarantee" (`MODELLED_FOOTNOTE`, `lib/position-sim/guarantee.ts`;
+membrane-board `design/DESIGN_RULES.md` §3). The marked statements: the landing bridge (both
+variants) and the second "What the number contains" line (`components/Seniority/facts.ts`,
+footers in `Hero.tsx`, `Close.tsx`); the simulator's exception line, its "why it held"
+line, its caveat and a split half's label (footer in `GuaranteeBlock.tsx`); and the
+Evidence page's time blurb, its no-window histogram row and stat, and the no-window caveat
+(one footer under the caveats, `Evidence.tsx`). The census confirms only the
+**composition** of the 18 priced accounts it can see in full (all stablecoins), not the
+rule.
+
 **The stable set** is the union of the two old lists (`HELD_AT_ONE`, the census
 `STABLES`), the deploy's launch stables syrupUSDC and scrvUSD, and the synthetic dollars.
 Four kinds, all stable for the class:

@@ -929,13 +929,26 @@ has(timeHtml, '0s', 'TimeLens Aave grants zero')
 has(timeHtml, '8h', 'TimeLens Membrane window')
 // The 8 hours are conditional, and stablecoins get none: the stat says so, and the "held
 // the whole day" denominator counts only accounts that had a window to walk.
-has(timeHtml, 'within 4% of the line · none for stablecoins', 'TimeLens qualifies the 8h')
+has(timeHtml, 'within 4% of the line · none for stablecoins†', 'TimeLens qualifies the 8h')
 // meta.caveats render verbatim on the Evidence page: the reader's words, no class names.
 assert.ok(
   !(doc.meta.caveats as string[]).some((c) => /no-delay|MixedDelayClass|delay class/i.test(c)),
   'no rendered caveat uses an insider class name',
 )
 checks++
+// ...and the two delay-class caveats speak plainly: no meta keys, no internal ticket
+// numbers, and the modelled claim carries the page's † (footnoted under the caveats).
+{
+  const cav = doc.meta.caveats as string[]
+  const noWin = cav.find((c) => c.startsWith('NO 8-HOUR WINDOW'))
+  const cannotSee = cav.find((c) => c.startsWith('THIS DATA CANNOT SEE MOST COLLATERAL'))
+  assert.ok(noWin && cannotSee, 'both delay-class caveats are rendered')
+  for (const c of [noWin!, cannotSee!]) {
+    assert.ok(!/meta\.|Q\d+\b/.test(c), `plain words, no meta keys: ${c.slice(0, 40)}`)
+  }
+  assert.ok(noWin!.startsWith('NO 8-HOUR WINDOW†:'), 'the modelled claim carries the †')
+  checks += 4
+}
 {
   const windowed = (Object.entries(cm.outcomes) as [string, number][])
     .filter(([k]) =>
@@ -967,10 +980,10 @@ has(timeHtml, '43 min', 'TimeLens median cure time')
 // The no-delay histogram row renders, with its count.
 has(
   timeHtml,
-  'Stablecoin collateral (or a line above 90%): no 8-hour window, sold at the line',
+  'Stablecoin collateral (or a line above 90%): no 8-hour window†, sold at the line',
   'TimeLens renders the no-delay histogram row',
 )
-has(timeHtml, 'Membrane gives this collateral no window', 'and says why')
+has(timeHtml, 'Membrane gives this collateral no window†', 'and says why, marked modelled')
 {
   // ...and carries its count from the histogram, rendered in the step right after its label.
   const at = timeHtml.indexOf('Stablecoin collateral (or a line above 90%)')

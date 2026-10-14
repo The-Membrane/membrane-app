@@ -1922,6 +1922,9 @@ const gapSet = (rows: any[]) => {
   }
 }
 const notMixed = (rows: any[]) => rows.filter((r) => r.delayClass !== 'mixed')
+/** A gap in the reader's words: 36.02 -> "36.0% less", -5.6 -> "5.6% more". */
+const lessOrMore = (gapPct: number) =>
+  `${Math.abs(gapPct).toFixed(1)}% ${gapPct >= 0 ? 'less' : 'more'}`
 const mixedExcluded = {
   rule:
     'Accounts that had both a stable and a volatile reserve seized are removed from BOTH ' +
@@ -2337,26 +2340,33 @@ const doc = {
         'price is wrong for those rows; the honest treatment is to drop them from both ' +
         'sides rather than count a $0 Membrane close as a win. They stay in the cohort ' +
         'flagged excluded so the table can still show them.',
-      // Rendered verbatim on the Evidence page: the reader's words, no class names.
-      `NO 8-HOUR WINDOW: ${delayClassMeta.counts.included['no-delay'].accounts} included ` +
+      // Rendered verbatim on the Evidence page: the reader's words — no class names, no
+      // meta keys — and the modelled claim carries the page's † (footnote under the caveats).
+      `NO 8-HOUR WINDOW†: ${delayClassMeta.counts.included['no-delay'].accounts} included ` +
         'accounts get none and are sold the minute they are over their line, every time — ' +
         `${delayClassMeta.noDelayBy.included.stableCollateral} whose collateral this data ` +
         `sees is all stablecoins, and ${delayClassMeta.noDelayBy.included.lineAbove90Only} ` +
         'whose own line is above 90%, which only a listing without a window can carry. That ' +
         'stablecoins are listed without a window is modelled: the contracts carry no ' +
         'stablecoin label, and the deploy lists its three launch stablecoins that way. ' +
-        'Giving them the window instead is meta.sensitivity.stablesDelayed.',
+        (Math.abs(allIncluded.membraneClosedUsd - allDelayedTotals.allIncluded.membraneClosedUsd) <
+        0.5
+          ? 'Giving them the eight hours instead leaves Membrane’s total unchanged.'
+          : 'Giving them the eight hours instead changes Membrane’s total by ' +
+            `$${((allDelayedTotals.allIncluded.membraneClosedUsd - allIncluded.membraneClosedUsd) / 1e6).toFixed(2)}M.`),
       'THIS DATA CANNOT SEE MOST COLLATERAL. It names only the liquidated reserves. Of the ' +
         `${delayClassMeta.stableLegs.included.accounts} included accounts whose seized ` +
         `collateral is all stablecoins, ${delayClassMeta.stableLegs.included.compositionUnknown} ` +
-        'had under 95% of their collateral seized, so what else they held is unknown and ' +
-        'they keep the window as before; ' +
-        `${delayClassMeta.counts.included.unknown.accounts} included accounts in all are ` +
-        `unknown. ${delayClassMeta.counts.included.mixed.accounts} included accounts had a ` +
+        'had reserves seized worth under 95% of their collateral, so what else they held ' +
+        'is unknown and they keep the window as before. Across the included accounts, ' +
+        `that is true of ${delayClassMeta.counts.included.unknown.accounts.toLocaleString('en-US')}. ` +
+        `${delayClassMeta.counts.included.mixed.accounts} included accounts had a ` +
         'stablecoin and another asset seized — a position Membrane would not hold in one ' +
-        'piece; they stay in the headline with the window, and dropping them is ' +
-        'meta.sensitivity.mixedExcluded. The full composition of every account comes from ' +
-        'on-chain reads of every reserve (the Q28 full-coverage census), not this data.',
+        'piece. They stay in the headline with the window; dropping them from both sides ' +
+        `moves the priced result from ${lessOrMore(gapSet(pricedRows).gapPct)} to ` +
+        `${lessOrMore(mixedExcluded.priced.gapPct)} debt closed than Aave. Seeing every ` +
+        'account’s whole collateral needs a read of every reserve it held, which this ' +
+        'data does not have.',
       'debt_fraction_repaid is per-RESERVE; Aave’s USD figure is valued from ' +
         'debt_to_cover_normalized x price instead.',
       'wstETH is priced as (ETH/USD in force) x 1.215989, the MEASURED wstETH<->stETH wrap ' +

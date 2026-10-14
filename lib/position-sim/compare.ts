@@ -569,7 +569,7 @@ export function splitByDelayClass(
     // The half's class is COMPUTED from its own symbols and line, and labels it.
     const noDelay = delayClassOf(symbols, line) === 'no-delay'
     return {
-      label: `${symbols.join(' + ')} (${noDelay ? 'no 8-hour window' : `8-hour window within ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`})`,
+      label: `${symbols.join(' + ')} (${noDelay ? 'no 8-hour window†' : `8-hour window within ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`})`,
       collateral: h.legs,
       debt: position.debt.map((d) => ({ ...d, amount: d.amount * shares[k] })),
       line,
@@ -640,7 +640,7 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
       // The no-delay class: instant mode (LiquidationEngine.sol:1572-1576, :1708-1710). That
       // stables are listed in it is modelled: the class follows each listing's immutable LTV
       // cap (Collateral.sol:424-426), and the deploy lists its stables at the 96% cap.
-      'Stablecoin collateral: no 8-hour window — sold at the line, every time. The same holds for any line above 90%. Modelled: Membrane lists its launch stablecoins this way; the contract gives such a listing no window.',
+      'Stablecoin collateral: no 8-hour window† — sold at the line, every time. The same holds for any line above 90%. Modelled: Membrane lists its launch stablecoins this way; the contract gives such a listing no window.',
     )
   }
   if (hasWindow) {

@@ -683,14 +683,15 @@ export const Simulator: React.FC<SimulatorProps> = ({
     return cls === 'no-delay' ? 'none' : cls === 'mixed' ? 'part' : 'all'
   }, [selected, values.membraneMaxLtv])
   const allStable = !!selected?.collateral.every((c) => isNoDelayCollateral(c.symbol))
-  /** "Why it held" when no recall or cure fired, true for the window the run had. */
+  /** "Why it held" when no recall or cure fired, true for the window the run had. The †
+   *  (stablecoins get no window: modelled) is footnoted by GuaranteeBlock just above. */
   const heldLine =
     windowCoverage === 'all'
       ? 'Stayed inside the 4% band for the whole window.'
       : windowCoverage === 'part'
-        ? 'Stayed inside the 4% band. Its stablecoin part has no 8-hour window and never reached its line.'
+        ? 'Stayed inside the 4% band. Its stablecoin part has no 8-hour window† and never reached its line.'
         : allStable
-          ? 'Stablecoin collateral: no 8-hour window — and it never reached its line.'
+          ? 'Stablecoin collateral: no 8-hour window† — and it never reached its line.'
           : 'No 8-hour window above a 90% line — and it never reached its line.'
 
   // ------------------------------------------------------------------ render

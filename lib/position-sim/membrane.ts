@@ -209,6 +209,44 @@ export function applyDebtMinimum(
 }
 
 /**
+ * What a sale takes from COLLATERAL when this same call's venue recall already repaid
+ * `recalledUsd` and left the position over its line — the contract's own sizing.
+ *
+ * Step 2 narrows `repayTarget` with `_getRepayQuantities` (LiquidationEngine.sol:2663),
+ * which reads `p.totalDebt` — the PRE-recall debt from Step 1 (:1311, :2671) — and
+ * `p.currentLtv` as read AFTER the recall (:1554). So the target is the restore-to-cap
+ * fraction at the POST-recall LTV applied to the PRE-recall loan, with the debt floor on
+ * that; at or over 100% LTV it is the whole loan (:2673-2688). The sell wall then covers
+ * `remaining = repayTarget - totalRepaid` (:2261), and `totalRepaid` already includes the
+ * recall. Sold from collateral = max(0, target - recalled).
+ *
+ * With nothing recalled this is `membraneRepayValue` exactly. (The floor here is
+ * `applyDebtMinimum`, as everywhere in this file.)
+ */
+export function membraneSaleAfterRecall(
+  loanPreUsd: number,
+  collValueUsd: number,
+  borrowLtv: number,
+  recalledUsd: number,
+  debtMinimumUsd = 0,
+): number {
+  if (!(recalledUsd > 0))
+    return membraneRepayValue(loanPreUsd, collValueUsd, borrowLtv, debtMinimumUsd)
+  if (loanPreUsd <= 0) return 0
+  const lPost = collValueUsd > 0 ? (loanPreUsd - recalledUsd) / collValueUsd : Infinity
+  let target: number
+  if (lPost >= 1) {
+    target = loanPreUsd // :2673-2688 — the whole loan; the floor is a no-op there
+  } else {
+    if (lPost <= borrowLtv) return 0
+    const denomB = borrowLtv < 1 ? 1 - borrowLtv : 1
+    const frac = Math.min(1, (lPost - borrowLtv) / lPost / denomB)
+    target = applyDebtMinimum(frac * loanPreUsd, loanPreUsd, debtMinimumUsd)
+  }
+  return Math.max(0, target - recalledUsd)
+}
+
+/**
  * The same call under a FULL-REPAYMENT engine, for the side-by-side. Most lending
  * markets repay a close-factor share of the whole loan rather than restoring to a cap.
  */

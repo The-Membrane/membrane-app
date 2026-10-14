@@ -37,6 +37,7 @@ import {
   fullRepayValue,
   membraneBorrowLtv,
   membraneRepayValue,
+  membraneSaleAfterRecall,
   weightedMembraneLine,
   CURE_WINDOW_HOURS,
   CURE_WINDOW_SECONDS,
@@ -437,13 +438,13 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
             `arriving, ends it with no liquidation at all.`,
         })
       } else if (sales < MAX_SALES) {
-        // A SALE (band break, expiry, or no window). The recall commits first; only the
-        // shortfall to the borrow cap, sized on the POST-recall state, comes out of
-        // collateral, with the fee on top.
+        // A SALE (band break, expiry, or no window). The recall commits first; what comes
+        // out of collateral is the contract's own remainder — the restore-to-cap target at
+        // the POST-recall LTV on the PRE-recall loan, less the recall (membraneSaleAfterRecall,
+        // LiquidationEngine.sol:2663-2732, :2261) — with the fee on top.
+        const needed = membraneSaleAfterRecall(d, c, cap, recalled, dMin)
         if (recalled > 0) commitRecall(recalled)
-        const cNow = valueOf(coll, path, i, fallbackC)
         const dNow = valueOf(debt, path, i, fallbackD)
-        const needed = membraneRepayValue(dNow, cNow, cap, dMin)
         let repaid = recalled
         let seized = 0
         let penalty = 0

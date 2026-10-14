@@ -24,6 +24,7 @@ import {
   membraneBorrowLtv,
   membraneMaxLtv,
   membraneRepayValue,
+  membraneSaleAfterRecall,
   weightedMembraneLine,
 } from '../../lib/position-sim/membrane'
 import {
@@ -1225,6 +1226,42 @@ test('a cooldown venue (sUSDe: recall 0.3, fast 0) returns nothing at the breach
   )
 })
 
+test('a sale after a partial recall is sized the contract’s way (Step 2 on the pre-recall loan)', () => {
+  // The review example: debt $100k, collateral $110k, line 87% (cap 84%), $2k recalled.
+  // _getRepayQuantities reads the PRE-recall totalDebt (LiquidationEngine.sol:1311, :2671)
+  // and the POST-recall LTV (:1554); the sell wall covers target - totalRepaid (:2261).
+  const lPost = 98_000 / 110_000
+  const target = ((lPost - 0.84) / lPost / (1 - 0.84)) * 100_000
+  const sold = membraneSaleAfterRecall(100_000, 110_000, 0.84, 2_000, LIQ_DEBT_MINIMUM_USD)
+  close(
+    sold,
+    target - 2_000,
+    'target at the post-recall LTV on the pre-recall loan, less the recall',
+    1e-6,
+  )
+  close(
+    sold,
+    33_714.2857142857,
+    '$33,714 — not the $35,000 a restore-to-cap on the reduced loan gives',
+    1e-6,
+  )
+  close(
+    membraneRepayValue(98_000, 110_000, 0.84, LIQ_DEBT_MINIMUM_USD),
+    35_000,
+    'the old sizing',
+    1e-6,
+  )
+  // Nothing recalled: exactly the ordinary repay.
+  close(
+    membraneSaleAfterRecall(100_000, 110_000, 0.84, 0, LIQ_DEBT_MINIMUM_USD),
+    membraneRepayValue(100_000, 110_000, 0.84, LIQ_DEBT_MINIMUM_USD),
+    'no recall: the ordinary repay-to-cap',
+    1e-9,
+  )
+  // Still underwater after the recall: the whole loan is the target (:2673-2688).
+  close(membraneSaleAfterRecall(100_000, 80_000, 0.84, 5_000, 0), 95_000, 'underwater', 1e-9)
+})
+
 test('the breach draws only the fast share; the sale that ends the window draws up to the recall rate', () => {
   // 7% drop: 300k / 372k = 80.6% over the 80% line. Fast share $500 at the breach:
   // 299.5k / 372k is still over the line, so the recall stays and the window opens. At
@@ -1248,6 +1285,15 @@ test('the breach draws only the fast share; the sale that ends the window draws 
   close(ev[0].recalledUsd, 500, 'the fast share at the breach', 1e-9)
   assert.strictEqual(ev[0].penaltyUsd, 0, 'no fee for the timer-start call')
   close(ev[2].recalledUsd, 500, 'the rest of the recall rate at the window-ending sale', 1e-9)
+  // And what that sale took from collateral is the contract's remainder on the debt it
+  // found at expiry ($299,500 after the breach recall), not a restore-to-cap on $299,000.
+  const fromColl = ev[2].repaidUsd - ev[2].recalledUsd
+  close(
+    fromColl,
+    membraneSaleAfterRecall(299_500, 372_000, 0.77, 500, LIQ_DEBT_MINIMUM_USD),
+    'sold from collateral = target(post-recall LTV, pre-recall loan) - recalled',
+    1e-6,
+  )
   close(cmp.membrane.endDeployedUsd, 0, 'the venue is drawn to its recall rate', 1e-9)
 })
 

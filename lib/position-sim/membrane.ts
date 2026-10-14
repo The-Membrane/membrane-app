@@ -29,13 +29,10 @@ import { stamp, type Provenance } from './types'
 /** 3pp. `max_borrow_LTV = max_LTV - BORROW_LTV_GAP`. Real: lib/Constants.sol:30. */
 export const BORROW_LTV_GAP = 0.03
 
-/** 90% ceiling on a DELAYED asset's max LTV. Real: lib/Constants.sol:23. A listing cap
- *  strictly above this puts the asset in the no-delay class (Collateral.sol:424-426). */
-export const MAX_LTV_HARD_CAP = 0.9
-
-/** 96% ceiling on a NO-DELAY asset's listing cap. Real: lib/Constants.sol:32
- *  `NO_DELAY_LTV_HARD_CAP = 96e16`. See collateralClass.ts for the class rule. */
-export const NO_DELAY_LTV_HARD_CAP = 0.96
+/** 90% ceiling on a DELAYED asset's max LTV, and 96% on a NO-DELAY listing's cap. Real:
+ *  lib/Constants.sol:23 and :32. Defined in collateralClass.ts beside the class rule they
+ *  decide, and re-exported here so every existing import keeps working. */
+export { MAX_LTV_HARD_CAP, NO_DELAY_LTV_HARD_CAP } from './collateralClass'
 
 /** The cure window in seconds. Real: liquidation-engine/src/contract.rs:52 —
  *  `liquidation_delay: msg.liquidation_delay.unwrap_or(28800)`. */

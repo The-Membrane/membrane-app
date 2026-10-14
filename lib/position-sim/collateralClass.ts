@@ -33,15 +33,17 @@
  * (script/DeployFullSystem.s.sol:269-272; `_onboardLaunchAsset` sets the window to 0 when
  * the cap is above 90%, :1127).
  *
- * IMPORT CYCLE, deliberate and benign: this module reads the two caps from membrane.ts,
- * and membrane.ts reads `isNoDelayCollateral` from here for `membraneMaxLtv`. Every
- * cross-module use is inside a function body, never at module top level, so either load
- * order resolves. Keep it that way.
+ * NO IMPORTS from membrane.ts: the two caps live here and membrane.ts re-exports them, so
+ * the dependency runs one way (membrane.ts -> collateralClass.ts) and there is no cycle.
  */
 
-import { MAX_LTV_HARD_CAP, NO_DELAY_LTV_HARD_CAP } from './membrane'
+/** 90% ceiling on a DELAYED asset's max LTV. Real: lib/Constants.sol:23
+ *  `MAX_LTV_HARD_CAP = 9e17`. A listing cap strictly above it is the no-delay class. */
+export const MAX_LTV_HARD_CAP = 0.9
 
-export { NO_DELAY_LTV_HARD_CAP }
+/** 96% ceiling on a NO-DELAY listing's cap. Real: lib/Constants.sol:32
+ *  `NO_DELAY_LTV_HARD_CAP = 96e16`. */
+export const NO_DELAY_LTV_HARD_CAP = 0.96
 
 /**
  * Dollar stables whose Oct 10 path is a flat $1.00. The union of the old

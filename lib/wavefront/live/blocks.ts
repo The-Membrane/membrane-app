@@ -85,6 +85,31 @@ export class Blocks {
     return Number(BigInt(a.result as string))
   }
 
+  /** Heads that could not be checked on a second backend group (the poll waited). */
+  headUnverified = 0
+
+  /**
+   * The head as seen by TWO independent logs-capable backend groups: the lower of the two. A
+   * range is only scanned up to (this − confirmations), so both groups had every block of it —
+   * a node behind the head answers a range past its own head with a short list, not an error.
+   * null when no second group answers (the caller waits and polls again).
+   */
+  async agreedHead(): Promise<number | null> {
+    const a = await this.rpc.request(this.chain, 'eth_blockNumber', [], { kind: 'logs' })
+    let b: Awaited<ReturnType<LiveRpc['request']>>
+    try {
+      b = await this.rpc.request(this.chain, 'eth_blockNumber', [], {
+        kind: 'logs',
+        excludeGroups: [a.group],
+        attempts: 4,
+      })
+    } catch {
+      this.headUnverified++
+      return null
+    }
+    return Math.min(Number(BigInt(a.result as string)), Number(BigInt(b.result as string)))
+  }
+
   /**
    * The highest block <= maxBlock with timestamp <= t, with the next block's header (ts > t).
    * null when every block up to maxBlock has ts <= t (the time is not settled yet).

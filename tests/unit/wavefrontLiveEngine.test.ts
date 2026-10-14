@@ -20,9 +20,12 @@
  * scripted path directly; no silent carry-forward (a value missing on every backend is a gap on
  * the tick, a value missing on one backend is re-read); resume after a crash (in-process and a new
  * process) gives the same stream; a restart after downtime replays the missed minutes flagged
- * `backfilled`; logs are never read past head − confirmations and an event in an unconfirmed
- * block that disappears is never emitted; a false empty is caught; a missed event comes back as
- * `late` via the reconciliation; an empty no second backend can confirm is not believed.
+ * `backfilled`; logs are never read past head − confirmations (of the LOWER of two backends'
+ * heads) and an event in an unconfirmed block that disappears is never emitted; a false empty
+ * and a short answer are caught by the second backend; an event both primary backends missed
+ * comes back `late` via the background reconciliation; an empty no second backend can confirm is
+ * not believed. (Scope, dedupe, lagging chains, cancellation, gap-close and the state's size:
+ * wavefrontLiveLiveness.test.ts.)
  */
 import { describe, expect, it } from 'vitest'
 
@@ -31,151 +34,38 @@ import { replay, roundRecord, type MemRecord, type StreamRecord } from '@/lib/wa
 import {
   Blocks,
   CHAIN_CONFIG,
-  LiveEngine,
   LogScanner,
   MemorySink,
   SimClock,
   UnconfirmedEmptyError,
   aaveProtocolFee,
-  clockHead,
-  type EngineOptions,
   type HeadFn,
   type LiveRecord,
 } from '@/lib/wavefront/live'
-import { FakeChain, aaveLog, morphoLog, type FakeChainSpec, type FakeReserve } from './wavefrontLiveFake'
-
-const EPOCH = 1_700_000_040
-const S = (m: number) => EPOCH + 60 * m
-const ts = (n: number) => EPOCH + 1 + 2 * (n - 1000)
-const blockAt = (t: number) => 1000 + Math.floor((t - EPOCH - 1) / 2)
-const minuteOfBlock = (n: number) => Math.floor((ts(n) - EPOCH) / 60)
-// WETH USD by minute.
-const PATH = [2000, 2000, 2000, 2000, 2000, 2000, 2010, 2100, 1900, 1890, 1950, 1960, 1970, 1980, 1990]
-const F_N = 1332
-const weth = (n: number) =>
-  n === F_N ? 1990n : BigInt(PATH[Math.max(0, Math.min(PATH.length - 1, minuteOfBlock(n)))])
-
-const WETH = '0x4200000000000000000000000000000000000006'
-const USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
-const ORACLE = '0x000000000000000000000000000000000000c0c0'
-const MARKET = '0x' + '11'.repeat(32)
-const ZERO = '0x0000000000000000000000000000000000000000'
-const LIDO = {
-  provider: '0x00000000000000000000000000000000000001a1',
-  pool: '0x00000000000000000000000000000000000001b1',
-  oracle: '0x00000000000000000000000000000000000001c1',
-  dataProvider: '0x00000000000000000000000000000000000001d1',
-}
-const A = '0x00000000000000000000000000000000000000aa'
-const B = '0x00000000000000000000000000000000000000bb'
-const C = '0x00000000000000000000000000000000000000cc'
-const D = '0x00000000000000000000000000000000000000dd'
-const F = '0x00000000000000000000000000000000000000ff'
-const E18 = 10n ** 18n
-const CORE = CHAIN_CONFIG.base.aavePool
-
-const reserves = (): FakeReserve[] => [
-  { address: WETH, symbol: 'WETH', decimals: 18, id: 0, ltv: 8000, lt: 8300, price: (n) => weth(n) * 10n ** 8n },
-  { address: USDC, symbol: 'USDC', decimals: 6, id: 1, ltv: 7500, lt: 7800, price: () => 10n ** 8n },
-]
-
-function chainSpec(): FakeChainSpec {
-  return {
-    chain: 'base',
-    ts,
-    head: 1000 + 30 * 40,
-    reserves: reserves(),
-    tokens: {},
-    users: [
-      { address: A, eMode: 0, collateral: { [WETH]: 10n * E18 }, debt: { [USDC]: 17_000_000000n } },
-      { address: B, eMode: 0, collateral: { [WETH]: 10n * E18 }, debt: { [USDC]: 15_000_000000n } },
-      { address: D, eMode: 0, collateral: { [WETH]: 10n * E18 }, debt: { [USDC]: 17_200_000000n } },
-      { address: F, eMode: 0, collateral: { [WETH]: 10n * E18 }, debt: { [USDC]: 16_500_000000n } },
-    ],
-    extraAave: [
-      {
-        ...LIDO,
-        marketId: 'Fake Lido Market',
-        reserves: reserves(),
-        users: [{ address: A, eMode: 0, collateral: { [WETH]: 10n * E18 }, debt: { [USDC]: 17_000_000000n } }],
-      },
-    ],
-    markets: [
-      {
-        id: MARKET,
-        loanToken: USDC,
-        collateralToken: WETH,
-        oracle: ORACLE,
-        irm: ZERO,
-        lltv: 86n * 10n ** 16n,
-        totalBorrowAssets: 174_000_000000n,
-        totalBorrowShares: 174_000_000000n * 1_000_000n,
-        lastUpdate: BigInt(S(4)),
-        price: (n) => weth(n) * 10n ** 24n,
-        rate: 0n,
-      },
-    ],
-    morphoPositions: [
-      { marketId: MARKET, borrower: C, borrowShares: 17_400_000000n * 1_000_000n, collateral: 10n * E18 },
-    ],
-    logs: [
-      aaveLog('base', { block: 1165, logIndex: 3, collateral: WETH, debt: USDC, user: A, debtToCover: 8_500_000000n, liquidated: 44n * 10n ** 17n }),
-      aaveLog('base', { block: 1166, logIndex: 1, pool: LIDO.pool, collateral: WETH, debt: USDC, user: A, debtToCover: 8_500_000000n, liquidated: 44n * 10n ** 17n }),
-      morphoLog('base', { block: 1170, logIndex: 1, marketId: MARKET, borrower: C, repaidAssets: 500_000000n, seizedAssets: 26n * 10n ** 16n }),
-      aaveLog('base', { block: 1185, logIndex: 2, collateral: WETH, debt: USDC, user: B, debtToCover: 7_500_000000n, liquidated: 39n * 10n ** 17n }),
-      aaveLog('base', { block: 1186, logIndex: 4, collateral: WETH, debt: USDC, user: D, debtToCover: 8_600_000000n, liquidated: 45n * 10n ** 17n }),
-      aaveLog('base', { block: 1277, logIndex: 1, collateral: WETH, debt: USDC, user: A, debtToCover: 1_000_000000n, liquidated: 5n * 10n ** 17n }),
-      aaveLog('base', { block: F_N, logIndex: 7, collateral: WETH, debt: USDC, user: F, debtToCover: 8_250_000000n, liquidated: 43n * 10n ** 17n }),
-    ],
-  }
-}
-
-const OPTS: EngineOptions = {
-  mode: 'historical',
-  chains: ['base'],
-  epochTs: EPOCH,
-  startMinute: 3,
-  endMinute: 15,
-  reconcileEveryMinutes: 0,
-  readConcurrency: 4,
-}
-
-function engine(fake: FakeChain, sink: MemorySink, opts: Partial<EngineOptions> = {}, clock?: SimClock, head?: HeadFn) {
-  return new LiveEngine(
-    {
-      rpc: fake,
-      clock: clock ?? new SimClock(S(opts.startMinute ?? 3) * 1000),
-      sink,
-      head: head ?? clockHead(),
-      backoff: async () => {},
-    },
-    { ...OPTS, ...opts },
-  )
-}
-
-async function runAll(fake = new FakeChain(chainSpec()), opts: Partial<EngineOptions> = {}) {
-  const sink = new MemorySink()
-  const e = engine(fake, sink, opts)
-  await e.init()
-  await e.run()
-  return { sink, e, fake }
-}
-
-const strip = (r: LiveRecord) => {
-  const { seq, backfilled, late, eventTs, ...rest } = r
-  void seq
-  void backfilled
-  void late
-  void eventTs
-  return rest
-}
-const pidOf = (r: LiveRecord) => (r.kind === 'tick' ? null : r.pid)
-const pidA = `aave-v3:base:${CORE}:${A}`
-const pidAL = `aave-v3:base:${LIDO.pool}:${A}`
-const pidB = `aave-v3:base:${CORE}:${B}`
-const pidC = `morpho-blue:base:${MARKET}:${C}`
-const pidD = `aave-v3:base:${CORE}:${D}`
-const pidF = `aave-v3:base:${CORE}:${F}`
+import { FakeChain, aaveLog } from './wavefrontLiveFake'
+import {
+  A,
+  D,
+  EPOCH,
+  F_N,
+  PATH,
+  S,
+  USDC,
+  WETH,
+  blockAt,
+  chainSpec,
+  engine,
+  pidA,
+  pidAL,
+  pidB,
+  pidC,
+  pidD,
+  pidF,
+  pidOf,
+  runAll,
+  strip,
+  ts,
+} from './wavefrontLiveScenario'
 
 describe('live engine: the minute loop on a scripted chain', () => {
   it('opens, reals, mems and ticks — folded by the reducer; one position per (pool, user)', async () => {
@@ -406,25 +296,60 @@ describe('live engine: the minute loop on a scripted chain', () => {
     const base = await runAll()
     const fake = new FakeChain(chainSpec())
     // g1 answers [] for the range holding A's second liquidation (alone in its range).
-    fake.logsFault = { group: 'g1', drop: (l) => l.block === 1277 }
+    fake.logsFault = { groups: ['g1'], drop: (l) => l.block === 1277 }
     const { sink, e } = await runAll(fake)
     expect(e.rt.base.scanner.stats.falseEmpty).toBe(1)
     expect(e.rt.base.scanner.quarantineLog.map((q) => q.host)).toEqual(['g1.host'])
     expect(sink.records).toEqual(base.sink.records)
   })
 
-  it('a liquidation the primary scan missed comes back late through the reconciliation', async () => {
+  it('a short answer is caught by the second backend: the union is kept, the short host quarantined', async () => {
     const base = await runAll()
     const fake = new FakeChain(chainSpec())
-    // g1 drops D's log from a NON-empty answer (B's log is in the same range): not re-asked.
-    fake.logsFault = { group: 'g1', drop: (l) => l.block === 1186 }
+    // g1 drops D's log from a NON-empty answer (B's log is in the same range).
+    fake.logsFault = { groups: ['g1'], drop: (l) => l.block === 1186 }
+    const { sink, e } = await runAll(fake)
+    expect(e.rt.base.scanner.stats.shortAnswers).toBe(1)
+    expect(e.rt.base.scanner.quarantineLog.map((q) => q.host)).toEqual(['g1.host'])
+    expect(e.state.counters.lateEvents).toBe(0)
+    expect(sink.records).toEqual(base.sink.records)
+  })
+
+  it('scans only up to the lower of two backends\' heads − confirmations (a lagging node is never asked past its head)', async () => {
+    const base = await runAll()
+    const fake = new FakeChain(chainSpec())
+    fake.headLag = { g2: 40 }
+    const clock = new SimClock(S(3) * 1000)
+    const head: HeadFn = async (_c, blocks, nowSec) => {
+      fake.spec.head = blockAt(nowSec)
+      return blocks.agreedHead()
+    }
+    const sink = new MemorySink()
+    const e = engine(fake, sink, { mode: 'live', pollSeconds: 4 }, clock, head)
+    await e.init()
+    await e.run()
+    expect(fake.logRanges.length).toBeGreaterThan(0)
+    for (const r of fake.logRanges) expect(r.to).toBeLessThanOrEqual(r.head - 40 - CHAIN_CONFIG.base.confirmations)
+    expect(e.rt.base.scanner.stats.shortAnswers).toBe(0)
+    const body = (rs: LiveRecord[]) => rs.filter((r) => r.kind !== 'tick').map(strip)
+    expect(body(sink.records)).toEqual(body(base.sink.records))
+  })
+
+  it('a liquidation BOTH primary backends missed comes back late through the background reconciliation', async () => {
+    const base = await runAll()
+    const fake = new FakeChain(chainSpec())
+    // g1 and g2 (the primary scan's two backends) both drop D's log; g3 has it.
+    fake.logsFault = { groups: ['g1', 'g2'], drop: (l) => l.block === 1186 }
     const { sink, e } = await runAll(fake, { reconcileEveryMinutes: 5, reconcileWindowMinutes: 10 })
     expect(e.state.counters.lateEvents).toBe(1)
+    expect(e.state.counters.reconcileRuns).toBe(2)
     const late = sink.records.filter((r) => r.late)
-    // open, real, and D's walk caught up from t0 (6) to minute 9: arm, save, sell.
+    // open, real, and D's walk caught up from t0 (6) to minute 10: arm, save, sell.
     expect(late.map((r) => r.kind)).toEqual(['open', 'real', 'mem', 'mem', 'mem'])
+    // The pass started at the end of minute 9 is consumed by minute 10 (off the minute path):
+    // its records are appended at the end of minute 10.
     const tick9 = sink.records.find((r) => r.kind === 'tick' && r.minute === 9)!
-    expect(late.every((r) => r.ts === S(10) && r.seq > tick9.seq)).toBe(true)
+    expect(late.every((r) => r.ts === S(11) && r.seq > tick9.seq)).toBe(true)
     expect(late[0].eventTs).toBe(ts(1186))
     const noTs = (r: LiveRecord) => {
       const { ts: _t, ...x } = strip(r) as LiveRecord
@@ -445,8 +370,10 @@ describe('live engine: the minute loop on a scripted chain', () => {
     const scanner = new LogScanner(fake, CHAIN_CONFIG.base, new Blocks(fake, 'base', 2))
     await expect(scanner.scan(1001, 1100)).rejects.toThrow(UnconfirmedEmptyError)
     expect(scanner.stats.unconfirmedEmpty).toBe(1)
-    // A non-empty answer needs no confirmation.
+    // A non-empty answer is kept without a second backend (counted; the reconciliation re-checks).
     const got = await scanner.scan(1160, 1170)
     expect(got.events.map((x) => x.block)).toEqual([1165, 1170])
+    // (two chunks: the unconfirmed empty above narrowed the span to MIN_CONFIRM_SPAN)
+    expect(scanner.stats.unverifiedNonEmpty).toBe(2)
   })
 })

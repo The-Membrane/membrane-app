@@ -3,7 +3,10 @@
 # Nothing in this repository runs `fly deploy`. See docs/WAVEFRONT_LIVE_ENGINE.md.
 #
 # Owner steps (only after approval): fly apps create <name>; fly volumes create wavefront_data
-# --size 1; (Postgres sink) fly secrets set DATABASE_URL=...; fly deploy -c deploy/wavefront-live/fly.toml
+# --size 1; (keyed RPC, recommended) fly secrets set WAVEFRONT_RPC_MAINNET=<url[,url]>
+# WAVEFRONT_RPC_ARBITRUM=... WAVEFRONT_RPC_OPTIMISM=... WAVEFRONT_RPC_BASE=... (only hostnames are
+# ever printed); (Postgres sink) fly secrets set DATABASE_URL=... after applying the pending
+# migration (and its db:push note); fly deploy -c deploy/wavefront-live/fly.toml
 app = "REPLACE-WITH-OWNER-CHOSEN-NAME"
 primary_region = "iad"
 

@@ -5,6 +5,8 @@
 #   docker build -f deploy/wavefront-live/Dockerfile -t wavefront-live .
 # Run (file sink on a volume):
 #   docker run -v wavefront:/data wavefront-live --mode live --out /data/stream.jsonl --stats /data/stats.json
+# Keyed RPC endpoints (optional, recommended): -e WAVEFRONT_RPC_MAINNET=<url[,url]> (… _ARBITRUM,
+#   _OPTIMISM, _BASE); the public endpoints stay as the independent backends.
 # Postgres sink (needs the pending migration applied and DATABASE_URL as a secret):
 #   docker run -e DATABASE_URL=... wavefront-live --mode live --sink postgres --stats /data/stats.json
 FROM node:22-slim

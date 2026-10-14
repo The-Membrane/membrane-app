@@ -5,9 +5,10 @@ deployed, scheduled, paid for or written to a production database. The Dockerfil
 `fly.toml` in `deploy/wavefront-live/` and the SQL in `db/migrations-pending/` are prepared,
 not applied. §9 lists what the owner decides.
 
-For every liquidation on **every Aave V3 pool** (the PoolAddressesProviderRegistry's markets:
-mainnet Core, Lido and EtherFi; the Core pool on Arbitrum, Optimism and Base) and on **Morpho
-Blue** on Ethereum, Arbitrum, Optimism and Base, the engine
+For every liquidation **in scope** — every Aave V3 pool of the chain's
+PoolAddressesProviderRegistry (mainnet Core, Lido and EtherFi; the Core pool on Arbitrum,
+Optimism and Base), plus allow-listed instances outside it (none by default, §4) — and every
+**Morpho Blue** liquidation on Ethereum, Arbitrum, Optimism and Base, the engine
 
 1. sees the liquidation about a minute after it happens (logs read to head − confirmations);
 2. reads the position at block N−1 and the oracle prices at N−1 and N exactly as the Oct 10
@@ -21,26 +22,41 @@ Blue** on Ethereum, Arbitrum, Optimism and Base, the engine
 The Oct 10 census writes the same stream from the recorded window; `--mode historical` runs
 **this** engine, unchanged, on a simulated clock over archive blocks, and §6 compares the two.
 
+### Second review (go-live blockers) — what changed
+
+| item | fix | where it is checked |
+| --- | --- | --- |
+| HIGH 1 Postgres sink could never commit (a constant-folded `1/0` guard) | optimistic concurrency: the FIRST statement of each commit moves the state row from the version this writer last committed to the next (`UPDATE … WHERE stream AND version`, in a CTE whose row count divides 1 — 0 rows aborts the whole transaction at run time); state row created explicitly; `stream` column + `(stream, seq)` key, load/MAX per stream; an ambiguous commit is settled by reading the row back (before the next write if even that fails; the engine then reloads) | **a real Postgres 16** (`wavefrontLivePostgres.test.ts`, 7 tests, run here): two writers, ambiguous commits, the whole engine through Postgres = the in-memory stream (§5) |
+| HIGH 2 reconciliation double-counted after failed passes | the processed-event keys a future pass could re-find are never pruned (`retainFromTs`, correct by construction); a pass reaches back at most `reconcileMaxCatchupMinutes` (1,440; counted and logged when cut) | the reviewer's repro as a test: 3 failed passes, then a 240-minute pass → no duplicate `real`, repaid $24,600 (was $49,200); the capped variant |
+| MEDIUM 3 lagging logs nodes answer short | logs are read only to `min(head of two backend groups) − confirmations`; every chunk is asked on two groups and the UNION kept (the shorter host quarantined, `shortAnswers`); a non-empty chunk whose second backend does not answer in 10 s is kept only if its own group holds the chunk's last block (`unverifiedNonEmpty`) | tests: a short answer caught; a node 40 blocks behind never asked past its head; extra calls measured (§8) |
+| MEDIUM 4 the census comparison could pass while things differed | integers (blocks, timestamps, minutes, indexes) compared exactly (1e-6 of a block number is 23 blocks); per-pid record order; ticks compared via restricted folds; missing / extra positions are differences unless in a listed by-design category; exit code 1 on any difference | §6 (0 differences); a 1-block and a 1-second mutation are both caught |
+| MEDIUM 5 scope by address list | logs by TOPIC from any emitter; an emitter is Aave V3 iff its `ADDRESSES_PROVIDER()` is a registry provider (the registry is re-read on an unknown emitter); forks / V2 pools / non-registry instances excluded and counted per emitter; Horizon RWA known, OFF by default | tests (fork, V2-like pool, non-registry instance, a pool the registry adds mid-stream, allow-list) and the Oct 10 replay (§6) |
+| MEDIUM 6 state growth | the state holds open positions only; closed ones leave it at the commit that closes them (the stream is their archive; the open-once index is rebuilt from the sink at start-up) | tests (a later liquidation of a closed pid, resume); sizes in §5 |
+| MEDIUM 7 keyed endpoints | `WAVEFRONT_RPC_<CHAIN>` (comma-separated URLs) → own backend groups; only hostnames ever printed (host labels redacted, log lines and the stats file scrubbed); the public endpoints stay as the independent re-ask / reconciliation backends | `wavefrontLiveRpc.test.ts` |
+| MEDIUM 8 liveness | chains independent: a chain behind for `chainStallSeconds` (300 s) stops holding the others, its positions are flagged on the ticks (`gaps.lagging`), it is retried with backoff and caught up as `late` records; reconciliation runs in the background with a real cancellation (AbortSignal) at its budget; `PoolKeeper` re-enables capability-disabled endpoints after 15 min | tests (a chain down 5 minutes → the same records per position; a hanging pass cancelled while minutes go on); the live smoke (§8) |
+| LOW | a position whose oracle is silent `maxGapMinutes` (60) in a row is closed with a reason; gap positions persisted; reorg limits (§10); cost figures consistent ($3.20); owner list extended; the `db:push` trap documented | tests; §9, §10 |
+
 ---
 
 ## 1. Code
 
 | file | what |
 | --- | --- |
-| `lib/wavefront/live/engine.ts` | `LiveEngine`: the minute loop, positions, ticks, lifecycle, reconciliation, durable state; `SimClock`, `clockHead` (historical) / `liveHead` |
-| `lib/wavefront/live/logs.ts` | `LogScanner`: eth_getLogs for both topics on every pool, chunked; false-empty re-ask; reconciliation on independent backends |
-| `lib/wavefront/live/blocks.ts` | headers and the block in force at a time (`atOrBefore`, the pull's rule) |
-| `lib/wavefront/live/aaveRead.ts` | registry markets, per-pool setup, the per-event re-read (pull shape, `computeHf` from the pull), N−1 locate with Aave's index math, the liquidation protocol fee |
+| `lib/wavefront/live/engine.ts` | `LiveEngine`: the minute loop, lagging chains and catch-up, positions, ticks, lifecycle, background reconciliation, scope classification, durable state; `SimClock`, `clockHead` (historical) / `liveHead` |
+| `lib/wavefront/live/logs.ts` | `LogScanner`: eth_getLogs by topic, chunked, every chunk on two backend groups (union), emitter classification hook, reconciliation on independent backends with an AbortSignal |
+| `lib/wavefront/live/blocks.ts` | headers, the block in force at a time (`atOrBefore`, the pull's rule), the head agreed by two backends (`agreedHead`) |
+| `lib/wavefront/live/aaveRead.ts` | registry markets, `ADDRESSES_PROVIDER()`, per-pool setup, the per-event re-read (pull shape, `computeHf` from the pull), N−1 locate with Aave's index math, the liquidation protocol fee |
 | `lib/wavefront/live/morphoRead.ts` | market params, the per-event re-read (accrual and health check as the pull), N−1 locate |
 | `lib/wavefront/live/prices.ts` | one Multicall3 per chain per minute; re-read of missing values on another backend |
 | `lib/wavefront/live/positions.ts` | spec → `open` / `real` / kernels with the census's own functions; kernel snapshots |
-| `lib/wavefront/live/sinks.ts` | `FileSink` (JSONL + state, crash-safe), `PostgresSink` (Neon via an injected executor), `MemorySink` |
-| `lib/wavefront/live/state.ts`, `codec.ts`, `config.ts`, `rpc.ts`, `calls.ts` | state types, event decoding, chain constants, the RPC seam and endpoint table |
-| `lib/wavefront/pid.ts` | **the pid builder** (one module; the census adopts it later) |
-| `scripts/wavefront-live/run.ts` | CLI (`--mode live|historical`, `--from`, `--to`, `--chains`, `--out`, `--sink file|postgres`, `--stats`) |
+| `lib/wavefront/live/sinks.ts` | `FileSink` (JSONL + state, crash-safe), `PostgresSink` (optimistic concurrency, per stream), `MemorySink`; `opened()` (the open-once index from the stream) |
+| `lib/wavefront/live/rpc.ts` | the RPC seam, endpoint table, keyed endpoints from the environment (`buildPool`), `PoolKeeper`, `CountingRpc` (ledger, timeout, cancellation) |
+| `lib/wavefront/live/state.ts`, `codec.ts`, `config.ts`, `calls.ts` | state types, event decoding, chain constants and defaults (incl. `KNOWN_NON_REGISTRY_AAVE`) |
+| `lib/wavefront/pid.ts` | **the pid builder** (one module; the census adopts it) |
+| `scripts/wavefront-live/run.ts` | CLI (`--mode live|historical`, `--from`, `--to`, `--chains`, `--out`, `--sink file|postgres`, `--stats`, `--allow-aave-provider`, …) |
 | `scripts/wavefront-live/compare-census.ts` | the historical-equivalence check (§6) |
 | `scripts/wavefront-live/make-fixture.ts` | the readers' test fixture from the pull's records |
-| `tests/unit/wavefrontLive*.test.ts` | 57 tests (§7) |
+| `tests/unit/wavefrontLive*.test.ts` | 82 tests (§7); `wavefrontLiveFake.ts` / `wavefrontLiveScenario.ts` / `wavefrontLivePg.ts` are their scripted chain, scenario and throwaway Postgres |
 | `db/migrations-pending/2026-10-14_wavefront_live.sql` | the Postgres tables — **not applied** |
 | `deploy/wavefront-live/{Dockerfile,fly.toml}` | the worker image and a Fly.io config — **not deployed** |
 
@@ -58,8 +74,15 @@ All I/O is injected — `LiveRpc` (production: the pull's `RpcPool` wrapped in `
 runs execute the same code.
 
 Minute m spans [S_m, S_m+60) (S_m = epoch + 60 m; the epoch is the UTC midnight the stream was
-created on, so tick minutes are :09, :19, …). It is processed once **every** chain has been
-scanned through a confirmed block with timestamp ≥ S_m+60. Then:
+created on, so tick minutes are :09, :19, …). A chain is **ready** for m once it has been scanned
+through a confirmed block with timestamp ≥ S_m+60. Minute m is processed when every chain is
+ready — or when the ones that are not have been behind for `chainStallSeconds` (live 300 s;
+historical runs wait for every chain). **A lagging chain does not hold the others**: in its
+lagging minutes its positions are not stepped and its liquidations not read, the next tick says so
+(`gaps.lagging: {chains, positionMinutes}` — that tick's totals do not include them), it is polled
+again with backoff (2 s doubling to 60 s), and once it answers its missed minutes are caught up —
+stepped on archive prices, liquidations processed — as `late` records (≤ 60 catch-up minutes per
+stream minute). Then, for the ready chains:
 
 1. **step** — every open kernel whose t0 minute is before m, on ONE Multicall3 per chain at the
    block in force at S_m (the highest block with ts ≤ S_m): `AaveOracle.getAssetsPrices` per
@@ -75,15 +98,19 @@ scanned through a confirmed block with timestamp ≥ S_m+60. Then:
    rounded, seq assigned, each folded by `applyRecord` (the ONE reducer; it throws on anything the
    schema forbids);
 4. **tick** at m = 9, 19, … from the reducer's fold;
-5. **close** — a position whose kernels are done, or idle for the horizon (default 7 days) with
-   no timer armed, stops being stepped (it stays in the stream; a later liquidation of the same
-   pid is a `real` record);
-6. **reconcile** every hour (default; window 2 h) — §4;
+5. **close** — a position whose kernels are done, idle for the horizon (default 7 days) with no
+   timer armed, or whose held legs' oracle values were missing `maxGapMinutes` (60) minutes in a
+   row (`gaps.closed: [{pid, reason}]` on the next tick — "oracle silent 60 minutes in a row (an
+   armed timer abandoned)") stops being stepped and leaves the state with this commit (it stays in
+   the stream; a later liquidation of the same pid is a `real` record);
+6. **reconcile** — in the background (§4): a finished pass is consumed here, its finds appended
+   as `late`; due passes are started;
 7. **commit** the minute's records and the engine state in one sink commit.
 
 A minute processed more than 180 s after it ended (restart, outage) has every record flagged
 `backfilled: true`; its logs and prices are archive reads, so the stream has no gaps. Any error
-in a minute rolls the engine back to the last commit and the minute is retried with backoff.
+in a minute rolls the engine back to the last commit and the minute is retried with backoff (a
+failing head poll is retried per chain, the other chains unaffected).
 
 ## 3. Positions — the census's rules, plus the 2.1 review
 
@@ -116,56 +143,133 @@ in a minute rolls the engine back to the last commit and the minute is retried w
   `real.protocolFeeUsd` = fee × price(N).
 - **Reducer change** (owner review item 5: real totals over walked positions only) lives in
   `lib/wavefront/stream.ts` and is picked up unchanged by the engine (it folds with
-  `applyRecord`).
+  `applyRecord`; a closed position that gets another record is folded through a stub carrying its
+  `walked` flag).
 - **Not a census rule — look-ahead.** The census anchors t0 at a LATER event when the first is not
   located (1 account on Oct 10-11). A live stream cannot look ahead and the schema allows one
   `open` per pid: such a position opens `walked: false` at its first event.
 
 ## 4. Data sources and checks
 
-- **Events**: one eth_getLogs filter per chain — addresses [every registry pool, Morpho Blue],
-  topic0 ∈ {`LiquidationCall` 0xe413a321…5286, `Liquidate` 0xa4946ede…7e41} — chunked (span
-  halves on a range refusal). Every log is checked (emitter, topic, block in range, not removed,
+- **Events — by topic, any emitter**: one eth_getLogs filter per chunk, topic0 ∈
+  {`LiquidationCall` 0xe413a321…5286, `Liquidate` 0xa4946ede…7e41}, **no address filter**, chunked
+  (span halves on a range refusal). Every log is checked (topic, block in range, not removed,
   blockHash = the header used for its timestamp; logs' own `blockTimestamp` is not trusted —
   arb1.arbitrum.io returns 0 there).
+- **Scope = classification of the emitter** (cached per emitter in the chain state):
+  - Morpho `Liquidate`: the Blue singleton only (mainnet/Base 0xBBBB…FFCb, Arbitrum 0x6c24…8F5e,
+    Optimism 0xce95…AF92); the same signature from anything else is excluded;
+  - Aave `LiquidationCall`: a pool the engine knows → in. An unknown emitter → the registry is
+    re-read at the log's block (a pool the registry added since the last read gets a reader); else
+    the emitter is an Aave V3 pool **iff its `ADDRESSES_PROVIDER()` returns a provider of the
+    chain's registry** (or an allow-listed one). Anything else is **excluded and counted per
+    emitter** (`scan.excludedByEmitter`, with the reason and provider in `excluded`): Aave V3
+    forks (Spark, Seamless, … — their own provider), Aave V2 pools and other contracts (no
+    `ADDRESSES_PROVIDER()`), non-registry instances;
+  - **Horizon RWA** (mainnet, provider 0x5D39E06b…8ba0 → pool 0xAe05Cd22…32C8, "Horizon RWA
+    Market"; checked on chain 2026-10-14: `getPool`, `getMarketId`, the pool's
+    `ADDRESSES_PROVIDER()`; not listed by the registry 0xbaA999AC…5170) is a known non-registry
+    instance: **OFF by default**, brought in with `--allow-aave-provider horizon` (an owner
+    decision, §9). Excluded, it is named in the reason.
 - **Registry**: mainnet 0xbaA999AC…5170 (Core 0x87870Bca…, Lido 0x4e033931…, EtherFi
-  0x0AA97c28…), Arbitrum/Optimism 0x770ef9f4…52b6, Base 0x2f6571d3…78E2; resolved at start-up
-  and daily; the Core pool and oracle are asserted against the verified addresses.
-- **An empty answer is not a fact** (board R33): every empty chunk is re-asked on a different
-  backend group before it counts. A second backend with logs → the first host is quarantined for
-  logs (1 h) and the fuller answer kept. No independent backend → `UnconfirmedEmptyError`: the
-  range is not believed, narrower spans are tried (some hosts cap logs at 10 blocks), and the
-  minute waits. Pocket/Nodies are never asked for logs (probe 2026-10-14 on minute-sized ranges
-  around 20 known Oct 10 events per chain: Pocket mainnet missed 2/20, Optimism 13/20, OP Nodies
-  20/20, all as `[]` or short answers); flashbots/mevblocker are excluded (asserted).
-- **Reconciliation**: every hour the last two hours are re-scanned, each part on a backend group
-  that did not answer it in the primary scan; a missed event is processed then and its records
-  carry `late: true`, `eventTs` (its own time) and ts = the append time (the reducer requires
-  ordered ts); a late position is caught up minute by minute on archive prices. Each chain's pass
-  has a 120 s budget: a pass that cannot run (independent backends rate-limiting) is counted, and
-  the next one starts where the last success ended — it never holds the stream.
-- **Reorgs**: nothing above head − confirmations is read (mainnet 3 blocks, the L2s ≈ 30 s:
-  OP-stack 15, Arbitrum 120).
+  0x0AA97c28…), Arbitrum/Optimism 0x770ef9f4…52b6, Base 0x2f6571d3…78E2; resolved at start-up, on
+  an unknown emitter, and daily; the Core pool and oracle are asserted against the verified
+  addresses.
+- **Head — agreed by two backends**: logs are read only up to `min(eth_blockNumber of two
+  independent logs-capable groups) − confirmations` (`Blocks.agreedHead`; no second group → the
+  poll waits). A node behind the head answers a range past its own head with a SHORT list and no
+  error (seen on dRPC and arb1.arbitrum.io), so the range asked is one both groups have.
+- **Every chunk on two backends** (board R33, extended): every chunk is asked on two different
+  backend groups and the **union** kept. When the answers differ, the shorter host is quarantined
+  for logs (1 h) — `falseEmpty` when it answered `[]`, `shortAnswers` otherwise. An empty chunk no
+  second group confirms is not believed (`UnconfirmedEmptyError`: narrower spans are tried — some
+  hosts cap logs at 10 blocks — and the minute waits). A non-empty chunk whose second group does
+  not answer within 10 s (the independent public backends are the rate-limited ones) is kept only
+  if its own group holds the chunk's last block with the same hash (`unverifiedNonEmpty`; the
+  reconciliation re-checks it), else the range is retried. Pocket/Nodies are never asked for logs
+  (probe 2026-10-14: Pocket mainnet missed 2/20 events, Optimism 13/20, OP Nodies 20/20, all as
+  `[]` or short answers); flashbots/mevblocker are excluded (asserted).
+- **Reconciliation — in the background, cancellable**: every hour a pass per chain re-scans the
+  window (two hours) on backend groups that did not answer the primary scan of each part. It runs
+  off the minute path with a wall-clock budget (120 s) at which it is **cancelled** (an
+  AbortSignal: the waiting request is released at once and nothing more is asked); live, a
+  minute never waits for it (`--mode historical` and the tests do wait for it at the next minute,
+  bounded by the same budget, so a replay is reproducible). A finished pass is consumed by the
+  next minute: an event it found that was neither processed nor pending is
+  processed then, its records `late: true`, `eventTs` its own time, ts the append time (the
+  reducer requires ordered ts); a late position is caught up minute by minute on archive prices.
+  A failed or cancelled pass is counted; the next one starts where the last success ended — but
+  never more than `reconcileMaxCatchupMinutes` (24 h) back (counted `reconcileCapped`, logged
+  with the unchecked block range). **Dedupe is correct by construction**: a processed event's key
+  is kept until no future pass can start at or before its time (`retainFromTs` = max(the cap,
+  min(the window start, the last success's end)), all non-decreasing, lowered to an in-flight
+  pass's start), so a re-found event is never taken for a missed one.
+- **Reorgs**: nothing above head − confirmations is read (mainnet 3 blocks ≈ 36 s, the L2s ≈ 30 s:
+  OP-stack 15 blocks, Arbitrum 120). Limits in §10.
 - **Prices**: §2 step 1; per-asset re-read when one source reverts the batch (the pull's rule).
+- **Endpoints and keys**: keyless public endpoints by default (the pull's probed archive list,
+  minus Pocket for logs, BlockPI and onfinality; plus arb1.arbitrum.io and, live, PublicNode).
+  **Keyed endpoints** come from the environment only: `WAVEFRONT_RPC_MAINNET`, `_ARBITRUM`,
+  `_OPTIMISM`, `_BASE` = comma-separated URLs. Each becomes its own backend group
+  (`keyed-<hostname>`, higher concurrency, listed first, so it carries most traffic); the public
+  groups stay as the **independent** second backends of every chunk and the reconciliation. A
+  keyed URL usually carries its key, so only its **hostname** is ever printed: its host label is
+  `keyed:<hostname>`, and the CLI scrubs every log line and the stats file of the URLs (and of
+  `DATABASE_URL`). `PoolKeeper` re-enables an endpoint the pool disabled for capability errors
+  after 15 minutes (the pull's pool disables for good — right for a one-off pull, wrong for a
+  worker that runs for months); quarantines for false or short answers stay.
 
 ## 5. Durable state, sinks
 
-The state (stream position, per chain the scanned block, pending events, recent event keys and
-the answering group of every recent logs chunk, the reducer's fold, every open kernel as a field
-snapshot, counters) is committed with each minute's records:
+The state — the stream position, per chain the scanned block and the last minute processed, the
+pending events, the processed-event keys a reconciliation could still re-find and the answering
+groups of those logs chunks (adjacent chunks merged), the excluded emitters, the reducer's fold
+(coverage and totals) and every **open** position's kernels as field snapshots — is committed
+with each minute's records. **Closed positions are not in it**: they leave at the commit that
+closes them; the stream is their archive, and at start-up the engine rebuilds its open-once index
+(pid → walked) from the sink (`StreamSink.opened()`), so its size follows the positions walking,
+not the age of the stream.
 
 - **file**: append-only JSONL (`encodeJsonl`'s format; the header adds `engine`, `mode`,
   `chains`, `createdAt`; `window.minutes` is 0 = open-ended) + `<file>.state`. Records are
   fsync'ed, then the state is written to a temp file, fsync'ed and renamed; it records the JSONL
   length it belongs to, and on load a longer JSONL (a torn or uncommitted tail) is truncated
   back. Restoring a kernel snapshot checks its field set against a fresh kernel and refuses a
-  mismatch (kernel.ts changed under a saved state).
+  mismatch (kernel.ts changed under a saved state). One disk: back it up (§9).
 - **Postgres** (Neon, `@neondatabase/serverless`, driver loaded only with `--sink postgres`;
-  `DATABASE_URL` read only by the CLI): one transaction per minute — a guard that aborts unless
-  the stored state is the one this writer last committed (two writers cannot both commit), the
-  records as `INSERT INTO wavefront_events (seq, ts, kind, pid, body)` (≤ 1,000 rows per
-  statement), and the state row update. Tables in `db/migrations-pending/` (append-only trigger
-  on the events table). **Not applied.**
+  `DATABASE_URL` read only by the CLI): `wavefront_events(stream, seq, ts, kind, pid, body)` with
+  primary key `(stream, seq)` and indexes on `(stream, ts)`, `(stream, pid)`, append-only by
+  trigger; `wavefront_engine_state(stream, header, version, seq, state)`. The state row is created
+  explicitly with the stream (a second create fails). Each minute is one transaction whose FIRST
+  statement is the guard — `WITH upd AS (UPDATE wavefront_engine_state SET version = v+1, seq,
+  state WHERE stream = $1 AND version = v RETURNING 1) SELECT 1 / (SELECT count(*) FROM upd)` —
+  then the records (≤ 1,000 rows per INSERT). `version` counts commits (seq does not move on a
+  minute without records). **Two writers**: whichever commits second matches no row, raises
+  division_by_zero at run time and its whole transaction — records included — rolls back; it
+  then reads the row back and stops with `SinkConflictError`. **Ambiguous commit** (the connection
+  fails around COMMIT): the row is read back — landed (version, seq and the state's md5 match) →
+  success; not landed → the original error, and the minute is retried; when even the read-back
+  fails, the next write settles it first, and if the commit had landed the engine reloads from
+  the sink (`SinkAheadError`). load() checks MAX(seq) of the stream against the state row.
+  Tested on a throwaway local Postgres 16 (initdb in a temp directory, unix socket only) — the
+  migration applied, two writers, ambiguous commits landed and not, the read-back failing, the
+  append-only trigger, and the whole engine on the scripted chain through Postgres with an
+  unknown-outcome commit in the middle: the same stream as in memory. **Not applied** anywhere.
+
+**State size.** What the state holds is the open positions, so its size is ≈ 2 KB + 2.6–3.6 KB per position
+walking (more for many-leg positions), independent of the stream's age:
+
+- **Oct 10 slice**, at 23:00 (1,422 positions walking, 1,277 closed): **5.12 MB** (0.69 MB
+  gzipped). The first design also kept every position ever opened in the reducer: 6.53 MB at the
+  same point, growing by ~1 KB for every position opened, forever.
+- **A simulated month** (the scripted chain, 43,200 minutes, 100 liquidated positions a day —
+  3,000 — with WETH swinging ±5% daily; 11.6 min wall): the state is 2 KB + 2.62 KB per walking
+  position at every point — day 1: 27 walking, 73 KB; day 7: 200, 525 KB; day 30: **604 walking,
+  1.58 MB**; the 2,396 closed positions are in the stream only (the first design would have
+  carried them too, ≈ +2.4 MB at day 30 and growing). The walking set keeps growing in that
+  simulation because the daily swing re-arms and saves positions, and any activity restarts their
+  7-day idle clock; in a calm market they close after 7 days. A maximum walk age would bound it
+  outright — not implemented (it would be a new census rule).
 
 ## 6. Verification against the Oct 10-11 census (`--mode historical`)
 
@@ -173,56 +277,78 @@ snapshot, counters) is committed with each minute's records:
 the crash peak (21:13–21:20, up to 1,337 records a minute). The engine starts cold at 20:50
 (`--mode historical`, simulated clock, archive blocks, the same code as live) and its stream is
 compared with the census's for every position the census **opened inside the slice**, on every
-minute inside it (`scripts/wavefront-live/compare-census.ts`; numbers within 1e-6 relative —
-USD are cents on both sides — after mapping Core-pool pids to the census's form).
+minute inside it, by `scripts/wavefront-live/compare-census.ts`: each `open`, `real` and `mem`
+record field by field (integers — blocks, timestamps, minutes, indexes — exactly; USD within
+1e-6 relative, i.e. equal cents), each position's record order, and at every tick the fold of
+the compared positions so far against the census's fold of the same positions (coverage
+exactly; real seized after the protocol fee within a cent per record). Census positions missing
+from the live stream and live positions the census lacks count as differences unless they fall
+in a by-design category listed below; the exit code is 1 on any difference.
 
-The kernel default moved while this was built (the census branch makes "walk on after a t0 band
-sale" the default; the datasets `replay.jsonl.gz` was rebuilt with it at membrane-app
-`afbf41f`). So the engine was run twice and compared with the census of the same kernel:
+**Result (re-run after the second review — topic scan, two backends per chunk, background
+reconciliation, state compaction; walk-on off, the default of this branch's base `7ce3f9e`,
+compared with the served `public/data/oct10-2025/wavefront-replay.json` of the same base):**
 
-| run | census compared with | positions | `open` | `real` | `mem` (sales) | differences |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| default kernel of this branch's base (`7ce3f9e`, walk-on off) | served `public/data/oct10-2025/wavefront-replay.json` (same base) | 2,628 | 2,628 | 3,330 | 6,840 (2,628) | **0** besides the by-design items below |
-| `--walk-on true` (the census's new default) | datasets `oct10-2025/coverage/replay.jsonl.gz` (`afbf41f`) | 2,628 | 2,628 | 3,330 | 7,017 (2,748) | **0** besides the by-design items below |
+| positions | `open` | `real` | `mem` (sales) | ticks compared | differences |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 2,628 | 2,628 | 3,330 | 6,840 (2,628) | 13 (2,622 positions in the fold) | **0** — records 0, ticks 0, missing 0, extra 0 |
 
-- **Same positions**: all 2,628 census positions opened in the slice are found (0 missing). Real
-  repaid is identical on both runs: **$178,575,112.08**.
-- **By design (owner review 2.1), all explained**:
+- **Same positions**: all 2,628 census positions opened in the slice are found (0 missing, 0
+  unexplained extra). Real repaid is identical: **$178,575,112.08**.
+- **By design (owner review 2.1), all explained and listed by the comparator**:
   - **6 positions located at the N−1 prices** (`priceBasis: 'N-1'`): the census's 5 "HF at block
     N ≥ 1" accounts in the slice (Optimism 0xd2f2…, 0x1b2c…, 0xf70c… (mixed); mainnet 0x1326…,
     0x5ade…) are walked here, and the one account the census anchored at its SECOND event
-    (Optimism 0xcb92…) is located at its first. Their open fields (collUsd, ltv0, walked) and
-    mem records differ by construction; together they are the WHOLE Membrane-side difference:
-    $143,740,188.72 vs $143,678,459.44 = **+$61,729.28 = their sales** ($86,647.34 here vs
-    $24,918.06 in the census).
+    (Optimism 0xcb92…) is located at its first. Their open fields, mem records and record order
+    differ by construction; together they are the WHOLE Membrane-side difference:
+    $143,740,188.72 vs $143,678,459.44 = **+$61,729.28 = their sales**.
   - **Real seized includes the Aave protocol fee**: $881,054.62 in the slice. Compared as
     `seizedUsd − protocolFeeUsd`, every Aave record equals the census within one cent (655 of
     them by exactly one cent: both figures are rounded to cents separately).
-- **Outside the census** (in the live stream, not compared): 17 Morpho Blue positions on
-  **Arbitrum** (the owner's event pull had Morpho on mainnet and Base only), 3 positions on the
-  mainnet **Lido** pool (the census is Core-only); 51 positions the census had opened before
-  20:50 and the cold-started engine opened at their first in-slice event.
-- **Checks along the way**: the health factor recomputed at N−1 equals getUserAccountData to the
-  wei on **all 2,632** Aave events; 384 empty logs chunks confirmed by a second backend, 0 false
-  empties, 0 unconfirmed; 0 gaps (no held leg's oracle value missing on every backend); 0 errors;
-  the stream folds through the reducer (13 ticks equal to the fold).
-- **Cost of the replay**: 12,155 RPC requests (12,604 HTTP attempts with retries) for 130 minutes,
-  3,408 liquidations, 2,699 positions: 9.6 min wall, 79 s CPU, max RSS 381 MB (heap 135 MB, about
-  1,500 positions walking). The slowest minute (21:20, 1,158 records) took 11.9 s. With the
-  hourly reconciliation on (the first run), a rate-limiting independent backend held a minute
-  for up to 11 min — hence the 120 s per-chain reconciliation budget (§4).
+  - **Outside the census's scope** (in the live stream, not compared): 17 Morpho Blue positions on
+    **Arbitrum** (the census has Morpho on mainnet and Base only — the comparator derives that
+    from the census), 3 positions on the mainnet **Lido** pool (the census is Core-only); 51
+    positions the census had opened before 20:50, opened here at their first in-slice event.
+- **Scope on the crash** (the topic scan): 164 liquidation-signature logs from 6 out-of-scope
+  emitters were excluded and counted — mainnet **Spark Protocol** pool 0xC13e21B6…E987 (25; its
+  provider 0x02C3eA4e… is not in the registry) and the **Aave V2** LendingPool 0x7d2768dE…C7A9
+  (5; no `ADDRESSES_PROVIDER()`); Optimism 0x8FD4aF47…5DfE (55; no `ADDRESSES_PROVIDER()`) and
+  the "Optimism Extra X Lending Market" pool 0x345D2827… (21); Base "Base ZeroLend Market"
+  0x766f2127… (11) and "Base Extra X Lending Market" 0x09b11746… (11). The stream is unchanged by
+  them (the census had none).
+- **Checks along the way**: HF recomputed at N−1 = getUserAccountData to the wei on every Aave
+  event (0 mismatches); every one of 523 chunks asked on two backends — 278 empty ones confirmed,
+  0 false empties, **0 short answers**, 8 Base chunks kept on the serving group's block check
+  (`unverifiedNonEmpty`: dRPC and base.org, the only other Base logs backends, answered `request
+  limit reached` for over 10 s), 1 unconfirmable empty retried; 6 reconciliation passes, 2 failed
+  or cancelled at the budget (rate-limited third backends on Optimism and Base) and retried,
+  0 late events; 0 gaps; 0 errors; the stream folds through the reducer (13 ticks equal to the
+  fold). The strict comparator applied to the first (phase-1) stream also reports 0 (nothing was
+  hiding behind the old tolerance), and it catches a single real record moved by one block and
+  a single t0 moved by one second.
+- **Cost of the replay**: 12,266 RPC requests (12,800 HTTP attempts with retries) for 130 minutes,
+  3,408 liquidations, 2,699 positions — +0.9% over the first run (the second ask of non-empty
+  chunks, the scope classification); 19.0 min wall (9.6 before: a historical run waits for each
+  reconciliation pass, two of them for their full 120 s budget, and for Base's rate-limited
+  second backends), 87 s CPU, **max RSS 270 MB** (heap 87 MB; 381 MB / 135 MB before the state
+  compaction). The slowest crash minute (21:20, 1,121 records) took 11.2 s.
+- **The census datasets replay** (`membrane-datasets/oct10-2025/coverage/replay.jsonl.gz`) the
+  first run's walk-on variant was compared with (0 differences then) has since been rebuilt by the
+  census branch in **schema v2 at full scope** (membrane-app `30a4011`: 4-part pids from
+  `lib/wavefront/pid.ts`, the 2.1 rules). This branch's v1 reader refuses it by design; comparing
+  against it is the first check after the rebase onto schema v2 — with the census on the same
+  rules, the by-design list above should shrink to the cold-start item.
 - **Not reproducible by design**: the census's look-ahead t0 shift (none left in this slice
   once N−1 locating is on).
 
-
 ## 7. Tests
 
-`npx vitest run tests/unit/wavefrontLive*.test.ts` — 57 tests:
+`npx vitest run tests/unit/wavefrontLive*.test.ts` — 82 tests:
 
 - `wavefrontLiveCodec` — both topics decoded from real Oct 10 logs to the CSV rows; a log from
-  another registry pool gets that pool's pid; foreign emitter / topic / bad shape refused; units
-  equal the CSV's normalised columns; the pid module; **the protocol fee on 11 real receipts**;
-  the endpoint tables (≥ 2 independent logs groups per chain, no Pocket, no excluded relay).
+  another registry pool gets that pool's pid; foreign topic / bad shape refused; units equal the
+  CSV's normalised columns; the pid module; **the protocol fee on 11 real receipts**; the
+  endpoint tables (≥ 2 independent logs groups per chain, no Pocket, no excluded relay).
 - `wavefrontLiveReads` — the Aave and Morpho readers against a chain answering the pull's
   recorded reads: same records, same census specs.
 - `wavefrontLiveEngine` — the minute loop on a scripted chain (real ABIs, real Multicall3
@@ -231,109 +357,149 @@ sale" the default; the datasets `replay.jsonl.gz` was rebuilt with it at membran
   a position's records equal a kernel fed the path directly; a gap when a value is missing on
   every backend and a re-read when on one; resume after a crash (in-process and new process) =
   the uninterrupted stream; downtime replayed `backfilled`; never past head − confirmations, a log
-  in an unconfirmed block that vanishes never emitted; a false empty caught and its host
-  quarantined; a missed event back as `late` through the reconciliation; an unconfirmable empty
-  not believed.
+  in an unconfirmed block that vanishes never emitted; never past the LOWER of two backends'
+  heads; a false empty and a short answer caught by the second backend, the host quarantined; an
+  event both primary backends missed back as `late` through the background reconciliation; an
+  unconfirmable empty not believed.
+- `wavefrontLiveLiveness` — scope (forks, a V2-like pool, a non-registry instance excluded and
+  counted; a pool the registry adds mid-stream found; the allow-list; a Morpho signature off the
+  singleton); **the reviewer's dedupe repro** (3 failed passes → no duplicate real, $24,600) and
+  the capped variant; **a chain down 5 minutes** while the other goes on, caught up `late` with the
+  same records per position; **a hanging reconciliation cancelled** at its budget while every
+  minute is processed; the gap-close rule; gap positions across a restart; closed positions out
+  of the state, a later liquidation of a closed pid, resume; the state flat over 300 minutes.
+- `wavefrontLivePostgres` — §5, on a real Postgres (skipped, saying why, where no `initdb` exists).
+- `wavefrontLiveRpc` — keyed endpoints from the environment (groups, order, public groups kept),
+  no URL in host labels or errors, `PoolKeeper`, cancellation in `CountingRpc`.
 - `wavefrontLiveKernel` — 200 random walks: snapshot → JSON → restore mid-walk = uninterrupted;
   a changed field set refused.
-- `wavefrontLiveSinks` — the Postgres SQL (guard, batched inserts, state update; refuse on a seq
-  mismatch; no DATABASE_URL at import); the file sink truncating an uncommitted tail; the memory
-  sink.
+- `wavefrontLiveSinks` — the Postgres SQL (guard first, batched inserts with the stream, record-
+  less commits, per-stream load; refuse on a seq mismatch or records without a state row; no
+  DATABASE_URL at import); the file sink truncating an uncommitted tail and its open-once index;
+  the memory sink.
 
 ## 8. Live smoke, RPC volume, hosting
 
-### Live smoke (2026-10-14, all four chains, file sink, public keyless endpoints)
+### Live smoke (2026-10-14, after the second review: all four chains, file sink, public keyless endpoints)
 
-One stream, four process lifetimes, 54 minutes (minutes 359–412 of the day, 05:59–06:53 UTC)
-with **no gap**:
+One stream, three process lifetimes, 27 minutes (minutes 506–532 of the day, 08:26–08:53 UTC),
+**no gap**, seq contiguous, the stream folds through the reducer:
 
 | segment | wall time | what happened |
 | --- | --- | --- |
-| 1 | 05:59:30 – 06:14:46 | created the stream; 14 minutes processed; then **`kill -9`** mid-wait |
-| 2 | 06:19:08 – 06:26:13 | **resumed** at minute 373; minutes 373–375 replayed `backfilled` (376–377 were under the 180 s lag), then live |
-| 3 | 06:33:30 – 06:38:06 | resumed after a clean stop; minutes 385–390 replayed `backfilled`, **including the tick of minute 389** (a backfilled record) |
-| 4 | 06:42:14 – 06:54:37 | resumed (395–398 backfilled); 12 minutes with the production defaults (hourly reconciliation) for the RPC measurement |
+| 1 | 08:26:36 – 08:33:54 | created the stream; minutes 506–512; a real liquidation at minute 507 (Morpho Blue, mainnet, wstETH/USDT, $0.51 of debt: `open` walked, `real`, `mem` arm); then **`kill -9`** |
+| 2 | 08:36:34 – 08:45:51 | **resumed** at minute 513 (512 had committed just before the kill); background reconciliation every 3 minutes to exercise it live: 7 passes ran, and Base's pass started at minute 518 was **cancelled at its 120 s budget while minutes 519 and 520 were processed on time** — off the minute path; then SIGTERM (clean stop) |
+| 3 | 08:46:05 – 08:54:37 | resumed at 522 (`backfilled`: processed 210 s after it ended); production defaults with PublicNode call-only (below); SIGTERM |
 
-- **Seen**: 0 liquidations (a calm market — none on any of the 6 pools or 4 Morpho deployments
-  in those 54 minutes); 6 ticks written (`coverage 0/0`); blocks scanned: mainnet 270, Arbitrum
-  11,495, Optimism 1,624, Base 1,624; Aave markets resolved from the registry: mainnet 3 (Core,
-  Lido, EtherFi), one on each L2.
-- **False-empty defence**: every empty chunk was re-asked on a second backend group (mainnet
-  64, Arbitrum 37, Optimism 37, Base 37 in the stream's life); 0 contradicted, 0 unconfirmable.
-- **Latency**: each minute was processed 58–62 s after it ended (confirmations: mainnet 3 blocks,
-  the L2s ≈ 30 s), so a liquidation enters the stream 1–2 minutes after it happens.
-- **Errors**: 0 minutes failed in segments 1, 2 and 4; Base's reconciliation pass hit its 120 s
-  budget once (segment 3, run every 5 min there to exercise it) because its independent logs
-  backends were rate-limiting (mainnet.base.org answered `request limit reached` to 85% of its
-  calls, dRPC and PublicNode to some) — skipped and covered by the next pass, as designed.
-- **Resources (calm)**: max RSS 146–158 MB (V8 heap 26–35 MB; most of the RSS is Node + the
-  TypeScript loader), CPU 3.1 s over 12.35 min (0.4% of a core).
+- **Checks**: every chunk on two backends — 99 chunks: 98 empty ones confirmed and the one with
+  the liquidation returned by both; 0 false empties, 0 short answers, 0 unverified heads; 1 unconfirmable empty (Base, segment 2) retried;
+  0 errors; 0 out-of-scope logs in those minutes (the crash replay had 164, §6).
+- **Found by the smoke**: PublicNode refuses a logs filter without an address (`-32701 Please
+  specify an address`, all three chains) — it is now call-only (eth_call, heads); the other public
+  logs backends (Tenderly, dRPC, Blast, base.org, mainnet.optimism.io, arb1) serve topic-only
+  filters (they carried the crash replay). **A keyed provider must allow topic-only
+  eth_getLogs** (§9).
+- **Latency**: minutes processed 50–60 s after they ended (confirmations: mainnet 3 blocks, the
+  L2s ≈ 30 s), so a liquidation enters the stream 1–2 minutes after it happens.
+- **Resources (calm)**: max RSS 141–155 MB (V8 heap 26–35 MB), CPU 3.1 s over 8.5 min (0.6% of a
+  core).
 
 ### RPC volume (measured)
 
 | | requests / minute | notes |
 | --- | ---: | --- |
-| mainnet, calm | ≈ 7.5 | 12 s blocks: ~3 head polls before the 3rd confirmation lands, 2 logs (the empty answer + its re-ask), ~2.5 headers |
-| each L2, calm | ≈ 4.2 | 1 head, 1 header, 2 logs |
-| all four chains, calm | **≈ 20** | segment 4: 276 requests in 12.35 min, start-up (registry, setups) included |
+| mainnet, calm | ≈ 12 | head polls on TWO backends (≈ 5.6 eth_blockNumber/min: 12 s blocks, ~3 polls before the 3rd confirmation), 2 logs (the chunk on two backends), ~3 headers, ~2 calls |
+| each L2, calm | ≈ 6–7 | 2 heads (two backends), 1–2 headers, 2 logs |
+| all four chains, calm | **≈ 28–32** | segment 3: 271 requests in 8.49 min, start-up (registry, setups) included; the first build's smoke measured ≈ 20–22 |
+| of which new in this review | ≈ +6.5 | the agreed head (a second eth_blockNumber per poll: mainnet +3, each L2 +1.1). A chunk is asked twice as before when empty — calm chunks are — and now also when non-empty: +1 per non-empty chunk (≈ 4 a minute in a crash, 0 in calm). The scope rule: ≈ 3 calls once per new out-of-scope emitter |
 | + open positions | + ≈ 2 per chain | one price Multicall3 and ~1 header per chain-minute while anything is walking (a 7-day horizon keeps something walking most of the time) |
 | + reconciliation | + ≈ 10 / hour | hourly, a few chunks per chain |
-| + per liquidation | ≈ 2.7 | Aave: user multicall at N−1, block states at N−1 and N (shared by every liquidation in the block); Morpho: state, IRM, price(N). Oct 10 replay: 12,155 requests for 3,408 liquidations in 130 min |
+| + per liquidation | ≈ 2.7 | Aave: user multicall at N−1, block states at N−1 and N (shared by every liquidation in the block); Morpho: state, IRM, price(N). Oct 10 replay: 12,266 requests for 3,408 liquidations in 130 min |
 
-**Monthly**: calm ≈ 20/min × 43,200 ≈ **0.86 M**; with positions walking on every chain ≈ 28/min
-≈ **1.2 M** (≈ 0.5 requests/s on average); an Oct 10-sized crash day adds ≈ 15–20 k on the day
+**Monthly**: calm ≈ 30/min × 43,200 ≈ **1.3 M**; with positions walking on every chain ≈ 38/min
+≈ **1.6 M** (≈ 0.6 requests/s on average); an Oct 10-sized crash day adds ≈ 15–20 k on the day
 (the peak minute, 21:19 UTC with 362 liquidations, needs ≈ 1,000 requests). The design draft's
-350 k/month underestimated it: every empty logs answer costs a second call (the R33 rule) and
-each poll reads the confirmed block's header.
-
+350 k/month underestimated it: every chunk costs two calls (the R33 rule, now for every chunk),
+every head poll two, and each poll reads the confirmed block's header.
 
 ### Where it runs — options (prices: the parent's 2026-10 lookups, to be re-checked)
 
 | option | what | monthly | trade-off |
 | --- | --- | --- | --- |
-| **A (recommended)** | always-on Node worker on **Fly.io**, shared-cpu-1x 256 MB, 1 GB volume for the file sink (or the Neon sink) | **≈ $1.94** (+$5 per GB-month of extra RAM; a 1 GB volume ≈ $0.15) | true minute cadence, continuous log polling, restart/backfill built in; one more host to watch |
+| **A (recommended)** | always-on Node worker on **Fly.io**, shared-cpu-1x **512 MB**, the Neon sink (or a 1 GB volume for the file sink) | **≈ $3.20** ($1.94 for the 256 MB preset + 0.25 GB × $5 per GB-month; a 1 GB volume ≈ $0.15 more) | true minute cadence, continuous log polling, restart/backfill built in; one more host to watch |
 | B | Vercel Pro per-minute cron → a route running one minute per call, state through Neon | $0 marginal if on Pro | best-effort timing, function time limits on crash minutes (the Oct 10 peak minute: 362 liquidations, ≈ 1,000 RPC requests, 11.9 s of processing on public endpoints — and ≈ 2-3 s of reads per minute queue behind rate limits), the whole state round-trips through the DB every minute |
 | C | Hetzner CX23 VPS | ≈ €5.49 | as A, more ops (OS, updates, process supervision) |
 
-**Sizing.** Calm: ~150 MB RSS and < 1% CPU — the 256 MB shared-cpu-1x preset fits. A crash
-like Oct 10 keeps ~1,500 positions walking and the replay peaked at **381 MB RSS** (135 MB heap),
-so the recommendation is **shared-cpu-1x with 512 MB: ≈ $1.94 + 0.25 GB × $5 ≈ $3.20 / month**
-(plus a 1 GB volume for the file sink, ≈ $0.15, or the Neon sink and no volume). One machine,
-never two (the minute loop is a single writer; the Postgres sink's guard refuses a second one).
-CPU is never the limit: the whole 130-minute crash replay used 79 s of CPU.
+**Sizing.** Calm: ~150 MB RSS and < 1% CPU. A crash like Oct 10 keeps ~1,500 positions walking
+and the replay peaked at 270 MB RSS (381 MB before the state compaction), so the 256 MB preset is too small for a crash and the
+recommendation is **shared-cpu-1x with 512 MB: ≈ $1.94 + 0.25 GB × $5 ≈ $3.20 / month** (plus
+≈ $0.15 for a 1 GB volume if the file sink is used). One machine, never two (the minute loop is a
+single writer; the Postgres sink's guard refuses a second one). CPU is never the limit.
 
 **Recommendation: A (Fly.io, 512 MB, ≈ $3.20/mo) with the Neon sink**, a keyed RPC provider as the
-primary logs and reads backend and the public endpoints as the independent re-ask and
-reconciliation backends, and the daily export to membrane-datasets. B is cheaper only if the
-project is already on Vercel Pro, and a crash minute (≈ 1,000 requests, seconds of rate-limited
-reads) inside a per-minute function invocation, with the full state round-tripping through the
-database each minute, is the wrong shape for it. C costs more for the same thing plus OS work.
+primary logs and reads backend (`WAVEFRONT_RPC_<CHAIN>`) and the public endpoints as the
+independent re-ask and reconciliation backends, and the daily export to membrane-datasets. B is
+cheaper only if the project is already on Vercel Pro, and a crash minute (≈ 1,000 requests,
+seconds of rate-limited reads) inside a per-minute function invocation, with the full state
+round-tripping through the database each minute, is the wrong shape for it. C costs more for the
+same thing plus OS work.
 
 ## 9. Decisions needed from the owner (nothing below has been done)
 
-1. **Hosting and spend**: A (Fly.io ≈ $2/mo), B (Vercel cron) or C (Hetzner ≈ €5.49/mo); who
-   owns the account and the alert on a stalled stream.
+1. **Hosting and spend**: A (Fly.io, 512 MB, ≈ $3.20/mo), B (Vercel cron) or C (Hetzner
+   ≈ €5.49/mo); who owns the account and the alert on a stalled stream (the stats file's
+   `engine.chains.*.pollFailures`, `minutes[].lagging`, `counters.reconcileFailures`).
 2. **RPC keys (secrets)**: keyless public endpoints carried the smoke and the crash replay, but
-   with rate limits (drpc, base official) and Pocket's false empties excluded the redundancy is
-   thin on Arbitrum (2 logs groups). A keyed provider (and a second one for the independent
-   re-ask) is the reliable choice; keys go into the host's secret store, never the repo.
-3. **Neon table in production**: apply `db/migrations-pending/2026-10-14_wavefront_live.sql`
-   (or a separate database) and switch to `--sink postgres`.
-4. **Daily export** of the stream to `membrane-datasets` (rule N18) — a schedule.
-5. **Going live**: DESIGN_RULES says the wavefront goes live only when it runs in real time on
+   with rate limits (dRPC, base.org) and Pocket's false empties excluded the redundancy is thin
+   (Arbitrum has 2 logs groups). A keyed provider — and ideally a second, independent one — goes
+   into the host's secret store as `WAVEFRONT_RPC_MAINNET`, `WAVEFRONT_RPC_ARBITRUM`,
+   `WAVEFRONT_RPC_OPTIMISM`, `WAVEFRONT_RPC_BASE` (comma-separated URLs; e.g. `fly secrets set
+   WAVEFRONT_RPC_BASE=https://…`), never the repo. Only hostnames are printed. The provider must
+   serve **eth_getLogs by topic without an address** over minute-sized ranges (PublicNode's
+   free tier does not), and ≈ 1.3–1.6 M requests a month (§8).
+3. **Scope beyond the registry**: Aave instances outside the PoolAddressesProviderRegistry are
+   excluded by default and counted per emitter. **Horizon RWA** (mainnet, an Aave-run RWA market,
+   §4) is the known one: include it (`--allow-aave-provider horizon`) or not. Forks (Spark,
+   Seamless, …) stay out under the registry rule.
+4. **Neon table in production**: apply `db/migrations-pending/2026-10-14_wavefront_live.sql`
+   (or a separate database) and switch to `--sink postgres`. **As part of that step, the drizzle
+   trap**: the tables are not in `db/schema.ts`, so `pnpm db:push` would then offer to DROP them
+   (data included) — answer no, or declare them in `db/schema.ts` (or exclude them with
+   drizzle's `tablesFilter`) together with applying the SQL.
+5. **Neon cost of state writes**: the Postgres sink rewrites the state row every minute (43,200
+   times a month). The state is ≈ 2 KB + ~3 KB per position walking: a calm
+   month with ~50 positions walking writes ≈ 130 KB × 43,200 ≈ 5.6 GB; the simulated month's end
+   (604 walking, 1.58 MB) ≈ 68 GB/month; an Oct 10-like crash ≈ 5 MB a minute while ~1,500
+   positions walk. Neon bills storage including its history window, so this matters. Options:
+   gzip the state before writing (7.4× on the Oct 10 state — a small change in the sink), keep
+   the file sink on a Fly volume and export daily, or accept the volume.
+6. **File-sink backups** (if the file sink is chosen): the JSONL and its `.state` live on one
+   volume; a lost volume loses the stream (the engine would start a new one). A daily copy of
+   both (the export to membrane-datasets, item 7, can be that copy) or the Neon sink.
+7. **Daily export** of the stream to `membrane-datasets` (rule N18) — a schedule.
+8. **Going live**: DESIGN_RULES says the wavefront goes live only when it runs in real time on
    every liquidated position; the page stays behind its flag until the owner says so.
-6. **The census follows** the 2.1 rules (all pools, pool-qualified pids via `lib/wavefront/pid.ts`,
+9. **The census follows** the 2.1 rules (all pools, pool-qualified pids via `lib/wavefront/pid.ts`,
    N−1 locate, gaps, protocol fee, walked-only real totals) so replay and live agree again.
 
 ## 10. Known limits
 
+- **Reorgs.** The confirmations (mainnet 3 blocks ≈ 36 s; OP-stack 15 blocks ≈ 30 s; Arbitrum
+  120 blocks ≈ 30 s) protect against the common short reorgs, not against everything: an L2 block
+  30 s deep is final only from the sequencer's point of view, **not L1-safe** (that takes the
+  batch posted and the L1 block finalised — minutes to ~15 min on OP-stack, longer for Arbitrum);
+  a mainnet reorg deeper than 3 blocks is rare but possible. There is **no retraction record** in
+  schema v1: a liquidation emitted and later reorged out stays in the stream. The reconciliation
+  counts processed events a later pass did not return (`reconcileShort`) — the signal to look at —
+  and the hash check stops a scan whose log does not match the header it read.
 - A position closed after its horizon that is liquidated again gets `real` records only (one
   `open` per pid in schema v1); a new episode would need an episode suffix in the pid.
 - The cluster list is fixed (`DEFAULT_OWN_CLUSTERS`, the census's: AERO, CRV, Mog, PEPE, UNI); a
   live stream cannot count a whole window ahead.
-- The reducer state keeps every position ever opened (~1-2 KB each) — fine for months; archive
-  it if the stream runs for years.
-- Late records carry the append time in `ts` (so the reducer's order holds); their own time is
-  `eventTs`. A compact re-encoding would rebuild their mem ts from t0.
+- Late and caught-up records carry the append time in `ts` (so the reducer's order holds); their
+  own time is `eventTs`. A tick written while a chain lagged does not include that chain's
+  records of those minutes (`gaps.lagging` says so); the next ticks do.
+- A reconciliation pass that reaches its 24 h cap leaves the stretch before it unchecked (logged
+  with the block range, counted).
 - Interest after t0 is not accrued (as the census); prices are the minute start's; no venue
   recall, no Membrane-side fee.

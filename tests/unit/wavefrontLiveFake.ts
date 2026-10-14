@@ -3,8 +3,12 @@
  * liquidation logs, and eth_call / Multicall3 answered by decoding the real calldata the engine
  * sends (the ABIs of scripts/oct10-coverage/abi.ts) and encoding the answers. It serves an Aave
  * PoolAddressesProviderRegistry with the Core market (CHAIN_CONFIG's addresses) and any extra
- * markets, Morpho Blue, and three backend groups ('g1', 'g2', 'g3') so the false-empty re-ask and
- * the reconciliation can be exercised; `logsFault` / `priceFault` make groups misbehave.
+ * markets, Morpho Blue, and three backend groups ('g1', 'g2', 'g3') so the two-backend logs
+ * check and the reconciliation can be exercised; `logsFault` / `priceFault` make groups misbehave
+ * and `headLag` makes a group's node trail the head (its blockNumber is lower and a logs range
+ * past its own head comes back SHORT, without an error — what dRPC and arb1 do). eth_getLogs is
+ * answered by topic over every emitter, so `forks` (contracts emitting the same LiquidationCall
+ * signature, with their own ADDRESSES_PROVIDER() or none) can be scripted.
  */
 import {
   decodeFunctionData,
@@ -108,6 +112,15 @@ export interface FakeAaveMarket {
   marketId: string
   reserves: FakeReserve[]
   users: FakeAaveUser[]
+  /** Listed by the registry only from this block on (a market added mid-stream). */
+  registryFrom?: number
+}
+
+/** A non-registry contract emitting LiquidationCall: a fork (own provider) or no provider. */
+export interface FakeFork {
+  pool: string
+  /** Its ADDRESSES_PROVIDER(); null = the call reverts. */
+  provider: string | null
 }
 
 export interface FakeChainSpec {
@@ -124,6 +137,9 @@ export interface FakeChainSpec {
   /** E-mode categories: collateral LT and the reserve-id bitmap. */
   emode?: { id: number; lt: number; bitmap: bigint }[]
   extraAave?: FakeAaveMarket[]
+  /** Markets NOT in the registry (an allow-list candidate, e.g. Horizon), answering like one. */
+  outsideRegistry?: FakeAaveMarket[]
+  forks?: FakeFork[]
 }
 
 export const blockHash = (chain: string, n: number) => keccak256(vToHex(`${chain}:${n}`))
@@ -190,6 +206,7 @@ const extraAbi = parseAbi([
   'function getAddressesProvidersList() view returns (address[])',
   'function getMarketId() view returns (string)',
   'function scaledBalanceOf(address user) view returns (uint256)',
+  'function ADDRESSES_PROVIDER() view returns (address)',
 ])
 
 const ABIS: Abi[] = [
@@ -211,8 +228,10 @@ export const CORE_DATA_PROVIDER = '0x00000000000000000000000000000000000000d1'
 
 export class FakeChain implements LiveRpc {
   readonly calls: { method: string; group: string; params: unknown[] }[] = []
-  /** Logs a group must not return (simulated false empty / short answer). */
-  logsFault: { group: string; drop: (l: FakeLog) => boolean } | null = null
+  /** Logs these groups must not return (simulated false empty / short answer). */
+  logsFault: { groups: string[]; drop: (l: FakeLog) => boolean } | null = null
+  /** Blocks a group's node trails the head by (blockNumber, and logs past its own head). */
+  headLag: Record<string, number> = {}
   /** Groups that answer these price reads (block, asset or Morpho oracle) as 0. */
   priceFault: { groups: string[]; bad: (block: number, key: string) => boolean } | null = null
   /** Highest toBlock any eth_getLogs asked for. */
@@ -229,7 +248,19 @@ export class FakeChain implements LiveRpc {
     return CHAIN_CONFIG[this.spec.chain]
   }
 
-  /** Core + extra Aave markets. */
+  /** Every market that answers calls: the registry's and the ones outside it. */
+  allMarkets(): FakeAaveMarket[] {
+    const norm = (m: FakeAaveMarket) => ({
+      ...m,
+      provider: lc(m.provider),
+      pool: lc(m.pool),
+      oracle: lc(m.oracle),
+      dataProvider: lc(m.dataProvider),
+    })
+    return [...this.aaveMarkets(), ...(this.spec.outsideRegistry ?? []).map(norm)]
+  }
+
+  /** Core + extra Aave markets (the registry's list). */
   aaveMarkets(): FakeAaveMarket[] {
     const S = this.spec
     return [
@@ -259,7 +290,9 @@ export class FakeChain implements LiveRpc {
   private pickGroup(opts?: CallOpts): string {
     const ex = new Set(opts?.excludeGroups ?? [])
     const exH = new Set(opts?.excludeHosts ?? [])
-    const g = this.groupList.find((x) => !ex.has(x) && !exH.has(`${x}.host`))
+    const g = this.groupList.find(
+      (x) => !ex.has(x) && !exH.has(`${x}.host`) && (!opts?.onlyGroup || x === opts.onlyGroup),
+    )
     if (!g) throw new NoBackendError('no eligible endpoint')
     return g
   }
@@ -271,7 +304,7 @@ export class FakeChain implements LiveRpc {
     const ans = (result: unknown): RpcAnswer => ({ result, host: `${group}.host`, group })
     switch (method) {
       case 'eth_blockNumber':
-        return ans('0x' + this.spec.head.toString(16))
+        return ans('0x' + (this.spec.head - (this.headLag[group] ?? 0)).toString(16))
       case 'eth_getBlockByNumber': {
         const n = Number(BigInt(params[0] as string))
         if (n > this.spec.head) throw new Error(`block ${n} beyond head ${this.spec.head}`)
@@ -284,17 +317,25 @@ export class FakeChain implements LiveRpc {
       case 'eth_getCode':
         return ans('0x6080')
       case 'eth_getLogs': {
-        const f = params[0] as { address: string[]; topics: string[][]; fromBlock: string; toBlock: string }
+        const f = params[0] as { address?: string[]; topics: string[][]; fromBlock: string; toBlock: string }
         const from = Number(BigInt(f.fromBlock))
         const to = Number(BigInt(f.toBlock))
         if (to > this.spec.head) throw new Error(`logs beyond head`)
         this.maxLogsTo = Math.max(this.maxLogsTo, to)
         this.logRanges.push({ from, to, head: this.spec.head, group })
-        const addrs = new Set(f.address.map(lc))
+        // A node behind the head answers up to its own head: a short list, no error.
+        const nodeHead = this.spec.head - (this.headLag[group] ?? 0)
+        const addrs = f.address ? new Set(f.address.map(lc)) : null
         const topics = new Set(f.topics[0].map(lc))
         const out = this.spec.logs
-          .filter((l) => l.block >= from && l.block <= to && addrs.has(lc(l.address)) && topics.has(lc(l.topics[0])))
-          .filter((l) => !(this.logsFault && this.logsFault.group === group && this.logsFault.drop(l)))
+          .filter(
+            (l) =>
+              l.block >= from &&
+              l.block <= Math.min(to, nodeHead) &&
+              (!addrs || addrs.has(lc(l.address))) &&
+              topics.has(lc(l.topics[0])),
+          )
+          .filter((l) => !(this.logsFault && this.logsFault.groups.includes(group) && this.logsFault.drop(l)))
           .sort((a, b) => a.block - b.block || a.logIndex - b.logIndex)
           .map((l) => ({
             address: l.address,
@@ -391,8 +432,13 @@ export class FakeChain implements LiveRpc {
   private answer(to: string, fn: string, args: readonly unknown[], block: number, group: string): unknown {
     const S = this.spec
     const cfg = this.cfg
-    const markets = this.aaveMarkets()
-    if (to === cfg.aaveRegistry && fn === 'getAddressesProvidersList') return markets.map((m) => m.provider)
+    const markets = this.allMarkets()
+    if (to === cfg.aaveRegistry && fn === 'getAddressesProvidersList')
+      return this.aaveMarkets()
+        .filter((m) => (m.registryFrom ?? 0) <= block)
+        .map((m) => m.provider)
+    const fork = S.forks?.find((x) => lc(x.pool) === to)
+    if (fork && fn === 'ADDRESSES_PROVIDER') return fork.provider ?? undefined
     const byProvider = markets.find((m) => m.provider === to)
     if (byProvider) {
       if (fn === 'getPool') return byProvider.pool
@@ -403,6 +449,7 @@ export class FakeChain implements LiveRpc {
     const byPool = markets.find((m) => m.pool === to)
     if (byPool) {
       const reserve = (a: string) => byPool.reserves.find((r) => lc(r.address) === lc(a))
+      if (fn === 'ADDRESSES_PROVIDER') return byPool.provider
       if (fn === 'POOL_REVISION') return 9n
       if (fn === 'getReservesList') return byPool.reserves.map((r) => r.address)
       if (fn === 'getReserveData') {

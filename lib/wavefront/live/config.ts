@@ -108,6 +108,43 @@ export const DEFAULT_OWN_CLUSTERS: readonly string[] = ['AERO', 'CRV', 'Mog', 'P
 /** Re-resolve the Aave markets from the registry this often (minutes of stream time). */
 export const MARKETS_REFRESH_MINUTES = 24 * 60
 
+/**
+ * Aave V3 instances OUTSIDE the chain's PoolAddressesProviderRegistry that the engine knows by
+ * name. They are OUT of scope by default (their liquidations are excluded and counted like a
+ * fork's); `allowAaveProviders` (CLI `--allow-aave-provider horizon` or an address) brings one in.
+ * Whether to is an owner decision (docs/WAVEFRONT_LIVE_ENGINE.md §9).
+ *   horizon  Aave Horizon "Horizon RWA Market" (mainnet): provider 0x5D39E06b…8ba0 resolves to
+ *            pool 0xAe05Cd22…32C8 (getPool, getMarketId and the pool's ADDRESSES_PROVIDER()
+ *            checked 2026-10-14); not listed by the registry 0xbaA999AC…5170.
+ */
+export const KNOWN_NON_REGISTRY_AAVE: Partial<
+  Record<ChainKey, { label: string; provider: string; pool: string }[]>
+> = {
+  mainnet: [
+    {
+      label: 'horizon',
+      provider: lc('0x5D39E06b825C1F2B80bf2756a73e28eFAA128ba0'),
+      pool: lc('0xAe05Cd22df81871bc7cC2a04BeCfb516bFe332C8'),
+    },
+  ],
+}
+
+/** `--allow-aave-provider` entries (labels of KNOWN_NON_REGISTRY_AAVE or addresses) -> providers. */
+export function allowedAaveProviders(
+  chain: ChainKey,
+  entries: readonly string[],
+): string[] {
+  const out: string[] = []
+  for (const e of entries) {
+    const known = KNOWN_NON_REGISTRY_AAVE[chain]?.find((k) => k.label === e.toLowerCase())
+    if (known) out.push(known.provider)
+    else if (/^0x[0-9a-fA-F]{40}$/.test(e)) out.push(lc(e))
+    else if (!Object.values(KNOWN_NON_REGISTRY_AAVE).some((l) => l?.some((k) => k.label === e.toLowerCase())))
+      throw new Error(`--allow-aave-provider ${e}: not an address or a known label`)
+  }
+  return out
+}
+
 export interface EngineDefaults {
   /** A position with no timer armed and no activity for this many minutes is closed. */
   horizonMinutes: number
@@ -120,6 +157,24 @@ export interface EngineDefaults {
   pollSeconds: number
   /** Parallel per-event reads. */
   readConcurrency: number
+  /**
+   * A chain whose confirmed head has not reached a minute this many seconds after it normally
+   * would is LAGGING: the other chains' minutes go on without it (its positions are flagged on
+   * the ticks, not stepped) and it is caught up, as `late` records, when it answers again. Live
+   * default 300 s; historical runs wait for every chain (Infinity).
+   */
+  chainStallSeconds: number
+  /** Catch-up minutes of a recovering chain processed per stream minute. */
+  catchupMinutesPerMinute: number
+  /** A position whose held legs' oracle values are missing this many minutes in a row is closed. */
+  maxGapMinutes: number
+  /** Wall-clock budget of one chain's background reconciliation pass (cancelled at it). */
+  reconcileBudgetSeconds: number
+  /**
+   * The longest range one reconciliation pass covers, minutes back from the minute it runs at:
+   * after many failed passes the next one starts no earlier (counted, logged).
+   */
+  reconcileMaxCatchupMinutes: number
 }
 
 export const DEFAULTS: EngineDefaults = {
@@ -129,4 +184,9 @@ export const DEFAULTS: EngineDefaults = {
   backfillLagSeconds: 180,
   pollSeconds: 10,
   readConcurrency: 12,
+  chainStallSeconds: 300,
+  catchupMinutesPerMinute: 60,
+  maxGapMinutes: 60,
+  reconcileBudgetSeconds: 120,
+  reconcileMaxCatchupMinutes: 1440,
 }

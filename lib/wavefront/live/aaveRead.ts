@@ -71,6 +71,7 @@ const SECONDS_PER_YEAR = 365n * 24n * 3600n
 const registryAbi = parseAbi(['function getAddressesProvidersList() view returns (address[])'])
 const marketIdAbi = parseAbi(['function getMarketId() view returns (string)'])
 const scaledAbi = parseAbi(['function scaledBalanceOf(address user) view returns (uint256)'])
+const poolProviderAbi = parseAbi(['function ADDRESSES_PROVIDER() view returns (address)'])
 
 export interface AaveMarket {
   provider: string
@@ -133,6 +134,58 @@ export async function readAaveMarkets(
   if (new Set(markets.map((m) => m.pool)).size !== markets.length)
     throw new Error(`${cfg.chain}: two registry markets share a pool`)
   return markets
+}
+
+/**
+ * An emitter's `ADDRESSES_PROVIDER()` at `block` (lower case), or null when it has none (reverts,
+ * no code, an Aave V2 LendingPool — which has getAddressesProvider() instead — or anything else
+ * that emits the same LiquidationCall signature). The engine's scope rule: an emitter is an Aave
+ * V3 pool iff this returns a provider in the chain's registry (or an allow-listed one).
+ */
+export async function readAddressesProvider(
+  rpc: LiveRpc,
+  chain: ChainKey,
+  emitter: string,
+  block: number,
+): Promise<string | null> {
+  const [r] = await multicall(
+    rpc,
+    chain,
+    [{ target: emitter, abi: poolProviderAbi, fn: 'ADDRESSES_PROVIDER' }],
+    block,
+  )
+  if (!r.ok) return null
+  const v = lc(String(r.value))
+  return /^0x[0-9a-f]{40}$/.test(v) && v !== '0x0000000000000000000000000000000000000000' ? v : null
+}
+
+/** One market from its PoolAddressesProvider (an allow-listed instance outside the registry). */
+export async function readAaveMarketOf(
+  rpc: LiveRpc,
+  chain: ChainKey,
+  provider: string,
+  block: number,
+): Promise<AaveMarket | null> {
+  const p = lc(provider)
+  const [pool, oracle, dp, id] = await multicall(
+    rpc,
+    chain,
+    [
+      { target: p, abi: providerAbi, fn: 'getPool' },
+      { target: p, abi: providerAbi, fn: 'getPriceOracle' },
+      { target: p, abi: providerAbi, fn: 'getPoolDataProvider' },
+      { target: p, abi: marketIdAbi, fn: 'getMarketId' },
+    ],
+    block,
+  )
+  if (!pool.ok || !oracle.ok || !dp.ok) return null
+  return {
+    provider: p,
+    pool: lc(String(pool.value)),
+    oracle: lc(String(oracle.value)),
+    dataProvider: lc(String(dp.value)),
+    marketId: id.ok ? String(id.value) : '',
+  }
 }
 
 export interface AaveLiveAsset {

@@ -9,13 +9,24 @@
  * public/data/oct10-2025/wavefront-replay.json (the same records, compact form).
  *
  * Compared, per pid: the open record (every field: line, class, walked, reason, legs, t0, subs,
- * USD …), every real record with ts before the slice end, and every mem record with minute before
- * the slice end — numbers within 1e-6 relative (USD are cents in both, so in practice equal).
- * The live stream must also fold through the ONE reducer without an error.
+ * USD …), every real record with ts before the slice end, every mem record with minute before
+ * the slice end, and the ORDER of the pid's records (the kinds in seq order). Integers — blocks,
+ * timestamps, minutes, log indexes, sub indexes, counts — must be EQUAL; other numbers within
+ * 1e-6 relative (USD are cents on both sides, so in practice equal). The live stream must fold
+ * through the ONE reducer without an error (its ticks checked against its fold), and at every
+ * live tick inside the slice the fold of the compared positions' records so far must equal the
+ * census's fold of the same positions' records so far (coverage exactly; real seized after the
+ * protocol fee within a cent per record).
+ *
+ * `differences` counts EVERYTHING that differs — record diffs, tick diffs, census positions
+ * missing in the live stream, live positions the census does not have — except the by-design
+ * categories below, each listed with its members. The exit code is 1 when differences > 0.
  *
  * What the live engine does differently BY DESIGN (owner review 2.1), and how it is compared:
  *   - pids carry the Aave pool: Core-pool ids are mapped back to the census's legacy form;
  *     positions on the other pools (mainnet Lido, EtherFi) are outside the census and listed;
+ *   - Morpho Blue positions on a chain where the census has no Morpho position at all (the
+ *     owner's Oct 10 pull covered Morpho on mainnet and Base) are outside the census and listed;
  *   - Aave real seizedUsd includes the liquidation protocol fee: compared as
  *     seizedUsd - protocolFeeUsd (each rounded to cents, so within $0.01);
  *   - a position not liquidatable at the N prices but at the N-1 prices is walked
@@ -28,6 +39,8 @@ import { join } from 'path'
 import { gunzipSync } from 'zlib'
 import { AAVE_CORE_POOL, legacyPid, parseAnyPid } from '../../lib/wavefront/pid'
 import {
+  applyRecord,
+  createReplayState,
   decodeCompact,
   decodeJsonl,
   replay,
@@ -35,6 +48,7 @@ import {
   type OpenRecord,
   type RealRecord,
   type StreamRecord,
+  type TickRecord,
 } from '../../lib/wavefront/stream'
 
 function args(argv: string[]): Record<string, string> {
@@ -44,12 +58,19 @@ function args(argv: string[]): Record<string, string> {
 }
 
 const REL = 1e-6
-const close = (a: unknown, b: unknown) =>
-  typeof a === 'number' && typeof b === 'number'
-    ? a === b || Math.abs(a - b) <= REL * Math.max(Math.abs(a), Math.abs(b))
-    : a === b
+/** Fields that are integers by definition: compared exactly whatever their size. */
+const INTEGER_FIELDS = new Set(['block', 'ts', 'minute', 'seq', 'logIndex', 'sub', 't0Block', 't0Ts', 't0Minute', 'eventTs', 'events', 'positions', 'walked', 'total'])
+const close = (a: unknown, b: unknown, path: string) => {
+  if (typeof a !== 'number' || typeof b !== 'number') return a === b
+  if (a === b) return true
+  const field = path.slice(path.lastIndexOf('.') + 1)
+  // Integers are equal or different: 1e-6 of a block number (~23.5 M) is 23 blocks, of a unix
+  // time 29 minutes.
+  if (INTEGER_FIELDS.has(field) || (Number.isInteger(a) && Number.isInteger(b))) return false
+  return Math.abs(a - b) <= REL * Math.max(Math.abs(a), Math.abs(b))
+}
 
-/** Paths where two values differ (numbers within REL). */
+/** Paths where two values differ (integers exactly, other numbers within REL). */
 function diff(a: unknown, b: unknown, path = ''): string[] {
   if (a && b && typeof a === 'object' && typeof b === 'object') {
     if (Array.isArray(a) !== Array.isArray(b)) return [`${path}: array vs object`]
@@ -59,7 +80,7 @@ function diff(a: unknown, b: unknown, path = ''): string[] {
       out.push(...diff((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], `${path}.${k}`))
     return out
   }
-  return close(a, b) ? [] : [`${path}: census ${JSON.stringify(a)} live ${JSON.stringify(b)}`]
+  return close(a, b, path) ? [] : [`${path}: census ${JSON.stringify(a)} live ${JSON.stringify(b)}`]
 }
 
 const strip = <T extends StreamRecord>(r: T) => {
@@ -139,8 +160,14 @@ function main() {
   const livePids = new Set(liveOpens.filter(inSlice).map((r) => r.pid))
   const preSlice = [...livePids].filter((p) => censusOpen.has(p) && !inSlice(censusOpen.get(p)!))
   const missing = [...censusPids].filter((p) => !livePids.has(p))
-  const extra = [...livePids].filter((p) => !censusOpen.has(p) && !nonCore.has(p))
+  // Morpho chains the census covers at all (its pull's scope).
+  const censusMorphoChains = new Set(
+    [...censusOpen.keys()].filter((p) => p.startsWith('morpho-blue:')).map((p) => p.split(':')[1]),
+  )
+  const morphoOutOfScope = (p: string) => p.startsWith('morpho-blue:') && !censusMorphoChains.has(p.split(':')[1])
   const outsideCensus = [...livePids].filter((p) => nonCore.has(p))
+  const morphoOutside = [...livePids].filter((p) => !censusOpen.has(p) && morphoOutOfScope(p))
+  const extra = [...livePids].filter((p) => !censusOpen.has(p) && !nonCore.has(p) && !morphoOutOfScope(p))
   const common = [...censusPids].filter((p) => livePids.has(p))
   const nm1 = new Set(
     liveOpens.filter((r) => (r as { priceBasis?: string }).priceBasis === 'N-1').map((r) => mapPid(r.pid)),
@@ -212,6 +239,12 @@ function main() {
     }
     for (const r of lm) if (r.event === 'sell' || r.event === 'sell-instant') liveMemUsd += r.repaidUsd ?? 0
     const memSink = nm1.has(pid) ? byDesign : diffs
+    // The pid's records in stream order (kinds), real and mem interleaved.
+    const kinds = (x: { open?: OpenRecord; real: RealRecord[]; mem: MemRecord[] }, rl: RealRecord[], ml: MemRecord[]) =>
+      [x.open!, ...rl, ...ml].sort((p, q) => p.seq - q.seq).map((r) => (r.kind === 'mem' ? `mem@${r.minute}` : r.kind))
+    const ko = kinds(c, cr, cm)
+    const kl = kinds(l, lr, lm)
+    if (ko.join() !== kl.join()) memSink.push({ pid, what: 'record order', detail: [`census ${ko.join(' ')}`, `live ${kl.join(' ')}`] })
     if (cm.length !== lm.length)
       memSink.push({
         pid,
@@ -224,7 +257,51 @@ function main() {
         if (dd.length) memSink.push({ pid, what: `mem ${i}`, detail: dd })
       })
   }
+  // Ticks: at every live tick inside the slice, the fold of the compared positions' records so
+  // far, live vs census (the N-1 positions left out: they differ by design).
+  const compared = new Set(common.filter((p) => !nm1.has(p)))
+  const restricted = (recs: StreamRecord[]) =>
+    recs.filter(
+      (r) =>
+        r.kind !== 'tick' &&
+        compared.has(r.pid) &&
+        (r.kind === 'open' || (r.kind === 'real' ? r.ts < endTs : (r as MemRecord).minute < tm)),
+    )
+  const cRec = restricted(census.records)
+  const lRec = restricted(live.records)
+  const cFold = createReplayState()
+  const lFold = createReplayState()
+  let ci = 0
+  let li = 0
+  let lFee = 0
+  let lReals = 0
+  const tickDiffs: { minute: number; detail: string[] }[] = []
+  const liveTicks = live.records.filter(
+    (r): r is TickRecord => r.kind === 'tick' && r.minute >= fm && r.minute < tm,
+  )
+  for (const t of liveTicks) {
+    while (ci < cRec.length && cRec[ci].ts < t.ts) applyRecord(cFold, cRec[ci++])
+    while (li < lRec.length && lRec[li].seq < t.seq) {
+      const r = lRec[li++] as StreamRecord & { protocolFeeUsd?: number | null }
+      if (r.kind === 'real') {
+        lFee += r.protocolFeeUsd ?? 0
+        lReals++
+      }
+      applyRecord(lFold, r)
+    }
+    const d = diff(
+      { coverage: cFold.coverage, real: { ...cFold.totals.real, soldUsd: 0 }, mem: cFold.totals.mem },
+      { coverage: lFold.coverage, real: { ...lFold.totals.real, soldUsd: 0 }, mem: lFold.totals.mem },
+      `.tick${t.minute}`,
+    )
+    const sold = lFold.totals.real.soldUsd - lFee
+    if (Math.abs(sold - cFold.totals.real.soldUsd) > 0.0101 * Math.max(1, lReals))
+      d.push(`.tick${t.minute}.real.soldUsd (after the fee): census ${cFold.totals.real.soldUsd} live ${sold}`)
+    if (d.length) tickDiffs.push({ minute: t.minute, detail: d })
+  }
+
   const r2 = (x: number) => Math.round(x * 100) / 100
+  const differences = diffs.length + tickDiffs.length + missing.length + extra.length
   const report = {
     census: censusPath,
     live: o.live,
@@ -249,6 +326,7 @@ function main() {
       missingInLive: missing,
       extraInLive: extra,
       outsideCensusNonCorePools: outsideCensus,
+      outsideCensusMorphoChains: { censusMorphoChains: [...censusMorphoChains], positions: morphoOutside },
       locatedAtNm1: [...nm1].filter((p) => censusPids.has(p)),
       openedBeforeSliceInCensus: preSlice.length,
       byProtocolChain: Object.fromEntries(
@@ -270,12 +348,21 @@ function main() {
       recordsWithinOneCentAfterFee: feeAdjusted,
     },
     gapPositionMinutes: gaps,
+    ticks: { compared: liveTicks.length, positionsInFold: compared.size, differing: tickDiffs.length },
     byDesignDifferences: byDesign,
-    differences: diffs.length,
+    differences,
+    differenceCounts: {
+      records: diffs.length,
+      ticks: tickDiffs.length,
+      missingInLive: missing.length,
+      extraInLive: extra.length,
+    },
     diffs: diffs.slice(0, 200),
+    tickDiffs: tickDiffs.slice(0, 50),
   }
   if (o.out) writeFileSync(o.out, JSON.stringify(report, null, 1))
-  console.log(JSON.stringify({ ...report, diffs: diffs.slice(0, 20) }, null, 1))
+  console.log(JSON.stringify({ ...report, diffs: diffs.slice(0, 20), tickDiffs: tickDiffs.slice(0, 5) }, null, 1))
+  if (differences > 0) process.exitCode = 1
 }
 
 main()

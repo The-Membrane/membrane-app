@@ -1,9 +1,15 @@
 /**
  * The live engine's durable state — everything needed to resume exactly where it stopped:
- * the stream position (seq, last ts, next minute), per chain the last scanned block, the events
- * scanned but not yet processed, the recently processed event keys and the answering backend of
- * every recent logs chunk (for the reconciliation), the reducer's fold (for ticks and the
- * open-once rule), and every open position's kernels as field snapshots.
+ * the stream position (seq, last ts, next minute), per chain the last scanned block and the last
+ * minute processed, the events scanned but not yet processed, the processed event keys a future
+ * reconciliation pass could re-find and the answering backends of those logs chunks, the
+ * reducer's fold (coverage and totals) and every OPEN position's kernels as field snapshots.
+ *
+ * It holds open positions only. A closed position (kernels done, idle past the horizon, or its
+ * oracle silent) is dropped from the state at the commit that closes it: the stream itself is
+ * its archive, and the engine rebuilds its open-once index (pid -> walked) from the sink at
+ * start-up (`StreamSink.opened`). So the state's size follows the positions walking, not the age
+ * of the stream.
  *
  * The state is committed TOGETHER with the records of each minute (sinks.ts), so after a crash
  * the stream and the state always agree.
@@ -24,6 +30,14 @@ export interface TickGaps {
   positions: number
   /** Up to 20 of them, `pid@minute: key, …`. */
   sample: string[]
+  /**
+   * Chains that were LAGGING (not answering) in minutes since the previous tick: their positions
+   * were not stepped and their liquidations not read in those minutes — this tick's totals do not
+   * include them. They are caught up as `late` records when the chain answers again.
+   */
+  lagging?: { chains: ChainKey[]; positionMinutes: number }
+  /** Positions closed since the previous tick because their oracle stayed silent. */
+  closed?: { pid: string; reason: string }[]
 }
 
 /**
@@ -55,19 +69,37 @@ export interface LiveHeader {
   createdAt: string
 }
 
+/** An emitter of a liquidation topic that is not in scope (cached classification). */
+export interface ExcludedEmitter {
+  reason: string
+  /** Its ADDRESSES_PROVIDER(), when it has one. */
+  provider: string | null
+  /** The block it was classified at. */
+  block: number
+}
+
 export interface ChainState {
   /** Every log up to this block has been scanned (and confirmed, see logs.ts). */
   scannedTo: number
   scannedToTs: number
   /** The block the stream started after (reconciliation never looks before it). */
   firstBlock: number
+  /** The last minute processed for this chain (behind nextMinute - 1 while it lags). */
+  doneThrough: number
   /** Last block a reconciliation pass covered (the next one starts no later than after it). */
   reconciledTo: number
+  reconciledToTs: number
+  /** Out-of-scope emitters seen (forks, non-registry instances), by address. */
+  excluded: Record<string, ExcludedEmitter>
   /** Scanned, not yet processed (their minute has not been processed). */
   pending: LiqEvent[]
-  /** Processed event keys with their ts, kept for the reconciliation window. */
+  /**
+   * Processed event keys with their ts. A key is dropped only once no future reconciliation pass
+   * can start at or before its time (engine.ts `retainFromTs`), so a re-found event is never
+   * mistaken for a missed one.
+   */
   seen: [string, number][]
-  /** Who answered each primary logs chunk, kept for the reconciliation window. */
+  /** Who answered each primary logs chunk, kept as long as a pass could re-check it. */
   chunks: ChunkProvenance[]
   /** Recent minute -> block in force at the minute start. */
   minuteBlocks: [number, number][]
@@ -88,6 +120,8 @@ export interface SavedPosition {
   anchors: Record<string, number>
   t0Minute: number
   lastActivityMinute: number
+  /** Consecutive minutes not stepped for a missing oracle value (closed at maxGapMinutes). */
+  gapStreak: number
   kernels: SavedKernel[]
 }
 
@@ -104,8 +138,20 @@ export interface Counters {
   reconcileCalls: number
   /** Seen events a reconciliation answer did not contain (short answer or reorg). */
   reconcileShort: number
-  /** Reconciliation passes of a chain that could not run (retried next time). */
+  /** Reconciliation passes of a chain that could not run or were cancelled (retried next time). */
   reconcileFailures: number
+  /** Passes whose range was cut to reconcileMaxCatchupMinutes (an unchecked stretch, logged). */
+  reconcileCapped: number
+  /** Positions closed because their oracle stayed silent for maxGapMinutes. */
+  gapClosed: number
+  /** Chain-minutes a chain was lagging (its minute not processed with the others). */
+  laggingChainMinutes: number
+  /** Minutes of a lagging chain processed later (catch-up, `late` records). */
+  catchupMinutes: number
+  /** Head polls that failed (the chain is retried; the others carry on). */
+  pollErrors: number
+  /** Reloads from the sink after a commit whose outcome was unknown had landed. */
+  sinkReloads: number
   closedPositions: number
   errors: number
   hfMismatch: number
@@ -132,6 +178,12 @@ export const emptyCounters = (): Counters => ({
   reconcileCalls: 0,
   reconcileShort: 0,
   reconcileFailures: 0,
+  reconcileCapped: 0,
+  gapClosed: 0,
+  laggingChainMinutes: 0,
+  catchupMinutes: 0,
+  pollErrors: 0,
+  sinkReloads: 0,
   closedPositions: 0,
   errors: 0,
   hfMismatch: 0,
@@ -154,7 +206,7 @@ export interface SavedReplay {
 }
 
 export interface EngineState {
-  v: 1
+  v: 2
   header: LiveHeader
   seq: number
   lastTs: number
@@ -164,18 +216,21 @@ export interface EngineState {
   positions: SavedPosition[]
   counters: Counters
   scanStats: Partial<Record<ChainKey, ScanStats>>
-  /** Gaps since the last tick (flushed into it). */
+  /** Gaps since the last tick (flushed into it), and the distinct positions among them. */
   pendingGaps: TickGaps
+  pendingGapPids: string[]
   /** Aave markets per chain at the last registry read, and the minute it was read. */
   markets: Partial<Record<ChainKey, { minute: number; list: AaveMarket[] }>>
 }
 
-export function saveReplay(r: ReplayState): SavedReplay {
+/** The reducer's fold without the positions in `drop` (closed: not kept in the state). */
+export function saveReplay(r: ReplayState, drop: ReadonlySet<string> = new Set()): SavedReplay {
   return {
     seq: r.seq,
     ts: r.ts,
-    positions: [...r.positions],
-    order: [...r.order],
+    positions: [...r.positions].filter(([pid]) => !drop.has(pid)),
+    // The open order is not needed by the engine (and grows with every position): not kept.
+    order: [],
     coverage: { ...r.coverage },
     totals: JSON.parse(JSON.stringify(r.totals)),
     lastTick: r.lastTick,

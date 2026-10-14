@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   FileSink,
+  GUARD_SQL,
   INSERT_BATCH,
   MemorySink,
   PostgresSink,
@@ -70,31 +71,33 @@ class Recorder implements SqlExecutor {
   }
 }
 
-describe('live engine: Postgres sink (SQL only, no network)', () => {
-  it('creates the state row, then commits guard + inserts + state update in one transaction', async () => {
+describe('live engine: Postgres sink (SQL only, no network; the real-Postgres test is wavefrontLivePostgres)', () => {
+  it('creates the state row explicitly, then commits guard FIRST + inserts in one transaction', async () => {
     const db = new Recorder()
     const sink = new PostgresSink(db, 'test')
     expect(await sink.load()).toBeNull()
-    expect(db.queries[0].text).toBe('SELECT seq, state FROM wavefront_engine_state WHERE stream = $1')
+    expect(db.queries[0].text).toBe('SELECT version, seq, state FROM wavefront_engine_state WHERE stream = $1')
     expect(db.queries[0].params).toEqual(['test'])
+    expect(db.queries[1].text).toBe('SELECT COALESCE(MAX(seq), 0) AS max FROM wavefront_events WHERE stream = $1')
     await sink.create(HEADER, '{"s":0}')
     expect(db.transactions[0]).toEqual([
       {
-        text: 'INSERT INTO wavefront_engine_state (stream, header, seq, state, updated_at) VALUES ($1, $2::jsonb, 0, $3, now())',
+        text: 'INSERT INTO wavefront_engine_state (stream, header, version, seq, state, updated_at) VALUES ($1, $2::jsonb, 0, 0, $3, now())',
         params: ['test', JSON.stringify(HEADER), '{"s":0}'],
       },
     ])
     await sink.commit([real(1), tick(2)], '{"s":2}')
     const tx = db.transactions[1]
-    expect(tx).toHaveLength(3)
-    expect(tx[0]).toEqual({
-      text: 'SELECT CASE WHEN seq = $2 THEN 1 ELSE 1 / 0 END FROM wavefront_engine_state WHERE stream = $1',
-      params: ['test', 0],
-    })
+    expect(tx).toHaveLength(2)
+    expect(tx[0]).toEqual({ text: GUARD_SQL, params: ['test', 0, 1, 2, '{"s":2}'] })
+    expect(GUARD_SQL).toBe(
+      'WITH upd AS (UPDATE wavefront_engine_state SET version = $3, seq = $4, state = $5, updated_at = now() WHERE stream = $1 AND version = $2 RETURNING 1) SELECT 1 / (SELECT count(*)::int FROM upd) AS ok',
+    )
     expect(tx[1].text).toBe(
-      'INSERT INTO wavefront_events (seq, ts, kind, pid, body) VALUES ($1, to_timestamp($2), $3, $4, $5::jsonb), ($6, to_timestamp($7), $8, $9, $10::jsonb)',
+      'INSERT INTO wavefront_events (stream, seq, ts, kind, pid, body) VALUES ($1, $2, to_timestamp($3), $4, $5, $6::jsonb), ($1, $7, to_timestamp($8), $9, $10, $11::jsonb)',
     )
     expect(tx[1].params).toEqual([
+      'test',
       1,
       real(1).ts,
       'real',
@@ -106,31 +109,33 @@ describe('live engine: Postgres sink (SQL only, no network)', () => {
       null,
       JSON.stringify(tick(2)),
     ])
-    expect(JSON.parse(tx[1].params[4] as string).backfilled).toBe(true)
-    expect(tx[2]).toEqual({
-      text: 'UPDATE wavefront_engine_state SET seq = $2, state = $3, updated_at = now() WHERE stream = $1',
-      params: ['test', 2, '{"s":2}'],
-    })
-    // The next commit's guard expects seq 2.
+    expect(JSON.parse(tx[1].params[5] as string).backfilled).toBe(true)
+    // The next commit's guard expects version 1; a record-less one still moves the version.
+    await sink.commit([], '{"s":2b}')
+    expect(db.transactions[2]).toEqual([{ text: GUARD_SQL, params: ['test', 1, 2, 2, '{"s":2b}'] }])
     await sink.commit([real(3)], '{"s":3}')
-    expect(db.transactions[2][0].params).toEqual(['test', 2])
+    expect(db.transactions[3][0].params).toEqual(['test', 2, 3, 3, '{"s":3}'])
   })
 
   it('splits a large minute into batches of INSERT_BATCH rows', () => {
     const recs = Array.from({ length: 2 * INSERT_BATCH + 7 }, (_, i) => real(i + 1))
-    const st = insertStatements(recs)
+    const st = insertStatements('s', recs)
     expect(st).toHaveLength(3)
-    expect(st.map((s) => s.params.length)).toEqual([5 * INSERT_BATCH, 5 * INSERT_BATCH, 35])
-    expect(st[2].params[0]).toBe(2 * INSERT_BATCH + 1)
+    expect(st.map((x) => x.params.length)).toEqual([1 + 5 * INSERT_BATCH, 1 + 5 * INSERT_BATCH, 36])
+    expect(st[2].params[1]).toBe(2 * INSERT_BATCH + 1)
   })
 
-  it('refuses to resume when the events table and the state disagree', async () => {
+  it('refuses to resume when the events table and the state disagree (per stream)', async () => {
     const db = new Recorder()
-    db.rows['FROM wavefront_engine_state'] = [{ seq: '5', state: '{"x":1}' }]
+    db.rows['FROM wavefront_engine_state'] = [{ version: '9', seq: '5', state: '{"x":1}' }]
     db.rows['MAX(seq)'] = [{ max: '7' }]
     await expect(new PostgresSink(db).load()).rejects.toThrow(/max seq 7 != committed state seq 5/)
     db.rows['MAX(seq)'] = [{ max: '5' }]
     expect(await new PostgresSink(db).load()).toBe('{"x":1}')
+    expect(db.queries.at(-1)!.params).toEqual(['main'])
+    // Records without a state row: refused rather than overwritten by a new stream.
+    db.rows['FROM wavefront_engine_state'] = []
+    await expect(new PostgresSink(db).load()).rejects.toThrow(/no state row/)
   })
 
   it('reads no DATABASE_URL at import time', async () => {
@@ -161,7 +166,12 @@ describe('live engine: file sink', () => {
     expect(records.map((r) => r.seq)).toEqual([1, 2])
     await b.commit([real(3), tick(4)], 'state-4')
     expect(decodeJsonl(fs.readFileSync(file, 'utf8')).records.map((r) => r.seq)).toEqual([1, 2, 3, 4])
-    expect(await new FileSink(file).load()).toBe('state-4')
+    const c = new FileSink(file)
+    expect(await c.load()).toBe('state-4')
+    // The open-once index comes from the stream itself (a multi-byte symbol included).
+    const open = { ...real(5, 'p:₮'), kind: 'open', walked: true } as unknown as LiveRecord
+    await c.commit([open], 'state-5')
+    expect(await c.opened()).toEqual(new Map([['p:₮', true]]))
   })
 
   it('refuses a gap in seq and a stream file without its state', async () => {

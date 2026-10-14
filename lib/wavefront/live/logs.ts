@@ -1,18 +1,30 @@
 /**
  * The event source of one chain: eth_getLogs for BOTH liquidation topics (Aave Pool
- * LiquidationCall, Morpho Blue Liquidate) in one filter, chunked, with the board R33 defence:
+ * LiquidationCall, Morpho Blue Liquidate) by TOPIC ONLY — any emitter — chunked, with the board
+ * R33 defence:
  *
- *   - AN EMPTY ANSWER IS NOT A FACT. Every empty chunk is re-asked on a DIFFERENT backend group
- *     before it counts. When the second backend returns logs, its answer is kept and the first
- *     host is quarantined for logs (`falseEmpty`); when no independent backend can answer, the
- *     chunk is NOT believed — `UnconfirmedEmptyError` is thrown and the caller retries later
- *     (the stream waits rather than skipping a minute).
- *   - Every log in an answer is checked: emitter, topic, block inside the asked range, not
- *     removed, and its blockHash equal to the header the engine reads for its timestamp.
+ *   - SCOPE BY CLASSIFICATION, NOT BY ADDRESS LIST. Every log's emitter is classified
+ *     (`Classifier`, injected by the engine): an Aave V3 pool iff its ADDRESSES_PROVIDER() is a
+ *     provider of the chain's registry (or an allow-listed one), Morpho Blue iff it is the
+ *     singleton; anything else with the same signature (Spark, Seamless and other forks, Aave V2
+ *     pools) is excluded and counted per emitter (`stats.excludedByEmitter`). A pool added to the
+ *     registry is therefore never missed between two registry reads.
+ *   - EVERY CHUNK IS ASKED ON TWO INDEPENDENT BACKEND GROUPS and the union kept. A node that
+ *     lags the head answers a range past its own head with a SHORT list (dRPC, arb1 — no error),
+ *     and a broken node answers `[]` (Pocket): when the two answers differ, the shorter host is
+ *     quarantined for logs (`falseEmpty` when it was empty, `shortAnswers` otherwise). An empty
+ *     answer no second backend can confirm is NOT believed (`UnconfirmedEmptyError`; the caller
+ *     retries later — the stream waits rather than skipping a minute). A non-empty answer whose
+ *     second backend does not answer within SECOND_ASK_MS (the independent public backends are
+ *     the rate-limited ones) is kept only if its own group holds the chunk's last block — counted
+ *     (`unverifiedNonEmpty`; the reconciliation re-checks it) — else the range is retried.
+ *   - Every log in an answer is checked: topic, block inside the asked range, not removed, and
+ *     its blockHash equal to the header the engine reads for its timestamp.
  *   - RECONCILIATION re-scans a trailing window on groups OTHER than the ones that answered the
  *     primary scan of each part of it; an event the primary scan missed comes back as `late`.
+ *     It runs in the background with an AbortSignal (its budget): a cancelled pass stops at once.
  *
- * Every primary chunk's answering group is recorded (`provenance`) so the reconciliation can
+ * Every primary chunk's answering groups are recorded (`provenance`) so the reconciliation can
  * pick an independent backend for exactly that range.
  */
 import { NoBackendError, toHex, type ChainKey } from '../../../scripts/oct10-coverage/rpc'
@@ -23,12 +35,18 @@ import {
   MORPHO_LIQUIDATE_TOPIC,
   type ChainConfig,
 } from './config'
-import type { LiveRpc, RpcAnswer } from './rpc'
+import { AbortedError, type LiveRpc, type RpcAnswer } from './rpc'
 
 export class UnconfirmedEmptyError extends Error {}
 
+/** What an emitter is: an Aave V3 pool in scope, Morpho Blue, or out of scope (null). */
+export type EmitterKind = 'aave' | 'morpho' | null
+export type Classifier = (emitter: string, topic0: string, block: number) => Promise<EmitterKind>
+
 /** An empty chunk this narrow that no second backend confirms is not believed (thrown). */
 export const MIN_CONFIRM_SPAN = 10
+/** How long a non-empty chunk waits for its second backend (then: the serving group's block check). */
+export const SECOND_ASK_MS = 10_000
 
 export interface ChunkProvenance {
   from: number
@@ -47,7 +65,17 @@ export interface ScanStats {
   falseEmpty: number
   /** Empty answers no independent backend could confirm (the scan was retried later). */
   unconfirmedEmpty: number
-  /** Answers rejected for a foreign / out-of-range / removed log. */
+  /** Non-empty answers a second backend showed to be short (the shorter host is quarantined). */
+  shortAnswers: number
+  /**
+   * Non-empty answers no second backend checked in time, kept because the serving group holds the
+   * chunk's last block (the reconciliation re-checks them on independent backends).
+   */
+  unverifiedNonEmpty: number
+  /** Logs of out-of-scope emitters (forks, non-registry instances), total and per emitter. */
+  excludedLogs: number
+  excludedByEmitter: Record<string, number>
+  /** Answers rejected for a foreign-topic / out-of-range / removed log. */
   badAnswers: number
   /** Logs whose blockHash disagreed with the header read for their timestamp. */
   hashMismatch: number
@@ -63,6 +91,10 @@ export const emptyScanStats = (): ScanStats => ({
   emptyConfirmed: 0,
   falseEmpty: 0,
   unconfirmedEmpty: 0,
+  shortAnswers: 0,
+  unverifiedNonEmpty: 0,
+  excludedLogs: 0,
+  excludedByEmitter: {},
   badAnswers: 0,
   hashMismatch: 0,
   spanHalvings: 0,
@@ -78,8 +110,10 @@ export class LogScanner {
   readonly stats: ScanStats = emptyScanStats()
   readonly quarantineLog: { host: string; at: number; reason: string }[] = []
 
-  /** Every Aave V3 pool of the chain (from the registry) and Morpho Blue. */
+  /** The Aave V3 pools known so far (the registry's, + allow-listed) and Morpho Blue. */
   emitters: Emitters
+  /** Emitter classification (the engine's registry rule); default: the known emitters only. */
+  classify: Classifier
 
   constructor(
     readonly rpc: LiveRpc,
@@ -90,9 +124,17 @@ export class LogScanner {
   ) {
     this.span = cfg.logChunk
     this.emitters = { aavePools: new Set([cfg.aavePool]), morpho: cfg.morpho }
+    this.classify = async (emitter, topic0) =>
+      topic0 === MORPHO_LIQUIDATE_TOPIC
+        ? emitter === this.emitters.morpho
+          ? 'morpho'
+          : null
+        : this.emitters.aavePools.has(emitter)
+          ? 'aave'
+          : null
   }
 
-  /** Watch these Aave pools (the registry's current list) besides Morpho Blue. */
+  /** The Aave pools known so far (decoding; the default classifier). */
   setAavePools(pools: readonly string[]) {
     this.emitters = { aavePools: new Set(pools.map((p) => p.toLowerCase())), morpho: this.cfg.morpho }
   }
@@ -119,7 +161,6 @@ export class LogScanner {
   private params(from: number, to: number) {
     return [
       {
-        address: [...this.emitters.aavePools, this.emitters.morpho],
         topics: [[AAVE_LIQUIDATION_CALL_TOPIC, MORPHO_LIQUIDATE_TOPIC]],
         fromBlock: toHex(from),
         toBlock: toHex(to),
@@ -133,9 +174,7 @@ export class LogScanner {
     if (!Array.isArray(a.result)) return 'not an array'
     const logs = a.result as RawLog[]
     for (const l of logs) {
-      const addr = String(l.address).toLowerCase()
-      if (!this.emitters.aavePools.has(addr) && addr !== this.emitters.morpho)
-        return `foreign emitter ${addr}`
+      if (!/^0x[0-9a-fA-F]{40}$/.test(String(l.address))) return `bad emitter ${l.address}`
       const t0 = String(l.topics?.[0]).toLowerCase()
       if (t0 !== AAVE_LIQUIDATION_CALL_TOPIC && t0 !== MORPHO_LIQUIDATE_TOPIC)
         return `foreign topic ${t0}`
@@ -152,14 +191,17 @@ export class LogScanner {
     to: number,
     excludeGroups: string[] = [],
     attempts?: number,
+    signal?: AbortSignal,
   ): Promise<{ logs: RawLog[]; host: string; group: string }> {
     for (let attempt = 0; attempt < 6; attempt++) {
+      if (signal?.aborted) throw new AbortedError(`${this.chain} logs [${from}, ${to}]: cancelled`)
       this.stats.logCalls++
       const a = await this.rpc.request(this.chain, 'eth_getLogs', this.params(from, to), {
         kind: 'logs',
         excludeGroups,
         excludeHosts: this.excludedHosts(),
         ...(attempts ? { attempts } : {}),
+        ...(signal ? { signal } : {}),
       })
       const v = this.validate(a, from, to)
       if (typeof v !== 'string') return { logs: v, host: a.host, group: a.group }
@@ -170,9 +212,10 @@ export class LogScanner {
   }
 
   /**
-   * Scan [from, to] (inclusive). Returns the decoded events (timestamps filled from headers) and
-   * the answering group of every chunk. Throws UnconfirmedEmptyError when an empty chunk could
-   * not be confirmed on an independent backend — nothing of the range is to be believed then.
+   * Scan [from, to] (inclusive). Returns the decoded in-scope events (timestamps filled from
+   * headers) and the answering groups of every chunk. Throws UnconfirmedEmptyError when an empty
+   * chunk could not be confirmed on an independent backend — nothing of the range is to be
+   * believed then.
    */
   async scan(from: number, to: number): Promise<{ events: LiqEvent[]; chunks: ChunkProvenance[] }> {
     const events: LiqEvent[] = []
@@ -180,9 +223,9 @@ export class LogScanner {
     let b = from
     while (b <= to) {
       const e = Math.min(to, b + this.span - 1)
-      let got: { logs: RawLog[]; host: string; group: string }
+      let first: { logs: RawLog[]; host: string; group: string }
       try {
-        got = await this.ask(b, e)
+        first = await this.ask(b, e)
       } catch (err) {
         if (RANGE_RE.test(String((err as Error).message)) && this.span > 1) {
           this.span = Math.max(1, Math.floor(this.span / 2))
@@ -191,15 +234,24 @@ export class LogScanner {
         }
         throw err
       }
-      let group = got.group
-      if (got.logs.length === 0) {
-        // Not a fact until an independent backend says so too.
-        let second: { logs: RawLog[]; host: string; group: string }
-        try {
-          second = await this.ask(b, e, [got.group], 6)
-        } catch (err) {
-          // Narrower spans are served by more backends (some cap logs at 10 blocks): retry this
-          // chunk narrower before calling the empty unconfirmable.
+      // The same chunk on an independent backend group. For a non-empty answer the wait is
+      // bounded (SECOND_ASK_MS: the independent public backends are the rate-limited ones); past
+      // it, the serving group must at least hold the chunk's last block, or the range is retried.
+      let second: { logs: RawLog[]; host: string; group: string } | null = null
+      const ctrl = first.logs.length > 0 ? new AbortController() : null
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), SECOND_ASK_MS) : undefined
+      try {
+        second = await this.ask(b, e, [first.group], 6, ctrl?.signal)
+      } catch (err) {
+        if (first.logs.length > 0) {
+          if (!(await this.servesBlock(first.group, e)))
+            throw new Error(
+              `${this.chain} logs [${b}, ${e}]: ${first.host} answered ${first.logs.length} log(s), no second backend in time and its group does not hold block ${e} (a short answer is possible); retried`,
+            )
+          this.stats.unverifiedNonEmpty++
+        } else {
+          // Narrower spans are served by more backends (some cap logs at 10 blocks): retry
+          // this chunk narrower before calling the empty unconfirmable.
           if (e - b + 1 > MIN_CONFIRM_SPAN) {
             this.span = Math.max(MIN_CONFIRM_SPAN, Math.floor((e - b + 1) / 4))
             this.stats.spanHalvings++
@@ -207,31 +259,89 @@ export class LogScanner {
           }
           this.stats.unconfirmedEmpty++
           throw new UnconfirmedEmptyError(
-            `${this.chain} logs [${b}, ${e}]: empty on ${got.host}, unconfirmed (${
+            `${this.chain} logs [${b}, ${e}]: empty on ${first.host}, unconfirmed (${
               err instanceof NoBackendError ? 'no independent backend' : (err as Error).message
             })`,
           )
         }
-        if (second.logs.length > 0) {
-          this.stats.falseEmpty++
-          this.quarantineHost(got.host, `false empty on [${b}, ${e}]: ${second.host} had ${second.logs.length}`)
-          got = second
-          group = second.group
-        } else {
-          this.stats.emptyConfirmed++
-          group = `${got.group}+${second.group}`
-        }
+      } finally {
+        clearTimeout(timer)
       }
-      for (const l of got.logs) events.push(await this.withTs(decodeLiquidation(this.chain, l, this.emitters)))
+      let logs = first.logs
+      let group = first.group
+      if (second) {
+        group = `${first.group}+${second.group}`
+        const k = (l: RawLog) => `${Number(BigInt(l.blockNumber))}:${Number(BigInt(l.logIndex))}`
+        const a = new Set(first.logs.map(k))
+        const bs = new Set(second.logs.map(k))
+        const onlySecond = second.logs.filter((l) => !a.has(k(l)))
+        const onlyFirst = first.logs.filter((l) => !bs.has(k(l)))
+        const short = (ans: typeof first, other: typeof first, n: number) => {
+          if (ans.logs.length === 0) this.stats.falseEmpty++
+          else this.stats.shortAnswers++
+          this.quarantineHost(
+            ans.host,
+            `${ans.logs.length ? 'short' : 'false empty'} answer on [${b}, ${e}]: ${other.host} had ${n} more`,
+          )
+        }
+        if (onlySecond.length) short(first, second, onlySecond.length)
+        if (onlyFirst.length) short(second, first, onlyFirst.length)
+        if (!first.logs.length && !second.logs.length) this.stats.emptyConfirmed++
+        logs = [...first.logs, ...onlySecond]
+      }
+      for (const ev of await this.decodeAll(logs, true)) events.push(ev)
       chunks.push({ from: b, to: e, group })
       this.stats.chunks++
       this.stats.blocksScanned += e - b + 1
-      this.stats.events += got.logs.length
       b = e + 1
       // Grow back slowly after a halving.
       if (this.span < this.cfg.logChunk) this.span = Math.min(this.cfg.logChunk, this.span * 2)
     }
     return { events, chunks }
+  }
+
+  /** Does `group` hold block n (the same hash as the engine's header)? Never throws. */
+  private async servesBlock(group: string, n: number): Promise<boolean> {
+    try {
+      const a = await this.rpc.request(this.chain, 'eth_getBlockByNumber', [toHex(n), false], {
+        onlyGroup: group,
+        attempts: 2,
+      })
+      const h = a.result as { number?: string; hash?: string } | null
+      if (!h?.number || Number(BigInt(h.number)) !== n) return false
+      return String(h.hash).toLowerCase() === (await this.blocks.header(n)).hash
+    } catch {
+      return false
+    }
+  }
+
+  /** Classify, decode and time-stamp the in-scope logs; count the excluded ones (primary scan). */
+  private async decodeAll(logs: RawLog[], count: boolean): Promise<LiqEvent[]> {
+    const out: LiqEvent[] = []
+    const sorted = [...logs].sort(
+      (x, y) =>
+        Number(BigInt(x.blockNumber) - BigInt(y.blockNumber)) ||
+        Number(BigInt(x.logIndex) - BigInt(y.logIndex)),
+    )
+    for (const l of sorted) {
+      const emitter = String(l.address).toLowerCase()
+      const t0 = String(l.topics[0]).toLowerCase()
+      const kind = await this.classify(emitter, t0, Number(BigInt(l.blockNumber)))
+      if (!kind) {
+        if (count) {
+          this.stats.excludedLogs++
+          this.stats.excludedByEmitter[emitter] = (this.stats.excludedByEmitter[emitter] ?? 0) + 1
+        }
+        continue
+      }
+      const emitters: Emitters =
+        kind === 'aave'
+          ? { aavePools: new Set([emitter]), morpho: this.cfg.morpho }
+          : { aavePools: new Set(), morpho: this.cfg.morpho }
+      out.push(await this.withTs(decodeLiquidation(this.chain, l, emitters)))
+      if (count) this.stats.events++
+    }
+    return out
   }
 
   /** Fill ts from the block header and check the log's block hash against it. */
@@ -259,6 +369,7 @@ export class LogScanner {
     from: number,
     to: number,
     provenance: readonly ChunkProvenance[],
+    signal?: AbortSignal,
   ): Promise<{ events: LiqEvent[]; calls: number; groupsUsed: string[] }> {
     const events: LiqEvent[] = []
     const used = new Set<string>()
@@ -298,14 +409,14 @@ export class LogScanner {
         let got: { logs: RawLog[]; host: string; group: string }
         calls++
         try {
-          got = await this.ask(x, e, part.exclude, 3)
+          got = await this.ask(x, e, part.exclude, 3, signal)
         } catch (err) {
-          if (part.exclude.length <= 1) throw err
+          if (err instanceof AbortedError || part.exclude.length <= 1) throw err
           calls++
-          got = await this.ask(x, e, part.exclude.slice(0, 1), 6)
+          got = await this.ask(x, e, part.exclude.slice(0, 1), 6, signal)
         }
         used.add(got.group)
-        for (const l of got.logs) events.push(await this.withTs(decodeLiquidation(this.chain, l, this.emitters)))
+        for (const ev of await this.decodeAll(got.logs, false)) events.push(ev)
         x = e + 1
       }
     }

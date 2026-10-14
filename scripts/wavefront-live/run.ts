@@ -20,24 +20,38 @@
  *   --stats <file.json>        status, RPC ledger, memory and CPU, rewritten every minute
  *   --horizon-minutes N        close an idle position after N minutes (default 10080 = 7 days)
  *   --reconcile-every N / --reconcile-window N   minutes (default 60 / 120; 0 = off)
+ *   --reconcile-budget-seconds N   wall-clock budget of a background pass (default 120; cancelled at it)
+ *   --reconcile-max-catchup N  minutes a pass may reach back after failed ones (default 1440)
+ *   --chain-stall-seconds N    live: a chain behind for this long stops holding the others (default 300)
+ *   --max-gap-minutes N        close a position whose oracle is silent this many minutes (default 60)
+ *   --allow-aave-provider a,b  bring Aave V3 instances OUTSIDE the registry into scope: `horizon`
+ *                              or provider addresses (default none — an owner decision)
  *   --poll-seconds N / --concurrency N / --own-clusters A,B / --walk-on true|false
  *   --grid-end-minute N        kernel grid end (the census's is 2879); default none
+ *
+ * Environment (optional, owner-provided; docs/WAVEFRONT_LIVE_ENGINE.md §4):
+ *   WAVEFRONT_RPC_MAINNET / _ARBITRUM / _OPTIMISM / _BASE   comma-separated keyed RPC URLs. They
+ *       carry most traffic; the public endpoints stay as the independent re-ask and
+ *       reconciliation backends. Only their HOSTNAMES are ever printed (log lines and the stats
+ *       file are scrubbed of the URLs).
+ *   DATABASE_URL   read only with --sink postgres.
  *
  * Nothing here deploys, schedules or creates anything: it runs in the foreground until stopped
  * (SIGINT/SIGTERM finish the current minute; SIGKILL is safe too — see sinks.ts).
  */
 import { mkdirSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
-import { RpcPool, type ChainKey } from '../oct10-coverage/rpc'
+import type { RpcPool, ChainKey } from '../oct10-coverage/rpc'
 import {
   CountingRpc,
   FileSink,
   LIVE_CHAINS,
   LiveEngine,
+  PoolKeeper,
   PostgresSink,
   SimClock,
+  buildPool,
   clockHead,
-  liveEndpoints,
   liveHead,
   neonExecutor,
   realClock,
@@ -60,7 +74,26 @@ function args(argv: string[]): Record<string, string> {
   return out
 }
 
-const log = (msg: string) => process.stderr.write(`[wavefront-live ${new Date().toISOString()}] ${msg}\n`)
+/** Keyed RPC URLs (they may carry a key in the path or query) -> what is printed instead. */
+const SECRETS: [string, string][] = []
+for (const [k, v] of Object.entries(process.env)) {
+  if (!/^WAVEFRONT_RPC_[A-Z]+$/.test(k) || !v) continue
+  for (const url of v.split(',').map((u) => u.trim()).filter(Boolean)) {
+    try {
+      SECRETS.push([url, `keyed:${new URL(url).hostname}`])
+    } catch {
+      /* rejected (and reported without the value) by keyedEndpoints */
+    }
+  }
+}
+if (process.env.DATABASE_URL) SECRETS.push([process.env.DATABASE_URL, 'DATABASE_URL'])
+const scrub = (text: string) => {
+  for (const [secret, label] of SECRETS) text = text.split(secret).join(label)
+  return text
+}
+
+const log = (msg: string) =>
+  process.stderr.write(scrub(`[wavefront-live ${new Date().toISOString()}] ${msg}\n`))
 
 async function timeOf(spec: string, pool: RpcPool): Promise<number> {
   const m = /^(mainnet|arbitrum|optimism|base):(\d+)$/.exec(spec)
@@ -84,8 +117,14 @@ async function main() {
   if (mode !== 'live' && mode !== 'historical') throw new Error('--mode live|historical')
   const chains = (o.chains ?? LIVE_CHAINS.join(',')).split(',') as ChainKey[]
   for (const c of chains) if (!LIVE_CHAINS.includes(c)) throw new Error(`unknown chain ${c}`)
-  const pool = new RpcPool(liveEndpoints(mode))
-  const rpc = new CountingRpc(pool)
+  const { pool, keyedHosts } = buildPool(mode, process.env)
+  const keeper = new PoolKeeper(pool)
+  const rpc = new CountingRpc(pool, 180_000, keeper)
+  log(
+    keyedHosts.length
+      ? `keyed endpoints: ${keyedHosts.join(', ')} (public endpoints kept as the independent backends)`
+      : 'no keyed endpoints (WAVEFRONT_RPC_<CHAIN> unset): public keyless endpoints only',
+  )
 
   const nowSec = Math.floor(Date.now() / 1000)
   const from = o.from ? await timeOf(o.from, pool) : nowSec
@@ -131,6 +170,11 @@ async function main() {
       ...(o['own-clusters'] ? { ownClusters: o['own-clusters'].split(',') } : {}),
       ...(o['walk-on'] ? { walkOnAfterT0BandSale: o['walk-on'] === 'true' } : {}),
       ...(o['grid-end-minute'] ? { lastMinute: Number(o['grid-end-minute']) } : {}),
+      ...(o['reconcile-budget-seconds'] ? { reconcileBudgetSeconds: Number(o['reconcile-budget-seconds']) } : {}),
+      ...(o['reconcile-max-catchup'] ? { reconcileMaxCatchupMinutes: Number(o['reconcile-max-catchup']) } : {}),
+      ...(o['chain-stall-seconds'] ? { chainStallSeconds: Number(o['chain-stall-seconds']) } : {}),
+      ...(o['max-gap-minutes'] ? { maxGapMinutes: Number(o['max-gap-minutes']) } : {}),
+      ...(o['allow-aave-provider'] ? { allowAaveProviders: o['allow-aave-provider'].split(',') } : {}),
     },
   )
 
@@ -163,7 +207,7 @@ async function main() {
     mkdirSync(dirname(o.stats), { recursive: true })
     writeFileSync(
       o.stats,
-      JSON.stringify(
+      scrub(JSON.stringify(
         {
           mode,
           from: new Date(from * 1000).toISOString(),
@@ -175,13 +219,21 @@ async function main() {
             maxHeapMb: Math.max(...samples.map((s) => s.heapMb), 0),
             samples: samples.slice(-120),
           },
-          rpc: { total: rpc.total(), httpCalls: pool.calls, stuck: rpc.stuck(), perChain, byMethod: rpc.snapshot(), ledger: pool.ledger() },
+          rpc: {
+            total: rpc.total(),
+            httpCalls: pool.calls,
+            stuck: rpc.stuck(),
+            reenabledEndpoints: keeper.reenabled,
+            perChain,
+            byMethod: rpc.snapshot(),
+            ledger: pool.ledger(),
+          },
           engine: engine.status(),
           minutes: engine.minuteLog.slice(-200),
         },
         null,
         1,
-      ),
+      )),
     )
   }
   const timer = setInterval(() => {
@@ -208,6 +260,7 @@ async function main() {
   log(`${how}: mode ${mode}, chains ${chains.join(',')}, epoch ${new Date(epoch * 1000).toISOString()}`)
   sample()
   await engine.run(() => stopping || Date.now() >= deadline)
+  engine.cancelPasses()
   clearInterval(timer)
   sample()
   writeStats()

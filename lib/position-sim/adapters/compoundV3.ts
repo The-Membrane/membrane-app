@@ -4,11 +4,12 @@
  * SHAPE: Comet is one contract per BASE asset. Debt is always denominated in that
  * single base token — you cannot borrow anything else — and collateral is a fixed,
  * enumerable list read from `numAssets()` + `getAssetInfo(i)`. That makes enumeration
- * trivial compared with Morpho, but it means one address can hold up to three
+ * trivial compared with Morpho, but it means one address can hold up to six
  * independent positions (one per Comet), so this adapter returns an array.
  *
  * SCALING CONVENTIONS (Comet.sol):
- *   - `getPrice(priceFeed)` returns USD at PRICE_SCALE = 1e8 (Chainlink-style).
+ *   - `getPrice(priceFeed)` returns the feed's unit at PRICE_SCALE = 1e8 (Chainlink-style):
+ *     USD on the stable Comets, ETH / wstETH / BTC on the others (see COMET_MAINNET_MARKETS).
  *   - `AssetInfo.scale` is 10**decimals for that collateral. We derive the token's
  *     decimals from it rather than making a second ERC20 call.
  *   - `borrowCollateralFactor` / `liquidateCollateralFactor` / `liquidationFactor`
@@ -25,7 +26,7 @@
 
 import { getMainnetClient, rpcLabel, toNumber } from '../rpc'
 import { stamp, type CollateralLeg, type DebtLeg, type ProtocolPosition } from '../types'
-import { decimalsFromScale, mc, optional, ratio, unwrap, type Call, type LendingAdapter } from './types'
+import { decimalsFromScale, mc, optional, pinBlock, ratio, unwrap, type Call, type LendingAdapter } from './types'
 
 // ----------------------------------------------------------------------- ABIs
 
@@ -97,6 +98,11 @@ const cometAbi = [
   },
 ] as const
 
+/** Chainlink-style feed: only its decimals, to check a quote feed's scale. */
+const feedAbi = [
+  { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
+] as const
+
 const erc20Abi = [
   { type: 'function', name: 'symbol', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
   { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
@@ -105,14 +111,21 @@ const erc20Abi = [
 // ----------------------------------------------------------------- deployments
 
 /**
- * The three mainnet Comets. Compound deploys a new contract per base asset, so this
- * list is the enumeration — there is no on-chain registry to resolve it from.
+ * The mainnet Comets: every proxy the Compound III Configurator
+ * (0x316f9708bB98af7dA9c68C1C3b5e79039cD336E3) has a factory for — its SetFactory events
+ * name exactly these six (checked 2026-10-14). Each was checked on-chain the same day:
+ * governor() is the Compound Timelock (0x6d903f6003cca6255D85CcA4D3B5E5146dC33925) and
+ * Configurator.getConfiguration(comet) names the same base token and base price feed.
  *
- * QUOTE CURRENCY. `Comet.getPrice` returns each feed's own unit. cUSDCv3 and cUSDTv3 use
- * USD feeds ("USDC / USD", "ETH / USD", …). cWETHv3 uses ETH feeds ("wstETH / ETH CAPO",
- * "CBETH / ETH", …) and a "Constant price feed" of exactly 1 for its WETH base — verified
- * on mainnet 2026-10-14. Its prices are converted to USD at Chainlink ETH/USD, read
- * through the same Comet's getPrice; nothing is assumed.
+ * QUOTE CURRENCY. `Comet.getPrice` returns each feed's own unit, and a Comet's feeds all
+ * share one unit, its base feed's:
+ *   cUSDCv3, cUSDTv3, cUSDSv3   USD     ("USDC / USD", "ETH / USD", …)
+ *   cWETHv3                     ETH     ("wstETH / ETH CAPO", …; base "Constant price feed" = 1)
+ *   cwstETHv3                   wstETH  ("rsETH / wstETH CAPO", …; base "Constant price feed" = 1)
+ *   cWBTCv3                     BTC     ("LBTC / BTC", …; base "WBTC / BTC" ≈ 0.998)
+ * A non-USD Comet's prices are converted at one more feed read through the same Comet's
+ * getPrice: Chainlink ETH/USD, Compound's own wstETH/USD CAPO feed (the one cUSDCv3 prices
+ * wstETH with), Chainlink BTC/USD — all 8 decimals, checked at read time. Nothing assumed.
  */
 export const COMET_MAINNET_MARKETS = [
   { address: '0xc3d688B66703497DAA19211EEdff47f25384cdc3', name: 'cUSDCv3', quote: 'USD', quoteUsdFeed: null },
@@ -124,13 +137,31 @@ export const COMET_MAINNET_MARKETS = [
     quoteUsdFeed: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
   },
   { address: '0x3Afdc9BCA9213A35503b077a6072F3D0d5AB0840', name: 'cUSDTv3', quote: 'USD', quoteUsdFeed: null },
+  {
+    address: '0x3D0bb1ccaB520A66e607822fC55BC921738fAFE3',
+    name: 'cwstETHv3',
+    quote: 'wstETH',
+    // "wstETH / USD CAPO SVR Price Feed": Compound's wstETH/USD feed in cUSDCv3 and cUSDTv3.
+    quoteUsdFeed: '0xA2699232B341881B1Ed85d91592b7c259E029aCf',
+  },
+  { address: '0x5D409e56D886231aDAf00c8775665AD0f9897b56', name: 'cUSDSv3', quote: 'USD', quoteUsdFeed: null },
+  {
+    address: '0xe85Dc543813B8c2CFEaAc371517b925a166a9293',
+    name: 'cWBTCv3',
+    quote: 'BTC',
+    // Chainlink BTC/USD proxy (the feed membrane-datasets price-history records).
+    quoteUsdFeed: '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c',
+  },
 ] as const satisfies readonly CometMarket[]
+
+/** A Comet's base asset is worth about one quote unit; outside this, the quote unit is wrong. */
+export const BASE_IN_QUOTE_RANGE = { min: 0.9, max: 1.1 } as const
 
 export interface CometMarket {
   address: `0x${string}`
   name: string
   /** The unit Comet.getPrice reports for this market's feeds. */
-  quote: 'USD' | 'ETH'
+  quote: 'USD' | 'ETH' | 'wstETH' | 'BTC'
   /** A feed giving one quote unit in USD; null when the quote already is USD. */
   quoteUsdFeed: `0x${string}` | null
 }
@@ -142,6 +173,17 @@ export interface CometMarket {
 export function cometPriceUsd(priceRaw: bigint, quoteUsd: number): number {
   if (!(quoteUsd > 0)) throw new Error('cometPriceUsd: the quote unit has no USD price')
   return toNumber(priceRaw, PRICE_DECIMALS) * quoteUsd
+}
+
+/**
+ * The check that the quote unit is right: the base asset priced in it is near 1 (USDC in
+ * USD, WETH in ETH, WBTC in BTC). A USD feed in an "ETH" market would read ~2,500 here.
+ */
+export function checkBaseInQuote(market: Pick<CometMarket, 'name' | 'quote'>, basePriceRaw: bigint): void {
+  const v = toNumber(basePriceRaw, PRICE_DECIMALS)
+  if (!(v >= BASE_IN_QUOTE_RANGE.min && v <= BASE_IN_QUOTE_RANGE.max)) {
+    throw new Error(`compound v3 (${market.name}): its base priced at ${v} ${market.quote}, expected about 1; the quote unit is not ${market.quote}`)
+  }
 }
 
 /** Comet PRICE_SCALE. */
@@ -163,18 +205,26 @@ interface AssetInfo {
 
 // -------------------------------------------------------------------- adapter
 
-async function readComet(market: CometMarket, user: `0x${string}`): Promise<ProtocolPosition | null> {
-  const client = getMainnetClient()
+async function readComet(
+  client: ReturnType<typeof getMainnetClient>,
+  block: bigint,
+  market: CometMarket,
+  user: `0x${string}`,
+): Promise<ProtocolPosition | null> {
   const comet = market.address
   const tag = `compound v3 (${market.name})`
 
   // --- market shape ---------------------------------------------------------
-  const head = await mc<unknown>(client, [
-    { address: comet, abi: cometAbi, functionName: 'borrowBalanceOf', args: [user] },
-    { address: comet, abi: cometAbi, functionName: 'baseToken' },
-    { address: comet, abi: cometAbi, functionName: 'baseTokenPriceFeed' },
-    { address: comet, abi: cometAbi, functionName: 'numAssets' },
-  ])
+  const head = await mc<unknown>(
+    client,
+    [
+      { address: comet, abi: cometAbi, functionName: 'borrowBalanceOf', args: [user] },
+      { address: comet, abi: cometAbi, functionName: 'baseToken' },
+      { address: comet, abi: cometAbi, functionName: 'baseTokenPriceFeed' },
+      { address: comet, abi: cometAbi, functionName: 'numAssets' },
+    ],
+    block,
+  )
   const borrowRaw = unwrap(head[0], `${tag}: borrowBalanceOf()`) as bigint
   const baseToken = unwrap(head[1], `${tag}: baseToken()`) as `0x${string}`
   const baseFeed = unwrap(head[2], `${tag}: baseTokenPriceFeed()`) as `0x${string}`
@@ -186,7 +236,7 @@ async function readComet(market: CometMarket, user: `0x${string}`): Promise<Prot
     functionName: 'getAssetInfo',
     args: [i],
   }))
-  const infoRes = await mc<AssetInfo>(client, infoCalls)
+  const infoRes = await mc<AssetInfo>(client, infoCalls, block)
   const assets = infoRes.map((entry, i) => unwrap(entry, `${tag}: getAssetInfo(${i})`))
 
   // --- user collateral ------------------------------------------------------
@@ -196,7 +246,7 @@ async function readComet(market: CometMarket, user: `0x${string}`): Promise<Prot
     functionName: 'userCollateral',
     args: [user, a.asset],
   }))
-  const collRes = await mc<readonly bigint[]>(client, collCalls)
+  const collRes = await mc<readonly bigint[]>(client, collCalls, block)
   const balances = assets.map((a, i) => unwrap(collRes[i], `${tag}: userCollateral(${a.asset})`)[0])
 
   // Nothing supplied and nothing borrowed → this Comet is simply not in use.
@@ -217,14 +267,20 @@ async function readComet(market: CometMarket, user: `0x${string}`): Promise<Prot
     tailCalls.push({ address: comet, abi: cometAbi, functionName: 'getPrice', args: [h.info.priceFeed] })
     tailCalls.push({ address: h.info.asset, abi: erc20Abi, functionName: 'symbol' })
   }
-  // The quote unit's USD price comes last so the indices above stay put.
-  if (market.quoteUsdFeed) tailCalls.push({ address: comet, abi: cometAbi, functionName: 'getPrice', args: [market.quoteUsdFeed] })
-  const tailRes = await mc<unknown>(client, tailCalls)
+  // The quote unit's USD price and its feed's decimals come last so the indices above stay put.
+  if (market.quoteUsdFeed) {
+    tailCalls.push({ address: comet, abi: cometAbi, functionName: 'getPrice', args: [market.quoteUsdFeed] })
+    tailCalls.push({ address: market.quoteUsdFeed, abi: feedAbi, functionName: 'decimals' })
+  }
+  const tailRes = await mc<unknown>(client, tailCalls, block)
   let quoteUsd = 1
   if (market.quoteUsdFeed) {
-    const raw = unwrap(tailRes[tailRes.length - 1], `${tag}: getPrice(${market.quote}/USD feed ${market.quoteUsdFeed})`) as bigint
+    const what = `${tag}: ${market.quote}/USD feed ${market.quoteUsdFeed}`
+    const raw = unwrap(tailRes[tailRes.length - 2], `${what} getPrice`) as bigint
+    const feedDecimals = Number(unwrap(tailRes[tailRes.length - 1], `${what} decimals()`))
+    if (feedDecimals !== PRICE_DECIMALS) throw new Error(`${what} has ${feedDecimals} decimals, expected ${PRICE_DECIMALS}`)
     quoteUsd = toNumber(raw, PRICE_DECIMALS)
-    if (!(quoteUsd > 0)) throw new Error(`${tag}: ${market.quote}/USD feed ${market.quoteUsdFeed} returned 0`)
+    if (!(quoteUsd > 0)) throw new Error(`${what} returned 0`)
   }
 
   const basePriceRaw = unwrap(tailRes[0], `${tag}: getPrice(baseTokenPriceFeed ${baseFeed})`) as bigint
@@ -233,20 +289,20 @@ async function readComet(market: CometMarket, user: `0x${string}`): Promise<Prot
   // A symbol is a label, not a number — an unreadable one (e.g. bytes32 symbols) may
   // fall back to the address without violating the no-invented-numbers rule.
   const baseSymbol = (optional(tailRes[2]) as string | null) ?? shortAddress(baseToken)
-  // An ETH-quoted Comet prices its own WETH base at exactly 1 ETH; anything else means the
-  // quote-unit assumption above is wrong for this market, so stop rather than misprice.
-  if (market.quote === 'ETH' && basePriceRaw !== 10n ** BigInt(PRICE_DECIMALS)) {
-    throw new Error(`${tag}: expected the base feed ${baseFeed} to price the base at 1 ${market.quote}, got ${basePriceRaw}`)
-  }
+  // The base is worth about one quote unit (WETH in ETH, WBTC in BTC, USDC in USD); if not,
+  // the quote unit above is wrong for this market, so stop rather than misprice.
+  checkBaseInQuote(market, basePriceRaw)
   const basePriceUsd = cometPriceUsd(basePriceRaw, quoteUsd)
 
   // Borrow APR: per-second rate at 1e18, annualised. Optional — null if it fails.
   const utilization = optional(tailRes[3]) as bigint | null
   let borrowApr: number | null = null
   if (utilization !== null) {
-    const rateRes = await mc<bigint>(client, [
-      { address: comet, abi: cometAbi, functionName: 'getBorrowRate', args: [utilization] },
-    ])
+    const rateRes = await mc<bigint>(
+      client,
+      [{ address: comet, abi: cometAbi, functionName: 'getBorrowRate', args: [utilization] }],
+      block,
+    )
     const perSecond = optional(rateRes[0])
     if (perSecond !== null) borrowApr = toNumber(perSecond, FACTOR_DECIMALS) * SECONDS_PER_YEAR
   }
@@ -319,7 +375,7 @@ async function readComet(market: CometMarket, user: `0x${string}`): Promise<Prot
       `compound v3 · ${rpcLabel()}`,
       `Comet ${comet} (${market.name}), base token ${baseToken}. Prices from Comet.getPrice at 1e8${
         market.quote === 'USD' ? ' (USD feeds)' : `, quoted in ${market.quote} and converted at ${market.quote}/USD $${quoteUsd} (feed ${market.quoteUsdFeed})`
-      }; collateral decimals from AssetInfo.scale; borrow/liquidate collateral factors at 1e18. Borrow APR annualised from getBorrowRate(getUtilization()) × ${SECONDS_PER_YEAR}s.`,
+      }; collateral decimals from AssetInfo.scale; borrow/liquidate collateral factors at 1e18. Borrow APR annualised from getBorrowRate(getUtilization()) × ${SECONDS_PER_YEAR}s. Every call read block ${block}.`,
     ),
   }
 }
@@ -330,10 +386,12 @@ export const compoundV3Adapter: LendingAdapter = {
   id: 'compound-v3',
   label: 'Compound V3',
   async read(user: `0x${string}`): Promise<ProtocolPosition[]> {
-    // The three Comets are independent contracts; read them concurrently. A revert in
-    // one is fatal for the whole adapter — a half-read Compound position would
+    // The Comets are independent contracts; read them concurrently, at one pinned block. A
+    // revert in one is fatal for the whole adapter — a half-read Compound position would
     // under-report the user's real exposure, which is the failure mode we refuse.
-    const results = await Promise.all(COMET_MAINNET_MARKETS.map((m) => readComet(m, user)))
+    const client = getMainnetClient()
+    const block = await pinBlock(client)
+    const results = await Promise.all(COMET_MAINNET_MARKETS.map((m) => readComet(client, block, m, user)))
     return results.filter((p): p is ProtocolPosition => p !== null)
   },
 }

@@ -30,7 +30,7 @@
 import { getMainnetClient, rpcLabel, toNumber } from '../rpc'
 import { stamp, type CollateralLeg, type DebtLeg, type ProtocolPosition } from '../types'
 import { aaveOracleUsdPrices } from './aaveV3'
-import { mc, mulDivUp, ratio, unwrap, type Call, type LendingAdapter } from './types'
+import { mc, mulDivUp, pinBlock, ratio, unwrap, type Call, type LendingAdapter } from './types'
 
 // ----------------------------------------------------------------------- ABIs
 
@@ -157,6 +157,8 @@ export const morphoBlueAdapter: LendingAdapter = {
   async read(user: `0x${string}`): Promise<ProtocolPosition[]> {
     const client = getMainnetClient()
     const catalogue = await loadMarketIds()
+    // Every call below, the Aave oracle's loan-token price included, reads this one block.
+    const block = await pinBlock(client)
 
     // --- scan every known market for this user -------------------------------
     const posCalls: Call[] = catalogue.map((m) => ({
@@ -165,7 +167,7 @@ export const morphoBlueAdapter: LendingAdapter = {
       functionName: 'position',
       args: [m.id, user],
     }))
-    const posRes = await mc<readonly bigint[]>(client, posCalls)
+    const posRes = await mc<readonly bigint[]>(client, posCalls, block)
 
     interface Hit {
       id: `0x${string}`
@@ -194,7 +196,7 @@ export const morphoBlueAdapter: LendingAdapter = {
         args: [h.id],
       })
     }
-    const stateRes = await mc<readonly unknown[]>(client, stateCalls)
+    const stateRes = await mc<readonly unknown[]>(client, stateCalls, block)
 
     interface Resolved extends Hit {
       totalBorrowAssets: bigint
@@ -227,7 +229,7 @@ export const morphoBlueAdapter: LendingAdapter = {
       detailCalls.push({ address: r.collateralToken, abi: erc20Abi, functionName: 'decimals' })
       detailCalls.push({ address: r.oracle, abi: morphoOracleAbi, functionName: 'price' })
     }
-    const detailRes = await mc<bigint | number>(client, detailCalls)
+    const detailRes = await mc<bigint | number>(client, detailCalls, block)
 
     // --- loan-token USD prices ------------------------------------------------
     // Every loan token we could not assume is $1 must come from a real oracle.
@@ -241,7 +243,7 @@ export const morphoBlueAdapter: LendingAdapter = {
     let externalPrices: Record<string, number> = {}
     if (needOraclePrice.length > 0) {
       try {
-        externalPrices = await aaveOracleUsdPrices(needOraclePrice)
+        externalPrices = await aaveOracleUsdPrices(needOraclePrice, undefined, undefined, block)
       } catch (e) {
         throw new Error(
           `morpho blue: needed the Aave V3 oracle to price non-stablecoin loan tokens (${needOraclePrice.join(', ')}) and that read failed: ${(e as Error).message}`,
@@ -344,6 +346,7 @@ export const morphoBlueAdapter: LendingAdapter = {
           ? `ASSUMPTION: loan token ${stableSymbol} treated as exactly $1.00 — Morpho provides no USD price and we did not read one.`
           : `Loan token ${r.entry.loanSymbol} priced at $${loanPriceUsd} from the Aave V3 oracle (no assumed peg).`,
         'Borrow APR not read: it requires the market IRM, which is not wired up.',
+        `Every call read block ${block}.`,
       ].join(' ')
 
       positions.push({

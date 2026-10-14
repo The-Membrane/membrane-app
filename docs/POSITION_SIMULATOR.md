@@ -190,7 +190,7 @@ empty wallet.
 | **Aave V3** | working | Addresses resolved through `PoolAddressesProvider` so an upgrade cannot break it. Aggregate from `getUserAccountData`; per-leg breakdown from `PoolDataProvider`; prices from `AaveOracle`. |
 | **Spark** | working | Aave V3 fork — same factory, different `PoolAddressesProvider`. |
 | **Morpho Blue** | working | No on-chain enumeration of a user's markets exists, so it multicalls `position()` across the market list committed in `protocols.json`, then reads `idToMarketParams` on-chain. Borrow APR is `null` — reading it needs the external adaptive-curve IRM, which is not wired. `null` is the honest answer. |
-| **Compound V3** | working | cUSDCv3, cWETHv3, cUSDTv3. Real borrow APR. |
+| **Compound V3** | working | All six mainnet Comets the Configurator lists: cUSDCv3, cWETHv3, cUSDTv3, cwstETHv3, cUSDSv3, cWBTCv3. ETH-, wstETH- and BTC-quoted prices converted to USD. Real borrow APR. |
 | **Fluid** | **stub** | Throws `UnsupportedError` with an explanation. The VaultResolver enumeration and tick decoding are not implemented. Reported as `unsupported`, never as an empty wallet. |
 
 ### The one price assumption in the adapters

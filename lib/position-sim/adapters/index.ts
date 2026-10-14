@@ -30,11 +30,13 @@ export {
   readEModeThresholds,
   inBitmap,
   type EModeThresholds,
+  type EModeCollateral,
+  type EModeReadInput,
   AAVE_V3_MAINNET_ADDRESSES_PROVIDER,
   SPARK_MAINNET_ADDRESSES_PROVIDER,
 } from './aaveV3'
 export { morphoBlueAdapter, MORPHO_BLUE_MAINNET, MORPHO_DOLLAR_ASSUMPTION_NOTE } from './morphoBlue'
-export { compoundV3Adapter, COMET_MAINNET_MARKETS, cometPriceUsd, type CometMarket } from './compoundV3'
+export { compoundV3Adapter, COMET_MAINNET_MARKETS, BASE_IN_QUOTE_RANGE, checkBaseInQuote, cometPriceUsd, type CometMarket } from './compoundV3'
 export { fluidAdapter, FLUID_UNSUPPORTED_MESSAGE } from './fluid'
 
 /** Read order is display order. Aave first because it is the deepest market. */

@@ -52,18 +52,37 @@ export interface Call {
 }
 
 /**
- * Thin typed wrapper over `client.multicall({ contracts, allowFailure: true })`.
+ * ONE BLOCK PER READ. An adapter pins the chain head once, at the start of a read, and
+ * passes that block to every multicall in the read: a position assembled from two blocks
+ * (balances from one, prices or thresholds from the next) is a position that never
+ * existed. The fallback transport retries a lagging endpoint that does not have the
+ * block yet on the next one.
+ */
+export async function pinBlock(client: PublicClient): Promise<bigint> {
+  return client.getBlockNumber({ cacheTime: 0 })
+}
+
+/**
+ * Thin typed wrapper over `client.multicall({ contracts, allowFailure: true, blockNumber })`.
  *
  * `allowFailure: true` is deliberate everywhere: a single reverting reserve or market
  * must not take down the whole fan-out. Callers then decide, per leg, whether the
  * failure is fatal (`unwrap`) or tolerable (borrow APR → null).
+ *
+ * `blockNumber` is the read's pinned block (see `pinBlock`); null only for a standalone
+ * read outside an adapter (one oracle price), which reads the latest block.
  */
-export async function mc<T>(client: PublicClient, contracts: Call[]): Promise<MulticallEntry<T>[]> {
+export async function mc<T>(
+  client: PublicClient,
+  contracts: Call[],
+  blockNumber: bigint | null,
+): Promise<MulticallEntry<T>[]> {
   if (contracts.length === 0) return []
   const res = await client.multicall({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     contracts: contracts as any,
     allowFailure: true,
+    ...(blockNumber !== null ? { blockNumber } : {}),
   })
   return res as unknown as MulticallEntry<T>[]
 }

@@ -660,6 +660,32 @@ test('a breach already past the band at t0 gets no window at all', () => {
   close(r.closedUsd, membraneRepayValue(900, 1000, 0.77), 'the shipped one-repay figure', 1e-9)
 })
 
+test('a sale at t0 past the band walks on, and a later band break sells again', () => {
+  // 90% on an 80% line is past the 83.2% break line: Immediate at t0 (LiquidationEngine.sol:1390),
+  // repaid to the 77% cap. The contract deletes the timer after ANY sale and the position stays
+  // live (:1421-1423), so the walk goes on: a 10% fall puts the reduced position at 85.6%, past
+  // the band again, and it is sold again.
+  const ratios = [1, ...new Array(30).fill(1), ...new Array(30).fill(0.9)]
+  const input = { ...walkBase, debtUsd: 900_000, collateralUsd: 1_000_000, ratios }
+  const r = cureWalk(input)
+  assert.strictEqual(r.outcome, 'sold-at-t0', 'the outcome names the first sale')
+  assert.strictEqual(r.closedAtIndex, 0)
+  assert.strictEqual(r.sales, 2, 'the walk went on and sold the later band break')
+  assert.strictEqual(r.breaches, 2)
+  const first = membraneRepayValue(900_000, 1_000_000, 0.77)
+  const second = membraneRepayValue(900_000 - first, (1_000_000 - first) * 0.9, 0.77)
+  close(r.closedUsd, first + second, 'two repays to cap', 1e-6)
+  // The old stop after one repay survives only as the published sensitivity.
+  const old = cureWalk({ ...input, stopAfterT0BandSale: true })
+  assert.strictEqual(old.outcome, 'sold-at-t0')
+  assert.strictEqual(old.sales, 1)
+  close(old.closedUsd, first, 'the old one repay', 1e-9)
+  // With no series there is nothing to walk: one repay, still named for the t0 sale.
+  const bare = cureWalk({ ...input, ratios: null })
+  assert.strictEqual(bare.outcome, 'sold-at-t0')
+  close(bare.closedUsd, first, 'the one-repay fallback', 1e-9)
+})
+
 test('an account under its own line at t0 keeps the conservative one-repay treatment', () => {
   // The 601-account cohort whose line is inverted from a health factor >= 1. A walk
   // would "cure" them trivially, which would be a gift, so they never enter one.

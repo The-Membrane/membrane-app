@@ -27,6 +27,11 @@ import corpus from '@/public/data/liquidation-corpus.json'
 // The census has no sUSD series, so the 4 events with sUSD debt (3 Optimism accounts) drop
 // out as unpriced debt: 2,350 -> 2,347 accounts, -$2,314 closed by Aave, -$2,392 by
 // Membrane, -$6,084 collateral at risk. The headline $144M is unchanged.
+//
+// MOVED 2026-10-14: an account sold at t0 past the band now walks on after that sale, as the
+// contract does (LiquidationEngine.sol:1421-1423), instead of stopping after one repay. One
+// account (mainnet 0x9bafc9) is sold again later: Membrane +$13,303, kept -$13,304. The
+// $67M scale line is unchanged.
 
 /** Measured Oct 10-11 2025 totals. Recomputed from the evidence JSON by the unit test. */
 export const OCT10_TOTALS = {
@@ -38,9 +43,9 @@ export const OCT10_TOTALS = {
   aaveClosedUsd: 144_237_230,
   /** Σ membraneClosedUsd over the cohort — what the 4%/8h window + repay-to-cap would
    *  have closed on the same accounts, same prices, no deployment assumed. */
-  membraneClosedUsd: 77_061_647,
+  membraneClosedUsd: 77_074_951,
   /** aaveClosedUsd − membraneClosedUsd. The day's "4% would have saved" figure. */
-  keptUsd: 67_175_583,
+  keptUsd: 67_162_279,
   /** Σ collateralUsd over the cohort — the pre-liquidation collateral standing behind it. */
   collateralAtRiskUsd: 637_382_250,
   /** The chains the cohort spans, in first-seen order. */

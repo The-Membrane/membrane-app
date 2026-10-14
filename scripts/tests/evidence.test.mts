@@ -500,6 +500,29 @@ assert.ok(sens.repeatSaleAccounts > 0 && sens.maxSalesSeen > 1, 'repeat sales re
 assert.ok(sens.withExcludedAaveClosedUsd > D.allIncluded.aaveClosedUsd, 'keeping them raises Aave')
 assert.ok(sens.withExcludedMembraneClosedUsd > MEM_ALL, 'and raises Membrane')
 checks += 8
+// A t0 sale past the band walks on like any sale; the old stop after it is a sensitivity, and
+// stopping can only close LESS. Its deltas are the subtractions they claim, on both sets.
+{
+  const nw = sens.noWalkOnAfterT0BandSale
+  assert.ok(nw && typeof nw.rule === 'string', 'the old t0 stop is published as a sensitivity')
+  assert.ok(
+    nw.pricedMembraneClosedUsd <= D.priced.membraneClosedUsd,
+    'stopping closes less (priced)',
+  )
+  assert.ok(nw.allIncludedMembraneClosedUsd <= MEM_ALL, 'and less (allIncluded)')
+  assert.ok(
+    Math.abs(nw.pricedDeltaUsd - (D.priced.membraneClosedUsd - nw.pricedMembraneClosedUsd)) <
+      0.01 && Math.abs(nw.allIncludedDeltaUsd - (MEM_ALL - nw.allIncludedMembraneClosedUsd)) < 0.01,
+    'the walk-on deltas are the subtractions they claim',
+  )
+  assert.ok(
+    nw.accountsChanged > 0,
+    'walking on after the t0 sale moves a published number of accounts',
+  )
+  const t0Walked = inc.filter((r: any) => r.outcome === 'sold-at-t0' && r.sales > 1)
+  assert.ok(t0Walked.length >= nw.accountsChanged, 'and those accounts sell again after t0')
+  checks += 6
+}
 
 // ---- the collateral mapping ----------------------------------------------
 const cmap = (doc.meta as any).collateralMapping
@@ -908,6 +931,11 @@ const debtHtml = render(React.createElement(DebtLens, { debt: doc.debt, byAsset:
 // here — on this day the no-delay walk moves no dollar. sUSD stopped being pinned at $1 and
 // has no series, so its 3 Optimism debt accounts drop out as unpriced debt: priced 748 ->
 // 747, allIncluded 1,751 -> 1,748, and the two priced medians move by a tenth.
+//
+// 2026-10-14: a delayed account sold at t0 past the band now walks on after that sale, as the
+// contract does (LiquidationEngine.sol:1421-1423). One priced account (mainnet 0x9bafc9) is
+// sold again later: Membrane +$13,303 on both sets, and the priced Membrane median moves
+// 49.4% -> 49.5%. The old stop is meta.sensitivity.noWalkOnAfterT0BandSale.
 has(debtHtml, '$34.7M', 'DebtLens Aave total (priced set)')
 has(debtHtml, '$22.2M', 'DebtLens Membrane total (priced set)')
 has(debtHtml, '747', 'DebtLens account count == priced rows')
@@ -916,7 +944,7 @@ has(debtHtml, '$47.5M', 'DebtLens allIncluded Aave total')
 has(debtHtml, '$54.2M', 'DebtLens allIncluded Membrane total')
 has(debtHtml, 'WETH', 'DebtLens per-asset table')
 has(debtHtml, '50.7%', 'DebtLens Aave median (priced)')
-has(debtHtml, '49.4%', 'DebtLens Membrane median (priced) — a real partial, not the floor artefact')
+has(debtHtml, '49.5%', 'DebtLens Membrane median (priced) — a real partial, not the floor artefact')
 // The PRIMARY set now says Membrane closes LESS debt. The lens has to render that
 // direction too, not only the "more" one it used to print.
 has(debtHtml, 'less debt closed', 'DebtLens states the direction of the gap honestly')

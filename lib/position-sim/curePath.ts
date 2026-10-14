@@ -65,12 +65,17 @@
  *       the same partial repay runs at once. A breach that is already past the band
  *       with no timer is `Immediate` (:1390) — also an immediate sale, never a
  *       delay. So the band is the guarantee and the 8 hours are conditional on it.
+ *       That includes t0: a position the census locates already past the band is sold
+ *       at t0 (outcome 'sold-at-t0') and then walks on like any sale, clause (vi).
  *
  * (vi)  A SALE RE-ARMS. The repay restores the BORROW cap, not zero, and the timer is
  *       deleted (:1421-1423). The position is therefore live afterwards: a later
  *       price move can breach it again and open a FULL fresh delay, and a later band
  *       break can sell again. The walk carries the reduced debt and collateral
- *       forward and keeps going, capped at `maxSales` sales.
+ *       forward and keeps going, capped at `maxSales` sales. This holds for EVERY sale,
+ *       the t0 `Immediate` one included (2026-10-14: cureWalk used to stop after a t0
+ *       sale past the band; the contract does not, so it no longer does either — the old
+ *       stop survives only as `stopAfterT0BandSale`, for the published sensitivity).
  *
  * (vii) THE NO-DELAY CLASS, AND THE PAID RECALL-ONLY LANE. (Cited at membrane-solidity
  *       master 16e12329; clauses (i)-(vi) cite the 2026-09-14 read and its line numbers.)
@@ -121,7 +126,11 @@ export type CureOutcome =
   | 'sold-at-band'
   /** Sold because the delay ran out with the LTV still over the line. */
   | 'sold-at-expiry'
-  /** Already past the band at t0 — no delay is ever granted. */
+  /**
+   * Already past the band at t0 — no delay is granted for that breach: repaid to cap at
+   * once, then walked on (a later breach can arm a fresh window; a later band break sells
+   * again). The outcome names the FIRST sale.
+   */
   | 'sold-at-t0'
   /**
    * NO-DELAY CLASS (clause vii): over the line at t0, sold at t0, and sold again at
@@ -318,6 +327,13 @@ export interface CureWalkInput {
    * census publishes; the capped run is published beside it as a sensitivity.
    */
   maxRepayPerSaleUsd?: number
+  /**
+   * SENSITIVITY ONLY, off by default. The pre-2026-10-14 behaviour: a delayed position
+   * already past the band at t0 is sold ONCE and not walked on. The contract deletes the
+   * timer after any sale and the position stays live (LiquidationEngine.sol:1421-1423), so
+   * the default walks it on; this reproduces the old figure, published beside the headline.
+   */
+  stopAfterT0BandSale?: boolean
 }
 
 export interface CureWalkResult {
@@ -451,9 +467,13 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
   const noDelay = input.noDelay ?? false
   const breakLine = line * (1 + band)
 
-  // Past the band at t0: `Immediate` (LiquidationEngine.sol:1390). No delay exists.
-  // (The no-delay class has no band: it is sold at t0 below and walks on.)
-  if (!noDelay && ltv0 > breakLine) {
+  // Past the band at t0: `Immediate` (LiquidationEngine.sol:1390). No delay exists for
+  // this breach; the sale runs at t0 through the same sale step as every other sale and
+  // the walk goes on below (the timer is deleted after a sale, :1421-1423). The no-delay
+  // class has no band: it is sold at t0 below and walks on too.
+  const pastBandAtT0 = !noDelay && ltv0 > breakLine
+  if (pastBandAtT0 && input.stopAfterT0BandSale) {
+    // SENSITIVITY ONLY: the old stop after one repay.
     return {
       closedUsd: oneRepay,
       closedAtIndex: 0,
@@ -464,15 +484,15 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
     }
   }
 
-  // Inside the band but over the line (or no-delay and over the line), and we have
-  // nothing to walk: fall back to the shipped figure rather than inventing a cure we
-  // cannot observe.
+  // Over the line and nothing to walk: fall back to the shipped figure (one repay) rather
+  // than inventing a cure we cannot observe. Past the band, that one repay is still the
+  // t0 sale, and keeps its name.
   const usable = ratios && ratios.length > 1
   if (!usable) {
     return {
       closedUsd: oneRepay,
       closedAtIndex: 0,
-      outcome: 'sold-immediately-no-series',
+      outcome: pastBandAtT0 ? 'sold-at-t0' : 'sold-immediately-no-series',
       minutesToFirstCure: null,
       breaches: 1,
       sales: 1,
@@ -515,7 +535,9 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
       firstIndex = i
       firstOutcome =
         reason === 'band'
-          ? 'sold-at-band'
+          ? i === 0
+            ? 'sold-at-t0' // past the band at t0: Immediate (:1390)
+            : 'sold-at-band'
           : reason === 'instant'
             ? 'sold-no-delay'
             : 'sold-at-expiry'
@@ -526,8 +548,9 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
     return s.live
   }
 
-  // t0. Delayed: armed by the breach the census located, TimerStarted (:1393-1419).
-  // No-delay: sold now, instant mode (clause vii) — `live` is false if that sale ended it.
+  // t0. Delayed in the band: armed by the breach the census located, TimerStarted
+  // (:1393-1419). Delayed past the band: sold now, Immediate (:1390). No-delay: sold now,
+  // instant mode (clause vii). `live` is false if that sale ended it.
   const act0 = timer.step(0, ltv0)
   const live = act0.kind === 'sell' ? sell(0, 1, act0.reason) : true
 

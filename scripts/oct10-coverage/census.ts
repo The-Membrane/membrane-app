@@ -88,8 +88,8 @@ export interface CensusInputs {
 }
 
 export interface CensusOptions {
-  /** Walk on after a delayed sale at t0 past the band (cureWalk stops; default false). */
-  walkOnAfterT0BandSale?: boolean
+  /** SENSITIVITY ONLY: stop after a delayed sale at t0 past the band (the old cureWalk). */
+  stopAfterT0BandSale?: boolean
   /** Build only these positions (the cross-check's overlap set). */
   onlyPids?: ReadonlySet<string>
   /**
@@ -487,7 +487,7 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
           stepSeconds: W.stepSeconds,
           lastMinute,
           usdPerUnit: P.usdPerUnit,
-          walkOnAfterT0BandSale: opts.walkOnAfterT0BandSale,
+          stopAfterT0BandSale: opts.stopAfterT0BandSale,
         })
       })
       for (const k of kernels) memRecs.push(...k.start())

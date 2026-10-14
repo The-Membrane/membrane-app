@@ -111,7 +111,7 @@ const inputs: CensusInputs = {
 // ---- the census ---------------------------------------------------------------------------
 const t0 = Date.now()
 const census = buildCensus(inputs)
-const walkOn = buildCensus(inputs, { walkOnAfterT0BandSale: true })
+const noWalkOn = buildCensus(inputs, { stopAfterT0BandSale: true })
 const elapsed = Date.now() - t0
 const rows = census.rows
 
@@ -207,16 +207,19 @@ const clusters = Object.fromEntries(
 const classes = Object.fromEntries(
   [...by(rows, (r) => `${r.protocol}:${r.delayClass}`)].sort().map(([k, v]) => [k, v.length]),
 )
-const walkOnRows = new Map(walkOn.rows.map((r) => [r.pid, r]))
-const walkOnChanged = rows.filter(
-  (r) => r.mem && Math.abs((walkOnRows.get(r.pid)!.mem?.repaidUsd ?? 0) - r.mem.repaidUsd) > 0.005,
+const noWalkOnRows = new Map(noWalkOn.rows.map((r) => [r.pid, r]))
+const noWalkOnChanged = rows.filter(
+  (r) =>
+    r.mem && Math.abs((noWalkOnRows.get(r.pid)!.mem?.repaidUsd ?? 0) - r.mem.repaidUsd) > 0.005,
 )
+const noWalkOnTotal = noWalkOn.rows.reduce((a, r) => a + (r.mem?.repaidUsd ?? 0), 0)
 const sensitivity = {
-  walkOnAfterT0BandSale: {
-    rule: 'cureWalk sells a delayed position already past line x (1 + band) at t0 ONCE and stops walking it; every other sale walks on. This rebuild walks those on too.',
-    memRepaidUsd: r2(walkOn.rows.reduce((a, r) => a + (r.mem?.repaidUsd ?? 0), 0)),
-    deltaUsd: r2(walkOn.rows.reduce((a, r) => a + (r.mem?.repaidUsd ?? 0), 0) - all.mem.repaidUsd),
-    positionsChanged: walkOnChanged.length,
+  noWalkOnAfterT0BandSale: {
+    rule: 'The headline walks a delayed position sold at t0 past line x (1 + band) on after that sale, like every other sale (the contract deletes the timer after any sale and the position stays live, LiquidationEngine.sol:1421-1423). This rebuild stops it after the one t0 repay — the behaviour before 2026-10-14.',
+    memRepaidUsd: r2(noWalkOnTotal),
+    deltaUsd: r2(all.mem.repaidUsd - noWalkOnTotal),
+    deltaNote: 'headline minus this rebuild: the Membrane sales the old stop hid',
+    positionsChanged: noWalkOnChanged.length,
     positionsSoldAtT0PastBand: rows.filter(
       (r) =>
         r.mem &&
@@ -256,7 +259,7 @@ const method = {
   delayClass:
     "collateralClass.ts delayClassOf(<every collateral symbol>, line) on the FULL composition. MIXED -> walked as the two positions Membrane would hold, exactly as compare.ts splitByDelayClass splits one: no-delay legs (sub 0) and delayed legs (sub 1), debt pro rata to collateral value at t0 (both halves open at the position's own LTV), each half at its own LT-weighted line and its own class delayClassOf(its symbols, its line). A half that opens under its own line just walks. The position's Membrane figures are the sum of its halves.",
   membrane:
-    'lib/wavefront/kernel.ts per half: DelayTimer from curePath.ts and cureSale (the same sale step cureWalk runs) — repay-to-cap with membraneRepayValue and the liqDebtMinimum floor, seized == repaid (no fee), walk on after a sale (max 20 sales), the conservative sale at the grid end for a delay still running. Repaid/sold USD at the sale minute (Morpho: x the loan token USD). A delayed position past the band at t0 is sold once and not walked on (as cureWalk; walking it on is meta.sensitivity.walkOnAfterT0BandSale).',
+    'lib/wavefront/kernel.ts per half: DelayTimer from curePath.ts and cureSale (the same sale step cureWalk runs) — repay-to-cap with membraneRepayValue and the liqDebtMinimum floor, seized == repaid (no fee), walk on after a sale (max 20 sales), the conservative sale at the grid end for a delay still running. Repaid/sold USD at the sale minute (Morpho: x the loan token USD). A delayed position past the band at t0 is sold at once and walked on like after any sale (as cureWalk); stopping it after that one repay is meta.sensitivity.noWalkOnAfterT0BandSale.',
   real: 'Aave: debt_to_cover_normalized x the debt reserve AaveOracle price at block N, liquidated_collateral_normalized x the collateral reserve price at N (the event re-read carries both). Morpho: repaid_assets_normalized x loan USD; seized collateral at the event oracle price(N) in loan units x loan USD; realised bad debt reported separately (not repaid). Loan USD: $1.00 for a dollar stable held at one (collateralClass.ts heldAtOne), else the AaveOracle price of the same token on the same chain from the minute path at the event minute, else unpriced (USD null, counted; LTV and every Membrane decision unaffected; the liqDebtMinimum floor is not applied).',
   cluster: `Largest collateral leg by USD at t0: ETH (${ETH_SYMBOLS.join(', ')}), BTC (${BTC_SYMBOLS.join(', ')}), ${NAMED_CLUSTERS.join(', ')}, Stables (collateralClass.ts isStable); any other symbol that is the primary leg of >= ${OWN_CLUSTER_MIN_POSITIONS} positions is its own cluster (${census.stats.ownClusters.join(', ')}); else Other.`,
   sameSet:

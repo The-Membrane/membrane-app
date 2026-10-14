@@ -70,7 +70,9 @@ const OUTCOME_ROWS: { key: string; label: string; note: string; walked: boolean;
   { key: 'sold-at-expiry', label: 'Still over the line at 8h; sold then', note: 'repay to cap at that minute\u2019s price', walked: true, tone: 'bad' },
   { key: 'sold-at-band', label: 'Broke the band during the delay; sold at that minute', note: 'LTV passed line \u00d7 1.04 while the timer ran', walked: true, tone: 'bad' },
   { key: 'sold-at-grid-end', label: 'Price data ended mid-delay; sold at the last price', note: 'conservative: a sale is booked', walked: true, tone: 'bad' },
-  { key: 'sold-at-t0', label: 'Already past the band when Aave hit; no delay exists', note: 'one repay to cap at t0, same as the one-repay figure', walked: true, tone: 'bad' },
+  // Immediate at t0 (LiquidationEngine.sol:1390), then the position walks on like after any
+  // sale (:1421-1423): a later breach can open a fresh window, a later band break sells again.
+  { key: 'sold-at-t0', label: 'Already past the band when Aave hit; no delay exists', note: 'repaid to cap at once, then walked on like any sold position', walked: true, tone: 'bad' },
   // The no-delay class (stable collateral, or a line above 90%): instant mode,
   // LiquidationEngine.sol:1572-1576 — sold the minute it is over its line, every time.
   // walked: false — it is walked, but there is no window to walk, and the stat above

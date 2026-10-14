@@ -1392,7 +1392,11 @@ const heldWholeDay = {
   aaveClosedUsd: r2(sum(heldRows.map((r) => r.aaveClosedUsd))),
   medianDebtUsd: r2(median(heldRows.map((r) => r.debtUsd))),
 }
-/** Already past line x (1+band) at t0: no delay is ever granted, so Membrane sells too. */
+/**
+ * Already past line x (1+band) at t0: no delay is granted for that breach, so Membrane sells
+ * too — repaid to cap at once, then walked on like after any sale (membraneClosedUsd here
+ * includes any later sale).
+ */
 const t0Rows = included.filter((r) => r.outcome === 'sold-at-t0')
 const soldAtT0 = {
   accounts: t0Rows.length,
@@ -1905,6 +1909,25 @@ const sameRowsDelayed = {
 }
 
 /**
+ * THE OLD STOP AFTER A t0 SALE PAST THE BAND. Before 2026-10-14 cureWalk sold a delayed
+ * account already past line x (1 + band) at t0 once and stopped walking it, while every other
+ * sale walked on. The contract deletes the timer after ANY sale and the position stays live
+ * (LiquidationEngine.sol:1421-1423), so the headline now walks it on; this is the figure the
+ * old stop published, summed per row the way the headline is.
+ */
+const noWalkOn = {
+  priced: sweepRowRounded({ stopAfterT0BandSale: true }, true),
+  allIncluded: sweepRowRounded({ stopAfterT0BandSale: true }, false),
+  accountsChanged: walkInputs.filter(
+    (w, i) =>
+      !cohort[i].excluded &&
+      Math.abs(
+        cureWalk({ ...w, stopAfterT0BandSale: true }).closedUsd - cohort[i].membraneClosedUsd,
+      ) > 0.005,
+  ).length,
+}
+
+/**
  * SENSITIVITY: the MIXED accounts removed from both sides. A stable and a volatile reserve
  * were both seized, a position the CDP refuses to hold (Cdp.sol:1650-1651), so there is no
  * single Membrane position to compare. The headline keeps them, walked delayed on their
@@ -2160,7 +2183,7 @@ const doc = {
         'The break line is line x (1 + band), not line + band — LiquidationEngine.sol:2099-2103, tested strictly at :1329.',
         'A position back under its LINE clears the timer (SavedByDelay, LiquidationEngine.sol:1362-1382 and :760-781), so a later breach gets a FULL fresh delay. The delay is not one-shot.',
         'MODELLED SEMANTICS, stated: clearRecoveredTimer / saveByDelay are permissionless and cost only gas, but somebody must CALL them. This model clears instantly on a return under the line. meta.sensitivity.noEarlyClearMembraneClosedUsd prices the opposite corner, where nobody ever calls, the original expiry stands, and a later breach does not restart it.',
-        'Past the band while a timer runs is BrokeWindow — immediate sale (LiquidationEngine.sol:1388-1389). Past the band with no timer is Immediate (:1390). Neither gets a delay.',
+        'Past the band while a timer runs is BrokeWindow — immediate sale (LiquidationEngine.sol:1388-1389). Past the band with no timer is Immediate (:1390), at t0 included (outcome sold-at-t0). Neither gets a delay, and after either the position walks on like after any sale. meta.sensitivity.noWalkOnAfterT0BandSale prices the old stop after a t0 sale.',
         'At expiry still over the line is DelayExpired — sale at that minute, sized to restore the borrow cap at that minute’s collateral value (:1391-1392, :2204-2238).',
         `A sale restores the BORROW CAP, not zero, and deletes the timer (:1421-1423), so the position stays live: the reduced debt and collateral walk on and a later breach re-arms. Up to ${MAX_SALES} sales per episode.`,
         `Every repay passes through the liqDebtMinimum floor and the remainder guard (LiquidationEngine.sol:2241-2269) at the deployed $${LIQ_DEBT_MINIMUM_USD}. The contract also gas-indexes that floor upward; gas is not modelled, so this can only UNDER-state the escalation.`,
@@ -2232,6 +2255,18 @@ const doc = {
       debtFloorDeltaUsd: r2(mU - noFloorTotal),
       debtFloorAccountsChanged: floorAccountsChanged,
       debtFloorOneRepayAccountsChanged: floorOneRepayChanged,
+      /**
+       * The old stop after a t0 sale past the band (cureWalk before 2026-10-14). Deltas are
+       * headline minus this: the Membrane sales the stop hid.
+       */
+      noWalkOnAfterT0BandSale: {
+        rule: 'A delayed account sold at t0 past line x (1 + band) is NOT walked on after that one repay — the behaviour before 2026-10-14. The headline walks it on like every other sale: the contract deletes the timer after any sale and the position stays live (LiquidationEngine.sol:1421-1423).',
+        pricedMembraneClosedUsd: r2(noWalkOn.priced),
+        pricedDeltaUsd: r2(priced.membraneClosedUsd - noWalkOn.priced),
+        allIncludedMembraneClosedUsd: r2(noWalkOn.allIncluded),
+        allIncludedDeltaUsd: r2(mU - noWalkOn.allIncluded),
+        accountsChanged: noWalkOn.accountsChanged,
+      },
       /** One sale per episode, the old cap. */
       singleSaleMembraneClosedUsd: r2(oneSaleTotal),
       repeatSaleDeltaUsd: r2(mU - oneSaleTotal),
@@ -2547,6 +2582,9 @@ console.log(
   `  floor: ${floorAccountsChanged} accounts, ${m(mU - noFloorTotal)}   repeat sales: ${repeatSaleAccounts} accounts (max ${maxSalesSeen}), ${m(mU - oneSaleTotal)}`,
 )
 console.log(`  no-early-clear ${m(noEarlyClearTotal)} (${m(noEarlyClearTotal - mU)})`)
+console.log(
+  `  no walk-on after a t0 band sale: priced ${m(noWalkOn.priced)} (headline +${m(priced.membraneClosedUsd - noWalkOn.priced)})  allIncl ${m(noWalkOn.allIncluded)} (+${m(mU - noWalkOn.allIncluded)})  accounts ${noWalkOn.accountsChanged}`,
+)
 console.log(
   `  concentration top1 ${(100 * concentration.top1Share).toFixed(1)}%  top5 ${(100 * concentration.top5Share).toFixed(1)}%  (${concentration.top1Account})`,
 )

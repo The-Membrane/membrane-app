@@ -42,17 +42,19 @@
  * for a Morpho market). The line is held at its t0 value, as cureWalk holds it.
  *
  * ---------------------------------------------------------------------------
- * ONE DELIBERATE DIFFERENCE FROM cureWalk, AND ONE INHERITED BEHAVIOUR
+ * ONE DELIBERATE DIFFERENCE FROM cureWalk
  * ---------------------------------------------------------------------------
  * - START-UNBREACHED. cureWalk returns 'sold-immediately-unlocated-line' (one repay, and the
  *   census excludes the row) when LTV0 <= line. The kernel just walks: a half of a split mixed
  *   position can open under its own line, and that is a healthy position, not a data defect.
  *   Locating a breach is the caller's job (the census decides `walked` from the protocol's own
  *   health check before it builds a kernel).
- * - SOLD AT t0 PAST THE BAND. cureWalk sells a delayed position that is already past
- *   line × (1 + band) at t0 ONCE and stops walking it. The kernel does the same by default so
- *   the two agree; `walkOnAfterT0BandSale: true` walks it on like every other sale (the census
- *   publishes that as a sensitivity).
+ *
+ * SOLD AT t0 PAST THE BAND: a delayed position already past line × (1 + band) at t0 is sold
+ * at once (`Immediate`, LiquidationEngine.sol:1390) and then WALKS ON like after every other
+ * sale — the contract deletes the timer after any sale and the position stays live
+ * (:1421-1423). cureWalk does the same. `stopAfterT0BandSale: true` reproduces the old stop
+ * after one repay, which both censuses publish as a sensitivity.
  */
 
 import {
@@ -108,8 +110,11 @@ export interface KernelSpec {
   noEarlyClear?: boolean
   /** See CureWalkInput.maxRepayPerSaleUsd (in the position's unit). Default uncapped. */
   maxRepayPerSale?: number
-  /** Walk on after a delayed sale at t0 past the band (cureWalk stops). Default false. */
-  walkOnAfterT0BandSale?: boolean
+  /**
+   * SENSITIVITY ONLY: stop after the t0 sale of a delayed position past the band (the old
+   * cureWalk behaviour, CureWalkInput.stopAfterT0BandSale). Default false: it walks on.
+   */
+  stopAfterT0BandSale?: boolean
 }
 
 /** cureWalk's result fields, so the two engines can be compared field for field. */
@@ -310,8 +315,8 @@ export class MembraneKernel {
       if (act.kind !== 'sell') throw new Error('unreachable: past the band must sell')
       const live = push(this.sell(m, 0, 1, 1, 'band', ltv0, 'band'))
       this.firstOutcome = 'sold-at-t0'
-      if (!s.walkOnAfterT0BandSale || !live) this.done = true
-      if (!s.walkOnAfterT0BandSale) this.special = { outcome: 'sold-at-t0', breaches: 1 }
+      if (s.stopAfterT0BandSale || !live) this.done = true
+      if (s.stopAfterT0BandSale) this.special = { outcome: 'sold-at-t0', breaches: 1 }
       return out
     }
 

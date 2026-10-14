@@ -6,9 +6,12 @@
  * column mapping, anchored at the row's own p_liq, minute-start grid from t0 + 1), and both
  * engines are run on the same input. They must close the same dollars (<= 1e-6), first sell at
  * the same index, and report the same outcome, sales, breaches and first-cure minute — under
- * the headline settings and under four variants that exercise the other branches (every row
+ * the headline settings and under five variants that exercise the other branches (every row
  * walked delayed; the never-cleared timer; a per-sale repay cap; the line 2% lower, which puts
- * the rows cureWalk would call unlocated over their line so they are compared too).
+ * the rows cureWalk would call unlocated over their line so they are compared too; the old
+ * stop after a t0 sale past the band, which both engines keep only for the sensitivity).
+ * Both engines walk on after a t0 sale past the band by default, as the contract does
+ * (LiquidationEngine.sol:1421-1423).
  *
  * The one deliberate difference: a row whose LTV0 is at or under its line (cureWalk's
  * 'sold-immediately-unlocated-line', which the census excludes) is walked by the kernel.
@@ -80,6 +83,8 @@ interface Variant {
   maxRepay?: number
   /** Scale the line (the engines are compared on more inputs than the census's own). */
   lineScale?: number
+  /** The old stop after a t0 sale past the band (the published sensitivity). */
+  stop?: boolean
 }
 const VARIANTS: Variant[] = [
   { name: 'headline', noDelay: (r) => r.delayClass === 'no-delay' },
@@ -88,6 +93,11 @@ const VARIANTS: Variant[] = [
   { name: 'per-sale cap $250k', noDelay: (r) => r.delayClass === 'no-delay', maxRepay: 250_000 },
   // Puts the rows cureWalk would call unlocated over their line too, so they are compared.
   { name: 'line x 0.98', noDelay: (r) => r.delayClass === 'no-delay', lineScale: 0.98 },
+  {
+    name: 'stop after the t0 band sale (sensitivity)',
+    noDelay: (r) => r.delayClass === 'no-delay',
+    stop: true,
+  },
 ]
 
 function runKernel(row: any, ratios: (number | null)[], input: CureWalkInput) {
@@ -110,6 +120,7 @@ function runKernel(row: any, ratios: (number | null)[], input: CureWalkInput) {
     lastMinute: NP - 1,
     noEarlyClear: input.noEarlyClear,
     maxRepayPerSale: input.maxRepayPerSaleUsd,
+    stopAfterT0BandSale: input.stopAfterT0BandSale,
   })
   k.start()
   for (let m = i0 + 1; m < NP; m++) k.step(m, (leg) => (leg.key === 'c' ? ratios[m - i0] : 1))
@@ -182,6 +193,7 @@ describe('wavefront kernel == cureWalk on every evidence.json row with a usable 
           noDelay: v.noDelay(row),
           noEarlyClear: v.noEarlyClear,
           maxRepayPerSaleUsd: v.maxRepay,
+          stopAfterT0BandSale: v.stop,
         }
         const w = cureWalk(input)
         const k = runKernel(row, ratios, input)

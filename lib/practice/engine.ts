@@ -16,10 +16,12 @@
  * two walks do the same floating-point arithmetic from the crossing on. Before the
  * crossing nothing can happen (the timer returns `none`), so no arithmetic is lost.
  *
- * ONE KNOWN NON-EQUIVALENCE, stated: if the very first crossing lands past the band
- * (an `Immediate` sale with no delay), cureWalk returns `sold-at-t0` after one repay
- * and stops, while this engine keeps walking. `cureWalkInputFor` reports that case as
- * `firstCrossingPastBand: true`; no preset is built that way (tests assert it).
+ * THE PAST-THE-BAND FIRST CROSSING: if the very first crossing lands past the band (an
+ * `Immediate` sale with no delay), this engine sells and keeps walking. cureWalk used to
+ * return `sold-at-t0` after one repay and stop; since 2026-10-14 it walks on too (the
+ * contract deletes the timer after any sale, LiquidationEngine.sol:1421-1423), so the two
+ * are expected to agree there as well — but no preset is built that way, so it is not
+ * tested. `cureWalkInputFor` still reports the case as `firstCrossingPastBand: true`.
  *
  * The state object is MUTABLE: `step` and `apply` change it in place and return it.
  * JSX-free and dependency-light so it runs under vitest in node.

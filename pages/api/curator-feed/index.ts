@@ -3,11 +3,14 @@ import { join } from 'path'
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 import { compact } from '@/lib/curatorFeed/format'
+import i3Record from '@/lib/curatorFeed/i3Record.generated.json'
+import type { I3Record } from '@/lib/curatorFeed/oracleGap'
 import {
   buildAttributionResponse,
   buildExposureResponse,
   buildFeedResponse,
   buildFlagsResponse,
+  buildOracleGapResponse,
   buildSpikeResponse,
   buildVaultExposure,
   parseFeedQuery,
@@ -15,10 +18,13 @@ import {
 } from '@/lib/curatorFeed/service'
 import { liveDir, seedDir } from '@/lib/curatorFeed/paths'
 import {
+  ORACLE_GAP_FILE,
   parseExposureFile,
   parseFeedFile,
+  parseOracleGapFile,
   type ExposureFile,
   type FeedFile,
+  type OracleGapFile,
 } from '@/lib/curatorFeed/store'
 
 // PUBLIC. Curator action feed — what Morpho / Euler Earn curators (and Aave v3, as the
@@ -33,6 +39,10 @@ import {
 //                                            markets, curator shifts (lib/curatorFeed/flags.ts)
 //   GET /api/curator-feed?view=spikes        borrow-rate jumps and who moved the market
 //                                            (&minUsd= market supply floor, &limit=, &only=reallocation|drained)
+//   GET /api/curator-feed?view=oracle-gap    oracle price() vs DefiLlama per held market, its
+//                                            Q25 T2 I3 state (24 h ≥ 2 % above) and the record
+//                                            (lib/curatorFeed/oracleGap.ts; oracle-gap.json
+//                                            absent = not measured yet, 200 with measured false)
 //
 // DATA: written by scripts/collect-curator-feed.ts (pnpm curators:feed). LOCAL-FIRST:
 // .data/curator-feed (the collector's live copy, updated in place by the tick) when it
@@ -50,6 +60,7 @@ const dir = (): string => {
 type Cached<T> = { path: string; mtimeMs: number; value: T }
 let feedCache: Cached<FeedFile> | null = null
 let exposureCache: Cached<ExposureFile> | null = null
+let gapCache: Cached<OracleGapFile> | null = null
 
 function load<T>(name: string, parse: (raw: unknown) => T, cache: Cached<T> | null): Cached<T> {
   const path = join(dir(), name)
@@ -99,6 +110,35 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       return res.status(200).json(buildFlagsResponse(feed, exposureCache.value, q, compact))
     }
     if (q.view === 'spikes') return res.status(200).json(buildSpikeResponse(feed, q, compact))
+    if (q.view === 'oracle-gap') {
+      exposureCache = load('exposure.json', parseExposureFile, exposureCache)
+      let gap: OracleGapFile | null = null
+      try {
+        gapCache = load(ORACLE_GAP_FILE, parseOracleGapFile, gapCache)
+        gap = gapCache.value
+      } catch (e) {
+        const code = (e as NodeJS.ErrnoException).code
+        if (code !== 'ENOENT') {
+          res.setHeader('Cache-Control', 'no-store')
+          return res
+            .status(503)
+            .json({ error: `oracle gap series unavailable (${code ?? 'unreadable'})` })
+        }
+        gapCache = null
+      }
+      return res
+        .status(200)
+        .json(
+          buildOracleGapResponse(
+            feed,
+            exposureCache.value,
+            gap,
+            i3Record as unknown as I3Record,
+            q,
+            nowS,
+          ),
+        )
+    }
     return res.status(200).json(buildFeedResponse(feed, q, nowS))
   } catch (e) {
     if (e instanceof QueryError) return res.status(400).json({ error: e.message })

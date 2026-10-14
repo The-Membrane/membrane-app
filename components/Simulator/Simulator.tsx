@@ -81,6 +81,7 @@ import {
   type VenueDetection,
   type VenueRecall,
 } from '@/lib/position-sim'
+import { delayClassOf, isNoDelayCollateral } from '@/lib/position-sim/collateralClass'
 
 import ComparisonPanel from './ComparisonPanel'
 import type { ControlValues } from './Controls'
@@ -668,6 +669,30 @@ export const Simulator: React.FC<SimulatorProps> = ({
     return comparison.membrane.events.filter((e) => e.kind === 'recall' || e.kind === 'cure')
   }, [comparison])
 
+  /**
+   * How much of the position gets the 8-hour window — the same rule the engine runs
+   * (lib/position-sim/collateralClass.ts). Stablecoin collateral, and any line above 90%,
+   * get none: they are sold at the line. 'part' is a position holding both kinds.
+   */
+  const windowCoverage = useMemo<'all' | 'none' | 'part'>(() => {
+    if (!selected) return 'all'
+    const cls = delayClassOf(
+      selected.collateral.map((c) => c.symbol),
+      values.membraneMaxLtv,
+    )
+    return cls === 'no-delay' ? 'none' : cls === 'mixed' ? 'part' : 'all'
+  }, [selected, values.membraneMaxLtv])
+  const allStable = !!selected?.collateral.every((c) => isNoDelayCollateral(c.symbol))
+  /** "Why it held" when no recall or cure fired, true for the window the run had. */
+  const heldLine =
+    windowCoverage === 'all'
+      ? 'Stayed inside the 4% band for the whole window.'
+      : windowCoverage === 'part'
+        ? 'Stayed inside the 4% band. Its stablecoin part has no 8-hour window and never reached its line.'
+        : allStable
+          ? 'Stablecoin collateral: no 8-hour window — and it never reached its line.'
+          : 'No 8-hour window above a 90% line — and it never reached its line.'
+
   // ------------------------------------------------------------------ render
   return (
     <Box
@@ -745,7 +770,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
 
       {/* 2 — THE GUARANTEE, verbatim from GUARANTEE. Limit adjacent, never collapsed. */}
       <Section>
-        <GuaranteeBlock />
+        <GuaranteeBlock noWindow={windowCoverage !== 'all'} />
 
         {/* 2h — WHY IT HELD. Hero form only: the guarantee states the rule, this states
             what the rule did on THIS run. One mono line per recorded event. */}
@@ -768,7 +793,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
                 color={SEMANTIC_COLORS.textPrimary}
                 {...tabular}
               >
-                Stayed inside the 4% band for the whole window.
+                {heldLine}
               </Text>
             ) : (
               heldEvents.map((e, k) => (

@@ -23,7 +23,12 @@ const SCALE_TAIL = CORPUS_SCALE_LINE.partial
 const WINDOW_FIGURE = CORPUS_SCALE_LINE.partial ? '1' : String(CORPUS_SCALE_LINE.years)
 const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured'
 
-export const GuaranteeBlock: React.FC = () => (
+/**
+ * `noWindow`: the run on screen holds collateral that gets no 8-hour window (stablecoins,
+ * or a line above 90%), so the claim's 8 hours do not apply to all of it and the exception
+ * is printed beside the limit.
+ */
+export const GuaranteeBlock: React.FC<{ noWindow?: boolean }> = ({ noWindow = false }) => (
   <Box
     data-testid="sim-guarantee"
     border="1px solid"
@@ -157,6 +162,12 @@ export const GuaranteeBlock: React.FC = () => (
         alignSelf="center"
       >
         {GUARANTEE.limit}
+        {noWindow && (
+          <>
+            <br />
+            {GUARANTEE.noWindow}
+          </>
+        )}
       </Text>
     </Box>
   </Box>

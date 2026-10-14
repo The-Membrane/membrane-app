@@ -911,6 +911,27 @@ has(debtHtml, 'less debt closed', 'DebtLens states the direction of the gap hone
 const timeHtml = render(React.createElement(TimeLens, { time: doc.time, cureModel: cm }))
 has(timeHtml, '0s', 'TimeLens Aave grants zero')
 has(timeHtml, '8h', 'TimeLens Membrane window')
+// The 8 hours are conditional, and stablecoins get none: the stat says so, and the "held
+// the whole day" denominator counts only accounts that had a window to walk.
+has(timeHtml, 'within 4% of the line · none for stablecoins', 'TimeLens qualifies the 8h')
+{
+  const windowed = (Object.entries(cm.outcomes) as [string, number][])
+    .filter(([k]) =>
+      [
+        'cured-then-held',
+        'sold-at-expiry',
+        'sold-at-band',
+        'sold-at-grid-end',
+        'sold-at-t0',
+      ].includes(k),
+    )
+    .reduce((a, [, v]) => a + v, 0)
+  has(
+    timeHtml,
+    `of ${windowed.toLocaleString()} accounts the window could be walked for`,
+    'the held denominator leaves out the no-window accounts',
+  )
+}
 // Both rise because the cure ratios are anchored to p_liq — the price in force at the
 // liquidation — instead of the minute cell at t0. Recovery is measured from the crash
 // print the account was actually taken at, which is what the borrower experienced.
@@ -924,13 +945,13 @@ has(timeHtml, '43 min', 'TimeLens median cure time')
 // The no-delay histogram row renders, with its count.
 has(
   timeHtml,
-  'No-delay class (stable collateral or line above 90%): sold at once',
+  'Stablecoin collateral (or a line above 90%): no 8-hour window, sold at the line',
   'TimeLens renders the no-delay histogram row',
 )
-has(timeHtml, 'the contract grants no window to this class', 'and says why')
+has(timeHtml, 'Membrane gives this collateral no window', 'and says why')
 {
   // ...and carries its count from the histogram, rendered in the step right after its label.
-  const at = timeHtml.indexOf('No-delay class (stable collateral or line above 90%)')
+  const at = timeHtml.indexOf('Stablecoin collateral (or a line above 90%)')
   const n = (cm.outcomes['sold-no-delay'] as number).toLocaleString()
   assert.ok(
     at >= 0 && timeHtml.slice(at, at + 1500).includes(`>${n}<`),

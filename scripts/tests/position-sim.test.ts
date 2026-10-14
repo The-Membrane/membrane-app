@@ -1102,7 +1102,7 @@ test('the simulator sells stable collateral the first minute it is over its line
     'and says why',
   )
   assert.ok(
-    cmp.membrane.caveats.some((c) => c.startsWith('NO-DELAY CLASS')),
+    cmp.membrane.caveats.some((c) => c.startsWith('Stablecoin collateral: no 8-hour window')),
     'the run states the class as a caveat',
   )
   assert.ok(

@@ -627,7 +627,10 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   ]
   if (subs.some((s) => s.noDelay)) {
     caveats.push(
-      'NO-DELAY CLASS: stable collateral (and any line above 90%) is modelled as listed in Membrane’s no-delay class. The contract gives that class no window and no band: the position is repaid to its borrow cap the minute its LTV is over the line, every time (instant mode, LiquidationEngine.sol:1572-1576, :1708-1710). That stables are listed this way is a MODELLED assumption — the contracts carry no stable label since fc92ed4f; the class follows each listing’s immutable LTV cap (Collateral.sol:424-426), and the deploy lists its stables at the 96% no-delay cap.',
+      // The no-delay class: instant mode (LiquidationEngine.sol:1572-1576, :1708-1710). That
+      // stables are listed in it is modelled: the class follows each listing's immutable LTV
+      // cap (Collateral.sol:424-426), and the deploy lists its stables at the 96% cap.
+      'Stablecoin collateral: no 8-hour window — sold at the line, every time. The same holds for any line above 90%. Modelled: Membrane lists its launch stablecoins this way; the contract gives such a listing no window.',
     )
   }
   if (hasWindow) {

@@ -36,6 +36,14 @@ export const GUARANTEE = {
   /** One sentence. The condition. Rendered next to the claim, never collapsed. */
   limit: `Past ${BAND} the partial liquidation is immediate down to the maximum borrowable LTV.`,
   /**
+   * The exception, shown beside the claim whenever the run's collateral gets no window.
+   * A listing capped above 90% is the no-delay class (Collateral.sol:424-426): no window,
+   * sold the minute LTV is over the line (LiquidationEngine.sol:1572-1576, :1708-1710).
+   * That stablecoins are listed this way is modelled (lib/position-sim/collateralClass.ts),
+   * mirroring the deploy's three launch stables at 96%.
+   */
+  noWindow: 'Stablecoin collateral: no 8-hour window — sold at the line.',
+  /**
    * The UX claim, and the only one on this surface that is not about liquidation.
    *
    * VERIFIED 2026-09-12 in membrane-solidity: there is NO per-change LTV cap and NO

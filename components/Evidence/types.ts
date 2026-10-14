@@ -25,23 +25,13 @@ export interface EvidenceMeta {
     liqDebtMinimumSource: string
     debtMinimumRuleSource: string
   }
-  /**
-   * Rows dropped from both sides: a breach that could not be located even after the
-   * rebase, or (a later rule) collateral that mixes the two Membrane delay classes.
-   */
+  /** Rows whose breach could not be located even after the rebase. Dropped both sides. */
   excluded: {
     accounts: number
     aaveClosedUsd: number
     membraneOneRepayUsd: number
     reason: string
     rebasedIntoBreach: number
-    /** The two exclusion rules, a partition of the excluded rows. */
-    byExclusionRule?: Record<
-      'unlocatedLine' | 'mixedDelayClass',
-      { accounts: number; aaveClosedUsd: number }
-    >
-    /** Mutually exclusive reasons, in priority order; includes `mixedDelayClass`. */
-    byReason?: Record<string, { accounts: number; aaveClosedUsd: number }>
   }
   /** The Membrane delay class of every row (lib/position-sim/collateralClass.ts). */
   delayClass?: DelayClassMeta
@@ -88,23 +78,36 @@ export interface DelayClassTotals {
 }
 
 /**
- * meta.delayClass. 'no-delay' rows (stable collateral, or a line above 90%) are sold the
- * minute they are over their line; 'mixed' rows cannot exist on Membrane and are excluded.
+ * meta.delayClass. 'no-delay' rows (collateral the CSV sees is all stable, or a line above
+ * 90%) are sold the minute they are over their line. 'delayed', 'mixed' (a stable and a
+ * volatile reserve were both seized) and 'unknown' (the CSV sees under 95% of the
+ * collateral) walk the 8h window.
  */
 export interface DelayClassMeta {
   rule: string
+  composition: string
   modelledAssumption: string
   sources: string[]
   stableSymbols: string[]
   measuredStables: string[]
   noDelayLineAbove: number
+  knownCompositionShare: number
   counts: Record<'cohort' | 'included' | 'priced', Record<DelayClass, DelayClassTotals>>
   noDelayBy: Record<'included' | 'priced', { stableCollateral: number; lineAbove90Only: number }>
+  stableLegs: Record<
+    'included' | 'priced',
+    { accounts: number; compositionKnown: number; compositionUnknown: number }
+  >
+  seenCollateralShare: {
+    included: Record<string, number>
+    priced: Record<string, number>
+    decilesIncluded: number[]
+  }
   linesAbove90: Record<'cohort' | 'included' | 'priced', number>
   mixedInCohort: number
 }
 
-export type DelayClass = 'no-delay' | 'delayed' | 'mixed'
+export type DelayClass = 'no-delay' | 'delayed' | 'mixed' | 'unknown'
 
 export interface CureModel {
   engine: string
@@ -295,10 +298,10 @@ export interface CohortRow {
    * can still show the row.
    */
   excluded: boolean
-  /** Why the row is excluded, or null. An unlocated line outranks a mixed class. */
-  excludedReason?: 'unlocatedLine' | 'mixedDelayClass' | null
-  /** The Membrane delay class (collateralClass.ts delayClassOf). */
+  /** The Membrane delay class this row was walked in (see DelayClassMeta). */
   delayClass?: DelayClass
+  /** Share of the account's collateral the CSV can see; the class is known at >= 0.95. */
+  seenCollateralShare?: number | null
   collSymbol: string
   debtSymbol: string
   aaveClosedUsd: number

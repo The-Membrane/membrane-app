@@ -102,13 +102,6 @@ const OUT = path.join(DATA_DIR, 'evidence.json')
 /** Hard cap on sales per episode. The contract re-arms after every repay-to-cap. */
 const MAX_SALES = 20
 
-/**
- * The outcome a MIXED-delay-class row carries. Census-only, not a CureOutcome: the row is
- * never walked, because stable and volatile collateral cannot share a Membrane position
- * (Cdp.sol:1650-1651). It is excluded from both sides of every total.
- */
-const MIXED_DELAY_CLASS_OUTCOME = 'excluded-mixed-delay-class'
-
 // STABLES: there is no local list. A stable leg is priced as a flat $1.00 series exactly
 // when `heldAtOne(symbol)` — the one stable definition in lib/position-sim/collateralClass.ts,
 // which the per-address simulator reads too. It excludes the MEASURED stables (USDe,
@@ -450,6 +443,10 @@ interface Ev {
   casset: string
   dasset: string
   repaidUsd: number
+  /** The account's balance of the liquidated collateral reserve at block N-1. */
+  preColl: number
+  /** position_read_ok: the enrichment's pre-liquidation read succeeded. */
+  readOk: boolean
 }
 const accounts = new Map<string, Ev[]>()
 /** Events whose DEBT symbol has no series at all — dropped at parse, published in meta. */
@@ -514,6 +511,8 @@ for (let i = 1; i < lines.length; i++) {
     casset: f[C.casset],
     dasset: f[C.dasset],
     repaidUsd: repaidUsdHere,
+    preColl: +f[C.preColl],
+    readOk: f[C.readOk] === 'True',
   })
 }
 
@@ -542,6 +541,47 @@ for (const [k, g] of impliedCandidates) {
     p: best.reduce((a, b) => a + b, 0) / best.length,
     users: best.length,
   })
+}
+
+/** The census class: the shared DelayClass, plus 'unknown' where the CSV cannot see enough. */
+type CensusDelayClass = DelayClass | 'unknown'
+
+// ---- what this CSV can and cannot say about an account's collateral -------
+/**
+ * ---------------------------------------------------------------------------
+ * THE CSV NAMES ONLY THE LIQUIDATED RESERVES.
+ * ---------------------------------------------------------------------------
+ * Each row is one LiquidationCall: the reserve that was seized, the account's balance of
+ * that reserve at block N-1 (pre_collateral_normalized), and the account's TOTAL
+ * collateral in USD (total_collateral_base_usd). Nothing names the reserves that were
+ * not seized. So the Membrane delay class — which depends on EVERY collateral asset in
+ * the position — is only knowable when the seized reserves are (nearly) all of it.
+ *
+ *   seenCollateralShare = Σ over the DISTINCT liquidated reserves, each at its first
+ *                         event, of pre_collateral_normalized × p_state
+ *                         / total_collateral_base_usd of that same event
+ *
+ * p_state is the round in force at block N-1 (stables 1.00). A leg with no price, or a
+ * failed pre-liquidation read, makes the share unknown (null). The class is KNOWN only
+ * when the share is >= KNOWN_COMPOSITION_SHARE; the full composition of every account
+ * needs on-chain reads of every reserve (the Q28 full-coverage census), not this CSV.
+ */
+const KNOWN_COMPOSITION_SHARE = 0.95
+const SEEN_SHARE = new Map<string, number | null>()
+for (const [key, evs] of accounts) {
+  const ordered = [...evs].sort((a, b) => a.ts - b.ts || a.seq - b.seq)
+  const firstByReserve = new Map<string, Ev>()
+  for (const e of ordered) if (!firstByReserve.has(e.casset)) firstByReserve.set(e.casset, e)
+  let share: number | null = 0
+  for (const e of firstByReserve.values()) {
+    const p = legPrices(e.csym, e.chain, e.block, e.ts, e.log)
+    if (!p || !e.readOk || !(e.preColl >= 0) || !(e.coll > 0)) {
+      share = null
+      break
+    }
+    share += (e.preColl * p.state) / e.coll
+  }
+  SEEN_SHARE.set(key, share)
 }
 
 // ---- per-account counterfactual -----------------------------------------
@@ -575,11 +615,11 @@ interface CohortOpts {
   repayCapBySymbol?: Map<string, number>
   /**
    * The DELAY-CLASS rule. 'contract' (the headline) is collateralClass.ts `delayClassOf`
-   * over the account's collateral symbols and its own line: a no-delay account is sold the
-   * minute it is over its line (curePath.ts clause vii), and a mixed account cannot exist
-   * on Membrane (Cdp.sol:1650-1651) so it is excluded from both sides. 'allDelayed' is the
-   * treatment before this rule existed — every account walked through the 8h window and
-   * no mixed-class exclusion — kept only to publish meta.sensitivity.stablesDelayed.
+   * wherever this CSV can see the account's collateral (see SEEN_SHARE), and the line rule
+   * alone where it cannot. A no-delay account is sold the minute it is over its line
+   * (curePath.ts clause vii); every other account walks the 8h window. 'allDelayed' walks
+   * every account delayed — the treatment before this rule — and is published as
+   * meta.sensitivity.stablesDelayed.
    */
   delayClassRule?: 'contract' | 'allDelayed'
 }
@@ -659,27 +699,31 @@ function buildCohort(opts: CohortOpts = {}) {
     /** Still not breached once rebased: a state/event mismatch the data cannot resolve. */
     const unlocatedLine = ltv0 <= lt
 
+    const excluded = unlocatedLine
+
     // --- the delay class, from collateralClass.ts — the SAME rule the simulator runs ---
-    // Every collateral symbol the account was liquidated against, and its own line: a line
-    // above 90% can only be a no-delay listing (Collateral.sol:424-426, :538-540).
-    const delayClass: DelayClass = allDelayed
+    // `syms` is only what was LIQUIDATED; the class needs the whole position, so it is used
+    // only where the seized reserves are (nearly) all of the collateral (SEEN_SHARE).
+    //   mixed     a stable AND a volatile reserve were both seized: known from the events
+    //             alone. Such a position cannot exist on Membrane (Cdp.sol:1650-1651); the
+    //             headline still walks it delayed on its first leg, exactly as before, and
+    //             excluding it is published as meta.sensitivity.mixedExcluded.
+    //   known     share >= KNOWN_COMPOSITION_SHARE: delayClassOf(syms, line).
+    //   unknown   otherwise. Walked delayed, EXCEPT a line above 90%, which only a
+    //             no-delay listing can carry whatever the composition (Collateral.sol:424-426,
+    //             :538-540).
+    const syms = evs.map((e) => e.csym)
+    const seenShare = SEEN_SHARE.get(key) ?? null
+    const compositionKnown = seenShare !== null && seenShare >= KNOWN_COMPOSITION_SHARE
+    const delayClass: CensusDelayClass = allDelayed
       ? 'delayed'
-      : delayClassOf(
-          evs.map((e) => e.csym),
-          lt,
-        )
-    /**
-     * Stable and volatile collateral in one position cannot exist on Membrane: the CDP
-     * reverts `MixedDelayClassCollateral` when the second class enters (Cdp.sol:1650-1651,
-     * Collateral.sol:789-793). Excluded from BOTH sides, like an unlocated line. A row that
-     * is already unlocated keeps that reason — it is the earlier one.
-     */
-    const excludedReason: 'unlocatedLine' | 'mixedDelayClass' | null = unlocatedLine
-      ? 'unlocatedLine'
-      : delayClass === 'mixed'
-        ? 'mixedDelayClass'
-        : null
-    const excluded = excludedReason !== null
+      : delayClassOf(syms) === 'mixed'
+        ? 'mixed'
+        : compositionKnown
+          ? delayClassOf(syms, lt)
+          : lineIsNoDelay(lt)
+            ? 'no-delay'
+            : 'unknown'
 
     const aaveUsd = Math.min(
       evs.reduce((s, e) => s + e.repaidUsd, 0),
@@ -754,22 +798,7 @@ function buildCohort(opts: CohortOpts = {}) {
       // No-delay: sold the minute it is over its line, and walks on (curePath.ts clause vii).
       noDelay: delayClass === 'no-delay',
     }
-    /**
-     * A MIXED account is not walked at all — the position cannot exist on Membrane. Like
-     * an unlocated row it keeps the conservative one-repay figure for display only, and
-     * that figure never reaches a total.
-     */
-    const walk =
-      excludedReason === 'mixedDelayClass'
-        ? {
-            closedUsd: oneRepayUsd,
-            closedAtIndex: 0,
-            outcome: MIXED_DELAY_CLASS_OUTCOME,
-            minutesToFirstCure: null,
-            breaches: 1,
-            sales: 1,
-          }
-        : cureWalk(walkInput)
+    const walk = cureWalk(walkInput)
     walkInputs.push(walkInput)
     const memUsd = walk.closedUsd
 
@@ -840,14 +869,19 @@ function buildCohort(opts: CohortOpts = {}) {
       ltv0: +ltv0.toFixed(5),
       ltv0Snapshot: +(f.debt / f.coll).toFixed(5),
       excluded,
-      /** Why the row is excluded, or null. An unlocated line outranks a mixed class. */
-      excludedReason,
       /**
-       * The Membrane delay class (collateralClass.ts delayClassOf over every collateral
-       * symbol this account was liquidated against, and its own line). 'no-delay' is sold
-       * the minute it is over its line; 'mixed' cannot exist on Membrane and is excluded.
+       * The Membrane delay class this row was walked in. 'no-delay' is sold the minute it
+       * is over its line. 'mixed' (a stable and a volatile reserve were both seized) and
+       * 'unknown' (the seized reserves are under 95% of the collateral, so the CSV cannot
+       * see the rest) are walked delayed, as every row was before the class rule.
        */
       delayClass,
+      /**
+       * The share of total collateral the CSV can see: the seized reserves at block N-1
+       * over total_collateral_base_usd. null when a seized leg has no price. The class is
+       * known only at >= 0.95; see SEEN_SHARE.
+       */
+      seenCollateralShare: seenShare === null ? null : +seenShare.toFixed(4),
       collSymbol: f.csym,
       debtSymbol: f.dsym,
       /** What the collateral leg was priced through: exact / stableFlat / proxied / unpriced. */
@@ -864,7 +898,7 @@ function buildCohort(opts: CohortOpts = {}) {
       membraneOneRepayUsd: +oneRepayUsd.toFixed(2),
       aaveClosedFrac: +(aaveUsd / debtUsd).toFixed(5),
       membraneClosedFrac: +(memUsd / debtUsd).toFixed(5),
-      outcome: walk.outcome as string,
+      outcome: walk.outcome,
       closedAtIndex: walk.closedAtIndex,
       minutesToFirstCure: walk.minutesToFirstCure,
       breaches: walk.breaches,
@@ -913,10 +947,6 @@ const r2 = (x: number) => +x.toFixed(2)
 /** Every summary number below is over INCLUDED rows. The cohort array keeps both. */
 const included = cohort.filter((r) => !r.excluded)
 const excludedRows = cohort.filter((r) => r.excluded)
-/** Excluded because no breach can be located after the rebase — the original rule. */
-const unlocatedRows = excludedRows.filter((r) => r.excludedReason === 'unlocatedLine')
-/** Excluded because stable and volatile collateral cannot share a Membrane position. */
-const mixedRows = excludedRows.filter((r) => r.excludedReason === 'mixedDelayClass')
 
 const n = included.length
 const aU = sum(included.map((r) => r.aaveClosedUsd))
@@ -1186,31 +1216,15 @@ const excludedStats = {
    * MUTUALLY EXCLUSIVE, in priority order, so the shares sum to 1. The overlapping raw
    * counts above are kept because a row can fail for more than one reason at once.
    */
-  /** The two exclusion RULES, a partition of the excluded set. */
-  byExclusionRule: {
-    unlocatedLine: {
-      accounts: unlocatedRows.length,
-      aaveClosedUsd: r2(sum(unlocatedRows.map((r) => r.aaveClosedUsd))),
-    },
-    mixedDelayClass: {
-      accounts: mixedRows.length,
-      aaveClosedUsd: r2(sum(mixedRows.map((r) => r.aaveClosedUsd))),
-    },
-  },
   byReason: (() => {
-    // A mixed-class row was breached (its line WAS located), so none of the unlocated-line
-    // buckets describe it; an unlocated row keeps its unlocated bucket even when its
-    // collateral is also mixed, because that is the earlier reason.
     const bucket = (r: any) =>
-      r.excludedReason === 'mixedDelayClass'
-        ? 'mixedDelayClass'
-        : r.chain !== 'mainnet'
-          ? 'l2TimestampProxy'
-          : r.pLiqColl === null
-            ? 'collateralUnpriced'
-            : r.healthFactor >= 1
-              ? 'snapshotHealthyNoBlockNRound'
-              : 'other'
+      r.chain !== 'mainnet'
+        ? 'l2TimestampProxy'
+        : r.pLiqColl === null
+          ? 'collateralUnpriced'
+          : r.healthFactor >= 1
+            ? 'snapshotHealthyNoBlockNRound'
+            : 'other'
     const out: Record<string, { accounts: number; aaveClosedUsd: number }> = {}
     for (const r of excludedRows) {
       const b = (out[bucket(r)] ??= { accounts: 0, aaveClosedUsd: 0 })
@@ -1221,14 +1235,11 @@ const excludedStats = {
     return out
   })(),
   byReasonNote:
-    'Priority order. An UNLOCATED LINE outranks a mixed delay class, and is bucketed: ' +
-    'l2TimestampProxy (the mainnet round log is only a timestamp proxy ' +
+    'Priority order: l2TimestampProxy (the mainnet round log is only a timestamp proxy ' +
     'off mainnet, so the block rule cannot be applied at all) > collateralUnpriced (no ' +
     'series, so no rebase could be computed) > snapshotHealthyNoBlockNRound (Aave read ' +
     'hf >= 1 at block N-1 and no earlier-in-block N round exists to rebase it into a ' +
-    'breach) > other. mixedDelayClass holds only rows whose line WAS located but whose ' +
-    'collateral spans both Membrane delay classes (stable and volatile), a position the ' +
-    'CDP refuses to hold (Cdp.sol:1650-1651).',
+    'breach) > other.',
 }
 const cur = included.filter((r) => r.cure)
 const cured = cur.filter((r) => r.cure.curedInWindow)
@@ -1656,44 +1667,87 @@ const maxSalesSeen = included.reduce((m, r) => Math.max(m, r.sales), 0)
 const noEarlyClearTotal = sweep({ noEarlyClear: true })
 
 // ---- the delay class ------------------------------------------------------
-/**
- * Per-class totals over a row set. Partitions it: every row carries exactly one class.
- * 'mixed' is always 0 over included rows — a mixed account is excluded by construction.
- */
-const DELAY_CLASSES: DelayClass[] = ['no-delay', 'delayed', 'mixed']
+/** Per-class totals over a row set. Partitions it: every row carries exactly one class. */
+const DELAY_CLASSES: CensusDelayClass[] = ['no-delay', 'delayed', 'mixed', 'unknown']
+const totalsOf = (g: any[]) => ({
+  accounts: g.length,
+  debtUsd: r2(sum(g.map((r) => r.debtUsd))),
+  aaveClosedUsd: r2(sum(g.map((r) => r.aaveClosedUsd))),
+  membraneClosedUsd: r2(sum(g.map((r) => r.membraneClosedUsd))),
+})
 const classTotals = (rows: any[]) => {
   const out: Record<string, any> = {}
-  for (const k of DELAY_CLASSES) {
-    const g = rows.filter((r) => r.delayClass === k)
-    out[k] = {
-      accounts: g.length,
-      debtUsd: r2(sum(g.map((r) => r.debtUsd))),
-      aaveClosedUsd: r2(sum(g.map((r) => r.aaveClosedUsd))),
-      membraneClosedUsd: r2(sum(g.map((r) => r.membraneClosedUsd))),
-    }
-  }
+  for (const k of DELAY_CLASSES) out[k] = totalsOf(rows.filter((r) => r.delayClass === k))
   return out
 }
+/** Composition known: the seized reserves are >= KNOWN_COMPOSITION_SHARE of the collateral. */
+const isKnown = (r: any) =>
+  r.seenCollateralShare !== null && r.seenCollateralShare >= KNOWN_COMPOSITION_SHARE
 /**
- * WHY a row is no-delay. A non-mixed account's symbols all share one class, so its first
- * collateral symbol says whether the collateral is stable; a no-delay row whose collateral
- * is NOT stable is no-delay only because its own line is above 90%.
+ * WHY a row is no-delay. A non-mixed account's seized symbols share one class, so its first
+ * collateral symbol says whether they are stable. No-delay BY COMPOSITION needs that AND a
+ * known composition; every other no-delay row is no-delay only because its own line is
+ * above 90%.
  */
 const noDelayBy = (rows: any[]) => {
   const nd = rows.filter((r) => r.delayClass === 'no-delay')
-  const stable = nd.filter((r) => isNoDelayCollateral(r.collSymbol))
+  const stable = nd.filter((r) => isNoDelayCollateral(r.collSymbol) && isKnown(r))
   return { stableCollateral: stable.length, lineAbove90Only: nd.length - stable.length }
 }
+/** Rows whose SEIZED legs are all stable: how many of them the CSV can actually class. */
+const stableLegs = (rows: any[]) => {
+  const g = rows.filter((r) => r.delayClass !== 'mixed' && isNoDelayCollateral(r.collSymbol))
+  return {
+    accounts: g.length,
+    compositionKnown: g.filter(isKnown).length,
+    compositionUnknown: g.filter((r) => !isKnown(r)).length,
+  }
+}
 const linesAbove90 = (rows: any[]) => rows.filter((r) => lineIsNoDelay(r.liqLine)).length
+/** The seen-collateral share, bucketed. Partitions the rows. */
+const SHARE_BUCKETS: [string, (x: number) => boolean][] = [
+  ['<0.25', (x) => x < 0.25],
+  ['0.25-0.50', (x) => x >= 0.25 && x < 0.5],
+  ['0.50-0.75', (x) => x >= 0.5 && x < 0.75],
+  ['0.75-0.95', (x) => x >= 0.75 && x < KNOWN_COMPOSITION_SHARE],
+  ['>=0.95', (x) => x >= KNOWN_COMPOSITION_SHARE],
+]
+const shareDistribution = (rows: any[]) => {
+  const out: Record<string, number> = { unknown: 0 }
+  for (const [k] of SHARE_BUCKETS) out[k] = 0
+  for (const r of rows) {
+    const x = r.seenCollateralShare
+    if (x === null) out.unknown++
+    else out[SHARE_BUCKETS.find(([, f]) => f(x))![0]]++
+  }
+  return out
+}
+const shareDeciles = (rows: any[]) => {
+  const xs = rows
+    .map((r) => r.seenCollateralShare)
+    .filter((x: number | null): x is number => x !== null)
+    .sort((a: number, b: number) => a - b)
+  return [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map((q) => +quant(xs, q).toFixed(4))
+}
 const delayClassMeta = {
   rule:
-    'collateralClass.ts delayClassOf(<every collateral symbol the account was liquidated ' +
-    "against>, <its own line>), the SAME function the per-address simulator runs. 'mixed' " +
-    "when the symbols span both classes; otherwise 'no-delay' when every symbol is stable " +
-    "OR the line is above 90%; otherwise 'delayed'. A no-delay account is sold the minute " +
-    'its LTV is over its line and walks on (lib/position-sim/curePath.ts clause vii); a ' +
-    'delayed account walks the 4%/8h window; a mixed account cannot exist on Membrane and ' +
-    'is excluded from both sides (meta.excluded.byReason.mixedDelayClass).',
+    'collateralClass.ts delayClassOf — the SAME function the per-address simulator runs — ' +
+    'applied only where this CSV can see the collateral. The CSV names only the LIQUIDATED ' +
+    "reserves, so: 'mixed' when a stable and a volatile reserve were both seized (known " +
+    'from the events alone); otherwise, when the seized reserves are >= 95% of total ' +
+    "collateral (seenCollateralShare), delayClassOf(<seized symbols>, <its line>): 'no-delay' " +
+    "if every one is stable or the line is above 90%, else 'delayed'; otherwise 'unknown' — " +
+    "except a line above 90%, which is 'no-delay' whatever the composition. A no-delay " +
+    'account is sold the minute its LTV is over its line and walks on (curePath.ts clause ' +
+    "vii). 'delayed', 'mixed' and 'unknown' all walk the 4%/8h window, exactly as every " +
+    'account did before this rule. Excluding the mixed accounts is ' +
+    'meta.sensitivity.mixedExcluded.',
+  composition:
+    'seenCollateralShare = sum over the distinct seized reserves (each at its first event) of ' +
+    'pre_collateral_normalized x the round in force at block N-1, over ' +
+    'total_collateral_base_usd of that event; null when a seized leg has no price or the ' +
+    'pre-liquidation read failed. The full composition of every account — and so its class — ' +
+    'comes from on-chain reads of every reserve (the Q28 full-coverage census), not this CSV.',
   modelledAssumption:
     'The contracts carry NO stablecoin label since fc92ed4f (merged 6b8789ae, replacing ' +
     "ee680ded's is_stablecoin): the class is DERIVED from each listing's immutable " +
@@ -1715,6 +1769,7 @@ const delayClassMeta = {
   stableSymbols: [...STABLE_SYMBOLS],
   measuredStables: [...MEASURED_STABLES],
   noDelayLineAbove: MAX_LTV_HARD_CAP,
+  knownCompositionShare: KNOWN_COMPOSITION_SHARE,
   /** Per class: accounts, debt, and both closed totals. */
   counts: {
     cohort: classTotals(cohort),
@@ -1726,28 +1781,69 @@ const delayClassMeta = {
     included: noDelayBy(included),
     priced: noDelayBy(pricedRows),
   },
+  /** Rows whose seized legs are all stable, split by whether the CSV can see the rest. */
+  stableLegs: {
+    included: stableLegs(included),
+    priced: stableLegs(pricedRows),
+  },
+  /** How much of each account's collateral the CSV can see. */
+  seenCollateralShare: {
+    included: shareDistribution(included),
+    priced: shareDistribution(pricedRows),
+    decilesIncluded: shareDeciles(included),
+  },
   /** Rows whose own inverted line is above 90% — no-delay by the line rule alone. */
   linesAbove90: {
     cohort: linesAbove90(cohort),
     included: linesAbove90(included),
     priced: linesAbove90(pricedRows),
   },
-  /** Every mixed row in the cohort, whatever it was excluded for. */
   mixedInCohort: cohort.filter((r) => r.delayClass === 'mixed').length,
 }
 
 /**
  * SENSITIVITY: the treatment BEFORE the delay-class rule — every account walked through
- * the 4%/8h window, and no mixed-class exclusion. A whole-cohort rebuild, so its totals are
- * the previous published headline, and the delta is the dollar effect of the rule. The
- * `sameRows` figures hold the headline's own included rows fixed and walk every one of them
- * delayed, isolating the walk from the exclusion.
+ * the 4%/8h window. A whole-cohort rebuild, so its totals are the previous published
+ * headline, and the delta is the dollar effect of the rule. The `sameRows` figures hold the
+ * headline's own included rows fixed and walk every one of them delayed.
  */
 const allDelayedBuilt = buildCohort({ delayClassRule: 'allDelayed' })
 const allDelayedTotals = rebuiltTotals(allDelayedBuilt)
 const sameRowsDelayed = {
   priced: sweepPriced({ noDelay: false }),
   allIncluded: sweep({ noDelay: false }),
+}
+
+/**
+ * SENSITIVITY: the MIXED accounts removed from both sides. A stable and a volatile reserve
+ * were both seized, a position the CDP refuses to hold (Cdp.sol:1650-1651), so there is no
+ * single Membrane position to compare. The headline keeps them, walked delayed on their
+ * first leg as before; this is what dropping them instead is worth.
+ */
+const gapSet = (rows: any[]) => {
+  const a = sum(rows.map((r) => r.aaveClosedUsd))
+  const m = sum(rows.map((r) => r.membraneClosedUsd))
+  return {
+    accounts: rows.length,
+    aaveClosedUsd: r2(a),
+    membraneClosedUsd: r2(m),
+    gapUsd: r2(a - m),
+    gapPct: a > 0 ? +((100 * (a - m)) / a).toFixed(2) : 0,
+  }
+}
+const notMixed = (rows: any[]) => rows.filter((r) => r.delayClass !== 'mixed')
+const mixedExcluded = {
+  rule:
+    'Accounts that had both a stable and a volatile reserve seized are removed from BOTH ' +
+    "sides. The headline keeps them, walked delayed on their first leg; Membrane's CDP " +
+    'would refuse the position (Cdp.sol:1650-1651 -> MixedDelayClassCollateral), so neither ' +
+    'treatment is a measurement of Membrane.',
+  mixed: {
+    priced: gapSet(pricedRows.filter((r) => r.delayClass === 'mixed')),
+    allIncluded: gapSet(included.filter((r) => r.delayClass === 'mixed')),
+  },
+  priced: gapSet(notMixed(pricedRows)),
+  allIncluded: gapSet(notMixed(included)),
 }
 
 const doc0 = {
@@ -1768,11 +1864,11 @@ const doc = {
       'REBASED to the liquidation-minute oracle print. No modelled per-asset LTV is ' +
       "used anywhere. Aave's side is its ENTIRE multi-hit episode; Membrane's is the " +
       "delay window walked minute by minute, with the contract's repay-to-cap, its " +
-      'liqDebtMinimum floor, and re-arming after a sale. An account in the no-delay ' +
-      'class (stable collateral, or a line above 90%) has no window: it is sold the ' +
-      'minute it is over its line and walks on (meta.delayClass). Accounts that are ' +
-      'still not breached after the rebase, and accounts mixing stable and volatile ' +
-      'collateral (a position Membrane refuses to hold), are excluded from BOTH sides.',
+      'liqDebtMinimum floor, and re-arming after a sale. An account this CSV can see is ' +
+      'all stable collateral, or whose line is above 90%, has no window: it is sold the ' +
+      'minute it is over its line and walks on (meta.delayClass). Every other account, ' +
+      'including those whose collateral the CSV cannot see, walks the window. Accounts ' +
+      'that are still not breached after the rebase are excluded from BOTH sides.',
     realConstants: {
       borrowLtvGap: BORROW_LTV_GAP,
       borrowLtvGapSource: 'lib/Constants.sol:30',
@@ -1791,23 +1887,15 @@ const doc = {
       ...excludedStats,
       membraneOneRepayUsd: r2(sum(excludedRows.map((r) => r.membraneOneRepayUsd))),
       reason:
-        'TWO RULES, in priority order (byExclusionRule partitions them). (1) UNLOCATED ' +
-        'LINE: still at or under their own inverted liquidation line after the block-1 state ' +
+        'Still at or under their own inverted liquidation line after the block-1 state ' +
         'is rebased to the liquidation-minute oracle print. Aave liquidated them, so ' +
         'either the snapshot, the health factor, or the minute-resolution price is ' +
         'wrong for these rows. No breach can be located, so no delay window can be ' +
         'started, and crediting Membrane with closing $0 on them would be an artefact ' +
         'of the data rather than a property of the mechanism. They are removed from ' +
-        "BOTH Aave's total and Membrane's, and kept in the cohort flagged excluded. " +
-        '(2) MIXED DELAY CLASS: breached, but liquidated against both stable and volatile ' +
-        'collateral. Membrane holds the two classes in separate positions and the CDP ' +
-        'reverts MixedDelayClassCollateral when a second class enters one ' +
-        '(Cdp.sol:1650-1651, Collateral.sol:789-793), so this position cannot exist there ' +
-        'and there is no Membrane walk to compare. Removed from both sides the same way; ' +
-        'an account that is both keeps reason (1).',
+        "BOTH Aave's total and Membrane's, and kept in the cohort flagged excluded.",
       rebasedIntoBreach: cohort.filter((r) => !r.excluded && r.ltv0Snapshot <= r.liqLine).length,
-      /** Unlocated-line rows only: a mixed row was never rebased out of anything. */
-      rebasedOutOfBreach: unlocatedRows.filter((r) => r.ltv0Snapshot > r.liqLine).length,
+      rebasedOutOfBreach: excludedRows.filter((r) => r.ltv0Snapshot > r.liqLine).length,
     },
     /** The Membrane delay class of every row: the rule, its cites, and the counts. */
     delayClass: delayClassMeta,
@@ -1970,10 +2058,11 @@ const doc = {
       maxSales: MAX_SALES,
       stepSeconds: STEP,
       semantics: [
-        'DELAY CLASS FIRST (meta.delayClass; lib/position-sim/collateralClass.ts, shared with the simulator). Every clause below about a window, a band, a cure or an expiry is the DELAYED class only.',
-        'NO-DELAY CLASS: an account whose collateral is all stable, or whose own line is above 90% (a line only a no-delay listing can carry, Collateral.sol:424-426, :538-540), has no window. Instant mode (LiquidationEngine.sol:1572-1576): over the line (strict >) is Immediate (:1694-1703) and a timer never arms (:1708-1710). It is sold at t0 with the same repay-to-cap and floor, then walks on and is sold again at every later minute back over its line. Outcome sold-no-delay; its cure field carries noWindow.',
+        'DELAY CLASS FIRST (meta.delayClass; lib/position-sim/collateralClass.ts, shared with the simulator). Every clause below about a window, a band, a cure or an expiry is for the accounts walked delayed: delayed, mixed and unknown.',
+        'WHAT THE CSV CAN SEE: it names only the LIQUIDATED reserves. The class is applied from them only when they are >= 95% of total collateral (seenCollateralShare); otherwise the class is unknown and the account walks the window as before, unless its line is above 90%. Full composition needs on-chain reads of every reserve (the Q28 full-coverage census).',
+        'NO-DELAY CLASS: an account whose collateral is all stable (seen >= 95%), or whose own line is above 90% (a line only a no-delay listing can carry, Collateral.sol:424-426, :538-540), has no window. Instant mode (LiquidationEngine.sol:1572-1576): over the line (strict >) is Immediate (:1694-1703) and a timer never arms (:1708-1710). It is sold at t0 with the same repay-to-cap and floor, then walks on and is sold again at every later minute back over its line. Outcome sold-no-delay; its cure field carries noWindow.',
         'MODELLED LISTING ASSUMPTION: the contracts have no stable label since fc92ed4f — the class follows the immutable max_ltv_cap — so stable => no-delay mirrors the deploy (DeployFullSystem.s.sol:269-272: sUSDS, syrupUSDC, scrvUSD at 96e16). meta.sensitivity.stablesDelayed prices walking every account delayed instead.',
-        'MIXED CLASS: an account liquidated against both stable and volatile collateral cannot exist on Membrane (Cdp.sol:1650-1651 -> MixedDelayClassCollateral, Collateral.sol:789-793). It is excluded from both sides (meta.excluded.byReason.mixedDelayClass). The per-address simulator instead splits such a position into the two isolated positions Membrane would hold.',
+        'MIXED CLASS: an account that had both a stable and a volatile reserve seized cannot exist on Membrane (Cdp.sol:1650-1651 -> MixedDelayClassCollateral, Collateral.sol:789-793). The headline still walks it delayed on its first leg, as before; removing such accounts from both sides is meta.sensitivity.mixedExcluded. The per-address simulator instead splits such a position into the two isolated positions Membrane would hold.',
         'The paid RECALL-ONLY lane (LiquidationEngine.sol:1603-1658: a venue recall that alone brings the position back under its line pays the keeper the fee from collateral and sells nothing) is never entered here — this census credits no venue recall.',
         'The break line is line x (1 + band), not line + band — LiquidationEngine.sol:2099-2103, tested strictly at :1329.',
         'A position back under its LINE clears the timer (SavedByDelay, LiquidationEngine.sol:1362-1382 and :760-781), so a later breach gets a FULL fresh delay. The delay is not one-shot.',
@@ -2063,7 +2152,7 @@ const doc = {
       stablesDelayed: {
         rule:
           'every account walked as DELAYED (the 4%/8h window, whatever its collateral or ' +
-          'line) and no mixed-class exclusion: the treatment before collateralClass.ts.',
+          'line): the treatment before collateralClass.ts.',
         priced: allDelayedTotals.priced,
         allIncluded: allDelayedTotals.allIncluded,
         excludedAccounts: allDelayedTotals.excludedAccounts,
@@ -2077,14 +2166,15 @@ const doc = {
           pricedDeltaUsd: r2(priced.membraneClosedUsd - sameRowsDelayed.priced),
           allIncludedDeltaUsd: r2(allIncluded.membraneClosedUsd - sameRowsDelayed.allIncluded),
           note:
-            "The headline's own included rows, each walked delayed: the walk's effect alone, " +
-            'with the mixed-class exclusion held fixed. Deltas are headline minus this.',
+            "The headline's own included rows, each walked delayed. Deltas are headline " +
+            'minus this.',
         },
         note:
-          'Deltas are headline minus this rebuild. They carry TWO effects: the no-delay ' +
-          'walk, and the mixed-class exclusion, which removes rows from both sides. ' +
-          'sameRows isolates the walk; the rest of the delta is the exclusion.',
+          'Deltas are headline minus this rebuild, the dollar effect of walking the ' +
+          'no-delay accounts without a window. The row set is the same.',
       },
+      /** The mixed accounts removed from both sides, instead of walked delayed. */
+      mixedExcluded,
       /** What the headline would be if the excluded rows were kept on both sides. */
       withExcludedAaveClosedUsd: r2(sum(cohort.map((r) => r.aaveClosedUsd))),
       withExcludedMembraneClosedUsd: r2(sum(cohort.map((r) => r.membraneClosedUsd))),
@@ -2151,27 +2241,32 @@ const doc = {
         'too when the debt is not a stable — before any breach is decided. Without that ' +
         'rebase a fresh print landing between block-1 and the liquidating block is ' +
         'invisible, and the account looks healthy at the moment it was liquidated.',
-      `${unlocatedRows.length} accounts are still not breached after the rebase, and are ` +
-        `EXCLUDED from both sides of every total. Aave closed $${(sum(unlocatedRows.map((r) => r.aaveClosedUsd)) / 1e6).toFixed(1)}M ` +
+      `${excludedRows.length} accounts are still not breached after the rebase, and are ` +
+        `EXCLUDED from both sides of every total. Aave closed $${(sum(excludedRows.map((r) => r.aaveClosedUsd)) / 1e6).toFixed(1)}M ` +
         'on them. Something in the snapshot, the health factor or the minute-resolution ' +
         'price is wrong for those rows; the honest treatment is to drop them from both ' +
         'sides rather than count a $0 Membrane close as a win. They stay in the cohort ' +
         'flagged excluded so the table can still show them.',
-      `${mixedRows.length} further accounts (Aave closed ` +
-        `$${(sum(mixedRows.map((r) => r.aaveClosedUsd)) / 1e6).toFixed(1)}M) were liquidated ` +
-        'against BOTH stable and volatile collateral. Membrane refuses to hold the two ' +
-        'delay classes in one position (Cdp.sol:1650-1651), so there is no Membrane walk to ' +
-        'compare them with; they are excluded from both sides the same way ' +
-        '(meta.excluded.byReason.mixedDelayClass).',
       `DELAY CLASS: ${delayClassMeta.counts.included['no-delay'].accounts} included accounts ` +
-        `(${delayClassMeta.noDelayBy.included.stableCollateral} on stable collateral, ` +
-        `${delayClassMeta.noDelayBy.included.lineAbove90Only} only because their own line is ` +
-        'above 90%) are in the NO-DELAY class: no window, sold the minute they are over ' +
-        'their line, every time (LiquidationEngine.sol:1572-1576, :1708-1710). That stables ' +
-        'are LISTED no-delay is a modelled assumption — the contracts carry no stable label ' +
-        'since fc92ed4f; the class follows the immutable LTV cap, and the deploy lists its ' +
-        'three launch stables at 96%. Walking every account delayed instead is ' +
-        'meta.sensitivity.stablesDelayed.',
+        `(${delayClassMeta.noDelayBy.included.stableCollateral} whose collateral this CSV sees ` +
+        `is all stable, ${delayClassMeta.noDelayBy.included.lineAbove90Only} only because their ` +
+        'own line is above 90%) are in the NO-DELAY class: no window, sold the minute they ' +
+        'are over their line, every time (LiquidationEngine.sol:1572-1576, :1708-1710). ' +
+        'That stables are LISTED no-delay is a modelled assumption — the contracts carry no ' +
+        'stable label since fc92ed4f; the class follows the immutable LTV cap, and the ' +
+        'deploy lists its three launch stables at 96%. Walking every account delayed ' +
+        'instead is meta.sensitivity.stablesDelayed.',
+      'THE CSV CANNOT SEE MOST COLLATERAL. It names only the liquidated reserves. Of the ' +
+        `${delayClassMeta.stableLegs.included.accounts} included accounts whose seized ` +
+        `collateral is all stable, ${delayClassMeta.stableLegs.included.compositionUnknown} ` +
+        'had less than 95% of their collateral seized-and-seen, so their class is unknown ' +
+        `and they walk the window as before; ${delayClassMeta.counts.included.unknown.accounts} ` +
+        'included accounts in all are unknown. ' +
+        `${delayClassMeta.counts.included.mixed.accounts} included accounts had a stable and ` +
+        'a volatile reserve seized — a position Membrane would not hold in one piece; they ' +
+        'stay in the headline walked delayed, and dropping them is ' +
+        'meta.sensitivity.mixedExcluded. The full composition of every account comes from ' +
+        'on-chain reads of every reserve (the Q28 full-coverage census), not this CSV.',
       'debt_fraction_repaid is per-RESERVE; Aave’s USD figure is valued from ' +
         'debt_to_cover_normalized x price instead.',
       'wstETH is priced as (ETH/USD in force) x 1.215989, the MEASURED wstETH<->stETH wrap ' +
@@ -2433,7 +2528,10 @@ console.log(
   '  DELAY CLASS included ' +
     DELAY_CLASSES.map((k) => `${k}=${delayClassMeta.counts.included[k].accounts}`).join('  ') +
     `  (no-delay: stable ${delayClassMeta.noDelayBy.included.stableCollateral}, line>90% only ${delayClassMeta.noDelayBy.included.lineAbove90Only})` +
-    `  priced no-delay ${delayClassMeta.counts.priced['no-delay'].accounts}  mixed excluded ${mixedRows.length}`,
+    `  priced no-delay ${delayClassMeta.counts.priced['no-delay'].accounts}  stable legs ${delayClassMeta.stableLegs.included.accounts} (known ${delayClassMeta.stableLegs.included.compositionKnown})  share ${JSON.stringify(delayClassMeta.seenCollateralShare.included)}`,
+)
+console.log(
+  `  mixed excluded (sensitivity): priced ${mixedExcluded.priced.accounts} aave ${m(mixedExcluded.priced.aaveClosedUsd)} membrane ${m(mixedExcluded.priced.membraneClosedUsd)} gap ${mixedExcluded.priced.gapPct}%  allIncl ${mixedExcluded.allIncluded.accounts} gap ${mixedExcluded.allIncluded.gapPct}%  (mixed rows: ${mixedExcluded.mixed.allIncluded.accounts}, aave ${m(mixedExcluded.mixed.allIncluded.aaveClosedUsd)}, membrane ${m(mixedExcluded.mixed.allIncluded.membraneClosedUsd)})`,
 )
 console.log(
   `  stables delayed (old treatment): priced ${m(allDelayedTotals.priced.membraneClosedUsd)} (delta ${m(priced.membraneClosedUsd - allDelayedTotals.priced.membraneClosedUsd)})  allIncl ${m(allDelayedTotals.allIncluded.membraneClosedUsd)} (delta ${m(allIncluded.membraneClosedUsd - allDelayedTotals.allIncluded.membraneClosedUsd)})  same rows: priced ${m(sameRowsDelayed.priced)} allIncl ${m(sameRowsDelayed.allIncluded)}  no-delay would-have-cured ${doc.time.noDelay.wouldHaveCuredWithWindow}/${doc.time.noDelay.accounts}`,

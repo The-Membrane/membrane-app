@@ -567,7 +567,7 @@ for every row of the two CSVs above, pulled on chain by membrane-app
   writeFileSync(
     parent,
     ptxt.includes(marker)
-      ? ptxt.replace(new RegExp(`${marker}[\\s\\S]*$`), pointer)
+      ? ptxt.slice(0, ptxt.indexOf(marker)) + pointer
       : ptxt.trimEnd() + '\n\n' + pointer,
   )
   return summary

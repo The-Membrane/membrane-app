@@ -436,6 +436,36 @@ class TestShipping(unittest.TestCase):
         self.assertEqual(r, "a")
 
 
+class TestStoredA(unittest.TestCase):
+    def test_load_and_merge_stored_predictions(self):
+        import gzip
+        import tempfile
+        lv = (-0.02, -0.05)
+        t0s = [M.ts_of(i) for i in (2, 8)]
+        rows = []
+        for ts in t0s:
+            for T in ("6h", "1d"):
+                for k in lv:
+                    rows.append(f"ETH,{A.iso(ts)},2021Q1,{T},{k!r},{int(ts % 7 == 0)},0.25,0.2,0.3,,,")
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "p.csv.gz")
+            with gzip.open(path, "wt") as f:
+                f.write("asset,t0,fold,T,k,y,p_a,p_b,p_c,p_d,c_fallback,d_fallback\n" + "\n".join(rows) + "\n")
+            df = M.load_stored_a(path)
+            self.assertEqual(df["ts"].tolist()[0], t0s[0])
+            n = len(rows)
+            R = {"t0_i": np.array([2] * 4 + [8] * 4), "T_h": np.array([6, 6, 24, 24] * 2),
+                 "k_i": np.array([0, 1] * 4), "levels": list(lv),
+                 "y": np.array([float(t0s[0] % 7 == 0)] * 4 + [float(t0s[1] % 7 == 0)] * 4),
+                 "p_a": np.full(n, 0.25), "in_d": np.zeros(n, bool)}
+            meta = M.merge_stored(R, df, "ETH")
+            self.assertEqual(meta["rows_matched"], n)
+            np.testing.assert_array_equal(R["p_b"], 0.2)
+            R["p_a"] = R["p_a"] + 1e-6
+            with self.assertRaises(SystemExit):
+                M.merge_stored(R, df, "ETH")
+
+
 class TestAssemble(unittest.TestCase):
     def test_monotone_fix_and_row_flattening(self):
         close, low = random_walk(4000, seed=31)

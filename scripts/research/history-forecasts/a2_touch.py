@@ -887,8 +887,12 @@ def assemble(ser, folds, per_T, rungs, d_names=frozenset(), y_check_ser=None):
 # ---------------------------------------------------------------------------------------------
 def load_stored_a(path):
     import pandas as pd
-    df = pd.read_csv(path, compression="gzip", dtype={"asset": str, "t0": str, "fold": str, "T": str})
-    df["ts"] = pd.to_datetime(df["t0"], utc=True, format="%Y-%m-%dT%H:%M:%SZ").astype("int64") // 10 ** 9
+    df = pd.read_csv(path, compression="gzip", dtype={"asset": str, "t0": str, "fold": str, "T": str,
+                                                      "c_fallback": str, "d_fallback": str})
+    t = df["t0"].to_numpy(dtype=str)
+    if not all(x.endswith("Z") and len(x) == 20 for x in t[:: max(1, len(t) // 1000)]):
+        raise SystemExit("STOP: unexpected t0 format in the stored A predictions")
+    df["ts"] = np.array([x[:19] for x in t], dtype="datetime64[s]").astype(np.int64)   # seconds, explicit unit
     return df
 
 

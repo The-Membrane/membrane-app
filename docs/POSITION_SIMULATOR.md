@@ -292,10 +292,12 @@ timer), at a sale (band break, expiry, or a no-window position over its line), a
 the window when venue capital it has not yet drawn has arrived. At each, it recalls
 `R = min(available, debt)`:
 
-- **Available** maps onto the two inputs. At the breach, or a sale with no window
-  running, the recall is synchronous: up to `recallRate` of the deployed capital in all.
-  Inside the window, capital that arrives counts: up to `fastRate` in all; a sale that
-  ends a window can use either. Both are cumulative ceilings.
+- **Available** maps onto the two inputs, conservatively, so both stay meaningful (the
+  page clamps `fastRate` ≤ `recallRate`, `Controls.tsx:301-313`). A call at the breach,
+  inside the window, or at a sale with no window running can recall only what is there now
+  or inside the 8 hours: up to `fastRate` of the deployed capital, cumulative. A sale that
+  ENDS a window (band break or expiry after the timer armed) can draw up to `recallRate`,
+  cumulative. A cooldown venue (sUSDe: recall 0.3, fast 0) returns nothing at the breach.
 - **After the recall the LTV is at or under the line** → the recall-only lane
   (`:1603-1658`, trigger `:1623`). Nothing is sold, any timer is deleted, and the call
   is paid the fee from collateral on `min(restore-to-cap target at the PRE-recall state,

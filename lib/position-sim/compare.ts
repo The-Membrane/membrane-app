@@ -319,7 +319,7 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
     let ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
     if (Number.isFinite(ltv)) peakLtv = Math.max(peakLtv, ltv)
 
-    /** A window was running coming into this minute (so its fast capital has arrived). */
+    /** A window was running coming into this minute: a sale now ENDS a window. */
     const windowRan = timer.armed
     const act = d > 0 ? timer.step(i, ltv) : ({ kind: 'none' } as const)
     const ts = path.startTs + i * path.stepSeconds
@@ -332,22 +332,21 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
      * (LiquidationEngine.sol:1319), sending `min(retrievable, repayTarget - totalRepaid)`
      * (:1450-1453) — before anything is classified.
      *
-     * WHAT IS RETRIEVABLE, mapped onto the two existing inputs: a call at an arm minute,
-     * or a sale with no window running, recalls synchronously — up to `recallRate` of the
-     * deployed capital in all. A call during the window draws on capital that ARRIVES
-     * inside it — up to `fastRate` in all — and a sale that ends a window can use either.
-     * Both are cumulative ceilings: a dollar drawn once is gone.
+     * WHAT IS RETRIEVABLE, mapped onto the two inputs (conservative, and it keeps both
+     * meaningful; the page clamps fastRate <= recallRate, Controls.tsx:301-313):
+     *   - a call at the breach (arm), inside the window (hold), or at a sale with no window
+     *     (instant, or Immediate past the band with no timer) can recall only what is there
+     *     NOW or inside the 8h: up to `fastRate` of the deployed capital, cumulative;
+     *   - a sale that ENDS a window (band break or expiry after the timer armed) can draw up
+     *     to `recallRate` of it, cumulative — the slower capital has had the window to come.
+     * A dollar drawn once is gone. A venue with a cooldown (sUSDe: recall 0.3, fast 0)
+     * therefore returns nothing at the breach and only at the end of a window.
      */
     if (act.kind === 'arm' || act.kind === 'hold' || act.kind === 'sell') {
       const brokeWindow = act.kind === 'sell' && act.reason === 'band'
       /** No window for this position: instant mode (LiquidationEngine.sol:1572). */
       const instant = act.kind === 'sell' && act.reason === 'instant'
-      const ceiling =
-        act.kind === 'hold'
-          ? fastRate
-          : act.kind === 'sell' && windowRan
-            ? Math.max(recallRate, fastRate)
-            : recallRate
+      const ceiling = act.kind === 'sell' && windowRan ? Math.max(recallRate, fastRate) : fastRate
       const available = Math.max(0, deployedStart * ceiling - venueDrawn)
       const recalled = Math.min(available, d)
       const dPost = d - recalled
@@ -396,7 +395,9 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
       } else if (act.kind === 'hold') {
         // Still over the line even with the new capital: the call would revert TimerActive
         // (Step 1.5/2.5 run first, then :1690), so the recall rolls back and nothing
-        // changes. Inside the band and inside the window, the engine sells nothing.
+        // changes. Inside the band and inside the window, the engine sells nothing. (Under
+        // the mapping above the breach call already drew the fast share, so a call in the
+        // window finds nothing new; the branch stays so the call rule mirrors the contract.)
       } else if (act.kind === 'arm') {
         // The breach call. Its recall commits (the timer-start lane pays no fee) and, still
         // over the line, the timer stays armed with the reduced debt.
@@ -654,7 +655,7 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   )
   if (opts.venue) {
     caveats.push(
-      `Every call recalls venue capital first, toward the whole debt: at the breach, at a sale, and inside the ${CURE_WINDOW_HOURS}-hour window when capital arrives. If that alone brings the position back under its line, nothing is sold, but the call still pays the liquidation fee from collateral, on at most what a normal liquidation would have repaid. If not, the recall stays and only the rest is sold. Recall rate is what returns at once; fast rate is what can arrive inside the ${CURE_WINDOW_HOURS} hours.`,
+      `Every call recalls venue capital first, toward the whole debt. At the breach, and at a sale with no ${CURE_WINDOW_HOURS}-hour window, only the fast share is there to recall; a sale that ends a window can draw up to the recall rate. If the recall alone brings the position back under its line, nothing is sold, but the call still pays the liquidation fee from collateral, on at most what a normal liquidation would have repaid. If not, the recall stays and only the rest is sold.`,
     )
   }
   caveats.push(

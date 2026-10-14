@@ -1200,70 +1200,83 @@ test('Run F: an underwater position and a deep venue take the lane ONCE, with on
   )
 })
 
-test('capital that arrives inside the window cures it, and the call is paid', () => {
-  // Nothing returns at once (recallRate 0), all of it can arrive inside 8h (fastRate 1). The
-  // breach call opens the window; the first call after the capital arrives brings the
-  // position under its line and takes the recall-only lane: a cure, with its fee.
-  const { path, unpriced } = bandPath(0.07, 600, false)
-  const cmp = runComparison(bandPosition(), path, unpriced, {
-    ...baseOpts,
-    venue: venueOf(20_000, 0, 1),
-  })
-  const ev = cmp.membrane.events
+// Venue inputs below are ones the page can produce: fastRate <= recallRate
+// (components/Simulator/Controls.tsx:301-313).
+test('a cooldown venue (sUSDe: recall 0.3, fast 0) returns nothing at the breach and charges nothing', () => {
+  // The review run: a price-cured breach. Nothing is there to recall at the breach (fast 0),
+  // so no recall, no fee — the window opens and the price cures it in 30 minutes. It used to
+  // recall $12,000 at the breach minute and charge $600.
+  const { path, unpriced } = bandPath(0.07, 30, true)
+  const sUSDe = venueOf(40_000, 0.3, 0)
+  const withVenue = runComparison(bandPosition(), path, unpriced, { ...baseOpts, venue: sUSDe })
+  const without = runComparison(bandPosition(), path, unpriced, { ...baseOpts, venue: null })
   assert.deepStrictEqual(
-    ev.map((e) => [e.minute, e.kind]),
-    [
-      [2, 'breach'],
-      [3, 'cure'],
-    ],
-    'window, then cured by arriving capital',
+    withVenue.membrane.events.map((e) => e.kind),
+    ['breach'],
+    'the window opens; nothing is recalled, sold or charged',
   )
-  assert.ok(ev[1].penaltyUsd > 0 && ev[1].seizedUsd === ev[1].penaltyUsd, 'paid, nothing sold')
-  assert.ok(!ev.some((e) => e.kind === 'liquidation'), 'and no sale follows')
+  close(withVenue.membrane.penaltyPaidUsd, 0, 'no fee', 1e-12)
+  close(withVenue.membrane.endDeployedUsd, 40_000, 'the venue is untouched', 1e-9)
+  close(
+    withVenue.membrane.endEquityUsd,
+    without.membrane.endEquityUsd + 40_000,
+    'the run is the no-venue run plus the capital still deployed',
+    1e-6,
+  )
 })
 
-test('capital that cannot cure the window does not move it — the call would revert', () => {
-  // Only $1k can arrive: 299k / 372k is still over the line, so the call reverts
-  // (TimerActive) and its recall rolls back. The window runs to expiry as if it never came.
+test('the breach draws only the fast share; the sale that ends the window draws up to the recall rate', () => {
+  // 7% drop: 300k / 372k = 80.6% over the 80% line. Fast share $500 at the breach:
+  // 299.5k / 372k is still over the line, so the recall stays and the window opens. At
+  // expiry the window ends and the slower capital is there: up to $1,000 in all.
   const { path, unpriced } = bandPath(0.07, 600, false)
   const cmp = runComparison(bandPosition(), path, unpriced, {
     ...baseOpts,
-    venue: venueOf(1_000, 0, 1),
+    venue: venueOf(1_000, 1, 0.5),
   })
   const ev = cmp.membrane.events
-  assert.deepStrictEqual(
-    ev.map((e) => e.kind),
-    ['breach', 'liquidation'],
-    'no recall inside the window',
-  )
-  close(ev[1].recalledUsd, 1_000, 'by expiry the capital has arrived, and the sale uses it', 1e-9)
-})
-
-test('a partial recall at the breach commits, and the window opens with the debt reduced', () => {
-  // Same 7% drop, but only $1k comes back: 299k / 372k = 80.4%, still over the 80% line.
-  // The breach call's recall commits (the timer-start lane pays no fee) and the window
-  // opens. No capital arrives during the window (fastRate 0), so nothing happens until
-  // expiry, where only the shortfall to the cap — on the post-recall debt — is sold.
-  const { path, unpriced } = bandPath(0.07, 600, false)
-  const cmp = runComparison(bandPosition(), path, unpriced, {
-    ...baseOpts,
-    venue: venueOf(1_000, 1, 0),
-  })
-  const ev = cmp.membrane.events
+  const expiry = 2 + Math.round(CURE_WINDOW_SECONDS / 60)
   assert.deepStrictEqual(
     ev.map((e) => [e.minute, e.kind]),
     [
       [2, 'recall'],
       [2, 'breach'],
-      [2 + Math.round(CURE_WINDOW_SECONDS / 60), 'liquidation'],
+      [expiry, 'liquidation'],
     ],
     'recall, window, sale at expiry',
   )
+  close(ev[0].recalledUsd, 500, 'the fast share at the breach', 1e-9)
   assert.strictEqual(ev[0].penaltyUsd, 0, 'no fee for the timer-start call')
-  const sale = ev[2]
-  const needed = membraneRepayValue(299_000, 372_000, 0.77, LIQ_DEBT_MINIMUM_USD)
-  close(sale.repaidUsd, needed, 'the sale restores the cap from the post-recall debt', 1e-6)
-  close(sale.recalledUsd, 0, 'the venue had nothing left to give', 1e-9)
+  close(ev[2].recalledUsd, 500, 'the rest of the recall rate at the window-ending sale', 1e-9)
+  close(cmp.membrane.endDeployedUsd, 0, 'the venue is drawn to its recall rate', 1e-9)
+})
+
+test('fastRate is not inert: at the page’s fast = recall the breach call can cure', () => {
+  // Same drop, $20k deployed. fast 0 -> the window runs and the recall cures it only when
+  // the window ends; fast = recall -> the recall-only lane at the breach.
+  const { path, unpriced } = bandPath(0.07, 600, false)
+  const slow = runComparison(bandPosition(), path, unpriced, {
+    ...baseOpts,
+    venue: venueOf(20_000, 1, 0),
+  })
+  const fast = runComparison(bandPosition(), path, unpriced, {
+    ...baseOpts,
+    venue: venueOf(20_000, 1, 1),
+  })
+  assert.deepStrictEqual(
+    fast.membrane.events.map((e) => e.kind),
+    ['recall'],
+    'cured at the breach',
+  )
+  const expiry = 2 + Math.round(CURE_WINDOW_SECONDS / 60)
+  assert.deepStrictEqual(
+    slow.membrane.events.map((e) => [e.minute, e.kind]),
+    [
+      [2, 'breach'],
+      [expiry, 'recall'],
+    ],
+    'the slow venue waits out the window and cures at its end',
+  )
 })
 
 test('a mixed position is split into the two positions Membrane would hold', () => {

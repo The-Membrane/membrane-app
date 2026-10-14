@@ -65,7 +65,12 @@ export interface WavefrontFrame {
    * Opened positions not walked (coverage.total − coverage.walked), with the short
    * reader-facing reasons (from the open records), largest first.
    */
-  notCompared: { count: number; reasons: { reason: string; count: number }[] }
+  notCompared: {
+    count: number
+    reasons: { reason: string; count: number }[]
+    /** Positions not walked anywhere in the stream held (0: the line need not be reserved). */
+    inStream: number
+  }
   /** Walked positions first liquidated in the hour before t. */
   lastHour: number
   /** Clusters hit so far (walked positions), in first-hit order; `index` is the timeline's. */
@@ -104,6 +109,7 @@ export class WavefrontTimeline {
   /** Walked opens: cluster index and spiral slot; -1 / -1 for a position not walked. */
   private openCluster: number[] = []
   private openSlot: number[] = []
+  private unwalkedOpens = 0
   private clusterIdx = new Map<string, number>()
   private clusterSize: number[] = []
   /** Cluster names in first-hit order (walked positions only). */
@@ -148,6 +154,7 @@ export class WavefrontTimeline {
         this.protocols.add(r.protocol)
         this.chains.add(r.chain)
         if (!r.walked) {
+          this.unwalkedOpens++
           this.openCluster.push(-1)
           this.openSlot.push(-1)
           continue
@@ -269,6 +276,7 @@ export class WavefrontTimeline {
         reasons: [...reasons]
           .map(([reason, count]) => ({ reason, count }))
           .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason)),
+        inStream: this.unwalkedOpens,
       },
       lastHour,
       clusters,

@@ -22,10 +22,14 @@ export function fmtUsd(x: number): string {
   return `${sign}$${v}`
 }
 
-/** A share as a percentage, floored to 0.1 so it never overstates (99.97% → 99.9%). */
+/**
+ * A share as a percentage, floored to 0.1 so it never overstates (99.97% → 99.9%); a whole
+ * number prints without the decimal (100%).
+ */
 export function fmtPctFloor(part: number, whole: number): string {
   if (whole <= 0) return '0%'
-  return `${(Math.floor((part / whole) * 1000) / 10).toFixed(1)}%`
+  const v = Math.floor((part / whole) * 1000) / 10
+  return `${Number.isInteger(v) ? v : v.toFixed(1)}%`
 }
 
 /** "Oct 10 21:30 UTC". */
@@ -83,4 +87,22 @@ export function parseTimeParam(v: unknown): number | null {
   if (/^\d{9,11}$/.test(v)) return Number(v)
   const ms = Date.parse(v)
   return Number.isFinite(ms) ? Math.floor(ms / 1000) : null
+}
+
+/**
+ * "6 not compared: not liquidatable when rechecked" — the largest reasons, on one line. A
+ * non-breaking space when every position is compared, so the line keeps its height.
+ */
+export function notComparedLine(nc: {
+  count: number
+  reasons: { reason: string; count: number }[]
+}): string {
+  const { count, reasons } = nc
+  if (count <= 0) return '\u00a0'
+  if (reasons.length <= 1) {
+    return `${fmtInt(count)} not compared: ${reasons[0]?.reason ?? 'not simulated yet'}`
+  }
+  const shown = reasons.slice(0, 2).map((r) => `${fmtInt(r.count)} ${r.reason}`)
+  const rest = reasons.slice(2).reduce((s, r) => s + r.count, 0)
+  return `${fmtInt(count)} not compared: ${shown.join(' · ')}${rest ? ` · ${fmtInt(rest)} other` : ''}`
 }

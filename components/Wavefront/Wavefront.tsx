@@ -25,7 +25,16 @@ import {
 } from '@/lib/position-sim/membrane'
 
 import { Bars, barsNote } from './Bars'
-import { chainList, displayName, fmtClock, fmtInt, fmtPctFloor, fmtUsd, fmtWindow } from './format'
+import {
+  chainList,
+  displayName,
+  fmtClock,
+  fmtInt,
+  fmtPctFloor,
+  fmtUsd,
+  fmtWindow,
+  notComparedLine,
+} from './format'
 import { panelGeometry, type PanelGeometry } from './geometry'
 import { LegendItem } from './Glyph'
 import { HexPanel } from './HexPanel'
@@ -74,18 +83,6 @@ function usePrefersReducedMotion(): boolean {
   return reduced
 }
 
-/** "6 not compared: not liquidatable when rechecked" — the largest reasons, one line. */
-function notComparedLine(f: WavefrontFrame): string {
-  const { count, reasons } = f.notCompared
-  if (count <= 0) return NBSP
-  if (reasons.length <= 1) {
-    return `${fmtInt(count)} not compared: ${reasons[0]?.reason ?? 'not simulated yet'}`
-  }
-  const shown = reasons.slice(0, 2).map((r) => `${fmtInt(r.count)} ${r.reason}`)
-  const rest = reasons.slice(2).reduce((s, r) => s + r.count, 0)
-  return `${fmtInt(count)} not compared: ${shown.join(' · ')}${rest ? ` · ${fmtInt(rest)} other` : ''}`
-}
-
 // ------------------------------------------------------------------ pieces (memoised)
 
 interface MastheadProps {
@@ -95,7 +92,8 @@ interface MastheadProps {
   memUsd: number | null
   walked: number | null
   total: number | null
-  notComparedText: string
+  /** null: the stream has no position that is not walked, so the line is not shown at all. */
+  notComparedText: string | null
   clock: string
   lastHour: number | null
 }
@@ -145,7 +143,7 @@ const Masthead = memo(function Masthead(p: MastheadProps) {
           Debt force-closed: real {p.realUsd === null ? '—' : fmtUsd(p.realUsd)} · Membrane{' '}
           {p.memUsd === null ? '—' : fmtUsd(p.memUsd)}†
         </Text>
-        {/* Both lines always hold their height, so the panels never jump during play. */}
+        {/* Both lines hold their height, so the panels never jump during play. */}
         <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textSecondary}>
           {p.walked !== null && p.total
             ? `Same ${fmtInt(p.walked)} positions on both sides · ` +
@@ -153,9 +151,11 @@ const Masthead = memo(function Masthead(p: MastheadProps) {
               `(${fmtPctFloor(p.walked, p.total)})`
             : NBSP}
         </Text>
-        <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary}>
-          {p.notComparedText}
-        </Text>
+        {p.notComparedText !== null ? (
+          <Text {...mono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary}>
+            {p.notComparedText}
+          </Text>
+        ) : null}
       </VStack>
       <Flex
         direction={{ base: 'row', md: 'column' }}
@@ -518,7 +518,9 @@ export const Wavefront: React.FC<WavefrontProps> = ({ initialT = null }) => {
           memUsd={T ? T.mem.repaidUsd : null}
           walked={frame ? frame.coverage.walked : null}
           total={frame ? frame.coverage.total : null}
-          notComparedText={frame ? notComparedLine(frame) : NBSP}
+          notComparedText={
+            !frame || frame.notCompared.inStream === 0 ? null : notComparedLine(frame.notCompared)
+          }
           clock={frame ? fmtClock(frame.t) : NBSP}
           lastHour={frame ? frame.lastHour : null}
         />

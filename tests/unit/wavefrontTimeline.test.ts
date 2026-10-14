@@ -115,6 +115,7 @@ describe('wavefront timeline: the reducer fold at the playhead', () => {
     expect(f.totals.mem.positionsKept).toBe(walked.mem.positionsKept)
     expect(f.totals.mem.positionsArmed).toBe(0)
     expect(f.notCompared.count).toBe(summary.coverage.notWalked)
+    expect(f.notCompared.inStream).toBe(summary.coverage.notWalked)
     // each census reason maps to one short reader-facing phrase
     const expected = new Map<string, number>()
     for (const u of summary.coverage.uncovered ?? []) {

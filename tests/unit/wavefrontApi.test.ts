@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import handler from '@/pages/api/wavefront/stream'
 import { isMissingTable, rowToRecord } from '@/pages/api/_lib/wavefrontEvents'
+import { aavePid } from '@/lib/wavefront/pid'
 
 import { mockRes } from './fixtures/mockApiRes'
 
@@ -38,17 +39,19 @@ describe('GET /api/wavefront/stream without DATABASE_URL', () => {
 
 describe('wavefront_events rows', () => {
   it('a row becomes its record: seq and kind from the columns, pid and ts filled in', () => {
+    // schema v2 pid: the Aave pool is part of the id; the route never parses it
+    const pid = aavePid('base', '0xA238Dd80C259a72e81d7e4664a9801593F98d1c5', '0xAbC')
     const r = rowToRecord({
       seq: '42',
       ts: '2025-10-10T21:30:00Z',
       kind: 'real',
-      pid: 'aave-v3:base:0xabc',
+      pid,
       body: { repaidUsd: 10, seizedUsd: 11, block: 1, tx: '0x1', logIndex: 0 },
     })
     expect(r).toMatchObject({
       kind: 'real',
       seq: 42,
-      pid: 'aave-v3:base:0xabc',
+      pid,
       ts: Date.parse('2025-10-10T21:30:00Z') / 1000,
       repaidUsd: 10,
     })

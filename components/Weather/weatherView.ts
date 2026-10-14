@@ -62,7 +62,8 @@ export const MAX_AGE_MS = {
   gas: 15 * 60_000,
 } as const
 
-const MINUS = '−'
+/** The typographic minus (U+2212), escaped so no encoding step can turn it into a hyphen. */
+const MINUS = '\u2212'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /** "12m", "9s", "3h", "2d" — floored. */
@@ -131,7 +132,7 @@ export function reasonFor(triggers: M0Trigger[], at: number): Reason | null {
   return null
 }
 
-interface AgeInput {
+export interface AgeInput {
   name: string
   asOf: number | null
   failed: boolean
@@ -160,6 +161,39 @@ function agesOf(body: WeatherResponse): AgeInput[] {
 
 const fresh = (asOf: number | null | undefined, maxAge: number, nowMs: number): asOf is number =>
   typeof asOf === 'number' && nowMs - asOf <= maxAge
+
+/** The phones' dateline row holds 54 mono characters at 390px (358px ÷ 6.6px); 2 spare. */
+export const PHONE_LINE_CHARS = 52
+
+/**
+ * The ages in one item, for phones: "inputs ≤40m old" when all are fresh, else what is old
+ * or missing, inputs in the same state grouped ("Chainlink, Coinbase 3h old"; all four:
+ * "inputs 3h old"). If that would not fit beside the base fee on one 390px line, it falls
+ * back to a count ("3 inputs old or unavailable"); the wide dateline still lists each age.
+ */
+export function agesBriefOf(inputs: AgeInput[], nowMs: number, gas: string | null): string {
+  const bad = inputs.filter((a) => a.failed || a.asOf === null || !fresh(a.asOf, a.maxAge, nowMs))
+  if (!bad.length) {
+    const oldest = Math.max(...inputs.map((a) => nowMs - (a.asOf as number)))
+    return `inputs ≤${formatAge(oldest)} old`
+  }
+  const missing = (a: AgeInput) => a.failed || a.asOf === null
+  const groups = new Map<string, string[]>()
+  for (const a of bad) {
+    const state = missing(a) ? 'unavailable' : `${formatAge(nowMs - (a.asOf as number))} old`
+    groups.set(state, [...(groups.get(state) ?? []), a.name])
+  }
+  const named = [...groups]
+    .map(([state, names]) =>
+      names.length === inputs.length ? `inputs ${state}` : `${names.join(', ')} ${state}`,
+    )
+    .join(' · ')
+  if (named.length <= PHONE_LINE_CHARS - (gas ? gas.length + 3 : 0)) return named
+  const unavailable = bad.filter(missing).length
+  const what =
+    unavailable === 0 ? 'old' : unavailable === bad.length ? 'unavailable' : 'old or unavailable'
+  return `${bad.length} inputs ${what}`
+}
 
 const EMPTY: Omit<WeatherView, 'kind' | 'hatched' | 'regime'> = {
   reason: null,
@@ -209,18 +243,10 @@ export function weatherView(input: {
       ? `${a.name} unavailable`
       : `${a.name} ${formatAge(nowMs - a.asOf)}`,
   )
-  const problems = inputs
-    .filter((a) => a.failed || a.asOf === null || !fresh(a.asOf, a.maxAge, nowMs))
-    .map((a) =>
-      a.failed || a.asOf === null
-        ? `${a.name} unavailable`
-        : `${a.name} ${formatAge(nowMs - (a.asOf as number))} old`,
-    )
-  const oldest = Math.max(...inputs.map((a) => (a.asOf === null ? 0 : nowMs - a.asOf)))
-  const agesBrief = problems.length ? problems.join(' · ') : `inputs ≤${formatAge(oldest)} old`
-
   const dvolFresh = data.dvol && fresh(data.dvol.asOfMs, MAX_AGE_MS.dvol, nowMs) ? data.dvol : null
   const gasFresh = data.gas && fresh(data.gas.asOfMs, MAX_AGE_MS.gas, nowMs) ? data.gas : null
+  const gas = gasFresh ? `Base fee ${formatGwei(gasFresh.gwei)} gwei` : null
+  const agesBrief = agesBriefOf(inputs, nowMs, gas)
 
   const base = {
     ...EMPTY,
@@ -228,7 +254,7 @@ export function weatherView(input: {
       ? `The market prices a ${dvolFresh.dailyMovePct.toFixed(1)}% daily ETH move.`
       : null,
     credit: dvolFresh ? STRIP_COPY.credit : null,
-    gas: gasFresh ? `Base fee ${formatGwei(gasFresh.gwei)} gwei` : null,
+    gas,
     ages,
     agesBrief,
     liq: STRIP_COPY.liq,

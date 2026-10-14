@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  agesBriefOf,
+  type AgeInput,
   formatAge,
+  PHONE_LINE_CHARS,
   formatGwei,
   reasonFor,
   signedPct,
@@ -284,5 +287,94 @@ describe('weatherView — one failed input hides only its element', () => {
     )
     expect(v.ages[0]).toBe('Chainlink unavailable')
     expect(v.kind).toBe('stale')
+  })
+})
+
+describe("weatherView — the phones' ages line never outgrows 390px", () => {
+  const input = (name: string, asOf: number | null, failed = false): AgeInput => ({
+    name,
+    asOf,
+    failed,
+    maxAge: name === 'gas' ? 15 * 60_000 : 2 * HOUR_MS,
+  })
+  const BASE_FEE = 'Base fee 0.067 gwei'
+
+  it('a whole response 3h old (the browser clock ahead) collapses to one item', () => {
+    // A fresh payload read 3h later: every input shares the 3h bucket.
+    const v = weatherView({ status: 'success', data: body(), nowMs: NOW + 3 * HOUR_MS })
+    expect(v.kind).toBe('stale')
+    expect(v.agesBrief).toBe('inputs 3h old')
+    expect(v.gas).toBeNull()
+  })
+
+  it('groups inputs in the same state', () => {
+    const b = agesBriefOf(
+      [
+        input('Chainlink', NOW - 3 * HOUR_MS),
+        input('Coinbase', NOW - 3 * HOUR_MS - 60_000),
+        input('DVOL', NOW - 20 * 60_000),
+        input('gas', NOW - 9_000),
+      ],
+      NOW,
+      BASE_FEE,
+    )
+    expect(b).toBe('Chainlink, Coinbase 3h old')
+  })
+
+  it('falls back to a count when the names would not fit beside the base fee', () => {
+    const mixed = [
+      input('Chainlink', null, true),
+      input('Coinbase', NOW - 3 * HOUR_MS),
+      input('DVOL', NOW - 5 * HOUR_MS),
+      input('gas', NOW - 9_000),
+    ]
+    expect(agesBriefOf(mixed, NOW, BASE_FEE)).toBe('3 inputs old or unavailable')
+    const missing = [
+      input('Chainlink', null, true),
+      input('Coinbase', null, true),
+      input('DVOL', null, true),
+      input('gas', NOW - 9_000),
+    ]
+    expect(agesBriefOf(missing, NOW, BASE_FEE)).toBe('3 inputs unavailable')
+    // Without the base fee beside it, the names fit.
+    expect(agesBriefOf(missing, NOW, null)).toBe('Chainlink, Coinbase, DVOL unavailable')
+  })
+
+  it('fits one line in every combination of fresh, old and missing inputs', () => {
+    const states = [
+      (n: string) => input(n, NOW - 9_000),
+      (n: string) => input(n, NOW - 59 * 60_000 * 2),
+      (n: string) => input(n, NOW - 47 * HOUR_MS),
+      (n: string) => input(n, null, true),
+    ]
+    const names = ['Chainlink', 'Coinbase', 'DVOL', 'gas']
+    for (let code = 0; code < 4 ** 4; code++) {
+      const inputs = names.map((n, i) => states[Math.floor(code / 4 ** i) % 4](n))
+      for (const gas of [null, BASE_FEE, 'Base fee 123.4 gwei']) {
+        const brief = agesBriefOf(inputs, NOW, gas)
+        expect((gas ? gas.length + 3 : 0) + brief.length).toBeLessThanOrEqual(PHONE_LINE_CHARS)
+      }
+    }
+  })
+})
+
+describe('weatherView — signed figures', () => {
+  it('a falling move prints the typographic minus, never a hyphen', () => {
+    const v = view(
+      body({
+        regime: regime({
+          state: 'choppy',
+          active: true,
+          triggers: [{ t: H, kind: 'move24h', value: -0.105, threshold: 0.0814 }],
+          lastTriggerAt: H,
+          since: H,
+          holdsUntil: H + 24 * HOUR_MS,
+        }),
+      }),
+    )
+    expect(v.reason?.figure).toBe('\u221210.5%')
+    expect(v.reason?.figure.codePointAt(0)).toBe(0x2212)
+    const printed = [v.regime.text, v.reason?.figure, v.reason?.tail, v.reason?.threshold, v.holds]
+    for (const t of printed) expect(t ?? '').not.toMatch(/-\d/)
   })
 })

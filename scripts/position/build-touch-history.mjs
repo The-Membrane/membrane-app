@@ -85,7 +85,7 @@ export const METHOD =
   'Forecast from history. Origins: each UTC day 00:00 from 2021-03-25. Start = Chainlink oracle close of the hour ending at the origin. ' +
   'A fall of L touches when the lowest hourly oracle low in the next T days is at or below start × (1 − L); a rise of L when the highest hourly oracle high is at or above start × (1 + L). ' +
   'Rows follow validation/t1: calib origins whose window ends by 2024-01-01, test origins from 2024-01-01 whose window ends by 2026-10-06 03:00 UTC; the forecast pools both. ' +
-  'Band: 90% moving-block bootstrap (blocks of max(30, 2T) days, 2000 replicates, seed 20261012). ' +
+  'Band: 90% moving-block bootstrap (blocks of max(30, 2T) days that never span the purged 2024-01-01 seam, 2000 replicates, seed 20261012). ' +
   'Confidence (preliminary): a check is a t1 level (5, 10, 15, 20, 30%) with at least one touch in either span; it holds when the 2024–26 frequency lies inside the 90% band built from 2021–23 rows only. ' +
   'High if every check holds and there are at least 4, medium if at least half hold, low otherwise, untested with no checks.'
 
@@ -192,15 +192,22 @@ export function touchedCounts(deepest) {
   return out
 }
 
-/** t1's block draw for one horizon: the block starts of every replicate. */
-export function blockDraw(rng, nDays, horizonDays, replicates = BOOTSTRAP.replicates) {
+/**
+ * t1's block draw for one horizon: the block starts of every replicate. `seams` are row
+ * indices where the origin days jump (the pooled span's purged 2024-01-01 gap); a block is
+ * never drawn across one, so every block is consecutive days. With no seams this is t1's
+ * scheme exactly: starts uniform on [0, N − b].
+ */
+export function blockDraw(rng, nDays, horizonDays, replicates = BOOTSTRAP.replicates, seams = []) {
   const b = Math.max(BOOTSTRAP.minBlockDays, BOOTSTRAP.blockPerHorizonDays * horizonDays)
   if (nDays < b) throw new Error(`blockDraw: ${nDays} days is shorter than one ${b}-day block`)
   const nb = Math.ceil(nDays / b)
+  const valid = []
+  for (let i = 0; i + b <= nDays; i++) if (!seams.some((k) => i < k && k < i + b)) valid.push(i)
   const starts = []
   for (let r = 0; r < replicates; r++) {
     const s = new Array(nb)
-    for (let k = 0; k < nb; k++) s[k] = rng.int(nDays - b + 1)
+    for (let k = 0; k < nb; k++) s[k] = valid[rng.int(valid.length)]
     starts.push(s)
   }
   return { b, nb, starts, nDays }
@@ -364,7 +371,9 @@ export function build(root = process.cwd()) {
   for (const h of HORIZONS) {
     const d = ours.ETH[h.days].map((r) => r.t0)
     if (d.join() !== ours.BTC[h.days].map((r) => r.t0).join()) throw new Error(`ETH and BTC origin days differ at T=${h.days}`)
-    draws[h.days] = blockDraw(rng, d.length, h.days)
+    // The seam: the first test row, where the purged straddling origins leave a gap.
+    const seam = ours.ETH[h.days].findIndex((r) => r.split === 'test')
+    draws[h.days] = blockDraw(rng, d.length, h.days, BOOTSTRAP.replicates, seam > 0 ? [seam] : [])
   }
   const calibDraws = {}
   for (const h of HORIZONS) {
@@ -432,7 +441,8 @@ export function build(root = process.cwd()) {
         dataEnd: new Date(T1_END * 1000).toISOString(),
       },
       bootstrap: {
-        scheme: 'moving blocks of max(30, 2T) origin days, ceil(N/b) per replicate, starts uniform on [0, N − b]',
+        scheme:
+          'moving blocks of max(30, 2T) origin days, ceil(N/b) per replicate, starts uniform over every block that stays on one side of the 2024-01-01 seam',
         replicates: BOOTSTRAP.replicates,
         seed: BOOTSTRAP.seed,
         prng: 'xoshiro128** seeded by splitmix32',

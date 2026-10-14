@@ -37,6 +37,7 @@ import {
   confidenceLine,
   confidenceOf,
   floorPct,
+  bandTopPct,
   formatBand,
   formatChance,
   lookupTouch,
@@ -97,7 +98,7 @@ describe('forecast table: shape', () => {
     expect(t.bootstrap).toMatchObject({ replicates: 2000, seed: 20261012, band: 0.9 })
     expect(t.confidenceRule).toMatchObject({ levels: [5, 10, 15, 20, 30], highMinChecks: 4, mediumMinShare: 0.5, preliminary: true })
     expect(t.method).toMatch(/High if every check holds and there are at least 4, medium if at least half hold, low otherwise, untested/)
-    expect(t.method).toMatch(/90% moving-block bootstrap/)
+    expect(t.method).toMatch(/90% moving-block bootstrap \(blocks of max\(30, 2T\) days that never span the purged 2024-01-01 seam/)
   })
 
   it('n per horizon is t1’s row count per asset (calib + test)', () => {
@@ -196,6 +197,14 @@ describe('the builder’s pure parts', () => {
     for (const s of d30.starts.flat()) expect(s >= 0 && s <= 980 - 60).toBe(true)
   })
 
+  it('a block never spans a seam (the purged 2024-01-01 gap)', () => {
+    const d = blockDraw(makeRng(5), 200, 7, 50, [90])
+    for (const st of d.starts.flat()) expect(st + d.b <= 90 || st >= 90).toBe(true)
+    // Both sides are still drawn from.
+    const flat = d.starts.flat()
+    expect(flat.some((st) => st < 90) && flat.some((st) => st >= 90)).toBe(true)
+  })
+
   it('touched counts and the band on a toy series', () => {
     expect(touchedCounts([0, 1, 3, 3]).slice(0, 4)).toEqual([3, 2, 2, 0])
     const deepest = Array.from({ length: 120 }, (_, i) => (i % 10 === 0 ? 5 : 0))
@@ -256,15 +265,28 @@ describe('forecast lookup', () => {
     expect(touchByHorizon(t, 'BTC', 'rise', 0.1).map((r) => r.horizon)).toEqual(HORIZON_IDS)
   })
 
-  it('formats a chance up and a band outward, never inventing a figure', () => {
-    expect(formatChance(0, 2009)).toBe('0%')
+  it('formats a chance up and a band outward, and never shows 0%', () => {
+    expect(formatChance(0, 2009)).toBe('<1%') // zero touches is not a zero chance
     expect(formatChance(1, 2009)).toBe('<1%')
     expect(formatChance(488, 2009)).toBe('25%') // 24.29% rounds up
     expect(formatChance(50, 1000)).toBe('5%') // exact, not bumped
     expect(formatBand(41, 59, 200)).toBe('20–30%') // 20.5 floored, 29.5 ceiled
-    expect(formatBand(1, 3, 2009)).toBe('0–1%')
-    expect(formatBand(0, 0, 2009)).toBe('0%')
+    expect(formatBand(1, 3, 2009)).toBe('up to 1%')
+    expect(formatBand(0, 40, 2009)).toBe('up to 2%')
+    // No touches anywhere: the top is the rule of three, 3/n, rounded up — never 0.
+    expect(formatBand(0, 0, 2009)).toBe('up to 1%')
+    expect(bandTopPct(0, 200)).toBe(2)
     expect(() => formatChance(1, 0)).toThrow()
+    // Nothing in the whole table formats to a "0".
+    for (const a of ASSETS)
+      for (const d of DIRS)
+        for (const h of HORIZON_IDS) {
+          const r = t.assets[a][d][h]
+          r.touched.forEach((x, i) => {
+            expect(formatChance(x, r.n)).not.toMatch(/^0/)
+            expect(formatBand(r.lo[i], r.hi[i], r.n)).not.toMatch(/(^|\D)0%|^0/)
+          })
+        }
   })
 
   it('states the confidence with its basis and "preliminary"', () => {

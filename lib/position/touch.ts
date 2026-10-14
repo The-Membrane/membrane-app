@@ -156,22 +156,35 @@ export function touchByHorizon(t: TouchTable, asset: HistoryAsset, direction: Di
 }
 
 /**
- * A chance for display, rounded toward risk: up to a whole percent. Above 0 but under 1%
- * reads "<1%"; none at all reads "0%". Neither invents a figure the history lacks.
+ * A chance for display, rounded toward risk: up to a whole percent. Anything under 1%,
+ * zero touches included, reads "<1%": "0%" is never shown (DESIGN_RULES §4 — no history
+ * of zero touches proves a zero chance).
  */
 export function formatChance(touched: number, n: number): string {
   if (!(n > 0)) throw new Error('formatChance: n must be positive')
-  if (touched <= 0) return '0%'
-  const pct = (touched / n) * 100
+  const pct = (Math.max(0, touched) / n) * 100
   if (pct < 1) return '<1%'
   return `${Math.ceil(pct - 1e-9)}%`
 }
 
-/** The band for display, widened outward: "9–15%", or "0–1%". One value when they meet. */
+/**
+ * The upper end of the band in percent, rounded up. With no touches anywhere in the
+ * bootstrap the band's top is the rule of three, 3/n — never 0.
+ */
+export function bandTopPct(hi: number, n: number): number {
+  const top = hi > 0 ? (hi / n) * 100 : (3 / n) * 100
+  return Math.max(1, Math.ceil(top - 1e-9))
+}
+
+/**
+ * The band for display, widened outward: "9–15%"; when its low end rounds to 0, "up to
+ * 2%"; never a "0".
+ */
 export function formatBand(lo: number, hi: number, n: number): string {
   if (!(n > 0)) throw new Error('formatBand: n must be positive')
   const a = Math.floor((lo / n) * 100 + 1e-9)
-  const b = Math.ceil((hi / n) * 100 - 1e-9)
+  const b = bandTopPct(hi, n)
+  if (a < 1) return `up to ${b}%`
   return a === b ? `${a}%` : `${a}–${b}%`
 }
 

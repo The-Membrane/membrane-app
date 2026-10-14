@@ -321,10 +321,10 @@ an artefact of the model. Every run states this caveat.
 WETH/WETH account on a 94.6% line. None of them would have cured in a window
 (`time.noDelay`), and every one has a flat or never-recovering path, so selling at t0
 instead of at the 8h expiry moves **no dollar**: the same-rows delta is $0.00, and the
-headline is the pre-rule headline (priced Aave $34.69M, Membrane $22.19M). Under the
-per-sale liquidity cap (`meta.sensitivity.liquidityBound`) the class can move dollars,
-because a capped no-delay remainder is sold the next minute instead of earning a fresh
-window.
+headline is the pre-rule headline (priced Aave $34.69M, Membrane $22.19M). It moves none
+under the per-sale liquidity cap either (`meta.sensitivity.liquidityBound` is unchanged),
+though in general it can: a capped remainder with no window is sold the next minute
+instead of earning a fresh one.
 
 ---
 

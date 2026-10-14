@@ -8,13 +8,13 @@ included) with **3,163 positions, 3,157 walked**.
 
 | | positions | walked | Real repaid | Real seized | Membrane repaid (= sold) |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Aave V3 | 2,418 | 2,413 | $146.43M | $154.61M | $132.17M |
-| Morpho Blue | 745 | 744 | $39.58M (+ $0.28M bad debt) | $41.54M | $17.45M |
-| **all** | **3,163** | **3,157** | **$186.01M** | **$196.15M** | **$149.62M** |
+| Aave V3 | 2,418 | 2,413 | $146.43M | $154.61M | $137.95M |
+| Morpho Blue | 745 | 744 | $39.58M (+ $0.28M bad debt) | $41.54M | $17.47M |
+| **all** | **3,163** | **3,157** | **$186.00M** | **$196.15M** | **$155.42M** |
 
-USD totals are over walked positions and skip the 10 Morpho positions whose loan token has no
+USD totals are over walked positions and skip the 13 Morpho positions whose loan token has no
 USD price, on both sides. Membrane: 2,536 positions sold at least once, 621 never sold (72 of
-the sold ones were sold by the conservative grid-end sale), 3,240 sales.
+the sold ones were sold by the conservative grid-end sale), 3,361 sales.
 
 The engine pieces live in `lib/wavefront/` and are what the live wavefront engine (next PR)
 reuses unchanged. **The Evidence page still reads the old `evidence.json`**; switching it to
@@ -43,9 +43,9 @@ Outputs:
 | file | where | what |
 | --- | --- | --- |
 | `census.json` | datasets `oct10-2025/coverage/` (canonical) | `meta` (method, inputs with sha256, coverage, totals, classes, clusters, outcomes, sensitivity, cross-check) + one row per position |
-| `replay.jsonl.gz` | datasets `oct10-2025/coverage/` (canonical) | the whole stream, schema v1, 18,265 records |
+| `replay.jsonl.gz` | datasets `oct10-2025/coverage/` (canonical) | the whole stream, schema v1, 18,484 records |
 | `PROVENANCE.md` | datasets `oct10-2025/coverage/` | source commit, input and output sha256 |
-| `wavefront-replay.json` | `public/data/oct10-2025/` (served) | the same stream in the compact columnar form (≈1.45 MB) |
+| `wavefront-replay.json` | `public/data/oct10-2025/` (served) | the same stream in the compact columnar form (≈1.46 MB) |
 | `coverage-summary.json` | `public/data/oct10-2025/` (served) | coverage, totals, classes, clusters, sensitivity, cross-check summary (≈11 KB) |
 
 ## 2. Method
@@ -107,8 +107,9 @@ step `cureWalk` itself now calls (extracted, byte-identical `evidence.json`): re
 `membraneRepayValue` and the $2,000 `liqDebtMinimum` floor, seized == repaid (no fee), the
 position walks on after a sale (max 20 sales), and a delay still running when the grid ends is
 sold there (conservative). Each sale is reported in USD at the sale minute (for Morpho, × the
-loan token's USD at that minute). Like `cureWalk`, a delayed position already past
-`line × (1 + band)` at t0 is sold once and not walked on — see §5.
+loan token's USD at that minute). A delayed position already past `line × (1 + band)` at t0 is
+sold at once (`Immediate`) and then walks on like after any sale, as `cureWalk` does — the
+contract deletes the timer after every sale (LiquidationEngine.sol:1421-1423). See §5.
 
 Parameters: band 4% (`MAX_THRESHOLD_TO_DELAY`), delay 28,800 s (480 one-minute steps), borrow
 gap 3 pp, floor $2,000 (in loan units for a priced non-USD Morpho loan; not applied to an
@@ -123,10 +124,11 @@ unpriced one), 20 sales.
   oracle `price(N)` in loan units × loan USD; **realised bad debt reported separately**
   ($275,716.58 on mainnet; not in repaid).
 - **Loan-token USD (Morpho)**: $1.00 for a dollar stable held at one (`heldAtOne` — USDC,
-  USDS, USDT, crvUSD, MAI, sUSDS; 704 positions); else the AaveOracle price of the same token on
-  the same chain from the minute path at the event minute (EURC, WETH, cbBTC, LBTC; 31
-  positions); else **unpriced**: ZCHF 3, eUSD 3, EURCV 2, DEGEN 1, USDf 1 = **10 positions, 10
-  events**. Their LTV and every Membrane decision are unaffected; only USD is missing.
+  USDS, USDT, crvUSD, MAI; 701 positions); else the AaveOracle price of the same token on the
+  same chain from the minute path at the event minute (EURC, WETH, cbBTC, LBTC; 31 positions);
+  else **unpriced**: ZCHF 3, eUSD 3, sUSDS 3, EURCV 2, DEGEN 1, USDf 1 = **13 positions, 13
+  events**. (sUSDS is yield-bearing: Part 1 stopped holding those at $1.00.) Their LTV and
+  every Membrane decision are unaffected; only USD is missing.
 
 ### Clusters
 
@@ -139,19 +141,19 @@ Symbols match exactly — mainnet Morpho's "BITCOIN" is a meme token and lands i
 
 | cluster | positions | Real repaid (walked) | Membrane repaid | sold |
 | --- | ---: | ---: | ---: | ---: |
-| ETH | 1,023 | $75.75M | $60.57M | 805 |
+| ETH | 1,023 | $75.75M | $60.70M | 805 |
 | BTC | 689 | $74.21M | $18.91M | 415 |
-| OP | 360 | $0.72M | $0.73M | 337 |
-| ARB | 281 | $0.89M | $0.99M | 250 |
-| LINK | 261 | $8.56M | $11.17M | 224 |
-| AAVE | 183 | $12.67M | $46.50M | 161 |
-| Other | 102 | $2.47M | $1.54M | 90 |
+| OP | 360 | $0.72M | $0.76M | 337 |
+| ARB | 281 | $0.89M | $1.11M | 250 |
+| LINK | 261 | $8.56M | $11.78M | 224 |
+| AAVE | 183 | $12.67M | $50.84M | 161 |
+| Other | 102 | $2.47M | $1.74M | 90 |
 | Stables | 75 | $0.45M | $0.19M | 75 |
 | Mog | 57 | $5.49M | $4.85M | 53 |
-| UNI | 41 | $3.17M | $2.94M | 40 |
+| UNI | 41 | $3.17M | $3.14M | 40 |
 | AERO | 36 | $0.04M | $0.03M | 34 |
 | PEPE | 35 | $0.78M | $0.71M | 33 |
-| CRV | 20 | $0.82M | $0.50M | 19 |
+| CRV | 20 | $0.82M | $0.66M | 19 |
 
 ## 3. The stream (schema v1)
 
@@ -188,13 +190,13 @@ pid = `aave-v3:<chain>:<user>` or `morpho-blue:<chain>:<marketId>:<borrower>`.
 
 | protocol | chain | positions | walked | not walked | Real repaid | Real seized | Morpho bad debt | Membrane repaid | sold | kept | of which grid-end |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| aave-v3 | arbitrum | 776 | 776 | 0 | $17.97M | $19.04M | — | $8.44M | 649 | 127 | 2 |
-| aave-v3 | base | 426 | 426 | 0 | $5.76M | $6.11M | — | $1.96M | 323 | 103 | 22 |
-| aave-v3 | mainnet | 623 | 621 | 2 | $120.94M | $127.57M | — | $120.15M | 525 | 96 | 19 |
-| aave-v3 | optimism | 593 | 590 | 3 | $1.76M | $1.88M | — | $1.61M | 536 | 54 | 15 |
-| morpho-blue | base | 553 | 552 | 1 | $19.20M | $20.07M | $0.00M | $8.19M | 339 | 213 | 11 |
+| aave-v3 | arbitrum | 776 | 776 | 0 | $17.97M | $19.04M | — | $8.77M | 649 | 127 | 2 |
+| aave-v3 | base | 426 | 426 | 0 | $5.76M | $6.11M | — | $1.98M | 323 | 103 | 22 |
+| aave-v3 | mainnet | 623 | 621 | 2 | $120.94M | $127.57M | — | $125.55M | 525 | 96 | 19 |
+| aave-v3 | optimism | 593 | 590 | 3 | $1.76M | $1.88M | — | $1.65M | 536 | 54 | 15 |
+| morpho-blue | base | 553 | 552 | 1 | $19.20M | $20.06M | $0.00M | $8.21M | 339 | 213 | 11 |
 | morpho-blue | mainnet | 192 | 192 | 0 | $20.38M | $21.48M | $0.28M | $9.26M | 164 | 28 | 3 |
-| **all** | | **3,163** | **3,157** | **6** | **$186.01M** | **$196.15M** | **$0.28M** | **$149.62M** | **2,536** | **621** | **72** |
+| **all** | | **3,163** | **3,157** | **6** | **$186.00M** | **$196.15M** | **$0.28M** | **$155.42M** | **2,536** | **621** | **72** |
 
 "sold" and "kept" partition walked; "of which grid-end" counts positions with a delay still
 running when the grid ended (sold there).
@@ -227,12 +229,16 @@ Outcomes (a split position takes its dominant half's): sold at the band 1,618; s
 past the band 651; cured then held 705; sold at the grid end 72; no-delay sold 59; sold at
 expiry 22; held (opened under its line, never breached) 30.
 
-**Walking on after a sale at t0 past the band.** `cureWalk` sells a delayed position already
-past `line × 1.04` at t0 once and stops walking it, while every other sale walks on. The
-kernel matches `cureWalk` by default (so the census agrees with `evidence.json`'s engine);
-walking those on too (`walkOnAfterT0BandSale`) adds **+$5.80M** of Membrane sales (to
-$155.42M), on 72 of the 677 positions with a half sold there. That asymmetry lives in
-`cureWalk` (Part 1); it is published here rather than changed.
+**Walking on after a sale at t0 past the band** (`meta.sensitivity.noWalkOnAfterT0BandSale`).
+A delayed position already past `line × 1.04` at t0 is sold at once and then walks on, like
+after every other sale: the contract deletes the timer after any sale and the position stays
+live (LiquidationEngine.sol:1421-1423), so a later breach can open a fresh window and a later
+band break sells again. Until 2026-10-14 `cureWalk` (and so the kernel) stopped after that one
+t0 repay. Stopping is published as the sensitivity: **$149.62M**, i.e. the walk-on adds
+**+$5.80M** of Membrane sales (121 more sales) on 72 of the 677 positions with a half sold at
+t0 past the band — the largest, `aave-v3:mainnet:0x372cae…`, $25.74M → $29.86M. No outcome
+changes (the outcome names the first sale). The same change moves `evidence.json` by +$13,303
+(one account, mainnet `0x9bafc9…`; see `docs/POSITION_SIMULATOR.md`).
 
 ## 6. Cross-check against the old census
 
@@ -251,20 +257,20 @@ on the t0 basis (`closedT0`, what the old `membraneClosedUsd` is).
 
 704 of 747 rows agree within 1%.
 
-**Membrane side** — old $22,191,189.76 → new $13,065,498.57 (**−$9,125,691.19**):
+**Membrane side** — old $22,204,493.19 → new $13,133,229.25 (**−$9,071,263.94**):
 
 | factor (effect = new − toggled) | USD |
 | --- | ---: |
-| (i) price source, mainnet rows: AaveOracle (Chainlink SVR `DualAggregator` feeds) vs the public ETH/BTC rounds and their minute grid | −$2,936,109.39 |
-| (ii) composition: full basket (split when mixed) vs the single liquidated leg | +$802,241.37 |
-| (iii) per-chain oracles on Arbitrum / Optimism / Base vs the mainnet round on a timestamp rule | **−$8,094,942.66** |
-| (iv) line from exact N prices vs the inverted HF at N-1 | −$988.69 |
-| sum of the four | −$10,229,799.37 |
-| interaction and residual | +$1,104,108.18 |
+| (i) price source, mainnet rows: AaveOracle (Chainlink SVR `DualAggregator` feeds) vs the public ETH/BTC rounds and their minute grid | −$2,934,073.65 |
+| (ii) composition: full basket (split when mixed) vs the single liquidated leg | +$861,020.61 |
+| (iii) per-chain oracles on Arbitrum / Optimism / Base vs the mainnet round on a timestamp rule | **−$8,098,746.33** |
+| (iv) line from exact N prices vs the inverted HF at N-1 | −$988.70 |
+| sum of the four | −$10,172,788.07 |
+| interaction and residual | +$1,101,524.13 |
 
-**All four toggled together reproduce the old census: $22,189,491.56, −$1,698.20 from it, 746
+**All four toggled together reproduce the old census: $22,202,794.99, −$1,698.20 from it, 746
 of 747 rows within 1%.** So the new code with the old choices is the old census, and the
-difference is the choices. Per row, new vs old agree within 1% on 422 rows and have the same
+difference is the choices. Per row, new vs old agree within 1% on 418 rows and have the same
 outcome on 516.
 
 How each toggle is built:
@@ -293,7 +299,7 @@ a transmitted round with a delay: the pull's `chainlink-check.json` finds Aave's
 price equal to the round in force on 96.18% of minutes (WBTC 97.78%, cbBTC 97.78%), every
 mismatch an older round, the newest unserved round at most 61 s old; on the L2s the match is
 100%. (ii) the full basket — other legs moving the walk, and mixed accounts split by class — adds
-$0.80M net. (iv) is negligible: the inverted HF at N-1 is Aave's weighted LT at
+$0.86M net. (iv) is negligible: the inverted HF at N-1 is Aave's weighted LT at
 N-1 prices, and the N-1 → N weight shift is tiny.
 
 The ten largest per-row differences, with the all-toggled figure, are in
@@ -304,10 +310,11 @@ The ten largest per-row differences, with the all-toggled figure, are in
 - `tests/unit/wavefrontKernel.test.ts` — **kernel ≡ cureWalk** on every `evidence.json` row
   with a usable series (1,142): the series rebuilt exactly as `build-evidence.ts` builds it,
   both engines on identical inputs, same closed dollars (≤ 1e-6), first-sale index, outcome,
-  sales, breaches and first-cure minute, under five settings (headline; all delayed; timer never
-  cleared early; a $250k per-sale cap; the line 2% lower). 709 rows compared under the census
-  line (the other 433 are ones `cureWalk` calls unlocated — the kernel walks them by design);
-  1,118 under the lowered line.
+  sales, breaches and first-cure minute, under six settings (headline, where both walk on after
+  a t0 sale past the band; all delayed; timer never cleared early; a $250k per-sale cap; the
+  line 2% lower; the old stop after a t0 sale, the sensitivity). 709 rows compared under the
+  census line (the other 433 are ones `cureWalk` calls unlocated — the kernel walks them by
+  design); 1,118 under the lowered line.
 - `tests/unit/wavefrontStream.test.ts` — JSONL and compact round trips; the reducer over the
   whole served replay (open exactly once and first, ticks equal to the fold, the
   sold/armed/kept partition, totals == Σ positions, the served summary == the fold); the
@@ -340,8 +347,8 @@ its 20 positions.
 - The line is held at its t0 value while a multi-leg basket's weights drift (as `cureWalk`
   holds it); sales take every leg pro rata.
 - Morpho interest after t0 is not accrued.
-- Yield-bearing stables held at $1 (sUSDS as a Morpho loan token) understate their level; ratios
-  are unaffected.
+- Yield-bearing stables are not held at $1 (Part 1), and this pull has no USD path for sUSDS,
+  so the 3 Morpho positions with an sUSDS loan are walked but USD-unpriced.
 - No venue recall and no liquidation fee on the Membrane side (as the old census).
 - The minute grid is the price in force at each minute start; a sale is decided on it, not on
   the block where a keeper would land.

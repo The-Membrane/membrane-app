@@ -125,9 +125,9 @@
    },
    "mem": {
     "positions": 3157,
-    "repaidUsd": 149618755.49,
-    "soldUsd": 149576361.41,
-    "sales": 3240,
+    "repaidUsd": 155419216.49,
+    "soldUsd": 155375800.53,
+    "sales": 3361,
     "positionsSold": 2536,
     "positionsSoldAtGridEnd": 72,
     "positionsKept": 621,
@@ -159,9 +159,9 @@
     },
     "mem": {
      "positions": 2413,
-     "repaidUsd": 132167180.56,
-     "soldUsd": 132137612.89,
-     "sales": 2720,
+     "repaidUsd": 137945318.72,
+     "soldUsd": 137914985.71,
+     "sales": 2839,
      "positionsSold": 2033,
      "positionsSoldAtGridEnd": 58,
      "positionsKept": 380,
@@ -181,9 +181,9 @@
     },
     "mem": {
      "positions": 744,
-     "repaidUsd": 17451574.93,
-     "soldUsd": 17438748.52,
-     "sales": 520,
+     "repaidUsd": 17473897.77,
+     "soldUsd": 17460814.82,
+     "sales": 522,
      "positionsSold": 503,
      "positionsSoldAtGridEnd": 14,
      "positionsKept": 241,
@@ -205,9 +205,9 @@
     },
     "mem": {
      "positions": 776,
-     "repaidUsd": 8438488.48,
-     "soldUsd": 8437231.78,
-     "sales": 918,
+     "repaidUsd": 8770378.83,
+     "soldUsd": 8769122.13,
+     "sales": 952,
      "positionsSold": 649,
      "positionsSoldAtGridEnd": 2,
      "positionsKept": 127,
@@ -227,9 +227,9 @@
     },
     "mem": {
      "positions": 426,
-     "repaidUsd": 1962608.67,
-     "soldUsd": 1962608.67,
-     "sales": 404,
+     "repaidUsd": 1980057.7,
+     "soldUsd": 1980057.7,
+     "sales": 410,
      "positionsSold": 323,
      "positionsSoldAtGridEnd": 22,
      "positionsKept": 103,
@@ -249,9 +249,9 @@
     },
     "mem": {
      "positions": 621,
-     "repaidUsd": 120153467.09,
-     "soldUsd": 120125978.36,
-     "sales": 778,
+     "repaidUsd": 125549357.56,
+     "soldUsd": 125521103.49,
+     "sales": 851,
      "positionsSold": 525,
      "positionsSoldAtGridEnd": 19,
      "positionsKept": 96,
@@ -271,9 +271,9 @@
     },
     "mem": {
      "positions": 590,
-     "repaidUsd": 1612616.32,
-     "soldUsd": 1611794.08,
-     "sales": 620,
+     "repaidUsd": 1645524.63,
+     "soldUsd": 1644702.39,
+     "sales": 626,
      "positionsSold": 536,
      "positionsSoldAtGridEnd": 15,
      "positionsKept": 54,
@@ -293,9 +293,9 @@
     },
     "mem": {
      "positions": 552,
-     "repaidUsd": 8189283.71,
-     "soldUsd": 8188483.75,
-     "sales": 352,
+     "repaidUsd": 8211606.55,
+     "soldUsd": 8210550.05,
+     "sales": 354,
      "positionsSold": 339,
      "positionsSoldAtGridEnd": 11,
      "positionsKept": 213,
@@ -339,49 +339,49 @@
    "positions": 1023,
    "walked": 1023,
    "realRepaidUsdWalked": 75748158.76,
-   "memRepaidUsd": 60569950.09,
+   "memRepaidUsd": 60696557.92,
    "positionsSold": 805
   },
   "BTC": {
    "positions": 689,
    "walked": 689,
    "realRepaidUsdWalked": 74210145.8,
-   "memRepaidUsd": 18905414.14,
+   "memRepaidUsd": 18911696.13,
    "positionsSold": 415
   },
   "OP": {
    "positions": 360,
    "walked": 357,
    "realRepaidUsdWalked": 717451.84,
-   "memRepaidUsd": 730008.38,
+   "memRepaidUsd": 762916.69,
    "positionsSold": 337
   },
   "ARB": {
    "positions": 281,
    "walked": 281,
    "realRepaidUsdWalked": 886272.52,
-   "memRepaidUsd": 989971.88,
+   "memRepaidUsd": 1106389.24,
    "positionsSold": 250
   },
   "LINK": {
    "positions": 261,
    "walked": 260,
    "realRepaidUsdWalked": 8564769.91,
-   "memRepaidUsd": 11165985.47,
+   "memRepaidUsd": 11776795.18,
    "positionsSold": 224
   },
   "AAVE": {
    "positions": 183,
    "walked": 183,
    "realRepaidUsdWalked": 12671237.61,
-   "memRepaidUsd": 46501578.99,
+   "memRepaidUsd": 50841767.42,
    "positionsSold": 161
   },
   "Other": {
    "positions": 102,
    "walked": 101,
    "realRepaidUsdWalked": 2465969.46,
-   "memRepaidUsd": 1539228.33,
+   "memRepaidUsd": 1744818.01,
    "positionsSold": 90
   },
   "Stables": {
@@ -402,7 +402,7 @@
    "positions": 41,
    "walked": 41,
    "realRepaidUsdWalked": 3168127.69,
-   "memRepaidUsd": 2939633.96,
+   "memRepaidUsd": 3142596.17,
    "positionsSold": 40
   },
   "AERO": {
@@ -423,7 +423,7 @@
    "positions": 20,
    "walked": 19,
    "realRepaidUsdWalked": 820741.03,
-   "memRepaidUsd": 501097.1,
+   "memRepaidUsd": 659792.58,
    "positionsSold": 19
   }
  },
@@ -437,10 +437,11 @@
   "sold-at-grid-end": 72
  },
  "sensitivity": {
-  "walkOnAfterT0BandSale": {
-   "rule": "cureWalk sells a delayed position already past line x (1 + band) at t0 ONCE and stops walking it; every other sale walks on. This rebuild walks those on too.",
-   "memRepaidUsd": 155419216.49,
+  "noWalkOnAfterT0BandSale": {
+   "rule": "The headline walks a delayed position sold at t0 past line x (1 + band) on after that sale, like every other sale (the contract deletes the timer after any sale and the position stays live, LiquidationEngine.sol:1421-1423). This rebuild stops it after the one t0 repay — the behaviour before 2026-10-14.",
+   "memRepaidUsd": 149618755.49,
    "deltaUsd": 5800461,
+   "deltaNote": "headline minus this rebuild: the Membrane sales the old stop hid",
    "positionsChanged": 72,
    "positionsSoldAtT0PastBand": 677
   }
@@ -465,21 +466,21 @@
   },
   "membrane": {
    "basis": "closedT0 (debt closed on the t0 basis, USD at the t0 block prices) — what the old membraneClosedUsd is",
-   "old": 22191189.76,
-   "new": 13065498.57,
-   "newAtSaleMinuteUsd": 13064106,
-   "deltaUsd": -9125691.19,
+   "old": 22204493.19,
+   "new": 13133229.25,
+   "newAtSaleMinuteUsd": 13131836.68,
+   "deltaUsd": -9071263.94,
    "factors": {
-    "priceSourceMainnet_i": -2936109.39,
-    "composition_ii": 802241.37,
-    "perChainOraclesL2_iii": -8094942.66,
-    "line_iv": -988.69
+    "priceSourceMainnet_i": -2934073.65,
+    "composition_ii": 861020.61,
+    "perChainOraclesL2_iii": -8098746.33,
+    "line_iv": -988.7
    },
-   "factorsSum": -10229799.37,
-   "interactionAndResidual": 1104108.18,
-   "allFactorsToggled": 22189491.56,
+   "factorsSum": -10172788.07,
+   "interactionAndResidual": 1101524.13,
+   "allFactorsToggled": 22202794.99,
    "allFactorsToggledVsOld": -1698.2,
-   "rowsWithin1Pct": 422,
+   "rowsWithin1Pct": 418,
    "rowsWithin1PctAllToggled": 746,
    "sameOutcome": 516,
    "multiLegRows": 453,

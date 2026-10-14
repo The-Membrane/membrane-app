@@ -179,6 +179,13 @@ describe('GET /api/curator-feed?view=oracle-gap', () => {
     const b = r.body
     expect(b.meta).toMatchObject({ measured: true, runs: 30, lastRunTs: NOW - H, stale: false })
     expect(b.counts).toEqual({ fired: 1, building: 1, below: 1, stale: 0, unobserved: 1 })
+    expect(b.curatedUsd).toEqual({
+      fired: 4_000_000,
+      building: 3_000_000,
+      below: 2_000_000,
+      stale: 0,
+      unobserved: 1_000_000,
+    })
     expect(b.markets.map((m: any) => [m.market, m.i3.state, m.i3.hoursAboveConsecutive])).toEqual([
       [A, 'fired', 30],
       [B, 'building', 10],

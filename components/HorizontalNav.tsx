@@ -60,6 +60,8 @@ const navItems = [
     { label: 'Radar', href: '/radar' },
     // Auto-tracked mainnet carry strats (discovery scan -> watch -> verdicts).
     { label: 'Strats', href: '/strats' },
+    // Curator action feed: cap cuts, clustered exits, flags, oracle above market (wallet-free).
+    { label: 'Curators', href: '/curator-feed' },
     // Called-It receipts: wallet-signed venue calls, scored by the recorder.
     { label: 'Receipts', href: '/receipts' },
     { label: 'Home', href: '/home' },

@@ -1164,6 +1164,8 @@ export interface OracleGapResponse {
   record: I3Record
   /** Over every market measured (or held and never observed), before the limit. */
   counts: Record<I3State, number>
+  /** Curated supply (USD, last exposure read) in the markets of each state. */
+  curatedUsd: Record<I3State, number>
   markets: OracleGapMarketView[]
   total: number
 }
@@ -1197,13 +1199,15 @@ export function buildOracleGapResponse(
   }
   const decoded = gap ? decodeGapFile(gap) : null
   const lastRun = decoded?.runs.at(-1)
-  const counts: Record<I3State, number> = {
+  const zero = (): Record<I3State, number> => ({
     fired: 0,
     building: 0,
     below: 0,
     stale: 0,
     unobserved: 0,
-  }
+  })
+  const counts = zero()
+  const curatedUsd = zero()
   const meta: OracleGapResponse['meta'] = {
     now: nowS,
     measured: Boolean(lastRun),
@@ -1218,7 +1222,8 @@ export function buildOracleGapResponse(
     exposureBlock: exposure.block,
     exposureTs: exposure.ts,
   }
-  if (!decoded || !lastRun) return { meta, constants, record, counts, markets: [], total: 0 }
+  if (!decoded || !lastRun)
+    return { meta, constants, record, counts, curatedUsd, markets: [], total: 0 }
 
   const holders = new Map<string, OracleGapMarketView['vaults']>()
   for (const v of exposure.vaults)
@@ -1275,7 +1280,10 @@ export function buildOracleGapResponse(
       series: obs.slice(-need).map((o) => ({ ts: o.ts, gap: o.gap })),
     })
   }
-  for (const x of all) counts[x.i3.state]++
+  for (const x of all) {
+    counts[x.i3.state]++
+    curatedUsd[x.i3.state] += x.curatedUsd ?? 0
+  }
   all.sort(
     (a, b) =>
       Number(b.i3.state === 'fired') - Number(a.i3.state === 'fired') ||
@@ -1284,7 +1292,15 @@ export function buildOracleGapResponse(
       (b.curatedUsd ?? 0) - (a.curatedUsd ?? 0) ||
       (a.market < b.market ? -1 : 1),
   )
-  return { meta, constants, record, counts, markets: all.slice(0, q.limit), total: all.length }
+  return {
+    meta,
+    constants,
+    record,
+    counts,
+    curatedUsd,
+    markets: all.slice(0, q.limit),
+    total: all.length,
+  }
 }
 
 export { FLAG_DEFAULTS }

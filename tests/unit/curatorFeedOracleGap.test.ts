@@ -350,6 +350,7 @@ describe('copy built from the record and constants', () => {
     )
     expect(gapText(0.0231)).toBe('+2.31%')
     expect(gapText(-0.004)).toBe('−0.40%')
+    expect(gapText(99984605.243619)).toBe('+9,998,460,524%')
   })
   it('composes the record rows and caveats from the record only', () => {
     const lines = recordLines(record)

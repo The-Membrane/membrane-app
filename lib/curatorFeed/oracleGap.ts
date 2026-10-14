@@ -426,9 +426,11 @@ export function observeGap(i: GapInputs): { obs: GapObservation; reason?: Unobse
 
 const MINUS = '−'
 
-/** "+2.31%" / "−0.40%": a signed gap, 2 decimals. */
+/** "+2.31%" / "−0.40%": a signed gap, 2 decimals (whole % from 1,000 %). */
 export const gapText = (gap: number): string => {
-  const s = (Math.abs(gap) * 100).toFixed(2)
+  const pct = Math.abs(gap) * 100
+  // A fixed oracle over a collapsed token reads in the millions of %: whole %, grouped.
+  const s = pct >= 1000 ? Math.round(pct).toLocaleString('en-US') : pct.toFixed(2)
   return `${gap < 0 && s !== '0.00' ? MINUS : '+'}${s}%`
 }
 

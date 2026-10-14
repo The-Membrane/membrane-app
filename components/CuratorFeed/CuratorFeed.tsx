@@ -1523,12 +1523,13 @@ const OracleGapLine: React.FC<{ r: OracleGapResponse; href: string }> = ({ r, hr
           : '')
   return (
     <Box borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
+      {/* A block link, so a wrapped line keeps its glyph inline; 12 + 20 + 12 = 44px tall. */}
       <Link
         as={NextLink}
         href={href}
-        display="inline-flex"
-        alignItems="center"
-        minH="44px"
+        display="block"
+        py="12px"
+        lineHeight="20px"
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize="13px"
         color={fired ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}

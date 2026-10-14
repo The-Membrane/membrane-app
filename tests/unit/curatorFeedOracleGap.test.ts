@@ -399,7 +399,12 @@ describe('copy built from the record and constants', () => {
     )
     expect(gapText(0.0231)).toBe('+2.31%')
     expect(gapText(-0.004)).toBe('−0.40%')
-    expect(gapText(99984605.243619)).toBe('+9,998,460,524%')
+    // ≥ 1,000% is capped in text: the two prices beside it give the detail.
+    expect(gapText(99984605.243619)).toBe('>1,000%')
+    expect(gapText(11.597815)).toBe('>1,000%')
+    expect(gapText(10)).toBe('+1000.00%')
+    expect(gapText(9.9999)).toBe('+999.99%')
+    expect(gapText(4.389507)).toBe('+438.95%')
   })
   it('composes the record rows and caveats from the record only', () => {
     const lines = recordLines(record)

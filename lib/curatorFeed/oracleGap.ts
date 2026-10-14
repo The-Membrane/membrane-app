@@ -456,11 +456,14 @@ export function observeGap(i: GapInputs): { obs: GapObservation; reason?: Unobse
 
 const MINUS = '−'
 
-/** "+2.31%" / "−0.40%": a signed gap, 2 decimals (whole % from 1,000 %). */
+/** Above this gap the text is ">1,000%": the oracle and DefiLlama prices beside it give
+ *  the detail (a fixed oracle over a collapsed token reads in the billions of %). */
+export const GAP_TEXT_CAP = 10
+
+/** "+2.31%" / "−0.40%": a signed gap, 2 decimals; ">1,000%" above GAP_TEXT_CAP. */
 export const gapText = (gap: number): string => {
-  const pct = Math.abs(gap) * 100
-  // A fixed oracle over a collapsed token reads in the millions of %: whole %, grouped.
-  const s = pct >= 1000 ? Math.round(pct).toLocaleString('en-US') : pct.toFixed(2)
+  if (gap > GAP_TEXT_CAP) return `>${(GAP_TEXT_CAP * 100).toLocaleString('en-US')}%`
+  const s = (Math.abs(gap) * 100).toFixed(2)
   return `${gap < 0 && s !== '0.00' ? MINUS : '+'}${s}%`
 }
 

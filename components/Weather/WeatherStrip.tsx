@@ -19,10 +19,12 @@ import { weatherView, type WeatherView } from './weatherView'
 //   A  mono   regime · reason or hold          | gas · ages            (ages: ≥992px)
 //   B  serif  the DVOL sentence                | credit · liq. note    (credit: ≥992px)
 //   C  mono   gas · ages in one item                                   (below 992px)
-// Three lines below 992px (390px included), two from 992px. The date, the threshold a
-// trigger crossed, the "since" and the hold of an active trigger join at 1280px; below
-// 992px the credit and the liquidation note step aside too (§8: ears and secondary
-// furniture hide on phones). The page's method table carries thresholds and the note.
+// Three lines below 992px (390px included), two from 992px. The date leads on every
+// width (the masthead passes a short one below 1280px). The threshold a trigger crossed,
+// the "since" and the hold of an active trigger join at 1280px; below 992px the credit and
+// the liquidation note step aside too (§8: ears and secondary furniture hide on phones),
+// and the ages fold into one item sized to the line. The page's method table carries
+// the thresholds and the liquidation note.
 
 const MONO_LINE = '16px'
 const SERIF_LINE = '20px'
@@ -51,25 +53,22 @@ function useNow(everyMs: number): number | null {
   return now
 }
 
-/** One dateline item. `sep` prints a middot before it, at the breakpoints given. */
+/** One dateline item, unbroken. `sep` prints a middot before it. */
 function Item({
   children,
   sep = true,
   display,
 }: {
   children: ReactNode
-  sep?: boolean | { base: boolean; xl: boolean }
+  sep?: boolean
   display?: Responsive
 }) {
-  const before = (on: boolean) => (on ? 'inline' : 'none')
-  const sepDisplay =
-    typeof sep === 'boolean' ? before(sep) : { base: before(sep.base), xl: before(sep.xl) }
   return (
     <Box
       as="span"
       display={display ?? 'inline'}
       whiteSpace="nowrap"
-      sx={{ '&::before': { content: '"·"', px: '0.5em', display: sepDisplay } }}
+      sx={{ '&::before': { content: '"·"', px: '0.5em', display: sep ? 'inline' : 'none' } }}
     >
       {children}
     </Box>
@@ -114,8 +113,104 @@ function ReasonText({ v }: { v: WeatherView }) {
 }
 
 export interface WeatherStripProps {
-  /** Printed first on wide screens: the masthead passes the reader's date. */
+  /** Printed first: the masthead passes the reader's date. */
   lead?: ReactNode
+}
+
+/** A — the date and the regime, then (wide) the base fee and every input's age. */
+function RegimeRow({ v, lead }: { v: WeatherView; lead?: ReactNode }) {
+  const active = v.reason !== null
+  return (
+    <Flex wrap="wrap" justify="space-between" columnGap={SPACING.base} minH={MONO_LINE}>
+      <Flex as="p" wrap="wrap" align="baseline" minW={0}>
+        {lead && (
+          <Item sep={false}>
+            <Text as="span" color={NEWS.ink} sx={CAPS}>
+              {lead}
+            </Text>
+          </Item>
+        )}
+        <Item sep={!!lead}>
+          <RegimeWord v={v} />
+        </Item>
+        {v.reason && (
+          <Item>
+            <ReasonText v={v} />
+          </Item>
+        )}
+        {v.reason && <Item display={XL_ONLY}>{v.reason.threshold}</Item>}
+        {v.since && <Item display={XL_ONLY}>{v.since}</Item>}
+        {v.holds && <Item display={active ? XL_ONLY : undefined}>{v.holds}</Item>}
+      </Flex>
+      <Flex as="p" wrap="wrap" display={WIDE_FLEX} justify="flex-end">
+        {v.gas && (
+          <Item sep={false}>
+            <Text as="span" color={NEWS.ink}>
+              {v.gas}
+            </Text>
+          </Item>
+        )}
+        {v.ages.map((a, i) => (
+          <Item key={a.split(' ')[0]} sep={i > 0 || !!v.gas}>
+            {a}
+          </Item>
+        ))}
+      </Flex>
+    </Flex>
+  )
+}
+
+/** B — the sentence, then (wide) its credit and the liquidation note. */
+function SentenceRow({ v }: { v: WeatherView }) {
+  return (
+    <Flex
+      wrap="wrap"
+      justify="space-between"
+      align="baseline"
+      columnGap={SPACING.base}
+      minH={SERIF_LINE}
+    >
+      <Text
+        as="p"
+        fontFamily={TYPOGRAPHY.fontDisplay}
+        fontStyle="italic"
+        fontSize="13px"
+        lineHeight={SERIF_LINE}
+        color={NEWS.ink}
+      >
+        {v.sentence}
+      </Text>
+      <Flex as="p" wrap="wrap" display={WIDE_FLEX} justify="flex-end">
+        {v.credit && <Item sep={false}>{v.credit}</Item>}
+        {v.liq && <Item sep={!!v.credit}>{v.liq}</Item>}
+      </Flex>
+    </Flex>
+  )
+}
+
+/** C — below 992px: the base fee and the ages in one item. The item is sized to one
+ *  390px line beside the base fee (weatherView); on a narrower screen it wraps rather
+ *  than overflow. */
+function NarrowAgesRow({ v }: { v: WeatherView }) {
+  return (
+    <Flex as="p" wrap="wrap" display={NARROW_ONLY} minH={MONO_LINE}>
+      {v.gas && (
+        <Item sep={false}>
+          <Text as="span" color={NEWS.ink}>
+            {v.gas}
+          </Text>
+        </Item>
+      )}
+      {v.agesBrief && (
+        <Box
+          as="span"
+          sx={{ '&::before': { content: '"·"', px: '0.5em', display: v.gas ? 'inline' : 'none' } }}
+        >
+          {v.agesBrief}
+        </Box>
+      )}
+    </Flex>
+  )
 }
 
 export const WeatherStrip = memo(function WeatherStrip({ lead }: WeatherStripProps) {
@@ -130,7 +225,6 @@ export const WeatherStrip = memo(function WeatherStrip({ lead }: WeatherStripPro
   })
   // Before the clock mounts, judge ages at the server's read time.
   const v = weatherView({ status: q.status, data: q.data, nowMs: now ?? q.data?.now ?? 0 })
-  const active = v.reason !== null
 
   return (
     <Box
@@ -148,79 +242,9 @@ export const WeatherStrip = memo(function WeatherStrip({ lead }: WeatherStripPro
       lineHeight={MONO_LINE}
       sx={{ fontVariantNumeric: 'tabular-nums' }}
     >
-      {/* A — the regime, then (wide) gas and the ages */}
-      <Flex wrap="wrap" justify="space-between" columnGap={SPACING.base} minH={MONO_LINE}>
-        <Flex as="p" wrap="wrap" align="baseline" minW={0}>
-          {lead && (
-            <Item sep={false} display={XL_ONLY}>
-              <Text as="span" color={NEWS.ink} sx={CAPS}>
-                {lead}
-              </Text>
-            </Item>
-          )}
-          <Item sep={{ base: false, xl: !!lead }}>
-            <RegimeWord v={v} />
-          </Item>
-          {v.reason && (
-            <Item>
-              <ReasonText v={v} />
-            </Item>
-          )}
-          {v.reason && <Item display={XL_ONLY}>{v.reason.threshold}</Item>}
-          {v.since && <Item display={XL_ONLY}>{v.since}</Item>}
-          {v.holds && <Item display={active ? XL_ONLY : undefined}>{v.holds}</Item>}
-        </Flex>
-        <Flex as="p" wrap="wrap" display={WIDE_FLEX} justify="flex-end">
-          {v.gas && (
-            <Item sep={false}>
-              <Text as="span" color={NEWS.ink}>
-                {v.gas}
-              </Text>
-            </Item>
-          )}
-          {v.ages.map((a, i) => (
-            <Item key={a.split(' ')[0]} sep={i > 0 || !!v.gas}>
-              {a}
-            </Item>
-          ))}
-        </Flex>
-      </Flex>
-
-      {/* B — the sentence, then (wide) its credit and the liquidation note */}
-      <Flex
-        wrap="wrap"
-        justify="space-between"
-        align="baseline"
-        columnGap={SPACING.base}
-        minH={SERIF_LINE}
-      >
-        <Text
-          as="p"
-          fontFamily={TYPOGRAPHY.fontDisplay}
-          fontStyle="italic"
-          fontSize="13px"
-          lineHeight={SERIF_LINE}
-          color={NEWS.ink}
-        >
-          {v.sentence}
-        </Text>
-        <Flex as="p" wrap="wrap" display={WIDE_FLEX} justify="flex-end">
-          {v.credit && <Item sep={false}>{v.credit}</Item>}
-          {v.liq && <Item sep={!!v.credit}>{v.liq}</Item>}
-        </Flex>
-      </Flex>
-
-      {/* C — below 992px: gas and the ages in one line */}
-      <Flex as="p" wrap="wrap" display={NARROW_ONLY} minH={MONO_LINE}>
-        {v.gas && (
-          <Item sep={false}>
-            <Text as="span" color={NEWS.ink}>
-              {v.gas}
-            </Text>
-          </Item>
-        )}
-        {v.agesBrief && <Item sep={!!v.gas}>{v.agesBrief}</Item>}
-      </Flex>
+      <RegimeRow v={v} lead={lead} />
+      <SentenceRow v={v} />
+      <NarrowAgesRow v={v} />
     </Box>
   )
 })

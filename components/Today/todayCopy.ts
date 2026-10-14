@@ -16,8 +16,10 @@ export const TAGLINE = `${GUARANTEE.name} Cross the line with time to spare.`
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-/** The dateline's longest date, "Wed 14 Oct 2026": the slot is reserved at this width. */
+/** The dateline's longest dates — "Wed 14 Oct 2026" (from 1280px) and "14 Oct" (below):
+ *  each slot is reserved at its width. */
 export const DATELINE_MAX_CHARS = 15
+export const DATELINE_SHORT_MAX_CHARS = 6
 
 /** Local calendar day as "2026-10-14": a stable snapshot (it only changes at midnight). */
 export function localIsoDate(d: Date): string {
@@ -30,6 +32,12 @@ export function datelineLabel(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
   const date = new Date(y, m - 1, d)
   return `${WEEKDAYS[date.getDay()]} ${d} ${MONTHS[m - 1]} ${y}`
+}
+
+/** "2026-10-14" → "14 Oct": the phones' dateline, short enough to sit before the regime. */
+export function datelineShort(iso: string): string {
+  const [, m, d] = iso.split('-').map(Number)
+  return `${d} ${MONTHS[m - 1]}`
 }
 
 /** "15 Jan 2020" from a UTC ISO stamp. */

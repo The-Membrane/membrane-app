@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DATELINE_MAX_CHARS,
+  DATELINE_SHORT_MAX_CHARS,
   datelineLabel,
+  datelineShort,
   localIsoDate,
   regimeCredit,
   regimeRows,
@@ -18,10 +20,13 @@ describe('dateline date', () => {
     expect(localIsoDate(new Date(2026, 9, 14, 23, 59))).toBe('2026-10-14')
     expect(datelineLabel('2026-10-14')).toBe('Wed 14 Oct 2026')
     expect(datelineLabel('2026-09-30')).toBe('Wed 30 Sep 2026')
+    expect(datelineShort('2026-10-14')).toBe('14 Oct')
+    expect(datelineShort('2026-10-04')).toBe('4 Oct')
     for (let m = 0; m < 12; m++) {
       for (const d of [1, 28]) {
-        const label = datelineLabel(localIsoDate(new Date(2026, m, d)))
-        expect(label.length).toBeLessThanOrEqual(DATELINE_MAX_CHARS)
+        const iso = localIsoDate(new Date(2026, m, d))
+        expect(datelineLabel(iso).length).toBeLessThanOrEqual(DATELINE_MAX_CHARS)
+        expect(datelineShort(iso).length).toBeLessThanOrEqual(DATELINE_SHORT_MAX_CHARS)
       }
     }
   })
@@ -40,6 +45,8 @@ describe('method table', () => {
     expect(v('Liquidation volume')).toBe('Not counted — no live source')
     expect(v('Hold')).toBe('Holds 24h after the last trigger')
     expect(v('Withheld when')).toBe('an input is over 2h old, or under 20 of 24h have both prices')
+    // No signed figure in the table prints a hyphen for a minus.
+    for (const r of rows) expect(r.value).not.toMatch(/-\d/)
   })
 
   it('follows the file it is given', () => {

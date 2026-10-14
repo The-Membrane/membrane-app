@@ -6,34 +6,45 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { NEWS } from '@/components/NewsEdition/tokens'
 import { WeatherStrip } from '@/components/Weather/WeatherStrip'
 
-import { DATELINE_MAX_CHARS, datelineLabel, localIsoDate, TAGLINE } from './todayCopy'
+import {
+  DATELINE_MAX_CHARS,
+  DATELINE_SHORT_MAX_CHARS,
+  datelineLabel,
+  datelineShort,
+  localIsoDate,
+  TAGLINE,
+} from './todayCopy'
 
 // THE TODAY MASTHEAD: heavy rule, the nameplate in the pixel cut (Redaction 35, declared
 // in styles/fonts.css), the tagline (shown on phones too, DESIGN_RULES §8), then the
 // dateline between double rules: the reader's date and the weather strip.
 
 const NAMEPLATE_FONT = "'Redaction 35', 'Redaction', Georgia, serif"
-/** The date slot's width before it fills: the longest date, caps-tracked mono (0.6em
+/** A date slot's width before it fills: its longest date, caps-tracked mono (0.6em
  *  advance + 0.12em tracking per character). */
-const DATE_WIDTH = `${DATELINE_MAX_CHARS * (0.6 + 0.12)}em`
+const slot = (chars: number) => `${chars * (0.6 + 0.12)}em`
 
 const noSubscribe = () => () => {}
 const clientDay = () => localIsoDate(new Date())
 const serverDay = () => null
 
-/** The reader's local date. The server cannot know the reader's day, so it renders the
- *  slot empty at its final width; the client fills it during hydration. */
+/** The reader's local date: "14 Oct" below 1280px, "Wed 14 Oct 2026" from 1280px. The
+ *  server cannot know the reader's day, so it renders each slot empty at its final width;
+ *  the client fills it during hydration. */
 function TodayDate() {
   const iso = useSyncExternalStore(noSubscribe, clientDay, serverDay)
   return (
-    <Box
-      as="time"
-      display="inline-block"
-      minW={DATE_WIDTH}
-      dateTime={iso ?? undefined}
-      suppressHydrationWarning
-    >
-      {iso ? datelineLabel(iso) : '\u00a0'}
+    <Box as="time" dateTime={iso ?? undefined} suppressHydrationWarning>
+      <Box
+        as="span"
+        display={{ base: 'inline-block', xl: 'none' }}
+        minW={slot(DATELINE_SHORT_MAX_CHARS)}
+      >
+        {iso ? datelineShort(iso) : '\u00a0'}
+      </Box>
+      <Box as="span" display={{ base: 'none', xl: 'inline-block' }} minW={slot(DATELINE_MAX_CHARS)}>
+        {iso ? datelineLabel(iso) : '\u00a0'}
+      </Box>
     </Box>
   )
 }

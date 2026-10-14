@@ -36,7 +36,7 @@ import {
   type SubCall,
   type SubResult,
 } from './abi'
-import { aaveSetup, type AaveSetup } from './aaveOracle'
+import { aaveSetupFor, coreMarket, marketTag, type AaveMarket, type AaveSetup } from './aaveOracle'
 import type { Ctx } from './ctx'
 import { aaveEvents, type AaveEventRow } from './inputs'
 import { KeyedCalls } from './keyed'
@@ -91,11 +91,11 @@ function userCalls(setup: AaveSetup, user: string): SubCall[] {
   ]
 }
 
-interface BlockState {
+export interface BlockState {
   prices: (bigint | null)[]
   priceErr: (string | null)[]
   config: bigint[]
-  emode: Map<number, { lt: bigint; ltv: bigint; bitmap: bigint }>
+  emode: Map<number, { lt: bigint; ltv: bigint; bonus: bigint; bitmap: bigint }>
 }
 
 function decodeBlock(
@@ -120,15 +120,16 @@ function decodeBlock(
     if (!r.ok) throw new Error(`getConfiguration failed for ${setup.reserves[k]}`)
     return (r.value as { data: bigint }).data
   })
-  const emode = new Map<number, { lt: bigint; ltv: bigint; bitmap: bigint }>()
+  const emode = new Map<number, { lt: bigint; ltv: bigint; bonus: bigint; bitmap: bigint }>()
   emodeIds(setup).forEach((id, k) => {
     const c = res[1 + R + 2 * k]
     const b = res[1 + R + 2 * k + 1]
     if (!c.ok || !b.ok) throw new Error(`e-mode ${id} read failed`)
-    const v = c.value as { ltv: number; liquidationThreshold: number }
+    const v = c.value as { ltv: number; liquidationThreshold: number; liquidationBonus: number }
     emode.set(id, {
       lt: BigInt(v.liquidationThreshold),
       ltv: BigInt(v.ltv),
+      bonus: BigInt(v.liquidationBonus),
       bitmap: b.value as bigint,
     })
   })
@@ -136,7 +137,7 @@ function decodeBlock(
   return { prices, priceErr, config, emode }
 }
 
-interface UserState {
+export interface UserState {
   account: {
     totalCollateralBase: bigint
     totalDebtBase: bigint
@@ -233,26 +234,59 @@ function computeHf(
   return { totalCollateralBase: coll, totalDebtBase: debt, avgLT, healthFactor: hf, missingPrice }
 }
 
+export type AaveRow = AaveEventRow & { mkt?: string }
+export interface AaveEval {
+  setup: AaveSetup
+  u: UserState
+  bp: BlockState
+  bn: BlockState
+  prev: HfCalc
+  atN: HfCalc
+}
+export interface AaveEventsOpts {
+  /** Rows to read (default: the owner's CSV, core markets). */
+  rows?: AaveRow[]
+  /** Markets of rows whose `mkt` is not a bare chain. */
+  markets?: AaveMarket[]
+  file?: string
+  out?: string
+  store?: string
+  /** Fields appended to each output line (none for the original file). */
+  extraFields?: (r: AaveRow, ev: AaveEval) => Record<string, unknown>
+  /** Re-ask every read on a second backend (not a sample). */
+  verifyEvery?: boolean
+}
+
 const relDiff = (a: bigint, b: bigint) =>
   a === b ? 0 : Math.abs(Number(a - b)) / Math.max(Math.abs(Number(a)), Math.abs(Number(b)), 1)
 
-export async function aaveEventsStep(ctx: Ctx, chains: ChainKey[]) {
-  const rows = aaveEvents(ctx.inputsDir).filter((r) => chains.includes(r.chain))
-  const kc = new KeyedCalls(ctx, OUT, join(ctx.stateDir, 'aave-events-calls.jsonl'))
-  const setups = new Map<ChainKey, AaveSetup>()
-  for (const c of chains) setups.set(c, await aaveSetup(ctx, c))
+export async function aaveEventsStep(ctx: Ctx, chains: ChainKey[], opts: AaveEventsOpts = {}) {
+  const OUTN = opts.out ?? OUT
+  const rows: AaveRow[] =
+    opts.rows ?? aaveEvents(ctx.inputsDir).filter((r) => chains.includes(r.chain))
+  const kc = new KeyedCalls(ctx, OUTN, join(ctx.stateDir, opts.store ?? 'aave-events-calls.jsonl'))
+  // Rows of a chain's core market are keyed by the bare chain (the original keys); rows of
+  // other markets by chain.market.
+  const tagOf = (r: AaveRow) => r.mkt ?? r.chain
+  const markets = new Map<string, AaveMarket>()
+  for (const c of chains) markets.set(c, coreMarket(c))
+  for (const m of opts.markets ?? []) markets.set(marketTag(m), m)
+  const setups = new Map<string, AaveSetup>()
+  for (const t of [...new Set(rows.map(tagOf))])
+    setups.set(t, await aaveSetupFor(ctx, markets.get(t)!))
 
-  const bKey = (chain: ChainKey, b: number) => `blk:${chain}:${b}`
-  const pKey = (chain: ChainKey, b: number) => `blkpx:${chain}:${b}`
-  const uKey = (chain: ChainKey, user: string, b: number) => `usr:${chain}:${user}:${b}`
+  const bKey = (tag: string, b: number) => `blk:${tag}:${b}`
+  const pKey = (tag: string, b: number) => `blkpx:${tag}:${b}`
+  const uKey = (tag: string, user: string, b: number) => `usr:${tag}:${user}:${b}`
 
-  const blockSet = new Map<string, { chain: ChainKey; b: number }>()
-  const userSet = new Map<string, { chain: ChainKey; user: string; b: number }>()
+  const blockSet = new Map<string, { chain: ChainKey; tag: string; b: number }>()
+  const userSet = new Map<string, { chain: ChainKey; tag: string; user: string; b: number }>()
   for (const r of rows) {
     for (const b of [r.block_number - 1, r.block_number])
-      blockSet.set(bKey(r.chain, b), { chain: r.chain, b })
-    userSet.set(uKey(r.chain, r.user, r.block_number - 1), {
+      blockSet.set(bKey(tagOf(r), b), { chain: r.chain, tag: tagOf(r), b })
+    userSet.set(uKey(tagOf(r), r.user, r.block_number - 1), {
       chain: r.chain,
+      tag: tagOf(r),
       user: r.user,
       b: r.block_number - 1,
     })
@@ -261,8 +295,8 @@ export async function aaveEventsStep(ctx: Ctx, chains: ChainKey[]) {
     `[aave-events] ${rows.length} events, ${blockSet.size} (chain,block) states, ${userSet.size} (chain,user,block) positions\n`,
   )
 
-  const bcalls = new Map<ChainKey, SubCall[]>()
-  for (const c of chains) bcalls.set(c, blockCalls(setups.get(c)!))
+  const bcalls = new Map<string, SubCall[]>()
+  for (const [t, st] of setups) bcalls.set(t, blockCalls(st))
   const prog = progress('aave-events fetch')
   const total = blockSet.size + userSet.size
   let done = 0
@@ -271,7 +305,7 @@ export async function aaveEventsStep(ctx: Ctx, chains: ChainKey[]) {
       key,
       chain: v.chain,
       to: MULTICALL3,
-      data: encMulticall(bcalls.get(v.chain)!),
+      data: encMulticall(bcalls.get(v.tag)!),
       block: v.b,
     })),
     10,
@@ -282,59 +316,59 @@ export async function aaveEventsStep(ctx: Ctx, chains: ChainKey[]) {
       key,
       chain: v.chain,
       to: MULTICALL3,
-      data: encMulticall(userCalls(setups.get(v.chain)!, v.user)),
+      data: encMulticall(userCalls(setups.get(v.tag)!, v.user)),
       block: v.b,
     })),
     10,
     () => prog(++done, total),
   )
 
-  const blockState = (chain: ChainKey, b: number): BlockState => {
-    const setup = setups.get(chain)!
-    const s = kc.get(bKey(chain, b))!
-    if (s.ans.revert) throw new Error(`block multicall reverted ${chain} ${b}`)
-    const res = decMulticall(bcalls.get(chain)!, s.ans.result as Hex)
+  const blockState = (tag: string, b: number): BlockState => {
+    const setup = setups.get(tag)!
+    const s = kc.get(bKey(tag, b))!
+    if (s.ans.revert) throw new Error(`block multicall reverted ${tag} ${b}`)
+    const res = decMulticall(bcalls.get(tag)!, s.ans.result as Hex)
     let per: SubResult[] | undefined
     if (!res[0].ok) {
-      const ps = kc.get(pKey(chain, b))
+      const ps = kc.get(pKey(tag, b))
       if (ps && !ps.ans.revert) per = decMulticall(perAssetPriceCalls(setup), ps.ans.result as Hex)
     }
-    return decodeBlock(setup, bcalls.get(chain)!, res, per)
+    return decodeBlock(setup, bcalls.get(tag)!, res, per)
   }
   // Blocks whose batch price call failed: read per-asset prices.
   const needPer = [...blockSet].filter(([key, v]) => {
     const s = kc.get(key)!
     if (s.ans.revert) return false
-    return !decMulticall(bcalls.get(v.chain)!, s.ans.result as Hex)[0].ok
+    return !decMulticall(bcalls.get(v.tag)!, s.ans.result as Hex)[0].ok
   })
   if (needPer.length) {
     process.stderr.write(`[aave-events] ${needPer.length} blocks need per-asset prices\n`)
     await kc.fetchAll(
       needPer.map(([, v]) => ({
-        key: pKey(v.chain, v.b),
+        key: pKey(v.tag, v.b),
         chain: v.chain,
         to: MULTICALL3,
-        data: encMulticall(perAssetPriceCalls(setups.get(v.chain)!)),
+        data: encMulticall(perAssetPriceCalls(setups.get(v.tag)!)),
         block: v.b,
       })),
     )
   }
 
-  const userState = (chain: ChainKey, user: string, b: number) =>
+  const userState = (tag: string, user: string, b: number) =>
     decodeUser(
-      setups.get(chain)!,
+      setups.get(tag)!,
       decMulticall(
-        userCalls(setups.get(chain)!, user),
-        kc.get(uKey(chain, user, b))!.ans.result as Hex,
+        userCalls(setups.get(tag)!, user),
+        kc.get(uKey(tag, user, b))!.ans.result as Hex,
       ),
     )
 
   const evaluate = (r: AaveEventRow) => {
-    const setup = setups.get(r.chain)!
+    const setup = setups.get(tagOf(r))!
     const P = r.block_number - 1
-    const u = userState(r.chain, r.user, P)
-    const bp = blockState(r.chain, P)
-    const bn = blockState(r.chain, r.block_number)
+    const u = userState(tagOf(r), r.user, P)
+    const bp = blockState(tagOf(r), P)
+    const bn = blockState(tagOf(r), r.block_number)
     const prev = computeHf(setup, u, bp, bp.prices)
     const atN = computeHf(setup, { ...u }, bp, bn.prices)
     return { setup, P, u, bp, bn, prev, atN }
@@ -350,15 +384,15 @@ export async function aaveEventsStep(ctx: Ctx, chains: ChainKey[]) {
       try {
         ev = evaluate(r)
       } catch {
-        anomalous.add(uKey(r.chain, r.user, P))
-        anomalous.add(bKey(r.chain, P))
-        anomalous.add(bKey(r.chain, r.block_number))
+        anomalous.add(uKey(tagOf(r), r.user, P))
+        anomalous.add(bKey(tagOf(r), P))
+        anomalous.add(bKey(tagOf(r), r.block_number))
         continue
       }
       const { u, bp, bn, prev, setup } = ev
       if (prev.healthFactor !== u.account.healthFactor || prev.missingPrice.length) {
-        anomalous.add(uKey(r.chain, r.user, P))
-        anomalous.add(bKey(r.chain, P))
+        anomalous.add(uKey(tagOf(r), r.user, P))
+        anomalous.add(bKey(tagOf(r), P))
       }
       setup.assets.forEach((_, k) => {
         const id = BigInt(setup.assets[k].id)
@@ -366,23 +400,23 @@ export async function aaveEventsStep(ctx: Ctx, chains: ChainKey[]) {
         const a = bp.prices[k]
         const z = bn.prices[k]
         if (!a || !z) {
-          anomalous.add(bKey(r.chain, P))
-          anomalous.add(bKey(r.chain, r.block_number))
+          anomalous.add(bKey(tagOf(r), P))
+          anomalous.add(bKey(tagOf(r), r.block_number))
         } else if (Math.abs(Number(z - a)) / Number(a) > 0.2) {
-          anomalous.add(bKey(r.chain, P))
-          anomalous.add(bKey(r.chain, r.block_number))
+          anomalous.add(bKey(tagOf(r), P))
+          anomalous.add(bKey(tagOf(r), r.block_number))
         }
       })
     }
     const keys = [...blockSet.keys(), ...userSet.keys()]
-    const changed = await kc.verifyAll(keys, anomalous)
+    const changed = await kc.verifyAll(keys, anomalous, 6, !!opts.verifyEvery)
     process.stderr.write(
       `[aave-events] verify round ${round}: ${anomalous.size} anomalous keys, ${changed.length} changed\n`,
     )
-    const req = await kc.requeryTainted([...keys, ...needPer.map(([, v]) => pKey(v.chain, v.b))])
+    const req = await kc.requeryTainted([...keys, ...needPer.map(([, v]) => pKey(v.tag, v.b))])
     if (!changed.length && !req.length) break
   }
-  const pxKeys = needPer.map(([, v]) => pKey(v.chain, v.b))
+  const pxKeys = needPer.map(([, v]) => pKey(v.tag, v.b))
   if (pxKeys.length) await kc.verifyAll(pxKeys, new Set(pxKeys))
 
   // Output
@@ -506,7 +540,7 @@ export async function aaveEventsStep(ctx: Ctx, chains: ChainKey[]) {
         }
       })
       .filter(Boolean)
-    const uRow = kc.store.get(uKey(r.chain, r.user, P))!
+    const uRow = kc.store.get(uKey(tagOf(r), r.user, P))!
     lines.push(
       JSON.stringify({
         chain: r.chain,
@@ -543,17 +577,21 @@ export async function aaveEventsStep(ctx: Ctx, chains: ChainKey[]) {
         hfNm1: Number(hfOn) / 1e18,
         hosts: {
           position: uRow.host,
-          stateNm1: kc.store.get(bKey(r.chain, P))!.host,
-          stateN: kc.store.get(bKey(r.chain, r.block_number))!.host,
+          stateNm1: kc.store.get(bKey(tagOf(r), P))!.host,
+          stateN: kc.store.get(bKey(tagOf(r), r.block_number))!.host,
         },
+        ...(opts.extraFields ? opts.extraFields(r, { setup, u, bp, bn, prev, atN }) : {}),
       }),
     )
   }
-  writeFileSync(join(ctx.outDir, 'aave-events.jsonl.gz'), gzipSync(lines.join('\n') + '\n'))
+  writeFileSync(
+    join(ctx.outDir, opts.file ?? 'aave-events.jsonl.gz'),
+    gzipSync(lines.join('\n') + '\n'),
+  )
   const summary = {
     ...stats,
     mismatchExamples: mism,
-    verification: ctx.verifier.stats(OUT),
+    verification: ctx.verifier.stats(OUTN),
     calls: kc.store.size,
   }
   process.stderr.write(`[aave-events] ${JSON.stringify({ ...stats, byChain: undefined })}\n`)

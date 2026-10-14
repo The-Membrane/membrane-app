@@ -66,7 +66,33 @@ export interface AaveSetup {
   emodeStart: EModeCat[]
   emodeEnd: EModeCat[]
   notes: string[]
+  /** Set for markets other than a chain's core pool. */
+  market?: string
+  provider?: string
 }
+
+/**
+ * One Aave V3 market (PoolAddressesProvider). The chain's 'core' market is the pool of the
+ * owner's CSV, with its verified oracle and pool asserted; the others come from each chain's
+ * PoolAddressesProviderRegistry (./scope.ts).
+ */
+export interface AaveMarket {
+  chain: ChainKey
+  key: string
+  provider: string
+  expectedOracle?: string
+  poolPrefix?: string
+}
+export const coreMarket = (chain: ChainKey): AaveMarket => ({
+  chain,
+  key: 'core',
+  provider: ADDRESSES[chain].provider,
+  expectedOracle: ADDRESSES[chain].oracle,
+  poolPrefix: ADDRESSES[chain].poolPrefix,
+})
+/** File / key tag: the bare chain for the core market (the original file names), chain.key else. */
+export const marketTag = (m: { chain: ChainKey; key: string }) =>
+  m.key === 'core' ? m.chain : `${m.chain}.${m.key}`
 
 const OUT = 'aave-oracle-1m'
 const lc = (s: string) => s.toLowerCase()
@@ -76,11 +102,12 @@ async function readEModes(
   chain: ChainKey,
   pool: string,
   block: number,
+  out = OUT,
 ): Promise<EModeCat[]> {
   const ids = [...Array(255).keys()].map((i) => i + 1)
   const labels = await setupMulticall(
     ctx,
-    OUT,
+    out,
     chain,
     ids.map((id) => ({ target: pool, abi: poolAbi, fn: 'getEModeCategoryLabel', args: [id] })),
     block,
@@ -88,7 +115,7 @@ async function readEModes(
   const live = ids.filter((_, k) => labels[k].ok && String(labels[k].value).length > 0)
   const cfg = await setupMulticall(
     ctx,
-    OUT,
+    out,
     chain,
     live.flatMap((id) => [
       { target: pool, abi: poolAbi, fn: 'getEModeCategoryCollateralConfig', args: [id] },
@@ -114,18 +141,25 @@ async function readEModes(
 }
 
 export async function aaveSetup(ctx: Ctx, chain: ChainKey): Promise<AaveSetup> {
-  const path = join(ctx.stateDir, `aave-setup.${chain}.json`)
+  return aaveSetupFor(ctx, coreMarket(chain))
+}
+
+export async function aaveSetupFor(ctx: Ctx, m: AaveMarket): Promise<AaveSetup> {
+  const chain = m.chain
+  const path = join(ctx.stateDir, `aave-setup.${marketTag(m)}.json`)
   const cached = readJson<AaveSetup>(path)
   if (cached) return cached
   const blocks = loadMinuteBlocks(ctx, chain)
   const b0 = blocks[0]
   const bEnd = blocks[STEPS - 1]
-  const A = ADDRESSES[chain]
+  const A = { provider: m.provider }
   const notes: string[] = []
+  // Setup checks of non-core markets are counted under their own output name.
+  const SOUT = m.key === 'core' ? OUT : `${OUT}.${m.key}`
   const resolve = async (b: number) => {
     const r = await setupMulticall(
       ctx,
-      OUT,
+      SOUT,
       chain,
       (['getPool', 'getPriceOracle', 'getPoolDataProvider'] as const).map((fn) => ({
         target: A.provider,
@@ -140,14 +174,15 @@ export async function aaveSetup(ctx: Ctx, chain: ChainKey): Promise<AaveSetup> {
   const [pool2, oracle2, dp2] = await resolve(bEnd)
   if (pool !== pool2 || oracle !== oracle2 || dp !== dp2)
     throw new Error(`${chain}: pool/oracle/dataProvider changed inside the window`)
-  if (oracle !== lc(A.oracle)) throw new Error(`${chain}: oracle ${oracle} != expected ${A.oracle}`)
-  if (!pool.startsWith(A.poolPrefix))
-    throw new Error(`${chain}: pool ${pool} != expected ${A.poolPrefix}…`)
+  if (m.expectedOracle && oracle !== lc(m.expectedOracle))
+    throw new Error(`${chain}: oracle ${oracle} != expected ${m.expectedOracle}`)
+  if (m.poolPrefix && !pool.startsWith(m.poolPrefix))
+    throw new Error(`${chain}: pool ${pool} != expected ${m.poolPrefix}…`)
 
   const list = async (b: number) => {
     const s = await setupCall(
       ctx,
-      OUT,
+      SOUT,
       chain,
       pool,
       enc({ target: pool, abi: poolAbi, fn: 'getReservesList' }),
@@ -167,7 +202,7 @@ export async function aaveSetup(ctx: Ctx, chain: ChainKey): Promise<AaveSetup> {
 
   const misc = await setupMulticall(
     ctx,
-    OUT,
+    SOUT,
     chain,
     [
       { target: oracle, abi: oracleAbi, fn: 'BASE_CURRENCY_UNIT' },
@@ -180,7 +215,7 @@ export async function aaveSetup(ctx: Ctx, chain: ChainKey): Promise<AaveSetup> {
   const perAsset = (b: number) =>
     setupMulticall(
       ctx,
-      OUT,
+      SOUT,
       chain,
       reserves.flatMap((a) => [
         { target: a, abi: erc20Abi, fn: 'symbol' },
@@ -219,8 +254,8 @@ export async function aaveSetup(ctx: Ctx, chain: ChainKey): Promise<AaveSetup> {
       inListEnd: endList.includes(a),
     }
   })
-  const emodeStart = await readEModes(ctx, chain, pool, b0)
-  const emodeEnd = await readEModes(ctx, chain, pool, bEnd)
+  const emodeStart = await readEModes(ctx, chain, pool, b0, SOUT)
+  const emodeEnd = await readEModes(ctx, chain, pool, bEnd, SOUT)
   if (JSON.stringify(emodeStart) !== JSON.stringify(emodeEnd))
     notes.push('e-mode categories changed in window')
   const setup: AaveSetup = {
@@ -239,6 +274,7 @@ export async function aaveSetup(ctx: Ctx, chain: ChainKey): Promise<AaveSetup> {
     emodeStart,
     emodeEnd,
     notes,
+    ...(m.key === 'core' ? {} : { market: m.key, provider: lc(m.provider) }),
   }
   writeJson(path, setup)
   return setup
@@ -270,15 +306,22 @@ export function aaveMinuteCalls(setup: AaveSetup) {
 }
 
 export async function aaveOracle(ctx: Ctx, chain: ChainKey) {
-  const setup = await aaveSetup(ctx, chain)
+  return aaveOracleFor(ctx, coreMarket(chain))
+}
+
+export async function aaveOracleFor(ctx: Ctx, m: AaveMarket) {
+  const chain = m.chain
+  const setup = await aaveSetupFor(ctx, m)
   const blocks = loadMinuteBlocks(ctx, chain)
   const calls = aaveMinuteCalls(setup)
   const R = setup.reserves.length
+  // Core markets keep the original output name (their files are frozen); others get their own.
+  const seriesOut = m.key === 'core' ? OUT : `${OUT}.${m.key}`
   const res = await runSeries(ctx, {
-    output: OUT,
+    output: seriesOut,
     chain,
     blocks,
-    storePath: join(ctx.stateDir, `aave-prices.${chain}.jsonl`),
+    storePath: join(ctx.stateDir, `aave-prices.${marketTag(m)}.jsonl`),
     columns: R,
     call: calls.call,
     fallbackMode: 'per-asset',
@@ -299,6 +342,7 @@ export async function aaveOracle(ctx: Ctx, chain: ChainKey) {
   })
   const out = {
     chain,
+    ...(m.key === 'core' ? {} : { market: m.key, provider: lc(m.provider) }),
     oracle: setup.oracle,
     pool: setup.pool,
     poolRevision: setup.poolRevision,
@@ -329,8 +373,11 @@ export async function aaveOracle(ctx: Ctx, chain: ChainKey) {
     callModes: res.modes,
     hosts: res.hosts,
     minuteHost: res.minuteHost,
-    verification: ctx.verifier.stats(OUT, chain),
+    verification: ctx.verifier.stats(seriesOut, chain),
   }
-  writeFileSync(join(ctx.outDir, `aave-oracle-1m.${chain}.json.gz`), gzipSync(JSON.stringify(out)))
+  writeFileSync(
+    join(ctx.outDir, `aave-oracle-1m.${marketTag(m)}.json.gz`),
+    gzipSync(JSON.stringify(out)),
+  )
   return out
 }

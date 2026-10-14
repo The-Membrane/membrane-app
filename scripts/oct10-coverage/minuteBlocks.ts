@@ -32,7 +32,7 @@ export interface MinuteBlock {
   hash: string
 }
 
-async function findLastLE(
+export async function findLastLE(
   ctx: Ctx,
   chain: ChainKey,
   t: number,

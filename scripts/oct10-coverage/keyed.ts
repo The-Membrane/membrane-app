@@ -72,9 +72,16 @@ export class KeyedCalls {
   }
 
   /** Sample + anomalies; returns keys whose answer changed. */
-  async verifyAll(keys: string[], anomalous: Set<string>, conc = 6): Promise<string[]> {
+  async verifyAll(
+    keys: string[],
+    anomalous: Set<string>,
+    conc = 6,
+    every = false,
+  ): Promise<string[]> {
+    // `every`: re-ask every key (small sets, where a 4% hash sample could pick none).
     const picks = keys.filter(
-      (k) => (inSample(k) || anomalous.has(k)) && !this.ctx.verifier.checked(this.output, k),
+      (k) =>
+        (every || inSample(k) || anomalous.has(k)) && !this.ctx.verifier.checked(this.output, k),
     )
     const changed: string[] = []
     await pmap(picks, conc, async (k) => {

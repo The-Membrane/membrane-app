@@ -25,7 +25,7 @@ import {
   irmAbi,
   morphoAbi,
   morphoOracleAbi,
-  MORPHO_BLUE,
+  MORPHO_BY_CHAIN,
   MULTICALL3,
   revertReason,
   type SubCall,
@@ -53,29 +53,56 @@ const wTaylor = (x: bigint, n: bigint) => {
   return first + second + third
 }
 
-function stateCalls(m: { id: string; oracle: string }, borrower: string): SubCall[] {
+function stateCalls(
+  morpho: string,
+  m: { id: string; oracle: string },
+  borrower: string,
+): SubCall[] {
   return [
-    { target: MORPHO_BLUE, abi: morphoAbi, fn: 'position', args: [m.id, borrower] },
-    { target: MORPHO_BLUE, abi: morphoAbi, fn: 'market', args: [m.id] },
-    { target: MORPHO_BLUE, abi: morphoAbi, fn: 'idToMarketParams', args: [m.id] },
+    { target: morpho, abi: morphoAbi, fn: 'position', args: [m.id, borrower] },
+    { target: morpho, abi: morphoAbi, fn: 'market', args: [m.id] },
+    { target: morpho, abi: morphoAbi, fn: 'idToMarketParams', args: [m.id] },
     { target: m.oracle, abi: morphoOracleAbi, fn: 'price' },
   ]
+}
+
+export type MorphoRow = MorphoEventRow & { mkt?: string }
+export interface MorphoEventsOpts {
+  /** Rows to read (default: the owner's CSV). */
+  rows?: MorphoRow[]
+  /** Setups by tag (a row's `mkt`, default its chain). */
+  setups?: Map<string, MorphoSetup>
+  file?: string
+  out?: string
+  store?: string
+  /** Fields appended to each output line (none for the original file). */
+  extraFields?: (r: MorphoRow, e: Record<string, unknown>) => Record<string, unknown>
+  /** Re-ask every read on a second backend (not a sample). */
+  verifyEvery?: boolean
 }
 
 const ratio = (num: bigint, den: bigint) =>
   den === 0n ? null : Number((num * 10n ** 12n) / den) / 1e12
 
-export async function morphoEventsStep(ctx: Ctx, chains: ChainKey[]) {
-  const rows = morphoEvents(ctx.inputsDir).filter((r) => chains.includes(r.chain))
-  const setups = new Map<ChainKey, MorphoSetup>()
-  for (const c of [...new Set(rows.map((r) => r.chain))]) setups.set(c, await morphoSetup(ctx, c))
-  const kc = new KeyedCalls(ctx, OUT, join(ctx.stateDir, 'morpho-events-calls.jsonl'))
+export async function morphoEventsStep(ctx: Ctx, chains: ChainKey[], opts: MorphoEventsOpts = {}) {
+  const OUTN = opts.out ?? OUT
+  const rows: MorphoRow[] =
+    opts.rows ?? morphoEvents(ctx.inputsDir).filter((r) => chains.includes(r.chain))
+  const tagOf = (r: MorphoRow) => r.mkt ?? r.chain
+  const setups = new Map<string, MorphoSetup>(opts.setups ?? [])
+  for (const c of [...new Set(rows.map((r) => r.chain))])
+    if (!setups.has(c) && rows.some((r) => tagOf(r) === c)) setups.set(c, await morphoSetup(ctx, c))
+  const kc = new KeyedCalls(
+    ctx,
+    OUTN,
+    join(ctx.stateDir, opts.store ?? 'morpho-events-calls.jsonl'),
+  )
   const sKey = (r: MorphoEventRow) =>
     `st:${r.chain}:${r.market_id}:${r.borrower}:${r.block_number - 1}`
   const pxKey = (r: MorphoEventRow) => `px:${r.chain}:${r.oracle}:${r.block_number}`
   const irmKey = (r: MorphoEventRow) => `irm:${r.chain}:${r.market_id}:${r.block_number - 1}`
   const market = (r: MorphoEventRow) =>
-    setups.get(r.chain)!.markets.find((m) => m.id === r.market_id)!
+    setups.get(tagOf(r))!.markets.find((m) => m.id === r.market_id)!
 
   const prog = progress('morpho-events fetch')
   const stateCallsFor = new Map<string, { chain: ChainKey; to: string; data: Hex; block: number }>()
@@ -83,7 +110,7 @@ export async function morphoEventsStep(ctx: Ctx, chains: ChainKey[]) {
     stateCallsFor.set(sKey(r), {
       chain: r.chain,
       to: MULTICALL3,
-      data: encMulticall(stateCalls(market(r), r.borrower)),
+      data: encMulticall(stateCalls(MORPHO_BY_CHAIN[r.chain], market(r), r.borrower)),
       block: r.block_number - 1,
     })
     stateCallsFor.set(pxKey(r), {
@@ -101,7 +128,7 @@ export async function morphoEventsStep(ctx: Ctx, chains: ChainKey[]) {
   )
 
   const decodeState = (r: MorphoEventRow) => {
-    const calls = stateCalls(market(r), r.borrower)
+    const calls = stateCalls(MORPHO_BY_CHAIN[r.chain], market(r), r.borrower)
     const s = kc.get(sKey(r))!
     if (s.ans.revert) throw new Error('state multicall reverted')
     const res = decMulticall(calls, s.ans.result as Hex)
@@ -266,7 +293,7 @@ export async function morphoEventsStep(ctx: Ctx, chains: ChainKey[]) {
       }
     }
     const keys = [...stateCallsFor.keys(), ...irmCalls.map((c) => c.key)]
-    const changed = await kc.verifyAll(keys, anomalous)
+    const changed = await kc.verifyAll(keys, anomalous, 6, !!opts.verifyEvery)
     const req = await kc.requeryTainted(keys)
     process.stderr.write(
       `[morpho-events] verify round ${round}: ${anomalous.size} anomalous keys, ${changed.length + req.length} changed\n`,
@@ -397,10 +424,14 @@ export async function morphoEventsStep(ctx: Ctx, chains: ChainKey[]) {
         // already changed it; the first event of the block is the one the N-1 read describes.
         intra_block_seq: r.intra_block_seq,
         hosts: { stateNm1: kc.store.get(sKey(r))!.host, priceN: kc.store.get(pxKey(r))!.host },
+        ...(opts.extraFields ? opts.extraFields(r, e as unknown as Record<string, unknown>) : {}),
       }),
     )
   }
-  writeFileSync(join(ctx.outDir, 'morpho-events.jsonl.gz'), gzipSync(lines.join('\n') + '\n'))
+  writeFileSync(
+    join(ctx.outDir, opts.file ?? 'morpho-events.jsonl.gz'),
+    gzipSync(lines.join('\n') + '\n'),
+  )
   process.stderr.write(`[morpho-events] ${JSON.stringify({ ...stats, byChain: undefined })}\n`)
-  return { ...stats, verification: ctx.verifier.stats(OUT), calls: kc.store.size }
+  return { ...stats, verification: ctx.verifier.stats(OUTN), calls: kc.store.size }
 }

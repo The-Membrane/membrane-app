@@ -40,6 +40,229 @@ interface AaveEv {
   hfMatch?: { exact: boolean; relDiff: number }
 }
 
+/**
+ * The scope-scan denominator: every Aave V3 pool and Morpho Blue deployment on the four chains
+ * (events-scan.json), the owner's rows plus the extra rows. Accounts are keyed chain+market+user
+ * (one user can hold positions in several Aave markets on a chain).
+ */
+function fullScopeSummary(
+  out: string,
+  fullCore: (c: ChainKey, a: string) => boolean,
+  addMissing: (
+    chain: string,
+    x: { asset: string; symbol: string; protocol: string; reason: string },
+  ) => void,
+) {
+  if (!existsSync(join(out, 'events-scan.json'))) return null
+  const scan = JSON.parse(readFileSync(join(out, 'events-scan.json'), 'utf8')) as {
+    totals: Record<string, number>
+    chains: Record<
+      string,
+      {
+        aaveMarkets: {
+          key: string
+          marketId: string
+          pool: string
+          liquidationCalls: number
+          inCsv: number
+          notInCsv: number
+        }[]
+        morphoBlue: { address: string; liquidates: number; inCsv: number; notInCsv: number }
+      }
+    >
+  }
+  const full = (prices: (string | null)[] | undefined) =>
+    !!prices && prices.length === STEPS && prices.every((x) => x !== null && x !== '0')
+  // Aave: the owner's rows (core) + the extras.
+  const files = readdirSync(out)
+  const marketPaths = new Map<
+    string,
+    { prices: Record<string, (string | null)[]>; assets: { address: string; symbol: string }[] }
+  >()
+  for (const f of files) {
+    const m = f.match(/^aave-oracle-1m\.(\w+)\.(\w+)\.json\.gz$/)
+    if (m) marketPaths.set(`${m[1]}.${m[2]}`, gz(join(out, f)))
+  }
+  const fullFor = (chain: ChainKey, market: string, a: string) =>
+    market === 'core' ? fullCore(chain, a) : full(marketPaths.get(`${chain}.${market}`)?.prices[a])
+  const core = gzLines(join(out, 'aave-events.jsonl.gz')) as AaveEv[]
+  const extra = existsSync(join(out, 'aave-events-extra.jsonl.gz'))
+    ? (gzLines(join(out, 'aave-events-extra.jsonl.gz')) as (AaveEv & { market: string })[])
+    : []
+  const accts = new Map<string, { chain: ChainKey; market: string; evs: AaveEv[] }>()
+  for (const e of [...core.map((x) => ({ ...x, market: 'core' })), ...extra]) {
+    const k = `${e.chain}:${e.market}:${e.user}`
+    const a = accts.get(k) ?? { chain: e.chain, market: e.market, evs: [] }
+    a.evs.push(e)
+    accts.set(k, a)
+  }
+  const aave = {
+    events: core.length + extra.length,
+    eventsExtra: extra.length,
+    accounts: accts.size,
+    accountsExtra: 0,
+    fullPath: 0,
+    locatedHfNBelow1: 0,
+    unlocatedHfNAtLeast1: 0,
+    notFullPath: 0,
+    byMarket: {} as Record<string, Record<string, number>>,
+  }
+  for (const [, a] of accts) {
+    const tag = a.market === 'core' ? a.chain : `${a.chain}.${a.market}`
+    const bm = (aave.byMarket[tag] ??= {
+      accounts: 0,
+      events: 0,
+      fullPath: 0,
+      located: 0,
+      unlocated: 0,
+    })
+    bm.accounts++
+    bm.events += a.evs.length
+    if (
+      a.market !== 'core' ||
+      extra.some((x) => x.chain === a.chain && x.user === a.evs[0].user && x.market === a.market)
+    )
+      aave.accountsExtra++
+    const held = new Set<string>()
+    for (const e of a.evs)
+      for (const p of e.position ?? [])
+        if (
+          BigInt(p.aTokenBalance) > 0n ||
+          BigInt(p.variableDebt) > 0n ||
+          BigInt(p.stableDebt) > 0n
+        )
+          held.add(p.asset)
+    const ok = [...held].every((x) => fullFor(a.chain, a.market, x))
+    for (const x of held)
+      if (!fullFor(a.chain, a.market, x))
+        addMissing(a.chain, {
+          asset: x,
+          symbol: '',
+          protocol: `aave ${tag}`,
+          reason: 'held reserve without a full minute path',
+        })
+    if (!ok) {
+      aave.notFullPath++
+      continue
+    }
+    aave.fullPath++
+    bm.fullPath++
+    if (a.evs.some((e) => e.atN?.liquidatable)) {
+      aave.locatedHfNBelow1++
+      bm.located++
+    } else {
+      aave.unlocatedHfNAtLeast1++
+      bm.unlocated++
+    }
+  }
+  // Morpho: every oracle path file, then positions over the owner's rows + extras.
+  const oraclePaths = new Map<string, (string | null)[]>()
+  for (const f of files) {
+    const m = f.match(/^morpho-oracle-1m\.(\w+)(\.extra)?\.json\.gz$/)
+    if (!m) continue
+    const d = gz(join(out, f)) as { prices: Record<string, (string | null)[]> }
+    for (const [o, p] of Object.entries(d.prices)) oraclePaths.set(`${m[1]}:${o}`, p)
+  }
+  type MEv = {
+    chain: ChainKey
+    market_id: string
+    borrower: string
+    oracle: string
+    liquidatableN: boolean
+  }
+  const mCore = gzLines(join(out, 'morpho-events.jsonl.gz')) as MEv[]
+  const mExtra = existsSync(join(out, 'morpho-events-extra.jsonl.gz'))
+    ? (gzLines(join(out, 'morpho-events-extra.jsonl.gz')) as MEv[])
+    : []
+  const pos = new Map<string, MEv[]>()
+  for (const e of [...mCore, ...mExtra]) {
+    const k = `${e.chain}:${e.market_id}:${e.borrower}`
+    pos.set(k, [...(pos.get(k) ?? []), e])
+  }
+  const morpho = {
+    events: mCore.length + mExtra.length,
+    eventsExtra: mExtra.length,
+    positions: pos.size,
+    fullOraclePath: 0,
+    ltvNAboveLltv: 0,
+    notLiquidatableAtN: 0,
+    byChain: {} as Record<string, Record<string, number>>,
+  }
+  for (const [, list] of pos) {
+    const e = list[0]
+    const bc = (morpho.byChain[e.chain] ??= {
+      positions: 0,
+      events: 0,
+      fullOraclePath: 0,
+      ltvNAboveLltv: 0,
+    })
+    bc.positions++
+    bc.events += list.length
+    if (!full(oraclePaths.get(`${e.chain}:${e.oracle}`))) {
+      addMissing(e.chain, {
+        asset: `oracle ${e.oracle}`,
+        symbol: '',
+        protocol: 'morpho',
+        reason: 'no full minute path',
+      })
+      continue
+    }
+    morpho.fullOraclePath++
+    bc.fullOraclePath++
+    if (list.some((x) => x.liquidatableN)) {
+      morpho.ltvNAboveLltv++
+      bc.ltvNAboveLltv++
+    } else morpho.notLiquidatableAtN++
+  }
+  // Protocol fee.
+  let fee: Record<string, unknown> | null = null
+  if (existsSync(join(out, 'aave-protocol-fee.jsonl.gz'))) {
+    const f = gzLines(join(out, 'aave-protocol-fee.jsonl.gz')) as {
+      match: string
+      market: string
+      chain: string
+    }[]
+    const by = (m: string) => f.filter((x) => x.match === m).length
+    fee = {
+      events: f.length,
+      computedEqualsTreasuryTransfer: by('equal'),
+      equalAfterScaledRounding: by('equal-after-scaled-rounding'),
+      mismatch: by('mismatch'),
+      feeZero: by('fee-zero'),
+      noTransferFound: by('no-transfer-found'),
+    }
+  }
+  return {
+    scope:
+      'Aave V3 LiquidationCall on every pool in the PoolAddressesProviderRegistry and Morpho Blue Liquidate, on mainnet, Arbitrum, Optimism and Base, 2025-10-10T00:00:00Z .. 2025-10-11T23:59:59Z (events-scan.json); accounts keyed chain+market+user',
+    onChainEvents: scan.totals,
+    pools: Object.fromEntries(
+      Object.entries(scan.chains).map(([c, x]) => [
+        c,
+        {
+          aave: x.aaveMarkets.map((m) => ({
+            market: m.key,
+            marketId: m.marketId,
+            pool: m.pool,
+            onChain: m.liquidationCalls,
+            inCsv: m.inCsv,
+            notInCsv: m.notInCsv,
+          })),
+          morpho: {
+            address: x.morphoBlue.address,
+            onChain: x.morphoBlue.liquidates,
+            inCsv: x.morphoBlue.inCsv,
+            notInCsv: x.morphoBlue.notInCsv,
+          },
+        },
+      ]),
+    ),
+    aave,
+    morpho,
+    protocolFee: fee,
+  }
+}
+
 export async function summaryStep(ctx: Ctx, appRoot: string) {
   const out = ctx.outDir
   const missingPaths: Record<
@@ -282,6 +505,8 @@ export async function summaryStep(ctx: Ctx, appRoot: string) {
       ? unreadable
       : 'none: every Aave reserve and every Morpho oracle in the CSVs was readable on chain at every minute',
   }
+  const fullScope = fullScopeSummary(out, fullAave, addMissing)
+  if (fullScope) Object.assign(summary, { fullScope })
   writeJson(join(out, 'coverage-summary.json'), summary)
 
   // ---- PROVENANCE
@@ -349,27 +574,54 @@ export async function summaryStep(ctx: Ctx, appRoot: string) {
     existsSync(join(ctx.stateDir, f)) ? [...new JsonlStore(join(ctx.stateDir, f)).map.keys()] : []
   const minuteUnits = (chains: string[]) =>
     chains.flatMap((c) => Array.from({ length: STEPS }, (_, i) => `${c}:${i}`))
+  const scopeState = readJson<{ markets: { chain: string; key: string }[] }>(
+    join(ctx.stateDir, 'scope.json'),
+  )
+  const morphoChains = CHAINS.filter((c) =>
+    existsSync(join(ctx.stateDir, `morpho-prices.${c}.jsonl`)),
+  )
   const allUnits: Record<string, string[]> = {
     'minute-blocks': minuteUnits(CHAINS),
     'aave-oracle-1m': minuteUnits(CHAINS),
-    'morpho-oracle-1m': minuteUnits(['mainnet', 'base']),
+    'morpho-oracle-1m': minuteUnits(morphoChains),
     'aave-events': keyedKeys('aave-events-calls.jsonl'),
     'morpho-events': keyedKeys('morpho-events-calls.jsonl'),
+    'aave-events-extra': keyedKeys('aave-events-extra-calls.jsonl'),
+    'morpho-events-extra': keyedKeys('morpho-events-extra-calls.jsonl'),
+    'aave-protocol-fee': [
+      ...keyedKeys('fee-calls.jsonl').filter((k) => k.startsWith('fee2:')),
+      ...keyedKeys('receipts.jsonl').map((k) => `receipt:${k}`),
+    ],
   }
+  for (const m of scopeState?.markets ?? [])
+    if (m.key !== 'core') allUnits[`aave-oracle-1m.${m.key}`] = minuteUnits([m.chain])
+  if (
+    existsSync(join(ctx.stateDir, 'morpho-prices.mainnet.extra.jsonl')) ||
+    existsSync(join(ctx.stateDir, 'morpho-prices.base.extra.jsonl'))
+  )
+    allUnits['morpho-oracle-1m.extra'] = minuteUnits(
+      ['mainnet', 'base'].filter((c) =>
+        existsSync(join(ctx.stateDir, `morpho-prices.${c}.extra.jsonl`)),
+      ),
+    )
   // The key each step hashed to decide sample membership.
   const sampleKey = (o: string, u: string) =>
-    o === 'minute-blocks' ? u.replace(':', ':minute:') : u
+    o === 'minute-blocks' ? u.replace(':', ':minute:') : u.startsWith('receipt:') ? u.slice(8) : u
   const unitOf = (o: string, key: string) => {
     const k = key.slice(o.length + 1)
     if (k.startsWith('setup:')) return null
-    if (o === 'minute-blocks' || o.endsWith('-1m')) return k.split(':').slice(0, 2).join(':')
+    if (o === 'minute-blocks' || /-1m(\.|$)/.test(o)) return k.split(':').slice(0, 2).join(':')
     return k.replace(/:requery$/, '')
   }
   const vrows = outputs.map((o) => {
     const entries = [...vlog.map.entries()].filter(([, r]) => r.output === o)
     const rows = entries.map(([, r]) => r)
+    const known = allUnits[o] ? new Set(allUnits[o]) : null
+    // Units of superseded call sets (e.g. the first fee multicall layout) do not count.
     const unitSet = new Set(
-      entries.map(([k]) => unitOf(o, k)).filter((u): u is string => u !== null),
+      entries
+        .map(([k]) => unitOf(o, k))
+        .filter((u): u is string => u !== null && (!known || known.has(u))),
     )
     // Deterministic sample: every unit whose key hashes under the rate. It must all have been
     // re-asked (as 'sample', or earlier as 'anomaly' when it was also anomalous).
@@ -436,15 +688,36 @@ export async function summaryStep(ctx: Ctx, appRoot: string) {
     : []
   const md = `# Oct 10-11 2025 on-chain pull (protocol oracles, minute blocks, liquidation positions)
 
-Every liquidated Aave V3 and Morpho Blue position in \`../aave_liquidations_enriched.csv\` and
-\`../morpho_liquidations.csv\`, priced from the protocol's OWN oracle read on chain at the block in
-force at each minute of 2025-10-10T00:00Z .. 2025-10-11T23:59Z (2,880 one-minute steps), on each
-chain, and every liquidation's position re-read at block N-1.
+Every Aave V3 LiquidationCall and Morpho Blue Liquidate on mainnet, Arbitrum, Optimism and Base in
+2025-10-10T00:00:00Z .. 2025-10-11T23:59:59Z, priced from the protocol's OWN oracle read on chain
+at the block in force at each minute (2,880 one-minute steps), and every liquidation's position
+re-read at block N-1.
+
+**Scope.** Every Aave V3 pool registered in each chain's PoolAddressesProviderRegistry (mainnet:
+Core, Lido, EtherFi; Arbitrum, Optimism, Base: Core) and the Morpho Blue singleton of each chain,
+established on chain and scanned for events in \`events-scan.json\`. The owner's CSVs
+(\`../aave_liquidations_enriched.csv\`, \`../morpho_liquidations.csv\`) cover the Core pools and
+Morpho on mainnet and Base; every CSV row was found on chain, identical, and the on-chain events
+the CSVs lack are read the same way into the \`*-extra\` files. Out of scope: every other chain
+(Avalanche, for size: ${(() => {
+    try {
+      const sc = JSON.parse(readFileSync(join(out, 'events-scan.json'), 'utf8')) as {
+        outOfScope?: { avalanche?: { liquidationCalls?: Record<string, unknown> } }
+      }
+      return JSON.stringify(sc.outOfScope?.avalanche?.liquidationCalls ?? 'not counted')
+    } catch {
+      return 'not counted'
+    }
+  })()} Aave V3 LiquidationCalls in the window, not pulled), Aave V2, and V3 forks (Spark, Seamless,
+ZeroLend, Avalon, ...), listed per chain in \`events-scan.json\` under \`otherEmitters\`.
 
 - **Source**: membrane-app \`scripts/oct10-coverage/pull-onchain.ts\` (+ modules beside it), branch
   \`${branch}\`, commit \`${commit}\`${dirty ? ' (WARNING: script dir had uncommitted changes when this was written)' : ''}.
   Command: \`npx tsx scripts/oct10-coverage/pull-onchain.ts --state <dir>\` (resumable; steps
-  blocks, aave, morpho, aave-events, morpho-events, chainlink, summary).
+  blocks, aave, morpho, aave-events, morpho-events, chainlink, scope, extras, fees, summary).
+  The files of the first pull (minute blocks, the four core Aave paths, the mainnet / Base Morpho
+  paths, aave-events, morpho-events, chainlink-check) are unchanged since membrane-app 62bf614;
+  the verification statistics embedded in them are those of that run.
 - **Path**: \`recall-coverage/inputs/oct10/onchain/\`
 - **Date**: ${new Date().toISOString().slice(0, 10)}
 - **Status**: canonical, frozen (re-running the script reproduces it from chain state).
@@ -454,7 +727,7 @@ chain, and every liquidation's position re-read at block N-1.
 
 | file | bytes | sha256 | contents |
 | --- | ---: | --- | --- |
-${files.map((x) => `| \`${x.f}\` | ${x.size.toLocaleString('en-US')} | \`${x.sha}\` | ${DESCRIBE[x.f.replace(/\.(mainnet|arbitrum|optimism|base)\./, '.<chain>.')] ?? ''} |`).join('\n')}
+${files.map((x) => `| \`${x.f}\` | ${x.size.toLocaleString('en-US')} | \`${x.sha}\` | ${describe(x.f)} |`).join('\n')}
 
 ## Method
 
@@ -483,6 +756,30 @@ ${files.map((x) => `| \`${x.f}\` | ${x.size.toLocaleString('en-US')} | \`${x.sha
 - **Chainlink check**: the WETH and BTC (WBTC / cbBTC) sources of each chain; AnswerUpdated logs
   over the window from >= 2 backend groups, round-id continuity checked against
   \`latestRound()\` at both ends, minute path compared with the round in force.
+- **Scope scan** (\`events-scan.json\`): Aave markets from each chain's registry
+  (\`getAddressesProvidersList\` at both window ends; each provider's pool / oracle / data provider);
+  Morpho Blue singletons checked with \`owner()\`. The in-scope emitters' LiquidationCall /
+  Liquidate logs over the exact window (first block with ts >= start .. last block with ts <= end)
+  were scanned in full on two independent backend groups per chain (Pocket excluded for logs; the
+  builder relays are never used) and compared log by log: identical on all four chains; every empty
+  chunk of one host is covered by the other's scan. A topic-only scan (any emitter) lists the
+  out-of-scope emitters and agrees with the in-scope scan on every chain.
+- **Extras**: the on-chain events the CSVs lack (\`*-extra\`) are read exactly as the CSV events,
+  every read re-asked on a second backend (100%, not a sample). CSV-equivalent rows
+  (\`*_liquidations_extra.csv\`, the owner's columns + market / pool) are decoded from the logs and
+  the N-1 reads; the Morpho fractions follow the owner's convention measured on its rows (repaid
+  shares / pre-borrow shares capped at 1, seized / pre-collateral, 8 decimals); \`full_liquidation\`
+  is left empty (the owner's rule could not be reproduced). Minute paths: the AaveOracle of every
+  new market and every Morpho oracle no earlier file covers.
+- **Protocol fee** (\`aave-protocol-fee.jsonl.gz\`, every Aave event): LiquidationLogic
+  (v3.3-3.5) seizes collateralAmount, of which bonusCollateral = collateralAmount -
+  collateralAmount.percentDiv(liquidationBonus) and fee = bonusCollateral.percentMul(
+  liquidationProtocolFee) go to the treasury, and the event's liquidatedCollateralAmount =
+  collateralAmount - fee. The fee is recovered from the event by inverting that (bonus = the
+  user's e-mode category bonus when the collateral is in the category bitmap, else the reserve's;
+  fee bps from PoolDataProvider.getLiquidationProtocolFee at N) and checked against the
+  Transfer(user -> RESERVE_TREASURY_ADDRESS) of the collateral aToken in the event's own receipt.
+  \`protocolFeeRaw\` is that on-chain transfer.
 
 ## Verification
 
@@ -510,6 +807,21 @@ Quarantined for getLogs only (chainlink check): ${cl?.quarantinedForLogs?.length
 - Aave: ${summary.aave.fullPath} of ${summary.aave.accounts} (chain, user) accounts have every held reserve priced at every minute; ${summary.aave.locatedHfNBelow1} have HF_N < 1 (located), ${summary.aave.unlocatedHfNAtLeast1} have HF_N >= 1 for every event. Of the census's ${summary.aave.census.excludedAccounts} excluded accounts, ${summary.aave.census.nowLocatedHfNBelow1} are now located.
 - Morpho: ${summary.morpho.fullOraclePath} of ${summary.morpho.positions} positions have a full oracle path; ${summary.morpho.ltvNAboveLltv} are liquidatable at N (LTV_N > LLTV).
 - Assets without a full path: ${Object.keys(summary.assetsWithoutFullPath).length ? JSON.stringify(summary.assetsWithoutFullPath) : 'none'}.
+${(() => {
+  const fs = (summary as { fullScope?: ReturnType<typeof fullScopeSummary> }).fullScope
+  if (!fs) return ''
+  const t = fs.onChainEvents
+  const pools = Object.entries(fs.pools)
+    .map(
+      ([c, x]) =>
+        `${c}: ${x.aave.map((m) => `Aave ${m.market} ${m.onChain} (CSV ${m.inCsv})`).join(', ')}, Morpho ${x.morpho.onChain} (CSV ${x.morpho.inCsv})`,
+    )
+    .join('; ')
+  const f = fs.protocolFee as Record<string, number> | null
+  return `- Scope: ${t.aaveOnChain} Aave V3 LiquidationCalls and ${t.morphoOnChain} Morpho Liquidates on chain; the CSVs hold ${t.aaveCsv} and ${t.morphoCsv}, every one found on chain identical; ${t.aaveNotInCsv} Aave and ${t.morphoNotInCsv} Morpho events are added (per pool: ${pools}).
+- Full scope: ${fs.aave.fullPath} of ${fs.aave.accounts} Aave (chain, market, user) accounts fully priced, ${fs.aave.locatedHfNBelow1} located (HF_N < 1), ${fs.aave.unlocatedHfNAtLeast1} not; Morpho ${fs.morpho.fullOraclePath} of ${fs.morpho.positions} positions fully priced, ${fs.morpho.ltvNAboveLltv} liquidatable at N.
+${f ? `- Protocol fee: ${f.events} Aave events; the computed fee equals the treasury transfer for ${f.computedEqualsTreasuryTransfer}, and equals it after the aToken's scaled-balance rounding (rayMulFloor(rayDivFloor(fee, index), index), v3.5) for ${f.equalAfterScaledRounding}; mismatches ${f.mismatch}; no transfer found ${f.noTransferFound}.` : ''}`
+})()}
 
 ${
   cl
@@ -561,8 +873,11 @@ Total JSON-RPC calls ${totalCalls.toLocaleString('en-US')} over ${runs.length} r
   const pointer = `${marker}
 
 \`onchain/\` holds the protocol-oracle minute paths, minute -> block tables and N-1 position re-reads
-for every row of the two CSVs above, pulled on chain by membrane-app
-\`scripts/oct10-coverage/pull-onchain.ts\` (commit \`${commit}\`). See \`onchain/PROVENANCE.md\`.
+for every row of the two CSVs above, the on-chain scope scan (every Aave V3 pool and Morpho Blue
+deployment on mainnet, Arbitrum, Optimism and Base: \`events-scan.json\`), the events the CSVs
+lack read the same way (\`*-extra\` files, \`*_liquidations_extra.csv\`), and the protocol fee
+of every Aave event, pulled on chain by membrane-app \`scripts/oct10-coverage/pull-onchain.ts\`
+(commit \`${commit}\`). See \`onchain/PROVENANCE.md\`.
 `
   writeFileSync(
     parent,
@@ -573,7 +888,30 @@ for every row of the two CSVs above, pulled on chain by membrane-app
   return summary
 }
 
+function describe(f: string): string {
+  const generic = f.replace(/\.(mainnet|arbitrum|optimism|base)\./, '.<chain>.')
+  if (DESCRIBE[generic]) return DESCRIBE[generic]
+  const m = f.match(/^aave-oracle-1m\.(\w+)\.(\w+)\.json\.gz$/)
+  if (m)
+    return `AaveOracle path of the ${m[1]} ${m[2]} market (not in the owner's CSV), same layout as the core files`
+  if (/^morpho-oracle-1m\.\w+\.extra\.json\.gz$/.test(f))
+    return 'price() of the Morpho oracles the extra events add on a CSV chain'
+  return ''
+}
+
 const DESCRIBE: Record<string, string> = {
+  'events-scan.json':
+    'scope: Aave registries and Morpho deployments per chain, every in-scope LiquidationCall / Liquidate in the window (two backends), CSV diff, out-of-scope emitters',
+  'aave-events-extra.jsonl.gz':
+    'the on-chain Aave events the CSV lacks, same records as aave-events + market, pool, CSV-equivalent fields',
+  'morpho-events-extra.jsonl.gz':
+    'the on-chain Morpho events the CSV lacks (Arbitrum), same records as morpho-events + CSV-equivalent fields',
+  'aave_liquidations_extra.csv':
+    "the extra Aave events in the owner's CSV columns (+ market, pool)",
+  'morpho_liquidations_extra.csv':
+    "the extra Morpho events in the owner's CSV columns (+ morpho address)",
+  'aave-protocol-fee.jsonl.gz':
+    'every Aave event: liquidation protocol fee bps at N, bonus used, computed fee, treasury aToken transfer from the receipt',
   'minute-blocks.json':
     'per chain, the block in force at each minute start (highest block with ts <= t_i), its ts, ts(b+1), hash',
   'aave-oracle-1m.<chain>.json.gz':

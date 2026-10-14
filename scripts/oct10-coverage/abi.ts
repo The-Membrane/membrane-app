@@ -3,6 +3,24 @@ import { decodeFunctionResult, encodeFunctionData, parseAbi, type Abi, type Hex 
 
 export const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11' as const
 export const MORPHO_BLUE = '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb' as const
+/** Morpho Blue singleton per chain (mainnet and Base share the CREATE2 address). */
+export const MORPHO_BY_CHAIN = {
+  mainnet: MORPHO_BLUE,
+  base: MORPHO_BLUE,
+  arbitrum: '0x6c247b1F6182318877311737BaC0844bAa518F5e',
+  optimism: '0xce95AfbB8EA029495c66020883F87aaE8864AF92',
+} as const
+/** Aave PoolAddressesProviderRegistry per chain (V3). */
+export const AAVE_REGISTRY = {
+  mainnet: '0xbaA999AC55EAce41CcAE355c77809e68Bb345170',
+  arbitrum: '0x770ef9f4fe897e59daCc474EF11238303F9552b6',
+  optimism: '0x770ef9f4fe897e59daCc474EF11238303F9552b6',
+  base: '0x2f6571d3Eb9a4e350C68C36bCD2afe39530078E2',
+} as const
+export const LIQUIDATION_CALL_TOPIC =
+  '0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286'
+export const MORPHO_LIQUIDATE_TOPIC =
+  '0xa4946ede45d0c6f06a0f5ce92c9ad3b4751452d2fe0e25010783bcab57a67e41'
 
 export const ADDRESSES = {
   mainnet: {
@@ -27,7 +45,13 @@ export const ADDRESSES = {
   },
 } as const
 
+export const registryAbi = parseAbi([
+  'function getAddressesProvidersList() view returns (address[])',
+  'function getAddressesProviderIdByAddress(address) view returns (uint256)',
+])
 export const providerAbi = parseAbi([
+  'function getMarketId() view returns (string)',
+  'function getACLManager() view returns (address)',
   'function getPool() view returns (address)',
   'function getPriceOracle() view returns (address)',
   'function getPoolDataProvider() view returns (address)',
@@ -44,10 +68,18 @@ export const poolAbi = parseAbi([
   'function getEModeCategoryData(uint8 id) view returns ((uint16 ltv, uint16 liquidationThreshold, uint16 liquidationBonus, address priceSource, string label))',
   'function getEModeCategoryLabel(uint8 id) view returns (string)',
   'function POOL_REVISION() view returns (uint256)',
+  'function ADDRESSES_PROVIDER() view returns (address)',
+  'function getReserveNormalizedIncome(address asset) view returns (uint256)',
   'function getReserveData(address asset) view returns ((uint256 configuration, uint128 liquidityIndex, uint128 currentLiquidityRate, uint128 variableBorrowIndex, uint128 currentVariableBorrowRate, uint128 currentStableBorrowRate, uint40 lastUpdateTimestamp, uint16 id, address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress, address interestRateStrategyAddress, uint128 accruedToTreasury, uint128 unbacked, uint128 isolationModeTotalDebt))',
 ])
 
+export const poolV2Abi = parseAbi(['function getAddressesProvider() view returns (address)'])
+export const aTokenAbi = parseAbi([
+  'function RESERVE_TREASURY_ADDRESS() view returns (address)',
+  'function UNDERLYING_ASSET_ADDRESS() view returns (address)',
+])
 export const dataProviderAbi = parseAbi([
+  'function getLiquidationProtocolFee(address asset) view returns (uint256)',
   'function getUserReserveData(address asset, address user) view returns (uint256 currentATokenBalance, uint256 currentStableDebt, uint256 currentVariableDebt, uint256 principalStableDebt, uint256 scaledVariableDebt, uint256 stableBorrowRate, uint256 liquidityRate, uint40 stableRateLastUpdated, bool usageAsCollateralEnabled)',
   'function getReserveConfigurationData(address asset) view returns (uint256 decimals, uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus, uint256 reserveFactor, bool usageAsCollateralEnabled, bool borrowingEnabled, bool stableBorrowRateEnabled, bool isActive, bool isFrozen)',
 ])
@@ -68,6 +100,7 @@ export const erc20Abi = parseAbi([
 export const erc20Bytes32Abi = parseAbi(['function symbol() view returns (bytes32)'])
 
 export const morphoAbi = parseAbi([
+  'function owner() view returns (address)',
   'function idToMarketParams(bytes32 id) view returns (address loanToken, address collateralToken, address oracle, address irm, uint256 lltv)',
   'function position(bytes32 id, address user) view returns (uint256 supplyShares, uint128 borrowShares, uint128 collateral)',
   'function market(bytes32 id) view returns (uint128 totalSupplyAssets, uint128 totalSupplyShares, uint128 totalBorrowAssets, uint128 totalBorrowShares, uint128 lastUpdate, uint128 fee)',

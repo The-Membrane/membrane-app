@@ -60,6 +60,22 @@ export const ENDPOINTS: Record<ChainKey, EndpointSpec[]> = {
       gapMs: 400,
       logsOnly: true,
     },
+    // Logs only, for the scope scan's second independent backend (tested 2026-10-14; BlockPI's
+    // public tier times out on Oct 2025 log ranges).
+    {
+      url: 'https://public-eth.nownodes.io',
+      group: 'nownodes',
+      conc: 2,
+      gapMs: 150,
+      logsOnly: true,
+    },
+    {
+      url: 'https://ethereum.rpc.thirdweb.com',
+      group: 'thirdweb',
+      conc: 2,
+      gapMs: 150,
+      logsOnly: true,
+    },
   ],
   arbitrum: [
     { url: 'https://arbitrum.gateway.tenderly.co', group: 'tenderly', conc: 4, gapMs: 60 },
@@ -73,6 +89,15 @@ export const ENDPOINTS: Record<ChainKey, EndpointSpec[]> = {
     },
     { url: 'https://arb-one.api.pocket.network', group: 'pokt', conc: 3, gapMs: 80 },
     { url: 'https://arb-pokt.nodies.app', group: 'pokt', conc: 2, gapMs: 120, noLogs: true },
+    // Logs only: the official sequencer RPC serves eth_getLogs over 30,000-block spans but has no
+    // archive state for eth_call (tested 2026-10-14).
+    {
+      url: 'https://arb1.arbitrum.io/rpc',
+      group: 'arb-official',
+      conc: 2,
+      gapMs: 150,
+      logsOnly: true,
+    },
   ],
   optimism: [
     { url: 'https://optimism.gateway.tenderly.co', group: 'tenderly', conc: 4, gapMs: 60 },
@@ -82,7 +107,8 @@ export const ENDPOINTS: Record<ChainKey, EndpointSpec[]> = {
     { url: 'https://mainnet.optimism.io', group: 'op-official', conc: 2, gapMs: 150 },
   ],
   base: [
-    { url: 'https://base.drpc.org', group: 'drpc', conc: 4, gapMs: 60, noLogs: true },
+    // drpc's free plan answers eth_getLogs over <= 100 blocks only (tested 2026-10-14).
+    { url: 'https://base.drpc.org', group: 'drpc', conc: 4, gapMs: 60 },
     { url: 'https://base.gateway.tenderly.co', group: 'tenderly', conc: 4, gapMs: 60 },
     {
       url: 'https://base-mainnet.public.blastapi.io',
@@ -95,6 +121,29 @@ export const ENDPOINTS: Record<ChainKey, EndpointSpec[]> = {
     { url: 'https://base-pokt.nodies.app', group: 'pokt', conc: 2, gapMs: 120, noLogs: true },
     { url: 'https://base.api.onfinality.io/public', group: 'onfinality', conc: 2, gapMs: 150 },
     { url: 'https://mainnet.base.org', group: 'base-official', conc: 2, gapMs: 150 },
+    // Logs only (state at Oct 2025 is pruned there): eth_getLogs over 1,024-block spans.
+    {
+      url: 'https://base.public.blockpi.network/v1/rpc/public',
+      group: 'blockpi',
+      conc: 2,
+      gapMs: 150,
+      logsOnly: true,
+    },
+    // Logs only, slow-paced (the free tiers rate-limit hard): thirdweb 1,000-block spans, Tatum 100.
+    {
+      url: 'https://base.rpc.thirdweb.com',
+      group: 'thirdweb',
+      conc: 1,
+      gapMs: 2500,
+      logsOnly: true,
+    },
+    {
+      url: 'https://base-mainnet.gateway.tatum.io',
+      group: 'tatum',
+      conc: 1,
+      gapMs: 400,
+      logsOnly: true,
+    },
   ],
 }
 
@@ -361,7 +410,7 @@ export class RpcPool {
           }
           continue
         }
-        if (j.result === null && method !== 'eth_getTransactionReceipt') {
+        if (j.result === null) {
           // null block / null result: a node behind or without the data.
           outcome = 'capability'
           last = `${e.host} null result`
@@ -434,7 +483,13 @@ export class RpcPool {
       if (!j) return { error: `HTTP ${r.status}: ${text.slice(0, 160)}` }
       if (j.error) {
         outcome = 'capability'
-        return { error: String(j.error.message ?? JSON.stringify(j.error)).slice(0, 200) }
+        // Some hosts put the reason in `data` ("invalid params" + "maximum 1000 blocks").
+        const d = (j.error as { data?: unknown }).data
+        return {
+          error: (
+            String(j.error.message ?? JSON.stringify(j.error)) + (d ? ` ${JSON.stringify(d)}` : '')
+          ).slice(0, 300),
+        }
       }
       if (j.result === null || j.result === undefined) return { error: 'null result' }
       outcome = 'ok'

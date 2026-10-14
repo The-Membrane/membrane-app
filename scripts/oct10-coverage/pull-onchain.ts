@@ -33,6 +33,9 @@ import { aaveEventsStep } from './aaveEvents'
 import { morphoEventsStep } from './morphoEvents'
 import { chainlinkCheck } from './chainlinkCheck'
 import { summaryStep } from './summary'
+import { scopeStep } from './scope'
+import { extrasStep } from './extras'
+import { feesStep } from './fees'
 
 const STEP_NAMES = [
   'blocks',
@@ -41,6 +44,9 @@ const STEP_NAMES = [
   'aave-events',
   'morpho-events',
   'chainlink',
+  'scope',
+  'extras',
+  'fees',
   'summary',
 ] as const
 type StepName = (typeof STEP_NAMES)[number]
@@ -57,7 +63,8 @@ async function main() {
   const chains = (arg('chains') ?? CHAINS.join(',')).split(',') as ChainKey[]
   const stateDir = arg('state') ?? process.env.OCT10_PULL_STATE ?? '/tmp/oct10-pull-state'
   const inputsDir = datasetPath(process.cwd(), 'recall-coverage', 'inputs', 'oct10') as string
-  const outDir = join(inputsDir, 'onchain')
+  // --out: write outputs elsewhere (e.g. a scratch dir to prove a refactor reproduces them).
+  const outDir = arg('out') ?? join(inputsDir, 'onchain')
   mkdirSync(outDir, { recursive: true })
   mkdirSync(stateDir, { recursive: true })
 
@@ -103,6 +110,9 @@ async function main() {
       if (step === 'morpho-events')
         writeJson(join(stateDir, 'morpho-events.summary.json'), await morphoEventsStep(ctx, chains))
       if (step === 'chainlink') await chainlinkCheck(ctx, chains)
+      if (step === 'scope') await scopeStep(ctx, chains)
+      if (step === 'extras') await extrasStep(ctx, chains)
+      if (step === 'fees') await feesStep(ctx, chains)
       if (step === 'summary') {
         // The summary reads the ledger: write this run's entry first.
         saveState()

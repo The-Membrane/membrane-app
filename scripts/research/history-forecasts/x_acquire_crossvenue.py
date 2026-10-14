@@ -263,7 +263,8 @@ KNOWN_TOPIC0 = {
 
 # Non-balance events, labelled so that `unknown` means "not recognised" (counts are recorded either way)
 OTHER_SIGS = [
-    "OwnershipTransferred(address,address)", "OwnershipTransferStarted(address,address)", "Upgraded(address)",
+    "Approval(address,address,uint256)", "OwnershipTransferred(address,address)",
+    "OwnershipTransferStarted(address,address)", "Upgraded(address)",
     "AdminChanged(address,address)", "BeaconUpgraded(address)", "Initialized(uint8)", "Initialized(uint64)",
     "Paused(address)", "Unpaused(address)", "RoleGranted(bytes32,address,address)",
     "RoleRevoked(bytes32,address,address)", "RoleAdminChanged(bytes32,bytes32,bytes32)", "EIP712DomainChanged()",

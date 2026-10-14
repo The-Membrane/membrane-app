@@ -102,6 +102,8 @@ export interface DelayClassMeta {
     included: Record<string, number>
     priced: Record<string, number>
     decilesIncluded: number[]
+    /** Accounts whose raw share was above 1 before the cap at 1, and the largest. */
+    rawAboveOne: { accounts: number; max: number }
   }
   linesAbove90: Record<'cohort' | 'included' | 'priced', number>
   mixedInCohort: number
@@ -300,7 +302,8 @@ export interface CohortRow {
   excluded: boolean
   /** The Membrane delay class this row was walked in (see DelayClassMeta). */
   delayClass?: DelayClass
-  /** Share of the account's collateral the CSV can see; the class is known at >= 0.95. */
+  /** Share of the account's collateral the CSV can see (one denominator: the first
+   *  event's total; capped at 1); the class is known at >= 0.95. */
   seenCollateralShare?: number | null
   collSymbol: string
   debtSymbol: string

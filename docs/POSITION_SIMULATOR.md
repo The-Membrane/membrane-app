@@ -276,7 +276,7 @@ Four kinds, all stable for the class:
   the run says so. Each half is labelled from the class it actually runs in, and the
   halves are summed into one run. The split is modelled: a borrower could split
   differently.
-- *Census* (`scripts/build-evidence.ts:718`). The CSV names only the reserves that were
+- *Census* (`scripts/build-evidence.ts:745`). The CSV names only the reserves that were
   seized. An account with a stable AND a volatile reserve seized is `mixed`: a position
   Membrane would not hold in one piece, but the data cannot say how it would have been
   split. The headline walks it delayed on its first leg, exactly as before this rule, and
@@ -284,13 +284,27 @@ Four kinds, all stable for the class:
   (16 priced accounts on Oct 10: Aave $0.65M, Membrane $0.71M).
 
 **What the census can see.** Because the CSV names only the seized reserves, the class of
-most accounts is unknowable from it. `seenCollateralShare` is the seized reserves at
-block N-1 over the account's total collateral (`scripts/build-evidence.ts:569-585`); the
-class is applied only where it is ≥ 95% (shares a little above 1 are the oracle mismatch
-in `meta.anchor`). Everywhere else the class is `unknown` and the account walks the window
-as before, unless its line is above 90%. Of the 71 priced accounts whose seized collateral
-is all stablecoins, 53 are unknown on that test. The full composition of every account
-comes from on-chain reads of every reserve (the Q28 full-coverage census), not this CSV.
+most accounts is unknowable from it. `seenCollateralShare` is the seized reserves over ONE
+denominator, the account's total collateral at block N-1 of its FIRST liquidation
+(`scripts/build-evidence.ts:589-613`). Each reserve is priced by the round in force at that
+block. Its balance is `pre_collateral_normalized` at its own first event: for the reserve
+seized first that is the first event's block; for a reserve first seized later it is the
+best the CSV has (nothing was seized from it in between, but deposits, withdrawals and
+interest are not seen). This used to divide each reserve by the total at its OWN first
+event, which earlier seizures had already shrunk: 11 of the 13 shares above 1.05 (up to
+1.487) were multi-reserve accounts inflated that way, not an oracle mismatch. On one
+denominator the largest raw share is 1.061, a single-reserve WETH account; 349 accounts
+are above 1, all but 3 of them single-reserve, and the excess is the gap between the
+Chainlink round and Aave's own price in the total (`meta.anchor`). The published share is
+capped at 1 (`meta.delayClass.seenCollateralShare.rawAboveOne`); the class only asks
+whether the share is ≥ 95%, which a raw share above 1 passes capped or not. The change
+moved 16 rows between share buckets (11 of them included and priced) and 8 rows from
+`delayed` to `unknown` (5 included and priced). Both walk the window, so no dollar figure
+moved. The class is applied only where the share is ≥ 95%. Everywhere else the class is
+`unknown` and the account walks the window as before, unless its line is above 90%
+(`:745`). Of the 71 priced accounts whose seized collateral is all stablecoins, 53 are
+unknown on that test. The full composition of every account needs on-chain reads of every
+reserve it held, not this CSV.
 
 **The venue recall, and the paid recall-only lane.** Every keeper call runs Step 1.5
 before it classifies anything, and Step 1.5 recalls toward the **whole debt**, not the

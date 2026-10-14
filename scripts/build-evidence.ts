@@ -562,29 +562,53 @@ type CensusDelayClass = DelayClass | 'unknown'
  * not seized. So the Membrane delay class — which depends on EVERY collateral asset in
  * the position — is only knowable when the seized reserves are (nearly) all of it.
  *
- *   seenCollateralShare = Σ over the DISTINCT liquidated reserves, each at its first
- *                         event, of pre_collateral_normalized × p_state
- *                         / total_collateral_base_usd of that same event
+ *   seenCollateralShare = Σ over the DISTINCT liquidated reserves of
+ *                           pre_collateral_normalized × p_state at the FIRST event's block
+ *                         / total_collateral_base_usd of the account's FIRST event
  *
- * p_state is the round in force at block N-1 (stables 1.00). A leg with no price, or a
- * failed pre-liquidation read, makes the share unknown (null). The class is KNOWN only
- * when the share is >= KNOWN_COMPOSITION_SHARE; the full composition of every account
- * needs on-chain reads of every reserve (the Q28 full-coverage census), not this CSV.
+ * ONE DENOMINATOR. Every reserve is divided by the same total — the account's collateral
+ * at block N-1 of its FIRST liquidation. (Dividing each reserve by the total at its OWN
+ * first event, as this used to, divided a reserve first seized later by a total that the
+ * earlier seizures had already shrunk: that is what put 11 of the 13 shares above 1.05,
+ * up to 1.487, on multi-reserve accounts.) Each reserve is priced by the round in force at
+ * the first event's block N-1 (stables 1.00). Its BALANCE is pre_collateral_normalized at
+ * its own first event: for the reserve seized first that IS the first event's block; for
+ * a reserve first seized later it is the best this CSV has — no reserve was seized from it
+ * in between, but deposits, withdrawals and interest between the two blocks are not seen.
+ *
+ * That last point, and the gap between the Chainlink round and Aave's own price in
+ * total_collateral_base_usd (meta.anchor), can still put a raw share a little above 1.
+ * The published share is CAPPED AT 1 (SEEN_SHARE_RAW_ABOVE_ONE counts the rows): the
+ * class only asks whether the share is >= KNOWN_COMPOSITION_SHARE, and a raw share above
+ * 1 passes that test capped or not, so the cap moves no class.
+ *
+ * A leg with no price, or a failed pre-liquidation read, makes the share unknown (null).
+ * The class is KNOWN only when the share is >= KNOWN_COMPOSITION_SHARE; the full
+ * composition of every account needs on-chain reads of every reserve, not this CSV.
  */
 const KNOWN_COMPOSITION_SHARE = 0.95
 const SEEN_SHARE = new Map<string, number | null>()
+/** Raw shares above 1 before the cap: how many, and the largest. */
+const SEEN_SHARE_RAW_ABOVE_ONE = { accounts: 0, max: 0 }
 for (const [key, evs] of accounts) {
   const ordered = [...evs].sort((a, b) => a.ts - b.ts || a.seq - b.seq)
+  const first = ordered[0]
   const firstByReserve = new Map<string, Ev>()
   for (const e of ordered) if (!firstByReserve.has(e.casset)) firstByReserve.set(e.casset, e)
-  let share: number | null = 0
+  let share: number | null = first.coll > 0 ? 0 : null
   for (const e of firstByReserve.values()) {
-    const p = legPrices(e.csym, e.chain, e.block, e.ts, e.log)
-    if (!p || !e.readOk || !(e.preColl >= 0) || !(e.coll > 0)) {
+    if (share === null) break
+    const p = legPrices(e.csym, first.chain, first.block, first.ts, first.log)
+    if (!p || !e.readOk || !(e.preColl >= 0)) {
       share = null
       break
     }
-    share += (e.preColl * p.state) / e.coll
+    share += (e.preColl * p.state) / first.coll
+  }
+  if (share !== null && share > 1) {
+    SEEN_SHARE_RAW_ABOVE_ONE.accounts++
+    SEEN_SHARE_RAW_ABOVE_ONE.max = Math.max(SEEN_SHARE_RAW_ABOVE_ONE.max, share)
+    share = 1
   }
   SEEN_SHARE.set(key, share)
 }
@@ -882,9 +906,9 @@ function buildCohort(opts: CohortOpts = {}) {
        */
       delayClass,
       /**
-       * The share of total collateral the CSV can see: the seized reserves at block N-1
-       * over total_collateral_base_usd. null when a seized leg has no price. The class is
-       * known only at >= 0.95; see SEEN_SHARE.
+       * The share of total collateral the CSV can see: the seized reserves over the
+       * account's total_collateral_base_usd at its FIRST event, capped at 1. null when a
+       * seized leg has no price. The class is known only at >= 0.95; see SEEN_SHARE.
        */
       seenCollateralShare: seenShare === null ? null : +seenShare.toFixed(4),
       collSymbol: f.csym,
@@ -1766,11 +1790,18 @@ const delayClassMeta = {
     'account did before this rule. Excluding the mixed accounts is ' +
     'meta.sensitivity.mixedExcluded.',
   composition:
-    'seenCollateralShare = sum over the distinct seized reserves (each at its first event) of ' +
-    'pre_collateral_normalized x the round in force at block N-1, over ' +
-    'total_collateral_base_usd of that event; null when a seized leg has no price or the ' +
-    'pre-liquidation read failed. The full composition of every account — and so its class — ' +
-    'comes from on-chain reads of every reserve (the Q28 full-coverage census), not this CSV.',
+    'seenCollateralShare = sum over the distinct seized reserves of ' +
+    'pre_collateral_normalized x the round in force at block N-1 of the account’s FIRST ' +
+    'event, over ONE denominator: total_collateral_base_usd of that first event. For the ' +
+    'reserve seized first the balance is at that block; for a reserve first seized later, ' +
+    'its pre_collateral_normalized at its own first event is the best this CSV has (nothing ' +
+    'was seized from it in between, but deposits, withdrawals and interest are not seen). ' +
+    'Null when a seized leg has no price or the pre-liquidation read failed. The published ' +
+    'share is capped at 1 (rawAboveOne): a raw share above 1 is the gap between the ' +
+    'Chainlink round and Aave’s own price in total_collateral_base_usd (meta.anchor), or a ' +
+    'later reserve’s balance read at its own block; the class only asks whether the share is ' +
+    '>= 0.95, which a raw share above 1 passes capped or not. The full composition of every ' +
+    'account — and so its class — comes from on-chain reads of every reserve, not this CSV.',
   modelledAssumption:
     'The contracts carry NO stablecoin label since fc92ed4f (merged 6b8789ae, replacing ' +
     "ee680ded's is_stablecoin): the class is DERIVED from each listing's immutable " +
@@ -1814,6 +1845,11 @@ const delayClassMeta = {
     included: shareDistribution(included),
     priced: shareDistribution(pricedRows),
     decilesIncluded: shareDeciles(included),
+    /** Accounts (whole cohort) whose raw share was above 1 before the cap, and the largest. */
+    rawAboveOne: {
+      accounts: SEEN_SHARE_RAW_ABOVE_ONE.accounts,
+      max: +SEEN_SHARE_RAW_ABOVE_ONE.max.toFixed(4),
+    },
   },
   /** Rows whose own inverted line is above 90% — no-delay by the line rule alone. */
   linesAbove90: {
@@ -2113,7 +2149,7 @@ const doc = {
       stepSeconds: STEP,
       semantics: [
         'DELAY CLASS FIRST (meta.delayClass; lib/position-sim/collateralClass.ts, shared with the simulator). Every clause below about a window, a band, a cure or an expiry is for the accounts walked delayed: delayed, mixed and unknown.',
-        'WHAT THE CSV CAN SEE: it names only the LIQUIDATED reserves. The class is applied from them only when they are >= 95% of total collateral (seenCollateralShare); otherwise the class is unknown and the account walks the window as before, unless its line is above 90%. Full composition needs on-chain reads of every reserve (the Q28 full-coverage census).',
+        'WHAT THE CSV CAN SEE: it names only the LIQUIDATED reserves. The class is applied from them only when they are >= 95% of total collateral (seenCollateralShare); otherwise the class is unknown and the account walks the window as before, unless its line is above 90%. Full composition needs on-chain reads of every reserve each account held.',
         'NO-DELAY CLASS: an account whose collateral is all stable (seen >= 95%), or whose own line is above 90% (a line only a no-delay listing can carry, Collateral.sol:424-426, :538-540), has no window. Instant mode (LiquidationEngine.sol:1572-1576): over the line (strict >) is Immediate (:1694-1703) and a timer never arms (:1708-1710). It is sold at t0 with the same repay-to-cap and floor, then walks on and is sold again at every later minute back over its line. Outcome sold-no-delay; its cure field carries noWindow.',
         'MODELLED LISTING ASSUMPTION: the contracts have no stable label since fc92ed4f — the class follows the immutable max_ltv_cap — so stable => no-delay mirrors the deploy (DeployFullSystem.s.sol:269-272: sUSDS, syrupUSDC, scrvUSD at 96e16). meta.sensitivity.stablesDelayed prices walking every account delayed instead.',
         'MIXED CLASS: an account that had both a stable and a volatile reserve seized cannot exist on Membrane (Cdp.sol:1650-1651 -> MixedDelayClassCollateral, Collateral.sol:789-793). The headline still walks it delayed on its first leg, as before; removing such accounts from both sides is meta.sensitivity.mixedExcluded. The per-address simulator instead splits such a position into the two isolated positions Membrane would hold.',
@@ -2582,7 +2618,7 @@ console.log(
   '  DELAY CLASS included ' +
     DELAY_CLASSES.map((k) => `${k}=${delayClassMeta.counts.included[k].accounts}`).join('  ') +
     `  (no-delay: stable ${delayClassMeta.noDelayBy.included.stableCollateral}, line>90% only ${delayClassMeta.noDelayBy.included.lineAbove90Only})` +
-    `  priced no-delay ${delayClassMeta.counts.priced['no-delay'].accounts}  stable legs ${delayClassMeta.stableLegs.included.accounts} (known ${delayClassMeta.stableLegs.included.compositionKnown})  share ${JSON.stringify(delayClassMeta.seenCollateralShare.included)}`,
+    `  priced no-delay ${delayClassMeta.counts.priced['no-delay'].accounts}  stable legs ${delayClassMeta.stableLegs.included.accounts} (known ${delayClassMeta.stableLegs.included.compositionKnown})  share ${JSON.stringify(delayClassMeta.seenCollateralShare.included)}  raw>1 ${JSON.stringify(delayClassMeta.seenCollateralShare.rawAboveOne)}`,
 )
 console.log(
   `  mixed excluded (sensitivity): priced ${mixedExcluded.priced.accounts} aave ${m(mixedExcluded.priced.aaveClosedUsd)} membrane ${m(mixedExcluded.priced.membraneClosedUsd)} gap ${mixedExcluded.priced.gapPct}%  allIncl ${mixedExcluded.allIncluded.accounts} gap ${mixedExcluded.allIncluded.gapPct}%  (mixed rows: ${mixedExcluded.mixed.allIncluded.accounts}, aave ${m(mixedExcluded.mixed.allIncluded.aaveClosedUsd)}, membrane ${m(mixedExcluded.mixed.allIncluded.membraneClosedUsd)})`,

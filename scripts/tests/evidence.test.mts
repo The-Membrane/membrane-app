@@ -631,9 +631,25 @@ assert.ok(
   'meta.delayClass states its rule and cites',
 )
 assert.ok(
-  typeof dc.composition === 'string' && dc.composition.includes('Q28'),
+  typeof dc.composition === 'string' && dc.composition.includes('on-chain reads of every reserve'),
   'and says where full composition has to come from',
 )
+// ONE denominator (the first event's total collateral), capped at 1: a share above 1 is
+// not a fraction of anything, and the class test (>= 0.95) is the same capped or not.
+assert.ok(
+  (doc.cohort as any[]).every(
+    (r) =>
+      r.seenCollateralShare === null || (r.seenCollateralShare >= 0 && r.seenCollateralShare <= 1),
+  ),
+  'every published seen share is in [0, 1]',
+)
+assert.ok(
+  dc.seenCollateralShare.rawAboveOne.accounts >= 0 &&
+    (dc.seenCollateralShare.rawAboveOne.accounts === 0 ||
+      dc.seenCollateralShare.rawAboveOne.max > 1),
+  'the capped rows are counted, with the largest raw share',
+)
+checks += 2
 assert.ok(
   dc.stableSymbols.includes('USDC') && dc.stableSymbols.includes('USDe'),
   'the shared stable list',

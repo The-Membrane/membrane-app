@@ -1297,6 +1297,32 @@ test('the breach draws only the fast share; the sale that ends the window draws 
   close(cmp.membrane.endDeployedUsd, 0, 'the venue is drawn to its recall rate', 1e-9)
 })
 
+test('collateral wiped with debt left and no venue: no $0 events, never a "recall"', () => {
+  // $100k USDC against 21 WETH; ETH goes 4000 -> 40000 at minute 3: debt $840k. The sale
+  // takes all the collateral and debt is left. Every later minute is still over the line
+  // with nothing to sell and nothing to recall — the walk must stay silent.
+  const pos = legPosition([{ symbol: 'USDC', amount: 100_000, price: 1 }], {
+    symbol: 'WETH',
+    amount: 21,
+    price: 4000,
+  })
+  const { path, unpriced } = ethStep(40, 3, 40_000)
+  const cmp = runComparison(pos, path, unpriced, { ...baseOpts, venue: null })
+  const ev = cmp.membrane.events
+  assert.deepStrictEqual(
+    ev.map((e) => [e.minute, e.kind]),
+    [[3, 'liquidation']],
+    'one sale, then nothing',
+  )
+  close(cmp.membrane.endCollateralUsd, 0, 'the collateral is gone', 1e-6)
+  assert.ok(cmp.membrane.endDebtUsd > 0, 'debt is left')
+  assert.ok(
+    !ev.some((e) => e.repaidUsd === 0 && e.seizedUsd === 0 && e.penaltyUsd === 0),
+    'no $0 event',
+  )
+  assert.ok(!ev.some((e) => e.kind === 'recall'), 'no recall without a venue')
+})
+
 test('fastRate is not inert: at the page’s fast = recall the breach call can cure', () => {
   // Same drop, $20k deployed. fast 0 -> the window runs and the recall cures it only when
   // the window ends; fast = recall -> the recall-only lane at the breach.

@@ -314,7 +314,9 @@ call inside the window finds nothing new). At each, it recalls `R = min(availabl
   counts in `totalRepaid`. So collateral sold = max(0, that target − R), with the fee on
   top (`membraneSaleAfterRecall`, `membrane.ts:226`). Example: debt $100k, collateral
   $110k, line 87% (borrow cap 84%), R = $2k → $33,714 of collateral, not the $35,000 a
-  post-recall-loan sizing would give.
+  post-recall-loan sizing would give. A sale that recalls, sells and charges nothing (the collateral
+  is already gone and no venue capital is left) records no event; an event that sold
+  nothing is a recall only when a venue actually returned capital.
 
 The simulator's fee is the flat modelled rate, not the contract's fee ramp. The census
 credits no recall, so it never enters this lane.

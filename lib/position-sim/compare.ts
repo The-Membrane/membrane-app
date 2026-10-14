@@ -466,29 +466,36 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
         // and a later breach opens a FULL fresh delay.
         timer.clearAfterSale()
 
-        const capPct = `${(cap * 100).toFixed(1)}%`
-        const detail =
-          recalled > 0
-            ? `Venues returned ${fmt(recalled)} first; ${fmt(seized)} of collateral covered the rest, restoring the ${capPct} borrow cap, not zero.`
-            : `Partial liquidation repaid ${fmt(repaid)} — enough to restore the ${capPct} borrow cap, not the whole loan.`
-        events.push({
-          minute: i,
-          ts,
-          kind: seized > 0 ? 'liquidation' : 'recall',
-          ltv,
-          line,
-          repaidUsd: repaid,
-          seizedUsd: seized,
-          recalledUsd: recalled,
-          penaltyUsd: penalty,
-          why:
-            who +
-            (instant
-              ? `No ${CURE_WINDOW_HOURS}-hour window for this collateral — sold the minute LTV crossed the ${(line * 100).toFixed(1)}% line. ${detail}`
-              : brokeWindow
-                ? `Broke the ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% window — LTV is past ${(breakLine * 100).toFixed(1)}%, so the cure clock no longer applies and the sale is immediate. ${detail}`
-                : detail),
-        })
+        // Nothing recalled, sold or charged — the collateral is already gone and no venue
+        // capital is left: nothing happened, so nothing is recorded. An event that sold
+        // nothing is a 'recall' only when a venue actually returned capital.
+        if (recalled > 0 || seized > 0) {
+          const capPct = `${(cap * 100).toFixed(1)}%`
+          const detail =
+            seized > 0
+              ? recalled > 0
+                ? `Venues returned ${fmt(recalled)} first; ${fmt(seized)} of collateral covered the rest, restoring the ${capPct} borrow cap, not zero.`
+                : `Partial liquidation repaid ${fmt(repaid)} — enough to restore the ${capPct} borrow cap, not the whole loan.`
+              : `Venues returned ${fmt(recalled)}, which covers what this call repays, so no collateral was sold.`
+          events.push({
+            minute: i,
+            ts,
+            kind: seized > 0 ? 'liquidation' : 'recall',
+            ltv,
+            line,
+            repaidUsd: repaid,
+            seizedUsd: seized,
+            recalledUsd: recalled,
+            penaltyUsd: penalty,
+            why:
+              who +
+              (instant
+                ? `No ${CURE_WINDOW_HOURS}-hour window for this collateral — ${seized > 0 ? 'sold' : 'called'} the minute LTV crossed the ${(line * 100).toFixed(1)}% line. ${detail}`
+                : brokeWindow
+                  ? `Broke the ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% window — LTV is past ${(breakLine * 100).toFixed(1)}%, so the cure clock no longer applies and the sale is immediate. ${detail}`
+                  : detail),
+          })
+        }
       }
     }
 

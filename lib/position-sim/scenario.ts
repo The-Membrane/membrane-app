@@ -5,6 +5,7 @@
  * scripts/build-oct10-dataset.ts. Nothing is synthesised. Gaps stay null.
  */
 
+import { STABLE_SYMBOLS, heldAtOne } from './collateralClass'
 import { stamp, type PricePath, type Provenance } from './types'
 
 export interface Oct10Series {
@@ -54,9 +55,13 @@ export const SYMBOL_TO_SERIES: Record<string, string> = {
   wstETH: 'wstethOracle',
 }
 
-/** Stablecoins we hold at $1 across the window, and say so. USDe is NOT here — it
- *  is the one that actually moved, and it has a measured series. */
-export const HELD_AT_ONE = ['USDC', 'USDT', 'DAI', 'USDS', 'GHO', 'sDAI', 'sUSDS']
+/**
+ * Stablecoins we hold at $1 across the window, and say so. DERIVED from the one stable
+ * definition in collateralClass.ts — do not hand-edit a list here. USDe and sUSDe are
+ * NOT here: they are stables for the delay class, but USDe is the one that actually
+ * moved, and it has a measured series (`MEASURED_STABLES`).
+ */
+export const HELD_AT_ONE: readonly string[] = STABLE_SYMBOLS.filter(heldAtOne)
 
 let cache: { series: Oct10Series; manifest: Oct10Manifest } | null = null
 
@@ -100,7 +105,7 @@ export function buildPricePath(
     const col = SYMBOL_TO_SERIES[sym]
     if (col && series.columns[col]) {
       out[sym] = series.columns[col]
-    } else if (HELD_AT_ONE.includes(sym)) {
+    } else if (heldAtOne(sym)) {
       out[sym] = flat(1)
     } else {
       unpriced.push(sym)

@@ -8,6 +8,7 @@
  *   - the 8-hour cure window (28800 s)          liquidation-engine/src/contract.rs:52
  *   - the 3pp borrow/liquidation LTV gap        lib/Constants.sol:26-30
  *   - the 90% max-LTV hard cap                  lib/Constants.sol:23
+ *   - the 96% no-delay listing cap              lib/Constants.sol:32
  *   - recall-from-venues BEFORE selling          LiquidationEngine.sol:924-928
  *
  * MODELLED (no source of truth exists yet — say so on screen):
@@ -20,6 +21,7 @@
  *   - the venue recall rate. It is the dominant variable and it is an input.
  */
 
+import { hardCapFor } from './collateralClass'
 import { stamp, type Provenance } from './types'
 
 // ---------------------------------------------------------------- constants
@@ -27,8 +29,13 @@ import { stamp, type Provenance } from './types'
 /** 3pp. `max_borrow_LTV = max_LTV - BORROW_LTV_GAP`. Real: lib/Constants.sol:30. */
 export const BORROW_LTV_GAP = 0.03
 
-/** 90% ceiling on any asset's max LTV. Real: lib/Constants.sol:23. */
+/** 90% ceiling on a DELAYED asset's max LTV. Real: lib/Constants.sol:23. A listing cap
+ *  strictly above this puts the asset in the no-delay class (Collateral.sol:424-426). */
 export const MAX_LTV_HARD_CAP = 0.9
+
+/** 96% ceiling on a NO-DELAY asset's listing cap. Real: lib/Constants.sol:32
+ *  `NO_DELAY_LTV_HARD_CAP = 96e16`. See collateralClass.ts for the class rule. */
+export const NO_DELAY_LTV_HARD_CAP = 0.96
 
 /** The cure window in seconds. Real: liquidation-engine/src/contract.rs:52 —
  *  `liquidation_delay: msg.liquidation_delay.unwrap_or(28800)`. */
@@ -89,14 +96,20 @@ export const MEMBRANE_ASSET_LTV: Record<string, number> = {
 export const MEMBRANE_LTV_PROVENANCE: Provenance = stamp(
   'modelled',
   'modelled — no Membrane mainnet deployment',
-  'Membrane has no EVM mainnet deployment, so no live per-asset max LTV exists to read. These are our assumptions, capped at the real 90% MAX_LTV_HARD_CAP. Editable in the UI.',
+  'Membrane has no EVM mainnet deployment, so no live per-asset max LTV exists to read. These are our assumptions, capped at the real 90% MAX_LTV_HARD_CAP (96% NO_DELAY_LTV_HARD_CAP for stables, modelled as no-delay listings). Editable in the UI.',
 )
 
-/** The liquidation line for an asset, or null if we have no assumption for it. */
+/**
+ * The liquidation line for an asset, or null if we have no assumption for it.
+ *
+ * Clamped to the hard cap of the asset's MODELLED delay class (collateralClass.ts): a
+ * no-delay (stable) listing at NO_DELAY_LTV_HARD_CAP = 96% (lib/Constants.sol:32), a
+ * delayed one at MAX_LTV_HARD_CAP = 90% (lib/Constants.sol:23; Collateral.sol:538-540).
+ */
 export function membraneMaxLtv(symbol: string): number | null {
   const v = MEMBRANE_ASSET_LTV[symbol]
   if (v === undefined) return null
-  return Math.min(v, MAX_LTV_HARD_CAP)
+  return Math.min(v, hardCapFor(symbol))
 }
 
 /** The borrow cap sits a fixed 3pp under the liquidation line. */

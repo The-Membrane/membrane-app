@@ -17,6 +17,8 @@ import {
   applyDebtMinimum,
   CURE_WINDOW_SECONDS,
   MAX_LTV_HARD_CAP,
+  MEMBRANE_ASSET_LTV,
+  NO_DELAY_LTV_HARD_CAP,
   applyRecall,
   fullRepayValue,
   membraneBorrowLtv,
@@ -33,6 +35,7 @@ import {
 } from '../../lib/position-sim/scenario'
 import { demoPosition } from '../../lib/position-sim/demo'
 import { cureWalk } from '../../lib/position-sim/curePath'
+import { isNoDelayCollateral } from '../../lib/position-sim/collateralClass'
 import { readUrlState, writeUrlState } from '../../lib/position-sim/share'
 import {
   decimalsFromScale,
@@ -80,9 +83,25 @@ test('the borrow cap sits exactly 3pp under the liquidation line', () => {
   close(membraneBorrowLtv(0.02), 0, 'clamped at zero')
 })
 
-test('no modelled LTV may exceed the hard cap', () => {
-  for (const [sym, v] of Object.entries({ WETH: 0.8, USDC: 0.87 })) {
-    assert.ok(membraneMaxLtv(sym)! <= MAX_LTV_HARD_CAP, `${sym} within cap (${v})`)
+test('no modelled LTV may exceed the hard cap of its delay class', () => {
+  // A delayed listing is clamped at MAX_LTV_HARD_CAP = 90% (lib/Constants.sol:23,
+  // Collateral.sol:538-540); a no-delay (stable) listing at NO_DELAY_LTV_HARD_CAP = 96%
+  // (lib/Constants.sol:32). The class is collateralClass.ts's, not a second list.
+  close(NO_DELAY_LTV_HARD_CAP, 0.96, 'NO_DELAY_LTV_HARD_CAP — lib/Constants.sol:32')
+  for (const sym of Object.keys(MEMBRANE_ASSET_LTV)) {
+    const cap = isNoDelayCollateral(sym) ? NO_DELAY_LTV_HARD_CAP : MAX_LTV_HARD_CAP
+    assert.ok(membraneMaxLtv(sym)! <= cap, `${sym} within its class cap (${cap})`)
+  }
+  // The clamp itself, per class: push a delayed and a no-delay entry past both caps.
+  const saved = { WETH: MEMBRANE_ASSET_LTV.WETH, USDC: MEMBRANE_ASSET_LTV.USDC }
+  try {
+    MEMBRANE_ASSET_LTV.WETH = 0.95
+    MEMBRANE_ASSET_LTV.USDC = 0.99
+    close(membraneMaxLtv('WETH')!, MAX_LTV_HARD_CAP, 'a delayed asset stops at 90%')
+    close(membraneMaxLtv('USDC')!, NO_DELAY_LTV_HARD_CAP, 'a no-delay asset stops at 96%, not 90%')
+  } finally {
+    MEMBRANE_ASSET_LTV.WETH = saved.WETH
+    MEMBRANE_ASSET_LTV.USDC = saved.USDC
   }
   assert.strictEqual(
     membraneMaxLtv('NOT_A_TOKEN'),

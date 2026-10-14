@@ -764,10 +764,10 @@ assert.ok(
   Math.abs(sd.pricedDeltaUsd - (D.priced.membraneClosedUsd - sd.priced.membraneClosedUsd)) < 1,
   'its priced delta is the subtraction it claims',
 )
-assert.ok(
-  Math.abs(sd.sameRows.allIncludedDeltaUsd) < 1 && Math.abs(sd.sameRows.pricedDeltaUsd) < 1,
-  'on this day the no-delay walk itself moves no dollar',
-)
+// Both sides are summed the same way (each row rounded to the cent, then added), so a true
+// zero prints as 0 — not as a few cents of rounding.
+assert.strictEqual(sd.sameRows.pricedDeltaUsd, 0, 'on this day the no-delay walk moves no dollar')
+assert.strictEqual(sd.sameRows.allIncludedDeltaUsd, 0, 'over every included row too')
 // Dropping the mixed accounts from both sides, published rather than applied.
 const mx = (doc.meta as any).sensitivity.mixedExcluded
 const mixedInc = inc.filter((r) => r.delayClass === 'mixed')

@@ -264,7 +264,7 @@ an artefact of the model. Every run states this caveat.
 73 priced accounts are no-delay (72 on stable collateral, 1 a WETH/WETH account with a
 94.6% line). None of them would have cured in a window (`time.noDelay`), and every one
 has a flat or never-recovering path, so selling at t0 instead of at the 8h expiry moves
-**no dollar**: the same-rows delta is $0.02. All of the headline change is the 19
+**no dollar**: the same-rows delta is $0.00. All of the headline change is the 19
 mixed-class accounts leaving both sides: priced 748 → 732 accounts, Aave $34.69M →
 $34.03M, Membrane $22.19M → $21.48M. `stablesDelayed` reproduces the old headline exactly.
 Under the per-sale liquidity cap (`meta.sensitivity.liquidityBound`) the class does move

@@ -1809,9 +1809,22 @@ const delayClassMeta = {
  */
 const allDelayedBuilt = buildCohort({ delayClassRule: 'allDelayed' })
 const allDelayedTotals = rebuiltTotals(allDelayedBuilt)
+/**
+ * Summed exactly as the headline is: each row's walk rounded to the cent FIRST, then added
+ * in cohort order. The plain `sweep` adds unrounded walks, so against the per-row-rounded
+ * headline a true zero would print as a few cents of rounding.
+ */
+const sweepRowRounded = (over: Partial<WalkInput>, pricedOnly: boolean) =>
+  walkInputs.reduce(
+    (s, w, i) =>
+      cohort[i]?.excluded || (pricedOnly && !cohort[i]?.priced)
+        ? s
+        : s + +cureWalk({ ...w, ...over }).closedUsd.toFixed(2),
+    0,
+  )
 const sameRowsDelayed = {
-  priced: sweepPriced({ noDelay: false }),
-  allIncluded: sweep({ noDelay: false }),
+  priced: sweepRowRounded({ noDelay: false }, true),
+  allIncluded: sweepRowRounded({ noDelay: false }, false),
 }
 
 /**

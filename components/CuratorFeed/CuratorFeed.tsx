@@ -436,7 +436,7 @@ const GapFinding: React.FC<{ r: OracleGapResponse; collateral: string }> = ({ r,
         is no point.
       </Mono>
       <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
-        {r.total} held markets · {counts.fired} fired · {counts.building} above {line} for under{' '}
+        {r.total} markets · {counts.fired} fired · {counts.building} above {line} for under{' '}
         {constants.persistenceHours} h · {counts.below} below · {counts.unobserved + counts.stale}{' '}
         without a point now · vaults as of block {meta.exposureBlock.toLocaleString()}
       </Mono>

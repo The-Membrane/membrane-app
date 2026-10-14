@@ -741,6 +741,8 @@ class Ctx:
         self._roster = None
         self._universe = None
         self._blocks = None
+        self.only_tokens: set[str] | None = None   # test runs: restrict every phase to these tokens
+        self.logs_first: list[str] = []            # tokens fetched first (then oldest deployment first)
 
     # state: one JSON file per key (two processes write disjoint keys)
     def get(self, key: str, default=None):
@@ -786,6 +788,8 @@ class Ctx:
         dep = self.get("deploy") or {}
         out = []
         for a in sel["selected"]:
+            if self.only_tokens is not None and a not in self.only_tokens:
+                continue
             t = dict(by[a])
             if a in dep:
                 t["deploy_exact"] = dep[a]["block"]
@@ -1102,7 +1106,7 @@ def fetch_token(store, client, key: str, start: int, end: int, log_event, sleep=
 
 
 def phase_logs(ctx: Ctx) -> None:
-    toks = sorted(ctx.selected(), key=lambda t: ctx.start_block(t))
+    toks = sorted(ctx.selected(), key=lambda t: (t["address"] not in ctx.logs_first, ctx.start_block(t)))
     shared = B.Pacer(LOGS_INTERVAL_S)
     stats = ctx.get("logs") or {}
     q: "queue.Queue[dict]" = queue.Queue()
@@ -2073,12 +2077,17 @@ def main(argv=None) -> int:
     ap.add_argument("--out-dir", default=None)
     ap.add_argument("--roster", default=None)
     ap.add_argument("--phases", required=True)
+    ap.add_argument("--tokens", default=None, help="test runs only: comma-separated token addresses")
+    ap.add_argument("--logs-first", default="", help="comma-separated token addresses fetched first")
     args = ap.parse_args(argv)
     ddir = B.datasets_dir()
     out = Path(args.out_dir) if args.out_dir else ddir / DATASET
     ctx = Ctx(Path(args.work_dir), out, ddir, Path(args.roster) if args.roster else None)
     if ctx.roster_path is None:
         ap.error("--roster is required on the first run")
+    if args.tokens:
+        ctx.only_tokens = {B.norm_address(a) for a in args.tokens.split(",")}
+    ctx.logs_first = [B.norm_address(a) for a in args.logs_first.split(",") if a.strip()]
     import signal
 
     def _term(signum, frame):
@@ -2088,7 +2097,8 @@ def main(argv=None) -> int:
     for p in phases:
         if p not in PHASES:
             ap.error(f"unknown phase {p}")
-    session = {"start_utc": utcnow(), "code": git_info(), "phases": list(phases), "phase_seconds": {}, "pid": os.getpid()}
+    session = {"start_utc": utcnow(), "code": git_info(), "phases": list(phases), "phase_seconds": {}, "pid": os.getpid(),
+               "only_tokens": sorted(ctx.only_tokens) if ctx.only_tokens else None}
     status = "ok"
     try:
         for p in phases:

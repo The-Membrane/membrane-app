@@ -1,0 +1,334 @@
+/**
+ * The /position page's view-model. Pure: adapter results in, everything the page prints out.
+ * No React, no I/O, so tests/unit/positionV0ViewModel.test.ts covers every state.
+ */
+
+import { computeMetrics, type PositionMetrics } from '@/lib/positionAlerts/metrics'
+import type { AdapterResult, AdapterStatus, ProtocolId, ProtocolPosition } from '@/lib/position-sim/types'
+import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
+
+import {
+  classifyRisk,
+  heroOf,
+  legSymbols,
+  lineDistance,
+  lineModel,
+  type Hero,
+  type LineModel,
+  type RiskBasis,
+} from '@/lib/position/liquidation'
+import { fmtMove } from '@/lib/position/format'
+import { reverseSolve, type ActionRow } from '@/lib/position/reverseSolve'
+import { HISTORY_LABEL, toSnapshot, type MappedSnapshot } from '@/lib/position/snapshot'
+import { lookupTouch, touchAtLevel, type TouchFrequency, type TouchLookup } from '@/lib/position/touch'
+import {
+  HORIZON_IDS,
+  periodYears,
+  shortSha,
+  type Direction,
+  type HistoryAsset,
+  type TouchTable,
+} from '@/lib/position/touchHistory'
+
+// ------------------------------------------------------------------ venues
+
+/**
+ * Each protocol's own public app root. Root URLs only: a deep link (market page, repay
+ * modal) was not verified, so none is used. Fluid has no adapter, so no link.
+ */
+export const PROTOCOL_APP_URL: Record<ProtocolId, string | null> = {
+  'aave-v3': 'https://app.aave.com/',
+  spark: 'https://app.spark.fi/',
+  'morpho-blue': 'https://app.morpho.org/',
+  'compound-v3': 'https://app.compound.finance/',
+  fluid: null,
+}
+
+/** The adapter's name for its read, shortened for the status line. */
+export const PROTOCOL_SHORT: Record<ProtocolId, string> = {
+  'aave-v3': 'Aave V3',
+  spark: 'Spark',
+  'morpho-blue': 'Morpho Blue',
+  'compound-v3': 'Compound V3',
+  fluid: 'Fluid',
+}
+
+/**
+ * The true source of the price the hero quotes: what the adapter read. Aave and Spark
+ * read AaveOracle.getAssetsPrices; Morpho derives a USD price from the market oracle's
+ * loan-token quote; Compound reads Comet.getPrice on the asset's price feed. Which feed
+ * sits behind each oracle (Chainlink, an exchange-rate adapter) is not read, so it is not
+ * claimed.
+ */
+export function priceSourceOf(p: ProtocolPosition): string {
+  switch (p.protocol) {
+    case 'aave-v3':
+      return 'Aave V3 oracle'
+    case 'spark':
+      return 'Spark oracle'
+    case 'morpho-blue': {
+      const assumed = p.provenance.detail?.match(/loan token (\w+) treated as exactly \$1\.00/)
+      return assumed ? `Morpho market oracle, ${assumed[1]} taken as $1` : 'Morpho market oracle'
+    }
+    case 'compound-v3':
+      return 'Compound V3 price feed'
+    case 'fluid':
+      return 'Fluid'
+  }
+}
+
+// ------------------------------------------------------------------ read status
+
+export type ReadState = 'pending' | AdapterStatus
+
+export interface ReadStatusItem {
+  protocol: ProtocolId
+  label: string
+  state: ReadState
+  positions: number
+  message?: string
+}
+
+/** Every adapter starts 'pending'; each result replaces its slot when it lands. */
+export function readStatus(
+  order: readonly { id: ProtocolId; label: string }[],
+  results: Partial<Record<ProtocolId, AdapterResult>>,
+): ReadStatusItem[] {
+  return order.map((a) => {
+    const r = results[a.id]
+    if (!r) return { protocol: a.id, label: PROTOCOL_SHORT[a.id], state: 'pending', positions: 0 }
+    return {
+      protocol: a.id,
+      label: PROTOCOL_SHORT[a.id],
+      state: r.status,
+      positions: r.positions.length,
+      message: r.message,
+    }
+  })
+}
+
+/** "Aave V3 read" / "Fluid not supported yet" / "Spark failed" / "Morpho Blue reading…" */
+export function statusWord(s: ReadStatusItem): string {
+  switch (s.state) {
+    case 'pending':
+      return `${s.label} reading…`
+    case 'ok':
+      return `${s.label} read · ${s.positions} found`
+    case 'empty':
+      return `${s.label} read`
+    case 'error':
+      return `${s.label} failed`
+    case 'unsupported':
+      return `${s.label} not supported yet`
+  }
+}
+
+/**
+ * The one-line read status: "Aave V3 / Spark / Morpho Blue / Compound V3 read · Fluid not
+ * supported yet". Groups keep registry order; a failure is named, never folded into "read".
+ */
+export function statusSentence(items: ReadStatusItem[]): string {
+  const names = (pred: (i: ReadStatusItem) => boolean) => items.filter(pred).map((i) => i.label)
+  const read = names((i) => i.state === 'ok' || i.state === 'empty')
+  const pending = names((i) => i.state === 'pending')
+  const failed = names((i) => i.state === 'error')
+  const unsupported = names((i) => i.state === 'unsupported')
+  const parts: string[] = []
+  if (read.length) parts.push(`${read.join(' / ')} read`)
+  if (pending.length) parts.push(`${pending.join(' / ')} reading…`)
+  if (failed.length) parts.push(`${failed.join(' / ')} failed`)
+  if (unsupported.length) parts.push(`${unsupported.join(' / ')} not supported yet`)
+  return parts.join(' · ')
+}
+
+// ------------------------------------------------------------------ one position
+
+export interface HistoryView {
+  asset: HistoryAsset
+  direction: Direction
+  /** "priced on ETH/USD history" */
+  label: string
+  /** The whole-percent level every row is read at (the hero distance, floored). */
+  level: number
+  /** One row per horizon. Null when the level is outside the table (see `lookup`). */
+  rows: TouchFrequency[]
+  lookup: TouchLookup['kind']
+  years: string
+  /** "Chainlink ETH/USD hourly lows · membrane-datasets price-history · 42c792d" */
+  credit: string
+}
+
+export interface PositionView {
+  key: string
+  protocol: ProtocolId
+  label: string
+  /** "Aave V3 · WETH / USDT": the adapter label, with the legs when it does not name them. */
+  title: string
+  appUrl: string | null
+  priceSource: string
+  position: ProtocolPosition
+  mapped: MappedSnapshot
+  metrics: PositionMetrics
+  basis: RiskBasis
+  model: LineModel | null
+  hero: Hero
+  /** Exact distance (fraction) for sorting; Infinity with no debt. */
+  distance: number
+  history: HistoryView | null
+  /** Why there is no history surface, ≤ 8 words. Null when there is one, or no debt. */
+  historyAbsent: string | null
+  actions: ActionRow[]
+  /** The modelling assumption behind the hero, or null when one price moves alone. */
+  assumption: string | null
+}
+
+export function creditLine(t: TouchTable, asset: HistoryAsset, direction: Direction): string {
+  const series = direction === 'fall' ? 'hourly lows' : 'hourly highs'
+  return `${t.assets[asset].feed} ${series} · membrane-datasets price-history · ${shortSha(t)}`
+}
+
+function assumptionOf(model: LineModel | null, basis: RiskBasis): string | null {
+  if (!model) return null
+  const moving = model.moving
+  const held = model.held
+  if (basis.kind === 'history') {
+    const parts: string[] = []
+    if (moving.length > 1) parts.push(`${moving.join(', ')} move together`)
+    if (held.length > 0) parts.push(`${held.join(', ')} held at today's price`)
+    return parts.length ? parts.join('; ') : null
+  }
+  return held.length > 0 ? `${model.symbol} moves; ${held.join(', ')} held at today's price` : null
+}
+
+export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionView {
+  const mapped = toSnapshot(p)
+  const metrics = computeMetrics(mapped.snapshot)
+  const basis = classifyRisk(mapped.snapshot)
+  const model = lineModel(mapped.snapshot, basis)
+  const hero = heroOf(model)
+  const distance = model ? lineDistance(model) : Number.POSITIVE_INFINITY
+
+  let history: HistoryView | null = null
+  let historyAbsent: string | null = null
+  let actions: ActionRow[] = []
+  if (hero.kind !== 'no-debt') {
+    if (basis.kind === 'history' && model) {
+      // The surface is read at the hero's own floored distance. Past the line, or with no
+      // price that reaches it, the hero says so and there is no distance to read history at.
+      if (hero.kind === 'line') {
+        const lookup = lookupTouch(t, basis.asset, basis.direction, '7d', hero.distance)
+        history = {
+          asset: basis.asset,
+          direction: basis.direction,
+          label: HISTORY_LABEL[basis.asset],
+          level: hero.distancePct,
+          rows:
+            lookup.kind === 'row'
+              ? HORIZON_IDS.map((h) =>
+                  touchAtLevel(t, basis.asset, basis.direction, h, hero.distancePct),
+                ).filter((r): r is TouchFrequency => r !== null)
+              : [],
+          lookup: lookup.kind,
+          years: periodYears(t, basis.asset, basis.direction),
+          credit: creditLine(t, basis.asset, basis.direction),
+        }
+      }
+      actions = reverseSolve(mapped.snapshot, model, t, basis.asset)
+    } else if (basis.kind === 'dominant') {
+      historyAbsent = basis.reason
+    }
+  }
+
+  const legs = legSymbols(mapped.snapshot)
+  const pair = `${legs.collateral.join(' + ') || '—'} / ${legs.debt.join(' + ') || 'no debt'}`
+  // Morpho labels already name the market; Compound names only its base (debt) asset.
+  const title =
+    p.protocol === 'morpho-blue'
+      ? p.label
+      : p.protocol === 'compound-v3'
+        ? `${p.label} · ${legs.collateral.join(' + ') || '—'}`
+        : `${p.label} · ${pair}`
+
+  return {
+    key: `${p.protocol}:${p.marketId ?? p.label}`,
+    protocol: p.protocol,
+    label: p.label,
+    title,
+    appUrl: PROTOCOL_APP_URL[p.protocol],
+    priceSource: priceSourceOf(p),
+    position: p,
+    mapped,
+    metrics,
+    basis,
+    model,
+    hero,
+    distance,
+    history,
+    historyAbsent,
+    actions,
+    assumption: assumptionOf(model, basis),
+  }
+}
+
+/** "line −23%" / "past the line" / "no debt" */
+export function lineTag(v: PositionView): string {
+  switch (v.hero.kind) {
+    case 'line':
+      return `line ${v.hero.distancePct === 0 ? (v.hero.direction === 'fall' ? '−<1%' : '+<1%') : fmtMove(v.hero.distancePct, v.hero.direction)}`
+    case 'past':
+      return '✖ past the line'
+    case 'unreachable':
+      return 'no price reaches the line'
+    case 'no-debt':
+      return 'no debt'
+  }
+}
+
+/** Nearest its line first: past the line, then smallest distance; no debt last. */
+export function sortNearest(views: PositionView[]): PositionView[] {
+  const rank = (v: PositionView) => (v.hero.kind === 'no-debt' ? Number.POSITIVE_INFINITY : v.distance)
+  return [...views].sort((a, b) => rank(a) - rank(b))
+}
+
+// ------------------------------------------------------------------ the read
+
+export type PageState =
+  | { kind: 'idle' }
+  | { kind: 'reading' }
+  /** Every adapter answered and nothing was found on a supported venue. */
+  | { kind: 'none'; unsupported: string[]; failed: string[] }
+  | { kind: 'positions'; views: PositionView[]; failed: string[]; unsupported: string[] }
+
+/**
+ * The page state from whatever has landed so far. Positions show as soon as one adapter
+ * returns them; "none" waits until every adapter has answered.
+ */
+export function pageState(
+  started: boolean,
+  items: ReadStatusItem[],
+  results: Partial<Record<ProtocolId, AdapterResult>>,
+  t: TouchTable,
+): PageState {
+  if (!started) return { kind: 'idle' }
+  const positions = Object.values(results).flatMap((r) => (r && r.status === 'ok' ? r.positions : []))
+  const failed = items.filter((i) => i.state === 'error').map((i) => i.label)
+  const unsupported = items.filter((i) => i.state === 'unsupported').map((i) => i.label)
+  if (positions.length > 0) {
+    return { kind: 'positions', views: sortNearest(positions.map((p) => buildPositionView(p, t))), failed, unsupported }
+  }
+  if (items.some((i) => i.state === 'pending')) return { kind: 'reading' }
+  return { kind: 'none', unsupported, failed }
+}
+
+// ------------------------------------------------------------------ copy from constants
+
+/** "4%" from MAX_THRESHOLD_TO_DELAY, the same construction as guarantee.ts's BAND. */
+export const MEMBRANE_BAND = `${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`
+
+/** DESIGN_RULES §4: the 8h is conditional. Never "8 hours before liquidation". */
+export const MEMBRANE_LINE = `On Membrane: within ${MEMBRANE_BAND} of the line, liquidation waits ${CURE_WINDOW_HOURS} hours.`
+
+export const MODELLED_FOOTER = '† modelled, not a guarantee'
+
+/** Market-level distances shown before an address is read. */
+export const MARKET_LEVELS = [10, 20, 30] as const

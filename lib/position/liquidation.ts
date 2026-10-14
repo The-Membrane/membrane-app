@@ -58,6 +58,13 @@ function namedLegs(s: PositionSnapshot): NamedLeg[] {
   return legs.filter((l) => l.usd >= DUST_SHARE * gross)
 }
 
+/** Collateral and debt symbols worth naming (dust excluded), in leg order, deduplicated. */
+export function legSymbols(s: PositionSnapshot): { collateral: string[]; debt: string[] } {
+  const legs = namedLegs(s)
+  const pick = (side: NamedLeg['side']) => [...new Set(legs.filter((l) => l.side === side).map((l) => l.symbol))]
+  return { collateral: pick('collateral'), debt: pick('debt') }
+}
+
 /** Which price history, if any, describes this position's line. Dust legs are ignored. */
 export function classifyRisk(s: PositionSnapshot): RiskBasis {
   const legs = namedLegs(s)

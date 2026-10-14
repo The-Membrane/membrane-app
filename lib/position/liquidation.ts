@@ -14,6 +14,12 @@
  * it is computeMetrics' dominant-leg liquidation price (lib/positionAlerts/metrics.ts),
  * which the unit tests pin.
  *
+ * A DEBT IN THE MOVING ASSET MOVES WITH IT. Collateral held against a debt in the same
+ * asset (wstETH against wstETH, USDe against USDe) is hedged: a price move lifts or sinks
+ * both. Every model puts such a debt leg in Dm, so E = Wm − Dm counts only the unhedged
+ * part. When nothing at all is held (the same asset on both sides), no price moves the
+ * line: the hero says only interest does.
+ *
  * ROUNDED TOWARD RISK. The hero price is rounded toward now (UP for a falling-price risk,
  * DOWN for a rising one) and the distance is floored to a whole percent.
  */
@@ -37,7 +43,10 @@ export type RiskBasis =
   /**
    * Collateral and debt are the SAME family and nothing else (wstETH against WETH, LBTC
    * against WBTC): an ETH move lifts or sinks both sides, so a USD line is the wrong axis.
-   * The line is the collateral/debt price ratio, and no ETH-history forecast applies.
+   * The line is the base/quote price ratio, and no ETH-history forecast applies. `quote`
+   * is the largest in-family debt asset; `base` the largest in-family asset that is not
+   * the quote (collateral first). Only legs in `base` move; every other leg is held at
+   * today's price in `quote`.
    */
   | { kind: 'ratio'; asset: HistoryAsset; base: string; quote: string; reason: string }
 
@@ -97,18 +106,7 @@ export function classifyRisk(s: PositionSnapshot): RiskBasis {
   const inDebt = legs.some((l) => l.side === 'debt' && inF(l.symbol))
   if (!(inCollateral && inDebt)) return { kind: 'history', asset, direction: inCollateral ? 'fall' : 'rise' }
 
-  const largest = (side: NamedLeg['side']) =>
-    [...legs].filter((l) => l.side === side && inF(l.symbol)).sort((a, b) => b.usd - a.usd)[0].symbol
-  const ratio = (): RiskBasis => {
-    const base = largest('collateral')
-    return {
-      kind: 'ratio',
-      asset,
-      base,
-      quote: largest('debt'),
-      reason: `The line moves with the ${base}/${asset} ratio, not the ${asset} price.`,
-    }
-  }
+  const ratio = (): RiskBasis => ratioBasis(legs, asset)
   if (legs.every((l) => inF(l.symbol))) return ratio()
   // F on both sides with stables beside it: the F legs move together; the net exposure
   // (weighted F collateral − F debt) says which way an F move hurts.
@@ -119,6 +117,31 @@ export function classifyRisk(s: PositionSnapshot): RiskBasis {
   const E = Wf - Df
   if (Math.abs(E) <= DUST_SHARE * (Wf + Df)) return ratio()
   return { kind: 'history', asset, direction: E > 0 ? 'fall' : 'rise' }
+}
+
+/** Symbols on `side` in family `asset`, largest first. */
+const bySize = (legs: NamedLeg[], side: NamedLeg['side'], keep: (sym: string) => boolean): string[] =>
+  [...new Set([...legs].filter((l) => l.side === side && keep(l.symbol)).sort((a, b) => b.usd - a.usd).map((l) => l.symbol))]
+
+/**
+ * The ratio for a position whose family legs sit on both sides. The quote is the largest
+ * family debt asset; the base, the largest family asset that is not the quote, collateral
+ * first (WETH collateral against wstETH debt is a WETH/wstETH line). With no such asset —
+ * the same asset on both sides — no ratio exists and no price moves the line.
+ */
+function ratioBasis(legs: NamedLeg[], asset: HistoryAsset): RiskBasis {
+  const inF = (sym: string) => assetClassOf(sym) === asset
+  const quote = bySize(legs, 'debt', inF)[0]
+  const notQuote = (sym: string) => inF(sym) && sym !== quote
+  const base = bySize(legs, 'collateral', notQuote)[0] ?? bySize(legs, 'debt', notQuote)[0]
+  if (base === undefined) return { kind: 'dominant', reason: `Both sides are ${quote}: only interest moves the line.` }
+  return {
+    kind: 'ratio',
+    asset,
+    base,
+    quote,
+    reason: `The line moves with the ${base}/${quote} ratio, not the ${asset} price.`,
+  }
 }
 
 // ------------------------------------------------------------------ model
@@ -200,47 +223,69 @@ export function lineModel(s: PositionSnapshot, basis: RiskBasis): LineModel | nu
   }
 
   if (basis.kind === 'ratio') {
-    // Every collateral leg moves against the debt: the line is the base/quote price ratio
-    // at which W·(1 − x) = D, quoted from the protocol's own oracle prices.
-    const base = coll.find((c) => c.symbol === basis.base)
+    // Only the base moves against the quote, on both sides; everything else (the quote,
+    // other family assets, stables) is held at today's price in quote units. The line is
+    // the base/quote ratio at which health factor reaches 1, from the protocol's prices.
     const quote = debt.find((d) => d.symbol === basis.quote)
-    if (!base || !quote || !(quote.priceUsd > 0)) return null
+    const priced = [...coll, ...debt].find((l) => l.symbol === basis.base)
+    if (!quote || !priced || !(quote.priceUsd > 0)) return null
+    const basePrice = 'oraclePriceUsd' in priced ? priced.oraclePriceUsd : priced.priceUsd
+    const split = movingSplit(coll, debt, (sym) => sym === basis.base)
     return {
       unit: { kind: 'ratio', base: basis.base, quote: basis.quote },
-      direction: 'fall',
+      direction: split.Wm - split.Dm >= 0 ? 'fall' : 'rise',
       symbol: basis.base,
-      priceNow: base.oraclePriceUsd / quote.priceUsd,
+      priceNow: basePrice / quote.priceUsd,
       W,
-      Wm: W,
       D,
-      Dm: 0,
-      moving: uniq(coll.filter((c) => nameC(c.symbol)).map((c) => c.symbol)),
-      held: uniq(debt.filter((d) => nameD(d.symbol)).map((d) => d.symbol)),
+      ...split,
+      ...names(coll, debt, nameC, nameD, (sym) => sym === basis.base),
     }
   }
 
-  // Dominant leg: the largest collateral leg by oracle value moves; everything else held.
-  // Same selection as computeMetrics (first of equal values wins).
+  // Dominant leg: the largest collateral leg by oracle value moves, and so does any debt
+  // in that same asset; everything else is held. Same selection as computeMetrics (first
+  // of equal values wins).
   let dom = coll[0]
   for (const c of coll) {
     if (value(c.amount, c.oraclePriceUsd) > value(dom.amount, dom.oraclePriceUsd)) dom = c
   }
-  const Wm = value(dom.amount, dom.oraclePriceUsd) * dom.liquidationThreshold
+  const split = movingSplit(coll, debt, (sym) => sym === dom.symbol)
   return {
     unit: { kind: 'usd' },
-    direction: 'fall',
+    // A debt in the dominant asset larger than its weighted collateral turns the risk into a rise.
+    direction: split.Wm - split.Dm >= 0 ? 'fall' : 'rise',
     symbol: dom.symbol,
     priceNow: dom.oraclePriceUsd,
     W,
-    Wm,
     D,
-    Dm: 0,
-    moving: [dom.symbol],
-    held: uniq([
-      ...coll.filter((c) => c !== dom && nameC(c.symbol)).map((c) => c.symbol),
-      ...debt.filter((d) => nameD(d.symbol)).map((d) => d.symbol),
-    ]),
+    ...split,
+    ...names(coll, debt, nameC, nameD, (sym) => sym === dom.symbol),
   }
+}
+
+/** Weighted collateral and debt in the moving asset(s). */
+function movingSplit(
+  coll: PositionSnapshot['collateral'],
+  debt: PositionSnapshot['debt'],
+  moves: (sym: string) => boolean,
+): { Wm: number; Dm: number } {
+  return {
+    Wm: coll.filter((c) => moves(c.symbol)).reduce((a, c) => a + value(c.amount, c.oraclePriceUsd) * c.liquidationThreshold, 0),
+    Dm: debt.filter((d) => moves(d.symbol)).reduce((a, d) => a + value(d.amount, d.priceUsd), 0),
+  }
+}
+
+/** Named (non-dust) symbols that move and that are held. */
+function names(
+  coll: PositionSnapshot['collateral'],
+  debt: PositionSnapshot['debt'],
+  nameC: (sym: string) => boolean,
+  nameD: (sym: string) => boolean,
+  moves: (sym: string) => boolean,
+): { moving: string[]; held: string[] } {
+  const all = uniq([...coll.filter((c) => nameC(c.symbol)).map((c) => c.symbol), ...debt.filter((d) => nameD(d.symbol)).map((d) => d.symbol)])
+  return { moving: all.filter(moves), held: all.filter((x) => !moves(x)) }
 }
 
 const uniq = (xs: string[]) => [...new Set(xs)]
@@ -276,8 +321,14 @@ export type Hero =
       healthFactor: number
     }
   | {
-      /** A fall that would need the price to reach $0 or below: no price reaches the line. */
+      /**
+       * No move of the moving price reaches the line. `cause` says why: 'interest' when
+       * nothing is held (the same asset on both sides: health factor does not depend on
+       * its price, only interest moves it); 'held' when the held legs cover the debt.
+       */
       kind: 'unreachable'
+      cause: 'interest' | 'held'
+      unit: LineUnit
       symbol: string
       direction: Direction
       priceNow: number
@@ -327,7 +378,16 @@ export function heroOf(m: LineModel | null): Hero {
     }
   }
   if (!Number.isFinite(x) || (m.direction === 'fall' && x >= 1)) {
-    return { kind: 'unreachable', symbol: m.symbol, direction: m.direction, priceNow: m.priceNow }
+    // Nothing held (beyond dust): health factor is the same at every price.
+    const heldShare = (m.W - m.Wm + (m.D - m.Dm)) / (m.W + m.D)
+    return {
+      kind: 'unreachable',
+      cause: heldShare <= DUST_SHARE ? 'interest' : 'held',
+      unit: m.unit,
+      symbol: m.symbol,
+      direction: m.direction,
+      priceNow: m.priceNow,
+    }
   }
   const priceLine = m.direction === 'fall' ? m.priceNow * (1 - x) : m.priceNow * (1 + x)
   const decimals = priceDecimals(priceLine)

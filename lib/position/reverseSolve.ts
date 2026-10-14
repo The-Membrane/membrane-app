@@ -1,16 +1,17 @@
 /**
  * The reverse solve, written as actions (DESIGN_RULES §7; FORECAST_VISUALS.md "Move your
- * line"): "Repay $X · line −Y% · Z% (lo–hi)".
+ * line"): "Repay 4,810 USDC · line −Y% · Z% (lo–hi)", "Add 0.29 WETH · …".
  *
  * On the SAME model and the SELECTED horizon as the forecast above it: for each target Z
  * of the horizon's point forecast, find the smallest table level L* whose forecast is at
  * or below Z, then the repay (or top-up) that moves the line to L*. Amounts are solved in
  * the TOKEN's own units and round UP (10 for a USD stable, 0.01 ETH-family, 0.0001
  * BTC-family, otherwise a step worth ≥ $10), then grow until the line still holds after
- * ACCRUAL_BUFFER_HOURS of interest; a repay shows its dollar value at the token's oracle
- * price. Y is the floor of the distance the ROUNDED amount reaches (≥ L*), and Z' (with its
- * band) is the forecast at Y. Every amount comes from the live position; nothing here is a
- * constant except the targets and the buffer.
+ * ACCRUAL_BUFFER_HOURS of interest. Every row prints the TOKEN amount the reader sends —
+ * never a dollar figure, which at a $0.9999 oracle price would fall short of the line. Y is
+ * the floor of the distance the rounded amount reaches AFTER the buffer's interest (≥ L*),
+ * and Z' (with its band) is the forecast at Y. Every amount comes from the live position;
+ * nothing here is a constant except the targets and the buffer.
  *
  * Closed forms (B = W − D; E = Wm − Dm for a fall, Dm − Wm for a rise; see liquidation.ts):
  *   repay a held debt X        x' = (B + X) / E            X = L·E − B
@@ -23,7 +24,7 @@
 
 import type { PositionSnapshot } from '@/lib/positionAlerts/types'
 
-import { amountStepFor, ceilTo, fmtAmount, fmtMove, fmtUsd, stepDecimals } from './format'
+import { amountStepFor, ceilTo, fmtAmount, fmtMove, stepDecimals } from './format'
 import { lineDistance, type LineModel } from './liquidation'
 import { historyAssetFor, isUsdStable } from './snapshot'
 import { atOrBelow, floorPct, formatBand, formatChance, touchAtLevel, type TouchFrequency } from './touch'
@@ -44,20 +45,20 @@ export interface ActionRow {
   level: number
   /** Asset repaid or added. */
   symbol: string
-  /** Repay: dollars. Add: units of `symbol`. Rounded up. */
+  /** Units of `symbol` to repay or add, rounded up. */
   amount: number
   amountDecimals: number
   /** Today's dollar value of `amount`. */
   amountUsd: number
   direction: Direction
-  /** Y: the floored distance the rounded amount reaches. */
+  /** Y: the floored distance the rounded amount reaches after the accrual buffer. */
   newDistancePct: number
   horizon: HorizonId
   /** Z' and its band: the forecast at Y, at the selected horizon. */
   history: TouchFrequency
-  /** "Repay $480 · line −22% · 5% (3–7%)" */
+  /** "Repay 480 USDC · line −22% · 5% (3–7%)" */
   text: string
-  /** The curve's dot label: "Repay $480 → 5%" */
+  /** The curve's dot label: "Repay 480 USDC → 5%" */
   short: string
 }
 
@@ -156,8 +157,15 @@ export function unitStep(symbol: string, priceUsd: number): number {
   return amountStepFor(historyAssetFor(symbol), priceUsd)
 }
 
-/** Why a solve has no rows (FORECAST_VISUALS.md "Move your line" says which). */
-export type SolveReason = 'ok' | 'met' | 'beyond' | 'no-lever' | 'no-debt'
+/**
+ * Why a solve has no rows (FORECAST_VISUALS.md "Move your line" says which):
+ *   met           every target is already met at the reader's line
+ *   beyond        no table level gets under a target
+ *   beyond-table  a lever exists, but even its smallest step moves the line past the
+ *                 table's last level, where no forecast is read (a small position)
+ *   no-lever      no repay or top-up of this position reaches the level
+ */
+export type SolveReason = 'ok' | 'met' | 'beyond' | 'beyond-table' | 'no-lever' | 'no-debt'
 
 export interface ReverseSolve {
   rows: ActionRow[]
@@ -165,6 +173,8 @@ export interface ReverseSolve {
   /** Targets already met at the reader's line, and targets no table level reaches. */
   met: number[]
   beyond: number[]
+  /** Levers whose solved amount landed past the table's last level ('beyond-table'). */
+  pastTable: ActionRow['kind'][]
 }
 
 /** Interest growth over the buffer at `apr` (null → the fallback). */
@@ -180,7 +190,7 @@ export function reverseSolve(
   horizon: HorizonId = DEFAULT_HORIZON,
   borrowApr: number | null = null,
 ): ReverseSolve {
-  if (!(m.D > 0)) return { rows: [], reason: 'no-debt', met: [], beyond: [] }
+  if (!(m.D > 0)) return { rows: [], reason: 'no-debt', met: [], beyond: [], pastTable: [] }
   const now = lineDistance(m)
   const g = accrualFactor(borrowApr)
   const accrued = (mm: LineModel): LineModel => ({ ...mm, D: mm.D * g, Dm: mm.Dm * g })
@@ -188,23 +198,23 @@ export function reverseSolve(
   const seen = new Set<string>()
   const met: number[] = []
   const beyond: number[] = []
-  const debtLegs = s.debt.filter((d) => d.amount > 0).length
+  const pastTable = new Set<ActionRow['kind']>()
   const rLeg = repayLeg(s, m)
   const aLeg = addLeg(s, m)
 
   const push = (row: Omit<ActionRow, 'history' | 'text' | 'short' | 'horizon'> & { history: TouchFrequency | null }) => {
-    if (!row.history) return
+    // Past the table's last level there is no forecast to print: say so, not "no lever".
+    if (!row.history) {
+      pastTable.add(row.kind)
+      return
+    }
     const key = `${row.kind}:${row.newDistancePct}`
     if (seen.has(key)) return
     seen.add(key)
     const h = row.history
     const chance = formatChance(h.touched, h.n)
-    const what =
-      row.kind === 'repay'
-        ? isUsdStable(row.symbol)
-          ? `Repay ${fmtUsd(row.amountUsd)}${debtLegs > 1 ? ` of ${row.symbol}` : ''}`
-          : `Repay ${fmtAmount(row.amount, row.amountDecimals)} ${row.symbol}`
-        : `Add ${fmtAmount(row.amount, row.amountDecimals)} ${row.symbol}`
+    // The token amount is the action: a stable at $0.9999 repaid as "$X" would fall short.
+    const what = `${row.kind === 'repay' ? 'Repay' : 'Add'} ${fmtAmount(row.amount, row.amountDecimals)} ${row.symbol}`
     rows.push({
       ...row,
       horizon,
@@ -245,6 +255,7 @@ export function reverseSolve(
         // Repaying all of the leg is not a lever: it leaves no line to move.
         const units = settle(ceilTo(exact / rLeg.priceUsd, step), step, apply, L, rLeg.amount - step)
         if (units !== null && units < rLeg.amount) {
+          const Y = floorPct(lineDistance(accrued(apply(units))))
           push({
             kind: 'repay',
             targetPct,
@@ -254,8 +265,8 @@ export function reverseSolve(
             amountDecimals: stepDecimals(step),
             amountUsd: units * rLeg.priceUsd,
             direction: m.direction,
-            newDistancePct: floorPct(lineDistance(apply(units))),
-            history: touchAtLevel(t, asset, m.direction, horizon, floorPct(lineDistance(apply(units)))),
+            newDistancePct: Y,
+            history: touchAtLevel(t, asset, m.direction, horizon, Y),
           })
         }
       }
@@ -269,7 +280,7 @@ export function reverseSolve(
         const apply = (units: number) => afterAdd(m, units * aLeg.priceUsd * aLeg.lt, aLeg.moving)
         const units = settle(ceilTo(weighted / (aLeg.lt * aLeg.priceUsd), step), step, apply, L, Number.POSITIVE_INFINITY)
         if (units !== null) {
-          const Y = floorPct(lineDistance(apply(units)))
+          const Y = floorPct(lineDistance(accrued(apply(units))))
           push({
             kind: 'add',
             targetPct,
@@ -289,6 +300,14 @@ export function reverseSolve(
   // Repay rows first, then top-ups, each nearest-first: one lever per line.
   const ordered = [...rows.filter((r) => r.kind === 'repay'), ...rows.filter((r) => r.kind === 'add')]
   const reason: SolveReason =
-    ordered.length > 0 ? 'ok' : beyond.length > 0 ? 'beyond' : met.length === REVERSE_SOLVE_TARGETS_PCT.length ? 'met' : 'no-lever'
-  return { rows: ordered, reason, met, beyond }
+    ordered.length > 0
+      ? 'ok'
+      : pastTable.size > 0
+        ? 'beyond-table'
+        : beyond.length > 0
+          ? 'beyond'
+          : met.length === REVERSE_SOLVE_TARGETS_PCT.length
+            ? 'met'
+            : 'no-lever'
+  return { rows: ordered, reason, met, beyond, pastTable: [...pastTable] }
 }

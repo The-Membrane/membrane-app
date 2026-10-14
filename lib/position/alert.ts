@@ -40,23 +40,38 @@ export function alertStep(price: number): number {
 export interface AlertPrefill {
   /** The prefilled alert price, rounded toward now. */
   price: number
+  /** Decimals `price` carries: print it with these, so the row shows what the input holds. */
+  decimals: number
   /** Whole % from now to P, floored. */
   movePct: number
   direction: Direction
 }
 
+/** 10^(e − extra): `alertStep` made `extra` digits finer. */
+const finer = (step: number, extra: number): number => {
+  const e = Math.round(Math.log10(step)) - extra
+  return e >= 0 ? 10 ** e : 1 / 10 ** -e
+}
+
 /**
  * Halfway between now and the line. `distance` is the line's fraction from now (> 0);
- * a fall rounds P UP, a rise rounds it DOWN — both toward now. Null when there is no line
- * ahead (past it, unreachable, no debt) or no live price.
+ * a fall rounds P UP, a rise rounds it DOWN — both toward now — to three significant
+ * figures, or finer when three would reach now or the line: P always sits strictly
+ * between them, on the risk side of now. Null when there is no line ahead (past it,
+ * unreachable, no debt), no live price, or no such P at up to six figures.
  */
 export function alertHalfway(priceNow: number | null, distance: number, direction: Direction): AlertPrefill | null {
   if (priceNow === null || !(priceNow > 0) || !(distance > 0) || !Number.isFinite(distance)) return null
   if (direction === 'fall' && distance >= 1) return null
+  const line = direction === 'fall' ? priceNow * (1 - distance) : priceNow * (1 + distance)
   const raw = direction === 'fall' ? priceNow * (1 - distance / 2) : priceNow * (1 + distance / 2)
-  const step = alertStep(raw)
-  const k = direction === 'fall' ? Math.ceil(raw / step - 1e-9) : Math.floor(raw / step + 1e-9)
-  const decimals = Math.max(0, -Math.floor(Math.log10(step) + 1e-9))
-  const price = Number((k * step).toFixed(decimals))
-  return { price, movePct: floorPct(Math.abs(price - priceNow) / priceNow), direction }
+  for (let extra = 0; extra <= 3; extra++) {
+    const step = finer(alertStep(raw), extra)
+    const k = direction === 'fall' ? Math.ceil(raw / step - 1e-9) : Math.floor(raw / step + 1e-9)
+    const decimals = Math.max(0, -Math.floor(Math.log10(step) + 1e-9))
+    const price = Number((k * step).toFixed(decimals))
+    const between = direction === 'fall' ? price < priceNow && price > line : price > priceNow && price < line
+    if (between) return { price, decimals, movePct: floorPct(Math.abs(price - priceNow) / priceNow), direction }
+  }
+  return null
 }

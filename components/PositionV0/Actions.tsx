@@ -1,6 +1,6 @@
 // "MOVE YOUR LINE" (FORECAST_VISUALS.md): the reverse solve on the same model and the
-// selected horizon, written as levers — "Repay $X · line −Y% · Z% (lo–hi)", "Add N ETH ·
-// …" — each ending at the protocol's own app (root links only; no unverified deep link),
+// selected horizon, written as levers — "Repay N USDC · line −Y% · Z% (lo–hi)", "Add N ETH
+// · …" — each ending at the protocol's own app (root links only; no unverified deep link),
 // then "Alert me at $P".
 
 import React from 'react'
@@ -54,9 +54,13 @@ const VenueLink: React.FC<{ href: string; venue: string; label: string; top?: bo
 function emptyCopy(view: PositionView, horizon: HorizonId): string | null {
   if (view.hero.kind === 'unsplit') return null // the hero already says why
   if (view.basis.kind !== 'history' || !view.forecast) return 'No action rows without a forecast.'
-  if (view.hero.kind === 'unreachable') return 'A fall alone does not reach this line.'
-  const { reason, met, beyond } = view.forecast.byHorizon[horizon].solve
+  if (view.hero.kind === 'unreachable') return `A ${view.hero.direction} alone does not reach this line.`
+  const { reason, met, beyond, pastTable } = view.forecast.byHorizon[horizon].solve
   if (reason === 'no-lever') return 'No repay or top-up fits this position.'
+  if (reason === 'beyond-table') {
+    const lever = pastTable.length > 1 ? 'repay or top-up' : pastTable[0] === 'repay' ? 'repay' : 'top-up'
+    return `A small ${lever} moves the line past ${TOUCH_TABLE.levels.max}%, beyond the table.`
+  }
   const parts: string[] = []
   if (met.length > 0) parts.push(`already ${Math.min(...met)}% or less`)
   if (beyond.length > 0) parts.push(`no line within the table's ${TOUCH_TABLE.levels.max}% gets under ${Math.min(...beyond)}%`)

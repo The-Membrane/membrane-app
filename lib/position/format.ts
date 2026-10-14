@@ -15,9 +15,12 @@ export const fmtAmount = (x: number, decimals: number): string => nf(decimals).f
 /** "2,365" */
 export const fmtInt = (x: number): string => nf(0).format(x)
 
-/** A signed whole-percent move: "−34%" for a fall, "+34%" for a rise. */
+/**
+ * A signed whole-percent move: "−34%" for a fall, "+34%" for a rise. A floored 0 reads
+ * "−<1%": "0%" is never shown (DESIGN_RULES §4).
+ */
 export const fmtMove = (pct: number, direction: 'fall' | 'rise'): string =>
-  `${direction === 'fall' ? '−' : '+'}${pct}%`
+  `${direction === 'fall' ? '−' : '+'}${pct < 1 ? '<1' : pct}%`
 
 /**
  * The rounding step for a top-up amount: one step is worth $10 or more,

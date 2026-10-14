@@ -6,6 +6,7 @@ import {
   MEMBRANE_LINE,
   MODELLED_FOOTER,
   PROTOCOL_APP_URL,
+  assumptionOf,
   buildPositionView,
   creditLine,
   forecastFooter,
@@ -21,7 +22,8 @@ import { ADAPTERS } from '@/lib/position-sim/adapters'
 import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
 import type { AdapterResult, CollateralLeg, DebtLeg, ProtocolId, ProtocolPosition } from '@/lib/position-sim/types'
 import { ALERT_REFERENCE, alertHalfway, alertStep, referencePriceFrom } from '@/lib/position/alert'
-import { confidenceOf, touchAtLevel } from '@/lib/position/touch'
+import { fmtMove } from '@/lib/position/format'
+import { confidenceOf, floorPct, touchAtLevel } from '@/lib/position/touch'
 import { HORIZON_IDS, TOUCH_TABLE } from '@/lib/position/touchHistory'
 
 const coll = (symbol: string, amount: number, priceUsd: number, lt: number): CollateralLeg => ({
@@ -136,7 +138,7 @@ describe('one position view', () => {
     }
     const week = f.byHorizon['7d'].actions
     expect(week.length).toBeGreaterThan(0)
-    expect(week.every((a) => /^(Repay \$[\d,]+|Add [\d.,]+ WETH) · line −\d+% · (<1|\d+)% \((up to \d+|\d+(–\d+)?)%\)$/.test(a.text))).toBe(true)
+    expect(week.every((a) => /^(Repay [\d,]+ USDC|Add [\d.,]+ WETH) · line −\d+% · (<1|\d+)% \((up to \d+|\d+(–\d+)?)%\)$/.test(a.text))).toBe(true)
     expect(f.byHorizon['7d'].solve.reason).toBe('ok')
     expect(v.alert).toEqual({ asset: 'ETH', direction: 'fall', distance: v.hero.distance, referencePrice: 4000, referenceSource: 'Aave V3 oracle' })
     expect(v.assumption).toBe("USDC held at today's price")
@@ -216,7 +218,8 @@ describe('one position view', () => {
     expect(v.basis).toMatchObject({ kind: 'ratio', base: 'wstETH', quote: 'WETH' })
     expect(v.hero.kind === 'line' && v.hero.unit).toEqual({ kind: 'ratio', base: 'wstETH', quote: 'WETH' })
     expect(v.forecast).toBeNull()
-    expect(v.forecastAbsent).toBe('The line moves with the wstETH/ETH ratio, not the ETH price.')
+    expect(v.forecastAbsent).toBe('The line moves with the wstETH/WETH ratio, not the ETH price.')
+    expect(v.assumption).toBe('wstETH moves against WETH')
     expect(v.alert).toBeNull()
     expect(v.priceSource).toBe('Morpho market oracle, WETH priced by the Aave V3 oracle')
   })
@@ -237,6 +240,32 @@ describe('one position view', () => {
     const none = buildPositionView(pos('compound-v3', [coll('WETH', 1, 4000, 0.83)], [], 'Compound V3 · USDC'), t)
     const past = buildPositionView(pos('morpho-blue', [coll('WETH', 1, 4000, 0.83)], [debt('USDC', 3400, 1)], 'Morpho · WETH/USDC'), t)
     expect(sortNearest([none, far, near, past]).map((v) => v.protocol)).toEqual(['morpho-blue', 'spark', 'aave-v3', 'compound-v3'])
+    // A line no price reaches sorts after every line, before no debt — even when its
+    // exact "distance" (here 100%) is smaller than a far line's.
+    const same = buildPositionView(pos('aave-v3', [coll('wstETH', 27, 3127, 0.81)], [debt('wstETH', 7.4, 3127)]), t)
+    const veryFar = buildPositionView(pos('spark', [coll('WETH', 100, 4000, 0.83)], [debt('USDC', 100, 1)], 'Spark'), t)
+    expect(same.hero).toMatchObject({ kind: 'unreachable', cause: 'interest' })
+    expect(sortNearest([same, none, veryFar, near]).map((v) => v.hero.kind)).toEqual(['line', 'line', 'unreachable', 'no-debt'])
+  })
+
+  it('same asset on both sides: no line, no forecast, no levers; the tag says only interest moves it', () => {
+    const v = buildPositionView(pos('aave-v3', [coll('wstETH', 27.34, 3127.46, 0.81)], [debt('wstETH', 7.43, 3127.46)]), t)
+    expect(v.hero).toMatchObject({ kind: 'unreachable', cause: 'interest', symbol: 'wstETH' })
+    expect(lineTag(v)).toBe('only interest moves the line')
+    expect(v.forecast).toBeNull()
+    expect(v.alert).toBeNull()
+    expect(v.assumption).toBeNull()
+    expect(v.forecastAbsent).toBe('Both sides are wstETH: only interest moves the line.')
+  })
+
+  it('names every leg the model moves, and every leg it holds', () => {
+    const ratio = buildPositionView(pos('aave-v3', [coll('wstETH', 40, 3000, 0.95)], [debt('WETH', 20, 2500), debt('wstETH', 10, 3000)]), t)
+    expect(ratio.assumption).toBe('wstETH collateral and debt move against WETH')
+    const three = buildPositionView(pos('aave-v3', [coll('wstETH', 2464, 3127, 0.95), coll('weETH', 1716, 2775, 0.95)], [debt('WETH', 4617, 2509.5)]), t)
+    expect(three.assumption).toBe("wstETH moves against WETH; weETH held at today's price")
+    const dom = buildPositionView(pos('aave-v3', [coll('USDe', 96_546, 0.9987, 0.93)], [debt('USDC', 53_505, 0.9999), debt('USDT', 17_841, 0.9987), debt('USDe', 7036, 0.9987)]), t)
+    expect(dom.assumption).toBe("USDe collateral and debt move; USDC, USDT held at today's price")
+    expect(assumptionOf(null, dom.basis)).toBeNull()
   })
 
   it('links only to protocol app roots; Fluid has none', () => {
@@ -249,15 +278,32 @@ describe('one position view', () => {
 describe('the alert prefill', () => {
   it('is halfway to the line, three significant figures, rounded toward now', () => {
     // 2,499.20 × (1 − 0.1831/2) = 2,270.4 → up → 2,280 (fall: toward now)
-    expect(alertHalfway(2499.2, 0.1831344, 'fall')).toEqual({ price: 2280, movePct: 8, direction: 'fall' })
+    expect(alertHalfway(2499.2, 0.1831344, 'fall')).toEqual({ price: 2280, decimals: 0, movePct: 8, direction: 'fall' })
     // rise: 4000 × 1.1 = 4,400 exactly stays; 4,401.2 → down → 4,400
-    expect(alertHalfway(4000, 0.2, 'rise')).toEqual({ price: 4400, movePct: 10, direction: 'rise' })
+    expect(alertHalfway(4000, 0.2, 'rise')).toEqual({ price: 4400, decimals: 0, movePct: 10, direction: 'rise' })
     expect(alertHalfway(4000, 0.20060, 'rise')?.price).toBe(4400)
     expect(alertHalfway(83_076.82, 0.1464, 'fall')?.price).toBe(77_000) // 76,995.8 → up to 77,000
     expect(alertStep(2270)).toBe(10)
     expect(alertStep(76_995)).toBe(100)
     expect(alertStep(0.987)).toBe(0.001)
   })
+  it('stays strictly between now and the line, on the risk side, however close the line is', () => {
+    // The line 0.6% below $2,509.52: three figures would round 2,502 up to 2,510, ABOVE
+    // now. A finer step keeps it below: $2,502.
+    expect(alertHalfway(2509.52, 0.006, 'fall')).toEqual({ price: 2502, decimals: 0, movePct: 0, direction: 'fall' })
+    expect(alertHalfway(2509.52, 0.0004, 'fall')).toMatchObject({ price: 2509.1, decimals: 1 })
+    for (const dir of ['fall', 'rise'] as const)
+      for (const d of [0.0002, 0.0004, 0.004, 0.006, 0.009, 0.012, 0.05, 0.3]) {
+        const p = alertHalfway(2509.52, d, dir)!
+        const line = dir === 'fall' ? 2509.52 * (1 - d) : 2509.52 * (1 + d)
+        if (dir === 'fall') expect(p.price < 2509.52 && p.price > line).toBe(true)
+        else expect(p.price > 2509.52 && p.price < line).toBe(true)
+      }
+    // Under 1% to the line reads "<1%", never "0%".
+    expect(fmtMove(floorPct(0.006), 'fall')).toBe('−<1%')
+    expect(fmtMove(floorPct(0.006), 'rise')).toBe('+<1%')
+  })
+
   it('has nothing to say without a line ahead or a price', () => {
     expect(alertHalfway(null, 0.2, 'fall')).toBeNull()
     expect(alertHalfway(2500, 0, 'fall')).toBeNull()

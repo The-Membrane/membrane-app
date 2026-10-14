@@ -61,7 +61,7 @@ export const AlertMeSlot: React.FC<AlertMeSlotProps> = ({ view, address }) => {
     <Box display="grid" minW={0}>
       <Mono>
         {prefill
-          ? `Alert me at ${a.asset} ${fmtUsd(prefill.price)} · halfway to ${line}`
+          ? `Alert me at ${a.asset} ${fmtUsd(prefill.price, prefill.decimals)} · halfway to ${line}`
           : `Alert me at a ${a.asset} price · your line ${line}`}
       </Mono>
       <Small>

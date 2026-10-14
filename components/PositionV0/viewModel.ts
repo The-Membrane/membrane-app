@@ -254,7 +254,12 @@ export function forecastFooter(t: TouchTable, assets: readonly HistoryAsset[], d
   return `† forecast from ${assets.join(' and ')} history ${periodYears(t)} (n ≈ ${fmtInt(n)} per horizon), not a guarantee`
 }
 
-function assumptionOf(model: LineModel | null, basis: RiskBasis): string | null {
+/**
+ * Every leg the model moves, named, and every leg it holds. A ratio holds its quote by
+ * definition, so the quote is not listed as held. Null when one price moves alone, or
+ * when nothing is held at all (the same asset on both sides: the hero says why).
+ */
+export function assumptionOf(model: LineModel | null, basis: RiskBasis): string | null {
   if (!model) return null
   const moving = model.moving
   const held = model.held
@@ -264,7 +269,16 @@ function assumptionOf(model: LineModel | null, basis: RiskBasis): string | null 
     if (held.length > 0) parts.push(`${held.join(', ')} held at today's price`)
     return parts.length ? parts.join('; ') : null
   }
-  return held.length > 0 ? `${model.symbol} moves; ${held.join(', ')} held at today's price` : null
+  if (moving.length === 0) return null
+  // The moving asset's own debt moves with it: say so, so no moving leg goes unnamed.
+  const sides = model.Wm > 0 && model.Dm > 0 ? ' collateral and debt' : model.Wm > 0 ? '' : ' debt'
+  const verb = sides === ' collateral and debt' || moving.length > 1 ? 'move' : 'moves'
+  const lead = `${moving.join(', ')}${sides} ${verb}`
+  if (basis.kind === 'ratio') {
+    const others = held.filter((x) => x !== basis.quote)
+    return `${lead} against ${basis.quote}${others.length ? `; ${others.join(', ')} held at today's price` : ''}`
+  }
+  return held.length > 0 ? `${lead}; ${held.join(', ')} held at today's price` : null
 }
 
 function horizonForecast(
@@ -397,11 +411,11 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
 export function lineTag(v: PositionView): string {
   switch (v.hero.kind) {
     case 'line':
-      return `line ${v.hero.distancePct === 0 ? (v.hero.direction === 'fall' ? '−<1%' : '+<1%') : fmtMove(v.hero.distancePct, v.hero.direction)}`
+      return `line ${fmtMove(v.hero.distancePct, v.hero.direction)}`
     case 'past':
       return '✖ past the line'
     case 'unreachable':
-      return 'no price reaches the line'
+      return v.hero.cause === 'interest' ? 'only interest moves the line' : 'no price reaches the line'
     case 'no-debt':
       return 'no debt'
     case 'unsplit':
@@ -409,9 +423,10 @@ export function lineTag(v: PositionView): string {
   }
 }
 
-/** Nearest its line first: past the line, then smallest distance; no debt last. */
+/** Nearest its line first: past the line, then smallest distance; a line no price reaches, then no debt, last. */
 export function sortNearest(views: PositionView[]): PositionView[] {
-  const rank = (v: PositionView) => (v.hero.kind === 'no-debt' ? Number.POSITIVE_INFINITY : v.distance)
+  const rank = (v: PositionView) =>
+    v.hero.kind === 'no-debt' ? Number.POSITIVE_INFINITY : v.hero.kind === 'unreachable' ? Number.MAX_VALUE : v.distance
   return [...views].sort((a, b) => rank(a) - rank(b))
 }
 

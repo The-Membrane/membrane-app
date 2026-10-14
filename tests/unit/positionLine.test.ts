@@ -228,6 +228,7 @@ describe('classifyRisk', () => {
       position([c('wstETH')], [d('WETH')]),
       position([c('USDC')], [d('USDT')]),
       position([c('LINK')], [d('USDC')]),
+      position([c('wstETH')], [d('wstETH')]),
     ]
     const reasons = cases.map((p) => {
       const b = classifyRisk(snap(p))
@@ -235,9 +236,10 @@ describe('classifyRisk', () => {
     })
     expect(reasons).toEqual([
       'dominant: ETH and BTC legs move separately.',
-      'ratio: The line moves with the wstETH/ETH ratio, not the ETH price.',
+      'ratio: The line moves with the wstETH/WETH ratio, not the ETH price.',
       'dominant: Every leg is a USD stablecoin.',
       'dominant: No price history for LINK yet.',
+      'dominant: Both sides are wstETH: only interest moves the line.',
     ])
   })
 
@@ -256,6 +258,92 @@ describe('classifyRisk', () => {
     expect(h.priceLine).toBeCloseTo(1.2 * (1 - x), 12)
     expect(h.priceShown).toBeGreaterThanOrEqual(h.priceLine) // toward now
     expect(h.unit.kind).toBe('ratio')
+  })
+
+  it('a ratio moves only its base, on both sides; every other leg is held in quote units', () => {
+    // wstETH + WETH collateral against WETH debt: WETH collateral is the quote, held.
+    const a = snap(position([coll('wstETH', 50_000 / 3000, 3000, 0.95), coll('WETH', 20, 2500, 0.95)], [debt('WETH', 32, 2500)]))
+    const ma = lineModel(a, classifyRisk(a))!
+    expect(ma.moving).toEqual(['wstETH'])
+    expect(ma.held).toEqual(['WETH'])
+    expect(lineDistance(ma)).toBeCloseTo((95_000 - 80_000) / 47_500, 12) // 31.6%, not 15.8%
+    // wstETH collateral against WETH and wstETH debt: the wstETH debt moves with the base.
+    const b = snap(position([coll('wstETH', 40, 3000, 0.95)], [debt('WETH', 20, 2500), debt('wstETH', 10, 3000)]))
+    expect(classifyRisk(b)).toMatchObject({ kind: 'ratio', base: 'wstETH', quote: 'WETH' })
+    const mb = lineModel(b, classifyRisk(b))!
+    expect(mb.Dm).toBeCloseTo(30_000, 9)
+    expect(lineDistance(mb)).toBeCloseTo((114_000 - 80_000) / (114_000 - 30_000), 12) // 40.5%
+    // wstETH + weETH against WETH (0xca68's shape): weETH is held, not moved silently.
+    const c2 = snap(position([coll('wstETH', 2464.1, 3127.46, 0.95), coll('weETH', 1715.9, 2774.77, 0.95)], [debt('WETH', 4616.85, 2509.52)]))
+    const mc = lineModel(c2, classifyRisk(c2))!
+    expect(mc.moving).toEqual(['wstETH'])
+    expect(mc.held).toEqual(['weETH', 'WETH'])
+    const Wst = 2464.1 * 3127.46 * 0.95
+    expect(lineDistance(mc)).toBeCloseTo((mc.W - mc.D) / Wst, 12)
+    // Net-zero ETH with USDC on both sides: USDC is held, only wstETH moves against WETH.
+    const z = snap(position([coll('wstETH', 10, 3000, 0.95), coll('USDC', 30_000, 1, 0.78)], [debt('WETH', 11.4, 2500), debt('USDC', 20_000, 1)]))
+    const mz = lineModel(z, classifyRisk(z))!
+    expect(mz.unit).toEqual({ kind: 'ratio', base: 'wstETH', quote: 'WETH' })
+    expect(mz.moving).toEqual(['wstETH'])
+    expect(mz.Wm).toBeCloseTo(28_500, 9)
+  })
+
+  it('WETH collateral against wstETH debt is a WETH/wstETH line, named for its own assets', () => {
+    const s = snap(position([coll('WETH', 40, 2500, 0.95)], [debt('wstETH', 25, 3000)]))
+    const b = classifyRisk(s)
+    expect(b).toEqual({
+      kind: 'ratio',
+      asset: 'ETH',
+      base: 'WETH',
+      quote: 'wstETH',
+      reason: 'The line moves with the WETH/wstETH ratio, not the ETH price.',
+    })
+    const m = lineModel(s, b)!
+    expect(m.priceNow).toBeCloseTo(2500 / 3000, 12)
+    expect(m.direction).toBe('fall')
+  })
+
+  it('a ratio whose base is only debt is a rising-ratio risk', () => {
+    // wstETH collateral against a larger wstETH debt and a WETH debt: quote wstETH, base WETH.
+    const s = snap(position([coll('wstETH', 40, 3000, 0.95)], [debt('wstETH', 20, 3000), debt('WETH', 12, 2500)]))
+    const b = classifyRisk(s)
+    expect(b).toMatchObject({ kind: 'ratio', base: 'WETH', quote: 'wstETH' })
+    const m = lineModel(s, b)!
+    expect(m.direction).toBe('rise')
+    expect(m.Wm).toBe(0)
+    expect(m.Dm).toBeCloseTo(30_000, 9)
+    // HF = 114,000 / (60,000 + 30,000·(1 + x)) = 1 → x = 0.8
+    expect(lineDistance(m)).toBeCloseTo((114_000 - 90_000) / 30_000, 12)
+  })
+
+  it('the same asset on both sides: no price moves the line, only interest does', () => {
+    const s = snap(position([coll('wstETH', 27.34, 3127.46, 0.81)], [debt('wstETH', 7.43, 3127.46)]))
+    const m = lineModel(s, classifyRisk(s))!
+    expect(m.held).toEqual([])
+    expect(m.Dm).toBeCloseTo(m.D, 9)
+    const h = heroOf(m)
+    expect(h).toMatchObject({ kind: 'unreachable', cause: 'interest', symbol: 'wstETH' })
+    // Past the line already, it says so instead.
+    const past = snap(position([coll('WETH', 1, 2500, 0.8)], [debt('WETH', 0.9, 2500)]))
+    expect(heroOf(lineModel(past, classifyRisk(past))).kind).toBe('past')
+  })
+
+  it('dominant leg: a debt in the same asset moves with it', () => {
+    // 0x5723's shape: USDe collateral against USDC + USDT + USDe debt.
+    const s = snap(
+      position([coll('USDe', 96_546, 0.9987281, 0.93)], [debt('USDC', 53_504.7, 0.999892), debt('USDT', 17_841.35, 0.9987281), debt('USDe', 7036.08, 0.9987281)]),
+    )
+    const m = lineModel(s, classifyRisk(s))!
+    expect(m.moving).toEqual(['USDe'])
+    expect(m.held).toEqual(['USDC', 'USDT'])
+    const Wm = 96_546 * 0.9987281 * 0.93
+    const Dm = 7036.08 * 0.9987281
+    expect(lineDistance(m)).toBeCloseTo((m.W - m.D) / (Wm - Dm), 12) // 13.7%, not 12.6%
+    const h = heroOf(m)
+    expect(h.kind === 'line' && h.distancePct).toBe(13)
+    // A debt in the dominant asset larger than its weighted collateral: the risk is a rise.
+    const r = snap(position([coll('USDe', 100, 1, 0.93), coll('USDC', 50, 1, 0.78)], [debt('USDe', 95, 1)]))
+    expect(lineModel(r, classifyRisk(r))!.direction).toBe('rise')
   })
 
   it('same family on both sides with stables beside it: the net exposure sets the direction', () => {
@@ -415,18 +503,18 @@ describe('reverse solve', () => {
     expect(reason).toBe('ok')
     expect(rows.map((r) => r.text)).toEqual([
       // 0.21·33,200 − 5,200 = 1,772 → 1,780 USDC → D 26,220 → 21.02% → L 21 → 10% (8–12%)
-      'Repay $1,780 · line −21% · 10% (8–12%)',
-      'Repay $3,440 · line −26% · 5% (3–7%)',
-      'Repay $4,760 · line −30% · 1% (up to 3%)',
+      'Repay 1,780 USDC · line −21% · 10% (8–12%)',
+      'Repay 3,440 USDC · line −26% · 5% (3–7%)',
+      'Repay 4,760 USDC · line −30% · 1% (up to 3%)',
       // (0.21·33,200 − 5,200)/0.79 = 2,243.04 weighted → /(0.83·4000) = 0.6756 → 0.68 WETH
       'Add 0.68 WETH · line −21% · 10% (8–12%)',
       'Add 1.40 WETH · line −26% · 5% (3–7%)',
       'Add 2.05 WETH · line −30% · 1% (up to 3%)',
     ])
     expect(rows.map((r) => r.short)).toEqual([
-      'Repay $1,780 → 10%',
-      'Repay $3,440 → 5%',
-      'Repay $4,760 → 1%',
+      'Repay 1,780 USDC → 10%',
+      'Repay 3,440 USDC → 5%',
+      'Repay 4,760 USDC → 1%',
       'Add 0.68 WETH → 10%',
       'Add 1.40 WETH → 5%',
       'Add 2.05 WETH → 1%',
@@ -456,8 +544,32 @@ describe('reverse solve', () => {
         r.kind === 'repay' ? afterRepay(m, units * 0.999892, false) : afterAdd(m, units * 2499.2 * 0.83, true)
       expect(lineDistance(accrued(apply(r.amount)))).toBeGreaterThanOrEqual(L - 1e-12)
       expect(lineDistance(accrued(apply(r.amount - step)))).toBeLessThan(L)
-      // The promised line is reached at read time too: Y ≥ L*.
+      // The stated line −Y% is the one left AFTER the buffer's interest, and Y ≥ L*.
+      expect(r.newDistancePct).toBe(floorPct(lineDistance(accrued(apply(r.amount)))))
       expect(r.newDistancePct).toBeGreaterThanOrEqual(r.level)
+      expect(r.history.level).toBe(r.newDistancePct)
+    }
+  })
+
+  it('prints the token amount: repaying exactly that many sub-$1 tokens reaches the stated line', () => {
+    // 0xa56d's shape: a large USDC debt at $0.999892. "Repay $407,716" was 407,760 USDC
+    // times the oracle price; repaying 407,716 tokens landed at 44.9991%.
+    const px = 0.999892
+    const g = accrualFactor(0.05)
+    for (const usd of [3_000, 40_000, 950_000]) {
+      const p = position([coll('WETH', (usd * 1.3) / 0.83 / 2500, 2500, 0.83)], [debt('USDC', usd / px, px)])
+      const s = snap(p)
+      const m = lineModel(s, classifyRisk(s))!
+      for (const h of ['1d', '7d', '30d'] as const) {
+        const { rows } = reverseSolve(s, m, TOUCH_TABLE, 'ETH', h, 0.05)
+        for (const r of rows.filter((x) => x.kind === 'repay')) {
+          const shown = Number(r.text.match(/^Repay ([\d,]+) USDC · /)![1].replace(/,/g, ''))
+          expect(shown).toBe(r.amount)
+          expect(r.text).not.toMatch(/\$/)
+          const after = lineDistance({ ...m, D: (m.D - shown * px) * g })
+          expect(after).toBeGreaterThanOrEqual(r.newDistancePct / 100 - 1e-12)
+        }
+      }
     }
   })
 
@@ -492,6 +604,16 @@ describe('reverse solve', () => {
     })
     const none = snap(position([coll('WETH', 1, 4000, 0.83)], []))
     expect(reverseSolve(none, lineModel(none, classifyRisk(none))!, LINEAR, 'ETH').reason).toBe('no-debt')
+  })
+
+  it('a position so small that one step moves the line past the table says so', () => {
+    // $5 of USDC debt at HF 1.05: one 0.01 WETH top-up ($25) moves the line past the
+    // table's 60%, where no forecast is read; a 10-USDC repay would clear the leg.
+    const s = snap(position([coll('WETH', 5.25 / 0.83 / 2509.52, 2509.52, 0.83)], [debt('USDC', 5 / 0.99989, 0.99989)]))
+    const sv = reverseSolve(s, lineModel(s, classifyRisk(s))!, TOUCH_TABLE, 'ETH', '7d', 0.05)
+    expect(sv.rows).toEqual([])
+    expect(sv.reason).toBe('beyond-table')
+    expect(sv.pastTable).toEqual(['add'])
   })
 
   it('skips repays that would clear the leg; top-ups remain', () => {

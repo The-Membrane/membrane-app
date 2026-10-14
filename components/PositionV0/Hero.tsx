@@ -56,7 +56,7 @@ function lineCopy(hero: Extract<Hero, { kind: 'line' }>, venue: string, priceSou
       dagger,
       danger: false,
       sub: `${dist} · ${priceSource}, ${base} ÷ ${quote}`,
-      sentence: `Below this ratio, ${venue} can liquidate you.`,
+      sentence: `${hero.direction === 'fall' ? 'Below' : 'Above'} this ratio, ${venue} can liquidate you.`,
     }
   }
   return {
@@ -98,14 +98,26 @@ function heroCopy(view: PositionView): HeroCopy {
         sub: `health factor under 1 · ${priceSource}`,
         sentence: `${venue} can liquidate it now.`,
       }
-    case 'unreachable':
+    case 'unreachable': {
+      if (hero.cause === 'interest') {
+        // The same asset on both sides: health factor is the same at every price.
+        return {
+          ...plain,
+          lead: 'No price move reaches this line',
+          figure: null,
+          sub: `${hero.symbol} on both sides · ${priceSource}`,
+          sentence: 'Only interest does.',
+        }
+      }
+      const what = hero.unit.kind === 'ratio' ? `${hero.unit.base}/${hero.unit.quote} ratio` : `${hero.symbol} price`
       return {
         ...plain,
-        lead: `No ${hero.symbol} price reaches the line`,
+        lead: `No ${what} reaches the line`,
         figure: null,
         sub: `the other legs cover the debt · ${priceSource}`,
-        sentence: `A ${hero.symbol} fall alone cannot liquidate it.`,
+        sentence: `A ${hero.symbol} ${hero.direction} alone cannot liquidate it.`,
       }
+    }
     case 'no-debt':
       return {
         ...plain,

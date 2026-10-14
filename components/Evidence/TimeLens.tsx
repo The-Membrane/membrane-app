@@ -71,6 +71,9 @@ const OUTCOME_ROWS: { key: string; label: string; note: string; walked: boolean;
   { key: 'sold-at-band', label: 'Broke the band during the delay; sold at that minute', note: 'LTV passed line \u00d7 1.04 while the timer ran', walked: true, tone: 'bad' },
   { key: 'sold-at-grid-end', label: 'Price data ended mid-delay; sold at the last price', note: 'conservative: a sale is booked', walked: true, tone: 'bad' },
   { key: 'sold-at-t0', label: 'Already past the band when Aave hit; no delay exists', note: 'one repay to cap at t0, same as the one-repay figure', walked: true, tone: 'bad' },
+  // The no-delay class (stable collateral, or a line above 90%): instant mode,
+  // LiquidationEngine.sol:1572-1576 — sold the minute it is over its line, every time.
+  { key: 'sold-no-delay', label: 'No-delay class (stable collateral or line above 90%): sold at once', note: 'the contract grants no window to this class', walked: true, tone: 'bad' },
   // 'sold-immediately-unlocated-line' used to live here. Those accounts are now
   // EXCLUDED from both sides of every total after the block-1 rebase (meta.excluded),
   // so they are not part of this histogram at all — showing them as a 0-row would
@@ -138,7 +141,7 @@ export const TimeLens: React.FC<{ time: TimeSummary; cureModel: CureModel }> = (
             ))}
           </HStack>
           <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary} lineHeight="1.7">
-            {`Diagnostic, older and looser: ${time.curedPct}% of the ${time.accountsAnalysed.toLocaleString()} priceable accounts dipped back under their line at some point in the eight hours (median ${time.medianMinutesToCure} min), and ${time.healthyAt8hPct}% were under it at the 8h mark. The model above is stricter: it sells on a band break and at expiry, and credits nothing to accounts whose line it cannot locate.`}
+            {`Diagnostic, older and looser: ${time.curedPct}% of the ${time.accountsAnalysed.toLocaleString()} priceable accounts dipped back under their line at some point in the eight hours (median ${time.medianMinutesToCure} min), and ${time.healthyAt8hPct}% were under it at the 8h mark.${time.noDelay?.accounts ? ` The ${time.noDelay.accounts.toLocaleString()} no-delay accounts have no window, so none counts as cured; ${time.noDelay.wouldHaveCuredWithWindow.toLocaleString()} would have dipped back on price alone.` : ''} The model above is stricter: it sells on a band break and at expiry, and credits nothing to accounts whose line it cannot locate.`}
           </Text>
         </VStack>
       </Card>

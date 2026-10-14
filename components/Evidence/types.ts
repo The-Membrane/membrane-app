@@ -25,14 +25,23 @@ export interface EvidenceMeta {
     liqDebtMinimumSource: string
     debtMinimumRuleSource: string
   }
-  /** Rows whose breach could not be located even after the rebase. Dropped both sides. */
+  /**
+   * Rows dropped from both sides: a breach that could not be located even after the
+   * rebase, or (a later rule) collateral that mixes the two Membrane delay classes.
+   */
   excluded: {
     accounts: number
     aaveClosedUsd: number
     membraneOneRepayUsd: number
     reason: string
     rebasedIntoBreach: number
+    /** The two exclusion rules, a partition of the excluded rows. */
+    byExclusionRule?: Record<'unlocatedLine' | 'mixedDelayClass', { accounts: number; aaveClosedUsd: number }>
+    /** Mutually exclusive reasons, in priority order; includes `mixedDelayClass`. */
+    byReason?: Record<string, { accounts: number; aaveClosedUsd: number }>
   }
+  /** The Membrane delay class of every row (lib/position-sim/collateralClass.ts). */
+  delayClass?: DelayClassMeta
   /** What each collateral symbol was priced through, and each proxy's exposure. */
   collateralMapping: {
     ethProxy: { symbols: string[]; accounts: number; debtUsd: number; note: string }
@@ -66,6 +75,33 @@ export interface EvidenceMeta {
   /** Rendered verbatim in the UI. These are not footnotes to bury. */
   caveats: string[]
 }
+
+/** Per-class totals over one row set. */
+export interface DelayClassTotals {
+  accounts: number
+  debtUsd: number
+  aaveClosedUsd: number
+  membraneClosedUsd: number
+}
+
+/**
+ * meta.delayClass. 'no-delay' rows (stable collateral, or a line above 90%) are sold the
+ * minute they are over their line; 'mixed' rows cannot exist on Membrane and are excluded.
+ */
+export interface DelayClassMeta {
+  rule: string
+  modelledAssumption: string
+  sources: string[]
+  stableSymbols: string[]
+  measuredStables: string[]
+  noDelayLineAbove: number
+  counts: Record<'cohort' | 'included' | 'priced', Record<DelayClass, DelayClassTotals>>
+  noDelayBy: Record<'included' | 'priced', { stableCollateral: number; lineAbove90Only: number }>
+  linesAbove90: Record<'cohort' | 'included' | 'priced', number>
+  mixedInCohort: number
+}
+
+export type DelayClass = 'no-delay' | 'delayed' | 'mixed'
 
 export interface CureModel {
   engine: string
@@ -200,6 +236,11 @@ export interface TimeSummary {
   medianMinutesToCure: number
   aaveSecondsGranted: number
   membraneSecondsGranted: number
+  /**
+   * The no-delay rows inside `accountsAnalysed`. They have no window, so none is counted
+   * cured; `wouldHaveCuredWithWindow` keeps what that dropped visible.
+   */
+  noDelay?: { accounts: number; wouldHaveCuredWithWindow: number; note: string }
 }
 
 export interface AssetSummary {
@@ -215,6 +256,10 @@ export interface CureRecord {
   minutesToCure: number | null
   bestLtv: number
   endLtv: number
+  /** No-delay class: there is no window, so `curedInWindow` is always false. */
+  noWindow?: boolean
+  /** No-delay class only: would the price alone have cured it inside a window? */
+  wouldHaveCuredWithWindow?: boolean
 }
 
 /** One real liquidated account. The unit the cohort table traverses. */
@@ -247,6 +292,10 @@ export interface CohortRow {
    * can still show the row.
    */
   excluded: boolean
+  /** Why the row is excluded, or null. An unlocated line outranks a mixed class. */
+  excludedReason?: 'unlocatedLine' | 'mixedDelayClass' | null
+  /** The Membrane delay class (collateralClass.ts delayClassOf). */
+  delayClass?: DelayClass
   collSymbol: string
   debtSymbol: string
   aaveClosedUsd: number

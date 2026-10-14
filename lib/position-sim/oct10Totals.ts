@@ -17,6 +17,15 @@ import corpus from '@/public/data/liquidation-corpus.json'
 // used. Both figures are sums over the WHOLE cohort (excluded rows included), so only the
 // wstETH legs' repriced dollars moved: +$18.5k closed, +$1.52M collateral at risk. The
 // headline $144M / 2,350 accounts is unchanged to the nearest million.
+//
+// MOVED AGAIN 2026-10-14: the delay-class rule (lib/position-sim/collateralClass.ts). A
+// no-delay (stable) account is sold the minute it is over its line instead of walking the
+// 8h window, and an account mixing stable and volatile collateral is excluded and carries
+// its one-repay display figure instead of a walk. Over the whole cohort that moves
+// membraneClosedUsd by -$5,880 (77,064,039 -> 77,058,159) and keptUsd by +$5,880, all of
+// it from the 19 mixed rows: the no-delay walk itself moves no dollar on this day (every
+// no-delay row's path is flat or never comes back under its line, so selling at t0 and
+// selling at the 8h expiry repay the same amount — meta.sensitivity.stablesDelayed.sameRows).
 
 /** Measured Oct 10-11 2025 totals. Recomputed from the evidence JSON by the unit test. */
 export const OCT10_TOTALS = {
@@ -28,9 +37,9 @@ export const OCT10_TOTALS = {
   aaveClosedUsd: 144_239_544,
   /** Σ membraneClosedUsd over the cohort — what the 4%/8h window + repay-to-cap would
    *  have closed on the same accounts, same prices, no deployment assumed. */
-  membraneClosedUsd: 77_064_039,
+  membraneClosedUsd: 77_058_159,
   /** aaveClosedUsd − membraneClosedUsd. The day's "4% would have saved" figure. */
-  keptUsd: 67_175_505,
+  keptUsd: 67_181_384,
   /** Σ collateralUsd over the cohort — the pre-liquidation collateral standing behind it. */
   collateralAtRiskUsd: 637_388_334,
   /** The chains the cohort spans, in first-seen order. */

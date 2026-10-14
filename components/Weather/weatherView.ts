@@ -1,0 +1,264 @@
+// THE WEATHER STRIP — view model. Pure: the response from GET /api/weather plus the
+// reader's clock in, every string the strip prints out. No React, so the unit tests run it
+// in node. Rules: membrane-board design/DESIGN_RULES.md (calm is ink; red = a decrease and
+// always carries a glyph; stale = hatch, headline withheld, ages shown; no number without
+// a live source; one failed input hides only its own element).
+
+import type { WeatherResponse } from '@/lib/weather/handler'
+import { HOUR_MS, M0_MAX_INPUT_AGE_MS, type M0Result, type M0Trigger } from '@/lib/regime/m0'
+
+export type StripKind = 'loading' | 'error' | 'calm' | 'choppy' | 'stale'
+
+/** One reason: "ETH −9.2% in 24h" + "p95 8.1%". The figure is red only for a fall. */
+export interface Reason {
+  lead: string
+  figure: string
+  /** A decrease: red, with the ✖ glyph. */
+  loss: boolean
+  tail: string
+  /** The threshold it crossed (the strip drops it on phones; the method table has it). */
+  threshold: string
+}
+
+export interface WeatherView {
+  kind: StripKind
+  /** Hatched strip: stale or unavailable. */
+  hatched: boolean
+  /** The regime word (or the withheld / unavailable line) and its glyph. */
+  regime: { text: string; glyph: '▲' | '░' | null; caps: boolean }
+  /** Choppy with a trigger in the latest hour. */
+  reason: Reason | null
+  /** Choppy only by the hold: "since 09:00 UTC". */
+  since: string | null
+  /** Choppy: "holds to 14:00 UTC". */
+  holds: string | null
+  sentence: string | null
+  credit: string | null
+  gas: string | null
+  /** Every input's age, desktop dateline: "Chainlink 12m", "DVOL unavailable". */
+  ages: string[]
+  /** Phones: the same facts in one item — "inputs ≤40m old", or what is old or missing. */
+  agesBrief: string | null
+  liq: string | null
+}
+
+export const STRIP_COPY = {
+  calm: 'Calm',
+  choppy: 'Choppy',
+  withheld: 'Regime withheld · inputs stale',
+  unavailable: 'Weather unavailable',
+  liq: 'Liq. volume not counted · no live source',
+  credit: 'Deribit DVOL ÷ √365 · measured',
+  dash: '—',
+} as const
+
+/** Inputs past these ages are not printed as figures (their age still is). The regime's
+ *  own inputs use M0's two heartbeats; DVOL is one hourly candle late at 2h; a base fee
+ *  older than 15 min is no longer the current fee. */
+export const MAX_AGE_MS = {
+  oracle: M0_MAX_INPUT_AGE_MS,
+  market: M0_MAX_INPUT_AGE_MS,
+  dvol: 2 * HOUR_MS,
+  gas: 15 * 60_000,
+} as const
+
+const MINUS = '−'
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** "12m", "9s", "3h", "2d" — floored. */
+export function formatAge(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  if (h < 48) return `${h}h`
+  return `${Math.floor(h / 24)}d`
+}
+
+const TWO_SIGNIFICANT = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 2 })
+
+/** 2 significant digits under 1 gwei, else 1 decimal. */
+export function formatGwei(gwei: number): string {
+  if (gwei < 1) return TWO_SIGNIFICANT.format(gwei)
+  return gwei.toFixed(1)
+}
+
+/** "−9.2%" / "+9.2%" from a signed fraction. */
+export function signedPct(v: number, digits: number): string {
+  const s = (Math.abs(v) * 100).toFixed(digits)
+  if (Number(s) === 0) return `${s}%`
+  return `${v < 0 ? MINUS : '+'}${s}%`
+}
+
+const pct = (v: number, digits: number) => `${(Math.abs(v) * 100).toFixed(digits)}%`
+
+/** "14:00 UTC", with the UTC day in front when it is not the reader's UTC day. */
+export function utcClock(ms: number, nowMs: number): string {
+  const d = new Date(ms)
+  const n = new Date(nowMs)
+  const hm = d.toISOString().slice(11, 16)
+  const sameDay =
+    d.getUTCFullYear() === n.getUTCFullYear() &&
+    d.getUTCMonth() === n.getUTCMonth() &&
+    d.getUTCDate() === n.getUTCDate()
+  return sameDay ? `${hm} UTC` : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${hm} UTC`
+}
+
+/** The reason printed for an active trigger: the move if it fired, else the gap. */
+export function reasonFor(triggers: M0Trigger[], at: number): Reason | null {
+  const here = triggers.filter((t) => t.t === at)
+  const move = here.find((t) => t.kind === 'move24h')
+  if (move) {
+    return {
+      lead: 'ETH',
+      figure: signedPct(move.value, 1),
+      loss: move.value < 0,
+      tail: 'in 24h',
+      threshold: `p95 ${pct(move.threshold, 1)}`,
+    }
+  }
+  const gap = here.find((t) => t.kind === 'oracleGap')
+  if (gap) {
+    return {
+      lead: 'Chainlink',
+      figure: pct(gap.value, 2),
+      loss: false,
+      tail: `${gap.value < 0 ? 'below' : 'above'} Coinbase`,
+      threshold: `band ${pct(gap.threshold, 2)}`,
+    }
+  }
+  return null
+}
+
+interface AgeInput {
+  name: string
+  asOf: number | null
+  failed: boolean
+  maxAge: number
+}
+
+function agesOf(body: WeatherResponse): AgeInput[] {
+  const r = body.regime
+  return [
+    {
+      name: 'Chainlink',
+      asOf: r.inputs.oracleAsOf,
+      failed: !!body.errors.oracle,
+      maxAge: MAX_AGE_MS.oracle,
+    },
+    {
+      name: 'Coinbase',
+      asOf: r.inputs.marketAsOf,
+      failed: !!body.errors.market,
+      maxAge: MAX_AGE_MS.market,
+    },
+    { name: 'DVOL', asOf: body.dvol?.asOfMs ?? null, failed: !body.dvol, maxAge: MAX_AGE_MS.dvol },
+    { name: 'gas', asOf: body.gas?.asOfMs ?? null, failed: !body.gas, maxAge: MAX_AGE_MS.gas },
+  ]
+}
+
+const fresh = (asOf: number | null | undefined, maxAge: number, nowMs: number): asOf is number =>
+  typeof asOf === 'number' && nowMs - asOf <= maxAge
+
+const EMPTY: Omit<WeatherView, 'kind' | 'hatched' | 'regime'> = {
+  reason: null,
+  since: null,
+  holds: null,
+  sentence: null,
+  credit: null,
+  gas: null,
+  ages: [],
+  agesBrief: null,
+  liq: null,
+}
+
+export function weatherView(input: {
+  status: 'pending' | 'error' | 'success'
+  data: WeatherResponse | undefined
+  nowMs: number
+}): WeatherView {
+  const { data, nowMs } = input
+  if (!data) {
+    if (input.status === 'pending') {
+      return {
+        ...EMPTY,
+        kind: 'loading',
+        hatched: false,
+        regime: { text: STRIP_COPY.dash, glyph: null, caps: false },
+        sentence: STRIP_COPY.dash,
+        agesBrief: STRIP_COPY.dash,
+      }
+    }
+    return {
+      ...EMPTY,
+      kind: 'error',
+      hatched: true,
+      regime: { text: STRIP_COPY.unavailable, glyph: '░', caps: true },
+    }
+  }
+
+  const r: M0Result = data.regime
+  // A response this old (a dead network keeps the last good one) is itself stale input.
+  const responseOld = nowMs - data.now > M0_MAX_INPUT_AGE_MS
+  const kind: StripKind = responseOld ? 'stale' : r.state
+
+  const inputs = agesOf(data)
+  const ages = inputs.map((a) =>
+    a.failed || a.asOf === null
+      ? `${a.name} unavailable`
+      : `${a.name} ${formatAge(nowMs - a.asOf)}`,
+  )
+  const problems = inputs
+    .filter((a) => a.failed || a.asOf === null || !fresh(a.asOf, a.maxAge, nowMs))
+    .map((a) =>
+      a.failed || a.asOf === null
+        ? `${a.name} unavailable`
+        : `${a.name} ${formatAge(nowMs - (a.asOf as number))} old`,
+    )
+  const oldest = Math.max(...inputs.map((a) => (a.asOf === null ? 0 : nowMs - a.asOf)))
+  const agesBrief = problems.length ? problems.join(' · ') : `inputs ≤${formatAge(oldest)} old`
+
+  const dvolFresh = data.dvol && fresh(data.dvol.asOfMs, MAX_AGE_MS.dvol, nowMs) ? data.dvol : null
+  const gasFresh = data.gas && fresh(data.gas.asOfMs, MAX_AGE_MS.gas, nowMs) ? data.gas : null
+
+  const base = {
+    ...EMPTY,
+    sentence: dvolFresh
+      ? `The market prices a ${dvolFresh.dailyMovePct.toFixed(1)}% daily ETH move.`
+      : null,
+    credit: dvolFresh ? STRIP_COPY.credit : null,
+    gas: gasFresh ? `Base fee ${formatGwei(gasFresh.gwei)} gwei` : null,
+    ages,
+    agesBrief,
+    liq: STRIP_COPY.liq,
+  }
+
+  if (kind === 'stale') {
+    return {
+      ...base,
+      kind,
+      hatched: true,
+      regime: { text: STRIP_COPY.withheld, glyph: '░', caps: true },
+    }
+  }
+  if (kind === 'calm') {
+    return {
+      ...base,
+      kind,
+      hatched: false,
+      regime: { text: STRIP_COPY.calm, glyph: null, caps: true },
+    }
+  }
+  // Choppy. Active: the reason and the hold. Held: since … · holds to ….
+  const active = r.active && r.lastTriggerAt !== null
+  return {
+    ...base,
+    kind,
+    hatched: false,
+    regime: { text: STRIP_COPY.choppy, glyph: '▲', caps: true },
+    reason: active ? reasonFor(r.triggers, r.lastTriggerAt as number) : null,
+    since: !active && r.since !== null ? `since ${utcClock(r.since, nowMs)}` : null,
+    holds: r.holdsUntil !== null ? `holds to ${utcClock(r.holdsUntil, nowMs)}` : null,
+  }
+}

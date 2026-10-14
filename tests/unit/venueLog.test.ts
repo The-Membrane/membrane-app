@@ -133,6 +133,15 @@ describe('headroom_thin sentence names the capacity it judged', () => {
   it('curve capacity: "swap-out capacity within 1% cost"', () => {
     expect(alarmConsequence(alarm({ ...base, source: 'depth_curve', costCapPct: 1 })).text).toContain('swap-out capacity within 1% cost $2.00M')
   })
+  it('names an unknown alarm kind and never dumps JSON', () => {
+    const c = alarmConsequence({
+      venue: 'aave-v3-usde', kind: 'terms_page_notice', at: '2026-10-05T00:00:00.000Z', prev: null, next: null,
+      provenance: 'alarm', severity: 'alarm', evidence: { count: 1, events: [{ url: 'https://example.com/terms', hash: 'aa' }] }, cleared: true,
+    })
+    expect(c.text).toBe('CLEARED · terms page notice flagged')
+    expect(c.text).not.toMatch(/[{}"]/)
+    expect(c.tone).toBe('muted')
+  })
   it('raw fallback says it has no cost bound', () => {
     expect(alarmConsequence(alarm({ ...base, source: 'depth_usd_raw' })).text).toContain('raw swap-out reserve (no cost bound)')
     expect(alarmConsequence(alarm({ ...base, source: 'depth_usd' })).text).toContain('raw swap-out reserve (no cost bound)')

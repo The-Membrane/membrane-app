@@ -876,3 +876,114 @@ export const venueDepthCurves = pgTable(
   },
   (table) => [index('venue_depth_curves_venue_observed_idx').on(table.venue, table.observedAt)],
 )
+
+// ---------------------------------------------------------------------------
+// USER THRESHOLD ALERTS ("Alert me at X", docs/USER_ALERTS.md). OPT-IN per-user
+// thresholds on price / utilization / APR, delivered by an RSS feed whose URL holds
+// the owner's feed token (the ONLY way to read them), and — once the owner sets
+// TELEGRAM_ALERTS_WEBHOOK_SECRET — by the alerts bot to chats linked to that feed.
+// No endpoint lists thresholds by address, by subject or in aggregate.
+// DDL in scripts/apply-alert-thresholds-ddl.mjs (`pnpm alerts:ddl`) — keep them in
+// lockstep.
+// ---------------------------------------------------------------------------
+
+// One row per FEED. The feed token (32 random bytes, hex) lives here once, so the
+// unique index means one token ⇔ one owner. Several feeds may share an address: the
+// address is not authenticated, so a POST without a feed's token mints a new feed
+// rather than reveal an existing one.
+export const userAlertOwners = pgTable(
+  'user_alert_owners',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerKind: text('owner_kind').notNull(), // 'address' | 'telegram' (reserved: a chat-created owner)
+    ownerKey: text('owner_key').notNull(), // lower-cased 0x address, or a Telegram chat id
+    feedToken: text('feed_token').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('user_alert_owners_feed_token_key').on(table.feedToken),
+    index('user_alert_owners_owner_idx').on(table.ownerKind, table.ownerKey),
+    check('user_alert_owners_kind_check', sql`${table.ownerKind} IN ('address', 'telegram')`),
+  ],
+)
+
+export const userAlertThresholds = pgTable(
+  'user_alert_thresholds',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => userAlertOwners.id, { onDelete: 'cascade' }),
+    metric: text('metric').notNull(), // 'price' | 'utilization' | 'apr'
+    subject: text('subject').notNull(), // 'asset:ETH' | 'venue:<recorder venue key>'
+    direction: text('direction').notNull(), // 'above' | 'below'
+    threshold: numeric('threshold').notNull(), // USD (price) or percent (utilization, apr)
+    optedInAt: timestamp('opted_in_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    stoppedAt: timestamp('stopped_at', { withTimezone: true }), // null = active
+    lastValue: numeric('last_value'),
+    lastEvaluatedAt: timestamp('last_evaluated_at', { withTimezone: true }),
+    crossedAt: timestamp('crossed_at', { withTimezone: true }), // start of the current crossing; null = not crossed
+  },
+  (table) => [
+    index('user_alert_thresholds_owner_active_idx').on(table.ownerId).where(sql`stopped_at IS NULL`),
+    check('user_alert_thresholds_metric_check', sql`${table.metric} IN ('price', 'utilization', 'apr')`),
+    check('user_alert_thresholds_direction_check', sql`${table.direction} IN ('above', 'below')`),
+  ],
+)
+
+// One row per transition. crossing_at = the crossed_at of the crossing this event
+// opens or closes; UNIQUE (threshold_id, kind, crossing_at) makes each transition
+// recordable once, however many reads race.
+export const userAlertEvents = pgTable(
+  'user_alert_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    thresholdId: uuid('threshold_id')
+      .notNull()
+      .references(() => userAlertThresholds.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(), // 'crossed' | 'cleared'
+    value: numeric('value').notNull(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    asOf: timestamp('as_of', { withTimezone: true }).notNull(), // the source value's own as-of
+    source: text('source').notNull(), // e.g. 'Chainlink ETH / USD'
+    crossingAt: timestamp('crossing_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('user_alert_events_transition_key').on(table.thresholdId, table.kind, table.crossingAt),
+    index('user_alert_events_threshold_at_idx').on(table.thresholdId, table.at),
+    check('user_alert_events_kind_check', sql`${table.kind} IN ('crossed', 'cleared')`),
+  ],
+)
+
+// A Telegram chat linked to an alert feed (/start th_<token>). A LINK, not a copy:
+// the thresholds stay one set, so stopping one on the web stops its messages too.
+export const userAlertChatLinks = pgTable(
+  'user_alert_chat_links',
+  {
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => userAlertOwners.id, { onDelete: 'cascade' }),
+    chatId: text('chat_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    stoppedAt: timestamp('stopped_at', { withTimezone: true }), // /stop; null = active
+  },
+  (table) => [
+    primaryKey({ columns: [table.ownerId, table.chatId] }),
+    index('user_alert_chat_links_chat_active_idx').on(table.chatId).where(sql`stopped_at IS NULL`),
+  ],
+)
+
+// The Telegram idempotency ledger (alert_deliveries pattern): an (event, chat) is
+// sent at most once — claimed before the send, released if the send fails.
+export const userAlertDeliveries = pgTable(
+  'user_alert_deliveries',
+  {
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => userAlertEvents.id, { onDelete: 'cascade' }),
+    chatId: text('chat_id').notNull(),
+    sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.eventId, table.chatId] })],
+)

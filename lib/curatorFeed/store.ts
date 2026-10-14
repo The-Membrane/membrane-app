@@ -281,3 +281,48 @@ export function parseFlowsFile(raw: unknown): FlowsFile {
     throw new Error('curator flows: bad file')
   return raw as unknown as FlowsFile
 }
+
+// ── oracle-gap.json (lib/curatorFeed/oracleGap.ts) ─────────────────────────────
+// The live oracle-vs-market gap series: one run per UTC hour that observed at least one
+// market (a later run in the same hour replaces it), the last `keepDays` days. A market
+// with no row in a run was unobserved in that run (no answer, or no fresh DefiLlama price).
+// Not part of the 20 MB feed budget: ~300 markets × 168 runs of six numbers.
+
+export const ORACLE_GAP_SCHEMA = 1
+export const ORACLE_GAP_FILE = 'oracle-gap.json'
+
+/** [run index, market index, oracleUsd, marketUsd, marketConfidence (null: none), gap] */
+export type OracleGapRow = [number, number, number, number, number | null, number]
+
+export interface OracleGapFile {
+  schema: number
+  chainId: 1
+  marketSource: 'defillama'
+  keepDays: number
+  /** [ts, block] of each kept run, oldest first; ts = the head block the oracles were read at. */
+  runs: [number, number][]
+  /** Morpho Blue market ids (lowercase), indexed by rows. */
+  markets: string[]
+  rows: OracleGapRow[]
+}
+
+export function parseOracleGapFile(raw: unknown): OracleGapFile {
+  if (
+    !isObj(raw) ||
+    raw.schema !== ORACLE_GAP_SCHEMA ||
+    !Array.isArray(raw.runs) ||
+    !Array.isArray(raw.markets) ||
+    !Array.isArray(raw.rows)
+  )
+    throw new Error('oracle gap: bad file')
+  const f = raw as unknown as OracleGapFile
+  for (const r of f.rows.slice(0, 50))
+    if (
+      !Array.isArray(r) ||
+      r.length !== 6 ||
+      f.runs[r[0]] === undefined ||
+      f.markets[r[1]] === undefined
+    )
+      throw new Error('oracle gap: malformed row')
+  return f
+}

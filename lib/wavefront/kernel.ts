@@ -24,8 +24,7 @@
  * ---------------------------------------------------------------------------
  * cureWalk reads ONE composite ratio. The kernel is given legs — collateral and debt, each
  * with its value at t0 in the position's unit — and asks `ratioOf(leg)` = p(m) / p(t0) for
- * each leg at every minute (null = no observation: that leg's last ratio is carried
- * forward, the clock keeps running). The composite is
+ * each leg at every minute. The composite is
  *
  *     C(m) = Σ w_i r_i(m)     w_i = collateral value share at t0
  *     D(m) = Σ u_j q_j(m)     u_j = debt value share at t0
@@ -50,11 +49,20 @@
  *   Locating a breach is the caller's job (the census decides `walked` from the protocol's own
  *   health check before it builds a kernel).
  *
+ * MISSING PRICES ARE AN ERROR BY DEFAULT. A null, zero or negative ratio for a held leg throws:
+ * a frozen price looks exactly like a calm market, so silently carrying the last one forward
+ * would let a dead feed hold a position "healthy". The Oct 10-11 census has no gap anywhere,
+ * so it never needs more. `missingPrice: 'carry-forward'` exists for exactly one caller —
+ * the cureWalk equivalence test, because cureWalk carries a null ratio forward — and the live
+ * engine must decide its own gap policy explicitly rather than inherit a silent freeze.
+ *
  * SOLD AT t0 PAST THE BAND: a delayed position already past line × (1 + band) at t0 is sold
- * at once (`Immediate`, LiquidationEngine.sol:1390) and then WALKS ON like after every other
- * sale — the contract deletes the timer after any sale and the position stays live
- * (:1421-1423). cureWalk does the same. `stopAfterT0BandSale: true` reproduces the old stop
- * after one repay, which both censuses publish as a sensitivity.
+ * at once (`Immediate`, LiquidationEngine.sol:1694-1703 at 16e12329) and then WALKS ON like
+ * after every other sale: a sale leaves no timer (a band break or an expiry deletes it,
+ * :1724-1727; an Immediate sale never had one) and nothing closes the position, so a later
+ * breach can arm a fresh window and a later band break sells again. cureWalk does the same.
+ * `stopAfterT0BandSale: true` reproduces the old stop after one repay, which both censuses
+ * publish as a sensitivity.
  */
 
 import {
@@ -115,6 +123,12 @@ export interface KernelSpec {
    * cureWalk behaviour, CureWalkInput.stopAfterT0BandSale). Default false: it walks on.
    */
   stopAfterT0BandSale?: boolean
+  /**
+   * What a null / zero / negative ratio does. 'throw' (the default): it is an error — see
+   * MISSING PRICES in the header. 'carry-forward': the leg's last ratio stands (cureWalk's
+   * semantics; the equivalence test only).
+   */
+  missingPrice?: 'throw' | 'carry-forward'
 }
 
 /** cureWalk's result fields, so the two engines can be compared field for field. */
@@ -309,7 +323,7 @@ export class MembraneKernel {
     const ltv0 = this.debt0 / this.coll0
     if (ltv0 <= s.line) this.startUnbreached = true
 
-    // Past the band at t0, delayed class: `Immediate` (LiquidationEngine.sol:1390).
+    // Past the band at t0, delayed class: `Immediate` (LiquidationEngine.sol:1698 at 16e12329).
     if (!s.noDelay && ltv0 > s.line * (1 + s.band)) {
       const act = this.timer.step(0, ltv0) // counts the breach; returns sell/band
       if (act.kind !== 'sell') throw new Error('unreachable: past the band must sell')
@@ -369,7 +383,8 @@ export class MembraneKernel {
 
   /**
    * One grid minute after t0. `ratioOf(leg)` = that leg's price at this minute over its price
-   * at t0 (null / non-positive = no observation: carried forward). Minutes must increase.
+   * at t0. A null / non-positive ratio throws unless `missingPrice: 'carry-forward'`. Minutes
+   * must increase.
    */
   step(minute: number, ratioOf: (leg: KernelLeg) => number | null | undefined): MemRecord[] {
     if (!this.started) throw new Error(`kernel ${this.spec.pid}: step() before start()`)
@@ -382,9 +397,19 @@ export class MembraneKernel {
     const s = this.spec
     const i = minute - s.t0Minute
 
+    const carry = s.missingPrice === 'carry-forward'
+    const missing = (leg: KernelLeg, raw: number | null | undefined) => {
+      if (!carry) {
+        throw new Error(
+          `kernel ${s.pid}: no price for ${leg.symbol} (${leg.key}) at minute ${minute} (ratio ${raw}); ` +
+            'a missing price is an error, never carried forward silently',
+        )
+      }
+    }
     let c = 0
     for (let k = 0; k < s.collateral.length; k++) {
       const raw = ratioOf(s.collateral[k])
+      if (raw == null || !(raw > 0)) missing(s.collateral[k], raw)
       const r = raw == null || !(raw > 0) ? this.lastC[k] : raw
       this.lastC[k] = r
       c += this.wC[k] * r
@@ -392,6 +417,7 @@ export class MembraneKernel {
     let d = 0
     for (let k = 0; k < s.debt.length; k++) {
       const raw = ratioOf(s.debt[k])
+      if (raw == null || !(raw > 0)) missing(s.debt[k], raw)
       const q = raw == null || !(raw > 0) ? this.lastD[k] : raw
       this.lastD[k] = q
       d += this.wD[k] * q

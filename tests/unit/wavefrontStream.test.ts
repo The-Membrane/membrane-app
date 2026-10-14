@@ -1,15 +1,18 @@
 /**
- * The wavefront stream, schema v1 (lib/wavefront/stream.ts): both file forms round-trip, and
+ * The wavefront stream, schema v2 (lib/wavefront/stream.ts): both file forms round-trip, and
  * the ONE reducer's invariants hold over the whole served Oct 10-11 replay
  * (public/data/oct10-2025/wavefront-replay.json) — every position opened exactly once and
  * before anything else about it, ticks equal to the fold, the sold / armed / kept partition,
- * totals equal to the sum over positions, and the served summary equal to the fold.
+ * totals equal to the sum over WALKED positions on both sides, and the served summary equal
+ * to the fold; Aave pids are the 4-part (pool) form and legacy 3-part ids still decode.
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { AAVE_CORE_POOL, parseAnyPid } from '@/lib/wavefront/pid'
 import {
+  STREAM_SCHEMA,
   applyRecord,
   createReplayState,
   decodeCompact,
@@ -41,13 +44,23 @@ describe('wavefront stream: file forms', () => {
   it('JSONL round-trips the records exactly', () => {
     const text = encodeJsonl(W, records)
     const back = decodeJsonl(text)
-    expect(back.header.schema).toBe(1)
+    expect(back.header.schema).toBe(STREAM_SCHEMA)
+    expect(STREAM_SCHEMA).toBe(2)
     expect(back.header.window).toEqual(W)
     expect(back.records).toEqual(records)
   })
 
   it('every record is already rounded the way the stream stores it', () => {
     for (const r of records) expect(roundRecord(r)).toEqual(r)
+  })
+
+  it('every pid is the 4-part form of lib/wavefront/pid.ts (Aave by pool address)', () => {
+    for (const r of records) {
+      if (r.kind !== 'open') continue
+      const p = parseAnyPid(r.pid)
+      expect(p.market, r.pid).not.toBeNull()
+      if (p.protocol === 'aave-v3') expect(p.market, r.pid).toMatch(/^0x[0-9a-f]{40}$/)
+    }
   })
 
   it('the served replay is under 2 MB', () => {
@@ -87,7 +100,7 @@ describe('wavefront stream: reducer invariants over the whole Oct 10-11 replay',
   it('opens every position exactly once', () => {
     expect([...opened.values()].every((n) => n === 1)).toBe(true)
     expect(opened.size).toBe(state.positions.size)
-    expect(state.coverage.total).toBe(3163)
+    expect(state.coverage.total).toBe(3197)
   })
 
   it('ticks every 10 minutes across the whole window, the last at the window end', () => {
@@ -108,8 +121,8 @@ describe('wavefront stream: reducer invariants over the whole Oct 10-11 replay',
     expect(T.positionsArmed).toBe(0)
   })
 
-  it('totals equal the sum over positions, on both sides', () => {
-    const ps = [...state.positions.values()]
+  it('totals equal the sum over WALKED positions, on both sides', () => {
+    const ps = [...state.positions.values()].filter((p) => p.open.walked)
     const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(0.02)
     near(
       state.totals.real.repaidUsd,
@@ -133,8 +146,8 @@ describe('wavefront stream: reducer invariants over the whole Oct 10-11 replay',
     )
     expect(state.totals.real.positions).toBe(ps.filter((p) => p.real.events > 0).length)
     expect(state.totals.mem.positionsSold).toBe(ps.filter((p) => p.mem.sales > 0).length)
-    // every position has its real liquidations in the stream
-    expect(ps.every((p) => p.real.events > 0)).toBe(true)
+    // every position has its real liquidations in the stream, walked or not
+    expect([...state.positions.values()].every((p) => p.real.events > 0)).toBe(true)
   })
 
   it('the served summary is the fold', () => {
@@ -144,6 +157,9 @@ describe('wavefront stream: reducer invariants over the whole Oct 10-11 replay',
     const walkedPs = [...state.positions.values()].filter((p) => p.open.walked)
     const realWalked = walkedPs.reduce((a, p) => a + p.real.repaidUsd, 0)
     expect(Math.abs(summary.totals.walked.real.repaidUsd - realWalked)).toBeLessThan(0.05)
+    // the reducer's real totals ARE the walked positions' (same positions on both sides)
+    expect(Math.abs(state.totals.real.repaidUsd - realWalked)).toBeLessThan(0.05)
+    expect(state.totals.real.positions).toBe(walkedPs.length)
     expect(Math.abs(summary.totals.walked.mem.repaidUsd - state.totals.mem.repaidUsd)).toBeLessThan(
       0.05,
     )
@@ -163,6 +179,9 @@ describe('wavefront stream: reducer invariants over the whole Oct 10-11 replay',
 
 describe('wavefront stream: the reducer refuses what the schema forbids', () => {
   const W0: StreamWindow = { startTs: 1000, stepSeconds: 60, minutes: 20 }
+  const POOL = AAVE_CORE_POOL.mainnet
+  const A = `aave-v3:mainnet:${POOL}:0xa`
+  const B = `aave-v3:mainnet:${POOL}:0xb`
   const open = (seq: number, pid: string, walked = true): OpenRecord => ({
     kind: 'open',
     seq,
@@ -196,28 +215,48 @@ describe('wavefront stream: the reducer refuses what the schema forbids', () => 
   const run = (rs: StreamRecord[]) => () => replay(rs)
 
   it('accepts a minimal valid stream and moves a position kept -> armed -> sold', () => {
-    const s = replay([open(1, 'aave-v3:mainnet:0xa'), mem(2, 'aave-v3:mainnet:0xa', 'arm')])
+    const s = replay([open(1, A), mem(2, A, 'arm')])
     expect(s.totals.mem.positionsArmed).toBe(1)
-    applyRecord(s, mem(3, 'aave-v3:mainnet:0xa', 'sell'))
+    applyRecord(s, mem(3, A, 'sell'))
     expect(s.totals.mem.positionsSold).toBe(1)
     expect(s.totals.mem.positionsArmed).toBe(0)
     expect(s.totals.mem.repaidUsd).toBe(10)
   })
   it('a second open of the same pid', () => {
-    expect(run([open(1, 'aave-v3:mainnet:0xa'), open(2, 'aave-v3:mainnet:0xa')])).toThrow(
-      /opened twice/,
-    )
+    expect(run([open(1, A), open(2, A)])).toThrow(/opened twice/)
   })
   it('a record before its open', () => {
-    expect(run([mem(1, 'aave-v3:mainnet:0xa', 'arm')])).toThrow(/before open/)
+    expect(run([mem(1, A, 'arm')])).toThrow(/before open/)
   })
   it('a mem record for a position not walked', () => {
-    expect(
-      run([open(1, 'aave-v3:mainnet:0xa', false), mem(2, 'aave-v3:mainnet:0xa', 'arm')]),
-    ).toThrow(/not walked/)
+    expect(run([open(1, A, false), mem(2, A, 'arm')])).toThrow(/not walked/)
   })
   it('a seq that does not increase', () => {
-    expect(run([open(2, 'aave-v3:mainnet:0xa'), open(2, 'aave-v3:mainnet:0xb')])).toThrow(/seq/)
+    expect(run([open(2, A), open(2, B)])).toThrow(/seq/)
+  })
+  it('a position that is not walked counts in coverage only, never in the real totals', () => {
+    const real: StreamRecord = {
+      kind: 'real',
+      seq: 2,
+      pid: A,
+      ts: 1000,
+      block: 1,
+      tx: '0x1',
+      logIndex: 0,
+      repaidUsd: 50,
+      seizedUsd: 55,
+    }
+    const s = replay([open(1, A, false), real])
+    expect(s.coverage).toEqual({ walked: 0, total: 1 })
+    expect(s.totals.real.repaidUsd).toBe(0)
+    expect(s.totals.real.positions).toBe(0)
+    expect(s.positions.get(A)!.real.repaidUsd).toBe(50) // still in the position's own state
+  })
+  it('the compact codec round-trips a 4-part Aave pid and a legacy 3-part one', () => {
+    const legacy = 'aave-v3:mainnet:0xc'
+    const rs: StreamRecord[] = [open(1, A), { ...open(2, legacy), seq: 2 }]
+    const back = decodeCompact(encodeCompact(W0, rs))
+    expect(back.map((r) => (r as OpenRecord).pid)).toEqual([A, legacy])
   })
   it('a tick that is not the fold', () => {
     const t: StreamRecord = {
@@ -228,7 +267,6 @@ describe('wavefront stream: the reducer refuses what the schema forbids', () => 
       coverage: { walked: 5, total: 5 },
       totals: replay([]).totals,
     }
-    expect(run([open(1, 'aave-v3:mainnet:0xa'), t])).toThrow(/coverage/)
-    void W0
+    expect(run([open(1, A), t])).toThrow(/coverage/)
   })
 })

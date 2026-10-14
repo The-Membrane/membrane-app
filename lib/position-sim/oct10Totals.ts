@@ -29,7 +29,8 @@ import corpus from '@/public/data/liquidation-corpus.json'
 // Membrane, -$6,084 collateral at risk. The headline $144M is unchanged.
 //
 // MOVED 2026-10-14: an account sold at t0 past the band now walks on after that sale, as the
-// contract does (LiquidationEngine.sol:1421-1423), instead of stopping after one repay. One
+// contract does (a sale leaves no timer, LiquidationEngine.sol:1724-1727 at 16e12329), instead
+// of stopping after one repay. One
 // account (mainnet 0x9bafc9) is sold again later: Membrane +$13,303, kept -$13,304. The
 // $67M scale line is unchanged.
 

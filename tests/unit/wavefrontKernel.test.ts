@@ -11,7 +11,7 @@
  * the rows cureWalk would call unlocated over their line so they are compared too; the old
  * stop after a t0 sale past the band, which both engines keep only for the sensitivity).
  * Both engines walk on after a t0 sale past the band by default, as the contract does
- * (LiquidationEngine.sol:1421-1423).
+ * (LiquidationEngine.sol:1694-1703, :1724-1727 at 16e12329).
  *
  * The one deliberate difference: a row whose LTV0 is at or under its line (cureWalk's
  * 'sold-immediately-unlocated-line', which the census excludes) is walked by the kernel.
@@ -121,6 +121,8 @@ function runKernel(row: any, ratios: (number | null)[], input: CureWalkInput) {
     noEarlyClear: input.noEarlyClear,
     maxRepayPerSale: input.maxRepayPerSaleUsd,
     stopAfterT0BandSale: input.stopAfterT0BandSale,
+    // cureWalk carries a null ratio forward; the kernel only does when told to.
+    missingPrice: 'carry-forward',
   })
   k.start()
   for (let m = i0 + 1; m < NP; m++) k.step(m, (leg) => (leg.key === 'c' ? ratios[m - i0] : 1))
@@ -218,4 +220,37 @@ describe('wavefront kernel == cureWalk on every evidence.json row with a usable 
       expect(sold).toBeGreaterThan(100)
     })
   }
+})
+
+describe('wavefront kernel: a missing price is an error, never a silent freeze', () => {
+  const spec = (missingPrice?: 'throw' | 'carry-forward') => ({
+    pid: 'test',
+    collateral: [{ key: 'c', symbol: 'WETH', value0: 1000 }],
+    debt: [{ key: 'd', symbol: 'USDC', value0: 810 }],
+    line: 0.8,
+    noDelay: false,
+    band: MAX_THRESHOLD_TO_DELAY,
+    delaySteps: 480,
+    gap: BORROW_LTV_GAP,
+    debtMinimum: 0,
+    maxSales: 20,
+    t0Minute: 0,
+    t0Ts: 0,
+    startTs: 0,
+    stepSeconds: 60,
+    lastMinute: 10,
+    ...(missingPrice ? { missingPrice } : {}),
+  })
+  it('throws by default on a null, zero or negative ratio', () => {
+    for (const bad of [null, 0, -1, undefined]) {
+      const k = new MembraneKernel(spec())
+      k.start()
+      expect(() => k.step(1, (leg) => (leg.key === 'c' ? bad : 1))).toThrow(/never carried forward/)
+    }
+  })
+  it("carries the last ratio forward only when told to ('carry-forward', cureWalk's semantics)", () => {
+    const k = new MembraneKernel(spec('carry-forward'))
+    k.start()
+    expect(() => k.step(1, (leg) => (leg.key === 'c' ? null : 1))).not.toThrow()
+  })
 })

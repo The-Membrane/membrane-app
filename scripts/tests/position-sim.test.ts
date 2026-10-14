@@ -661,10 +661,10 @@ test('a breach already past the band at t0 gets no window at all', () => {
 })
 
 test('a sale at t0 past the band walks on, and a later band break sells again', () => {
-  // 90% on an 80% line is past the 83.2% break line: Immediate at t0 (LiquidationEngine.sol:1390),
-  // repaid to the 77% cap. The contract deletes the timer after ANY sale and the position stays
-  // live (:1421-1423), so the walk goes on: a 10% fall puts the reduced position at 85.6%, past
-  // the band again, and it is sold again.
+  // 90% on an 80% line is past the 83.2% break line: Immediate at t0 (LiquidationEngine.sol
+  // :1694-1703 at 16e12329), repaid to the 77% cap. A sale leaves no timer (:1724-1727) and the
+  // position stays live, so the walk goes on: a 10% fall puts the reduced position at 85.6%,
+  // past the band again, and it is sold again.
   const ratios = [1, ...new Array(30).fill(1), ...new Array(30).fill(0.9)]
   const input = { ...walkBase, debtUsd: 900_000, collateralUsd: 1_000_000, ratios }
   const r = cureWalk(input)

@@ -7,40 +7,227 @@
   "from": "2025-10-10T00:00:00Z",
   "to": "2025-10-11T23:59:00Z (minute start of the last step)"
  },
+ "scope": {
+  "inScope": "Every Aave V3 pool registered in the PoolAddressesProviderRegistry of mainnet, Arbitrum, Optimism and Base, and the Morpho Blue singleton of each of those chains (recall-coverage/inputs/oct10/onchain/events-scan.json).",
+  "markets": [
+   {
+    "chain": "mainnet",
+    "venue": "aave-v3:core",
+    "name": "Aave Ethereum Market",
+    "pool": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+    "events": 902,
+    "inOwnerCsv": 902
+   },
+   {
+    "chain": "mainnet",
+    "venue": "aave-v3:lido",
+    "name": "Aave V3 Lido Ethereum",
+    "pool": "0x4e033931ad43597d96d6bcc25c280717730b58b1",
+    "events": 3,
+    "inOwnerCsv": 0
+   },
+   {
+    "chain": "mainnet",
+    "venue": "aave-v3:etherfi",
+    "name": "Aave V3 EtherFi Ethereum",
+    "pool": "0x0aa97c284e98396202b6a04024f5e2c65026f3c0",
+    "events": 0,
+    "inOwnerCsv": 0
+   },
+   {
+    "chain": "mainnet",
+    "venue": "morpho-blue",
+    "name": "Morpho Blue",
+    "pool": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+    "events": 268,
+    "inOwnerCsv": 268
+   },
+   {
+    "chain": "arbitrum",
+    "venue": "aave-v3:core",
+    "name": "Arbitrum Aave Market",
+    "pool": "0x794a61358d6845594f94dc1db02a252b5b4814ad",
+    "events": 938,
+    "inOwnerCsv": 938
+   },
+   {
+    "chain": "arbitrum",
+    "venue": "morpho-blue",
+    "name": "Morpho Blue",
+    "pool": "0x6c247b1f6182318877311737bac0844baa518f5e",
+    "events": 31,
+    "inOwnerCsv": 0
+   },
+   {
+    "chain": "optimism",
+    "venue": "aave-v3:core",
+    "name": "Optimism Aave Market",
+    "pool": "0x794a61358d6845594f94dc1db02a252b5b4814ad",
+    "events": 801,
+    "inOwnerCsv": 801
+   },
+   {
+    "chain": "optimism",
+    "venue": "morpho-blue",
+    "name": "Morpho Blue",
+    "pool": "0xce95afbb8ea029495c66020883f87aae8864af92",
+    "events": 0,
+    "inOwnerCsv": 0
+   },
+   {
+    "chain": "base",
+    "venue": "aave-v3:core",
+    "name": "Aave V3 BASE Market",
+    "pool": "0xa238dd80c259a72e81d7e4664a9801593f98d1c5",
+    "events": 470,
+    "inOwnerCsv": 470
+   },
+   {
+    "chain": "base",
+    "venue": "morpho-blue",
+    "name": "Morpho Blue",
+    "pool": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+    "events": 618,
+    "inOwnerCsv": 618
+   }
+  ],
+  "outOfScope": {
+   "rule": "every chain other than mainnet, Arbitrum, Optimism and Base (Avalanche, Polygon, Gnosis, BNB, Scroll, ...), and on the four chains every emitter that is not an Aave V3 registry pool or the Morpho Blue singleton (listed per chain under otherEmitters: Aave V2, Spark and other forks)",
+   "avalancheAaveV3LiquidationCalls": 531,
+   "otherEmitters": [
+    {
+     "chain": "mainnet",
+     "label": "UwU genesis market",
+     "kind": "aave-v2 interface (V2 pool or V2 fork)",
+     "liquidationCalls": 1,
+     "liquidates": 0
+    },
+    {
+     "chain": "mainnet",
+     "label": "Aave genesis market",
+     "kind": "aave-v2 interface (V2 pool or V2 fork)",
+     "liquidationCalls": 37,
+     "liquidates": 0
+    },
+    {
+     "chain": "mainnet",
+     "label": "Spark Protocol",
+     "kind": "v3-interface, provider not in the Aave registry",
+     "liquidationCalls": 49,
+     "liquidates": 0
+    },
+    {
+     "chain": "mainnet",
+     "label": "Phiat genesis market",
+     "kind": "aave-v2 interface (V2 pool or V2 fork)",
+     "liquidationCalls": 3,
+     "liquidates": 0
+    },
+    {
+     "chain": "arbitrum",
+     "label": "Arbitrum Avalon Market",
+     "kind": "v3-interface, provider not in the Aave registry",
+     "liquidationCalls": 2,
+     "liquidates": 0
+    },
+    {
+     "chain": "optimism",
+     "label": "Optimism Extra X Lending Market",
+     "kind": "v3-interface, provider not in the Aave registry",
+     "liquidationCalls": 23,
+     "liquidates": 0
+    },
+    {
+     "chain": "optimism",
+     "label": "Granary Genesis Market",
+     "kind": "aave-v2 interface (V2 pool or V2 fork)",
+     "liquidationCalls": 87,
+     "liquidates": 0
+    },
+    {
+     "chain": "base",
+     "label": "Base Extra X Lending Market",
+     "kind": "v3-interface, provider not in the Aave registry",
+     "liquidationCalls": 16,
+     "liquidates": 0
+    },
+    {
+     "chain": "base",
+     "label": "Polter",
+     "kind": "aave-v2 interface (V2 pool or V2 fork)",
+     "liquidationCalls": 1,
+     "liquidates": 0
+    },
+    {
+     "chain": "base",
+     "label": "Base Avalon SolvBTC Market",
+     "kind": "v3-interface, provider not in the Aave registry",
+     "liquidationCalls": 1,
+     "liquidates": 0
+    },
+    {
+     "chain": "base",
+     "label": "Base ZeroLend Market",
+     "kind": "v3-interface, provider not in the Aave registry",
+     "liquidationCalls": 12,
+     "liquidates": 0
+    },
+    {
+     "chain": "base",
+     "label": "Base Seamless Market",
+     "kind": "v3-interface, provider not in the Aave registry",
+     "liquidationCalls": 7,
+     "liquidates": 0
+    }
+   ]
+  }
+ },
  "coverage": {
-  "total": 3163,
-  "walked": 3157,
-  "notWalked": 6,
+  "total": 3197,
+  "walked": 3197,
+  "notWalked": 0,
   "byProtocolChain": [
    {
-    "key": "aave-v3:arbitrum",
+    "key": "aave-v3:core:arbitrum",
     "total": 776,
     "walked": 776,
     "notWalked": 0
    },
    {
-    "key": "aave-v3:base",
+    "key": "aave-v3:core:base",
     "total": 426,
     "walked": 426,
     "notWalked": 0
    },
    {
-    "key": "aave-v3:mainnet",
+    "key": "aave-v3:core:mainnet",
     "total": 623,
-    "walked": 621,
-    "notWalked": 2
+    "walked": 623,
+    "notWalked": 0
    },
    {
-    "key": "aave-v3:optimism",
+    "key": "aave-v3:core:optimism",
     "total": 593,
-    "walked": 590,
-    "notWalked": 3
+    "walked": 593,
+    "notWalked": 0
+   },
+   {
+    "key": "aave-v3:lido:mainnet",
+    "total": 3,
+    "walked": 3,
+    "notWalked": 0
+   },
+   {
+    "key": "morpho-blue:arbitrum",
+    "total": 31,
+    "walked": 31,
+    "notWalked": 0
    },
    {
     "key": "morpho-blue:base",
     "total": 553,
-    "walked": 552,
-    "notWalked": 1
+    "walked": 553,
+    "notWalked": 0
    },
    {
     "key": "morpho-blue:mainnet",
@@ -49,98 +236,39 @@
     "notWalked": 0
    }
   ],
-  "uncovered": [
-   {
-    "pid": "aave-v3:mainnet:0x1326f7c79c13f6a4fa8e44b2e896e500a5b1b92a",
-    "protocol": "aave-v3",
-    "chain": "mainnet",
-    "reason": "not located: HF at block N >= 1 on every event (1)",
-    "events": 1,
-    "realRepaidUsd": 2395.35,
-    "ltv0": 0.404719,
-    "line": 0.41
-   },
-   {
-    "pid": "aave-v3:mainnet:0x5ade889a20cfbabf704f1cb71b1b3aab2b93f5ea",
-    "protocol": "aave-v3",
-    "chain": "mainnet",
-    "reason": "not located: HF at block N >= 1 on every event (1)",
-    "events": 1,
-    "realRepaidUsd": 6630.86,
-    "ltv0": 0.686078,
-    "line": 0.71
-   },
-   {
-    "pid": "aave-v3:optimism:0xd2f22a25c93c33f2027334677a48ae103b068898",
-    "protocol": "aave-v3",
-    "chain": "optimism",
-    "reason": "not located: HF at block N >= 1 on every event (1)",
-    "events": 1,
-    "realRepaidUsd": 331.13,
-    "ltv0": 0.622365,
-    "line": 0.63
-   },
-   {
-    "pid": "aave-v3:optimism:0x1b2c5b95413487f27723a655e9f68eb6985fe1df",
-    "protocol": "aave-v3",
-    "chain": "optimism",
-    "reason": "not located: HF at block N >= 1 on every event (1)",
-    "events": 1,
-    "realRepaidUsd": 243.05,
-    "ltv0": 0.664775,
-    "line": 0.666116
-   },
-   {
-    "pid": "aave-v3:optimism:0xf70c2bb5488ef12887b447d4da1dcd1e938c14d6",
-    "protocol": "aave-v3",
-    "chain": "optimism",
-    "reason": "not located: HF at block N >= 1 on every event (1)",
-    "events": 1,
-    "realRepaidUsd": 84.35,
-    "ltv0": 0.622803,
-    "line": 0.630013
-   },
-   {
-    "pid": "morpho-blue:base:0x5b347b3dcfed096f09040cd30a174ae354ecc0a35c996493b8fa490d6d3e79d7:0xceb9f5d4b085f601fef28497f6b5c42fdcb5e599",
-    "protocol": "morpho-blue",
-    "chain": "base",
-    "reason": "not liquidatable at block N: LTV_N <= LLTV on every event (1)",
-    "events": 1,
-    "realRepaidUsd": 175.63,
-    "ltv0": 0.859998,
-    "line": 0.86
-   }
-  ]
+  "uncovered": []
  },
  "totals": {
   "walked": {
    "real": {
-    "positions": 3157,
-    "events": 3991,
-    "repaidUsd": 186004821.14,
-    "seizedUsd": 196145154.69,
+    "positions": 3197,
+    "events": 4031,
+    "repaidUsd": 188114622.65,
+    "seizedUsd": 199287229.69,
+    "protocolFeeUsd": 920995.99,
     "badDebtUsd": 275716.58,
     "unpricedEvents": 13,
     "unpricedPositions": 13
    },
    "mem": {
-    "positions": 3157,
-    "repaidUsd": 155419216.49,
-    "soldUsd": 155375800.53,
-    "sales": 3361,
-    "positionsSold": 2536,
-    "positionsSoldAtGridEnd": 72,
-    "positionsKept": 621,
+    "positions": 3197,
+    "repaidUsd": 157056180.33,
+    "soldUsd": 157012764.37,
+    "sales": 3402,
+    "positionsSold": 2570,
+    "positionsSoldAtGridEnd": 73,
+    "positionsKept": 627,
     "unpricedSales": 11,
     "unpricedPositions": 13
    }
   },
   "all": {
    "real": {
-    "positions": 3163,
-    "events": 3997,
-    "repaidUsd": 186014681.51,
-    "seizedUsd": 196156686.48,
+    "positions": 3197,
+    "events": 4031,
+    "repaidUsd": 188114622.65,
+    "seizedUsd": 199287229.69,
+    "protocolFeeUsd": 920995.99,
     "badDebtUsd": 275716.58,
     "unpricedEvents": 13,
     "unpricedPositions": 13
@@ -149,56 +277,59 @@
   "byProtocol": {
    "aave-v3": {
     "real": {
-     "positions": 2413,
-     "events": 3106,
-     "repaidUsd": 146429042.34,
-     "seizedUsd": 154606308.33,
+     "positions": 2421,
+     "events": 3114,
+     "repaidUsd": 148165495.34,
+     "seizedUsd": 157358666.71,
+     "protocolFeeUsd": 920995.99,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
-     "positions": 2413,
-     "repaidUsd": 137945318.72,
-     "soldUsd": 137914985.71,
-     "sales": 2839,
-     "positionsSold": 2033,
+     "positions": 2421,
+     "repaidUsd": 139525125.48,
+     "soldUsd": 139494792.47,
+     "sales": 2850,
+     "positionsSold": 2040,
      "positionsSoldAtGridEnd": 58,
-     "positionsKept": 380,
+     "positionsKept": 381,
      "unpricedSales": 0,
      "unpricedPositions": 0
     }
    },
    "morpho-blue": {
     "real": {
-     "positions": 744,
-     "events": 885,
-     "repaidUsd": 39575778.8,
-     "seizedUsd": 41538846.36,
+     "positions": 776,
+     "events": 917,
+     "repaidUsd": 39949127.31,
+     "seizedUsd": 41928562.98,
+     "protocolFeeUsd": 0,
      "badDebtUsd": 275716.58,
      "unpricedEvents": 13,
      "unpricedPositions": 13
     },
     "mem": {
-     "positions": 744,
-     "repaidUsd": 17473897.77,
-     "soldUsd": 17460814.82,
-     "sales": 522,
-     "positionsSold": 503,
-     "positionsSoldAtGridEnd": 14,
-     "positionsKept": 241,
+     "positions": 776,
+     "repaidUsd": 17531054.85,
+     "soldUsd": 17517971.9,
+     "sales": 552,
+     "positionsSold": 530,
+     "positionsSoldAtGridEnd": 15,
+     "positionsKept": 246,
      "unpricedSales": 11,
      "unpricedPositions": 13
     }
    }
   },
   "byProtocolChain": {
-   "aave-v3:arbitrum": {
+   "aave-v3:core:arbitrum": {
     "real": {
      "positions": 776,
      "events": 938,
      "repaidUsd": 17974004.55,
-     "seizedUsd": 19041887.93,
+     "seizedUsd": 19160541.72,
+     "protocolFeeUsd": 118653.7,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
@@ -215,12 +346,13 @@
      "unpricedPositions": 0
     }
    },
-   "aave-v3:base": {
+   "aave-v3:core:base": {
     "real": {
      "positions": 426,
      "events": 470,
      "repaidUsd": 5761282.35,
-     "seizedUsd": 6113427.99,
+     "seizedUsd": 6152549.1,
+     "protocolFeeUsd": 39121.04,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
@@ -237,67 +369,116 @@
      "unpricedPositions": 0
     }
    },
-   "aave-v3:mainnet": {
+   "aave-v3:core:mainnet": {
     "real": {
-     "positions": 621,
-     "events": 900,
-     "repaidUsd": 120938232.64,
-     "seizedUsd": 127568612.01,
+     "positions": 623,
+     "events": 902,
+     "repaidUsd": 120947258.85,
+     "seizedUsd": 128317961.78,
+     "protocolFeeUsd": 738726.68,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
-     "positions": 621,
-     "repaidUsd": 125549357.56,
-     "soldUsd": 125521103.49,
-     "sales": 851,
-     "positionsSold": 525,
+     "positions": 623,
+     "repaidUsd": 125589136.11,
+     "soldUsd": 125560882.04,
+     "sales": 854,
+     "positionsSold": 527,
      "positionsSoldAtGridEnd": 19,
      "positionsKept": 96,
      "unpricedSales": 0,
      "unpricedPositions": 0
     }
    },
-   "aave-v3:optimism": {
+   "aave-v3:core:optimism": {
     "real": {
-     "positions": 590,
-     "events": 798,
-     "repaidUsd": 1755522.8,
-     "seizedUsd": 1882380.4,
+     "positions": 593,
+     "events": 801,
+     "repaidUsd": 1756181.33,
+     "seizedUsd": 1897239.77,
+     "protocolFeeUsd": 14133.96,
      "badDebtUsd": 0,
      "unpricedEvents": 0,
      "unpricedPositions": 0
     },
     "mem": {
-     "positions": 590,
-     "repaidUsd": 1645524.63,
-     "soldUsd": 1644702.39,
-     "sales": 626,
-     "positionsSold": 536,
+     "positions": 593,
+     "repaidUsd": 1667475.36,
+     "soldUsd": 1666653.12,
+     "sales": 632,
+     "positionsSold": 539,
      "positionsSoldAtGridEnd": 15,
      "positionsKept": 54,
      "unpricedSales": 0,
      "unpricedPositions": 0
     }
    },
+   "aave-v3:lido:mainnet": {
+    "real": {
+     "positions": 3,
+     "events": 3,
+     "repaidUsd": 1726768.26,
+     "seizedUsd": 1830374.34,
+     "protocolFeeUsd": 10360.61,
+     "badDebtUsd": 0,
+     "unpricedEvents": 0,
+     "unpricedPositions": 0
+    },
+    "mem": {
+     "positions": 3,
+     "repaidUsd": 1518077.48,
+     "soldUsd": 1518077.48,
+     "sales": 2,
+     "positionsSold": 2,
+     "positionsSoldAtGridEnd": 0,
+     "positionsKept": 1,
+     "unpricedSales": 0,
+     "unpricedPositions": 0
+    }
+   },
+   "morpho-blue:arbitrum": {
+    "real": {
+     "positions": 31,
+     "events": 31,
+     "repaidUsd": 373172.88,
+     "seizedUsd": 389533.29,
+     "protocolFeeUsd": 0,
+     "badDebtUsd": 0,
+     "unpricedEvents": 0,
+     "unpricedPositions": 0
+    },
+    "mem": {
+     "positions": 31,
+     "repaidUsd": 56981.45,
+     "soldUsd": 56981.45,
+     "sales": 29,
+     "positionsSold": 26,
+     "positionsSoldAtGridEnd": 0,
+     "positionsKept": 5,
+     "unpricedSales": 0,
+     "unpricedPositions": 0
+    }
+   },
    "morpho-blue:base": {
     "real": {
-     "positions": 552,
-     "events": 617,
-     "repaidUsd": 19200050.86,
-     "seizedUsd": 20063409.5,
+     "positions": 553,
+     "events": 618,
+     "repaidUsd": 19200226.49,
+     "seizedUsd": 20063592.83,
+     "protocolFeeUsd": 0,
      "badDebtUsd": 617.42,
      "unpricedEvents": 5,
      "unpricedPositions": 5
     },
     "mem": {
-     "positions": 552,
-     "repaidUsd": 8211606.55,
-     "soldUsd": 8210550.05,
-     "sales": 354,
-     "positionsSold": 339,
-     "positionsSoldAtGridEnd": 11,
+     "positions": 553,
+     "repaidUsd": 8211782.18,
+     "soldUsd": 8210725.68,
+     "sales": 355,
+     "positionsSold": 340,
+     "positionsSoldAtGridEnd": 12,
      "positionsKept": 213,
      "unpricedSales": 3,
      "unpricedPositions": 5
@@ -309,6 +490,7 @@
      "events": 268,
      "repaidUsd": 20375727.94,
      "seizedUsd": 21475436.86,
+     "protocolFeeUsd": 0,
      "badDebtUsd": 275099.16,
      "unpricedEvents": 8,
      "unpricedPositions": 8
@@ -328,33 +510,33 @@
   }
  },
  "classes": {
-  "aave-v3:delayed": 1904,
+  "aave-v3:delayed": 1907,
   "aave-v3:mixed": 496,
   "aave-v3:no-delay": 18,
-  "morpho-blue:delayed": 731,
+  "morpho-blue:delayed": 762,
   "morpho-blue:no-delay": 14
  },
  "clusters": {
   "ETH": {
-   "positions": 1023,
-   "walked": 1023,
-   "realRepaidUsdWalked": 75748158.76,
-   "memRepaidUsd": 60696557.92,
-   "positionsSold": 805
+   "positions": 1056,
+   "walked": 1056,
+   "realRepaidUsdWalked": 77846968.8,
+   "memRepaidUsd": 62270485.75,
+   "positionsSold": 832
   },
   "BTC": {
-   "positions": 689,
-   "walked": 689,
-   "realRepaidUsdWalked": 74210145.8,
-   "memRepaidUsd": 18911696.13,
-   "positionsSold": 415
+   "positions": 690,
+   "walked": 690,
+   "realRepaidUsdWalked": 74211276.9,
+   "memRepaidUsd": 18912827.23,
+   "positionsSold": 416
   },
   "OP": {
    "positions": 360,
-   "walked": 357,
-   "realRepaidUsdWalked": 717451.84,
-   "memRepaidUsd": 762916.69,
-   "positionsSold": 337
+   "walked": 360,
+   "realRepaidUsdWalked": 718110.37,
+   "memRepaidUsd": 784867.42,
+   "positionsSold": 340
   },
   "ARB": {
    "positions": 281,
@@ -365,10 +547,10 @@
   },
   "LINK": {
    "positions": 261,
-   "walked": 260,
-   "realRepaidUsdWalked": 8564769.91,
-   "memRepaidUsd": 11776795.18,
-   "positionsSold": 224
+   "walked": 261,
+   "realRepaidUsdWalked": 8571400.77,
+   "memRepaidUsd": 11811727.55,
+   "positionsSold": 225
   },
   "AAVE": {
    "positions": 183,
@@ -379,10 +561,10 @@
   },
   "Other": {
    "positions": 102,
-   "walked": 101,
-   "realRepaidUsdWalked": 2465969.46,
-   "memRepaidUsd": 1744818.01,
-   "positionsSold": 90
+   "walked": 102,
+   "realRepaidUsdWalked": 2466145.09,
+   "memRepaidUsd": 1744993.64,
+   "positionsSold": 91
   },
   "Stables": {
    "positions": 75,
@@ -421,30 +603,77 @@
   },
   "CRV": {
    "positions": 20,
-   "walked": 19,
-   "realRepaidUsdWalked": 820741.03,
-   "memRepaidUsd": 659792.58,
-   "positionsSold": 19
+   "walked": 20,
+   "realRepaidUsdWalked": 823136.38,
+   "memRepaidUsd": 664638.76,
+   "positionsSold": 20
   }
  },
  "outcomes": {
   "sold-no-delay": 59,
-  "sold-at-band": 1618,
-  "cured-then-held": 705,
-  "sold-at-t0": 651,
+  "sold-at-band": 1650,
+  "cured-then-held": 711,
+  "sold-at-t0": 652,
   "held": 30,
   "sold-at-expiry": 22,
-  "sold-at-grid-end": 72
+  "sold-at-grid-end": 73
+ },
+ "concentration": {
+  "top1": {
+   "pid": "aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0x372cae7fa19b81a9786a9081704ea1e2dad576b7",
+   "ltv0": 0.911798,
+   "line": 0.76,
+   "outcome": "sold-at-t0",
+   "memRepaidUsd": 29863534.37,
+   "shareOfMem": 0.1901
+  },
+  "top10ShareOfMem": 0.5167
  },
  "sensitivity": {
   "noWalkOnAfterT0BandSale": {
-   "rule": "The headline walks a delayed position sold at t0 past line x (1 + band) on after that sale, like every other sale (the contract deletes the timer after any sale and the position stays live, LiquidationEngine.sol:1421-1423). This rebuild stops it after the one t0 repay — the behaviour before 2026-10-14.",
-   "memRepaidUsd": 149618755.49,
+   "rule": "The headline walks a delayed position sold at t0 past line x (1 + band) on after that sale, like every other sale: a sale leaves no timer (a band break or an expiry deletes it, LiquidationEngine.sol:1724-1727 at 16e12329; an Immediate sale, :1694-1703, never had one) and nothing closes the position. This rebuild stops it after the one t0 repay — the behaviour before 2026-10-14.",
+   "memRepaidUsd": 151255719.33,
    "deltaUsd": 5800461,
    "deltaNote": "headline minus this rebuild: the Membrane sales the old stop hid",
    "positionsChanged": 72,
-   "positionsSoldAtT0PastBand": 677
+   "positionsSoldAtT0PastBand": 678
+  },
+  "t0PriceBasis": {
+   "rule": "t0 is valued at block-N oracle prices, or at block N-1 where N does not show the breach the protocol liquidated. For positions the protocol's own check locates at BOTH bases, this counts those whose t0 decision (per half: under the line / inside the band / past the band / no-delay sale) differs between the two, and rebuilds the census valuing every position at N-1 wherever N-1 locates it.",
+   "positionsLocatedAtBoth": 2450,
+   "positionsDecisionDiffers": 13,
+   "memRepaidUsdOnThem": 106073.23,
+   "memRepaidUsdOnThemAtNm1": 104357.43,
+   "wholeCensusAtNm1FirstMemRepaidUsd": 156980740.05,
+   "wholeCensusDeltaUsd": -75440.28
   }
+ },
+ "morphoBadDebt": {
+  "base:USDC": {
+   "events": 5,
+   "usd": 617.425114,
+   "units": 617.425114
+  },
+  "mainnet:USDf": {
+   "events": 1,
+   "usd": 0,
+   "units": 9.538544572476198
+  },
+  "mainnet:USDS": {
+   "events": 45,
+   "usd": 273885.0667326853,
+   "units": 273885.0667326853
+  },
+  "mainnet:cbBTC": {
+   "events": 1,
+   "usd": 1214.1055864786151,
+   "units": 0.01086216
+  }
+ },
+ "newBorrowingAfterLiquidation": {
+  "events": 20,
+  "positions": 19,
+  "repaidUsd": 413477.1999999999
  },
  "crossCheck": {
   "rows": 747,

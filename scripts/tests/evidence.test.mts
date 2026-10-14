@@ -933,7 +933,7 @@ const debtHtml = render(React.createElement(DebtLens, { debt: doc.debt, byAsset:
 // 747, allIncluded 1,751 -> 1,748, and the two priced medians move by a tenth.
 //
 // 2026-10-14: a delayed account sold at t0 past the band now walks on after that sale, as the
-// contract does (LiquidationEngine.sol:1421-1423). One priced account (mainnet 0x9bafc9) is
+// contract does (LiquidationEngine.sol:1724-1727 at 16e12329). One priced account (mainnet 0x9bafc9) is
 // sold again later: Membrane +$13,303 on both sets, and the priced Membrane median moves
 // 49.4% -> 49.5%. The old stop is meta.sensitivity.noWalkOnAfterT0BandSale.
 has(debtHtml, '$34.7M', 'DebtLens Aave total (priced set)')

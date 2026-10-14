@@ -1,5 +1,10 @@
 /**
- * THE WAVEFRONT STREAM — record schema v1.
+ * THE WAVEFRONT STREAM — record schema v2.
+ *
+ * v2 (2026-10-14) changes v1 in three ways: an Aave pid carries its POOL address
+ * (lib/wavefront/pid.ts; the v1 census wrote `aave-v3:<chain>:<user>`, which every decoder here
+ * still reads through `parseAnyPid`); `open` carries `priceBasis`; the `real` totals fold
+ * WALKED positions only (see TOTALS). A v1 reader refuses v2 files (the header says which).
  *
  * One append-only stream carries both sides of the Real-vs-Membrane comparison for every
  * position the window touches: when the position appeared (`open`), every real liquidation
@@ -15,7 +20,12 @@
  *   open  pid, protocol, chain, block, ts       when the position entered the stream (its
  *                                               first liquidation event)
  *         legs [{symbol, usd}], debtLegs        collateral and debt at the walk anchor
- *         debtUsd, collUsd, line, ltv0          (t0), valued at block-N oracle prices
+ *         debtUsd, collUsd, line, ltv0          (t0), valued at the t0 oracle prices
+ *         priceBasis 'N' | 'N-1'                which prices those are (walked only): block N
+ *                                               (the liquidating block's post-state), or N-1
+ *                                               when N does not show the breach the protocol
+ *                                               liquidated (an oracle update later in block N
+ *                                               than the liquidation hides it)
  *         delayClass  'no-delay'|'delayed'|'mixed'   (collateralClass.ts delayClassOf)
  *         cluster     primary collateral group (lib/wavefront/cluster.ts)
  *         walked      true when Membrane's engine walks it; false → `reason` says why
@@ -44,7 +54,15 @@
  *         totals.mem  {positionsSold, positionsArmed, positionsKept, repaidUsd, soldUsd,
  *                      unpricedSales}
  *
- * pid = `aave-v3:<chain>:<user>` or `morpho-blue:<chain>:<marketId>:<borrower>` (lower case).
+ * pid = `aave-v3:<chain>:<pool>:<user>` or `morpho-blue:<chain>:<marketId>:<borrower>`, built
+ * and parsed ONLY by lib/wavefront/pid.ts (shared with the live engine; `aaveMarketLabel` gives
+ * the display label of a pool — core / lido / etherfi).
+ *
+ * TOTALS. Both sides are summed over the SAME positions: the WALKED ones. `totals.real` folds
+ * the real records of walked positions only, and `totals.mem` can only come from walked
+ * positions. A position that is not walked counts in `coverage.total` and nowhere else; its
+ * real records are still in the stream (and in its per-position state), so nothing is hidden,
+ * but no total mixes it in.
  *
  * ORDER. Records are sorted by ts; at equal ts a tick comes first, then open, real, mem; then
  * by position and by the order the position emitted them. A tick at minute m has
@@ -65,7 +83,7 @@
  * FILES
  * ---------------------------------------------------------------------------
  * JSONL (canonical, `encodeJsonl` / `decodeJsonl`): line 1 is a header
- * `{"kind":"header","format":"wavefront-stream","schema":1,"window":{…}}`, then one record per
+ * `{"kind":"header","format":"wavefront-stream","schema":2,"window":{…}}`, then one record per
  * line in seq order. USD amounts are rounded to cents and LTVs / lines to 1e-6 when the record
  * is made (`roundRecord`), so every consumer sums the same numbers.
  *
@@ -78,12 +96,14 @@
  * position's t0 with `memTs`; pid is rebuilt from protocol, chain, market and address.
  */
 
+import { aavePid, morphoPid, parseAnyPid, type PidProtocol } from './pid'
+
 export const STREAM_FORMAT = 'wavefront-stream'
-export const STREAM_SCHEMA = 1
+export const STREAM_SCHEMA = 2
 export const COMPACT_FORMAT = 'wavefront-replay-compact'
 export const TICK_EVERY_MINUTES = 10
 
-export type Protocol = 'aave-v3' | 'morpho-blue'
+export type Protocol = PidProtocol
 export type DelayClass = 'no-delay' | 'delayed' | 'mixed'
 export type MemEvent = 'arm' | 'save' | 'sell' | 'sell-instant'
 export type SaleWhy = 'band' | 'expiry' | 'instant' | 'grid-end' | 'no-series'
@@ -128,6 +148,8 @@ export interface OpenRecord {
   walked: boolean
   reason?: string
   t0?: { block: number; ts: number; minute: number }
+  /** Which block's oracle prices value the t0 legs (walked only). */
+  priceBasis?: 'N' | 'N-1'
   subs?: SubSpec[]
 }
 
@@ -454,23 +476,26 @@ export function applyRecord(
     case 'real': {
       const p = state.positions.get(rec.pid)
       if (!p) throw new Error(`${rec.pid}: real before open`)
-      if (p.real.events === 0) T.real.positions++
+      // Per-position state takes every real record; the totals only a WALKED position's, so
+      // both sides are summed over the same positions (see TOTALS in the header).
+      const into = p.open.walked
+      if (p.real.events === 0 && into) T.real.positions++
       p.real.events++
       if (rec.repaidUsd == null || rec.seizedUsd == null) {
         p.real.unpricedEvents++
-        T.real.unpricedEvents++
+        if (into) T.real.unpricedEvents++
       }
       if (rec.repaidUsd != null) {
         p.real.repaidUsd += rec.repaidUsd
-        T.real.repaidUsd += rec.repaidUsd
+        if (into) T.real.repaidUsd += rec.repaidUsd
       }
       if (rec.seizedUsd != null) {
         p.real.seizedUsd += rec.seizedUsd
-        T.real.soldUsd += rec.seizedUsd
+        if (into) T.real.soldUsd += rec.seizedUsd
       }
       if (rec.badDebtUsd != null) {
         p.real.badDebtUsd += rec.badDebtUsd
-        T.real.badDebtUsd += rec.badDebtUsd
+        if (into) T.real.badDebtUsd += rec.badDebtUsd
       }
       return state
     }
@@ -488,7 +513,9 @@ export function applyRecord(
         p.mem.armedMask &= ~bit
         p.mem.saves++
       } else {
-        p.mem.armedMask &= ~bit // a sale deletes the timer (LiquidationEngine.sol:1421-1423)
+        // A sale leaves no timer: a band break or an expiry deletes it (LiquidationEngine.sol
+        // :1724-1727 at 16e12329); an Immediate sale never had one.
+        p.mem.armedMask &= ~bit
         p.mem.sales++
         if (p.mem.firstSaleMinute === null) p.mem.firstSaleMinute = rec.minute
         if (rec.repaidUsd == null || rec.soldUsd == null) {
@@ -559,10 +586,12 @@ export function tickFromState(
  * every array in a table has one entry per row of that table. Nullable numbers are JSON null.
  *
  *   open.addr / protocol (0 aave-v3, 1 morpho-blue) / chain (dict.chain) / market
- *     (dict.market, -1 for Aave) — pid is rebuilt from these
+ *     (dict.market: the Aave POOL or the Morpho market id; -1 only for a legacy 3-part Aave
+ *     pid) — pid is rebuilt from these with lib/wavefront/pid.ts. Compact schema 2 (with the
+ *     stream schema): v1 had market -1 on every Aave row and no priceBasis column.
  *   open.block, ts, debtUsd, collUsd, line, ltv0, delayClass (0 no-delay, 1 delayed,
  *     2 mixed), cluster (dict.cluster), walked (0/1), reason (dict.reason, -1 none),
- *     t0Block / t0Ts / t0Minute (null when not walked)
+ *     t0Block / t0Ts / t0Minute (null when not walked), priceBasis (0 'N', 1 'N-1', -1 none)
  *   open.legN[i] collateral legs of row i, laid end to end in legSym (dict.symbol) / legUsd;
  *     debtN / debtSym / debtUsdLeg the same for debt legs; subN / subClass (0 no-delay,
  *     1 delayed) / subLine / subShare / subCollUsd / subDebtUsd the same for split halves
@@ -618,26 +647,6 @@ class Dict {
   }
 }
 
-/** Split a pid into its parts. */
-export function parsePid(pid: string): {
-  protocol: Protocol
-  chain: string
-  market: string | null
-  addr: string
-} {
-  const p = pid.split(':')
-  if (p[0] === 'aave-v3' && p.length === 3) {
-    return { protocol: 'aave-v3', chain: p[1], market: null, addr: p[2] }
-  }
-  if (p[0] === 'morpho-blue' && p.length === 4) {
-    return { protocol: 'morpho-blue', chain: p[1], market: p[2], addr: p[3] }
-  }
-  throw new Error(`bad pid ${pid}`)
-}
-
-export const makePid = (protocol: Protocol, chain: string, addr: string, market?: string | null) =>
-  protocol === 'aave-v3' ? `aave-v3:${chain}:${addr}` : `morpho-blue:${chain}:${market}:${addr}`
-
 export function encodeCompact(
   window: StreamWindow,
   records: readonly StreamRecord[],
@@ -668,6 +677,7 @@ export function encodeCompact(
     't0Block',
     't0Ts',
     't0Minute',
+    'priceBasis',
     'legN',
     'legSym',
     'legUsd',
@@ -699,7 +709,7 @@ export function encodeCompact(
     if (r.seq !== ++seq) throw new Error(`encodeCompact: seq ${r.seq} at position ${seq}`)
     switch (r.kind) {
       case 'open': {
-        const p = parsePid(r.pid)
+        const p = parseAnyPid(r.pid)
         if (p.protocol !== r.protocol || p.chain !== r.chain) {
           throw new Error(`encodeCompact: pid ${r.pid} disagrees with its fields`)
         }
@@ -721,6 +731,7 @@ export function encodeCompact(
         open.t0Block.push(r.t0 ? r.t0.block : null)
         open.t0Ts.push(r.t0 ? r.t0.ts : null)
         open.t0Minute.push(r.t0 ? r.t0.minute : null)
+        open.priceBasis.push(r.priceBasis === undefined ? -1 : r.priceBasis === 'N' ? 0 : 1)
         open.legN.push(r.legs.length)
         for (const l of r.legs) {
           open.legSym.push(symbol.of(l.symbol))
@@ -851,7 +862,12 @@ export function decodeCompact(c: CompactReplay): StreamRecord[] {
       const r: OpenRecord = {
         kind: 'open',
         seq,
-        pid: makePid(protocol, chainName, O.addr[i], mk),
+        pid:
+          protocol === 'morpho-blue'
+            ? morphoPid(chainName, mk as string, O.addr[i])
+            : mk === null
+              ? `aave-v3:${chainName}:${O.addr[i]}` // a legacy (v1 census) id, kept as it was
+              : aavePid(chainName, mk, O.addr[i]),
         protocol,
         chain: chainName,
         block: O.block[i],
@@ -869,6 +885,7 @@ export function decodeCompact(c: CompactReplay): StreamRecord[] {
       if (O.reason[i] !== -1) r.reason = dict.reason[O.reason[i]]
       if (O.t0Minute[i] !== null)
         r.t0 = { block: O.t0Block[i], ts: O.t0Ts[i], minute: O.t0Minute[i] }
+      if (O.priceBasis[i] !== -1) r.priceBasis = O.priceBasis[i] === 0 ? 'N' : 'N-1'
       if (subs.length) r.subs = subs
       opens.push(r)
       out.push(r)

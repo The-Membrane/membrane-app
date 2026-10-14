@@ -1911,8 +1911,9 @@ const sameRowsDelayed = {
 /**
  * THE OLD STOP AFTER A t0 SALE PAST THE BAND. Before 2026-10-14 cureWalk sold a delayed
  * account already past line x (1 + band) at t0 once and stopped walking it, while every other
- * sale walked on. The contract deletes the timer after ANY sale and the position stays live
- * (LiquidationEngine.sol:1421-1423), so the headline now walks it on; this is the figure the
+ * sale walked on. In the contract a sale leaves no timer (a band break or an expiry deletes it,
+ * LiquidationEngine.sol:1724-1727 at 16e12329; an Immediate sale never had one) and nothing
+ * closes the position, so the headline now walks it on; this is the figure the
  * old stop published, summed per row the way the headline is.
  */
 const noWalkOn = {
@@ -2183,9 +2184,9 @@ const doc = {
         'The break line is line x (1 + band), not line + band — LiquidationEngine.sol:2099-2103, tested strictly at :1329.',
         'A position back under its LINE clears the timer (SavedByDelay, LiquidationEngine.sol:1362-1382 and :760-781), so a later breach gets a FULL fresh delay. The delay is not one-shot.',
         'MODELLED SEMANTICS, stated: clearRecoveredTimer / saveByDelay are permissionless and cost only gas, but somebody must CALL them. This model clears instantly on a return under the line. meta.sensitivity.noEarlyClearMembraneClosedUsd prices the opposite corner, where nobody ever calls, the original expiry stands, and a later breach does not restart it.',
-        'Past the band while a timer runs is BrokeWindow — immediate sale (LiquidationEngine.sol:1388-1389). Past the band with no timer is Immediate (:1390), at t0 included (outcome sold-at-t0). Neither gets a delay, and after either the position walks on like after any sale. meta.sensitivity.noWalkOnAfterT0BandSale prices the old stop after a t0 sale.',
+        'Past the band while a timer runs is BrokeWindow — immediate sale (LiquidationEngine.sol:1695-1696 at 16e12329). Past the band with no timer is Immediate (:1697-1698 at 16e12329), at t0 included (outcome sold-at-t0). Neither gets a delay, and after either the position walks on like after any sale. meta.sensitivity.noWalkOnAfterT0BandSale prices the old stop after a t0 sale.',
         'At expiry still over the line is DelayExpired — sale at that minute, sized to restore the borrow cap at that minute’s collateral value (:1391-1392, :2204-2238).',
-        `A sale restores the BORROW CAP, not zero, and deletes the timer (:1421-1423), so the position stays live: the reduced debt and collateral walk on and a later breach re-arms. Up to ${MAX_SALES} sales per episode.`,
+        `A sale restores the BORROW CAP, not zero, and leaves no timer (a band break or an expiry deletes it, :1724-1727 at 16e12329; an Immediate sale never had one), so the position stays live: the reduced debt and collateral walk on and a later breach re-arms. Up to ${MAX_SALES} sales per episode.`,
         `Every repay passes through the liqDebtMinimum floor and the remainder guard (LiquidationEngine.sol:2241-2269) at the deployed $${LIQ_DEBT_MINIMUM_USD}. The contract also gas-indexes that floor upward; gas is not modelled, so this can only UNDER-state the escalation.`,
         'Conservative choices: a grid that ends inside an unresolved delay SELLS at the last price; a recovery only re-arms on a return under the line, never merely back inside the band; accounts whose breach cannot be located even after the rebase are excluded from both sides rather than handed a free cure.',
       ],
@@ -2260,7 +2261,7 @@ const doc = {
        * headline minus this: the Membrane sales the stop hid.
        */
       noWalkOnAfterT0BandSale: {
-        rule: 'A delayed account sold at t0 past line x (1 + band) is NOT walked on after that one repay — the behaviour before 2026-10-14. The headline walks it on like every other sale: the contract deletes the timer after any sale and the position stays live (LiquidationEngine.sol:1421-1423).',
+        rule: 'A delayed account sold at t0 past line x (1 + band) is NOT walked on after that one repay — the behaviour before 2026-10-14. The headline walks it on like every other sale: a sale leaves no timer (a band break or an expiry deletes it, LiquidationEngine.sol:1724-1727 at 16e12329; an Immediate sale never had one) and nothing closes the position.',
         pricedMembraneClosedUsd: r2(noWalkOn.priced),
         pricedDeltaUsd: r2(priced.membraneClosedUsd - noWalkOn.priced),
         allIncludedMembraneClosedUsd: r2(noWalkOn.allIncluded),

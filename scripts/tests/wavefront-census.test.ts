@@ -5,11 +5,13 @@
  *
  *   MEMBRANE_DATASETS_DIR=... npx tsx scripts/tests/wavefront-census.test.ts
  *
- * Checks: a fresh build equals the written census.json rows (determinism); 3,163 positions
- * partitioned into walked + not walked with a reason for each; both sides on the same
+ * Checks: a fresh build equals the written census.json rows (determinism); 3,197 positions
+ * (2,421 Aave + 776 Morpho, the full scope) partitioned into walked + not walked with a reason
+ * for each; both sides on the same
  * positions; every walked position located by the protocol at its t0 event; mixed splits sum
  * to the whole; the canonical replay.jsonl.gz and the served compact replay are the same
- * records, fold without error, and their final totals are the rows' sums and census.json's;
+ * records, fold without error, and their final totals are the WALKED rows' sums and
+ * census.json's;
  * every unsplit single-leg walked position's kernel figure equals cureWalk on its composite
  * series.
  */
@@ -25,12 +27,18 @@ import {
   LIQ_DEBT_MINIMUM_USD,
   MAX_THRESHOLD_TO_DELAY,
 } from '../../lib/position-sim/membrane'
-import { aavePositionSpec, type AaveEventRecord } from '../../lib/wavefront/aave'
-import { morphoPositionSpec } from '../../lib/wavefront/morpho'
+import {
+  aaveLocatedAt,
+  aavePoolOf,
+  aavePositionSpec,
+  type AaveEventRecord,
+} from '../../lib/wavefront/aave'
+import { morphoLocatedAt, morphoPositionSpec } from '../../lib/wavefront/morpho'
+import { aavePid, morphoPid } from '../../lib/wavefront/pid'
 import { decodeCompact, decodeJsonl, replay } from '../../lib/wavefront/stream'
 import { datasetsDir } from '../lib/datasetsDir.mjs'
-import { buildCensus, type CensusInputs } from '../oct10-coverage/census'
-import { aaveEvents as readAaveCsv, morphoEvents as readMorphoCsv } from '../oct10-coverage/inputs'
+import { buildCensus } from '../oct10-coverage/census'
+import { loadCensusInputs } from '../oct10-coverage/censusInputs'
 
 let passed = 0
 let failed = 0
@@ -46,33 +54,9 @@ function test(name: string, fn: () => void) {
 }
 
 const D = datasetsDir(process.cwd())
-const INPUTS = path.join(D, 'recall-coverage', 'inputs', 'oct10')
-const ON = path.join(INPUTS, 'onchain')
-const gz = (p: string) => JSON.parse(gunzipSync(fs.readFileSync(p)).toString())
-const gzLines = (p: string) =>
-  gunzipSync(fs.readFileSync(p))
-    .toString()
-    .split('\n')
-    .filter(Boolean)
-    .map((l) => JSON.parse(l))
-const aaveOracle = Object.fromEntries(
-  ['mainnet', 'arbitrum', 'optimism', 'base'].map((c) => [
-    c,
-    gz(path.join(ON, `aave-oracle-1m.${c}.json.gz`)),
-  ]),
-)
-const morphoOracle = Object.fromEntries(
-  ['mainnet', 'base'].map((c) => [c, gz(path.join(ON, `morpho-oracle-1m.${c}.json.gz`))]),
-)
-const inputs: CensusInputs = {
-  window: { startTs: 1760054400, stepSeconds: 60, minutes: 2880 },
-  aaveCsv: readAaveCsv(INPUTS) as any,
-  aaveEvents: gzLines(path.join(ON, 'aave-events.jsonl.gz')),
-  aaveOracle,
-  morphoCsv: readMorphoCsv(INPUTS) as any,
-  morphoEvents: gzLines(path.join(ON, 'morpho-events.jsonl.gz')),
-  morphoOracle,
-}
+const inputs = loadCensusInputs(D)
+const aaveOracle = inputs.aaveOracle
+const morphoOracle = inputs.morphoOracle
 const census = buildCensus(inputs)
 const rows = census.rows
 const written = JSON.parse(
@@ -86,24 +70,24 @@ test('a fresh build is the written census.json, row for row', () => {
   assert.deepStrictEqual(JSON.parse(JSON.stringify(rows)), written.rows)
 })
 
-test('3,163 positions = 2,418 Aave accounts + 745 Morpho positions, each once', () => {
-  assert.strictEqual(rows.length, 3163)
-  assert.strictEqual(rows.filter((r) => r.protocol === 'aave-v3').length, 2418)
-  assert.strictEqual(rows.filter((r) => r.protocol === 'morpho-blue').length, 745)
+test('3,197 positions = 2,421 Aave accounts + 776 Morpho positions, each once', () => {
+  assert.strictEqual(rows.length, 3197)
+  assert.strictEqual(rows.filter((r) => r.protocol === 'aave-v3').length, 2421)
+  assert.strictEqual(rows.filter((r) => r.protocol === 'morpho-blue').length, 776)
   assert.strictEqual(new Set(rows.map((r) => r.pid)).size, rows.length)
 })
 
 test('coverage partitions the total, and every uncovered position has a reason', () => {
   const walked = rows.filter((r) => r.walked)
   const not = rows.filter((r) => !r.walked)
-  assert.strictEqual(walked.length + not.length, 3163)
+  assert.strictEqual(walked.length + not.length, 3197)
   assert.strictEqual(written.meta.coverage.walked, walked.length)
   assert.strictEqual(written.meta.coverage.uncovered.length, not.length)
   for (const r of not) assert.ok(r.reason, r.pid)
   const pc = written.meta.coverage.byProtocolChain as { total: number; walked: number }[]
   assert.strictEqual(
     pc.reduce((a, x) => a + x.total, 0),
-    3163,
+    3197,
   )
   assert.strictEqual(
     pc.reduce((a, x) => a + x.walked, 0),
@@ -126,24 +110,26 @@ test('both sides are on the same positions', () => {
 test('every walked position is located by the protocol at its t0 event', () => {
   const aEv = new Map<string, AaveEventRecord[]>()
   for (const e of inputs.aaveEvents) {
-    const k = `aave-v3:${e.chain}:${e.user}`
+    const k = aavePid(e.chain, aavePoolOf(e), e.user)
     aEv.set(k, [...(aEv.get(k) ?? []), e])
   }
   const mEv = new Map<string, any[]>()
   for (const e of inputs.morphoEvents) {
-    const k = `morpho-blue:${e.chain}:${e.market_id}:${e.borrower}`
+    const k = morphoPid(e.chain, e.market_id, e.borrower)
     mEv.set(k, [...(mEv.get(k) ?? []), e])
   }
   for (const r of rows) {
     const evs = (r.protocol === 'aave-v3' ? aEv.get(r.pid)! : mEv.get(r.pid)!).sort(
       (a: any, b: any) => a.block_number - b.block_number || a.log_index - b.log_index,
     )
-    const located = evs.filter((e: any) =>
-      r.protocol === 'aave-v3' ? e.atN.liquidatable : e.liquidatableN,
-    )
+    // t0 = the first event located at block-N prices, else at N-1 prices
+    const at = (e: any, b: 'N' | 'N-1') =>
+      r.protocol === 'aave-v3' ? aaveLocatedAt(e, b) : morphoLocatedAt(e, b)
+    const located = evs.filter((e: any) => at(e, 'N') || at(e, 'N-1'))
     if (r.walked) {
       assert.ok(located.length > 0, r.pid)
       assert.strictEqual(r.t0!.block, located[0].block_number, r.pid)
+      assert.strictEqual(r.t0!.priceBasis, at(located[0], 'N') ? 'N' : 'N-1', r.pid)
       assert.strictEqual(r.t0!.shifted, located[0] !== evs[0], r.pid)
       if (!r.mem!.subs) assert.ok(r.ltv0! > r.line!, `${r.pid}: located but LTV0 <= line`)
     } else {
@@ -194,18 +180,19 @@ test('the canonical replay and the served compact replay are the same records', 
   assert.deepStrictEqual(JSON.parse(JSON.stringify(census.records)), jsonl.records)
 })
 
-test('the stream folds, and its totals are the rows sums and census.json totals', () => {
+test('the stream folds, and its totals are the WALKED rows sums and census.json totals', () => {
   const s = replay(census.records)
+  const walked = rows.filter((r) => r.walked)
   const near = (a: number, b: number, what: string) =>
     assert.ok(Math.abs(a - b) < 0.05, `${what}: ${a} vs ${b}`)
   near(
     s.totals.real.repaidUsd,
-    rows.reduce((a, r) => a + r.real.repaidUsd, 0),
+    walked.reduce((a, r) => a + r.real.repaidUsd, 0),
     'real repaid',
   )
   near(
     s.totals.real.soldUsd,
-    rows.reduce((a, r) => a + r.real.seizedUsd, 0),
+    walked.reduce((a, r) => a + r.real.seizedUsd, 0),
     'real seized',
   )
   near(
@@ -219,7 +206,9 @@ test('the stream folds, and its totals are the rows sums and census.json totals'
     'mem sold',
   )
   const T = written.meta.totals.all
-  near(s.totals.real.repaidUsd, T.realAll.repaidUsd, 'census.json real repaid')
+  // the reducer folds real records of WALKED positions only (same positions on both sides)
+  near(s.totals.real.repaidUsd, T.realWalked.repaidUsd, 'census.json real repaid (walked)')
+  near(s.totals.real.soldUsd, T.realWalked.seizedUsd, 'census.json real seized (walked)')
   near(s.totals.mem.repaidUsd, T.mem.repaidUsd, 'census.json mem repaid')
   assert.strictEqual(s.totals.mem.positionsSold, T.mem.positionsSold)
   assert.strictEqual(s.totals.mem.positionsKept, T.mem.positionsKept)
@@ -233,10 +222,13 @@ test('every unsplit single-leg walked position equals cureWalk on its composite 
     (src[chain].prices[key] as (string | null)[]).map((v) => (v == null ? NaN : Number(v)))
   const aEv = new Map<string, AaveEventRecord[]>()
   for (const e of inputs.aaveEvents)
-    aEv.set(`aave-v3:${e.chain}:${e.user}`, [...(aEv.get(`aave-v3:${e.chain}:${e.user}`) ?? []), e])
+    aEv.set(aavePid(e.chain, aavePoolOf(e), e.user), [
+      ...(aEv.get(aavePid(e.chain, aavePoolOf(e), e.user)) ?? []),
+      e,
+    ])
   const mEv = new Map<string, any[]>()
   for (const e of inputs.morphoEvents) {
-    const k = `morpho-blue:${e.chain}:${e.market_id}:${e.borrower}`
+    const k = morphoPid(e.chain, e.market_id, e.borrower)
     mEv.set(k, [...(mEv.get(k) ?? []), e])
   }
   for (const r of rows) {
@@ -250,8 +242,8 @@ test('every unsplit single-leg walked position equals cureWalk on its composite 
         stepSeconds: 60,
         debtMinimumUsd: LIQ_DEBT_MINIMUM_USD,
       })
-      cc = col(aaveOracle, r.chain, spec.collateral[0].key)
-      dc = col(aaveOracle, r.chain, spec.debt[0].key)
+      cc = col(aaveOracle, `${r.chain}:${spec.market}`, spec.collateral[0].key)
+      dc = col(aaveOracle, `${r.chain}:${spec.market}`, spec.debt[0].key)
     } else {
       const usd0 =
         r.debt[0].usd != null && r.debt[0].amount > 0 ? r.debt[0].usd / r.debt[0].amount : null

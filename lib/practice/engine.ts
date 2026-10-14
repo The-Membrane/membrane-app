@@ -18,8 +18,8 @@
  *
  * THE PAST-THE-BAND FIRST CROSSING: if the very first crossing lands past the band (an
  * `Immediate` sale with no delay), this engine sells and keeps walking. cureWalk used to
- * return `sold-at-t0` after one repay and stop; since 2026-10-14 it walks on too (the
- * contract deletes the timer after any sale, LiquidationEngine.sol:1421-1423), so the two
+ * return `sold-at-t0` after one repay and stop; since 2026-10-14 it walks on too (a sale
+ * leaves no timer, LiquidationEngine.sol:1724-1727 at 16e12329), so the two
  * are expected to agree there as well — but no preset is built that way, so it is not
  * tested. `cureWalkInputFor` still reports the case as `firstCrossingPastBand: true`.
  *

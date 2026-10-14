@@ -29,6 +29,7 @@
  */
 
 import { delayClassOf, isNoDelayCollateral } from '../position-sim/collateralClass'
+import { AAVE_CORE_POOL, aaveMarketLabel, aavePid } from './pid'
 import type { KernelLeg } from './kernel'
 import type { DelayClass, StreamLeg } from './stream'
 
@@ -63,7 +64,34 @@ export interface AaveEventRecord {
   eMode: number
   position: AaveReserveRead[]
   atN: { hf: number; liquidatable: boolean; healthFactor?: string }
+  /** The pull's exact HF recompute with N-1 prices (equal to getUserAccountData at N-1). */
+  recomputedNm1?: { healthFactor: string }
   hfNm1?: number
+  /** The Aave pool. Absent on the core-pool records (the owner's CSV): the chain's Core pool. */
+  pool?: string
+  /** The market label the pull gave an extra record ('lido', …); display only. */
+  market?: string
+}
+
+/** The pool an Aave record belongs to: its own `pool`, else the chain's Core pool. */
+export function aavePoolOf(r: { chain: string; pool?: string }): string {
+  const pool = r.pool ?? AAVE_CORE_POOL[r.chain]
+  if (!pool) throw new Error(`no Aave pool for chain ${r.chain}`)
+  return pool.toLowerCase()
+}
+
+/** Which block's oracle prices value the t0 legs. */
+export type PriceBasis = 'N' | 'N-1'
+
+/**
+ * Liquidatable at this event under `basis` prices: Aave's own health factor below 1, as the
+ * pull recomputed it — composition at N-1 in both cases, prices at N (`atN`) or at N-1
+ * (`recomputedNm1`, which equals getUserAccountData at N-1 to the wei for every event).
+ */
+export function aaveLocatedAt(ev: AaveEventRecord, basis: PriceBasis): boolean {
+  if (basis === 'N') return ev.atN.liquidatable
+  const hf = ev.recomputedNm1?.healthFactor
+  return hf != null && BigInt(hf) < 10n ** 18n
 }
 
 // ------------------------------------------------------------------ spec
@@ -108,12 +136,23 @@ export interface PositionSpec {
   chain: string
   /** User (Aave) or borrower (Morpho). */
   owner: string
-  market?: string
+  /** Aave pool address, or Morpho market id (lib/wavefront/pid.ts). */
+  market: string
+  /** Display label: Aave 'core' | 'lido' | 'etherfi' (aaveMarketLabel); Morpho 'blue'. */
+  marketLabel: string
   /** The position's first liquidation event. */
   first: { block: number; ts: number }
   located: boolean
   /** The walk anchor. Present iff located. */
-  t0?: { block: number; ts: number; minute: number; eventIndex: number; shifted: boolean }
+  t0?: {
+    block: number
+    ts: number
+    minute: number
+    eventIndex: number
+    shifted: boolean
+    /** Which block's oracle prices value the legs and anchor the path. */
+    priceBasis: PriceBasis
+  }
   /** Why it is not walked. */
   reason?: string
   collateral: SpecLeg[]
@@ -140,10 +179,13 @@ export const minuteOf = (ts: number, startTs: number, stepSeconds: number) =>
   Math.floor((ts - startTs) / stepSeconds)
 
 /**
- * Collateral and debt legs of one event's N-1 position, valued at that event's block-N
- * prices with Aave's rounding.
+ * Collateral and debt legs of one event's N-1 position, valued at that event's block-N (or,
+ * with `basis` 'N-1', block N-1) prices with Aave's rounding.
  */
-export function aaveLegsAtN(ev: AaveEventRecord): {
+export function aaveLegsAt(
+  ev: AaveEventRecord,
+  basis: PriceBasis = 'N',
+): {
   collateral: SpecLeg[]
   debt: SpecLeg[]
   /** Collateral reserves held whose value at N floors to 0 base units: dropped (Aave counts 0). */
@@ -155,8 +197,9 @@ export function aaveLegsAtN(ev: AaveEventRecord): {
   for (const p of ev.position) {
     const a = BigInt(p.aTokenBalance)
     const d = BigInt(p.variableDebt) + BigInt(p.stableDebt)
-    const priced = p.priceN != null && BigInt(p.priceN) > 0n
-    const price = priced ? BigInt(p.priceN!) : 0n
+    const raw = basis === 'N' ? p.priceN : p.priceNm1
+    const priced = raw != null && BigInt(raw) > 0n
+    const price = priced ? BigInt(raw!) : 0n
     const price0 = priced ? Number(price) / AAVE_PRICE_UNIT : null
     if (a > 0n && p.collateralFlag && (p.ltUsed ?? 0) > 0) {
       const usd = priced ? Number((a * price) / pow10(p.decimals)) / AAVE_PRICE_UNIT : null
@@ -238,37 +281,67 @@ export interface AaveSpecOptions {
   stepSeconds: number
   /** liqDebtMinimum, USD. */
   debtMinimumUsd: number
+  /**
+   * The price bases tried at each event, in order. Default ['N', 'N-1']: block-N prices, and
+   * block N-1 prices when N does not show the breach (an oracle update later in block N than
+   * the liquidation hides it). ['N-1', 'N'] is the t0 price-basis sensitivity.
+   */
+  basisOrder?: readonly PriceBasis[]
 }
 
 /**
- * The spec of one Aave account from ALL its events in the window (any order). Not walked when
- * no event is located, or when the anchor position has no priced collateral or no debt.
+ * The spec of one Aave account (one user in one market) from ALL its events in the window (any
+ * order). t0 is the first event located under any basis in `basisOrder` (tried in that order
+ * at each event). Not walked when no event is located, or when the anchor position has no
+ * priced collateral or no debt.
  */
 export function aavePositionSpec(
   events: readonly AaveEventRecord[],
   opts: AaveSpecOptions,
 ): PositionSpec {
   if (!events.length) throw new Error('aavePositionSpec: no events')
-  const evs = [...events].sort(
-    (a, b) => a.block_number - b.block_number || a.log_index - b.log_index,
-  )
+  const evs = sortEvents(events)
+  const order = opts.basisOrder ?? (['N', 'N-1'] as const)
+  for (let i = 0; i < evs.length; i++) {
+    for (const b of order) if (aaveLocatedAt(evs[i], b)) return aaveSpecAt(evs, i, b, opts)
+  }
+  return aaveSpecAt(evs, 0, 'N', opts)
+}
+
+export const sortEvents = <T extends { block_number: number; log_index: number }>(
+  events: readonly T[],
+): T[] => [...events].sort((a, b) => a.block_number - b.block_number || a.log_index - b.log_index)
+
+/**
+ * The spec anchored at event `idx` (of the SORTED events) valued at `basis` prices. Located iff
+ * Aave's own health factor is below 1 there (`aaveLocatedAt`).
+ */
+export function aaveSpecAt(
+  evs: readonly AaveEventRecord[],
+  idx: number,
+  basis: PriceBasis,
+  opts: AaveSpecOptions,
+): PositionSpec {
   const first = evs[0]
-  const pid = `aave-v3:${first.chain}:${first.user}`
-  const locIdx = evs.findIndex((e) => e.atN.liquidatable)
-  const anchor = locIdx >= 0 ? evs[locIdx] : first
-  const { collateral, debt, zeroValueCollateral } = aaveLegsAtN(anchor)
+  const pool = aavePoolOf(first)
+  const anchor = evs[idx]
+  const located = aaveLocatedAt(anchor, basis)
+  const { collateral, debt, zeroValueCollateral } = aaveLegsAt(anchor, basis)
   const collUsd = sumUsd(collateral)
   const debtUsd = sumUsd(debt)
   const line = weightedLine(collateral)
   const ltv0 = collUsd != null && debtUsd != null && collUsd > 0 ? debtUsd / collUsd : null
   const notes: string[] = []
+  const blockName = basis === 'N' ? 'block N' : 'block N-1'
   const spec: PositionSpec = {
-    pid,
+    pid: aavePid(first.chain, pool, first.user),
     protocol: 'aave-v3',
     chain: first.chain,
     owner: first.user,
+    market: pool,
+    marketLabel: aaveMarketLabel(first.chain, pool, first.market),
     first: { block: first.block_number, ts: first.ts },
-    located: locIdx >= 0,
+    located,
     collateral,
     debt,
     collUsd,
@@ -289,11 +362,15 @@ export function aavePositionSpec(
   }
   if (zeroValueCollateral.length) {
     notes.push(
-      `collateral worth 0 base units at block N dropped (Aave counts it as 0): ${zeroValueCollateral.join(', ')}`,
+      `collateral worth 0 base units at ${blockName} dropped (Aave counts it as 0): ${zeroValueCollateral.join(', ')}`,
     )
   }
-  if (locIdx < 0) {
-    spec.reason = `not located: HF at block N >= 1 on every event (${evs.length})`
+  if (!located) {
+    spec.reason =
+      `not located: Aave liquidated it, but its health factor recomputed from this pull ` +
+      `(composition at N-1) is >= 1 at both the block N-1 and the block N oracle prices on ` +
+      `every one of its ${evs.length} event${evs.length > 1 ? 's' : ''}, so no breach can be ` +
+      `placed in this data`
     return spec
   }
   if (collUsd == null || debtUsd == null || line == null || !(collUsd > 0) || !(debtUsd > 0)) {
@@ -305,16 +382,34 @@ export function aavePositionSpec(
     block: anchor.block_number,
     ts: anchor.ts,
     minute: minuteOf(anchor.ts, opts.startTs, opts.stepSeconds),
-    eventIndex: locIdx,
-    shifted: locIdx > 0,
+    eventIndex: idx,
+    shifted: idx > 0,
+    priceBasis: basis,
   }
-  if (locIdx > 0) {
+  if (idx > 0) {
     notes.push(
-      `t0 shifted to event ${locIdx + 1} of ${evs.length}: the first event's HF at block N was >= 1`,
+      `t0 shifted to event ${idx + 1} of ${evs.length}: no earlier event is located at block N or N-1 prices`,
+    )
+  }
+  if (basis === 'N-1') {
+    notes.push(
+      'priced at block N-1: block N does not show the breach Aave liquidated (a price update later in block N than the liquidation)',
     )
   }
   spec.halves = splitHalves(collateral, line)
   return spec
+}
+
+/**
+ * What Membrane's engine decides at t0 for one half: 'under' (at or under its line: it just
+ * walks), 'window' (delayed, inside the band: the timer arms), 'past-band' (delayed, past
+ * line x (1 + band): sold at once) or 'instant' (no-delay, over its line: sold at once).
+ */
+export type T0Decision = 'under' | 'window' | 'past-band' | 'instant'
+export function t0Decision(ltv0: number, half: HalfSpec, band: number): T0Decision {
+  if (!(ltv0 > half.line)) return 'under'
+  if (half.delayClass === 'no-delay') return 'instant'
+  return ltv0 > half.line * (1 + band) ? 'past-band' : 'window'
 }
 
 /**
@@ -343,7 +438,7 @@ export const streamLegs = (legs: readonly SpecLeg[]): StreamLeg[] =>
 
 // ------------------------------------------------------------------ real side
 
-/** The CSV row fields the real side reads (aave_liquidations_enriched.csv). */
+/** The CSV row fields the real side reads (aave_liquidations_enriched.csv / _extra.csv). */
 export interface AaveCsvRow {
   chain: string
   block_number: number
@@ -355,23 +450,44 @@ export interface AaveCsvRow {
   debt_asset: string
   debt_to_cover_normalized: string
   liquidated_collateral_normalized: string
+  /** The pool; only the _extra.csv rows carry it (the owner's CSV is all Core pools). */
+  pool?: string
+  market?: string
+}
+
+/** The protocol-fee record of one event (aave-protocol-fee.jsonl.gz, the fields read). */
+export interface AaveFeeRecord {
+  chain: string
+  block_number: number
+  log_index: number
+  tx_hash: string
+  /** The liquidation protocol fee: the on-chain collateral aToken transfer to the treasury. */
+  protocolFeeRaw: string
+  /** liquidatedCollateralAmount + protocolFeeRaw: everything taken from the borrower. */
+  collateralSeizedTotalRaw: string
 }
 
 export type PriceSource = 'event-N' | 'minute-path' | 'none'
 
 /**
- * One real liquidation in USD: debt_to_cover × the debt reserve's AaveOracle price at block N,
- * liquidated collateral × the collateral reserve's. The block-N price comes from the event's
- * own re-read (`priceN` of that reserve); a reserve the re-read does not carry falls back to
- * `fallbackPrice` (the minute path at the event's minute).
+ * One real liquidation in USD at block-N AaveOracle prices: repaid = debt_to_cover × the debt
+ * reserve's price; seized = EVERYTHING taken from the borrower's collateral — the event's
+ * liquidatedCollateralAmount (what the liquidator received) PLUS the liquidation protocol fee
+ * sent to the treasury (`fee.collateralSeizedTotalRaw`) — × the collateral reserve's price.
+ * The block-N price comes from the event's own re-read (`priceN` of that reserve); a reserve the
+ * re-read does not carry falls back to `fallbackPrice` (the minute path at the event's minute).
  */
 export function aaveRealUsd(
   row: AaveCsvRow,
   ev: AaveEventRecord | undefined,
+  fee: AaveFeeRecord,
+  collateralDecimals: number,
   fallbackPrice: (asset: string) => number | null,
 ): {
   repaidUsd: number | null
   seizedUsd: number | null
+  /** The protocol-fee part of seizedUsd. */
+  protocolFeeUsd: number | null
   debtPriceSource: PriceSource
   collPriceSource: PriceSource
 } {
@@ -385,9 +501,11 @@ export function aaveRealUsd(
   }
   const d = priceOf(row.debt_asset)
   const c = priceOf(row.collateral_asset)
+  const scale = 10 ** collateralDecimals
   return {
     repaidUsd: d.p == null ? null : Number(row.debt_to_cover_normalized) * d.p,
-    seizedUsd: c.p == null ? null : Number(row.liquidated_collateral_normalized) * c.p,
+    seizedUsd: c.p == null ? null : (Number(BigInt(fee.collateralSeizedTotalRaw)) / scale) * c.p,
+    protocolFeeUsd: c.p == null ? null : (Number(BigInt(fee.protocolFeeRaw)) / scale) * c.p,
     debtPriceSource: d.src,
     collPriceSource: c.src,
   }

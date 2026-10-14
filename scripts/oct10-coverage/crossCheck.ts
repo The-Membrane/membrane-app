@@ -38,12 +38,14 @@ import fs from 'node:fs'
 import { heldAtOne } from '../../lib/position-sim/collateralClass'
 import {
   AAVE_PRICE_UNIT,
+  aavePoolOf,
   type AaveEventRecord,
   type HalfSpec,
   type PositionSpec,
   type SpecLeg,
 } from '../../lib/wavefront/aave'
 import type { KernelLeg } from '../../lib/wavefront/kernel'
+import { AAVE_CORE_POOL, aavePid } from '../../lib/wavefront/pid'
 import { buildCensus, type CensusInputs, type CensusRow } from './census'
 import { parseCsv } from './inputs'
 
@@ -111,17 +113,21 @@ export function crossCheck(a: CrossCheckArgs) {
   // ---- the overlap -------------------------------------------------------------------------
   const oldRows: any[] = evidence.cohort.filter((r: any) => r.priced && !r.excluded)
   const byPid = new Map(a.rows.map((r) => [r.pid, r]))
-  const oldByPid = new Map(oldRows.map((r) => [`aave-v3:${r.chain}:${r.user}`, r]))
-  const both = oldRows.filter((r) => byPid.get(`aave-v3:${r.chain}:${r.user}`)?.walked)
+  const oldByPid = new Map(
+    oldRows.map((r) => [aavePid(r.chain, AAVE_CORE_POOL[r.chain], r.user), r]),
+  )
+  const both = oldRows.filter(
+    (r) => byPid.get(aavePid(r.chain, AAVE_CORE_POOL[r.chain], r.user))?.walked,
+  )
   const missing = oldRows
-    .filter((r) => !byPid.get(`aave-v3:${r.chain}:${r.user}`)?.walked)
-    .map((r) => `aave-v3:${r.chain}:${r.user}`)
-  const pids = new Set(both.map((r) => `aave-v3:${r.chain}:${r.user}`))
+    .filter((r) => !byPid.get(aavePid(r.chain, AAVE_CORE_POOL[r.chain], r.user))?.walked)
+    .map((r) => aavePid(r.chain, AAVE_CORE_POOL[r.chain], r.user))
+  const pids = new Set(both.map((r) => aavePid(r.chain, AAVE_CORE_POOL[r.chain], r.user)))
 
   // Per-pid context the toggles need: the t0 event and the first event.
   const evsByPid = new Map<string, AaveEventRecord[]>()
   for (const e of a.inputs.aaveEvents) {
-    const pid = `aave-v3:${e.chain}:${e.user.toLowerCase()}`
+    const pid = aavePid(e.chain, aavePoolOf(e), e.user)
     if (!pids.has(pid)) continue
     evsByPid.set(pid, [...(evsByPid.get(pid) ?? []), e])
   }
@@ -298,7 +304,7 @@ export function crossCheck(a: CrossCheckArgs) {
 
   // ---- per-row agreement ---------------------------------------------------------------------
   const perRow = both.map((o) => {
-    const pid = `aave-v3:${o.chain}:${o.user}`
+    const pid = aavePid(o.chain, AAVE_CORE_POOL[o.chain], o.user)
     const n = byPid.get(pid)!
     return {
       pid,
@@ -341,7 +347,7 @@ export function crossCheck(a: CrossCheckArgs) {
     a.inputs.aaveEvents.map((e) => [`${e.chain}:${e.tx_hash}:${e.log_index}`, e]),
   )
   for (const o of both) {
-    const pid = `aave-v3:${o.chain}:${o.user}`
+    const pid = aavePid(o.chain, AAVE_CORE_POOL[o.chain], o.user)
     const csv = a.inputs.aaveCsv.filter((r) => r.chain === o.chain && r.user === o.user) as any[]
     let oldUncapped = 0
     for (const r of csv) {

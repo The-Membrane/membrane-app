@@ -12,21 +12,33 @@
  *   LTV(m)              = borrowed / collateral value(m)
  *   line                = LLTV
  *
- * Composition is the FIRST event's N-1 position; t0 is that event's block N and price(N); a
- * position Morpho could not liquidate at N (LTV_N <= LLTV) is not walked. Interest accrued
- * after t0 is not added (the window is two days; the walk holds the debt in loan units).
+ * Composition is the t0 event's N-1 position; t0 is the first event Morpho's own check finds
+ * liquidatable — at the block-N oracle price, or, when N's price does not show it, at the
+ * block N-1 price (both with the debt accrued to N; `priceBasis` records which). A position
+ * liquidatable at neither is not walked. Interest accrued after t0 is not added (the window is
+ * two days; the walk holds the debt in loan units).
  *
  * DELAY CLASS: collateralClass.ts `delayClassOf([collateral symbol], LLTV)`.
  *
  * USD: the position's unit is converted with `loanUsd(minute)` — the shared stable definition
  * ($1.00 for a dollar stable held at one), else the AaveOracle price of the same token on the
- * same chain from the minute path (EURC, WETH, cbBTC, LBTC …), else unpriced (null). An
- * unpriced loan token leaves LTV and every Membrane decision unchanged; only its USD is
- * missing, and the liqDebtMinimum floor (a USD figure) is not applied to it.
+ * same chain from the minute path at that minute (the price in force at the minute START, not
+ * at block N; EURC, WETH, cbBTC, LBTC …), else unpriced (null). An unpriced loan token has no
+ * USD on either side. Its LTV path is unaffected, but one Membrane decision is: the
+ * liqDebtMinimum floor is a USD figure and cannot be converted, so it is NOT applied — those
+ * positions' repays are sized without the floor and remainder guard.
  */
 
 import { delayClassOf } from '../position-sim/collateralClass'
-import { minuteOf, type HalfSpec, type PositionSpec, type SpecLeg } from './aave'
+import {
+  minuteOf,
+  sortEvents,
+  type HalfSpec,
+  type PositionSpec,
+  type PriceBasis,
+  type SpecLeg,
+} from './aave'
+import { morphoPid } from './pid'
 
 export const MORPHO_PRICE_SCALE = 10n ** 36n
 
@@ -47,12 +59,26 @@ export interface MorphoEventRecord {
   /** LLTV, 1e18 scale. */
   lltv: string
   positionNm1: { borrowShares: string; collateral: string }
-  /** oracle price() at N, 1e36 × 10^(loanDec - collDec) scale. */
+  /** oracle price() at N-1 and at N, 1e36 × 10^(loanDec - collDec) scale. */
+  priceNm1?: string | null
   priceN: string | null
   /** Borrowed assets at ts(N): shares → assets rounded up, interest accrued. */
   borrowedNAccrued: string | null
   ltvN: number | null
   liquidatableN: boolean
+}
+
+/**
+ * Liquidatable under `basis`: Morpho's own check, borrowed > collateral × price / 1e36 × LLTV
+ * (mulDivDown, then wMulDown), with the debt accrued to ts(N) in both cases and the oracle
+ * price at N (`liquidatableN`, as the pull computed it) or at N-1.
+ */
+export function morphoLocatedAt(ev: MorphoEventRecord, basis: PriceBasis): boolean {
+  if (basis === 'N') return ev.liquidatableN
+  if (ev.priceNm1 == null || ev.borrowedNAccrued == null) return false
+  const collValue = (BigInt(ev.positionNm1.collateral) * BigInt(ev.priceNm1)) / MORPHO_PRICE_SCALE
+  const maxBorrow = (collValue * BigInt(ev.lltv)) / 10n ** 18n
+  return BigInt(ev.borrowedNAccrued) > maxBorrow
 }
 
 /** a × b / 10^36 as a double, without losing the fraction. */
@@ -69,6 +95,8 @@ export interface MorphoSpecOptions {
   loanSymbol: string
   /** USD per loan token at a minute, or null when the token is unpriced. */
   loanUsd: (minute: number) => number | null
+  /** See AaveSpecOptions.basisOrder. Default ['N', 'N-1']. */
+  basisOrder?: readonly PriceBasis[]
 }
 
 export function morphoPositionSpec(
@@ -76,19 +104,31 @@ export function morphoPositionSpec(
   opts: MorphoSpecOptions,
 ): PositionSpec {
   if (!events.length) throw new Error('morphoPositionSpec: no events')
-  const evs = [...events].sort(
-    (a, b) => a.block_number - b.block_number || a.log_index - b.log_index,
-  )
+  const evs = sortEvents(events)
+  const order = opts.basisOrder ?? (['N', 'N-1'] as const)
+  for (let i = 0; i < evs.length; i++) {
+    for (const b of order) if (morphoLocatedAt(evs[i], b)) return morphoSpecAt(evs, i, b, opts)
+  }
+  return morphoSpecAt(evs, 0, 'N', opts)
+}
+
+/** The spec anchored at event `idx` (of the SORTED events), valued at `basis` oracle price. */
+export function morphoSpecAt(
+  evs: readonly MorphoEventRecord[],
+  idx: number,
+  basis: PriceBasis,
+  opts: MorphoSpecOptions,
+): PositionSpec {
   const first = evs[0]
-  const pid = `morpho-blue:${first.chain}:${first.market_id}:${first.borrower}`
-  const locIdx = evs.findIndex((e) => e.liquidatableN)
-  const anchor = locIdx >= 0 ? evs[locIdx] : first
+  const anchor = evs[idx]
+  const located = morphoLocatedAt(anchor, basis)
   const minute = minuteOf(anchor.ts, opts.startTs, opts.stepSeconds)
   const usd0 = opts.loanUsd(minute)
   const loanScale = 10 ** anchor.loanDecimals
   const collRaw = BigInt(anchor.positionNm1.collateral)
-  const priceN = anchor.priceN != null ? BigInt(anchor.priceN) : 0n
-  const collUnits = priceN > 0n ? mulPrice(collRaw, priceN) / loanScale : null
+  const rawPrice = basis === 'N' ? anchor.priceN : anchor.priceNm1
+  const price = rawPrice != null ? BigInt(rawPrice) : 0n
+  const collUnits = price > 0n ? mulPrice(collRaw, price) / loanScale : null
   const debtUnits =
     anchor.borrowedNAccrued != null ? Number(BigInt(anchor.borrowedNAccrued)) / loanScale : null
   const line = Number(BigInt(anchor.lltv)) / 1e18
@@ -96,12 +136,12 @@ export function morphoPositionSpec(
   const collateral: SpecLeg[] = [
     {
       key: anchor.oracle,
-      p0: Number(priceN),
+      p0: Number(price),
       symbol: opts.collateralSymbol,
       amount: Number(collRaw) / 10 ** anchor.collateralDecimals,
       price0:
-        priceN > 0n && usd0 != null
-          ? (Number(priceN) / 1e36) * 10 ** (anchor.collateralDecimals - anchor.loanDecimals) * usd0
+        price > 0n && usd0 != null
+          ? (Number(price) / 1e36) * 10 ** (anchor.collateralDecimals - anchor.loanDecimals) * usd0
           : null,
       value0: collUnits ?? 0,
       usd: toUsd(collUnits),
@@ -123,13 +163,14 @@ export function morphoPositionSpec(
   const notes: string[] = []
   const delayClass = delayClassOf([opts.collateralSymbol], line)
   const spec: PositionSpec = {
-    pid,
+    pid: morphoPid(first.chain, first.market_id, first.borrower),
     protocol: 'morpho-blue',
     chain: first.chain,
     owner: first.borrower,
     market: first.market_id,
+    marketLabel: 'blue',
     first: { block: first.block_number, ts: first.ts },
-    located: locIdx >= 0,
+    located,
     collateral,
     debt,
     collUsd: toUsd(collUnits),
@@ -146,8 +187,11 @@ export function morphoPositionSpec(
     notes.push(
       `loan token ${opts.loanSymbol} has no USD price: USD figures are null and the liqDebtMinimum floor is not applied`,
     )
-  if (locIdx < 0) {
-    spec.reason = `not liquidatable at block N: LTV_N <= LLTV on every event (${evs.length})`
+  if (!located) {
+    spec.reason =
+      `not located: Morpho liquidated it, but with its debt accrued to block N it is at or ` +
+      `under its LLTV at both the block N-1 and the block N oracle price on every one of its ` +
+      `${evs.length} event${evs.length > 1 ? 's' : ''}, so no breach can be placed in this data`
     return spec
   }
   if (collUnits == null || debtUnits == null || !(collUnits > 0) || !(debtUnits > 0)) {
@@ -159,10 +203,16 @@ export function morphoPositionSpec(
     block: anchor.block_number,
     ts: anchor.ts,
     minute,
-    eventIndex: locIdx,
-    shifted: locIdx > 0,
+    eventIndex: idx,
+    shifted: idx > 0,
+    priceBasis: basis,
   }
-  if (locIdx > 0) notes.push(`t0 shifted to event ${locIdx + 1} of ${evs.length}`)
+  if (idx > 0) notes.push(`t0 shifted to event ${idx + 1} of ${evs.length}`)
+  if (basis === 'N-1') {
+    notes.push(
+      'priced at block N-1: at the block-N oracle price it is not liquidatable, at N-1 (debt accrued to N) it is',
+    )
+  }
   const half: HalfSpec = {
     collateral,
     share: 1,

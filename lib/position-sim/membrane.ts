@@ -13,15 +13,15 @@
  *
  * MODELLED (no source of truth exists yet — say so on screen):
  *   - the per-asset max LTV for ETH, BTC, etc. There is NO Membrane EVM mainnet
- *     deployment (config/evm/chains.ts targets local anvil only) and no committed
- *     mainnet LTV configuration anywhere in membrane-core or membrane-solidity.
- *     The defaults in MEMBRANE_ASSET_LTV are ours, and every one is stamped
- *     'modelled'. They must be presented as an assumption the user can change,
- *     never as protocol state.
+ *     deployment (config/evm/chains.ts targets local anvil only). The defaults in
+ *     MEMBRANE_ASSET_LTV are ours and stamped 'modelled' — they must be presented as an
+ *     assumption the user can change, never as protocol state — EXCEPT the three launch
+ *     stables, whose bootstrap max LTVs ARE in the deploy script (DEPLOY_LAUNCH_LTV:
+ *     sUSDS 88%, syrupUSDC 86%, scrvUSD 86%, script/DeployFullSystem.s.sol:243-251).
  *   - the venue recall rate. It is the dominant variable and it is an input.
  */
 
-import { hardCapFor } from './collateralClass'
+import { hardCapFor, positionLtvCap } from './collateralClass'
 import { stamp, type Provenance } from './types'
 
 // ---------------------------------------------------------------- constants
@@ -65,11 +65,34 @@ export const MEMBRANE_CONSTANTS_PROVENANCE: Provenance = stamp(
 )
 
 /**
- * MODELLED per-asset max (liquidation) LTV.
+ * The DEPLOY's own max LTVs for its three launch stables — REAL values from the deploy
+ * script, not modelled (membrane-solidity 16e12329, script/DeployFullSystem.s.sol):
  *
- * These are NOT read from a deployment — none exists. They are a stated assumption,
- * capped by the real MAX_LTV_HARD_CAP, and the UI exposes them as an editable input.
- * Do not present any of these as a protocol parameter.
+ *   SUSDS_MAX_LTV     = 88e16   :243  "bootstrap temp_ltv (fallback while the Disco pool is
+ *                                      below its floor); runs at the 96% cap once covered"
+ *   SYRUPUSDC_MAX_LTV = 86e16   :247  "bootstrap temp_ltv (fallback below the Disco floor);
+ *                                      exit-queue haircut"
+ *   SCRVUSD_MAX_LTV   = 86e16   :251  "bootstrap temp_ltv (fallback below the Disco floor);
+ *                                      thinner venue"
+ *
+ * listed by `_onboardLaunchAsset` at :755-759. They are the BOOTSTRAP line, the one each
+ * asset runs at until its Disco pool covers it; after that the listing's 96% cap applies.
+ * The simulator uses the bootstrap value, the lower of the two. Stamped by
+ * MEMBRANE_DEPLOY_LTV_PROVENANCE, not the modelled stamp.
+ */
+export const DEPLOY_LAUNCH_LTV: Readonly<Record<string, number>> = {
+  sUSDS: 0.88,
+  syrupUSDC: 0.86,
+  scrvUSD: 0.86,
+}
+
+/**
+ * Per-asset max (liquidation) LTV: MODELLED, except the DEPLOY_LAUNCH_LTV entries.
+ *
+ * The modelled ones are NOT read from a deployment — none exists. They are a stated
+ * assumption, capped by the real hard cap of the asset's class, and the UI exposes them
+ * as an editable input. Do not present any of those as a protocol parameter. An asset
+ * with no entry (GHO, for one) has NO line: nothing is invented for it.
  */
 export const MEMBRANE_ASSET_LTV: Record<string, number> = {
   WETH: 0.8,
@@ -88,13 +111,53 @@ export const MEMBRANE_ASSET_LTV: Record<string, number> = {
   USDe: 0.8,
   sUSDe: 0.78,
   LINK: 0.65,
+  ...DEPLOY_LAUNCH_LTV,
 }
 
 export const MEMBRANE_LTV_PROVENANCE: Provenance = stamp(
   'modelled',
   'modelled — no Membrane mainnet deployment',
-  'Membrane has no EVM mainnet deployment, so no live per-asset max LTV exists to read. These are our assumptions, capped at the real 90% MAX_LTV_HARD_CAP (96% NO_DELAY_LTV_HARD_CAP for stables, modelled as no-delay listings). Editable in the UI.',
+  'Membrane has no EVM mainnet deployment, so no live per-asset max LTV exists to read. These are our assumptions, capped at the real 90% MAX_LTV_HARD_CAP (96% NO_DELAY_LTV_HARD_CAP for stables, modelled as no-delay listings) — except sUSDS, syrupUSDC and scrvUSD, which use the deploy script’s own values. Editable in the UI.',
 )
+
+/**
+ * The stamp for DEPLOY_LAUNCH_LTV: read from a committed source file, not assumed. Kind
+ * 'dataset' (a committed file), not 'modelled'; and not 'onchain', which the chip would
+ * print with a "fetched HH:MM" clock for a read that never happened (Stamp.tsx).
+ */
+export const MEMBRANE_DEPLOY_LTV_PROVENANCE: Provenance = stamp(
+  'dataset',
+  'membrane deploy script',
+  'sUSDS 88%, syrupUSDC 86%, scrvUSD 86%: SUSDS_MAX_LTV / SYRUPUSDC_MAX_LTV / SCRVUSD_MAX_LTV in script/DeployFullSystem.s.sol:243, :247, :251 (membrane-solidity 16e12329). Each is the bootstrap max LTV a launch stablecoin runs at until its Disco pool covers it; after that its 96% cap applies.',
+)
+
+/** True when `symbol`'s line is the deploy script's own value, not our assumption. */
+export function isDeployListedLtv(symbol: string): boolean {
+  return Object.prototype.hasOwnProperty.call(DEPLOY_LAUNCH_LTV, symbol)
+}
+
+/** The lowest Membrane max LTV a user (slider or URL ?ltv) may set. */
+export const MEMBRANE_LTV_INPUT_MIN = 0.3
+
+/**
+ * A user-set Membrane line, clamped to what the position's class allows: from
+ * MEMBRANE_LTV_INPUT_MIN up to `positionLtvCap` — 96% when every collateral leg is a
+ * no-delay stable, else 90% (collateralClass.ts). The slider and URL ?ltv share it.
+ */
+export function clampMembraneLtv(ltv: number, collateralSymbols: readonly string[]): number {
+  const max = positionLtvCap(collateralSymbols)
+  if (!Number.isFinite(ltv)) return max
+  return Math.min(max, Math.max(MEMBRANE_LTV_INPUT_MIN, ltv))
+}
+
+/**
+ * Whether Membrane has ANY line for this collateral: at least one leg with a max LTV.
+ * When none does (an all-GHO position, say), the position cannot be judged — the
+ * weighted line would be 0 and every minute "over" it. Callers must not run it.
+ */
+export function hasMembraneLine(collateralSymbols: readonly string[]): boolean {
+  return collateralSymbols.some((s) => membraneMaxLtv(s) !== null)
+}
 
 /**
  * The liquidation line for an asset, or null if we have no assumption for it.

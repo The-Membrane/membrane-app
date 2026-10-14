@@ -49,8 +49,12 @@ import type { LandingVariant } from '@/lib/landingVariant'
 import { monoXs, tabular } from '@/components/Builder/styles'
 import {
   GUARANTEE,
+  MEMBRANE_DEPLOY_LTV_PROVENANCE,
   MEMBRANE_LTV_PROVENANCE,
   buildPricePath,
+  clampMembraneLtv,
+  hasMembraneLine,
+  isDeployListedLtv,
   carryCost,
   demoBorrowerDetection,
   demoBorrowerPosition,
@@ -413,6 +417,17 @@ export const Simulator: React.FC<SimulatorProps> = ({
         : { maxLtv: 0, borrowLtv: 0, unknown: [] as string[] },
     [selected],
   )
+  const collateralSymbols = useMemo(
+    () => (selected ? selected.collateral.map((c) => c.symbol) : []),
+    [selected],
+  )
+  /**
+   * NO LINE, NO RUN. When no collateral leg has a Membrane max LTV (an all-GHO position,
+   * say — nothing is invented for GHO), the weighted line is 0 and every minute would be
+   * "over" it. The page does not run such a position: it says why, on the same hero line
+   * the page already uses when there is nothing to run ("No open position found").
+   */
+  const noLine = !!selected && !hasMembraneLine(collateralSymbols)
   const liqFeeDefault = useMemo(() => (selected ? defaultLiqFee(selected) : 0), [selected])
 
   const defaults = useMemo<ControlValues>(() => {
@@ -427,10 +442,22 @@ export const Simulator: React.FC<SimulatorProps> = ({
   }, [selected, derived, liqFeeDefault, detectedRecall])
 
   const [overrides, setOverrides] = useState<Partial<ControlValues>>({})
-  const values = useMemo<ControlValues>(
-    () => ({ ...defaults, ...overrides }),
-    [defaults, overrides],
-  )
+  /** The user's line (slider or URL ?ltv) is clamped to what the position's class allows:
+   *  30% up to 96% when every collateral leg is a stable, else 90% (clampMembraneLtv). */
+  const values = useMemo<ControlValues>(() => {
+    const v = { ...defaults, ...overrides }
+    return selected && !noLine
+      ? { ...v, membraneMaxLtv: clampMembraneLtv(v.membraneMaxLtv, collateralSymbols) }
+      : v
+  }, [defaults, overrides, selected, noLine, collateralSymbols])
+  /** Where the line in force comes from: the deploy script's own value when every leg is
+   *  a deploy-listed launch stable and the user has not moved it, else our assumption. */
+  const lineSource =
+    collateralSymbols.length > 0 &&
+    collateralSymbols.every(isDeployListedLtv) &&
+    Math.abs(values.membraneMaxLtv - derived.maxLtv) < 1e-9
+      ? 'deploy-script'
+      : 'modelled'
 
   const venueProvenance = useMemo<Provenance>(() => {
     const same =
@@ -480,7 +507,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
 
   // -------------------------------------------------------------- comparison
   const comparison = useMemo(() => {
-    if (!selected || !scenario) return null
+    if (!selected || !scenario || noLine) return null
     const symbols = [
       ...selected.collateral.map((c) => c.symbol),
       ...selected.debt.map((d) => d.symbol),
@@ -504,7 +531,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
       sourceRepayFractionLabel: repay.label,
       scenarioLabel: `${scenario.manifest.name} · ${scenario.manifest.resolution} oracle candles, ${scenario.manifest.windowStartUtc.slice(0, 10)} to ${scenario.manifest.windowEndUtc.slice(0, 10)}`,
     })
-  }, [selected, scenario, measured, values, venueProvenance])
+  }, [selected, scenario, noLine, measured, values, venueProvenance])
 
   // --------------------------------------------------------------- url state
   const hydrated = useRef(false)
@@ -536,14 +563,14 @@ export const Simulator: React.FC<SimulatorProps> = ({
     () => ({
       address: loaded?.address,
       position: selected ? keyOf(selected) : undefined,
-      membraneMaxLtv: selected ? values.membraneMaxLtv : undefined,
+      membraneMaxLtv: selected && !noLine ? values.membraneMaxLtv : undefined,
       liqFee: selected ? values.membraneLiqFee : undefined,
       recallRate: selected ? values.recallRate : undefined,
       fastRate: selected ? values.fastRate : undefined,
       deployedUsd: selected ? values.deployedUsd : undefined,
       hero: heroOverride ?? undefined,
     }),
-    [loaded, selected, values, heroOverride],
+    [loaded, selected, noLine, values, heroOverride],
   )
 
   useEffect(() => {
@@ -605,8 +632,12 @@ export const Simulator: React.FC<SimulatorProps> = ({
       if (r.status === 'error') out.push(`${r.label} · ${r.message ?? 'read failed'}`)
     }
     if (loaded && positions.length === 0) out.push('No open position found for this address.')
+    if (noLine)
+      out.push(
+        `Membrane has no max LTV for ${collateralSymbols.join(', ')}, so this position cannot be judged. No Membrane run is shown.`,
+      )
     return out
-  }, [scenarioError, loaded, positions])
+  }, [scenarioError, loaded, positions, noLine, collateralSymbols])
   /** One set of address-bar props, mounted three times (hero, carry section, foot). */
   const addressBarProps = {
     value: input,
@@ -649,10 +680,11 @@ export const Simulator: React.FC<SimulatorProps> = ({
     const out: Provenance[] = []
     if (scenario) out.push(oct10Provenance(scenario.manifest))
     out.push(MEMBRANE_LTV_PROVENANCE)
+    if (collateralSymbols.some(isDeployListedLtv)) out.push(MEMBRANE_DEPLOY_LTV_PROVENANCE)
     out.push(detection.provenance)
     if (isDemo) out.push(demoPos.provenance)
     return out
-  }, [scenario, detection, isDemo, demoPos])
+  }, [scenario, collateralSymbols, detection, isDemo, demoPos])
 
   /**
    * WHY IT HELD. Only rendered when the Membrane run finished with no collateral-seizing
@@ -884,8 +916,8 @@ export const Simulator: React.FC<SimulatorProps> = ({
               borrowRateNote={borrowRateNote}
               extraNotes={finePrintNotes}
               assumptionNote={
-                selected
-                  ? `This run uses a modelled Membrane max LTV of ${(values.membraneMaxLtv * 100).toFixed(1)}%, liquidation fee ${(values.membraneLiqFee * 100).toFixed(1)}%, detected deployable venue capital ${usd(values.deployedUsd)}, recall rate ${(values.recallRate * 100).toFixed(1)}%, and fast rate ${(values.fastRate * 100).toFixed(1)}%. URL parameters can override these inputs; none are live Membrane settings.`
+                selected && !noLine
+                  ? `This run uses a ${lineSource} Membrane max LTV of ${(values.membraneMaxLtv * 100).toFixed(1)}%, liquidation fee ${(values.membraneLiqFee * 100).toFixed(1)}%, detected deployable venue capital ${usd(values.deployedUsd)}, recall rate ${(values.recallRate * 100).toFixed(1)}%, and fast rate ${(values.fastRate * 100).toFixed(1)}%. URL parameters can override these inputs; none are live Membrane settings.`
                   : undefined
               }
             />

@@ -11,16 +11,27 @@
 
 import assert from 'node:assert'
 import fs from 'node:fs'
+import React from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { ChakraProvider } from '@chakra-ui/react'
+import { Controls } from '../../components/Simulator/Controls'
 import {
   BORROW_LTV_GAP,
   LIQ_DEBT_MINIMUM_USD,
   applyDebtMinimum,
   CURE_WINDOW_SECONDS,
+  DEPLOY_LAUNCH_LTV,
   MAX_LTV_HARD_CAP,
   MEMBRANE_ASSET_LTV,
+  MEMBRANE_DEPLOY_LTV_PROVENANCE,
+  MEMBRANE_LTV_INPUT_MIN,
+  MEMBRANE_LTV_PROVENANCE,
   NO_DELAY_LTV_HARD_CAP,
   applyRecall,
+  clampMembraneLtv,
   fullRepayValue,
+  hasMembraneLine,
+  isDeployListedLtv,
   membraneBorrowLtv,
   membraneMaxLtv,
   membraneRepayValue,
@@ -51,6 +62,7 @@ import {
   heldFlat,
   isNoDelayCollateral,
   lineIsNoDelay,
+  positionLtvCap,
 } from '../../lib/position-sim/collateralClass'
 import { readUrlState, writeUrlState } from '../../lib/position-sim/share'
 import {
@@ -1075,6 +1087,95 @@ test('a syrupUSDC position is held at its read price, not $1 — no false minute
       `${run.engine} run says so`,
     )
   }
+  // And at the PAGE's default line, with no override: syrupUSDC now has the deploy's own
+  // bootstrap max LTV, 86% (DeployFullSystem.s.sol:247), so the position is judged at 86%,
+  // not at line 0 — and at LTV 0.857 it survives on both sides there too.
+  const pageLine = weightedMembraneLine(pos.collateral).maxLtv
+  close(pageLine, 0.86, 'the page default is the deploy value', 1e-12)
+  const atDefault = runComparison(pos, path, unpriced, {
+    ...baseOpts,
+    membraneMaxLtv: pageLine,
+    venue: null,
+  })
+  assert.deepStrictEqual(atDefault.membrane.events, [], 'Membrane at 86%: nothing sold')
+  assert.deepStrictEqual(atDefault.source.events, [], 'Morpho: nothing sold')
+  assert.ok(
+    atDefault.membrane.caveats.some((c) =>
+      c.includes('the deploy script’s own bootstrap value (syrupUSDC 86%)'),
+    ),
+    'and the run says where the line comes from',
+  )
+})
+
+test('the launch stables carry the deploy script’s own max LTV; GHO stays unknown', () => {
+  // REAL deploy values, membrane-solidity 16e12329 script/DeployFullSystem.s.sol:243-251.
+  assert.deepStrictEqual({ ...DEPLOY_LAUNCH_LTV }, { sUSDS: 0.88, syrupUSDC: 0.86, scrvUSD: 0.86 })
+  for (const [sym, v] of Object.entries(DEPLOY_LAUNCH_LTV)) {
+    close(membraneMaxLtv(sym)!, v, `${sym} runs at the deploy's ${v}`, 1e-12)
+    assert.ok(isDeployListedLtv(sym), `${sym} is deploy-listed`)
+  }
+  assert.ok(!isDeployListedLtv('USDC'), 'USDC is still our assumption')
+  assert.notStrictEqual(MEMBRANE_DEPLOY_LTV_PROVENANCE.kind, 'modelled', 'stamped as a source')
+  assert.ok(MEMBRANE_DEPLOY_LTV_PROVENANCE.detail!.includes('DeployFullSystem.s.sol:243'))
+  assert.strictEqual(membraneMaxLtv('GHO'), null, 'GHO: nothing invented')
+  assert.strictEqual(hasMembraneLine(['GHO']), false, 'an all-GHO position has no line')
+  assert.strictEqual(hasMembraneLine(['GHO', 'WETH']), true, 'one known leg is enough')
+  assert.strictEqual(hasMembraneLine([]), false)
+})
+
+test('a user line is clamped to the position’s class cap (slider and URL ?ltv)', () => {
+  close(positionLtvCap(['USDC', 'sUSDS']), NO_DELAY_LTV_HARD_CAP, 'all stable: 96%', 1e-12)
+  close(positionLtvCap(['WETH']), MAX_LTV_HARD_CAP, 'delayed: 90%', 1e-12)
+  close(positionLtvCap(['USDC', 'WETH']), MAX_LTV_HARD_CAP, 'mixed: 90%', 1e-12)
+  close(positionLtvCap([]), MAX_LTV_HARD_CAP, 'no legs: 90%', 1e-12)
+  close(clampMembraneLtv(0.95, ['USDC']), 0.95, 'a stable position may run at 95%', 1e-12)
+  close(clampMembraneLtv(0.99, ['USDC']), 0.96, 'but not past 96%', 1e-12)
+  close(clampMembraneLtv(0.95, ['WETH']), 0.9, 'a WETH position stops at 90%', 1e-12)
+  close(clampMembraneLtv(0.95, ['USDC', 'WETH']), 0.9, 'so does a mixed one', 1e-12)
+  close(
+    clampMembraneLtv(0, ['WETH']),
+    MEMBRANE_LTV_INPUT_MIN,
+    'and the floor is the slider’s',
+    1e-12,
+  )
+  close(clampMembraneLtv(NaN, ['USDC']), 0.96, 'garbage reads as the cap', 1e-12)
+  // The URL round-trip: ?ltv=0.95 reads back as 0.95 and is clamped at use, per position.
+  const back = readUrlState(
+    Object.fromEntries(new URLSearchParams(writeUrlState({ membraneMaxLtv: 0.95 }).slice(1))),
+  )
+  close(clampMembraneLtv(back.membraneMaxLtv!, ['WETH']), 0.9, '?ltv=0.95 on WETH -> 90%', 1e-12)
+  close(clampMembraneLtv(back.membraneMaxLtv!, ['USDC']), 0.95, '?ltv=0.95 on USDC stays', 1e-12)
+  // Unclamped, a 95% line would have made a WETH position no-delay by the line rule.
+  assert.strictEqual(delayClassOf(['WETH'], clampMembraneLtv(0.95, ['WETH'])), 'delayed')
+  // The slider's rendered max is the cap it is given (Controls.tsx `ltvMax`).
+  const sliderMax = (ltvMax: number) => {
+    const html = renderToStaticMarkup(
+      React.createElement(
+        ChakraProvider,
+        null,
+        React.createElement(Controls, {
+          values: {
+            membraneMaxLtv: 0.87,
+            membraneLiqFee: 0,
+            recallRate: 0,
+            fastRate: 0,
+            deployedUsd: 0,
+          },
+          onChange: () => {},
+          onReset: () => {},
+          unknownLtvSymbols: [],
+          venueDetected: false,
+          ltvProvenance: MEMBRANE_LTV_PROVENANCE,
+          venueProvenance: MEMBRANE_LTV_PROVENANCE,
+          ltvMax,
+        }),
+      ),
+    )
+    const input = html.match(/<input[^>]*id="sim-membrane-ltv"[^>]*>/)?.[0] ?? ''
+    return input.match(/max="([^"]+)"/)?.[1]
+  }
+  assert.strictEqual(sliderMax(positionLtvCap(['USDC', 'sUSDS'])), '0.96', 'stable: to 96%')
+  assert.strictEqual(sliderMax(positionLtvCap(['WETH'])), '0.9', 'otherwise: to 90%')
 })
 
 test('lineIsNoDelay is strict at 90%, exactly like Collateral.sol:425', () => {

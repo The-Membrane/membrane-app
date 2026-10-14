@@ -31,7 +31,8 @@ This is the section to read before quoting any number off this page.
 | Recall-only cure pays the keeper's fee from collateral | **real** | `LiquidationEngine.sol:1603-1658` |
 | **Which collateral is no-delay** | **MODELLED** | stable ⇒ no-delay listing, mirroring the deploy; the contracts carry no stable label |
 | **A mixed position's split into two** | **MODELLED** | debt pro-rata to collateral value at the start |
-| **Membrane's per-asset max LTV** | **MODELLED** | see §2 — there is nothing to read |
+| **Membrane's per-asset max LTV** | **MODELLED** | see §2 — there is nothing to read, except below |
+| sUSDS 88%, syrupUSDC 86%, scrvUSD 86% max LTV | **real (deploy script)** | `script/DeployFullSystem.s.sol:243`, `:247`, `:251` (membrane-solidity `16e12329`) — the bootstrap line until each asset's Disco pool covers it, then its 96% cap; `DEPLOY_LAUNCH_LTV`, `membrane.ts` |
 | **Membrane's liquidation fee** | **MODELLED** | defaults to the source protocol's own bonus |
 | **Venue recall rate / fast rate** | **MODELLED** | our reading of each venue's exit mechanics; editable |
 | The opening demo position | **MOCK** | invented balances, real Aave risk parameters attached |
@@ -39,11 +40,26 @@ This is the section to read before quoting any number off this page.
 ### The single most important caveat
 
 **Membrane has no Ethereum mainnet deployment.** `config/evm/chains.ts` targets a local
-anvil. There is no live contract to read a per-asset max LTV from, and no committed
-mainnet LTV configuration exists anywhere in `membrane-core` or `membrane-solidity` —
-everything found there is Osmosis-era Cosmos config, Rust test fixtures, or frontend
-mocks. So the Membrane side of this comparison is a **model of a protocol that is not
-deployed**, run against real prices. The simulation edge is not the live edge.
+anvil. There is no live contract to read a per-asset max LTV from. The one committed LTV
+configuration is the deploy script's: its three launch stables list at a bootstrap max LTV
+of 88% (sUSDS) and 86% (syrupUSDC, scrvUSD), `script/DeployFullSystem.s.sol:243-251`, and
+the simulator uses those as they are (`DEPLOY_LAUNCH_LTV`, stamped as a source, not
+modelled). Every other per-asset line is ours. So the Membrane side of this comparison is
+a **model of a protocol that is not deployed**, run against real prices. The simulation
+edge is not the live edge.
+
+**No line, no run.** An asset with no line in `MEMBRANE_ASSET_LTV` gets none (GHO, for
+one; nothing is invented). A position whose collateral has **no** line at all is not run:
+its weighted line would be 0 and every minute would be "over" it. The page shows no
+Membrane run and says why on its hero line, the same line it uses for "No open position
+found" (`hasMembraneLine`, `Simulator.tsx`). A position with at least one known leg runs
+at the weighted line of its known legs, and the unknown ones are named in a caveat.
+
+**The user's line is clamped to the position's class.** The max-LTV slider and a URL
+`?ltv=` run from 30% up to the cap of the position on screen: 96% when every collateral
+leg is a stable (`NO_DELAY_LTV_HARD_CAP`), else 90% (`positionLtvCap`,
+`clampMembraneLtv`). The URL value is clamped at use, once the position is known. Without
+the clamp a 95% `?ltv` would have made a WETH position no-delay by the line rule.
 
 ### A result that is not flattering, and stays in
 

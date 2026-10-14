@@ -169,6 +169,17 @@ export function hardCapFor(symbol: string): number {
   return isNoDelayCollateral(symbol) ? NO_DELAY_LTV_HARD_CAP : MAX_LTV_HARD_CAP
 }
 
+/**
+ * The highest line a WHOLE position may carry: NO_DELAY_LTV_HARD_CAP (96%) when every
+ * collateral leg is a no-delay stable, else MAX_LTV_HARD_CAP (90%) — a delayed or mixed
+ * position cannot run above 90% (Collateral.sol:538-540, :562).
+ */
+export function positionLtvCap(collateralSymbols: readonly string[]): number {
+  return collateralSymbols.length > 0 && collateralSymbols.every(isNoDelayCollateral)
+    ? NO_DELAY_LTV_HARD_CAP
+    : MAX_LTV_HARD_CAP
+}
+
 export type DelayClass = 'no-delay' | 'delayed' | 'mixed'
 
 /**

@@ -40,7 +40,9 @@ import {
   membraneRepayValue,
   membraneSaleAfterRecall,
   weightedMembraneLine,
+  isDeployListedLtv,
   CURE_WINDOW_HOURS,
+  DEPLOY_LAUNCH_LTV,
   CURE_WINDOW_SECONDS,
   LIQ_DEBT_MINIMUM_USD,
   MAX_THRESHOLD_TO_DELAY,
@@ -632,8 +634,20 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   const endDeployed = runs.reduce((a, r) => a + r.endDeployed, 0)
 
   const hasWindow = subs.some((s) => !s.noDelay)
+  // The line's source: our assumption, except the launch stables the deploy itself
+  // lists (DEPLOY_LAUNCH_LTV, DeployFullSystem.s.sol:243-251), which say so.
+  const collSyms = Array.from(new Set(position.collateral.map((c) => c.symbol)))
+  const deployListed = collSyms.filter(isDeployListedLtv)
+  const deployPairs = deployListed
+    .map((s) => `${s} ${(DEPLOY_LAUNCH_LTV[s] * 100).toFixed(0)}%`)
+    .join(', ')
   const caveats = [
-    'Membrane has no Ethereum mainnet deployment. The per-asset max LTV used here is our assumption, not a protocol parameter — change it and the result changes.',
+    deployListed.length > 0 && deployListed.length === collSyms.length
+      ? `Membrane has no Ethereum mainnet deployment. The max LTV here is the deploy script’s own bootstrap value (${deployPairs}): the line a launch stablecoin holds until its pool covers it, after which its 96% cap applies — change it and the result changes.`
+      : 'Membrane has no Ethereum mainnet deployment. The per-asset max LTV used here is our assumption, not a protocol parameter — change it and the result changes.' +
+        (deployListed.length > 0
+          ? ` Except ${deployPairs}: the deploy script’s own bootstrap value.`
+          : ''),
   ]
   if (subs.some((s) => s.noDelay)) {
     caveats.push(

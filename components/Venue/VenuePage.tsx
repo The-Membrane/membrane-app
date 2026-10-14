@@ -11,6 +11,7 @@ import {
 } from '@/components/Venue/capacityDriverLogic'
 import { CapacityCurve } from '@/components/Venue/CapacityCurve'
 import { NetApyCard } from '@/components/NetApy/NetApyCard'
+import { VenueAlerts } from '@/components/Alerts/VenueAlerts'
 import { venueByKey } from '@/lib/netApy/venues'
 import { fmtUsd } from '@/components/Radar/radarLogic'
 import { Entry, consequence, alarmConsequence, fmtDuration } from '@/components/Carry/venueLogLogic'
@@ -948,7 +949,10 @@ export const VenuePage: React.FC<{ venue: string }> = ({ venue }) => {
         <ProvFooter date={corpusDate} />
       </Card>
 
-      {/* 07 / next-step row */}
+      {/* 07 / next-step row. "Alert me at" sits beside it as a SIBLING: NextRow is
+          redefined every render, and a form inside it would remount (and lose its
+          input) on each refetch. Hidden while alert storage is unavailable. */}
+      <VenueAlerts venue={venue} />
       <NextRow />
     </Box>
   )

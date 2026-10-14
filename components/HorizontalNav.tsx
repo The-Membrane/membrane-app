@@ -55,6 +55,8 @@ const navItems = [
     // Wallet-free carry-trader decision tool: paste any address, stress its
     // positions against our recorded venue capacity + flow corpus.
     { label: 'Radar', href: '/radar' },
+    // Your own liquidation line, read-only from a pasted address or connected wallet.
+    { label: 'Position', href: '/position' },
     // Auto-tracked mainnet carry strats (discovery scan -> watch -> verdicts).
     { label: 'Strats', href: '/strats' },
     { label: 'Home', href: '/home' },

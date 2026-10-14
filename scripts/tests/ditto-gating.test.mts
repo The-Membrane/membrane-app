@@ -32,7 +32,9 @@ for (const p of ['/[chain]/mint', '/[chain]/borrow', '/[chain]/earn']) {
 // would have to be invented.
 for (const p of ['/[chain]', '/[chain]/evidence', '/[chain]/simulator', '/[chain]/builder',
                  '/[chain]/defend', '/[chain]/carry',
-                 '/[chain]/radar', '/[chain]/about']) {
+                 '/[chain]/radar', '/[chain]/about',
+                 // Read-only: it signs nothing, so it is not in EXECUTABLE_ROUTES (Layout.tsx).
+                 '/[chain]/position']) {
   ok(!isExecutableRoute(p), `${p} is not executable -> no Ditto`)
 }
 

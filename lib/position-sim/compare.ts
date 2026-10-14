@@ -11,12 +11,22 @@
  *   - the source protocol's LT/bonus    read on-chain by the adapter
  *   - the source protocol's repay size  MEASURED from Oct 10 liquidation events
  *   - Membrane's repay formula, cure window, LTV gap, recall ordering — contract source
+ *   - the no-delay class: no window, sold the minute it is over its line
+ *                                       LiquidationEngine.sol:1572-1576 (curePath.ts vii)
+ *   - mixed delay classes refused in one position             Cdp.sol:1650-1651
+ *   - the paid recall-only lane: a recall that alone cures still pays the keeper's fee
+ *     from collateral                   LiquidationEngine.sol:1603-1658
  * WHAT IS MODELLED:
  *   - Membrane's per-asset max LTV      no deployment exists (see membrane.ts)
+ *   - which collateral is no-delay      stable => no-delay listing (collateralClass.ts);
+ *                                       the contracts carry no stable label, the class
+ *                                       follows the immutable LTV cap
+ *   - a mixed position's split          two isolated positions, debt pro-rata to value
  *   - Membrane's liquidation fee        capped by the real MAX_LIQ_FEE = 10%
  *   - the venue recall + fast rates     user inputs; the dominant variable
  */
 
+import { delayClassOf, isNoDelayCollateral } from './collateralClass'
 import { DelayTimer } from './curePath'
 import {
   applyRecall,
@@ -207,24 +217,65 @@ function runSource(position: ProtocolPosition, path: PricePath, opts: CompareOpt
   }
 }
 
-/**
- * Membrane's engine: partial repay back to the borrow cap, recall from deployment
- * venues before touching collateral, and an 8-hour cure window.
- */
-function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareOptions): SimRun {
-  const coll = makeLegs(position.collateral)
-  const debt = makeLegs(position.debt)
-  const fallbackC = Object.fromEntries(position.collateral.map((c) => [c.symbol, c.priceUsd]))
-  const fallbackD = Object.fromEntries(position.debt.map((d) => [d.symbol, d.priceUsd]))
+/** One isolated Membrane position: what `walkMembrane` runs. */
+export interface MembraneSub {
+  /** null for the whole position; a short label for each half of a split mixed position. */
+  label: string | null
+  collateral: { symbol: string; amount: number; priceUsd: number }[]
+  debt: { symbol: string; amount: number; priceUsd: number }[]
+  /** The liquidation line (max LTV) this position is judged against. */
+  line: number
+  /** The no-delay class (curePath.ts clause vii): no window, sold the minute it is over. */
+  noDelay: boolean
+  venue: VenueRecall | null
+}
 
-  const derived = weightedMembraneLine(position.collateral)
-  const line = opts.membraneMaxLtv ?? derived.maxLtv
+/** One position walked over the path, before it is assembled into a SimRun. */
+interface MembraneSubRun {
+  events: SimEvent[]
+  equitySeries: (number | null)[]
+  ltvSeries: (number | null)[]
+  /** Collateral and debt value after each minute's events — to recombine a split. */
+  collSeries: number[]
+  debtSeries: number[]
+  startEquity: number
+  endColl: number
+  endDebt: number
+  endDeployed: number
+  penaltyPaid: number
+  peakLtv: number
+}
+
+/**
+ * The paid RECALL-ONLY lane, in the event log's words. LiquidationEngine.sol:1603-1658:
+ * when this call's venue recall alone brings the position back to or under its line, the
+ * timer is deleted, nothing is sold, and the keeper is paid the ordinary fee from the
+ * borrower's collateral on min(restore-to-cap target, recalled) (:1653-1654).
+ */
+const RECALL_ONLY_WHY =
+  'Venue capital alone brought the position back under its line; the keeper is paid the fee from collateral (recall-only lane, LiquidationEngine.sol:1603-1658)'
+
+/**
+ * Walks ONE isolated Membrane position: partial repay back to the borrow cap, recall from
+ * deployment venues before touching collateral, and — in the delayed class — an 8-hour
+ * cure window. A position in the no-delay class has no window: it is sold the minute it
+ * is over its line.
+ */
+function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): MembraneSubRun {
+  const coll = makeLegs(sub.collateral)
+  const debt = makeLegs(sub.debt)
+  const fallbackC = Object.fromEntries(sub.collateral.map((c) => [c.symbol, c.priceUsd]))
+  const fallbackD = Object.fromEntries(sub.debt.map((d) => [d.symbol, d.priceUsd]))
+
+  const line = sub.line
   const cap = membraneBorrowLtv(line)
   const fee = Math.max(0, Math.min(MAX_LIQ_FEE, opts.membraneLiqFee))
   const dMin = opts.debtMinimumUsd ?? LIQ_DEBT_MINIMUM_USD
   const cureMinutes = Math.round(CURE_WINDOW_SECONDS / path.stepSeconds)
   /** Above this the window is BROKEN: no cure, immediate sale (BrokeWindow). */
   const breakLine = line * (1 + MAX_THRESHOLD_TO_DELAY)
+  /** Prefix for the event log when a mixed position was split in two. */
+  const who = sub.label ? `${sub.label}: ` : ''
 
   /**
    * THE SHARED WALK. This is the same `DelayTimer` the Oct-10 census runs through
@@ -232,13 +283,20 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
    * timer decides WHEN; recall, the fee and the multi-leg pricing are layered on top
    * here and are the only differences. scripts/tests/position-sim.test.ts replays two
    * real census accounts through this engine and asserts the same outcome and the
-   * same closed USD.
+   * same closed USD. `noDelay` is the census's no-delay class too (clause vii).
    */
-  const timer = new DelayTimer({ line, band: MAX_THRESHOLD_TO_DELAY, delaySteps: cureMinutes })
+  const timer = new DelayTimer({
+    line,
+    band: MAX_THRESHOLD_TO_DELAY,
+    delaySteps: cureMinutes,
+    noDelay: sub.noDelay,
+  })
 
   const events: SimEvent[] = []
   const equitySeries: (number | null)[] = []
   const ltvSeries: (number | null)[] = []
+  const collSeries: number[] = []
+  const debtSeries: number[] = []
   let penaltyPaid = 0
   let peakLtv = 0
   let startEquity = 0
@@ -246,7 +304,7 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   /** Venue capital already spent — a venue cannot answer the same dollar twice. */
   let venueDrawn = 0
   /** Capital still in venues. Falls as capital is recalled; equity counts it. */
-  const deployedStart = opts.venue?.deployedUsd ?? 0
+  const deployedStart = sub.venue?.deployedUsd ?? 0
 
   for (let i = 0; i < path.count; i++) {
     let c = valueOf(coll, path, i, fallbackC)
@@ -260,6 +318,8 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
 
     if (act.kind === 'arm' || act.kind === 'hold' || act.kind === 'sell') {
       const brokeWindow = act.kind === 'sell' && act.reason === 'band'
+      /** The no-delay class: instant mode, no window ever (LiquidationEngine.sol:1572). */
+      const instant = act.kind === 'sell' && act.reason === 'instant'
       const inCureWindow = act.kind !== 'sell'
 
       // A breach that opens INSIDE the band arms the timer and sells nothing.
@@ -275,6 +335,7 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
           recalledUsd: 0,
           penaltyUsd: 0,
           why:
+            who +
             `LTV crossed the ${(line * 100).toFixed(1)}% line and opened the ` +
             `${CURE_WINDOW_SECONDS / 3600}-hour window. Nothing is sold while the position stays ` +
             `under ${(breakLine * 100).toFixed(1)}% — the price coming back, or venue capital ` +
@@ -284,8 +345,8 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
 
       if (act.kind !== 'sell' || sales < MAX_SALES) {
         const needed = membraneRepayValue(d, c, cap, dMin)
-        const remainingVenue = opts.venue
-          ? { ...opts.venue, deployedUsd: Math.max(0, opts.venue.deployedUsd - venueDrawn) }
+        const remainingVenue = sub.venue
+          ? { ...sub.venue, deployedUsd: Math.max(0, sub.venue.deployedUsd - venueDrawn) }
           : null
         const recall = applyRecall(needed, remainingVenue)
 
@@ -296,10 +357,16 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
           // branch clears it, which re-arms a full fresh window on a later breach
           // (SavedByDelay, LiquidationEngine.sol:1362-1382).
         } else if (recall.cured && inCureWindow) {
-          // Fast capital covered the whole call inside the 8h window: nothing sold.
+          // Fast capital covered the whole call inside the 8h window: nothing is sold, but
+          // this is the PAID recall-only lane (LiquidationEngine.sol:1603-1658): the timer
+          // is deleted and the keeper is paid the fee from collateral. Fee base =
+          // min(restore-to-cap target, recalled) (:1653-1654) — `needed` here, because the
+          // venue repays exactly the target.
           venueDrawn += needed
           const share = d > 0 ? needed / d : 0
           for (const leg of debt) leg.amount *= 1 - share
+          const feeUsd = seizeProRata(coll, fee * needed, path, i, fallbackC)
+          penaltyPaid += feeUsd
           c = valueOf(coll, path, i, fallbackC)
           d = valueOf(debt, path, i, fallbackD)
           ltv = c > 0 ? d / c : 0
@@ -311,16 +378,18 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
             ltv,
             line,
             repaidUsd: needed,
-            seizedUsd: 0,
+            seizedUsd: feeUsd,
             recalledUsd: needed,
-            penaltyUsd: 0,
-            why: `Cured inside the ${CURE_WINDOW_SECONDS / 3600}-hour window — enough venue capital arrived in time, so no collateral was sold and no fee was paid.`,
+            penaltyUsd: feeUsd,
+            why: `${who}Cured inside the ${CURE_WINDOW_SECONDS / 3600}-hour window, with no collateral sold. ${RECALL_ONLY_WHY}: ${fmt(feeUsd)} on the ${fmt(needed)} recalled.`,
           })
         } else {
           venueDrawn += recall.recalledUsd
           let repaid = recall.recalledUsd
           let seized = 0
           let penalty = 0
+          /** The venue alone covered the call: the paid recall-only lane, nothing sold. */
+          const recallOnly = recall.recalledUsd > 0 && !(recall.shortfallUsd > 0)
           if (recall.shortfallUsd > 0) {
             const want = recall.shortfallUsd * (1 + fee)
             const got = seizeProRata(coll, want, path, i, fallbackC)
@@ -332,6 +401,14 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
           }
           const share = d > 0 ? Math.min(1, repaid / d) : 0
           for (const leg of debt) leg.amount *= 1 - share
+          if (recallOnly) {
+            // LiquidationEngine.sol:1603-1658 — the fee, on min(target, recalled)
+            // (:1653-1654), is the only collateral that leaves.
+            const base = Math.min(needed, recall.recalledUsd)
+            penalty = seizeProRata(coll, fee * base, path, i, fallbackC)
+            penaltyPaid += penalty
+            seized = penalty
+          }
           c = valueOf(coll, path, i, fallbackC)
           d = valueOf(debt, path, i, fallbackD)
           ltv = c > 0 ? d / c : d > 0 ? Infinity : 0
@@ -340,10 +417,14 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
           // and a later breach opens a FULL fresh delay.
           timer.clearAfterSale()
 
+          const detail =
+            recall.recalledUsd > 0
+              ? `Venues returned ${fmt(recall.recalledUsd)} of the ${fmt(needed)} call; only the ${fmt(recall.shortfallUsd)} shortfall came out of collateral. The repay restores the position to the ${(cap * 100).toFixed(1)}% borrow cap, not to zero.`
+              : `Partial liquidation repaid ${fmt(repaid)} — enough to restore the ${(cap * 100).toFixed(1)}% borrow cap, not the whole loan.`
           events.push({
             minute: i,
             ts: path.startTs + i * path.stepSeconds,
-            kind: recall.recalledUsd > 0 && seized === 0 ? 'recall' : 'liquidation',
+            kind: recallOnly ? 'recall' : 'liquidation',
             ltv,
             line,
             repaidUsd: repaid,
@@ -351,13 +432,14 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
             recalledUsd: recall.recalledUsd,
             penaltyUsd: penalty,
             why:
-              brokeWindow && seized > 0
-                ? `Broke the ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% window — LTV ${(ltv * 100).toFixed(1)}% is past ${(breakLine * 100).toFixed(1)}%, so the cure clock no longer applies and the sale is immediate. ${recall.recalledUsd > 0 ? `Venues returned ${fmt(recall.recalledUsd)} first; ` : ''}${fmt(seized)} of collateral covered the rest, restoring the ${(cap * 100).toFixed(1)}% borrow cap, not zero.`
-                : recall.recalledUsd > 0 && seized === 0
-                ? `Venues answered the whole ${fmt(needed)} call — the debt came down without selling collateral.`
-                : recall.recalledUsd > 0
-                  ? `Venues returned ${fmt(recall.recalledUsd)} of the ${fmt(needed)} call; only the ${fmt(recall.shortfallUsd)} shortfall came out of collateral. The repay restores the position to the ${(cap * 100).toFixed(1)}% borrow cap, not to zero.`
-                  : `Partial liquidation repaid ${fmt(repaid)} — enough to restore the ${(cap * 100).toFixed(1)}% borrow cap, not the whole loan.`,
+              who +
+              (recallOnly
+                ? `Venues answered the whole ${fmt(needed)} call — the debt came down without selling collateral. ${RECALL_ONLY_WHY}: ${fmt(penalty)}.`
+                : instant
+                  ? `No-delay class — sold the minute the line was crossed; no window exists for this collateral. ${detail}`
+                  : brokeWindow && seized > 0
+                    ? `Broke the ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% window — LTV ${(ltv * 100).toFixed(1)}% is past ${(breakLine * 100).toFixed(1)}%, so the cure clock no longer applies and the sale is immediate. ${recall.recalledUsd > 0 ? `Venues returned ${fmt(recall.recalledUsd)} first; ` : ''}${fmt(seized)} of collateral covered the rest, restoring the ${(cap * 100).toFixed(1)}% borrow cap, not zero.`
+                    : detail),
           })
         }
       }
@@ -367,18 +449,146 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
     // once, on the liability side. Equity is collateral + what is still deployed − debt.
     equitySeries.push(c + Math.max(0, deployedStart - venueDrawn) - d)
     ltvSeries.push(Number.isFinite(ltv) ? ltv : null)
+    collSeries.push(c)
+    debtSeries.push(d)
   }
 
-  const endColl = valueOf(coll, path, path.count - 1, fallbackC)
-  const endDebt = valueOf(debt, path, path.count - 1, fallbackD)
-  const endDeployed = Math.max(0, deployedStart - venueDrawn)
+  return {
+    events,
+    equitySeries,
+    ltvSeries,
+    collSeries,
+    debtSeries,
+    startEquity,
+    endColl: valueOf(coll, path, path.count - 1, fallbackC),
+    endDebt: valueOf(debt, path, path.count - 1, fallbackD),
+    endDeployed: Math.max(0, deployedStart - venueDrawn),
+    penaltyPaid,
+    peakLtv,
+  }
+}
 
+/**
+ * A MIXED position — stable and volatile collateral together — cannot exist on Membrane:
+ * the CDP reverts `MixedDelayClassCollateral` when the second class enters
+ * (Cdp.sol:1650-1651, Collateral.sol:789-793). The borrower would hold TWO isolated
+ * positions, so that is what is modelled: the no-delay legs and the delayed legs each
+ * become a position, the debt (and any deployed venue capital) is split pro-rata to
+ * collateral VALUE at minute 0 — so both start at this position's own LTV, the neutral
+ * split — and each runs in its own class against its own line.
+ */
+export function splitByDelayClass(
+  position: ProtocolPosition,
+  path: PricePath,
+  opts: CompareOptions,
+): { subs: MembraneSub[]; shares: number[] } {
+  const value0 = (sym: string, amount: number, fallback: number) =>
+    amount * (priceAt(path, sym, 0) ?? fallback)
+  const halves = [
+    { noDelay: true, legs: position.collateral.filter((c) => isNoDelayCollateral(c.symbol)) },
+    { noDelay: false, legs: position.collateral.filter((c) => !isNoDelayCollateral(c.symbol)) },
+  ]
+  const values = halves.map((h) => h.legs.reduce((a, c) => a + value0(c.symbol, c.amount, c.priceUsd), 0))
+  const total = values[0] + values[1]
+  const shares = values.map((v) => (total > 0 ? v / total : 0.5))
+  const subs = halves.map((h, k): MembraneSub => {
+    const line = opts.membraneMaxLtv ?? weightedMembraneLine(h.legs).maxLtv
+    const symbols = h.legs.map((c) => c.symbol)
+    return {
+      label: `${h.noDelay ? 'No-delay' : 'Delayed'} position (${symbols.join(', ')})`,
+      collateral: h.legs,
+      debt: position.debt.map((d) => ({ ...d, amount: d.amount * shares[k] })),
+      line,
+      // Each half takes its own class: the stable half is no-delay; the volatile half is
+      // delayed unless its own line is above 90% (collateralClass.ts delayClassOf).
+      noDelay: delayClassOf(symbols, line) === 'no-delay',
+      venue: opts.venue ? { ...opts.venue, deployedUsd: opts.venue.deployedUsd * shares[k] } : null,
+    }
+  })
+  return { subs, shares }
+}
+
+/**
+ * Membrane's engine on a whole position: decide its delay class, walk it (or, when its
+ * collateral mixes the classes, walk the two positions Membrane would hold instead), and
+ * assemble ONE run with its caveats.
+ */
+function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareOptions): SimRun {
+  const derived = weightedMembraneLine(position.collateral)
+  const line = opts.membraneMaxLtv ?? derived.maxLtv
+  const delayClass = delayClassOf(
+    position.collateral.map((c) => c.symbol),
+    line,
+  )
+
+  let subs: MembraneSub[]
+  let shares: number[] = [1]
+  if (delayClass === 'mixed') {
+    ;({ subs, shares } = splitByDelayClass(position, path, opts))
+  } else {
+    subs = [
+      {
+        label: null,
+        collateral: position.collateral,
+        debt: position.debt,
+        line,
+        noDelay: delayClass === 'no-delay',
+        venue: opts.venue,
+      },
+    ]
+  }
+  const runs = subs.map((s) => walkMembrane(s, path, opts))
+
+  // ONE run. A single position passes straight through; a split is summed minute by minute.
+  const one = runs.length === 1 ? runs[0] : null
+  const events = one
+    ? one.events
+    : runs.flatMap((r) => r.events).sort((a, b) => a.minute - b.minute)
+  const equitySeries = one
+    ? one.equitySeries
+    : runs[0].equitySeries.map((_, i) => runs.reduce((a, r) => a + (r.equitySeries[i] ?? 0), 0))
+  const ltvSeries = one
+    ? one.ltvSeries
+    : runs[0].collSeries.map((_, i) => {
+        const c = runs.reduce((a, r) => a + r.collSeries[i], 0)
+        const d = runs.reduce((a, r) => a + r.debtSeries[i], 0)
+        return c > 0 ? d / c : null
+      })
+  const endColl = runs.reduce((a, r) => a + r.endColl, 0)
+  const endDebt = runs.reduce((a, r) => a + r.endDebt, 0)
+  const endDeployed = runs.reduce((a, r) => a + r.endDeployed, 0)
+
+  const hasWindow = subs.some((s) => !s.noDelay)
   const caveats = [
     'Membrane has no Ethereum mainnet deployment. The per-asset max LTV used here is our assumption, not a protocol parameter — change it and the result changes.',
-    `The cure window is conditional: it holds only while the position stays within ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% above the liquidation line. Past that the sale is immediate — the model applies this break. 4% is the value the deploy script sets on every launch asset; a position holding several assets uses their value-weighted average.`,
-    `Inside the window the engine sells nothing, whether the position is rescued by the price coming back or by venue capital arriving. A return under the line clears the timer, so a later breach gets a full fresh ${CURE_WINDOW_SECONDS / 3600} hours. This is the same walk the Oct 10 census runs — literally the same DelayTimer state machine from lib/position-sim/curePath.ts, driven here with per-leg prices, venue recall and a fee on top — so a pasted address matches its census row. A sale restores the borrow cap rather than closing the loan, so the position stays live and a later breach opens a full fresh window; at most ${MAX_SALES} sales are modelled.`,
-    'The venue recall rate is an input, and it is the variable that moves this result most. A venue that pays out in a calm market is not the same venue during a 40-minute crash.',
   ]
+  if (subs.some((s) => s.noDelay)) {
+    caveats.push(
+      'NO-DELAY CLASS: stable collateral (and any line above 90%) is modelled as listed in Membrane’s no-delay class. The contract gives that class no window and no band: the position is repaid to its borrow cap the minute its LTV is over the line, every time (instant mode, LiquidationEngine.sol:1572-1576, :1708-1710). That stables are listed this way is a MODELLED assumption — the contracts carry no stable label since fc92ed4f; the class follows each listing’s immutable LTV cap (Collateral.sol:424-426), and the deploy lists its stables at the 96% no-delay cap.',
+    )
+  }
+  if (hasWindow) {
+    caveats.push(
+      `The cure window is conditional: it holds only while the position stays within ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}% above the liquidation line. Past that the sale is immediate — the model applies this break. 4% is the value the deploy script sets on every launch asset; a position holding several assets uses their value-weighted average.`,
+      `Inside the window the engine sells nothing, whether the position is rescued by the price coming back or by venue capital arriving. A return under the line clears the timer, so a later breach gets a full fresh ${CURE_WINDOW_SECONDS / 3600} hours. This is the same walk the Oct 10 census runs — literally the same DelayTimer state machine from lib/position-sim/curePath.ts, driven here with per-leg prices, venue recall and a fee on top — so a pasted address matches its census row. A sale restores the borrow cap rather than closing the loan, so the position stays live and a later breach opens a full fresh window; at most ${MAX_SALES} sales are modelled.`,
+    )
+  }
+  if (delayClass === 'mixed') {
+    caveats.push(
+      `MIXED CLASS, MODELLED AS TWO POSITIONS: Membrane does not let stable and volatile collateral share a position — the CDP reverts MixedDelayClassCollateral when the second class enters (Cdp.sol:1650-1651). So this is run as the two isolated positions a borrower would have to hold: ${subs.map((s, k) => `${s.label} at a ${(s.line * 100).toFixed(1)}% line with ${(shares[k] * 100).toFixed(1)}% of the debt`).join('; ')}. The debt${opts.venue ? ' and the deployed venue capital are' : ' is'} split pro-rata to collateral value at the start, so both halves open at this position’s own LTV — the neutral split. A borrower could split it differently, and each half then stands or falls alone.`,
+    )
+  }
+  caveats.push(
+    'The venue recall rate is an input, and it is the variable that moves this result most. A venue that pays out in a calm market is not the same venue during a 40-minute crash.',
+  )
+  if (opts.venue) {
+    caveats.push(
+      'When venue capital alone brings the position back under its line, nothing is sold — but the keeper is still paid the liquidation fee from collateral (the recall-only lane, LiquidationEngine.sol:1603-1658). Here that fee is the flat modelled rate on the recalled amount, never more than the restore-to-cap target (:1653-1654).',
+    )
+  }
+  caveats.push(
+    'Not modelled: the contract reverts any liquidation that would leave the position’s LTV higher than before it (LiquidationRaisedLtv, Cdp.sol:2494-2498). The flat fee here is a stand-in for the contract’s fee ramp, so a revert computed from it would be an artefact of the model rather than a property of the contract.',
+  )
   if (derived.unknown.length) {
     caveats.push(
       `No modelled Membrane LTV exists for ${derived.unknown.join(', ')}; ${derived.unknown.length > 1 ? 'those assets were' : 'that asset was'} left out of the weighted line rather than assigned a guess.`,
@@ -395,10 +605,12 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
     endCollateralUsd: endColl,
     endDebtUsd: endDebt,
     endDeployedUsd: endDeployed,
-    startEquityUsd: startEquity,
+    startEquityUsd: runs.reduce((a, r) => a + r.startEquity, 0),
     endEquityUsd: endColl + endDeployed - endDebt,
-    penaltyPaidUsd: penaltyPaid,
-    peakLtv,
+    penaltyPaidUsd: runs.reduce((a, r) => a + r.penaltyPaid, 0),
+    // For a split, the higher of the two positions' peaks: the riskier one is the one
+    // that decides whether either of them is sold.
+    peakLtv: Math.max(...runs.map((r) => r.peakLtv)),
     wiped: endColl <= 0.01 * Math.max(1, position.totalCollateralUsd),
     equitySeries,
     ltvSeries,

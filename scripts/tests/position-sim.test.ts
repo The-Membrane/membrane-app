@@ -26,7 +26,12 @@ import {
   membraneRepayValue,
   weightedMembraneLine,
 } from '../../lib/position-sim/membrane'
-import { MAX_LIQ_FEE, measuredRepayFraction, runComparison } from '../../lib/position-sim/compare'
+import {
+  MAX_LIQ_FEE,
+  measuredRepayFraction,
+  runComparison,
+  splitByDelayClass,
+} from '../../lib/position-sim/compare'
 import {
   HELD_AT_ONE,
   SYMBOL_TO_SERIES,
@@ -35,7 +40,14 @@ import {
 } from '../../lib/position-sim/scenario'
 import { demoPosition } from '../../lib/position-sim/demo'
 import { DelayTimer, cureWalk } from '../../lib/position-sim/curePath'
-import { isNoDelayCollateral } from '../../lib/position-sim/collateralClass'
+import {
+  MEASURED_STABLES,
+  STABLE_SYMBOLS,
+  delayClassOf,
+  heldAtOne,
+  isNoDelayCollateral,
+  lineIsNoDelay,
+} from '../../lib/position-sim/collateralClass'
 import { readUrlState, writeUrlState } from '../../lib/position-sim/share'
 import {
   decimalsFromScale,
@@ -449,17 +461,35 @@ test('recalled capital is equity-neutral — a recall is not free money', () => 
   assert.ok(cmp.equityDeltaUsd > 0, 'but with recall available Membrane does come out ahead')
 })
 
-test('a deep venue lets Membrane cure without selling collateral', () => {
+test('a deep venue lets Membrane cure without SELLING collateral — and the keeper is paid', () => {
+  // UPDATED 2026-10-14. This used to assert the cure cost nothing. The contract now pays
+  // the keeper on the RECALL-ONLY lane (LiquidationEngine.sol:1603-1658): a venue recall
+  // that alone brings the position back under its line sells nothing, but the ordinary fee
+  // is taken from collateral on min(restore-to-cap target, recalled) (:1653-1654).
   const { path, unpriced } = crashPath()
   const venue = { recallRate: 0.98, fastRate: 0.98, deployedUsd: 400_000, provenance: {} as never }
   const cmp = runComparison(crashTestPosition(), path, unpriced, { ...baseOpts, venue })
   const cures = cmp.membrane.events.filter((e) => e.kind === 'cure')
   assert.ok(cures.length > 0, 'the cure window fired')
   assert.ok(
-    cures.every((e) => e.seizedUsd === 0),
-    'a cure sells nothing',
+    cures.every((e) => Math.abs(e.seizedUsd - e.penaltyUsd) < 1e-9),
+    'a cure sells no collateral beyond the fee',
   )
-  close(cmp.membrane.penaltyPaidUsd, 0, 'and costs no penalty')
+  for (const e of cures) {
+    close(e.penaltyUsd, baseOpts.membraneLiqFee * e.recalledUsd, 'fee = rate x recalled', 1e-6)
+    assert.ok(e.why.includes('recall-only lane'), 'and the event says which lane paid it')
+  }
+  assert.ok(cmp.membrane.penaltyPaidUsd > 0, 'the recall-only cure costs the keeper fee')
+  close(
+    cmp.membrane.penaltyPaidUsd,
+    cmp.membrane.events.reduce((a, e) => a + e.penaltyUsd, 0),
+    'every fee paid is on an event',
+    1e-6,
+  )
+  assert.ok(
+    !cmp.membrane.events.some((e) => e.kind === 'liquidation'),
+    'and nothing was liquidated: the fee is not a sale',
+  )
 })
 
 test('the recall rate is the dominant variable once it binds', () => {
@@ -859,6 +889,201 @@ test('the simulator sells at expiry when the price never comes back', () => {
     2 + Math.round(CURE_WINDOW_SECONDS / 60),
     'exactly 8h after the breach',
   )
+})
+
+// ===================== the delay class in the simulator (collateralClass.ts, compare.ts)
+// ONE definition of stable collateral, read by the census and the simulator alike.
+test('the stable definition is the single source for the simulator and the census', () => {
+  assert.deepStrictEqual(
+    [...HELD_AT_ONE],
+    STABLE_SYMBOLS.filter(heldAtOne),
+    'scenario.ts HELD_AT_ONE is derived from collateralClass.ts, not a second list',
+  )
+  for (const sym of ['USDC', 'USDT', 'USD₮0', 'USDT0', 'DAI', 'GHO', 'LUSD', 'USDS', 'sUSD', 'FRAX', 'USDC.e', 'crvUSD', 'MAI', 'USDbC', 'sDAI', 'sUSDS']) {
+    assert.ok(heldAtOne(sym) && isNoDelayCollateral(sym), `${sym}: stable, held at $1, no-delay`)
+  }
+  assert.deepStrictEqual([...MEASURED_STABLES], ['USDe', 'sUSDe'])
+  for (const sym of MEASURED_STABLES) {
+    assert.ok(isNoDelayCollateral(sym), `${sym} is stable for the delay class`)
+    assert.ok(!heldAtOne(sym) && !HELD_AT_ONE.includes(sym), `${sym} is measured, NOT held at $1`)
+  }
+  assert.ok(!isNoDelayCollateral('WETH') && !isNoDelayCollateral('wstETH'), 'volatile is delayed')
+  // The census publishes the list it ran on; it must be this one.
+  const evidence = JSON.parse(fs.readFileSync('public/data/oct10-2025/evidence.json', 'utf8'))
+  assert.deepStrictEqual(evidence.meta.delayClass.stableSymbols, [...STABLE_SYMBOLS], 'evidence.json used it')
+  // And neither engine carries a private copy any more.
+  for (const f of ['scripts/build-evidence.ts', 'lib/position-sim/scenario.ts']) {
+    const src = fs.readFileSync(f, 'utf8')
+    assert.ok(!/'USDbC'|'crvUSD'|'sUSDS'/.test(src), `${f} has no stable list of its own`)
+    assert.ok(src.includes('collateralClass'), `${f} reads collateralClass.ts`)
+  }
+})
+
+test('lineIsNoDelay is strict at 90%, exactly like Collateral.sol:425', () => {
+  assert.strictEqual(lineIsNoDelay(0.9), false, '90% itself is the delayed class')
+  assert.strictEqual(lineIsNoDelay(0.9000001), true, 'anything above it is no-delay')
+  assert.strictEqual(lineIsNoDelay(0.8), false)
+})
+
+test('delayClassOf: no-delay, delayed, mixed', () => {
+  assert.strictEqual(delayClassOf(['USDC']), 'no-delay')
+  assert.strictEqual(delayClassOf(['USDC', 'USDT', 'USDC']), 'no-delay', 'duplicates do not matter')
+  assert.strictEqual(delayClassOf(['USDe'], 0.8), 'no-delay', 'a measured stable is still no-delay')
+  assert.strictEqual(delayClassOf(['WETH'], 0.8), 'delayed')
+  assert.strictEqual(delayClassOf(['WETH'], 0.9), 'delayed', 'a 90% line is still delayed')
+  assert.strictEqual(delayClassOf(['WETH'], 0.95), 'no-delay', 'a line above 90% is only possible no-delay')
+  assert.strictEqual(delayClassOf(['WETH', 'USDC']), 'mixed', 'Cdp.sol:1650-1651 refuses this position')
+  assert.strictEqual(delayClassOf(['WETH', 'USDC'], 0.95), 'mixed', 'mixed is decided before the line')
+  assert.strictEqual(delayClassOf([], 0.92), 'no-delay', 'no symbols: the line alone')
+  assert.strictEqual(delayClassOf([], 0.8), 'delayed')
+})
+
+/** One collateral leg / one debt leg position, for the class tests below. */
+function legPosition(
+  coll: { symbol: string; amount: number; price: number }[],
+  debt: { symbol: string; amount: number; price: number },
+): ProtocolPosition {
+  const collateral = coll.map((c, k) => ({
+    symbol: c.symbol,
+    address: '0x' + String(k + 3).repeat(40),
+    decimals: 18,
+    amount: c.amount,
+    priceUsd: c.price,
+    valueUsd: c.amount * c.price,
+    liquidationThreshold: 0.9,
+    maxLtv: 0.87,
+    liquidationBonus: 0.05,
+  }))
+  const totalCollateralUsd = collateral.reduce((a, c) => a + c.valueUsd, 0)
+  const totalDebtUsd = debt.amount * debt.price
+  return {
+    protocol: 'aave-v3',
+    label: 'class test',
+    collateral,
+    debt: [
+      {
+        symbol: debt.symbol,
+        address: '0x' + '9'.repeat(40),
+        decimals: 18,
+        amount: debt.amount,
+        priceUsd: debt.price,
+        valueUsd: totalDebtUsd,
+        borrowApr: null,
+      },
+    ],
+    totalCollateralUsd,
+    totalDebtUsd,
+    ltv: totalDebtUsd / totalCollateralUsd,
+    liquidationLtv: 0.9,
+    healthFactor: (0.9 * totalCollateralUsd) / totalDebtUsd,
+    provenance: { kind: 'mock', label: 'test', at: 0, detail: 'test' },
+  }
+}
+/** ETH on a ramp: flat for `flat` minutes, then up 0.5% a minute. */
+function ethRamp(count: number, flat: number) {
+  const eth = Array.from({ length: count }, (_, i) => 4000 * (i < flat ? 1 : 1 + 0.005 * (i - flat + 1)))
+  return buildPricePath(
+    {
+      startTs: 1_760_054_400,
+      stepSeconds: 60,
+      count,
+      columns: { ethOracle: eth, btcOracle: eth.map(() => 100_000) },
+      carried: {},
+    },
+    fakeManifest,
+    ['USDC', 'WETH'],
+  )
+}
+
+test('the simulator sells stable collateral the first minute it is over its line — no window', () => {
+  // $100k USDC against 21 WETH of debt ($84k): 84% LTV under the modelled 87% USDC line.
+  // ETH rises, the DEBT grows, and the LTV crosses the line at minute 3 (88.2%) — inside
+  // what would have been the 4% band (90.48%), so a delayed position would open a window.
+  const pos = legPosition([{ symbol: 'USDC', amount: 100_000, price: 1 }], { symbol: 'WETH', amount: 21, price: 4000 })
+  const { path, unpriced } = ethRamp(40, 2)
+  const cmp = runComparison(pos, path, unpriced, { ...baseOpts, venue: null })
+  const ev = cmp.membrane.events
+  assert.ok(!ev.some((e) => e.kind === 'breach'), 'no breach/window event: the class has no window')
+  const first = ev[0]
+  assert.ok(first && first.kind === 'liquidation', 'the first event is the sale')
+  const line = membraneMaxLtv('USDC')!
+  const crossed = path.series.WETH!.findIndex((p) => (21 * (p as number)) / 100_000 > line)
+  assert.strictEqual(first.minute, crossed, `sold at the first minute over the ${line} line (minute ${crossed})`)
+  assert.ok(first.why.startsWith('No-delay class — sold the minute the line was crossed'), 'and says why')
+  assert.ok(
+    cmp.membrane.caveats.some((c) => c.startsWith('NO-DELAY CLASS')),
+    'the run states the class as a caveat',
+  )
+  assert.ok(
+    !cmp.membrane.caveats.some((c) => c.startsWith('The cure window is conditional')),
+    'and does not claim a window it does not have',
+  )
+})
+
+test('a no-delay recall that covers the call pays the keeper and sells nothing else', () => {
+  const pos = legPosition([{ symbol: 'USDC', amount: 100_000, price: 1 }], { symbol: 'WETH', amount: 21, price: 4000 })
+  const { path, unpriced } = ethRamp(40, 2)
+  const venue = { recallRate: 1, fastRate: 1, deployedUsd: 1_000_000, provenance: {} as never }
+  const cmp = runComparison(pos, path, unpriced, { ...baseOpts, venue })
+  const ev = cmp.membrane.events
+  assert.ok(ev.length > 0 && ev.every((e) => e.kind === 'recall'), 'every call answered by the venue')
+  for (const e of ev) {
+    close(e.penaltyUsd, baseOpts.membraneLiqFee * e.recalledUsd, 'fee on the recalled amount', 1e-6)
+    close(e.seizedUsd, e.penaltyUsd, 'the fee is the only collateral that leaves', 1e-9)
+    assert.ok(e.why.includes('recall-only lane, LiquidationEngine.sol:1603-1658'))
+  }
+  assert.ok(cmp.membrane.penaltyPaidUsd > 0, 'the recall-only lane is PAID')
+  assert.ok(
+    cmp.membrane.caveats.some((c) => c.includes('LiquidationRaisedLtv') && c.includes('Cdp.sol:2494-2498')),
+    'the un-modelled post-check is a stated caveat',
+  )
+})
+
+test('a mixed position is split into the two positions Membrane would hold', () => {
+  // $200k WETH + $100k USDC against $210k USDC debt: 70% LTV. Membrane refuses one
+  // position holding both classes (Cdp.sol:1650-1651), so it is modelled as two.
+  const pos = legPosition(
+    [
+      { symbol: 'WETH', amount: 50, price: 4000 },
+      { symbol: 'USDC', amount: 100_000, price: 1 },
+    ],
+    { symbol: 'USDC', amount: 210_000, price: 1 },
+  )
+  const flat = ethRamp(30, 30)
+  const { subs, shares } = splitByDelayClass(pos, flat.path, { ...baseOpts, venue: null })
+  assert.strictEqual(subs.length, 2, 'two isolated positions')
+  close(shares[0] + shares[1], 1, 'the shares are a partition')
+  close(
+    subs.reduce((a, s) => a + s.debt[0].amount, 0),
+    210_000,
+    'and the two debts sum to the original',
+    1e-6,
+  )
+  assert.deepStrictEqual(subs.map((s) => s.noDelay), [true, false], 'stable half no-delay, volatile half delayed')
+  for (const s of subs) {
+    const c = s.collateral.reduce((a, l) => a + l.amount * l.priceUsd, 0)
+    close(s.debt[0].amount / c, 0.7, `${s.label} opens at the position's own LTV`, 1e-9)
+  }
+  close(subs[0].line, membraneMaxLtv('USDC')!, 'each half takes its own line', 1e-12)
+  close(subs[1].line, membraneMaxLtv('WETH')!, 'each half takes its own line', 1e-12)
+
+  // On a calm path nothing happens and the halves recombine exactly.
+  const calm = runComparison(pos, flat.path, flat.unpriced, { ...baseOpts, venue: null })
+  assert.strictEqual(calm.membrane.events.length, 0)
+  close(calm.membrane.endDebtUsd, 210_000, 'the split loses no debt', 1e-6)
+  close(calm.membrane.startEquityUsd, calm.source.startEquityUsd, 'nor any equity', 1e-6)
+  assert.ok(
+    calm.membrane.caveats.some((c) => c.startsWith('MIXED CLASS, MODELLED AS TWO POSITIONS') && c.includes('Cdp.sol:1650-1651')),
+    'the split is stated as modelled',
+  )
+
+  // A crash sells only the volatile half; the stable half never crosses its line.
+  const { path, unpriced } = crashPath()
+  const crash = runComparison(pos, path, unpriced, { ...baseOpts, venue: null })
+  const sales = crash.membrane.events.filter((e) => e.kind === 'liquidation')
+  assert.ok(sales.length > 0, 'the WETH half is sold')
+  assert.ok(sales.every((e) => e.why.startsWith('Delayed position (WETH)')), 'and only the WETH half')
+  assert.ok(crash.membrane.events.some((e) => e.kind === 'breach'), 'the WETH half had its window')
 })
 
 // ================================================== adapter parsing helpers

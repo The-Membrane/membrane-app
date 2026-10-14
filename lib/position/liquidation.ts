@@ -34,6 +34,12 @@ export type RiskBasis =
    * leg's price with every other leg held. `reason` is ≤ 8 words, shown verbatim.
    */
   | { kind: 'dominant'; reason: string }
+  /**
+   * Collateral and debt are the SAME family and nothing else (wstETH against WETH, LBTC
+   * against WBTC): an ETH move lifts or sinks both sides, so a USD line is the wrong axis.
+   * The line is the collateral/debt price ratio, and no ETH-history forecast applies.
+   */
+  | { kind: 'ratio'; asset: HistoryAsset; base: string; quote: string; reason: string }
 
 /**
  * A leg worth less than this share of the position's gross value (collateral + debt) is
@@ -65,7 +71,13 @@ export function legSymbols(s: PositionSnapshot): { collateral: string[]; debt: s
   return { collateral: pick('collateral'), debt: pick('debt') }
 }
 
-/** Which price history, if any, describes this position's line. Dust legs are ignored. */
+/**
+ * Which price history, if any, describes this position's line. Dust legs are ignored.
+ *   one family F on one side, stables elsewhere   history: a fall (collateral) or rise (debt) of F
+ *   F on both sides plus stables                  history: the net F exposure's sign decides
+ *   F on both sides and nothing else              ratio: the line is the collateral/debt ratio
+ *   two families, an unknown asset, stables only  dominant leg, with the reason
+ */
 export function classifyRisk(s: PositionSnapshot): RiskBasis {
   const legs = namedLegs(s)
   const other = legs.find((l) => assetClassOf(l.symbol) === 'other')
@@ -80,17 +92,42 @@ export function classifyRisk(s: PositionSnapshot): RiskBasis {
   if (families.size > 1) return { kind: 'dominant', reason: 'ETH and BTC legs move separately.' }
 
   const asset = [...families][0]
-  const inCollateral = legs.some((l) => l.side === 'collateral' && assetClassOf(l.symbol) === asset)
-  const inDebt = legs.some((l) => l.side === 'debt' && assetClassOf(l.symbol) === asset)
-  if (inCollateral && inDebt) {
-    return { kind: 'dominant', reason: `Collateral and debt both move with ${asset}.` }
+  const inF = (sym: string) => assetClassOf(sym) === asset
+  const inCollateral = legs.some((l) => l.side === 'collateral' && inF(l.symbol))
+  const inDebt = legs.some((l) => l.side === 'debt' && inF(l.symbol))
+  if (!(inCollateral && inDebt)) return { kind: 'history', asset, direction: inCollateral ? 'fall' : 'rise' }
+
+  const largest = (side: NamedLeg['side']) =>
+    [...legs].filter((l) => l.side === side && inF(l.symbol)).sort((a, b) => b.usd - a.usd)[0].symbol
+  const ratio = (): RiskBasis => {
+    const base = largest('collateral')
+    return {
+      kind: 'ratio',
+      asset,
+      base,
+      quote: largest('debt'),
+      reason: `The line moves with the ${base}/${asset} ratio, not the ${asset} price.`,
+    }
   }
-  return { kind: 'history', asset, direction: inCollateral ? 'fall' : 'rise' }
+  if (legs.every((l) => inF(l.symbol))) return ratio()
+  // F on both sides with stables beside it: the F legs move together; the net exposure
+  // (weighted F collateral − F debt) says which way an F move hurts.
+  const Wf = s.collateral
+    .filter((c) => inF(c.symbol))
+    .reduce((a, c) => a + c.amount * c.oraclePriceUsd * c.liquidationThreshold, 0)
+  const Df = s.debt.filter((d) => inF(d.symbol)).reduce((a, d) => a + d.amount * d.priceUsd, 0)
+  const E = Wf - Df
+  if (Math.abs(E) <= DUST_SHARE * (Wf + Df)) return ratio()
+  return { kind: 'history', asset, direction: E > 0 ? 'fall' : 'rise' }
 }
 
 // ------------------------------------------------------------------ model
 
+/** What the line is quoted in: dollars of one asset, or the collateral/debt price ratio. */
+export type LineUnit = { kind: 'usd' } | { kind: 'ratio'; base: string; quote: string }
+
 export interface LineModel {
+  unit: LineUnit
   direction: Direction
   /** The leg the hero quotes: the largest moving leg. */
   symbol: string
@@ -149,6 +186,7 @@ export function lineModel(s: PositionSnapshot, basis: RiskBasis): LineModel | nu
       ...debt.filter((d) => nameD(d.symbol)).map((d) => d.symbol),
     ]
     return {
+      unit: { kind: 'usd' },
       direction: basis.direction,
       symbol,
       priceNow,
@@ -161,6 +199,26 @@ export function lineModel(s: PositionSnapshot, basis: RiskBasis): LineModel | nu
     }
   }
 
+  if (basis.kind === 'ratio') {
+    // Every collateral leg moves against the debt: the line is the base/quote price ratio
+    // at which W·(1 − x) = D, quoted from the protocol's own oracle prices.
+    const base = coll.find((c) => c.symbol === basis.base)
+    const quote = debt.find((d) => d.symbol === basis.quote)
+    if (!base || !quote || !(quote.priceUsd > 0)) return null
+    return {
+      unit: { kind: 'ratio', base: basis.base, quote: basis.quote },
+      direction: 'fall',
+      symbol: basis.base,
+      priceNow: base.oraclePriceUsd / quote.priceUsd,
+      W,
+      Wm: W,
+      D,
+      Dm: 0,
+      moving: uniq(coll.filter((c) => nameC(c.symbol)).map((c) => c.symbol)),
+      held: uniq(debt.filter((d) => nameD(d.symbol)).map((d) => d.symbol)),
+    }
+  }
+
   // Dominant leg: the largest collateral leg by oracle value moves; everything else held.
   // Same selection as computeMetrics (first of equal values wins).
   let dom = coll[0]
@@ -169,6 +227,7 @@ export function lineModel(s: PositionSnapshot, basis: RiskBasis): LineModel | nu
   }
   const Wm = value(dom.amount, dom.oraclePriceUsd) * dom.liquidationThreshold
   return {
+    unit: { kind: 'usd' },
     direction: 'fall',
     symbol: dom.symbol,
     priceNow: dom.oraclePriceUsd,
@@ -203,6 +262,11 @@ export function lineDistance(m: Pick<LineModel, 'direction' | 'W' | 'Wm' | 'D' |
 
 export type Hero =
   | { kind: 'no-debt' }
+  /**
+   * The legs do not reproduce the protocol's thresholds (snapshot.ts checkSplit): there is
+   * no per-asset line to draw, only the protocol's own health factor.
+   */
+  | { kind: 'unsplit'; healthFactor: number; reason: string }
   | {
       kind: 'past'
       symbol: string
@@ -220,6 +284,8 @@ export type Hero =
     }
   | {
       kind: 'line'
+      /** Dollars of `symbol`, or the base/quote price ratio. */
+      unit: LineUnit
       symbol: string
       direction: Direction
       priceNow: number
@@ -267,6 +333,7 @@ export function heroOf(m: LineModel | null): Hero {
   const decimals = priceDecimals(priceLine)
   return {
     kind: 'line',
+    unit: m.unit,
     symbol: m.symbol,
     direction: m.direction,
     priceNow: m.priceNow,

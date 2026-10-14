@@ -16,8 +16,20 @@ import type { PositionView, ReadStatusItem } from './viewModel'
 const pct = (x: number, d = 1) => (Number.isFinite(x) ? `${(x * 100).toFixed(d)}%` : '∞')
 const amountDecimals = (amount: number) => (amount >= 1000 ? 2 : amount >= 1 ? 4 : 6)
 
-const CELL = { fontFamily: NEWS_FONT.mono, fontSize: { base: TYPE.label, md: TYPE.body }, py: '6px', px: '6px' } as const
-const HEAD = { ...CELL, ...CAPS, fontSize: TYPE.label, fontWeight: 700, color: NEWS.muted, textAlign: 'right' as const }
+const CELL = {
+  fontFamily: NEWS_FONT.mono,
+  fontSize: { base: TYPE.label, md: TYPE.body },
+  py: '6px',
+  px: '6px',
+} as const
+const HEAD = {
+  ...CELL,
+  ...CAPS,
+  fontSize: TYPE.label,
+  fontWeight: 700,
+  color: NEWS.muted,
+  textAlign: 'right' as const,
+}
 
 const Pair: React.FC<{ k: string; v: string }> = ({ k, v }) => (
   <Box display="grid" gap="2px" minW={0}>
@@ -36,7 +48,10 @@ interface LegRow {
   last: string
 }
 
-export const Instrument: React.FC<{ view: PositionView; failures: ReadStatusItem[] }> = ({ view, failures }) => {
+export const Instrument: React.FC<{ view: PositionView; failures: ReadStatusItem[] }> = ({
+  view,
+  failures,
+}) => {
   const p = view.position
   const m = view.metrics
   const rows: LegRow[] = [
@@ -62,80 +77,145 @@ export const Instrument: React.FC<{ view: PositionView; failures: ReadStatusItem
   const hfProtocol = Number.isFinite(p.healthFactor) ? p.healthFactor.toFixed(3) : '∞ (no debt)'
 
   return (
-    <Section id="instrument">
-      <Kicker>Instrument panel</Kicker>
-      <Box display="grid" gridTemplateColumns={{ base: '1fr 1fr', md: 'repeat(4, 1fr)' }} gap={SPACING.base} minW={0}>
-        <Pair k="Health factor" v={hfProtocol} />
-        <Pair k="LTV / liquidation LTV" v={`${pct(p.ltv)} / ${pct(p.liquidationLtv)}`} />
-        <Pair k="Collateral" v={fmtUsd(m.collateralUsd)} />
-        <Pair k="Debt" v={fmtUsd(m.debtUsd)} />
+    // Folded to one line; opens in place. The figures are below the fold by design (§5).
+    <Box
+      as="details"
+      data-news-section="instrument"
+      id="instrument"
+      minW={0}
+      sx={{ '&[open] > summary .chev': { transform: 'rotate(90deg)' } }}
+    >
+      <Box
+        as="summary"
+        minH="44px"
+        display="flex"
+        alignItems="center"
+        gap={SPACING.sm}
+        cursor="pointer"
+        listStyleType="none"
+        borderBottom={`1px solid ${NEWS.rule}`}
+        sx={{ '&::-webkit-details-marker': { display: 'none' } }}
+      >
+        <Kicker as="span">Position details</Kicker>
+        <Text
+          as="span"
+          className="chev"
+          color={NEWS.accent}
+          fontFamily={NEWS_FONT.mono}
+          fontSize={TYPE.label}
+          aria-hidden="true"
+        >
+          →
+        </Text>
       </Box>
-
-      <Box as="table" w="100%" sx={{ borderCollapse: 'collapse', tableLayout: 'auto' }}>
-        <Box as="thead">
-          <Box as="tr" borderBottom={`1px solid ${NEWS.ruleStrong}`}>
-            <Text as="th" {...HEAD} textAlign="left" pl={0}>
-              Leg
-            </Text>
-            <Text as="th" {...HEAD}>
-              Amount
-            </Text>
-            <Text as="th" {...HEAD}>
-              Oracle $
-            </Text>
-            <Text as="th" {...HEAD} pr={0}>
-              Value
-            </Text>
-          </Box>
+      <Section id="instrument-body" pt={SPACING.md}>
+        <Box
+          display="grid"
+          gridTemplateColumns={{ base: '1fr 1fr', md: 'repeat(4, 1fr)' }}
+          gap={SPACING.base}
+          minW={0}
+        >
+          <Pair k="Health factor" v={hfProtocol} />
+          <Pair k="LTV / liquidation LTV" v={`${pct(p.ltv)} / ${pct(p.liquidationLtv)}`} />
+          <Pair k="Collateral" v={fmtUsd(m.collateralUsd)} />
+          <Pair k="Debt" v={fmtUsd(m.debtUsd)} />
         </Box>
-        <Box as="tbody">
-          {rows.map((r) => (
-            <Box as="tr" key={`${r.side}-${r.address}`} borderBottom={`1px solid ${NEWS.rule}`}>
-              <Text as="td" {...CELL} pl={0} color={NEWS.ink} overflowWrap="anywhere">
-                {r.symbol}
-                <Text as="span" display="block" fontSize={TYPE.label} color={NEWS.muted}>
-                  {r.side} · {r.last}
-                </Text>
+
+        <Box as="table" w="100%" sx={{ borderCollapse: 'collapse', tableLayout: 'auto' }}>
+          <Box as="thead">
+            <Box as="tr" borderBottom={`1px solid ${NEWS.ruleStrong}`}>
+              <Text as="th" {...HEAD} textAlign="left" pl={0}>
+                Leg
               </Text>
-              <Text as="td" {...CELL} textAlign="right" color={NEWS.ink} sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                {fmtAmount(r.amount, amountDecimals(r.amount))}
+              <Text as="th" {...HEAD}>
+                Amount
               </Text>
-              <Text as="td" {...CELL} textAlign="right" color={NEWS.ink} sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                {fmtUsd(r.price, Math.min(4, priceDecimals(r.price) + 2))}
+              <Text as="th" {...HEAD}>
+                Oracle $
               </Text>
-              <Text as="td" {...CELL} pr={0} textAlign="right" color={NEWS.ink} sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                {fmtUsd(r.value)}
+              <Text as="th" {...HEAD} pr={0}>
+                Value
               </Text>
             </Box>
+          </Box>
+          <Box as="tbody">
+            {rows.map((r) => (
+              <Box as="tr" key={`${r.side}-${r.address}`} borderBottom={`1px solid ${NEWS.rule}`}>
+                <Text as="td" {...CELL} pl={0} color={NEWS.ink} overflowWrap="anywhere">
+                  {r.symbol}
+                  <Text as="span" display="block" fontSize={TYPE.label} color={NEWS.muted}>
+                    {r.side} · {r.last}
+                  </Text>
+                </Text>
+                <Text
+                  as="td"
+                  {...CELL}
+                  textAlign="right"
+                  color={NEWS.ink}
+                  sx={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {fmtAmount(r.amount, amountDecimals(r.amount))}
+                </Text>
+                <Text
+                  as="td"
+                  {...CELL}
+                  textAlign="right"
+                  color={NEWS.ink}
+                  sx={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {fmtUsd(r.price, Math.min(4, priceDecimals(r.price) + 2))}
+                </Text>
+                <Text
+                  as="td"
+                  {...CELL}
+                  pr={0}
+                  textAlign="right"
+                  color={NEWS.ink}
+                  sx={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {fmtUsd(r.value)}
+                </Text>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
+        <Box display="grid" gap={SPACING.xs}>
+          {view.assumption && <Small>† modelled: {view.assumption}.</Small>}
+          {!view.mapped.split.ok && (
+            <Small color={NEWS.ink2}>
+              ✖ Thresholds could not be split per asset: {view.mapped.split.reason}. Legs give
+              health factor {view.mapped.split.legsHealthFactor.toFixed(3)};{' '}
+              {view.label.split(' · ')[0]} reports{' '}
+              {view.mapped.split.protocolHealthFactor.toFixed(3)}.
+            </Small>
+          )}
+          <Small>
+            Prices: {view.priceSource} · read {fmtUtc(p.provenance.at)} · {p.provenance.label} · no
+            block number recorded
+          </Small>
+          {p.provenance.detail && (
+            <Box as="details">
+              <Small
+                as="summary"
+                cursor="pointer"
+                minH="44px"
+                display="flex"
+                alignItems="center"
+                color={NEWS.accent}
+              >
+                How this was read
+              </Small>
+              <Small overflowWrap="anywhere">{p.provenance.detail}</Small>
+            </Box>
+          )}
+          {failures.map((f) => (
+            <Small key={f.protocol} color={NEWS.ink2} overflowWrap="anywhere">
+              ✖ {f.label} failed: {f.message ?? 'no message'}
+            </Small>
           ))}
         </Box>
-      </Box>
-
-      <Box display="grid" gap={SPACING.xs}>
-        {view.assumption && <Small>† modelled: {view.assumption}.</Small>}
-        {view.mapped.thresholdsScaled && (
-          <Small>
-            Leg thresholds scaled ×{view.mapped.thresholdScale.toFixed(3)} to the account&apos;s own liquidation LTV
-            (e-mode).
-          </Small>
-        )}
-        <Small>
-          Prices: {view.priceSource} · read {fmtUtc(p.provenance.at)} · {p.provenance.label} · no block number recorded
-        </Small>
-        {p.provenance.detail && (
-          <Box as="details">
-            <Small as="summary" cursor="pointer" minH="44px" display="flex" alignItems="center" color={NEWS.accent}>
-              How this was read
-            </Small>
-            <Small overflowWrap="anywhere">{p.provenance.detail}</Small>
-          </Box>
-        )}
-        {failures.map((f) => (
-          <Small key={f.protocol} color={NEWS.ink2} overflowWrap="anywhere">
-            ✖ {f.label} failed: {f.message ?? 'no message'}
-          </Small>
-        ))}
-      </Box>
-    </Section>
+      </Section>
+    </Box>
   )
 }

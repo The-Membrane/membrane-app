@@ -19,7 +19,7 @@ import {
 } from '@/lib/position/liquidation'
 import { referencePriceFrom } from '@/lib/position/alert'
 import { fmtInt, fmtMove } from '@/lib/position/format'
-import { reverseSolve, type ActionRow } from '@/lib/position/reverseSolve'
+import { reverseSolve, type ActionRow, type ReverseSolve } from '@/lib/position/reverseSolve'
 import { HISTORY_LABEL, toSnapshot, type MappedSnapshot } from '@/lib/position/snapshot'
 import {
   confidenceOf,
@@ -78,8 +78,13 @@ export function priceSourceOf(p: ProtocolPosition): string {
     case 'spark':
       return 'Spark oracle'
     case 'morpho-blue': {
-      const assumed = p.provenance.detail?.match(/loan token (\w+) treated as exactly \$1\.00/)
-      return assumed ? `Morpho market oracle, ${assumed[1]} taken as $1` : 'Morpho market oracle'
+      // The adapter's detail says how the loan token got its USD price: an assumed $1 peg,
+      // or a read of the Aave V3 oracle. Both reach the hero's source line.
+      const detail = p.provenance.detail ?? ''
+      const assumed = detail.match(/loan token (\S+) treated as exactly \$1\.00/)
+      if (assumed) return `Morpho market oracle, ${assumed[1]} taken as $1`
+      const aave = detail.match(/Loan token (\S+) priced at \$[\d.e+-]+ from the Aave V3 oracle/)
+      return aave ? `Morpho market oracle, ${aave[1]} priced by the Aave V3 oracle` : 'Morpho market oracle'
     }
     case 'compound-v3':
       return 'Compound V3 price feed'
@@ -167,6 +172,8 @@ export interface HorizonForecast {
   range: { from: number; to: number }
   /** "Repay $X · line −Y% · Z% (lo–hi)" rows, solved at this horizon. */
   actions: ActionRow[]
+  /** Why there are no rows ('ok' when there are), and the targets met / out of reach. */
+  solve: Omit<ReverseSolve, 'rows'>
   confidence: ForecastConfidence
 }
 
@@ -184,6 +191,8 @@ export interface ForecastView {
   footer: string
   /** "Chainlink ETH/USD hourly lows · membrane-datasets validation/t1 · 42c792d" */
   credit: string
+  /** The same in one phone line: "Chainlink ETH/USD lows · validation/t1 · 42c792d" */
+  creditShort: string
 }
 
 /** What the "Alert me at" row needs from the position. The price itself may need a read. */
@@ -222,9 +231,21 @@ export interface PositionView {
   assumption: string | null
 }
 
+/**
+ * The forecast's credit. Falls are validation/t1's own rows; t1 scores no rises, so a rise
+ * credits the price history on the same origins instead of claiming t1.
+ */
 export function creditLine(t: TouchTable, asset: HistoryAsset, direction: Direction): string {
-  const series = direction === 'fall' ? 'hourly lows' : 'hourly highs'
-  return `${t.assets[asset].feed} ${series} · membrane-datasets validation/t1 rows · ${shortSha(t)}`
+  return direction === 'fall'
+    ? `${t.assets[asset].feed} hourly lows · membrane-datasets validation/t1 rows · ${shortSha(t)}`
+    : `${t.assets[asset].feed} hourly highs · membrane-datasets price-history, t1's origins · ${shortSha(t)}`
+}
+
+/** The credit in one 390px line (≤ 54 characters of 11px mono). */
+export function creditShort(t: TouchTable, asset: HistoryAsset, direction: Direction): string {
+  return direction === 'fall'
+    ? `${t.assets[asset].feed} lows · validation/t1 · ${shortSha(t)}`
+    : `${t.assets[asset].feed} highs · t1 origins · ${shortSha(t)}`
 }
 
 /** FORECAST_VISUALS.md footer, once: "† forecast from ETH history <period> (n ≈ <n> per horizon), not a guarantee". */
@@ -254,8 +275,9 @@ function horizonForecast(
   direction: Direction,
   horizon: HorizonId,
   level: number | null,
+  borrowApr: number | null,
 ): HorizonForecast {
-  const actions = reverseSolve(s, model, t, asset, horizon)
+  const { rows: actions, ...solve } = reverseSolve(s, model, t, asset, horizon, borrowApr)
   const marks = [level, ...actions.map((a) => a.newDistancePct)].filter((x): x is number => x !== null)
   const from = Math.max(t.levels.min, Math.min(CURVE_RANGE.from, ...marks))
   const to = Math.min(t.levels.max, Math.max(CURVE_RANGE.to, ...marks))
@@ -265,6 +287,7 @@ function horizonForecast(
     curve: touchCurve(t, asset, direction, horizon, from, to),
     range: { from, to },
     actions,
+    solve,
     confidence: confidenceOf(t, asset, direction, horizon),
   }
 }
@@ -274,13 +297,31 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
   const metrics = computeMetrics(mapped.snapshot)
   const basis = classifyRisk(mapped.snapshot)
   const model = lineModel(mapped.snapshot, basis)
-  const hero = heroOf(model)
-  const distance = model ? lineDistance(model) : Number.POSITIVE_INFINITY
+  // Legs that do not reproduce the protocol's thresholds give no line at all: the hero
+  // shows the protocol's own health factor and says why (snapshot.ts checkSplit).
+  const hero: Hero = mapped.split.ok
+    ? heroOf(model)
+    : p.totalDebtUsd > 0
+      ? { kind: 'unsplit', healthFactor: p.healthFactor, reason: mapped.split.reason ?? '' }
+      : { kind: 'no-debt' }
+  const distance =
+    hero.kind === 'unsplit'
+      ? hero.healthFactor > 1
+        ? 1 - 1 / hero.healthFactor
+        : 0
+      : model
+        ? lineDistance(model)
+        : Number.POSITIVE_INFINITY
+  // The buffer accrues at the dearest debt leg's rate the read reports, else the fallback.
+  const aprs = p.debt.map((d) => d.borrowApr).filter((x): x is number => x !== null)
+  const borrowApr = aprs.length === p.debt.length && aprs.length > 0 ? Math.max(...aprs) : null
 
   let forecast: ForecastView | null = null
   let forecastAbsent: string | null = null
   let alert: AlertInputs | null = null
-  if (hero.kind !== 'no-debt') {
+  if (hero.kind === 'unsplit') {
+    forecastAbsent = 'Thresholds could not be split per asset.'
+  } else if (hero.kind !== 'no-debt') {
     if (basis.kind === 'history' && model) {
       // The reader's chance is read at the hero's own floored distance. Past the line, or
       // with no price that reaches it, there is no distance to forecast; the levers still solve.
@@ -288,7 +329,10 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
         hero.kind === 'line' ? lookupTouch(t, basis.asset, basis.direction, '7d', hero.distance).kind : 'within'
       const level = hero.kind === 'line' && lookup === 'row' ? hero.distancePct : null
       const byHorizon = Object.fromEntries(
-        HORIZON_IDS.map((h) => [h, horizonForecast(t, mapped.snapshot, model, basis.asset, basis.direction, h, level)]),
+        HORIZON_IDS.map((h) => [
+          h,
+          horizonForecast(t, mapped.snapshot, model, basis.asset, basis.direction, h, level, borrowApr),
+        ]),
       ) as Record<HorizonId, HorizonForecast>
       forecast = {
         asset: basis.asset,
@@ -300,6 +344,7 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
         years: periodYears(t),
         footer: forecastFooter(t, [basis.asset], basis.direction),
         credit: creditLine(t, basis.asset, basis.direction),
+        creditShort: creditShort(t, basis.asset, basis.direction),
       }
       if (hero.kind === 'line') {
         const ref = referencePriceFrom(p, basis.asset)
@@ -311,7 +356,8 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
           referenceSource: ref !== null ? priceSourceOf(p) : 'Aave V3 oracle',
         }
       }
-    } else if (basis.kind === 'dominant') {
+    } else if (basis.kind !== 'history') {
+      // dominant: no single history; ratio: the line is not on the USD axis at all.
       forecastAbsent = basis.reason
     }
   }
@@ -358,6 +404,8 @@ export function lineTag(v: PositionView): string {
       return 'no price reaches the line'
     case 'no-debt':
       return 'no debt'
+    case 'unsplit':
+      return `HF ${v.hero.healthFactor.toFixed(2)}`
   }
 }
 

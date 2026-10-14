@@ -61,7 +61,7 @@ export const Credit: React.FC<TextProps> = ({ children, ...rest }) => (
 
 /** A page section with its anchor hook and the standard seam above it. */
 export const Section: React.FC<BoxProps & { id: string }> = ({ id, children, ...rest }) => (
-  <Box as="section" data-news-section={id} id={id} pt={SPACING.lg} display="grid" gap={SPACING.md} minW={0} {...rest}>
+  <Box as="section" data-news-section={id} id={id} pt={SPACING.md} display="grid" gap={SPACING.sm} minW={0} {...rest}>
     {children}
   </Box>
 )

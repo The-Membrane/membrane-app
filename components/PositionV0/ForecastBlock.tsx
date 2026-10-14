@@ -99,7 +99,8 @@ export const ForecastBlock: React.FC<{
   stale: boolean
   t: TouchTable
 }> = ({ view, horizon, onHorizon, stale, t }) => {
-  if (view.hero.kind === 'no-debt' || view.hero.kind === 'past' || view.hero.kind === 'unreachable') return null
+  // No distance to forecast at, or (unsplit) no per-asset line at all: the hero says which.
+  if (['no-debt', 'past', 'unreachable', 'unsplit'].includes(view.hero.kind)) return null
   const f = view.forecast
   if (!f) {
     return (
@@ -137,7 +138,14 @@ export const ForecastBlock: React.FC<{
         actions={stale ? [] : marks.actions}
         summary={summary}
       />
-      <Credit>{f.credit}</Credit>
+      <Credit>
+        <Box as="span" display={{ base: 'none', md: 'inline' }}>
+          {f.credit}
+        </Box>
+        <Box as="span" display={{ base: 'inline', md: 'none' }}>
+          {f.creditShort}
+        </Box>
+      </Credit>
     </Section>
   )
 }

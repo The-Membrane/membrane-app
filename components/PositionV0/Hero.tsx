@@ -32,66 +32,109 @@ const Lead: React.FC<{ children: React.ReactNode; color?: string }> = ({ childre
   </Text>
 )
 
-export const Hero: React.FC<{ view: PositionView }> = ({ view }) => {
+interface HeroCopy {
+  lead: string
+  /** The big figure, already formatted; null when the headline is words only. */
+  figure: string | null
+  dagger: boolean
+  danger: boolean
+  sub: string
+  sentence: string
+}
+
+type Hero = PositionView['hero']
+
+/** The line hero: a USD price, or a price RATIO when collateral and debt share a family. */
+function lineCopy(hero: Extract<Hero, { kind: 'line' }>, venue: string, priceSource: string, dagger: boolean): HeroCopy {
+  const where = hero.direction === 'fall' ? 'below' : 'above'
+  const dist = hero.distancePct === 0 ? `under 1% ${where} now` : `${hero.distancePct}% ${where} now`
+  if (hero.unit.kind === 'ratio') {
+    const { base, quote } = hero.unit
+    return {
+      lead: `${base}/${quote} liquidation line`,
+      figure: hero.priceShown.toFixed(hero.decimals),
+      dagger,
+      danger: false,
+      sub: `${dist} · ${priceSource}, ${base} ÷ ${quote}`,
+      sentence: `Below this ratio, ${venue} can liquidate you.`,
+    }
+  }
+  return {
+    lead: `${hero.symbol} liquidation price`,
+    figure: fmtUsd(hero.priceShown, hero.decimals),
+    dagger,
+    danger: false,
+    sub: `${dist} · ${priceSource}`,
+    sentence: `${hero.direction === 'fall' ? 'Below' : 'Above'} it, ${venue} can liquidate you.`,
+  }
+}
+
+/** What the hero says, per kind. Pure. */
+function heroCopy(view: PositionView): HeroCopy {
   const { hero, priceSource, assumption } = view
   const venue = view.label.split(' · ')[0]
-
-  let headline: React.ReactNode
-  let sub: string
-  let sentence: string
+  const plain = { dagger: false, danger: false }
   switch (hero.kind) {
-    case 'line': {
-      const where = hero.direction === 'fall' ? 'below' : 'above'
-      const dist = hero.distancePct === 0 ? `under 1% ${where} now` : `${hero.distancePct}% ${where} now`
-      headline = (
-        <>
-          <Lead>{hero.symbol} liquidation price</Lead>
-          <Figure>
-            {fmtUsd(hero.priceShown, hero.decimals)}
-            {assumption && <Dagger />}
-          </Figure>
-        </>
-      )
-      sub = `${dist} · ${priceSource}`
-      sentence = hero.direction === 'fall' ? `Below it, ${venue} can liquidate you.` : `Above it, ${venue} can liquidate you.`
-      break
+    case 'line':
+      return lineCopy(hero, venue, priceSource, Boolean(assumption))
+    case 'unsplit': {
+      // The legs could not reproduce the protocol's thresholds: only its own figure is shown.
+      const under = hero.healthFactor <= 1
+      return {
+        ...plain,
+        danger: under,
+        lead: under ? '✖ Health factor under 1' : 'Health factor',
+        figure: hero.healthFactor.toFixed(3),
+        sub: `${venue}'s own figure`,
+        sentence: 'Thresholds could not be split per asset.',
+      }
     }
     case 'past':
-      headline = (
-        <>
-          <Lead color={NEWS.danger}>✖ Past the liquidation line</Lead>
-          <Figure color={NEWS.danger}>HF {hero.healthFactor.toFixed(2)}</Figure>
-        </>
-      )
-      sub = `health factor under 1 · ${priceSource}`
-      sentence = `${venue} can liquidate it now.`
-      break
+      return {
+        ...plain,
+        danger: true,
+        lead: '✖ Past the liquidation line',
+        figure: `HF ${hero.healthFactor.toFixed(2)}`,
+        sub: `health factor under 1 · ${priceSource}`,
+        sentence: `${venue} can liquidate it now.`,
+      }
     case 'unreachable':
-      headline = <Lead>No {hero.symbol} price reaches the line</Lead>
-      sub = `the other legs cover the debt · ${priceSource}`
-      sentence = `A ${hero.symbol} fall alone cannot liquidate it.`
-      break
+      return {
+        ...plain,
+        lead: `No ${hero.symbol} price reaches the line`,
+        figure: null,
+        sub: `the other legs cover the debt · ${priceSource}`,
+        sentence: `A ${hero.symbol} fall alone cannot liquidate it.`,
+      }
     case 'no-debt':
-      headline = (
-        <>
-          <Lead>No debt, no liquidation line</Lead>
-          <Figure>{fmtUsd(view.metrics.collateralUsd)}</Figure>
-        </>
-      )
-      sub = `collateral · ${priceSource}`
-      sentence = 'Nothing here can be liquidated.'
-      break
+      return {
+        ...plain,
+        lead: 'No debt, no liquidation line',
+        figure: fmtUsd(view.metrics.collateralUsd),
+        sub: `collateral · ${priceSource}`,
+        sentence: 'Nothing here can be liquidated.',
+      }
   }
+}
 
+export const Hero: React.FC<{ view: PositionView }> = ({ view }) => {
+  const c = heroCopy(view)
+  const tone = c.danger ? NEWS.danger : NEWS.ink
   return (
-    <Box as="header" data-news-section="hero" display="grid" gap={SPACING.sm} pt={SPACING.lg} minW={0} aria-live="polite">
+    <Box as="header" data-news-section="hero" display="grid" gap={SPACING.xs} pt={SPACING.md} minW={0} aria-live="polite">
       <Kicker tone="muted">{view.title}</Kicker>
       <Text as="h1" m={0} display="grid" gap={SPACING.xs}>
-        {headline}
+        <Lead color={tone}>{c.lead}</Lead>
+        {c.figure !== null && (
+          <Figure color={tone}>
+            {c.figure}
+            {c.dagger && <Dagger />}
+          </Figure>
+        )}
       </Text>
-      <Mono color={NEWS.ink2}>{sub}</Mono>
+      <Mono color={NEWS.ink2}>{c.sub}</Mono>
       <Text fontFamily={NEWS_FONT.display} fontStyle="italic" fontSize={TYPE.body} lineHeight={1.4} color={NEWS.ink2}>
-        {sentence}
+        {c.sentence}
       </Text>
     </Box>
   )

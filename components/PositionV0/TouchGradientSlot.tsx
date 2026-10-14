@@ -75,7 +75,8 @@ const M = { left: 34, right: 10, top: 18, bottom: 40 }
 export const TouchGradientSlot: React.FC<TouchGradientSlotProps> = (props) => {
   const [ref, width] = useWidth<HTMLDivElement>()
   const uid = useId().replace(/:/g, '')
-  const height = width === null ? 200 : Math.round(Math.min(260, Math.max(190, width * 0.42)))
+  // 170px on a phone, growing with the column to 260px.
+  const height = width === null ? 170 : Math.round(Math.min(260, Math.max(170, width * 0.42)))
 
   return (
     // The box holds the chart's height before the width is known (no layout shift).
@@ -146,9 +147,12 @@ const Curve: React.FC<TouchGradientSlotProps & { uid: string; width: number; hei
       {yTicks.map((v) => (
         <g key={v}>
           <line x1={M.left} x2={M.left + pw} y1={y(v)} y2={y(v)} stroke={NEWS.rule} strokeDasharray="1 3" />
-          <text x={M.left - 6} y={y(v) + 4} textAnchor="end" fill={NEWS.muted} style={font}>
-            {pctTxt(v)}
-          </text>
+          {/* The floor stays unlabelled: no chance on this page is ever shown as 0%. */}
+          {v > 0 && (
+            <text x={M.left - 6} y={y(v) + 4} textAnchor="end" fill={NEWS.muted} style={font}>
+              {pctTxt(v)}
+            </text>
+          )}
         </g>
       ))}
       <text x={M.left} y={M.top - 7} fill={NEWS.muted} style={font}>

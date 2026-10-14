@@ -9,8 +9,7 @@ import { Box, Link } from '@chakra-ui/react'
 import { SPACING } from '@/config/spacing'
 import { TRANSITIONS } from '@/config/transitions'
 import { NEWS } from '@/components/NewsEdition/tokens'
-import { REVERSE_SOLVE_TARGETS_PCT } from '@/lib/position/reverseSolve'
-import { HORIZON_WORDS, type HorizonId } from '@/lib/position/touchHistory'
+import { HORIZON_WORDS, TOUCH_TABLE, type HorizonId } from '@/lib/position/touchHistory'
 
 import { AlertMeSlot } from './AlertMeSlot'
 import { Kicker, Mono, Section, Small } from './primitives'
@@ -51,26 +50,29 @@ const VenueLink: React.FC<{ href: string; venue: string; label: string; top?: bo
   </Link>
 )
 
+/** Why there are no rows, in one sentence the reader can check. */
+function emptyCopy(view: PositionView, horizon: HorizonId): string | null {
+  if (view.hero.kind === 'unsplit') return null // the hero already says why
+  if (view.basis.kind !== 'history' || !view.forecast) return 'No action rows without a forecast.'
+  if (view.hero.kind === 'unreachable') return 'A fall alone does not reach this line.'
+  const { reason, met, beyond } = view.forecast.byHorizon[horizon].solve
+  if (reason === 'no-lever') return 'No repay or top-up fits this position.'
+  const parts: string[] = []
+  if (met.length > 0) parts.push(`already ${Math.min(...met)}% or less`)
+  if (beyond.length > 0) parts.push(`no line within the table's ${TOUCH_TABLE.levels.max}% gets under ${Math.min(...beyond)}%`)
+  return `Within ${HORIZON_WORDS[horizon]}: ${parts.join('; ')}.`
+}
+
 export const Actions: React.FC<{ view: PositionView; horizon: HorizonId; address: string }> = ({ view, horizon, address }) => {
   if (view.hero.kind === 'no-debt') return null
   const venue = view.label.split(' · ')[0]
   const rows = view.forecast?.byHorizon[horizon].actions ?? []
-  const strictest = Math.min(...REVERSE_SOLVE_TARGETS_PCT)
-
-  let empty: string | null = null
-  if (rows.length === 0) {
-    empty =
-      view.basis.kind !== 'history'
-        ? 'No action rows without a forecast.'
-        : view.hero.kind === 'unreachable'
-          ? 'A fall alone does not reach this line.'
-          : `The chance at your line within ${HORIZON_WORDS[horizon]} is already ${strictest}% or less.`
-  }
+  const empty = rows.length === 0 ? emptyCopy(view, horizon) : null
 
   return (
     <Section id="actions">
       <Kicker>Move your line · within {HORIZON_WORDS[horizon]}</Kicker>
-      {empty === null ? (
+      {rows.length > 0 ? (
         <Box display="grid" gridTemplateColumns={{ base: '1fr', lg: '1fr 1fr' }} columnGap={SPACING.lg} minW={0}>
           {(['repay', 'add'] as const).map((kind) => {
             const group = rows.filter((a) => a.kind === kind)
@@ -92,7 +94,7 @@ export const Actions: React.FC<{ view: PositionView; horizon: HorizonId; address
         </Box>
       ) : (
         <Box display="grid" gap={SPACING.xs}>
-          <Mono color={NEWS.ink2}>{empty}</Mono>
+          {empty && <Mono color={NEWS.ink2}>{empty}</Mono>}
           {view.appUrl && (
             <VenueLink href={view.appUrl} venue={venue} label="Manage this position" top />
           )}

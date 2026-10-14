@@ -59,15 +59,19 @@ export const AlertMeSlot: React.FC<AlertMeSlotProps> = ({ view, address }) => {
   const line = fmtMove(floorPct(a.distance), a.direction)
   return (
     <Box display="grid" minW={0}>
-      <Mono minH="44px" display="flex" alignItems="center">
+      <Mono>
         {prefill
-          ? `Alert me at ${a.asset} ${fmtUsd(prefill.price)} · halfway to your line (${line})`
+          ? `Alert me at ${a.asset} ${fmtUsd(prefill.price)} · halfway to ${line}`
           : `Alert me at a ${a.asset} price · your line ${line}`}
       </Mono>
       <Small>
-        {a.asset} price from the {a.referenceSource}; the alert reads Chainlink {a.asset}/USD.
+        Read: {a.referenceSource}. Alert: Chainlink {a.asset}/USD.
       </Small>
       <AlertMeAt
+        // A new position (or a new direction) is a new control: no typed value carries over.
+        key={`${view.key}:${a.asset}:${a.direction}`}
+        // Folded to one "Alert me at" button until asked for: the page stays short.
+        collapsible
         metric="price"
         subject={`asset:${a.asset}`}
         currentValue={price}

@@ -9,6 +9,7 @@ import {
   buildPositionView,
   creditLine,
   forecastFooter,
+  lineTag,
   pageState,
   priceSourceOf,
   readStatus,
@@ -135,7 +136,8 @@ describe('one position view', () => {
     }
     const week = f.byHorizon['7d'].actions
     expect(week.length).toBeGreaterThan(0)
-    expect(week.every((a) => /^(Repay \$[\d,]+|Add [\d.,]+ WETH) · line −\d+% · (<1|\d+)% \(\d+(–\d+)?%\)$/.test(a.text))).toBe(true)
+    expect(week.every((a) => /^(Repay \$[\d,]+|Add [\d.,]+ WETH) · line −\d+% · (<1|\d+)% \((up to \d+|\d+(–\d+)?)%\)$/.test(a.text))).toBe(true)
+    expect(f.byHorizon['7d'].solve.reason).toBe('ok')
     expect(v.alert).toEqual({ asset: 'ETH', direction: 'fall', distance: v.hero.distance, referencePrice: 4000, referenceSource: 'Aave V3 oracle' })
     expect(v.assumption).toBe("USDC held at today's price")
     expect(v.forecastAbsent).toBeNull()
@@ -197,10 +199,33 @@ describe('one position view', () => {
     expect(v.appUrl).toBe('https://app.compound.finance/')
   })
 
+  it('legs that do not reproduce the protocol give no line, no forecast, no levers', () => {
+    // An e-mode account whose legs still carry reserve thresholds (0 here).
+    const p = pos('aave-v3', [coll('PT-srUSDe', 1000, 1, 0)], [debt('USDC', 800, 1)])
+    const v = buildPositionView({ ...p, liquidationLtv: 0.92, healthFactor: 1.15 }, t)
+    expect(v.hero).toEqual({ kind: 'unsplit', healthFactor: 1.15, reason: 'the legs carry no threshold the protocol applies' })
+    expect(v.forecast).toBeNull()
+    expect(v.forecastAbsent).toBe('Thresholds could not be split per asset.')
+    expect(v.alert).toBeNull()
+    expect(lineTag(v)).toBe('HF 1.15')
+  })
+
+  it('same-family collateral and debt: a ratio line, no ETH forecast, no alert', () => {
+    const v = buildPositionView(pos('morpho-blue', [coll('wstETH', 10, 3000, 0.945)], [debt('WETH', 10, 2500)], 'Morpho · wstETH/WETH 94.5%',
+      'Loan token WETH priced at $2500 from the Aave V3 oracle (no assumed peg).'), t)
+    expect(v.basis).toMatchObject({ kind: 'ratio', base: 'wstETH', quote: 'WETH' })
+    expect(v.hero.kind === 'line' && v.hero.unit).toEqual({ kind: 'ratio', base: 'wstETH', quote: 'WETH' })
+    expect(v.forecast).toBeNull()
+    expect(v.forecastAbsent).toBe('The line moves with the wstETH/ETH ratio, not the ETH price.')
+    expect(v.alert).toBeNull()
+    expect(v.priceSource).toBe('Morpho market oracle, WETH priced by the Aave V3 oracle')
+  })
+
   it('a rise risk reads the highs table and alerts above', () => {
     const v = buildPositionView(pos('aave-v3', [coll('USDC', 10_000, 1, 0.78)], [debt('WETH', 1.6, 4000)]), t) // +21.9%
     expect(v.forecast?.direction).toBe('rise')
-    expect(v.forecast?.credit).toMatch(/hourly highs/)
+    expect(v.forecast?.credit).toMatch(/^Chainlink ETH\/USD hourly highs · membrane-datasets price-history, t1's origins · [0-9a-f]{7}$/)
+    expect(v.forecast?.credit).not.toMatch(/validation\/t1/)
     expect(v.alert).toMatchObject({ direction: 'rise', referencePrice: 4000 })
     expect(creditLine(t, 'BTC', 'fall')).toMatch(/^Chainlink BTC\/USD hourly lows/)
     expect(forecastFooter(t, ['ETH', 'BTC'], 'fall')).toBe('† forecast from ETH and BTC history 2021–26 (n ≈ 2,000 per horizon), not a guarantee')

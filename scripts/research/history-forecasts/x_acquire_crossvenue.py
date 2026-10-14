@@ -41,6 +41,7 @@ import csv
 import datetime as dt
 import gzip
 import heapq
+import http.client
 import json
 import os
 import queue
@@ -733,7 +734,7 @@ class Ctx:
         self.lock = threading.Lock()
         self.rpc = StateRpc(STATE_RPC_URL, self.events_path)
         self.logs_counts: dict = {}
-        self.store = G.LogStore(self.work / "logs")
+        self.store = TokenLogStore(self.work / "logs")
         self.roster_path = Path(roster_path) if roster_path else None
         inp = self.get("inputs")
         if inp and self.roster_path is None:
@@ -1105,42 +1106,309 @@ def fetch_token(store, client, key: str, start: int, end: int, log_event, sleep=
     return stats
 
 
+class TokenLogStore(G.LogStore):
+    """G.LogStore with (a) no file for an empty range (index entry n = 0), (b) batched index appends (one
+    fsync per batch), (c) an in-memory coverage map per token. Compatible with G.LogStore checkpoints."""
+
+    def __init__(self, root: Path):
+        super().__init__(root)
+        self._cov: dict[str, list[tuple[int, int]]] = {}
+        for r in self.index.values():
+            self._cov.setdefault(r["k"][0], []).append((r["k"][1], r["k"][2]))
+        for k in self._cov:
+            self._cov[k].sort()
+        self._lock = threading.Lock()
+
+    def done(self, reserve: str) -> list[tuple[int, int]]:
+        with self._lock:
+            out = list(self._cov.get(reserve, []))
+        for (a1, b1), (a2, b2) in zip(out, out[1:]):
+            if a2 <= b1:
+                raise B.TerminalError(f"overlapping checkpoint ranges {reserve} [{a1},{b1}] [{a2},{b2}]")
+        return out
+
+    def save(self, reserve: str, lo: int, hi: int, logs: list[dict]) -> None:
+        self.save_many([(reserve, lo, hi, logs)])
+
+    def save_many(self, entries: list[tuple[str, int, int, list[dict]]]) -> None:
+        lines, recs = [], []
+        for reserve, lo, hi, logs in entries:
+            sha = None
+            if logs:
+                p = self.path(reserve, lo, hi)
+                p.parent.mkdir(parents=True, exist_ok=True)
+                tmp = p.with_suffix(".tmp")
+                with gzip.open(tmp, "wt", newline="", compresslevel=6) as f:
+                    w = csv.writer(f, lineterminator="\n")
+                    w.writerow(self.COLS)
+                    for lg in logs:
+                        t = lg["topics"] + [""] * (4 - len(lg["topics"]))
+                        w.writerow([lg["block"], "" if lg["ts"] is None else lg["ts"], lg["block_hash"], lg["tx"],
+                                    lg["tx_index"], lg["log_index"], *t, lg["data"]])
+                os.replace(tmp, p)
+                sha = B.sha256_file(p)
+            rec = {"k": [reserve, lo, hi], "n": len(logs), "sha256": sha}
+            recs.append(rec)
+            lines.append(json.dumps(rec, separators=(",", ":")) + "\n")
+        with self.index.lock:
+            with open(self.index.path, "a") as f:
+                f.write("".join(lines))
+                f.flush()
+                os.fsync(f.fileno())
+            for rec in recs:
+                self.index.data[json.dumps(rec["k"])] = rec
+        with self._lock:
+            for rec in recs:
+                c = self._cov.setdefault(rec["k"][0], [])
+                bisect.insort(c, (rec["k"][1], rec["k"][2]))
+
+    def load(self, reserve: str, lo: int, hi: int) -> list[dict]:
+        rec = self.index.get((reserve, lo, hi))
+        if rec is not None and rec["n"] == 0:
+            return []
+        return super().load(reserve, lo, hi)
+
+    def overlaps(self, reserve: str, s: int, e: int) -> bool:
+        """True if any recorded range of `reserve` intersects [s, e]."""
+        with self._lock:
+            c = self._cov.get(reserve, [])
+            i = bisect.bisect_right(c, (e, float("inf"))) - 1
+            return i >= 0 and c[i][1] >= s
+
+    def count(self, reserve: str) -> int:
+        return sum(r["n"] for r in self.index.values() if r["k"][0] == reserve)
+
+
+def validate_group_logs(result, addrs: set[str], lo: int, hi: int) -> dict[str, list[dict]]:
+    """Like G.validate_logs for a multi-address filter; returns logs per address (sorted). A response of
+    >= 10,000 logs over > 10,000 blocks may be capped by the endpoint and counts as a range error."""
+    if not isinstance(result, list):
+        raise G.RangeError(f"result is {type(result).__name__}")
+    if len(result) >= G.CAP_SUSPECT and hi - lo + 1 > 10_000:
+        raise G.RangeError(f"{len(result)} logs: possibly capped")
+    seen, out = set(), {}
+    for lg in result:
+        try:
+            a = str(lg["address"]).lower()
+            if a not in addrs:
+                raise G.RangeError(f"log of {a}")
+            b = int(lg["blockNumber"], 16)
+            if not lo <= b <= hi:
+                raise G.RangeError(f"block {b} outside [{lo},{hi}]")
+            if lg.get("removed"):
+                raise G.RangeError("removed log")
+            li = int(lg["logIndex"], 16)
+            ti = int(lg["transactionIndex"], 16)
+            th = str(lg["transactionHash"]).lower()
+            bh = str(lg.get("blockHash") or "").lower()
+            topics = [str(t).lower() for t in lg["topics"]]
+            data = str(lg["data"]).lower()
+            ts = int(lg["blockTimestamp"], 16) if lg.get("blockTimestamp") else None
+        except (KeyError, TypeError, ValueError) as e:
+            raise G.RangeError(f"malformed log: {e}")
+        if not (1 <= len(topics) <= 4) or len(th) != 66 or not data.startswith("0x"):
+            raise G.RangeError("malformed log fields")
+        if (b, li) in seen:
+            raise G.RangeError(f"duplicate log {b}/{li}")
+        seen.add((b, li))
+        out.setdefault(a, []).append({"block": b, "ts": ts, "block_hash": bh, "tx": th, "tx_index": ti,
+                                      "log_index": li, "topics": topics, "data": data})
+    for v in out.values():
+        v.sort(key=lambda x: (x["block"], x["log_index"]))
+    return out
+
+
+class GroupLogsClient(G.LogsClient):
+    """eth_getLogs with an address list (same pacing, rate-limit and error policy as G.LogsClient)."""
+
+    def get_group_logs(self, addresses: list[str], lo: int, hi: int) -> dict[str, list[dict]]:
+        self._id += 1
+        payload = json.dumps({"jsonrpc": "2.0", "id": self._id, "method": "eth_getLogs",
+                              "params": [{"address": addresses, "fromBlock": hex(lo), "toBlock": hex(hi)}]}).encode()
+        addrs = set(addresses)
+        retries = 0
+        while True:
+            self.pacer.wait()
+            self.counts["requests"] += 1
+            t_0 = time.monotonic()
+            err, status = None, None
+            try:
+                try:
+                    status, body = self.post(payload)
+                finally:
+                    self.counts["seconds_in_requests"] += time.monotonic() - t_0
+                self.counts["bytes"] += len(body)
+                if status == 200:
+                    try:
+                        obj = json.loads(body)
+                    except ValueError:
+                        raise G.RangeError(f"non-JSON body ({len(body)} bytes)")
+                    if not isinstance(obj, dict):
+                        raise G.RangeError("non-object body")
+                    err = obj.get("error")
+                    if err is not None and not isinstance(err, dict):
+                        err = {"message": str(err)}
+                    if err is None:
+                        if "result" not in obj:
+                            raise G.RangeError("no result")
+                        logs = validate_group_logs(obj["result"], addrs, lo, hi)
+                        self.counts["ok"] += 1
+                        self.counts["logs"] += sum(len(v) for v in logs.values())
+                        return logs
+                if G.is_rate_limit(status, err):
+                    retries += 1
+                    if retries > self.max_retries:
+                        self.counts["failures"] += 1
+                        self.log_event({"type": "failure", "kind": "rate_limit", "range": [lo, hi],
+                                        "retries": retries - 1, "status": status, "error": err})
+                        raise B.TerminalError(f"rate limit after {self.max_retries} retries at [{lo},{hi}]")
+                    self.counts["rate_limit_retries"] += 1
+                    self.log_event({"type": "retry", "kind": "rate_limit", "range": [lo, hi], "attempt": retries,
+                                    "status": status, "error": err, "wait_s": self.retry_wait})
+                    self.pacer.pause(self.retry_wait)
+                    self.sleep(self.retry_wait)
+                    continue
+                if err is not None:
+                    raise G.RangeError(f"rpc error {json.dumps(err)[:300]}")
+                raise G.RangeError(f"HTTP {status}")
+            except G.RangeError as e:
+                self.counts["range_errors"] += 1
+                kind = G.range_error_kind(str(e))
+                self.counts["range_error_kinds"][kind] = self.counts["range_error_kinds"].get(kind, 0) + 1
+                raise
+            except (OSError, http.client.HTTPException) as e:
+                self.counts["range_errors"] += 1
+                self.counts["range_error_kinds"]["transport"] = self.counts["range_error_kinds"].get("transport", 0) + 1
+                raise G.RangeError(f"transport: {type(e).__name__}: {e}")
+
+
+GROUP_CHUNK = 250_000           # block chunks handed to the log workers in the multi-address sweep
+
+
+def group_members(toks: list[dict], deploy: dict[str, int], lo: int, hi: int, overlaps) -> list[str]:
+    """Tokens alive in [lo, hi] whose whole live part of [lo, hi] is uncovered (partially covered tokens
+    are left to the per-token gap pass, so checkpoint ranges never overlap)."""
+    out = []
+    for t in toks:
+        a = t["address"]
+        d = deploy[a]
+        if d > hi:
+            continue
+        if not overlaps(a, max(lo, d), hi):
+            out.append(a)
+    return sorted(out)
+
+
+def fetch_group_chunk(store: TokenLogStore, client: GroupLogsClient, toks: list[dict], deploy: dict[str, int],
+                      clo: int, chi: int, log_event, sleep=time.sleep, stop=None) -> dict:
+    """Multi-address sweep of [clo, chi]: ranges <= 50,000 blocks sized by the combined log density and
+    capped after errors; a range that errors is split in half down to 1,000 blocks; at 1,000 blocks the
+    address list is split in half; a single address at 1,000 blocks is retried after 30 s up to 5 times,
+    then the run stops. Each member token gets the range [max(lo, deploy), hi] recorded (n may be 0)."""
+    stats = {"requests_ok": 0, "splits": 0, "address_splits": 0, "min_size_retries": 0, "logs": 0}
+    cap = float(RANGE_MAX)
+    size = RANGE_MAX
+    pos = clo
+    while pos <= chi:
+        hi = min(pos + size - 1, chi)
+        members = group_members(toks, deploy, pos, hi, store.overlaps)
+        if not members:
+            pos = hi + 1
+            continue
+        stack = [(pos, hi, members)]
+        while stack:
+            lo, h, mem = stack.pop()
+            tries = 0
+            while True:
+                if stop is not None and stop.is_set():
+                    raise B.TerminalError("stopped")
+                try:
+                    res = client.get_group_logs(mem, lo, h)
+                    break
+                except G.RangeError as e:
+                    res = None
+                    halves = G.split_range(lo, h)
+                    if halves is not None:
+                        cap = max(float(RANGE_MIN), min(cap, (h - lo + 1) / 2))
+                        stats["splits"] += 1
+                        client.counts["splits"] += 1
+                        log_event({"type": "split", "src": "logs", "group": len(mem), "range": [lo, h],
+                                   "into": [list(halves[0]), list(halves[1])], "kind": G.range_error_kind(str(e)),
+                                   "error": str(e)[:160]})
+                        stack.append((halves[1][0], halves[1][1], mem))
+                        stack.append((halves[0][0], halves[0][1], mem))
+                        break
+                    if len(mem) > 1:
+                        k = len(mem) // 2
+                        stats["address_splits"] += 1
+                        client.counts["address_splits"] = client.counts.get("address_splits", 0) + 1
+                        log_event({"type": "address_split", "src": "logs", "range": [lo, h], "group": len(mem),
+                                   "error": str(e)[:160]})
+                        stack.append((lo, h, mem[k:]))
+                        stack.append((lo, h, mem[:k]))
+                        break
+                    tries += 1
+                    if tries > MIN_SIZE_RETRIES:
+                        client.counts["failures"] += 1
+                        log_event({"type": "failure", "src": "logs", "kind": "range_at_minimum", "token": mem[0],
+                                   "range": [lo, h], "error": str(e)[:300]})
+                        raise B.TerminalError(f"{mem[0]} range [{lo},{h}] errored at the minimum size: {e}")
+                    stats["min_size_retries"] += 1
+                    client.counts["min_size_retries"] = client.counts.get("min_size_retries", 0) + 1
+                    log_event({"type": "retry", "src": "logs", "kind": "min_size", "token": mem[0], "range": [lo, h],
+                               "attempt": tries, "error": str(e)[:200], "wait_s": RETRY_WAIT_S})
+                    sleep(RETRY_WAIT_S)
+            if res is None:
+                continue
+            store.save_many([(a, max(lo, deploy[a]), h, res.get(a, [])) for a in mem])
+            n = sum(len(v) for v in res.values())
+            stats["requests_ok"] += 1
+            stats["logs"] += n
+            cap = min(float(RANGE_MAX), cap * 1.1)
+            size = min(next_size(n, h - lo + 1), int(cap))
+        pos = hi + 1
+    return stats
+
+
 def phase_logs(ctx: Ctx) -> None:
+    """Multi-address sweep over block chunks (all selected tokens alive in a range in one request), then a
+    per-token pass that fills any remaining gap with single-address requests."""
     toks = sorted(ctx.selected(), key=lambda t: (t["address"] not in ctx.logs_first, ctx.start_block(t)))
+    deploy = {t["address"]: ctx.start_block(t) for t in toks}
+    store = ctx.store
     shared = B.Pacer(LOGS_INTERVAL_S)
     stats = ctx.get("logs") or {}
-    q: "queue.Queue[dict]" = queue.Queue()
-    for t in toks:
-        if not stats.get(t["address"], {}).get("complete"):
-            q.put(t)
     clients, err = [], []
     stop = threading.Event()
     lock = threading.Lock()
     t_start = time.monotonic()
-    done_n = [len(toks) - q.qsize()]
+    pending = [t for t in toks if not stats.get(t["address"], {}).get("complete")]
+    lo0 = min((deploy[t["address"]] for t in pending), default=ASOF_LOGS + 1)
+    chunks: "queue.Queue[tuple[int, int]]" = queue.Queue()
+    for s0 in range(lo0, ASOF_LOGS + 1, GROUP_CHUNK):
+        chunks.put((s0, min(s0 + GROUP_CHUNK - 1, ASOF_LOGS)))
+    n_chunks = chunks.qsize()
+    done_chunks = [0]
+    gstats = {"requests_ok": 0, "splits": 0, "address_splits": 0, "min_size_retries": 0, "logs": 0}
 
-    def worker():
-        c = G.LogsClient(log_event=lambda ev: ctx.log_event({"src": "logs", **ev}))
+    def new_client():
+        c = GroupLogsClient(log_event=lambda ev: ctx.log_event({"src": "logs", **ev}))
         c.pacer = shared
         c.counts["min_size_retries"] = 0
-        clients.append(c)
+        c.counts["address_splits"] = 0
+        with lock:
+            clients.append(c)
+        return c
+
+    def group_worker():
+        c = new_client()
         while not stop.is_set():
             try:
-                t = q.get_nowait()
+                clo, chi = chunks.get_nowait()
             except queue.Empty:
                 return
-            a = t["address"]
-            last = [time.monotonic()]
-
-            def prog(key, h, n, sym=t["symbol"], s0=ctx.start_block(t)):
-                if time.monotonic() - last[0] > 60:
-                    last[0] = time.monotonic()
-                    pct = 100 * (h - s0) / max(1, ASOF_LOGS - s0)
-                    print(f"LOGS {sym} {pct:.1f}% block {h} reqs={sum(x.counts['requests'] for x in clients)}",
-                          flush=True)
             try:
-                st = fetch_token(ctx.store, c, a, ctx.start_block(t), ASOF_LOGS, ctx.log_event, progress=prog,
-                                 stop=stop)
+                st = fetch_group_chunk(store, c, pending, deploy, clo, chi, ctx.log_event, stop=stop)
             except B.TerminalError as e:
                 err.append(e)
                 stop.set()
@@ -1149,28 +1417,58 @@ def phase_logs(ctx: Ctx) -> None:
                 err.append(B.TerminalError(f"{type(e).__name__}: {e}"))
                 stop.set()
                 return
-            n = sum(r["n"] for r in ctx.store.index.values() if r["k"][0] == a)
             with lock:
-                stats[a] = {"symbol": t["symbol"], "complete": True, "logs": n,
-                            "ranges": len(ctx.store.done(a)), "last_session": st,
-                            "from_block": ctx.start_block(t), "to_block": ASOF_LOGS}
-                ctx.put("logs", stats)
-                done_n[0] += 1
-            print(f"LOGS done {t['symbol']} {short(a)}: {n} logs ({done_n[0]}/{len(toks)}) "
-                  f"elapsed={time.monotonic() - t_start:.0f}s", flush=True)
+                for k, v in st.items():
+                    gstats[k] += v
+                done_chunks[0] += 1
+                print(f"LOGS chunk [{clo},{chi}] done ({done_chunks[0]}/{n_chunks}) logs={st['logs']} "
+                      f"reqs={sum(x.counts['requests'] for x in clients)} elapsed={time.monotonic() - t_start:.0f}s",
+                      flush=True)
 
-    ths = [threading.Thread(target=worker, daemon=True) for _ in range(LOGS_WORKERS)]
-    for th in ths:
-        th.start()
-    try:
-        while any(th.is_alive() for th in ths):
-            for th in ths:
-                th.join(timeout=1.0)
-    except B.TerminalError as e:  # signal: stop the workers at their next request
-        err.append(e)
-        stop.set()
+    def gap_worker(q):
+        c = new_client()
+        while not stop.is_set():
+            try:
+                t = q.get_nowait()
+            except queue.Empty:
+                return
+            a = t["address"]
+            try:
+                st = fetch_token(store, c, a, deploy[a], ASOF_LOGS, ctx.log_event, stop=stop)
+            except B.TerminalError as e:
+                err.append(e)
+                stop.set()
+                return
+            except Exception as e:
+                err.append(B.TerminalError(f"{type(e).__name__}: {e}"))
+                stop.set()
+                return
+            with lock:
+                stats[a] = {"symbol": t["symbol"], "complete": True, "logs": store.count(a),
+                            "ranges": len(store.done(a)), "gap_pass": st, "from_block": deploy[a],
+                            "to_block": ASOF_LOGS}
+                ctx.put("logs", stats)
+
+    def run(target, *args):
+        ths = [threading.Thread(target=target, args=args, daemon=True) for _ in range(LOGS_WORKERS)]
         for th in ths:
-            th.join(timeout=150)
+            th.start()
+        try:
+            while any(th.is_alive() for th in ths):
+                for th in ths:
+                    th.join(timeout=1.0)
+        except B.TerminalError as e:  # signal: stop the workers at their next request
+            err.append(e)
+            stop.set()
+            for th in ths:
+                th.join(timeout=150)
+
+    run(group_worker)
+    if not err:
+        q: "queue.Queue[dict]" = queue.Queue()
+        for t in pending:
+            q.put(t)
+        run(gap_worker, q)
     tot: dict = {}
     for c in clients:
         for k, v in c.counts.items():
@@ -1181,8 +1479,12 @@ def phase_logs(ctx: Ctx) -> None:
                 for kk, vv in v.items():
                     d[kk] = d.get(kk, 0) + vv
     ctx.logs_counts = tot
+    prev = ctx.get("logs_group") or []
+    prev.append({"utc": utcnow(), "stats": gstats, "chunks_done": done_chunks[0], "chunks": n_chunks})
+    ctx.put("logs_group", prev)
     if err:
         raise err[0]
+    print(f"LOGS complete: {sum(stats[t['address']]['logs'] for t in toks)} logs over {len(toks)} tokens", flush=True)
 
 
 # ---------------------------------------------------------------------------------------------

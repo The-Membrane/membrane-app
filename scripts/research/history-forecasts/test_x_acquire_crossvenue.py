@@ -499,6 +499,110 @@ class TestRanges(unittest.TestCase):
                 X.fetch_token(G.LogStore(Path(d)), client_for(FakeChain()), TOKEN, 0, 100, lambda e: None, stop=ev)
 
 
+TOK_A = "0x" + "aa" * 20
+TOK_B = "0x" + "bb" * 20
+
+
+class MultiChain:
+    """Two tokens: A logs every 7th block from block 0, B every 5th block from block 20,000. Responses over
+    max_logs logs fail like the size limit; ranges wider than max_span fail like 'service unavailable'."""
+
+    def __init__(self, max_logs=400, max_span=10**9):
+        self.max_logs, self.max_span = max_logs, max_span
+        self.calls = []
+
+    def logs_of(self, a, lo, hi):
+        step, start = (7, 0) if a == TOK_A else (5, 20_000)
+        return [dict(make_log(b, 0 if a == TOK_A else 1), address=a) for b in range(max(lo, start), hi + 1)
+                if b % step == 0]
+
+    def post(self, payload):
+        req = json.loads(payload)
+        p = req["params"][0]
+        lo, hi = int(p["fromBlock"], 16), int(p["toBlock"], 16)
+        addrs = p["address"] if isinstance(p["address"], list) else [p["address"]]
+        self.calls.append((lo, hi, tuple(addrs)))
+        lg = sorted((x for a in addrs for x in self.logs_of(a, lo, hi)),
+                    key=lambda x: (int(x["blockNumber"], 16), int(x["logIndex"], 16)))
+        err = None
+        if hi - lo + 1 > self.max_span:
+            err = {"code": -32603, "message": "service temporarily unavailable"}
+        elif len(lg) > self.max_logs:
+            err = {"code": -32602, "message": "Log response size exceeded."}
+        if err:
+            return 200, json.dumps({"jsonrpc": "2.0", "id": req["id"], "error": err}).encode()
+        return 200, json.dumps({"jsonrpc": "2.0", "id": req["id"], "result": lg}).encode()
+
+
+class TestGroupSweep(unittest.TestCase):
+    def _check_complete(self, store, end):
+        got_a = [x["block"] for x in store.iter_reserve(TOK_A)]
+        got_b = [x["block"] for x in store.iter_reserve(TOK_B)]
+        self.assertEqual(got_a, [b for b in range(0, end + 1) if b % 7 == 0])
+        self.assertEqual(got_b, [b for b in range(20_000, end + 1) if b % 5 == 0])
+        self.assertEqual(G.uncovered(0, end, store.done(TOK_A)), [])
+        self.assertEqual(G.uncovered(20_000, end, store.done(TOK_B)), [])
+        self.assertEqual(store.done(TOK_B)[0][0], 20_000)   # nothing recorded before deployment
+
+    def test_group_then_gap_pass(self):
+        chain = MultiChain(max_logs=900, max_span=30_000)
+        toks = [{"address": TOK_A}, {"address": TOK_B}]
+        deploy = {TOK_A: 0, TOK_B: 20_000}
+        with tempfile.TemporaryDirectory() as d:
+            store = X.TokenLogStore(Path(d))
+            store.save(TOK_A, 0, 12_345, [])        # earlier per-token coverage (partial)
+            c = X.GroupLogsClient(post=chain.post, interval=0, retry_wait=0, sleep=lambda s: None)
+            st = X.fetch_group_chunk(store, c, toks, deploy, 0, 60_000, lambda ev: None, sleep=lambda s: None)
+            self.assertGreater(st["requests_ok"], 0)
+            self.assertTrue(any(len(a) == 2 for _, _, a in chain.calls))   # both tokens in one request
+            for t in toks:
+                X.fetch_token(store, c, t["address"], deploy[t["address"]], 60_000, lambda ev: None,
+                              sleep=lambda s: None)
+            # earlier coverage had no logs in the store, so refill the expected A logs check from 12,346 on
+            got_a = [x["block"] for x in store.iter_reserve(TOK_A)]
+            self.assertEqual(got_a, [b for b in range(12_346, 60_001) if b % 7 == 0])
+            self.assertEqual(G.uncovered(0, 60_000, store.done(TOK_A)), [])
+            got_b = [x["block"] for x in store.iter_reserve(TOK_B)]
+            self.assertEqual(got_b, [b for b in range(20_000, 60_001) if b % 5 == 0])
+            # a reopened store sees the same coverage (n = 0 entries have no file)
+            s2 = X.TokenLogStore(Path(d))
+            self.assertEqual(s2.done(TOK_A), store.done(TOK_A))
+            self.assertEqual([x["block"] for x in s2.iter_reserve(TOK_B)], got_b)
+
+    def test_address_split_at_minimum(self):
+        # 1,000 blocks hold ~143 A logs + ~200 B logs; the pair exceeds 250 but each alone fits
+        chain = MultiChain(max_logs=250)
+        toks = [{"address": TOK_A}, {"address": TOK_B}]
+        deploy = {TOK_A: 0, TOK_B: 20_000}
+        with tempfile.TemporaryDirectory() as d:
+            store = X.TokenLogStore(Path(d))
+            c = X.GroupLogsClient(post=chain.post, interval=0, retry_wait=0, sleep=lambda s: None)
+            st = X.fetch_group_chunk(store, c, toks, deploy, 0, 30_000, lambda ev: None, sleep=lambda s: None)
+            self.assertGreater(st["address_splits"], 0)
+            self._check_complete(store, 30_000)
+
+    def test_overlaps(self):
+        with tempfile.TemporaryDirectory() as d:
+            store = X.TokenLogStore(Path(d))
+            store.save_many([(TOK_A, 100, 199, []), (TOK_A, 300, 399, [])])
+            self.assertTrue(store.overlaps(TOK_A, 150, 160))
+            self.assertTrue(store.overlaps(TOK_A, 0, 100))
+            self.assertTrue(store.overlaps(TOK_A, 250, 300))
+            self.assertFalse(store.overlaps(TOK_A, 200, 299))
+            self.assertFalse(store.overlaps(TOK_A, 400, 500))
+            self.assertFalse(store.overlaps(TOK_B, 0, 10**9))
+
+    def test_group_validation(self):
+        ok = [dict(make_log(5, 0), address=TOK_A)]
+        self.assertEqual(list(X.validate_group_logs(ok, {TOK_A}, 0, 10)), [TOK_A])
+        with self.assertRaises(G.RangeError):
+            X.validate_group_logs(ok, {TOK_B}, 0, 10)
+        big = [dict(make_log(1, i), address=TOK_A) for i in range(G.CAP_SUSPECT)]
+        self.assertEqual(len(X.validate_group_logs(big, {TOK_A}, 0, 10)[TOK_A]), G.CAP_SUSPECT)  # <= 10k blocks
+        with self.assertRaises(G.RangeError):
+            X.validate_group_logs(big, {TOK_A}, 0, 20_000)
+
+
 # ---------------------------------------------------------------------------------------------
 # Soft multicall splitting
 # ---------------------------------------------------------------------------------------------

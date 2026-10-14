@@ -2142,6 +2142,13 @@ def phase_gate(ctx: Ctx) -> dict:
         g["tokens"] = sorted(by[a]["symbol"] for a in report_tokens if by[a]["family"] == f)
         g["tokens_failing"] = sorted(report_tokens[a]["symbol"] for a in report_tokens
                                      if by[a]["family"] == f and report_tokens[a]["passes"] is False)
+        udec = {a: by[a]["udec"] for a in by}
+        g["n_ge_1000usd"] = gate_summary([r for r in rows if max(abs(r["anchor"] or 0), abs(r["recon"] or 0))
+                                          >= 1000 * 10**udec[r["t"]]])
+        rel = [abs(r["recon"] - r["anchor"]) / r["anchor"] for r in rows
+               if r["status"] == "ok" and r["anchor"] >= 10**6 * 10**udec[r["t"]]]
+        g["anchor_ge_1M"] = {"n": len(rel), "max_rel_residual": max(rel) if rel else None,
+                             "median_rel_residual": sorted(rel)[len(rel) // 2] if rel else None}
         report_fam[f] = g
     rep = {"rule": f"|reconstructed - anchor| <= max(${GATE_ABS_USD}, {GATE_REL_NUM / GATE_REL_DEN:.1%} of anchor) on "
                    f">= {GATE_SHARE:.0%} of nonzero (address, token, snapshot) pairs per family; nonzero = anchor or "
@@ -2383,7 +2390,11 @@ def build_run_meta(ctx: Ctx) -> dict:
         "logs_policy": {"range_max": RANGE_MAX, "range_min": RANGE_MIN, "interval_s": LOGS_INTERVAL_S,
                         "workers": LOGS_WORKERS, "target_logs_per_range": TARGET_LOGS_PER_RANGE,
                         "retry_wait_s": RETRY_WAIT_S, "max_retries": MAX_RETRIES,
-                        "min_size_retries": MIN_SIZE_RETRIES, "cap_suspect": G.CAP_SUSPECT},
+                        "min_size_retries": MIN_SIZE_RETRIES, "cap_suspect": G.CAP_SUSPECT,
+                        "group_chunk_blocks": GROUP_CHUNK,
+                        "mode": "multi-address sweep (address list = selected tokens alive in the range), then a "
+                                "single-address gap pass; three earlier single-address sessions were stopped to "
+                                "change the range policy and their checkpoints were kept"},
         "state_policy": {"max_requests_per_second": B.MAX_REQUESTS_PER_SECOND, "workers": STATE_WORKERS,
                          "max_calls": MAX_CALLS, "max_calls_heavy": MAX_CALLS_HEAVY, "retry_wait_s": B.RETRY_WAIT_S,
                          "max_retries": B.MAX_RETRIES, "soft_failure": "a multicall error splits the batch in half "
@@ -2393,7 +2404,8 @@ def build_run_meta(ctx: Ctx) -> dict:
         "fetch_window_utc": [min((s["start_utc"] for s in net), default=None),
                              max((s.get("end_utc") or "" for s in net), default=None)],
         "selection": {k: v for k, v in (ctx.get("select") or {}).items()},
-        "deploy": ctx.get("deploy"), "logs": ctx.get("logs"), "decode": ctx.get("decode"),
+        "deploy": ctx.get("deploy"), "logs": ctx.get("logs"), "logs_group": ctx.get("logs_group"),
+        "decode": ctx.get("decode"), "cometidx": ctx.get("cometidx"), "codes": ctx.get("codes"),
         "preflight": {k: v for k, v in (ctx.get("preflight") or {}).items() if k != "sanity"},
         "nesting": ctx.get("nesting_summary"), "anchors": ctx.get("anchors"), "comet": ctx.get("comet"),
         "calls_logs_endpoint": tot_logs, "calls_state_endpoint": tot_state, "event_counts": ev_counts,
@@ -2418,12 +2430,18 @@ def provenance_md(ctx: Ctx, meta: dict, files: dict) -> str:
         "monthly balance anchors and the reconstruction gate. Data acquisition only: the builder computes no outcome",
         "(no withdrawal rates, no exit counts, no lead/lag statistics between venues).",
         "",
-        f"- **Sources:** logs by `eth_getLogs` on `{LOGS_RPC_URL}` (free, no key); ranges <= {RANGE_MAX:,} blocks sized to",
-        f"  the token's log density (target {TARGET_LOGS_PER_RANGE:,} logs), split in half on any non-rate-limit error",
-        f"  down to {RANGE_MIN:,} blocks (an error there: wait 30 s, <= {MIN_SIZE_RETRIES} retries, then stop), <= 2 requests/s",
-        "  over all log workers; rate limit: wait 30 s, <= 5 retries, then stop. State (TVL, prices, anchors, nesting,",
-        f"  deployment checks, eth_getCode): archive `eth_call` / `eth_getCode` on `{STATE_RPC_URL}` (header",
-        f"  `user-agent: {USER_AGENT}`), Multicall3 `{MULTICALL3}` aggregate3 with allowFailure, <= 4 requests/s.",
+        f"- **Sources:** logs by `eth_getLogs` on `{LOGS_RPC_URL}` (free, no key). Main pass: one request per block range",
+        f"  with the address list of every selected token alive in it (block chunks of {GROUP_CHUNK:,} handed to {LOGS_WORKERS}",
+        f"  workers); ranges <= {RANGE_MAX:,} blocks sized to the combined log density (target {TARGET_LOGS_PER_RANGE:,} logs) and",
+        "  capped at half a failing span after an error (growing 10% per success); a range that errors is split in half",
+        f"  down to {RANGE_MIN:,} blocks, then the address list is split; a single address erroring at {RANGE_MIN:,} blocks: wait",
+        f"  30 s, <= {MIN_SIZE_RETRIES} retries, then stop. Earlier single-address sessions (same split rule) and a final",
+        "  single-address gap pass fill the rest; checkpoint ranges never overlap. <= 2 requests/s over all log workers;",
+        "  rate limit: wait 30 s, <= 5 retries, then stop. A response of >= 10,000 logs over > 10,000 blocks would count",
+        "  as a range error (none was accepted at >= 10,000 logs). State (TVL, prices, anchors, nesting, deployment checks,",
+        f"  eth_getCode, Comet indices): archive `eth_call` / `eth_getCode` on `{STATE_RPC_URL}` (header",
+        f"  `user-agent: {USER_AGENT}`), Multicall3 `{MULTICALL3}` aggregate3 with allowFailure, <= 4 requests/s; a",
+        "  multicall that errors (out of gas) is split in half.",
         f"- **Inputs:** token roster `{Path(meta['inputs']['roster']['path']).name}` (sha256 `{meta['inputs']['roster']['sha256']}`,",
         f"  {meta['inputs']['roster']['n_tokens']} tokens; Aave V3 Core aEthUSDC / aEthUSDT excluded: covered by",
         f"  `depositor-events/`); universe = union of the addresses of `{UNIVERSE_REL}` (sha256",
@@ -2447,18 +2465,25 @@ def provenance_md(ctx: Ctx, meta: dict, files: dict) -> str:
         "- **Approximation:** underlying balance(t) = share balance after all events in blocks <= the snapshot block ×",
         "  that block's share price (ERC-4626 convertToAssets(10^(decimals+6)) / 10^(decimals+6); aToken",
         "  Pool.getReserveNormalizedIncome (ray); cToken exchangeRateStored / 1e18; Comet: principal × accrued supply",
-        "  index, the index taken as totalSupply × 1e15 / totalsBasic.totalSupplyBase and the principal of each Comet",
-        "  Transfer as its present value / the index interpolated linearly in block number between daily reads). Comet",
-        "  balances are also read directly every day (`comet-balances-daily.csv.gz`) because principal and present value",
-        "  differ. aToken share paths are scaled balances (depositor-events G.2: Mint +(value − balanceIncrease), Burn",
-        "  −(value + balanceIncrease), BalanceTransfer value·index/1e27 for V3; V2: Mint +value, Burn −value,",
-        "  BalanceTransfer ±value, each ÷ index).",
+        "  index taken as totalSupply × 1e15 / totalsBasic.totalSupplyBase). Intraday interest between the snapshot and",
+        "  the event is not modelled (balances are read at the snapshot block only). Share paths: ERC-4626 / cToken =",
+        "  Transfer share movements, plus the Deposit / Withdraw shares of a vault that mints / burns without a Transfer",
+        "  (matched per transaction: only sDAI does so, every Deposit and Withdraw); aToken = scaled balance",
+        "  (depositor-events G.2 for V3: Mint +(value − balanceIncrease), Burn −(value + balanceIncrease), BalanceTransfer",
+        "  value·index/1e27, each ÷ index; V2: Mint +value, Burn −value, BalanceTransfer ±value (unscaled in V2), each ÷",
+        "  index); Comet = supply principal: each Comet Transfer's present value ÷ the exact supply index",
+        "  (totalsBasic.baseSupplyIndex read at that block for every block holding a universe Transfer; the Transfer",
+        "  accrued the index in that block). Comet balances are also read directly every day",
+        "  (`comet-balances-daily.csv.gz`) because principal and present value differ.",
         f"- **Gate:** {gate.get('rule')}.",
         "- **Units:** raw integers (token or underlying base units); USD = underlying / 10^udec (USDC, USDT, USDS, DAI at $1).",
         "",
-        "Gate per family: " + "; ".join(f"{f} {g['pass']}/{g['n']} ({(g['share'] or 0):.4f}) "
-                                        f"{'PASS' if g['passes'] else ('FAIL' if g['passes'] is False else 'n/a')}"
-                                        for f, g in sorted((gate.get('families') or {}).items())) + ".",
+        "Gate per family (all nonzero pairs; pairs >= $1,000; max relative residual where the anchor >= $1M): "
+        + "; ".join(f"{f} {g['pass']}/{g['n']} "
+                    f"{'PASS' if g['passes'] else ('FAIL' if g['passes'] is False else 'n/a (no nonzero pair)')}, "
+                    f"{g['n_ge_1000usd']['pass']}/{g['n_ge_1000usd']['n']}, "
+                    f"{g['anchor_ge_1M']['max_rel_residual'] if g['anchor_ge_1M']['n'] else 'n/a'}"
+                    for f, g in sorted((gate.get('families') or {}).items())) + ".",
         "",
         f"Logs endpoint: {lg.get('requests', 0)} requests, {lg.get('logs', 0)} logs, {lg.get('splits', 0)} splits, "
         f"{lg.get('rate_limit_retries', 0)} rate-limit retries, {lg.get('min_size_retries', 0)} min-size retries, "
@@ -2469,12 +2494,14 @@ def provenance_md(ctx: Ctx, meta: dict, files: dict) -> str:
         "Formats:",
         "- `tvl-monthly.csv`: TVL per roster token and monthly snapshot (`status` not_deployed = no code / no data).",
         "- `selected-tokens.csv`: the selection, written before any log was fetched (sha256 recorded in run-log).",
-        "- `events-<family>[-<period>].csv.gz`: decoded logs that name a universe address in an indexed topic or a",
-        "  data word (`in_universe` = 1), plus every log of tokens with < 50,000 logs. `delta1_raw`/`delta2_raw` =",
-        "  balance change of party1/party2 in the token's balance unit (shares; aToken underlying per G.2; Comet",
-        "  present value); `scaled1`/`scaled2` = change in share units (aToken scaled; empty for Comet). Only balance",
-        "  types carry deltas (Transfer for ERC-4626 / cToken / Comet; Mint / Burn / BalanceTransfer for aTokens).",
-        "  `topic0`/`data` are filled for unknown topic0 only.",
+        "- `events-<family>-<year>.csv.gz`: decoded logs that name a universe address in an indexed topic or a",
+        "  data word (`in_universe` = 1), plus every log of tokens with < 50,000 logs, ordered by block. `deltaN_raw` =",
+        "  balance change of partyN in the token's balance unit (shares; aToken underlying per G.2; Comet present",
+        "  value); `scaledN` = change in share units (aToken scaled; empty for Comet). Balance types carry deltas",
+        "  (Transfer for ERC-4626 / cToken / Comet; Mint / Burn / BalanceTransfer for aTokens; sDAI Deposit / Withdraw).",
+        "  Parties: Transfer from/to; Deposit sender/owner; Withdraw sender/receiver/owner; aToken V3 Mint",
+        "  onBehalfOf/caller; Burn from/target; cToken Mint/Redeem minter/redeemer. `topic0`/`data` are filled for",
+        "  unknown topic0 only (data only when it names a universe address).",
         "- `share-price-daily.csv.gz`: price_num / price_den per token and snapshot (daily 00:00Z blocks, asof_b1,",
         "  asof; Comet also `pre:<block>` reads before 2023-02-01).",
         "- `share-paths-daily.csv.gz`: change points of each (token, universe address) share balance at the snapshots",

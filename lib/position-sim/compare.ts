@@ -516,10 +516,7 @@ export function splitByDelayClass(
 function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareOptions): SimRun {
   const derived = weightedMembraneLine(position.collateral)
   const line = opts.membraneMaxLtv ?? derived.maxLtv
-  const delayClass = delayClassOf(
-    position.collateral.map((c) => c.symbol),
-    line,
-  )
+  const delayClass = delayClassOf(position.collateral.map((c) => c.symbol), line)
 
   let subs: MembraneSub[]
   let shares: number[] = [1]

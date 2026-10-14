@@ -26,6 +26,11 @@ This is the section to read before quoting any number off this page.
 | Membrane's 90% max-LTV hard cap | **real** | `lib/Constants.sol:23` — `MAX_LTV_HARD_CAP = 9e17` |
 | Membrane's 10% liquidation-fee ceiling | **real** | `lib/Constants.sol:57` — `MAX_LIQ_FEE = 1e17` |
 | Recall-before-collateral ordering | **real** | `LiquidationEngine.sol:924-928`, `_step1_5_venueRecall` |
+| Membrane's 96% no-delay listing cap | **real** | `lib/Constants.sol:32` — `NO_DELAY_LTV_HARD_CAP = 96e16` |
+| No-delay class: no window, sold the minute it is over its line | **real** | `Collateral.sol:424-426`, `LiquidationEngine.sol:1572-1576` — see §3, *Delay class* |
+| Recall-only cure pays the keeper's fee from collateral | **real** | `LiquidationEngine.sol:1603-1658` |
+| **Which collateral is no-delay** | **MODELLED** | stable ⇒ no-delay listing, mirroring the deploy; the contracts carry no stable label |
+| **A mixed position's split into two** | **MODELLED** | debt pro-rata to collateral value at the start |
 | **Membrane's per-asset max LTV** | **MODELLED** | see §2 — there is nothing to read |
 | **Membrane's liquidation fee** | **MODELLED** | defaults to the source protocol's own bonus |
 | **Venue recall rate / fast rate** | **MODELLED** | our reading of each venue's exit mechanics; editable |
@@ -79,6 +84,31 @@ values; it never derives or smooths one. The committed output is what ships.
 
 Everything was fetched from public JSON-RPC (Tenderly public gateways) and Binance public
 daily dumps. No paid API keys.
+
+### `public/data/oct10-2025/evidence.json` — the census
+
+Built by `scripts/build-evidence.ts`, which runs the SAME walk (`curePath.ts`) and the
+SAME delay-class definition (`collateralClass.ts`) as the simulator. Its two raw inputs
+are **not in this repo**. Board rule N18 puts every dataset in the private
+`triccs/membrane-datasets` repo, and the builder reads them from there:
+
+```
+<datasets>/recall-coverage/inputs/oct10/aave_liquidations_enriched.csv
+<datasets>/recall-coverage/inputs/oct10/chainlink_rounds.csv
+```
+
+`<datasets>` is `$MEMBRANE_DATASETS_DIR`, else `../membrane-datasets` next to this repo
+(`scripts/lib/datasetsDir.mjs`). The builder stops with the fix if either file is missing.
+The sha256 of each input is in that directory's `PROVENANCE.md`.
+
+```bash
+MEMBRANE_DATASETS_DIR=/path/to/membrane-datasets ./node_modules/.bin/tsx scripts/build-evidence.ts
+npx tsx scripts/tests/evidence.test.mts    # the lenses render, every total recomputes from its rows
+```
+
+Hard-coded copies of census figures must be recomputed after a rebuild:
+`lib/position-sim/oct10Totals.ts` (pinned by `tests/unit/oct10Totals.test.ts`) and the
+copy in `components/Seniority/facts.ts`.
 
 ### Measured extremes (regenerate with `pnpm build:oct10-data`, do not hand-edit)
 
@@ -165,6 +195,81 @@ CosmWasm self-heals over repeated keeper calls but Solidity turns into a hard re
   engine and was deliberately left untouched by this work.
 
 A test pins both, including that they differ.
+
+### Delay class: no-delay collateral
+
+Membrane has two liquidation-delay classes, and the simulator and the Oct 10 census run
+every position in its own. **One definition** decides the class for both:
+`lib/position-sim/collateralClass.ts`. Neither engine keeps a stable list of its own.
+
+**The contract rule.** There is no stablecoin label in the contracts. `ee680ded`
+introduced an `is_stablecoin` flag; `fc92ed4f` (merged in `6b8789ae`) replaced it with one
+immutable listing parameter, the LTV cap `AssetParams.max_ltv_cap`, and the class is
+**derived** from it: a cap strictly above 90% is no-delay. A no-delay asset carries no
+window, so the engine runs it in instant mode: it is sold the minute its LTV is over its
+line, every time, with no band and no timer.
+
+**The modelled assumption, stated.** Because the class follows the cap and not a label,
+"stable ⇒ no-delay" is **our assumption about how a stable would be listed**. It mirrors
+the deploy script, which lists all three launch stables (sUSDS, syrupUSDC, scrvUSD) at the
+96% no-delay cap and WETH at 90% with the 4% window. A line above 90% is not an
+assumption: only a no-delay listing can carry one. The stable set is the union of the two
+old lists (`HELD_AT_ONE`, the census `STABLES`) plus USDe and sUSDe. Those two are stable
+for the class but **measured**, not held at $1: USDe really moved on Oct 10 and has its
+own series.
+
+| Rule | Contract (membrane-solidity master `16e12329`) | Simulator |
+|---|---|---|
+| The listing's one parameter is an immutable LTV cap | `Collateral.sol:75`; immutable via `LtvCapImmutable`, `Collateral.sol:383-385` | — (no listing exists; the cap is modelled per symbol) |
+| Class is derived: `_noDelay(cap) = cap > MAX_LTV_HARD_CAP` (strict) | `Collateral.sol:424-426` | `collateralClass.ts:110` `lineIsNoDelay`; `:101` `isNoDelayCollateral` (stable ⇒ no-delay, MODELLED) |
+| `MAX_LTV_HARD_CAP = 9e17`, `NO_DELAY_LTV_HARD_CAP = 96e16` | `lib/Constants.sol:23`, `:32` | `membrane.ts:34`, `:38` |
+| A delayed asset's max LTV is clamped to its cap (≤ 90%) | `Collateral.sol:538-540`, `:562` | `membrane.ts:109` `membraneMaxLtv` (clamps at the class cap, `collateralClass.ts:115`) |
+| A no-delay asset has no window (`max_threshold_to_delay == 0`) | `Collateral.sol:430-432`; deploy `script/DeployFullSystem.s.sol:1127` | `curePath.ts:226` (the no-delay timer ignores the band) |
+| Launch listing: sUSDS, syrupUSDC, scrvUSD at 96e16; WETH at 90e16 | `script/DeployFullSystem.s.sol:269-272` | the stable ⇒ no-delay assumption, `collateralClass.ts:101` |
+| Instant mode: threshold = line, `currentLtv > threshold` ⇒ Immediate | `LiquidationEngine.sol:1572-1576`, `:1694-1703` | `curePath.ts:226` (`sell`, reason `instant`, strict `>`) |
+| A timer can never arm in instant mode | `LiquidationEngine.sol:1708-1710` (`InstantModeNotLiquidatable`) | `curePath.ts:226` (never returns `arm`) |
+| No-delay walk: sold at t0, walks on, sold again on a later breach | as above, plus the repay-to-cap `LiquidationEngine.sol:2204-2238` | `curePath.ts:393`, `:466` (`cureWalk` `noDelay`, outcome `sold-no-delay`) |
+| Stable and volatile collateral may not share a position | `Cdp.sol:1650-1651` → `MixedDelayClassCollateral`, `Collateral.sol:789-793` | `collateralClass.ts:133` `delayClassOf` → `'mixed'` |
+| Paid recall-only lane: a recall that alone cures pays the keeper's fee | `LiquidationEngine.sol:1603-1658` (trigger `:1623`, fee base `:1653-1654`, fee `:1821-1838`, `:1877`, `:1887`, sale steps skipped `:1137-1141`) | `compare.ts:359` (in-window cure), `:392`/`:404` (sale whose shortfall is zero) |
+| Post-check: a liquidation may not raise LTV | `Cdp.sol:2494-2498` (`LiquidationRaisedLtv`) | **not modelled** — caveat, `compare.ts:587` |
+
+**Mixed collateral: split in the simulator, excluded in the census.**
+
+- *Simulator* (`compare.ts:480` `splitByDelayClass`). A pasted position holding both
+  classes is run as the **two isolated positions** Membrane would make the borrower hold.
+  The debt, and any deployed venue capital, is split pro-rata to collateral value at
+  minute 0, so both halves open at the position's own LTV (the neutral split). Each half
+  runs in its own class against its own line, and the halves are summed into one run. The
+  split is modelled, and the run says so in a caveat: a borrower could split differently.
+- *Census* (`scripts/build-evidence.ts:665-677`). A liquidated account whose collateral
+  spans both classes is a position that cannot exist on Membrane, so there is nothing to
+  compare. It is **excluded from both sides**, like an unlocated line, and counted under
+  `meta.excluded.byReason.mixedDelayClass`. An account that is both unlocated and mixed
+  keeps the earlier, unlocated reason.
+
+**The paid recall-only lane.** When venue capital alone brings a position back to or under
+its line, nothing is sold, the timer is deleted, and the keeper is still paid the ordinary
+fee from the borrower's collateral, on `min(restore-to-cap target, recalled)`. It applies
+in both classes. Before this lane a recall that cured a position paid nobody; the
+simulator used to say "no fee was paid", and that wording is gone. The simulator's fee is
+the flat modelled rate, not the contract's fee ramp. The census credits no recall, so it
+never enters this lane.
+
+**The post-check, a caveat only.** `Cdp.sol:2494-2498` reverts any liquidation that leaves
+the position's LTV higher than before it. The simulator does **not** model that revert:
+its flat fee is a stand-in for the contract's ramp, so a revert computed from it would be
+an artefact of the model. Every run states this caveat.
+
+**What it did to the Oct 10 census** (`meta.delayClass`, `meta.sensitivity.stablesDelayed`).
+73 priced accounts are no-delay (72 on stable collateral, 1 a WETH/WETH account with a
+94.6% line). None of them would have cured in a window (`time.noDelay`), and every one
+has a flat or never-recovering path, so selling at t0 instead of at the 8h expiry moves
+**no dollar**: the same-rows delta is $0.02. All of the headline change is the 19
+mixed-class accounts leaving both sides: priced 748 → 732 accounts, Aave $34.69M →
+$34.03M, Membrane $22.19M → $21.48M. `stablesDelayed` reproduces the old headline exactly.
+Under the per-sale liquidity cap (`meta.sensitivity.liquidityBound`) the class does move
+dollars, because a capped no-delay remainder is sold the next minute instead of earning a
+fresh window.
 
 ---
 
@@ -262,14 +367,23 @@ editable in the UI, because they are the variable that moves the result most.
 10. **Adapters are not covered by network tests** — only their pure decoding/scaling
     arithmetic is. There is no fixture RPC in this repo.
 11. **A simulation is not a forecast.**
+12. **The delay class of stable collateral is modelled.** The contracts derive the class
+    from each listing's LTV cap; "stable ⇒ no-delay" is our listing assumption. §3.
+13. **A mixed position's split is modelled.** Membrane would hold it as two positions; how
+    the borrower divides the debt between them is ours (pro-rata to value). §3.
+14. **The `LiquidationRaisedLtv` post-check is not modelled** (`Cdp.sol:2494-2498`). §3.
+15. **The wallet-history replay (`history.ts`) still grants every collateral the 8h
+    window.** Only the Oct 10 comparison and the census apply the delay class.
 
 ---
 
 ## 8. Running it
 
 ```bash
-pnpm test:unit          # engine golden tests + simulator tests (64 assertions total)
+pnpm test:unit          # vitest, the CI gate (includes tests/unit/collateralClass.test.ts)
+npx tsx scripts/tests/position-sim.test.ts   # engine + simulator + census-agreement tests
 pnpm build:oct10-data   # regenerate public/data/oct10-2025 from the raw pull
+MEMBRANE_DATASETS_DIR=../membrane-datasets ./node_modules/.bin/tsx scripts/build-evidence.ts  # the census (§2)
 npx tsc --noEmit        # the repo has pre-existing unrelated errors; these dirs are clean
 ```
 
@@ -281,5 +395,7 @@ Entry points:
 | `components/Simulator/Simulator.tsx` | orchestrator |
 | `lib/position-sim/compare.ts` | the two-engine comparison |
 | `lib/position-sim/membrane.ts` | Membrane's maths and its modelled parameters |
+| `lib/position-sim/collateralClass.ts` | the one stable definition and the delay class |
+| `lib/position-sim/curePath.ts` | the delay walk both engines share |
 | `lib/position-sim/adapters/` | the protocol adapters |
 | `lib/gauntlet-engine/` | the shared engine extraction |

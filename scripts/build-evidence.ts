@@ -43,7 +43,14 @@
  * deployment, and leaning on it would make this a claim about our guess rather than
  * about our mechanism.
  *
- * Run: ./node_modules/.bin/tsx scripts/build-evidence.ts
+ * INPUTS (board rule N18): the two raw CSVs live in the PRIVATE datasets repo
+ * triccs/membrane-datasets, never in this public one —
+ *   <datasets>/recall-coverage/inputs/oct10/aave_liquidations_enriched.csv
+ *   <datasets>/recall-coverage/inputs/oct10/chainlink_rounds.csv
+ * where <datasets> = $MEMBRANE_DATASETS_DIR, else ../membrane-datasets next to this repo
+ * (scripts/lib/datasetsDir.mjs). Their sha256s are in that directory's PROVENANCE.md.
+ *
+ * Run: MEMBRANE_DATASETS_DIR=/path/to/membrane-datasets ./node_modules/.bin/tsx scripts/build-evidence.ts
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -56,8 +63,21 @@ import {
   membraneRepayValue,
 } from '../lib/position-sim/membrane'
 import { cureWalk } from '../lib/position-sim/curePath'
+import { datasetsDir } from './lib/datasetsDir.mjs'
 
-const CSV = '/Users/EBmic/Downloads/oct10_data/aave_liquidations_enriched.csv'
+/** The Oct 10 raw pull, in the private datasets repo (board rule N18). */
+const OCT10_INPUTS = path.join(datasetsDir(process.cwd()), 'recall-coverage', 'inputs', 'oct10')
+const CSV = path.join(OCT10_INPUTS, 'aave_liquidations_enriched.csv')
+const ROUNDS_CSV = path.join(OCT10_INPUTS, 'chainlink_rounds.csv')
+for (const f of [CSV, ROUNDS_CSV]) {
+  if (!fs.existsSync(f)) {
+    throw new Error(
+      `build-evidence: missing input ${f}. The Oct 10 raw pull lives in the private ` +
+        'datasets repo at recall-coverage/inputs/oct10/ (board rule N18). Clone ' +
+        'triccs/membrane-datasets next to this repo or set MEMBRANE_DATASETS_DIR.',
+    )
+  }
+}
 const DATA_DIR = path.join(process.cwd(), 'public/data/oct10-2025')
 const OUT = path.join(DATA_DIR, 'evidence.json')
 
@@ -223,7 +243,6 @@ const seriesFor = (s: string): number[] | null =>
  * block form — mainnet block timestamps are strictly increasing, so "block <= N-1" and
  * "ts < ts(N)" select the same round. On an L2 it is a PROXY and is published as one.
  */
-const ROUNDS_CSV = '/Users/EBmic/Downloads/oct10_data/chainlink_rounds.csv'
 type Round = { ts: number; block: number; log: number; p: number }
 type Feed = 'ETH/USD' | 'BTC/USD' | 'wstETH/ETH'
 const FEEDS: Feed[] = ['ETH/USD', 'BTC/USD', 'wstETH/ETH']

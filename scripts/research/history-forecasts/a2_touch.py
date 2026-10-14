@@ -1703,7 +1703,11 @@ def worse_label(a, b):
     return a if LABEL_RANK[a] <= LABEL_RANK[b] else b
 
 
-def bracket_levels(levels, y):
+def bracket_levels(levels, y, tol=1e-9):
+    """The grid levels the logit interpolation at distance y uses; y within tol of a level -> that level only."""
+    for k in levels:
+        if abs(y - k) <= tol:
+            return k, k
     if y >= levels[0]:
         return levels[0], levels[0]
     if y <= levels[-1]:

@@ -436,6 +436,17 @@ class TestShipping(unittest.TestCase):
         self.assertEqual(r, "a")
 
 
+class TestPanelHelpers(unittest.TestCase):
+    def test_bracket_levels_and_worse_label(self):
+        lv = (-0.02, -0.05, -0.25, -0.30)
+        self.assertEqual(M.bracket_levels(lv, -0.2500000000000001), (-0.25, -0.25))
+        self.assertEqual(M.bracket_levels(lv, -0.27), (-0.25, -0.30))
+        self.assertEqual(M.bracket_levels(lv, -0.01), (-0.02, -0.02))
+        self.assertEqual(M.bracket_levels(lv, -0.5), (-0.30, -0.30))
+        self.assertEqual(M.worse_label("HIGH", "MEDIUM"), "MEDIUM")
+        self.assertEqual(M.worse_label("insufficient", "STALE"), "STALE")
+
+
 class TestStoredA(unittest.TestCase):
     def test_load_and_merge_stored_predictions(self):
         import gzip

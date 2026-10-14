@@ -1181,11 +1181,14 @@ test('a mixed position is split into the two positions Membrane would hold', () 
   close(calm.membrane.endDebtUsd, 210_000, 'the split loses no debt', 1e-6)
   close(calm.membrane.startEquityUsd, calm.source.startEquityUsd, 'nor any equity', 1e-6)
   assert.ok(
-    calm.membrane.caveats.some(
-      (c) =>
-        c.startsWith('MIXED CLASS, MODELLED AS TWO POSITIONS') && c.includes('Cdp.sol:1650-1651'),
-    ),
+    calm.membrane.caveats.some((c) => c.startsWith('Two positions (modelled)')),
     'the split is stated as modelled',
+  )
+  assert.ok(
+    !calm.membrane.caveats.some(
+      (c) => /no-delay|MixedDelayClass|class/i.test(c) && c.includes('Two'),
+    ),
+    'in the reader’s words, not the contract’s',
   )
 
   // A crash sells only the volatile half; the stable half never crosses its line.
@@ -1194,12 +1197,83 @@ test('a mixed position is split into the two positions Membrane would hold', () 
   const sales = crash.membrane.events.filter((e) => e.kind === 'liquidation')
   assert.ok(sales.length > 0, 'the WETH half is sold')
   assert.ok(
-    sales.every((e) => e.why.startsWith('Delayed position (WETH)')),
+    sales.every((e) => e.why.startsWith('WETH (8-hour window within 4%)')),
     'and only the WETH half',
   )
   assert.ok(
     crash.membrane.events.some((e) => e.kind === 'breach'),
     'the WETH half had its window',
+  )
+})
+
+test('the page’s call shape runs each half at its OWN line, not the blend', () => {
+  // components/Simulator/Simulator.tsx and scripts/select-demo-borrower.ts ALWAYS pass a
+  // line override: the blended whole-position line by default. Both halves must still run
+  // at their own modelled lines (USDC 87%, WETH 80%), not at the ~82% blend.
+  const pos = legPosition(
+    [
+      { symbol: 'WETH', amount: 50, price: 4000 },
+      { symbol: 'USDC', amount: 100_000, price: 1 },
+    ],
+    { symbol: 'USDC', amount: 210_000, price: 1 },
+  )
+  const flat = ethRamp(30, 30)
+  const blended = weightedMembraneLine(pos.collateral).maxLtv
+  assert.ok(blended > 0.8 && blended < 0.87, `the blend is between the two (${blended})`)
+  const pageCall = { ...baseOpts, venue: null, membraneMaxLtv: blended }
+  const { subs } = splitByDelayClass(pos, flat.path, pageCall)
+  close(subs[0].line, 0.87, 'the USDC half runs at its own 87%', 1e-12)
+  close(subs[1].line, 0.8, 'the WETH half runs at its own 80%', 1e-12)
+  // A user edit moves both halves by the same factor.
+  const edited = splitByDelayClass(pos, flat.path, { ...pageCall, membraneMaxLtv: blended * 1.05 })
+  close(edited.subs[0].line, 0.87 * 1.05, 'USDC half scaled', 1e-12)
+  close(edited.subs[1].line, 0.8 * 1.05, 'WETH half scaled', 1e-12)
+  // A URL ?ltv above 90% cannot lift the WETH half past its class cap — and its label is
+  // read off the class it actually runs in.
+  const url = splitByDelayClass(pos, flat.path, { ...pageCall, membraneMaxLtv: 0.95 })
+  close(url.subs[1].line, MAX_LTV_HARD_CAP, 'the WETH half stops at 90%', 1e-12)
+  assert.strictEqual(url.subs[1].noDelay, false, 'so it keeps its window')
+  assert.ok(url.subs[1].label!.startsWith('WETH (8-hour window'), 'and is labelled so')
+  assert.ok(url.subs[0].line <= NO_DELAY_LTV_HARD_CAP, 'the stable half stops at 96%')
+  // And the run itself uses those lines.
+  const cmp = runComparison(pos, crashPath().path, crashPath().unpriced, pageCall)
+  const wethEvents = cmp.membrane.events.filter((e) => e.why.startsWith('WETH'))
+  assert.ok(wethEvents.length > 0 && wethEvents.every((e) => Math.abs(e.line - 0.8) < 1e-12))
+})
+
+test('a half with no modelled LTV runs at the whole line and says so (WETH + GHO)', () => {
+  // GHO is a stable with no MEMBRANE_ASSET_LTV entry. Its half used to get line 0 and be
+  // sold at minute 0.
+  const pos = legPosition(
+    [
+      { symbol: 'WETH', amount: 50, price: 4000 },
+      { symbol: 'GHO', amount: 100_000, price: 1 },
+    ],
+    { symbol: 'USDC', amount: 210_000, price: 1 },
+  )
+  const symbols = ['WETH', 'GHO', 'USDC']
+  const flat = buildPricePath(
+    {
+      startTs: 0,
+      stepSeconds: 60,
+      count: 30,
+      columns: { ethOracle: new Array(30).fill(4000), btcOracle: new Array(30).fill(100_000) },
+      carried: {},
+    },
+    fakeManifest,
+    symbols,
+  )
+  const blended = weightedMembraneLine(pos.collateral).maxLtv
+  const opts = { ...baseOpts, venue: null, membraneMaxLtv: blended }
+  const { subs } = splitByDelayClass(pos, flat.path, opts)
+  const gho = subs.find((x) => x.collateral[0].symbol === 'GHO')!
+  assert.strictEqual(gho.lineFromWhole, true, 'GHO has no line of its own')
+  close(gho.line, blended, 'so it runs at the whole position’s line', 1e-12)
+  const cmp = runComparison(pos, flat.path, flat.unpriced, opts)
+  assert.strictEqual(cmp.membrane.events.length, 0, 'and is not sold at minute 0 on a calm path')
+  assert.ok(
+    cmp.membrane.caveats.some((c) => c.startsWith('No modelled max LTV exists for GHO')),
+    'the fallback is stated',
   )
 })
 

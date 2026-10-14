@@ -26,7 +26,12 @@
  *   - the venue recall + fast rates     user inputs; the dominant variable
  */
 
-import { delayClassOf, isNoDelayCollateral } from './collateralClass'
+import {
+  MAX_LTV_HARD_CAP,
+  NO_DELAY_LTV_HARD_CAP,
+  delayClassOf,
+  isNoDelayCollateral,
+} from './collateralClass'
 import { DelayTimer } from './curePath'
 import {
   applyRecall,
@@ -228,6 +233,11 @@ export interface MembraneSub {
   /** The no-delay class (curePath.ts clause vii): no window, sold the minute it is over. */
   noDelay: boolean
   venue: VenueRecall | null
+  /**
+   * Split halves only: no leg of this half has a modelled max LTV, so it runs at the whole
+   * position's (scaled) line instead of a line of its own. Stated in the run's caveats.
+   */
+  lineFromWhole?: boolean
 }
 
 /** One position walked over the path, before it is assembled into a SimRun. */
@@ -472,10 +482,19 @@ function walkMembrane(sub: MembraneSub, path: PricePath, opts: CompareOptions): 
  * A MIXED position — stable and volatile collateral together — cannot exist on Membrane:
  * the CDP reverts `MixedDelayClassCollateral` when the second class enters
  * (Cdp.sol:1650-1651, Collateral.sol:789-793). The borrower would hold TWO isolated
- * positions, so that is what is modelled: the no-delay legs and the delayed legs each
- * become a position, the debt (and any deployed venue capital) is split pro-rata to
- * collateral VALUE at minute 0 — so both start at this position's own LTV, the neutral
- * split — and each runs in its own class against its own line.
+ * positions, so that is what is modelled: the stable legs and the other legs each become
+ * a position, the debt (and any deployed venue capital) is split pro-rata to collateral
+ * VALUE at minute 0 — so both start at this position's own LTV, the neutral split — and
+ * each runs in its own class against its own line.
+ *
+ * EACH HALF'S LINE. The page always passes a line override — the blended whole-position
+ * line by default (components/Simulator/Simulator.tsx defaults, scripts/select-demo-
+ * borrower.ts) — so taking the override as-is would run both halves at the BLEND. Instead
+ * each half keeps its OWN modelled line, scaled by override / whole-position line: at the
+ * default the scale is 1 and each half runs at exactly its own line, and a user edit moves
+ * both halves by the same factor. Each is clamped to its class's hard cap (96% stable, 90%
+ * otherwise). A half with no modelled LTV on any leg (e.g. GHO) has no line of its own: it
+ * runs at the whole position's scaled line, and the run says so.
  */
 export function splitByDelayClass(
   position: ProtocolPosition,
@@ -485,24 +504,33 @@ export function splitByDelayClass(
   const value0 = (sym: string, amount: number, fallback: number) =>
     amount * (priceAt(path, sym, 0) ?? fallback)
   const halves = [
-    { noDelay: true, legs: position.collateral.filter((c) => isNoDelayCollateral(c.symbol)) },
-    { noDelay: false, legs: position.collateral.filter((c) => !isNoDelayCollateral(c.symbol)) },
+    { stable: true, legs: position.collateral.filter((c) => isNoDelayCollateral(c.symbol)) },
+    { stable: false, legs: position.collateral.filter((c) => !isNoDelayCollateral(c.symbol)) },
   ]
-  const values = halves.map((h) => h.legs.reduce((a, c) => a + value0(c.symbol, c.amount, c.priceUsd), 0))
+  const values = halves.map((h) =>
+    h.legs.reduce((a, c) => a + value0(c.symbol, c.amount, c.priceUsd), 0),
+  )
   const total = values[0] + values[1]
   const shares = values.map((v) => (total > 0 ? v / total : 0.5))
+  const whole = weightedMembraneLine(position.collateral).maxLtv
+  const scale = opts.membraneMaxLtv !== undefined && whole > 0 ? opts.membraneMaxLtv / whole : 1
+  const wholeLine = opts.membraneMaxLtv ?? whole
   const subs = halves.map((h, k): MembraneSub => {
-    const line = opts.membraneMaxLtv ?? weightedMembraneLine(h.legs).maxLtv
+    const own = weightedMembraneLine(h.legs).maxLtv
+    const lineFromWhole = !(own > 0)
+    const raw = lineFromWhole ? wholeLine : own * scale
+    const line = Math.min(raw, h.stable ? NO_DELAY_LTV_HARD_CAP : MAX_LTV_HARD_CAP)
     const symbols = h.legs.map((c) => c.symbol)
+    // The half's class is COMPUTED from its own symbols and line, and labels it.
+    const noDelay = delayClassOf(symbols, line) === 'no-delay'
     return {
-      label: `${h.noDelay ? 'No-delay' : 'Delayed'} position (${symbols.join(', ')})`,
+      label: `${symbols.join(' + ')} (${noDelay ? 'no 8-hour window' : `8-hour window within ${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`})`,
       collateral: h.legs,
       debt: position.debt.map((d) => ({ ...d, amount: d.amount * shares[k] })),
       line,
-      // Each half takes its own class: the stable half is no-delay; the volatile half is
-      // delayed unless its own line is above 90% (collateralClass.ts delayClassOf).
-      noDelay: delayClassOf(symbols, line) === 'no-delay',
+      noDelay,
       venue: opts.venue ? { ...opts.venue, deployedUsd: opts.venue.deployedUsd * shares[k] } : null,
+      lineFromWhole,
     }
   })
   return { subs, shares }
@@ -516,7 +544,10 @@ export function splitByDelayClass(
 function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareOptions): SimRun {
   const derived = weightedMembraneLine(position.collateral)
   const line = opts.membraneMaxLtv ?? derived.maxLtv
-  const delayClass = delayClassOf(position.collateral.map((c) => c.symbol), line)
+  const delayClass = delayClassOf(
+    position.collateral.map((c) => c.symbol),
+    line,
+  )
 
   let subs: MembraneSub[]
   let shares: number[] = [1]
@@ -572,8 +603,13 @@ function runMembrane(position: ProtocolPosition, path: PricePath, opts: CompareO
   }
   if (delayClass === 'mixed') {
     caveats.push(
-      `MIXED CLASS, MODELLED AS TWO POSITIONS: Membrane does not let stable and volatile collateral share a position — the CDP reverts MixedDelayClassCollateral when the second class enters (Cdp.sol:1650-1651). So this is run as the two isolated positions a borrower would have to hold: ${subs.map((s, k) => `${s.label} at a ${(s.line * 100).toFixed(1)}% line with ${(shares[k] * 100).toFixed(1)}% of the debt`).join('; ')}. The debt${opts.venue ? ' and the deployed venue capital are' : ' is'} split pro-rata to collateral value at the start, so both halves open at this position’s own LTV — the neutral split. A borrower could split it differently, and each half then stands or falls alone.`,
+      `Two positions (modelled): stablecoins and other collateral cannot share one Membrane position, so this runs as the two you would hold. ${subs.map((s, k) => `${s.label}: ${(s.line * 100).toFixed(1)}% line, ${(shares[k] * 100).toFixed(1)}% of the debt`).join('. ')}. The debt${opts.venue ? ' and the venue capital are' : ' is'} split by collateral value at the start, so both open at this position’s LTV. You could split it differently; each part then stands alone.`,
     )
+    for (const s of subs.filter((x) => x.lineFromWhole)) {
+      caveats.push(
+        `No modelled max LTV exists for ${s.collateral.map((c) => c.symbol).join(', ')}, so that part runs at the whole position’s ${(s.line * 100).toFixed(1)}% line.`,
+      )
+    }
   }
   caveats.push(
     'The venue recall rate is an input, and it is the variable that moves this result most. A venue that pays out in a calm market is not the same venue during a 40-minute crash.',

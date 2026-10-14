@@ -65,3 +65,10 @@ export const Section: React.FC<BoxProps & { id: string }> = ({ id, children, ...
     {children}
   </Box>
 )
+
+/** A dagger set small and raised beside a big figure, so it marks without shouting. */
+export const Dagger: React.FC = () => (
+  <Text as="span" fontSize="0.45em" verticalAlign="super" lineHeight={0} ml="0.05em">
+    †
+  </Text>
+)

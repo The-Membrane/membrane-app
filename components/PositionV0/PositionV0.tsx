@@ -11,12 +11,13 @@ import { Box } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
 import { NEWS } from '@/components/NewsEdition/tokens'
-import { TOUCH_TABLE } from '@/lib/position/touchHistory'
+import { DEFAULT_HORIZON } from '@/lib/position/reverseSolve'
+import { TOUCH_TABLE, isStale, type HorizonId } from '@/lib/position/touchHistory'
 
 import { Actions } from './Actions'
 import { AddressForm } from './AddressForm'
+import { ForecastBlock } from './ForecastBlock'
 import { Hero } from './Hero'
-import { HistorySurface } from './HistorySurface'
 import { Instrument } from './Instrument'
 import { MarketHistory } from './MarketHistory'
 import { MembraneLine } from './MembraneLine'
@@ -30,6 +31,7 @@ import {
   pageState,
   readStatus,
   statusSentence,
+  type PageState,
   type PositionView,
   type ReadStatusItem,
 } from './viewModel'
@@ -77,25 +79,65 @@ const Positions: React.FC<{
   selected: PositionView
   onSelect: (key: string) => void
   failures: ReadStatusItem[]
-}> = ({ views, selected, onSelect, failures }) => {
+  address: string
+  stale: boolean
+}> = ({ views, selected, onSelect, failures, address, stale }) => {
+  // One horizon drives the forecast, the curve and the levers (FORECAST_VISUALS.md §3).
+  const [horizon, setHorizon] = useState<HorizonId>(DEFAULT_HORIZON)
   const hasLine = selected.hero.kind !== 'no-debt'
   return (
     <>
       {views.length > 1 && <PositionPicker views={views} selectedKey={selected.key} onSelect={onSelect} />}
       <Hero view={selected} />
-      <HistorySurface view={selected} />
-      <Actions view={selected} />
+      <ForecastBlock view={selected} horizon={horizon} onHorizon={setHorizon} stale={stale} t={TOUCH_TABLE} />
+      <Actions view={selected} horizon={horizon} address={address} />
       {/* With no debt there is no line for the window to sit on. */}
       {hasLine && <MembraneLine />}
       <Rule strong mt={SPACING.xl} />
       <Instrument view={selected} failures={failures} />
       {(hasLine || selected.assumption) && (
-        <>
-          <Rule mt={SPACING.lg} />
-          <Small pt={SPACING.sm}>{MODELLED_FOOTER}</Small>
-        </>
+        <Box pt={SPACING.sm} display="grid" gap={SPACING.xs}>
+          <Rule mb={SPACING.xs} />
+          {selected.forecast && <Small>{selected.forecast.footer}</Small>}
+          <Small>{MODELLED_FOOTER}</Small>
+        </Box>
       )}
     </>
+  )
+}
+
+/** Below the gesture: one body per page state. */
+const Body: React.FC<{
+  state: PageState
+  address: `0x${string}` | null
+  items: ReadStatusItem[]
+  readId: string
+  selected: PositionView | null
+  onSelect: (key: string) => void
+  stale: boolean
+}> = ({ state, address, items, readId, selected, onSelect, stale }) => {
+  if (state.kind === 'idle') return <MarketHistory t={TOUCH_TABLE} stale={stale} />
+  if (!address) return null
+  if (state.kind === 'reading') return <Reading address={address} />
+  if (state.kind === 'none') {
+    return (
+      <>
+        <NoPositions address={address} items={items} />
+        <MarketHistory t={TOUCH_TABLE} stale={stale} />
+      </>
+    )
+  }
+  if (!selected) return null
+  return (
+    <Positions
+      key={readId}
+      views={state.views}
+      selected={selected}
+      onSelect={onSelect}
+      failures={items.filter((i) => i.state === 'error')}
+      address={address}
+      stale={stale}
+    />
   )
 }
 
@@ -111,6 +153,8 @@ export const PositionV0: React.FC = () => {
   const readId = `${address ?? ''}#${form.nonce}`
   const selectedKey = picked && picked.read === readId ? picked.key : null
   const onSelect = useCallback((key: string) => setPicked({ read: readId, key }), [readId])
+  // Read once per mount: whether the table's last observed hour is too old to quote.
+  const [stale] = useState(() => isStale(TOUCH_TABLE, Date.now()))
 
   const items = useMemo(() => readStatus(ADAPTER_ORDER, results), [results])
   const state = useMemo(() => pageState(address !== null, items, results, TOUCH_TABLE), [address, items, results])
@@ -139,22 +183,7 @@ export const PositionV0: React.FC = () => {
         </Box>
         <Rule mt={SPACING.base} />
 
-        {state.kind === 'idle' && <MarketHistory t={TOUCH_TABLE} />}
-        {state.kind === 'reading' && address && <Reading address={address} />}
-        {state.kind === 'none' && address && (
-          <>
-            <NoPositions address={address} items={items} />
-            <MarketHistory t={TOUCH_TABLE} />
-          </>
-        )}
-        {state.kind === 'positions' && selected && (
-          <Positions
-            views={views}
-            selected={selected}
-            onSelect={onSelect}
-            failures={items.filter((i) => i.state === 'error')}
-          />
-        )}
+        <Body state={state} address={address} items={items} readId={readId} selected={selected} onSelect={onSelect} stale={stale} />
       </Box>
     </Box>
   )

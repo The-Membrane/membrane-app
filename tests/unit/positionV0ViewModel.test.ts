@@ -8,6 +8,7 @@ import {
   PROTOCOL_APP_URL,
   buildPositionView,
   creditLine,
+  forecastFooter,
   pageState,
   priceSourceOf,
   readStatus,
@@ -18,7 +19,9 @@ import {
 import { ADAPTERS } from '@/lib/position-sim/adapters'
 import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
 import type { AdapterResult, CollateralLeg, DebtLeg, ProtocolId, ProtocolPosition } from '@/lib/position-sim/types'
-import { TOUCH_TABLE } from '@/lib/position/touchHistory'
+import { ALERT_REFERENCE, alertHalfway, alertStep, referencePriceFrom } from '@/lib/position/alert'
+import { confidenceOf, touchAtLevel } from '@/lib/position/touch'
+import { HORIZON_IDS, TOUCH_TABLE } from '@/lib/position/touchHistory'
 
 const coll = (symbol: string, amount: number, priceUsd: number, lt: number): CollateralLeg => ({
   symbol, address: `0x${symbol}`, decimals: 18, amount, priceUsd, valueUsd: amount * priceUsd,
@@ -104,7 +107,7 @@ describe('page state', () => {
 
 describe('one position view', () => {
   const t = TOUCH_TABLE
-  it('ETH collateral, USDC debt: hero, history at the floored distance, actions, protocol link', () => {
+  it('ETH collateral, USDC debt: hero, forecast at the floored distance per horizon, levers, alert inputs', () => {
     const v = buildPositionView(pos('aave-v3', [coll('WETH', 10, 4000, 0.83)], [debt('USDC', 24_000, 1)]), t)
     expect(v.hero.kind).toBe('line')
     if (v.hero.kind !== 'line') return
@@ -113,59 +116,94 @@ describe('one position view', () => {
     expect(v.priceSource).toBe('Aave V3 oracle')
     expect(v.appUrl).toBe('https://app.aave.com/')
     expect(v.title).toBe('Aave V3 · WETH / USDC')
-    expect(v.history?.level).toBe(27)
-    expect(v.history?.rows.map((r) => r.horizon)).toEqual(['1d', '3d', '7d', '14d', '30d'])
-    expect(v.history?.rows.every((r) => r.level === 27 && r.confidence === null)).toBe(true)
-    expect(v.history?.label).toBe('priced on ETH/USD history')
-    expect(v.history?.credit).toMatch(/^Chainlink ETH\/USD hourly lows · membrane-datasets price-history · [0-9a-f]{7}$/)
-    expect(v.history?.years).toBe('2020–26')
-    expect(v.actions.length).toBeGreaterThan(0)
-    expect(v.actions.every((a) => /^(Repay \$[\d,]+|Add [\d.,]+ WETH) → line at −\d+% → 7d: (<1|\d+)%$/.test(a.text))).toBe(true)
+    const f = v.forecast!
+    expect(f.level).toBe(27)
+    expect(f.lookup).toBe('row')
+    expect(f.label).toBe('priced on ETH/USD history')
+    expect(f.credit).toMatch(/^Chainlink ETH\/USD hourly lows · membrane-datasets validation\/t1 rows · [0-9a-f]{7}$/)
+    expect(f.years).toBe('2021–26')
+    expect(f.footer).toBe('† forecast from ETH history 2021–26 (n ≈ 2,000 per horizon), not a guarantee')
+    for (const h of HORIZON_IDS) {
+      const hf = f.byHorizon[h]
+      expect(hf.at).toEqual(touchAtLevel(t, 'ETH', 'fall', h, 27))
+      expect(hf.confidence).toEqual(confidenceOf(t, 'ETH', 'fall', h))
+      // −5 … −30 shown, widened to every lever's new line.
+      expect(hf.range.from).toBe(5)
+      expect(hf.range.to).toBe(Math.max(30, ...hf.actions.map((a) => a.newDistancePct)))
+      expect(hf.curve.map((c) => c.level)).toEqual(Array.from({ length: hf.range.to - hf.range.from + 1 }, (_, i) => i + 5))
+      expect(hf.actions.every((a) => a.horizon === h)).toBe(true)
+    }
+    const week = f.byHorizon['7d'].actions
+    expect(week.length).toBeGreaterThan(0)
+    expect(week.every((a) => /^(Repay \$[\d,]+|Add [\d.,]+ WETH) · line −\d+% · (<1|\d+)% \(\d+(–\d+)?%\)$/.test(a.text))).toBe(true)
+    expect(v.alert).toEqual({ asset: 'ETH', direction: 'fall', distance: v.hero.distance, referencePrice: 4000, referenceSource: 'Aave V3 oracle' })
     expect(v.assumption).toBe("USDC held at today's price")
-    expect(v.historyAbsent).toBeNull()
+    expect(v.forecastAbsent).toBeNull()
   })
 
-  it('no debt: no line, no history, no actions', () => {
+  it('a wstETH position needs a read for the ETH price its alert is set on', () => {
+    const v = buildPositionView(pos('aave-v3', [coll('wstETH', 10, 4800, 0.81)], [debt('USDC', 24_000, 1)]), t)
+    expect(v.alert).toMatchObject({ asset: 'ETH', referencePrice: null, referenceSource: 'Aave V3 oracle' })
+  })
+
+  it('a line deeper than −30% widens the curve to it', () => {
+    const v = buildPositionView(pos('aave-v3', [coll('WETH', 10, 4000, 0.83)], [debt('USDC', 15_000, 1)]), t) // 54.8%
+    const hf = v.forecast!.byHorizon['7d']
+    expect(v.forecast!.level).toBe(54)
+    expect(hf.range).toEqual({ from: 5, to: 54 })
+    expect(hf.at?.level).toBe(54)
+  })
+
+  it('no debt: no line, no forecast, no alert', () => {
     const v = buildPositionView(pos('aave-v3', [coll('WETH', 1, 4000, 0.83)], []), t)
     expect(v.hero).toEqual({ kind: 'no-debt' })
-    expect(v.history).toBeNull()
-    expect(v.historyAbsent).toBeNull()
-    expect(v.actions).toEqual([])
+    expect(v.forecast).toBeNull()
+    expect(v.forecastAbsent).toBeNull()
+    expect(v.alert).toBeNull()
   })
 
-  it('past the line: no history surface, actions still solve', () => {
+  it('past the line: no chance at the line, the levers still solve, no alert', () => {
     const v = buildPositionView(pos('aave-v3', [coll('WETH', 1, 4000, 0.83)], [debt('USDC', 3400, 1)]), t)
     expect(v.hero.kind).toBe('past')
-    expect(v.history).toBeNull()
-    expect(v.actions.length).toBeGreaterThan(0)
+    expect(v.forecast?.byHorizon['7d'].at).toBeNull()
+    expect(v.forecast?.byHorizon['7d'].actions.length).toBeGreaterThan(0)
+    expect(v.alert).toBeNull()
   })
 
-  it('stables only: the history surface is omitted and says why', () => {
+  it('a line under 1% away has no row to quote', () => {
+    const v = buildPositionView(pos('aave-v3', [coll('WETH', 1, 4000, 0.8)], [debt('USDC', 3180, 1)]), t)
+    expect(v.forecast?.lookup).toBe('within')
+    expect(v.forecast?.byHorizon['7d'].at).toBeNull()
+  })
+
+  it('stables only: no forecast, and it says why', () => {
     const v = buildPositionView(
       pos('morpho-blue', [coll('sUSDe', 10_000, 1.19, 0.915)], [debt('USDC', 9_000, 1)], 'Morpho · sUSDe/USDC 91.5%',
         'ASSUMPTION: loan token USDC treated as exactly $1.00 — Morpho provides no USD price and we did not read one.'),
       t,
     )
-    expect(v.history).toBeNull()
-    expect(v.historyAbsent).toBe('Every leg is a USD stablecoin.')
-    expect(v.actions).toEqual([])
+    expect(v.forecast).toBeNull()
+    expect(v.forecastAbsent).toBe('Every leg is a USD stablecoin.')
+    expect(v.alert).toBeNull()
     expect(v.priceSource).toBe('Morpho market oracle, USDC taken as $1')
     expect(v.hero.kind).toBe('line')
   })
 
   it('unknown collateral: omitted with the symbol named', () => {
     const v = buildPositionView(pos('compound-v3', [coll('LINK', 1000, 20, 0.79)], [debt('USDC', 8000, 1)], 'Compound V3 · USDC'), t)
-    expect(v.historyAbsent).toBe('No price history for LINK yet.')
+    expect(v.forecastAbsent).toBe('No price history for LINK yet.')
     expect(v.title).toBe('Compound V3 · USDC · LINK')
     expect(v.priceSource).toBe('Compound V3 price feed')
     expect(v.appUrl).toBe('https://app.compound.finance/')
   })
 
-  it('a rise risk reads the highs table', () => {
-    const v = buildPositionView(pos('aave-v3', [coll('USDC', 10_000, 1, 0.78)], [debt('WETH', 1.5, 4000)]), t)
-    expect(v.history?.direction).toBe('rise')
-    expect(v.history?.credit).toMatch(/hourly highs/)
+  it('a rise risk reads the highs table and alerts above', () => {
+    const v = buildPositionView(pos('aave-v3', [coll('USDC', 10_000, 1, 0.78)], [debt('WETH', 1.6, 4000)]), t) // +21.9%
+    expect(v.forecast?.direction).toBe('rise')
+    expect(v.forecast?.credit).toMatch(/hourly highs/)
+    expect(v.alert).toMatchObject({ direction: 'rise', referencePrice: 4000 })
     expect(creditLine(t, 'BTC', 'fall')).toMatch(/^Chainlink BTC\/USD hourly lows/)
+    expect(forecastFooter(t, ['ETH', 'BTC'], 'fall')).toBe('† forecast from ETH and BTC history 2021–26 (n ≈ 2,000 per horizon), not a guarantee')
   })
 
   it('sorts nearest the line first, no-debt last', () => {
@@ -180,6 +218,32 @@ describe('one position view', () => {
     for (const u of Object.values(PROTOCOL_APP_URL)) if (u) expect(u).toMatch(/^https:\/\/app\.[a-z]+\.[a-z]+\/$/)
     expect(PROTOCOL_APP_URL.fluid).toBeNull()
     expect(priceSourceOf(pos('spark', [], [], 'Spark'))).toBe('Spark oracle')
+  })
+})
+
+describe('the alert prefill', () => {
+  it('is halfway to the line, three significant figures, rounded toward now', () => {
+    // 2,499.20 × (1 − 0.1831/2) = 2,270.4 → up → 2,280 (fall: toward now)
+    expect(alertHalfway(2499.2, 0.1831344, 'fall')).toEqual({ price: 2280, movePct: 8, direction: 'fall' })
+    // rise: 4000 × 1.1 = 4,400 exactly stays; 4,401.2 → down → 4,400
+    expect(alertHalfway(4000, 0.2, 'rise')).toEqual({ price: 4400, movePct: 10, direction: 'rise' })
+    expect(alertHalfway(4000, 0.20060, 'rise')?.price).toBe(4400)
+    expect(alertHalfway(83_076.82, 0.1464, 'fall')?.price).toBe(77_000) // 76,995.8 → up to 77,000
+    expect(alertStep(2270)).toBe(10)
+    expect(alertStep(76_995)).toBe(100)
+    expect(alertStep(0.987)).toBe(0.001)
+  })
+  it('has nothing to say without a line ahead or a price', () => {
+    expect(alertHalfway(null, 0.2, 'fall')).toBeNull()
+    expect(alertHalfway(2500, 0, 'fall')).toBeNull()
+    expect(alertHalfway(2500, Infinity, 'rise')).toBeNull()
+    expect(alertHalfway(2500, 1.2, 'fall')).toBeNull()
+  })
+  it('takes the asset price from a WETH / WBTC leg, never from an LST', () => {
+    expect(referencePriceFrom(pos('aave-v3', [coll('WETH', 1, 2499.2, 0.83)], [debt('USDC', 1, 1)]), 'ETH')).toBe(2499.2)
+    expect(referencePriceFrom(pos('aave-v3', [coll('wstETH', 1, 3114.6, 0.81)], [debt('USDC', 1, 1)]), 'ETH')).toBeNull()
+    expect(referencePriceFrom(pos('aave-v3', [coll('WBTC', 1, 83_000, 0.78)], [debt('USDT', 1, 1)]), 'BTC')).toBe(83_000)
+    expect(ALERT_REFERENCE.ETH.token).toBe('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2')
   })
 })
 

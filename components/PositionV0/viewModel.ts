@@ -17,16 +17,27 @@ import {
   type LineModel,
   type RiskBasis,
 } from '@/lib/position/liquidation'
-import { fmtMove } from '@/lib/position/format'
+import { referencePriceFrom } from '@/lib/position/alert'
+import { fmtInt, fmtMove } from '@/lib/position/format'
 import { reverseSolve, type ActionRow } from '@/lib/position/reverseSolve'
 import { HISTORY_LABEL, toSnapshot, type MappedSnapshot } from '@/lib/position/snapshot'
-import { lookupTouch, touchAtLevel, type TouchFrequency, type TouchLookup } from '@/lib/position/touch'
+import {
+  confidenceOf,
+  lookupTouch,
+  touchAtLevel,
+  touchCurve,
+  type ForecastConfidence,
+  type TouchFrequency,
+  type TouchLookup,
+} from '@/lib/position/touch'
 import {
   HORIZON_IDS,
+  meanN,
   periodYears,
   shortSha,
   type Direction,
   type HistoryAsset,
+  type HorizonId,
   type TouchTable,
 } from '@/lib/position/touchHistory'
 
@@ -143,19 +154,48 @@ export function statusSentence(items: ReadStatusItem[]): string {
 
 // ------------------------------------------------------------------ one position
 
-export interface HistoryView {
+/** The curve's shown range: −5% … −30% (FORECAST_VISUALS.md), widened to the reader's line. */
+export const CURVE_RANGE = { from: 5, to: 30 } as const
+
+/** One horizon of the forecast block: the reader's chance, the curve and its levers. */
+export interface HorizonForecast {
+  horizon: HorizonId
+  /** The forecast at the reader's floored distance. Null outside the table (see `lookup`). */
+  at: TouchFrequency | null
+  /** The curve, one point per whole level over `range`. */
+  curve: TouchFrequency[]
+  range: { from: number; to: number }
+  /** "Repay $X · line −Y% · Z% (lo–hi)" rows, solved at this horizon. */
+  actions: ActionRow[]
+  confidence: ForecastConfidence
+}
+
+export interface ForecastView {
   asset: HistoryAsset
   direction: Direction
   /** "priced on ETH/USD history" */
   label: string
-  /** The whole-percent level every row is read at (the hero distance, floored). */
+  /** The reader's line as a whole-percent table level (the hero distance, floored). */
   level: number
-  /** One row per horizon. Null when the level is outside the table (see `lookup`). */
-  rows: TouchFrequency[]
   lookup: TouchLookup['kind']
+  byHorizon: Record<HorizonId, HorizonForecast>
   years: string
-  /** "Chainlink ETH/USD hourly lows · membrane-datasets price-history · 42c792d" */
+  /** "† forecast from ETH history 2021–26 (n ≈ 1,990 per horizon), not a guarantee" */
+  footer: string
+  /** "Chainlink ETH/USD hourly lows · membrane-datasets validation/t1 · 42c792d" */
   credit: string
+}
+
+/** What the "Alert me at" row needs from the position. The price itself may need a read. */
+export interface AlertInputs {
+  asset: HistoryAsset
+  direction: Direction
+  /** The line's fraction from now. */
+  distance: number
+  /** The asset's price in this read (its WETH / WBTC leg), or null when it needs a read. */
+  referencePrice: number | null
+  /** Where referencePrice came from, for the stamp. */
+  referenceSource: string
 }
 
 export interface PositionView {
@@ -174,17 +214,23 @@ export interface PositionView {
   hero: Hero
   /** Exact distance (fraction) for sorting; Infinity with no debt. */
   distance: number
-  history: HistoryView | null
-  /** Why there is no history surface, ≤ 8 words. Null when there is one, or no debt. */
-  historyAbsent: string | null
-  actions: ActionRow[]
+  forecast: ForecastView | null
+  /** Why there is no forecast, ≤ 8 words. Null when there is one, or no debt. */
+  forecastAbsent: string | null
+  alert: AlertInputs | null
   /** The modelling assumption behind the hero, or null when one price moves alone. */
   assumption: string | null
 }
 
 export function creditLine(t: TouchTable, asset: HistoryAsset, direction: Direction): string {
   const series = direction === 'fall' ? 'hourly lows' : 'hourly highs'
-  return `${t.assets[asset].feed} ${series} · membrane-datasets price-history · ${shortSha(t)}`
+  return `${t.assets[asset].feed} ${series} · membrane-datasets validation/t1 rows · ${shortSha(t)}`
+}
+
+/** FORECAST_VISUALS.md footer, once: "† forecast from ETH history <period> (n ≈ <n> per horizon), not a guarantee". */
+export function forecastFooter(t: TouchTable, assets: readonly HistoryAsset[], direction: Direction): string {
+  const n = Math.round(assets.reduce((a, x) => a + meanN(t, x, direction), 0) / assets.length / 10) * 10
+  return `† forecast from ${assets.join(' and ')} history ${periodYears(t)} (n ≈ ${fmtInt(n)} per horizon), not a guarantee`
 }
 
 function assumptionOf(model: LineModel | null, basis: RiskBasis): string | null {
@@ -200,6 +246,29 @@ function assumptionOf(model: LineModel | null, basis: RiskBasis): string | null 
   return held.length > 0 ? `${model.symbol} moves; ${held.join(', ')} held at today's price` : null
 }
 
+function horizonForecast(
+  t: TouchTable,
+  s: MappedSnapshot['snapshot'],
+  model: LineModel,
+  asset: HistoryAsset,
+  direction: Direction,
+  horizon: HorizonId,
+  level: number | null,
+): HorizonForecast {
+  const actions = reverseSolve(s, model, t, asset, horizon)
+  const marks = [level, ...actions.map((a) => a.newDistancePct)].filter((x): x is number => x !== null)
+  const from = Math.max(t.levels.min, Math.min(CURVE_RANGE.from, ...marks))
+  const to = Math.min(t.levels.max, Math.max(CURVE_RANGE.to, ...marks))
+  return {
+    horizon,
+    at: level === null ? null : touchAtLevel(t, asset, direction, horizon, level),
+    curve: touchCurve(t, asset, direction, horizon, from, to),
+    range: { from, to },
+    actions,
+    confidence: confidenceOf(t, asset, direction, horizon),
+  }
+}
+
 export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionView {
   const mapped = toSnapshot(p)
   const metrics = computeMetrics(mapped.snapshot)
@@ -208,34 +277,42 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
   const hero = heroOf(model)
   const distance = model ? lineDistance(model) : Number.POSITIVE_INFINITY
 
-  let history: HistoryView | null = null
-  let historyAbsent: string | null = null
-  let actions: ActionRow[] = []
+  let forecast: ForecastView | null = null
+  let forecastAbsent: string | null = null
+  let alert: AlertInputs | null = null
   if (hero.kind !== 'no-debt') {
     if (basis.kind === 'history' && model) {
-      // The surface is read at the hero's own floored distance. Past the line, or with no
-      // price that reaches it, the hero says so and there is no distance to read history at.
+      // The reader's chance is read at the hero's own floored distance. Past the line, or
+      // with no price that reaches it, there is no distance to forecast; the levers still solve.
+      const lookup: TouchLookup['kind'] =
+        hero.kind === 'line' ? lookupTouch(t, basis.asset, basis.direction, '7d', hero.distance).kind : 'within'
+      const level = hero.kind === 'line' && lookup === 'row' ? hero.distancePct : null
+      const byHorizon = Object.fromEntries(
+        HORIZON_IDS.map((h) => [h, horizonForecast(t, mapped.snapshot, model, basis.asset, basis.direction, h, level)]),
+      ) as Record<HorizonId, HorizonForecast>
+      forecast = {
+        asset: basis.asset,
+        direction: basis.direction,
+        label: HISTORY_LABEL[basis.asset],
+        level: hero.kind === 'line' ? hero.distancePct : 0,
+        lookup: hero.kind === 'past' ? 'within' : hero.kind === 'unreachable' ? 'beyond' : lookup,
+        byHorizon,
+        years: periodYears(t),
+        footer: forecastFooter(t, [basis.asset], basis.direction),
+        credit: creditLine(t, basis.asset, basis.direction),
+      }
       if (hero.kind === 'line') {
-        const lookup = lookupTouch(t, basis.asset, basis.direction, '7d', hero.distance)
-        history = {
+        const ref = referencePriceFrom(p, basis.asset)
+        alert = {
           asset: basis.asset,
           direction: basis.direction,
-          label: HISTORY_LABEL[basis.asset],
-          level: hero.distancePct,
-          rows:
-            lookup.kind === 'row'
-              ? HORIZON_IDS.map((h) =>
-                  touchAtLevel(t, basis.asset, basis.direction, h, hero.distancePct),
-                ).filter((r): r is TouchFrequency => r !== null)
-              : [],
-          lookup: lookup.kind,
-          years: periodYears(t, basis.asset, basis.direction),
-          credit: creditLine(t, basis.asset, basis.direction),
+          distance: hero.distance,
+          referencePrice: ref,
+          referenceSource: ref !== null ? priceSourceOf(p) : 'Aave V3 oracle',
         }
       }
-      actions = reverseSolve(mapped.snapshot, model, t, basis.asset)
     } else if (basis.kind === 'dominant') {
-      historyAbsent = basis.reason
+      forecastAbsent = basis.reason
     }
   }
 
@@ -263,9 +340,9 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
     model,
     hero,
     distance,
-    history,
-    historyAbsent,
-    actions,
+    forecast,
+    forecastAbsent,
+    alert,
     assumption: assumptionOf(model, basis),
   }
 }
@@ -328,6 +405,7 @@ export const MEMBRANE_BAND = `${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`
 /** DESIGN_RULES §4: the 8h is conditional. Never "8 hours before liquidation". */
 export const MEMBRANE_LINE = `On Membrane: within ${MEMBRANE_BAND} of the line, liquidation waits ${CURE_WINDOW_HOURS} hours.`
 
+/** The Membrane line and held-price assumptions are modelled (DESIGN_RULES §3 footer). */
 export const MODELLED_FOOTER = '† modelled, not a guarantee'
 
 /** Market-level distances shown before an address is read. */

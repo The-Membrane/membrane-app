@@ -8,7 +8,7 @@ import { SPACING } from '@/config/spacing'
 import { NEWS, NEWS_FIGURE, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { fmtUsd } from '@/lib/position/format'
 
-import { Kicker, Mono } from './primitives'
+import { Dagger, Kicker, Mono } from './primitives'
 import { TYPE } from './typeScale'
 import type { PositionView } from './viewModel'
 
@@ -35,7 +35,6 @@ const Lead: React.FC<{ children: React.ReactNode; color?: string }> = ({ childre
 export const Hero: React.FC<{ view: PositionView }> = ({ view }) => {
   const { hero, priceSource, assumption } = view
   const venue = view.label.split(' · ')[0]
-  const dagger = assumption ? '†' : ''
 
   let headline: React.ReactNode
   let sub: string
@@ -49,7 +48,7 @@ export const Hero: React.FC<{ view: PositionView }> = ({ view }) => {
           <Lead>{hero.symbol} liquidation price</Lead>
           <Figure>
             {fmtUsd(hero.priceShown, hero.decimals)}
-            {dagger}
+            {assumption && <Dagger />}
           </Figure>
         </>
       )

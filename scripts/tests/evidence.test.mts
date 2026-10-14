@@ -914,6 +914,12 @@ has(timeHtml, '8h', 'TimeLens Membrane window')
 // The 8 hours are conditional, and stablecoins get none: the stat says so, and the "held
 // the whole day" denominator counts only accounts that had a window to walk.
 has(timeHtml, 'within 4% of the line · none for stablecoins', 'TimeLens qualifies the 8h')
+// meta.caveats render verbatim on the Evidence page: the reader's words, no class names.
+assert.ok(
+  !(doc.meta.caveats as string[]).some((c) => /no-delay|MixedDelayClass|delay class/i.test(c)),
+  'no rendered caveat uses an insider class name',
+)
+checks++
 {
   const windowed = (Object.entries(cm.outcomes) as [string, number][])
     .filter(([k]) =>

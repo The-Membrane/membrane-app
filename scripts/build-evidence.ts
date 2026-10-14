@@ -2296,26 +2296,26 @@ const doc = {
         'price is wrong for those rows; the honest treatment is to drop them from both ' +
         'sides rather than count a $0 Membrane close as a win. They stay in the cohort ' +
         'flagged excluded so the table can still show them.',
-      `DELAY CLASS: ${delayClassMeta.counts.included['no-delay'].accounts} included accounts ` +
-        `(${delayClassMeta.noDelayBy.included.stableCollateral} whose collateral this CSV sees ` +
-        `is all stable, ${delayClassMeta.noDelayBy.included.lineAbove90Only} only because their ` +
-        'own line is above 90%) are in the NO-DELAY class: no window, sold the minute they ' +
-        'are over their line, every time (LiquidationEngine.sol:1572-1576, :1708-1710). ' +
-        'That stables are LISTED no-delay is a modelled assumption — the contracts carry no ' +
-        'stable label since fc92ed4f; the class follows the immutable LTV cap, and the ' +
-        'deploy lists its three launch stables at 96%. Walking every account delayed ' +
-        'instead is meta.sensitivity.stablesDelayed.',
-      'THE CSV CANNOT SEE MOST COLLATERAL. It names only the liquidated reserves. Of the ' +
+      // Rendered verbatim on the Evidence page: the reader's words, no class names.
+      `NO 8-HOUR WINDOW: ${delayClassMeta.counts.included['no-delay'].accounts} included ` +
+        'accounts get none and are sold the minute they are over their line, every time — ' +
+        `${delayClassMeta.noDelayBy.included.stableCollateral} whose collateral this data ` +
+        `sees is all stablecoins, and ${delayClassMeta.noDelayBy.included.lineAbove90Only} ` +
+        'whose own line is above 90%, which only a listing without a window can carry. That ' +
+        'stablecoins are listed without a window is modelled: the contracts carry no ' +
+        'stablecoin label, and the deploy lists its three launch stablecoins that way. ' +
+        'Giving them the window instead is meta.sensitivity.stablesDelayed.',
+      'THIS DATA CANNOT SEE MOST COLLATERAL. It names only the liquidated reserves. Of the ' +
         `${delayClassMeta.stableLegs.included.accounts} included accounts whose seized ` +
-        `collateral is all stable, ${delayClassMeta.stableLegs.included.compositionUnknown} ` +
-        'had less than 95% of their collateral seized-and-seen, so their class is unknown ' +
-        `and they walk the window as before; ${delayClassMeta.counts.included.unknown.accounts} ` +
-        'included accounts in all are unknown. ' +
-        `${delayClassMeta.counts.included.mixed.accounts} included accounts had a stable and ` +
-        'a volatile reserve seized — a position Membrane would not hold in one piece; they ' +
-        'stay in the headline walked delayed, and dropping them is ' +
+        `collateral is all stablecoins, ${delayClassMeta.stableLegs.included.compositionUnknown} ` +
+        'had under 95% of their collateral seized, so what else they held is unknown and ' +
+        'they keep the window as before; ' +
+        `${delayClassMeta.counts.included.unknown.accounts} included accounts in all are ` +
+        `unknown. ${delayClassMeta.counts.included.mixed.accounts} included accounts had a ` +
+        'stablecoin and another asset seized — a position Membrane would not hold in one ' +
+        'piece; they stay in the headline with the window, and dropping them is ' +
         'meta.sensitivity.mixedExcluded. The full composition of every account comes from ' +
-        'on-chain reads of every reserve (the Q28 full-coverage census), not this CSV.',
+        'on-chain reads of every reserve (the Q28 full-coverage census), not this data.',
       'debt_fraction_repaid is per-RESERVE; Aave’s USD figure is valued from ' +
         'debt_to_cover_normalized x price instead.',
       'wstETH is priced as (ETH/USD in force) x 1.215989, the MEASURED wstETH<->stETH wrap ' +
@@ -2377,8 +2377,8 @@ const doc = {
       'The cure field on each account remains the earlier BEST-LTV diagnostic over a ' +
         'fixed 8h look-ahead. It is not the walk: it ignores the band, ignores re-arming ' +
         'and is not what any dollar here is computed from. Read outcome / closedAtIndex / ' +
-        'minutesToFirstCure / sales for the modelled result. A no-delay row has no window, ' +
-        'so its cure field says noWindow and is never curedInWindow; bestLtv / endLtv / ' +
+        'minutesToFirstCure / sales for the modelled result. A row with no 8-hour window ' +
+        'has its cure field say noWindow and is never curedInWindow; bestLtv / endLtv / ' +
         'healthyAt8h stay as a price diagnostic, and time.noDelay counts how many would ' +
         'have cured had a window existed.',
     ],

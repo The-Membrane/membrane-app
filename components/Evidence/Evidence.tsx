@@ -51,7 +51,7 @@ const LENSES: {
     label: 'Time granted',
     heading: 'What the delay did, account by account',
     blurb:
-      'Aave liquidates atomically, in the same block. Membrane grants an 8-hour delay inside a 4% band first, modelled here on the contract\u2019s own rules. Path-dependent; read the caveats.',
+      'Aave liquidates atomically, in the same block. Membrane grants an 8-hour delay inside a 4% band first (none for stablecoin collateral), modelled here on the contract\u2019s own rules. Path-dependent; read the caveats.',
     metric: (d) => `$${Math.abs(d.meta.cureModel.delayCreditUsd / 1e6).toFixed(1)}M`,
     caption: (d) =>
       `${d.meta.cureModel.delayCreditUsd < 0 ? 'more' : 'less'} debt closed than one repay to cap \u00b7 ` +

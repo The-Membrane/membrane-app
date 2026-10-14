@@ -354,6 +354,38 @@ class SimV3:
         self.logs.append((b, [X.T["BalanceTransfer"], pad(s), pad(r)], words(sc, index)))
 
 
+class TestSilentMints(unittest.TestCase):
+    def _evs(self, raw):
+        return [X.decode_event("erc4626", t, d) for t, d in raw]
+
+    def test_standard_vault_matched(self):
+        evs = self._evs([([X.T["Transfer"], pad(ZERO), pad(addr(1))], words(990)),
+                         ([X.T["Deposit"], pad(addr(9)), pad(addr(1))], words(1000, 990)),
+                         ([X.T["Withdraw"], pad(addr(1)), pad(addr(2)), pad(addr(1))], words(500, 495)),
+                         ([X.T["Transfer"], pad(addr(1)), pad(ZERO)], words(495))])
+        self.assertEqual(X.erc4626_silent_shares(evs), {})
+
+    def test_sdai_style_silent(self):
+        # sDAI mints / burns shares without a Transfer event
+        evs = self._evs([([X.T["Deposit"], pad(addr(9)), pad(addr(1))], words(1000, 990)),
+                         ([X.T["Transfer"], pad(addr(1)), pad(addr(3))], words(100)),
+                         ([X.T["Withdraw"], pad(addr(1)), pad(addr(2)), pad(addr(1))], words(500, 495))])
+        self.assertEqual(X.erc4626_silent_shares(evs), {0: (addr(1), 990), 2: (addr(1), -495)})
+
+    def test_amount_must_match(self):
+        evs = self._evs([([X.T["Transfer"], pad(ZERO), pad(addr(1))], words(7)),
+                         ([X.T["Deposit"], pad(addr(9)), pad(addr(1))], words(1000, 990))])
+        self.assertEqual(X.erc4626_silent_shares(evs), {1: (addr(1), 990)})
+
+    def test_tx_groups_and_slots(self):
+        logs = [{"block": 1, "tx": "a"}, {"block": 1, "tx": "a"}, {"block": 1, "tx": "b"}, {"block": 2, "tx": "a"}]
+        self.assertEqual([len(g) for g in X.iter_tx_groups(logs)], [2, 1, 1])
+        d, sc = X.delta_slots([addr(1), addr(2), addr(1)], [(addr(1), -5, -5), (addr(2), 5, 5)])
+        self.assertEqual((d, sc), ([-5, 5, None], [-5, 5, None]))
+        d, _ = X.delta_slots([addr(9), addr(2), addr(1)], [(addr(1), -5, -5)])
+        self.assertEqual(d, [None, None, -5])
+
+
 # ---------------------------------------------------------------------------------------------
 # Prices, TVL rule, gate
 # ---------------------------------------------------------------------------------------------

@@ -507,6 +507,7 @@ class PathBuilder:
         self.neg: set[str] = set()
         self.si = 0
         self.last_block = -1
+        self.min_value = 0
 
     def advance(self, block: int) -> None:
         if block < self.last_block:
@@ -533,6 +534,7 @@ class PathBuilder:
             self.ever.add(address)
         if v < 0:
             self.neg.add(address)
+            self.min_value = min(self.min_value, v)
 
     def finish(self) -> None:
         self.advance(1 << 62)
@@ -1699,8 +1701,8 @@ def phase_nesting(ctx: Ctx) -> None:
 # ---------------------------------------------------------------------------------------------
 
 EVENT_COLS = ["token", "symbol", "block", "ts", "tx_hash", "tx_index", "log_index", "type", "party1", "party2",
-              "party3", "value1", "value2", "value3", "delta1_raw", "delta2_raw", "scaled1", "scaled2",
-              "in_universe", "topic0", "data"]
+              "party3", "value1", "value2", "value3", "delta1_raw", "delta2_raw", "delta3_raw", "scaled1", "scaled2",
+              "scaled3", "in_universe", "topic0", "data"]
 PATH_COLS = ["snapshot", "address", "shares_raw"]
 
 
@@ -1708,10 +1710,73 @@ def _fmt(v):
     return "" if v is None else v
 
 
-def decode_token(ctx: Ctx, t: dict, U: set[str], comet_px: tuple[list[int], list[float]] | None) -> dict:
+ZERO_ADDR = "0x" + "00" * 20
+
+
+def iter_tx_groups(logs):
+    """Consecutive logs of one transaction (input sorted by block, log index)."""
+    cur, key = [], None
+    for lg in logs:
+        k = (lg["block"], lg["tx"])
+        if k != key and cur:
+            yield cur
+            cur = []
+        key = k
+        cur.append(lg)
+    if cur:
+        yield cur
+
+
+def erc4626_silent_shares(evs: list) -> dict[int, tuple[str, int]]:
+    """Within one transaction: the ERC-4626 Deposit / Withdraw events whose share mint / burn has no
+    zero-address Transfer of the same owner and amount in that transaction (some vaults, e.g. sDAI, mint and
+    burn without a Transfer event). Returns {position: (owner, signed shares)}."""
+    mints: dict[tuple[str, int], int] = {}
+    burns: dict[tuple[str, int], int] = {}
+    for ev in evs:
+        if ev and ev["type"] == "Transfer":
+            frm, to = ev["parties"]
+            v = ev["values"][0]
+            if frm == ZERO_ADDR:
+                mints[(to, v)] = mints.get((to, v), 0) + 1
+            if to == ZERO_ADDR:
+                burns[(frm, v)] = burns.get((frm, v), 0) + 1
+    out = {}
+    for i, ev in enumerate(evs):
+        if not ev:
+            continue
+        if ev["type"] == "Deposit":
+            k = (ev["parties"][1], ev["values"][1])
+            if mints.get(k, 0) > 0:
+                mints[k] -= 1
+            else:
+                out[i] = (k[0], k[1])
+        elif ev["type"] == "Withdraw":
+            k = (ev["parties"][2], ev["values"][1])
+            if burns.get(k, 0) > 0:
+                burns[k] -= 1
+            else:
+                out[i] = (k[0], -k[1])
+    return out
+
+
+def delta_slots(parties: list, deltas: list) -> tuple[list, list]:
+    """Map (address, delta, scaled) to the party positions (delta_i belongs to party_i)."""
+    d, sc = [None, None, None], [None, None, None]
+    for ad, dv, sv in deltas:
+        for i in range(3):
+            if i < len(parties) and parties[i] == ad and d[i] is None:
+                d[i], sc[i] = dv, sv
+                break
+    return d, sc
+
+
+def decode_token(ctx: Ctx, t: dict, U: set[str], comet_px: tuple | None) -> dict:
+    """Decode every log of one token; write the kept rows and the share-path change points.
+    comet_px = (blocks, index values, {block: exact index}) for Comet."""
     a = t["address"]
     kind = t["kind"]
-    total = sum(r["n"] for r in ctx.store.index.values() if r["k"][0] == a)
+    total = ctx.store.count(a)
     keep_all = total < SMALL_TOKEN_LOGS
     ddir = ctx.work / "decoded"
     pdir = ctx.work / "paths"
@@ -1725,61 +1790,83 @@ def decode_token(ctx: Ctx, t: dict, U: set[str], comet_px: tuple[list[int], list
              "by_type": {}, "other_known": {}, "unknown_topic0": {}, "unknown_topic0_in_universe": {},
              "decode_errors": 0, "decode_error_examples": [], "kept_rows": 0, "balance_rows_universe": 0,
              "missing_ts": 0}
+    if kind == "erc4626":
+        stats.update({"deposit_matched_transfer": 0, "deposit_without_transfer": 0, "withdraw_matched_transfer": 0,
+                      "withdraw_without_transfer": 0})
+    if kind == "comet":
+        stats.update({"comet_index_exact": 0, "comet_index_interpolated": 0})
     ts_missing = []
-    for lg in ctx.store.iter_reserve(a):
-        topics, data = lg["topics"], lg["data"]
-        inu = names_universe(topics, data, U)
-        try:
-            ev = decode_event(kind, topics, data)
-        except DecodeError as e:
-            stats["decode_errors"] += 1
-            if len(stats["decode_error_examples"]) < 5:
-                stats["decode_error_examples"].append({"block": lg["block"], "log_index": lg["log_index"],
-                                                       "topic0": topics[0] if topics else None, "error": str(e)})
-            ev = {"type": "decode_error", "parties": [], "values": [], "deltas": [], "known": False}
-        typ = ev["type"]
-        if typ == "unknown":
-            stats["unknown_topic0"][topics[0]] = stats["unknown_topic0"].get(topics[0], 0) + 1
-            if inu:
-                stats["unknown_topic0_in_universe"][topics[0]] = stats["unknown_topic0_in_universe"].get(topics[0], 0) + 1
-        elif typ in DECODERS[kind].values() or typ == "decode_error":
-            stats["by_type"][typ] = stats["by_type"].get(typ, 0) + 1
-        else:
-            stats["other_known"][typ] = stats["other_known"].get(typ, 0) + 1
-        if lg["ts"] is None:
-            stats["missing_ts"] += 1
-            ts_missing.append(lg["block"])
-        if typ in BALANCE_TYPES[kind]:
-            for ad, d, sc in ev["deltas"]:
-                if kind == "comet":
+    for grp in iter_tx_groups(ctx.store.iter_reserve(a)):
+        evs = []
+        for lg in grp:
+            try:
+                evs.append(decode_event(kind, lg["topics"], lg["data"]))
+            except DecodeError as e:
+                stats["decode_errors"] += 1
+                if len(stats["decode_error_examples"]) < 5:
+                    stats["decode_error_examples"].append({"block": lg["block"], "log_index": lg["log_index"],
+                                                           "topic0": lg["topics"][0] if lg["topics"] else None,
+                                                           "error": str(e)})
+                evs.append({"type": "decode_error", "parties": [], "values": [], "deltas": [], "known": False})
+        silent = erc4626_silent_shares(evs) if kind == "erc4626" else {}
+        for i, (lg, ev) in enumerate(zip(grp, evs)):
+            topics, data = lg["topics"], lg["data"]
+            inu = names_universe(topics, data, U)
+            typ = ev["type"]
+            if typ == "unknown":
+                stats["unknown_topic0"][topics[0]] = stats["unknown_topic0"].get(topics[0], 0) + 1
+                if inu:
+                    stats["unknown_topic0_in_universe"][topics[0]] = stats["unknown_topic0_in_universe"].get(topics[0], 0) + 1
+            elif typ in DECODERS[kind].values() or typ == "decode_error":
+                stats["by_type"][typ] = stats["by_type"].get(typ, 0) + 1
+            else:
+                stats["other_known"][typ] = stats["other_known"].get(typ, 0) + 1
+            if lg["ts"] is None:
+                stats["missing_ts"] += 1
+                ts_missing.append(lg["block"])
+            deltas = list(ev["deltas"]) if typ in BALANCE_TYPES[kind] else []
+            if typ in ("Deposit", "Withdraw") and kind == "erc4626":
+                key = "deposit" if typ == "Deposit" else "withdraw"
+                if i in silent:
+                    owner, sh = silent[i]
+                    deltas = [(owner, sh, sh)]
+                    stats[f"{key}_without_transfer"] += 1
+                else:
+                    stats[f"{key}_matched_transfer"] += 1
+            if kind == "comet" and deltas:
+                exact = comet_px[2].get(lg["block"]) if len(comet_px) > 2 else None
+                if exact:
+                    idx = exact
+                    stats["comet_index_exact"] += 1
+                else:
                     idx = interp_index(comet_px[0], comet_px[1], lg["block"])
-                    sc = int(round(d * COMET_INDEX_SCALE / idx))
-                if keep_all or ad in U:
+                    stats["comet_index_interpolated"] += 1
+                deltas = [(ad, d, int(round(d * COMET_INDEX_SCALE / idx))) for ad, d, _ in deltas]
+            for ad, d, sc in deltas:
+                if ad in U:
                     stats["balance_rows_universe"] += 1
                 pb.apply(lg["block"], ad, sc)
-        if not (inu or keep_all):
-            continue
-        stats["kept_rows"] += 1
-        p = ev["parties"] + [None] * (3 - len(ev["parties"]))
-        v = ev["values"] + [None] * (3 - len(ev["values"]))
-        dl = ev["deltas"] if typ in BALANCE_TYPES[kind] else []
-        d1 = dl[0] if len(dl) > 0 else (None, None, None)
-        d2 = dl[1] if len(dl) > 1 else (None, None, None)
-        unk = typ in ("unknown", "decode_error")
-        ev_w.w.writerow([a, t["symbol"], lg["block"], _fmt(lg["ts"]), lg["tx"], lg["tx_index"], lg["log_index"], typ,
-                         _fmt(p[0]), _fmt(p[1]), _fmt(p[2]), _fmt(v[0]), _fmt(v[1]), _fmt(v[2]), _fmt(d1[1]),
-                         _fmt(d2[1]), _fmt(d1[2]), _fmt(d2[2]), int(inu), topics[0] if unk else "",
-                         data if unk and inu else ""])
+            if not (inu or keep_all):
+                continue
+            stats["kept_rows"] += 1
+            p = ev["parties"] + [None] * (3 - len(ev["parties"]))
+            v = ev["values"] + [None] * (3 - len(ev["values"]))
+            dv, sv = delta_slots(ev["parties"], [(ad, d, (None if kind == "comet" else sc)) for ad, d, sc in deltas])
+            unk = typ in ("unknown", "decode_error")
+            ev_w.w.writerow([a, t["symbol"], lg["block"], _fmt(lg["ts"]), lg["tx"], lg["tx_index"], lg["log_index"],
+                             typ, _fmt(p[0]), _fmt(p[1]), _fmt(p[2]), _fmt(v[0]), _fmt(v[1]), _fmt(v[2]),
+                             _fmt(dv[0]), _fmt(dv[1]), _fmt(dv[2]), _fmt(sv[0]), _fmt(sv[1]), _fmt(sv[2]), int(inu),
+                             topics[0] if unk else "", data if unk and inu else ""])
     pb.finish()
     ev_w.close()
     pa_w.close()
-    tracked_ever = pb.ever
-    stats.update({"n_universe_addresses_ever_nonzero": len(tracked_ever),
+    stats.update({"n_universe_addresses_ever_nonzero": len(pb.ever),
                   "n_negative_paths_universe": len(pb.neg),
                   "negative_examples": sorted(pb.neg)[:5],
+                  "most_negative_share_units": pb.min_value,
                   "ts_missing_blocks": sorted(set(ts_missing))[:20]})
     (ctx.work / "pairs").mkdir(exist_ok=True)
-    (ctx.work / "pairs" / f"{a}.json").write_text(json.dumps(sorted(tracked_ever)))
+    (ctx.work / "pairs" / f"{a}.json").write_text(json.dumps(sorted(pb.ever)))
     return stats
 
 
@@ -1792,6 +1879,50 @@ def comet_index_series(prices: dict, t: dict) -> tuple[list[int], list[float]]:
     if not pts:
         raise B.TerminalError(f"no Comet index points for {t['symbol']}")
     return [b for b, _ in pts], [v for _, v in pts]
+
+
+def comet_exact_index(ctx: Ctx, t: dict) -> dict[int, int]:
+    p = ctx.work / "comet_idx.jsonl"
+    if not p.exists():
+        return {}
+    out = {}
+    for rec in B.JsonlStore(p).values():
+        a, b = rec["k"].split(":")
+        if a == t["address"] and rec.get("index"):
+            out[int(b)] = rec["index"]
+    return out
+
+
+def phase_cometidx(ctx: Ctx) -> None:
+    """Exact Comet supply index (totalsBasic.baseSupplyIndex after the block) at every block that holds a Comet
+    Transfer naming a universe address: the Transfer itself accrued the index in that block, so the stored
+    index is the one its present value was computed with. The decode phase then uses these indices (Comet
+    tokens decoded before this phase completed must be decoded again with --redecode)."""
+    toks = [t for t in ctx.selected() if t["kind"] == "comet"]
+    U = set(ctx.universe)
+    store = B.JsonlStore(ctx.work / "comet_idx.jsonl")
+    tasks = []
+    for t in toks:
+        blocks = set()
+        for lg in ctx.store.iter_reserve(t["address"]):
+            tp = lg["topics"]
+            if tp and tp[0] == T["Transfer"] and len(tp) == 3 and (
+                    ("0x" + tp[1][26:]) in U or ("0x" + tp[2][26:]) in U):
+                blocks.add(lg["block"])
+        tasks += [(t["address"], b) for b in sorted(blocks)]
+
+    def task(x):
+        a, b = x
+        k = f"{a}:{b}"
+        if store.has(k):
+            return
+        ok, ret = ctx.rpc.multicall_soft([(a, cdata("totalsBasic"))], b, "cometidx", k)[0]
+        idx = int.from_bytes(ret[:32], "big") if ok and len(ret) >= 256 else None
+        store.put(k, {"index": idx})
+    B.run_pool(ctx_pool(ctx), "cometidx", tasks, task)
+    n_ok = sum(1 for r in store.values() if r.get("index"))
+    ctx.put("cometidx", {"complete": True, "n_blocks": len(tasks), "n_ok": n_ok})
+    print(f"COMETIDX {n_ok}/{len(tasks)} blocks read", flush=True)
 
 
 def phase_decode(ctx: Ctx) -> None:
@@ -1809,7 +1940,7 @@ def phase_decode(ctx: Ctx) -> None:
         cpx = None
         if t["kind"] == "comet":
             prices = prices or load_prices(ctx)
-            cpx = comet_index_series(prices, t)
+            cpx = (*comet_index_series(prices, t), comet_exact_index(ctx, t))
         t0_ = time.monotonic()
         s = decode_token(ctx, t, U, cpx)
         s["seconds"] = round(time.monotonic() - t0_, 1)
@@ -2383,8 +2514,8 @@ def phase_write(ctx: Ctx) -> dict:
 # Main
 # ---------------------------------------------------------------------------------------------
 
-PHASES = ("preflight", "tvl", "deploy", "logs", "prices", "codes", "nesting", "decode", "anchors", "comet", "gate",
-          "write")
+PHASES = ("preflight", "tvl", "deploy", "logs", "prices", "codes", "nesting", "decode", "cometidx", "anchors", "comet",
+          "gate", "write")
 
 
 def main(argv=None) -> int:
@@ -2395,6 +2526,7 @@ def main(argv=None) -> int:
     ap.add_argument("--phases", required=True)
     ap.add_argument("--tokens", default=None, help="test runs only: comma-separated token addresses")
     ap.add_argument("--logs-first", default="", help="comma-separated token addresses fetched first")
+    ap.add_argument("--redecode", default="", help="comma-separated token addresses decoded again")
     args = ap.parse_args(argv)
     ddir = B.datasets_dir()
     out = Path(args.out_dir) if args.out_dir else ddir / DATASET
@@ -2404,6 +2536,12 @@ def main(argv=None) -> int:
     if args.tokens:
         ctx.only_tokens = {B.norm_address(a) for a in args.tokens.split(",")}
     ctx.logs_first = [B.norm_address(a) for a in args.logs_first.split(",") if a.strip()]
+    redo = [B.norm_address(a) for a in args.redecode.split(",") if a.strip()]
+    if redo:
+        st = ctx.get("decode") or {}
+        for a in redo:
+            st.pop(a, None)
+        ctx.put("decode", st)
     import signal
 
     def _term(signum, frame):
@@ -2431,7 +2569,8 @@ def main(argv=None) -> int:
             else:
                 {"preflight": phase_preflight, "tvl": phase_tvl, "deploy": phase_deploy, "logs": phase_logs,
                  "prices": phase_prices, "codes": phase_codes, "nesting": phase_nesting, "decode": phase_decode,
-                 "anchors": phase_anchors, "comet": phase_comet, "gate": phase_gate}[p](ctx)
+                 "cometidx": phase_cometidx, "anchors": phase_anchors, "comet": phase_comet,
+                 "gate": phase_gate}[p](ctx)
             session["phase_seconds"][p] = round(time.monotonic() - t_0, 1)
     except B.TerminalError as e:
         status = f"stopped: {e}"

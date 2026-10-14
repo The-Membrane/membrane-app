@@ -2082,6 +2082,38 @@ def share_tolerance_ok(kind: str, recon: int, anchor: int | None) -> bool | None
     return abs(recon - anchor) <= 2 + abs(anchor) // 10**6
 
 
+def comet_daily_check(ctx: Ctx, toks: list[dict], snaps, snap_pos, prices) -> dict:
+    """Diagnostic beside the gate: the Comet principal path x the daily index against the daily balanceOf
+    reads, same tolerance, every snapshot (pairs where both are 0 left out)."""
+    p = ctx.work / "comet_daily.jsonl"
+    if not toks or not p.exists():
+        return {}
+    cs = B.JsonlStore(p)
+    out = {}
+    for t in toks:
+        ta = t["address"]
+        paths = load_paths(ctx, t, snap_pos)
+        pairs = load_pairs(ctx, t)
+        n = k = 0
+        for lab, blk in snaps:
+            rec = cs.get(lab)
+            if rec is None or blk < t["deploy_exact"]:
+                continue
+            an = {ad: (v or 0) for a2, ad, v, st in rec["rows"] if a2 == ta}
+            pr = prices[ta].get(lab)
+            if not pr or "status" in pr:
+                continue
+            for ad in pairs:
+                r = underlying_from_shares("comet", path_lookup(paths.get(ad, []), snap_pos[lab]), pr)
+                a = an.get(ad, 0)
+                if a == 0 and r == 0:
+                    continue
+                n += 1
+                k += gate_pass(r, a, t["udec"])
+        out[t["symbol"]] = {"n": n, "pass": k, "share": k / n if n else None}
+    return out
+
+
 def phase_gate(ctx: Ctx) -> dict:
     toks = ctx.selected()
     snaps = snapshot_list(ctx.blocks)
@@ -2150,7 +2182,9 @@ def phase_gate(ctx: Ctx) -> dict:
         g["anchor_ge_1M"] = {"n": len(rel), "max_rel_residual": max(rel) if rel else None,
                              "median_rel_residual": sorted(rel)[len(rel) // 2] if rel else None}
         report_fam[f] = g
-    rep = {"rule": f"|reconstructed - anchor| <= max(${GATE_ABS_USD}, {GATE_REL_NUM / GATE_REL_DEN:.1%} of anchor) on "
+    comet_daily = comet_daily_check(ctx, [t for t in toks if t["kind"] == "comet"], snaps, snap_pos, prices)
+    rep = {"comet_daily_check": comet_daily,
+           "rule": f"|reconstructed - anchor| <= max(${GATE_ABS_USD}, {GATE_REL_NUM / GATE_REL_DEN:.1%} of anchor) on "
                    f">= {GATE_SHARE:.0%} of nonzero (address, token, snapshot) pairs per family; nonzero = anchor or "
                    "reconstruction != 0 (raw); snapshots = the 45 monthly blocks + asof_b1 (26180400) + asof "
                    "(26186746); reconstruction = share path x the snapshot's share price; an unreadable anchor or "

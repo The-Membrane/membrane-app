@@ -9,7 +9,9 @@
 //  - Telegram shows only when the status says the owner has switched it on.
 //  - Calm ink only: no green (money only), red + ✖ only for an error.
 //
-// Exported for the position page (a later PR): <AlertMeAt metric subject currentValue ownerAddress />.
+// Exported for the position page: <AlertMeAt metric subject currentValue ownerAddress />, plus
+// optional prefillValue (a threshold other than the live value, e.g. halfway to a line) and
+// defaultDirection (a rising-price risk alerts 'above').
 
 import React, { useId, useState } from 'react'
 import { Box, Button, Checkbox, Flex, Input, Text } from '@chakra-ui/react'
@@ -48,6 +50,10 @@ export interface AlertMeAtProps {
   subject: string
   /** The live value in the metric's unit (USD, or percent). Null → no prefill. */
   currentValue: number | null
+  /** Prefill the threshold with this instead of the live value. Absent → the live value. */
+  prefillValue?: number | null
+  /** The direction the toggle starts on. Absent → DEFAULT_DIRECTION[metric]. */
+  defaultDirection?: Direction
   /** When currentValue was measured (ISO), for the stamp. */
   asOf?: string | null
   /**
@@ -402,6 +408,8 @@ const AlertForm: React.FC<FormProps> = ({
   metric,
   subject,
   currentValue,
+  prefillValue,
+  defaultDirection,
   asOf,
   stale = false,
   ownerAddress,
@@ -411,7 +419,7 @@ const AlertForm: React.FC<FormProps> = ({
   const uid = useId()
   // null = untouched: the input shows the live prefill, and follows it if it arrives late.
   const [typed, setTyped] = useState<string | null>(null)
-  const [direction, setDirection] = useState<Direction>(DEFAULT_DIRECTION[metric])
+  const [direction, setDirection] = useState<Direction>(defaultDirection ?? DEFAULT_DIRECTION[metric])
   const [optIn, setOptIn] = useState(false)
   const [addressInput, setAddressInput] = useState('')
   const [tried, setTried] = useState(false)
@@ -425,7 +433,8 @@ const AlertForm: React.FC<FormProps> = ({
   const needsAddress = !ownerAddress
   const ownAddressInput = needsAddress && askAddress
   const address = ownerAddress ?? addressInput
-  const input = typed ?? prefillText(metric, currentValue, stale)
+  // A stale live value still blocks the prefill, whichever value would fill it.
+  const input = typed ?? prefillText(metric, prefillValue !== undefined ? prefillValue : currentValue, stale)
   const draft = { input, direction, optIn, address }
   const errors = visibleErrors(metric, draft, needsAddress, tried, serverError)
   const relation = errors.threshold ? null : relationLine(metric, direction, parseInput(input), currentValue, stale)

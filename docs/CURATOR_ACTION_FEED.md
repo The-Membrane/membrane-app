@@ -210,6 +210,56 @@ ILLIQUID_PERPDEX_COLL/USDC ($844K, fixed), deUSD/USDC (86 %, $348K, fixed; MEV C
 Elixir USDC). Held by curated vaults: sdeUSD (Adpend, 1337), msY 91.5 % (two Mainstreet
 USDC vaults), deUSD (MEV Capital Elixir USDC). The rest are dust.
 
+## Oracle above market (`lib/curatorFeed/oracleGap.ts`, `?view=oracle-gap`)
+
+The flags above say what an oracle prices FROM (a static classification). This measures
+what it prices AT, against the market, every collector run — Q25 T2's indicator I3
+(membrane-datasets `validation/t2`, prereg `membrane-board design/VALIDATION_PREREG.md` T2):
+
+| Piece | Rule |
+| --- | --- |
+| gap | `oracle / market − 1`. Oracle = the market's Morpho `price()` at the head block (the flags read), `/1e36 × 10^(collateral decimals − loan decimals)` loan tokens per whole collateral token (Morpho Blue IOracle), × DefiLlama's USD price of the loan token — no token is taken as $1. Market = DefiLlama's USD price of the collateral (`coins.llama.fi/prices/current`, keyless, ≤ 100 coins per call). |
+| condition | `gap ≥ 2 %`, one-sided (the oracle prices the collateral above the market). |
+| fired | 24 consecutive OBSERVED hourly points with the condition (T2 D3): fires at the 24th point, never back-dated. |
+| unobserved | `price()` reverts (D9), no DefiLlama price, a sample ≥ 6 h old (D7), or on-chain vs DefiLlama decimals that disagree. Never a 0; it breaks a run, as a missing hour does. |
+| consecutive | Points deduplicated per UTC hour (newest wins), ≤ 1.5 h apart (D2's 1.5× cadence hold, for run-time jitter). |
+| stale | the newest run is > 3 h old: the page hatches the module and withholds the headline. |
+| markets | every Morpho Blue market curated vaults hold at the exposure read, with a collateral and an oracle (~300). Euler Earn strategies have no Morpho oracle. Held markets never observed are listed as unobserved. |
+
+The constants (2 %, 24 h, 2 daily points) are not written in code: `lib/curatorFeed/i3Record.generated.json`
+holds them and T2's I3 record, built by `node scripts/curator-feed/build-i3-record.mjs` from
+`validation/t2/results.json` (sha256 computed and checked against its PROVENANCE.md row; `--check`
+fails when the committed file is stale). `tests/unit/curatorFeedOracleGap.test.ts` replays T2's own
+I3 series through the same code: every point's fired flag in `AZND-I3.csv` (daily), `msY-I3.csv`
+(daily) and `sdeUSD-I3.csv` (hourly) matches, and the first fires equal results.json (AZND
+2026-06-12 17:48, sdeUSD 2025-11-04 23:00, msY none).
+
+The record, shown beside the live module: I3 warned ≥ 9 days ahead in 1 of 3 incidents — AZND
+49 days before its write-off with 0 false alarms in 74 calm days; sdeUSD 6.7 days before
+(under 9); silent before msY and before Oct 10 2025. Caveats on the page: retrospective, n = 3,
+T2 FAIL overall; stETH (Oct 10 series) fired twice in calm 2022; AZND's oracle was fixed at
+1 USDC, so its gap is `1 / market − 1`.
+
+Store: `oracle-gap.json` next to `feed.json` (format in `lib/curatorFeed/store.ts`): runs
+`[ts, block]`, a market dictionary and rows `[run, market, oracleUsd, marketUsd, confidence,
+gap]`, observed points only, the last 7 days (≈ 2 MB at 300 markets). A run that observed
+nothing is not recorded. Written by every collector run (step 12, non-fatal; `--publish` also
+writes the datasets copy). The hourly tick that already runs the collector is what builds the
+24-hour persistence: no new schedule.
+
+Dry run (keyless RPC + DefiLlama, writes nothing):
+
+```
+env -u CURATOR_FEED_RPC_URLS -u RECORDER_RPC_URL pnpm curators:feed --oracle-gap-only --dry-run --limit=25
+```
+
+On 2026-10-14 (block 26,187,350, all 300 held markets): 280 observed; 3 oracles revert
+(sdeUSD/USDC, two msY/USDC); 17 collaterals have no DefiLlama price (sUSDv, sETHv, RLP, rRLP,
+expired PTs, liUSD-1w, BOBO, sNUSD, GOOGL / NVDA / TSLA, ROY-ST-apyUSD). Above 2 % at that
+point: deUSD/USDC (fixed 1.0 oracle, DefiLlama $0.00000001), USR / wstUSR / aprUSR / MC-USR
+(≈ +1,160 %), IMF, APU, CULT (USDS markets), apyUSD/USDC (+2.45 %) and PT-apyUSD-5NOV2026
+(+2.12 %). One point is not a fire: each needs 24 hours in a row.
+
 ## Incremental collection
 
 Each run reads `[last block + 1, finalized head]` only. The collector state
@@ -329,6 +379,7 @@ pnpm curators:feed                    # incremental from .data/curator-feed (els
 pnpm curators:feed --full             # re-read the whole window (CURATOR_FEED_DAYS, default 182)
 pnpm curators:feed --full --publish   # … and write the datasets-repo copy + PROVENANCE.md
 pnpm curators:feed --exposure         # force a fresh exposure snapshot
+pnpm curators:feed --oracle-gap-only [--dry-run] [--limit=N]   # step 12 alone (oracle gap)
 CURATOR_FEED_TO_BLOCK=<n>             # stop at block n (reproduce a run; check split = full)
 ```
 
@@ -353,6 +404,8 @@ GET /api/curator-feed?view=attribution    [&collateral=] [&market=0x…] [&only=
 GET /api/curator-feed?view=flags          [&collateral=] [&curator=] [&market=0x…]
 GET /api/curator-feed?view=spikes         [&collateral=] [&curator=] [&market=0x…]
                                           [&only=reallocation|drained] [&minUsd=] [&limit=]
+GET /api/curator-feed?view=oracle-gap     [&collateral=] [&curator=] [&market=0x…] [&limit=]
+                                          no oracle-gap.json yet = 200, meta.measured false
 ```
 
 ## Files
@@ -362,13 +415,14 @@ GET /api/curator-feed?view=spikes         [&collateral=] [&curator=] [&market=0x
 | keccak256, ABI catalog + decoder, Vault V2 idData                         | `lib/curatorFeed/{keccak,abi,decode,v2ids}.ts`                                                                                                   |
 | classifier (state replay), status, clusters, flows, exposure, attribution | `lib/curatorFeed/{classify,status,clusters,flows,exposure,attribution}.ts`                                                                       |
 | rate spikes, rolling window, flags                                        | `lib/curatorFeed/{spikes,window,flags}.ts`                                                                                                       |
+| oracle gap (I3), its record and builder                                   | `lib/curatorFeed/oracleGap.ts`, `lib/curatorFeed/i3Record.generated.json`, `scripts/curator-feed/build-i3-record.mjs`                            |
 | incident timelines (market + vault, archive reads)                        | `scripts/research/curator-incident.ts`                                                                                                           |
 | chain config                                                              | `scripts/lib/curator-feed-chain.ts`                                                                                                              |
 | copy, API logic, on-disk format                                           | `lib/curatorFeed/{format,service,store}.ts`                                                                                                      |
 | RPC client (dual-read getLogs, batches, key scrubbing)                    | `scripts/lib/curator-feed-rpc.ts`                                                                                                                |
 | collector                                                                 | `scripts/collect-curator-feed.ts`                                                                                                                |
 | API, page, card                                                           | `pages/api/curator-feed/index.ts`, `pages/[chain]/curator-feed.tsx`, `components/CuratorFeed/CuratorFeed.tsx` (`CuratorFeed`, `CuratorFeedCard`) |
-| tests                                                                     | `tests/unit/curatorFeed{,Signals,Data}.test.ts`, real-log fixtures `tests/unit/fixtures/curator-feed-logs.json`                                  |
+| tests                                                                     | `tests/unit/curatorFeed{,Signals,Data,OracleGap,OracleGapApi}.test.ts`, real-log fixtures `tests/unit/fixtures/curator-feed-logs.json`           |
 
 ## Not yet
 

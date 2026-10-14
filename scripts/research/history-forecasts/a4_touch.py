@@ -604,7 +604,7 @@ def code_meta():
 
 def write_rows(path, named, bands=None):
     header = ["series", "t0", "fold", "T", "k", "y", "regime"] + [f"p_{r}" for r in RUNGS] + \
-        (["band_lo", "band_hi"] if bands is not None else [])
+        (["band_lo_shipped_rung", "band_hi_shipped_rung"] if bands is not None else [])
 
     def gen():
         for name, R in named:

@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import handler from '@/pages/api/wavefront/stream'
-import { isMissingTable, rowToRecord } from '@/lib/wavefront/server/events'
+import { isMissingTable, rowToRecord, wavefrontStreamId } from '@/lib/wavefront/server/events'
 import { aavePid } from '@/lib/wavefront/pid'
 
 import { mockRes } from './fixtures/mockApiRes'
@@ -79,5 +79,11 @@ describe('wavefront_events rows', () => {
     expect(isMissingTable(new Error('x', { cause: { code: '42P01' } }))).toBe(true)
     expect(isMissingTable(new Error('relation "wavefront_events" does not exist'))).toBe(true)
     expect(isMissingTable(new Error('connection refused'))).toBe(false)
+  })
+
+  it("reads one stream: the engine's default `main`, or WAVEFRONT_STREAM", () => {
+    expect(wavefrontStreamId({})).toBe('main')
+    expect(wavefrontStreamId({ WAVEFRONT_STREAM: '  ' })).toBe('main')
+    expect(wavefrontStreamId({ WAVEFRONT_STREAM: 'oct10-test' })).toBe('oct10-test')
   })
 })

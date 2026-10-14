@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
-import { feedJson, feedRss } from '@/lib/userAlerts/feed'
+import { feedJson, feedRss, managePath } from '@/lib/userAlerts/feed'
 import { FEED_TOKEN_RE, UUID_RE } from '@/lib/userAlerts/metrics'
 import { clientIp, createRateLimiter, type RateLimiter } from '@/lib/userAlerts/rateLimit'
 import { evaluateOwner, type EvaluateDeps } from '@/lib/userAlerts/service'
@@ -19,12 +19,16 @@ import { feedPath, neonSql, processEnv, siteUrl, type Env } from '@/pages/api/_l
 // crossed/cleared transitions (compare-and-set, idempotent per transition) and
 // returns the result. A stale or unavailable value is not evaluated and the feed
 // says so. private, no-store: an owner's feed is never cached by a shared cache.
+//
+// ORDER: a malformed token is a 404 before anything else (no DB call); then two
+// rate limits — per IP (bounds token-guessing and DB load) and per IP + token
+// (bounds how often one reader can make one feed evaluate) — then the DB.
 
 export type FeedDeps = {
   env: Env
   sql: () => Sql
   readValues: (sql: () => Sql) => EvaluateDeps['readValues']
-  limiter: RateLimiter
+  limits: { ip: RateLimiter; feed: RateLimiter }
   nowMs?: () => number
 }
 
@@ -42,8 +46,15 @@ export const createFeedHandler = (deps: FeedDeps) => async (req: NextApiRequest,
   }
   const token = tokenOf(req)
   if (!FEED_TOKEN_RE.test(token)) return res.status(404).json({ error: 'unknown feed' })
+  const ip = clientIp(req)
+  // Both limiters always count (no short-circuit), so neither can be bypassed via the other.
+  const ipOver = deps.limits.ip(ip)
+  const feedOver = deps.limits.feed(`${ip}|${token}`)
+  if (ipOver || feedOver) {
+    res.setHeader('Retry-After', '60')
+    return res.status(429).json({ error: 'slow down' })
+  }
   if (!deps.env('DATABASE_URL')) return res.status(503).json({ error: 'alerts storage unavailable' })
-  if (req.method === 'DELETE' && deps.limiter(clientIp(req))) return res.status(429).json({ error: 'slow down' })
 
   const sql = deps.sql()
   try {
@@ -61,7 +72,9 @@ export const createFeedHandler = (deps: FeedDeps) => async (req: NextApiRequest,
     if (req.query.format === 'rss') {
       const site = siteUrl(deps.env)
       res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8')
-      return res.status(200).send(feedRss(feed, { feedUrl: `${site}${feedPath(token)}?format=rss`, siteUrl: site }))
+      return res
+        .status(200)
+        .send(feedRss(feed, { feedUrl: `${site}${feedPath(token)}?format=rss`, siteUrl: site, manageUrl: `${site}${managePath(token)}` }))
     }
     return res.status(200).json(feedJson(feed))
   } catch {
@@ -75,5 +88,10 @@ export default createFeedHandler({
   env: processEnv,
   sql: neonSql(processEnv),
   readValues: (sql) => (needs) => readValues(needs, liveSources(sql)),
-  limiter: createRateLimiter({ limit: 30, windowMs: 10 * 60_000 }),
+  limits: {
+    // Shared feed readers (aggregators) poll many feeds from one IP: generous per IP.
+    ip: createRateLimiter({ limit: 300, windowMs: 10 * 60_000 }),
+    // One reader of one feed: every 20 s on average is far above any RSS poll (ttl 15 min).
+    feed: createRateLimiter({ limit: 30, windowMs: 10 * 60_000 }),
+  },
 })

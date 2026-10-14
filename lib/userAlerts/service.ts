@@ -8,12 +8,13 @@
  * No logging here: an owner's thresholds never reach a log line.
  */
 
-import { evaluate, readingKey, type Reading } from './evaluate'
+import { evaluate, readingKey, type Reading, type SkipReason } from './evaluate'
 import {
   activeThresholds,
   ownerEvents,
   recordClearing,
   recordCrossing,
+  readingWorthWriting,
   recordReading,
   type EventRow,
   type Sql,
@@ -25,7 +26,7 @@ export type ThresholdView = ThresholdRow & {
   crossed: boolean
   reading: Reading
   /** Why this read did not evaluate it, if it did not. */
-  skipped: 'stale' | 'unavailable' | null
+  skipped: SkipReason | null
 }
 
 export type OwnerFeed = { thresholds: ThresholdView[]; events: EventRow[]; generatedAt: string }
@@ -54,7 +55,8 @@ export async function evaluateOwner(sql: Sql, ownerId: string, deps: EvaluateDep
       } else if (ev.kind === 'cleared') {
         await recordClearing(sql, t.id, o)
         crossed = false
-      } else {
+      } else if (readingWorthWriting(t, o)) {
+        // No transition: a write only when the value moved, at most once a minute.
         await recordReading(sql, t.id, o)
       }
     }
@@ -62,8 +64,6 @@ export async function evaluateOwner(sql: Sql, ownerId: string, deps: EvaluateDep
       ...t,
       crossed,
       crossedAt: crossed ? (t.crossedAt ?? at) : null,
-      lastValue: ev.kind === 'skipped' ? t.lastValue : ev.value,
-      lastEvaluatedAt: ev.kind === 'skipped' ? t.lastEvaluatedAt : at,
       reading,
       skipped: ev.kind === 'skipped' ? ev.reason : null,
     })

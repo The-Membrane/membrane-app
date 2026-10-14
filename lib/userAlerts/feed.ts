@@ -42,6 +42,8 @@ export const skippedLine = (t: ThresholdView): string | null => {
   const r = t.reading
   if (r.status === 'stale') return `not checked: ${r.source} is stale (as of ${utc(r.asOf)})`
   if (r.status === 'unavailable') return `not checked: ${r.source} unavailable`
+  // 'superseded': this server held an older reading than the one already applied;
+  // the stored state is current, so there is nothing to say.
   return null
 }
 
@@ -87,25 +89,33 @@ const linkFor = (siteUrl: string, subject: string): string => {
   return s?.kind === 'venue' ? `${siteUrl}/ethereum/venue/${encodeURIComponent(s.venue)}` : siteUrl
 }
 
+/** The token-gated manage page (pages/alerts/[token].tsx); `#t-<id>` marks one threshold. */
+export const managePath = (token: string, thresholdId?: string): string =>
+  `/alerts/${token}${thresholdId ? `#t-${thresholdId}` : ''}`
+
 /**
  * RSS 2.0. One item per crossed/cleared event (stable guid per transition, so a reader
  * shows each once). Thresholds this read could not check are named in the channel
- * description — never as items, which would repeat on every poll.
+ * description — never as items, which would repeat on every poll. The channel and
+ * every item carry the manage link, where each threshold has a Stop button: the
+ * opt-out never depends on the panel the alert was set in. (A link, not a stop-on-GET:
+ * feed readers and link previews follow links.)
  */
-export const feedRss = (feed: OwnerFeed, args: { feedUrl: string; siteUrl: string }): string => {
+export const feedRss = (feed: OwnerFeed, args: { feedUrl: string; siteUrl: string; manageUrl: string }): string => {
   const active = feed.thresholds.length
   const notChecked = feed.thresholds.map(skippedLine).filter((l): l is string => l !== null)
   const desc = [
     `Your alerts: ${active} active.`,
     ...feed.thresholds.map((t) => `${describeThreshold(t)}.`),
     ...notChecked.map((l) => `${l}.`),
+    `Stop or change them: ${args.manageUrl}`,
     'Data compiled by Membrane.',
   ].join(' ')
   const items = feed.events
     .map(
       (e) => `    <item>
       <title>${xml(`${eventHeadline(e)} · ${e.kind}`)}</title>
-      <description>${xml(`${eventHeadline(e)}. ${provenanceLine(e.source, e.asOf)}.`)}</description>
+      <description>${xml(`${eventHeadline(e)}. ${provenanceLine(e.source, e.asOf)}. Stop this alert: ${args.manageUrl}#t-${e.thresholdId}`)}</description>
       <link>${xml(linkFor(args.siteUrl, e.subject))}</link>
       <guid isPermaLink="false">${xml(`threshold:${e.thresholdId}:${e.kind}:${e.id}`)}</guid>
       <pubDate>${new Date(e.at).toUTCString()}</pubDate>
@@ -116,7 +126,7 @@ export const feedRss = (feed: OwnerFeed, args: { feedUrl: string; siteUrl: strin
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Membrane · your alerts</title>
-    <link>${xml(args.siteUrl)}</link>
+    <link>${xml(args.manageUrl)}</link>
     <atom:link href="${xml(args.feedUrl)}" rel="self" type="application/rss+xml" />
     <description>${xml(desc)}</description>
     <ttl>15</ttl>
@@ -125,3 +135,6 @@ ${items}
 </rss>
 `
 }
+
+/** The JSON feed's shape, for the manage page (client-safe type). */
+export type FeedJson = ReturnType<typeof feedJson>

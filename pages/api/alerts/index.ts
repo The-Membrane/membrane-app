@@ -67,7 +67,11 @@ export const createAlertsHandler = (deps: CreateDeps) => async (req: NextApiRequ
   }
   const direction: unknown = body.direction
   if (!isDirection(direction)) return bad(res, 'direction', "Pick 'above' or 'below'.")
-  const th = checkThreshold(metric, typeof body.threshold === 'string' ? Number(body.threshold) : body.threshold)
+  // A string threshold must be a plain decimal: Number('') is 0 and Number('0x10') is 16.
+  if (typeof body.threshold === 'string' && !/^-?\d+(\.\d+)?$/.test(body.threshold.trim())) {
+    return bad(res, 'threshold', 'Enter a plain number, like 4.5.')
+  }
+  const th = checkThreshold(metric, typeof body.threshold === 'string' ? Number(body.threshold.trim()) : body.threshold)
   if (!th.ok) return bad(res, 'threshold', th.message)
   // OPT-IN: nothing is stored without an explicit true.
   if (body.optIn !== true) return bad(res, 'optIn', 'Tick the box to store this alert.')

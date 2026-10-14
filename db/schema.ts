@@ -10,6 +10,7 @@ import {
   bigserial,
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -19,6 +20,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
@@ -887,10 +889,15 @@ export const venueDepthCurves = pgTable(
 // lockstep.
 // ---------------------------------------------------------------------------
 
+// EVERY constraint and index below is named exactly as
+// scripts/apply-alert-thresholds-ddl.mjs creates it (Postgres-convention names:
+// <table>_pkey, <table>_<column>_fkey, <table>_..._check / _key / _idx).
+
 // One row per FEED. The feed token (32 random bytes, hex) lives here once, so the
-// unique index means one token ⇔ one owner. Several feeds may share an address: the
-// address is not authenticated, so a POST without a feed's token mints a new feed
-// rather than reveal an existing one.
+// unique constraint means one token ⇔ one owner. Several feeds may share an address:
+// the address is not authenticated, so a POST without a feed's token mints a new
+// feed rather than reveal an existing one. Deliberately NO index on owner_key: no
+// query may look thresholds up by address.
 export const userAlertOwners = pgTable(
   'user_alert_owners',
   {
@@ -901,8 +908,7 @@ export const userAlertOwners = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('user_alert_owners_feed_token_key').on(table.feedToken),
-    index('user_alert_owners_owner_idx').on(table.ownerKind, table.ownerKey),
+    unique('user_alert_owners_feed_token_key').on(table.feedToken),
     check('user_alert_owners_kind_check', sql`${table.ownerKind} IN ('address', 'telegram')`),
   ],
 )
@@ -911,9 +917,7 @@ export const userAlertThresholds = pgTable(
   'user_alert_thresholds',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    ownerId: uuid('owner_id')
-      .notNull()
-      .references(() => userAlertOwners.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id').notNull(),
     metric: text('metric').notNull(), // 'price' | 'utilization' | 'apr'
     subject: text('subject').notNull(), // 'asset:ETH' | 'venue:<recorder venue key>'
     direction: text('direction').notNull(), // 'above' | 'below'
@@ -923,9 +927,15 @@ export const userAlertThresholds = pgTable(
     stoppedAt: timestamp('stopped_at', { withTimezone: true }), // null = active
     lastValue: numeric('last_value'),
     lastEvaluatedAt: timestamp('last_evaluated_at', { withTimezone: true }),
+    // As-of of the reading the state last moved on. Every write requires
+    // last_as_of <= the new reading's as-of, so an older cached reading on another
+    // server instance can never undo a newer transition.
+    lastAsOf: timestamp('last_as_of', { withTimezone: true }),
     crossedAt: timestamp('crossed_at', { withTimezone: true }), // start of the current crossing; null = not crossed
   },
   (table) => [
+    foreignKey({ name: 'user_alert_thresholds_owner_id_fkey', columns: [table.ownerId], foreignColumns: [userAlertOwners.id] }).onDelete('cascade'),
+    index('user_alert_thresholds_owner_idx').on(table.ownerId), // ownerEvents (stopped thresholds' history too)
     index('user_alert_thresholds_owner_active_idx').on(table.ownerId).where(sql`stopped_at IS NULL`),
     check('user_alert_thresholds_metric_check', sql`${table.metric} IN ('price', 'utilization', 'apr')`),
     check('user_alert_thresholds_direction_check', sql`${table.direction} IN ('above', 'below')`),
@@ -939,9 +949,7 @@ export const userAlertEvents = pgTable(
   'user_alert_events',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    thresholdId: uuid('threshold_id')
-      .notNull()
-      .references(() => userAlertThresholds.id, { onDelete: 'cascade' }),
+    thresholdId: uuid('threshold_id').notNull(),
     kind: text('kind').notNull(), // 'crossed' | 'cleared'
     value: numeric('value').notNull(),
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
@@ -950,7 +958,8 @@ export const userAlertEvents = pgTable(
     crossingAt: timestamp('crossing_at', { withTimezone: true }).notNull(),
   },
   (table) => [
-    uniqueIndex('user_alert_events_transition_key').on(table.thresholdId, table.kind, table.crossingAt),
+    foreignKey({ name: 'user_alert_events_threshold_id_fkey', columns: [table.thresholdId], foreignColumns: [userAlertThresholds.id] }).onDelete('cascade'),
+    unique('user_alert_events_transition_key').on(table.thresholdId, table.kind, table.crossingAt),
     index('user_alert_events_threshold_at_idx').on(table.thresholdId, table.at),
     check('user_alert_events_kind_check', sql`${table.kind} IN ('crossed', 'cleared')`),
   ],
@@ -961,15 +970,14 @@ export const userAlertEvents = pgTable(
 export const userAlertChatLinks = pgTable(
   'user_alert_chat_links',
   {
-    ownerId: uuid('owner_id')
-      .notNull()
-      .references(() => userAlertOwners.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id').notNull(),
     chatId: text('chat_id').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     stoppedAt: timestamp('stopped_at', { withTimezone: true }), // /stop; null = active
   },
   (table) => [
-    primaryKey({ columns: [table.ownerId, table.chatId] }),
+    primaryKey({ name: 'user_alert_chat_links_pkey', columns: [table.ownerId, table.chatId] }),
+    foreignKey({ name: 'user_alert_chat_links_owner_id_fkey', columns: [table.ownerId], foreignColumns: [userAlertOwners.id] }).onDelete('cascade'),
     index('user_alert_chat_links_chat_active_idx').on(table.chatId).where(sql`stopped_at IS NULL`),
   ],
 )
@@ -979,11 +987,12 @@ export const userAlertChatLinks = pgTable(
 export const userAlertDeliveries = pgTable(
   'user_alert_deliveries',
   {
-    eventId: uuid('event_id')
-      .notNull()
-      .references(() => userAlertEvents.id, { onDelete: 'cascade' }),
+    eventId: uuid('event_id').notNull(),
     chatId: text('chat_id').notNull(),
     sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.eventId, table.chatId] })],
+  (table) => [
+    primaryKey({ name: 'user_alert_deliveries_pkey', columns: [table.eventId, table.chatId] }),
+    foreignKey({ name: 'user_alert_deliveries_event_id_fkey', columns: [table.eventId], foreignColumns: [userAlertEvents.id] }).onDelete('cascade'),
+  ],
 )

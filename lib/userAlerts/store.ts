@@ -28,6 +28,8 @@ export type ThresholdRow = {
   crossedAt: string | null
   lastValue: number | null
   lastEvaluatedAt: string | null
+  /** As-of of the reading the state last moved on (the out-of-order guard). */
+  lastAsOf: string | null
 }
 
 export type EventRow = {
@@ -109,7 +111,7 @@ export async function addThreshold(sql: Sql, ownerId: string, t: NewThreshold, c
 export async function activeThresholds(sql: Sql, ownerId: string): Promise<ThresholdRow[]> {
   const rows = await sql`
     SELECT id, metric, subject, direction, threshold, created_at AS "createdAt", crossed_at AS "crossedAt",
-           last_value AS "lastValue", last_evaluated_at AS "lastEvaluatedAt"
+           last_value AS "lastValue", last_evaluated_at AS "lastEvaluatedAt", last_as_of AS "lastAsOf"
     FROM user_alert_thresholds
     WHERE owner_id = ${ownerId}::uuid AND stopped_at IS NULL
     ORDER BY created_at ASC`
@@ -123,12 +125,17 @@ export async function activeThresholds(sql: Sql, ownerId: string): Promise<Thres
     crossedAt: iso(r.crossedAt),
     lastValue: num(r.lastValue),
     lastEvaluatedAt: iso(r.lastEvaluatedAt),
+    lastAsOf: iso(r.lastAsOf),
   }))
 }
 
 export type Observation = { value: number; at: string; asOf: string; source: string }
 
 /**
+ * Every write below also requires the reading to be no older than the one the state
+ * last moved on (`last_as_of IS NULL OR last_as_of <= as_of`), so an instance with
+ * an older cached reading can never undo a newer instance's transition.
+ *
  * not crossed → crossed. Compare-and-set: only the read that flips crossed_at from
  * NULL writes the event; the unique (threshold_id, kind, crossing_at) key backs it.
  * Returns true when this call recorded the event.
@@ -137,8 +144,10 @@ export async function recordCrossing(sql: Sql, thresholdId: string, o: Observati
   const rows = await sql`
     WITH upd AS (
       UPDATE user_alert_thresholds
-      SET crossed_at = ${o.at}::timestamptz, last_value = ${String(o.value)}::numeric, last_evaluated_at = ${o.at}::timestamptz
+      SET crossed_at = ${o.at}::timestamptz, last_value = ${String(o.value)}::numeric,
+          last_evaluated_at = ${o.at}::timestamptz, last_as_of = ${o.asOf}::timestamptz
       WHERE id = ${thresholdId}::uuid AND crossed_at IS NULL AND stopped_at IS NULL
+        AND (last_as_of IS NULL OR last_as_of <= ${o.asOf}::timestamptz)
       RETURNING id, crossed_at
     )
     INSERT INTO user_alert_events (threshold_id, kind, value, at, as_of, source, crossing_at)
@@ -158,10 +167,12 @@ export async function recordClearing(sql: Sql, thresholdId: string, o: Observati
     WITH prev AS (
       SELECT id, crossed_at FROM user_alert_thresholds
       WHERE id = ${thresholdId}::uuid AND crossed_at IS NOT NULL AND stopped_at IS NULL
+        AND (last_as_of IS NULL OR last_as_of <= ${o.asOf}::timestamptz)
       FOR UPDATE
     ), upd AS (
       UPDATE user_alert_thresholds t
-      SET crossed_at = NULL, last_value = ${String(o.value)}::numeric, last_evaluated_at = ${o.at}::timestamptz
+      SET crossed_at = NULL, last_value = ${String(o.value)}::numeric,
+          last_evaluated_at = ${o.at}::timestamptz, last_as_of = ${o.asOf}::timestamptz
       FROM prev WHERE t.id = prev.id
       RETURNING t.id, prev.crossed_at AS crossing_at
     )
@@ -173,12 +184,32 @@ export async function recordClearing(sql: Sql, thresholdId: string, o: Observati
   return rows.length > 0
 }
 
-/** No transition: remember the value and when it was checked. */
-export async function recordReading(sql: Sql, thresholdId: string, o: Pick<Observation, 'value' | 'at'>): Promise<void> {
+/** A no-transition reading is written at most this often per threshold. */
+export const READING_WRITE_MIN_INTERVAL_S = 60
+
+/**
+ * No transition: remember the value, its as-of and when it was checked — but ONLY
+ * when the value changed, the reading is not older than the stored one, and the
+ * last write is at least a minute old. A feed polled every few seconds therefore
+ * writes at most once a minute per threshold, and only when the source moved.
+ * (Advancing last_as_of keeps the out-of-order guard current.)
+ */
+export async function recordReading(sql: Sql, thresholdId: string, o: Pick<Observation, 'value' | 'at' | 'asOf'>): Promise<void> {
   await sql`
     UPDATE user_alert_thresholds
-    SET last_value = ${String(o.value)}::numeric, last_evaluated_at = ${o.at}::timestamptz
-    WHERE id = ${thresholdId}::uuid AND stopped_at IS NULL`
+    SET last_value = ${String(o.value)}::numeric, last_evaluated_at = ${o.at}::timestamptz, last_as_of = ${o.asOf}::timestamptz
+    WHERE id = ${thresholdId}::uuid AND stopped_at IS NULL
+      AND last_value IS DISTINCT FROM ${String(o.value)}::numeric
+      AND (last_as_of IS NULL OR last_as_of <= ${o.asOf}::timestamptz)
+      AND (last_evaluated_at IS NULL OR last_evaluated_at <= ${o.at}::timestamptz - make_interval(secs => ${READING_WRITE_MIN_INTERVAL_S}))`
+}
+
+/** The JS-side mirror of recordReading's guard: skip the round trip when it would no-op. */
+export const readingWorthWriting = (t: Pick<ThresholdRow, 'lastValue' | 'lastEvaluatedAt' | 'lastAsOf'>, o: Pick<Observation, 'value' | 'at' | 'asOf'>): boolean => {
+  if (t.lastValue !== null && t.lastValue === o.value) return false
+  if (t.lastAsOf && Date.parse(t.lastAsOf) > Date.parse(o.asOf)) return false
+  if (t.lastEvaluatedAt && Date.parse(o.at) - Date.parse(t.lastEvaluatedAt) < READING_WRITE_MIN_INTERVAL_S * 1000) return false
+  return true
 }
 
 /** This owner's events, newest first (stopped thresholds' history included). */

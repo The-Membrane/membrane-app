@@ -40,8 +40,12 @@ type Th = {
   crossedAt: string | null
   lastValue: string | null
   lastEvaluatedAt: string | null
+  lastAsOf: string | null
 }
 type Ev = { id: string; thresholdId: string; kind: string; value: string; at: string; asOf: string; source: string; crossingAt: string }
+
+// The out-of-order guard every transition/reading write carries (store.ts).
+const notOlder = (t: { lastAsOf: string | null }, asOf: string) => t.lastAsOf === null || Date.parse(t.lastAsOf) <= Date.parse(asOf)
 
 const world = (opts: { tablesMissing?: boolean; throws?: boolean } = {}) => {
   const owners: Owner[] = []
@@ -81,24 +85,28 @@ const world = (opts: { tablesMissing?: boolean; throws?: boolean } = {}) => {
         return ths.filter((x) => x.ownerId === v[0] && !x.stoppedAt)
       }
       if (q.startsWith('WITH upd AS ( UPDATE user_alert_thresholds SET crossed_at')) {
-        const [at, value, , id, , , asOf, source] = v
-        const t = ths.find((x) => x.id === id && x.crossedAt === null && !x.stoppedAt)
+        expect(q).toContain('AND (last_as_of IS NULL OR last_as_of <= ?::timestamptz)')
+        const [at, value, , , id, guardAsOf, , , asOf, source] = v
+        const t = ths.find((x) => x.id === id && x.crossedAt === null && !x.stoppedAt && notOlder(x, guardAsOf))
         if (!t) return []
-        Object.assign(t, { crossedAt: at, lastValue: value, lastEvaluatedAt: at })
+        Object.assign(t, { crossedAt: at, lastValue: value, lastEvaluatedAt: at, lastAsOf: asOf })
         return insertEvent({ thresholdId: id, kind: 'crossed', value, at, asOf, source, crossingAt: at })
       }
       if (q.startsWith('WITH prev AS')) {
-        const [id, value, at, , , asOf, source] = v
-        const t = ths.find((x) => x.id === id && x.crossedAt !== null && !x.stoppedAt)
+        expect(q).toContain('AND (last_as_of IS NULL OR last_as_of <= ?::timestamptz)')
+        const [id, guardAsOf, value, at, , , , asOf, source] = v
+        const t = ths.find((x) => x.id === id && x.crossedAt !== null && !x.stoppedAt && notOlder(x, guardAsOf))
         if (!t) return []
         const crossingAt = t.crossedAt as string
-        Object.assign(t, { crossedAt: null, lastValue: value, lastEvaluatedAt: at })
+        Object.assign(t, { crossedAt: null, lastValue: value, lastEvaluatedAt: at, lastAsOf: asOf })
         return insertEvent({ thresholdId: id, kind: 'cleared', value, at, asOf, source, crossingAt })
       }
       if (q.startsWith('UPDATE user_alert_thresholds SET last_value')) {
-        const [value, at, id] = v
+        const [value, at, asOf, id, , , , minS] = v
         const t = ths.find((x) => x.id === id && !x.stoppedAt)
-        if (t) Object.assign(t, { lastValue: value, lastEvaluatedAt: at })
+        const changed = t && (t.lastValue === null || Number(t.lastValue) !== Number(value))
+        const due = t && (t.lastEvaluatedAt === null || Date.parse(at) - Date.parse(t.lastEvaluatedAt) >= minS * 1000)
+        if (t && changed && due && notOlder(t, asOf)) Object.assign(t, { lastValue: value, lastEvaluatedAt: at, lastAsOf: asOf })
         return []
       }
       if (q.startsWith('SELECT e.id, e.threshold_id')) {
@@ -124,7 +132,7 @@ const world = (opts: { tablesMissing?: boolean; throws?: boolean } = {}) => {
     return Promise.resolve(out)
   }
   const th = (o: Pick<Th, 'ownerId' | 'metric' | 'subject' | 'direction' | 'threshold' | 'optedInAt' | 'createdAt'>): Th => {
-    const t: Th = { id: uuid(), stoppedAt: null, crossedAt: null, lastValue: null, lastEvaluatedAt: null, ...o }
+    const t: Th = { id: uuid(), stoppedAt: null, crossedAt: null, lastValue: null, lastEvaluatedAt: null, lastAsOf: null, ...o }
     ths.push(t)
     return t
   }
@@ -279,6 +287,16 @@ describe('POST /api/alerts', () => {
     expect(price.statusCode).toBe(200)
   })
 
+  it('a string threshold must be a plain decimal ("" is not 0, "0x10" is not 16)', async () => {
+    for (const threshold of ['', ' ', '0x10', '1e2', '5,5', '50%', 'Infinity']) {
+      const w = world()
+      const res = await postWith(alertsHandler(w), { ...good, threshold })
+      expect([res.statusCode, res.body.field]).toEqual([400, 'threshold'])
+      expect(w.queries).toHaveLength(0)
+    }
+    expect((await postWith(alertsHandler(world()), { ...good, threshold: ' 50 ' })).statusCode).toBe(200)
+  })
+
   it('adds to an existing feed only with that feed token AND the same address', async () => {
     const w = world()
     const h = alertsHandler(w)
@@ -341,14 +359,20 @@ describe('POST /api/alerts', () => {
 describe('GET/DELETE /api/alerts/feed/[token]', () => {
   const reader = (r: Reading | (() => Reading)) => () => async (needs: Array<{ metric: string; subject: string }>) =>
     new Map(needs.map((n) => [`${n.metric}|${n.subject}`, typeof r === 'function' ? r() : r] as [string, Reading]))
-  const okAt = (value: number): Reading => ({ status: 'ok', value, asOf: '2026-10-14T11:00:00.000Z', source: 'Membrane recorder · debt / (debt + available)' })
+  const okAt = (value: number, asOf = '2026-10-14T11:00:00.000Z'): Reading => ({ status: 'ok', value, asOf, source: 'Membrane recorder · debt / (debt + available)' })
 
-  const feedHandler = (w: ReturnType<typeof world>, read: ReturnType<typeof reader>, nowMs = () => T0) =>
-    createFeedHandler({ env: envOf(DB_ENV), sql: () => w.sql, readValues: read, limiter: createRateLimiter({ limit: 1000, windowMs: 60_000 }), nowMs })
+  const feedHandler = (w: ReturnType<typeof world>, read: ReturnType<typeof reader>, nowMs = () => T0, feedLimit = 1000) =>
+    createFeedHandler({
+      env: envOf(DB_ENV),
+      sql: () => w.sql,
+      readValues: read,
+      limits: { ip: createRateLimiter({ limit: 1000, windowMs: 60_000 }), feed: createRateLimiter({ limit: feedLimit, windowMs: 60_000 }) },
+      nowMs,
+    })
 
-  const get = async (h: ReturnType<typeof feedHandler>, token: string, query: Record<string, string> = {}) => {
+  const get = async (h: ReturnType<typeof feedHandler>, token: string, query: Record<string, string> = {}, ip = '9.9.9.9') => {
     const res = mockRes()
-    await h({ method: 'GET', headers: {}, query: { token, ...query } } as any, res)
+    await h({ method: 'GET', headers: { 'x-forwarded-for': ip }, query: { token, ...query } } as any, res)
     return res
   }
 
@@ -453,5 +477,77 @@ describe('GET/DELETE /api/alerts/feed/[token]', () => {
     expect((await del(TOKEN_A, mine)).statusCode).toBe(404)
     expect((await get(h, TOKEN_A)).body.thresholds).toEqual([])
     expect(w.ths[1].stoppedAt).toBeNull()
+  })
+
+  it('an OLDER cached reading after a newer crossing records nothing (out-of-order instances)', async () => {
+    const w = await seeded()
+    // Instance 1 holds the newer reading: crosses (as of 11:30).
+    await get(feedHandler(w, reader(okAt(51, '2026-10-14T11:30:00.000Z'))), TOKEN_A)
+    expect(w.evs.map((e) => e.kind)).toEqual(['crossed'])
+    expect(w.ths[0].lastAsOf).toBe('2026-10-14T11:30:00.000Z')
+    // Instance 2 still has an older cache (as of 11:00) that is back below the band.
+    const older = await get(feedHandler(w, reader(okAt(40, '2026-10-14T11:00:00.000Z'))), TOKEN_A)
+    expect(w.evs.map((e) => e.kind)).toEqual(['crossed'])
+    expect(w.ths[0].crossedAt).not.toBeNull()
+    expect(older.body.thresholds[0]).toMatchObject({ crossed: true, note: null })
+    // A newer reading still clears normally.
+    await get(feedHandler(w, reader(okAt(40, '2026-10-14T11:45:00.000Z')), () => T0 + 120_000), TOKEN_A)
+    expect(w.evs.map((e) => e.kind)).toEqual(['crossed', 'cleared'])
+  })
+
+  it('the SQL guard alone also refuses an older reading (if two reads race past the JS check)', async () => {
+    const { recordClearing, recordCrossing } = await import('@/lib/userAlerts/store')
+    const w = await seeded()
+    const id = w.ths[0].id
+    expect(await recordCrossing(w.sql, id, { value: 51, at: '2026-10-14T12:00:00.000Z', asOf: '2026-10-14T11:30:00.000Z', source: 's' })).toBe(true)
+    expect(await recordClearing(w.sql, id, { value: 40, at: '2026-10-14T12:01:00.000Z', asOf: '2026-10-14T11:00:00.000Z', source: 's' })).toBe(false)
+    expect(w.evs).toHaveLength(1)
+  })
+
+  it('a no-transition reading writes only when the value moved, at most once a minute', async () => {
+    const w = await seeded()
+    let clock = T0
+    let value = 40
+    const h = feedHandler(w, reader(() => okAt(value)), () => clock)
+    const writes = () => w.queries.filter((q) => q.startsWith('UPDATE user_alert_thresholds SET last_value')).length
+    await get(h, TOKEN_A) // first reading: written
+    expect(writes()).toBe(1)
+    for (let i = 0; i < 5; i++) await get(h, TOKEN_A) // same value: never written
+    expect(writes()).toBe(1)
+    clock += 30_000
+    value = 41
+    await get(h, TOKEN_A) // moved, but within the minute: not written
+    expect(writes()).toBe(1)
+    clock += 30_000
+    await get(h, TOKEN_A) // moved and a minute on: written
+    expect(writes()).toBe(2)
+    expect(w.ths[0].lastValue).toBe('41')
+  })
+
+  it('a malformed token is rejected before any DB call or limiter; GET is rate-limited per IP + token', async () => {
+    const w = await seeded()
+    const before = w.queries.length
+    const h = feedHandler(w, reader(okAt(40)), () => T0, 2)
+    for (const tok of ['zz', 'A'.repeat(65), '']) expect((await get(h, tok)).statusCode).toBe(404)
+    expect(w.queries.length).toBe(before)
+    expect((await get(h, TOKEN_A)).statusCode).toBe(200)
+    expect((await get(h, TOKEN_A)).statusCode).toBe(200)
+    const third = await get(h, TOKEN_A)
+    expect(third.statusCode).toBe(429)
+    expect(third.headers['retry-after']).toBe('60')
+    // another reader of the same feed, or the same reader of another feed, is unaffected
+    expect((await get(h, TOKEN_A, {}, '8.8.8.8')).statusCode).toBe(200)
+    expect((await get(h, TOKEN_B)).statusCode).toBe(200)
+  })
+
+  it('RSS carries the token-gated manage link on the channel and on every item', async () => {
+    const w = await seeded()
+    const h = feedHandler(w, reader(okAt(55)))
+    await get(h, TOKEN_A)
+    const rss = (await get(h, TOKEN_A, { format: 'rss' })).body as string
+    const manage = `https://membrane.money/alerts/${TOKEN_A}`
+    expect(rss).toContain(`<link>${manage}</link>`)
+    expect(rss).toContain(`Stop or change them: ${manage}`)
+    expect(rss).toContain(`Stop this alert: ${manage}#t-${w.ths[0].id}`)
   })
 })

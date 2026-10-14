@@ -1,0 +1,27 @@
+# Wavefront live engine on Fly.io — PENDING OWNER APPROVAL. NOT DEPLOYED.
+# No Fly app exists for this; the name below is a placeholder to be chosen by the owner.
+# Nothing in this repository runs `fly deploy`. See docs/WAVEFRONT_LIVE_ENGINE.md.
+#
+# Owner steps (only after approval): fly apps create <name>; fly volumes create wavefront_data
+# --size 1; (Postgres sink) fly secrets set DATABASE_URL=...; fly deploy -c deploy/wavefront-live/fly.toml
+app = "REPLACE-WITH-OWNER-CHOSEN-NAME"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# A worker: no HTTP service, one always-on machine (the minute loop is stateful; never two).
+[processes]
+  worker = "--mode live --out /data/stream.jsonl --stats /data/stats.json"
+
+[[mounts]]
+  source = "wavefront_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  processes = ["worker"]
+
+[deploy]
+  strategy = "immediate"

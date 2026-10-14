@@ -337,6 +337,69 @@ export interface CureWalkResult {
 
 const DEFAULT_MAX_SALES = 20
 
+/** What a sale step carries forward. `collBase` is on the t0 basis (value = collBase × ratio). */
+export interface CureSaleState {
+  debt: number
+  collBase: number
+  /** Sales run so far. */
+  sales: number
+}
+
+export interface CureSaleParams {
+  /** The borrow cap the repay restores to: `max(0, line - gap)`. */
+  cap: number
+  /** `liqDebtMinimum` in the debt's unit. 0 disables the floor. */
+  debtMinimumUsd: number
+  /** Per-sale execution cap. Infinity is the uncapped headline. */
+  repayCap: number
+  maxSales: number
+}
+
+export interface CureSaleResult extends CureSaleState {
+  /** False when the sized repay was not positive: nothing changed hands. */
+  sold: boolean
+  repaid: number
+  /** Collateral value taken, at this minute's price: == repaid (no fee) unless underwater. */
+  seized: number
+  /** False when the episode is over (nothing left, or the sale cap is reached). */
+  live: boolean
+}
+
+/**
+ * ONE SALE at composite price ratio `r` — the repay-to-cap with `membraneRepayValue` and the
+ * `liqDebtMinimum` floor, seized == repaid (no fee in the census), the remainder carried
+ * forward on the t0 basis so the position walks on. Pure: `cureWalk` and the incremental
+ * wavefront kernel (lib/wavefront/kernel.ts) both call it, so they cannot drift.
+ */
+export function cureSale(s: CureSaleState, r: number, p: CureSaleParams): CureSaleResult {
+  const collAt = s.collBase * r
+  let repaid = membraneRepayValue(s.debt, collAt, p.cap, p.debtMinimumUsd)
+  if (repaid > p.repayCap) repaid = p.repayCap
+  if (repaid > s.debt) repaid = s.debt
+  if (!(repaid > 0)) {
+    return {
+      ...s,
+      sold: false,
+      repaid: 0,
+      seized: 0,
+      live: s.debt > 0 && collAt > 0 && s.sales < p.maxSales,
+    }
+  }
+  const seized = Math.min(repaid, collAt) // no liquidation fee in the census
+  const sales = s.sales + 1
+  const debt = s.debt - repaid
+  const collBase = r > 0 ? (collAt - seized) / r : 0
+  return {
+    debt,
+    collBase,
+    sales,
+    sold: true,
+    repaid,
+    seized,
+    live: debt > 1e-6 && collBase > 1e-6 && sales < p.maxSales,
+  }
+}
+
 /**
  * Replay one position's delay window against a price path.
  *
@@ -440,16 +503,14 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
   let firstOutcome: CureOutcome | null = null
   let lastRatio = 1
 
+  const saleParams: CureSaleParams = { cap, debtMinimumUsd: dMin, repayCap, maxSales }
+
   /** One sale at minute i, price ratio r. Returns false when the episode is over. */
   const sell = (i: number, r: number, reason: SaleReason): boolean => {
-    const collAt = collBase * r
-    let repaid = membraneRepayValue(debt, collAt, cap, dMin)
-    if (repaid > repayCap) repaid = repayCap
-    if (repaid > debt) repaid = debt
-    if (!(repaid > 0)) return debt > 0 && collAt > 0 && sales < maxSales
-    const seized = Math.min(repaid, collAt) // no liquidation fee in the census
-    closed += repaid
-    sales++
+    const s = cureSale({ debt, collBase, sales }, r, saleParams)
+    if (!s.sold) return s.live
+    closed += s.repaid
+    sales = s.sales
     if (firstIndex === null) {
       firstIndex = i
       firstOutcome =
@@ -459,10 +520,10 @@ export function cureWalk(input: CureWalkInput): CureWalkResult {
             ? 'sold-no-delay'
             : 'sold-at-expiry'
     }
-    debt -= repaid
-    collBase = r > 0 ? (collAt - seized) / r : 0
+    debt = s.debt
+    collBase = s.collBase
     timer.clearAfterSale()
-    return debt > 1e-6 && collBase > 1e-6 && sales < maxSales
+    return s.live
   }
 
   // t0. Delayed: armed by the breach the census located, TimerStarted (:1393-1419).

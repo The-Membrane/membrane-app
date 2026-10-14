@@ -995,12 +995,17 @@ export const CuratorFeed: React.FC = () => {
 /** Compact card: open clusters and the next timelocks to elapse. Links to the full page. */
 export const CuratorFeedCard: React.FC = () => {
   const { chainName } = useChainRoute()
-  const { data } = useQuery<FeedResponse>({
+  const { data, isError } = useQuery<FeedResponse>({
     queryKey: ['curator_feed_card'],
     queryFn: () => getJson('/api/curator-feed?group=exits&limit=5'),
     staleTime: 5 * 60_000,
+    // A missing dataset is a 503, not a blip: say so after one retry, not four.
+    retry: 1,
   })
   const nowS = data?.meta.now ?? Math.floor(Date.now() / 1000)
+  const pending = data?.open.filter((r) => r.status === 'pending') ?? []
+  const empty = !!data && data.clusters.length === 0 && pending.length === 0 && data.rows.length === 0
+  const collected = data ? Date.parse(data.meta.collectedAt) : NaN
   return (
     <Card p={SPACING.base}>
       <HStack justify="space-between" align="baseline">
@@ -1008,28 +1013,44 @@ export const CuratorFeedCard: React.FC = () => {
         <Link
           as={NextLink}
           href={`/${chainName}/curator-feed`}
+          display="inline-flex"
+          alignItems="center"
+          minH="44px"
           fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="10px"
+          fontSize="11px"
           color={SEMANTIC_COLORS.textSecondary}
         >
           full feed →
         </Link>
       </HStack>
-      {!data && <Mono size="11px">loading…</Mono>}
+      {/* Unavailable is said in words, never left as an endless "loading…". */}
+      {!data && !isError && <Mono size="11px">loading…</Mono>}
+      {!data && isError && (
+        <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
+          <Box as="span" aria-hidden="true" mr="0.4em">
+            ░
+          </Box>
+          Curator feed unavailable.
+        </Mono>
+      )}
+      {empty && <Mono size="12px">No curator exit in the feed window.</Mono>}
       {data?.clusters.slice(0, 2).map((c) => (
         <Mono key={`${c.collateral}:${c.start}`} size="12px" color={SEMANTIC_COLORS.danger}>
+          <Box as="span" aria-hidden="true" mr="0.3em">
+            ✖
+          </Box>
           {c.text} ({utc(c.end).slice(0, 10)})
         </Mono>
       ))}
-      {data?.open
-        .filter((r) => r.status === 'pending')
-        .slice(0, 3)
-        .map((r) => (
-          <ActionRow key={r.id} r={r} nowS={nowS} />
-        ))}
+      {pending.slice(0, 3).map((r) => (
+        <ActionRow key={r.id} r={r} nowS={nowS} />
+      ))}
       {data?.rows.slice(0, 3).map((r) => (
         <ActionRow key={r.id} r={r} nowS={nowS} />
       ))}
+      {Number.isFinite(collected) && (
+        <Mono size="11px">collected {utc(Math.floor(collected / 1000))}</Mono>
+      )}
     </Card>
   )
 }

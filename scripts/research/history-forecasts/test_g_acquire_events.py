@@ -408,9 +408,28 @@ class TestGate(unittest.TestCase):
         A = np.zeros((1, 2), dtype=np.int64)  # round trip inside the day: in $10M, out $10M + $1,100
         ev = [10**13, -(10**13 + 1_100 * 10**6)]
         g = G.gate_pairs(A, np.ones_like(A, dtype=bool), blocks, [0, 0], [120, 180], ev)
-        self.assertFalse(g["pass"][0])
-        pk = G.intraday_peaks(g, blocks, [0, 0], [120, 180], ev)
-        self.assertEqual(pk[0], 1e13)
+        self.assertFalse(g["pass"][0])                 # registered rule: tolerance $10 on zero anchors
+        self.assertEqual(int(g["peak"][0]), 10**13)
+        self.assertEqual(int(g["tol_d2"][0]), 10**10)  # D2: 0.1% of the $10M intraday peak
+        self.assertTrue(g["pass_d2"][0])
+
+    def test_d2_peak_per_pair_and_order(self):
+        blocks = [100, 200, 300]
+        A = np.array([[5 * 10**12, 0, 0], [0, 0, 0]], dtype=np.int64)
+        # address 0: pair 0 withdraws all; pair 1 a round trip that peaks at $20M; address 1: in then out
+        ev_addr = [0, 1, 0, 0, 1]
+        ev_block = [150, 160, 210, 220, 170]
+        ev = [-5 * 10**12, 3 * 10**12, 2 * 10**13, -(2 * 10**13 + 15_000 * 10**6), -3 * 10**12]
+        g = G.gate_pairs(A, np.ones_like(A, dtype=bool), blocks, ev_addr, ev_block, ev)
+        by = {(int(a), int(p)): i for i, (a, p) in enumerate(zip(g["addr"], g["p"]))}
+        self.assertEqual(int(g["peak"][by[(0, 0)]]), 5 * 10**12)
+        self.assertEqual(int(g["peak"][by[(0, 1)]]), 2 * 10**13)
+        self.assertEqual(int(g["peak"][by[(1, 0)]]), 3 * 10**12)
+        self.assertFalse(g["pass"][by[(0, 1)]])
+        self.assertTrue(g["pass_d2"][by[(0, 1)]])
+        self.assertTrue(all(g["pass_d2"][g["pass"]]))  # D2 never fails a pair the registered rule passes
+        s = G.gate_summary(g, "pass_d2")
+        self.assertEqual(s["n_pass"], s["n_pairs"])
 
     def test_interest_diagnostic(self):
         blocks = [100, 200]
@@ -424,6 +443,47 @@ class TestGate(unittest.TestCase):
         self.assertEqual(G.normalized_income(li, rate, 1000, 1000), li)
         got = G.normalized_income(li, rate, 0, G.SECONDS_PER_YEAR)
         self.assertEqual(got, G.ray_mul(RAY + rate, li))
+
+
+class TestUnitsAndHoldouts(unittest.TestCase):
+    def test_units(self):
+        self.assertEqual(G.to_units(123_456_789, 6), 123_456_789)
+        self.assertEqual(G.to_units(1_234_567_890_123_456_789, 18), 1_234_568)  # 1.23456789 tokens, rounded
+        self.assertEqual(G.to_units(1_500_000_000_000, 18), 2)                   # half rounds away from zero
+        self.assertEqual(G.to_units(-1_500_000_000_000, 18), -2)
+        self.assertEqual(G.to_units(5, 2), 50_000)
+        self.assertEqual(G.from_units(7, 18), 7 * 10**12)
+        rows = [["d1", addr(1), 10**9 * 10**18, ""], ["d2", addr(1), 2 * 10**9 * 10**18, ""]]
+        addrs, A, valid = G.load_anchor_matrix(rows, ["d1", "d2"], decimals=18)
+        self.assertEqual(A.tolist(), [[10**15, 2 * 10**15]])   # $1B and $2B in 1e-6 units fit int64
+
+    def test_abi_helpers(self):
+        arr = (32).to_bytes(32, "big") + (2).to_bytes(32, "big") + bytes(12) + bytes.fromhex("11" * 20) + \
+            bytes(12) + bytes.fromhex("22" * 20)
+        self.assertEqual(G.decode_address_array(arr), ["0x" + "11" * 20, "0x" + "22" * 20])
+        s = b"USDe"
+        enc = (32).to_bytes(32, "big") + len(s).to_bytes(32, "big") + s + bytes(32 - len(s))
+        self.assertEqual(G.decode_symbol(True, enc), "USDe")
+        self.assertEqual(G.decode_symbol(True, b"MKR" + bytes(29)), "MKR")
+        self.assertEqual(G.decode_symbol(False, b""), "")
+
+    def test_peg_and_selection(self):
+        self.assertTrue(G.peg_ok([1.0, 0.999, 1.004]))
+        self.assertFalse(G.peg_ok([1.0, None]))
+        self.assertFalse(G.peg_ok([1.0, 1.05]))   # yield-bearing share drifting above $1
+        self.assertFalse(G.peg_ok([]))
+        asof_ts = 1_800_000_000
+        base = {"price_asof_usd": 1.0, "monthly_prices": [1.0] * 12, "supply_usd": 6e7, "listing_ts": asof_ts - 400 * 86400}
+        cands = [dict(base, asset="0xa"), dict(base, asset="0xb", supply_usd=4e7),
+                 dict(base, asset="0xc", listing_ts=asof_ts - 300 * 86400), dict(base, asset="0xd", monthly_prices=[1.0, 0.97]),
+                 dict(base, asset="0xusdc"), dict(base, asset="0xe", price_asof_usd=1.21)]
+        out = {c["asset"]: c for c in G.select_holdouts(cands, asof_ts, {"0xusdc"})}
+        self.assertEqual([a for a, c in out.items() if c["selected"]], ["0xa"])
+        self.assertIn("supply", out["0xb"]["reason"])
+        self.assertIn("365", out["0xc"]["reason"])
+        self.assertIn("pegged", out["0xd"]["reason"])
+        self.assertIn("USDC", out["0xusdc"]["reason"])
+        self.assertEqual(G.safe_name("USD₮0"), "USD_0")
 
 
 class TestMaxima(unittest.TestCase):

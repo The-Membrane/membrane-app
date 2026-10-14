@@ -15,15 +15,21 @@ Phases, each resumable from the work directory:
   timestamps  block timestamps of every block with a log (carried by the node in each log), checked
               per block and against eth_getBlockByNumber for a seeded sample; missing ones fetched
   decode      Mint / Burn / BalanceTransfer / Transfer decode, counts, unknown topic0
-  gate        G.2 validation gate against the frozen daily anchors of P_r (depositor-balances)
+  gate        validation gate against the frozen daily anchors of P_r (depositor-balances); the verdict
+              uses deviation D2 (tolerance base max(anchor_d, anchor_d+1, intraday peak)), the registered
+              G.2 rule is reported beside it
   universe    extended universe (event-reconstructed balance >= $1,000,000 at any time); only after
               the gate passed
   anchors     daily 00:00Z balanceOf for every new address (B.1 method)
   gate_new    the gate on the new anchors
   write       output files, gate-report.json, run-log.json, PROVENANCE.md
 
+Holdout mode (deviation D1): select (mechanical holdout list at the same asof), logs, timestamps,
+decode, universe, anchors, rstate (daily reserve state), gate_new, write.
+
 Usage:
   python3 g_acquire_events.py --work-dir DIR [--out-dir DIR] [--phases all|p1,p2,...]
+  python3 g_acquire_events.py --mode holdout --work-dir DIR2 --main-work-dir DIR [--phases ...]
 """
 
 from __future__ import annotations
@@ -159,6 +165,22 @@ def ray_div(a: int, b: int) -> int:
 
 def signed_ray_div(x: int, b: int) -> int:
     return ray_div(x, b) if x >= 0 else -ray_div(-x, b)
+
+
+def to_units(raw: int, decimals: int) -> int:
+    """Raw token amount -> 6-decimal units (1e-6 token), rounded half away from zero. All analysis
+    (gate, universe) runs in these units so 18-decimal balances fit in int64; outputs keep raw."""
+    if decimals == 6:
+        return raw
+    if decimals < 6:
+        return raw * 10 ** (6 - decimals)
+    div = 10 ** (decimals - 6)
+    q = (abs(raw) + div // 2) // div
+    return q if raw >= 0 else -q
+
+
+def from_units(units: int, decimals: int) -> int:
+    return units * 10 ** (decimals - 6) if decimals >= 6 else units // 10 ** (6 - decimals)
 
 
 class DecodeError(Exception):
@@ -536,31 +558,52 @@ def pair_index(snap_blocks, ev_blocks):
 def gate_pairs(A, valid, snap_blocks, ev_addr, ev_block, ev_delta, ev_scaled=None, income=None):
     """Every (address, p) with an anchor on both ends of daily pair p.
 
-    A: (n_addr, n_snap) int64 anchors at snapshot blocks snap_blocks (increasing); valid: bool mask.
-    ev_*: one row per balance change (address row index, block, delta_raw, scaled delta).
-    income: optional normalized income per snapshot (float, ray / 1e27) for the interest diagnostic.
-    Returns dict of 1-D arrays."""
+    A: (n_addr, n_snap) int64 anchors (6-decimal units) at snapshot blocks snap_blocks (increasing);
+    valid: bool mask. ev_*: one row per balance change in chain order (address row index, block,
+    delta, scaled delta). income: optional normalized income per snapshot (float, ray / 1e27) for
+    the interest diagnostic.
+
+    Returns 1-D arrays per pair, with both rules: the registered G.2 tolerance (`tol`, `pass`, base
+    max(a0, a1)) and deviation D2 (`tol_d2`, `pass_d2`, base max(a0, a1, intraday peak)). The
+    intraday peak is the maximum of the G.2 path a0 + cumulative event changes over the pair."""
     import numpy as np
     n_addr, n_snap = A.shape
     n_pair = n_snap - 1
     S = np.zeros((n_addr, n_pair), dtype=np.int64)
     N = np.zeros((n_addr, n_pair), dtype=np.int64)
     SS = np.zeros((n_addr, n_pair), dtype=np.float64)
+    PK = np.full((n_addr, n_pair), np.iinfo(np.int64).min, dtype=np.int64)
     ev_addr = np.asarray(ev_addr, dtype=np.int64)
+    ev_delta = np.asarray(ev_delta, dtype=np.int64)
     p = pair_index(snap_blocks, ev_block)
     m = (p >= 0) & (p < n_pair)
-    np.add.at(S, (ev_addr[m], p[m]), np.asarray(ev_delta, dtype=np.int64)[m])
+    np.add.at(S, (ev_addr[m], p[m]), ev_delta[m])
     np.add.at(N, (ev_addr[m], p[m]), 1)
     if ev_scaled is not None:
         np.add.at(SS, (ev_addr[m], p[m]), np.asarray(ev_scaled, dtype=np.float64)[m])
+    if m.any():
+        key = ev_addr[m] * n_pair + p[m]
+        d_m = ev_delta[m]
+        order = np.argsort(key, kind="stable")  # stable: chain order kept inside each (address, pair)
+        k_s, d_s = key[order], d_m[order]
+        starts = np.r_[0, np.nonzero(np.diff(k_s))[0] + 1]
+        lens = np.diff(np.r_[starts, len(k_s)])
+        cs = np.cumsum(d_s)  # int64 wrap-around cancels in the difference below
+        run = cs - np.repeat(cs[starts] - d_s[starts], lens)
+        ka, kp = k_s // n_pair, k_s % n_pair
+        path = A[ka, kp] + run
+        PK[ka[starts], kp[starts]] = np.maximum.reduceat(path, starts)
     both = valid[:, :-1] & valid[:, 1:]
     ai, pi = np.nonzero(both)
     a0 = A[ai, pi]
     a1 = A[ai, pi + 1]
     ev = S[ai, pi]
     diff = (a1 - a0) - ev
+    peak = np.maximum(np.maximum(a0, a1), PK[ai, pi])
+    tol_d2 = np.maximum(GATE_ABS_RAW, peak // GATE_REL_DEN)
     out = {"addr": ai, "p": pi, "a0": a0, "a1": a1, "ev": ev, "n_ev": N[ai, pi], "diff": diff,
-           "tol": gate_tolerance(a0, a1), "pass": gate_tolerance_pass(a0, a1, diff)}
+           "tol": gate_tolerance(a0, a1), "pass": gate_tolerance_pass(a0, a1, diff),
+           "peak": peak, "tol_d2": tol_d2, "pass_d2": np.abs(diff) <= tol_d2}
     if income is not None:
         inc = np.asarray(income, dtype=np.float64)
         pred = (a0.astype(np.float64) / inc[pi] + SS[ai, pi]) * inc[pi + 1]
@@ -568,42 +611,16 @@ def gate_pairs(A, valid, snap_blocks, ev_addr, ev_block, ev_delta, ev_scaled=Non
     return out
 
 
-def intraday_peaks(g: dict, snap_blocks, ev_addr, ev_block, ev_delta):
-    """For each failing pair of g: max over its events of anchor0 + cumulative G.2 delta (raw);
-    for passing pairs max(a0, a1). Events must be in chain order."""
+def gate_summary(g: dict, key: str = "pass") -> dict:
     import numpy as np
-    peak = np.maximum(g["a0"], g["a1"]).astype(np.float64)
-    fail = np.nonzero(~g["pass"])[0]
-    if not len(fail):
-        return peak
-    key_pos = {(int(g["addr"][i]), int(g["p"][i])): i for i in fail}
-    cur = {k: int(g["a0"][i]) for k, i in key_pos.items()}
-    p_ev = pair_index(snap_blocks, ev_block)
-    ea = np.asarray(ev_addr)
-    want = np.zeros(len(ea), dtype=bool)
-    fa = np.asarray([k[0] for k in key_pos], dtype=np.int64)
-    fp = np.asarray([k[1] for k in key_pos], dtype=np.int64)
-    if len(ea):
-        code = ea.astype(np.int64) * 100_000 + p_ev
-        want = np.isin(code, fa * 100_000 + fp)
-    for j in np.nonzero(want)[0]:
-        k = (int(ea[j]), int(p_ev[j]))
-        cur[k] += int(ev_delta[j])
-        i = key_pos[k]
-        if cur[k] > peak[i]:
-            peak[i] = cur[k]
-    return peak
-
-
-def gate_summary(g: dict) -> dict:
-    import numpy as np
-    n = int(len(g["pass"]))
+    ok = g[key]
+    n = int(len(ok))
     has = g["n_ev"] > 0
     ne = int(has.sum())
-    s_all = float(g["pass"].mean()) if n else None
-    s_ev = float(g["pass"][has].mean()) if ne else None
-    return {"n_pairs": n, "n_pass": int(g["pass"].sum()), "share_pass": s_all,
-            "n_pairs_with_event": ne, "n_pass_with_event": int(g["pass"][has].sum()), "share_pass_with_event": s_ev,
+    s_all = float(ok.mean()) if n else None
+    s_ev = float(ok[has].mean()) if ne else None
+    return {"n_pairs": n, "n_pass": int(ok.sum()), "share_pass": s_all,
+            "n_pairs_with_event": ne, "n_pass_with_event": int(ok[has].sum()), "share_pass_with_event": s_ev,
             "passes": bool(n and ne and s_all >= GATE_SHARE and s_ev >= GATE_SHARE)}
 
 
@@ -652,8 +669,16 @@ def utcnow() -> str:
     return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def main_reserves() -> dict[str, dict]:
+    return {r: {"asset": RESERVES[r]["asset"], "atoken": RESERVES[r]["atoken"], "decimals": 6, "symbol": r}
+            for r in RESERVE_ORDER}
+
+
 class Ctx:
-    def __init__(self, work: Path, out: Path, ddir: Path):
+    def __init__(self, work: Path, out: Path, ddir: Path, mode: str = "main", reserves: dict | None = None):
+        self.mode = mode
+        self.reserves = reserves if reserves is not None else main_reserves()
+        self.order = tuple(self.reserves)
         self.work = Path(work)
         self.out = Path(out)
         self.ddir = Path(ddir)
@@ -669,6 +694,13 @@ class Ctx:
         self.ts_store = B.JsonlStore(self.work / "ts_fetched.jsonl")
         self.workers = B.WORKERS
         self._decoded = {}
+
+    def set_reserves(self, reserves: dict) -> None:
+        self.reserves = reserves
+        self.order = tuple(reserves)
+
+    def dec(self, r: str) -> int:
+        return int(self.reserves[r]["decimals"])
 
     def log_event(self, ev: dict) -> None:
         ev = {"utc": utcnow(), "src": "logs", **ev}
@@ -723,8 +755,8 @@ def sel(sig: str) -> bytes:
 
 def ref_reads(ctx: Ctx, block: int) -> dict:
     calls, labels = [], []
-    for r in RESERVE_ORDER:
-        a, at = RESERVES[r]["asset"], RESERVES[r]["atoken"]
+    for r in ctx.order:
+        a, at = ctx.reserves[r]["asset"], ctx.reserves[r]["atoken"]
         calls.append((POOL, sel("getReserveNormalizedIncome(address)") + B.enc_address(a)))
         labels.append((r, "normalizedIncome"))
         calls.append((at, sel("scaledTotalSupply()")))
@@ -741,6 +773,8 @@ def ref_reads(ctx: Ctx, block: int) -> dict:
 
 
 def phase_preflight(ctx: Ctx) -> None:
+    if ctx.mode != "main":
+        raise B.TerminalError("preflight is the main-mode phase; holdout mode starts with select")
     st = ctx.state
     if "asof" not in st:
         fin = logs_rpc_block("finalized")
@@ -764,10 +798,10 @@ def phase_preflight(ctx: Ctx) -> None:
         if not st["asof_crosscheck"]["match"]:
             raise B.TerminalError("asof hash differs between endpoints")
     dep = st.setdefault("deploy", {})
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         if r in dep:
             continue
-        at = RESERVES[r]["atoken"]
+        at = ctx.reserves[r]["atoken"]
         cache: dict[int, bool] = {}
 
         def has_code(b, at=at, cache=cache):
@@ -810,9 +844,9 @@ def phase_logs(ctx: Ctx) -> None:
                   f"MB={c['bytes'] / 1e6:.0f}", flush=True)
 
     stats = ctx.state.setdefault("logs_stats", {})
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         dep = ctx.state["deploy"][r]["block"]
-        s = fetch_logs(ctx.store, ctx.logs_client, r, RESERVES[r]["atoken"], dep, asof, on_progress=prog)
+        s = fetch_logs(ctx.store, ctx.logs_client, r, ctx.reserves[r]["atoken"], dep, asof, on_progress=prog)
         done = ctx.store.done(r)
         stats[r] = {"ranges": len(done), "logs": sum(ctx.store.index.get((r, a, b))["n"] for a, b in done),
                     "last_session": s}
@@ -831,7 +865,7 @@ def block_table(ctx: Ctx) -> dict[int, tuple[int | None, str]]:
         return ctx._block_table
     out: dict[int, tuple[int | None, str]] = {}
     bad = 0
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         for lg in ctx.store.iter_reserve(r):
             cur = (lg["ts"], lg["block_hash"])
             prev = out.get(lg["block"])
@@ -863,7 +897,7 @@ def phase_timestamps(ctx: Ctx) -> None:
     # seeded sample per reserve, checked against eth_getBlockByNumber on the state endpoint
     rng = random.Random(TS_SAMPLE_SEED)
     sample = []
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         rb = sorted({lg["block"] for lg in ctx.store.iter_reserve(r)})
         sample += rng.sample(rb, min(TS_SAMPLE_PER_RESERVE, len(rb)))
     sample = sorted(set(sample))
@@ -931,6 +965,7 @@ def decode_reserve(ctx: Ctx, r: str) -> Decoded:
     if r in ctx._decoded:
         return ctx._decoded[r]
     d = Decoded()
+    dec = ctx.dec(r)
     addr, blk, li, sub, delta, scaled, idx = [], [], [], [], [], [], []
     for lg in ctx.store.iter_reserve(r):
         d.n_logs += 1
@@ -955,8 +990,8 @@ def decode_reserve(ctx: Ctx, r: str) -> Decoded:
             blk.append(lg["block"])
             li.append(lg["log_index"])
             sub.append(k)
-            delta.append(dr)
-            scaled.append(sd)
+            delta.append(to_units(dr, dec))
+            scaled.append(to_units(sd, dec))
             idx.append(ev["index"])
     d.addr = np.asarray(addr, dtype=np.int64)
     d.block = np.asarray(blk, dtype=np.int64)
@@ -976,7 +1011,7 @@ def decode_reserve(ctx: Ctx, r: str) -> Decoded:
 
 def phase_decode(ctx: Ctx) -> None:
     out = {}
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         d = decode_reserve(ctx, r)
         out[r] = {"n_logs": d.n_logs, "by_type": d.counts, "other_known": d.other_known,
                   "unknown_topic0": d.unknown, "decode_errors": len(d.decode_errors),
@@ -1010,27 +1045,9 @@ def b1_blocks(ctx: Ctx):
     return daily, asof
 
 
-def b1_income(ctx: Ctx) -> dict[str, dict[str, float]]:
-    """Normalized income (ray / 1e27) at each snapshot block from reserve-state.csv."""
-    out: dict[str, dict[str, float]] = {r: {} for r in RESERVE_ORDER}
-    for x in csv.DictReader(open(ctx.ddir / B1_DIR / "reserve-state.csv")):
-        if x["liquidityIndex"] and x["liquidityRate_ray"] and x["lastUpdateTimestamp"]:
-            inc = normalized_income(int(x["liquidityIndex"]), int(x["liquidityRate_ray"]),
-                                    int(x["lastUpdateTimestamp"]), int(x["block_ts"]))
-            out[x["reserve"]][x["snapshot"]] = inc / RAY
-    return out
-
-
-def b1_total_supply(ctx: Ctx) -> dict[str, dict[str, int]]:
-    out: dict[str, dict[str, int]] = {r: {} for r in RESERVE_ORDER}
-    for x in csv.DictReader(open(ctx.ddir / B1_DIR / "reserve-state.csv")):
-        if x["totalSupply"]:
-            out[x["reserve"]][x["snapshot"]] = int(x["totalSupply"])
-    return out
-
-
-def load_anchor_matrix(path_or_rows, labels: list[str]):
-    """Long anchors (snapshot, address, balance_raw, status) -> (addresses, A, valid) over `labels`."""
+def load_anchor_matrix(path_or_rows, labels: list[str], decimals: int = 6):
+    """Long anchors (snapshot, address, balance_raw, status) -> (addresses, A, valid) over `labels`;
+    A in 6-decimal units."""
     import numpy as np
     import pandas as pd
     if isinstance(path_or_rows, (str, Path)):
@@ -1049,7 +1066,10 @@ def load_anchor_matrix(path_or_rows, labels: list[str]):
     sub = df[ok]
     ri = sub["address"].map(a_ix).to_numpy().astype(np.int64)
     ci = sub["snapshot"].map(lab_ix).to_numpy().astype(np.int64)
-    A[ri, ci] = sub["balance_raw"].astype("int64").to_numpy()
+    if decimals == 6:
+        A[ri, ci] = sub["balance_raw"].astype("int64").to_numpy()
+    else:
+        A[ri, ci] = np.asarray([to_units(int(x), decimals) for x in sub["balance_raw"]], dtype=np.int64)
     valid[ri, ci] = True
     return addrs, A, valid
 
@@ -1068,150 +1088,154 @@ def events_for(d: Decoded, addrs: list[str]):
     return new[keep], d.block[keep], d.delta[keep], d.scaled[keep].astype(np.float64), keep
 
 
+D2_RULE = ("D2 (membrane-board 567955a): |anchor change - summed G.2 event change| <= max($10, 0.1% of "
+           "max(anchor_d, anchor_d+1, intraday peak)); intraday peak = max of the G.2 path anchor_d + cumulative event "
+           f"changes over the pair; pass iff share >= {GATE_SHARE} on all pairs AND on pairs holding >= 1 event")
+REGISTERED_RULE = ("G.2 as registered: |anchor change - summed G.2 event change| <= max($10, 0.1% of the larger anchor); "
+                   f"pass iff share >= {GATE_SHARE} on all pairs AND on pairs holding >= 1 event")
+
+
+def _usd(x) -> float:
+    return round(float(x) / 1e6, 2)
+
+
+def _pair_row(G: dict, i: int, labels: list[str], tol_key: str) -> dict:
+    p = int(G["p"][i])
+    out = {"reserve": G["reserve"][i], "address": short_addr(G["address"][i]), "day": f"{labels[p]}→{labels[p + 1]}",
+           "anchor0_usd": _usd(G["a0"][i]), "anchor1_usd": _usd(G["a1"][i]), "event_sum_usd": _usd(G["ev"][i]),
+           "diff_usd": _usd(G["diff"][i]), "tol_usd": _usd(G[tol_key][i]), "intraday_peak_usd": _usd(G["peak"][i]),
+           "n_events": int(G["n_ev"][i])}
+    if "res_interest" in G:
+        out["interest_adjusted_diff_usd"] = _usd(G["res_interest"][i])
+    return out
+
+
+def rule_section(G: dict, per_reserve: dict, labels: list[str], pass_key: str, tol_key: str, rule: str) -> dict:
+    """Summary, per reserve and year, worst residuals and failure causes of one tolerance rule."""
+    import numpy as np
+    ok = G[pass_key]
+    tol = G[tol_key]
+    has = G["n_ev"] > 0
+    pooled = gate_summary(G, pass_key)
+    ratio = np.abs(G["diff"]).astype(np.float64) / tol.astype(np.float64)
+    order = np.argsort(-ratio, kind="stable")
+    worst = [dict(_pair_row(G, int(i), labels, tol_key), ratio=round(float(ratio[i]), 3), passes=bool(ok[i]))
+             for i in order[:20]]
+    seen, distinct = set(), []
+    for i in order:
+        k = (G["reserve"][i], G["address"][i])
+        if k in seen:
+            continue
+        seen.add(k)
+        distinct.append(dict(_pair_row(G, int(i), labels, tol_key), ratio=round(float(ratio[i]), 3), passes=bool(ok[i])))
+        if len(distinct) == 20:
+            break
+    fail = ~ok
+    causes = {"n_fail": int(fail.sum())}
+    if "res_interest" in G:
+        res_ok = np.abs(G["res_interest"]) <= tol
+        causes.update({
+            "interest_explained": int((fail & res_ok).sum()),
+            "no_balance_event_unexplained": int((fail & ~res_ok & ~has).sum()),
+            "with_events_unexplained": int((fail & ~res_ok & has).sum()),
+            "rule": ("interest_explained: |a1 - (a0/I0 + sum(scaled deltas)) * I1| <= the rule's tolerance, I = normalized "
+                     "income at the snapshot block from reserve state (diagnostic; the gate ignores interest per G.2)")})
+    if fail.any():
+        floor = tol == GATE_ABS_RAW
+        causes["fail_both_anchors_zero"] = int((fail & (G["a0"] == 0) & (G["a1"] == 0)).sum())
+        causes["fail_tol_at_10usd_floor"] = int((fail & floor).sum())
+        pk = G["peak"][fail].astype(np.float64)
+        causes["fail_intraday_peak_usd_quantiles"] = {str(q): _usd(np.quantile(pk, q)) for q in (0.1, 0.5, 0.9)}
+        causes["fail_abs_diff_over_intraday_peak_quantiles"] = {
+            str(q): float(np.quantile(np.abs(G["diff"][fail]) / np.maximum(pk, 1.0), q)) for q in (0.1, 0.5, 0.9, 1.0)}
+        causes["fail_abs_diff_usd_quantiles"] = {str(q): _usd(np.quantile(np.abs(G["diff"][fail]), q))
+                                                 for q in (0.5, 0.9, 0.99, 1.0)}
+        fa, days = {}, {}
+        for i in np.nonzero(fail)[0]:
+            k = f"{G['reserve'][i]} {short_addr(G['address'][i])}"
+            fa[k] = fa.get(k, 0) + 1
+            dk = f"{G['reserve'][i]} {labels[int(G['p'][i])]}"
+            days[dk] = days.get(dk, 0) + 1
+        causes["fail_n_distinct_addresses"] = len(fa)
+        causes["fail_by_address_top10"] = sorted(fa.items(), key=lambda x: -x[1])[:10]
+        causes["fail_by_day_top"] = sorted(days.items(), key=lambda x: -x[1])[:20]
+    by_year = {}
+    yrs = np.asarray([labels[int(p)][:4] for p in G["p"]]) if len(G["p"]) else np.zeros(0, dtype=str)
+    for y in sorted(set(yrs.tolist())):
+        mm = yrs == y
+        me = mm & has
+        by_year[y] = {"n_pairs": int(mm.sum()), "share_pass": float(ok[mm].mean()), "n_pairs_with_event": int(me.sum()),
+                      "share_pass_with_event": float(ok[me].mean()) if me.any() else None}
+    return {"rule": rule, "pooled": pooled, "per_reserve": per_reserve, "passes": pooled["passes"],
+            "by_year": by_year, "worst20_by_diff_over_tol": worst, "worst20_distinct_addresses": distinct,
+            "failure_causes": causes}
+
+
 def run_gate(ctx: Ctx, which: str, anchors: dict[str, tuple], labels: list[str], blocks: list[int],
              incomes: dict[str, list[float]]) -> dict:
-    """anchors[r] = (addrs, A, valid) over daily labels; the gate on every consecutive daily pair."""
+    """anchors[r] = (addrs, A, valid) over daily labels (6-decimal units); the gate on every
+    consecutive daily pair. The verdict is deviation D2; the registered rule is reported beside it."""
     import numpy as np
-    per, pooled = {}, None
-    allrows = []
-    for r in RESERVE_ORDER:
+    per_reg, per_d2, allrows = {}, {}, []
+    for r in ctx.order:
         addrs, A, valid = anchors[r]
         d = decode_reserve(ctx, r)
         ea, eb, ed, es, _ = events_for(d, addrs)
         g = gate_pairs(A, valid, blocks, ea, eb, ed, ev_scaled=es, income=incomes[r])
-        g["peak"] = intraday_peaks(g, blocks, ea, eb, ed)
-        per[r] = gate_summary(g)
+        per_reg[r] = gate_summary(g, "pass")
+        per_d2[r] = gate_summary(g, "pass_d2")
         g["reserve"] = np.full(len(g["pass"]), r, dtype=object)
         g["address"] = np.asarray(addrs, dtype=object)[g["addr"]] if len(g["addr"]) else np.zeros(0, dtype=object)
         allrows.append(g)
-    keys = ["reserve", "address", "p", "a0", "a1", "ev", "n_ev", "diff", "tol", "pass", "res_interest", "peak"]
+    keys = ["reserve", "address", "p", "a0", "a1", "ev", "n_ev", "diff", "tol", "pass", "peak", "tol_d2", "pass_d2",
+            "res_interest"]
     G = {k: np.concatenate([g[k] for g in allrows]) for k in keys}
-    pooled = gate_summary(G)
-    # worst 20 by |diff| / tol
-    ratio = np.abs(G["diff"]).astype(np.float64) / G["tol"].astype(np.float64)
-    worst = np.argsort(-ratio, kind="stable")[:20]
-    wrows = []
-    for i in worst:
-        p = int(G["p"][i])
-        wrows.append({"reserve": G["reserve"][i], "address": short_addr(G["address"][i]),
-                      "day": f"{labels[p]}→{labels[p + 1]}", "anchor0_usd": round(G["a0"][i] / 1e6, 2),
-                      "anchor1_usd": round(G["a1"][i] / 1e6, 2), "event_sum_usd": round(G["ev"][i] / 1e6, 2),
-                      "diff_usd": round(G["diff"][i] / 1e6, 2), "tol_usd": round(G["tol"][i] / 1e6, 2),
-                      "ratio": round(float(ratio[i]), 3), "n_events": int(G["n_ev"][i]),
-                      "interest_adjusted_diff_usd": round(float(G["res_interest"][i]) / 1e6, 2),
-                      "intraday_peak_usd": round(float(G["peak"][i]) / 1e6, 2),
-                      "pass": bool(G["pass"][i])})
-    # failure causes
-    fail = ~G["pass"]
-    res_ok = np.abs(G["res_interest"]) <= G["tol"]
-    causes = {
-        "n_fail": int(fail.sum()),
-        "interest_explained": int((fail & res_ok).sum()),
-        "no_balance_event_unexplained": int((fail & ~res_ok & (G["n_ev"] == 0)).sum()),
-        "with_events_unexplained": int((fail & ~res_ok & (G["n_ev"] > 0)).sum()),
-        "rule": ("interest_explained: |a1 - (a0/I0 + sum(delta/index)) * I1| <= tol, I = normalized income at the "
-                 "snapshot block from reserve-state.csv (diagnostic only; the gate itself ignores interest per G.2)"),
-    }
-    if fail.any():
-        floor = G["tol"] == GATE_ABS_RAW
-        causes["fail_both_anchors_zero"] = int((fail & (G["a0"] == 0) & (G["a1"] == 0)).sum())
-        causes["fail_tol_at_10usd_floor"] = int((fail & floor).sum())
-        causes["fail_interest_explained_at_floor"] = int((fail & res_ok & floor).sum())
-        causes["fail_interest_explained_above_floor"] = int((fail & res_ok & ~floor).sum())
-        pk = G["peak"][fail]
-        rate = np.abs(G["diff"][fail]) / np.maximum(pk, 1.0)
-        causes["fail_intraday_peak_usd_quantiles"] = {str(q): round(float(np.quantile(pk, q)) / 1e6, 2)
-                                                      for q in (0.1, 0.5, 0.9)}
-        causes["fail_abs_diff_over_intraday_peak_quantiles"] = {str(q): float(np.quantile(rate, q))
-                                                                for q in (0.1, 0.5, 0.9, 1.0)}
-        fa = {}
-        for i in np.nonzero(fail)[0]:
-            k = f"{G['reserve'][i]} {short_addr(G['address'][i])}"
-            fa[k] = fa.get(k, 0) + 1
-        causes["fail_n_distinct_addresses"] = len(fa)
-        causes["fail_by_address_top10"] = sorted(fa.items(), key=lambda x: -x[1])[:10]
-        seen, distinct = set(), []
-        for i in np.argsort(-(np.abs(G["diff"]).astype(np.float64) / G["tol"]), kind="stable"):
-            if G["pass"][i]:
-                break
-            k = (G["reserve"][i], G["address"][i])
-            if k in seen:
-                continue
-            seen.add(k)
-            p_ = int(G["p"][i])
-            distinct.append({"reserve": G["reserve"][i], "address": short_addr(G["address"][i]),
-                             "day": f"{labels[p_]}→{labels[p_ + 1]}", "anchor0_usd": round(G["a0"][i] / 1e6, 2),
-                             "anchor1_usd": round(G["a1"][i] / 1e6, 2), "event_sum_usd": round(G["ev"][i] / 1e6, 2),
-                             "diff_usd": round(G["diff"][i] / 1e6, 2), "tol_usd": round(G["tol"][i] / 1e6, 2),
-                             "intraday_peak_usd": round(float(G["peak"][i]) / 1e6, 2),
-                             "interest_adjusted_diff_usd": round(float(G["res_interest"][i]) / 1e6, 2),
-                             "n_events": int(G["n_ev"][i])})
-            if len(distinct) == 20:
-                break
-        causes["worst20_distinct_addresses"] = distinct
-        causes["note"] = ("intraday peak = max of anchor0 + cumulative G.2 deltas over the pair's events; "
-                          "|diff| / peak is the implied interest on the largest intraday position")
-    fu = fail & ~res_ok
-    if fu.any():
-        days = {}
-        for i in np.nonzero(fu)[0]:
-            k = f"{G['reserve'][i]} {labels[int(G['p'][i])]}"
-            days[k] = days.get(k, 0) + 1
-        causes["unexplained_by_day_top"] = sorted(days.items(), key=lambda x: -x[1])[:20]
-        sgn = np.sign(G["diff"][fu])
-        causes["unexplained_sign"] = {"positive(anchor_gain_exceeds_events)": int((sgn > 0).sum()),
-                                      "negative": int((sgn < 0).sum())}
-    if fail.any():
-        days = {}
-        for i in np.nonzero(fail)[0]:
-            k = f"{G['reserve'][i]} {labels[int(G['p'][i])]}"
-            days[k] = days.get(k, 0) + 1
-        causes["fail_by_day_top"] = sorted(days.items(), key=lambda x: -x[1])[:20]
-        causes["fail_abs_diff_usd_quantiles"] = {str(q): round(float(np.quantile(np.abs(G["diff"][fail]), q)) / 1e6, 2)
-                                                 for q in (0.5, 0.9, 0.99, 1.0)}
-    # Diagnostics only, NOT the preregistered gate: the same pairs judged by (a) the interest-adjusted
-    # residual and (b) the G.2 residual with the tolerance taken on the intraday peak balance.
+    reg = rule_section(G, per_reg, labels, "pass", "tol", REGISTERED_RULE)
+    reg["status"] = "passed" if reg["passes"] else "failed"
+    d2 = rule_section(G, per_d2, labels, "pass_d2", "tol_d2", D2_RULE)
     has = G["n_ev"] > 0
-    alt_a = res_ok
-    tol_pk = np.maximum(GATE_ABS_RAW, np.floor(G["peak"] / GATE_REL_DEN))
-    alt_b = G["pass"] | (np.abs(G["diff"]) <= tol_pk)
-    diag = {"note": "diagnostics only; the gate verdict above uses the preregistered G.2 rule",
-            "interest_adjusted_residual": {"share_pass": float(alt_a.mean()) if len(alt_a) else None,
-                                           "share_pass_with_event": float(alt_a[has].mean()) if has.any() else None,
-                                           "rule": "|a1 - (a0/I0 + sum(scaled deltas)) * I1| <= max($10, 0.1% of max(a0, a1))"},
-            "tolerance_on_intraday_peak": {"share_pass": float(alt_b.mean()) if len(alt_b) else None,
-                                           "share_pass_with_event": float(alt_b[has].mean()) if has.any() else None,
-                                           "rule": "G.2 residual <= max($10, 0.1% of max(a0, a1, intraday peak))"}}
-    by_year = {}
-    yrs = np.asarray([labels[int(p)][:4] for p in G["p"]]) if len(G["p"]) else np.zeros(0, dtype=str)
-    for y in sorted(set(yrs.tolist())):
-        m = yrs == y
-        me = m & has
-        by_year[y] = {"n_pairs": int(m.sum()), "share_pass": float(G["pass"][m].mean()),
-                      "n_pairs_with_event": int(me.sum()),
-                      "share_pass_with_event": float(G["pass"][me].mean()) if me.any() else None}
+    alt = np.abs(G["res_interest"]) <= G["tol"]
     exact = np.abs(G["diff"]) <= 1000  # within 0.001 USD
-    out = {"which": which, "rule": f"|anchor change - summed G.2 event change| <= max($10, 0.1% of the larger anchor); "
-                                   f"pass iff share >= {GATE_SHARE} on all pairs AND on pairs holding >= 1 event",
-           "event_definition": "a Mint (onBehalfOf), Burn (from) or BalanceTransfer (from or to) log naming the address, "
-                               "in block (B_d, B_d+1]",
-           "pooled": pooled, "per_reserve": per, "passes": pooled["passes"],
-           "share_within_0.001usd": float(exact.mean()) if len(exact) else None,
-           "worst20_by_diff_over_tol": wrows, "failure_causes": causes, "by_year": by_year,
-           "diagnostics_not_gate": diag}
+    return {"which": which, "verdict_rule": "D2", "passes": d2["passes"], "pooled": d2["pooled"],
+            "per_reserve": d2["per_reserve"],
+            "event_definition": "a Mint (onBehalfOf), Burn (from) or BalanceTransfer (from or to) log naming the address, "
+                                "in block (B_d, B_d+1]",
+            "units": "6-decimal units of the token (1e-6 token), counted as USD",
+            "d2": d2, "registered_rule": reg,
+            "share_within_0.001usd": float(exact.mean()) if len(exact) else None,
+            "diagnostics_not_gate": {
+                "note": "diagnostic only",
+                "interest_adjusted_residual": {
+                    "share_pass": float(alt.mean()) if len(alt) else None,
+                    "share_pass_with_event": float(alt[has].mean()) if has.any() else None,
+                    "rule": "|a1 - (a0/I0 + sum(scaled deltas)) * I1| <= max($10, 0.1% of max(a0, a1))"}}}
+
+
+def b1_reserve_rows(ctx: Ctx) -> list[dict]:
+    return list(csv.DictReader(open(ctx.ddir / B1_DIR / "reserve-state.csv")))
+
+
+def income_from_rows(rows, order) -> dict[str, dict[str, float]]:
+    """Normalized income (ray / 1e27) per reserve and snapshot from reserve-state rows."""
+    out: dict[str, dict[str, float]] = {r: {} for r in order}
+    for x in rows:
+        if x.get("reserve") in out and x.get("liquidityIndex") not in ("", None) and x.get("liquidityRate_ray") not in ("", None) \
+                and x.get("lastUpdateTimestamp") not in ("", None):
+            inc = normalized_income(int(x["liquidityIndex"]), int(x["liquidityRate_ray"]), int(x["lastUpdateTimestamp"]),
+                                    int(x["block_ts"]))
+            if inc:
+                out[x["reserve"]][x["snapshot"]] = inc / RAY
     return out
 
 
 def anchored_income(ctx: Ctx, labels: list[str]) -> dict[str, list[float]]:
-    inc = b1_income(ctx)
-    out = {}
-    for r in RESERVE_ORDER:
-        vals = []
-        for s in labels:
-            v = inc[r].get(s)
-            vals.append(v if v else float("nan"))
-        out[r] = vals
-    return out
+    rows = b1_reserve_rows(ctx) if ctx.mode == "main" else rstate_rows(ctx)
+    inc = income_from_rows(rows, ctx.order)
+    return {r: [inc[r].get(s) or float("nan") for s in labels] for r in ctx.order}
+
+
+def b1_daily_path(ctx: Ctx, r: str) -> Path:
+    return ctx.ddir / B1_DIR / f"daily-balances-{r.lower()}.csv.gz"
 
 
 def phase_gate(ctx: Ctx) -> dict:
@@ -1219,36 +1243,35 @@ def phase_gate(ctx: Ctx) -> dict:
     daily, asof = b1_blocks(ctx)
     labels = [s for s, _, _ in daily]
     blocks = [b for _, b, _ in daily]
-    anchors = {}
-    for r in RESERVE_ORDER:
-        anchors[r] = load_anchor_matrix(ctx.ddir / B1_DIR / f"daily-balances-{r.lower()}.csv.gz", labels)
+    anchors = {r: load_anchor_matrix(b1_daily_path(ctx, r), labels) for r in ctx.order}
     rep = run_gate(ctx, "P_r (depositor-balances daily anchors)", anchors, labels, blocks, anchored_income(ctx, labels))
-    rep["asof_pair_info"] = asof_pair_info(ctx, "b1", daily, asof)
-    rep["reconstruction_checks"] = reconstruction_checks(ctx)
+    rep["asof_pair_info"] = asof_pair_info(ctx, daily, asof, {r: (b1_daily_path(ctx, r), 6) for r in ctx.order})
+    rep["reconstruction_checks"] = reconstruction_checks(ctx, b1_asof_anchors(ctx))
     ctx.state["gate"] = rep
     ctx.save_state()
-    print("GATE " + json.dumps({k: rep[k] for k in ("pooled", "per_reserve", "passes")}), flush=True)
+    print("GATE " + json.dumps({"verdict": "D2", "d2": rep["pooled"], "registered": rep["registered_rule"]["pooled"],
+                                "passes": rep["passes"]}), flush=True)
     return rep
 
 
-def asof_pair_info(ctx: Ctx, which: str, daily, asof) -> dict:
-    """The multi-day pair (last daily snapshot -> B.1 asof), reported, not in the gate."""
-    import numpy as np
+def asof_pair_info(ctx: Ctx, daily, asof, sources: dict) -> dict:
+    """The multi-day pair (last daily snapshot -> B.1 asof block), reported, not in the gate."""
     labels = [daily[-1][0], "asof"]
     blocks = [daily[-1][1], asof[1]]
     out = {}
-    for r in RESERVE_ORDER:
-        addrs, A, valid = load_anchor_matrix(ctx.ddir / B1_DIR / f"daily-balances-{r.lower()}.csv.gz", labels)
+    for r in ctx.order:
+        src, dec = sources[r]
+        addrs, A, valid = load_anchor_matrix(src, labels, dec)
         d = decode_reserve(ctx, r)
         ea, eb, ed, es, _ = events_for(d, addrs)
         g = gate_pairs(A, valid, blocks, ea, eb, ed)
-        out[r] = gate_summary(g)
-    out["note"] = f"pair {labels[0]} -> asof (block {asof[1]}), {which}; spans several days, not part of the gate"
+        out[r] = {"registered": gate_summary(g, "pass"), "d2": gate_summary(g, "pass_d2")}
+    out["note"] = f"pair {labels[0]} -> asof (block {asof[1]}); spans several days, not part of the gate"
     return out
 
 
 def recon_scaled_at(d: Decoded, block: int):
-    """Event-reconstructed scaled balance per address id after all events with block <= `block`."""
+    """Event-reconstructed scaled balance (6-decimal units) per address id after all events with block <= `block`."""
     import numpy as np
     m = d.block <= block
     out = np.zeros(len(d.addrs), dtype=np.int64)
@@ -1256,40 +1279,47 @@ def recon_scaled_at(d: Decoded, block: int):
     return out
 
 
-def reconstruction_checks(ctx: Ctx) -> dict:
-    """Data checks of the full reconstruction (from zero at deployment): the sum of scaled balances vs
-    scaledTotalSupply, and per-address balance vs the B.1 asof anchor of P_r."""
+def b1_asof_anchors(ctx: Ctx) -> dict[str, dict[str, int]]:
+    out = {}
+    for r in ctx.order:
+        addrs, A, valid = load_anchor_matrix(b1_daily_path(ctx, r), ["asof"])
+        out[r] = {a: int(A[i, 0]) for i, a in enumerate(addrs) if valid[i, 0]}
+    return out
+
+
+def reconstruction_checks(ctx: Ctx, asof_anchors: dict[str, dict[str, int]]) -> dict:
+    """Data checks of the full reconstruction (from zero at deployment), in 6-decimal units: the sum
+    of scaled balances vs scaledTotalSupply at both asof blocks, and per-address balance vs the anchors
+    at the B.1 asof block (asof_anchors[r] = {address: units})."""
     import numpy as np
     out = {}
     refs = ctx.state["refs"]
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         d = decode_reserve(ctx, r)
-        o = {}
+        dec = ctx.dec(r)
+        o = {"units": "1e-6 token"}
         for lab in ("b1_asof", "asof"):
             blk = refs[lab]["block"]
             sc = recon_scaled_at(d, blk)
-            sts = int(refs[lab]["reads"][r]["scaledTotalSupply"])
+            sts = to_units(int(refs[lab]["reads"][r]["scaledTotalSupply"]), dec)
             tot = int(sc.sum())
-            o[lab] = {"block": blk, "recon_sum_scaled": str(tot), "scaledTotalSupply": str(sts),
-                      "diff_raw": str(tot - sts), "rel_diff": (tot - sts) / sts if sts else None,
+            o[lab] = {"block": blk, "recon_sum_scaled_units": str(tot), "scaledTotalSupply_units": str(sts),
+                      "diff_units": str(tot - sts), "rel_diff": (tot - sts) / sts if sts else None,
                       "n_negative_below_minus_1usd": int((sc < -10**6).sum())}
-        # per-address vs B.1 asof anchors
-        addrs, A, valid = load_anchor_matrix(ctx.ddir / B1_DIR / f"daily-balances-{r.lower()}.csv.gz", ["asof"])
         inc = int(refs["b1_asof"]["reads"][r]["normalizedIncome"])
         sc = recon_scaled_at(d, refs["b1_asof"]["block"])
-        diffs = []
-        for i, a in enumerate(addrs):
-            if not valid[i, 0]:
-                continue
+        dd, aa = [], []
+        for a, v in asof_anchors.get(r, {}).items():
             j = d.addr_ids.get(a)
             rb = ray_mul(int(sc[j]), inc) if j is not None else 0
-            diffs.append((rb - int(A[i, 0]), int(A[i, 0])))
-        dd = np.asarray([x for x, _ in diffs], dtype=np.int64)
-        aa = np.asarray([y for _, y in diffs], dtype=np.int64)
-        within = gate_tolerance_pass(aa, aa, dd)
-        o["per_address_vs_b1_asof"] = {"n": int(len(dd)), "n_exact_within_10_raw": int((np.abs(dd) <= 10).sum()),
-                                       "n_within_gate_tol": int(within.sum()),
-                                       "max_abs_diff_usd": float(np.abs(dd).max()) / 1e6 if len(dd) else None}
+            dd.append(rb - v)
+            aa.append(v)
+        dd = np.asarray(dd, dtype=np.int64)
+        aa = np.asarray(aa, dtype=np.int64)
+        o["per_address_vs_asof_anchor"] = {
+            "block": refs["b1_asof"]["block"], "n": int(len(dd)), "n_within_10_units": int((np.abs(dd) <= 10).sum()),
+            "n_within_gate_tol": int(gate_tolerance_pass(aa, aa, dd).sum()) if len(dd) else 0,
+            "max_abs_diff_usd": float(np.abs(dd).max()) / 1e6 if len(dd) else None}
         out[r] = o
     return out
 
@@ -1300,7 +1330,7 @@ def reconstruction_checks(ctx: Ctx) -> dict:
 
 
 def balance_maxima(d: Decoded, asof_block: int, asof_income: int):
-    """Per address id: max event-reconstructed balance (raw) over every moment, with its block.
+    """Per address id: max event-reconstructed balance (6-decimal units) over every moment, with its block.
 
     Scaled balance s changes only at events; between events the balance s * I(t) grows with the
     index, so the maximum over an interval is at its end. Candidates: s before and after each
@@ -1314,14 +1344,13 @@ def balance_maxima(d: Decoded, asof_block: int, asof_income: int):
     order = np.argsort(addr, kind="stable")  # rows already in (block, log, sub) order
     a_s, s_s, i_s, b_s = addr[order], sc[order], idxf[order], blk[order]
     starts = np.r_[0, np.nonzero(np.diff(a_s))[0] + 1]
-    cs = np.cumsum(s_s)
+    cs = np.cumsum(s_s)  # int64 wrap-around cancels in the difference below
     seg_base = np.repeat(cs[starts] - s_s[starts], np.diff(np.r_[starts, len(a_s)]))
     after = cs - seg_base
     before = after - s_s
     cand = np.maximum(before, after).astype(np.float64) * i_s
     best = np.full(n, -np.inf)
     best_blk = np.zeros(n, dtype=np.int64)
-    # per-address argmax
     seg_id = np.repeat(np.arange(len(starts)), np.diff(np.r_[starts, len(a_s)]))
     ord2 = np.lexsort((-cand, seg_id))
     first = np.r_[0, np.nonzero(np.diff(seg_id[ord2]))[0] + 1]
@@ -1348,29 +1377,33 @@ def first_event(d: Decoded):
 
 
 def b1_population(ctx: Ctx) -> dict[str, dict[str, str]]:
-    out: dict[str, dict[str, str]] = {r: {} for r in RESERVE_ORDER}
+    out: dict[str, dict[str, str]] = {r: {} for r in ctx.order}
+    if ctx.mode != "main":
+        return out  # holdout reserves have no P_r: every universe address is new
     for x in csv.DictReader(open(ctx.ddir / B1_DIR / "panel-population.csv")):
         out[x["reserve"]][x["address"]] = x["rule"]
     return out
 
 
 def phase_universe(ctx: Ctx) -> None:
-    gate = ctx.state.get("gate")
-    if not gate or not gate.get("passes"):
-        raise B.TerminalError("universe needs a passed gate")
+    if ctx.mode == "main":
+        gate = ctx.state.get("gate")
+        if not gate or not gate.get("passes"):
+            raise B.TerminalError("universe needs a passed gate")
     asof = ctx.state["asof"]["block"]
     tsl = ts_lookup(ctx)
     pop = b1_population(ctx)
     uni = {}
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         d = decode_reserve(ctx, r)
+        dec = ctx.dec(r)
         inc = int(ctx.state["refs"]["asof"]["reads"][r]["normalizedIncome"])
-        best, best_blk, _ = balance_maxima(d, asof, inc)
+        best, best_blk, final = balance_maxima(d, asof, inc)
         fb, cnt = first_event(d)
         rows = []
         reach = best >= THRESHOLD_RAW
         members = set(int(i) for i in reach.nonzero()[0])
-        for a, rule in pop[r].items():
+        for a in pop[r]:
             if a in d.addr_ids:
                 members.add(d.addr_ids[a])
         pr_missing = [a for a in pop[r] if a not in d.addr_ids]
@@ -1379,18 +1412,20 @@ def phase_universe(ctx: Ctx) -> None:
             fbi = int(fb[i])
             rows.append({"address": a, "in_P_r": int(a in pop[r]), "P_r_rule": pop[r].get(a, ""),
                          "reaches_1M_by_events": int(bool(reach[i])), "new": int(bool(reach[i]) and a not in pop[r]),
-                         "max_event_balance_raw": int(round(best[i])), "max_at_block": int(best_blk[i]),
+                         "max_event_balance_raw": from_units(int(round(best[i])), dec), "max_at_block": int(best_blk[i]),
+                         "recon_balance_asof_raw": from_units(ray_mul(int(final[i]), inc), dec),
                          "first_event_block": fbi, "first_event_utc": B.iso_utc(tsl[fbi]),
                          "n_balance_events": int(cnt[i])})
         for a in pr_missing:
             rows.append({"address": a, "in_P_r": 1, "P_r_rule": pop[r][a], "reaches_1M_by_events": 0, "new": 0,
-                         "max_event_balance_raw": 0, "max_at_block": "", "first_event_block": "", "first_event_utc": "",
-                         "n_balance_events": 0})
+                         "max_event_balance_raw": 0, "max_at_block": "", "recon_balance_asof_raw": 0,
+                         "first_event_block": "", "first_event_utc": "", "n_balance_events": 0})
         rows.sort(key=lambda x: x["address"])
         uni[r] = {"rows": rows, "n_rule": int(reach.sum()), "n_new": sum(x["new"] for x in rows),
                   "n_P_r": len(pop[r]), "n_P_r_reaching": sum(1 for x in rows if x["in_P_r"] and x["reaches_1M_by_events"]),
                   "n_P_r_not_reaching": sum(1 for x in rows if x["in_P_r"] and not x["reaches_1M_by_events"]),
-                  "n_P_r_without_events": len(pr_missing), "n_file": len(rows)}
+                  "n_P_r_without_events": len(pr_missing), "n_file": len(rows),
+                  "n_addresses_with_events": len(d.addrs)}
         print(f"UNIVERSE {r}: " + json.dumps({k: v for k, v in uni[r].items() if k != "rows"}), flush=True)
     ctx.state["universe"] = uni
     ctx.save_state()
@@ -1406,7 +1441,7 @@ def new_anchor_plan(ctx: Ctx):
     daily, b1asof = b1_blocks(ctx)
     asof = ctx.state["asof"]
     plan = {}
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         rows = [x for x in ctx.state["universe"][r]["rows"] if x["new"]]
         first_day = {x["address"]: x["first_event_utc"][:10] for x in rows}
         start = {a: max(fd, daily[0][0]) for a, fd in first_day.items()}
@@ -1426,7 +1461,7 @@ def new_anchor_plan(ctx: Ctx):
 def phase_anchors(ctx: Ctx) -> None:
     plan = new_anchor_plan(ctx)
     tasks = []
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         for s, b, due in plan[r]["snaps"]:
             for ci, ch in enumerate(B.chunk(due)):
                 if not ctx.anchor_store.has((s, r, ci)):
@@ -1437,7 +1472,7 @@ def phase_anchors(ctx: Ctx) -> None:
         s, b, r, ci, addrs = task
         if ctx.rpc.stop.is_set():
             raise B.TerminalError("stopped")
-        at = RESERVES[r]["atoken"]
+        at = ctx.reserves[r]["atoken"]
         res = ctx.rpc.multicall([(at, B.call_data("balanceOf", a)) for a in addrs], b, "anchors",
                                 tag=f"anchors {s} {r} {ci}")
         ctx.anchor_store.put((s, r, ci), {"block": b, "first": addrs[0], "n": len(addrs),
@@ -1471,45 +1506,388 @@ def phase_gate_new(ctx: Ctx) -> dict:
     labels = [s for s, _, _ in daily]
     blocks = [b for _, b, _ in daily]
     plan = new_anchor_plan(ctx)
-    anchors = {}
-    for r in RESERVE_ORDER:
-        anchors[r] = load_anchor_matrix(new_anchor_rows(ctx, r, plan), labels)
-    rep = run_gate(ctx, "new addresses (depositor-events daily-balances-ext anchors)", anchors, labels, blocks,
-                   anchored_income(ctx, labels))
-    # descriptive: new addresses with any 00:00Z anchor >= $1M
-    import numpy as np
+    rows_by = {r: new_anchor_rows(ctx, r, plan) for r in ctx.order}
+    anchors = {r: load_anchor_matrix(rows_by[r], labels, ctx.dec(r)) for r in ctx.order}
+    which = ("new addresses (depositor-events daily-balances-ext anchors)" if ctx.mode == "main"
+             else "holdout universe (daily-balances anchors)")
+    rep = run_gate(ctx, which, anchors, labels, blocks, anchored_income(ctx, labels))
+    rep["asof_pair_info"] = asof_pair_info(ctx, daily, b1asof, {r: (rows_by[r], ctx.dec(r)) for r in ctx.order})
+    if ctx.mode != "main":
+        asof_anch = {r: {x[1]: to_units(x[2], ctx.dec(r)) for x in rows_by[r] if x[0] == "asof" and isinstance(x[2], int)}
+                     for r in ctx.order}
+        rep["reconstruction_checks"] = reconstruction_checks(ctx, asof_anch)
     desc = {}
-    for r in RESERVE_ORDER:
-        rows = new_anchor_rows(ctx, r, plan)
-        big = {x[1] for x in rows if isinstance(x[2], int) and x[2] >= THRESHOLD_RAW and x[0] not in ("asof", "asof_events")}
+    for r in ctx.order:
+        rows = rows_by[r]
+        big = {x[1] for x in rows if isinstance(x[2], int) and to_units(x[2], ctx.dec(r)) >= THRESHOLD_RAW
+               and x[0] not in ("asof", "asof_events")}
         desc[r] = {"n_new": len(plan[r]["start"]), "n_with_daily_anchor_ge_1M": len(big),
                    "n_rows": len(rows), "n_non_ok": sum(1 for x in rows if x[3])}
     rep["new_anchor_summary"] = desc
     ctx.state["gate_new"] = rep
     ctx.save_state()
-    print("GATE_NEW " + json.dumps({k: rep[k] for k in ("pooled", "per_reserve", "passes", "new_anchor_summary")}),
-          flush=True)
+    print("GATE_NEW " + json.dumps({"d2": rep["pooled"], "registered": rep["registered_rule"]["pooled"],
+                                    "passes": rep["passes"], "summary": desc}), flush=True)
     return rep
 
 
 def coverage(ctx: Ctx) -> dict:
-    """Share of aToken totalSupply at the B.1 asof snapshot held by the universe's anchored balances."""
+    """Share of aToken totalSupply held by the universe: anchored balances at the B.1 asof block
+    (P_r from depositor-balances, new addresses from the new anchors), anchored new-address balances
+    at this asof, and event-reconstructed balances at this asof."""
     plan = new_anchor_plan(ctx)
-    ts = b1_total_supply(ctx)
+    refs = ctx.state["refs"]
+    pr_all = b1_asof_anchors(ctx) if ctx.mode == "main" else {r: {} for r in ctx.order}
     out = {}
-    for r in RESERVE_ORDER:
-        addrs, A, valid = load_anchor_matrix(ctx.ddir / B1_DIR / f"daily-balances-{r.lower()}.csv.gz", ["asof"])
-        pr = {a: int(A[i, 0]) for i, a in enumerate(addrs) if valid[i, 0]}
-        newb = {x[1]: x[2] for x in new_anchor_rows(ctx, r, plan) if x[0] == "asof" and isinstance(x[2], int)}
-        rows = ctx.state["universe"][r]["rows"]
-        rule = {x["address"] for x in rows if x["reaches_1M_by_events"]}
-        tot = ts[r]["asof"]
-        s_pr = sum(pr.values())
-        s_new = sum(newb.values())
-        s_rule = sum(pr.get(a, 0) for a in rule) + sum(v for a, v in newb.items() if a in rule)
-        out[r] = {"block": B1_ASOF_BLOCK, "totalSupply_raw": tot, "P_r_share": s_pr / tot, "new_share": s_new / tot,
-                  "P_r_plus_new_share": (s_pr + s_new) / tot, "rule_members_share": s_rule / tot}
+    for r in ctx.order:
+        dec = ctx.dec(r)
+        rows_new = new_anchor_rows(ctx, r, plan)
+        pr = {a: from_units(v, dec) for a, v in pr_all[r].items()}
+        new_b1 = {x[1]: x[2] for x in rows_new if x[0] == "asof" and isinstance(x[2], int)}
+        new_ev = {x[1]: x[2] for x in rows_new if x[0] == "asof_events" and isinstance(x[2], int)}
+        urows = ctx.state["universe"][r]["rows"]
+        rule = {x["address"] for x in urows if x["reaches_1M_by_events"]}
+        ts_b1 = int(refs["b1_asof"]["reads"][r]["totalSupply"])
+        ts_ev = int(refs["asof"]["reads"][r]["totalSupply"])
+        s_pr, s_new = sum(pr.values()), sum(new_b1.values())
+        s_rule = sum(pr.get(a, 0) for a in rule) + sum(v for a, v in new_b1.items() if a in rule)
+        recon_univ = sum(x["recon_balance_asof_raw"] for x in urows)
+        recon_rule = sum(x["recon_balance_asof_raw"] for x in urows if x["reaches_1M_by_events"])
+        out[r] = {"b1_asof": {"block": refs["b1_asof"]["block"], "totalSupply_raw": str(ts_b1),
+                              "P_r_share": s_pr / ts_b1, "new_share": s_new / ts_b1,
+                              "universe_share(P_r+new)": (s_pr + s_new) / ts_b1, "rule_members_share": s_rule / ts_b1},
+                  "asof": {"block": refs["asof"]["block"], "totalSupply_raw": str(ts_ev),
+                           "new_anchored_share": sum(new_ev.values()) / ts_ev,
+                           "universe_share_reconstructed": recon_univ / ts_ev,
+                           "rule_members_share_reconstructed": recon_rule / ts_ev}}
     return out
+
+
+# ---------------------------------------------------------------------------------------------
+# Holdout reserves (deviation D1): mechanical selection and daily reserve state
+# ---------------------------------------------------------------------------------------------
+
+PEG_BAND = (0.98, 1.02)
+HOLDOUT_MIN_SUPPLY_USD = 50_000_000
+HOLDOUT_MIN_LISTED_DAYS = 365
+PEG_RULE = ("USD-pegged = the Aave oracle price (PoolAddressesProvider.getPriceOracle().getAssetPrice(asset) / "
+            "BASE_CURRENCY_UNIT, USD) lies within [0.98, 1.02] at the asof block AND at every monthly 00:00Z snapshot "
+            "(1st of the month, depositor-balances blocks.csv) in the 365 days before the asof; a price read that fails "
+            "in a month when the reserve was listed fails the rule. Fixed before the reserve list was read.")
+SELECT_RULE = ("holdout = Pool.getReservesList() member at the asof block, not USDC/USDT, USD-pegged (above), aToken "
+               "totalSupply x oracle price >= $50,000,000 at the asof block, and listed >= 365 days before the asof "
+               "(listing = the aToken deployment block, eth_getCode bisection)")
+
+
+def decode_address_array(ret: bytes) -> list[str]:
+    """ABI address[] return value."""
+    off = B._word(ret, 0)
+    n = B._word(ret, off)
+    return [B.word_to_address(B._word(ret, off + 32 * (i + 1))) for i in range(n)]
+
+
+def decode_symbol(ok: bool, ret: bytes) -> str:
+    """ERC-20 symbol(): ABI string, or bytes32 for old tokens."""
+    if not ok or not ret:
+        return ""
+    if len(ret) == 32:
+        return ret.rstrip(b"\x00").decode("utf-8", "replace")
+    try:
+        off = B._word(ret, 0)
+        ln = B._word(ret, off)
+        return ret[off + 32:off + 32 + ln].decode("utf-8", "replace")
+    except B.DecodeError:
+        return ""
+
+
+def peg_ok(prices: list) -> bool:
+    """prices: USD floats, None for a failed read in a listed month."""
+    return bool(prices) and all(p is not None and PEG_BAND[0] <= p <= PEG_BAND[1] for p in prices)
+
+
+def safe_name(sym: str) -> str:
+    import re
+    return re.sub(r"[^A-Za-z0-9_-]", "_", sym) or "UNKNOWN"
+
+
+def select_holdouts(cands: list[dict], asof_ts: int, exclude: set[str]) -> list[dict]:
+    """Annotate candidate rows (pure). Each row needs asset, price_asof_usd, monthly_prices (listed months),
+    supply_usd, listing_ts."""
+    for c in cands:
+        reasons = []
+        if c["asset"] in exclude:
+            reasons.append("USDC/USDT")
+        c["pegged"] = peg_ok([c["price_asof_usd"]] + c["monthly_prices"])
+        if not c["pegged"]:
+            reasons.append("not USD-pegged")
+        c["supply_ok"] = c["supply_usd"] is not None and c["supply_usd"] >= HOLDOUT_MIN_SUPPLY_USD
+        if not c["supply_ok"]:
+            reasons.append("supply < $50M")
+        c["listed_days"] = (asof_ts - c["listing_ts"]) / 86400 if c.get("listing_ts") else None
+        c["listed_ok"] = c["listed_days"] is not None and c["listed_days"] >= HOLDOUT_MIN_LISTED_DAYS
+        if not c["listed_ok"]:
+            reasons.append("listed < 365 days")
+        c["selected"] = not reasons
+        c["reason"] = "; ".join(reasons) if reasons else "selected"
+    return cands
+
+
+def b1_monthly_blocks(ctx: Ctx) -> list[tuple[str, int, int]]:
+    rows = list(csv.DictReader(open(ctx.ddir / B1_DIR / "blocks.csv")))
+    return [(x["snapshot"], int(x["block"]), int(x["T"])) for x in rows if x["kind"] == "daily" and x["monthly"] == "1"]
+
+
+def phase_select(ctx: Ctx, main_state: dict) -> None:
+    st = ctx.state
+    if st.get("holdouts", {}).get("done"):
+        ctx.set_reserves(st["holdouts"]["reserves"])
+        return
+    rpc = ctx.rpc
+    st.setdefault("asof", main_state["asof"])
+    st.setdefault("asof_crosscheck", main_state.get("asof_crosscheck"))
+    st.setdefault("signatures", check_signatures())
+    st["b1_inputs"] = check_b1_inputs(ctx)
+    asof, asof_ts = st["asof"]["block"], st["asof"]["ts"]
+    sel_st = st.setdefault("select", {})
+    ec = lambda to, data, blk, tag: rpc.eth_call(to, data, blk, "select", tag=tag)  # noqa: E731
+    if "assets" not in sel_st:
+        sel_st["assets"] = decode_address_array(ec(POOL, sel("getReservesList()"), asof, "reservesList"))
+        sel_st["provider"] = B.word_to_address(B.decode_uint(ec(POOL, sel("ADDRESSES_PROVIDER()"), asof, "provider")))
+        ctx.save_state()
+    assets, provider = sel_st["assets"], sel_st["provider"]
+
+    def oracle_at(blk):
+        return B.word_to_address(B.decode_uint(ec(provider, sel("getPriceOracle()"), blk, f"oracle {blk}")))
+
+    if "info" not in sel_st:
+        oracle = oracle_at(asof)
+        base = B.decode_uint(ec(oracle, sel("BASE_CURRENCY_UNIT()"), asof, "base unit"))
+        calls = []
+        for a in assets:
+            calls += [(POOL, B.call_data("getReserveData", a)), (a, sel("symbol()")), (a, sel("decimals()")),
+                      (oracle, sel("getAssetPrice(address)") + B.enc_address(a))]
+        res = []
+        for ch in B.chunk(calls):
+            res += rpc.multicall(ch, asof, "select", tag="reserve info")
+        info = {}
+        for i, a in enumerate(assets):
+            rd = B.decode_reserve_data(*res[4 * i])
+            ok_d, ret_d = res[4 * i + 2]
+            ok_p, ret_p = res[4 * i + 3]
+            info[a] = {"symbol": decode_symbol(*res[4 * i + 1]),
+                       "decimals": B.decode_uint(ret_d) if ok_d and len(ret_d) == 32 else None,
+                       "aToken": rd.get("aTokenAddress"), "rd_status": rd["status"],
+                       "price_asof_raw": B.decode_uint(ret_p) if ok_p and len(ret_p) == 32 else None}
+        ts_calls = [(info[a]["aToken"], sel("totalSupply()")) for a in assets]
+        ts_res = rpc.multicall(ts_calls, asof, "select", tag="aToken supply")
+        for a, (ok, ret) in zip(assets, ts_res):
+            info[a]["totalSupply_raw"] = B.decode_uint(ret) if ok and len(ret) == 32 else None
+        sel_st.update({"info": info, "oracle_asof": oracle, "base_unit": base})
+        ctx.save_state()
+    info, base = sel_st["info"], sel_st["base_unit"]
+    listing = sel_st.setdefault("listing", {})
+    for a in assets:
+        if a in listing or not info[a]["aToken"] or info[a]["aToken"] == B.ZERO_ADDRESS:
+            continue
+        at = info[a]["aToken"]
+        cache: dict[int, bool] = {}
+
+        def has_code(b, at=at, cache=cache):
+            if b not in cache:
+                cache[b] = eth_get_code_len(ctx, at, b) > 0
+            return cache[b]
+
+        blk = find_deploy_block(has_code, DEPLOY_SEARCH_LO, asof)
+        bo = rpc.block_obj(blk, "select")
+        listing[a] = {"block": blk, "ts": int(bo["timestamp"], 16)}
+        ctx.save_state()
+    monthly = [(s, b, T) for s, b, T in b1_monthly_blocks(ctx) if asof_ts - 365 * 86400 < T <= asof_ts]
+    mp = sel_st.setdefault("monthly_prices", {})
+    for s, b, _ in monthly:
+        if s in mp:
+            continue
+        orc = oracle_at(b)
+        res = rpc.multicall([(orc, sel("getAssetPrice(address)") + B.enc_address(a)) for a in assets], b, "select",
+                            tag=f"prices {s}")
+        mp[s] = {"block": b, "oracle": orc,
+                 "prices": {a: (B.decode_uint(ret) if ok and len(ret) == 32 else None) for a, (ok, ret) in zip(assets, res)}}
+        ctx.save_state()
+    cands = []
+    for a in assets:
+        x = info[a]
+        lst = listing.get(a)
+        p0 = x["price_asof_raw"] / base if x["price_asof_raw"] is not None else None
+        mprices = []
+        for s, b, _ in monthly:
+            if lst and b >= lst["block"]:
+                v = mp[s]["prices"].get(a)
+                mprices.append(v / base if v is not None else None)
+        supply_usd = (x["totalSupply_raw"] / 10 ** x["decimals"] * p0
+                      if x["totalSupply_raw"] is not None and x["decimals"] is not None and p0 is not None else None)
+        cands.append({"asset": a, "symbol": x["symbol"], "decimals": x["decimals"], "aToken": x["aToken"],
+                      "price_asof_usd": p0, "monthly_prices": mprices,
+                      "monthly_min": min([v for v in mprices if v is not None], default=None),
+                      "monthly_max": max([v for v in mprices if v is not None], default=None),
+                      "n_monthly_listed": len(mprices), "n_monthly_failed": sum(1 for v in mprices if v is None),
+                      "totalSupply_raw": x["totalSupply_raw"], "supply_usd": supply_usd,
+                      "listing_block": lst["block"] if lst else None, "listing_ts": lst["ts"] if lst else None,
+                      "listing_utc": B.iso_utc(lst["ts"]) if lst else ""})
+    exclude = {norm_address_safe(RESERVES[r]["asset"]) for r in RESERVE_ORDER}
+    select_holdouts(cands, asof_ts, exclude)
+    chosen = [c for c in cands if c["selected"]]
+    if any((c["decimals"] or 0) < 1 for c in chosen):
+        raise B.TerminalError("holdout with unknown decimals")
+    reserves = {}
+    for c in sorted(chosen, key=lambda c: -c["supply_usd"]):
+        name = safe_name(c["symbol"])
+        while name in reserves:
+            name += "_"
+        reserves[name] = {"asset": c["asset"], "atoken": c["aToken"], "decimals": c["decimals"], "symbol": c["symbol"]}
+    st["deploy"] = {n: {"block": listing[v["asset"]]["block"], "ts": listing[v["asset"]]["ts"],
+                        "utc": B.iso_utc(listing[v["asset"]]["ts"]),
+                        "rule": "smallest block whose post-state has code at the aToken address (eth_getCode bisection)"}
+                    for n, v in reserves.items()}
+    st["holdouts"] = {"peg_rule": PEG_RULE, "select_rule": SELECT_RULE, "provider": provider,
+                      "oracle_asof": sel_st["oracle_asof"], "base_unit": base,
+                      "monthly_snapshots": [s for s, _, _ in monthly], "candidates": cands,
+                      "reserves": reserves, "done": True}
+    ctx.set_reserves(reserves)
+    st["refs"] = {lab: {"block": blk, "reads": ref_reads(ctx, blk) if reserves else {}}
+                  for lab, blk in (("b1_asof", B1_ASOF_BLOCK), ("asof", asof))}
+    ctx.save_state()
+    print("HOLDOUTS " + json.dumps({"selected": reserves, "n_candidates": len(cands)}), flush=True)
+
+
+def norm_address_safe(a: str) -> str:
+    return B.norm_address(a)
+
+
+RSTATE_KEYS = ("rd", "aTotalSupply", "cash")
+
+
+def rstate_snapshots(ctx: Ctx) -> list[tuple[str, int, int]]:
+    daily, b1asof = b1_blocks(ctx)
+    a = ctx.state["asof"]
+    return list(daily) + [("asof", b1asof[1], b1asof[2]), ("asof_events", a["block"], a["ts"])]
+
+
+def phase_rstate(ctx: Ctx) -> None:
+    """Daily reserve state of the holdout reserves at the depositor-balances snapshot blocks plus both
+    asof blocks (B.1 method: getReserveData, aToken totalSupply, cash, variableDebt totalSupply,
+    curve by both strategy ABIs)."""
+    store = B.JsonlStore(ctx.work / "rstate.jsonl")
+    todo = [x for x in rstate_snapshots(ctx) if not store.has(x[0])]
+    print(f"rstate: {len(todo)} snapshots to do", flush=True)
+
+    def do(task):
+        s, blk, ts = task
+        if ctx.rpc.stop.is_set():
+            raise B.TerminalError("stopped")
+        lead = []
+        for r in ctx.order:
+            a, at = ctx.reserves[r]["asset"], ctx.reserves[r]["atoken"]
+            lead += [(POOL, B.call_data("getReserveData", a)), (at, B.call_data("totalSupply")),
+                     (a, B.call_data("balanceOf", at))]
+        res = ctx.rpc.multicall(lead, blk, "rstate", tag=f"rstate {s} lead")
+        dep_labels, dep_calls = [], []
+        for k, r in enumerate(ctx.order):
+            rd = B.decode_reserve_data(*res[3 * k])
+            if rd.get("status") != "ok" or not rd.get("listed"):
+                continue
+            vdt, strat = rd["variableDebtTokenAddress"], rd["interestRateStrategyAddress"]
+            if vdt != B.ZERO_ADDRESS:
+                dep_labels.append(["vd", r, vdt])
+                dep_calls.append((vdt, B.call_data("totalSupply")))
+            if strat != B.ZERO_ADDRESS:
+                for nm in B.V1_CURVE:
+                    dep_labels.append(["v1", r, strat, nm])
+                    dep_calls.append((strat, B.call_data(nm)))
+                dep_labels.append(["v2", r, strat])
+                dep_calls.append((strat, B.call_data("getInterestRateData", ctx.reserves[r]["asset"])))
+        res2 = ctx.rpc.multicall(dep_calls, blk, "rstate", tag=f"rstate {s} dep") if dep_calls else []
+        store.put(s, {"block": blk, "ts": ts, "order": list(ctx.order),
+                      "lead": [[1 if ok else 0, ret.hex()] for ok, ret in res],
+                      "dep_labels": dep_labels, "dep": [[1 if ok else 0, ret.hex()] for ok, ret in res2]})
+
+    B.run_pool(ctx, "rstate", todo, do)
+    ctx._rstate_rows = None
+
+
+def _u(ok_hex) -> tuple[int | None, str]:
+    ok, h = ok_hex
+    ret = bytes.fromhex(h)
+    if not ok:
+        return None, "fail"
+    if not ret:
+        return None, "empty"
+    if len(ret) != 32:
+        return None, f"badlen:{len(ret)}"
+    return int.from_bytes(ret, "big"), "ok"
+
+
+def rstate_rows(ctx: Ctx) -> list[dict]:
+    """reserve-state rows (depositor-balances columns) from the rstate checkpoint."""
+    if getattr(ctx, "_rstate_rows", None):
+        return ctx._rstate_rows
+    store = B.JsonlStore(ctx.work / "rstate.jsonl")
+    rows = []
+    for s, blk, ts in rstate_snapshots(ctx):
+        rec = store.get(s)
+        if rec is None:
+            raise B.TerminalError(f"rstate missing {s}")
+        if rec["order"] != list(ctx.order) or rec["block"] != blk:
+            raise B.TerminalError(f"rstate layout changed {s}")
+        dep = {tuple(lab): v for lab, v in zip(rec["dep_labels"], rec["dep"])}
+        for k, r in enumerate(ctx.order):
+            row = {"snapshot": s, "reserve": r, "block": blk, "block_ts": ts}
+            ok, h = rec["lead"][3 * k]
+            rd = B.decode_reserve_data(bool(ok), bytes.fromhex(h))
+            row["rd_status"], row["rd_words"] = rd["status"], rd["words"]
+            for j, col in ((1, "totalSupply"), (2, "cash")):
+                row[col], row[col + "_status"] = _u(rec["lead"][3 * k + j])
+            listed = rd.get("status") == "ok" and rd.get("listed")
+            row["listed"] = int(bool(listed)) if rd.get("status") == "ok" else None
+            for f in ("liquidityIndex", "variableBorrowIndex", "lastUpdateTimestamp"):
+                row[f] = rd.get(f)
+            row["liquidityRate_ray"] = rd.get("currentLiquidityRate")
+            row["variableBorrowRate_ray"] = rd.get("currentVariableBorrowRate")
+            row["configuration"] = rd.get("configuration")
+            row["RF_bps"] = B.reserve_factor_bps(rd["configuration"]) if rd.get("status") == "ok" else None
+            row["aToken_rd"] = rd.get("aTokenAddress")
+            row["aToken_matches"] = (int(rd.get("aTokenAddress") == B.norm_address(ctx.reserves[r]["atoken"]))
+                                     if rd.get("status") == "ok" else None)
+            row["variableDebtToken"] = rd.get("variableDebtTokenAddress")
+            row["strategy"] = rd.get("interestRateStrategyAddress")
+            vd = dep.get(("vd", r, row["variableDebtToken"]))
+            if vd is not None:
+                row["variableDebt"], row["variableDebt_status"] = _u(vd)
+            else:
+                row["variableDebt"] = None
+                row["variableDebt_status"] = ("rd_" + rd["status"]) if rd.get("status") != "ok" else (
+                    "not_listed" if not listed else "not_called")
+            strat = row["strategy"]
+            v1 = [dep.get(("v1", r, strat, nm)) for nm in B.V1_CURVE] if strat else [None] * 4
+            v2 = dep.get(("v2", r, strat)) if strat else None
+            cur = B.decode_curve([(bool(x[0]), x[1]) for x in v1] if all(v1) else None,
+                                 (bool(v2[0]), v2[1]) if v2 else None)
+            if v2 is not None:
+                row["curve_abi"] = cur["abi"]
+            elif rd.get("status") != "ok":
+                row["curve_abi"] = "rd_" + rd["status"]
+            else:
+                row["curve_abi"] = "not_listed" if not listed else "not_called"
+            main = cur["main"]
+            for i, nm in enumerate(("optimal", "base", "slope1", "slope2")):
+                row[nm] = main[i] if main else None
+            for tag in ("v1", "v2"):
+                vals = cur[tag]
+                for i, nm in enumerate(("optimal", "base", "slope1", "slope2")):
+                    row[f"{tag}_{nm}"] = vals[i] if vals else None
+            row["v1_success"] = "".join(str(int(bool(x[0]))) for x in v1) if all(v1) else ""
+            row["v2_success"] = (1 if v2[0] else 0) if v2 else None
+            rows.append(row)
+    ctx._rstate_rows = rows
+    return rows
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1584,156 +1962,303 @@ EVENT_COLS = ["reserve", "block", "ts", "tx_hash", "tx_index", "log_index", "typ
 RAW_COLS = ["address", "block", "tx_hash", "tx_index", "log_index", "topic0", "topic1", "topic2", "topic3", "data"]
 
 
-def phase_write(ctx: Ctx, run_meta_fn) -> dict:
-    out = ctx.out
-    out.mkdir(parents=True, exist_ok=True)
-    tsl = ts_lookup(ctx)
-    files = []
-    for r in RESERVE_ORDER:
-        at = RESERVES[r]["atoken"].lower()
+def write_reserve_logs(ctx: Ctx, out: Path, r: str, tsl: dict) -> list[str]:
+    """raw-logs-<r>-<period>.csv.gz and events-<r>-<period>.csv.gz of one reserve into `out`."""
+    at = ctx.reserves[r]["atoken"].lower()
+    stem = r.lower()
 
-        def raw_rows(r=r, at=at):
-            for lg in ctx.store.iter_reserve(r):
-                t = lg["topics"] + [""] * (4 - len(lg["topics"]))
-                yield [at, lg["block"], lg["tx"], lg["tx_index"], lg["log_index"], *t, lg["data"]]
+    def raw_rows():
+        for lg in ctx.store.iter_reserve(r):
+            t = lg["topics"] + [""] * (4 - len(lg["topics"]))
+            yield [at, lg["block"], lg["tx"], lg["tx_index"], lg["log_index"], *t, lg["data"]]
 
-        files += write_partitioned(out, f"raw-logs-{r.lower()}", RAW_COLS, raw_rows, lambda row: tsl[row[1]])
+    def ev_rows():
+        for lg in ctx.store.iter_reserve(r):
+            try:
+                ev = decode_log(lg["topics"], lg["data"])
+            except DecodeError:
+                continue
+            if ev is None:
+                continue
+            dl = ev["deltas"]
+            d1 = dl[0][1] if len(dl) >= 1 else ""
+            d2 = dl[1][1] if len(dl) >= 2 else ""
+            yield [r, lg["block"], tsl[lg["block"]], lg["tx"], lg["tx_index"], lg["log_index"], ev["type"],
+                   ev["party1"], ev["party2"], ev["value"],
+                   "" if ev["balanceIncrease"] is None else ev["balanceIncrease"],
+                   "" if ev["index"] is None else ev["index"], d1, d2]
 
-        def ev_rows(r=r):
-            for lg in ctx.store.iter_reserve(r):
-                try:
-                    ev = decode_log(lg["topics"], lg["data"])
-                except DecodeError:
-                    continue
-                if ev is None:
-                    continue
-                dl = ev["deltas"]
-                d1 = dl[0][1] if len(dl) >= 1 else ""
-                d2 = dl[1][1] if len(dl) >= 2 else ""
-                yield [r, lg["block"], tsl[lg["block"]], lg["tx"], lg["tx_index"], lg["log_index"], ev["type"],
-                       ev["party1"], ev["party2"], ev["value"],
-                       "" if ev["balanceIncrease"] is None else ev["balanceIncrease"],
-                       "" if ev["index"] is None else ev["index"], d1, d2]
+    names = write_partitioned(out, f"raw-logs-{stem}", RAW_COLS, raw_rows, lambda row: tsl[row[1]])
+    names += write_partitioned(out, f"events-{stem}", EVENT_COLS, ev_rows, lambda row: row[2])
+    return names
 
-        files += write_partitioned(out, f"events-{r.lower()}", EVENT_COLS, ev_rows, lambda row: row[2])
+
+def write_blocks(ctx: Ctx, out: Path, blocks: set | None, tsl: dict) -> list[str]:
     tab = block_table(ctx)
 
     def blk_rows():
         for b in sorted(tab):
-            ts, h = tab[b]
-            yield [b, tsl[b], h]
+            if blocks is None or b in blocks:
+                yield [b, tsl[b], tab[b][1]]
 
-    files += write_partitioned(out, "block-timestamps", ["block", "ts", "block_hash"], blk_rows, lambda row: row[1])
-    # extended universe
+    return write_partitioned(out, "block-timestamps", ["block", "ts", "block_hash"], blk_rows, lambda row: row[1])
+
+
+UNIVERSE_COLS = ["reserve", "address", "in_P_r", "P_r_rule", "reaches_1M_by_events", "new", "max_event_balance_raw",
+                 "max_at_block", "recon_balance_asof_raw", "first_event_block", "first_event_utc", "n_balance_events"]
+
+
+def _finish(out: Path, files: list[str], prov_fn) -> dict:
+    keep = set(files) | {"PROVENANCE.md"}
+    for p in out.rglob("*"):
+        if p.is_file():
+            rel = str(p.relative_to(out))
+            if rel not in keep and (p.parent == out or p.parent.parent == out):
+                p.unlink()
+    info = {n: {"bytes": (out / n).stat().st_size, "sha256": B.sha256_file(out / n)} for n in sorted(files)}
+    (out / "PROVENANCE.md").write_text(prov_fn(info))
+    return info
+
+
+def phase_write(ctx: Ctx, run_meta_fn) -> dict:
+    if ctx.mode != "main":
+        return phase_write_holdout(ctx, run_meta_fn)
+    out = ctx.out
+    out.mkdir(parents=True, exist_ok=True)
+    tsl = ts_lookup(ctx)
+    files = []
+    for r in ctx.order:
+        files += write_reserve_logs(ctx, out, r, tsl)
+    files += write_blocks(ctx, out, None, tsl)
     if "universe" in ctx.state:
-        cols = ["reserve", "address", "in_P_r", "P_r_rule", "reaches_1M_by_events", "new", "max_event_balance_raw",
-                "max_at_block", "first_event_block", "first_event_utc", "n_balance_events"]
-        rows = [[r] + [x[c] for c in cols[1:]] for r in RESERVE_ORDER for x in ctx.state["universe"][r]["rows"]]
-        B.write_csv(out / "extended-universe.csv", cols, rows, gz=False)
+        rows = [[r] + [x[c] for c in UNIVERSE_COLS[1:]] for r in ctx.order for x in ctx.state["universe"][r]["rows"]]
+        B.write_csv(out / "extended-universe.csv", UNIVERSE_COLS, rows, gz=False)
         files.append("extended-universe.csv")
     if "gate_new" in ctx.state:
         plan = new_anchor_plan(ctx)
-        for r in RESERVE_ORDER:
+        for r in ctx.order:
             name = f"daily-balances-ext-{r.lower()}.csv.gz"
             write_csv_gz(out / name, ["snapshot", "address", "balance_raw", "status"], new_anchor_rows(ctx, r, plan))
             files.append(name)
-    rep = {"prereg": PREREG, "gate_P_r": ctx.state.get("gate"), "gate_new_addresses": ctx.state.get("gate_new"),
-           "coverage": ctx.state.get("coverage"), "decode": ctx.state.get("decode")}
+    rep = {"prereg": PREREG, "deviation_d2": D2_RULE, "gate_P_r": ctx.state.get("gate"),
+           "gate_new_addresses": ctx.state.get("gate_new"), "coverage": ctx.state.get("coverage"),
+           "decode": ctx.state.get("decode"),
+           "universe": {r: {k: v for k, v in u.items() if k != "rows"} for r, u in ctx.state.get("universe", {}).items()}}
     (out / "gate-report.json").write_text(json.dumps(rep, indent=1, default=str) + "\n")
     files.append("gate-report.json")
     run_meta = run_meta_fn()
     (out / "run-log.json").write_text(json.dumps(run_meta, indent=1, default=str) + "\n")
     files.append("run-log.json")
-    stale = [p.name for p in out.iterdir() if p.is_file() and p.name not in files and p.name != "PROVENANCE.md"]
-    for n in stale:
-        (out / n).unlink()
-    info = {n: {"bytes": (out / n).stat().st_size, "sha256": B.sha256_file(out / n)} for n in sorted(files)}
-    (out / "PROVENANCE.md").write_text(provenance_md(ctx, run_meta, info))
-    return info
+    return _finish(out, files, lambda info: provenance_md(ctx, run_meta, info))
+
+
+CANDIDATE_COLS = ["asset", "symbol", "decimals", "aToken", "price_asof_usd", "monthly_min", "monthly_max",
+                  "n_monthly_listed", "n_monthly_failed", "pegged", "totalSupply_raw", "supply_usd", "supply_ok",
+                  "listing_block", "listing_utc", "listed_days", "listed_ok", "selected", "reason"]
+
+
+def phase_write_holdout(ctx: Ctx, run_meta_fn) -> dict:
+    out = ctx.out
+    out.mkdir(parents=True, exist_ok=True)
+    ho = ctx.state["holdouts"]
+    files = []
+    cands = sorted(ho["candidates"], key=lambda c: (not c["selected"], -(c["supply_usd"] or 0)))
+    B.write_csv(out / "holdout-candidates.csv", CANDIDATE_COLS,
+                [[("" if c.get(k) is None else c.get(k)) for k in CANDIDATE_COLS] for c in cands], gz=False)
+    files.append("holdout-candidates.csv")
+    if ctx.order and "timestamps" in ctx.state:
+        tsl = ts_lookup(ctx)
+        plan = new_anchor_plan(ctx) if "gate_new" in ctx.state else None
+        rs = rstate_rows(ctx) if "gate_new" in ctx.state else []
+        for r in ctx.order:
+            sub = out / r
+            sub.mkdir(parents=True, exist_ok=True)
+            names = write_reserve_logs(ctx, sub, r, tsl)
+            blocks = {lg["block"] for lg in ctx.store.iter_reserve(r)}
+            names += write_blocks(ctx, sub, blocks, tsl)
+            if "universe" in ctx.state:
+                rows = [[r] + [x[c] for c in UNIVERSE_COLS[1:]] for x in ctx.state["universe"][r]["rows"]]
+                B.write_csv(sub / "extended-universe.csv", UNIVERSE_COLS, rows, gz=False)
+                names.append("extended-universe.csv")
+            if plan is not None:
+                name = f"daily-balances-{r.lower()}.csv.gz"
+                write_csv_gz(sub / name, ["snapshot", "address", "balance_raw", "status"], new_anchor_rows(ctx, r, plan))
+                names.append(name)
+                B.write_csv(sub / "reserve-state.csv", B.RESERVE_STATE_COLS,
+                            ([B.fmt(row.get(c)) for c in B.RESERVE_STATE_COLS] for row in rs if row["reserve"] == r),
+                            gz=False)
+                names.append("reserve-state.csv")
+            files += [f"{r}/{n}" for n in names]
+    rep = {"prereg": PREREG, "deviation_d1": "holdout reserves", "deviation_d2": D2_RULE,
+           "selection": {k: v for k, v in ho.items() if k != "candidates"},
+           "gate": ctx.state.get("gate_new"), "coverage": ctx.state.get("coverage"), "decode": ctx.state.get("decode"),
+           "universe": {r: {k: v for k, v in u.items() if k != "rows"} for r, u in ctx.state.get("universe", {}).items()}}
+    (out / "gate-report.json").write_text(json.dumps(rep, indent=1, default=str) + "\n")
+    files.append("gate-report.json")
+    run_meta = run_meta_fn()
+    (out / "run-log.json").write_text(json.dumps(run_meta, indent=1, default=str) + "\n")
+    files.append("run-log.json")
+    return _finish(out, files, lambda info: provenance_holdout_md(ctx, run_meta, info))
+
+
+def _f5(v) -> str:
+    return "n/a" if v is None else f"{v:.5f}"
+
+
+def _session_lines(st: dict) -> list[str]:
+    return [f"  {', '.join(x['phases'])}: HEAD `{x['code'].get('sha')}`; builder `{x['code'].get('file_last_commit')}` "
+            f"(sha256 `{x['code'].get('file_sha256')}`){' DIRTY' if x['code'].get('dirty') else ''}; status `{x['status']}`."
+            for x in st.get("sessions", []) if x.get("status")]
+
+
+def _gate_lines(label: str, g: dict) -> list[str]:
+    if not g:
+        return []
+    d, r = g["d2"]["pooled"], g["registered_rule"]["pooled"]
+    return [f"{label}: verdict (D2) {'PASS' if g['passes'] else 'FAIL'} — {_f5(d['share_pass'])} of {d['n_pairs']} pairs, "
+            f"{_f5(d['share_pass_with_event'])} of {d['n_pairs_with_event']} pairs holding an event. Registered G.2 "
+            f"tolerance: {'pass' if g['registered_rule']['passes'] else 'failed'} — {_f5(r['share_pass'])} / "
+            f"{_f5(r['share_pass_with_event'])}."]
+
+
+SOURCE_LINES = [
+    f"- **Sources:** logs by `eth_getLogs` on `{LOGS_RPC_URL}` (free, no key), ranges ≤ {RANGE_MAX:,} blocks split in",
+    f"  half on any non-rate-limit error down to {RANGE_MIN:,} blocks, ≤ 2 requests/s, rate limit: wait {RETRY_WAIT_S} s,",
+    f"  ≤ {MAX_RETRIES} retries, then stop. Block timestamps and hashes: the `blockTimestamp` / `blockHash` the logs",
+    f"  endpoint returns with every log, a seeded sample ({TS_SAMPLE_PER_RESERVE} blocks per token) checked by",
+    f"  `eth_getBlockByNumber` on `{STATE_RPC_URL}`. Deployment blocks (eth_getCode bisection), reference reads, reserve",
+    f"  state and the anchors: archive `eth_call` on `{STATE_RPC_URL}`, Multicall3 `{B.MULTICALL3}` (B.1 method).",
+]
+FORMAT_LINES = [
+    "  - `raw-logs-<reserve>-<period>.csv.gz`: every log as returned (address, block, tx hash, tx index, log index,",
+    "    topic0..3, data), sorted by block then log index.",
+    "  - `events-<reserve>-<period>.csv.gz`: the four decoded types. `party1`/`party2` = Mint onBehalfOf/caller,",
+    "    Burn from/target, BalanceTransfer from/to, Transfer from/to. `delta1_raw` = G.2 balance change of party1",
+    "    (Mint value − balanceIncrease; Burn −(value + balanceIncrease); BalanceTransfer −rayMul(value, index)),",
+    "    `delta2_raw` = change of party2 (BalanceTransfer +rayMul(value, index)); empty = no G.2 change (Transfer",
+    "    rows duplicate the paired event and carry none). BalanceTransfer `value_raw` is the scaled amount.",
+    "  - `block-timestamps-<period>.csv.gz`: block, ts, block hash for every block with a log.",
+    "  - `extended-universe.csv`: every address whose event-reconstructed balance reaches ≥ $1,000,000 at any",
+    "    moment (`reaches_1M_by_events`), plus every `P_r` member; `new` = reaches and not in `P_r`. Method: scaled",
+    "    balance s = Σ rayDiv(G.2 change, event index) (BalanceTransfer moves its scaled `value` exactly); balance =",
+    "    s × index, evaluated before and after every event (the event's own index) and at asof (normalized income), the",
+    "    maximum over each interval being at its end because the index only grows; computed in 1e-6-token units with",
+    "    float64 for the maximum. `recon_balance_asof_raw` = s × normalized income at this asof.",
+]
 
 
 def provenance_md(ctx: Ctx, meta: dict, files: dict) -> str:
     st = ctx.state
-    a = st["asof"]
-    dep = st["deploy"]
-    dec = st.get("decode", {})
-    uni = st.get("universe", {})
-    gate = st.get("gate", {})
-    gnew = st.get("gate_new", {})
-    sess = [x for x in st.get("sessions", []) if x.get("status")]
+    a, dep = st["asof"], st["deploy"]
+    dec, uni = st.get("decode", {}), st.get("universe", {})
+    gate, gnew, cov = st.get("gate", {}), st.get("gate_new", {}), st.get("coverage", {})
     built = bool(uni) and bool(gnew)
     lines = [
         "# depositor-events — provenance",
         "",
-        "Every log of the Aave V3 Ethereum Core aUSDC and aUSDT tokens from deployment to a pinned asof block,",
-        ("decoded per G.2, with the reconstruction validation gate, the extended universe and daily anchors for its new"
-         if built else "decoded per G.2, with the reconstruction validation gate (it FAILED, so the extended universe and"),
-        ("addresses." if built else "new-address anchors were not built).") +
-        f" Built exactly as preregistered in `{PREREG['repo']}` `{PREREG['path']}` §{PREREG['sections']}",
-        f"(commit `{PREREG['commit']}`, sha256 `{PREREG['sha256'][:8]}…{PREREG['sha256'][-4:]}`). The builder computes no",
-        "outcome (no gradient labels, exit counts or withdrawal rates); the gate compares balance changes only.",
+        "Every log of the Aave V3 Ethereum Core aUSDC and aUSDT tokens from deployment to a pinned asof block, decoded",
+        "per G.2, with the reconstruction validation gate" + (", the extended universe and daily anchors for its new addresses."
+                                                           if built else " (the extended universe was not built)."),
+        f"Built as preregistered in `{PREREG['repo']}` `{PREREG['path']}` §{PREREG['sections']} (commit `{PREREG['commit']}`,",
+        f"sha256 `{PREREG['sha256'][:8]}…{PREREG['sha256'][-4:]}`) with deviation D2 (membrane-board `567955a`): the gate tolerance",
+        "base is max(anchor_d, anchor_d+1, intraday peak balance). The registered rule failed (intraday interest on",
+        "same-day round trips) and is reported beside the verdict. The builder computes no outcome (no gradient labels,",
+        "exit counts or withdrawal rates); the gate compares balance changes only.",
         "",
-        f"- **Sources:** logs by `eth_getLogs` on `{LOGS_RPC_URL}` (free, no key), ranges ≤ {RANGE_MAX:,} blocks split in",
-        f"  half on any non-rate-limit error down to {RANGE_MIN:,} blocks, ≤ 2 requests/s, rate limit: wait {RETRY_WAIT_S} s,",
-        f"  ≤ {MAX_RETRIES} retries, then stop. Block timestamps and hashes: the `blockTimestamp` / `blockHash` the logs",
-        f"  endpoint returns with every log, a seeded sample ({TS_SAMPLE_PER_RESERVE} blocks per token) checked by",
-        f"  `eth_getBlockByNumber` on `{STATE_RPC_URL}`. Deployment blocks (eth_getCode bisection), reference reads and",
-        f"  the new anchors: archive `eth_call` on `{STATE_RPC_URL}`, Multicall3 `{B.MULTICALL3}` (B.1 method).",
+        *SOURCE_LINES,
         f"  aUSDC `{RESERVES['USDC']['atoken']}` (deployed block {dep['USDC']['block']}, {dep['USDC']['utc']});",
         f"  aUSDT `{RESERVES['USDT']['atoken']}` (deployed block {dep['USDT']['block']}, {dep['USDT']['utc']}).",
         f"- **Asof:** block {a['block']} ({B.iso_utc(a['ts'])}, hash `{a['hash']}`), the `finalized` block at start.",
         f"  Anchor inputs: membrane-datasets `{B1_DIR}/` (`2ca6d16`), sha256 checked; its asof block is {B1_ASOF_BLOCK}.",
         f"- **Builder:** `The-Membrane/membrane-app` branch `{meta['code'].get('branch')}`, `{meta['code'].get('path')}`",
         "  (helpers imported from `b_acquire.py`). By session:",
-        *[f"  {', '.join(x['phases'])}: HEAD `{x['code'].get('sha')}`; builder `{x['code'].get('file_last_commit')}` "
-          f"(sha256 `{x['code'].get('file_sha256')}`){' DIRTY' if x['code'].get('dirty') else ''}; status `{x['status']}`."
-          for x in sess],
+        *_session_lines(st),
         f"- **Fetch window (UTC):** {meta['fetch_window_utc'][0]} → {meta['fetch_window_utc'][1]}.",
         ("- **Status:** CANONICAL, FROZEN (inputs to Q26 B-gradient; do not refetch or edit)." if gate.get("passes") else
-         "- **Status:** FROZEN raw acquisition (logs, decoded events, block timestamps; do not refetch or edit). The G.2"
-         "\n  validation gate FAILED, so the run stopped: no extended universe and no new-address anchors were built."),
+         "- **Status:** FROZEN raw acquisition; the gate FAILED, so no extended universe or new anchors were built."),
         "- **Units:** raw integers in 6-decimal underlying units (÷ 1e6 = USD); `index_ray` ÷ 1e27.",
         "- **Formats:**",
-        "  - `raw-logs-{usdc,usdt}-<period>.csv.gz`: every log as returned (address, block, tx hash, tx index, log index,",
-        "    topic0..3, data), sorted by block then log index.",
-        "  - `events-{usdc,usdt}-<period>.csv.gz`: the four decoded types. `party1`/`party2` = Mint onBehalfOf/caller,",
-        "    Burn from/target, BalanceTransfer from/to, Transfer from/to. `delta1_raw` = G.2 balance change of party1",
-        "    (Mint value − balanceIncrease; Burn −(value + balanceIncrease); BalanceTransfer −rayMul(value, index)),",
-        "    `delta2_raw` = change of party2 (BalanceTransfer +rayMul(value, index)); empty = no G.2 change (Transfer",
-        "    rows duplicate the paired event and carry none). BalanceTransfer `value_raw` is the scaled amount.",
-        "  - `block-timestamps-<period>.csv.gz`: block, ts, block hash for every block with a log of either token.",
-        *([
-            "  - `extended-universe.csv`: every address whose event-reconstructed balance reaches ≥ $1,000,000 at any",
-            "    moment (`reaches_1M_by_events`), plus every `P_r` member; `new` = reaches and not in `P_r`. Balance =",
-            "    scaled balance (Σ rayDiv(delta, index); BalanceTransfer moves `value` exactly) × the event's index, checked",
-            "    before and after every event and at asof (normalized income); float64 for the maximum (±2 raw units).",
-            "  - `daily-balances-ext-{usdc,usdt}.csv.gz`: B.1 long format for the new addresses, every B.1 daily snapshot",
-            "    from the address's first event day (UTC) on, then `asof` (block 26180400) and `asof_events` (this asof).",
-            "  - `gate-report.json`: the gate on P_r and on the new anchors, worst residuals, failure causes, checks.",
-        ] if built else [
-            "  - `gate-report.json`: the G.2 gate on P_r (verdict, both shares, per reserve and year, worst residuals,",
-            "    failure causes), labelled non-gate diagnostics, and reconstruction checks (Σ scaled balances vs",
-            "    `scaledTotalSupply`; per-address balance vs the B.1 asof anchors).",
-        ]),
+        *FORMAT_LINES,
+        "  - `daily-balances-ext-{usdc,usdt}.csv.gz`: B.1 long format for the new addresses, every B.1 daily snapshot",
+        "    from the address's first event day (UTC) on, then `asof` (block 26180400) and `asof_events` (this asof).",
+        "  - `gate-report.json`: the gate on P_r and on the new anchors (D2 verdict and the registered rule: shares per",
+        "    reserve and year, worst residuals, failure causes), diagnostics, reconstruction checks, universe, coverage.",
         "  - `run-log.json`: request counts, retries, splits, failures, timings, code sha, state.",
+        "- **Holdout reserves (D1):** `holdouts/` with its own PROVENANCE.md." if (ctx.out / "holdouts").exists() else "",
         "",
     ]
-    for r in RESERVE_ORDER:
+    for r in ctx.order:
         x = dec.get(r, {})
         lines.append(f"{r}: {x.get('n_logs')} logs; by type {json.dumps(x.get('by_type'))}; other known "
                      f"{json.dumps(x.get('other_known'))}; unknown topic0 {json.dumps(x.get('unknown_topic0'))}.")
-    f5 = lambda v: "n/a" if v is None else f"{v:.5f}"  # noqa: E731
-    if gate:
-        p = gate["pooled"]
-        lines += ["", f"Gate on P_r: {'PASS' if gate['passes'] else 'FAIL'} — {f5(p['share_pass'])} of {p['n_pairs']} pairs, "
-                      f"{f5(p['share_pass_with_event'])} of {p['n_pairs_with_event']} pairs holding an event."]
-    if gnew:
-        p = gnew["pooled"]
-        lines += [f"Gate on new anchors: {'PASS' if gnew['passes'] else 'FAIL'} — {f5(p['share_pass'])} of {p['n_pairs']} "
-                  f"pairs, {f5(p['share_pass_with_event'])} of {p['n_pairs_with_event']} pairs holding an event."]
+    lines += [""] + _gate_lines("Gate on P_r", gate) + _gate_lines("Gate on new anchors", gnew)
     if uni:
-        lines += [f"Extended universe: " + "; ".join(
-            f"{r} {uni[r]['n_rule']} reach $1M ({uni[r]['n_new']} new vs P_r {uni[r]['n_P_r']})" for r in RESERVE_ORDER) + "."]
+        lines += ["Extended universe: " + "; ".join(
+            f"{r} {uni[r]['n_rule']} reach $1M ({uni[r]['n_new']} new vs P_r {uni[r]['n_P_r']})" for r in ctx.order) + "."]
+    if cov:
+        lines += ["Coverage of aToken totalSupply: " + "; ".join(
+            f"{r} {cov[r]['b1_asof']['universe_share(P_r+new)']:.4f} anchored at block {cov[r]['b1_asof']['block']}, "
+            f"{cov[r]['asof']['universe_share_reconstructed']:.4f} reconstructed at block {cov[r]['asof']['block']}"
+            for r in ctx.order) + "."]
+    lines += ["", "| file | bytes | sha256 |", "|---|---:|---|"]
+    for n, f in sorted(files.items()):
+        lines.append(f"| `{n}` | {f['bytes']} | `{f['sha256']}` |")
+    return "\n".join(lines) + "\n"
+
+
+def provenance_holdout_md(ctx: Ctx, meta: dict, files: dict) -> str:
+    st = ctx.state
+    a, ho = st["asof"], st["holdouts"]
+    dec, uni = st.get("decode", {}), st.get("universe", {})
+    gnew, cov = st.get("gate_new", {}), st.get("coverage", {})
+    dep = st.get("deploy", {})
+    lines = [
+        "# depositor-events/holdouts — provenance",
+        "",
+        "Holdout reserves of Q26 B-gradient deviation D1 (blind confirmation; no fit reads them): Aave V3 Ethereum Core",
+        "USD-stablecoin reserves other than USDC and USDT with aToken supply ≥ $50M at the asof block and listed ≥ 365 days",
+        "before it. Same G.1–G.2 method as the parent directory: logs → decode → universe (≥ $1M at any time) → daily",
+        "00:00Z anchors → gate (deviation D2 tolerance), plus daily reserve state. No labels or outcomes are computed.",
+        f"Prereg `{PREREG['repo']}` `{PREREG['path']}` (commit `{PREREG['commit']}`), deviations D1 and D2 (`567955a`).",
+        "",
+        f"- **Selection (fixed mechanically at fetch time):** {ho['select_rule']}.",
+        f"  {ho['peg_rule']}",
+        f"  Pool `{POOL}`, PoolAddressesProvider `{ho['provider']}`, oracle at asof `{ho['oracle_asof']}`. Full table:",
+        "  `holdout-candidates.csv`. Selected: " + (", ".join(
+            f"{n} (`{v['asset']}`, aToken `{v['atoken']}`, {v['decimals']} decimals, listed block {dep[n]['block']} "
+            f"{dep[n]['utc']})" for n, v in ho["reserves"].items()) or "none") + ".",
+        *SOURCE_LINES,
+        f"- **Asof:** block {a['block']} ({B.iso_utc(a['ts'])}, hash `{a['hash']}`), the same asof as `depositor-events/`.",
+        "  Snapshot blocks: membrane-datasets `depositor-balances/blocks.csv` (`2ca6d16`, sha256 checked).",
+        f"- **Builder:** `The-Membrane/membrane-app` branch `{meta['code'].get('branch')}`, `{meta['code'].get('path')}`",
+        "  `--mode holdout`. By session:",
+        *_session_lines(st),
+        f"- **Fetch window (UTC):** {meta['fetch_window_utc'][0]} → {meta['fetch_window_utc'][1]}.",
+        ("- **Status:** CANONICAL, FROZEN (holdout inputs to Q26 B-gradient; do not refetch or edit)."
+         if gnew.get("passes") else "- **Status:** FROZEN acquisition; the holdout gate did not pass (see gate-report.json)."),
+        "- **Units:** raw integers in the token's own decimals (column `decimals` of the candidate table); 1 token is",
+        "  counted as $1 (USD-pegged by the selection rule). Gate and universe run in 1e-6-token units.",
+        "- **Formats** (per reserve directory `<reserve>/`):",
+        *FORMAT_LINES,
+        "    No reserve here has a `P_r`, so every universe member is `new` and is anchored.",
+        "  - `daily-balances-<reserve>.csv.gz`: B.1 long format for every universe address, every B.1 daily snapshot",
+        "    from its first event day (UTC) on, then `asof` (block 26180400) and `asof_events` (this asof).",
+        "  - `reserve-state.csv`: depositor-balances columns at every daily snapshot block plus `asof` and `asof_events`.",
+        "  - top level: `holdout-candidates.csv`, `gate-report.json` (pooled over the holdouts, per reserve and year, D2",
+        "    verdict and the registered rule, reconstruction checks, coverage), `run-log.json`.",
+        "",
+    ]
+    for r in ctx.order:
+        x = dec.get(r, {})
+        lines.append(f"{r}: {x.get('n_logs')} logs; by type {json.dumps(x.get('by_type'))}; other known "
+                     f"{json.dumps(x.get('other_known'))}; unknown topic0 {json.dumps(x.get('unknown_topic0'))}.")
+    lines += [""] + _gate_lines("Gate on the holdout universe", gnew)
+    if uni:
+        lines += ["Universe (≥ $1M at any time): " + "; ".join(f"{r} {uni[r]['n_rule']}" for r in ctx.order) + "."]
+    if cov:
+        lines += ["Coverage of aToken totalSupply: " + "; ".join(
+            f"{r} {cov[r]['b1_asof']['universe_share(P_r+new)']:.4f} anchored at block {cov[r]['b1_asof']['block']}, "
+            f"{cov[r]['asof']['new_anchored_share']:.4f} anchored at block {cov[r]['asof']['block']}" for r in ctx.order) + "."]
     lines += ["", "| file | bytes | sha256 |", "|---|---:|---|"]
     for n, f in sorted(files.items()):
         lines.append(f"| `{n}` | {f['bytes']} | `{f['sha256']}` |")
@@ -1757,7 +2282,11 @@ def build_run_meta(ctx: Ctx) -> dict:
                     for kk, vv in v.items():
                         dd[kk] = dd.get(kk, 0) + vv
     return {
-        "dataset": "depositor-events", "prereg": PREREG,
+        "dataset": "depositor-events" if ctx.mode == "main" else "depositor-events/holdouts", "prereg": PREREG,
+        "deviations": {"D1": "holdout reserves", "D2": D2_RULE}, "mode": ctx.mode,
+        "reserves": ctx.reserves,
+        "holdout_selection": ({k: v for k, v in ctx.state["holdouts"].items() if k != "candidates"}
+                              if "holdouts" in ctx.state else None),
         "logs_rpc_url": LOGS_RPC_URL, "state_rpc_url": STATE_RPC_URL, "user_agent": USER_AGENT,
         "logs_policy": {"range_max": RANGE_MAX, "range_min": RANGE_MIN, "interval_s": LOGS_INTERVAL_S,
                         "retry_wait_s": RETRY_WAIT_S, "max_retries": MAX_RETRIES, "cap_suspect": CAP_SUSPECT},
@@ -1782,6 +2311,7 @@ def build_run_meta(ctx: Ctx) -> dict:
 # ---------------------------------------------------------------------------------------------
 
 PHASES = ("preflight", "logs", "timestamps", "decode", "gate", "universe", "anchors", "gate_new", "write")
+HOLDOUT_PHASES = ("select", "logs", "timestamps", "decode", "universe", "anchors", "rstate", "gate_new", "write")
 
 
 def main(argv=None) -> int:
@@ -1789,11 +2319,24 @@ def main(argv=None) -> int:
     ap.add_argument("--work-dir", required=True)
     ap.add_argument("--out-dir", default=None)
     ap.add_argument("--phases", default="all")
+    ap.add_argument("--mode", choices=("main", "holdout"), default="main",
+                    help="main = USDC/USDT; holdout = the deviation D1 holdout reserves")
+    ap.add_argument("--main-work-dir", default=None, help="holdout mode: the main run's work dir (asof is reused)")
     args = ap.parse_args(argv)
     ddir = datasets_dir()
-    out = Path(args.out_dir) if args.out_dir else ddir / "depositor-events"
-    ctx = Ctx(Path(args.work_dir), out, ddir)
-    phases = PHASES if args.phases == "all" else tuple(p.strip() for p in args.phases.split(","))
+    holdout = args.mode == "holdout"
+    out = Path(args.out_dir) if args.out_dir else ddir / "depositor-events" / ("holdouts" if holdout else "")
+    ctx = Ctx(Path(args.work_dir), out, ddir, mode=args.mode, reserves={} if holdout else None)
+    main_state = None
+    if holdout:
+        if ctx.state.get("holdouts", {}).get("done"):
+            ctx.set_reserves(ctx.state["holdouts"]["reserves"])
+        if not args.main_work_dir and not ctx.state.get("holdouts"):
+            ap.error("holdout mode needs --main-work-dir on its first run")
+        if args.main_work_dir:
+            main_state = json.loads((Path(args.main_work_dir) / "state.json").read_text())
+    phases = (HOLDOUT_PHASES if holdout else PHASES) if args.phases == "all" else tuple(
+        p.strip() for p in args.phases.split(","))
     session = {"start_utc": utcnow(), "code": git_info(), "phases": list(phases), "phase_seconds": {}}
     ctx.state.setdefault("sessions", []).append(session)
     ctx.save_state()
@@ -1810,6 +2353,10 @@ def main(argv=None) -> int:
             print(f"PHASE {p} start {utcnow()}", flush=True)
             if p == "preflight":
                 phase_preflight(ctx)
+            elif p == "select":
+                phase_select(ctx, main_state or {})
+            elif p == "rstate":
+                phase_rstate(ctx)
             elif p == "logs":
                 phase_logs(ctx)
             elif p == "timestamps":
@@ -1820,16 +2367,18 @@ def main(argv=None) -> int:
                 rep = phase_gate(ctx)
                 if not rep["passes"]:
                     session["phase_seconds"][p] = round(time.monotonic() - t0, 1)
-                    raise B.TerminalError("validation gate FAILED: run stops (G.2)")
+                    raise B.TerminalError("validation gate FAILED (D2 verdict): run stops")
             elif p == "universe":
                 phase_universe(ctx)
             elif p == "anchors":
                 phase_anchors(ctx)
             elif p == "gate_new":
-                phase_gate_new(ctx)
+                rep = phase_gate_new(ctx)
                 ctx.state["coverage"] = coverage(ctx)
                 ctx.save_state()
                 print("COVERAGE " + json.dumps(ctx.state["coverage"]), flush=True)
+                if not rep["passes"]:
+                    raise B.TerminalError("gate on the new anchors FAILED (D2 verdict)")
             elif p == "write":
                 session["phase_seconds"][p] = 0
                 session["status"] = "ok"

@@ -757,7 +757,8 @@ export class AaveReader {
         if (!(err instanceof NoBackendError)) throw err
         r = null
       }
-      if (r && r.blockHash !== ev.blockHash) {
+      // No second answer, or another stale one: the arithmetic, counted as a mismatch.
+      if (!r || r.blockHash !== ev.blockHash) {
         this.receipts.delete(ev.tx)
         return { fee: null, source: 'block-mismatch' }
       }

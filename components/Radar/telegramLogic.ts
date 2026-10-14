@@ -138,7 +138,7 @@ export const replyText = (r: Reply): string => {
       return [
         `Linked. This chat gets a message when one of your ${r.active} alert${r.active === 1 ? '' : 's'} is reached or clears.`,
         'Values are checked about hourly. Your RSS feed keeps working.',
-        'Data compiled by Membrane · /stop to unlink',
+        'Data compiled by Membrane · /stop ends every alert in this chat (feeds and Radar addresses)',
       ].join('\n\n')
     case 'th_unknown':
       return 'That alert link is not valid. Set an alert on Membrane, then tap its telegram link.'
@@ -295,7 +295,7 @@ export type ThresholdDelivery = { eventId: string; chatId: string; text: string;
 
 /** Plain text, no markdown: the event, its source and as-of, how to stop. */
 export const thresholdMessage = (e: ThresholdEventRow): string =>
-  [eventHeadline(e), provenanceLine(e.source, e.asOf), '/stop to unlink this chat'].join('\n')
+  [eventHeadline(e), provenanceLine(e.source, e.asOf), '/stop ends every alert in this chat'].join('\n')
 
 /**
  * Which (event, chat) messages to send this run.

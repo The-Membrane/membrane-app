@@ -8,8 +8,8 @@
 //   CURATOR_FEED_TO_BLOCK=<n>        stop at block n instead of the finalized head
 //   pnpm curators:feed --oracle-gap-only [--dry-run] [--limit=N]
 //                                    only the oracle-gap point (step 12) at the finalized
-//                                    head, for the N largest held markets of the last run;
-//                                    --dry-run prints the observations and writes nothing
+//                                    head, for every held market of the last run (or the N
+//                                    largest); --dry-run prints them and writes nothing
 //
 // LOCAL-FIRST (lib/curatorFeed/paths.ts): the run resumes from .data/curator-feed (else the
 // datasets-repo copy at $MEMBRANE_DATASETS_DIR or ../membrane-datasets, else a full window)
@@ -157,7 +157,7 @@ const FORCE_EXPOSURE = ARGS.has('--exposure')
 const GAP_ONLY = ARGS.has('--oracle-gap-only')
 const DRY_RUN = ARGS.has('--dry-run')
 const GAP_LIMIT = Number(
-  process.argv.find((a) => a.startsWith('--limit='))?.slice('--limit='.length) ?? 20,
+  process.argv.find((a) => a.startsWith('--limit='))?.slice('--limit='.length) ?? Infinity,
 )
 const DAYS = Number(process.env.CURATOR_FEED_DAYS ?? 182)
 const MAX_DAYS = Math.max(DAYS, Number(process.env.CURATOR_FEED_MAX_DAYS ?? 190))
@@ -2556,7 +2556,10 @@ async function oracleGapOnly(): Promise<void> {
       `${marketLabel(ent, id).padEnd(34)} ` +
         (o.gap === null
           ? `unobserved: ${x.reason}`
-          : `oracle $${o.oracleUsd} vs DefiLlama $${o.marketUsd} (conf ${o.marketConfidence ?? '—'}) → gap ${gapText(o.gap)}`),
+          : `oracle $${o.oracleUsd} vs DefiLlama $${o.marketUsd} (conf ${o.marketConfidence ?? '—'}) → gap ${gapText(o.gap)}`) +
+        (o.rawGap !== undefined
+          ? ` (raw gap ${gapText(o.rawGap)}, conf ${o.marketConfidence})`
+          : ''),
     )
   }
   log(`observed ${m.observed} of ${markets.length} ${JSON.stringify(m.reasons)}`)

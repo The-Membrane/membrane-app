@@ -10,6 +10,7 @@ import {
   i3Headline,
   i3Points,
   leadDaysText,
+  MIN_PRICE_CONFIDENCE,
   observeGap,
   recordCaveats,
   recordCredit,
@@ -216,6 +217,34 @@ describe('observeGap', () => {
     expect(obs.oracleUsd).toBe(3600)
     expect(obs.gap).toBeCloseTo(3600 / 3500 - 1, 6)
   })
+  it('a DefiLlama confidence under the cut is no measurement; the raw gap is kept', () => {
+    expect(MIN_PRICE_CONFIDENCE).toBe(0.9)
+    const base: GapInputs = {
+      ts,
+      block: 1,
+      price: (10n ** 24n).toString(),
+      collateralDecimals: 18,
+      loanDecimals: 6,
+      collateral: { price: 0.5, timestamp: ts, confidence: 0.5 },
+      loan: usdc,
+    }
+    const low = observeGap(base)
+    expect(low.reason).toBe('low-confidence')
+    expect(low.obs).toMatchObject({ gap: null, marketConfidence: 0.5, oracleUsd: 0.9999 })
+    expect(low.obs.rawGap).toBeCloseTo(0.9999 / 0.5 - 1, 6)
+    // The weaker of the two prices counts: a low-confidence loan price too.
+    const lowLoan = observeGap({
+      ...base,
+      collateral: { price: 1, timestamp: ts, confidence: 0.99 },
+      loan: { ...usdc, confidence: 0.8 },
+    })
+    expect(lowLoan.reason).toBe('low-confidence')
+    // At the cut it counts.
+    const at = observeGap({ ...base, collateral: { price: 1, timestamp: ts, confidence: 0.9 } })
+    expect(at.reason).toBeUndefined()
+    expect(at.obs.marketConfidence).toBe(0.9)
+  })
+
   it('a revert, a missing or old price is an unobserved point, never a 0', () => {
     const base: GapInputs = {
       ts,
@@ -281,6 +310,26 @@ describe('appendGapRun / decodeGapFile', () => {
     expect(empty.result).toBe('skipped-empty')
     expect(empty.file.runs.length).toBe(1)
   })
+  it('keeps a low-confidence point raw; it reads back unobserved and never starts a run alone', () => {
+    const low: GapObservation = {
+      ts: 0,
+      gap: null,
+      rawGap: 0.4,
+      oracleUsd: 1,
+      marketUsd: 0.71,
+      marketConfidence: 0.5,
+    }
+    expect(appendGapRun(null, { ts: T, block: 1 }, [['0xa', low]]).result).toBe('skipped-empty')
+    const f = appendGapRun(null, { ts: T, block: 1 }, [
+      ['0xa', low],
+      ['0xb', o(0.01)],
+    ]).file
+    expect(f.rows.find((r) => f.markets[r[1]] === '0xa')).toEqual([0, 0, 1, 0.71, 0.5, 0.4])
+    const a = decodeGapFile(f).byMarket.get('0xa')![0]
+    expect(a).toMatchObject({ gap: null, rawGap: 0.4, marketConfidence: 0.5 })
+    expect(evaluateI3([a], C, T + 60).state).toBe('unobserved')
+  })
+
   it('keeps the last 7 days', () => {
     let f = null as ReturnType<typeof appendGapRun>['file'] | null
     for (let i = 0; i < 24 * 8; i++)

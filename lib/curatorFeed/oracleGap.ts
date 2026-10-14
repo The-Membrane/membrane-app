@@ -22,6 +22,9 @@
  *   D7  a market price counts only when its own sample is less than 6 h old; else the hour
  *       is unobserved.
  *   D9  a reverting price() has no answer: the hour is unobserved, never a 0.
+ * Not in T2 (its prices were frozen pulls): a DefiLlama price whose `confidence` is below
+ * MIN_PRICE_CONFIDENCE is not a measurement either; the point is unobserved and its raw
+ * values are kept in the store for audit (`rawGap`).
  * An unobserved point (gap null) breaks a run, as a missing hour does.
  *
  * The constants (2 %, 24 h, 2 daily points) are read from the generated record
@@ -98,8 +101,11 @@ export interface GapObservation {
   oracleUsd?: number
   marketUsd?: number
   marketSource?: 'defillama'
+  /** The LOWER DefiLlama confidence of the two prices used (collateral, loan token). */
   marketConfidence?: number
   gap: number | null
+  /** Unobserved for low confidence only: the gap the prices gave, kept for audit. */
+  rawGap?: number
 }
 
 export type I3State = 'fired' | 'building' | 'below' | 'unobserved' | 'stale'
@@ -126,6 +132,20 @@ export const HOLD_SECONDS: Record<I3Cadence, number> = { hourly: 1.5 * 3600, dai
 export const MARKET_HOLD_SECONDS = 6 * 3600
 /** The live state is stale when the newest point is older than this. */
 export const STALE_HOURS = 3
+/**
+ * A DefiLlama price below this confidence is not a measurement. DefiLlama's coins API
+ * returns `confidence` per price, "Confidence score (0-1) indicating price reliability"
+ * (@defillama/api 0.1.3, dist/index.d.cts, the current / historical price types); its API
+ * docs (api-docs.defillama.com) set no cut. 0.9 is ours. On 2026-10-14 (block 26,187,700)
+ * the lower confidence of each held market's two prices was 0.99 for 234 markets, 0.9 for
+ * 34, 0.95 to 0.995 for 10, and 0.85 for 2 (armUSDCp, armUSDTp): the cut drops only what
+ * DefiLlama rates below its usual levels. Applied when a point is read (decodeGapFile), so
+ * the stored raw value can be re-read under another cut.
+ */
+export const MIN_PRICE_CONFIDENCE = 0.9
+
+const lowConfidence = (c: number | null | undefined): boolean =>
+  c !== null && c !== undefined && c < MIN_PRICE_CONFIDENCE
 
 export const persistenceOf = (c: I3Constants, cadence: I3Cadence): number =>
   cadence === 'hourly' ? c.persistenceHours : c.persistenceDailyPoints
@@ -259,7 +279,8 @@ function fromRuns(runs: RunRows[], keepDays: number): OracleGapFile {
 export type AppendResult = 'appended' | 'replaced' | 'skipped-empty' | 'skipped-older'
 
 /**
- * Add one run's observations. Only observed points are stored; a market without a row is
+ * Add one run's observations. Observed points are stored, and low-confidence points with
+ * their raw gap (for audit; they read back as unobserved); a market without a row is
  * unobserved in that run. A run that observed nothing is not recorded (so the series goes
  * stale rather than pretending to have looked). A run in the same UTC hour as the newest
  * one replaces it; a run older than the newest is ignored. Runs older than `keepDays`
@@ -272,17 +293,17 @@ export function appendGapRun(
   keepDays = KEEP_DAYS,
 ): { file: OracleGapFile; result: AppendResult } {
   const rows = new Map<string, Tuple>()
-  for (const [m, o] of observations)
-    if (
-      o.gap !== null &&
-      Number.isFinite(o.gap) &&
-      o.oracleUsd !== undefined &&
-      o.marketUsd !== undefined
-    )
-      rows.set(m.toLowerCase(), [o.oracleUsd, o.marketUsd, o.marketConfidence ?? null, o.gap])
+  let observed = 0
+  for (const [m, o] of observations) {
+    const g = o.gap ?? o.rawGap
+    if (g === null || g === undefined || !Number.isFinite(g)) continue
+    if (o.oracleUsd === undefined || o.marketUsd === undefined) continue
+    rows.set(m.toLowerCase(), [o.oracleUsd, o.marketUsd, o.marketConfidence ?? null, g])
+    if (o.gap !== null) observed++
+  }
   const runs = toRuns(prev)
   const keep = (result: AppendResult) => ({ file: fromRuns(runs, keepDays), result })
-  if (!rows.size) return keep('skipped-empty')
+  if (!observed) return keep('skipped-empty')
   const last = runs[runs.length - 1]
   if (last && run.ts < last.ts) return keep('skipped-older')
   let result: AppendResult = 'appended'
@@ -302,8 +323,9 @@ export function appendGapRun(
 }
 
 /**
- * Per market, one observation per run from its first observed run to the newest run;
- * a run without a row for the market is an unobserved point (gap null).
+ * Per market, one observation per run from its first stored run to the newest run; a run
+ * without a row for the market is an unobserved point (gap null), and so is a row whose
+ * confidence is below MIN_PRICE_CONFIDENCE (its gap moves to `rawGap`).
  */
 export function decodeGapFile(f: OracleGapFile): {
   runs: GapRun[]
@@ -323,18 +345,20 @@ export function decodeGapFile(f: OracleGapFile): {
     const out: GapObservation[] = []
     for (let ri = first.get(m)!; ri < runs.length; ri++) {
       const r = byRun.get(ri)
-      out.push(
-        r
-          ? {
-              ...runs[ri],
-              oracleUsd: r[2],
-              marketUsd: r[3],
-              marketSource: 'defillama',
-              marketConfidence: r[4] ?? undefined,
-              gap: r[5],
-            }
-          : { ...runs[ri], gap: null },
-      )
+      if (!r) {
+        out.push({ ...runs[ri], gap: null })
+        continue
+      }
+      const low = lowConfidence(r[4])
+      out.push({
+        ...runs[ri],
+        oracleUsd: r[2],
+        marketUsd: r[3],
+        marketSource: 'defillama',
+        marketConfidence: r[4] ?? undefined,
+        gap: low ? null : r[5],
+        ...(low ? { rawGap: r[5] } : {}),
+      })
     }
     byMarket.set(m, out)
   }
@@ -363,6 +387,7 @@ export type UnobservedReason =
   | 'no-market-price'
   | 'market-price-old'
   | 'zero-price'
+  | 'low-confidence'
 
 export interface GapInputs {
   ts: number
@@ -408,18 +433,23 @@ export function observeGap(i: GapInputs): { obs: GapObservation; reason?: Unobse
   const loanPerColl = (Number(BigInt(i.price)) / 1e36) * 10 ** (cd - ld)
   if (!(loanPerColl > 0)) return none('zero-price')
   const oracleUsd = loanPerColl * i.loan.price
-  const gap = oracleUsd / i.collateral.price - 1
-  return {
-    obs: {
-      ts: i.ts,
-      block: i.block,
-      oracleUsd: sig6(oracleUsd),
-      marketUsd: sig6(i.collateral.price),
-      marketSource: 'defillama',
-      marketConfidence: i.collateral.confidence,
-      gap: Math.round(gap * 1e6) / 1e6,
-    },
+  const gap = Math.round((oracleUsd / i.collateral.price - 1) * 1e6) / 1e6
+  const confs = [i.collateral.confidence, i.loan.confidence].filter(
+    (c): c is number => typeof c === 'number',
+  )
+  const confidence = confs.length ? Math.min(...confs) : undefined
+  const obs: GapObservation = {
+    ts: i.ts,
+    block: i.block,
+    oracleUsd: sig6(oracleUsd),
+    marketUsd: sig6(i.collateral.price),
+    marketSource: 'defillama',
+    marketConfidence: confidence,
+    gap,
   }
+  if (lowConfidence(confidence))
+    return { obs: { ...obs, gap: null, rawGap: gap }, reason: 'low-confidence' }
+  return { obs }
 }
 
 // ── copy (numbers from the record and the constants only) ─────────────────────

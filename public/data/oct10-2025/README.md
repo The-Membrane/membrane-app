@@ -19,6 +19,14 @@ Window: `2025-10-10T00:00:00Z` → `2025-10-11T23:59:00Z`, 1-minute grid, 2,880 
   on-chain at mainnet block **23,543,615**; the measured Aave/Morpho liquidation repay
   distributions; the oracle-lag report; the USDe exit-liquidity summary.
 - **`manifest.json`** — window, per-series attribution, and the caveat list the UI renders.
+- **`wavefront-replay.json`** — the full-coverage Real-vs-Membrane stream for the window
+  (every liquidated Aave V3 and Morpho Blue position, 3,163), compact columnar form of schema
+  v1. Built by `scripts/oct10-coverage/build-census.ts` (not by the build above); read it with
+  `lib/wavefront/stream.ts` `decodeCompact` + `applyRecord`. Canonical copy, with the
+  per-position census, in membrane-datasets `oct10-2025/coverage/`. See `docs/WAVEFRONT.md`.
+- **`coverage-summary.json`** — that census's coverage table, both-side totals, classes,
+  clusters and the cross-check against `evidence.json`. `evidence.json` (the old census) is
+  unchanged and is still what the Evidence page reads.
 
 ## Provenance
 

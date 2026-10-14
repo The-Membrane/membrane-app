@@ -1,0 +1,489 @@
+{
+ "source": "Canonical: membrane-datasets oct10-2025/coverage/census.json (built by membrane-app scripts/oct10-coverage/build-census.ts). This file is the small served copy.",
+ "window": {
+  "startTs": 1760054400,
+  "stepSeconds": 60,
+  "minutes": 2880,
+  "from": "2025-10-10T00:00:00Z",
+  "to": "2025-10-11T23:59:00Z (minute start of the last step)"
+ },
+ "coverage": {
+  "total": 3163,
+  "walked": 3157,
+  "notWalked": 6,
+  "byProtocolChain": [
+   {
+    "key": "aave-v3:arbitrum",
+    "total": 776,
+    "walked": 776,
+    "notWalked": 0
+   },
+   {
+    "key": "aave-v3:base",
+    "total": 426,
+    "walked": 426,
+    "notWalked": 0
+   },
+   {
+    "key": "aave-v3:mainnet",
+    "total": 623,
+    "walked": 621,
+    "notWalked": 2
+   },
+   {
+    "key": "aave-v3:optimism",
+    "total": 593,
+    "walked": 590,
+    "notWalked": 3
+   },
+   {
+    "key": "morpho-blue:base",
+    "total": 553,
+    "walked": 552,
+    "notWalked": 1
+   },
+   {
+    "key": "morpho-blue:mainnet",
+    "total": 192,
+    "walked": 192,
+    "notWalked": 0
+   }
+  ],
+  "uncovered": [
+   {
+    "pid": "aave-v3:mainnet:0x1326f7c79c13f6a4fa8e44b2e896e500a5b1b92a",
+    "protocol": "aave-v3",
+    "chain": "mainnet",
+    "reason": "not located: HF at block N >= 1 on every event (1)",
+    "events": 1,
+    "realRepaidUsd": 2395.35,
+    "ltv0": 0.404719,
+    "line": 0.41
+   },
+   {
+    "pid": "aave-v3:mainnet:0x5ade889a20cfbabf704f1cb71b1b3aab2b93f5ea",
+    "protocol": "aave-v3",
+    "chain": "mainnet",
+    "reason": "not located: HF at block N >= 1 on every event (1)",
+    "events": 1,
+    "realRepaidUsd": 6630.86,
+    "ltv0": 0.686078,
+    "line": 0.71
+   },
+   {
+    "pid": "aave-v3:optimism:0xd2f22a25c93c33f2027334677a48ae103b068898",
+    "protocol": "aave-v3",
+    "chain": "optimism",
+    "reason": "not located: HF at block N >= 1 on every event (1)",
+    "events": 1,
+    "realRepaidUsd": 331.13,
+    "ltv0": 0.622365,
+    "line": 0.63
+   },
+   {
+    "pid": "aave-v3:optimism:0x1b2c5b95413487f27723a655e9f68eb6985fe1df",
+    "protocol": "aave-v3",
+    "chain": "optimism",
+    "reason": "not located: HF at block N >= 1 on every event (1)",
+    "events": 1,
+    "realRepaidUsd": 243.05,
+    "ltv0": 0.664775,
+    "line": 0.666116
+   },
+   {
+    "pid": "aave-v3:optimism:0xf70c2bb5488ef12887b447d4da1dcd1e938c14d6",
+    "protocol": "aave-v3",
+    "chain": "optimism",
+    "reason": "not located: HF at block N >= 1 on every event (1)",
+    "events": 1,
+    "realRepaidUsd": 84.35,
+    "ltv0": 0.622803,
+    "line": 0.630013
+   },
+   {
+    "pid": "morpho-blue:base:0x5b347b3dcfed096f09040cd30a174ae354ecc0a35c996493b8fa490d6d3e79d7:0xceb9f5d4b085f601fef28497f6b5c42fdcb5e599",
+    "protocol": "morpho-blue",
+    "chain": "base",
+    "reason": "not liquidatable at block N: LTV_N <= LLTV on every event (1)",
+    "events": 1,
+    "realRepaidUsd": 175.63,
+    "ltv0": 0.859998,
+    "line": 0.86
+   }
+  ]
+ },
+ "totals": {
+  "walked": {
+   "real": {
+    "positions": 3157,
+    "events": 3991,
+    "repaidUsd": 186009210.18,
+    "seizedUsd": 196149736.16,
+    "badDebtUsd": 275716.58,
+    "unpricedEvents": 10,
+    "unpricedPositions": 10
+   },
+   "mem": {
+    "positions": 3157,
+    "repaidUsd": 149618915.15,
+    "soldUsd": 149576521.07,
+    "sales": 3240,
+    "positionsSold": 2536,
+    "positionsSoldAtGridEnd": 72,
+    "positionsKept": 621,
+    "unpricedSales": 9,
+    "unpricedPositions": 10
+   }
+  },
+  "all": {
+   "real": {
+    "positions": 3163,
+    "events": 3997,
+    "repaidUsd": 186019070.55,
+    "seizedUsd": 196161267.95,
+    "badDebtUsd": 275716.58,
+    "unpricedEvents": 10,
+    "unpricedPositions": 10
+   }
+  },
+  "byProtocol": {
+   "aave-v3": {
+    "real": {
+     "positions": 2413,
+     "events": 3106,
+     "repaidUsd": 146429042.34,
+     "seizedUsd": 154606308.33,
+     "badDebtUsd": 0,
+     "unpricedEvents": 0,
+     "unpricedPositions": 0
+    },
+    "mem": {
+     "positions": 2413,
+     "repaidUsd": 132167180.56,
+     "soldUsd": 132137612.89,
+     "sales": 2720,
+     "positionsSold": 2033,
+     "positionsSoldAtGridEnd": 58,
+     "positionsKept": 380,
+     "unpricedSales": 0,
+     "unpricedPositions": 0
+    }
+   },
+   "morpho-blue": {
+    "real": {
+     "positions": 744,
+     "events": 885,
+     "repaidUsd": 39580167.84,
+     "seizedUsd": 41543427.83,
+     "badDebtUsd": 275716.58,
+     "unpricedEvents": 10,
+     "unpricedPositions": 10
+    },
+    "mem": {
+     "positions": 744,
+     "repaidUsd": 17451734.59,
+     "soldUsd": 17438908.18,
+     "sales": 520,
+     "positionsSold": 503,
+     "positionsSoldAtGridEnd": 14,
+     "positionsKept": 241,
+     "unpricedSales": 9,
+     "unpricedPositions": 10
+    }
+   }
+  },
+  "byProtocolChain": {
+   "aave-v3:arbitrum": {
+    "real": {
+     "positions": 776,
+     "events": 938,
+     "repaidUsd": 17974004.55,
+     "seizedUsd": 19041887.93,
+     "badDebtUsd": 0,
+     "unpricedEvents": 0,
+     "unpricedPositions": 0
+    },
+    "mem": {
+     "positions": 776,
+     "repaidUsd": 8438488.48,
+     "soldUsd": 8437231.78,
+     "sales": 918,
+     "positionsSold": 649,
+     "positionsSoldAtGridEnd": 2,
+     "positionsKept": 127,
+     "unpricedSales": 0,
+     "unpricedPositions": 0
+    }
+   },
+   "aave-v3:base": {
+    "real": {
+     "positions": 426,
+     "events": 470,
+     "repaidUsd": 5761282.35,
+     "seizedUsd": 6113427.99,
+     "badDebtUsd": 0,
+     "unpricedEvents": 0,
+     "unpricedPositions": 0
+    },
+    "mem": {
+     "positions": 426,
+     "repaidUsd": 1962608.67,
+     "soldUsd": 1962608.67,
+     "sales": 404,
+     "positionsSold": 323,
+     "positionsSoldAtGridEnd": 22,
+     "positionsKept": 103,
+     "unpricedSales": 0,
+     "unpricedPositions": 0
+    }
+   },
+   "aave-v3:mainnet": {
+    "real": {
+     "positions": 621,
+     "events": 900,
+     "repaidUsd": 120938232.64,
+     "seizedUsd": 127568612.01,
+     "badDebtUsd": 0,
+     "unpricedEvents": 0,
+     "unpricedPositions": 0
+    },
+    "mem": {
+     "positions": 621,
+     "repaidUsd": 120153467.09,
+     "soldUsd": 120125978.36,
+     "sales": 778,
+     "positionsSold": 525,
+     "positionsSoldAtGridEnd": 19,
+     "positionsKept": 96,
+     "unpricedSales": 0,
+     "unpricedPositions": 0
+    }
+   },
+   "aave-v3:optimism": {
+    "real": {
+     "positions": 590,
+     "events": 798,
+     "repaidUsd": 1755522.8,
+     "seizedUsd": 1882380.4,
+     "badDebtUsd": 0,
+     "unpricedEvents": 0,
+     "unpricedPositions": 0
+    },
+    "mem": {
+     "positions": 590,
+     "repaidUsd": 1612616.32,
+     "soldUsd": 1611794.08,
+     "sales": 620,
+     "positionsSold": 536,
+     "positionsSoldAtGridEnd": 15,
+     "positionsKept": 54,
+     "unpricedSales": 0,
+     "unpricedPositions": 0
+    }
+   },
+   "morpho-blue:base": {
+    "real": {
+     "positions": 552,
+     "events": 617,
+     "repaidUsd": 19204439.9,
+     "seizedUsd": 20067990.97,
+     "badDebtUsd": 617.42,
+     "unpricedEvents": 2,
+     "unpricedPositions": 2
+    },
+    "mem": {
+     "positions": 552,
+     "repaidUsd": 8189443.37,
+     "soldUsd": 8188643.41,
+     "sales": 352,
+     "positionsSold": 339,
+     "positionsSoldAtGridEnd": 11,
+     "positionsKept": 213,
+     "unpricedSales": 1,
+     "unpricedPositions": 2
+    }
+   },
+   "morpho-blue:mainnet": {
+    "real": {
+     "positions": 192,
+     "events": 268,
+     "repaidUsd": 20375727.94,
+     "seizedUsd": 21475436.86,
+     "badDebtUsd": 275099.16,
+     "unpricedEvents": 8,
+     "unpricedPositions": 8
+    },
+    "mem": {
+     "positions": 192,
+     "repaidUsd": 9262291.22,
+     "soldUsd": 9250264.77,
+     "sales": 168,
+     "positionsSold": 164,
+     "positionsSoldAtGridEnd": 3,
+     "positionsKept": 28,
+     "unpricedSales": 8,
+     "unpricedPositions": 8
+    }
+   }
+  }
+ },
+ "classes": {
+  "aave-v3:delayed": 1904,
+  "aave-v3:mixed": 496,
+  "aave-v3:no-delay": 18,
+  "morpho-blue:delayed": 731,
+  "morpho-blue:no-delay": 14
+ },
+ "clusters": {
+  "ETH": {
+   "positions": 1023,
+   "walked": 1023,
+   "realRepaidUsdWalked": 75748164.35,
+   "memRepaidUsd": 60569955.74,
+   "positionsSold": 805
+  },
+  "BTC": {
+   "positions": 689,
+   "walked": 689,
+   "realRepaidUsdWalked": 74214529.25,
+   "memRepaidUsd": 18905568.15,
+   "positionsSold": 415
+  },
+  "OP": {
+   "positions": 360,
+   "walked": 357,
+   "realRepaidUsdWalked": 717451.84,
+   "memRepaidUsd": 730008.38,
+   "positionsSold": 337
+  },
+  "ARB": {
+   "positions": 281,
+   "walked": 281,
+   "realRepaidUsdWalked": 886272.52,
+   "memRepaidUsd": 989971.88,
+   "positionsSold": 250
+  },
+  "LINK": {
+   "positions": 261,
+   "walked": 260,
+   "realRepaidUsdWalked": 8564769.91,
+   "memRepaidUsd": 11165985.47,
+   "positionsSold": 224
+  },
+  "AAVE": {
+   "positions": 183,
+   "walked": 183,
+   "realRepaidUsdWalked": 12671237.61,
+   "memRepaidUsd": 46501578.99,
+   "positionsSold": 161
+  },
+  "Other": {
+   "positions": 102,
+   "walked": 101,
+   "realRepaidUsdWalked": 2465969.46,
+   "memRepaidUsd": 1539228.33,
+   "positionsSold": 90
+  },
+  "Stables": {
+   "positions": 75,
+   "walked": 75,
+   "realRepaidUsdWalked": 453383.69,
+   "memRepaidUsd": 188559.53,
+   "positionsSold": 75
+  },
+  "Mog": {
+   "positions": 57,
+   "walked": 57,
+   "realRepaidUsdWalked": 5485597.04,
+   "memRepaidUsd": 4847062.15,
+   "positionsSold": 53
+  },
+  "UNI": {
+   "positions": 41,
+   "walked": 41,
+   "realRepaidUsdWalked": 3168127.69,
+   "memRepaidUsd": 2939633.96,
+   "positionsSold": 40
+  },
+  "AERO": {
+   "positions": 36,
+   "walked": 36,
+   "realRepaidUsdWalked": 37846.69,
+   "memRepaidUsd": 33795.98,
+   "positionsSold": 34
+  },
+  "PEPE": {
+   "positions": 35,
+   "walked": 35,
+   "realRepaidUsdWalked": 775119.1,
+   "memRepaidUsd": 706469.49,
+   "positionsSold": 33
+  },
+  "CRV": {
+   "positions": 20,
+   "walked": 19,
+   "realRepaidUsdWalked": 820741.03,
+   "memRepaidUsd": 501097.1,
+   "positionsSold": 19
+  }
+ },
+ "outcomes": {
+  "sold-no-delay": 59,
+  "sold-at-band": 1618,
+  "cured-then-held": 705,
+  "sold-at-t0": 651,
+  "held": 30,
+  "sold-at-expiry": 22,
+  "sold-at-grid-end": 72
+ },
+ "sensitivity": {
+  "walkOnAfterT0BandSale": {
+   "rule": "cureWalk sells a delayed position already past line x (1 + band) at t0 ONCE and stops walking it; every other sale walks on. This rebuild walks those on too.",
+   "memRepaidUsd": 155419376.15,
+   "deltaUsd": 5800461,
+   "positionsChanged": 72,
+   "positionsSoldAtT0PastBand": 677
+  }
+ },
+ "crossCheck": {
+  "rows": 747,
+  "oldPricedIncluded": 747,
+  "notWalkedInNew": [],
+  "real": {
+   "old": 34685176.13,
+   "new": 34698936.96,
+   "deltaUsd": 13760.83,
+   "decomposition": {
+    "debtPriceSource": -2384.67,
+    "eventsOldDropped": {
+     "usd": 15987.68,
+     "events": 4
+    },
+    "oldCapAtDebt": 157.81
+   },
+   "rowsWithin1Pct": 704
+  },
+  "membrane": {
+   "basis": "closedT0 (debt closed on the t0 basis, USD at the t0 block prices) — what the old membraneClosedUsd is",
+   "old": 22191189.76,
+   "new": 13065498.57,
+   "newAtSaleMinuteUsd": 13064106,
+   "deltaUsd": -9125691.19,
+   "factors": {
+    "priceSourceMainnet_i": -2936109.39,
+    "composition_ii": 802241.37,
+    "perChainOraclesL2_iii": -8094942.66,
+    "line_iv": -988.69
+   },
+   "factorsSum": -10229799.37,
+   "interactionAndResidual": 1104108.18,
+   "allFactorsToggled": 22189491.56,
+   "allFactorsToggledVsOld": -1698.2,
+   "rowsWithin1Pct": 422,
+   "rowsWithin1PctAllToggled": 746,
+   "sameOutcome": 516,
+   "multiLegRows": 453,
+   "splitRows": 221
+  }
+ }
+}

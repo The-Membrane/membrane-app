@@ -1660,13 +1660,16 @@ def provenance_md(ctx: Ctx, meta: dict, files: dict) -> str:
     uni = st.get("universe", {})
     gate = st.get("gate", {})
     gnew = st.get("gate_new", {})
-    sess = [x for x in st.get("sessions", []) if x.get("status") == "ok"]
+    sess = [x for x in st.get("sessions", []) if x.get("status")]
+    built = bool(uni) and bool(gnew)
     lines = [
         "# depositor-events — provenance",
         "",
         "Every log of the Aave V3 Ethereum Core aUSDC and aUSDT tokens from deployment to a pinned asof block,",
-        "decoded per G.2, with the reconstruction validation gate, the extended universe and daily anchors for",
-        f"its new addresses. Built exactly as preregistered in `{PREREG['repo']}` `{PREREG['path']}` §{PREREG['sections']}",
+        ("decoded per G.2, with the reconstruction validation gate, the extended universe and daily anchors for its new"
+         if built else "decoded per G.2, with the reconstruction validation gate (it FAILED, so the extended universe and"),
+        ("addresses." if built else "new-address anchors were not built).") +
+        f" Built exactly as preregistered in `{PREREG['repo']}` `{PREREG['path']}` §{PREREG['sections']}",
         f"(commit `{PREREG['commit']}`, sha256 `{PREREG['sha256'][:8]}…{PREREG['sha256'][-4:]}`). The builder computes no",
         "outcome (no gradient labels, exit counts or withdrawal rates); the gate compares balance changes only.",
         "",
@@ -1683,7 +1686,8 @@ def provenance_md(ctx: Ctx, meta: dict, files: dict) -> str:
         f"- **Builder:** `The-Membrane/membrane-app` branch `{meta['code'].get('branch')}`, `{meta['code'].get('path')}`",
         "  (helpers imported from `b_acquire.py`). By session:",
         *[f"  {', '.join(x['phases'])}: HEAD `{x['code'].get('sha')}`; builder `{x['code'].get('file_last_commit')}` "
-          f"(sha256 `{x['code'].get('file_sha256')}`){' DIRTY' if x['code'].get('dirty') else ''}." for x in sess],
+          f"(sha256 `{x['code'].get('file_sha256')}`){' DIRTY' if x['code'].get('dirty') else ''}; status `{x['status']}`."
+          for x in sess],
         f"- **Fetch window (UTC):** {meta['fetch_window_utc'][0]} → {meta['fetch_window_utc'][1]}.",
         ("- **Status:** CANONICAL, FROZEN (inputs to Q26 B-gradient; do not refetch or edit)." if gate.get("passes") else
          "- **Status:** FROZEN raw acquisition (logs, decoded events, block timestamps; do not refetch or edit). The G.2"
@@ -1698,13 +1702,19 @@ def provenance_md(ctx: Ctx, meta: dict, files: dict) -> str:
         "    `delta2_raw` = change of party2 (BalanceTransfer +rayMul(value, index)); empty = no G.2 change (Transfer",
         "    rows duplicate the paired event and carry none). BalanceTransfer `value_raw` is the scaled amount.",
         "  - `block-timestamps-<period>.csv.gz`: block, ts, block hash for every block with a log of either token.",
-        "  - `extended-universe.csv`: every address whose event-reconstructed balance reaches ≥ $1,000,000 at any",
-        "    moment (`reaches_1M_by_events`), plus every `P_r` member; `new` = reaches and not in `P_r`. Balance =",
-        "    scaled balance (Σ rayDiv(delta, index); BalanceTransfer moves `value` exactly) × the event's index, checked",
-        "    before and after every event and at asof (normalized income); float64 for the maximum (±2 raw units).",
-        "  - `daily-balances-ext-{usdc,usdt}.csv.gz`: B.1 long format for the new addresses, every B.1 daily snapshot",
-        "    from the address's first event day (UTC) on, then `asof` (block 26180400) and `asof_events` (this asof).",
-        "  - `gate-report.json`: the gate on P_r and on the new anchors, worst residuals, failure causes, checks.",
+        *([
+            "  - `extended-universe.csv`: every address whose event-reconstructed balance reaches ≥ $1,000,000 at any",
+            "    moment (`reaches_1M_by_events`), plus every `P_r` member; `new` = reaches and not in `P_r`. Balance =",
+            "    scaled balance (Σ rayDiv(delta, index); BalanceTransfer moves `value` exactly) × the event's index, checked",
+            "    before and after every event and at asof (normalized income); float64 for the maximum (±2 raw units).",
+            "  - `daily-balances-ext-{usdc,usdt}.csv.gz`: B.1 long format for the new addresses, every B.1 daily snapshot",
+            "    from the address's first event day (UTC) on, then `asof` (block 26180400) and `asof_events` (this asof).",
+            "  - `gate-report.json`: the gate on P_r and on the new anchors, worst residuals, failure causes, checks.",
+        ] if built else [
+            "  - `gate-report.json`: the G.2 gate on P_r (verdict, both shares, per reserve and year, worst residuals,",
+            "    failure causes), labelled non-gate diagnostics, and reconstruction checks (Σ scaled balances vs",
+            "    `scaledTotalSupply`; per-address balance vs the B.1 asof anchors).",
+        ]),
         "  - `run-log.json`: request counts, retries, splits, failures, timings, code sha, state.",
         "",
     ]

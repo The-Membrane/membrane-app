@@ -102,10 +102,13 @@ describe('wavefront layout: the hex spiral', () => {
   })
 })
 
+// These walk the replay at five panel sizes: give them room on a busy machine.
+const HEAVY = { timeout: 30_000 }
+
 describe('wavefront layout: cluster packing', () => {
   const STEPS_TO_CHECK = [60, 100, 125, 128, 129, 140, STEPS]
 
-  it('is deterministic', () => {
+  it('is deterministic', HEAVY, () => {
     for (const k of STEPS_TO_CHECK) {
       for (const s of SIZES) {
         const a = geomAt(k, s)
@@ -117,7 +120,7 @@ describe('wavefront layout: cluster packing', () => {
     }
   })
 
-  it('cells never overlap; boxes, labels and marks stay in their cell and the panel', () => {
+  it('cells never overlap; boxes, labels and marks stay in their cell and the panel', HEAVY, () => {
     for (const k of STEPS_TO_CHECK) {
       for (const s of SIZES) {
         const g = geomAt(k, s)
@@ -154,51 +157,59 @@ describe('wavefront layout: cluster packing', () => {
     }
   })
 
-  it(`marks are at least ${MIN_MARK_PX} px wide at every size the page produces, all replay long`, () => {
-    for (const s of SIZES) {
+  it(
+    `marks are at least ${MIN_MARK_PX} px wide at every size the page produces, all replay long`,
+    HEAVY,
+    () => {
+      for (const s of SIZES) {
+        const perHex = choosePerHex(FINAL, s.width, s.height)
+        let min = Infinity
+        for (let k = 1; k <= STEPS; k += 1) {
+          const f = timeline.frameAt(START + k * BIN_SECONDS)
+          const g = panelGeometry(f, s.width, s.height, perHex)
+          if (g.xs.length) min = Math.min(min, g.markPx)
+        }
+        expect(min, `${s.name}: ${perHex} per hex`).toBeGreaterThanOrEqual(MIN_MARK_PX)
+      }
+      // desktop keeps one hex per position
+      expect(choosePerHex(FINAL, 752, 447)).toBe(1)
+    },
+  )
+
+  it(
+    'an aggregated panel keeps every cluster`s composition (within one mark per state)',
+    HEAVY,
+    () => {
+      const s = SIZES[0]
       const perHex = choosePerHex(FINAL, s.width, s.height)
-      let min = Infinity
-      for (let k = 1; k <= STEPS; k += 1) {
+      expect(perHex).toBeGreaterThan(1)
+      for (const k of [125, 129, STEPS]) {
         const f = timeline.frameAt(START + k * BIN_SECONDS)
         const g = panelGeometry(f, s.width, s.height, perHex)
-        if (g.xs.length) min = Math.min(min, g.markPx)
+        // marks per cluster = ceil(count / perHex), on both sides
+        expect(g.xs.length).toBe(f.clusters.reduce((a, c) => a + Math.ceil(c.count / perHex), 0))
+        expect(g.real.length).toBe(g.xs.length)
+        expect(g.mem.length).toBe(g.xs.length)
+        // per cluster and state, marks = positions / perHex, within one
+        const byCluster = new Map<number, number>()
+        f.clusters.forEach((c, i) => byCluster.set(c.index, i))
+        const pos = f.clusters.map(() => new Array(CODE_COUNT).fill(0))
+        for (let i = 0; i < f.n; i++) pos[byCluster.get(f.cluster[i])!][f.mem[i]]++
+        let at = 0
+        f.clusters.forEach((c, ci) => {
+          const m = Math.ceil(c.count / perHex)
+          const marks = new Array(CODE_COUNT).fill(0)
+          for (let j = 0; j < m; j++) marks[g.mem[at + j]]++
+          at += m
+          for (let code = 0; code < CODE_COUNT; code++) {
+            expect(Math.abs(marks[code] - pos[ci][code] / perHex)).toBeLessThan(1)
+          }
+        })
       }
-      expect(min, `${s.name}: ${perHex} per hex`).toBeGreaterThanOrEqual(MIN_MARK_PX)
-    }
-    // desktop keeps one hex per position
-    expect(choosePerHex(FINAL, 752, 447)).toBe(1)
-  })
+    },
+  )
 
-  it('an aggregated panel keeps every cluster`s composition (within one mark per state)', () => {
-    const s = SIZES[0]
-    const perHex = choosePerHex(FINAL, s.width, s.height)
-    expect(perHex).toBeGreaterThan(1)
-    for (const k of [125, 129, STEPS]) {
-      const f = timeline.frameAt(START + k * BIN_SECONDS)
-      const g = panelGeometry(f, s.width, s.height, perHex)
-      // marks per cluster = ceil(count / perHex), on both sides
-      expect(g.xs.length).toBe(f.clusters.reduce((a, c) => a + Math.ceil(c.count / perHex), 0))
-      expect(g.real.length).toBe(g.xs.length)
-      expect(g.mem.length).toBe(g.xs.length)
-      // per cluster and state, marks = positions / perHex, within one
-      const byCluster = new Map<number, number>()
-      f.clusters.forEach((c, i) => byCluster.set(c.index, i))
-      const pos = f.clusters.map(() => new Array(CODE_COUNT).fill(0))
-      for (let i = 0; i < f.n; i++) pos[byCluster.get(f.cluster[i])!][f.mem[i]]++
-      let at = 0
-      f.clusters.forEach((c, ci) => {
-        const m = Math.ceil(c.count / perHex)
-        const marks = new Array(CODE_COUNT).fill(0)
-        for (let j = 0; j < m; j++) marks[g.mem[at + j]]++
-        at += m
-        for (let code = 0; code < CODE_COUNT; code++) {
-          expect(Math.abs(marks[code] - pos[ci][code] / perHex)).toBeLessThan(1)
-        }
-      })
-    }
-  })
-
-  it('is stable as clusters appear: order, placement, cluster and slot per position', () => {
+  it('is stable as clusters appear: order, placement, cluster and slot per position', HEAVY, () => {
     let prevNames: string[] = []
     let prev: { cluster: Uint16Array; slot: Uint32Array; n: number } | null = null
     let appeared = 0

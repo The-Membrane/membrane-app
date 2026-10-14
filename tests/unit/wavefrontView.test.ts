@@ -51,7 +51,8 @@ const real = (n: number, repaidUsd: number): RealRecord => ({
   tx: '0x',
   logIndex: 0,
   repaidUsd,
-  seizedUsd: repaidUsd,
+  // seized ≠ repaid (the liquidation bonus), so a figure wired to the wrong one shows
+  seizedUsd: repaidUsd * 1.1,
 })
 const mem = (
   n: number,
@@ -142,7 +143,9 @@ describe('wavefront page wiring (server render)', () => {
     expect(page).toContain('1 not compared: not liquidatable when rechecked')
     // $: the reducer's totals, walked positions only, two significant figures
     expect(f.totals.real.repaidUsd).toBe(1_234_567 + 2_000_000 + 450_000 + 300_000)
+    expect(f.totals.real.soldUsd).toBeCloseTo(1.1 * f.totals.real.repaidUsd, 2) // $4.4M seized
     expect(page).toContain('Debt force-closed: real $4M · Membrane $850K†')
+    expect(page).not.toContain('$4.4M')
     // Real legend: coverage.walked; Membrane: the partition, grid-end drawn apart
     expect(page).toContain('4 sold')
     expect(page).toContain('Membrane (simulator)† 1 sold 1 in 8h window')
@@ -150,8 +153,10 @@ describe('wavefront page wiring (server render)', () => {
     expect(page).toContain('1 window open at data end†')
     expect(page).toContain('1 kept')
     // the grid-end $ caveat, once, in the footer; the engine named once
-    expect(page).toContain('Membrane $ counts them as sold at Oct 12 00:00 UTC†')
-    expect(page).toContain('Membrane side†: the position simulator replaying cureWalk')
+    expect(page).toContain(
+      'Membrane $ counts positions still in their window at data end as sold at Oct 12 00:00 UTC†',
+    )
+    expect(page).toContain('Membrane side†: the position simulator (cureWalk) — 8h window')
     expect(page).toContain('with no user action.')
     expect(page).toContain('Membrane (simulator)†')
     expect(page).toContain('Replay · Oct 10–11, 2025')
@@ -164,7 +169,7 @@ describe('wavefront page wiring (server render)', () => {
     const page = text(props(END - 600))
     expect(page).toContain('2 in 8h window')
     expect(page).not.toContain('open at data end')
-    expect(page).not.toContain('counts them as sold')
+    expect(page).not.toContain('as sold at')
   })
 
   it('a failed live request says the replay is shown', () => {

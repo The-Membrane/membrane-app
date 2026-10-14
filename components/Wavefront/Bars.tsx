@@ -83,7 +83,7 @@ export const Bars: React.FC<{
       </Box>
       <div style={row}>
         <span style={tick}>{fmtHm(fromTs)}</span>
-        <span style={tick}>{fmtHm(toTs)}</span>
+        <span style={tick}>{fmtHm(toTs)} UTC</span>
       </div>
     </VStack>
   )

@@ -37,7 +37,8 @@ import {
 import { chainList, displayName, fmtClock, fmtInt, fmtUsd, notComparedLine } from './format'
 import { choosePerHex, panelGeometry, type PanelGeometry } from './geometry'
 import { Glyph, LegendItem } from './Glyph'
-import { HexPanel } from './HexPanel'
+// TWO_UP: below 600 px the panels stack and a compact comparison table leads
+import { HexPanel, TWO_UP } from './HexPanel'
 import { useElementSize, useWavefrontStream, type WavefrontMode } from './hooks'
 import type { WavefrontStream } from './hooks/useWavefrontStream'
 import { ageAlphas, MARK_TOKEN, type MarkPalette } from './marks'
@@ -45,9 +46,6 @@ import { BIN_SECONDS, type WavefrontFrame } from './model'
 
 /** Live only when the flag is on AND the endpoint answers (owner, 2026-10-14). */
 export const WAVEFRONT_LIVE_FLAG = process.env.NEXT_PUBLIC_WAVEFRONT_LIVE === '1'
-
-/** Below this width the panels stack and a compact comparison table leads. */
-const TWO_UP = '@media screen and (min-width: 600px)'
 
 const mono = { fontFamily: TYPOGRAPHY.fontMono, sx: { fontVariantNumeric: 'tabular-nums' } }
 
@@ -449,7 +447,7 @@ interface SideProps {
   size: { width: number; height: number }
   sizeRef?: React.RefObject<HTMLDivElement>
   ariaLabel: string
-  showLabels: boolean
+  labels: 'always' | 'stacked'
   stale: boolean
   bars: { values: number[]; caption: string; note: string; ariaLabel: string } | null
   loadingText: string
@@ -466,7 +464,7 @@ const Side: React.FC<SideProps> = ({
   size,
   sizeRef,
   ariaLabel,
-  showLabels,
+  labels,
   stale,
   bars,
   loadingText,
@@ -483,7 +481,7 @@ const Side: React.FC<SideProps> = ({
             geometry={geometry}
             palette={palette}
             ariaLabel={ariaLabel}
-            showLabels={showLabels}
+            labels={labels}
             stale={stale}
             emptyText={frame.n === 0 ? 'No liquidations yet' : undefined}
           />
@@ -645,75 +643,79 @@ export const WavefrontView: React.FC<WavefrontViewProps> = (v) => {
           />
         ) : null}
 
-        <Grid
-          templateColumns="minmax(0, 1fr)"
-          columnGap={{ base: SPACING.lg, xl: SPACING.xl }}
-          rowGap={SPACING.lg}
-          sx={{ [TWO_UP]: { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } }}
-        >
-          <Side
-            title="Real · measured"
-            legend={realLegend}
-            note={frame ? scaleNote(perHex) : undefined}
-            frame={frame}
-            codes={frame ? geometry.real : null}
-            geometry={geometry}
-            palette={palette}
-            size={size}
-            sizeRef={sizeRef}
-            ariaLabel={
-              frame ? `Real, measured: ${fmtInt(frame.coverage.walked)} positions sold.` : ''
-            }
-            showLabels
-            stale={stale}
-            bars={
-              frame
-                ? {
-                    values: frame.bars.real,
-                    caption: 'Sold per 10 min',
-                    note: barsNote(frame.bars.max),
-                    ariaLabel: `Real: positions sold per 10 minutes over the last 12 hours; peak ${fmtInt(Math.max(0, ...frame.bars.real))}.`,
-                  }
-                : null
-            }
-            loadingText={loadingText}
-          />
-          <Side
-            title="Membrane (simulator)†"
-            legend={states}
-            frame={frame}
-            codes={frame ? geometry.mem : null}
-            geometry={geometry}
-            palette={palette}
-            size={size}
-            ariaLabel={memAria}
-            showLabels={false}
-            stale={stale}
-            bars={
-              frame
-                ? {
-                    values: frame.bars.mem,
-                    caption: '',
-                    note: 'same scale',
-                    ariaLabel: `Membrane simulator, modelled: positions first sold per 10 minutes over the last 12 hours, same scale, windows still open at the data end left out; peak ${fmtInt(Math.max(0, ...frame.bars.mem))}.`,
-                  }
-                : null
-            }
-            loadingText={loadingText}
-          />
-        </Grid>
+        {/* The sticky controls live in the same box as the panels, so they can never rise
+            above it and cover the comparison table on a short phone. */}
+        <VStack align="stretch" spacing={{ base: SPACING.md, lg: SPACING.md }}>
+          <Grid
+            templateColumns="minmax(0, 1fr)"
+            columnGap={{ base: SPACING.lg, xl: SPACING.xl }}
+            rowGap={SPACING.lg}
+            sx={{ [TWO_UP]: { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } }}
+          >
+            <Side
+              title="Real · measured"
+              legend={realLegend}
+              note={frame ? scaleNote(perHex) : undefined}
+              frame={frame}
+              codes={frame ? geometry.real : null}
+              geometry={geometry}
+              palette={palette}
+              size={size}
+              sizeRef={sizeRef}
+              ariaLabel={
+                frame ? `Real, measured: ${fmtInt(frame.coverage.walked)} positions sold.` : ''
+              }
+              labels="always"
+              stale={stale}
+              bars={
+                frame
+                  ? {
+                      values: frame.bars.real,
+                      caption: 'Sold per 10 min',
+                      note: barsNote(frame.bars.max),
+                      ariaLabel: `Real: positions sold per 10 minutes over the last 12 hours; peak ${fmtInt(Math.max(0, ...frame.bars.real))}.`,
+                    }
+                  : null
+              }
+              loadingText={loadingText}
+            />
+            <Side
+              title="Membrane (simulator)†"
+              legend={states}
+              frame={frame}
+              codes={frame ? geometry.mem : null}
+              geometry={geometry}
+              palette={palette}
+              size={size}
+              ariaLabel={memAria}
+              labels="stacked"
+              stale={stale}
+              bars={
+                frame
+                  ? {
+                      values: frame.bars.mem,
+                      caption: '',
+                      note: 'same scale',
+                      ariaLabel: `Membrane simulator, modelled: positions first sold per 10 minutes over the last 12 hours, same scale, windows still open at the data end left out; peak ${fmtInt(Math.max(0, ...frame.bars.mem))}.`,
+                    }
+                  : null
+              }
+              loadingText={loadingText}
+            />
+          </Grid>
 
-        {v.mode === 'replay' ? (
-          <Controls
-            playing={v.playing}
-            disabled={!frame}
-            steps={Math.max(1, Math.ceil((end - start) / BIN_SECONDS))}
-            step={Math.round((v.t - start) / BIN_SECONDS)}
-            valueText={frame ? fmtClock(frame.t) : undefined}
-            onToggle={v.onToggle}
-            onScrub={onScrub}
-          />
-        ) : null}
+          {v.mode === 'replay' ? (
+            <Controls
+              playing={v.playing}
+              disabled={!frame}
+              steps={Math.max(1, Math.ceil((end - start) / BIN_SECONDS))}
+              step={Math.round((v.t - start) / BIN_SECONDS)}
+              valueText={frame ? fmtClock(frame.t) : undefined}
+              onToggle={v.onToggle}
+              onScrub={onScrub}
+            />
+          ) : null}
+        </VStack>
 
         <Colophon
           gridEnd={gridEndText(frame, v.windowRange)}

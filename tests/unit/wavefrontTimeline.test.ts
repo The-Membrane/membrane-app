@@ -129,6 +129,21 @@ describe('wavefront timeline: the reducer fold at the playhead', () => {
     expect(f.gridEnd).toBe(gridEndFirst)
     // ...and none of them before the data end
     expect(freshTimeline().frameAt(END - 600).gridEnd).toBe(0)
+    // the bars leave them out: the last 10-minute bin and the shared max count only real
+    // decisions (the grid-end sales all sit in that last bin)
+    const lastBinFrom = END - 600
+    const firstSale = new Map<string, { ts: number; why?: string }>()
+    for (const r of records)
+      if (r.kind === 'mem' && r.event.startsWith('sell') && !firstSale.has(r.pid))
+        firstSale.set(r.pid, { ts: r.ts, why: r.why })
+    const lastBin = [...firstSale.values()]
+      .filter((x) => x.ts >= lastBinFrom)
+      .map((x) => [x.ts, x.why] as const)
+    const decided = lastBin.filter(([, why]) => why !== 'grid-end').length
+    expect(lastBin.length - decided).toBe(gridEndFirst)
+    expect(f.bars.mem[f.bars.mem.length - 1]).toBe(decided)
+    expect(f.bars.max).toBe(Math.max(...f.bars.real, ...f.bars.mem))
+    expect(f.bars.max).toBeLessThan(gridEndFirst)
     expect(f.notCompared.count).toBe(summary.coverage.notWalked)
     expect(f.notCompared.inStream).toBe(summary.coverage.notWalked)
     // each census reason maps to one short reader-facing phrase

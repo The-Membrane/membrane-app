@@ -6,7 +6,7 @@ import { BIN_SECONDS, WavefrontTimeline, type WavefrontFrame } from '../model'
 import {
   httpPageFetcher,
   LIVE_POLL_MS,
-  LIVE_STALE_AFTER_S,
+  liveIsStale,
   LiveUnavailableError,
   pollInto,
   type PageFetcher,
@@ -54,7 +54,7 @@ export interface WavefrontStream {
   clusterTotals: { name: string; count: number }[]
   /** Live: when the last poll answered (unix s). */
   updatedAt: number | null
-  /** Live: no answer, or no tick, within LIVE_STALE_AFTER_S. */
+  /** Live: no answer for 3 minutes, or the newest tick overdue (`liveIsStale`). */
   stale: boolean
   /** Live: the newest tick's time (else the last answer) — "stale since". */
   staleSince: number | null
@@ -249,13 +249,7 @@ export function useWavefrontStream(opts: WavefrontStreamOptions): WavefrontStrea
   )
 
   const lastTickTs = timeline.lastTickTs
-  const stale =
-    mode === 'live' &&
-    status === 'ready' &&
-    (updatedAt === null ||
-      liveNow - updatedAt > LIVE_STALE_AFTER_S ||
-      lastTickTs === null ||
-      liveNow - lastTickTs > LIVE_STALE_AFTER_S)
+  const stale = mode === 'live' && status === 'ready' && liveIsStale(liveNow, updatedAt, lastTickTs)
 
   return {
     mode,

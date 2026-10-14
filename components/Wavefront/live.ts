@@ -3,12 +3,27 @@
  * reads) from /api/wavefront/stream, folded into a WavefrontTimeline. Pure enough to test
  * without a network: the fetcher is injected.
  */
-/** Live data older than this is stale: the headline is withheld and the panels hatched. */
-export const LIVE_STALE_AFTER_S = 180
 
-import { STREAM_SCHEMA, type StreamRecord } from '@/lib/wavefront/stream'
+import { STREAM_SCHEMA, TICK_EVERY_MINUTES, type StreamRecord } from '@/lib/wavefront/stream'
 
 import type { WavefrontTimeline } from './model'
+
+/** No successful answer from the endpoint for this long: stale. */
+export const LIVE_NO_ANSWER_STALE_S = 180
+/** The stream writes a tick every TICK_EVERY_MINUTES minutes of its one-minute grid. */
+export const TICK_INTERVAL_S = TICK_EVERY_MINUTES * 60
+/** A tick is overdue — the engine has stopped — this long after the previous one. */
+export const TICK_OVERDUE_S = TICK_INTERVAL_S + 180
+
+/**
+ * Live data is stale (headline withheld, panels hatched, never "Live") when the endpoint has
+ * not answered for LIVE_NO_ANSWER_STALE_S, or the newest tick is overdue (TICK_OVERDUE_S).
+ * Between two on-time ticks the data is fresh: ticks are 10 minutes apart by design.
+ */
+export function liveIsStale(nowS: number, lastAnswerS: number | null, lastTickS: number | null) {
+  if (lastAnswerS === null || nowS - lastAnswerS > LIVE_NO_ANSWER_STALE_S) return true
+  return lastTickS === null || nowS - lastTickS > TICK_OVERDUE_S
+}
 
 export const LIVE_ENDPOINT = '/api/wavefront/stream'
 export const LIVE_POLL_MS = 30_000

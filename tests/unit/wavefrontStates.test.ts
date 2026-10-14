@@ -265,15 +265,13 @@ describe('contrast: sold marks never fade under 3:1, in either theme', () => {
       const alphas = ageAlphas(danger, token(block, 'bg-primary'))
       expect(alphas[0]).toBe(1)
       expect(alphas[alphas.length - 1]).toBeLessThan(1) // there is still a recency fade
+      // WCAG 1.4.11 non-text contrast: 3:1, as a literal (not the constant under test)
+      expect(MIN_MARK_CONTRAST).toBe(3)
       for (const a of alphas) {
-        expect(contrastRatio(blend(parseColor(danger)!, bg, a), bg)).toBeGreaterThanOrEqual(
-          MIN_MARK_CONTRAST,
-        )
+        expect(contrastRatio(blend(parseColor(danger)!, bg, a), bg)).toBeGreaterThanOrEqual(3)
       }
       for (const name of ['warning', 'success', 'text-secondary']) {
-        expect(contrastRatio(parseColor(token(block, name))!, bg)).toBeGreaterThanOrEqual(
-          MIN_MARK_CONTRAST,
-        )
+        expect(contrastRatio(parseColor(token(block, name))!, bg)).toBeGreaterThanOrEqual(3)
       }
     })
   }

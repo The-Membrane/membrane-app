@@ -6,6 +6,9 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 
 import type { PanelGeometry } from './geometry'
 import { LABEL_LINE_PX } from './geometry'
+
+/** Where the page stops stacking the panels (Wavefront.tsx uses the same query). */
+export const TWO_UP = '@media screen and (min-width: 600px)'
 import { drawMarks, type MarkPalette } from './marks'
 
 // Canvas painting must land in the same commit as the numbers around it.
@@ -20,8 +23,11 @@ interface HexPanelProps {
   /** The panel's whole content as a sentence (the canvas is not readable by AT). */
   ariaLabel: string
   emptyText?: string
-  /** Print the cluster labels (the page prints them once, on the Real panel). */
-  showLabels?: boolean
+  /**
+   * Cluster labels: 'always' (the Real panel), or 'stacked' — only while the panels stack
+   * (< 600 px), where the Real panel's labels are out of view (the Membrane panel).
+   */
+  labels?: 'always' | 'stacked'
   /** Stale live data: hatch the panel over (DESIGN_RULES §4). */
   stale?: boolean
 }
@@ -38,7 +44,7 @@ export const HexPanel: React.FC<HexPanelProps> = memo(function HexPanel({
   palette,
   ariaLabel,
   emptyText,
-  showLabels = true,
+  labels = 'always',
   stale = false,
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -70,28 +76,33 @@ export const HexPanel: React.FC<HexPanelProps> = memo(function HexPanel({
       />
       {/* Plain elements with inline position: a styled component per changing left/top
           would mint a new CSS class every frame. */}
-      {(showLabels ? geometry.labels : []).map((l) => (
-        <div
-          key={l.key}
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            left: l.x,
-            top: l.y,
-            width: l.w,
-            textAlign: 'center',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            fontFamily: TYPOGRAPHY.fontMono,
-            fontSize: TYPOGRAPHY.label,
-            lineHeight: `${LABEL_LINE_PX}px`,
-            color: SEMANTIC_COLORS.textSecondary,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {l.text}
-        </div>
-      ))}
+      <Box
+        aria-hidden="true"
+        sx={labels === 'stacked' ? { [TWO_UP]: { display: 'none' } } : undefined}
+      >
+        {geometry.labels.map((l) => (
+          <div
+            key={l.key}
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              left: l.x,
+              top: l.y,
+              width: l.w,
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+              pointerEvents: 'none',
+              fontFamily: TYPOGRAPHY.fontMono,
+              fontSize: TYPOGRAPHY.label,
+              lineHeight: `${LABEL_LINE_PX}px`,
+              color: SEMANTIC_COLORS.textSecondary,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {l.text}
+          </div>
+        ))}
+      </Box>
       {stale ? (
         <Box
           aria-hidden="true"

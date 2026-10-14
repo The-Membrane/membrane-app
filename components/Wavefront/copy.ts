@@ -18,7 +18,7 @@ export const NBSP = ' '
 
 /** Names the engine once, with its premises (the canvas's wording, the app's constants). */
 export const ENGINE_LINE =
-  `Membrane side†: the position simulator replaying cureWalk — ${CURE_WINDOW_HOURS}h window ` +
+  `Membrane side†: the position simulator (cureWalk) — ${CURE_WINDOW_HOURS}h window ` +
   `within ${Math.round(MAX_THRESHOLD_TO_DELAY * 100)}% of the line (none for stablecoins), ` +
   `repay to cap, $${LIQ_DEBT_MINIMUM_USD.toLocaleString('en-US')} floor — on each ` +
   `protocol's own oracle, with no user action.`
@@ -90,8 +90,8 @@ export function memStates(
   return out
 }
 
-export const scaleNote = (perHex: number) =>
-  perHex === 1 ? '1 hex = 1 position' : `1 hex = ${perHex} positions`
+/** The mark scale, said only when a hex is not one position (the headline implies one each). */
+export const scaleNote = (perHex: number) => (perHex === 1 ? '' : `1 hex = ${perHex} positions`)
 
 /** "$ skips sales with no USD price: 13 real, 11 simulated" (reducer counts), or ''. */
 export function unpricedText(f: Pick<WavefrontFrame, 'totals'> | null): string {
@@ -107,5 +107,5 @@ export function gridEndText(
 ): string {
   if (!f || f.gridEnd === 0) return ''
   const at = windowRange ? fmtClock(windowRange.endTs) : 'the data end'
-  return `Membrane $ counts them as sold at ${at}†`
+  return `Membrane $ counts positions still in their window at data end as sold at ${at}†`
 }

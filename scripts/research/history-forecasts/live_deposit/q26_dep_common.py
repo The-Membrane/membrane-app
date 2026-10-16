@@ -151,6 +151,7 @@ B4_XK = tuple(f"x{x}" for x in G.SIZES)
 DAILY_SUB = "daily"
 DAILY_COLS = ["date", "block", "ts", "income_usdc", "income_usdt", "readAt"]
 LIVE_DAILY_FIRST = "2026-10-14"                         # the first 00:00Z after the frozen asof (frozen dailies end 10-07)
+DAILY_FIRST = "2026-10-08"                              # DL-25: the day after the last frozen daily anchor (gap fill)
 RUNGS = S.RUNGS                                          # v2, v3, v3s
 
 LOGS_URLS = ("https://rpc.mevblocker.io", "https://eth.drpc.org")
@@ -276,10 +277,9 @@ DECISIONS = [
     "frozen asof), defined as the frozen daily anchors: the balance at the last block with ts < 00:00Z, here the "
     "event-path balance there = rayMul(scaled balance of the logs in blocks <= that block, getReserveNormalizedIncome "
     "at it), equal to balanceOf when the store is complete (DL-16). The block and both incomes are stored in "
-    "daily/snapshots.csv.gz (appended by the issuer, one transaction). No daily balance exists for 2026-10-08..10-13 "
-    "(the frozen anchors stop at 10-07 and the event store starts after the frozen asof); those days count as missing "
-    "anchors do in B4 (skipped in maxdd90, never origins). A unit outside the frozen universe has no frozen-span daily "
-    "balances.",
+    "daily/snapshots.csv.gz (appended by the issuer, one transaction). The days between the last frozen anchor "
+    "(2026-10-07) and the first live day are filled the same way (DL-25). A unit outside the frozen universe has no "
+    "frozen-span daily balances.",
     "DL-22 v4a features at asof (B4-10 code: b4_depositor.hist_at / maxdd_at): prior origins = the frozen daily "
     "origins with y(x, 24 h) = 1 plus the live days with balance >= $1M and y(x, 24 h) = 1 on the event path (anchored "
     "at the day's balance, event times in (00:00Z, 00:00Z + 24 h]), each counted only when 00:00Z + 24 h <= asof ts; "
@@ -295,6 +295,22 @@ DECISIONS = [
     "The DL.6 live check and live STALE use the B4 shipped rung (ps4) over the rows of B4 issues, from the change date, "
     "with 'applied' counting resolved B4 issue days per horizon; the B3 shipped-rung check is still reported "
     "(liveCheckB3, liveStaleB3) over every issue.",
+    "DL-25 daily-balance gap fill (B4 D2, refuting review): 2026-10-08..2026-10-13, every day between the last frozen "
+    "daily anchor and the first live day, get daily balances exactly as DL-21: the last block with ts < 00:00Z and "
+    "rayMul(scaled event-path balance from the frozen + live event tables at that block, getReserveNormalizedIncome "
+    "there). They enter maxdd90, the n_x90 origins (24 h drops on those days with balance >= $1M, 00:00Z + 24 h <= "
+    "asof) and days-since like any daily balance. The issuer appends every missing day from 2026-10-08 to the asof day "
+    "(each block and income read once, at a fixed block, so the rows are deterministic), in date order, to "
+    "daily/snapshots.csv.gz; the reader sorts by date and stops on a duplicate. The header records the rows used and "
+    "the store's sha256. Checked: at 2026-10-07 this definition reproduces the frozen balanceOf anchors within $0.003 "
+    "(scaled-reconstruction rounding). The B4 panel-preview reproduction at the anchor runs without the fill "
+    "(gap_fill = False), as the dev panel had the gap.",
+    "DL-26 B4 display labels (B4 D2): label4 = labels-b4-d2.csv label_display (b4_labels_d2.py from labels-dev.csv and "
+    "results-blind5.json): a MEDIUM or HIGH (cell, segment) whose B-5 pool R for the shipped rung is outside [0.67, "
+    "1.5] with n_ep >= 10 shows LOW ('failed B-5 transfer'); c3 MEDIUM cells keep MEDIUM ('no blind test possible'); "
+    "the two HIGH cells keep HIGH ('calibration confirmed on unseen reserves; skill over population not shown'). "
+    "label_final and display_reason are kept in the header table. With a labels file without label_display, label4 is "
+    "label_final.",
 ]
 
 
@@ -1632,6 +1648,22 @@ def load_b4_inputs(datasets, shipped_rel, shipped_sha, labels_rel, labels_sha):
     return out
 
 
+def b4_table(shp, labs, cid):
+    """Per segment of one cell: the B4 shipped rung, the displayed label (labels file label_display when it has one,
+    DL-26; else label_final), label_final, reason, seg_pop. The labels file must agree with shipped-b4.json."""
+    out = {}
+    for sj, sid in enumerate(S.SEG_IDS):
+        cl = shp["cells"][cid][sid]
+        lr = labs[(cid, sid)]
+        if (lr["shipped"] or None) != cl["shipped"] or lr["label_final"] != cl["label_final"]:
+            raise SystemExit(f"STOP: the B4 labels file differs from shipped-b4.json at {cid} {sid}")
+        out[(cid, sid)] = {"rung": cl["shipped"], "label": lr.get("label_display") or cl["label_final"],
+                           "label_final": cl["label_final"], "display_reason": lr.get("display_reason", ""),
+                           "label_dev": cl["label_dev"], "holdout_outcome": cl["holdout_outcome"],
+                           "seg_pop": shp["asof_params"][cid]["v2"]["seg_pop"][sj], "b3_rung": lr["b3_shipped"] or None}
+    return out
+
+
 def load_frozen_b4(ctx, res, rows, b4, log=print):
     """B4 asof model on the frozen rows (B4-5, B4-6, B4-10), nothing refit: v4a features of every row
     (b4_depositor.v4a_features), theta_v4a = (O + 3) / (E + 3) with p0 from the frozen asof v4a params, discounted
@@ -1675,18 +1707,13 @@ def load_frozen_b4(ctx, res, rows, b4, log=print):
         out["params"][cid] = f["v4a"]
         out["theta4"][cid] = G.eb_theta(O, E)
         out["Od"][cid], out["Ed"][cid], out["mseg"][cid] = Od, Ed, np.asarray(mseg, float)
-        for sj, sid in enumerate(S.SEG_IDS):
-            cl = shp["cells"][cid][sid]
-            lr = labs[(cid, sid)]
-            if (lr["shipped"] or None) != cl["shipped"] or lr["label_final"] != cl["label_final"]:
-                raise SystemExit(f"STOP: labels-dev.csv differs from shipped-b4.json at {cid} {sid}")
-            out["table"][(cid, sid)] = {"rung": cl["shipped"], "label": cl["label_final"], "label_dev": cl["label_dev"],
-                                        "holdout_outcome": cl["holdout_outcome"], "seg_pop": f["v2"]["seg_pop"][sj],
-                                        "b3_rung": lr["b3_shipped"] or None}
+        out["table"].update(b4_table(shp, labs, cid))
     if worst > 1e-9:
         raise SystemExit(f"STOP: recomputed B4 discounted (O, E) per segment differ from shipped-b4.json ({worst:.3g})")
     out["check"] = {"m_seg_equal": True, "seg_info_max_rel_diff": worst}
     out["T"] = np.asarray(ctx.T, dtype=np.int64)
+    if day_ts(DAILY_FIRST) != int(out["T"][-1]) + DAY:
+        raise SystemExit(f"STOP: DAILY_FIRST {DAILY_FIRST} is not the day after the last frozen daily anchor")
     out["anchors"] = B4.anchor_matrix(res, ctx.D)
     flags = {}
     for xk in B4_XK:
@@ -1717,10 +1744,19 @@ def read_incomes(rpc, block):
 
 
 def read_daily_store(ldir):
-    out = []
+    """Daily snapshots sorted by date (rows may have been appended out of date order by the gap fill); a date held
+    twice stops the run."""
+    out, seen = [], set()
     for row in read_gz_rows(os.path.join(ldir, DAILY_SUB, "snapshots.csv.gz"), DAILY_COLS):
+        if row[0] in seen:
+            raise SystemExit(f"STOP: daily store holds {row[0]} twice")
+        seen.add(row[0])
         out.append({"date": row[0], "block": int(row[1]), "ts": int(row[2]), "T": day_ts(row[0]),
                     "income": {"USDC": int(row[3]), "USDT": int(row[4])}})
+    out.sort(key=lambda d: d["date"])
+    for a_, b_ in zip(out, out[1:]):
+        if b_["block"] <= a_["block"]:
+            raise SystemExit("STOP: daily store blocks do not increase with the date")
     return out
 
 
@@ -1729,20 +1765,21 @@ def day_ts(date):
 
 
 def update_daily_store(ldir, rpc, upto_ts, head, clock=time.time, log=print):
-    """DL-21: one row per UTC day from 2026-10-14 with 00:00Z <= upto_ts: the last block with ts < 00:00Z (as the
-    frozen daily anchors) and getReserveNormalizedIncome of both reserves at it. Appended as one transaction."""
-    have = read_daily_store(ldir)
-    day = (datetime.strptime(have[-1]["date"], "%Y-%m-%d").date().toordinal() + 1) if have else \
-        datetime.strptime(LIVE_DAILY_FIRST, "%Y-%m-%d").date().toordinal()
+    """DL-21 / DL-25: one row per UTC day from 2026-10-08 (the day after the last frozen daily anchor) with 00:00Z <=
+    upto_ts: the last block with ts < 00:00Z (as the frozen daily anchors) and getReserveNormalizedIncome of both
+    reserves at it. Every missing day is read once and appended (date order), as one transaction."""
+    have = {d["date"] for d in read_daily_store(ldir)}
+    day = datetime.strptime(DAILY_FIRST, "%Y-%m-%d").date().toordinal()
     new = []
     while True:
         dd = datetime.fromordinal(day).replace(tzinfo=timezone.utc)
         T = int(dd.timestamp())
         if T > upto_ts:
             break
-        b, bts, _ = find_block_before(rpc, T, head)
-        inc = read_incomes(rpc, b)
-        new.append([dd.strftime("%Y-%m-%d"), b, bts, inc["USDC"], inc["USDT"], int(clock())])
+        if dd.strftime("%Y-%m-%d") not in have:
+            b, bts, _ = find_block_before(rpc, T, head)
+            inc = read_incomes(rpc, b)
+            new.append([dd.strftime("%Y-%m-%d"), b, bts, inc["USDC"], inc["USDT"], int(clock())])
         day += 1
     pth = os.path.join(ldir, DAILY_SUB, "snapshots.csv.gz")
     with AppendTxn([pth]):

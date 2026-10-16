@@ -17,6 +17,7 @@ frozen rows.
 """
 import csv
 import gzip
+import hashlib
 import io
 import json
 import os
@@ -206,20 +207,21 @@ STATE24 = {r: dict(STATE[r], util=0.89, bapr_pct=4.9) for r in D.RESERVES}
 class World:
     """A synthetic chain + datasets + live root. Frozen events before B0; live logs after it."""
 
-    def __init__(self, live_logs, xv_logs=(), rounds_after=(), mismatch=()):
+    def __init__(self, live_logs, xv_logs=(), rounds_after=(), mismatch=(), extra_frozen=()):
         self.root = tempfile.mkdtemp(prefix="q26dep-")
         self.ds = os.path.join(self.root, "datasets")
         self.out = os.path.join(self.root, "out")
+        F0 = B0 - 60500                                                    # 2026-10-05 (before the daily gap)
         frozen_rows = [
-            ["USDC", B0 - 500, ts_of(B0 - 500), "0x01", 0, 1, "Mint", A1, A1, 5_000_000 * MICRO, 0, RAY,
-             5_000_000 * MICRO, ""],
-            ["USDC", B0 - 400, ts_of(B0 - 400), "0x02", 0, 1, "Mint", A2, A2, 2_000_000 * MICRO, 0, RAY,
+            ["USDC", F0, ts_of(F0), "0x01", 0, 1, "Mint", A1, A1, 5_000_000 * MICRO, 0, RAY, 5_000_000 * MICRO, ""],
+            ["USDC", F0 + 100, ts_of(F0 + 100), "0x02", 0, 1, "Mint", A2, A2, 2_000_000 * MICRO, 0, RAY,
              2_000_000 * MICRO, ""],
-            ["USDC", B0 - 300, ts_of(B0 - 300), "0x03", 0, 1, "Mint", A3, A3, 950_000 * MICRO, 0, RAY,
+            ["USDC", F0 + 200, ts_of(F0 + 200), "0x03", 0, 1, "Mint", A3, A3, 950_000 * MICRO, 0, RAY,
              950_000 * MICRO, ""],
-            ["USDC", B0 - 200, ts_of(B0 - 200), "0x04", 0, 1, "Burn", A1, A1, 500_000 * MICRO, 0, RAY,
+            ["USDC", F0 + 300, ts_of(F0 + 300), "0x04", 0, 1, "Burn", A1, A1, 500_000 * MICRO, 0, RAY,
              -500_000 * MICRO, ""],
-        ]
+        ] + [list(r) for r in extra_frozen]
+        frozen_rows.sort(key=lambda r: (r[1], r[5]))
         write_gz_csv(os.path.join(self.ds, G.DE, "events-usdc-2026.csv.gz"), D.EV_COLS, frozen_rows)
         write_gz_csv(os.path.join(self.ds, G.DE, "events-usdt-2026.csv.gz"), D.EV_COLS, [])
         rr = [[str((1 << 64) | (k + 1)), str(300_000_000_000 + 1_000_000_000 * ((k * 7) % 5)), str(TS0 - 200 * 3600 + 3600 * k)]
@@ -765,14 +767,15 @@ class TestModelB4(unittest.TestCase):
         df = self.read_csv(os.path.join(idir, d4["csvFile"]))
         self.assertEqual(list(df.columns), D.CSV_HEADER_B4)
         self.assertEqual(D.verify_chain(idir), [])
-        self.assertEqual(d4["inputs"]["dailyStore"]["daysUsed"], ["2026-10-14", "2026-10-15"])
+        self.assertEqual(d4["inputs"]["dailyStore"]["daysUsed"], [f"2026-10-{k:02d}" for k in range(8, 16)])
+        self.assertEqual(d4["inputs"]["dailyStore"]["gapDays"], [f"2026-10-{k:02d}" for k in range(8, 14)])
         r2 = df[df.address == A2].iloc[0]
         # A2: live origin 2026-10-14 (2M) fell to 1M within 24 h -> one prior x10..x50 exit; 10-15 not yet labelled
         self.assertEqual([r2[f"b4_log1p_n_x90_x{x}"] for x in G.SIZES], [D.fmt_f(np.log1p(1))] * 3 + ["0"] * 2)
         days = (d4["asof"]["ts"] - (TS0 // 86400 + 1) * 86400) / 86400
         self.assertEqual(r2["b4_log1p_days_x10"], D.fmt_f(np.log1p(days)))
         self.assertEqual(float(r2["b4_maxdd90"]), 0.5)
-        self.assertEqual((r2["b4_live_days"], r2["b4_live_origins"]), ("2", "1"))
+        self.assertEqual((r2["b4_live_days"], r2["b4_live_origins"]), ("8", "7"))       # 10-08..10-14 labelled
         r1 = df[df.address == A1].iloc[0]                                 # frozen flags at days 45, 50; frozen drawdown
         self.assertEqual(r1["b4_log1p_n_x90_x10"], D.fmt_f(np.log1p(2)))
         self.assertAlmostEqual(float(r1["b4_maxdd90"]), 1 - 3 / 4.5, places=9)
@@ -790,6 +793,59 @@ class TestModelB4(unittest.TestCase):
             g = np.array([[float(r1[f"x{x}_{h}_{rg}"]) for x in G.SIZES] for h in G.HNAMES])
             self.assertTrue((np.diff(g, axis=1) <= 1e-12).all() and (np.diff(g, axis=0) >= -1e-12).all())
         self.assertTrue(os.path.exists(os.path.join(self.w4.ldir(), D.DAILY_SUB, "snapshots.csv.gz")))
+
+    def test_gap_fill_adds_the_missed_origin(self):
+        """DL-25: a 24 h drop on 2026-10-10 (frozen events, between the last frozen anchor and the first live day)
+        counts as a prior origin with the fill and not without it; maxdd90 cannot fall; the B3 columns stay."""
+        d10 = (TS0 // 86400 - 3) * 86400                                  # 2026-10-10T00:00Z
+        b1, b2 = block_at(d10 + 43200), block_at(d10 + 64800)
+        gap = [["USDC", b1, ts_of(b1), "0x0a", 0, 1, "Burn", A1, A1, 1_000_000 * MICRO, 0, RAY, -1_000_000 * MICRO, ""],
+               ["USDC", b2, ts_of(b2), "0x0b", 0, 1, "Mint", A1, A1, 1_000_000 * MICRO, 0, RAY, 1_000_000 * MICRO, ""]]
+        wa = World(b4_logs(), base_xv_logs(), rounds_after=[[(1 << 64) | 201, 999_000_000_000, H + 60]], mismatch={A2},
+                   extra_frozen=gap)
+        wb = World(b4_logs(), base_xv_logs(), rounds_after=[[(1 << 64) | 201, 999_000_000_000, H + 60]], mismatch={A2},
+                   extra_frozen=gap)
+        try:
+            with mock.patch.object(I.D, "LIVE_DAILY_FIRST", "2026-10-14"):
+                _, da, rows_a = wa.issue(NOW, b4=True)
+                ps = wb.patches(NOW)
+                for p_ in ps:
+                    p_.start()
+                try:
+                    _, db, rows_b = I.issue(wb.out, wb.ds, FakeRpc(NOW), wb.logs, clock=lambda: NOW, log=QUIET,
+                                            frozen=fake_frozen_b4(), model_b4=("s", "0", "l", "0"), gap_fill=False)
+                finally:
+                    for p_ in reversed(ps):
+                        p_.stop()
+            n3 = len(D.CSV_HEADER)
+            self.assertEqual([r[:n3] for r in rows_a], [r[:n3] for r in rows_b])
+            self.assertEqual(db["inputs"]["dailyStore"]["gapDays"], [])
+            hb = D.CSV_HEADER_B4
+            ra = dict(zip(hb, [r for r in rows_a if r[1] == A1][0]))
+            rb = dict(zip(hb, [r for r in rows_b if r[1] == A1][0]))
+            self.assertEqual(ra["b4_log1p_n_x90_x10"], D.fmt_f(np.log1p(3)))   # frozen days 45, 50 + 2026-10-10
+            self.assertEqual(rb["b4_log1p_n_x90_x10"], D.fmt_f(np.log1p(2)))
+            self.assertEqual(ra["b4_log1p_n_x90_x25"], rb["b4_log1p_n_x90_x25"])  # a 22% drop: x10 only
+            self.assertEqual(ra["b4_log1p_days_x10"], D.fmt_f(np.log1p((da["asof"]["ts"] - d10) / 86400)))
+            self.assertGreaterEqual(float(ra["b4_maxdd90"]), float(rb["b4_maxdd90"]))
+            self.assertNotEqual(ra["x10_24h_v4a"], rb["x10_24h_v4a"])
+        finally:
+            wa.cleanup()
+            wb.cleanup()
+
+    def test_b4_table_uses_label_display(self):
+        shp = {"cells": {"x10_1h": {s: {"shipped": "v2", "label_final": "MEDIUM", "label_dev": "MEDIUM",
+                                        "holdout_outcome": None} for s in S.SEG_IDS}},
+               "asof_params": {"x10_1h": {"v2": {"seg_pop": [0.01] * 6}}}}
+        labs = {("x10_1h", s): {"shipped": "v2", "label_final": "MEDIUM", "b3_shipped": "", "label_display":
+                                "LOW" if s == "w2" else "MEDIUM", "display_reason": "failed B-5 transfer" if s == "w2"
+                                else ""} for s in S.SEG_IDS}
+        t = D.b4_table(shp, labs, "x10_1h")
+        self.assertEqual((t[("x10_1h", "w2")]["label"], t[("x10_1h", "w2")]["label_final"]), ("LOW", "MEDIUM"))
+        self.assertEqual(t[("x10_1h", "w1")]["label"], "MEDIUM")
+        for v in labs.values():
+            v.pop("label_display")
+        self.assertEqual(D.b4_table(shp, labs, "x10_1h")[("x10_1h", "w2")]["label"], "MEDIUM")
 
     def test_b4_no_input_after_asof(self):
         """Perturbing every input after asof leaves the B4 issue identical (B4 features included)."""
@@ -864,6 +920,61 @@ class TestFrozenInputGuard(unittest.TestCase):
 DS = os.environ.get("Q26_DATASETS")
 INCOME_AT_ANCHOR = {"USDC": 1189499413684287881114549779, "USDT": 1178946273441814945326923375}  # read at 26,186,746
 B4_SHIPPED_SHA = "cc8680c42d3f00ef7f08d84850406153fa082772daf22a3b1d90113aae1bbadf"
+# DL-25 gap days: (last block with ts < 00:00Z, its ts, getReserveNormalizedIncome USDC, USDT), read once 2026-10-16
+GAP_DAYS = {
+    "2026-10-08": (26143955, 1791417599, 1188661172086314648563100430, 1178267553760494198496066548),
+    "2026-10-09": (26151122, 1791503999, 1188817812254442089750809885, 1178391106413357554523129678),
+    "2026-10-10": (26158300, 1791590399, 1188957520480556031865977926, 1178508136767989009643440109),
+    "2026-10-11": (26165481, 1791676799, 1189098148242793538309743679, 1178620947936644409696558030),
+    "2026-10-12": (26172657, 1791763199, 1189238843095419522947336435, 1178733282286136370395808554),
+    "2026-10-13": (26179841, 1791849599, 1189378042565024009501011224, 1178844119282298430359540511),
+}
+LABELS_D2_SHA = "140a0d28a276c3b45d6279c6b9ff802b68639363084c89cf31808e6a60e7bd0f"
+
+
+def gap_days():
+    return [{"date": d, "block": v[0], "ts": v[1], "T": D.day_ts(d), "income": {"USDC": v[2], "USDT": v[3]}}
+            for d, v in sorted(GAP_DAYS.items())]
+
+
+def hand_daily(paths, addr, block, income, T, x):
+    """Independent of the event tables: scan the decoded events for one address; balance at `block` =
+    rayMul(sum of scaled changes, income); y(x, 24 h) from the G.2 changes of the blocks after it."""
+    sc, deltas = 0, []
+    for p_ in paths:
+        it = D.iter_gz_csv(p_)
+        hdr = next(it)
+        ix = {h: i for i, h in enumerate(hdr)}
+        for r in it:
+            if r[ix["delta1_raw"]] == "" or (r[ix["party1"]] != addr and r[ix["party2"]] != addr):
+                continue
+            b, ts = int(r[ix["block"]]), int(r[ix["ts"]])
+            for party, dk in (("party1", "delta1_raw"), ("party2", "delta2_raw")):
+                if r[ix[party]] != addr or r[ix[dk]] == "":
+                    continue
+                d = int(r[ix[dk]])
+                if r[ix["type"]] == "BalanceTransfer":
+                    s_ = int(r[ix["value_raw"]]) * (1 if party == "party2" else -1)
+                else:
+                    s_ = GE.signed_ray_div(d, int(r[ix["index_ray"]]))
+                if b <= block:
+                    sc += s_
+                else:
+                    deltas.append((b, ts, d))
+    bal = GE.ray_mul(sc, income)
+    deltas.sort()
+    run, mn, has = bal, bal, False
+    blocks = {}
+    for b, ts, d in deltas:
+        blocks.setdefault((b, ts), 0)
+        blocks[(b, ts)] += d
+    for (b, ts), d in sorted(blocks.items()):
+        if ts > T + 86400:
+            break
+        run += d
+        if ts > T:
+            mn, has = min(mn, run), True
+    return bal, bool(has and 100 * mn <= (100 - x) * bal)
 B4_LABELS_SHA = "e001e7e7d523008b4db691934475f301cfa4ed6ece273a144bee54955e7206db"
 
 
@@ -1091,6 +1202,60 @@ class TestRealData(unittest.TestCase):
                     self.assertLess(abs(cv["p"] - dv), 1e-9)
         self.assertLess(worst, 1e-9)
         self.assertGreater(n, 20 * 3 * 20)
+
+
+    def test_gap_fill_at_the_anchor(self):
+        """DL-25 at the B4 anchor (asof 2026-10-13T23:05Z): the 2026-10-08..10-13 daily balances add exactly the
+        missed 24 h origins to n_x90, never lower maxdd90, and the affected units' v4a changes; 3 units are checked
+        against the decoded events by hand."""
+        F = self.F
+        recon = [(r["reserve"], r["address"].lower(), int(r["recon_balance_asof_raw"]))
+                 for r in csv.DictReader(open(os.path.join(DS, G.DE, "extended-universe.csv")))
+                 if int(r["recon_balance_asof_raw"]) >= G.MIN_BAL]
+        days = gap_days()
+        affected = []
+        for r, a, bal in recon:
+            gu = F.unit[(r, a)]
+            live = D.live_daily_unit(self.tables[r], r, a, days, D.FROZEN_ASOF_TS)
+            fw = D.b4_features_at(F.b4, gu, live, bal, D.FROZEN_ASOF_TS)
+            fo = D.b4_features_at(F.b4, gu, [], bal, D.FROZEN_ASOF_TS)
+            self.assertGreaterEqual(fw["x10"][1], fo["x10"][1])
+            for xk in D.B4_XK:
+                n_new = sum(1 for d in live if d["flags"].get(xk))
+                self.assertAlmostEqual(np.expm1(fw[xk][0]) - np.expm1(fo[xk][0]), n_new, places=9)
+            if any(d["flags"].get("x10") for d in live):
+                affected.append((r, a, gu, live, fw, fo, bal))
+        self.assertGreater(len(affected), 5)
+        print(f"\n  gap fill at the anchor: {len(affected)} of {len(recon)} units gain a 24 h >= 10% origin")
+        paths = D.frozen_event_paths(DS)
+        for r, a, gu, live, fw, fo, bal in affected[:3]:
+            d = next(x for x in live if x["flags"].get("x10"))
+            day = next(g for g in days if g["T"] == d["T"])
+            hb, hy = hand_daily([p_ for p_ in paths if f"-{r.lower()}-" in p_], a, day["block"], day["income"][r],
+                                day["T"], 10)
+            self.assertEqual((hb, hy), (d["bal"], True))
+            x2 = [0.0] * 13
+            seg = 0
+            g_w = D.forecast_grid_b4(F, x2, fw, gu, seg, bal, 10 ** 15, np.full((G.NH, G.NX), 0.01))
+            g_o = D.forecast_grid_b4(F, x2, fo, gu, seg, bal, 10 ** 15, np.full((G.NH, G.NX), 0.01))
+            self.assertFalse(np.array_equal(g_w["raw"]["v4a"], g_o["raw"]["v4a"]))
+            print(f"  {r} {a[:10]}..: {day['date']} balance {d['bal'] / 1e6:,.2f} -> log1p n_x90 {fo['x10'][0]:.4f} -> "
+                  f"{fw['x10'][0]:.4f}, days {np.expm1(fo['x10'][2]):.2f} -> {np.expm1(fw['x10'][2]):.2f}")
+
+    def test_labels_b4_d2_build(self):
+        import importlib
+        sys.path.insert(0, os.path.dirname(HERE))
+        L = importlib.import_module("b4_labels_d2")
+        data, info = L.build(os.path.join(DS, D.B4_RUN_REL))
+        self.assertEqual(hashlib.sha256(data).hexdigest(), LABELS_D2_SHA)
+        self.assertEqual(sorted(info["failed"]), sorted(L.FAILED))
+        self.assertEqual(len(info["c3_no_blind"]), 5)
+        rows = list(csv.DictReader(io.StringIO(data.decode())))
+        shp = json.load(open(os.path.join(DS, D.B4_RUN_REL, "shipped-b4.json")))
+        labs = {(r_["cell"], r_["segment"]): r_ for r_ in rows}
+        t = D.b4_table(shp, labs, "x50_6h")
+        self.assertEqual((t[("x50_6h", "w2")]["label"], t[("x50_6h", "w2")]["display_reason"]),
+                         ("LOW", "failed B-5 transfer"))
 
 
 @unittest.skipUnless(DS and os.environ.get("Q26_NETWORK"), "set Q26_DATASETS and Q26_NETWORK=1 for the network check")

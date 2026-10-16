@@ -137,10 +137,12 @@ def header_table_b4(F):
                       for si, s in enumerate(S.SEG_IDS)} for c in D.X_CELLS}
 
 
-def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=print, frozen=None, model_b4=None):
+def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=print, frozen=None, model_b4=None,
+          gap_fill=True):
     """One live issue. `clock`, the transports and `frozen` are injectable for the offline tests only; the CLI
     always uses the real wall clock and the public endpoints. model_b4 = (shipped-b4.json rel, sha256,
-    labels-dev.csv rel, sha256) switches to model B4 (schema 2); None keeps model B3."""
+    labels-dev.csv rel, sha256) switches to model B4 (schema 2); None keeps model B3. gap_fill = False drops the
+    2026-10-08..10-13 daily balances (DL-25; offline comparisons only, the CLI always fills)."""
     t_start = time.time()
     issued_at = int(clock())
     H = D.floor_hour(issued_at)
@@ -204,7 +206,8 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
     daily_entry, b4days = None, None
     if b4in is not None:                                                   # DL-21 live daily balances (model B4)
         daily_entry = D.update_daily_store(ldir, rpc, asof_ts, head, clock=clock, log=log)
-        b4days = [d for d in D.read_daily_store(ldir) if d["T"] <= asof_ts and d["block"] < asof_block]
+        b4days = [d for d in D.read_daily_store(ldir) if d["T"] <= asof_ts and d["block"] < asof_block
+                  and (gap_fill or d["date"] >= D.LIVE_DAILY_FIRST)]
 
     tables = D.build_event_tables(datasets, ldir, asof_block, extra_rows=gap, log=log)
     cands = []
@@ -287,7 +290,13 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
                                                 "path": "design/DEPOSITOR_BEHAVIOR_PREREG_B4.md",
                                                 "commit": "019adca", "deviation": "D1 07c1f4d"})
         doc["inputs"]["frozenB4"] = F.b4["inputs"]
-        doc["inputs"]["dailyStore"] = {"update": daily_entry, "daysUsed": [d["date"] for d in b4days]}
+        dpath = os.path.join(ldir, D.DAILY_SUB, "snapshots.csv.gz")
+        doc["inputs"]["dailyStore"] = {
+            "update": daily_entry, "daysUsed": [d["date"] for d in b4days], "gapFill": bool(gap_fill),
+            "gapDays": [d["date"] for d in b4days if d["date"] < D.LIVE_DAILY_FIRST],
+            "rows": [{"date": d["date"], "block": d["block"], "ts": d["ts"], "incomeUSDC": str(d["income"]["USDC"]),
+                      "incomeUSDT": str(d["income"]["USDT"])} for d in b4days],
+            "sha256": D.sha256_file(dpath), "bytes": os.path.getsize(dpath)}
         doc["frozenModelB4"] = F.b4["check"]
         doc["tableB4"] = header_table_b4(F)
         doc["cellFieldsB4"] = list(D.B4_CELL_FIELDS)

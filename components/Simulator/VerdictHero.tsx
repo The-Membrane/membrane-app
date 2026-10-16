@@ -72,13 +72,18 @@ import { fmtLocalClock, fmtLocalDayClock, useLocalZone } from './localClock'
 import Stamp from './Stamp'
 import { stamp as stampFn } from '@/lib/position-sim/types'
 
-const OCT10_PROV = stampFn('dataset', 'measured · 2,347 accounts · on-chain', 'public/data/oct10-2025/evidence.json — every Aave liquidation on 10-11 Oct 2025, judged against its own line.')
-import { OCT10_STAKES_LINE } from '@/lib/position-sim/oct10Totals'
+import { OCT10_STAKES_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 
 import AddressBar, { type AddressBarProps } from './AddressBar'
 import HeroChart from './HeroChart'
 import { historyDate } from './HistoryProof'
 import { usd, usdSigned } from './format'
+
+const OCT10_PROV = stampFn(
+  'dataset',
+  `measured · ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions · on-chain`,
+  'public/data/oct10-2025/evidence-census.json — every Aave V3 and Morpho Blue liquidation on Ethereum, Arbitrum, Optimism and Base, 10-11 Oct 2025, priced by each protocol’s own oracle read on chain.',
+)
 
 /**
  * THE ONE LINE THAT SELLS THE PRODUCT before the sim proves it. Owner copy, verbatim,
@@ -199,7 +204,11 @@ function verdict(
   else if (lag > 0) tail = `${lag} ${plural(lag)} later`
   else if (lag < 0) tail = `${-lag} ${plural(-lag)} earlier`
   else tail = undefined
-  const second = tail ? `Membrane would have closed ${usd(membraneClosed)} ${tail}.` : `Membrane would have closed ${usd(membraneClosed)}.`
+  // † : Membrane's side is modelled; HeroChart, always rendered under this block, carries
+  // the footnote line (MODELLED_FOOTNOTE).
+  const second = tail
+    ? `Membrane would have closed ${usd(membraneClosed)}† ${tail}.`
+    : `Membrane would have closed ${usd(membraneClosed)}†.`
 
   // The gap, and the prices it is read at. An equity delta is a difference between two
   // balance sheets at ONE moment; the moment is the last minute of the measured path,
@@ -208,7 +217,7 @@ function verdict(
   const n = cmp.source.equitySeries.length
   const endTs = startTs !== null && stepSeconds !== null && n > 0 ? startTs + (n - 1) * stepSeconds : null
   const basis = endTs !== null ? `${fmtLocalDayClock(endTs, zone)} prices` : 'the last price of the measured path'
-  const caption = `${delta < 0 ? 'less' : 'more'} equity left at ${basis}`
+  const caption = `${delta < 0 ? 'less' : 'more'} equity left at ${basis}†`
 
   return {
     first,
@@ -420,8 +429,8 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
             {/* THE STAKES (owner ruling 2026-09-12): the hero must say how big that day
                 was and that it WAS Oct 10, before it says what happened to this wallet.
                 One line, above the two verdict sentences, nothing added to it — the
-                verdict stays the headline. Numbers come from OCT10_TOTALS, which the
-                unit test re-derives from the evidence JSON. */}
+                verdict stays the headline. Numbers come from OCT10_TOTALS (the full
+                on-chain census), which the unit test re-derives from its rows. */}
             <Text
               data-testid="sim-oct10-stakes"
               fontFamily={TYPOGRAPHY.fontMono}

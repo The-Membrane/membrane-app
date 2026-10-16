@@ -42,11 +42,20 @@ export const Close: React.FC<{ initialDoc?: EvidenceDoc | null; num?: string }> 
           fontWeight={TYPOGRAPHY.semibold}
           color={SEMANTIC_COLORS.textPrimary}
         >
-          {CLOSE.headline}
+          {/* The count is data: mono inside the serif heading (CLAUDE.md, numbers). */}
+          {CLOSE.headline.split(/([\d][\d,]*)/).map((part, i) =>
+            /^\d/.test(part) ? (
+              <Text as="span" key={i} fontFamily={TYPOGRAPHY.fontMono}>
+                {part}
+              </Text>
+            ) : (
+              part
+            ),
+          )}
         </Text>
       </VStack>
 
-      {doc ? <DebtLens debt={doc.debt} byAsset={doc.byAsset} /> : null}
+      {doc ? <DebtLens debt={doc.debt} byAsset={doc.byAsset} meta={doc.meta} /> : null}
 
       {/* WHAT THE NUMBER CONTAINS. The lens above gives the totals; this answers the
           questions a careful reader asks next, each with the figure from the same doc. */}

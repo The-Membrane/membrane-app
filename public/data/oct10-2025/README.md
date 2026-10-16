@@ -28,9 +28,20 @@ Window: `2025-10-10T00:00:00Z` → `2025-10-11T23:59:00Z`, 1-minute grid, 2,880 
   `docs/WAVEFRONT.md`.
 - **`coverage-summary.json`** — that census's scope, coverage table, both-side totals,
   classes, clusters, sensitivities and the cross-check against `evidence.json`.
-- **`evidence.json`** (the old census, still what the Evidence page and the landing copy
-  read; switching them to the full census is an owner decision) is NOT unchanged on this
-  branch. On 2026-10-14 a delayed account sold at t0 past the band started walking on after
+- **`evidence-census.json`** — what the Evidence page and the landing read (owner decision
+  2026-10-16): the full census above, shaped for the UI by `scripts/build-evidence-census.ts`
+  from membrane-datasets `oct10-2025/coverage/census.json` (its sha256 and the code commit
+  are in `meta.source` / `meta.code`; a rerun with that code writes the same bytes). Summary
+  sets (all, per protocol, per venue × chain), the outcomes, the cure diagnostic and the
+  delay credit recomputed on all 3,197 positions, the kernel sensitivities, and the 3,197
+  rows in columnar form (`cohort.columns`). About 0.96 MB, 0.27 MB gzipped.
+  **`evidence-census-headline.json`** (about 3 KB) carries the figures the landing hero, the og
+  card and `components/Seniority/facts.ts` import without fetching the rows;
+  `tests/unit/oct10Totals.test.ts` checks it against the rows.
+- **`evidence.json`** (the OLD census, 2,347 Aave rows priced off mainnet Chainlink rounds) is
+  read by no page since 2026-10-16. It stays because `tests/unit/wavefrontKernel.test.ts`,
+  `scripts/tests/position-sim.test.ts` and the census cross-check use it, and its builder
+  still runs. It is NOT unchanged on this branch. On 2026-10-14 a delayed account sold at t0 past the band started walking on after
   that sale, as every other sale does (`docs/POSITION_SIMULATOR.md` §3). What moved: the
   Membrane headline **+$13,303.43** (priced $22,191,189.76 → $22,204,493.19; all included
   $54,158,792.83 → $54,172,096.26; one account, mainnet `0x9bafc9…`; no outcome changes) and

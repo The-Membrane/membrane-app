@@ -35,8 +35,13 @@ positions carry $10,440.26 of it).
 
 The engine pieces live in `lib/wavefront/` and are what the live wavefront engine reuses
 unchanged; position ids come from `lib/wavefront/pid.ts`, shared with it byte for byte. **The
-Evidence page and the landing copy still read the old `evidence.json`**; switching them to
-this census is an owner decision.
+Evidence page and the landing read this census** (owner decision 2026-10-16), through the
+served `public/data/oct10-2025/evidence-census.json` and `evidence-census-headline.json`,
+built from `census.json` by `scripts/build-evidence-census.ts` (it re-runs this walk from the
+same inputs for the cure diagnostic, the one-repay delay credit and the kernel
+sensitivities, and stops if the rerun does not reproduce `census.json`'s rows). The old
+`evidence.json` is read by no page; it stays as a test fixture and as the cross-check's
+other side (§ the cross-check).
 
 ---
 

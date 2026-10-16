@@ -101,7 +101,33 @@ values; it never derives or smooths one. The committed output is what ships.
 Everything was fetched from public JSON-RPC (Tenderly public gateways) and Binance public
 daily dumps. No paid API keys.
 
-### `public/data/oct10-2025/evidence.json` — the census
+### `public/data/oct10-2025/evidence-census.json` — what the pages read
+
+Since 2026-10-16 (owner decision) the Evidence page (`/[chain]/evidence`) and the landing
+(`/[chain]`, its hero stakes line, HeroChart, GuaranteeBlock subline, og card and the Close
+band) read the FULL on-chain census of 10-11 Oct 2025: every Aave V3 pool and Morpho Blue
+market on Ethereum, Arbitrum, Optimism and Base, 3,197 positions, each protocol's own oracle
+read on chain (`docs/WAVEFRONT.md`). `scripts/build-evidence-census.ts` shapes
+membrane-datasets `oct10-2025/coverage/census.json` for the UI and writes
+`evidence-census.json` (summary + columnar rows) and `evidence-census-headline.json` (the
+figures the landing imports); both record the census sha256 and the code commit.
+
+```bash
+MEMBRANE_DATASETS_DIR=/path/to/membrane-datasets npx tsx scripts/build-evidence-census.ts
+npx tsx scripts/tests/evidence-census.test.mts   # sums == rows == census totals; lens text; filters
+```
+
+The landing figures are imported, not typed: `lib/position-sim/oct10Totals.ts` and
+`components/Seniority/facts.ts` read `evidence-census-headline.json`, and
+`tests/unit/oct10Totals.test.ts` re-derives them from the rows. The demo borrower
+(`public/data/demo-borrower.json`) is selected from the same census by
+`scripts/select-demo-borrower.ts`.
+
+### `public/data/oct10-2025/evidence.json` — the old census (a fixture now)
+
+No page reads it since 2026-10-16. It stays as a test fixture
+(`tests/unit/wavefrontKernel.test.ts`, `scripts/tests/position-sim.test.ts`) and as the other
+side of the census cross-check.
 
 Built by `scripts/build-evidence.ts`, which runs the SAME walk (`curePath.ts`) and the
 SAME delay-class definition (`collateralClass.ts`) as the simulator. Its two raw inputs
@@ -119,12 +145,11 @@ The sha256 of each input is in that directory's `PROVENANCE.md`.
 
 ```bash
 MEMBRANE_DATASETS_DIR=/path/to/membrane-datasets ./node_modules/.bin/tsx scripts/build-evidence.ts
-npx tsx scripts/tests/evidence.test.mts    # the lenses render, every total recomputes from its rows
+npx tsx scripts/tests/evidence.test.mts    # the old file's own integrity (it is a fixture now)
 ```
 
-Hard-coded copies of census figures must be recomputed after a rebuild:
-`lib/position-sim/oct10Totals.ts` (pinned by `tests/unit/oct10Totals.test.ts`) and the
-copy in `components/Seniority/facts.ts`.
+No page copy is built from this file any more; `lib/position-sim/oct10Totals.ts` and
+`components/Seniority/facts.ts` read the census (above).
 
 ### Measured extremes (regenerate with `pnpm build:oct10-data`, do not hand-edit)
 

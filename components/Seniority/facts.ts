@@ -14,6 +14,52 @@
  */
 
 import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
+import census from '@/public/data/oct10-2025/evidence-census-headline.json'
+
+// ---------------------------------------------------------------------------
+// THE CENSUS FIGURES. Owner decision 2026-10-16: the landing reads the FULL on-chain census
+// of 10-11 Oct 2025 (every Aave V3 pool and Morpho Blue market on Ethereum, Arbitrum,
+// Optimism and Base; each protocol's own oracle, read on chain). Every number below is read
+// from public/data/oct10-2025/evidence-census-headline.json, which
+// scripts/build-evidence-census.ts writes from the same computation as the Evidence page's
+// evidence-census.json; tests/unit/oct10Totals.test.ts checks the two agree. Nothing here
+// is typed by hand, so a rebuild cannot leave a stale figure on the page.
+// ---------------------------------------------------------------------------
+const n = (x: number) => x.toLocaleString('en-US')
+const usdM = (x: number) => `$${(x / 1e6).toFixed(1)}M`
+const usdAny = (x: number) =>
+  Math.abs(x) >= 1e6 ? usdM(x) : `$${Math.round(x).toLocaleString('en-US')}`
+const pct1 = (frac: number) => `${(frac * 100).toFixed(1)}%`
+const gap = (gapPct: number) => `${Math.abs(gapPct).toFixed(1)}% ${gapPct >= 0 ? 'less' : 'more'}`
+const CHAIN: Record<string, string> = {
+  mainnet: 'Ethereum',
+  arbitrum: 'Arbitrum',
+  optimism: 'Optimism',
+  base: 'Base',
+}
+const PROTOCOL: Record<string, string> = { 'aave-v3': 'Aave', 'morpho-blue': 'Morpho' }
+const OUTCOME_PHRASE: Record<string, string> = {
+  'sold-at-t0': 'already past the band at its first liquidation, so sold at once',
+  'sold-at-band': 'sold when it broke the band',
+  'sold-at-expiry': 'sold at the end of its window',
+  'sold-no-delay': 'stablecoin collateral, sold at the line',
+  'sold-at-grid-end': 'still in its window when the data ends',
+  'cured-then-held': 'back under its line and never sold',
+  held: 'never over its line',
+}
+
+/** The census in one sentence, both protocols on it. Shared by every hero variant. */
+const CENSUS_LINE =
+  `Replayed on every liquidation of ${census.window} — ${n(census.positions)} positions on Aave and Morpho across four chains, ` +
+  `each priced by its protocol’s own oracle read on chain — the protocols force-closed ${usdM(census.all.realRepaidUsd)} of debt ` +
+  `and Membrane’s rules would have closed ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)} ` +
+  `(Aave ${gap(census.aave.gapPct)}, Morpho ${gap(census.morpho.gapPct)}).`
+
+const CENSUS_CITE =
+  `public/data/oct10-2025/evidence-census.json debt.all and debt.byProtocol (${n(census.positions)} positions: ` +
+  `protocols $${(census.all.realRepaidUsd / 1e6).toFixed(2)}M, Membrane $${(census.all.memRepaidUsd / 1e6).toFixed(2)}M; ` +
+  `Aave ${n(census.aave.positions)}, Morpho ${n(census.morpho.positions)}) · scripts/build-evidence-census.ts · ` +
+  'lib/wavefront/kernel.ts (the walk)'
 
 // NOTE: lib/position-sim/guarantee.ts CARRY_CLAIMS are NOT imported wholesale. Two of
 // the four fail against the contracts as worded (fee is taken from collateral,
@@ -61,11 +107,16 @@ const SHARED = {
    */
   bridge: {
     eyebrow: 'Tested on a real day',
-    line: 'With borrower-first liquidation a breach inside the 4% band gets eight hours; a return under the line clears it; past the band, or still over the line at expiry, the position is repaid to its cap. Stablecoin collateral gets no window†. Replayed on 10 Oct 2025 against mainnet Chainlink oracle rounds, that closes 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
+    line:
+      'With borrower-first liquidation a breach inside the 4% band gets eight hours; a return under the line clears it; past the band, or still over the line at expiry, the position is repaid to its cap. Stablecoin collateral gets no window†. ' +
+      CENSUS_LINE +
+      ' Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
     /** † on "Stablecoin collateral gets no window": modelled (collateralClass.ts). */
     footnote: MODELLED_FOOTNOTE,
-    cite: 'public/data/oct10-2025/evidence.json debt.priced (747 accounts: Aave $34.69M, Membrane $22.20M) · lib/position-sim/curePath.ts (the walk) · contracts/LiquidationEngine.sol:2099-2103 (band), :1362-1382 (re-arm), :1388-1392 (expiry, band break), :2241-2269 ($2,000 floor)',
-    note: 'Six census passes on 14 Sep, each refuted by a separate agent. What survived: the priced-set sign (Membrane closes less) under every control except pricing wstETH on the market stETH feed Aave does not use. What did not: the shipped $39.2M / 27.2% (one repay, no delay, 599 accounts credited with a breach nobody can locate); a $35.0M cure figure (price-recovery cure the engine did not implement); "Membrane closes more" ($31.9M of it was the wrong wstETH feed, the rest one unpriced AAVE-collateral whale).',
+    cite:
+      CENSUS_CITE +
+      ' · contracts/LiquidationEngine.sol:2099-2103 (band), :1362-1382 (re-arm), :1388-1392 (expiry, band break), :2241-2269 ($2,000 floor)',
+    note: 'Owner decision 2026-10-16: the landing and the Evidence page read the full on-chain census (every Aave V3 pool and Morpho Blue market on four chains, each protocol’s own oracle). The old census’s 747-row priced subset and its headline are superseded; the Evidence page’s method section explains, from the 747-row cross-check, why it moved.',
   },
 
   /** Shown while the demo position is loaded, before any address or wallet. */
@@ -88,7 +139,9 @@ const BC_CTA = 'See what you’d have kept on 10 Oct 2025'
 
 const BC_BRIDGE = {
   ...SHARED.bridge,
-  line: 'Replayed on 10 Oct 2025 against mainnet Chainlink oracle rounds, Membrane’s rules close 36% less debt than Aave did across the 747 accounts whose collateral the day’s feeds can price. Stablecoin collateral gets no window†. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
+  line:
+    CENSUS_LINE +
+    ' Stablecoin collateral gets no window†. Aave’s own close factor repays partially too; the eight hours and the recall are Membrane’s.',
 }
 
 
@@ -388,39 +441,59 @@ export const CDT_LINE = {
 // ---------------------------------------------------------------------------
 // CLOSE
 // ---------------------------------------------------------------------------
+/** The five largest differences, and the one that leads them, as the copy reads them. */
+const top = census.concentration
+const topLine =
+  `The largest single difference ${top.top1GapUsd < 0 ? 'runs the other way' : 'is one position'}: one ${CHAIN[top.top1Chain] ?? top.top1Chain} ${PROTOCOL[top.top1Protocol] ?? top.top1Protocol} position, ${OUTCOME_PHRASE[top.top1Outcome] ?? top.top1Outcome}, where Membrane closes ${usdM(Math.abs(top.top1GapUsd))} ${top.top1GapUsd < 0 ? 'more' : 'less'}†. ` +
+  `Without it Membrane closes ${gap(top.gapWithoutTop1Pct)}. The five largest differences are ${(top.top5Share * 100).toFixed(0)}% of every dollar of difference in either direction; without them it is ${gap(top.gapWithoutTop5Pct)}.`
+
+const B = census.brackets
+const more = census.membraneMore
+const moreOut = more.atOrAboveFloor.outcomes as Record<string, number>
+const moreBand = moreOut['sold-at-band'] ?? 0
+const moreT0 = moreOut['sold-at-t0'] ?? 0
+const moreRest = more.atOrAboveFloor.positions - moreBand - moreT0
+
+/** The stress list: the same walk, one rule changed. Which corners cross the protocols' total is computed. */
+const S = census.sensitivity
+const bandAt = (b: number) => S.band.find((x) => x.band === b)?.memRepaidUsd ?? NaN
+const STRESS: { label: string; usd: number }[] = [
+  { label: 'a 2% band', usd: bandAt(0.02) },
+  { label: 'an 8% band', usd: bandAt(0.08) },
+  { label: 'nobody clears a timer early', usd: S.noEarlyClearUsd },
+  { label: 'no $2,000 floor', usd: S.noDebtFloorUsd },
+  { label: 'one sale per position', usd: S.singleSaleUsd },
+  { label: 't0 read at the block before', usd: S.t0AtNm1Usd },
+]
+const crossing = STRESS.filter((x) => x.usd >= census.all.realRepaidUsd).map((x) => x.label)
+
 export const CLOSE = {
-  eyebrow: 'Counterfactual · 10 Oct 2025',
-  headline: 'What this order did to 2,347 real liquidations.',
+  eyebrow: `Counterfactual · ${census.window}`,
+  headline: `What this order did to ${n(census.positions)} real liquidations.`,
   cta: 'Run yours through the same day',
   href: '/simulator',
   evidenceHref: '/evidence',
   /**
-   * WHAT THE NUMBER CONTAINS. Every figure is read from public/data/oct10-2025/evidence.json
-   * (the cohort rows) with the builder's own rule for "closes more" (strict >,
-   * scripts/build-evidence.ts). Owner, 14 Sep: predict the questions and answer them
-   * with numbers. Regenerate these lines when the census is rebuilt.
-   *
-   * Line 2's 18 / 53 are PRICED rows (the paragraph is about the 747): priced, not mixed,
-   * first seized leg a stable — 71 rows; 18 with seenCollateralShare >= 0.95 (composition
-   * seen: all stablecoins), 53 below it (meta.delayClass.stableLegs.priced). The data
-   * confirms their COMPOSITION, not the no-window rule, which is modelled: hence the †.
+   * WHAT THE NUMBER CONTAINS. Every figure is read from
+   * public/data/oct10-2025/evidence-census-headline.json (scripts/build-evidence-census.ts,
+   * the same computation as the Evidence page). Owner, 14 Sep: predict the questions and
+   * answer them with numbers. A rebuild moves these lines by itself.
    */
   contains: {
     title: 'What the number contains',
     lines: [
-      'Two sets, never folded. 747 accounts whose collateral the day’s feeds price minute by minute: Aave closed $34.7M, Membrane $22.2M, 36.0% less. 1,001 accounts on collateral they cannot price (AAVE, LINK, OP, ARB, UNI, CRV): the engine can only repay to cap once, and with them added in Membrane closes 14.2% more. The lens above shows both.',
-      'What Membrane’s figure is: a breach inside the 4% band waits eight hours; a return under the line clears the timer and a later breach starts a fresh one; a move past line × 1.04, or still over the line at expiry, repays to the borrow cap at that minute’s price; the position then re-arms. Stablecoin collateral has no window† and is repaid to cap the minute it crosses. For 18 of the 747 the data confirms the collateral was all stablecoins; for 53 more it cannot see what else they held. Aave’s figure is every hit on the account across 10 and 11 Oct, measured.',
-      'Five wallets are 75% of the $12.5M difference. Without the largest it is 30% less; without the five, 14.6% less. The sign holds; the size is a handful of whales.',
-      '133 wallets held the whole day, $110.7M of debt. One is 58.6% of that: a $64.9M wstETH loan Aave closed 4.4% of.',
-      'Under $2,000 of debt both venues close the loan whole: 930 accounts, Aave a median 99.9%, Membrane 100%; Aave’s own leftover rule and Membrane’s $2,000 minimum agree, and both exist for the same reason: below it an Ethereum liquidation costs more in gas than it recovers, so the contract indexes the floor to the gas price rather than to a choice of ours. Between $2,000 and $4,000 the minimum still closes the loan where Aave took half: 161 accounts, 150 closed whole. From $4,000 up the median account loses 49.8% of the loan to Aave and 32.3% to Membrane, across 657 accounts.',
-      '290 of the 747 lose more on Membrane and 110 come out equal. 184 of the 290 are under the $2,000 minimum and total $18,050. The other 106 are past the band or sold at expiry, where repay to cap restores the line in one pass while Aave’s liquidators took a median 45.4% bite: $6.6M.',
-      '599 accounts, $96.8M of what Aave closed, are left out of both sides: 350 on L2s whose oracle this dataset lacks, 168 healthy by Aave’s own read the block before, 80 on unpriced collateral, 1 other ($2.4M). No breach can be located, so no window can start.',
-      'Stress it, priced set: cap each repay at the largest single Aave repay on that asset that day, $21.9M; price the day from Aave’s own snapshot instead of the round log, $17.5M; give the 19 accounts with no window the eight hours too, $22.2M, unchanged, since none of them came back under its line; put wstETH on the market stETH feed Aave does not use, $54.3M. Every one keeps Membrane under Aave’s $34.7M except the last, and that feed is the wrong one.',
-      'The Chainlink aggregator in this dataset is not the one Aave read that day: none of Aave’s own prices match a round in it (median gap 0.6%, worst 5.7%). Aave’s side is priced by Aave; Membrane’s walk uses the log as a ratio path. The Aave-anchored line above is the same model on Aave’s prices.',
+      `Every liquidation, both protocols, never folded. Aave V3: ${n(census.aave.positions)} positions, the protocol closed ${usdM(census.aave.realRepaidUsd)} and Membrane would close ${usdM(census.aave.memRepaidUsd)}†, ${gap(census.aave.gapPct)}. Morpho Blue: ${n(census.morpho.positions)} positions, ${usdM(census.morpho.realRepaidUsd)} against ${usdM(census.morpho.memRepaidUsd)}†, ${gap(census.morpho.gapPct)}. Together ${usdM(census.all.realRepaidUsd)} against ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}. The lens above shows each chain.`,
+      'What Membrane’s figure is: a breach inside the 4% band waits eight hours; a return under the line clears the timer and a later breach starts a fresh one; a move past line × 1.04, or still over the line at expiry, repays to the borrow cap at that minute’s price; the position then walks on. Stablecoin collateral has no window† and is repaid to cap the minute it crosses. Each position is its whole composition at its first liquidation, every leg on its protocol’s own oracle read on chain. The protocols’ figure is every liquidation the position took across 10 and 11 Oct, measured.',
+      topLine,
+      `${n(census.neverSold.positions)} positions were never sold at all†, ${usdM(census.neverSold.debtUsd)} of debt: back under their line inside the window, or never over it. The protocols closed ${usdM(census.neverSold.realRepaidUsd)} of it.`,
+      `Under $2,000 of debt both sides close the loan whole: ${n(B.underFloor.positions)} positions, the protocols a median ${pct1(B.underFloor.realMedianFrac)}, Membrane ${pct1(B.underFloor.memMedianFrac)}†. Membrane’s $2,000 minimum exists because below it a liquidation costs more in gas than it recovers, so the contract indexes the floor to the gas price rather than to a choice of ours. Between $2,000 and $4,000 the minimum still closes ${n(B.floorToTwice.memClosesWhole)} of ${n(B.floorToTwice.positions)} loans whole† where the protocols took a median ${pct1(B.floorToTwice.realMedianFrac)}. From $4,000 up the median position loses ${pct1(B.twiceFloorUp.realMedianFrac)} of the loan to the protocols and ${pct1(B.twiceFloorUp.memMedianFrac)} to Membrane†, across ${n(B.twiceFloorUp.positions)} positions.`,
+      `${n(more.positions)} positions lose more on Membrane† and ${n(census.equal)} come out equal to the cent. ${n(more.underFloor.positions)} of the ${n(more.positions)} are under the $2,000 minimum and total ${usdAny(more.underFloor.extraUsd)}. The other ${n(more.atOrAboveFloor.positions)} (${n(moreBand)} sold at the band, ${n(moreT0)} already past it at the first liquidation, ${n(moreRest)} otherwise) are where repay to cap restores the line in one pass while the protocols’ liquidators took a median ${pct1(more.atOrAboveFloor.realMedianFrac)} bite: ${usdM(more.atOrAboveFloor.extraUsd)}†.`,
+      `${n(census.gridEnd.positions)} positions were still inside their 8-hour window when the data ends (23:59 UTC 11 Oct). A window still open is not a completed sale; the census books each at the last price, ${usdAny(census.gridEnd.memRepaidUsd)}† of Membrane’s total, the conservative choice.`,
+      `${n(census.unpricedPositions)} Morpho positions borrow a token with no USD price that day: they are in every count above and in no dollar figure, on either side.`,
+      `Stress it, same walk, one rule changed: ${STRESS.map((x) => `${x.label}, ${usdM(x.usd)}†`).join('; ')}. ${crossing.length ? `Every one keeps Membrane under the protocols’ ${usdM(census.all.realRepaidUsd)} except ${crossing.join(' and ')}.` : `Every one keeps Membrane under the protocols’ ${usdM(census.all.realRepaidUsd)}.`}`,
     ],
-    /** The one footer line for the † in line 2 (DESIGN_RULES.md §3). Rendered. */
+    /** The one footer line for every † above (DESIGN_RULES.md §3). Rendered. */
     footnote: MODELLED_FOOTNOTE,
-    cite: 'public/data/oct10-2025/evidence.json (debt.priced, debt.allIncluded, meta.cureModel, meta.sensitivity, meta.anchor, meta.excluded.byReason, cohort rows) · scripts/build-evidence.ts · contracts/LiquidationEngine.sol:2246-2248 (floor = max(liqDebtMinimum, gas stipend × CHUNK_GAS_MULT))',
+    cite: `public/data/oct10-2025/evidence-census-headline.json (census sha256 ${census.censusSha256.slice(0, 12)}…) · scripts/build-evidence-census.ts · contracts/LiquidationEngine.sol:2246-2248 (floor = max(liqDebtMinimum, gas stipend × CHUNK_GAS_MULT))`,
   },
-
 } as const

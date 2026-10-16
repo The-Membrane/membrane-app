@@ -2,7 +2,8 @@
 //
 // One argument, told in order: where a borrower sits in the loss waterfall, what that
 // order buys them, why an incumbent will leave it alone, what the debt earns, and what
-// the order did to 2,347 real liquidations.
+// the order did to every Aave and Morpho liquidation of 10-11 Oct 2025 (the full on-chain
+// census, public/data/oct10-2025/evidence-census.json).
 //
 // Every factual sentence on this surface comes from components/Seniority/facts.ts,
 // which carries a contract citation for each one. Nothing is written here.

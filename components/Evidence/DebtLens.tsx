@@ -7,117 +7,222 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { Card } from '@/components/ui/Card'
 
 import { CompareBar, Eyebrow, InfoTip, Stat } from './atoms'
-import { CURE_LEGEND, pct, usd } from './format'
-import { AssetSummary, DebtSummary } from './types'
+import { CURE_LEGEND, GRID_END_MARK, PROTOCOL_NAME, gapWord, pct, usd } from './format'
+import { AssetSummary, DebtSet, DebtSummary, EvidenceMeta, ProtocolKey } from './types'
+
+const PROTOCOLS: ProtocolKey[] = ['aave-v3', 'morpho-blue']
+const SPLIT_COLS = '1.6fr 0.8fr 1fr 1fr 1.2fr'
+
+const Cell: React.FC<{ children: React.ReactNode; color?: string; size?: string }> = ({
+  children,
+  color = SEMANTIC_COLORS.textPrimary,
+  size = TYPOGRAPHY.small,
+}) => (
+  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={size} color={color}>
+    {children}
+  </Text>
+)
 
 /**
- * How much of each borrower's debt gets closed.
+ * One row of the split table: positions, both sides, the gap with its direction. From md up
+ * it is a five-column grid; on a phone the same figures stack in two lines, so the Membrane
+ * side and the difference are never behind a horizontal scroll.
+ */
+const SplitRow: React.FC<{
+  label: string
+  s: Pick<DebtSet, 'positions' | 'realRepaidUsd' | 'memRepaidUsd' | 'gapUsd' | 'gapPct'>
+  minor?: boolean
+}> = ({ label, s, minor }) => {
+  const size = minor ? TYPOGRAPHY.xs : TYPOGRAPHY.small
+  const dim = minor ? SEMANTIC_COLORS.textSecondary : SEMANTIC_COLORS.textPrimary
+  const gapColor = s.gapUsd >= 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger
+  return (
+    <Box
+      py={minor ? SPACING.xs : SPACING.md}
+      pl={minor ? SPACING.base : SPACING.none}
+      borderBottom="1px solid"
+      borderColor={SEMANTIC_COLORS.borderSubtle}
+    >
+      <Grid
+        display={{ base: 'none', md: 'grid' }}
+        templateColumns={SPLIT_COLS}
+        gap={SPACING.md}
+        alignItems="center"
+      >
+        <Cell color={dim} size={size}>
+          {label}
+        </Cell>
+        <Cell color={SEMANTIC_COLORS.textSecondary} size={size}>
+          {s.positions.toLocaleString('en-US')}
+        </Cell>
+        <Cell color={dim} size={size}>
+          {usd(s.realRepaidUsd)}
+        </Cell>
+        <Cell color={dim} size={size}>
+          {usd(s.memRepaidUsd)}†
+        </Cell>
+        <Cell color={gapColor} size={size}>
+          {usd(Math.abs(s.gapUsd))} · {gapWord(s.gapPct)}
+        </Cell>
+      </Grid>
+      <VStack display={{ base: 'flex', md: 'none' }} align="stretch" spacing={SPACING.none}>
+        <HStack justify="space-between" align="baseline">
+          <Cell color={dim} size={size}>
+            {label}
+          </Cell>
+          <Cell color={SEMANTIC_COLORS.textSecondary} size={TYPOGRAPHY.xs}>
+            {s.positions.toLocaleString('en-US')} positions
+          </Cell>
+        </HStack>
+        <Cell color={SEMANTIC_COLORS.textSecondary} size={TYPOGRAPHY.xs}>
+          {usd(s.realRepaidUsd)} → {usd(s.memRepaidUsd)}†{' '}
+          <Text as="span" color={gapColor}>
+            {usd(Math.abs(s.gapUsd))} · {gapWord(s.gapPct)}
+          </Text>
+        </Cell>
+      </VStack>
+    </Box>
+  )
+}
+
+/**
+ * How much of each position's debt gets closed — the path-independent lens, and the one to
+ * lead with. Whether a liquidation "saved" equity depends on where the market went next; how
+ * much of the loan was closed out does not.
  *
- * This is the path-independent lens, and the one worth leading with. Whether a
- * liquidation "saved" you equity depends on which way the market went next;
- * how much of your loan was closed out does not.
- *
- * TWO SETS, SIDE BY SIDE. The headline numbers are `debt.priced` — the accounts whose
- * collateral has a price series, so the delay window can actually be walked against real
- * minutes. `debt.allIncluded` is shown next to it, never instead of it: it adds the
- * accounts whose collateral this dataset cannot price at all, which take one repay at t0
- * and can never cure. Leading with allIncluded would credit the repay-to-cap upper bound
- * to accounts the cure model was never applied to.
+ * THE SPLIT IS ALWAYS ON SCREEN. The whole-census figure leads, and the Aave / Morpho split
+ * (and each venue on each chain under it) sits directly beneath it: the two protocols tell
+ * different stories (Morpho's liquidators close most loans whole), and a blended number
+ * must never stand without them.
  */
 export const DebtLens: React.FC<{
   debt: DebtSummary
-  byAsset: Record<string, AssetSummary>
-}> = ({ debt, byAsset }) => {
-  const assets = Object.entries(byAsset).sort((a, b) => b[1].accounts - a[1].accounts)
-  const primary = debt.priced ?? debt
-  const all = debt.allIncluded
-  const moreDebt = primary.gapUsd < 0
+  byAsset: AssetSummary[]
+  meta: EvidenceMeta
+}> = ({ debt, byAsset, meta }) => {
+  const all = debt.all
+  const moreDebt = all.gapUsd < 0
+  const floor = all.medians.floorUsd
+  const big = all.medians.atLeastFloor
 
   return (
     <VStack align="stretch" spacing={SPACING_PATTERNS.sectionGap}>
       <SimpleGrid columns={{ base: 2, md: 4 }} spacing={SPACING_PATTERNS.sectionGap}>
         <Stat
-          label="Accounts"
-          value={primary.accounts.toLocaleString()}
-          sub="real, liquidated, priced"
+          label="Positions"
+          value={all.positions.toLocaleString('en-US')}
+          sub="every liquidation · Aave + Morpho · four chains"
         />
         <Stat
-          label="Aave closed"
-          value={usd(primary.aaveClosedUsd)}
+          label="Protocols closed"
+          value={usd(all.realRepaidUsd)}
           tone="bad"
-          sub="entire episode"
+          sub="every liquidation, both days"
         />
         <Stat
           label="Membrane would close"
-          value={usd(primary.membraneClosedUsd)}
+          value={`${usd(all.memRepaidUsd)}†`}
           tone={moreDebt ? 'bad' : 'good'}
           sub="8h window, walked minute by minute"
         />
         <Stat
           label="Difference"
-          value={`${usd(primary.gapUsd)}`}
+          value={usd(Math.abs(all.gapUsd))}
           tone={moreDebt ? 'bad' : 'good'}
-          sub={`${Math.abs(primary.gapPct)}% ${moreDebt ? 'more' : 'less'} debt closed`}
+          sub={`${gapWord(all.gapPct)} debt closed†`}
         />
       </SimpleGrid>
 
-      {all ? (
-        <Card variant="subtle">
-          <VStack align="stretch" spacing={SPACING.sm}>
-            <Eyebrow>Same four numbers, unpriced collateral added back</Eyebrow>
-            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={SPACING_PATTERNS.stackSpacing}>
-              {[
-                ['Accounts', all.accounts.toLocaleString()],
-                ['Aave closed', usd(all.aaveClosedUsd)],
-                ['Membrane would close', usd(all.membraneClosedUsd)],
-                ['Difference', `${usd(all.gapUsd)} (${all.gapPct}%)`],
-              ].map(([k, v]) => (
-                <VStack key={k} align="flex-start" spacing={SPACING.none}>
-                  <Eyebrow>{k}</Eyebrow>
-                  <Text
-                    fontFamily={TYPOGRAPHY.fontMono}
-                    fontSize={TYPOGRAPHY.small}
-                    color={SEMANTIC_COLORS.textPrimary}
-                  >
-                    {v}
-                  </Text>
-                </VStack>
-              ))}
-            </SimpleGrid>
-            <Text
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize={TYPOGRAPHY.xs}
-              color={SEMANTIC_COLORS.textTertiary}
-              lineHeight="1.7"
-            >
-              {(all.accounts - primary.accounts).toLocaleString()} of these accounts hold collateral
-              this dataset cannot price, so they take one repay and can never cure &mdash; they
-              carry the repay-to-cap upper bound with none of the 8-hour window it is being compared
-              against.
-            </Text>
-          </VStack>
-        </Card>
-      ) : null}
-
       <Card variant="default">
-        <VStack align="stretch" spacing={SPACING_PATTERNS.stackSpacing}>
-          <Eyebrow>Median share of the account&rsquo;s debt closed</Eyebrow>
-          <CompareBar
-            aLabel="Aave — whole multi-hit episode"
-            aValue={primary.aaveMedianFrac}
-            bLabel="Membrane — the 8h window, walked"
-            bValue={primary.membraneMedianFrac}
-            format={(v) => pct(v)}
-          />
+        <VStack align="stretch" spacing={SPACING.sm}>
+          <Eyebrow>The same numbers, by protocol and chain</Eyebrow>
+          <Box>
+            <Box>
+              <Grid
+                display={{ base: 'none', md: 'grid' }}
+                templateColumns={SPLIT_COLS}
+                gap={SPACING.md}
+                pb={SPACING.sm}
+                borderBottom="1px solid"
+                borderColor={SEMANTIC_COLORS.borderMedium}
+              >
+                {['Venue', 'Positions', 'Protocol closed', 'Membrane', 'Difference'].map((h) => (
+                  <Eyebrow key={h}>{h}</Eyebrow>
+                ))}
+              </Grid>
+              {PROTOCOLS.map((k) => (
+                <React.Fragment key={k}>
+                  <SplitRow label={PROTOCOL_NAME[k]} s={debt.byProtocol[k]} />
+                  {debt.byVenueChain
+                    .filter((v) => v.protocol === k)
+                    .map((v) => (
+                      <SplitRow key={v.key} label={v.label} s={v} minor />
+                    ))}
+                </React.Fragment>
+              ))}
+              <SplitRow label="All" s={all} />
+            </Box>
+          </Box>
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
             fontSize={TYPOGRAPHY.xs}
             color={SEMANTIC_COLORS.textTertiary}
             lineHeight="1.7"
           >
-            Aave&rsquo;s side is its entire episode, every repeat liquidation included.
-            Membrane&rsquo;s is the 8-hour window walked minute by minute against the same oracle
-            rounds, with the sale re-arming after each repay to cap.
+            Membrane&rsquo;s totals include {usd(meta.gridEnd.memRepaidUsd)}† booked for the{' '}
+            {meta.gridEnd.positions.toLocaleString('en-US')} positions whose 8-hour window was still
+            open when the data ends (23:59 UTC 11 Oct): a window still open is not a completed sale,
+            so the census books it at the last price and the table marks it {GRID_END_MARK}.{' '}
+            {meta.unpriced.positions.toLocaleString('en-US')} Morpho positions borrow a token with
+            no USD price that day ({meta.unpriced.loanSymbols.join(', ')}): they are in every count
+            and in no dollar figure. Morpho&rsquo;s{' '}
+            {usd(debt.byProtocol['morpho-blue'].realBadDebtUsd)} of realised bad debt is not counted
+            as repaid.
+          </Text>
+        </VStack>
+      </Card>
+
+      <Card variant="default">
+        <VStack align="stretch" spacing={SPACING_PATTERNS.stackSpacing}>
+          <Eyebrow>
+            Median share of the position&rsquo;s debt closed · debt of $
+            {floor.toLocaleString('en-US')} or more
+          </Eyebrow>
+          <CompareBar
+            aLabel="Protocols — every liquidation of the position"
+            aValue={big.realMedianFrac}
+            bLabel="Membrane† — the 8h window, walked"
+            bValue={big.memMedianFrac}
+            format={(v) => pct(v)}
+          />
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+            color={SEMANTIC_COLORS.textSecondary}
+            lineHeight="1.7"
+          >
+            {PROTOCOLS.map((k) => {
+              const b = debt.byProtocol[k].medians.atLeastFloor
+              return `${PROTOCOL_NAME[k]}: ${pct(b.realMedianFrac)} vs ${pct(b.memMedianFrac)}† over ${b.positions.toLocaleString('en-US')} positions`
+            }).join(' · ')}
+          </Text>
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+            color={SEMANTIC_COLORS.textTertiary}
+            lineHeight="1.7"
+          >
+            Over every priced position, the {all.medians.all.positions.toLocaleString('en-US')}{' '}
+            including those under ${floor.toLocaleString('en-US')} that both sides close whole, the
+            medians are {pct(all.medians.all.realMedianFrac)} and{' '}
+            {pct(all.medians.all.memMedianFrac)}† (
+            {PROTOCOLS.map(
+              (k) =>
+                `${PROTOCOL_NAME[k]} ${pct(debt.byProtocol[k].medians.all.realMedianFrac)} vs ${pct(debt.byProtocol[k].medians.all.memMedianFrac)}†`,
+            ).join(', ')}
+            ). The protocols&rsquo; side is every liquidation the position took across both days;
+            Membrane&rsquo;s is the debt its walk closes, as a share of the debt at the first
+            liquidation.
           </Text>
         </VStack>
       </Card>
@@ -125,42 +230,47 @@ export const DebtLens: React.FC<{
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={SPACING_PATTERNS.sectionGap}>
         <Card variant="subtle">
           <VStack align="flex-start" spacing={SPACING.sm}>
-            <Eyebrow color={SEMANTIC_COLORS.success}>Membrane closes less</Eyebrow>
+            <Eyebrow color={SEMANTIC_COLORS.success}>Membrane closes less†</Eyebrow>
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.h1}
               color={SEMANTIC_COLORS.success}
             >
-              {primary.membraneClosesLess.toLocaleString()}
+              {all.less.toLocaleString('en-US')}
             </Text>
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.xs}
               color={SEMANTIC_COLORS.textSecondary}
             >
-              {pct(primary.membraneClosesLess / primary.accounts)} of accounts — the borrower keeps
-              more of the position
+              {pct(all.less / all.pricedPositions)} of the{' '}
+              {all.pricedPositions.toLocaleString('en-US')} priced positions — the borrower keeps
+              more of the position. Aave {debt.byProtocol['aave-v3'].less.toLocaleString('en-US')} ·
+              Morpho {debt.byProtocol['morpho-blue'].less.toLocaleString('en-US')}.
             </Text>
           </VStack>
         </Card>
 
         <Card variant="subtle">
           <VStack align="flex-start" spacing={SPACING.sm}>
-            <Eyebrow color={SEMANTIC_COLORS.danger}>Membrane closes more</Eyebrow>
+            <Eyebrow color={SEMANTIC_COLORS.danger}>Membrane closes more†</Eyebrow>
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.h1}
               color={SEMANTIC_COLORS.danger}
             >
-              {primary.membraneClosesMore.toLocaleString()}
+              {all.more.toLocaleString('en-US')}
             </Text>
             <Text
               fontFamily={TYPOGRAPHY.fontMono}
               fontSize={TYPOGRAPHY.xs}
               color={SEMANTIC_COLORS.textSecondary}
             >
-              {pct(primary.membraneClosesMore / primary.accounts)} of accounts — Aave declined to
-              fully close these; Membrane&rsquo;s formula would have. Filter the cohort by
+              {pct(all.more / all.pricedPositions)} of them — Aave{' '}
+              {debt.byProtocol['aave-v3'].more.toLocaleString('en-US')} · Morpho{' '}
+              {debt.byProtocol['morpho-blue'].more.toLocaleString('en-US')}. The protocols declined
+              to close these as far; Membrane&rsquo;s formula would have.{' '}
+              {all.equal.toLocaleString('en-US')} come out equal to the cent. Filter the table by
               &ldquo;Membrane worse&rdquo; to read them.
             </Text>
           </VStack>
@@ -168,84 +278,73 @@ export const DebtLens: React.FC<{
       </SimpleGrid>
 
       <VStack align="stretch" spacing={SPACING_PATTERNS.stackSpacing}>
-        <Eyebrow>By collateral asset</Eyebrow>
+        <Eyebrow>By collateral asset (the largest leg at the first liquidation)</Eyebrow>
         <Box overflowX="auto">
-          <Box minW="560px">
+          <Box minW="600px">
             <Grid
-              templateColumns="1fr 80px 1fr 1fr 90px"
+              templateColumns="1fr 1.1fr 1fr 1fr 80px"
               gap={SPACING.md}
               pb={SPACING.sm}
               borderBottom="1px solid"
               borderColor={SEMANTIC_COLORS.borderMedium}
             >
-              {['Asset', 'Accounts', 'Aave median', 'Membrane median', 'Cured'].map((h) => (
+              {[
+                'Asset',
+                'Positions (Aave / Morpho)',
+                'Protocol median',
+                'Membrane median',
+                'Cured',
+              ].map((h) => (
                 <HStack key={h} spacing={SPACING.none} align="center">
                   <Eyebrow>{h}</Eyebrow>
                   {h === 'Cured' ? <InfoTip term="Cured" label={CURE_LEGEND} /> : null}
                 </HStack>
               ))}
             </Grid>
-            {assets.map(([sym, a]) => (
+            {byAsset.map((a) => (
               <Grid
-                key={sym}
-                templateColumns="1fr 80px 1fr 1fr 90px"
+                key={a.symbol}
+                templateColumns="1fr 1.1fr 1fr 1fr 80px"
                 gap={SPACING.md}
                 py={SPACING.md}
                 borderBottom="1px solid"
                 borderColor={SEMANTIC_COLORS.borderSubtle}
                 alignItems="center"
               >
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize={TYPOGRAPHY.small}
-                  color={SEMANTIC_COLORS.textPrimary}
+                <Cell>{a.symbol}</Cell>
+                <Cell color={SEMANTIC_COLORS.textSecondary}>
+                  {a.positions.toLocaleString('en-US')} ({a.aave} / {a.morpho})
+                </Cell>
+                <Cell color={SEMANTIC_COLORS.danger}>{pct(a.realMedianFrac)}</Cell>
+                <Cell
+                  color={
+                    Math.round(a.memMedianFrac * 1000) <= Math.round(a.realMedianFrac * 1000)
+                      ? SEMANTIC_COLORS.success
+                      : SEMANTIC_COLORS.danger
+                  }
                 >
-                  {sym}
-                </Text>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize={TYPOGRAPHY.small}
-                  color={SEMANTIC_COLORS.textSecondary}
-                >
-                  {a.accounts}
-                </Text>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize={TYPOGRAPHY.small}
-                  color={SEMANTIC_COLORS.danger}
-                >
-                  {pct(a.aaveMedianFrac)}
-                </Text>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize={TYPOGRAPHY.small}
-                  color={a.membraneMedianFrac <= a.aaveMedianFrac ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
-                >
-                  {pct(a.membraneMedianFrac)}
-                </Text>
-                <Text
-                  fontFamily={TYPOGRAPHY.fontMono}
-                  fontSize={TYPOGRAPHY.small}
+                  {pct(a.memMedianFrac)}†
+                </Cell>
+                <Cell
                   color={
                     a.curedPct == null ? SEMANTIC_COLORS.textTertiary : SEMANTIC_COLORS.textPrimary
                   }
                 >
                   {a.curedPct == null ? 'n/a' : `${a.curedPct}%`}
-                </Text>
+                </Cell>
               </Grid>
             ))}
           </Box>
         </Box>
-        <HStack>
-          <Text
-            fontFamily={TYPOGRAPHY.fontMono}
-            fontSize={TYPOGRAPHY.xs}
-            color={SEMANTIC_COLORS.textTertiary}
-          >
-            Assets with fewer than 20 accounts are omitted. &ldquo;Cured&rdquo; is blank where the
-            Oct 10 oracle series cannot price that collateral.
-          </Text>
-        </HStack>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          color={SEMANTIC_COLORS.textTertiary}
+        >
+          Assets that are the largest leg of fewer than 20 positions are omitted.
+          &ldquo;Cured&rdquo; counts a position with no window (stablecoin collateral) as not cured,
+          as the time lens does.
+        </Text>
       </VStack>
     </VStack>
   )

@@ -4,7 +4,27 @@
 // Uses the repo's Playwright chromium; Living Typeface palette (bone on
 // near-black, phosphor accent, hairline frame). Georgia stands in for
 // Redaction, which is not licensed for raster embedding here.
+import { readFileSync } from 'node:fs'
+
 import { chromium } from '@playwright/test'
+
+// The figures come from the census headline file (scripts/build-evidence-census.ts), never
+// typed here: every Aave and Morpho liquidation of 10-11 Oct 2025 on four chains. An image
+// has no footnote line, so the modelled side says "modelled" in words.
+const census = JSON.parse(
+  readFileSync(
+    new URL('../public/data/oct10-2025/evidence-census-headline.json', import.meta.url),
+    'utf8',
+  ),
+)
+const m0 = (x) => `$${Math.round(x / 1e6)}M`
+const m1 = (x) => `$${(x / 1e6).toFixed(1)}M`
+const proof =
+  `Replayed on every Aave and Morpho liquidation of ${census.window}, ` +
+  `${census.positions.toLocaleString('en-US')} positions: ${m0(census.all.gapUsd)} less debt force-closed ` +
+  `(Aave ${m1(census.aave.gapUsd)}, Morpho ${m1(census.morpho.gapUsd)}), modelled.`
+// Playwright's own browser, or the preinstalled one when the pinned build is absent.
+const executablePath = process.env.OG_CHROMIUM || undefined
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   html,body{ margin:0; padding:0; }
@@ -36,7 +56,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
     <div class="text">
       <h1>Cross the line and <em>nothing is sold</em> while you stay within 4% of it.</h1>
       <div class="sub">8 hours to cure, by you or by the venue capital Membrane recalls first.
-        Measured on 2,350 real Oct-10 liquidations: $67M of collateral kept.</div>
+        ${proof}</div>
     </div>
   </div>
   <div class="rule"></div>
@@ -44,7 +64,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   <div class="dot"></div>
 </body></html>`
 
-const browser = await chromium.launch()
+const browser = await chromium.launch(executablePath ? { executablePath } : {})
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 } })
 await page.setContent(html, { waitUntil: 'networkidle' })
 await page.screenshot({ path: 'public/og.png' })

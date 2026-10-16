@@ -2,8 +2,10 @@
 //
 // The old hero tried to animate thousands of per-minute points. It was visually tall,
 // slow to settle, and made the important comparison hard to read. This is the measured
-// cohort instead: the same 2,347 Aave accounts, the same day, and the debt each engine
-// would have closed. The constants are re-derived from the evidence JSON in unit tests.
+// census instead: every Aave and Morpho position liquidated on 10-11 Oct 2025 on four
+// chains, and the debt each engine would have closed — with the per-protocol split on the
+// chart itself, so the blended bar never stands alone. The figures are imported from the
+// census headline file (OCT10_TOTALS) and re-derived from its rows by the unit test.
 
 import React from 'react'
 import { Box, Text } from '@chakra-ui/react'
@@ -13,24 +15,31 @@ import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import type { Comparison } from '@/lib/position-sim'
+import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
 import { OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 
 const usdMillions = (value: number): string => `$${Math.round(value / 1_000_000)}M`
+const usdM1 = (value: number): string => `$${(value / 1_000_000).toFixed(1)}M`
 
-const AAVE_CLOSED = OCT10_TOTALS.aaveClosedUsd
+const REAL_CLOSED = OCT10_TOTALS.realClosedUsd
 const MEMBRANE_CLOSED = OCT10_TOTALS.membraneClosedUsd
-const PROTECTED_DEBT = AAVE_CLOSED - MEMBRANE_CLOSED
+const PROTECTED_DEBT = OCT10_TOTALS.keptUsd
+const { aave, morpho } = OCT10_TOTALS.byProtocol
+const pctLess = (s: { realClosedUsd: number; keptUsd: number }) =>
+  `${Math.abs((100 * s.keptUsd) / s.realClosedUsd).toFixed(1)}% ${s.keptUsd >= 0 ? 'less' : 'more'}`
 
 const rows = [
   {
-    label: 'Aave',
-    value: AAVE_CLOSED,
+    label: 'Aave + Morpho',
+    value: REAL_CLOSED,
     color: SEMANTIC_COLORS.textPrimary,
+    mark: '',
   },
   {
     label: 'Membrane',
     value: MEMBRANE_CLOSED,
     color: SEMANTIC_COLORS.success,
+    mark: '†',
   },
 ] as const
 
@@ -69,7 +78,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           lineHeight={1}
           color={SEMANTIC_COLORS.textPrimary}
         >
-          One day. Same accounts.
+          Two days. Same positions.
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
@@ -78,7 +87,8 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           color={SEMANTIC_COLORS.textSecondary}
           {...tabular}
         >
-          10 Oct 2025 · {OCT10_TOTALS.accounts.toLocaleString('en-US')} liquidated accounts
+          {OCT10_TOTALS.window} · {OCT10_TOTALS.positions.toLocaleString('en-US')} liquidated
+          positions · Aave and Morpho · four chains
         </Text>
       </Box>
 
@@ -90,7 +100,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           color={SEMANTIC_COLORS.warning}
           {...tabular}
         >
-          {usdMillions(PROTECTED_DEBT)} protected
+          {usdMillions(PROTECTED_DEBT)} protected†
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
@@ -106,12 +116,12 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
 
     <Box
       role="img"
-      aria-label={`On 10 October 2025, Aave closed ${usdMillions(AAVE_CLOSED)} of debt and Membrane would have closed ${usdMillions(MEMBRANE_CLOSED)} across the same ${OCT10_TOTALS.accounts.toLocaleString('en-US')} accounts.`}
+      aria-label={`On 10-11 October 2025, Aave and Morpho force-closed ${usdMillions(REAL_CLOSED)} of debt and Membrane would have closed ${usdMillions(MEMBRANE_CLOSED)} (modelled) across the same ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions.`}
       display="grid"
       gap={SPACING.lg}
     >
       {rows.map((row) => {
-        const width = `${(row.value / AAVE_CLOSED) * 100}%`
+        const width = `${(row.value / REAL_CLOSED) * 100}%`
         return (
           <Box key={row.label} display="grid" gap={SPACING.sm}>
             <Box display="flex" justifyContent="space-between" gap={SPACING.base}>
@@ -122,6 +132,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
                 fontWeight={700}
               >
                 {row.label}
+                {row.mark}
               </Text>
               <Text
                 fontFamily={TYPOGRAPHY.fontMono}
@@ -131,6 +142,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
                 {...tabular}
               >
                 {usdMillions(row.value)}
+                {row.mark}
               </Text>
             </Box>
             <Box
@@ -154,7 +166,9 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
       color={SEMANTIC_COLORS.textTertiary}
       {...tabular}
     >
-      Debt closed across the measured Oct. 10 cohort. Lower is less forced repayment.
+      Aave {usdM1(aave.realClosedUsd)} → {usdM1(aave.membraneClosedUsd)}† ({pctLess(aave)}) · Morpho{' '}
+      {usdM1(morpho.realClosedUsd)} → {usdM1(morpho.membraneClosedUsd)}† ({pctLess(morpho)}). Debt
+      closed across the measured census; lower is less forced repayment. {MODELLED_FOOTNOTE}
     </Text>
   </Box>
 )

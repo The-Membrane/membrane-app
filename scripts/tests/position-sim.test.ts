@@ -2089,7 +2089,6 @@ test('compare.ts reproduces a census cured-then-held row (0xa740c1…, wstETH)',
   assert.ok(live.breaches > 0, 'it did open a window — it just never sold')
 })
 
-
 // ============ THE DEMO FIXTURE MUST BE THE POSITION THE WALLET ACTUALLY HELD
 //
 // public/data/demo-borrower.json is what the borrower hero opens on, and the hero walks
@@ -2108,10 +2107,58 @@ const DEMO = JSON.parse(fs.readFileSync('public/data/demo-borrower.json', 'utf8'
 const MANIFEST = JSON.parse(fs.readFileSync('public/data/oct10-2025/manifest.json', 'utf8'))
 const PROTOCOLS = JSON.parse(fs.readFileSync('public/data/oct10-2025/protocols.json', 'utf8'))
 
-/** The demo fixture's own census row, matched by address. */
-const demoRow = EVIDENCE.cohort.find(
-  (r: any) => r.user.toLowerCase() === String(DEMO.address).toLowerCase(),
+/**
+ * The demo fixture's own census row, matched by address. 2026-10-16: the fixture is
+ * selected from the FULL on-chain census (scripts/select-demo-borrower.ts), so its row is
+ * read from the served census, public/data/oct10-2025/evidence-census.json — the mainnet
+ * Aave V3 Core position of that owner. The census publishes dollars, not the prices they
+ * were read at, so pLiqColl / pLiqDebt come from the fixture's own row, and the fixture's
+ * dollars are checked against the census's to the cent below.
+ */
+const CENSUS_FILE = JSON.parse(
+  fs.readFileSync('public/data/oct10-2025/evidence-census.json', 'utf8'),
 )
+const CENSUS_ROW: Record<string, any> | null = (() => {
+  const cols: string[] = CENSUS_FILE.cohort.columns
+  const at = (k: string) => cols.indexOf(k)
+  const v = (CENSUS_FILE.cohort.rows as any[][]).find(
+    (x) =>
+      x[at('protocol')] === 'aave' &&
+      x[at('chain')] === 'mainnet' &&
+      x[at('market')] === 'core' &&
+      x[at('owner')] === String(DEMO.address).toLowerCase(),
+  )
+  return v ? Object.fromEntries(cols.map((k, i) => [k, v[i]])) : null
+})()
+const demoRow: any = CENSUS_ROW && {
+  user: CENSUS_ROW.owner as string,
+  t0Index: CENSUS_ROW.t0Minute as number,
+  outcome: CENSUS_ROW.outcome as string,
+  aaveClosedUsd: CENSUS_ROW.realRepaidUsd as number,
+  membraneClosedUsd: CENSUS_ROW.memRepaidUsd as number,
+  closedAtIndex:
+    CENSUS_ROW.firstSaleMinute == null
+      ? null
+      : (CENSUS_ROW.firstSaleMinute as number) - (CENSUS_ROW.t0Minute as number),
+  liqLine: CENSUS_ROW.line as number,
+  sales: CENSUS_ROW.sales as number,
+  collateralUsd: DEMO.row.collateralUsd as number,
+  debtUsd: DEMO.row.debtUsd as number,
+  pLiqColl: DEMO.row.pLiqColl as number,
+  pLiqDebt: DEMO.row.pLiqDebt as number,
+}
+
+test('the demo fixture row carries the census dollars, to the cent', () => {
+  assert.ok(CENSUS_ROW, 'the fixture address is a mainnet Aave V3 Core position in the census')
+  assert.strictEqual(
+    Math.round(DEMO.row.collateralUsd * 100) / 100,
+    CENSUS_ROW!.collUsd,
+    'collateral USD',
+  )
+  assert.strictEqual(Math.round(DEMO.row.debtUsd * 100) / 100, CENSUS_ROW!.debtUsd, 'debt USD')
+  assert.strictEqual(CENSUS_ROW!.coll.length, 1, 'one collateral leg, as the fixture has')
+  assert.strictEqual(CENSUS_ROW!.debt.length, 1, 'one debt leg, as the fixture has')
+})
 
 /**
  * The fixture position run through the page's own engine over the FULL path, from minute
@@ -2152,7 +2199,7 @@ function runDemoFixture(membraneMaxLtv: number) {
 }
 
 test('the demo fixture carries the REAL token amount, anchored at pLiqColl', () => {
-  assert.ok(demoRow, 'the fixture address is in the census cohort')
+  assert.ok(demoRow, 'the fixture address is in the census')
   const c = DEMO.position.collateral[0]
   const d = DEMO.position.debt[0]
   close(c.amount, demoRow.collateralUsd / demoRow.pLiqColl, 'collateral amount', 1e-9)
@@ -2168,14 +2215,26 @@ test('the demo fixture carries the REAL token amount, anchored at pLiqColl', () 
     DEMO.position.ltv < DEMO.position.liquidationLtv,
     `LTV at 00:00 (${DEMO.position.ltv.toFixed(4)}) is under the line (${DEMO.position.liquidationLtv})`,
   )
-  close(DEMO.position.ltv, (d.amount * d.priceUsd) / (c.amount * c.priceUsd), 'LTV is the 00:00 valuation', 1e-12)
+  close(
+    DEMO.position.ltv,
+    (d.amount * d.priceUsd) / (c.amount * c.priceUsd),
+    'LTV is the 00:00 valuation',
+    1e-12,
+  )
 })
 
 test('the demo fixture republishes its census row verbatim', () => {
+  // The served census publishes dollars to the cent; the fixture keeps the census row's own
+  // sums, so the two are compared on the cent.
+  const c = (x: number) => Math.round(x * 100) / 100
   assert.strictEqual(DEMO.censusT0Index, demoRow.t0Index, 'censusT0Index')
   assert.strictEqual(DEMO.censusOutcome, demoRow.outcome, 'censusOutcome')
-  assert.strictEqual(DEMO.censusAaveClosedUsd, demoRow.aaveClosedUsd, 'censusAaveClosedUsd')
-  assert.strictEqual(DEMO.censusMembraneClosedUsd, demoRow.membraneClosedUsd, 'censusMembraneClosedUsd')
+  assert.strictEqual(c(DEMO.censusAaveClosedUsd), demoRow.aaveClosedUsd, 'censusAaveClosedUsd')
+  assert.strictEqual(
+    c(DEMO.censusMembraneClosedUsd),
+    demoRow.membraneClosedUsd,
+    'censusMembraneClosedUsd',
+  )
   assert.strictEqual(DEMO.censusClosedAtIndex, demoRow.closedAtIndex, 'censusClosedAtIndex')
 })
 

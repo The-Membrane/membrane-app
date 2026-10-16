@@ -2,6 +2,7 @@ import React from 'react'
 
 import PageSeo from '@/components/PageSeo'
 import { Simulator } from '@/components/Simulator'
+import { OCT10_SCALE_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 
 // Position simulator — a marketing surface, so it is indexable (docs/SEO_RULESET.md
 // Rule 0). Demo-first: it renders a fully worked example with no wallet, no connect
@@ -16,7 +17,7 @@ const SimulatorPage = () => (
     <PageSeo
       seoClass="indexable"
       title="Membrane — 4%. Cross the line and nothing is sold."
-      description="Paste any Aave, Spark, Morpho or Compound position and replay it through the measured 10 Oct 2025 crash. Membrane's 4% window would have kept $67M of collateral that day."
+      description={`Paste any Aave, Spark, Morpho or Compound position and replay it through the measured 10 Oct 2025 crash. On ${OCT10_TOTALS.window}, Membrane's 4% window would have force-closed ${OCT10_SCALE_LINE.figure} less debt (modelled; ${OCT10_SCALE_LINE.split}).`}
     />
     <Simulator mode="borrower" />
   </>

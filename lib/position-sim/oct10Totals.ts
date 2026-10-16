@@ -1,4 +1,5 @@
 import corpus from '@/public/data/liquidation-corpus.json'
+import census from '@/public/data/oct10-2025/evidence-census-headline.json'
 
 // THE SIZE OF THE DAY.
 //
@@ -6,73 +7,78 @@ import corpus from '@/public/data/liquidation-corpus.json'
 // WAS Oct 10 — a counterfactual verdict about one wallet means nothing without the
 // stakes of the window it is measured in.
 //
-// Every figure here is a sum over the cohort in public/data/oct10-2025/evidence.json,
-// hard-coded so the landing hero never blocks on a 2,347-row fetch. The constant can
-// therefore DRIFT from the data, which is exactly what tests/unit/oct10Totals.test.ts
-// exists to prevent: it re-derives all five fields from the JSON and fails on a dollar.
-// Change the evidence file, change these numbers.
-//
-// LAST MOVED 2026-09-14: wstETH stopped being priced through the STETH/ETH MARKET feed
-// and is now ETH/USD x the MEASURED wrap rate 1.215989, which is what Aave demonstrably
-// used. Both figures are sums over the WHOLE cohort (excluded rows included), so only the
-// wstETH legs' repriced dollars moved: +$18.5k closed, +$1.52M collateral at risk. The
-// headline $144M / 2,350 accounts is unchanged to the nearest million.
-//
-// 2026-10-14, the delay-class rule (lib/position-sim/collateralClass.ts): no figure here
-// moves. An account the census can see is all stable collateral is sold the minute it is
-// over its line instead of walking the 8h window, but on this day every such path is flat
-// or never comes back under its line, so selling at t0 and at the 8h expiry repay the same.
-//
-// MOVED 2026-10-14: sUSD is no longer pinned at $1 (it traded well off its peg in 2025).
-// The census has no sUSD series, so the 4 events with sUSD debt (3 Optimism accounts) drop
-// out as unpriced debt: 2,350 -> 2,347 accounts, -$2,314 closed by Aave, -$2,392 by
-// Membrane, -$6,084 collateral at risk. The headline $144M is unchanged.
-//
-// MOVED 2026-10-14: an account sold at t0 past the band now walks on after that sale, as the
-// contract does (a sale leaves no timer, LiquidationEngine.sol:1724-1727 at 16e12329), instead
-// of stopping after one repay. One
-// account (mainnet 0x9bafc9) is sold again later: Membrane +$13,303, kept -$13,304. The
-// $67M scale line is unchanged.
+// MOVED 2026-10-16 (owner decision): these figures are the FULL on-chain census of 10-11 Oct
+// 2025 — every Aave V3 pool and Morpho Blue market on Ethereum, Arbitrum, Optimism and Base,
+// 3,197 positions, each priced by its protocol's own oracle read on chain — and they are
+// IMPORTED from public/data/oct10-2025/evidence-census-headline.json (scripts/
+// build-evidence-census.ts), not typed here, so the hero never blocks on the 1 MB fetch and
+// can never drift from the data. tests/unit/oct10Totals.test.ts re-derives every field from
+// the rows of evidence-census.json, to the cent. The old figures ($144M closed by Aave on
+// 2,347 accounts, $67M kept) came from the old evidence.json, which no page reads any more.
 
-/** Measured Oct 10-11 2025 totals. Recomputed from the evidence JSON by the unit test. */
+const fmtM0 = (usd: number) => `$${Math.round(usd / 1_000_000)}M`
+const fmtM1 = (usd: number) => `$${(usd / 1_000_000).toFixed(1)}M`
+
+/** Measured Oct 10-11 2025 totals, both protocols. Re-derived from the rows by the unit test. */
 export const OCT10_TOTALS = {
-  /** Distinct liquidated accounts in the cohort. `cohort.length`. */
-  accounts: 2347,
-  /** Liquidation events in the source window, before the unpriced drop. `meta.sourceEvents`. */
-  events: 3111,
-  /** Σ aaveClosedUsd over the cohort — what the venues actually closed, in USD. */
-  aaveClosedUsd: 144_237_230,
-  /** Σ membraneClosedUsd over the cohort — what the 4%/8h window + repay-to-cap would
-   *  have closed on the same accounts, same prices, no deployment assumed. */
-  membraneClosedUsd: 77_074_951,
-  /** aaveClosedUsd − membraneClosedUsd. The day's "4% would have saved" figure. */
-  keptUsd: 67_162_279,
-  /** Σ collateralUsd over the cohort — the pre-liquidation collateral standing behind it. */
-  collateralAtRiskUsd: 637_382_250,
-  /** The chains the cohort spans, in first-seen order. */
-  chains: ['mainnet', 'arbitrum', 'base', 'optimism'],
-  source: 'public/data/oct10-2025/evidence.json (Σ aaveClosedUsd over the cohort)',
+  /** Liquidated positions in the census (Aave accounts per pool + Morpho positions). */
+  positions: census.positions,
+  /** Liquidation events in the window, both protocols. */
+  events: census.events,
+  /** Σ real repaid USD — what the protocols' liquidations actually closed. */
+  realClosedUsd: census.all.realRepaidUsd,
+  /** Σ Membrane repaid USD — the 4%/8h window + repay-to-cap walked on the same positions,
+   *  same oracle prices, no deployment assumed. MODELLED (†). */
+  membraneClosedUsd: census.all.memRepaidUsd,
+  /** realClosedUsd − membraneClosedUsd. The window's "4% would have saved" figure (†). */
+  keptUsd: census.all.gapUsd,
+  /** The same three per protocol. A blended figure never stands without this split. */
+  byProtocol: {
+    aave: {
+      positions: census.aave.positions,
+      realClosedUsd: census.aave.realRepaidUsd,
+      membraneClosedUsd: census.aave.memRepaidUsd,
+      keptUsd: census.aave.gapUsd,
+    },
+    morpho: {
+      positions: census.morpho.positions,
+      realClosedUsd: census.morpho.realRepaidUsd,
+      membraneClosedUsd: census.morpho.memRepaidUsd,
+      keptUsd: census.morpho.gapUsd,
+    },
+  },
+  /** Σ collateral USD at t0 over the priced positions — the collateral standing behind it. */
+  collateralAtRiskUsd: census.collateralAtRiskUsd,
+  /** The chains the census spans, in first-seen order. */
+  chains: census.chains,
+  /** '10–11 Oct 2025'. */
+  window: census.window,
+  source: 'public/data/oct10-2025/evidence-census.json (via evidence-census-headline.json)',
 } as const
 
+/** "Aave $8.6M · Morpho $22.4M": the split that rides with every blended figure. */
+export const OCT10_SPLIT_LINE = `Aave ${fmtM1(OCT10_TOTALS.byProtocol.aave.keptUsd)} · Morpho ${fmtM1(OCT10_TOTALS.byProtocol.morpho.keptUsd)}`
+
 /**
- * THE STAKES LINE, verbatim per owner 2026-09-12: the size, the date, the count, and no
- * other words. It sits directly above the verdict; the verdict stays the headline.
+ * THE STAKES LINE, per owner 2026-09-12: the size, the date, the count, and no other words.
+ * It sits directly above the verdict; the verdict stays the headline.
  */
 export const OCT10_STAKES_LINE =
-  `$${Math.round(OCT10_TOTALS.aaveClosedUsd / 1_000_000)}M of loans liquidated on Aave` +
-  ` · 10 Oct 2025 · ${OCT10_TOTALS.accounts.toLocaleString('en-US')} accounts`
+  `${fmtM0(OCT10_TOTALS.realClosedUsd)} of loans force-closed on Aave and Morpho` +
+  ` · ${OCT10_TOTALS.window} · ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions`
 
 /**
  * THE SCALE LINE (owner 2026-09-22): "4% sounds small, but it would've saved $X in the
- * last N years". Today the only measured corpus is Oct 10 2025, so N is one day and X
- * is keptUsd. When the multi-year scan lands, replace the window and the figure here —
- * the sentence's shape does not change. Never a number from outside this file.
+ * last N years". The Oct 10-11 census is the day-scale version: X is keptUsd, MODELLED (†),
+ * with the per-protocol split beside it. When the multi-year scan is complete the corpus
+ * line below leads and this becomes the subline. Never a number from outside this file.
  */
 export const OCT10_SCALE_LINE = {
-  figure: `$${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M`,
-  window: 'on 10 Oct 2025 alone',
-  result: `$${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M of debt protected from forced closure`,
-  line: `4% sounds small. $${(OCT10_TOTALS.keptUsd / 1e6).toFixed(0)}M of debt protected from forced closure on 10 Oct 2025 alone.`,
+  figure: fmtM0(OCT10_TOTALS.keptUsd),
+  window: `on ${OCT10_TOTALS.window} alone`,
+  result: `${fmtM0(OCT10_TOTALS.keptUsd)} of debt protected from forced closure†`,
+  split: OCT10_SPLIT_LINE,
+  line: `4% sounds small. ${fmtM0(OCT10_TOTALS.keptUsd)} of debt protected from forced closure† on ${OCT10_TOTALS.window} alone.`,
 } as const
 
 // ---------------------------------------------------------------------------

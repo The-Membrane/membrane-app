@@ -1,341 +1,314 @@
-// Shapes of public/data/oct10-2025/evidence.json, emitted by the offline
-// counterfactual build (scratchpad `build_evidence.py`).
+// Shapes of public/data/oct10-2025/evidence-census.json, built by
+// scripts/build-evidence-census.ts from the FULL on-chain census of 10-11 Oct 2025
+// (membrane-datasets oct10-2025/coverage/census.json).
 //
-// Every figure here is derived from 3,111 real Aave liquidation events in the
-// Oct 10-11 2025 window. Membrane's side uses only mechanisms the protocol docs
-// mark REAL -- the partial repay-to-cap formula, the 3pp borrow gap, and the 8h
-// cure window. The modelled per-asset LTV is deliberately never used: each
-// account is judged against its own liquidation line, inverted from its measured
-// health factor.
+// 3,197 positions: every Aave V3 pool in the registry and every Morpho Blue market on
+// Ethereum, Arbitrum, Optimism and Base, all walked. Both sides are priced by each protocol's
+// own oracle, read on chain. The real side is every liquidation the position took in the
+// window; Membrane's side is the contract's delay window and repay-to-cap walked minute by
+// minute from the first liquidation the protocol's own health check confirms (t0). Every
+// Membrane figure is MODELLED (†).
+//
+// The old census (public/data/oct10-2025/evidence.json, 2,347 Aave rows) is no longer read
+// by any page. It is kept as a test fixture and its builder still runs.
 
-export interface EvidenceMeta {
-  window: string
-  sourceEvents: number
-  accounts: number
-  unpricedEventsDropped: number
-  provenance: string
-  method: string
-  realConstants: {
-    borrowLtvGap: number
-    borrowLtvGapSource: string
-    repayFormulaSource: string
-    cureWindowSeconds: number
-    cureWindowSource: string
-    liqDebtMinimumUsd: number
-    liqDebtMinimumSource: string
-    debtMinimumRuleSource: string
-  }
-  /** Rows whose breach could not be located even after the rebase. Dropped both sides. */
-  excluded: {
-    accounts: number
-    aaveClosedUsd: number
-    membraneOneRepayUsd: number
-    reason: string
-    rebasedIntoBreach: number
-  }
-  /** The Membrane delay class of every row (lib/position-sim/collateralClass.ts). */
-  delayClass?: DelayClassMeta
-  /** What each collateral symbol was priced through, and each proxy's exposure. */
-  collateralMapping: {
-    ethProxy: { symbols: string[]; accounts: number; debtUsd: number; note: string }
-    multiCollateral: { accounts: number; debtUsd: number; note: string }
-    debtLegRatio: { accounts: number; debtUsd: number; note: string }
-    freshOraclePrints: { ethOracle: number; btcOracle: number; minutes: number }
-  }
-  /** Corners the model does not take, priced rather than argued. */
-  sensitivity: {
-    noEarlyClearMembraneClosedUsd: number
-    noEarlyClearDeltaUsd: number
-    noDebtFloorMembraneClosedUsd: number
-    debtFloorDeltaUsd: number
-    debtFloorAccountsChanged: number
-    debtFloorOneRepayAccountsChanged: number
-    singleSaleMembraneClosedUsd: number
-    repeatSaleDeltaUsd: number
-    repeatSaleAccounts: number
-    maxSalesSeen: number
-    withExcludedAaveClosedUsd: number
-    withExcludedMembraneClosedUsd: number
-  }
-  cohortRows: number
-  /**
-   * The delay window as it was MODELLED, not as it was diagnosed. Every Membrane
-   * dollar in this document comes out of `lib/position-sim/curePath.ts` cureWalk run
-   * with these parameters. `membraneOneRepayUsd` is the older one-repay-per-account
-   * figure, kept so the window's contribution is a visible subtraction.
-   */
-  cureModel: CureModel
-  /** Rendered verbatim in the UI. These are not footnotes to bury. */
-  caveats: string[]
-}
+export type ProtocolKey = 'aave-v3' | 'morpho-blue'
 
-/** Per-class totals over one row set. */
-export interface DelayClassTotals {
-  accounts: number
-  debtUsd: number
-  aaveClosedUsd: number
-  membraneClosedUsd: number
-}
-
-/**
- * meta.delayClass. 'no-delay' rows (collateral the CSV sees is all stable, or a line above
- * 90%) are sold the minute they are over their line. 'delayed', 'mixed' (a stable and a
- * volatile reserve were both seized) and 'unknown' (the CSV sees under 95% of the
- * collateral) walk the 8h window.
- */
-export interface DelayClassMeta {
-  rule: string
-  composition: string
-  modelledAssumption: string
-  sources: string[]
-  stableSymbols: string[]
-  measuredStables: string[]
-  noDelayLineAbove: number
-  knownCompositionShare: number
-  counts: Record<'cohort' | 'included' | 'priced', Record<DelayClass, DelayClassTotals>>
-  noDelayBy: Record<'included' | 'priced', { stableCollateral: number; lineAbove90Only: number }>
-  stableLegs: Record<
-    'included' | 'priced',
-    { accounts: number; compositionKnown: number; compositionUnknown: number }
-  >
-  seenCollateralShare: {
-    included: Record<string, number>
-    priced: Record<string, number>
-    decilesIncluded: number[]
-    /** Accounts whose raw share was above 1 before the cap at 1, and the largest. */
-    rawAboveOne: { accounts: number; max: number }
-  }
-  linesAbove90: Record<'cohort' | 'included' | 'priced', number>
-  mixedInCohort: number
-}
-
-export type DelayClass = 'no-delay' | 'delayed' | 'mixed' | 'unknown'
-
-export interface CureModel {
-  engine: string
-  delaySeconds: number
-  band: number
-  borrowLtvGap: number
-  debtMinimumUsd: number
-  maxSales: number
-  stepSeconds: number
-  /** Clause-by-clause contract citations for what the walk implements. */
-  semantics: string[]
-  /** How many accounts ended in each `CureOutcome`. Partitions the cohort. */
-  outcomes: Record<string, number>
-  /** Closed USD at other values of `max_threshold_to_delay`. The band is the guarantee. */
-  bandSensitivity: { band: number; membraneClosedUsd: number }[]
-  membraneOneRepayUsd: number
-  /** membraneOneRepayUsd - the walked total. */
-  delayCreditUsd: number
-  cureCreditUsd: number
-  cureCreditShareWithin2min: number
-  cureCreditShareWithin1h: number
-  cureCreditShareWithin8h: number
-  /** Gross credit, and the counter-credit from accounts the deferred sale cost more. */
-  cureCreditGrossUsd: number
-  counterCreditUsd: number
-  counterCreditAccounts: number
-  /** The median up-move a fast-curing position needed on its collateral leg, in %. */
-  medianRequiredUpMoveFastCurePct: number
-  medianRequiredUpMoveAllPct: number
-  fastCureAccounts: number
-  /** Minutes in the window where the ETH oracle printed a fresh round (183 of 2,880). */
-  freshEthPrints: number
-  gridMinutes: number
-  /** Aave minus Membrane, per outcome bucket. Where the headline gap actually lives. */
-  gapByOutcome: Record<
-    string,
-    {
-      accounts: number
-      aaveClosedUsd: number
-      membraneClosedUsd: number
-      gapUsd: number
-    }
-  >
-  concentration: {
-    netGapUsd: number
-    gapPositiveUsd: number
-    gapNegativeUsd: number
-    shareDenominator: string
-    top1Share: number
-    top5Share: number
-    top1Account: string | null
-    top1GapUsd: number
-  }
-  /** After the rebase every included row has a located line, so this IS the headline. */
-  locatedLineOnly: {
-    accounts: number
-    aaveClosedUsd: number
-    membraneOneRepayUsd: number
-    membraneClosedUsd: number
-  }
-}
-
-/** One complete headline set: the same fields, over a stated subset of the census. */
-export interface HeadlineSet {
-  label: string
-  note: string
-  accounts: number
-  aaveClosedUsd: number
-  membraneOneRepayUsd: number
-  membraneClosedUsd: number
-  gapUsd: number
-  gapPct: number
-  delayCreditUsd: number
-  membraneClosesLess: number
-  membraneClosesMore: number
-  aaveMedianFrac: number
-  membraneMedianFrac: number
-  medians: {
-    allAccounts: MedianBlock
-    debtAtLeastFloor: MedianBlock
-    floorUsd: number
-  }
-  concentration: {
-    shareDenominator: string
-    gapAbsoluteUsd: number
-    top1Share: number
-    top5Share: number
-    top1Account: string | null
-    top1AbsGapUsd: number
-    top5Accounts: string[]
-  }
-}
-
-export interface MedianBlock {
-  accounts: number
-  aaveMedianFrac: number
-  membraneMedianFrac: number
+export interface DebtMedianBlock {
+  positions: number
+  realMedianFrac: number
+  memMedianFrac: number
   medianDebtUsd: number
 }
 
-/**
- * How much of each account's debt the two engines close. Path-independent.
- *
- * The flat fields ARE `priced` — the accounts whose collateral has a price series, so the
- * whole model (break band, minute walk, cure, re-arm) applies to them. `allIncluded` adds
- * back the accounts with no collateral series: those take one repay and can never cure, so
- * they import the repay-to-cap upper bound with none of the delay window attached. Both
- * are published so a reader is never handed one of the two without the other.
- */
-export interface DebtSummary {
-  accounts: number
-  aaveClosedUsd: number
-  membraneClosedUsd: number
-  differenceUsd: number
-  differencePct: number
-  aaveMedianFrac: number
-  membraneMedianFrac: number
-  membraneClosesLess: number
-  /** Shown, never hidden. Membrane is worse on these. */
-  membraneClosesMore: number
-  priced: HeadlineSet
-  allIncluded: HeadlineSet
+export interface ConcentrationEntry {
+  pid: string
+  protocol: ProtocolKey
+  chain: string
+  owner: string
+  /** Real repaid minus Membrane repaid. Negative: Membrane closes more. */
+  gapUsd: number
+  realRepaidUsd: number
+  memRepaidUsd: number
+  outcome: string
 }
 
-/** What the real 8h cure window would have done. PATH-DEPENDENT -- see caveats. */
-export interface TimeSummary {
+/** One set of positions with both sides summed over the same positions. */
+export interface DebtSet {
+  key: string
+  label: string
+  positions: number
+  /** Positions whose loan has a USD price: every dollar figure and median is over these. */
+  pricedPositions: number
+  unpricedPositions: number
+  events: number
+  realRepaidUsd: number
+  realSeizedUsd: number
+  /** Morpho only: realised bad debt, reported apart (not repaid). */
+  realBadDebtUsd: number
+  memRepaidUsd: number
+  /** realRepaidUsd - memRepaidUsd. Positive: Membrane closes less. */
+  gapUsd: number
+  gapPct: number
+  /** Per position, compared on the published cents. */
+  less: number
+  more: number
+  equal: number
+  /** Positions with no Membrane sale on any half. */
+  memNeverSold: number
+  /** A window still open when the data ends, booked as sold at the last price. */
+  gridEnd: { positions: number; memRepaidUsd: number }
+  medians: { all: DebtMedianBlock; atLeastFloor: DebtMedianBlock; floorUsd: number }
+  concentration: {
+    shareDenominator: string
+    gapAbsoluteUsd: number
+    gapPositiveUsd: number
+    gapNegativeUsd: number
+    top1Share: number
+    top5Share: number
+    top5: ConcentrationEntry[]
+    gapWithoutTop1Usd: number
+    gapWithoutTop1Pct: number
+    gapWithoutTop5Usd: number
+    gapWithoutTop5Pct: number
+  }
+}
+
+/** A venue x chain row: totals only. */
+export type VenueChainSet = Omit<DebtSet, 'medians' | 'concentration'> & {
+  protocol: ProtocolKey
+  chain: string
+}
+
+export interface DebtSummary {
+  all: DebtSet
+  byProtocol: Record<ProtocolKey, DebtSet>
+  byVenueChain: VenueChainSet[]
+}
+
+export interface CureSummary {
   accountsAnalysed: number
   curedInWindow: number
   curedPct: number
   healthyAt8h: number
   healthyAt8hPct: number
   medianMinutesToCure: number
-  aaveSecondsGranted: number
+}
+
+export interface Sensitivity {
+  rule: string
+  memRepaidUsd: number
+  deltaUsd: number
+  positionsChanged?: number
+  positionsDecisionDiffers?: number
+  byProtocol?: Record<ProtocolKey, number>
+}
+
+export interface TimeSummary {
+  /** The position's outcome (a split position: its larger half). Partitions the census. */
+  outcomes: Record<string, number>
+  outcomesByProtocol: Record<ProtocolKey, Record<string, number>>
+  neverSold: { positions: number; debtUsd: number; realRepaidUsd: number }
+  protocolSecondsGranted: number
   membraneSecondsGranted: number
-  /**
-   * The no-delay rows inside `accountsAnalysed`. They have no window, so none is counted
-   * cured; `wouldHaveCuredWithWindow` keeps what that dropped visible.
-   */
-  noDelay?: { accounts: number; wouldHaveCuredWithWindow: number; note: string }
+  cure: CureSummary & {
+    definition: string
+    byProtocol: Record<ProtocolKey, CureSummary>
+    noDelay: { accounts: number; wouldHaveCuredWithWindow: number }
+  }
+  oneRepay: {
+    memOneRepayUsd: number
+    delayCreditUsd: number
+    byProtocol: Record<ProtocolKey, { memOneRepayUsd: number; delayCreditUsd: number }>
+    cureCreditUsd: number
+    cureCreditShareWithin2min: number
+    cureCreditShareWithin1h: number
+    cureCreditShareWithin8h: number
+    cureCreditGrossUsd: number
+    counterCreditUsd: number
+    counterCreditPositions: number
+  }
+  freshPrints: {
+    chain: string
+    symbol: string
+    source: string
+    minutes: number
+    gridMinutes: number
+  }
+  bandSensitivity: { band: number; memRepaidUsd: number; byProtocol: Record<ProtocolKey, number> }[]
+  sensitivity: {
+    noEarlyClear: Sensitivity
+    noDebtFloor: Sensitivity
+    singleSale: Sensitivity
+    noWalkOnAfterT0BandSale: Sensitivity
+    t0PriceBasis: Sensitivity
+  }
 }
 
 export interface AssetSummary {
-  accounts: number
-  aaveMedianFrac: number
-  membraneMedianFrac: number
+  symbol: string
+  positions: number
+  aave: number
+  morpho: number
+  realRepaidUsd: number
+  memRepaidUsd: number
+  realMedianFrac: number
+  memMedianFrac: number
+  /** Share cured in the 8h window (no window counts as not cured); null when no cure record. */
   curedPct: number | null
+}
+
+export interface EvidenceMeta {
+  schema: string
+  generatedBy: string
+  source: {
+    path: string
+    schema: string
+    bytes: number
+    sha256: string
+    builtBy: string
+    /** census.meta.totals as the census states them: 'all', each protocol, each venue x chain. */
+    totals: Record<
+      string,
+      {
+        positions: number
+        events: number
+        realRepaidUsd: number
+        memRepaidUsd: number
+        positionsKept: number
+        positionsSoldAtGridEnd: number
+      }
+    >
+    outcomes: Record<string, number>
+  }
+  code: { commit: string; dirty: boolean; paths: string[]; note: string }
+  window: { from: string; to: string; label: string; minutes: number; stepSeconds: number }
+  scope: {
+    line: string
+    inScope: string
+    venues: { chain: string; venue: string; name: string; events: number }[]
+    outOfScope: string
+  }
+  oracle: string
+  positions: number
+  walked: number
+  events: number
+  chains: string[]
+  params: {
+    band: number
+    delaySeconds: number
+    borrowLtvGap: number
+    liqDebtMinimumUsd: number
+    maxSales: number
+  }
+  realConstants: {
+    borrowLtvGapSource: string
+    repayFormulaSource: string
+    cureWindowSource: string
+    liqDebtMinimumSource: string
+    debtMinimumRuleSource: string
+  }
+  method: string
+  sameSet: string
+  unpriced: { positions: number; loanSymbols: string[]; realEvents: number; memSales: number }
+  gridEnd: {
+    positions: number
+    positionsFirstSoldThere: number
+    memRepaidUsd: number
+    byProtocol: Record<ProtocolKey, { positions: number; memRepaidUsd: number }>
+    rule: string
+  }
+  /** The old 747-row priced subset, kept ONLY to explain why its 36% moved. Superseded. */
+  crossCheck: {
+    label: string
+    rows: number
+    old: { realRepaidUsd: number; memRepaidUsd: number }
+    new: { realRepaidUsd: number; memRepaidUsd: number }
+    factors: Record<string, number>
+    interactionAndResidualUsd: number
+    allFactorsToggledUsd: number
+    allFactorsToggledVsOldUsd: number
+    line: string
+  }
+  /** Rendered verbatim in the UI. These are not footnotes to bury. */
+  caveats: string[]
 }
 
 export interface CureRecord {
   curedInWindow: boolean
   healthyAt8h: boolean
+  /** Minutes from t0 to the lowest LTV in the window, when that is under the line. */
   minutesToCure: number | null
   bestLtv: number
   endLtv: number
-  /** No-delay class: there is no window, so `curedInWindow` is always false. */
-  noWindow?: boolean
-  /** No-delay class only: would the price alone have cured it inside a window? */
-  wouldHaveCuredWithWindow?: boolean
+  /** No window (stablecoin collateral or a line above 90%): never counted cured. */
+  noWindow: boolean
+  wouldHaveCuredWithWindow: boolean
 }
 
-/** One real liquidated account. The unit the cohort table traverses. */
+/** One liquidated position. The unit the cohort table traverses. */
 export interface CohortRow {
+  /** Stable key: protocol, chain, market, owner (and Morpho market id). */
+  id: string
+  protocol: 'aave' | 'morpho'
   chain: string
-  user: string
-  /** How many separate times the source protocol liquidated this account. */
+  /** Aave 'core' | 'lido'; Morpho 'blue'. */
+  market: string
+  owner: string
+  /** Morpho market id; null for Aave. */
+  marketId: string | null
+  /** How many separate times the protocol liquidated this position in the window. */
   events: number
-  /** Grid index of t0 in prices-1m.json. `closedAtIndex` is relative to this. */
-  t0Index: number
-  t0Ts: number
-  /** MODELLED basis: the block-1 snapshot rebased to the liquidation-minute print. */
-  collateralUsd: number
-  debtUsd: number
-  /** What the enriched CSV read at block_number-1, before the rebase. */
-  snapshotCollateralUsd: number
-  snapshotDebtUsd: number
-  /** p(t0)/p(t0-1) on each leg. 1 when that minute's oracle round was carried. */
-  rebaseColl: number
-  rebaseDebt: number
-  healthFactor: number
-  /** This account's own liquidation line, inverted from its health factor. */
-  liqLine: number
+  /** Grid minute of t0 (minute 0 = 00:00 UTC 10 Oct 2025). */
+  t0Minute: number
+  /** Collateral and debt legs at t0, largest first: [symbol, USD at t0 (null: unpriced)]. */
+  coll: [string, number | null][]
+  debt: [string, number | null][]
+  collUsd: number | null
+  debtUsd: number | null
+  /** The position's own liquidation line (Aave: weighted LT; Morpho: LLTV). */
+  line: number
   ltv0: number
-  /** The pre-rebase LTV, from the block-1 snapshot alone. */
-  ltv0Snapshot: number
-  /**
-   * Still not breached after the rebase: a state/event mismatch the data cannot
-   * resolve. Excluded from BOTH sides of every summary total, kept here so the table
-   * can still show the row.
-   */
-  excluded: boolean
-  /** The Membrane delay class this row was walked in (see DelayClassMeta). */
-  delayClass?: DelayClass
-  /** Share of the account's collateral the CSV can see (one denominator: the first
-   *  event's total; capped at 1); the class is known at >= 0.95. */
-  seenCollateralShare?: number | null
-  collSymbol: string
-  debtSymbol: string
-  aaveClosedUsd: number
-  membraneClosedUsd: number
-  aaveClosedFrac: number
-  membraneClosedFrac: number
-  /** What ONE repay to cap at t0 would have closed — the pre-window figure. */
-  membraneOneRepayUsd: number
-  /** Which branch of the delay window this account ended on. See curePath.ts. */
+  delayClass: 'no-delay' | 'delayed' | 'mixed'
+  /** Largest collateral leg at t0. */
+  primary: string
+  cluster: string
+  /** The loan has a USD price, so the position is in every dollar figure. */
+  priced: boolean
+  realRepaidUsd: number
+  realBadDebtUsd: number
+  /** MODELLED (†). */
+  memRepaidUsd: number
+  /** Real repaid over the t0 debt. Can exceed 1: new borrowing and interest. */
+  realFrac: number | null
+  /** Debt Membrane closes, on the t0 basis, over the t0 debt (†). */
+  memFrac: number | null
   outcome: string
-  /** Grid minute the sale landed on, or null when nothing was ever sold. */
-  closedAtIndex: number | null
-  /** Minutes from t0 to the first minute back under the line, or null. */
-  minutesToFirstCure: number | null
-  /** How many separate times the account crossed above its own line. */
-  breaches: number
-  /** How many separate sales ran. A repay restores the cap, so the position re-arms. */
   sales: number
-  /**
-   * The earlier BEST-LTV diagnostic over a fixed 8h look-ahead. It is NOT the walk —
-   * it ignores the band and ignores re-arming, and no dollar is computed from it.
-   * null when the collateral leg is not priceable by the Oct 10 oracle series.
-   */
+  firstSaleMinute: number | null
+  /** Set when a window was still open at the data end; the USD booked there (†). */
+  gridEndUsd: number | null
+  minutesToFirstCure: number | null
   cure: CureRecord | null
 }
 
-export interface EvidenceDoc {
+/** The served file as it is on disk: the cohort is columnar. */
+export interface EvidenceFile {
   meta: EvidenceMeta
   debt: DebtSummary
   time: TimeSummary
-  byAsset: Record<string, AssetSummary>
+  byAsset: AssetSummary[]
+  landing: Record<string, unknown>
+  cohort: {
+    columns: string[]
+    cureColumns: string[]
+    legColumns: string[]
+    rows: unknown[][]
+  }
+}
+
+/** What the page works with: the same document, cohort decoded into rows. */
+export interface EvidenceDoc extends Omit<EvidenceFile, 'cohort'> {
   cohort: CohortRow[]
 }
 
@@ -345,9 +318,136 @@ export type Lens = 'debt' | 'time' | 'cohort'
 export type SortKey = 'debtUsd' | 'spared' | 'events' | 'ltv0'
 
 /** Outcome filter for the cohort table. */
-export type OutcomeFilter = 'all' | 'membraneLess' | 'membraneMore' | 'cured' | 'notCured'
+export type OutcomeFilter =
+  | 'all'
+  | 'membraneLess'
+  | 'membraneMore'
+  | 'equal'
+  | 'cured'
+  | 'notCured'
+  | 'gridEnd'
 
-/** USD spared: what Aave closed minus what Membrane would have. Can be negative. */
-export function sparedUsd(r: CohortRow): number {
-  return r.aaveClosedUsd - r.membraneClosedUsd
+/** Protocol filter for the cohort table. */
+export type ProtocolFilter = 'all' | 'aave' | 'morpho'
+
+/** USD spared: what the protocol repaid minus what Membrane would have. Null when unpriced. */
+export function sparedUsd(r: CohortRow): number | null {
+  return r.priced ? r.realRepaidUsd - r.memRepaidUsd : null
+}
+
+/** The per-position comparison, on the published cents (the builder's own rule). */
+export function compareRow(r: CohortRow): 'less' | 'more' | 'equal' | 'unpriced' {
+  if (!r.priced) return 'unpriced'
+  const m = Math.round(r.memRepaidUsd * 100)
+  const a = Math.round(r.realRepaidUsd * 100)
+  return m < a ? 'less' : m > a ? 'more' : 'equal'
+}
+
+/** Decode the served file's columnar cohort. Pure; throws on a column it does not know. */
+export function decodeEvidence(file: EvidenceFile): EvidenceDoc {
+  const { columns, cureColumns, rows } = file.cohort
+  const at = (name: string) => {
+    const i = columns.indexOf(name)
+    if (i < 0) throw new Error(`evidence-census: no column ${name}`)
+    return i
+  }
+  const c = Object.fromEntries(
+    [
+      'protocol',
+      'chain',
+      'market',
+      'owner',
+      'marketId',
+      'events',
+      't0Minute',
+      'coll',
+      'debt',
+      'collUsd',
+      'debtUsd',
+      'line',
+      'ltv0',
+      'delayClass',
+      'primary',
+      'cluster',
+      'priced',
+      'realRepaidUsd',
+      'realBadDebtUsd',
+      'memRepaidUsd',
+      'realFrac',
+      'memFrac',
+      'outcome',
+      'sales',
+      'firstSaleMinute',
+      'gridEndUsd',
+      'minutesToFirstCure',
+      'cure',
+    ].map((k) => [k, at(k)]),
+  ) as Record<string, number>
+  const k = (name: string) => {
+    const i = cureColumns.indexOf(name)
+    if (i < 0) throw new Error(`evidence-census: no cure column ${name}`)
+    return i
+  }
+  const kc = {
+    cured: k('curedInWindow'),
+    healthy: k('healthyAt8h'),
+    minutes: k('minutesToCure'),
+    best: k('bestLtv'),
+    end: k('endLtv'),
+    noWindow: k('noWindow'),
+    would: k('wouldHaveCuredWithWindow'),
+  }
+  const cohort: CohortRow[] = rows.map((v) => {
+    const cure = v[c.cure] as (number | null)[] | null
+    const protocol = v[c.protocol] as 'aave' | 'morpho'
+    const marketId = (v[c.marketId] as string | null) ?? null
+    return {
+      id: `${protocol}:${v[c.chain]}:${v[c.market]}:${v[c.owner]}${marketId ? `:${marketId}` : ''}`,
+      protocol,
+      chain: v[c.chain] as string,
+      market: v[c.market] as string,
+      owner: v[c.owner] as string,
+      marketId,
+      events: v[c.events] as number,
+      t0Minute: v[c.t0Minute] as number,
+      coll: v[c.coll] as [string, number | null][],
+      debt: v[c.debt] as [string, number | null][],
+      collUsd: v[c.collUsd] as number | null,
+      debtUsd: v[c.debtUsd] as number | null,
+      line: v[c.line] as number,
+      ltv0: v[c.ltv0] as number,
+      delayClass: v[c.delayClass] as CohortRow['delayClass'],
+      primary: v[c.primary] as string,
+      cluster: v[c.cluster] as string,
+      priced: v[c.priced] === 1,
+      realRepaidUsd: v[c.realRepaidUsd] as number,
+      realBadDebtUsd: v[c.realBadDebtUsd] as number,
+      memRepaidUsd: v[c.memRepaidUsd] as number,
+      realFrac: v[c.realFrac] as number | null,
+      memFrac: v[c.memFrac] as number | null,
+      outcome: v[c.outcome] as string,
+      sales: v[c.sales] as number,
+      firstSaleMinute: v[c.firstSaleMinute] as number | null,
+      gridEndUsd: v[c.gridEndUsd] as number | null,
+      minutesToFirstCure: v[c.minutesToFirstCure] as number | null,
+      cure: cure
+        ? {
+            curedInWindow: cure[kc.cured] === 1,
+            healthyAt8h: cure[kc.healthy] === 1,
+            minutesToCure: cure[kc.minutes],
+            bestLtv: cure[kc.best] as number,
+            endLtv: cure[kc.end] as number,
+            noWindow: cure[kc.noWindow] === 1,
+            wouldHaveCuredWithWindow: cure[kc.would] === 1,
+          }
+        : null,
+    }
+  })
+  return { ...file, cohort }
+}
+
+/** The summary the server renders: everything but the cohort (a few KB). */
+export function summaryOf(file: EvidenceFile): EvidenceDoc {
+  const { cohort: _cohort, ...rest } = file
+  return { ...rest, cohort: [] }
 }

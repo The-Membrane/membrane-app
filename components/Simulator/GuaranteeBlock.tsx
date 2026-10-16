@@ -107,19 +107,33 @@ export const GuaranteeBlock: React.FC<{ noWindow?: boolean }> = ({ noWindow = fa
     </Box>
 
     {!CORPUS_SCALE_LINE.partial && (
-      <Text
-        data-testid="sim-scale-subline"
+      <Box
         borderTop="1px solid"
         borderColor={SEMANTIC_COLORS.borderSubtle}
         px={{ base: SPACING.base, md: SPACING.xl }}
         py={SPACING.base}
-        fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="12.5px"
-        lineHeight={1.6}
-        color={SEMANTIC_COLORS.textSecondary}
+        display="grid"
+        gap={SPACING.xs}
       >
-        {OCT10_SCALE_LINE.result} {OCT10_SCALE_LINE.window}.
-      </Text>
+        {/* The Oct 10-11 census (every Aave and Morpho liquidation, four chains), with its
+            per-protocol split on the same line and the † footnoted under it. */}
+        <Text
+          data-testid="sim-scale-subline"
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12.5px"
+          lineHeight={1.6}
+          color={SEMANTIC_COLORS.textSecondary}
+        >
+          {OCT10_SCALE_LINE.result} {OCT10_SCALE_LINE.window} ({OCT10_SCALE_LINE.split}).
+        </Text>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          color={SEMANTIC_COLORS.textTertiary}
+        >
+          {MODELLED_FOOTNOTE}
+        </Text>
+      </Box>
     )}
 
     <Box

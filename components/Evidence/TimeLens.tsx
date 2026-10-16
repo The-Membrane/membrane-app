@@ -7,8 +7,8 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { Card } from '@/components/ui/Card'
 
 import { Eyebrow, Stat } from './atoms'
-import { pct } from './format'
-import { CureModel, TimeSummary } from './types'
+import { GRID_END_MARK, PROTOCOL_NAME, pct } from './format'
+import { EvidenceMeta, ProtocolKey, Sensitivity, TimeSummary } from './types'
 
 /** One step of the funnel, drawn as a proportional bar. */
 const Step: React.FC<{
@@ -19,7 +19,7 @@ const Step: React.FC<{
   note: string
 }> = ({ label, n, of, color, note }) => (
   <VStack align="stretch" spacing={SPACING.xs}>
-    <HStack justify="space-between">
+    <HStack justify="space-between" align="flex-start">
       <Text
         fontFamily={TYPOGRAPHY.fontMono}
         fontSize={TYPOGRAPHY.small}
@@ -27,9 +27,9 @@ const Step: React.FC<{
       >
         {label}
       </Text>
-      <HStack spacing={SPACING.sm}>
+      <HStack spacing={SPACING.sm} flexShrink={0}>
         <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={color}>
-          {n.toLocaleString()}
+          {n.toLocaleString('en-US')}
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
@@ -54,101 +54,219 @@ const Step: React.FC<{
 )
 
 /**
- * What the 8-hour cure window did to the census, MODELLED, not diagnosed.
+ * What the 8-hour window did to the census, MODELLED (†), not diagnosed.
  *
- * The walk (lib/position-sim/curePath.ts) follows LiquidationEngine.sol: a breach
- * inside the band starts the delay; a return under the line clears it and a later
- * breach starts a fresh one; a move past line x (1 + band) sells at that minute; still
- * over the line at expiry sells at that minute. The census figure above is the SUM of
- * those sales. This lens shows how the 2,347 accounts resolved and what the delay was
- * worth against one immediate repay to cap.
+ * The walk (lib/wavefront/kernel.ts, the incremental form of lib/position-sim/curePath.ts)
+ * follows LiquidationEngine.sol: a breach inside the band starts the delay; a return under
+ * the line clears it and a later breach starts a fresh one; a move past line x (1 + band)
+ * sells at that minute; still over the line at expiry sells at that minute. The census
+ * figure is the SUM of those sales. This lens shows how every position resolved and what
+ * the delay was worth against one immediate repay to cap.
  *
- * Path-dependent, and says so: Oct 10 was a sharp wick with a partial recovery.
+ * Path-dependent, and says so: 10 Oct was a sharp wick with a partial recovery.
  */
-const OUTCOME_ROWS: { key: string; label: string; note: string; walked: boolean; tone: 'good' | 'bad' | 'dim' }[] = [
-  { key: 'cured-then-held', label: 'Back under the line inside the window; never sold', note: 'the delay held and the day ended with the position intact', walked: true, tone: 'good' },
-  { key: 'sold-at-expiry', label: 'Still over the line at 8h; sold then', note: 'repay to cap at that minute\u2019s price', walked: true, tone: 'bad' },
-  { key: 'sold-at-band', label: 'Broke the band during the delay; sold at that minute', note: 'LTV passed line \u00d7 1.04 while the timer ran', walked: true, tone: 'bad' },
-  { key: 'sold-at-grid-end', label: 'Price data ended mid-delay; sold at the last price', note: 'conservative: a sale is booked', walked: true, tone: 'bad' },
+const OUTCOME_ROWS: {
+  key: string
+  label: string
+  note: string
+  windowed: boolean
+  tone: 'good' | 'bad' | 'gate' | 'dim'
+}[] = [
+  {
+    key: 'cured-then-held',
+    label: 'Back under the line inside the window; never sold',
+    note: 'the delay held and the window ended with the position intact',
+    windowed: true,
+    tone: 'good',
+  },
+  {
+    key: 'held',
+    label: 'Opened under its own line (the larger half of a split position); never sold',
+    note: 'that half never crossed its line, so no window was needed',
+    windowed: true,
+    tone: 'good',
+  },
+  {
+    key: 'sold-at-expiry',
+    label: 'Still over the line at 8h; sold then',
+    note: 'repay to cap at that minute’s price',
+    windowed: true,
+    tone: 'bad',
+  },
+  {
+    key: 'sold-at-band',
+    label: 'Broke the band during the delay; sold at that minute',
+    note: 'LTV passed line × 1.04 while the timer ran',
+    windowed: true,
+    tone: 'bad',
+  },
+  // A window still open at 23:59 UTC 11 Oct is NOT a completed sale (the wavefront page
+  // draws it apart). The census books it at the last price, conservatively; it is gold here
+  // and marked in the table, never coloured as a sale the walk decided.
+  {
+    key: 'sold-at-grid-end',
+    label: `${GRID_END_MARK} Window still open when the data ends; booked as sold at the last price†`,
+    note: 'not a completed sale: the conservative assumption at 23:59 UTC 11 Oct',
+    windowed: true,
+    tone: 'gate',
+  },
   // Immediate at t0 (LiquidationEngine.sol:1694-1703 at 16e12329), then the position walks on
-  // like after any sale (a sale leaves no timer, :1724-1727): a later breach can open a fresh
-  // window, a later band break sells again.
-  { key: 'sold-at-t0', label: 'Already past the band when Aave hit; no delay exists', note: 'repaid to cap at once, then walked on like any sold position', walked: true, tone: 'bad' },
+  // like after any sale (a sale leaves no timer, :1724-1727).
+  {
+    key: 'sold-at-t0',
+    label: 'Already past the band at the first liquidation; no delay exists',
+    note: 'repaid to cap at once, then walked on like any sold position',
+    windowed: true,
+    tone: 'bad',
+  },
   // The no-delay class (stable collateral, or a line above 90%): instant mode,
   // LiquidationEngine.sol:1572-1576 — sold the minute it is over its line, every time.
-  // walked: false — it is walked, but there is no window to walk, and the stat above
-  // counts the accounts the WINDOW could be walked for.
-  // The † (stablecoins get no window: modelled) is footnoted once, under the Evidence
-  // page's caveats (MODELLED_FOOTNOTE).
-  { key: 'sold-no-delay', label: 'Stablecoin collateral (or a line above 90%): no 8-hour window†, sold at the line', note: 'Membrane gives this collateral no window†', walked: false, tone: 'bad' },
-  // 'sold-immediately-unlocated-line' used to live here. Those accounts are now
-  // EXCLUDED from both sides of every total after the block-1 rebase (meta.excluded),
-  // so they are not part of this histogram at all — showing them as a 0-row would
-  // imply the walk resolved them. The exclusion and its Aave USD are in the caveats.
-
-  { key: 'sold-immediately-no-series', label: 'Collateral has no Oct 10 price series', note: 'kept at one repay to cap; the window is never credited', walked: false, tone: 'dim' },
+  {
+    key: 'sold-no-delay',
+    label: 'Stablecoin collateral (or a line above 90%): no 8-hour window†, sold at the line',
+    note: 'Membrane gives this collateral no window†',
+    windowed: false,
+    tone: 'bad',
+  },
 ]
 
 const usdM = (v: number) => `$${(v / 1e6).toFixed(1)}M`
+const PROTOCOLS: ProtocolKey[] = ['aave-v3', 'morpho-blue']
 
-export const TimeLens: React.FC<{ time: TimeSummary; cureModel: CureModel }> = ({ time, cureModel }) => {
-  const total = Object.values(cureModel.outcomes).reduce((a, b) => a + b, 0)
-  const walked = OUTCOME_ROWS.filter((r) => r.walked).reduce((a, r) => a + (cureModel.outcomes[r.key] ?? 0), 0)
-  const held = cureModel.outcomes['cured-then-held'] ?? 0
-  const colorOf = (t: 'good' | 'bad' | 'dim') =>
-    t === 'good' ? SEMANTIC_COLORS.success : t === 'bad' ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textTertiary
+const SENS_ROWS: { key: keyof TimeSummary['sensitivity']; label: string }[] = [
+  { key: 'noEarlyClear', label: 'nobody clears the timer early' },
+  { key: 'noDebtFloor', label: 'no $2,000 floor' },
+  { key: 'singleSale', label: 'one sale per position' },
+  { key: 'noWalkOnAfterT0BandSale', label: 'stop after a sale at t0' },
+  { key: 't0PriceBasis', label: 't0 at block N−1 prices' },
+]
+
+export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ time, meta }) => {
+  const total = Object.values(time.outcomes).reduce((a, b) => a + b, 0)
+  const rows = OUTCOME_ROWS.filter((r) => (time.outcomes[r.key] ?? 0) > 0)
+  const windowed = OUTCOME_ROWS.filter((r) => r.windowed).reduce(
+    (a, r) => a + (time.outcomes[r.key] ?? 0),
+    0,
+  )
+  const colorOf = (t: 'good' | 'bad' | 'gate' | 'dim') =>
+    t === 'good'
+      ? SEMANTIC_COLORS.success
+      : t === 'bad'
+        ? SEMANTIC_COLORS.danger
+        : t === 'gate'
+          ? SEMANTIC_COLORS.warning
+          : SEMANTIC_COLORS.textTertiary
+  const one = time.oneRepay
+  const cure = time.cure
+  const headline = time.bandSensitivity.find((b) => b.band === meta.params.band)
+  const split = (s: Sensitivity) =>
+    s.byProtocol
+      ? ` · ${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k].split(' ')[0]} ${usdM(s.byProtocol![k])}`).join(' · ')}`
+      : ''
+
   return (
     <VStack align="stretch" spacing={SPACING_PATTERNS.sectionGap}>
       <SimpleGrid columns={{ base: 2, md: 4 }} spacing={SPACING_PATTERNS.sectionGap}>
-        <Stat label="Time Aave grants" value="0s" tone="bad" sub="liquidation is atomic, same block" />
+        <Stat
+          label="Time the protocols grant"
+          value={`${time.protocolSecondsGranted}s`}
+          tone="bad"
+          sub="liquidation is atomic, same block"
+        />
         <Stat
           label="Time Membrane grants"
-          value={`${cureModel.delaySeconds / 3600}h`}
+          value={`${time.membraneSecondsGranted / 3600}h`}
           tone="good"
-          sub={`within ${(cureModel.band * 100).toFixed(0)}% of the line · none for stablecoins†`}
+          sub={`within ${(meta.params.band * 100).toFixed(0)}% of the line · none for stablecoins†`}
         />
         <Stat
           label="Worth, against one repay"
-          value={usdM(cureModel.delayCreditUsd)}
-          tone="good"
-          sub={`${usdM(cureModel.membraneOneRepayUsd)} one repay \u2192 ${usdM(cureModel.membraneOneRepayUsd - cureModel.delayCreditUsd)} with the delay`}
+          value={`${usdM(one.delayCreditUsd)}†`}
+          tone={one.delayCreditUsd >= 0 ? 'good' : 'bad'}
+          sub={`${usdM(one.memOneRepayUsd)} one repay → ${usdM(one.memOneRepayUsd - one.delayCreditUsd)} with the delay`}
         />
         <Stat
-          label="Held the whole day"
-          value={held.toLocaleString()}
+          label="Never sold"
+          value={time.neverSold.positions.toLocaleString('en-US')}
           tone="good"
-          sub={`of ${walked.toLocaleString()} accounts the window could be walked for`}
+          sub={`of ${total.toLocaleString('en-US')} positions; no sale on either half†`}
         />
       </SimpleGrid>
 
       <Card variant="default">
         <VStack align="stretch" spacing={SPACING_PATTERNS.stackSpacing}>
-          <Eyebrow>How every account resolved</Eyebrow>
-          {OUTCOME_ROWS.map((r) => (
-            <Step key={r.key} label={r.label} n={cureModel.outcomes[r.key] ?? 0} of={total} color={colorOf(r.tone)} note={r.note} />
+          <Eyebrow>How every position resolved†</Eyebrow>
+          {rows.map((r) => (
+            <Step
+              key={r.key}
+              label={r.label}
+              n={time.outcomes[r.key] ?? 0}
+              of={total}
+              color={colorOf(r.tone)}
+              note={r.note}
+            />
           ))}
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+            color={SEMANTIC_COLORS.textTertiary}
+            lineHeight="1.7"
+          >
+            {`${windowed.toLocaleString('en-US')} positions hold collateral that gets the window; the rest have none (stablecoin collateral, or a line above 90%) and are sold at the line. A position holding both stablecoin and other collateral is split the way Membrane would hold it, and is listed here by its larger half. By protocol: ${PROTOCOLS.map(
+              (k) =>
+                `${PROTOCOL_NAME[k]} ${(time.outcomesByProtocol[k]['cured-then-held'] ?? 0).toLocaleString('en-US')} back under the line and held`,
+            ).join(', ')}.`}
+          </Text>
         </VStack>
       </Card>
 
       <Card variant="default">
         <VStack align="stretch" spacing={SPACING_PATTERNS.stackSpacing}>
           <Eyebrow>Where the credit comes from, and what the band does</Eyebrow>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary} lineHeight="1.7">
-            {`${usdM(cureModel.cureCreditUsd)} of the credit is accounts that came back under their line. Of that, ${cureModel.cureCreditShareWithin2min.toFixed(0)}% recovered within two minutes of the breach, ${cureModel.cureCreditShareWithin1h.toFixed(0)}% within the hour, ${cureModel.cureCreditShareWithin8h.toFixed(0)}% inside the eight. Prices are the oracle round in force at each minute\u2019s start; a cure needs a fresh round, and ETH printed ${cureModel.freshEthPrints ?? 183} of ${cureModel.gridMinutes ?? 2880} minutes.`}
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.small}
+            color={SEMANTIC_COLORS.textPrimary}
+            lineHeight="1.7"
+          >
+            {`One repay to cap at the first liquidation, with no window, would close ${usdM(one.memOneRepayUsd)}† (${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k]} ${usdM(one.byProtocol[k].memOneRepayUsd)}`).join(', ')}). ${usdM(one.cureCreditUsd)}† of it is on positions that came back under their line: ${one.cureCreditShareWithin2min.toFixed(0)}% of that within two minutes of the breach, ${one.cureCreditShareWithin1h.toFixed(0)}% within the hour, ${one.cureCreditShareWithin8h.toFixed(0)}% inside the eight. Against it, on ${one.counterCreditPositions.toLocaleString('en-US')} positions the walk ends up selling ${usdM(one.counterCreditUsd)}† more than one repay would have. Prices are each oracle’s price in force at each minute’s start; a cure needs a fresh price, and the ${time.freshPrints.chain === 'mainnet' ? 'Ethereum' : time.freshPrints.chain} ${time.freshPrints.symbol} AaveOracle price changed in ${time.freshPrints.minutes.toLocaleString('en-US')} of ${time.freshPrints.gridMinutes.toLocaleString('en-US')} minutes.`}
           </Text>
-          <HStack spacing={SPACING_PATTERNS.sectionGap} flexWrap="wrap">
-            {cureModel.bandSensitivity.map((b) => (
+          <HStack spacing={SPACING_PATTERNS.sectionGap} flexWrap="wrap" align="flex-start">
+            {time.bandSensitivity.map((b) => (
               <Stat
                 key={b.band}
                 label={`band ${(b.band * 100).toFixed(0)}%`}
-                value={usdM(b.membraneClosedUsd)}
-                tone={b.band === cureModel.band ? 'good' : 'muted'}
-                sub={b.band === cureModel.band ? 'launch parameter, owner-set (Collateral.sol:223,232)' : 'sensitivity'}
+                value={`${usdM(b.memRepaidUsd)}†`}
+                tone={b.band === meta.params.band ? 'good' : 'muted'}
+                sub={`${b.band === meta.params.band ? 'launch parameter, owner-set (Collateral.sol:223,232)' : 'sensitivity'} · ${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k].split(' ')[0]} ${usdM(b.byProtocol[k])}`).join(' · ')}`}
               />
             ))}
           </HStack>
-          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.xs} color={SEMANTIC_COLORS.textTertiary} lineHeight="1.7">
-            {`Diagnostic, older and looser: ${time.curedPct}% of the ${time.accountsAnalysed.toLocaleString()} priceable accounts dipped back under their line at some point in the eight hours (median ${time.medianMinutesToCure} min), and ${time.healthyAt8hPct}% were under it at the 8h mark.${time.noDelay?.accounts ? ` The ${time.noDelay.accounts.toLocaleString()} accounts with no 8-hour window count as not cured; ${time.noDelay.wouldHaveCuredWithWindow.toLocaleString()} would have dipped back on price alone.` : ''} The model above is stricter: it sells on a band break and at expiry, and credits nothing to accounts whose line it cannot locate.`}
+          <VStack align="stretch" spacing={SPACING.xs}>
+            <Eyebrow>Other corners, same walk, one rule changed</Eyebrow>
+            {SENS_ROWS.map(({ key, label }) => {
+              const s = time.sensitivity[key]
+              return (
+                <Text
+                  key={key}
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize={TYPOGRAPHY.xs}
+                  color={SEMANTIC_COLORS.textSecondary}
+                  lineHeight="1.7"
+                  title={s.rule}
+                >
+                  {`${label}: ${usdM(s.memRepaidUsd)}†${split(s)} (headline ${usdM(headline?.memRepaidUsd ?? 0)})`}
+                </Text>
+              )
+            })}
+          </VStack>
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+            color={SEMANTIC_COLORS.textTertiary}
+            lineHeight="1.7"
+          >
+            {`Diagnostic, older and looser: ${cure.curedPct}% of the ${cure.accountsAnalysed.toLocaleString('en-US')} positions dipped back under their line at some point in the eight hours on price alone (the lowest point came a median ${cure.medianMinutesToCure} min after the first liquidation), and ${cure.healthyAt8hPct}% were under it at the 8h mark. ${PROTOCOLS.map((k) => `${PROTOCOL_NAME[k]} ${cure.byProtocol[k].curedPct}%`).join(', ')}.${cure.noDelay.accounts ? ` The ${cure.noDelay.accounts.toLocaleString('en-US')} positions with no 8-hour window count as not cured; ${cure.noDelay.wouldHaveCuredWithWindow.toLocaleString('en-US')} would have dipped back on price alone.` : ''} The model above is stricter: it sells on a band break and at expiry.`}
           </Text>
         </VStack>
       </Card>

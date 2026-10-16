@@ -1,36 +1,25 @@
 /**
- * Verifies the Evidence lenses actually render, against the REAL dataset.
+ * Integrity of public/data/oct10-2025/evidence.json — the OLD census (scripts/build-evidence.ts,
+ * 2,347 Aave accounts priced off mainnet Chainlink rounds).
  *
- * The app currently has an unrelated, app-wide hydration hang (router.isReady
- * stays false on every page, including untouched ones), so the browser cannot
- * exercise these components. This renders them directly instead: if a lens
- * throws, or renders without its key numbers, this fails.
+ * 2026-10-16 (owner decision): no page reads this file any more. The Evidence page and the
+ * landing read the full on-chain census, public/data/oct10-2025/evidence-census.json, and
+ * their lens text, filters and sorts are tested in scripts/tests/evidence-census.test.mts.
+ * This file and its builder are kept because tests/unit/wavefrontKernel.test.ts,
+ * scripts/tests/position-sim.test.ts and the census cross-check (meta.crossCheck) use it as a
+ * fixture, so its own integrity checks stay here, unchanged. The UI render checks that used to
+ * close this file asserted the old doc against the old components; the components now render
+ * the census, and those checks moved to the census twin with the census's figures.
  */
 import fs from 'node:fs'
 import assert from 'node:assert'
-import React from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
-import { ChakraProvider } from '@chakra-ui/react'
 
-import type { EvidenceDoc } from '@/components/Evidence/types'
-
-// Dynamic imports: tsx's static-import hoisting resolves these JSX modules before
-// they finish evaluating and reports a phantom "no export named" error.
-const { DebtLens } = await import('@/components/Evidence/DebtLens')
-const { TimeLens } = await import('@/components/Evidence/TimeLens')
-const { CohortLens } = await import('@/components/Evidence/CohortLens')
-const { sparedUsd } = await import('@/components/Evidence/types')
-
-const doc: EvidenceDoc = JSON.parse(fs.readFileSync('public/data/oct10-2025/evidence.json', 'utf8'))
-
-const render = (el: React.ReactElement) =>
-  renderToStaticMarkup(React.createElement(ChakraProvider, null, el))
+// The old document's shape. Its TypeScript interface lived in components/Evidence/types.ts,
+// which now types the census; this test reads the old file untyped, as the builder writes it.
+type OldDoc = any
+const doc: OldDoc = JSON.parse(fs.readFileSync('public/data/oct10-2025/evidence.json', 'utf8'))
 
 let checks = 0
-const has = (html: string, needle: string, what: string) => {
-  assert.ok(html.includes(needle), `${what}: expected to find ${JSON.stringify(needle)}`)
-  checks++
-}
 
 // ---- dataset integrity ---------------------------------------------------
 // EVERY summary number is over INCLUDED rows. The cohort array carries the excluded
@@ -914,256 +903,66 @@ assert.ok(
 )
 checks += 9
 
-// ---- DebtLens ------------------------------------------------------------
-const debtHtml = render(React.createElement(DebtLens, { debt: doc.debt, byAsset: doc.byAsset }))
-// UPDATED 2026-09-14 (second pass), deliberately. Every figure below moved for ONE
-// reason: wstETH stopped being priced through the STETH/ETH MARKET feed and is now priced
-// as ETH/USD x the MEASURED wrap rate 1.215989, because that is what Aave demonstrably
-// did - its own per-block wstETH/WETH ratio is that constant to 8 decimals across the
-// blocks where the market feed collapsed 0.99960 -> 0.96171. The market feed held two
-// huge wstETH accounts inside the 4% band that Aave's prices put outside it, and was
-// worth meta.sensitivity.wstethMarketFeedMembraneClosedUsd.pricedDeltaUsd on its own.
-// The knock-on: one wstETH row (0x4d43aa, $31M) leaves the included set again, so the
-// priced count drops 749 -> 748 and allIncluded 1,752 -> 1,751, and the priced gap FLIPS
-// - Membrane now closes LESS than Aave on the primary set.
-//
-// 2026-10-14: the delay-class rule (lib/position-sim/collateralClass.ts) moves no figure
-// here — on this day the no-delay walk moves no dollar. sUSD stopped being pinned at $1 and
-// has no series, so its 3 Optimism debt accounts drop out as unpriced debt: priced 748 ->
-// 747, allIncluded 1,751 -> 1,748, and the two priced medians move by a tenth.
-//
-// 2026-10-14: a delayed account sold at t0 past the band now walks on after that sale, as the
-// contract does (LiquidationEngine.sol:1724-1727 at 16e12329). One priced account (mainnet 0x9bafc9) is
-// sold again later: Membrane +$13,303 on both sets, and the priced Membrane median moves
-// 49.4% -> 49.5%. The old stop is meta.sensitivity.noWalkOnAfterT0BandSale.
-has(debtHtml, '$34.7M', 'DebtLens Aave total (priced set)')
-has(debtHtml, '$22.2M', 'DebtLens Membrane total (priced set)')
-has(debtHtml, '747', 'DebtLens account count == priced rows')
-has(debtHtml, '1,748', 'DebtLens also shows the allIncluded account count')
-has(debtHtml, '$47.5M', 'DebtLens allIncluded Aave total')
-has(debtHtml, '$54.2M', 'DebtLens allIncluded Membrane total')
-has(debtHtml, 'WETH', 'DebtLens per-asset table')
-has(debtHtml, '50.7%', 'DebtLens Aave median (priced)')
-has(debtHtml, '49.5%', 'DebtLens Membrane median (priced) — a real partial, not the floor artefact')
-// The PRIMARY set now says Membrane closes LESS debt. The lens has to render that
-// direction too, not only the "more" one it used to print.
-has(debtHtml, 'less debt closed', 'DebtLens states the direction of the gap honestly')
-
-// ---- TimeLens ------------------------------------------------------------
-// NOTE: TimeLens gained a `cureModel` prop and the committed test was never updated,
-// so this render threw before this pass. It is passed properly now.
-const timeHtml = render(React.createElement(TimeLens, { time: doc.time, cureModel: cm }))
-has(timeHtml, '0s', 'TimeLens Aave grants zero')
-has(timeHtml, '8h', 'TimeLens Membrane window')
-// The 8 hours are conditional, and stablecoins get none: the stat says so, and the "held
-// the whole day" denominator counts only accounts that had a window to walk.
-has(timeHtml, 'within 4% of the line · none for stablecoins†', 'TimeLens qualifies the 8h')
-// meta.caveats render verbatim on the Evidence page: the reader's words, no class names.
-assert.ok(
-  !(doc.meta.caveats as string[]).some((c) => /no-delay|MixedDelayClass|delay class/i.test(c)),
-  'no rendered caveat uses an insider class name',
-)
-checks++
-// ...and the two delay-class caveats speak plainly: no meta keys, no internal ticket
-// numbers, and the modelled claim carries the page's † (footnoted under the caveats).
+// ---- the priced-set direction and the per-asset table ---------------------------------------
+// (The rendered DebtLens / TimeLens / CohortLens checks moved to evidence-census.test.mts.)
 {
   const cav = doc.meta.caveats as string[]
+  assert.ok(
+    !cav.some((c) => /no-delay|MixedDelayClass|delay class/i.test(c)),
+    'no caveat uses an insider class name',
+  )
   const noWin = cav.find((c) => c.startsWith('NO 8-HOUR WINDOW'))
   const cannotSee = cav.find((c) => c.startsWith('THIS DATA CANNOT SEE MOST COLLATERAL'))
-  assert.ok(noWin && cannotSee, 'both delay-class caveats are rendered')
+  assert.ok(noWin && cannotSee, 'both delay-class caveats are published')
   for (const c of [noWin!, cannotSee!]) {
     assert.ok(!/meta\.|Q\d+\b/.test(c), `plain words, no meta keys: ${c.slice(0, 40)}`)
   }
   assert.ok(noWin!.startsWith('NO 8-HOUR WINDOW†:'), 'the modelled claim carries the †')
-  checks += 4
+  checks += 5
 }
-{
-  const windowed = (Object.entries(cm.outcomes) as [string, number][])
-    .filter(([k]) =>
-      [
-        'cured-then-held',
-        'sold-at-expiry',
-        'sold-at-band',
-        'sold-at-grid-end',
-        'sold-at-t0',
-      ].includes(k),
-    )
-    .reduce((a, [, v]) => a + v, 0)
-  has(
-    timeHtml,
-    `of ${windowed.toLocaleString()} accounts the window could be walked for`,
-    'the held denominator leaves out the no-window accounts',
-  )
-}
-// Both rise because the cure ratios are anchored to p_liq — the price in force at the
-// liquidation — instead of the minute cell at t0. Recovery is measured from the crash
-// print the account was actually taken at, which is what the borrower experienced.
-// UPDATED 2026-09-14 (second pass): the cure sample is the priced set (748 rows) and
-// wstETH rows walk the ETH path times a constant wrap rate, so all three move again.
-// 2026-10-14: the 19 no-delay rows in the cure sample have no window, so they count as not
-// cured — none would have cured on price anyway. The sample is 747 after sUSD left.
-has(timeHtml, '69.88%', 'TimeLens cured pct')
-has(timeHtml, '57.7%', 'TimeLens healthy-at-8h pct')
-has(timeHtml, '43 min', 'TimeLens median cure time')
-// The no-delay histogram row renders, with its count.
-has(
-  timeHtml,
-  'Stablecoin collateral (or a line above 90%): no 8-hour window†, sold at the line',
-  'TimeLens renders the no-delay histogram row',
-)
-has(timeHtml, 'Membrane gives this collateral no window†', 'and says why, marked modelled')
-{
-  // ...and carries its count from the histogram, rendered in the step right after its label.
-  const at = timeHtml.indexOf('Stablecoin collateral (or a line above 90%)')
-  const n = (cm.outcomes['sold-no-delay'] as number).toLocaleString()
-  assert.ok(
-    at >= 0 && timeHtml.slice(at, at + 1500).includes(`>${n}<`),
-    `the no-delay step renders its count (${n})`,
-  )
-  checks++
-}
-
-// ---- CohortLens ----------------------------------------------------------
-const cohortHtml = render(React.createElement(CohortLens, { rows: doc.cohort }))
-has(cohortHtml, 'Showing 100 of 2,347', 'CohortLens states its cap explicitly')
-has(cohortHtml, 'wstETH/USDC', 'CohortLens renders the largest position')
-has(cohortHtml, 'Membrane worse', 'CohortLens exposes the losing filter')
-
-// the table must be sorted by debt desc by default
-const top = [...doc.cohort].sort((a, b) => b.debtUsd - a.debtUsd)[0]
-has(cohortHtml, `${top.collSymbol}/${top.debtSymbol}`, 'CohortLens default sort = largest debt')
-
-// spared can be negative -- confirm such rows exist, so the UI must handle it
-const negatives = inc.filter((r) => sparedUsd(r) < 0).length
-assert.ok(negatives > 0, 'negative-spared rows exist and must render')
+// The priced set still says Membrane closes LESS (the direction the old lens rendered).
+assert.ok(D.priced.gapUsd > 0, 'priced set: Membrane closes less')
 checks++
 
-console.log(`EVIDENCE OK — ${checks} assertions passed`)
+// spared can be negative -- confirm such rows exist (the old table had to render them)
+const negatives = inc.filter((r) => r.aaveClosedUsd - r.membraneClosedUsd < 0).length
+assert.ok(negatives > 0, 'negative-spared rows exist')
+checks++
+
+// ---- the counts the old table's filters were reconciled against ---------------------------
+const worseAll = (doc.cohort as any[]).filter((r) => r.membraneClosedFrac >= r.aaveClosedFrac)
+assert.strictEqual(
+  inc.filter((r) => r.membraneClosedFrac >= r.aaveClosedFrac).length,
+  D.allIncluded.membraneClosesMore,
+  'the INCLUDED "Membrane worse" rows are what debt.allIncluded.membraneClosesMore counts',
+)
+assert.strictEqual(
+  pricedRows.filter((r) => r.membraneClosedFrac >= r.aaveClosedFrac).length,
+  D.membraneClosesMore,
+  'while the flat field counts only the PRICED rows',
+)
+assert.strictEqual(
+  worseAll.length +
+    (doc.cohort as any[]).filter((r) => r.membraneClosedFrac < r.aaveClosedFrac).length,
+  doc.cohort.length,
+  'the two outcome classes partition the cohort',
+)
+assert.strictEqual(
+  inc.filter((r) => r.cure?.curedInWindow).length,
+  doc.time.curedInWindow,
+  'the INCLUDED cured rows are time.curedInWindow',
+)
+assert.strictEqual(
+  inc.filter((r) => r.collSymbol === 'WETH').length,
+  doc.byAsset.WETH.accounts,
+  'byAsset counts INCLUDED rows only',
+)
+assert.ok(doc.byAsset.wstETH && doc.byAsset.wstETH.accounts > 0, 'wstETH has its own row')
+checks += 6
+
+console.log(`OLD EVIDENCE (fixture) OK — ${checks} assertions passed`)
 console.log(
   `  cohort ${doc.cohort.length}  aave $${aave.toLocaleString()}  membrane $${mem.toLocaleString()}`,
 )
 console.log(`  cure sample ${cur.length}  cured ${cured}  healthy@8h ${healthy}`)
 console.log(`  rows where Membrane closes MORE: ${negatives}`)
-
-// ---- interaction logic ---------------------------------------------------
-// The preview browser runs the tab permanently hidden, so requestAnimationFrame
-// never fires; Next's displayContent() therefore never resolves and NO page in
-// the app hydrates. Clicks cannot be tested there. So the filter/sort logic that
-// the UI's controls drive is exercised directly here instead.
-const { useCohort } = await import('@/components/Evidence/useEvidence')
-
-function probe(opts: Parameters<typeof useCohort>[1]) {
-  let out: ReturnType<typeof useCohort> | null = null
-  const P: React.FC = () => {
-    out = useCohort(doc.cohort, opts)
-    return null
-  }
-  renderToStaticMarkup(React.createElement(P))
-  return out!
-}
-
-const base = {
-  asset: 'all',
-  chain: 'all',
-  outcome: 'all' as const,
-  sort: 'debtUsd' as const,
-  limit: 100,
-}
-
-const all = probe(base)
-assert.strictEqual(all.total, 2347, 'unfiltered total')
-assert.strictEqual(all.matched, 2347, 'unfiltered matched')
-assert.strictEqual(all.visible.length, 100, 'limit caps visible rows')
-checks += 3
-
-// The TABLE still traverses every row, excluded ones included — so its filter counts
-// are cohort-wide, while doc.debt / doc.byAsset are included-only. The two are
-// reconciled explicitly rather than assumed equal.
-const worse = probe({ ...base, outcome: 'membraneMore' })
-assert.strictEqual(
-  worse.matched,
-  (doc.cohort as any[]).filter((r) => r.membraneClosedFrac >= r.aaveClosedFrac).length,
-  'the "Membrane worse" filter surfaces exactly the losing accounts',
-)
-assert.strictEqual(
-  inc.filter((r) => r.membraneClosedFrac >= r.aaveClosedFrac).length,
-  D.allIncluded.membraneClosesMore,
-  'and its INCLUDED subset is what debt.allIncluded.membraneClosesMore counts',
-)
-assert.strictEqual(
-  pricedRows.filter((r) => r.membraneClosedFrac >= r.aaveClosedFrac).length,
-  D.membraneClosesMore,
-  'while the flat field counts only the PRICED rows the lens leads with',
-)
-checks++
-checks += 2
-
-const better = probe({ ...base, outcome: 'membraneLess' })
-assert.strictEqual(better.matched + worse.matched, 2347, 'the two outcome filters partition')
-checks += 1
-
-const curedF = probe({ ...base, outcome: 'cured' })
-assert.strictEqual(
-  curedF.matched,
-  (doc.cohort as any[]).filter((r) => r.cure?.curedInWindow).length,
-  '"cured in 8h" filter',
-)
-assert.strictEqual(
-  inc.filter((r) => r.cure?.curedInWindow).length,
-  doc.time.curedInWindow,
-  'and its INCLUDED subset is time.curedInWindow',
-)
-checks += 2
-
-const weth = probe({ ...base, asset: 'WETH' })
-assert.strictEqual(
-  weth.visible.length && inc.filter((r) => r.collSymbol === 'WETH').length,
-  doc.byAsset.WETH.accounts,
-  'byAsset counts INCLUDED rows only',
-)
-// byAsset stays over EVERY included row, priced or not — it is the asset table, not the
-// headline. wstETH must now appear with its own row, since it is priced exactly.
-assert.ok(
-  doc.byAsset.wstETH && doc.byAsset.wstETH.accounts > 0,
-  'wstETH has its own per-asset row now that it is priced',
-)
-checks++
-assert.ok(
-  weth.visible.every((r) => r.collSymbol === 'WETH'),
-  'asset filter is exclusive',
-)
-checks += 2
-
-// sorts must actually order
-const byDebt = probe(base).visible
-assert.ok(
-  byDebt.every((r, i) => i === 0 || byDebt[i - 1].debtUsd >= r.debtUsd),
-  'sort: debt desc',
-)
-const bySpared = probe({ ...base, sort: 'spared' }).visible
-assert.ok(
-  bySpared.every((r, i) => i === 0 || sparedUsd(bySpared[i - 1]) >= sparedUsd(r)),
-  'sort: spared desc',
-)
-const byEvents = probe({ ...base, sort: 'events' }).visible
-assert.strictEqual(
-  byEvents[0].events,
-  Math.max(...(doc.cohort as any[]).map((r) => r.events)),
-  'sort: most repeat hits',
-)
-checks += 3
-
-// combined filters must compose
-const combo = probe({ ...base, asset: 'WETH', outcome: 'cured' })
-assert.ok(combo.matched > 0 && combo.matched <= weth.matched, 'filters compose')
-assert.ok(
-  combo.visible.every((r) => r.collSymbol === 'WETH' && r.cure?.curedInWindow),
-  'composed filter is correct',
-)
-checks += 2
-
-console.log(`INTERACTION OK — filter/sort verified headlessly (${checks} total assertions)`)
-console.log(`  "Membrane worse" filter -> ${worse.matched} accounts`)
-console.log(`  "cured in 8h" filter    -> ${curedF.matched} accounts`)
-console.log(`  WETH + cured            -> ${combo.matched} accounts`)
-console.log(`  worst repeat-liquidated -> ${byEvents[0].events} separate liquidations`)

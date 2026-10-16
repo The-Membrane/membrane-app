@@ -302,8 +302,10 @@ test.describe('landing conversion acceptance', () => {
     await expect(page.getByTestId('sim-scale-line')).toContainText(
       'It would have kept $1.3B of collateral over 3.6 years of Aave V3.',
     )
+    // 2026-10-16: the Oct 10 subline reads the full on-chain census (every Aave and Morpho
+    // liquidation of 10-11 Oct 2025, four chains), carries the per-protocol split and the †.
     await expect(page.getByTestId('sim-scale-subline')).toHaveText(
-      '$67M of debt protected from forced closure on 10 Oct 2025 alone.',
+      '$31M of debt protected from forced closure† on 10–11 Oct 2025 alone (Aave $8.6M · Morpho $22.4M).',
     )
     await expect(page.getByTestId('sim-oct10-comparison')).toBeVisible()
     await expect(page.getByText('scrvUSD exit capacity rose $5.92M')).toBeVisible()

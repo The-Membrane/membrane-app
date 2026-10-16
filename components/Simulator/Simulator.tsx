@@ -27,6 +27,7 @@
 // and both are indexable, so the flip is one constant and nothing else.
 
 import { DEMO_BORROWER_MEASURED } from '@/lib/position-sim/demoBorrower'
+import { OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
@@ -218,7 +219,8 @@ const DEMO_WALLET_NOTE: Record<SimMode, string> = {
     'borrows and deploys to see yours.',
   borrower:
     'The default wallet is a real Aave V3 account that was liquidated on 10 Oct 2025, ' +
-    'selected from the 2,347 measured accounts in public/data/oct10-2025/evidence.json. ' +
+    `selected from the ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions of the full on-chain census ` +
+    '(public/data/oct10-2025/evidence-census.json). ' +
     'It had no deployment and none is assumed; paste any address to read a live position.',
 }
 

@@ -33,14 +33,22 @@ const BANDS = [
   { lo: 0.2, hi: 0.4, label: '20-40%' },
   { lo: 0.4, hi: 0.6, label: '40-60%' },
   { lo: 0.6, hi: 0.8, label: '60-80%' },
-  { lo: 0.8, hi: 1, label: 'over 80%' },
+  // Open-ended: a protocol can repay more than the debt at the first liquidation (a borrower
+  // can borrow again between liquidations, and interest accrues), so the top band has no cap.
+  { lo: 0.8, hi: Infinity, label: 'over 80%' },
 ] as const
 
 export interface ForecastGateProps {
-  /** Aave's measured median closed fraction — the ground truth being guessed. */
-  aaveMedianFrac: number
-  /** Membrane's counterfactual median on the same accounts. */
+  /** The protocols' measured median closed fraction — the ground truth being guessed. */
+  realMedianFrac: number
+  /** Membrane's counterfactual median on the same positions (modelled, †). */
   membraneMedianFrac: number
+  /** The same two medians per protocol, so the blend is never shown alone. */
+  split: { label: string; realMedianFrac: number; membraneMedianFrac: number }[]
+  /** How many positions the medians are over. */
+  positions: number
+  /** Positions where Membrane closes more. Read from the census, never typed here. */
+  membraneMore: number
   /** Fired once when the user commits, so the call can be recorded. */
   onCommit?: (bandIndex: number, correct: boolean) => void
 }
@@ -48,12 +56,15 @@ export interface ForecastGateProps {
 const bandFor = (frac: number) => BANDS.findIndex((b) => frac >= b.lo && frac < b.hi)
 
 export const ForecastGate: React.FC<ForecastGateProps> = ({
-  aaveMedianFrac,
+  realMedianFrac,
   membraneMedianFrac,
+  split,
+  positions,
+  membraneMore,
   onCommit,
 }) => {
   const [picked, setPicked] = useState<number | null>(null)
-  const truthBand = bandFor(aaveMedianFrac)
+  const truthBand = bandFor(realMedianFrac)
 
   const commit = (i: number) => {
     if (picked !== null) return
@@ -82,15 +93,25 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
             color={SEMANTIC_COLORS.textPrimary}
             lineHeight="1.8"
           >
-            You said <strong>{BANDS[picked].label}</strong>. Aave closed a median of{' '}
+            You said <strong>{BANDS[picked].label}</strong>. The protocols closed a median of{' '}
             <Text as="span" color={SEMANTIC_COLORS.danger}>
-              {pct(aaveMedianFrac)}
+              {pct(realMedianFrac)}
             </Text>{' '}
-            of each account&rsquo;s debt. Membrane&rsquo;s engine closes{' '}
+            of each position&rsquo;s debt. Membrane&rsquo;s engine closes{' '}
             <Text as="span" color={SEMANTIC_COLORS.success}>
-              {pct(membraneMedianFrac)}
+              {pct(membraneMedianFrac)}†
             </Text>{' '}
-            on the same accounts at the same prices.
+            on the same positions at the same prices.
+          </Text>
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.xs}
+            color={SEMANTIC_COLORS.textSecondary}
+            lineHeight="1.7"
+          >
+            {split
+              .map((s) => `${s.label}: ${pct(s.realMedianFrac)} vs ${pct(s.membraneMedianFrac)}†`)
+              .join(' · ')}
           </Text>
           <Text
             fontFamily={TYPOGRAPHY.fontMono}
@@ -99,7 +120,7 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
             lineHeight="1.7"
           >
             {right
-              ? 'That intuition is the skill this page teaches. The lenses below carry the evidence, including the 105 accounts where our engine does worse.'
+              ? `That intuition is the skill this page teaches. The lenses below carry the evidence, including the ${membraneMore.toLocaleString('en-US')} positions where our engine closes more.`
               : 'Most people guess low. Liquidation sounds like a trim, and it takes most of the loan. Carry that gap into the lenses below.'}
           </Text>
         </VStack>
@@ -122,7 +143,8 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
             fontSize={TYPOGRAPHY.h4}
             color={SEMANTIC_COLORS.textPrimary}
           >
-            When Aave liquidated one of these accounts, how much of the loan did it close?
+            When Aave or Morpho liquidated one of these positions, how much of the loan did it
+            close?
           </Text>
         </VStack>
 
@@ -151,7 +173,8 @@ export const ForecastGate: React.FC<ForecastGateProps> = ({
           fontSize={TYPOGRAPHY.xs}
           color={SEMANTIC_COLORS.textTertiary}
         >
-          Answered on 2,347 real accounts. Scroll to skip. Every figure stays on the page.
+          Answered on {positions.toLocaleString('en-US')} real positions. Scroll to skip. Every
+          figure stays on the page.
         </Text>
       </VStack>
     </Box>

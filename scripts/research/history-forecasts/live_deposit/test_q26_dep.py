@@ -814,6 +814,22 @@ class TestModelB4(unittest.TestCase):
         finally:
             w6.cleanup()
 
+    def test_chain_runs_through_the_model_change(self):
+        """A B3 issue, then a B4 issue the next day: the chain links, the scorer handles both schemas."""
+        w = self.w4
+        _, d1, _ = w.issue(NOW)
+        _, d2, _ = w.issue(NOW + D.DAY, b4=True)
+        idir = D.issues_dir(w.ldir())
+        self.assertEqual(D.verify_chain(idir), [])
+        self.assertEqual(d2["prevSha256"], D.sha256_file(os.path.join(idir, d1["date"] + ".json")))
+        self.assertEqual((d1.get("model"), d2["model"]), (None, "B4"))
+        doc, new = w.score(H + D.DAY + 2 * 3600)
+        self.assertEqual(doc["liveCheckModel"], "B4")
+        self.assertEqual(doc["resolvedB4IssueDaysPerHorizon"]["1h"], 1)
+        self.assertEqual(doc["resolvedIssueDaysPerHorizon"]["1h"], 2)
+        cs = doc["cells"]["x10_1h"]["w1"]
+        self.assertGreater(cs["ps"]["n"], cs["ps4"]["n"])                 # B3 rungs over both days, B4 over day 2
+
     def test_scorer_switches_live_check_to_b4(self):
         w = self.w4
         w.issue(NOW, b4=True)

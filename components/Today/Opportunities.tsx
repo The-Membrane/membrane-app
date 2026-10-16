@@ -207,7 +207,7 @@ function Rates({ v }: { v: RatesView }) {
           <Box as="tr" borderBottom={`1px solid ${NEWS.ruleStrong}`}>
             <Th>{OPP_COPY.venue}</Th>
             <Th align="right">{v.aprHead}</Th>
-            <Th align="right">{OPP_COPY.borrowNow}</Th>
+            <Th align="right">{OPP_COPY.borrowApr}</Th>
           </Box>
         </Box>
         <Box as="tbody">
@@ -307,7 +307,7 @@ function Exits({ size, nowMs }: { size: number; nowMs: number }) {
         <Box as="thead">
           <Box as="tr" borderBottom={`1px solid ${NEWS.ruleStrong}`}>
             <Th>{OPP_COPY.venue}</Th>
-            <Th align="right">{OPP_COPY.exitNow}</Th>
+            <Th align="right">{OPP_COPY.exitAvailable}</Th>
             <Box as="th" scope="col" textAlign="left" py={SPACING.sm} pl={SPACING.sm} sx={LABEL_CELL}>
               {OPP_COPY.how}
             </Box>

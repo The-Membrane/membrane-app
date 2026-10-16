@@ -55,8 +55,9 @@ describe('alarmFinding', () => {
 
   it('levels are ink', () => {
     expect(alarmFinding({ kind: 'utilization', evidence: { utilizationPct: 91.24 } })).toMatchObject({ lead: 'Lent out', figure: '91.3%', loss: false })
+    // What the venue holds for exits: a reading, never an instruction (owner, 2026-10-16).
     expect(alarmFinding({ kind: 'headroom_thin', evidence: { instantUsd: 12.4e6, worstDayOutflowUsd: 9.8e6 } })).toEqual({
-      lead: 'Exit now',
+      lead: 'Exit available',
       figure: '$12.4M',
       loss: false,
       tail: 'vs worst day out $9.8M',
@@ -72,6 +73,22 @@ describe('alarmFinding', () => {
     expect(alarmFinding({ kind: 'gate_change', evidence: null }).lead).toBe('Exit terms changed')
     expect(alarmFinding({ kind: 'terms_page_notice', evidence: null })).toMatchObject({ lead: 'Terms page notice', figure: null })
     expect(alarmFinding({ kind: 'utilization', evidence: {} }).figure).toBe('—')
+  })
+})
+
+describe('no alarm reads as an instruction', () => {
+  it('no lead or tail tells the reader to exit, withdraw, sell or act now', () => {
+    const kinds = ['utilization', 'headroom_thin', 'depth_collapse', 'drawdown_fast', 'net_outflow_streak', 'depth_skew', 'gate_change', 'some_new_kind']
+    const words = [
+      ...kinds.flatMap((kind) => {
+        const f = alarmFinding({ kind, evidence: {} })
+        return [f.lead, f.tail]
+      }),
+      ...Object.values(SAFETY_COPY),
+    ].join(' | ')
+    // A question ("Can your positions exit now?") asks; it does not instruct.
+    expect(words).not.toMatch(/\b(exit|withdraw|sell|leave|act|borrow) now\b(?!\?)/i)
+    expect(words).not.toMatch(/\b(exit|withdraw) (asap|immediately)\b/i)
   })
 })
 

@@ -144,7 +144,7 @@ describe('one position view', () => {
     }
     const week = f.byHorizon['7d'].actions
     expect(week.length).toBeGreaterThan(0)
-    expect(week.every((a) => /^(Repay [\d,]+ USDC|Add [\d.,]+ WETH) · line −\d+% · (<1|\d+)% \((up to \d+|\d+(–\d+)?)%\)$/.test(a.text))).toBe(true)
+    expect(week.every((a) => /^(If you repay [\d,]+ USDC|If you add [\d.,]+ WETH) · line −\d+% · (<1|\d+)% \((up to \d+|\d+(–\d+)?)%\)$/.test(a.text))).toBe(true)
     expect(f.byHorizon['7d'].solve.reason).toBe('ok')
     expect(v.alert).toEqual({ asset: 'ETH', direction: 'fall', distance: v.hero.distance, referencePrice: 4000, referenceSource: 'Aave V3 oracle' })
     expect(v.assumption).toBe("USDC held at today's price")

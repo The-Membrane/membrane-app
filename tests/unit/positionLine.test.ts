@@ -515,25 +515,25 @@ describe('reverse solve', () => {
     expect(reason).toBe('ok')
     expect(rows.map((r) => r.text)).toEqual([
       // 0.21·33,200 − 5,200 = 1,772 → 1,780 USDC → D 26,220 → 21.02% → L 21 → 10% (8–12%)
-      'Repay 1,780 USDC · line −21% · 10% (8–12%)',
-      'Repay 3,440 USDC · line −26% · 5% (3–7%)',
-      'Repay 4,760 USDC · line −30% · 1% (up to 3%)',
+      'If you repay 1,780 USDC · line −21% · 10% (8–12%)',
+      'If you repay 3,440 USDC · line −26% · 5% (3–7%)',
+      'If you repay 4,760 USDC · line −30% · 1% (up to 3%)',
       // (0.21·33,200 − 5,200)/0.79 = 2,243.04 weighted → /(0.83·4000) = 0.6756 → 0.68 WETH
-      'Add 0.68 WETH · line −21% · 10% (8–12%)',
-      'Add 1.40 WETH · line −26% · 5% (3–7%)',
-      'Add 2.05 WETH · line −30% · 1% (up to 3%)',
+      'If you add 0.68 WETH · line −21% · 10% (8–12%)',
+      'If you add 1.40 WETH · line −26% · 5% (3–7%)',
+      'If you add 2.05 WETH · line −30% · 1% (up to 3%)',
     ])
     expect(rows.map((r) => r.short)).toEqual([
-      'Repay 1,780 USDC → 10%',
-      'Repay 3,440 USDC → 5%',
-      'Repay 4,760 USDC → 1%',
-      'Add 0.68 WETH → 10%',
-      'Add 1.40 WETH → 5%',
-      'Add 2.05 WETH → 1%',
+      'If you repay 1,780 USDC → 10%',
+      'If you repay 3,440 USDC → 5%',
+      'If you repay 4,760 USDC → 1%',
+      'If you add 0.68 WETH → 10%',
+      'If you add 1.40 WETH → 5%',
+      'If you add 2.05 WETH → 1%',
     ])
     expect(rows.every((r) => r.horizon === '7d')).toBe(true)
     // The row's parts: the action and its line carry no chance, so STALE can print them alone.
-    expect(rows[0]).toMatchObject({ action: 'Repay 1,780 USDC', line: 'line −21%' })
+    expect(rows[0]).toMatchObject({ action: 'If you repay 1,780 USDC', line: 'line −21%' })
     for (const r of rows) expect(r.text.startsWith(`${r.action} · ${r.line} · `)).toBe(true)
     for (const r of rows) {
       expect(r.newDistancePct).toBeGreaterThanOrEqual(r.level)
@@ -583,7 +583,7 @@ describe('reverse solve', () => {
       for (const h of ['1d', '7d', '30d'] as const) {
         const { rows } = reverseSolve(s, m, TOUCH_TABLE, 'ETH', h, 0.05)
         for (const r of rows.filter((x) => x.kind === 'repay')) {
-          const shown = Number(r.text.match(/^Repay ([\d,]+) USDC · /)![1].replace(/,/g, ''))
+          const shown = Number(r.text.match(/^If you repay ([\d,]+) USDC · /)![1].replace(/,/g, ''))
           expect(shown).toBe(r.amount)
           expect(r.text).not.toMatch(/\$/)
           const after = lineDistance({ ...m, D: (m.D - shown * px) * g })
@@ -654,12 +654,12 @@ describe('reverse solve', () => {
     const s = snap(p)
     const m = lineModel(s, classifyRisk(s))!
     const { rows } = reverseSolve(s, m, LINEAR, 'ETH', '7d', 0)
-    expect(rows[0].text).toMatch(/^Repay [\d.]+ WETH · line \+21% · 10% \(8–12%\)$/)
+    expect(rows[0].text).toMatch(/^If you repay [\d.]+ WETH · line \+21% · 10% \(8–12%\)$/)
     expect(Math.round(rows[0].amount * 100) % 1).toBe(0) // 0.01 WETH steps
     const add = rows.find((r) => r.kind === 'add')!
     expect(add.symbol).toBe('USDC')
     expect(add.amount % 10).toBe(0)
-    expect(add.text).toMatch(/^Add [\d,]+ USDC · line \+\d+% · \d+% \(\d+–\d+%\)$/)
+    expect(add.text).toMatch(/^If you add [\d,]+ USDC · line \+\d+% · \d+% \(\d+–\d+%\)$/)
   })
 
   it('a stable priced a hair under $1 still steps by 10 tokens', () => {

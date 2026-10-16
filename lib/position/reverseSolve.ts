@@ -1,6 +1,7 @@
 /**
  * The reverse solve, written as actions (DESIGN_RULES §7; FORECAST_VISUALS.md "Move your
- * line"): "Repay 4,810 USDC · line −Y% · Z% (lo–hi)", "Add 0.29 WETH · …".
+ * line"): "If you repay 4,810 USDC · line −Y% · Z% (lo–hi)", "If you add 0.29 WETH · …".
+ * Each row opens "If you" (owner, 2026-10-16: bare "Repay" points took too long to read).
  *
  * On the SAME model and the SELECTED horizon as the forecast above it: for each target Z
  * of the horizon's point forecast, find the smallest table level L* whose forecast is at
@@ -56,13 +57,13 @@ export interface ActionRow {
   horizon: HorizonId
   /** Z' and its band: the forecast at Y, at the selected horizon. */
   history: TouchFrequency
-  /** "Repay 480 USDC" */
+  /** "If you repay 480 USDC" */
   action: string
   /** "line −22%" */
   line: string
-  /** "Repay 480 USDC · line −22% · 5% (3–7%)" */
+  /** "If you repay 480 USDC · line −22% · 5% (3–7%)" */
   text: string
-  /** The curve's dot label: "Repay 480 USDC → 5%" */
+  /** One line for the curve's accessible summary: "If you repay 480 USDC → 5%" */
   short: string
 }
 
@@ -223,7 +224,7 @@ export function reverseSolve(
     const h = row.history
     const chance = formatChance(h.touched, h.n)
     // The token amount is the action: a stable at $0.9999 repaid as "$X" would fall short.
-    const what = `${row.kind === 'repay' ? 'Repay' : 'Add'} ${fmtAmount(row.amount, row.amountDecimals)} ${row.symbol}`
+    const what = `If you ${row.kind} ${fmtAmount(row.amount, row.amountDecimals)} ${row.symbol}`
     const line = `line ${fmtMove(row.newDistancePct, row.direction)}`
     rows.push({
       ...row,

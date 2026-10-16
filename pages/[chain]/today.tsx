@@ -23,7 +23,7 @@ const TodayPage = () => (
     <PageSeo
       seoClass="app"
       title="Membrane — Today"
-      description="Market weather: the calm or choppy regime from Chainlink and Coinbase, ETH volatility as options price it (a daily swing, up or down), and the Ethereum base fee, with every input's age."
+      description="Market weather: the calm or choppy regime from Chainlink and Coinbase, ETH volatility as options price it (a daily swing), and the Ethereum base fee, with every input's age."
     />
     <TodayEdition />
   </>

@@ -6,7 +6,6 @@ import {
   formatAge,
   PHONE_LINE_CHARS,
   formatGwei,
-  rarity,
   reasonFor,
   signedPct,
   STRIP_COPY,
@@ -16,7 +15,6 @@ import {
   type WeatherView,
 } from '@/components/Weather/weatherView'
 import { HOUR_MS, type M0Result } from '@/lib/regime/m0'
-import { M0_THRESHOLDS_FILE, oneIn } from '@/lib/regime/thresholds'
 import type { WeatherResponse } from '@/lib/weather/handler'
 
 // The strip's view model: every state the strip must draw (calm, choppy active, choppy
@@ -104,7 +102,6 @@ describe('formatters', () => {
       figure: '−9.2%',
       loss: true,
       tail: 'in 24h',
-      rarity: 'a 1-in-20 day',
     })
     expect(reasonFor([{ ...move, value: 0.0921 }], H)?.loss).toBe(false)
     expect(reasonFor([gap], H)).toEqual({
@@ -112,31 +109,16 @@ describe('formatters', () => {
       figure: '1.91%',
       loss: false,
       tail: 'below Coinbase',
-      rarity: 'a 1-in-1,000 hour',
     })
     expect(reasonFor([{ ...gap, value: 0.02 }], H)?.tail).toBe('above Coinbase')
     expect(reasonFor([gap], H - HOUR_MS)).toBeNull()
   })
 
-  it("the rarity is the generated file's quantile level as 1 in N, never a percentile", () => {
-    const move = { t: H, kind: 'move24h' as const, value: -0.0921, threshold: 0.0814 }
-    const gap = { t: H, kind: 'oracleGap' as const, value: 0.02, threshold: 0.0167 }
-    expect(reasonFor([move], H)?.rarity).toBe(
-      `a 1-in-${oneIn(M0_THRESHOLDS_FILE.move24hQuantile)} day`,
-    )
-    expect(reasonFor([gap], H)?.rarity).toBe(
-      `a 1-in-${oneIn(M0_THRESHOLDS_FILE.gapQuantile).toLocaleString('en-US')} hour`,
-    )
-    // It follows the level it is given: the p99 band on file would read 1 in 100.
-    expect(reasonFor([gap], H, { move24h: 20, gap: oneIn('p99') })?.rarity).toBe('a 1-in-100 hour')
-    expect(rarity(1000, 'hour')).toBe('a 1-in-1,000 hour')
-  })
-
   it('the volatility line says volatility and no direction', () => {
     const s = volatilitySentence(51.69 / Math.sqrt(365))
-    expect(s).toBe('ETH volatility: options price a 2.7% daily swing, up or down.')
+    expect(s).toBe('ETH volatility: options price a 2.7% daily swing.')
     expect(s).toMatch(/volatility/i)
-    expect(s).toMatch(/up or down/)
+    expect(s).not.toMatch(/\b(up|down)\b/i)
     // No sign: the figure is a size, not a direction.
     expect(s).not.toMatch(/[+−±-]\d/)
   })
@@ -150,7 +132,7 @@ describe('weatherView — states', () => {
     expect(v.regime).toEqual({ text: 'Calm', glyph: null, caps: true })
     expect(v.reason).toBeNull()
     expect(v.holds).toBeNull()
-    expect(v.sentence).toBe('ETH volatility: options price a 2.7% daily swing, up or down.')
+    expect(v.sentence).toBe('ETH volatility: options price a 2.7% daily swing.')
     expect(v.credit).toBe('Deribit DVOL ÷ √365 · measured')
     expect(v.gas).toBe('Base fee 0.067 gwei')
     expect(v.ages).toEqual(['Chainlink 12m', 'Coinbase 20m', 'DVOL 40m', 'gas 9s'])
@@ -178,7 +160,6 @@ describe('weatherView — states', () => {
       figure: '−9.2%',
       loss: true,
       tail: 'in 24h',
-      rarity: 'a 1-in-20 day',
     })
     expect(v.since).toBeNull()
     expect(v.holds).toBe('holds to 15 Oct 12:00 UTC')
@@ -401,9 +382,9 @@ describe('weatherView — signed figures', () => {
     )
     expect(v.reason?.figure).toBe('\u221210.5%')
     expect(v.reason?.figure.codePointAt(0)).toBe(0x2212)
-    const printed = [v.regime.text, v.reason?.figure, v.reason?.tail, v.reason?.rarity, v.holds]
-    // A hyphen before a digit is a minus unless it joins a word ("1-in-20").
-    for (const t of printed) expect(t ?? '').not.toMatch(/(^|[^A-Za-z])-\d/)
+    const printed = [v.regime.text, v.reason?.figure, v.reason?.tail, v.holds]
+    // A hyphen before a digit is a minus.
+    for (const t of printed) expect(t ?? '').not.toMatch(/-\d/)
   })
 })
 
@@ -457,7 +438,6 @@ describe('weatherView — plain words in every state (owner, PR #106)', () => {
       v.reason?.lead,
       v.reason?.figure,
       v.reason?.tail,
-      v.reason?.rarity,
       v.since,
       v.holds,
       v.sentence,
@@ -470,9 +450,11 @@ describe('weatherView — plain words in every state (owner, PR #106)', () => {
       .filter(Boolean)
       .join(' · ')
 
-  it.each(Object.keys(states))('%s: no percentile jargon, no verdict words', (k) => {
+  it.each(Object.keys(states))('%s: no percentile or rarity wording, no verdict words', (k) => {
     const text = words(states[k])
     expect(text).not.toMatch(/\bp\d|percentile|quantile|\bband\b/i)
+    expect(text).not.toMatch(/\d-in-\d|\b1 in\b|\bseen\b|\brare\b/i)
+    expect(text).not.toMatch(/\bup or down\b/i)
     expect(text).not.toMatch(/\b(safe|odds)\b/i)
   })
 
@@ -484,6 +466,5 @@ describe('weatherView — plain words in every state (owner, PR #106)', () => {
     for (const k of ['choppy, move', 'choppy, gap', 'choppy, held']) {
       expect(states[k].regime).toEqual({ text: 'Choppy', glyph: '∿', caps: true })
     }
-    expect(states['choppy, gap'].reason?.rarity).toBe('a 1-in-1,000 hour')
   })
 })

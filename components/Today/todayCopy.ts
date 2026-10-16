@@ -1,12 +1,12 @@
 // THE TODAY EDITION — its words and the figures in them. Pure: no React, so the unit tests
 // import it in node. Every figure is read from lib/regime/m0Thresholds.generated.json (the
 // builder's aggregate of membrane-datasets price-history) or from lib/regime/m0.ts. No
-// percentile labels reach the reader (owner, on PR #106): a quantile prints as the plain
-// "1 in N" its level gives (p95 → 1 day in 20).
+// percentile or rarity wording reaches the reader (owner, on PR #106): the table prints
+// the thresholds only.
 
 import { GUARANTEE } from '@/lib/position-sim/guarantee'
 import { HOUR_MS, M0_COVERAGE_WINDOW, M0_MAX_INPUT_AGE_MS, M0_MIN_COVERAGE } from '@/lib/regime/m0'
-import { M0_THRESHOLDS_FILE, m0OneIn, type M0ThresholdsFile } from '@/lib/regime/thresholds'
+import { M0_THRESHOLDS_FILE, type M0ThresholdsFile } from '@/lib/regime/thresholds'
 
 /**
  * The owner's masthead line (a comment on the newspaper canvas, 2026-10-11). It is
@@ -48,23 +48,21 @@ const utcDay = (iso: string) => {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 const pct2 = (v: number) => `${(v * 100).toFixed(2)}%`
-const count = (n: number) => n.toLocaleString('en-US')
 
-/** "How the regime is set": the M0 rule as label/value rows. Each threshold says, in plain
- *  words, how often history reached it and over how many hourly readings. */
+/** "How the regime is set": the M0 rule as label/value rows. Each threshold prints as the
+ *  figure alone. */
 export function regimeRows(
   t: M0ThresholdsFile = M0_THRESHOLDS_FILE,
 ): { label: string; value: string }[] {
-  const oneIn = m0OneIn(t)
   return [
     { label: 'Choppy when', value: 'either test fires in the last 24h' },
     {
       label: 'ETH 24h move',
-      value: `≥ ${pct2(t.move24hP95)} · seen 1 day in ${count(oneIn.move24h)} (${count(t.n.move24h)} hours)`,
+      value: `≥ ${pct2(t.move24hP95)}`,
     },
     {
       label: 'Chainlink vs Coinbase',
-      value: `≥ ${pct2(t.gapP999)} apart · seen 1 hour in ${count(oneIn.gap)} (${count(t.n.gap)} hours)`,
+      value: `≥ ${pct2(t.gapP999)} apart`,
     },
     { label: 'History', value: `hourly, ${utcDay(t.period.from)} – ${utcDay(t.period.to)}` },
     { label: 'Hold', value: 'Holds 24h after the last trigger' },

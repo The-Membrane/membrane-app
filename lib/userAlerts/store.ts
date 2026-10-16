@@ -249,6 +249,10 @@ export type ThresholdEdit = { direction: Direction; threshold: number; editedAt:
  *    its events — so the history still names the line each event fired at;
  *  - a new row holds the new line, opted in at editedAt (the Save press). It starts
  *    NOT crossed (crossed_at NULL): the next reading can fire it, as on a new alert.
+ *    It keeps the old row's created_at, so it holds its place on the alerts page
+ *    (activeThresholds orders by created_at) — and every row of one alert's edit
+ *    chain shares (owner_id, metric, subject, created_at), which the Telegram tick
+ *    uses to keep delivering a replaced row's events (scripts/lib/telegramBot.mjs).
  *    It carries over the READING guard — last_value, last_evaluated_at, last_as_of —
  *    so a reading older than one the old row already moved on is still never
  *    evaluated (the out-of-order guard), and the once-a-minute write throttle holds;
@@ -278,12 +282,12 @@ export async function editThreshold(
       SET stopped_at = ${e.editedAt}::timestamptz
       WHERE id = ${thresholdId}::uuid AND owner_id = ${ownerId}::uuid AND stopped_at IS NULL
         AND (direction, threshold) IS DISTINCT FROM (${e.direction}::text, ${String(e.threshold)}::numeric)
-      RETURNING owner_id, metric, subject, last_value, last_evaluated_at, last_as_of
+      RETURNING owner_id, metric, subject, created_at, last_value, last_evaluated_at, last_as_of
     )
     INSERT INTO user_alert_thresholds
-      (owner_id, metric, subject, direction, threshold, opted_in_at, last_value, last_evaluated_at, last_as_of)
+      (owner_id, metric, subject, direction, threshold, opted_in_at, created_at, last_value, last_evaluated_at, last_as_of)
     SELECT owner_id, metric, subject, ${e.direction}, ${String(e.threshold)}::numeric, ${e.editedAt}::timestamptz,
-           last_value, last_evaluated_at, last_as_of
+           created_at, last_value, last_evaluated_at, last_as_of
     FROM old
     RETURNING id`
   if (rows[0]) return { id: String(rows[0].id), changed: true }

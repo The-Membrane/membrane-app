@@ -139,6 +139,12 @@ describe('metrics', () => {
     expect(checkThreshold('utilization', 100).ok).toBe(true)
     expect(checkThreshold('utilization', 100.1).ok).toBe(false)
     expect(checkThreshold('apr', 500).ok).toBe(true)
+    // bounds apply AFTER the six-decimal rounding: nothing is stored as a $0 price
+    expect(checkThreshold('price', 0.0000004).ok).toBe(false)
+    expect(checkThreshold('price', 0.0000005)).toEqual({ ok: true, value: 0.000001 })
+    expect(checkThreshold('utilization', -0.0000004)).toEqual({ ok: true, value: 0 })
+    expect(Object.is((checkThreshold('utilization', -0.0000004) as { value: number }).value, -0)).toBe(false)
+    expect(checkThreshold('utilization', 100.0000004)).toEqual({ ok: true, value: 100 })
     expect(checkThreshold('apr', 501).ok).toBe(false)
     expect(checkThreshold('apr', NaN).ok).toBe(false)
     expect(checkThreshold('apr', Infinity).ok).toBe(false)

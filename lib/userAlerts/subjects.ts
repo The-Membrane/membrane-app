@@ -37,3 +37,6 @@ let cached: AllowList | null = null
 /** The allow-list for this deploy's recorder config. */
 export const liveAllowList = (): AllowList =>
   (cached ??= allowListFrom((venueConfig as { venues: RecorderVenue[] }).venues))
+
+/** POST and PATCH refuse a (metric, subject) outside the live allow-list with these words. */
+export const subjectError = (metric: Metric): string => `No live ${metric} for that subject.`

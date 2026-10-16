@@ -82,7 +82,9 @@ const world = (opts: { tablesMissing?: boolean; throws?: boolean } = {}) => {
         return [{ id: th({ ownerId, metric, subject, direction, threshold, optedInAt, createdAt: optedInAt }).id }]
       }
       if (q.startsWith('SELECT id, metric, subject, direction, threshold')) {
-        return ths.filter((x) => x.ownerId === v[0] && !x.stoppedAt)
+        expect(q).toContain('ORDER BY created_at ASC')
+        // a stable sort, like ORDER BY created_at over distinct times
+        return ths.filter((x) => x.ownerId === v[0] && !x.stoppedAt).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
       }
       if (q.startsWith('WITH upd AS ( UPDATE user_alert_thresholds SET crossed_at')) {
         expect(q).toContain('AND (last_as_of IS NULL OR last_as_of <= ?::timestamptz)')
@@ -127,14 +129,15 @@ const world = (opts: { tablesMissing?: boolean; throws?: boolean } = {}) => {
         expect(q).toContain('IS DISTINCT FROM')
         expect(q).not.toContain('user_alert_events') // an edit never writes an event
         // the SQL itself carries the reading guard over, and never the crossing
-        expect(q).toContain('RETURNING owner_id, metric, subject, last_value, last_evaluated_at, last_as_of')
-        expect(q).toContain('last_value, last_evaluated_at, last_as_of FROM old RETURNING id')
+        expect(q).toContain('RETURNING owner_id, metric, subject, created_at, last_value, last_evaluated_at, last_as_of')
+        expect(q).toContain('created_at, last_value, last_evaluated_at, last_as_of FROM old RETURNING id')
         expect(q).not.toContain('crossed_at')
         const [editedAt, id, ownerId, dir, threshold, newDir, newThreshold, optedInAt] = v
         const t = ths.find((x) => x.id === id && x.ownerId === ownerId && !x.stoppedAt && (x.direction !== dir || Number(x.threshold) !== Number(threshold)))
         if (!t) return []
         t.stoppedAt = editedAt
-        const n = th({ ownerId, metric: t.metric, subject: t.subject, direction: newDir, threshold: newThreshold, optedInAt, createdAt: optedInAt })
+        // created_at is the old row's: the alert keeps its place (and its edit chain key)
+        const n = th({ ownerId, metric: t.metric, subject: t.subject, direction: newDir, threshold: newThreshold, optedInAt, createdAt: t.createdAt })
         // carried over: the reading guard, never the crossing
         Object.assign(n, { lastValue: t.lastValue, lastEvaluatedAt: t.lastEvaluatedAt, lastAsOf: t.lastAsOf })
         return [{ id: n.id }]
@@ -193,14 +196,17 @@ const tokens = (...list: string[]) => {
   return () => list[i++] ?? `${i}`.padStart(64, 'c')
 }
 
-const alertsHandler = (w: ReturnType<typeof world>, o: { env?: Record<string, string>; limit?: number; newToken?: () => string } = {}) =>
+const alertsHandler = (
+  w: ReturnType<typeof world>,
+  o: { env?: Record<string, string>; limit?: number; limiter?: ReturnType<typeof createRateLimiter>; newToken?: () => string; nowMs?: () => number } = {},
+) =>
   createAlertsHandler({
     env: envOf(o.env ?? DB_ENV),
     sql: () => w.sql,
     allowList: liveAllowList,
-    limiter: createRateLimiter({ limit: o.limit ?? 1000, windowMs: 60_000 }),
+    limiter: o.limiter ?? createRateLimiter({ limit: o.limit ?? 1000, windowMs: 60_000 }),
     newToken: o.newToken ?? tokens(TOKEN_A, TOKEN_B),
-    nowMs: () => T0,
+    nowMs: o.nowMs ?? (() => T0),
   })
 
 const good = {
@@ -385,12 +391,23 @@ describe('GET/DELETE/PATCH /api/alerts/feed/[token]', () => {
     new Map(needs.map((n) => [`${n.metric}|${n.subject}`, typeof r === 'function' ? r() : r] as [string, Reading]))
   const okAt = (value: number, asOf = '2026-10-14T11:00:00.000Z'): Reading => ({ status: 'ok', value, asOf, source: 'Membrane recorder · debt / (debt + available)' })
 
-  const feedHandler = (w: ReturnType<typeof world>, read: ReturnType<typeof reader>, nowMs = () => T0, feedLimit = 1000) =>
+  const feedHandler = (
+    w: ReturnType<typeof world>,
+    read: ReturnType<typeof reader>,
+    nowMs = () => T0,
+    feedLimit = 1000,
+    o: { write?: ReturnType<typeof createRateLimiter>; allowList?: typeof liveAllowList } = {},
+  ) =>
     createFeedHandler({
       env: envOf(DB_ENV),
       sql: () => w.sql,
       readValues: read,
-      limits: { ip: createRateLimiter({ limit: 1000, windowMs: 60_000 }), feed: createRateLimiter({ limit: feedLimit, windowMs: 60_000 }) },
+      allowList: o.allowList ?? liveAllowList,
+      limits: {
+        ip: createRateLimiter({ limit: 1000, windowMs: 60_000 }),
+        feed: createRateLimiter({ limit: feedLimit, windowMs: 60_000 }),
+        write: o.write ?? createRateLimiter({ limit: 1000, windowMs: 60_000 }),
+      },
       nowMs,
     })
 
@@ -803,6 +820,88 @@ describe('GET/DELETE/PATCH /api/alerts/feed/[token]', () => {
       await h({ method: 'PUT', headers: {}, query: { token: TOKEN_A, id } } as any, res)
       expect([res.statusCode, res.headers.allow]).toEqual([405, 'GET, DELETE, PATCH'])
       expect(res.headers).toMatchObject(PRIVATE_HEADERS)
+    })
+
+    it('an edited alert keeps its place: the new row keeps the old created_at', async () => {
+      const w = world()
+      let clock = T0
+      const ah = alertsHandler(w, { nowMs: () => (clock += 60_000) })
+      await postWith(ah, good) // first
+      await postWith(ah, { ...good, threshold: 70, feedToken: TOKEN_A }) // second
+      const [first, second] = w.ths
+      const h = feedHandler(w, reader(okAt(40)), () => (clock += 60_000))
+      const res = await patch(h, TOKEN_A, first.id, { direction: 'above', threshold: 55 })
+      const fresh = w.ths.find((t) => t.id === res.body.id) as Th
+      expect(fresh.createdAt).toBe(first.createdAt)
+      expect(fresh.optedInAt).not.toBe(first.createdAt) // the opt-in is the Save
+      // after a re-read, the edited alert is still first
+      const feed = await get(h, TOKEN_A)
+      expect(feed.body.thresholds.map((t: any) => t.id)).toEqual([fresh.id, second.id])
+    })
+
+    it('a CHANGING edit spends the write budget POST spends; an unchanged Save spends nothing', async () => {
+      const w = await seeded()
+      const write = createRateLimiter({ limit: 2, windowMs: 60_000 })
+      const h = feedHandler(w, reader(okAt(40)), () => T0, 1000, { write })
+      const id = () => activeOf(w, w.owners[0].id)[0].id
+      // unchanged: never counted
+      for (let i = 0; i < 5; i++) expect((await patch(h, TOKEN_A, id(), { direction: 'above', threshold: 50 })).body.changed).toBe(false)
+      // two changes fit the budget, the third is refused BEFORE any write
+      expect((await patch(h, TOKEN_A, id(), { direction: 'above', threshold: 51 })).body.changed).toBe(true)
+      expect((await patch(h, TOKEN_A, id(), { direction: 'above', threshold: 50 })).body.changed).toBe(true)
+      const rows = w.ths.length
+      const third = await patch(h, TOKEN_A, id(), { direction: 'above', threshold: 51 })
+      expect([third.statusCode, third.body, third.headers['retry-after']]).toEqual([429, { error: 'slow down' }, '60'])
+      expect(w.ths).toHaveLength(rows)
+      // another IP has its own budget
+      expect((await patch(h, TOKEN_A, id(), { direction: 'above', threshold: 51 }, '7.7.7.7')).body.changed).toBe(true)
+    })
+
+    it('POST and changing edits share ONE write budget per IP (the 50↔51 loop is bounded)', async () => {
+      const w = world()
+      const write = createRateLimiter({ limit: 3, windowMs: 60_000 })
+      const ah = alertsHandler(w, { limiter: write })
+      const h = feedHandler(w, reader(okAt(40)), () => T0, 1000, { write })
+      expect((await postWith(ah, good, '9.9.9.9')).statusCode).toBe(200) // 1
+      const id = () => activeOf(w, w.owners[0].id)[0].id
+      expect((await patch(h, TOKEN_A, id(), { direction: 'above', threshold: 51 })).statusCode).toBe(200) // 2
+      expect((await patch(h, TOKEN_A, id(), { direction: 'above', threshold: 50 })).statusCode).toBe(200) // 3
+      expect((await patch(h, TOKEN_A, id(), { direction: 'above', threshold: 51 })).statusCode).toBe(429)
+      expect((await postWith(ah, { ...good, feedToken: TOKEN_A }, '9.9.9.9')).statusCode).toBe(429)
+      expect(w.ths).toHaveLength(3)
+    })
+
+    it("refuses an alert whose subject is no longer live — POST's allow-list check", async () => {
+      const w = await seeded()
+      const none = () => ({ price: new Set<string>(), utilization: new Set<string>(), apr: new Set<string>() })
+      const h = feedHandler(w, reader(okAt(40)), () => T0, 1000, { allowList: none })
+      const res = await patch(h, TOKEN_A, w.ths[0].id, { direction: 'below', threshold: 20 })
+      expect([res.statusCode, res.body]).toEqual([400, { error: 'invalid', field: 'subject', message: 'No live utilization for that subject.' }])
+      expect(w.ths.map((t) => [t.threshold, t.stoppedAt])).toEqual([
+        ['50', null],
+        ['10', null],
+      ])
+      // Stop still works on it
+      const del = mockRes()
+      await h({ method: 'DELETE', headers: {}, query: { token: TOKEN_A, id: w.ths[0].id } } as any, del)
+      expect(del.body).toEqual({ stopped: true })
+    })
+
+    it('a price never rounds to $0: bounds apply to the stored (6-decimal) number, on POST and on PATCH', async () => {
+      const w = world()
+      const price = { ...good, metric: 'price', subject: 'asset:ETH', direction: 'below' }
+      const ah = alertsHandler(w)
+      for (const threshold of [0.0000004, '0.0000004', 0.0000001]) {
+        const r = await postWith(ah, { ...price, threshold })
+        expect([r.statusCode, r.body.field]).toEqual([400, 'threshold'])
+      }
+      expect(w.ths).toHaveLength(0)
+      expect((await postWith(ah, { ...price, threshold: 0.0000006 })).statusCode).toBe(200) // rounds to the smallest step
+      expect(w.ths[0].threshold).toBe('0.000001')
+      const h = feedHandler(w, reader(okAt(40)))
+      const r = await patch(h, TOKEN_A, w.ths[0].id, { direction: 'below', threshold: 0.0000004 })
+      expect([r.statusCode, r.body]).toEqual([400, { error: 'invalid', field: 'threshold', message: 'Enter a USD price up to 10,000,000.' }])
+      expect(w.ths[0].stoppedAt).toBeNull()
     })
 
     it('a write failure is 503 and logs no threshold or owner', async () => {

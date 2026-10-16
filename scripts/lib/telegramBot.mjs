@@ -474,12 +474,21 @@ export async function sendThresholdAlerts(sql, { logic, config, evaluate = null,
       log(`telegram threshold alerts: check failed (non-fatal) — ${e?.name ?? 'error'}`)
     }
   }
+  // Events of ACTIVE alerts — and of rows an EDIT replaced, so a crossing recorded on
+  // the old line just before an edit still reaches the chat. An edit keeps created_at
+  // (lib/userAlerts/store.ts editThreshold), so one alert's edit chain shares
+  // (owner_id, metric, subject, created_at); a replaced row is delivered while its
+  // chain still has an active row. After Stop the chain has none: nothing is sent.
   const eventRows = await sql`
     SELECT e.id, e.threshold_id AS "thresholdId", e.kind, e.value, e.at, e.as_of AS "asOf", e.source,
            t.owner_id AS "ownerId", t.metric, t.subject, t.direction, t.threshold
     FROM user_alert_events e
     JOIN user_alert_thresholds t ON t.id = e.threshold_id
-    WHERE t.owner_id = ANY(${ownerIds}) AND t.stopped_at IS NULL AND e.at > now() - interval '7 days'`
+    WHERE t.owner_id = ANY(${ownerIds}) AND e.at > now() - interval '7 days'
+      AND (t.stopped_at IS NULL OR EXISTS (
+        SELECT 1 FROM user_alert_thresholds h
+        WHERE h.owner_id = t.owner_id AND h.metric = t.metric AND h.subject = t.subject
+          AND h.created_at = t.created_at AND h.stopped_at IS NULL))`
   if (eventRows.length === 0) {
     log('telegram threshold alerts: no new events')
     return { sent: 0, failed: 0 }

@@ -72,13 +72,19 @@ export const FEED_TOKEN_RE = /^[0-9a-f]{64}$/
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
 
+/** Stored precision: six decimals (the smallest step is 0.000001). */
+export const THRESHOLD_SCALE = 1e6
+
 /** Threshold validation shared by the API and the form. */
 export const checkThreshold = (
   metric: Metric,
   n: unknown,
 ): { ok: true; value: number } | { ok: false; message: string } => {
   const b = BOUNDS[metric]
-  const v = typeof n === 'number' ? n : NaN
+  // Round FIRST, then bound the number that will be stored: six decimals is finer than
+  // any feed this compares against, and checking before rounding let a price like
+  // 0.0000004 pass "> 0" and be stored as 0.
+  const v = typeof n === 'number' && Number.isFinite(n) ? Math.round(n * THRESHOLD_SCALE) / THRESHOLD_SCALE : NaN
   const low = b.minExclusive ? v > b.min : v >= b.min
   if (!Number.isFinite(v) || !low || v > b.max) {
     const range =
@@ -87,8 +93,8 @@ export const checkThreshold = (
         : `a % from ${b.min} to ${b.max}`
     return { ok: false, message: `Enter ${range}.` }
   }
-  // Six decimals is finer than any feed this compares against.
-  return { ok: true, value: Math.round(v * 1e6) / 1e6 }
+  // Never a negative zero (a "-0.0000001" utilization rounds to 0).
+  return { ok: true, value: v === 0 ? 0 : v }
 }
 
 /** A string threshold the API accepts: a plain decimal. Number('') is 0 and Number('0x10') is 16. */

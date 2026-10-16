@@ -211,12 +211,30 @@ describe('sendThresholdAlerts', () => {
     expect(fetchCalls).toBe(0)
   })
 
-  const world = (opts: { sendOk?: boolean; events?: ThresholdEventRow[] } = {}) => {
+  // Threshold rows, for the delivery query's rule: an event goes out while its row is
+  // active, or while the row's EDIT CHAIN (same owner, metric, subject, created_at —
+  // an edit keeps created_at) still has an active row.
+  type Row = { id: string; ownerId: string; metric: string; subject: string; createdAt: string; stoppedAt: string | null }
+  const world = (opts: { sendOk?: boolean; events?: ThresholdEventRow[]; rows?: Row[] } = {}) => {
     const ledger = new Set<string>()
     const stopped: string[] = []
     const f = fakeSql((q, v) => {
       if (q.startsWith('SELECT owner_id AS "ownerId", chat_id')) return [{ ownerId: 'o1', chatId: '100', createdAt: '2026-10-14T00:00:00.000Z' }]
-      if (q.startsWith('SELECT e.id')) return opts.events ?? [event()]
+      if (q.startsWith('SELECT e.id')) {
+        const evs = opts.events ?? [event()]
+        // the query's own text carries the rule this fake applies
+        expect(q).toContain('AND (t.stopped_at IS NULL OR EXISTS (')
+        expect(q).toContain('h.owner_id = t.owner_id AND h.metric = t.metric AND h.subject = t.subject')
+        expect(q).toContain('AND h.created_at = t.created_at AND h.stopped_at IS NULL))')
+        const rows = opts.rows
+        if (!rows) return evs
+        const chainLive = (t: Row) =>
+          !t.stoppedAt || rows.some((h) => h.ownerId === t.ownerId && h.metric === t.metric && h.subject === t.subject && h.createdAt === t.createdAt && !h.stoppedAt)
+        return evs.filter((e) => {
+          const t = rows.find((r) => r.id === e.thresholdId)
+          return !!t && chainLive(t)
+        })
+      }
       if (q.startsWith('SELECT event_id')) return [...ledger].map((k) => ({ eventId: k.split('|')[0], chatId: k.split('|')[1] }))
       if (q.startsWith('INSERT INTO user_alert_deliveries')) {
         const k = v.join('|')
@@ -268,6 +286,27 @@ describe('sendThresholdAlerts', () => {
     expect(moved?.q).toContain('NOT EXISTS')
     expect(w.calls.some((c) => c.q.startsWith('UPDATE user_alert_chat_links l SET chat_id'))).toBe(true)
     expect(w.ledger.size).toBe(0) // this event's claim released: it goes to the new id next run
+  })
+
+  it('a crossing on the old line just before an EDIT is still sent; after Stop it is not', async () => {
+    const created = '2026-10-14T10:00:00.000Z'
+    const base = { ownerId: 'o1', metric: 'price', subject: 'asset:ETH', createdAt: created }
+    const old: Row = { ...base, id: 't1', stoppedAt: '2026-10-14T12:01:00.000Z' } // replaced by the edit
+    const crossedOnOld = event({ id: 'e1', thresholdId: 't1' })
+    // the edit's replacement (same created_at) is active: the old line's event goes out
+    const edited = world({ events: [crossedOnOld], rows: [old, { ...base, id: 't2', stoppedAt: null }] })
+    const a = tgStub(() => ({ ok: true, result: {} }))
+    expect(await sendThresholdAlerts(edited.sql, { logic, config: lit, fetchImpl: a.fetchImpl, log: silent })).toEqual({ sent: 1, failed: 0 })
+    expect(a.sent[0].body.text).toContain('ETH price reached $2,498.10')
+    // the whole chain stopped (Stop on the replacement): nothing is sent
+    const stoppedChain = world({ events: [crossedOnOld], rows: [old, { ...base, id: 't2', stoppedAt: '2026-10-14T12:30:00.000Z' }] })
+    const b = tgStub(() => ({ ok: true, result: {} }))
+    expect(await sendThresholdAlerts(stoppedChain.sql, { logic, config: lit, fetchImpl: b.fetchImpl, log: silent })).toEqual({ sent: 0, failed: 0 })
+    // a row stopped by Stop is not revived by ANOTHER alert on the same subject (a different created_at)
+    const other = world({ events: [crossedOnOld], rows: [old, { ...base, id: 't3', createdAt: '2026-10-14T11:00:00.000Z', stoppedAt: null }] })
+    const c = tgStub(() => ({ ok: true, result: {} }))
+    expect(await sendThresholdAlerts(other.sql, { logic, config: lit, fetchImpl: c.fetchImpl, log: silent })).toEqual({ sent: 0, failed: 0 })
+    expect(c.sent).toHaveLength(0)
   })
 
   it('/stop says exactly what it ends (addresses too)', () => {

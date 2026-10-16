@@ -14,7 +14,7 @@ One mental model: "set an alert → where you'll get it". The first layer never 
 
 - **One filled action.** "Set alert" is the only filled button (an ink fill, full width at 390px). Everything else is a hairline or a quiet text button. Every target is at least 44px. There is never a row of three buttons.
 - **Groups, with air between them:** the address field; then the number (which number, on the venue page; direction; value; distance from now; as-of); then the action.
-- **The consent line beside the button:** "We keep this number so we can alert you. Only you get the link." There is no opt-in checkbox. The API still requires `optIn: true`, which the control sends only on the press.
+- **The consent line beside the button:** "We keep this number and your address so we can alert you. Only you get the link." It names both things stored: the number and the address (`owner_key`). There is no opt-in checkbox. The API still requires `optIn: true`, which the control sends only on the press.
 - **Venue page:** one control. Where the venue has both utilization and supply APR, a switch picks between them, so the card has one "Set alert".
 - **After the press:** "Alert set." and the alert in words. Under "where you'll get it": "Get it in Telegram" (only when Telegram is on), then "Your alerts page" with "Bookmark it. It shows when your number is reached. Anyone with this link can read these alerts." Then "More ways to get alerts", a disclosure that holds the RSS link and "Copy RSS link". Quiet actions: "Set another" and "Stop this alert".
 - **A full page:** "You have 25 alerts, the most one link holds. Remove one on your alerts page to add another." The number is the API's `max` (else `MAX_ACTIVE_PER_OWNER`). Actions: "Your alerts page", and a quiet "Start a second alerts page".
@@ -28,15 +28,17 @@ One mental model: "set an alert → where you'll get it". The first layer never 
 | apr | enabled recorder venues that the net-APY registry also reads (today: `aave-v3-usde`) | supply APR now, from the net-APY chain read at the finalized block | read older than 240s, or finalized block older than 38 min |
 
 - **Stale or unavailable value:** the threshold is not evaluated. Nothing crosses and nothing clears, and the feed says "not checked".
-  - The UI judges staleness with the same max ages (`lib/userAlerts/freshness.ts`). On a stale value it shows no prefill and no distance-from-now line, and says "Not checked until the value is fresh."
+  - The UI judges staleness with the same max ages (`lib/userAlerts/freshness.ts`). On a stale value it shows no prefill and no distance-from-now line, and says "The live number is out of date. Alerts are not checked until it updates."
   - Caches hold raw values. Every cache hit is judged against the clock again, so a cached value turns stale on time.
 - **Out-of-order readings:** a reading older than the one a threshold last moved on is never evaluated. Each threshold stores `last_as_of`, and every write requires `last_as_of <= the reading's as-of`. So a server instance with an older cached value cannot undo a newer crossing or clear.
 - **Number entry:** a comma is read as a thousands separator only in groups of three (`1,234.5`). A single comma with no dot is the decimal mark (`4,5` is 4.5). Any other comma (`1,23,4`) is refused. The API accepts a string threshold only as a plain decimal. Setting and editing share one rule: `thresholdError` in the form, `apiThreshold` in the API.
+- **Stored precision:** six decimals (`THRESHOLD_SCALE`). The number is rounded first, and the bounds apply to the rounded number. So a price never rounds to $0: `0.0000004` is refused, and `0.0000006` is stored as `0.000001`.
 - **Hysteresis (`lib/userAlerts/metrics.ts`):**
   - Price: 0.5% of the threshold, which equals the Chainlink deviation trigger.
   - Utilization and APR: 0.5 pp.
 - **When values are evaluated:** on every feed read. There is no schedule. The operator's existing hourly alarm tick also evaluates the feeds linked to a Telegram chat, but only once Telegram is on.
 - **Writes per read:** a read with no transition writes `last_value`, `last_evaluated_at` and `last_as_of` only when the value changed, and at most once a minute per threshold. Feed GETs are rate-limited per IP and per IP + token. A malformed token is a 404 before any limiter or database call.
+- **The write budget:** every request that adds a threshold row spends one per-IP budget, 12 per 10 minutes (`WRITE_LIMIT`, `alertWriteLimiter`): a POST, and a PATCH that changes an alert (an edit inserts the replacement row, and stopped rows are kept). An unchanged Save spends nothing. Both routes use one limiter object, so they share the budget wherever they run in one instance. Like every limiter here, it is in memory, per instance.
 
 ## Storage model
 
@@ -50,6 +52,7 @@ Five tables, applied by `scripts/apply-alert-thresholds-ddl.mjs`. They are mirro
   - Holds metric, subject, direction, threshold, `opted_in_at`, `stopped_at`, `last_value`, `last_evaluated_at`, `last_as_of` and `crossed_at`.
   - `crossed_at` is the start of the current crossing. `last_as_of` is the as-of of the reading the state last moved on (the out-of-order guard).
   - `opted_in_at` is when the user pressed Set alert, or Save for an edit.
+  - `created_at` is when the alert was first set. An edit keeps it, so an edited alert keeps its place in the list. The rows of one alert's edit chain share `(owner_id, metric, subject, created_at)`. Only an edit copies `created_at`; every other insert takes `now()`.
   - The API caps a feed at 25 active thresholds.
   - **The cap is soft (known behaviour):** two adds racing at 24 can both land, giving 26. The per-IP rate limit bounds this.
   - **An edit replaces the row.** The old row is stopped and a new row holds the new line ([Editing an alert](#editing-an-alert)). So a feed's rows are its active alerts plus stopped and replaced ones, which keep their events.
@@ -93,14 +96,17 @@ Five tables, applied by `scripts/apply-alert-thresholds-ddl.mjs`. They are mirro
 - The API checks the body's shape first, before any threshold is read:
   - `direction` must be `above` or `below`;
   - a string threshold must be a plain decimal.
-- It then applies the bounds of the row's own metric (`apiThreshold`, the same function POST uses).
+- It then applies POST's other checks to the row:
+  - the row's (metric, subject) must still be on the live allow-list, else `400 subject` (Stop still works on such a row);
+  - the number must fit the bounds of the row's own metric (`apiThreshold`, the same function POST uses).
+- A change spends the write budget POST spends, checked before the write. Over budget is `429` with no write.
 - A bad body writes nothing.
 - The form prefills the stored number exactly, not rounded to display precision. So editing only the direction cannot move the line.
 
 **An edit is a replacement, in one SQL statement.**
 
 - The old row is stopped at the edit time, exactly as Stop does. It keeps its events, so the history still names the line each event fired at.
-- A new row holds the new line, with `opted_in_at` = the edit time.
+- A new row holds the new line, with `opted_in_at` = the edit time and the old row's `created_at`.
 
 **The semantics, each covered by a test:**
 
@@ -117,8 +123,9 @@ Five tables, applied by `scripts/apply-alert-thresholds-ddl.mjs`. They are mirro
 **Known behaviour:**
 
 - **New id.** The edited alert gets a new id. An old RSS item's `#t-<old id>` anchor then finds no active row.
-- **Telegram.** The bot sends only events of active rows. So an old-line event recorded but not yet sent when the edit lands is not sent, the same as after Stop.
-- **The alerts page** puts the new row in the old one's place at once, then re-reads the feed. The re-read checks the new line against the current reading.
+- **Telegram keeps delivering across an edit.** The bot sends events of active rows, and of rows an edit replaced: those whose edit chain (same owner, metric, subject and `created_at`) still has an active row. So a crossing recorded on the old line just before an edit is still sent. After Stop the chain has no active row, and nothing more is sent. This uses the `created_at` chain key, not a column: no DDL. Tests: `tests/unit/userAlertsTelegram.test.ts`.
+- **The alerts page** puts the new row in the old one's place at once, then re-reads the feed. The re-read keeps that place (same `created_at`) and checks the new line against the current reading.
+- **"Stop this alert" after an edit elsewhere.** The panel where the alert was set still holds the old id, so its Stop gets a 404. It then says "This alert was changed or stopped on your alerts page." and links there. It never guesses which row replaced the alert.
 
 ## Future aggregate "intent map": a requirement, not built
 

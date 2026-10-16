@@ -5,8 +5,9 @@ import { apiThreshold, FEED_TOKEN_RE, isDirection, thresholdShapeError, UUID_RE 
 import { clientIp, createRateLimiter, type RateLimiter } from '@/lib/userAlerts/rateLimit'
 import { evaluateOwner, type EvaluateDeps } from '@/lib/userAlerts/service'
 import { activeThresholds, editThreshold, ownerByToken, stopThreshold, type Sql } from '@/lib/userAlerts/store'
+import { liveAllowList, subjectError, type AllowList } from '@/lib/userAlerts/subjects'
 import { liveSources, readValues } from '@/lib/userAlerts/values'
-import { feedPath, neonSql, processEnv, siteUrl, type Env } from '@/pages/api/_lib/userAlerts'
+import { alertWriteLimiter, feedPath, neonSql, processEnv, siteUrl, type Env } from '@/pages/api/_lib/userAlerts'
 
 // GET    /api/alerts/feed/[token]              this owner's thresholds + events (JSON)
 // GET    /api/alerts/feed/[token]?format=rss   the same as RSS 2.0 — the subscription
@@ -14,8 +15,9 @@ import { feedPath, neonSql, processEnv, siteUrl, type Env } from '@/pages/api/_l
 // PATCH  /api/alerts/feed/[token]?id=<uuid>    edit one: body {direction, threshold}
 //        → {id, changed}. An edit REPLACES the row (lib/userAlerts/store.ts
 //        editThreshold): the new id starts not crossed, carries the reading guard, and
-//        no event is written. Same parsing and bounds as POST /api/alerts. An unknown,
-//        stopped or someone else's id is the same 404 as for DELETE.
+//        no event is written. Same parsing, bounds and subject allow-list as POST
+//        /api/alerts, and a CHANGING edit spends POST's per-IP write budget (it inserts
+//        a row). An unknown, stopped or someone else's id is the same 404 as DELETE.
 //
 // The token (32 random bytes, hex) is the capability: it is the ONLY way any
 // threshold is ever returned. An unknown token is a plain 404.
@@ -35,7 +37,13 @@ export type FeedDeps = {
   env: Env
   sql: () => Sql
   readValues: (sql: () => Sql) => EvaluateDeps['readValues']
-  limits: { ip: RateLimiter; feed: RateLimiter }
+  /** The live (metric, subject) allow-list POST checks; an edit checks it too. */
+  allowList: () => AllowList
+  /**
+   * ip / feed: every request. write: per IP, only a PATCH that changes an alert — the
+   * SAME budget as POST /api/alerts (alertWriteLimiter), since both insert a row.
+   */
+  limits: { ip: RateLimiter; feed: RateLimiter; write: RateLimiter }
   nowMs?: () => number
 }
 
@@ -106,9 +114,20 @@ export const createFeedHandler = (deps: FeedDeps) => async (req: NextApiRequest,
       // same 404 Stop gives.
       const current = (await activeThresholds(sql, owner.id)).find((t) => t.id === id)
       if (!current) return res.status(404).json({ error: 'unknown alert' })
-      // The bounds of THIS row's metric — the same rule as creating it.
+      // The same rules as creating it: the row's (metric, subject) must still be live,
+      // and the number must fit THIS row's metric.
+      if (!deps.allowList()[current.metric].has(current.subject)) {
+        return res.status(400).json({ error: 'invalid', field: 'subject', message: subjectError(current.metric) })
+      }
       const th = apiThreshold(current.metric, body.threshold)
       if (!th.ok) return res.status(400).json({ error: 'invalid', field: 'threshold', message: th.message })
+      // An unchanged Save writes nothing and spends nothing. A change inserts a row, so
+      // it spends the write budget POST spends — checked BEFORE the write.
+      const changes = current.direction !== body.direction || current.threshold !== th.value
+      if (changes && deps.limits.write(ip)) {
+        res.setHeader('Retry-After', '60')
+        return res.status(429).json({ error: 'slow down' })
+      }
       const editedAt = new Date((deps.nowMs ?? Date.now)()).toISOString()
       const out = await editThreshold(sql, owner.id, id, { direction: body.direction, threshold: th.value, editedAt })
       return out ? res.status(200).json(out) : res.status(404).json({ error: 'unknown alert' })
@@ -134,10 +153,13 @@ export default createFeedHandler({
   env: processEnv,
   sql: neonSql(processEnv),
   readValues: (sql) => (needs) => readValues(needs, liveSources(sql)),
+  allowList: liveAllowList,
   limits: {
     // Shared feed readers (aggregators) poll many feeds from one IP: generous per IP.
     ip: createRateLimiter({ limit: 300, windowMs: 10 * 60_000 }),
     // One reader of one feed: every 20 s on average is far above any RSS poll (ttl 15 min).
     feed: createRateLimiter({ limit: 30, windowMs: 10 * 60_000 }),
+    // Edits that insert a row share POST's budget (WRITE_LIMIT, 12 per 10 min per IP).
+    write: alertWriteLimiter,
   },
 })

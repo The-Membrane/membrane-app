@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless'
 
+import { createRateLimiter, type RateLimiter } from '@/lib/userAlerts/rateLimit'
 import type { Sql } from '@/lib/userAlerts/store'
 // The bot's ONE env reader (scripts/lib/telegramBot.mjs): the same three names the
 // webhook and the tick use, so "telegram on" means the same thing everywhere.
@@ -30,3 +31,14 @@ export const telegramOn = (env: Env): { on: boolean; username: string } => {
 }
 
 export const feedPath = (token: string): string => `/api/alerts/feed/${token}`
+
+/**
+ * THE WRITE BUDGET: every request that adds a threshold row counts here, per IP —
+ * a POST /api/alerts, and a PATCH that changes an alert (an edit inserts the
+ * replacement row; stopped rows are kept for their history). 12 per 10 min: room for
+ * every control on a page and a few edits, not for a script. One limiter object, so
+ * the two routes share the budget wherever they run in one instance (in memory, per
+ * instance, like every limiter here).
+ */
+export const WRITE_LIMIT = { limit: 12, windowMs: 10 * 60_000 } as const
+export const alertWriteLimiter: RateLimiter = createRateLimiter(WRITE_LIMIT)

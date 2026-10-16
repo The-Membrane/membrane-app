@@ -10,10 +10,10 @@ import {
   MAX_ACTIVE_PER_OWNER,
   thresholdDeepLink,
 } from '@/lib/userAlerts/metrics'
-import { clientIp, createRateLimiter, type RateLimiter } from '@/lib/userAlerts/rateLimit'
+import { clientIp, type RateLimiter } from '@/lib/userAlerts/rateLimit'
 import { addThreshold, createOwnerWithThreshold, ownerByToken, type Sql } from '@/lib/userAlerts/store'
-import { liveAllowList, type AllowList } from '@/lib/userAlerts/subjects'
-import { feedPath, neonSql, processEnv, siteUrl, telegramOn, type Env } from '@/pages/api/_lib/userAlerts'
+import { liveAllowList, subjectError, type AllowList } from '@/lib/userAlerts/subjects'
+import { alertWriteLimiter, feedPath, neonSql, processEnv, siteUrl, telegramOn, type Env } from '@/pages/api/_lib/userAlerts'
 
 // POST /api/alerts — store ONE opt-in threshold ("Alert me at X").
 //
@@ -63,7 +63,7 @@ export const createAlertsHandler = (deps: CreateDeps) => async (req: NextApiRequ
   if (!isMetric(metric)) return bad(res, 'metric', 'Unknown metric.')
   const subject: unknown = body.subject
   if (typeof subject !== 'string' || !deps.allowList()[metric].has(subject)) {
-    return bad(res, 'subject', `No live ${metric} for that subject.`)
+    return bad(res, 'subject', subjectError(metric))
   }
   const direction: unknown = body.direction
   if (!isDirection(direction)) return bad(res, 'direction', "Pick 'above' or 'below'.")
@@ -119,6 +119,6 @@ export default createAlertsHandler({
   env: processEnv,
   sql: neonSql(processEnv),
   allowList: liveAllowList,
-  // 12 stores per 10 min per IP: room for every control on a page, not for a script.
-  limiter: createRateLimiter({ limit: 12, windowMs: 10 * 60_000 }),
+  // The write budget POST shares with an edit that changes an alert (WRITE_LIMIT).
+  limiter: alertWriteLimiter,
 })

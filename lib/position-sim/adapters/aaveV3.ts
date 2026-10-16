@@ -329,6 +329,13 @@ const oracleAbi = [
     inputs: [{ name: 'assets', type: 'address[]' }],
     outputs: [{ type: 'uint256[]' }],
   },
+  {
+    type: 'function',
+    name: 'getAssetPrice',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
   { type: 'function', name: 'BASE_CURRENCY_UNIT', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
 ] as const
 
@@ -394,8 +401,11 @@ async function resolve(
  * pricing a non-stablecoin Morpho market in USD needs a real external USD source for
  * the loan token. Reusing Aave's oracle keeps that number READ rather than invented.
  *
- * Tokens Aave does not list come back as 0 and are OMITTED from the result — the
- * caller must treat a missing key as "no price available" and fail loudly.
+ * Tokens Aave does not list are OMITTED from the result — the caller must treat a missing
+ * key as "no price available" and fail loudly. Each token is its own multicall leg
+ * (`getAssetPrice`): AaveOracle REVERTS for a token with no source and no fallback oracle
+ * (EURCV, 2026-10-16), and one batched `getAssetsPrices` would take every other token down
+ * with it.
  */
 export async function aaveOracleUsdPrices(
   tokens: `0x${string}`[],
@@ -407,21 +417,20 @@ export async function aaveOracleUsdPrices(
   if (tokens.length === 0) return {}
   const client = getMainnetClient()
   const { oracle } = await resolve(client, block, provider, label)
-  const res = await mc<bigint[] | bigint>(
+  const res = await mc<bigint>(
     client,
     [
-      { address: oracle, abi: oracleAbi, functionName: 'getAssetsPrices', args: [tokens] },
       { address: oracle, abi: oracleAbi, functionName: 'BASE_CURRENCY_UNIT' },
+      ...tokens.map((token) => ({ address: oracle, abi: oracleAbi, functionName: 'getAssetPrice', args: [token] })),
     ],
     block,
   )
-  const prices = unwrap(res[0], `${label}: AaveOracle.getAssetsPrices()`) as bigint[]
-  const baseUnit = unwrap(res[1], `${label}: AaveOracle.BASE_CURRENCY_UNIT()`) as bigint
+  const baseUnit = unwrap(res[0], `${label}: AaveOracle.BASE_CURRENCY_UNIT()`)
   const baseDecimals = decimalsFromScale(baseUnit, `${label}: BASE_CURRENCY_UNIT`)
   const out: Record<string, number> = {}
   tokens.forEach((token, i) => {
-    const raw = prices[i]
-    if (raw === undefined || raw === 0n) return // no source configured — omit, never default
+    const raw = optional(res[i + 1])
+    if (raw === null || raw === 0n) return // no source configured (reverted or 0) — omit, never default
     out[token.toLowerCase()] = toNumber(raw, baseDecimals)
   })
   return out

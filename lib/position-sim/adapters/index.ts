@@ -7,9 +7,12 @@
  * rejects — every outcome, including failure, comes back as an `AdapterResult` the UI
  * can render verbatim.
  *
- * STATUS MEANINGS (they are four different claims — do not collapse them):
+ * STATUS MEANINGS (they are five different claims — do not collapse them):
  *   'ok'          we read this protocol and found at least one position
  *   'empty'       we read this protocol successfully; the address holds nothing
+ *   'incomplete'  we read every market we could find and none held a position, but we
+ *                 could not find every market (Morpho Blue discovery fell back); a
+ *                 position elsewhere would not show, so this is NOT "nothing found"
  *   'error'       the read failed; `message` is the real error, shown as-is
  *   'unsupported' we never looked — this protocol has no reader yet (Fluid)
  */
@@ -19,7 +22,7 @@ import { aaveV3Adapter, sparkAdapter } from './aaveV3'
 import { compoundV3Adapter } from './compoundV3'
 import { fluidAdapter } from './fluid'
 import { morphoBlueAdapter } from './morphoBlue'
-import { PartialReadError, UnsupportedError, type LendingAdapter } from './types'
+import { PartialReadError, UnsupportedError, discoveryNote, type LendingAdapter } from './types'
 
 export * from './types'
 export {
@@ -56,17 +59,26 @@ export async function runAdapter(
   const startedAt = Date.now()
   try {
     const positions = await adapter.read(address).catch((e: unknown) => {
-      // A sub-market dropped on a sanity check: keep what was read, and name what was not.
-      if (e instanceof PartialReadError && e.positions.length > 0) return e
+      // A sub-market dropped on a check, or a partial market discovery: keep what was read,
+      // and name what was not. A dropped market with nothing left is still a failure.
+      if (e instanceof PartialReadError && (e.positions.length > 0 || e.skipped.length === 0)) return e
       throw e
     })
     if (positions instanceof PartialReadError) {
+      const { discovery, skipped } = positions
+      const found = positions.positions.length > 0
+      const partial = discovery !== undefined && !discovery.complete
       return {
         protocol: adapter.id,
         label: adapter.label,
-        status: 'ok',
+        // Nothing found but not every market checked: never "empty", never "no position found".
+        status: found ? 'ok' : partial ? 'incomplete' : 'empty',
         positions: positions.positions,
-        skipped: positions.skipped,
+        ...(skipped.length > 0 ? { skipped } : {}),
+        ...(discovery ? { discovery } : {}),
+        ...(found
+          ? {}
+          : { message: partial ? `no position in the markets checked: ${discoveryNote(discovery)}` : 'no position found' }),
         fetchedAt: Date.now(),
         tookMs: Date.now() - startedAt,
       }
@@ -92,7 +104,7 @@ export async function runAdapter(
       status: unsupported ? 'unsupported' : 'error',
       positions: [],
       message,
-      ...(e instanceof PartialReadError ? { skipped: e.skipped } : {}),
+      ...(e instanceof PartialReadError ? { skipped: e.skipped, ...(e.discovery ? { discovery: e.discovery } : {}) } : {}),
       fetchedAt: Date.now(),
       tookMs: Date.now() - startedAt,
     }

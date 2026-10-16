@@ -4,7 +4,8 @@
  */
 
 import { computeMetrics, type PositionMetrics } from '@/lib/positionAlerts/metrics'
-import type { AdapterResult, AdapterStatus, ProtocolId, ProtocolPosition } from '@/lib/position-sim/types'
+import type { AdapterResult, AdapterStatus, MarketDiscovery, ProtocolId, ProtocolPosition } from '@/lib/position-sim/types'
+import { discoveryNote } from '@/lib/position-sim/adapters/types'
 import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
 
 import {
@@ -79,12 +80,14 @@ export function priceSourceOf(p: ProtocolPosition): string {
       return 'Spark oracle'
     case 'morpho-blue': {
       // The adapter's detail says how the loan token got its USD price: an assumed $1 peg,
-      // or a read of the Aave V3 oracle. Both reach the hero's source line.
+      // or a read of the Aave V3 oracle. Both reach the hero's source line. A lender's
+      // position is the loan token alone: the market oracle prices nothing in it.
       const detail = p.provenance.detail ?? ''
+      const oracle = p.status === 'supply-only' ? '' : 'Morpho market oracle, '
       const assumed = detail.match(/loan token (\S+) treated as exactly \$1\.00/)
-      if (assumed) return `Morpho market oracle, ${assumed[1]} taken as $1`
+      if (assumed) return `${oracle}${assumed[1]} taken as $1`
       const aave = detail.match(/Loan token (\S+) priced at \$[\d.e+-]+ from the Aave V3 oracle/)
-      return aave ? `Morpho market oracle, ${aave[1]} priced by the Aave V3 oracle` : 'Morpho market oracle'
+      return aave ? `${oracle}${aave[1]} priced by the Aave V3 oracle` : 'Morpho market oracle'
     }
     case 'compound-v3':
       return 'Compound V3 price feed'
@@ -105,6 +108,17 @@ export interface ReadStatusItem {
   message?: string
   /** Sub-markets (Comets) a sanity check dropped from a read that otherwise stands. */
   skipped?: { market: string; reason: string }[]
+  /** How the markets were found (Morpho Blue). `complete: false` = not every market checked. */
+  discovery?: MarketDiscovery
+}
+
+/** True when the read could not check every market the address may hold. */
+export const partialDiscovery = (s: Pick<ReadStatusItem, 'discovery'>): boolean =>
+  s.discovery !== undefined && !s.discovery.complete
+
+/** "412 known markets only" / "first 64 markets only": what a partial read did check. */
+export function partialTag(d: MarketDiscovery): string {
+  return d.source === 'known-market list' ? `${d.checked} known markets only` : `first ${d.checked} markets only`
 }
 
 /** Every adapter starts 'pending'; each result replaces its slot when it lands. */
@@ -122,19 +136,24 @@ export function readStatus(
       positions: r.positions.length,
       message: r.message,
       ...(r.skipped?.length ? { skipped: r.skipped } : {}),
+      ...(r.discovery ? { discovery: r.discovery } : {}),
     }
   })
 }
 
 /** "Aave V3 read" / "Fluid not supported yet" / "Spark failed" / "Morpho Blue reading…" */
 export function statusWord(s: ReadStatusItem): string {
+  const partial = s.discovery && !s.discovery.complete ? ` · ${partialTag(s.discovery)}` : ''
   switch (s.state) {
     case 'pending':
       return `${s.label} reading…`
     case 'ok':
-      return `${s.label} read · ${s.positions} found`
+      return `${s.label} read · ${s.positions} found${partial}`
     case 'empty':
       return `${s.label} read`
+    case 'incomplete':
+      // Not "nothing found": markets outside the list were never checked.
+      return `${s.label} read${partial}`
     case 'error':
       return `${s.label} failed`
     case 'unsupported':
@@ -148,10 +167,17 @@ export function statusWord(s: ReadStatusItem): string {
  */
 export function statusSentence(items: ReadStatusItem[]): string {
   const names = (pred: (i: ReadStatusItem) => boolean) => items.filter(pred).map((i) => i.label)
-  // A read that dropped a Comet says which, in place: "Compound V3 (cUSDCv3 skipped)".
+  // A read that dropped a Comet says which, in place: "Compound V3 (cUSDCv3 skipped)"; a read
+  // that could not check every market says so: "Morpho Blue (412 known markets only)".
   const read = items
-    .filter((i) => i.state === 'ok' || i.state === 'empty')
-    .map((i) => (i.skipped?.length ? `${i.label} (${i.skipped.map((s) => s.market).join(', ')} skipped)` : i.label))
+    .filter((i) => i.state === 'ok' || i.state === 'empty' || i.state === 'incomplete')
+    .map((i) => {
+      const notes = [
+        ...(i.skipped?.length ? [`${i.skipped.map((s) => s.market).join(', ')} skipped`] : []),
+        ...(i.discovery && !i.discovery.complete ? [partialTag(i.discovery)] : []),
+      ]
+      return notes.length ? `${i.label} (${notes.join('; ')})` : i.label
+    })
   const pending = names((i) => i.state === 'pending')
   const failed = names((i) => i.state === 'error')
   const unsupported = names((i) => i.state === 'unsupported')
@@ -423,7 +449,7 @@ export function lineTag(v: PositionView): string {
     case 'unreachable':
       return v.hero.cause === 'interest' ? 'only interest moves the line' : 'no price reaches the line'
     case 'no-debt':
-      return 'no debt'
+      return v.position.status === 'supply-only' ? 'lending only' : 'no debt'
     case 'unsplit':
       return `HF ${v.hero.healthFactor.toFixed(2)}`
   }
@@ -441,7 +467,8 @@ export function sortNearest(views: PositionView[]): PositionView[] {
 export type PageState =
   | { kind: 'idle' }
   | { kind: 'reading' }
-  /** Every adapter answered and nothing was found on a supported venue. */
+  /** Every adapter answered and nothing was found on a supported venue (for an 'incomplete'
+   *  venue: in the markets it could check — NoPositions must not call that "none"). */
   | { kind: 'none'; unsupported: string[]; failed: string[] }
   | { kind: 'positions'; views: PositionView[]; failed: string[]; unsupported: string[] }
 
@@ -464,6 +491,39 @@ export function pageState(
   }
   if (items.some((i) => i.state === 'pending')) return { kind: 'reading' }
   return { kind: 'none', unsupported, failed }
+}
+
+/** What the "nothing found" body says. Pure, so the "never claim none" rule is tested. */
+export interface NoneCopy {
+  headline: string
+  /** Venues that checked every market and hold nothing: "Nothing on Aave V3 / Spark." */
+  nothingOn: string[]
+  /** One line per venue that could not check every market, saying what it did check. */
+  partial: string[]
+}
+
+/**
+ * "No open position found" ONLY when every supported venue read completely. A failed venue,
+ * or one whose market discovery was partial (Morpho Blue on its known-market list), may
+ * hold a position no read saw, so the headline says what could not be checked instead.
+ */
+export function noneCopy(items: ReadStatusItem[]): NoneCopy {
+  const nothingOn = items.filter((i) => (i.state === 'empty' || i.state === 'ok') && !partialDiscovery(i)).map((i) => i.label)
+  const partialItems = items.filter((i) => i.state !== 'error' && partialDiscovery(i))
+  const failed = items.filter((i) => i.state === 'error')
+  const headline =
+    nothingOn.length === 0 && partialItems.length === 0
+      ? 'Could not read this address'
+      : failed.length > 0
+        ? 'Not every venue could be read'
+        : partialItems.length > 0
+          ? 'Not every market could be checked'
+          : 'No open position found'
+  return {
+    headline,
+    nothingOn,
+    partial: partialItems.map((i) => `${i.label}: nothing in the markets checked; ${discoveryNote(i.discovery as MarketDiscovery)}.`),
+  }
 }
 
 // ------------------------------------------------------------------ copy from constants

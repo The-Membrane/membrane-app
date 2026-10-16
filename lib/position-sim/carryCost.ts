@@ -33,9 +33,9 @@
  *
  * THE OTHER REFUSAL: legs whose adapter did not expose a borrow APR contribute nothing.
  * They are summed into `unpricedDebtUsd` so the surface can say "we could not read the
- * rate on $X" instead of inventing one. Morpho Blue is the live example — its adapter
- * returns `borrowApr: null` (adapters/morphoBlue.ts), so a Morpho-only position yields
- * no cost line and the hero falls back to the safety verdict.
+ * rate on $X" instead of inventing one. A Morpho Blue market whose IRM read failed is the
+ * live example — its adapter then returns `borrowApr: null` (adapters/morphoBlue.ts), so
+ * that position yields no cost line.
  */
 
 import type { ProtocolPosition } from './types'

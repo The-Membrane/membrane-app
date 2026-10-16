@@ -148,7 +148,8 @@ function addLeg(s: PositionSnapshot, m: LineModel): (Leg & { moving: boolean }) 
  * ACCRUAL BUFFER. A row must still hold when the reader acts, not only at read time: debt
  * keeps accruing. Every amount is solved so the line stays at or past L* after this many
  * hours of interest on ALL debt, at the highest borrow APR the read reports (or
- * FALLBACK_BORROW_APR where a venue's rate was not read, e.g. Morpho), whichever way the
+ * FALLBACK_BORROW_APR where a venue's rate was not read, e.g. a Morpho market whose IRM
+ * read failed; the adapter's provenance says so), whichever way the
  * hours fall: repaid now and accruing after, (D − X)·g, or accruing first and repaid at the
  * end, D·g − X — the second leaves more debt, so it is the one that binds. A top-up holds
  * either way alike.

@@ -6,12 +6,13 @@ import { Box, Text } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
 import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
+import { discoveryNote } from '@/lib/position-sim/adapters/types'
 import { fmtAmount, fmtUsd, fmtUtc } from '@/lib/position/format'
 import { priceDecimals } from '@/lib/position/liquidation'
 
 import { Kicker, Mono, Section, Small } from './primitives'
 import { CAPS, TYPE } from './typeScale'
-import type { PositionView, ReadStatusItem } from './viewModel'
+import { partialDiscovery, type PositionView, type ReadStatusItem } from './viewModel'
 
 const pct = (x: number, d = 1) => (Number.isFinite(x) ? `${(x * 100).toFixed(d)}%` : '∞')
 const amountDecimals = (amount: number) => (amount >= 1000 ? 2 : amount >= 1 ? 4 : 6)
@@ -39,7 +40,7 @@ const Pair: React.FC<{ k: string; v: string }> = ({ k, v }) => (
 )
 
 interface LegRow {
-  side: 'Collateral' | 'Debt'
+  side: 'Collateral' | 'Debt' | 'Supplied'
   address: string
   symbol: string
   amount: number
@@ -72,6 +73,16 @@ export const Instrument: React.FC<{ view: PositionView; failures: ReadStatusItem
       price: d.priceUsd,
       value: d.valueUsd,
       last: d.borrowApr === null ? 'APR not read' : `APR ${pct(d.borrowApr, 2)}`,
+    })),
+    // Lent into the market: not collateral, so no threshold and no line.
+    ...(p.supplied ?? []).map((x) => ({
+      side: 'Supplied' as const,
+      address: x.address,
+      symbol: x.symbol,
+      amount: x.amount,
+      price: x.priceUsd,
+      value: x.valueUsd,
+      last: 'lent, not collateral',
     })),
   ]
   const hfProtocol = Number.isFinite(p.healthFactor) ? p.healthFactor.toFixed(3) : '∞ (no debt)'
@@ -215,11 +226,18 @@ export const Instrument: React.FC<{ view: PositionView; failures: ReadStatusItem
                 ✖ {f.label} failed: {f.message ?? 'no message'}
               </Small>
             ) : (
-              (f.skipped ?? []).map((s) => (
-                <Small key={`${f.protocol}:${s.market}`} color={NEWS.ink2} overflowWrap="anywhere">
-                  ✖ {f.label}: {s.market} skipped: {s.reason}
-                </Small>
-              ))
+              <React.Fragment key={f.protocol}>
+                {(f.skipped ?? []).map((s) => (
+                  <Small key={`${f.protocol}:${s.market}`} color={NEWS.ink2} overflowWrap="anywhere">
+                    ✖ {f.label}: {s.market} skipped: {s.reason}
+                  </Small>
+                ))}
+                {f.discovery && partialDiscovery(f) && (
+                  <Small color={NEWS.ink2} overflowWrap="anywhere">
+                    ✖ {f.label}: {discoveryNote(f.discovery)}.
+                  </Small>
+                )}
+              </React.Fragment>
             ),
           )}
         </Box>

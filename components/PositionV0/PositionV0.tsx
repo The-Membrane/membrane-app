@@ -28,7 +28,9 @@ import { usePositionTarget } from './usePositionTarget'
 import {
   MODELLED_FOOTER,
   PROTOCOL_SHORT,
+  noneCopy,
   pageState,
+  partialDiscovery,
   readStatus,
   statusSentence,
   type PageState,
@@ -59,14 +61,19 @@ const Reading: React.FC<{ address: string }> = ({ address }) => (
 )
 
 const NoPositions: React.FC<{ address: string; items: ReadStatusItem[] }> = ({ address, items }) => {
-  const read = items.filter((i) => i.state === 'empty' || i.state === 'ok').map((i) => i.label)
+  const copy = noneCopy(items)
   const failed = items.filter((i) => i.state === 'error')
   const unsupported = items.filter((i) => i.state === 'unsupported').map((i) => i.label)
   return (
     <Section id="none">
       <Kicker tone="muted">{shortAddr(address)}</Kicker>
-      <Headline as="h1">{read.length > 0 ? 'No open position found' : 'Could not read this address'}</Headline>
-      {read.length > 0 && <Mono color={NEWS.ink2}>Nothing on {read.join(' / ')}.</Mono>}
+      <Headline as="h1">{copy.headline}</Headline>
+      {copy.nothingOn.length > 0 && <Mono color={NEWS.ink2}>Nothing on {copy.nothingOn.join(' / ')}.</Mono>}
+      {copy.partial.map((line) => (
+        <Mono key={line} color={NEWS.ink2} overflowWrap="anywhere">
+          {line}
+        </Mono>
+      ))}
       {unsupported.length > 0 && (
         <Mono color={NEWS.ink2}>{unsupported.join(' / ')} is not read yet: a position there would not show.</Mono>
       )}
@@ -141,7 +148,7 @@ const Body: React.FC<{
       views={state.views}
       selected={selected}
       onSelect={onSelect}
-      failures={items.filter((i) => i.state === 'error' || (i.skipped?.length ?? 0) > 0)}
+      failures={items.filter((i) => i.state === 'error' || (i.skipped?.length ?? 0) > 0 || partialDiscovery(i))}
       address={address}
       staleAge={staleAge}
     />

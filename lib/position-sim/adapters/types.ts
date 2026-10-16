@@ -12,7 +12,7 @@
  */
 
 import type { PublicClient } from 'viem'
-import type { ProtocolId, ProtocolPosition } from '../types'
+import type { MarketDiscovery, ProtocolId, ProtocolPosition } from '../types'
 
 export interface LendingAdapter {
   id: ProtocolId
@@ -47,18 +47,32 @@ export class SanityCheckError extends Error {
 }
 
 /**
- * Thrown by an adapter that read some sub-markets and dropped others on a sanity check.
- * Carries what it did read; the registry reports both (status 'ok' with `skipped`, or
- * 'error' when nothing was left).
+ * Thrown by an adapter whose read stands but is not whole: it dropped some sub-markets on a
+ * check (`skipped`), or it could not find every market an address may hold (`discovery`
+ * with complete: false — Morpho Blue). Carries what it did read; the registry reports it
+ * (status 'ok' with `skipped`/`discovery`; 'error' when a found position was dropped and
+ * nothing was left; 'incomplete' when nothing was found but discovery was partial).
  */
 export class PartialReadError extends Error {
   constructor(
     readonly positions: ProtocolPosition[],
     readonly skipped: { market: string; reason: string }[],
+    readonly discovery?: MarketDiscovery,
   ) {
-    super(skipped.map((s) => `${s.market} skipped: ${s.reason}`).join('; '))
+    super(
+      [
+        ...skipped.map((s) => `${s.market} skipped: ${s.reason}`),
+        ...(discovery && !discovery.complete ? [discoveryNote(discovery)] : []),
+      ].join('; '),
+    )
     this.name = 'PartialReadError'
   }
+}
+
+/** "only 412 markets from the known-market list were checked (Morpho API: HTTP 429)" */
+export function discoveryNote(d: MarketDiscovery): string {
+  const reason = d.reason ? ` (${d.reason})` : ''
+  return `only ${d.checked} markets from the ${d.source} were checked${reason}; a position in any other market would not show`
 }
 
 // ------------------------------------------------------------------ multicall
@@ -103,6 +117,9 @@ export async function mc<T>(
   client: PublicClient,
   contracts: Call[],
   blockNumber: bigint | null,
+  /** Calldata bytes per Multicall3 chunk (viem's default is 1,024). A wide fan-out of
+   *  small calls — a Morpho market scan — passes more, so it is a few eth_calls, not dozens. */
+  batchSize?: number,
 ): Promise<MulticallEntry<T>[]> {
   if (contracts.length === 0) return []
   const res = await client.multicall({
@@ -110,6 +127,7 @@ export async function mc<T>(
     contracts: contracts as any,
     allowFailure: true,
     ...(blockNumber !== null ? { blockNumber } : {}),
+    ...(batchSize !== undefined ? { batchSize } : {}),
   })
   return res as unknown as MulticallEntry<T>[]
 }

@@ -189,7 +189,7 @@ empty wallet.
 |---|---|---|
 | **Aave V3** | working | Addresses resolved through `PoolAddressesProvider` so an upgrade cannot break it. Aggregate from `getUserAccountData`; per-leg breakdown from `PoolDataProvider`; prices from `AaveOracle`. |
 | **Spark** | working | Aave V3 fork — same factory, different `PoolAddressesProvider`. |
-| **Morpho Blue** | working | No on-chain enumeration of a user's markets exists, so it multicalls `position()` across the market list committed in `protocols.json`, then reads `idToMarketParams` on-chain. Borrow APR is `null` — reading it needs the external adaptive-curve IRM, which is not wired. `null` is the honest answer. |
+| **Morpho Blue** | working | No on-chain enumeration of a user's markets exists, so the market LIST comes from the Morpho API (`userByAddress.marketPositions`, capped at 64 markets, open first); every number is then read on-chain at the pinned block (`position`, `market`, `idToMarketParams`, the market oracle). If the API fails, times out or rate-limits, it scans the known-market list instead (the committed `protocols.json` markets plus the curator exposure snapshot's, `lib/position-sim/adapters/morphoMarkets.generated.json`) and the read is a named PARTIAL discovery: status `incomplete` when nothing is found, never `empty`. Borrow APR is the market IRM's `borrowRateView` at the pinned block, and debt is accrued to the block timestamp as Morpho does before a liquidation; `null` only when that read fails, and the provenance says so. Supply-only positions come back with status `supply-only`. |
 | **Compound V3** | working | All six mainnet Comets the Configurator lists: cUSDCv3, cWETHv3, cUSDTv3, cwstETHv3, cUSDSv3, cWBTCv3. ETH-, wstETH- and BTC-quoted prices converted to USD. Real borrow APR. |
 | **Fluid** | **stub** | Throws `UnsupportedError` with an explanation. The VaultResolver enumeration and tick decoding are not implemented. Reported as `unsupported`, never as an empty wallet. |
 
@@ -197,9 +197,11 @@ empty wallet.
 
 Morpho loan tokens **USDC / USDT / DAI are valued at exactly $1.00**, matched by address
 rather than symbol. Every affected position carries this in `provenance.detail`. Any other
-loan token is priced off the Aave V3 oracle; if Aave has no source for it, the adapter
-**throws naming the market and token** rather than inventing a price. One exotic Morpho
-market therefore fails the whole Morpho read — that is deliberate.
+loan token is priced off the Aave V3 oracle; if Aave has no source for it, that market is
+**skipped, naming the market and token**, rather than priced by invention. The other Morpho
+markets still read (the skip is shown beside them); with nothing left the Morpho read is an
+error. Discovery now finds every market an address holds, so one exotic market (an EURCV
+loan) must not hide the rest.
 
 ### RPC
 
@@ -257,7 +259,7 @@ editable in the UI, because they are the variable that moves the result most.
    eMode, isolation mode and collateral flags, so the totals are right, but the per-leg
    thresholds shown are the reserve's base values.
 7. **Fluid is not implemented.** §4.
-8. **Morpho borrow APR is `null`.** §4.
+8. **Morpho borrow APR is `null` only when the IRM read fails, and Morpho discovery is partial when the Morpho API cannot be asked.** §4.
 9. **The wstETH oracle in the dataset is the stETH feed.** §2.
 10. **Adapters are not covered by network tests** — only their pure decoding/scaling
     arithmetic is. There is no fixture RPC in this repo.

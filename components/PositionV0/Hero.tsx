@@ -118,7 +118,18 @@ function heroCopy(view: PositionView): HeroCopy {
         sentence: `A ${hero.symbol} ${hero.direction} alone cannot liquidate it.`,
       }
     }
-    case 'no-debt':
+    case 'no-debt': {
+      // A lender's position: what it supplies, which no liquidation can touch.
+      const supplied = view.position.supplied ?? []
+      if (view.position.status === 'supply-only' && supplied.length > 0) {
+        return {
+          ...plain,
+          lead: 'Lending only, no liquidation line',
+          figure: fmtUsd(supplied.reduce((s, x) => s + x.valueUsd, 0)),
+          sub: `supplied ${supplied.map((x) => x.symbol).join(' + ')} · ${priceSource}`,
+          sentence: 'Nothing here can be liquidated.',
+        }
+      }
       return {
         ...plain,
         lead: 'No debt, no liquidation line',
@@ -126,6 +137,7 @@ function heroCopy(view: PositionView): HeroCopy {
         sub: `collateral · ${priceSource}`,
         sentence: 'Nothing here can be liquidated.',
       }
+    }
   }
 }
 

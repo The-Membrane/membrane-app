@@ -67,6 +67,27 @@ export interface DebtLeg {
   borrowApr: number | null
 }
 
+/**
+ * An asset the address LENDS into a market (Morpho Blue supply). It is not collateral: no
+ * borrow is secured by it and no liquidation can touch it, so no line is computed on it.
+ */
+export interface SuppliedLeg {
+  symbol: string
+  address: string
+  decimals: number
+  amount: number
+  priceUsd: number
+  valueUsd: number
+}
+
+/**
+ * What the address holds in one position, where an adapter states it:
+ *   'borrowing'        it owes debt here — the only case with a liquidation line
+ *   'collateral-only'  collateral posted, nothing borrowed
+ *   'supply-only'      it only lends into the market: no collateral, no debt
+ */
+export type PositionStatus = 'borrowing' | 'collateral-only' | 'supply-only'
+
 /** A single position on a single protocol. */
 export interface ProtocolPosition {
   protocol: ProtocolId
@@ -85,9 +106,33 @@ export interface ProtocolPosition {
   /** Protocol's own health factor where it exposes one, else derived. */
   healthFactor: number
   provenance: Provenance
+  /** Set by adapters that can hold a position with no debt (Morpho Blue). Unset = not stated. */
+  status?: PositionStatus
+  /** Assets lent into this market, when the adapter reads them. Never part of a line. */
+  supplied?: SuppliedLeg[]
 }
 
-export type AdapterStatus = 'ok' | 'empty' | 'error' | 'unsupported'
+/**
+ * 'incomplete': the adapter read every market it could FIND and none held a position, but
+ * it could not find every market (Morpho Blue has no on-chain index of an address's
+ * markets; see `MarketDiscovery`). Different from 'empty': a position may exist that was
+ * never checked, so the page must not say "no position found".
+ */
+export type AdapterStatus = 'ok' | 'empty' | 'incomplete' | 'error' | 'unsupported'
+
+/**
+ * How an adapter found the markets it read, for a protocol whose positions cannot be
+ * enumerated on-chain. `complete: false` means markets outside `source` were not checked.
+ */
+export interface MarketDiscovery {
+  complete: boolean
+  /** Where the market list came from, e.g. "Morpho API" or "known-market list". */
+  source: string
+  /** Markets whose on-chain position was read. */
+  checked: number
+  /** Why discovery is incomplete (an API failure, a cap), shown verbatim. */
+  reason?: string
+}
 
 /** Each adapter fails independently — one broken protocol never blanks the page. */
 export interface AdapterResult {
@@ -95,13 +140,15 @@ export interface AdapterResult {
   label: string
   status: AdapterStatus
   positions: ProtocolPosition[]
-  /** Plain-language reason when status is 'error' or 'unsupported'. Shown verbatim. */
+  /** Plain-language reason when status is 'error', 'incomplete' or 'unsupported'. Shown verbatim. */
   message?: string
   /**
    * Sub-markets (one Comet) a sanity check dropped from an otherwise good read, each with
    * its reason. Shown verbatim; the rest of the read stands.
    */
   skipped?: { market: string; reason: string }[]
+  /** How the markets were found, where the protocol cannot enumerate them (Morpho Blue). */
+  discovery?: MarketDiscovery
   fetchedAt: number
   /** Milliseconds the read took, for the receipt. */
   tookMs?: number

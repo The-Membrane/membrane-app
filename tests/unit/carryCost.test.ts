@@ -71,7 +71,7 @@ describe('carryCost', () => {
   })
 
   it('no apr anywhere: no fixed cost on a covered slice, and the debt is reported as unpriced', () => {
-    // Morpho Blue is the live case — its adapter returns borrowApr: null.
+    // A Morpho Blue market whose IRM read failed is the live case: borrowApr null.
     const c = carryCost(position([leg('USDC', 250_000, null)]), detected(250_000))
     expect(c.fixedCostOnCoveredUsd).toBe(0)
     expect(c.annualCostUsd).toBe(0)

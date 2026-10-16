@@ -40,6 +40,9 @@ DECISIONS_ISSUE = [
     "-> rounds / RV7 -> gap logs (store end, asof] -> cross-venue store append, gap and asof prices (failure -> "
     "inputs_unavailable) -> event tables -> candidates -> balanceOf (+ debt) -> holder codes -> frozen model -> rows "
     "-> CSV, header, chain line -> first-seen and holder-code stores.",
+    "DL-16 checks in the issuer: the frozen-anchor offset at startup, the append at the store's new last block, and "
+    "the frozen + store + in-memory logs up to the asof block (recorded as scaledSupplyCheckAtAsof); any failure "
+    "stops the issue before any write.",
     "Hash chain: the JSON header carries csvSha256 (the CSV's bytes) and prevSha256 (the previous header's bytes); "
     "chain.jsonl holds one line per day with both sha256 values. Every link is verified before a write.",
 ]
@@ -117,22 +120,28 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
     D.check_store_clocks(ldir, issued_at)
     frozen_inputs = D.verify_frozen_inputs(datasets)
     D.check_store_rows_within_coverage(ldir)
+    frozen_sums = D.frozen_scaled_sums(datasets)                           # DL-16
+    anchor_offset = D.check_frozen_offset(frozen_sums)
     log(f"issue {date}: issuedAt {D.iso(issued_at)} H {D.iso(H)}; prev {prev_name or 'genesis'}")
 
     head = D.head_block(rpc)
     target = head[0] - D.CONFIRMATIONS
-    ev_entry = D.update_event_store(ldir, logs_client, rpc, target, clock=clock, log=log)
     asof_block, asof_ts, _ = D.find_block_before(rpc, H, head)
+    pending = D.prepare_event_append(ldir, logs_client, rpc, target, frozen_sums, clock=clock)   # checked, not written
     asof_hash = D.get_block(rpc, asof_block)["hash"]
     b24, ts24, _ = D.find_block_before(rpc, asof_ts - D.DAY + 1, head)      # largest block with ts <= asof - 24 h
     state = D.read_reserve_state(rpc, asof_block)
     state24 = D.read_reserve_state(rpc, b24)
     rounds, rmeta = D.eth_rounds_upto(datasets, rpc, asof_block, asof_ts, log=log)
     rv7, H0 = D.rv7_at_asof(rounds, asof_ts)
-    evst = D.event_store_status(ldir)
     gap = []
-    if evst["coveredBlock"] < asof_block:
-        gap = D.fetch_event_rows(logs_client, rpc, evst["coveredBlock"] + 1, asof_block)
+    if pending["coveredBlock"] < asof_block:
+        gap = D.fetch_event_rows(logs_client, rpc, pending["coveredBlock"] + 1, asof_block)
+    live_asof = D._add_sums(D.store_scaled_sums(ldir, upto_block=asof_block),
+                            D.rows_scaled_sum(iter(pending["rows"] + gap), D.EV_COLS, asof_block))
+    asof_check = D.supply_check(rpc, asof_block, frozen_sums, live_asof, "the logs up to asof")   # DL-16
+    ev_entry = D.commit_event_append(ldir, pending, log=log)              # both checks passed: write the append
+    evst = D.event_store_status(ldir)
     log(f"asof block {asof_block} ({D.iso(asof_ts)}); minus24h {b24}; RV7 {rv7:.4f}; gap logs {len(gap)}")
 
     # cross-venue (DL-6, DL-7)
@@ -207,6 +216,7 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
         "csvBytes": len(data), "selfSha256Excluded": True, "code": code,
         "inputs": {"frozen": frozen_inputs, "rounds": rmeta,
                    "eventStore": {"update": ev_entry, "status": evst, "gapLogs": len(gap),
+                                  "scaledSupplyCheckAtAsof": asof_check, "frozenAnchorOffset": anchor_offset,
                                   "gapRange": [evst["coveredBlock"] + 1, asof_block] if gap or
                                   evst["coveredBlock"] < asof_block else None,
                                   "files": {os.path.basename(p): {"sha256": D.sha256_file(p),
@@ -232,20 +242,22 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
     }
     cpath = os.path.join(idir, csv_name)
     jpath = os.path.join(idir, date + ".json")
-    try:
-        D.write_exclusive(cpath, data)
-        jdata = D.dumps(doc)
-        D.write_exclusive(jpath, jdata)
-    except FileExistsError:
+    if os.path.exists(cpath) or os.path.exists(jpath):
         raise SystemExit(f"STOP: an issue file for {date} appeared during the run; not overwritten")
+    jdata = D.dumps(doc)
     sha = D.sha256_bytes(jdata)
     line = {"date": date, "file": date + ".json", "sha256": sha, "csvFile": csv_name, "csvSha256": doc["csvSha256"],
             "prevSha256": prev_sha, "issuedAt": issued_at}
-    D.append_bytes(os.path.join(idir, "chain.jsonl"), (json.dumps(line, separators=(",", ":")) + "\n").encode())
-    if new_fs:
-        D.append_gz_rows(os.path.join(ldir, D.UNITS_SUB, "first-seen.csv.gz"), D.FIRST_SEEN_COLS, new_fs)
-    if new_codes:
-        D.append_code_store(ldir, new_codes, asof_block, issued_at)
+    with D.AppendTxn([cpath, jpath, os.path.join(idir, "chain.jsonl"),
+                      os.path.join(ldir, D.UNITS_SUB, "first-seen.csv.gz"),
+                      os.path.join(ldir, D.CODES_SUB, "holder-codes.csv.gz")]):           # DL-18
+        D.write_exclusive(cpath, data)
+        D.write_exclusive(jpath, jdata)
+        D.append_bytes(os.path.join(idir, "chain.jsonl"), (json.dumps(line, separators=(",", ":")) + "\n").encode())
+        if new_fs:
+            D.append_gz_rows(os.path.join(ldir, D.UNITS_SUB, "first-seen.csv.gz"), D.FIRST_SEEN_COLS, new_fs)
+        if new_codes:
+            D.append_code_store(ldir, new_codes, asof_block, issued_at)
     log(f"wrote {os.path.relpath(jpath, out_root)} + {csv_name} ({len(data)} bytes, sha256 {doc['csvSha256'][:16]}..); "
         f"{len(rows)} units; {round(time.time() - t_start)} s")
     return jpath, doc, rows

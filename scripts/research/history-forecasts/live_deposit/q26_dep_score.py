@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Q26 per-deposit live log -- daily SCORER (DEPOSITOR_LIVE.md DL.5, DL.6).
 
-  python3 q26_dep_score.py --out <root> [--expect-commit <sha>]
+  python3 q26_dep_score.py --datasets <membrane-datasets> --out <root> [--expect-commit <sha>]
 
 Implements triccs/membrane-board `design/DEPOSITOR_LIVE.md` (registered 3dc8c65, sha256 52d7666a...).
 
-- Verifies the issue hash chain (a broken chain stops the run), then appends the event store (each run appends; a
-  failed fetch is recorded and the stored events are used).
+- Verifies the issue hash chain (a broken chain stops the run), then appends the event store (each run appends; an
+  RPC failure before any write is recorded and the stored events are used). The append passes only the DL-16
+  completeness check (scaledTotalSupply at the new last block vs the frozen + live reconstruction, offset computed
+  from the frozen events in --datasets); a failed check stops the run with nothing appended and nothing scored, and
+  a failure during the writes rolls the files back and exits non-zero (DL-18).
 - A (unit, h) row resolves at the first scorer run after the event store covers H + h (its last covered block has
   ts >= H + h). Until then it stays pending.
 - Truth (DL.5, G.3): y(x, h) = 1 iff the event-path balance (balanceOf at asof + the G.2 changes of the blocks after
@@ -36,6 +39,9 @@ OUT_COLS = (["date", "reserve", "address", "segment", "h", "status"] + [f"y_x{x}
 SCORED = ("v2", "v3", "v3s", "ps", "disp")              # rungs in the summary; ps = the shipped rung (or seg_pop)
 
 DECISIONS_SCORE = [
+    "DL-16 / DL-18 in the scorer: --datasets gives the frozen events (sha256 checked) for the anchor offset; the append "
+    "happens only after the completeness check passes; a failed check stops the run (non-zero, nothing appended or "
+    "scored); an RPC failure before any write leaves the store as it was and the stored events are scored.",
     "Outcome rows are per (issue date, unit, horizon) with y for the five sizes (blank where capped). A row is "
     "written once, when terminal: resolved, or anchor_mismatch (never scored). Pending rows are only counted.",
     "Summary per (cell, segment, rung) over resolved, uncapped cells of status-ok units: rungs v2, v3, v3s (rows "
@@ -196,7 +202,19 @@ def summarize(issues, outcomes):
                         "live results never retune the model; a LOW segment rises only through a new preregistration."}
 
 
-def score(out_root, rpc, logs_client, clock=time.time, code=None, log=print):
+def frozen_event_inputs(datasets):
+    """sha256 of the frozen event files read for the DL-16 offset (subset of FROZEN_INPUTS), then the sums."""
+    out = {}
+    for rel, want in D.FROZEN_INPUTS.items():
+        if rel.startswith(G.DE + "events-"):
+            got = D.sha256_file(os.path.join(datasets, rel))
+            if got != want:
+                raise SystemExit(f"STOP: sha256 mismatch for frozen input {rel}: {got} != registered {want}")
+            out[rel] = got
+    return out
+
+
+def score(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=print):
     now = int(clock())
     ldir = D.live_dir(out_root)
     idir = D.issues_dir(ldir)
@@ -206,11 +224,15 @@ def score(out_root, rpc, logs_client, clock=time.time, code=None, log=print):
         raise SystemExit("STOP: hash chain broken:\n  " + "\n  ".join(problems))
     D.check_store_clocks(ldir, now)
     D.check_store_rows_within_coverage(ldir)
+    frozen_meta = frozen_event_inputs(datasets)
+    frozen_sums = D.frozen_scaled_sums(datasets)
+    anchor_offset = D.check_frozen_offset(frozen_sums)
     ev_entry, ev_err = None, None
     try:
         head = D.head_block(rpc)
-        ev_entry = D.update_event_store(ldir, logs_client, rpc, head[0] - D.CONFIRMATIONS, clock=clock, log=log)
-    except (C.RpcError, D.ProviderDown, OSError) as e:
+        ev_entry = D.update_event_store(ldir, logs_client, rpc, head[0] - D.CONFIRMATIONS, frozen_sums, clock=clock,
+                                        log=log)
+    except (C.RpcError, D.ProviderDown) as e:                              # nothing was written
         ev_err = f"{type(e).__name__}: {str(e)[:300]}"
         log(f"event store update failed ({ev_err}); scoring with the stored events")
     evst = D.event_store_status(ldir)
@@ -228,7 +250,8 @@ def score(out_root, rpc, logs_client, clock=time.time, code=None, log=print):
            "chainVerified": True,
            "issueFiles": [{"date": it["date"], "sha256": it["sha256"], "csvSha256": it["doc"]["csvSha256"],
                            "nRows": it["doc"]["nRows"], "asofBlock": it["doc"]["asof"]["block"]} for it in issues],
-           "eventStore": {"update": ev_entry, "error": ev_err, "status": evst, "coveredTsIso": D.iso(evst["coveredTs"])},
+           "eventStore": {"update": ev_entry, "error": ev_err, "status": evst, "coveredTsIso": D.iso(evst["coveredTs"]),
+                          "frozenAnchorOffset": anchor_offset, "frozenEventInputs": frozen_meta},
            "rpc": rpc.stats(), "logsRpc": logs_client.stats(),
            "newOutcomes": len(new), "nOutcomes": len(allo), "pendingByHorizon": pending,
            "statusCounts": {s: sum(o["status"] == s for o in allo) for s in sorted({o["status"] for o in allo})},
@@ -241,6 +264,7 @@ def score(out_root, rpc, logs_client, clock=time.time, code=None, log=print):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--datasets", required=True, help="membrane-datasets checkout (frozen events, read only)")
     ap.add_argument("--out", required=True, help="root that holds forecasts/q26-deposit-live/")
     ap.add_argument("--expect-commit", default=None, help="refuse unless the code checkout is at this commit")
     ap.add_argument("--max-calls", type=int, default=20000, help="RPC call budget for this run")
@@ -249,7 +273,7 @@ def main(argv=None):
     if a.expect_commit and code["dirty"]:
         raise SystemExit(f"STOP: code files differ from the pinned commit: {code['dirty']}")
     err = lambda m: print(m, file=sys.stderr, flush=True)  # noqa: E731
-    score(a.out, D.make_rpc(max_calls=a.max_calls, log=err), D.LogsClient(log=err), code=code,
+    score(a.out, a.datasets, D.make_rpc(max_calls=a.max_calls, log=err), D.LogsClient(log=err), code=code,
           log=lambda *x: print(*x, flush=True))
     return 0
 

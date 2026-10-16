@@ -81,6 +81,11 @@ CONFIRMATIONS = 64                                      # DL.2: append logs up t
 CANDIDATE_MIN_RAW = 900_000 * G.MICRO                   # DECISION DL-3: balanceOf read at path >= $900k
 ANCHOR_ABS_RAW = 10 * G.MICRO                           # D2: max($10, 0.1% of the larger value)
 ANCHOR_REL_DEN = 1000
+# Event-store completeness (DL-16): sum of reconstructed scaled balances vs aToken.scaledTotalSupply().
+SCALED_SUPPLY_SEL = GE.sel("scaledTotalSupply()")
+CHAIN_SCALED_AT_ANCHOR = {"USDC": 2007105859835216, "USDT": 2399999435758952}   # scaledTotalSupply() at 26,186,746
+ANCHOR_SCALED_OFFSET = {"USDC": -8664, "USDT": -4222}   # frozen reconstructed sum - chain at the anchor (asserted)
+SUPPLY_TOL = 10_000                                      # scaled units per reserve (one $1 log ~ 8.4e5 units)
 XV_BASE_LAG = 7 * DAY
 
 # The sha256 of every frozen input the issuer reads (DL.7: the issuer refuses on any difference). Each equals the
@@ -230,6 +235,24 @@ DECISIONS = [
     "scorer run whose event store covers a block with ts >= H + h.",
     "DL-15 numbers: p values '%.6g' in the issue CSV (as the B3 prediction files), features '%.10g', balances as raw "
     "integers (1e-6 token).",
+    "DL-16 event-store completeness (refuting review, must-fix): both public RPCs can return a partial log list "
+    "without an error near the head. After every append (issuer and scorer) and for the issuer's in-memory logs up "
+    "to asof, aUSDC and aUSDT scaledTotalSupply() are read in one Multicall3 call at the store's new last block "
+    "(and at the asof block); the sum of reconstructed scaled balances (frozen + live: Mint +rayDiv(value - "
+    "balanceIncrease, index), Burn -rayDiv(value + balanceIncrease, index); a BalanceTransfer nets to 0) minus the "
+    "chain value must equal the frozen-anchor offset within 10,000 scaled units per reserve. The offset is computed "
+    "at startup from the frozen events and the recorded chain value at block 26,186,746 and must equal the recorded "
+    "offset (USDC -8,664, USDT -4,222), else STOP. On failure the issuer writes nothing and stops; the scorer "
+    "appends nothing, scores nothing and exits non-zero. The check (chain, reconstruction, residual) is recorded in "
+    "fetch-log.jsonl and in the issue header. Rounding drift measured on the first 20k live blocks: USDC -58, USDT "
+    "-31.",
+    "DL-17 a log provider is used for a range only if its own eth_blockNumber is >= the range end; otherwise the "
+    "next provider takes over, and with none left the run stops.",
+    "DL-18 store appends are transactions: the byte length of every file a run appends to is recorded first, and any "
+    "failure during the writes truncates each file back (new files are removed) before the error propagates; the "
+    "issuer's own outputs (CSV, header, chain line, first-seen, holder codes) are written the same way. The scorer "
+    "still scores the stored events when an RPC read fails before any write (nothing appended), as the touch "
+    "scorer does; a write failure exits non-zero.",
 ]
 
 
@@ -414,10 +437,20 @@ class LogsClient:
         self.per_url = {u: {"httpRequests": 0, "logs": 0, "splits": 0, "errors": 0} for u in self.urls}
         self.errors = []
         self._log = log or (lambda *_: None)
+        self._head = {}
 
     def stats(self):
         return {"providers": list(self.urls), "used": {u: v for u, v in self.per_url.items() if v["httpRequests"]},
-                "httpRequests": self.requests, "errors": self.errors[-10:], "note": "public endpoints without a key"}
+                "httpRequests": self.requests, "errors": self.errors[-10:], "providerHeads": dict(self._head),
+                "note": "public endpoints without a key"}
+
+    def provider_head(self, url):
+        """The provider's own eth_blockNumber (DL-17)."""
+        self._id += 1
+        resp = self._post_json(url, {"jsonrpc": "2.0", "id": self._id, "method": "eth_blockNumber", "params": []})
+        if not isinstance(resp, dict) or not isinstance(resp.get("result"), str):
+            raise RangeError(f"eth_blockNumber: {str(resp)[:120]}")
+        return int(resp["result"], 16)
 
     def _post_json(self, url, body):
         if self.requests >= self.max_requests:
@@ -529,6 +562,17 @@ class LogsClient:
             if self.cur >= len(self.urls):
                 raise C.RpcError(f"all public log endpoints failed: {self.errors[-1:]}")
             url = self.urls[self.cur]
+            if self._head.get(url, -1) < hi:                     # DL-17: the provider must have reached hi
+                try:
+                    self._head[url] = self.provider_head(url)
+                except RangeError as e:
+                    self._head[url] = -1
+                    self.errors.append(f"{url}: {e}"[:200])
+                if self._head[url] < hi:
+                    self.errors.append(f"{url}: head {self._head[url]} < range end {hi}")
+                    self._log(f"logs {url} head {self._head[url]} behind {hi}; falling back")
+                    self.cur += 1
+                    continue
             nb = LOGS_BATCH.get(url, 1)
             span = LOGS_MAX_RANGE.get(url, 1000) * (nb * 8 if nb > 1 else 1)   # batched: 24 pieces per chunk
             end = min(hi, cur + span - 1)
@@ -607,28 +651,148 @@ def event_store_status(ldir):
     return {"coveredBlock": cov, "coveredTs": cov_ts, "nRanges": len(lines), "lastFetchedAt": last_fetch}
 
 
-def update_event_store(ldir, logs_client, rpc, target_block, clock=time.time, log=print):
-    """DL.2: append every Mint/Burn/BalanceTransfer log after the covered block up to target_block."""
+class AppendTxn:
+    """DL-18: record the byte length of every file a run appends to; on any exception inside the block, truncate
+    each back (remove files that did not exist) and re-raise. Appends never rewrite earlier bytes."""
+
+    def __init__(self, paths):
+        self.sizes = {p: (os.path.getsize(p) if os.path.exists(p) else None) for p in dict.fromkeys(paths)}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, et, ev, tb):
+        if et is None:
+            return False
+        for p, n in self.sizes.items():
+            try:
+                if n is None:
+                    if os.path.exists(p):
+                        os.remove(p)
+                elif os.path.exists(p) and os.path.getsize(p) != n:
+                    with open(p, "r+b") as f:
+                        f.truncate(n)
+            except OSError:
+                pass
+        return False
+
+
+def rows_scaled_sum(rows_iter, header, upto_block=None):
+    """Per reserve: the sum over balance rows of the scaled change over all parties (Mint + rayDiv(delta1, index),
+    Burn - rayDiv(-delta1, index); a BalanceTransfer nets to 0), blocks <= upto_block."""
+    col = {h: i for i, h in enumerate(header)}
+    ir, ib, ity, ix, id1 = col["reserve"], col["block"], col["type"], col["index_ray"], col["delta1_raw"]
+    out = {r: 0 for r in RESERVES}
+    for row in rows_iter:
+        d1 = row[id1]
+        if d1 == "" or row[ity] not in ("Mint", "Burn"):
+            continue
+        if upto_block is not None and int(row[ib]) > upto_block:
+            continue
+        out[row[ir]] += GE.signed_ray_div(int(d1), int(row[ix]))
+    return out
+
+
+def _add_sums(a, b):
+    return {r: a[r] + b[r] for r in RESERVES}
+
+
+def frozen_scaled_sums(datasets):
+    out = {r: 0 for r in RESERVES}
+    for p in frozen_event_paths(datasets):
+        it = iter_gz_csv(p)
+        out = _add_sums(out, rows_scaled_sum(it, next(it)))
+    return out
+
+
+def check_frozen_offset(frozen_sums):
+    """DL-16: the frozen-anchor offset computed from the frozen events must equal the recorded one."""
+    got = {r: frozen_sums[r] - CHAIN_SCALED_AT_ANCHOR[r] for r in RESERVES}
+    if got != ANCHOR_SCALED_OFFSET:
+        raise SystemExit(f"STOP: frozen-anchor scaled offset {got} != recorded {ANCHOR_SCALED_OFFSET}")
+    return got
+
+
+def store_scaled_sums(ldir, upto_block=None):
+    out = {r: 0 for r in RESERVES}
+    for p in event_files(ldir):
+        it = iter_gz_csv(p)
+        out = _add_sums(out, rows_scaled_sum(it, next(it), upto_block))
+    return out
+
+
+def read_scaled_supply(rpc, block):
+    res = multicall(rpc, [(BA.RESERVES[r]["atoken"], SCALED_SUPPLY_SEL) for r in RESERVES], block)
+    out = {}
+    for r, (ok, ret) in zip(RESERVES, res):
+        if not ok or len(ret) != 32:
+            raise C.RpcError(f"scaledTotalSupply of {r} unreadable at {block}")
+        out[r] = int.from_bytes(ret, "big")
+    return out
+
+
+def supply_check(rpc, block, frozen_sums, live_sums, what):
+    """DL-16: reconstructed scaled total (frozen + live, blocks <= block) - chain scaledTotalSupply at block must equal
+    the frozen-anchor offset within SUPPLY_TOL per reserve; STOP otherwise (the caller has written nothing)."""
+    chain = read_scaled_supply(rpc, block)
+    rec = {}
+    for r in RESERVES:
+        recon = frozen_sums[r] + live_sums[r]
+        rec[r] = {"chainScaledTotalSupply": str(chain[r]), "reconScaledTotal": str(recon),
+                  "residual": recon - chain[r] - ANCHOR_SCALED_OFFSET[r]}
+    bad = {r: v["residual"] for r, v in rec.items() if abs(v["residual"]) > SUPPLY_TOL}
+    if bad:
+        raise SystemExit(f"STOP: event store incomplete for {what} at block {block}: residual {bad} scaled units "
+                         f"(tolerance {SUPPLY_TOL}); nothing written")
+    return {"block": block, "tolerance": SUPPLY_TOL, "anchorOffset": ANCHOR_SCALED_OFFSET, "reserves": rec}
+
+
+def prepare_event_append(ldir, logs_client, rpc, target_block, frozen_sums, clock=time.time):
+    """DL.2 + DL-16: fetch every Mint/Burn/BalanceTransfer log after the covered block up to target_block and run the
+    completeness check at target_block. Nothing is written; commit_event_append writes the returned append."""
     st = event_store_status(ldir)
     lo = st["coveredBlock"] + 1
     if target_block < lo:
-        return {"appended": 0, "fromBlock": None, "toBlock": st["coveredBlock"], "note": "store already covers target"}
+        return {"rows": [], "entry": None, "coveredBlock": st["coveredBlock"],
+                "note": "store already covers target"}
     rows = fetch_event_rows(logs_client, rpc, lo, target_block)
     tb = get_block(rpc, target_block)
+    live = _add_sums(store_scaled_sums(ldir), rows_scaled_sum(iter(rows), EV_COLS))
+    check = supply_check(rpc, target_block, frozen_sums, live, "the append")
     by_month = {}
     for r in rows:
         by_month.setdefault(month_of(r[2]), []).append(r)
-    files = {}
-    for m, rs in sorted(by_month.items()):
-        p = os.path.join(ldir, EVENTS_SUB, f"events-{m}.csv.gz")
-        append_gz_rows(p, EV_COLS, rs)
-        files[os.path.basename(p)] = len(rs)
     entry = {"fromBlock": lo, "toBlock": target_block, "toBlockTs": tb["ts"], "toBlockHash": tb["hash"],
-             "nLogs": len(rows), "byType": {t: sum(r[6] == t for r in rows) for t in EV_TYPES}, "files": files,
-             "fetchedAt": int(clock())}
-    append_jsonl(os.path.join(ldir, EVENTS_SUB, "fetch-log.jsonl"), entry)
-    log(f"event store: +{len(rows)} logs in blocks {lo}..{target_block} (to {iso(tb['ts'])})")
+             "nLogs": len(rows), "byType": {t: sum(r[6] == t for r in rows) for t in EV_TYPES},
+             "files": {f"events-{m}.csv.gz": len(rs) for m, rs in sorted(by_month.items())},
+             "scaledSupplyCheck": check, "fetchedAt": int(clock())}
+    return {"rows": rows, "by_month": by_month, "entry": entry, "coveredBlock": target_block}
+
+
+def commit_event_append(ldir, pending, log=print):
+    """Write a prepared append as one transaction (DL-18)."""
+    entry = pending["entry"]
+    if entry is None:
+        return {"appended": 0, "toBlock": pending["coveredBlock"], "note": pending.get("note")}
+    if event_store_status(ldir)["coveredBlock"] != entry["fromBlock"] - 1:
+        raise SystemExit("STOP: the event store changed between prepare and commit")
+    by_month = pending["by_month"]
+    paths = [os.path.join(ldir, EVENTS_SUB, f"events-{m}.csv.gz") for m in sorted(by_month)]
+    flog = os.path.join(ldir, EVENTS_SUB, "fetch-log.jsonl")
+    with AppendTxn(paths + [flog]):
+        for m, rs in sorted(by_month.items()):
+            append_gz_rows(os.path.join(ldir, EVENTS_SUB, f"events-{m}.csv.gz"), EV_COLS, rs)
+        append_jsonl(flog, entry)
+    res = {r: v["residual"] for r, v in entry["scaledSupplyCheck"]["reserves"].items()}
+    log(f"event store: +{entry['nLogs']} logs in blocks {entry['fromBlock']}..{entry['toBlock']} "
+        f"(to {iso(entry['toBlockTs'])}); scaled residual {res}")
     return entry
+
+
+def update_event_store(ldir, logs_client, rpc, target_block, frozen_sums, clock=time.time, log=print):
+    """prepare_event_append + commit_event_append (the scorer's append)."""
+    return commit_event_append(ldir, prepare_event_append(ldir, logs_client, rpc, target_block, frozen_sums,
+                                                          clock=clock), log=log)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1199,14 +1363,17 @@ def update_xv_store(ldir, X, logs_client, rpc, target_block, head, clock=time.ti
     by_month = {}
     for r in rows:
         by_month.setdefault(month_of(r[2]), []).append(r)
-    for m, rs in sorted(by_month.items()):
-        append_gz_rows(os.path.join(d, f"events-{m}.csv.gz"), XV_EV_COLS, rs)
-    append_gz_rows(os.path.join(d, "snapshots.csv.gz"), XV_SNAP_COLS, new_snaps)
-    append_gz_rows(os.path.join(d, "prices.csv.gz"), XV_PRICE_COLS, new_prices)
     entry = {"fromBlock": lo, "toBlock": target_block, "toBlockTs": tb["ts"], "toBlockHash": tb["hash"],
              "nLogs": len(logs), "nShareRows": len(rows), "snapshotsAdded": [s[0] for s in new_snaps],
              "pricesNotOk": sum(1 for p in new_prices if p[8] != "ok"), "fetchedAt": int(clock())}
-    append_jsonl(os.path.join(d, "fetch-log.jsonl"), entry)
+    paths = [os.path.join(d, f"events-{m}.csv.gz") for m in sorted(by_month)] + [
+        os.path.join(d, f) for f in ("snapshots.csv.gz", "prices.csv.gz", "fetch-log.jsonl")]
+    with AppendTxn(paths):
+        for m, rs in sorted(by_month.items()):
+            append_gz_rows(os.path.join(d, f"events-{m}.csv.gz"), XV_EV_COLS, rs)
+        append_gz_rows(os.path.join(d, "snapshots.csv.gz"), XV_SNAP_COLS, new_snaps)
+        append_gz_rows(os.path.join(d, "prices.csv.gz"), XV_PRICE_COLS, new_prices)
+        append_jsonl(os.path.join(d, "fetch-log.jsonl"), entry)
     log(f"cross-venue store: +{len(logs)} logs ({len(rows)} share rows of tracked addresses), snapshots "
         f"{entry['snapshotsAdded']}")
     return entry
@@ -1545,8 +1712,9 @@ def check_store_clocks(ldir, now):
     """DL.7 clock guard on the stores: no store fetch may post-date the clock."""
     for sub in (EVENTS_SUB, XV_SUB):
         for e in read_jsonl(os.path.join(ldir, sub, "fetch-log.jsonl")):
-            if int(e["fetchedAt"]) > now or int(e["toBlockTs"]) > now:
-                raise SystemExit(f"STOP: clock went backwards: {sub} fetch at {iso(e['fetchedAt'])} after now {iso(now)}")
+            for k in ("fetchedAt", "toBlockTs"):
+                if int(e[k]) > now:
+                    raise SystemExit(f"STOP: clock went backwards: {sub} fetch-log {k} {iso(e[k])} after now {iso(now)}")
     for row in read_gz_rows(os.path.join(ldir, CODES_SUB, "holder-codes.csv.gz"), CODE_COLS):
         if int(row[6]) > now:
             raise SystemExit("STOP: clock went backwards: holder code read after now")

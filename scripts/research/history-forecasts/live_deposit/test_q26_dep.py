@@ -82,8 +82,12 @@ def xv_transfer(block, li, frm, to, value):
 
 
 class FakeLogs:
+    """Log provider of the synthetic chain; `drop` = (block, log index) pairs it silently leaves out (partial result
+    without an error, as the reviewer saw on the public RPCs)."""
+
     def __init__(self, logs):
         self.logs = logs
+        self.drop = set()
         self.calls = []
 
     def get_logs(self, addresses, topics, lo, hi):
@@ -91,7 +95,7 @@ class FakeLogs:
         aset = {a.lower() for a in addresses}
         tset = {t.lower() for t in topics}
         return [dict(lg) for lg in self.logs if lg["address"] in aset and lo <= lg["block"] <= hi
-                and lg["topics"][0] in tset]
+                and lg["topics"][0] in tset and (lg["block"], lg["log_index"]) not in self.drop]
 
     def stats(self):
         return {"fake": True, "calls": len(self.calls)}
@@ -196,8 +200,35 @@ class World:
         self.logs = FakeLogs(list(live_logs) + list(xv_logs))
         self.mismatch = set(mismatch)
 
-    def patches(self, now):
+    def frozen_sum(self):
+        it = D.iter_gz_csv(os.path.join(self.ds, G.DE, "events-usdc-2026.csv.gz"))
+        return D.rows_scaled_sum(it, next(it))
+
+    def chain_scaled(self, rpc, block):
+        """aToken.scaledTotalSupply() of the synthetic chain: every true log (dropped ones included)."""
+        rows = [D.decode_atoken_log(lg) for lg in self.logs.logs if lg["address"] in D.RESERVE_OF_ATOKEN
+                and lg["block"] <= block]
+        live = D.rows_scaled_sum(iter(rows), D.EV_COLS)
+        return {r: self.anchor_chain[r] + live[r] for r in D.RESERVES}
+
+    def common_patches(self, now):
         head = (block_at(now) + 1, ts_of(block_at(now) + 1))
+        F = self.frozen_sum()
+        offset = {"USDC": -7, "USDT": 0}
+        self.anchor_chain = {r: F[r] - offset[r] for r in D.RESERVES}
+        return [
+            mock.patch.object(D, "verify_frozen_inputs", lambda ds: {"fake": {"sha256": "0" * 64}}),
+            mock.patch.object(D, "head_block", lambda rpc: head),
+            mock.patch.object(D, "find_block_before", lambda rpc, T, h: (block_at(T), ts_of(block_at(T)),
+                                                                          ts_of(block_at(T) + 1))),
+            mock.patch.object(D, "get_block", lambda rpc, b: {"number": b, "ts": ts_of(b), "hash": "0x" + "ab" * 32}),
+            mock.patch.object(D, "read_scaled_supply", self.chain_scaled),
+            mock.patch.object(D, "CHAIN_SCALED_AT_ANCHOR", dict(self.anchor_chain)),
+            mock.patch.object(D, "ANCHOR_SCALED_OFFSET", offset),
+            mock.patch.object(SC, "frozen_event_inputs", lambda ds: {"fake": True}),
+        ]
+
+    def patches(self, now):
         X = fake_xv()
 
         def balances(rpc, block, pairs, debt_tokens):
@@ -217,12 +248,7 @@ class World:
 
         def xv_prices(X_, rpc, block, label, pools):
             return [[label, block, TOK, "vUSD", "erc4626", "convertToAssets(probe)", 10 ** 12, 10 ** 12, "ok"]]
-        return [
-            mock.patch.object(D, "verify_frozen_inputs", lambda ds: {"fake": {"sha256": "0" * 64}}),
-            mock.patch.object(D, "head_block", lambda rpc: head),
-            mock.patch.object(D, "find_block_before", lambda rpc, T, h: (block_at(T), ts_of(block_at(T)),
-                                                                          ts_of(block_at(T) + 1))),
-            mock.patch.object(D, "get_block", lambda rpc, b: {"number": b, "ts": ts_of(b), "hash": "0x" + "ab" * 32}),
+        return self.common_patches(now) + [
             mock.patch.object(D, "read_reserve_state", lambda rpc, b: STATE if b > block_at(now) - 3000 else STATE24),
             mock.patch.object(D, "read_balances", balances),
             mock.patch.object(D, "read_codes", lambda rpc, addrs, b: {a: {"is_contract": False, "eip7702": False,
@@ -245,11 +271,11 @@ class World:
                 p.stop()
 
     def score(self, now):
-        ps = self.patches(now)[:4]
+        ps = self.common_patches(now)
         for p in ps:
             p.start()
         try:
-            return SC.score(self.out, FakeRpc(now), self.logs, clock=lambda: now, log=QUIET)
+            return SC.score(self.out, self.ds, FakeRpc(now), self.logs, clock=lambda: now, log=QUIET)
         finally:
             for p in reversed(ps):
                 p.stop()
@@ -394,6 +420,9 @@ class TestLogsClient(unittest.TestCase):
             calls.append((url, len(reqs)))
             out = []
             for q in reqs:
+                if q["method"] == "eth_blockNumber":
+                    out.append({"jsonrpc": "2.0", "id": q["id"], "result": hex(10 ** 8)})
+                    continue
                 p = q["params"][0]
                 lo, hi = int(p["fromBlock"], 16), int(p["toBlock"], 16)
                 if "mevblocker" in url:
@@ -417,6 +446,30 @@ class TestLogsClient(unittest.TestCase):
         self.assertEqual(sum(1 for g in got if 30_000 <= g["block"] <= 30_399), 4)  # 100-block pieces
         with self.assertRaises(D.RangeError):
             D.LogsClient.validate([self._log(5, 1, a=TOK)], [USDC_AT], D.EV_TOPICS, 0, 10)
+
+    def test_provider_behind_target_is_not_used(self):
+        """DL-17: a provider whose own eth_blockNumber is below the range end is skipped (fallback, else STOP)."""
+        seen = []
+
+        def post(url, body, timeout):
+            q = json.loads(body)
+            reqs = q if isinstance(q, list) else [q]
+            out = []
+            for r in reqs:
+                seen.append((url, r["method"]))
+                if r["method"] == "eth_blockNumber":
+                    out.append({"jsonrpc": "2.0", "id": r["id"], "result": hex(1000 if "mevblocker" in url else 5000)})
+                else:
+                    lo = int(r["params"][0]["fromBlock"], 16)
+                    out.append({"jsonrpc": "2.0", "id": r["id"], "result": [self._log(lo, 0)]})
+            return json.dumps(out if isinstance(q, list) else out[0]).encode()
+        lc = D.LogsClient(post=post, sleep=lambda s: None)
+        got = lc.get_logs([USDC_AT], D.EV_TOPICS, 1500, 1699)
+        self.assertEqual(lc.cur, 1)
+        self.assertFalse(any(m == "eth_getLogs" for u, m in seen if "mevblocker" in u))
+        self.assertEqual([g["block"] for g in got], [1500, 1600])
+        with self.assertRaises(C.RpcError):
+            D.LogsClient(post=post, sleep=lambda s: None).get_logs([USDC_AT], D.EV_TOPICS, 4000, 6000)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -554,6 +607,67 @@ class TestIssueAndScore(unittest.TestCase):
         finally:
             w2.cleanup()
 
+    def test_missing_log_stops_issue_before_any_write(self):
+        """DL-16: one log missing from the provider's answer (no error) stops the issue before any write, on the
+        append path and on the in-memory path up to asof."""
+        w = self.w
+        w.logs.drop = {(B0 + 200, 5)}                                  # A3's 100k mint, before asof
+        with self.assertRaises(SystemExit) as cm:
+            w.issue(NOW)
+        self.assertIn("incomplete", str(cm.exception))
+        self.assertEqual(snapshot_tree(w.out) if os.path.exists(w.out) else {}, {})
+        # gap path: issued 7 minutes after H, the store ends before asof; a log in (store end, asof] goes missing
+        wg = World(base_live_logs() + [atoken_log("Mint", ASOF - 10, 1, A2, value=10 * MICRO)], base_xv_logs(),
+                   rounds_after=[[(1 << 64) | 201, 999_000_000_000, H + 60]], mismatch={A2})
+        try:
+            wg.logs.drop = {(ASOF - 10, 1)}
+            with self.assertRaises(SystemExit) as cm:
+                wg.issue(H + 420)
+            self.assertIn("up to asof", str(cm.exception))
+            self.assertEqual(snapshot_tree(wg.out) if os.path.exists(wg.out) else {}, {})
+            wg.logs.drop = set()
+            _, doc, _ = wg.issue(H + 420)
+            ck = doc["inputs"]["eventStore"]["scaledSupplyCheckAtAsof"]
+            self.assertEqual({r: v["residual"] for r, v in ck["reserves"].items()}, {"USDC": 0, "USDT": 0})
+            self.assertEqual(doc["inputs"]["eventStore"]["frozenAnchorOffset"], {"USDC": -7, "USDT": 0})
+        finally:
+            wg.cleanup()
+
+    def test_missing_log_stops_scorer_before_any_write(self):
+        w = self.w
+        w.issue(NOW)
+        late = atoken_log("Burn", block_at(H + 3000), 4, A3, value=10_000 * MICRO)
+        w.logs.logs.append(late)
+        w.logs.drop = {(late["block"], late["log_index"])}
+        before = snapshot_tree(w.out)
+        with self.assertRaises(SystemExit) as cm:
+            w.score(H + 2 * 3600)
+        self.assertIn("incomplete", str(cm.exception))
+        self.assertEqual(snapshot_tree(w.out), before)                 # nothing appended, nothing scored
+        w.logs.drop = set()
+        doc, new = w.score(H + 2 * 3600)
+        self.assertTrue(new)
+        e = D.read_jsonl(os.path.join(w.ldir(), D.EVENTS_SUB, "fetch-log.jsonl"))[-1]
+        self.assertEqual({r: v["residual"] for r, v in e["scaledSupplyCheck"]["reserves"].items()},
+                         {"USDC": 0, "USDT": 0})
+
+    def test_write_failure_rolls_back_the_append(self):
+        """DL-18: a failure while appending restores every store file to its previous bytes."""
+        w = self.w
+        w.issue(NOW)
+        w.logs.logs.append(atoken_log("Mint", block_at(H + 3000), 4, A3, value=10 * MICRO))
+        before = snapshot_tree(w.out)
+        real = D.append_jsonl
+
+        def boom(path, entry):
+            if path.endswith(os.path.join(D.EVENTS_SUB, "fetch-log.jsonl")):
+                raise OSError("disk full")
+            return real(path, entry)
+        with mock.patch.object(D, "append_jsonl", boom):
+            with self.assertRaises(OSError):
+                w.score(H + 2 * 3600)
+        self.assertEqual(snapshot_tree(w.out), before)
+
     def test_xv_failure_gives_inputs_unavailable(self):
         w = self.w
 
@@ -680,6 +794,12 @@ class TestRealData(unittest.TestCase):
             np.testing.assert_array_equal(mine["ts"], logs["ts"][m])
             np.testing.assert_array_equal(mine["delta"], logs["delta"][m])
 
+    def test_frozen_anchor_scaled_offset(self):
+        """DL-16: the frozen events give the recorded anchor offset; the full tables agree with the fast sum."""
+        F = D.frozen_scaled_sums(DS)
+        self.assertEqual(D.check_frozen_offset(F), D.ANCHOR_SCALED_OFFSET)
+        self.assertEqual({r: sum(self.tables[r].scaled.values()) for r in D.RESERVES}, F)
+
     def test_path_equals_frozen_reconstruction(self):
         n = 0
         for r in csv.DictReader(open(os.path.join(DS, G.DE, "extended-universe.csv"))):
@@ -769,6 +889,18 @@ class TestNetwork(unittest.TestCase):
         key = lambda x: (int(x[1]), int(x[5]))  # noqa: E731
         self.assertEqual(sorted([[str(v) for v in r] for r in rows], key=key), sorted(want, key=key))
         self.assertGreater(len(rows), 10)
+
+    def test_chain_scaled_supply_at_anchor(self):
+        self.assertEqual(D.read_scaled_supply(D.make_rpc(), D.FROZEN_ASOF_BLOCK), D.CHAIN_SCALED_AT_ANCHOR)
+
+    @unittest.skipUnless(os.environ.get("Q26_SCRATCH_LIVE_DIR"), "set Q26_SCRATCH_LIVE_DIR=<.../q26-deposit-live>")
+    def test_scratch_store_end_passes_completeness(self):
+        ldir = os.environ["Q26_SCRATCH_LIVE_DIR"]
+        st = D.event_store_status(ldir)
+        F = D.frozen_scaled_sums(DS)
+        ck = D.supply_check(D.make_rpc(), st["coveredBlock"], F, D.store_scaled_sums(ldir), "the scratch store")
+        for v in ck["reserves"].values():
+            self.assertLessEqual(abs(v["residual"]), D.SUPPLY_TOL)
 
 
 if __name__ == "__main__":

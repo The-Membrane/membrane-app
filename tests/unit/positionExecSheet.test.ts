@@ -5,7 +5,9 @@ import { describe, expect, it } from 'vitest'
 
 import type { Gate } from '@/lib/position-exec/gates'
 import {
+  MAX_READ_AGE_MS,
   TX_IDLE,
+  readTooOld,
   sheetView,
   txReducer,
   walletChecks,
@@ -279,6 +281,17 @@ describe('the slip during and after the signature', () => {
       button: { kind: 'switch', enabled: true },
       notice: 'Switch declined in your wallet',
     })
+  })
+  it('a slip read over 2 minutes ago reads again before it signs', () => {
+    expect(MAX_READ_AGE_MS).toBe(120_000)
+    expect(readTooOld(0, 120_000)).toBe(false)
+    expect(readTooOld(0, 120_001)).toBe(true)
+    const s = run([{ type: 'expired' }])
+    expect(s).toEqual({
+      phase: 'idle',
+      notice: 'Read again now: the last read was over 2 minutes old',
+    })
+    expect(sheetView({ status: 'reading' }, OWNER_ON_1, s, OWNER).button.label).toBe('Reading…')
   })
   it('ignores events out of order', () => {
     expect(txReducer(TX_IDLE, { type: 'signed' })).toBe(TX_IDLE)

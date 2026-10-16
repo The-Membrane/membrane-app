@@ -17,7 +17,8 @@
  *   other chain        Switch to Ethereum               useSwitchChain
  *   simulating         Simulating…                      disabled
  *   would revert       Read again                       the step and its reason
- *   ready              Repay 460 USDC                   signs
+ *   ready              Repay 460 USDC                   signs; a read over 2 minutes old
+ *                                                       is read and simulated again first
  *   submitted          Confirm in your wallet           stamp SUBMITTED
  *   pending            Pending n/N                      stamp PENDING n/N
  *   settled            Close                            stamp SETTLED, the tx link
@@ -61,8 +62,19 @@ export type TxEvent =
   | { type: 'declined' }
   | { type: 'failed'; message: string; minedRevert: boolean; hash?: Hash | null }
   | { type: 'reset' }
+  /** The read was too old to sign on: the slip reads again first. */
+  | { type: 'expired' }
 
 export const TX_IDLE: TxState = { phase: 'idle' }
+
+/**
+ * A slip signs only what it read recently: past this age a click on the sign button reads
+ * and simulates again instead, and the reader signs the fresh slip.
+ */
+export const MAX_READ_AGE_MS = 120_000
+
+export const readTooOld = (readAtMs: number, nowMs: number): boolean =>
+  nowMs - readAtMs > MAX_READ_AGE_MS
 
 /** Signatures obtained so far: each one's call was sent, so its gas is spent once mined. */
 const signedOf = (s: TxState): number =>
@@ -72,6 +84,10 @@ export function txReducer(s: TxState, e: TxEvent): TxState {
   switch (e.type) {
     case 'reset':
       return TX_IDLE
+    case 'expired':
+      return s.phase === 'idle'
+        ? { phase: 'idle', notice: 'Read again now: the last read was over 2 minutes old' }
+        : s
     case 'switch':
       return s.phase === 'idle' ? { phase: 'switching' } : s
     case 'switched':

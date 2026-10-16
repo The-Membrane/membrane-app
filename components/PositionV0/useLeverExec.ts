@@ -17,6 +17,7 @@ import { isUserRejection, namedRevert, revertReason } from '@/lib/position-exec/
 import {
   ETHEREUM_CHAIN_ID,
   TX_IDLE,
+  readTooOld,
   sameAddress,
   sheetView,
   txReducer,
@@ -130,6 +131,12 @@ export function useLeverExec(intent: LeverIntent, onSettled: () => void): LeverE
     // Checked again against wagmi's own state at the moment of the click, not the last render.
     const now = getAccount(config)
     if (!sameAddress(now.address, intent.owner) || now.chainId !== ETHEREUM_CHAIN_ID) return
+    // A stale slip is read and simulated again; the reader signs the fresh one.
+    if (readTooOld(prep.dataUpdatedAt, Date.now())) {
+      dispatch({ type: 'expired' })
+      setAttempt((a) => a + 1)
+      return
+    }
     inFlight.current = true
     dispatch({ type: 'sign', total: ready.calls.length })
     try {
@@ -178,7 +185,7 @@ export function useLeverExec(intent: LeverIntent, onSettled: () => void): LeverE
     } finally {
       inFlight.current = false
     }
-  }, [config, intent, ready, simResult, sheet.button.kind, onSettled])
+  }, [config, intent, ready, simResult, sheet.button.kind, onSettled, prep.dataUpdatedAt])
 
   const switchChain = useCallback(async () => {
     if (inFlight.current) return

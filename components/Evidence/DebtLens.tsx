@@ -129,7 +129,7 @@ export const DebtLens: React.FC<{
           label="Difference, net"
           value={`${usd(Math.abs(all.gapUsd))}†`}
           tone={moreDebt ? 'bad' : 'good'}
-          sub={`${gapWord(all.gapPct)} debt closed†: less on ${all.less.toLocaleString('en-US')} positions (${usd(all.lessUsd)}), more on ${all.more.toLocaleString('en-US')} (${usd(all.moreUsd)})`}
+          sub={`${gapWord(all.gapPct)} debt closed†: less on ${all.less.toLocaleString('en-US')} positions (${usd(all.lessUsd)}†), more on ${all.more.toLocaleString('en-US')} (${usd(all.moreUsd)}†)`}
         />
       </SimpleGrid>
 

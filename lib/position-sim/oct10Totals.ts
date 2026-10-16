@@ -75,7 +75,8 @@ export const OCT10_STAKES_LINE =
  *     `more`; keptUsd is the difference, never "protected" debt;
  *   - its own scope: debt closed on every Aave V3 and Morpho Blue liquidation of the window,
  *     four chains. The corpus is collateral seized on Aave V3 Ethereum over years; neither
- *     figure is a part of the other, and no sentence here says "alone" or "of".
+ *     figure is a part of the other, and no sentence here says "alone" (oct10Totals.test.ts
+ *     asserts it, with "protected").
  * All MODELLED (†). Never a number from outside this file.
  */
 export const OCT10_SCALE_LINE = {
@@ -86,8 +87,8 @@ export const OCT10_SCALE_LINE = {
   split: OCT10_SPLIT_LINE,
   /** What the net is made of: positions and dollars each way. */
   gross:
-    `less on ${census.less.toLocaleString('en-US')} positions (${fmtM1(census.lessUsd)}), ` +
-    `more on ${census.more.toLocaleString('en-US')} (${fmtM1(census.moreUsd)})`,
+    `less on ${census.less.toLocaleString('en-US')} positions (${fmtM1(census.lessUsd)}†), ` +
+    `more on ${census.more.toLocaleString('en-US')} (${fmtM1(census.moreUsd)}†)`,
   line: `4% sounds small. ${fmtM0(OCT10_TOTALS.keptUsd)} less debt force-closed, net†, across every Aave and Morpho liquidation of ${OCT10_TOTALS.window}.`,
 } as const
 

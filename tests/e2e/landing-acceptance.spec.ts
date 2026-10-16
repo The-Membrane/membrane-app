@@ -307,7 +307,7 @@ test.describe('landing conversion acceptance', () => {
     // from the corpus line above (never "protected", never "alone"), with the per-protocol
     // split, the gross each way and the †.
     await expect(page.getByTestId('sim-scale-subline')).toHaveText(
-      '$31M less debt force-closed, net† (Aave $8.6M · Morpho $22.4M): Membrane closes less on 1,462 positions ($95.1M), more on 951 ($64.0M).',
+      '$31M less debt force-closed, net† (Aave $8.6M · Morpho $22.4M): Membrane closes less on 1,462 positions ($95.1M†), more on 951 ($64.0M†).',
     )
     // The demo verdict is the simulator's replay, labelled as such, and the wallet is the
     // selection's best case from the census, not a typical one.

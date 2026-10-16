@@ -375,7 +375,7 @@ has(debtHtml, 'Difference, net', 'DebtLens: the difference is labelled net')
 has(debtHtml, '$31.1M†', 'DebtLens: the net difference carries †')
 has(
   debtHtml,
-  `less on ${D.all.less.toLocaleString('en-US')} positions (${usdM(grossLess)}), more on ${D.all.more.toLocaleString('en-US')} (${usdM(grossMore)})`,
+  `less on ${D.all.less.toLocaleString('en-US')} positions (${usdM(grossLess)}†), more on ${D.all.more.toLocaleString('en-US')} (${usdM(grossMore)}†)`,
   'DebtLens: the gross beside the net (rows)',
 )
 has(debtHtml, 'Difference†', 'DebtLens: the difference column carries †')

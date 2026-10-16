@@ -136,7 +136,7 @@ describe('OCT10 kept figure', () => {
     expect(OCT10_SPLIT_LINE).toBe('Aave $8.6M · Morpho $22.4M')
     expect(OCT10_SCALE_LINE.split).toBe(OCT10_SPLIT_LINE)
     expect(OCT10_SCALE_LINE.gross).toBe(
-      `less on ${doc.debt.all.less.toLocaleString('en-US')} positions ($95.1M), more on ${doc.debt.all.more.toLocaleString('en-US')} ($64.0M)`,
+      `less on ${doc.debt.all.less.toLocaleString('en-US')} positions ($95.1M†), more on ${doc.debt.all.more.toLocaleString('en-US')} ($64.0M†)`,
     )
     for (const v of Object.values(OCT10_SCALE_LINE)) {
       expect(v).not.toMatch(/protected|\balone\b/i)

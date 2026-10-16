@@ -32,6 +32,7 @@ import {
   cardSummary,
   clusterLine,
   currentClusters,
+  exitsAsOf,
   gapLine,
   rowLine,
   type Line,
@@ -1177,10 +1178,8 @@ export const CuratorFeedCard: React.FC = () => {
       ? {
           currentClusters: current.length,
           pending: pending.length,
-          // Older than the window: nothing can be said about exits now (DESIGN_RULES §4).
-          ...(data.meta.now - data.meta.toTs > CARD_WINDOW_HOURS * 3600
-            ? { asOf: data.meta.toTs }
-            : {}),
+          // Stale after STALE_HOURS: no "now" about exits (DESIGN_RULES §4).
+          asOf: exitsAsOf(data.meta),
         }
       : undefined,
     feedError: !data && isError,

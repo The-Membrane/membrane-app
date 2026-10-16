@@ -14,7 +14,7 @@
  */
 
 import { compact, durationText, short, utc } from './format'
-import { gapText, thresholdText } from './oracleGap'
+import { gapText, STALE_HOURS, thresholdText } from './oracleGap'
 import type { ClusterView, FeedRow, OracleGapMarketView, OracleGapResponse } from './service'
 
 export type Mark = '✖' | '▲' | '░'
@@ -301,17 +301,28 @@ export function gapExposed(
     : `$${compact(m.curatedUsd)} exposed`
 }
 
+/**
+ * The exits feed's head time when it is stale, else undefined. Stale on the oracle gap's
+ * own rule (STALE_HOURS: the hourly collector's cadence with slack). Past it, exits since
+ * the head block are not collected yet, so nothing is said about exits "now".
+ */
+export function exitsAsOf(meta: { now: number; toTs: number }): number | undefined {
+  return meta.now - meta.toTs > STALE_HOURS * 3600 ? meta.toTs : undefined
+}
+
 // ── the card's top line ──────────────────────────────────────────────────────
 
 /**
  * One line that says whether anything fired: "✖ 2 alarms now", "No alarm now · 2 changes
- * queued", or, while an input is missing, which one ("No exit alarm · oracle gap stale").
+ * queued", or, while an input is missing or stale, which one ("No exit alarm · oracle gap
+ * stale", "Exits as of 2026-10-11 18:05 UTC · no oracle alarm"). "No alarm now" only when
+ * both inputs are fresh.
  * Undefined while both inputs are loading.
  */
 export function cardSummary(input: {
   /** Exit clusters that are an alarm now (currentClusters), open submits still inside
-   *  their timelock, and `asOf`: the feed's head time, set only when it is older than the
-   *  cluster window, so no "now" can be said about exits. */
+   *  their timelock, and `asOf`: the feed's head time, set only when the feed is stale
+   *  (older than STALE_HOURS), so no "now" can be said about exits. */
   feed?: { currentClusters: number; pending: number; asOf?: number }
   feedError: boolean
   gap?: OracleGapResponse
@@ -331,7 +342,7 @@ export function cardSummary(input: {
   if (feedFresh && gapFresh) return { alarm: false, headline: `No alarm now${queued}`, detail: '' }
   const exits = feed
     ? feed.asOf !== undefined
-      ? `Exits as of ${utc(feed.asOf).slice(0, 10)}`
+      ? `Exits as of ${utc(feed.asOf)}`
       : 'No exit alarm'
     : feedError
       ? 'Exits unavailable'

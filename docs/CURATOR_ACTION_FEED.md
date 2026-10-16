@@ -250,25 +250,49 @@ the method, the record and its caveats in one "How this is measured" fold. The A
 `limit=500` (every market), so "Show only mine" sees all of them.
 
 Your markets (`lib/exposure`): pick a curator (from the feed's own vault → curator labels), or
-paste an address (a connected wallet prefills it). The address is read on Ethereum mainnet,
-read-only and with no signature, at one pinned block through the keyless public client
-(`lib/position-sim/rpc.ts`): ERC-4626 `balanceOf` on every vault §07 lists, then
-`convertToAssets` and `totalAssets` where shares are held, and Morpho Blue `position(id, user)`
-on every listed market. At most 500 vaults and 500 markets, 100 calls per multicall (50 for the
-asset reads): at most 31 eth_calls. Over a limit or malformed: a named error before any call. A
-failed call is listed by its error name, and a market whose read failed is "unchecked", never
-"none". Tied cards get a heavy frame and a tag ("you supply", "your vault …", "curated by …");
-"Highlight mine" / "Show only mine" switch the grid. The viewer's pro-rata $ is computed
-(`Relation.usd`, as of the exposure read, book value flagged) but not shown: a new kind of
-number waits for the owner.
+type an address (a connected wallet fills it, and a wallet switch is followed unless an address
+was typed; a mixed-case address must carry a valid EIP-55 checksum). The address is read on
+Ethereum mainnet, read-only and with no signature, at one pinned block through the keyless
+public RPCs (`lib/position-sim/rpc.ts`, the next one if one fails):
+
+- ERC-4626 `balanceOf` on every Morpho vault of the exposure read (the response's `vaults`
+  map, not only the vaults §07 lists), then `convertToAssets` and `totalAssets` where shares
+  are held;
+- for each held MetaMorpho vault, the markets it supplies NOW: `withdrawQueueLength`,
+  `withdrawQueue(i)`, Morpho Blue `position(id, vault)` kept where `supplyShares > 0`, and
+  `market(id)` to price that supply (the vault's USD per asset at the exposure read);
+- Morpho Blue `position(id, user)` on every listed market.
+
+Bounds: 500 vaults, 500 markets, live market lists for 25 held MetaMorpho vaults (queues of at
+most 30, MetaMorpho's own cap), 100 calls per multicall (50 for the asset reads): at most 56
+eth_calls. Over a target limit or malformed: a named error before any call; a held MetaMorpho
+vault past 25 is listed (ExposureLimitError) and keeps snapshot ties. A failed call is listed by
+its error name, and a market whose read failed is "░ unchecked", never "none".
+
+Ties: a live tie (a direct position, or a MetaMorpho vault's market list read at the block)
+gets a heavy frame and a tag ("you supply", "your vault …"). A tie that rests on the exposure
+snapshot only (a Vault V2, whose markets are not read live; a MetaMorpho vault whose live read
+failed or was past the limit; a chosen curator's vaults) is muted and tagged "as of <date>":
+it is never shown as live. A vaults-only tie whose look-through $ (your share of the vault ×
+its supply in the market) is under $1 is tagged "under $1" and sits under the under-$1 fold.
+"Highlight mine" / "Show only mine" switch the grid; under "Show only mine" the unchecked
+markets stay one tap away, and "N of total · ░ k unchecked" sits by the toggle. The look-through
+$ is computed (`Relation.usd`) but not shown: a new kind of number waits for the owner.
+
+Checked against mainnet on 2026-10-16 (block 26,207,322, 13 eth_calls) for
+0x1eB1994C6de521686f5B97B017fF6AFAB81FF2bb, which holds Smokehouse USDC: the vault supplies 14
+markets now; the snapshot's ties to cbBTC/USDC 0x64d65c… and weETH/USDC 0x34377f…, where it now
+supplies nothing, are gone; cbBTC/USDC 0xbc99de6a… (≈ $1.87k from the vault) is tied; three
+ties are under $1.
 
 The compact card (`CuratorFeedCard`, venue page and Today's Safety body) leads with one line —
 "✖ n alarms now", "No alarm now", or which input is missing — then 2–5 word headlines
 (`lib/curatorFeed/headlines.ts`): "2 curators left LBTC", "Cap cut to 0: PT-sUSDD",
 "Oracle gap: none for 24h". Vault, curator and date are small print; the full sentence and the
 transaction are in each item's fold. A cluster is an alarm only while its last exit is inside
-the 72 h window; an older one is shown as history. An exits feed whose head is older than that
-window says "Exits as of <date>", never "no alarm".
+the 72 h window; an older one is shown as history. An exits feed whose head block is more than
+3 h old (the oracle gap's own staleness rule) says "Exits as of <time>", never "No alarm now":
+exits since the head are not collected yet.
 
 Store: `oracle-gap.json` next to `feed.json` (format in `lib/curatorFeed/store.ts`): runs
 `[ts, block]`, a market dictionary and rows `[run, market, oracleUsd, marketUsd, confidence,

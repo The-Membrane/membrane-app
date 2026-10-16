@@ -4,6 +4,7 @@ import {
   cardSummary,
   clusterLine,
   currentClusters,
+  exitsAsOf,
   gapExposed,
   gapLine,
   gapMark,
@@ -343,6 +344,26 @@ describe('the §07 card mark', () => {
   })
 })
 
+describe('the exits feed’s staleness', () => {
+  it('stale past 3 h (the oracle gap’s rule), not only past the 72 h cluster window', () => {
+    expect(exitsAsOf({ now: NOW, toTs: NOW - 2 * H })).toBeUndefined()
+    expect(exitsAsOf({ now: NOW, toTs: NOW - 3 * H })).toBeUndefined()
+    expect(exitsAsOf({ now: NOW, toTs: NOW - 3 * H - 1 })).toBe(NOW - 3 * H - 1)
+    // The reviewer's case: head 48 h old (exits 20 h ago not collected yet).
+    expect(exitsAsOf({ now: NOW, toTs: NOW - 48 * H })).toBe(NOW - 48 * H)
+    const fresh = gap({ counts: { below: 10 } })
+    const s = cardSummary({
+      feed: { currentClusters: 0, pending: 0, asOf: exitsAsOf({ now: NOW, toTs: NOW - 48 * H }) },
+      feedError: false,
+      gap: fresh,
+      gapError: false,
+    })!
+    expect(s.headline).not.toMatch(/No alarm now/)
+    expect(s.headline).toMatch(/^Exits as of \d{4}-\d\d-\d\d \d\d:\d\d UTC · no oracle alarm$/)
+    expect(s.mark).toBe('░')
+  })
+})
+
 describe('the card’s top line', () => {
   const fresh = gap({ counts: { below: 10 } })
   it('says whether anything fired', () => {
@@ -397,7 +418,7 @@ describe('the card’s top line', () => {
       mark: '░',
       headline: 'Feed unavailable',
     })
-    // An exits feed older than the window: no "now" about exits.
+    // A stale exits feed: no "now" about exits.
     expect(
       cardSummary({
         feed: { currentClusters: 0, pending: 0, asOf: NOW - 5 * 86_400 },
@@ -408,7 +429,7 @@ describe('the card’s top line', () => {
     ).toEqual({
       mark: '░',
       alarm: false,
-      headline: `Exits as of ${new Date((NOW - 5 * 86_400) * 1000).toISOString().slice(0, 10)} · no oracle alarm`,
+      headline: `Exits as of ${new Date((NOW - 5 * 86_400) * 1000).toISOString().slice(0, 16).replace('T', ' ')} UTC · no oracle alarm`,
       detail: '',
     })
     // A stale gap that had fired is not an alarm now: its finding is withheld.

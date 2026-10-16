@@ -87,9 +87,10 @@ def compute_rows(F, tables, state, state24, rv7, units, codes, first_seen, xv_ok
         for c in D.X_CELLS:
             hi, xi = c["hi"], c["xi"]
             capped = bool(g["capx"][xi])
+            tb = F.table[(c["id"], S.SEG_IDS[seg])]
             row += [D.fmt_p(g["fixed"]["v2"][hi, xi]), D.fmt_p(g["fixed"]["v3"][hi, xi]),
-                    D.fmt_p(g["fixed"]["v3s"][hi, xi]), D.fmt_p(g["ps"][hi, xi]), D.fmt_p(g["disp"][hi, xi]),
-                    "" if capped else D.fmt_p(g["own"][hi, xi])]
+                    D.fmt_p(g["fixed"]["v3s"][hi, xi]), tb["rung"] or "pop", D.fmt_p(g["ps"][hi, xi]),
+                    D.fmt_p(g["disp"][hi, xi]), tb["label"], "" if capped else D.fmt_p(g["own"][hi, xi])]
         rows.append(row)
         detail.append({"reserve": r, "address": a, "status": status, "segment": S.SEG_IDS[seg], "gu": gu,
                        "balance_raw": bal, "x3": x3, "grid": g})

@@ -190,7 +190,11 @@ DECISIONS = [
     "address-flags.csv addresses are tracked (B3-4); others read 0 with xv_known = 0. Live share changes: "
     "x_acquire_crossvenue.decode_event per token and transaction, ERC-4626 silent shares, Comet principal = "
     "round(present value * 1e15 / baseSupplyIndex read at the event block). Prices as the cross-venue builder "
-    "(price_calls / price_value; Comet totalSupply * 1e15 / totalSupplyBase); a failed price takes the last ok one.",
+    "(price_calls / price_value; Comet totalSupply * 1e15 / totalSupplyBase); a failed price takes the last ok one. "
+    "Transition: the frozen daily snapshots end 2026-10-07 and the live ones start 2026-10-14, so until about "
+    "2026-10-21 the base is the nearest available snapshot (frozen 2026-10-07, asof_b1, frozen asof or a live "
+    "daily) and the flow / drop window spans 7-10 days; from then on the base is the live daily ~7.04 d before a "
+    "01:00Z asof and the window holds 7 dailies plus asof. Earlier issues' asof blocks are not snapshots.",
     "DL-7 cross-venue unavailable: if the cross-venue store cannot be brought to asof (a fetch, decode, Comet index "
     "or price read fails), v3 and v3s are inputs_unavailable (blank) for every unit and the xv feature columns are "
     "blank; v2 still issues; the composite D1 display leaves those model cells out (like capped cells).",
@@ -199,8 +203,9 @@ DECISIONS = [
     "20 bytes = EIP-7702 delegation = wallet). Band from bal(asof); segment = 3 * is_contract + band.",
     "DL-9 issued cells: the 25 (x, h) cells; the y_all (all_h) cells are history only and are neither issued nor "
     "scored. Per cell: v2, v3, v3s = each rung's grid after the masked 2-D monotone fix (the values B3 scored); "
-    "ps = the shipped rung's p, or the frozen seg_pop of the unit's segment where no rung ships (population-rate "
-    "history); disp = the composite D1 display value (b3_panel_d1 rule: model cells fixed among themselves, "
+    "rung = the shipped rung of (cell, segment) ('pop' where none ships); ps = the shipped rung's p, or the frozen "
+    "seg_pop of the unit's segment where no rung ships (population-rate history); label = the displayed label (DL-10); "
+    "disp = the composite D1 display value (b3_panel_d1 rule: model cells fixed among themselves, "
     "population cells among themselves, capped cells left out); own = the frozen own rate (DL-11). Capped cells "
     "(x * bal > 100 * cash at asof) are blank in every p column and never scored.",
     "DL-10 label per (cell, segment) = labels-d1.csv label_display (the registered final label, tie-route HIGH shown "
@@ -1457,7 +1462,7 @@ UNIT_COLS = ["reserve", "address", "status", "new_unit", "segment", "holder_cont
              "path_raw", "anchor_diff_raw", "anchor_tol_raw", "cash_over_bal", "age_days", "age_source", "xv_status",
              "vdebt_same_raw", "vdebt_other_raw"] + [f"cap_x{x}" for x in G.SIZES]
 FEAT_COLS = list(S.FEATURES_V3)
-CELL_FIELDS = ("v2", "v3", "v3s", "ps", "disp", "own")
+CELL_FIELDS = ("v2", "v3", "v3s", "rung", "ps", "disp", "label", "own")
 CELL_COLS = [f"{c['id']}_{k}" for c in X_CELLS for k in CELL_FIELDS]
 CSV_HEADER = UNIT_COLS + FEAT_COLS + CELL_COLS
 

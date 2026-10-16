@@ -460,6 +460,11 @@ class TestIssueAndScore(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(ldir, D.CODES_SUB, "holder-codes.csv.gz")))
         # monotone: p non-increasing in x, non-decreasing in h (per rung), display within [0, 1]
         r1 = df[df.address == A1].iloc[0]
+        self.assertEqual((r1["segment"], r1["x10_24h_rung"], r1["x10_24h_label"]), ("w1", "v2", "LOW"))
+        self.assertEqual(r1["x10_24h_ps"], r1["x10_24h_v2"])
+        r2 = df[df.address == A2].iloc[0]
+        self.assertEqual((r2["segment"], r2["x10_24h_rung"]), ("c1", "v3"))
+        self.assertEqual(df[df.address == A3].iloc[0]["x10_24h_rung"], "v2")
         for rg in ("v2", "v3", "v3s"):
             g = np.array([[float(r1[f"x{x}_{h}_{rg}"]) for x in G.SIZES] for h in G.HNAMES])
             self.assertTrue((np.diff(g, axis=1) <= 1e-12).all() and (np.diff(g, axis=0) >= -1e-12).all())

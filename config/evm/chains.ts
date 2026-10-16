@@ -1,4 +1,5 @@
 import { defineChain, type Chain } from 'viem'
+import { mainnet } from 'viem/chains'
 
 /**
  * EVM chain registry. Replaces config/chains.ts (Cosmos ChainConfig[]) under the
@@ -44,3 +45,16 @@ export const supportedEvmChains: readonly [Chain, ...Chain[]] = [anvil]
 export const DEFAULT_EVM_CHAIN: Chain =
   supportedEvmChains.find((c) => c.id === Number(process.env.NEXT_PUBLIC_EVM_CHAIN_ID)) ??
   supportedEvmChains[0]
+
+/**
+ * Chains a wallet may SIGN on for one surface, never the app's own chain: Ethereum mainnet,
+ * for the /position levers (repay / add on the reader's own Aave V3, Spark, Compound V3 or
+ * Morpho Blue position, components/PositionV0/LeverSheet.tsx). They join the wagmi config
+ * (config/evm/wagmi.ts) only so useSwitchChain and a mainnet wallet client exist. They are
+ * NOT in supportedEvmChains, so DEFAULT_EVM_CHAIN, the contract book, the RPC status check
+ * and every read keep the app's chain, and useWallet() never reports one (isAppChain).
+ */
+export const executionOnlyChains = [mainnet] as const
+
+/** Is `id` one of the app's own chains (not an execution-only one)? */
+export const isAppChain = (id: number | undefined): boolean => supportedEvmChains.some((c) => c.id === id)

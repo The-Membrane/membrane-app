@@ -1,5 +1,5 @@
 import { useAccount, useConnect, useDisconnect, usePublicClient, useWalletClient } from 'wagmi'
-import { DEFAULT_EVM_CHAIN } from '@/config/evm/chains'
+import { DEFAULT_EVM_CHAIN, isAppChain } from '@/config/evm/chains'
 
 /**
  * Wallet seam — EVM (wagmi) internals behind the same hook every feature consumes.
@@ -32,7 +32,10 @@ const useWallet = (_legacyChainName?: string) => {
     isConnecting,
     connect,
     disconnect: () => disconnect(),
-    chain: chain ?? DEFAULT_EVM_CHAIN,
+    // An execution-only chain (Ethereum, for the /position levers) is never reported here:
+    // callers resolve contract addresses from it. A wallet on Ethereum reads as the
+    // default chain, exactly as it did before Ethereum joined the wagmi config.
+    chain: chain && isAppChain(chain.id) ? chain : DEFAULT_EVM_CHAIN,
     connector,
     connectors,
     walletClient,

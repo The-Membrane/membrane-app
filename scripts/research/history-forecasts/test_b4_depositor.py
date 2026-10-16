@@ -468,3 +468,10 @@ class TestPipelineSynthetic(unittest.TestCase):
                 if v["label_dev"] != "HIGH":
                     self.assertEqual(v["label_final"], v["label_dev"])
         self.assertEqual(set(F.label_counts(cells, "label")), set(F.SEG_IDS))
+
+
+class TestBlind5ReportGate(unittest.TestCase):
+    def test_refuses_before_the_single_run(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(SystemExit):
+                F.phase_blind5_report(DDIR, d)

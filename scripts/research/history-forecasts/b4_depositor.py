@@ -18,6 +18,8 @@ Phases (one fresh --out, in this order):
   --phase freeze    shipped rungs, labels and fits -> shipped-b4.json + freeze-record.json (sha256)
   --phase blind5    B4.6 ONCE. Refuses without --blind5-commit SHA and --frozen-sha256 equal to the freeze record;
                     writes blind5-started.json first and refuses if it exists. NOT RUN by the dev session.
+  --phase blind5-report  after the single B4.6 run: per-reserve BSS per (cell, segment) (reported only; STOPs
+                    unless its recomputed predictions reproduce results-blind5.json exactly)
   --phase manifest  sha256 of every output
 --workers N (default 3) sets the fit processes (fork; BLAS pinned to one thread).
 
@@ -1472,6 +1474,102 @@ def phase_blind5(datasets_dir, out_dir, blind5_commit, frozen_sha256, log=print)
     return out
 
 
+SEED_B5_RESERVE = 20261103               # supplement only (per-reserve CIs; no registered seed)
+
+
+def phase_blind5_report(datasets_dir, out_dir, log=print):
+    """Reported only, after the single B4.6 run: per-reserve BSS per (cell, segment), which results-blind5.json does
+    not carry (it holds per-reserve R and n_ep; BSS only on the B-5 pool). Recomputes the theta = 1 predictions from
+    the frozen fits exactly as phase_blind5 (deterministic), STOPs unless they reproduce every rows / n_ep / R / BSS
+    point of results-blind5.json, then adds per reserve: BSS of the shipped rung vs pop (= vs own: own = pop with no
+    own rows), v2 vs pop, v4a and v4b vs v2, with day-block CIs from default_rng(20261103) in the B4.3 set order,
+    reserves in order inside each set. Decides nothing: labels and the method verdict are those of results-blind5.json."""
+    rbp = os.path.join(out_dir, "results-blind5.json")
+    outp = os.path.join(out_dir, "results-blind5-per-reserve.json")
+    if not (os.path.exists(rbp) and os.path.exists(os.path.join(out_dir, "blind5-started.json"))):
+        raise SystemExit("STOP: the single B4.6 run (results-blind5.json, blind5-started.json) must exist first.")
+    if os.path.exists(outp):
+        raise SystemExit(f"STOP: {outp} exists.")
+    with open(os.path.join(out_dir, "freeze-record.json")) as fh:
+        rec = json.load(fh)
+    rb = json.load(open(rbp))
+    if sha256_file(os.path.join(out_dir, "shipped-b4.json")) != rec["shipped_b4_sha256"] or \
+            rb["frozen_sha256"] != rec["shipped_b4_sha256"]:
+        raise SystemExit("STOP: frozen file differs from the freeze record / the B4.6 run.")
+    t0 = time.time()
+    frozen = json.load(open(os.path.join(out_dir, "shipped-b4.json")))
+    shas = G.verify_inputs(datasets_dir, holdouts=False)
+    shas.update(verify_blind5(datasets_dir))
+    ctx, res, flags = load_blind5(datasets_dir, log)
+    rows = G.build_rows(ctx, res, compute_labels=True)
+    add_segments(rows, flags)
+    v4a_features(rows, res, ctx.D)
+    fp = frozen["fold_params"]
+    cells_f = {cid: {s: {"shipped": v["shipped"]} for s, v in d.items()} for cid, d in frozen["cells"].items()}
+    n = len(rows["t"])
+    PRr = {k: np.full((n, G.NC), np.nan) for k in RUNGS + ("pop", "shipped")}
+    for fi in range(len(ctx.folds)):
+        te = np.nonzero((rows["fold"] == fi) & rows["feat_ok"])[0]
+        if not len(te):
+            continue
+        raw = predict_frozen_b4(rows, fp, fi, te)
+        Fx = {r: S.fix_grid(raw[r], rows["CAP"][te]) for r in RUNGS}
+        for r in RUNGS:
+            PRr[r][te] = Fx[r]
+        PRr["shipped"][te] = pick_shipped_b4(rows, te, Fx, cells_f)
+        for ci, c in enumerate(G.CELLS):
+            PRr["pop"][te, ci] = fp[str(fi)][c["id"]]["v2"]["pop"]
+    PRr["own"] = PRr["pop"]
+    rn = rows["reserve_names"]
+    test = (rows["fold"] >= 0) & rows["feat_ok"]
+    comps = (("shipped_vs_pop", "shipped", "pop"), ("shipped_vs_own", "shipped", "own"), ("v2_vs_pop", "v2", "pop"),
+             ("v4a_vs_v2", "v4a", "v2"), ("v4b_vs_v2", "v4b", "v2"))
+    rng = np.random.default_rng(SEED_B5_RESERVE)
+    out, n_checked = {}, 0
+    for ci, s in S.set_order():
+        c = G.CELLS[ci]
+        base = test & rows["RES"][:, c["hi"]] & ~rows["CAP"][:, ci]
+        if s is not None:
+            base &= rows["seg"] == s
+        idx = np.nonzero(base)[0]
+        y = rows["Y"][idx, ci].astype(float)
+        pr = {k: PRr[k][idx, ci] for k in ("shipped", "v2", "v4a", "v4b", "pop", "own")}
+        ref = rb["pooled"][c["id"]] if s is None else rb["cells"][c["id"]][SEG_IDS[s]]
+        chk = [ref["rows"] == len(idx), ref["n_ep"] == G.n_episodes(rows["unit"][idx], rows["t"][idx], y)]
+        chk += [ref["R"][k] == ratio_R(pr[k].sum(), y.sum()) or (ref["R"][k] is None and not math.isfinite(
+            ratio_R(pr[k].sum(), y.sum()))) for k in ("shipped", "v2", "v4a", "v4b")]
+        chk += [ref["bss"][cn]["bss"] == bss_point(pr[a], pr[b], y) or (
+            ref["bss"][cn]["bss"] is not None and bss_point(pr[a], pr[b], y) is not None and
+            abs(ref["bss"][cn]["bss"] - bss_point(pr[a], pr[b], y)) <= 1e-12) for cn, a, b in comps]
+        if not all(chk):
+            raise SystemExit(f"STOP: recomputed predictions do not reproduce results-blind5.json at {c['id']} {s}")
+        n_checked += 1
+        per = {}
+        for ri, r in enumerate(rn):
+            jj = np.nonzero(rows["reserve"][idx] == ri)[0]
+            dd = np.unique(rows["t"][idx][jj])
+            nd = len(dd)
+            cb = B.replicate_counts(B.block_bootstrap_indices(rng, nd, G.BLOCK_DAYS, G.N_BOOT), nd) \
+                if nd >= G.BLOCK_DAYS else None
+            pos = np.searchsorted(dd, rows["t"][idx][jj])
+            yy = y[jj]
+            per[r] = {"rows": int(len(jj)), "exits": int(yy.sum()),
+                      "n_ep": G.n_episodes(rows["unit"][idx][jj], rows["t"][idx][jj], yy),
+                      "R": {k: ratio_R(pr[k][jj].sum(), yy.sum()) for k in ("shipped", "v2", "v4a", "v4b")},
+                      "bss": {cn: (G.bss_ci(pos, nd, pr[a][jj], pr[b][jj], yy, cb) if cb is not None
+                                   else dict(_EMPTY, bss=bss_point(pr[a][jj], pr[b][jj], yy)) if len(jj) else None)
+                              for cn, a, b in comps}}
+        out.setdefault(c["id"], {})["pooled_segments" if s is None else SEG_IDS[s]] = per
+    res = {"phase": "blind5-report (supplement, reported only)", "prereg": PREREG, "section": "B4.6",
+           "results_blind5_sha256": sha256_file(rbp), "frozen_sha256": rec["shipped_b4_sha256"],
+           "inputs_sha256": shas, "code": code_meta(), "sets_reproduced_exactly": n_checked,
+           "seed": SEED_B5_RESERVE, "note": phase_blind5_report.__doc__, "per_reserve": out,
+           "runtime_s": time.time() - t0, "finished_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    write_json(outp, res, refuse_overwrite=True)
+    log(f"blind5-report: {n_checked} sets reproduced; {outp}")
+    return res
+
+
 def blind5_pooling_test(ctx, rows, frozen):
     """B4-16 (reported only)."""
     fold_names = [f[0] for f in ctx.folds]
@@ -1568,7 +1666,7 @@ def main(argv=None):
     ap.add_argument("--datasets")
     ap.add_argument("--out", required=True)
     ap.add_argument("--phase", required=True, choices=("borrows", "audit", "dryrun", "run", "freeze", "blind5",
-                                                       "manifest"))
+                                                       "blind5-report", "manifest"))
     ap.add_argument("--borrow-dir")
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--blind5-commit")
@@ -1587,6 +1685,8 @@ def main(argv=None):
         phase_freeze(a.out)
     elif a.phase == "blind5":
         phase_blind5(a.datasets, a.out, a.blind5_commit, a.frozen_sha256)
+    elif a.phase == "blind5-report":
+        phase_blind5_report(a.datasets, a.out)
     else:
         phase_manifest(a.out)
 

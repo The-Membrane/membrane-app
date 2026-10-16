@@ -94,8 +94,9 @@ class FakeLogs:
         self.calls.append((tuple(addresses), lo, hi))
         aset = {a.lower() for a in addresses}
         tset = {t.lower() for t in topics}
-        return [dict(lg) for lg in self.logs if lg["address"] in aset and lo <= lg["block"] <= hi
-                and lg["topics"][0] in tset and (lg["block"], lg["log_index"]) not in self.drop]
+        return sorted([dict(lg) for lg in self.logs if lg["address"] in aset and lo <= lg["block"] <= hi
+                       and lg["topics"][0] in tset and (lg["block"], lg["log_index"]) not in self.drop],
+                      key=lambda lg: (lg["block"], lg["log_index"]))
 
     def stats(self):
         return {"fake": True, "calls": len(self.calls)}
@@ -147,6 +148,36 @@ def fake_frozen(rng_seed=1):
                A2: {"contract": True, "eip7702": False, "adapter": False},
                A3: {"contract": False, "eip7702": False, "adapter": False}}
     F.theta_seg_check = 0.0
+    return F
+
+
+def fake_frozen_b4(rng_seed=2):
+    """fake_frozen() plus a B4 part with the structure load_frozen_b4 returns."""
+    F = fake_frozen()
+    rng = np.random.default_rng(rng_seed)
+    Dd = 60
+    Tf = np.array([(TS0 // 86400 - 6 - Dd + 1 + k) * 86400 for k in range(Dd)], dtype=np.int64)  # ends 10-07
+    anchors = np.full((3, Dd), np.nan)
+    anchors[0] = 4_500_000 * MICRO
+    anchors[0, 40] = 3_000_000 * MICRO                                   # a frozen drawdown for A1
+    anchors[1, 30:] = 2_000_000 * MICRO
+    anchors[2] = 950_000 * MICRO
+    b4 = {"params": {}, "theta4": {}, "Od": {}, "Ed": {}, "mseg": {}, "table": {}, "T": Tf, "anchors": anchors,
+          "flags": {xk: {0: np.array([45, 50])} for xk in D.B4_XK}, "check": {"m_seg_equal": True},
+          "inputs": {"shipped_meta": {"path": "fake", "sha256": "0" * 64}, "labels_meta": {"path": "fake"}}}
+    for c in D.X_CELLS:
+        base = -5.5 + 0.4 * c["hi"] - 0.3 * c["xi"]
+        b4["params"][c["id"]] = {"params": {"mu": [0.0] * 14, "sd": [1.0] * 14, "coef": list(rng.normal(0, 0.05, 14)),
+                                            "intercept": base}, "const_p0": None}
+        b4["theta4"][c["id"]] = np.array([1.3, 0.9, 1.0])
+        b4["Od"][c["id"]] = np.array([2.0, 0.5, 0.0])
+        b4["Ed"][c["id"]] = np.array([1.0, 0.8, 0.0])
+        b4["mseg"][c["id"]] = np.array([50.0, 50.0, 50.0, 2.0, 50.0, 1.0])
+        for si, sid in enumerate(S.SEG_IDS):
+            rung = {"w1": "v4a", "c1": "v4b", "w2": "v2"}.get(sid)
+            b4["table"][(c["id"], sid)] = {"rung": rung, "label": "MEDIUM" if rung else "LOW", "label_dev": "LOW",
+                                           "holdout_outcome": None, "seg_pop": 0.01 + 0.001 * si, "b3_rung": None}
+    F.b4 = b4
     return F
 
 
@@ -257,15 +288,18 @@ class World:
             mock.patch.object(D, "xv_pools", lambda X_, rpc, b: {}),
             mock.patch.object(D, "xv_price_rows", xv_prices),
             mock.patch.object(D, "build_event_tables", build),
+            mock.patch.object(D, "load_b4_inputs", lambda ds, *a: {"fake": True}),
+            mock.patch.object(D, "read_incomes", lambda rpc, b: {"USDC": RAY, "USDT": RAY}),
         ]
 
-    def issue(self, now, frozen=None):
+    def issue(self, now, frozen=None, b4=False):
         ps = self.patches(now)
         for p in ps:
             p.start()
         try:
             return I.issue(self.out, self.ds, FakeRpc(now), self.logs, clock=lambda: now, log=QUIET,
-                           frozen=frozen or fake_frozen())
+                           frozen=frozen or (fake_frozen_b4() if b4 else fake_frozen()),
+                           model_b4=("s.json", "0" * 64, "l.csv", "0" * 64) if b4 else None)
         finally:
             for p in reversed(ps):
                 p.stop()
@@ -699,6 +733,100 @@ class TestIssueAndScore(unittest.TestCase):
             D.event_store_status(ldir)
 
 
+def b4_logs(post_amount=3_000_000 * MICRO):
+    """base_live_logs plus a live 24 h drop of A2 on 2026-10-14 (a live origin for n_x90)."""
+    d14 = (TS0 // 86400 + 1) * 86400                                   # 2026-10-14T00:00Z
+    return base_live_logs(post_amount) + [atoken_log("Burn", block_at(d14 + 43200), 2, A2, value=1_000_000 * MICRO)]
+
+
+class TestModelB4(unittest.TestCase):
+    def setUp(self):
+        self.w3 = World(b4_logs(), base_xv_logs(), rounds_after=[[(1 << 64) | 201, 999_000_000_000, H + 60]],
+                        mismatch={A2})
+        self.w4 = World(b4_logs(), base_xv_logs(), rounds_after=[[(1 << 64) | 201, 999_000_000_000, H + 60]],
+                        mismatch={A2})
+
+    def tearDown(self):
+        self.w3.cleanup()
+        self.w4.cleanup()
+
+    def read_csv(self, path):
+        import pandas as pd
+        return pd.read_csv(path, dtype=str, keep_default_na=False)
+
+    def test_b4_issue_keeps_b3_columns_and_adds_b4(self):
+        _, d3, rows3 = self.w3.issue(NOW)
+        _, d4, rows4 = self.w4.issue(NOW, b4=True)
+        n3 = len(D.CSV_HEADER)
+        self.assertEqual([r[:n3] for r in rows4], rows3)                   # B3 columns byte-identical
+        self.assertEqual((d4["schema"], d4["model"]), (I.SCHEMA_B4, "B4"))
+        self.assertNotIn("model", d3)
+        idir = D.issues_dir(self.w4.ldir())
+        df = self.read_csv(os.path.join(idir, d4["csvFile"]))
+        self.assertEqual(list(df.columns), D.CSV_HEADER_B4)
+        self.assertEqual(D.verify_chain(idir), [])
+        self.assertEqual(d4["inputs"]["dailyStore"]["daysUsed"], ["2026-10-14", "2026-10-15"])
+        r2 = df[df.address == A2].iloc[0]
+        # A2: live origin 2026-10-14 (2M) fell to 1M within 24 h -> one prior x10..x50 exit; 10-15 not yet labelled
+        self.assertEqual([r2[f"b4_log1p_n_x90_x{x}"] for x in G.SIZES], [D.fmt_f(np.log1p(1))] * 3 + ["0"] * 2)
+        days = (d4["asof"]["ts"] - (TS0 // 86400 + 1) * 86400) / 86400
+        self.assertEqual(r2["b4_log1p_days_x10"], D.fmt_f(np.log1p(days)))
+        self.assertEqual(float(r2["b4_maxdd90"]), 0.5)
+        self.assertEqual((r2["b4_live_days"], r2["b4_live_origins"]), ("2", "1"))
+        r1 = df[df.address == A1].iloc[0]                                 # frozen flags at days 45, 50; frozen drawdown
+        self.assertEqual(r1["b4_log1p_n_x90_x10"], D.fmt_f(np.log1p(2)))
+        self.assertAlmostEqual(float(r1["b4_maxdd90"]), 1 - 3 / 4.5, places=9)
+        self.assertEqual((r1["segment"], r1["x10_24h_rung4"], r1["x10_24h_label4"]), ("w1", "v4a", "MEDIUM"))
+        self.assertEqual(r1["x10_24h_ps4"], r1["x10_24h_v4a"])
+        r4 = df[df.address == A4].iloc[0]                                 # new unit: theta 1, live data only
+        self.assertEqual(r4["new_unit"], "1")
+        F = fake_frozen_b4()
+        f4 = D.b4_features_at(F.b4, None, [], 3_000_000 * MICRO, d4["asof"]["ts"])
+        x3 = [float(r4[k]) for k in D.FEAT_COLS[:13]]
+        g4 = D.forecast_grid_b4(F, x3, f4, None, 0, 3_000_000 * MICRO, 400_000_000 * MICRO,
+                                np.full((G.NH, G.NX), 0.01))
+        self.assertEqual(r4["x10_24h_v4a"], D.fmt_p(g4["fixed"]["v4a"][2, 0]))
+        for rg in ("v4a", "v4b"):
+            g = np.array([[float(r1[f"x{x}_{h}_{rg}"]) for x in G.SIZES] for h in G.HNAMES])
+            self.assertTrue((np.diff(g, axis=1) <= 1e-12).all() and (np.diff(g, axis=0) >= -1e-12).all())
+        self.assertTrue(os.path.exists(os.path.join(self.w4.ldir(), D.DAILY_SUB, "snapshots.csv.gz")))
+
+    def test_b4_no_input_after_asof(self):
+        """Perturbing every input after asof leaves the B4 issue identical (B4 features included)."""
+        w5 = World([lg if lg["block"] <= ASOF else dict(lg, data="0x" + word(1_234_567 * MICRO) + word(0) + word(RAY))
+                    for lg in b4_logs()] + [atoken_log("Burn", ASOF + 2, 9, A1, value=4_000_000 * MICRO)],
+                   base_xv_logs(post=1_999_000 * MICRO),
+                   rounds_after=[[(1 << 64) | 201, 1, H], [(1 << 64) | 202, 5, H + 9]], mismatch={A2})
+        try:
+            _, _, rows4 = self.w4.issue(NOW, b4=True)
+            _, _, rows5 = w5.issue(NOW, b4=True)
+            self.assertEqual(rows4, rows5)
+        finally:
+            w5.cleanup()
+        w6 = World(b4_logs() + [atoken_log("Burn", block_at((TS0 // 86400 + 1) * 86400 + 3600), 7, A1,
+                                           value=1_000_000 * MICRO)], base_xv_logs(),
+                   rounds_after=[[(1 << 64) | 201, 999_000_000_000, H + 60]], mismatch={A2})
+        try:                                                              # power: a pre-asof live drop changes B4
+            _, _, rows6 = w6.issue(NOW, b4=True)
+            i1 = [r[1] for r in rows4].index(A1)
+            n3 = len(D.CSV_HEADER)
+            self.assertNotEqual(rows4[i1][n3:], rows6[i1][n3:])
+        finally:
+            w6.cleanup()
+
+    def test_scorer_switches_live_check_to_b4(self):
+        w = self.w4
+        w.issue(NOW, b4=True)
+        doc, new = w.score(H + 2 * 3600)
+        self.assertEqual(doc["liveCheckModel"], "B4")
+        self.assertEqual(doc["liveCheck"]["x10_1h"]["w1"]["rung"], "v4a")
+        self.assertEqual(doc["liveCheckB3"]["x10_1h"]["w1"]["rung"], "v2")
+        cs = doc["cells"]["x10_1h"]["w1"]
+        self.assertEqual(cs["ps4"]["n"], cs["ps"]["n"])
+        self.assertIsNotNone(cs["v4b"])
+        self.assertEqual(doc["resolvedB4IssueDaysPerHorizon"]["1h"], 1)
+
+
 class TestFrozenInputGuard(unittest.TestCase):
     def test_sha_mismatch_refuses(self):
         root = tempfile.mkdtemp()
@@ -719,6 +847,8 @@ class TestFrozenInputGuard(unittest.TestCase):
 # ---------------------------------------------------------------------------------------------
 DS = os.environ.get("Q26_DATASETS")
 INCOME_AT_ANCHOR = {"USDC": 1189499413684287881114549779, "USDT": 1178946273441814945326923375}  # read at 26,186,746
+B4_SHIPPED_SHA = "cc8680c42d3f00ef7f08d84850406153fa082772daf22a3b1d90113aae1bbadf"
+B4_LABELS_SHA = "e001e7e7d523008b4db691934475f301cfa4ed6ece273a144bee54955e7206db"
 
 
 @unittest.skipUnless(DS, "set Q26_DATASETS=<membrane-datasets> for the real-data checks")
@@ -727,6 +857,9 @@ class TestRealData(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp()
         cls.tables = D.build_event_tables(DS, cls.tmp, D.FROZEN_ASOF_BLOCK, log=QUIET)
+        cls.b4in = D.load_b4_inputs(DS, D.B4_RUN_REL + "shipped-b4.json", B4_SHIPPED_SHA,
+                                    D.B4_RUN_REL + "labels-dev.csv", B4_LABELS_SHA)
+        cls.F = D.load_frozen(DS, log=QUIET, b4=cls.b4in)
 
     @classmethod
     def tearDownClass(cls):
@@ -817,7 +950,7 @@ class TestRealData(unittest.TestCase):
         man = json.load(open(os.path.join(run, "manifest.json")))
         for fn in ("results-holdout.json", "live-inputs.json"):
             self.assertEqual(D.sha256_file(os.path.join(run, fn)), man["files"][fn]["sha256"])
-        F = D.load_frozen(DS, log=QUIET)
+        F = self.F
         self.assertLess(F.theta_seg_check, 1e-9)
         X = D.load_xv_frozen(DS, log=QUIET)
         xvf, rule = D.xv_features(X, None, D.FROZEN_ASOF_BLOCK, D.FROZEN_ASOF_TS)
@@ -874,6 +1007,74 @@ class TestRealData(unittest.TestCase):
                     self.assertLess(abs(old[c["hi"], c["xi"]] - p), 1e-9)
         self.assertLess(worst, 1e-9)
         self.assertGreater(n, 2 * 20 * 3 * 20)
+
+
+    def test_model_b4_reproduces_b4_panel_preview(self):
+        """KEY CHECK (B4.5): at the B4 anchor the issuer's v4a / v4b p for the panel-preview units equal results-dev
+        panel_preview (1e-9; features exactly), the B4 display equals panel-preview.csv, and the B3 columns are
+        unchanged by the B4 part."""
+        run = os.path.join(DS, D.RUN_REL)
+        b4run = os.path.join(DS, D.B4_RUN_REL)
+        man = json.load(open(os.path.join(b4run, "manifest.json")))
+        for fn in ("results-dev.json", "panel-preview.csv", "shipped-b4.json", "labels-dev.csv"):
+            self.assertEqual(D.sha256_file(os.path.join(b4run, fn)), man["files"][fn]["sha256"])
+        rd = json.load(open(os.path.join(b4run, "results-dev.json")))
+        live = json.load(open(os.path.join(run, "live-inputs.json")))
+        F = self.F
+        self.assertTrue(F.b4["check"]["m_seg_equal"])
+        X = D.load_xv_frozen(DS, log=QUIET)
+        xvf, _ = D.xv_features(X, None, D.FROZEN_ASOF_BLOCK, D.FROZEN_ASOF_TS)
+        rounds, _ = D.eth_rounds_upto(DS, None, D.FROZEN_ASOF_BLOCK, D.FROZEN_ASOF_TS)
+        rv7, _ = D.rv7_at_asof(rounds, D.FROZEN_ASOF_TS)
+        self.assertEqual(rv7, rd["panel_inputs"]["rv7"])
+        st = {r: live["asof"]["state"][r] for r in D.RESERVES}
+        st24 = {r: live["minus24h"]["state"][r] for r in D.RESERVES}
+        recon = {(r["reserve"], r["address"].lower()): int(r["recon_balance_asof_raw"])
+                 for r in csv.DictReader(open(os.path.join(DS, G.DE, "extended-universe.csv")))}
+        units, rank = [], {}
+        for R in D.RESERVES:
+            for u in rd["panel_preview"][R]:
+                a = u["address"].lower()
+                bal = int(round(u["balance_usd"] * MICRO))
+                units.append((R, a, recon[(R, a)], bal, {"USDC": 0, "USDT": 0}))
+                rank[(R, a)] = u
+        rows4, det4, _ = I.compute_rows(F, self.tables, st, st24, rv7, units, {}, {}, True, xvf, D.FROZEN_ASOF_BLOCK,
+                                        D.FROZEN_ASOF_TS, "2026-10-13", b4days=[])
+        rows3, _, _ = I.compute_rows(F, self.tables, st, st24, rv7, units, {}, {}, True, xvf, D.FROZEN_ASOF_BLOCK,
+                                     D.FROZEN_ASOF_TS, "2026-10-13")
+        self.assertEqual([r[:len(D.CSV_HEADER)] for r in rows4], rows3)
+        pv = {(r["reserve"], int(r["rank"]), r["cell"]): r for r in csv.DictReader(open(os.path.join(
+            b4run, "panel-preview.csv")))}
+        worst, n = 0.0, 0
+        self.assertEqual(len(det4), 20)
+        for d in det4:
+            u = rank[(d["reserve"], d["address"])]
+            self.assertEqual(d["segment"], u["segment"])
+            np.testing.assert_array_equal(np.array(d["x3"][:13]), np.array([u["features_v2"][k] for k in G.FEATURES_V2]))
+            for xk in D.B4_XK:
+                fv = u["features_v4a"][xk]
+                self.assertEqual(d["f4"][xk], [fv["log1p_n_x90"], fv["maxdd90"], fv["log1p_days_since_x"]])
+            g4 = d["grid4"]
+            for c in D.X_CELLS:
+                hi, xi = c["hi"], c["xi"]
+                cv = u["cells"][c["id"]]
+                for rg in D.B4_RUNGS:
+                    v = cv["rung_values"][rg]
+                    w_ = g4["fixed"][rg][hi, xi]
+                    if v is None:
+                        self.assertFalse(np.isfinite(w_))
+                    else:
+                        worst = max(worst, abs(v - w_))
+                        n += 1
+                dv = g4["disp"][hi, xi]
+                self.assertEqual("capped" if not np.isfinite(dv) else G.fmt(dv),
+                                 pv[(d["reserve"], u["rank"], c["id"])]["number"])
+                self.assertEqual(F.b4["table"][(c["id"], d["segment"])]["label"],
+                                 pv[(d["reserve"], u["rank"], c["id"])]["label"])
+                if cv["p"] is not None:
+                    self.assertLess(abs(cv["p"] - dv), 1e-9)
+        self.assertLess(worst, 1e-9)
+        self.assertGreater(n, 20 * 3 * 20)
 
 
 @unittest.skipUnless(DS and os.environ.get("Q26_NETWORK"), "set Q26_DATASETS and Q26_NETWORK=1 for the network check")

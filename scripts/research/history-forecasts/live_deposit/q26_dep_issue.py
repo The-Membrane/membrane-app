@@ -2,6 +2,7 @@
 """Q26 per-deposit live log -- daily ISSUER (DEPOSITOR_LIVE.md DL.2-DL.4, DL.7).
 
   python3 q26_dep_issue.py --datasets <membrane-datasets> --out <root> [--expect-commit <sha>]
+      [--model-b4 <shipped-b4.json rel> --model-b4-sha256 <sha> --labels-b4 <labels-dev.csv rel> --labels-b4-sha256 <sha>]
 
 Implements triccs/membrane-board `design/DEPOSITOR_LIVE.md` (registered 3dc8c65, sha256 52d7666a...).
 
@@ -20,6 +21,11 @@ Implements triccs/membrane-board `design/DEPOSITOR_LIVE.md` (registered 3dc8c65,
 - Writes <out>/forecasts/q26-deposit-live/issues/YYYY-MM-DD.csv.gz and YYYY-MM-DD.json (header: issuedAt, asof,
   inputs, code, RPCs, csvSha256, prevSha256 = sha256 of the previous header; genesis 64 zeros) and appends
   issues/chain.jsonl. Files are never rewritten. Git is left to the workflow.
+- Model B4 (DEPOSITOR_BEHAVIOR_PREREG_B4.md B4.5; only with --model-b4 / --labels-b4 and their sha256): schema
+  q26-deposit-live/issue/2 with a top-level `model` field; every B3 column unchanged, then per unit the v4a
+  features and per cell v4a, v4b, the B4 shipped rung, its p, the B4 D1 display and the B4 label; the daily store
+  daily/snapshots.csv.gz feeds the live v4a features. Without the flags nothing changes. Earlier files are never
+  rewritten; the hash chain runs through the change unchanged.
 """
 import argparse
 import json
@@ -34,8 +40,12 @@ import q26_dep_common as D  # noqa: E402
 G, S, C = D.G, D.S, D.C
 
 SCHEMA = "q26-deposit-live/issue/1"
+SCHEMA_B4 = "q26-deposit-live/issue/2"
 
 DECISIONS_ISSUE = [
+    "Model B4 issue order: as model B3, plus the frozen B4 files' sha256 against the flags before any write, the daily "
+    "store append after the event and cross-venue appends, and the B4 part of the frozen model (theta_v4a, discounted "
+    "O / E and m_seg recomputed and checked) before the rows.",
     "Issue order: guards -> frozen sha256 -> event store append -> asof block -> reserve state (asof, asof - 24 h) "
     "-> rounds / RV7 -> gap logs (store end, asof] -> cross-venue store append, gap and asof prices (failure -> "
     "inputs_unavailable) -> event tables -> candidates -> balanceOf (+ debt) -> holder codes -> frozen model -> rows "
@@ -52,8 +62,10 @@ def other(r):
     return "USDT" if r == "USDC" else "USDC"
 
 
-def compute_rows(F, tables, state, state24, rv7, units, codes, first_seen, xv_ok, xvf, asof_block, asof_ts, date):
+def compute_rows(F, tables, state, state24, rv7, units, codes, first_seen, xv_ok, xvf, asof_block, asof_ts, date,
+                 b4days=None):
     """Pure part of the issue: units = [(reserve, address, path_raw, balance_raw, {reserve: debt})].
+    b4days = the live daily snapshots (00:00Z <= asof) for model B4, or None (B3 only).
     Returns (csv rows, per-unit detail dicts, new first-seen rows)."""
     rows, detail, new_fs = [], [], []
     for r, a, pb, bal, debt in sorted(units, key=lambda u: (u[0], u[1])):
@@ -94,9 +106,22 @@ def compute_rows(F, tables, state, state24, rv7, units, codes, first_seen, xv_ok
             row += [D.fmt_p(g["fixed"]["v2"][hi, xi]), D.fmt_p(g["fixed"]["v3"][hi, xi]),
                     D.fmt_p(g["fixed"]["v3s"][hi, xi]), tb["rung"] or "pop", D.fmt_p(g["ps"][hi, xi]),
                     D.fmt_p(g["disp"][hi, xi]), tb["label"], "" if capped else D.fmt_p(g["own"][hi, xi])]
+        det = {"reserve": r, "address": a, "status": status, "segment": S.SEG_IDS[seg], "gu": gu,
+               "balance_raw": bal, "x3": x3, "grid": g}
+        if b4days is not None:                                              # model B4 columns after the B3 ones
+            live = D.live_daily_unit(tables[r], r, a, b4days, asof_ts)
+            f4 = D.b4_features_at(F.b4, gu, live, bal, asof_ts)
+            g4 = D.forecast_grid_b4(F, x3[:13], f4, gu, seg, bal, cash, g["fixed"]["v2"])
+            row += ([D.fmt_f(f4[D.B4_XK[0]][1])] + [D.fmt_f(f4[xk][0]) for xk in D.B4_XK]
+                    + [D.fmt_f(f4[xk][2]) for xk in D.B4_XK] + [len(live), sum(1 for d in live if d["flags"])])
+            for c in D.X_CELLS:
+                hi, xi = c["hi"], c["xi"]
+                tb4 = F.b4["table"][(c["id"], S.SEG_IDS[seg])]
+                row += [D.fmt_p(g4["fixed"]["v4a"][hi, xi]), D.fmt_p(g4["fixed"]["v4b"][hi, xi]), tb4["rung"] or "pop",
+                        D.fmt_p(g4["ps"][hi, xi]), D.fmt_p(g4["disp"][hi, xi]), tb4["label"]]
+            det.update(grid4=g4, f4=f4, live_days=live)
         rows.append(row)
-        detail.append({"reserve": r, "address": a, "status": status, "segment": S.SEG_IDS[seg], "gu": gu,
-                       "balance_raw": bal, "x3": x3, "grid": g})
+        detail.append(det)
     return rows, detail, new_fs
 
 
@@ -107,9 +132,15 @@ def header_table(F):
     return out
 
 
-def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=print, frozen=None):
+def header_table_b4(F):
+    return {c["id"]: {s: dict(F.b4["table"][(c["id"], s)], m_seg=float(F.b4["mseg"][c["id"]][si]))
+                      for si, s in enumerate(S.SEG_IDS)} for c in D.X_CELLS}
+
+
+def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=print, frozen=None, model_b4=None):
     """One live issue. `clock`, the transports and `frozen` are injectable for the offline tests only; the CLI
-    always uses the real wall clock and the public endpoints."""
+    always uses the real wall clock and the public endpoints. model_b4 = (shipped-b4.json rel, sha256,
+    labels-dev.csv rel, sha256) switches to model B4 (schema 2); None keeps model B3."""
     t_start = time.time()
     issued_at = int(clock())
     H = D.floor_hour(issued_at)
@@ -122,6 +153,7 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
     D.check_store_rows_within_coverage(ldir)
     frozen_sums = D.frozen_scaled_sums(datasets)                           # DL-16
     anchor_offset = D.check_frozen_offset(frozen_sums)
+    b4in = D.load_b4_inputs(datasets, *model_b4) if model_b4 is not None else None
     log(f"issue {date}: issuedAt {D.iso(issued_at)} H {D.iso(H)}; prev {prev_name or 'genesis'}")
 
     head = D.head_block(rpc)
@@ -169,6 +201,10 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
         xv_ok, xv_err = False, f"{type(e).__name__}: {str(e)[:300]}"
         log(f"cross-venue: inputs_unavailable ({xv_err})")
     del X
+    daily_entry, b4days = None, None
+    if b4in is not None:                                                   # DL-21 live daily balances (model B4)
+        daily_entry = D.update_daily_store(ldir, rpc, asof_ts, head, clock=clock, log=log)
+        b4days = [d for d in D.read_daily_store(ldir) if d["T"] <= asof_ts and d["block"] < asof_block]
 
     tables = D.build_event_tables(datasets, ldir, asof_block, extra_rows=gap, log=log)
     cands = []
@@ -187,7 +223,9 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
     below_path1m = sum(1 for r, a, pb in cands if bals[(r, a)][0] < G.MIN_BAL and pb >= G.MIN_BAL)
     log(f"candidates {len(cands)}; units {len(units)} (balanceOf >= $1M); candidates below $1M {below}")
 
-    F = frozen if frozen is not None else D.load_frozen(datasets, log=log)
+    F = frozen if frozen is not None else D.load_frozen(datasets, log=log, b4=b4in)
+    if b4in is not None and getattr(F, "b4", None) is None:
+        raise SystemExit("STOP: model B4 requested but the frozen model has no B4 part")
     codes = D.read_code_store(ldir)
     need = sorted({a for _, a, _, _, _ in units if a not in F.flags and a not in codes})
     new_codes = D.read_codes(rpc, need, asof_block) if need else {}
@@ -195,14 +233,14 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
     first_seen = D.read_first_seen(ldir)
     t_model = time.time()
     rows, detail, new_fs = compute_rows(F, tables, state, state24, rv7, units, codes_all, first_seen, xv_ok, xvf,
-                                        asof_block, asof_ts, date)
+                                        asof_block, asof_ts, date, b4days=b4days)
     model_seconds = round(time.time() - t_model, 1)
 
     counts = {}
     for d in detail:
         k = counts.setdefault(d["reserve"], {}).setdefault(d["segment"], {"ok": 0, "anchor_mismatch": 0})
         k[d["status"]] += 1
-    data = D.csv_bytes(rows)
+    data = D.csv_bytes(rows, D.CSV_HEADER_B4 if b4in is not None else D.CSV_HEADER)
     csv_name = date + ".csv.gz"
     doc = {
         "schema": SCHEMA, "what": "Q26 per-deposit live forecasts (frozen B3 v2 / v3 / v3s, shipped rung, D1 display), "
@@ -240,6 +278,21 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
         "modelSeconds": model_seconds, "runSeconds": round(time.time() - t_start, 1),
         "decisions": D.DECISIONS + DECISIONS_ISSUE, "nRows": len(rows),
     }
+    if b4in is not None:
+        doc = {"schema": SCHEMA_B4, "model": D.MODEL_B4, **{k: v for k, v in doc.items() if k != "schema"}}
+        doc["what"] = ("Q26 per-deposit live forecasts (model B4: frozen v2 / v4a / v4b, B4 shipped rung, B4 D1 display "
+                       "and label; the B3 columns v2 / v3 / v3s, B3 shipped rung, display and label kept beside), one "
+                       "issue per UTC day, one CSV row per unit")
+        doc["prereg"] = dict(D.PREREG, modelB4={"repo": "triccs/membrane-board",
+                                                "path": "design/DEPOSITOR_BEHAVIOR_PREREG_B4.md",
+                                                "commit": "019adca", "deviation": "D1 07c1f4d"})
+        doc["inputs"]["frozenB4"] = F.b4["inputs"]
+        doc["inputs"]["dailyStore"] = {"update": daily_entry, "daysUsed": [d["date"] for d in b4days]}
+        doc["frozenModelB4"] = F.b4["check"]
+        doc["tableB4"] = header_table_b4(F)
+        doc["cellFieldsB4"] = list(D.B4_CELL_FIELDS)
+        doc["columns"] = dict(doc["columns"], unitB4=D.B4_UNIT_COLS, cellsB4="<cell>_<field> for the B4 fields")
+        doc = {k: doc[k] for k in [x for x in doc if x != "nRows"] + ["nRows"]}
     cpath = os.path.join(idir, csv_name)
     jpath = os.path.join(idir, date + ".json")
     if os.path.exists(cpath) or os.path.exists(jpath):
@@ -269,14 +322,22 @@ def main(argv=None):
     ap.add_argument("--out", required=True, help="root that holds forecasts/q26-deposit-live/")
     ap.add_argument("--expect-commit", default=None, help="refuse unless the code checkout is at this commit")
     ap.add_argument("--max-calls", type=int, default=40000, help="RPC call budget for this run")
+    ap.add_argument("--model-b4", default=None, help="model B4: shipped-b4.json path relative to --datasets")
+    ap.add_argument("--model-b4-sha256", default=None, help="model B4: the registered sha256 of that file")
+    ap.add_argument("--labels-b4", default=None, help="model B4: labels-dev.csv path relative to --datasets")
+    ap.add_argument("--labels-b4-sha256", default=None, help="model B4: the registered sha256 of that file")
     a = ap.parse_args(argv)
+    b4 = (a.model_b4, a.model_b4_sha256, a.labels_b4, a.labels_b4_sha256)
+    if any(v is not None for v in b4) and not all(v is not None for v in b4):
+        raise SystemExit("STOP: --model-b4, --model-b4-sha256, --labels-b4 and --labels-b4-sha256 go together")
     code = D.code_meta(expect_commit=a.expect_commit)
     if a.expect_commit and code["dirty"]:
         raise SystemExit(f"STOP: code files differ from the pinned commit: {code['dirty']}")
     err = lambda m: print(m, file=sys.stderr, flush=True)  # noqa: E731
     rpc = D.make_rpc(max_calls=a.max_calls, log=err)
     logs_client = D.LogsClient(log=err)
-    issue(a.out, a.datasets, rpc, logs_client, code=code, log=lambda *x: print(*x, flush=True))
+    issue(a.out, a.datasets, rpc, logs_client, code=code, log=lambda *x: print(*x, flush=True),
+          model_b4=b4 if b4[0] is not None else None)
     return 0
 
 

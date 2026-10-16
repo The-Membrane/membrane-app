@@ -50,6 +50,7 @@ import b3_panel_d1 as P1  # noqa: E402
 import b_acquire as BA  # noqa: E402
 import g_acquire_events as GE  # noqa: E402
 import x_acquire_crossvenue as XA  # noqa: E402
+import b4_depositor as B4  # noqa: E402  (model B4 features, frailty, shipping; reused unchanged)
 
 # ---------------------------------------------------------------------------------------------
 # Registered constants (DEPOSITOR_LIVE.md DL.1-DL.8)
@@ -142,6 +143,14 @@ XV_PRICE_COLS = ["snapshot", "block", "token", "symbol", "kind", "price_basis", 
 CODE_COLS = ["address", "block", "is_contract", "eip7702", "code_bytes", "prefix", "readAt"]
 FIRST_SEEN_COLS = ["reserve", "address", "date", "asof_block", "asof_ts"]
 X_CELLS = [c for c in G.CELLS if c["kind"] == "x"]      # the 25 issued cells (DL.4; all_h cells are history only)
+# Model B4 (DEPOSITOR_LIVE.md B4.5 deviation; opt-in, as the touch log's A5 switch)
+MODEL_B4 = "B4"
+B4_RUN_REL = "history-forecasts/b4/run-2035639d/"
+B4_RUNGS = B4.RUNGS                                      # v2, v4a, v4b
+B4_XK = tuple(f"x{x}" for x in G.SIZES)
+DAILY_SUB = "daily"
+DAILY_COLS = ["date", "block", "ts", "income_usdc", "income_usdt", "readAt"]
+LIVE_DAILY_FIRST = "2026-10-14"                         # the first 00:00Z after the frozen asof (frozen dailies end 10-07)
 RUNGS = S.RUNGS                                          # v2, v3, v3s
 
 LOGS_URLS = ("https://rpc.mevblocker.io", "https://eth.drpc.org")
@@ -253,6 +262,39 @@ DECISIONS = [
     "issuer's own outputs (CSV, header, chain line, first-seen, holder codes) are written the same way. The scorer "
     "still scores the stored events when an RPC read fails before any write (nothing appended), as the touch "
     "scorer does; a write failure exits non-zero.",
+    "DL-19 model B4 (B4.5): opt-in by the issuer flags --model-b4 / --labels-b4 with their sha256 (as the touch log's "
+    "A5 switch). Issue files then use schema q26-deposit-live/issue/2 with a top-level model field 'B4'. Every B3 "
+    "column is computed and written exactly as before (same order, same values); the B4 columns follow them. Earlier "
+    "files are never rewritten and the hash chain runs through the change.",
+    "DL-20 frozen B4: shipped-b4.json asof params (v4a coefficients, m_seg, T_ref) and labels-dev.csv; B4's asof v2 "
+    "equals B3's asof v2 (checked), so v2 and seg_pop are shared. theta_v4a = (O + 3) / (E + 3) and theta_v4b = "
+    "(O_d + m_seg) / (E_d + m_seg), O_d / E_d discounted with half-life 180 d to T_ref = the frozen asof time (not the "
+    "live asof), are recomputed at every issue from the frozen rows exactly as the B4 asof fit (b4_depositor fit_one): "
+    "m_seg and the per-segment discounted sums must equal shipped-b4.json (else STOP). Nothing is fit. A unit outside "
+    "the frozen universe gets theta 1 for both.",
+    "DL-21 live daily balances (v4a, parent ruling): one per UTC day from 2026-10-14 (the first 00:00Z after the "
+    "frozen asof), defined as the frozen daily anchors: the balance at the last block with ts < 00:00Z, here the "
+    "event-path balance there = rayMul(scaled balance of the logs in blocks <= that block, getReserveNormalizedIncome "
+    "at it), equal to balanceOf when the store is complete (DL-16). The block and both incomes are stored in "
+    "daily/snapshots.csv.gz (appended by the issuer, one transaction). No daily balance exists for 2026-10-08..10-13 "
+    "(the frozen anchors stop at 10-07 and the event store starts after the frozen asof); those days count as missing "
+    "anchors do in B4 (skipped in maxdd90, never origins). A unit outside the frozen universe has no frozen-span daily "
+    "balances.",
+    "DL-22 v4a features at asof (B4-10 code: b4_depositor.hist_at / maxdd_at): prior origins = the frozen daily "
+    "origins with y(x, 24 h) = 1 plus the live days with balance >= $1M and y(x, 24 h) = 1 on the event path (anchored "
+    "at the day's balance, event times in (00:00Z, 00:00Z + 24 h]), each counted only when 00:00Z + 24 h <= asof ts; "
+    "n_x90 = those with 00:00Z >= asof ts - 90 d; days since = fractional days to the last one, capped at 365; "
+    "maxdd90 over the daily balances with 00:00Z in [asof ts - 90 d, asof ts] plus the asof balance. Only logs in "
+    "blocks <= asof enter.",
+    "DL-23 B4 cells: v4a, v4b (each grid masked-monotone-fixed), rung4 = shipped-b4.json shipped rung ('pop' where "
+    "none ships), ps4 = its p or the frozen seg_pop, disp4 = the B4 D1 display (b3_panel_d1.d1_fix: model cells among "
+    "themselves, population cells among themselves, capped left out), label4 = labels-dev.csv label_final (B4 has no "
+    "tie route). Capped cells are blank. Per unit: maxdd90, log1p n_x90 and log1p days since per size, the number of "
+    "live daily balances and of live origins used.",
+    "DL-24 scorer with model B4: the B4 rungs v4a, v4b, ps4 and disp4 are scored on B4 issues beside the B3 rungs. "
+    "The DL.6 live check and live STALE use the B4 shipped rung (ps4) over the rows of B4 issues, from the change date, "
+    "with 'applied' counting resolved B4 issue days per horizon; the B3 shipped-rung check is still reported "
+    "(liveCheckB3, liveStaleB3) over every issue.",
 ]
 
 
@@ -324,6 +366,7 @@ def verify_frozen_inputs(datasets):
 
 
 CODE_FILES = ("live_deposit/q26_dep_common.py", "live_deposit/q26_dep_issue.py", "live_deposit/q26_dep_score.py",
+              "b4_depositor.py",
               "live/q26_live_common.py", "bg_gradient.py", "b3_segments.py", "b3_panel_d1.py", "b_behavior.py",
               "b_acquire.py", "g_acquire_events.py", "x_acquire_crossvenue.py")
 
@@ -625,6 +668,7 @@ def decode_atoken_log(lg):
 def fetch_event_rows(logs_client, rpc, lo, hi):
     logs = logs_client.get_logs([BA.RESERVES[r]["atoken"] for r in RESERVES], EV_TOPICS, lo, hi)
     fill_ts(logs, rpc)
+    logs = sorted(logs, key=lambda lg: (lg["block"], lg["log_index"]))
     return [decode_atoken_log(lg) for lg in logs]
 
 
@@ -811,6 +855,7 @@ class Reserve:
         self.ts = array("q")
         self.li = array("q")
         self.delta = array("q")
+        self.sc = array("q")
         self.last_block = 0
         self._order = None
 
@@ -828,12 +873,13 @@ class Reserve:
         self.ts.append(ts)
         self.li.append(li)
         self.delta.append(delta)
+        self.sc.append(scaled)
         self.scaled[code] = self.scaled.get(code, 0) + scaled
         self._order = None
 
     def finalize(self):
         self.np = {k: np.frombuffer(getattr(self, k), dtype=np.int64) if len(getattr(self, k)) else
-                   np.zeros(0, np.int64) for k in ("code", "block", "ts", "li", "delta")}
+                   np.zeros(0, np.int64) for k in ("code", "block", "ts", "li", "delta", "sc")}
         o = np.lexsort((self.np["li"], self.np["block"], self.np["code"]))
         for k in self.np:
             self.np[k] = self.np[k][o]
@@ -844,9 +890,15 @@ class Reserve:
         c = self.amap.get(addr)
         if c is None:
             z = np.zeros(0, np.int64)
-            return {k: z for k in ("block", "ts", "li", "delta")}
+            return {k: z for k in ("block", "ts", "li", "delta", "sc")}
         a, b = self._starts[c], self._starts[c + 1]
-        return {k: self.np[k][a:b] for k in ("block", "ts", "li", "delta")}
+        return {k: self.np[k][a:b] for k in ("block", "ts", "li", "delta", "sc")}
+
+    def balance_at(self, addr, block, income):
+        """Event-path balance after every log in blocks <= block: rayMul(scaled sum, income at that block)."""
+        r = self.rows_of(addr)
+        s_ = sum(int(v) for v in r["sc"][r["block"] <= block])
+        return GE.ray_mul(s_, income) if s_ >= 0 else -GE.ray_mul(-s_, income)
 
     def logs_of(self, addr):
         """Per-log (block, log index) summed deltas of one address: block, ts, delta (int), delta_f (float)."""
@@ -1466,9 +1518,10 @@ def read_csv_dicts(path):
         return list(csv.DictReader(f))
 
 
-def load_frozen(datasets, log=print):
+def load_frozen(datasets, log=print, b4=None):
     """The B3 frozen model at the asof anchor: asof parameters, theta_seg, seg_pop, shipped rungs, labels, and
-    each universe unit's theta_i, own rate and first daily anchor >= $1M (recomputed from the frozen inputs)."""
+    each universe unit's theta_i, own rate and first daily anchor >= $1M (recomputed from the frozen inputs).
+    b4 = load_b4_frozen(...) adds model B4 (load_frozen_b4 on the same rows)."""
     from scipy.special import expit
     t0 = time.time()
     F = Frozen()
@@ -1546,11 +1599,235 @@ def load_frozen(datasets, log=print):
     F.flags = X.flags
     F.n_units = nU
     F.n_train_rows = int(rows["feat_ok"].sum())
+    F.b4 = None
+    if b4 is not None:                                   # DL-20: B4's v2 is B3's v2 (same frozen asof fit)
+        for c in X_CELLS:
+            a_ = {k: F.asof_params[c["id"] + ":v2"][k] for k in ("params", "const_p0", "pop", "seg_pop")}
+            b_ = {k: b4["shipped"]["asof_params"][c["id"]]["v2"][k] for k in ("params", "const_p0", "pop", "seg_pop")}
+            if a_ != b_:
+                raise SystemExit(f"STOP: B4 asof v2 differs from B3 asof v2 at {c['id']}")
+        F.b4 = load_frozen_b4(ctx, res, rows, b4, log=log)
     del rows, res, X, ctx
     gc.collect()
     log(f"frozen model: {nU} universe units, theta_i recomputed (theta_seg check {worst:.2g}) "
         f"({time.time() - t0:.0f}s)")
     return F
+
+
+# ---------------------------------------------------------------------------------------------
+# Model B4 (B4.5): frozen inputs, theta recompute, live daily balances, features, grid (DL-19..DL-24)
+# ---------------------------------------------------------------------------------------------
+def load_b4_inputs(datasets, shipped_rel, shipped_sha, labels_rel, labels_sha):
+    """The frozen B4 files named by the issuer flags; each sha256 must equal the flag (DL.7)."""
+    out = {}
+    for name, rel, want in (("shipped", shipped_rel, shipped_sha), ("labels", labels_rel, labels_sha)):
+        pth = os.path.join(datasets, rel)
+        got = sha256_file(pth)
+        if got != (want or "").lower():
+            raise SystemExit(f"STOP: sha256 mismatch for frozen B4 input {rel}: {got} != registered {want}")
+        out[name + "_meta"] = {"path": rel, "sha256": got, "bytes": os.path.getsize(pth)}
+    with open(os.path.join(datasets, shipped_rel)) as f:
+        out["shipped"] = json.load(f)
+    out["labels"] = {(r["cell"], r["segment"]): r for r in read_csv_dicts(os.path.join(datasets, labels_rel))}
+    return out
+
+
+def load_frozen_b4(ctx, res, rows, b4, log=print):
+    """B4 asof model on the frozen rows (B4-5, B4-6, B4-10), nothing refit: v4a features of every row
+    (b4_depositor.v4a_features), theta_v4a = (O + 3) / (E + 3) with p0 from the frozen asof v4a params, discounted
+    O_d, E_d with T_ref = the frozen asof time, m_seg recomputed (b4_depositor.m_by_segment) and required to equal
+    shipped-b4.json, the per-(segment) discounted sums too; per unit the flagged prior origins per size and the
+    daily anchors (for the live v4a features)."""
+    from scipy.special import expit
+    t0 = time.time()
+    shp, labs = b4["shipped"], b4["labels"]
+    ap = shp["asof_params"]
+    B4.v4a_features(rows, res, ctx.D)
+    nU = rows["n_units"]
+    out = {"params": {}, "theta4": {}, "Od": {}, "Ed": {}, "mseg": {}, "table": {}, "inputs": {
+        k: b4[k] for k in ("shipped_meta", "labels_meta")}}
+    worst = 0.0
+    for ci, c in enumerate(G.CELLS):
+        if c["kind"] != "x":
+            continue
+        cid = c["id"]
+        f = ap[cid]
+        if f["v4a"]["params"] is None:
+            raise SystemExit(f"STOP: single-class B4 asof fit at {cid}")
+        tr = rows["RES"][:, c["hi"]] & ~rows["CAP"][:, ci] & rows["feat_ok"]
+        tri = np.nonzero(tr)[0]
+        y = rows["Y"][tri, ci].astype(float)
+        u = rows["unit"][tri]
+        X4 = B4.x4_matrix(rows, B4.XKEYS[c["xi"]])[tri]
+        p0 = expit(G.z_from_params(f["v4a"]["params"], X4))
+        O = np.bincount(u, weights=y, minlength=nU)
+        E = np.bincount(u, weights=p0, minlength=nU)
+        w = B4.discount_weights(rows["T0"][tri], f["v4b"]["T_ref"])
+        Od = np.bincount(u, weights=w * y, minlength=nU)
+        Ed = np.bincount(u, weights=w * p0, minlength=nU)
+        mseg, info = B4.m_by_segment(u, rows["seg"][tri], w, y, p0, nU)
+        if list(mseg) != list(f["v4b"]["m_seg"]):
+            raise SystemExit(f"STOP: recomputed B4 m_seg {list(mseg)} != shipped-b4.json {f['v4b']['m_seg']} at {cid}")
+        for sj in range(S.NSEG):
+            for k in ("O_d", "E_d"):
+                a_, b_ = float(info[sj][k]), float(f["v4b"]["seg_info"][sj][k])
+                worst = max(worst, abs(a_ - b_) / max(1.0, abs(b_)))
+        out["params"][cid] = f["v4a"]
+        out["theta4"][cid] = G.eb_theta(O, E)
+        out["Od"][cid], out["Ed"][cid], out["mseg"][cid] = Od, Ed, np.asarray(mseg, float)
+        for sj, sid in enumerate(S.SEG_IDS):
+            cl = shp["cells"][cid][sid]
+            lr = labs[(cid, sid)]
+            if (lr["shipped"] or None) != cl["shipped"] or lr["label_final"] != cl["label_final"]:
+                raise SystemExit(f"STOP: labels-dev.csv differs from shipped-b4.json at {cid} {sid}")
+            out["table"][(cid, sid)] = {"rung": cl["shipped"], "label": cl["label_final"], "label_dev": cl["label_dev"],
+                                        "holdout_outcome": cl["holdout_outcome"], "seg_pop": f["v2"]["seg_pop"][sj],
+                                        "b3_rung": lr["b3_shipped"] or None}
+    if worst > 1e-9:
+        raise SystemExit(f"STOP: recomputed B4 discounted (O, E) per segment differ from shipped-b4.json ({worst:.3g})")
+    out["check"] = {"m_seg_equal": True, "seg_info_max_rel_diff": worst}
+    out["T"] = np.asarray(ctx.T, dtype=np.int64)
+    out["anchors"] = B4.anchor_matrix(res, ctx.D)
+    flags = {}
+    for xk in B4_XK:
+        ci24 = B4.xcell24(xk)
+        m = rows["RES"][:, 2] & (rows["Y"][:, ci24] == 1)
+        uu, tt = rows["unit"][m], rows["t"][m]
+        o = np.lexsort((tt, uu))
+        uu, tt = uu[o], tt[o]
+        st_ = G.group_starts(uu)
+        en = np.r_[st_[1:], len(uu)]
+        flags[xk] = {int(uu[a]): tt[a:b].copy() for a, b in zip(st_, en)}
+    out["flags"] = flags
+    log(f"frozen model B4: theta_v4a / discounted O,E recomputed, m_seg equal to shipped-b4.json in 25 cells "
+        f"(segment sums max rel diff {worst:.2g}) ({time.time() - t0:.0f}s)")
+    return out
+
+
+def read_incomes(rpc, block):
+    res = multicall(rpc, [(BA.POOL, XA.cdata("getReserveNormalizedIncome", BA.RESERVES[r]["asset"])) for r in RESERVES],
+                    block)
+    out = {}
+    for r, (ok, ret) in zip(RESERVES, res):
+        v, st = XA.u256(ok, ret)
+        if st != "ok" or not v:
+            raise C.RpcError(f"getReserveNormalizedIncome {r} unreadable at {block}")
+        out[r] = v
+    return out
+
+
+def read_daily_store(ldir):
+    out = []
+    for row in read_gz_rows(os.path.join(ldir, DAILY_SUB, "snapshots.csv.gz"), DAILY_COLS):
+        out.append({"date": row[0], "block": int(row[1]), "ts": int(row[2]), "T": day_ts(row[0]),
+                    "income": {"USDC": int(row[3]), "USDT": int(row[4])}})
+    return out
+
+
+def day_ts(date):
+    return int(datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
+
+
+def update_daily_store(ldir, rpc, upto_ts, head, clock=time.time, log=print):
+    """DL-21: one row per UTC day from 2026-10-14 with 00:00Z <= upto_ts: the last block with ts < 00:00Z (as the
+    frozen daily anchors) and getReserveNormalizedIncome of both reserves at it. Appended as one transaction."""
+    have = read_daily_store(ldir)
+    day = (datetime.strptime(have[-1]["date"], "%Y-%m-%d").date().toordinal() + 1) if have else \
+        datetime.strptime(LIVE_DAILY_FIRST, "%Y-%m-%d").date().toordinal()
+    new = []
+    while True:
+        dd = datetime.fromordinal(day).replace(tzinfo=timezone.utc)
+        T = int(dd.timestamp())
+        if T > upto_ts:
+            break
+        b, bts, _ = find_block_before(rpc, T, head)
+        inc = read_incomes(rpc, b)
+        new.append([dd.strftime("%Y-%m-%d"), b, bts, inc["USDC"], inc["USDT"], int(clock())])
+        day += 1
+    pth = os.path.join(ldir, DAILY_SUB, "snapshots.csv.gz")
+    with AppendTxn([pth]):
+        append_gz_rows(pth, DAILY_COLS, new)
+    if new:
+        log(f"daily store: +{len(new)} days {[r[0] for r in new]}")
+    return {"appended": [r[0] for r in new]}
+
+
+def live_daily_unit(T_, r, a, days, asof_ts):
+    """DL-21/22: per live day (00:00Z <= asof ts): the event-path balance at the day's block and, for days with
+    00:00Z + 24 h <= asof ts and balance >= $1M (a daily origin), y(x, 24 h) per size on the event path."""
+    blocks = T_.blocks_of(a)
+    out = []
+    for d in days:
+        if d["T"] > asof_ts:
+            continue
+        bal = T_.balance_at(a, d["block"], d["income"][r])
+        flags = {}
+        if bal >= G.MIN_BAL and d["T"] + DAY <= asof_ts:
+            mn, has, _ = truth_unit(blocks, bal, d["block"], d["T"], DAY)
+            for x in G.SIZES:
+                flags[f"x{x}"] = bool(G.label_x(np.array([bal]), np.array([mn]), np.array([has]), x)[0])
+        out.append({"T": d["T"], "bal": bal, "flags": flags})
+    return out
+
+
+def b4_features_at(Fb, gu, live, bal_asof, asof_ts):
+    """B4-10 asof features from frozen + live daily data (b4_depositor.hist_at / maxdd_at): per size
+    [log1p n_x90, maxdd90, log1p days since]; maxdd90 over the daily balances with 00:00Z in [asof - 90 d, asof]
+    and the asof balance."""
+    Tf = Fb["T"]
+    D_ = len(Tf)
+    Tl = np.array([d["T"] for d in live], dtype=np.int64)
+    T_all = np.r_[Tf, Tl]
+    if gu is not None:
+        af = Fb["anchors"][gu]
+        bal_days = np.r_[np.where(np.isfinite(af), af, 0.0), np.array([float(d["bal"]) for d in live])]
+        valid = np.r_[np.isfinite(af), np.ones(len(live), bool)]
+    else:
+        bal_days = np.r_[np.zeros(D_), np.array([float(d["bal"]) for d in live])]
+        valid = np.r_[np.zeros(D_, bool), np.ones(len(live), bool)]
+    mdd = B4.maxdd_at(T_all, bal_days, valid, asof_ts, bal_asof)
+    out = {}
+    for xk in B4_XK:
+        fd = list(Fb["flags"][xk].get(gu, [])) if gu is not None else []
+        fd += [D_ + j for j, d in enumerate(live) if d["flags"].get(xk)]
+        n, days = B4.hist_at(T_all, fd, asof_ts)
+        out[xk] = [math.log1p(n), mdd, math.log1p(days)]
+    return out
+
+
+def forecast_grid_b4(F, x2, f4, gu, seg, bal, cash, v2_fixed):
+    """B4 rung grids (v2 = the B3 grid, the same frozen fit), the B4 shipped rung's p, the D1 display (model cells
+    fixed among themselves, population cells among themselves, capped left out)."""
+    Fb = F.b4
+    capx = np.array([x * bal > 100 * cash for x in G.SIZES])
+    raw = {r: np.full((G.NH, G.NX), np.nan) for r in ("v4a", "v4b")}
+    sid = S.SEG_IDS[seg]
+    for c in X_CELLS:
+        hi, xi, cid = c["hi"], c["xi"], c["id"]
+        prm = Fb["params"][cid]
+        x4 = np.array(list(x2[:B4.KEEP_V2]) + f4[f"x{c['x']}"], float)[None]
+        th4 = 1.0 if gu is None else float(Fb["theta4"][cid][gu])
+        raw["v4a"][hi, xi] = G.predict_p(prm["params"], prm["const_p0"], x4, np.array([th4]))[0][0]
+        Od = 0.0 if gu is None else float(Fb["Od"][cid][gu])
+        Ed = 0.0 if gu is None else float(Fb["Ed"][cid][gu])
+        thb = float(B4.theta_v4b(Od, Ed, Fb["mseg"][cid][seg]))
+        raw["v4b"][hi, xi] = G.predict_p(prm["params"], prm["const_p0"], x4, np.array([thb]))[0][0]
+    fixed = {"v2": v2_fixed}
+    for r in ("v4a", "v4b"):
+        fixed[r] = G.monotone_fix_masked(raw[r][None], capx[None])[0]
+    comp = np.full((G.NH, G.NX), np.nan)
+    model = np.zeros((G.NH, G.NX), bool)
+    for c in X_CELLS:
+        hi, xi = c["hi"], c["xi"]
+        tb = Fb["table"][(c["id"], sid)]
+        if tb["rung"]:
+            model[hi, xi] = True
+            comp[hi, xi] = fixed[tb["rung"]][hi, xi]
+        else:
+            comp[hi, xi] = tb["seg_pop"]
+    disp = P1.d1_fix(comp, model, capx)
+    ps = np.where(np.broadcast_to(capx[None, :], comp.shape), np.nan, comp)
+    return {"fixed": fixed, "raw": raw, "ps": ps, "disp": disp, "capx": capx, "model": model}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1632,6 +1909,11 @@ FEAT_COLS = list(S.FEATURES_V3)
 CELL_FIELDS = ("v2", "v3", "v3s", "rung", "ps", "disp", "label", "own")
 CELL_COLS = [f"{c['id']}_{k}" for c in X_CELLS for k in CELL_FIELDS]
 CSV_HEADER = UNIT_COLS + FEAT_COLS + CELL_COLS
+B4_UNIT_COLS = (["b4_maxdd90"] + [f"b4_log1p_n_x90_{xk}" for xk in B4_XK] + [f"b4_log1p_days_{xk}" for xk in B4_XK]
+                + ["b4_live_days", "b4_live_origins"])
+B4_CELL_FIELDS = ("v4a", "v4b", "rung4", "ps4", "disp4", "label4")
+B4_CELL_COLS = [f"{c['id']}_{k}" for c in X_CELLS for k in B4_CELL_FIELDS]
+CSV_HEADER_B4 = CSV_HEADER + B4_UNIT_COLS + B4_CELL_COLS
 
 
 def issues_dir(ldir):
@@ -1718,12 +2000,15 @@ def check_store_clocks(ldir, now):
     for row in read_gz_rows(os.path.join(ldir, CODES_SUB, "holder-codes.csv.gz"), CODE_COLS):
         if int(row[6]) > now:
             raise SystemExit("STOP: clock went backwards: holder code read after now")
+    for row in read_gz_rows(os.path.join(ldir, DAILY_SUB, "snapshots.csv.gz"), DAILY_COLS):
+        if int(row[5]) > now or int(row[2]) > now:
+            raise SystemExit(f"STOP: clock went backwards: daily snapshot {row[0]} read after now")
 
 
-def csv_bytes(rows):
+def csv_bytes(rows, header=None):
     buf = io.StringIO()
     w = csv.writer(buf, lineterminator="\n")
-    w.writerow(CSV_HEADER)
+    w.writerow(header or CSV_HEADER)
     for r in rows:
         w.writerow(r)
     return gzip.compress(buf.getvalue().encode(), compresslevel=9, mtime=0)

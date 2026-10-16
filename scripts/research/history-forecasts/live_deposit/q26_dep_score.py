@@ -37,8 +37,12 @@ SCHEMA = "q26-deposit-live/scores/1"
 OUT_COLS = (["date", "reserve", "address", "segment", "h", "status"] + [f"y_x{x}" for x in G.SIZES]
             + ["path_min_raw", "has_event", "n_event_times", "window_end", "store_covered_ts", "scoredAt"])
 SCORED = ("v2", "v3", "v3s", "ps", "disp")              # rungs in the summary; ps = the shipped rung (or seg_pop)
+SCORED_B4 = ("v4a", "v4b", "ps4", "disp4")                # model B4 issues add these (ps4 = the B4 shipped rung)
 
 DECISIONS_SCORE = [
+    "Model B4 (DL-24): rows of B4 issues carry v4a, v4b, ps4 and disp4; every rung is summarized over the rows that "
+    "carry it. liveCheck / liveStale use the B4 shipped rung over B4-issue rows once a B4 issue exists (B3's before); "
+    "liveCheckB3 / liveStaleB3 keep the B3 shipped rung over every issue.",
     "DL-16 / DL-18 in the scorer: --datasets gives the frozen events (sha256 checked) for the anchor offset; the append "
     "happens only after the completeness check passes; a failed check stops the run (non-zero, nothing appended or "
     "scored); an RPC failure before any write leaves the store as it was and the stored events are scored.",
@@ -132,14 +136,17 @@ def resolve(issues, done_keys, tables, cov_ts, now):
 
 
 def summarize(issues, outcomes):
-    """Per (cell, segment, rung) stats, pooled sets, live check and live STALE (DL.5, DL.6)."""
+    """Per (cell, segment, rung) stats, pooled sets, live check and live STALE (DL.5, DL.6, DL-24)."""
     byk = {(o["date"], o["reserve"], o["address"], o["h"]): o for o in outcomes if o["status"] == "resolved"}
     days_h = {h: sorted({o["date"] for o in outcomes if o["status"] == "resolved" and o["h"] == h}) for h in G.HNAMES}
-    tables = {it["date"]: it["doc"]["table"] for it in issues}
+    b4_dates = {it["date"] for it in issues if it["doc"].get("model") == D.MODEL_B4}
+    days_h4 = {h: [d for d in v if d in b4_dates] for h, v in days_h.items()}
     acc = {}
     for it in issues:
         df = it["df"]
-        tab = tables[it["date"]]
+        tab = it["doc"]["table"]
+        is4 = it["date"] in b4_dates
+        rungs = SCORED + (SCORED_B4 if is4 else ())
         for rec in df.to_dict("records"):
             if rec["status"] != "ok":
                 continue
@@ -151,18 +158,22 @@ def summarize(issues, outcomes):
                 if y == "" or y is None:
                     continue
                 seg = rec["segment"]
-                a = acc.setdefault((c["id"], seg), {"unit": [], "date": [], "y": [], "pop": [], "own": [],
-                                                    **{r: [] for r in SCORED}})
+                a = acc.setdefault((c["id"], seg), {"unit": [], "date": [], "y": [], "pop": [], "own": [], "b4": [],
+                                                    **{r: [] for r in SCORED + SCORED_B4}})
                 a["unit"].append(rec["reserve"] + ":" + rec["address"])
                 a["date"].append(it["date"])
                 a["y"].append(int(y))
                 a["pop"].append(float(tab[c["id"]][seg]["seg_pop"]))
                 a["own"].append(float(rec[f"{c['id']}_own"]))
-                for r in SCORED:
-                    v = rec[f"{c['id']}_{r}"]
+                a["b4"].append(is4)
+                for r in SCORED + SCORED_B4:
+                    v = rec.get(f"{c['id']}_{r}", "") if r in rungs else ""
                     a[r].append(float(v) if v != "" else np.nan)
-    cells, pooled, live_check, live_stale = {}, {}, {}, {}
-    latest_tab = tables[issues[-1]["date"]] if issues else {}
+    cells, pooled = {}, {}
+    checks = {"liveCheck": {}, "liveStale": {}, "liveCheckB3": {}, "liveStaleB3": {}}
+    latest = issues[-1]["doc"] if issues else {}
+    tab3 = latest.get("table", {})
+    tab4 = latest.get("tableB4") or {}
 
     def block(a, mask, r):
         p = np.asarray(a[r])[mask]
@@ -170,34 +181,45 @@ def summarize(issues, outcomes):
         sel = np.nonzero(mask)[0][ok]
         return D.stats_block(p[ok], np.asarray(a["y"])[sel], np.asarray(a["pop"])[sel], np.asarray(a["own"])[sel],
                              np.asarray(a["unit"])[sel], np.asarray(a["date"])[sel])
+
+    def live(a, cid, seg, rung_col, rung_name, rows_mask, days, kc, ks):
+        h = cid.split("_")[1]
+        applied = len(days[h]) >= D.MIN_DAYS_PASS
+        st = block(a, rows_mask, rung_col) if rows_mask.any() else None
+        if st is not None:
+            checks[kc].setdefault(cid, {})[seg] = {
+                "rung": rung_name, "R_live": st["R"], "n_ep": st["n_ep"], "n": st["n"],
+                "pass": bool(D.r_inside(st["R"], *D.LIVE_CHECK_R) and st["n_ep"] >= D.LIVE_CHECK_NEP),
+                "applied": applied, "resolved_issue_days": len(days[h])}
+        last = set(days[h][-D.STALE_WINDOW_DAYS:])
+        lm = rows_mask & np.array([d in last for d in a["date"]], bool)
+        s2 = block(a, lm, rung_col) if lm.any() else None
+        if s2 is not None:
+            checks[ks].setdefault(cid, {})[seg] = {
+                "rung": rung_name, "R_live": s2["R"], "n_ep": s2["n_ep"], "n": s2["n"],
+                "stale": bool(s2["n_ep"] >= D.STALE_NEP and not D.r_inside(s2["R"], *D.STALE_R)),
+                "applied": applied, "window_days": len(last)}
     for (cid, seg), a in sorted(acc.items()):
         n = len(a["y"])
         allm = np.ones(n, bool)
-        cells.setdefault(cid, {})[seg] = {r: block(a, allm, r) for r in SCORED}
-        h = cid.split("_")[1]
-        applied = len(days_h[h]) >= D.MIN_DAYS_PASS
-        rung = (latest_tab.get(cid, {}).get(seg, {}) or {}).get("rung") or "pop"
-        st = block(a, allm, "ps")
-        if st is not None:
-            live_check.setdefault(cid, {})[seg] = {
-                "rung": rung, "R_live": st["R"], "n_ep": st["n_ep"], "n": st["n"],
-                "pass": bool(D.r_inside(st["R"], *D.LIVE_CHECK_R) and st["n_ep"] >= D.LIVE_CHECK_NEP),
-                "applied": applied}
-        last = set(days_h[h][-D.STALE_WINDOW_DAYS:])
-        lm = np.array([d in last for d in a["date"]])
-        s2 = block(a, lm, "ps") if lm.any() else None
-        if s2 is not None:
-            live_stale.setdefault(cid, {})[seg] = {
-                "rung": rung, "R_live": s2["R"], "n_ep": s2["n_ep"], "n": s2["n"],
-                "stale": bool(s2["n_ep"] >= D.STALE_NEP and not D.r_inside(s2["R"], *D.STALE_R)),
-                "applied": applied, "window_days": len(last)}
+        b4m = np.asarray(a["b4"], bool)
+        cells.setdefault(cid, {})[seg] = {r: block(a, allm, r) for r in SCORED + SCORED_B4}
+        r3 = (tab3.get(cid, {}).get(seg, {}) or {}).get("rung") or "pop"
+        live(a, cid, seg, "ps", r3, allm, days_h, "liveCheckB3", "liveStaleB3")
+        if b4m.any():                                   # DL-24: from the change date, the B4 shipped rung
+            r4 = (tab4.get(cid, {}).get(seg, {}) or {}).get("rung") or "pop"
+            live(a, cid, seg, "ps4", r4, b4m, days_h4, "liveCheck", "liveStale")
+        else:
+            live(a, cid, seg, "ps", r3, allm, days_h, "liveCheck", "liveStale")
     for cid in sorted({k[0] for k in acc}):
         parts = [acc[k] for k in acc if k[0] == cid]
         mer = {k: sum((p[k] for p in parts), []) for k in parts[0]}
         allm = np.ones(len(mer["y"]), bool)
-        pooled[cid] = {r: block(mer, allm, r) for r in SCORED}
-    return {"resolvedIssueDaysPerHorizon": {h: len(v) for h, v in days_h.items()}, "cells": cells,
-            "pooledOverSegments": pooled, "liveCheck": live_check, "liveStale": live_stale,
+        pooled[cid] = {r: block(mer, allm, r) for r in SCORED + SCORED_B4}
+    return {"resolvedIssueDaysPerHorizon": {h: len(v) for h, v in days_h.items()},
+            "resolvedB4IssueDaysPerHorizon": {h: len(v) for h, v in days_h4.items()},
+            "liveCheckModel": D.MODEL_B4 if b4_dates else "B3", "cells": cells, "pooledOverSegments": pooled,
+            **checks,
             "passLine": f"No pass line is applied before {D.MIN_DAYS_PASS} resolved issue days per horizon (DL.6); "
                         "live results never retune the model; a LOW segment rises only through a new preregistration."}
 

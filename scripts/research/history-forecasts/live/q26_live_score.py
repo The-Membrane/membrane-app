@@ -52,6 +52,10 @@ DECISIONS = [
     "carry it (fbL: A5 rows only; a, f, fb: all rows, the same estimators in both versions). The live check and "
     "live STALE use the shipped rung of the cell's latest resolved row (the current model, named as 'model' when "
     "the row has one), over every resolved row that carries that rung.",
+    "Model A6 (A6.5): from the A6 change date rows carry model = A6, fh/fH/fHb p, the A6 shipped rung (top level) "
+    "and the A5 shipped rung, p, range and label under 'a5'. The live check and live STALE use the A6 shipped rung "
+    "(the latest row's 'shipped'); the A5 shipped rung is still scored (cells report every rung) and its live-check "
+    "values are reported beside as previousModelA5 (never deciding).",
 ]
 
 
@@ -97,9 +101,10 @@ def load_outcomes(sdir):
 
 
 def rung_stats(rows):
-    """cell_stats per rung: the A3 rungs always (None when absent, as before); fbL only when some row carries it."""
+    """cell_stats per rung: the A3 rungs always (None when absent, as before); fbL, fh, fH, fHb only when some row
+    carries them."""
     out = {r: C.cell_stats(rows, r) for r in C.RUNGS}
-    for r in C.SCORED_RUNGS:
+    for r in C.ALL_SCORED_RUNGS:
         if r not in out:
             st = C.cell_stats(rows, r)
             if st is not None:
@@ -159,6 +164,13 @@ def summarize(outcomes, rows, pending, now):
                         "rung": ship, "R_live": st["R"], "n_ep": st["n_ep"], "n": st["n"],
                         "pass": bool(C.r_inside(st["R"], *C.LIVE_CHECK_R) and st["n_ep"] >= C.LIVE_CHECK_NEP),
                         "applied": applied, **({"model": model} if model else {})}
+                    if isinstance(latest.get("a5"), dict):     # model A6: the A5 shipped rung, still scored
+                        r5 = latest["a5"]["shipped"]
+                        s5 = C.cell_stats(gr, r5)
+                        if s5 is not None:
+                            live_check[a][TL][kk][g]["previousModelA5"] = {
+                                "rung": r5, "R_live": s5["R"], "n_ep": s5["n_ep"], "n": s5["n"],
+                                "pass": bool(C.r_inside(s5["R"], *C.LIVE_CHECK_R) and s5["n_ep"] >= C.LIVE_CHECK_NEP)}
                     gl = [o for o in gr if o["date"] in last]
                     s2 = C.cell_stats(gl, ship) if gl else None
                     if s2 is not None:

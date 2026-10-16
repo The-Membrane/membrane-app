@@ -752,8 +752,8 @@ class TestModelA5ScratchCopy(unittest.TestCase):
                 self.assertEqual(doc["prevSha256"], hashlib.sha256(last_raw).hexdigest())
                 self.assertEqual(C.verify_chain(C.issues_dir(ldir)), [])
                 self.assertEqual(doc["nRows"], last_doc["nRows"])
-                if ds:
-                    self.assertEqual(doc["shippedA3"], last_doc["shipped"])
+                if ds:   # the last real file may be model A3 (shipped) or model A5+ (shippedA3)
+                    self.assertEqual(doc["shippedA3"], last_doc.get("shippedA3", last_doc["shipped"]))
                 clock.t += C.DAY + 1800                                     # next day 00:47:30: day-2 6h/1d due
                 summ, new = SC.score(tmp, None, clock=clock, code={}, log=QUIET)
                 kinds = {o.get("model", "A3") for o in new}

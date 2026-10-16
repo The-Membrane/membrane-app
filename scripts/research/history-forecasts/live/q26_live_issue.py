@@ -2,7 +2,8 @@
 """Q26 live forecast log -- daily ISSUER (HISTORY_TOUCH_LIVE.md L.2, L.3, L.6).
 
   python3 q26_live_issue.py --datasets <membrane-datasets> --out <root> [--expect-commit <sha>]
-      [--frozen-a5 <rel> --frozen-a5-sha256 <sha> [--basis-final <rel> --basis-final-sha256 <sha>]]
+      [--frozen-a5 <rel> --frozen-a5-sha256 <sha> [--basis-final <rel> --basis-final-sha256 <sha>]
+       [--frozen-a6 <rel> --frozen-a6-sha256 <sha> [--basis-final-a6 <rel> --basis-final-a6-sha256 <sha>]]]
 
 Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3c61, sha256 8961eb5c...).
 
@@ -21,12 +22,20 @@ Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3
   (asset, T) with its estimate range, A5 label and basis string; the A3 shipped rung and label under `a3` in
   every row (q26_live_a5.py). Without the flag nothing changes. Earlier issue files are never rewritten; the
   hash chain runs through the change unchanged.
+- Model A6 (HISTORY_TOUCH_PREREG_A6.md A6.5; only with --frozen-a6 and its sha256, on top of the A5 flags):
+  schema q26-touch-live/issue/3, `model` = A6; every A3/A5 field byte-identical to an A5-mode run at the same
+  asof, plus (fh), (fH), (fHb), the A6 shipped rung per (asset, T) with its A6 estimate range, A6 label and basis
+  string; the A5 shipped rung, p, range and label under `a5` (q26_live_a6.py).
 """
-import argparse
-import json
 import os
-import sys
-import time
+
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):   # one BLAS thread, as the dev runs, so the
+    os.environ.setdefault(_v, "1")                                          # iterative (fHb) fits reproduce bit for bit
+
+import argparse  # noqa: E402
+import json  # noqa: E402
+import sys  # noqa: E402
+import time  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -54,6 +63,9 @@ DECISIONS = [
     "the development-blind check), as L.3 names frozen-a3.json; 'no regime' when rv_pct is undefined.",
     "Binance store: closed klines (closeTime < fetch time) of ETHUSDT/BTCUSDT, from the hour opening "
     "2026-10-06T02:00Z; a Binance failure does not stop the issue (it is secondary truth only).",
+    "Threads: the issuer sets OMP/OPENBLAS/MKL_NUM_THREADS to 1 unless the environment sets them (from the A6 pin "
+    "on), as the a3..a6 dev runs did; with several BLAS threads the summation order changes and the iterative (fHb) "
+    "beta-map fit differs from the dev fit in the 12th significant digit.",
 ]
 
 
@@ -75,12 +87,16 @@ def last_frozen_hour_check(rounds, asset, fc):
 
 
 def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=None, code=None, log=print,
-          frozen_a5=None, basis_final=None):
+          frozen_a5=None, basis_final=None, frozen_a6=None, basis_final_a6=None):
     """One live issue. `clock`, the transports and `forecaster` are injectable for the offline tests only;
     the CLI always uses the real wall clock, the public endpoints and the A3 refit (model A5: plus fbL).
     frozen_a5 / basis_final: None, or (path relative to datasets, sha256) -- model A5 when frozen_a5 is given."""
     if basis_final is not None and frozen_a5 is None:
         raise SystemExit("STOP: --basis-final needs --frozen-a5")
+    if frozen_a6 is not None and frozen_a5 is None:
+        raise SystemExit("STOP: --frozen-a6 needs --frozen-a5 (the A5 fields stay in every row)")
+    if basis_final_a6 is not None and frozen_a6 is None:
+        raise SystemExit("STOP: --basis-final-a6 needs --frozen-a6")
     issued_at = int(clock())
     asof = C.floor_hour(issued_at)
     date = C.utc_date(issued_at)
@@ -95,8 +111,13 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
         import q26_live_a5 as Q5
         fz5 = Q5.load_frozen_a5(datasets, *frozen_a5)
         bf5 = Q5.load_basis_final(datasets, *basis_final) if basis_final is not None else None
+    Q6 = fz6 = bf6 = None
+    if frozen_a6 is not None:
+        import q26_live_a6 as Q6
+        fz6 = Q6.load_frozen_a6(datasets, *frozen_a6)
+        bf6 = Q6.load_basis_final_a6(datasets, *basis_final_a6) if basis_final_a6 is not None else None
     log(f"issue {date}: issuedAt {C.iso(issued_at)} asof {C.iso(asof)}; prev {prev_name or 'genesis'}"
-        + (f"; model {Q5.MODEL_VERSION}" if Q5 else ""))
+        + (f"; model {(Q6 or Q5).MODEL_VERSION}" if Q5 else ""))
 
     updates, errors = C.update_all_stores(ldir, rpc, http_get=http_get, clock=clock, log=log)
     rounds, coverage = {}, {}
@@ -126,8 +147,12 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
                                   "nKlines": len(C.read_binance_store(path))}
 
     if forecaster is None:
-        forecaster = ((lambda d, r, t, log=print: Q5.a5_forecasts(d, r, t, fz5, log=log)) if Q5
-                      else C.model_forecasts)
+        if Q6:
+            forecaster = (lambda d, r, t, log=print: Q6.a6_forecasts(d, r, t, fz5, fz6, log=log))
+        elif Q5:
+            forecaster = (lambda d, r, t, log=print: Q5.a5_forecasts(d, r, t, fz5, log=log))
+        else:
+            forecaster = C.model_forecasts
     t0 = time.time()
     upto_asof = {a: [x for x in rounds[a] if x.updated_at <= asof] for a in C.ASSETS}   # no price after asof
     fc = forecaster(datasets, upto_asof, asof, log=log)
@@ -149,9 +174,15 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
         if Q5:
             assets[a]["betasFbL"] = f["betas_fbL"]
             assets[a]["estimateRangeDays"] = f.get("range_days")
+        if Q6:
+            assets[a]["fitsA6"] = f["fits6"]
+            assets[a]["estimateRangeDaysA6"] = f.get("range6_days")
+            assets[a]["harComponentsNow"] = f.get("har_now")
         if "frozen_oracle_close_last" in f:
             assets[a]["lastFrozenHourCheck"] = last_frozen_hour_check(rounds[a], a, f)
-    if Q5:
+    if Q6:
+        rows = Q6.issue_rows_a6(fc, frozen, fz5, fz6, spot, asof, issued_at, bf5, bf6)
+    elif Q5:
         rows = Q5.issue_rows_a5(fc, frozen, fz5, spot, asof, issued_at, bf5)
     else:
         rows = C.issue_rows(fc, frozen, spot, asof, issued_at)
@@ -186,6 +217,19 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
         doc["shippedA3"] = frozen["shipped"]
         doc["estimateRangeWording"] = Q5.RANGE_WORDING
         doc["decisions"] = DECISIONS + Q5.DECISIONS_A5
+        if Q6:
+            doc["schema"], doc["model"] = Q6.SCHEMA_V3, Q6.MODEL_VERSION
+            doc["what"] = ("Q26 live price-touch forecasts (model A6: A6 shipped rung with estimate range, A6 labels "
+                           "and dev basis; A3 rungs a, f, fb, A5 rung fbL and A6 rungs fh, fH, fHb issued beside; the "
+                           "A5 and A3 shipped rungs kept per row), one issue per UTC day")
+            doc["prereg"]["modelA6"] = {k: Q6.M6.PREREG[k] for k in ("repo", "path", "commit", "sha256")}
+            doc["inputs"]["frozenA6"] = {"path": frozen_a6[0], "sha256": frozen_a6[1]}
+            if basis_final_a6 is not None:
+                doc["inputs"]["basisFinalA6"] = {"path": basis_final_a6[0], "sha256": basis_final_a6[1]}
+            doc["rungs"] = list(Q6.SCORED_RUNGS)
+            doc["shipped"] = fz6["shipped"]
+            doc["shippedA5"] = fz5["shipped"]
+            doc["decisions"] = DECISIONS + Q5.DECISIONS_A5 + Q6.DECISIONS_A6
         doc = {k: doc[k] for k in [x for x in doc if x not in ("nRows", "rows")] + ["nRows", "rows"]}
     data = C.dumps_with_rows(doc)
     path = os.path.join(idir, date + ".json")
@@ -211,18 +255,32 @@ def main(argv=None):
     ap.add_argument("--frozen-a5-sha256", default=None, help="model A5: the registered sha256 of that file")
     ap.add_argument("--basis-final", default=None, help="model A5: basis-final.csv (blind-4 phase) path")
     ap.add_argument("--basis-final-sha256", default=None, help="model A5: the registered sha256 of that file")
+    ap.add_argument("--frozen-a6", default=None, help="model A6: frozen-a6.json path relative to --datasets")
+    ap.add_argument("--frozen-a6-sha256", default=None, help="model A6: the registered sha256 of that file")
+    ap.add_argument("--basis-final-a6", default=None, help="model A6: basis-final.csv (blind-5 phase) path")
+    ap.add_argument("--basis-final-a6-sha256", default=None, help="model A6: the registered sha256 of that file")
     a = ap.parse_args(argv)
     if (a.frozen_a5 is None) != (a.frozen_a5_sha256 is None):
         raise SystemExit("STOP: --frozen-a5 and --frozen-a5-sha256 go together")
     if (a.basis_final is None) != (a.basis_final_sha256 is None):
         raise SystemExit("STOP: --basis-final and --basis-final-sha256 go together")
+    if (a.frozen_a6 is None) != (a.frozen_a6_sha256 is None):
+        raise SystemExit("STOP: --frozen-a6 and --frozen-a6-sha256 go together")
+    if (a.basis_final_a6 is None) != (a.basis_final_a6_sha256 is None):
+        raise SystemExit("STOP: --basis-final-a6 and --basis-final-a6-sha256 go together")
+    if a.frozen_a6 and not a.frozen_a5:
+        raise SystemExit("STOP: --frozen-a6 needs --frozen-a5 (the A5 fields stay in every row)")
+    if a.basis_final_a6 and not a.frozen_a6:
+        raise SystemExit("STOP: --basis-final-a6 needs --frozen-a6")
     code = C.code_meta(expect_commit=a.expect_commit)
     if a.expect_commit and code["dirty"]:
         raise SystemExit(f"STOP: code files differ from the pinned commit: {code['dirty']}")
     rpc = C.RpcClient(max_calls=a.max_calls, log=lambda m: print(m, file=sys.stderr))
     issue(a.out, a.datasets, rpc, code=code, log=lambda *x: print(*x, flush=True),
           frozen_a5=(a.frozen_a5, a.frozen_a5_sha256) if a.frozen_a5 else None,
-          basis_final=(a.basis_final, a.basis_final_sha256) if a.basis_final else None)
+          basis_final=(a.basis_final, a.basis_final_sha256) if a.basis_final else None,
+          frozen_a6=(a.frozen_a6, a.frozen_a6_sha256) if a.frozen_a6 else None,
+          basis_final_a6=(a.basis_final_a6, a.basis_final_a6_sha256) if a.basis_final_a6 else None)
     return 0
 
 

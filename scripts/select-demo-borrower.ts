@@ -475,6 +475,36 @@ const reject = (why: string) => {
 
 const candidates: Candidate[] = []
 
+/**
+ * THE POOL THE WINNER IS DRAWN FROM, for the copy (review 2026-10-16): the hero wallet is the
+ * selection's best case, not a typical one, and the page says so with these figures. The pool
+ * is every census position of the hero's kind — mainnet Aave V3 Core, one collateral and one
+ * debt leg, collateral in the size band — before any outcome-dependent gate. Gap = real
+ * repaid minus Membrane repaid, over real repaid; "more" is compared on the cents.
+ */
+const poolRows = cohort.filter(
+  (r) => r.collateralUsd >= MIN_COLLATERAL_USD && r.collateralUsd <= MAX_COLLATERAL_USD,
+)
+const poolGaps = poolRows
+  .filter((r) => r.aaveClosedUsd > 0)
+  .map((r) => (r.aaveClosedUsd - r.membraneClosedUsd) / r.aaveClosedUsd)
+  .sort((a, b) => a - b)
+const poolMedian = poolGaps.length
+  ? poolGaps.length % 2
+    ? poolGaps[poolGaps.length >> 1]
+    : (poolGaps[(poolGaps.length >> 1) - 1] + poolGaps[poolGaps.length >> 1]) / 2
+  : 0
+const selectionPool = {
+  definition:
+    'census positions of the hero’s kind: mainnet Aave V3 Core, one collateral and one debt leg, ' +
+    `collateral $${(MIN_COLLATERAL_USD / 1000).toFixed(0)}k-$${(MAX_COLLATERAL_USD / 1e6).toFixed(0)}M at t0`,
+  positions: poolRows.length,
+  membraneMore: poolRows.filter(
+    (r) => Math.round(r.membraneClosedUsd * 100) > Math.round(r.aaveClosedUsd * 100),
+  ).length,
+  medianGapPct: Math.round(poolMedian * 1000) / 10,
+}
+
 for (const r of census.rows) {
   if (r.protocol !== 'aave-v3' || r.chain !== 'mainnet' || r.market !== MAINNET_CORE_POOL) {
     reject('not-mainnet-aave-core')
@@ -879,6 +909,9 @@ const fixture = {
   censusAaveClosedUsd: winner.row.aaveClosedUsd,
   censusMembraneClosedUsd: winner.row.membraneClosedUsd,
   censusClosedAtIndex: winner.row.closedAtIndex,
+  /** How many positions cleared every gate, and the pool the winner is the best case of. */
+  eligibleCount: candidates.length,
+  selectionPool,
   row: winner.row,
   position: winner.position,
 }

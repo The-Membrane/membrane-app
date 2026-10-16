@@ -395,6 +395,9 @@ function debtSet(key: string, label: string, ps: readonly Pos[]) {
     less: ps.filter((p) => p.cmp === 'less').length,
     more: ps.filter((p) => p.cmp === 'more').length,
     equal: ps.filter((p) => p.cmp === 'equal').length,
+    /** Gross, on the same per-position rule as less / more: what the net gap is made of. */
+    lessUsd: r2(sum(ps.filter((p) => p.cmp === 'less').map((p) => p.real - p.mem))),
+    moreUsd: r2(sum(ps.filter((p) => p.cmp === 'more').map((p) => p.mem - p.real))),
     memNeverSold: ps.filter((p) => p.r.mem!.sales === 0).length,
     gridEnd: {
       positions: ge.length,
@@ -532,6 +535,24 @@ const time = {
     'aave-v3': outcomeCount(byProtocol('aave-v3')),
     'morpho-blue': outcomeCount(byProtocol('morpho-blue')),
   },
+  /**
+   * The outcome is the LARGER half's. A split position can sit in a never-sold bucket while
+   * its other half was sold; this counts, per outcome, the positions with any sale at all.
+   */
+  outcomeWithSale: Object.fromEntries(
+    Object.keys(outcomes).map((o) => [
+      o,
+      pos.filter((p) => p.r.mem!.outcome === o && p.r.mem!.sales > 0).length,
+    ]),
+  ),
+  /** Positions whose collateral (or a half of it) gets the 8-hour window: not no-delay. */
+  windowPositions: pos.filter((p) => p.r.delayClass !== 'no-delay').length,
+  classes: Object.fromEntries(
+    ['delayed', 'mixed', 'no-delay'].map((c) => [
+      c,
+      pos.filter((p) => p.r.delayClass === c).length,
+    ]),
+  ),
   neverSold: {
     positions: neverSold.length,
     debtUsd: r2(sum(neverSold.filter((p) => p.priced).map((p) => p.r.debtUsd!))),
@@ -682,7 +703,27 @@ const codeDirty = git(`status --porcelain -- ${CODE_PATHS.join(' ')}`) !== ''
 
 const markets = (M.scope.markets as any[]).filter((m) => m.events > 0)
 const xc = M.crossCheck.summary
-const fmtM = (x: number) => `$${(x / 1e6).toFixed(2)}M`
+/** "$34.69M" / "−$8.10M" / "+$0.86M" / "$33k" / "−$989": a real minus, and no "$0.00M". */
+const money = (x: number, sign = false) => {
+  const a = Math.abs(x)
+  const body =
+    a >= 1e6
+      ? `$${(a / 1e6).toFixed(2)}M`
+      : a >= 1e3
+        ? `$${Math.round(a / 1e3)}k`
+        : `$${Math.round(a)}`
+  return (x < 0 ? '\u2212' : sign ? '+' : '') + body
+}
+/** Morpho loan tokens whose USD comes from the chain's Aave oracle path (census stats). */
+const aaveOracleLoans = [
+  ...new Set(
+    Object.entries(M.stats.morphoLoanPricing as Record<string, { how: string }>)
+      .filter(([, v]) => v.how === 'aave-oracle-path')
+      .map(([k]) => k.split(':')[1]),
+  ),
+]
+  .sort()
+  .join(', ')
 const meta = {
   schema: 'evidence-census/v1',
   generatedBy: 'membrane-app scripts/build-evidence-census.ts',
@@ -740,8 +781,7 @@ const meta = {
       'Every other chain (Avalanche alone had ' +
       `${M.scope.outOfScope.avalancheAaveV3LiquidationCalls} Aave V3 liquidations in the window), Aave V2, Spark and the other Aave forks.`,
   },
-  oracle:
-    'Each protocol’s own oracle, read on chain: every Aave V3 market’s AaveOracle and every Morpho Blue market’s oracle, the price in force at each minute start (no look-ahead). The real liquidations are valued at their own block’s oracle prices.',
+  oracle: `Every position’s line and its minute-by-minute LTV walk use its own protocol’s oracle, read on chain: each Aave V3 market’s AaveOracle and each Morpho Blue market’s own oracle, the price in force at each minute start (no look-ahead). Dollars: an Aave liquidation is valued at the liquidating block’s AaveOracle prices. A Morpho position is walked in its loan token; its dollars are the loan token at $1 for a dollar stablecoin, else that token’s Aave oracle price on the same chain at the minute start (${aaveOracleLoans}), and a loan token with neither is left out of every dollar figure.`,
   positions: rows.length,
   walked: M.coverage.walked,
   events: all.events,
@@ -761,7 +801,7 @@ const meta = {
     debtMinimumRuleSource: 'LiquidationEngine.sol:2241-2269 (floor + remainder guard)',
   },
   method:
-    'Every position liquidated on an Aave V3 pool or a Morpho Blue market of Ethereum, Arbitrum, Optimism or Base between 00:00 UTC 10 Oct and 23:59 UTC 11 Oct 2025, all of them walked. The real side is every liquidation of the position in that window, measured on chain: the debt the liquidators repaid, valued at the liquidating block’s own oracle prices. Membrane’s side starts from the same position at the first liquidation the protocol’s own health check confirms (t0), with its whole composition read the block before, and walks it minute by minute on each leg’s own protocol-oracle path: a breach inside line × 1.04 waits eight hours; a return under the line clears the timer; past the band, or still over the line at expiry, the position is repaid to its borrow cap (line − 3pp) with the $2,000 floor, and it walks on. Stablecoin collateral, or a line above 90%, gets no window and is repaid the minute it is over its line†. A position holding both is split the way Membrane would hold it. Both sides are summed over the same positions; the ' +
+    'Every position liquidated on an Aave V3 pool or a Morpho Blue market of Ethereum, Arbitrum, Optimism or Base between 00:00 UTC 10 Oct and 23:59 UTC 11 Oct 2025, all of them walked. The real side is every liquidation of the position in that window, measured on chain: the debt the liquidators repaid (Aave: at the liquidating block’s AaveOracle prices; Morpho: in the loan token, priced as below). Membrane’s side starts from the same position at the first liquidation the protocol’s own health check confirms (t0), with its whole composition read the block before, and walks it minute by minute on each leg’s own protocol-oracle path: a breach inside line × 1.04 waits eight hours; a return under the line clears the timer; past the band, or still over the line at expiry, the position is repaid to its borrow cap (line − 3pp) with the $2,000 floor, and it walks on. Stablecoin collateral, or a line above 90%, gets no window and is repaid the minute it is over its line†. A position holding both is split the way Membrane would hold it. Both sides are summed over the same positions; the ' +
     `${unpriced.positions} whose loan token has no USD price count in every position total and in no dollar total.`,
   sameSet: M.method.sameSet,
   unpriced,
@@ -782,14 +822,14 @@ const meta = {
     allFactorsToggledUsd: xc.membrane.allFactorsToggled,
     allFactorsToggledVsOldUsd: xc.membrane.allFactorsToggledVsOld,
     line:
-      `The old census priced ${xc.rows} Aave accounts and said Membrane closes ${Math.round(100 * (1 - xc.membrane.old / xc.real.old))}% less (Aave ${fmtM(xc.real.old)}, Membrane ${fmtM(xc.membrane.old)}). ` +
-      `On the same ${xc.rows} rows this census gives ${fmtM(xc.real.new)} and ${fmtM(xc.membrane.new)}†. ` +
-      `The Membrane side moved because the old census priced every account off mainnet Chainlink rounds: each L2 chain’s own oracle moves it ${fmtM(xc.membrane.factors.perChainOraclesL2_iii)}, mainnet’s AaveOracle instead of the round log ${fmtM(xc.membrane.factors.priceSourceMainnet_i)}, the full composition instead of the liquidated leg +${fmtM(xc.membrane.factors.composition_ii)}, the line ${fmtM(xc.membrane.factors.line_iv)}, and the factors together another +${fmtM(xc.membrane.interactionAndResidual)}. ` +
-      `Switching all four back reproduces the old ${fmtM(xc.membrane.old)} to within $${Math.abs(Math.round(xc.membrane.allFactorsToggledVsOld)).toLocaleString('en-US')}.`,
+      `The old census priced ${xc.rows} Aave accounts and said Membrane closes ${Math.round(100 * (1 - xc.membrane.old / xc.real.old))}% less (Aave ${money(xc.real.old)}, Membrane ${money(xc.membrane.old)}). ` +
+      `On the same ${xc.rows} rows this census gives ${money(xc.real.new)} and ${money(xc.membrane.new)}†. ` +
+      `The Membrane side moved because the old census priced every account off mainnet Chainlink rounds: each L2 chain’s own oracle moves it ${money(xc.membrane.factors.perChainOraclesL2_iii, true)}, mainnet’s AaveOracle instead of the round log ${money(xc.membrane.factors.priceSourceMainnet_i, true)}, the full composition instead of the liquidated leg ${money(xc.membrane.factors.composition_ii, true)}, the line ${money(xc.membrane.factors.line_iv, true)}, and the factors together another ${money(xc.membrane.interactionAndResidual, true)}. ` +
+      `Switching all four back reproduces the old ${money(xc.membrane.old)} to within $${Math.abs(Math.round(xc.membrane.allFactorsToggledVsOld)).toLocaleString('en-US')}.`,
   },
   caveats: [
     'Membrane has no mainnet deployment. Everything on its side is the contract’s rules run against the day’s real prices†, not a measurement of a live protocol.',
-    `${all.gridEnd.positions} positions were still inside their 8-hour window when the data ends (23:59 UTC 11 Oct). A window still open is not a completed sale; the census books each as sold at the last price, which is the conservative choice. Those sales are ${fmtM(all.gridEnd.memRepaidUsd)} of Membrane’s total† and are marked in the table.`,
+    `${all.gridEnd.positions} positions were still inside their 8-hour window when the data ends (23:59 UTC 11 Oct). A window still open is not a completed sale; the census books each as sold at the last price, which is the conservative choice. Those sales are ${money(all.gridEnd.memRepaidUsd)} of Membrane’s total† and are marked in the table.`,
     `${unpriced.positions} Morpho positions borrow a token with no USD price on that day (${unpriced.loanSymbols.join(', ')}). They are walked and counted in every position total, and left out of every dollar total and median on both sides.`,
     'The real side can repay more than the debt at t0: a borrower can borrow again between liquidations, and interest accrues. Membrane’s walk starts from the t0 position and adds neither.',
     'The repay to cap is sized from the oracle value of the collateral and assumes the sale executes at that price. On an illiquid leg that is an upper bound.',
@@ -829,6 +869,7 @@ const COLUMNS = [
   'firstSaleMinute',
   'gridEndUsd',
   'minutesToFirstCure',
+  'oneRepayUsd',
   'cure',
 ] as const
 const legsOut = (xs: CensusRow['collateral']) =>
@@ -866,6 +907,7 @@ const cohort = pos.map((p) => {
     firstSaleMinute: r.mem!.firstSaleMinute,
     gridEndUsd: r.mem!.armedAtGridEnd ? r2(p.gridEnd) : null,
     minutesToFirstCure: p.probe.minutesToFirstCure,
+    oneRepayUsd: p.probe.oneRepayUsd == null ? null : r2(p.probe.oneRepayUsd),
     cure: c
       ? [
           c.curedInWindow ? 1 : 0,
@@ -932,6 +974,8 @@ const headlineDoc = {
   less: all.less,
   more: all.more,
   equal: all.equal,
+  lessUsd: all.lessUsd,
+  moreUsd: all.moreUsd,
   unpricedPositions: unpriced.positions,
   gridEnd: { positions: meta.gridEnd.positions, memRepaidUsd: meta.gridEnd.memRepaidUsd },
   neverSold: time.neverSold,

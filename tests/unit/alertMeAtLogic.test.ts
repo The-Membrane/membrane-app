@@ -5,6 +5,7 @@ import {
   ALERTS_PAGE_CTA,
   ALERTS_PAGE_NOTE,
   capText,
+  CHANGED_ELSEWHERE,
   CONSENT_TEXT,
   controlTitle,
   draftErrors,
@@ -22,6 +23,7 @@ import {
   STALE_LINE,
   stampText,
   STOPPED_LINE,
+  stopOutcome,
   prefillText,
   relationLine,
   requestBody,
@@ -106,8 +108,13 @@ describe('validation', () => {
     const server = { field: 'threshold' as const, message: 'Enter a % from 0 to 100.' }
     expect(visibleErrors('utilization', draft(), false, true, server).threshold).toEqual(server)
   })
-  it('pressing "Set alert" is the opt-in: one consent line beside it', () => {
-    expect(CONSENT_TEXT).toBe('We keep this number so we can alert you. Only you get the link.')
+  it('pressing "Set alert" is the opt-in: one consent line beside it, naming everything kept', () => {
+    expect(CONSENT_TEXT).toBe('We keep this number and your address so we can alert you. Only you get the link.')
+  })
+  it('a price can never round to $0: the bound applies to the stored six-decimal number', () => {
+    expect(thresholdError('price', '0.0000004')).toEqual({ field: 'threshold', message: 'Enter a USD price up to 10,000,000.' })
+    expect(thresholdError('price', '0.0000006')).toBeNull() // rounds to 0.000001, the smallest step
+    expect(thresholdError('utilization', '0.0000004')).toBeNull() // 0% is a valid utilization line
   })
 })
 
@@ -191,6 +198,12 @@ describe('request and feed plumbing', () => {
     })
     expect(requestBody({ ...base, feedToken: token }).feedToken).toBe(token)
   })
+  it('"Stop this alert" after an edit or Stop on the alerts page: sent there, never guessed', () => {
+    expect(stopOutcome(200)).toBe('stopped')
+    expect(stopOutcome(404)).toBe('elsewhere')
+    for (const s of [0, 400, 429, 503]) expect(stopOutcome(s)).toBe('failed')
+    expect(CHANGED_ELSEWHERE).toBe('This alert was changed or stopped on your alerts page.')
+  })
   it('token from a feed URL; storage key per address', () => {
     expect(tokenFromFeedUrl(`https://membrane.money/api/alerts/feed/${token}?format=rss`)).toBe(token)
     expect(tokenFromFeedUrl('https://membrane.money/api/alerts/feed/nope')).toBeNull()
@@ -231,6 +244,7 @@ describe('copy — one mental model: set an alert, then where you get it', () =>
       LINK_WARNING,
       MORE_WAYS,
       NEW_PAGE_CTA,
+      CHANGED_ELSEWHERE,
       STALE_LINE,
       NO_VALUE_LINE,
       capText(MAX_ACTIVE_PER_OWNER),

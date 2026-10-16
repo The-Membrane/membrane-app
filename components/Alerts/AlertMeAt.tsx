@@ -32,6 +32,7 @@ import {
   ALERTS_PAGE_CTA,
   ALERTS_PAGE_NOTE,
   alertLine,
+  CHANGED_ELSEWHERE,
   CONSENT_TEXT,
   controlTitle,
   feedStorageKey,
@@ -46,6 +47,7 @@ import {
   SET_LINE,
   stampText,
   STOPPED_LINE,
+  stopOutcome,
   submitOutcome,
   TELEGRAM_CTA,
   tokenFromFeedUrl,
@@ -152,14 +154,14 @@ async function storeAlert(a: Store): Promise<Outcome> {
 
 type Stored = { feedUrl: string; telegramLink: string | null; id: string | null; text: string }
 
-async function stopAlert(s: Stored): Promise<boolean> {
+async function stopAlert(s: Stored): Promise<ReturnType<typeof stopOutcome>> {
   const token = tokenFromFeedUrl(s.feedUrl)
-  if (!s.id || !token) return false
+  if (!s.id || !token) return 'failed'
   try {
     const r = await fetch(`/api/alerts/feed/${token}?id=${encodeURIComponent(s.id)}`, { method: 'DELETE' })
-    return r.ok
+    return stopOutcome(r.status)
   } catch {
-    return false
+    return 'failed'
   }
 }
 
@@ -207,6 +209,9 @@ const CapActions: React.FC<{ manage: string | null; onNewPage: () => void }> = (
 /** After "Set alert": what was set, where it arrives, and RSS behind a second layer. */
 const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () => void }> = ({ stored, telegramOn, onReset }) => {
   const [stopped, setStopped] = useState(false)
+  // The alert is no longer active under this panel's id: edited (new id) or stopped
+  // on the alerts page. Never guess which alert replaced it: send the reader there.
+  const [elsewhere, setElsewhere] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const uid = useId()
   const token = tokenFromFeedUrl(stored.feedUrl)
@@ -214,7 +219,9 @@ const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () =
 
   const stop = async () => {
     setMessage(null)
-    if (await stopAlert(stored)) setStopped(true)
+    const out = await stopAlert(stored)
+    if (out === 'stopped') setStopped(true)
+    else if (out === 'elsewhere') setElsewhere(true)
     else setMessage('Could not stop it. Try again.')
   }
 
@@ -255,12 +262,22 @@ const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () =
         <Button {...QUIET} onClick={onReset}>
           Set another
         </Button>
-        {!stopped && stored.id && (
+        {!stopped && !elsewhere && stored.id && (
           <Button {...QUIET} onClick={stop}>
             Stop this alert
           </Button>
         )}
       </Flex>
+      {elsewhere && (
+        <Box role="status" mt={SPACING.xs}>
+          <Text {...NOTE}>{CHANGED_ELSEWHERE}</Text>
+          {manage && (
+            <Button {...SECONDARY} as="a" href={manage} mt={SPACING.sm}>
+              {ALERTS_PAGE_CTA}
+            </Button>
+          )}
+        </Box>
+      )}
       {message && <ErrorLine id={`${uid}-msg`}>{message}</ErrorLine>}
     </Box>
   )

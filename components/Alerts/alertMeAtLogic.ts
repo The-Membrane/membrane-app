@@ -23,8 +23,11 @@ import {
 
 // --- copy (owner-approved shapes; tests pin every string) -------------------------
 
-/** Beside "Set alert". Pressing it IS the opt-in: nothing is stored before the press. */
-export const CONSENT_TEXT = 'We keep this number so we can alert you. Only you get the link.'
+/**
+ * Beside "Set alert". Pressing it IS the opt-in: nothing is stored before the press.
+ * It names everything stored — the number AND the address (owner_key).
+ */
+export const CONSENT_TEXT = 'We keep this number and your address so we can alert you. Only you get the link.'
 export const SET_LINE = 'Alert set.'
 export const STOPPED_LINE = 'Alert stopped.'
 export const WHERE_LABEL = "where you'll get it"
@@ -36,6 +39,12 @@ export const LINK_WARNING = 'Anyone with this link can read these alerts.'
 export const MORE_WAYS = 'More ways to get alerts'
 export const RSS_NOTE = 'For a feed reader. Keep it private, like your alerts page.'
 export const NEW_PAGE_CTA = 'Start a second alerts page'
+/** "Stop this alert" found no active alert: it was edited (a new id) or stopped on the alerts page. */
+export const CHANGED_ELSEWHERE = 'This alert was changed or stopped on your alerts page.'
+
+/** A DELETE answer → what the after-set panel shows. 404 = not active under that id any more. */
+export const stopOutcome = (status: number): 'stopped' | 'elsewhere' | 'failed' =>
+  status >= 200 && status < 300 ? 'stopped' : status === 404 ? 'elsewhere' : 'failed'
 
 export type Draft = { input: string; direction: Direction; address: string }
 

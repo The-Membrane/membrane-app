@@ -182,7 +182,7 @@ export const LeverSheet: React.FC<{
   /** Connect, keeping this intent: the page re-opens this slip once the wallet connects. */
   onConnect: () => void
   /** The page's position read, refreshed after a settled transaction. */
-  onSettled: () => void
+  onSettled: (owner: `0x${string}`) => void
 }> = ({ intent, onClose, onConnect, onSettled }) => {
   const exec = useLeverExec(intent, onSettled)
   const { sheet, prepared } = exec
@@ -203,6 +203,7 @@ export const LeverSheet: React.FC<{
         return exec.sign()
       case 'retry':
         return exec.retry()
+      case 'dismiss':
       case 'close':
         return onClose()
     }
@@ -313,6 +314,7 @@ export const LeverSheet: React.FC<{
               <Link
                 href={getTxExplorerUrl(mainnet, hash)}
                 isExternal
+                onClick={exec.checked}
                 color={NEWS.accent}
                 _focusVisible={FOCUS_STYLES.ring}
               >

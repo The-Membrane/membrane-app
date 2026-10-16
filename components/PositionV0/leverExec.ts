@@ -9,15 +9,17 @@
 import type { PublicClient } from 'viem'
 
 import type { EvmCall } from '@/services/chain/types'
-import { leverUnits } from '@/lib/position-exec/amount'
+import { fmtUnits, leverUnits } from '@/lib/position-exec/amount'
 import { leverCalls, type Address } from '@/lib/position-exec/builders'
 import { leverGates, type Gate } from '@/lib/position-exec/gates'
+import { namedRevert, revertReason } from '@/lib/position-exec/revert'
 import { readLeverChain, type ExecProtocol, type LeverChainRead } from '@/lib/position-exec/read'
 import { fmtMove, fmtUsd } from '@/lib/position/format'
 import { priceDecimals, roundTowardRisk } from '@/lib/position/liquidation'
 import type { ActionRow } from '@/lib/position/reverseSolve'
 import { formatBand, formatChance, type TouchFrequency } from '@/lib/position/touch'
 import { HORIZON_WORDS, type HorizonId, type TouchTable } from '@/lib/position/touchHistory'
+import { getMainnetClient } from '@/lib/position-sim/rpc'
 import type { AdapterResult, ProtocolPosition } from '@/lib/position-sim/types'
 
 import { PROTOCOL_SHORT, buildPositionView, type PositionView } from './viewModel'
@@ -61,6 +63,8 @@ export interface PreparedLever {
   block: number | null
   /** Epoch ms of the re-read. */
   at: number
+  /** Epoch ms of the re-read's block; null when the block time could not be read. */
+  blockTime: number | null
   source: string
 }
 
@@ -241,6 +245,46 @@ export function stepsOf(
   })
 }
 
+/** Two notice sentences, the second optional. */
+export const joinNotice = (a: string, b: string | null): string => (b ? `${a}. ${b}` : a)
+
+/**
+ * The disclosure for an approval a partial run left standing (lib/position-exec/run.ts
+ * standingApproval): what it lets the venue take, and the two ways out.
+ */
+export function standingNotice(
+  units: bigint | null,
+  symbol: string,
+  decimals: number,
+  venue: string,
+  kind: 'repay' | 'add',
+): string | null {
+  if (units === null) return null
+  const x = `${fmtUnits(units, decimals, 2)} ${symbol}`
+  return `The approval for ${x} to ${venue} is still standing. It lets ${venue} take up to ${x}. Revoke it in your wallet, or sign the ${kind === 'repay' ? 'repay' : 'top-up'} again`
+}
+
+/** A mined revert's reason, best effort: the same call replayed now, named; null if it passes. */
+export async function replayReason(
+  call: EvmCall,
+  owner: Address,
+  venue: 'aave' | 'compound' | 'morpho',
+  client: PublicClient = getMainnetClient(),
+): Promise<string | null> {
+  try {
+    await client.simulateContract({
+      address: call.address,
+      abi: call.abi,
+      functionName: call.functionName,
+      args: call.args ?? [],
+      account: owner,
+    } as Parameters<PublicClient['simulateContract']>[0])
+    return null
+  } catch (err) {
+    return namedRevert(revertReason(err), venue)
+  }
+}
+
 // ------------------------------------------------------------------ prepare
 
 export interface PrepareDeps {
@@ -285,8 +329,17 @@ export async function prepareLever(intent: LeverIntent, deps: PrepareDeps): Prom
     shown: Math.max(2, row.amountDecimals),
     read,
   })
+  let blockTime: number | null = null
+  try {
+    if (block !== null)
+      blockTime =
+        Number((await deps.client.getBlock({ blockNumber: BigInt(block) })).timestamp) * 1000
+  } catch {
+    blockTime = null // the age check falls back to when the read resolved
+  }
   return {
     kind: 'ready',
+    blockTime,
     view,
     row,
     changed: row.amount !== intent.row.amount || row.symbol !== intent.row.symbol,

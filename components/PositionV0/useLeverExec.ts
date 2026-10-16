@@ -6,13 +6,12 @@
 // (lib/position-sim/rpc.ts). The wallet is used for two things only: switching to
 // Ethereum, and signing the batch the slip shows, from the position's owner, on chain 1.
 
-import { useCallback, useMemo, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAccount, useConfig, useSwitchChain } from 'wagmi'
 import { getAccount, getWalletClient } from 'wagmi/actions'
 
 import { getAtomicStatus } from '@/services/chain/atomicBatch'
-import { runEvmCalls, TxRevertedError } from '@/services/chain/txRunner'
 import { isUserRejection, namedRevert, revertReason } from '@/lib/position-exec/revert'
 import {
   ETHEREUM_CHAIN_ID,
@@ -25,13 +24,29 @@ import {
   type SheetView,
   type SimState,
 } from '@/lib/position-exec/sheet'
+import {
+  runLever,
+  RunStopped,
+  standingApproval,
+  type RunPublic,
+  type RunWallet,
+} from '@/lib/position-exec/run'
 import { simulateLever, type SimResult } from '@/lib/position-exec/simulate'
 import { fmtAmount } from '@/lib/position/format'
 import { TOUCH_TABLE } from '@/lib/position/touchHistory'
 import { ADAPTERS, runAdapter } from '@/lib/position-sim/adapters'
 import { getMainnetClient } from '@/lib/position-sim/rpc'
 
-import { prepareLever, type LeverIntent, type Prepared, type PreparedLever } from './leverExec'
+import {
+  joinNotice,
+  prepareLever,
+  replayReason,
+  standingNotice,
+  type LeverIntent,
+  type Prepared,
+  type PreparedLever,
+} from './leverExec'
+import { PROTOCOL_SHORT } from './viewModel'
 
 const venueOf = (p: LeverIntent['protocol']): 'aave' | 'compound' | 'morpho' =>
   p === 'compound-v3' ? 'compound' : p === 'morpho-blue' ? 'morpho' : 'aave'
@@ -57,12 +72,17 @@ export interface LeverExec {
   txHash: `0x${string}` | null
   /** A wallet request is open: the slip cannot be closed under it. */
   busy: boolean
+  /** The reader opened the explorer while a transaction is still waiting. */
+  checked: () => void
   sign: () => void
   switchChain: () => void
   retry: () => void
 }
 
-export function useLeverExec(intent: LeverIntent, onSettled: () => void): LeverExec {
+export function useLeverExec(
+  intent: LeverIntent,
+  onSettled: (owner: `0x${string}`) => void,
+): LeverExec {
   const config = useConfig()
   const { address, chainId, isConnected } = useAccount()
   const { switchChainAsync } = useSwitchChain()
@@ -70,6 +90,14 @@ export function useLeverExec(intent: LeverIntent, onSettled: () => void): LeverE
   const [tx, dispatch] = useReducer(txReducer, TX_IDLE)
   // One wallet request at a time: a second click lands before React re-renders the button.
   const inFlight = useRef(false)
+  // The watch on a slow transaction stops when the slip is gone.
+  const alive = useRef(true)
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+    }
+  }, [])
 
   const prep = useQuery({
     queryKey: ['position-lever', intent.openedAt, attempt],
@@ -132,55 +160,96 @@ export function useLeverExec(intent: LeverIntent, onSettled: () => void): LeverE
     const now = getAccount(config)
     if (!sameAddress(now.address, intent.owner) || now.chainId !== ETHEREUM_CHAIN_ID) return
     // A stale slip is read and simulated again; the reader signs the fresh one.
-    if (readTooOld(prep.dataUpdatedAt, Date.now())) {
+    if (readTooOld(ready.blockTime ?? prep.dataUpdatedAt, Date.now())) {
       dispatch({ type: 'expired' })
       setAttempt((a) => a + 1)
       return
     }
     inFlight.current = true
-    dispatch({ type: 'sign', total: ready.calls.length })
+    const calls = ready.calls
+    const venue = PROTOCOL_SHORT[intent.protocol]
+    const standing = (landed: number) =>
+      standingNotice(
+        standingApproval(calls, landed),
+        ready.leg.symbol,
+        ready.read.decimals,
+        venue,
+        ready.row.kind,
+      )
+    dispatch({ type: 'sign', total: calls.length })
+    let landed = 0
     try {
-      let walletClient: Awaited<ReturnType<typeof getWalletClient>>
-      try {
-        // Asserts the connector is on chain 1 and holds the owner's account.
-        walletClient = await getWalletClient(config, {
-          chainId: ETHEREUM_CHAIN_ID,
-          account: intent.owner,
-        })
-        // An atomic EIP-5792 batch is one signature for every call (txRunner's top rung).
-        if (
-          ready.calls.length > 1 &&
-          (await getAtomicStatus(walletClient, ETHEREUM_CHAIN_ID)) !== 'unsupported'
-        ) {
-          dispatch({ type: 'total', total: 1 })
-        }
-      } catch (err) {
-        dispatch({ type: 'failed', message: revertReason(err), minedRevert: false })
-        return
-      }
-      const res = await runEvmCalls({
-        msgs: ready.calls,
-        address: intent.owner,
-        walletClient,
-        publicClient: getMainnetClient(),
-        onApproved: () => dispatch({ type: 'signed' }),
+      // Asserts the connector is on chain 1 and holds the owner's account.
+      const walletClient = await getWalletClient(config, {
+        chainId: ETHEREUM_CHAIN_ID,
+        account: intent.owner,
       })
-      dispatch({ type: 'settled', hash: res.transactionHash as `0x${string}` })
-      onSettled()
-    } catch (err) {
-      if (isUserRejection(err)) dispatch({ type: 'declined' })
-      else if (err instanceof TxRevertedError) {
+      const atomicStatus =
+        calls.length > 1 ? await getAtomicStatus(walletClient, ETHEREUM_CHAIN_ID) : 'unsupported'
+      const out = await runLever({
+        calls,
+        owner: intent.owner,
+        wallet: walletClient as unknown as RunWallet,
+        client: getMainnetClient() as unknown as RunPublic,
+        atomicStatus,
+        alive: () => alive.current,
+        emit: (e) => {
+          if (e.type === 'path') dispatch({ type: 'path', total: e.total })
+          else if (e.type === 'signed') dispatch({ type: 'signed', hash: e.hash })
+          else if (e.type === 'waiting') dispatch({ type: 'waiting' })
+          else {
+            landed = e.index + 1
+            dispatch({ type: 'landed' })
+          }
+        },
+      })
+      if (out.kind === 'settled') {
+        dispatch({ type: 'settled', hash: out.hash })
+        onSettled(intent.owner)
+      } else if (out.kind === 'replaced') {
         dispatch({
           type: 'failed',
-          message: err.message,
-          minedRevert: true,
-          hash: err.transactionHash as `0x${string}`,
+          kind: 'replaced',
+          message: joinNotice(
+            `Replaced in your wallet: this ${ready.row.kind === 'repay' ? 'repay' : 'top-up'} did not happen`,
+            standing(out.landed),
+          ),
+          gasSpent: out.landed > 0,
+          hash: out.hash,
         })
-      } else
+      } else {
+        const reason = out.hash
+          ? await replayReason(calls[out.index], intent.owner, venueOf(intent.protocol))
+          : null
         dispatch({
           type: 'failed',
-          message: namedRevert(revertReason(err), venueOf(intent.protocol)),
-          minedRevert: false,
+          kind: 'reverted',
+          message: joinNotice(
+            `Step ${out.index + 1} of ${calls.length} reverted${reason ? `: ${reason}` : ''}. Your position is unchanged`,
+            standing(out.landed),
+          ),
+          gasSpent: out.gasSpent,
+          hash: out.hash,
+        })
+      }
+    } catch (err) {
+      const cause = err instanceof RunStopped ? err.cause : err
+      const done = err instanceof RunStopped ? err.landed : landed
+      if (isUserRejection(cause))
+        dispatch({
+          type: 'declined',
+          landed: done,
+          message: joinNotice('Declined in your wallet', standing(done)),
+        })
+      else
+        dispatch({
+          type: 'failed',
+          kind: 'stopped',
+          message: joinNotice(
+            namedRevert(revertReason(cause), venueOf(intent.protocol)),
+            standing(done),
+          ),
+          gasSpent: done > 0,
         })
     } finally {
       inFlight.current = false
@@ -197,8 +266,8 @@ export function useLeverExec(intent: LeverIntent, onSettled: () => void): LeverE
     } catch (err) {
       dispatch(
         isUserRejection(err)
-          ? { type: 'declined' }
-          : { type: 'failed', message: revertReason(err), minedRevert: false },
+          ? { type: 'declined', landed: 0 }
+          : { type: 'failed', kind: 'stopped', message: revertReason(err), gasSpent: false },
       )
     } finally {
       inFlight.current = false
@@ -210,12 +279,19 @@ export function useLeverExec(intent: LeverIntent, onSettled: () => void): LeverE
     setAttempt((a) => a + 1)
   }, [])
 
+  // A fresh read clears a notice about the previous one.
+  useEffect(() => {
+    if (prep.dataUpdatedAt) dispatch({ type: 'fresh' })
+  }, [prep.dataUpdatedAt])
+
+  const pendingHash = tx.phase === 'pending' ? tx.hash : null
   return {
     prepared: prep.data ?? null,
     sim: simResult,
     sheet,
-    txHash: tx.phase === 'settled' || tx.phase === 'failed' ? tx.hash : null,
+    txHash: tx.phase === 'settled' || tx.phase === 'failed' ? tx.hash : pendingHash,
     busy: tx.phase === 'submitted' || tx.phase === 'pending' || tx.phase === 'switching',
+    checked: () => dispatch({ type: 'checked' }),
     sign: () => void sign(),
     switchChain: () => void switchChain(),
     retry,

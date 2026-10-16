@@ -214,10 +214,16 @@ export const PositionV0: React.FC = () => {
   // After a settled lever: read the same address again, keeping the position picked.
   const { reread } = form
   const selectedKeyNow = selected?.key ?? null
-  const onSettled = useCallback(() => {
-    if (selectedKeyNow) setPicked({ read: `${address ?? ''}#${form.nonce + 1}`, key: selectedKeyNow })
-    reread()
-  }, [address, form.nonce, reread, selectedKeyNow])
+  const onSettled = useCallback(
+    (owner: `0x${string}`) => {
+      // Re-read the position's OWNER, whatever the box holds now.
+      if (address && owner.toLowerCase() === address.toLowerCase()) {
+        if (selectedKeyNow) setPicked({ read: `${address}#${form.nonce + 1}`, key: selectedKeyNow })
+        reread()
+      } else form.submit(owner)
+    },
+    [address, form, reread, selectedKeyNow],
+  )
 
   return (
     <Box className="news-edition" minH="100vh" data-testid="position-v0">

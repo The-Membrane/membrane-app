@@ -21,6 +21,9 @@
  *                                                       is read and simulated again first
  *   submitted          Confirm in your wallet           stamp SUBMITTED
  *   pending            Pending n/N                      stamp PENDING n/N
+ *   still waiting      Dismiss (after the explorer)     stamp PENDING n/N · STILL WAITING; a
+ *                                                       slow receipt is never a failure
+ *   replaced           Read again                       stamp REPLACED: it did not happen
  *   settled            Close                            stamp SETTLED, the tx link
  *   failed             Read again                       stamp FAILED (· GAS SPENT when a
  *                                                       call was mined)
@@ -47,38 +50,67 @@ export type TxState =
   | { phase: 'idle'; notice?: string }
   | { phase: 'switching' }
   | { phase: 'submitted'; signed: number; total: number }
-  | { phase: 'pending'; signed: number; total: number }
+  | {
+      phase: 'pending'
+      signed: number
+      total: number
+      /** The latest call's hash; null for an atomic batch until it lands. */
+      hash: Hash | null
+      /** viem stopped waiting and the watch goes on: the call can still land. */
+      waiting: boolean
+      /** The reader opened the explorer while waiting, so may dismiss the slip. */
+      checked: boolean
+    }
   | { phase: 'settled'; hash: Hash }
-  | { phase: 'failed'; message: string; gasSpent: boolean; hash: Hash | null }
+  | {
+      phase: 'failed'
+      /** reverted: mined and reverted; replaced: the wallet replaced or cancelled it; stopped: anything else. */
+      kind: 'reverted' | 'replaced' | 'stopped'
+      message: string
+      gasSpent: boolean
+      hash: Hash | null
+    }
 
 export type TxEvent =
   | { type: 'switch' }
   | { type: 'switched' }
   | { type: 'sign'; total: number }
-  /** The wallet batches atomically: one signature covers the batch. */
-  | { type: 'total'; total: number }
-  | { type: 'signed' }
+  /** The runner chose its path: this many signatures (1 for an atomic batch). */
+  | { type: 'path'; total: number }
+  | { type: 'signed'; hash: Hash | null }
+  /** viem's wait timed out; the watch continues on the same hash or batch. */
+  | { type: 'waiting' }
+  /** A call landed: no longer waiting on it. */
+  | { type: 'landed' }
+  /** The reader opened the explorer while waiting. */
+  | { type: 'checked' }
   | { type: 'settled'; hash: Hash }
-  | { type: 'declined' }
-  | { type: 'failed'; message: string; minedRevert: boolean; hash?: Hash | null }
+  /** Declined in the wallet after `landed` calls had landed; `message` names what stands. */
+  | { type: 'declined'; landed: number; message?: string }
+  | {
+      type: 'failed'
+      kind: 'reverted' | 'replaced' | 'stopped'
+      message: string
+      gasSpent: boolean
+      hash?: Hash | null
+    }
   | { type: 'reset' }
   /** The read was too old to sign on: the slip reads again first. */
   | { type: 'expired' }
+  /** A fresh read landed: an idle notice about the old one no longer applies. */
+  | { type: 'fresh' }
 
 export const TX_IDLE: TxState = { phase: 'idle' }
 
 /**
- * A slip signs only what it read recently: past this age a click on the sign button reads
- * and simulates again instead, and the reader signs the fresh slip.
+ * A slip signs only what it read recently: past this age (counted from the read's BLOCK
+ * time) a click on the sign button reads and simulates again instead, and the reader
+ * signs the fresh slip.
  */
 export const MAX_READ_AGE_MS = 120_000
 
 export const readTooOld = (readAtMs: number, nowMs: number): boolean =>
   nowMs - readAtMs > MAX_READ_AGE_MS
-
-/** Signatures obtained so far: each one's call was sent, so its gas is spent once mined. */
-const signedOf = (s: TxState): number =>
-  s.phase === 'submitted' || s.phase === 'pending' ? s.signed : 0
 
 export function txReducer(s: TxState, e: TxEvent): TxState {
   switch (e.type) {
@@ -86,32 +118,49 @@ export function txReducer(s: TxState, e: TxEvent): TxState {
       return TX_IDLE
     case 'expired':
       return s.phase === 'idle'
-        ? { phase: 'idle', notice: 'Read again now: the last read was over 2 minutes old' }
+        ? { phase: 'idle', notice: 'Reading again: the last read was over 2 minutes old' }
         : s
+    case 'fresh':
+      return s.phase === 'idle' && s.notice ? TX_IDLE : s
     case 'switch':
       return s.phase === 'idle' ? { phase: 'switching' } : s
     case 'switched':
       return s.phase === 'switching' ? TX_IDLE : s
     case 'sign':
       return s.phase === 'idle' ? { phase: 'submitted', signed: 0, total: Math.max(1, e.total) } : s
-    case 'total':
+    case 'path':
       return s.phase === 'submitted' && s.signed === 0 ? { ...s, total: Math.max(1, e.total) } : s
     case 'signed': {
       if (s.phase !== 'submitted' && s.phase !== 'pending') return s
       const signed = s.signed + 1
-      return { phase: 'pending', signed, total: Math.max(s.total, signed) }
+      return {
+        phase: 'pending',
+        signed,
+        total: Math.max(s.total, signed),
+        hash: e.hash,
+        waiting: false,
+        checked: false,
+      }
     }
+    case 'waiting':
+      return s.phase === 'pending' ? { ...s, waiting: true } : s
+    case 'landed':
+      return s.phase === 'pending' ? { ...s, waiting: false, checked: false } : s
+    case 'checked':
+      return s.phase === 'pending' && s.waiting ? { ...s, checked: true } : s
     case 'settled':
       return { phase: 'settled', hash: e.hash }
     case 'declined': {
       if (s.phase === 'switching')
         return { phase: 'idle', notice: 'Switch declined in your wallet' }
-      const landed = signedOf(s)
-      // Declined before any signature: nothing happened, the slip stands.
-      if (landed === 0) return { phase: 'idle', notice: 'Declined in your wallet' }
+      // Declined before anything landed: nothing happened, the slip stands.
+      if (e.landed === 0) return { phase: 'idle', notice: 'Declined in your wallet' }
       return {
         phase: 'failed',
-        message: `Declined in your wallet after ${landed} step${landed === 1 ? '' : 's'} landed`,
+        kind: 'stopped',
+        message:
+          e.message ??
+          `Declined in your wallet after ${e.landed} step${e.landed === 1 ? '' : 's'} landed`,
         gasSpent: true,
         hash: null,
       }
@@ -120,8 +169,9 @@ export function txReducer(s: TxState, e: TxEvent): TxState {
       if (s.phase === 'switching') return { phase: 'idle', notice: `Switch failed: ${e.message}` }
       return {
         phase: 'failed',
+        kind: e.kind,
         message: e.message,
-        gasSpent: e.minedRevert || signedOf(s) > 0,
+        gasSpent: e.gasSpent,
         hash: e.hash ?? null,
       }
   }
@@ -156,7 +206,7 @@ export interface Check {
   text: string
 }
 
-export type ButtonKind = 'connect' | 'switch' | 'sign' | 'retry' | 'close' | 'wait'
+export type ButtonKind = 'connect' | 'switch' | 'sign' | 'retry' | 'close' | 'wait' | 'dismiss'
 
 export interface SheetView {
   stamp: string
@@ -220,9 +270,9 @@ function stampOf(tx: TxState): string {
     case 'settled':
       return 'SETTLED'
     case 'failed':
-      return tx.gasSpent ? 'FAILED · GAS SPENT' : 'FAILED'
+      return tx.kind === 'replaced' ? 'REPLACED' : tx.gasSpent ? 'FAILED · GAS SPENT' : 'FAILED'
     case 'pending':
-      return `PENDING ${tx.signed}/${tx.total}`
+      return `PENDING ${tx.signed}/${tx.total}${tx.waiting ? ' · STILL WAITING' : ''}`
     case 'submitted':
       return 'SUBMITTED'
     default:
@@ -255,6 +305,16 @@ export function sheetView(
     return view({ kind: 'retry', label: 'Read again', enabled: true }, tx.message)
   if (tx.phase === 'submitted')
     return view({ kind: 'wait', label: 'Confirm in your wallet', enabled: false }, null)
+  if (tx.phase === 'pending' && tx.waiting) {
+    // Not a failure: the call can still land, so the slip offers no second signature. It
+    // can be dismissed only after the reader has looked the transaction up.
+    return view(
+      tx.checked
+        ? { kind: 'dismiss', label: 'Dismiss: I checked the explorer', enabled: true }
+        : { kind: 'wait', label: 'Still waiting · open the explorer to dismiss', enabled: false },
+      'Not confirmed yet. Still watching it; do not sign this again.',
+    )
+  }
   if (tx.phase === 'pending')
     return view({ kind: 'wait', label: `Pending ${tx.signed}/${tx.total}`, enabled: false }, null)
   if (tx.phase === 'switching')

@@ -191,67 +191,124 @@ describe('the slip before a signature', () => {
 })
 
 describe('the slip during and after the signature', () => {
+  const H1 = `0x${'11'.repeat(32)}` as const
+  const H2 = `0x${'22'.repeat(32)}` as const
   it('SUBMITTED while the wallet asks, then PENDING n/N per signature', () => {
     const submitted = run([{ type: 'sign', total: 2 }])
     expect(sheetView(ready(), OWNER_ON_1, submitted, OWNER)).toMatchObject({
       stamp: 'SUBMITTED',
       button: { kind: 'wait', label: 'Confirm in your wallet', enabled: false },
     })
-    const one = run([{ type: 'signed' }], submitted)
+    const one = run(
+      [
+        { type: 'path', total: 2 },
+        { type: 'signed', hash: H1 },
+      ],
+      submitted,
+    )
     expect(sheetView(ready(), OWNER_ON_1, one, OWNER)).toMatchObject({
       stamp: 'PENDING 1/2',
       button: { label: 'Pending 1/2', enabled: false },
     })
-    // An atomic EIP-5792 batch is one signature for both calls.
+    // An atomic EIP-5792 batch is one signature for both calls; the path is set before it.
     expect(
-      run([{ type: 'sign', total: 2 }, { type: 'total', total: 1 }, { type: 'signed' }]),
-    ).toEqual({ phase: 'pending', signed: 1, total: 1 })
-    expect(run([{ type: 'total', total: 1 }], one)).toBe(one)
-    // An atomic batch counted as one signature never shows 2/1.
-    expect(run([{ type: 'sign', total: 1 }, { type: 'signed' }, { type: 'signed' }])).toEqual({
+      run([
+        { type: 'sign', total: 2 },
+        { type: 'path', total: 1 },
+        { type: 'signed', hash: null },
+      ]),
+    ).toMatchObject({
       phase: 'pending',
-      signed: 2,
-      total: 2,
+      signed: 1,
+      total: 1,
     })
+    expect(run([{ type: 'path', total: 1 }], one)).toBe(one)
+  })
+  it('a slow receipt is STILL WAITING, never a failure, and offers no second signature', () => {
+    const waiting = run([
+      { type: 'sign', total: 1 },
+      { type: 'signed', hash: H1 },
+      { type: 'waiting' },
+    ])
+    const v = sheetView(ready(), OWNER_ON_1, waiting, OWNER)
+    expect(v.stamp).toBe('PENDING 1/1 · STILL WAITING')
+    expect(v.button).toEqual({
+      kind: 'wait',
+      label: 'Still waiting · open the explorer to dismiss',
+      enabled: false,
+    })
+    expect(v.notice).toBe('Not confirmed yet. Still watching it; do not sign this again.')
+    // Dismissable only after the explorer was opened.
+    const checked = run([{ type: 'checked' }], waiting)
+    expect(sheetView(ready(), OWNER_ON_1, checked, OWNER).button).toEqual({
+      kind: 'dismiss',
+      label: 'Dismiss: I checked the explorer',
+      enabled: true,
+    })
+    // It lands after all: waiting ends.
+    expect(run([{ type: 'landed' }], waiting)).toMatchObject({ waiting: false })
+    // 'checked' means nothing unless waiting.
+    const notWaiting = run([
+      { type: 'sign', total: 1 },
+      { type: 'signed', hash: H1 },
+    ])
+    expect(run([{ type: 'checked' }], notWaiting)).toBe(notWaiting)
   })
   it('SETTLED with its hash, and the button closes', () => {
-    const hash = `0x${'ab'.repeat(32)}` as const
-    const s = run([{ type: 'sign', total: 1 }, { type: 'signed' }, { type: 'settled', hash }])
-    expect(s).toEqual({ phase: 'settled', hash })
+    const s = run([
+      { type: 'sign', total: 1 },
+      { type: 'signed', hash: H1 },
+      { type: 'settled', hash: H1 },
+    ])
+    expect(s).toEqual({ phase: 'settled', hash: H1 })
     expect(sheetView(ready(), OWNER_ON_1, s, OWNER)).toMatchObject({
       stamp: 'SETTLED',
       button: { kind: 'close', enabled: true },
     })
   })
-  it('a mined revert is FAILED · GAS SPENT, with its hash', () => {
-    const hash = `0x${'cd'.repeat(32)}` as const
+  it('a mined revert is FAILED · GAS SPENT, with its hash and named reason', () => {
+    const msg = 'Step 2 of 2 reverted: Reserve is paused (29). Your position is unchanged'
     const s = run([
       { type: 'sign', total: 2 },
-      { type: 'signed' },
-      { type: 'signed' },
-      {
-        type: 'failed',
-        message: 'Transaction reverted on step 2 of 2. Your position is unchanged.',
-        minedRevert: true,
-        hash,
-      },
+      { type: 'signed', hash: H1 },
+      { type: 'signed', hash: H2 },
+      { type: 'failed', kind: 'reverted', message: msg, gasSpent: true, hash: H2 },
     ])
-    expect(s).toMatchObject({ phase: 'failed', gasSpent: true, hash })
     expect(sheetView(ready(), OWNER_ON_1, s, OWNER)).toMatchObject({
       stamp: 'FAILED · GAS SPENT',
       button: { kind: 'retry', label: 'Read again' },
-      notice: 'Transaction reverted on step 2 of 2. Your position is unchanged.',
+      notice: msg,
     })
   })
-  it('a failure before anything was sent is FAILED, no gas', () => {
+  it('a replaced or cancelled transaction is REPLACED, not SETTLED', () => {
     const s = run([
       { type: 'sign', total: 1 },
-      { type: 'failed', message: 'Connector chain mismatch', minedRevert: false },
+      { type: 'signed', hash: H1 },
+      {
+        type: 'failed',
+        kind: 'replaced',
+        message: 'Replaced in your wallet: this repay did not happen',
+        gasSpent: false,
+        hash: H2,
+      },
+    ])
+    expect(sheetView(ready(), OWNER_ON_1, s, OWNER)).toMatchObject({
+      stamp: 'REPLACED',
+      notice: 'Replaced in your wallet: this repay did not happen',
+    })
+  })
+  it('a failure before anything was sent, or an off-chain batch failure, is FAILED without gas', () => {
+    const s = run([
+      { type: 'sign', total: 1 },
+      { type: 'failed', kind: 'stopped', message: 'Connector chain mismatch', gasSpent: false },
     ])
     expect(sheetView(ready(), OWNER_ON_1, s, OWNER).stamp).toBe('FAILED')
   })
-  it('declined before any signature: the slip stands, signable again, and says so', () => {
-    const s = run([{ type: 'sign', total: 2 }, { type: 'declined' }])
+  it('declined before anything landed: the slip stands, signable again, and says so', () => {
+    const s = run([
+      { type: 'sign', total: 2 },
+      { type: 'declined', landed: 0 },
+    ])
     expect(s).toEqual({ phase: 'idle', notice: 'Declined in your wallet' })
     expect(sheetView(ready(), OWNER_ON_1, s, OWNER)).toMatchObject({
       stamp: 'DRAFT',
@@ -259,13 +316,16 @@ describe('the slip during and after the signature', () => {
       notice: 'Declined in your wallet',
     })
   })
-  it('declined after a step landed: FAILED · GAS SPENT, and the slip must be read again', () => {
-    const s = run([{ type: 'sign', total: 2 }, { type: 'signed' }, { type: 'declined' }])
-    expect(s).toMatchObject({
-      phase: 'failed',
-      gasSpent: true,
-      message: 'Declined in your wallet after 1 step landed',
-    })
+  it('declined after the approve landed: GAS SPENT, the standing approval named, read again', () => {
+    const msg =
+      'Declined in your wallet. The approval for 460.00 USDC to Aave V3 is still standing.'
+    const s = run([
+      { type: 'sign', total: 2 },
+      { type: 'signed', hash: H1 },
+      { type: 'landed' },
+      { type: 'declined', landed: 1, message: msg },
+    ])
+    expect(s).toMatchObject({ phase: 'failed', gasSpent: true, message: msg })
     expect(sheetView(ready(), OWNER_ON_1, s, OWNER).button.kind).toBe('retry')
   })
   it('a switch: waits on the wallet, then back to the slip; a declined switch is named', () => {
@@ -276,28 +336,29 @@ describe('the slip during and after the signature', () => {
       enabled: false,
     })
     expect(run([{ type: 'switched' }], switching)).toEqual(TX_IDLE)
-    const declined = run([{ type: 'declined' }], switching)
+    const declined = run([{ type: 'declined', landed: 0 }], switching)
     expect(sheetView(ready(), { ...OWNER_ON_1, chainId: 10 }, declined, OWNER)).toMatchObject({
       button: { kind: 'switch', enabled: true },
       notice: 'Switch declined in your wallet',
     })
   })
-  it('a slip read over 2 minutes ago reads again before it signs', () => {
+  it('a slip read over 2 minutes ago reads again; the notice clears once the fresh read lands', () => {
     expect(MAX_READ_AGE_MS).toBe(120_000)
     expect(readTooOld(0, 120_000)).toBe(false)
     expect(readTooOld(0, 120_001)).toBe(true)
     const s = run([{ type: 'expired' }])
     expect(s).toEqual({
       phase: 'idle',
-      notice: 'Read again now: the last read was over 2 minutes old',
+      notice: 'Reading again: the last read was over 2 minutes old',
     })
-    expect(sheetView({ status: 'reading' }, OWNER_ON_1, s, OWNER).button.label).toBe('Reading…')
+    expect(run([{ type: 'fresh' }], s)).toEqual(TX_IDLE)
   })
   it('ignores events out of order', () => {
-    expect(txReducer(TX_IDLE, { type: 'signed' })).toBe(TX_IDLE)
+    expect(txReducer(TX_IDLE, { type: 'signed', hash: H1 })).toBe(TX_IDLE)
     const settled: TxState = { phase: 'settled', hash: '0x01' }
     expect(txReducer(settled, { type: 'sign', total: 1 })).toBe(settled)
     expect(txReducer(settled, { type: 'switch' })).toBe(settled)
+    expect(txReducer(settled, { type: 'fresh' })).toBe(settled)
     expect(txReducer(settled, { type: 'reset' })).toBe(TX_IDLE)
   })
 })

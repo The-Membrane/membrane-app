@@ -1300,12 +1300,14 @@ def load_frozen(datasets, log=print):
     from scipy.special import expit
     t0 = time.time()
     F = Frozen()
-    res_json = json.load(open(os.path.join(datasets, RUN_REL, "results.json")))
+    with open(os.path.join(datasets, RUN_REL, "results.json")) as f:
+        res_json = json.load(f)
     F.asof_params = res_json["asof_params"]
     F.features = res_json["features"]
     if list(F.features["v3"]) != list(S.FEATURES_V3):
         raise SystemExit("STOP: results.json feature list differs from b3_segments.FEATURES_V3")
-    shipped = json.load(open(os.path.join(datasets, RUN_REL, "shipped-b3.json")))
+    with open(os.path.join(datasets, RUN_REL, "shipped-b3.json")) as f:
+        shipped = json.load(f)
     lab = {(r["cell"], r["segment"]): r for r in read_csv_dicts(os.path.join(datasets, RUN_REL, "labels.csv"))}
     labd = {(r["cell"], r["segment"]): r for r in read_csv_dicts(os.path.join(datasets, RUN_REL, "labels-d1.csv"))}
     F.table = {}
@@ -1483,7 +1485,8 @@ def verify_chain(idir):
         problems.append(f"chain.jsonl has {len(entries)} lines but there are {len(files)} issues")
     prev_sha, prev_name = ZERO_SHA, None
     for i, (date, name) in enumerate(files):
-        raw = open(os.path.join(idir, name), "rb").read()
+        with open(os.path.join(idir, name), "rb") as f:
+            raw = f.read()
         sha = sha256_bytes(raw)
         cpath = os.path.join(idir, date + ".csv.gz")
         csha = sha256_file(cpath) if os.path.exists(cpath) else None
@@ -1525,7 +1528,8 @@ def preflight(idir, date, issued_at):
     if not files:
         return None, ZERO_SHA
     name = files[-1][1]
-    raw = open(os.path.join(idir, name), "rb").read()
+    with open(os.path.join(idir, name), "rb") as f:
+        raw = f.read()
     prev_issued = json.loads(raw).get("issuedAt")
     if prev_issued is None or int(prev_issued) >= issued_at:
         raise SystemExit(f"STOP: clock went backwards: {name} issuedAt {prev_issued} >= now {issued_at}")

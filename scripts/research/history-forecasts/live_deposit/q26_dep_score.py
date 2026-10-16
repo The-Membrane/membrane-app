@@ -66,7 +66,8 @@ def load_issues(idir):
     import json
     out = []
     for date, name in D.list_issues(idir):
-        raw = open(os.path.join(idir, name), "rb").read()
+        with open(os.path.join(idir, name), "rb") as f:
+            raw = f.read()
         doc = json.loads(raw)
         df = D.read_issue_csv(os.path.join(idir, doc["csvFile"]))
         if len(df) != doc["nRows"]:

@@ -4,8 +4,8 @@
  *   MEMBRANE_DATASETS_DIR=../membrane-datasets node scripts/regime/build-m0-thresholds.mjs
  *
  * Reads price-history/eth-usd-1h.json from the private datasets repo (board rule N18) and
- * writes lib/regime/m0Thresholds.generated.json: three quantiles, their sample sizes and
- * periods, and the source file's commit and SHA-256. That is an aggregate result, which a
+ * writes lib/regime/m0Thresholds.generated.json: three quantiles, the level each rule reads
+ * ("p95", "p99.9"), their sample sizes and periods, and the source file's commit and SHA-256. That is an aggregate result, which a
  * public repo may keep (N18); no price is copied.
  *
  * The rule is owner-fixed (board Q27, MODELS_PLAN M0): no fit, no tuning. The quantiles are
@@ -25,7 +25,14 @@ import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { datasetsDir } from '../lib/datasetsDir.mjs'
-import { GAP_METHOD, MOVE_METHOD, QUANTILE_METHOD, m0Thresholds } from './m0Stats.mjs'
+import {
+  GAP_METHOD,
+  M0_LEVELS,
+  MOVE_METHOD,
+  QUANTILE_METHOD,
+  levelLabel,
+  m0Thresholds,
+} from './m0Stats.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const DATASET_PATH = 'price-history/eth-usd-1h.json'
@@ -65,8 +72,10 @@ const out = {
   move24hP95: t.move24hP95,
   gapP99: t.gapP99,
   gapP999: t.gapP999,
+  /** The level rule (A) uses. */
+  move24hQuantile: levelLabel(M0_LEVELS.move24h),
   /** The band rule (B) uses. */
-  gapQuantile: 'p99.9',
+  gapQuantile: levelLabel(M0_LEVELS.gapBand),
   n: t.n,
   period: {
     from: iso(Math.min(t.movePeriod.from, t.gapPeriod.from)),

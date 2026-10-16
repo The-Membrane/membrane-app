@@ -17,6 +17,15 @@ export const GAP_METHOD =
   'g_t = |oracle_t / coinbase_t − 1| at every hour end t where both values are observed ' +
   '(coinbase column: the Coinbase Exchange ETH-USD 1h candle close)'
 
+/**
+ * The quantile levels the rule reads. The generated file records each as a label
+ * (levelLabel), and the page derives its plain "1 in N" from that label.
+ */
+export const M0_LEVELS = { move24h: 0.95, gapBand: 0.999, gapAlt: 0.99 }
+
+/** 0.95 → "p95", 0.999 → "p99.9". */
+export const levelLabel = (p) => `p${Math.round(p * 1000) / 10}`
+
 /** Type-7 quantile of an ascending-sorted array. */
 export function quantileSorted(sorted, p) {
   if (!sorted.length) throw new Error('quantile of an empty sample')
@@ -72,9 +81,9 @@ export function m0Thresholds(grid) {
   const move = [...s.move].sort((a, b) => a - b)
   const gap = [...s.gap].sort((a, b) => a - b)
   return {
-    move24hP95: quantileSorted(move, 0.95),
-    gapP99: quantileSorted(gap, 0.99),
-    gapP999: quantileSorted(gap, 0.999),
+    move24hP95: quantileSorted(move, M0_LEVELS.move24h),
+    gapP99: quantileSorted(gap, M0_LEVELS.gapAlt),
+    gapP999: quantileSorted(gap, M0_LEVELS.gapBand),
     n: { move24h: move.length, gap: gap.length },
     movePeriod: s.movePeriod,
     gapPeriod: s.gapPeriod,

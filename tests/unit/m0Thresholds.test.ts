@@ -3,9 +3,15 @@ import { existsSync, readFileSync } from 'fs'
 import { join, resolve } from 'path'
 import { describe, expect, it } from 'vitest'
 
-import { M0_THRESHOLDS, M0_THRESHOLDS_FILE as T } from '@/lib/regime/thresholds'
+import {
+  M0_THRESHOLDS,
+  M0_THRESHOLDS_FILE as T,
+  m0OneIn,
+  oneIn,
+  quantileLevel,
+} from '@/lib/regime/thresholds'
 // The builder's own statistics, so the test recomputes exactly what it wrote.
-import { m0Thresholds, quantileSorted } from '@/scripts/regime/m0Stats.mjs'
+import { levelLabel, M0_LEVELS, m0Thresholds, quantileSorted } from '@/scripts/regime/m0Stats.mjs'
 
 // The generated thresholds file (scripts/regime/build-m0-thresholds.mjs) against its
 // source in the private datasets repo ($MEMBRANE_DATASETS_DIR or ../membrane-datasets,
@@ -30,6 +36,26 @@ describe('quantileSorted (type 7)', () => {
   })
 })
 
+describe('quantile labels → plain "1 in N"', () => {
+  it('reads a label back to its level', () => {
+    expect(levelLabel(0.95)).toBe('p95')
+    expect(levelLabel(0.999)).toBe('p99.9')
+    expect(levelLabel(0.99)).toBe('p99')
+    expect(quantileLevel('p95')).toBe(0.95)
+    expect(quantileLevel('p99.9')).toBeCloseTo(0.999, 12)
+    for (const bad of ['95', 'p', 'p0', 'p100', 'p-5', 'P95', 'p95%']) {
+      expect(() => quantileLevel(bad)).toThrow()
+    }
+  })
+
+  it('a reading at or past the quantile is 1 in N', () => {
+    expect(oneIn('p95')).toBe(20)
+    expect(oneIn('p99')).toBe(100)
+    expect(oneIn('p99.9')).toBe(1000)
+    expect(m0OneIn()).toEqual({ move24h: 20, gap: 1000 })
+  })
+})
+
 describe('m0Thresholds.generated.json', () => {
   it('is internally consistent', () => {
     expect(T.gapP999).toBeGreaterThan(T.gapP99)
@@ -37,6 +63,10 @@ describe('m0Thresholds.generated.json', () => {
     expect(T.move24hP95).toBeGreaterThan(0)
     expect(T.move24hP95).toBeLessThan(1)
     expect(T.gapQuantile).toBe('p99.9')
+    expect(T.move24hQuantile).toBe('p95')
+    // The labels are the levels the builder computed at.
+    expect(T.move24hQuantile).toBe(levelLabel(M0_LEVELS.move24h))
+    expect(T.gapQuantile).toBe(levelLabel(M0_LEVELS.gapBand))
     expect(T.n.move24h).toBeGreaterThan(50_000)
     expect(T.n.gap).toBeGreaterThan(50_000)
     expect(Date.parse(T.period.from)).toBeLessThan(Date.parse(T.period.to))

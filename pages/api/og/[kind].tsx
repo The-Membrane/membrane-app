@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import type { NextRequest } from 'next/server'
 
-import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
+import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 import {
   clampUsd,
   fmtUsdShort,
@@ -129,7 +129,7 @@ function findingCard(): CardProps {
   // no footnote line, so the modelled side says "modelled" in words instead of a †.
   return {
     eyebrow: 'finding · 10–11 oct 2025 · aave + morpho',
-    title: `Less debt force-closed ${OCT10_SCALE_LINE.window}, modelled (${OCT10_SCALE_LINE.split})`,
+    title: `Less debt force-closed, net, on every Aave and Morpho liquidation of ${OCT10_TOTALS.window}, modelled (${OCT10_SCALE_LINE.split})`,
     line: OCT10_SCALE_LINE.figure,
   }
 }

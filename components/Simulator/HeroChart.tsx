@@ -16,14 +16,15 @@ import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import type { Comparison } from '@/lib/position-sim'
 import { MODELLED_FOOTNOTE } from '@/lib/position-sim/guarantee'
-import { OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
+import { OCT10_SCALE_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 
 const usdMillions = (value: number): string => `$${Math.round(value / 1_000_000)}M`
 const usdM1 = (value: number): string => `$${(value / 1_000_000).toFixed(1)}M`
 
 const REAL_CLOSED = OCT10_TOTALS.realClosedUsd
 const MEMBRANE_CLOSED = OCT10_TOTALS.membraneClosedUsd
-const PROTECTED_DEBT = OCT10_TOTALS.keptUsd
+/** NET: Membrane closes less on some positions and more on others (OCT10_SCALE_LINE.gross). */
+const NET_LESS = OCT10_TOTALS.keptUsd
 const { aave, morpho } = OCT10_TOTALS.byProtocol
 const pctLess = (s: { realClosedUsd: number; keptUsd: number }) =>
   `${Math.abs((100 * s.keptUsd) / s.realClosedUsd).toFixed(1)}% ${s.keptUsd >= 0 ? 'less' : 'more'}`
@@ -100,7 +101,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           color={SEMANTIC_COLORS.warning}
           {...tabular}
         >
-          {usdMillions(PROTECTED_DEBT)} protected†
+          {usdMillions(NET_LESS)} less, net†
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}
@@ -109,7 +110,7 @@ export const HeroChart: React.FC<HeroChartProps> = () => (
           textTransform="uppercase"
           color={SEMANTIC_COLORS.textSecondary}
         >
-          from forced debt closure
+          debt force-closed · {OCT10_SCALE_LINE.gross}
         </Text>
       </Box>
     </Box>

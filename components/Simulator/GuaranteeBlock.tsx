@@ -14,12 +14,14 @@ import { GUARANTEE, MODELLED_FOOTNOTE } from '@/lib/position-sim'
 import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
 
 const SCALE = CORPUS_SCALE_LINE.partial ? OCT10_SCALE_LINE : CORPUS_SCALE_LINE
+// (When the corpus is partial the census line leads and carries its own scope; when it is
+// complete the census line is a SEPARATE block below, never a slice of the corpus figure.)
 const SCALE_LEAD = CORPUS_SCALE_LINE.partial
   ? '4% sounds small.'
   : '4% sounds small. It would have kept'
 const SCALE_TAIL = CORPUS_SCALE_LINE.partial
-  ? `of debt protected from forced closure ${SCALE.window}.`
-  : `of collateral ${SCALE.window}.`
+  ? `less debt force-closed, net†, across ${OCT10_SCALE_LINE.scope}.`
+  : `of collateral ${CORPUS_SCALE_LINE.window}.`
 const WINDOW_FIGURE = CORPUS_SCALE_LINE.partial ? '1' : String(CORPUS_SCALE_LINE.years)
 const WINDOW_UNIT = CORPUS_SCALE_LINE.partial ? 'day measured' : 'years measured'
 
@@ -115,8 +117,19 @@ export const GuaranteeBlock: React.FC<{ noWindow?: boolean }> = ({ noWindow = fa
         display="grid"
         gap={SPACING.xs}
       >
-        {/* The Oct 10-11 census (every Aave and Morpho liquidation, four chains), with its
-            per-protocol split on the same line and the † footnoted under it. */}
+        {/* THE OCT 10-11 CENSUS, A SEPARATE MEASURE (review 2026-10-16). The corpus above is
+            collateral seized on Aave V3 Ethereum over years; this is debt closed, net, on
+            every Aave and Morpho liquidation of two days on four chains. It is labelled as a
+            different measure with its own scope and never reads as a slice of the corpus. */}
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.label}
+          letterSpacing="0.28em"
+          textTransform="uppercase"
+          color={SEMANTIC_COLORS.textTertiary}
+        >
+          A different measure · {OCT10_SCALE_LINE.scope}
+        </Text>
         <Text
           data-testid="sim-scale-subline"
           fontFamily={TYPOGRAPHY.fontMono}
@@ -124,7 +137,8 @@ export const GuaranteeBlock: React.FC<{ noWindow?: boolean }> = ({ noWindow = fa
           lineHeight={1.6}
           color={SEMANTIC_COLORS.textSecondary}
         >
-          {OCT10_SCALE_LINE.result} {OCT10_SCALE_LINE.window} ({OCT10_SCALE_LINE.split}).
+          {OCT10_SCALE_LINE.result} ({OCT10_SCALE_LINE.split}): Membrane closes{' '}
+          {OCT10_SCALE_LINE.gross}.
         </Text>
         <Text
           fontFamily={TYPOGRAPHY.fontMono}

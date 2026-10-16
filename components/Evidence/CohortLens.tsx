@@ -255,7 +255,7 @@ export const CohortLens: React.FC<{ rows: CohortRow[] }> = ({ rows }) => {
             borderBottom="1px solid"
             borderColor={SEMANTIC_COLORS.borderMedium}
           >
-            {['Position', 'Debt', 'LTV / line', 'Protocol', 'Membrane†', 'Spared', 'Cured'].map(
+            {['Position', 'Debt', 'LTV / line', 'Protocol', 'Membrane†', 'Spared†', 'Cured'].map(
               (h) => (
                 <HStack key={h} spacing={SPACING.none} align="center">
                   <Eyebrow>{h}</Eyebrow>

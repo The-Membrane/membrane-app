@@ -21,6 +21,7 @@ import assert from 'node:assert'
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { gunzipSync } from 'node:zlib'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ChakraProvider } from '@chakra-ui/react'
@@ -38,6 +39,9 @@ const { decodeEvidence, sparedUsd, compareRow, summaryOf } =
 const { useCohort, matchesOutcome } = await import('@/components/Evidence/useEvidence')
 const { evidenceDescription } = await import('@/components/Evidence/seo')
 const { CLOSE, HERO_VARIANTS } = await import('@/components/Seniority/facts')
+const { HeroChart } = await import('@/components/Simulator/HeroChart')
+const { GuaranteeBlock } = await import('@/components/Simulator/GuaranteeBlock')
+const { OCT10_SCALE_LINE } = await import('@/lib/position-sim/oct10Totals')
 
 const FILE = 'public/data/oct10-2025/evidence-census.json'
 const file: EvidenceFile = JSON.parse(fs.readFileSync(FILE, 'utf8'))
@@ -204,6 +208,95 @@ eq(
   'no window == the no-delay class',
 )
 
+// ---- the time lens, recomputed from the ROWS (review 2026-10-16: never the doc's own fields)
+const pct2 = (x: number) => Math.round(x * 1e4) / 100
+const medianOf = (xs: number[]) => {
+  const v = [...xs].sort((a, b) => a - b)
+  const m = v.length >> 1
+  return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2
+}
+const R = (() => {
+  const c = rows.filter((r) => r.cure)
+  const k = c.filter((r) => r.cure!.curedInWindow)
+  const h = c.filter((r) => r.cure!.healthyAt8h)
+  const pricedRows = rows.filter((r) => r.priced)
+  const mem = sum(rows.map((r) => r.memRepaidUsd))
+  const oneRepay = sum(pricedRows.map((r) => r.oneRepayUsd ?? 0))
+  const credit = (r: CohortRow) => Math.max(0, (r.oneRepayUsd ?? 0) - r.memRepaidUsd)
+  const curedRows = pricedRows.filter((r) => r.minutesToFirstCure != null)
+  const cureCredit = sum(curedRows.map(credit))
+  const within = (m: number) =>
+    pct2(sum(curedRows.filter((r) => r.minutesToFirstCure! <= m).map(credit)) / cureCredit)
+  const outcome = (o: string) => rows.filter((r) => r.outcome === o).length
+  const withSale = (o: string) => rows.filter((r) => r.outcome === o && r.sales > 0).length
+  return {
+    analysed: c.length,
+    curedPct: pct2(k.length / c.length),
+    healthyPct: pct2(h.length / c.length),
+    medianMin: medianOf(k.map((r) => r.cure!.minutesToCure!)),
+    noWindow: c.filter((r) => r.cure!.noWindow).length,
+    wouldCure: c.filter((r) => r.cure!.wouldHaveCuredWithWindow).length,
+    neverSold: rows.filter((r) => r.sales === 0).length,
+    window: rows.filter((r) => r.delayClass !== 'no-delay').length,
+    mixed: rows.filter((r) => r.delayClass === 'mixed').length,
+    noDelay: rows.filter((r) => r.delayClass === 'no-delay').length,
+    mem,
+    oneRepay,
+    delayCredit: oneRepay - mem,
+    cureCredit,
+    w2: within(2),
+    w60: within(60),
+    w480: within(480),
+    outcome,
+    withSale,
+  }
+})()
+// The doc agrees with the rows (one repay is published per row to the cent, so the sums of
+// 3,184 rounded rows may differ from the unrounded total by a few dollars).
+eq(T.cure.accountsAnalysed, R.analysed, 'cure analysed == rows')
+eq(T.cure.curedPct, R.curedPct, 'cure pct == rows')
+eq(T.cure.healthyAt8hPct, R.healthyPct, 'healthy-at-8h pct == rows')
+eq(T.cure.medianMinutesToCure, R.medianMin, 'cure median minutes == the median recounted from rows')
+eq(
+  [T.cure.noDelay.accounts, T.cure.noDelay.wouldHaveCuredWithWindow],
+  [R.noWindow, R.wouldCure],
+  'no-window counts == rows',
+)
+eq(T.neverSold.positions, R.neverSold, 'never sold == rows with sales === 0')
+eq(T.windowPositions, R.window, 'window positions == rows not in the no-delay class')
+eq(R.window, rows.length - R.noDelay, 'window positions == all minus no-delay')
+eq(
+  T.classes,
+  { delayed: rows.length - R.mixed - R.noDelay, mixed: R.mixed, 'no-delay': R.noDelay },
+  'classes == rows',
+)
+near(T.oneRepay.memOneRepayUsd, R.oneRepay, 'one repay == Σ rows', 20)
+near(T.oneRepay.delayCreditUsd, R.delayCredit, 'delay credit == Σ rows', 20)
+near(T.oneRepay.cureCreditUsd, R.cureCredit, 'cure credit == Σ rows', 20)
+near(T.oneRepay.cureCreditShareWithin2min, R.w2, 'cure credit share 2 min == rows', 0.05)
+near(T.oneRepay.cureCreditShareWithin1h, R.w60, 'cure credit share 1h == rows', 0.05)
+near(T.oneRepay.cureCreditShareWithin8h, R.w480, 'cure credit share 8h == rows', 0.05)
+near(
+  T.bandSensitivity.find((b) => b.band === doc.meta.params.band)!.memRepaidUsd,
+  R.mem,
+  'the headline band == Σ rows',
+  0.05,
+)
+for (const o of Object.keys(T.outcomes)) {
+  eq(T.outcomeWithSale[o], R.withSale(o), `outcome ${o}: positions with a sale == rows`)
+}
+// THE HELD DENOMINATOR, restated: the two not-sold buckets are the LARGER half's outcome, so
+// the positions never sold at all are exactly those buckets minus their positions with a sale.
+eq(
+  R.outcome('cured-then-held') -
+    R.withSale('cured-then-held') +
+    (R.outcome('held') - R.withSale('held')),
+  R.neverSold,
+  'never sold == the not-sold buckets minus their positions with a sale on the other half',
+)
+// The figures the reviewer verified: 627 never sold; 3,197 - 32 no-delay = 3,165 with a window.
+eq([R.neverSold, R.window], [627, 3165], 'never sold 627; window 3,165')
+
 // byAsset: per primary leg, >= 20 positions, recounted.
 for (const a of doc.byAsset) {
   const rs = rows.filter((r) => r.primary === a.symbol)
@@ -238,6 +331,27 @@ if (fs.existsSync(censusPath)) {
   eq(census.rows.length, rows.length, 'census.json rows')
   censusChecked = true
 }
+// The fresh-print count cannot come from the rows; recount it from the oracle path itself
+// when the inputs are here: minutes where mainnet's AaveOracle WETH price differs from the
+// minute before.
+let freshChecked = false
+const oraclePath = path.join(
+  dsDir,
+  'recall-coverage',
+  'inputs',
+  'oct10',
+  'onchain',
+  'aave-oracle-1m.mainnet.json.gz',
+)
+if (fs.existsSync(oraclePath)) {
+  const o = JSON.parse(gunzipSync(fs.readFileSync(oraclePath)).toString('utf8'))
+  const weth = o.assets.find((a: { symbol: string }) => a.symbol === 'WETH').address
+  const col: (string | null)[] = o.prices[weth]
+  let fresh = 0
+  for (let m = 1; m < col.length; m++) if (col[m] !== col[m - 1]) fresh++
+  eq(T.freshPrints.minutes, fresh, 'fresh WETH prints == recounted on the AaveOracle path')
+  freshChecked = true
+}
 
 // ============================================================ 2. the lens text
 const debtHtml = render(
@@ -247,6 +361,25 @@ has(debtHtml, '3,197', 'DebtLens: positions')
 has(debtHtml, '$188.1M', 'DebtLens: protocols closed')
 has(debtHtml, '$157.1M†', 'DebtLens: Membrane, marked modelled')
 has(debtHtml, '16.5% less debt closed†', 'DebtLens: the direction and size of the gap')
+// The net gap is shown with what it is made of, and every Membrane-side figure carries †.
+const grossLess = sum(
+  rows.filter((r) => compareRow(r) === 'less').map((r) => r.realRepaidUsd - r.memRepaidUsd),
+)
+const grossMore = sum(
+  rows.filter((r) => compareRow(r) === 'more').map((r) => r.memRepaidUsd - r.realRepaidUsd),
+)
+near(D.all.lessUsd, grossLess, 'gross less == Σ rows', 0.05)
+near(D.all.moreUsd, grossMore, 'gross more == Σ rows', 0.05)
+near(D.all.lessUsd - D.all.moreUsd, D.all.gapUsd, 'gross less − gross more == the net gap', 0.05)
+has(debtHtml, 'Difference, net', 'DebtLens: the difference is labelled net')
+has(debtHtml, '$31.1M†', 'DebtLens: the net difference carries †')
+has(
+  debtHtml,
+  `less on ${D.all.less.toLocaleString('en-US')} positions (${usdM(grossLess)}), more on ${D.all.more.toLocaleString('en-US')} (${usdM(grossMore)})`,
+  'DebtLens: the gross beside the net (rows)',
+)
+has(debtHtml, 'Difference†', 'DebtLens: the difference column carries †')
+has(debtHtml, '$8.6M† · 5.8% less', 'DebtLens: the Aave difference carries †')
 has(debtHtml, 'Aave V3', 'DebtLens: the Aave row of the split')
 has(debtHtml, 'Morpho Blue', 'DebtLens: the Morpho row of the split')
 has(debtHtml, '5.8% less', 'DebtLens: Aave gap')
@@ -267,15 +400,58 @@ const timeHtml = render(React.createElement(TimeLens, { time: T, meta: doc.meta 
 has(timeHtml, '0s', 'TimeLens: the protocols grant zero')
 has(timeHtml, '8h', 'TimeLens: Membrane window')
 has(timeHtml, 'within 4% of the line · none for stablecoins†', 'TimeLens qualifies the 8h')
-has(timeHtml, `${T.cure.curedPct}%`, 'TimeLens: cured pct, recomputed on the census')
-has(timeHtml, `${T.cure.healthyAt8hPct}%`, 'TimeLens: healthy-at-8h pct')
-has(timeHtml, `median ${T.cure.medianMinutesToCure} min`, 'TimeLens: median minutes')
-has(timeHtml, `${usdM(T.oneRepay.delayCreditUsd)}†`, 'TimeLens: delay credit, modelled')
-has(timeHtml, `${T.neverSold.positions.toLocaleString('en-US')}`, 'TimeLens: never sold')
+has(
+  timeHtml,
+  `${R.curedPct}% of the ${R.analysed.toLocaleString('en-US')} positions`,
+  'TimeLens: cured pct (rows)',
+)
+has(timeHtml, `${R.healthyPct}% were under it`, 'TimeLens: healthy-at-8h pct (rows)')
+has(timeHtml, `median ${R.medianMin} min`, 'TimeLens: median minutes (rows)')
+has(timeHtml, `${usdM(R.delayCredit)}†`, 'TimeLens: delay credit, modelled (rows)')
+has(timeHtml, `${usdM(R.oneRepay)} one repay`, 'TimeLens: one repay (rows)')
+has(timeHtml, `${usdM(R.cureCredit)}† of it`, 'TimeLens: cure credit (rows)')
+has(
+  timeHtml,
+  `>${R.neverSold.toLocaleString('en-US')}<`,
+  'TimeLens: the never-sold tile is the rows with sales === 0',
+)
+has(
+  timeHtml,
+  `of ${rows.length.toLocaleString('en-US')} positions; no sale on any half`,
+  'TimeLens: never-sold denominator is every position',
+)
+has(
+  timeHtml,
+  `${R.window.toLocaleString('en-US')} positions hold collateral that gets the window`,
+  'TimeLens: window count from the delay class (rows)',
+)
+has(
+  timeHtml,
+  `other ${R.noDelay.toLocaleString('en-US')} have none`,
+  'TimeLens: no-window count (rows)',
+)
+{
+  const n = R.outcome('cured-then-held')
+  const w = R.withSale('cured-then-held')
+  has(
+    timeHtml,
+    `${(n - w).toLocaleString('en-US')} never sold at all; on ${w.toLocaleString('en-US')} split positions the other half was sold`,
+    'TimeLens: the cured-then-held row says how many had the other half sold (rows)',
+  )
+  const hn = R.outcome('held')
+  const hw = R.withSale('held')
+  has(
+    timeHtml,
+    `the other half was sold on ${hw.toLocaleString('en-US')} of these ${hn.toLocaleString('en-US')}`,
+    'TimeLens: the held row says the other half was sold (rows)',
+  )
+}
+ok(!/; never sold</.test(timeHtml), 'TimeLens: no outcome label claims "never sold" for a bucket')
 has(timeHtml, 'Window still open when the data ends', 'TimeLens: grid end apart')
 has(timeHtml, `band 2%`, 'TimeLens: band sensitivity')
 for (const b of T.bandSensitivity)
   has(timeHtml, `${usdM(b.memRepaidUsd)}†`, `TimeLens: band ${b.band}`)
+has(timeHtml, `${usdM(R.mem)}†`, 'TimeLens: the 4% band is Σ rows')
 has(timeHtml, 'nobody clears the timer early', 'TimeLens: the early-clear corner')
 has(
   timeHtml,
@@ -284,7 +460,7 @@ has(
 )
 {
   const at = timeHtml.indexOf('Stablecoin collateral (or a line above 90%)')
-  const n = (T.outcomes['sold-no-delay'] ?? 0).toLocaleString('en-US')
+  const n = R.outcome('sold-no-delay').toLocaleString('en-US')
   ok(at >= 0 && timeHtml.slice(at, at + 1500).includes(`>${n}<`), `no-delay step renders ${n}`)
 }
 ok(!/183 of|69\.88%|2,347/.test(timeHtml), 'TimeLens: no old-census figure')
@@ -345,6 +521,54 @@ for (const v of Object.values(HERO_VARIANTS)) {
 }
 has(CLOSE.headline, '3,197', 'Close headline: the census count')
 const lines = CLOSE.contains.lines.join('\n')
+{
+  const c = headline.concentration
+  const g = (x: number) => `${Math.abs(x).toFixed(1)}% ${x >= 0 ? 'less' : 'more'}†`
+  has(
+    lines,
+    `Without it Membrane closes ${g(c.gapWithoutTop1Pct)}`,
+    'Close: the without-top-1 figure carries †',
+  )
+  has(
+    lines,
+    `without them it is ${g(c.gapWithoutTop5Pct)}`,
+    'Close: the without-top-5 figure carries †',
+  )
+}
+has(
+  lines,
+  `net: Membrane closes less on ${D.all.less.toLocaleString('en-US')} positions`,
+  'Close: the net figure with its gross counts',
+)
+has(
+  bridge,
+  `less on ${D.all.less.toLocaleString('en-US')} positions, more on ${D.all.more.toLocaleString('en-US')}`,
+  'landing bridge: net, with both counts',
+)
+has(bridge, 'walked on its protocol’s own oracle', 'landing bridge: the oracle claim is the walk')
+
+// HeroChart and GuaranteeBlock (the landing hero): the census figure is NET, never
+// "protected", and it is a separate measure from the corpus line, never "alone".
+const heroChartHtml = render(
+  React.createElement(HeroChart, {
+    comparison: null,
+    startTs: null,
+    stepSeconds: null,
+    isDemo: true,
+  }),
+)
+has(heroChartHtml, '$31M less, net†', 'HeroChart: net, modelled')
+has(heroChartHtml, OCT10_SCALE_LINE.gross, 'HeroChart: the gross counts beside it')
+ok(!/protected/i.test(heroChartHtml), 'HeroChart: never "protected"')
+const guaranteeHtml = render(React.createElement(GuaranteeBlock, {}))
+ok(!/protected|\balone\b/i.test(guaranteeHtml), 'GuaranteeBlock: never "protected", never "alone"')
+has(
+  guaranteeHtml,
+  'A different measure',
+  'GuaranteeBlock: the census line is labelled a separate measure',
+)
+has(guaranteeHtml, OCT10_SCALE_LINE.scope, 'GuaranteeBlock: with its scope named')
+has(guaranteeHtml, '$31M less debt force-closed, net†', 'GuaranteeBlock: net, modelled')
 has(lines, 'Aave V3: 2,421 positions', 'Close: the Aave split')
 has(lines, 'Morpho Blue: 776 positions', 'Close: the Morpho split')
 has(lines, `${doc.meta.gridEnd.positions} positions were still inside`, 'Close: grid end')
@@ -476,6 +700,6 @@ console.log(
   `  less/more/equal/unpriced ${D.all.less}/${D.all.more}/${D.all.equal}/${D.all.unpricedPositions} · cured ${T.cure.curedInWindow}/${T.cure.accountsAnalysed} · grid end ${doc.meta.gridEnd.positions}`,
 )
 console.log(
-  `  census.json ${censusChecked ? 'checked (sha256 and totals)' : `not found at ${censusPath}: checked against the totals recorded in meta.source.totals`}`,
+  `  census.json ${censusChecked ? 'checked (sha256 and totals)' : `not found at ${censusPath}: checked against the totals recorded in meta.source.totals`}; fresh prints ${freshChecked ? 'recounted on the oracle path' : 'not recounted (inputs absent)'}`,
 )
 console.log(`  served file ${bytes.toLocaleString('en-US')} B`)

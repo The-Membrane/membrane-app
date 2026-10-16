@@ -35,6 +35,8 @@
  "less": 1462,
  "more": 951,
  "equal": 771,
+ "lessUsd": 95061776.5,
+ "moreUsd": 64003334.18,
  "unpricedPositions": 13,
  "gridEnd": {
   "positions": 73,

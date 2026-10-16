@@ -496,8 +496,8 @@ const poolMedian = poolGaps.length
   : 0
 const selectionPool = {
   definition:
-    'census positions of the hero’s kind: mainnet Aave V3 Core, one collateral and one debt leg, ' +
-    `collateral $${(MIN_COLLATERAL_USD / 1000).toFixed(0)}k-$${(MAX_COLLATERAL_USD / 1e6).toFixed(0)}M at t0`,
+    'mainnet Aave V3 Core, one collateral and one debt leg, ' +
+    `$${(MIN_COLLATERAL_USD / 1000).toFixed(0)}k–$${(MAX_COLLATERAL_USD / 1e6).toFixed(0)}M of collateral at t0`,
   positions: poolRows.length,
   membraneMore: poolRows.filter(
     (r) => Math.round(r.membraneClosedUsd * 100) > Math.round(r.aaveClosedUsd * 100),

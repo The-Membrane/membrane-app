@@ -303,9 +303,18 @@ test.describe('landing conversion acceptance', () => {
       'It would have kept $1.3B of collateral over 3.6 years of Aave V3.',
     )
     // 2026-10-16: the Oct 10 subline reads the full on-chain census (every Aave and Morpho
-    // liquidation of 10-11 Oct 2025, four chains), carries the per-protocol split and the †.
+    // liquidation of 10-11 Oct 2025, four chains). It is a NET figure and a separate measure
+    // from the corpus line above (never "protected", never "alone"), with the per-protocol
+    // split, the gross each way and the †.
     await expect(page.getByTestId('sim-scale-subline')).toHaveText(
-      '$31M of debt protected from forced closure† on 10–11 Oct 2025 alone (Aave $8.6M · Morpho $22.4M).',
+      '$31M less debt force-closed, net† (Aave $8.6M · Morpho $22.4M): Membrane closes less on 1,462 positions ($95.1M), more on 951 ($64.0M).',
+    )
+    // The demo verdict is the simulator's replay, labelled as such, and the wallet is the
+    // selection's best case from the census, not a typical one.
+    await expect(page.getByTestId('sim-verdict-run-basis')).toContainText('Not the census figure')
+    await expect(page.getByTestId('sim-demo-census')).toContainText('best case from the census')
+    await expect(page.getByTestId('sim-demo-census')).toContainText(
+      '76 comparable census positions',
     )
     await expect(page.getByTestId('sim-oct10-comparison')).toBeVisible()
     await expect(page.getByText('scrvUSD exit capacity rose $5.92M')).toBeVisible()

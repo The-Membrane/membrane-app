@@ -79,10 +79,14 @@ import HeroChart from './HeroChart'
 import { historyDate } from './HistoryProof'
 import { usd, usdSigned } from './format'
 
+/**
+ * The CENSUS stamp. It belongs to the stakes line only and sits on that line: the verdict
+ * below it is the simulator's replay of one wallet, not a census figure (review 2026-10-16).
+ */
 const OCT10_PROV = stampFn(
   'dataset',
-  `measured · ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions · on-chain`,
-  'public/data/oct10-2025/evidence-census.json — every Aave V3 and Morpho Blue liquidation on Ethereum, Arbitrum, Optimism and Base, 10-11 Oct 2025, priced by each protocol’s own oracle read on chain.',
+  `census · ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions · on-chain`,
+  'The stakes line only: public/data/oct10-2025/evidence-census.json — every Aave V3 and Morpho Blue liquidation on Ethereum, Arbitrum, Optimism and Base, 10-11 Oct 2025, each position walked on its own protocol’s oracle read on chain. The wallet verdict under it is a simulator replay, not this census.',
 )
 
 /**
@@ -124,6 +128,11 @@ export interface VerdictHeroProps extends AddressBarProps {
   isDemo: boolean
   /** The census's measured figures for the demo wallet; null for a pasted address. */
   measured?: MeasuredCensus | null
+  /**
+   * What the hero's own figures are: the simulator's replay at this Membrane line, from this
+   * source. Printed under the figure so it is never read as the census (review 2026-10-16).
+   */
+  runBasis?: { line: number; lineSource: string } | null
   /** Price-path origin, for the chart's x axis. Null until the path lands. */
   startTs: number | null
   stepSeconds: number | null
@@ -186,12 +195,15 @@ function verdict(
   // Aave's real events; a pasted address only has the run's replay of Aave's mechanics,
   // which is a model, so it is written as one.
   const measuredTs =
-    measured && startTs !== null && stepSeconds !== null ? startTs + measured.t0Index * stepSeconds : null
-  const first = measured && measuredTs !== null
-    ? `${src} closed ${usd(measured.aaveClosedUsd)} of this loan at ${clock(measuredTs)}`
-    : o.source.liquidated && sourceFirst
-      ? `${src} would have closed ${usd(sourceClosed)} of ${whose} loan at ${clock(sourceFirst.ts)}.`
-      : `${src} closes nothing.`
+    measured && startTs !== null && stepSeconds !== null
+      ? startTs + measured.t0Index * stepSeconds
+      : null
+  const first =
+    measured && measuredTs !== null
+      ? `${src} closed ${usd(measured.aaveClosedUsd)} of this loan at ${clock(measuredTs)}`
+      : o.source.liquidated && sourceFirst
+        ? `${src} would have closed ${usd(sourceClosed)} of ${whose} loan at ${clock(sourceFirst.ts)}.`
+        : `${src} closes nothing.`
 
   // The lag is the whole mechanism: the delay window is time, and time is what the
   // reader is being sold. State it in minutes, off the two runs' own event stamps.
@@ -200,7 +212,8 @@ function verdict(
   const plural = (n: number) => (n === 1 ? 'minute' : 'minutes')
   let tail: string | undefined
   if (membraneClosed <= 0) tail = 'and sold nothing'
-  else if (lag === null) tail = membraneCloses.length ? `at ${clock(membraneCloses[0].ts)}` : 'and nothing more'
+  else if (lag === null)
+    tail = membraneCloses.length ? `at ${clock(membraneCloses[0].ts)}` : 'and nothing more'
   else if (lag > 0) tail = `${lag} ${plural(lag)} later`
   else if (lag < 0) tail = `${-lag} ${plural(-lag)} earlier`
   else tail = undefined
@@ -215,8 +228,12 @@ function verdict(
   // and the caption says so rather than leaving the reader to assume "today".
   const delta = cmp.equityDeltaUsd
   const n = cmp.source.equitySeries.length
-  const endTs = startTs !== null && stepSeconds !== null && n > 0 ? startTs + (n - 1) * stepSeconds : null
-  const basis = endTs !== null ? `${fmtLocalDayClock(endTs, zone)} prices` : 'the last price of the measured path'
+  const endTs =
+    startTs !== null && stepSeconds !== null && n > 0 ? startTs + (n - 1) * stepSeconds : null
+  const basis =
+    endTs !== null
+      ? `${fmtLocalDayClock(endTs, zone)} prices`
+      : 'the last price of the measured path'
   const caption = `${delta < 0 ? 'less' : 'more'} equity left at ${basis}†`
 
   return {
@@ -229,7 +246,11 @@ function verdict(
     // exact thing this rewrite removes.
     secondColor: SEMANTIC_COLORS.textPrimary,
     figureColor:
-      delta > 0 ? SEMANTIC_COLORS.success : delta < 0 ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary,
+      delta > 0
+        ? SEMANTIC_COLORS.success
+        : delta < 0
+          ? SEMANTIC_COLORS.danger
+          : SEMANTIC_COLORS.textPrimary,
   }
 }
 
@@ -245,6 +266,7 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
   errors,
   hideSubhead = false,
   measured = null,
+  runBasis = null,
   compact = false,
   ...addressBar
 }) => {
@@ -287,7 +309,13 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
       alignItems="center"
     >
       {/* Everything above the graph is centred (owner, 2026-09-12). */}
-      <Box display="grid" gap={SPACING.base} alignContent="center" justifyItems={compact ? 'start' : 'center'} textAlign={compact ? 'left' : 'center'}>
+      <Box
+        display="grid"
+        gap={SPACING.base}
+        alignContent="center"
+        justifyItems={compact ? 'start' : 'center'}
+        textAlign={compact ? 'left' : 'center'}
+      >
         {/* THE SUBHEAD (borrower mode only). Owner layout ruling 2026-09-12: one landing
             page — the hero SELLS the carry product by name, then the sim PROVES the rails
             with the borrow verdict below it. One line, above the headline, nothing else
@@ -385,7 +413,8 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               sx={{ textWrap: 'balance' }}
             >
               <Text as="span" color={SEMANTIC_COLORS.danger}>
-                {src} charges {whose} carry {usd(carry.annualCostUsd)} a year, even when the venue pays nothing.
+                {src} charges {whose} carry {usd(carry.annualCostUsd)} a year, even when the venue
+                pays nothing.
               </Text>{' '}
               {/* The 14 days is the owner's own figure (owner statement 2026-09-12);
                   CARRY_CLAIMS[0] and FinePrint's CARRY_TERMS carry the same number and
@@ -431,17 +460,19 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
                 One line, above the two verdict sentences, nothing added to it — the
                 verdict stays the headline. Numbers come from OCT10_TOTALS (the full
                 on-chain census), which the unit test re-derives from its rows. */}
-            <Text
-              data-testid="sim-oct10-stakes"
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="12.5px"
-              letterSpacing="0.04em"
-              lineHeight={1.5}
-              color={SEMANTIC_COLORS.textSecondary}
-            >
-              {OCT10_STAKES_LINE}
-            </Text>
-              <Box display="flex" justifyContent="center"><Stamp provenance={OCT10_PROV} /></Box>
+            <Box display="flex" flexWrap="wrap" alignItems="center" gap={SPACING.sm}>
+              <Text
+                data-testid="sim-oct10-stakes"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize="12.5px"
+                letterSpacing="0.04em"
+                lineHeight={1.5}
+                color={SEMANTIC_COLORS.textSecondary}
+              >
+                {OCT10_STAKES_LINE}
+              </Text>
+              <Stamp provenance={OCT10_PROV} />
+            </Box>
 
             <Text
               data-testid="sim-verdict-headline"
@@ -479,6 +510,42 @@ export const VerdictHero: React.FC<VerdictHeroProps> = ({
               >
                 {v.caption}
               </Text>
+              {/* WHAT THESE FIGURES ARE (review 2026-10-16): the simulator's replay at a
+                  stated line on a stated price path, never the census row. For the demo
+                  wallet, the census row and the pool it was picked from are printed too. */}
+              {runBasis ? (
+                <Text
+                  data-testid="sim-verdict-run-basis"
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="11px"
+                  lineHeight={1.6}
+                  color={SEMANTIC_COLORS.textTertiary}
+                  maxW="70ch"
+                >
+                  Simulator replay on the measured mainnet Chainlink path (prices-1m.json), Membrane
+                  line {(runBasis.line * 100).toFixed(1)}% ({runBasis.lineSource})†. Not the census
+                  figure.
+                </Text>
+              ) : null}
+              {isDemo && measured?.pool && measured.line != null ? (
+                <Text
+                  data-testid="sim-demo-census"
+                  fontFamily={TYPOGRAPHY.fontMono}
+                  fontSize="11px"
+                  lineHeight={1.6}
+                  color={SEMANTIC_COLORS.textTertiary}
+                  maxW="70ch"
+                >
+                  Demo wallet: the selection’s best case from the census, not a typical one — the
+                  largest modelled gain among the {measured.eligibleCount ?? '?'} census positions
+                  that pass every gate. Its census row, at its own{' '}
+                  {(measured.line * 100).toFixed(1)}% line on Aave’s oracle, closes{' '}
+                  {usd(measured.membraneClosedUsd)}†. Of {measured.pool.positions} comparable census
+                  positions ({measured.pool.definition}) the census has Membrane closing more on{' '}
+                  {measured.pool.membraneMore}; the median gap is {measured.pool.medianGapPct}%
+                  less†.
+                </Text>
+              ) : null}
             </Box>
 
             {/* BORROWER MODE, WALLET THAT ALSO HAS A CARRY. The cost story does not

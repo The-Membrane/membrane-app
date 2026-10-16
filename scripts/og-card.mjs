@@ -21,8 +21,9 @@ const m0 = (x) => `$${Math.round(x / 1e6)}M`
 const m1 = (x) => `$${(x / 1e6).toFixed(1)}M`
 const proof =
   `Replayed on every Aave and Morpho liquidation of ${census.window}, ` +
-  `${census.positions.toLocaleString('en-US')} positions: ${m0(census.all.gapUsd)} less debt force-closed ` +
-  `(Aave ${m1(census.aave.gapUsd)}, Morpho ${m1(census.morpho.gapUsd)}), modelled.`
+  `${census.positions.toLocaleString('en-US')} positions: ${m0(census.all.gapUsd)} less debt force-closed, net ` +
+  `(less on ${census.less.toLocaleString('en-US')}, more on ${census.more.toLocaleString('en-US')}; ` +
+  `Aave ${m1(census.aave.gapUsd)}, Morpho ${m1(census.morpho.gapUsd)}), modelled.`
 // Playwright's own browser, or the preinstalled one when the pinned build is absent.
 const executablePath = process.env.OG_CHROMIUM || undefined
 

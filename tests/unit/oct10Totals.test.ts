@@ -122,11 +122,39 @@ describe('OCT10_STAKES_LINE', () => {
 })
 
 describe('OCT10 kept figure', () => {
-  it('is the census gap, marked modelled, with the split beside it', () => {
+  // UPDATED 2026-10-16 (review): the figure is NET — Membrane closes less on some positions
+  // and more on others — and it is a separate measure from the multi-year corpus line, with
+  // its own scope. So it says "net", never "protected", and never "alone".
+  it('is the NET census gap, marked modelled, with its scope, the split and the gross', () => {
     expect(OCT10_SCALE_LINE.line).toBe(
-      '4% sounds small. $31M of debt protected from forced closure† on 10–11 Oct 2025 alone.',
+      '4% sounds small. $31M less debt force-closed, net†, across every Aave and Morpho liquidation of 10–11 Oct 2025.',
+    )
+    expect(OCT10_SCALE_LINE.result).toBe('$31M less debt force-closed, net†')
+    expect(OCT10_SCALE_LINE.scope).toBe(
+      'debt closed on every Aave V3 and Morpho Blue liquidation of 10–11 Oct 2025, Ethereum, Arbitrum, Optimism and Base',
     )
     expect(OCT10_SPLIT_LINE).toBe('Aave $8.6M · Morpho $22.4M')
     expect(OCT10_SCALE_LINE.split).toBe(OCT10_SPLIT_LINE)
+    expect(OCT10_SCALE_LINE.gross).toBe(
+      `less on ${doc.debt.all.less.toLocaleString('en-US')} positions ($95.1M), more on ${doc.debt.all.more.toLocaleString('en-US')} ($64.0M)`,
+    )
+    for (const v of Object.values(OCT10_SCALE_LINE)) {
+      expect(v).not.toMatch(/protected|\balone\b/i)
+    }
+  })
+
+  it('the gross less minus the gross more is the net, from the rows', () => {
+    const less = rows.filter(
+      (r) => r.priced && Math.round(r.memRepaidUsd * 100) < Math.round(r.realRepaidUsd * 100),
+    )
+    const more = rows.filter(
+      (r) => r.priced && Math.round(r.memRepaidUsd * 100) > Math.round(r.realRepaidUsd * 100),
+    )
+    const lessUsd = less.reduce((a, r) => a + r.realRepaidUsd - r.memRepaidUsd, 0)
+    const moreUsd = more.reduce((a, r) => a + r.memRepaidUsd - r.realRepaidUsd, 0)
+    expect([less.length, more.length]).toEqual([headline.less, headline.more])
+    near(lessUsd, headline.lessUsd)
+    near(moreUsd, headline.moreUsd)
+    near(lessUsd - moreUsd, OCT10_TOTALS.keptUsd)
   })
 })

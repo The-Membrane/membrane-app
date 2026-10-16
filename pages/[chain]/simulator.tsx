@@ -17,7 +17,7 @@ const SimulatorPage = () => (
     <PageSeo
       seoClass="indexable"
       title="Membrane — 4%. Cross the line and nothing is sold."
-      description={`Paste any Aave, Spark, Morpho or Compound position and replay it through the measured 10 Oct 2025 crash. On ${OCT10_TOTALS.window}, Membrane's 4% window would have force-closed ${OCT10_SCALE_LINE.figure} less debt (modelled; ${OCT10_SCALE_LINE.split}).`}
+      description={`Paste any Aave, Spark, Morpho or Compound position and replay it through the measured 10 Oct 2025 crash. On ${OCT10_TOTALS.window}, Membrane's 4% window would have force-closed ${OCT10_SCALE_LINE.figure} less debt, net (modelled; ${OCT10_SCALE_LINE.split}).`}
     />
     <Simulator mode="borrower" />
   </>

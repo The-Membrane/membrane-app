@@ -54,6 +54,9 @@ export interface DebtSet {
   less: number
   more: number
   equal: number
+  /** Gross: Σ (real − Membrane) over the `less` positions, Σ (Membrane − real) over `more`. */
+  lessUsd: number
+  moreUsd: number
   /** Positions with no Membrane sale on any half. */
   memNeverSold: number
   /** A window still open when the data ends, booked as sold at the last price. */
@@ -108,6 +111,11 @@ export interface TimeSummary {
   /** The position's outcome (a split position: its larger half). Partitions the census. */
   outcomes: Record<string, number>
   outcomesByProtocol: Record<ProtocolKey, Record<string, number>>
+  /** Per outcome, the positions with a sale on any half (the outcome is the larger half's). */
+  outcomeWithSale: Record<string, number>
+  /** Positions whose collateral, or one half of it, gets the 8-hour window. */
+  windowPositions: number
+  classes: Record<'delayed' | 'mixed' | 'no-delay', number>
   neverSold: { positions: number; debtUsd: number; realRepaidUsd: number }
   protocolSecondsGranted: number
   membraneSecondsGranted: number
@@ -289,6 +297,8 @@ export interface CohortRow {
   /** Set when a window was still open at the data end; the USD booked there (†). */
   gridEndUsd: number | null
   minutesToFirstCure: number | null
+  /** One repay to cap at t0 with no window, USD at t0 (†); null when the loan is unpriced. */
+  oneRepayUsd: number | null
   cure: CureRecord | null
 }
 
@@ -380,6 +390,7 @@ export function decodeEvidence(file: EvidenceFile): EvidenceDoc {
       'firstSaleMinute',
       'gridEndUsd',
       'minutesToFirstCure',
+      'oneRepayUsd',
       'cure',
     ].map((k) => [k, at(k)]),
   ) as Record<string, number>
@@ -430,6 +441,7 @@ export function decodeEvidence(file: EvidenceFile): EvidenceDoc {
       firstSaleMinute: v[c.firstSaleMinute] as number | null,
       gridEndUsd: v[c.gridEndUsd] as number | null,
       minutesToFirstCure: v[c.minutesToFirstCure] as number | null,
+      oneRepayUsd: v[c.oneRepayUsd] as number | null,
       cure: cure
         ? {
             curedInWindow: cure[kc.cured] === 1,

@@ -62,7 +62,7 @@ const SplitRow: React.FC<{
           {usd(s.memRepaidUsd)}†
         </Cell>
         <Cell color={gapColor} size={size}>
-          {usd(Math.abs(s.gapUsd))} · {gapWord(s.gapPct)}
+          {usd(Math.abs(s.gapUsd))}† · {gapWord(s.gapPct)}
         </Cell>
       </Grid>
       <VStack display={{ base: 'flex', md: 'none' }} align="stretch" spacing={SPACING.none}>
@@ -77,7 +77,7 @@ const SplitRow: React.FC<{
         <Cell color={SEMANTIC_COLORS.textSecondary} size={TYPOGRAPHY.xs}>
           {usd(s.realRepaidUsd)} → {usd(s.memRepaidUsd)}†{' '}
           <Text as="span" color={gapColor}>
-            {usd(Math.abs(s.gapUsd))} · {gapWord(s.gapPct)}
+            {usd(Math.abs(s.gapUsd))}† · {gapWord(s.gapPct)}
           </Text>
         </Cell>
       </VStack>
@@ -126,10 +126,10 @@ export const DebtLens: React.FC<{
           sub="8h window, walked minute by minute"
         />
         <Stat
-          label="Difference"
-          value={usd(Math.abs(all.gapUsd))}
+          label="Difference, net"
+          value={`${usd(Math.abs(all.gapUsd))}†`}
           tone={moreDebt ? 'bad' : 'good'}
-          sub={`${gapWord(all.gapPct)} debt closed†`}
+          sub={`${gapWord(all.gapPct)} debt closed†: less on ${all.less.toLocaleString('en-US')} positions (${usd(all.lessUsd)}), more on ${all.more.toLocaleString('en-US')} (${usd(all.moreUsd)})`}
         />
       </SimpleGrid>
 
@@ -146,7 +146,7 @@ export const DebtLens: React.FC<{
                 borderBottom="1px solid"
                 borderColor={SEMANTIC_COLORS.borderMedium}
               >
-                {['Venue', 'Positions', 'Protocol closed', 'Membrane', 'Difference'].map((h) => (
+                {['Venue', 'Positions', 'Protocol closed', 'Membrane†', 'Difference†'].map((h) => (
                   <Eyebrow key={h}>{h}</Eyebrow>
                 ))}
               </Grid>

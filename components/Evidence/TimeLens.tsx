@@ -65,39 +65,46 @@ const Step: React.FC<{
  *
  * Path-dependent, and says so: 10 Oct was a sharp wick with a partial recovery.
  */
+/**
+ * The outcome of a position is its own, or, for a position split by delay class, its LARGER
+ * half's. So the two "not sold" rows describe that half only: the other half of a split
+ * position can have been sold. Each row's note says how many of its positions had a sale on
+ * any half (time.outcomeWithSale), and the "Never sold" tile counts sales === 0 only.
+ */
 const OUTCOME_ROWS: {
   key: string
   label: string
-  note: string
-  windowed: boolean
+  note: (n: number, withSale: number) => string
   tone: 'good' | 'bad' | 'gate' | 'dim'
 }[] = [
   {
     key: 'cured-then-held',
-    label: 'Back under the line inside the window; never sold',
-    note: 'the delay held and the window ended with the position intact',
-    windowed: true,
+    label: 'Back under the line inside the window; that position (or larger half) not sold',
+    note: (n, s) =>
+      s > 0
+        ? `${(n - s).toLocaleString('en-US')} never sold at all; on ${s.toLocaleString('en-US')} split positions the other half was sold`
+        : 'the delay held and the window ended with the position intact',
     tone: 'good',
   },
   {
     key: 'held',
-    label: 'Opened under its own line (the larger half of a split position); never sold',
-    note: 'that half never crossed its line, so no window was needed',
-    windowed: true,
+    label: 'Larger half opened under its own line and never crossed it',
+    note: (n, s) =>
+      s > 0
+        ? `the other half was sold on ${s.toLocaleString('en-US')} of these ${n.toLocaleString('en-US')}`
+        : 'no window was needed and nothing was sold',
     tone: 'good',
   },
   {
     key: 'sold-at-expiry',
     label: 'Still over the line at 8h; sold then',
-    note: 'repay to cap at that minute’s price',
-    windowed: true,
+    note: () => 'repay to cap at that minute’s price',
     tone: 'bad',
   },
   {
     key: 'sold-at-band',
     label: 'Broke the band during the delay; sold at that minute',
-    note: 'LTV passed line × 1.04 while the timer ran',
-    windowed: true,
+    note: () => 'LTV passed line × 1.04 while the timer ran',
     tone: 'bad',
   },
   // A window still open at 23:59 UTC 11 Oct is NOT a completed sale (the wavefront page
@@ -106,8 +113,7 @@ const OUTCOME_ROWS: {
   {
     key: 'sold-at-grid-end',
     label: `${GRID_END_MARK} Window still open when the data ends; booked as sold at the last price†`,
-    note: 'not a completed sale: the conservative assumption at 23:59 UTC 11 Oct',
-    windowed: true,
+    note: () => 'not a completed sale: the conservative assumption at 23:59 UTC 11 Oct',
     tone: 'gate',
   },
   // Immediate at t0 (LiquidationEngine.sol:1694-1703 at 16e12329), then the position walks on
@@ -115,8 +121,7 @@ const OUTCOME_ROWS: {
   {
     key: 'sold-at-t0',
     label: 'Already past the band at the first liquidation; no delay exists',
-    note: 'repaid to cap at once, then walked on like any sold position',
-    windowed: true,
+    note: () => 'repaid to cap at once, then walked on like any sold position',
     tone: 'bad',
   },
   // The no-delay class (stable collateral, or a line above 90%): instant mode,
@@ -124,8 +129,7 @@ const OUTCOME_ROWS: {
   {
     key: 'sold-no-delay',
     label: 'Stablecoin collateral (or a line above 90%): no 8-hour window†, sold at the line',
-    note: 'Membrane gives this collateral no window†',
-    windowed: false,
+    note: () => 'Membrane gives this collateral no window†',
     tone: 'bad',
   },
 ]
@@ -144,10 +148,6 @@ const SENS_ROWS: { key: keyof TimeSummary['sensitivity']; label: string }[] = [
 export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ time, meta }) => {
   const total = Object.values(time.outcomes).reduce((a, b) => a + b, 0)
   const rows = OUTCOME_ROWS.filter((r) => (time.outcomes[r.key] ?? 0) > 0)
-  const windowed = OUTCOME_ROWS.filter((r) => r.windowed).reduce(
-    (a, r) => a + (time.outcomes[r.key] ?? 0),
-    0,
-  )
   const colorOf = (t: 'good' | 'bad' | 'gate' | 'dim') =>
     t === 'good'
       ? SEMANTIC_COLORS.success
@@ -189,13 +189,13 @@ export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ 
           label="Never sold"
           value={time.neverSold.positions.toLocaleString('en-US')}
           tone="good"
-          sub={`of ${total.toLocaleString('en-US')} positions; no sale on either half†`}
+          sub={`of ${total.toLocaleString('en-US')} positions; no sale on any half†`}
         />
       </SimpleGrid>
 
       <Card variant="default">
         <VStack align="stretch" spacing={SPACING_PATTERNS.stackSpacing}>
-          <Eyebrow>How every position resolved†</Eyebrow>
+          <Eyebrow>How every position resolved† · a split position by its larger half</Eyebrow>
           {rows.map((r) => (
             <Step
               key={r.key}
@@ -203,7 +203,7 @@ export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ 
               n={time.outcomes[r.key] ?? 0}
               of={total}
               color={colorOf(r.tone)}
-              note={r.note}
+              note={r.note(time.outcomes[r.key] ?? 0, time.outcomeWithSale[r.key] ?? 0)}
             />
           ))}
           <Text
@@ -212,9 +212,9 @@ export const TimeLens: React.FC<{ time: TimeSummary; meta: EvidenceMeta }> = ({ 
             color={SEMANTIC_COLORS.textTertiary}
             lineHeight="1.7"
           >
-            {`${windowed.toLocaleString('en-US')} positions hold collateral that gets the window; the rest have none (stablecoin collateral, or a line above 90%) and are sold at the line. A position holding both stablecoin and other collateral is split the way Membrane would hold it, and is listed here by its larger half. By protocol: ${PROTOCOLS.map(
+            {`${time.windowPositions.toLocaleString('en-US')} positions hold collateral that gets the window (${time.classes.mixed.toLocaleString('en-US')} of them split, because they also hold stablecoins); the other ${time.classes['no-delay'].toLocaleString('en-US')} have none (stablecoin collateral, or a line above 90%) and are sold at the line. A split position is walked as the two positions Membrane would hold and is listed here by its larger half. Back under the line, larger half not sold, by protocol: ${PROTOCOLS.map(
               (k) =>
-                `${PROTOCOL_NAME[k]} ${(time.outcomesByProtocol[k]['cured-then-held'] ?? 0).toLocaleString('en-US')} back under the line and held`,
+                `${PROTOCOL_NAME[k]} ${(time.outcomesByProtocol[k]['cured-then-held'] ?? 0).toLocaleString('en-US')}`,
             ).join(', ')}.`}
           </Text>
         </VStack>

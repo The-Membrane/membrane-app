@@ -25,6 +25,13 @@
  "censusAaveClosedUsd": 497983.58,
  "censusMembraneClosedUsd": 454779.59,
  "censusClosedAtIndex": 4,
+ "eligibleCount": 9,
+ "selectionPool": {
+  "definition": "mainnet Aave V3 Core, one collateral and one debt leg, $50k–$3M of collateral at t0",
+  "positions": 76,
+  "membraneMore": 27,
+  "medianGapPct": 13.4
+ },
  "row": {
   "pid": "aave-v3:mainnet:0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2:0x3aa9add3f321db2a99bf394f75b6def1cd47fc80",
   "chain": "mainnet",

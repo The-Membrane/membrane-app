@@ -51,7 +51,7 @@ const LENSES: {
     // is computed from the sign, never typed.
     metric: (d) => `${usd(Math.abs(d.debt.all.gapUsd))}†`,
     caption: (d) =>
-      `${d.debt.all.gapUsd < 0 ? 'more' : 'less'} debt closed · ` +
+      `${d.debt.all.gapUsd < 0 ? 'more' : 'less'} debt closed, net · ` +
       `${Math.abs(d.debt.all.gapPct).toFixed(1)}% · ${splitLine(d)}`,
   },
   {
@@ -147,8 +147,19 @@ export const Evidence: React.FC<{ initialDoc?: EvidenceDoc | null }> = ({ initia
                   return `${PROTOCOL_NAME[k]}: ${s.positions.toLocaleString('en-US')} positions, ${usd(s.realRepaidUsd)} \u2192 ${usd(s.memRepaidUsd)}\u2020 (${gapWord(s.gapPct)})`
                 }).join(' · ')}
               </Text>
+              {/* The 16.5% is NET: show what it is made of, beside it (review 2026-10-16). */}
+              <Text
+                data-testid="evidence-gross"
+                fontFamily={TYPOGRAPHY.fontMono}
+                fontSize={TYPOGRAPHY.xs}
+                color={SEMANTIC_COLORS.textTertiary}
+                maxW="760px"
+                lineHeight="1.7"
+              >
+                {`Net of both directions: Membrane closes less on ${doc.debt.all.less.toLocaleString('en-US')} positions (${usd(doc.debt.all.lessUsd)}\u2020 less) and more on ${doc.debt.all.more.toLocaleString('en-US')} (${usd(doc.debt.all.moreUsd)}\u2020 more); ${doc.debt.all.equal.toLocaleString('en-US')} are equal to the cent.`}
+              </Text>
               <MockStamp
-                label={`on-chain · ${doc.meta.events.toLocaleString('en-US')} liquidation events · each protocol\u2019s own oracle · ${doc.meta.window.label}`}
+                label={`on-chain · ${doc.meta.events.toLocaleString('en-US')} liquidation events · LTV walked on each protocol\u2019s own oracle · ${doc.meta.window.label}`}
               />
             </>
           ) : null}

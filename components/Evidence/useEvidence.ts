@@ -21,7 +21,16 @@ export const EVIDENCE_SRC = '/data/oct10-2025/evidence-census.json'
  * Protocol-scoped data: identical with or without a wallet, so this page is fully populated
  * for a stranger (V20 demo-first rule). There is nothing here to gate and nothing to fake.
  */
-export function useEvidence(initial?: EvidenceDoc | null) {
+export function useEvidence(
+  initial?: EvidenceDoc | null,
+  /**
+   * `rows: false` for a caller that renders only the summary (the landing's Close band):
+   * with a server-rendered summary in hand it never fetches the 1 MB file. Without one it
+   * still fetches, so the band is never left empty.
+   */
+  opts: { rows?: boolean } = {},
+) {
+  const needFetch = opts.rows !== false || !initial
   // `initial` is the summary-only doc the page server-renders (everything but the cohort).
   // A crawler and a first paint both see the real numbers instead of a spinner —
   // docs/SEO_RULESET.md R1. The 3,197-row cohort is still fetched client-side, because
@@ -44,6 +53,7 @@ export function useEvidence(initial?: EvidenceDoc | null) {
   }, [])
 
   useEffect(() => {
+    if (!needFetch) return
     fetch(EVIDENCE_SRC)
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status} ${r.statusText}`)
@@ -55,7 +65,7 @@ export function useEvidence(initial?: EvidenceDoc | null) {
       .catch((e: unknown) => {
         if (mounted.current) setError(e instanceof Error ? e.message : 'failed to load')
       })
-  }, [])
+  }, [needFetch])
 
   return { doc, error, isLoading: !doc && !error }
 }

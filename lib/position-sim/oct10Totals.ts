@@ -68,17 +68,27 @@ export const OCT10_STAKES_LINE =
   ` · ${OCT10_TOTALS.window} · ${OCT10_TOTALS.positions.toLocaleString('en-US')} positions`
 
 /**
- * THE SCALE LINE (owner 2026-09-22): "4% sounds small, but it would've saved $X in the
- * last N years". The Oct 10-11 census is the day-scale version: X is keptUsd, MODELLED (†),
- * with the per-protocol split beside it. When the multi-year scan is complete the corpus
- * line below leads and this becomes the subline. Never a number from outside this file.
+ * THE OCT 10-11 CENSUS LINE (owner 2026-09-22 shape: "4% sounds small, but it would've saved
+ * $X"). It is a NET figure and a DIFFERENT MEASURE from the corpus line below, so it says
+ * both (review 2026-10-16):
+ *   - net: Membrane closes less debt than the protocols on `less` positions and MORE on
+ *     `more`; keptUsd is the difference, never "protected" debt;
+ *   - its own scope: debt closed on every Aave V3 and Morpho Blue liquidation of the window,
+ *     four chains. The corpus is collateral seized on Aave V3 Ethereum over years; neither
+ *     figure is a part of the other, and no sentence here says "alone" or "of".
+ * All MODELLED (†). Never a number from outside this file.
  */
 export const OCT10_SCALE_LINE = {
   figure: fmtM0(OCT10_TOTALS.keptUsd),
-  window: `on ${OCT10_TOTALS.window} alone`,
-  result: `${fmtM0(OCT10_TOTALS.keptUsd)} of debt protected from forced closure†`,
+  /** The census scope, named in full wherever the figure appears. */
+  scope: `debt closed on every Aave V3 and Morpho Blue liquidation of ${OCT10_TOTALS.window}, Ethereum, Arbitrum, Optimism and Base`,
+  result: `${fmtM0(OCT10_TOTALS.keptUsd)} less debt force-closed, net†`,
   split: OCT10_SPLIT_LINE,
-  line: `4% sounds small. ${fmtM0(OCT10_TOTALS.keptUsd)} of debt protected from forced closure† on ${OCT10_TOTALS.window} alone.`,
+  /** What the net is made of: positions and dollars each way. */
+  gross:
+    `less on ${census.less.toLocaleString('en-US')} positions (${fmtM1(census.lessUsd)}), ` +
+    `more on ${census.more.toLocaleString('en-US')} (${fmtM1(census.moreUsd)})`,
+  line: `4% sounds small. ${fmtM0(OCT10_TOTALS.keptUsd)} less debt force-closed, net†, across every Aave and Morpho liquidation of ${OCT10_TOTALS.window}.`,
 } as const
 
 // ---------------------------------------------------------------------------

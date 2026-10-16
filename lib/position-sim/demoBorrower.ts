@@ -96,11 +96,21 @@ export const DEMO_BORROWER_MEASURED: MeasuredCensus = {
   aaveClosedUsd: fixture.censusAaveClosedUsd,
   membraneClosedUsd: fixture.censusMembraneClosedUsd,
   t0Index: fixture.censusT0Index,
+  line: fixture.row.liqLine,
+  eligibleCount: fixture.eligibleCount,
+  pool: fixture.selectionPool,
 }
 export interface MeasuredCensus {
   aaveClosedUsd: number
+  /** The census row's Membrane figure, at the position's OWN line on Aave's oracle (†). */
   membraneClosedUsd: number
   t0Index: number
+  /** The census row's own liquidation line. */
+  line?: number
+  /** How many census positions cleared every selection gate (the winner is the best). */
+  eligibleCount?: number
+  /** The pool of positions of the hero's kind, before any outcome-dependent gate. */
+  pool?: { definition: string; positions: number; membraneMore: number; medianGapPct: number }
 }
 
 /**
@@ -108,8 +118,8 @@ export interface MeasuredCensus {
  * it must carry the assumption, because this is the only label some readers will see.
  */
 export const DEMO_BORROWER_NOTE =
-  `liquidated by Aave V3 · ${DEMO_BORROWER_DATE} · no deployment, and none assumed — this ` +
-  'wallet had none, so the figure is the bare census row'
+  `liquidated by Aave V3 · ${DEMO_BORROWER_DATE} · the selection’s best case from the census, ` +
+  'not a typical one · no deployment, and none assumed'
 
 /** A real mainnet borrower, checksummed as the selection recorded it. */
 export const DEMO_BORROWER_ADDRESS = fixture.address as `0x${string}`

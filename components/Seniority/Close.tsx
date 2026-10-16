@@ -27,7 +27,8 @@ export const Close: React.FC<{ initialDoc?: EvidenceDoc | null; num?: string }> 
   num = '06',
 }) => {
   const { chainName } = useChainRoute()
-  const { doc, error } = useEvidence(initialDoc)
+  // Only the summary is rendered here (DebtLens): no 1 MB row fetch when the page served it.
+  const { doc, error } = useEvidence(initialDoc, { rows: false })
 
   return (
     <VStack align="stretch" spacing={SPACING_PATTERNS.sectionGap}>

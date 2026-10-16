@@ -51,9 +51,9 @@ const OUTCOME_PHRASE: Record<string, string> = {
 /** The census in one sentence, both protocols on it. Shared by every hero variant. */
 const CENSUS_LINE =
   `Replayed on every liquidation of ${census.window} — ${n(census.positions)} positions on Aave and Morpho across four chains, ` +
-  `each priced by its protocol’s own oracle read on chain — the protocols force-closed ${usdM(census.all.realRepaidUsd)} of debt ` +
-  `and Membrane’s rules would have closed ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)} ` +
-  `(Aave ${gap(census.aave.gapPct)}, Morpho ${gap(census.morpho.gapPct)}).`
+  `each walked on its protocol’s own oracle read on chain — the protocols force-closed ${usdM(census.all.realRepaidUsd)} of debt ` +
+  `and Membrane’s rules would have closed ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}, net ` +
+  `(Aave ${gap(census.aave.gapPct)}, Morpho ${gap(census.morpho.gapPct)}): less on ${n(census.less)} positions, more on ${n(census.more)}.`
 
 const CENSUS_CITE =
   `public/data/oct10-2025/evidence-census.json debt.all and debt.byProtocol (${n(census.positions)} positions: ` +
@@ -445,7 +445,7 @@ export const CDT_LINE = {
 const top = census.concentration
 const topLine =
   `The largest single difference ${top.top1GapUsd < 0 ? 'runs the other way' : 'is one position'}: one ${CHAIN[top.top1Chain] ?? top.top1Chain} ${PROTOCOL[top.top1Protocol] ?? top.top1Protocol} position, ${OUTCOME_PHRASE[top.top1Outcome] ?? top.top1Outcome}, where Membrane closes ${usdM(Math.abs(top.top1GapUsd))} ${top.top1GapUsd < 0 ? 'more' : 'less'}†. ` +
-  `Without it Membrane closes ${gap(top.gapWithoutTop1Pct)}. The five largest differences are ${(top.top5Share * 100).toFixed(0)}% of every dollar of difference in either direction; without them it is ${gap(top.gapWithoutTop5Pct)}.`
+  `Without it Membrane closes ${gap(top.gapWithoutTop1Pct)}†. The five largest differences are ${(top.top5Share * 100).toFixed(0)}% of every dollar of difference in either direction; without them it is ${gap(top.gapWithoutTop5Pct)}†.`
 
 const B = census.brackets
 const more = census.membraneMore
@@ -482,7 +482,7 @@ export const CLOSE = {
   contains: {
     title: 'What the number contains',
     lines: [
-      `Every liquidation, both protocols, never folded. Aave V3: ${n(census.aave.positions)} positions, the protocol closed ${usdM(census.aave.realRepaidUsd)} and Membrane would close ${usdM(census.aave.memRepaidUsd)}†, ${gap(census.aave.gapPct)}. Morpho Blue: ${n(census.morpho.positions)} positions, ${usdM(census.morpho.realRepaidUsd)} against ${usdM(census.morpho.memRepaidUsd)}†, ${gap(census.morpho.gapPct)}. Together ${usdM(census.all.realRepaidUsd)} against ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}. The lens above shows each chain.`,
+      `Every liquidation, both protocols, never folded. Aave V3: ${n(census.aave.positions)} positions, the protocol closed ${usdM(census.aave.realRepaidUsd)} and Membrane would close ${usdM(census.aave.memRepaidUsd)}†, ${gap(census.aave.gapPct)}. Morpho Blue: ${n(census.morpho.positions)} positions, ${usdM(census.morpho.realRepaidUsd)} against ${usdM(census.morpho.memRepaidUsd)}†, ${gap(census.morpho.gapPct)}. Together ${usdM(census.all.realRepaidUsd)} against ${usdM(census.all.memRepaidUsd)}†, ${gap(census.all.gapPct)}, net: Membrane closes less on ${n(census.less)} positions (${usdM(census.lessUsd)}) and more on ${n(census.more)} (${usdM(census.moreUsd)}). The lens above shows each chain.`,
       'What Membrane’s figure is: a breach inside the 4% band waits eight hours; a return under the line clears the timer and a later breach starts a fresh one; a move past line × 1.04, or still over the line at expiry, repays to the borrow cap at that minute’s price; the position then walks on. Stablecoin collateral has no window† and is repaid to cap the minute it crosses. Each position is its whole composition at its first liquidation, every leg on its protocol’s own oracle read on chain. The protocols’ figure is every liquidation the position took across 10 and 11 Oct, measured.',
       topLine,
       `${n(census.neverSold.positions)} positions were never sold at all†, ${usdM(census.neverSold.debtUsd)} of debt: back under their line inside the window, or never over it. The protocols closed ${usdM(census.neverSold.realRepaidUsd)} of it.`,

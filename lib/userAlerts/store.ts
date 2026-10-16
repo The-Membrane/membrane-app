@@ -239,6 +239,61 @@ export const toEvent = (r: any): EventRow => ({
   threshold: Number(r.threshold),
 })
 
+export type ThresholdEdit = { direction: Direction; threshold: number; editedAt: string }
+
+/**
+ * EDIT one of this owner's active thresholds: its line (threshold) and/or direction.
+ * Metric and subject never change. An edit is a REPLACEMENT, in ONE statement:
+ *
+ *  - the old row is stopped (stopped_at = editedAt), exactly as Stop does, and keeps
+ *    its events — so the history still names the line each event fired at;
+ *  - a new row holds the new line, opted in at editedAt (the Save press). It starts
+ *    NOT crossed (crossed_at NULL): the next reading can fire it, as on a new alert.
+ *    It carries over the READING guard — last_value, last_evaluated_at, last_as_of —
+ *    so a reading older than one the old row already moved on is still never
+ *    evaluated (the out-of-order guard), and the once-a-minute write throttle holds;
+ *  - no event is written here: an edit never back-fills a crossing;
+ *  - a new id means new events can never collide with the old ones on the UNIQUE
+ *    (threshold_id, kind, crossing_at) key;
+ *  - an evaluation that read the old row before the edit committed writes nothing:
+ *    every transition write requires stopped_at IS NULL;
+ *  - the active count is unchanged (one stopped, one added), so an edit works on a
+ *    full feed and can never take one past the cap.
+ *
+ * Returns {id: new id, changed: true}; {id: same id, changed: false} when the row
+ * already has these values (no write — a repeated Save is a no-op); null when the id
+ * is not an ACTIVE threshold of this owner (unknown, someone else's, stopped, or
+ * already replaced by an earlier edit). Two racing edits: the row lock lets one
+ * replace it; the other then finds it stopped and gets null.
+ */
+export async function editThreshold(
+  sql: Sql,
+  ownerId: string,
+  thresholdId: string,
+  e: ThresholdEdit,
+): Promise<{ id: string; changed: boolean } | null> {
+  const rows = await sql`
+    WITH old AS (
+      UPDATE user_alert_thresholds
+      SET stopped_at = ${e.editedAt}::timestamptz
+      WHERE id = ${thresholdId}::uuid AND owner_id = ${ownerId}::uuid AND stopped_at IS NULL
+        AND (direction, threshold) IS DISTINCT FROM (${e.direction}::text, ${String(e.threshold)}::numeric)
+      RETURNING owner_id, metric, subject, last_value, last_evaluated_at, last_as_of
+    )
+    INSERT INTO user_alert_thresholds
+      (owner_id, metric, subject, direction, threshold, opted_in_at, last_value, last_evaluated_at, last_as_of)
+    SELECT owner_id, metric, subject, ${e.direction}, ${String(e.threshold)}::numeric, ${e.editedAt}::timestamptz,
+           last_value, last_evaluated_at, last_as_of
+    FROM old
+    RETURNING id`
+  if (rows[0]) return { id: String(rows[0].id), changed: true }
+  const same = await sql`
+    SELECT id FROM user_alert_thresholds
+    WHERE id = ${thresholdId}::uuid AND owner_id = ${ownerId}::uuid AND stopped_at IS NULL
+      AND direction = ${e.direction} AND threshold = ${String(e.threshold)}::numeric`
+  return same[0] ? { id: String(same[0].id), changed: false } : null
+}
+
 /** Stop one of this owner's thresholds. False when it is not theirs or already stopped. */
 export async function stopThreshold(sql: Sql, ownerId: string, thresholdId: string): Promise<boolean> {
   const rows = await sql`

@@ -1,48 +1,72 @@
-// "ALERT ME AT X" — the compact inline control that stores ONE opt-in threshold
-// (price, utilization or APR) and hands back the owner's private RSS feed link.
+// "ALERT ME AT X" — the compact inline control that sets ONE alert on a live number
+// (price, utilization or APR) and then says where the reader will get it.
 //
-//  - The metric and subject are fixed by where it is mounted; the threshold input is
-//    prefilled from the CURRENT live value passed in (no value → no prefill).
-//  - Nothing is stored without the explicit opt-in tick.
+// ONE MENTAL MODEL (owner, 2026-10-16): "set an alert → where you'll get it".
+//  - The number is prefilled from the CURRENT live value passed in (no value, or a
+//    stale one → no prefill).
+//  - "Set alert" is the block's one filled action, full width on phones. Pressing it
+//    IS the opt-in (the consent line sits beside it); nothing is stored before.
+//  - After it: "Alert set.", then where it arrives — Telegram (only once the owner has
+//    switched it on) and "Your alerts page" (/alerts/<token>, to bookmark). RSS is a
+//    second layer, behind "More ways to get alerts". The first layer never says
+//    "feed", "store" or "threshold".
 //  - Hidden entirely while the alert store is unavailable (/api/alerts/status
 //    storage:false) — never a disabled gate (DESIGN_RULES §7).
-//  - Telegram shows only when the status says the owner has switched it on.
 //  - Calm ink only: no green (money only), red + ✖ only for an error.
 //
 // Exported for the position page: <AlertMeAt metric subject currentValue ownerAddress />, plus
 // optional prefillValue (a threshold other than the live value, e.g. halfway to a line) and
-// defaultDirection (a rising-price risk alerts 'above').
+// defaultDirection (a rising-price risk alerts 'above'). The venue page passes `choices`
+// to offer one control over several numbers of the same subject.
 
 import React, { useId, useState } from 'react'
-import { Box, Button, Checkbox, Flex, Input, Text } from '@chakra-ui/react'
+import { Box, Button, Flex, Input, Text } from '@chakra-ui/react'
 
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
-import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
-import { DEFAULT_DIRECTION, DIRECTIONS, type Direction, type Metric } from '@/lib/userAlerts/metrics'
+import { DEFAULT_DIRECTION, METRIC_LABEL, type Direction, type Metric } from '@/lib/userAlerts/metrics'
 
+import { ErrorLine, FIELD, LABEL, LineControls, NOTE, PRIMARY, QUIET, RssDisclosure, SECONDARY, Segmented } from './AlertFields'
 import {
+  ALERTS_PAGE_CTA,
+  ALERTS_PAGE_NOTE,
+  alertLine,
+  CONSENT_TEXT,
   controlTitle,
   feedStorageKey,
   LINK_WARNING,
   manageHref,
-  OPT_IN_TEXT,
+  NEW_PAGE_CTA,
   outcomeView,
   parseInput,
   prefillText,
   relationLine,
   requestBody,
+  SET_LINE,
   stampText,
+  STOPPED_LINE,
   submitOutcome,
-  successLine,
+  TELEGRAM_CTA,
   tokenFromFeedUrl,
   visibleErrors,
+  WHERE_LABEL,
   type FieldError,
   type Outcome,
   type SubmitResult,
 } from './alertMeAtLogic'
 import { useAlertsStatus } from './useAlertsStatus'
+
+/** One live number the control can alert on. */
+export type AlertChoice = {
+  metric: Metric
+  /** The live value in the metric's unit (USD, or percent). Null → no prefill. */
+  currentValue: number | null
+  /** When currentValue was measured (ISO), for the stamp. */
+  asOf?: string | null
+  /** Older than its source's max age (lib/userAlerts/freshness.ts): no prefill, no distance line. */
+  stale?: boolean
+}
 
 export interface AlertMeAtProps {
   metric: Metric
@@ -58,10 +82,17 @@ export interface AlertMeAtProps {
   asOf?: string | null
   /**
    * The live value is older than its source's max age (lib/userAlerts/freshness.ts).
-   * Then: no prefill, no distance-from-now line, and "Not checked until the value is
-   * fresh." — the evaluator skips a stale value, so the UI must not promise a check.
+   * Then: no prefill, no distance-from-now line, and the stamp says alerts are not
+   * checked until it updates — the evaluator skips a stale value, so the UI must not
+   * promise a check.
    */
   stale?: boolean
+  /**
+   * Several numbers on the same subject (the venue page: utilization and supply APR).
+   * With two or more, the control shows a switch between them and ONE "Set alert";
+   * the entry for `metric` starts selected.
+   */
+  choices?: readonly AlertChoice[]
   /** The address on the page (pasted or connected). Absent → the control asks for one. */
   ownerAddress?: string | null
   /** False when the parent renders one shared address input for several controls. */
@@ -70,46 +101,9 @@ export interface AlertMeAtProps {
   collapsible?: boolean
 }
 
-const LABEL = {
-  fontFamily: TYPOGRAPHY.fontMono,
-  fontSize: TYPOGRAPHY.label,
-  textTransform: 'uppercase',
-  letterSpacing: '0.12em',
-  color: SEMANTIC_COLORS.textSecondary,
-} as const
-
-const NOTE = { fontFamily: TYPOGRAPHY.fontMono, fontSize: TYPOGRAPHY.label, color: SEMANTIC_COLORS.textSecondary } as const
-
-const FIELD = {
-  h: '44px',
-  fontFamily: TYPOGRAPHY.fontMono,
-  fontSize: TYPOGRAPHY.small,
-  color: SEMANTIC_COLORS.textPrimary,
-  bg: SEMANTIC_COLORS.bgSecondary,
-  border: '1px solid',
-  borderColor: SEMANTIC_COLORS.borderMedium,
-  borderRadius: 0,
-  px: SPACING.md,
-  _focus: FOCUS_STYLES.ring,
-  _focusVisible: FOCUS_STYLES.ring,
-  _invalid: { borderColor: SEMANTIC_COLORS.danger },
-  spellCheck: false,
-  autoComplete: 'off',
-} as const
-
-// 44px touch target; labels wrap instead of overflowing a 390px card.
-const ACTION = {
-  variant: 'outline',
-  w: 'auto',
-  h: 'auto',
-  minH: '44px',
-  maxW: '100%',
-  px: SPACING.base,
-  whiteSpace: 'normal',
-  flexShrink: 0,
-} as const
-
-const SECTION = { mt: SPACING.md, pt: SPACING.md, borderTop: '1px solid', borderColor: SEMANTIC_COLORS.borderSubtle } as const
+// A hairline rule and real air above the block; each group below is SPACING.base apart.
+const SECTION = { mt: SPACING.md, pt: SPACING.base, borderTop: '1px solid', borderColor: SEMANTIC_COLORS.borderSubtle } as const
+const GROUP = SPACING.base
 
 // --- I/O (no React) ---------------------------------------------------------
 
@@ -125,7 +119,7 @@ const writeToken = (address: string, token: string | null) => {
     if (token) window.localStorage.setItem(feedStorageKey(address), token)
     else window.localStorage.removeItem(feedStorageKey(address))
   } catch {
-    /* storage blocked: the next alert just starts a new feed */
+    /* storage blocked: the next alert just starts a new alerts page */
   }
 }
 
@@ -142,12 +136,12 @@ const post = async (body: unknown): Promise<{ status: number; json: SubmitResult
 
 type Store = { metric: Metric; subject: string; direction: Direction; threshold: number; address: string }
 
-/** Store one threshold on this browser's feed for the address, or on a new feed. */
+/** Set one alert on this browser's alerts page for the address, or on a new page. */
 async function storeAlert(a: Store): Promise<Outcome> {
   const token = readToken(a.address)
   let r = await post(requestBody({ ...a, feedToken: token }))
   if (r.status === 404 && token) {
-    // This browser's feed is gone (or is not this address's): start a fresh one.
+    // This browser's page is gone (or is not this address's): start a fresh one.
     writeToken(a.address, null)
     r = await post(requestBody({ ...a, feedToken: null }))
   }
@@ -171,76 +165,13 @@ async function stopAlert(s: Stored): Promise<boolean> {
 
 // --- pieces -----------------------------------------------------------------
 
-const ErrorLine: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => (
-  <Text id={id} {...NOTE} color={SEMANTIC_COLORS.danger} role="alert">
-    ✖ {children}
-  </Text>
-)
-
-const DirectionToggle: React.FC<{ value: Direction; onChange: (d: Direction) => void }> = ({ value, onChange }) => (
-  <Flex role="group" aria-label="Direction" flexShrink={0}>
-    {DIRECTIONS.map((d) => {
-      const on = value === d
-      return (
-        <Button
-          key={d}
-          {...ACTION}
-          variant="ghost"
-          px={SPACING.md}
-          onClick={() => onChange(d)}
-          aria-pressed={on}
-          color={on ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textTertiary}
-          borderColor={on ? SEMANTIC_COLORS.borderStrong : SEMANTIC_COLORS.borderSubtle}
-          bg={on ? SEMANTIC_COLORS.bgTertiary : 'transparent'}
-          ml={d === 'below' ? '-1px' : 0}
-        >
-          {d}
-        </Button>
-      )
-    })}
-  </Flex>
-)
-
-const OptInBox: React.FC<{ checked: boolean; onChange: (v: boolean) => void; error: FieldError | null; errorId: string }> = ({
-  checked,
-  onChange,
-  error,
-  errorId,
-}) => (
-  <>
-    <Checkbox
-      mt={SPACING.sm}
-      minH="44px"
-      isChecked={checked}
-      onChange={(e) => onChange(e.target.checked)}
-      isInvalid={!!error}
-      aria-describedby={error ? errorId : undefined}
-      sx={{
-        '.chakra-checkbox__control': { borderRadius: 0, borderColor: SEMANTIC_COLORS.borderStrong, transition: TRANSITIONS.colors },
-        '.chakra-checkbox__control[data-checked]': {
-          bg: SEMANTIC_COLORS.textPrimary,
-          borderColor: SEMANTIC_COLORS.textPrimary,
-          color: SEMANTIC_COLORS.bgPrimary,
-        },
-        '.chakra-checkbox__control[data-invalid]': { borderColor: SEMANTIC_COLORS.danger },
-        '.chakra-checkbox__control[data-focus-visible]': FOCUS_STYLES.ring,
-      }}
-    >
-      <Text as="span" {...NOTE} color={SEMANTIC_COLORS.textPrimary}>
-        {OPT_IN_TEXT}
-      </Text>
-    </Checkbox>
-    {error && <ErrorLine id={errorId}>{error.message}</ErrorLine>}
-  </>
-)
-
 const AddressField: React.FC<{ id: string; value: string; onChange: (v: string) => void; error: FieldError | null }> = ({
   id,
   value,
   onChange,
   error,
 }) => (
-  <Box mt={SPACING.sm}>
+  <Box mt={GROUP}>
     <Text as="label" htmlFor={id} {...LABEL} display="block" mb={SPACING.xs}>
       your address
     </Text>
@@ -259,81 +190,28 @@ const AddressField: React.FC<{ id: string; value: string; onChange: (v: string) 
   </Box>
 )
 
-/** The threshold input with its unit; mono, tabular, right-aligned. */
-const ThresholdField: React.FC<{
-  id: string
-  metric: Metric
-  label: string
-  value: string
-  onChange: (v: string) => void
-  error: FieldError | null
-}> = ({ id, metric, label, value, onChange, error }) => (
-  <Flex flex="1 1 140px" minW={0} align="center" gap={SPACING.xs}>
-    {metric === 'price' && (
-      <Text {...NOTE} aria-hidden>
-        $
-      </Text>
-    )}
-    <Input
-      id={id}
-      {...FIELD}
-      textAlign="right"
-      inputMode="decimal"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={metric === 'price' ? 'price' : '%'}
-      aria-label={`${label} threshold`}
-      isInvalid={!!error}
-      aria-invalid={!!error}
-      aria-describedby={error ? `${id}-e` : undefined}
-      sx={{ fontVariantNumeric: 'tabular-nums' }}
-    />
-    {metric !== 'price' && (
-      <Text {...NOTE} aria-hidden>
-        %
-      </Text>
-    )}
-  </Flex>
-)
-
-const ValueStamp: React.FC<{ text: string }> = ({ text }) => (
-  <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xs}>
-    {text}
-  </Text>
-)
-
-/** A full feed: manage it (stop some) or start a new feed for this address. */
-const CapActions: React.FC<{ manage: string | null; onNewFeed: () => void }> = ({ manage, onNewFeed }) => (
-  <Flex gap={SPACING.sm} flexWrap="wrap" mt={SPACING.xs}>
+/** A full alerts page: go remove one there, or (rarely) start a second page. */
+const CapActions: React.FC<{ manage: string | null; onNewPage: () => void }> = ({ manage, onNewPage }) => (
+  <Flex direction="column" align="flex-start" gap={SPACING.xs} mt={SPACING.sm}>
     {manage && (
-      <Button {...ACTION} variant="ghost" as="a" href={manage}>
-        Manage alerts
+      <Button {...SECONDARY} as="a" href={manage}>
+        {ALERTS_PAGE_CTA}
       </Button>
     )}
-    <Button {...ACTION} variant="ghost" onClick={onNewFeed}>
-      Start a new feed
+    <Button {...QUIET} onClick={onNewPage}>
+      {NEW_PAGE_CTA}
     </Button>
   </Flex>
 )
 
-/** After a store: the feed link, copy, Telegram (only when on), stop, set another. */
+/** After "Set alert": what was set, where it arrives, and RSS behind a second layer. */
 const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () => void }> = ({ stored, telegramOn, onReset }) => {
   const [stopped, setStopped] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const uid = useId()
   const token = tokenFromFeedUrl(stored.feedUrl)
   const manage = token ? manageHref(token) : null
 
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(stored.feedUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      /* clipboard blocked: the link stays on screen */
-    }
-  }
   const stop = async () => {
     setMessage(null)
     if (await stopAlert(stored)) setStopped(true)
@@ -342,58 +220,46 @@ const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () =
 
   return (
     <Box {...SECTION} data-testid="alert-me-at">
-      <Text {...NOTE} color={SEMANTIC_COLORS.textPrimary} role="status">
-        ● {stopped ? stored.text.replace(/^Stored:/, 'Stopped:') : stored.text}
-      </Text>
+      <Box role="status">
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary}>
+          ● {stopped ? STOPPED_LINE : SET_LINE}
+        </Text>
+        <Text {...NOTE} mt={SPACING.xs} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+          {stored.text}
+        </Text>
+      </Box>
+
       {!stopped && (
-        <>
-          <Text {...LABEL} mt={SPACING.sm}>
-            your rss feed
-          </Text>
-          <Text
-            as="a"
-            href={stored.feedUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            display="block"
-            {...NOTE}
-            color={SEMANTIC_COLORS.textPrimary}
-            textDecoration="underline"
-            wordBreak="break-all"
-            mt={SPACING.xs}
-            _focus={FOCUS_STYLES.ring}
-          >
-            {stored.feedUrl}
-          </Text>
+        <Box mt={GROUP}>
+          <Text {...LABEL}>{WHERE_LABEL}</Text>
+          <Flex direction="column" align={{ base: 'stretch', md: 'flex-start' }} gap={SPACING.sm} mt={SPACING.sm}>
+            {telegramOn && stored.telegramLink && (
+              <Button {...SECONDARY} as="a" href={stored.telegramLink} target="_blank" rel="noopener noreferrer">
+                {TELEGRAM_CTA}
+              </Button>
+            )}
+            {manage && (
+              <Button {...SECONDARY} as="a" href={manage} target="_blank" rel="noopener noreferrer">
+                {ALERTS_PAGE_CTA}
+              </Button>
+            )}
+          </Flex>
           <Text {...NOTE} mt={SPACING.xs}>
-            {LINK_WARNING}
+            {ALERTS_PAGE_NOTE} {LINK_WARNING}
           </Text>
-        </>
+          <RssDisclosure url={stored.feedUrl} />
+        </Box>
       )}
-      <Flex gap={SPACING.sm} flexWrap="wrap" mt={SPACING.sm}>
-        {!stopped && (
-          <Button {...ACTION} onClick={copy}>
-            {copied ? 'Copied' : 'Copy feed link'}
-          </Button>
-        )}
-        {!stopped && telegramOn && stored.telegramLink && (
-          <Button {...ACTION} as="a" href={stored.telegramLink} target="_blank" rel="noopener noreferrer">
-            Telegram
-          </Button>
-        )}
+
+      <Flex gap={SPACING.lg} flexWrap="wrap" mt={SPACING.sm}>
+        <Button {...QUIET} onClick={onReset}>
+          Set another
+        </Button>
         {!stopped && stored.id && (
-          <Button {...ACTION} variant="ghost" onClick={stop}>
+          <Button {...QUIET} onClick={stop}>
             Stop this alert
           </Button>
         )}
-        {manage && (
-          <Button {...ACTION} variant="ghost" as="a" href={manage}>
-            Manage alerts
-          </Button>
-        )}
-        <Button {...ACTION} variant="ghost" onClick={onReset}>
-          Set another
-        </Button>
       </Flex>
       {message && <ErrorLine id={`${uid}-msg`}>{message}</ErrorLine>}
     </Box>
@@ -405,22 +271,30 @@ const StoredPanel: React.FC<{ stored: Stored; telegramOn: boolean; onReset: () =
 type FormProps = Omit<AlertMeAtProps, 'collapsible'> & { telegramOn: boolean }
 
 const AlertForm: React.FC<FormProps> = ({
-  metric,
+  metric: initialMetric,
   subject,
   currentValue,
   prefillValue,
   defaultDirection,
   asOf,
   stale = false,
+  choices,
   ownerAddress,
   askAddress = true,
   telegramOn,
 }) => {
   const uid = useId()
+  const options = choices && choices.length > 1 ? choices : null
+  const [picked, setPicked] = useState<Metric>(initialMetric)
+  // The props' own number unless the reader switched to another choice.
+  const own = picked === initialMetric
+  const active: AlertChoice = (!own && options?.find((c) => c.metric === picked)) || { metric: initialMetric, currentValue, asOf, stale }
+  const metric = active.metric
+  const isStale = active.stale ?? false
+
   // null = untouched: the input shows the live prefill, and follows it if it arrives late.
   const [typed, setTyped] = useState<string | null>(null)
-  const [direction, setDirection] = useState<Direction>(defaultDirection ?? DEFAULT_DIRECTION[metric])
-  const [optIn, setOptIn] = useState(false)
+  const [direction, setDirection] = useState<Direction>(defaultDirection ?? DEFAULT_DIRECTION[initialMetric])
   const [addressInput, setAddressInput] = useState('')
   const [tried, setTried] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -434,20 +308,31 @@ const AlertForm: React.FC<FormProps> = ({
   const ownAddressInput = needsAddress && askAddress
   const address = ownerAddress ?? addressInput
   // A stale live value still blocks the prefill, whichever value would fill it.
-  const input = typed ?? prefillText(metric, prefillValue !== undefined ? prefillValue : currentValue, stale)
-  const draft = { input, direction, optIn, address }
+  const prefillFrom = own && prefillValue !== undefined ? prefillValue : active.currentValue
+  const input = typed ?? prefillText(metric, prefillFrom, isStale)
+  const draft = { input, direction, address }
   const errors = visibleErrors(metric, draft, needsAddress, tried, serverError)
-  const relation = errors.threshold ? null : relationLine(metric, direction, parseInput(input), currentValue, stale)
-  const ids = { threshold: `${uid}-th`, address: `${uid}-addr`, optIn: `${uid}-opt`, msg: `${uid}-msg` }
+  const relation = errors.threshold ? null : relationLine(metric, direction, parseInput(input), active.currentValue, isStale)
+  const stamp = stampText(active.asOf, active.currentValue !== null, isStale)
+  const ids = { threshold: `${uid}-th`, address: `${uid}-addr`, msg: `${uid}-msg` }
 
-  const reset = () => {
-    setStored(null)
+  const clearOutcome = () => {
     setTried(false)
-    setOptIn(false)
-    setTyped(null)
     setMessage(null)
     setServerError(null)
     setCapped(false)
+  }
+  const reset = () => {
+    setStored(null)
+    setTyped(null)
+    clearOutcome()
+  }
+  const pick = (m: Metric) => {
+    if (m === picked) return
+    setPicked(m)
+    setTyped(null)
+    setDirection(m === initialMetric && defaultDirection ? defaultDirection : DEFAULT_DIRECTION[m])
+    clearOutcome()
   }
 
   const submit = async () => {
@@ -456,7 +341,7 @@ const AlertForm: React.FC<FormProps> = ({
     setMessage(null)
     setCapped(false)
     const shown = visibleErrors(metric, draft, needsAddress, true, null)
-    if (shown.threshold || shown.address || shown.optIn) return
+    if (shown.threshold || shown.address) return
     const threshold = parseInput(input)
     setBusy(true)
     let out: Outcome
@@ -466,7 +351,7 @@ const AlertForm: React.FC<FormProps> = ({
       setBusy(false)
     }
     const view = outcomeView(out, ownAddressInput)
-    if (view.kind === 'stored') setStored({ ...view, text: successLine(metric, subject, direction, threshold) })
+    if (view.kind === 'stored') setStored({ ...view, text: alertLine(metric, subject, direction, threshold) })
     else if (view.kind === 'field') setServerError(view.error)
     else {
       setMessage(view.message)
@@ -474,8 +359,8 @@ const AlertForm: React.FC<FormProps> = ({
     }
   }
 
-  // The full feed is this browser's stored one: forget it, and the retry mints a new feed.
-  const startNewFeed = () => {
+  // The full page is this browser's stored one: forget it, and the retry mints a new page.
+  const startNewPage = () => {
     writeToken(address, null)
     void submit()
   }
@@ -489,36 +374,54 @@ const AlertForm: React.FC<FormProps> = ({
 
       {ownAddressInput && <AddressField id={ids.address} value={addressInput} onChange={setAddressInput} error={errors.address} />}
 
-      <Flex gap={SPACING.sm} flexWrap="wrap" mt={SPACING.sm} align="stretch">
-        <DirectionToggle value={direction} onChange={setDirection} />
-        <ThresholdField
+      {/* the number: which one (venue page), direction, value, distance, as-of */}
+      <Box mt={GROUP}>
+        {options && (
+          <Box mb={SPACING.sm}>
+            <Segmented
+              label="Which number"
+              options={options.map((c) => c.metric)}
+              value={metric}
+              onChange={pick}
+              text={(m) => METRIC_LABEL[m]}
+            />
+          </Box>
+        )}
+        <LineControls
           id={ids.threshold}
           metric={metric}
           label={title}
+          direction={direction}
+          onDirection={setDirection}
           value={input}
-          onChange={(v) => {
+          onValue={(v) => {
             setTyped(v)
             setServerError(null)
           }}
           error={errors.threshold}
         />
-        <Button {...ACTION} onClick={submit} isLoading={busy} loadingText="Storing">
+        {errors.address && !ownAddressInput && <ErrorLine id={`${ids.address}-e`}>Enter your 0x address above.</ErrorLine>}
+        {relation && (
+          <Text {...NOTE} mt={SPACING.xs} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+            {relation}
+          </Text>
+        )}
+        {stamp && (
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.label} color={SEMANTIC_COLORS.textTertiary} mt={SPACING.xs}>
+            {stamp}
+          </Text>
+        )}
+      </Box>
+
+      {/* the one action, and what pressing it means */}
+      <Flex mt={GROUP} direction={{ base: 'column', md: 'row' }} align={{ base: 'stretch', md: 'center' }} gap={SPACING.sm}>
+        <Button {...PRIMARY} onClick={submit} isLoading={busy} loadingText="Setting">
           Set alert
         </Button>
+        <Text {...NOTE}>{CONSENT_TEXT}</Text>
       </Flex>
-      {errors.threshold && <ErrorLine id={`${ids.threshold}-e`}>{errors.threshold.message}</ErrorLine>}
-      {errors.address && !ownAddressInput && <ErrorLine id={`${ids.address}-e`}>Enter your 0x address above.</ErrorLine>}
-      {relation && (
-        <Text {...NOTE} mt={SPACING.xs} sx={{ fontVariantNumeric: 'tabular-nums' }}>
-          {relation}
-        </Text>
-      )}
-
-      <OptInBox checked={optIn} onChange={setOptIn} error={errors.optIn} errorId={ids.optIn} />
       {message && <ErrorLine id={ids.msg}>{message}</ErrorLine>}
-      {capped && <CapActions manage={fullToken ? manageHref(fullToken) : null} onNewFeed={startNewFeed} />}
-
-      <ValueStamp text={stampText(asOf, currentValue !== null, stale)} />
+      {capped && <CapActions manage={fullToken ? manageHref(fullToken) : null} onNewPage={startNewPage} />}
     </Box>
   )
 }
@@ -529,7 +432,7 @@ export const AlertMeAt: React.FC<AlertMeAtProps> = ({ collapsible = false, ...pr
   if (!status.data?.storage) return null
   if (!open) {
     return (
-      <Button {...ACTION} variant="ghost" mt={SPACING.md} onClick={() => setOpen(true)} aria-expanded={false}>
+      <Button {...SECONDARY} mt={SPACING.md} onClick={() => setOpen(true)} aria-expanded={false}>
         Alert me at · {controlTitle(props.metric, props.subject)}
       </Button>
     )

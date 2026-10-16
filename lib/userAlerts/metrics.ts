@@ -91,6 +91,24 @@ export const checkThreshold = (
   return { ok: true, value: Math.round(v * 1e6) / 1e6 }
 }
 
+/** A string threshold the API accepts: a plain decimal. Number('') is 0 and Number('0x10') is 16. */
+export const PLAIN_DECIMAL_RE = /^-?\d+(\.\d+)?$/
+
+/** The message for a STRING threshold that is not a plain decimal; null otherwise (metric not needed). */
+export const thresholdShapeError = (raw: unknown): string | null =>
+  typeof raw === 'string' && !PLAIN_DECIMAL_RE.test(raw.trim()) ? 'Enter a plain number, like 4.5.' : null
+
+/**
+ * The API's ONE threshold rule, for creating (POST /api/alerts) and editing
+ * (PATCH /api/alerts/feed/[token]): a string must be a plain decimal, then the
+ * metric's bounds (anything that is not a finite number fails those).
+ */
+export const apiThreshold = (metric: Metric, raw: unknown): ReturnType<typeof checkThreshold> => {
+  const shape = thresholdShapeError(raw)
+  if (shape) return { ok: false, message: shape }
+  return checkThreshold(metric, typeof raw === 'string' ? Number(raw.trim()) : raw)
+}
+
 // --- subjects --------------------------------------------------------------
 
 export type Subject = { kind: 'asset'; asset: string } | { kind: 'venue'; venue: string }

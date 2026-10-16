@@ -4,8 +4,16 @@
  */
 
 import { computeMetrics, type PositionMetrics } from '@/lib/positionAlerts/metrics'
-import type { AdapterResult, AdapterStatus, MarketDiscovery, ProtocolId, ProtocolPosition } from '@/lib/position-sim/types'
+import type {
+  AdapterResult,
+  AdapterStatus,
+  MarketDiscovery,
+  OracleCheck,
+  ProtocolId,
+  ProtocolPosition,
+} from '@/lib/position-sim/types'
 import { discoveryNote } from '@/lib/position-sim/adapters/types'
+import { oracleCheckNote } from '@/lib/position-sim/adapters/referencePrice'
 import { CURE_WINDOW_HOURS, MAX_THRESHOLD_TO_DELAY } from '@/lib/position-sim/membrane'
 
 import {
@@ -116,9 +124,9 @@ export interface ReadStatusItem {
 export const partialDiscovery = (s: Pick<ReadStatusItem, 'discovery'>): boolean =>
   s.discovery !== undefined && !s.discovery.complete
 
-/** "412 known markets only" / "first 64 markets only": what a partial read did check. */
+/** "412 known markets only" / "476 markets checked, list partial": what a partial read checked. */
 export function partialTag(d: MarketDiscovery): string {
-  return d.source === 'known-market list' ? `${d.checked} known markets only` : `first ${d.checked} markets only`
+  return d.source === 'known-market list' ? `${d.checked} known markets only` : `${d.checked} markets checked, list partial`
 }
 
 /** Every adapter starts 'pending'; each result replaces its slot when it lands. */
@@ -261,6 +269,20 @@ export interface PositionView {
   alert: AlertInputs | null
   /** The modelling assumption behind the hero, or null when one price moves alone. */
   assumption: string | null
+  /**
+   * The collateral oracle failed its market check ('disagrees' or 'unchecked'): the line
+   * holds only in the oracle's own terms, so no forecast, no chances and no alert price are
+   * built on it. `line` is the line and today's oracle price in the oracle's quote token,
+   * when the hero is a USD line on that collateral. Null when the check passed or none ran.
+   */
+  oracleFlag: OracleFlag | null
+}
+
+export interface OracleFlag {
+  check: OracleCheck
+  /** "oracle price disagrees with market: WETH $4.70e+12 by the oracle vs $2,413 (…)" */
+  note: string
+  line: { value: number; now: number } | null
 }
 
 /**
@@ -338,6 +360,19 @@ function horizonForecast(
   }
 }
 
+/** The flag for a collateral oracle that failed its market check, or null. Pure. */
+export function oracleFlagOf(p: ProtocolPosition, hero: Hero): OracleFlag | null {
+  const check = p.oracleCheck
+  if (!check || check.status === 'ok') return null
+  // USD per collateral → the oracle's quote token per collateral (the loan token's USD price).
+  const k = check.oraclePriceUsd > 0 ? check.oraclePrice / check.oraclePriceUsd : null
+  const line =
+    hero.kind === 'line' && hero.unit.kind === 'usd' && hero.symbol === check.symbol && k !== null
+      ? { value: hero.priceLine * k, now: hero.priceNow * k }
+      : null
+  return { check, note: oracleCheckNote(check), line }
+}
+
 export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionView {
   const mapped = toSnapshot(p)
   const metrics = computeMetrics(mapped.snapshot)
@@ -365,8 +400,14 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
   let forecast: ForecastView | null = null
   let forecastAbsent: string | null = null
   let alert: AlertInputs | null = null
+  // An oracle that is not the market's price: its line is real on the venue, but no history
+  // of the market price says anything about it. No forecast, no chances, no alert price.
+  const oracleFlag = oracleFlagOf(p, hero)
   if (hero.kind === 'unsplit') {
     forecastAbsent = 'Thresholds could not be split per asset.'
+  } else if (oracleFlag && hero.kind !== 'no-debt') {
+    forecastAbsent =
+      oracleFlag.check.status === 'disagrees' ? 'Oracle price disagrees with market.' : 'Oracle price unchecked: no market reference.'
   } else if (hero.kind !== 'no-debt') {
     if (basis.kind === 'history' && model) {
       // The reader's chance is read at the hero's own floored distance. Past the line, or
@@ -436,11 +477,18 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
     forecastAbsent,
     alert,
     assumption: assumptionOf(model, basis),
+    oracleFlag,
   }
 }
 
-/** "line −23%" / "past the line" / "no debt" */
+/** "line −23%" / "past the line" / "no debt"; a failed oracle check says so after the tag. */
 export function lineTag(v: PositionView): string {
+  const tag = baseLineTag(v)
+  if (!v.oracleFlag) return tag
+  return `${tag} · oracle ${v.oracleFlag.check.status === 'disagrees' ? 'disagrees with market' : 'unchecked'}`
+}
+
+function baseLineTag(v: PositionView): string {
   switch (v.hero.kind) {
     case 'line':
       return `line ${fmtMove(v.hero.distancePct, v.hero.direction)}`

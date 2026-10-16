@@ -69,7 +69,9 @@ export interface DebtLeg {
 
 /**
  * An asset the address LENDS into a market (Morpho Blue supply). It is not collateral: no
- * borrow is secured by it and no liquidation can touch it, so no line is computed on it.
+ * borrow is secured by it, so it has no liquidation line and no line is computed on it.
+ * It is NOT beyond loss: when a borrower's liquidation leaves bad debt, Morpho writes it
+ * off against the market's supply, so every lender in that market shares it.
  */
 export interface SuppliedLeg {
   symbol: string
@@ -87,6 +89,31 @@ export interface SuppliedLeg {
  *   'supply-only'      it only lends into the market: no collateral, no debt
  */
 export type PositionStatus = 'borrowing' | 'collateral-only' | 'supply-only'
+
+/**
+ * A check of the source protocol's own collateral price against an independent market
+ * reference (Morpho Blue: the market oracle against the Aave V3 oracle, else DefiLlama).
+ *   'ok'         the oracle's USD price is within `band` × the reference
+ *   'disagrees'  it is outside the band: the oracle's price is not the market's
+ *   'unchecked'  no reference price was found to check it against
+ * Anything but 'ok' means the line exists only in the oracle's own terms: no forecast,
+ * no chances and no alert price may be built on it.
+ */
+export interface OracleCheck {
+  status: 'ok' | 'disagrees' | 'unchecked'
+  /** The collateral token, and the token the oracle quotes it in (Morpho: the loan token). */
+  symbol: string
+  quote: string
+  /** The oracle's price: `quote` tokens per collateral token, and that in USD. */
+  oraclePrice: number
+  oraclePriceUsd: number
+  /** The reference USD price and where it came from; null when none was found. */
+  referenceUsd: number | null
+  referenceSource: string | null
+  /** oraclePriceUsd / referenceUsd; null without a reference. */
+  ratio: number | null
+  band: { min: number; max: number }
+}
 
 /** A single position on a single protocol. */
 export interface ProtocolPosition {
@@ -110,6 +137,8 @@ export interface ProtocolPosition {
   status?: PositionStatus
   /** Assets lent into this market, when the adapter reads them. Never part of a line. */
   supplied?: SuppliedLeg[]
+  /** The collateral oracle checked against a market reference, where the adapter does it. */
+  oracleCheck?: OracleCheck
 }
 
 /**

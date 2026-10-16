@@ -118,7 +118,9 @@ export const AddressForm: React.FC<AddressFormProps> = ({
         >
           {walletConnected ? 'Use connected wallet' : 'Connect a wallet to fill this'}
         </Button>
-        <Small id={`${INPUT_ID}-note`}>Read-only. No signature.</Small>
+        <Small id={`${INPUT_ID}-note`}>
+          Read-only. No signature. Morpho positions are looked up through Morpho&apos;s public API.
+        </Small>
       </Box>
       {error && (
         <Small id={`${INPUT_ID}-error`} role="alert" color={NEWS.danger}>

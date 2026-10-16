@@ -59,7 +59,6 @@ import {
   DEMO_ADDRESS,
   DEMO_BORROWER_ADDRESS,
   detectVenues,
-  discoveryNote,
   engineOutcome,
   excludeOwnCollateral,
   loadOct10,
@@ -75,7 +74,6 @@ import {
   weightedMembraneLine,
   writeUrlState,
   type AdapterResult,
-  type MarketDiscovery,
   type Oct10Manifest,
   type Oct10Series,
   type ProtocolPosition,
@@ -85,6 +83,7 @@ import {
 } from '@/lib/position-sim'
 
 import ComparisonPanel from './ComparisonPanel'
+import { emptyReadLine } from './emptyRead'
 import type { ControlValues } from './Controls'
 import DeploymentSection from './DeploymentSection'
 import EventLog from './EventLog'
@@ -376,7 +375,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
     [mode],
   )
   const isDemo = loaded === null
-  // A Morpho supply-only position lends and owes nothing: there is no liquidation to simulate.
+  // A Morpho supply-only position lends and owes nothing: it has no liquidation line to simulate.
   const positions = useMemo<ProtocolPosition[]>(
     () => (loaded ? loaded.results.flatMap((r) => r.positions.filter((p) => p.status !== 'supply-only')) : [demoPos]),
     [loaded, demoPos],
@@ -606,15 +605,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
     for (const r of loaded?.results ?? []) {
       if (r.status === 'error') out.push(`${r.label} · ${r.message ?? 'read failed'}`)
     }
-    // A venue that could not check every market (Morpho discovery fell back) is not "none found".
-    const partial = (loaded?.results ?? []).filter((r) => r.discovery && !r.discovery.complete)
-    if (loaded && positions.length === 0) {
-      out.push(
-        partial.length > 0
-          ? `No borrow position in the markets checked; ${partial.map((r) => `${r.label}: ${discoveryNote(r.discovery as MarketDiscovery)}`).join('; ')}.`
-          : 'No open position found for this address.',
-      )
-    }
+    if (loaded && positions.length === 0) out.push(emptyReadLine(loaded.results))
     return out
   }, [scenarioError, loaded, positions])
   /** One set of address-bar props, mounted three times (hero, carry section, foot). */

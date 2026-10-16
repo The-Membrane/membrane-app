@@ -39,7 +39,13 @@
  *
  * SUPPLY. An address that only LENDS into a market holds no collateral and owes nothing:
  * it is returned with status 'supply-only' and its `supplied` leg, so the page shows a
- * position with no line rather than "none found".
+ * position with no line rather than "none found". No line is not no loss: Morpho writes
+ * bad debt off against the market's supply.
+ *
+ * ORACLE CHECK. The market oracle is whatever its creator deployed. Its USD price for the
+ * collateral is compared with a market reference (referencePrice.ts); outside the band, or
+ * with no reference, the position carries `oracleCheck` saying so and the page keeps its
+ * line in the oracle's own terms, with no forecast built on it.
  */
 
 import type { PublicClient } from 'viem'
@@ -52,12 +58,14 @@ import {
   type CollateralLeg,
   type DebtLeg,
   type MarketDiscovery,
+  type OracleCheck,
   type PositionStatus,
   type ProtocolPosition,
   type SuppliedLeg,
 } from '../types'
 import { aaveOracleUsdPrices } from './aaveV3'
 import { createMorphoDiscovery, type DiscoveredMarket } from './morphoDiscovery'
+import { checkOracle, defillamaUsdPrices, oracleCheckNote } from './referencePrice'
 import {
   mc,
   mulDivUp,
@@ -214,8 +222,11 @@ export interface MorphoBlueDeps {
   /** The fetch discovery uses (the Morpho API and the committed list). */
   fetch: typeof fetch
   now: () => number
-  /** USD prices for non-stablecoin loan tokens at the read's block; a missing key = no price. */
+  /** Aave V3 oracle USD prices at the read's block (loan tokens, and collateral references);
+   *  a missing key = no price. */
   usdPrices: (tokens: `0x${string}`[], block: bigint) => Promise<Record<string, number>>
+  /** Reference USD prices for collateral Aave does not list (DefiLlama). Sanity check only. */
+  referencePrices: (tokens: `0x${string}`[]) => Promise<{ prices: Record<string, number>; error: string | null }>
 }
 
 const DEFAULT_DEPS: MorphoBlueDeps = {
@@ -224,10 +235,16 @@ const DEFAULT_DEPS: MorphoBlueDeps = {
   fetch: (input, init) => fetch(input, init),
   now: () => Date.now(),
   usdPrices: (tokens, block) => aaveOracleUsdPrices(tokens, undefined, undefined, block),
+  referencePrices: (tokens) => defillamaUsdPrices(tokens, (input, init) => fetch(input, init)),
 }
 
 export function createMorphoBlueAdapter(overrides: Partial<MorphoBlueDeps> = {}): LendingAdapter {
-  const deps: MorphoBlueDeps = { ...DEFAULT_DEPS, ...overrides }
+  const deps: MorphoBlueDeps = {
+    ...DEFAULT_DEPS,
+    // A test's fetch reaches DefiLlama too, unless it brings its own reference prices.
+    ...(overrides.fetch ? { referencePrices: (tokens: `0x${string}`[]) => defillamaUsdPrices(tokens, overrides.fetch as typeof fetch) } : {}),
+    ...overrides,
+  }
   const discover = createMorphoDiscovery({ fetch: deps.fetch, now: deps.now })
 
   return {
@@ -342,20 +359,25 @@ export function createMorphoBlueAdapter(overrides: Partial<MorphoBlueDeps> = {})
       })
       const detailRes = await mc<unknown>(client, detailCalls, block, SCAN_BATCH_BYTES)
 
-      // --- 4. loan-token USD prices ----------------------------------------------
-      // Every loan token we could not assume is $1 must come from a real oracle.
-      const needOraclePrice = Array.from(
-        new Set(resolved.map((r) => r.loanToken.toLowerCase()).filter((a) => ASSUMED_ONE_DOLLAR[a] === undefined)),
-      ) as `0x${string}`[]
+      // --- 4. USD prices: loan tokens, and references for the collateral oracles -------
+      // Every loan token we could not assume is $1 must come from a real oracle. Every
+      // collateral oracle is checked against the Aave V3 oracle at this block, or, for a
+      // token Aave does not list, DefiLlama's current price.
+      const lower = (a: string) => a.toLowerCase() as `0x${string}`
+      const loanNeeds = resolved.map((r) => lower(r.loanToken)).filter((a) => ASSUMED_ONE_DOLLAR[a] === undefined)
+      const collateralNeeds = resolved.filter((r) => r.collateralRaw > 0n && !ZERO.test(r.collateralToken)).map((r) => lower(r.collateralToken))
+      const needAave = Array.from(new Set([...loanNeeds, ...collateralNeeds]))
       let externalPrices: Record<string, number> = {}
       let externalError: string | null = null
-      if (needOraclePrice.length > 0) {
+      if (needAave.length > 0) {
         try {
-          externalPrices = await deps.usdPrices(needOraclePrice, block)
+          externalPrices = await deps.usdPrices(needAave, block)
         } catch (e) {
           externalError = (e as Error).message
         }
       }
+      const needReference = Array.from(new Set(collateralNeeds.filter((a) => !(externalPrices[a] > 0))))
+      const reference = needReference.length > 0 ? await deps.referencePrices(needReference) : { prices: {}, error: null }
 
       const positions: ProtocolPosition[] = []
       resolved.forEach((r, i) => {
@@ -374,6 +396,7 @@ export function createMorphoBlueAdapter(overrides: Partial<MorphoBlueDeps> = {})
               block,
               externalPrices,
               externalError,
+              reference,
               discoveryDetail: found.detail,
             }),
           )
@@ -425,6 +448,8 @@ interface BuildContext {
   block: bigint
   externalPrices: Record<string, number>
   externalError: string | null
+  /** DefiLlama reference prices for collateral Aave does not list. */
+  reference: { prices: Record<string, number>; error: string | null }
   /** The discovery sentence for the provenance. */
   discoveryDetail: string
 }
@@ -487,6 +512,30 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
   }
   const debtAmount = toNumber(debtRaw, loanDecimals)
   const debtValueUsd = debtAmount * loanPriceUsd
+
+  // --- the oracle against a market reference -----------------------------------------
+  let oracleCheck: OracleCheck | null = null
+  if (priceRaw !== null && r.collateralRaw > 0n && collateralDecimals !== null && ctx.collateralSymbol !== null) {
+    const collKey = r.collateralToken.toLowerCase()
+    // The oracle's own quote: loan tokens per collateral token (scale 1e36 · 10^(loan − coll)).
+    const scale = 36 + loanDecimals - collateralDecimals
+    const oraclePrice = scale >= 0 ? toNumber(priceRaw, scale) : Number(priceRaw) * 10 ** -scale
+    const aave = ctx.externalPrices[collKey]
+    const llama = ctx.reference.prices[collKey]
+    oracleCheck = checkOracle({
+      symbol: ctx.collateralSymbol,
+      quote: ctx.loanSymbol,
+      oraclePrice,
+      oraclePriceUsd: oraclePrice * loanPriceUsd,
+      referenceUsd: aave > 0 ? aave : llama > 0 ? llama : null,
+      referenceSource:
+        aave > 0
+          ? 'Aave V3 oracle at this block'
+          : llama > 0
+            ? 'DefiLlama current price'
+            : `the Aave V3 oracle does not list it${ctx.externalError ? ` (read failed: ${ctx.externalError})` : ''}; ${ctx.reference.error ?? 'DefiLlama has no price for it'}`,
+    })
+  }
 
   const collateral: CollateralLeg[] = []
   if (r.collateralRaw > 0n && collateralAmount > 0 && ctx.collateralSymbol !== null) {
@@ -560,8 +609,11 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
       : `Loan token ${ctx.loanSymbol} priced at $${loanPriceUsd} from the Aave V3 oracle (no assumed peg).`,
     rateLine,
     accrualLine,
+    oracleCheck
+      ? `Collateral oracle checked against a market reference (band ${oracleCheck.band.min}–${oracleCheck.band.max}×): ${oracleCheckNote(oracleCheck)}.${oracleCheck.status === 'ok' ? '' : ' The line holds only in the oracle\'s own terms.'}`
+      : null,
     supplied.length > 0
-      ? `Supplied (lent, not collateral): ${supplied[0].amount} ${ctx.loanSymbol} from ${r.supplyShares} supply shares; no liquidation touches it.`
+      ? `Supplied (lent, not collateral): ${supplied[0].amount} ${ctx.loanSymbol} from ${r.supplyShares} supply shares. It has no liquidation line, but bad debt a borrower's liquidation leaves in this market is written off against lenders' supply.`
       : null,
     `Every call read block ${ctx.block}.`,
   ]
@@ -584,6 +636,7 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
     provenance: { ...stamp('onchain', `morpho blue · ${rpcLabel()}`, details), block: Number(ctx.block) },
     status,
     ...(supplied.length > 0 ? { supplied } : {}),
+    ...(oracleCheck ? { oracleCheck } : {}),
   }
 }
 

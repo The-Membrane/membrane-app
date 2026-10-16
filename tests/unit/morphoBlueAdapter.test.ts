@@ -8,9 +8,10 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { emptyReadLine } from '@/components/Simulator/emptyRead'
 import { buildPositionView, lineTag, noneCopy, pageState, readStatus, statusSentence, statusWord } from '@/components/PositionV0/viewModel'
 import { ADAPTERS, PartialReadError, runAdapter } from '@/lib/position-sim/adapters'
-import { createMorphoBlueAdapter, MORPHO_BLUE_MAINNET } from '@/lib/position-sim/adapters/morphoBlue'
+import { createMorphoBlueAdapter, MORPHO_BLUE_MAINNET, type MorphoBlueDeps } from '@/lib/position-sim/adapters/morphoBlue'
 import {
   COMMITTED_MARKET_LIST_URL,
   EXPOSURE_MARKET_IDS,
@@ -19,6 +20,7 @@ import {
   MORPHO_MAX_MARKETS,
   createMorphoDiscovery,
 } from '@/lib/position-sim/adapters/morphoDiscovery'
+import { DEFILLAMA_PRICES_URL, ORACLE_REFERENCE_BAND, checkOracle, defillamaUsdPrices } from '@/lib/position-sim/adapters/referencePrice'
 import type { AdapterResult, ProtocolId } from '@/lib/position-sim/types'
 import { ACCRUAL_BUFFER_HOURS, FALLBACK_BORROW_APR, accrualFactor } from '@/lib/position/reverseSolve'
 import { TOUCH_TABLE } from '@/lib/position/touchHistory'
@@ -54,6 +56,9 @@ const EXPOSURE_ONLY = EXPOSURE_MARKET_IDS.find((id) => !COMMITTED_IDS.includes(i
 const IDLE = '0x00000000000000000000000000000000000000000000000000000000000000e1' as Hex
 const UNPRICED = '0x00000000000000000000000000000000000000000000000000000000000000e2' as Hex
 const WETH_USDS = '0x12cacbbd1c88513cce13d54927f5f1301335779353817bc5e791e71d200f2199' as Hex
+/** WETH/USDC 91.5%, no IRM: its oracle quotes WETH at ~$4.7T (mainnet, 2026-10-16). */
+const BAD_ORACLE_MARKET = '0xddac43c721a67ea9f19b1c57d2de12039c99f3f271c90123f7d8fc9edb591ee6' as Hex
+const ORACLE_BAD = '0x00000000000000000000000000000000000000a3' as Hex
 
 interface MarketFixture {
   words: bigint[] // totalSupplyAssets, totalSupplyShares, totalBorrowAssets, totalBorrowShares, lastUpdate, fee
@@ -77,6 +82,12 @@ const MARKETS: Record<string, MarketFixture> = {
   [EXPOSURE_ONLY]: usdcMarket(WETH),
   [IDLE]: { words: [9_000_000_000n, 9_000_000_000_000_000n, 0n, 0n, TS - 86_400n, 0n], params: [USDC, ZERO, ZERO, ZERO, 0n] },
   [UNPRICED]: { ...usdcMarket(WETH), params: [EURCV, WETH, ORACLE, IRM, LLTV_86] },
+  [BAD_ORACLE_MARKET]: {
+    words: [102_000_000_000_000n, 102_000_000_000_000_000_000n, 101_958_151_000_000n, 101_958_151_000_000_000_000n, TS - 100n, 0n],
+    params: [USDC, WETH, ORACLE_BAD, ZERO, 915_000_000_000_000_000n],
+    // 4.7e12 USDC per WETH at the 1e36 · 10^(6 − 18) scale.
+    price: 4_700_000_000_000n * 10n ** 24n,
+  },
   [WETH_USDS]: {
     words: [10_000_000_000_000_000_000_000n, 9_000_000_000_000_000_000_000_000_000n, 3_000_000_000_000_000_000_000n, 2_900_000_000_000_000_000_000_000_000n, TS - 121_392n, 0n],
     params: [USDS, WETH, ORACLE_WETH_USDS, IRM, LLTV_86],
@@ -167,6 +178,18 @@ function web(api: ApiEntry[] | { status: number } | 'hang') {
 const usdPrices = (prices: Record<string, number>) => async (tokens: Hex[]) =>
   Object.fromEntries(tokens.filter((t) => prices[t] !== undefined).map((t) => [t, prices[t]]))
 
+/** The Aave V3 oracle at the block, stubbed: market prices for the fixtures' tokens. */
+const AAVE = { [WEETH]: 2661.317, [WETH]: 2413.25, [USDS]: 0.99983561 }
+
+/** An adapter on stubs only: no RPC, no Morpho API, no Aave, no DefiLlama from the network. */
+const make = (deps: Partial<MorphoBlueDeps>) =>
+  createMorphoBlueAdapter({
+    now: () => 0,
+    usdPrices: usdPrices(AAVE),
+    referencePrices: async () => ({ prices: {}, error: null }),
+    ...deps,
+  })
+
 // ------------------------------------------------------------------ Morpho's math, again
 
 const mulDivUp = (x: bigint, y: bigint, d: bigint) => (x * y + d - 1n) / d
@@ -200,18 +223,22 @@ describe('Morpho Blue discovery', () => {
     const collateral = 200n * WAD
     const { client, seen } = chain({ [NEW]: [0n, borrowShares, collateral] })
     const w = web([{ id: NEW }, { id: CLOSED, state: { supplyShares: 0, borrowShares: 0, collateral: 0 } }])
-    const adapter = createMorphoBlueAdapter({ client, fetch: w.fetch, now: () => 1_792_180_151_000 })
+    const adapter = make({ client, fetch: w.fetch, now: () => 1_792_180_151_000 })
 
     const positions = await adapter.read(USER) // complete discovery: a plain result, no throw
     expect(positions).toHaveLength(1)
     const p = positions[0]
     expect(p).toMatchObject({ protocol: 'morpho-blue', label: 'Morpho · weETH/USDC 86%', marketId: NEW, status: 'borrowing' })
 
-    // The API was asked once, for this address on chain 1; the scan read exactly its markets.
+    // The API was asked once, for this address on chain 1. The scan read its markets first,
+    // then every known market it did not list (a position it has not indexed yet still shows).
     const body = JSON.parse(w.asked.find((a) => a.url === MORPHO_API_URL)?.body ?? '{}')
     expect(body.variables).toEqual({ address: USER, chainId: 1 })
-    expect(w.asked.some((a) => a.url === COMMITTED_MARKET_LIST_URL)).toBe(false)
-    expect(seen.calls.filter((c) => c.functionName === 'position').map((c) => c.args?.[0])).toEqual([NEW, CLOSED])
+    const scanned = seen.calls.filter((c) => c.functionName === 'position').map((c) => c.args?.[0])
+    const known = new Set([...COMMITTED_IDS, ...EXPOSURE_MARKET_IDS])
+    expect(scanned.slice(0, 2)).toEqual([NEW, CLOSED])
+    expect(new Set(scanned)).toEqual(new Set([NEW, CLOSED, ...known]))
+    expect(scanned).toHaveLength(new Set(scanned).size)
     expect([...seen.blocks]).toEqual([BLOCK])
 
     // Every figure from the chain: debt accrued to the block like _accrueInterest, HF like _isHealthy.
@@ -223,7 +250,8 @@ describe('Morpho Blue discovery', () => {
     close(p.collateral[0].priceUsd, 2668.656)
     expect(p.debt[0].borrowApr).toBeCloseTo((1_627_110_572 * 31_536_000) / 1e18, 15)
     expect(p.provenance.block).toBe(Number(BLOCK))
-    expect(p.provenance.detail).toMatch(/Markets from the Morpho API/)
+    expect(p.provenance.detail).toMatch(/Markets as indexed by the Morpho API .* plus a scan of the known-market list/)
+    expect(p.oracleCheck).toMatchObject({ status: 'ok', symbol: 'weETH', quote: 'USDC', referenceUsd: 2661.317, referenceSource: 'Aave V3 oracle at this block' })
     expect(p.provenance.detail).toMatch(/borrowRateView at this block/)
 
     // The registry: an ordinary 'ok', and the page's position view uses the real rate.
@@ -234,7 +262,7 @@ describe('Morpho Blue discovery', () => {
 
   it('API failure → the known-market list, PARTIAL: nothing found is "incomplete", never "no position found"', async () => {
     const { client, seen } = chain({})
-    const adapter = createMorphoBlueAdapter({ client, fetch: web({ status: 500 }).fetch, now: () => 0 })
+    const adapter = make({ client, fetch: web({ status: 500 }).fetch })
     const r = await runAdapter(adapter, USER)
     const known = new Set([...COMMITTED_IDS, ...EXPOSURE_MARKET_IDS]).size
     expect(r.status).toBe('incomplete')
@@ -273,7 +301,7 @@ describe('Morpho Blue discovery', () => {
   it('the fallback finds a market only the curator exposure snapshot names; the read is ok but named partial', async () => {
     expect(EXPOSURE_ONLY).toBeDefined()
     const { client } = chain({ [EXPOSURE_ONLY]: [0n, 290_000_000_000_000_000n, 200n * WAD] })
-    const adapter = createMorphoBlueAdapter({ client, fetch: web({ status: 429 }).fetch, now: () => 0 })
+    const adapter = make({ client, fetch: web({ status: 429 }).fetch })
     await expect(adapter.read(USER)).rejects.toBeInstanceOf(PartialReadError)
     const r = await runAdapter(adapter, USER)
     expect(r.status).toBe('ok')
@@ -282,6 +310,29 @@ describe('Morpho Blue discovery', () => {
     expect(r.positions[0].provenance.detail).toMatch(/Discovery is partial/)
     const items = readStatus(ADAPTERS.map((a) => ({ id: a.id, label: a.label })), { 'morpho-blue': r })
     expect(statusWord(items[2])).toMatch(/^Morpho Blue read · 1 found · \d+ known markets only$/)
+  })
+
+  it('a position the API has not indexed yet still shows when its market is known; the stamp says "as indexed"', async () => {
+    const { client } = chain({ [EXPOSURE_ONLY]: [0n, 290_000_000_000_000_000n, 200n * WAD] })
+    const r = await runAdapter(make({ client, fetch: web([]).fetch }), USER)
+    expect(r.status).toBe('ok')
+    expect(r.discovery).toBeUndefined() // complete, as far as the API's index and the known list go
+    expect(r.positions.map((p) => p.marketId)).toEqual([EXPOSURE_ONLY])
+    expect(r.positions[0].provenance.detail).toMatch(
+      /Markets as indexed by the Morpho API .* 0 the address has touched, 0 open by its index — plus a scan of the known-market list .*: \d+ in all, \d+ of them not listed by the API\. A position the API has not indexed yet, in a market outside the known list, would not show\./,
+    )
+  })
+
+  it('a malformed market id from the API makes the read partial, not silently shorter', async () => {
+    const malformed = [{ id: NEW }, { id: 'not-a-market-id' as Hex }]
+    const d = await createMorphoDiscovery({ fetch: web(malformed).fetch, now: () => 0 })(USER)
+    expect(d).toMatchObject({ complete: false, source: 'Morpho API index and known-market list', reason: '1 market ids from the API were malformed' })
+    expect(d.markets[0].id).toBe(NEW)
+    const { client } = chain({})
+    const r = await runAdapter(make({ client, fetch: web(malformed).fetch }), USER)
+    expect(r.status).toBe('incomplete')
+    const items = readStatus(ADAPTERS.map((a) => ({ id: a.id, label: a.label })), { 'morpho-blue': r })
+    expect(statusWord(items[2])).toBe(`Morpho Blue read · ${d.markets.length} markets checked, list partial`)
   })
 
   it('a timeout is a failure, not a wait', async () => {
@@ -311,14 +362,23 @@ describe('Morpho Blue discovery', () => {
     }))
     const borrower = { id: NEW, state: { supplyShares: 0, borrowShares: '7', collateral: '9' } }
     const d = await createMorphoDiscovery({ fetch: web([...open, borrower]).fetch, now: () => 0 })(USER)
-    expect(d.markets).toHaveLength(MORPHO_MAX_MARKETS)
+    // The API's markets are capped (the known-market list is scanned beside them, uncapped).
+    const knownIds = new Set<string>([...COMMITTED_IDS, ...EXPOSURE_MARKET_IDS])
+    const fromApi = d.markets.filter((m) => !knownIds.has(m.id) || m.id === NEW)
+    expect(fromApi).toHaveLength(MORPHO_MAX_MARKETS)
     expect(d.markets[0].id).toBe(NEW)
-    expect(d).toMatchObject({ complete: false, source: 'Morpho API', reason: `7 more open markets past the cap of ${MORPHO_MAX_MARKETS}` })
+    expect(d.markets.map((m) => m.id)).not.toContain(open[open.length - 1].id)
+    expect(d.markets).toHaveLength(MORPHO_MAX_MARKETS - 1 + knownIds.size)
+    expect(d).toMatchObject({
+      complete: false,
+      source: 'Morpho API index and known-market list',
+      reason: `7 more open markets past the cap of ${MORPHO_MAX_MARKETS}`,
+    })
     // Closed markets past the cap do not make it partial: the API says the address left them.
     const closed = open.map((e) => ({ ...e, state: { supplyShares: 0, borrowShares: 0, collateral: 0 } }))
     const d2 = await createMorphoDiscovery({ fetch: web([borrower, ...closed]).fetch, now: () => 0 })(USER)
     expect(d2.complete).toBe(true)
-    expect(d2.markets).toHaveLength(MORPHO_MAX_MARKETS)
+    expect(d2.markets.filter((m) => !knownIds.has(m.id) || m.id === NEW)).toHaveLength(MORPHO_MAX_MARKETS)
   })
 })
 
@@ -328,7 +388,7 @@ describe('Morpho Blue positions', () => {
   it('a supply-only position comes back with its status, its supplied leg and no line — not "none found"', async () => {
     const shares = 48_000_000_000_000_000n
     const { client, seen } = chain({ [NEW]: [shares, 0n, 0n], [IDLE]: [9_000_000_000_000_000n, 0n, 0n] })
-    const adapter = createMorphoBlueAdapter({ client, fetch: web([{ id: NEW }, { id: IDLE }]).fetch, now: () => 0 })
+    const adapter = make({ client, fetch: web([{ id: NEW }, { id: IDLE }]).fetch })
     const positions = await adapter.read(USER)
     const lent = positions.find((p) => p.marketId === NEW)
     const idle = positions.find((p) => p.marketId === IDLE)
@@ -348,7 +408,15 @@ describe('Morpho Blue positions', () => {
     expect(v.hero.kind).toBe('no-debt')
     expect(lineTag(v)).toBe('lending only')
     expect(v.priceSource).toBe('USDC taken as $1')
+    // Honest: no line, but not beyond loss — bad debt is written off against lenders' supply.
+    expect(lent?.provenance.detail).toMatch(/It has no liquidation line, but bad debt a borrower's liquidation leaves in this market is written off against lenders' supply\./)
+    expect(lent?.provenance.detail).not.toMatch(/no liquidation touches/)
     const r = await runAdapter(adapter, USER)
+    // The simulator: a pure lender is a lending-only line, not "No open position found".
+    expect(emptyReadLine([r])).toBe(
+      'Lending only (Morpho · weETH/USDC 86%, Morpho · USDC idle market): no liquidation line to simulate. Bad debt in a market is shared by its lenders.',
+    )
+    expect(emptyReadLine([{ ...r, positions: [] }])).toBe('No open position found for this address.')
     expect(pageState(true, readStatus([{ id: 'morpho-blue', label: 'Morpho Blue' }], { 'morpho-blue': r }), { 'morpho-blue': r }, TOUCH_TABLE).kind).toBe('positions')
   })
 
@@ -357,17 +425,17 @@ describe('Morpho Blue positions', () => {
     const read = async (rate: bigint | 'revert') => {
       MARKETS[NEW] = usdcMarket(WEETH, rate)
       const { client } = chain({ [NEW]: [0n, shares, 200n * WAD] })
-      return (await createMorphoBlueAdapter({ client, fetch: web([{ id: NEW }]).fetch, now: () => 0 }).read(USER))[0]
+      return (await make({ client, fetch: web([{ id: NEW }]).fetch }).read(USER)).find((p) => p.marketId === NEW)!
     }
     try {
       const real = await read(1_627_110_572n)
       const apr = real.debt[0].borrowApr as number
-      expect(accrualFactor(apr)).toBe(1 + apr * (ACCRUAL_BUFFER_HOURS / 8760))
+      expect(accrualFactor(apr)).toBe(Math.exp(apr * (ACCRUAL_BUFFER_HOURS / 8760)))
       expect(accrualFactor(apr)).not.toBe(accrualFactor(null))
 
       const failed = await read('revert')
       expect(failed.debt[0].borrowApr).toBeNull()
-      expect(accrualFactor(failed.debt[0].borrowApr)).toBe(1 + FALLBACK_BORROW_APR * (ACCRUAL_BUFFER_HOURS / 8760))
+      expect(accrualFactor(failed.debt[0].borrowApr)).toBe(Math.exp(FALLBACK_BORROW_APR * (ACCRUAL_BUFFER_HOURS / 8760)))
       expect(failed.provenance.detail).toMatch(/Borrow rate NOT read: borrowRateView on IRM .* failed/)
       expect(failed.provenance.detail).toMatch(/accrual buffer uses its fallback rate/)
       // Without a rate there is no accrual: the stored debt, rounded up.
@@ -383,13 +451,12 @@ describe('Morpho Blue positions', () => {
     const shares = 1_503_000_000_000_000_000_000_000_000n
     const { client } = chain({ [WETH_USDS]: [0n, shares, coll], [UNPRICED]: [0n, 290_000_000_000_000_000n, 2n * WAD] })
     const blocks: bigint[] = []
-    const adapter = createMorphoBlueAdapter({
+    const adapter = make({
       client,
       fetch: web([{ id: WETH_USDS }, { id: UNPRICED }]).fetch,
-      now: () => 0,
       usdPrices: async (tokens, block) => {
         blocks.push(block)
-        return usdPrices({ [USDS]: 0.99983561 })(tokens)
+        return usdPrices(AAVE)(tokens)
       },
     })
     const r = await runAdapter(adapter, USER)
@@ -409,5 +476,118 @@ describe('Morpho Blue positions', () => {
     close(p.healthFactor, healthFactor(m, coll, borrowed))
     expect(p.provenance.detail).toMatch(/Loan token USDS priced at \$0\.99983561 from the Aave V3 oracle/)
     expect(buildPositionView(p, TOUCH_TABLE).priceSource).toBe('Morpho market oracle, USDS priced by the Aave V3 oracle')
+  })
+})
+
+// ------------------------------------------------------------------ the oracle against the market
+
+describe('Morpho oracle sanity check', () => {
+  const borrowShares = MARKETS[BAD_ORACLE_MARKET].words[3]
+  const read = async (deps: Partial<MorphoBlueDeps> = {}, id: Hex = BAD_ORACLE_MARKET, pos: Position = [0n, borrowShares, 10n ** 15n]) => {
+    const { client } = chain({ [id]: pos })
+    return (await make({ client, fetch: web([{ id }]).fetch, ...deps }).read(USER)).find((p) => p.marketId === id)!
+  }
+
+  it('the $4.7T WETH oracle disagrees with the market: the line stays in its own terms, nothing is forecast on it', async () => {
+    const p = await read()
+    expect(p.oracleCheck).toMatchObject({
+      status: 'disagrees',
+      symbol: 'WETH',
+      quote: 'USDC',
+      oraclePrice: 4.7e12,
+      oraclePriceUsd: 4.7e12,
+      referenceUsd: 2413.25,
+      referenceSource: 'Aave V3 oracle at this block',
+      band: { min: 0.5, max: 2 },
+    })
+    close(p.oracleCheck!.ratio!, 4.7e12 / 2413.25)
+    expect(p.provenance.detail).toMatch(/oracle price disagrees with market: WETH \$4\.70e\+12 by the oracle vs \$2,413\.25 \(Aave V3 oracle at this block\)\. The line holds only in the oracle's own terms\./)
+
+    const v = buildPositionView(p, TOUCH_TABLE)
+    expect(v.hero.kind).toBe('line')
+    if (v.hero.kind !== 'line') return
+    // The line in the oracle's quote (USDC per WETH): debt / (collateral · lltv), here ~1.11e11.
+    expect(v.oracleFlag?.line?.value).toBeCloseTo(v.hero.priceLine, 6)
+    close(v.oracleFlag!.line!.value, p.totalDebtUsd / (0.001 * 0.915), 1e-9)
+    expect(v.oracleFlag?.line?.now).toBeCloseTo(4.7e12, 0)
+    // Withheld: the forecast (and with it every lever's chance) and the alert price.
+    expect(v.forecast).toBeNull()
+    expect(v.forecastAbsent).toBe('Oracle price disagrees with market.')
+    expect(v.alert).toBeNull()
+    expect(lineTag(v)).toBe(`line −${v.hero.distancePct}% · oracle disagrees with market`)
+    // The same position without the flag would have been forecast and alerted: the flag withholds them.
+    const unflagged = buildPositionView({ ...p, oracleCheck: undefined }, TOUCH_TABLE)
+    expect(unflagged.forecast).not.toBeNull()
+    expect(unflagged.alert?.referencePrice).toBeCloseTo(4.7e12, 0)
+  })
+
+  it('no reference anywhere: "unchecked", named with why, and withheld the same way', async () => {
+    const p = await read({ usdPrices: usdPrices({}), referencePrices: async () => ({ prices: {}, error: 'DefiLlama HTTP 429' }) }, NEW, [0n, 290_000_000_000_000_000n, 200n * WAD])
+    expect(p.oracleCheck).toMatchObject({ status: 'unchecked', referenceUsd: null, ratio: null })
+    expect(p.oracleCheck?.referenceSource).toBe('the Aave V3 oracle does not list it; DefiLlama HTTP 429')
+    const v = buildPositionView(p, TOUCH_TABLE)
+    expect(v.forecast).toBeNull()
+    expect(v.forecastAbsent).toBe('Oracle price unchecked: no market reference.')
+    expect(v.alert).toBeNull()
+    expect(lineTag(v)).toMatch(/ · oracle unchecked$/)
+  })
+
+  it('a token Aave does not list is checked against DefiLlama; within the band the forecast stands', async () => {
+    const asked: Hex[][] = []
+    const p = await read(
+      {
+        usdPrices: usdPrices({}),
+        referencePrices: async (tokens) => {
+          asked.push(tokens)
+          return { prices: { [WEETH]: 2661.317 }, error: null }
+        },
+      },
+      NEW,
+      [0n, 290_000_000_000_000_000n, 200n * WAD],
+    )
+    expect(asked).toEqual([[WEETH]])
+    expect(p.oracleCheck).toMatchObject({ status: 'ok', referenceUsd: 2661.317, referenceSource: 'DefiLlama current price' })
+    const v = buildPositionView(p, TOUCH_TABLE)
+    expect(v.oracleFlag).toBeNull()
+    expect(v.forecast).not.toBeNull()
+  })
+
+  it('the band is 0.5–2×, inclusive', () => {
+    const base = { symbol: 'WETH', quote: 'USDC', oraclePrice: 0, referenceUsd: 100, referenceSource: 'x' }
+    expect(ORACLE_REFERENCE_BAND).toEqual({ min: 0.5, max: 2 })
+    expect(checkOracle({ ...base, oraclePriceUsd: 200 }).status).toBe('ok')
+    expect(checkOracle({ ...base, oraclePriceUsd: 50 }).status).toBe('ok')
+    expect(checkOracle({ ...base, oraclePriceUsd: 201 }).status).toBe('disagrees')
+    expect(checkOracle({ ...base, oraclePriceUsd: 49 }).status).toBe('disagrees')
+    expect(checkOracle({ ...base, oraclePriceUsd: 100, referenceUsd: null }).status).toBe('unchecked')
+  })
+
+  it('DefiLlama: token addresses only, prices by address, a failure or a stall is named', async () => {
+    const urls: string[] = []
+    const ok = (async (input: RequestInfo | URL) => {
+      urls.push(String(input))
+      return new Response(JSON.stringify({ coins: { [`ethereum:${WEETH}`]: { price: 2661.3, confidence: 0.99 } } }), { status: 200 })
+    }) as typeof fetch
+    expect(await defillamaUsdPrices([WEETH, WETH], ok)).toEqual({ prices: { [WEETH]: 2661.3 }, error: null })
+    expect(urls).toEqual([`${DEFILLAMA_PRICES_URL}ethereum:${WEETH},ethereum:${WETH}`])
+    const down = (async () => new Response('no', { status: 500 })) as typeof fetch
+    expect(await defillamaUsdPrices([WEETH], down)).toEqual({ prices: {}, error: 'DefiLlama HTTP 500' })
+    const stall = (() => new Promise<Response>(() => {})) as typeof fetch
+    expect(await defillamaUsdPrices([WEETH], stall, 20)).toEqual({ prices: {}, error: 'DefiLlama no answer in 0.02 s' })
+  })
+})
+
+// ------------------------------------------------------------------ the accrual buffer
+
+describe('accrual buffer', () => {
+  it('compounds: e^(apr·h/8760), never under per-second accrual, where the linear factor was', () => {
+    for (const apr of [0.05, 0.8, 8]) {
+      const h = ACCRUAL_BUFFER_HOURS
+      const perSecond = (1 + apr / 31_536_000) ** (h * 3600)
+      expect(accrualFactor(apr)).toBe(Math.exp((apr * h) / 8760))
+      expect(accrualFactor(apr)).toBeGreaterThanOrEqual(perSecond - 1e-12)
+      // The old linear factor fell short of per-second accrual: rows solved on it landed short.
+      expect(1 + (apr * h) / 8760).toBeLessThan(perSecond)
+    }
   })
 })

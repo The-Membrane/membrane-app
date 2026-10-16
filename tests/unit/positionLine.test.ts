@@ -548,7 +548,7 @@ describe('reverse solve', () => {
     const m = lineModel(s, classifyRisk(s))!
     const apr = 0.044
     const g = accrualFactor(apr)
-    expect(g).toBeCloseTo(1 + 0.044 * (ACCRUAL_BUFFER_HOURS / 8760), 15)
+    expect(g).toBeCloseTo(Math.exp(0.044 * (ACCRUAL_BUFFER_HOURS / 8760)), 15)
     const accrued = (mm: LineModel): LineModel => ({ ...mm, D: mm.D * g, Dm: mm.Dm * g })
     const { rows } = reverseSolve(s, m, TOUCH_TABLE, 'ETH', '7d', apr)
     expect(rows.length).toBeGreaterThan(0)

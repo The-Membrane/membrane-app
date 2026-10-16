@@ -6,7 +6,8 @@ import { Box, Text } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
 import { NEWS, NEWS_FIGURE, NEWS_FONT } from '@/components/NewsEdition/tokens'
-import { fmtUsd } from '@/lib/position/format'
+import { fmtAmount, fmtUsd } from '@/lib/position/format'
+import { priceDecimals } from '@/lib/position/liquidation'
 
 import { Dagger, Kicker, Mono } from './primitives'
 import { TYPE } from './typeScale'
@@ -69,14 +70,50 @@ function lineCopy(hero: Extract<Hero, { kind: 'line' }>, venue: string, priceSou
   }
 }
 
+/** An oracle-terms quantity: compact past a million (the $4.7T oracle), else 4 significant figures. */
+const fmtQuote = (x: number) =>
+  x >= 1e6
+    ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumSignificantDigits: 4 }).format(x)
+    : fmtAmount(x, priceDecimals(x))
+
+/**
+ * The line of a position whose collateral oracle failed its market check, in the ORACLE'S
+ * own terms (its quote token per collateral token), never as a market price.
+ */
+function oracleLineCopy(view: PositionView, hero: Extract<Hero, { kind: 'line' }>, venue: string): HeroCopy | null {
+  const flag = view.oracleFlag
+  if (!flag?.line) return null
+  const { check } = flag
+  const where = hero.direction === 'fall' ? 'below' : 'above'
+  const dist = hero.distancePct === 0 ? `under 1% ${where}` : `${hero.distancePct}% ${where}`
+  const verdict = check.status === 'disagrees' ? 'oracle price disagrees with market' : 'oracle price unchecked'
+  return {
+    lead: `${check.symbol} line in the oracle's terms`,
+    figure: `${fmtQuote(flag.line.value)} ${check.quote}`,
+    dagger: false,
+    danger: false,
+    sub: `per ${check.symbol} · ${dist} the oracle's ${fmtQuote(flag.line.now)} · ${verdict}`,
+    sentence:
+      check.status === 'disagrees'
+        ? `The market prices ${check.symbol} at ${fmtUsd(check.referenceUsd as number, priceDecimals(check.referenceUsd as number))} (${check.referenceSource}); ${venue} liquidates on this oracle, so no forecast is drawn on it.`
+        : `No market price was found to check this oracle against, so no forecast is drawn on it.`,
+  }
+}
+
 /** What the hero says, per kind. Pure. */
 function heroCopy(view: PositionView): HeroCopy {
   const { hero, priceSource, assumption } = view
   const venue = view.label.split(' · ')[0]
   const plain = { dagger: false, danger: false }
+  // A failed oracle check is named on every hero that quotes the oracle.
+  const flagged = view.oracleFlag ? ` · ${view.oracleFlag.check.status === 'disagrees' ? 'oracle price disagrees with market' : 'oracle price unchecked'}` : ''
   switch (hero.kind) {
-    case 'line':
-      return lineCopy(hero, venue, priceSource, Boolean(assumption))
+    case 'line': {
+      const oracle = oracleLineCopy(view, hero, venue)
+      if (oracle) return oracle
+      const copy = lineCopy(hero, venue, priceSource, Boolean(assumption))
+      return { ...copy, sub: `${copy.sub}${flagged}` }
+    }
     case 'unsplit': {
       // The legs could not reproduce the protocol's thresholds: only its own figure is shown.
       const under = hero.healthFactor <= 1
@@ -95,7 +132,7 @@ function heroCopy(view: PositionView): HeroCopy {
         danger: true,
         lead: '✖ Past the liquidation line',
         figure: `HF ${hero.healthFactor.toFixed(2)}`,
-        sub: `health factor under 1 · ${priceSource}`,
+        sub: `health factor under 1 · ${priceSource}${flagged}`,
         sentence: `${venue} can liquidate it now.`,
       }
     case 'unreachable': {
@@ -119,15 +156,16 @@ function heroCopy(view: PositionView): HeroCopy {
       }
     }
     case 'no-debt': {
-      // A lender's position: what it supplies, which no liquidation can touch.
+      // A lender's position: no line of its own, but not beyond loss — Morpho writes bad debt
+      // left by a borrower's liquidation off against the market's supply.
       const supplied = view.position.supplied ?? []
       if (view.position.status === 'supply-only' && supplied.length > 0) {
         return {
           ...plain,
-          lead: 'Lending only, no liquidation line',
+          lead: 'Lending only: no liquidation line',
           figure: fmtUsd(supplied.reduce((s, x) => s + x.valueUsd, 0)),
           sub: `supplied ${supplied.map((x) => x.symbol).join(' + ')} · ${priceSource}`,
-          sentence: 'Nothing here can be liquidated.',
+          sentence: 'Bad debt in this market is shared by lenders.',
         }
       }
       return {

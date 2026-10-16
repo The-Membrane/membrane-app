@@ -186,9 +186,14 @@ export interface ReverseSolve {
   pastTable: ActionRow['kind'][]
 }
 
-/** Interest growth over the buffer at `apr` (null → the fallback). */
+/**
+ * Interest growth over the buffer at `apr` (null → the fallback), COMPOUNDED: e^(apr·h/8760).
+ * Aave and Morpho both accrue per second (Morpho's wTaylorCompounded is e^x to three terms),
+ * and a per-second rate × a year is a continuous rate, so 1 + apr·h/8760 falls short — at a
+ * high APR, rows solved on it landed under their line once the interest was real.
+ */
 export const accrualFactor = (apr: number | null): number =>
-  1 + (apr !== null && apr >= 0 ? apr : FALLBACK_BORROW_APR) * (ACCRUAL_BUFFER_HOURS / 8760)
+  Math.exp((apr !== null && apr >= 0 ? apr : FALLBACK_BORROW_APR) * (ACCRUAL_BUFFER_HOURS / 8760))
 
 /** The action rows for one position, and why there are none when there are none. */
 export function reverseSolve(

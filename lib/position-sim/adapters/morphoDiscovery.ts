@@ -8,13 +8,16 @@
  *
  *   1. Morpho's keyless API (MORPHO_API_URL, `userByAddress(address, chainId: 1)
  *      { marketPositions { market { marketId } } }` — the live schema names it `marketId`,
- *      not `uniqueKey`): every market the address has touched, open ones first, up to
- *      MORPHO_MAX_MARKETS. Complete unless the cap cut an open market.
- *   2. When the API fails, times out or rate-limits: the KNOWN-MARKET LIST — the committed
- *      Oct 10 2025 list (public/data/oct10-2025/protocols.json) plus every market id in the
- *      curator exposure snapshot (morphoMarkets.generated.json, ids only — board rule N18).
- *      That is PARTIAL discovery, and it is named so: a position in any other market would
- *      not show, so the page never says "no position found" on it.
+ *      not `uniqueKey`): every market the address has touched AS THE API HAS INDEXED IT,
+ *      open ones first, up to MORPHO_MAX_MARKETS — PLUS the known-market list below, always
+ *      (a few more eth_calls), so a position the API has not indexed yet still shows when
+ *      its market is known. Complete unless the cap cut an open market or an id was
+ *      malformed; the stamp says "as indexed by the Morpho API".
+ *   2. When the API fails, times out or rate-limits: the KNOWN-MARKET LIST alone — the
+ *      committed Oct 10 2025 list (public/data/oct10-2025/protocols.json) plus every market
+ *      id in the curator exposure snapshot (morphoMarkets.generated.json, ids only — board
+ *      rule N18). That is PARTIAL discovery, and it is named so: a position in any other
+ *      market would not show, so the page never says "no position found" on it.
  *
  * RATE LIMIT. The API allows 750 requests a minute, then answers 429 and expects a
  * ten-minute pause. One read is one request. After a 429 the discoverer does not ask again
@@ -62,7 +65,7 @@ export interface Discovered {
   markets: DiscoveredMarket[]
   /** False when a market the address may hold was not listed: the read is partial. */
   complete: boolean
-  /** "Morpho API" or "known-market list", for the status line and the provenance. */
+  /** "Morpho API index and known-market list", or "known-market list" when the API could not be asked. */
   source: string
   /** Why discovery is partial, verbatim. Absent when complete. */
   reason?: string
@@ -202,7 +205,15 @@ async function post(user: `0x${string}`, deps: DiscoveryDeps, signal: AbortSigna
 export async function fetchApiMarkets(
   user: `0x${string}`,
   deps: DiscoveryDeps,
-): Promise<{ markets: DiscoveredMarket[]; total: number; open: number; cutOpen: number; cutClosed: number }> {
+): Promise<{
+  markets: DiscoveredMarket[]
+  total: number
+  open: number
+  cutOpen: number
+  cutClosed: number
+  /** Entries whose market id is missing or not a bytes32: markets that cannot be read. */
+  malformed: number
+}> {
   const body = await withTimeout((signal) => post(user, deps, signal), deps.timeoutMs ?? MORPHO_API_TIMEOUT_MS)
   // A GraphQL error, even beside some data, may mean missing positions: not a full list.
   if (body.errors && body.errors.length > 0) {
@@ -214,9 +225,14 @@ export async function fetchApiMarkets(
   // Mainnet singleton only; one entry per market id.
   const seen = new Set<string>()
   const usable: ApiMarketPosition[] = []
+  let malformed = 0
   for (const p of list) {
     const id = p.market?.marketId
-    if (!id || !BYTES32.test(id)) continue
+    // Not dropped silently: a market the API names but we cannot read makes the read partial.
+    if (!id || !BYTES32.test(id)) {
+      malformed++
+      continue
+    }
     const singleton = p.market?.morphoBlue?.address
     if (singleton && singleton.toLowerCase() !== MORPHO_SINGLETON) continue
     const key = id.toLowerCase()
@@ -242,6 +258,7 @@ export async function fetchApiMarkets(
     open: usable.filter(isOpen).length,
     cutOpen: cut.filter(isOpen).length,
     cutClosed: cut.filter((p) => !isOpen(p)).length,
+    malformed,
   }
 }
 
@@ -295,51 +312,62 @@ export async function knownMarkets(deps: DiscoveryDeps): Promise<{ markets: Disc
 export function createMorphoDiscovery(deps: DiscoveryDeps) {
   let pausedUntil = 0
 
-  const fallback = async (why: string): Promise<Discovered> => {
-    const known = await knownMarkets(deps)
-    return {
-      markets: known.markets,
-      complete: false,
-      source: 'known-market list',
-      reason: `Morpho API ${why}`,
-      detail: `Markets from the known-market list — ${known.note}, ${known.markets.length} in all — because the Morpho API ${why}. Discovery is partial: a position in any other Morpho market would not show.`,
-    }
-  }
+  const fallback = (known: { markets: DiscoveredMarket[]; note: string }, why: string): Discovered => ({
+    markets: known.markets,
+    complete: false,
+    source: 'known-market list',
+    reason: `Morpho API ${why}`,
+    detail: `Markets from the known-market list — ${known.note}, ${known.markets.length} in all — because the Morpho API ${why}. Discovery is partial: a position in any other Morpho market would not show.`,
+  })
 
   return async function discover(user: `0x${string}`): Promise<Discovered> {
+    // The known markets are scanned on every read, so they are fetched while the API is asked.
+    const knownRead = knownMarkets(deps)
     const now = deps.now()
     if (now < pausedUntil) {
       const at = new Date(pausedUntil).toISOString().slice(11, 16)
-      return fallback(`is paused after a rate limit until ${at} UTC`)
+      return fallback(await knownRead, `is paused after a rate limit until ${at} UTC`)
     }
+    let api: Awaited<ReturnType<typeof fetchApiMarkets>>
     try {
-      const api = await fetchApiMarkets(user, deps)
-      const at = new Date(deps.now()).toISOString().slice(11, 16)
-      const cutNote =
-        api.cutOpen + api.cutClosed > 0
-          ? ` The API lists ${api.total} markets; the ${api.markets.length} read are capped at ${MORPHO_MAX_MARKETS}, open positions first.`
-          : ''
-      if (api.cutOpen > 0) {
-        return {
-          markets: api.markets,
-          complete: false,
-          source: 'Morpho API',
-          reason: `${api.cutOpen} more open markets past the cap of ${MORPHO_MAX_MARKETS}`,
-          detail: `Markets from the Morpho API (${MORPHO_API_URL}) at ${at} UTC.${cutNote} Discovery is partial: ${api.cutOpen} open markets were not read.`,
-        }
-      }
-      return {
-        markets: api.markets,
-        complete: true,
-        source: 'Morpho API',
-        detail: `Markets from the Morpho API (${MORPHO_API_URL}) at ${at} UTC: ${api.total} the address has touched, ${api.open} open by the API's index.${cutNote}`,
-      }
+      api = await fetchApiMarkets(user, deps)
     } catch (e) {
       const err = e instanceof MorphoApiError ? e : new MorphoApiError((e as Error).message)
       if (err.retryAfterMs !== null || /HTTP 429/.test(err.message)) {
         pausedUntil = deps.now() + Math.max(MORPHO_API_BACKOFF_MS, err.retryAfterMs ?? 0)
       }
-      return fallback(`failed: ${err.message}`)
+      return fallback(await knownRead, `failed: ${err.message}`)
+    }
+    const known = await knownRead
+    const at = new Date(deps.now()).toISOString().slice(11, 16)
+
+    // The API's markets first (they carry its symbols), then every known market it did not list.
+    const fromApi = new Set(api.markets.map((m) => m.id))
+    const markets = [...api.markets, ...known.markets.filter((m) => !fromApi.has(m.id))]
+    const added = markets.length - api.markets.length
+    const cutNote =
+      api.cutOpen + api.cutClosed > 0
+        ? ` The API lists ${api.total}; ${api.markets.length} are read, capped at ${MORPHO_MAX_MARKETS}, open positions first.`
+        : ''
+    const partial = [
+      ...(api.cutOpen > 0 ? [`${api.cutOpen} more open markets past the cap of ${MORPHO_MAX_MARKETS}`] : []),
+      ...(api.malformed > 0 ? [`${api.malformed} market ids from the API were malformed`] : []),
+    ]
+    const head = `Markets as indexed by the Morpho API (${MORPHO_API_URL}) at ${at} UTC — ${api.total} the address has touched, ${api.open} open by its index — plus a scan of the known-market list (${known.note}): ${markets.length} in all, ${added} of them not listed by the API.${cutNote}`
+    if (partial.length > 0) {
+      return {
+        markets,
+        complete: false,
+        source: 'Morpho API index and known-market list',
+        reason: partial.join('; '),
+        detail: `${head} Discovery is partial: ${partial.join('; ')}.`,
+      }
+    }
+    return {
+      markets,
+      complete: true,
+      source: 'Morpho API index and known-market list',
+      detail: `${head} A position the API has not indexed yet, in a market outside the known list, would not show.`,
     }
   }
 }

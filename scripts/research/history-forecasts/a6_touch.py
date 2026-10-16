@@ -205,6 +205,16 @@ DECISIONS = [
     "test issue times with both defined, by A3.3 regime: mean, median, n; also over every hourly origin of the series, "
     "and pooled over the other development series' test issue times. The stated pattern check: low mean > high mean "
     "at every T >= 3 d.",
+    "D-V6 A6.6 (blind set 5, read once): files verified against the git blobs of --blind5-commit; folds from the "
+    "first quarter >= 365 d after the first kline to 2026Q3; A3.1 null rule; draws default_rng(20261071): pairs in "
+    "file-name order > T (no BSS for a pair with fewer days than the block length), then the pooled union day sets "
+    "> T. Method verdict per new rung exactly as A5 D-V1 with (fbL) replaced by the rung: deep cells (-20..-40%) x "
+    "every T x {low, high}, pooled over all pairs, kept when (f) and the rung both have n_ep >= 10 and a finite "
+    "positive R; PASS iff the rung's median |ln R| < (f)'s AND the pooled BSS(rung vs f) CI lower bound > -0.002 at "
+    "6h, 1d, 3d and 7d. A6 D1: the pooled numbers are also reported without LUNAUSDT (CIs from a stream spawned "
+    "from SeedSequence(20261071)), deciding nothing. Basis = the frozen dev checks + 'blind set 5' (pooled R in "
+    "[0.67, 1.5] with n_ep >= 10, same rung, T, level, regime), written to basis-final-a6.csv with its sha256; "
+    "labels and shipped rungs are not changed.",
     "D-P1 panel: as A5 D-P1 with the A6 rungs. Live hours after DATA_END come from Chainlink getRoundData rounds: "
     "close = the answer in force at the hour end; high/low = max/min of the answer in force at the hour start and "
     "every round with updatedAt in (start, end] (the D-H1 convention). Fits stay at DATA_END; features at asof.",
@@ -2109,6 +2119,71 @@ def method_verdict(pooled_T, rung):
             "bss_lower_bounds_above_-0.002": bool(part2), "verdict": "PASS" if (part1 and part2) else "FAIL"}
 
 
+SENSITIVITY_EXCLUDE = ("blind5:binance-LUNAUSDT",)    # A6 D1: pooled also reported without it (deciding nothing)
+PAIR_COUNT_COMPARISONS = ("fh_vs_f", "fH_vs_f", "fHb_vs_f", "fbL_vs_f", "f_vs_a", "fbL_vs_a", "fh_vs_a", "fH_vs_a",
+                          "fHb_vs_a")
+
+
+def pooled_block(reds, keys, rng):
+    """Pooled BSS with CIs (draws from rng, > T), R / n_ep per (T, level, regime), DM and CORP over `keys`."""
+    pooled = {}
+    for T_h in HORIZONS_H:
+        pr = pooled_reduced(reds, keys, T_h)
+        _, cnt = M3.draws(rng, len(pr["days"]), T_h)
+        cmp_, byreg = series_comparisons(pr, cnt)
+        cp = {}
+        for r in CORP_RUNGS:
+            p = np.concatenate([reds[k][T_h]["rows"][r][0] for k in keys])
+            y = np.concatenate([reds[k][T_h]["rows"][r][1] for k in keys]).astype(float)
+            kb = band_of("ladder", LADDER)[np.concatenate([reds[k][T_h]["rows"][r][2] for k in keys])]
+            cp[r] = {"all": corp(p, y), **{f"band{bb}": corp(p[kb == bb], y[kb == bb]) for bb in range(3)}}
+        pooled[T_LABEL[T_h]] = {"comparisons": cmp_, "comparisons_by_regime": byreg,
+                                "levels": to_cells_R(pr["cells"]), "n_days": int(len(pr["days"])),
+                                "n_pairs": len(keys),
+                                "dm": {c: dm_from_series(*pr["dm"][c], T_h) for c in DM_COMPARISONS}, "corp": cp}
+    return pooled
+
+
+def pair_table(per_pair):
+    """Per-pair BSS rows and, per (T, comparison), how many pairs have the CI above 0 / containing 0 / below 0."""
+    rows, counts = [], {}
+    for k, d in per_pair.items():
+        for TL, e in d["per_T"].items():
+            for c, v in (e.get("comparisons") or {}).items():
+                ci = v.get("ci95")
+                side = "no CI" if not ci else ("above" if ci[0] > 0 else "below" if ci[1] < 0 else "contains")
+                rows.append({"pair": k, "T": TL, "comparison": c, "n_rows": v["n_rows"], "bss": v["bss"],
+                             "ci_lo": ci[0] if ci else None, "ci_hi": ci[1] if ci else None, "side": side})
+                if c in PAIR_COUNT_COMPARISONS:
+                    cc = counts.setdefault(TL, {}).setdefault(c, {"above": 0, "contains": 0, "below": 0, "no CI": 0})
+                    cc[side] += 1
+    return rows, counts
+
+
+def basis_change_summary(frozen, final):
+    """Shipped-rung cells: the blind-5 check state and whether the 'held in k of n' string changed from the dev
+    basis; counts per (asset, T) plus totals."""
+    out, tot = {}, {"held": 0, "not held": 0, "n/a": 0, "string_changed": 0, "cells": 0}
+    for a, d in final.items():
+        for TL, rr in d.items():
+            ship = frozen["shipped"][a][TL]
+            c = {"held": 0, "not held": 0, "n/a": 0, "string_changed": 0, "cells": 0, "not_held_cells": []}
+            for kk, gg in rr.get(ship, {}).items():
+                for g, x in gg.items():
+                    st = x["basis_checks"]["blind set 5"]
+                    c[st] += 1
+                    c["cells"] += 1
+                    dev = frozen["labels"][a][TL][ship][kk][g]["basis"]
+                    c["string_changed"] += int(dev != x["basis"])
+                    if st == "not held":
+                        c["not_held_cells"].append({"k": float(kk), "regime": g, "label": x["label"],
+                                                    "blind5": x["blind5"]})
+            out.setdefault(a, {})[TL] = {"rung": ship, **c}
+            for kk in tot:
+                tot[kk] += c[kk]
+    return {"per_cell": out, "totals_shipped": tot}
+
+
 def blind5_gate(out_dir, commit):
     """Every check before blind set 5 may be read; returns (dev, frozen, fsha). Raises SystemExit on any failure."""
     bpath = os.path.join(out_dir, "results-blind5.json")
@@ -2138,9 +2213,10 @@ def run_blind5(datasets, out_dir, meta_inputs, commit, workers=4, log=print, ver
     dev, frozen, fsha = blind5_gate(out_dir, commit)
     cm = require_clean_code() if require_clean else code_meta()
     marker = os.path.join(out_dir, "blind5-run.started")
+    started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     with open(marker, "w") as f:
-        f.write(json.dumps({"started_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                            "frozen_sha256": fsha, "commit": commit, "code": cm["git"]["head_commit"]}) + "\n")
+        f.write(json.dumps({"started_utc": started, "frozen_sha256": fsha, "commit": commit,
+                            "code": cm["git"]["head_commit"]}) + "\n")
     t_start = time.time()
     global _SER
     S, folds, fmeta = build_blind_dir(datasets, BLIND5_DIR, commit, "blind5:", verify=verify,
@@ -2169,21 +2245,18 @@ def run_blind5(datasets, out_dir, meta_inputs, commit, workers=4, log=print, ver
                 _, cnt = M3.draws(rng, len(x["days"]), T_h)
                 entry["comparisons"], entry["comparisons_by_regime"] = series_comparisons(x, cnt)
             per_pair[k]["per_T"][T_LABEL[T_h]] = entry
-    pooled = {}
-    for T_h in HORIZONS_H:
-        pr = pooled_reduced(reds, keys, T_h)
-        _, cnt = M3.draws(rng, len(pr["days"]), T_h)
-        cmp_, byreg = series_comparisons(pr, cnt)
-        cp = {}
-        for r in CORP_RUNGS:
-            p = np.concatenate([reds[k][T_h]["rows"][r][0] for k in keys])
-            y = np.concatenate([reds[k][T_h]["rows"][r][1] for k in keys]).astype(float)
-            kb = band_of("ladder", LADDER)[np.concatenate([reds[k][T_h]["rows"][r][2] for k in keys])]
-            cp[r] = {"all": corp(p, y), **{f"band{bb}": corp(p[kb == bb], y[kb == bb]) for bb in range(3)}}
-        pooled[T_LABEL[T_h]] = {"comparisons": cmp_, "comparisons_by_regime": byreg,
-                                "levels": to_cells_R(pr["cells"]), "n_days": int(len(pr["days"])),
-                                "dm": {c: dm_from_series(*pr["dm"][c], T_h) for c in DM_COMPARISONS}, "corp": cp}
+    pooled = pooled_block(reds, keys, rng)                                  # registered (all pairs)
     verdicts = {r: method_verdict(pooled, r) for r in NEW_RUNGS}
+    excl = [k for k in keys if k in SENSITIVITY_EXCLUDE]
+    sens = None
+    if excl:                                                                # A6 D1: reported, deciding nothing
+        keys_s = [k for k in keys if k not in excl]
+        ps = pooled_block(reds, keys_s, np.random.default_rng(np.random.SeedSequence(SEED_BLIND5).spawn(1)[0]))
+        sens = {"excluded": excl, "n_pairs": len(keys_s), "note": "A6 D1: pooled without these pairs, reported "
+                "beside the registered pooled numbers (which include them); deciding nothing. CIs from a stream "
+                "spawned from SeedSequence(20261071).", "pooled": ps,
+                "method_verdicts": {r: method_verdict(ps, r) for r in NEW_RUNGS}}
+    pair_rows, pair_counts = pair_table(per_pair)
     ladder_keys = {repr(float(x)) for x in LADDER}
     rows, final = [], {}
     for a in DEV_ASSETS:
@@ -2206,8 +2279,15 @@ def run_blind5(datasets, out_dir, meta_inputs, commit, workers=4, log=print, ver
                         rows.append({"asset": a, "T": TL, "k": float(kk), "rung": r, "regime": g,
                                      "shipped": frozen["shipped"][a][TL] == r, "label": x["after"], "basis": bstr,
                                      "blind5_R": st["R"] if st else None, "blind5_n_ep": st["n_ep"] if st else None})
-    A.write_csv(os.path.join(out_dir, "basis-final.csv"),
-                ["asset", "T", "k", "rung", "regime", "shipped", "label", "basis", "blind5_R", "blind5_n_ep"], rows)
+    bpath = os.path.join(out_dir, "basis-final-a6.csv")
+    A.write_csv(bpath, ["asset", "T", "k", "rung", "regime", "shipped", "label", "basis", "blind5_R", "blind5_n_ep"],
+                rows)
+    bsha = A.sha256_file(bpath)
+    with open(bpath + ".sha256", "w") as f:
+        f.write(f"{bsha}  basis-final-a6.csv\n")
+    A.write_csv(os.path.join(out_dir, "pairs-blind5.csv"),
+                ["pair", "T", "comparison", "n_rows", "bss", "ci_lo", "ci_hi", "side"], pair_rows)
+    basis_changes = basis_change_summary(frozen, final)
     A.write_csv(os.path.join(out_dir, "w-table-blind5.csv"), ["series", "T", "fold", "w", "w_raw", "n_reg", "rule"],
                 tables["w"])
     A.write_csv(os.path.join(out_dir, "har-table-blind5.csv"),
@@ -2220,8 +2300,10 @@ def run_blind5(datasets, out_dir, meta_inputs, commit, workers=4, log=print, ver
            "inputs": meta_inputs, "DECISIONS": DECISIONS, "deviations_run": [], "blind5_commit": commit,
            "blind5_files": fmeta, "frozen_file": {"file": "frozen-a6.json", "sha256": fsha},
            "results_dev_sha256": A.sha256_file(os.path.join(out_dir, "results-dev.json")), "seed": SEED_BLIND5,
-           "per_pair": per_pair, "pooled": pooled, "method_verdicts": verdicts, "final_basis": final,
-           "run": {"total_seconds": round(time.time() - t_start, 1),
+           "per_pair": per_pair, "pooled": pooled, "method_verdicts": verdicts,
+           "pooled_sensitivity_without": sens, "per_pair_ci_counts": pair_counts, "final_basis": final,
+           "basis_file": {"file": "basis-final-a6.csv", "sha256": bsha}, "basis_changes": basis_changes,
+           "run": {"marker_started_utc": started, "total_seconds": round(time.time() - t_start, 1),
                    "finished_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}}
     write_json(os.path.join(out_dir, "results-blind5.json"), doc, refuse_overwrite=True)
     vv = {r: v["verdict"] for r, v in verdicts.items()}

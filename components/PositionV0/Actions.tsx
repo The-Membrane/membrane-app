@@ -1,53 +1,60 @@
 // "MOVE YOUR LINE" (FORECAST_VISUALS.md): the reverse solve on the same model and the
 // selected horizon, written as levers — "If you repay N USDC · line −Y% · Z% (lo–hi)",
-// "If you add N ETH · …" — each ending at the protocol's own app (root links only; no
-// unverified deep link), then "Alert me at $P".
+// "If you add N ETH · …" — then "Alert me at $P".
+//
+// A lever never sends the reader away (owner, 2026-10-16: "think Bloomberg"): it opens the
+// in-page order slip (LeverSheet), which re-reads the position and signs the repay or the
+// top-up on the venue itself. Its rule is dashed: a dashed edge leads to a signature (T31).
 
 import React from 'react'
-import { Box, Link } from '@chakra-ui/react'
+import { Box } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
-import { TRANSITIONS } from '@/config/transitions'
+import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { NEWS } from '@/components/NewsEdition/tokens'
+import { isExecProtocol } from '@/lib/position-exec/read'
+import type { ActionRow } from '@/lib/position/reverseSolve'
 import { HORIZON_WORDS, TOUCH_TABLE, type HorizonId } from '@/lib/position/touchHistory'
 
 import { AlertMeSlot } from './AlertMeSlot'
 import { Kicker, Mono, Section, Small, StaleTag } from './primitives'
 import type { PositionView } from './viewModel'
 
-const ROW_LINK = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1fr) auto',
-  alignItems: 'center',
-  columnGap: SPACING.sm,
-  minH: '44px',
-  py: SPACING.xs,
-  borderBottom: `1px solid ${NEWS.rule}`,
-  color: NEWS.ink,
-  transition: TRANSITIONS.colors,
-  _hover: { color: NEWS.accent, textDecoration: 'none', borderColor: NEWS.ruleStrong },
-} as const
-
-/** A lever row linking to the venue's app. On a phone the venue name folds to ↗. */
-const VenueLink: React.FC<{ href: string; venue: string; label: string; top?: boolean }> = ({ href, venue, label, top }) => (
-  <Link
-    href={href}
-    isExternal
-    rel="noopener noreferrer"
-    {...ROW_LINK}
-    borderTop={top ? `1px solid ${NEWS.rule}` : undefined}
-    aria-label={`${label} on ${venue}`}
+/** A lever row: a button that opens the order slip. On a phone "Review" folds to ▸. */
+const LeverButton: React.FC<{ label: string; venue: string; onOpen: () => void }> = ({ label, venue, onOpen }) => (
+  <Box
+    as="button"
+    type="button"
+    onClick={onOpen}
+    aria-haspopup="dialog"
+    aria-label={`${label}: review and sign on ${venue}`}
+    display="grid"
+    gridTemplateColumns="minmax(0, 1fr) auto"
+    alignItems="center"
+    columnGap={SPACING.sm}
+    w="100%"
+    minH="44px"
+    py={SPACING.xs}
+    textAlign="left"
+    bg="transparent"
+    borderRadius={0}
+    borderBottom={`1px dashed ${NEWS.ruleStrong}`}
+    color={NEWS.ink}
+    cursor="pointer"
+    transition={TRANSITIONS.colors}
+    _hover={{ color: NEWS.accent, borderColor: NEWS.ink }}
+    _focusVisible={FOCUS_STYLES.ring}
   >
     <Mono as="span" color="inherit">
       {label}
     </Mono>
     <Small as="span" color="inherit" whiteSpace="nowrap">
       <Box as="span" display={{ base: 'none', md: 'inline' }}>
-        on {venue}{' '}
+        Review{' '}
       </Box>
-      ↗
+      ▸
     </Small>
-  </Link>
+  </Box>
 )
 
 /**
@@ -77,7 +84,9 @@ export const Actions: React.FC<{
   address: string
   /** Days since the forecast's data ended, when it is STALE: its chances are withheld. */
   staleDays: number | null
-}> = ({ view, horizon, address, staleDays }) => {
+  /** Opens the order slip for one lever. */
+  onLever: (row: ActionRow) => void
+}> = ({ view, horizon, address, staleDays, onLever }) => {
   if (view.hero.kind === 'no-debt') return null
   const venue = view.label.split(' · ')[0]
   const stale = staleDays !== null && view.forecast !== null
@@ -102,8 +111,8 @@ export const Actions: React.FC<{
             return (
               <Box key={kind} borderTop={`1px solid ${NEWS.rule}`} minW={0}>
                 {group.map((a) =>
-                  view.appUrl ? (
-                    <VenueLink key={a.text} href={view.appUrl} venue={venue} label={label(a)} />
+                  isExecProtocol(view.protocol) ? (
+                    <LeverButton key={a.text} venue={venue} label={label(a)} onOpen={() => onLever(a)} />
                   ) : (
                     <Mono key={a.text} minH="44px" py={SPACING.xs} borderBottom={`1px solid ${NEWS.rule}`}>
                       {label(a)}
@@ -115,12 +124,7 @@ export const Actions: React.FC<{
           })}
         </Box>
       ) : (
-        <Box display="grid" gap={SPACING.xs}>
-          {empty && <Mono color={NEWS.ink2}>{empty}</Mono>}
-          {view.appUrl && (
-            <VenueLink href={view.appUrl} venue={venue} label="Manage this position" top />
-          )}
-        </Box>
+        empty && <Mono color={NEWS.ink2}>{empty}</Mono>
       )}
       <AlertMeSlot view={view} address={address} />
     </Section>

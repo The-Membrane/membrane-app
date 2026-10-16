@@ -19,6 +19,8 @@ export interface PositionTarget {
   target: `0x${string}` | null
   /** Bumped on every submit, so reading the same address again re-reads it. */
   nonce: number
+  /** Reads the same address again (after a lever settles). */
+  reread: () => void
   input: string
   setInput: (v: string) => void
   error: string | null
@@ -103,9 +105,12 @@ export function usePositionTarget(): PositionTarget {
     connect()
   }, [isWalletConnected, wallet, submit, connect])
 
+  const reread = useCallback(() => setNonce((n) => n + 1), [])
+
   return {
     target,
     nonce,
+    reread,
     // Untouched, the box shows the address being read (or the broken one from the link).
     input: typed ?? target ?? (urlError ? url.raw : null) ?? '',
     setInput: setTyped,

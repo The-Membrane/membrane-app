@@ -6,12 +6,15 @@
 // line; the dense instrument panel. Every figure comes from an adapter read, the generated
 // history table or a contract constant (DESIGN_RULES §4: no mockup numbers).
 
-import React, { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Box } from '@chakra-ui/react'
+import { useAccount } from 'wagmi'
 
 import { SPACING } from '@/config/spacing'
 import { NEWS } from '@/components/NewsEdition/tokens'
-import { DEFAULT_HORIZON } from '@/lib/position/reverseSolve'
+import useWallet from '@/hooks/useWallet'
+import { isExecProtocol } from '@/lib/position-exec/read'
+import { DEFAULT_HORIZON, type ActionRow } from '@/lib/position/reverseSolve'
 import { TOUCH_TABLE, staleDays, type HorizonId } from '@/lib/position/touchHistory'
 
 import { Actions } from './Actions'
@@ -19,6 +22,8 @@ import { AddressForm } from './AddressForm'
 import { ForecastBlock } from './ForecastBlock'
 import { Hero } from './Hero'
 import { Instrument } from './Instrument'
+import type { LeverIntent } from './leverExec'
+import { LeverSheet } from './LeverSheet'
 import { MarketHistory } from './MarketHistory'
 import { MembraneLine } from './MembraneLine'
 import { PositionPicker } from './PositionPicker'
@@ -87,16 +92,33 @@ const Positions: React.FC<{
   address: string
   /** Days the forecast's data is past STALE, or null while fresh. */
   staleAge: number | null
-}> = ({ views, selected, onSelect, failures, address, staleAge }) => {
+  onLever: (intent: LeverIntent) => void
+}> = ({ views, selected, onSelect, failures, address, staleAge, onLever }) => {
   // One horizon drives the forecast, the curve and the levers (FORECAST_VISUALS.md §3).
   const [horizon, setHorizon] = useState<HorizonId>(DEFAULT_HORIZON)
   const hasLine = selected.hero.kind !== 'no-debt'
+  const openLever = (row: ActionRow) => {
+    if (!isExecProtocol(selected.protocol)) return
+    onLever({
+      owner: address as `0x${string}`,
+      positionKey: selected.key,
+      protocol: selected.protocol,
+      title: selected.title,
+      kind: row.kind,
+      targetPct: row.targetPct,
+      level: row.level,
+      horizon,
+      stale: staleAge !== null && selected.forecast !== null,
+      row,
+      openedAt: Date.now(),
+    })
+  }
   return (
     <>
       {views.length > 1 && <PositionPicker views={views} selectedKey={selected.key} onSelect={onSelect} />}
       <Hero view={selected} />
       <ForecastBlock view={selected} horizon={horizon} onHorizon={setHorizon} stale={staleAge !== null} t={TOUCH_TABLE} />
-      <Actions view={selected} horizon={horizon} address={address} staleDays={staleAge} />
+      <Actions view={selected} horizon={horizon} address={address} staleDays={staleAge} onLever={openLever} />
       {/* With no debt there is no line for the window to sit on. */}
       {hasLine && <MembraneLine />}
       <Rule strong mt={SPACING.xl} />
@@ -121,7 +143,8 @@ const Body: React.FC<{
   selected: PositionView | null
   onSelect: (key: string) => void
   staleAge: number | null
-}> = ({ state, address, items, readId, selected, onSelect, staleAge }) => {
+  onLever: (intent: LeverIntent) => void
+}> = ({ state, address, items, readId, selected, onSelect, staleAge, onLever }) => {
   const stale = staleAge !== null
   if (state.kind === 'idle') return <MarketHistory t={TOUCH_TABLE} stale={stale} />
   if (!address) return null
@@ -144,6 +167,7 @@ const Body: React.FC<{
       failures={items.filter((i) => i.state === 'error' || (i.skipped?.length ?? 0) > 0)}
       address={address}
       staleAge={staleAge}
+      onLever={onLever}
     />
   )
 }
@@ -165,10 +189,35 @@ export const PositionV0: React.FC = () => {
   // and a browser on different clocks never render different markup. Whole days: stable.
   const staleAge = useSyncExternalStore(noSubscribe, clientStaleDays, serverStaleDays)
 
+  // THE ORDER SLIP lives here, above the keyed read, so a settled lever's re-read does not
+  // unmount its receipt. V20: "Connect wallet" keeps the intent, and the same slip opens
+  // again once the wallet connects, even if the reader closed it meanwhile.
+  const [lever, setLever] = useState<LeverIntent | null>(null)
+  const [awaitingConnect, setAwaitingConnect] = useState<LeverIntent | null>(null)
+  const { isConnected } = useAccount()
+  const { connect } = useWallet()
+  useEffect(() => {
+    if (!awaitingConnect || !isConnected) return
+    setLever(awaitingConnect)
+    setAwaitingConnect(null)
+  }, [awaitingConnect, isConnected])
+  const closeLever = useCallback(() => setLever(null), [])
+  const connectForLever = useCallback(() => {
+    if (lever) setAwaitingConnect(lever)
+    connect()
+  }, [lever, connect])
+
   const items = useMemo(() => readStatus(ADAPTER_ORDER, results), [results])
   const state = useMemo(() => pageState(address !== null, items, results, TOUCH_TABLE), [address, items, results])
   const views = state.kind === 'positions' ? state.views : []
   const selected = views.find((v) => v.key === selectedKey) ?? views[0] ?? null
+  // After a settled lever: read the same address again, keeping the position picked.
+  const { reread } = form
+  const selectedKeyNow = selected?.key ?? null
+  const onSettled = useCallback(() => {
+    if (selectedKeyNow) setPicked({ read: `${address ?? ''}#${form.nonce + 1}`, key: selectedKeyNow })
+    reread()
+  }, [address, form.nonce, reread, selectedKeyNow])
 
   return (
     <Box className="news-edition" minH="100vh" data-testid="position-v0">
@@ -192,8 +241,20 @@ export const PositionV0: React.FC = () => {
         </Box>
         <Rule mt={SPACING.base} />
 
-        <Body state={state} address={address} items={items} readId={readId} selected={selected} onSelect={onSelect} staleAge={staleAge} />
+        <Body
+          state={state}
+          address={address}
+          items={items}
+          readId={readId}
+          selected={selected}
+          onSelect={onSelect}
+          staleAge={staleAge}
+          onLever={setLever}
+        />
       </Box>
+      {lever && (
+        <LeverSheet key={lever.openedAt} intent={lever} onClose={closeLever} onConnect={connectForLever} onSettled={onSettled} />
+      )}
     </Box>
   )
 }

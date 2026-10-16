@@ -1,20 +1,21 @@
-// THE ORDER SLIP (owner ruling T31: signing surfaces are a ledger slip on the same paper).
-// A lever row opens it in place: a centred modal on a desktop, a bottom sheet on a phone.
-// It never sends the reader to the venue's app (owner, 2026-10-16: "think Bloomberg").
+// THE ORDER SLIP (owner ruling T31: signing surfaces are a ledger slip on the same paper,
+// with a counterfoil). A lever row opens it in place: a centred modal on a desktop, a
+// bottom sheet on a phone. It never sends the reader to the venue's app ("think Bloomberg").
 //
-//   kicker   ORDER SLIP · AAVE V3                                   stamp (DRAFT → SETTLED)
-//   head     If you repay 460 USDC          (re-solved now; "was 480 USDC" when it moved)
-//   rows     brought forward → carried forward: liquidation price, distance, chance †
-//   balance  the owner's balance of the token
-//   steps    every call the wallet will show: contract, function, exact units
-//   gas      the simulation's gas with the pipeline's 5% buffer, and its fee ceiling
-//   checks   venue, balance, wallet, owner, chain, simulation — each named
-//   credit   the re-read's block and time, its source, the simulation method
-//   commit   one button in a dashed frame (a dashed edge leads to a signature)
+//   head        ORDER SLIP · AAVE V3                                         [ STAMP ]
+//               If you repay  760 USDT          words in Redaction, the figure in Mono
+//   ledger      brought forward → carried forward: price, distance, chance †, balance
+//   authorised  the exact approval and its spender, when the batch approves (solid box)
+//   steps       every call the wallet will show: contract, function, exact units; gas
+//   checks      venue, balance, wallet, owner, chain, simulation — each named, with a glyph
+//   counterfoil after the first signature, behind a perforation: the stamp's story, the
+//               transaction, "still waiting", what stands after a partial run
+//   commit      one button in a dashed frame (a dashed edge leads to a signature)
 //
-// Numbers are JetBrains Mono (T31); only the headline is Redaction. Until the re-read lands
-// the slip shows only the clicked row's own words; every figure after that comes from the
-// re-read (useLeverExec), none from the page's earlier read.
+// Every figure is JetBrains Mono (T31, CLAUDE.md rule 3); Redaction sets only the headline
+// words. Colour carries a glyph (DESIGN_RULES §2): red only for a failure that cost gas or
+// did not happen, always with ✖. `LeverSlip` is presentational (the design-states page
+// renders it from fixtures); `LeverSheet` wires it to useLeverExec.
 
 import React from 'react'
 import {
@@ -37,47 +38,140 @@ import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
 import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { getTxExplorerUrl } from '@/helpers/explorer'
 import { fmtUnits } from '@/lib/position-exec/amount'
-import type { Check } from '@/lib/position-exec/sheet'
+import type { Check, SheetView } from '@/lib/position-exec/sheet'
 import type { SimResult } from '@/lib/position-exec/simulate'
 import { fmtAmount, fmtInt, fmtUtc } from '@/lib/position/format'
 
 import { PROTOCOL_SHORT } from './viewModel'
-import { Kicker, Mono, Rule, Small, StaleTag } from './primitives'
-import { slipRows, stepsOf, type LeverIntent, type PreparedLever } from './leverExec'
+import { Kicker, Mono, Small, StaleTag } from './primitives'
+import { slipRows, stepsOf, type LeverIntent, type Prepared, type PreparedLever } from './leverExec'
 import { CAPS, TYPE } from './typeScale'
 import { useLeverExec } from './useLeverExec'
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
-
 const GLYPH = (ok: boolean | null) => (ok === null ? '○' : ok ? '●' : '✖')
+const RULE = `1px solid ${NEWS.rule}`
 
-/** label · before → after, one line; the after column never wraps under the label on a phone. */
-const Line: React.FC<{ label: string; before?: string | null; after: string }> = ({
+/** Stamps that report a loss or a non-event: red, and always with ✖. */
+const isRedStamp = (stamp: string) => stamp.startsWith('FAILED') || stamp === 'REPLACED'
+
+// ------------------------------------------------------------------ pieces
+
+const Stamp: React.FC<{ stamp: string }> = ({ stamp }) => {
+  const red = isRedStamp(stamp)
+  return (
+    <Box
+      as="span"
+      data-testid="lever-stamp"
+      aria-live="polite"
+      display="inline-block"
+      border={`1px solid ${red ? NEWS.danger : NEWS.ink}`}
+      px={SPACING.xs}
+      fontFamily={NEWS_FONT.mono}
+      fontSize={TYPE.label}
+      fontWeight={700}
+      lineHeight={1.6}
+      color={red ? NEWS.danger : NEWS.ink}
+      whiteSpace="nowrap"
+      {...CAPS}
+    >
+      {red ? `✖ ${stamp}` : stamp}
+    </Box>
+  )
+}
+
+/** "If you repay" in Redaction, "760 USDT" in Mono, one headline. */
+const Headline: React.FC<{ kind: 'repay' | 'add'; amount: string; symbol: string }> = ({
+  kind,
+  amount,
+  symbol,
+}) => (
+  <Box
+    as="span"
+    display="block"
+    fontSize={TYPE.head}
+    lineHeight={1.25}
+    color={NEWS.ink}
+    mt={SPACING.sm}
+  >
+    <Box as="span" fontFamily={NEWS_FONT.display} fontWeight={700}>
+      If you {kind}{' '}
+    </Box>
+    <Box
+      as="span"
+      fontFamily={NEWS_FONT.mono}
+      fontWeight={700}
+      whiteSpace="nowrap"
+      sx={{ fontVariantNumeric: 'tabular-nums' }}
+    >
+      {amount} {symbol}
+    </Box>
+  </Box>
+)
+
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <Box minW={0}>
+    <Kicker tone="muted" pb={SPACING.xs} borderBottom={`1px solid ${NEWS.ruleStrong}`}>
+      {title}
+    </Kicker>
+    {children}
+  </Box>
+)
+
+/** One ledger line: label, now, after. A three-column table from 480px; stacked below it. */
+const LedgerLine: React.FC<{ label: string; before: string | null; after: string }> = ({
   label,
   before,
   after,
 }) => (
   <Box
     display="grid"
-    gridTemplateColumns={{ base: '1fr', sm: 'minmax(0, 1fr) auto' }}
+    gridTemplateColumns={{ base: '1fr', sm: 'minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr)' }}
     columnGap={SPACING.sm}
     py={SPACING.xs}
-    borderBottom={`1px solid ${NEWS.rule}`}
+    borderBottom={RULE}
     minW={0}
   >
     <Small color={NEWS.ink2}>{label}</Small>
-    <Mono textAlign={{ base: 'left', sm: 'right' }} overflowWrap="anywhere">
-      {before ? `${before} → ` : ''}
-      <b>{after}</b>
+    <Mono
+      color={NEWS.ink2}
+      textAlign={{ base: 'left', sm: 'right' }}
+      display={{ base: 'none', sm: 'block' }}
+    >
+      {before ?? '—'}
     </Mono>
+    <Mono textAlign={{ base: 'left', sm: 'right' }} fontWeight={700} overflowWrap="anywhere">
+      <Box as="span" display={{ base: 'inline', sm: 'none' }} fontWeight={400} color={NEWS.ink2}>
+        {before ? `${before} → ` : ''}
+      </Box>
+      {after}
+    </Mono>
+  </Box>
+)
+
+const LedgerHead: React.FC = () => (
+  <Box
+    display={{ base: 'none', sm: 'grid' }}
+    gridTemplateColumns="minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr)"
+    columnGap={SPACING.sm}
+    pt={SPACING.xs}
+  >
+    <span />
+    <Small textAlign="right" {...CAPS}>
+      Now
+    </Small>
+    <Small textAlign="right" {...CAPS}>
+      After
+    </Small>
   </Box>
 )
 
 function gasLine(sim: SimResult | null): string | null {
   if (!sim || !sim.ok) return null
+  // An estimate at today's fee, not a ceiling: the wallet sets the fee when it signs.
   const fee =
     sim.maxFeePerGas !== null
-      ? ` · ≤ ${Number(formatEther(sim.bufferedGas * sim.maxFeePerGas)).toPrecision(3)} ETH`
+      ? ` · about ${Number(formatEther(sim.bufferedGas * sim.maxFeePerGas)).toPrecision(2)} ETH`
       : ''
   const waits = sim.gas.some((g) => g === null)
     ? ' · + the action, estimated once the approve lands'
@@ -85,11 +179,27 @@ function gasLine(sim: SimResult | null): string | null {
   return `${fmtInt(Number(sim.bufferedGas))} gas${fee}${waits}`
 }
 
-const Ready: React.FC<{ p: PreparedLever; intent: LeverIntent; sim: SimResult | null }> = ({
+/** The approval the batch asks for, if any: exact amount and spender (Q11 "authorised up to"). */
+function authorised(p: PreparedLever, venue: string): { amount: string; spender: string } | null {
+  const approve = [...p.calls]
+    .reverse()
+    .find((c) => c.functionName === 'approve' && (c.args?.[1] as bigint) > 0n)
+  if (!approve) return null
+  const [spender, units] = approve.args as readonly [string, bigint]
+  const name =
+    p.calls.at(-1)!.address.toLowerCase() === spender.toLowerCase() ? venue : short(spender)
+  return {
+    amount: `${fmtUnits(units, p.read.decimals, Math.max(2, p.row.amountDecimals))} ${p.leg.symbol}`,
+    spender: `${name} ${short(spender)}`,
+  }
+}
+
+const Ledger: React.FC<{ p: PreparedLever; intent: LeverIntent; sim: SimResult | null }> = ({
   p,
   intent,
   sim,
 }) => {
+  const venue = PROTOCOL_SHORT[intent.protocol]
   const shown = fmtAmount(p.row.amount, p.row.amountDecimals)
   const steps = stepsOf(p.calls, {
     protocol: intent.protocol,
@@ -98,53 +208,87 @@ const Ready: React.FC<{ p: PreparedLever; intent: LeverIntent; sim: SimResult | 
     shown,
   })
   const gas = gasLine(sim)
+  const auth = authorised(
+    p,
+    intent.protocol === 'compound-v3'
+      ? 'Comet'
+      : intent.protocol === 'morpho-blue'
+        ? 'Morpho Blue'
+        : `${venue} Pool`,
+  )
   return (
-    <Box display="grid" gap={SPACING.sm} minW={0}>
-      <Box minW={0}>
+    <Box display="grid" gap={SPACING.base} minW={0}>
+      <Section title="Brought forward → carried forward">
+        <LedgerHead />
         {slipRows(p.view, p.row, intent.horizon, intent.stale).map((r) => (
-          <Line key={r.label} label={r.label} before={r.before} after={r.after} />
+          <LedgerLine key={r.label} label={r.label} before={r.before} after={r.after} />
         ))}
-        <Line
-          label={`${p.leg.symbol} balance · ${short(intent.owner)}`}
-          after={fmtUnits(p.read.balance, p.read.decimals, Math.max(2, p.row.amountDecimals))}
+        <LedgerLine
+          label={`${p.leg.symbol} in ${short(intent.owner)}`}
+          before={fmtUnits(p.read.balance, p.read.decimals, Math.max(2, p.row.amountDecimals))}
+          after={fmtUnits(
+            p.read.balance >= p.amount ? p.read.balance - p.amount : 0n,
+            p.read.decimals,
+            Math.max(2, p.row.amountDecimals),
+          )}
         />
         {intent.stale && (
           <Small pt={SPACING.xs}>
             <StaleTag /> · chances withheld
           </Small>
         )}
-      </Box>
+      </Section>
 
-      <Box minW={0}>
-        <Kicker tone="muted">Steps · {steps.length}</Kicker>
+      {auth && (
+        <Box border={`1px solid ${NEWS.ink}`} px={SPACING.sm} py={SPACING.xs} minW={0}>
+          <Small {...CAPS} color={NEWS.ink2}>
+            Authorised up to
+          </Small>
+          <Mono fontWeight={700}>{auth.amount}</Mono>
+          <Small overflowWrap="anywhere">to {auth.spender} · exactly this, never unlimited</Small>
+        </Box>
+      )}
+
+      <Section title={`Steps · ${steps.length} · each shows in your wallet`}>
         {steps.map((s, i) => (
           <Box
             key={i}
             display="grid"
-            gridTemplateColumns="1.5em minmax(0, 1fr)"
+            gridTemplateColumns="2em minmax(0, 1fr)"
             py={SPACING.xs}
-            borderBottom={`1px solid ${NEWS.rule}`}
+            borderBottom={RULE}
           >
-            <Mono>{i + 1}</Mono>
+            <Mono color={NEWS.ink2}>{i + 1}</Mono>
             <Box minW={0}>
               <Mono>{s.title}</Mono>
               <Small overflowWrap="anywhere">{s.detail}</Small>
             </Box>
           </Box>
         ))}
-        {gas && <Line label="Gas, est." after={gas} />}
-      </Box>
+        {gas && (
+          <Box
+            display="grid"
+            gridTemplateColumns="2em minmax(0, 1fr)"
+            py={SPACING.xs}
+            borderBottom={RULE}
+          >
+            <Mono color={NEWS.ink2}>≈</Mono>
+            <Mono overflowWrap="anywhere">Gas, est. {gas}</Mono>
+          </Box>
+        )}
+      </Section>
     </Box>
   )
 }
 
 const Checks: React.FC<{ checks: Check[] }> = ({ checks }) => (
-  <Box minW={0}>
-    <Kicker tone="muted">Checks</Kicker>
-    <Box as="ul" listStyleType="none" m={0} p={0}>
+  <Section title="Checks">
+    <Box as="ul" listStyleType="none" m={0} p={0} pt={SPACING.xs}>
       {checks.map((c) => (
-        <Box as="li" key={c.id} display="grid" gridTemplateColumns="1.5em minmax(0, 1fr)">
-          <Mono aria-hidden>{GLYPH(c.ok)}</Mono>
+        <Box as="li" key={c.id} display="grid" gridTemplateColumns="2em minmax(0, 1fr)">
+          <Mono aria-hidden color={c.ok === false ? NEWS.ink : NEWS.ink2}>
+            {GLYPH(c.ok)}
+          </Mono>
           <Mono
             fontWeight={c.ok === false ? 700 : 400}
             color={c.ok === false ? NEWS.ink : NEWS.ink2}
@@ -158,8 +302,48 @@ const Checks: React.FC<{ checks: Check[] }> = ({ checks }) => (
         </Box>
       ))}
     </Box>
-  </Box>
+  </Section>
 )
+
+/** What the stamp means, one line, for the counterfoil. */
+function stampStory(stamp: string): string {
+  if (stamp === 'SUBMITTED')
+    return 'Handed to your wallet. Nothing is sent until you confirm there.'
+  if (stamp.endsWith('STILL WAITING')) return 'Sent. The chain has not confirmed it yet.'
+  if (stamp.startsWith('PENDING')) return 'Sent. Waiting for the chain to confirm.'
+  if (stamp === 'SETTLED') return 'Confirmed on Ethereum. The page is reading the position again.'
+  if (stamp === 'REPLACED') return 'Your wallet replaced it. It did not happen.'
+  if (stamp === 'FAILED · GAS SPENT') return 'It did not complete. Gas was spent on what was mined.'
+  if (stamp === 'FAILED') return 'Stopped before anything was mined. No gas spent.'
+  return ''
+}
+
+const TxLink: React.FC<{ hash: string | null; owner: string; onOpen: () => void }> = ({
+  hash,
+  owner,
+  onOpen,
+}) => {
+  const href = hash
+    ? getTxExplorerUrl(mainnet, hash)
+    : `${mainnet.blockExplorers.default.url}/address/${owner}`
+  return (
+    <Link
+      href={href}
+      isExternal
+      onClick={onOpen}
+      display="inline-flex"
+      alignItems="center"
+      minH="44px"
+      fontFamily={NEWS_FONT.mono}
+      fontSize={TYPE.body}
+      color={NEWS.accent}
+      textDecoration="underline"
+      _focusVisible={FOCUS_STYLES.ring}
+    >
+      {hash ? `${short(hash)} on Etherscan ↗` : `${short(owner)}'s activity on Etherscan ↗`}
+    </Link>
+  )
+}
 
 const BUTTON = {
   borderRadius: 0,
@@ -176,38 +360,40 @@ const BUTTON = {
   ...CAPS,
 } as const
 
-export const LeverSheet: React.FC<{
+// ------------------------------------------------------------------ the slip
+
+export interface LeverSlipProps {
   intent: LeverIntent
+  prepared: Prepared | null
+  sim: SimResult | null
+  sheet: SheetView
+  txHash: `0x${string}` | null
+  busy: boolean
+  onButton: () => void
   onClose: () => void
-  /** Connect, keeping this intent: the page re-opens this slip once the wallet connects. */
-  onConnect: () => void
-  /** The page's position read, refreshed after a settled transaction. */
-  onSettled: (owner: `0x${string}`) => void
-}> = ({ intent, onClose, onConnect, onSettled }) => {
-  const exec = useLeverExec(intent, onSettled)
-  const { sheet, prepared } = exec
+  /** The reader opened the explorer (lets a still-waiting slip be dismissed). */
+  onExplorer: () => void
+}
+
+export const LeverSlip: React.FC<LeverSlipProps> = ({
+  intent,
+  prepared,
+  sim,
+  sheet,
+  txHash,
+  busy,
+  onButton,
+  onClose,
+  onExplorer,
+}) => {
   const ready = prepared?.kind === 'ready' ? prepared : null
   const venue = PROTOCOL_SHORT[intent.protocol]
-  const busy = exec.busy
-  const head = ready ? ready.row.action : intent.row.action
-  const hash = exec.txHash
+  const row = ready ? ready.row : intent.row
+  const symbol = ready ? ready.leg.symbol : intent.row.symbol
   const commit = sheet.button.kind === 'sign'
-
-  const onButton = () => {
-    switch (sheet.button.kind) {
-      case 'connect':
-        return onConnect()
-      case 'switch':
-        return exec.switchChain()
-      case 'sign':
-        return exec.sign()
-      case 'retry':
-        return exec.retry()
-      case 'dismiss':
-      case 'close':
-        return onClose()
-    }
-  }
+  const sent = sheet.stamp !== 'DRAFT'
+  const red = isRedStamp(sheet.stamp)
+  const waiting = sheet.stamp.endsWith('STILL WAITING')
 
   return (
     <Modal
@@ -228,7 +414,7 @@ export const LeverSheet: React.FC<{
         borderRadius={0}
         boxShadow="none"
         w="100%"
-        maxW={{ base: '100%', md: '520px' }}
+        maxW={{ base: '100%', md: '560px' }}
         my={{ base: 0, md: SPACING.base }}
         mx={{ base: 0, md: SPACING.base }}
         maxH={{ base: '92vh', md: '88vh' }}
@@ -240,25 +426,22 @@ export const LeverSheet: React.FC<{
           pr={SPACING['2xl']}
           fontWeight={400}
         >
-          <Box display="flex" flexWrap="wrap" justifyContent="space-between" columnGap={SPACING.sm}>
-            <Kicker>Order slip · {venue}</Kicker>
-            <Kicker as="span" color={NEWS.ink} aria-live="polite" data-testid="lever-stamp">
-              {sheet.stamp}
-            </Kicker>
-          </Box>
           <Box
-            as="span"
-            display="block"
-            fontFamily={NEWS_FONT.display}
-            fontWeight={700}
-            fontSize={TYPE.head}
-            lineHeight={1.2}
-            color={NEWS.ink}
-            mt={SPACING.xs}
+            display="flex"
+            flexWrap="wrap"
+            alignItems="center"
+            justifyContent="space-between"
+            gap={SPACING.sm}
           >
-            {head}
+            <Kicker>Order slip · {venue}</Kicker>
+            <Stamp stamp={sheet.stamp} />
           </Box>
-          <Small as="span" display="block" fontWeight={400}>
+          <Headline
+            kind={row.kind}
+            amount={fmtAmount(row.amount, row.amountDecimals)}
+            symbol={symbol}
+          />
+          <Small as="span" display="block" fontWeight={400} mt={SPACING.xs}>
             {intent.title}
             {ready?.changed
               ? ` · re-solved now, was ${fmtAmount(intent.row.amount, intent.row.amountDecimals)} ${intent.row.symbol}`
@@ -277,19 +460,54 @@ export const LeverSheet: React.FC<{
           _focusVisible={FOCUS_STYLES.ring}
         />
 
-        <ModalBody px={SPACING.base} py={0} display="grid" gap={SPACING.base} minW={0}>
-          <Rule strong />
+        <ModalBody
+          px={SPACING.base}
+          py={0}
+          display="grid"
+          gap={SPACING.base}
+          minW={0}
+          borderTop={`2px solid ${NEWS.ink}`}
+          pt={SPACING.base}
+        >
           {ready ? (
-            <Ready p={ready} intent={intent} sim={exec.sim} />
+            <Ledger p={ready} intent={intent} sim={sim} />
           ) : (
-            !sheet.notice && <Mono color={NEWS.ink2}>Reading {venue} at the latest block…</Mono>
+            !sheet.notice && (
+              <Mono color={NEWS.ink2}>Reading {venue} at one block for every figure…</Mono>
+            )
           )}
           {sheet.checks.length > 0 && prepared?.kind !== 'gone' && <Checks checks={sheet.checks} />}
+
+          {sent && (
+            // THE COUNTERFOIL: torn off along the perforation once something was handed to the wallet.
+            <Box
+              borderTop={`2px dashed ${NEWS.ink}`}
+              pt={SPACING.sm}
+              minW={0}
+              data-testid="lever-counterfoil"
+            >
+              <Box
+                display="flex"
+                flexWrap="wrap"
+                alignItems="center"
+                justifyContent="space-between"
+                gap={SPACING.sm}
+              >
+                <Kicker tone="muted">Counterfoil</Kicker>
+                <Stamp stamp={sheet.stamp} />
+              </Box>
+              <Mono pt={SPACING.xs}>{stampStory(sheet.stamp)}</Mono>
+              {(txHash || waiting) && (
+                <TxLink hash={txHash} owner={intent.owner} onOpen={onExplorer} />
+              )}
+            </Box>
+          )}
+
           {ready && (
-            <Small textAlign="right" overflowWrap="anywhere">
-              Read {ready.block !== null ? `block ${fmtInt(ready.block)} · ` : ''}
-              {fmtUtc(ready.at)} · {ready.source}
-              {exec.sim ? ` · simulated with ${exec.sim.method}` : ''}
+            <Small textAlign="right" overflowWrap="anywhere" pb={SPACING.xs}>
+              Read at block {ready.block !== null ? fmtInt(ready.block) : '—'} ·{' '}
+              {fmtUtc(ready.blockTime ?? ready.at)} · {ready.source}
+              {sim ? ` · simulated with ${sim.method}` : ''}
               {ready.view.forecast && !intent.stale ? ` · ${ready.view.forecast.footer}` : ''}
             </Small>
           )}
@@ -297,32 +515,23 @@ export const LeverSheet: React.FC<{
 
         <ModalFooter
           px={SPACING.base}
-          pt={SPACING.base}
+          pt={SPACING.sm}
           pb={SPACING.lg}
           display="grid"
           gap={SPACING.sm}
           justifyContent="stretch"
+          borderTop={RULE}
         >
           {sheet.notice && (
-            <Mono fontWeight={700} role="status" overflowWrap="anywhere">
-              ✖ {sheet.notice}
-            </Mono>
+            <Box display="grid" gridTemplateColumns="2em minmax(0, 1fr)" role="status" minW={0}>
+              <Mono fontWeight={700} color={red ? NEWS.danger : NEWS.ink} aria-hidden>
+                {waiting ? '○' : '✖'}
+              </Mono>
+              <Mono fontWeight={700} color={red ? NEWS.danger : NEWS.ink} overflowWrap="anywhere">
+                {sheet.notice}
+              </Mono>
+            </Box>
           )}
-          {hash && (
-            <Mono overflowWrap="anywhere">
-              Transaction {short(hash)} ·{' '}
-              <Link
-                href={getTxExplorerUrl(mainnet, hash)}
-                isExternal
-                onClick={exec.checked}
-                color={NEWS.accent}
-                _focusVisible={FOCUS_STYLES.ring}
-              >
-                Etherscan ↗
-              </Link>
-            </Mono>
-          )}
-          {sheet.stamp === 'SETTLED' && <Small>Position read again from the chain.</Small>}
           {/* A dashed edge leads to a signature (T31). */}
           <Box border={`1px dashed ${commit ? NEWS.ink : NEWS.ruleStrong}`} p={SPACING.xs}>
             <Button
@@ -349,5 +558,46 @@ export const LeverSheet: React.FC<{
         </ModalFooter>
       </ModalContent>
     </Modal>
+  )
+}
+
+// ------------------------------------------------------------------ wired
+
+export const LeverSheet: React.FC<{
+  intent: LeverIntent
+  onClose: () => void
+  /** Connect, keeping this intent: the page re-opens this slip once the wallet connects. */
+  onConnect: () => void
+  /** The page's position read, refreshed after a settled transaction. */
+  onSettled: (owner: `0x${string}`) => void
+}> = ({ intent, onClose, onConnect, onSettled }) => {
+  const exec = useLeverExec(intent, onSettled)
+  const onButton = () => {
+    switch (exec.sheet.button.kind) {
+      case 'connect':
+        return onConnect()
+      case 'switch':
+        return exec.switchChain()
+      case 'sign':
+        return exec.sign()
+      case 'retry':
+        return exec.retry()
+      case 'dismiss':
+      case 'close':
+        return onClose()
+    }
+  }
+  return (
+    <LeverSlip
+      intent={intent}
+      prepared={exec.prepared}
+      sim={exec.sim}
+      sheet={exec.sheet}
+      txHash={exec.txHash}
+      busy={exec.busy}
+      onButton={onButton}
+      onClose={onClose}
+      onExplorer={exec.checked}
+    />
   )
 }

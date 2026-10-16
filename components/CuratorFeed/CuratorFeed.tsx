@@ -11,13 +11,11 @@
 // the window (24–72h) = red. COPY RULES: factual only — what the chain recorded, who, how
 // much, when. Never "safe", never a prediction. Every figure carries its provenance.
 //
-// §07 ORACLE ABOVE MARKET (membrane-board design/DESIGN_RULES.md): finding → evidence →
-// action. Measured live (oracle price() vs DefiLlama), beside the retrospective record of
-// the same rule (Q25 T2 I3). Calm is ink only; red ✖ only for a market whose oracle has
-// priced its collateral ≥ 2 % above market for 24 h (a latent loss); building is ink ▲;
-// stale is hatched ░ with the headline withheld. Every number comes from the API.
+// §07 ORACLE ABOVE MARKET is its own file (OracleGapSection.tsx): one small card per
+// market, the viewer's markets framed. The compact card at the end of this file leads each
+// item with a short headline (lib/curatorFeed/headlines.ts).
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { Box, HStack, Input, Link, Stack, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
@@ -31,16 +29,13 @@ import { FOCUS_STYLES } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { compact, durationText, utc } from '@/lib/curatorFeed/format'
 import {
-  gapText,
-  HOLD_SECONDS,
-  i3Headline,
-  MARKET_HOLD_SECONDS,
-  MIN_PRICE_CONFIDENCE,
-  recordCaveats,
-  recordCredit,
-  recordLines,
-  thresholdText,
-} from '@/lib/curatorFeed/oracleGap'
+  cardSummary,
+  clusterLine,
+  currentClusters,
+  gapLine,
+  rowLine,
+  type Line,
+} from '@/lib/curatorFeed/headlines'
 import type {
   AttributionView,
   ClusterView,
@@ -49,13 +44,15 @@ import type {
   FeedRow,
   Group,
   MarketFlagView,
-  OracleGapMarketView,
   OracleGapResponse,
   ShiftView,
   SpikeView,
   VaultExposureView,
 } from '@/lib/curatorFeed/service'
 import type { Tone } from '@/lib/curatorFeed/status'
+
+import { Chip, getJson, LABEL, Mono } from './atoms'
+import { OracleGapSection } from './OracleGapSection'
 
 const TONE: Record<Tone, string> = {
   amber: SEMANTIC_COLORS.warning,
@@ -78,51 +75,6 @@ const GROUPS: { key: Group; label: string }[] = [
   { key: 'protocol', label: 'aave' },
 ]
 const ETHERSCAN = 'https://etherscan.io'
-
-const Mono: React.FC<{
-  children: React.ReactNode
-  color?: string
-  size?: string
-  as?: 'span' | 'p'
-  title?: string
-}> = ({ children, color, size = '11px', as = 'p', title }) => (
-  <Text
-    as={as}
-    title={title}
-    fontFamily={TYPOGRAPHY.fontMono}
-    fontSize={size}
-    color={color ?? SEMANTIC_COLORS.textSecondary}
-    sx={{ fontVariantNumeric: 'tabular-nums' }}
-  >
-    {children}
-  </Text>
-)
-
-const Chip: React.FC<{ active?: boolean; onClick?: () => void; children: React.ReactNode }> = ({
-  active,
-  onClick,
-  children,
-}) => (
-  <Box
-    as="button"
-    type="button"
-    onClick={onClick}
-    aria-pressed={active}
-    px={SPACING.sm}
-    py="2px"
-    border="1px solid"
-    borderRadius={0}
-    borderColor={active ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.borderSubtle}
-    color={active ? SEMANTIC_COLORS.primary : SEMANTIC_COLORS.textSecondary}
-    fontFamily={TYPOGRAPHY.fontMono}
-    fontSize="10px"
-    letterSpacing="0.12em"
-    textTransform="uppercase"
-    _hover={{ borderColor: SEMANTIC_COLORS.borderStrong }}
-  >
-    {children}
-  </Box>
-)
 
 const Tag: React.FC<{ tone: Tone; wrap?: boolean; children: React.ReactNode }> = ({
   tone,
@@ -159,419 +111,6 @@ const zeroText = (fns: string[]): string =>
   fns.length === 1 && fns[0] === 'timelock'
     ? 'timelock 0'
     : `timelock 0: ${fns.slice(0, 2).join(', ')}${fns.length > 2 ? ` +${fns.length - 2}` : ''}`
-
-async function getJson<T>(url: string): Promise<T> {
-  const r = await fetch(url)
-  const body = await r.json()
-  if (!r.ok) throw new Error(body?.error ?? `${url} ${r.status}`)
-  return body as T
-}
-
-// ── oracle gap (lib/curatorFeed/oracleGap.ts) ─────────────────────────────────
-
-/** Stale inputs: hatched, never coloured (DESIGN_RULES §4). */
-const HATCH = `repeating-linear-gradient(135deg, ${SEMANTIC_COLORS.borderMedium} 0 1px, transparent 1px 6px)`
-
-/** A USD price at 5 significant digits: $83,357 · $1.0645 · $0.000015853. */
-const usdPrice = (x: number): string =>
-  `$${Number(x.toPrecision(5)).toLocaleString('en-US', { maximumFractionDigits: 20 })}`
-
-/**
- * The last 48 hourly points as a thin ink line, the condition as a dotted ink rule
- * labelled on the chart. An unobserved point or a missing hour breaks the line.
- */
-const GapSpark: React.FC<{
-  series: OracleGapMarketView['series']
-  line: number
-  label: string
-}> = ({ series, line, label }) => {
-  const W = 132
-  const H = 30
-  const PAD = 3
-  const LABEL = 22
-  const seen = series.filter((p): p is { ts: number; gap: number } => p.gap !== null)
-  if (seen.length < 2) return null
-  const t0 = series[0].ts
-  const t1 = series[series.length - 1].ts
-  const lo = Math.min(0, line, ...seen.map((p) => p.gap))
-  const hi = Math.max(line, ...seen.map((p) => p.gap))
-  const x = (ts: number) => PAD + ((ts - t0) / Math.max(1, t1 - t0)) * (W - LABEL - 2 * PAD)
-  const y = (g: number) => PAD + (1 - (g - lo) / (hi - lo || 1)) * (H - 2 * PAD)
-  const segs: string[][] = []
-  let prev: number | undefined
-  for (const p of series) {
-    if (p.gap === null) {
-      prev = undefined
-      continue
-    }
-    if (prev === undefined || p.ts - prev > HOLD_SECONDS.hourly) segs.push([])
-    segs[segs.length - 1].push(`${x(p.ts).toFixed(1)},${y(p.gap).toFixed(1)}`)
-    prev = p.ts
-  }
-  return (
-    <Box
-      as="svg"
-      width={`${W}px`}
-      height={`${H}px`}
-      viewBox={`0 0 ${W} ${H}`}
-      flexShrink={0}
-      role="img"
-      aria-label={`Gap over the last ${series.length} hourly points, against the ${label} line`}
-    >
-      <line
-        x1={PAD}
-        x2={W - LABEL}
-        y1={y(line)}
-        y2={y(line)}
-        style={{ stroke: SEMANTIC_COLORS.textTertiary, strokeWidth: 1, strokeDasharray: '1 2' }}
-      />
-      <text
-        x={W - LABEL + 3}
-        y={y(line) + 3}
-        style={{ fill: SEMANTIC_COLORS.textTertiary, fontSize: 9, fontFamily: TYPOGRAPHY.fontMono }}
-      >
-        {label}
-      </text>
-      {lo < 0 && (
-        <line
-          x1={PAD}
-          x2={W - LABEL}
-          y1={y(0)}
-          y2={y(0)}
-          style={{ stroke: SEMANTIC_COLORS.borderSubtle, strokeWidth: 1 }}
-        />
-      )}
-      {segs.map((pts) =>
-        pts.length > 1 ? (
-          <polyline
-            key={pts[0]}
-            points={pts.join(' ')}
-            style={{ fill: 'none', stroke: SEMANTIC_COLORS.textSecondary, strokeWidth: 1.25 }}
-          />
-        ) : (
-          <circle
-            key={pts[0]}
-            cx={Number(pts[0].split(',')[0])}
-            cy={Number(pts[0].split(',')[1])}
-            r={1.25}
-            style={{ fill: SEMANTIC_COLORS.textSecondary }}
-          />
-        ),
-      )}
-    </Box>
-  )
-}
-
-/** Tap target ≥ 44px on phones (DESIGN_RULES §8), inline on desktop. */
-const ACTION = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  minH: { base: '44px', md: 'auto' },
-  mr: SPACING.base,
-  fontFamily: TYPOGRAPHY.fontMono,
-  fontSize: '11px',
-  color: SEMANTIC_COLORS.textSecondary,
-  textDecoration: 'underline',
-  _hover: { color: SEMANTIC_COLORS.textPrimary },
-  _focusVisible: FOCUS_STYLES.ring,
-} as const
-
-/** Where a market stands, in words; the glyph carries the state (DESIGN_RULES §2). */
-function gapStatus(m: OracleGapMarketView, r: OracleGapResponse): string {
-  const { i3 } = m
-  const line = thresholdText(r.constants)
-  switch (i3.state) {
-    case 'fired':
-      return `✖ ${i3.hoursAboveConsecutive} h above ${line} · since ${utc(i3.firedSince ?? 0)}`
-    case 'building':
-      return `▲ ${i3.hoursAboveConsecutive} of ${i3.persistence} h above ${line}`
-    case 'unobserved':
-      return m.lastRaw
-        ? `no point this hour: DefiLlama confidence ${m.lastRaw.marketConfidence} under ${MIN_PRICE_CONFIDENCE} (raw ${gapText(m.lastRaw.rawGap)}, not counted)`
-        : 'no point this hour (oracle reverts, or no fresh DefiLlama price)'
-    case 'stale':
-      return `░ last point ${durationText(r.meta.now - (i3.lastTs ?? 0))} ago`
-    default:
-      return `below ${line}`
-  }
-}
-
-/** The $ exposed (DESIGN_RULES §4): curated supply at the last exposure read. */
-function exposedText(m: OracleGapMarketView, minUsd: number): string {
-  if (m.curatedUsd === undefined) return 'no curated supply (no curated vault holds it)'
-  if (m.curatedUsd < minUsd) return `under $${minUsd} curated supply`
-  return `$${compact(m.curatedUsd)} curated supply${m.locked ? ' (book value: supply locked)' : ''}`
-}
-
-/** "$787M (book value: supply locked)" / "$5M (incl. $1M book value)" / "$5M" */
-function usdWithBook(total: number, book: number): string {
-  if (book > 0 && book >= total * 0.999) return `$${compact(total)} (book value: supply locked)`
-  if (book > 0) return `$${compact(total)} (incl. $${compact(book)} book value)`
-  return `$${compact(total)}`
-}
-
-/** "Held: Vault (Curator) 12.3% · …" */
-function heldText(m: OracleGapMarketView): string {
-  if (!m.vaults.length) return 'No curated vault holds it at the last exposure read.'
-  const list = m.vaults
-    .slice(0, 3)
-    .map((v) => `${v.vaultName} (${v.curatorName}) ${(v.share * 100).toFixed(1)}%`)
-    .join(' · ')
-  return `Held: ${list}${m.vaults.length > 3 ? ` · +${m.vaults.length - 3} more` : ''}`
-}
-
-const GapRow: React.FC<{
-  m: OracleGapMarketView
-  r: OracleGapResponse
-  onWatch: (symbol: string) => void
-}> = ({ m, r, onWatch }) => {
-  const fired = m.i3.state === 'fired'
-  const ink = fired ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary
-  return (
-    <Box py={SPACING.sm} borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
-      <HStack justify="space-between" align="center" spacing={SPACING.sm} flexWrap="wrap">
-        <Mono size="12px" color={SEMANTIC_COLORS.textPrimary} title={m.market}>
-          {m.marketName}
-        </Mono>
-        <HStack spacing={SPACING.sm} align="center">
-          <GapSpark series={m.series} line={r.constants.gap} label={thresholdText(r.constants)} />
-          {m.i3.currentGap !== undefined && (
-            <Mono size="14px" color={ink} title="oracle ÷ DefiLlama − 1, newest point">
-              {fired ? '✖ ' : ''}
-              {gapText(m.i3.currentGap)}
-            </Mono>
-          )}
-        </HStack>
-      </HStack>
-      <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
-        {exposedText(m, r.exposedMinUsd)}
-      </Mono>
-      <Mono size="11px" color={fired ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}>
-        {gapStatus(m, r)}
-      </Mono>
-      {m.latest && (
-        <Mono size="11px">
-          oracle price() {usdPrice(m.latest.oracleUsd)} · DefiLlama {usdPrice(m.latest.marketUsd)}
-          {m.latest.marketConfidence !== undefined
-            ? ` (confidence ${m.latest.marketConfidence})`
-            : ''}
-        </Mono>
-      )}
-      <Mono size="11px">{heldText(m)}</Mono>
-      <Box>
-        <Box as="button" type="button" {...ACTION} onClick={() => onWatch(m.collateralSymbol)}>
-          watch {m.collateralSymbol} in this feed →
-        </Box>
-        <Link href={`${ETHERSCAN}/address/${m.oracle}#readContract`} isExternal {...ACTION}>
-          oracle ↗
-        </Link>
-      </Box>
-    </Box>
-  )
-}
-
-/** The retrospective record of the same rule, composed from i3Record.generated.json. */
-const GapRecord: React.FC<{ r: OracleGapResponse }> = ({ r }) => (
-  <Box>
-    <Eyebrow>
-      Record · {r.record.lane} {r.record.test.split(/\s/)[0]} · retrospective
-    </Eyebrow>
-    <Stack spacing={0} mt={SPACING.sm}>
-      {recordLines(r.record).map((l) => (
-        <Box
-          key={`${l.label}|${l.date}`}
-          py={SPACING.xs}
-          borderBottom="1px solid"
-          borderColor={SEMANTIC_COLORS.borderSubtle}
-        >
-          <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
-            {l.label}
-            {l.date ? ` · ${l.date}` : ''}
-          </Mono>
-          <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
-            {l.value}
-          </Mono>
-        </Box>
-      ))}
-    </Stack>
-    <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
-      {recordCaveats(r.record)}
-    </Mono>
-    <Text
-      textAlign="right"
-      fontFamily={TYPOGRAPHY.fontMono}
-      fontSize="11px"
-      color={SEMANTIC_COLORS.textTertiary}
-      mt={SPACING.xs}
-      title={`results.json sha256 ${r.record.source.sha256}`}
-    >
-      {recordCredit(r.record)}
-    </Text>
-  </Box>
-)
-
-/** Finding: the headline in ink, or the hatched stale notice with the headline withheld. */
-const GapFinding: React.FC<{ r: OracleGapResponse; collateral: string }> = ({ r, collateral }) => {
-  const { meta, counts, constants } = r
-  const line = thresholdText(constants)
-  return (
-    <>
-      {meta.stale ? (
-        <Box
-          bgImage={HATCH}
-          border="1px solid"
-          borderColor={SEMANTIC_COLORS.borderSubtle}
-          p={SPACING.md}
-        >
-          <Mono size="13px" color={SEMANTIC_COLORS.textPrimary}>
-            ░ Stale · last point {durationText(meta.now - (meta.lastRunTs ?? 0))} ago. No finding
-            until a new point.
-          </Mono>
-        </Box>
-      ) : (
-        <Text
-          fontFamily={TYPOGRAPHY.fontMono}
-          fontSize={TYPOGRAPHY.body}
-          fontWeight={TYPOGRAPHY.medium}
-          color={SEMANTIC_COLORS.textPrimary}
-        >
-          {i3Headline(counts.fired, constants)}
-          {collateral ? ` · ${collateral}` : ''}
-        </Text>
-      )}
-      {!meta.stale && counts.fired > 0 && (
-        <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
-          {r.exposed.fired
-            ? `Curated supply in ${r.exposed.fired} of them, last exposure read: ${usdWithBook(r.curatedUsd.fired, r.bookUsd.fired)}.`
-            : `None holds $${r.exposedMinUsd} or more of curated supply (last exposure read).`}
-        </Mono>
-      )}
-      <Mono size="11px">
-        Oracle: price() at the head block, in loan token × DefiLlama&apos;s loan-token price.
-        Market: DefiLlama&apos;s collateral price. Fires after {constants.persistenceHours} hourly
-        points in a row at ≥ {line}. A revert, a price over {MARKET_HOLD_SECONDS / 3600} h old or a
-        DefiLlama confidence under {MIN_PRICE_CONFIDENCE} is no point.
-      </Mono>
-      <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
-        {r.total} markets · {counts.fired} fired · {counts.building} above {line} for under{' '}
-        {constants.persistenceHours} h · {counts.below} below · {counts.unobserved + counts.stale}{' '}
-        without a point now · vaults as of block {meta.exposureBlock.toLocaleString()}
-      </Mono>
-    </>
-  )
-}
-
-/** Evidence (markets above the line, or all on request) beside the record. */
-const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => void }> = ({
-  r,
-  onWatch,
-}) => {
-  const [all, setAll] = useState(false)
-  const [dust, setDust] = useState(false)
-  // Stale: the markets that were above the line at their last point, hatched.
-  const above = r.markets.filter((m) =>
-    r.meta.stale
-      ? m.i3.hoursAboveConsecutive > 0
-      : m.i3.state === 'fired' || m.i3.state === 'building',
-  )
-  const shown = all ? r.markets : above
-  // Markets without curated exposure sit below a one-line fold, never hidden.
-  const held = shown.filter((m) => (m.curatedUsd ?? 0) >= r.exposedMinUsd)
-  const unheld = shown.filter((m) => (m.curatedUsd ?? 0) < r.exposedMinUsd)
-  return (
-    <Box
-      display="grid"
-      gridTemplateColumns={{ base: '1fr', lg: 'minmax(0, 3fr) minmax(0, 2fr)' }}
-      gap={SPACING.lg}
-      mt={SPACING.sm}
-    >
-      <Box minW={0} bgImage={r.meta.stale ? HATCH : undefined}>
-        {shown.length === 0 && !r.meta.stale && (
-          <Mono size="11px">
-            No market is {thresholdText(r.constants)} or more above its DefiLlama price at the
-            newest point.
-          </Mono>
-        )}
-        {held.map((m) => (
-          <GapRow key={m.market} m={m} r={r} onWatch={onWatch} />
-        ))}
-        {unheld.length > 0 && (
-          <Box mt={SPACING.sm}>
-            <Chip active={dust} onClick={() => setDust(!dust)}>
-              {dust ? 'hide' : 'show'} {unheld.length} more with under ${r.exposedMinUsd} of curated
-              exposure
-            </Chip>
-          </Box>
-        )}
-        {dust && unheld.map((m) => <GapRow key={m.market} m={m} r={r} onWatch={onWatch} />)}
-        {r.markets.length > above.length && (
-          <Box mt={SPACING.sm}>
-            <Chip onClick={() => setAll(!all)}>
-              {all ? 'show fewer' : `show all ${r.markets.length}`}
-            </Chip>
-          </Box>
-        )}
-      </Box>
-      <Box
-        minW={0}
-        borderTop={{ base: `1px solid ${SEMANTIC_COLORS.borderSubtle}`, lg: 'none' }}
-        borderLeft={{ base: 'none', lg: `1px solid ${SEMANTIC_COLORS.borderSubtle}` }}
-        pt={{ base: SPACING.sm, lg: 0 }}
-        pl={{ base: 0, lg: SPACING.base }}
-      >
-        <GapRecord r={r} />
-      </Box>
-    </Box>
-  )
-}
-
-const OracleGapSection: React.FC<{ collateral: string; onWatch: (symbol: string) => void }> = ({
-  collateral,
-  onWatch,
-}) => {
-  const { data, error, isLoading } = useQuery<OracleGapResponse>({
-    queryKey: ['curator_oracle_gap', collateral],
-    queryFn: () =>
-      getJson(
-        `/api/curator-feed?view=oracle-gap&limit=100${collateral ? `&collateral=${encodeURIComponent(collateral)}` : ''}`,
-      ),
-    staleTime: 5 * 60_000,
-  })
-  // The page renders client-side, so a #oracle-gap link lands before this section exists.
-  useEffect(() => {
-    if (data && window.location.hash === '#oracle-gap')
-      document.getElementById('oracle-gap')?.scrollIntoView()
-  }, [data])
-  const meta = data?.meta
-  return (
-    <Box id="oracle-gap" scrollMarginTop="80px">
-      <SectionHeading
-        index="07"
-        title="Oracle above market"
-        note={
-          meta?.lastRunTs !== undefined
-            ? `measured · newest point block ${meta.lastRunBlock?.toLocaleString()} · ${utc(meta.lastRunTs)} (${durationText(meta.now - meta.lastRunTs)} ago) · ${meta.runs} hourly points`
-            : undefined
-        }
-      />
-      <Box minH="220px">
-        {isLoading && <Mono>loading…</Mono>}
-        {error && <Mono size="12px">Feed data unavailable.</Mono>}
-        {data && !data.meta.measured && (
-          <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
-            Not measured yet · the hourly collector adds a point each run.
-          </Mono>
-        )}
-        {data?.meta.measured && (
-          <>
-            <GapFinding r={data} collateral={collateral} />
-            <GapBody r={data} onWatch={onWatch} />
-          </>
-        )}
-      </Box>
-    </Box>
-  )
-}
 
 // ── rows ───────────────────────────────────────────────────────────────────────
 
@@ -1429,144 +968,226 @@ export const CuratorFeed: React.FC = () => {
 // Mounted on data pages (the Today edition's Safety body; the venue page), so it
 // follows the newspaper rules (membrane-board design/DESIGN_RULES.md) on every page it
 // sits on: a hairline rule instead of a filled card, no amber (amber means only the 8h
-// window: a pending timelock is ink), red with ✖ only for a cluster of exits (curated
-// capital leaving), muted ink for history, nothing under 11px, 44px targets. Its
-// colours are the app tokens, so it reads in both app themes and inside the edition.
+// window: a pending timelock is ink), red with ✖ only for a real alarm (an exit cluster
+// whose last exit is inside the 72 h window, a fired oracle gap), muted ink for history
+// (an older cluster included), nothing under 11px, 44px targets. Its colours
+// are the app tokens, so it reads in both app themes and inside the edition.
+//
+// Owner, 2026-10-16: "summarized titles". One top line says whether anything fired; each
+// item leads with a 2–5 word headline; vault, curator and date are small print; the full
+// sentence and the transaction are in the item's fold.
 
-const CARD_LABEL = {
-  fontFamily: TYPOGRAPHY.fontMono,
-  fontSize: '11px',
-  lineHeight: '16px',
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase' as const,
-}
+/** The card's cluster window, and how long a cluster stays an alarm after its last exit
+ *  (the API's default and widest window, parseFeedQuery). */
+const CARD_WINDOW_HOURS = 72
 
-/** The card's short form of a cluster ("2 curators exited LBTC within 15h"); the full
- *  sentence (lib/curatorFeed/service.ts clusterText) is its tooltip and on the full page. */
-const clusterLine = (c: ClusterView): string => {
-  const h = c.tightestHours < 1 ? '<1h' : `${Math.round(c.tightestHours)}h`
-  const unread = c.text.includes('remaining caps not read') ? ' · caps partly unread' : ''
-  return `${c.curators.length} curators exited ${c.symbol} within ${h}${unread}`
-}
-
-const CardRow: React.FC<{ r: FeedRow; nowS: number }> = ({ r, nowS }) => {
-  const red = r.tone === 'red'
-  const history = r.tone === 'grey'
-  const status = r.inCluster ? `cluster · ${statusLabel(r, nowS)}` : statusLabel(r, nowS)
-  return (
-    <Box borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle} py={SPACING.sm}>
-      <HStack spacing={SPACING.sm} flexWrap="wrap" align="baseline">
-        <Mono size="11px" as="span" color={SEMANTIC_COLORS.textTertiary}>
-          {utc(r.ts)}
-        </Mono>
-        <Mono size="11px" as="span" color={SEMANTIC_COLORS.textTertiary}>
-          {PROTOCOL[r.protocol]}
-        </Mono>
-        <Mono size="13px" as="span" color={SEMANTIC_COLORS.textPrimary} title={r.vault}>
-          {r.vaultName}
-        </Mono>
-        <Mono size="11px" as="span" title={r.curatorName}>
-          {/* An unnamed curator is its address: shortened, so it never takes a line. */}
-          {/^0x[0-9a-fA-F]{40}$/.test(r.curatorName) ? `${r.curatorName.slice(0, 6)}…${r.curatorName.slice(-4)}` : r.curatorName}
-        </Mono>
-      </HStack>
+/** The headline and its small print; ✖ and red only on an alarm. */
+const LineText: React.FC<{ l: Line; muted?: boolean }> = ({ l, muted }) => (
+  <>
+    <Text
+      fontFamily={TYPOGRAPHY.fontMono}
+      fontSize="14px"
+      lineHeight="20px"
+      fontWeight={TYPOGRAPHY.medium}
+      color={
+        l.alarm
+          ? SEMANTIC_COLORS.danger
+          : muted
+            ? SEMANTIC_COLORS.textSecondary
+            : SEMANTIC_COLORS.textPrimary
+      }
+      overflowWrap="anywhere"
+    >
+      {l.mark && (
+        <Box as="span" aria-hidden="true" mr="0.4em">
+          {l.mark}
+        </Box>
+      )}
+      {l.headline}
+    </Text>
+    {l.detail && (
       <Text
-        {...CARD_LABEL}
-        color={red ? SEMANTIC_COLORS.danger : history ? SEMANTIC_COLORS.textSecondary : SEMANTIC_COLORS.textPrimary}
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        lineHeight="16px"
+        color={SEMANTIC_COLORS.textSecondary}
         overflowWrap="anywhere"
       >
-        {red && (
-          <Box as="span" aria-hidden="true" mr="0.4em">
-            ✖
-          </Box>
-        )}
-        {status}
-        {r.zeroTimelock.length > 0 && (
-          <Box as="span" color={SEMANTIC_COLORS.textSecondary} title={`Runs in one transaction at the last read: ${r.zeroTimelock.join(', ')}`}>
-            {' · '}
-            {zeroText(r.zeroTimelock)}
-          </Box>
-        )}
+        {l.detail}
       </Text>
-      <Mono size="13px" color={history ? SEMANTIC_COLORS.textSecondary : SEMANTIC_COLORS.textPrimary}>
-        {r.text}{' '}
-        <Link
-          href={`${ETHERSCAN}/tx/${r.tx}`}
-          isExternal
-          display="inline-block"
-          py="14px"
-          my="-14px"
-          px="4px"
-          fontSize="11px"
-          color={SEMANTIC_COLORS.textSecondary}
-        >
-          tx ↗
-        </Link>
-      </Mono>
-    </Box>
-  )
-}
+    )}
+  </>
+)
 
-/** The oracle-gap state in one line, from ?view=oracle-gap: ink; red with ✖ only when a
- *  market has fired (its oracle priced the collateral ≥ 2% above market for 24 h: a latent
- *  loss); ░ when the series is stale. No amber, nothing under 11px, a 44px target. */
-const OracleGapLine: React.FC<{ r: OracleGapResponse; href: string }> = ({ r, href }) => {
-  const m = r.meta
-  const fired = m.measured && !m.stale && r.counts.fired > 0
-  const text = !m.measured
-    ? 'Oracle gap: not measured yet.'
-    : m.stale
-      ? `Oracle gap: last point ${durationText(m.now - (m.lastRunTs ?? 0))} ago.`
-      : i3Headline(r.counts.fired, r.constants) +
-        (r.exposed.fired
-          ? ` · curated supply ${usdWithBook(r.curatedUsd.fired, r.bookUsd.fired)}`
-          : '')
-  return (
-    <Box borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
-      {/* A block link, so a wrapped line keeps its glyph inline; 12 + 20 + 12 = 44px tall. */}
-      <Link
-        as={NextLink}
-        href={href}
-        display="block"
-        py="12px"
-        lineHeight="20px"
+/** One item: the summary row is the 44px tap target; the fold holds the full record. */
+const CardItem: React.FC<{ l: Line; muted?: boolean; children: React.ReactNode }> = ({
+  l,
+  muted,
+  children,
+}) => (
+  <Box
+    as="details"
+    borderBottom="1px solid"
+    borderColor={SEMANTIC_COLORS.borderSubtle}
+    sx={{
+      '& > summary::-webkit-details-marker': { display: 'none' },
+      '& > summary [data-fold]::before': { content: '"▸"' },
+      '&[open] > summary [data-fold]::before': { content: '"▾"' },
+    }}
+  >
+    <Box
+      as="summary"
+      display="flex"
+      alignItems="flex-start"
+      gap={SPACING.sm}
+      py={SPACING.sm}
+      minH="44px"
+      cursor="pointer"
+      listStyleType="none"
+      _focusVisible={FOCUS_STYLES.ring}
+    >
+      <Box flex="1" minW={0}>
+        <LineText l={l} muted={muted} />
+      </Box>
+      <Box
+        as="span"
+        data-fold=""
+        aria-hidden="true"
         fontFamily={TYPOGRAPHY.fontMono}
-        fontSize="13px"
-        color={fired ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}
-        _focusVisible={FOCUS_STYLES.ring}
-      >
-        {(fired || (m.measured && m.stale)) && (
-          <Box as="span" aria-hidden="true" mr="0.4em">
-            {fired ? '✖' : '░'}
-          </Box>
-        )}
-        {text} →
-      </Link>
+        fontSize="11px"
+        lineHeight="20px"
+        color={SEMANTIC_COLORS.textSecondary}
+      />
     </Box>
-  )
-}
+    <Box pb={SPACING.sm}>{children}</Box>
+  </Box>
+)
 
-/** Compact feed: open exit clusters, the oracle-gap state, the next timelocks to elapse,
- *  the latest exits. Links to the full page. */
+const TxLink: React.FC<{ tx: string }> = ({ tx }) => (
+  <Link
+    href={`${ETHERSCAN}/tx/${tx}`}
+    isExternal
+    display="inline-flex"
+    alignItems="center"
+    minH="44px"
+    fontFamily={TYPOGRAPHY.fontMono}
+    fontSize="11px"
+    color={SEMANTIC_COLORS.textSecondary}
+    textDecoration="underline"
+    _focusVisible={FOCUS_STYLES.ring}
+  >
+    tx ↗
+  </Link>
+)
+
+const CardRow: React.FC<{ r: FeedRow; current: boolean }> = ({ r, current }) => (
+  <CardItem l={rowLine(r, current)} muted={!current && r.tone === 'grey'}>
+    <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
+      {r.text}
+    </Mono>
+    {r.zeroTimelock.length > 0 && (
+      <Mono
+        size="11px"
+        title={`Runs in one transaction at the last read: ${r.zeroTimelock.join(', ')}`}
+      >
+        {zeroText(r.zeroTimelock)} (one transaction, no wait)
+      </Mono>
+    )}
+    <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
+      {utc(r.ts)} · {PROTOCOL[r.protocol]}
+    </Mono>
+    <TxLink tx={r.tx} />
+  </CardItem>
+)
+
+const ClusterItem: React.FC<{ c: ClusterView; current: boolean }> = ({ c, current }) => (
+  <CardItem l={clusterLine(c, current)} muted={!current}>
+    <Mono size="12px" color={SEMANTIC_COLORS.textPrimary}>
+      {c.text}
+    </Mono>
+    <Mono size="11px">Vaults: {c.vaultNames.join(', ')}</Mono>
+    <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
+      {utc(c.start)} → {utc(c.end)}
+    </Mono>
+  </CardItem>
+)
+
+/** The oracle-gap line: a block link to §07, 44px tall, its glyph inline when it wraps. */
+const OracleGapLine: React.FC<{ l: Line; href: string }> = ({ l, href }) => (
+  <Box borderBottom="1px solid" borderColor={SEMANTIC_COLORS.borderSubtle}>
+    <Link
+      as={NextLink}
+      href={href}
+      display="flex"
+      alignItems="flex-start"
+      gap={SPACING.sm}
+      py={SPACING.sm}
+      minH="44px"
+      _hover={{ textDecoration: 'none' }}
+      _focusVisible={FOCUS_STYLES.ring}
+    >
+      <Box flex="1" minW={0}>
+        <LineText l={l} />
+      </Box>
+      <Box
+        as="span"
+        aria-hidden="true"
+        fontFamily={TYPOGRAPHY.fontMono}
+        fontSize="11px"
+        lineHeight="20px"
+        color={SEMANTIC_COLORS.textSecondary}
+      >
+        →
+      </Box>
+    </Link>
+  </Box>
+)
+
+/** Compact feed: the top line, open exit clusters, the oracle-gap state, the next
+ *  timelocks to elapse, the latest exits. Links to the full page. */
 export const CuratorFeedCard: React.FC = () => {
   const { chainName } = useChainRoute()
   const { data, isError } = useQuery<FeedResponse>({
     queryKey: ['curator_feed_card'],
-    queryFn: () => getJson('/api/curator-feed?group=exits&limit=5'),
+    queryFn: () => getJson(`/api/curator-feed?group=exits&limit=5&window=${CARD_WINDOW_HOURS}`),
     staleTime: 5 * 60_000,
     // A missing dataset is a 503, not a blip: say so after one retry, not four.
     retry: 1,
   })
-  const { data: gap } = useQuery<OracleGapResponse>({
+  const { data: gap, isError: gapIsError } = useQuery<OracleGapResponse>({
     queryKey: ['curator_oracle_gap_card'],
     queryFn: () => getJson('/api/curator-feed?view=oracle-gap&limit=1'),
     staleTime: 5 * 60_000,
     retry: 1,
   })
-  const nowS = data?.meta.now ?? Math.floor(Date.now() / 1000)
   const pending = data?.open.filter((r) => r.status === 'pending') ?? []
-  const empty = !!data && data.clusters.length === 0 && pending.length === 0 && data.rows.length === 0
+  const empty =
+    !!data && data.clusters.length === 0 && pending.length === 0 && data.rows.length === 0
   const collected = data ? Date.parse(data.meta.collectedAt) : NaN
+  const { current, past } = currentClusters(
+    data?.clusters ?? [],
+    data?.meta.now ?? 0,
+    CARD_WINDOW_HOURS,
+  )
+  const currentIds = new Set(current.flatMap((c) => c.actionIds))
+  // Current clusters, else the latest one as history.
+  const clusters = current.length ? current.slice(0, 2) : past.slice(0, 1)
+  const summary = cardSummary({
+    feed: data
+      ? {
+          currentClusters: current.length,
+          pending: pending.length,
+          // Older than the window: nothing can be said about exits now (DESIGN_RULES §4).
+          ...(data.meta.now - data.meta.toTs > CARD_WINDOW_HOURS * 3600
+            ? { asOf: data.meta.toTs }
+            : {}),
+        }
+      : undefined,
+    feedError: !data && isError,
+    gap,
+    gapError: !gap && gapIsError,
+  })
+  const gl = gapLine(gap, !gap && gapIsError)
   return (
     <Box
       as="section"
@@ -1575,36 +1196,42 @@ export const CuratorFeedCard: React.FC = () => {
       borderColor={SEMANTIC_COLORS.borderStrong}
       pt={SPACING.sm}
     >
-      <Text {...CARD_LABEL} color={SEMANTIC_COLORS.textSecondary}>
+      <Text {...LABEL} color={SEMANTIC_COLORS.textSecondary}>
         Curator actions
       </Text>
-      {/* Unavailable is said in words, never left as an endless "loading…". */}
-      {!data && !isError && <Mono size="13px">—</Mono>}
-      {!data && isError && (
-        <Mono size="13px" color={SEMANTIC_COLORS.textPrimary}>
-          <Box as="span" aria-hidden="true" mr="0.4em">
-            ░
-          </Box>
-          Feed unavailable.
-        </Mono>
-      )}
-      {empty && <Mono size="13px">No curator exit in the feed window.</Mono>}
-      {data?.clusters.slice(0, 2).map((c) => (
-        <Mono key={`${c.collateral}:${c.start}`} size="13px" color={SEMANTIC_COLORS.danger} title={c.text}>
-          <Box as="span" aria-hidden="true" mr="0.4em">
-            ✖
-          </Box>
-          {clusterLine(c)} ({utc(c.end).slice(0, 10)})
-        </Mono>
+      {/* The answer to "do I need to care": unavailable is said, never an endless loading. */}
+      <Box py={SPACING.xs} minH="32px" aria-live="polite">
+        {summary ? (
+          <Text
+            fontFamily={TYPOGRAPHY.fontMono}
+            fontSize={TYPOGRAPHY.body}
+            lineHeight="24px"
+            fontWeight={TYPOGRAPHY.bold}
+            color={summary.alarm ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary}
+          >
+            {summary.mark && (
+              <Box as="span" aria-hidden="true" mr="0.4em">
+                {summary.mark}
+              </Box>
+            )}
+            {summary.headline}
+          </Text>
+        ) : (
+          <Mono size="13px">—</Mono>
+        )}
+      </Box>
+      {clusters.map((c) => (
+        <ClusterItem key={`${c.collateral}:${c.start}`} c={c} current={current.includes(c)} />
       ))}
-      {gap && <OracleGapLine r={gap} href={`/${chainName}/curator-feed#oracle-gap`} />}
+      {gl && <OracleGapLine l={gl} href={`/${chainName}/curator-feed#oracle-gap`} />}
       {/* Compact: the full feed is one link away. */}
       {pending.slice(0, 2).map((r) => (
-        <CardRow key={r.id} r={r} nowS={nowS} />
+        <CardRow key={r.id} r={r} current={currentIds.has(r.id)} />
       ))}
       {data?.rows.slice(0, 2).map((r) => (
-        <CardRow key={r.id} r={r} nowS={nowS} />
+        <CardRow key={r.id} r={r} current={currentIds.has(r.id)} />
       ))}
+      {empty && <Mono size="11px">No curator exit in the feed window.</Mono>}
       <HStack justify="space-between" align="center" spacing={SPACING.base} flexWrap="wrap">
         <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
           {Number.isFinite(collected) ? `collected ${utc(Math.floor(collected / 1000))}` : ''}
@@ -1620,6 +1247,7 @@ export const CuratorFeedCard: React.FC = () => {
           color={SEMANTIC_COLORS.textPrimary}
           textDecoration="underline"
           textUnderlineOffset="3px"
+          _focusVisible={FOCUS_STYLES.ring}
         >
           Full feed →
         </Link>

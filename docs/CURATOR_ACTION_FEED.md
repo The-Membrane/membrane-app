@@ -241,6 +241,35 @@ The record, shown beside the live module: I3 warned ≥ 9 days ahead in 1 of 3 i
 T2 FAIL overall; stETH (Oct 10 series) fired twice in calm 2022; AZND's oracle was fixed at
 1 USDC, so its gap is `1 / market − 1`.
 
+On the page (§07, `components/CuratorFeed/OracleGapSection.tsx`; owner 2026-10-16: "smaller
+cards, less words … a one-glance understanding"): one card per market, in a grid (1 column at
+390 px, up to 4 on desktop). A card shows the market, the delta as its big figure, the mark
+(✖ fired, red · ▲ hours of 24 · below · ░ not measured or stale, figure withheld) and the $
+exposed in small print. Prices, the 48-point series, holders and links are in the card's fold;
+the method, the record and its caveats in one "How this is measured" fold. The API is read at
+`limit=500` (every market), so "Show only mine" sees all of them.
+
+Your markets (`lib/exposure`): pick a curator (from the feed's own vault → curator labels), or
+paste an address (a connected wallet prefills it). The address is read on Ethereum mainnet,
+read-only and with no signature, at one pinned block through the keyless public client
+(`lib/position-sim/rpc.ts`): ERC-4626 `balanceOf` on every vault §07 lists, then
+`convertToAssets` and `totalAssets` where shares are held, and Morpho Blue `position(id, user)`
+on every listed market. At most 500 vaults and 500 markets, 100 calls per multicall (50 for the
+asset reads): at most 31 eth_calls. Over a limit or malformed: a named error before any call. A
+failed call is listed by its error name, and a market whose read failed is "unchecked", never
+"none". Tied cards get a heavy frame and a tag ("you supply", "your vault …", "curated by …");
+"Highlight mine" / "Show only mine" switch the grid. The viewer's pro-rata $ is computed
+(`Relation.usd`, as of the exposure read, book value flagged) but not shown: a new kind of
+number waits for the owner.
+
+The compact card (`CuratorFeedCard`, venue page and Today's Safety body) leads with one line —
+"✖ n alarms now", "No alarm now", or which input is missing — then 2–5 word headlines
+(`lib/curatorFeed/headlines.ts`): "2 curators left LBTC", "Cap cut to 0: PT-sUSDD",
+"Oracle gap: none for 24h". Vault, curator and date are small print; the full sentence and the
+transaction are in each item's fold. A cluster is an alarm only while its last exit is inside
+the 72 h window; an older one is shown as history. An exits feed whose head is older than that
+window says "Exits as of <date>", never "no alarm".
+
 Store: `oracle-gap.json` next to `feed.json` (format in `lib/curatorFeed/store.ts`): runs
 `[ts, block]`, a market dictionary and rows `[run, market, oracleUsd, marketUsd, confidence,
 gap]`, observed points only, the last 7 days (≈ 2 MB at 300 markets). A run that observed
@@ -427,7 +456,8 @@ CURATOR_FEED_NOW=<unix s>                 pins the API's request clock outside p
 | RPC client (dual-read getLogs, batches, key scrubbing)                    | `scripts/lib/curator-feed-rpc.ts`                                                                                                                |
 | collector                                                                 | `scripts/collect-curator-feed.ts`                                                                                                                |
 | API, page, card                                                           | `pages/api/curator-feed/index.ts`, `pages/[chain]/curator-feed.tsx`, `components/CuratorFeed/CuratorFeed.tsx` (`CuratorFeed`, `CuratorFeedCard`) |
-| tests                                                                     | `tests/unit/curatorFeed{,Signals,Data,OracleGap,OracleGapApi}.test.ts`, real-log fixtures `tests/unit/fixtures/curator-feed-logs.json`           |
+| §07 cards, card headlines, wallet exposure                                | `components/CuratorFeed/OracleGapSection.tsx`, `lib/curatorFeed/headlines.ts`, `lib/exposure/{resolve,relations}.ts`                            |
+| tests                                                                     | `tests/unit/curatorFeed{,Signals,Data,OracleGap,OracleGapApi,Headlines}.test.ts`, `tests/unit/exposureResolve.test.ts`, real-log fixtures `tests/unit/fixtures/curator-feed-logs.json` |
 
 ## Not yet
 

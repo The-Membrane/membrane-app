@@ -51,6 +51,7 @@ import { explainSpike, type SpikeExplanation } from './spikes'
 import type { ExposureAlloc, MarketFlags, SpikeDriver } from './types'
 import { secondsLeft, statusOf, toneOf, type Tone } from './status'
 import type { ExposureFile, FeedFile, FeedMeta, OracleGapFile } from './store'
+import type { Relation } from '@/lib/exposure/relations'
 import type { ClaimClass } from '../netApy/types'
 import type { ActionKind, ActionStatus, ExitCluster, FeedAction, Protocol } from './types'
 
@@ -1150,6 +1151,9 @@ export interface OracleGapMarketView {
   }
   /** The last 2 × persistence points, oldest first; gap null = unobserved. */
   series: { ts: number; gap: number | null }[]
+  /** The viewer's tie to the market. Never sent by the API: attached client-side from a
+   *  read-only wallet read or a chosen curator (lib/exposure withRelations). */
+  relation?: Relation
 }
 
 export interface OracleGapResponse {

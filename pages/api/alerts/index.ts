@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto'
 
 import {
   ADDRESS_RE,
-  checkThreshold,
+  apiThreshold,
   FEED_TOKEN_RE,
   isDirection,
   isMetric,
@@ -67,14 +67,13 @@ export const createAlertsHandler = (deps: CreateDeps) => async (req: NextApiRequ
   }
   const direction: unknown = body.direction
   if (!isDirection(direction)) return bad(res, 'direction', "Pick 'above' or 'below'.")
-  // A string threshold must be a plain decimal: Number('') is 0 and Number('0x10') is 16.
-  if (typeof body.threshold === 'string' && !/^-?\d+(\.\d+)?$/.test(body.threshold.trim())) {
-    return bad(res, 'threshold', 'Enter a plain number, like 4.5.')
-  }
-  const th = checkThreshold(metric, typeof body.threshold === 'string' ? Number(body.threshold.trim()) : body.threshold)
+  // A number, or a string that is a plain decimal; then the metric's bounds. The same
+  // rule as an edit (PATCH /api/alerts/feed/[token]).
+  const th = apiThreshold(metric, body.threshold)
   if (!th.ok) return bad(res, 'threshold', th.message)
-  // OPT-IN: nothing is stored without an explicit true.
-  if (body.optIn !== true) return bad(res, 'optIn', 'Tick the box to store this alert.')
+  // OPT-IN: nothing is stored without an explicit true. The control sends it only when
+  // the reader presses "Set alert" — that press is the opt-in.
+  if (body.optIn !== true) return bad(res, 'optIn', 'Setting an alert stores this number. Send optIn: true.')
   const optedInAt = new Date((deps.nowMs ?? Date.now)()).toISOString()
   const t = { metric, subject, direction, threshold: th.value, optedInAt }
 

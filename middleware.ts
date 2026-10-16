@@ -35,6 +35,9 @@ const TOP_LEVEL_ROUTES = new Set([
     // /alerts/<feed token>: the token-gated page that lists one alert feed's
     // thresholds with Stop buttons (pages/alerts/[token].tsx; noindex, no-store).
     'alerts',
+    // /dev/slip-states: the order slip's design states (pages/dev/slip-states.tsx 404s
+    // itself in production; noindex).
+    'dev',
 ])
 
 const CHAIN_NAMES = new Set(supportedChains.map((c) => c.name))

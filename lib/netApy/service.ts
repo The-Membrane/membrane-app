@@ -4,7 +4,7 @@
  */
 
 import { netBreakdown, type MembraneShareInput, type NetBreakdown } from './breakdown'
-import { extractCampaigns, type IncentiveCampaign, type MerklOpportunity } from './incentives'
+import { extractCampaigns, type Dilution, type IncentiveCampaign, type MerklOpportunity } from './incentives'
 import { rateSpikeAxis, type RateSpikeAxis } from './ratePath'
 import type { SnapshotSet } from './read'
 import { redactError } from './rpc'
@@ -54,6 +54,22 @@ export interface NetApyVenueResponse {
   incentivesStatus: IncentivesStatus
 }
 
+/** One campaign summed into a list row's `net`: what the row's composition prints. */
+export interface NetApyListIncentive {
+  source: IncentiveCampaign['source']
+  campaignId: string
+  name: string
+  rewardSymbol: string | null
+  /** At the query size (a fixed-budget campaign is diluted by it; incentives.ts aprAtSize). */
+  aprAtSize: number
+  /** As Merkl reports it, before any dilution. */
+  aprReported: number
+  dilution: Dilution
+  /** Unix seconds, as Merkl reports them. */
+  startTs: number
+  endTs: number
+}
+
 export interface NetApyListRow {
   venueKey: string
   label: string
@@ -64,6 +80,9 @@ export interface NetApyListRow {
   borrowAprNow: number
   borrowAprAtKink: number
   firstIncentiveEndTs: number | null
+  /** The campaigns in `net` (a plain deposit qualifies), soonest end first. Empty when
+   *  there are none, or when Merkl was unavailable (incentivesStatus says which). */
+  incentives: NetApyListIncentive[]
   reverts: string | null
 }
 
@@ -163,6 +182,17 @@ export async function handleNetApy(query: NetApyQuery, deps: NetApyDeps): Promis
       borrowAprNow: b.now.borrowApr,
       borrowAprAtKink: b.worstCase.borrowAprAtKink,
       firstIncentiveEndTs: ends.length ? Math.min(...ends) : null,
+      incentives: b.incentives.eligible.map((c) => ({
+        source: c.source,
+        campaignId: c.campaignId,
+        name: c.name,
+        rewardSymbol: c.rewardSymbol,
+        aprAtSize: c.aprAtSize,
+        aprReported: c.aprReported,
+        dilution: c.dilution,
+        startTs: c.startTs,
+        endTs: c.endTs,
+      })),
       reverts: b.checks.reverts,
     }
   })

@@ -8,6 +8,7 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { NEWS, NEWS_FIGURE, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
+import { MixedApr } from './AprMix'
 import { ActionLink, Credit, Deck, Figure, Headline, Kicker, Module, Withheld } from './newsAtoms'
 import { CAPS, DASH, HATCH, LEAD_MIN_H, TABULAR, TARGET } from './newsStyle'
 import {
@@ -22,13 +23,16 @@ import {
   sizeLabel,
   type ExitRow,
   type LeadView,
+  type RateRow,
   type RatesView,
 } from './opportunitiesView'
 import { useNetApyList, useRecorderSummaries, useStratsDemand } from './useTodayData'
 
-// THE OPPORTUNITIES BODY (calm): where a deposit pays most at the reader's size, whether
-// the recorded exits hold that size, and how much carry capital is tracked. Every module
-// is finding → evidence → action; words and figures come from opportunitiesView.ts.
+// THE OPPORTUNITIES BODY (calm): where a deposit pays most at the reader's size, rewards
+// included, whether the recorded exits hold that size, and how much carry capital is
+// tracked. Every module is finding → evidence → action; words and figures come from
+// opportunitiesView.ts. An APR with rewards in it is a MixedApr: ‡, dotted underline, and
+// its composition on hover, focus or tap.
 
 const LABEL_CELL = {
   fontFamily: NEWS_FONT.mono,
@@ -101,7 +105,15 @@ function Lead({
         <Headline id="opportunities-head">
           {v.headline ? (
             <>
-              {v.headline.lead} <Figure>{v.headline.figure}</Figure> {v.headline.tail}
+              {v.headline.lead}{' '}
+              {v.mix ? (
+                <MixedApr mix={v.mix}>
+                  <Figure>{v.headline.figure}</Figure>
+                </MixedApr>
+              ) : (
+                <Figure>{v.headline.figure}</Figure>
+              )}{' '}
+              {v.headline.tail}
             </>
           ) : (
             DASH
@@ -128,6 +140,12 @@ function Lead({
         {v.hero && (
           <Text as="span" fontFamily={NEWS_FONT.mono} fontSize="13px" lineHeight="16px" color={NEWS.ink2}>
             {v.hero.unit}
+            {v.ends && (
+              <Box as="span" display={{ base: 'none', md: 'inline' }} color={NEWS.muted}>
+                {' · '}
+                {v.ends}
+              </Box>
+            )}
           </Text>
         )}
       </Flex>
@@ -197,6 +215,26 @@ function VenueName({ label, href }: { label: string; href: string | null }) {
   )
 }
 
+function RateCells({ r }: { r: RateRow }) {
+  return (
+    <Box as="tr" data-rate-row={r.key}>
+      <Td>
+        <VenueName label={r.label} href={r.href} />
+      </Td>
+      <Td align="right">
+        {r.mix ? <MixedApr mix={r.mix}>{r.apr}</MixedApr> : r.apr}
+        {/* From 768px up; on phones the composition carries the date (60-word screen). */}
+        {r.ends && (
+          <Text as="span" display={{ base: 'none', md: 'block' }} fontSize={TYPOGRAPHY.label} color={NEWS.muted}>
+            {r.ends}
+          </Text>
+        )}
+      </Td>
+      <Td align="right">{r.borrow}</Td>
+    </Box>
+  )
+}
+
 function Rates({ v }: { v: RatesView }) {
   const loading = v.state === 'loading'
   return (
@@ -232,25 +270,12 @@ function Rates({ v }: { v: RatesView }) {
             </Box>
           )}
           {v.rows.map((r) => (
-            <Box as="tr" key={r.key}>
-              <Td>
-                <VenueName label={r.label} href={r.href} />
-              </Td>
-              <Td align="right">
-                {r.apr}
-                {r.rewards && (
-                  <Text as="span" display="block" fontSize={TYPOGRAPHY.label} color={NEWS.muted}>
-                    {r.rewards}
-                  </Text>
-                )}
-              </Td>
-              <Td align="right">{r.borrow}</Td>
-            </Box>
+            <RateCells key={r.key} r={r} />
           ))}
         </Box>
       </Box>
       <Box pt={SPACING.sm}>
-        <Credit>{OPP_COPY.ratesCredit}</Credit>
+        <Credit>{v.credit}</Credit>
         {v.excluded && <Credit>{v.excluded}</Credit>}
       </Box>
     </Module>

@@ -4,9 +4,11 @@
 //
 // Three modules, each finding → evidence → action (membrane-board design/DESIGN_RULES.md
 // §5b):
-//   1. RATES   /api/net-apy (supply side, at the reader's size): the highest venue rate
-//              is the headline, with what it would earn in $; the next venues are the
-//              table; the size presets re-solve both.
+//   1. RATES   /api/net-apy (supply side, at the reader's size): venues rank on the total
+//              supply APR, rewards included (owner, 2026-10-16). The highest is the
+//              headline, with what it would earn in $; the next venues are the table; the
+//              size presets re-solve both. An APR that includes rewards carries the ‡ mark
+//              and opens its composition: the venue rate, each reward, and their dates.
 //   2. EXITS   /api/venues/<v>/summary for the recorder's venues: the exit capacity each
 //              held at its last reading, against the reader's size.
 //   3. DEMAND  /api/strats: tracked carry capital and the wallet count.
@@ -14,14 +16,15 @@
 // at size carries the dagger; stale inputs are hatched, the headline is withheld and the
 // age is shown; nothing is printed that no live source gave.
 
-import type { NetApyListResponse, NetApyListRow, Serialized } from '@/lib/netApy/service'
+import type { NetApyListIncentive, NetApyListResponse, NetApyListRow, Serialized } from '@/lib/netApy/service'
 import { venueByKey } from '@/lib/netApy/venues'
 import { HOUR_MS } from '@/lib/regime/m0'
 import type { VenueSummary } from '@/pages/api/venues/[venue]/summary'
-import { formatAge } from '@/components/Weather/weatherView'
+import { formatAge, utcClock } from '@/components/Weather/weatherView'
 
 export type NetApyList = Serialized<NetApyListResponse>
 type Row = Serialized<NetApyListRow>
+type Incentive = Serialized<NetApyListIncentive>
 
 /** A query's state, as react-query reports it. */
 export interface Load<T> {
@@ -59,6 +62,15 @@ export const RECORDER_MAX_AGE_MS = 2 * HOUR_MS
  * and reuses a read for 120 s. An anchor older than 30 minutes means the reads stopped.
  */
 export const NET_APY_MAX_AGE_MS = 30 * 60_000
+/**
+ * The route reuses one Merkl pull for 15 minutes and never serves an older one, so a
+ * pull past an hour (a cached response) is not used to rank: the rates rank on the venue
+ * rate alone, and say so.
+ */
+export const MERKL_MAX_AGE_MS = 60 * 60_000
+
+/** The mark on an APR that includes rewards (a dotted underline goes with it). */
+export const REWARDS_MARK = '‡'
 
 export const OPP_COPY = {
   ratesKicker: 'Runners-up',
@@ -79,8 +91,18 @@ export const OPP_COPY = {
   demandUnavailable: 'Tracked capital unavailable',
   notRead: 'not read',
   unavailable: 'unavailable',
-  ratesCredit: 'After venue fees · rewards per Merkl',
+  ratesCredit: 'After venue fees',
   exitsCredit: 'Swap pools are reserves, not quotes',
+  /** The rates credit when Merkl did not answer: the rates rank on the venue rate. */
+  rewardsUnavailable: 'rewards unavailable',
+  /** The $ line's unit when the rate includes rewards. */
+  yearWithRewards: 'a year† incl. rewards',
+  /** The composition. */
+  mixBase: 'Venue rate',
+  mixTotal: 'Total',
+  mixTimeline: 'Timeline',
+  mixUnknown: 'Not published: renewal, APR history',
+  startUnknown: 'start not published',
 } as const
 
 // ---------------------------------------------------------------------------------
@@ -134,6 +156,47 @@ export const venueHref = (chain: string, key: string): string => `/${chain}/venu
 
 export type ModuleState = 'loading' | 'ready' | 'stale' | 'error' | 'empty'
 
+/** One reward inside an APR. */
+export interface MixPart {
+  /** The reward token ("aEthUSDS"), or "Rewards" when Merkl names none. */
+  token: string
+  /** Where the figure comes from: "Merkl". */
+  source: string
+  /** At the size, rounded down: "3.31%". */
+  apr: string
+  /** How size moves it: "3.37% reported, diluted by your $100k". */
+  note: string | null
+}
+
+/** One reward's dates: what the source publishes, and a label for what it does not. */
+export interface MixTimeline {
+  token: string
+  /** "8 Oct", or "start not published". */
+  start: string
+  /** "15 Oct". */
+  end: string
+  /** The share of the campaign gone by now, 0 to 1; null without a start date. */
+  elapsed: number | null
+  /** "33h left". */
+  left: string
+}
+
+/** The composition of an APR that includes rewards: venue rate + each reward = total. */
+export interface AprMix {
+  /** "Aave v3 USDS · APR at $100k". */
+  title: string
+  base: string
+  parts: MixPart[]
+  total: string
+  timeline: MixTimeline[]
+  /** What the source does not publish. */
+  unknown: string
+  /** "Rounded down · venue rate at block 26,187,572 · Merkl, fetched 14:05 UTC, …". */
+  credit: string
+  /** The trigger's accessible name: the composition in one line. */
+  spoken: string
+}
+
 export interface LeadView {
   state: ModuleState
   hatched: boolean
@@ -141,9 +204,15 @@ export interface LeadView {
   withheld: string | null
   /** "Morpho cbBTC/USDC 86% pays" + "4.36%" + "APR†". */
   headline: { lead: string; figure: string; tail: string } | null
-  /** What the size would earn in a year at that rate: "$4,364" + "a year†". The size is
-   *  the lever's selected preset, right under it, so it is not printed twice. */
+  /** Set when the headline figure includes rewards: its ‡ mark and composition. */
+  mix: AprMix | null
+  /** What the size would earn in a year at that same total rate: "$4,364" + "a year†"
+   *  (or "a year† incl. rewards"). The size is the lever's selected preset, right under
+   *  it, so it is not printed twice. */
   hero: { figure: string; unit: string } | null
+  /** "‡ ends 15 Oct", the first reward to end, beside the $ from 768px up (phones keep
+   *  the first screen under 60 words; the composition carries the date there). */
+  ends: string | null
   /** "Highest of 13 · block 26,187,572 · 15m ago". */
   credit: string | null
   /** The headline venue's page, where one exists. */
@@ -153,9 +222,12 @@ export interface LeadView {
 export interface RateRow {
   key: string
   label: string
+  /** The total supply APR at size, the one the ranking uses: "3.51%". */
   apr: string
-  /** "+3.31% rewards to 18 Oct", when Merkl reports rewards for this deposit. */
-  rewards: string | null
+  /** Set when that APR includes rewards: the ‡ mark and its composition. */
+  mix: AprMix | null
+  /** "‡ ends 15 Oct" (the first reward to end), under the APR from 768px up. */
+  ends: string | null
   borrow: string
   href: string | null
 }
@@ -165,9 +237,12 @@ export interface RatesView {
   hatched: boolean
   /** The column head over the rates: "APR at $100k†". */
   aprHead: string
+  /** The runners-up: ranks 2 to 1 + RATES_SHOWN. */
   rows: RateRow[]
   /** "2 venues revert at $10M (over the supply cap)". */
   excluded: string | null
+  /** "After venue fees · ‡ Merkl, fetched 14:05 UTC": what ‡ marks, and when it was read. */
+  credit: string
 }
 
 /**
@@ -179,24 +254,125 @@ export interface RatesView {
  */
 const venueApr = (r: Row): number | null => r.netIncentiveFree.apr
 
-/** Rewards at size: the net with incentives minus the net without (both from Merkl's
- *  reported campaigns, not verified on-chain). */
-const rewardsApr = (r: Row): number | null =>
-  r.net.withIncentives && r.net.apr !== null && r.netIncentiveFree.apr !== null
-    ? r.net.apr - r.netIncentiveFree.apr
-    : null
+/**
+ * The total supply APR a ranking uses: the venue rate plus the rewards a plain deposit
+ * qualifies for (Merkl-reported, at the size), when the rewards are usable.
+ */
+export const totalApr = (r: Row, rewards: boolean): number | null =>
+  rewards && r.net.withIncentives ? r.net.apr : venueApr(r)
 
-export function rankRates(list: NetApyList): { ranked: Row[]; reverting: Row[] } {
+/** Whether this response's rewards can rank, and the credit that says which. Unusable
+ *  rewards leave the venue rate alone to rank, with no ‡ anywhere. */
+export function rewardsUsable(list: NetApyList, nowMs: number): { ok: boolean; line: string } {
+  const s = list.incentivesStatus
+  if (!s.ok || s.fetchedAt === null) return { ok: false, line: OPP_COPY.rewardsUnavailable }
+  const at = s.fetchedAt * 1000
+  if (nowMs - at > MERKL_MAX_AGE_MS) {
+    return { ok: false, line: `rewards withheld, read ${formatAge(nowMs - at)} ago` }
+  }
+  return { ok: true, line: `${REWARDS_MARK} Merkl, fetched ${utcClock(at, nowMs)}` }
+}
+
+export function rankRates(list: NetApyList, rewards: boolean): { ranked: Row[]; reverting: Row[] } {
   const reverting = list.venues.filter((r) => r.reverts !== null)
   const ranked = list.venues
-    .filter((r) => r.reverts === null && venueApr(r) !== null)
-    .sort((a, b) => (venueApr(b) as number) - (venueApr(a) as number))
+    .filter((r) => r.reverts === null && totalApr(r, rewards) !== null)
+    .sort((a, b) => (totalApr(b, rewards) as number) - (totalApr(a, rewards) as number))
   return { ranked, reverting }
 }
 
 export const anchorMs = (list: NetApyList): number => Number(list.anchor.blockTimestamp) * 1000
 
 const blockLabel = (list: NetApyList) => `block ${Number(list.anchor.blockNumber).toLocaleString('en-US')}`
+
+const SOURCE_NAME: Record<string, string> = { merkl: 'Merkl' }
+
+/** How the reader's size moves a reward (lib/netApy/incentives.ts Dilution). */
+function dilutionNote(c: Incentive, sizeUsd: number): string | null {
+  switch (c.dilution) {
+    case 'fixed-budget':
+      return supplyPct(c.aprReported) === supplyPct(c.aprAtSize)
+        ? null
+        : `${supplyPct(c.aprReported)} reported, diluted by your ${sizeLabel(sizeUsd)}`
+    case 'rate-fixed':
+      return 'set rate; the budget can run out early'
+    case 'rate-capped':
+      return 'a ceiling; can fall as deposits grow'
+    case 'rate-targeted':
+      return 'tops the venue rate up to a target'
+    default:
+      return null
+  }
+}
+
+/** "‡ ends 15 Oct": the first reward to end. */
+function endsLabel(r: Row): string | null {
+  const ends = (r.incentives ?? []).map((c) => c.endTs)
+  const first = ends.length ? Math.min(...ends) : r.firstIncentiveEndTs
+  return first ? `${REWARDS_MARK} ends ${utcDay(first)}` : null
+}
+
+/**
+ * The composition of a venue's APR when it includes rewards; null when it does not
+ * (a base-only APR stays plain). Every figure is from the response: the venue rate, each
+ * campaign at the size, the dates Merkl publishes. Nothing Merkl does not publish is
+ * drawn: there is no APR history and no renewal notice, so `unknown` says so.
+ */
+export function aprMix(r: Row, list: NetApyList, nowMs: number): AprMix | null {
+  const total = r.net.apr
+  const base = venueApr(r)
+  if (!r.net.withIncentives || total === null || base === null) return null
+  const campaigns = r.incentives ?? []
+  const parts: MixPart[] = campaigns.length
+    ? campaigns.map((c) => ({
+        token: c.rewardSymbol ?? 'Rewards',
+        source: SOURCE_NAME[c.source] ?? c.source,
+        apr: supplyPct(c.aprAtSize),
+        note: dilutionNote(c, list.sizeUsd),
+      }))
+    : // A response from before the route listed campaigns: one line, the difference.
+      [{ token: 'Rewards', source: 'Merkl', apr: supplyPct(Math.max(0, total - base)), note: null }]
+  const timeline: MixTimeline[] = campaigns.length
+    ? campaigns.map((c) => {
+        const startMs = Number.isFinite(c.startTs) && c.startTs > 0 ? c.startTs * 1000 : null
+        const endMs = c.endTs * 1000
+        return {
+          token: c.rewardSymbol ?? 'Rewards',
+          start: startMs === null ? OPP_COPY.startUnknown : utcDay(c.startTs),
+          end: utcDay(c.endTs),
+          elapsed:
+            startMs !== null && endMs > startMs
+              ? Math.min(1, Math.max(0, (nowMs - startMs) / (endMs - startMs)))
+              : null,
+          left: `${formatAge(Math.max(0, endMs - nowMs))} left`,
+        }
+      })
+    : r.firstIncentiveEndTs
+      ? [
+          {
+            token: 'Rewards',
+            start: OPP_COPY.startUnknown,
+            end: utcDay(r.firstIncentiveEndTs),
+            elapsed: null,
+            left: `${formatAge(Math.max(0, r.firstIncentiveEndTs * 1000 - nowMs))} left`,
+          },
+        ]
+      : []
+  const fetched = list.incentivesStatus.fetchedAt
+  const merkl = fetched === null ? 'Merkl' : `Merkl, fetched ${utcClock(fetched * 1000, nowMs)}`
+  const t = supplyPct(total)
+  const b = supplyPct(base)
+  return {
+    title: `${r.label} · APR at ${sizeLabel(list.sizeUsd)}`,
+    base: b,
+    parts,
+    total: t,
+    timeline,
+    unknown: OPP_COPY.mixUnknown,
+    credit: `Rounded down · venue rate at ${blockLabel(list)} · ${merkl}, not verified on-chain`,
+    spoken: `${t} APR including rewards: ${OPP_COPY.mixBase.toLowerCase()} ${b}, ${parts.map((p) => `${p.token} ${p.apr}`).join(', ')}`,
+  }
+}
 
 /** The response for the size on the lever, or undefined while that size loads: a
  *  previous size's rows are never shown under a new size. */
@@ -216,7 +392,9 @@ export function leadView(input: {
     hatched: false,
     withheld: null,
     headline: null,
+    mix: null,
     hero: null,
+    ends: null,
     credit: null,
     href: null,
   }
@@ -230,18 +408,23 @@ export function leadView(input: {
   if (nowMs - anchorMs(list) > NET_APY_MAX_AGE_MS) {
     return { ...base, state: 'stale', hatched: true, withheld: `Rates withheld · read ${age} ago`, credit: blockLabel(list) }
   }
-  const { ranked } = rankRates(list)
+  const rewards = rewardsUsable(list, nowMs)
+  const { ranked } = rankRates(list, rewards.ok)
   const size = sizeLabel(list.sizeUsd)
   const top = ranked[0]
   if (!top) {
     return { ...base, state: 'empty', withheld: `No venue takes ${size} now.`, credit: where }
   }
-  const apr = venueApr(top) as number
+  const apr = totalApr(top, rewards.ok) as number
+  const mix = rewards.ok ? aprMix(top, list, nowMs) : null
   return {
     ...base,
     state: 'ready',
     headline: { lead: `${top.label} pays`, figure: supplyPct(apr), tail: 'APR†' },
-    hero: { figure: usdWhole(apr * list.sizeUsd), unit: 'a year†' },
+    mix,
+    // The same total the ranking used, so the $ and the headline never disagree.
+    hero: { figure: usdWhole(apr * list.sizeUsd), unit: mix ? OPP_COPY.yearWithRewards : 'a year†' },
+    ends: mix ? endsLabel(top) : null,
     credit: `${ranked.length === 1 ? 'Only venue read' : `Highest of ${ranked.length}`} · ${where}`,
     href: hasVenuePage(top.venueKey) ? venueHref(chain, top.venueKey) : null,
   }
@@ -264,24 +447,25 @@ export function ratesView(input: {
       aprHead,
       rows: [],
       excluded: null,
+      credit: OPP_COPY.ratesCredit,
     }
   }
   const stale = nowMs - anchorMs(list) > NET_APY_MAX_AGE_MS
-  const { ranked, reverting } = rankRates(list)
-  const rows: RateRow[] = ranked.slice(1, 1 + RATES_SHOWN).map((r) => {
-    const rw = rewardsApr(r)
+  const rewards = rewardsUsable(list, nowMs)
+  const { ranked, reverting } = rankRates(list, rewards.ok)
+  const row = (r: Row): RateRow => {
+    const mix = rewards.ok ? aprMix(r, list, nowMs) : null
     return {
       key: r.venueKey,
       label: r.label,
-      apr: supplyPct(venueApr(r) as number),
-      rewards:
-        rw !== null && rw > 0
-          ? `+${supplyPct(rw)} rewards${r.firstIncentiveEndTs ? ` to ${utcDay(r.firstIncentiveEndTs)}` : ''}`
-          : null,
+      apr: supplyPct(totalApr(r, rewards.ok) as number),
+      mix,
+      ends: mix ? endsLabel(r) : null,
       borrow: borrowPct(r.borrowAprNow),
       href: hasVenuePage(r.venueKey) ? venueHref(chain, r.venueKey) : null,
     }
-  })
+  }
+  const rows = ranked.slice(1, 1 + RATES_SHOWN).map(row)
   const why = Array.from(new Set(reverting.map((r) => r.reverts)))
   const excluded = reverting.length
     ? `${reverting.length} ${reverting.length === 1 ? 'venue reverts' : 'venues revert'} at ${sizeLabel(list.sizeUsd)} (${why.join('; ')})`
@@ -292,6 +476,7 @@ export function ratesView(input: {
     aprHead,
     rows,
     excluded,
+    credit: `${OPP_COPY.ratesCredit} · ${rewards.line}`,
   }
 }
 

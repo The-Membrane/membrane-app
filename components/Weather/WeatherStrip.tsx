@@ -8,22 +8,23 @@ import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { useNow, useWeather } from './useWeather'
 import { weatherView, type WeatherView } from './weatherView'
 
-// THE WEATHER STRIP — the masthead's dateline: the M0 regime, the DVOL daily move as a
-// measured market price, the base fee, and every input's age. Newspaper rules
-// (membrane-board design/DESIGN_RULES.md): calm is ink; ▲ marks choppy; a falling figure
-// is red with ✖; stale is hatched with ░ and the regime word withheld. Mount it inside a
-// `.news-edition` root (its colours are the NEWS roles).
+// THE WEATHER STRIP — the masthead's dateline: the M0 regime, ETH volatility as options
+// price it (DVOL, a measured market price with no direction), the base fee, and every
+// input's age. Newspaper rules (membrane-board design/DESIGN_RULES.md): calm is ink; the
+// wave ∿ marks choppy, in ink (never an arrow or triangle: those read as "price up"); a
+// falling figure is red with ✖; stale is hatched with ░ and the regime word withheld.
+// Mount it inside a `.news-edition` root (its colours are the NEWS roles).
 //
 // Rows, so every state has the same height at each width (loading reserves it):
 //   A  mono   regime · reason or hold          | gas · ages            (ages: ≥992px)
-//   B  serif  the DVOL sentence                | credit · liq. note    (credit: ≥992px)
+//   B  serif  the volatility sentence          | credit · liq. note    (credit: ≥992px)
 //   C  mono   gas · ages in one item                                   (below 992px)
 // Three lines below 992px (390px included), two from 992px. The date leads on every
-// width (the masthead passes a short one below 1280px). The threshold a trigger crossed,
-// the "since" and the hold of an active trigger join at 1280px; below 992px the credit and
-// the liquidation note step aside too (§8: ears and secondary furniture hide on phones),
-// and the ages fold into one item sized to the line. The page's method table carries
-// the thresholds and the liquidation note.
+// width (the masthead passes a short one below 1280px). How rare the trigger is ("a
+// 1-in-20 day"), the "since" and the hold of an active trigger join at 1280px; below 992px
+// the credit and the liquidation note step aside too (§8: ears and secondary furniture
+// hide on phones), and the ages fold into one item sized to the line. The page's method
+// table carries the thresholds and the liquidation note.
 
 const MONO_LINE = '16px'
 const SERIF_LINE = '20px'
@@ -120,7 +121,7 @@ function RegimeRow({ v, lead }: { v: WeatherView; lead?: ReactNode }) {
             <ReasonText v={v} />
           </Item>
         )}
-        {v.reason && <Item display={XL_ONLY}>{v.reason.threshold}</Item>}
+        {v.reason && <Item display={XL_ONLY}>{v.reason.rarity}</Item>}
         {v.since && <Item display={XL_ONLY}>{v.since}</Item>}
         {v.holds && <Item display={active ? XL_ONLY : undefined}>{v.holds}</Item>}
       </Flex>

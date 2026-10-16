@@ -118,7 +118,8 @@ export function alarmFinding(a: Pick<AlarmLike, 'kind' | 'evidence'>): AlarmFind
       return { lead: 'Lent out', figure: u === null ? '—' : `${(Math.ceil(u * 10 - 1e-9) / 10).toFixed(1)}%`, loss: false, tail: '' }
     }
     case 'headroom_thin':
-      return { lead: 'Exit now', figure: money(ev.instantUsd), loss: false, tail: `vs worst day out ${money(ev.worstDayOutflowUsd)}` }
+      // What the venue holds for exits, not an instruction (owner, 2026-10-16).
+      return { lead: 'Exit available', figure: money(ev.instantUsd), loss: false, tail: `vs worst day out ${money(ev.worstDayOutflowUsd)}` }
     case 'depth_collapse':
       return { lead: 'Swap pool fell', figure: fallPct(ev.dropPct), loss: true, tail: `${money(ev.fromValue)} → ${money(ev.toValue)}` }
     case 'drawdown_fast':

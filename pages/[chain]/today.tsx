@@ -5,10 +5,10 @@ import PageSeo from '@/components/PageSeo'
 import { TodayEdition } from '@/components/Today/TodayEdition'
 import { supportedChains, DEFAULT_CHAIN } from '@/config/chains'
 
-// The Today edition: the newspaper masthead with the market weather strip (gas, the DVOL
-// daily move, the M0 regime), then Opportunities when calm or Safety when choppy, and how
-// the regime is set. First in the nav, but still seoClass `app` (noindex) while the owner
-// decides whether '/' points here. Invalid chains redirect server-side, as on
+// The Today edition: the newspaper masthead with the market weather strip (gas, ETH
+// volatility from DVOL, the M0 regime), then Opportunities when calm or Safety when choppy,
+// and how the regime is set. First in the nav, but still seoClass `app` (noindex) while the
+// owner decides whether '/' points here. Invalid chains redirect server-side, as on
 // pages/[chain]/glossary.tsx.
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const chainParam = context.params?.chain

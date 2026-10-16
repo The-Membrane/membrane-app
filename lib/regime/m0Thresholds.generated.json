@@ -2,6 +2,7 @@
   "move24hP95": 0.08141851540844403,
   "gapP99": 0.007311082682097922,
   "gapP999": 0.016709005278119516,
+  "move24hQuantile": "p95",
   "gapQuantile": "p99.9",
   "n": {
     "move24h": 56911,
@@ -31,6 +32,6 @@
     "path": "price-history/eth-usd-1h.json",
     "sha256": "48b53d72351dbba6b05939a75660babc361678304747bf764d59e97d968bd26c"
   },
-  "generatedAt": "2026-10-14T01:09:09.280Z",
+  "generatedAt": "2026-10-16T19:08:08.466Z",
   "generatedBy": "scripts/regime/build-m0-thresholds.mjs"
 }

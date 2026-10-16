@@ -141,6 +141,35 @@ export interface CensusOptions {
    * falls through to the protocol path.
    */
   ratioOverride?: (spec: PositionSpec, leg: KernelLeg, minute: number) => number | null | undefined
+  /**
+   * SENSITIVITY ONLY (scripts/build-evidence-census.ts): the kernel parameters the headline
+   * takes from lib/position-sim/membrane.ts. Unset, every one is the headline's value, and the
+   * census is byte-for-byte the one build-census.ts writes. The rows' t0Decisions stay at the
+   * headline band either way.
+   */
+  band?: number
+  /** SENSITIVITY ONLY: nobody calls the permissionless early clear (DelayTimer noEarlyClear). */
+  noEarlyClear?: boolean
+  /** SENSITIVITY ONLY: the liqDebtMinimum floor is not applied (debtMinimum 0). */
+  noDebtFloor?: boolean
+  /** SENSITIVITY ONLY: the cap on sales per position (MAX_SALES). */
+  maxSales?: number
+  /**
+   * ANALYSIS ONLY. Called once per walked position after its walk, with its spec, each half's
+   * kernel result, and the protocol path it was walked on: `ratioAt(leg, minute)` is the leg's
+   * price in force at that minute's start over its t0 price (1 for a leg with no key). It reads
+   * the same columns and throws on the same gaps as the walk. It never changes a row.
+   */
+  probe?: (p: CensusProbe) => void
+}
+
+/** What `CensusOptions.probe` is handed for one walked position. */
+export interface CensusProbe {
+  spec: PositionSpec
+  results: readonly KernelResult[]
+  ratioAt: (leg: KernelLeg, minute: number) => number
+  usdPerUnit: (minute: number) => number | null
+  lastMinute: number
 }
 
 export interface SubRow {
@@ -651,11 +680,12 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
           debt: legs.debt,
           line: h.line,
           noDelay: h.delayClass === 'no-delay',
-          band: MAX_THRESHOLD_TO_DELAY,
+          band: opts.band ?? MAX_THRESHOLD_TO_DELAY,
           delaySteps: DELAY_STEPS,
           gap: BORROW_LTV_GAP,
-          debtMinimum: s.debtMinimum,
-          maxSales: MAX_SALES,
+          debtMinimum: opts.noDebtFloor ? 0 : s.debtMinimum,
+          maxSales: opts.maxSales ?? MAX_SALES,
+          ...(opts.noEarlyClear ? { noEarlyClear: true } : {}),
           t0Minute: s.t0!.minute,
           t0Ts: s.t0!.ts,
           startTs: W.startTs,
@@ -691,6 +721,20 @@ export function buildCensus(inp: CensusInputs, opts: CensusOptions = {}): Census
       }
       for (const k of kernels) memRecs.push(...k.finish())
       const results: KernelResult[] = kernels.map((k) => k.result())
+      if (opts.probe) {
+        opts.probe({
+          spec: s,
+          results,
+          ratioAt: (leg, minute) => {
+            if (!leg.key) return 1
+            const p0 = anchors.get(leg.key) as number
+            if (!(p0 > 0)) throw new Error(`census: ${s.pid} has no t0 price for ${leg.key}`)
+            return priceAt(cols.get(leg.key)!, minute, `${s.pid} ${leg.symbol}`) / p0
+          },
+          usdPerUnit: P.usdPerUnit,
+          lastMinute,
+        })
+      }
 
       // Per-half rows and the whole position's figures.
       const rounded = memRecs.map((r) => roundRecord(r))

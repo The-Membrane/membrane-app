@@ -638,8 +638,10 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
         {pick.unheld.length > 0 && (
           <Box mt={SPACING.sm}>
             <Chip active={dust} onClick={() => setDust(!dust)}>
-              {dust ? 'hide' : 'show'} {pick.unheld.length} more with under ${r.exposedMinUsd} of
-              curated exposure
+              {dust ? 'hide' : 'show'} {pick.unheld.length} more{' '}
+              {hasViewer && only
+                ? `where your vaults supply under $${r.exposedMinUsd}`
+                : `with under $${r.exposedMinUsd} of curated exposure`}
             </Chip>
           </Box>
         )}

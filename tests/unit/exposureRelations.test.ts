@@ -115,6 +115,7 @@ describe('targets', () => {
       vaults: [vault(1), vault(2), vault(3)],
       markets: [market(1), market(2), market(3), market(4)],
       liveQueue: [vault(1), vault(3)],
+      usdPerAsset: { [vault(1)]: 1e-6, [vault(2)]: 1e-6 },
     })
   })
 })
@@ -146,6 +147,7 @@ describe('vault ties: live where the market list was read, else "as of" the snap
       path: [vault(1)],
       vaultNames: ['Alpha USDC'],
       usd: 2, // 25 % × 8,000,000 base units × $0.000001
+      vaultUsd: 8, // what the vault supplies there
       book: false,
     })
     expect(tieStyle(r.get(market(3))!)).toBe('live')
@@ -179,6 +181,7 @@ describe('vault ties: live where the market list was read, else "as of" the snap
       path: [vault(2)],
       vaultNames: ['Beta USDC'],
       usd: 1_000_000, // 25 % × the $4M allocation
+      vaultUsd: 4_000_000,
       book: false,
       asOf: SNAPSHOT_TS,
     })
@@ -207,11 +210,16 @@ describe('vault ties: live where the market list was read, else "as of" the snap
     )
     expect(r.get(market(1))).toMatchObject({ path: [vault(2), vault(1)], usd: 1_000_001 })
     expect(r.get(market(1))!.asOf).toBeUndefined()
-    expect(relationTag(r.get(market(1))!)).toBe('your 2 vaults')
-    // market(2): direct (live) and a snapshot vault tie; the relation is live.
+    // Live overall; the Vault V2 part keeps its date.
+    expect(r.get(market(1))!.snapshotVaults).toEqual({ count: 1, asOf: SNAPSHOT_TS })
+    expect(relationTag(r.get(market(1))!)).toBe(`your 2 vaults (1 as of ${SNAPSHOT_DAY})`)
+    // market(2): direct (live) and a snapshot vault tie; the relation is live, the vault
+    // part dated.
     expect(r.get(market(2))).toMatchObject({ kind: 'direct', roles: ['supply', 'vault'] })
     expect(r.get(market(2))!.asOf).toBeUndefined()
-    expect(relationTag(r.get(market(2))!)).toBe('you supply · your vault Beta USDC')
+    expect(relationTag(r.get(market(2))!)).toBe(
+      `you supply · your vault Beta USDC (as of ${SNAPSHOT_DAY})`,
+    )
   })
 
   it('a failed asset read leaves the $ undefined, never a partial sum', () => {
@@ -226,42 +234,69 @@ describe('vault ties: live where the market list was read, else "as of" the snap
   })
 })
 
-describe('dust: a vaults-only tie under the minimum', () => {
-  it('is flagged with the minimum and tagged; a direct position never is', () => {
-    const dust = { shares: 1n, assets: 1n, totalAssets: 10_000_000n } // 1e-7 of the vault
+describe('dust: the vaults supply under the minimum to the market', () => {
+  const tiny = { shares: 1n, assets: 1n, totalAssets: 10_000_000n } // 1e-7 of the vault
+  const whole = { shares: 1n, assets: 1_000_000n, totalAssets: 1_000_000n } // all of it
+
+  it('a small depositor’s real tie is not dust (the vault supplies $4M there)', () => {
+    const r = relationsOf(M, report([{ kind: 'vault', vault: vault(2), ...tiny }]), undefined, CTX)
+    expect(r.get(market(1))).toMatchObject({ vaultUsd: 4_000_000, asOf: SNAPSHOT_TS })
+    expect(r.get(market(1))!.dustBelow).toBeUndefined()
+    expect(tieStyle(r.get(market(1))!)).toBe('snapshot')
+    // The tag does not depend on, or reveal, the viewer's $0.40 share.
+    expect(relationTag(r.get(market(1))!)).toBe(`your vault Beta USDC · as of ${SNAPSHOT_DAY}`)
+  })
+
+  it('the vault supplies under $1: dust, whatever the viewer’s share; a direct position never is', () => {
+    for (const size of [tiny, whole]) {
+      const r = relationsOf(
+        M,
+        report(
+          [
+            {
+              kind: 'vault',
+              vault: vault(1),
+              ...size,
+              // 500,000 base units × $0.000001 = $0.50 supplied by the vault.
+              supplies: [{ market: market(3), supplyShares: 1n, supplyAssets: 500_000n }],
+            },
+          ],
+          [
+            {
+              kind: 'market',
+              market: market(4),
+              supplyShares: 1n,
+              borrowShares: 0n,
+              collateral: 0n,
+            },
+          ],
+        ),
+        undefined,
+        CTX,
+      )
+      expect(r.get(market(3))).toMatchObject({ vaultUsd: 0.5, dustBelow: 1 })
+      expect(tieStyle(r.get(market(3))!)).toBe('dust')
+      expect(relationTag(r.get(market(3))!)).toBe('your vault Alpha USDC · supplies under $1')
+      expect(r.get(market(4))!.dustBelow).toBeUndefined()
+    }
+  })
+
+  it('an unpriced vault supply is not dust', () => {
     const r = relationsOf(
       M,
-      report(
-        [
-          { kind: 'vault', vault: vault(2), ...dust },
-          {
-            kind: 'vault',
-            vault: vault(1),
-            ...dust,
-            supplies: [{ market: market(3), supplyShares: 1n, supplyAssets: 1_000_000n }],
-          },
-        ],
-        [{ kind: 'market', market: market(4), supplyShares: 1n, borrowShares: 0n, collateral: 0n }],
-      ),
+      report([
+        {
+          kind: 'vault',
+          vault: vault(1),
+          ...whole,
+          supplies: [{ market: market(3), supplyShares: 1n }],
+        },
+      ]),
       undefined,
       CTX,
     )
-    expect(r.get(market(1))).toMatchObject({ dustBelow: 1, asOf: SNAPSHOT_TS }) // $0.40
-    expect(relationTag(r.get(market(1))!)).toBe(
-      `your vault Beta USDC · as of ${SNAPSHOT_DAY} · under $1`,
-    )
-    expect(tieStyle(r.get(market(1))!)).toBe('dust')
-    expect(r.get(market(3))).toMatchObject({ dustBelow: 1 })
-    expect(r.get(market(3))!.asOf).toBeUndefined()
-    expect(r.get(market(4))!.dustBelow).toBeUndefined()
-    // Above the minimum it counts ($2).
-    const one = relationsOf(
-      M,
-      report([{ kind: 'vault', vault: vault(2), shares: 1n, assets: 1n, totalAssets: 2_000_000n }]),
-      undefined,
-      CTX,
-    )
-    expect(one.get(market(1))!.dustBelow).toBeUndefined()
+    expect(r.get(market(3))!.vaultUsd).toBeUndefined()
+    expect(r.get(market(3))!.dustBelow).toBeUndefined()
   })
 })
 

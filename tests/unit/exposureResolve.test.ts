@@ -438,6 +438,52 @@ describe('resolveExposure: a held MetaMorpho vault’s markets now', () => {
     expect(multicalls.every((m) => m.blockNumber === BLOCK)).toBe(true)
   })
 
+  it('past the live limit, the largest held vaults in USD are read live', async () => {
+    const vaults = Array.from({ length: 4 }, (_, i) => vault(i + 1))
+    // Shares (assets = 2 × shares): vault(1) $2, vault(2) $2,000, vault(3) $20, vault(4)
+    // has no price and ranks last.
+    const { reader } = fakeChain({
+      shares: {
+        [vault(1)]: 1_000_000n,
+        [vault(2)]: 1_000_000n,
+        [vault(3)]: 10_000_000n,
+        [vault(4)]: 1n,
+      },
+      queues: Object.fromEntries(vaults.map((v) => [v, []])),
+    })
+    const r = await resolveExposure(
+      reader,
+      USER,
+      {
+        vaults,
+        markets: [],
+        liveQueue: vaults,
+        usdPerAsset: { [vault(1)]: 1e-6, [vault(2)]: 1e-3, [vault(3)]: 1e-6 },
+      },
+      { limits: { ...LIMITS, maxLiveVaults: 2 } },
+    )
+    expect(vaultOf(r, vault(2))!.supplies).toEqual([])
+    expect(vaultOf(r, vault(3))!.supplies).toEqual([])
+    expect(vaultOf(r, vault(1))!.supplies).toBeUndefined()
+    expect(vaultOf(r, vault(4))!.supplies).toBeUndefined()
+    expect(
+      byId(r, 'vault-shares')
+        .failed.filter((f) => f.error.name === 'ExposureLimitError')
+        .map((f) => f.target),
+    ).toEqual([vault(1), vault(4)])
+  })
+
+  it('a malformed USD price is an input error', async () => {
+    const { reader } = fakeChain({})
+    await expect(
+      resolveExposure(reader, USER, {
+        vaults: [vault(1)],
+        markets: [],
+        usdPerAsset: { [vault(1)]: Number.NaN },
+      }),
+    ).rejects.toMatchObject({ name: 'ExposureInputError' })
+  })
+
   it('an empty queue is a live read of no markets, not a snapshot fallback', async () => {
     const { reader } = fakeChain({ shares: { [vault(1)]: 1n }, queues: { [vault(1)]: [] } })
     const r = await resolveExposure(reader, USER, {

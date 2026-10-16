@@ -273,8 +273,11 @@ Ties: a live tie (a direct position, or a MetaMorpho vault's market list read at
 gets a heavy frame and a tag ("you supply", "your vault …"). A tie that rests on the exposure
 snapshot only (a Vault V2, whose markets are not read live; a MetaMorpho vault whose live read
 failed or was past the limit; a chosen curator's vaults) is muted and tagged "as of <date>":
-it is never shown as live. A vaults-only tie whose look-through $ (your share of the vault ×
-its supply in the market) is under $1 is tagged "under $1" and sits under the under-$1 fold.
+it is never shown as live; on a card that mixes both, the snapshot part keeps its date ("your 2
+vaults (1 as of <date>)"). A vaults-only tie where your vaults supply under $1 to the market
+(the vaults' supply, never your share of it) is tagged "supplies under $1" and, under "Show
+only mine", sits under the fold. Past 25 held MetaMorpho vaults, the largest in USD are read
+live.
 "Highlight mine" / "Show only mine" switch the grid; under "Show only mine" the unchecked
 markets stay one tap away, and "N of total · ░ k unchecked" sits by the toggle. The look-through
 $ is computed (`Relation.usd`) but not shown: a new kind of number waits for the owner.
@@ -282,8 +285,7 @@ $ is computed (`Relation.usd`) but not shown: a new kind of number waits for the
 Checked against mainnet on 2026-10-16 (block 26,207,322, 13 eth_calls) for
 0x1eB1994C6de521686f5B97B017fF6AFAB81FF2bb, which holds Smokehouse USDC: the vault supplies 14
 markets now; the snapshot's ties to cbBTC/USDC 0x64d65c… and weETH/USDC 0x34377f…, where it now
-supplies nothing, are gone; cbBTC/USDC 0xbc99de6a… (≈ $1.87k from the vault) is tied; three
-ties are under $1.
+supplies nothing, are gone; cbBTC/USDC 0xbc99de6a… (≈ $1.87k from the vault) is tied.
 
 The compact card (`CuratorFeedCard`, venue page and Today's Safety body) leads with one line —
 "✖ n alarms now", "No alarm now", or which input is missing — then 2–5 word headlines

@@ -23,9 +23,13 @@
  *                 is book value (`book`), never live supply.
  *   same-curator  the curator's vaults' allocations at the exposure read.
  *   direct        undefined: no live loan-token price is read here.
- * `dustBelow`: the tie is via vaults only and its look-through $ is under the minimum
+ * `vaultUsd`: what the viewer's vaults supply to the market (live: market() totals × the
+ * vault's USD per asset at the exposure read; snapshot: the allocation's USD), whoever's
+ * share it is. `dustBelow`: the tie is via vaults only and `vaultUsd` is under the minimum
  * (EXPOSED_MIN_USD, the line under which a market counts as having no curated exposure);
- * callers keep it under the same fold.
+ * callers keep it under the same fold. Dust is decided by the vaults' supply in the
+ * market, never by the viewer's share of it, so it neither dims a real tie for a small
+ * depositor nor reveals the viewer's own $.
  *
  * A market whose read failed, or that no resolver checked, is `unchecked`, never "none".
  */
@@ -47,7 +51,12 @@ export interface Relation {
   book: boolean
   /** The tie rests on the exposure snapshot only: its time (unix s). Absent = read live. */
   asOf?: number
-  /** Set (to the minimum) when a vaults-only tie's look-through $ is under it. */
+  /** Some vault ties are the snapshot's though the relation is live (a MetaMorpho vault
+   *  read live beside a Vault V2): how many, and the snapshot's time. */
+  snapshotVaults?: { count: number; asOf: number }
+  /** USD the viewer's vaults supply to the market; undefined when a price is missing. */
+  vaultUsd?: number
+  /** Set (to the minimum) when a vaults-only tie's `vaultUsd` is under it. */
   dustBelow?: number
 }
 
@@ -95,6 +104,11 @@ export function exposureTargets(
     liveQueue: Object.entries(vaults)
       .filter(([, v]) => v.protocol === 'morpho-v1')
       .map(([a]) => a.toLowerCase()),
+    usdPerAsset: Object.fromEntries(
+      Object.entries(vaults)
+        .filter(([, v]) => v.usdPerAsset !== undefined)
+        .map(([a, v]) => [a.toLowerCase(), v.usdPerAsset as number]),
+    ),
   }
 }
 
@@ -144,7 +158,8 @@ export function relationsOf(
       if (p.collateral > 0n) roles.push('collateral')
     }
     // Vault ties: the live market list where it was read, else the snapshot's.
-    const ties: { vault: string; name: string; live: boolean; usd?: number }[] = []
+    const ties: { vault: string; name: string; live: boolean; usd?: number; supplyUsd?: number }[] =
+      []
     for (const h of held) {
       const frac =
         h.assets !== undefined && h.totalAssets !== undefined
@@ -156,11 +171,17 @@ export function relationsOf(
       if (h.supplies) {
         const s = h.supplies.find((x) => x.market === id)
         if (!s) continue
-        const value =
-          frac !== undefined && s.supplyAssets !== undefined && info?.usdPerAsset !== undefined
-            ? frac * Number(s.supplyAssets) * info.usdPerAsset
+        const supplyUsd =
+          s.supplyAssets !== undefined && info?.usdPerAsset !== undefined
+            ? Number(s.supplyAssets) * info.usdPerAsset
             : undefined
-        ties.push({ vault: h.vault, name: info?.name ?? h.vault, live: true, usd: value })
+        ties.push({
+          vault: h.vault,
+          name: info?.name ?? h.vault,
+          live: true,
+          supplyUsd,
+          usd: frac !== undefined && supplyUsd !== undefined ? frac * supplyUsd : undefined,
+        })
       } else {
         const v = m.vaults.find((x) => x.vault.toLowerCase() === h.vault)
         if (!v) continue
@@ -168,6 +189,7 @@ export function relationsOf(
           vault: h.vault,
           name: v.vaultName,
           live: false,
+          supplyUsd: v.usd,
           usd: frac !== undefined && v.usd !== undefined ? frac * v.usd : undefined,
         })
       }
@@ -198,7 +220,12 @@ export function relationsOf(
     }
     if (!kinds.length) continue
     const kind = KIND_ORDER.find((k) => kinds.includes(k))!
-    const dust = !p && !curated.length && usd !== undefined && usd < ctx.minUsd
+    const vaultUsd =
+      ties.length && ties.every((t) => t.supplyUsd !== undefined)
+        ? ties.reduce((sum, t) => sum + (t.supplyUsd ?? 0), 0)
+        : undefined
+    const dust = !p && !curated.length && vaultUsd !== undefined && vaultUsd < ctx.minUsd
+    const snapshotTies = ties.filter((t) => !t.live).length
     out.set(id, {
       kind,
       roles,
@@ -208,6 +235,10 @@ export function relationsOf(
       ...(kind === 'direct' ? {} : usd !== undefined ? { usd } : {}),
       book: m.locked,
       ...(live ? {} : { asOf: ctx.snapshotTs }),
+      ...(live && snapshotTies
+        ? { snapshotVaults: { count: snapshotTies, asOf: ctx.snapshotTs } }
+        : {}),
+      ...(vaultUsd !== undefined ? { vaultUsd } : {}),
       ...(dust ? { dustBelow: ctx.minUsd } : {}),
     })
   }
@@ -267,25 +298,28 @@ export type TieStyle = 'live' | 'snapshot' | 'dust'
 export const tieStyle = (r: Relation): TieStyle =>
   r.dustBelow !== undefined ? 'dust' : r.asOf !== undefined ? 'snapshot' : 'live'
 
+const day = (ts: number) => new Date(ts * 1000).toISOString().slice(0, 10)
+
 /**
  * The tag a related card carries: "you supply · your vault Beta USDC", "your vault Beta
- * USDC · as of 2026-10-11", "curated by Gauntlet · as of 2026-10-11", "… · under $1".
+ * USDC · as of 2026-10-11", "your 2 vaults (1 as of 2026-10-11)", "curated by Gauntlet ·
+ * as of 2026-10-11", "… · supplies under $1".
  */
 export function relationTag(r: Relation): string {
   const parts: string[] = []
   if (r.roles.includes('supply')) parts.push('you supply')
   if (r.roles.includes('borrow')) parts.push('you borrow')
   else if (r.roles.includes('collateral')) parts.push('your collateral')
-  if (r.roles.includes('vault'))
-    parts.push(
-      r.vaultNames.length === 1
-        ? `your vault ${r.vaultNames[0]}`
-        : `your ${r.vaultNames.length} vaults`,
-    )
+  if (r.roles.includes('vault')) {
+    const n = r.vaultNames.length
+    const sv = r.snapshotVaults
+    // A live relation keeps the date on the vault ties that are the snapshot's.
+    const dated = sv ? ` (${sv.count === n ? '' : `${sv.count} `}as of ${day(sv.asOf)})` : ''
+    parts.push(`${n === 1 ? `your vault ${r.vaultNames[0]}` : `your ${n} vaults`}${dated}`)
+  }
   if (r.roles.includes('curator') && r.curatorName)
     parts.push(`curated by ${shortName(r.curatorName)}`)
-  if (r.asOf !== undefined)
-    parts.push(`as of ${new Date(r.asOf * 1000).toISOString().slice(0, 10)}`)
-  if (r.dustBelow !== undefined) parts.push(`under $${r.dustBelow}`)
+  if (r.asOf !== undefined) parts.push(`as of ${day(r.asOf)}`)
+  if (r.dustBelow !== undefined) parts.push(`supplies under $${r.dustBelow}`)
   return parts.join(' · ')
 }

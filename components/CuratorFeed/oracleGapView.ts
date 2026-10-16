@@ -67,7 +67,8 @@ export interface PickMarket {
 
 /**
  * held     cards in the grid
- * unheld   under the "under $1 of curated exposure" fold (and dust ties, with their tag)
+ * unheld   under the fold: "Show only mine": the dust ties; otherwise the markets with
+ *          under $1 of curated exposure
  * unchecked  only under "Show only mine": markets the read could not check, behind their
  *          own fold, so a failed read never looks like "none"
  * mine     live and snapshot ties (dust excluded); uncheckedCount: markets unchecked
@@ -94,7 +95,12 @@ export function pickCards<T extends PickMarket>(p: {
     : p.only
       ? markets.filter((m) => m.relation)
       : markets.filter((m) => strong(m) || base.includes(m))
-  const held = shown.filter((m) => (m.curatedUsd ?? 0) >= minUsd || strong(m))
+  // Under "Show only mine" the fold is the viewer's: a dust tie (its vaults supply under
+  // the minimum) sits under it whatever the market's curated supply, as its tag says.
+  // Otherwise the fold is the market's: under the minimum of curated supply.
+  const held = shown.filter((m) =>
+    p.hasViewer && p.only ? strong(m) : (m.curatedUsd ?? 0) >= minUsd || strong(m),
+  )
   return {
     above,
     held,

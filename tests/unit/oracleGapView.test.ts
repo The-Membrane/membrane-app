@@ -77,8 +77,8 @@ describe('a card’s tag', () => {
       text: `your vault Alpha USDC · as of ${new Date(1_791_500_000_000).toISOString().slice(0, 10)}`,
       style: 'snapshot',
     })
-    expect(cardTag(mkt(1, { relation: rel({ usd: 0.4, dustBelow: 1 }) }), none)).toEqual({
-      text: 'your vault Alpha USDC · under $1',
+    expect(cardTag(mkt(1, { relation: rel({ vaultUsd: 0.4, dustBelow: 1 }) }), none)).toEqual({
+      text: 'your vault Alpha USDC · supplies under $1',
       style: 'dust',
     })
     // A known tie outranks "unchecked" (a direct position read while a vault read failed).
@@ -120,6 +120,24 @@ describe('which cards show', () => {
     expect(p.unchecked.map((m) => m.market)).toEqual([id(5)])
     expect(p.uncheckedCount).toBe(1)
     expect(p.mine).toBe(2)
+  })
+
+  it('only mine: a dust tie sits under the fold even where the market’s curated supply is ≥ $1', () => {
+    // The LBTC / TSLAon / FLHYon case: other vaults supply millions, yours supplies < $1.
+    const withDust = [
+      mkt(2, { relation: rel() }),
+      mkt(7, { usd: 5_000_000, relation: rel({ vaultUsd: 0.2, dustBelow: 1 }) }),
+      mkt(8, { usd: 5_000_000, state: 'building', relation: rel({ vaultUsd: 0.1, dustBelow: 1 }) }),
+    ]
+    const only = pickCards({ ...base, markets: withDust, hasViewer: true, only: true })
+    expect(only.held.map((m) => m.market)).toEqual([id(2)])
+    expect(only.unheld.map((m) => m.market)).toEqual([id(7), id(8)])
+    expect(only.mine).toBe(1)
+    // Highlight: the fold stays the market's, so an above-the-line market with a dust tie
+    // is still a grid card (with its "supplies under $1" tag); the dust tie is not lifted.
+    const hl = pickCards({ ...base, markets: withDust, hasViewer: true, only: false })
+    expect(hl.held.map((m) => m.market)).toEqual([id(2), id(8)])
+    expect(hl.unheld).toEqual([])
   })
 
   it('stale: the markets that were above the line at their last point', () => {

@@ -22,7 +22,8 @@
  * market lists for at most LIMITS.maxLiveVaults held V1 vaults, each queue at most
  * LIMITS.maxQueue long (MetaMorpho's MAX_QUEUE_LENGTH). Over a target limit, or with a
  * malformed address or id, it throws a named error before any call; a held V1 vault past
- * maxLiveVaults is listed in `failed` (ExposureLimitError) and keeps snapshot ties only.
+ * maxLiveVaults (the largest in USD are read first) is listed in `failed`
+ * (ExposureLimitError) and keeps snapshot ties only.
  * Calls go out LIMITS.perMulticall to a multicall (LIMITS.perAssetMulticall for the
  * vault-asset reads, which loop over a vault's markets on chain). maxEthCalls() gives the
  * worst case: 56 eth_calls at the default limits.
@@ -280,6 +281,9 @@ export interface ExposureTargets {
   markets: string[]
   /** Of `vaults`, the MetaMorpho (V1) vaults whose market list is read live. */
   liveQueue?: string[]
+  /** USD per base unit of each vault's asset: past maxLiveVaults held MetaMorpho vaults,
+   *  the largest by convertToAssets × this are read live (a vault without one ranks last). */
+  usdPerAsset?: Record<string, number>
 }
 
 export interface ExposureReport {
@@ -297,6 +301,7 @@ interface ReadContext {
   user: Address
   limits: Limits
   liveQueue: ReadonlySet<string>
+  usdPerAsset: Readonly<Record<string, number>>
 }
 
 type ResolverRead = Pick<ResolverResult, 'holdings' | 'checked' | 'failed'>
@@ -471,8 +476,20 @@ const vaultShares: ProtocolResolver = {
       { address: vault as Address, abi: ERC4626_ABI, functionName: 'totalAssets', args: [] },
     ])
     const assets = await readAll(ctx, assetCalls, ctx.limits.perAssetMulticall)
-    // The live market list, for the held MetaMorpho vaults, up to the limit.
-    const v1 = held.map((h) => h.vault).filter((v) => ctx.liveQueue.has(v))
+    // The live market list, for the held MetaMorpho vaults, up to the limit: the largest
+    // in USD first (convertToAssets × the vault's USD per asset), then by address.
+    const usdOf = (i: number): number => {
+      const r = assets[2 * i]
+      const px = ctx.usdPerAsset[held[i].vault]
+      return r?.status === 'success' && isUint(r.result) && px !== undefined
+        ? Number(r.result) * px
+        : -1
+    }
+    const v1 = held
+      .map((h, i) => ({ vault: h.vault, usd: usdOf(i) }))
+      .filter((x) => ctx.liveQueue.has(x.vault))
+      .sort((a, b) => b.usd - a.usd || (a.vault < b.vault ? -1 : 1))
+      .map((x) => x.vault)
     for (const v of v1.slice(ctx.limits.maxLiveVaults))
       failed.push({
         read: 'withdrawQueueLength',
@@ -562,6 +579,12 @@ export function parseViewerAddress(input: string): Address | null {
 
 /** Lowercase, deduplicated, validated targets. Throws ExposureInputError. */
 export function normalizeTargets(t: ExposureTargets): Required<ExposureTargets> {
+  const usdPerAsset: Record<string, number> = {}
+  for (const [v, px] of Object.entries(t.usdPerAsset ?? {})) {
+    if (!(Number.isFinite(px) && px >= 0))
+      throw new ExposureInputError(`not a USD price: ${v} ${px}`)
+    usdPerAsset[v.toLowerCase()] = px
+  }
   const clean = (xs: string[], re: RegExp, what: string) => {
     const out = [...new Set(xs.map((x) => x.toLowerCase()))]
     const bad = out.find((x) => !re.test(x))
@@ -573,7 +596,12 @@ export function normalizeTargets(t: ExposureTargets): Required<ExposureTargets> 
   const outside = liveQueue.find((v) => !vaults.includes(v))
   if (outside !== undefined)
     throw new ExposureInputError(`live-queue vault not among the vaults: ${outside}`)
-  return { vaults, markets: clean(t.markets, MARKET_RE, 'Morpho market id'), liveQueue }
+  return {
+    vaults,
+    markets: clean(t.markets, MARKET_RE, 'Morpho market id'),
+    liveQueue,
+    usdPerAsset,
+  }
 }
 
 /**
@@ -621,6 +649,7 @@ export async function resolveExposure(
     user: address,
     limits,
     liveQueue: new Set(t.liveQueue),
+    usdPerAsset: t.usdPerAsset,
     multicall: (contracts) => {
       ethCalls++
       return reader.multicall({ contracts, blockNumber: block })

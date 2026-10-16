@@ -20,7 +20,7 @@ import {
 } from '@/lib/position/touchHistory'
 
 import { STALE_HATCH } from './forecastMarks'
-import { Credit, Headline, Kicker, Section, Small } from './primitives'
+import { Credit, Headline, Kicker, Section, Small, StaleTag } from './primitives'
 import { CAPS, TYPE } from './typeScale'
 import { MARKET_LEVELS, forecastFooter } from './viewModel'
 
@@ -97,7 +97,9 @@ export const MarketHistory: React.FC<{ t: TouchTable; stale: boolean }> = ({ t, 
     <Kicker>Forecast · {periodYears(t)} history†</Kicker>
     <Headline>Chance ETH or BTC falls from today</Headline>
     {stale && (
-      <Small color={NEWS.ink2}>░ Stale: the history ends {t.period.dataEnd.slice(0, 10)}. No numbers shown.</Small>
+      <Small color={NEWS.ink2}>
+        <StaleTag />: the history ends {t.period.dataEnd.slice(0, 10)}. No numbers shown.
+      </Small>
     )}
     <Box display="grid" gridTemplateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={SPACING.lg} minW={0}>
       <AssetTable t={t} asset="ETH" stale={stale} />

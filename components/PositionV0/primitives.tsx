@@ -72,3 +72,13 @@ export const Dagger: React.FC = () => (
     †
   </Text>
 )
+
+/**
+ * The STALE tag: ░, bold, in caps. It opens every line that says why a forecast is withheld
+ * (owner, 2026-10-16: "The stale label needs to be bold"). It takes the line's own size.
+ */
+export const StaleTag: React.FC = () => (
+  <Text as="b" fontWeight={700} color={NEWS.ink} {...CAPS}>
+    ░ Stale
+  </Text>
+)

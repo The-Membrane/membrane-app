@@ -162,10 +162,22 @@ export function touchByHorizon(t: TouchTable, asset: HistoryAsset, direction: Di
  */
 export function formatChance(touched: number, n: number): string {
   if (!(n > 0)) throw new Error('formatChance: n must be positive')
-  const pct = (Math.max(0, touched) / n) * 100
-  if (pct < 1) return '<1%'
-  return `${Math.ceil(pct - 1e-9)}%`
+  const shown = chanceShownPct(touched, n)
+  return shown === 0 ? '<1%' : `${shown}%`
 }
+
+/**
+ * The whole percent formatChance prints, as a number: rounded up, and 0 for anything under
+ * 1% (which prints "<1%", never "0%"). The chance strip inks this many of its 100 cells.
+ */
+export function chanceShownPct(touched: number, n: number): number {
+  if (!(n > 0)) throw new Error('chanceShownPct: n must be positive')
+  const pct = (Math.max(0, touched) / n) * 100
+  return pct < 1 ? 0 : Math.ceil(pct - 1e-9)
+}
+
+/** The lower end of the band in percent, floored (formatBand's "9" in "9–15%"). */
+export const bandLowPct = (lo: number, n: number): number => Math.floor((lo / n) * 100 + 1e-9)
 
 /**
  * The upper end of the band in percent, rounded up. The generated table's `hi` is already
@@ -183,7 +195,7 @@ export function bandTopPct(hi: number, n: number): number {
  */
 export function formatBand(lo: number, hi: number, n: number): string {
   if (!(n > 0)) throw new Error('formatBand: n must be positive')
-  const a = Math.floor((lo / n) * 100 + 1e-9)
+  const a = bandLowPct(lo, n)
   const b = bandTopPct(hi, n)
   if (a < 1) return `up to ${b}%`
   return a === b ? `${a}%` : `${a}–${b}%`

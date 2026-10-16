@@ -1,7 +1,7 @@
 // "MOVE YOUR LINE" (FORECAST_VISUALS.md): the reverse solve on the same model and the
-// selected horizon, written as levers — "Repay N USDC · line −Y% · Z% (lo–hi)", "Add N ETH
-// · …" — each ending at the protocol's own app (root links only; no unverified deep link),
-// then "Alert me at $P".
+// selected horizon, written as levers — "If you repay N USDC · line −Y% · Z% (lo–hi)",
+// "If you add N ETH · …" — each ending at the protocol's own app (root links only; no
+// unverified deep link), then "Alert me at $P".
 
 import React from 'react'
 import { Box, Link } from '@chakra-ui/react'
@@ -12,7 +12,7 @@ import { NEWS } from '@/components/NewsEdition/tokens'
 import { HORIZON_WORDS, TOUCH_TABLE, type HorizonId } from '@/lib/position/touchHistory'
 
 import { AlertMeSlot } from './AlertMeSlot'
-import { Kicker, Mono, Section, Small } from './primitives'
+import { Kicker, Mono, Section, Small, StaleTag } from './primitives'
 import type { PositionView } from './viewModel'
 
 const ROW_LINK = {
@@ -89,7 +89,11 @@ export const Actions: React.FC<{
   return (
     <Section id="actions">
       <Kicker>Move your line · within {HORIZON_WORDS[horizon]}</Kicker>
-      {stale && <Small color={NEWS.ink2}>Chances withheld · forecast data {staleDays} days old</Small>}
+      {stale && (
+        <Small color={NEWS.ink2}>
+          <StaleTag /> · chances withheld · forecast data {staleDays} days old
+        </Small>
+      )}
       {rows.length > 0 ? (
         <Box display="grid" gridTemplateColumns={{ base: '1fr', lg: '1fr 1fr' }} columnGap={SPACING.lg} minW={0}>
           {(['repay', 'add'] as const).map((kind) => {

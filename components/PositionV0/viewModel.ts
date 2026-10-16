@@ -118,6 +118,8 @@ export interface ReadStatusItem {
   skipped?: { market: string; reason: string }[]
   /** How the markets were found (Morpho Blue). `complete: false` = not every market checked. */
   discovery?: MarketDiscovery
+  /** The read passed its deadline: the public RPCs were busy. */
+  timedOut?: boolean
 }
 
 /** True when the read could not check every market the address may hold. */
@@ -145,6 +147,7 @@ export function readStatus(
       message: r.message,
       ...(r.skipped?.length ? { skipped: r.skipped } : {}),
       ...(r.discovery ? { discovery: r.discovery } : {}),
+      ...(r.timedOut ? { timedOut: true } : {}),
     }
   })
 }
@@ -163,7 +166,7 @@ export function statusWord(s: ReadStatusItem): string {
       // Not "nothing found": markets outside the list were never checked.
       return `${s.label} read${partial}`
     case 'error':
-      return `${s.label} failed`
+      return s.timedOut ? `couldn't read ${s.label}: public RPC busy` : `${s.label} failed`
     case 'unsupported':
       return `${s.label} not supported yet`
   }

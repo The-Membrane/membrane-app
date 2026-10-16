@@ -6,7 +6,7 @@
 // same address. Results are keyed by the read they belong to, so a stale read can never
 // show under a newer address.
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { ADAPTERS, runAdapter } from '@/lib/position-sim/adapters'
 import type { AdapterResult, ProtocolId } from '@/lib/position-sim/types'
@@ -20,29 +20,56 @@ type Results = Partial<Record<ProtocolId, AdapterResult>>
 
 const NONE: Results = {}
 
-export function useAdapterReads(target: `0x${string}` | null, nonce: number): Results {
+export interface AdapterReads {
+  results: Results
+  /** Reads one venue again (a timed-out or failed one) for the same address and read. */
+  retry: (protocol: ProtocolId) => void
+}
+
+export function useAdapterReads(target: `0x${string}` | null, nonce: number): AdapterReads {
   const [store, setStore] = useState<{ read: string; results: Results }>({ read: '', results: NONE })
   const readId = target ? `${target}#${nonce}` : ''
+  // The read a retry belongs to; a retry that lands after the address changed is dropped.
+  const current = useRef('')
+
+  const publish = useCallback((id: string, r: AdapterResult) => {
+    if (current.current !== id) return
+    setStore((prev) => ({
+      read: id,
+      results: { ...(prev.read === id ? prev.results : NONE), [r.protocol]: r },
+    }))
+  }, [])
 
   useEffect(() => {
     if (!target) return
     const id = `${target}#${nonce}`
-    let live = true
+    current.current = id
     for (const adapter of ADAPTERS) {
-      // runAdapter never rejects: every failure, including Fluid's declared gap, comes
-      // back as an AdapterResult with its own status.
-      void runAdapter(adapter, target).then((r) => {
-        if (!live) return
-        setStore((prev) => ({
-          read: id,
-          results: { ...(prev.read === id ? prev.results : NONE), [r.protocol]: r },
-        }))
-      })
+      // runAdapter never rejects: every failure, including Fluid's declared gap and a read
+      // past its deadline, comes back as an AdapterResult with its own status.
+      void runAdapter(adapter, target).then((r) => publish(id, r))
     }
     return () => {
-      live = false
+      current.current = ''
     }
-  }, [target, nonce])
+  }, [target, nonce, publish])
 
-  return readId !== '' && store.read === readId ? store.results : NONE
+  const retry = useCallback(
+    (protocol: ProtocolId) => {
+      const adapter = ADAPTERS.find((a) => a.id === protocol)
+      if (!target || !adapter) return
+      const id = `${target}#${nonce}`
+      // Back to "reading…" for that venue only; the others stand.
+      setStore((prev) => {
+        if (prev.read !== id) return prev
+        const results = { ...prev.results }
+        delete results[protocol]
+        return { read: id, results }
+      })
+      void runAdapter(adapter, target).then((r) => publish(id, r))
+    },
+    [target, nonce, publish],
+  )
+
+  return { results: readId !== '' && store.read === readId ? store.results : NONE, retry }
 }

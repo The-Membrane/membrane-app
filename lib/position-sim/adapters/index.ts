@@ -51,14 +51,39 @@ export const ADAPTERS: readonly LendingAdapter[] = [
   fluidAdapter,
 ] as const
 
-/** Runs one adapter and converts every outcome — including a throw — into a result. */
+/** A venue read that has not finished by then is reported as busy, never left "reading…". */
+export const VENUE_DEADLINE_MS = 25_000
+
+/** Thrown when a venue read passes its deadline: the public RPCs were too busy to answer. */
+export class DeadlineError extends Error {
+  constructor(label: string, ms: number) {
+    super(`couldn't read ${label}: public RPC busy (no answer in ${ms / 1000} s)`)
+    this.name = 'DeadlineError'
+  }
+}
+
+/** `p`, or a DeadlineError once `ms` has passed. The read itself is abandoned, not awaited. */
+function withDeadline<T>(p: Promise<T>, label: string, ms: number): Promise<T> {
+  let t: ReturnType<typeof setTimeout> | undefined
+  const late = new Promise<never>((_, reject) => {
+    t = setTimeout(() => reject(new DeadlineError(label, ms)), ms)
+  })
+  return Promise.race([p, late]).finally(() => clearTimeout(t))
+}
+
+/**
+ * Runs one adapter and converts every outcome — including a throw, and a read past its
+ * deadline (status 'error', `timedOut`) — into a result. A timed-out venue is a failed
+ * venue: the page never says "No open position found" beside it.
+ */
 export async function runAdapter(
   adapter: LendingAdapter,
   address: `0x${string}`,
+  deadlineMs: number = VENUE_DEADLINE_MS,
 ): Promise<AdapterResult> {
   const startedAt = Date.now()
   try {
-    const positions = await adapter.read(address).catch((e: unknown) => {
+    const positions = await withDeadline(adapter.read(address), adapter.label, deadlineMs).catch((e: unknown) => {
       // A sub-market dropped on a check, or a partial market discovery: keep what was read,
       // and name what was not. A dropped market with nothing left is still a failure.
       if (e instanceof PartialReadError && (e.positions.length > 0 || e.skipped.length === 0)) return e
@@ -104,6 +129,7 @@ export async function runAdapter(
       status: unsupported ? 'unsupported' : 'error',
       positions: [],
       message,
+      ...(e instanceof DeadlineError ? { timedOut: true } : {}),
       ...(e instanceof PartialReadError ? { skipped: e.skipped, ...(e.discovery ? { discovery: e.discovery } : {}) } : {}),
       fetchedAt: Date.now(),
       tookMs: Date.now() - startedAt,

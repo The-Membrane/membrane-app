@@ -7,10 +7,11 @@
 // history table or a contract constant (DESIGN_RULES §4: no mockup numbers).
 
 import React, { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
-import { Box } from '@chakra-ui/react'
+import { Box, Button } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
-import { NEWS } from '@/components/NewsEdition/tokens'
+import { TRANSITIONS } from '@/config/transitions'
+import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { DEFAULT_HORIZON } from '@/lib/position/reverseSolve'
 import { TOUCH_TABLE, staleDays, type HorizonId } from '@/lib/position/touchHistory'
 
@@ -23,6 +24,7 @@ import { MarketHistory } from './MarketHistory'
 import { MembraneLine } from './MembraneLine'
 import { PositionPicker } from './PositionPicker'
 import { Headline, Kicker, Mono, Rule, Section, Small } from './primitives'
+import { CAPS, TYPE } from './typeScale'
 import { ADAPTER_ORDER, useAdapterReads } from './useAdapterReads'
 import { usePositionTarget } from './usePositionTarget'
 import {
@@ -51,6 +53,49 @@ const COVERAGE = `Reads ${ADAPTER_ORDER.filter((a) => a.id !== 'fluid')
   .join(' / ')} on Ethereum · Fluid not supported yet`
 
 // ------------------------------------------------------------------ states
+
+/**
+ * A venue whose read passed its deadline, or failed, is named with a retry — never left
+ * "reading…". Retrying re-reads that venue alone for the same address.
+ */
+const BusyVenues: React.FC<{ items: ReadStatusItem[]; onRetry: (p: ReadStatusItem['protocol']) => void }> = ({
+  items,
+  onRetry,
+}) => {
+  const failed = items.filter((i) => i.state === 'error')
+  if (failed.length === 0) return null
+  return (
+    <Box display="grid" gap={SPACING.xs} minW={0}>
+      {failed.map((f) => (
+        <Box key={f.protocol} display="flex" flexWrap="wrap" alignItems="center" columnGap={SPACING.sm} minW={0}>
+          <Small color={NEWS.ink2} overflowWrap="anywhere">
+            ✖ {f.timedOut ? `couldn't read ${f.label}: public RPC busy` : `${f.label} failed`}
+          </Small>
+          <Button
+            type="button"
+            variant="unstyled"
+            onClick={() => onRetry(f.protocol)}
+            h="44px"
+            minW={0}
+            px={0}
+            color={NEWS.accent}
+            fontFamily={NEWS_FONT.mono}
+            fontSize={TYPE.label}
+            fontWeight={700}
+            {...CAPS}
+            textDecoration="underline"
+            textUnderlineOffset="3px"
+            transition={TRANSITIONS.colors}
+            _hover={{ color: NEWS.ink }}
+            aria-label={`Try reading ${f.label} again`}
+          >
+            Try again
+          </Button>
+        </Box>
+      ))}
+    </Box>
+  )
+}
 
 const Reading: React.FC<{ address: string }> = ({ address }) => (
   // Holds the hero's height while the adapters answer (§9: reserve client-only space).
@@ -160,7 +205,7 @@ const Body: React.FC<{
 export const PositionV0: React.FC = () => {
   const form = usePositionTarget()
   const address = form.target
-  const results = useAdapterReads(address, form.nonce)
+  const { results, retry } = useAdapterReads(address, form.nonce)
   // The picked position belongs to the read it was picked in; a new read starts at the
   // nearest line again without a reset effect.
   const [picked, setPicked] = useState<{ read: string; key: string } | null>(null)
@@ -196,6 +241,7 @@ export const PositionV0: React.FC = () => {
           <Small minH="1.5em" aria-live="polite" overflowWrap="anywhere">
             {address ? `${shortAddr(address)} · ${statusSentence(items)}` : COVERAGE}
           </Small>
+          {address && <BusyVenues items={items} onRetry={retry} />}
         </Box>
         <Rule mt={SPACING.base} />
 

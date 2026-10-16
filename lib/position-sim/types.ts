@@ -178,6 +178,8 @@ export interface AdapterResult {
   skipped?: { market: string; reason: string }[]
   /** How the markets were found, where the protocol cannot enumerate them (Morpho Blue). */
   discovery?: MarketDiscovery
+  /** The read passed its deadline (status 'error'): the public RPCs were busy. Retryable. */
+  timedOut?: boolean
   fetchedAt: number
   /** Milliseconds the read took, for the receipt. */
   tookMs?: number

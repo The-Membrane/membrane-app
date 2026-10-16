@@ -8,9 +8,10 @@
 // the status mark (✖ fired, red; ▲ hours of 24; below; ░ not measured or stale) and the $
 // exposed in small print. The prices, the series, the holders and the links sit in the
 // card's fold; the method, the T2 record and the caveats in one "How this is measured"
-// fold. A card the viewer is tied to (a pasted or connected address, read-only, or a
-// chosen curator; lib/exposure) has a heavy frame and a tag, and the viewer can highlight
-// those cards or show only them.
+// fold. A card the viewer is tied to (a typed or connected address, read-only, or a
+// chosen curator; lib/exposure) carries a tag: a live tie a heavy frame, a tie from the
+// exposure snapshot "as of" its date and muted, a tie under $1 under the fold, a market the
+// read could not check "░ unchecked". The viewer can highlight those cards or show only them.
 //
 // Rules (membrane-board design/DESIGN_RULES.md): calm is ink; red ✖ only for a fired
 // market (its oracle priced the collateral ≥ 2% above market for 24 h); stale is hatched
@@ -45,16 +46,15 @@ import {
   exposureTargets,
   maxEthCalls,
   relationsOf,
-  relationTag,
-  withRelations,
   shortName,
   uncheckedMarkets,
+  withRelations,
   type ExposureReport,
-  type Relation,
 } from '@/lib/exposure'
 
 import { Chip, Fold, getJson, HATCH, LABEL, Mono } from './atoms'
 import { useExposure, useViewerAddress } from './hooks/useExposure'
+import { cardTag, pickCards, type CardTag } from './oracleGapView'
 
 const ETHERSCAN = 'https://etherscan.io'
 
@@ -212,43 +212,70 @@ const CardDetails: React.FC<{
   </Stack>
 )
 
+/** The frame and tag of a card the viewer is tied to: a live tie is heavy ink; a snapshot
+ *  tie (as of a date), a dust tie and an unchecked market are muted. */
+const FRAME: Record<
+  CardTag['style'],
+  { border: string; inset: boolean; ink: string; weight: number }
+> = {
+  live: {
+    border: SEMANTIC_COLORS.textPrimary,
+    inset: true,
+    ink: SEMANTIC_COLORS.textPrimary,
+    weight: 700,
+  },
+  snapshot: {
+    border: SEMANTIC_COLORS.borderStrong,
+    inset: false,
+    ink: SEMANTIC_COLORS.textSecondary,
+    weight: 400,
+  },
+  dust: {
+    border: SEMANTIC_COLORS.borderSubtle,
+    inset: false,
+    ink: SEMANTIC_COLORS.textSecondary,
+    weight: 400,
+  },
+  unchecked: {
+    border: SEMANTIC_COLORS.borderSubtle,
+    inset: false,
+    ink: SEMANTIC_COLORS.textSecondary,
+    weight: 400,
+  },
+}
+
 const GapCard = memo(function GapCard({
   m,
   r,
-  rel,
+  tag,
   onWatch,
 }: {
   m: OracleGapMarketView
   r: OracleGapResponse
-  rel?: Relation
+  tag?: CardTag
   onWatch: (symbol: string) => void
 }) {
   const mark = gapMark(m, r)
   const hatched = m.i3.state === 'stale' || m.i3.state === 'unobserved'
   const ink = mark.alarm ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary
+  const frame = tag ? FRAME[tag.style] : undefined
   return (
     <Box
       as="article"
-      aria-label={`${m.marketName}${rel ? `, ${relationTag(rel)}` : ''}`}
-      data-related={rel ? rel.kind : undefined}
+      aria-label={`${m.marketName}${tag ? `, ${tag.text}` : ''}`}
+      data-tie={tag?.style}
       minW={0}
       px={SPACING.md}
       pt={SPACING.sm}
       border="1px solid"
-      borderColor={rel ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.borderSubtle}
+      borderColor={frame?.border ?? SEMANTIC_COLORS.borderSubtle}
       // The heavy frame is a second inset hairline: 2px of ink, no layout shift.
-      boxShadow={rel ? `inset 0 0 0 1px ${SEMANTIC_COLORS.textPrimary}` : undefined}
+      boxShadow={frame?.inset ? `inset 0 0 0 1px ${frame.border}` : undefined}
       bgImage={hatched ? HATCH : undefined}
-      transition={TRANSITIONS.colors}
     >
-      {rel && (
-        <Text
-          {...LABEL}
-          fontWeight={700}
-          color={SEMANTIC_COLORS.textPrimary}
-          overflowWrap="anywhere"
-        >
-          {relationTag(rel)}
+      {tag && frame && (
+        <Text {...LABEL} fontWeight={frame.weight} color={frame.ink} overflowWrap="anywhere">
+          {tag.text}
         </Text>
       )}
       <Mono size="13px" color={SEMANTIC_COLORS.textPrimary} title={m.market}>
@@ -421,9 +448,13 @@ const HowMeasured: React.FC<{ r: OracleGapResponse }> = ({ r }) => {
           {utc(meta.exposureTs)}). In a supply-locked market the $ is book value, not live supply.
         </Mono>
         <Mono size="11px">
-          Your address: read-only, no signature. balanceOf and convertToAssets on each vault listed
-          here, and Morpho Blue position(), at one block through a public Ethereum RPC. Vaults
-          outside this list, and other protocols, are not read.
+          Your address: read-only, no signature, at one block through public Ethereum RPCs (the next
+          one if one fails). balanceOf on every Morpho vault of the exposure read; where you hold
+          shares, convertToAssets, and for a MetaMorpho vault the markets it supplies now
+          (withdrawQueue, then position() above 0); Morpho Blue position() on each market here. A
+          Vault V2&apos;s markets, and a vault whose live read fails, are the exposure read&apos;s:
+          tagged &quot;as of&quot; its date. A tie under ${r.exposedMinUsd} sits under the fold.
+          Other protocols are not read.
         </Mono>
         <Box pt={SPACING.xs}>
           <Eyebrow>
@@ -473,43 +504,42 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
 }) => {
   const [all, setAll] = useState(false)
   const [dust, setDust] = useState(false)
+  const [showUnchecked, setShowUnchecked] = useState(false)
   const [only, setOnly] = useState(false)
   const [curator, setCurator] = useState('')
   const viewer = useViewerAddress()
-  const targets = useMemo(() => exposureTargets(r.markets), [r.markets])
+  const targets = useMemo(() => exposureTargets(r.markets, r.vaults), [r.markets, r.vaults])
   const curators = useMemo(() => curatorsOf(r.markets), [r.markets])
   const exposure = useExposure(viewer.address, targets)
   const report = viewer.address ? exposure.data : undefined
   const relations = useMemo(
-    () => relationsOf(r.markets, report, curator || undefined),
-    [r.markets, report, curator],
+    () =>
+      relationsOf(r.markets, report, curator || undefined, {
+        vaults: r.vaults,
+        snapshotTs: r.meta.exposureTs,
+        minUsd: r.exposedMinUsd,
+      }),
+    [r.markets, r.vaults, r.meta.exposureTs, r.exposedMinUsd, report, curator],
   )
-  const unchecked = useMemo(() => uncheckedMarkets(r.markets, report), [r.markets, report])
+  const unchecked = useMemo(() => new Set(uncheckedMarkets(r.markets, report)), [r.markets, report])
   const markets = useMemo(() => withRelations(r.markets, relations), [r.markets, relations])
   const hasViewer = !!curator || !!viewer.address
   // The address is not read yet, or its read threw: no claim about its markets (the read
   // line says which).
   const unread = !!viewer.address && !report
   const line = thresholdText(r.constants)
-
-  // Stale: the markets that were above the line at their last point, hatched.
-  const above = markets.filter((m) =>
-    r.meta.stale
-      ? m.i3.hoursAboveConsecutive > 0
-      : m.i3.state === 'fired' || m.i3.state === 'building',
-  )
-  const mine = markets.filter((m) => m.relation)
-  const base = all ? markets : above
-  const shown = !hasViewer
-    ? base
-    : only
-      ? mine
-      : markets.filter((m) => m.relation || base.includes(m))
-  // Markets without curated exposure sit below a one-line fold, unless they are yours.
-  const held = shown.filter((m) => (m.curatedUsd ?? 0) >= r.exposedMinUsd || m.relation)
-  const unheld = shown.filter((m) => !held.includes(m))
+  const pick = pickCards({
+    markets,
+    stale: r.meta.stale,
+    all,
+    hasViewer,
+    only,
+    unchecked,
+    minUsd: r.exposedMinUsd,
+  })
+  const shown = pick.held.length + pick.unheld.length
   const card = (m: OracleGapMarketView) => (
-    <GapCard key={m.market} m={m} r={r} rel={m.relation} onWatch={onWatch} />
+    <GapCard key={m.market} m={m} r={r} tag={cardTag(m, unchecked)} onWatch={onWatch} />
   )
 
   return (
@@ -559,13 +589,19 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
             aria-describedby={viewer.error ? 'oracle-gap-address-error' : undefined}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => viewer.setInput(e.target.value)}
             onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) =>
-              e.key === 'Enter' && viewer.commit(viewer.input)
+              e.key === 'Enter' && viewer.commit()
             }
-            onBlur={() => viewer.commit(viewer.input)}
+            onBlur={() => viewer.commit()}
           />
         </Box>
         {hasViewer && (
-          <HStack spacing={SPACING.xs} role="group" aria-label="Your markets" minH="32px">
+          <HStack
+            spacing={SPACING.xs}
+            role="group"
+            aria-label="Your markets"
+            minH="32px"
+            flexWrap="wrap"
+          >
             <Chip active={!only} onClick={() => setOnly(false)}>
               Highlight mine
             </Chip>
@@ -573,7 +609,8 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
               Show only mine
             </Chip>
             <Mono size="11px" as="span">
-              {mine.length} of {r.markets.length}
+              {pick.mine} of {r.total}
+              {pick.uncheckedCount ? ` · ░ ${pick.uncheckedCount} unchecked` : ''}
             </Mono>
           </HStack>
         )}
@@ -586,35 +623,49 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
         </Box>
       )}
       {viewer.address && (
-        <ReadLine address={viewer.address} q={exposure} unchecked={unchecked.length} />
+        <ReadLine address={viewer.address} q={exposure} unchecked={unchecked.size} />
       )}
 
       <Box mt={SPACING.sm}>
-        {shown.length === 0 && !r.meta.stale && !(only && unread) && (
+        {shown === 0 && !r.meta.stale && !(only && unread) && (
           <Mono size="11px">
             {hasViewer && only
-              ? `No market here ties to ${[viewer.address && shortAddress(viewer.address), curator && shortName(curator)].filter(Boolean).join(' or ')}${unchecked.length ? ` · ${unchecked.length} unchecked` : ''}.`
+              ? `No market here ties to ${[viewer.address && shortAddress(viewer.address), curator && shortName(curator)].filter(Boolean).join(' or ')}${pick.uncheckedCount ? ` · ░ ${pick.uncheckedCount} unchecked` : ''}.`
               : `No market is ${line} or more above its DefiLlama price at the newest point.`}
           </Mono>
         )}
-        {held.length > 0 && <Box {...GRID}>{held.map(card)}</Box>}
-        {unheld.length > 0 && (
+        {pick.held.length > 0 && <Box {...GRID}>{pick.held.map(card)}</Box>}
+        {pick.unheld.length > 0 && (
           <Box mt={SPACING.sm}>
             <Chip active={dust} onClick={() => setDust(!dust)}>
-              {dust ? 'hide' : 'show'} {unheld.length} more with under ${r.exposedMinUsd} of curated
-              exposure
+              {dust ? 'hide' : 'show'} {pick.unheld.length} more with under ${r.exposedMinUsd} of
+              curated exposure
             </Chip>
           </Box>
         )}
-        {dust && unheld.length > 0 && (
+        {dust && pick.unheld.length > 0 && (
           <Box {...GRID} mt={SPACING.sm}>
-            {unheld.map(card)}
+            {pick.unheld.map(card)}
           </Box>
         )}
-        {!(hasViewer && only) && r.markets.length > above.length && (
+        {/* A failed read never reads as "none": the markets it could not check stay one
+            tap away, marked ░ unchecked. */}
+        {pick.unchecked.length > 0 && (
+          <Box mt={SPACING.sm}>
+            <Chip active={showUnchecked} onClick={() => setShowUnchecked(!showUnchecked)}>
+              {showUnchecked ? 'hide' : 'show'} {pick.unchecked.length} unchecked
+            </Chip>
+          </Box>
+        )}
+        {showUnchecked && pick.unchecked.length > 0 && (
+          <Box {...GRID} mt={SPACING.sm}>
+            {pick.unchecked.map(card)}
+          </Box>
+        )}
+        {!(hasViewer && only) && r.total > pick.above.length && (
           <Box mt={SPACING.sm}>
             <Chip active={all} onClick={() => setAll(!all)}>
-              {all ? 'show fewer' : `show all ${r.markets.length}`}
+              {all ? 'show fewer' : `show all ${r.total}`}
             </Chip>
           </Box>
         )}

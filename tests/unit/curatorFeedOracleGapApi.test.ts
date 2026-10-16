@@ -117,6 +117,16 @@ const exposure = {
         share: 0.2,
       })),
     },
+    // A Vault V2 with no listed market (a viewer's read still needs it), and an Euler Earn
+    // vault (no Morpho market: not in the vault map).
+    {
+      vault: tok('9'),
+      protocol: 'morpho-v2',
+      totalAssets: '2000000',
+      totalUsd: 2,
+      allocations: [],
+    },
+    { vault: tok('a'), protocol: 'euler-earn', totalAssets: '1', totalUsd: 1, allocations: [] },
   ],
 }
 
@@ -246,6 +256,16 @@ describe('GET /api/curator-feed?view=oracle-gap', () => {
     expect(a.i3.firedSince).toBe(NOW - 7 * H) // the 24th of 30 hourly points
     expect(a.series.length).toBe(30) // fewer than 2 × 24 points so far
     expect(a.vaults[0]).toMatchObject({ vaultName: 'Test USDC', curatorName: 'Curator K' })
+    // Every Morpho vault of the exposure read, for the viewer's read (lib/exposure).
+    expect(b.vaults).toEqual({
+      [VAULT]: { protocol: 'morpho-v1', name: 'Test USDC', curatorName: 'Curator K' },
+      [tok('9')]: {
+        protocol: 'morpho-v2',
+        name: '0x9999…9999',
+        curatorName: '0x9999…9999',
+        usdPerAsset: 1e-6,
+      },
+    })
     expect(b.markets[4].series).toEqual([])
     // Filters and limit.
     expect(

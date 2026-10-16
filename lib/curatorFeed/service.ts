@@ -1186,6 +1186,15 @@ export interface OracleGapResponse {
   exposed: Record<I3State, number>
   /** Below this curated supply a market counts as having no curated exposure. */
   exposedMinUsd: number
+  /**
+   * Every Morpho vault of the exposure read (MetaMorpho V1 and Vault V2), by lowercase
+   * address: what a viewer's read needs (lib/exposure). `usdPerAsset`: totalUsd /
+   * totalAssets at the exposure read, USD per base unit of the vault's asset.
+   */
+  vaults: Record<
+    string,
+    { protocol: 'morpho-v1' | 'morpho-v2'; name: string; curatorName: string; usdPerAsset?: number }
+  >
   markets: OracleGapMarketView[]
   total: number
 }
@@ -1243,7 +1252,20 @@ export function buildOracleGapResponse(
   const curatedUsd = zero()
   const exposed = zero()
   const bookUsd = zero()
-  const empty = { counts, curatedUsd, bookUsd, exposed, exposedMinUsd: EXPOSED_MIN_USD }
+  const vaults: OracleGapResponse['vaults'] = {}
+  for (const v of exposure.vaults) {
+    if (v.protocol !== 'morpho-v1' && v.protocol !== 'morpho-v2') continue
+    const total = BigInt(v.totalAssets)
+    vaults[v.vault.toLowerCase()] = {
+      protocol: v.protocol,
+      name: vaultLabel(e, v.vault),
+      curatorName: curatorLabel(e, v.vault),
+      ...(v.totalUsd !== undefined && total > 0n
+        ? { usdPerAsset: v.totalUsd / Number(total) }
+        : {}),
+    }
+  }
+  const empty = { counts, curatedUsd, bookUsd, exposed, exposedMinUsd: EXPOSED_MIN_USD, vaults }
   const meta: OracleGapResponse['meta'] = {
     now: nowS,
     measured: Boolean(lastRun),

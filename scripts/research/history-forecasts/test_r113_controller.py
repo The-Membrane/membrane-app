@@ -138,6 +138,19 @@ def test_live_controller_and_eprocess():
     assert res["6h"]["n_days"] == 0
 
 
+def test_scaled_bound():
+    g = pd.DataFrame({"day": ["a"] * 4 + ["b"] * 2, "p": [0.3, 0.1, 0.9, 0.5, 0.2, 0.2],
+                      "q": [0.2, 0.15, 0.8, 0.5, 0.2, 0.2], "y": [1, 0, 0, 1, 0, 1]})
+    days, x = M.daily_scaled(g, "p", "q")
+    assert list(days) == ["a", "b"] and x[1] == 0.0
+    # any outcomes: |d| <= c
+    for ys in np.array(np.meshgrid(*[[0, 1]] * 4)).T.reshape(-1, 4):
+        gg = g.copy()
+        gg.loc[:3, "y"] = ys
+        _, xx = M.daily_scaled(gg, "p", "q")
+        assert abs(xx[0]) <= 1 + 1e-12
+
+
 def test_guard():
     with pytest.raises(SystemExit):
         M.guard('{"a": "0x' + "ab" * 20 + '"}')

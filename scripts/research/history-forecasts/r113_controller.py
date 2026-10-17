@@ -110,6 +110,10 @@ DECISIONS = {
               "the window's first day (independent fair signs = swapping p and p' by block), and runs the e-process "
               "to 730 days. False-pass rate = share of reps with max K >= 1/alpha. A fresh default_rng(20261118) per "
               "pair, pairs in the order R10.5 then R11.3, 6h, 1d, 3d. It must be <= alpha = 0.025/6 per pair.",
+    "R113-11": "Reported only, deciding nothing (power diagnostic for a possible later Deviation): the same "
+               "e-process, null check and power report on x_t = d_t / c_t, c_t = mean over the issue day's rows of "
+               "|p - p'| * max(p + p', 2 - p - p') (the largest |d_t| any outcomes allow, known at issue; x_t = 0 "
+               "when c_t = 0). The registered statistic d_t stays the live test.",
     "R113-10": "Reported only: the unflipped dev e-process on 730-day windows starting every 30 issue days (share "
                "reaching 1/alpha, final and max log K), and the capped bound sum log(1 + d/2) (the best constant "
                "bet), per pair; frozen-point in-sample statistics; 7d-30d; per asset; per year; 2026Q2; delta paths; "
@@ -211,6 +215,20 @@ def daily_diff(g, col_cmp, col_new):
     b = g.assign(bc=(g[col_cmp] - g["y"]) ** 2, bn=(g[col_new] - g["y"]) ** 2)
     per = b.groupby("day")[["bc", "bn"]].mean().sort_index()
     return per.index.to_numpy(), (per["bc"] - per["bn"]).to_numpy()
+
+
+def daily_scaled(g, col_cmp, col_new):
+    """Reported-only variant: x_t = d_t / c_t with c_t = mean over the day's rows of |pc - pn| * max(pc + pn,
+    2 - pc - pn), the largest |d_t| any outcomes could give. c_t is known at issue, so |x_t| <= 1 and the null
+    E[d_t | past] <= 0 is unchanged. x_t = 0 when c_t = 0 (p' = p, no bet)."""
+    pc, pn = g[col_cmp], g[col_new]
+    b = g.assign(bc=(pc - g["y"]) ** 2, bn=(pn - g["y"]) ** 2,
+                 c=(pc - pn).abs() * np.maximum(pc + pn, 2.0 - pc - pn))
+    per = b.groupby("day")[["bc", "bn", "c"]].mean().sort_index()
+    dd = (per["bc"] - per["bn"]).to_numpy()
+    c = per["c"].to_numpy()
+    x = np.where(c > 0, dd / np.where(c > 0, c, 1.0), 0.0)
+    return per.index.to_numpy(), np.clip(x, -1.0, 1.0)
 
 
 def hac_test(x, lag=NW_LAG):
@@ -401,6 +419,8 @@ def live_eprocess(df, family_T, alpha=ALPHA_LIVE):
         lnr_ok = r["n_days"] >= MIN_LNR_DAYS and m1 is not None and m0 is not None and m1 <= m0
         r["pass"] = bool(r["crossed"] and lnr_ok)
         r["status"] = "pass" if r["pass"] else ("not shown" if r["n_days"] >= MAX_LIVE_DAYS else "running")
+        dx, xx = daily_scaled(g, "p", "p_new")
+        r["scaledReportedOnly"] = eprocess_decision(dx, xx, T, alpha)
         res[T] = r
     return res
 
@@ -591,7 +611,7 @@ def cmd_run(out):
            "selected": frozen["selected"], "selectionBrier": sel_brier, "selectionBrierStatic": b_static,
            "nestedYears": years, "historyTest": {}, "reportedLongHorizons": {}, "r105SameRows": {},
            "frozenInSample": {}, "perAsset": {}, "perYear": {}, "q2Reported": {}, "deltaPaths": {},
-           "eprocessNull": {}, "eprocessPower": {}}
+           "eprocessNull": {}, "eprocessPower": {}, "eprocessNullScaled": {}, "eprocessPowerScaled": {}}
     NR = S & d["p_nested"].notna()
     dserie = {}
     for T in HORIZONS:
@@ -604,6 +624,7 @@ def cmd_run(out):
                                and blk["medAbsLnR_new"] <= blk["medAbsLnR_static"])
             res["historyTest"][T] = blk
             dserie[("R11.3", T)] = (days, d_s)
+            dserie[("R11.3", T, "x")] = daily_scaled(rows, "p", "p_nested")
         else:
             res["reportedLongHorizons"][T] = blk
         r5, _, _ = history_block(rows, "p_r105")
@@ -643,11 +664,18 @@ def cmd_run(out):
     for T in TESTED:
         rows5 = d[S & (d["T"] == T)]
         dserie[("R10.5", T)] = daily_diff(rows5, "p", "p_r105")
+        dserie[("R10.5", T, "x")] = daily_scaled(rows5, "p", "p_r105")
     for rule in ["R10.5", "R11.3"]:
         for T in TESTED:
             days, dd_ = dserie[(rule, T)]
             res["eprocessNull"].setdefault(rule, {})[T] = null_false_pass(days, dd_, T)
             res["eprocessPower"].setdefault(rule, {})[T] = power_report(days, dd_, T)
+            dx, xx = dserie[(rule, T, "x")]
+            res["eprocessNullScaled"].setdefault(rule, {})[T] = null_false_pass(dx, xx, T)
+            res["eprocessPowerScaled"].setdefault(rule, {})[T] = power_report(dx, xx, T)
+            ns = res["eprocessNullScaled"][rule][T]
+            log.append(f"null scaled (reported) {rule} {T}: false-pass {ns['false_pass']}/{ns['reps']} "
+                       f"power share {res['eprocessPowerScaled'][rule][T]['share_crossed']:.3f}")
             nf = res["eprocessNull"][rule][T]
             log.append(f"null {rule} {T}: false-pass {nf['false_pass']}/{nf['reps']} ok={nf['ok']} "
                        f"Kmax q99 {nf['Kmax_q99']:.3f}")

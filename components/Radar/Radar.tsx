@@ -13,12 +13,23 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { SectionHeading, Stamp } from '@/components/Carry/atoms'
 import { useChainRoute } from '@/hooks/useChainRoute'
 
-import { fmtDuration, fmtMultiple, fmtPct, fmtUsd, type Verdict } from './radarLogic'
+import {
+  EXAMPLE_BANNER,
+  fmtDuration,
+  fmtMultiple,
+  fmtPct,
+  fmtUsd,
+  radarSubject,
+  readingUnavailable,
+  type Verdict,
+} from './radarLogic'
 import { RecapSection } from './RecapSection'
 import { RadarShareCard } from './RadarShareCard'
 import { exportElementAsImage } from '@/services/shareableCard'
 import { radarPermalinkPath } from '@/lib/share/permalink'
 import { Masthead } from '@/components/Today/Masthead'
+import { RAISED_BUTTON } from '@/components/Today/newsStyle'
+import { shortAddr } from '@/components/Today/safetyView'
 
 // Carry Radar — paste any mainnet address, see its positions across our four
 // instrumented venues, stressed against our RECORDED capacity + flow corpus.
@@ -216,9 +227,14 @@ export function useRadarScan(address: string | null) {
  * The Radar read of one address: its positions, the one-venue comparator and where the
  * numbers come from. The page adds the share line, the image export, the watches/recap
  * and the next links; `inline` (Today's Safety body, opened in place) leaves those to
- * the full page.
+ * the full page. `example` (the page's demo-first read of a public address) drops the
+ * share line and the watch: neither is the reader's.
  */
-export const RadarReport: React.FC<{ address: string; inline?: boolean }> = ({ address, inline = false }) => {
+export const RadarReport: React.FC<{ address: string; inline?: boolean; example?: boolean }> = ({
+  address,
+  inline = false,
+  example = false,
+}) => {
   const { chainName } = useChainRoute()
   const { data, isFetching, error } = useRadarScan(address)
   const [copied, setCopied] = useState(false)
@@ -254,8 +270,21 @@ export const RadarReport: React.FC<{ address: string; inline?: boolean }> = ({ a
         </Text>
       )}
       {error && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger} mt={inline ? SPACING.sm : SPACING.lg}>
-          {(error as Error).message}
+        <Text
+          role="status"
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize="12px"
+          color={SEMANTIC_COLORS.textPrimary}
+          mt={inline ? SPACING.sm : SPACING.lg}
+          py={SPACING.sm}
+          px={SPACING.sm}
+          bgImage="repeating-linear-gradient(-45deg, var(--news-rule, transparent) 0 1px, transparent 1px 6px)"
+          overflowWrap="anywhere"
+        >
+          <Box as="span" aria-hidden="true" mr="0.4em">
+            ░
+          </Box>
+          {readingUnavailable((error as Error).message)}
         </Text>
       )}
 
@@ -327,7 +356,7 @@ export const RadarReport: React.FC<{ address: string; inline?: boolean }> = ({ a
             ))}
           </Card>
 
-          {!inline && (
+          {!inline && !example && (
             <>
               {/* Share line — the user's own result, copyable, never a plug. */}
               <SectionHeading index="03 /" title="Share your read" />
@@ -387,13 +416,13 @@ export const RadarReport: React.FC<{ address: string; inline?: boolean }> = ({ a
           )}
 
           {/* Provenance — one stamp per data class. */}
-          <Provenance prov={data.provenance} index={inline ? '03 /' : '04 /'} />
+          <Provenance prov={data.provenance} index={inline || example ? '03 /' : '04 /'} />
 
           {!inline && (
             <>
               {/* Strat watches + post-event recap — track this address and tell the
                   story of what happened, composed only from chain logs + corpus. */}
-              <RecapSection address={address} />
+              {!example && <RecapSection address={address} />}
 
               {/* Next — kill the dead end. Invite the call, the board, the venue detail. */}
               <Card variant="subtle" p={SPACING.base} mt={SPACING.lg}>
@@ -430,36 +459,49 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
   const { chainName } = useChainRoute()
   const router = useRouter()
   const [input, setInput] = useState('')
-  const [address, setAddress] = useState<string | null>(null)
+  const [tried, setTried] = useState(false)
+  const [deepLink, setDeepLink] = useState<string | null>(
+    initialAddress && isAddressish(initialAddress) ? initialAddress : null,
+  )
+  const [scanned, setScanned] = useState<string | null>(null)
 
-  // Init the input: a ?address= deep-link (from the Carry Strats board) wins and
-  // auto-scans; otherwise fall back to the last-looked-up address (paste-first UX).
+  // Init: a ?address= deep-link (from the Carry Strats board) or a permalink prop is
+  // read at once; otherwise the page reads the example address (V20 demo-first) and the
+  // field keeps the last-looked-up address, ready to scan (paste-first UX).
   useEffect(() => {
     if (typeof window === 'undefined') return
     // A permalink (/[chain]/radar/[address]) passes its address in as a prop.
-    const deepLink = initialAddress ?? new URLSearchParams(window.location.search).get('address')?.trim()
-    if (deepLink && isAddressish(deepLink)) {
-      setInput(deepLink)
-      window.localStorage.setItem(LS_KEY, deepLink)
-      setAddress(deepLink)
+    const link = initialAddress ?? new URLSearchParams(window.location.search).get('address')?.trim()
+    if (link && isAddressish(link)) {
+      setInput(link)
+      window.localStorage.setItem(LS_KEY, link)
+      setDeepLink(link)
       return
     }
-    const last = window.localStorage.getItem(LS_KEY)
-    if (last) setInput(last)
+    try {
+      const last = window.localStorage.getItem(LS_KEY)
+      if (last) setInput(last)
+    } catch {}
   }, [initialAddress])
 
+  const subject = radarSubject(deepLink, scanned)
+  const address = subject.address
   const { data } = useRadarScan(address)
 
   const submit = () => {
     const v = input.trim()
+    setTried(true)
     if (!isAddressish(v)) return
-    if (typeof window !== 'undefined') window.localStorage.setItem(LS_KEY, v)
-    setAddress(v)
+    try {
+      window.localStorage.setItem(LS_KEY, v)
+    } catch {}
+    setScanned(v)
   }
 
   // After a scan, the address bar becomes the result's permalink. Shallow: the href
   // stays the current page, only the visible URL changes — no remount, no refetch.
-  const permalink = data?.address ? radarPermalinkPath(chainName, data.address) : null
+  // The example never takes the address bar: it is not the reader's read.
+  const permalink = data?.address && !subject.example ? radarPermalinkPath(chainName, data.address) : null
   useEffect(() => {
     if (!permalink || !router.isReady) return
     if (router.asPath.split(/[?#]/)[0].toLowerCase() === permalink) return
@@ -506,30 +548,49 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
               autoComplete="off"
               aria-label="Mainnet address"
             />
-            <Button
+            <Box
+              as="button"
+              type="button"
               onClick={submit}
-              isDisabled={!valid}
-              fontFamily={TYPOGRAPHY.fontMono}
-              fontSize="13px"
-              borderRadius={0}
-              bg={SEMANTIC_COLORS.bgTertiary}
-              color={SEMANTIC_COLORS.textPrimary}
-              border="1px solid"
-              borderColor={SEMANTIC_COLORS.borderStrong}
+              px={SPACING.lg}
               transition={TRANSITIONS.colors}
-              _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
-              _focusVisible={FOCUS_STYLES.ring}
+              {...RAISED_BUTTON}
             >
               Scan
-            </Button>
+            </Box>
           </HStack>
-          {input.length > 0 && !valid && (
+          {(input.length > 0 || tried) && !valid && (
             <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.warning} mt={SPACING.sm}>
               not a valid 0x address
             </Text>
           )}
 
-          {address && <RadarReport address={address} />}
+          {/* Persistent while the example is on screen; a scan of the reader's own
+              address replaces both. */}
+          {subject.example && (
+            <Box
+              role="note"
+              mt={SPACING.lg}
+              px={SPACING.base}
+              py={SPACING.sm}
+              border="1px solid"
+              borderColor={SEMANTIC_COLORS.borderStrong}
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize={TYPOGRAPHY.label}
+              lineHeight="16px"
+              letterSpacing="0.12em"
+              textTransform="uppercase"
+              color={SEMANTIC_COLORS.textPrimary}
+              data-radar-example
+            >
+              {EXAMPLE_BANNER}
+              <Text as="span" color={SEMANTIC_COLORS.textSecondary} textTransform="none" letterSpacing={0}>
+                {' · '}
+                {shortAddr(address)}, a public contract
+              </Text>
+            </Box>
+          )}
+          <RadarReport address={address} example={subject.example} />
         </Box>
       </Box>
     </Box>

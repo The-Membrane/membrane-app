@@ -162,3 +162,23 @@ describe('formatters — two significant figures, reader units', () => {
     expect(fmtMultiple(Infinity)).toBe('∞')
   })
 })
+
+describe('the example read (demo-first)', () => {
+  it('reads the example only when the reader has given no address', async () => {
+    const { EXAMPLE_ADDRESS, radarSubject } = await import('@/components/Radar/radarLogic')
+    expect(radarSubject(null, null)).toEqual({ address: EXAMPLE_ADDRESS, example: true })
+    const link = '0x1601843c5E9bC251A3272907010AFa41Fa18347E'
+    expect(radarSubject(link, null)).toEqual({ address: link, example: false })
+    const own = '0x0000000000000000000000000000000000000001'
+    expect(radarSubject(link, own)).toEqual({ address: own, example: false })
+    expect(radarSubject(null, own)).toEqual({ address: own, example: false })
+    expect(/^0x[a-fA-F0-9]{40}$/.test(EXAMPLE_ADDRESS)).toBe(true)
+  })
+
+  it('a failed read says so', async () => {
+    const { readingUnavailable } = await import('@/components/Radar/radarLogic')
+    expect(readingUnavailable('radar 500')).toBe('Reading unavailable · radar 500')
+    expect(readingUnavailable('')).toBe('Reading unavailable')
+    expect(readingUnavailable(undefined)).toBe('Reading unavailable')
+  })
+})

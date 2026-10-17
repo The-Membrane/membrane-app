@@ -11,7 +11,7 @@ import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
 
 import { ActionButton, ActionLink, Credit, Deck, Figure, Headline, Kicker, Module, Withheld } from './newsAtoms'
-import { CAPS, DASH, HATCH, LEAD_MIN_H, TABULAR, TARGET } from './newsStyle'
+import { CAPS, DASH, HATCH, LEAD_MIN_H, RAISED_BUTTON, TABULAR, TARGET } from './newsStyle'
 import {
   alarmsView,
   pressRadar,
@@ -113,20 +113,10 @@ function PositionLead({
           type="submit"
           aria-expanded={panel.open}
           aria-controls={panelId}
-          minH={TARGET}
           minW="calc(16ch + 32px)"
           px={SPACING.base}
-          fontFamily={NEWS_FONT.mono}
-          fontSize="13px"
-          fontWeight={TYPOGRAPHY.bold}
-          textAlign="center"
-          color={NEWS.paper}
-          bg={NEWS.ink2}
-          borderRadius={0}
-          boxShadow={NEWS.shadowRaised}
           transition={TRANSITIONS.colors}
-          _hover={{ bg: NEWS.ink }}
-          whiteSpace="nowrap"
+          {...RAISED_BUTTON}
         >
           {radarActionLabel(panel, value)}
         </Box>

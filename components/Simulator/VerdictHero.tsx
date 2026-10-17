@@ -72,7 +72,7 @@ import { fmtLocalClock, fmtLocalDayClock, useLocalZone } from './localClock'
 import Stamp from './Stamp'
 import { stamp as stampFn } from '@/lib/position-sim/types'
 
-const OCT10_PROV = stampFn('dataset', 'measured · 2,350 accounts · on-chain', 'public/data/oct10-2025/evidence.json — every Aave liquidation on 10-11 Oct 2025, judged against its own line.')
+const OCT10_PROV = stampFn('dataset', 'measured · 2,347 accounts · on-chain', 'public/data/oct10-2025/evidence.json — every Aave liquidation on 10-11 Oct 2025, judged against its own line.')
 import { OCT10_STAKES_LINE } from '@/lib/position-sim/oct10Totals'
 
 import AddressBar, { type AddressBarProps } from './AddressBar'

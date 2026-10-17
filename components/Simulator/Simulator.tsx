@@ -49,8 +49,12 @@ import type { LandingVariant } from '@/lib/landingVariant'
 import { monoXs, tabular } from '@/components/Builder/styles'
 import {
   GUARANTEE,
+  MEMBRANE_DEPLOY_LTV_PROVENANCE,
   MEMBRANE_LTV_PROVENANCE,
   buildPricePath,
+  clampMembraneLtv,
+  hasMembraneLine,
+  isDeployListedLtv,
   carryCost,
   demoBorrowerDetection,
   demoBorrowerPosition,
@@ -81,6 +85,7 @@ import {
   type VenueDetection,
   type VenueRecall,
 } from '@/lib/position-sim'
+import { delayClassOf, isNoDelayCollateral } from '@/lib/position-sim/collateralClass'
 
 import ComparisonPanel from './ComparisonPanel'
 import type { ControlValues } from './Controls'
@@ -213,7 +218,7 @@ const DEMO_WALLET_NOTE: Record<SimMode, string> = {
     'borrows and deploys to see yours.',
   borrower:
     'The default wallet is a real Aave V3 account that was liquidated on 10 Oct 2025, ' +
-    'selected from the 2,350 measured accounts in public/data/oct10-2025/evidence.json. ' +
+    'selected from the 2,347 measured accounts in public/data/oct10-2025/evidence.json. ' +
     'It had no deployment and none is assumed; paste any address to read a live position.',
 }
 
@@ -412,6 +417,17 @@ export const Simulator: React.FC<SimulatorProps> = ({
         : { maxLtv: 0, borrowLtv: 0, unknown: [] as string[] },
     [selected],
   )
+  const collateralSymbols = useMemo(
+    () => (selected ? selected.collateral.map((c) => c.symbol) : []),
+    [selected],
+  )
+  /**
+   * NO LINE, NO RUN. When no collateral leg has a Membrane max LTV (an all-GHO position,
+   * say — nothing is invented for GHO), the weighted line is 0 and every minute would be
+   * "over" it. The page does not run such a position: it says why, on the same hero line
+   * the page already uses when there is nothing to run ("No open position found").
+   */
+  const noLine = !!selected && !hasMembraneLine(collateralSymbols)
   const liqFeeDefault = useMemo(() => (selected ? defaultLiqFee(selected) : 0), [selected])
 
   const defaults = useMemo<ControlValues>(() => {
@@ -426,10 +442,22 @@ export const Simulator: React.FC<SimulatorProps> = ({
   }, [selected, derived, liqFeeDefault, detectedRecall])
 
   const [overrides, setOverrides] = useState<Partial<ControlValues>>({})
-  const values = useMemo<ControlValues>(
-    () => ({ ...defaults, ...overrides }),
-    [defaults, overrides],
-  )
+  /** The user's line (slider or URL ?ltv) is clamped to what the position's class allows:
+   *  30% up to 96% when every collateral leg is a stable, else 90% (clampMembraneLtv). */
+  const values = useMemo<ControlValues>(() => {
+    const v = { ...defaults, ...overrides }
+    return selected && !noLine
+      ? { ...v, membraneMaxLtv: clampMembraneLtv(v.membraneMaxLtv, collateralSymbols) }
+      : v
+  }, [defaults, overrides, selected, noLine, collateralSymbols])
+  /** Where the line in force comes from: the deploy script's own value when every leg is
+   *  a deploy-listed launch stable and the user has not moved it, else our assumption. */
+  const lineSource =
+    collateralSymbols.length > 0 &&
+    collateralSymbols.every(isDeployListedLtv) &&
+    Math.abs(values.membraneMaxLtv - derived.maxLtv) < 1e-9
+      ? 'deploy-script'
+      : 'modelled'
 
   const venueProvenance = useMemo<Provenance>(() => {
     const same =
@@ -479,7 +507,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
 
   // -------------------------------------------------------------- comparison
   const comparison = useMemo(() => {
-    if (!selected || !scenario) return null
+    if (!selected || !scenario || noLine) return null
     const symbols = [
       ...selected.collateral.map((c) => c.symbol),
       ...selected.debt.map((d) => d.symbol),
@@ -503,7 +531,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
       sourceRepayFractionLabel: repay.label,
       scenarioLabel: `${scenario.manifest.name} · ${scenario.manifest.resolution} oracle candles, ${scenario.manifest.windowStartUtc.slice(0, 10)} to ${scenario.manifest.windowEndUtc.slice(0, 10)}`,
     })
-  }, [selected, scenario, measured, values, venueProvenance])
+  }, [selected, scenario, noLine, measured, values, venueProvenance])
 
   // --------------------------------------------------------------- url state
   const hydrated = useRef(false)
@@ -535,14 +563,14 @@ export const Simulator: React.FC<SimulatorProps> = ({
     () => ({
       address: loaded?.address,
       position: selected ? keyOf(selected) : undefined,
-      membraneMaxLtv: selected ? values.membraneMaxLtv : undefined,
+      membraneMaxLtv: selected && !noLine ? values.membraneMaxLtv : undefined,
       liqFee: selected ? values.membraneLiqFee : undefined,
       recallRate: selected ? values.recallRate : undefined,
       fastRate: selected ? values.fastRate : undefined,
       deployedUsd: selected ? values.deployedUsd : undefined,
       hero: heroOverride ?? undefined,
     }),
-    [loaded, selected, values, heroOverride],
+    [loaded, selected, noLine, values, heroOverride],
   )
 
   useEffect(() => {
@@ -604,8 +632,12 @@ export const Simulator: React.FC<SimulatorProps> = ({
       if (r.status === 'error') out.push(`${r.label} · ${r.message ?? 'read failed'}`)
     }
     if (loaded && positions.length === 0) out.push('No open position found for this address.')
+    if (noLine)
+      out.push(
+        `Membrane has no max LTV for ${collateralSymbols.join(', ')}, so this position cannot be judged. No Membrane run is shown.`,
+      )
     return out
-  }, [scenarioError, loaded, positions])
+  }, [scenarioError, loaded, positions, noLine, collateralSymbols])
   /** One set of address-bar props, mounted three times (hero, carry section, foot). */
   const addressBarProps = {
     value: input,
@@ -648,10 +680,11 @@ export const Simulator: React.FC<SimulatorProps> = ({
     const out: Provenance[] = []
     if (scenario) out.push(oct10Provenance(scenario.manifest))
     out.push(MEMBRANE_LTV_PROVENANCE)
+    if (collateralSymbols.some(isDeployListedLtv)) out.push(MEMBRANE_DEPLOY_LTV_PROVENANCE)
     out.push(detection.provenance)
     if (isDemo) out.push(demoPos.provenance)
     return out
-  }, [scenario, detection, isDemo, demoPos])
+  }, [scenario, collateralSymbols, detection, isDemo, demoPos])
 
   /**
    * WHY IT HELD. Only rendered when the Membrane run finished with no collateral-seizing
@@ -667,6 +700,31 @@ export const Simulator: React.FC<SimulatorProps> = ({
     if (engineOutcome(comparison.membrane).liquidated) return null
     return comparison.membrane.events.filter((e) => e.kind === 'recall' || e.kind === 'cure')
   }, [comparison])
+
+  /**
+   * How much of the position gets the 8-hour window — the same rule the engine runs
+   * (lib/position-sim/collateralClass.ts). Stablecoin collateral, and any line above 90%,
+   * get none: they are sold at the line. 'part' is a position holding both kinds.
+   */
+  const windowCoverage = useMemo<'all' | 'none' | 'part'>(() => {
+    if (!selected) return 'all'
+    const cls = delayClassOf(
+      selected.collateral.map((c) => c.symbol),
+      values.membraneMaxLtv,
+    )
+    return cls === 'no-delay' ? 'none' : cls === 'mixed' ? 'part' : 'all'
+  }, [selected, values.membraneMaxLtv])
+  const allStable = !!selected?.collateral.every((c) => isNoDelayCollateral(c.symbol))
+  /** "Why it held" when no recall or cure fired, true for the window the run had. The †
+   *  (stablecoins get no window: modelled) is footnoted by GuaranteeBlock just above. */
+  const heldLine =
+    windowCoverage === 'all'
+      ? 'Stayed inside the 4% band for the whole window.'
+      : windowCoverage === 'part'
+        ? 'Stayed inside the 4% band. Its stablecoin part has no 8-hour window† and never reached its line.'
+        : allStable
+          ? 'Stablecoin collateral: no 8-hour window† — and it never reached its line.'
+          : 'No 8-hour window above a 90% line — and it never reached its line.'
 
   // ------------------------------------------------------------------ render
   return (
@@ -745,7 +803,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
 
       {/* 2 — THE GUARANTEE, verbatim from GUARANTEE. Limit adjacent, never collapsed. */}
       <Section>
-        <GuaranteeBlock />
+        <GuaranteeBlock noWindow={windowCoverage !== 'all'} />
 
         {/* 2h — WHY IT HELD. Hero form only: the guarantee states the rule, this states
             what the rule did on THIS run. One mono line per recorded event. */}
@@ -768,7 +826,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
                 color={SEMANTIC_COLORS.textPrimary}
                 {...tabular}
               >
-                Stayed inside the 4% band for the whole window.
+                {heldLine}
               </Text>
             ) : (
               heldEvents.map((e, k) => (
@@ -858,8 +916,8 @@ export const Simulator: React.FC<SimulatorProps> = ({
               borrowRateNote={borrowRateNote}
               extraNotes={finePrintNotes}
               assumptionNote={
-                selected
-                  ? `This run uses a modelled Membrane max LTV of ${(values.membraneMaxLtv * 100).toFixed(1)}%, liquidation fee ${(values.membraneLiqFee * 100).toFixed(1)}%, detected deployable venue capital ${usd(values.deployedUsd)}, recall rate ${(values.recallRate * 100).toFixed(1)}%, and fast rate ${(values.fastRate * 100).toFixed(1)}%. URL parameters can override these inputs; none are live Membrane settings.`
+                selected && !noLine
+                  ? `This run uses a ${lineSource} Membrane max LTV of ${(values.membraneMaxLtv * 100).toFixed(1)}%, liquidation fee ${(values.membraneLiqFee * 100).toFixed(1)}%, detected deployable venue capital ${usd(values.deployedUsd)}, recall rate ${(values.recallRate * 100).toFixed(1)}%, and fast rate ${(values.fastRate * 100).toFixed(1)}%. URL parameters can override these inputs; none are live Membrane settings.`
                   : undefined
               }
             />

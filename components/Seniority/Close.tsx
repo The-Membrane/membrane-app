@@ -27,7 +27,8 @@ export const Close: React.FC<{ initialDoc?: EvidenceDoc | null; num?: string }> 
   num = '06',
 }) => {
   const { chainName } = useChainRoute()
-  const { doc, error } = useEvidence(initialDoc)
+  // Only the summary is rendered here (DebtLens): no 1 MB row fetch when the page served it.
+  const { doc, error } = useEvidence(initialDoc, { rows: false })
 
   return (
     <VStack align="stretch" spacing={SPACING_PATTERNS.sectionGap}>
@@ -42,11 +43,20 @@ export const Close: React.FC<{ initialDoc?: EvidenceDoc | null; num?: string }> 
           fontWeight={TYPOGRAPHY.semibold}
           color={SEMANTIC_COLORS.textPrimary}
         >
-          {CLOSE.headline}
+          {/* The count is data: mono inside the serif heading (CLAUDE.md, numbers). */}
+          {CLOSE.headline.split(/([\d][\d,]*)/).map((part, i) =>
+            /^\d/.test(part) ? (
+              <Text as="span" key={i} fontFamily={TYPOGRAPHY.fontMono}>
+                {part}
+              </Text>
+            ) : (
+              part
+            ),
+          )}
         </Text>
       </VStack>
 
-      {doc ? <DebtLens debt={doc.debt} byAsset={doc.byAsset} /> : null}
+      {doc ? <DebtLens debt={doc.debt} byAsset={doc.byAsset} meta={doc.meta} /> : null}
 
       {/* WHAT THE NUMBER CONTAINS. The lens above gives the totals; this answers the
           questions a careful reader asks next, each with the figure from the same doc. */}
@@ -78,6 +88,13 @@ export const Close: React.FC<{ initialDoc?: EvidenceDoc | null; num?: string }> 
             </HStack>
           ))}
         </VStack>
+        <Text
+          fontFamily={TYPOGRAPHY.fontMono}
+          fontSize={TYPOGRAPHY.xs}
+          color={SEMANTIC_COLORS.textTertiary}
+        >
+          {CLOSE.contains.footnote}
+        </Text>
         <Cite>{CLOSE.contains.cite}</Cite>
       </VStack>
 

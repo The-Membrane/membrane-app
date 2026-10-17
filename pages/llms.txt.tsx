@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from 'next'
 import { SITE_URL } from '@/components/Seo'
+import { OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 
 /**
  * /llms.txt as an SSR text route, same pattern as robots.txt.tsx. Evidence on
@@ -22,8 +23,10 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     '## When to use this site',
     '',
     `- Borrow CDT against crypto collateral you already hold: ${origin}/ethereum/borrow`,
-    `- Compare liquidation outcomes: every account Aave liquidated on 10 Oct 2025,`,
-    `  replayed through Membrane's engine on the same measured prices: ${origin}/ethereum`,
+    `- Compare liquidation outcomes: every Aave V3 and Morpho Blue liquidation of`,
+    `  ${OCT10_TOTALS.window} on Ethereum, Arbitrum, Optimism and Base (${OCT10_TOTALS.positions.toLocaleString('en-US')} positions),`,
+    `  replayed through Membrane's engine on each protocol's own oracle prices: ${origin}/ethereum`,
+    `  (every position, filterable: ${origin}/ethereum/evidence)`,
     `- Simulate any address's position against the engine: ${origin}/ethereum/simulator`,
     `- Learn how CDP stablecoins work: ${origin}/blog`,
     '',

@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import type { NextRequest } from 'next/server'
 
-import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE } from '@/lib/position-sim/oct10Totals'
+import { CORPUS_SCALE_LINE, OCT10_SCALE_LINE, OCT10_TOTALS } from '@/lib/position-sim/oct10Totals'
 import {
   clampUsd,
   fmtUsdShort,
@@ -20,7 +20,8 @@ import {
 //                        string, so a card cannot be forged into saying anything.
 //   venue   ?venue=    — fetches GET /api/venues/<venue>/summary on the same origin.
 //   finding            — static: the multi-year corpus scale line from
-//                        lib/position-sim/oct10Totals.ts (Oct-10 line while partial).
+//                        lib/position-sim/oct10Totals.ts (the Oct 10-11 census line, from
+//                        evidence-census-headline.json, while the corpus is partial).
 // A failed or malformed fetch renders the plain branded card: title only, never a number.
 
 export const config = { runtime: 'edge' }
@@ -124,7 +125,13 @@ function findingCard(): CardProps {
       line: CORPUS_SCALE_LINE.figure,
     }
   }
-  return { eyebrow: 'finding · 10 oct 2025', title: `Less debt closed ${OCT10_SCALE_LINE.window}`, line: OCT10_SCALE_LINE.figure }
+  // The Oct 10-11 census card (every Aave and Morpho liquidation, four chains). An image has
+  // no footnote line, so the modelled side says "modelled" in words instead of a †.
+  return {
+    eyebrow: 'finding · 10–11 oct 2025 · aave + morpho',
+    title: `Less debt force-closed, net, on every Aave and Morpho liquidation of ${OCT10_TOTALS.window}, modelled (${OCT10_SCALE_LINE.split})`,
+    line: OCT10_SCALE_LINE.figure,
+  }
 }
 
 export default async function handler(req: NextRequest) {

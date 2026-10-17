@@ -511,6 +511,53 @@ def check_a6_scores(datasets, res):
             "identical": True}
 
 
+def score_dev(R, rng):
+    """D7-3/D7-6: one draw set per T from rng (T order), every comparison, level stats, CORP and DM."""
+    res, boot = {}, {}
+    bands = M6.band_of(ASSET, R["levels"])
+    comps_all = list(COMPARISONS)
+    fn = R["fold_names"]
+    last_folds = set(range(len(fn) - M2.STALE_FOLDS, len(fn)))
+    for T_h in HORIZONS_H:
+        TL = T_LABEL[T_h]
+        m = R["T_h"] == T_h
+        days = np.unique(R["day"][m])
+        idx, cnt = M3.draws(rng, len(days), T_h)
+        boot[TL] = M3._bmeta(days, idx, T_h)
+        sel = M3.select(R, m)
+        pos = M2.day_positions(days, sel["day"])
+        nd = len(days)
+        res[TL] = {"counts": M3.counts_of(R, m, T_h),
+                   "brier": {r: float(np.mean((sel[f"p_{r}"] - sel["y"]) ** 2)) for r in CANDIDATES},
+                   "comparisons": M3.comparisons(sel, pos, nd, cnt, comps_all),
+                   "comparisons_by_regime": {g: M3.comparisons(sel, pos, nd, cnt, comps_all,
+                                                               mask=sel["regime"] == gi)
+                                             for gi, g in enumerate(REGIMES)},
+                   "levels": M3.level_stats_by_regime(sel, pos, nd, cnt, T_h, last_folds, CANDIDATES, True),
+                   "corp": {r: corp_block(sel[f"p_{r}"], sel["y"].astype(float), bands[sel["k_i"]], sel["regime"])
+                            for r in CANDIDATES},
+                   "dm": {c: M6.dm_rows(sel, T_h, *c.split("_vs_"), R["base_ts"]) for c in DM_COMPARISONS}}
+    return res, boot
+
+
+def dev_tables(R, res):
+    deep = deep_tables({TL: res[TL]["levels"] for TL in res})
+    preview = verdict7({TL: {"levels": res[TL]["levels"], "comparisons": res[TL]["comparisons"]} for TL in res})
+    fl = floor_stats(R)
+    summary = {TL: {"bss_fHF_vs_fH": _bci(res[TL]["comparisons"].get("fHF_vs_fH")),
+                    "bss_fHF_vs_f": _bci(res[TL]["comparisons"].get("fHF_vs_f")),
+                    "bss_fH_vs_f": _bci(res[TL]["comparisons"].get("fH_vs_f")),
+                    "bss_fHF_vs_fH_by_regime": {g: _bci(res[TL]["comparisons_by_regime"][g].get("fHF_vs_fH"))
+                                                for g in REGIMES},
+                    "corp_all": {r: {k: res[TL]["corp"][r]["all"][k] for k in ("brier", "MCB", "DSC", "UNC")}
+                                 for r in CANDIDATES},
+                    "corp_low": {r: {k: res[TL]["corp"][r]["regime_low"][k] for k in ("brier", "MCB", "DSC", "UNC")}
+                                 for r in CANDIDATES if res[TL]["corp"][r]["regime_low"]},
+                    "floor_binding_share": fl[TL]["all"]["binding_share"],
+                    "floor_binding_share_low": fl[TL]["low"]["binding_share"]} for TL in res}
+    return deep, preview, fl, summary
+
+
 # ---------------------------------------------------------------------------------------------
 # Phase: dev (ETH, once)
 # ---------------------------------------------------------------------------------------------
@@ -535,44 +582,10 @@ def run_dev(datasets, out_dir, meta, workers=4, log=print, require_clean=True):
     write_rows(os.path.join(out_dir, "predictions-dev-a7-ETH.csv.gz"), R, ASSET)
     repro = check_against_a6(datasets, R)
     log(f"A6 reproduction: {repro['rows_compared']} rows identical ({time.time() - t0:.0f}s)")
-    rng = np.random.default_rng(SEED_DEV)
-    res, boot = {}, {}
-    bands = M6.band_of(ASSET, R["levels"])
-    comps_all = list(COMPARISONS)
-    for T_h in HORIZONS_H:
-        TL = T_LABEL[T_h]
-        m = R["T_h"] == T_h
-        days = np.unique(R["day"][m])
-        idx, cnt = M3.draws(rng, len(days), T_h)
-        boot[TL] = M3._bmeta(days, idx, T_h)
-        sel = M3.select(R, m)
-        pos = M2.day_positions(days, sel["day"])
-        nd = len(days)
-        fn = R["fold_names"]
-        last_folds = set(range(len(fn) - M2.STALE_FOLDS, len(fn)))
-        e = {"counts": M3.counts_of(R, m, T_h),
-             "brier": {r: float(np.mean((sel[f"p_{r}"] - sel["y"]) ** 2)) for r in CANDIDATES},
-             "comparisons": M3.comparisons(sel, pos, nd, cnt, comps_all),
-             "comparisons_by_regime": {g: M3.comparisons(sel, pos, nd, cnt, comps_all, mask=sel["regime"] == gi)
-                                       for gi, g in enumerate(REGIMES)},
-             "levels": M3.level_stats_by_regime(sel, pos, nd, cnt, T_h, last_folds, CANDIDATES, True),
-             "corp": {r: corp_block(sel[f"p_{r}"], sel["y"].astype(float), bands[sel["k_i"]], sel["regime"])
-                      for r in CANDIDATES},
-             "dm": {c: M6.dm_rows(sel, T_h, *c.split("_vs_"), R["base_ts"]) for c in DM_COMPARISONS}}
-        res[TL] = e
+    res, boot = score_dev(R, np.random.default_rng(SEED_DEV))
     a6_scores = check_a6_scores(datasets, res)
     log(f"A6 score reproduction: identical ({time.time() - t0:.0f}s)")
-    deep = deep_tables({TL: res[TL]["levels"] for TL in res})
-    preview = verdict7({TL: {"levels": res[TL]["levels"], "comparisons": res[TL]["comparisons"]} for TL in res})
-    fl = floor_stats(R)
-    summary = {TL: {"bss_fHF_vs_fH": _bci(res[TL]["comparisons"].get("fHF_vs_fH")),
-                    "bss_fHF_vs_f": _bci(res[TL]["comparisons"].get("fHF_vs_f")),
-                    "bss_fH_vs_f": _bci(res[TL]["comparisons"].get("fH_vs_f")),
-                    "bss_fHF_vs_fH_low": _bci(res[TL]["comparisons_by_regime"]["low"].get("fHF_vs_fH")),
-                    "corp_all": {r: {k: res[TL]["corp"][r]["all"][k] for k in ("brier", "MCB", "DSC", "UNC")}
-                                 for r in CANDIDATES},
-                    "floor_binding_share": fl[TL]["all"]["binding_share"],
-                    "floor_binding_share_low": fl[TL]["low"]["binding_share"]} for TL in res}
+    deep, preview, fl, summary = dev_tables(R, res)
     frozen = {"what": "Q26 A7 (R7.4) freeze before blind set 6", "prereg": PREREG, "code_commit": cm["git"]["head_commit"],
               "rung": {"name": "fHF", "formula": "monotone_fix(max(raw p_fH, 0.75 * raw p_a))", "floor": FLOOR,
                        "fitted_parameters": 0},

@@ -131,6 +131,28 @@ class TestSyntheticRungs(unittest.TestCase):
         np.testing.assert_array_equal(pr["comp"]["fHF_vs_fH"]["pooled"][0], red[24]["comp"]["fHF_vs_fH"]["pooled"][0])
         self.assertEqual(len(har), len(M.HORIZONS_H))
 
+    def test_scoring_pipeline_smoke(self):
+        """score_dev / dev_tables (dev) and series_task / pooled_block / verdict7 (blind) run and serialize."""
+        s = self.build()
+        q0 = 24 * 400
+        folds = [{"name": f"F{i}", "qs_i": q0 + 24 * 60 * i, "qe_i": q0 + 24 * 60 * (i + 1)} for i in range(3)]
+        per7 = {T_h: M.fold_loop7(s, M6.Prep6(s, T_h, with_fbL=False), T_h, folds) for T_h in M.HORIZONS_H}
+        R, _ = M.assemble7(s, folds, per7)
+        R["levels"] = list(s.levels)
+        res, boot = M.score_dev(R, np.random.default_rng(1))
+        deep, preview, fl, summary = M.dev_tables(R, res)
+        self.assertIn("fHF_vs_fH", res["1d"]["comparisons"])
+        self.assertIn("regime_low", res["1d"]["corp"]["fHF"])
+        M._SER.clear()
+        M._SER.update({"syn": s, "__folds__": {"syn": folds}})
+        out = M.series_task("syn")
+        pooled = M.pooled_block({"syn": out["reduced"]}, ["syn"], np.random.default_rng(2))
+        v = M.verdict7(pooled)
+        self.assertIn(v["verdict"], ("PASS", "FAIL"))
+        with tempfile.TemporaryDirectory() as d:
+            A.write_json(os.path.join(d, "x.json"), {"res": res, "boot": boot, "deep": deep, "preview": preview,
+                                                     "fl": fl, "summary": summary, "pooled": pooled, "v": v})
+
 
 class TestVerdict(unittest.TestCase):
     def pooled(self, RH, RF, lo, n=20):

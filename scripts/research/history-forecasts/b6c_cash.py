@@ -763,6 +763,22 @@ def only_rows_report(C, PR, common):
 # ---------------------------------------------------------------------------------------------
 # Outputs
 # ---------------------------------------------------------------------------------------------
+def redact_keys(o, _seen=None):
+    """Replace dict keys that are 0x + 40-hex strings (the B5 price-fill counts are keyed by reserve token contract)
+    with 'asset-NN' in first-seen order; values are unchanged. No address is written."""
+    _seen = {} if _seen is None else _seen
+    if isinstance(o, dict):
+        out = {}
+        for k, v in o.items():
+            if isinstance(k, str) and ADDR_RE.fullmatch(k):
+                k = _seen.setdefault(k.lower(), f"asset-{len(_seen) + 1:02d}")
+            out[k] = redact_keys(v, _seen)
+        return out
+    if isinstance(o, (list, tuple)):
+        return [redact_keys(v, _seen) for v in o]
+    return o
+
+
 def guard_no_address(path):
     import gzip
     op = gzip.open if path.endswith(".gz") else open
@@ -956,6 +972,7 @@ def phase_run(datasets_dir, out_dir, workers=3, log=print, allow_dirty=False):
         "convergence_warnings": sum(int(f["v4a"]["info"].get("n_convergence_warnings", 0)) for f in fitsC),
         "runtime_s": time.time() - t_start,
         "finished_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    summary = redact_keys(summary)
     B.write_json(rp, summary, refuse_overwrite=True)
     B.write_json(os.path.join(out_dir, "asof-fits-b6c.json"), build_asof_record(ctx, C, afC, usdc_units),
                  refuse_overwrite=True)

@@ -105,5 +105,13 @@ class TestCrossings(unittest.TestCase):
         self.assertEqual(m.tolist(), [True, False, False])
 
 
+class TestRedact(unittest.TestCase):
+    def test_redact_keys(self):
+        a = "0x" + "ab" * 20
+        o = {"x": {a: 3, "y": [{a.upper().replace("0X", "0x"): 1}]}, "h": "0x" + "cd" * 32}
+        r = C.redact_keys(o)
+        self.assertEqual(r, {"x": {"asset-01": 3, "y": [{"asset-01": 1}]}, "h": "0x" + "cd" * 32})
+
+
 if __name__ == "__main__":
     unittest.main()

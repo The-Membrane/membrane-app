@@ -551,9 +551,8 @@ const Fold: React.FC<{ title: string; figure: string; id: string; children: Reac
         whiteSpace="normal"
         textTransform="none"
         letterSpacing="normal"
-        transition={TRANSITIONS.shadow}
-        // Owner: no green on hover; the row lifts with the hard print shadow instead.
-        _hover={{ boxShadow: NEWS.shadowRaised }}
+        // Owner: no colour, shadow or border on hover; the row is plain. Keyboard focus keeps its ring.
+        _hover={{}}
         _focusVisible={FOCUS_STYLES.ring}
       >
         <Box as="span" aria-hidden>

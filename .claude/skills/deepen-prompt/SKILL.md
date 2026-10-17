@@ -57,15 +57,17 @@ Write one line that says why you skipped. Then do the task.
 2. Find the oracles. An oracle is a primary voice of the field. It can be a
    standard (an RFC, OWASP, NIST) or the maintainers' docs of the tool in use.
    It can also be a canonical book or paper, or a recognized practitioner's
-   own writing. For work
-   inside a repo, the repo's own decision records are oracles too. Assume that
-   your memory of the field is not enough. You can skip the search only if you
-   can name two oracles and what each says, and the stakes are low.
-3. Read the oracles. Use `WebSearch` and `WebFetch` for an outside field. Use
-   the repo files for a repo field. Read the primary text, not a summary of it.
-   Stop when two independent oracles agree. When they disagree, record the
-   disagreement. Effort is cheap and a wrong premise is expensive. Spend the
-   effort that the stakes need, but do not make the deliverable bigger.
+   own writing. For work inside a repo, the repo's own decision records are
+   oracles too. Assume that your memory of the field is not enough, even when
+   you feel sure. Do not skip the search because the task looks small or
+   low-stakes.
+3. Read the oracles in this session. Use `WebSearch` and `WebFetch` for an
+   outside field. Use the repo files for a repo field. Read the primary text,
+   not a summary of it. Stop when two independent oracles agree. When they
+   disagree, record the disagreement. Cite each oracle with its URL or path.
+   If a web tool is not available, say so, and mark each oracle "from memory".
+   Effort is cheap and a wrong premise is expensive. Do not make the
+   deliverable bigger.
 4. Write answer 1: the professional moves. List 2 to 5 things that a top
    professional in that field does here that the prompt does not ask for.
    Each item must change the result. Do not list a new deliverable. Tie each
@@ -87,7 +89,10 @@ Write one line that says why you skipped. Then do the task.
 8. Rewrite the prompt. Ask for exactly the result of answers 1 to 4. Keep the
    deliverable the same size or smaller than the original request.
 9. Do the rewritten task. Do not wait for approval, unless the rewrite changes
-   which deliverable the user gets. In that case, ask first.
+   which deliverable the user gets. In that case, ask first. End the
+   deliverable with one line that names the oracles it rests on. The reader
+   then sees the sources next to the answer. If the user set a size limit,
+   keep it. Then name the oracles only in the Deepen block.
 10. Run the external check from step 7. Report its result as the last line of
    your answer. If the check failed, say so.
 

@@ -22,7 +22,8 @@ import { fmtUnits } from './amount'
 import type { LeverChainRead } from './read'
 
 export interface Gate {
-  id: 'decimals' | 'venue' | 'debt' | 'cap' | 'balance'
+  /** `dust:…` are the collect-dust slip's per-venue gates (lib/position-exec/dust.ts). */
+  id: 'decimals' | 'venue' | 'debt' | 'cap' | 'balance' | `dust:${string}`
   ok: boolean
   text: string
 }

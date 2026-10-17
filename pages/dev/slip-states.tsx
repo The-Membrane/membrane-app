@@ -8,6 +8,8 @@
 //                                     reading → ready → signing → pending → settled, and
 //                                     into each branch (walk=1 starts at reading)
 //   &layout=b                         design candidate B: steps first, checks by the button
+//   /dev/slip-states?state=dust-…     the collect-dust slip (components/PositionV0/DustSlip),
+//                                     keys: components/PositionV0/dev/dustStates.ts
 
 import React from 'react'
 import Head from 'next/head'
@@ -26,6 +28,8 @@ import {
   walkStep,
   type DesignState,
 } from '@/components/PositionV0/dev/slipStates'
+import { DUST_CAPTURED_AT, DUST_STATES } from '@/components/PositionV0/dev/dustStates'
+import { DustSlip } from '@/components/PositionV0/DustSlip'
 import { LeverSlip } from '@/components/PositionV0/LeverSheet'
 import { Headline, Kicker, Mono, Small } from '@/components/PositionV0/primitives'
 import { CAPS, TYPE } from '@/components/PositionV0/typeScale'
@@ -122,6 +126,7 @@ export default function SlipStates() {
   const walking = walkKey !== null && byKey(walkKey) !== null
   const key = walking ? walkKey : typeof q.state === 'string' ? q.state : null
   const current = byKey(key)
+  const dust = DUST_STATES.find((d) => d.key === key) ?? null
   const layout: LayoutKey = q.layout === 'b' ? 'b' : 'a'
   const suffix = layout === 'b' ? '&layout=b' : ''
   const go = (k: string) => void router.replace(`/dev/slip-states?walk=${k}${suffix}`, undefined, { shallow: true })
@@ -191,6 +196,12 @@ export default function SlipStates() {
             </Box>
           </NextLink>
         </Box>
+        {dust && (
+          <Mono data-testid="design-state-label">
+            {dust.key} · {dust.title}
+            {dust.forced ? ` · forced: ${dust.forced}` : ' · as read'}
+          </Mono>
+        )}
         {current && (
           <Mono data-testid="design-state-label">
             {current.key} · {current.title}
@@ -217,7 +228,49 @@ export default function SlipStates() {
             </Box>
           ))}
         </Box>
+        <Kicker tone="muted" pt={SPACING.base}>
+          Collect dust · read {DUST_CAPTURED_AT}
+        </Kicker>
+        <Box as="ul" listStyleType="none" m={0} p={0} borderTop={`1px solid ${NEWS.rule}`}>
+          {DUST_STATES.map((s) => (
+            <Box as="li" key={s.key} borderBottom={`1px solid ${NEWS.rule}`}>
+              <NextLink href={`/dev/slip-states?state=${s.key}`} passHref legacyBehavior>
+                <Box
+                  as="a"
+                  display="flex"
+                  alignItems="center"
+                  minH="44px"
+                  color={NEWS.ink}
+                  _focusVisible={FOCUS_STYLES.ring}
+                >
+                  <Mono as="span" fontWeight={s.key === key ? 700 : 400}>
+                    {s.key} · {s.title}
+                  </Mono>
+                </Box>
+              </NextLink>
+            </Box>
+          ))}
+        </Box>
       </Box>
+      {dust && (
+        <DustSlip
+          key={dust.key}
+          owner={dust.owner}
+          dust={dust.dust}
+          kept={dust.kept}
+          sim={dust.sim}
+          ethUsd={dust.ethUsd}
+          block={dust.block}
+          at={dust.at}
+          source={dust.source}
+          sheet={dust.sheet}
+          txHash={null}
+          busy={false}
+          onButton={noop}
+          onClose={() => void router.push('/dev/slip-states')}
+          onExplorer={noop}
+        />
+      )}
       {current && (
         <LeverSlip
           // One slip for the whole walk, so a step changes the slip in place.

@@ -21,6 +21,14 @@
 //   npx tsx scripts/position/capture-slip-fixtures.ts --rates   the rate history only,
 //                                                               for the position already
 //                                                               in slipFixtures.json
+//   npx tsx scripts/position/capture-slip-fixtures.ts --dust [address]
+//                                                               the collect-dust slip's
+//                                                               read only (dustFixtures.json)
+//
+// The dust read (pages/dev/slip-states.tsx, dust-* states): every supply position of a
+// real lender on Morpho Blue (the discovery list's markets) and Aave V3, read at one block
+// (lib/position-exec/dustRead.ts), and the sweep's batch simulated from that address.
+// Default address: a Morpho lender with zero-asset supplies and one under $1.
 
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -46,6 +54,8 @@ import { aavePoolAbi, erc20ReadAbi } from '@/lib/position-exec/abis'
 import { leverUnits } from '@/lib/position-exec/amount'
 import type { ExecProtocol } from '@/lib/position-exec/read'
 import { simulateLever } from '@/lib/position-exec/simulate'
+import { dustCalls, dustTotals, dustVerdict, splitDust } from '@/lib/position-exec/dust'
+import { readDust } from '@/lib/position-exec/dustRead'
 import { TOUCH_TABLE } from '@/lib/position/touchHistory'
 import { ADAPTERS, runAdapter } from '@/lib/position-sim/adapters'
 import { getMainnetClient } from '@/lib/position-sim/rpc'
@@ -54,6 +64,9 @@ import type { ProtocolPosition } from '@/lib/position-sim/types'
 import { RATE_DAYS, type RateFixture, type RatePoint } from '@/lib/position/costReward'
 
 const OUT = path.resolve(__dirname, '../../components/PositionV0/dev/slipFixtures.json')
+const DUST_OUT = path.resolve(__dirname, '../../components/PositionV0/dev/dustFixtures.json')
+const MARKETS = path.resolve(__dirname, '../../public/data/oct10-2025/protocols.json')
+const DUST_LENDER = '0x711a68a82dd80cb0435b281af76b0b80804efab9' as Address
 const RATES_OUT = path.resolve(__dirname, '../../components/PositionV0/dev/costRewardFixture.json')
 /** Mainnet blocks per day at 12 s slots. Each point records its own block time. */
 const BLOCKS_PER_DAY = 7200n
@@ -237,7 +250,110 @@ async function writeRates(owner: Address, position: ProtocolPosition) {
   console.log(`wrote ${RATES_OUT} · ${Object.values(fx.series)[0].length} days × ${Object.keys(fx.series).length} legs`)
 }
 
+/** Morpho Blue's deployment block. */
+const MORPHO_FROM = 18_883_124n
+const supplyEv = parseAbiItem(
+  'event Supply(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets, uint256 shares)',
+)
+/**
+ * Morpho has no reverse index, so the discovery list misses a lender's markets outside
+ * it: the owner's own Supply events (onBehalf = owner) name every market they ever
+ * supplied. The Tenderly public gateway serves these spans; publicnode does not.
+ */
+async function ownSupplyMarkets(owner: Address): Promise<string[]> {
+  const c = createPublicClient({
+    chain: mainnet,
+    transport: http('https://gateway.tenderly.co/public/mainnet', { timeout: 60_000 }),
+  }) as PublicClient
+  const head = await c.getBlockNumber()
+  const step = 2_000_000n
+  const ids = new Set<string>()
+  for (let from = MORPHO_FROM; from <= head; from += step) {
+    const to = from + step - 1n > head ? head : from + step - 1n
+    const found = await c.getLogs({
+      address: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+      event: supplyEv,
+      args: { onBehalf: owner },
+      fromBlock: from,
+      toBlock: to,
+    })
+    found.forEach((l) => ids.add(l.args.id!.toLowerCase()))
+  }
+  return [...ids]
+}
+
+const listedMarkets = () =>
+  Object.keys(
+    (JSON.parse(readFileSync(MARKETS, 'utf8')) as { morphoBlue: { markets: Record<string, unknown> } })
+      .morphoBlue.markets,
+  ).map((m) => m.toLowerCase()) as `0x${string}`[]
+
+/** One address's dust read and the sweep's simulation (null when it holds no dust). */
+async function dustOf(owner: Address, markets: `0x${string}`[], from: string) {
+  const client = getMainnetClient()
+  const read = await readDust(client, owner, markets, 'public rpc', from)
+  const { dust } = splitDust(read.candidates)
+  const sim = dust.length ? await simulateLever(client, owner, dustCalls(owner, dust)) : null
+  return { read, dust, sim }
+}
+
+/**
+ * The dust states' reads:
+ *   lender  DUST_LENDER (or the address given), every supply position: zero-asset Morpho
+ *           supplies and one worth a fraction of a cent, swept for more gas than they
+ *           return (dust-gas-exceeds-value); the zero-asset subset simulated on its own
+ *           (dust-nothing-to-receive)
+ *   ready   the first recent Aave V3 borrower holding priced dust whose sweep returns more
+ *           than its gas at today's fee (dust-ready). Its Morpho read covers the listed
+ *           markets only (no Supply-event scan per borrower)
+ */
+async function captureDust(owner: Address) {
+  const markets = listedMarkets()
+  const own = await ownSupplyMarkets(owner)
+  const all = [...new Set([...markets, ...own])] as `0x${string}`[]
+  console.log(`dust: ${markets.length} listed markets + ${own.length} from ${owner}'s Supply events = ${all.length}`)
+  const lender = await dustOf(owner, all, "the discovery list and the owner's Supply events")
+  for (const c of lender.read.candidates) {
+    console.log(`dust: ${c.label} · assets ${c.assets} · $${c.priceUsd ?? '—'} · ${dustVerdict(c).why}`)
+  }
+  if (!lender.sim) throw new Error(`dust: ${owner} holds no dust`)
+  // The zero-asset subset alone, for the "nothing to receive" state: its own simulation.
+  const zero = lender.dust.filter((c) => c.assets === 0n)
+  const simZero = zero.length
+    ? await simulateLever(getMainnetClient(), owner, dustCalls(owner, zero))
+    : null
+  const t = dustTotals(lender.dust, lender.sim, lender.read.ethUsd)
+  console.log(`dust lender: ${lender.dust.length} qualify · gas $${t.gasUsd} for $${t.receiveUsd} · ${t.warning}`)
+
+  let ready: Awaited<ReturnType<typeof dustOf>> | null = null
+  for (const who of (await borrowers(AAVE_POOL, 10)).slice(0, 200)) {
+    let r
+    try {
+      r = await dustOf(who, markets, 'the discovery list only')
+    } catch {
+      continue
+    }
+    if (!r.sim || !r.sim.ok) continue
+    const rt = dustTotals(r.dust, r.sim, r.read.ethUsd)
+    if (rt.warning !== null) continue
+    console.log(`dust ready ${who}: ${r.dust.length} qualify · gas $${rt.gasUsd} for $${rt.receiveUsd}`)
+    ready = r
+    break
+  }
+  if (!ready) throw new Error('dust: no borrower whose dust returns more than its gas')
+
+  const strip = (x: { read: unknown; sim: unknown }) => ({ read: x.read, sim: x.sim })
+  const json = JSON.stringify(
+    { capturedAt: new Date().toISOString(), lender: strip(lender), simZero, ready: strip(ready) },
+    (_k, v) => (typeof v === 'bigint' ? { $bigint: v.toString() } : v),
+  )
+  writeFileSync(DUST_OUT, json + '\n')
+  console.log(`wrote ${DUST_OUT} (${json.length} bytes)`)
+}
+
 async function main() {
+  const d = process.argv.indexOf('--dust')
+  if (d >= 0) return captureDust((process.argv[d + 1] as Address | undefined) ?? DUST_LENDER)
   if (process.argv.includes('--rates')) {
     const fx = JSON.parse(readFileSync(OUT, 'utf8')) as {
       ready: { intent: { owner: Address }; prepared: { position: ProtocolPosition } }

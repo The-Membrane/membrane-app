@@ -100,6 +100,25 @@ export const aavePoolAbi = [
     outputs: [],
   },
   {
+    // Pool.withdraw: amount type(uint256).max withdraws the whole aToken balance.
+    type: 'function',
+    name: 'withdraw',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'asset', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'to', type: 'address' },
+    ],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'getReservesList',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address[]' }],
+  },
+  {
     type: 'function',
     name: 'getReserveData',
     stateMutability: 'view',
@@ -242,6 +261,24 @@ const marketParamsTuple = {
 
 /** IMorpho.sol (morpho-org/morpho-blue). */
 export const morphoAbi = [
+  {
+    // withdraw by SHARES (assets = 0): Morpho burns exactly `shares` and pays out
+    // toAssetsDown(shares), which may be 0 for dust.
+    type: 'function',
+    name: 'withdraw',
+    stateMutability: 'nonpayable',
+    inputs: [
+      marketParamsTuple,
+      { name: 'assets', type: 'uint256' },
+      { name: 'shares', type: 'uint256' },
+      { name: 'onBehalf', type: 'address' },
+      { name: 'receiver', type: 'address' },
+    ],
+    outputs: [
+      { name: 'assetsWithdrawn', type: 'uint256' },
+      { name: 'sharesWithdrawn', type: 'uint256' },
+    ],
+  },
   {
     type: 'function',
     name: 'repay',

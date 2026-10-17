@@ -493,6 +493,7 @@ def check_a6_scores(datasets, res):
     with open(os.path.join(datasets, A6_RUN, "results-dev.json")) as f:
         a6 = json.load(f)["per_asset"][ASSET]
     bad = []
+    res = A._clean(res)                     # as written to JSON (non-finite -> null), the form A6's file holds
     for TL, e in res.items():
         for c in ("fH_vs_f", "f_vs_a", "fH_vs_a"):
             x, y = e["comparisons"][c], a6[TL]["comparisons"][c]

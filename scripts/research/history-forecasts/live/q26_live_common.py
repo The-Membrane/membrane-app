@@ -91,7 +91,8 @@ LEVELS = A3.LEVELS
 RUNGS = ("a", "f", "fb")                               # the A3 refit (issued by every model version)
 SCORED_RUNGS = ("a", "f", "fb", "fbL")                 # every rung a model-A5 row carries (fbL from model A5 on)
 ALL_SCORED_RUNGS = SCORED_RUNGS + ("fh", "fH", "fHb")  # every rung a row may carry (fh/fH/fHb from model A6 on)
-ROW_OPTIONAL = ("model", "estimateRange", "a3", "a5")  # copied into the outcome when the row has them
+ROW_OPTIONAL = ("model", "estimateRange", "a3", "a5",  # copied into the outcome when the row has them
+                "displayed", "estimateRangeDisplayed", "frozen_label_displayed")   # (displayed: A6 D3)
 REGIMES = A3.REGIMES
 
 RESOLVE_MARGIN = 900                                   # L.4: first scorer run >= 15 min after asof + T

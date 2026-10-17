@@ -20,6 +20,7 @@ import copy  # noqa: E402
 import hashlib  # noqa: E402
 import json  # noqa: E402
 import sys  # noqa: E402
+import tempfile  # noqa: E402
 import unittest  # noqa: E402
 import warnings  # noqa: E402
 
@@ -226,6 +227,206 @@ class TestModelA6(unittest.TestCase):
         self.assertEqual(lc["previousModelA5"]["n"], c["fbL"]["n"])
         st = summ["liveStale"]["ETH"]["6h"]["-0.02"]["low"]
         self.assertEqual(st["rung"], "fH")
+
+
+DISPLAY = {a: {TL: ("fH" if a in ("ETH", "BTC") and TL in ("6h", "1d", "3d") else r) for TL, r in A6_SHIP[a].items()}
+           for a in C.ASSETS}
+DISPLAY_KEYS_ROW = ("displayed", "p_displayed", "estimateRangeDisplayed", "frozen_label_displayed")
+DISPLAY_KEYS_DOC = ("displayed", "decisionsDisplay")
+
+
+def fake_display_doc(fz6_sha, displayed=None, shipped=None):
+    return {"schema": Q6.DISPLAY_SCHEMA, "inputs": {"frozen-a6.json": {"path": "x", "sha256": fz6_sha}},
+            "displayed": copy.deepcopy(displayed or DISPLAY), "shipped": copy.deepcopy(shipped or A6_SHIP)}
+
+
+def fake_display_forecaster(seen, display=None):
+    display = display or DISPLAY
+    base = fake_a6_forecaster(seen)
+
+    def f(datasets, rounds, asof, log=print):
+        out = base(datasets, rounds, asof, log=log)
+        for a in C.ASSETS:
+            fa = out[a]
+            allf = dict(fa["fixed"], **fa["fixed6"])
+            p = np.array([allf[display[a][C.T_LABEL[T]]][ti] for ti, T in enumerate(C.HORIZONS_H)])
+            fa["display_rungs"] = dict(display[a])
+            fa["range_d_lo"], fa["range_d_hi"] = np.clip(p - 0.03, 0, 1), np.clip(p + 0.03, 0, 1)
+            fa["range_d_days"] = {}
+        return out
+    return f
+
+
+def strip_display(doc):
+    d = {k: v for k, v in doc.items() if k not in DISPLAY_KEYS_DOC}
+    d["inputs"] = {k: v for k, v in doc["inputs"].items() if k != "displayA6"}
+    d["rows"] = [{k: v for k, v in r.items() if k not in DISPLAY_KEYS_ROW} for r in doc["rows"]]
+    return d
+
+
+class TestDisplayA6(unittest.TestCase):
+    """A6 D3 displayed rung (--display-a6): new fields only, the shipped fields unchanged; the scorer decides on it."""
+
+    def setUp(self):
+        self.env = TL.LiveEnv(U("2026-10-14T00:17:30Z"))
+        self.fz5 = TL.write_frozen_a5(self.env.root)
+        self.fz6 = write_json(self.env.root, "frozen-a6.json", fake_frozen_a6())
+        self.dz = write_json(self.env.root, "display-a6.json", fake_display_doc(self.fz6[1]))
+
+    def tearDown(self):
+        self.env.close()
+
+    def issue_disp(self, env=None, **kw):
+        env = env or self.env
+        return env.issue(forecaster=fake_display_forecaster(env.seen), frozen_a5=self.fz5, frozen_a6=self.fz6,
+                         display_a6=self.dz, **kw)
+
+    def test_display_fields_and_everything_else_identical(self):
+        path, doc, _ = self.issue_disp()
+        self.assertEqual(doc["displayed"], DISPLAY)
+        self.assertEqual(doc["inputs"]["displayA6"], {"path": self.dz[0], "sha256": self.dz[1]})
+        self.assertEqual(doc["decisionsDisplay"], Q6.DECISIONS_DISPLAY)
+        self.assertEqual(doc["shipped"], A6_SHIP)
+        self.assertEqual(list(doc)[-2:], ["nRows", "rows"])
+        with open(path, "rb") as f:
+            self.assertEqual(json.loads(f.read()), json.loads(json.dumps(C.clean(doc))))
+        changed = set()
+        for r in doc["rows"]:
+            d, ship = DISPLAY[r["asset"]][r["T"]], A6_SHIP[r["asset"]][r["T"]]
+            self.assertEqual((r["displayed"], r["shipped"]), (d, ship))
+            self.assertEqual(r["p_displayed"], r["p"][d])
+            self.assertEqual(r["p_shipped"], r["p"][ship])
+            self.assertEqual(r["estimateRangeDisplayed"]["rung"], d)
+            self.assertTrue(r["estimateRangeDisplayed"]["lo"] <= r["p_displayed"] <= r["estimateRangeDisplayed"]["hi"])
+            self.assertEqual(r["frozen_label_displayed"]["label"], "MEDIUM")
+            self.assertEqual(r["estimateRange"]["rung"], ship)
+            if d != ship:
+                changed.add((r["asset"], r["T"]))
+        self.assertEqual(changed, {("ETH", "1d"), ("ETH", "3d"), ("BTC", "6h")})
+        # the same issue without the flag (fresh store, same clock): every other field byte-identical
+        env2 = TL.LiveEnv(U("2026-10-14T00:17:30Z"))
+        try:
+            _, d0, _ = env2.issue(forecaster=fake_a6_forecaster(env2.seen), frozen_a5=self.fz5, frozen_a6=self.fz6)
+        finally:
+            env2.close()
+        self.assertNotIn("displayed", d0)
+        self.assertTrue(all(k not in r for r in d0["rows"] for k in DISPLAY_KEYS_ROW))
+        a, b = strip_display(doc), strip_display(d0)
+        for k in ("storeUpdates", "modelSeconds"):
+            a.pop(k), b.pop(k)
+        self.assertEqual(json.dumps(C.clean(a), sort_keys=True), json.dumps(C.clean(b), sort_keys=True))
+        self.assertEqual(len(doc["rows"]), len(d0["rows"]))
+        for r1, r0 in zip(doc["rows"], d0["rows"]):
+            for k, v in r0.items():
+                self.assertEqual(json.dumps(C.clean(r1[k])), json.dumps(C.clean(v)), k)
+
+    def test_refusals(self):
+        idir = C.issues_dir(C.live_dir(self.env.root))
+        fa6 = fake_display_forecaster(self.env.seen)
+        with self.assertRaises(SystemExit):                                  # display without the A6 freeze
+            self.env.issue(forecaster=fa6, frozen_a5=self.fz5, display_a6=self.dz)
+        with self.assertRaises(SystemExit):                                  # wrong sha256
+            self.env.issue(forecaster=fa6, frozen_a5=self.fz5, frozen_a6=self.fz6, display_a6=(self.dz[0], "0" * 64))
+        bads = []
+        d = fake_display_doc(self.fz6[1])
+        d["displayed"]["stETH"]["1d"] = "fH"                                 # stETH keeps its shipped rungs
+        bads.append(d)
+        d = fake_display_doc(self.fz6[1])
+        d["displayed"]["ETH"]["7d"] = "r30"                                  # not an A6 candidate
+        bads.append(d)
+        d = fake_display_doc(self.fz6[1])
+        d["shipped"]["BTC"]["6h"] = "f"                                      # shipped map != frozen-a6.json
+        bads.append(d)
+        bads.append(fake_display_doc("1" * 64))                              # made from another frozen-a6.json
+        d = fake_display_doc(self.fz6[1])
+        del d["displayed"]["BTC"]["30d"]                                     # a missing cell
+        bads.append(d)
+        d = fake_display_doc(self.fz6[1])
+        d["schema"] = "x"
+        bads.append(d)
+        for j, bad in enumerate(bads):
+            p, sh = write_json(self.env.root, f"bad-display-{j}.json", bad)
+            with self.assertRaises(SystemExit, msg=str(j)):
+                self.env.issue(forecaster=fa6, frozen_a5=self.fz5, frozen_a6=self.fz6, display_a6=(p, sh))
+        with self.assertRaises(SystemExit):                                  # forecaster built for another map
+            other = copy.deepcopy(DISPLAY)
+            other["ETH"]["1d"] = "f"
+            self.env.issue(forecaster=fake_display_forecaster(self.env.seen, other), frozen_a5=self.fz5,
+                           frozen_a6=self.fz6, display_a6=self.dz)
+        self.assertEqual(C.list_issue_files(idir), [])
+        for argv in (["--display-a6", "x"],
+                     ["--frozen-a5", "x", "--frozen-a5-sha256", "y", "--display-a6", "z", "--display-a6-sha256", "w"]):
+            with self.assertRaises(SystemExit):
+                TL.I.main(["--datasets", "x", "--out", self.env.root] + argv)
+
+    def test_scoring_uses_displayed_rung_shipped_beside(self):
+        self.env.issue(forecaster=fake_a6_forecaster(self.env.seen), frozen_a5=self.fz5, frozen_a6=self.fz6)
+        self.env.clock.t = U("2026-10-15T00:17:30Z")
+        self.issue_disp()
+        self.env.clock.t = U("2026-10-16T00:17:30Z")
+        self.issue_disp()
+        self.env.clock.t = U("2026-10-16T00:47:10Z")
+        summ, new = self.env.score()
+        disp_rows = [o for o in new if "displayed" in o]
+        self.assertTrue(disp_rows)
+        for o in disp_rows:
+            self.assertEqual(o["displayed"], DISPLAY[o["asset"]][o["T"]])
+            self.assertEqual(o["shipped"], A6_SHIP[o["asset"]][o["T"]])
+            self.assertEqual(o["frozen_label_displayed"]["label"], "MEDIUM")
+        lc = summ["liveCheck"]["BTC"]["6h"]["-0.02"]["low"]
+        self.assertEqual((lc["rung"], lc["role"], lc["model"]), ("fH", "displayed", "A6"))
+        self.assertEqual(lc["shippedA6"]["rung"], "fHb")
+        c = summ["cells"]["BTC"]["6h"]["-0.02"]["low"]
+        self.assertEqual(lc["n"], c["fH"]["n"])
+        self.assertEqual(lc["shippedA6"]["n"], c["fHb"]["n"])
+        self.assertEqual(lc["shippedA6"]["R_live"], c["fHb"]["R"])
+        self.assertIn("previousModelA5", lc)
+        st = summ["liveStale"]["BTC"]["6h"]["-0.02"]["low"]
+        self.assertEqual((st["rung"], st["role"], st["shippedA6"]["rung"]), ("fH", "displayed", "fHb"))
+        same = summ["liveCheck"]["ETH"]["6h"]["-0.02"]["low"]                # displayed == shipped (fH)
+        self.assertEqual((same["rung"], same["shippedA6"]["rung"]), ("fH", "fH"))
+        self.assertEqual(same["R_live"], same["shippedA6"]["R_live"])
+
+
+class TestDisplayGenerator(unittest.TestCase):
+    """a6_display_d3.py: the D3 rule on synthetic comparisons, and the real file when the datasets are given."""
+
+    @staticmethod
+    def comps(vals):
+        return {f"{r}_vs_f": {"bss": b, "ci95": [lo, b + 0.01]} for r, (b, lo) in vals.items()}
+
+    def test_rule(self):
+        sys.path.insert(0, C.MODEL_DIR)
+        import a6_display_d3 as G
+        base = {"fbL": (-0.001, -0.003), "fh": (-0.01, -0.02), "fH": (0.05, 0.04), "fHb": (0.04, 0.03)}
+        self.assertEqual(G.choose(self.comps(base), "fHb")[0], "fH")
+        weak = dict(base, fH=(0.005, -0.005), fHb=(-0.02, -0.03))            # best CI not above 0 -> shipped
+        self.assertEqual(G.choose(self.comps(weak), "fbL")[0], "fbL")
+        neg = {r: (-0.01, -0.02) for r in base}                              # nothing beats (f) -> shipped
+        self.assertEqual(G.choose(self.comps(neg), "fH")[0], "fH")
+        tie = dict(base, fHb=(0.05, 0.04))                                   # tie -> earlier in the tie order
+        self.assertEqual(G.choose(self.comps(tie), "f")[0], "fH")
+        zero = dict(base, fH=(0.05, 0.0), fHb=(0.01, 0.001))                 # lower bound exactly 0 is not above 0
+        self.assertEqual(G.choose(self.comps(zero), "f")[0], "f")
+
+    @unittest.skipUnless(os.environ.get("Q26_DATASETS"), "set Q26_DATASETS=<membrane-datasets>")
+    def test_real_file(self):
+        sys.path.insert(0, C.MODEL_DIR)
+        import a6_display_d3 as G
+        run = os.path.join(os.environ["Q26_DATASETS"], G.RUN_REL)
+        doc = G.build(run)
+        self.assertEqual(doc["displayed"], G.EXPECTED)
+        self.assertEqual(G.dumps(doc), G.dumps(G.build(run)))
+        with open(os.path.join(run, "frozen-a6.json"), "rb") as f:
+            raw = f.read()
+        fz6 = json.loads(raw)
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "display-a6.json")
+            data = G.dumps(doc)
+            with open(p, "wb") as f:
+                f.write(data)
+            got = Q6.load_display_a6(d, p, hashlib.sha256(data).hexdigest(), fz6, hashlib.sha256(raw).hexdigest())
+        self.assertEqual(got["displayed"], G.EXPECTED)
 
 
 class TestHighs(unittest.TestCase):

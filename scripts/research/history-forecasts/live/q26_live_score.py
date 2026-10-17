@@ -56,6 +56,12 @@ DECISIONS = [
     "and the A5 shipped rung, p, range and label under 'a5'. The live check and live STALE use the A6 shipped rung "
     "(the latest row's 'shipped'); the A5 shipped rung is still scored (cells report every rung) and its live-check "
     "values are reported beside as previousModelA5 (never deciding).",
+    "Displayed rung (A6 D3, HISTORY_TOUCH_LIVE.md D5): from the first issue with --display-a6, rows carry "
+    "'displayed' (the best model on blind set 5 per asset and T; fH at 6h-3d for ETH/BTC) beside the A6 'shipped'. "
+    "When the cell's latest resolved row has 'displayed', the live check and live STALE use that rung ('role' = "
+    "displayed), over every resolved row that carries its p (as for the shipped rung before); the A6 shipped rung is "
+    "still scored and its values are reported beside as 'shippedA6' (never deciding). Rows without 'displayed' are "
+    "unchanged and decide as before.",
 ]
 
 
@@ -153,17 +159,26 @@ def summarize(outcomes, rows, pending, now):
                         g: rung_stats(v) for g, v in sg.items() if v}
                 latest = max(rs, key=lambda o: (o["date"], int(o["issuedAt"])))
                 ship, model = latest["shipped"], latest.get("model")
+                disp = latest.get("displayed")                 # A6 D3: the displayed rung decides when present
+                rung = disp if disp else ship
                 for g in C.REGIMES:
                     gr = groups[g]
                     if not gr:
                         continue
-                    st = C.cell_stats(gr, ship)
+                    st = C.cell_stats(gr, rung)
                     if st is None:
                         continue
                     live_check.setdefault(a, {}).setdefault(TL, {}).setdefault(kk, {})[g] = {
-                        "rung": ship, "R_live": st["R"], "n_ep": st["n_ep"], "n": st["n"],
+                        "rung": rung, "R_live": st["R"], "n_ep": st["n_ep"], "n": st["n"],
                         "pass": bool(C.r_inside(st["R"], *C.LIVE_CHECK_R) and st["n_ep"] >= C.LIVE_CHECK_NEP),
                         "applied": applied, **({"model": model} if model else {})}
+                    if disp:                                   # the A6 shipped rung, still scored, beside
+                        live_check[a][TL][kk][g]["role"] = "displayed"
+                        ss = C.cell_stats(gr, ship)
+                        if ss is not None:
+                            live_check[a][TL][kk][g]["shippedA6"] = {
+                                "rung": ship, "R_live": ss["R"], "n_ep": ss["n_ep"], "n": ss["n"],
+                                "pass": bool(C.r_inside(ss["R"], *C.LIVE_CHECK_R) and ss["n_ep"] >= C.LIVE_CHECK_NEP)}
                     if isinstance(latest.get("a5"), dict):     # model A6: the A5 shipped rung, still scored
                         r5 = latest["a5"]["shipped"]
                         s5 = C.cell_stats(gr, r5)
@@ -172,12 +187,19 @@ def summarize(outcomes, rows, pending, now):
                                 "rung": r5, "R_live": s5["R"], "n_ep": s5["n_ep"], "n": s5["n"],
                                 "pass": bool(C.r_inside(s5["R"], *C.LIVE_CHECK_R) and s5["n_ep"] >= C.LIVE_CHECK_NEP)}
                     gl = [o for o in gr if o["date"] in last]
-                    s2 = C.cell_stats(gl, ship) if gl else None
+                    s2 = C.cell_stats(gl, rung) if gl else None
                     if s2 is not None:
                         live_stale.setdefault(a, {}).setdefault(TL, {}).setdefault(kk, {})[g] = {
-                            "rung": ship, "R_live": s2["R"], "n_ep": s2["n_ep"], "n": s2["n"],
+                            "rung": rung, "R_live": s2["R"], "n_ep": s2["n_ep"], "n": s2["n"],
                             "stale": bool(s2["n_ep"] >= C.STALE_NEP and not C.r_inside(s2["R"], *C.STALE_R)),
                             "applied": applied, **({"model": model} if model else {})}
+                        if disp:
+                            live_stale[a][TL][kk][g]["role"] = "displayed"
+                            s3 = C.cell_stats(gl, ship)
+                            if s3 is not None:
+                                live_stale[a][TL][kk][g]["shippedA6"] = {
+                                    "rung": ship, "R_live": s3["R"], "n_ep": s3["n_ep"], "n": s3["n"],
+                                    "stale": bool(s3["n_ep"] >= C.STALE_NEP and not C.r_inside(s3["R"], *C.STALE_R))}
     return {"resolvedIssueDaysPerHorizon": {TL: len(v) for TL, v in days_T.items()}, "counts": counts,
             "cells": cells, "secondary": secondary, "liveCheck": live_check, "liveStale": live_stale,
             "passLine": f"No pass line is applied before {C.MIN_DAYS_PASS} resolved issue days per horizon (L.5); "

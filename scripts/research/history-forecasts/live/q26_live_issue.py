@@ -3,7 +3,8 @@
 
   python3 q26_live_issue.py --datasets <membrane-datasets> --out <root> [--expect-commit <sha>]
       [--frozen-a5 <rel> --frozen-a5-sha256 <sha> [--basis-final <rel> --basis-final-sha256 <sha>]
-       [--frozen-a6 <rel> --frozen-a6-sha256 <sha> [--basis-final-a6 <rel> --basis-final-a6-sha256 <sha>]]]
+       [--frozen-a6 <rel> --frozen-a6-sha256 <sha> [--basis-final-a6 <rel> --basis-final-a6-sha256 <sha>]
+        [--display-a6 <rel> --display-a6-sha256 <sha>]]]
 
 Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3c61, sha256 8961eb5c...).
 
@@ -26,6 +27,11 @@ Implements triccs/membrane-board `design/HISTORY_TOUCH_LIVE.md` (registered 9ce3
   schema q26-touch-live/issue/3, `model` = A6; every A3/A5 field byte-identical to an A5-mode run at the same
   asof, plus (fh), (fH), (fHb), the A6 shipped rung per (asset, T) with its A6 estimate range, A6 label and basis
   string; the A5 shipped rung, p, range and label under `a5` (q26_live_a6.py).
+- Displayed rung (HISTORY_TOUCH_PREREG_A6.md D3, owner ruling "always show the best model"; only with --display-a6
+  and its sha256, on top of the A6 flags): display-a6.json (a6_display_d3.py) maps (asset, T) to the displayed rung.
+  Each row adds displayed, p_displayed, estimateRangeDisplayed and frozen_label_displayed; the file adds `displayed`,
+  inputs.displayA6 and decisionsDisplay. Every other field is byte-identical to a run without the flag (`shipped`
+  stays the A6 shipped rung). Without the flag nothing changes.
 """
 import os
 
@@ -87,7 +93,7 @@ def last_frozen_hour_check(rounds, asset, fc):
 
 
 def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=None, code=None, log=print,
-          frozen_a5=None, basis_final=None, frozen_a6=None, basis_final_a6=None):
+          frozen_a5=None, basis_final=None, frozen_a6=None, basis_final_a6=None, display_a6=None):
     """One live issue. `clock`, the transports and `forecaster` are injectable for the offline tests only;
     the CLI always uses the real wall clock, the public endpoints and the A3 refit (model A5: plus fbL).
     frozen_a5 / basis_final: None, or (path relative to datasets, sha256) -- model A5 when frozen_a5 is given."""
@@ -97,6 +103,8 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
         raise SystemExit("STOP: --frozen-a6 needs --frozen-a5 (the A5 fields stay in every row)")
     if basis_final_a6 is not None and frozen_a6 is None:
         raise SystemExit("STOP: --basis-final-a6 needs --frozen-a6")
+    if display_a6 is not None and frozen_a6 is None:
+        raise SystemExit("STOP: --display-a6 needs --frozen-a6")
     issued_at = int(clock())
     asof = C.floor_hour(issued_at)
     date = C.utc_date(issued_at)
@@ -116,6 +124,7 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
         import q26_live_a6 as Q6
         fz6 = Q6.load_frozen_a6(datasets, *frozen_a6)
         bf6 = Q6.load_basis_final_a6(datasets, *basis_final_a6) if basis_final_a6 is not None else None
+    dz6 = Q6.load_display_a6(datasets, *display_a6, fz6, frozen_a6[1]) if display_a6 is not None else None
     log(f"issue {date}: issuedAt {C.iso(issued_at)} asof {C.iso(asof)}; prev {prev_name or 'genesis'}"
         + (f"; model {(Q6 or Q5).MODEL_VERSION}" if Q5 else ""))
 
@@ -148,7 +157,7 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
 
     if forecaster is None:
         if Q6:
-            forecaster = (lambda d, r, t, log=print: Q6.a6_forecasts(d, r, t, fz5, fz6, log=log))
+            forecaster = (lambda d, r, t, log=print: Q6.a6_forecasts(d, r, t, fz5, fz6, log=log, display_a6=dz6))
         elif Q5:
             forecaster = (lambda d, r, t, log=print: Q5.a5_forecasts(d, r, t, fz5, log=log))
         else:
@@ -181,7 +190,7 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
         if "frozen_oracle_close_last" in f:
             assets[a]["lastFrozenHourCheck"] = last_frozen_hour_check(rounds[a], a, f)
     if Q6:
-        rows = Q6.issue_rows_a6(fc, frozen, fz5, fz6, spot, asof, issued_at, bf5, bf6)
+        rows = Q6.issue_rows_a6(fc, frozen, fz5, fz6, spot, asof, issued_at, bf5, bf6, dz6)
     elif Q5:
         rows = Q5.issue_rows_a5(fc, frozen, fz5, spot, asof, issued_at, bf5)
     else:
@@ -230,6 +239,10 @@ def issue(out_root, datasets, rpc, http_get=None, clock=time.time, forecaster=No
             doc["shipped"] = fz6["shipped"]
             doc["shippedA5"] = fz5["shipped"]
             doc["decisions"] = DECISIONS + Q5.DECISIONS_A5 + Q6.DECISIONS_A6
+            if dz6 is not None:
+                doc["inputs"]["displayA6"] = {"path": display_a6[0], "sha256": display_a6[1]}
+                doc["displayed"] = dz6["displayed"]
+                doc["decisionsDisplay"] = Q6.DECISIONS_DISPLAY
         doc = {k: doc[k] for k in [x for x in doc if x not in ("nRows", "rows")] + ["nRows", "rows"]}
     data = C.dumps_with_rows(doc)
     path = os.path.join(idir, date + ".json")
@@ -259,6 +272,8 @@ def main(argv=None):
     ap.add_argument("--frozen-a6-sha256", default=None, help="model A6: the registered sha256 of that file")
     ap.add_argument("--basis-final-a6", default=None, help="model A6: basis-final.csv (blind-5 phase) path")
     ap.add_argument("--basis-final-a6-sha256", default=None, help="model A6: the registered sha256 of that file")
+    ap.add_argument("--display-a6", default=None, help="A6 D3: display-a6.json (displayed rung per asset, T) path")
+    ap.add_argument("--display-a6-sha256", default=None, help="A6 D3: the registered sha256 of that file")
     a = ap.parse_args(argv)
     if (a.frozen_a5 is None) != (a.frozen_a5_sha256 is None):
         raise SystemExit("STOP: --frozen-a5 and --frozen-a5-sha256 go together")
@@ -272,6 +287,10 @@ def main(argv=None):
         raise SystemExit("STOP: --frozen-a6 needs --frozen-a5 (the A5 fields stay in every row)")
     if a.basis_final_a6 and not a.frozen_a6:
         raise SystemExit("STOP: --basis-final-a6 needs --frozen-a6")
+    if (a.display_a6 is None) != (a.display_a6_sha256 is None):
+        raise SystemExit("STOP: --display-a6 and --display-a6-sha256 go together")
+    if a.display_a6 and not a.frozen_a6:
+        raise SystemExit("STOP: --display-a6 needs --frozen-a6")
     code = C.code_meta(expect_commit=a.expect_commit)
     if a.expect_commit and code["dirty"]:
         raise SystemExit(f"STOP: code files differ from the pinned commit: {code['dirty']}")
@@ -280,7 +299,8 @@ def main(argv=None):
           frozen_a5=(a.frozen_a5, a.frozen_a5_sha256) if a.frozen_a5 else None,
           basis_final=(a.basis_final, a.basis_final_sha256) if a.basis_final else None,
           frozen_a6=(a.frozen_a6, a.frozen_a6_sha256) if a.frozen_a6 else None,
-          basis_final_a6=(a.basis_final_a6, a.basis_final_a6_sha256) if a.basis_final_a6 else None)
+          basis_final_a6=(a.basis_final_a6, a.basis_final_a6_sha256) if a.basis_final_a6 else None,
+          display_a6=(a.display_a6, a.display_a6_sha256) if a.display_a6 else None)
     return 0
 
 

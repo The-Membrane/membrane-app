@@ -14,6 +14,9 @@ With them, each issue (schema q26-touch-live/issue/3, top-level `model` = A6):
   every fitted quantity re-estimated per resample) from a separate default_rng([20261040, asof, 6]) stream, and its
   A6 label, basis string and n_ep for the current regime (the frozen dev basis, or a final basis file when given);
 - keeps the A5 shipped rung, p, estimate range and label under `a5` and the A3 ones under `a3` in every row.
+With --display-a6 (A6 D3, owner ruling "always show the best model") each row also carries the displayed rung per
+(asset, T) from display-a6.json, its p, its estimate range (a third default_rng([20261040, asof, 7]) stream for the
+cells where it differs from the shipped rung) and its frozen A6 label; every other field is unchanged.
 The hourly high of the live span is max(answer in force at the hour start, every round with updatedAt in
 (start, end]) from rounds with updatedAt <= asof (the A6 D1 reading of D-H1); the frozen span uses oracleHigh
 (and the ETH/BTC Binance kline high before the splice hour), as the A6 dev run.
@@ -44,6 +47,8 @@ SCORED_RUNGS = Q5.SCORED_RUNGS + A6_RUNGS          # a, f, fb, fbL, fh, fH, fHb
 RANGE_SEED = M6.SEED_BAND                          # 20261040, combined with asof and 6 per issue (D-LA2)
 RANGE_STREAM = 6
 RANGE_WORDING = Q5.RANGE_WORDING
+DISPLAY_SCHEMA = "q26-touch-live/display-a6/1"     # display-a6.json (a6_display_d3.py; A6 D3)
+DISPLAY_RANGE_STREAM = 7                           # displayed-rung ranges: default_rng([20261040, asof, 7]) (D-LA6)
 
 DECISIONS_A6 = [
     "D-LA1 model A6 (A6.5): the A5 part is q26_live_a5.a5_forecasts unchanged (same functions, same order, same "
@@ -69,6 +74,29 @@ DECISIONS_A6 = [
     "adds its final basis file (--basis-final-a6). 'live' joins the basis only once the L.5 live check applies.",
 ]
 
+DECISIONS_DISPLAY = [
+    "D-LA5 displayed rung (A6 D3, owner ruling 'always show the best model'; only with --display-a6 and its sha256): "
+    "display-a6.json (made by a6_display_d3.py from results-blind5.json and frozen-a6.json, which asserts the D3 "
+    "result) maps (asset, T) to the displayed rung. It must name every (asset, T), only A6 candidates, carry the "
+    "frozen-a6.json shipped map and sha256 the issuer loaded, and keep stETH on its shipped rungs, else STOP. Each row "
+    "adds 'displayed', 'p_displayed' (that rung's monotone-fixed p, the value the scorer scores), "
+    "'estimateRangeDisplayed' and 'frozen_label_displayed' (the displayed rung's frozen A6 label, n_ep and basis for "
+    "the current regime, from the A6 final basis file when given). Every other field, top-level 'decisions' "
+    "included, is byte-identical to a run without the flag: 'shipped' stays the A6 shipped rung. The file adds "
+    "'displayed', inputs.displayA6 and 'decisionsDisplay'.",
+    "D-LA6 displayed-rung estimate range: where the displayed rung equals the shipped rung, the shipped draw is "
+    "reused; where it differs, a6_touch range_samples for the displayed rung (as D-LA2) on 500 moving-block resamples "
+    "from a third stream default_rng([20261040, asof, 7]), drawn in the order ETH, BTC, stETH > 6h..30d for the "
+    "differing cells only, after the shipped draw of that T, so the A5 and A6 shipped ranges do not change. The "
+    "displayed 6 x K grid of 5th/95th percentiles is monotone-fixed over T and K and widened to contain p_displayed, "
+    "as the shipped range. So a cell whose displayed rung equals the shipped rung can show a range that differs from "
+    "the shipped range at the deep tail, where the joint fix carries a neighbouring changed cell (scratch issue "
+    "2026-10-17T14Z: 14 of 114 such rows, all bounds below 0.0002 apart).",
+    "D-LA7 the displayed p grid is each displayed rung's own monotone-fixed p; it mixes rungs over T (fH at 6h-3d, "
+    "the shipped rung from 7d for ETH/BTC), so it is not re-fixed across T (no registered rule for that; the scored "
+    "p must be the rung's own p). The issue records it as is.",
+]
+
 
 # ---------------------------------------------------------------------------------------------
 # Frozen inputs
@@ -87,6 +115,34 @@ def load_frozen_a6(datasets, rel, sha):
 def load_basis_final_a6(datasets, rel, sha):
     """basis-final.csv of the A6 blind-5 phase (same columns as A5's, blind5_R/blind5_n_ep)."""
     return Q5.load_basis_final(datasets, rel, sha)
+
+
+def load_display_a6(datasets, rel, sha, frozen_a6, frozen_a6_sha256):
+    """display-a6.json (A6 D3) -> the parsed doc, checked against the loaded frozen-a6.json."""
+    doc = json.loads(Q5._read_checked(datasets, rel, sha, "display-a6.json"))
+    if doc.get("schema") != DISPLAY_SCHEMA:
+        raise SystemExit(f"STOP: display-a6.json schema {doc.get('schema')} != {DISPLAY_SCHEMA}")
+    if doc.get("inputs", {}).get("frozen-a6.json", {}).get("sha256") != frozen_a6_sha256:
+        raise SystemExit("STOP: display-a6.json was not made from the frozen-a6.json the issuer loaded")
+    disp, ship = doc.get("displayed"), doc.get("shipped")
+    for a in C.ASSETS:
+        for T_h in C.HORIZONS_H:
+            TL = C.T_LABEL[T_h]
+            try:
+                d, s = disp[a][TL], ship[a][TL]
+            except (KeyError, TypeError):
+                raise SystemExit(f"STOP: display-a6.json has no displayed/shipped rung for {a} {TL}")
+            if s != frozen_a6["shipped"][a][TL]:
+                raise SystemExit(f"STOP: display-a6.json shipped rung for {a} {TL} != frozen-a6.json")
+            if d not in M6.SHIP_ORDER:
+                raise SystemExit(f"STOP: display-a6.json displayed rung for {a} {TL} is not an A6 candidate")
+            if a == "stETH" and d != s:
+                raise SystemExit(f"STOP: display-a6.json changes the stETH rung at {TL} (A6 D3 keeps it)")
+        if set(disp[a]) != {C.T_LABEL[T] for T in C.HORIZONS_H}:
+            raise SystemExit(f"STOP: display-a6.json horizons for {a} differ from the issued horizons")
+    if set(disp) != set(C.ASSETS):
+        raise SystemExit("STOP: display-a6.json assets differ from the issued assets")
+    return doc
 
 
 def a6_label(frozen_a6, asset, TL, rung, k, regime, basis_final=None):
@@ -175,10 +231,13 @@ def attach_live_highs(datasets, S, rounds_by_asset, asof):
 # ---------------------------------------------------------------------------------------------
 # Model: fh, fH, fHb and the A6 estimate range of the A6 shipped rung, at asof
 # ---------------------------------------------------------------------------------------------
-def a6_extend(fc5, sl, so, asof, shipped_a, rng6):
+def a6_extend(fc5, sl, so, asof, shipped_a, rng6, display_a=None, rng_d=None):
     """Add fh/fH/fHb (raw, fixed), the A6 fits and the A6 shipped rung's estimate range to one asset's model-A5
     forecast dict `fc5` (from q26_live_a5.a5_extend at the same asof). One (500 x days) count matrix per T is drawn
-    from `rng6`, in the order 6h..30d."""
+    from `rng6`, in the order 6h..30d.
+    display_a (A6 D3, --display-a6): {T: displayed rung}. Where it differs from the shipped rung, the displayed rung's
+    estimate range is drawn from the separate stream `rng_d` after the shipped draw of that T (rng6 is never touched
+    by it, so every shipped field is unchanged); where it equals the shipped rung the shipped draw is reused."""
     i_now = sl.gi(asof)
     if i_now != sl.N:
         raise ValueError("series must end at asof")
@@ -188,6 +247,9 @@ def a6_extend(fc5, sl, so, asof, shipped_a, rng6):
     lo = np.full((nT, K), np.nan)
     hi = np.full((nT, K), np.nan)
     fits, n_days = {}, {}
+    lo_d = np.full((nT, K), np.nan) if display_a is not None else None
+    hi_d = np.full((nT, K), np.nan) if display_a is not None else None
+    n_days_d = {}
     te = np.array([i_now])
     for ti, T_h in enumerate(C.HORIZONS_H):
         TL = C.T_LABEL[T_h]
@@ -216,6 +278,23 @@ def a6_extend(fc5, sl, so, asof, shipped_a, rng6):
         q = np.percentile(smp, M6.BAND_PCT, axis=0)
         lo[ti], hi[ti] = q[0][0], q[1][0]
         n_days[TL] = int(len(days))
+        if display_a is not None:
+            disp = display_a[TL]
+            if disp == ship:
+                lo_d[ti], hi_d[ti] = lo[ti], hi[ti]
+            else:
+                dser = so if disp == "a" else sl
+                dlab = np.isfinite(dser.spot) & np.isfinite(dser.wmin(T_h))
+                ddays, _, _ = M4.fold_days(dser, dlab, T_h, i_now)
+                didx = C.A.block_bootstrap_indices(rng_d, len(ddays), C.A.block_length(T_h), M6.N_BAND_REP)
+                dcnt = C.A.replicate_counts(didx, len(ddays))
+                dPo = C.A3.Prep3(so, T_h, beta_select=False) if disp == "a" else None
+                dsmp = M6.range_samples(sl, P6, disp, i_now, te, dcnt, sl.sigma[te], sl.sigma_ref[te], P6.X[te],
+                                        P6.okX[te], ser_o=so, Po=dPo)
+                dq = np.percentile(dsmp, M6.BAND_PCT, axis=0)
+                lo_d[ti], hi_d[ti] = dq[0][0], dq[1][0]
+                n_days_d[TL] = int(len(ddays))
+                del dsmp
         del P6, smp
     fixed = {r: (C.A.monotone_fix(g[None])[0] if not np.isnan(g).any() else None) for r, g in raw.items()}
     out = dict(fc5)
@@ -231,15 +310,27 @@ def a6_extend(fc5, sl, so, asof, shipped_a, rng6):
         p = np.array([grids[ti][ti] for ti in range(nT)])
         lo_f, hi_f = C.A.monotone_fix(lo[None])[0], C.A.monotone_fix(hi[None])[0]
         out["range6_lo"], out["range6_hi"] = np.minimum(lo_f, p), np.maximum(hi_f, p)
+    if display_a is not None:
+        out["display_rungs"] = {C.T_LABEL[T]: display_a[C.T_LABEL[T]] for T in C.HORIZONS_H}
+        out["range_d_days"] = n_days_d
+        gd = [allfixed[display_a[C.T_LABEL[T]]] for T in C.HORIZONS_H]
+        if any(g is None for g in gd) or np.isnan(lo_d).any() or np.isnan(hi_d).any():
+            out["range_d_lo"] = out["range_d_hi"] = None
+        else:
+            pd_ = np.array([gd[ti][ti] for ti in range(nT)])
+            lo_df, hi_df = C.A.monotone_fix(lo_d[None])[0], C.A.monotone_fix(hi_d[None])[0]
+            out["range_d_lo"], out["range_d_hi"] = np.minimum(lo_df, pd_), np.maximum(hi_df, pd_)
     return out
 
 
-def a6_forecasts(datasets, rounds_by_asset, asof, frozen_a5, frozen_a6, log=print):
-    """q26_live_a5.a5_forecasts step for step (same series, same A5 rng stream), then a6_extend per asset."""
+def a6_forecasts(datasets, rounds_by_asset, asof, frozen_a5, frozen_a6, log=print, display_a6=None):
+    """q26_live_a5.a5_forecasts step for step (same series, same A5 rng stream), then a6_extend per asset.
+    display_a6 (A6 D3): the loaded display-a6.json, or None (then nothing changes)."""
     S = C.build_live_series(datasets, rounds_by_asset, asof)
     attach_live_highs(datasets, S, rounds_by_asset, asof)
     rng = np.random.default_rng([Q5.RANGE_SEED, int(asof)])
     rng6 = np.random.default_rng([RANGE_SEED, int(asof), RANGE_STREAM])
+    rng_d = np.random.default_rng([RANGE_SEED, int(asof), DISPLAY_RANGE_STREAM]) if display_a6 is not None else None
     out = {}
     for a in C.ASSETS:
         t0 = time.time()
@@ -249,7 +340,8 @@ def a6_forecasts(datasets, rounds_by_asset, asof, frozen_a5, frozen_a6, log=prin
                   frozen_oracle_low_last=S[a]["frozen_oracle_low_last"])
         f5 = Q5.a5_extend(fc, S[a]["long"], S[a]["oracle"], asof, frozen_a5["shipped"][a], rng)
         t1 = time.time()
-        out[a] = a6_extend(f5, S[a]["long"], S[a]["oracle"], asof, frozen_a6["shipped"][a], rng6)
+        out[a] = a6_extend(f5, S[a]["long"], S[a]["oracle"], asof, frozen_a6["shipped"][a], rng6,
+                           display_a=display_a6["displayed"][a] if display_a6 is not None else None, rng_d=rng_d)
         for ser in {id(S[a]["long"]): S[a]["long"], id(S[a]["oracle"]): S[a]["oracle"]}.values():
             M6._clear(ser)
         log(f"model {a}: regime {fc['regime']}; A3/A5 part ({t1 - t0:.0f}s), A6 rungs and range ({time.time() - t1:.0f}s)")
@@ -259,9 +351,11 @@ def a6_forecasts(datasets, rounds_by_asset, asof, frozen_a5, frozen_a6, log=prin
 # ---------------------------------------------------------------------------------------------
 # Rows
 # ---------------------------------------------------------------------------------------------
-def issue_rows_a6(fc, frozen_a3, frozen_a5, frozen_a6, spot, asof, issued_at, basis_final5=None, basis_final6=None):
+def issue_rows_a6(fc, frozen_a3, frozen_a5, frozen_a6, spot, asof, issued_at, basis_final5=None, basis_final6=None,
+                  display_a6=None):
     """q26_live_a5.issue_rows_a5 rows (unchanged A3/A5 fields), extended with fh/fH/fHb; the A5 shipped fields move
-    under 'a5' and the A6 shipped rung, its p, estimate range and A6 label take the top-level fields."""
+    under 'a5' and the A6 shipped rung, its p, estimate range and A6 label take the top-level fields. With
+    display_a6 (A6 D3) each row also gets displayed, p_displayed, estimateRangeDisplayed, frozen_label_displayed."""
     rows = Q5.issue_rows_a5(fc, frozen_a3, frozen_a5, spot, asof, issued_at, basis_final5)
     i = 0
     for a in C.ASSETS:
@@ -285,6 +379,17 @@ def issue_rows_a6(fc, frozen_a3, frozen_a5, frozen_a6, spot, asof, issued_at, ba
                                        "wording": RANGE_WORDING, "rung": ship}
                                       if f["range6_lo"] is not None else None)
                 r["frozen_label"] = a6_label(frozen_a6, a, TL, ship, k, f["regime"], basis_final6)
+                if display_a6 is not None:
+                    disp = display_a6["displayed"][a][TL]
+                    if f.get("display_rungs", {}).get(TL) != disp:
+                        raise SystemExit(f"STOP: forecast display rung for {a} {TL} != display-a6.json")
+                    r["displayed"] = disp
+                    r["p_displayed"] = r["p"][disp]
+                    r["estimateRangeDisplayed"] = ({"lo": float(f["range_d_lo"][ti, j]),
+                                                    "hi": float(f["range_d_hi"][ti, j]),
+                                                    "wording": RANGE_WORDING, "rung": disp}
+                                                   if f.get("range_d_lo") is not None else None)
+                    r["frozen_label_displayed"] = a6_label(frozen_a6, a, TL, disp, k, f["regime"], basis_final6)
                 i += 1
     assert i == len(rows)
     return rows

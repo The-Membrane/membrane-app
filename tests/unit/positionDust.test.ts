@@ -9,6 +9,7 @@ import { DUST_STATES } from '@/components/PositionV0/dev/dustStates'
 import { aavePoolAbi, morphoAbi } from '@/lib/position-exec/abis'
 import {
   DUST_USD,
+  aboutUsd,
   dustCalls,
   dustGates,
   dustPrep,
@@ -134,6 +135,28 @@ describe('the sweep', () => {
     const v = sheetView(prep, { connected: true, address: OWNER, chainId: 1 }, TX_IDLE, OWNER)
     expect(v.button).toMatchObject({ kind: 'wait', enabled: false })
     expect(v.notice).toMatch(/paused/)
+  })
+})
+
+describe('dollar wording', () => {
+  it('an estimate says "about"; a bound or zero does not', () => {
+    expect(aboutUsd(0.43)).toBe('about $0.43')
+    expect(aboutUsd(0.0012)).toBe('under $0.01')
+    expect(aboutUsd(0)).toBe('$0')
+  })
+  it('no row, total or warning ever reads "about under"', () => {
+    const rows = [morpho({ assets: 1_193n }), morpho({ assets: 0n }), aave()]
+    const texts = [
+      ...rows.map((c) => dustRow(c).line),
+      dustWarningText(dustTotals([morpho({ assets: 1_193n })], sim(400_000n, 0.08), 2_400)),
+      dustWarningText(dustTotals([morpho({ assets: 0n })], sim(10_000n, 0.1), 2_400)),
+      ...DUST_STATES.flatMap((s) => {
+        const t = dustTotals(s.dust, s.sim, s.ethUsd)
+        return [...t.rows.map((r) => r.line), dustWarningText(t)]
+      }),
+    ]
+    for (const t of texts) expect(t ?? '').not.toMatch(/about under|about \$0(?!\.)/)
+    expect(dustRow(morpho({ assets: 1_193n })).line).toMatch(/0\.0011 USDC, under \$0\.01, under 1 unit/)
   })
 })
 

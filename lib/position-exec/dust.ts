@@ -154,7 +154,7 @@ export function dustRow(c: DustCandidate): DustRow {
   const line =
     c.assets === 0n
       ? `You receive 0 ${c.symbol}: the shares round to nothing. This clears the position`
-      : `You receive ${receive}, about ${fmtDustUsd(usd)}${c.assets < 10n ** BigInt(c.decimals) ? ', under 1 unit' : ''}. This clears the position`
+      : `You receive ${receive}, ${aboutUsd(usd)}${c.assets < 10n ** BigInt(c.decimals) ? ', under 1 unit' : ''}. This clears the position`
   const takes =
     c.venue === 'morpho-blue'
       ? `${fmtUnits(c.shares, 0, 0)} supply shares`
@@ -208,12 +208,21 @@ export function fmtDustUsd(usd: number): string {
   return `$${usd.toFixed(2)}`
 }
 
+/**
+ * An estimate in words: "about $0.43". A bound is already a bound, so it takes no
+ * "about": "under $0.01", "$0".
+ */
+export function aboutUsd(usd: number): string {
+  const f = fmtDustUsd(usd)
+  return f.startsWith('$') && usd !== 0 ? `about ${f}` : f
+}
+
 /** The warning's one line, or null. */
 export function dustWarningText(t: DustTotals): string | null {
   if (t.warning === 'nothing')
-    return `You receive nothing. This only clears ${t.rows.length === 1 ? 'the position' : `${t.rows.length} positions`}${t.gasUsd !== null ? `, for about ${fmtDustUsd(t.gasUsd)} of gas` : ' and costs gas'}`
+    return `You receive nothing. This only clears ${t.rows.length === 1 ? 'the position' : `${t.rows.length} positions`}${t.gasUsd !== null ? `, for ${aboutUsd(t.gasUsd)} of gas` : ' and costs gas'}`
   if (t.warning === 'gas-exceeds' && t.gasUsd !== null)
-    return `Gas costs more than you receive: about ${fmtDustUsd(t.gasUsd)} of gas for ${fmtDustUsd(t.receiveUsd)} back`
+    return `Gas costs more than you receive: ${aboutUsd(t.gasUsd)} of gas for ${fmtDustUsd(t.receiveUsd)} back`
   return null
 }
 

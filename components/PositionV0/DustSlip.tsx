@@ -22,9 +22,9 @@ import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import type { SheetView } from '@/lib/position-exec/sheet'
 import type { SimResult } from '@/lib/position-exec/simulate'
 import {
+  aboutUsd,
   dustTotals,
   dustWarningText,
-  fmtDustUsd,
   type DustCandidate,
 } from '@/lib/position-exec/dust'
 import { fmtUnits } from '@/lib/position-exec/amount'
@@ -125,13 +125,11 @@ export const DustSlip: React.FC<DustSlipProps> = ({
           <Mono fontWeight={700} textAlign="right">
             {t.receiveUsd === 0
               ? '$0 · nothing'
-              : t.receiveUsd < 0.01
-                ? fmtDustUsd(t.receiveUsd)
-                : `about ${fmtDustUsd(t.receiveUsd)}`}
+              : aboutUsd(t.receiveUsd)}
           </Mono>
           <Small color={NEWS.ink2}>Gas, est. at today&apos;s fee</Small>
           <Mono textAlign="right">
-            {t.gasUsd !== null ? `about ${fmtDustUsd(t.gasUsd)}` : 'after the simulation'}
+            {t.gasUsd !== null ? aboutUsd(t.gasUsd) : 'after the simulation'}
           </Mono>
         </Box>
         {warning && (

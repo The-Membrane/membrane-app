@@ -42,7 +42,14 @@ export const createWebhookHandler =
       return res.status(401).json({ error: 'bad secret' })
     }
     try {
-      const out = await handleUpdate(req.body, { sql: deps.sql(), logic, footerFor: deps.footerFor })
+      // Past the gate above, TELEGRAM_ALERTS_WEBHOOK_SECRET is set — the owner's switch
+      // for user threshold alerts — so /start th_<token> links are live here.
+      const out = await handleUpdate(req.body, {
+        sql: deps.sql(),
+        logic,
+        footerFor: deps.footerFor,
+        thresholds: { enabled: true },
+      })
       if (out) {
         const sent = await sendMessage(config.token, out.chatId, out.text, deps.fetchImpl)
         if (!sent.ok) console.warn(`telegram webhook: reply failed — ${sent.description ?? sent.error_code}`)

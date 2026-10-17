@@ -100,6 +100,29 @@ export function footerFrom(byVenue, held) {
   return uncoveredFooter(pick)
 }
 
+// Threshold-link reads on /stop and /list must never break the address replies
+// (e.g. before scripts/apply-alert-thresholds-ddl.mjs has run): failures count 0.
+async function stopChatLinks(sql, chat) {
+  try {
+    const rows = await sql`
+      UPDATE user_alert_chat_links SET stopped_at = now()
+      WHERE chat_id = ${chat} AND stopped_at IS NULL RETURNING owner_id`
+    return rows.length
+  } catch {
+    return 0
+  }
+}
+
+async function countChatLinks(sql, chat) {
+  try {
+    const [r] = await sql`
+      SELECT count(*)::int AS n FROM user_alert_chat_links WHERE chat_id = ${chat} AND stopped_at IS NULL`
+    return Number(r?.n ?? 0)
+  } catch {
+    return 0
+  }
+}
+
 /** Single-shot footer (one read) — for the /start reply. */
 export function scriptFooterFor(sql, venues) {
   const load = scriptCoverage(sql, venues)
@@ -110,9 +133,16 @@ export function scriptFooterFor(sql, venues) {
  * Apply one chat command. Returns { chatId, text } to send, or null when the
  * update carries no new text message (edited_message is ignored). DB writes
  * happen here; sending is the caller's.
- * deps: { sql, logic, footerFor(held) => Promise<string> }
+ * deps: { sql, logic, footerFor(held) => Promise<string>, thresholds? }
+ *
+ * `thresholds.enabled` turns on the USER THRESHOLD ALERT commands (/start th_<token>
+ * links this chat to that alert feed; /stop and /list include those links). Only
+ * the webhook passes it — the webhook runs only once TELEGRAM_ALERTS_WEBHOOK_SECRET
+ * is set, which is the owner's switch. Poll mode (secret unset) leaves it off, so
+ * a th_ link there gets the plain help reply.
  */
-export async function handleUpdate(update, { sql, logic, footerFor }) {
+export async function handleUpdate(update, { sql, logic, footerFor, thresholds = { enabled: false } }) {
+  const thresholdsOn = thresholds.enabled === true
   // Only new messages: an edited '/start' or '/stop' is never re-applied.
   const msg = update?.message
   const chatId = msg?.chat?.id
@@ -148,18 +178,44 @@ export async function handleUpdate(update, { sql, logic, footerFor }) {
     return { chatId: chat, text: logic.replyText({ kind: 'subscribed', address: cmd.address, held, openTexts, footer }) }
   }
 
+  if (cmd.kind === 'link_thresholds') {
+    if (!thresholdsOn) return { chatId: chat, text: logic.replyText({ kind: 'help' }) }
+    const [owner] = await sql`SELECT id FROM user_alert_owners WHERE feed_token = ${cmd.token} LIMIT 1`
+    if (!owner) return { chatId: chat, text: logic.replyText({ kind: 'th_unknown' }) }
+    const ownerId = String(owner.id)
+    // Same cap as address subscriptions; re-linking a feed already linked is never blocked.
+    const [cnt] = await sql`
+      SELECT count(*)::int AS n FROM user_alert_chat_links
+      WHERE chat_id = ${chat} AND stopped_at IS NULL AND owner_id <> ${ownerId}::uuid`
+    if (Number(cnt?.n ?? 0) >= MAX_SUBSCRIPTIONS_PER_CHAT) {
+      return { chatId: chat, text: logic.replyText({ kind: 'th_full', max: MAX_SUBSCRIPTIONS_PER_CHAT }) }
+    }
+    // Re-linking after /stop restarts the clock: no backfill of the stopped gap.
+    await sql`
+      INSERT INTO user_alert_chat_links (owner_id, chat_id) VALUES (${ownerId}::uuid, ${chat})
+      ON CONFLICT (owner_id, chat_id) DO UPDATE SET
+        created_at = CASE WHEN user_alert_chat_links.stopped_at IS NULL THEN user_alert_chat_links.created_at ELSE now() END,
+        stopped_at = NULL`
+    const [act] = await sql`
+      SELECT count(*)::int AS n FROM user_alert_thresholds
+      WHERE owner_id = ${ownerId}::uuid AND stopped_at IS NULL`
+    return { chatId: chat, text: logic.replyText({ kind: 'th_linked', active: Number(act?.n ?? 0) }) }
+  }
+
   if (cmd.kind === 'stop') {
     const rows = await sql`
       UPDATE alert_subscriptions SET stopped_at = now()
       WHERE chat_id = ${chat} AND stopped_at IS NULL RETURNING id`
-    return { chatId: chat, text: logic.replyText({ kind: 'stopped', count: rows.length }) }
+    const feeds = thresholdsOn ? await stopChatLinks(sql, chat) : 0
+    return { chatId: chat, text: logic.replyText({ kind: 'stopped', count: rows.length, feeds }) }
   }
 
   if (cmd.kind === 'list') {
     const rows = await sql`
       SELECT address FROM alert_subscriptions
       WHERE chat_id = ${chat} AND stopped_at IS NULL ORDER BY created_at ASC`
-    return { chatId: chat, text: logic.replyText({ kind: 'list', addresses: rows.map((r) => r.address) }) }
+    const feeds = thresholdsOn ? await countChatLinks(sql, chat) : 0
+    return { chatId: chat, text: logic.replyText({ kind: 'list', addresses: rows.map((r) => r.address), feeds }) }
   }
 
   return { chatId: chat, text: logic.replyText({ kind: 'help' }) }
@@ -376,5 +432,156 @@ export async function sendAddressAlerts(sql, { logic, coverage, config, fetchImp
     }
   }
   log(`telegram alerts: planned ${plan.length}, sent ${sent}, failed ${failed}`)
+  return { sent, failed }
+}
+
+/**
+ * Outbound for USER THRESHOLD ALERTS ("Alert me at X"). SHIPS DARK: unless the bot
+ * env AND TELEGRAM_ALERTS_WEBHOOK_SECRET are set (the owner's switch), it logs one
+ * line and returns before any query or fetch.
+ *
+ * Otherwise, for chats linked to an alert feed (/start th_<token>):
+ *  1. `evaluate(ownerIds)` (injected; lib/userAlerts/service.ts evaluateOwners) checks
+ *     those owners' thresholds against current values and records crossed/cleared
+ *     events — the same evaluate-on-read the RSS feed runs, so a Telegram-only owner
+ *     is not waiting on a feed reader.
+ *  2. Each new event goes to each chat linked to its owner: CLAIM BEFORE SEND on
+ *     user_alert_deliveries (ON CONFLICT DO NOTHING RETURNING), release on a failed
+ *     send, skip that chat for the rest of the run — exactly as sendAddressAlerts.
+ * Log lines carry counts only: never a threshold, a value or an owner.
+ * @param {any} sql
+ * @param {{ logic: any, config: any, evaluate?: ((ownerIds: string[]) => Promise<{ ok: number, failed: number }>) | null, fetchImpl?: typeof fetch, log?: (line: string) => void }} deps
+ */
+export async function sendThresholdAlerts(sql, { logic, config, evaluate = null, fetchImpl = fetch, log = console.log }) {
+  if (!config.enabled || !config.webhookSecret) {
+    log('telegram threshold alerts: dark (bot env or TELEGRAM_ALERTS_WEBHOOK_SECRET unset) — nothing sent')
+    return { sent: 0, failed: 0 }
+  }
+  const linkRows = await sql`
+    SELECT owner_id AS "ownerId", chat_id AS "chatId", created_at AS "createdAt"
+    FROM user_alert_chat_links WHERE stopped_at IS NULL`
+  if (linkRows.length === 0) {
+    log('telegram threshold alerts: no linked chats')
+    return { sent: 0, failed: 0 }
+  }
+  const links = linkRows.map((r) => ({ ownerId: String(r.ownerId), chatId: String(r.chatId), createdAt: iso(r.createdAt) }))
+  const ownerIds = [...new Set(links.map((l) => l.ownerId))]
+  if (evaluate) {
+    try {
+      const r = await evaluate(ownerIds)
+      log(`telegram threshold alerts: checked ${r?.ok ?? 0} feed(s)${r?.failed ? `, ${r.failed} failed` : ''}`)
+    } catch (e) {
+      log(`telegram threshold alerts: check failed (non-fatal) — ${e?.name ?? 'error'}`)
+    }
+  }
+  // Events of ACTIVE alerts — and of rows an EDIT replaced, so a crossing recorded on
+  // the old line just before an edit still reaches the chat. An edit keeps created_at
+  // (lib/userAlerts/store.ts editThreshold), so one alert's edit chain shares
+  // (owner_id, metric, subject, created_at); a replaced row is delivered while its
+  // chain still has an active row. After Stop the chain has none: nothing is sent.
+  const eventRows = await sql`
+    SELECT e.id, e.threshold_id AS "thresholdId", e.kind, e.value, e.at, e.as_of AS "asOf", e.source,
+           t.owner_id AS "ownerId", t.metric, t.subject, t.direction, t.threshold
+    FROM user_alert_events e
+    JOIN user_alert_thresholds t ON t.id = e.threshold_id
+    WHERE t.owner_id = ANY(${ownerIds}) AND e.at > now() - interval '7 days'
+      AND (t.stopped_at IS NULL OR EXISTS (
+        SELECT 1 FROM user_alert_thresholds h
+        WHERE h.owner_id = t.owner_id AND h.metric = t.metric AND h.subject = t.subject
+          AND h.created_at = t.created_at AND h.stopped_at IS NULL))`
+  if (eventRows.length === 0) {
+    log('telegram threshold alerts: no new events')
+    return { sent: 0, failed: 0 }
+  }
+  const events = eventRows.map((r) => ({
+    id: String(r.id),
+    ownerId: String(r.ownerId),
+    thresholdId: String(r.thresholdId),
+    kind: r.kind === 'cleared' ? 'cleared' : 'crossed',
+    value: Number(r.value),
+    at: iso(r.at),
+    asOf: iso(r.asOf),
+    source: String(r.source),
+    metric: r.metric,
+    subject: String(r.subject),
+    direction: r.direction,
+    threshold: Number(r.threshold),
+  }))
+  const deliveredRows = await sql`
+    SELECT event_id AS "eventId", chat_id AS "chatId" FROM user_alert_deliveries
+    WHERE event_id = ANY(${events.map((e) => e.id)})`
+  const delivered = deliveredRows.map((r) => ({ eventId: String(r.eventId), chatId: String(r.chatId) }))
+  const plan = logic.planThresholdDeliveries({
+    links,
+    events,
+    delivered,
+    onOverflow: (_chatId, n) => log(`telegram threshold alerts: chat cap reached — ${n} message(s) deferred to next run`),
+  })
+
+  let sent = 0
+  let failed = 0
+  const skip = new Set()
+  const release = async (d) => {
+    try {
+      await sql`DELETE FROM user_alert_deliveries WHERE event_id = ${d.eventId}::uuid AND chat_id = ${d.chatId}`
+    } catch (e) {
+      log(`telegram threshold alerts: claim release failed — ${e?.name ?? 'error'}`)
+    }
+  }
+  for (const d of plan) {
+    if (skip.has(d.chatId)) continue
+    let claimed
+    try {
+      claimed = await sql`
+        INSERT INTO user_alert_deliveries (event_id, chat_id) VALUES (${d.eventId}::uuid, ${d.chatId})
+        ON CONFLICT DO NOTHING RETURNING event_id`
+    } catch (e) {
+      log(`telegram threshold alerts: claim failed — ${e?.name ?? 'error'}`)
+      continue
+    }
+    if (!claimed || claimed.length === 0) continue // another run owns it
+    const r = await sendMessage(config.token, d.chatId, d.text, fetchImpl)
+    if (r.ok) {
+      sent++
+      continue
+    }
+    const to = migratedTo(r)
+    if (to) {
+      // A group became a supergroup: move its links (a feed the new chat already
+      // links is stopped on the old id) AND its delivery ledger — otherwise every
+      // event already sent to the old id would be re-sent to the new one — and let
+      // the next run deliver this event to the new id.
+      await release(d)
+      skip.add(d.chatId)
+      try {
+        await sql`
+          UPDATE user_alert_chat_links l SET chat_id = ${to}
+          WHERE l.chat_id = ${d.chatId}
+            AND NOT EXISTS (SELECT 1 FROM user_alert_chat_links t WHERE t.chat_id = ${to} AND t.owner_id = l.owner_id)`
+        await sql`UPDATE user_alert_chat_links SET stopped_at = now() WHERE chat_id = ${d.chatId} AND stopped_at IS NULL`
+        await sql`
+          UPDATE user_alert_deliveries x SET chat_id = ${to}
+          WHERE x.chat_id = ${d.chatId}
+            AND NOT EXISTS (SELECT 1 FROM user_alert_deliveries y WHERE y.chat_id = ${to} AND y.event_id = x.event_id)`
+        log('telegram threshold alerts: chat migrated to a supergroup — links moved, sends next run')
+      } catch (e) {
+        log(`telegram threshold alerts: chat migration failed — ${e?.name ?? 'error'}`)
+      }
+      continue
+    }
+    failed++
+    await release(d)
+    skip.add(d.chatId)
+    log(`telegram threshold alerts: send failed — ${r.description ?? r.error_code ?? 'unknown'}; chat skipped this run`)
+    if (isGone(r)) {
+      try {
+        await sql`UPDATE user_alert_chat_links SET stopped_at = now() WHERE chat_id = ${d.chatId} AND stopped_at IS NULL`
+        log('telegram threshold alerts: chat unreachable — its links stopped')
+      } catch (e) {
+        log(`telegram threshold alerts: stop failed — ${e?.name ?? 'error'}`)
+      }
+    }
+  }
+  log(`telegram threshold alerts: planned ${plan.length}, sent ${sent}, failed ${failed}`)
   return { sent, failed }
 }

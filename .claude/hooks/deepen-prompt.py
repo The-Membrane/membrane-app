@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copy of triccs/membrane-solidity `plugins/deepen-prompt` v1.1.0. Edit it there, then copy it here. The plugin and this copy print one reminder per prompt between them.
+# Copy of triccs/membrane-solidity `plugins/deepen-prompt` v1.2.0. Edit it there, then copy it here. The plugin and this copy print one reminder per prompt between them.
 """UserPromptSubmit hook of the deepen-prompt plugin: apply its skill to each user prompt.
 
 Reads the hook payload (JSON on stdin) and, unless the prompt is exempt, prints
@@ -40,9 +40,10 @@ ENVELOPES = ("<agent-message", "Another Claude session sent a message", "<task-n
 
 REMINDER = (
     "deepen-prompt: before you act on this prompt, load the `deepen-prompt` skill (listed as "
-    "`deepen-prompt:deepen-prompt` when it comes from the plugin) and apply it. Write the four answers (professional moves not asked for, rawest "
-    "material, methods and tools, the external check), rewrite the prompt to ask for "
-    "exactly that, then do the rewritten task. Deeper, not bigger. "
+    "`deepen-prompt:deepen-prompt` when it comes from the plugin) and apply it. First find and read the "
+    "field's oracles (its standards, maintainers' docs and leading practitioners), then write the four "
+    "answers (professional moves not asked for, rawest material, methods and tools, the external check), "
+    "rewrite the prompt to ask for exactly that, then do the rewritten task. Deeper, not bigger. "
     f"The user can skip this for one prompt with the prefix `{OPT_OUT}`."
 )
 

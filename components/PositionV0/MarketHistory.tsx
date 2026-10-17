@@ -19,7 +19,10 @@ import {
   type TouchTable,
 } from '@/lib/position/touchHistory'
 
+import { TOUCH_TIME_GRID, readingLine, timeToTouch } from '@/lib/position/touchTime'
+
 import { STALE_HATCH } from './forecastMarks'
+import { TimeToTouchChart, type TimeChartState } from './TimeToTouchChart'
 import { Credit, Headline, Kicker, Section, Small, StaleTag } from './primitives'
 import { CAPS, TYPE } from './typeScale'
 import { MARKET_LEVELS, forecastFooter } from './viewModel'
@@ -92,6 +95,31 @@ const AssetTable: React.FC<{ t: TouchTable; asset: HistoryAsset; stale: boolean 
   </Box>
 )
 
+/** The market chart's line: ETH falling the first market level (10%). */
+const MARKET_TIME_LEVEL = MARKET_LEVELS[0]
+
+/** The same time chart the position block draws, before any address: ETH falling 10%. */
+const MarketTime: React.FC<{ t: TouchTable; stale: boolean }> = ({ t, stale }) => {
+  const tt = timeToTouch(t, TOUCH_TIME_GRID, 'ETH', 'fall', MARKET_TIME_LEVEL)
+  const state: TimeChartState = stale
+    ? { kind: 'withheld', stale: true, reason: `history ends ${t.period.dataEnd.slice(0, 10)}` }
+    : tt
+      ? {
+          kind: 'ready',
+          series: [{ tt, tone: 'ink' }],
+          marks: true,
+          summary: `Chance ETH falls ${MARKET_TIME_LEVEL}% by each time from 1 hour to 7 days: ${readingLine(tt)}.`,
+        }
+      : { kind: 'withheld', reason: 'no table row' }
+  return (
+    <Box display="grid" gap={SPACING.xs} minW={0}>
+      <Kicker tone="muted">ETH falls {MARKET_TIME_LEVEL}%, by when</Kicker>
+      <TimeToTouchChart state={state} caption="chance touched by then" />
+      {tt && !stale && <Small color={NEWS.ink2}>{readingLine(tt)}.</Small>}
+    </Box>
+  )
+}
+
 export const MarketHistory: React.FC<{ t: TouchTable; stale: boolean }> = ({ t, stale }) => (
   <Section id="market" bgImage={stale ? STALE_HATCH : undefined} data-stale={stale ? 'true' : undefined}>
     <Kicker>Forecast · {periodYears(t)} history†</Kicker>
@@ -101,6 +129,7 @@ export const MarketHistory: React.FC<{ t: TouchTable; stale: boolean }> = ({ t, 
         <StaleTag />: the history ends {t.period.dataEnd.slice(0, 10)}. No numbers shown.
       </Small>
     )}
+    <MarketTime t={t} stale={stale} />
     <Box display="grid" gridTemplateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={SPACING.lg} minW={0}>
       <AssetTable t={t} asset="ETH" stale={stale} />
       <AssetTable t={t} asset="BTC" stale={stale} />

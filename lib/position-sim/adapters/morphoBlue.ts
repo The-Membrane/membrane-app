@@ -57,6 +57,7 @@ import {
   stamp,
   type CollateralLeg,
   type DebtLeg,
+  type LendMarketState,
   type MarketDiscovery,
   type OracleCheck,
   type PositionStatus,
@@ -574,7 +575,9 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
   }
 
   const supplied: SuppliedLeg[] = []
-  if (suppliedRaw > 0n) {
+  // Supply shares worth less than one base unit still make this a lending position: the
+  // leg reads 0, and the lending block shows the market it sits in.
+  if (r.supplyShares > 0n) {
     const amount = toNumber(suppliedRaw, loanDecimals)
     supplied.push({
       symbol: ctx.loanSymbol,
@@ -584,6 +587,29 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
       priceUsd: loanPriceUsd,
       valueUsd: amount * loanPriceUsd,
     })
+  }
+
+  // The market a lender lends into: its unborrowed supply is the most any lender can
+  // withdraw now. Base supply APR is Morpho's own split of the borrow interest:
+  // borrowRate × utilization × (1 − fee), no rewards.
+  let lendMarket: LendMarketState | null = null
+  if (r.supplyShares > 0n) {
+    const totalSupply = toNumber(w[0], loanDecimals)
+    const totalBorrow = toNumber(w[2], loanDecimals)
+    const utilization = totalSupply > 0 ? Math.min(1, totalBorrow / totalSupply) : 0
+    const fee = toNumber(w[5], WAD_DECIMALS)
+    lendMarket = {
+      symbol: ctx.loanSymbol,
+      priceUsd: loanPriceUsd,
+      totalSupply,
+      totalBorrow,
+      liquidity: w[0] > w[2] ? toNumber(w[0] - w[2], loanDecimals) : 0,
+      utilization,
+      borrowApr,
+      fee,
+      supplyApr: borrowApr === null ? null : borrowApr * utilization * (1 - fee),
+      block: Number(ctx.block),
+    }
   }
 
   const status: PositionStatus = debtRaw > 0n ? 'borrowing' : r.collateralRaw > 0n ? 'collateral-only' : 'supply-only'
@@ -637,6 +663,7 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
     status,
     ...(supplied.length > 0 ? { supplied } : {}),
     ...(oracleCheck ? { oracleCheck } : {}),
+    ...(lendMarket ? { lendMarket } : {}),
   }
 }
 

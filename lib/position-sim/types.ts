@@ -139,6 +139,32 @@ export interface ProtocolPosition {
   supplied?: SuppliedLeg[]
   /** The collateral oracle checked against a market reference, where the adapter does it. */
   oracleCheck?: OracleCheck
+  /** The market a supplied leg lends into, read on-chain at the read's block (Morpho Blue). */
+  lendMarket?: LendMarketState
+}
+
+/**
+ * The state of the market an address lends into, read on-chain at one block. Withdrawal
+ * capacity is the market's unborrowed supply: a lender can take out at most `liquidity`
+ * now, whatever it supplied. Amounts are loan-token units, accrued to the block.
+ */
+export interface LendMarketState {
+  symbol: string
+  /** USD per loan token, as the position's own read priced it. */
+  priceUsd: number
+  totalSupply: number
+  totalBorrow: number
+  /** totalSupply − totalBorrow: what all lenders together can withdraw at this block. */
+  liquidity: number
+  /** totalBorrow / totalSupply, 0–1. */
+  utilization: number
+  /** The IRM's borrow APR at this block, or null when it was not read. */
+  borrowApr: number | null
+  /** The market's protocol fee on interest, 0–1. */
+  fee: number
+  /** Base supply APR, no rewards: borrowApr × utilization × (1 − fee). Null without the rate. */
+  supplyApr: number | null
+  block: number
 }
 
 /**

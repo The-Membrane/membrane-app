@@ -3,6 +3,7 @@ import { Box, HStack, Text } from '@chakra-ui/react'
 import NextLink from 'next/link'
 
 import { DemoBanner } from '@/components/demo'
+import { SIM_ROUTE } from '@/config/simulatorMode'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { TYPOGRAPHY } from '@/helpers/typography'
@@ -82,7 +83,7 @@ export const Carry: React.FC = () => {
           Carry toolkit
         </Text>
         {[
-          { label: 'calculator', href: `/${chainName}/landing` },
+          { label: 'calculator', href: `/${chainName}${SIM_ROUTE.carry}` },
           { label: 'simulator', href: `/${chainName}/simulator` },
           { label: 'builder', href: `/${chainName}/builder` },
           { label: 'exit bands', href: `/${chainName}/earn` },

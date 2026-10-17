@@ -179,3 +179,25 @@ export function isStale(t: TouchTable, nowMs: number): boolean {
 export function staleDays(t: TouchTable, nowMs: number): number | null {
   return isStale(t, nowMs) ? Math.floor((nowMs - Date.parse(t.period.dataEnd)) / 86_400_000) : null
 }
+
+/** Whole days since the table's last observed hour (never negative). */
+export function dataAgeDays(t: TouchTable, nowMs: number): number {
+  return Math.max(0, Math.floor((nowMs - Date.parse(t.period.dataEnd)) / 86_400_000))
+}
+
+/** The ISO date the table turns STALE: one STALE_AFTER_DAYS span after its last hour. */
+export function staleOn(t: TouchTable): string {
+  return new Date(Date.parse(t.period.dataEnd) + STALE_AFTER_DAYS * 86_400_000).toISOString().slice(0, 10)
+}
+
+/**
+ * The data's age, said where the forecast is quoted (owner, 2026-10-17: make the STALE date
+ * math visible). "History through 2026-10-06 · 11 days old · STALE from 2026-11-05"; once
+ * STALE: "History through 2026-10-06 · 45 days old · STALE since 2026-11-05".
+ */
+export function dataAgeLine(t: TouchTable, nowMs: number): string {
+  const age = dataAgeDays(t, nowMs)
+  const days = age === 1 ? '1 day' : `${age} days`
+  const head = `History through ${t.period.dataEnd.slice(0, 10)} · ${days} old`
+  return isStale(t, nowMs) ? `${head} · STALE since ${staleOn(t)}` : `${head} · STALE from ${staleOn(t)}`
+}

@@ -26,11 +26,13 @@ import { NEWS, NEWS_FIGURE } from '@/components/NewsEdition/tokens'
 import { fmtMove } from '@/lib/position/format'
 import { confidenceLine, formatBand, formatChance } from '@/lib/position/touch'
 import { HORIZON_WORDS, STALE_AFTER_DAYS, type HorizonId, type TouchTable } from '@/lib/position/touchHistory'
-import { readingLine } from '@/lib/position/touchTime'
+import { TOUCH_TIME_GRID, readingLine } from '@/lib/position/touchTime'
+import { gridRange, rowReading, touchGrid } from '@/lib/position/touchGrid'
 
 import { Credit, Dagger, Kicker, Mono, Section, Small, StaleTag } from './primitives'
 import { STALE_HATCH, curveMarks } from './forecastMarks'
 import { TimeToTouchChart, type TimeChartState } from './TimeToTouchChart'
+import { TouchGridChart, type GridChartState } from './TouchGridChart'
 import { TouchGradientSlot } from './TouchGradientSlot'
 import { TYPE } from './typeScale'
 import type { ForecastView, HorizonForecast, PositionView } from './viewModel'
@@ -94,26 +96,64 @@ const Figure: React.FC<{ f: ForecastView; hf: HorizonForecast; stale: boolean; t
 }
 
 /** The block for a position with no forecast: the chart's frame, withheld with the reason. */
-const Withheld: React.FC<{ asset: string | null; reason: string; note: string | null }> = ({ asset, reason, note }) => (
+const Withheld: React.FC<{ asset: string | null; reason: string; note: string | null; two: boolean }> = ({ asset, reason, note, two }) => (
   <Section id="forecast" aria-live="polite">
-    <Kicker>Chance {asset ?? 'the price'} touches your line, by when</Kicker>
-    <TimeToTouchChart state={{ kind: 'withheld', reason }} caption={TIME_CAPTION} />
+    <Kicker>Chance {asset ?? 'the price'} touches your line, by when and how far</Kicker>
+    {two ? (
+      <TimeToTouchChart state={{ kind: 'withheld', reason }} caption={TIME_CAPTION} />
+    ) : (
+      <TouchGridChart state={{ kind: 'withheld', reason }} />
+    )}
     {note && <Mono color={NEWS.ink2}>{note}</Mono>}
   </Section>
 )
+
+/**
+ * The one chart's state for a position: the time × depth grid over the default rows, widened
+ * to the reader's line and to every lever's row; withheld (with the reason) when there is no
+ * row to read. Pure.
+ */
+export function forecastGridState(f: ForecastView, hf: HorizonForecast, stale: boolean, t: TouchTable, withheld: string | null): GridChartState {
+  if (stale) return { kind: 'withheld', stale: true, reason: `history ends ${t.period.dataEnd.slice(0, 10)}` }
+  if (!f.time) return { kind: 'withheld', reason: withheld ?? 'no level to read' }
+  const marks = curveMarks(f, hf)
+  const you = f.time.level
+  const range = gridRange(t, [you, ...marks.levers.map((p) => p.level)])
+  const grid = touchGrid(t, TOUCH_TIME_GRID, f.asset, f.direction, range)
+  const levers = marks.levers
+    .filter((p) => p.level !== you && p.level >= range.from && p.level <= range.to)
+    .map((p) => ({ level: p.level, kinds: p.kinds, detail: p.detail }))
+  const verb = f.direction === 'fall' ? 'falls' : 'rises'
+  const read = rowReading(grid, you)
+    .map((r) => `${r.chance} within ${HORIZON_WORDS[r.horizon]}`)
+    .join(', ')
+  const leverWords = levers.length ? ` Levers move your row to ${levers.map((p) => fmtMove(p.level, f.direction)).join(' and ')}.` : ''
+  return {
+    kind: 'ready',
+    grid,
+    you,
+    levers,
+    initial: { level: you, hours: 168 },
+    summary: `Chance ${f.asset} ${verb} to each depth from ${fmtMove(range.from, f.direction)} to ${fmtMove(range.to, f.direction)} by each time from 1 hour to 7 days. Your line, ${fmtMove(you, f.direction)}: ${read}.${leverWords}`,
+  }
+}
 
 export const ForecastBlock: React.FC<{
   view: PositionView
   horizon: HorizonId
   stale: boolean
   t: TouchTable
-}> = ({ view, horizon, stale, t }) => {
+  /** ?charts=two: the round-3 pair (time curve, depth curve) for comparison. */
+  two?: boolean
+  /** "History through 2026-10-06 · 11 days old · STALE from 2026-11-05" (client clock). */
+  ageLine?: string | null
+}> = ({ view, horizon, stale, t, two = false, ageLine = null }) => {
   // A lender's position has no line: the lending block takes this place.
   if (view.hero.kind === 'no-debt') return null
   const f = view.forecast
   const withheld = timeWithheld(view, t)
   if (!f) {
-    return <Withheld asset={null} reason={withheld ?? 'no forecast'} note={view.forecastAbsent} />
+    return <Withheld asset={null} reason={withheld ?? 'no forecast'} note={view.forecastAbsent} two={two} />
   }
   const hf = f.byHorizon[horizon]
   const marks = curveMarks(f, hf)
@@ -138,6 +178,28 @@ export const ForecastBlock: React.FC<{
         }
       : { kind: 'withheld', reason: withheld ?? 'no level to read' }
   const conf = confidenceLine(hf.confidence)
+
+  if (!two) {
+    const grid = forecastGridState(f, hf, stale, t, withheld)
+    return (
+      <Section id="forecast" aria-live="polite" bgImage={stale ? STALE_HATCH : undefined} data-stale={stale ? 'true' : undefined}>
+        <Kicker>Chance {f.asset} touches your line, by when and how far</Kicker>
+        <Figure f={f} hf={hf} stale={stale} t={t} />
+        <TouchGridChart state={grid} />
+        {tt && !stale && <Mono>Your row: {readingLine(tt)}.</Mono>}
+        {conf && <Small>{conf} (7 days)</Small>}
+        <Credit>
+          <Box as="span" display={{ base: 'none', md: 'inline' }}>
+            {f.credit}
+          </Box>
+          <Box as="span" display={{ base: 'inline', md: 'none' }}>
+            {f.creditShort}
+          </Box>
+        </Credit>
+        {ageLine && <Credit data-age-line="">{ageLine}</Credit>}
+      </Section>
+    )
+  }
 
   return (
     <Section id="forecast" aria-live="polite" bgImage={stale ? STALE_HATCH : undefined} data-stale={stale ? 'true' : undefined}>
@@ -166,6 +228,7 @@ export const ForecastBlock: React.FC<{
           {f.creditShort}
         </Box>
       </Credit>
+      {ageLine && <Credit data-age-line="">{ageLine}</Credit>}
     </Section>
   )
 }

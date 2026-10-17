@@ -8,12 +8,13 @@
 
 import React, { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import { Box, Button } from '@chakra-ui/react'
+import { useRouter } from 'next/router'
 
 import { SPACING } from '@/config/spacing'
 import { TRANSITIONS } from '@/config/transitions'
 import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { DEFAULT_HORIZON } from '@/lib/position/reverseSolve'
-import { TOUCH_TABLE, staleDays, type HorizonId } from '@/lib/position/touchHistory'
+import { TOUCH_TABLE, dataAgeLine, staleDays, type HorizonId } from '@/lib/position/touchHistory'
 
 import { Actions } from './Actions'
 import { AddressForm } from './AddressForm'
@@ -25,6 +26,7 @@ import { MarketHistory } from './MarketHistory'
 import { MembraneLine } from './MembraneLine'
 import { PositionPicker } from './PositionPicker'
 import { TimeToTouchChart } from './TimeToTouchChart'
+import { TouchGridChart } from './TouchGridChart'
 import { Headline, Kicker, Mono, Rule, Section, Small } from './primitives'
 import { CAPS, TYPE } from './typeScale'
 import { ADAPTER_ORDER, useAdapterReads } from './useAdapterReads'
@@ -48,6 +50,9 @@ const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
 const noSubscribe = () => () => {}
 const clientStaleDays = () => staleDays(TOUCH_TABLE, Date.now())
 const serverStaleDays = () => null
+/** The data's age in words, client clock only (the server renders none). */
+const clientAgeLine = () => dataAgeLine(TOUCH_TABLE, Date.now())
+const serverAgeLine = () => null
 
 /** Before any read: what the page will read, so the gap in coverage is stated up front. */
 const COVERAGE = `Reads ${ADAPTER_ORDER.filter((a) => a.id !== 'fluid')
@@ -99,13 +104,13 @@ const BusyVenues: React.FC<{ items: ReadStatusItem[]; onRetry: (p: ReadStatusIte
   )
 }
 
-const Reading: React.FC<{ address: string }> = ({ address }) => (
+const Reading: React.FC<{ address: string; two: boolean }> = ({ address, two }) => (
   // Holds the hero's height while the adapters answer (§9: reserve client-only space), and
   // the chart's frame in its place, so the visual never arrives into an empty page.
   <Box pt={SPACING.lg} minH={{ base: '200px', md: '230px' }} display="grid" alignContent="start" gap={SPACING.sm}>
     <Kicker tone="muted">Reading {shortAddr(address)}</Kicker>
     <Mono color={NEWS.ink2}>Each venue answers on its own; results appear as they land.</Mono>
-    <TimeToTouchChart state={{ kind: 'reading' }} caption={TIME_CAPTION} />
+    {two ? <TimeToTouchChart state={{ kind: 'reading' }} caption={TIME_CAPTION} /> : <TouchGridChart state={{ kind: 'reading' }} />}
   </Box>
 )
 
@@ -144,7 +149,9 @@ const Positions: React.FC<{
   /** Days the forecast's data is past STALE, or null while fresh. */
   staleAge: number | null
   dust: number
-}> = ({ views, selected, onSelect, failures, address, staleAge, dust }) => {
+  two: boolean
+  ageLine: string | null
+}> = ({ views, selected, onSelect, failures, address, staleAge, dust, two, ageLine }) => {
   // One horizon drives the headline figure, the depth curve and the levers (7 days); the
   // time chart shows every time up to it, so there are no horizon tabs to page through.
   const horizon: HorizonId = DEFAULT_HORIZON
@@ -153,7 +160,7 @@ const Positions: React.FC<{
     <>
       {(views.length > 1 || dust > 0) && <PositionPicker views={views} selectedKey={selected.key} onSelect={onSelect} dust={dust} />}
       <Hero view={selected} />
-      <ForecastBlock view={selected} horizon={horizon} stale={staleAge !== null} t={TOUCH_TABLE} />
+      <ForecastBlock view={selected} horizon={horizon} stale={staleAge !== null} t={TOUCH_TABLE} two={two} ageLine={ageLine} />
       {/* A lender has no line: rewards, risks and withdrawal capacity take its place. */}
       {selected.position.status === 'supply-only' && selected.position.lendMarket && (
         <LenderBlock key={selected.key} position={selected.position} />
@@ -183,16 +190,18 @@ const Body: React.FC<{
   selected: PositionView | null
   onSelect: (key: string) => void
   staleAge: number | null
-}> = ({ state, address, items, readId, selected, onSelect, staleAge }) => {
+  two: boolean
+  ageLine: string | null
+}> = ({ state, address, items, readId, selected, onSelect, staleAge, two, ageLine }) => {
   const stale = staleAge !== null
-  if (state.kind === 'idle') return <MarketHistory t={TOUCH_TABLE} stale={stale} />
+  if (state.kind === 'idle') return <MarketHistory t={TOUCH_TABLE} stale={stale} two={two} ageLine={ageLine} />
   if (!address) return null
-  if (state.kind === 'reading') return <Reading address={address} />
+  if (state.kind === 'reading') return <Reading address={address} two={two} />
   if (state.kind === 'none') {
     return (
       <>
         <NoPositions address={address} items={items} />
-        <MarketHistory t={TOUCH_TABLE} stale={stale} />
+        <MarketHistory t={TOUCH_TABLE} stale={stale} two={two} ageLine={ageLine} />
       </>
     )
   }
@@ -207,6 +216,8 @@ const Body: React.FC<{
       failures={items.filter((i) => i.state === 'error' || (i.skipped?.length ?? 0) > 0 || partialDiscovery(i))}
       address={address}
       staleAge={staleAge}
+      two={two}
+      ageLine={ageLine}
     />
   )
 }
@@ -227,6 +238,9 @@ export const PositionV0: React.FC = () => {
   // from the client clock AFTER hydration (the server snapshot is "not stale"), so a server
   // and a browser on different clocks never render different markup. Whole days: stable.
   const staleAge = useSyncExternalStore(noSubscribe, clientStaleDays, serverStaleDays)
+  const ageLine = useSyncExternalStore(noSubscribe, clientAgeLine, serverAgeLine)
+  // ?charts=two keeps the round-3 pair (time curve + depth curve) for comparison.
+  const two = useRouter().query.charts === 'two'
 
   const items = useMemo(() => readStatus(ADAPTER_ORDER, results), [results])
   const state = useMemo(() => pageState(address !== null, items, results, TOUCH_TABLE), [address, items, results])
@@ -256,7 +270,7 @@ export const PositionV0: React.FC = () => {
         </Box>
         <Rule mt={SPACING.base} />
 
-        <Body state={state} address={address} items={items} readId={readId} selected={selected} onSelect={onSelect} staleAge={staleAge} />
+        <Body state={state} address={address} items={items} readId={readId} selected={selected} onSelect={onSelect} staleAge={staleAge} two={two} ageLine={ageLine} />
       </Box>
     </Box>
   )

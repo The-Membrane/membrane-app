@@ -86,10 +86,10 @@ node node_modules/vitest/vitest.mjs run \
   tests/unit/morphoSourceQualification.test.ts --pool=threads --maxWorkers=1
 ```
 
-The ten suites pass 134 tests, including source-rate scaling, fee basis, variable/fixed matching, exact identity, negative income, missing valuations, wrapper double counting, stale observation clocks, delayed reads and deadlines, plus upstream lender and time-to-touch behavior.
+The ten suites pass 141 tests, including source-rate scaling, fee basis, variable/fixed matching, exact identity, negative income, missing valuations, wrapper double counting, stale observation clocks, delayed reads and deadlines, plus upstream lender and time-to-touch behavior.
 PR111 base `e5782f3dde51e7c59073a37645f6e565d1a993bf` was merged into the feature with merge commit `76e992b34fd207ccbcc78a9128bf6faf0e1cae96`.
-The fixed-horizon time-to-touch chart and supply-only lender block remain intact alongside the keyed cost/income tracker and its source metadata.
-TypeScript reports 101 existing errors on both that new PR111 base and this implementation, with no added or removed normalized diagnostics.
+Latest PR111 base `1c3431c1b824c5b12c1e3894f7dbd6959308dd94` is also integrated. Its dust-position grouping, lender paper rates and user-specific bad-debt display, every-hour sub-day origins and explicit model-only marks remain intact alongside the keyed tracker and its source metadata. The sole text conflict combined the position component’s read identity and dust count.
+TypeScript reports 101 existing errors on both the latest PR111 base and this implementation, with no added or removed normalized diagnostics.
 New TypeScript/TSX files pass targeted ESLint. Existing touched files have pre-existing formatting debt; no broad reformat is included.
 
 The test-only browser harness is `tests/e2e/harnesses/costReward.tsx`. Its synthetic positions and rates are clearly labeled and never imported by product routes.

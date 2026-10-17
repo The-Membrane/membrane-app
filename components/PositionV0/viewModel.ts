@@ -513,15 +513,29 @@ function baseLineTag(v: PositionView): string {
   }
 }
 
-/** Nearest its line first: past the line, then smallest distance; a line no price reaches, then no debt, last. */
+/** A position's size for the picker and for ordering positions with no line: what it holds, USD. */
+export const positionSizeUsd = (v: PositionView): number =>
+  (v.position.supplied ?? []).reduce((x, l) => x + l.valueUsd, 0) + v.position.totalCollateralUsd
+
+/**
+ * Nearest its line first: past the line, then smallest distance; then a line no price
+ * reaches; then positions with no line, largest first (a lender's real supply before a
+ * small one). Explicit tiers, no arithmetic on infinities.
+ */
 export function sortNearest(views: PositionView[]): PositionView[] {
-  const rank = (v: PositionView) =>
-    v.hero.kind === 'no-debt' ? Number.POSITIVE_INFINITY : v.hero.kind === 'unreachable' ? Number.MAX_VALUE : v.distance
-  // Among positions with no line, the larger one first (a lender's real supply before dust).
-  const size = (v: PositionView) =>
-    (v.position.supplied ?? []).reduce((x, l) => x + l.valueUsd, 0) + v.position.totalCollateralUsd
-  return [...views].sort((a, b) => rank(a) - rank(b) || (rank(a) === Number.POSITIVE_INFINITY ? size(b) - size(a) : 0))
+  const tier = (v: PositionView) => (v.hero.kind === 'no-debt' ? 2 : v.hero.kind === 'unreachable' ? 1 : 0)
+  return [...views].sort((a, b) => {
+    const ta = tier(a)
+    const tb = tier(b)
+    if (ta !== tb) return ta - tb
+    if (ta === 0) return a.distance - b.distance
+    if (ta === 2) return positionSizeUsd(b) - positionSizeUsd(a)
+    return 0
+  })
 }
+
+/** True when no position at the address has a line: the picker orders by size instead. */
+export const noLines = (views: PositionView[]): boolean => views.every((v) => v.hero.kind === 'no-debt')
 
 // ------------------------------------------------------------------ the read
 
@@ -531,7 +545,8 @@ export type PageState =
   /** Every adapter answered and nothing was found on a supported venue (for an 'incomplete'
    *  venue: in the markets it could check — NoPositions must not call that "none"). */
   | { kind: 'none'; unsupported: string[]; failed: string[] }
-  | { kind: 'positions'; views: PositionView[]; failed: string[]; unsupported: string[] }
+  /** `dust`: supply positions worth under one unit of their token, folded into one line. */
+  | { kind: 'positions'; views: PositionView[]; failed: string[]; unsupported: string[]; dust: number }
 
 /**
  * The page state from whatever has landed so far. Positions show as soon as one adapter
@@ -548,7 +563,11 @@ export function pageState(
   const failed = items.filter((i) => i.state === 'error').map((i) => i.label)
   const unsupported = items.filter((i) => i.state === 'unsupported').map((i) => i.label)
   if (positions.length > 0) {
-    return { kind: 'positions', views: sortNearest(positions.map((p) => buildPositionView(p, t))), failed, unsupported }
+    const all = sortNearest(positions.map((p) => buildPositionView(p, t)))
+    const real = all.filter((v) => !v.position.dustSupply)
+    // Dust is folded into one line, unless dust is all there is.
+    const views = real.length > 0 ? real : all
+    return { kind: 'positions', views, failed, unsupported, dust: all.length - views.length }
   }
   if (items.some((i) => i.state === 'pending')) return { kind: 'reading' }
   return { kind: 'none', unsupported, failed }

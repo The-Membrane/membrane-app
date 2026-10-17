@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { REWARDS_MARK, aprLine, lenderView, parseReport, reportQuery } from '@/lib/position/lender'
+import { REWARDS_MARK, aprLine, lenderView, parseReport, reportQuery, rewardNote, shareText } from '@/lib/position/lender'
 import type { ProtocolPosition } from '@/lib/position-sim/types'
 
 const market = {
@@ -16,6 +16,8 @@ const market = {
   fee: 0,
   supplyApr: 0.045,
   block: 21_000_000,
+  lastUpdate: 1_000_000,
+  blockTs: 1_000_600,
 }
 
 const lender = (amount: number, m = market): ProtocolPosition => ({
@@ -99,16 +101,68 @@ describe('lenderView', () => {
     const v = lenderView(lender(1_000), parseReport(body({ state: { rewards: [] } }), 1))!
     expect(aprLine(v, 'ok')).toBe('4.50% base · no rewards reported')
   })
-  it('puts the API bad debt and its RED warning under the bad-debt risk', () => {
-    const v = lenderView(lender(1_000), parseReport(body(), 1))!
+  it('ties unrealized bad debt to the user and labels realized debt since creation', () => {
+    const v = lenderView(lender(277), parseReport(body({ badDebt: { usd: 446_000 }, realizedBadDebt: { usd: 290_100 } }), 1))!
     const r = v.risks.find((x) => x.id === 'bad-debt')!
     expect(r.flagged).toBe(true)
-    expect(r.facts.join(' · ')).toContain('unrealized bad debt $3.5k')
-    expect(r.facts.join(' · ')).toContain('bad debt unrealized (red)')
+    expect(v.pending!.share).toBeCloseTo(0.446)
+    expect(r.facts).toEqual(['pending write-off: 44.6% of supply ≈ $124 of yours', '$290.1k already written off since market creation'])
+  })
+  it('never prints the API severity or repeats bad-debt warnings; names not_whitelisted in words', () => {
+    const v = lenderView(lender(1_000), parseReport(body(), 1))!
+    const all = v.risks.flatMap((r) => r.facts).join(' | ')
+    expect(all).not.toMatch(/red|yellow/i)
+    expect(all).not.toMatch(/bad debt unrealized/)
+    expect(v.risks.find((r) => r.id === 'curator')!.facts).toEqual(['Not listed by Morpho'])
+  })
+  it('makes the rate a paper rate at 99%+ utilization, with bad debt, or after a day without an update', () => {
+    expect(lenderView(lender(1_000), null)!.paper).toBeNull()
+    const full = { ...market, utilization: 1, liquidity: 0, borrowApr: 7.9999, supplyApr: 7.9999, lastUpdate: 0, blockTs: 16 * 86_400 + 5 }
+    const v = lenderView(lender(277, full), parseReport(body({ badDebt: { usd: 446_000 } }), 1))!
+    expect(v.paper).toBe(
+      'Rate at the rate model’s ceiling (800% APR) because 100% is borrowed. Interest accrues on paper; with unrealized bad debt at 45% of supply it is not being paid. Last on-chain update: 16 days ago.',
+    )
+    expect(lenderView(lender(1_000, { ...market, lastUpdate: 0, blockTs: 2 * 86_400 }), null)!.paper).toMatch(/Last on-chain update: 2 days ago/)
+  })
+  it('reads tiny liquidity as under $1 and a sliver of exit as ~0%', () => {
+    const tiny = { ...market, liquidity: 0.4 }
+    const v = lenderView(lender(1_000, tiny), null)!
+    expect(v.risks.find((r) => r.id === 'exit')!.body).toContain('under $1 is free')
+    expect(shareText(v.withdrawableShare)).toBe('~0%')
+    expect(shareText(null)).toBe('—')
+    expect(shareText(1)).toBe('100%')
+    expect(lenderView(lender(0), null)!.withdrawableShare).toBeNull()
+  })
+  it('says what a reward figure is', () => {
+    expect(rewardNote(['FXN'])).toBe('pool average, at today’s FXN price, claimed separately; the program can end')
   })
   it('is null without the market state', () => {
     const p = lender(1_000)
     delete p.lendMarket
     expect(lenderView(p, null)).toBeNull()
+  })
+})
+
+describe('lending positions on the page', () => {
+  it('folds dust supply into one count, orders lenders largest first, and the picker says so', async () => {
+    const { pageState, noLines } = await import('@/components/PositionV0/viewModel')
+    const { TOUCH_TABLE } = await import('@/lib/position/touchHistory')
+    const dust = (id: string): ProtocolPosition => {
+      const p = { ...lender(0), marketId: id, dustSupply: true }
+      delete p.lendMarket
+      p.supplied = []
+      return p
+    }
+    const small = { ...lender(5), marketId: '0xsmall' }
+    const big = { ...lender(277), marketId: '0xbig' }
+    const results = {
+      'morpho-blue': { protocol: 'morpho-blue' as const, label: 'Morpho Blue', status: 'ok' as const, fetchedAt: 0, positions: [dust('0xd1'), small, dust('0xd2'), big] },
+    }
+    const s = pageState(true, [], results, TOUCH_TABLE)
+    expect(s.kind).toBe('positions')
+    if (s.kind !== 'positions') return
+    expect(s.dust).toBe(2)
+    expect(s.views.map((v) => v.position.marketId)).toEqual(['0xbig', '0xsmall'])
+    expect(noLines(s.views)).toBe(true)
   })
 })

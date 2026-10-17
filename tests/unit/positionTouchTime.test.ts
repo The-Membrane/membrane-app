@@ -9,7 +9,9 @@ import {
   CHECKED_HORIZON,
   TIME_AXIS,
   TOUCH_TIME_GRID,
+  assertCheckedMonotone,
   assertTouchTimeGrid,
+  MODEL_MARK,
   readingLine,
   timeLabel,
   timeToTouch,
@@ -37,6 +39,22 @@ describe('touch time grid', () => {
           expect(cell.n).toBe(row.n)
           expect(cell.touched).toEqual(row.touched)
         }
+  })
+
+  it("the table's checked 1/3/7-day cells are monotone in time, point and band", () => {
+    expect(() => assertCheckedMonotone(t)).not.toThrow()
+    const bent = JSON.parse(JSON.stringify(t))
+    bent.assets.ETH.fall['3d'].hi[9] = 0
+    expect(() => assertCheckedMonotone(bent)).toThrow(/ETH fall hi falls from 1d to 3d at 10%/)
+  })
+
+  it('builds windows under a day from every hour of the day, longer ones from 00:00 UTC', () => {
+    for (const h of g.hours) {
+      const c = g.assets.ETH.fall[String(h)]
+      expect(c.origins).toBe(h < 24 ? 'hourly' : 'daily')
+      // Every-hour origins: about 24 a day.
+      if (h < 24) expect(c.n).toBeGreaterThan(20 * t.assets.ETH.fall['1d'].n)
+    }
   })
 
   it('spans 1 hour to 7 days', () => {
@@ -106,15 +124,18 @@ describe('timeToTouch', () => {
     expect(at(168) - at(48)).toBeGreaterThan(at(48))
     expect(tt.readings.map((r) => r.hours)).toEqual([12, 48, 168])
     expect(tt.readings[2].chance).toBe(formatChance(touchAtLevel(t, 'ETH', 'fall', '7d', 14)!.touched, t.assets.ETH.fall['7d'].n))
-    expect(readingLine(tt)).toMatch(/^Under 1% by 12 h · \d+% by day 2 · \d+% by day 7$/)
+    // Model-only readings say so; the checked 7-day one does not.
+    expect(readingLine(tt)).toMatch(/^Under 1% by 12 h \(model-only\) · \d+% by day 2 \(model-only\) · \d+% by day 7$/)
+    expect(MODEL_MARK).toBe('(model-only)')
   })
 
   it('holds a model-only point that strays above the next checked point', () => {
     // A hand-built grid whose 18 h count exceeds the table's 1-day count.
     const bent: TouchTimeGrid = JSON.parse(JSON.stringify(g))
     const c = bent.assets.ETH.fall['18']
-    c.touched[9] = t.assets.ETH.fall['1d'].touched[9] + 50
-    c.hi[9] = c.touched[9] + 10
+    const day = t.assets.ETH.fall['1d']
+    c.touched[9] = Math.ceil((day.touched[9] / day.n + 0.05) * c.n)
+    c.hi[9] = Math.ceil((day.hi[9] / day.n + 0.06) * c.n)
     const tt = timeToTouch(t, bent, 'ETH', 'fall', 10)!
     const p18 = tt.points.find((p) => p.hours === 18)!
     const p24 = tt.points.find((p) => p.hours === 24)!

@@ -24,6 +24,8 @@ import type { Direction, HistoryAsset, HorizonId, TouchTable } from './touchHist
 
 export interface TouchTimeCell {
   n: number
+  /** 'hourly': every hour an origin (windows under a day); 'daily': 00:00 UTC, as the table. */
+  origins?: 'hourly' | 'daily'
   /** touched[L − levels.min], and the band's ends, as counts of n. */
   touched: number[]
   lo: number[]
@@ -58,6 +60,26 @@ export function assertTouchTimeGrid(g: unknown): asserts g is TouchTimeGrid {
         if (!c || !(c.n > 0)) bad(`${a}.${d}.${h}`)
         if (c.touched.length !== width || c.lo.length !== width || c.hi.length !== width) bad(`${a}.${d}.${h} width`)
       }
+}
+
+/**
+ * The table's checked cells must already be monotone in time (1d ≤ 3d ≤ 7d, point and
+ * both band edges) at every level: timeToTouch holds them fixed and fits the model-only
+ * points between them, so a crossing there would have no honest repair. Throws naming it.
+ */
+export function assertCheckedMonotone(t: TouchTable): void {
+  const ids: HorizonId[] = ['1d', '3d', '7d']
+  for (const a of ['ETH', 'BTC'] as const)
+    for (const d of ['fall', 'rise'] as const)
+      for (const k of ['touched', 'lo', 'hi'] as const)
+        for (let i = 0; i <= t.levels.max - t.levels.min; i++)
+          for (let j = 1; j < ids.length; j++) {
+            const p = t.assets[a][d][ids[j - 1]]
+            const q = t.assets[a][d][ids[j]]
+            if (q[k][i] / q.n < p[k][i] / p.n) {
+              throw new Error(`touch table: ${a} ${d} ${k} falls from ${ids[j - 1]} to ${ids[j]} at ${i + t.levels.min}%`)
+            }
+          }
 }
 
 const parsed: unknown = raw
@@ -187,12 +209,19 @@ export function timeToTouch(
   return { asset, direction, level, points: pts, readings }
 }
 
-/** "Under 1% by 12 h · 3% by day 2 · 14% by day 7" — the curve read at three times. */
+/** What marks a model-only value in prose: the chart's halftone, in words. */
+export const MODEL_MARK = '(model-only)'
+
+/**
+ * "Under 1% by 12 h (model-only) · 3% by day 2 (model-only) · 14% by day 7" — the curve read
+ * at three times. A value with no realized-outcome check behind it says so where it is
+ * quoted, in the page text and the chart's accessible label alike.
+ */
 export function readingLine(tt: TimeToTouch): string {
   return tt.readings
     .map((r, k) => {
       const chance = r.chance === '<1%' ? (k === 0 ? 'Under 1%' : 'under 1%') : r.chance
-      return `${chance} by ${r.label}`
+      return `${chance} by ${r.label}${r.checked ? '' : ` ${MODEL_MARK}`}`
     })
     .join(' · ')
 }

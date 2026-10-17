@@ -440,13 +440,13 @@
     "lib/position/rateHistory.generated.json": "40da44960edef3847da2acd4399de82ded45d5f7c092a287e0690ba15f0fc2df",
     "scripts/position/build-rate-history.mjs": "244822ac994ede9a6403c0c25dbc06766139db16f55a632aef9385d93cd6e63d",
     "lib/position/morphoCurrentRates.ts": "5d3cba50a4cc2c417ce19f40e6327734014a079d24a1b4a250359557ab4ebec8",
-    "lib/position-sim/adapters/morphoBlue.ts": "77e292fc83295227fa7d43c2e27f37d77ec5b88c48102818e40231aaf0834138",
-    "lib/position-sim/types.ts": "639027da5f1c56cede294e57711a9c18d6e69d23e95cf1ef36676989dc2eacc3",
+    "lib/position-sim/adapters/morphoBlue.ts": "a728783eeff83bcc3a08bef370f105f72e1e95abc904e3ee39b38e1b7977a7de",
+    "lib/position-sim/types.ts": "9d2d512967beabe64db62a67d8e74bcbb365f3c5c8049ae06085e449f9a9e9a0",
     "tests/e2e/harnesses/costReward.tsx": "bc76ce81ba21d21b71c35f60ecd571a091df50bbd1f19cb6ab3b67496ee63d9e"
   },
-  "base_sha": "e5782f3dde51e7c59073a37645f6e565d1a993bf",
+  "base_sha": "1c3431c1b824c5b12c1e3894f7dbd6959308dd94",
   "typecheck": {
-    "base_sha": "e5782f3dde51e7c59073a37645f6e565d1a993bf",
+    "base_sha": "1c3431c1b824c5b12c1e3894f7dbd6959308dd94",
     "base_errors": 101,
     "current_errors": 101,
     "added": [],
@@ -470,36 +470,36 @@
       "components/Disco/hooks/useDiscoMoveDeposit.ts(LINE): error TS2322: Type 'number' is not assignable to type 'string'.",
       "components/Disco/hooks/useDiscoMoveDeposit.ts(LINE): error TS2322: Type 'number' is not assignable to type 'string'.",
       "components/Disco/hooks/useDiscoMoveDeposit.ts(LINE): error TS2322: Type 'string | undefined' is not assignable to type 'string'.",
-      "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type 'EvmCall[] | MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[] | undefined'.",
       "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
+      "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type 'EvmCall[] | MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[] | undefined'.",
       "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type '`0x${string}` | undefined' is not assignable to type 'string'.",
       "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type 'number' is not assignable to type 'string'.",
       "components/Disco/hooks/useDiscoUnstake.ts(LINE): error TS2322: Type 'string | undefined' is not assignable to type 'string'.",
       "components/DittoSpeechBox/sections/AcquisitionSection.tsx(LINE): error TS2322: Type 'ChartDataPoint[]' is not assignable to type 'import(\"SOURCE/services/manic\").ChartDataPoint[]'.",
-      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2339: Property 'targetLtv' does not exist on type 'IntentConfig'.",
-      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2339: Property 'targetMaxBorrowLtv' does not exist on type 'IntentConfig'.",
-      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2353: Object literal may only specify known properties, and 'target_ltv' does not exist in type '{ asset: string; slot: number; }'.",
       "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2741: Property 'lockDays' is missing in type '{ type: \"send\"; enabled: false; ratio: number; address: string; }' but required in type 'IntentConfig'.",
       "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2741: Property 'lockDays' is missing in type '{ type: \"send\"; enabled: false; ratio: number; address: string; }' but required in type 'IntentConfig'.",
       "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2741: Property 'lockDays' is missing in type '{ type: \"send\"; enabled: true; ratio: number; address: string; }' but required in type 'IntentConfig'.",
+      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2353: Object literal may only specify known properties, and 'target_ltv' does not exist in type '{ asset: string; slot: number; }'.",
+      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2339: Property 'targetLtv' does not exist on type 'IntentConfig'.",
+      "components/DittoSpeechBox/sections/AcquisitionSettings.hooks.ts(LINE): error TS2339: Property 'targetMaxBorrowLtv' does not exist on type 'IntentConfig'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_asset' does not exist on type 'EvmBasket'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_asset' does not exist on type 'EvmBasket'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_interest' does not exist on type 'never'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_interest' does not exist on type 'never'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'peg_rate_at_target' does not exist on type 'EvmRatesConfig'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'peg_rate_at_target' does not exist on type 'EvmRatesConfig'.",
+      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'peg_rate_at_target' does not exist on type 'EvmRatesConfig'.",
       "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2322: Type '{ symbol: \"USDC\" | \"CDT\"; denom: string; logo: string; price: number | null; }' is not assignable to type '{ symbol: \"USDC\" | \"CDT\"; denom: string; logo: string; price: number; }'.",
-      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_asset' does not exist on type 'EvmBasket'.",
-      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_asset' does not exist on type 'EvmBasket'.",
-      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_interest' does not exist on type 'never'.",
-      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'credit_interest' does not exist on type 'never'.",
-      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'peg_rate_at_target' does not exist on type 'EvmRatesConfig'.",
-      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'peg_rate_at_target' does not exist on type 'EvmRatesConfig'.",
-      "components/NeutronMint/AvailableToBorrow.tsx(LINE): error TS2339: Property 'peg_rate_at_target' does not exist on type 'EvmRatesConfig'.",
       "components/NeutronMint/NeutronMint.tsx(LINE): error TS2339: Property 'positions' does not exist on type 'EvmUserPosition | BasketPositionsResponse'.",
       "components/NeutronMint/NeutronMint.tsx(LINE): error TS2345: Argument of type 'EvmUserPosition[] | BasketPositionsResponse[]' is not assignable to parameter of type 'BasketPositionsResponse[] | undefined'.",
       "components/NeutronMint/NeutronMint.tsx(LINE): error TS2345: Argument of type 'EvmUserPosition[] | BasketPositionsResponse[]' is not assignable to parameter of type 'BasketPositionsResponse[] | undefined'.",
       "components/NeutronMint/hooks/useBorrowModalData.ts(LINE): error TS2345: Argument of type 'EvmUserPosition[] | BasketPositionsResponse[]' is not assignable to parameter of type 'BasketPositionsResponse[] | undefined'.",
-      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2322: Type 'EvmBasketSupplyCap | SupplyCap' is not assignable to type 'SupplyCap | undefined'.",
-      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2339: Property 'debt_total' does not exist on type 'EvmBasketSupplyCap | SupplyCap'.",
-      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2339: Property 'debt_total' does not exist on type 'EvmBasketSupplyCap | SupplyCap'.",
       "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2339: Property 'lastest_collateral_rates' does not exist on type 'EvmRatesConfig'.",
-      "components/NeutronMint/mockCollateralData.ts(LINE): error TS2339: Property 'native_token' does not exist on type 'AssetInfo'.",
+      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2339: Property 'debt_total' does not exist on type 'EvmBasketSupplyCap | SupplyCap'.",
+      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2339: Property 'debt_total' does not exist on type 'EvmBasketSupplyCap | SupplyCap'.",
+      "components/NeutronMint/hooks/useCollateralRows.ts(LINE): error TS2322: Type 'EvmBasketSupplyCap | SupplyCap' is not assignable to type 'SupplyCap | undefined'.",
       "components/NeutronMint/mockCollateralData.ts(LINE): error TS2741: Property 'prices' is missing in type '{ price: string; decimals: number; }' but required in type 'PriceResponse'.",
+      "components/NeutronMint/mockCollateralData.ts(LINE): error TS2339: Property 'native_token' does not exist on type 'AssetInfo'.",
       "components/acquisition/hooks/useAcquisitionClaim.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
       "components/acquisition/hooks/useAcquisitionDeposit.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
       "components/acquisition/hooks/useAcquisitionWithdraw.ts(LINE): error TS2322: Type 'MsgExecuteContractEncodeObject[]' is not assignable to type 'EvmCall[]'.",
@@ -516,26 +516,26 @@
       "hooks/useTransmuterData.ts(LINE): error TS2345: Argument of type 'CosmWasmClient | undefined' is not assignable to parameter of type 'CosmWasmClient | null'.",
       "hooks/useTransmuterData.ts(LINE): error TS2345: Argument of type 'CosmWasmClient | undefined' is not assignable to parameter of type 'CosmWasmClient | null'.",
       "hooks/useTransmuterData.ts(LINE): error TS2345: Argument of type 'CosmWasmClient | undefined' is not assignable to parameter of type 'CosmWasmClient | null'.",
-      "tests/unit/alarms.test.ts(LINE): error TS18047: 'e.evidence' is possibly 'null'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; costPct: any; } | null' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; costPct: any; } | null' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '1' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
       "tests/unit/alarms.test.ts(LINE): error TS18047: 'e.evidence' is possibly 'null'.",
       "tests/unit/alarms.test.ts(LINE): error TS2339: Property 'redemptionDelaySec' does not exist on type '{ instantUsd: number; worstDayOutflowUsd: number; windowDays: 90; ratio: number; totalRatio: number; }'.",
-      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '1' is not assignable to parameter of type 'null | undefined'.",
-      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; costPct: any; } | null' is not assignable to parameter of type 'null | undefined'.",
-      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; costPct: any; } | null' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/alarms.test.ts(LINE): error TS18047: 'e.evidence' is possibly 'null'.",
       "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
-      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
-      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
-      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
-      "tests/unit/alarms.test.ts(LINE): error TS2345: Argument of type '{ usd: number; delaySec: number; }' is not assignable to parameter of type 'null | undefined'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
+      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
       "tests/unit/turnover.test.ts(LINE): error TS2345: Argument of type '{ grossIn: number; grossOut: number; net: number; }' is not assignable to parameter of type '{ grossIn: any; grossOut: any; net: any; tvl: any; }'.",
-      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
-      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
-      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
-      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
-      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
-      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
-      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
-      "tests/unit/turnover.test.ts(LINE): error TS2353: Object literal may only specify known properties, and 'dailyOut' does not exist in type '{ d: string; usd: number; }[]'.",
       "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
       "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
       "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
@@ -547,19 +547,19 @@
       "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
       "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
       "tests/unit/venueReads.test.ts(LINE): error TS18047: 'result' is possibly 'null'.",
-      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'decimalsIdentity' does not exist on type '{ kind: any; }'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingOnchain' does not exist on type '{ kind: any; }'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingIdentity' does not exist on type '{ kind: any; }'.",
       "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'reads' does not exist on type '{ kind: any; }'.",
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingIdentity' does not exist on type '{ kind: any; }'.",
       "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingDecimalsOnchain' does not exist on type '{ kind: any; }'.",
-      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingIdentity' does not exist on type '{ kind: any; }'.",
-      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingIdentity' does not exist on type '{ kind: any; }'.",
-      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'underlyingOnchain' does not exist on type '{ kind: any; }'."
+      "tests/unit/venueReads.test.ts(LINE): error TS2339: Property 'decimalsIdentity' does not exist on type '{ kind: any; }'."
     ],
-    "normalization": "Only checkout absolute path and line/column are normalized; error file, code and message must remain identical."
+    "normalization": "Only checkout root paths and line/column are normalized; full multiline diagnostic text matches baseline."
   },
   "unit_tests": {
-    "passed": 134,
+    "passed": 141,
     "suites": 10,
-    "log_sha256": "26c5c95f5e3558f00bb32e12b1bd997f92b9a4b935eaf8884f1f368a629b83be"
+    "log_sha256": "f8b13bfd0f4d1da156ba716185f5ce12f4781af9135766dc34096b74f3384c4f"
   },
   "lint": {
     "new_file_messages": 0,
@@ -579,7 +579,7 @@
         "other_messages": 0
       },
       "position-sim/adapters/morphoBlue.ts": {
-        "format_messages": 34,
+        "format_messages": 35,
         "other_messages": 0
       },
       "position-sim/types.ts": {
@@ -601,7 +601,7 @@
         "other_messages": 0
       },
       "position-sim/adapters/morphoBlue.ts": {
-        "format_messages": 32,
+        "format_messages": 33,
         "other_messages": 0
       },
       "position-sim/types.ts": {
@@ -722,20 +722,20 @@
     "scope": "Qualified present-time debt and fee-net supply APR plus observed loan-token USD source price; no forecast, market history or wallet read.",
     "source_hashes": {
       "lib/position/morphoCurrentRates.ts": "5d3cba50a4cc2c417ce19f40e6327734014a079d24a1b4a250359557ab4ebec8",
-      "lib/position-sim/adapters/morphoBlue.ts": "77e292fc83295227fa7d43c2e27f37d77ec5b88c48102818e40231aaf0834138",
-      "lib/position-sim/types.ts": "639027da5f1c56cede294e57711a9c18d6e69d23e95cf1ef36676989dc2eacc3",
+      "lib/position-sim/adapters/morphoBlue.ts": "a728783eeff83bcc3a08bef370f105f72e1e95abc904e3ee39b38e1b7977a7de",
+      "lib/position-sim/types.ts": "9d2d512967beabe64db62a67d8e74bcbb365f3c5c8049ae06085e449f9a9e9a0",
       "lib/position/costReward.ts": "1deba3c8e654e2e76df2b9cdea36bb1fb03b903ce51bd87864d0d58e75cb94ed",
       "tests/unit/morphoCurrentRates.test.ts": "77e23aa3cc0e8a7d6d68103fcc79afa66e356edd99edb512d6f6e9a54f94b867",
       "tests/unit/morphoSourceQualification.test.ts": "1d0fae9f44cf858307681e96d025dac9cf880e6305a918cec982f403f8bc7627",
       "tests/e2e/harnesses/costReward.tsx": "bc76ce81ba21d21b71c35f60ecd571a091df50bbd1f19cb6ab3b67496ee63d9e"
     },
     "unit_tests": {
-      "passed": 134,
+      "passed": 141,
       "suites": 10,
-      "log_sha256": "26c5c95f5e3558f00bb32e12b1bd997f92b9a4b935eaf8884f1f368a629b83be"
+      "log_sha256": "f8b13bfd0f4d1da156ba716185f5ce12f4781af9135766dc34096b74f3384c4f"
     },
     "typecheck": {
-      "base_sha": "e5782f3dde51e7c59073a37645f6e565d1a993bf",
+      "base_sha": "1c3431c1b824c5b12c1e3894f7dbd6959308dd94",
       "base_errors": 101,
       "current_errors": 101,
       "added": [],
@@ -914,5 +914,113 @@
       "actions_runs_at_head": 0,
       "scope": "Read before this uncommitted patch; no claim that new patch ran hosted checks."
     }
+  },
+  "latest_upstream_integration": {
+    "base_sha": "1c3431c1b824c5b12c1e3894f7dbd6959308dd94",
+    "premerge_feature_sha": "355e132a305d72a512891e9608dd577676027fc0",
+    "method": "Merge without rebasing; artifact generated after conflict resolution and checks, before parent creates the merge commit.",
+    "conflict": "PositionV0 Positions props retain both readId and upstream dust, passed through to the existing tracker and picker.",
+    "preserved": [
+      "Upstream lender paper-rate presentation and explicit market-update-average clock",
+      "Upstream user-specific pending-bad-debt loss, dust grouping and withdrawal capacity",
+      "Upstream every-hour sub-day origins and model-only marks",
+      "Q34 exact current-rate replay, fee-net supply/debt metadata, source-first USD prices and assumed-peg withholding",
+      "Q34 tracker key includes both read identity and selected position"
+    ],
+    "independent_overlap_audit": "PASS; upstream lender, picker, viewModel, touch code/data/tests and entire lendMarket block match latest base bytes.",
+    "source_hashes": {
+      "components/PositionV0/PositionV0.tsx": "7217cba81ecd3d4574f93dfa5336e4c96e0c2e95d6b882908307b4d657c2efb9",
+      "components/PositionV0/LenderBlock.tsx": "307d1846e16a8469fb346fa78da9efe72bfb11500454e1a9987743f46aafdc14",
+      "components/PositionV0/PositionPicker.tsx": "677906a7c5b1f3ed525925d2e12dcede44b7247521a3a3aa6da47ceef7ac9fab",
+      "components/PositionV0/viewModel.ts": "b6c007dcfd7e7d716759d92ba27cff02be022bc3e6c65d93eab17412f87c05ac",
+      "lib/position-sim/types.ts": "9d2d512967beabe64db62a67d8e74bcbb365f3c5c8049ae06085e449f9a9e9a0",
+      "lib/position-sim/adapters/morphoBlue.ts": "a728783eeff83bcc3a08bef370f105f72e1e95abc904e3ee39b38e1b7977a7de",
+      "lib/position/lender.ts": "d01a087f925048ecff8d1ee9161c17c1fbd645fb13a99d04292960751ce237f3",
+      "lib/position/touchTime.ts": "265b8e2e51ba916890f8b6aeca8fb42f04373b45806037503e9a886d01bd8c64",
+      "lib/position/touchTime.generated.json": "1d1e097c5e3fe88a10e49dbeeec136da4c187932e0ec851a44a1e491fe73dc45"
+    },
+    "unit_tests": {
+      "passed": 141,
+      "suites": 10,
+      "log_sha256": "f8b13bfd0f4d1da156ba716185f5ce12f4781af9135766dc34096b74f3384c4f"
+    },
+    "typecheck": {
+      "base_sha": "1c3431c1b824c5b12c1e3894f7dbd6959308dd94",
+      "base_errors": 101,
+      "current_errors": 101,
+      "added": [],
+      "removed": [],
+      "full_multiline_equal_after_path_and_location_normalization": true,
+      "baseline_log_sha256": "6782339d146e3619ff8bc63cd37f669ff83ae1832b8af12ffd1f9c0e67bf1ded",
+      "merged_log_sha256": "6a7c5ff78eb7244fb550ac8d83c7648c97a23eac1000ae0eae79f12adcd87729",
+      "baseline_export": "Exact git archive of the new base with node_modules symlink; no next-env.d.ts or .next, matching prior baseline setup."
+    },
+    "lint": [
+      {
+        "path": "components/PositionV0/PositionV0.tsx",
+        "baseline": {
+          "format": 11,
+          "other": []
+        },
+        "current": {
+          "format": 11,
+          "other": []
+        }
+      },
+      {
+        "path": "lib/position-sim/types.ts",
+        "baseline": {
+          "format": 0,
+          "other": []
+        },
+        "current": {
+          "format": 0,
+          "other": []
+        }
+      },
+      {
+        "path": "lib/position-sim/adapters/morphoBlue.ts",
+        "baseline": {
+          "format": 35,
+          "other": []
+        },
+        "current": {
+          "format": 33,
+          "other": []
+        }
+      }
+    ],
+    "browser": {
+      "combinations": 60,
+      "states": 15,
+      "editions": [
+        "light",
+        "dark"
+      ],
+      "widths": [
+        390,
+        1280
+      ],
+      "overflow": false,
+      "minimum_control_height": 44,
+      "page_errors": [],
+      "actual_route_checks": [
+        {
+          "width": 390,
+          "status": 200,
+          "personal_tracker_absent": true,
+          "overflow": false
+        },
+        {
+          "width": 1280,
+          "status": 200,
+          "personal_tracker_absent": true,
+          "overflow": false
+        }
+      ],
+      "limits": "Synthetic component fixtures; actual Next route tested only before an address read. No real-wallet browser verification or live RPC reliability claim."
+    },
+    "screenshots": "Existing six tracker images remain byte-identical after rerender. Full current source hashes are recorded separately; the upstream chart/lender code is verified by tests and actual-route idle smoke.",
+    "qualified_source_receipts_changed": false
   }
 }

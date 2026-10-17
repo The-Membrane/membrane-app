@@ -18,9 +18,14 @@ import { fmtAmount, fmtUsd, fmtUtc } from '@/lib/position/format'
 import {
   FORECAST_DAYS,
   HISTORY_DAYS,
+  APR_NOTE,
   REWARDS_MARK,
+  ago,
   aprLine,
   lenderView,
+  rewardNote,
+  shareText,
+  usdShort,
   type LenderReport,
   type LenderView,
 } from '@/lib/position/lender'
@@ -30,7 +35,8 @@ import { Kicker, Mono, Section, Small } from './primitives'
 import { TYPE, TYPE_PX } from './typeScale'
 import { useLenderReport } from './useLenderReport'
 
-const usdShort = (x: number) =>
+/** Axis labels: whole dollars at a glance. */
+const axisUsd = (x: number) =>
   x >= 1e6 ? `$${(x / 1e6).toFixed(x >= 1e7 ? 0 : 1)}M` : x >= 1e3 ? `$${(x / 1e3).toFixed(x >= 1e4 ? 0 : 1)}k` : `$${x.toFixed(0)}`
 
 function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number | null] {
@@ -131,7 +137,7 @@ const CapacitySvg: React.FC<{
         <g key={u}>
           <line x1={M.left} x2={M.left + pw} y1={y(u)} y2={y(u)} stroke={NEWS.rule} strokeDasharray="1 3" />
           <text x={M.left - 6} y={y(u) + 4} textAnchor="end" fill={NEWS.muted} style={font}>
-            {usdShort(u)}
+            {axisUsd(u)}
           </text>
         </g>
       ))}
@@ -153,7 +159,7 @@ const CapacitySvg: React.FC<{
       {/* your supply: a dashed line across history and the pending region */}
       <line x1={M.left} x2={M.left + pw} y1={youY} y2={youY} stroke={NEWS.danger} strokeDasharray="4 3" strokeWidth={1} />
       <text x={M.left + 2} y={youY - 4} fill={NEWS.danger} style={{ ...halo, fontWeight: 700 }}>
-        your supply {usdShort(v.suppliedUsd)}
+        your supply {usdShort(v.suppliedUsd)}{v.pending ? ' on paper' : ''}
       </text>
       {/* now: the on-chain reading */}
       <line x1={nowX} x2={nowX} y1={M.top} y2={floorY} stroke={NEWS.muted} />
@@ -179,8 +185,28 @@ const Risk: React.FC<{ r: LenderView['risks'][number] }> = ({ r }) => (
       {r.head}
     </Mono>
     <Small color={NEWS.ink2}>{r.body}</Small>
-    {r.facts.length > 0 && <Small color={r.flagged ? NEWS.danger : NEWS.muted}>Morpho API: {r.facts.join(' · ')}</Small>}
+    {r.facts.length > 0 && <Small color={r.flagged ? NEWS.danger : NEWS.muted}>{r.facts.join(' · ')}</Small>}
   </Box>
+)
+
+const BigFigure: React.FC<{ children: React.ReactNode; danger?: boolean; small?: boolean }> = ({ children, danger, small }) => (
+  <Text
+    as="p"
+    m={0}
+    {...NEWS_FIGURE.display}
+    fontSize={small ? TYPE.head : TYPE.hero}
+    lineHeight={1}
+    color={danger ? NEWS.danger : NEWS.ink}
+  >
+    {children}
+  </Text>
+)
+
+/** ‡ set small and raised, as the page's † is. */
+const Mark: React.FC = () => (
+  <Text as="span" fontSize="0.45em" verticalAlign="super" lineHeight={0} ml="0.05em">
+    {REWARDS_MARK}
+  </Text>
 )
 
 export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position }) => {
@@ -190,66 +216,90 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
   const v = lenderView(position, report)
   if (!v) return null
   const m = v.market
-  const share = Math.floor(v.withdrawableShare * 100 + 1e-9)
-  const stamp = report ? `Morpho API, reported, fetched ${fmtUtc(report.fetchedAt)}` : null
+  const share = shareText(v.withdrawableShare)
+  const shareDanger = v.withdrawableShare !== null && v.withdrawableShare < 1
+  const fetched = report ? `fetched ${fmtUtc(report.fetchedAt)}` : null
+  const showsMark = state === 'ok' && v.apr.marked
+  // The API stamp says what it sourced here: the ‡ rewards only when a ‡ value is shown.
+  const rewardStamp = fetched && showsMark ? `${REWARDS_MARK} Morpho API, reported, ${fetched}; not read on-chain.` : null
+  const apiStamp = fetched ? `Morpho API (bad debt, warnings, history), reported, ${fetched}.` : null
+  const asOf = v.sinceUpdateS !== null ? ` · as of the market’s last update, ${ago(v.sinceUpdateS)}` : ' · as of the market’s last update'
+  const free = v.liquidityUsd >= 1 ? fmtUsd(v.liquidityUsd) : v.liquidityUsd > 0 ? '<$1' : '$0'
+  const onPaper = v.pending ? ' on paper' : ''
+
+  const exit = (
+    <Section id="lending-exit" aria-live="polite" key="exit">
+      <Kicker>{v.paper ? 'At risk: can you get out' : 'Can you get out'}</Kicker>
+      <Box display="flex" flexWrap="wrap" alignItems="baseline" columnGap={SPACING.md} minW={0}>
+        <BigFigure danger={shareDanger}>{share}</BigFigure>
+        <Mono as="span">of your supply could leave now</Mono>
+      </Box>
+      <Mono>
+        {free} free for all lenders · your {fmtAmount(v.supplied, v.supplied >= 100 ? 0 : 2)} {v.symbol} ({fmtUsd(v.suppliedUsd)}
+        {onPaper}) · utilization {(m.utilization * 100).toFixed(1)}%
+      </Mono>
+      {v.pending && (
+        <Mono color={NEWS.danger}>
+          Pending write-off: {(v.pending.share * 100).toFixed(1)}% of supply ≈ {usdShort(v.pending.yoursUsd)} of yours.
+        </Mono>
+      )}
+      <CapacityChart v={v} report={report} state={state} />
+      <Small>
+        Now: on-chain at block {m.block.toLocaleString('en-US')}. History:{' '}
+        {fetched ? `Morpho API, reported, ${fetched}` : state === 'reading' ? 'Morpho API, reading…' : 'Morpho API, not read'}. Forecast of free
+        liquidity: model pending — no capacity model is built yet, so no number is shown.
+      </Small>
+    </Section>
+  )
+
+  const aprFigure =
+    v.apr.total !== null && state === 'ok' ? (
+      <>
+        {(v.apr.total * 100).toFixed(2)}%{v.apr.marked && <Mark />}
+      </>
+    ) : v.apr.base !== null ? (
+      `${(v.apr.base * 100).toFixed(2)}%`
+    ) : (
+      '—'
+    )
+  const pays = (
+    <Section id="lending-apr" aria-live="polite" key="apr">
+      <Kicker>{v.paper ? 'What it pays: a paper rate' : 'What it pays'}</Kicker>
+      <Box display="flex" flexWrap="wrap" alignItems="baseline" columnGap={SPACING.md} minW={0}>
+        {/* A paper rate is never the headline: small, and said to be on paper. */}
+        <BigFigure small={Boolean(v.paper)}>{aprFigure}</BigFigure>
+        <Mono as="span">supply APR{v.paper ? ', on paper' : ''}</Mono>
+      </Box>
+      {v.paper ? <Mono color={NEWS.ink2}>{v.paper}</Mono> : <AprBar v={v} />}
+      <Mono>
+        {aprLine(v, state)}
+        {asOf}
+      </Mono>
+      {v.apr.rewards && v.apr.rewards.length > 0 && (
+        <Small color={NEWS.ink2}>
+          {v.apr.rewards.map((r) => `${r.symbol} ${(r.apr * 100).toFixed(2)}%${REWARDS_MARK}`).join(' · ')}:{' '}
+          {rewardNote(v.apr.rewards.map((r) => r.symbol))}.
+        </Small>
+      )}
+      <Small>
+        Base: borrow APR {m.borrowApr === null ? 'not read' : `${(m.borrowApr * 100).toFixed(2)}%`} (the rate model’s average since the
+        last update) × utilization {(m.utilization * 100).toFixed(1)}% × (1 − fee {(m.fee * 100).toFixed(0)}%), on-chain at block{' '}
+        {m.block.toLocaleString('en-US')}. {APR_NOTE}
+        {rewardStamp ? ` ${rewardStamp}` : ''}
+      </Small>
+    </Section>
+  )
+
   return (
     <>
-      <Section id="lending-apr" aria-live="polite">
-        <Kicker>What it pays</Kicker>
-        <Box display="flex" flexWrap="wrap" alignItems="baseline" columnGap={SPACING.md} minW={0}>
-          <Text as="p" m={0} {...NEWS_FIGURE.display} fontSize={TYPE.hero} lineHeight={1} color={NEWS.ink}>
-            {v.apr.total !== null && state === 'ok'
-              ? `${(v.apr.total * 100).toFixed(2)}%`
-              : v.apr.base !== null
-                ? `${(v.apr.base * 100).toFixed(2)}%`
-                : '—'}
-            {v.apr.total !== null && state === 'ok' && v.apr.marked && (
-              // Set small and raised, as the page's † is: it marks without shouting.
-              <Text as="span" fontSize="0.45em" verticalAlign="super" lineHeight={0} ml="0.05em">
-                {REWARDS_MARK}
-              </Text>
-            )}
-          </Text>
-          <Mono as="span">supply APR</Mono>
-        </Box>
-        <AprBar v={v} />
-        <Mono>{aprLine(v, state)}</Mono>
-        {v.apr.rewards && v.apr.rewards.length > 0 && (
-          <Small color={NEWS.ink2}>
-            {v.apr.rewards.map((r) => `${r.symbol} ${(r.apr * 100).toFixed(2)}%${REWARDS_MARK}`).join(' · ')}
-          </Small>
-        )}
-        <Small>
-          Base: borrow APR {m.borrowApr === null ? 'not read' : `${(m.borrowApr * 100).toFixed(2)}%`} × utilization{' '}
-          {(m.utilization * 100).toFixed(1)}% × (1 − fee {(m.fee * 100).toFixed(0)}%), on-chain at block {m.block.toLocaleString('en-US')}.
-          {stamp ? ` ${REWARDS_MARK} ${stamp}; not read on-chain.` : ''}
-        </Small>
-      </Section>
-
-      <Section id="lending-exit" aria-live="polite">
-        <Kicker>Can you get out</Kicker>
-        <Box display="flex" flexWrap="wrap" alignItems="baseline" columnGap={SPACING.md} minW={0}>
-          <Text as="p" m={0} {...NEWS_FIGURE.display} fontSize={TYPE.hero} lineHeight={1} color={share < 100 ? NEWS.danger : NEWS.ink}>
-            {share}%
-          </Text>
-          <Mono as="span">of your supply could leave now</Mono>
-        </Box>
-        <Mono>
-          {fmtUsd(v.liquidityUsd)} free for all lenders · your {fmtAmount(v.supplied, v.supplied >= 100 ? 0 : 2)} {v.symbol} (
-          {fmtUsd(v.suppliedUsd)}) · utilization {(m.utilization * 100).toFixed(1)}%
-        </Mono>
-        <CapacityChart v={v} report={report} state={state} />
-        <Small>
-          Now: on-chain at block {m.block.toLocaleString('en-US')}. History: {stamp ?? (state === 'reading' ? 'Morpho API, reading…' : 'Morpho API, not read')}.
-          Forecast of free liquidity: model pending — no capacity model is built yet, so no number is shown.
-        </Small>
-      </Section>
-
+      {/* At risk, the exit leads and the rate follows as a paper rate. */}
+      {v.paper ? [exit, pays] : [pays, exit]}
       <Section id="lending-risks">
         <Kicker>What can go wrong</Kicker>
         {v.risks.map((r) => (
           <Risk key={r.id} r={r} />
         ))}
+        {apiStamp && <Small>{apiStamp}</Small>}
       </Section>
     </>
   )

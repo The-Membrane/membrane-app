@@ -77,6 +77,10 @@ const GROUPS: { key: Group; label: string }[] = [
 ]
 const ETHERSCAN = 'https://etherscan.io'
 
+/** A row's React key. One SetSupplyQueue log can drop several markets, and each drop is
+ *  an action with the log's id, so the id alone repeats; id + target does not. */
+const rowKey = (r: Pick<FeedRow, 'id' | 'target'>): string => `${r.id}|${r.target ?? ''}`
+
 const Tag: React.FC<{ tone: Tone; wrap?: boolean; children: React.ReactNode }> = ({
   tone,
   wrap,
@@ -901,7 +905,7 @@ export const CuratorFeed: React.FC = () => {
           ) : (
             <Box>
               {pending.map((r) => (
-                <ActionRow key={r.id} r={r} nowS={nowS} />
+                <ActionRow key={rowKey(r)} r={r} nowS={nowS} />
               ))}
             </Box>
           )}
@@ -918,7 +922,7 @@ export const CuratorFeed: React.FC = () => {
                     executed or revoked.
                   </Mono>
                   {executable.map((r) => (
-                    <ActionRow key={r.id} r={r} nowS={nowS} />
+                    <ActionRow key={rowKey(r)} r={r} nowS={nowS} />
                   ))}
                 </Box>
               )}
@@ -928,7 +932,7 @@ export const CuratorFeed: React.FC = () => {
           <SectionHeading index="03" title="Feed" note={`${data.total.toLocaleString()} actions`} />
           <Box>
             {data.rows.map((r) => (
-              <ActionRow key={r.id} r={r} nowS={nowS} />
+              <ActionRow key={rowKey(r)} r={r} nowS={nowS} />
             ))}
           </Box>
           {data.nextBefore && (
@@ -1225,10 +1229,10 @@ export const CuratorFeedCard: React.FC = () => {
       {gl && <OracleGapLine l={gl} href={`/${chainName}/curator-feed#oracle-gap`} />}
       {/* Compact: the full feed is one link away. */}
       {pending.slice(0, 2).map((r) => (
-        <CardRow key={r.id} r={r} current={currentIds.has(r.id)} />
+        <CardRow key={rowKey(r)} r={r} current={currentIds.has(r.id)} />
       ))}
       {data?.rows.slice(0, 2).map((r) => (
-        <CardRow key={r.id} r={r} current={currentIds.has(r.id)} />
+        <CardRow key={rowKey(r)} r={r} current={currentIds.has(r.id)} />
       ))}
       {empty && <Mono size="11px">No curator exit in the feed window.</Mono>}
       <HStack justify="space-between" align="center" spacing={SPACING.base} flexWrap="wrap">

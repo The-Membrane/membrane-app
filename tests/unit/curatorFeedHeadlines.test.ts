@@ -317,7 +317,19 @@ describe('the §07 card mark', () => {
         mkt({ state: 'stale', currentGap: 0.025, lastTs: NOW - 5 * H, hoursAboveConsecutive: 4 }),
         R,
       ),
-    ).toEqual({ mark: '░', alarm: false, headline: '░', detail: 'stale · +2.50% 5h ago' })
+    ).toEqual({
+      mark: '░',
+      alarm: false,
+      headline: '░',
+      detail: 'stale · last point +2.50% · 5h old',
+    })
+    // The last value is never printed as if it were current.
+    expect(
+      gapMark(mkt({ state: 'stale', currentGap: 12, lastTs: NOW - 5 * H - 300 }), R).detail,
+    ).toMatch(/^stale · last point >1,000% · 5h 5m old$/)
+    expect(gapMark(mkt({ state: 'stale', lastTs: NOW - 2 * H }), R).detail).toBe(
+      'stale · last point 2h old',
+    )
     expect(gapMark(mkt({ state: 'unobserved' }), R)).toEqual({
       mark: '░',
       alarm: false,

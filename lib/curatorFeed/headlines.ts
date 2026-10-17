@@ -270,12 +270,13 @@ export function gapMark(
         detail: `${i3.hoursAboveConsecutive} of ${i3.persistence} h ≥ ${line}`,
       }
     case 'stale':
-      // Stale: the figure is withheld; the last value stays in the small print.
+      // Stale: the figure is withheld. The small print keeps the last value, said as the
+      // last point and its age, never as a current reading.
       return {
         mark: '░',
         alarm: false,
         headline: '░',
-        detail: `stale · ${i3.currentGap !== undefined ? `${gapText(i3.currentGap)} ` : ''}${durationText(r.meta.now - (i3.lastTs ?? 0))} ago`,
+        detail: `stale · last point ${i3.currentGap !== undefined ? `${gapText(i3.currentGap)} · ` : ''}${durationText(r.meta.now - (i3.lastTs ?? 0))} old`,
       }
     case 'unobserved':
       return {

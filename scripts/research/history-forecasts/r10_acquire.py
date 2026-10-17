@@ -537,6 +537,7 @@ def phase_positions(work):
     os.makedirs(pdir, exist_ok=True)
     # first USDC borrow block per account; daily action users (Borrow/Repay held, other Pool actions acquired)
     first_borrow = {}
+    usdc_borrow_day = {}   # day index -> accounts with a USDC Borrow in (anchor[i-1], anchor[i]]
     act = {}
     anchors = [metas[d]["block"] for d in days]
 
@@ -550,8 +551,10 @@ def phase_positions(work):
         with gzip.open(os.path.join(DATASETS, rel), "rt") as f:
             for r in csv.DictReader(f):
                 b, who = int(r["block"]), r["onBehalfOf"].lower()
-                if r["reserve"].lower() == USDC and (who not in first_borrow or b < first_borrow[who]):
-                    first_borrow[who] = b
+                if r["reserve"].lower() == USDC:
+                    if who not in first_borrow or b < first_borrow[who]:
+                        first_borrow[who] = b
+                    usdc_borrow_day.setdefault(day_of_block(b), set()).add(who)
                 act.setdefault(day_of_block(b), set()).add(who)
     for rel in repay_files():
         with gzip.open(os.path.join(DATASETS, rel), "rt") as f:
@@ -577,7 +580,8 @@ def phase_positions(work):
         m = metas[d]
         block = m["block"]
         scan = (i % SCAN_EVERY == 0)
-        new_b = {x for x, b in borrowers_sorted if (anchors[i - 1] if i else 0) < b <= block}
+        # any USDC borrower of the last 24 h is read (first-time borrowers and borrowers outside the universe)
+        new_b = usdc_borrow_day.get(i, set())
         if scan:
             cands = [x for x, b in borrowers_sorted if b <= block]
             usd = m["reserves"][USDC]

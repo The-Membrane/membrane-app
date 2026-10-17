@@ -210,6 +210,114 @@ ILLIQUID_PERPDEX_COLL/USDC ($844K, fixed), deUSD/USDC (86 %, $348K, fixed; MEV C
 Elixir USDC). Held by curated vaults: sdeUSD (Adpend, 1337), msY 91.5 % (two Mainstreet
 USDC vaults), deUSD (MEV Capital Elixir USDC). The rest are dust.
 
+## Oracle above market (`lib/curatorFeed/oracleGap.ts`, `?view=oracle-gap`)
+
+The flags above say what an oracle prices FROM (a static classification). This measures
+what it prices AT, against the market, every collector run — Q25 T2's indicator I3
+(membrane-datasets `validation/t2`, prereg `membrane-board design/VALIDATION_PREREG.md` T2):
+
+| Piece | Rule |
+| --- | --- |
+| gap | `oracle / market − 1`. Oracle = the market's Morpho `price()` at the head block (the flags read), `/1e36 × 10^(collateral decimals − loan decimals)` loan tokens per whole collateral token (Morpho Blue IOracle), × DefiLlama's USD price of the loan token — no token is taken as $1. Market = DefiLlama's USD price of the collateral (`coins.llama.fi/prices/current`, keyless, ≤ 100 coins per call). |
+| condition | `gap ≥ 2 %`, one-sided (the oracle prices the collateral above the market). |
+| fired | 24 consecutive OBSERVED hourly points with the condition (T2 D3): fires at the 24th point, never back-dated. |
+| unobserved | `price()` reverts (D9), no DefiLlama price, a sample ≥ 6 h old (D7), on-chain vs DefiLlama decimals that disagree, or a DefiLlama `confidence` under 0.9 (the lower of the two prices; not in T2, whose prices were frozen pulls). Never a 0; it breaks a run, as a missing hour does. A low-confidence point keeps its raw prices and gap in the store for audit; the cut is applied when the store is read. |
+| consecutive | Points deduplicated per UTC hour (newest wins), ≤ 1.5 h apart (D2's 1.5× cadence hold, for run-time jitter). |
+| stale | the newest run is > 3 h old: the page hatches the module and withholds the headline. |
+| markets | every Morpho Blue market curated vaults hold at the exposure read, with a collateral and an oracle (~300). Euler Earn strategies have no Morpho oracle. Held markets never observed are listed as unobserved. |
+| order | fired, then above the line for under 24 h, then the rest; inside each, by the $ exposed (curated supply at the exposure read; book value in a supply-locked market, labelled), then hours above. Markets with under $1 of curated exposure sit below a one-line fold on the page. |
+
+The constants (2 %, 24 h, 2 daily points) are not written in code: `lib/curatorFeed/i3Record.generated.json`
+holds them and T2's I3 record, built by `node scripts/curator-feed/build-i3-record.mjs` from
+`validation/t2/results.json` (sha256 computed and checked against its PROVENANCE.md row; `--check`
+fails when the committed file is stale). `tests/unit/curatorFeedOracleGap.test.ts` replays T2's own
+I3 series through the same code: every point's fired flag in `AZND-I3.csv` (daily), `msY-I3.csv`
+(daily) and `sdeUSD-I3.csv` (hourly) matches, and the first fires equal results.json (AZND
+2026-06-12 17:48, sdeUSD 2025-11-04 23:00, msY none).
+
+The record, shown beside the live module: I3 warned ≥ 9 days ahead in 1 of 3 incidents — AZND
+49 days before its write-off with 0 false alarms in 74 calm days; sdeUSD 6.7 days before
+(under 9); silent before msY and before Oct 10 2025. Caveats on the page: retrospective, n = 3,
+T2 FAIL overall; stETH (Oct 10 series) fired twice in calm 2022; AZND's oracle was fixed at
+1 USDC, so its gap is `1 / market − 1`.
+
+On the page (§07, `components/CuratorFeed/OracleGapSection.tsx`; owner 2026-10-16: "smaller
+cards, less words … a one-glance understanding"): one card per market, in a grid (1 column at
+390 px, up to 4 on desktop). A card shows the market, the delta as its big figure, the mark
+(✖ fired, red · ▲ hours of 24 · below · ░ not measured or stale, figure withheld) and the $
+exposed in small print. Prices, the 48-point series, holders and links are in the card's fold;
+the method, the record and its caveats in one "How this is measured" fold. The API is read at
+`limit=500` (every market), so "Show only mine" sees all of them.
+
+Your markets (`lib/exposure`): pick a curator (from the feed's own vault → curator labels), or
+type an address (a connected wallet fills it, and a wallet switch is followed unless an address
+was typed; a mixed-case address must carry a valid EIP-55 checksum). The address is read on
+Ethereum mainnet, read-only and with no signature, at one pinned block through the keyless
+public RPCs (`lib/position-sim/rpc.ts`, the next one if one fails):
+
+- ERC-4626 `balanceOf` on every Morpho vault of the exposure read (the response's `vaults`
+  map, not only the vaults §07 lists), then `convertToAssets` and `totalAssets` where shares
+  are held;
+- for each held MetaMorpho vault, the markets it supplies NOW: `withdrawQueueLength`,
+  `withdrawQueue(i)`, Morpho Blue `position(id, vault)` kept where `supplyShares > 0`, and
+  `market(id)` to price that supply (the vault's USD per asset at the exposure read);
+- Morpho Blue `position(id, user)` on every listed market.
+
+Bounds: 500 vaults, 500 markets, live market lists for 25 held MetaMorpho vaults (queues of at
+most 30, MetaMorpho's own cap), 100 calls per multicall (50 for the asset reads): at most 56
+eth_calls. Over a target limit or malformed: a named error before any call; a held MetaMorpho
+vault past 25 is listed (ExposureLimitError) and keeps snapshot ties. A failed call is listed by
+its error name, and a market whose read failed is "░ unchecked", never "none".
+
+Ties: a live tie (a direct position, or a MetaMorpho vault's market list read at the block)
+gets a heavy frame and a tag ("you supply", "your vault …"). A tie that rests on the exposure
+snapshot only (a Vault V2, whose markets are not read live; a MetaMorpho vault whose live read
+failed or was past the limit; a chosen curator's vaults) is muted and tagged "as of <date>":
+it is never shown as live; on a card that mixes both, the snapshot part keeps its date ("your 2
+vaults (1 as of <date>)"). A vaults-only tie where your vaults supply under $1 to the market
+(the vaults' supply, never your share of it) is tagged "supplies under $1" and, under "Show
+only mine", sits under the fold. Past 25 held MetaMorpho vaults, the largest in USD are read
+live.
+"Highlight mine" / "Show only mine" switch the grid; under "Show only mine" the unchecked
+markets stay one tap away, and "N of total · ░ k unchecked" sits by the toggle. The look-through
+$ is computed (`Relation.usd`) but not shown: a new kind of number waits for the owner.
+
+Checked against mainnet on 2026-10-16 (block 26,207,322, 13 eth_calls) for
+0x1eB1994C6de521686f5B97B017fF6AFAB81FF2bb, which holds Smokehouse USDC: the vault supplies 14
+markets now; the snapshot's ties to cbBTC/USDC 0x64d65c… and weETH/USDC 0x34377f…, where it now
+supplies nothing, are gone; cbBTC/USDC 0xbc99de6a… (≈ $1.87k from the vault) is tied.
+
+The compact card (`CuratorFeedCard`, venue page and Today's Safety body) leads with one line —
+"✖ n alarms now", "No alarm now", or which input is missing — then 2–5 word headlines
+(`lib/curatorFeed/headlines.ts`): "2 curators left LBTC", "Cap cut to 0: PT-sUSDD",
+"Oracle gap: none for 24h". Vault, curator and date are small print; the full sentence and the
+transaction are in each item's fold. A cluster is an alarm only while its last exit is inside
+the 72 h window; an older one is shown as history. An exits feed whose head block is more than
+3 h old (the oracle gap's own staleness rule) says "Exits as of <time>", never "No alarm now":
+exits since the head are not collected yet.
+
+Store: `oracle-gap.json` next to `feed.json` (format in `lib/curatorFeed/store.ts`): runs
+`[ts, block]`, a market dictionary and rows `[run, market, oracleUsd, marketUsd, confidence,
+gap]`, observed points only, the last 7 days (≈ 2 MB at 300 markets). A run that observed
+nothing is not recorded. Written by every collector run (step 12, non-fatal; `--publish` also
+writes the datasets copy). The hourly tick that already runs the collector is what builds the
+24-hour persistence: no new schedule.
+
+Dry run (keyless RPC + DefiLlama, writes nothing):
+
+```
+env -u CURATOR_FEED_RPC_URLS -u RECORDER_RPC_URL pnpm curators:feed --oracle-gap-only --dry-run --limit=25
+```
+
+On 2026-10-14 (block 26,187,700, all 300 held markets, a real run): 278 observed, 2 at
+DefiLlama confidence 0.85 (armUSDCp/WBTC, armUSDTp/WBTC) not counted. Earlier the same day
+(block 26,187,350, before the confidence cut): 280 observed; 3 oracles revert
+(sdeUSD/USDC, two msY/USDC); 17 collaterals have no DefiLlama price (sUSDv, sETHv, RLP, rRLP,
+expired PTs, liUSD-1w, BOBO, sNUSD, GOOGL / NVDA / TSLA, ROY-ST-apyUSD). Above 2 % at that
+point: deUSD/USDC (fixed 1.0 oracle, DefiLlama $0.00000001), USR / wstUSR / aprUSR / MC-USR
+(≈ +1,160 %), IMF, APU, CULT (USDS markets), apyUSD/USDC (+2.45 %) and PT-apyUSD-5NOV2026
+(+2.12 %). One point is not a fire: each needs 24 hours in a row.
+
 ## Incremental collection
 
 Each run reads `[last block + 1, finalized head]` only. The collector state
@@ -329,6 +437,7 @@ pnpm curators:feed                    # incremental from .data/curator-feed (els
 pnpm curators:feed --full             # re-read the whole window (CURATOR_FEED_DAYS, default 182)
 pnpm curators:feed --full --publish   # … and write the datasets-repo copy + PROVENANCE.md
 pnpm curators:feed --exposure         # force a fresh exposure snapshot
+pnpm curators:feed --oracle-gap-only [--dry-run] [--limit=N]   # step 12 alone (oracle gap)
 CURATOR_FEED_TO_BLOCK=<n>             # stop at block n (reproduce a run; check split = full)
 ```
 
@@ -353,6 +462,10 @@ GET /api/curator-feed?view=attribution    [&collateral=] [&market=0x…] [&only=
 GET /api/curator-feed?view=flags          [&collateral=] [&curator=] [&market=0x…]
 GET /api/curator-feed?view=spikes         [&collateral=] [&curator=] [&market=0x…]
                                           [&only=reallocation|drained] [&minUsd=] [&limit=]
+GET /api/curator-feed?view=oracle-gap     [&collateral=] [&curator=] [&market=0x…] [&limit=]
+                                          no oracle-gap.json yet = 200, meta.measured false
+CURATOR_FEED_NOW=<unix s>                 pins the API's request clock outside production
+                                          (reproduce a checkpoint or a replayed series)
 ```
 
 ## Files
@@ -362,13 +475,15 @@ GET /api/curator-feed?view=spikes         [&collateral=] [&curator=] [&market=0x
 | keccak256, ABI catalog + decoder, Vault V2 idData                         | `lib/curatorFeed/{keccak,abi,decode,v2ids}.ts`                                                                                                   |
 | classifier (state replay), status, clusters, flows, exposure, attribution | `lib/curatorFeed/{classify,status,clusters,flows,exposure,attribution}.ts`                                                                       |
 | rate spikes, rolling window, flags                                        | `lib/curatorFeed/{spikes,window,flags}.ts`                                                                                                       |
+| oracle gap (I3), its record and builder                                   | `lib/curatorFeed/oracleGap.ts`, `lib/curatorFeed/i3Record.generated.json`, `scripts/curator-feed/build-i3-record.mjs`                            |
 | incident timelines (market + vault, archive reads)                        | `scripts/research/curator-incident.ts`                                                                                                           |
 | chain config                                                              | `scripts/lib/curator-feed-chain.ts`                                                                                                              |
 | copy, API logic, on-disk format                                           | `lib/curatorFeed/{format,service,store}.ts`                                                                                                      |
 | RPC client (dual-read getLogs, batches, key scrubbing)                    | `scripts/lib/curator-feed-rpc.ts`                                                                                                                |
 | collector                                                                 | `scripts/collect-curator-feed.ts`                                                                                                                |
 | API, page, card                                                           | `pages/api/curator-feed/index.ts`, `pages/[chain]/curator-feed.tsx`, `components/CuratorFeed/CuratorFeed.tsx` (`CuratorFeed`, `CuratorFeedCard`) |
-| tests                                                                     | `tests/unit/curatorFeed{,Signals,Data}.test.ts`, real-log fixtures `tests/unit/fixtures/curator-feed-logs.json`                                  |
+| §07 cards, card headlines, wallet exposure                                | `components/CuratorFeed/OracleGapSection.tsx`, `lib/curatorFeed/headlines.ts`, `lib/exposure/{resolve,relations}.ts`                            |
+| tests                                                                     | `tests/unit/curatorFeed{,Signals,Data,OracleGap,OracleGapApi,Headlines}.test.ts`, `tests/unit/exposureResolve.test.ts`, real-log fixtures `tests/unit/fixtures/curator-feed-logs.json` |
 
 ## Not yet
 

@@ -10,6 +10,8 @@
  *       ?by=collateral|vault  ?collateral=  ?curator=  ?minUsd=
  *   GET /api/curator-feed?view=attribution      large vault withdrawals and the market move
  *       ?collateral=  ?market=0x…  ?only=spike|drained
+ *   GET /api/curator-feed?view=oracle-gap       oracle vs DefiLlama gap per held market, the
+ *       ?collateral=  ?curator=  ?market=0x…  ?limit=   Q25 T2 I3 state and its record
  */
 
 import { attribute, type Attribution } from './attribution'
@@ -35,10 +37,24 @@ import {
   utc,
   vaultLabel,
 } from './format'
+import {
+  decodeGapFile,
+  evaluateI3,
+  PEG_ASSUMED_WITHIN,
+  pegOf,
+  STALE_HOURS,
+  type GapObservation,
+  type PegRef,
+  type I3Constants,
+  type I3Record,
+  type I3Result,
+  type I3State,
+} from './oracleGap'
 import { explainSpike, type SpikeExplanation } from './spikes'
 import type { ExposureAlloc, MarketFlags, SpikeDriver } from './types'
 import { secondsLeft, statusOf, toneOf, type Tone } from './status'
-import type { ExposureFile, FeedFile, FeedMeta } from './store'
+import type { ExposureFile, FeedFile, FeedMeta, OracleGapFile } from './store'
+import type { Relation } from '@/lib/exposure/relations'
 import type { ClaimClass } from '../netApy/types'
 import type { ActionKind, ActionStatus, ExitCluster, FeedAction, Protocol } from './types'
 
@@ -93,7 +109,7 @@ const GROUPS: Record<Exclude<Group, 'all'>, ActionKind[]> = {
 const PROTOCOLS: Protocol[] = ['morpho-v1', 'morpho-v2', 'euler-earn', 'aave-v3']
 
 export interface FeedQuery {
-  view: 'feed' | 'exposure' | 'attribution' | 'spikes' | 'flags'
+  view: 'feed' | 'exposure' | 'attribution' | 'spikes' | 'flags' | 'oracle-gap'
   collateral?: string
   curator?: string
   protocol?: Protocol
@@ -113,8 +129,8 @@ const one = (v: string | string[] | undefined): string | undefined => (Array.isA
 
 export function parseFeedQuery(q: Record<string, string | string[] | undefined>): FeedQuery {
   const view = one(q.view) ?? 'feed'
-  if (!['feed', 'exposure', 'attribution', 'spikes', 'flags'].includes(view))
-    throw new QueryError('view must be feed, exposure, attribution, spikes or flags')
+  if (!['feed', 'exposure', 'attribution', 'spikes', 'flags', 'oracle-gap'].includes(view))
+    throw new QueryError('view must be feed, exposure, attribution, spikes, flags or oracle-gap')
   const group = (one(q.group) ?? 'all') as Group
   if (group !== 'all' && !(group in GROUPS))
     throw new QueryError(`group must be one of all, ${Object.keys(GROUPS).join(', ')}`)
@@ -207,6 +223,8 @@ export const CLAIM = {
   marketFlag: 'measured-change',
   /** One curator moving a position between its own vaults, then cutting it. */
   shift: 'possible-leading-signal',
+  /** Oracle above its market price for 24 h (Q25 T2 I3): a pattern, scored on n = 3. */
+  oracleGap: 'possible-leading-signal',
 } as const satisfies Record<string, ClaimClass>
 
 /**
@@ -367,6 +385,33 @@ export function buildClusters(feed: FeedFile, opts: ClusterOptions): ClusterView
   )
 }
 
+/** Kinds whose rows can repeat to the reader: a cap or an exit on one target. */
+const SAME_ROW_KINDS = new Set<ActionKind>([...GROUPS.caps, ...GROUPS.exits])
+
+/**
+ * One row per kind + vault + target (market or collateral) + UTC day + status, for the cap
+ * and exit kinds. A Morpho V2 vault cuts a market's absolute and its relative cap to 0 in
+ * one transaction: two actions, one change to the reader, and the card printed "Cap cut to
+ * 0: PT-sUSDD-27AUG2026 · Gauntlet USDC Frontier · 2026-10-09" twice. The first in list
+ * order (newest first) stays. Other kinds, and an action with no target, are never merged.
+ */
+export function dedupeSameRows<T>(
+  list: readonly T[],
+  actionOf: (x: T) => FeedAction,
+  statusOfX: (x: T) => ActionStatus,
+): T[] {
+  const seen = new Set<string>()
+  return list.filter((x) => {
+    const a = actionOf(x)
+    if (!SAME_ROW_KINDS.has(a.kind) || !a.target) return true
+    const day = new Date(a.ts * 1000).toISOString().slice(0, 10)
+    const key = [a.kind, a.vault, a.target, day, statusOfX(x)].join('|')
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 export function buildFeedResponse(feed: FeedFile, q: FeedQuery, nowS: number): FeedResponse {
   const clusters = buildClusters(feed, { windowHours: q.windowHours, minCurators: 2 })
   const clustered = clusteredIds(clusters)
@@ -380,10 +425,14 @@ export function buildFeedResponse(feed: FeedFile, q: FeedQuery, nowS: number): F
     cur(a.vault)
   // Status is cheap and needed for every row (filters, the open list); the sentence and
   // labels are rendered only for the rows this response returns.
-  const all = feed.actions
-    .filter(pass)
-    .map((a) => ({ a, status: statusOf(a, nowS) }))
-    .sort((x, y) => y.a.block - x.a.block || y.a.id.localeCompare(x.a.id))
+  const all = dedupeSameRows(
+    feed.actions
+      .filter(pass)
+      .map((a) => ({ a, status: statusOf(a, nowS) }))
+      .sort((x, y) => y.a.block - x.a.block || y.a.id.localeCompare(x.a.id)),
+    (x) => x.a,
+    (x) => x.status,
+  )
   const statusOk = (s: ActionStatus) =>
     !q.status ||
     (q.status === 'open'
@@ -1107,6 +1156,315 @@ export function buildFlagsResponse(
     })
   }
   return { block: flags.block, ts: flags.ts, markets, shifts }
+}
+
+// ── oracle gap (lib/curatorFeed/oracleGap.ts) ──────────────────────────────────
+
+export interface OracleGapMarketView {
+  claim: typeof CLAIM.oracleGap
+  market: string
+  marketName: string
+  collateralSymbol: string
+  loanSymbol: string
+  oracle: string
+  /** The $ exposed: what curated vaults supply to it at the last exposure read, USD. */
+  curatedUsd?: number
+  /** Supply-locked market (flag 5): curatedUsd is book value, not live supply. */
+  locked: boolean
+  vaults: { vault: string; vaultName: string; curatorName: string; share: number; usd?: number }[]
+  i3: I3Result
+  /** The newest observed point's two prices. The oracle in USD: with the loan token at its
+   *  peg when it has one (the collateral-side figure), else at DefiLlama's loan price. */
+  latest?: {
+    ts: number
+    oracleUsd: number
+    marketUsd: number
+    marketConfidence?: number
+    /** The whole gap as read (loan token at DefiLlama), kept for audit when split. */
+    fullGap?: number
+  }
+  /** The loan token against its peg at the newest observed point (PEGS): msUSD $0.885 vs
+   *  $1 assumed. Undefined for a loan token with no peg. */
+  loanSide?: {
+    symbol: string
+    ref: PegRef
+    loanUsd: number
+    pegUsd: number
+    /** loanUsd ÷ pegUsd − 1 */
+    gap: number
+  }
+  /** The collateral is a pegged token the oracle holds at its peg (within
+   *  PEG_ASSUMED_WITHIN) while its market is ≥ the line away: "peg assumed". */
+  pegAssumed?: boolean
+  /** A Pendle PT: its oracle prices it to maturity, not at market. */
+  pt?: boolean
+  /** The newest point when it was priced but below MIN_PRICE_CONFIDENCE (not counted). */
+  lastRaw?: {
+    ts: number
+    oracleUsd: number
+    marketUsd: number
+    marketConfidence?: number
+    rawGap: number
+  }
+  /** The last 2 × persistence points, oldest first; gap null = unobserved. */
+  series: { ts: number; gap: number | null }[]
+  /** The viewer's tie to the market. Never sent by the API: attached client-side from a
+   *  read-only wallet read or a chosen curator (lib/exposure withRelations). */
+  relation?: Relation
+}
+
+export interface OracleGapResponse {
+  meta: {
+    now: number
+    /** False until the collector has written a first oracle-gap point. */
+    measured: boolean
+    runs: number
+    firstRunTs?: number
+    lastRunTs?: number
+    lastRunBlock?: number
+    keepDays?: number
+    staleHours: number
+    /** The newest run is older than staleHours. */
+    stale: boolean
+    marketSource: 'defillama'
+    /** The exposure read the vault lists come from. */
+    exposureBlock: number
+    exposureTs: number
+  }
+  constants: I3Constants
+  record: I3Record
+  /** Over every market measured (or held and never observed), before the limit. */
+  counts: Record<I3State, number>
+  /** Curated supply (USD, last exposure read) in the markets of each state. */
+  curatedUsd: Record<I3State, number>
+  /** The part of curatedUsd that is book value (supply-locked markets, flag 5). */
+  bookUsd: Record<I3State, number>
+  /** Markets of each state with at least EXPOSED_MIN_USD of curated supply. */
+  exposed: Record<I3State, number>
+  /** Below this curated supply a market counts as having no curated exposure. */
+  exposedMinUsd: number
+  /**
+   * Every Morpho vault of the exposure read (MetaMorpho V1 and Vault V2), by lowercase
+   * address: what a viewer's read needs (lib/exposure). `usdPerAsset`: totalUsd /
+   * totalAssets at the exposure read, USD per base unit of the vault's asset.
+   */
+  vaults: Record<
+    string,
+    { protocol: 'morpho-v1' | 'morpho-v2'; name: string; curatorName: string; usdPerAsset?: number }
+  >
+  markets: OracleGapMarketView[]
+  total: number
+}
+
+/**
+ * What a card says beside its figure: the loan token against its peg, a collateral the
+ * oracle holds at its peg, a PT priced to maturity. From the newest observed point.
+ */
+export function gapNotes(
+  m: { collateral: string; loan: string },
+  last: GapObservation | undefined,
+  collateralSymbol: string,
+  c: Pick<I3Constants, 'gap'>,
+): Pick<OracleGapMarketView, 'loanSide' | 'pegAssumed' | 'pt'> {
+  const out: Pick<OracleGapMarketView, 'loanSide' | 'pegAssumed' | 'pt'> = {}
+  const loanPeg = pegOf(m.loan)
+  if (
+    loanPeg &&
+    last?.loanUsd !== undefined &&
+    last.loanPegUsd !== undefined &&
+    last.loanGap !== undefined
+  )
+    out.loanSide = {
+      symbol: loanPeg.symbol,
+      ref: loanPeg.ref,
+      loanUsd: last.loanUsd,
+      pegUsd: last.loanPegUsd,
+      gap: last.loanGap,
+    }
+  // Only a USD peg is checked: an ETH-pegged collateral's peg value is not stored per row.
+  const collPeg = pegOf(m.collateral)
+  const g = last?.gap
+  if (
+    collPeg?.ref === 'USD' &&
+    g !== undefined &&
+    g !== null &&
+    Math.abs(g) >= c.gap &&
+    last?.oracleUsd !== undefined &&
+    Math.abs(last.oracleUsd - 1) <= PEG_ASSUMED_WITHIN
+  )
+    out.pegAssumed = true
+  if (/^PT-/.test(collateralSymbol)) out.pt = true
+  return out
+}
+
+/** A curated allocation under $1 rounds to nothing: no curated exposure. */
+export const EXPOSED_MIN_USD = 1
+
+/** Fired, then above the line for under 24 h, then the rest. Stale: as of its last point. */
+function rankOf(r: I3Result): number {
+  const above = r.hoursAboveConsecutive
+  switch (r.state) {
+    case 'fired':
+      return 0
+    case 'building':
+      return 1
+    case 'stale':
+      return above >= r.persistence ? 0 : above > 0 ? 1 : 2
+    case 'below':
+      return 2
+    default:
+      return 3
+  }
+}
+
+/**
+ * Every market the gap series holds, plus held markets it never observed (no DefiLlama
+ * price, or a reverting oracle since the first run), evaluated at `nowS`. Sorted fired
+ * first, then above the line for under 24 h, then the rest; inside each, by the $ exposed
+ * (curated supply), then by consecutive hours above the line.
+ */
+export function buildOracleGapResponse(
+  feed: FeedFile,
+  exposure: ExposureFile,
+  gap: OracleGapFile | null,
+  record: I3Record,
+  q: FeedQuery,
+  nowS: number,
+): OracleGapResponse {
+  const e = feed.entities
+  const constants: I3Constants = {
+    gap: record.constants.gap,
+    persistenceHours: record.constants.persistenceHours,
+    persistenceDailyPoints: record.constants.persistenceDailyPoints,
+  }
+  const decoded = gap ? decodeGapFile(gap) : null
+  const lastRun = decoded?.runs.at(-1)
+  const zero = (): Record<I3State, number> => ({
+    fired: 0,
+    building: 0,
+    below: 0,
+    stale: 0,
+    unobserved: 0,
+  })
+  const counts = zero()
+  const curatedUsd = zero()
+  const exposed = zero()
+  const bookUsd = zero()
+  const vaults: OracleGapResponse['vaults'] = {}
+  for (const v of exposure.vaults) {
+    if (v.protocol !== 'morpho-v1' && v.protocol !== 'morpho-v2') continue
+    const total = BigInt(v.totalAssets)
+    vaults[v.vault.toLowerCase()] = {
+      protocol: v.protocol,
+      name: vaultLabel(e, v.vault),
+      curatorName: curatorLabel(e, v.vault),
+      ...(v.totalUsd !== undefined && total > 0n
+        ? { usdPerAsset: v.totalUsd / Number(total) }
+        : {}),
+    }
+  }
+  const empty = { counts, curatedUsd, bookUsd, exposed, exposedMinUsd: EXPOSED_MIN_USD, vaults }
+  const meta: OracleGapResponse['meta'] = {
+    now: nowS,
+    measured: Boolean(lastRun),
+    runs: decoded?.runs.length ?? 0,
+    firstRunTs: decoded?.runs[0]?.ts,
+    lastRunTs: lastRun?.ts,
+    lastRunBlock: lastRun?.block,
+    keepDays: gap?.keepDays,
+    staleHours: STALE_HOURS,
+    stale: lastRun ? nowS - lastRun.ts > STALE_HOURS * 3600 : false,
+    marketSource: 'defillama',
+    exposureBlock: exposure.block,
+    exposureTs: exposure.ts,
+  }
+  if (!decoded || !lastRun) return { meta, constants, record, ...empty, markets: [], total: 0 }
+
+  const holders = new Map<string, OracleGapMarketView['vaults']>()
+  for (const v of exposure.vaults)
+    for (const a of v.allocations) {
+      if (!e.markets[a.target]) continue
+      holders.set(a.target, [
+        ...(holders.get(a.target) ?? []),
+        {
+          vault: v.vault,
+          vaultName: vaultLabel(e, v.vault),
+          curatorName: curatorLabel(e, v.vault),
+          share: a.share,
+          usd: a.usd,
+        },
+      ])
+    }
+  const ZERO = '0x0000000000000000000000000000000000000000'
+  const ids = new Set<string>(decoded.byMarket.keys())
+  for (const t of holders.keys()) {
+    const m = e.markets[t]
+    if (m.collateral !== ZERO && m.oracle.toLowerCase() !== ZERO) ids.add(t)
+  }
+  const coll = collateralMatcher(feed, q.collateral)
+  const cur = curatorMatcher(feed, q.curator)
+  const need = 2 * constants.persistenceHours
+  const all: OracleGapMarketView[] = []
+  for (const market of ids) {
+    const m = e.markets[market]
+    if (!m || (q.market && market !== q.market) || !coll([m.collateral])) continue
+    const vs = (holders.get(market) ?? []).sort((a, b) => (b.usd ?? 0) - (a.usd ?? 0))
+    if (q.curator && !vs.some((v) => cur(v.vault))) continue
+    const obs: GapObservation[] = decoded.byMarket.get(market) ?? []
+    const i3 = evaluateI3(obs, constants, nowS)
+    const lastObs = [...obs].reverse().find((o) => o.gap !== null)
+    const newest = obs[obs.length - 1]
+    all.push({
+      claim: CLAIM.oracleGap,
+      market,
+      marketName: marketLabel(e, market),
+      collateralSymbol: symbolOf(e, m.collateral),
+      loanSymbol: symbolOf(e, m.loan),
+      oracle: m.oracle.toLowerCase(),
+      curatedUsd: vs.length ? vs.reduce((s, v) => s + (v.usd ?? 0), 0) : undefined,
+      locked: isLockedMarket(feed, market),
+      vaults: vs,
+      i3,
+      latest:
+        lastObs && lastObs.oracleUsd !== undefined && lastObs.marketUsd !== undefined
+          ? {
+              ts: lastObs.ts,
+              oracleUsd: lastObs.oracleUsd,
+              marketUsd: lastObs.marketUsd,
+              marketConfidence: lastObs.marketConfidence,
+              ...(lastObs.fullGap !== undefined ? { fullGap: lastObs.fullGap } : {}),
+            }
+          : undefined,
+      ...gapNotes(m, lastObs, symbolOf(e, m.collateral), constants),
+      lastRaw:
+        newest?.rawGap !== undefined &&
+        newest.oracleUsd !== undefined &&
+        newest.marketUsd !== undefined
+          ? {
+              ts: newest.ts,
+              oracleUsd: newest.oracleUsd,
+              marketUsd: newest.marketUsd,
+              marketConfidence: newest.marketConfidence,
+              rawGap: newest.rawGap,
+            }
+          : undefined,
+      series: obs.slice(-need).map((o) => ({ ts: o.ts, gap: o.gap })),
+    })
+  }
+  for (const x of all) {
+    counts[x.i3.state]++
+    curatedUsd[x.i3.state] += x.curatedUsd ?? 0
+    if (x.locked) bookUsd[x.i3.state] += x.curatedUsd ?? 0
+    if ((x.curatedUsd ?? 0) >= EXPOSED_MIN_USD) exposed[x.i3.state]++
+  }
+  all.sort(
+    (a, b) =>
+      rankOf(a.i3) - rankOf(b.i3) ||
+      (b.curatedUsd ?? 0) - (a.curatedUsd ?? 0) ||
+      b.i3.hoursAboveConsecutive - a.i3.hoursAboveConsecutive ||
+      (a.market < b.market ? -1 : 1),
+  )
+  return { meta, constants, record, ...empty, markets: all.slice(0, q.limit), total: all.length }
 }
 
 export { FLAG_DEFAULTS }

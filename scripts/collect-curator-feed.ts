@@ -6,6 +6,10 @@
 //                                    repo (<datasets>/curator-feed + PROVENANCE.md, board N18)
 //   pnpm curators:feed --exposure    force a fresh exposure snapshot
 //   CURATOR_FEED_TO_BLOCK=<n>        stop at block n instead of the finalized head
+//   pnpm curators:feed --oracle-gap-only [--dry-run] [--limit=N]
+//                                    only the oracle-gap point (step 12) at the finalized
+//                                    head, for every held market of the last run (or the N
+//                                    largest); --dry-run prints them and writes nothing
 //
 // LOCAL-FIRST (lib/curatorFeed/paths.ts): the run resumes from .data/curator-feed (else the
 // datasets-repo copy at $MEMBRANE_DATASETS_DIR or ../membrane-datasets, else a full window)
@@ -35,9 +39,15 @@
 //      read), whether a market was fully borrowed at the head and 7 days earlier; and
 //      curator shifts between a curator's own vaults followed by cuts. Exposure carries each
 //      MetaMorpho v1.1 vault's lostAssets() (counted in its totalAssets()).
+//  12. Oracle gap (lib/curatorFeed/oracleGap.ts, Q25 T2 indicator I3): for every Morpho
+//      market curated vaults hold, price() at the head (the flags read) in USD via
+//      DefiLlama's loan-token price vs DefiLlama's collateral price; one point per run
+//      appended to the rolling 7-day oracle-gap.json. A revert or a missing / old price is
+//      an unobserved point. Non-fatal; at most ⌈tokens / 100⌉ DefiLlama calls.
 //
 // RPC: env keys are never printed or stored (labels only). Labels: Morpho API curator
-// registry + vault list, Euler labels entities.json. Prices: Morpho API, collection time.
+// registry + vault list, Euler labels entities.json. Prices: Morpho API, collection time;
+// the oracle gap alone uses DefiLlama (coins.llama.fi, keyless), as T2 did.
 
 import { execSync } from 'child_process'
 import { createHash } from 'crypto'
@@ -83,6 +93,18 @@ import {
   utilization,
 } from '../lib/curatorFeed/flags'
 import { keccakText } from '../lib/curatorFeed/keccak'
+import { marketLabel } from '../lib/curatorFeed/format'
+import {
+  appendGapRun,
+  gapText,
+  observeGap,
+  pegOf,
+  pegUsdOf,
+  WETH,
+  type GapObservation,
+  type LlamaPrice,
+  type UnobservedReason,
+} from '../lib/curatorFeed/oracleGap'
 import {
   detectSpikes,
   groupFlows,
@@ -91,17 +113,20 @@ import {
 } from '../lib/curatorFeed/spikes'
 import { datasetsRoot, liveDir, seedDir } from '../lib/curatorFeed/paths'
 import {
+  ORACLE_GAP_FILE,
   SCHEMA,
   encodeFeedFile,
   encodeStateFile,
   parseExposureFile,
   parseFeedFile,
   parseFlowsFile,
+  parseOracleGapFile,
   parseStateFile,
   type CollectorState,
   type ExposureFile,
   type FeedFile,
   type FeedMeta,
+  type OracleGapFile,
 } from '../lib/curatorFeed/store'
 import type {
   AttributionCase,
@@ -132,6 +157,11 @@ const ARGS = new Set(process.argv.slice(2))
 const FULL = ARGS.has('--full') || process.env.CURATOR_FEED_FULL === '1'
 const PUBLISH = ARGS.has('--publish')
 const FORCE_EXPOSURE = ARGS.has('--exposure')
+const GAP_ONLY = ARGS.has('--oracle-gap-only')
+const DRY_RUN = ARGS.has('--dry-run')
+const GAP_LIMIT = Number(
+  process.argv.find((a) => a.startsWith('--limit='))?.slice('--limit='.length) ?? Infinity,
+)
 const DAYS = Number(process.env.CURATOR_FEED_DAYS ?? 182)
 const MAX_DAYS = Math.max(DAYS, Number(process.env.CURATOR_FEED_MAX_DAYS ?? 190))
 const EXPOSURE_MAX_AGE_H = Number(process.env.CURATOR_FEED_EXPOSURE_MAX_AGE_H ?? 6)
@@ -1067,7 +1097,7 @@ async function main() {
   log(`spikes: ${spikes.length} kept`)
 
   // ── flags 1, 2, 4, 5: oracle kind, reverting / stale, largest borrower, supply locked ──
-  const marketFlags = await readMarketFlags([...universe], {
+  const { flags: marketFlags, prices: oraclePrices } = await readMarketFlags([...universe], {
     head: toBlock,
     headTs: toTs,
     windowFrom,
@@ -1077,6 +1107,26 @@ async function main() {
     ent,
     usd,
   })
+
+  // ── 12. oracle gap: one point per held market (lib/curatorFeed/oracleGap.ts). Non-fatal:
+  //    a failure leaves oracle-gap.json as it was, and the page shows the series' age. ──
+  let gapFile: OracleGapFile | null = null
+  try {
+    const markets = gapMarkets(exposure, ent)
+    const m = await measureOracleGap(markets, {
+      head: toBlock,
+      ts: toTs,
+      ent,
+      prices: oraclePrices,
+    })
+    const r = appendGapRun(loadGapStore(), { ts: toTs, block: toBlock }, m.observations)
+    if (r.result === 'appended' || r.result === 'replaced') gapFile = r.file
+    log(
+      `oracle gap: ${m.observed} of ${markets.length} held markets observed ${JSON.stringify(m.reasons)}; run ${r.result}, ${r.file.runs.length} runs kept`,
+    )
+  } catch (e) {
+    log(`oracle gap: skipped (${String(e).slice(0, 200)})`)
+  }
 
   // ── merge, roll the window, prune, write ──
   const merged = trimFeed(
@@ -1221,6 +1271,7 @@ async function main() {
       flows: write('flows.json', encodeUnitFlows(flows, toBlock)),
       exposure: write('exposure.json', exposure),
       state: write('state.json', encodeStateFile(state)),
+      ...(gapFile ? { oracleGap: write(ORACLE_GAP_FILE, gapFile) } : {}),
     }
     log(
       `wrote ${rel}: ${Object.entries(sizes)
@@ -1262,10 +1313,12 @@ function writeProvenance(dir: string, meta: FeedMeta): void {
       return 'unknown'
     }
   }
-  const rows = ['exposure.json', 'feed.json', 'flows.json', 'state.json'].map((f) => {
-    const buf = readFileSync(join(dir, f))
-    return `| \`${f}\` | ${buf.length} | \`${createHash('sha256').update(buf).digest('hex')}\` |`
-  })
+  const rows = ['exposure.json', 'feed.json', 'flows.json', ORACLE_GAP_FILE, 'state.json']
+    .filter((f) => f !== ORACLE_GAP_FILE || existsSync(join(dir, f)))
+    .map((f) => {
+      const buf = readFileSync(join(dir, f))
+      return `| \`${f}\` | ${buf.length} | \`${createHash('sha256').update(buf).digest('hex')}\` |`
+    })
   const day = (ts: number) => new Date(ts * 1000).toISOString().slice(0, 16).replace('T', ' ')
   const text = [
     '# curator-feed — provenance',
@@ -2092,7 +2145,11 @@ async function readMarketFlags(
     ent: Entities
     usd: (token: string | undefined, amount: bigint) => number | undefined
   },
-): Promise<Record<string, MarketFlags>> {
+): Promise<{
+  flags: Record<string, MarketFlags>
+  /** Oracle → price() at the head (null: reverts); absent when the read failed. */
+  prices: Map<string, string | null>
+}> {
   const { head, headTs, state, ent } = o
   const oracleCfg = (state.oracles ??= {})
   const reverts = (state.oracleRevert ??= {})
@@ -2323,7 +2380,217 @@ async function readMarketFlags(
   log(
     `flags: ${oracles.length} oracles (${fresh.length} read for the first time), ${[...priceOf.values()].filter((x) => x === null).length} reverting, ${full.length} markets fully borrowed; ${Object.keys(out).length} markets flagged`,
   )
+  return { flags: out, prices: priceOf }
+}
+
+// ── oracle gap (step 12) ───────────────────────────────────────────────────────
+
+const LLAMA_CURRENT = 'https://coins.llama.fi/prices/current/'
+const isRevertErr = (e: unknown) => /revert/i.test(String(e))
+
+/** The rolling series from the last run: live copy, else the datasets copy, else none. */
+function loadGapStore(): OracleGapFile | null {
+  for (const [rel, dir] of [
+    ['.data/curator-feed', liveDir()],
+    ['datasets/curator-feed', seedDir()],
+  ]) {
+    const path = join(dir, ORACLE_GAP_FILE)
+    if (!existsSync(path)) continue
+    try {
+      return parseOracleGapFile(JSON.parse(readFileSync(path, 'utf8')))
+    } catch (e) {
+      log(
+        `${rel}/${ORACLE_GAP_FILE}: unreadable (${String(e).slice(0, 120)}) — trying the next location`,
+      )
+    }
+  }
+  return null
+}
+
+/** Morpho Blue markets curated vaults hold at the exposure read, with a collateral and an
+ *  oracle; largest curated supply first. Euler Earn strategies have no Morpho oracle. */
+function gapMarkets(exposure: ExposureFile, ent: Entities): string[] {
+  const usdOf = new Map<string, number>()
+  for (const v of exposure.vaults)
+    for (const a of v.allocations) usdOf.set(a.target, (usdOf.get(a.target) ?? 0) + (a.usd ?? 0))
+  return [...usdOf.keys()]
+    .filter((t) => {
+      const m = ent.markets[t]
+      return m && m.collateral !== ZERO && lc(m.oracle) !== ZERO
+    })
+    .sort((a, b) => (usdOf.get(b) ?? 0) - (usdOf.get(a) ?? 0) || (a < b ? -1 : 1))
+}
+
+/** DefiLlama current USD prices, ≤ 100 coins per call, one retry per call. */
+async function llamaPrices(tokens: string[]): Promise<Map<string, LlamaPrice>> {
+  const out = new Map<string, LlamaPrice>()
+  type Coin = {
+    price?: number
+    timestamp?: number
+    confidence?: number
+    decimals?: number
+    symbol?: string
+  }
+  for (const grp of chunked(uniq(tokens.map(lc)), 100)) {
+    const url = LLAMA_CURRENT + grp.map((t) => `ethereum:${t}`).join(',')
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(20_000) })
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        const j = (await r.json()) as { coins?: Record<string, Coin> }
+        for (const [k, v] of Object.entries(j.coins ?? {}))
+          if (typeof v?.price === 'number' && typeof v.timestamp === 'number')
+            out.set(lc(k.replace(/^ethereum:/, '')), {
+              price: v.price,
+              timestamp: v.timestamp,
+              confidence: v.confidence,
+              decimals: v.decimals,
+              symbol: v.symbol,
+            })
+        break
+      } catch (e) {
+        log(`defillama: ${String(e).slice(0, 120)}${attempt ? '' : ' — retrying once'}`)
+      }
+    }
+  }
   return out
+}
+
+/**
+ * One observation per market at `head`. `prices`: price() per oracle already read at the
+ * head (the flags step); the rest are read here, a batch null confirmed by one call (a
+ * transport failure is not a revert and leaves the point unobserved).
+ */
+async function measureOracleGap(
+  markets: string[],
+  o: { head: number; ts?: number; ent: Entities; prices?: Map<string, string | null> },
+): Promise<{
+  observations: [string, GapObservation][]
+  observed: number
+  reasons: Partial<Record<UnobservedReason, number>>
+  byMarket: Map<string, { obs: GapObservation; reason?: UnobservedReason; llama: LlamaPrice[] }>
+}> {
+  const { head, ent } = o
+  const priceOf = new Map(o.prices ?? [])
+  const missing = uniq(markets.map((m) => lc(ent.markets[m].oracle))).filter((a) => !priceOf.has(a))
+  const res = await rpc.batch(missing.map((a) => call(a, 'price()', [], head)))
+  for (const [i, a] of missing.entries()) {
+    const w = word(res[i])
+    if (w !== undefined) {
+      priceOf.set(a, w.toString())
+      continue
+    }
+    try {
+      const w2 = word(await rpc.call<string>('eth_call', call(a, 'price()', [], head).params))
+      if (w2 !== undefined) priceOf.set(a, w2.toString())
+    } catch (e) {
+      if (isRevertErr(e)) priceOf.set(a, null)
+    }
+  }
+  const ts =
+    o.ts ??
+    parseInt(
+      (await rpc.call<{ timestamp: string }>('eth_getBlockByNumber', [hexN(head), false]))
+        .timestamp,
+      16,
+    )
+  // WETH too: the USD value of an ETH-pegged loan token's peg (msETH = 1 ETH).
+  const llama = await llamaPrices([
+    ...markets.flatMap((m) => [ent.markets[m].collateral, ent.markets[m].loan]),
+    WETH,
+  ])
+  const wethUsd = llama.get(WETH)?.price
+  const observations: [string, GapObservation][] = []
+  const reasons: Partial<Record<UnobservedReason, number>> = {}
+  const byMarket = new Map<
+    string,
+    { obs: GapObservation; reason?: UnobservedReason; llama: LlamaPrice[] }
+  >()
+  for (const m of markets) {
+    const info = ent.markets[m]
+    const coll = llama.get(lc(info.collateral))
+    const loan = llama.get(lc(info.loan))
+    const r = observeGap({
+      ts,
+      block: head,
+      price: priceOf.get(lc(info.oracle)),
+      collateralDecimals: ent.tokens[lc(info.collateral)]?.decimals,
+      loanDecimals: ent.tokens[lc(info.loan)]?.decimals,
+      collateral: coll,
+      loan,
+      // A loan token with a peg: the gap is split, collateral-side and loan-side.
+      loanPegUsd: (() => {
+        const p = pegOf(info.loan)
+        return p ? pegUsdOf(p.ref, wethUsd) : undefined
+      })(),
+    })
+    observations.push([m, r.obs])
+    byMarket.set(m, { ...r, llama: [coll, loan].filter((x): x is LlamaPrice => Boolean(x)) })
+    if (r.reason) reasons[r.reason] = (reasons[r.reason] ?? 0) + 1
+  }
+  return {
+    observations,
+    observed: observations.filter(([, x]) => x.gap !== null).length,
+    reasons,
+    byMarket,
+  }
+}
+
+/**
+ * --oracle-gap-only: step 12 alone at the finalized head, for the GAP_LIMIT largest held
+ * markets of the last collected run (live copy, else the datasets copy). Prints every
+ * observation; --dry-run writes nothing, otherwise the point is appended to the live
+ * oracle-gap.json. Reads: one batch of price(), ⌈tokens / 100⌉ DefiLlama calls.
+ */
+async function oracleGapOnly(): Promise<void> {
+  const prev = loadPrev()
+  if (!prev)
+    throw new Error(
+      '--oracle-gap-only needs a collected feed (.data/curator-feed or the datasets copy)',
+    )
+  const ent = prev.feed.entities
+  const hdr = await rpc.call<{ number: string; timestamp: string }>('eth_getBlockByNumber', [
+    'finalized',
+    false,
+  ])
+  const head = parseInt(hdr.number, 16)
+  const all = gapMarkets(prev.exposure, ent)
+  const markets = all.slice(0, GAP_LIMIT)
+  log(
+    `oracle gap only${DRY_RUN ? ' (dry run, nothing written)' : ''}: ${markets.length} of ${all.length} held markets (exposure of ${prev.dir}, block ${prev.exposure.block}) at finalized block ${head}`,
+  )
+  const m = await measureOracleGap(markets, { head, ts: parseInt(hdr.timestamp, 16), ent })
+  for (const id of markets) {
+    const x = m.byMarket.get(id)!
+    const o = x.obs
+    log(
+      `${marketLabel(ent, id).padEnd(34)} ` +
+        (o.gap === null
+          ? `unobserved: ${x.reason}`
+          : `oracle $${o.oracleUsd} vs DefiLlama $${o.marketUsd} (conf ${o.marketConfidence ?? '—'}) → gap ${gapText(o.gap)}` +
+            (o.loanGap !== undefined && o.fullGap !== undefined
+              ? ` (loan-side ${gapText(o.loanGap)}, whole ${gapText(o.fullGap)})`
+              : '')) +
+        (o.rawGap !== undefined
+          ? ` (raw gap ${gapText(o.rawGap)}, conf ${o.marketConfidence})`
+          : ''),
+    )
+  }
+  log(`observed ${m.observed} of ${markets.length} ${JSON.stringify(m.reasons)}`)
+  if (DRY_RUN) return
+  const r = appendGapRun(
+    loadGapStore(),
+    { ts: m.observations[0]?.[1].ts ?? 0, block: head },
+    m.observations,
+  )
+  if (r.result !== 'appended' && r.result !== 'replaced') return log(`oracle gap: run ${r.result}`)
+  const dir = liveDir()
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, `${ORACLE_GAP_FILE}.tmp`), JSON.stringify(r.file) + '\n')
+  renameSync(join(dir, `${ORACLE_GAP_FILE}.tmp`), join(dir, ORACLE_GAP_FILE))
+  log(
+    `wrote .data/curator-feed/${ORACLE_GAP_FILE}: run ${r.result}, ${r.file.runs.length} runs kept`,
+  )
 }
 
 // ── prune ──────────────────────────────────────────────────────────────────────
@@ -2413,7 +2680,7 @@ function prune(
   }
 }
 
-main().then(
+;(GAP_ONLY ? oracleGapOnly() : main()).then(
   () => process.exit(0),
   (e) => {
     console.error(`[curator-feed] failed: ${rpc.scrub(String(e?.stack ?? e))}`)

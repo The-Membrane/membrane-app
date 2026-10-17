@@ -49,7 +49,7 @@ concurrency:
 
 env:
   APP_REPO: The-Membrane/membrane-app
-  APP_SHA: f8d52911f968c20d4dcfb1b78adb1f2f35912244   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung, LIVE D5)
+  APP_SHA: 01b997081c6e3815d80064fd9cccae2401eb16bc   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung, LIVE D5)
   DATASETS_REPO: triccs/membrane-datasets
   LIVE_DIR: forecasts/q26-touch-live
 

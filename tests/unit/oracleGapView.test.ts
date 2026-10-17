@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   ADDRESS_HINT,
   cardTag,
+  cardTitles,
   commitTyped,
   pickCards,
+  uncheckedNote,
   viewerOf,
   type PickMarket,
 } from '@/components/CuratorFeed/oracleGapView'
@@ -149,5 +151,47 @@ describe('which cards show', () => {
       only: false,
     })
     expect(p.above.map((m) => m.market)).toEqual([id(1)])
+  })
+})
+
+describe('a card’s title', () => {
+  it('a unique name stays; a shared name gets the shortest id prefix that tells them apart', () => {
+    const t = cardTitles([
+      { market: '0x8dc0aa' + '0'.repeat(58), marketName: 'weETH/USDC (86% LLTV)' },
+      { market: '0x37e7bb' + '0'.repeat(58), marketName: 'weETH/USDC (86% LLTV)' },
+      { market: id(9), marketName: 'WBTC/USDC (86% LLTV)' },
+    ])
+    expect(t.get('0x8dc0aa' + '0'.repeat(58))).toBe('weETH/USDC (86% LLTV) · 0x8dc0…')
+    expect(t.get('0x37e7bb' + '0'.repeat(58))).toBe('weETH/USDC (86% LLTV) · 0x37e7…')
+    expect(t.get(id(9))).toBe('WBTC/USDC (86% LLTV)')
+  })
+
+  it('ids that share their first 4 hex digits get longer prefixes, only as long as needed', () => {
+    const a = '0x8dc0a1' + '0'.repeat(58)
+    const b = '0x8dc0b2' + '0'.repeat(58)
+    const t = cardTitles([
+      { market: a, marketName: 'X/USDC (86% LLTV)' },
+      { market: b, marketName: 'X/USDC (86% LLTV)' },
+    ])
+    expect(t.get(a)).toBe('X/USDC (86% LLTV) · 0x8dc0a…')
+    expect(t.get(b)).toBe('X/USDC (86% LLTV) · 0x8dc0b…')
+  })
+})
+
+describe('unchecked: one number, one meaning', () => {
+  it('a market the read could not check but that carries a tie is not counted; every place prints the same note', () => {
+    // The read could not check 3 markets; one of them is tied through the snapshot.
+    const unchecked = new Set([id(1), id(2), id(3)])
+    const markets = [mkt(1), mkt(2), mkt(3, { relation: rel({ asOf: 1 }) }), mkt(4)]
+    const base = { stale: false, all: false, minUsd: 1, unchecked, markets, hasViewer: true }
+    const hl = pickCards({ ...base, only: false })
+    const only = pickCards({ ...base, only: true })
+    expect(hl.uncheckedCount).toBe(2)
+    expect(only.uncheckedCount).toBe(2)
+    // The "show N unchecked" fold holds exactly the counted markets.
+    expect(only.unchecked.map((m) => m.market)).toEqual([id(1), id(2)])
+    // The tied one carries its tie, not "unchecked".
+    expect(cardTag(markets[2], unchecked)!.style).toBe('snapshot')
+    expect(uncheckedNote(hl.uncheckedCount)).toBe('░ 2 unchecked')
   })
 })

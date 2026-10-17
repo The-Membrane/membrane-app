@@ -54,7 +54,7 @@ import {
 
 import { Chip, Fold, getJson, HATCH, LABEL, Mono } from './atoms'
 import { useExposure, useViewerAddress } from './hooks/useExposure'
-import { cardTag, pickCards, type CardTag } from './oracleGapView'
+import { cardTag, cardTitles, pickCards, uncheckedNote, type CardTag } from './oracleGapView'
 
 const ETHERSCAN = 'https://etherscan.io'
 
@@ -244,14 +244,22 @@ const FRAME: Record<
   },
 }
 
+/** A card's rows, shared with its neighbours through the grid's subgrid: tag, title,
+ *  figure, mark, $ exposed, fold. A long title in one card moves every figure in its row
+ *  down together, and every card in a row ends on the same line. */
+const CARD_ROWS = 6
+
 const GapCard = memo(function GapCard({
   m,
   r,
+  title,
   tag,
   onWatch,
 }: {
   m: OracleGapMarketView
   r: OracleGapResponse
+  /** The market's name, with a short id when another market shares it (cardTitles). */
+  title: string
   tag?: CardTag
   onWatch: (symbol: string) => void
 }) {
@@ -262,9 +270,14 @@ const GapCard = memo(function GapCard({
   return (
     <Box
       as="article"
-      aria-label={`${m.marketName}${tag ? `, ${tag.text}` : ''}`}
+      aria-label={`${title}${tag ? `, ${tag.text}` : ''}`}
       data-tie={tag?.style}
       minW={0}
+      display="grid"
+      gridRow={`span ${CARD_ROWS}`}
+      gridTemplateRows="subgrid"
+      rowGap={0}
+      alignContent="start"
       px={SPACING.md}
       pt={SPACING.sm}
       border="1px solid"
@@ -273,28 +286,47 @@ const GapCard = memo(function GapCard({
       boxShadow={frame?.inset ? `inset 0 0 0 1px ${frame.border}` : undefined}
       bgImage={hatched ? HATCH : undefined}
     >
-      {tag && frame && (
-        <Text {...LABEL} fontWeight={frame.weight} color={frame.ink} overflowWrap="anywhere">
-          {tag.text}
+      {/* The tag row is always there (empty without a tie) so the subgrid rows line up. */}
+      <Box>
+        {tag && frame && (
+          <Text {...LABEL} fontWeight={frame.weight} color={frame.ink} overflowWrap="anywhere">
+            {tag.text}
+          </Text>
+        )}
+      </Box>
+      <Mono size="13px" color={SEMANTIC_COLORS.textPrimary} title={m.market}>
+        {title}
+      </Mono>
+      {hatched ? (
+        // Stale or not measured: the figure is withheld. One line of ░ at the figure's
+        // line height, so the card keeps its rhythm and nothing reads as a value.
+        <Box
+          h="40px"
+          display="flex"
+          alignItems="center"
+          role="img"
+          aria-label="figure withheld"
+        >
+          <Mono size="13px" color={SEMANTIC_COLORS.textSecondary}>
+            ░░░░
+          </Mono>
+        </Box>
+      ) : (
+        <Text
+          {...NEWS_FIGURE.display}
+          fontSize="32px"
+          lineHeight="40px"
+          color={ink}
+          title={m.i3.currentGap !== undefined ? 'oracle ÷ DefiLlama − 1, newest point' : undefined}
+        >
+          {mark.alarm && (
+            <Box as="span" aria-hidden="true" mr="0.2em">
+              ✖
+            </Box>
+          )}
+          {mark.headline}
         </Text>
       )}
-      <Mono size="13px" color={SEMANTIC_COLORS.textPrimary} title={m.market}>
-        {m.marketName}
-      </Mono>
-      <Text
-        {...NEWS_FIGURE.display}
-        fontSize="32px"
-        lineHeight="40px"
-        color={ink}
-        title={m.i3.currentGap !== undefined ? 'oracle ÷ DefiLlama − 1, newest point' : undefined}
-      >
-        {mark.alarm && (
-          <Box as="span" aria-hidden="true" mr="0.2em">
-            ✖
-          </Box>
-        )}
-        {mark.headline}
-      </Text>
       <Text {...LABEL} color={mark.alarm ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}>
         {mark.mark && !mark.alarm ? `${mark.mark} ` : ''}
         {mark.detail}
@@ -318,7 +350,6 @@ const GRID = {
     xl: 'repeat(4, minmax(0, 1fr))',
   },
   gap: SPACING.sm,
-  alignItems: 'start',
 } as const
 
 // ── the viewer: a curator, an address ─────────────────────────────────────────
@@ -365,7 +396,7 @@ const ReadLine: React.FC<{
       {d.block !== undefined ? ` · block ${d.block.toLocaleString('en-US')}` : ''}
       {d.results.map((r) => ` · ${r.label}: ${statusOf(r)}`).join('')}
       {failed.length ? ` · ${failed.length} reads failed (${names})` : ''}
-      {unchecked ? ` · ${unchecked} markets unchecked` : ''}
+      {unchecked ? ` · ${uncheckedNote(unchecked)}` : ''}
     </Mono>
   )
 }
@@ -538,8 +569,16 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
     minUsd: r.exposedMinUsd,
   })
   const shown = pick.held.length + pick.unheld.length
+  const titles = useMemo(() => cardTitles(r.markets), [r.markets])
   const card = (m: OracleGapMarketView) => (
-    <GapCard key={m.market} m={m} r={r} tag={cardTag(m, unchecked)} onWatch={onWatch} />
+    <GapCard
+      key={m.market}
+      m={m}
+      r={r}
+      title={titles.get(m.market) ?? m.marketName}
+      tag={cardTag(m, unchecked)}
+      onWatch={onWatch}
+    />
   )
 
   return (
@@ -610,7 +649,7 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
             </Chip>
             <Mono size="11px" as="span">
               {pick.mine} of {r.total}
-              {pick.uncheckedCount ? ` · ░ ${pick.uncheckedCount} unchecked` : ''}
+              {pick.uncheckedCount ? ` · ${uncheckedNote(pick.uncheckedCount)}` : ''}
             </Mono>
           </HStack>
         )}
@@ -623,14 +662,14 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
         </Box>
       )}
       {viewer.address && (
-        <ReadLine address={viewer.address} q={exposure} unchecked={unchecked.size} />
+        <ReadLine address={viewer.address} q={exposure} unchecked={pick.uncheckedCount} />
       )}
 
       <Box mt={SPACING.sm}>
         {shown === 0 && !r.meta.stale && !(only && unread) && (
           <Mono size="11px">
             {hasViewer && only
-              ? `No market here ties to ${[viewer.address && shortAddress(viewer.address), curator && shortName(curator)].filter(Boolean).join(' or ')}${pick.uncheckedCount ? ` · ░ ${pick.uncheckedCount} unchecked` : ''}.`
+              ? `No market here ties to ${[viewer.address && shortAddress(viewer.address), curator && shortName(curator)].filter(Boolean).join(' or ')}${pick.uncheckedCount ? ` · ${uncheckedNote(pick.uncheckedCount)}` : ''}.`
               : `No market is ${line} or more above its DefiLlama price at the newest point.`}
           </Mono>
         )}

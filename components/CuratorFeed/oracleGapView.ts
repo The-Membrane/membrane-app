@@ -110,3 +110,39 @@ export function pickCards<T extends PickMarket>(p: {
     uncheckedCount: markets.filter(isUnchecked).length,
   }
 }
+
+// ── a card's title ────────────────────────────────────────────────────────────
+
+/**
+ * Card titles, by market id. A name shared by two markets (same pair, same LLTV, another
+ * oracle) gets the shortest market-id prefix that tells them apart: "weETH/USDC (86% LLTV)
+ * · 0x8dc0…". A unique name stays as it is.
+ */
+export function cardTitles(
+  markets: readonly { market: string; marketName: string }[],
+): Map<string, string> {
+  const byName = new Map<string, string[]>()
+  for (const m of markets) byName.set(m.marketName, [...(byName.get(m.marketName) ?? []), m.market])
+  const out = new Map<string, string>()
+  for (const [name, ids] of byName) {
+    if (ids.length === 1) {
+      out.set(ids[0], name)
+      continue
+    }
+    const hex = ids.map((id) => id.toLowerCase().replace(/^0x/, ''))
+    let k = 4
+    while (k < 64 && new Set(hex.map((h) => h.slice(0, k))).size < new Set(hex).size) k++
+    ids.forEach((id, i) => out.set(id, `${name} · 0x${hex[i].slice(0, k)}…`))
+  }
+  return out
+}
+
+// ── unchecked: one number, one meaning ───────────────────────────────────────
+
+/**
+ * "░ 92 unchecked": markets with no tie that the read could not check. A market the read
+ * could not check but that carries a tie (from the exposure snapshot) is tagged by its tie
+ * instead, so it is not counted here. The toggle row, the read line and the empty notice
+ * all print this one number.
+ */
+export const uncheckedNote = (n: number): string => `░ ${n} unchecked`

@@ -377,7 +377,11 @@ def load_prices(debt_dir, T, snapshot_of_day):
             if s in dpos and v != "":
                 arr[dpos[s]] = int(v)
         prices[a], fills[a] = fill_prices(arr)
+        FILLED[a] = np.array([not (v is not None and v > 0) for v in arr])
     return prices, dec, fills, shas
+
+
+FILLED = {}                               # asset -> bool (D,) day priced by the B5-5 fill (reported)
 
 
 def fill_prices(arr):
@@ -430,6 +434,8 @@ def debt_flows(bor, rep, addrs, T, prices, dec, log=print):
                 info["no_price"] += 1
                 raise SystemExit(f"STOP: no oracle price for {a} on day {d}")
             usd[k] = sign * usd_micro(amt, pa[d], dec[a])
+            if a in FILLED and FILLED[a][d]:
+                info["events_on_filled_price_days"] = info.get("events_on_filled_price_days", 0) + 1
         parts.append(pd.DataFrame({"unit": ui[m], "ts": sub["ts"].to_numpy(np.int64), "usd": usd}))
     ev = pd.concat(parts, ignore_index=True)
     g = ev.groupby(["unit", "ts"], sort=True)["usd"].sum().reset_index()

@@ -480,6 +480,14 @@ def phase_export(work, out_dir):
             w.writerow(["day", "first_new_hour_k", "block", "block_ts"])
             for k in sorted(hours):
                 w.writerow([k, hours[k]["first_new_hour_k"], hours[k]["block"], hours[k]["block_ts"]])
+        bad = []      # usage outside (0, 1): R10.3's logit is undefined there (counts only, no outcome)
+        n_debt = 0
+        for r in rows:
+            debt = int(r["variable_debt_raw"]) + int(r["stable_debt_raw"] if r["stable_debt_raw"] != "None" else 0)
+            avail = int(r["virtual_balance_raw"]) if r["virtual_balance_raw"] != "" else int(r["cash_balance_raw"])
+            n_debt += debt >= 1_000_000 * 10 ** 6
+            if not (debt > 0 and avail > 0):
+                bad.append(r["date"])
         dates = [dt.date.fromisoformat(r["date"]) for r in rows]
         gaps = sum(1 for a, b in zip(dates, dates[1:]) if (b - a).days != 1)
         counts[market] = {"days": len(rows), "first": rows[0]["date"], "last": rows[-1]["date"], "gaps": gaps,
@@ -487,6 +495,8 @@ def phase_export(work, out_dir):
                           "curve_changes": len(hours), "strategies": len(strat_ids),
                           "stable_debt_days": sum(1 for r in rows if r["stable_debt_raw"] not in ("0", "None")),
                           "virtual_days": sum(1 for r in rows if r["virtual_balance_raw"] != ""),
+                          "usage_outside_open_unit_days": len(bad), "usage_outside_last_day": bad[-1] if bad else None,
+                          "days_debt_ge_1m_usdc": n_debt,
                           "sha256_daily": sha256_file(p), "sha256_curve_changes": sha256_file(hp)}
     for name in os.listdir(out_dir):
         fp = os.path.join(out_dir, name)

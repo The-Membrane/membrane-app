@@ -33,6 +33,15 @@ export const NEWS = {
   risk: 'var(--news-risk)',
   warning: 'var(--news-warning)',
   info: 'var(--news-info)',
+  /**
+   * A raised element (a primary button): a hard 3px offset ink shadow, never blurred
+   * (owner ruling 2026-10-17, overriding "no shadow" for these surfaces). Use this token;
+   * do not hand-roll a shadow per component.
+   */
+  shadowRaised: 'var(--news-shadow-raised)',
+  /** A pale danger fill: the danger hue at a tenth over the card. A card the reader
+   *  should look at now (curator feed §07: oracle ≥ the line from market). */
+  dangerTint: 'var(--news-danger-tint)',
 } as const
 
 /**

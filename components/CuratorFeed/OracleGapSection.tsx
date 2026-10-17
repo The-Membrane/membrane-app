@@ -1,4 +1,4 @@
-// §07 ORACLE ABOVE MARKET: one small card per market, one glance per card.
+// §07 ORACLE VS MARKET: one small card per market, one glance per card.
 //
 // Owner, 2026-10-16: "smaller cards, less words and primarily showcase the core stats
 // (market & delta) w/ a style toggle if the user or curator has a relationship to it. It
@@ -13,16 +13,21 @@
 // exposure snapshot "as of" its date and muted, a tie under $1 under the fold, a market the
 // read could not check "░ unchecked". The viewer can highlight those cards or show only them.
 //
-// Rules (membrane-board design/DESIGN_RULES.md): calm is ink; red ✖ only for a fired
-// market (its oracle priced the collateral ≥ 2% above market for 24 h); stale is hatched
-// ░ with the figure withheld. Every number comes from the API or the chain read.
+// Owner, 2026-10-17 (round 4): the state reads as colour, both ways. A card whose oracle
+// is ≥ 2% above OR below market now is pale red (▲ / ▼, the side in words); ≥ 2% the same
+// way for 24 h is the warning red card (✖ fired). Within the line, the card stays paper.
+// Cards are raised (NEWS.shadowRaised, hard and unblurred). Past a 100% gap the line under
+// the figure gives both prices. A star keeps a market at the top (per viewer, this
+// browser); a highlighted tie sorts above that. The grid scrolls inside a fixed height.
+// Stale is hatched ░ with the figure withheld. Every number comes from the API or the
+// chain read.
 
 import React, { memo, useEffect, useMemo, useState } from 'react'
 import { Box, HStack, Input, Link, Select, Stack, Text } from '@chakra-ui/react'
 import { useQuery } from '@tanstack/react-query'
 
 import { Eyebrow, SectionHeading } from '@/components/Carry/atoms'
-import { NEWS_FIGURE, shortAddress } from '@/components/NewsEdition/tokens'
+import { NEWS, NEWS_FIGURE, shortAddress } from '@/components/NewsEdition/tokens'
 import { SEMANTIC_COLORS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
 import { FOCUS_STYLES, TRANSITIONS } from '@/config/transitions'
@@ -54,13 +59,24 @@ import {
 
 import { Chip, Fold, getJson, HATCH, LABEL, Mono } from './atoms'
 import { useExposure, useViewerAddress } from './hooks/useExposure'
-import { cardTag, cardTitles, pickCards, uncheckedNote, type CardTag } from './oracleGapView'
+import { useStarred } from './hooks/useStarred'
+import {
+  bothPricesLine,
+  cardState,
+  cardTag,
+  cardTitles,
+  notReadReason,
+  pickCards,
+  sortCards,
+  stateLine,
+  uncheckedNote,
+  usdPrice,
+  type CardState,
+  type CardTag,
+  type Tone,
+} from './oracleGapView'
 
 const ETHERSCAN = 'https://etherscan.io'
-
-/** A USD price at 5 significant digits: $83,357 · $1.0645 · $0.000015853. */
-const usdPrice = (x: number): string =>
-  `$${Number(x.toPrecision(5)).toLocaleString('en-US', { maximumFractionDigits: 20 })}`
 
 /** Tap target ≥ 44px on phones (DESIGN_RULES §8), inline on desktop. */
 const ACTION = {
@@ -84,7 +100,11 @@ const GapSpark: React.FC<{
   series: OracleGapMarketView['series']
   line: number
   label: string
-}> = ({ series, line, label }) => {
+  /** On the warning card's red fill: every stroke in the card's own text colour. */
+  onFill?: boolean
+}> = ({ series, line, label, onFill }) => {
+  const faint = onFill ? 'currentColor' : SEMANTIC_COLORS.textTertiary
+  const ink = onFill ? 'currentColor' : SEMANTIC_COLORS.textSecondary
   const W = 132
   const H = 30
   const PAD = 3
@@ -123,12 +143,12 @@ const GapSpark: React.FC<{
         x2={W - LBL}
         y1={y(line)}
         y2={y(line)}
-        style={{ stroke: SEMANTIC_COLORS.textTertiary, strokeWidth: 1, strokeDasharray: '1 2' }}
+        style={{ stroke: faint, strokeWidth: 1, strokeDasharray: '1 2' }}
       />
       <text
         x={W - LBL + 3}
         y={y(line) + 3}
-        style={{ fill: SEMANTIC_COLORS.textTertiary, fontSize: 9, fontFamily: TYPOGRAPHY.fontMono }}
+        style={{ fill: faint, fontSize: 9, fontFamily: TYPOGRAPHY.fontMono }}
       >
         {label}
       </text>
@@ -138,7 +158,21 @@ const GapSpark: React.FC<{
           x2={W - LBL}
           y1={y(0)}
           y2={y(0)}
-          style={{ stroke: SEMANTIC_COLORS.borderSubtle, strokeWidth: 1 }}
+          style={{
+            stroke: onFill ? 'currentColor' : SEMANTIC_COLORS.borderSubtle,
+            strokeWidth: 1,
+            opacity: onFill ? 0.4 : 1,
+          }}
+        />
+      )}
+      {/* Below market by the line: the mirrored condition, the same dotted rule. */}
+      {lo <= -line && (
+        <line
+          x1={PAD}
+          x2={W - LBL}
+          y1={y(-line)}
+          y2={y(-line)}
+          style={{ stroke: faint, strokeWidth: 1, strokeDasharray: '1 2' }}
         />
       )}
       {segs.map((pts) =>
@@ -146,7 +180,7 @@ const GapSpark: React.FC<{
           <polyline
             key={pts[0]}
             points={pts.join(' ')}
-            style={{ fill: 'none', stroke: SEMANTIC_COLORS.textSecondary, strokeWidth: 1.25 }}
+            style={{ fill: 'none', stroke: ink, strokeWidth: 1.25 }}
           />
         ) : (
           <circle
@@ -154,7 +188,7 @@ const GapSpark: React.FC<{
             cx={Number(pts[0].split(',')[0])}
             cy={Number(pts[0].split(',')[1])}
             r={1.25}
-            style={{ fill: SEMANTIC_COLORS.textSecondary }}
+            style={{ fill: ink }}
           />
         ),
       )}
@@ -169,7 +203,8 @@ const CardDetails: React.FC<{
   m: OracleGapMarketView
   r: OracleGapResponse
   onWatch: (symbol: string) => void
-}> = ({ m, r, onWatch }) => (
+  onFill?: boolean
+}> = ({ m, r, onWatch, onFill }) => (
   <Stack spacing={SPACING.xs} pb={SPACING.xs}>
     {m.latest && (
       <Mono size="11px">
@@ -186,7 +221,12 @@ const CardDetails: React.FC<{
           : 'No point this hour: the oracle reverts, or no fresh DefiLlama price.'}
       </Mono>
     )}
-    <GapSpark series={m.series} line={r.constants.gap} label={thresholdText(r.constants)} />
+    <GapSpark
+      series={m.series}
+      line={r.constants.gap}
+      label={thresholdText(r.constants)}
+      onFill={onFill}
+    />
     {m.vaults.length > 0 ? (
       <Mono size="11px">
         Held by{' '}
@@ -245,15 +285,60 @@ const FRAME: Record<
 }
 
 /** A card's rows, shared with its neighbours through the grid's subgrid: tag, title,
- *  figure, mark, $ exposed, fold. A long title in one card moves every figure in its row
- *  down together, and every card in a row ends on the same line. */
-const CARD_ROWS = 6
+ *  figure, both prices (past a 100% gap; empty otherwise), state, $ exposed, fold. A long
+ *  title in one card moves every figure in its row down together, and every card in a row
+ *  ends on the same line. */
+const CARD_ROWS = 7
+
+/** The card's fill by colour state. Neutral stays paper; pale is the danger tint; warning
+ *  is the danger fill with paper-coloured text. */
+const FILL: Record<Tone, { bg: string; ink?: string }> = {
+  neutral: { bg: NEWS.paper },
+  pale: { bg: NEWS.dangerTint },
+  warning: { bg: NEWS.danger, ink: NEWS.paper },
+}
+
+/** The star: a 44px toggle in the card's top-right corner. */
+const StarButton: React.FC<{ on: boolean; title: string; onClick: () => void }> = ({
+  on,
+  title,
+  onClick,
+}) => (
+  <Box
+    as="button"
+    type="button"
+    aria-pressed={on}
+    aria-label={`Star ${title}`}
+    title={on ? 'Starred: kept at the top' : 'Star to keep at the top'}
+    onClick={onClick}
+    position="absolute"
+    top={0}
+    right={0}
+    w="44px"
+    h="44px"
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    fontSize="18px"
+    lineHeight={1}
+    color="inherit"
+    opacity={on ? 1 : 0.6}
+    transition={TRANSITIONS.colors}
+    _hover={{ opacity: 1 }}
+    _focusVisible={FOCUS_STYLES.ring}
+  >
+    <span aria-hidden="true">{on ? '★' : '☆'}</span>
+  </Box>
+)
 
 const GapCard = memo(function GapCard({
   m,
   r,
   title,
   tag,
+  state,
+  starred,
+  onStar,
   onWatch,
 }: {
   m: OracleGapMarketView
@@ -261,17 +346,33 @@ const GapCard = memo(function GapCard({
   /** The market's name, with a short id when another market shares it (cardTitles). */
   title: string
   tag?: CardTag
+  state: CardState
+  starred: boolean
+  onStar: (market: string) => void
   onWatch: (symbol: string) => void
 }) {
   const mark = gapMark(m, r)
   const hatched = m.i3.state === 'stale' || m.i3.state === 'unobserved'
-  const ink = mark.alarm ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textPrimary
+  const fill = FILL[hatched ? 'neutral' : state.tone]
+  const onFill = !!fill.ink
+  const prices = bothPricesLine(m)
   const frame = tag ? FRAME[tag.style] : undefined
+  const line = hatched
+    ? `${mark.mark ? `${mark.mark} ` : ''}${mark.detail}`
+    : stateLine(state, r.constants)
+  const lineInk = onFill
+    ? undefined
+    : state.tone === 'neutral' || hatched
+      ? SEMANTIC_COLORS.textSecondary
+      : NEWS.danger
   return (
     <Box
       as="article"
-      aria-label={`${title}${tag ? `, ${tag.text}` : ''}`}
+      aria-label={`${title}${tag ? `, ${tag.text}` : ''}${starred ? ', starred' : ''}`}
       data-tie={tag?.style}
+      data-tone={hatched ? 'hatched' : state.tone}
+      data-dir={state.dir}
+      position="relative"
       minW={0}
       display="grid"
       gridRow={`span ${CARD_ROWS}`}
@@ -281,32 +382,40 @@ const GapCard = memo(function GapCard({
       px={SPACING.md}
       pt={SPACING.sm}
       border="1px solid"
-      borderColor={frame?.border ?? SEMANTIC_COLORS.borderSubtle}
-      // The heavy frame is a second inset hairline: 2px of ink, no layout shift.
-      boxShadow={frame?.inset ? `inset 0 0 0 1px ${frame.border}` : undefined}
+      borderColor={onFill ? NEWS.danger : (frame?.border ?? SEMANTIC_COLORS.borderSubtle)}
+      bg={fill.bg}
+      color={fill.ink}
+      // Raised: the hard offset shadow token. A live tie adds its heavy frame as a second
+      // inset hairline (2px of ink, no layout shift).
+      boxShadow={
+        frame?.inset ? `inset 0 0 0 1px ${frame.border}, ${NEWS.shadowRaised}` : NEWS.shadowRaised
+      }
       bgImage={hatched ? HATCH : undefined}
+      // On the warning fill every line takes the card's paper-coloured text.
+      sx={
+        onFill
+          ? { '& p, & span, & a, & button, & summary': { color: 'inherit !important' } }
+          : undefined
+      }
     >
+      <StarButton on={starred} title={title} onClick={() => onStar(m.market)} />
       {/* The tag row is always there (empty without a tie) so the subgrid rows line up. */}
-      <Box>
+      <Box pr="36px">
         {tag && frame && (
           <Text {...LABEL} fontWeight={frame.weight} color={frame.ink} overflowWrap="anywhere">
             {tag.text}
           </Text>
         )}
       </Box>
-      <Mono size="13px" color={SEMANTIC_COLORS.textPrimary} title={m.market}>
-        {title}
-      </Mono>
+      <Box pr="36px">
+        <Mono size="13px" color={SEMANTIC_COLORS.textPrimary} title={m.market}>
+          {title}
+        </Mono>
+      </Box>
       {hatched ? (
         // Stale or not measured: the figure is withheld. One line of ░ at the figure's
         // line height, so the card keeps its rhythm and nothing reads as a value.
-        <Box
-          h="40px"
-          display="flex"
-          alignItems="center"
-          role="img"
-          aria-label="figure withheld"
-        >
+        <Box h="40px" display="flex" alignItems="center" role="img" aria-label="figure withheld">
           <Mono size="13px" color={SEMANTIC_COLORS.textSecondary}>
             ░░░░
           </Mono>
@@ -316,26 +425,28 @@ const GapCard = memo(function GapCard({
           {...NEWS_FIGURE.display}
           fontSize="32px"
           lineHeight="40px"
-          color={ink}
+          color={onFill ? undefined : SEMANTIC_COLORS.textPrimary}
           title={m.i3.currentGap !== undefined ? 'oracle ÷ DefiLlama − 1, newest point' : undefined}
         >
-          {mark.alarm && (
-            <Box as="span" aria-hidden="true" mr="0.2em">
-              ✖
-            </Box>
-          )}
           {mark.headline}
         </Text>
       )}
-      <Text {...LABEL} color={mark.alarm ? SEMANTIC_COLORS.danger : SEMANTIC_COLORS.textSecondary}>
-        {mark.mark && !mark.alarm ? `${mark.mark} ` : ''}
-        {mark.detail}
+      {/* Past a 100% gap the delta alone misleads: both prices, and how they were taken. */}
+      <Box>
+        {prices && (
+          <Mono size="11px" color={SEMANTIC_COLORS.textPrimary}>
+            {prices}
+          </Mono>
+        )}
+      </Box>
+      <Text {...LABEL} color={lineInk} fontWeight={state.tone === 'warning' ? 700 : 400}>
+        {line}
       </Text>
       <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
         {gapExposed(m, r.exposedMinUsd)}
       </Mono>
       <Fold summary="prices · holders">
-        <CardDetails m={m} r={r} onWatch={onWatch} />
+        <CardDetails m={m} r={r} onWatch={onWatch} onFill={onFill} />
       </Fold>
     </Box>
   )
@@ -367,7 +478,9 @@ const statusOf = (r: ExposureReport['results'][number]): string => {
   }
 }
 
-/** "0x7AdA…d142 · block 26,200,000 · Vault shares: 2 held · Morpho Blue positions: none" */
+/** "0x7AdA…d142 · block 26,200,000 · Vault shares: 2 held · Morpho Blue positions: none".
+ *  Failed reads are said once: on the not-read line when they leave a tie unread, else
+ *  here. */
 const ReadLine: React.FC<{
   address: string
   q: ReturnType<typeof useExposure>
@@ -388,18 +501,45 @@ const ReadLine: React.FC<{
     )
   const d = q.data
   if (!d) return null
-  const failed = d.results.flatMap((r) => r.failed)
-  const names = [...new Set(failed.map((f) => f.error.name))].join(', ')
+  const reason = unchecked ? undefined : notReadReason(d)
   return (
     <Mono size="11px" color={SEMANTIC_COLORS.textSecondary}>
       {who}
       {d.block !== undefined ? ` · block ${d.block.toLocaleString('en-US')}` : ''}
       {d.results.map((r) => ` · ${r.label}: ${statusOf(r)}`).join('')}
-      {failed.length ? ` · ${failed.length} reads failed (${names})` : ''}
-      {unchecked ? ` · ${uncheckedNote(unchecked)}` : ''}
+      {reason ? ` · ${reason}` : ''}
     </Mono>
   )
 }
+
+/**
+ * "░ 92 ties not read · 100 reads failed: HttpRequestError · retry": the markets where the
+ * read of whether the viewer's vaults or positions supply them failed, why, and a retry.
+ * The one place the count is printed.
+ */
+const NotReadLine: React.FC<{
+  count: number
+  reason?: string
+  onRetry: () => void
+  retrying: boolean
+  fold?: { open: boolean; toggle: () => void }
+}> = ({ count, reason, onRetry, retrying, fold }) => (
+  <HStack spacing={0} flexWrap="wrap" align="center" data-not-read>
+    <Mono size="11px" color={SEMANTIC_COLORS.textPrimary} as="span">
+      {uncheckedNote(count)}
+      {reason ? ` · ${reason}` : ''}
+      {'\u00a0·\u00a0'}
+    </Mono>
+    <Box as="button" type="button" {...ACTION} onClick={onRetry} disabled={retrying}>
+      {retrying ? 'reading…' : 'retry'}
+    </Box>
+    {fold && (
+      <Box as="button" type="button" {...ACTION} aria-pressed={fold.open} onClick={fold.toggle}>
+        {fold.open ? 'hide them' : 'show them'}
+      </Box>
+    )}
+  </HStack>
+)
 
 const FIELD = {
   size: 'sm' as const,
@@ -413,6 +553,32 @@ const FIELD = {
 }
 
 // ── the section ───────────────────────────────────────────────────────────────
+
+/** "279 markets · 1 fired above · 0 fired below · 8 ≥ 2% above now · 16 ≥ 2% below now ·
+ *  230 within ±2% · 24 not measured now": both sides, from the cards' own states. */
+function toneCountsText(r: OracleGapResponse): string {
+  const line = thresholdText(r.constants)
+  const n = { firedAbove: 0, firedBelow: 0, above: 0, below: 0, within: 0, none: 0 }
+  for (const m of r.markets) {
+    const s = cardState(m, r.constants)
+    if (m.i3.state === 'stale' || m.i3.state === 'unobserved') n.none++
+    else if (s.tone === 'warning') n[s.dir === 'below' ? 'firedBelow' : 'firedAbove']++
+    else if (s.tone === 'pale') n[s.dir === 'below' ? 'below' : 'above']++
+    else n.within++
+  }
+  // r.markets is capped by the API's limit; past it the rest are not counted here.
+  const rest = r.total - r.markets.length
+  return [
+    `${r.total} markets`,
+    `${n.firedAbove} fired above`,
+    `${n.firedBelow} fired below`,
+    `${n.above} ≥ ${line} above now`,
+    `${n.below} ≥ ${line} below now`,
+    `${n.within} within ±${line}`,
+    `${n.none} not measured now`,
+    ...(rest > 0 ? [`${rest} not listed`] : []),
+  ].join(' · ')
+}
 
 /** Finding: the headline in ink, or the hatched stale notice with the headline withheld. */
 const GapFinding: React.FC<{ r: OracleGapResponse; collateral: string }> = ({ r, collateral }) => {
@@ -451,9 +617,7 @@ const GapFinding: React.FC<{ r: OracleGapResponse; collateral: string }> = ({ r,
         </Text>
       )}
       <Mono size="11px" color={SEMANTIC_COLORS.textTertiary}>
-        {r.total} markets · {counts.fired} fired · {counts.building} above{' '}
-        {thresholdText(constants)} for under {constants.persistenceHours} h · {counts.below} below ·{' '}
-        {counts.unobserved + counts.stale} not measured now
+        {toneCountsText(r)}
       </Mono>
     </>
   )
@@ -528,6 +692,21 @@ const HowMeasured: React.FC<{ r: OracleGapResponse }> = ({ r }) => {
   )
 }
 
+/** The scroll box: about three rows of cards on desktop, four cards on a phone. Its own
+ *  scrollbar, keyboard-scrollable; the page does not run on. The padding keeps the raised
+ *  cards' offset shadow inside the clip. */
+const SCROLL = {
+  maxH: { base: '760px', md: '600px' },
+  overflowY: 'auto',
+  overscrollBehavior: 'contain',
+  pr: SPACING.xs,
+  pb: SPACING.xs,
+  borderTop: `1px solid ${SEMANTIC_COLORS.borderSubtle}`,
+  borderBottom: `1px solid ${SEMANTIC_COLORS.borderSubtle}`,
+  pt: SPACING.sm,
+  _focusVisible: FOCUS_STYLES.ring,
+} as const
+
 /** The cards, the viewer's controls and the folds. */
 const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => void }> = ({
   r,
@@ -537,8 +716,10 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
   const [dust, setDust] = useState(false)
   const [showUnchecked, setShowUnchecked] = useState(false)
   const [only, setOnly] = useState(false)
+  const [starredOnly, setStarredOnly] = useState(false)
   const [curator, setCurator] = useState('')
   const viewer = useViewerAddress()
+  const { starred, toggle: toggleStar } = useStarred()
   const targets = useMemo(() => exposureTargets(r.markets, r.vaults), [r.markets, r.vaults])
   const curators = useMemo(() => curatorsOf(r.markets), [r.markets])
   const exposure = useExposure(viewer.address, targets)
@@ -554,6 +735,11 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
   )
   const unchecked = useMemo(() => new Set(uncheckedMarkets(r.markets, report)), [r.markets, report])
   const markets = useMemo(() => withRelations(r.markets, relations), [r.markets, relations])
+  const states = useMemo(
+    () => new Map(r.markets.map((m) => [m.market, cardState(m, r.constants)])),
+    [r.markets, r.constants],
+  )
+  const tone = (m: OracleGapMarketView): Tone => states.get(m.market)?.tone ?? 'neutral'
   const hasViewer = !!curator || !!viewer.address
   // The address is not read yet, or its read threw: no claim about its markets (the read
   // line says which).
@@ -567,9 +753,20 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
     only,
     unchecked,
     minUsd: r.exposedMinUsd,
+    starred,
+    starredOnly,
+    tone,
   })
-  const shown = pick.held.length + pick.unheld.length
+  // Highlight mine (or a curator) on: the highlighted cards first, then starred, then by
+  // severity.
+  const order = (xs: OracleGapMarketView[]) =>
+    sortCards(xs, { highlight: hasViewer && !only, starred, tone })
+  const held = order(pick.held)
+  const unheld = order(pick.unheld)
+  const shown = held.length + unheld.length
   const titles = useMemo(() => cardTitles(r.markets), [r.markets])
+  const starCount = r.markets.filter((m) => starred.has(m.market.toLowerCase())).length
+  const reason = report ? notReadReason(report) : undefined
   const card = (m: OracleGapMarketView) => (
     <GapCard
       key={m.market}
@@ -577,9 +774,14 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
       r={r}
       title={titles.get(m.market) ?? m.marketName}
       tag={cardTag(m, unchecked)}
+      state={states.get(m.market)!}
+      starred={starred.has(m.market.toLowerCase())}
+      onStar={toggleStar}
       onWatch={onWatch}
     />
   )
+  const anyGrid =
+    held.length > 0 || (dust && unheld.length > 0) || (showUnchecked && pick.unchecked.length > 0)
 
   return (
     <Box mt={SPACING.sm}>
@@ -649,7 +851,6 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
             </Chip>
             <Mono size="11px" as="span">
               {pick.mine} of {r.total}
-              {pick.uncheckedCount ? ` · ${uncheckedNote(pick.uncheckedCount)}` : ''}
             </Mono>
           </HStack>
         )}
@@ -664,50 +865,79 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
       {viewer.address && (
         <ReadLine address={viewer.address} q={exposure} unchecked={pick.uncheckedCount} />
       )}
+      {/* A failed read never reads as "none": the count, why, and a retry. Under "Show
+          only mine" the markets it could not settle stay one tap away. */}
+      {viewer.address && report && pick.uncheckedCount > 0 && (
+        <NotReadLine
+          count={pick.uncheckedCount}
+          reason={reason}
+          retrying={exposure.isFetching}
+          onRetry={() => void exposure.refetch()}
+          fold={
+            hasViewer && only && pick.unchecked.length > 0
+              ? { open: showUnchecked, toggle: () => setShowUnchecked(!showUnchecked) }
+              : undefined
+          }
+        />
+      )}
+
+      {/* The filters and folds sit above the scroll box, so they never scroll away. */}
+      <HStack
+        spacing={SPACING.xs}
+        flexWrap="wrap"
+        mt={SPACING.sm}
+        role="group"
+        aria-label="Filter the cards"
+      >
+        <Chip active={starredOnly} onClick={() => setStarredOnly(!starredOnly)}>
+          ★ Starred {starCount}
+        </Chip>
+        {!starredOnly && unheld.length > 0 && (
+          <Chip active={dust} onClick={() => setDust(!dust)}>
+            {dust ? 'hide' : 'show'} {unheld.length} more{' '}
+            {hasViewer && only
+              ? `where your vaults supply under $${r.exposedMinUsd}`
+              : `with under $${r.exposedMinUsd} of curated exposure`}
+          </Chip>
+        )}
+        {!starredOnly && !(hasViewer && only) && r.total > pick.above.length && (
+          <Chip active={all} onClick={() => setAll(!all)}>
+            {all ? 'show fewer' : `show all ${r.total}`}
+          </Chip>
+        )}
+      </HStack>
 
       <Box mt={SPACING.sm}>
         {shown === 0 && !r.meta.stale && !(only && unread) && (
           <Mono size="11px">
-            {hasViewer && only
-              ? `No market here ties to ${[viewer.address && shortAddress(viewer.address), curator && shortName(curator)].filter(Boolean).join(' or ')}${pick.uncheckedCount ? ` · ${uncheckedNote(pick.uncheckedCount)}` : ''}.`
-              : `No market is ${line} or more above its DefiLlama price at the newest point.`}
+            {starredOnly
+              ? starCount
+                ? 'No starred market in this view.'
+                : 'No starred market yet: ☆ on a card keeps it at the top.'
+              : hasViewer && only
+                ? `No market here ties to ${[viewer.address && shortAddress(viewer.address), curator && shortName(curator)].filter(Boolean).join(' or ')}.`
+                : `No market is ${line} or more from its DefiLlama price at the newest point.`}
           </Mono>
         )}
-        {pick.held.length > 0 && <Box {...GRID}>{pick.held.map(card)}</Box>}
-        {pick.unheld.length > 0 && (
-          <Box mt={SPACING.sm}>
-            <Chip active={dust} onClick={() => setDust(!dust)}>
-              {dust ? 'hide' : 'show'} {pick.unheld.length} more{' '}
-              {hasViewer && only
-                ? `where your vaults supply under $${r.exposedMinUsd}`
-                : `with under $${r.exposedMinUsd} of curated exposure`}
-            </Chip>
-          </Box>
-        )}
-        {dust && pick.unheld.length > 0 && (
-          <Box {...GRID} mt={SPACING.sm}>
-            {pick.unheld.map(card)}
-          </Box>
-        )}
-        {/* A failed read never reads as "none": the markets it could not check stay one
-            tap away, marked ░ unchecked. */}
-        {pick.unchecked.length > 0 && (
-          <Box mt={SPACING.sm}>
-            <Chip active={showUnchecked} onClick={() => setShowUnchecked(!showUnchecked)}>
-              {showUnchecked ? 'hide' : 'show'} {pick.unchecked.length} unchecked
-            </Chip>
-          </Box>
-        )}
-        {showUnchecked && pick.unchecked.length > 0 && (
-          <Box {...GRID} mt={SPACING.sm}>
-            {pick.unchecked.map(card)}
-          </Box>
-        )}
-        {!(hasViewer && only) && r.total > pick.above.length && (
-          <Box mt={SPACING.sm}>
-            <Chip active={all} onClick={() => setAll(!all)}>
-              {all ? 'show fewer' : `show all ${r.total}`}
-            </Chip>
+        {anyGrid && (
+          <Box
+            {...SCROLL}
+            tabIndex={0}
+            role="region"
+            aria-label={`Oracle vs market cards, ${held.length + (dust ? unheld.length : 0)} shown; scrolls`}
+            data-card-scroll
+          >
+            {held.length > 0 && <Box {...GRID}>{held.map(card)}</Box>}
+            {dust && unheld.length > 0 && (
+              <Box {...GRID} mt={held.length ? SPACING.sm : 0}>
+                {unheld.map(card)}
+              </Box>
+            )}
+            {showUnchecked && pick.unchecked.length > 0 && (
+              <Box {...GRID} mt={SPACING.sm}>
+                {order(pick.unchecked).map(card)}
+              </Box>
+            )}
           </Box>
         )}
       </Box>
@@ -738,10 +968,10 @@ export const OracleGapSection: React.FC<{
   }, [data])
   const meta = data?.meta
   return (
-    <Box id="oracle-gap" scrollMarginTop="80px">
+    <Box id="oracle-gap" scrollMarginTop="80px" data-news-tokens>
       <SectionHeading
         index="07"
-        title="Oracle above market"
+        title="Oracle vs market"
         note={
           meta?.lastRunTs !== undefined
             ? `measured · ${utc(meta.lastRunTs)} (${durationText(meta.now - meta.lastRunTs)} ago)`

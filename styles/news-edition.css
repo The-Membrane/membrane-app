@@ -65,6 +65,9 @@
   --news-info: var(--m-info); /* #0f6b4b */
   --news-chart: var(--m-success);
   --news-chart-2: var(--m-risk-caution);
+  /* RAISED: a hard, offset, unblurred ink shadow, print style (owner ruling 2026-10-17). */
+  --news-shadow-raised: 3px 3px 0 var(--news-ink);
+  --news-danger-tint: color-mix(in srgb, var(--news-danger) 10%, var(--news-card));
 }
 
 /* ---- NIGHT EDITION — lamplight (owner ruling 2026-10-10) ---------------------- */
@@ -91,6 +94,10 @@
   --news-info: #46d39a;
   --news-chart: #9cc97a;
   --news-chart-2: #d9925a; /* canvas LandingLamplight chart2 */
+  /* RAISED at night: ink at 28% (the rule-strong construction); full cream ink would read
+     as a second edge, not a shadow. Hard and unblurred, as by day. */
+  --news-shadow-raised: 3px 3px 0 rgba(242, 232, 220, 0.28);
+  --news-danger-tint: color-mix(in srgb, var(--news-danger) 14%, var(--news-card));
 
   /* The bridge: every app token on this page resolves to its news role. */
   --m-bg-primary: var(--news-paper);
@@ -112,6 +119,24 @@
   --m-info: var(--news-info);
   --m-overlay: rgba(26, 24, 23, 0.72);
   color-scheme: dark;
+}
+
+/* ---- Borrowed tokens: a block outside the edition --------------------------------- */
+/* A news-styled block on a page that does not mount the edition (the curator feed's
+   §07 cards) carries [data-news-tokens]. Outside an edition the roles it uses resolve to
+   the app theme's own tokens there, so NEWS.* works inside it and nothing else changes.
+   Inside an edition these rules do not match and the edition's values hold. */
+:root:not(:has(.news-edition)) [data-news-tokens] {
+  --news-paper: var(--m-bg-primary);
+  --news-card: var(--m-bg-secondary);
+  --news-ink: var(--m-text-primary);
+  --news-danger: var(--m-danger);
+  --news-danger-tint: color-mix(in srgb, var(--m-danger) 10%, var(--m-bg-primary));
+  --news-shadow-raised: 3px 3px 0 var(--m-text-primary);
+}
+:root:not([data-membrane-theme='light']):not(:has(.news-edition)) [data-news-tokens] {
+  --news-danger-tint: color-mix(in srgb, var(--m-danger) 16%, var(--m-bg-primary));
+  --news-shadow-raised: 3px 3px 0 var(--m-border-strong);
 }
 
 /* ---- The page root ---------------------------------------------------------------- */

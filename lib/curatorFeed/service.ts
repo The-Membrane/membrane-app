@@ -382,6 +382,33 @@ export function buildClusters(feed: FeedFile, opts: ClusterOptions): ClusterView
   )
 }
 
+/** Kinds whose rows can repeat to the reader: a cap or an exit on one target. */
+const SAME_ROW_KINDS = new Set<ActionKind>([...GROUPS.caps, ...GROUPS.exits])
+
+/**
+ * One row per kind + vault + target (market or collateral) + UTC day + status, for the cap
+ * and exit kinds. A Morpho V2 vault cuts a market's absolute and its relative cap to 0 in
+ * one transaction: two actions, one change to the reader, and the card printed "Cap cut to
+ * 0: PT-sUSDD-27AUG2026 · Gauntlet USDC Frontier · 2026-10-09" twice. The first in list
+ * order (newest first) stays. Other kinds, and an action with no target, are never merged.
+ */
+export function dedupeSameRows<T>(
+  list: readonly T[],
+  actionOf: (x: T) => FeedAction,
+  statusOfX: (x: T) => ActionStatus,
+): T[] {
+  const seen = new Set<string>()
+  return list.filter((x) => {
+    const a = actionOf(x)
+    if (!SAME_ROW_KINDS.has(a.kind) || !a.target) return true
+    const day = new Date(a.ts * 1000).toISOString().slice(0, 10)
+    const key = [a.kind, a.vault, a.target, day, statusOfX(x)].join('|')
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 export function buildFeedResponse(feed: FeedFile, q: FeedQuery, nowS: number): FeedResponse {
   const clusters = buildClusters(feed, { windowHours: q.windowHours, minCurators: 2 })
   const clustered = clusteredIds(clusters)
@@ -395,10 +422,14 @@ export function buildFeedResponse(feed: FeedFile, q: FeedQuery, nowS: number): F
     cur(a.vault)
   // Status is cheap and needed for every row (filters, the open list); the sentence and
   // labels are rendered only for the rows this response returns.
-  const all = feed.actions
-    .filter(pass)
-    .map((a) => ({ a, status: statusOf(a, nowS) }))
-    .sort((x, y) => y.a.block - x.a.block || y.a.id.localeCompare(x.a.id))
+  const all = dedupeSameRows(
+    feed.actions
+      .filter(pass)
+      .map((a) => ({ a, status: statusOf(a, nowS) }))
+      .sort((x, y) => y.a.block - x.a.block || y.a.id.localeCompare(x.a.id)),
+    (x) => x.a,
+    (x) => x.status,
+  )
   const statusOk = (s: ActionStatus) =>
     !q.status ||
     (q.status === 'open'

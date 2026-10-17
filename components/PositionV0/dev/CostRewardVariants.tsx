@@ -551,8 +551,8 @@ const Fold: React.FC<{ title: string; figure: string; id: string; children: Reac
         whiteSpace="normal"
         textTransform="none"
         letterSpacing="normal"
-        // Owner: no colour, shadow or border on hover; the row is plain. Keyboard focus keeps its ring.
-        _hover={{}}
+        // Owner: no colour, shadow or border on hover; the label turns bold. Keyboard focus keeps its ring.
+        _hover={{ fontWeight: 700 }}
         _focusVisible={FOCUS_STYLES.ring}
       >
         <Box as="span" aria-hidden>

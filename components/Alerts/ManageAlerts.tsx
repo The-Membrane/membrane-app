@@ -47,9 +47,9 @@ const RULE = { borderTop: '1px solid', borderColor: SEMANTIC_COLORS.borderSubtle
 /**
  * ALERT CARDS (owner 2026-10-17: "the borders blend into the page"): raised card stock
  * apart from the page, a strong hairline, the hard print shadow. The state is the
- * card's EDGE, read before the text: reached = a heavy ink top edge, unchecked = a
- * dashed hairline, watching = the plain card. Ink only (calm is ink; no green, which
- * means money; red stays for errors). Never a left-border card.
+ * card's EDGE and STOCK, read before the text: reached = pale gold stock with a heavy
+ * gold top edge (owner 2026-10-17), unchecked = a dashed hairline, watching = the plain
+ * card. No green (it means money); red stays for errors. Never a left-border card.
  */
 const ALERT_CARD = {
   bg: SEMANTIC_COLORS.bgCardRaised,
@@ -60,7 +60,7 @@ const ALERT_CARD = {
 } as const
 
 const CARD_EDGE: Record<CardState, Record<string, string>> = {
-  reached: { borderTop: `4px solid ${SEMANTIC_COLORS.textPrimary}` },
+  reached: { bg: SEMANTIC_COLORS.bgCardReached, borderTop: `4px solid ${SEMANTIC_COLORS.warning}` },
   unchecked: { borderStyle: 'dashed' },
   watching: {},
 }

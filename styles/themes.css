@@ -42,6 +42,8 @@
   --m-bg-card-raised: #1a1817;
   /* the hard print shadow (owner 2026-10-17): offset, never blurred, never a glow */
   --m-shadow-raised: 3px 3px 0 #4a4238;
+  /* a reached alert (owner 2026-10-17: "test pale gold for reached"): gold-tinted stock */
+  --m-bg-card-reached: #2a2416;
 }
 
 :root[data-membrane-theme='light'] {
@@ -74,6 +76,8 @@
   --m-bg-card-raised: #fffdf8;
   /* the hard print shadow: offset ink, never blurred */
   --m-shadow-raised: 3px 3px 0 #241f17;
+  /* a reached alert: pale gold stock */
+  --m-bg-card-reached: #f7edc9;
 }
 
 :root[data-membrane-theme='light'] body {

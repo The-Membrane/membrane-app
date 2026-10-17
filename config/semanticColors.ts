@@ -133,6 +133,9 @@ export const SEMANTIC_COLORS = {
    */
   bgCardRaised: 'var(--m-bg-card-raised)',
 
+  /** A reached alert card: pale gold stock (owner 2026-10-17). Pair with a warning-gold edge. */
+  bgCardReached: 'var(--m-bg-card-reached)',
+
   // ============================================
   // BORDER COLORS
   // ============================================

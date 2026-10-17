@@ -40,8 +40,11 @@ import {
 import {
   decodeGapFile,
   evaluateI3,
+  PEG_ASSUMED_WITHIN,
+  pegOf,
   STALE_HOURS,
   type GapObservation,
+  type PegRef,
   type I3Constants,
   type I3Record,
   type I3Result,
@@ -1170,8 +1173,31 @@ export interface OracleGapMarketView {
   locked: boolean
   vaults: { vault: string; vaultName: string; curatorName: string; share: number; usd?: number }[]
   i3: I3Result
-  /** The newest observed point's two prices (oracle in USD via DefiLlama's loan price). */
-  latest?: { ts: number; oracleUsd: number; marketUsd: number; marketConfidence?: number }
+  /** The newest observed point's two prices. The oracle in USD: with the loan token at its
+   *  peg when it has one (the collateral-side figure), else at DefiLlama's loan price. */
+  latest?: {
+    ts: number
+    oracleUsd: number
+    marketUsd: number
+    marketConfidence?: number
+    /** The whole gap as read (loan token at DefiLlama), kept for audit when split. */
+    fullGap?: number
+  }
+  /** The loan token against its peg at the newest observed point (PEGS): msUSD $0.885 vs
+   *  $1 assumed. Undefined for a loan token with no peg. */
+  loanSide?: {
+    symbol: string
+    ref: PegRef
+    loanUsd: number
+    pegUsd: number
+    /** loanUsd ÷ pegUsd − 1 */
+    gap: number
+  }
+  /** The collateral is a pegged token the oracle holds at its peg (within
+   *  PEG_ASSUMED_WITHIN) while its market is ≥ the line away: "peg assumed". */
+  pegAssumed?: boolean
+  /** A Pendle PT: its oracle prices it to maturity, not at market. */
+  pt?: boolean
   /** The newest point when it was priced but below MIN_PRICE_CONFIDENCE (not counted). */
   lastRaw?: {
     ts: number
@@ -1228,6 +1254,47 @@ export interface OracleGapResponse {
   >
   markets: OracleGapMarketView[]
   total: number
+}
+
+/**
+ * What a card says beside its figure: the loan token against its peg, a collateral the
+ * oracle holds at its peg, a PT priced to maturity. From the newest observed point.
+ */
+export function gapNotes(
+  m: { collateral: string; loan: string },
+  last: GapObservation | undefined,
+  collateralSymbol: string,
+  c: Pick<I3Constants, 'gap'>,
+): Pick<OracleGapMarketView, 'loanSide' | 'pegAssumed' | 'pt'> {
+  const out: Pick<OracleGapMarketView, 'loanSide' | 'pegAssumed' | 'pt'> = {}
+  const loanPeg = pegOf(m.loan)
+  if (
+    loanPeg &&
+    last?.loanUsd !== undefined &&
+    last.loanPegUsd !== undefined &&
+    last.loanGap !== undefined
+  )
+    out.loanSide = {
+      symbol: loanPeg.symbol,
+      ref: loanPeg.ref,
+      loanUsd: last.loanUsd,
+      pegUsd: last.loanPegUsd,
+      gap: last.loanGap,
+    }
+  // Only a USD peg is checked: an ETH-pegged collateral's peg value is not stored per row.
+  const collPeg = pegOf(m.collateral)
+  const g = last?.gap
+  if (
+    collPeg?.ref === 'USD' &&
+    g !== undefined &&
+    g !== null &&
+    Math.abs(g) >= c.gap &&
+    last?.oracleUsd !== undefined &&
+    Math.abs(last.oracleUsd - 1) <= PEG_ASSUMED_WITHIN
+  )
+    out.pegAssumed = true
+  if (/^PT-/.test(collateralSymbol)) out.pt = true
+  return out
 }
 
 /** A curated allocation under $1 rounds to nothing: no curated exposure. */
@@ -1365,8 +1432,10 @@ export function buildOracleGapResponse(
               oracleUsd: lastObs.oracleUsd,
               marketUsd: lastObs.marketUsd,
               marketConfidence: lastObs.marketConfidence,
+              ...(lastObs.fullGap !== undefined ? { fullGap: lastObs.fullGap } : {}),
             }
           : undefined,
+      ...gapNotes(m, lastObs, symbolOf(e, m.collateral), constants),
       lastRaw:
         newest?.rawGap !== undefined &&
         newest.oracleUsd !== undefined &&

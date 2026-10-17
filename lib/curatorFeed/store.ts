@@ -291,8 +291,15 @@ export function parseFlowsFile(raw: unknown): FlowsFile {
 export const ORACLE_GAP_SCHEMA = 1
 export const ORACLE_GAP_FILE = 'oracle-gap.json'
 
-/** [run index, market index, oracleUsd, marketUsd, marketConfidence (null: none), gap] */
-export type OracleGapRow = [number, number, number, number, number | null, number]
+/**
+ * [run index, market index, oracleUsd, marketUsd, marketConfidence (null: none), gap], and
+ * for a loan token with a peg (oracleGap PEGS) two more: [..., loanUsd, loanPegUsd]. The
+ * gap and oracleUsd are as read (loan token at DefiLlama); the reader splits the sides.
+ * Six-number rows (before the split) read as before.
+ */
+export type OracleGapRow =
+  | [number, number, number, number, number | null, number]
+  | [number, number, number, number, number | null, number, number, number]
 
 export interface OracleGapFile {
   schema: number
@@ -319,7 +326,7 @@ export function parseOracleGapFile(raw: unknown): OracleGapFile {
   for (const r of f.rows.slice(0, 50))
     if (
       !Array.isArray(r) ||
-      r.length !== 6 ||
+      (r.length !== 6 && r.length !== 8) ||
       f.runs[r[0]] === undefined ||
       f.markets[r[1]] === undefined
     )

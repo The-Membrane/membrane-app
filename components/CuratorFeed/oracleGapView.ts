@@ -93,6 +93,8 @@ export function pickCards<T extends PickMarket>(p: {
   /** A market's colour state (cardState): a pale or warning card is in the default set,
    *  above OR below market. Without it, the default set is fired and building. */
   tone?: (m: T) => Tone
+  /** Also in the default set (with `tone`): e.g. a loan token ≥ the line off its peg. */
+  include?: (m: T) => boolean
 }): { above: T[]; held: T[]; unheld: T[]; unchecked: T[]; mine: number; uncheckedCount: number } {
   const { markets, minUsd } = p
   const starred = p.starred ?? new Set<string>()
@@ -103,7 +105,7 @@ export function pickCards<T extends PickMarket>(p: {
     p.stale
       ? m.i3.hoursAboveConsecutive > 0
       : p.tone
-        ? p.tone(m) !== 'neutral'
+        ? p.tone(m) !== 'neutral' || !!p.include?.(m)
         : m.i3.state === 'fired' || m.i3.state === 'building',
   )
   const strong = (m: T) => !!m.relation && tieStyle(m.relation) !== 'dust'
@@ -353,5 +355,40 @@ export function toggleStar(s: ReadonlySet<string>, market: string): Set<string> 
   const out = new Set(s)
   if (out.has(id)) out.delete(id)
   else out.add(id)
+  return out
+}
+
+// ── what the figure is not: loan side, peg assumed, PT ───────────────────────
+
+export interface NoteMarket {
+  collateralSymbol: string
+  loanSide?: { symbol: string; ref: 'USD' | 'ETH'; loanUsd: number; pegUsd: number; gap: number }
+  pegAssumed?: boolean
+  pt?: boolean
+}
+
+/** The loan token is ≥ the line off its peg: the card says so, and that this part of
+ *  the whole gap is not the collateral oracle's. */
+export const loanSideOff = (m: NoteMarket, c: Pick<I3Constants, 'gap'>): boolean =>
+  !!m.loanSide && Math.abs(m.loanSide.gap) >= c.gap
+
+/**
+ * The card's notes under its figure, from the data:
+ *   "loan-side · loan token msUSD $0.885 vs $1 assumed (DefiLlama spot)"
+ *   "loan-side · loan token msETH 0.8837 ETH vs 1 ETH assumed (DefiLlama spot)"
+ *   "peg assumed · the oracle holds USR at $1"
+ *   "PT: oracle prices to maturity"
+ */
+export function cardNotes(m: NoteMarket, c: Pick<I3Constants, 'gap'>): string[] {
+  const out: string[] = []
+  const l = m.loanSide
+  if (l && loanSideOff(m, c))
+    out.push(
+      l.ref === 'USD'
+        ? `loan-side · loan token ${l.symbol} ${usdPrice(l.loanUsd / l.pegUsd)} vs $1 assumed (DefiLlama spot)`
+        : `loan-side · loan token ${l.symbol} ${Number((l.loanUsd / l.pegUsd).toPrecision(4))} ETH vs 1 ETH assumed (DefiLlama spot)`,
+    )
+  if (m.pegAssumed) out.push(`peg assumed · the oracle holds ${m.collateralSymbol} at $1`)
+  if (m.pt) out.push('PT: oracle prices to maturity')
   return out
 }

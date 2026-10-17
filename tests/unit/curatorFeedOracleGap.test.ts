@@ -12,6 +12,8 @@ import {
   leadDaysText,
   MIN_PRICE_CONFIDENCE,
   observeGap,
+  pegOf,
+  pegUsdOf,
   recordCaveats,
   recordCredit,
   recordLines,
@@ -21,6 +23,7 @@ import {
   type I3Record,
 } from '@/lib/curatorFeed/oracleGap'
 import { datasetsRoot } from '@/lib/curatorFeed/paths'
+import { gapNotes } from '@/lib/curatorFeed/service'
 import { parseOracleGapFile } from '@/lib/curatorFeed/store'
 import recordJson from '@/lib/curatorFeed/i3Record.generated.json'
 // A plain ESM builder; its types are inferred (allowJs).
@@ -430,5 +433,123 @@ describe('copy built from the record and constants', () => {
     moved.incidents[5].calmFireStarts.push('2023-01-01T00:00Z')
     expect(recordLines(moved)[2].value).toContain('fired 12 days before')
     expect(recordCaveats(moved)).toContain('stETH: 3 false alarms in 2022, 2023.')
+  })
+})
+
+// ── the split: collateral-side vs loan-side (owner investigation 2026-10-17) ──
+
+describe('a pegged loan token: the gap splits into collateral-side and loan-side', () => {
+  const ts = 1_792_200_000
+  const MSUSD = '0xab5eb14c09d416f0ac63661e57edb7aecdb9befa'
+  const MSETH = '0x64351fc9810adad17a690e4e1717df5e7e085160'
+  const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+  const USD0 = '0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5'
+  const WETH_USD = 3000
+  /** price() for 18/18 decimals: `perColl` loan tokens per collateral token. */
+  const px = (perColl: number) => (BigInt(Math.round(perColl * 1e6)) * 10n ** 30n).toString()
+  const at = (price: number, confidence = 0.99) => ({ price, timestamp: ts - 300, confidence })
+  const obs = (o: { perColl: number; coll: number; loan: number; loanToken: string }) =>
+    observeGap({
+      ts,
+      block: 1,
+      price: px(o.perColl),
+      collateralDecimals: 18,
+      loanDecimals: 18,
+      collateral: at(o.coll),
+      loan: at(o.loan),
+      loanPegUsd: pegUsdOf(pegOf(o.loanToken)!.ref, WETH_USD),
+    }).obs
+
+  it('siUSD/msUSD: the −11.5% is msUSD at $0.885, not the siUSD oracle', () => {
+    // The oracle prices siUSD at 1.0951 msUSD with msUSD = $1; siUSD trades at $1.09551.
+    const o = obs({ perColl: 1.0951, coll: 1.09551, loan: 0.885, loanToken: MSUSD })
+    expect(o.fullGap).toBeCloseTo((1.0951 * 0.885) / 1.09551 - 1, 5) // ≈ −11.53%
+    expect(o.fullGap!).toBeLessThan(-0.11)
+    expect(o.gap).toBeCloseTo(1.0951 / 1.09551 - 1, 5) // ≈ −0.04%: the collateral oracle is fine
+    expect(o.loanGap).toBeCloseTo(-0.115, 6)
+    expect(o.oracleUsd).toBeCloseTo(1.0951, 6) // the oracle with msUSD at its $1 peg
+    expect(o.loanUsd).toBe(0.885)
+    expect(o.loanPegUsd).toBe(1)
+  })
+
+  it('weETH/msETH: msETH at 0.8837 ETH is the whole gap', () => {
+    const o = obs({
+      perColl: 1.07,
+      coll: 1.07 * WETH_USD,
+      loan: 0.8837 * WETH_USD,
+      loanToken: MSETH,
+    })
+    expect(o.fullGap).toBeCloseTo(0.8837 - 1, 5)
+    expect(o.gap).toBeCloseTo(0, 5)
+    expect(o.loanGap).toBeCloseTo(-0.1163, 6)
+    expect(o.loanPegUsd).toBe(WETH_USD)
+    // No WETH price: no ETH peg value, so no split (the whole gap, as before).
+    expect(pegUsdOf('ETH', undefined)).toBeUndefined()
+  })
+
+  it('a loan token at its peg leaves a collateral oracle’s own gap where it was', () => {
+    // USD0USD0++/USD0: the oracle holds the LP at 0.91897 vs 0.992211 market; USD0 ~ $1.
+    const usd0pp = obs({ perColl: 0.91897 / 0.9995, coll: 0.992211, loan: 0.9995, loanToken: USD0 })
+    expect(usd0pp.fullGap).toBeCloseTo(-0.0738, 3)
+    expect(usd0pp.gap).toBeCloseTo(-0.0734, 3)
+    expect(Math.abs(usd0pp.loanGap!)).toBeLessThan(0.02)
+    // mF-ONE/USDC (−7.7%) and AUTO/USDC (−7.0%): collateral-side, as measured.
+    const mf = obs({ perColl: 1.04305 / 0.9999, coll: 1.13002, loan: 0.9999, loanToken: USDC })
+    expect(mf.gap).toBeCloseTo(-0.0769, 3)
+    expect(mf.fullGap).toBeCloseTo(-0.077, 3)
+    const auto = obs({ perColl: 0.953555 / 0.9999, coll: 1.0252, loan: 0.9999, loanToken: USDC })
+    expect(auto.gap).toBeCloseTo(-0.0698, 3)
+  })
+
+  it('a loan token with no peg (WBTC, LINK, EUR stables) is not split', () => {
+    expect(pegOf('0x2260fac5e5542a773aa44fbcfedf7c193bc2c599')).toBeUndefined()
+    const o = observeGap({
+      ts,
+      block: 1,
+      price: px(2),
+      collateralDecimals: 18,
+      loanDecimals: 18,
+      collateral: at(200),
+      loan: at(100),
+    }).obs
+    expect(o.gap).toBe(0)
+    expect(o.fullGap).toBeUndefined()
+  })
+
+  it('stored as read (the whole gap kept for audit); decoded split', () => {
+    const o = obs({ perColl: 1.0951, coll: 1.09551, loan: 0.885, loanToken: MSUSD })
+    const f = parseOracleGapFile(
+      JSON.parse(JSON.stringify(appendGapRun(null, { ts, block: 1 }, [['0xA', o]]).file)),
+    )
+    expect(f.rows[0]).toHaveLength(8)
+    expect(f.rows[0][5]).toBe(o.fullGap) // the stored gap is the whole one
+    const d = decodeGapFile(f).byMarket.get('0xa')![0]
+    expect(d.gap).toBeCloseTo(o.gap!, 5)
+    expect(d.fullGap).toBe(o.fullGap)
+    expect(d.loanGap).toBeCloseTo(-0.115, 5)
+    expect(d.oracleUsd).toBeCloseTo(1.0951, 4)
+    // A six-number row (before the split) reads as it did.
+    const old = parseOracleGapFile({ ...f, rows: [[0, 0, 0.9, 1, 0.99, -0.1]] })
+    expect(decodeGapFile(old).byMarket.get('0xa')![0]).toMatchObject({ gap: -0.1, oracleUsd: 0.9 })
+  })
+
+  it('the card’s notes: loan-side, peg assumed (USR), PT', () => {
+    const c = { gap: 0.02 }
+    const o = obs({ perColl: 1.0951, coll: 1.09551, loan: 0.885, loanToken: MSUSD })
+    expect(gapNotes({ collateral: '0x1', loan: MSUSD }, o, 'siUSD', c).loanSide).toEqual({
+      symbol: 'msUSD',
+      ref: 'USD',
+      loanUsd: 0.885,
+      pegUsd: 1,
+      gap: -0.115,
+    })
+    // USR/USDC: the oracle holds USR at $0.9998 while it trades at $0.0837.
+    const USR = '0x66a1e37c9b0eaddca17d3662d6c05f4decf3e110'
+    const usr = obs({ perColl: 0.999834 / 0.9999, coll: 0.083711, loan: 0.9999, loanToken: USDC })
+    expect(gapNotes({ collateral: USR, loan: USDC }, usr, 'USR', c).pegAssumed).toBe(true)
+    // A pegged collateral within the line: no flag.
+    const near = obs({ perColl: 1, coll: 0.995, loan: 1, loanToken: USDC })
+    expect(gapNotes({ collateral: USR, loan: USDC }, near, 'USR', c).pegAssumed).toBeUndefined()
+    expect(gapNotes({ collateral: '0x1', loan: USDC }, usr, 'PT-sUSDat-14JAN2027', c).pt).toBe(true)
   })
 })

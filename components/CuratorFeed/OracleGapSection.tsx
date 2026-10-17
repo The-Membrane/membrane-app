@@ -62,9 +62,11 @@ import { useExposure, useViewerAddress } from './hooks/useExposure'
 import { useStarred } from './hooks/useStarred'
 import {
   bothPricesLine,
+  cardNotes,
   cardState,
   cardTag,
   cardTitles,
+  loanSideOff,
   notReadReason,
   pickCards,
   sortCards,
@@ -356,6 +358,7 @@ const GapCard = memo(function GapCard({
   const fill = FILL[hatched ? 'neutral' : state.tone]
   const onFill = !!fill.ink
   const prices = bothPricesLine(m)
+  const notes = hatched ? [] : cardNotes(m, r.constants)
   const frame = tag ? FRAME[tag.style] : undefined
   const line = hatched
     ? `${mark.mark ? `${mark.mark} ` : ''}${mark.detail}`
@@ -372,6 +375,7 @@ const GapCard = memo(function GapCard({
       data-tie={tag?.style}
       data-tone={hatched ? 'hatched' : state.tone}
       data-dir={state.dir}
+      data-loan-side={loanSideOff(m, r.constants) || undefined}
       position="relative"
       minW={0}
       display="grid"
@@ -431,13 +435,20 @@ const GapCard = memo(function GapCard({
           {mark.headline}
         </Text>
       )}
-      {/* Past a 100% gap the delta alone misleads: both prices, and how they were taken. */}
+      {/* Past a 100% gap the delta alone misleads: both prices, and how they were taken.
+          Then what the figure is not: the loan token off its peg (loan-side, not the
+          collateral oracle), a collateral held at its peg, a PT priced to maturity. */}
       <Box>
         {prices && (
           <Mono size="11px" color={SEMANTIC_COLORS.textPrimary}>
             {prices}
           </Mono>
         )}
+        {notes.map((n) => (
+          <Mono key={n} size="11px" color={SEMANTIC_COLORS.textPrimary}>
+            {n}
+          </Mono>
+        ))}
       </Box>
       <Text {...LABEL} color={lineInk} fontWeight={state.tone === 'warning' ? 700 : 400}>
         {line}
@@ -558,9 +569,10 @@ const FIELD = {
  *  230 within ±2% · 24 not measured now": both sides, from the cards' own states. */
 function toneCountsText(r: OracleGapResponse): string {
   const line = thresholdText(r.constants)
-  const n = { firedAbove: 0, firedBelow: 0, above: 0, below: 0, within: 0, none: 0 }
+  const n = { firedAbove: 0, firedBelow: 0, above: 0, below: 0, within: 0, none: 0, loan: 0 }
   for (const m of r.markets) {
     const s = cardState(m, r.constants)
+    if (loanSideOff(m, r.constants)) n.loan++
     if (m.i3.state === 'stale' || m.i3.state === 'unobserved') n.none++
     else if (s.tone === 'warning') n[s.dir === 'below' ? 'firedBelow' : 'firedAbove']++
     else if (s.tone === 'pale') n[s.dir === 'below' ? 'below' : 'above']++
@@ -576,6 +588,7 @@ function toneCountsText(r: OracleGapResponse): string {
     `${n.below} ≥ ${line} below now`,
     `${n.within} within ±${line}`,
     `${n.none} not measured now`,
+    ...(n.loan ? [`${n.loan} with the loan token ≥ ${line} off its peg`] : []),
     ...(rest > 0 ? [`${rest} not listed`] : []),
   ].join(' · ')
 }
@@ -631,8 +644,10 @@ const HowMeasured: React.FC<{ r: OracleGapResponse }> = ({ r }) => {
     <Fold summary="How this is measured" mt={SPACING.base}>
       <Stack spacing={SPACING.sm} pb={SPACING.sm} maxW="760px">
         <Mono size="11px">
-          Oracle: price() at the head block, in loan token × DefiLlama&apos;s loan-token price.
-          Market: DefiLlama&apos;s collateral price. Delta: oracle ÷ market − 1. Fires after{' '}
+          Oracle: price() at the head block, in loan token × the loan token&apos;s peg ($1, or WETH
+          for an ETH synth) where it has one, else × DefiLlama&apos;s loan-token price. A loan token
+          off its peg is shown apart (loan-side), not as the collateral oracle&apos;s gap. Market:
+          DefiLlama&apos;s collateral price. Delta: oracle ÷ market − 1. Fires after{' '}
           {constants.persistenceHours} hourly points in a row at ≥ {line}. A revert, a price over{' '}
           {MARKET_HOLD_SECONDS / 3600} h old or a DefiLlama confidence under {MIN_PRICE_CONFIDENCE}{' '}
           is no point.
@@ -756,6 +771,8 @@ const GapBody: React.FC<{ r: OracleGapResponse; onWatch: (symbol: string) => voi
     starred,
     starredOnly,
     tone,
+    // A loan token off its peg: shown (neutral, marked loan-side) so the reader sees why.
+    include: (m) => loanSideOff(m, r.constants),
   })
   // Highlight mine (or a curator) on: the highlighted cards first, then starred, then by
   // severity.

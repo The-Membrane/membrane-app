@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   ADDRESS_HINT,
   bothPricesLine,
+  cardNotes,
   cardState,
   cardTag,
   cardTitles,
   commitTyped,
+  loanSideOff,
   notReadReason,
   parseStarred,
   pickCards,
@@ -426,5 +428,39 @@ describe('stars, per viewer', () => {
     const s = toggleStar(new Set(), '0xAB')
     expect([...s]).toEqual(['0xab'])
     expect([...toggleStar(s, '0xab')]).toEqual([])
+  })
+})
+
+describe('what the figure is not: loan-side, peg assumed, PT', () => {
+  const c = { gap: 0.02 }
+  const msUSD = { symbol: 'msUSD', ref: 'USD' as const, loanUsd: 0.885, pegUsd: 1, gap: -0.115 }
+  const msETH = {
+    symbol: 'msETH',
+    ref: 'ETH' as const,
+    loanUsd: 2651.1,
+    pegUsd: 3000,
+    gap: -0.1163,
+  }
+  it('a loan token ≥ the line off its peg is named, with its price and the assumed peg', () => {
+    expect(cardNotes({ collateralSymbol: 'siUSD', loanSide: msUSD }, c)).toEqual([
+      'loan-side · loan token msUSD $0.885 vs $1 assumed (DefiLlama spot)',
+    ])
+    expect(cardNotes({ collateralSymbol: 'weETH', loanSide: msETH }, c)).toEqual([
+      'loan-side · loan token msETH 0.8837 ETH vs 1 ETH assumed (DefiLlama spot)',
+    ])
+    expect(loanSideOff({ collateralSymbol: 'x', loanSide: msUSD }, c)).toBe(true)
+  })
+  it('a loan token within the line says nothing', () => {
+    const usdc = { symbol: 'USDC', ref: 'USD' as const, loanUsd: 0.9999, pegUsd: 1, gap: -0.0001 }
+    expect(cardNotes({ collateralSymbol: 'mF-ONE', loanSide: usdc }, c)).toEqual([])
+    expect(loanSideOff({ collateralSymbol: 'mF-ONE', loanSide: usdc }, c)).toBe(false)
+  })
+  it('peg assumed and PT', () => {
+    expect(cardNotes({ collateralSymbol: 'USR', pegAssumed: true }, c)).toEqual([
+      'peg assumed · the oracle holds USR at $1',
+    ])
+    expect(cardNotes({ collateralSymbol: 'PT-sUSDat-14JAN2027', pt: true }, c)).toEqual([
+      'PT: oracle prices to maturity',
+    ])
   })
 })

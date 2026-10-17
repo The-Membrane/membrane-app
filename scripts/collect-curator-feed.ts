@@ -98,6 +98,9 @@ import {
   appendGapRun,
   gapText,
   observeGap,
+  pegOf,
+  pegUsdOf,
+  WETH,
   type GapObservation,
   type LlamaPrice,
   type UnobservedReason,
@@ -2491,9 +2494,12 @@ async function measureOracleGap(
         .timestamp,
       16,
     )
-  const llama = await llamaPrices(
-    markets.flatMap((m) => [ent.markets[m].collateral, ent.markets[m].loan]),
-  )
+  // WETH too: the USD value of an ETH-pegged loan token's peg (msETH = 1 ETH).
+  const llama = await llamaPrices([
+    ...markets.flatMap((m) => [ent.markets[m].collateral, ent.markets[m].loan]),
+    WETH,
+  ])
+  const wethUsd = llama.get(WETH)?.price
   const observations: [string, GapObservation][] = []
   const reasons: Partial<Record<UnobservedReason, number>> = {}
   const byMarket = new Map<
@@ -2512,6 +2518,11 @@ async function measureOracleGap(
       loanDecimals: ent.tokens[lc(info.loan)]?.decimals,
       collateral: coll,
       loan,
+      // A loan token with a peg: the gap is split, collateral-side and loan-side.
+      loanPegUsd: (() => {
+        const p = pegOf(info.loan)
+        return p ? pegUsdOf(p.ref, wethUsd) : undefined
+      })(),
     })
     observations.push([m, r.obs])
     byMarket.set(m, { ...r, llama: [coll, loan].filter((x): x is LlamaPrice => Boolean(x)) })
@@ -2556,7 +2567,10 @@ async function oracleGapOnly(): Promise<void> {
       `${marketLabel(ent, id).padEnd(34)} ` +
         (o.gap === null
           ? `unobserved: ${x.reason}`
-          : `oracle $${o.oracleUsd} vs DefiLlama $${o.marketUsd} (conf ${o.marketConfidence ?? '—'}) → gap ${gapText(o.gap)}`) +
+          : `oracle $${o.oracleUsd} vs DefiLlama $${o.marketUsd} (conf ${o.marketConfidence ?? '—'}) → gap ${gapText(o.gap)}` +
+            (o.loanGap !== undefined && o.fullGap !== undefined
+              ? ` (loan-side ${gapText(o.loanGap)}, whole ${gapText(o.fullGap)})`
+              : '')) +
         (o.rawGap !== undefined
           ? ` (raw gap ${gapText(o.rawGap)}, conf ${o.marketConfidence})`
           : ''),

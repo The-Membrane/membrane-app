@@ -106,7 +106,67 @@ export interface GapObservation {
   gap: number | null
   /** Unobserved for low confidence only: the gap the prices gave, kept for audit. */
   rawGap?: number
+  /**
+   * The whole gap as first measured, with the loan token at its DefiLlama price (audit).
+   * Set when the loan token has a peg (PEGS): then `gap` / `rawGap` are the collateral-
+   * side gap and `loanGap` the loan token's own distance from its peg.
+   */
+  fullGap?: number
+  /** DefiLlama's loan-token price and the USD value of its peg ($1, or WETH's price). */
+  loanUsd?: number
+  loanPegUsd?: number
+  /** loanUsd ÷ loanPegUsd − 1: the loan token off its peg. */
+  loanGap?: number
 }
+
+// ── pegs: what an oracle may assume a token is worth ──────────────────────────
+
+export type PegRef = 'USD' | 'ETH'
+
+export const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+
+/**
+ * Tokens with a peg a Morpho oracle may hard-code: a USD stable at $1, an ETH synth at
+ * 1 WETH. Explicit by address; a token not listed has no peg and its gap is not split.
+ *
+ * Owner investigation 2026-10-17: the ~−11.5% cluster on msUSD / msETH loans (siUSD/msUSD,
+ * sUSDe/msUSD, PRIME/msUSD, ynETHx/msETH, weETH/msETH, …) is the LOAN token's discount:
+ * each oracle prices the collateral at market with msUSD = $1 / msETH = 1 ETH, while
+ * DefiLlama prices msUSD $0.885 and msETH 0.8837 ETH. Multiplying DefiLlama's loan price
+ * into the oracle side put that discount on the collateral oracle. Split, each side reads
+ * on its own: collateral-side = oracle with the loan token at its peg vs the collateral's
+ * market; loan-side = the loan token's market vs its peg.
+ */
+export const PEGS: Readonly<Record<string, { symbol: string; ref: PegRef }>> = {
+  '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': { symbol: 'USDC', ref: 'USD' },
+  '0xdac17f958d2ee523a2206206994597c13d831ec7': { symbol: 'USDT', ref: 'USD' },
+  '0x6b175474e89094c44da98b954eedeac495271d0f': { symbol: 'DAI', ref: 'USD' },
+  '0xdc035d45d973e3ec169d2276ddab16f1e407384f': { symbol: 'USDS', ref: 'USD' },
+  '0x6c3ea9036406852006290770bedfcaba0e23a0e8': { symbol: 'PYUSD', ref: 'USD' },
+  '0x8292bb45bf1ee4d140127049757c2e0ff06317ed': { symbol: 'RLUSD', ref: 'USD' },
+  '0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5': { symbol: 'USD0', ref: 'USD' },
+  '0x00000000efe302beaa2b3e6e1b18d08d69a9012a': { symbol: 'AUSD', ref: 'USD' },
+  '0xcacd6fd266af91b8aed52accc382b4e165586e29': { symbol: 'frxUSD', ref: 'USD' },
+  '0xc139190f447e929f090edeb554d95abb8b18ac1c': { symbol: 'USDtb', ref: 'USD' },
+  '0xa0d69e286b938e21cbf7e51d71f6a4c8918f482f': { symbol: 'eUSD', ref: 'USD' },
+  '0x98a878b1cd98131b271883b390f68d2c90674665': { symbol: 'apxUSD', ref: 'USD' },
+  '0xab5eb14c09d416f0ac63661e57edb7aecdb9befa': { symbol: 'msUSD', ref: 'USD' },
+  '0x4c9edd5852cd905f086c759e8383e09bff1e68b3': { symbol: 'USDe', ref: 'USD' },
+  '0x66a1e37c9b0eaddca17d3662d6c05f4decf3e110': { symbol: 'USR', ref: 'USD' },
+  '0x15700b564ca08d9439c58ca5053166e8317aa138': { symbol: 'deUSD', ref: 'USD' },
+  '0x64351fc9810adad17a690e4e1717df5e7e085160': { symbol: 'msETH', ref: 'ETH' },
+}
+
+export const pegOf = (token: string): { symbol: string; ref: PegRef } | undefined =>
+  PEGS[token.toLowerCase()]
+
+/** The USD value of a peg: $1, or WETH's DefiLlama price (undefined when it is missing). */
+export const pegUsdOf = (ref: PegRef, wethUsd: number | undefined): number | undefined =>
+  ref === 'USD' ? 1 : wethUsd !== undefined && wethUsd > 0 ? wethUsd : undefined
+
+/** A collateral the oracle holds at its peg: within this of the peg, against a market
+ *  price ≥ the line away, the card says "peg assumed". */
+export const PEG_ASSUMED_WITHIN = 0.005
 
 export type I3State = 'fired' | 'building' | 'below' | 'unobserved' | 'stale'
 export type I3Cadence = 'hourly' | 'daily'
@@ -240,12 +300,21 @@ export interface GapRun {
   block: number
 }
 
-type Tuple = [oracleUsd: number, marketUsd: number, confidence: number | null, gap: number]
+type Tuple =
+  | [oracleUsd: number, marketUsd: number, confidence: number | null, gap: number]
+  | [
+      oracleUsd: number,
+      marketUsd: number,
+      confidence: number | null,
+      gap: number,
+      loanUsd: number,
+      loanPegUsd: number,
+    ]
 type RunRows = GapRun & { rows: Map<string, Tuple> }
 
 function toRuns(f: OracleGapFile | null): RunRows[] {
   const runs: RunRows[] = (f?.runs ?? []).map(([ts, block]) => ({ ts, block, rows: new Map() }))
-  for (const [ri, mi, o, m, c, g] of f?.rows ?? []) runs[ri]?.rows.set(f!.markets[mi], [o, m, c, g])
+  for (const [ri, mi, ...t] of f?.rows ?? []) runs[ri]?.rows.set(f!.markets[mi], t as Tuple)
   return runs
 }
 
@@ -261,8 +330,7 @@ function fromRuns(runs: RunRows[], keepDays: number): OracleGapFile {
         markets.push(m)
         idx.set(m, mi)
       }
-      const [o, mu, c, g] = r.rows.get(m)!
-      rows.push([ri, mi, o, mu, c, g])
+      rows.push([ri, mi, ...r.rows.get(m)!] as OracleGapRow)
     }
   })
   return {
@@ -295,10 +363,26 @@ export function appendGapRun(
   const rows = new Map<string, Tuple>()
   let observed = 0
   for (const [m, o] of observations) {
-    const g = o.gap ?? o.rawGap
+    // Stored: the whole gap as measured (loan token at DefiLlama) and, for a pegged loan
+    // token, its price and its peg's, so the reader splits the two sides (decodeGapFile).
+    const g = o.fullGap ?? o.gap ?? o.rawGap
     if (g === null || g === undefined || !Number.isFinite(g)) continue
     if (o.oracleUsd === undefined || o.marketUsd === undefined) continue
-    rows.set(m.toLowerCase(), [o.oracleUsd, o.marketUsd, o.marketConfidence ?? null, g])
+    const c = o.marketConfidence ?? null
+    // An observation with a split carries oracleUsd at the peg; the row keeps it as read.
+    rows.set(
+      m.toLowerCase(),
+      o.loanUsd !== undefined && o.loanPegUsd !== undefined
+        ? [
+            sig6((o.oracleUsd * o.loanUsd) / o.loanPegUsd),
+            o.marketUsd,
+            c,
+            g,
+            o.loanUsd,
+            o.loanPegUsd,
+          ]
+        : [o.oracleUsd, o.marketUsd, c, g],
+    )
     if (o.gap !== null) observed++
   }
   const runs = toRuns(prev)
@@ -350,19 +434,43 @@ export function decodeGapFile(f: OracleGapFile): {
         continue
       }
       const low = lowConfidence(r[4])
+      const split = splitRow(r)
+      const gap = split ? split.gap : r[5]
       out.push({
         ...runs[ri],
-        oracleUsd: r[2],
+        oracleUsd: split ? split.oracleUsd : r[2],
         marketUsd: r[3],
         marketSource: 'defillama',
         marketConfidence: r[4] ?? undefined,
-        gap: low ? null : r[5],
-        ...(low ? { rawGap: r[5] } : {}),
+        gap: low ? null : gap,
+        ...(low ? { rawGap: gap } : {}),
+        ...(split
+          ? {
+              fullGap: r[5],
+              loanUsd: split.loanUsd,
+              loanPegUsd: split.loanPegUsd,
+              loanGap: split.loanGap,
+            }
+          : {}),
       })
     }
     byMarket.set(m, out)
   }
   return { runs, byMarket }
+}
+
+/** A row with the loan token's price and its peg's: the two sides, split. */
+function splitRow(r: OracleGapRow) {
+  if (r.length < 8) return undefined
+  const [, , oracleRead, , , full, loanUsd, loanPegUsd] = r as unknown as number[]
+  if (!(loanUsd > 0) || !(loanPegUsd > 0)) return undefined
+  return {
+    oracleUsd: sig6((oracleRead * loanPegUsd) / loanUsd),
+    gap: Math.round(((1 + full) * (loanPegUsd / loanUsd) - 1) * 1e6) / 1e6,
+    loanUsd,
+    loanPegUsd,
+    loanGap: Math.round((loanUsd / loanPegUsd - 1) * 1e6) / 1e6,
+  }
 }
 
 // ── one observation from raw reads ─────────────────────────────────────────────
@@ -398,6 +506,9 @@ export interface GapInputs {
   loanDecimals?: number
   collateral?: LlamaPrice
   loan?: LlamaPrice
+  /** The USD value of the loan token's peg (PEGS: $1, or WETH's price). Given, the gap is
+   *  split: `gap` is collateral-side (the loan token at its peg), `loanGap` loan-side. */
+  loanPegUsd?: number
 }
 
 const sig6 = (x: number) => Number(x.toPrecision(6))
@@ -432,8 +543,13 @@ export function observeGap(i: GapInputs): { obs: GapObservation; reason?: Unobse
   if (i.ts - i.collateral.timestamp >= MARKET_HOLD_SECONDS) return none('market-price-old')
   const loanPerColl = (Number(BigInt(i.price)) / 1e36) * 10 ** (cd - ld)
   if (!(loanPerColl > 0)) return none('zero-price')
-  const oracleUsd = loanPerColl * i.loan.price
-  const gap = Math.round((oracleUsd / i.collateral.price - 1) * 1e6) / 1e6
+  const asRead = loanPerColl * i.loan.price
+  const full = Math.round((asRead / i.collateral.price - 1) * 1e6) / 1e6
+  const peg = i.loanPegUsd !== undefined && i.loanPegUsd > 0 ? i.loanPegUsd : undefined
+  // Split: the oracle with the loan token at its peg, against the collateral's market.
+  const oracleUsd = peg !== undefined ? loanPerColl * peg : asRead
+  const gap =
+    peg !== undefined ? Math.round((oracleUsd / i.collateral.price - 1) * 1e6) / 1e6 : full
   const confs = [i.collateral.confidence, i.loan.confidence].filter(
     (c): c is number => typeof c === 'number',
   )
@@ -446,6 +562,14 @@ export function observeGap(i: GapInputs): { obs: GapObservation; reason?: Unobse
     marketSource: 'defillama',
     marketConfidence: confidence,
     gap,
+    ...(peg !== undefined
+      ? {
+          fullGap: full,
+          loanUsd: sig6(i.loan.price),
+          loanPegUsd: sig6(peg),
+          loanGap: Math.round((i.loan.price / peg - 1) * 1e6) / 1e6,
+        }
+      : {}),
   }
   if (lowConfidence(confidence))
     return { obs: { ...obs, gap: null, rawGap: gap }, reason: 'low-confidence' }

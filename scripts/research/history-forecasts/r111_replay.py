@@ -481,9 +481,10 @@ def acct_units(world, acc, d):
 class Diagnoser:
     """Classifies each day's missed real events right after that day's replay (state as known on day d)."""
 
-    def __init__(self, world, diag_dir, eng, evs, ids_map, first_borrow):
+    def __init__(self, world, diag_dir, eng, evs, ids_map, first_borrow, days=None):
         self.world, self.eng, self.ids_map, self.first_borrow = world, eng, ids_map, first_borrow
-        dset = set(d_days())
+        self.days = days or d_days()
+        dset = set(self.days)
         self.recs = {}
         for name in os.listdir(os.path.join(diag_dir, "diag-blocks")):
             r = A.jload(os.path.join(diag_dir, "diag-blocks", name))
@@ -613,11 +614,11 @@ def tally(dg, eng, world):
     missed = [r for r in rows if r["missed"]]
     tot_usd = sum(r["usd"] for r in missed)
     real_day = {}
-    for d in d_days():
+    for d in dg.days:
         real_day[d] = 0.0
     for e in D_evs:
         real_day[e["day"]] += e["usd"]
-    missed_days = [d for d in d_days() if real_day[d] > 0 and eng.per_day[d]["sim_usdc_usd"] == 0]
+    missed_days = [d for d in dg.days if real_day[d] > 0 and eng.per_day[d]["sim_usdc_usd"] == 0]
     day_cause = {}
     for d in missed_days:
         agg = {}
@@ -672,7 +673,7 @@ def tally(dg, eng, world):
                "share_effective_cost_below_0p01_eth": float(np.mean(gf < 0.01)),
                "median_gasUsed": float(np.median(gu)), "median_priority_wei_per_gas": float(np.median(pr))}
     # volume causes on hit days
-    hit = [d for d in d_days() if real_day[d] > 0 and eng.per_day[d]["sim_usdc_usd"] > 0]
+    hit = [d for d in dg.days if real_day[d] > 0 and eng.per_day[d]["sim_usdc_usd"] > 0]
     vol = {"hit_days": len(hit)}
     if hit:
         ratio = np.array([eng.per_day[d]["sim_usdc_usd"] / real_day[d] for d in hit])
@@ -688,9 +689,9 @@ def tally(dg, eng, world):
                 "share_of_sim_usd": s / max(simtot, 1e-9), "days_with": len(on),
                 "median_sim_over_real_days_with": float(np.median(on)) if on else None,
                 "median_sim_over_real_days_without": float(np.median(off)) if off else None}
-    out = {"D_days": len(d_days()), "D_real_events": len(D_evs), "D_missed_events": len(missed),
+    out = {"D_days": len(dg.days), "D_real_events": len(D_evs), "D_missed_events": len(missed),
            "D_missed_usd": tot_usd, "D_real_usd": sum(e["usd"] for e in D_evs),
-           "D_real_positive_days": sum(1 for d in d_days() if real_day[d] > 0), "D_missed_days": len(missed_days),
+           "D_real_positive_days": sum(1 for d in dg.days if real_day[d] > 0), "D_missed_days": len(missed_days),
            "table": table, "mech_subtally": sub_mech, "accrual_split_reported": accrual_split,
            "other_with_chain_hf_ge1_at_block_minus_1_reported": other_hf_ge1,
            "gas": gas_rep, "volume_causes_hit_days": vol,
@@ -744,7 +745,7 @@ def reported_stats(days, sim, real):
 # config, guard
 # ---------------------------------------------------------------------------------------------
 
-def inputs_digest(work, diag):
+def inputs_digest(work, diag, diagk=None):
     ins = {k: sha256_file(os.path.join(work, k)) for k in ("hours.json.gz", "rdu-block-ts.json.gz", "anchors.json.gz",
                                                            "symbols.json.gz", "action-users.json.gz")}
     for k in ("meta", "hourly", "positions"):
@@ -756,16 +757,19 @@ def inputs_digest(work, diag):
         ins["diag-receipts.json.gz"] = sha256_file(os.path.join(diag, "diag-receipts.json.gz"))
     if diag and os.path.isdir(os.path.join(diag, "feehist-parts")):
         ins["feehist-parts/"] = M.dir_digest(os.path.join(diag, "feehist-parts"))
+    if diagk and os.path.isdir(os.path.join(diagk, "diag-blocks")):
+        ins["K:diag-blocks/"] = M.dir_digest(os.path.join(diagk, "diag-blocks"))
+        ins["K:diag-receipts.json.gz"] = sha256_file(os.path.join(diagk, "diag-receipts.json.gz"))
     return ins
 
 
-def frozen(stage, work, diag, rule):
+def frozen(stage, work, diag, rule, diagk=None):
     sha, dirty = git_sha()
     code = {n: sha256_file(os.path.join(HERE, n)) for n in ("r111_replay.py", "r111_acquire.py", "r10_mechanics.py",
                                                             "r10_acquire.py")}
     return {"prereg": "membrane-board design/Q26_ROUND11_PREREG.md (registered 348d813)", "item": "R11.1", "stage": stage,
             "created_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "code_commit": sha, "code_dirty": dirty, "code_sha256": code, "inputs_sha256": inputs_digest(work, diag),
+            "code_commit": sha, "code_dirty": dirty, "code_sha256": code, "inputs_sha256": inputs_digest(work, diag, diagk),
             "constants": {"D": [D_FIRST.isoformat(), D_LAST.isoformat()], "K": [K_FIRST.isoformat(), K_LAST.isoformat()],
                           "K_excluded": [Q2[0].isoformat(), Q2[1].isoformat()], "small_max_usd": SMALL_MAX,
                           "stale_tol": STALE_TOL, "hf_tol": HF_TOL, "fix_share": FIX_SHARE, "gate": GATE,
@@ -783,9 +787,9 @@ def guard(out):
             raise SystemExit(f"address guard: {name} holds a 0x+40-hex string")
 
 
-def check_frozen(out, name, work, diag):
+def check_frozen(out, name, work, diag, diagk=None):
     cfg = json.load(open(os.path.join(out, name)))
-    now = frozen(cfg["stage"], work, diag, cfg["rule_v2"])
+    now = frozen(cfg["stage"], work, diag, cfg["rule_v2"], diagk)
     for key in ("code_commit", "code_sha256", "inputs_sha256", "constants", "readings"):
         if cfg[key] != now[key]:
             raise SystemExit(f"frozen config mismatch on {key}")
@@ -861,6 +865,7 @@ def main():
     ap.add_argument("--diag")
     ap.add_argument("--stage")
     ap.add_argument("--rule")
+    ap.add_argument("--diagk")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     if a.cmd == "g0":
@@ -873,7 +878,7 @@ def main():
         if os.path.exists(p):
             raise SystemExit("frozen config exists; not rewritten")
         rule = json.load(open(a.rule)) if a.rule else None
-        cfg = frozen(a.stage, a.work, a.diag, rule)
+        cfg = frozen(a.stage, a.work, a.diag, rule, a.diagk)
         if cfg["code_dirty"]:
             raise SystemExit("code tree dirty: commit first")
         with open(p, "w") as f:
@@ -885,8 +890,86 @@ def main():
         cmd_confirm(a)
 
 
+def basefee_by_hour(work, diag):
+    """Mean base fee (wei) per UTC hour: feeHistory base fees, block timestamps interpolated between held RDU blocks."""
+    parts = sorted(os.listdir(os.path.join(diag, "feehist-parts")), key=lambda n: int(n.split(".")[0]))
+    starts, bases = [], []
+    for n in parts:
+        r = A.jload(os.path.join(diag, "feehist-parts", n))
+        starts.append(r["start"])
+        bases.append(np.array(r["base"], dtype=np.float64))
+    for a_, b_, x in zip(starts, starts[1:], bases):
+        if a_ + len(x) != b_:
+            raise SystemExit(f"feeHistory gap at {a_}")
+    blocks = np.arange(starts[0], starts[-1] + len(bases[-1]), dtype=np.int64)
+    base = np.concatenate(bases)
+    m = A.jload(os.path.join(work, "rdu-block-ts.json.gz"))
+    ts = np.interp(blocks, np.array(m["block"], dtype=np.float64), np.array(m["ts"], dtype=np.float64))
+    hrs = (ts // 3600 * 3600).astype(np.int64)
+    h0 = hrs.min()
+    idx = hrs - h0
+    s_ = np.bincount(idx, weights=base)
+    c_ = np.bincount(idx)
+    return {int(h0 + k): float(s_[k] / c_[k]) for k in np.nonzero(c_)[0]}
+
+
 def cmd_confirm(a):
-    raise SystemExit("confirm stage is written after the fix Deviation")
+    cfg = check_frozen(a.out, "frozen-confirm.json", a.work, a.diag, a.diagk)
+    rule = dict(cfg["rule_v2"])
+    world = World(a.work)
+    if rule.get("gas") == "basefee":
+        rule["basefee_by_hour"] = basefee_by_hour(a.work, a.diag)
+    eng = Engine(world, rule=rule, record=True)
+    eng.run()
+    evs = real_events(world, eng.hourly_usdc_px)
+    real = {d: 0.0 for d in world.replay_days}
+    for e in evs:
+        if e["day"] in real:
+            real[e["day"]] += e["usd"]
+    pubrows = list(csv.DictReader(open(os.path.join(A.DATASETS, PUB_R101, "liq-daily.csv"))))
+    pub_real = {r["date"]: float(r["real_usdc_usd"]) for r in pubrows}
+    pub_sim = {r["date"]: float(r["sim_usdc_usd"]) for r in pubrows}
+    if max(abs(real[d] - pub_real[d]) for d in world.replay_days) > 1e-6:
+        raise SystemExit("real series differs from the published R10.1 series")
+    sim = {d: eng.per_day[d]["sim_usdc_usd"] for d in world.replay_days}
+    K, Dd = k_days(), d_days()
+    res = {"frozen_sha256": sha256_file(os.path.join(a.out, "frozen-confirm.json")), "rule_v2": cfg["rule_v2"]}
+    # R11.1b dev (in-sample, reported only)
+    dev = gate_stats(Dd, sim, real, real)
+    res["dev_v2_reported_in_sample"] = {"S": dev["S"], "H_small_day_hit_rate": dev["H"], "F": dev["F"], "J": dev["J"],
+                                         "r101_on_D": gate_stats(Dd, pub_sim, real, real)}
+    # R11.1c gate on K
+    g = gate_stats(K, sim, real, real)
+    r1 = gate_stats(K, pub_sim, real, real)
+    g["J_R101"] = r1["J"]
+    g["S_R101_reported"] = r1["S"]
+    g["H_R101_reported"] = r1["H"]
+    g["F_R101_reported"] = r1["F"]
+    checks = {"S>=0.80": g["S"] >= GATE["S_min"], "S>S_E": g["S"] > g["S_E"], "H>=0.60": g["H"] >= GATE["H_min"],
+              "J>J_E": g["J"] > g["J_E"], "J>J_R101": g["J"] > g["J_R101"]}
+    g["checks"] = {k: bool(v) for k, v in checks.items()}
+    g["pass"] = bool(all(checks.values()))
+    res["gate_K"] = g
+    res["reported_K"] = reported_stats(K, sim, real)
+    res["forward_check"] = "pending: forward days from 2026-10-13 need 120 resolved days (not before 2027-02-10)"
+    jdump(os.path.join(a.out, "r111-results.json"), res)
+    write_daily(os.path.join(a.out, "r111-daily.csv"), eng, world.replay_days, real)
+    print(json.dumps({"gate_K": g, "dev": res["dev_v2_reported_in_sample"]}, indent=1, default=float), flush=True)
+    # reported after the verdict: cause tally on K (v2 engine), if the K diagnostic reads are held
+    if a.diagk and os.path.isdir(os.path.join(a.diagk, "diag-blocks")):
+        ids = A.jload(os.path.join(a.work, "positions-state.json.gz"))["ids"]
+        eng2 = Engine(world, rule=rule, record=True)
+        evs2 = real_events(world, {})
+        dg = Diagnoser(world, a.diagk, eng2, evs2, ids, load_borrowers(world), days=K)
+        eng2.run(until=K_LAST.isoformat(), hook=lambda d: dg.hook(d) if d >= K_FIRST.isoformat() else None)
+        tk, _ = tally(dg, eng2, world)
+        for r in tk["table"]:
+            r.pop("selected_for_fix", None)
+        tk.pop("selected_causes", None)
+        res["cause_tally_K_after_verdict_reported"] = tk
+        jdump(os.path.join(a.out, "r111-results.json"), res)
+    guard(a.out)
+    print("done", flush=True)
 
 
 if __name__ == "__main__":

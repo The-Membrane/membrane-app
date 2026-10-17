@@ -26,6 +26,8 @@ import b_acquire as B  # noqa: E402
 
 D_FIRST = dt.date(2023, 2, 1)
 D_LAST = dt.date(2024, 12, 31)
+K_FIRST = dt.date(2025, 1, 1)               # the K reads feed only the cause tally reported after the gate verdict
+K_LAST = dt.date(2026, 9, 30)
 C1_LOGS = "history-forecasts/c1/run-e79f9341/logs.json.gz"
 
 
@@ -38,13 +40,14 @@ def real_events_in(work, first, last):
     return [lg for lg in logs if lg["debt"].lower() == A.USDC and lo < lg["block"] <= hi]
 
 
-def phase_diag(work, out):
+def phase_diag(work, out, period="D"):
     pool = A.Pool()
     metas = A.load_meta(work)
     days = sorted(metas)
     anchors = [metas[d]["block"] for d in days]
     import bisect
-    evs = real_events_in(work, D_FIRST, D_LAST)
+    first, last = (D_FIRST, D_LAST) if period == "D" else (K_FIRST, K_LAST)
+    evs = real_events_in(work, first, last)
     os.makedirs(os.path.join(out, "diag-blocks"), exist_ok=True)
     by_block = {}
     for lg in evs:
@@ -133,9 +136,13 @@ def main():
     ap.add_argument("phase", choices=["diag", "feehist"])
     ap.add_argument("--work", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--period", choices=["D", "K"], default="D")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
-    {"diag": phase_diag, "feehist": phase_feehist}[a.phase](a.work, a.out)
+    if a.phase == "diag":
+        phase_diag(a.work, a.out, a.period)
+    else:
+        phase_feehist(a.work, a.out)
 
 
 if __name__ == "__main__":

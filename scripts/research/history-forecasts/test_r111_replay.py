@@ -61,3 +61,15 @@ def test_gate_stats_baselines():
     assert g["H"] == 1.0 and g["F"] == 0.0 and g["J"] == 1.0
     assert g["S"] > 0.99
     assert g["J_E"] < 1.0
+
+
+def test_basefee_by_hour(tmp_path):
+    import r10_acquire as A
+    work, diag = tmp_path / "w", tmp_path / "d"
+    (diag / "feehist-parts").mkdir(parents=True)
+    work.mkdir()
+    A.jdump(str(diag / "feehist-parts" / "100.json.gz"), {"start": 100, "base": [10] * 300})
+    A.jdump(str(diag / "feehist-parts" / "400.json.gz"), {"start": 400, "base": [30] * 300})
+    A.jdump(str(work / "rdu-block-ts.json.gz"), {"block": [100, 700], "ts": [0, 7200]})
+    b = Q.basefee_by_hour(str(work), str(diag))
+    assert b[0] == 10.0 and b[3600] == 30.0

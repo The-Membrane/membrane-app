@@ -418,8 +418,9 @@ const SpreadChart: React.FC<{
       <text x={f.m.left - 4} y={y(0) + 4} {...LABEL} textAnchor="end" fill={NEWS.ink}>
         $0
       </text>
-      <text x={f.m.left + 4} y={y(0) + (last.spread < 0 ? -6 : 14)} {...LABEL} fill={NEWS.ink}>
-        no spread
+      {/* Names the shaded side of $0 (owner: "negative spread"), inside the area it labels. */}
+      <text x={f.m.left + 4} y={y(0) + (last.spread < 0 ? 14 : -6)} {...LABEL} fill={NEWS.ink}>
+        {last.spread < 0 ? 'negative spread' : 'positive spread'}
       </text>
       <text x={x(t.to) - 6} y={y(last.spread) + (last.spread < 0 ? 15 : -7)} {...LABEL} textAnchor="end" fill={NEWS.ink} fontWeight={700} style={HALO}>
         {signedUsd(last.spread)}/yr
@@ -550,8 +551,9 @@ const Fold: React.FC<{ title: string; figure: string; id: string; children: Reac
         whiteSpace="normal"
         textTransform="none"
         letterSpacing="normal"
-        transition={TRANSITIONS.colors}
-        _hover={{ color: NEWS.accent }}
+        transition={TRANSITIONS.shadow}
+        // Owner: no green on hover; the row lifts with the hard print shadow instead.
+        _hover={{ boxShadow: NEWS.shadowRaised }}
         _focusVisible={FOCUS_STYLES.ring}
       >
         <Box as="span" aria-hidden>

@@ -15,6 +15,14 @@
  * re-arms it, expiry sells, and a sale restores the BORROW CAP rather than closing the
  * loan, so the position walks on and can be sold again.
  *
+ * DELAY CLASS (lib/position-sim/collateralClass.ts — the same definition the simulator
+ * reads). An account whose collateral is all stable, or whose own line is above 90%, is in
+ * the NO-DELAY class: the contracts give it no window, so it is sold the minute it is over
+ * its line and walks on (curePath.ts clause vii). An account liquidated against both
+ * stable and volatile collateral cannot exist on Membrane (Cdp.sol:1650-1651) and is
+ * excluded from both sides. The old all-delayed treatment is published as
+ * meta.sensitivity.stablesDelayed.
+ *
  * Source: 3,111 real Aave liquidation events from 10-11 Oct 2025, enriched with
  * pre-liquidation account state read at block_number-1.
  *
@@ -43,7 +51,14 @@
  * deployment, and leaning on it would make this a claim about our guess rather than
  * about our mechanism.
  *
- * Run: ./node_modules/.bin/tsx scripts/build-evidence.ts
+ * INPUTS (board rule N18): the two raw CSVs live in the PRIVATE datasets repo
+ * triccs/membrane-datasets, never in this public one —
+ *   <datasets>/recall-coverage/inputs/oct10/aave_liquidations_enriched.csv
+ *   <datasets>/recall-coverage/inputs/oct10/chainlink_rounds.csv
+ * where <datasets> = $MEMBRANE_DATASETS_DIR, else ../membrane-datasets next to this repo
+ * (scripts/lib/datasetsDir.mjs). Their sha256s are in that directory's PROVENANCE.md.
+ *
+ * Run: MEMBRANE_DATASETS_DIR=/path/to/membrane-datasets ./node_modules/.bin/tsx scripts/build-evidence.ts
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -52,34 +67,51 @@ import {
   BORROW_LTV_GAP,
   CURE_WINDOW_SECONDS,
   LIQ_DEBT_MINIMUM_USD,
+  MAX_LTV_HARD_CAP,
   MAX_THRESHOLD_TO_DELAY,
   membraneRepayValue,
 } from '../lib/position-sim/membrane'
 import { cureWalk } from '../lib/position-sim/curePath'
+import {
+  MEASURED_STABLES,
+  STABLE_SYMBOLS,
+  delayClassOf,
+  heldFlat,
+  isNoDelayCollateral,
+  lineIsNoDelay,
+  type DelayClass,
+} from '../lib/position-sim/collateralClass'
+import { datasetsDir } from './lib/datasetsDir.mjs'
 
-const CSV = '/Users/EBmic/Downloads/oct10_data/aave_liquidations_enriched.csv'
+/** The Oct 10 raw pull, in the private datasets repo (board rule N18). */
+const OCT10_INPUTS = path.join(datasetsDir(process.cwd()), 'recall-coverage', 'inputs', 'oct10')
+const CSV = path.join(OCT10_INPUTS, 'aave_liquidations_enriched.csv')
+const ROUNDS_CSV = path.join(OCT10_INPUTS, 'chainlink_rounds.csv')
+for (const f of [CSV, ROUNDS_CSV]) {
+  if (!fs.existsSync(f)) {
+    throw new Error(
+      `build-evidence: missing input ${f}. The Oct 10 raw pull lives in the private ` +
+        'datasets repo at recall-coverage/inputs/oct10/ (board rule N18). Clone ' +
+        'triccs/membrane-datasets next to this repo or set MEMBRANE_DATASETS_DIR.',
+    )
+  }
+}
 const DATA_DIR = path.join(process.cwd(), 'public/data/oct10-2025')
 const OUT = path.join(DATA_DIR, 'evidence.json')
 
 /** Hard cap on sales per episode. The contract re-arms after every repay-to-cap. */
 const MAX_SALES = 20
 
-const STABLES = new Set([
-  'USDC',
-  'USDT',
-  'USD₮0',
-  'USDT0',
-  'DAI',
-  'GHO',
-  'LUSD',
-  'USDS',
-  'sUSD',
-  'FRAX',
-  'USDC.e',
-  'crvUSD',
-  'MAI',
-  'USDbC',
-])
+// STABLES: there is no local list. A stable leg is priced as a flat 1.0 series exactly
+// when `heldFlat(symbol)` — the one stable definition in lib/position-sim/collateralClass.ts,
+// which the per-address simulator reads too. It excludes the MEASURED stables (USDe,
+// sUSDe): this dataset has no series for them, so they stay unpriced rather than being
+// pinned at $1. Their DELAY CLASS is still no-delay (see `delayClassOf` below).
+// `heldFlat` covers both the $1.00 stables AND the yield-bearing receipts (sDAI, sUSDS,
+// syrupUSDC, scrvUSD), which the SIMULATOR holds at the position's read price, not $1.00
+// (a level ~1.12 for syrupUSDC). The census reads only price RATIOS — LTV_t / LTV_0 —
+// and a flat series at 1.0 and a flat series at the read price give the same ratio, so
+// one flat 1.0 serves both here and no census figure depends on the level.
 /**
  * ---------------------------------------------------------------------------
  * wstETH = ETH/USD x A CONSTANT WRAP RATE. THE MARKET STETH/ETH FEED IS NOT AAVE'S.
@@ -173,7 +205,7 @@ const idx = (ts: number) => Math.max(0, Math.min(NP - 1, Math.floor((ts - P0) / 
 /** A stable leg is a flat 1.0 series; that is a real series, not a missing one. */
 const FLAT: number[] = new Array(NP).fill(1)
 const seriesFor = (s: string): number[] | null =>
-  STABLES.has(s)
+  heldFlat(s)
     ? FLAT
     : WSTETH.has(s)
       ? WSTETH_MODE === 'market'
@@ -223,7 +255,6 @@ const seriesFor = (s: string): number[] | null =>
  * block form — mainnet block timestamps are strictly increasing, so "block <= N-1" and
  * "ts < ts(N)" select the same round. On an L2 it is a PROXY and is published as one.
  */
-const ROUNDS_CSV = '/Users/EBmic/Downloads/oct10_data/chainlink_rounds.csv'
 type Round = { ts: number; block: number; log: number; p: number }
 type Feed = 'ETH/USD' | 'BTC/USD' | 'wstETH/ETH'
 const FEEDS: Feed[] = ['ETH/USD', 'BTC/USD', 'wstETH/ETH']
@@ -271,7 +302,7 @@ const SEED: Record<Feed, number> = {
 /** 'WSTETH' is a COMPOSITE leg: the ETH-denominated feed times ETH/USD. */
 type Leg = Feed | 'WSTETH' | 'STABLE' | null
 const feedFor = (s: string): Leg =>
-  STABLES.has(s)
+  heldFlat(s)
     ? 'STABLE'
     : WSTETH.has(s)
       ? 'WSTETH'
@@ -284,7 +315,7 @@ const feedFor = (s: string): Leg =>
 /** What a symbol's price series actually IS, published per class in meta. */
 type PriceClass = 'exact' | 'stableFlat' | 'proxied' | 'unpriced'
 const priceClass = (s: string): PriceClass =>
-  STABLES.has(s)
+  heldFlat(s)
     ? 'stableFlat'
     : EXACT_FEED.has(s)
       ? 'exact'
@@ -417,6 +448,10 @@ interface Ev {
   casset: string
   dasset: string
   repaidUsd: number
+  /** The account's balance of the liquidated collateral reserve at block N-1. */
+  preColl: number
+  /** position_read_ok: the enrichment's pre-liquidation read succeeded. */
+  readOk: boolean
 }
 const accounts = new Map<string, Ev[]>()
 /** Events whose DEBT symbol has no series at all — dropped at parse, published in meta. */
@@ -481,6 +516,8 @@ for (let i = 1; i < lines.length; i++) {
     casset: f[C.casset],
     dasset: f[C.dasset],
     repaidUsd: repaidUsdHere,
+    preColl: +f[C.preColl],
+    readOk: f[C.readOk] === 'True',
   })
 }
 
@@ -509,6 +546,71 @@ for (const [k, g] of impliedCandidates) {
     p: best.reduce((a, b) => a + b, 0) / best.length,
     users: best.length,
   })
+}
+
+/** The census class: the shared DelayClass, plus 'unknown' where the CSV cannot see enough. */
+type CensusDelayClass = DelayClass | 'unknown'
+
+// ---- what this CSV can and cannot say about an account's collateral -------
+/**
+ * ---------------------------------------------------------------------------
+ * THE CSV NAMES ONLY THE LIQUIDATED RESERVES.
+ * ---------------------------------------------------------------------------
+ * Each row is one LiquidationCall: the reserve that was seized, the account's balance of
+ * that reserve at block N-1 (pre_collateral_normalized), and the account's TOTAL
+ * collateral in USD (total_collateral_base_usd). Nothing names the reserves that were
+ * not seized. So the Membrane delay class — which depends on EVERY collateral asset in
+ * the position — is only knowable when the seized reserves are (nearly) all of it.
+ *
+ *   seenCollateralShare = Σ over the DISTINCT liquidated reserves of
+ *                           pre_collateral_normalized × p_state at the FIRST event's block
+ *                         / total_collateral_base_usd of the account's FIRST event
+ *
+ * ONE DENOMINATOR. Every reserve is divided by the same total — the account's collateral
+ * at block N-1 of its FIRST liquidation. (Dividing each reserve by the total at its OWN
+ * first event, as this used to, divided a reserve first seized later by a total that the
+ * earlier seizures had already shrunk: that is what put 11 of the 13 shares above 1.05,
+ * up to 1.487, on multi-reserve accounts.) Each reserve is priced by the round in force at
+ * the first event's block N-1 (stables 1.00). Its BALANCE is pre_collateral_normalized at
+ * its own first event: for the reserve seized first that IS the first event's block; for
+ * a reserve first seized later it is the best this CSV has — no reserve was seized from it
+ * in between, but deposits, withdrawals and interest between the two blocks are not seen.
+ *
+ * That last point, and the gap between the Chainlink round and Aave's own price in
+ * total_collateral_base_usd (meta.anchor), can still put a raw share a little above 1.
+ * The published share is CAPPED AT 1 (SEEN_SHARE_RAW_ABOVE_ONE counts the rows): the
+ * class only asks whether the share is >= KNOWN_COMPOSITION_SHARE, and a raw share above
+ * 1 passes that test capped or not, so the cap moves no class.
+ *
+ * A leg with no price, or a failed pre-liquidation read, makes the share unknown (null).
+ * The class is KNOWN only when the share is >= KNOWN_COMPOSITION_SHARE; the full
+ * composition of every account needs on-chain reads of every reserve, not this CSV.
+ */
+const KNOWN_COMPOSITION_SHARE = 0.95
+const SEEN_SHARE = new Map<string, number | null>()
+/** Raw shares above 1 before the cap: how many, and the largest. */
+const SEEN_SHARE_RAW_ABOVE_ONE = { accounts: 0, max: 0 }
+for (const [key, evs] of accounts) {
+  const ordered = [...evs].sort((a, b) => a.ts - b.ts || a.seq - b.seq)
+  const first = ordered[0]
+  const firstByReserve = new Map<string, Ev>()
+  for (const e of ordered) if (!firstByReserve.has(e.casset)) firstByReserve.set(e.casset, e)
+  let share: number | null = first.coll > 0 ? 0 : null
+  for (const e of firstByReserve.values()) {
+    if (share === null) break
+    const p = legPrices(e.csym, first.chain, first.block, first.ts, first.log)
+    if (!p || !e.readOk || !(e.preColl >= 0)) {
+      share = null
+      break
+    }
+    share += (e.preColl * p.state) / first.coll
+  }
+  if (share !== null && share > 1) {
+    SEEN_SHARE_RAW_ABOVE_ONE.accounts++
+    SEEN_SHARE_RAW_ABOVE_ONE.max = Math.max(SEEN_SHARE_RAW_ABOVE_ONE.max, share)
+    share = 1
+  }
+  SEEN_SHARE.set(key, share)
 }
 
 // ---- per-account counterfactual -----------------------------------------
@@ -540,6 +642,15 @@ interface CohortOpts {
    * Per-collateral-symbol cap on what ONE Membrane sale may close, USD. Off by default.
    */
   repayCapBySymbol?: Map<string, number>
+  /**
+   * The DELAY-CLASS rule. 'contract' (the headline) is collateralClass.ts `delayClassOf`
+   * wherever this CSV can see the account's collateral (see SEEN_SHARE), and the line rule
+   * alone where it cannot. A no-delay account is sold the minute it is over its line
+   * (curePath.ts clause vii); every other account walks the 8h window. 'allDelayed' walks
+   * every account delayed — the treatment before this rule — and is published as
+   * meta.sensitivity.stablesDelayed.
+   */
+  delayClassRule?: 'contract' | 'allDelayed'
 }
 
 /** Walks every account once, under `opts`. */
@@ -547,6 +658,7 @@ function buildCohort(opts: CohortOpts = {}) {
   const countBlockNRound = opts.countBlockNRound ?? true
   WSTETH_MODE = opts.wsteth ?? 'wrap'
   const anchorMode = opts.anchor ?? 'chainlink'
+  const allDelayed = opts.delayClassRule === 'allDelayed'
   const cohort: any[] = []
   /** Kept so the band / floor / sale-cap can be re-swept without re-parsing the CSV. */
   const walkInputs: WalkInput[] = []
@@ -573,8 +685,8 @@ function buildCohort(opts: CohortOpts = {}) {
     const i0 = idx(f.ts)
     const cs = seriesFor(f.csym)
     const ds = seriesFor(f.dsym)
-    const collIsStable = STABLES.has(f.csym)
-    const debtIsStable = STABLES.has(f.dsym)
+    const collIsStable = heldFlat(f.csym)
+    const debtIsStable = heldFlat(f.dsym)
 
     // --- rebase from the SNAPSHOT block to the LIQUIDATING block --------------
     // p_state is what block N-1 could see, p_liq what block N could. Both come from the
@@ -600,7 +712,7 @@ function buildCohort(opts: CohortOpts = {}) {
         pStateC = impliedC.p
         pLiqC = impliedC.p * move
       }
-      if (impliedD && dp.state > 0 && !STABLES.has(f.dsym)) {
+      if (impliedD && dp.state > 0 && !heldFlat(f.dsym)) {
         const move = countBlockNRound ? dp.liq / dp.state : 1
         pStateD = impliedD.p
         pLiqD = impliedD.p * move
@@ -614,7 +726,33 @@ function buildCohort(opts: CohortOpts = {}) {
 
     const ltv0 = debtUsd / collUsd
     /** Still not breached once rebased: a state/event mismatch the data cannot resolve. */
-    const excluded = ltv0 <= lt
+    const unlocatedLine = ltv0 <= lt
+
+    const excluded = unlocatedLine
+
+    // --- the delay class, from collateralClass.ts — the SAME rule the simulator runs ---
+    // `syms` is only what was LIQUIDATED; the class needs the whole position, so it is used
+    // only where the seized reserves are (nearly) all of the collateral (SEEN_SHARE).
+    //   mixed     a stable AND a volatile reserve were both seized: known from the events
+    //             alone. Such a position cannot exist on Membrane (Cdp.sol:1650-1651); the
+    //             headline still walks it delayed on its first leg, exactly as before, and
+    //             excluding it is published as meta.sensitivity.mixedExcluded.
+    //   known     share >= KNOWN_COMPOSITION_SHARE: delayClassOf(syms, line).
+    //   unknown   otherwise. Walked delayed, EXCEPT a line above 90%, which only a
+    //             no-delay listing can carry whatever the composition (Collateral.sol:424-426,
+    //             :538-540).
+    const syms = evs.map((e) => e.csym)
+    const seenShare = SEEN_SHARE.get(key) ?? null
+    const compositionKnown = seenShare !== null && seenShare >= KNOWN_COMPOSITION_SHARE
+    const delayClass: CensusDelayClass = allDelayed
+      ? 'delayed'
+      : delayClassOf(syms) === 'mixed'
+        ? 'mixed'
+        : compositionKnown
+          ? delayClassOf(syms, lt)
+          : lineIsNoDelay(lt)
+            ? 'no-delay'
+            : 'unknown'
 
     const aaveUsd = Math.min(
       evs.reduce((s, e) => s + e.repaidUsd, 0),
@@ -686,6 +824,8 @@ function buildCohort(opts: CohortOpts = {}) {
       debtMinimumUsd: LIQ_DEBT_MINIMUM_USD,
       maxSales: MAX_SALES,
       maxRepayPerSaleUsd: opts.repayCapBySymbol?.get(f.csym),
+      // No-delay: sold the minute it is over its line, and walks on (curePath.ts clause vii).
+      noDelay: delayClass === 'no-delay',
     }
     const walk = cureWalk(walkInput)
     walkInputs.push(walkInput)
@@ -708,12 +848,20 @@ function buildCohort(opts: CohortOpts = {}) {
           }
         }
         const end = ltv0 / (ratios[i1] ?? last)
+        /**
+         * A NO-DELAY row has no window to cure in: the contract sells it the minute it is
+         * over its line (curePath.ts clause vii). So it is never `curedInWindow`, and
+         * `noWindow` says why. bestLtv / endLtv / healthyAt8h stay as the PRICE diagnostic
+         * they always were; time.noDelay keeps the dropped "would have cured" count.
+         */
+        const noWindow = delayClass === 'no-delay'
         cure = {
-          curedInWindow: best <= lt,
+          curedInWindow: !noWindow && best <= lt,
           healthyAt8h: end <= lt,
-          minutesToCure: best <= lt ? bestMin : null,
+          minutesToCure: !noWindow && best <= lt ? bestMin : null,
           bestLtv: +best.toFixed(5),
           endLtv: +end.toFixed(5),
+          ...(noWindow ? { noWindow: true, wouldHaveCuredWithWindow: best <= lt } : {}),
         }
       }
     }
@@ -750,6 +898,19 @@ function buildCohort(opts: CohortOpts = {}) {
       ltv0: +ltv0.toFixed(5),
       ltv0Snapshot: +(f.debt / f.coll).toFixed(5),
       excluded,
+      /**
+       * The Membrane delay class this row was walked in. 'no-delay' is sold the minute it
+       * is over its line. 'mixed' (a stable and a volatile reserve were both seized) and
+       * 'unknown' (the seized reserves are under 95% of the collateral, so the CSV cannot
+       * see the rest) are walked delayed, as every row was before the class rule.
+       */
+      delayClass,
+      /**
+       * The share of total collateral the CSV can see: the seized reserves over the
+       * account's total_collateral_base_usd at its FIRST event, capped at 1. null when a
+       * seized leg has no price. The class is known only at >= 0.95; see SEEN_SHARE.
+       */
+      seenCollateralShare: seenShare === null ? null : +seenShare.toFixed(4),
       collSymbol: f.csym,
       debtSymbol: f.dsym,
       /** What the collateral leg was priced through: exact / stableFlat / proxied / unpriced. */
@@ -1231,7 +1392,11 @@ const heldWholeDay = {
   aaveClosedUsd: r2(sum(heldRows.map((r) => r.aaveClosedUsd))),
   medianDebtUsd: r2(median(heldRows.map((r) => r.debtUsd))),
 }
-/** Already past line x (1+band) at t0: no delay is ever granted, so Membrane sells too. */
+/**
+ * Already past line x (1+band) at t0: no delay is granted for that breach, so Membrane sells
+ * too — repaid to cap at once, then walked on like after any sale (membraneClosedUsd here
+ * includes any later sale).
+ */
 const t0Rows = included.filter((r) => r.outcome === 'sold-at-t0')
 const soldAtT0 = {
   accounts: t0Rows.length,
@@ -1534,6 +1699,270 @@ const maxSalesSeen = included.reduce((m, r) => Math.max(m, r.sales), 0)
 /** Timer clearing needs a CALL. The corner where nobody ever makes it. */
 const noEarlyClearTotal = sweep({ noEarlyClear: true })
 
+// ---- the delay class ------------------------------------------------------
+/** Per-class totals over a row set. Partitions it: every row carries exactly one class. */
+const DELAY_CLASSES: CensusDelayClass[] = ['no-delay', 'delayed', 'mixed', 'unknown']
+const totalsOf = (g: any[]) => ({
+  accounts: g.length,
+  debtUsd: r2(sum(g.map((r) => r.debtUsd))),
+  aaveClosedUsd: r2(sum(g.map((r) => r.aaveClosedUsd))),
+  membraneClosedUsd: r2(sum(g.map((r) => r.membraneClosedUsd))),
+})
+const classTotals = (rows: any[]) => {
+  const out: Record<string, any> = {}
+  for (const k of DELAY_CLASSES) out[k] = totalsOf(rows.filter((r) => r.delayClass === k))
+  return out
+}
+/** Composition known: the seized reserves are >= KNOWN_COMPOSITION_SHARE of the collateral. */
+const isKnown = (r: any) =>
+  r.seenCollateralShare !== null && r.seenCollateralShare >= KNOWN_COMPOSITION_SHARE
+/**
+ * WHY a row is no-delay. A non-mixed account's seized symbols share one class, so its first
+ * collateral symbol says whether they are stable. No-delay BY COMPOSITION needs that AND a
+ * known composition; every other no-delay row is no-delay only because its own line is
+ * above 90%.
+ */
+const noDelayBy = (rows: any[]) => {
+  const nd = rows.filter((r) => r.delayClass === 'no-delay')
+  const stable = nd.filter((r) => isNoDelayCollateral(r.collSymbol) && isKnown(r))
+  return { stableCollateral: stable.length, lineAbove90Only: nd.length - stable.length }
+}
+/** Rows whose SEIZED legs are all stable: how many of them the CSV can actually class. */
+const stableLegs = (rows: any[]) => {
+  const g = rows.filter((r) => r.delayClass !== 'mixed' && isNoDelayCollateral(r.collSymbol))
+  return {
+    accounts: g.length,
+    compositionKnown: g.filter(isKnown).length,
+    compositionUnknown: g.filter((r) => !isKnown(r)).length,
+  }
+}
+const linesAbove90 = (rows: any[]) => rows.filter((r) => lineIsNoDelay(r.liqLine)).length
+/**
+ * THE LINE RULE'S IMPLICATION, stated. A line above 90% is only possible for a no-delay
+ * listing (Collateral.sol:424-426, :538-540), so the rule follows the contract. For a
+ * VOLATILE asset that is a no-delay listing the deploy does not have — it lists WETH at 90e16,
+ * delayed (DeployFullSystem.s.sol:272). These rows are Aave e-mode lines.
+ */
+const volatileLineRows = included.filter(
+  (r) => lineIsNoDelay(r.liqLine) && !isNoDelayCollateral(r.collSymbol),
+)
+const volatileLineIdx = new Set(volatileLineRows.map((r) => cohort.indexOf(r)))
+/** What walking those rows delayed instead would change, per-row rounded like the headline. */
+const volatileLineEffectUsd = walkInputs.reduce(
+  (s, w, i) =>
+    volatileLineIdx.has(i)
+      ? s + cohort[i].membraneClosedUsd - +cureWalk({ ...w, noDelay: false }).closedUsd.toFixed(2)
+      : s,
+  0,
+)
+/** The seen-collateral share, bucketed. Partitions the rows. */
+const SHARE_BUCKETS: [string, (x: number) => boolean][] = [
+  ['<0.25', (x) => x < 0.25],
+  ['0.25-0.50', (x) => x >= 0.25 && x < 0.5],
+  ['0.50-0.75', (x) => x >= 0.5 && x < 0.75],
+  ['0.75-0.95', (x) => x >= 0.75 && x < KNOWN_COMPOSITION_SHARE],
+  ['>=0.95', (x) => x >= KNOWN_COMPOSITION_SHARE],
+]
+const shareDistribution = (rows: any[]) => {
+  const out: Record<string, number> = { unknown: 0 }
+  for (const [k] of SHARE_BUCKETS) out[k] = 0
+  for (const r of rows) {
+    const x = r.seenCollateralShare
+    if (x === null) out.unknown++
+    else out[SHARE_BUCKETS.find(([, f]) => f(x))![0]]++
+  }
+  return out
+}
+const shareDeciles = (rows: any[]) => {
+  const xs = rows
+    .map((r) => r.seenCollateralShare)
+    .filter((x: number | null): x is number => x !== null)
+    .sort((a: number, b: number) => a - b)
+  return [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map((q) => +quant(xs, q).toFixed(4))
+}
+const delayClassMeta = {
+  rule:
+    'collateralClass.ts delayClassOf — the SAME function the per-address simulator runs — ' +
+    'applied only where this CSV can see the collateral. The CSV names only the LIQUIDATED ' +
+    "reserves, so: 'mixed' when a stable and a volatile reserve were both seized (known " +
+    'from the events alone); otherwise, when the seized reserves are >= 95% of total ' +
+    "collateral (seenCollateralShare), delayClassOf(<seized symbols>, <its line>): 'no-delay' " +
+    "if every one is stable or the line is above 90%, else 'delayed'; otherwise 'unknown' — " +
+    "except a line above 90%, which is 'no-delay' whatever the composition. A no-delay " +
+    'account is sold the minute its LTV is over its line and walks on (curePath.ts clause ' +
+    "vii). 'delayed', 'mixed' and 'unknown' all walk the 4%/8h window, exactly as every " +
+    'account did before this rule. Excluding the mixed accounts is ' +
+    'meta.sensitivity.mixedExcluded.',
+  composition:
+    'seenCollateralShare = sum over the distinct seized reserves of ' +
+    'pre_collateral_normalized x the round in force at block N-1 of the account’s FIRST ' +
+    'event, over ONE denominator: total_collateral_base_usd of that first event. For the ' +
+    'reserve seized first the balance is at that block; for a reserve first seized later, ' +
+    'its pre_collateral_normalized at its own first event is the best this CSV has (nothing ' +
+    'was seized from it in between, but deposits, withdrawals and interest are not seen). ' +
+    'Null when a seized leg has no price or the pre-liquidation read failed. The published ' +
+    'share is capped at 1 (rawAboveOne): a raw share above 1 is the gap between the ' +
+    'Chainlink round and Aave’s own price in total_collateral_base_usd (meta.anchor), or a ' +
+    'later reserve’s balance read at its own block; the class only asks whether the share is ' +
+    '>= 0.95, which a raw share above 1 passes capped or not. The full composition of every ' +
+    'account — and so its class — comes from on-chain reads of every reserve, not this CSV.',
+  modelledAssumption:
+    'The contracts carry NO stablecoin label since fc92ed4f (merged 6b8789ae, replacing ' +
+    "ee680ded's is_stablecoin): the class is DERIVED from each listing's immutable " +
+    'max_ltv_cap. "Stable => no-delay listing (cap 96%)" is therefore our assumption about ' +
+    'how a stable would be listed. It mirrors the deploy script, which lists sUSDS, ' +
+    'syrupUSDC and scrvUSD at 96e16 (no-delay) and WETH at 90e16 with the 4% window. A line ' +
+    'above 90% is not an assumption: only a no-delay listing can carry one.',
+  sources: [
+    'Collateral.sol:75 AssetParams.max_ltv_cap; immutable via LtvCapImmutable, Collateral.sol:383-385',
+    'Collateral.sol:424-426 _noDelay(cap) = cap > MAX_LTV_HARD_CAP (strict)',
+    'Collateral.sol:430-432 _requireNoWindowIfNoDelay: a no-delay asset has max_threshold_to_delay == 0',
+    'Collateral.sol:538-540, :562 a delayed asset’s live max LTV is clamped to its cap (<= 90%)',
+    'lib/Constants.sol:23 MAX_LTV_HARD_CAP = 9e17; lib/Constants.sol:32 NO_DELAY_LTV_HARD_CAP = 96e16',
+    'LiquidationEngine.sol:1572-1576 instant mode: threshold = max LTV, aboveThreshold = currentLtv > threshold',
+    'LiquidationEngine.sol:1694-1703 Immediate; :1708-1710 InstantModeNotLiquidatable (a timer never arms)',
+    'Cdp.sol:1650-1651 requireSameCollateralClass -> MixedDelayClassCollateral, Collateral.sol:789-793',
+    'script/DeployFullSystem.s.sol:269-272 launch caps; :1127 window 0 when the cap is above 90%',
+  ],
+  stableSymbols: [...STABLE_SYMBOLS],
+  measuredStables: [...MEASURED_STABLES],
+  noDelayLineAbove: MAX_LTV_HARD_CAP,
+  knownCompositionShare: KNOWN_COMPOSITION_SHARE,
+  /** Per class: accounts, debt, and both closed totals. */
+  counts: {
+    cohort: classTotals(cohort),
+    included: classTotals(included),
+    priced: classTotals(pricedRows),
+  },
+  /** Why each no-delay row is no-delay. */
+  noDelayBy: {
+    included: noDelayBy(included),
+    priced: noDelayBy(pricedRows),
+  },
+  /** Rows whose seized legs are all stable, split by whether the CSV can see the rest. */
+  stableLegs: {
+    included: stableLegs(included),
+    priced: stableLegs(pricedRows),
+  },
+  /** How much of each account's collateral the CSV can see. */
+  seenCollateralShare: {
+    included: shareDistribution(included),
+    priced: shareDistribution(pricedRows),
+    decilesIncluded: shareDeciles(included),
+    /** Accounts (whole cohort) whose raw share was above 1 before the cap, and the largest. */
+    rawAboveOne: {
+      accounts: SEEN_SHARE_RAW_ABOVE_ONE.accounts,
+      max: +SEEN_SHARE_RAW_ABOVE_ONE.max.toFixed(4),
+    },
+  },
+  /** Rows whose own inverted line is above 90% — no-delay by the line rule alone. */
+  linesAbove90: {
+    cohort: linesAbove90(cohort),
+    included: linesAbove90(included),
+    priced: linesAbove90(pricedRows),
+  },
+  lineRule: {
+    rule:
+      'A line above 90% is no-delay whatever the composition: only a listing capped above ' +
+      'MAX_LTV_HARD_CAP can carry one (Collateral.sol:424-426, :538-540).',
+    implication:
+      'For VOLATILE collateral that means a no-delay listing of an asset the deploy does not ' +
+      'list that way: DeployFullSystem.s.sol:272 lists WETH at 90e16, delayed. These rows ' +
+      'are Aave e-mode lines; the census follows the contract rule, not the deploy.',
+    volatileAccounts: volatileLineRows.length,
+    volatileAccountsList: volatileLineRows.map((r) => ({
+      account: `${r.chain}:${r.user}`,
+      collSymbol: r.collSymbol,
+      debtSymbol: r.debtSymbol,
+      liqLine: r.liqLine,
+    })),
+    /** Headline minus the same rows walked delayed. */
+    dollarEffectUsd: r2(volatileLineEffectUsd),
+  },
+  mixedInCohort: cohort.filter((r) => r.delayClass === 'mixed').length,
+}
+
+/**
+ * SENSITIVITY: the treatment BEFORE the delay-class rule — every account walked through
+ * the 4%/8h window. A whole-cohort rebuild, so its totals are the previous published
+ * headline, and the delta is the dollar effect of the rule. The `sameRows` figures hold the
+ * headline's own included rows fixed and walk every one of them delayed.
+ */
+const allDelayedBuilt = buildCohort({ delayClassRule: 'allDelayed' })
+const allDelayedTotals = rebuiltTotals(allDelayedBuilt)
+/**
+ * Summed exactly as the headline is: each row's walk rounded to the cent FIRST, then added
+ * in cohort order. The plain `sweep` adds unrounded walks, so against the per-row-rounded
+ * headline a true zero would print as a few cents of rounding.
+ */
+const sweepRowRounded = (over: Partial<WalkInput>, pricedOnly: boolean) =>
+  walkInputs.reduce(
+    (s, w, i) =>
+      cohort[i]?.excluded || (pricedOnly && !cohort[i]?.priced)
+        ? s
+        : s + +cureWalk({ ...w, ...over }).closedUsd.toFixed(2),
+    0,
+  )
+const sameRowsDelayed = {
+  priced: sweepRowRounded({ noDelay: false }, true),
+  allIncluded: sweepRowRounded({ noDelay: false }, false),
+}
+
+/**
+ * THE OLD STOP AFTER A t0 SALE PAST THE BAND. Before 2026-10-14 cureWalk sold a delayed
+ * account already past line x (1 + band) at t0 once and stopped walking it, while every other
+ * sale walked on. In the contract a sale leaves no timer (a band break or an expiry deletes it,
+ * LiquidationEngine.sol:1724-1727 at 16e12329; an Immediate sale never had one) and nothing
+ * closes the position, so the headline now walks it on; this is the figure the
+ * old stop published, summed per row the way the headline is.
+ */
+const noWalkOn = {
+  priced: sweepRowRounded({ stopAfterT0BandSale: true }, true),
+  allIncluded: sweepRowRounded({ stopAfterT0BandSale: true }, false),
+  accountsChanged: walkInputs.filter(
+    (w, i) =>
+      !cohort[i].excluded &&
+      Math.abs(
+        cureWalk({ ...w, stopAfterT0BandSale: true }).closedUsd - cohort[i].membraneClosedUsd,
+      ) > 0.005,
+  ).length,
+}
+
+/**
+ * SENSITIVITY: the MIXED accounts removed from both sides. A stable and a volatile reserve
+ * were both seized, a position the CDP refuses to hold (Cdp.sol:1650-1651), so there is no
+ * single Membrane position to compare. The headline keeps them, walked delayed on their
+ * first leg as before; this is what dropping them instead is worth.
+ */
+const gapSet = (rows: any[]) => {
+  const a = sum(rows.map((r) => r.aaveClosedUsd))
+  const m = sum(rows.map((r) => r.membraneClosedUsd))
+  return {
+    accounts: rows.length,
+    aaveClosedUsd: r2(a),
+    membraneClosedUsd: r2(m),
+    gapUsd: r2(a - m),
+    gapPct: a > 0 ? +((100 * (a - m)) / a).toFixed(2) : 0,
+  }
+}
+const notMixed = (rows: any[]) => rows.filter((r) => r.delayClass !== 'mixed')
+/** A gap in the reader's words: 36.02 -> "36.0% less", -5.6 -> "5.6% more". */
+const lessOrMore = (gapPct: number) =>
+  `${Math.abs(gapPct).toFixed(1)}% ${gapPct >= 0 ? 'less' : 'more'}`
+const mixedExcluded = {
+  rule:
+    'Accounts that had both a stable and a volatile reserve seized are removed from BOTH ' +
+    "sides. The headline keeps them, walked delayed on their first leg; Membrane's CDP " +
+    'would refuse the position (Cdp.sol:1650-1651 -> MixedDelayClassCollateral), so neither ' +
+    'treatment is a measurement of Membrane.',
+  mixed: {
+    priced: gapSet(pricedRows.filter((r) => r.delayClass === 'mixed')),
+    allIncluded: gapSet(included.filter((r) => r.delayClass === 'mixed')),
+  },
+  priced: gapSet(notMixed(pricedRows)),
+  allIncluded: gapSet(notMixed(included)),
+}
+
 const doc0 = {
   exactMedian: residualBlock('N-1', 'exact').medianAbsPct,
 }
@@ -1552,8 +1981,11 @@ const doc = {
       'REBASED to the liquidation-minute oracle print. No modelled per-asset LTV is ' +
       "used anywhere. Aave's side is its ENTIRE multi-hit episode; Membrane's is the " +
       "delay window walked minute by minute, with the contract's repay-to-cap, its " +
-      'liqDebtMinimum floor, and re-arming after a sale. Accounts that are still not ' +
-      'breached after the rebase are excluded from BOTH sides.',
+      'liqDebtMinimum floor, and re-arming after a sale. An account this CSV can see is ' +
+      'all stable collateral, or whose line is above 90%, has no window: it is sold the ' +
+      'minute it is over its line and walks on (meta.delayClass). Every other account, ' +
+      'including those whose collateral the CSV cannot see, walks the window. Accounts ' +
+      'that are still not breached after the rebase are excluded from BOTH sides.',
     realConstants: {
       borrowLtvGap: BORROW_LTV_GAP,
       borrowLtvGapSource: 'lib/Constants.sol:30',
@@ -1582,6 +2014,8 @@ const doc = {
       rebasedIntoBreach: cohort.filter((r) => !r.excluded && r.ltv0Snapshot <= r.liqLine).length,
       rebasedOutOfBreach: excludedRows.filter((r) => r.ltv0Snapshot > r.liqLine).length,
     },
+    /** The Membrane delay class of every row: the rule, its cites, and the counts. */
+    delayClass: delayClassMeta,
     /**
      * AAVE'S OWN PRICE vs THE ROUND THIS BUILDER SELECTS. The only end-to-end check the
      * pricing chain has, published whether or not it is flattering.
@@ -1741,12 +2175,18 @@ const doc = {
       maxSales: MAX_SALES,
       stepSeconds: STEP,
       semantics: [
+        'DELAY CLASS FIRST (meta.delayClass; lib/position-sim/collateralClass.ts, shared with the simulator). Every clause below about a window, a band, a cure or an expiry is for the accounts walked delayed: delayed, mixed and unknown.',
+        'WHAT THE CSV CAN SEE: it names only the LIQUIDATED reserves. The class is applied from them only when they are >= 95% of total collateral (seenCollateralShare); otherwise the class is unknown and the account walks the window as before, unless its line is above 90%. Full composition needs on-chain reads of every reserve each account held.',
+        'NO-DELAY CLASS: an account whose collateral is all stable (seen >= 95%), or whose own line is above 90% (a line only a no-delay listing can carry, Collateral.sol:424-426, :538-540), has no window. Instant mode (LiquidationEngine.sol:1572-1576): over the line (strict >) is Immediate (:1694-1703) and a timer never arms (:1708-1710). It is sold at t0 with the same repay-to-cap and floor, then walks on and is sold again at every later minute back over its line. Outcome sold-no-delay; its cure field carries noWindow.',
+        'MODELLED LISTING ASSUMPTION: the contracts have no stable label since fc92ed4f — the class follows the immutable max_ltv_cap — so stable => no-delay mirrors the deploy (DeployFullSystem.s.sol:269-272: sUSDS, syrupUSDC, scrvUSD at 96e16). meta.sensitivity.stablesDelayed prices walking every account delayed instead.',
+        'MIXED CLASS: an account that had both a stable and a volatile reserve seized cannot exist on Membrane (Cdp.sol:1650-1651 -> MixedDelayClassCollateral, Collateral.sol:789-793). The headline still walks it delayed on its first leg, as before; removing such accounts from both sides is meta.sensitivity.mixedExcluded. The per-address simulator instead splits such a position into the two isolated positions Membrane would hold.',
+        'The paid RECALL-ONLY lane (LiquidationEngine.sol:1603-1658: a venue recall that alone brings the position back under its line pays the keeper the fee from collateral and sells nothing) is never entered here — this census credits no venue recall.',
         'The break line is line x (1 + band), not line + band — LiquidationEngine.sol:2099-2103, tested strictly at :1329.',
         'A position back under its LINE clears the timer (SavedByDelay, LiquidationEngine.sol:1362-1382 and :760-781), so a later breach gets a FULL fresh delay. The delay is not one-shot.',
         'MODELLED SEMANTICS, stated: clearRecoveredTimer / saveByDelay are permissionless and cost only gas, but somebody must CALL them. This model clears instantly on a return under the line. meta.sensitivity.noEarlyClearMembraneClosedUsd prices the opposite corner, where nobody ever calls, the original expiry stands, and a later breach does not restart it.',
-        'Past the band while a timer runs is BrokeWindow — immediate sale (LiquidationEngine.sol:1388-1389). Past the band with no timer is Immediate (:1390). Neither gets a delay.',
+        'Past the band while a timer runs is BrokeWindow — immediate sale (LiquidationEngine.sol:1695-1696 at 16e12329). Past the band with no timer is Immediate (:1697-1698 at 16e12329), at t0 included (outcome sold-at-t0). Neither gets a delay, and after either the position walks on like after any sale. meta.sensitivity.noWalkOnAfterT0BandSale prices the old stop after a t0 sale.',
         'At expiry still over the line is DelayExpired — sale at that minute, sized to restore the borrow cap at that minute’s collateral value (:1391-1392, :2204-2238).',
-        `A sale restores the BORROW CAP, not zero, and deletes the timer (:1421-1423), so the position stays live: the reduced debt and collateral walk on and a later breach re-arms. Up to ${MAX_SALES} sales per episode.`,
+        `A sale restores the BORROW CAP, not zero, and leaves no timer (a band break or an expiry deletes it, :1724-1727 at 16e12329; an Immediate sale never had one), so the position stays live: the reduced debt and collateral walk on and a later breach re-arms. Up to ${MAX_SALES} sales per episode.`,
         `Every repay passes through the liqDebtMinimum floor and the remainder guard (LiquidationEngine.sol:2241-2269) at the deployed $${LIQ_DEBT_MINIMUM_USD}. The contract also gas-indexes that floor upward; gas is not modelled, so this can only UNDER-state the escalation.`,
         'Conservative choices: a grid that ends inside an unresolved delay SELLS at the last price; a recovery only re-arms on a return under the line, never merely back inside the band; accounts whose breach cannot be located even after the rebase are excluded from both sides rather than handed a free cure.',
       ],
@@ -1816,11 +2256,54 @@ const doc = {
       debtFloorDeltaUsd: r2(mU - noFloorTotal),
       debtFloorAccountsChanged: floorAccountsChanged,
       debtFloorOneRepayAccountsChanged: floorOneRepayChanged,
+      /**
+       * The old stop after a t0 sale past the band (cureWalk before 2026-10-14). Deltas are
+       * headline minus this: the Membrane sales the stop hid.
+       */
+      noWalkOnAfterT0BandSale: {
+        rule: 'A delayed account sold at t0 past line x (1 + band) is NOT walked on after that one repay — the behaviour before 2026-10-14. The headline walks it on like every other sale: a sale leaves no timer (a band break or an expiry deletes it, LiquidationEngine.sol:1724-1727 at 16e12329; an Immediate sale never had one) and nothing closes the position.',
+        pricedMembraneClosedUsd: r2(noWalkOn.priced),
+        pricedDeltaUsd: r2(priced.membraneClosedUsd - noWalkOn.priced),
+        allIncludedMembraneClosedUsd: r2(noWalkOn.allIncluded),
+        allIncludedDeltaUsd: r2(mU - noWalkOn.allIncluded),
+        accountsChanged: noWalkOn.accountsChanged,
+      },
       /** One sale per episode, the old cap. */
       singleSaleMembraneClosedUsd: r2(oneSaleTotal),
       repeatSaleDeltaUsd: r2(mU - oneSaleTotal),
       repeatSaleAccounts,
       maxSalesSeen,
+      /**
+       * The delay-class rule switched OFF: every account walked through the 4%/8h window
+       * and no mixed-class exclusion — the treatment before the rule. Its totals are the
+       * previous headline; the deltas are the dollar effect of the rule.
+       */
+      stablesDelayed: {
+        rule:
+          'every account walked as DELAYED (the 4%/8h window, whatever its collateral or ' +
+          'line): the treatment before collateralClass.ts.',
+        priced: allDelayedTotals.priced,
+        allIncluded: allDelayedTotals.allIncluded,
+        excludedAccounts: allDelayedTotals.excludedAccounts,
+        pricedDeltaUsd: r2(priced.membraneClosedUsd - allDelayedTotals.priced.membraneClosedUsd),
+        allIncludedDeltaUsd: r2(
+          allIncluded.membraneClosedUsd - allDelayedTotals.allIncluded.membraneClosedUsd,
+        ),
+        sameRows: {
+          pricedMembraneClosedUsd: r2(sameRowsDelayed.priced),
+          allIncludedMembraneClosedUsd: r2(sameRowsDelayed.allIncluded),
+          pricedDeltaUsd: r2(priced.membraneClosedUsd - sameRowsDelayed.priced),
+          allIncludedDeltaUsd: r2(allIncluded.membraneClosedUsd - sameRowsDelayed.allIncluded),
+          note:
+            "The headline's own included rows, each walked delayed. Deltas are headline " +
+            'minus this.',
+        },
+        note:
+          'Deltas are headline minus this rebuild, the dollar effect of walking the ' +
+          'no-delay accounts without a window. The row set is the same.',
+      },
+      /** The mixed accounts removed from both sides, instead of walked delayed. */
+      mixedExcluded,
       /** What the headline would be if the excluded rows were kept on both sides. */
       withExcludedAaveClosedUsd: r2(sum(cohort.map((r) => r.aaveClosedUsd))),
       withExcludedMembraneClosedUsd: r2(sum(cohort.map((r) => r.membraneClosedUsd))),
@@ -1893,6 +2376,33 @@ const doc = {
         'price is wrong for those rows; the honest treatment is to drop them from both ' +
         'sides rather than count a $0 Membrane close as a win. They stay in the cohort ' +
         'flagged excluded so the table can still show them.',
+      // Rendered verbatim on the Evidence page: the reader's words — no class names, no
+      // meta keys — and the modelled claim carries the page's † (footnote under the caveats).
+      `NO 8-HOUR WINDOW†: ${delayClassMeta.counts.included['no-delay'].accounts} included ` +
+        'accounts get none and are sold the minute they are over their line, every time — ' +
+        `${delayClassMeta.noDelayBy.included.stableCollateral} whose collateral this data ` +
+        `sees is all stablecoins, and ${delayClassMeta.noDelayBy.included.lineAbove90Only} ` +
+        'whose own line is above 90%, which only a listing without a window can carry. That ' +
+        'stablecoins are listed without a window is modelled: the contracts carry no ' +
+        'stablecoin label, and the deploy lists its three launch stablecoins that way. ' +
+        (Math.abs(allIncluded.membraneClosedUsd - allDelayedTotals.allIncluded.membraneClosedUsd) <
+        0.5
+          ? 'Giving them the eight hours instead leaves Membrane’s total unchanged.'
+          : 'Giving them the eight hours instead changes Membrane’s total by ' +
+            `$${((allDelayedTotals.allIncluded.membraneClosedUsd - allIncluded.membraneClosedUsd) / 1e6).toFixed(2)}M.`),
+      'THIS DATA CANNOT SEE MOST COLLATERAL. It names only the liquidated reserves. Of the ' +
+        `${delayClassMeta.stableLegs.included.accounts} included accounts whose seized ` +
+        `collateral is all stablecoins, ${delayClassMeta.stableLegs.included.compositionUnknown} ` +
+        'had reserves seized worth under 95% of their collateral, so what else they held ' +
+        'is unknown and they keep the window as before. Across the included accounts, ' +
+        `that is true of ${delayClassMeta.counts.included.unknown.accounts.toLocaleString('en-US')}. ` +
+        `${delayClassMeta.counts.included.mixed.accounts} included accounts had a ` +
+        'stablecoin and another asset seized — a position Membrane would not hold in one ' +
+        'piece. They stay in the headline with the window; dropping them from both sides ' +
+        `moves the priced result from ${lessOrMore(gapSet(pricedRows).gapPct)} to ` +
+        `${lessOrMore(mixedExcluded.priced.gapPct)} debt closed than Aave. Seeing every ` +
+        'account’s whole collateral needs a read of every reserve it held, which this ' +
+        'data does not have.',
       'debt_fraction_repaid is per-RESERVE; Aave’s USD figure is valued from ' +
         'debt_to_cover_normalized x price instead.',
       'wstETH is priced as (ETH/USD in force) x 1.215989, the MEASURED wstETH<->stETH wrap ' +
@@ -1954,7 +2464,10 @@ const doc = {
       'The cure field on each account remains the earlier BEST-LTV diagnostic over a ' +
         'fixed 8h look-ahead. It is not the walk: it ignores the band, ignores re-arming ' +
         'and is not what any dollar here is computed from. Read outcome / closedAtIndex / ' +
-        'minutesToFirstCure / sales for the modelled result.',
+        'minutesToFirstCure / sales for the modelled result. A row with no 8-hour window ' +
+        'has its cure field say noWindow and is never curedInWindow; bestLtv / endLtv / ' +
+        'healthyAt8h stay as a price diagnostic, and time.noDelay counts how many would ' +
+        'have cured had a window existed.',
     ],
   },
   /**
@@ -1991,6 +2504,20 @@ const doc = {
     medianMinutesToCure: median(cured.map((r) => r.cure.minutesToCure)),
     aaveSecondsGranted: 0,
     membraneSecondsGranted: CURE_WINDOW_SECONDS,
+    /**
+     * The no-delay rows inside accountsAnalysed. They have no window, so none is counted
+     * cured above; wouldHaveCuredWithWindow keeps what that dropped visible.
+     */
+    noDelay: {
+      accounts: cur.filter((r) => r.cure.noWindow).length,
+      wouldHaveCuredWithWindow: cur.filter(
+        (r) => r.cure.noWindow && r.cure.wouldHaveCuredWithWindow,
+      ).length,
+      note:
+        'No-delay accounts (stable collateral, or a line above 90%) are sold the minute they ' +
+        'are over their line, so they cannot cure in a window and count as not cured. This ' +
+        'is how many of them dipped back under their line inside 8h on price alone.',
+    },
   },
   byAsset: byAssetOut,
   cohort: cohort.sort((a, b) => b.debtUsd - a.debtUsd),
@@ -2056,6 +2583,9 @@ console.log(
   `  floor: ${floorAccountsChanged} accounts, ${m(mU - noFloorTotal)}   repeat sales: ${repeatSaleAccounts} accounts (max ${maxSalesSeen}), ${m(mU - oneSaleTotal)}`,
 )
 console.log(`  no-early-clear ${m(noEarlyClearTotal)} (${m(noEarlyClearTotal - mU)})`)
+console.log(
+  `  no walk-on after a t0 band sale: priced ${m(noWalkOn.priced)} (headline +${m(priced.membraneClosedUsd - noWalkOn.priced)})  allIncl ${m(noWalkOn.allIncluded)} (+${m(mU - noWalkOn.allIncluded)})  accounts ${noWalkOn.accountsChanged}`,
+)
 console.log(
   `  concentration top1 ${(100 * concentration.top1Share).toFixed(1)}%  top5 ${(100 * concentration.top5Share).toFixed(1)}%  (${concentration.top1Account})`,
 )
@@ -2132,4 +2662,16 @@ console.log(
 )
 console.log(
   `  cure diagnostic ${doc.time.curedPct}%  healthy@8h ${doc.time.healthyAt8hPct}%  median ${doc.time.medianMinutesToCure} min`,
+)
+console.log(
+  '  DELAY CLASS included ' +
+    DELAY_CLASSES.map((k) => `${k}=${delayClassMeta.counts.included[k].accounts}`).join('  ') +
+    `  (no-delay: stable ${delayClassMeta.noDelayBy.included.stableCollateral}, line>90% only ${delayClassMeta.noDelayBy.included.lineAbove90Only})` +
+    `  priced no-delay ${delayClassMeta.counts.priced['no-delay'].accounts}  stable legs ${delayClassMeta.stableLegs.included.accounts} (known ${delayClassMeta.stableLegs.included.compositionKnown})  share ${JSON.stringify(delayClassMeta.seenCollateralShare.included)}  raw>1 ${JSON.stringify(delayClassMeta.seenCollateralShare.rawAboveOne)}`,
+)
+console.log(
+  `  mixed excluded (sensitivity): priced ${mixedExcluded.priced.accounts} aave ${m(mixedExcluded.priced.aaveClosedUsd)} membrane ${m(mixedExcluded.priced.membraneClosedUsd)} gap ${mixedExcluded.priced.gapPct}%  allIncl ${mixedExcluded.allIncluded.accounts} gap ${mixedExcluded.allIncluded.gapPct}%  (mixed rows: ${mixedExcluded.mixed.allIncluded.accounts}, aave ${m(mixedExcluded.mixed.allIncluded.aaveClosedUsd)}, membrane ${m(mixedExcluded.mixed.allIncluded.membraneClosedUsd)})`,
+)
+console.log(
+  `  stables delayed (old treatment): priced ${m(allDelayedTotals.priced.membraneClosedUsd)} (delta ${m(priced.membraneClosedUsd - allDelayedTotals.priced.membraneClosedUsd)})  allIncl ${m(allDelayedTotals.allIncluded.membraneClosedUsd)} (delta ${m(allIncluded.membraneClosedUsd - allDelayedTotals.allIncluded.membraneClosedUsd)})  same rows: priced ${m(sameRowsDelayed.priced)} allIncl ${m(sameRowsDelayed.allIncluded)}  no-delay would-have-cured ${doc.time.noDelay.wouldHaveCuredWithWindow}/${doc.time.noDelay.accounts}`,
 )

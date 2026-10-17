@@ -141,6 +141,8 @@ export interface ProtocolPosition {
   oracleCheck?: OracleCheck
   /** The market a supplied leg lends into, read on-chain at the read's block (Morpho Blue). */
   lendMarket?: LendMarketState
+  /** Supply shares worth under one base unit of the loan token, and nothing else here. */
+  dustSupply?: boolean
 }
 
 /**
@@ -165,6 +167,13 @@ export interface LendMarketState {
   /** Base supply APR, no rewards: borrowApr × utilization × (1 − fee). Null without the rate. */
   supplyApr: number | null
   block: number
+  /**
+   * The market's last on-chain update (unix s, before this read's accrual). The IRM rate is
+   * the average since then, so every rate here is "as of last update".
+   */
+  lastUpdate: number
+  /** The read block's timestamp (unix s), or null when it was not read. */
+  blockTs: number | null
 }
 
 /**

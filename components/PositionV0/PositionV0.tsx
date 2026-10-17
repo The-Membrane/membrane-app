@@ -143,14 +143,15 @@ const Positions: React.FC<{
   address: string
   /** Days the forecast's data is past STALE, or null while fresh. */
   staleAge: number | null
-}> = ({ views, selected, onSelect, failures, address, staleAge }) => {
+  dust: number
+}> = ({ views, selected, onSelect, failures, address, staleAge, dust }) => {
   // One horizon drives the headline figure, the depth curve and the levers (7 days); the
   // time chart shows every time up to it, so there are no horizon tabs to page through.
   const horizon: HorizonId = DEFAULT_HORIZON
   const hasLine = selected.hero.kind !== 'no-debt'
   return (
     <>
-      {views.length > 1 && <PositionPicker views={views} selectedKey={selected.key} onSelect={onSelect} />}
+      {(views.length > 1 || dust > 0) && <PositionPicker views={views} selectedKey={selected.key} onSelect={onSelect} dust={dust} />}
       <Hero view={selected} />
       <ForecastBlock view={selected} horizon={horizon} stale={staleAge !== null} t={TOUCH_TABLE} />
       {/* A lender has no line: rewards, risks and withdrawal capacity take its place. */}
@@ -200,6 +201,7 @@ const Body: React.FC<{
     <Positions
       key={readId}
       views={state.views}
+      dust={state.dust}
       selected={selected}
       onSelect={onSelect}
       failures={items.filter((i) => i.state === 'error' || (i.skipped?.length ?? 0) > 0 || partialDiscovery(i))}

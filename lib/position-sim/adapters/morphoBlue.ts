@@ -575,9 +575,7 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
   }
 
   const supplied: SuppliedLeg[] = []
-  // Supply shares worth less than one base unit still make this a lending position: the
-  // leg reads 0, and the lending block shows the market it sits in.
-  if (r.supplyShares > 0n) {
+  if (suppliedRaw > 0n) {
     const amount = toNumber(suppliedRaw, loanDecimals)
     supplied.push({
       symbol: ctx.loanSymbol,
@@ -593,7 +591,7 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
   // withdraw now. Base supply APR is Morpho's own split of the borrow interest:
   // borrowRate × utilization × (1 − fee), no rewards.
   let lendMarket: LendMarketState | null = null
-  if (r.supplyShares > 0n) {
+  if (suppliedRaw > 0n) {
     const totalSupply = toNumber(w[0], loanDecimals)
     const totalBorrow = toNumber(w[2], loanDecimals)
     const utilization = totalSupply > 0 ? Math.min(1, totalBorrow / totalSupply) : 0
@@ -609,6 +607,8 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
       fee,
       supplyApr: borrowApr === null ? null : borrowApr * utilization * (1 - fee),
       block: Number(ctx.block),
+      lastUpdate: Number(r.words[4]),
+      blockTs: ctx.blockTs === null ? null : Number(ctx.blockTs),
     }
   }
 
@@ -664,6 +664,9 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
     ...(supplied.length > 0 ? { supplied } : {}),
     ...(oracleCheck ? { oracleCheck } : {}),
     ...(lendMarket ? { lendMarket } : {}),
+    // Supply shares worth less than one base unit of the loan token: a lending position
+    // in name only. The page folds these into one "dust" line.
+    ...(r.supplyShares > 0n && suppliedRaw === 0n && debtRaw === 0n && r.collateralRaw === 0n ? { dustSupply: true } : {}),
   }
 }
 

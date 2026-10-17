@@ -489,7 +489,7 @@ export function aaveReserveLendMarket(input: {
     borrowApr: toNumber(w.variableBorrowRate, RAY_DECIMALS),
     fee: Number(input.reserveFactorBps) / 10_000,
     supplyApr: toNumber(w.liquidityRate, RAY_DECIMALS),
-    aprBasis: 'the reserve’s liquidityRate (RAY, an APR), as of its last update',
+    aprBasis: 'the reserve’s liquidityRate (RAY, an APR), live at the read block',
     block: Number(input.block),
     lastUpdate: w.lastUpdateTimestamp,
     blockTs: input.blockTs === null ? null : Number(input.blockTs),

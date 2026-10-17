@@ -24,8 +24,9 @@ cash(t0)): one-sided DM, Newey-West lag 7, HLN, p < 0.0125; q05 hit rate in [2.5
 
 Phases:
   --inputs-only   load and gate inputs, print counts, stop (no fit, no forecast, no score)
-  (default)       ONE run: frozen-r115.json (with frozen_utc) written and hashed before any fit or forecast;
-                  per-deposit refits with gates G2/G3; R10.4 path reproduction (gate G4); D, C forecasts; scores.
+  --freeze-only   write frozen-r115.json (code, inputs sha256, readings, constants, frozen_utc), hash it, stop
+  (default)       ONE run from the frozen config (refuses if code, inputs or readings differ, or if a run already
+                  started): per-deposit refits with gates G2/G3; R10.4 path reproduction (gate G4); D, C; scores.
 No address is held in any output (units are integer indices in memory only; every output is checked).
 """
 import os
@@ -393,6 +394,35 @@ def load_r104_published(datasets, pool, say):
     return out, shas, g1b
 
 
+def deposit_input_hashes(datasets):
+    """sha256 of every per-deposit input, checked against the registered values / manifests."""
+    import b4_depositor as F
+    import b5_econ as E5
+    import b6c_cash as BC
+    out = dict(F.verify_inputs(datasets, holdouts=False))
+    out.update(E5.verify_b4_run(datasets))
+    out.update(BC.verify_b6_run(datasets))
+    for fn, want in BC.R9_SHA.items():
+        got = R4.sha256_file(os.path.join(datasets, BC.R9_RUN, fn))
+        if got != want:
+            raise SystemExit(f"STOP: {fn} sha256 {got} != {want}")
+        out[BC.R9_RUN + fn] = got
+    got = R4.sha256_file(os.path.join(datasets, BC.L1C_PANEL))
+    if got != BC.L1C_PANEL_SHA:
+        raise SystemExit("STOP: L1c panel sha256 differs")
+    out[BC.L1C_PANEL] = got
+    ddir = os.path.join(datasets, "aave-pool-debt")
+    for fn in sorted(os.listdir(ddir)):
+        out["aave-pool-debt/" + fn] = R4.sha256_file(os.path.join(ddir, fn))
+    for hn, want in B6C_PRED_SHA.items():
+        fn = f"predictions-b6c-{hn}-USDC.csv.gz"
+        got = R4.sha256_file(os.path.join(datasets, B6C_RUN, fn))
+        if got != want:
+            raise SystemExit(f"STOP: {fn} sha256 differs from its PROVENANCE")
+        out[B6C_RUN + fn] = got
+    return out
+
+
 def _extend_folds(ctx):
     name, start = EXTRA_FOLD
     if ctx.folds[-1][0] != "2026Q3":
@@ -616,6 +646,7 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--inputs-only", action="store_true")
+    ap.add_argument("--freeze-only", action="store_true", help="write and hash frozen-r115.json, then stop")
     ap.add_argument("--allow-dirty", action="store_true")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
@@ -630,7 +661,9 @@ def main():
 
     meta = code_meta()
     if not a.inputs_only:
-        if os.path.exists(os.path.join(a.out, "results-r115.json")):
+        if os.path.exists(os.path.join(a.out, "results-r115.json")) or (
+                not a.freeze_only and os.path.exists(os.path.join(a.out, "run.log"))
+                and "FIT START" in open(os.path.join(a.out, "run.log")).read()):
             raise SystemExit("STOP: results exist; R11.5 runs once")
         if meta["tree_dirty"] and not a.allow_dirty:
             raise SystemExit("STOP: uncommitted changes in the code; commit before the run")
@@ -642,6 +675,7 @@ def main():
     shas.update(r104_shas)
     lp = os.path.join(a.datasets, LABELS_R9)
     shas[LABELS_R9] = R4.sha256_file(lp)
+    shas.update(deposit_input_hashes(a.datasets))
     origins = pool["origins"]
     oi = {o: i for i, o in enumerate(origins)}
     score_sets = {}
@@ -686,17 +720,31 @@ def main():
                             "ALPHA": ALPHA, "HIT": [HIT_LO, HIT_HI], "LOCK_SHARE": LOCK_SHARE,
                             "LOW_SHARE": LOW_SHARE, "EXTRA_FOLD": EXTRA_FOLD, "SCORE_DATA_END": SCORE_DATA_END},
               "input_counts": counts}
-    frozen["frozen_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     fp = os.path.join(a.out, "frozen-r115.json")
-    if os.path.exists(fp):
-        raise SystemExit("STOP: frozen-r115.json exists; R11.5 runs once")
-    with open(fp, "w") as f:
-        json.dump(frozen, f, indent=1, default=str)
-    guard_file(fp)
+    if a.freeze_only:
+        if os.path.exists(fp):
+            raise SystemExit("STOP: frozen-r115.json exists; R11.5 freezes once")
+        frozen["frozen_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with open(fp, "w") as f:
+            json.dump(frozen, f, indent=1, default=str)
+        guard_file(fp)
+        say("FROZEN frozen-r115.json sha256", R4.sha256_file(fp), "at", frozen["frozen_utc"])
+        say("freeze-only: stop before any fit, forecast or score")
+        return
+    if not os.path.exists(fp):
+        raise SystemExit("STOP: run --freeze-only first; the frozen config is hashed and posted before the run")
+    fz = json.load(open(fp))
     fh = R4.sha256_file(fp)
-    say("FROZEN frozen-r115.json sha256", fh, "at", frozen["frozen_utc"])
+    for k in ("decisions", "constants", "inputs_sha256", "input_counts"):
+        if json.loads(json.dumps(frozen[k], default=str)) != fz[k]:
+            raise SystemExit(f"STOP: frozen config field {k} differs from this run")
+    if fz["code"]["git_head"] != meta["git_head"] or fz["code"]["sha256"] != meta["sha256"]:
+        raise SystemExit("STOP: code differs from the frozen config")
+    frozen["frozen_utc"] = fz["frozen_utc"]
+    say("using FROZEN frozen-r115.json sha256", fh, "created", fz["frozen_utc"])
 
     # ---------- per-deposit ladders (refits + gates) ----------
+    say("FIT START")
     say("B4 ladders")
     L4, b4info, ctx4 = b4_ladders(a.datasets, a.workers, say)
     g2 = gate_published(a.datasets, L4["days"], L4["unit"], L4["t"], L4["P"], "b4", say)

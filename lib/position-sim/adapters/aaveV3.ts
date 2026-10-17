@@ -21,7 +21,7 @@
  */
 
 import { getMainnetClient, rpcLabel, toNumber } from '../rpc'
-import { stamp, type CollateralLeg, type DebtLeg, type ProtocolId, type ProtocolPosition } from '../types'
+import { stamp, type CollateralLeg, type DebtLeg, type LendMarketState, type ProtocolId, type ProtocolPosition, type SuppliedLeg } from '../types'
 import { decimalsFromScale, mc, optional, pinBlock, ratio, unwrap, type Call, type LendingAdapter } from './types'
 
 // ----------------------------------------------------------------------- ABIs
@@ -47,7 +47,20 @@ const poolAbi = [
       { name: 'healthFactor', type: 'uint256' },
     ],
   },
+  {
+    // Aave v3.3+: debt a liquidation left with no collateral behind it, not yet covered.
+    type: 'function',
+    name: 'getReserveDeficit',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
 ] as const
+
+const multicall3TsAbi = [
+  { type: 'function', name: 'getCurrentBlockTimestamp', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+] as const
+const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11' as const
 
 const dataProviderAbi = [
   {
@@ -358,6 +371,62 @@ const HF_DECIMALS = 18
 /** `type(uint256).max` — what Aave returns for healthFactor when totalDebtBase == 0. */
 const UINT256_MAX = (1n << 256n) - 1n
 
+// ------------------------------------------------------------ a lender's reserve
+
+/** One reserve as PoolDataProvider.getReserveData returns it (the fields a lender needs). */
+export interface AaveReserveWords {
+  totalAToken: bigint
+  totalStableDebt: bigint
+  totalVariableDebt: bigint
+  /** RAY (1e27) APRs. */
+  liquidityRate: bigint
+  variableBorrowRate: bigint
+  lastUpdateTimestamp: number
+}
+
+/**
+ * The reserve a supply-only address lends into, from one block's reads. Pure, so the unit
+ * test covers the scaling. Liquidity is the unborrowed supply (aToken supply − debt), the
+ * same definition the Morpho block uses; the supply APR is Aave's own liquidityRate (RAY,
+ * already an APR), not a derivation.
+ */
+export function aaveReserveLendMarket(input: {
+  symbol: string
+  token: `0x${string}`
+  decimals: number
+  priceUsd: number
+  words: AaveReserveWords
+  /** Reserve factor, bps. */
+  reserveFactorBps: bigint
+  /** Pool.getReserveDeficit, token base units; null when the call does not exist (Spark) or failed. */
+  deficitRaw: bigint | null
+  block: bigint
+  blockTs: bigint | null
+}): LendMarketState {
+  const { words: w, decimals } = input
+  const debt = w.totalStableDebt + w.totalVariableDebt
+  const totalSupply = toNumber(w.totalAToken, decimals)
+  const totalBorrow = toNumber(debt, decimals)
+  return {
+    venue: 'aave-reserve',
+    symbol: input.symbol,
+    token: input.token,
+    priceUsd: input.priceUsd,
+    totalSupply,
+    totalBorrow,
+    liquidity: w.totalAToken > debt ? toNumber(w.totalAToken - debt, decimals) : 0,
+    utilization: totalSupply > 0 ? Math.min(1, totalBorrow / totalSupply) : 0,
+    borrowApr: toNumber(w.variableBorrowRate, RAY_DECIMALS),
+    fee: Number(input.reserveFactorBps) / 10_000,
+    supplyApr: toNumber(w.liquidityRate, RAY_DECIMALS),
+    aprBasis: 'the reserve’s liquidityRate (RAY, an APR), as of its last update',
+    block: Number(input.block),
+    lastUpdate: w.lastUpdateTimestamp,
+    blockTs: input.blockTs === null ? null : Number(input.blockTs),
+    deficit: input.deficitRaw === null ? null : toNumber(input.deficitRaw, decimals),
+  }
+}
+
 // --------------------------------------------------------------- shared reads
 
 interface ResolvedAave {
@@ -479,7 +548,8 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
       const baseDecimals = decimalsFromScale(baseUnit, `${tag}: BASE_CURRENCY_UNIT`)
 
       const [totalCollateralBase, totalDebtBase, , liqThresholdBps, , healthFactorRaw] = account
-      if (totalCollateralBase === 0n && totalDebtBase === 0n) return []
+      // No early exit on an empty aggregate: a supply with collateral switched off counts for
+      // nothing in it, so every reserve's aToken balance is read (one more multicall).
 
       // --- per-reserve user balances ------------------------------------------
       const userCalls: Call[] = reserves.map((r) => ({
@@ -520,6 +590,7 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
         })
       })
 
+      if (active.length === 0 && totalCollateralBase === 0n && totalDebtBase === 0n) return []
       if (active.length === 0) {
         // The aggregate says there is value but no reserve carries it. That is a real
         // inconsistency, not an empty wallet — say so rather than returning nothing.
@@ -577,6 +648,75 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
         ),
         tag,
       })
+
+      // --- a lender with no debt: one supply position per reserve it holds -------
+      // Without debt there is no line, collateral or not: each aToken balance is a supply
+      // in that reserve, shown with the reserve's market state (owner, 2026-10-17).
+      if (totalDebtBase === 0n) {
+        const supplied = active.filter((a) => a.aTokenBalance > 0n)
+        const extra = await mc<bigint>(
+          client,
+          [
+            { address: MULTICALL3, abi: multicall3TsAbi, functionName: 'getCurrentBlockTimestamp' },
+            ...supplied.map((a) => ({ address: pool, abi: poolAbi, functionName: 'getReserveDeficit', args: [a.token] })),
+          ],
+          block,
+        )
+        const blockTs = optional(extra[0])
+        return supplied.map((a, k) => {
+          const i = active.indexOf(a)
+          const cfg = unwrap(cfgRes[i], `${tag}: getReserveConfigurationData(${a.symbol})`)
+          const rd = unwrap(rateRes[i], `${tag}: getReserveData(${a.symbol})`)
+          const decimals = Number(cfg[0] as bigint)
+          const priceRaw = prices[i]
+          if (priceRaw === undefined || priceRaw === 0n) throw new Error(`${tag}: AaveOracle has no price for ${a.symbol} (${a.token})`)
+          const priceUsd = toNumber(priceRaw, baseDecimals)
+          const amount = toNumber(a.aTokenBalance, decimals)
+          const leg: SuppliedLeg = { symbol: a.symbol, address: a.token, decimals, amount, priceUsd, valueUsd: amount * priceUsd }
+          const lendMarket = aaveReserveLendMarket({
+            symbol: a.symbol,
+            token: a.token,
+            decimals,
+            priceUsd,
+            words: {
+              totalAToken: rd[2] as bigint,
+              totalStableDebt: rd[3] as bigint,
+              totalVariableDebt: rd[4] as bigint,
+              liquidityRate: rd[5] as bigint,
+              variableBorrowRate: rd[6] as bigint,
+              lastUpdateTimestamp: Number(rd[11] as bigint | number),
+            },
+            reserveFactorBps: cfg[4] as bigint,
+            deficitRaw: optional(extra[1 + k]),
+            block,
+            blockTs,
+          })
+          const position: ProtocolPosition = {
+            protocol: config.id,
+            label: `${config.label} · ${a.symbol} supply`,
+            marketId: a.token,
+            collateral: [],
+            debt: [],
+            totalCollateralUsd: 0,
+            totalDebtUsd: 0,
+            ltv: 0,
+            liquidationLtv: 0,
+            healthFactor: Number.POSITIVE_INFINITY,
+            status: 'supply-only',
+            supplied: [leg],
+            lendMarket,
+            provenance: {
+              ...stamp(
+                'onchain',
+                `${tag} · ${rpcLabel()}`,
+                `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, resolved from PoolAddressesProvider ${config.addressesProvider}. No debt: ${amount} ${a.symbol} supplied (aToken balance from getUserReserveData${a.collateralEnabled ? ', collateral enabled but nothing borrowed' : ', not used as collateral'}). Reserve totals and rates from getReserveData (RAY APRs); reserve factor from getReserveConfigurationData; deficit from Pool.getReserveDeficit${lendMarket.deficit === null ? ' (not read: the call failed or this pool predates v3.3)' : ''}. Every call read block ${block}.`,
+              ),
+              block: Number(block),
+            },
+          }
+          return position
+        })
+      }
 
       const collateral: CollateralLeg[] = []
       const debt: DebtLeg[] = []

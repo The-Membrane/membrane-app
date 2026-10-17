@@ -25,7 +25,7 @@
  */
 
 import { getMainnetClient, rpcLabel, toNumber } from '../rpc'
-import { stamp, type CollateralLeg, type DebtLeg, type ProtocolPosition } from '../types'
+import { stamp, type CollateralLeg, type DebtLeg, type LendMarketState, type ProtocolPosition, type SuppliedLeg } from '../types'
 import {
   PartialReadError,
   SanityCheckError,
@@ -107,7 +107,46 @@ const cometAbi = [
     inputs: [{ name: 'utilization', type: 'uint256' }],
     outputs: [{ type: 'uint64' }],
   },
+  // A lender's base supply: balanceOf is the present value, interest included.
+  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'totalSupply', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'totalBorrow', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'getSupplyRate',
+    stateMutability: 'view',
+    inputs: [{ name: 'utilization', type: 'uint256' }],
+    outputs: [{ type: 'uint64' }],
+  },
+  // Negative reserves = bad debt the protocol's reserves no longer cover.
+  { type: 'function', name: 'getReserves', stateMutability: 'view', inputs: [], outputs: [{ type: 'int256' }] },
+  {
+    type: 'function',
+    name: 'totalsBasic',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [
+      {
+        type: 'tuple',
+        components: [
+          { name: 'baseSupplyIndex', type: 'uint64' },
+          { name: 'baseBorrowIndex', type: 'uint64' },
+          { name: 'trackingSupplyIndex', type: 'uint64' },
+          { name: 'trackingBorrowIndex', type: 'uint64' },
+          { name: 'totalSupplyBase', type: 'uint104' },
+          { name: 'totalBorrowBase', type: 'uint104' },
+          { name: 'lastAccrualTime', type: 'uint40' },
+          { name: 'pauseFlags', type: 'uint8' },
+        ],
+      },
+    ],
+  },
 ] as const
+
+const multicall3TsAbi = [
+  { type: 'function', name: 'getCurrentBlockTimestamp', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+] as const
+const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11' as const
 
 /** Chainlink-style feed: only its decimals, to check a quote feed's scale. */
 const feedAbi = [
@@ -280,6 +319,55 @@ interface AssetInfo {
   supplyCap: bigint
 }
 
+// ------------------------------------------------------------ a lender's Comet
+
+/**
+ * The Comet a base-asset supplier lends into, from one block's reads. Pure, so the unit test
+ * covers the scaling. Comet rates are per second at 1e18; the supply rate is Comet's own
+ * getSupplyRate(getUtilization()), not a derivation. Liquidity is the unborrowed supply.
+ * Negative reserves are bad debt the reserves no longer cover: `deficit`.
+ */
+export function cometLendMarket(input: {
+  name: string
+  symbol: string
+  token: `0x${string}`
+  decimals: number
+  priceUsd: number
+  totalSupplyRaw: bigint
+  totalBorrowRaw: bigint
+  supplyRatePerSec: bigint | null
+  /** The borrow APR this read already annualised. */
+  borrowApr: number | null
+  reservesRaw: bigint | null
+  lastAccrualTime: number
+  block: bigint
+  blockTs: bigint | null
+}): LendMarketState {
+  const d = input.decimals
+  const totalSupply = toNumber(input.totalSupplyRaw, d)
+  const totalBorrow = toNumber(input.totalBorrowRaw, d)
+  const perYear = (r: bigint | null) => (r === null ? null : toNumber(r, FACTOR_DECIMALS) * SECONDS_PER_YEAR)
+  return {
+    venue: 'comet',
+    marketName: input.name,
+    symbol: input.symbol,
+    token: input.token,
+    priceUsd: input.priceUsd,
+    totalSupply,
+    totalBorrow,
+    liquidity: input.totalSupplyRaw > input.totalBorrowRaw ? toNumber(input.totalSupplyRaw - input.totalBorrowRaw, d) : 0,
+    utilization: totalSupply > 0 ? Math.min(1, totalBorrow / totalSupply) : 0,
+    borrowApr: input.borrowApr,
+    fee: null,
+    supplyApr: perYear(input.supplyRatePerSec),
+    aprBasis: 'Comet.getSupplyRate(getUtilization()) per second × a year',
+    block: Number(input.block),
+    lastUpdate: input.lastAccrualTime,
+    blockTs: input.blockTs === null ? null : Number(input.blockTs),
+    deficit: input.reservesRaw === null ? null : input.reservesRaw < 0n ? toNumber(-input.reservesRaw, d) : 0,
+  }
+}
+
 // -------------------------------------------------------------------- adapter
 
 async function readComet(
@@ -299,10 +387,13 @@ async function readComet(
       { address: comet, abi: cometAbi, functionName: 'baseToken' },
       { address: comet, abi: cometAbi, functionName: 'baseTokenPriceFeed' },
       { address: comet, abi: cometAbi, functionName: 'numAssets' },
+      { address: comet, abi: cometAbi, functionName: 'balanceOf', args: [user] },
     ],
     block,
   )
   const borrowRaw = unwrap(head[0], `${tag}: borrowBalanceOf()`) as bigint
+  // Comet's base balance is signed: a supplier has no borrow, a borrower no supply.
+  const supplyRaw = unwrap(head[4], `${tag}: balanceOf()`) as bigint
   const baseToken = unwrap(head[1], `${tag}: baseToken()`) as `0x${string}`
   const baseFeed = unwrap(head[2], `${tag}: baseTokenPriceFeed()`) as `0x${string}`
   const numAssets = Number(unwrap(head[3], `${tag}: numAssets()`))
@@ -327,7 +418,7 @@ async function readComet(
   const balances = assets.map((a, i) => unwrap(collRes[i], `${tag}: userCollateral(${a.asset})`)[0])
 
   // Nothing supplied and nothing borrowed → this Comet is simply not in use.
-  if (borrowRaw === 0n && balances.every((b) => b === 0n)) return null
+  if (borrowRaw === 0n && supplyRaw === 0n && balances.every((b) => b === 0n)) return null
 
   const held = assets
     .map((a, i) => ({ info: a, balance: balances[i] as bigint }))
@@ -384,6 +475,43 @@ async function readComet(
     if (perSecond !== null) borrowApr = toNumber(perSecond, FACTOR_DECIMALS) * SECONDS_PER_YEAR
   }
 
+  // --- a base supplier: the Comet's market state -----------------------------
+  let supplied: SuppliedLeg[] = []
+  let lendMarket: LendMarketState | null = null
+  if (supplyRaw > 0n) {
+    const lr = await mc<unknown>(
+      client,
+      [
+        { address: comet, abi: cometAbi, functionName: 'totalSupply' },
+        { address: comet, abi: cometAbi, functionName: 'totalBorrow' },
+        { address: comet, abi: cometAbi, functionName: 'getReserves' },
+        { address: comet, abi: cometAbi, functionName: 'totalsBasic' },
+        { address: MULTICALL3, abi: multicall3TsAbi, functionName: 'getCurrentBlockTimestamp' },
+        ...(utilization !== null ? [{ address: comet, abi: cometAbi, functionName: 'getSupplyRate', args: [utilization] }] : []),
+      ],
+      block,
+    )
+    const supplyPerSec = utilization !== null ? (optional(lr[5]) as bigint | null) : null
+    const amount = toNumber(supplyRaw, baseDecimals)
+    supplied = [{ symbol: baseSymbol, address: baseToken, decimals: baseDecimals, amount, priceUsd: basePriceUsd, valueUsd: amount * basePriceUsd }]
+    const totals = unwrap(lr[3], `${tag}: totalsBasic()`) as { lastAccrualTime: number | bigint }
+    lendMarket = cometLendMarket({
+      name: market.name,
+      symbol: baseSymbol,
+      token: baseToken,
+      decimals: baseDecimals,
+      priceUsd: basePriceUsd,
+      totalSupplyRaw: unwrap(lr[0], `${tag}: totalSupply()`) as bigint,
+      totalBorrowRaw: unwrap(lr[1], `${tag}: totalBorrow()`) as bigint,
+      supplyRatePerSec: supplyPerSec,
+      borrowApr,
+      reservesRaw: optional(lr[2]) as bigint | null,
+      lastAccrualTime: Number(totals.lastAccrualTime),
+      block,
+      blockTs: optional(lr[4]) as bigint | null,
+    })
+  }
+
   // --- assemble legs --------------------------------------------------------
   const collateral: CollateralLeg[] = held.map((h, i) => {
     const priceRaw = unwrap(
@@ -436,7 +564,7 @@ async function readComet(
 
   return {
     protocol: 'compound-v3',
-    label: `Compound V3 · ${baseSymbol}`,
+    label: supplyRaw > 0n ? `Compound V3 · ${baseSymbol} supply` : `Compound V3 · ${baseSymbol}`,
     marketId: comet,
     collateral,
     debt,
@@ -453,10 +581,17 @@ async function readComet(
         `compound v3 · ${rpcLabel()}`,
         `Comet ${comet} (${market.name}), base token ${baseToken}. Prices from Comet.getPrice at 1e8${
           market.quote === 'USD' ? ' (USD feeds)' : `, quoted in ${market.quote} and converted at ${market.quote}/USD $${quoteUsd} (feed ${market.quoteUsdFeed})`
-        }; collateral decimals from AssetInfo.scale; borrow/liquidate collateral factors at 1e18. Borrow APR annualised from getBorrowRate(getUtilization()) × ${SECONDS_PER_YEAR}s. Every call read block ${block}.`,
+        }; collateral decimals from AssetInfo.scale; borrow/liquidate collateral factors at 1e18. Borrow APR annualised from getBorrowRate(getUtilization()) × ${SECONDS_PER_YEAR}s.${
+          supplyRaw > 0n
+            ? ` Base supplied (lent): ${supplied[0].amount} ${baseSymbol} from balanceOf; market totals from totalSupply / totalBorrow, supply APR from getSupplyRate(getUtilization()), reserves from getReserves.`
+            : ''
+        } Every call read block ${block}.`,
       ),
       block: Number(block),
     },
+    ...(supplyRaw > 0n && borrowRaw === 0n ? { status: 'supply-only' as const } : {}),
+    ...(supplied.length > 0 ? { supplied } : {}),
+    ...(lendMarket ? { lendMarket } : {}),
   }
 }
 

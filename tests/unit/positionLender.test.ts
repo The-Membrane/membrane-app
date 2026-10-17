@@ -2,10 +2,36 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { REWARDS_MARK, aprLine, lenderView, parseReport, reportQuery, rewardNote, shareText } from '@/lib/position/lender'
-import type { ProtocolPosition } from '@/lib/position-sim/types'
+import {
+  REWARDS_MARK,
+  aprFromApy,
+  aprLine,
+  factsLine,
+  lenderView,
+  llamaPoolFor,
+  parseLlamaChart,
+  parseReport,
+  parseVaultReport,
+  reportQuery,
+  reportRequest,
+  rewardNote,
+  shareText,
+} from '@/lib/position/lender'
+import type { LendMarketState, ProtocolPosition } from '@/lib/position-sim/types'
 
-const market = {
+const market: LendMarketState = {
+  venue: 'morpho-market',
+  token: '0x0000000000000000000000000000000000000001',
+  aprBasis: 'test',
+  morpho: {
+    oracle: '0x1111111111111111111111111111111111111111',
+    loanToken: '0x0000000000000000000000000000000000000001',
+    collateralToken: '0x2222222222222222222222222222222222222222',
+    collateralSymbol: 'sNUSD',
+    loanDecimals: 6,
+    lltv: 0.915,
+    irm: '0x3333333333333333333333333333333333333333',
+  },
   symbol: 'USDC',
   priceUsd: 1,
   totalSupply: 1_000_000,
@@ -47,7 +73,12 @@ const body = (over: Record<string, unknown> = {}) => ({
       ],
       badDebt: { usd: 3544.8 },
       realizedBadDebt: { usd: 0 },
-      historicalState: { liquidityAssetsUsd: [{ x: 200, y: 5 }, { x: 100, y: 4 }, { x: 300, y: null }] },
+      historicalState: {
+        liquidityAssetsUsd: [{ x: 200, y: 5 }, { x: 100, y: 4 }, { x: 300, y: null }],
+        utilization: [{ x: 100, y: 0.9 }],
+        supplyApy: [{ x: 100, y: 0.05 }],
+        borrowApy: [{ x: 100, y: 0.06 }],
+      },
       ...over,
     },
   },
@@ -57,10 +88,15 @@ describe('parseReport', () => {
   it('keeps paying rewards, sorts history and drops null points', () => {
     const r = parseReport(body(), 1)
     expect(r.rewards).toEqual([{ symbol: 'FXN', apr: 0.0461 }])
-    expect(r.history).toEqual([
-      { t: 100, usd: 4 },
-      { t: 200, usd: 5 },
+    expect(r.liquidityUsd).toEqual([
+      { t: 100, v: 4 },
+      { t: 200, v: 5 },
     ])
+    expect(r.utilization).toEqual([{ t: 100, v: 0.9 }])
+    // APYs become the page's simple APR: ln(1 + APY).
+    expect(r.supplyApr[0].v).toBeCloseTo(Math.log(1.05), 12)
+    expect(r.borrowApr[0].v).toBeCloseTo(Math.log(1.06), 12)
+    expect(r.source).toBe('Morpho API')
     expect(r.badDebtUsd).toBe(3544.8)
     expect(r.realizedBadDebtUsd).toBe(0)
   })
@@ -79,12 +115,10 @@ describe('lenderView', () => {
     const v = lenderView(lender(250_000), null)!
     expect(v.withdrawableNow).toBe(100_000)
     expect(v.withdrawableShare).toBeCloseTo(0.4)
-    expect(v.risks.find((r) => r.id === 'exit')!.flagged).toBe(true)
   })
   it('lets a small supply leave in full', () => {
     const v = lenderView(lender(1_000), null)!
     expect(v.withdrawableShare).toBe(1)
-    expect(v.risks.find((r) => r.id === 'exit')!.flagged).toBe(false)
   })
   it('keeps rewards unknown until the report lands, then adds them with ‡', () => {
     const before = lenderView(lender(1_000), null)!
@@ -103,17 +137,23 @@ describe('lenderView', () => {
   })
   it('ties unrealized bad debt to the user and labels realized debt since creation', () => {
     const v = lenderView(lender(277), parseReport(body({ badDebt: { usd: 446_000 }, realizedBadDebt: { usd: 290_100 } }), 1))!
-    const r = v.risks.find((x) => x.id === 'bad-debt')!
-    expect(r.flagged).toBe(true)
     expect(v.pending!.share).toBeCloseTo(0.446)
-    expect(r.facts).toEqual(['pending write-off: 44.6% of supply ≈ $124 of yours', '$290.1k already written off since market creation'])
+    expect(v.badDebt.line).toBe('pending write-off: 44.6% of supply ≈ $124 of yours')
+    expect(v.badDebt.realized).toBe('$290.1k already written off since market creation')
+    expect(lenderView(lender(277), parseReport(body({ badDebt: { usd: 0 } }), 1))!.badDebt.line).toBe('no unrealized bad debt')
+    expect(lenderView(lender(277), null)!.badDebt.line).toBeNull()
   })
   it('never prints the API severity or repeats bad-debt warnings; names not_whitelisted in words', () => {
     const v = lenderView(lender(1_000), parseReport(body(), 1))!
-    const all = v.risks.flatMap((r) => r.facts).join(' | ')
+    const all = v.warnings.map((w) => w.text).join(' | ')
     expect(all).not.toMatch(/red|yellow/i)
     expect(all).not.toMatch(/bad debt unrealized/)
-    expect(v.risks.find((r) => r.id === 'curator')!.facts).toEqual(['Not listed by Morpho'])
+    expect(v.warnings).toEqual([{ text: 'Not listed by Morpho', flagged: false }])
+  })
+  it('says the structure in one line', () => {
+    expect(factsLine(lender(1), market)).toBe(
+      'Direct Morpho market · no curator · LLTV 91.5% · oracle 0x1111…1111 · fee 0% · oracle and LLTV fixed at creation',
+    )
   })
   it('makes the rate a paper rate at 99%+ utilization, with bad debt, or after a day without an update', () => {
     expect(lenderView(lender(1_000), null)!.paper).toBeNull()
@@ -127,7 +167,7 @@ describe('lenderView', () => {
   it('reads tiny liquidity as under $1 and a sliver of exit as ~0%', () => {
     const tiny = { ...market, liquidity: 0.4 }
     const v = lenderView(lender(1_000, tiny), null)!
-    expect(v.risks.find((r) => r.id === 'exit')!.body).toContain('under $1 is free')
+    expect(v.liquidityUsd).toBeCloseTo(0.4)
     expect(shareText(v.withdrawableShare)).toBe('~0%')
     expect(shareText(null)).toBe('—')
     expect(shareText(1)).toBe('100%')
@@ -164,5 +204,101 @@ describe('lending positions on the page', () => {
     expect(s.dust).toBe(2)
     expect(s.views.map((v) => v.position.marketId)).toEqual(['0xbig', '0xsmall'])
     expect(noLines(s.views)).toBe(true)
+  })
+})
+
+describe('pooled venues and vaults', () => {
+  const aave = (deficit: number | null): ProtocolPosition => ({
+    ...lender(10_000, {
+      ...market,
+      venue: 'aave-reserve',
+      token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      fee: 0.1,
+      morpho: undefined,
+      deficit,
+    }),
+    protocol: 'aave-v3',
+    label: 'Aave V3 · USDC supply',
+    marketId: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  })
+
+  it('finds the DefiLlama pool by venue and token, and never guesses an ambiguous one', () => {
+    expect(llamaPoolFor('aave-v3', '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48')).toMatch(/^[0-9a-f-]{36}$/)
+    expect(llamaPoolFor('compound-v3', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')).toMatch(/^[0-9a-f-]{36}$/)
+    // GHO and sGHO share an underlying on DefiLlama: not matched.
+    expect(llamaPoolFor('aave-v3', '0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f')).toBeNull()
+    expect(reportRequest(aave(0))).toMatchObject({ kind: 'llama' })
+    expect(reportRequest(lender(1))).toEqual({ kind: 'morpho-market', id: '0xabc' })
+  })
+
+  it('reads a DefiLlama chart as daily liquidity and supply APR over the last 30 days, rewards as one line', () => {
+    const now = Date.parse('2026-10-17T00:00:00Z')
+    const day = (d: number, h = 0) => new Date(now - d * 86_400_000 + h * 3_600_000).toISOString()
+    const r = parseLlamaChart(
+      {
+        status: 'success',
+        data: [
+          { timestamp: day(40), tvlUsd: 1, apyBase: 1, apyReward: null },
+          { timestamp: day(2), tvlUsd: 10, apyBase: 5, apyReward: null },
+          { timestamp: day(2, 4), tvlUsd: 12, apyBase: 6, apyReward: null },
+          { timestamp: day(1), tvlUsd: null, apyBase: 4, apyReward: 2 },
+        ],
+      },
+      now,
+    )
+    expect(r.liquidityUsd.map((p) => p.v)).toEqual([12])
+    expect(r.supplyApr.map((p) => p.v)).toEqual([Math.log1p(0.06), Math.log1p(0.04)])
+    expect(r.rewards).toEqual([{ symbol: 'reward tokens', apr: Math.log1p(0.02) }])
+    expect(r.utilization).toEqual([])
+    expect(() => parseLlamaChart({ status: 'error' }, now)).toThrow(/no data/)
+  })
+
+  it('takes Aave bad debt from the chain: a deficit is named but not charged to you, none is said, an unread one is not read', () => {
+    const v = lenderView(aave(50_000), null)!
+    expect(v.pending).toBeNull()
+    expect(v.paper).toBeNull()
+    expect(v.badDebt.line).toBe('reserve deficit: 5.0% of supply ($50.0k); Aave’s own cover (Umbrella, treasury) is first in line, so no share of yours is shown')
+    expect(lenderView(aave(0), null)!.badDebt.line).toBe('no uncovered bad debt')
+    const unread = lenderView(aave(null), null)!
+    expect(unread.badDebt.line).toBeNull()
+    expect(unread.badDebt.source).toMatch(/^not read/)
+    expect(factsLine(aave(0), aave(0).lendMarket!)).toBe('Aave V3 pool reserve · governed by the DAO · every listed collateral backs it · reserve factor 10%')
+  })
+
+  it("caps a vault holder's exit at the vault's own maxWithdraw and quotes its reported net rate", () => {
+    const vaultMarket: LendMarketState = {
+      ...market,
+      venue: 'morpho-vault',
+      morpho: undefined,
+      supplyApr: null,
+      borrowApr: null,
+      fee: 0.05,
+      liquidity: 5_000_000,
+      vault: {
+        address: '0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB',
+        name: 'Steakhouse USDC',
+        assets: 1_000,
+        maxWithdraw: 600,
+        fee: 0.05,
+        curator: '0x4444444444444444444444444444444444444444',
+        owner: null,
+        allocation: [
+          { marketId: '0x01', label: 'wstETH/USDC 86%', assets: 10, marketLiquidity: 5, available: 5, utilization: 0.9 },
+          { marketId: '0x02', label: 'USDC idle market', assets: 0, marketLiquidity: 0, available: 0, utilization: 0 },
+        ],
+      },
+    }
+    const p = { ...lender(1_000, vaultMarket), protocol: 'morpho-vault' as const }
+    const report = parseVaultReport({ data: { vaultByAddress: { warnings: [], state: { netApy: 0.0431, allRewards: [] }, historicalState: { netApy: [{ x: 1, y: 0.04 }] } } } }, 1)
+    const v = lenderView(p, report)!
+    expect(v.withdrawableNow).toBe(600)
+    expect(v.withdrawableShare).toBeCloseTo(0.6)
+    expect(v.apr.reported).toBeCloseTo(aprFromApy(0.0431), 12)
+    expect(aprLine(v, 'ok')).toBe('4.22% net, reported (after the vault’s fee)')
+    expect(v.paper).toBeNull()
+    expect(v.badDebt.line).toBeNull()
+    expect(reportRequest(p)).toEqual({ kind: 'morpho-vault', address: '0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB' })
+    expect(factsLine(p, vaultMarket)).toBe('MetaMorpho vault · curator 0x4444…4444 · 1 of 2 queue markets funded · fee 5% · the curator can move supply between markets')
+    expect(() => parseVaultReport({ data: { vaultByAddress: null } }, 1)).toThrow(/no vault/)
   })
 })

@@ -61,6 +61,7 @@ export const PROTOCOL_APP_URL: Record<ProtocolId, string | null> = {
   'aave-v3': 'https://app.aave.com/',
   spark: 'https://app.spark.fi/',
   'morpho-blue': 'https://app.morpho.org/',
+  'morpho-vault': 'https://app.morpho.org/',
   'compound-v3': 'https://app.compound.finance/',
   fluid: null,
 }
@@ -70,6 +71,7 @@ export const PROTOCOL_SHORT: Record<ProtocolId, string> = {
   'aave-v3': 'Aave V3',
   spark: 'Spark',
   'morpho-blue': 'Morpho Blue',
+  'morpho-vault': 'Morpho vaults',
   'compound-v3': 'Compound V3',
   fluid: 'Fluid',
 }
@@ -100,6 +102,11 @@ export function priceSourceOf(p: ProtocolPosition): string {
     }
     case 'compound-v3':
       return 'Compound V3 price feed'
+    case 'morpho-vault': {
+      const detail = p.provenance.detail ?? ''
+      const assumed = detail.match(/ASSUMPTION: (\S+) taken as exactly \$1\.00/)
+      return assumed ? `${assumed[1]} taken as $1` : 'Aave V3 oracle'
+    }
     case 'fluid':
       return 'Fluid'
   }
@@ -463,7 +470,7 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable, g: TouchTi
   const pair = `${legs.collateral.join(' + ') || '—'} / ${legs.debt.join(' + ') || 'no debt'}`
   // Morpho labels already name the market; Compound names only its base (debt) asset.
   const title =
-    p.protocol === 'morpho-blue'
+    p.protocol === 'morpho-blue' || p.status === 'supply-only'
       ? p.label
       : p.protocol === 'compound-v3'
         ? `${p.label} · ${legs.collateral.join(' + ') || '—'}`

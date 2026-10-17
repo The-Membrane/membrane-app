@@ -278,16 +278,17 @@ describe('Morpho Blue discovery', () => {
       'aave-v3': { ...r, protocol: 'aave-v3', status: 'empty', discovery: undefined, message: 'no position found' },
       spark: { ...r, protocol: 'spark', status: 'empty', discovery: undefined },
       'morpho-blue': r,
+      'morpho-vault': { ...r, protocol: 'morpho-vault', status: 'empty', discovery: undefined },
       'compound-v3': { ...r, protocol: 'compound-v3', status: 'empty', discovery: undefined },
       fluid: { ...r, protocol: 'fluid', status: 'unsupported', discovery: undefined },
     }
     const items = readStatus(order, results)
     expect(pageState(true, items, results, TOUCH_TABLE).kind).toBe('none')
     expect(statusWord(items[2])).toBe(`Morpho Blue read · ${known} known markets only`)
-    expect(statusSentence(items)).toBe(`Aave V3 / Spark / Morpho Blue (${known} known markets only) / Compound V3 read · Fluid not supported yet`)
+    expect(statusSentence(items)).toBe(`Aave V3 / Spark / Morpho Blue (${known} known markets only) / Morpho vaults / Compound V3 read · Fluid not supported yet`)
     const none = noneCopy(items)
     expect(none.headline).toBe('Not every market could be checked')
-    expect(none.nothingOn).toEqual(['Aave V3', 'Spark', 'Compound V3'])
+    expect(none.nothingOn).toEqual(['Aave V3', 'Spark', 'Morpho vaults', 'Compound V3'])
     expect(none.partial).toEqual([
       `Morpho Blue: nothing in the markets checked; only ${known} markets from the known-market list were checked (Morpho API failed: HTTP 500); a position in any other market would not show.`,
     ])

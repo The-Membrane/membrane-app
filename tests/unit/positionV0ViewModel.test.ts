@@ -49,9 +49,9 @@ const result = (protocol: ProtocolId, status: AdapterResult['status'], positions
 const ORDER = ADAPTERS.map((a) => ({ id: a.id, label: a.label }))
 
 describe('read status', () => {
-  it('lists the five adapters in registry order, pending until each lands', () => {
+  it('lists the six adapters in registry order, pending until each lands', () => {
     const items = readStatus(ORDER, {})
-    expect(items.map((i) => i.label)).toEqual(['Aave V3', 'Spark', 'Morpho Blue', 'Compound V3', 'Fluid'])
+    expect(items.map((i) => i.label)).toEqual(['Aave V3', 'Spark', 'Morpho Blue', 'Morpho vaults', 'Compound V3', 'Fluid'])
     expect(items.every((i) => i.state === 'pending')).toBe(true)
     expect(statusWord(items[0])).toBe('Aave V3 reading…')
   })
@@ -60,6 +60,7 @@ describe('read status', () => {
       'aave-v3': result('aave-v3', 'ok', [pos('aave-v3', [coll('WETH', 1, 4000, 0.83)], [debt('USDC', 1000, 1)])]),
       spark: result('spark', 'empty'),
       'morpho-blue': result('morpho-blue', 'error', [], 'morpho blue: HTTP 500'),
+      'morpho-vault': result('morpho-vault', 'empty'),
       'compound-v3': result('compound-v3', 'empty'),
       fluid: result('fluid', 'unsupported', [], 'Fluid is not implemented.'),
     })
@@ -67,18 +68,19 @@ describe('read status', () => {
       'Aave V3 read · 1 found',
       'Spark read',
       'Morpho Blue failed',
+      'Morpho vaults read',
       'Compound V3 read',
       'Fluid not supported yet',
     ])
     expect(items[2].message).toBe('morpho blue: HTTP 500')
-    expect(statusSentence(items)).toBe('Aave V3 / Spark / Compound V3 read · Morpho Blue failed · Fluid not supported yet')
-    expect(statusSentence(readStatus(ORDER, {}))).toBe('Aave V3 / Spark / Morpho Blue / Compound V3 / Fluid reading…')
+    expect(statusSentence(items)).toBe('Aave V3 / Spark / Morpho vaults / Compound V3 read · Morpho Blue failed · Fluid not supported yet')
+    expect(statusSentence(readStatus(ORDER, {}))).toBe('Aave V3 / Spark / Morpho Blue / Morpho vaults / Compound V3 / Fluid reading…')
     // A Compound read that dropped one Comet on a sanity check names it in place.
     const partial = readStatus(ORDER, {
       'compound-v3': { ...result('compound-v3', 'ok', [pos('compound-v3', [coll('WETH', 1, 4000, 0.83)], [], 'Compound V3 · USDC')]), skipped: [{ market: 'cUSDTv3', reason: 'its base priced at 3 USD, outside 0.5–2' }] },
     })
     expect(partial.find((i) => i.protocol === 'compound-v3')?.skipped).toEqual([{ market: 'cUSDTv3', reason: 'its base priced at 3 USD, outside 0.5–2' }])
-    expect(statusSentence(partial)).toBe('Compound V3 (cUSDTv3 skipped) read · Aave V3 / Spark / Morpho Blue / Fluid reading…')
+    expect(statusSentence(partial)).toBe('Compound V3 (cUSDTv3 skipped) read · Aave V3 / Spark / Morpho Blue / Morpho vaults / Fluid reading…')
   })
 })
 
@@ -95,7 +97,7 @@ describe('page state', () => {
   it('no positions found, with the unchecked venue named', () => {
     const r: Partial<Record<ProtocolId, AdapterResult>> = {
       'aave-v3': result('aave-v3', 'empty'), spark: result('spark', 'empty'), 'morpho-blue': result('morpho-blue', 'empty'),
-      'compound-v3': result('compound-v3', 'empty'), fluid: result('fluid', 'unsupported'),
+      'morpho-vault': result('morpho-vault', 'empty'), 'compound-v3': result('compound-v3', 'empty'), fluid: result('fluid', 'unsupported'),
     }
     expect(pageState(true, readStatus(ORDER, r), r, t)).toEqual({ kind: 'none', unsupported: ['Fluid'], failed: [] })
   })

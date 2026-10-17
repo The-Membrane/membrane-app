@@ -9,7 +9,7 @@
  *   - 'mock'      fixture data, shown only where it is labelled as such
  */
 
-export type ProtocolId = 'aave-v3' | 'spark' | 'morpho-blue' | 'compound-v3' | 'fluid'
+export type ProtocolId = 'aave-v3' | 'spark' | 'morpho-blue' | 'morpho-vault' | 'compound-v3' | 'fluid'
 
 export type ProvenanceKind = 'onchain' | 'dataset' | 'modelled' | 'mock'
 
@@ -146,34 +146,103 @@ export interface ProtocolPosition {
 }
 
 /**
+ * The kind of market a lender is in. It decides which facts and which history source the
+ * lending block uses:
+ *   'morpho-market'  a Morpho Blue market supplied directly (no curator)
+ *   'aave-reserve'   one reserve of an Aave V3 / Spark pool (aToken balance)
+ *   'comet'          the base asset of a Compound V3 Comet
+ *   'morpho-vault'   a MetaMorpho vault: its shares, its markets, its own liquidity
+ */
+export type LendVenue = 'morpho-market' | 'aave-reserve' | 'comet' | 'morpho-vault'
+
+/** A Morpho Blue market's fixed structure: what prices its borrowers. */
+export interface MorphoMarketParams {
+  oracle: `0x${string}`
+  loanToken: `0x${string}`
+  /** Null for an idle market (no collateral token). */
+  collateralToken: `0x${string}` | null
+  collateralSymbol: string | null
+  loanDecimals: number
+  lltv: number
+  irm: `0x${string}`
+}
+
+/** One market a MetaMorpho vault lends into, read on-chain at the read's block. */
+export interface VaultMarketAllocation {
+  marketId: `0x${string}`
+  /** "wstETH/USDC 86%"; "USDC idle market". */
+  label: string
+  /** The vault's supply in the market, loan-token units. */
+  assets: number
+  /** The market's unborrowed supply (all its lenders together). */
+  marketLiquidity: number
+  /** What the vault could take out of it now: min(assets, marketLiquidity). */
+  available: number
+  utilization: number
+}
+
+/** A MetaMorpho vault, read on-chain. */
+export interface VaultState {
+  address: `0x${string}`
+  name: string
+  /** Vault share balance's value, the asset's units (convertToAssets). */
+  assets: number
+  /** ERC-4626 maxWithdraw(user): what this address could withdraw now, in the asset. */
+  maxWithdraw: number
+  /** The vault's performance fee, 0–1. */
+  fee: number
+  curator: `0x${string}` | null
+  owner: `0x${string}` | null
+  /** The withdraw queue's markets, in queue order. */
+  allocation: VaultMarketAllocation[]
+}
+
+/**
  * The state of the market an address lends into, read on-chain at one block. Withdrawal
  * capacity is the market's unborrowed supply: a lender can take out at most `liquidity`
  * now, whatever it supplied. Amounts are loan-token units, accrued to the block.
  */
 export interface LendMarketState {
+  venue: LendVenue
   symbol: string
+  /** The supplied token (the reserve, the Comet's base, the vault's asset). */
+  token: `0x${string}`
   /** USD per loan token, as the position's own read priced it. */
   priceUsd: number
   totalSupply: number
   totalBorrow: number
-  /** totalSupply − totalBorrow: what all lenders together can withdraw at this block. */
+  /** totalSupply − totalBorrow: what all lenders together can withdraw at this block. A vault: the sum over its markets of min(its supply, the market's liquidity). */
   liquidity: number
   /** totalBorrow / totalSupply, 0–1. */
   utilization: number
-  /** The IRM's borrow APR at this block, or null when it was not read. */
+  /** The borrow APR at this block, or null when it was not read (a vault has none). */
   borrowApr: number | null
-  /** The market's protocol fee on interest, 0–1. */
-  fee: number
-  /** Base supply APR, no rewards: borrowApr × utilization × (1 − fee). Null without the rate. */
+  /** The venue's cut of interest, 0–1 (Morpho market fee, Aave reserve factor, vault fee); null where there is none to read (Compound). */
+  fee: number | null
+  /** Base supply APR, no rewards, read on-chain. Null when it was not read. */
   supplyApr: number | null
+  /** How the base supply APR was read, one sentence. */
+  aprBasis: string
   block: number
   /**
-   * The market's last on-chain update (unix s, before this read's accrual). The IRM rate is
-   * the average since then, so every rate here is "as of last update".
+   * The market's last on-chain update (unix s, before this read's accrual). The rate is the
+   * average since then, so every rate here is "as of last update". A vault: the read block.
    */
   lastUpdate: number
   /** The read block's timestamp (unix s), or null when it was not read. */
   blockTs: number | null
+  /**
+   * Bad debt read on-chain and not yet absorbed, in the token: Aave's reserve deficit
+   * (v3.3+), a Comet's negative reserves. Null when the venue has no such read (Morpho's
+   * comes from its API) or the call failed.
+   */
+  deficit?: number | null
+  /** Morpho Blue: the market's structure (the oracle-health block reads its oracle). */
+  morpho?: MorphoMarketParams
+  /** A MetaMorpho vault: its markets and this address's exit. */
+  vault?: VaultState
+  /** The venue's name for the market, e.g. "cUSDCv3". */
+  marketName?: string
 }
 
 /**

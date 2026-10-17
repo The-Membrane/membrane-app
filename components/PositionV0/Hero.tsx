@@ -165,7 +165,10 @@ function heroCopy(view: PositionView): HeroCopy {
           lead: 'Lending only: no liquidation line',
           figure: fmtUsd(supplied.reduce((s, x) => s + x.valueUsd, 0)),
           sub: `supplied ${supplied.map((x) => x.symbol).join(' + ')} · ${priceSource}`,
-          sentence: 'Bad debt in this market is shared by lenders.',
+          sentence:
+            view.position.lendMarket?.venue === 'morpho-vault'
+              ? 'Bad debt in the vault’s markets reaches its holders.'
+              : 'Bad debt in this market is shared by lenders.',
         }
       }
       return {

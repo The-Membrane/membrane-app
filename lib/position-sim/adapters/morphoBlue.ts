@@ -105,7 +105,7 @@ const marketTuple = {
   ],
 } as const
 
-const morphoAbi = [
+export const morphoAbi = [
   {
     // public mapping Id => Position — a Solidity mapping getter returns the struct
     // members as separate values, not a tuple.
@@ -156,12 +156,12 @@ const morphoOracleAbi = [
   { type: 'function', name: 'price', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
 ] as const
 
-const erc20Abi = [
+export const morphoErc20Abi = [
   { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
   { type: 'function', name: 'symbol', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
 ] as const
 
-const multicall3Abi = [
+export const multicall3Abi = [
   {
     type: 'function',
     name: 'getCurrentBlockTimestamp',
@@ -175,7 +175,7 @@ const multicall3Abi = [
 
 export const MORPHO_BLUE_MAINNET = '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb' as const
 /** Multicall3, the same address on every chain. Read for the pinned block's timestamp. */
-const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11' as const
+export const MULTICALL3 = '0xcA11bde05977b3631167028862bE2a173976CA11' as const
 
 /** Morpho oracle price scale, before the loan/collateral decimal adjustment. */
 const ORACLE_PRICE_SCALE = 10n ** 36n
@@ -194,7 +194,7 @@ const ZERO = /^0x0{40}$/i
  * from a token or an API could collide. Anything not on this list gets a real oracle read
  * or its market is skipped.
  */
-const ASSUMED_ONE_DOLLAR: Record<string, string> = {
+export const ASSUMED_ONE_DOLLAR: Record<string, string> = {
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
   '0xdac17f958d2ee523a2206206994597c13d831ec7': 'USDT',
   '0x6b175474e89094c44da98b954eedeac495271d0f': 'DAI',
@@ -333,10 +333,10 @@ export function createMorphoBlueAdapter(overrides: Partial<MorphoBlueDeps> = {})
         // The oracle values collateral, and debt is only ever measured against collateral.
         const needsPrice = hasCollateralToken && (r.collateralRaw > 0n || r.borrowShares > 0n)
         return {
-          loanDecimals: push({ address: r.loanToken, abi: erc20Abi, functionName: 'decimals' }),
-          loanSymbol: push({ address: r.loanToken, abi: erc20Abi, functionName: 'symbol' }),
-          collDecimals: needsPrice ? push({ address: r.collateralToken, abi: erc20Abi, functionName: 'decimals' }) : null,
-          collSymbol: hasCollateralToken ? push({ address: r.collateralToken, abi: erc20Abi, functionName: 'symbol' }) : null,
+          loanDecimals: push({ address: r.loanToken, abi: morphoErc20Abi, functionName: 'decimals' }),
+          loanSymbol: push({ address: r.loanToken, abi: morphoErc20Abi, functionName: 'symbol' }),
+          collDecimals: needsPrice ? push({ address: r.collateralToken, abi: morphoErc20Abi, functionName: 'decimals' }) : null,
+          collSymbol: hasCollateralToken ? push({ address: r.collateralToken, abi: morphoErc20Abi, functionName: 'symbol' }) : null,
           price: needsPrice ? push({ address: r.oracle, abi: morphoOracleAbi, functionName: 'price' }) : null,
           rate: ZERO.test(r.irm)
             ? null
@@ -597,7 +597,9 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
     const utilization = totalSupply > 0 ? Math.min(1, totalBorrow / totalSupply) : 0
     const fee = toNumber(w[5], WAD_DECIMALS)
     lendMarket = {
+      venue: 'morpho-market',
       symbol: ctx.loanSymbol,
+      token: r.loanToken,
       priceUsd: loanPriceUsd,
       totalSupply,
       totalBorrow,
@@ -606,6 +608,16 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
       borrowApr,
       fee,
       supplyApr: borrowApr === null ? null : borrowApr * utilization * (1 - fee),
+      aprBasis: 'borrow APR (the rate model’s average since the last update) × utilization × (1 − fee)',
+      morpho: {
+        oracle: r.oracle,
+        loanToken: r.loanToken,
+        collateralToken: ZERO.test(r.collateralToken) ? null : r.collateralToken,
+        collateralSymbol: ctx.collateralSymbol,
+        loanDecimals,
+        lltv: r.lltv,
+        irm: r.irm,
+      },
       block: Number(ctx.block),
       lastUpdate: Number(r.words[4]),
       blockTs: ctx.blockTs === null ? null : Number(ctx.blockTs),

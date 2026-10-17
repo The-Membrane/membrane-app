@@ -22,6 +22,7 @@ import { aaveV3Adapter, sparkAdapter } from './aaveV3'
 import { compoundV3Adapter } from './compoundV3'
 import { fluidAdapter } from './fluid'
 import { morphoBlueAdapter } from './morphoBlue'
+import { morphoVaultAdapter } from './morphoVaults'
 import { PartialReadError, UnsupportedError, discoveryNote, type LendingAdapter } from './types'
 
 export * from './types'
@@ -41,12 +42,14 @@ export {
 export { morphoBlueAdapter, MORPHO_BLUE_MAINNET, MORPHO_DOLLAR_ASSUMPTION_NOTE } from './morphoBlue'
 export { compoundV3Adapter, COMET_MAINNET_MARKETS, checkBaseInQuote, collectComets, cometPriceUsd, type CometMarket } from './compoundV3'
 export { fluidAdapter, FLUID_UNSUPPORTED_MESSAGE } from './fluid'
+export { morphoVaultAdapter, createMorphoVaultAdapter } from './morphoVaults'
 
 /** Read order is display order. Aave first because it is the deepest market. */
 export const ADAPTERS: readonly LendingAdapter[] = [
   aaveV3Adapter,
   sparkAdapter,
   morphoBlueAdapter,
+  morphoVaultAdapter,
   compoundV3Adapter,
   fluidAdapter,
 ] as const

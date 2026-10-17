@@ -87,7 +87,13 @@ const EventRows: React.FC<{ run: SimRun; title: string; zone: string | undefined
             <Cell>repaid {usd(e.repaidUsd)}</Cell>
             <Cell>seized {usd(e.seizedUsd)}</Cell>
             <Cell>recalled {usd(e.recalledUsd)}</Cell>
-            <Cell color={e.penaltyUsd > 0 ? SEMANTIC_COLORS.danger : undefined}>
+            {/* Red $ means collateral SOLD. A recall or cure that pays its fee from
+                collateral sold nothing, so that fee is ink. */}
+            <Cell
+              color={
+                e.penaltyUsd > 0 && e.kind === 'liquidation' ? SEMANTIC_COLORS.danger : undefined
+              }
+            >
               fee {usd(e.penaltyUsd)}
             </Cell>
             <Cell color={SEMANTIC_COLORS.textSecondary}>ltv {pct(e.ltv)}</Cell>

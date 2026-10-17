@@ -4,6 +4,17 @@ const BAND = `${(MAX_THRESHOLD_TO_DELAY * 100).toFixed(0)}%`
 const LTV_SHIFT_CAP = 5
 
 /**
+ * THE MODELLED MARK. Every user-facing claim that is modelled rather than read from the
+ * contracts carries a † after it, and the surface that shows one prints this footnote
+ * once, as its footer line (membrane-board design/DESIGN_RULES.md §3: "Put a dagger on
+ * every modelled claim: '† modelled, not a guarantee'"; "Disclaimers go in one footer
+ * line."). First use: that stablecoin collateral gets no window — the contracts carry no
+ * stablecoin label, so that is how we model Membrane listing its stables
+ * (lib/position-sim/collateralClass.ts).
+ */
+export const MODELLED_FOOTNOTE = '† modelled, not a guarantee'
+
+/**
  * THE NAMED GUARANTEE. A guarantee described as a mechanism is a guarantee unsold —
  * so this names it, in one place, from verified contract facts only.
  *
@@ -35,6 +46,15 @@ export const GUARANTEE = {
   // , ` + 'by you or by the venue capital Membrane recalls first.',
   /** One sentence. The condition. Rendered next to the claim, never collapsed. */
   limit: `Past ${BAND} the partial liquidation is immediate down to the maximum borrowable LTV.`,
+  /**
+   * The exception, shown beside the claim whenever the run's collateral gets no window.
+   * A listing capped above 90% is the no-delay class (Collateral.sol:424-426): no window,
+   * sold the minute LTV is over the line (LiquidationEngine.sol:1572-1576, :1708-1710).
+   * That stablecoins are listed this way is modelled (lib/position-sim/collateralClass.ts),
+   * mirroring the deploy's three launch stables at 96%: hence the †, and the surface
+   * prints MODELLED_FOOTNOTE beside it.
+   */
+  noWindow: 'Stablecoin collateral: no 8-hour window† — sold at the line.',
   /**
    * The UX claim, and the only one on this surface that is not about liquidation.
    *

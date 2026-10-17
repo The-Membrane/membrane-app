@@ -198,7 +198,13 @@ describe('dust design states (captured real reads)', () => {
   })
   it('each is ready to sign as read, with its warning', () => {
     const w = (k: string) => dustTotals(by(k).dust, by(k).sim, by(k).ethUsd).warning
-    for (const s of DUST_STATES) expect(s.sheet.button).toMatchObject({ kind: 'sign', enabled: true })
+    // Rows that pay nothing start unticked: the zero-only state opens with nothing selected.
+    for (const s of DUST_STATES)
+      expect(s.sheet.button).toMatchObject(
+        s.key === 'dust-nothing-to-receive'
+          ? { kind: 'wait', label: 'Nothing selected', enabled: false }
+          : { kind: 'sign', enabled: true },
+      )
     expect(w('dust-ready')).toBeNull()
     expect(w('dust-nothing-to-receive')).toBe('nothing')
     expect(w('dust-gas-exceeds-value')).toBe('gas-exceeds')

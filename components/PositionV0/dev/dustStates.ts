@@ -11,9 +11,16 @@
 //   dust-gas-exceeds-value     the lender's every dust position, one worth a fraction of
 //                              a cent: the gas costs more than what comes back
 
-import { dustPrep, splitDust, type DustCandidate } from '@/lib/position-exec/dust'
+import {
+  defaultPicks,
+  dustSheet,
+  picked,
+  pickedSim,
+  splitDust,
+  type DustCandidate,
+} from '@/lib/position-exec/dust'
 import type { DustRead } from '@/lib/position-exec/dustRead'
-import { sheetView, TX_IDLE, type SheetView } from '@/lib/position-exec/sheet'
+import { TX_IDLE, type SheetView, type WalletState } from '@/lib/position-exec/sheet'
 import type { SimResult } from '@/lib/position-exec/simulate'
 
 import raw from './dustFixtures.json'
@@ -46,7 +53,10 @@ export interface DustDesignState {
   block: number
   at: number
   source: string
+  /** The sheet at the opening ticks (a row that pays nothing starts unticked). */
   sheet: SheetView
+  /** The sheet for any ticks, as the slip recomputes it on a toggle. */
+  sheetFor: (chosen: DustCandidate[], sim: SimResult | null) => SheetView
 }
 
 function state(
@@ -59,6 +69,10 @@ function state(
   const dust = o.only ? split.dust.filter(o.only) : split.dust
   const sim = o.sim !== undefined ? o.sim : cap.sim
   const owner = cap.read.owner
+  const wallet: WalletState = { connected: true, address: owner, chainId: 1 }
+  const sheetFor = (chosen: DustCandidate[], s: SimResult | null) =>
+    dustSheet(chosen, s, wallet, TX_IDLE, owner)
+  const picks = defaultPicks(dust)
   return {
     key,
     title,
@@ -71,7 +85,8 @@ function state(
     block: cap.read.block,
     at: Date.parse(FIX.capturedAt),
     source: cap.read.source,
-    sheet: sheetView(dustPrep(dust, sim), { connected: true, address: owner, chainId: 1 }, TX_IDLE, owner),
+    sheet: sheetFor(picked(dust, picks), pickedSim(sim, picks)),
+    sheetFor,
   }
 }
 
@@ -82,6 +97,6 @@ export const DUST_STATES: DustDesignState[] = [
     sim: FIX.simZero,
     forced: "the lender's read with the one position that has assets left out; the zero-asset rest simulated on its own",
   }),
-  state('dust-gas-exceeds-value', 'Collect dust: gas costs more than it returns', FIX.lender),
+  state('dust-gas-exceeds-value', 'Collect dust: gas costs more than it returns; zero rows start unticked', FIX.lender),
 ]
 export const DUST_CAPTURED_AT = FIX.capturedAt

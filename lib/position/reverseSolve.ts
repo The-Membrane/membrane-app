@@ -189,6 +189,35 @@ export interface ReverseSolve {
 export const accrualFactor = (apr: number | null): number =>
   1 + (apr !== null && apr >= 0 ? apr : FALLBACK_BORROW_APR) * (ACCRUAL_BUFFER_HOURS / 8760)
 
+/**
+ * The worst-case line distance (fraction) after the reader's OWN amount: `units` of the leg
+ * a row of `kind` moves, with the same accrual buffer as the solve (both readings for a
+ * repay). The slip uses it when the reader edits the amount (owner, Q27 round 5). Null when
+ * this position has no leg for the kind. Infinity when no debt is left.
+ */
+export function distanceAfter(
+  s: PositionSnapshot,
+  m: LineModel,
+  kind: ActionRow['kind'],
+  units: number,
+  borrowApr: number | null = null,
+): number | null {
+  const g = accrualFactor(borrowApr)
+  const accrued = (mm: LineModel): LineModel => ({ ...mm, D: mm.D * g, Dm: mm.Dm * g })
+  if (kind === 'repay') {
+    const leg = repayLeg(s, m)
+    if (!leg) return null
+    const X = units * leg.priceUsd
+    return Math.min(
+      lineDistance(accrued(afterRepay(m, X, leg.moving))),
+      lineDistance(afterRepay(accrued(m), X, leg.moving)),
+    )
+  }
+  const leg = addLeg(s, m)
+  if (!leg || (leg.moving && m.direction !== 'fall')) return null
+  return lineDistance(accrued(afterAdd(m, units * leg.priceUsd * leg.lt, leg.moving)))
+}
+
 /** The action rows for one position, and why there are none when there are none. */
 export function reverseSolve(
   s: PositionSnapshot,

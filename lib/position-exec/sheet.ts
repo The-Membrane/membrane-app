@@ -11,9 +11,11 @@
  *   lever gone         Close                            why it no longer applies
  *   venue / balance    <Verb> unavailable               the first failing gate, named
  *   no wallet          Connect wallet                   V20: the sheet re-opens after connect
- *   other wallet       Wrong wallet                     "Connect the wallet that holds this
+ *   other wallet       Switch wallet to 0x…             "Connect the wallet that holds this
  *                                                       position (0x…)": one address never
- *                                                       acts on another's position
+ *                                                       acts on another's position; the
+ *                                                       button asks the wallet for that
+ *                                                       account (owner, Q27 round 5)
  *   other chain        Switch to Ethereum               useSwitchChain
  *   simulating         Simulating…                      disabled
  *   would revert       Read again                       the step and its reason
@@ -206,7 +208,16 @@ export interface Check {
   text: string
 }
 
-export type ButtonKind = 'connect' | 'switch' | 'sign' | 'retry' | 'close' | 'wait' | 'dismiss'
+export type ButtonKind =
+  | 'connect'
+  /** Ask the wallet for the position's own account (a wrong wallet is connected). */
+  | 'wallet'
+  | 'switch'
+  | 'sign'
+  | 'retry'
+  | 'close'
+  | 'wait'
+  | 'dismiss'
 
 export interface SheetView {
   stamp: string
@@ -336,7 +347,10 @@ export function sheetView(
   if (wallet0?.id === 'wallet')
     return view({ kind: 'connect', label: 'Connect wallet', enabled: true }, null)
   if (wallet0?.id === 'owner')
-    return view({ kind: 'wait', label: 'Wrong wallet', enabled: false }, wallet0.text)
+    return view(
+      { kind: 'wallet', label: `Switch wallet to ${short(owner)}`, enabled: true },
+      declined ?? wallet0.text,
+    )
   if (wallet0?.id === 'chain')
     return view(
       { kind: 'switch', label: 'Switch to Ethereum', enabled: true },

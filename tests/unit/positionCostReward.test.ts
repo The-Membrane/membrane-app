@@ -4,12 +4,21 @@
 import { describe, expect, it } from 'vitest'
 
 import raw from '@/components/PositionV0/dev/costRewardFixture.json'
+import { VARIANTS } from '@/components/PositionV0/dev/costRewardVariantMeta'
 import {
   FORECAST_EXTENT_D,
   RATE_DAYS,
   costRewardTrack,
+  merklCampaigns,
+  morphoCampaigns,
+  netValue,
+  signedPct,
+  signedUsd,
+  spreadNow,
+  spreadPct,
   usd2,
   windowed,
+  type MerklOpportunity,
   type RateFixture,
   type RatePoint,
 } from '@/lib/position/costReward'
@@ -86,5 +95,92 @@ describe('usd2', () => {
     expect(usd2(46.4)).toBe('$46')
     expect(usd2(4.64)).toBe('$4.6')
     expect(usd2(0)).toBe('$0')
+  })
+})
+
+describe('the yield spread (round 5)', () => {
+  it('is called the yield spread, never "income minus interest"', () => {
+    const b = VARIANTS.find((v) => v.key === 'B')!
+    expect(b.title).toBe('Yield spread')
+    for (const v of VARIANTS) expect(`${v.title} ${v.rationale}`).not.toMatch(/income (minus|−) interest/i)
+  })
+  it('reads as a percent of net value (collateral − debt, frozen)', () => {
+    const t = costRewardTrack(fixture([0.04, 0.04], [0.01, 0.01]))
+    expect(netValue(t)).toBe(1000)
+    expect(spreadPct(t.points[0].spread, t)).toBeCloseTo(-0.02, 12)
+    expect(signedPct(-0.0381)).toBe('−3.81%')
+    expect(signedPct(0.0124)).toBe('+1.24%')
+    expect(signedUsd(1234)).toBe('+$1,200')
+    expect(signedUsd(-1500)).toBe('−$1,500')
+  })
+  it('adds incentives ‡ at the last observation only: supply adds income, borrow takes off interest', () => {
+    const fx = fixture([0.04, 0.05], [0.01, 0.01])
+    fx.incentives = {
+      source: 'Merkl v4 test',
+      fetchedAt: '2026-10-17T05:00:00.000Z',
+      searched: 3,
+      legs: [
+        { address: '0xc', side: 'supply', campaigns: [{ id: 'a', name: 'A', apr: 0.02, start: 1, end: 2, rewardToken: null, conditions: null }] },
+        { address: '0xd', side: 'borrow', campaigns: [{ id: 'b', name: 'B', apr: 0.01, start: null, end: null, rewardToken: null, conditions: null }] },
+      ],
+    }
+    const t = costRewardTrack(fx)
+    const now = spreadNow(t, fx)
+    // Last point: income 2,000 × 1% = 20; interest 1,000 × 5% = 50; spread −30.
+    expect(now.base).toBeCloseTo(-30, 9)
+    // + 2,000 × 2% supply incentive + 1,000 × 1% borrow incentive = −30 + 40 + 10.
+    expect(now.withIncentives).toBeCloseTo(20, 9)
+    expect(now.legs.map((l) => [l.side, l.symbol, +l.usdPerYear.toFixed(9)])).toEqual([
+      ['supply', 'WETH', 40],
+      ['borrow', 'USDT', 10],
+    ])
+    expect(now.stamp).toBe('Merkl · fetched 17 Oct 05:00 UTC')
+    // Never over the history: every point keeps the base spread.
+    expect(t.points.map((p) => +p.spread.toFixed(9))).toEqual([-20, -30])
+  })
+  it('without a read there is no incentive figure; with no live campaign it equals the base', () => {
+    const fx0 = fixture([0.04, 0.04], [0.01, 0.01])
+    expect(spreadNow(costRewardTrack(fx0), fx0).withIncentives).toBeNull()
+    const cap = raw as RateFixture
+    expect(cap.incentives).toBeDefined()
+    const now = spreadNow(costRewardTrack(cap), cap)
+    expect(now.legs).toHaveLength(2)
+    if (now.legs.every((l) => l.campaigns.length === 0)) expect(now.withIncentives).toBe(now.base)
+  })
+  it('matches Merkl Aave V3 opportunities to a leg by side and token, APR from percent', () => {
+    const op = (o: Partial<MerklOpportunity>): MerklOpportunity => ({
+      id: '1',
+      type: 'AAVE_SUPPLY',
+      name: 'Lend X on Aave',
+      status: 'LIVE',
+      chainId: 1,
+      apr: 4.7,
+      earliestCampaignStart: '1792108800',
+      latestCampaignEnd: '1792713600',
+      tokens: [{ address: '0xC', symbol: 'X' }],
+      ...o,
+    })
+    const ops = [
+      op({}),
+      op({ id: '2', type: 'AAVE_BORROW' }),
+      op({ id: '3', status: 'PAST' }),
+      op({ id: '4', chainId: 8453 }),
+      op({ id: '5', type: 'AAVE_V4_HUB_NET_LENDING' }),
+      op({ id: '6', tokens: [{ address: '0xE', symbol: 'Y' }] }),
+      op({ id: '7', name: 'Lend X (looping required)', type: 'AAVE_NET_LENDING' }),
+    ]
+    const sup = merklCampaigns(ops, { address: '0xc', side: 'supply' })
+    expect(sup.map((c) => c.id)).toEqual(['1', '7'])
+    expect(sup[0]).toMatchObject({ apr: 0.047, start: 1792108800, end: 1792713600, conditions: null })
+    expect(sup[1].conditions).toMatch(/looping required/)
+    expect(merklCampaigns(ops, { address: '0xc', side: 'borrow' }).map((c) => c.id)).toEqual(['2'])
+  })
+  it("reads Morpho API rewards per side, dropping empty ones", () => {
+    const r = [
+      { asset: { symbol: 'MORPHO', address: '0xM' }, supplyApr: 0.012, borrowApr: null },
+      { asset: { symbol: 'WELL', address: '0xW' }, supplyApr: 0, borrowApr: 0.003 },
+    ]
+    expect(morphoCampaigns(r, 'supply').map((c) => [c.name, c.apr])).toEqual([['MORPHO rewards', 0.012]])
+    expect(morphoCampaigns(r, 'borrow').map((c) => [c.name, c.apr])).toEqual([['WELL rewards', 0.003]])
   })
 })

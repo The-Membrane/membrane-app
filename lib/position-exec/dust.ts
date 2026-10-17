@@ -27,8 +27,8 @@ import { aavePoolAbi, morphoAbi } from './abis'
 import { fmtUnits } from './amount'
 import type { Address, MorphoMarketParams } from './builders'
 import type { Gate } from './gates'
-import type { PrepState } from './sheet'
-import type { SimResult } from './simulate'
+import { sheetView, type PrepState, type SheetView, type TxState, type WalletState } from './sheet'
+import { buffered, type SimResult } from './simulate'
 
 /** Under this many dollars a priced supply position is dust (owner, 2026-10-17: "under $1"). */
 export const DUST_USD = 1
@@ -268,5 +268,51 @@ export function dustPrep(dust: readonly DustCandidate[], sim: SimResult | null):
     verb: 'Collect',
     what: dustWhat(dust.length),
     steps: dust.length,
+  }
+}
+
+// ------------------------------------------------------------------ choosing rows
+// Owner, Q27 round 5: the reader can untick positions. A row that pays nothing (receives 0)
+// only clears the position, so it starts OFF; a row that pays something starts ON. The
+// totals and the gas follow the ticks; nothing ticked is "Nothing selected".
+
+/** The opening ticks: on for a row that pays something, off for one that pays 0. */
+export const defaultPicks = (dust: readonly DustCandidate[]): boolean[] =>
+  dust.map((c) => c.assets > 0n)
+
+/** The ticked positions, in the order read. */
+export const picked = <T>(xs: readonly T[], picks: readonly boolean[]): T[] =>
+  xs.filter((_, i) => picks[i] === true)
+
+/**
+ * The simulated batch cut to the ticked calls: each call's own gasUsed, summed and
+ * buffered again. The withdraws are independent, so the cut batch's gas is the sum of its
+ * calls'; the wallet estimates the real batch when it signs. A failed simulation, or one
+ * with a call's gas unknown, is returned as it was (null when nothing is ticked).
+ */
+export function pickedSim(sim: SimResult | null, picks: readonly boolean[]): SimResult | null {
+  if (!sim || !sim.ok) return sim
+  if (!picks.some(Boolean)) return null
+  const gas = picked(sim.gas, picks)
+  if (gas.some((g) => g === null)) return sim
+  const sum = (gas as bigint[]).reduce((a, g) => a + g, 0n)
+  return { ...sim, gas, bufferedGas: buffered(sum) }
+}
+
+/** The dust slip's sheet for the ticked rows: "Nothing selected", disabled, when none are. */
+export function dustSheet(
+  chosen: readonly DustCandidate[],
+  sim: SimResult | null,
+  wallet: WalletState,
+  tx: TxState,
+  owner: string,
+): SheetView {
+  const sheet = sheetView(dustPrep(chosen, sim), wallet, tx, owner)
+  if (chosen.length > 0 || tx.phase !== 'idle') return sheet
+  return {
+    ...sheet,
+    checks: sheet.checks.filter((c) => !c.id.startsWith('sim')),
+    button: { kind: 'wait', label: 'Nothing selected', enabled: false },
+    notice: null,
   }
 }

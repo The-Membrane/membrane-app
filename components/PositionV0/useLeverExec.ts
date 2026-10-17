@@ -32,6 +32,7 @@ import {
   type RunWallet,
 } from '@/lib/position-exec/run'
 import { simulateLever, type SimResult } from '@/lib/position-exec/simulate'
+import { watchRefocus } from '@/lib/position-exec/refocus'
 import { fmtAmount } from '@/lib/position/format'
 import { TOUCH_TABLE } from '@/lib/position/touchHistory'
 import { ADAPTERS, runAdapter } from '@/lib/position-sim/adapters'
@@ -76,13 +77,22 @@ export interface LeverExec {
   checked: () => void
   sign: () => void
   switchChain: () => void
+  /** Ask the wallet for the position's own account (a wrong wallet is connected). */
+  switchWallet: () => void
   retry: () => void
+  /** When the slip last read again on its own because the page had focus again (ms). */
+  rereadAt: number | null
 }
 
 export function useLeverExec(
-  intent: LeverIntent,
+  baseIntent: LeverIntent,
   onSettled: (owner: `0x${string}`) => void,
+  /** The reader's own amount (the slip's field), or null for the solved one. */
+  amount: LeverIntent['amount'] = null,
+  /** Opens the connect dialog: the fallback when a wallet cannot be asked for an account. */
+  onConnect: () => void = () => {},
 ): LeverExec {
+  const intent = useMemo(() => ({ ...baseIntent, amount }), [baseIntent, amount])
   const config = useConfig()
   const { address, chainId, isConnected } = useAccount()
   const { switchChainAsync } = useSwitchChain()
@@ -100,7 +110,7 @@ export function useLeverExec(
   }, [])
 
   const prep = useQuery({
-    queryKey: ['position-lever', intent.openedAt, attempt],
+    queryKey: ['position-lever', intent.openedAt, attempt, amount?.value ?? null, amount?.decimals ?? null],
     queryFn: () =>
       prepareLever(intent, { readAdapter, client: getMainnetClient(), table: TOUCH_TABLE }),
     ...QUERY,
@@ -109,7 +119,7 @@ export function useLeverExec(
   const gatesPass = ready !== null && ready.gates.every((g) => g.ok)
 
   const sim = useQuery({
-    queryKey: ['position-lever-sim', intent.openedAt, attempt],
+    queryKey: ['position-lever-sim', intent.openedAt, attempt, amount?.value ?? null, amount?.decimals ?? null],
     queryFn: () => simulateLever(getMainnetClient(), intent.owner, ready!.calls),
     enabled: gatesPass,
     ...QUERY,
@@ -279,6 +289,47 @@ export function useLeverExec(
     setAttempt((a) => a + 1)
   }, [])
 
+  // A wrong wallet: ask the connected wallet to pick the position's account
+  // (wallet_requestPermissions shows its account picker). A wallet that cannot be asked,
+  // or has no provider, falls back to the connect dialog. Declining is a notice, not a failure.
+  const switchWallet = useCallback(async () => {
+    if (inFlight.current) return
+    inFlight.current = true
+    try {
+      const provider = (await getAccount(config).connector?.getProvider?.()) as
+        | { request?: (a: { method: string; params?: unknown[] }) => Promise<unknown> }
+        | undefined
+      if (!provider?.request) {
+        onConnect()
+        return
+      }
+      await provider.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] })
+    } catch (err) {
+      if (isUserRejection(err)) dispatch({ type: 'declined', landed: 0, message: 'Wallet switch declined' })
+      else onConnect()
+    } finally {
+      inFlight.current = false
+    }
+  }, [config, onConnect])
+
+  // RE-READ ON REFOCUS (round 5): back from topping up elsewhere, the slip reads again by
+  // itself, debounced; never while a transaction is with the wallet or on chain.
+  const [rereadAt, setRereadAt] = useState<number | null>(null)
+  const idle = useRef(true)
+  idle.current = tx.phase === 'idle'
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    return watchRefocus({
+      win: window,
+      doc: document,
+      enabled: () => idle.current && !inFlight.current,
+      onRefocus: (at) => {
+        setRereadAt(at)
+        setAttempt((a) => a + 1)
+      },
+    })
+  }, [])
+
   // A fresh read clears a notice about the previous one.
   useEffect(() => {
     if (prep.dataUpdatedAt) dispatch({ type: 'fresh' })
@@ -294,6 +345,8 @@ export function useLeverExec(
     checked: () => dispatch({ type: 'checked' }),
     sign: () => void sign(),
     switchChain: () => void switchChain(),
+    switchWallet: () => void switchWallet(),
     retry,
+    rereadAt,
   }
 }

@@ -10,8 +10,13 @@
 //   &layout=b                         design candidate B: steps first, checks by the button
 //   /dev/slip-states?state=dust-…     the collect-dust slip (components/PositionV0/DustSlip),
 //                                     keys: components/PositionV0/dev/dustStates.ts
+//
+// Round 5: the amount field and "use the room left" re-prepare the captured read at the
+// new amount (slipStates.reprepare); the page regaining focus stamps "re-read at …" on the
+// slip the way the live slip does (the harness re-uses its fixture: nothing is read); the
+// settled state closes the slip and shows the toast over the page.
 
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Head from 'next/head'
 import NextLink from 'next/link'
 import { useRouter } from 'next/router'
@@ -25,12 +30,16 @@ import {
   CAPTURED_AT,
   DESIGN_STATES,
   WALK_MAIN,
+  reprepare,
   walkStep,
   type DesignState,
 } from '@/components/PositionV0/dev/slipStates'
 import { DUST_CAPTURED_AT, DUST_STATES } from '@/components/PositionV0/dev/dustStates'
 import { DustSlip } from '@/components/PositionV0/DustSlip'
 import { LeverSlip } from '@/components/PositionV0/LeverSheet'
+import { SettledToast } from '@/components/PositionV0/SettledToast'
+import { settledToast } from '@/components/PositionV0/leverExec'
+import { watchRefocus } from '@/lib/position-exec/refocus'
 import { Headline, Kicker, Mono, Small } from '@/components/PositionV0/primitives'
 import { CAPS, TYPE } from '@/components/PositionV0/typeScale'
 
@@ -130,6 +139,35 @@ export default function SlipStates() {
   const layout: LayoutKey = q.layout === 'b' ? 'b' : 'a'
   const suffix = layout === 'b' ? '&layout=b' : ''
   const go = (k: string) => void router.replace(`/dev/slip-states?walk=${k}${suffix}`, undefined, { shallow: true })
+
+  // The reader's amount on this state (reset when the state changes).
+  const [amount, setAmount] = useState<{ key: string; value: number; decimals: number } | null>(null)
+  const shown = useMemo(
+    () =>
+      current && amount && amount.key === current.key
+        ? reprepare(current, amount.value, amount.decimals)
+        : current,
+    [current, amount],
+  )
+  // The page had focus again: the live slip re-reads; the harness stamps the time only.
+  const [rereadAt, setRereadAt] = useState<number | null>(null)
+  useEffect(
+    () =>
+      watchRefocus({
+        win: window,
+        doc: document,
+        enabled: () => true,
+        onRefocus: setRereadAt,
+        minGapMs: 0,
+      }),
+    [],
+  )
+  useEffect(() => setRereadAt(null), [key])
+  // Settled: the slip closes and the toast shows over the page (round 5).
+  const settled = shown?.sheet.stamp === 'SETTLED' && !!shown.prepared && !!shown.txHash
+  const [toastOn, setToastOn] = useState(true)
+  const [toastN, setToastN] = useState(0)
+  useEffect(() => setToastOn(true), [key])
 
   return (
     <Box className="news-edition" minH="100vh">
@@ -263,7 +301,7 @@ export default function SlipStates() {
           block={dust.block}
           at={dust.at}
           source={dust.source}
-          sheet={dust.sheet}
+          sheetFor={dust.sheetFor}
           txHash={null}
           busy={false}
           onButton={noop}
@@ -271,21 +309,48 @@ export default function SlipStates() {
           onExplorer={noop}
         />
       )}
-      {current && (
+      {shown && settled && (
+        <>
+          {walking && (
+            <Box maxW="960px" mx="auto" px={{ base: SPACING.base, md: SPACING.lg }} pb={SPACING.lg}>
+              <WalkBar s={shown} go={go} />
+            </Box>
+          )}
+          <Box maxW="960px" mx="auto" px={{ base: SPACING.base, md: SPACING.lg }} pb={SPACING.lg}>
+            <Button {...WALK_BTN} onClick={() => {
+                setToastN((n) => n + 1)
+                setToastOn(true)
+              }}
+              data-testid="toast-again">
+              Show the settled toast again
+            </Button>
+          </Box>
+          {toastOn && shown.prepared?.kind === 'ready' && shown.txHash && (
+            <SettledToast
+              key={`${shown.key}-${toastN}`}
+              toast={settledToast(shown.prepared, shown.intent.horizon, shown.txHash)}
+              onDone={() => setToastOn(false)}
+            />
+          )}
+        </>
+      )}
+      {shown && !settled && (
         <LeverSlip
           // One slip for the whole walk, so a step changes the slip in place.
-          key={walking ? 'walk' : current.key}
-          intent={current.intent}
-          prepared={current.prepared}
-          sim={current.sim}
-          sheet={current.sheet}
-          txHash={current.txHash}
+          key={walking ? 'walk' : shown.key}
+          intent={shown.intent}
+          prepared={shown.prepared}
+          sim={shown.sim}
+          sheet={shown.sheet}
+          txHash={shown.txHash}
           busy={false}
           onButton={noop}
           onClose={() => void router.push(`/dev/slip-states${layout === 'b' ? '?layout=b' : ''}`)}
           onExplorer={noop}
           layout={LAYOUTS[layout].prop}
-          harness={walking ? <WalkBar s={current} go={go} /> : undefined}
+          harness={walking ? <WalkBar s={shown} go={go} /> : undefined}
+          onAmount={(value, decimals) => setAmount({ key: shown.key, value, decimals })}
+          rereadAt={rereadAt}
         />
       )}
     </Box>

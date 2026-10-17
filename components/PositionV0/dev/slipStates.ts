@@ -6,7 +6,6 @@
 // Spark stable-rate debt, a transaction outcome), the forced input is named in `forced`.
 // Dev only: no wallet, nothing signed.
 
-import { leverGates } from '@/lib/position-exec/gates'
 import type { LeverChainRead } from '@/lib/position-exec/read'
 import {
   sheetView,
@@ -24,7 +23,14 @@ import { fmtAmount } from '@/lib/position/format'
 import { TOUCH_TABLE } from '@/lib/position/touchHistory'
 import type { ProtocolPosition } from '@/lib/position-sim/types'
 
-import { joinNotice, standingNotice, type LeverIntent, type PreparedLever } from '../leverExec'
+import {
+  gatesFor,
+  joinNotice,
+  standingNotice,
+  withAmount,
+  type LeverIntent,
+  type PreparedLever,
+} from '../leverExec'
 import { PROTOCOL_SHORT, buildPositionView } from '../viewModel'
 import raw from './slipFixtures.json'
 
@@ -37,7 +43,7 @@ const revive = (_k: string, v: unknown) =>
 
 interface Capture {
   intent: LeverIntent
-  prepared: Omit<PreparedLever, 'view'> & { position: ProtocolPosition }
+  prepared: Omit<PreparedLever, 'view' | 'custom' | 'solved'> & { position: ProtocolPosition }
   sim: SimResult | null
 }
 const FIX = JSON.parse(JSON.stringify(raw), revive) as {
@@ -54,7 +60,13 @@ function load(c: Capture): { intent: LeverIntent; prepared: PreparedLever; sim: 
   const { position, ...rest } = c.prepared
   return {
     intent: c.intent,
-    prepared: { ...rest, view: buildPositionView(position, TOUCH_TABLE) },
+    prepared: {
+      // Captured before round 5 kept these: the solved amount, not the reader's own.
+      custom: false,
+      solved: { amount: rest.row.amount, amountDecimals: rest.row.amountDecimals },
+      ...rest,
+      view: buildPositionView(position, TOUCH_TABLE),
+    },
     sim: c.sim,
   }
 }
@@ -64,6 +76,9 @@ export interface DesignState {
   title: string
   /** What was forced to show the state; null when the state is the read as captured. */
   forced: string | null
+  /** The wallet the sheet was computed for (a re-prepare at another amount reuses it). */
+  wallet: WalletState
+  tx: TxState
   intent: LeverIntent
   prepared: PreparedLever | null
   sim: SimResult | null
@@ -73,6 +88,39 @@ export interface DesignState {
 }
 
 const run = (events: TxEvent[]) => events.reduce(txReducer, TX_IDLE as TxState)
+
+/** The state's prep for the machine, as the hook builds it. */
+function prepOf(p: PreparedLever, sim: SimResult | null): PrepState {
+  return {
+    status: 'ready',
+    gates: p.gates,
+    sim: p.gates.every((g) => g.ok)
+      ? sim
+        ? { status: 'done', result: sim }
+        : { status: 'running' }
+      : { status: 'skipped' },
+    verb: p.row.kind === 'repay' ? 'Repay' : 'Add',
+    what: `${fmtAmount(p.row.amount, p.row.amountDecimals)} ${p.leg.symbol}`,
+    steps: p.calls.length,
+  }
+}
+
+/**
+ * The harness's answer to the slip's amount field and its "use the room left": the same
+ * captured read at the reader's amount (leverExec.withAmount: the rows, gates and calls
+ * again). The captured simulation was of the solved amount, so it is not reused: the
+ * slip shows "Simulating…" (the live slip simulates the new batch).
+ */
+export function reprepare(s: DesignState, value: number, decimals: number): DesignState {
+  if (!s.prepared) return s
+  const p = withAmount(s.prepared, s.intent, value, decimals, TOUCH_TABLE)
+  return {
+    ...s,
+    prepared: p,
+    sim: null,
+    sheet: sheetView(prepOf(p, null), s.wallet, s.tx, s.intent.owner),
+  }
+}
 
 function build(): DesignState[] {
   const ready = load(FIX.ready)
@@ -84,30 +132,11 @@ function build(): DesignState[] {
   const [H1, H2, H3] = FIX.txs
   const venue = PROTOCOL_SHORT[ready.intent.protocol]
 
-  const prep = (p: PreparedLever, sim: SimResult | null): PrepState => ({
-    status: 'ready',
-    gates: p.gates,
-    sim: p.gates.every((g) => g.ok)
-      ? sim
-        ? { status: 'done', result: sim }
-        : { status: 'running' }
-      : { status: 'skipped' },
-    verb: p.row.kind === 'repay' ? 'Repay' : 'Add',
-    what: `${fmtAmount(p.row.amount, p.row.amountDecimals)} ${p.leg.symbol}`,
-    steps: p.calls.length,
-  })
-  const withRead = (p: PreparedLever, read: LeverChainRead): PreparedLever => ({
+  const prep = prepOf
+  const withRead = (p: PreparedLever, read: LeverChainRead, intent = ready.intent): PreparedLever => ({
     ...p,
     read,
-    gates: leverGates({
-      kind: p.row.kind,
-      symbol: p.leg.symbol,
-      token: p.leg.address,
-      legDecimals: p.leg.decimals,
-      amount: p.amount,
-      shown: Math.max(2, p.row.amountDecimals),
-      read,
-    }),
+    gates: gatesFor(intent, p.row, p.leg, p.amount, read),
   })
   const standing = standingNotice(
     standingApproval(ready.prepared.calls, 1),
@@ -134,19 +163,17 @@ function build(): DesignState[] {
     const p = o.prepared === undefined ? base.prepared : o.prepared
     const tx = run(o.tx ?? [])
     const prepState: PrepState = o.reading || !p ? { status: 'reading' } : prep(p, base.sim)
+    const wallet = o.wallet ?? { ...ON_1, address: base.intent.owner }
     return {
       key,
       title,
       forced: o.forced ?? null,
+      wallet,
+      tx,
       intent: { ...base.intent, owner: base.intent.owner },
       prepared: o.reading ? null : p,
       sim: o.reading ? null : base.sim,
-      sheet: sheetView(
-        prepState,
-        o.wallet ?? { ...ON_1, address: base.intent.owner },
-        tx,
-        base.intent.owner,
-      ),
+      sheet: sheetView(prepState, wallet, tx, base.intent.owner),
       txHash: o.hash ?? null,
       busy: tx.phase === 'submitted' || tx.phase === 'pending' || tx.phase === 'switching',
     }
@@ -180,27 +207,37 @@ function build(): DesignState[] {
           : null,
       forced: 'the reserve paused bit; no Aave reserve is paused today',
     }),
-    state('cap', 'Supply cap reached (top-up)', {
+    state('cap', 'Over the supply cap (top-up), with the room left to use', {
       base: add,
       prepared:
         addVenue.venue === 'aave'
-          ? withRead(add.prepared, {
-              ...add.prepared.read,
-              balance: add.prepared.amount,
-              venue: { ...addVenue, capRoom: 0n },
-            })
+          ? withRead(
+              add.prepared,
+              {
+                ...add.prepared.read,
+                balance: add.prepared.amount,
+                // Room: half the amount, so the top-up is over the cap with room left.
+                venue: { ...addVenue, capRoom: add.prepared.amount / 2n, supplied: undefined },
+              },
+              add.intent,
+            )
           : null,
-      forced: 'cap room 0 and a balance equal to the amount (the read had room and no WETH)',
+      forced:
+        'cap room set to half the amount (the read had room, and no WETH: the balance is set to the amount); the cap is the read’s, supplied is cap − room',
     }),
     state('spark-stable', 'Spark stable-rate debt refused', {
       base: spark,
       prepared:
         sparkVenue.venue === 'aave'
-          ? withRead(spark.prepared, {
-              ...spark.prepared.read,
-              balance: spark.prepared.amount,
-              venue: { ...sparkVenue, variableDebt: 0n, stableDebt: sparkVenue.variableDebt },
-            })
+          ? withRead(
+              spark.prepared,
+              {
+                ...spark.prepared.read,
+                balance: spark.prepared.amount,
+                venue: { ...sparkVenue, variableDebt: 0n, stableDebt: sparkVenue.variableDebt },
+              },
+              spark.intent,
+            )
           : null,
       forced:
         "the read's variable debt shown as stable-rate: no Spark stable debt exists today (stable debt tokens read totalSupply 0)",

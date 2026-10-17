@@ -4,8 +4,10 @@
 //
 //   head        ORDER SLIP · COLLECT DUST                                       DRAFT
 //               If you collect dust from  4 positions
-//   cleared     each position: what it holds, what you receive (often 0, said so), and
-//               that the withdraw clears it
+//   cleared     each position, with a tick: what it holds, what you receive (often 0,
+//               said so), and that the withdraw clears it. A row that pays nothing starts
+//               unticked, one that pays something ticked (owner, Q27 round 5); the totals,
+//               the steps and the gas follow the ticks; none ticked is "Nothing selected"
 //   totals      what you receive in all, in dollars; the gas at today's fee; a ▲ warning
 //               when nothing comes back or the gas costs more than what does
 //   left alone  supply positions held that are not dust (worth $1 or more, or unpriced)
@@ -14,17 +16,22 @@
 //
 // Presentational: the design-states page renders it from captured reads. No signing here.
 
-import React from 'react'
+import React, { useMemo, useState } from 'react'
 import { Box } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
+import { FOCUS_STYLES } from '@/config/transitions'
 import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import type { SheetView } from '@/lib/position-exec/sheet'
 import type { SimResult } from '@/lib/position-exec/simulate'
 import {
   aboutUsd,
+  defaultPicks,
+  dustRow,
   dustTotals,
   dustWarningText,
+  picked,
+  pickedSim,
   type DustCandidate,
 } from '@/lib/position-exec/dust'
 import { fmtUnits } from '@/lib/position-exec/amount'
@@ -67,7 +74,8 @@ export interface DustSlipProps {
   /** Time of the read, ms. */
   at: number
   source: string
-  sheet: SheetView
+  /** The sheet for the ticked positions and their cut simulation (lib/position-exec/dust.ts dustSheet). */
+  sheetFor: (chosen: DustCandidate[], sim: SimResult | null) => SheetView
   txHash: `0x${string}` | null
   busy: boolean
   onButton: () => void
@@ -85,7 +93,7 @@ export const DustSlip: React.FC<DustSlipProps> = ({
   block,
   at,
   source,
-  sheet,
+  sheetFor,
   txHash,
   busy,
   onButton,
@@ -93,28 +101,92 @@ export const DustSlip: React.FC<DustSlipProps> = ({
   onExplorer,
   harness,
 }) => {
-  const t = dustTotals(dust, sim, ethUsd)
+  const [picks, setPicks] = useState<boolean[]>(() => defaultPicks(dust))
+  const chosen = useMemo(() => picked(dust, picks), [dust, picks])
+  const cutSim = useMemo(() => pickedSim(sim, picks), [sim, picks])
+  const sheet = sheetFor(chosen, cutSim)
+  const t = dustTotals(chosen, cutSim, ethUsd)
   const warning = dustWarningText(t)
-  const gas = gasLine(sim)
+  const gas = gasLine(cutSim)
   const venues = [...new Set(dust.map((c) => VENUE_NAME[c.venue]))].join(' + ')
+  const all = dust.map(dustRow)
+  const toggle = (i: number) => setPicks((ps) => ps.map((v, j) => (j === i ? !v : v)))
 
   const body = (
     <Box display="grid" gap={SPACING.base} minW={0}>
-      <Section title={`Positions cleared · ${t.rows.length}`}>
-        {t.rows.map((r, i) => (
-          <Box key={i} py={SPACING.xs} borderBottom={RULE} minW={0} data-testid="dust-row">
-            <Box
-              display="grid"
-              gridTemplateColumns="minmax(0, 1fr) auto"
-              columnGap={SPACING.sm}
-              alignItems="baseline"
-            >
-              <Mono overflowWrap="anywhere">{r.label}</Mono>
-              <Mono fontWeight={700} textAlign="right" whiteSpace="nowrap">
-                {r.receive}
-              </Mono>
+      <Section title={`Positions · ${chosen.length} of ${dust.length} ticked`}>
+        <Small pt={SPACING.xs}>
+          A position that pays nothing starts unticked: collecting it only clears it, for gas.
+        </Small>
+        {all.map((r, i) => (
+          <Box
+            as="label"
+            key={i}
+            display="grid"
+            gridTemplateColumns="44px minmax(0, 1fr)"
+            alignItems="start"
+            py={SPACING.xs}
+            borderBottom={RULE}
+            minW={0}
+            cursor="pointer"
+            data-testid="dust-row"
+            data-picked={picks[i] ? 'on' : 'off'}
+          >
+            <Box display="flex" alignItems="center" justifyContent="center" minH="44px" position="relative">
+              {/* The native box stays (keyboard, screen readers); the paper box draws it. */}
+              <Box
+                as="input"
+                type="checkbox"
+                checked={picks[i]}
+                onChange={() => toggle(i)}
+                aria-label={`Collect ${r.label}: ${r.receive}`}
+                position="absolute"
+                opacity={0}
+                w="44px"
+                h="44px"
+                m={0}
+                cursor="pointer"
+                data-testid="dust-pick"
+                sx={{ '&:focus-visible + span': FOCUS_STYLES.ring }}
+              />
+              <Box
+                as="span"
+                aria-hidden
+                display="inline-flex"
+                alignItems="center"
+                justifyContent="center"
+                w="20px"
+                h="20px"
+                border={`1.5px solid ${NEWS.ink}`}
+                bg={picks[i] ? NEWS.ink : NEWS.paper}
+                color={NEWS.paper}
+                fontFamily={NEWS_FONT.mono}
+                fontSize={TYPE.body}
+                fontWeight={700}
+                lineHeight={1}
+                pointerEvents="none"
+              >
+                {picks[i] ? '✓' : ''}
+              </Box>
             </Box>
-            <Small overflowWrap="anywhere">{r.line}</Small>
+            <Box minW={0} py={SPACING.xs} color={picks[i] ? NEWS.ink : NEWS.muted}>
+              <Box
+                display="grid"
+                gridTemplateColumns="minmax(0, 1fr) auto"
+                columnGap={SPACING.sm}
+                alignItems="baseline"
+              >
+                <Mono overflowWrap="anywhere" color="inherit">
+                  {r.label}
+                </Mono>
+                <Mono fontWeight={700} textAlign="right" whiteSpace="nowrap" color="inherit">
+                  {r.receive}
+                </Mono>
+              </Box>
+              <Small overflowWrap="anywhere" color="inherit">
+                {picks[i] ? r.line : `Left as it is · ${r.line.charAt(0).toLowerCase()}${r.line.slice(1)}`}
+              </Small>
+            </Box>
           </Box>
         ))}
       </Section>
@@ -122,14 +194,12 @@ export const DustSlip: React.FC<DustSlipProps> = ({
       <Box border={`1px solid ${NEWS.ink}`} px={SPACING.sm} py={SPACING.xs} minW={0} data-testid="dust-totals">
         <Box display="grid" gridTemplateColumns="minmax(0, 1fr) auto" columnGap={SPACING.sm}>
           <Small color={NEWS.ink2}>You receive, in all</Small>
-          <Mono fontWeight={700} textAlign="right">
-            {t.receiveUsd === 0
-              ? '$0 · nothing'
-              : aboutUsd(t.receiveUsd)}
+          <Mono fontWeight={700} textAlign="right" data-testid="dust-receive">
+            {chosen.length === 0 ? '—' : t.receiveUsd === 0 ? '$0 · nothing' : aboutUsd(t.receiveUsd)}
           </Mono>
           <Small color={NEWS.ink2}>Gas, est. at today&apos;s fee</Small>
-          <Mono textAlign="right">
-            {t.gasUsd !== null ? aboutUsd(t.gasUsd) : 'after the simulation'}
+          <Mono textAlign="right" data-testid="dust-gas">
+            {chosen.length === 0 ? '—' : t.gasUsd !== null ? aboutUsd(t.gasUsd) : 'after the simulation'}
           </Mono>
         </Box>
         {warning && (
@@ -179,8 +249,9 @@ export const DustSlip: React.FC<DustSlipProps> = ({
         </Section>
       )}
 
-      <Section title={`Steps · ${dust.length} · each shows in your wallet`}>
-        {dust.map((c, i) => {
+      <Section title={`Steps · ${chosen.length} · each shows in your wallet`}>
+        {chosen.length === 0 && <Small pt={SPACING.xs}>Nothing ticked: no step to sign.</Small>}
+        {chosen.map((c, i) => {
           const s = stepOf(c, owner)
           return (
             <Box key={i} display="grid" gridTemplateColumns="2em minmax(0, 1fr)" py={SPACING.xs} borderBottom={RULE}>
@@ -206,7 +277,7 @@ export const DustSlip: React.FC<DustSlipProps> = ({
     <SlipFrame
       testId="dust-sheet"
       kicker="Order slip · Collect dust"
-      headline={<Headline kind="collect dust from" amount={String(dust.length)} symbol={dust.length === 1 ? 'position' : 'positions'} />}
+      headline={<Headline kind="collect dust from" amount={String(chosen.length)} symbol={chosen.length === 1 ? 'position' : 'positions'} />}
       subtitle={
         <>
           {short(owner)} · {venues} · supply positions that pay out nothing or under $1
@@ -219,6 +290,9 @@ export const DustSlip: React.FC<DustSlipProps> = ({
         <Box as="span" fontFamily={NEWS_FONT.mono} fontSize={TYPE.label}>
           Read at block {fmtInt(block)} · {fmtUtc(at)} · {source}
           {sim ? ` · simulated with ${sim.method}` : ''}
+          {sim?.ok && chosen.length > 0 && chosen.length < dust.length
+            ? ' · gas for the ticked calls, from each call in the simulated batch'
+            : ''}
         </Box>
       }
       sheet={sheet}

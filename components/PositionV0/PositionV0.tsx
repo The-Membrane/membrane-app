@@ -22,8 +22,9 @@ import { AddressForm } from './AddressForm'
 import { ForecastBlock } from './ForecastBlock'
 import { Hero } from './Hero'
 import { Instrument } from './Instrument'
-import type { LeverIntent } from './leverExec'
+import type { LeverIntent, SettledToastData } from './leverExec'
 import { LeverSheet } from './LeverSheet'
+import { SettledToast } from './SettledToast'
 import { MarketHistory } from './MarketHistory'
 import { MembraneLine } from './MembraneLine'
 import { PositionPicker } from './PositionPicker'
@@ -202,6 +203,9 @@ export const PositionV0: React.FC = () => {
     setAwaitingConnect(null)
   }, [awaitingConnect, isConnected])
   const closeLever = useCallback(() => setLever(null), [])
+  // A settled lever closes its slip; the toast says what happened (round 5).
+  const [toast, setToast] = useState<SettledToastData | null>(null)
+  const closeToast = useCallback(() => setToast(null), [])
   const connectForLever = useCallback(() => {
     if (lever) setAwaitingConnect(lever)
     connect()
@@ -259,8 +263,16 @@ export const PositionV0: React.FC = () => {
         />
       </Box>
       {lever && (
-        <LeverSheet key={lever.openedAt} intent={lever} onClose={closeLever} onConnect={connectForLever} onSettled={onSettled} />
+        <LeverSheet
+          key={lever.openedAt}
+          intent={lever}
+          onClose={closeLever}
+          onConnect={connectForLever}
+          onSettled={onSettled}
+          onToast={setToast}
+        />
       )}
+      {toast && <SettledToast key={toast.hash} toast={toast} onDone={closeToast} />}
     </Box>
   )
 }

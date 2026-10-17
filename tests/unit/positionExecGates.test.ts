@@ -5,7 +5,14 @@ import { describe, expect, it } from 'vitest'
 import type { PublicClient } from 'viem'
 
 import { morphoMarketId, type MorphoMarketParams } from '@/lib/position-exec/builders'
-import { firstBlocked, leverGates, type GateInput } from '@/lib/position-exec/gates'
+import {
+  amountLimit,
+  capLine,
+  firstBlocked,
+  leverGates,
+  pausedText,
+  type GateInput,
+} from '@/lib/position-exec/gates'
 import {
   aaveCapRoom,
   decodeAaveConfig,
@@ -133,7 +140,16 @@ describe('gates: Aave V3 / Spark', () => {
   it('blocks a paused or inactive reserve; frozen blocks a supply but not a repay', () => {
     expect(
       firstBlocked(leverGates(input(read(aave({}, { decimals: 6, paused: true })))))!.text,
-    ).toBe('Reserve is paused')
+    ).toBe(
+      'Aave has paused this market (a governance/guardian switch). Until it is unpaused nobody can supply, withdraw, borrow or repay this asset, so this transaction would fail. Your position is unchanged.',
+    )
+    // The venue's own name, when the slip gives it.
+    expect(
+      firstBlocked(
+        leverGates({ ...input(read(aave({}, { decimals: 6, paused: true }))), venueName: 'Spark' }),
+      )!.text,
+    ).toBe(pausedText('Spark'))
+    expect(pausedText('Spark')).toMatch(/^Spark has paused this market/)
     expect(
       firstBlocked(leverGates(input(read(aave({}, { decimals: 6, active: false })))))!.text,
     ).toBe('Reserve is not active')
@@ -158,7 +174,7 @@ describe('gates: Aave V3 / Spark', () => {
   })
   it('blocks a supply over the cap and passes one under it', () => {
     const over = input(read(aave({ capRoom: 100_000_000n })), { kind: 'add' })
-    expect(firstBlocked(leverGates(over))!.text).toBe('Supply cap reached: room 100.00 USDC')
+    expect(firstBlocked(leverGates(over))!.text).toBe('Over the supply cap: room 100.00 USDC')
     const under = input(read(aave({ capRoom: 460_000_000n })), { kind: 'add' })
     expect(firstBlocked(leverGates(under))).toBeNull()
     expect(leverGates(input(read(aave()), { kind: 'add' })).find((x) => x.id === 'cap')!.text).toBe(
@@ -226,7 +242,7 @@ describe('gates: Compound V3', () => {
       })
     expect(firstBlocked(leverGates(add(0n)))!.text).toBe('Supply cap reached: no room for WETH')
     expect(firstBlocked(leverGates(add(10n ** 16n)))!.text).toBe(
-      'Supply cap reached: room 0.01 WETH',
+      'Over the supply cap: room 0.01 WETH',
     )
     expect(firstBlocked(leverGates(add(10n ** 18n)))).toBeNull()
   })
@@ -495,5 +511,49 @@ describe('readLeverChain', () => {
         block: null,
       }),
     ).rejects.toThrow(/no Comet/)
+  })
+})
+
+describe('cap figures and the amount limit (round 5)', () => {
+  // A 500,000 cap at 6 decimals with 499,200 supplied: room 800.
+  const capped = (o: Partial<Extract<VenueRead, { venue: 'aave' }>> = {}) =>
+    aave({ capRoom: 800_000_000n, supplied: 499_200_000_000n, ...o }, { decimals: 6, supplyCap: 500_000n })
+  it('shows cap, supplied and room in one line', () => {
+    expect(capLine(capped(), 6, 2, 'USDC')).toBe('cap 500,000 · supplied 499,200.00 · room 800.00 USDC')
+    const over = input(read(capped()), { kind: 'add', amount: 1_000_000_000n })
+    expect(firstBlocked(leverGates(over))!.text).toBe(
+      'Over the supply cap: cap 500,000 · supplied 499,200.00 · room 800.00 USDC',
+    )
+    const under = input(read(capped()), { kind: 'add', amount: 800_000_000n })
+    expect(leverGates(under).find((g) => g.id === 'cap')).toMatchObject({
+      ok: true,
+      text: 'Under the supply cap: cap 500,000 · supplied 499,200.00 · room 800.00 USDC',
+    })
+  })
+  it('derives supplied from the cap and the room on an older read, and says so at room 0', () => {
+    expect(capLine(capped({ supplied: undefined }), 6, 0, 'USDC')).toBe(
+      'cap 500,000 · supplied 499,200 · room 800 USDC',
+    )
+    expect(capLine(capped({ supplied: undefined, capRoom: 0n }), 6, 0, 'USDC')).toBe(
+      'cap 500,000 · supplied at or over it · room 0 USDC',
+    )
+    expect(capLine(aave(), 6, 2, 'USDC')).toBeNull()
+  })
+  it('limits the amount to the smallest of balance, debt and cap room', () => {
+    expect(amountLimit(read(aave(), { balance: 8_912_940n }), 'repay', 'USDC', 2)).toEqual({
+      units: 8_912_940n,
+      why: 'balance',
+      text: 'Wallet holds 8.91 USDC',
+    })
+    expect(amountLimit(read(aave({ variableDebt: 243_476_454n })), 'repay', 'USDC', 2)).toMatchObject({
+      units: 243_476_454n,
+      why: 'debt',
+      text: 'Variable-rate debt 243.47 USDC',
+    })
+    expect(amountLimit(read(capped()), 'add', 'USDC', 2)).toMatchObject({ why: 'cap', units: 800_000_000n })
+    // No cap: the balance alone. The debt does not limit a top-up.
+    expect(amountLimit(read(aave({ variableDebt: 1n })), 'add', 'USDC', 2).why).toBe('balance')
+    // A tie goes to the balance: it is the one the reader can change.
+    expect(amountLimit(read(aave({ variableDebt: 10_000_000_000n })), 'repay', 'USDC', 2).why).toBe('balance')
   })
 })

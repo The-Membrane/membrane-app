@@ -101,9 +101,9 @@ describe('the slip before a signature', () => {
       text: 'Wallet not connected',
     })
   })
-  it('another wallet never signs: Wrong wallet, and which one to connect', () => {
+  it("another wallet never signs: the button asks for the position's wallet, by address", () => {
     const v = sheetView(ready(), { connected: true, address: OTHER, chainId: 1 }, TX_IDLE, OWNER)
-    expect(v.button).toEqual({ kind: 'wait', label: 'Wrong wallet', enabled: false })
+    expect(v.button).toEqual({ kind: 'wallet', label: 'Switch wallet to 0x7AdA…d142', enabled: true })
     expect(v.notice).toBe('Connect the wallet that holds this position (0x7AdA…d142)')
     expect(v.checks.map((c) => c.id)).not.toContain('chain')
   })

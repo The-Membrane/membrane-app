@@ -11,13 +11,24 @@ import type { PublicClient } from 'viem'
 import type { EvmCall } from '@/services/chain/types'
 import { fmtUnits, leverUnits } from '@/lib/position-exec/amount'
 import { leverCalls, type Address } from '@/lib/position-exec/builders'
-import { leverGates, type Gate } from '@/lib/position-exec/gates'
+import { amountLimit, leverGates, type AmountLimit, type Gate } from '@/lib/position-exec/gates'
 import { namedRevert, revertReason } from '@/lib/position-exec/revert'
-import { readLeverChain, type ExecProtocol, type LeverChainRead } from '@/lib/position-exec/read'
-import { fmtMove, fmtUsd } from '@/lib/position/format'
+import {
+  capFigures,
+  readLeverChain,
+  type ExecProtocol,
+  type LeverChainRead,
+} from '@/lib/position-exec/read'
+import { fmtAmount, fmtMove, fmtUsd } from '@/lib/position/format'
 import { priceDecimals, roundTowardRisk } from '@/lib/position/liquidation'
-import type { ActionRow } from '@/lib/position/reverseSolve'
-import { formatBand, formatChance, type TouchFrequency } from '@/lib/position/touch'
+import { distanceAfter, type ActionRow } from '@/lib/position/reverseSolve'
+import {
+  floorPct,
+  formatBand,
+  formatChance,
+  touchAtLevel,
+  type TouchFrequency,
+} from '@/lib/position/touch'
 import { HORIZON_WORDS, type HorizonId, type TouchTable } from '@/lib/position/touchHistory'
 import { getMainnetClient } from '@/lib/position-sim/rpc'
 import type { AdapterResult, ProtocolPosition } from '@/lib/position-sim/types'
@@ -41,7 +52,19 @@ export interface LeverIntent {
   row: ActionRow
   /** Each open re-reads. */
   openedAt: number
+  /**
+   * The reader's own amount, typed in the slip (or a one-tap "use the room left"): the
+   * slip re-reads at it instead of the solved amount. Absent: the solved amount.
+   */
+  amount?: { value: number; decimals: number } | null
 }
+
+/**
+ * The lever as the slip shows it: the solved row, or the reader's own amount on it. An
+ * amount of the reader's can land past the forecast table's last level, where there is
+ * no chance to read: `history` is then null and the slip says so.
+ */
+export type LeverRow = Omit<ActionRow, 'history'> & { history: TouchFrequency | null }
 
 export interface LegRef {
   symbol: string
@@ -52,9 +75,13 @@ export interface LegRef {
 export interface PreparedLever {
   kind: 'ready'
   view: PositionView
-  row: ActionRow
+  row: LeverRow
   /** The re-solved amount differs from the one clicked. */
   changed: boolean
+  /** The amount is the reader's own (LeverIntent.amount), not the solve's. */
+  custom: boolean
+  /** The solved row's amount, for "the lever solved 20 USDT" beside a custom amount. */
+  solved: { amount: number; amountDecimals: number }
   leg: LegRef
   amount: bigint
   read: LeverChainRead
@@ -137,12 +164,16 @@ export interface SlipRow {
  */
 export function slipRows(
   view: PositionView,
-  row: ActionRow,
+  row: LeverRow,
   horizon: HorizonId,
   stale: boolean,
 ): SlipRow[] {
   const hero = view.hero
   const out: SlipRow[] = []
+  if (!Number.isFinite(row.newDistancePct)) {
+    out.push({ label: 'Distance from now', before: null, after: 'no line: no debt left' })
+    return out
+  }
   if (hero.kind === 'line' && hero.unit.kind === 'usd') {
     const y = row.newDistancePct / 100
     const raw = hero.direction === 'fall' ? hero.priceNow * (1 - y) : hero.priceNow * (1 + y)
@@ -171,7 +202,7 @@ export function slipRows(
     out.push({
       label: `Chance ${view.forecast.asset} touches it, ${HORIZON_WORDS[horizon]}†`,
       before: at ? chance(at) : null,
-      after: chance(row.history),
+      after: row.history ? chance(row.history) : 'past the table: no forecast here',
     })
   }
   return out
@@ -285,6 +316,143 @@ export async function replayReason(
   }
 }
 
+/** The borrow APR the solve's accrual buffer used (viewModel.buildPositionView). */
+function bufferApr(p: ProtocolPosition): number | null {
+  const aprs = p.debt.map((d) => d.borrowApr).filter((x): x is number => x !== null)
+  return aprs.length === p.debt.length && aprs.length > 0 ? Math.max(...aprs) : null
+}
+
+/**
+ * The solved row moved to the reader's own amount: the same leg, the same accrual buffer
+ * and model (reverseSolve.distanceAfter), the forecast read at the new floored distance.
+ * Throws when the position has no leg for the row's kind.
+ */
+export function rowAt(
+  view: PositionView,
+  base: LeverRow,
+  amount: number,
+  amountDecimals: number,
+  table: TouchTable,
+): LeverRow {
+  if (!view.model) throw new Error('no line model for this position')
+  const d = distanceAfter(view.mapped.snapshot, view.model, base.kind, amount, bufferApr(view.position))
+  if (d === null) throw new Error(`no ${base.kind === 'repay' ? 'debt' : 'collateral'} leg moves this line`)
+  const Y = Number.isFinite(d) ? floorPct(d) : Number.POSITIVE_INFINITY
+  const history =
+    view.forecast && Number.isFinite(Y)
+      ? touchAtLevel(table, view.forecast.asset, view.forecast.direction, base.horizon, Y)
+      : null
+  const unitUsd = base.amount > 0 ? base.amountUsd / base.amount : 0
+  const what = `If you ${base.kind} ${fmtAmount(amount, amountDecimals)} ${base.symbol}`
+  const line = Number.isFinite(Y) ? `line ${fmtMove(Y, base.direction)}` : 'no line'
+  return {
+    ...base,
+    amount,
+    amountDecimals,
+    amountUsd: amount * unitUsd,
+    newDistancePct: Y,
+    history,
+    action: what,
+    line,
+    text: history
+      ? `${what} · ${line} · ${formatChance(history.touched, history.n)} (${formatBand(history.lo, history.hi, history.n)})`
+      : `${what} · ${line}`,
+    short: history ? `${what} → ${formatChance(history.touched, history.n)}` : what,
+  }
+}
+
+/** The gates for a lever at `amount` on one read (the venue's name in the paused text). */
+export function gatesFor(
+  intent: Pick<LeverIntent, 'protocol'>,
+  row: LeverRow,
+  leg: LegRef,
+  amount: bigint,
+  read: LeverChainRead,
+): Gate[] {
+  return leverGates({
+    kind: row.kind,
+    symbol: leg.symbol,
+    token: leg.address,
+    legDecimals: leg.decimals,
+    amount,
+    shown: Math.max(2, row.amountDecimals),
+    read,
+    venueName: PROTOCOL_SHORT[intent.protocol],
+  })
+}
+
+/**
+ * The same read at another amount, without reading again (the design harness; an Aave or
+ * Compound read only: a Morpho repay's share count depends on the amount and needs a read).
+ */
+export function withAmount(
+  p: PreparedLever,
+  intent: Pick<LeverIntent, 'protocol'>,
+  amount: number,
+  amountDecimals: number,
+  table: TouchTable,
+): PreparedLever {
+  if (p.read.venue.venue === 'morpho') throw new Error('a Morpho amount needs a fresh read')
+  const row = rowAt(p.view, p.row, amount, amountDecimals, table)
+  const units = leverUnits(amount, amountDecimals, p.leg.decimals)
+  const read: LeverChainRead = { ...p.read, action: { ...p.read.action, amount: units } }
+  return {
+    ...p,
+    row,
+    custom: true,
+    amount: units,
+    read,
+    gates: gatesFor(intent, row, p.leg, units, read),
+    calls: leverCalls(read.action, read.allowance),
+  }
+}
+
+/** The slip's amount ceiling on this read (gates.ts amountLimit). */
+export const limitOf = (p: PreparedLever): AmountLimit =>
+  amountLimit(p.read, p.row.kind, p.leg.symbol, Math.max(2, p.row.amountDecimals))
+
+/**
+ * The one-tap offer beside a cap that blocks a supply (owner, Q27 round 5): the room left,
+ * cut DOWN to the row's display decimals so it fits. Null when the cap does not block, or
+ * when the room is nothing at those decimals.
+ */
+export function capSuggestion(
+  p: PreparedLever,
+): { amount: number; amountDecimals: number; text: string } | null {
+  const cap = p.gates.find((g) => g.id === 'cap')
+  if (!cap || cap.ok) return null
+  const c = capFigures(p.read.venue)
+  if (!c || c.room <= 0n) return null
+  const shown = Math.min(Math.max(2, p.row.amountDecimals), p.read.decimals)
+  const text = fmtUnits(c.room, p.read.decimals, shown).replace(/,/g, '')
+  const amount = Number(text)
+  if (!(amount > 0)) return null
+  const trimmed = text.includes('.') ? text.replace(/0+$/, '').replace(/\.$/, '') : text
+  const decimals = trimmed.split('.')[1]?.length ?? 0
+  return {
+    amount,
+    amountDecimals: decimals,
+    text: `Use ${fmtAmount(amount, decimals)} (the room left)`,
+  }
+}
+
+/**
+ * THE SETTLED TOAST (owner, Q27 round 5: the slip closes on settlement). "Repaid 760 USDT ·
+ * new line $1,883": the verb in the past, the amount sent, and the liquidation price the
+ * slip carried forward (its own computation at the read, the page reads it again next).
+ */
+export interface SettledToastData {
+  text: string
+  hash: `0x${string}`
+}
+
+export function settledToast(p: PreparedLever, horizon: HorizonId, hash: `0x${string}`): SettledToastData {
+  const verb = p.row.kind === 'repay' ? 'Repaid' : 'Added'
+  const what = `${fmtAmount(p.row.amount, p.row.amountDecimals)} ${p.leg.symbol}`
+  const price = slipRows(p.view, p.row, horizon, true).find((r) => r.label.endsWith('liquidation price'))
+  return { text: `${verb} ${what}${price ? ` · new line ${price.after}` : ''}`, hash }
+}
+
 // ------------------------------------------------------------------ prepare
 
 export interface PrepareDeps {
@@ -305,8 +473,12 @@ export async function prepareLever(intent: LeverIntent, deps: PrepareDeps): Prom
 
   const view = buildPositionView(p, deps.table)
   const rows = view.forecast?.byHorizon[intent.horizon].actions ?? []
-  const row = findFreshRow(rows, intent)
-  if (!row) return { kind: 'gone', reason: goneReason(view, intent) }
+  const solved = findFreshRow(rows, intent)
+  if (!solved) return { kind: 'gone', reason: goneReason(view, intent) }
+  const custom = intent.amount ?? null
+  const row: LeverRow = custom
+    ? rowAt(view, solved, custom.value, custom.decimals, deps.table)
+    : solved
 
   const leg = legFor(p, row)
   const amount = leverUnits(row.amount, row.amountDecimals, leg.decimals)
@@ -320,15 +492,7 @@ export async function prepareLever(intent: LeverIntent, deps: PrepareDeps): Prom
     marketId: p.marketId,
     block: block === null ? null : BigInt(block),
   })
-  const gates = leverGates({
-    kind: row.kind,
-    symbol: leg.symbol,
-    token: leg.address,
-    legDecimals: leg.decimals,
-    amount,
-    shown: Math.max(2, row.amountDecimals),
-    read,
-  })
+  const gates = gatesFor(intent, row, leg, amount, read)
   let blockTime: number | null = null
   try {
     if (block !== null)
@@ -342,7 +506,9 @@ export async function prepareLever(intent: LeverIntent, deps: PrepareDeps): Prom
     blockTime,
     view,
     row,
-    changed: row.amount !== intent.row.amount || row.symbol !== intent.row.symbol,
+    changed: !custom && (row.amount !== intent.row.amount || row.symbol !== intent.row.symbol),
+    custom: custom !== null,
+    solved: { amount: solved.amount, amountDecimals: solved.amountDecimals },
     leg,
     amount,
     read,

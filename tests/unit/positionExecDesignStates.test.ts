@@ -33,7 +33,7 @@ describe('design states', () => {
       reading: ['DRAFT', 'wait'],
       ready: ['DRAFT', 'sign'],
       'no-wallet': ['DRAFT', 'connect'],
-      'wrong-wallet': ['DRAFT', 'wait'],
+      'wrong-wallet': ['DRAFT', 'wallet'],
       'wrong-chain': ['DRAFT', 'switch'],
       balance: ['DRAFT', 'wait'],
       paused: ['DRAFT', 'wait'],
@@ -52,8 +52,12 @@ describe('design states', () => {
   })
   it('names the block each blocked state shows', () => {
     expect(by('balance').sheet.notice).toMatch(/^Balance .* short of /)
-    expect(by('paused').sheet.notice).toBe('Reserve is paused')
-    expect(by('cap').sheet.notice).toMatch(/^Supply cap reached: room 0\.00 WETH/)
+    expect(by('paused').sheet.notice).toBe(
+      'Aave V3 has paused this market (a governance/guardian switch). Until it is unpaused nobody can supply, withdraw, borrow or repay this asset, so this transaction would fail. Your position is unchanged.',
+    )
+    expect(by('cap').sheet.notice).toMatch(
+      /^Over the supply cap: cap 2,700,000 · supplied [\d,]+\.\d\d · room 0\.24 WETH$/,
+    )
     expect(by('spark-stable').sheet.notice).toMatch(/is stable-rate, not repaid here$/)
     expect(by('wrong-wallet').sheet.notice).toMatch(/^Connect the wallet that holds this position/)
     expect(by('approval-standing').sheet.notice).toMatch(

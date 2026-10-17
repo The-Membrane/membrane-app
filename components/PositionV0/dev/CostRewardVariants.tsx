@@ -5,11 +5,14 @@
 //
 //   A  the spec's tracker   cost and income $/yr at today's size, one shared chart, window
 //                           tabs, "At this read", sources and data table (faithful)
-//   B  income minus interest  the spread S(t) about $0: one line (needs ruling 1)
-//   C  compact card         per-leg rates as figures with traces, for the position row
+//   B  yield spread         S(t) = income − interest about $0: one line (needs ruling 1);
+//                           incentives ‡ as a separate current-only figure
+//   C  compact card         the yield spread first (one line about $0, now in $/yr and %),
+//                           "Interest paid" and "Income earned" folded below it (round 5)
 //
 // Claim limits (spec §3, §4): annualized snapshots only, never integrated into earned or
-// paid; a crossing is not a break-even date; incentives separate (‡). The forward segment
+// paid; a crossing is not a break-even date; incentives separate (‡) and CURRENT ONLY (no
+// APR history behind a campaign, never back-filled from its start). The forward segment
 // is drawn as its region and time extent only, hatched, "model pending" (owner, Q27 r3);
 // the spec would end the plot at the last observation. Ink only: cost solid, income
 // dashed, direct labels; no colour carries meaning alone.
@@ -25,39 +28,26 @@ import {
   FORECAST_EXTENT_D,
   WINDOWS,
   dayLabel,
+  netValue,
   pct2,
+  signedPct,
+  signedUsd,
+  spreadNow,
+  spreadPct,
   usd2,
   windowed,
   type HistoryWindow,
   type RateFixture,
+  type SpreadNow,
   type Track,
 } from '@/lib/position/costReward'
 
 import { Headline, Kicker, Mono, Small } from '../primitives'
 import { TYPE, TYPE_PX } from '../typeScale'
 
-export type VariantKey = 'A' | 'B' | 'C'
+import type { VariantKey } from './costRewardVariantMeta'
 
-export const VARIANTS: ReadonlyArray<{ key: VariantKey; title: string; rationale: string }> = [
-  {
-    key: 'A',
-    title: "The spec's tracker",
-    rationale:
-      'Faithful to the Q34 wireframe: both rates in $/yr at today’s size on one axis from $0, so a reader sees each level and whether they are converging.',
-  },
-  {
-    key: 'B',
-    title: 'Income minus interest',
-    rationale:
-      'One line about $0 answers "does income cover interest at this size?" without comparing two lines; it needs ruling 1 (the spread is a new number).',
-  },
-  {
-    key: 'C',
-    title: 'Compact card',
-    rationale:
-      'For the position row: each leg’s rate and $/yr as figures first, a 30-day trace to back them up; no new number beyond the two rates.',
-  },
-]
+export { VARIANTS, type VariantKey } from './costRewardVariantMeta'
 
 /** The SVG is drawn at its real pixel width so 11px labels stay 11px at 390px. */
 function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number | null] {
@@ -329,7 +319,9 @@ const TrackerA: React.FC<{ fx: RateFixture; track: Track; wide: boolean }> = ({ 
           <ReadRow label="Covered debt / total">
             {usd2(sum(debt))} / {usd2(sum(debt))} · {debt.length} of {debt.length} legs
           </ReadRow>
-          <ReadRow label="Incentives ‡">Not read here · shown separately</ReadRow>
+          <ReadRow label="Incentives ‡">
+            <IncentiveWords now={spreadNow(track, fx)} />
+          </ReadRow>
           <ReadRow label="Observation age">Last read {lastRead} · block {fmtInt(fx.block)} · a captured fixture, not live</ReadRow>
         </Box>
       </Box>
@@ -386,12 +378,22 @@ const TrackerA: React.FC<{ fx: RateFixture; track: Track; wide: boolean }> = ({ 
 
 // ------------------------------------------------------------------ B: income minus interest
 
-const SpreadChart: React.FC<{ t: Track; width: number; uid: string }> = ({ t, width, uid }) => {
-  const f = frameFor(width)
+const SpreadChart: React.FC<{
+  t: Track
+  width: number
+  uid: string
+  /** The spread now with incentives ‡: one marked point at the last read, never a line. */
+  withInc?: number | null
+  height?: number
+  compact?: boolean
+}> = ({ t, width, uid, withInc = null, height, compact = false }) => {
+  const f0 = frameFor(width)
+  const f: Frame = height ? { ...f0, height, m: { ...f0.m, left: compact ? 56 : f0.m.left } } : f0
   const x = xOf(t, f)
-  const lo = Math.min(0, ...t.points.map((p) => p.spread))
-  const hi = Math.max(0, ...t.points.map((p) => p.spread))
-  const yt = ticks(lo, hi)
+  const inc = withInc !== null && withInc !== t.points[t.points.length - 1].spread ? withInc : null
+  const lo = Math.min(0, ...t.points.map((p) => p.spread), inc ?? 0)
+  const hi = Math.max(0, ...t.points.map((p) => p.spread), inc ?? 0)
+  const yt = ticks(lo, hi, compact ? 2 : 3)
   const pad = (hi - lo || 1) * 0.08
   const yLo = Math.min(lo, yt[0]) - pad
   const yHi = Math.max(hi, yt[yt.length - 1]) + pad
@@ -400,7 +402,7 @@ const SpreadChart: React.FC<{ t: Track; width: number; uid: string }> = ({ t, wi
   const area = path([[x(t.from), y(0)], ...line, [x(t.to), y(0)]]) + 'Z'
   const last = t.points[t.points.length - 1]
   return (
-    <svg width={width} height={f.height} role="img" aria-label={`Income minus interest, dollars per year at today's size and prices, ${dayLabel(t.from)} to ${dayLabel(t.to)}: ${usd2(last.spread)} at the last observation. Forward ${FORECAST_EXTENT_D} days: model pending.`}>
+    <svg width={width} height={f.height} role="img" aria-label={`Yield spread (income less interest), dollars per year at today's size and prices, ${dayLabel(t.from)} to ${dayLabel(t.to)}: ${signedUsd(last.spread)} at the last observation${withInc !== null && withInc !== last.spread ? `; ${signedUsd(withInc)} with current incentives` : ''}. Forward ${FORECAST_EXTENT_D} days: model pending.`}>
       <Defs uid={uid} />
       {yt.filter((v) => v !== 0).map((v) => (
         <g key={v}>
@@ -417,30 +419,85 @@ const SpreadChart: React.FC<{ t: Track; width: number; uid: string }> = ({ t, wi
         $0
       </text>
       <text x={f.m.left + 4} y={y(0) + (last.spread < 0 ? -6 : 14)} {...LABEL} fill={NEWS.ink}>
-        income = interest
+        no spread
       </text>
       <text x={x(t.to) - 6} y={y(last.spread) + (last.spread < 0 ? 15 : -7)} {...LABEL} textAnchor="end" fill={NEWS.ink} fontWeight={700} style={HALO}>
-        {usd2(last.spread)}/yr
+        {signedUsd(last.spread)}/yr
       </text>
+      {inc !== null && (
+        // Current only (Merkl has no APR history): one ‡ mark at the last read, no line back.
+        <g data-testid="spread-incentive-point">
+          <line x1={x(t.to)} x2={x(t.to)} y1={y(last.spread)} y2={y(inc)} stroke={NEWS.ink} strokeDasharray="2 2" />
+          <circle cx={x(t.to)} cy={y(inc)} r={3.5} fill={NEWS.paper} stroke={NEWS.ink} strokeWidth={1.5} />
+          <text x={x(t.to) - 6} y={y(inc) + (inc < last.spread ? 15 : -7)} {...LABEL} textAnchor="end" fill={NEWS.ink} style={HALO}>
+            {signedUsd(inc)} with ‡
+          </text>
+        </g>
+      )}
       <Pending t={t} f={f} uid={uid} />
       <TimeAxis t={t} f={f} />
     </svg>
   )
 }
 
-const VariantB: React.FC<{ track: Track }> = ({ track }) => {
+/** The incentives ‡ in words: each live campaign, or that the source has none for a leg. */
+const IncentiveWords: React.FC<{ now: SpreadNow }> = ({ now }) => {
+  if (!now.stamp) return <>Not read for this position · shown separately when read</>
+  const live = now.legs.filter((l) => l.campaigns.length > 0)
+  const none = now.legs.filter((l) => l.campaigns.length === 0)
+  return (
+    <>
+      {live.map((l) => (
+        <React.Fragment key={`${l.side}${l.symbol}`}>
+          {l.symbol} {l.side} {pct2(l.apr)} · +{usd2(l.usdPerYear)}/yr to the spread ·{' '}
+          {l.campaigns.map((c) => `${c.name}${c.end ? ` · ends ${dayLabel(c.end)}` : ''}`).join('; ')} · eligibility not checked
+          <br />
+        </React.Fragment>
+      ))}
+      {none.length > 0 && (
+        <>
+          No live campaign for {none.map((l) => `${l.symbol} ${l.side}`).join(' or ')}
+          <br />
+        </>
+      )}
+      {now.stamp} · current only: no APR history, never back-filled
+    </>
+  )
+}
+
+const VariantB: React.FC<{ fx: RateFixture; track: Track }> = ({ fx, track }) => {
   const t = windowed(track, '30d')
   const [ref, width] = useWidth<HTMLDivElement>()
   const uid = `crB${useId().replace(/:/g, '')}`
+  const now = spreadNow(track, fx)
+  const pct = spreadPct(now.base, track)
   return (
     <Box display="grid" gap={SPACING.xs} minW={0}>
-      <Kicker tone="muted">Income minus interest · proposed number †</Kicker>
-      <Small>$ / year at today&apos;s size and prices · 30d · incentives ‡ excluded</Small>
+      <Kicker tone="muted">Yield spread · proposed number †</Kicker>
+      <Small>Income less interest · $ / year at today&apos;s size and prices · 30d · incentives ‡ beside it, not in the line</Small>
       <Box ref={ref} w="100%" minW={0} minH={`${frameFor(width ?? 440).height}px`}>
-        {width !== null && <SpreadChart t={t} width={width} uid={uid} />}
+        {width !== null && <SpreadChart t={t} width={width} uid={uid} withInc={now.withIncentives} />}
       </Box>
+      <Box display="grid" gridTemplateColumns="minmax(0, 1fr) auto" columnGap={SPACING.sm} borderTop={`1px solid ${NEWS.rule}`} pt={SPACING.xs} data-testid="spread-now">
+        <Small color={NEWS.ink2}>Yield spread now</Small>
+        <Mono fontWeight={700} textAlign="right">
+          {signedUsd(now.base)}/yr{pct !== null ? ` · ${signedPct(pct)}` : ''}
+        </Mono>
+        <Small color={NEWS.ink2}>With incentives ‡, now</Small>
+        <Mono textAlign="right" data-testid="spread-with-incentives">
+          {now.withIncentives === null
+            ? 'not read'
+            : now.withIncentives === now.base
+              ? `${signedUsd(now.withIncentives)}/yr · no live campaign`
+              : `${signedUsd(now.withIncentives)}/yr${spreadPct(now.withIncentives, track) !== null ? ` · ${signedPct(spreadPct(now.withIncentives, track)!)}` : ''}`}
+        </Mono>
+      </Box>
+      <Small overflowWrap="anywhere">
+        ‡ <IncentiveWords now={now} />
+      </Small>
+      <Small>% of net value {usd2(netValue(track))} (collateral less debt, at today&apos;s size and prices).</Small>
       <Text fontFamily={NEWS_FONT.display} fontStyle="italic" fontSize={TYPE.body} color={NEWS.ink}>
-        Annualized snapshots. Crossing $0 is not a break-even date.
+        Annualized snapshots. Crossing $0 is not a break-even date, and a spread is not profit.
       </Text>
       <Small>† A new kind of number: awaits owner ruling 1 (Q34 spec §9).</Small>
     </Box>
@@ -467,41 +524,122 @@ const Spark: React.FC<{ t: Track; values: number[]; width: number; dashed: boole
   )
 }
 
-const VariantC: React.FC<{ track: Track }> = ({ track }) => {
+/** One folded section of the compact card: a heading that opens its legs (aria-expanded). */
+const Fold: React.FC<{ title: string; figure: string; id: string; children: React.ReactNode }> = ({ title, figure, id, children }) => {
+  const [open, setOpen] = useState(false)
+  return (
+    <Box borderBottom={`1px solid ${NEWS.rule}`} minW={0}>
+      <Button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={id}
+        data-testid={`fold-${id}`}
+        variant="unstyled"
+        w="100%"
+        h="auto"
+        minH="44px"
+        borderRadius={0}
+        display="grid"
+        gridTemplateColumns="1.5em minmax(0, 1fr) auto"
+        alignItems="center"
+        textAlign="left"
+        fontFamily={NEWS_FONT.mono}
+        fontSize={TYPE.body}
+        fontWeight={400}
+        color={NEWS.ink}
+        whiteSpace="normal"
+        textTransform="none"
+        letterSpacing="normal"
+        transition={TRANSITIONS.colors}
+        _hover={{ color: NEWS.accent }}
+        _focusVisible={FOCUS_STYLES.ring}
+      >
+        <Box as="span" aria-hidden>
+          {open ? '▾' : '▸'}
+        </Box>
+        <Box as="span">{title}</Box>
+        <Box as="span" fontWeight={700}>
+          {figure}
+        </Box>
+      </Button>
+      <Box id={id} hidden={!open} pb={SPACING.sm} display={open ? 'grid' : 'none'} gap={SPACING.sm}>
+        {children}
+      </Box>
+    </Box>
+  )
+}
+
+const VariantC: React.FC<{ fx: RateFixture; track: Track }> = ({ fx, track }) => {
   const t = windowed(track, '30d')
   const [ref, width] = useWidth<HTMLDivElement>()
   const uid = `crC${useId().replace(/:/g, '')}`
   const w = Math.min(width ?? 360, 420)
+  const now = spreadNow(track, fx)
+  const pct = spreadPct(now.base, track)
+  const n = t.points.length
+  const legRow = (l: Track['legs'][number], i: number) => (
+    <Box key={l.symbol} display="grid" gap={SPACING.xs}>
+      <Box display="flex" justifyContent="space-between" alignItems="baseline" gap={SPACING.sm} flexWrap="wrap">
+        <Mono>
+          {l.symbol} {l.side === 'cost' ? 'borrow' : 'supply'} {pct2(l.aprs[l.aprs.length - 1])} on {usd2(l.sizeUsd)}
+        </Mono>
+        <Mono fontWeight={700}>{usd2(l.rates[l.rates.length - 1])}/yr</Mono>
+      </Box>
+      {width !== null && (
+        <Spark
+          t={t}
+          values={l.rates}
+          width={w}
+          dashed={l.side === 'reward'}
+          uid={`${uid}-${i}`}
+          label={`${l.symbol} ${l.side === 'cost' ? 'borrow' : 'supply'} at today's size, ${dayLabel(t.from)} to ${dayLabel(t.to)}, ${usd2(Math.min(...l.rates))} to ${usd2(Math.max(...l.rates))} a year; forward ${FORECAST_EXTENT_D} days model pending`}
+        />
+      )}
+      <Small>
+        {dayLabel(t.from)} – {dayLabel(t.to)} · low {pct2(Math.min(...l.aprs))} · high {pct2(Math.max(...l.aprs))}
+      </Small>
+    </Box>
+  )
+  const cost = t.legs.filter((l) => l.side === 'cost')
+  const income = t.legs.filter((l) => l.side === 'reward')
+  const sum = (ls: typeof cost) => ls.reduce((a, l) => a + l.rates[l.rates.length - 1], 0)
+  const incSupply = now.legs.filter((l) => l.side === 'supply' && l.campaigns.length > 0)
+  const incBorrow = now.legs.filter((l) => l.side === 'borrow' && l.campaigns.length > 0)
   return (
     <Box ref={ref} display="grid" gap={SPACING.sm} borderTop={`2px solid ${NEWS.ink}`} pt={SPACING.sm} maxW="420px" minW={0}>
-      <Kicker tone="muted">Cost and income · at today&apos;s size</Kicker>
-      {t.legs.map((l, i) => {
-        const n = l.rates.length
-        return (
-          <Box key={l.symbol} display="grid" gap={SPACING.xs} borderBottom={`1px solid ${NEWS.rule}`} pb={SPACING.sm}>
-            <Box display="flex" justifyContent="space-between" alignItems="baseline" gap={SPACING.sm} flexWrap="wrap">
-              <Mono>
-                {l.side === 'cost' ? 'Interest' : 'Income'} · {l.symbol} {pct2(l.aprs[n - 1])}
-              </Mono>
-              <Mono fontWeight={700}>{usd2(l.rates[n - 1])}/yr</Mono>
-            </Box>
-            {width !== null && (
-              <Spark
-                t={t}
-                values={l.rates}
-                width={w}
-                dashed={l.side === 'reward'}
-                uid={`${uid}-${i}`}
-                label={`${l.symbol} ${l.side === 'cost' ? 'borrow' : 'supply'} at today's size, ${dayLabel(t.from)} to ${dayLabel(t.to)}, ${usd2(Math.min(...l.rates))} to ${usd2(Math.max(...l.rates))} a year; forward ${FORECAST_EXTENT_D} days model pending`}
-              />
-            )}
-            <Small>
-              {dayLabel(t.from)} – {dayLabel(t.to)} · low {pct2(Math.min(...l.aprs))} · high {pct2(Math.max(...l.aprs))}
+      <Kicker tone="muted">Yield spread · at today&apos;s size</Kicker>
+      <Box display="flex" justifyContent="space-between" alignItems="baseline" gap={SPACING.sm} flexWrap="wrap" data-testid="compact-spread">
+        <Mono>Income less interest, now</Mono>
+        <Mono fontWeight={700}>
+          {signedUsd(now.base)}/yr{pct !== null ? ` · ${signedPct(pct)}` : ''}
+        </Mono>
+      </Box>
+      {width !== null && <SpreadChart t={t} width={w} uid={`${uid}-s`} withInc={now.withIncentives} height={120} compact />}
+      <Small>
+        {dayLabel(t.from)} – {dayLabel(t.to)} · {n} daily reads · % of net value {usd2(netValue(track))}
+      </Small>
+      <Box borderTop={`1px solid ${NEWS.rule}`}>
+        <Fold title="Interest paid" figure={`${usd2(sum(cost))}/yr`} id={`${uid}-cost`}>
+          {cost.map(legRow)}
+          {incBorrow.map((l) => (
+            <Small key={l.symbol}>
+              ‡ {l.symbol} borrow incentive {pct2(l.apr)} takes {usd2(l.usdPerYear)}/yr off, current only
             </Small>
-          </Box>
-        )
-      })}
-      <Small>Measured rates · today&apos;s size and prices · ‡ incentives separate · forward {FORECAST_EXTENT_D}d hatched: model pending (Q33, Q34)</Small>
+          ))}
+        </Fold>
+        <Fold title="Income earned" figure={`${usd2(sum(income))}/yr`} id={`${uid}-income`}>
+          {income.map((l, i) => legRow(l, i + cost.length))}
+          {incSupply.map((l) => (
+            <Small key={l.symbol}>
+              ‡ {l.symbol} supply incentive {pct2(l.apr)} adds {usd2(l.usdPerYear)}/yr, current only
+            </Small>
+          ))}
+        </Fold>
+      </Box>
+      <Small overflowWrap="anywhere">
+        ‡ <IncentiveWords now={now} />
+      </Small>
+      <Small>Rates at today&apos;s size, $/yr: not totals paid or earned · forward {FORECAST_EXTENT_D}d hatched: model pending (Q33, Q34)</Small>
     </Box>
   )
 }
@@ -509,7 +647,7 @@ const VariantC: React.FC<{ track: Track }> = ({ track }) => {
 // ------------------------------------------------------------------ frame
 
 export const CostRewardVariant: React.FC<{ variant: VariantKey; fx: RateFixture; track: Track; wide: boolean }> = ({ variant, fx, track, wide }) =>
-  variant === 'A' ? <TrackerA fx={fx} track={track} wide={wide} /> : variant === 'B' ? <VariantB track={track} /> : <VariantC track={track} />
+  variant === 'A' ? <TrackerA fx={fx} track={track} wide={wide} /> : variant === 'B' ? <VariantB fx={fx} track={track} /> : <VariantC fx={fx} track={track} />
 
 /** What was read, and what each leg is held at. */
 export function sourceLines(fx: RateFixture): string[] {
@@ -519,7 +657,9 @@ export function sourceLines(fx: RateFixture): string[] {
   return [
     `Measured: ${fx.source}; ${fx.series[Object.keys(fx.series)[0]].length} reads to block ${fmtInt(fx.block)}, captured ${fmtUtc(Date.parse(fx.capturedAt))} (scripts/position/capture-slip-fixtures.ts --rates).`,
     `Rates as the venue quoted them (APR; the supply rate is already net of the reserve factor). Today's size and prices: ${legs}, from the capture read, for every date.`,
-    '‡ Incentives are not in either line: Merkl serves campaign dates and no APR history.',
+    fx.incentives
+      ? `‡ Incentives: ${fx.incentives.source}, fetched ${fmtUtc(Date.parse(fx.incentives.fetchedAt))}; ${fx.incentives.searched} live opportunities listed, matched to a leg by token. Current only: Merkl serves no APR history, so no incentive is drawn over the history or back-filled from a campaign start. Not in either line.`
+      : '‡ Incentives were not read for this position. They are never in either line: Merkl serves no APR history.',
     `Forward ${FORECAST_EXTENT_D} days (the longest Q33 horizon): a forecast, so it waits on Q33's rate model passing and Q34's preregistration. Nothing is drawn there until then.`,
   ]
 }

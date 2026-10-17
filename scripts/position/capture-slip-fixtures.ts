@@ -21,6 +21,11 @@
 //   npx tsx scripts/position/capture-slip-fixtures.ts --rates   the rate history only,
 //                                                               for the position already
 //                                                               in slipFixtures.json
+//   npx tsx scripts/position/capture-slip-fixtures.ts --incentives
+//                                                               the current incentive
+//                                                               campaigns per leg (Merkl
+//                                                               v4) into the rate fixture;
+//                                                               current only, no history
 //   npx tsx scripts/position/capture-slip-fixtures.ts --dust [address]
 //                                                               the collect-dust slip's
 //                                                               read only (dustFixtures.json)
@@ -61,7 +66,15 @@ import { ADAPTERS, runAdapter } from '@/lib/position-sim/adapters'
 import { getMainnetClient } from '@/lib/position-sim/rpc'
 import type { ActionRow } from '@/lib/position/reverseSolve'
 import type { ProtocolPosition } from '@/lib/position-sim/types'
-import { RATE_DAYS, type RateFixture, type RatePoint } from '@/lib/position/costReward'
+import {
+  MERKL_AAVE_TYPES,
+  RATE_DAYS,
+  merklCampaigns,
+  type IncentiveRead,
+  type MerklOpportunity,
+  type RateFixture,
+  type RatePoint,
+} from '@/lib/position/costReward'
 
 const OUT = path.resolve(__dirname, '../../components/PositionV0/dev/slipFixtures.json')
 const DUST_OUT = path.resolve(__dirname, '../../components/PositionV0/dev/dustFixtures.json')
@@ -244,8 +257,37 @@ async function captureRates(owner: Address, position: ProtocolPosition): Promise
   }
 }
 
+const MERKL = 'https://api.merkl.xyz/v4/opportunities'
+
+/**
+ * The live Merkl campaigns for each leg of an Aave V3 position: every LIVE opportunity of
+ * the Aave V3 supply and borrow types on chain 1, matched to a leg by token. Merkl serves
+ * the current APR only, so this is a snapshot at the fetch time, never a history.
+ */
+async function captureIncentives(fx: RateFixture): Promise<IncentiveRead> {
+  const types = [...MERKL_AAVE_TYPES.supply, ...MERKL_AAVE_TYPES.borrow]
+  const ops: MerklOpportunity[] = []
+  for (const type of types) {
+    const res = await fetch(`${MERKL}?chainId=1&type=${type}&status=LIVE&items=100`)
+    if (!res.ok) throw new Error(`merkl ${type}: HTTP ${res.status}`)
+    ops.push(...((await res.json()) as MerklOpportunity[]))
+  }
+  const legs = [
+    ...fx.position.collateral.map((l) => ({ address: l.address.toLowerCase(), side: 'supply' as const })),
+    ...fx.position.debt.map((l) => ({ address: l.address.toLowerCase(), side: 'borrow' as const })),
+  ].map((l) => ({ ...l, campaigns: merklCampaigns(ops, l) }))
+  for (const l of legs) console.log(`incentives: ${l.side} ${l.address} · ${l.campaigns.length} live`)
+  return {
+    source: `Merkl v4 /opportunities · chainId 1 · ${types.join(', ')} · status LIVE`,
+    fetchedAt: new Date().toISOString(),
+    searched: ops.length,
+    legs,
+  }
+}
+
 async function writeRates(owner: Address, position: ProtocolPosition) {
   const fx = await captureRates(owner, position)
+  fx.incentives = await captureIncentives(fx)
   writeFileSync(RATES_OUT, JSON.stringify(fx) + '\n')
   console.log(`wrote ${RATES_OUT} · ${Object.values(fx.series)[0].length} days × ${Object.keys(fx.series).length} legs`)
 }
@@ -354,6 +396,13 @@ async function captureDust(owner: Address) {
 async function main() {
   const d = process.argv.indexOf('--dust')
   if (d >= 0) return captureDust((process.argv[d + 1] as Address | undefined) ?? DUST_LENDER)
+  if (process.argv.includes('--incentives')) {
+    const fx = JSON.parse(readFileSync(RATES_OUT, 'utf8')) as RateFixture
+    fx.incentives = await captureIncentives(fx)
+    writeFileSync(RATES_OUT, JSON.stringify(fx) + '\n')
+    console.log(`wrote ${RATES_OUT} · incentives from ${fx.incentives.searched} live opportunities`)
+    return
+  }
   if (process.argv.includes('--rates')) {
     const fx = JSON.parse(readFileSync(OUT, 'utf8')) as {
       ready: { intent: { owner: Address }; prepared: { position: ProtocolPosition } }

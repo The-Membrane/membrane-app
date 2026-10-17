@@ -87,6 +87,11 @@ export type VenueRead =
       stableDebt: bigint
       /** Units that can still be supplied; null when the reserve has no cap. */
       capRoom: bigint | null
+      /**
+       * What the cap counts as supplied, in units (the room's other side); absent on reads
+       * captured before it was kept (capFigures derives it from the cap and the room).
+       */
+      supplied?: bigint
     }
   | {
       venue: 'compound'
@@ -96,6 +101,9 @@ export type VenueRead =
       borrow: bigint
       /** Collateral units under the cap (0 when the cap is 0); null for the base asset. */
       capRoom: bigint | null
+      /** The collateral's supplyCap and totalsCollateral, in units; absent for the base asset. */
+      cap?: bigint
+      supplied?: bigint
     }
   | {
       venue: 'morpho'
@@ -143,8 +151,37 @@ export function aaveCapRoom(
 ): bigint | null {
   if (flags.supplyCap === 0n) return null
   const cap = flags.supplyCap * 10n ** BigInt(flags.decimals)
-  const supplied = rayMul(scaledTotalSupply + accruedToTreasury, normalizedIncome)
+  const supplied = aaveSupplied(scaledTotalSupply, accruedToTreasury, normalizedIncome)
   return cap > supplied ? cap - supplied : 0n
+}
+
+/** What an Aave supply cap counts as supplied: (scaled supply + treasury) × income. */
+export const aaveSupplied = (
+  scaledTotalSupply: bigint,
+  accruedToTreasury: bigint,
+  normalizedIncome: bigint,
+): bigint => rayMul(scaledTotalSupply + accruedToTreasury, normalizedIncome)
+
+/**
+ * The cap, what it counts as supplied and the room, in token units, for a supply's gate
+ * and its "room left" offer; null when there is no cap (or for a repay's venue).
+ * An Aave read captured without `supplied` derives it as cap − room while room is
+ * positive (room 0 says only that supplied ≥ cap: supplied is then null).
+ */
+export function capFigures(
+  v: VenueRead,
+): { cap: bigint; supplied: bigint | null; room: bigint } | null {
+  if (v.venue === 'aave') {
+    if (v.capRoom === null || v.flags.supplyCap === 0n) return null
+    const cap = v.flags.supplyCap * 10n ** BigInt(v.flags.decimals)
+    const supplied = v.supplied ?? (v.capRoom > 0n ? cap - v.capRoom : null)
+    return { cap, supplied, room: v.capRoom }
+  }
+  if (v.venue === 'compound') {
+    if (v.capRoom === null || v.cap === undefined) return null
+    return { cap: v.cap, supplied: v.supplied ?? null, room: v.capRoom }
+  }
+  return null
 }
 
 /** Morpho SharesMathLib.toSharesDown with VIRTUAL_SHARES 1e6, VIRTUAL_ASSETS 1. */
@@ -228,6 +265,7 @@ async function readAave(
       variableDebt,
       stableDebt,
       capRoom: aaveCapRoom(flags, scaled, reserve.accruedToTreasury, income),
+      supplied: aaveSupplied(scaled, reserve.accruedToTreasury, income),
     },
     action: {
       venue: 'aave',
@@ -272,6 +310,8 @@ async function readCompound(
   const supplyPaused = unwrap(res[1], `${tag}: isSupplyPaused()`) as boolean
   const borrow = unwrap(res[2], `${tag}: borrowBalanceOf(owner)`) as bigint
   let capRoom: bigint | null = null
+  let cap: bigint | undefined
+  let supplied: bigint | undefined
   if (input.kind === 'add') {
     const info = unwrap(res[3], `${tag}: getAssetInfoByAddress(${input.token})`) as {
       supplyCap: bigint
@@ -279,9 +319,11 @@ async function readCompound(
     const totals = unwrap(res[4], `${tag}: totalsCollateral(${input.token})`) as readonly bigint[]
     const total = totals[0]
     capRoom = info.supplyCap > total ? info.supplyCap - total : 0n
+    cap = info.supplyCap
+    supplied = total
   }
   return {
-    venue: { venue: 'compound', comet, baseToken, supplyPaused, borrow, capRoom },
+    venue: { venue: 'compound', comet, baseToken, supplyPaused, borrow, capRoom, cap, supplied },
     action: {
       venue: 'compound',
       kind: input.kind,

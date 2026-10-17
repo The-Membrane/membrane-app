@@ -19,7 +19,7 @@
  */
 
 import { fmtUnits } from './amount'
-import type { LeverChainRead } from './read'
+import { capFigures, type LeverChainRead, type VenueRead } from './read'
 
 export interface Gate {
   /** `dust:…` are the collect-dust slip's per-venue gates (lib/position-exec/dust.ts). */
@@ -39,6 +39,23 @@ export interface GateInput {
   /** The lever's display decimals, for figures in the gate text. */
   shown: number
   read: LeverChainRead
+  /** The venue's name in a sentence ("Aave V3", "Spark"); "Aave" when not given. */
+  venueName?: string
+}
+
+/**
+ * A paused reserve, in plain words (owner, Q27 round 5, asked what "Reserve paused" means).
+ * Exported so the slip and its tests say the same thing.
+ */
+export const pausedText = (venueName: string) =>
+  `${venueName} has paused this market (a governance/guardian switch). Until it is unpaused nobody can supply, withdraw, borrow or repay this asset, so this transaction would fail. Your position is unchanged.`
+
+/** "cap 2,700,000 · supplied 2,169,991.62 · room 530,008.37 WETH"; null with no cap. */
+export function capLine(v: VenueRead, decimals: number, shown: number, symbol: string): string | null {
+  const c = capFigures(v)
+  if (!c) return null
+  const supplied = c.supplied === null ? 'at or over it' : fmtUnits(c.supplied, decimals, shown)
+  return `cap ${fmtUnits(c.cap, decimals, 0)} · supplied ${supplied} · room ${fmtUnits(c.room, decimals, shown)} ${symbol}`
 }
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
@@ -59,12 +76,24 @@ export function leverGates(g: GateInput): Gate[] {
   )
 
   const v = read.venue
+  const cap = capLine(v, read.decimals, g.shown, symbol)
+  const capGate = (room: bigint): Gate =>
+    amount <= room
+      ? { id: 'cap', ok: true, text: `Under the supply cap: ${cap ?? `room ${units(room)}`}` }
+      : {
+          id: 'cap',
+          ok: false,
+          text:
+            room === 0n
+              ? `Supply cap reached: ${cap ?? `no room for ${symbol}`}`
+              : `Over the supply cap: ${cap ?? `room ${units(room)}`}`,
+        }
   if (v.venue === 'aave') {
     const f = v.flags
     const blocked = !f.active
       ? 'Reserve is not active'
       : f.paused
-        ? 'Reserve is paused'
+        ? pausedText(g.venueName ?? 'Aave')
         : g.kind === 'add' && f.frozen
           ? 'Reserve is frozen: no new supply'
           : null
@@ -97,9 +126,7 @@ export function leverGates(g: GateInput): Gate[] {
       gates.push(
         v.capRoom === null
           ? { id: 'cap', ok: true, text: 'No supply cap on this reserve' }
-          : amount <= v.capRoom
-            ? { id: 'cap', ok: true, text: `Supply cap room ${units(v.capRoom)}` }
-            : { id: 'cap', ok: false, text: `Supply cap reached: room ${units(v.capRoom)}` },
+          : capGate(v.capRoom),
       )
     }
   } else if (v.venue === 'compound') {
@@ -118,19 +145,7 @@ export function leverGates(g: GateInput): Gate[] {
             : { id: 'debt', ok: false, text: `Repay exceeds the borrow (${units(v.borrow)})` },
       )
     } else {
-      const room = v.capRoom ?? 0n
-      gates.push(
-        amount <= room
-          ? { id: 'cap', ok: true, text: `Supply cap room ${units(room)}` }
-          : {
-              id: 'cap',
-              ok: false,
-              text:
-                room === 0n
-                  ? `Supply cap reached: no room for ${symbol}`
-                  : `Supply cap reached: room ${units(room)}`,
-            },
-      )
+      gates.push(capGate(v.capRoom ?? 0n))
     }
   } else {
     const wanted = g.kind === 'repay' ? 'loan' : 'collateral'
@@ -169,3 +184,40 @@ export function leverGates(g: GateInput): Gate[] {
 /** The first failing gate, or null when all pass. */
 export const firstBlocked = (gates: readonly Gate[]): Gate | null =>
   gates.find((x) => !x.ok) ?? null
+
+/**
+ * THE AMOUNT'S CEILING, for the slip's amount field (owner, Q27 round 5: prevent the error
+ * before the reader pays): the smallest of what the wallet holds, the debt a repay can pay
+ * (Aave: the variable-rate debt; Compound: the borrow) and the room under a supply cap.
+ * Morpho's debt is in shares, so a Morpho repay is held to the balance here and its debt
+ * gate stays the backstop.
+ */
+export interface AmountLimit {
+  units: bigint
+  why: 'balance' | 'debt' | 'cap'
+  /** "Wallet holds 8.91 USDT", "Debt 243.47 USDT", "Room under the cap 0.24 WETH" */
+  text: string
+}
+
+export function amountLimit(
+  read: LeverChainRead,
+  kind: 'repay' | 'add',
+  symbol: string,
+  shown: number,
+): AmountLimit {
+  const units = (x: bigint) => `${fmtUnits(x, read.decimals, shown)} ${symbol}`
+  const all: AmountLimit[] = [
+    { units: read.balance, why: 'balance', text: `Wallet holds ${units(read.balance)}` },
+  ]
+  const v = read.venue
+  if (kind === 'repay') {
+    if (v.venue === 'aave')
+      all.push({ units: v.variableDebt, why: 'debt', text: `Variable-rate debt ${units(v.variableDebt)}` })
+    else if (v.venue === 'compound')
+      all.push({ units: v.borrow, why: 'debt', text: `Borrow ${units(v.borrow)}` })
+  } else if (v.venue !== 'morpho' && v.capRoom !== null) {
+    all.push({ units: v.capRoom, why: 'cap', text: `Room under the cap ${units(v.capRoom)}` })
+  }
+  // The first of the smallest: the balance wins a tie, it is the one the reader can change.
+  return all.reduce((a, b) => (b.units < a.units ? b : a))
+}

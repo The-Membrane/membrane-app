@@ -384,9 +384,9 @@
     "lib/position/rateHistory.generated.json": "40da44960edef3847da2acd4399de82ded45d5f7c092a287e0690ba15f0fc2df",
     "scripts/position/build-rate-history.mjs": "244822ac994ede9a6403c0c25dbc06766139db16f55a632aef9385d93cd6e63d"
   },
-  "base_sha": "4533ce22057121cfc6fa617f0443fefbad0667fb",
+  "base_sha": "e5782f3dde51e7c59073a37645f6e565d1a993bf",
   "typecheck": {
-    "base_sha": "4533ce22057121cfc6fa617f0443fefbad0667fb",
+    "base_sha": "e5782f3dde51e7c59073a37645f6e565d1a993bf",
     "base_errors": 101,
     "current_errors": 101,
     "added": [],
@@ -497,8 +497,8 @@
     "normalization": "Only checkout absolute path and line/column are normalized; error file, code and message must remain identical."
   },
   "unit_tests": {
-    "passed": 96,
-    "suites": 6,
+    "passed": 115,
+    "suites": 8,
     "last_adapter_only_rerun": 14
   },
   "lint": {
@@ -507,7 +507,7 @@
     "preexisting_formatting_debt_retained": true,
     "modified_files_base": {
       "PositionV0/PositionV0.tsx": {
-        "format_messages": 12,
+        "format_messages": 11,
         "other_messages": 0
       },
       "position-sim/adapters/aaveV3.ts": {
@@ -529,7 +529,7 @@
     },
     "modified_files_current": {
       "PositionV0/PositionV0.tsx": {
-        "format_messages": 12,
+        "format_messages": 11,
         "other_messages": 0
       },
       "position-sim/adapters/aaveV3.ts": {
@@ -590,5 +590,61 @@
     "builder_check": "canonical MEMBRANE_DATASETS_DIR=/workspace/membrane-datasets --check passed; source/hash/output deterministic",
     "independent_review": "Three corrected issues verified: independent per-side history timing, source-oracle dollar valuation basis and exact all-active-leg ratio copy. No remaining blocking correctness finding.",
     "visual_inspection": "Parent inspected the actual390px component screenshot, explicitly labeled synthetic test fixture."
+  },
+  "integration": {
+    "base_sha": "e5782f3dde51e7c59073a37645f6e565d1a993bf",
+    "merge_commit": "76e992b34fd207ccbcc78a9128bf6faf0e1cae96",
+    "method": "non-rebased Git merge; only PositionV0 fixed-horizon/readId conflict required manual resolution",
+    "preserved": [
+      "Q27 always-framed time-to-touch chart and fixed horizon",
+      "Q27 supplied-position lender block and lendMarket metadata",
+      "Q34 keyed tracker, rate basis, chain/venue identity and USD valuation provenance"
+    ],
+    "source_hashes": {
+      "components/PositionV0/PositionV0.tsx": "0b03859f3266ba0e89488d2197ed94ca18df6ad5e211c282788cab7770fd1f57",
+      "lib/position-sim/types.ts": "46d4a6042b5167d4044e98323fea756f97700db04fbff2a3547c8a7bb1a4de0c",
+      "lib/position-sim/adapters/morphoBlue.ts": "3cf3026820ab4a2719672d448f8a7790b87083cf43ea9274c631fd3531738e43"
+    },
+    "browser_smoke": {
+      "checks": [
+        {
+          "route": "/ethereum/position",
+          "width": 390,
+          "status": 200,
+          "personal_tracker_absent": true,
+          "overflow": false
+        },
+        {
+          "component_harness_state": "measured",
+          "width": 390,
+          "open_receipt_overflow": false
+        },
+        {
+          "component_harness_state": "stale",
+          "width": 390,
+          "open_receipt_overflow": false
+        },
+        {
+          "route": "/ethereum/position",
+          "width": 1280,
+          "status": 200,
+          "personal_tracker_absent": true,
+          "overflow": false
+        },
+        {
+          "component_harness_state": "measured",
+          "width": 1280,
+          "open_receipt_overflow": false
+        },
+        {
+          "component_harness_state": "stale",
+          "width": 1280,
+          "open_receipt_overflow": false
+        }
+      ],
+      "page_errors": [],
+      "component_fixture_limit": "Explicit test-only synthetic positions; real component; no live user source reads"
+    },
+    "component_source_and_screenshots_unchanged": true
   }
 }

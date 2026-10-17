@@ -59,11 +59,15 @@ node node_modules/vitest/vitest.mjs run \
   tests/unit/positionRateMetadata.test.ts \
   tests/unit/positionAdapters.test.ts \
   tests/unit/morphoBlueAdapter.test.ts \
-  tests/unit/positionV0ViewModel.test.ts --pool=threads --maxWorkers=1
+  tests/unit/positionV0ViewModel.test.ts \
+  tests/unit/positionLender.test.ts \
+  tests/unit/positionTouchTime.test.ts --pool=threads --maxWorkers=1
 ```
 
-The six suites pass 96 tests, including source-rate scaling, fee basis, variable/fixed matching, exact identity, negative income, missing valuations, wrapper double counting, stale observation clocks, delayed reads and deadlines.
-TypeScript reports 101 existing errors on both the PR111 base `4533ce22` and this implementation, with no added or removed normalized diagnostics.
+The eight suites pass 115 tests, including source-rate scaling, fee basis, variable/fixed matching, exact identity, negative income, missing valuations, wrapper double counting, stale observation clocks, delayed reads and deadlines, plus upstream lender and time-to-touch behavior.
+PR111 base `e5782f3dde51e7c59073a37645f6e565d1a993bf` was merged into the feature with merge commit `76e992b34fd207ccbcc78a9128bf6faf0e1cae96`.
+The fixed-horizon time-to-touch chart and supply-only lender block remain intact alongside the keyed cost/income tracker and its source metadata.
+TypeScript reports 101 existing errors on both that new PR111 base and this implementation, with no added or removed normalized diagnostics.
 New TypeScript/TSX files pass targeted ESLint. Existing touched files have pre-existing formatting debt; no broad reformat is included.
 
 The test-only browser harness is `tests/e2e/harnesses/costReward.tsx`. Its synthetic positions and rates are clearly labeled and never imported by product routes.

@@ -67,6 +67,8 @@
   --news-chart-2: var(--m-risk-caution);
   /* RAISED: a hard, offset, unblurred ink shadow, print style (owner ruling 2026-10-17). */
   --news-shadow-raised: 3px 3px 0 var(--news-ink);
+  /* raised TEXT (no box): a hard offset type shadow, letterpress style, for boxless rows on hover */
+  --news-text-raised: 2px 2px 0 rgba(36, 31, 23, 0.28);
 }
 
 /* ---- NIGHT EDITION — lamplight (owner ruling 2026-10-10) ---------------------- */
@@ -96,6 +98,7 @@
   /* RAISED at night: ink at 28% (the rule-strong construction); full cream ink would read
      as a second edge, not a shadow. Hard and unblurred, as by day. */
   --news-shadow-raised: 3px 3px 0 rgba(242, 232, 220, 0.28);
+  --news-text-raised: 2px 2px 0 rgba(242, 232, 220, 0.22);
 
   /* The bridge: every app token on this page resolves to its news role. */
   --m-bg-primary: var(--news-paper);

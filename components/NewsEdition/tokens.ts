@@ -39,6 +39,8 @@ export const NEWS = {
    * do not hand-roll a shadow per component.
    */
   shadowRaised: 'var(--news-shadow-raised)',
+  /** Raised text for boxless rows (hard offset type shadow, never blurred). */
+  textRaised: 'var(--news-text-raised)',
 } as const
 
 /**

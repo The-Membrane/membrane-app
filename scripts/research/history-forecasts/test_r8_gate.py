@@ -97,6 +97,31 @@ class TestRatesAndVerdict(unittest.TestCase):
         self.assertEqual(r["shown"], 0)
         self.assertAlmostEqual(G.finish(r)["lightShare"], 0.0)
 
+    def test_rates_r8c_event_days(self):
+        d = np.array([[1.0] * 5] * 3)
+        E = np.array([100.0, 100.0, 100.0])
+        ED = np.array([20.0, 19.9, 9.9])                                 # E is ignored by R8.1c
+        r = G.rates(d, E, 24, "r8c", 30, ED)
+        self.assertEqual((r["shown"], r["shownFull"], r["shownProv"]), (2, 1, 1))
+        r = G.rates(d, E, 24, "r8c", 20, ED)
+        self.assertEqual((r["shown"], r["shownFull"], r["shownProv"]), (2, 0, 2))
+
+    def test_event_days_in_simulators(self):
+        rng = np.random.default_rng(15)
+        d, E, ED = G.dep_point_runs(1, 10, 25, 0.05, False, True, 20, rng, with_ed=True)
+        lam = np.minimum(0.95, 0.05 * np.geomspace(0.25, 4, 25) / np.geomspace(0.25, 4, 25).mean())
+        self.assertTrue(np.allclose(ED, 10 * (1 - np.prod(1 - lam))))
+        self.assertTrue(np.all(ED <= E + 1e-12))
+        u = G.touch_point_runs(24, 10, 0.008, 10, rng, with_ed=True)
+        d, E, ED = u[-0.02]
+        self.assertTrue(np.allclose(ED, E))                              # one row per day
+        d, E, ED = u["pooled"]
+        self.assertTrue(np.all(ED < E))
+        rng1, rng2 = np.random.default_rng(3), np.random.default_rng(3)  # ED consumes no draws
+        a = G.dep_point_runs(2, 10, 25, 0.25, True, False, 30, rng1)
+        b = G.dep_point_runs(2, 10, 25, 0.25, True, False, 30, rng2, with_ed=True)
+        self.assertTrue(np.array_equal(a[0], b[0]))
+
     def test_verdict_r8b_no_light(self):
         res = {"deposit": {"1h": {"20": {"rate2": None, "lightShare": 0.0}, "30": {"rate2": 0.05}}}}
         g = G.verdict(res, (20, 30), rule="r8b")
@@ -118,6 +143,9 @@ class TestRatesAndVerdict(unittest.TestCase):
         rb = G.run(30, log=lambda *a: None, windows=(20,), dep_h=(168,), touch_h=(), rule="r8b")
         self.assertIn("lightShare", rb["deposit"]["168h"]["20"])
         self.assertEqual(rb["deposit"]["168h"]["20"].get("shownFull", 0), 0)
+        rc = G.run(30, log=lambda *a: None, windows=(30,), dep_h=(24,), touch_h=(168,), rule="r8c")
+        self.assertIn("lightShare", rc["touch"]["168h"]["30"])
+        self.assertIsNone(G.verdict({"d": {"1h": {"20": {"rate2": None}}}}, (20,), rule="r8c")["rows"][0]["inBand"])
 
 
 if __name__ == "__main__":

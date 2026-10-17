@@ -31,6 +31,8 @@ PREREG_R8B = {"repo": "triccs/membrane-board", "path": "design/Q26_ROUND8_PREREG
               "section": "D1 R8.1b"}
 SEED = 20261018
 SEED_R8B = 20261019
+SEED_R8C = 20261020
+PREREG_R8C = {"repo": "triccs/membrane-board", "path": "design/Q26_ROUND8_PREREG.md", "section": "D3 R8.1c"}
 GATE_WINDOWS_R8B = (20, 30)
 REPORT_WINDOWS_R8B = (20, 30, 90)
 RATE_LO, RATE_HI = 0.03, 0.07
@@ -81,14 +83,22 @@ DECISIONS_GATE_R8B = [
     "has a rate in [3%, 7%]; a cell with no light at all is reported as 'no light' and does not fail.",
 ]
 
+DECISIONS_GATE_R8C = [
+    "G1c-G5c (--rule r8c, Q26_ROUND8_PREREG.md D3 R8.1c): as G1b-G5b except seeds default_rng([20261020, log, T_h, N, "
+    "point]) and the light rule r7_live.evidence_tier_v3(ED, N): full iff ED >= 20 and N >= 30, provisional iff ED >= "
+    "10 and N >= 20. ED = sum over issue days of 1 - prod_i (1 - p_di) from the forecasts (deposit: over the K rows "
+    "of the day; touch: n * p for a single level, n * (1 - prod_k (1 - p_k)) over the pooled ladder's 10 levels, the "
+    "registered formula applied to nested levels as written).",
+]
 
-def dep_point_runs(H, N, K, pw, regime, comonotone, runs, rng, batch=500):
+
+def dep_point_runs(H, N, K, pw, regime, comonotone, runs, rng, batch=500, with_ed=False):
     n = N * H
     ndays = n + H - 1
     lam0 = 1.0 - (1.0 - pw) ** (1.0 / H)
     w = np.geomspace(0.25, 4.0, K) if K > 1 else np.ones(1)
     w = w / w.mean()
-    out_d = []
+    out_d, out_ed = [], []
     done = 0
     while done < runs:
         B = min(batch, runs - done)
@@ -111,14 +121,19 @@ def dep_point_runs(H, N, K, pw, regime, comonotone, runs, rng, batch=500):
         y = (cs[:, :, H:H + n] - cs[:, :, :n]) > 0
         ll = np.concatenate([np.zeros((B, K, 1)), np.cumsum(np.log1p(-lam), axis=2)], axis=2)
         p = 1.0 - np.exp(ll[:, :, H:H + n] - ll[:, :, :n])
+        ed = (1.0 - np.exp(np.log1p(-np.minimum(p, 1.0)).sum(1))).sum(1)              # R8.1c event-days
         out_d.append(np.stack([(y - p).sum(1), p.sum(1)], axis=0))
+        out_ed.append(ed)
         done += B
     a = np.concatenate(out_d, axis=1)
+    if with_ed:
+        return a[0], a[1].sum(1), np.concatenate(out_ed)   # d (runs, n), E (runs,), ED (runs,)
     return a[0], a[1].sum(1)                               # d (runs, n), E (runs,)
 
 
-def touch_point_runs(T, N, sigma, runs, rng, batch=None):
-    """Returns {unit: (d (runs, n), E (runs,))} for the single levels and the pooled ladder."""
+def touch_point_runs(T, N, sigma, runs, rng, batch=None, with_ed=False):
+    """Returns {unit: (d (runs, n), E (runs,))} for the single levels and the pooled ladder; with_ed adds ED (runs,)
+    (R8.1c event-days: n * p for a single level, n * (1 - prod_k (1 - p_k)) for the pooled ladder)."""
     H = int(math.ceil(T / 24.0))
     n = N * H
     hours = 24 * (n - 1) + T
@@ -147,16 +162,28 @@ def touch_point_runs(T, N, sigma, runs, rng, batch=None):
         acc["pooled"][0].append(dk[:, :, lad].sum(2))
         acc["pooled"][1].append(np.full(B, n * p_k[lad].sum()))
         done += B
-    return {k: (np.concatenate(v[0]), np.concatenate(v[1])) for k, v in acc.items()}
+    out = {k: (np.concatenate(v[0]), np.concatenate(v[1])) for k, v in acc.items()}
+    if with_ed:
+        lad = [levels.index(k) for k in ETH_LADDER]
+        for k in list(out):
+            if k == "pooled":
+                ed = n * (1.0 - np.prod(1.0 - p_k[lad]))
+            else:
+                ed = n * p_k[levels.index(k)]
+            out[k] = out[k] + (np.full(len(out[k][1]), ed),)
+    return out
 
 
-def rates(d, E, T_h, rule="r81", N=None):
+def rates(d, E, T_h, rule="r81", N=None, ED=None):
     L = R7.nw_lag(T_h)
     v2, fb = R7.lr_variance_v2(d, L)
     vb = R7.bartlett_variance(d, L)
     s = d.sum(1)
     if rule == "r8b":
         tier = R7.evidence_tier_v2(E, s + E, np.full(len(E), N))
+        show = tier > 0
+    elif rule == "r8c":
+        tier = R7.evidence_tier_v3(ED, np.full(len(E), N))
         show = tier > 0
     else:
         tier = None
@@ -201,7 +228,8 @@ def add(tot, r):
 
 
 def run(runs, log=print, windows=REPORT_WINDOWS, dep_h=DEP_HORIZONS_H, touch_h=TOUCH_HORIZONS_H, rule="r81"):
-    seed = SEED_R8B if rule == "r8b" else SEED
+    seed = {"r8b": SEED_R8B, "r8c": SEED_R8C}.get(rule, SEED)
+    wed = rule == "r8c"
     res = {"deposit": {}, "touch": {}}
     for li, (logname, hs) in enumerate((("deposit", dep_h), ("touch", touch_h))):
         for T in hs:
@@ -215,17 +243,17 @@ def run(runs, log=print, windows=REPORT_WINDOWS, dep_h=DEP_HORIZONS_H, touch_h=T
                             for regime in (False, True):
                                 for como in ((False,) if K == 1 else (False, True)):
                                     rng = np.random.default_rng([seed, li, T, N, pi])
-                                    d, E = dep_point_runs(H, N, K, pw, regime, como, runs, rng)
-                                    r = rates(d, E, T, rule, N)
+                                    o = dep_point_runs(H, N, K, pw, regime, como, runs, rng, with_ed=wed)
+                                    r = rates(o[0], o[1], T, rule, N, o[2] if wed else None)
                                     add(tot, r)
                                     points.append(finish(dict(r, K=K, pw=pw, regime=regime, comonotone=como)))
                                     pi += 1
                 else:
                     for pi, sig in enumerate(TOUCH_SIGMA_H):
                         rng = np.random.default_rng([seed, li, T, N, pi])
-                        units = touch_point_runs(T, N, sig, runs, rng)
-                        for k, (d, E) in units.items():
-                            r = rates(d, E, T, rule, N)
+                        units = touch_point_runs(T, N, sig, runs, rng, with_ed=wed)
+                        for k, o in units.items():
+                            r = rates(o[0], o[1], T, rule, N, o[2] if wed else None)
                             add(tot, r)
                             points.append(finish(dict(r, sigmaPerHour=sig, unit=k if k == "pooled" else float(k))))
                 tot = finish(tot)
@@ -248,7 +276,7 @@ def verdict(res, windows=GATE_WINDOWS, rule="r81"):
                 if r is None:
                     continue
                 rate = r.get("rate2")
-                if rule == "r8b" and rate is None:
+                if rule in ("r8b", "r8c") and rate is None:
                     rows.append({"log": logname, "T": th, "N": N, "rate2": None, "inBand": None, "noLight": True,
                                  "lightShare": r.get("lightShare")})
                     continue
@@ -270,10 +298,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--runs", type=int, default=4000)
-    ap.add_argument("--rule", choices=("r81", "r8b"), default="r81")
+    ap.add_argument("--rule", choices=("r81", "r8b", "r8c"), default="r81")
     a = ap.parse_args()
     t0 = time.time()
-    if a.rule == "r8b":
+    if a.rule == "r8c":
+        res = run(a.runs, windows=REPORT_WINDOWS_R8B, rule="r8c")
+        g = verdict(res, GATE_WINDOWS_R8B, rule="r8c")
+        meta = {"schema": "q26-r8/gate-r81c/1", "prereg": PREREG_R8C,
+                "decisions": DECISIONS_GATE + DECISIONS_GATE_R8C}
+    elif a.rule == "r8b":
         res = run(a.runs, windows=REPORT_WINDOWS_R8B, rule="r8b")
         g = verdict(res, GATE_WINDOWS_R8B, rule="r8b")
         meta = {"schema": "q26-r8/gate-r81b/1", "prereg": PREREG_R8B, "decisions": DECISIONS_GATE + DECISIONS_GATE_R8B}

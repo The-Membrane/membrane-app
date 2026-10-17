@@ -163,6 +163,36 @@ def evidence_tier_v2(E, O, windows):
     return code
 
 
+# R8.1c evidence by event-days (Q26_ROUND8_PREREG.md D3): ED = sum over issue days of 1 - prod_i (1 - p_di)
+V3_FULL_ED, V3_FULL_WINDOWS = 20.0, 30
+V3_PROV_ED, V3_PROV_WINDOWS = 10.0, 20
+
+
+def event_days(dates, p):
+    """ED of a unit: per issue day, P(at least one event) = 1 - prod(1 - p) over that day's rows; summed."""
+    p = np.clip(np.asarray(p, float), 0.0, 1.0)
+    if not len(p):
+        return 0.0
+    o = np.array([day_ordinal(d) for d in dates], int)
+    u, inv = np.unique(o, return_inverse=True)
+    lq = np.zeros(len(u))
+    with np.errstate(divide="ignore"):
+        np.add.at(lq, inv, np.log1p(-p))
+    return float(np.sum(1.0 - np.exp(lq)))
+
+
+def evidence_tier_v3(ED, windows):
+    """R8.1c: 'full' iff ED >= 20 and windows >= 30; else 'provisional' iff ED >= 10 and windows >= 20; else None.
+    Vectorized: arrays give codes 2 (full), 1 (provisional), 0 (none)."""
+    ED, w = np.asarray(ED, float), np.asarray(windows, float)
+    full = (ED >= V3_FULL_ED) & (w >= V3_FULL_WINDOWS)
+    prov = ~full & (ED >= V3_PROV_ED) & (w >= V3_PROV_WINDOWS)
+    code = np.where(full, 2, np.where(prov, 1, 0))
+    if np.ndim(code) == 0:
+        return {2: TIER_FULL, 1: TIER_PROVISIONAL, 0: TIER_NONE}[int(code)]
+    return code
+
+
 def band_of(z):
     if z is None:
         return INSUFFICIENT

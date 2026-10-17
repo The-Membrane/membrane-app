@@ -129,6 +129,24 @@ class TestR8bTier(unittest.TestCase):
         self.assertEqual(list(f([20, 10, 5], [10, 0, 0], [30, 20, 40])), [2, 1, 0])
 
 
+class TestR8cEventDays(unittest.TestCase):
+    def test_event_days(self):
+        ds = ["2026-10-14", "2026-10-14", "2026-10-15", "2026-10-17"]
+        p = [0.5, 0.5, 0.2, 1.0]
+        self.assertAlmostEqual(R7.event_days(ds, p), 0.75 + 0.2 + 1.0)
+        self.assertEqual(R7.event_days([], []), 0.0)
+
+    def test_tier_v3(self):
+        f = R7.evidence_tier_v3
+        self.assertEqual(f(20, 30), "full")
+        self.assertEqual(f(19.99, 30), "provisional")
+        self.assertEqual(f(50, 29), "provisional")
+        self.assertEqual(f(10, 20), "provisional")
+        self.assertIsNone(f(9.99, 40))
+        self.assertIsNone(f(50, 19))
+        self.assertEqual(list(f([20, 10, 5], [30, 20, 40])), [2, 1, 0])
+
+
 class TestGatingAndBands(unittest.TestCase):
     def test_evidence_gating(self):
         ds = days(30)

@@ -70,6 +70,7 @@ VERDICT_T = M6.VERDICT_T                                   # 6h, 1d, 3d, 7d
 VERDICT_BSS_LO = M6.VERDICT_BSS_LO                         # -0.002
 CHECK_NEP = M6.CHECK_NEP                                   # 10
 BLIND6_DIR = "blind6-prices"
+SENSITIVITY_EXCLUDE = ("blind6:binance-LUNCUSDT",)   # parent ruling: pooled also reported without it (deciding nothing)
 A6_RUN = "history-forecasts/a6/run-015512cb"
 A6_FROZEN_SHA = "97501da3fbb4de25c0257b6945a061543bf7fbef1344246cd47b418664bf02c0"
 
@@ -646,6 +647,17 @@ def blind6_gate(out_dir, commit, frozen_sha):
     return dev, frozen, fsha
 
 
+def pair_ci_counts(pair_rows):
+    """Per (T, comparison): pairs with the BSS CI above 0 / containing 0 / below 0 / without a CI."""
+    out = {}
+    for r in pair_rows:
+        side = "no CI" if r["ci_lo"] is None else ("above" if r["ci_lo"] > 0 else
+                                                   "below" if r["ci_hi"] < 0 else "contains")
+        c = out.setdefault(r["T"], {}).setdefault(r["comparison"], {"above": 0, "contains": 0, "below": 0, "no CI": 0})
+        c[side] += 1
+    return out
+
+
 def run_blind6(datasets, out_dir, commit, frozen_sha, workers=4, log=print, verify=True, names_override=None,
                require_clean=True):
     dev, frozen, fsha = blind6_gate(out_dir, commit, frozen_sha)
@@ -690,6 +702,17 @@ def run_blind6(datasets, out_dir, commit, frozen_sha, workers=4, log=print, veri
     pooled = pooled_block(reds, keys, rng)
     verdict = verdict7(pooled)
     deep = deep_tables({TL: pooled[TL]["levels"] for TL in pooled})
+    excl = [k for k in keys if k in SENSITIVITY_EXCLUDE]
+    sens = None
+    if excl:                                       # reported beside the registered pooled numbers, deciding nothing
+        keys_s = [k for k in keys if k not in excl]
+        ps = pooled_block(reds, keys_s, np.random.default_rng(np.random.SeedSequence(SEED_BLIND6).spawn(1)[0]))
+        sens = {"excluded": excl, "n_pairs": len(keys_s),
+                "note": "pooled without these pairs (LUNCUSDT: Terra Classic relisted 2022-09), deciding nothing; "
+                        "CIs from a stream spawned from SeedSequence(20261071)",
+                "pooled": ps, "verdict": verdict7(ps), "deep_band_median_abs_lnR": deep_tables(
+                    {TL: ps[TL]["levels"] for TL in ps})}
+    pair_counts = pair_ci_counts(pair_rows)
     A.write_csv(os.path.join(out_dir, "pairs-blind6.csv"),
                 ["pair", "T", "comparison", "n_rows", "bss", "ci_lo", "ci_hi"], pair_rows)
     A.write_csv(os.path.join(out_dir, "har-table-blind6.csv"),
@@ -701,6 +724,7 @@ def run_blind6(datasets, out_dir, commit, frozen_sha, workers=4, log=print, veri
            "results_dev_sha256": A.sha256_file(os.path.join(out_dir, "results-dev-a7.json")), "seed": SEED_BLIND6,
            "n_pairs": len(keys), "pairs_without_folds": sorted(k for k in S if not folds[k]),
            "per_pair": per_pair, "pooled": pooled, "verdict": verdict, "deep_band_median_abs_lnR": deep,
+           "pooled_sensitivity_without": sens, "per_pair_ci_counts": pair_counts,
            "floor_per_pair": floors,
            "run": {"marker_started_utc": started, "finished_utc": now_utc(),
                    "total_seconds": round(time.time() - t0, 1)}}

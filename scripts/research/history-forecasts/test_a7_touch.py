@@ -169,6 +169,15 @@ class TestVerdict(unittest.TestCase):
         self.assertEqual((v["low_deep_cells"], v["verdict"]), (0, "FAIL"))
 
 
+class TestPairCounts(unittest.TestCase):
+    def test_sides(self):
+        rows = [{"T": "1d", "comparison": "c", "ci_lo": 0.1, "ci_hi": 0.2},
+                {"T": "1d", "comparison": "c", "ci_lo": -0.1, "ci_hi": 0.2},
+                {"T": "1d", "comparison": "c", "ci_lo": -0.3, "ci_hi": -0.2},
+                {"T": "1d", "comparison": "c", "ci_lo": None, "ci_hi": None}]
+        self.assertEqual(M.pair_ci_counts(rows)["1d"]["c"], {"above": 1, "contains": 1, "below": 1, "no CI": 1})
+
+
 class TestBlind6Gate(unittest.TestCase):
     def setup_dir(self, d, dev_sha=None):
         with open(os.path.join(d, "frozen-a7.json"), "w") as fh:

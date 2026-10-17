@@ -1,0 +1,1066 @@
+{
+  "name": "Multi-year hourly price history (set-and-forget LTV sim)",
+  "generatedAt": "2026-10-06T05:19:03.324Z",
+  "generatedBy": "scripts/position-sim/build-price-history.mjs",
+  "statistics": "lib/position-sim/drawdowns.ts",
+  "grid": {
+    "startUtc": "2020-01-01T00:00:00Z",
+    "endUtc": "2026-10-06T02:00:00Z",
+    "startTs": 1577836800,
+    "stepSeconds": 3600,
+    "count": 59283,
+    "convention": "index i is the hour opening at startTs + i*3600; close = price at the END of the hour (kline close / Chainlink round in force at the hour end); low/high = range inside the hour, including the opening value; null = no observation"
+  },
+  "sources": {
+    "oracle": "Chainlink AnswerUpdated logs of every phase aggregator of the feed proxy, each counted only inside its own phase window (switch blocks bisected from the proxy phaseId() over archive state), plus one handover round per switch (latestRoundData() of the new phase aggregator at the block before the switch, stamped at the switch block — what the proxy served from then on), timestamps = the event updatedAt, forward-filled across hours with no round",
+    "binance": "Binance spot 1h klines, USDT-quoted (data-api.binance.vision public market-data REST, no key)",
+    "coinbase": "Coinbase Exchange 1h candles, USD-quoted (api.exchange.coinbase.com public REST, no key)"
+  },
+  "assets": {
+    "eth-usd": {
+      "asset": "ETH/USD",
+      "file": "eth-usd-1h.json",
+      "coverage": {
+        "binance": {
+          "from": "2020-01-01T00:00:00Z",
+          "to": "2026-10-06T02:00:00Z",
+          "fromIndex": 0,
+          "toIndex": 59282,
+          "hours": 59251,
+          "missing": 32
+        },
+        "coinbase": {
+          "from": "2020-01-01T00:00:00Z",
+          "to": "2026-10-06T02:00:00Z",
+          "fromIndex": 0,
+          "toIndex": 59282,
+          "hours": 59267,
+          "missing": 16
+        },
+        "oracle": {
+          "from": "2020-01-15T21:00:00Z",
+          "to": "2026-10-06T02:00:00Z",
+          "fromIndex": 357,
+          "toIndex": 59282,
+          "hours": 56959,
+          "missing": 1967
+        }
+      },
+      "primary": {
+        "segments": [
+          {
+            "source": "coinbase",
+            "fromIndex": 0,
+            "toIndex": 2372,
+            "from": "2020-01-01T00:00:00Z",
+            "to": "2020-04-08T20:00:00Z"
+          },
+          {
+            "source": "oracle",
+            "fromIndex": 2373,
+            "toIndex": 59282,
+            "from": "2020-04-08T21:00:00Z",
+            "to": "2026-10-06T02:00:00Z"
+          }
+        ],
+        "note": "oracle-grade from 2020-04-08T21:00:00Z; coinbase wherever the oracle has no run of >= 168 h (chosen as the lowest median |close diff| vs the oracle: coinbase 10.1 bps, binance 11 bps)"
+      },
+      "oracle": {
+        "proxy": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+        "description": "ETH / USD",
+        "decimals": 8,
+        "phases": [
+          {
+            "phase": 1,
+            "address": "0xF79D6aFBb6dA890132F9D7c355e3015f15F3406F",
+            "logSource": "0xF79D6aFBb6dA890132F9D7c355e3015f15F3406F",
+            "facadeOf": null,
+            "fromBlock": "0",
+            "toBlock": "10607119"
+          },
+          {
+            "phase": 2,
+            "address": "0xB103ede8AcD6F0c106b7a5772e9D24e34f5Ebc2C",
+            "logSource": "0xF79D6aFBb6dA890132F9D7c355e3015f15F3406F",
+            "facadeOf": "0xF79D6aFBb6dA890132F9D7c355e3015f15F3406F",
+            "fromBlock": "10607120",
+            "toBlock": "11008984"
+          },
+          {
+            "phase": 3,
+            "address": "0x00c7A37B03690fb9f41b5C5AF8131735C7275446",
+            "logSource": "0x00c7A37B03690fb9f41b5C5AF8131735C7275446",
+            "facadeOf": null,
+            "fromBlock": "11008985",
+            "toBlock": "12187956"
+          },
+          {
+            "phase": 4,
+            "address": "0xd3fCD40153E56110e6EEae13E12530e26C9Cb4fd",
+            "logSource": "0xd3fCD40153E56110e6EEae13E12530e26C9Cb4fd",
+            "facadeOf": null,
+            "fromBlock": "12187957",
+            "toBlock": "12453812"
+          },
+          {
+            "phase": 5,
+            "address": "0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6",
+            "logSource": "0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6",
+            "facadeOf": null,
+            "fromBlock": "12453813",
+            "toBlock": "17217054"
+          },
+          {
+            "phase": 6,
+            "address": "0xE62B71cf983019BFf55bC83B48601ce8419650CC",
+            "logSource": "0xE62B71cf983019BFf55bC83B48601ce8419650CC",
+            "facadeOf": null,
+            "fromBlock": "17217055",
+            "toBlock": "20822020"
+          },
+          {
+            "phase": 7,
+            "address": "0x7d4E742018fb52E48b08BE73d041C18B21de6Fb5",
+            "logSource": "0x7d4E742018fb52E48b08BE73d041C18B21de6Fb5",
+            "facadeOf": null,
+            "fromBlock": "20822021",
+            "toBlock": null
+          }
+        ],
+        "rounds": 354178,
+        "logsOutsideTheirPhaseWindow": 4268,
+        "phaseHandovers": [
+          {
+            "phase": 2,
+            "switchBlock": "10607120",
+            "switchUtc": "2020-08-06T15:41:33Z",
+            "price": 399.4,
+            "roundUpdatedUtc": "2020-08-06T15:10:50Z"
+          },
+          {
+            "phase": 3,
+            "switchBlock": "11008985",
+            "switchUtc": "2020-10-07T13:52:36Z",
+            "price": 341.15980023,
+            "roundUpdatedUtc": "2020-10-07T12:09:23Z"
+          },
+          {
+            "phase": 4,
+            "switchBlock": "12187957",
+            "switchUtc": "2021-04-06T19:01:07Z",
+            "price": 2123.33191328,
+            "roundUpdatedUtc": "2021-04-06T18:55:17Z"
+          },
+          {
+            "phase": 5,
+            "switchBlock": "12453813",
+            "switchUtc": "2021-05-17T19:24:48Z",
+            "price": 3386.57818342,
+            "roundUpdatedUtc": "2021-05-17T19:07:03Z"
+          },
+          {
+            "phase": 6,
+            "switchBlock": "17217055",
+            "switchUtc": "2023-05-08T16:47:47Z",
+            "price": 1865.91,
+            "roundUpdatedUtc": "2023-05-08T15:55:47Z"
+          },
+          {
+            "phase": 7,
+            "switchBlock": "20822021",
+            "switchUtc": "2024-09-24T17:42:59Z",
+            "price": 2642.13,
+            "roundUpdatedUtc": "2024-09-24T17:27:11Z"
+          }
+        ],
+        "longestGapWithoutARoundByYear": {
+          "2020": {
+            "maxGapHours": 2016,
+            "endingAt": "2020-04-08T21:00:00Z"
+          },
+          "2021": {
+            "maxGapHours": 2,
+            "endingAt": "2021-03-30T16:00:00Z"
+          },
+          "2022": {
+            "maxGapHours": 2,
+            "endingAt": "2022-01-12T19:00:00Z"
+          },
+          "2023": {
+            "maxGapHours": 1,
+            "endingAt": "2023-01-01T00:00:00Z"
+          },
+          "2024": {
+            "maxGapHours": 2,
+            "endingAt": "2024-10-18T05:00:00Z"
+          },
+          "2025": {
+            "maxGapHours": 2,
+            "endingAt": "2025-01-02T19:00:00Z"
+          },
+          "2026": {
+            "maxGapHours": 2,
+            "endingAt": "2026-01-18T18:00:00Z"
+          }
+        },
+        "maxStaleHours": 48,
+        "gapAudit": {
+          "auditGapHours": 4,
+          "gapsAudited": 3,
+          "recoveredGaps": 1,
+          "recoveredRounds": 78,
+          "confirmedSilences": [
+            {
+              "from": "2020-01-15T21:10:28Z",
+              "to": "2020-04-08T21:40:53Z",
+              "hours": 2017,
+              "confirmedEmptyBy": [
+                "rpc.ankr.com",
+                "mainnet.infura.io",
+                "eth.api.pocket.network"
+              ],
+              "outOfPhaseLogs": 0
+            },
+            {
+              "from": "2020-04-08T21:41:05Z",
+              "to": "2020-04-09T12:20:31Z",
+              "hours": 15,
+              "confirmedEmptyBy": [
+                "rpc.ankr.com",
+                "mainnet.infura.io"
+              ],
+              "outOfPhaseLogs": 0
+            }
+          ]
+        }
+      },
+      "crossCheck": {
+        "oracle_vs_binance": {
+          "close": {
+            "n": 56934,
+            "meanBps": 1.5,
+            "medianAbsBps": 11,
+            "p90AbsBps": 35.1,
+            "p99AbsBps": 74.9,
+            "maxAbsBps": 901.1,
+            "maxAt": "2021-05-19T12:00:00Z"
+          },
+          "closeByYear": {
+            "2020": {
+              "n": 6449,
+              "meanBps": 6.3,
+              "medianAbsBps": 16.6,
+              "p90AbsBps": 49.8,
+              "p99AbsBps": 124.6,
+              "maxAbsBps": 402.3,
+              "maxAt": "2020-01-16T03:00:00Z"
+            },
+            "2021": {
+              "n": 8747,
+              "meanBps": 7.9,
+              "medianAbsBps": 15.8,
+              "p90AbsBps": 47.6,
+              "p99AbsBps": 99.4,
+              "maxAbsBps": 901.1,
+              "maxAt": "2021-05-19T12:00:00Z"
+            },
+            "2022": {
+              "n": 8760,
+              "meanBps": 0.9,
+              "medianAbsBps": 9.7,
+              "p90AbsBps": 32,
+              "p99AbsBps": 73.6,
+              "maxAbsBps": 272.5,
+              "maxAt": "2022-06-11T08:00:00Z"
+            },
+            "2023": {
+              "n": 8759,
+              "meanBps": 2.1,
+              "medianAbsBps": 5.7,
+              "p90AbsBps": 19.1,
+              "p99AbsBps": 50.4,
+              "maxAbsBps": 186.3,
+              "maxAt": "2023-03-24T11:00:00Z"
+            },
+            "2024": {
+              "n": 8784,
+              "meanBps": -0.9,
+              "medianAbsBps": 9.1,
+              "p90AbsBps": 27.6,
+              "p99AbsBps": 49.6,
+              "maxAbsBps": 84.6,
+              "maxAt": "2024-09-01T22:00:00Z"
+            },
+            "2025": {
+              "n": 8760,
+              "meanBps": -0.2,
+              "medianAbsBps": 13.6,
+              "p90AbsBps": 34.7,
+              "p99AbsBps": 51.4,
+              "maxAbsBps": 187.1,
+              "maxAt": "2025-09-22T05:00:00Z"
+            },
+            "2026": {
+              "n": 6675,
+              "meanBps": -6,
+              "medianAbsBps": 13.3,
+              "p90AbsBps": 34.1,
+              "p99AbsBps": 50.8,
+              "maxAbsBps": 99.3,
+              "maxAt": "2026-04-07T22:00:00Z"
+            }
+          },
+          "low": {
+            "meanBps": 24.6,
+            "medianAbsBps": 21.2,
+            "p99AbsBps": 115,
+            "maxAbsBps": 1176.6,
+            "maxAt": "2020-08-02T04:00:00Z"
+          },
+          "hoursWhere_binanceLow_2pctBelow_oracleLow": 115,
+          "hoursWhere_binanceLow_5pctBelow_oracleLow": 7
+        },
+        "oracle_vs_coinbase": {
+          "close": {
+            "n": 56944,
+            "meanBps": 0.7,
+            "medianAbsBps": 10.1,
+            "p90AbsBps": 34.1,
+            "p99AbsBps": 73.1,
+            "maxAbsBps": 780.6,
+            "maxAt": "2021-05-19T12:00:00Z"
+          },
+          "closeByYear": {
+            "2020": {
+              "n": 6458,
+              "meanBps": 1.8,
+              "medianAbsBps": 15.8,
+              "p90AbsBps": 49,
+              "p99AbsBps": 128.4,
+              "maxAbsBps": 414,
+              "maxAt": "2020-01-16T03:00:00Z"
+            },
+            "2021": {
+              "n": 8760,
+              "meanBps": 2.3,
+              "medianAbsBps": 14.7,
+              "p90AbsBps": 46.3,
+              "p99AbsBps": 97.5,
+              "maxAbsBps": 780.6,
+              "maxAt": "2021-05-19T12:00:00Z"
+            },
+            "2022": {
+              "n": 8760,
+              "meanBps": 2.3,
+              "medianAbsBps": 9.2,
+              "p90AbsBps": 32,
+              "p99AbsBps": 73.7,
+              "maxAbsBps": 287.2,
+              "maxAt": "2022-06-11T08:00:00Z"
+            },
+            "2023": {
+              "n": 8757,
+              "meanBps": -0.2,
+              "medianAbsBps": 4.7,
+              "p90AbsBps": 16,
+              "p99AbsBps": 36.7,
+              "maxAbsBps": 133.6,
+              "maxAt": "2023-01-21T22:00:00Z"
+            },
+            "2024": {
+              "n": 8784,
+              "meanBps": -0.2,
+              "medianAbsBps": 7.7,
+              "p90AbsBps": 26.3,
+              "p99AbsBps": 46.8,
+              "maxAbsBps": 89.4,
+              "maxAt": "2024-04-13T19:00:00Z"
+            },
+            "2025": {
+              "n": 8755,
+              "meanBps": -0.5,
+              "medianAbsBps": 13.6,
+              "p90AbsBps": 34.3,
+              "p99AbsBps": 50.2,
+              "maxAbsBps": 169.9,
+              "maxAt": "2025-09-22T05:00:00Z"
+            },
+            "2026": {
+              "n": 6670,
+              "meanBps": -0.4,
+              "medianAbsBps": 12.1,
+              "p90AbsBps": 32.3,
+              "p99AbsBps": 46.4,
+              "maxAbsBps": 98.8,
+              "maxAt": "2026-04-07T22:00:00Z"
+            }
+          },
+          "low": {
+            "meanBps": 24.2,
+            "medianAbsBps": 20.4,
+            "p99AbsBps": 112.4,
+            "maxAbsBps": 1150.9,
+            "maxAt": "2020-08-02T04:00:00Z"
+          },
+          "hoursWhere_coinbaseLow_2pctBelow_oracleLow": 118,
+          "hoursWhere_coinbaseLow_5pctBelow_oracleLow": 9
+        },
+        "binance_vs_coinbase": {
+          "close": {
+            "n": 59235,
+            "meanBps": -0.9,
+            "medianAbsBps": 4,
+            "p90AbsBps": 13,
+            "p99AbsBps": 31.5,
+            "maxAbsBps": 509.5,
+            "maxAt": "2020-03-13T03:00:00Z"
+          },
+          "closeByYear": {
+            "2020": {
+              "n": 8763,
+              "meanBps": -4.4,
+              "medianAbsBps": 7.8,
+              "p90AbsBps": 21.2,
+              "p99AbsBps": 46.3,
+              "maxAbsBps": 509.5,
+              "maxAt": "2020-03-13T03:00:00Z"
+            },
+            "2021": {
+              "n": 8747,
+              "meanBps": -5.5,
+              "medianAbsBps": 5.1,
+              "p90AbsBps": 14.1,
+              "p99AbsBps": 29.2,
+              "maxAbsBps": 361.1,
+              "maxAt": "2021-04-18T03:00:00Z"
+            },
+            "2022": {
+              "n": 8760,
+              "meanBps": 1.4,
+              "medianAbsBps": 3.2,
+              "p90AbsBps": 11.4,
+              "p99AbsBps": 23.5,
+              "maxAbsBps": 310.7,
+              "maxAt": "2022-05-12T06:00:00Z"
+            },
+            "2023": {
+              "n": 8756,
+              "meanBps": -2.3,
+              "medianAbsBps": 2.8,
+              "p90AbsBps": 9.1,
+              "p99AbsBps": 43.3,
+              "maxAbsBps": 228.6,
+              "maxAt": "2023-03-24T11:00:00Z"
+            },
+            "2024": {
+              "n": 8784,
+              "meanBps": 0.7,
+              "medianAbsBps": 3.6,
+              "p90AbsBps": 10.9,
+              "p99AbsBps": 19.4,
+              "maxAbsBps": 59.3,
+              "maxAt": "2024-10-26T16:00:00Z"
+            },
+            "2025": {
+              "n": 8755,
+              "meanBps": -0.3,
+              "medianAbsBps": 3,
+              "p90AbsBps": 7.1,
+              "p99AbsBps": 14,
+              "maxAbsBps": 38.2,
+              "maxAt": "2025-10-10T21:00:00Z"
+            },
+            "2026": {
+              "n": 6670,
+              "meanBps": 5.6,
+              "medianAbsBps": 5.3,
+              "p90AbsBps": 13.3,
+              "p99AbsBps": 18,
+              "maxAbsBps": 24.3,
+              "maxAt": "2026-02-05T01:00:00Z"
+            }
+          },
+          "low": {
+            "meanBps": -0.5,
+            "medianAbsBps": 4.2,
+            "p99AbsBps": 40.9,
+            "maxAbsBps": 582,
+            "maxAt": "2022-05-12T07:00:00Z"
+          },
+          "hoursWhere_coinbaseLow_2pctBelow_binanceLow": 11,
+          "hoursWhere_coinbaseLow_5pctBelow_binanceLow": 1
+        }
+      }
+    },
+    "btc-usd": {
+      "asset": "BTC/USD",
+      "file": "btc-usd-1h.json",
+      "coverage": {
+        "binance": {
+          "from": "2020-01-01T00:00:00Z",
+          "to": "2026-10-06T02:00:00Z",
+          "fromIndex": 0,
+          "toIndex": 59282,
+          "hours": 59251,
+          "missing": 32
+        },
+        "coinbase": {
+          "from": "2020-01-01T00:00:00Z",
+          "to": "2026-10-06T02:00:00Z",
+          "fromIndex": 0,
+          "toIndex": 59282,
+          "hours": 59267,
+          "missing": 16
+        },
+        "oracle": {
+          "from": "2020-01-01T00:00:00Z",
+          "to": "2026-10-06T02:00:00Z",
+          "fromIndex": 0,
+          "toIndex": 59282,
+          "hours": 59283,
+          "missing": 0
+        }
+      },
+      "primary": {
+        "segments": [
+          {
+            "source": "oracle",
+            "fromIndex": 0,
+            "toIndex": 59282,
+            "from": "2020-01-01T00:00:00Z",
+            "to": "2026-10-06T02:00:00Z"
+          }
+        ],
+        "note": "oracle-grade from 2020-01-01T00:00:00Z"
+      },
+      "oracle": {
+        "proxy": "0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c",
+        "description": "BTC / USD",
+        "decimals": 8,
+        "phases": [
+          {
+            "phase": 1,
+            "address": "0xF5fff180082d6017036B771bA883025c654BC935",
+            "logSource": "0xF5fff180082d6017036B771bA883025c654BC935",
+            "facadeOf": null,
+            "fromBlock": "0",
+            "toBlock": "10607142"
+          },
+          {
+            "phase": 2,
+            "address": "0x276De5c241071b4728697F4e11a377484a2Dd6cB",
+            "logSource": "0xF5fff180082d6017036B771bA883025c654BC935",
+            "facadeOf": "0xF5fff180082d6017036B771bA883025c654BC935",
+            "fromBlock": "10607143",
+            "toBlock": "10926165"
+          },
+          {
+            "phase": 3,
+            "address": "0xF570deEffF684D964dc3E15E1F9414283E3f7419",
+            "logSource": "0xF570deEffF684D964dc3E15E1F9414283E3f7419",
+            "facadeOf": null,
+            "fromBlock": "10926166",
+            "toBlock": "12187956"
+          },
+          {
+            "phase": 4,
+            "address": "0x7104Ac4abCecF1680F933b04c214B0C491D43ecC",
+            "logSource": "0x7104Ac4abCecF1680F933b04c214B0C491D43ecC",
+            "facadeOf": null,
+            "fromBlock": "12187957",
+            "toBlock": "12453812"
+          },
+          {
+            "phase": 5,
+            "address": "0xAe74faA92cB67A95ebCAB07358bC222e33A34dA7",
+            "logSource": "0xAe74faA92cB67A95ebCAB07358bC222e33A34dA7",
+            "facadeOf": null,
+            "fromBlock": "12453813",
+            "toBlock": "17217054"
+          },
+          {
+            "phase": 6,
+            "address": "0xdBe1941BFbe4410D6865b9b7078e0b49af144D2d",
+            "logSource": "0xdBe1941BFbe4410D6865b9b7078e0b49af144D2d",
+            "facadeOf": null,
+            "fromBlock": "17217055",
+            "toBlock": "20822020"
+          },
+          {
+            "phase": 7,
+            "address": "0x4a3411ac2948B33c69666B35cc6d055B27Ea84f1",
+            "logSource": "0x4a3411ac2948B33c69666B35cc6d055B27Ea84f1",
+            "facadeOf": null,
+            "fromBlock": "20822021",
+            "toBlock": null
+          }
+        ],
+        "rounds": 322056,
+        "logsOutsideTheirPhaseWindow": 2499,
+        "phaseHandovers": [
+          {
+            "phase": 2,
+            "switchBlock": "10607143",
+            "switchUtc": "2020-08-06T15:45:49Z",
+            "price": 11821.73282583,
+            "roundUpdatedUtc": "2020-08-06T15:02:45Z"
+          },
+          {
+            "phase": 3,
+            "switchBlock": "10926166",
+            "switchUtc": "2020-09-24T15:30:23Z",
+            "price": 10444.92,
+            "roundUpdatedUtc": "2020-09-24T15:24:44Z"
+          },
+          {
+            "phase": 4,
+            "switchBlock": "12187957",
+            "switchUtc": "2021-04-06T19:01:07Z",
+            "price": 58242.25,
+            "roundUpdatedUtc": "2021-04-06T18:55:31Z"
+          },
+          {
+            "phase": 5,
+            "switchBlock": "12453813",
+            "switchUtc": "2021-05-17T19:24:48Z",
+            "price": 44081.3958433,
+            "roundUpdatedUtc": "2021-05-17T19:22:00Z"
+          },
+          {
+            "phase": 6,
+            "switchBlock": "17217055",
+            "switchUtc": "2023-05-08T16:47:47Z",
+            "price": 27899.26684,
+            "roundUpdatedUtc": "2023-05-08T15:55:23Z"
+          },
+          {
+            "phase": 7,
+            "switchBlock": "20822021",
+            "switchUtc": "2024-09-24T17:42:59Z",
+            "price": 63527.10496,
+            "roundUpdatedUtc": "2024-09-24T17:26:23Z"
+          }
+        ],
+        "longestGapWithoutARoundByYear": {
+          "2020": {
+            "maxGapHours": 3,
+            "endingAt": "2020-03-12T13:00:00Z"
+          },
+          "2021": {
+            "maxGapHours": 2,
+            "endingAt": "2021-05-08T23:00:00Z"
+          },
+          "2022": {
+            "maxGapHours": 2,
+            "endingAt": "2022-01-25T23:00:00Z"
+          },
+          "2023": {
+            "maxGapHours": 1,
+            "endingAt": "2023-01-01T00:00:00Z"
+          },
+          "2024": {
+            "maxGapHours": 2,
+            "endingAt": "2024-09-25T15:00:00Z"
+          },
+          "2025": {
+            "maxGapHours": 2,
+            "endingAt": "2025-02-12T07:00:00Z"
+          },
+          "2026": {
+            "maxGapHours": 2,
+            "endingAt": "2026-01-05T20:00:00Z"
+          }
+        },
+        "maxStaleHours": 48,
+        "gapAudit": {
+          "auditGapHours": 4,
+          "gapsAudited": 1,
+          "recoveredGaps": 1,
+          "recoveredRounds": 46,
+          "confirmedSilences": []
+        }
+      },
+      "crossCheck": {
+        "oracle_vs_binance": {
+          "close": {
+            "n": 59251,
+            "meanBps": 1.7,
+            "medianAbsBps": 10.1,
+            "p90AbsBps": 34.1,
+            "p99AbsBps": 79,
+            "maxAbsBps": 974.3,
+            "maxAt": "2020-03-13T01:00:00Z"
+          },
+          "closeByYear": {
+            "2020": {
+              "n": 8766,
+              "meanBps": 5.2,
+              "medianAbsBps": 17.9,
+              "p90AbsBps": 58.6,
+              "p99AbsBps": 127.4,
+              "maxAbsBps": 974.3,
+              "maxAt": "2020-03-13T01:00:00Z"
+            },
+            "2021": {
+              "n": 8747,
+              "meanBps": 8.1,
+              "medianAbsBps": 13.7,
+              "p90AbsBps": 40.1,
+              "p99AbsBps": 85,
+              "maxAbsBps": 446.3,
+              "maxAt": "2021-01-29T08:00:00Z"
+            },
+            "2022": {
+              "n": 8760,
+              "meanBps": 1,
+              "medianAbsBps": 7.6,
+              "p90AbsBps": 26.8,
+              "p99AbsBps": 65.2,
+              "maxAbsBps": 219.7,
+              "maxAt": "2022-06-19T18:00:00Z"
+            },
+            "2023": {
+              "n": 8759,
+              "meanBps": 2.4,
+              "medianAbsBps": 5.6,
+              "p90AbsBps": 18.1,
+              "p99AbsBps": 50.7,
+              "maxAbsBps": 182.5,
+              "maxAt": "2023-03-12T18:00:00Z"
+            },
+            "2024": {
+              "n": 8784,
+              "meanBps": -0.7,
+              "medianAbsBps": 8.2,
+              "p90AbsBps": 25.8,
+              "p99AbsBps": 48.6,
+              "maxAbsBps": 80.9,
+              "maxAt": "2024-03-12T17:00:00Z"
+            },
+            "2025": {
+              "n": 8760,
+              "meanBps": 0.2,
+              "medianAbsBps": 11.9,
+              "p90AbsBps": 31.7,
+              "p99AbsBps": 46.9,
+              "maxAbsBps": 89.4,
+              "maxAt": "2025-03-04T14:00:00Z"
+            },
+            "2026": {
+              "n": 6675,
+              "meanBps": -5.8,
+              "medianAbsBps": 12.2,
+              "p90AbsBps": 32.4,
+              "p99AbsBps": 50.2,
+              "maxAbsBps": 85.7,
+              "maxAt": "2026-04-07T22:00:00Z"
+            }
+          },
+          "low": {
+            "meanBps": 21.5,
+            "medianAbsBps": 18.2,
+            "p99AbsBps": 114.8,
+            "maxAbsBps": 1795.5,
+            "maxAt": "2020-03-12T10:00:00Z"
+          },
+          "hoursWhere_binanceLow_2pctBelow_oracleLow": 90,
+          "hoursWhere_binanceLow_5pctBelow_oracleLow": 19
+        },
+        "oracle_vs_coinbase": {
+          "close": {
+            "n": 59267,
+            "meanBps": 0.7,
+            "medianAbsBps": 9,
+            "p90AbsBps": 33,
+            "p99AbsBps": 79.6,
+            "maxAbsBps": 794.6,
+            "maxAt": "2020-03-12T12:00:00Z"
+          },
+          "closeByYear": {
+            "2020": {
+              "n": 8781,
+              "meanBps": 0.8,
+              "medianAbsBps": 17.9,
+              "p90AbsBps": 59.7,
+              "p99AbsBps": 132.5,
+              "maxAbsBps": 794.6,
+              "maxAt": "2020-03-12T12:00:00Z"
+            },
+            "2021": {
+              "n": 8760,
+              "meanBps": 2.5,
+              "medianAbsBps": 12.5,
+              "p90AbsBps": 38.5,
+              "p99AbsBps": 87.1,
+              "maxAbsBps": 473.6,
+              "maxAt": "2021-01-29T08:00:00Z"
+            },
+            "2022": {
+              "n": 8760,
+              "meanBps": 2.2,
+              "medianAbsBps": 6.9,
+              "p90AbsBps": 25.5,
+              "p99AbsBps": 63.8,
+              "maxAbsBps": 196.2,
+              "maxAt": "2022-06-19T18:00:00Z"
+            },
+            "2023": {
+              "n": 8757,
+              "meanBps": -0.3,
+              "medianAbsBps": 4.4,
+              "p90AbsBps": 15.4,
+              "p99AbsBps": 36.4,
+              "maxAbsBps": 136,
+              "maxAt": "2023-01-21T22:00:00Z"
+            },
+            "2024": {
+              "n": 8784,
+              "meanBps": -0.3,
+              "medianAbsBps": 7,
+              "p90AbsBps": 24.8,
+              "p99AbsBps": 45,
+              "maxAbsBps": 81.6,
+              "maxAt": "2024-04-13T19:00:00Z"
+            },
+            "2025": {
+              "n": 8755,
+              "meanBps": -0.1,
+              "medianAbsBps": 11.4,
+              "p90AbsBps": 31.3,
+              "p99AbsBps": 46.6,
+              "maxAbsBps": 96.6,
+              "maxAt": "2025-03-04T14:00:00Z"
+            },
+            "2026": {
+              "n": 6670,
+              "meanBps": -0.1,
+              "medianAbsBps": 10.3,
+              "p90AbsBps": 30.2,
+              "p99AbsBps": 44.9,
+              "maxAbsBps": 84.5,
+              "maxAt": "2026-04-07T22:00:00Z"
+            }
+          },
+          "low": {
+            "meanBps": 20.6,
+            "medianAbsBps": 17.3,
+            "p99AbsBps": 109.2,
+            "maxAbsBps": 1736.3,
+            "maxAt": "2020-03-12T10:00:00Z"
+          },
+          "hoursWhere_coinbaseLow_2pctBelow_oracleLow": 94,
+          "hoursWhere_coinbaseLow_5pctBelow_oracleLow": 17
+        },
+        "binance_vs_coinbase": {
+          "close": {
+            "n": 59235,
+            "meanBps": -1,
+            "medianAbsBps": 4,
+            "p90AbsBps": 12.9,
+            "p99AbsBps": 30.7,
+            "maxAbsBps": 561.6,
+            "maxAt": "2020-03-13T02:00:00Z"
+          },
+          "closeByYear": {
+            "2020": {
+              "n": 8763,
+              "meanBps": -4.5,
+              "medianAbsBps": 7.6,
+              "p90AbsBps": 20,
+              "p99AbsBps": 43.5,
+              "maxAbsBps": 561.6,
+              "maxAt": "2020-03-13T02:00:00Z"
+            },
+            "2021": {
+              "n": 8747,
+              "meanBps": -5.5,
+              "medianAbsBps": 5.1,
+              "p90AbsBps": 13.3,
+              "p99AbsBps": 28.6,
+              "maxAbsBps": 254.6,
+              "maxAt": "2021-05-19T16:00:00Z"
+            },
+            "2022": {
+              "n": 8760,
+              "meanBps": 1.3,
+              "medianAbsBps": 3.3,
+              "p90AbsBps": 11.5,
+              "p99AbsBps": 24,
+              "maxAbsBps": 315.7,
+              "maxAt": "2022-05-12T06:00:00Z"
+            },
+            "2023": {
+              "n": 8756,
+              "meanBps": -2.6,
+              "medianAbsBps": 2.9,
+              "p90AbsBps": 9.5,
+              "p99AbsBps": 42.2,
+              "maxAbsBps": 160.1,
+              "maxAt": "2023-03-24T11:00:00Z"
+            },
+            "2024": {
+              "n": 8784,
+              "meanBps": 0.4,
+              "medianAbsBps": 3.7,
+              "p90AbsBps": 11.3,
+              "p99AbsBps": 20.3,
+              "maxAbsBps": 38.8,
+              "maxAt": "2024-01-18T20:00:00Z"
+            },
+            "2025": {
+              "n": 8755,
+              "meanBps": -0.3,
+              "medianAbsBps": 3,
+              "p90AbsBps": 7.2,
+              "p99AbsBps": 14.1,
+              "maxAbsBps": 37.2,
+              "maxAt": "2025-10-10T21:00:00Z"
+            },
+            "2026": {
+              "n": 6670,
+              "meanBps": 5.8,
+              "medianAbsBps": 5.5,
+              "p90AbsBps": 13.7,
+              "p99AbsBps": 18.7,
+              "maxAbsBps": 25.7,
+              "maxAt": "2026-02-04T17:00:00Z"
+            }
+          },
+          "low": {
+            "meanBps": -0.8,
+            "medianAbsBps": 4.3,
+            "p99AbsBps": 37.9,
+            "maxAbsBps": 557,
+            "maxAt": "2022-05-12T07:00:00Z"
+          },
+          "hoursWhere_coinbaseLow_2pctBelow_binanceLow": 13,
+          "hoursWhere_coinbaseLow_5pctBelow_binanceLow": 1
+        }
+      }
+    },
+    "steth-eth": {
+      "asset": "STETH/ETH",
+      "file": "steth-eth-1h.json",
+      "coverage": {
+        "oracle": {
+          "from": "2021-08-25T19:00:00Z",
+          "to": "2026-10-06T02:00:00Z",
+          "fromIndex": 14467,
+          "toIndex": 59282,
+          "hours": 44816,
+          "missing": 0
+        }
+      },
+      "oracle": {
+        "proxy": "0x86392dC19c0b719886221c78AB11eb8Cf5c52812",
+        "description": "STETH / ETH",
+        "decimals": 18,
+        "phases": [
+          {
+            "phase": 1,
+            "address": "0x716BB759A5f6faCdfF91F0AfB613133d510e1573",
+            "logSource": "0x716BB759A5f6faCdfF91F0AfB613133d510e1573",
+            "facadeOf": null,
+            "fromBlock": "0",
+            "toBlock": "20435610"
+          },
+          {
+            "phase": 2,
+            "address": "0xC9c8Efa84eaB332d1950e5Ba0a913b090775825c",
+            "logSource": "0xC9c8Efa84eaB332d1950e5Ba0a913b090775825c",
+            "facadeOf": null,
+            "fromBlock": "20435611",
+            "toBlock": null
+          }
+        ],
+        "rounds": 1977,
+        "logsOutsideTheirPhaseWindow": 22,
+        "phaseHandovers": [
+          {
+            "phase": 2,
+            "switchBlock": "20435611",
+            "switchUtc": "2024-08-01T18:52:59Z",
+            "price": 1.0000472264023916,
+            "roundUpdatedUtc": "2024-08-01T07:47:59Z"
+          }
+        ],
+        "longestGapWithoutARoundByYear": {
+          "2021": {
+            "maxGapHours": 25,
+            "endingAt": "2021-12-31T20:00:00Z"
+          },
+          "2022": {
+            "maxGapHours": 25,
+            "endingAt": "2022-12-08T10:00:00Z"
+          },
+          "2023": {
+            "maxGapHours": 25,
+            "endingAt": "2023-03-22T15:00:00Z"
+          },
+          "2024": {
+            "maxGapHours": 25,
+            "endingAt": "2024-03-22T15:00:00Z"
+          },
+          "2025": {
+            "maxGapHours": 25,
+            "endingAt": "2025-06-25T18:00:00Z"
+          },
+          "2026": {
+            "maxGapHours": 24,
+            "endingAt": "2026-01-01T22:00:00Z"
+          }
+        },
+        "maxStaleHours": 72,
+        "gapAudit": {
+          "auditGapHours": 26,
+          "gapsAudited": 1,
+          "recoveredGaps": 0,
+          "recoveredRounds": 0,
+          "confirmedSilences": [
+            {
+              "from": "2024-08-01T02:46:35Z",
+              "to": "2024-08-02T07:48:23Z",
+              "hours": 29,
+              "confirmedEmptyBy": [],
+              "outOfPhaseLogs": 2
+            }
+          ]
+        }
+      },
+      "note": "MARKET price of stETH in ETH (the discount path). wstETH/ETH at market = this x stEthPerToken (lst-rates-1d.json). Aave and most lenders price wstETH through the exchange rate, not this feed."
+    },
+    "lst-rates": {
+      "file": "lst-rates-1d.json",
+      "stepSeconds": 86400,
+      "rates": {
+        "wstethStEthPerToken": {
+          "source": "wstETH.stEthPerToken(): stETH per wstETH (Lido share rate, steps at each oracle report)",
+          "contract": "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+          "firstDay": "2021-02-20T00:00:00Z",
+          "days": 2055,
+          "first": 1.003747699,
+          "last": 1.245626335,
+          "largestDayOverDayDecline": 0
+        },
+        "weethRate": {
+          "source": "weETH.getRate(): eETH (redeemable 1:1 for ETH) per weETH",
+          "contract": "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
+          "firstDay": "2023-11-10T00:00:00Z",
+          "days": 1062,
+          "first": 1.024178173,
+          "last": 1.105149824,
+          "largestDayOverDayDecline": 0
+        }
+      }
+    }
+  },
+  "files": {
+    "btc-usd-1h.json": 4579524,
+    "eth-usd-1h.json": 4043358,
+    "lst-rates-1d.json": 46469,
+    "set-and-forget-ltv.json": 124374,
+    "steth-eth-1h.json": 1399788,
+    "summary.json": 51560,
+    "manifest.json": 33333
+  }
+}

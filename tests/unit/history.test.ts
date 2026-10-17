@@ -35,16 +35,55 @@ const rounds = (...pairs: Array<[number, number]>): PriceRound[] =>
 const anchor: PriceRound = { ts: T0 - 600, price: 2000 }
 
 describe('replayLiquidation', () => {
-  it('SAVED: price back under the borrow cap inside the 8h window — nothing sold', () => {
-    // 76% is under the 77% borrow cap.
+  it('SAVED: price back under the LINE inside the 8h window — nothing sold', () => {
+    // 79% is under the 80% line, so the timer clears at +1h (master: a position at or
+    // under its line is not liquidatable, CdpInternal.sol:329). This used to wait for
+    // the 77% borrow cap and report +3h.
     const r = replayLiquidation(ev, [anchor, ...rounds([1, priceFor(0.79)], [3, priceFor(0.76)])])
     expect(r.verdict).toBe('saved')
     expect(r.membraneSeizedUsd).toBe(0)
     expect(r.membraneLiquidations).toBe(0)
     // The dollar figure the headline prints is the collateral the liquidator took.
     expect(r.actualSeizedUsd).toBe(110_000)
-    expect(r.recoveredAt).toBe(T0 + 3 * HOUR)
+    expect(r.recoveredAt).toBe(T0 + 1 * HOUR)
     expect(r.membraneShare).toBe(0)
+  })
+
+  it('cures at the line, not the borrow cap: a window that sits between them is never seized', () => {
+    // In the band at +1h, then 78.5% — under the 80% line, over the 77% cap — for the
+    // rest of the window. The cap rule kept the timer armed and seized at +8h ('partial').
+    const r = replayLiquidation(ev, [anchor, ...rounds([1, priceFor(0.81)], [2, priceFor(0.785)])])
+    expect(r.verdict).toBe('saved')
+    expect(r.membraneLiquidations).toBe(0)
+    expect(r.recoveredAt).toBe(T0 + 2 * HOUR)
+  })
+
+  it('a round at the anchor price is not a recovery: the episode starts AT its line', () => {
+    // The liquidation proves the position was liquidatable at the anchor price, so a
+    // flat price must not clear the timer (history.ts, CURE AT THE LINE).
+    const r = replayLiquidation(ev, [anchor, ...rounds([1, priceFor(0.8)], [9, priceFor(0.8)])])
+    expect(r.verdict).toBe('partial')
+    expect(r.recoveredAt).toBeUndefined()
+  })
+
+  it('one boundary: after a cure, a return to the anchor price RE-ARMS (and the expiry sells)', () => {
+    // Owner ruling 2026-10-04: the timer starts and ends at the line. Cure at +1h (79%),
+    // then back at exactly the anchor price at +2h — the pinned "at its line" LTV, which
+    // the cure test already counts as liquidatable. Before the fix the arm test was a bare
+    // `> line`, so this LTV (0.8 give or take float noise) neither armed nor cured and the
+    // episode read 'saved' while sitting at a liquidatable price for 70 hours.
+    const r = replayLiquidation(ev, [anchor, ...rounds([1, priceFor(0.79)], [2, priceFor(0.8)])])
+    expect(r.recoveredAt).toBe(T0 + 1 * HOUR)
+    expect(r.membraneLiquidations).toBe(1)
+    expect(r.seizures[0].kind).toBe('expired')
+    expect(r.seizures[0].ts).toBe(T0 + 10 * HOUR) // re-armed at +2h, + the 8h window
+    // An LTV a hair under the line (beyond the 1e-12 noise band) is out of the window.
+    const under = replayLiquidation(ev, [
+      anchor,
+      ...rounds([1, priceFor(0.79)], [2, priceFor(0.8 * (1 - 1e-9))]),
+    ])
+    expect(under.verdict).toBe('saved')
+    expect(under.membraneLiquidations).toBe(0)
   })
 
   it('BROKE: LTV climbs past line × (1 + 4%) — immediate sale, at the repay-to-cap size', () => {
@@ -210,6 +249,36 @@ describe('replayEpisode — the re-liquidation chain', () => {
     // bigger than the one the first event alone would have produced.
     expect(both.membraneSeizedUsd).toBeGreaterThan(justA.membraneSeizedUsd)
     expect(both.verdict).toBe('partial')
+  })
+
+  it('debt floor (owner ruling 2026-10-04): a seizure never leaves 0 < debt < $2,000 on the slice', () => {
+    // $10,000 slice at its 80% line; +10 min the price puts it at 97% (past the 83.2%
+    // break) and then recovers. The partial repay is 10,000 × (0.97 − 0.77)/(0.97 × 0.23)
+    // = $8,964 — it would strand $1,036, under the $2,000 floor, so the call repays ALL:
+    // gross $10,500 against $10,309 of collateral takes all of it and wipes the slice.
+    // Before the fix history.ts sized the repay with no floor: one $9,412.82 seizure and
+    // ~$1,035 of debt left standing.
+    const slice: HistoricLiquidation = { ...ev, collateralSeizedUsd: 11_000, debtRepaidUsd: 10_000 }
+    const r = replayEpisode(
+      [slice],
+      [anchor, { ts: T0 + 600, price: priceFor(0.97) }, ...rounds([1, priceFor(0.6)])],
+    )
+    expect(r.verdict).toBe('broke')
+    expect(r.membraneLiquidations).toBe(1)
+    expect(r.seizures[0].kind).toBe('broke')
+    expect(r.membraneSeizedUsd).toBeCloseTo(10_000 / 0.97, 6) // every dollar of collateral
+    expect(r.wiped).toBe(true)
+    // The floor is a parameter: 0 restores the unfloored partial repay.
+    const noFloor = replayEpisode(
+      [slice],
+      [anchor, { ts: T0 + 600, price: priceFor(0.97) }, ...rounds([1, priceFor(0.6)])],
+      { ...DEFAULT_REPLAY_PARAMS, debtMinimumUsd: 0 },
+    )
+    expect(noFloor.membraneSeizedUsd).toBeCloseTo(
+      ((10_000 * (0.97 - 0.77)) / (0.97 * 0.23)) * 1.05,
+      6,
+    )
+    expect(noFloor.wiped).toBe(false)
   })
 
   it('a wiped position ends the chain and says so', () => {

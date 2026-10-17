@@ -28,7 +28,7 @@ This is the section to read before quoting any number off this page.
 | Recall-before-collateral ordering | **real** | `LiquidationEngine.sol:924-928`, `_step1_5_venueRecall` |
 | **Membrane's per-asset max LTV** | **MODELLED** | see §2 — there is nothing to read |
 | **Membrane's liquidation fee** | **MODELLED** | defaults to the source protocol's own bonus |
-| **Venue recall rate / fast rate** | **MODELLED** | our reading of each venue's exit mechanics; editable |
+| **Venue recall rate** | **MODELLED** | our reading of each venue's exit mechanics; editable (the second "fast rate" input was removed 2026-10-04 by owner ruling — a keeper call's recall is synchronous on master) |
 | The opening demo position | **MOCK** | invented balances, real Aave risk parameters attached |
 
 ### The single most important caveat
@@ -140,7 +140,10 @@ liquidations were full), not the documented close factor.
 
 **Membrane engine.** On breach: compute the partial repay that restores the borrow cap,
 recall from deployment venues first, take only the shortfall out of collateral, and allow
-an 8-hour cure window in which fast venue capital can save the position with nothing sold.
+an 8-hour cure window in which venue capital or a price recovery can save the position with
+nothing sold. The window delays sales; it does not forbid them — a liquidation can still
+happen inside it (a band break, or closing a loan that would otherwise be left under the
+$2,000 debt minimum; owner ruling 2026-10-04).
 
 **Equity is `collateral + deployed − debt` in both runs.** This is load-bearing. An
 earlier version left deployed capital off the balance sheet, which made every recall look
@@ -218,16 +221,16 @@ line saying so — **it does not invent a deployment**. A zero result is explici
 claimed as proof there is none; the capital may be in an unlisted venue, an LP position,
 or on another address.
 
-The `recallRate` / `fastRate` per venue are **modelled** from each venue's exit mechanics
+The `recallRate` per venue is **modelled** from each venue's exit mechanics
 (sUSDe's 7-day cooldown, Aave's utilisation cap, sDAI's on-demand redemption) and are
-editable in the UI, because they are the variable that moves the result most.
+editable in the UI, because it is the variable that moves the result most.
 
 ---
 
 ## 6. Shareability
 
 - URL carries the address and every input that changes the result (`?a=`, `?p=`, `?ltv=`,
-  `?fee=`, `?recall=`, `?fast=`, `?dep=`), so a shared link reproduces the run. Round-trip
+  `?fee=`, `?recall=`, `?dep=`; an old link's `?fast=` is ignored), so a shared link reproduces the run. Round-trip
   is tested.
 - The share card is a 1080×1350 canvas PNG in the Living Typeface palette, the same
   approach as the Builder's card. Its footer always carries the provenance and the

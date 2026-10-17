@@ -10,12 +10,13 @@
 // lib/userAlerts/store.ts editThreshold and docs/USER_ALERTS.md.
 
 import React, { useId, useState } from 'react'
-import { Box, Button, Flex, Text } from '@chakra-ui/react'
+import { Box, Button, Flex, Text, VStack } from '@chakra-ui/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import NextLink from 'next/link'
 
-import { SEMANTIC_COLORS } from '@/config/semanticColors'
+import { SEMANTIC_COLORS, SHADOWS } from '@/config/semanticColors'
 import { SPACING } from '@/config/spacing'
+import { Card } from '@/components/ui/Card'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import type { FeedJson } from '@/lib/userAlerts/feed'
 import { describeThreshold, MAX_ACTIVE_PER_OWNER, type Direction } from '@/lib/userAlerts/metrics'
@@ -24,6 +25,8 @@ import { ErrorLine, LABEL, LineControls, NOTE, PRIMARY, QUIET, RssDisclosure, SE
 import { controlTitle, LINK_WARNING, parseInput, relationLine } from './alertMeAtLogic'
 import {
   CANCEL_CTA,
+  cardState,
+  type CardState,
   EDIT_CTA,
   EDIT_NOTE,
   editBody,
@@ -40,6 +43,29 @@ import {
 const MONO = { fontFamily: TYPOGRAPHY.fontMono, fontSize: TYPOGRAPHY.xs, color: SEMANTIC_COLORS.textSecondary } as const
 
 const RULE = { borderTop: '1px solid', borderColor: SEMANTIC_COLORS.borderSubtle } as const
+
+/**
+ * ALERT CARDS (owner 2026-10-17: "the borders blend into the page"): raised card stock
+ * apart from the page, a strong hairline, the hard print shadow. The state is the
+ * card's EDGE, read before the text: reached = a heavy ink top edge, unchecked = a
+ * dashed hairline, watching = the plain card. Ink only (calm is ink; no green, which
+ * means money; red stays for errors). Never a left-border card.
+ */
+const ALERT_CARD = {
+  bg: SEMANTIC_COLORS.bgCardRaised,
+  borderColor: SEMANTIC_COLORS.borderStrong,
+  boxShadow: SHADOWS.raised,
+  p: SPACING.base,
+  w: '100%',
+} as const
+
+const CARD_EDGE: Record<CardState, Record<string, string>> = {
+  reached: { borderTop: `4px solid ${SEMANTIC_COLORS.textPrimary}` },
+  unchecked: { borderStyle: 'dashed' },
+  watching: {},
+}
+
+const STATE_MARK: Record<CardState, string> = { reached: '●', unchecked: '◌', watching: '○' }
 
 const utc = (iso: string): string => `${iso.slice(0, 16).replace('T', ' ')} UTC`
 
@@ -132,6 +158,7 @@ const ThresholdRow: React.FC<{ t: Threshold; onStop: (id: string) => Promise<boo
   const [failed, setFailed] = useState(false)
   const [editing, setEditing] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  const state = cardState(t)
   const stop = async () => {
     setBusy(true)
     setFailed(false)
@@ -142,14 +169,24 @@ const ThresholdRow: React.FC<{ t: Threshold; onStop: (id: string) => Promise<boo
     }
   }
   return (
-    <Box id={`t-${t.id}`} {...RULE} py={SPACING.md} sx={{ '&:target': { bg: SEMANTIC_COLORS.bgTertiary } }}>
+    <Card
+      id={`t-${t.id}`}
+      variant="elevated"
+      {...ALERT_CARD}
+      {...CARD_EDGE[state]}
+      data-state={state}
+      sx={{ '&:target': { outline: `1px solid ${SEMANTIC_COLORS.textPrimary}`, outlineOffset: '2px' } }}
+    >
       <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textPrimary} sx={{ fontVariantNumeric: 'tabular-nums' }}>
         {editing ? controlTitle(t.metric, t.subject) : t.text}
       </Text>
       {!editing && (
         <>
           <Text {...MONO} mt={SPACING.xs} color={t.crossed ? SEMANTIC_COLORS.textPrimary : SEMANTIC_COLORS.textSecondary}>
-            {t.crossed && t.crossedAt ? `● reached · since ${utc(t.crossedAt)}` : 'not reached'}
+            <Text as="span" aria-hidden mr={SPACING.xs}>
+              {STATE_MARK[state]}
+            </Text>
+            {t.crossed && t.crossedAt ? `reached · since ${utc(t.crossedAt)}` : state === 'unchecked' ? 'not checked this read' : 'not reached'}
             {t.reading.status !== 'unavailable' && t.reading.status !== 'stale' && t.reading.asOf ? ` · as of ${utc(t.reading.asOf)}` : ''}
           </Text>
           {t.note && (
@@ -185,7 +222,7 @@ const ThresholdRow: React.FC<{ t: Threshold; onStop: (id: string) => Promise<boo
       )}
       {note && <ErrorLine id={`${uid}-note`}>{note}</ErrorLine>}
       {failed && <ErrorLine id={`${uid}-stop`}>Could not stop it. Try again.</ErrorLine>}
-    </Box>
+    </Card>
   )
 }
 
@@ -197,12 +234,12 @@ const RadarLink: React.FC = () => (
 )
 
 const Empty: React.FC<{ text: string }> = ({ text }) => (
-  <Box {...RULE} py={SPACING.md}>
+  <Card variant="subtle" {...ALERT_CARD} borderStyle="dashed" boxShadow="none">
     <Text fontFamily={TYPOGRAPHY.fontMono} fontSize={TYPOGRAPHY.small} color={SEMANTIC_COLORS.textSecondary}>
       {text}
     </Text>
     <RadarLink />
-  </Box>
+  </Card>
 )
 
 /** An error is never a dead end: an unknown link leads to Radar; anything else can retry. */
@@ -302,13 +339,18 @@ export const ManageAlerts: React.FC<{ token: string; siteUrl: string }> = ({ tok
 
       {q.data && (
         <>
-          <Text {...LABEL} mt={SPACING.lg} mb={SPACING.xs} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+          <Text {...LABEL} mt={SPACING.lg} mb={SPACING.sm} sx={{ fontVariantNumeric: 'tabular-nums' }}>
             active · {q.data.thresholds.length} of {MAX_ACTIVE_PER_OWNER}
           </Text>
           {q.data.thresholds.length === 0 ? (
             <Empty text="No active alerts on this page." />
           ) : (
-            q.data.thresholds.map((t) => <ThresholdRow key={t.id} t={t} onStop={stopOne} onEdit={editOne} />)
+            // The gap clears the 3px shadow and keeps each card its own object.
+            <VStack spacing={SPACING.base} align="stretch" pr={SPACING.xs} pb={SPACING.xs}>
+              {q.data.thresholds.map((t) => (
+                <ThresholdRow key={t.id} t={t} onStop={stopOne} onEdit={editOne} />
+              ))}
+            </VStack>
           )}
 
           {q.data.events.length > 0 && (

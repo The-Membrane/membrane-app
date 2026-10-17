@@ -49,3 +49,16 @@ export const editOutcome = (status: number, body: EditResult | null): EditOutcom
   if (status === 429) return { phase: 'error', message: 'Too many tries. Wait a minute.' }
   return { phase: 'error', message: 'Could not save it. Try again.' }
 }
+
+/**
+ * Which face an alert card wears on the alerts page, so its state reads before its
+ * text (owner 2026-10-17):
+ *   reached    the line was crossed and has not cleared: a heavy ink top edge.
+ *   unchecked  this read could not check it (feed stale or unavailable): dashed edge.
+ *   watching   checked, not reached: the plain card.
+ * Stopped alerts leave the list, so there is no stopped face; there is no pause.
+ */
+export type CardState = 'reached' | 'unchecked' | 'watching'
+
+export const cardState = (t: { crossed: boolean; reading: { status: string } }): CardState =>
+  t.crossed ? 'reached' : t.reading.status === 'stale' || t.reading.status === 'unavailable' ? 'unchecked' : 'watching'

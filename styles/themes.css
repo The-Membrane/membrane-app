@@ -37,6 +37,11 @@
   --m-border-faint: rgba(236, 230, 216, 0.08);
   /* modal/drawer scrim */
   --m-overlay: rgba(9, 9, 10, 0.72);
+  /* a raised card that must read apart from the page (alert cards): warm lamplight
+     stock, the night-edition paper, well above the near-black page */
+  --m-bg-card-raised: #1a1817;
+  /* the hard print shadow (owner 2026-10-17): offset, never blurred, never a glow */
+  --m-shadow-raised: 3px 3px 0 #4a4238;
 }
 
 :root[data-membrane-theme='light'] {
@@ -65,6 +70,10 @@
   --m-border-faint: rgba(36, 31, 23, 0.1);
   /* scrim stays dark in both themes, lighter pressure on parchment */
   --m-overlay: rgba(28, 26, 20, 0.5);
+  /* raised card: clean card stock on the parchment page */
+  --m-bg-card-raised: #fffdf8;
+  /* the hard print shadow: offset ink, never blurred */
+  --m-shadow-raised: 3px 3px 0 #241f17;
 }
 
 :root[data-membrane-theme='light'] body {

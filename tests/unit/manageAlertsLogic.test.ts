@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CANCEL_CTA,
+  cardState,
   EDIT_CTA,
   EDIT_NOTE,
   editBody,
@@ -58,5 +59,21 @@ describe('editOutcome — every PATCH answer has a state', () => {
     expect(EDIT_NOTE).toBe('Saving starts this alert fresh. Its past alerts stay under Recent.')
     expect(GONE_TEXT).toBe('This alert is no longer active. The list is up to date.')
     for (const s of [EDIT_NOTE, GONE_TEXT]) expect(s).not.toMatch(/\b(feed|threshold|safe|odds)\b/i)
+  })
+})
+
+describe('card state — the face each alert card wears', () => {
+  const t = (crossed: boolean, status: string) => ({ crossed, reading: { status } })
+  it('a crossed alert is reached, even when this read could not check it', () => {
+    expect(cardState(t(true, 'ok'))).toBe('reached')
+    expect(cardState(t(true, 'stale'))).toBe('reached')
+  })
+  it('an uncrossed alert this read could not check is unchecked', () => {
+    expect(cardState(t(false, 'stale'))).toBe('unchecked')
+    expect(cardState(t(false, 'unavailable'))).toBe('unchecked')
+  })
+  it('otherwise it is watching', () => {
+    expect(cardState(t(false, 'ok'))).toBe('watching')
+    expect(cardState(t(false, 'superseded'))).toBe('watching')
   })
 })

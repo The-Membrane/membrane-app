@@ -192,6 +192,13 @@ export const DirectionToggle: React.FC<{ value: Direction; onChange: (d: Directi
   <Segmented label="Direction" options={DIRECTIONS} value={value} onChange={onChange} />
 )
 
+/**
+ * The threshold box fits its content, never the row (owner 2026-10-17: "WAY too
+ * long"): room for a price to the cent ("10000000.00", 11 characters, the BOUNDS
+ * ceiling) or an APR to six decimals, plus the side padding. Mono, so `ch` is exact.
+ */
+export const THRESHOLD_WIDTH = 'calc(11ch + 26px)'
+
 /** The number input with its unit; mono, tabular, right-aligned. */
 export const ThresholdField: React.FC<{
   id: string
@@ -201,7 +208,7 @@ export const ThresholdField: React.FC<{
   onChange: (v: string) => void
   error: FieldError | null
 }> = ({ id, metric, label, value, onChange, error }) => (
-  <Flex flex="1 1 140px" minW={0} align="center" gap={SPACING.xs}>
+  <Flex flex="0 0 auto" maxW="100%" minW={0} align="center" gap={SPACING.xs}>
     {metric === 'price' && (
       <Text {...NOTE} aria-hidden>
         $
@@ -210,6 +217,9 @@ export const ThresholdField: React.FC<{
     <Input
       id={id}
       {...FIELD}
+      w={THRESHOLD_WIDTH}
+      maxW="100%"
+      flex="0 1 auto"
       textAlign="right"
       inputMode="decimal"
       value={value}

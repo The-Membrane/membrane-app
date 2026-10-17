@@ -126,6 +126,13 @@ export const SEMANTIC_COLORS = {
    */
   bgTertiary: 'var(--m-bg-tertiary)', // Raised
 
+  /**
+   * Raised card stock - a card that must read apart from the page at a glance
+   * (alert cards on /alerts). Distinctly lighter than bgPrimary in dark; clean card
+   * stock on parchment in light. Pair with borderStrong and SHADOWS.raised.
+   */
+  bgCardRaised: 'var(--m-bg-card-raised)',
+
   // ============================================
   // BORDER COLORS
   // ============================================
@@ -145,6 +152,14 @@ export const SEMANTIC_COLORS = {
    * Strong borders - emphasized borders, focus states
    */
   borderStrong: 'var(--m-border-strong)',
+} as const
+
+/**
+ * Shadows. Owner ruling 2026-10-17: a raised element may carry a HARD, offset,
+ * non-blurred print shadow, never a blurred glow. One token; reuse it.
+ */
+export const SHADOWS = {
+  raised: 'var(--m-shadow-raised)',
 } as const
 
 /**

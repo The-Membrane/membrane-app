@@ -28,12 +28,17 @@ describe('aaveReserveLendMarket', () => {
       },
       reserveFactorBps: 1_000n,
       deficitRaw: 2_500_000n,
+      // Cash is short of supply − debt by the deficit.
+      cashRaw: 97_500_000_000n,
+      backstop: { slashable: false, pending: 0, offset: 3, stake: 1 },
       block: 123n,
       blockTs: 1_600n,
     })
     expect(m.venue).toBe('aave-reserve')
     expect(m.totalSupply).toBe(1_000_000)
-    expect(m.liquidity).toBe(100_000)
+    expect(m.liquidity).toBe(97_500)
+    expect(m.liquiditySource).toMatch(/^cash/)
+    expect(m.backstop).toEqual({ slashable: false, pending: 0, offset: 3, stake: 1 })
     expect(m.utilization).toBeCloseTo(0.9)
     expect(m.supplyApr).toBeCloseTo(0.045, 12)
     expect(m.borrowApr).toBeCloseTo(0.055, 12)
@@ -42,7 +47,7 @@ describe('aaveReserveLendMarket', () => {
     expect(m.lastUpdate).toBe(1_000)
     expect(m.blockTs).toBe(1_600)
   })
-  it('never reads a negative liquidity, and an unread deficit stays null', () => {
+  it('falls back to supply − debt without cash, never negative; an unread deficit stays null', () => {
     const m = aaveReserveLendMarket({
       symbol: 'X',
       token: USDC,
@@ -51,6 +56,8 @@ describe('aaveReserveLendMarket', () => {
       words: { totalAToken: 5n, totalStableDebt: 3n, totalVariableDebt: 3n, liquidityRate: 0n, variableBorrowRate: 0n, lastUpdateTimestamp: 0 },
       reserveFactorBps: 0n,
       deficitRaw: null,
+      cashRaw: null,
+      backstop: null,
       block: 1n,
       blockTs: null,
     })
@@ -75,20 +82,23 @@ describe('cometLendMarket', () => {
       supplyRatePerSec: perSec(0.04),
       borrowApr: 0.05,
       reservesRaw: -10_000_000n,
+      cashRaw: 440_000_000n,
       lastAccrualTime: 99,
       block: 7n,
       blockTs: 100n,
     })
     expect(m.venue).toBe('comet')
-    expect(m.liquidity).toBe(500)
+    // A withdrawal is paid from the Comet's cash, not supply − borrow (500).
+    expect(m.liquidity).toBe(440)
     expect(m.utilization).toBeCloseTo(0.75)
     expect(m.supplyApr).toBeCloseTo(0.04, 6)
     expect(m.borrowApr).toBe(0.05)
     expect(m.fee).toBeNull()
     expect(m.deficit).toBe(10)
     expect(m.marketName).toBe('cUSDCv3')
-    const ok = cometLendMarket({ ...{ name: 'c', symbol: 'U', token: USDC, decimals: 6, priceUsd: 1, totalSupplyRaw: 1n, totalBorrowRaw: 0n, supplyRatePerSec: null, borrowApr: null, reservesRaw: 5n, lastAccrualTime: 0, block: 1n, blockTs: null } })
+    const ok = cometLendMarket({ ...{ name: 'c', symbol: 'U', token: USDC, decimals: 6, priceUsd: 1, totalSupplyRaw: 1n, totalBorrowRaw: 0n, supplyRatePerSec: null, borrowApr: null, reservesRaw: 5n, cashRaw: null, lastAccrualTime: 0, block: 1n, blockTs: null } })
     expect(ok.deficit).toBe(0)
+    expect(ok.liquidity).toBeCloseTo(1e-6)
     expect(ok.supplyApr).toBeNull()
   })
 })
@@ -182,6 +192,7 @@ describe('oracle gap', () => {
     const ok = gapPoint({ ts: 1_000, block: 1n, oraclePrice: 4040, loan: series(1), collateral: series(4000) })
     expect(ok.gap).toBeCloseTo(0.01, 12)
     expect(gapPoint({ ts: 1_000, block: 1n, oraclePrice: null, loan: series(1), collateral: series(4000) }).why).toBe('no oracle answer')
+    expect(gapPoint({ ts: 1_000, block: 1n, oraclePrice: null, readFailed: true, loan: series(1), collateral: series(4000) }).why).toBe('read failed')
     expect(gapPoint({ ts: 1_000 + 7 * 3600, block: 1n, oraclePrice: 4000, loan: series(1), collateral: series(4000) }).why).toBe('no market price')
     expect(gapPoint({ ts: 1_000, block: 1n, oraclePrice: 4000, loan: series(1, 0.85), collateral: series(4000) }).why).toBe('low confidence')
     expect(priceNear([{ timestamp: 0, price: 1 }, { timestamp: 100, price: 2 }], 90)).toBe(2)

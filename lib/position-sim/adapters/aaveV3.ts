@@ -57,6 +57,57 @@ const poolAbi = [
   },
 ] as const
 
+const poolLiquidityAbi = [
+  // v3.1+: the reserve's real cash (aToken claims minus the deficit and debt are not cash).
+  { type: 'function', name: 'getVirtualUnderlyingBalance', stateMutability: 'view', inputs: [{ name: 'asset', type: 'address' }], outputs: [{ type: 'uint128' }] },
+] as const
+const reserveTokensAbi = [
+  {
+    type: 'function',
+    name: 'getReserveTokensAddresses',
+    stateMutability: 'view',
+    inputs: [{ name: 'asset', type: 'address' }],
+    outputs: [
+      { name: 'aTokenAddress', type: 'address' },
+      { name: 'stableDebtTokenAddress', type: 'address' },
+      { name: 'variableDebtTokenAddress', type: 'address' },
+    ],
+  },
+] as const
+const balanceOfAbi = [
+  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
+] as const
+/** Aave Umbrella: the staked backstop that may be slashed to cover a reserve's deficit. */
+const umbrellaAbi = [
+  { type: 'function', name: 'getPendingDeficit', stateMutability: 'view', inputs: [{ name: 'r', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'getDeficitOffset', stateMutability: 'view', inputs: [{ name: 'r', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'isReserveSlashable', stateMutability: 'view', inputs: [{ name: 'r', type: 'address' }], outputs: [{ type: 'bool' }, { type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'getReserveSlashingConfigs',
+    stateMutability: 'view',
+    inputs: [{ name: 'r', type: 'address' }],
+    outputs: [
+      {
+        type: 'tuple[]',
+        components: [
+          { name: 'umbrellaStake', type: 'address' },
+          { name: 'umbrellaStakeUnderlyingOracle', type: 'address' },
+          { name: 'liquidationFee', type: 'uint256' },
+        ],
+      },
+    ],
+  },
+] as const
+const erc4626Abi = [
+  { type: 'function', name: 'totalAssets', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  { type: 'function', name: 'asset', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+  { type: 'function', name: 'convertToAssets', stateMutability: 'view', inputs: [{ name: 's', type: 'uint256' }], outputs: [{ type: 'uint256' }] },
+] as const
+
+/** Aave V3 mainnet Umbrella (checked 2026-10-17: POOL() is the Aave V3 Pool). */
+export const AAVE_UMBRELLA_MAINNET = '0xD400fc38ED4732893174325693a63C30ee3881a8' as const
+
 const multicall3TsAbi = [
   { type: 'function', name: 'getCurrentBlockTimestamp', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
 ] as const
@@ -373,6 +424,17 @@ const UINT256_MAX = (1n << 256n) - 1n
 
 // ------------------------------------------------------------ a lender's reserve
 
+/** Umbrella's state for one reserve, in the reserve's token. */
+export interface AaveBackstop {
+  slashable: boolean
+  /** Deficit Umbrella is set to cover by slashing (getPendingDeficit). */
+  pending: number
+  /** Deficit Umbrella will not slash for (getDeficitOffset). */
+  offset: number
+  /** The stake's assets, in the reserve's token (null when no stake or not read). */
+  stake: number | null
+}
+
 /** One reserve as PoolDataProvider.getReserveData returns it (the fields a lender needs). */
 export interface AaveReserveWords {
   totalAToken: bigint
@@ -400,6 +462,10 @@ export function aaveReserveLendMarket(input: {
   reserveFactorBps: bigint
   /** Pool.getReserveDeficit, token base units; null when the call does not exist (Spark) or failed. */
   deficitRaw: bigint | null
+  /** The reserve's cash: Pool.getVirtualUnderlyingBalance, else underlying.balanceOf(aToken); null when neither read. */
+  cashRaw: bigint | null
+  /** Umbrella's state for the reserve; null where there is no Umbrella (Spark) or it was not read. */
+  backstop: AaveBackstop | null
   block: bigint
   blockTs: bigint | null
 }): LendMarketState {
@@ -414,7 +480,11 @@ export function aaveReserveLendMarket(input: {
     priceUsd: input.priceUsd,
     totalSupply,
     totalBorrow,
-    liquidity: w.totalAToken > debt ? toNumber(w.totalAToken - debt, decimals) : 0,
+    // The cash a withdrawal is paid from. aToken supply − debt over-counts by the deficit.
+    liquidity:
+      input.cashRaw !== null ? toNumber(input.cashRaw, decimals) : w.totalAToken > debt ? toNumber(w.totalAToken - debt, decimals) : 0,
+    liquiditySource: input.cashRaw !== null ? 'cash (getVirtualUnderlyingBalance / balanceOf the aToken)' : 'aToken supply − debt (cash not read)',
+    backstop: input.backstop,
     utilization: totalSupply > 0 ? Math.min(1, totalBorrow / totalSupply) : 0,
     borrowApr: toNumber(w.variableBorrowRate, RAY_DECIMALS),
     fee: Number(input.reserveFactorBps) / 10_000,
@@ -511,6 +581,8 @@ export interface AaveV3AdapterConfig {
   id: ProtocolId
   label: string
   addressesProvider: `0x${string}`
+  /** The pool's Umbrella, where it has one. */
+  umbrella?: `0x${string}`
 }
 
 /**
@@ -663,6 +735,79 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
           block,
         )
         const blockTs = optional(extra[0])
+        // Cash per reserve: the virtual balance (v3.1+), else the underlying held by the aToken.
+        const cashRes = await mc<unknown>(
+          client,
+          supplied.flatMap((a) => [
+            { address: pool, abi: poolLiquidityAbi, functionName: 'getVirtualUnderlyingBalance', args: [a.token] },
+            { address: dataProvider, abi: reserveTokensAbi, functionName: 'getReserveTokensAddresses', args: [a.token] },
+          ]),
+          block,
+        )
+        const fallbackIdx = supplied.map((a, k) => (optional(cashRes[k * 2]) === null ? k : -1)).filter((k) => k >= 0)
+        const fallbackRes = await mc<bigint>(
+          client,
+          fallbackIdx.map((k) => {
+            const toks = optional(cashRes[k * 2 + 1]) as readonly `0x${string}`[] | null
+            return { address: supplied[k].token, abi: balanceOfAbi, functionName: 'balanceOf', args: [toks?.[0] ?? supplied[k].token] }
+          }),
+          block,
+        )
+        const cashOf = (k: number): bigint | null => {
+          const v = optional(cashRes[k * 2]) as bigint | null
+          if (v !== null) return v
+          const j = fallbackIdx.indexOf(k)
+          return j >= 0 && optional(cashRes[k * 2 + 1]) !== null ? (optional(fallbackRes[j]) as bigint | null) : null
+        }
+        // Umbrella, where the pool has one: is the deficit slashable, and how large is the stake?
+        const backstops: (AaveBackstop | null)[] = supplied.map(() => null)
+        if (config.umbrella) {
+          const u = config.umbrella
+          const ur = await mc<unknown>(
+            client,
+            supplied.flatMap((a) => [
+              { address: u, abi: umbrellaAbi, functionName: 'getPendingDeficit', args: [a.token] },
+              { address: u, abi: umbrellaAbi, functionName: 'getDeficitOffset', args: [a.token] },
+              { address: u, abi: umbrellaAbi, functionName: 'isReserveSlashable', args: [a.token] },
+              { address: u, abi: umbrellaAbi, functionName: 'getReserveSlashingConfigs', args: [a.token] },
+            ]),
+            block,
+          )
+          const stakes = supplied.map((_, k) => ((optional(ur[k * 4 + 3]) as readonly { umbrellaStake: `0x${string}` }[] | null) ?? [])[0]?.umbrellaStake ?? null)
+          const sr = await mc<unknown>(
+            client,
+            stakes.flatMap((st) => (st ? [{ address: st, abi: erc4626Abi, functionName: 'totalAssets' }, { address: st, abi: erc4626Abi, functionName: 'asset' }] : [])),
+            block,
+          )
+          // A stake's asset is a wrapped aToken (waWETH): its totalAssets converted to the reserve token.
+          let si = 0
+          const conv: Call[] = []
+          const convIdx: (number | null)[] = stakes.map((st) => {
+            if (!st) return null
+            const total = optional(sr[si]) as bigint | null
+            const asset = optional(sr[si + 1]) as `0x${string}` | null
+            si += 2
+            if (total === null || asset === null) return null
+            conv.push({ address: asset, abi: erc4626Abi, functionName: 'convertToAssets', args: [total] })
+            return conv.length - 1
+          })
+          const cr = await mc<bigint>(client, conv, block)
+          supplied.forEach((a, k) => {
+            const pending = optional(ur[k * 4]) as bigint | null
+            const offset = optional(ur[k * 4 + 1]) as bigint | null
+            const sl = optional(ur[k * 4 + 2]) as readonly [boolean, bigint] | null
+            if (pending === null || offset === null || sl === null) return
+            const dec = Number(unwrap(cfgRes[active.indexOf(a)], `${tag}: getReserveConfigurationData(${a.symbol})`)[0] as bigint)
+            const ci = convIdx[k]
+            const stakeRaw = ci === null ? null : (optional(cr[ci]) as bigint | null)
+            backstops[k] = {
+              slashable: sl[0],
+              pending: toNumber(pending, dec),
+              offset: toNumber(offset, dec),
+              stake: stakeRaw === null ? null : toNumber(stakeRaw, dec),
+            }
+          })
+        }
         return supplied.map((a, k) => {
           const i = active.indexOf(a)
           const cfg = unwrap(cfgRes[i], `${tag}: getReserveConfigurationData(${a.symbol})`)
@@ -688,6 +833,8 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
             },
             reserveFactorBps: cfg[4] as bigint,
             deficitRaw: optional(extra[1 + k]),
+            cashRaw: cashOf(k),
+            backstop: backstops[k],
             block,
             blockTs,
           })
@@ -709,7 +856,7 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
               ...stamp(
                 'onchain',
                 `${tag} · ${rpcLabel()}`,
-                `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, resolved from PoolAddressesProvider ${config.addressesProvider}. No debt: ${amount} ${a.symbol} supplied (aToken balance from getUserReserveData${a.collateralEnabled ? ', collateral enabled but nothing borrowed' : ', not used as collateral'}). Reserve totals and rates from getReserveData (RAY APRs); reserve factor from getReserveConfigurationData; deficit from Pool.getReserveDeficit${lendMarket.deficit === null ? ' (not read: the call failed or this pool predates v3.3)' : ''}. Every call read block ${block}.`,
+                `Pool ${pool} · data provider ${dataProvider} · oracle ${oracle}, resolved from PoolAddressesProvider ${config.addressesProvider}. No debt: ${amount} ${a.symbol} supplied (aToken balance from getUserReserveData${a.collateralEnabled ? ', collateral enabled but nothing borrowed' : ', not used as collateral'}). Reserve totals and rates from getReserveData (RAY APRs); reserve factor from getReserveConfigurationData; deficit from Pool.getReserveDeficit${lendMarket.deficit === null ? ' (not read: the call reverts on this pool)' : ''}; free liquidity from ${lendMarket.liquiditySource}${config.umbrella ? `; Umbrella ${config.umbrella} (getPendingDeficit, getDeficitOffset, isReserveSlashable, its stake's totalAssets)` : ''}. Every call read block ${block}.`,
               ),
               block: Number(block),
             },
@@ -830,6 +977,7 @@ export const aaveV3Adapter: LendingAdapter = createAaveV3Adapter({
   id: 'aave-v3',
   label: 'Aave V3',
   addressesProvider: AAVE_V3_MAINNET_ADDRESSES_PROVIDER,
+  umbrella: AAVE_UMBRELLA_MAINNET,
 })
 
 export const sparkAdapter: LendingAdapter = createAaveV3Adapter({

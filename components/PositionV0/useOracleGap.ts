@@ -86,9 +86,11 @@ export function useOracleGap(m: MorphoMarketParams | null) {
       const points = days.map((d, i) => {
         const r = reads[i]
         const price = r.status === 'fulfilled' ? oraclePriceOf(r.value as bigint, Number(collDecimals), p.loanDecimals) : null
-        return gapPoint({ ts: d.ts, block: d.block, oraclePrice: price, loan, collateral })
+        // A revert is the oracle's answer (none); anything else is the read failing.
+        const readFailed = r.status === 'rejected' && !/revert/i.test(String((r.reason as Error)?.message ?? r.reason))
+        return gapPoint({ ts: d.ts, block: d.block, oraclePrice: price, loan, collateral, readFailed })
       })
-      return { points, fetchedAt: Date.now(), failedReads: reads.filter((r) => r.status === 'rejected').length }
+      return { points, fetchedAt: Date.now(), failedReads: reads.filter((r) => r.status === 'rejected' && !/revert/i.test(String((r.reason as Error)?.message ?? r.reason))).length }
     },
   })
 }

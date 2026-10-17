@@ -332,7 +332,7 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
   const histWord = state === 'ok' ? `${src}, reported, ${fetched}` : state === 'reading' ? `${src}, reading…` : state === 'none' ? `not read (${req.kind === 'none' ? req.reason : ''})` : `${src}, not read`
   const asOf = v.sinceUpdateS !== null ? ` · as of the last on-chain update, ${ago(v.sinceUpdateS)}` : ''
   const free = v.liquidityUsd >= 1 ? fmtUsd(v.liquidityUsd) : v.liquidityUsd > 0 ? '<$1' : '$0'
-  const onPaper = v.pending ? ' on paper' : ''
+  const onPaper = v.pending && v.venue === 'morpho-market' ? ' on paper' : ''
   const isVault = v.venue === 'morpho-vault'
   const showsMark = state === 'ok' && v.apr.marked && !isVault
 
@@ -364,7 +364,11 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
       <Small>
         Now: on-chain at block {m.block.toLocaleString('en-US')}
         {isVault ? ' (Σ over the withdraw queue of min(vault supply, market liquidity); your exit is the vault’s own maxWithdraw)' : ''}. History:{' '}
-        {isVault ? 'not reported for vaults' : histWord}. Forecast: model pending ({PENDING_MODEL.exit}) — no number is shown.
+        {isVault ? 'not reported for vaults' : histWord}
+        {report?.source === 'DefiLlama yields' && (m.deficit ?? 0) > 0
+          ? ` (its liquidity is supply − borrow, so it includes the ${usdShort((m.deficit ?? 0) * m.priceUsd)} deficit that is not cash)`
+          : ''}
+        . Forecast: model pending ({PENDING_MODEL.exit}) — no number is shown.
       </Small>
     </Section>
   )
@@ -488,7 +492,7 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
             Oracle {mp.oracle.slice(0, 6)}…{mp.oracle.slice(-4)} price() on-chain at one block a day (archive reads
             {gap && gap.failedReads > 0 ? `; ${gap.failedReads} failed, left unobserved` : ''}); market: DefiLlama prices of {mp.collateralSymbol ?? 'the collateral'} and{' '}
             {v.symbol}, reported. Above 0, the oracle prices the collateral higher than the market.{' '}
-            {gap && unobservedLine(gap.points) ? `${unobservedLine(gap.points)}. ` : ''}A point more than 6 h from its price, or under 0.9 confidence, is unobserved, the curator-feed collector’s rules.
+            {gap && unobservedLine(gap.points) ? `${unobservedLine(gap.points)}. ` : ''}A point more than 6 h from its price, or under 0.9 confidence, is unobserved, the curator-feed collector’s rules; DefiLlama’s confidence is per coin, not per day.
             {gap ? ` Fetched ${fmtUtc(gap.fetchedAt)}.` : ''} Forecast: model pending ({PENDING_MODEL.oracle}).
           </Small>
         </>
@@ -508,7 +512,7 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
   const bad = (
     <Section id="lending-bad-debt" key="bad">
       <Kicker>Bad debt</Kicker>
-      <Mono color={v.pending ? NEWS.danger : NEWS.ink}>
+      <Mono color={v.badDebt.danger ? NEWS.danger : NEWS.ink}>
         {v.badDebt.line
           ? `${v.badDebt.line.charAt(0).toUpperCase()}${v.badDebt.line.slice(1)}.`
           : v.venue === 'morpho-market' && state === 'reading'
@@ -520,7 +524,7 @@ export const LenderBlock: React.FC<{ position: ProtocolPosition }> = ({ position
         Source: {v.badDebt.source}
         {v.venue === 'morpho-market' && fetched ? `, ${fetched}` : ''}.{' '}
         {v.venue === 'aave-reserve'
-          ? 'Aave covers a deficit from its own backstop before lenders.'
+          ? 'Umbrella can cover a deficit only while the reserve is slashable, up to its stake; nothing else this read sees covers it.'
           : v.venue === 'comet'
             ? 'Compound covers bad debt from its reserves; below zero, lenders carry it.'
             : 'Bad debt is written off against the market’s supply, so every lender loses pro rata.'}

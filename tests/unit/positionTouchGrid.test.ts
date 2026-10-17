@@ -145,7 +145,8 @@ describe('data age', () => {
   it('counts whole days since the last observed hour and dates STALE one span after it', () => {
     expect(dataAgeDays(t, end + 11 * day + 5)).toBe(11)
     expect(dataAgeDays(t, end - day)).toBe(0)
-    expect(staleOn(t)).toBe(new Date(end + 30 * day).toISOString().slice(0, 10))
+    const iso = new Date(end + 30 * day).toISOString()
+    expect(staleOn(t)).toBe(`${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`)
   })
 
   it('agrees with isStale at the boundary', () => {

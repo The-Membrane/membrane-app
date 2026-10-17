@@ -185,9 +185,11 @@ export function dataAgeDays(t: TouchTable, nowMs: number): number {
   return Math.max(0, Math.floor((nowMs - Date.parse(t.period.dataEnd)) / 86_400_000))
 }
 
-/** The ISO date the table turns STALE: one STALE_AFTER_DAYS span after its last hour. */
+/** When the table turns STALE, "2026-11-05 03:00 UTC": one STALE_AFTER_DAYS span after its last hour. */
 export function staleOn(t: TouchTable): string {
-  return new Date(Date.parse(t.period.dataEnd) + STALE_AFTER_DAYS * 86_400_000).toISOString().slice(0, 10)
+  // The exact instant, to the minute: a date alone would read as midnight, hours early.
+  const iso = new Date(Date.parse(t.period.dataEnd) + STALE_AFTER_DAYS * 86_400_000).toISOString()
+  return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`
 }
 
 /**

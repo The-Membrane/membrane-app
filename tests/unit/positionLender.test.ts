@@ -6,6 +6,7 @@ import {
   REWARDS_MARK,
   aprFromApy,
   aprLine,
+  badDebtWords,
   factsLine,
   lenderView,
   llamaPoolFor,
@@ -248,21 +249,55 @@ describe('pooled venues and vaults', () => {
     )
     expect(r.liquidityUsd.map((p) => p.v)).toEqual([12])
     expect(r.supplyApr.map((p) => p.v)).toEqual([Math.log1p(0.06), Math.log1p(0.04)])
-    expect(r.rewards).toEqual([{ symbol: 'reward tokens', apr: Math.log1p(0.02) }])
+    // apyReward is a reward rate in percent, not a compounded APY: divided by 100 only.
+    expect(r.rewards).toEqual([{ symbol: 'reward tokens', apr: 0.02 }])
     expect(r.utilization).toEqual([])
     expect(() => parseLlamaChart({ status: 'error' }, now)).toThrow(/no data/)
   })
 
-  it('takes Aave bad debt from the chain: a deficit is named but not charged to you, none is said, an unread one is not read', () => {
-    const v = lenderView(aave(50_000), null)!
-    expect(v.pending).toBeNull()
+  const aaveWith = (deficit: number | null, backstop: LendMarketState['backstop'], protocol: 'aave-v3' | 'spark' = 'aave-v3') => {
+    const p = aave(deficit)
+    return { ...p, protocol, lendMarket: { ...p.lendMarket!, backstop } }
+  }
+
+  it('reads an Aave deficit Umbrella cannot slash for as unbacked supply: the last share out cannot be paid', () => {
+    const v = lenderView(aaveWith(24_400, { slashable: false, pending: 0, offset: 25_000, stake: 10_000 }), null)!
+    expect(v.pending!.share).toBeCloseTo(0.0244)
+    expect(v.badDebt.danger).toBe(true)
+    expect(v.badDebt.line).toBe(
+      '2.44% of this reserve’s supply has no backing (an on-chain deficit; Umbrella cannot slash for it); if lenders withdraw in full, the last 2.44% out cannot be paid — ≈ $244 of yours',
+    )
+    expect(v.badDebt.line).not.toMatch(/treasury/)
+    // Aave still pays interest: an unbacked share is not a paper rate.
     expect(v.paper).toBeNull()
-    expect(v.badDebt.line).toBe('reserve deficit: 5.0% of supply ($50.0k); Aave’s own cover (Umbrella, treasury) is first in line, so no share of yours is shown')
-    expect(lenderView(aave(0), null)!.badDebt.line).toBe('no uncovered bad debt')
-    const unread = lenderView(aave(null), null)!
-    expect(unread.badDebt.line).toBeNull()
-    expect(unread.badDebt.source).toMatch(/^not read/)
+  })
+  it('counts only the uncovered part when Umbrella can slash, and none when its stake covers it', () => {
+    const part = lenderView(aaveWith(50_000, { slashable: true, pending: 50_000, offset: 0, stake: 30_000 }), null)!
+    expect(part.pending!.share).toBeCloseTo(0.02)
+    expect(part.badDebt.line).toMatch(/Umbrella’s stake is smaller/)
+    const full = lenderView(aaveWith(50_000, { slashable: true, pending: 50_000, offset: 0, stake: 80_000 }), null)!
+    expect(full.pending).toBeNull()
+    expect(full.badDebt.danger).toBe(false)
+    expect(full.badDebt.line).toBe('reserve deficit: 5.00% of supply; slashable, and Umbrella’s stake covers it')
+  })
+  it('says no deficit, and on Spark that it is not readable rather than reusing the Aave sentence', () => {
+    expect(lenderView(aaveWith(0, null), null)!.badDebt.line).toBe('no reserve deficit')
+    const spark = lenderView(aaveWith(null, null, 'spark'), null)!
+    expect(spark.badDebt.line).toBe('deficit not readable on Spark')
+    expect(badDebtWords(aaveWith(null, null, 'spark'), null).short).toBe('A reserve deficit is not readable on Spark.')
     expect(factsLine(aave(0), aave(0).lendMarket!)).toBe('Aave V3 pool reserve · governed by the DAO · every listed collateral backs it · reserve factor 10%')
+  })
+  it('gives the hero the same words as the block', () => {
+    const p = aaveWith(24_400, { slashable: false, pending: 0, offset: 25_000, stake: 10_000 })
+    expect(badDebtWords(p, null).short).toBe('2.44% of this reserve’s supply has no backing.')
+    expect(badDebtWords(p, null).line).toBe(lenderView(p, null)!.badDebt.line)
+  })
+  it('keeps the "as of last update" clause to Morpho markets: Aave and Compound rates are live', () => {
+    const p = aaveWith(0, null)
+    const old = { ...p, lendMarket: { ...p.lendMarket!, lastUpdate: 0, blockTs: 5 * 86_400 } }
+    const v = lenderView(old, null)!
+    expect(v.sinceUpdateS).toBeNull()
+    expect(v.paper).toBeNull()
   })
 
   it("caps a vault holder's exit at the vault's own maxWithdraw and quotes its reported net rate", () => {
@@ -289,12 +324,17 @@ describe('pooled venues and vaults', () => {
       },
     }
     const p = { ...lender(1_000, vaultMarket), protocol: 'morpho-vault' as const }
-    const report = parseVaultReport({ data: { vaultByAddress: { warnings: [], state: { netApy: 0.0431, allRewards: [] }, historicalState: { netApy: [{ x: 1, y: 0.04 }] } } } }, 1)
+    const report = parseVaultReport(
+      { data: { vaultByAddress: { warnings: [], state: { netApyExcludingRewards: 0.0431, allRewards: [{ asset: { symbol: 'MORPHO' }, supplyApr: 0.01 }] }, historicalState: { netApyWithoutRewards: [{ x: 1, y: 0.04 }] } } } },
+      1,
+    )
     const v = lenderView(p, report)!
     expect(v.withdrawableNow).toBe(600)
     expect(v.withdrawableShare).toBeCloseTo(0.6)
     expect(v.apr.reported).toBeCloseTo(aprFromApy(0.0431), 12)
-    expect(aprLine(v, 'ok')).toBe('4.22% net, reported (after the vault’s fee)')
+    // Base excludes rewards; rewards are their own ‡ line.
+    expect(aprLine(v, 'ok')).toBe(`4.22% net, reported (after the vault’s fee) + 1.00%${REWARDS_MARK} rewards = 5.22%${REWARDS_MARK}`)
+    expect(report.supplyApr[0].v).toBeCloseTo(Math.log1p(0.04), 12)
     expect(v.paper).toBeNull()
     expect(v.badDebt.line).toBeNull()
     expect(reportRequest(p)).toEqual({ kind: 'morpho-vault', address: '0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB' })

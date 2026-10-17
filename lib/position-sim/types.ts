@@ -237,6 +237,10 @@ export interface LendMarketState {
    * comes from its API) or the call failed.
    */
   deficit?: number | null
+  /** Where `liquidity` came from, in words (Aave: cash, or supply − debt when cash was not read). */
+  liquiditySource?: string
+  /** Aave Umbrella's state for the reserve; null/absent where there is none (Spark) or it was not read. */
+  backstop?: { slashable: boolean; pending: number; offset: number; stake: number | null } | null
   /** Morpho Blue: the market's structure (the oracle-health block reads its oracle). */
   morpho?: MorphoMarketParams
   /** A MetaMorpho vault: its markets and this address's exit. */

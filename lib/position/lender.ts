@@ -81,7 +81,7 @@ export interface LenderReport {
   utilization: SeriesPoint[]
   supplyApr: SeriesPoint[]
   borrowApr: SeriesPoint[]
-  /** A vault's net APR now (after its fee), reported; null elsewhere. */
+  /** A vault's net APR now (after its fee, rewards excluded), reported; null elsewhere. */
   netApr: number | null
   fetchedAt: number
 }
@@ -130,8 +130,8 @@ export function vaultReportQuery(address: string, nowS: number): { query: string
     query: `query MembraneLenderVault($address: String!, $chainId: Int!, $from: Int!, $to: Int!) {
   vaultByAddress(address: $address, chainId: $chainId) {
     warnings { type level }
-    state { netApy allRewards { asset { symbol } supplyApr } }
-    historicalState { netApy(${RANGE}) { x y } }
+    state { netApyExcludingRewards allRewards { asset { symbol } supplyApr } }
+    historicalState { netApyWithoutRewards(${RANGE}) { x y } }
   }
 }`,
     variables: { address, chainId: 1, from: Math.floor(nowS - HISTORY_DAYS * 86_400), to: Math.floor(nowS) },
@@ -180,15 +180,16 @@ export function parseVaultReport(body: unknown, fetchedAt: number): LenderReport
     data?: {
       vaultByAddress?: {
         warnings?: { type?: string; level?: string }[] | null
-        state?: { netApy?: number | null; allRewards?: { asset?: { symbol?: string }; supplyApr?: number | null }[] | null } | null
-        historicalState?: { netApy?: Xy } | null
+        state?: { netApyExcludingRewards?: number | null; allRewards?: { asset?: { symbol?: string }; supplyApr?: number | null }[] | null } | null
+        historicalState?: { netApyWithoutRewards?: Xy } | null
       } | null
     }
   }
   if (b?.errors?.length) throw new Error(`Morpho API: ${b.errors.map((e) => e.message ?? '?').join('; ')}`)
   const v = b?.data?.vaultByAddress
   if (!v) throw new Error('Morpho API: no vault in the response')
-  const net = num(v.state?.netApy)
+  // The base excludes rewards: rewards are their own ‡ lines (Morpho's netApy includes them).
+  const net = num(v.state?.netApyExcludingRewards)
   return {
     source: 'Morpho API',
     rewards: (v.state?.allRewards ?? []).map((r) => ({ symbol: r.asset?.symbol ?? '?', apr: num(r.supplyApr) ?? 0 })).filter((r) => r.apr > 0),
@@ -197,7 +198,7 @@ export function parseVaultReport(body: unknown, fetchedAt: number): LenderReport
     realizedBadDebtUsd: null,
     liquidityUsd: [],
     utilization: [],
-    supplyApr: series(v.historicalState?.netApy, aprFromApy),
+    supplyApr: series(v.historicalState?.netApyWithoutRewards, aprFromApy),
     borrowApr: [],
     netApr: net === null ? null : aprFromApy(net),
     fetchedAt,
@@ -227,7 +228,7 @@ export function parseLlamaChart(body: unknown, fetchedAt: number): LenderReport 
   const reward = last?.reward ?? null
   return {
     source: 'DefiLlama yields',
-    rewards: reward !== null && reward > 0 ? [{ symbol: 'reward tokens', apr: aprFromApy(reward / 100) }] : last ? [] : null,
+    rewards: reward !== null && reward > 0 ? [{ symbol: 'reward tokens', apr: reward / 100 }] : last ? [] : null,
     warnings: [],
     badDebtUsd: null,
     realizedBadDebtUsd: null,
@@ -305,6 +306,8 @@ export interface LenderView {
     realized: string | null
     /** Where it was read. */
     source: string
+    /** Lenders carry part of it: printed in the danger ink. */
+    danger: boolean
   }
   /** Seconds since the market's last on-chain update, or null without a block time. */
   sinceUpdateS: number | null
@@ -380,6 +383,114 @@ export function factsLine(p: ProtocolPosition, m: LendMarketState): string {
   }
 }
 
+/**
+ * BAD DEBT, IN WORDS: the one source for the lending block's line and the hero's sentence,
+ * worded per venue from what was read. Pure.
+ *   Morpho market   the API's unrealized bad debt is written off against supply: a share of yours.
+ *   Aave V3         Pool.getReserveDeficit is debt with no backing. Umbrella may cover it only
+ *                   when the reserve is slashable, up to its stake; the rest is uncovered, so
+ *                   aToken claims exceed the reserve's backing by uncovered ÷ supply, and the
+ *                   last lenders out cannot be paid that share. Nothing else is assumed to cover it.
+ *   Spark           getReserveDeficit reverts there: the deficit is not readable.
+ *   Compound V3     reserves below zero are bad debt the reserves no longer cover.
+ *   Vault           not read (each market's bad debt reaches it by allocation).
+ */
+export function badDebtWords(
+  p: ProtocolPosition,
+  report: LenderReport | null,
+): { line: string | null; short: string; danger: boolean; pending: LenderView['pending']; realized: string | null; source: string } {
+  const m = p.lendMarket
+  const leg = p.supplied?.[0]
+  const generic = 'Bad debt in this market is shared by lenders.'
+  if (!m || !leg) return { line: null, short: generic, danger: false, pending: null, realized: null, source: 'not read' }
+  const supplyUsd = m.totalSupply * m.priceUsd
+  const lost = (share: number) => ({ share, yoursUsd: share * leg.valueUsd })
+  const lastOut = (share: number) =>
+    `if lenders withdraw in full, the last ${pct(share, 2)} out cannot be paid — ≈ ${usdShort(share * leg.valueUsd)} of yours`
+  switch (m.venue) {
+    case 'morpho-market': {
+      let line: string | null = null
+      let pending: LenderView['pending'] = null
+      if (report && report.badDebtUsd !== null) {
+        if (report.badDebtUsd > 0 && supplyUsd > 0) {
+          pending = lost(Math.min(1, report.badDebtUsd / supplyUsd))
+          line = `pending write-off: ${pct(pending.share, 1)} of supply ≈ ${usdShort(pending.yoursUsd)} of yours`
+        } else line = 'no unrealized bad debt'
+      }
+      const realized =
+        report && report.realizedBadDebtUsd !== null && report.realizedBadDebtUsd > 0
+          ? `${usdShort(report.realizedBadDebtUsd)} already written off since market creation`
+          : null
+      return { line, short: generic, danger: pending !== null, pending, realized, source: 'Morpho API, reported' }
+    }
+    case 'morpho-vault':
+      return {
+        line: null,
+        short: 'Bad debt in the vault’s markets reaches its holders.',
+        danger: false,
+        pending: null,
+        realized: null,
+        source: 'not read for vaults (each market’s bad debt reaches the vault by its allocation)',
+      }
+    case 'comet': {
+      if (m.deficit === null || m.deficit === undefined)
+        return { line: null, short: 'Compound covers bad debt from its reserves.', danger: false, pending: null, realized: null, source: 'not read (getReserves failed)' }
+      if (m.deficit > 0 && m.totalSupply > 0) {
+        const share = Math.min(1, m.deficit / m.totalSupply)
+        return {
+          line: `Compound’s reserves are below zero by ${pct(share, 2)} of supply; ${lastOut(share)}`,
+          short: `${pct(share, 2)} of this market’s supply has no backing.`,
+          danger: true,
+          pending: lost(share),
+          realized: null,
+          source: 'on-chain, Comet.getReserves (negative = uncovered)',
+        }
+      }
+      return { line: 'no uncovered bad debt', short: 'Compound covers bad debt from its reserves first.', danger: false, pending: null, realized: null, source: 'on-chain, Comet.getReserves (negative = uncovered)' }
+    }
+    case 'aave-reserve': {
+      if (m.deficit === null || m.deficit === undefined) {
+        const spark = p.protocol === 'spark'
+        return {
+          line: spark ? 'deficit not readable on Spark' : 'deficit not read',
+          short: spark ? 'A reserve deficit is not readable on Spark.' : generic,
+          danger: false,
+          pending: null,
+          realized: null,
+          source: spark ? 'Pool.getReserveDeficit reverts on Spark' : 'not read (Pool.getReserveDeficit failed)',
+        }
+      }
+      const src = `on-chain, Pool.getReserveDeficit${m.backstop ? ' and Aave Umbrella' : ' (Umbrella not read)'}`
+      if (!(m.deficit > 0) || !(m.totalSupply > 0))
+        return { line: 'no reserve deficit', short: 'This reserve has no deficit.', danger: false, pending: null, realized: null, source: src }
+      const b = m.backstop
+      const covered = b && b.slashable ? Math.min(m.deficit, b.stake ?? 0) : 0
+      const uncovered = m.deficit - covered
+      if (uncovered <= 0) {
+        const share = m.deficit / m.totalSupply
+        return {
+          line: `reserve deficit: ${pct(share, 2)} of supply; slashable, and Umbrella’s stake covers it`,
+          short: 'This reserve’s deficit is covered by Umbrella’s stake.',
+          danger: false,
+          pending: null,
+          realized: null,
+          source: src,
+        }
+      }
+      const share = Math.min(1, uncovered / m.totalSupply)
+      const why = !b ? 'Umbrella not read' : !b.slashable ? 'Umbrella cannot slash for it' : 'Umbrella’s stake is smaller'
+      return {
+        line: `${pct(share, 2)} of this reserve’s supply has no backing (an on-chain deficit; ${why}); ${lastOut(share)}`,
+        short: `${pct(share, 2)} of this reserve’s supply has no backing.`,
+        danger: true,
+        pending: lost(share),
+        realized: null,
+        source: src,
+      }
+    }
+  }
+}
+
 /** The lender view of a supply-only position. Null when the read carries no market state. */
 export function lenderView(p: ProtocolPosition, report: LenderReport | null): LenderView | null {
   const m = p.lendMarket
@@ -391,56 +502,32 @@ export function lenderView(p: ProtocolPosition, report: LenderReport | null): Le
   const rewardsTotal = rewards ? rewards.reduce((a, r) => a + r.apr, 0) : null
   const total = m.supplyApr !== null && rewardsTotal !== null ? m.supplyApr + rewardsTotal : null
   const liquidityUsd = m.liquidity * m.priceUsd
-  const supplyUsd = m.totalSupply * m.priceUsd
 
-  // Bad debt: the Morpho API's for a market; the chain's for Aave and Compound.
-  let pending: LenderView['pending'] = null
-  let line: string | null = null
-  let realized: string | null = null
-  let source: string
-  if (m.venue === 'morpho-market') {
-    source = 'Morpho API, reported'
-    if (report && report.badDebtUsd !== null) {
-      if (report.badDebtUsd > 0 && supplyUsd > 0) {
-        const share = Math.min(1, report.badDebtUsd / supplyUsd)
-        pending = { share, yoursUsd: share * leg.valueUsd }
-      } else line = 'no unrealized bad debt'
-    }
-    if (report && report.realizedBadDebtUsd !== null && report.realizedBadDebtUsd > 0) {
-      realized = `${usdShort(report.realizedBadDebtUsd)} already written off since market creation`
-    }
-  } else if (m.venue === 'morpho-vault') {
-    source = 'not read for vaults (each market’s bad debt reaches the vault by its allocation)'
-  } else {
-    source = m.venue === 'aave-reserve' ? 'on-chain, Pool.getReserveDeficit' : 'on-chain, Comet.getReserves (negative = uncovered)'
-    if (m.deficit === null || m.deficit === undefined) {
-      source = m.venue === 'aave-reserve' ? 'not read (this pool has no getReserveDeficit, or it failed)' : 'not read (getReserves failed)'
-    } else if (m.deficit > 0 && m.totalSupply > 0) {
-      const share = Math.min(1, m.deficit / m.totalSupply)
-      if (m.venue === 'aave-reserve') {
-        // Aave's deficit is covered first by its own backstop (Umbrella stakers, the
-        // treasury), not written off against suppliers: no share of yours is claimed.
-        line = `reserve deficit: ${pct(share, 1)} of supply (${usdShort(m.deficit * m.priceUsd)}); Aave’s own cover (Umbrella, treasury) is first in line, so no share of yours is shown`
-      } else pending = { share, yoursUsd: share * leg.valueUsd }
-    } else line = 'no uncovered bad debt'
-  }
-  if (pending) line = `pending write-off: ${pct(pending.share, 1)} of supply ≈ ${usdShort(pending.yoursUsd)} of yours`
+  const debt = badDebtWords(p, report)
+  const pending = debt.pending
+  const line = debt.line
+  const realized = debt.realized
+  const source = debt.source
 
-  const sinceUpdateS = m.blockTs === null || m.venue === 'morpho-vault' ? null : Math.max(0, m.blockTs - m.lastUpdate)
+  // Only a Morpho market's rate is "as of its last update": Aave's liquidityRate and a
+  // Comet's getSupplyRate are live at the read block.
+  const sinceUpdateS = m.blockTs === null || m.venue !== 'morpho-market' ? null : Math.max(0, m.blockTs - m.lastUpdate)
 
   // The paper rate: each clause only when the data shows it.
   const full = m.utilization >= PAPER_UTILIZATION && m.venue !== 'morpho-vault'
   const stale = sinceUpdateS !== null && sinceUpdateS > PAPER_STALE_S
+  // Unpaid interest from bad debt is a Morpho-market fact: Aave and Compound still pay it.
+  const unpaid = m.venue === 'morpho-market' ? pending : null
   let paper: string | null = null
-  if (full || pending || stale) {
+  if (full || unpaid || stale) {
     const parts: string[] = []
     if (full && m.borrowApr !== null) {
       const ceiling = m.venue === 'morpho-market' && m.borrowApr >= IRM_CEILING_APR - 0.01 ? ' at the rate model’s ceiling' : ''
       parts.push(`Rate${ceiling} (${pct(m.borrowApr, 0)} APR) because ${pct(m.utilization, 0)} is borrowed.`)
     }
     parts.push(
-      pending
-        ? `Interest accrues on paper; with unrealized bad debt at ${pct(pending.share, 0)} of supply it is not being paid.`
+      unpaid
+        ? `Interest accrues on paper; with unrealized bad debt at ${pct(unpaid.share, 0)} of supply it is not being paid.`
         : 'Interest accrues on paper; it is paid only as borrowers repay.',
     )
     if (sinceUpdateS !== null) parts.push(`Last on-chain update: ${ago(sinceUpdateS)}.`)
@@ -470,7 +557,7 @@ export function lenderView(p: ProtocolPosition, report: LenderReport | null): Le
     },
     paper,
     pending,
-    badDebt: { line, realized, source },
+    badDebt: { line, realized, source, danger: debt.danger },
     sinceUpdateS,
     facts: factsLine(p, m),
     warnings,
@@ -489,7 +576,11 @@ export function shareText(share: number | null): string {
 export function aprLine(v: LenderView, reportState: 'reading' | 'ok' | 'error'): string {
   const a = v.apr
   if (a.base === null) {
-    if (a.reported !== null) return `${pct(a.reported)} net, reported (after the vault’s fee)`
+    if (a.reported !== null) {
+      const net = `${pct(a.reported)} net, reported (after the vault’s fee)`
+      if (!a.marked || a.rewardsTotal === null) return reportState === 'ok' ? `${net} · no rewards reported` : net
+      return `${net} + ${pct(a.rewardsTotal)}${REWARDS_MARK} rewards = ${pct(a.reported + a.rewardsTotal)}${REWARDS_MARK}`
+    }
     return reportState === 'reading' ? 'base APR not read on-chain · reported rate reading…' : 'base APR not read'
   }
   const base = `${pct(a.base)} base`

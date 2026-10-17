@@ -98,7 +98,7 @@ export interface GapPoint {
   oracleUsd: number | null
   marketUsd: number | null
   /** Why a point is unobserved. */
-  why?: 'no oracle answer' | 'no market price' | 'low confidence'
+  why?: 'read failed' | 'no oracle answer' | 'no market price' | 'low confidence'
 }
 
 /** One point from its reads. Pure. */
@@ -107,11 +107,14 @@ export function gapPoint(input: {
   block: bigint
   /** Whole loan per whole collateral; null when price() had no answer. */
   oraclePrice: number | null
+  /** The read itself failed (an endpoint without archive state, a timeout), not the oracle. */
+  readFailed?: boolean
   loan: { confidence: number | null; prices: LlamaPrice[] } | undefined
   collateral: { confidence: number | null; prices: LlamaPrice[] } | undefined
 }): GapPoint {
   const { ts, block } = input
-  if (input.oraclePrice === null || !(input.oraclePrice > 0)) return { ts, block, gap: null, oracleUsd: null, marketUsd: null, why: 'no oracle answer' }
+  if (input.oraclePrice === null || !(input.oraclePrice > 0))
+    return { ts, block, gap: null, oracleUsd: null, marketUsd: null, why: input.readFailed ? 'read failed' : 'no oracle answer' }
   const loanUsd = input.loan ? priceNear(input.loan.prices, ts) : null
   const marketUsd = input.collateral ? priceNear(input.collateral.prices, ts) : null
   if (loanUsd === null || marketUsd === null) return { ts, block, gap: null, oracleUsd: null, marketUsd, why: 'no market price' }

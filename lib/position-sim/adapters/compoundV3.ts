@@ -143,6 +143,9 @@ const cometAbi = [
   },
 ] as const
 
+const cometCashAbi = [
+  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
+] as const
 const multicall3TsAbi = [
   { type: 'function', name: 'getCurrentBlockTimestamp', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
 ] as const
@@ -339,6 +342,8 @@ export function cometLendMarket(input: {
   /** The borrow APR this read already annualised. */
   borrowApr: number | null
   reservesRaw: bigint | null
+  /** The base token the Comet holds (its cash, what a withdrawal is paid from); null when not read. */
+  cashRaw: bigint | null
   lastAccrualTime: number
   block: bigint
   blockTs: bigint | null
@@ -355,7 +360,13 @@ export function cometLendMarket(input: {
     priceUsd: input.priceUsd,
     totalSupply,
     totalBorrow,
-    liquidity: input.totalSupplyRaw > input.totalBorrowRaw ? toNumber(input.totalSupplyRaw - input.totalBorrowRaw, d) : 0,
+    liquidity:
+      input.cashRaw !== null
+        ? toNumber(input.cashRaw, d)
+        : input.totalSupplyRaw > input.totalBorrowRaw
+          ? toNumber(input.totalSupplyRaw - input.totalBorrowRaw, d)
+          : 0,
+    liquiditySource: input.cashRaw !== null ? 'cash (the base token the Comet holds)' : 'supply − borrow (cash not read)',
     utilization: totalSupply > 0 ? Math.min(1, totalBorrow / totalSupply) : 0,
     borrowApr: input.borrowApr,
     fee: null,
@@ -487,11 +498,12 @@ async function readComet(
         { address: comet, abi: cometAbi, functionName: 'getReserves' },
         { address: comet, abi: cometAbi, functionName: 'totalsBasic' },
         { address: MULTICALL3, abi: multicall3TsAbi, functionName: 'getCurrentBlockTimestamp' },
+        { address: baseToken, abi: cometCashAbi, functionName: 'balanceOf', args: [comet] },
         ...(utilization !== null ? [{ address: comet, abi: cometAbi, functionName: 'getSupplyRate', args: [utilization] }] : []),
       ],
       block,
     )
-    const supplyPerSec = utilization !== null ? (optional(lr[5]) as bigint | null) : null
+    const supplyPerSec = utilization !== null ? (optional(lr[6]) as bigint | null) : null
     const amount = toNumber(supplyRaw, baseDecimals)
     supplied = [{ symbol: baseSymbol, address: baseToken, decimals: baseDecimals, amount, priceUsd: basePriceUsd, valueUsd: amount * basePriceUsd }]
     const totals = unwrap(lr[3], `${tag}: totalsBasic()`) as { lastAccrualTime: number | bigint }
@@ -506,6 +518,7 @@ async function readComet(
       supplyRatePerSec: supplyPerSec,
       borrowApr,
       reservesRaw: optional(lr[2]) as bigint | null,
+      cashRaw: optional(lr[5]) as bigint | null,
       lastAccrualTime: Number(totals.lastAccrualTime),
       block,
       blockTs: optional(lr[4]) as bigint | null,

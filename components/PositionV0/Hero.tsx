@@ -8,6 +8,7 @@ import { SPACING } from '@/config/spacing'
 import { NEWS, NEWS_FIGURE, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { fmtAmount, fmtUsd } from '@/lib/position/format'
 import { priceDecimals } from '@/lib/position/liquidation'
+import { badDebtWords } from '@/lib/position/lender'
 
 import { Dagger, Kicker, Mono } from './primitives'
 import { TYPE } from './typeScale'
@@ -39,6 +40,8 @@ interface HeroCopy {
   figure: string | null
   dagger: boolean
   danger: boolean
+  /** The sentence alone in the danger ink (a lender's unbacked share). */
+  sentenceDanger?: boolean
   sub: string
   sentence: string
 }
@@ -165,10 +168,9 @@ function heroCopy(view: PositionView): HeroCopy {
           lead: 'Lending only: no liquidation line',
           figure: fmtUsd(supplied.reduce((s, x) => s + x.valueUsd, 0)),
           sub: `supplied ${supplied.map((x) => x.symbol).join(' + ')} · ${priceSource}`,
-          sentence:
-            view.position.lendMarket?.venue === 'morpho-vault'
-              ? 'Bad debt in the vault’s markets reaches its holders.'
-              : 'Bad debt in this market is shared by lenders.',
+          // One source with the lending block (lib/position/lender.ts badDebtWords).
+          sentence: badDebtWords(view.position, null).short,
+          sentenceDanger: badDebtWords(view.position, null).danger,
         }
       }
       return {
@@ -198,7 +200,7 @@ export const Hero: React.FC<{ view: PositionView }> = ({ view }) => {
         )}
       </Text>
       <Mono color={NEWS.ink2}>{c.sub}</Mono>
-      <Text fontFamily={NEWS_FONT.display} fontStyle="italic" fontSize={TYPE.body} lineHeight={1.4} color={NEWS.ink2}>
+      <Text fontFamily={NEWS_FONT.display} fontStyle="italic" fontSize={TYPE.body} lineHeight={1.4} color={c.sentenceDanger ? NEWS.danger : NEWS.ink2}>
         {c.sentence}
       </Text>
     </Box>

@@ -108,6 +108,43 @@ def nw_variance(d, lag):
     return v
 
 
+def _dot_last(a, b):
+    return np.einsum("...i,...i->...", a, b)
+
+
+def bartlett_variance(d, lag):
+    """nw_variance along the last axis (arrays of runs x days; used by the R8.1 fallback and the go-live gate)."""
+    d = np.asarray(d, float)
+    v = _dot_last(d, d)
+    for l in range(1, min(int(lag), d.shape[-1] - 1) + 1):
+        v = v + 2.0 * (1.0 - l / (lag + 1.0)) * _dot_last(d[..., l:], d[..., :-l])
+    return v
+
+
+def hh_variance(d, lag):
+    """R8.1 Hansen-Hodrick truncated (uniform-weight) long-run variance of the sum of d, uncentred, along the last
+    axis: sum_t d_t^2 + 2 sum_{l=1..L} sum_t d_t d_{t-l}. Can be <= 0 (no positive-definiteness guarantee)."""
+    d = np.asarray(d, float)
+    v = _dot_last(d, d)
+    for l in range(1, min(int(lag), d.shape[-1] - 1) + 1):
+        v = v + 2.0 * _dot_last(d[..., l:], d[..., :-l])
+    return v
+
+
+def lr_variance_v2(d, lag):
+    """R8.1 variance: Hansen-Hodrick at lag L; where that is <= 0, the R7.1 Bartlett variance at the same lag.
+    Returns (variance, fellBack) with the shape of d without its last axis."""
+    hh = hh_variance(d, lag)
+    fb = np.asarray(hh) <= 0
+    if np.any(fb):
+        v = np.where(fb, bartlett_variance(d, lag), hh)
+    else:
+        v = hh
+    if np.ndim(v) == 0:
+        return float(v), bool(fb)
+    return v, fb
+
+
 def band_of(z):
     if z is None:
         return INSUFFICIENT

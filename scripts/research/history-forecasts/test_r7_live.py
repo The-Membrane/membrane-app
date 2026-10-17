@@ -84,6 +84,38 @@ class TestStatistic(unittest.TestCase):
         self.assertGreater(hit_0 / R, 2 * hit_nw / R)
 
 
+class TestR8Kernel(unittest.TestCase):
+    def test_hh_by_hand_and_fallback(self):
+        d = np.array([1.0, -0.5, 2.0, 0.0, -1.0])
+        g1 = 1 * -0.5 + -0.5 * 2 + 2 * 0 + 0 * -1
+        g2 = 1 * 2 + -0.5 * 0 + 2 * -1
+        self.assertAlmostEqual(R7.hh_variance(d, 0), 6.25)
+        self.assertAlmostEqual(R7.hh_variance(d, 1), 6.25 + 2 * g1)
+        self.assertAlmostEqual(R7.hh_variance(d, 2), 6.25 + 2 * g1 + 2 * g2)
+        v, fb = R7.lr_variance_v2(d, 2)
+        self.assertFalse(fb)
+        self.assertAlmostEqual(v, 6.25 + 2 * g1 + 2 * g2)
+        a = np.array([1.0, -1.0, 1.0, -1.0])                               # HH at lag 1 = 4 - 6 < 0
+        self.assertLess(R7.hh_variance(a, 1), 0)
+        v, fb = R7.lr_variance_v2(a, 1)
+        self.assertTrue(fb)
+        self.assertAlmostEqual(v, R7.nw_variance(a, 1))
+        self.assertIsInstance(v, float)
+
+    def test_vectorized_matches_scalar(self):
+        rng = np.random.default_rng(7)
+        D = rng.normal(size=(6, 40))
+        for lag in (0, 1, 6, 29):
+            vb = R7.bartlett_variance(D, lag)
+            vh = R7.hh_variance(D, lag)
+            v2, fb = R7.lr_variance_v2(D, lag)
+            for i in range(6):
+                self.assertAlmostEqual(vb[i], R7.nw_variance(D[i], lag))
+                self.assertAlmostEqual(vh[i], R7.hh_variance(D[i], lag))
+                self.assertAlmostEqual(v2[i], vh[i] if vh[i] > 0 else vb[i])
+                self.assertEqual(bool(fb[i]), bool(vh[i] <= 0))
+
+
 class TestGatingAndBands(unittest.TestCase):
     def test_evidence_gating(self):
         ds = days(30)

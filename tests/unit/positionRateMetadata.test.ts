@@ -268,8 +268,11 @@ describe('collateral protocol interest and variable debt', () => {
       expect(position.collateral[0].supplyAprSource).toContain(
         'posted collateral earns no protocol supply interest',
       )
-      // Its separate lender balance is not enriched using borrow APR × utilization.
-      expect(position.supplied?.[0]).not.toHaveProperty('supplyApr')
+      // An arbitrary IRM cannot qualify a current supplier rate from its average alone.
+      expect(position.supplied?.[0]).toMatchObject({
+        supplyApr: null,
+        supplyAprFeeBasis: 'unknown',
+      })
     },
   )
 })

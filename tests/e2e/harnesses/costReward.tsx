@@ -76,6 +76,35 @@ if (state === 'eth-ratio' || state === 'mixed-comet') {
   if (state === 'mixed-comet')
     p.collateral.push({ ...p.collateral[0], symbol: 'USDC', address: USDC })
 }
+if (state === 'morpho-current' || state === 'morpho-unqualified') {
+  p.protocol = 'morpho-blue'
+  p.venueAddress = '0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb'
+  p.marketId = `0x${'1'.repeat(64)}`
+  p.collateral = []
+  p.supplied = [
+    {
+      symbol: 'USDC',
+      address: USDC,
+      decimals: 6,
+      amount: 20000,
+      priceUsd: 1,
+      valueUsd: 20000,
+      supplyApr: 0.03,
+      supplyAprSource: 'Synthetic qualified fee-net current rate',
+      supplyAprFeeBasis: 'protocol-fee-net',
+    },
+  ]
+  p.debt[0] = {
+    ...p.debt[0],
+    symbol: 'USDC',
+    address: USDC,
+    borrowAprClock: 'market-update-average',
+    currentBorrowApr: state === 'morpho-current' ? 0.07 : null,
+    currentBorrowAprSource: 'Synthetic separately qualified current rate',
+    currentBorrowAprUnavailableReason:
+      state === 'morpho-current' ? null : 'Current debt rate metadata unavailable',
+  }
+}
 const model = buildCostReward(p, RATE_HISTORY, {
   nowMs: Date.now(),
   observedAtMs: Date.now() - (state === 'stale' ? 16 * 60_000 : 12_000),

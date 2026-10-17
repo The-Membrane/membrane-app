@@ -69,8 +69,14 @@ export interface DebtLeg {
   amount: number
   priceUsd: number
   valueUsd: number
-  /** Borrow APR at read time if the protocol exposes it, else null. Never guessed. */
+  /** Protocol rate used for native accrual; its clock is stated below. Null if unavailable. */
   borrowApr: number | null
+  /** Morpho's source IRM view may average the interval since the last market update. */
+  borrowAprClock?: 'instantaneous' | 'market-update-average'
+  /** Separately qualified rate at the observed block, without changing the accrual input. */
+  currentBorrowApr?: number | null
+  currentBorrowAprSource?: string
+  currentBorrowAprUnavailableReason?: string | null
   /** Actual debt regime at this read. Aave's per-user stable rate is classified as fixed; it can rebalance. */
   borrowRateBasis?: 'variable' | 'fixed' | 'mixed' | 'unknown'
 }
@@ -88,6 +94,10 @@ export interface SuppliedLeg {
   amount: number
   priceUsd: number
   valueUsd: number
+  /** Qualified protocol supply APR at the read's block, net of the source market fee. */
+  supplyApr?: number | null
+  supplyAprSource?: string
+  supplyAprFeeBasis?: 'protocol-fee-net' | 'unknown'
 }
 
 /**

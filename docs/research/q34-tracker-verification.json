@@ -1,5 +1,5 @@
 {
-  "combinations": 52,
+  "combinations": 60,
   "checks": [
     {
       "width": 390,
@@ -94,6 +94,20 @@
     },
     {
       "width": 390,
+      "edition": "light",
+      "state": "morpho-current",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 390,
+      "edition": "light",
+      "state": "morpho-unqualified",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 390,
       "edition": "dark",
       "state": "measured",
       "overflow": false,
@@ -184,6 +198,20 @@
       "minimum_control_height": 44.5
     },
     {
+      "width": 390,
+      "edition": "dark",
+      "state": "morpho-current",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 390,
+      "edition": "dark",
+      "state": "morpho-unqualified",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
       "width": 1280,
       "edition": "light",
       "state": "measured",
@@ -276,6 +304,20 @@
     },
     {
       "width": 1280,
+      "edition": "light",
+      "state": "morpho-current",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
+      "edition": "light",
+      "state": "morpho-unqualified",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
       "edition": "dark",
       "state": "measured",
       "overflow": false,
@@ -362,6 +404,20 @@
       "width": 1280,
       "edition": "dark",
       "state": "mixed-comet",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "morpho-current",
+      "overflow": false,
+      "minimum_control_height": 44.5
+    },
+    {
+      "width": 1280,
+      "edition": "dark",
+      "state": "morpho-unqualified",
       "overflow": false,
       "minimum_control_height": 44.5
     }
@@ -379,10 +435,14 @@
   "source_hashes": {
     "components/PositionV0/CostRewardTracker.tsx": "cdd96ba6ddad142116989f4b1ec08e1063e4d138cd81707ff0f7df571d6b20e2",
     "components/PositionV0/useCostReward.ts": "14c3094b2aa5bf4106f4dd029b615a8f905bd32b85907139139f22e59eefa3f0",
-    "lib/position/costReward.ts": "d23d8e374be7777faddfb5f703e9ecab65db305e286ca438f02a22710309718c",
+    "lib/position/costReward.ts": "1deba3c8e654e2e76df2b9cdea36bb1fb03b903ce51bd87864d0d58e75cb94ed",
     "lib/position/rateHistory.ts": "65d3ee07c356d0ae47e02c264b687faf0e4515e4e88f3601b1022cb0e826eeca",
     "lib/position/rateHistory.generated.json": "40da44960edef3847da2acd4399de82ded45d5f7c092a287e0690ba15f0fc2df",
-    "scripts/position/build-rate-history.mjs": "244822ac994ede9a6403c0c25dbc06766139db16f55a632aef9385d93cd6e63d"
+    "scripts/position/build-rate-history.mjs": "244822ac994ede9a6403c0c25dbc06766139db16f55a632aef9385d93cd6e63d",
+    "lib/position/morphoCurrentRates.ts": "5d3cba50a4cc2c417ce19f40e6327734014a079d24a1b4a250359557ab4ebec8",
+    "lib/position-sim/adapters/morphoBlue.ts": "77e292fc83295227fa7d43c2e27f37d77ec5b88c48102818e40231aaf0834138",
+    "lib/position-sim/types.ts": "639027da5f1c56cede294e57711a9c18d6e69d23e95cf1ef36676989dc2eacc3",
+    "tests/e2e/harnesses/costReward.tsx": "bc76ce81ba21d21b71c35f60ecd571a091df50bbd1f19cb6ab3b67496ee63d9e"
   },
   "base_sha": "e5782f3dde51e7c59073a37645f6e565d1a993bf",
   "typecheck": {
@@ -497,9 +557,9 @@
     "normalization": "Only checkout absolute path and line/column are normalized; error file, code and message must remain identical."
   },
   "unit_tests": {
-    "passed": 115,
-    "suites": 8,
-    "last_adapter_only_rerun": 14
+    "passed": 134,
+    "suites": 10,
+    "log_sha256": "26c5c95f5e3558f00bb32e12b1bd997f92b9a4b935eaf8884f1f368a629b83be"
   },
   "lint": {
     "new_file_messages": 0,
@@ -541,7 +601,7 @@
         "other_messages": 0
       },
       "position-sim/adapters/morphoBlue.ts": {
-        "format_messages": 33,
+        "format_messages": 32,
         "other_messages": 0
       },
       "position-sim/types.ts": {
@@ -578,6 +638,16 @@
     {
       "path": "docs/design/q34-tracker-stale-390.png",
       "sha256": "1caa8507cfd5b73126735dc7651eb8ca32d2e1b127ece4e02f0145b829df5360",
+      "fixture_label": "Test harness \u00b7 synthetic position/rates; sourced historical aggregate"
+    },
+    {
+      "path": "docs/design/q34-tracker-morpho-current-390.png",
+      "sha256": "bc13f7ff92aad673a1f1ebcecda515b98e3a146ec3ad05b4680576edb255f7ba",
+      "fixture_label": "Test harness \u00b7 synthetic position/rates; sourced historical aggregate"
+    },
+    {
+      "path": "docs/design/q34-tracker-morpho-unqualified-390.png",
+      "sha256": "b57f95f910c2774d10d30a1a3dccdf67096a4a343fae53bf203ea3577012eaa1",
       "fixture_label": "Test harness \u00b7 synthetic position/rates; sourced historical aggregate"
     }
   ],
@@ -646,5 +716,203 @@
       "component_fixture_limit": "Explicit test-only synthetic positions; real component; no live user source reads"
     },
     "component_source_and_screenshots_unchanged": true
+  },
+  "morpho_source_qualification": {
+    "baseline_head_sha": "c1f90bc26628919abd064b094a77802b1d400181",
+    "scope": "Qualified present-time debt and fee-net supply APR plus observed loan-token USD source price; no forecast, market history or wallet read.",
+    "source_hashes": {
+      "lib/position/morphoCurrentRates.ts": "5d3cba50a4cc2c417ce19f40e6327734014a079d24a1b4a250359557ab4ebec8",
+      "lib/position-sim/adapters/morphoBlue.ts": "77e292fc83295227fa7d43c2e27f37d77ec5b88c48102818e40231aaf0834138",
+      "lib/position-sim/types.ts": "639027da5f1c56cede294e57711a9c18d6e69d23e95cf1ef36676989dc2eacc3",
+      "lib/position/costReward.ts": "1deba3c8e654e2e76df2b9cdea36bb1fb03b903ce51bd87864d0d58e75cb94ed",
+      "tests/unit/morphoCurrentRates.test.ts": "77e23aa3cc0e8a7d6d68103fcc79afa66e356edd99edb512d6f6e9a54f94b867",
+      "tests/unit/morphoSourceQualification.test.ts": "1d0fae9f44cf858307681e96d025dac9cf880e6305a918cec982f403f8bc7627",
+      "tests/e2e/harnesses/costReward.tsx": "bc76ce81ba21d21b71c35f60ecd571a091df50bbd1f19cb6ab3b67496ee63d9e"
+    },
+    "unit_tests": {
+      "passed": 134,
+      "suites": 10,
+      "log_sha256": "26c5c95f5e3558f00bb32e12b1bd997f92b9a4b935eaf8884f1f368a629b83be"
+    },
+    "typecheck": {
+      "base_sha": "e5782f3dde51e7c59073a37645f6e565d1a993bf",
+      "base_errors": 101,
+      "current_errors": 101,
+      "added": [],
+      "removed": [],
+      "final_log_sha256": "6a7c5ff78eb7244fb550ac8d83c7648c97a23eac1000ae0eae79f12adcd87729",
+      "normalization": "Only both checkout roots and line/column are normalized; full multiline diagnostic text matches baseline."
+    },
+    "lint": {
+      "new_files_messages": 0,
+      "other_messages": 0,
+      "new_or_changed_code_messages": 0,
+      "retained_preexisting_formatting": {
+        "lib/position-sim/adapters/morphoBlue.ts": {
+          "head": 33,
+          "current": 32
+        },
+        "tests/unit/morphoBlueAdapter.test.ts": {
+          "head": 67,
+          "current": 67
+        }
+      },
+      "targeted_other_files_messages": 0
+    },
+    "browser": {
+      "combinations": 60,
+      "states": 15,
+      "editions": [
+        "light",
+        "dark"
+      ],
+      "widths": [
+        390,
+        1280
+      ],
+      "overflow": false,
+      "minimum_control_height": 44,
+      "page_errors": [],
+      "actual_route_checks": [
+        {
+          "width": 390,
+          "status": 200,
+          "personal_tracker_absent": true,
+          "overflow": false
+        },
+        {
+          "width": 1280,
+          "status": 200,
+          "personal_tracker_absent": true,
+          "overflow": false
+        }
+      ],
+      "morpho_checks": [
+        "Qualified current cost uses synthetic7% rather than stored average4%.",
+        "Synthetic missing debt-current-rate metadata withholds cost and spread while retaining supplied-rate metadata. This is not an adapter replay-failure case; same-market replay failure withholds both qualified rates."
+      ],
+      "limits": "Explicit synthetic source-response fixtures; browser does not validate a user wallet or RPC reliability. First cold dev-route navigation exceeded30seconds; warmed route passed at both widths."
+    },
+    "public_source_probe": {
+      "chain_id": 1,
+      "market_id": "0xb323495f7e4148be5643a4ea4a8221eef163e4bccfdedc2a6f4696baacbc86cc",
+      "block_number": "26209321",
+      "block_hash": "0x7a4eb787f439c4fb2e77dbb85f023b55c5d9f8a94d7ba94fbab6cd8d913cda47",
+      "block_timestamp": "1792204535",
+      "irm": "0x870ac11d48b15db9a138cf899d20f13f79ba00bc",
+      "stored_target_per_second_wad": "1497933817",
+      "source_average_per_second_wad": "1546339617",
+      "elapsed_seconds": 1944,
+      "replayed_end_target_per_second_wad": "1497983523",
+      "accrued_interest_loan_raw": "87227713",
+      "accrued_utilization_wad": "901076865251226632",
+      "current_borrow_per_second_wad": "1546377315",
+      "current_supply_per_second_wad": "1393404823",
+      "source_fee_wad": "0",
+      "qualified": {
+        "borrowApr": 0.04876655500584,
+        "supplyApr": 0.043942414498128,
+        "reason": null,
+        "replayToleranceWad": 0
+      },
+      "usd_price_oracle": "0x54586be62e3c3580375ae3723c145253060ca0c2",
+      "oracle_base_unit": "100000000",
+      "loan_price_raw": "99987931",
+      "observed_loan_oracle_price_usd": 0.99987931,
+      "receipt_count": 10,
+      "all_eth_calls_pinned": true,
+      "header_hash_before_after_equal": true,
+      "capture_manifest_sha256": "bec4de0020864eeaf23c09cd423fc18c6641fb970d804aa81a3269c122e20b76",
+      "receipt_manifest": [
+        {
+          "name": "chain-id",
+          "path": "01-chain-id.json",
+          "sha256": "b0a7974f7be1f0168a55340e159056f9ed81e591d5d44e9479e3a3d035b17823"
+        },
+        {
+          "name": "pinned-header",
+          "path": "02-pinned-header.json",
+          "sha256": "e94787cea905997875dc540d86df654116c5c239d98d6abb9c08c1ef650688c7"
+        },
+        {
+          "name": "stored-market",
+          "path": "03-stored-market.json",
+          "sha256": "0f402fd53370a83be0d9449fc9b6d10820a6e36b078f479808cd1c4e19ffce05"
+        },
+        {
+          "name": "market-params",
+          "path": "04-market-params.json",
+          "sha256": "3c5ee4dbe4e53348bcb2b2735ee02fb4f78629e3e620abc5edbb4dfa9d8e57c7"
+        },
+        {
+          "name": "stored-target",
+          "path": "05-stored-target.json",
+          "sha256": "5fd85784c372da1c00ccbb507dcfe1c1cbb2369809763a9e4eb1d43bb526cdd0"
+        },
+        {
+          "name": "source-average",
+          "path": "06-source-average.json",
+          "sha256": "e1e70df074ddcc4ca5044ddb4ab1b8a81897f30f65cd4c96e04e61e5918fa56f"
+        },
+        {
+          "name": "aave-price-oracle",
+          "path": "07-aave-price-oracle.json",
+          "sha256": "40bb715d776d17c64513ab88f71e89377388f2a05070d933ea2ef62f34922890"
+        },
+        {
+          "name": "oracle-unit",
+          "path": "08-oracle-unit.json",
+          "sha256": "3f1792d719f422798d657c3616afcbf60c7105912990ba9c86ae991c22e7d1ca"
+        },
+        {
+          "name": "loan-usd-price",
+          "path": "09-loan-usd-price.json",
+          "sha256": "d379bd095a56e1295c217a386aeca69e2a382b4c69e0f351caafa9697ae3f036"
+        },
+        {
+          "name": "pinned-header-confirmation",
+          "path": "10-pinned-header-confirmation.json",
+          "sha256": "24f70ee41fb403786e1410e0c8f2f38379be34ce7d6805e70bcb1e973bc782af"
+        }
+      ],
+      "raw_receipts": "Retained in private research evidence; only bounded measurements and hashes are exported here.",
+      "independent_offline_audit": {
+        "status": "PASS",
+        "product_arithmetic_imported": false,
+        "network_used": false,
+        "receipt_hashes_verified": 10,
+        "checks": [
+          "ABI selectors",
+          "market identity keccak256",
+          "source average calldata uses frozen params/state",
+          "chain and matching before/after pinned headers",
+          "integer average replay difference0",
+          "post-accrual current borrow/supply APR",
+          "source loan-token oracle scaling"
+        ],
+        "private_bundle": "membrane-datasets:validation/q34-morpho-current-rates/",
+        "standalone_verifier": "verify.py",
+        "verifier_sha256": "33d15504c5f5720aa664a4d4047ff8ac97e5c48f7f3b77f07e3e1f83e9595e17",
+        "verification_result_sha256": "b813a6515e53e3e9755a54cbc2ae47c046868723c5dd522f378f6f79742cbffc",
+        "dependencies": "Python standard library only; standalone Ethereum Keccak and integer math."
+      },
+      "limits": [
+        "One market, block and public provider.",
+        "No wallet, historical target or forecast qualification.",
+        "Underlying oracle-feed age is not established by the observation block.",
+        "Independent chain-state inclusion was not proven."
+      ]
+    },
+    "pr_readonly_inspection": {
+      "pr": 117,
+      "head_sha": "c1f90bc26628919abd064b094a77802b1d400181",
+      "base_sha": "e5782f3dde51e7c59073a37645f6e565d1a993bf",
+      "mergeable": true,
+      "reviews": 0,
+      "review_threads": 0,
+      "vercel_status": "success",
+      "actions_runs_at_head": 0,
+      "scope": "Read before this uncommitted patch; no claim that new patch ran hosted checks."
+    }
   }
 }

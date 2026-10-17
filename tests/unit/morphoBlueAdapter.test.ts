@@ -397,7 +397,7 @@ describe('Morpho Blue positions', () => {
     const m = MARKETS[NEW]
     const interest = wMulDown(m.words[2], taylor(m.rate as bigint, TS - m.words[4]))
     const supplied = (shares * (m.words[0] + interest + 1n)) / (m.words[1] + 10n ** 6n)
-    expect(lent?.supplied).toEqual([{ symbol: 'USDC', address: USDC, decimals: 6, amount: Number(supplied) / 1e6, priceUsd: 1, valueUsd: Number(supplied) / 1e6 }])
+    expect(lent?.supplied).toMatchObject([{ symbol: 'USDC', address: USDC, decimals: 6, amount: Number(supplied) / 1e6, priceUsd: 1, valueUsd: Number(supplied) / 1e6, supplyApr: null, supplyAprFeeBasis: 'unknown' }])
     // An idle market (no collateral token, no IRM): no oracle is read, the rate is 0, no accrual.
     expect(idle).toMatchObject({ label: 'Morpho · USDC idle market', status: 'supply-only' })
     expect(idle?.supplied?.[0].amount).toBe(Number((9_000_000_000_000_000n * (9_000_000_000n + 1n)) / (9_000_000_000_000_000n + 10n ** 6n)) / 1e6)

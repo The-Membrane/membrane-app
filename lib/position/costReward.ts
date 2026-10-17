@@ -103,20 +103,29 @@ export function rateContributions(
     p.usdValuationBasis === 'source-oracle' ? notional(amount, price) : null
   const debt: RateContribution[] = p.debt
     .filter((d) => d.amount !== 0)
-    .map((d, index) => ({
-      id: `debt:${d.address.toLowerCase()}:${index}`,
-      symbol: d.symbol,
-      tokenAddress: d.address,
-      side: 'cost',
-      component: 'borrow',
-      assignment: 'debt',
-      notionalUsd: dollarValue(d.amount, d.priceUsd),
-      currentApr: finite(d.borrowApr) ? d.borrowApr : null,
-      source: `${p.label} borrow APR · ${d.borrowRateBasis ?? 'unknown'} rate basis`,
-      missingReason: finite(d.borrowApr) ? null : 'Borrow rate unavailable',
-      // A reserve's variable-rate history never describes a fixed or blended user tranche.
-      history: d.borrowRateBasis === 'variable' ? seriesFor(p, d.address, 'borrow', table) : null,
-    }))
+    .map((d, index) => {
+      const currentRate =
+        d.borrowAprClock === 'market-update-average' ? d.currentBorrowApr : d.borrowApr
+      return {
+        id: `debt:${d.address.toLowerCase()}:${index}`,
+        symbol: d.symbol,
+        tokenAddress: d.address,
+        side: 'cost',
+        component: 'borrow',
+        assignment: 'debt',
+        notionalUsd: dollarValue(d.amount, d.priceUsd),
+        currentApr: finite(currentRate) ? currentRate : null,
+        source:
+          d.borrowAprClock === 'market-update-average'
+            ? (d.currentBorrowAprSource ?? 'Current borrow rate unavailable')
+            : `${p.label} borrow APR · ${d.borrowRateBasis ?? 'unknown'} rate basis`,
+        missingReason: finite(currentRate)
+          ? null
+          : (d.currentBorrowAprUnavailableReason ?? 'Borrow rate unavailable'),
+        // A reserve's variable-rate history never describes a fixed or blended user tranche.
+        history: d.borrowRateBasis === 'variable' ? seriesFor(p, d.address, 'borrow', table) : null,
+      }
+    })
   const income: RateContribution[] = []
   for (const [assignment, legs] of [
     ['collateral', p.collateral],

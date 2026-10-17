@@ -114,6 +114,13 @@ DECISIONS = {
                "e-process, null check and power report on x_t = d_t / c_t, c_t = mean over the issue day's rows of "
                "|p - p'| * max(p + p', 2 - p - p') (the largest |d_t| any outcomes allow, known at issue; x_t = 0 "
                "when c_t = 0). The registered statistic d_t stays the live test.",
+    "R113-12": "D-R11.3c (replaces the 3d mean in R113-8 for the live test): T = 3d passes iff max_r K^r >= 3/alpha "
+               "at any of the first 730 issue days (statistic max_r K^r / 3 >= 1/alpha). Each K^r is aGRAPA on its own "
+               "mod-3 subsequence (own past only), a test supermartingale in its own filtration; Ville per r plus a "
+               "union bound over 3 gives alpha under any stopping rule. 6h and 1d are single sequences (each bet "
+               "resolves by the next issue) and are unchanged. Supplementary null check (cmd null3d): the R10.5 3d pair "
+               "only (the R11.3 pairs left the family, D-R11.3b), R113-9 procedure, fresh default_rng(20261118); also "
+               "power, the withdrawn mean (record) and the scaled variant (reported only).",
     "R113-10": "Reported only: the unflipped dev e-process on 730-day windows starting every 30 issue days (share "
                "reaching 1/alpha, final and max log K), and the capped bound sum log(1 + d/2) (the best constant "
                "bet), per pair; frozen-point in-sample statistics; 7d-30d; per asset; per year; 2026Q2; delta paths; "
@@ -297,9 +304,13 @@ def day_ordinals(days):
     return arr.astype("datetime64[D]").astype(np.int64)
 
 
-def eprocess_path(days, d, T, cap=BET_CAP):
-    """Statistic path over issue days (sorted). days: issue dates (datetime64 / str / Timestamp). For T = 3d the mean of
-    three aGRAPA processes on the (date ordinal) mod 3 subsequences; each process holds its wealth on other days."""
+def eprocess_path(days, d, T, cap=BET_CAP, combine="max3"):
+    """Statistic path over issue days (sorted). days: issue dates (datetime64 / str / Timestamp). For T = 3d, three
+    aGRAPA processes on the (date ordinal) mod 3 subsequences; each holds its wealth on other days.
+    combine="max3" (D-R11.3c, the live test): max_r K^r / 3, so statistic >= 1/alpha iff some K^r >= 3/alpha. Each K^r
+    is a test supermartingale in its own filtration, Ville bounds each crossing by alpha/3, and a union bound gives alpha
+    under any stopping rule. combine="mean" (withdrawn R11.3c construction, kept for the record): their mean, whose
+    validity at arbitrary stopping times is not shown (the three do not share one filtration)."""
     d = np.asarray(d, float)
     if T != "3d":
         return agrapa_wealth(d, cap)
@@ -313,22 +324,22 @@ def eprocess_path(days, d, T, cap=BET_CAP):
             path[np.where(m)[0]] = K
             path = pd.Series(path).ffill().fillna(1.0).to_numpy()
             W[r] = path
-    return W.mean(axis=0)
+    return W.max(axis=0) / 3.0 if combine == "max3" else W.mean(axis=0)
 
 
-def eprocess_decision(days, d, T, alpha=ALPHA_LIVE, max_days=MAX_LIVE_DAYS):
+def eprocess_decision(days, d, T, alpha=ALPHA_LIVE, max_days=MAX_LIVE_DAYS, combine="max3"):
     days = list(days)[:max_days]
     d = np.asarray(d, float)[:max_days]
     if len(d) == 0:
         return {"n_days": 0, "K_max": 1.0, "K_last": 1.0, "crossed": False, "cross_day": None}
-    K = eprocess_path(days, d, T)
+    K = eprocess_path(days, d, T, combine=combine)
     hit = np.where(K >= 1.0 / alpha)[0]
     return {"n_days": int(len(d)), "K_max": float(K.max()), "K_last": float(K[-1]), "crossed": bool(len(hit)),
             "cross_day": (int(hit[0]) + 1) if len(hit) else None}
 
 
 def null_false_pass(days, d, T, alpha=ALPHA_LIVE, reps=NULL_REPS, seed=NULL_SEED, block=NULL_BLOCK,
-                    window=MAX_LIVE_DAYS):
+                    window=MAX_LIVE_DAYS, combine="max3"):
     """Block sign-flip null on a dev daily series: share of reps whose e-process reaches 1/alpha within the window."""
     rng = np.random.default_rng(seed)
     days = day_ordinals(days).astype("datetime64[D]")
@@ -342,7 +353,7 @@ def null_false_pass(days, d, T, alpha=ALPHA_LIVE, reps=NULL_REPS, seed=NULL_SEED
         dy = days[s:s + w]
         blk = ((dy - dy[0]) / np.timedelta64(1, "D")).astype(int) // block
         signs = rng.choice([-1.0, 1.0], size=int(blk.max()) + 1)
-        K = eprocess_path(dy, dd * signs[blk], T)
+        K = eprocess_path(dy, dd * signs[blk], T, combine=combine)
         km = float(K.max())
         kmax.append(km)
         hits += km >= 1.0 / alpha
@@ -354,14 +365,14 @@ def null_false_pass(days, d, T, alpha=ALPHA_LIVE, reps=NULL_REPS, seed=NULL_SEED
             "Kmax_max": float(kmax.max())}
 
 
-def power_report(days, d, T, alpha=ALPHA_LIVE, step=POWER_STEP, window=MAX_LIVE_DAYS):
+def power_report(days, d, T, alpha=ALPHA_LIVE, step=POWER_STEP, window=MAX_LIVE_DAYS, combine="max3"):
     days = list(days)
     d = np.asarray(d, float)
     n = len(d)
     starts = list(range(0, max(n - window, 0) + 1, step)) if n >= window else [0]
     res = []
     for s in starts:
-        r = eprocess_decision(days[s:s + window], d[s:s + window], T, alpha, window)
+        r = eprocess_decision(days[s:s + window], d[s:s + window], T, alpha, window, combine)
         res.append(r)
     logK = np.log([r["K_last"] for r in res])
     logKmax = np.log([r["K_max"] for r in res])
@@ -695,12 +706,61 @@ def cmd_run(out):
     print("\n".join(log))
 
 
+def cmd_null3d(out):
+    """D-R11.3c supplementary run: the max3 construction on the R10.5 3d pair (no fit: R10.5 is a frozen rule)."""
+    import r105_recal as R105
+    path = os.path.join(out, "frozen-r113c-config.json")
+    if not os.path.exists(path):
+        os.makedirs(out, exist_ok=True)
+        created = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        cfg = frozen_config(created)
+        cfg["schema"] = "q26-r113/frozen-config-null3d/1"
+        cfg["item"] = "Q26 R11.3c D-R11.3c supplementary null check (3d max3 construction, R10.5 pair)"
+        h = write_json(path, cfg)
+        with open(path + ".sha256", "w") as f:
+            f.write(f"{h}  frozen-r113c-config.json\n")
+        print("frozen config", h, created, "(rerun the command to score)")
+        return
+    cfg = json.load(open(path))
+    want = open(path + ".sha256").read().split()[0]
+    if sha256_file(path) != want:
+        raise SystemExit("STOP: frozen config hash")
+    now = frozen_config(cfg["createdUTC"])
+    if now["code"]["sha"] != cfg["code"]["sha"] or now["inputs"] != cfg["inputs"]:
+        raise SystemExit("STOP: code or inputs differ from the frozen config")
+    d = load_dev(cfg["displayed"])
+    d["p_r105"] = R105.apply_all(d, R105_W, R105_KAPPA)
+    rows = d[(~d["burnin"]) & (~d["inQ2"]) & (d["T"] == "3d")]
+    days, dd_ = daily_diff(rows, "p", "p_r105")
+    dx, xx = daily_scaled(rows, "p", "p_r105")
+    res = {"schema": "q26-r113/results-null3d/1", "configSha256": want, "pair": "R10.5 frozen rung x 3d",
+           "construction": DECISIONS["R113-12"], "alpha": ALPHA_LIVE,
+           "null_max3": null_false_pass(days, dd_, "3d", combine="max3"),
+           "power_max3": power_report(days, dd_, "3d", combine="max3"),
+           "null_mean_withdrawn": null_false_pass(days, dd_, "3d", combine="mean"),
+           "scaledReportedOnly": {"null_max3": null_false_pass(dx, xx, "3d", combine="max3"),
+                                  "power_max3": power_report(dx, xx, "3d", combine="max3")}}
+    rh = write_json(os.path.join(out, "results-null3d.json"), res)
+    log = [f"config {want} created {cfg['createdUTC']} code {cfg['code']['sha']}"]
+    for k in ["null_max3", "null_mean_withdrawn"]:
+        r = res[k]
+        log.append(f"{k}: false-pass {r['false_pass']}/{r['reps']} ok={r['ok']} Kstat q99 {r['Kmax_q99']:.3f}")
+    r = res["scaledReportedOnly"]["null_max3"]
+    log.append(f"scaled null_max3 (reported): {r['false_pass']}/{r['reps']}; power share "
+               f"{res['scaledReportedOnly']['power_max3']['share_crossed']:.3f}")
+    log.append(f"power_max3 share {res['power_max3']['share_crossed']:.3f} logK max {res['power_max3']['logK_max_max']:.3f}")
+    log.append(f"results-null3d.json {rh}")
+    with open(os.path.join(out, "run-log-null3d.txt"), "w") as f:
+        f.write("\n".join(log) + "\n")
+    print("\n".join(log))
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["freeze", "run"])
+    ap.add_argument("cmd", choices=["freeze", "run", "null3d"])
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
-    cmd_freeze(a.out) if a.cmd == "freeze" else cmd_run(a.out)
+    {"freeze": cmd_freeze, "run": cmd_run, "null3d": cmd_null3d}[a.cmd](a.out)
 
 
 if __name__ == "__main__":

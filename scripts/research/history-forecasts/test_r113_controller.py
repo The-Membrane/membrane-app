@@ -100,11 +100,26 @@ def test_eprocess_3d_subsequences():
     days = pd.date_range("2027-01-01", periods=9, freq="D").strftime("%Y-%m-%d").tolist()
     d = np.full(9, 0.4)
     K = M.eprocess_path(days, d, "3d")
-    # each subsequence bets 0 on its first issue, so the mean is 1 for the first three days
-    assert np.allclose(K[:3], 1.0)
+    # each subsequence bets 0 on its first issue, so the statistic is 1/3 for the first three days
+    assert np.allclose(K[:3], 1.0 / 3)
     assert K[-1] > 1.0
     K1 = M.agrapa_wealth(d[::3])
-    assert np.isclose(K[-1], K1[-1])                                 # symmetric subsequences, equal wealth
+    assert np.isclose(K[-1], K1[-1] / 3)                             # max3: max_r K^r / 3
+    Km = M.eprocess_path(days, d, "3d", combine="mean")
+    assert np.isclose(Km[-1], K1[-1])                                # withdrawn mean, kept for the record
+
+
+def test_max3_valid_on_overlapping_true_null():
+    # overlapping 3-day outcomes under a true null: d_t = mean of shocks revealed after issue t (days t+1..t+3)
+    rng = np.random.default_rng(7)
+    days = pd.date_range("2027-01-01", periods=730, freq="D").strftime("%Y-%m-%d").tolist()
+    hits = 0
+    reps = 300
+    for _ in range(reps):
+        e = rng.choice([-0.9, 0.9], size=733)
+        d = (e[1:731] + e[2:732] + e[3:733]) / 3
+        hits += M.eprocess_decision(days, d, "3d", alpha=0.05)["crossed"]
+    assert hits / reps <= 0.05 + 3 * np.sqrt(0.05 * 0.95 / reps)
 
 
 def test_null_false_pass_small_on_weak_signal():
@@ -184,7 +199,7 @@ def test_pipeline_synthetic(tmp_path, monkeypatch):
     monkeypatch.setattr(M, "git_sha", lambda: ("f" * 40, False))
     monkeypatch.setattr(M, "NULL_REPS", 20)
     monkeypatch.setattr(M.null_false_pass, "__defaults__",
-                        (M.ALPHA_LIVE, 20, M.NULL_SEED, M.NULL_BLOCK, M.MAX_LIVE_DAYS))
+                        (M.ALPHA_LIVE, 20, M.NULL_SEED, M.NULL_BLOCK, M.MAX_LIVE_DAYS, "max3"))
     out = tmp_path / "out"
     M.cmd_freeze(str(out))
     cfg = json.loads((out / "frozen-r113-config.json").read_text())

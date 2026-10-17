@@ -27,6 +27,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import q26_live_common as C  # noqa: E402
+import r7_live as R7  # noqa: E402  (Q26 round 7 R7.1 traffic lights; q26_live_common puts MODEL_DIR on sys.path)
 
 SCHEMA = "q26-touch-live/scores/1"
 
@@ -62,6 +63,14 @@ DECISIONS = [
     "displayed), over every resolved row that carries its p (as for the shipped rung before); the A6 shipped rung is "
     "still scored and its values are reported beside as 'shippedA6' (never deciding). Rows without 'displayed' are "
     "unchanged and decide as before.",
+]
+
+DECISIONS_R7 = [
+    "D-R7T1 (Q26_ROUND7_PREREG.md R7.1) touch traffic-light units: per (asset, T, level) on the displayed rung of the "
+    "cell's latest resolved row (the A6 shipped rung where no row is displayed), over every resolved row that carries "
+    "its p, all regimes pooled (the displayed rung does not depend on the regime); pooled per (asset, T) over levels. "
+    "Comparison rows: BSS of that rung vs rung (a) (plain history) and vs the previous model's shipped rung (A5: "
+    "'a5'.shipped on A6 rows, 'shipped' on A5 rows; A3 rows carry none).",
 ]
 
 
@@ -206,6 +215,51 @@ def summarize(outcomes, rows, pending, now):
                         "live results never retune a model."}
 
 
+def prev_model_p(o):
+    """p of the previous model's shipped rung (A5) on an outcome row, or None (R7.1 comparison row)."""
+    if isinstance(o.get("a5"), dict):
+        r = o["a5"].get("shipped")
+    elif o.get("model") == "A5":
+        r = o.get("shipped")
+    else:
+        r = None
+    return o["p"].get(r) if r else None
+
+
+def traffic_lights(outcomes):
+    """R7.1 lights per (asset, T, level) on the displayed rung (else shipped) of the cell's latest resolved row, and
+    pooled per (asset, T) over levels; regimes pooled (DECISION D-R7T1)."""
+    res = [o for o in outcomes if o["status"] == "resolved"]
+    lights = {}
+    for a in C.ASSETS:
+        for T in C.HORIZONS_H:
+            TL = C.T_LABEL[T]
+            pool = []
+            for k in C.LEVELS[a]:
+                kk = repr(float(k))
+                rs = [o for o in res if o["asset"] == a and o["T"] == TL and repr(float(o["k"])) == kk]
+                if not rs:
+                    continue
+                latest = max(rs, key=lambda o: (o["date"], int(o["issuedAt"])))
+                rung = latest.get("displayed") or latest["shipped"]
+                rs = [o for o in rs if o["p"].get(rung) is not None]
+                pool += [(o, rung) for o in rs]
+                lights[f"{a}|{TL}|{kk}"] = _light(f"{a}|{TL}|{kk}", [(o, rung) for o in rs], T)
+            if pool:
+                lights[f"{a}|{TL}|pooled"] = _light(f"{a}|{TL}|pooled", pool, T)
+                lights[f"{a}|{TL}|pooled"]["rung"] = sorted({r for _, r in pool})
+    return lights
+
+
+def _light(key, pairs, T):
+    nan = float("nan")
+    p = [o["p"][r] for o, r in pairs]
+    refs = {"bss_vs_a": [o["p"].get("a") if o["p"].get("a") is not None else nan for o, _ in pairs],
+            "bss_vs_previousModelA5": [prev_model_p(o) if prev_model_p(o) is not None else nan for o, _ in pairs]}
+    return R7.light(key, [o["date"] for o, _ in pairs], [o["y"] for o, _ in pairs], p, T, refs=refs,
+                    rung=pairs[0][1] if pairs else None)
+
+
 def score(out_root, rpc, http_get=None, clock=time.time, code=None, log=print):
     now = int(clock())
     ldir = C.live_dir(out_root)
@@ -239,13 +293,15 @@ def score(out_root, rpc, http_get=None, clock=time.time, code=None, log=print):
                                      for o in new).encode())
     allo = done + new
     summ = summarize(allo, rows, pending, now)
+    traffic = R7.traffic_block(traffic_lights(allo), os.path.join(sdir, R7.WEEKLY_FILE), now,
+                               code_commit=(code or {}).get("commit"), append=C.append_bytes)
     doc = {"schema": SCHEMA, "prereg": C.PREREG, "computedAt": now, "computedAtIso": C.iso(now), "code": code,
            "chainVerified": True, "issueFiles": files, "storeUpdates": {k: v for k, v in updates.items() if k != "rpc"},
            "storeUpdateErrors": errors, "rpc": updates.get("rpc"),
            "roundCoverage": {a: (C.iso(c) if c else None) for a, c in coverage.items()},
            "newOutcomes": len(new), "nOutcomes": len(allo), "nPending": len(pending),
            "pendingReasons": {why: sum(p["reason"] == why for p in pending) for why in {p["reason"] for p in pending}},
-           "decisions": DECISIONS, **summ}
+           "decisions": DECISIONS + DECISIONS_R7, **summ, "staleRule": R7.STALE_RULE, "trafficLights": traffic}
     C.write_atomic(os.path.join(sdir, "summary.json"), C.dumps(doc))
     log(f"scored: {len(new)} new outcomes ({sum(o['status'] == 'resolved' for o in new)} resolved), "
         f"{len(pending)} pending, {len(allo)} outcomes in total from {len(files)} issue files")

@@ -30,6 +30,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import q26_dep_common as D  # noqa: E402
+import r7_live as R7  # noqa: E402  (Q26 round 7 R7.1 traffic lights; MODEL_DIR is on sys.path via q26_dep_common)
 
 G, S, C = D.G, D.S, D.C
 
@@ -58,6 +59,53 @@ DECISIONS_SCORE = [
     "resolved issue days of that h, R outside [0.5, 2.0] with n_ep >= 20. Both carry applied = false until 90 "
     "resolved issue days for that h.",
 ]
+
+DECISIONS_R7 = [
+    "D-R7D1 (Q26_ROUND7_PREREG.md R7.1) deposit traffic-light units: per (reserve, cell (x, h), segment), the DL.6 "
+    "granularity split by reserve, on the displayed value (disp4, the B4 D1 display, over B4-issue rows once a B4 "
+    "issue exists; disp, the B3 D1 display, before), over resolved uncapped cells of status-ok units; pooled per "
+    "(reserve, h) over sizes and segments. Issue days are the issue dates; O_d / E_d sum over the unit's rows of that "
+    "day. Comparison rows: BSS of the displayed value vs the frozen population rate seg_pop (plain history), vs the "
+    "unit's own rate (beside), and vs the previous model's shipped rung (B3: ps).",
+]
+
+
+def traffic_lights(issues, outcomes):
+    """R7.1 lights for the deposit log (DECISION D-R7D1)."""
+    byk = {(o["date"], o["reserve"], o["address"], o["h"]): o for o in outcomes if o["status"] == "resolved"}
+    b4 = any(it["doc"].get("model") == D.MODEL_B4 for it in issues)
+    col = "disp4" if b4 else "disp"
+    hsec = dict(G.HORIZONS)
+    acc = {}
+    for it in issues:
+        if b4 and it["doc"].get("model") != D.MODEL_B4:
+            continue
+        tab = it["doc"]["table"]
+        for rec in it["df"].to_dict("records"):
+            if rec["status"] != "ok":
+                continue
+            for c in D.X_CELLS:
+                o = byk.get((it["date"], rec["reserve"], rec["address"], c["h"]))
+                if o is None:
+                    continue
+                y = o[f"y_x{c['x']}"]
+                v = rec.get(f"{c['id']}_{col}", "")
+                if y == "" or y is None or v == "" or v is None:
+                    continue
+                seg = rec["segment"]
+                row = (it["date"], int(y), float(v), float(tab[c["id"]][seg]["seg_pop"]),
+                       float(rec[f"{c['id']}_own"]), float(rec[f"{c['id']}_ps"]) if rec[f"{c['id']}_ps"] != "" else
+                       float("nan"))
+                acc.setdefault((rec["reserve"], c["id"], c["h"], seg), []).append(row)
+                acc.setdefault((rec["reserve"], "pooled", c["h"], "all"), []).append(row)
+    lights = {}
+    for (r, cid, h, seg), rows in sorted(acc.items()):
+        key = f"{r}|{h}|pooled" if cid == "pooled" else f"{r}|{cid}|{seg}"
+        cols = list(zip(*rows))
+        lights[key] = R7.light(key, cols[0], cols[1], cols[2], hsec[h] / 3600.0,
+                               refs={"bss_vs_pop": cols[3], "bss_vs_own": cols[4], "bss_vs_previousModelB3": cols[5]},
+                               rung=col)
+    return lights
 
 
 def load_store_tables(ldir):
@@ -268,6 +316,8 @@ def score(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
         D.append_gz_rows(path, OUT_COLS, [[o.get(k, "") for k in OUT_COLS] for o in new])
     allo = done + [{k: ("" if o.get(k) is None else str(o.get(k, ""))) for k in OUT_COLS} for o in new]
     summ = summarize(issues, allo)
+    traffic = R7.traffic_block(traffic_lights(issues, allo), os.path.join(sdir, R7.WEEKLY_FILE), now,
+                               code_commit=(code or {}).get("commit"), append=D.append_bytes)
     doc = {"schema": SCHEMA, "prereg": D.PREREG, "computedAt": now, "computedAtIso": D.iso(now), "code": code,
            "chainVerified": True,
            "issueFiles": [{"date": it["date"], "sha256": it["sha256"], "csvSha256": it["doc"]["csvSha256"],
@@ -277,7 +327,8 @@ def score(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
            "rpc": rpc.stats(), "logsRpc": logs_client.stats(),
            "newOutcomes": len(new), "nOutcomes": len(allo), "pendingByHorizon": pending,
            "statusCounts": {s: sum(o["status"] == s for o in allo) for s in sorted({o["status"] for o in allo})},
-           "decisions": D.DECISIONS + DECISIONS_SCORE, **summ}
+           "decisions": D.DECISIONS + DECISIONS_SCORE + DECISIONS_R7, **summ, "staleRule": R7.STALE_RULE,
+           "trafficLights": traffic}
     D.write_atomic(os.path.join(sdir, "summary.json"), D.dumps(doc))
     log(f"scored: {len(new)} new outcomes ({sum(o['status'] == 'resolved' for o in new)} resolved), pending "
         f"{sum(pending.values())}, {len(allo)} outcomes from {len(issues)} issues")

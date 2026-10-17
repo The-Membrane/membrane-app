@@ -36,6 +36,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import q26_dep_common as D  # noqa: E402
+import r7_live as R7  # noqa: E402  (Q26 round 7 R7.2 top-holder stress; MODEL_DIR is on sys.path via q26_dep_common)
 
 G, S, C = D.G, D.S, D.C
 
@@ -56,6 +57,32 @@ DECISIONS_ISSUE = [
     "Hash chain: the JSON header carries csvSha256 (the CSV's bytes) and prevSha256 (the previous header's bytes); "
     "chain.jsonl holds one line per day with both sha256 values. Every link is verified before a write.",
 ]
+
+
+def load_refill(datasets, rel, want_sha):
+    """R7.2 frozen refill-speed file (r7_refill.py), sha256 checked before any write."""
+    path = os.path.join(datasets, rel)
+    with open(path, "rb") as f:
+        raw = f.read()
+    got = D.sha256_bytes(raw)
+    if got != want_sha:
+        raise SystemExit(f"STOP: sha256 mismatch for the R7.2 refill file {rel}: {got} != registered {want_sha}")
+    doc = json.loads(raw)
+    if doc.get("schema") != "q26-r7/refill/1" or doc.get("reserve") != "USDC":
+        raise SystemExit(f"STOP: {rel} is not an R7.2 USDC refill file")
+    for h in R7.REFILL_HOURS:
+        float(doc["beta"][f"{h}h"])
+    doc["_file"], doc["_sha256"] = rel, got
+    return doc
+
+
+def stress_from_rows(rows, state, refill, asof_ts):
+    """R7.2 block from the issue rows at asof (USDC; ranks only, no address). The refill data must end before asof."""
+    if int(refill["dataEndTs"]) > int(asof_ts):
+        raise SystemExit("STOP: the R7.2 refill file uses data after asof")
+    st = state["USDC"]
+    units = [(int(r[7]), int(r[5])) for r in rows if r[0] == "USDC"]
+    return R7.stress_block(units, st["cash"], st["totalSupply"], refill, reserve="USDC")
 
 
 def other(r):
@@ -138,11 +165,12 @@ def header_table_b4(F):
 
 
 def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=print, frozen=None, model_b4=None,
-          gap_fill=True):
+          gap_fill=True, stress_refill=None):
     """One live issue. `clock`, the transports and `frozen` are injectable for the offline tests only; the CLI
     always uses the real wall clock and the public endpoints. model_b4 = (shipped-b4.json rel, sha256,
     labels-dev.csv rel, sha256) switches to model B4 (schema 2); None keeps model B3. gap_fill = False drops the
-    2026-10-08..10-13 daily balances (DL-25; offline comparisons only, the CLI always fills)."""
+    2026-10-08..10-13 daily balances (DL-25; offline comparisons only, the CLI always fills). stress_refill =
+    (refill file rel, sha256) adds the R7.2 top-holder stress block (USDC) to the header; None leaves it out."""
     t_start = time.time()
     issued_at = int(clock())
     H = D.floor_hour(issued_at)
@@ -156,11 +184,14 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
     frozen_sums = D.frozen_scaled_sums(datasets)                           # DL-16
     anchor_offset = D.check_frozen_offset(frozen_sums)
     b4in = D.load_b4_inputs(datasets, *model_b4) if model_b4 is not None else None
+    refill = load_refill(datasets, *stress_refill) if stress_refill is not None else None
     log(f"issue {date}: issuedAt {D.iso(issued_at)} H {D.iso(H)}; prev {prev_name or 'genesis'}")
 
     head = D.head_block(rpc)
     target = head[0] - D.CONFIRMATIONS
     asof_block, asof_ts, _ = D.find_block_before(rpc, H, head)
+    if refill is not None and int(refill["dataEndTs"]) > int(asof_ts):    # R7.2: no look-ahead, before any write
+        raise SystemExit("STOP: the R7.2 refill file uses data after asof")
     pending = D.prepare_event_append(ldir, logs_client, rpc, target, frozen_sums, clock=clock)   # checked, not written
     asof_hash = D.get_block(rpc, asof_block)["hash"]
     b24, ts24, _ = D.find_block_before(rpc, asof_ts - D.DAY + 1, head)      # largest block with ts <= asof - 24 h
@@ -302,6 +333,12 @@ def issue(out_root, datasets, rpc, logs_client, clock=time.time, code=None, log=
         doc["cellFieldsB4"] = list(D.B4_CELL_FIELDS)
         doc["columns"] = dict(doc["columns"], unitB4=D.B4_UNIT_COLS, cellsB4="<cell>_<field> for the B4 fields")
         doc = {k: doc[k] for k in [x for x in doc if x != "nRows"] + ["nRows"]}
+    if refill is not None:                                                 # R7.2 (reported, deciding nothing)
+        doc["stressR72"] = dict(stress_from_rows(rows, state, refill, asof_ts),
+                                prereg=R7.PREREG_R7, asofBlock=asof_block, asofTs=asof_ts)
+        doc["inputs"]["refillR72"] = {"file": refill["_file"], "sha256": refill["_sha256"],
+                                      "dataEndIso": refill.get("dataEndIso")}
+        doc = {k: doc[k] for k in [x for x in doc if x != "nRows"] + ["nRows"]}
     cpath = os.path.join(idir, csv_name)
     jpath = os.path.join(idir, date + ".json")
     if os.path.exists(cpath) or os.path.exists(jpath):
@@ -335,7 +372,11 @@ def main(argv=None):
     ap.add_argument("--model-b4-sha256", default=None, help="model B4: the registered sha256 of that file")
     ap.add_argument("--labels-b4", default=None, help="model B4: labels-dev.csv path relative to --datasets")
     ap.add_argument("--labels-b4-sha256", default=None, help="model B4: the registered sha256 of that file")
+    ap.add_argument("--stress-refill", default=None, help="R7.2: frozen refill file path relative to --datasets")
+    ap.add_argument("--stress-refill-sha256", default=None, help="R7.2: the registered sha256 of that file")
     a = ap.parse_args(argv)
+    if (a.stress_refill is None) != (a.stress_refill_sha256 is None):
+        raise SystemExit("STOP: --stress-refill and --stress-refill-sha256 go together")
     b4 = (a.model_b4, a.model_b4_sha256, a.labels_b4, a.labels_b4_sha256)
     if any(v is not None for v in b4) and not all(v is not None for v in b4):
         raise SystemExit("STOP: --model-b4, --model-b4-sha256, --labels-b4 and --labels-b4-sha256 go together")
@@ -346,7 +387,8 @@ def main(argv=None):
     rpc = D.make_rpc(max_calls=a.max_calls, log=err)
     logs_client = D.LogsClient(log=err)
     issue(a.out, a.datasets, rpc, logs_client, code=code, log=lambda *x: print(*x, flush=True),
-          model_b4=b4 if b4[0] is not None else None)
+          model_b4=b4 if b4[0] is not None else None,
+          stress_refill=(a.stress_refill, a.stress_refill_sha256) if a.stress_refill else None)
     return 0
 
 

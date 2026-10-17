@@ -384,7 +384,7 @@ def verify_frozen_inputs(datasets):
 CODE_FILES = ("live_deposit/q26_dep_common.py", "live_deposit/q26_dep_issue.py", "live_deposit/q26_dep_score.py",
               "b4_depositor.py",
               "live/q26_live_common.py", "bg_gradient.py", "b3_segments.py", "b3_panel_d1.py", "b_behavior.py",
-              "b_acquire.py", "g_acquire_events.py", "x_acquire_crossvenue.py")
+              "b_acquire.py", "g_acquire_events.py", "x_acquire_crossvenue.py", "r7_live.py")
 
 
 def code_meta(expect_commit=None):

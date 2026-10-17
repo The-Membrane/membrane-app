@@ -683,7 +683,8 @@ def restricted_pooled(ctx, C, PR, mask_rows, rng, comps, rungs):
                 if nd >= G.BLOCK_DAYS else None
             y = C["Y"][idx, ci].astype(float)
             pos = np.searchsorted(dd, C["t"][idx])
-            pr = {k: PR[k][idx, ci] for k in rungs}
+            need = set(rungs) | {a for _, a, _ in comps} | {b for _, _, b in comps}
+            pr = {k: PR[k][idx, ci] for k in need}
             out[G.CELLS[ci]["id"]] = F.restricted(pos, nd, pr, y, np.ones(len(idx), bool), cb, comps=comps,
                                                   rungs=rungs)
     return out
@@ -694,7 +695,8 @@ def model_change(pooled_pre):
     for cid, v in pooled_pre.items():
         b = v["bss"]["v4ac_vs_b6"]["bss"]
         r1, r0 = v["R"]["v4ac"], v["R"]["b6"]
-        dl = math.log(r1 / r0) if (r1 and r0 and r1 > 0 and r0 > 0) else None
+        fin = r1 is not None and r0 is not None and all(math.isfinite(v) and v > 0 for v in (r1, r0))
+        dl = math.log(r1 / r0) if fin else None
         out[cid] = {"dBSS": b, "dlnR": dl, "R_b6c": r1, "R_b6": r0,
                     "flag": bool((b is not None and abs(b) > MODEL_DBSS) or (dl is not None and abs(dl) > MODEL_DLNR))}
     return {"cells": out, "n_flagged": sum(int(v["flag"]) for v in out.values())}

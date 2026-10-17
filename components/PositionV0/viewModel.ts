@@ -49,6 +49,7 @@ import {
   type HorizonId,
   type TouchTable,
 } from '@/lib/position/touchHistory'
+import { TOUCH_TIME_GRID, timeToTouch, type TimeToTouch, type TouchTimeGrid } from '@/lib/position/touchTime'
 
 // ------------------------------------------------------------------ venues
 
@@ -229,6 +230,11 @@ export interface ForecastView {
   level: number
   lookup: TouchLookup['kind']
   byHorizon: Record<HorizonId, HorizonForecast>
+  /**
+   * Chance the line is touched by each time from 1 h to 7 days (touchTime.ts), at the
+   * reader's level. Null when there is no level to read (the line is under 1% or past 60%).
+   */
+  time: TimeToTouch | null
   years: string
   /** "† forecast from ETH history 2021–26 (n ≈ 1,990 per horizon), not a guarantee" */
   footer: string
@@ -376,7 +382,7 @@ export function oracleFlagOf(p: ProtocolPosition, hero: Hero): OracleFlag | null
   return { check, note: oracleCheckNote(check), line }
 }
 
-export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionView {
+export function buildPositionView(p: ProtocolPosition, t: TouchTable, g: TouchTimeGrid = TOUCH_TIME_GRID): PositionView {
   const mapped = toSnapshot(p)
   const metrics = computeMetrics(mapped.snapshot)
   const basis = classifyRisk(mapped.snapshot)
@@ -431,6 +437,7 @@ export function buildPositionView(p: ProtocolPosition, t: TouchTable): PositionV
         level: hero.kind === 'line' ? hero.distancePct : 0,
         lookup: hero.kind === 'past' ? 'within' : hero.kind === 'unreachable' ? 'beyond' : lookup,
         byHorizon,
+        time: level === null ? null : timeToTouch(t, g, basis.asset, basis.direction, level),
         years: periodYears(t),
         footer: forecastFooter(t, [basis.asset], basis.direction),
         credit: creditLine(t, basis.asset, basis.direction),
@@ -510,7 +517,10 @@ function baseLineTag(v: PositionView): string {
 export function sortNearest(views: PositionView[]): PositionView[] {
   const rank = (v: PositionView) =>
     v.hero.kind === 'no-debt' ? Number.POSITIVE_INFINITY : v.hero.kind === 'unreachable' ? Number.MAX_VALUE : v.distance
-  return [...views].sort((a, b) => rank(a) - rank(b))
+  // Among positions with no line, the larger one first (a lender's real supply before dust).
+  const size = (v: PositionView) =>
+    (v.position.supplied ?? []).reduce((x, l) => x + l.valueUsd, 0) + v.position.totalCollateralUsd
+  return [...views].sort((a, b) => rank(a) - rank(b) || (rank(a) === Number.POSITIVE_INFINITY ? size(b) - size(a) : 0))
 }
 
 // ------------------------------------------------------------------ the read

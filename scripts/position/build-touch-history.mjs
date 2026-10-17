@@ -334,7 +334,7 @@ function shaFromProvenance(md, file) {
   return m[1]
 }
 
-function verified(dir, file) {
+export function verified(dir, file) {
   const md = readFileSync(join(dir, 'PROVENANCE.md'), 'utf8')
   const want = shaFromProvenance(md, file)
   const buf = readFileSync(join(dir, file))

@@ -18,12 +18,14 @@ import { TOUCH_TABLE, staleDays, type HorizonId } from '@/lib/position/touchHist
 import { Actions } from './Actions'
 import { CostRewardTracker } from './CostRewardTracker'
 import { AddressForm } from './AddressForm'
-import { ForecastBlock } from './ForecastBlock'
+import { ForecastBlock, TIME_CAPTION } from './ForecastBlock'
 import { Hero } from './Hero'
 import { Instrument } from './Instrument'
+import { LenderBlock } from './LenderBlock'
 import { MarketHistory } from './MarketHistory'
 import { MembraneLine } from './MembraneLine'
 import { PositionPicker } from './PositionPicker'
+import { TimeToTouchChart } from './TimeToTouchChart'
 import { Headline, Kicker, Mono, Rule, Section, Small } from './primitives'
 import { CAPS, TYPE } from './typeScale'
 import { ADAPTER_ORDER, useAdapterReads } from './useAdapterReads'
@@ -99,10 +101,12 @@ const BusyVenues: React.FC<{ items: ReadStatusItem[]; onRetry: (p: ReadStatusIte
 }
 
 const Reading: React.FC<{ address: string }> = ({ address }) => (
-  // Holds the hero's height while the adapters answer (§9: reserve client-only space).
+  // Holds the hero's height while the adapters answer (§9: reserve client-only space), and
+  // the chart's frame in its place, so the visual never arrives into an empty page.
   <Box pt={SPACING.lg} minH={{ base: '200px', md: '230px' }} display="grid" alignContent="start" gap={SPACING.sm}>
     <Kicker tone="muted">Reading {shortAddr(address)}</Kicker>
     <Mono color={NEWS.ink2}>Each venue answers on its own; results appear as they land.</Mono>
+    <TimeToTouchChart state={{ kind: 'reading' }} caption={TIME_CAPTION} />
   </Box>
 )
 
@@ -142,14 +146,19 @@ const Positions: React.FC<{
   staleAge: number | null
   readId: string
 }> = ({ views, selected, onSelect, failures, address, staleAge, readId }) => {
-  // One horizon drives the forecast, the curve and the levers (FORECAST_VISUALS.md §3).
-  const [horizon, setHorizon] = useState<HorizonId>(DEFAULT_HORIZON)
+  // One horizon drives the headline figure, the depth curve and the levers (7 days); the
+  // time chart shows every time up to it, so there are no horizon tabs to page through.
+  const horizon: HorizonId = DEFAULT_HORIZON
   const hasLine = selected.hero.kind !== 'no-debt'
   return (
     <>
       {views.length > 1 && <PositionPicker views={views} selectedKey={selected.key} onSelect={onSelect} />}
       <Hero view={selected} />
-      <ForecastBlock view={selected} horizon={horizon} onHorizon={setHorizon} stale={staleAge !== null} t={TOUCH_TABLE} />
+      <ForecastBlock view={selected} horizon={horizon} stale={staleAge !== null} t={TOUCH_TABLE} />
+      {/* A lender has no line: rewards, risks and withdrawal capacity take its place. */}
+      {selected.position.status === 'supply-only' && selected.position.lendMarket && (
+        <LenderBlock key={selected.key} position={selected.position} />
+      )}
       <Actions view={selected} horizon={horizon} address={address} staleDays={staleAge} />
       {/* With no debt there is no line for the window to sit on. */}
       {hasLine && <MembraneLine />}

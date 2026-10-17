@@ -1,0 +1,176 @@
+/**
+ * THE COST-VS-REWARD TRACKER (board Q34; spec membrane-board design/COST_REWARD_TRACKER.md):
+ * what rates cost and paid at today's size, as measured history. Pure: no I/O. The fixture
+ * comes from real archive reads (scripts/position/capture-slip-fixtures.ts --rates).
+ *
+ *   N_i  = q_i(t0) × p_i(t0)              each leg frozen at the capture read [USD]
+ *   C(t) = Σ debt N_i × borrowAPR_i(t)     [USD/year]
+ *   R(t) = Σ reward N_i × supplyAPR_i(t)   [USD/year]
+ *   S(t) = R(t) − C(t)                     [USD/year; a proposed new number, ruling 1]
+ *
+ * These are ANNUALIZED SNAPSHOTS, not what the reader paid or earned: never integrate them
+ * into "earned"/"paid", and a crossing is not a break-even date (spec §3). The fixture also
+ * keeps each venue index for a later ledger; nothing here sums it into an earnings figure.
+ * Incentives are not in either line: Merkl serves campaign dates and no APR history.
+ *
+ * The forward segment is a forecast and waits on the Q33 rate model passing (owner
+ * ruling, Q34). Until then only its extent is known: the longest horizon Q33's
+ * preregistration targets. No values, no band.
+ */
+
+/** Days of history before the capture block. */
+export const RATE_DAYS = 90
+
+/** The horizons Q33's preregistration targets (board Q33, "Targets"), in days. */
+export const Q33_HORIZONS_D = [1, 3, 7, 14, 30] as const
+
+/** The forward segment's extent: Q33's longest horizon. */
+export const FORECAST_EXTENT_D = Q33_HORIZONS_D[Q33_HORIZONS_D.length - 1]
+
+export interface RatePoint {
+  block: number
+  /** Block time, unix seconds. */
+  ts: number
+  /** Variable borrow APR, 0–1. */
+  borrowApr: number
+  /** Supply APR, 0–1 (the venue's liquidity rate, reserve factor already deducted). */
+  supplyApr: number
+  /** The venue's variable borrow index (ray), decimal string. Kept for a later ledger. */
+  borrowIndex: string
+  /** The venue's liquidity index (ray), decimal string. Kept for a later ledger. */
+  supplyIndex: string
+}
+
+export interface FixtureLeg {
+  symbol: string
+  address: string
+  amount: number
+  priceUsd: number
+}
+
+export interface RateFixture {
+  capturedAt: string
+  owner: string
+  block: number
+  source: string
+  position: { label: string; collateral: FixtureLeg[]; debt: FixtureLeg[] }
+  /** Per leg address (lower case), oldest first, one point per day. */
+  series: Record<string, RatePoint[]>
+}
+
+export interface TrackPoint {
+  ts: number
+  /** C(t), $ per year at today's size and prices. */
+  costRate: number
+  /** R(t). */
+  rewardRate: number
+  /** S(t) = R(t) − C(t). */
+  spread: number
+}
+
+export interface TrackLeg {
+  side: 'cost' | 'reward'
+  symbol: string
+  amount: number
+  priceUsd: number
+  /** N_i: the frozen notional. */
+  sizeUsd: number
+  /** The leg's APR at each point, 0–1. */
+  aprs: number[]
+  /** That leg's $ per year at each point. */
+  rates: number[]
+}
+
+export interface Track {
+  points: TrackPoint[]
+  legs: TrackLeg[]
+  /** Unix seconds: the first and last observation, and the end of the forward extent. */
+  from: number
+  to: number
+  forecastTo: number
+}
+
+const aprOf = (side: 'cost' | 'reward', p: RatePoint) => (side === 'cost' ? p.borrowApr : p.supplyApr)
+
+export function costRewardTrack(fx: RateFixture): Track {
+  const legs = [
+    ...fx.position.debt.map((l) => ({ side: 'cost' as const, l })),
+    ...fx.position.collateral.map((l) => ({ side: 'reward' as const, l })),
+  ].map(({ side, l }) => {
+    const s = fx.series[l.address.toLowerCase()]
+    if (!s || s.length < 2) throw new Error(`costRewardTrack: no rate history for ${l.symbol}`)
+    return { side, l, sizeUsd: l.amount * l.priceUsd, s }
+  })
+  const n = legs[0].s.length
+  for (const g of legs) {
+    // An aggregate point exists only when every leg was read at that block (spec §3).
+    if (g.s.length !== n || g.s.some((p, i) => p.block !== legs[0].s[i].block)) {
+      throw new Error('costRewardTrack: legs were not read at the same blocks')
+    }
+  }
+  const points: TrackPoint[] = legs[0].s.map((p0, i) => {
+    let costRate = 0
+    let rewardRate = 0
+    for (const g of legs) {
+      const v = g.sizeUsd * aprOf(g.side, g.s[i])
+      if (g.side === 'cost') costRate += v
+      else rewardRate += v
+    }
+    return { ts: p0.ts, costRate, rewardRate, spread: rewardRate - costRate }
+  })
+  const to = points[n - 1].ts
+  return {
+    points,
+    legs: legs.map((g) => ({
+      side: g.side,
+      symbol: g.l.symbol,
+      amount: g.l.amount,
+      priceUsd: g.l.priceUsd,
+      sizeUsd: g.sizeUsd,
+      aprs: g.s.map((p) => aprOf(g.side, p)),
+      rates: g.s.map((p) => g.sizeUsd * aprOf(g.side, p)),
+    })),
+    from: points[0].ts,
+    to,
+    forecastTo: to + FORECAST_EXTENT_D * 86_400,
+  }
+}
+
+/** The history windows the spec offers (§3): 7d, 30d (the default) and all available. */
+export const WINDOWS = ['7d', '30d', 'all'] as const
+export type HistoryWindow = (typeof WINDOWS)[number]
+
+/** The last `w` of the track: every observation within it, the last one included. */
+export function windowed(t: Track, w: HistoryWindow): Track {
+  if (w === 'all') return t
+  const cut = t.to - (w === '7d' ? 7 : 30) * 86_400
+  const i = Math.max(0, t.points.findIndex((p) => p.ts >= cut))
+  return {
+    ...t,
+    points: t.points.slice(i),
+    legs: t.legs.map((l) => ({ ...l, aprs: l.aprs.slice(i), rates: l.rates.slice(i) })),
+    from: t.points[i].ts,
+  }
+}
+
+/**
+ * A headline dollar figure at two significant figures (chart-design; the prereg's headline
+ * rule), with a true minus: "$3,200", "−$460".
+ */
+export function usd2(x: number): string {
+  const sign = x < 0 ? '−' : ''
+  const a = Math.abs(x)
+  if (a === 0) return '$0'
+  const e = Math.floor(Math.log10(a)) - 1
+  const r = e >= 0 ? Math.round(a / 10 ** e) * 10 ** e : Number(a.toPrecision(2))
+  return `${sign}$${new Intl.NumberFormat('en-US', { maximumFractionDigits: e >= 0 ? 0 : -e }).format(r)}`
+}
+
+/** "4.19%" from 0.0419. */
+export const pct2 = (apr: number): string => `${(apr * 100).toFixed(2)}%`
+
+/** "16 Oct" in UTC. */
+export function dayLabel(ts: number): string {
+  const d = new Date(ts * 1000)
+  return `${d.getUTCDate()} ${d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })}`
+}

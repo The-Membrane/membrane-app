@@ -291,3 +291,59 @@ function build(): DesignState[] {
 
 export const DESIGN_STATES: DesignState[] = build()
 export const CAPTURED_AT = FIX.capturedAt
+
+// ------------------------------------------------------------------ the walkthrough
+// /dev/slip-states?walk=<key>: the states above, stepped through with the slip open, in
+// the order a reader meets them. The main path is the signature that goes well; a branch
+// leaves it where the flow can turn, and its Next goes where the real flow goes next.
+
+/** The path that goes well, in order. */
+export const WALK_MAIN = ['reading', 'ready', 'signing', 'pending', 'settled'] as const
+
+/** Where the flow can turn, by the main-path state it turns from. */
+export const WALK_BRANCHES: Readonly<Record<string, readonly string[]>> = {
+  ready: ['no-wallet', 'wrong-chain'],
+  pending: ['still-waiting', 'reverted', 'replaced'],
+}
+
+/**
+ * Where a branch goes next in the real flow: a connect or a switch re-opens the same
+ * slip (V20, intent-preserving), a slow receipt still settles, a retry reads again.
+ */
+const BRANCH_NEXT: Readonly<Record<string, string>> = {
+  'no-wallet': 'ready',
+  'wrong-chain': 'ready',
+  'still-waiting': 'settled',
+  reverted: 'reading',
+  replaced: 'reading',
+}
+
+export interface WalkStep {
+  key: string
+  /** 1-based place on the main path, or null on a branch. */
+  index: number | null
+  /** The main-path state a branch turns from, or null on the main path. */
+  from: string | null
+  back: string | null
+  next: string | null
+  branches: readonly string[]
+}
+
+const MAIN: readonly string[] = WALK_MAIN
+
+export function walkStep(key: string): WalkStep {
+  const i = MAIN.indexOf(key)
+  if (i >= 0) {
+    return {
+      key,
+      index: i + 1,
+      from: null,
+      back: i > 0 ? MAIN[i - 1] : null,
+      next: i < MAIN.length - 1 ? MAIN[i + 1] : null,
+      branches: WALK_BRANCHES[key] ?? [],
+    }
+  }
+  const from = Object.keys(WALK_BRANCHES).find((k) => WALK_BRANCHES[k].includes(key))
+  if (!from) throw new Error(`walkStep: ${key} is not on the walkthrough`)
+  return { key, index: null, from, back: from, next: BRANCH_NEXT[key] ?? null, branches: [] }
+}

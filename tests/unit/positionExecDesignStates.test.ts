@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { DESIGN_STATES } from '@/components/PositionV0/dev/slipStates'
+import { DESIGN_STATES, WALK_BRANCHES, WALK_MAIN, walkStep } from '@/components/PositionV0/dev/slipStates'
 
 const by = (k: string) => DESIGN_STATES.find((s) => s.key === k)!
 
@@ -65,5 +65,31 @@ describe('design states', () => {
       if (['reading', 'ready', 'no-wallet', 'balance', 'signing'].includes(s.key)) continue
       expect(s.forced, s.key).toBeTruthy()
     }
+  })
+})
+
+describe('the walkthrough', () => {
+  it('steps the main path forward and back', () => {
+    const keys: string[] = []
+    let k: string | null = 'reading'
+    while (k) {
+      keys.push(k)
+      k = walkStep(k).next
+    }
+    expect(keys).toEqual([...WALK_MAIN])
+    expect(walkStep('reading').back).toBeNull()
+    expect(walkStep('settled').back).toBe('pending')
+    expect(walkStep('signing').index).toBe(3)
+  })
+  it('branches where the flow turns, and each branch goes where the real flow goes', () => {
+    expect(walkStep('pending').branches).toEqual(['still-waiting', 'reverted', 'replaced'])
+    expect(walkStep('reverted')).toMatchObject({ index: null, from: 'pending', back: 'pending', next: 'reading' })
+    expect(walkStep('still-waiting').next).toBe('settled')
+    expect(walkStep('no-wallet')).toMatchObject({ from: 'ready', next: 'ready' })
+  })
+  it('only walks states that exist', () => {
+    const all = new Set(DESIGN_STATES.map((s) => s.key))
+    for (const k of [...WALK_MAIN, ...Object.values(WALK_BRANCHES).flat()]) expect(all.has(k), k).toBe(true)
+    expect(() => walkStep('nope')).toThrow()
   })
 })

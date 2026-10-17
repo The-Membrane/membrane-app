@@ -10,7 +10,9 @@
 //   checks      venue, balance, wallet, owner, chain, simulation — each named, with a glyph
 //   counterfoil after the first signature, behind a perforation: the stamp's story, the
 //               transaction, "still waiting", what stands after a partial run
-//   commit      one button in a dashed frame (a dashed edge leads to a signature)
+//   commit      one button in a dashed frame (a dashed edge leads to a signature); a
+//               button that acts (sign, connect, switch, retry) is raised: CTA fill and
+//               the hard print shadow NEWS.shadowRaised, label centred
 //
 // Every figure is JetBrains Mono (T31, CLAUDE.md rule 3); Redaction sets only the headline
 // words. Colour carries a glyph (DESIGN_RULES §2): red only for a failure that cost gas or
@@ -194,11 +196,14 @@ function authorised(p: PreparedLever, venue: string): { amount: string; spender:
   }
 }
 
-const Ledger: React.FC<{ p: PreparedLever; intent: LeverIntent; sim: SimResult | null }> = ({
-  p,
-  intent,
-  sim,
-}) => {
+interface LedgerParts {
+  rows: React.ReactNode
+  auth: React.ReactNode
+  steps: React.ReactNode
+}
+
+/** The slip's three ledger blocks, built once so each layout can order them. */
+function ledgerParts(p: PreparedLever, intent: LeverIntent, sim: SimResult | null): LedgerParts {
   const venue = PROTOCOL_SHORT[intent.protocol]
   const shown = fmtAmount(p.row.amount, p.row.amountDecimals)
   const steps = stepsOf(p.calls, {
@@ -216,8 +221,8 @@ const Ledger: React.FC<{ p: PreparedLever; intent: LeverIntent; sim: SimResult |
         ? 'Morpho Blue'
         : `${venue} Pool`,
   )
-  return (
-    <Box display="grid" gap={SPACING.base} minW={0}>
+  return {
+    rows: (
       <Section title="Brought forward → carried forward">
         <LedgerHead />
         {slipRows(p.view, p.row, intent.horizon, intent.stale).map((r) => (
@@ -238,17 +243,17 @@ const Ledger: React.FC<{ p: PreparedLever; intent: LeverIntent; sim: SimResult |
           </Small>
         )}
       </Section>
-
-      {auth && (
-        <Box border={`1px solid ${NEWS.ink}`} px={SPACING.sm} py={SPACING.xs} minW={0}>
-          <Small {...CAPS} color={NEWS.ink2}>
-            Authorised up to
-          </Small>
-          <Mono fontWeight={700}>{auth.amount}</Mono>
-          <Small overflowWrap="anywhere">to {auth.spender} · exactly this, never unlimited</Small>
-        </Box>
-      )}
-
+    ),
+    auth: auth && (
+      <Box border={`1px solid ${NEWS.ink}`} px={SPACING.sm} py={SPACING.xs} minW={0}>
+        <Small {...CAPS} color={NEWS.ink2}>
+          Authorised up to
+        </Small>
+        <Mono fontWeight={700}>{auth.amount}</Mono>
+        <Small overflowWrap="anywhere">to {auth.spender} · exactly this, never unlimited</Small>
+      </Box>
+    ),
+    steps: (
       <Section title={`Steps · ${steps.length} · each shows in your wallet`}>
         {steps.map((s, i) => (
           <Box
@@ -277,12 +282,12 @@ const Ledger: React.FC<{ p: PreparedLever; intent: LeverIntent; sim: SimResult |
           </Box>
         )}
       </Section>
-    </Box>
-  )
+    ),
+  }
 }
 
-const Checks: React.FC<{ checks: Check[] }> = ({ checks }) => (
-  <Section title="Checks">
+const Checks: React.FC<{ checks: Check[]; title?: string }> = ({ checks, title = 'Checks' }) => (
+  <Section title={title}>
     <Box as="ul" listStyleType="none" m={0} p={0} pt={SPACING.xs}>
       {checks.map((c) => (
         <Box as="li" key={c.id} display="grid" gridTemplateColumns="2em minmax(0, 1fr)">
@@ -345,8 +350,21 @@ const TxLink: React.FC<{ hash: string | null; owner: string; onOpen: () => void 
   )
 }
 
+/**
+ * The kinds that act: they take the CTA fill and the raised hard shadow (NEWS.shadowRaised,
+ * owner ruling 2026-10-17). A waiting or closing button stays a flat outline.
+ */
+export const PRIMARY_KINDS: ReadonlySet<SheetView['button']['kind']> = new Set([
+  'sign',
+  'connect',
+  'switch',
+  'retry',
+])
+
 const BUTTON = {
   borderRadius: 0,
+  justifyContent: 'center',
+  textAlign: 'center',
   minH: '44px',
   h: 'auto',
   py: SPACING.sm,
@@ -373,6 +391,15 @@ export interface LeverSlipProps {
   onClose: () => void
   /** The reader opened the explorer (lets a still-waiting slip be dismissed). */
   onExplorer: () => void
+  /**
+   * The body's order. 'rows' (the default): what changes, then the approval and the
+   * steps, then the checks. 'steps' (design candidate B, /dev/slip-states?layout=b): the
+   * approval and the steps first, in the order the wallet shows them, then what changes,
+   * then the checks, last before the button they gate.
+   */
+  layout?: 'rows' | 'steps'
+  /** Design harness only (/dev/slip-states walkthrough): a bar above the slip's head. */
+  harness?: React.ReactNode
 }
 
 export const LeverSlip: React.FC<LeverSlipProps> = ({
@@ -385,8 +412,14 @@ export const LeverSlip: React.FC<LeverSlipProps> = ({
   onButton,
   onClose,
   onExplorer,
+  layout = 'rows',
+  harness,
 }) => {
   const ready = prepared?.kind === 'ready' ? prepared : null
+  const parts = ready ? ledgerParts(ready, intent, sim) : null
+  const stepsFirst = layout === 'steps'
+  const primary = sheet.button.enabled && PRIMARY_KINDS.has(sheet.button.kind)
+  const showChecks = sheet.checks.length > 0 && prepared?.kind !== 'gone'
   const venue = PROTOCOL_SHORT[intent.protocol]
   const row = ready ? ready.row : intent.row
   const symbol = ready ? ready.leg.symbol : intent.row.symbol
@@ -419,6 +452,7 @@ export const LeverSlip: React.FC<LeverSlipProps> = ({
         mx={{ base: 0, md: SPACING.base }}
         maxH={{ base: '92vh', md: '88vh' }}
       >
+        {harness}
         <ModalHeader
           px={SPACING.base}
           pt={SPACING.base}
@@ -469,14 +503,30 @@ export const LeverSlip: React.FC<LeverSlipProps> = ({
           borderTop={`2px solid ${NEWS.ink}`}
           pt={SPACING.base}
         >
-          {ready ? (
-            <Ledger p={ready} intent={intent} sim={sim} />
+          {parts ? (
+            <Box display="grid" gap={SPACING.base} minW={0}>
+              {stepsFirst ? (
+                <>
+                  {parts.auth}
+                  {parts.steps}
+                  {parts.rows}
+                </>
+              ) : (
+                <>
+                  {parts.rows}
+                  {parts.auth}
+                  {parts.steps}
+                </>
+              )}
+            </Box>
           ) : (
             !sheet.notice && (
               <Mono color={NEWS.ink2}>Reading {venue} at one block for every figure…</Mono>
             )
           )}
-          {sheet.checks.length > 0 && prepared?.kind !== 'gone' && <Checks checks={sheet.checks} />}
+          {showChecks && (
+            <Checks checks={sheet.checks} title={stepsFirst ? 'Checks · before you sign' : 'Checks'} />
+          )}
 
           {sent && (
             // THE COUNTERFOIL: torn off along the perforation once something was handed to the wallet.
@@ -533,23 +583,33 @@ export const LeverSlip: React.FC<LeverSlipProps> = ({
             </Box>
           )}
           {/* A dashed edge leads to a signature (T31). */}
-          <Box border={`1px dashed ${commit ? NEWS.ink : NEWS.ruleStrong}`} p={SPACING.xs}>
+          <Box
+            border={`1px dashed ${commit ? NEWS.ink : NEWS.ruleStrong}`}
+            p={SPACING.xs}
+            // Room for the raised shadow inside the frame.
+            pr={SPACING.sm}
+            pb={SPACING.sm}
+          >
             <Button
               {...BUTTON}
               w="100%"
               onClick={onButton}
               isDisabled={!sheet.button.enabled}
               data-testid="lever-button"
-              bg={commit ? NEWS.cta : 'transparent'}
-              color={commit ? NEWS.onCta : NEWS.ink}
-              border={commit ? 'none' : `1px solid ${NEWS.ink}`}
-              _hover={{ bg: commit ? NEWS.cta : NEWS.raised }}
+              bg={primary ? NEWS.cta : 'transparent'}
+              color={primary ? NEWS.onCta : NEWS.ink}
+              border={`1px solid ${NEWS.ink}`}
+              boxShadow={primary ? NEWS.shadowRaised : 'none'}
+              _hover={{ bg: primary ? NEWS.cta : NEWS.raised }}
+              // Pressed: the print shadow goes, the button sits on the paper. No movement.
+              _active={{ boxShadow: 'none' }}
               _disabled={{
                 opacity: 1,
                 cursor: 'not-allowed',
                 color: NEWS.muted,
                 borderColor: NEWS.rule,
                 bg: 'transparent',
+                boxShadow: 'none',
               }}
             >
               {sheet.button.label}

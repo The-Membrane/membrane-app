@@ -10,8 +10,19 @@
 //   add      the same ready borrower's top-up lever (for the cap state)
 //   spark    a Spark borrower's repay lever (for the stable-debt state)
 //   txs      real mainnet hashes of Aave repays, for the transaction states
+//
+// It also writes the cost-vs-reward tracker's history (pages/dev/cost-reward.tsx) to
+// components/PositionV0/dev/costRewardFixture.json: for the ready borrower's position,
+// Pool.getReserveData of every leg at one archive block per day for RATE_DAYS days back
+// from the capture block: the variable borrow rate, the supply (liquidity) rate and both
+// indexes, so the history is what the venue itself accrued, not a rebuilt rate.
+//
+//   npx tsx scripts/position/capture-slip-fixtures.ts           both files
+//   npx tsx scripts/position/capture-slip-fixtures.ts --rates   the rate history only,
+//                                                               for the position already
+//                                                               in slipFixtures.json
 
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import {
@@ -31,7 +42,7 @@ import {
   type LeverIntent,
 } from '@/components/PositionV0/leverExec'
 import { buildPositionView } from '@/components/PositionV0/viewModel'
-import { erc20ReadAbi } from '@/lib/position-exec/abis'
+import { aavePoolAbi, erc20ReadAbi } from '@/lib/position-exec/abis'
 import { leverUnits } from '@/lib/position-exec/amount'
 import type { ExecProtocol } from '@/lib/position-exec/read'
 import { simulateLever } from '@/lib/position-exec/simulate'
@@ -39,8 +50,13 @@ import { TOUCH_TABLE } from '@/lib/position/touchHistory'
 import { ADAPTERS, runAdapter } from '@/lib/position-sim/adapters'
 import { getMainnetClient } from '@/lib/position-sim/rpc'
 import type { ActionRow } from '@/lib/position/reverseSolve'
+import type { ProtocolPosition } from '@/lib/position-sim/types'
+import { RATE_DAYS, type RateFixture, type RatePoint } from '@/lib/position/costReward'
 
 const OUT = path.resolve(__dirname, '../../components/PositionV0/dev/slipFixtures.json')
+const RATES_OUT = path.resolve(__dirname, '../../components/PositionV0/dev/costRewardFixture.json')
+/** Mainnet blocks per day at 12 s slots. Each point records its own block time. */
+const BLOCKS_PER_DAY = 7200n
 const logs = createPublicClient({
   chain: mainnet,
   transport: http('https://ethereum-rpc.publicnode.com', { timeout: 30_000 }),
@@ -155,7 +171,79 @@ async function find(
   throw new Error(`no ${protocol} ${kind} borrower found`)
 }
 
+const RAY = 1e27
+const pool = (p: ProtocolPosition): Address => {
+  if (p.protocol === 'aave-v3') return AAVE_POOL
+  if (p.protocol === 'spark') return SPARK_POOL
+  throw new Error(`rate history: no pool reader for ${p.protocol}`)
+}
+
+/**
+ * One archive read per day for every leg of the position: Pool.getReserveData at that
+ * block. Rays are kept as decimal strings (exact) and as numbers for the chart.
+ */
+async function captureRates(owner: Address, position: ProtocolPosition): Promise<RateFixture> {
+  const client = getMainnetClient()
+  const at = BigInt(position.provenance.block ?? 0)
+  if (at === 0n) throw new Error('rate history: the position has no read block')
+  const assets = [
+    ...position.collateral.map((l) => ({ side: 'collateral' as const, symbol: l.symbol, address: l.address as Address })),
+    ...position.debt.map((l) => ({ side: 'debt' as const, symbol: l.symbol, address: l.address as Address })),
+  ]
+  const series: Record<string, RatePoint[]> = Object.fromEntries(assets.map((a) => [a.address.toLowerCase(), []]))
+  for (let d = RATE_DAYS; d >= 0; d--) {
+    const blockNumber = at - BigInt(d) * BLOCKS_PER_DAY
+    const [blk, ...reads] = await Promise.all([
+      client.getBlock({ blockNumber }),
+      ...assets.map((a) =>
+        client.readContract({
+          address: pool(position),
+          abi: aavePoolAbi,
+          functionName: 'getReserveData',
+          args: [a.address],
+          blockNumber,
+        }),
+      ),
+    ])
+    reads.forEach((r, i) => {
+      series[assets[i].address.toLowerCase()].push({
+        block: Number(blockNumber),
+        ts: Number(blk.timestamp),
+        borrowApr: Number(r.currentVariableBorrowRate) / RAY,
+        supplyApr: Number(r.currentLiquidityRate) / RAY,
+        borrowIndex: r.variableBorrowIndex.toString(),
+        supplyIndex: r.liquidityIndex.toString(),
+      })
+    })
+    if (d % 15 === 0) console.log(`rates: day −${d} block ${blockNumber}`)
+  }
+  return {
+    capturedAt: new Date().toISOString(),
+    owner,
+    block: Number(at),
+    source: `${position.label} Pool ${pool(position)} getReserveData at one archive block per day (${BLOCKS_PER_DAY} blocks), public rpc`,
+    position: {
+      label: position.label,
+      collateral: position.collateral.map((l) => ({ symbol: l.symbol, address: l.address, amount: l.amount, priceUsd: l.priceUsd })),
+      debt: position.debt.map((l) => ({ symbol: l.symbol, address: l.address, amount: l.amount, priceUsd: l.priceUsd })),
+    },
+    series,
+  }
+}
+
+async function writeRates(owner: Address, position: ProtocolPosition) {
+  const fx = await captureRates(owner, position)
+  writeFileSync(RATES_OUT, JSON.stringify(fx) + '\n')
+  console.log(`wrote ${RATES_OUT} · ${Object.values(fx.series)[0].length} days × ${Object.keys(fx.series).length} legs`)
+}
+
 async function main() {
+  if (process.argv.includes('--rates')) {
+    const fx = JSON.parse(readFileSync(OUT, 'utf8')) as {
+      ready: { intent: { owner: Address }; prepared: { position: ProtocolPosition } }
+    }
+    return writeRates(fx.ready.intent.owner, fx.ready.prepared.position)
+  }
   const ready = await find('aave-v3', AAVE_POOL, 'repay', true)
   const short = await find('aave-v3', AAVE_POOL, 'repay', false)
   const add = await find('aave-v3', AAVE_POOL, 'add', null)
@@ -174,6 +262,7 @@ async function main() {
   )
   writeFileSync(OUT, json + '\n')
   console.log(`wrote ${OUT} (${json.length} bytes) · ${txs.length} repay hashes`)
+  await writeRates(ready.intent.owner, ready.prepared.position)
 }
 
 void main()

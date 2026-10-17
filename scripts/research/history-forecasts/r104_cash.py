@@ -678,6 +678,7 @@ def main():
                             "STEP1_PASS": STEP1_PASS, "STEP2_PASS": STEP2_PASS, "BOOT_BLOCK": BOOT_BLOCK,
                             "BOOT_REPS": BOOT_REPS, "SEED": SEED},
               "input_counts": counts}
+    frozen["frozen_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")   # D-R10.3c rule
     fp = os.path.join(a.out, "frozen-r104.json")
     with open(fp, "w") as f:
         json.dump(frozen, f, indent=1, default=str)

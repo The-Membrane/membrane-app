@@ -374,14 +374,15 @@ async function readComet(
   // Borrow APR: per-second rate at 1e18, annualised. Optional — null if it fails.
   const utilization = optional(tailRes[3]) as bigint | null
   let borrowApr: number | null = null
-  if (utilization !== null) {
+  if (typeof utilization === 'bigint') {
     const rateRes = await mc<bigint>(
       client,
       [{ address: comet, abi: cometAbi, functionName: 'getBorrowRate', args: [utilization] }],
       block,
     )
     const perSecond = optional(rateRes[0])
-    if (perSecond !== null) borrowApr = toNumber(perSecond, FACTOR_DECIMALS) * SECONDS_PER_YEAR
+    if (typeof perSecond === 'bigint')
+      borrowApr = toNumber(perSecond, FACTOR_DECIMALS) * SECONDS_PER_YEAR
   }
 
   // --- assemble legs --------------------------------------------------------
@@ -404,6 +405,11 @@ async function readComet(
       amount,
       priceUsd,
       valueUsd: amount * priceUsd,
+      // Comet pays supply interest on its base token, never on posted collateral.
+      // Any underlying token growth (e.g. wstETH) is a separate income component.
+      supplyApr: 0,
+      supplyAprSource: 'Compound V3: posted collateral earns no protocol supply interest',
+      supplyAprFeeBasis: 'protocol-fee-net',
       liquidationThreshold: toNumber(h.info.liquidateCollateralFactor, FACTOR_DECIMALS),
       maxLtv: toNumber(h.info.borrowCollateralFactor, FACTOR_DECIMALS),
       // Comet expresses the penalty as the fraction of value the borrower KEEPS
@@ -423,6 +429,7 @@ async function readComet(
       priceUsd: basePriceUsd,
       valueUsd: amount * basePriceUsd,
       borrowApr,
+      borrowRateBasis: 'variable',
     })
   }
 
@@ -436,6 +443,9 @@ async function readComet(
 
   return {
     protocol: 'compound-v3',
+    usdValuationBasis: 'source-oracle',
+    chainId: 1,
+    venueAddress: comet,
     label: `Compound V3 · ${baseSymbol}`,
     marketId: comet,
     collateral,

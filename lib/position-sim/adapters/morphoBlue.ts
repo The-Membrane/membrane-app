@@ -16,11 +16,10 @@
  *        collateralValueInLoanTokenRaw = collateralRaw * price / 1e36
  *    gives the collateral's value denominated in the LOAN token. Turning that into
  *    USD needs the loan token's own USD price, which Morpho does not provide.
- *      - USDC / USDT / DAI loan tokens: assumed $1.00, and that assumption is written
- *        into the position's provenance.detail so it reaches the screen.
- *      - anything else (WETH, USDS, RLUSD, PT-*): priced from the Aave V3 oracle. If
- *        Aave does not list it either, that MARKET is skipped with the reason named
- *        (the others stand). We do not invent a price.
+ *      - Every loan token is first priced from the Aave V3 oracle at the pinned block.
+ *      - USDC / USDT / DAI may fall back to a stated $1.00 assumption if no valid oracle
+ *        price was read. The tracker withholds dollar figures for that fallback.
+ *      - An unpriced token outside that address allowlist skips only its own market.
  *
  * 3. INTEREST LIVES ON THE IRM AND ACCRUES LAZILY. `market()` stores totals as of the
  *    market's last touch. The borrow rate is the market IRM's
@@ -52,6 +51,8 @@ import type { PublicClient } from 'viem'
 
 import { accrueMarket, toAssetsDown } from '../../curatorFeed/exposure'
 import { SECONDS_PER_YEAR } from '../../netApy/fixedPoint'
+import { MORPHO_ADAPTIVE_CURVE_IRM } from '../../netApy/venues'
+import { qualifyMorphoCurrentRates } from '../../position/morphoCurrentRates'
 import { getMainnetClient, rpcLabel, toNumber } from '../rpc'
 import {
   stamp,
@@ -152,6 +153,16 @@ const irmAbi = [
   },
 ] as const
 
+const adaptiveStateAbi = [
+  {
+    type: 'function',
+    name: 'rateAtTarget',
+    stateMutability: 'view',
+    inputs: [{ name: 'id', type: 'bytes32' }],
+    outputs: [{ type: 'int256' }],
+  },
+] as const
+
 const morphoOracleAbi = [
   { type: 'function', name: 'price', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
 ] as const
@@ -190,9 +201,8 @@ const SCAN_BATCH_BYTES = 8_192
 const ZERO = /^0x0{40}$/i
 
 /**
- * Loan tokens we are willing to treat as $1.00. Keyed by ADDRESS, not symbol — symbols
- * from a token or an API could collide. Anything not on this list gets a real oracle read
- * or its market is skipped.
+ * Explicit fallback only when no valid pinned oracle price is available. Keyed by
+ * address, never symbol. Tracker dollar figures remain withheld for this fallback.
  */
 const ASSUMED_ONE_DOLLAR: Record<string, string> = {
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
@@ -356,16 +366,26 @@ export function createMorphoBlueAdapter(overrides: Partial<MorphoBlueDeps> = {})
                   },
                 ],
               }),
+          rateAtTarget:
+            r.irm.toLowerCase() === MORPHO_ADAPTIVE_CURVE_IRM.toLowerCase() &&
+            (r.borrowShares > 0n || r.supplyShares > 0n)
+              ? push({
+                  address: r.irm,
+                  abi: adaptiveStateAbi,
+                  functionName: 'rateAtTarget',
+                  args: [r.m.id],
+                })
+              : null,
         }
       })
       const detailRes = await mc<unknown>(client, detailCalls, block, SCAN_BATCH_BYTES)
 
       // --- 4. USD prices: loan tokens, and references for the collateral oracles -------
-      // Every loan token we could not assume is $1 must come from a real oracle. Every
+      // Prefer a measured loan price even for stablecoins; the stated peg is a fallback. Every
       // collateral oracle is checked against the Aave V3 oracle at this block, or, for a
       // token Aave does not list, DefiLlama's current price.
       const lower = (a: string) => a.toLowerCase() as `0x${string}`
-      const loanNeeds = resolved.map((r) => lower(r.loanToken)).filter((a) => ASSUMED_ONE_DOLLAR[a] === undefined)
+      const loanNeeds = resolved.map((r) => lower(r.loanToken))
       const collateralNeeds = resolved.filter((r) => r.collateralRaw > 0n && !ZERO.test(r.collateralToken)).map((r) => lower(r.collateralToken))
       const needAave = Array.from(new Set([...loanNeeds, ...collateralNeeds]))
       let externalPrices: Record<string, number> = {}
@@ -439,6 +459,7 @@ interface Legs {
   collSymbol: number | null
   price: number | null
   rate: number | null
+  rateAtTarget: number | null
 }
 
 interface BuildContext {
@@ -469,33 +490,52 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
     l.collDecimals === null ? null : Number(need<bigint | number>(l.collDecimals, `decimals() on collateral token ${r.collateralToken}`))
 
   // --- borrow rate and accrual: Morpho's own _accrueInterest at this block --------
-  const ratePerSec: bigint | null = ZERO.test(r.irm) ? 0n : (optional(res[l.rate as number]) as bigint | null)
+  const rateRead = l.rate === null ? null : optional(res[l.rate])
+  const ratePerSec: bigint | null = ZERO.test(r.irm)
+    ? 0n
+    : typeof rateRead === 'bigint'
+      ? rateRead
+      : null
   const rateError = l.rate === null ? null : res[l.rate]?.status === 'failure' ? res[l.rate]?.error?.message ?? 'reverted' : null
   const canAccrue = ratePerSec !== null && ctx.blockTs !== null
   const w = canAccrue ? accrueMarket(r.words, ratePerSec as bigint, Number(ctx.blockTs)) : r.words
   const elapsed = ctx.blockTs !== null ? Number(ctx.blockTs - r.words[4]) : null
   const borrowApr = ratePerSec === null ? null : toNumber(ratePerSec * SECONDS_PER_YEAR, WAD_DECIMALS)
+  const targetRead = l.rateAtTarget === null ? null : optional(res[l.rateAtTarget])
+  const currentRates = qualifyMorphoCurrentRates({
+    irm: r.irm,
+    storedMarket: r.words,
+    blockTimestamp: ctx.blockTs,
+    averageRatePerSecond: ratePerSec,
+    rateAtTarget: typeof targetRead === 'bigint' ? targetRead : null,
+  })
+  const currentRateSource = currentRates.reason
+    ? `Current rate unavailable: ${currentRates.reason}`
+    : ZERO.test(r.irm)
+      ? 'No IRM: protocol interest is absent at this block'
+      : `Instantaneous rate evaluated after same-block lazy accrual from pinned AdaptiveCurveIrm state; exact source-average replay at block ${ctx.block}`
 
   // Debt: shares → assets, rounded up; supply: rounded down. Both with the virtual offsets.
   const debtRaw = r.borrowShares === 0n ? 0n : mulDivUp(r.borrowShares, w[2] + VIRTUAL_ASSETS, w[3] + VIRTUAL_SHARES)
   const suppliedRaw = r.supplyShares === 0n ? 0n : toAssetsDown(r.supplyShares, w[0], w[1])
 
-  // --- loan-token USD price: $1 for the three listed stablecoins, else Aave ---------
+  // --- loan-token USD price: source oracle first, explicit allowlisted fallback ---------
   const loanKey = r.loanToken.toLowerCase()
   const stableSymbol = ASSUMED_ONE_DOLLAR[loanKey]
+  const oracleUsd = ctx.externalPrices[loanKey]
+  const hasOracleUsd = typeof oracleUsd === 'number' && Number.isFinite(oracleUsd) && oracleUsd > 0
+  const usedAssumedPeg = !hasOracleUsd && stableSymbol !== undefined
   let loanPriceUsd: number
-  if (stableSymbol !== undefined) {
+  if (hasOracleUsd) {
+    loanPriceUsd = oracleUsd
+  } else if (usedAssumedPeg) {
     loanPriceUsd = 1
   } else {
-    const p = ctx.externalPrices[loanKey]
-    if (p === undefined || !(p > 0)) {
-      throw new MarketSkip(
-        ctx.externalError !== null
-          ? `the Aave V3 oracle read for its loan token ${ctx.loanSymbol} failed: ${ctx.externalError}`
-          : `no USD price for its loan token ${ctx.loanSymbol} (${r.loanToken}): Morpho's oracle quotes collateral in loan-token units and the Aave V3 oracle does not list this token. Refusing to assume a price.`,
-      )
-    }
-    loanPriceUsd = p
+    throw new MarketSkip(
+      ctx.externalError !== null
+        ? `the Aave V3 oracle read for its loan token ${ctx.loanSymbol} failed: ${ctx.externalError}`
+        : `no USD price for its loan token ${ctx.loanSymbol} (${r.loanToken}): Morpho's oracle quotes collateral in loan-token units and the Aave V3 oracle does not list this token. Refusing to assume a price.`,
+    )
   }
 
   // --- collateral, valued by the market's own oracle -------------------------------
@@ -549,6 +589,11 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
       // exactly the number Morpho itself liquidates against.
       priceUsd: collateralValueUsd / collateralAmount,
       valueUsd: collateralValueUsd,
+      // Morpho collateral is not the market's loan-token supply. Token-native
+      // growth is separate; this zero describes only Morpho protocol interest.
+      supplyApr: 0,
+      supplyAprSource: 'Morpho Blue: posted collateral earns no protocol supply interest',
+      supplyAprFeeBasis: 'protocol-fee-net',
       // Morpho has ONE line per market: lltv is both the borrow cap and the
       // liquidation line. There is no borrow/liquidation gap.
       liquidationThreshold: r.lltv,
@@ -571,6 +616,11 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
       priceUsd: loanPriceUsd,
       valueUsd: debtValueUsd,
       borrowApr,
+      borrowAprClock: 'market-update-average',
+      currentBorrowApr: currentRates.borrowApr,
+      currentBorrowAprSource: currentRateSource,
+      currentBorrowAprUnavailableReason: currentRates.reason,
+      borrowRateBasis: 'variable',
     })
   }
 
@@ -584,6 +634,12 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
       amount,
       priceUsd: loanPriceUsd,
       valueUsd: amount * loanPriceUsd,
+      supplyApr: currentRates.supplyApr,
+      supplyAprSource:
+        currentRates.reason || ZERO.test(r.irm)
+          ? currentRateSource
+          : `${currentRateSource}; accrued utilization and source market fee deducted once`,
+      supplyAprFeeBasis: currentRates.supplyApr === null ? 'unknown' : 'protocol-fee-net',
     })
   }
 
@@ -630,10 +686,13 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
     l.price !== null
       ? `Collateral valued via oracle ${r.oracle} (price scale 1e36 adjusted for ${collateralDecimals}/${loanDecimals} decimals), which quotes in ${ctx.loanSymbol}, not USD.`
       : null,
-    stableSymbol !== undefined
+    usedAssumedPeg
       ? `ASSUMPTION: loan token ${stableSymbol} treated as exactly $1.00 — Morpho provides no USD price and we did not read one.`
       : `Loan token ${ctx.loanSymbol} priced at $${loanPriceUsd} from the Aave V3 oracle (no assumed peg).`,
     rateLine,
+    currentRates.reason
+      ? `Current APR unavailable: ${currentRates.reason}. The source average remains the accrual input.`
+      : `Current borrower and supplier APRs are separately qualified at this block, without changing the source average used for accrual.`,
     accrualLine,
     oracleCheck
       ? `Collateral oracle checked against a market reference (band ${oracleCheck.band.min}–${oracleCheck.band.max}×): ${oracleCheckNote(oracleCheck)}.${oracleCheck.status === 'ok' ? '' : ' The line holds only in the oracle\'s own terms.'}`
@@ -648,6 +707,9 @@ function buildPosition(r: Resolved, l: Legs, res: MulticallEntry<unknown>[], ctx
 
   return {
     protocol: 'morpho-blue',
+    usdValuationBasis: usedAssumedPeg ? 'assumed-peg' : 'source-oracle',
+    chainId: 1,
+    venueAddress: MORPHO_BLUE_MAINNET,
     label: `Morpho · ${ctx.name}`,
     marketId: r.m.id,
     collateral,
@@ -689,4 +751,4 @@ export const morphoBlueAdapter: LendingAdapter = createMorphoBlueAdapter()
 /** Exposed for tests / receipts: which pegs the last read leaned on is a fact the UI
  *  may want to summarise across positions. */
 export const MORPHO_DOLLAR_ASSUMPTION_NOTE =
-  'USDC, USDT and DAI loan tokens are valued at exactly $1.00. Morpho Blue oracles quote collateral in loan-token units only, so a USD figure requires an external price; for these three we assume the peg instead of reading one.'
+  'Loan-token USD prices are read from the Aave V3 oracle at the pinned block. If that read is unavailable, only USDC, USDT and DAI may use an explicitly stated $1.00 fallback; tracker dollar figures remain withheld for that assumption.'

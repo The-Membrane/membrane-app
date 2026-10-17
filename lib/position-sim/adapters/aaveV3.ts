@@ -496,7 +496,7 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
         aTokenBalance: bigint
         stableDebt: bigint
         variableDebt: bigint
-        userStableRate: bigint
+        userStableRate: bigint | null
         collateralEnabled: boolean
       }
       const active: Active[] = []
@@ -515,7 +515,7 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
           aTokenBalance,
           stableDebt,
           variableDebt,
-          userStableRate: d[5] as bigint,
+          userStableRate: typeof d[5] === 'bigint' ? d[5] : null,
           collateralEnabled: d[8] as boolean,
         })
       })
@@ -596,6 +596,11 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
           throw new Error(`${tag}: AaveOracle has no price for ${a.symbol} (${a.token})`)
         }
         const priceUsd = toNumber(priceRaw, baseDecimals)
+        const market = optional(rateRes[i])
+        // liquidityRate is the reserve's depositor APR after its reserve-factor
+        // charge. Keep its sign and do not deduct that fee a second time.
+        const supplyRate = market?.[5]
+        const supplyApr = typeof supplyRate === 'bigint' ? toNumber(supplyRate, RAY_DECIMALS) : null
 
         if (a.aTokenBalance > 0n && a.collateralEnabled) {
           // Supplied-but-not-collateral balances are intentionally excluded: they do
@@ -608,6 +613,9 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
             amount,
             priceUsd,
             valueUsd: amount * priceUsd,
+            supplyApr,
+            supplyAprSource: `${tag} PoolDataProvider.getReserveData.liquidityRate`,
+            supplyAprFeeBasis: 'protocol-fee-net',
             liquidationThreshold: liqThreshold,
             maxLtv,
             liquidationBonus: liqBonus,
@@ -620,18 +628,24 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
           // Rates are RAY (1e27) annualised APRs. A borrower can hold both a stable
           // and a variable tranche in the same reserve, so blend by outstanding
           // principal rather than picking one arbitrarily.
-          const market = optional(rateRes[i])
-          const variableRate = market ? (market[6] as bigint) : null
+          const variableRate = typeof market?.[6] === 'bigint' ? market[6] : null
+          const borrowRateBasis =
+            a.variableDebt > 0n ? (a.stableDebt > 0n ? 'mixed' : 'variable') : 'fixed'
           let borrowApr: number | null = null
-          if (a.variableDebt > 0n && a.stableDebt > 0n && variableRate !== null) {
+          if (
+            a.variableDebt > 0n &&
+            a.stableDebt > 0n &&
+            variableRate !== null &&
+            a.userStableRate !== null
+          ) {
             const v = toNumber(variableRate, RAY_DECIMALS)
             const s = toNumber(a.userStableRate, RAY_DECIMALS)
             const vw = toNumber(a.variableDebt, decimals)
             const sw = toNumber(a.stableDebt, decimals)
             borrowApr = (v * vw + s * sw) / (vw + sw)
-          } else if (a.variableDebt > 0n && variableRate !== null) {
+          } else if (a.variableDebt > 0n && a.stableDebt === 0n && variableRate !== null) {
             borrowApr = toNumber(variableRate, RAY_DECIMALS)
-          } else if (a.stableDebt > 0n && a.variableDebt === 0n) {
+          } else if (a.stableDebt > 0n && a.variableDebt === 0n && a.userStableRate !== null) {
             borrowApr = toNumber(a.userStableRate, RAY_DECIMALS)
           }
           debt.push({
@@ -642,6 +656,7 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
             priceUsd,
             valueUsd: amount * priceUsd,
             borrowApr,
+            borrowRateBasis,
           })
         }
       })
@@ -660,6 +675,9 @@ export function createAaveV3Adapter(config: AaveV3AdapterConfig): LendingAdapter
       return [
         {
           protocol: config.id,
+          usdValuationBasis: 'source-oracle',
+          chainId: 1,
+          venueAddress: pool,
           label: config.label,
           collateral,
           debt,

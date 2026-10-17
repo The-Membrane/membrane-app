@@ -42,6 +42,12 @@ export interface CollateralLeg {
   /** USD price at read time, as the SOURCE PROTOCOL's own oracle reported it. */
   priceUsd: number
   valueUsd: number
+  /** Current protocol supply APR, as a decimal; null/absent when not read. Excludes token growth and incentives. */
+  supplyApr?: number | null
+  /** Exact source field or protocol rule behind supplyApr. */
+  supplyAprSource?: string
+  /** Whether the source APR already includes venue fees; never deduct them twice. */
+  supplyAprFeeBasis?: 'protocol-fee-net' | 'unknown'
   /** The source protocol's liquidation threshold for this asset, 0–1. */
   liquidationThreshold: number
   /** The source protocol's max borrow LTV for this asset, 0–1. */
@@ -63,8 +69,16 @@ export interface DebtLeg {
   amount: number
   priceUsd: number
   valueUsd: number
-  /** Borrow APR at read time if the protocol exposes it, else null. Never guessed. */
+  /** Protocol rate used for native accrual; its clock is stated below. Null if unavailable. */
   borrowApr: number | null
+  /** Morpho's source IRM view may average the interval since the last market update. */
+  borrowAprClock?: 'instantaneous' | 'market-update-average'
+  /** Separately qualified rate at the observed block, without changing the accrual input. */
+  currentBorrowApr?: number | null
+  currentBorrowAprSource?: string
+  currentBorrowAprUnavailableReason?: string | null
+  /** Actual debt regime at this read. Aave's per-user stable rate is classified as fixed; it can rebalance. */
+  borrowRateBasis?: 'variable' | 'fixed' | 'mixed' | 'unknown'
 }
 
 /**
@@ -80,6 +94,10 @@ export interface SuppliedLeg {
   amount: number
   priceUsd: number
   valueUsd: number
+  /** Qualified protocol supply APR at the read's block, net of the source market fee. */
+  supplyApr?: number | null
+  supplyAprSource?: string
+  supplyAprFeeBasis?: 'protocol-fee-net' | 'unknown'
 }
 
 /**
@@ -117,7 +135,13 @@ export interface OracleCheck {
 
 /** A single position on a single protocol. */
 export interface ProtocolPosition {
+  /** Whether this read's USD prices were actually sourced, rather than a dollar-peg assumption. */
+  usdValuationBasis?: 'source-oracle' | 'assumed-peg'
   protocol: ProtocolId
+  /** Chain actually read by this adapter, when stated. */
+  chainId?: number
+  /** Resolved pool / Comet / singleton actually read; distinct from a Morpho market id. */
+  venueAddress?: string
   /** Human label, e.g. 'Aave V3' or 'Morpho · wstETH/USDC 86%'. */
   label: string
   /** Morpho market id / Comet address / undefined for pooled protocols. */

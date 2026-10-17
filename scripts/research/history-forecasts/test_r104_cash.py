@@ -79,6 +79,8 @@ class TestRoundTrips(unittest.TestCase):
         self.assertEqual([int(x) for x in out], [100_000_000 * M, 60_000_000 * M, 60_000_000 * M, 0])
         out = r.drt_outstanding(d, np.array([101]), visible_by=np.array([7999]))
         self.assertEqual(int(out[0]), 0)
+        out = r.drt_outstanding(d, np.array([999, 1000, 1150, 7999, 8000]), key="ts")
+        self.assertEqual([int(x) for x in out], [0, 100_000_000 * M, 60_000_000 * M, 60_000_000 * M, 0])
 
     def test_drt_window_and_fill(self):
         b = pd.DataFrame([{"block": 100, "log_index": 1, "ts": 1000, "unit": "A", "amount": 100_000_000 * M}])

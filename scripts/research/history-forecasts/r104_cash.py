@@ -64,7 +64,6 @@ ADDR_RE = re.compile(r"0x[0-9a-fA-F]{40}")
 R9_DIR = "history-forecasts/r9/run-dfdd3ad8"
 W24 = f"{R9_DIR}/w24-pool-usdc.csv"
 QRT_LEGS = f"{R9_DIR}/qrt-legs-usdc.csv.gz"
-BLOCKS = "depositor-balances/blocks.csv"
 BORROWS = [f"aave-pool-borrows/borrow-events-core-{y}.csv.gz" for y in (2023, 2024, 2025, 2026)]
 REPAYS = [f"aave-pool-debt/repay-events-core-{y}.csv.gz" for y in (2023, 2024, 2025, 2026)]
 CASH_FILES = ("raw-logs-usdc-in.csv.gz", "raw-logs-usdc-out.csv.gz", "raw-logs-rdu.csv.gz")
@@ -81,9 +80,10 @@ DECISIONS = [
     "the Q4 2024 overnight borrow/repay are real cash dips. Window minimum over (t0, t0 + h] = min of cash held just "
     "after t0 (= cash(t0)) and every per-transaction state with ts in (t0, t0 + h]; daily windows (t_i, t_i + 1 d] "
     "tile the 7 d window, so the 7 d minimum is the minimum of 7 daily minima.",
-    "R104-2 Endpoints: day i's endpoint is the state at the depositor-balances anchor block of origin t_i (last block "
-    "before 00:00Z): supply and cash from R9 run-dfdd3ad8 w24-pool-usdc.csv snap_supply / snap_cash. Gate G1: the "
-    "rebuilt cash path equals snap_cash at every anchor block (stop otherwise). Debt D := S - cash (unbacked and stable "
+    "R104-2 Endpoints: day i's endpoint is the state after every transaction with ts < t_i (the anchor: last block "
+    "before 00:00Z; compared by timestamp, which is equivalent and covers origins after depositor-balances/blocks.csv "
+    "ends on 2026-10-07): supply and cash from R9 run-dfdd3ad8 w24-pool-usdc.csv snap_supply / snap_cash. Gate G1: "
+    "the rebuilt cash path at the anchor equals snap_cash at every origin (stop otherwise). Debt D := S - cash (unbacked and stable "
     "debt are 0, D1), so cash = S - D holds exactly.",
     "R104-3 Round trips in the FLOW history (supply and debt log-changes, the dip's endpoints, the path start): (a) "
     "aToken same-wallet round trips = the R9.1(b) QRTs in qrt-legs-usdc.csv.gz; a QRT is outstanding at an anchor "
@@ -186,7 +186,7 @@ def tw_mean_step(ts, vals, a, b):
 # ---------------------------------------------------------------------------------------------
 # round trips (pure, tested)
 # ---------------------------------------------------------------------------------------------
-def qrt_outstanding(legs, anchor_blocks, anchor_ts=None, visible_by=None):
+def qrt_outstanding(legs, anchor_blocks, visible_by=None):
     """legs: DataFrame (qrt_id, leg, block, ts, neutral_raw). Returns int array of outstanding neutral per anchor.
     A QRT counts at anchor j iff withdraw.block <= a_j < last redeposit block (and, if visible_by is given, its last
     redeposit ts <= visible_by[j])."""
@@ -252,19 +252,22 @@ def detect_drt(borrows, repays, min_raw=DRT_MIN_RAW, window_s=DRT_WINDOW_S, fill
             used[k] = True
         out.append({"borrow_block": int(b.block), "borrow_ts": int(b.ts), "done_block": int(rblock[done]),
                     "done_ts": int(rts[done]), "neutral": min(amt, cum),
-                    "legs": [(int(rblock[k]), int(ramt[k])) for k in legs]})
+                    "legs": [(int(rblock[k]), int(rts[k]), int(ramt[k])) for k in legs]})
     return out
 
 
-def drt_outstanding(drts, anchor_blocks, visible_by=None):
-    out = [0] * len(anchor_blocks)
+def drt_outstanding(drts, anchors, visible_by=None, key="block"):
+    """outstanding neutral per anchor; key 'block' compares block numbers, 'ts' compares timestamps (anchor = last
+    second before the origin, equivalent to the anchor block)."""
+    out = [0] * len(anchors)
+    li = 0 if key == "block" else 1
     for d in drts:
-        j0 = int(np.searchsorted(anchor_blocks, d["borrow_block"], side="left"))
-        j1 = int(np.searchsorted(anchor_blocks, d["done_block"], side="left"))
+        j0 = int(np.searchsorted(anchors, d[f"borrow_{key}"], side="left"))
+        j1 = int(np.searchsorted(anchors, d[f"done_{key}"], side="left"))
         for j in range(j0, j1):
             if visible_by is not None and d["done_ts"] > visible_by[j]:
                 continue
-            paid = sum(a for b, a in d["legs"] if b <= anchor_blocks[j])
+            paid = sum(leg[2] for leg in d["legs"] if leg[li] <= anchors[j])
             amt = d["neutral"] - paid
             if amt > 0:
                 out[j] += amt
@@ -586,36 +589,32 @@ def main():
         if got != hh:
             raise SystemExit(f"STOP: {rel} sha256 {got} != {hh}")
         shas[rel] = got
-    for rel in [BLOCKS] + BORROWS + REPAYS:
+    for rel in BORROWS + REPAYS:
         shas[rel] = sha256_file(os.path.join(a.datasets, rel))
     shas["funding-ethusdt.csv"] = sha256_file(os.path.join(a.funding, "funding-ethusdt.csv"))
     code_path = os.path.abspath(__file__)
     shas["r104_cash.py"] = sha256_file(code_path)
 
     # ---------- inputs ----------
-    say("load w24 / blocks")
+    say("load w24")
     w = pd.read_csv(os.path.join(a.datasets, W24))
-    bl = pd.read_csv(os.path.join(a.datasets, BLOCKS))
-    bl = bl[bl["kind"] == "daily"].set_index("snapshot")
-    w = w[w["origin"].isin(bl.index)].reset_index(drop=True)
     origins = w["origin"].tolist()
     t = np.array([day_ts(d) for d in origins], dtype=np.int64)
     if not (np.diff(t) == DAY).all():
         raise SystemExit("STOP: origins not consecutive days")
-    ablk = bl.loc[origins, "block"].to_numpy(np.int64)
+    anc = t - 1                                   # anchor = state after every tx with ts < t0 (R104-2)
     S_snap = w["snap_supply"].to_numpy(float) * MICRO     # raw units (float)
     C_snap = w["snap_cash"].to_numpy(float) * MICRO
     say("load cash path")
     tl = load_cash_path(a.cash)
-    cblk = tl["block"].to_numpy(np.int64)
     cts = tl["ts"].to_numpy(np.int64)
     cval = tl["cash"].to_numpy(np.int64)
     end_ts = int(cts.max())
     # G1
-    k = np.searchsorted(cblk, ablk, side="right") - 1
+    k = np.searchsorted(cts, anc, side="right") - 1
     cash_anchor = cval[k]
     g1_mis = int(np.sum(np.abs(cash_anchor - np.round(C_snap)) > 1))
-    say("G1 mismatches", g1_mis, "of", len(ablk))
+    say("G1 mismatches", g1_mis, "of", len(anc))
     if g1_mis:
         raise SystemExit("STOP: G1 failed")
     C_end = cash_anchor.astype(float)
@@ -627,16 +626,16 @@ def main():
     # round trips
     say("round trips")
     legs = pd.read_csv(os.path.join(a.datasets, QRT_LEGS), dtype={"neutral_raw": str, "event_amount_raw": str})
-    legs = legs[["qrt_id", "leg", "block", "ts", "neutral_raw"]]
+    legs = legs[["qrt_id", "leg", "ts", "neutral_raw"]].assign(block=legs["ts"])   # compare by ts (R104-2)
     vis = t + LOOKAHEAD_S
-    Q_full = qrt_outstanding(legs, ablk).astype(float)
-    Q_live = qrt_outstanding(legs, ablk, visible_by=vis).astype(float)
+    Q_full = qrt_outstanding(legs, anc).astype(float)
+    Q_live = qrt_outstanding(legs, anc, visible_by=vis).astype(float)
     salt = secrets.token_hex(32)
     bo, re_ = load_borrow_repay(a.datasets, salt)
     drts = detect_drt(bo, re_)
     del bo, re_
-    R_full = drt_outstanding(drts, ablk).astype(float)
-    R_live = drt_outstanding(drts, ablk, visible_by=vis).astype(float)
+    R_full = drt_outstanding(drts, anc, key="ts").astype(float)
+    R_live = drt_outstanding(drts, anc, visible_by=vis, key="ts").astype(float)
     # APR and funding
     say("apr / funding")
     rts, rvb = load_rdu_rate(a.cash)

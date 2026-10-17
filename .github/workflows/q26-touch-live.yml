@@ -1,0 +1,199 @@
+# Q26 live forecast log -- triccs/membrane-board design/HISTORY_TOUCH_LIVE.md (registered at 9ce3c61,
+# sha256 8961eb5ca2b6da58d080a3b19d8eb04712eecfc777021fc56f8dfe040a1cc4e4). Owner approval 2026-10-14.
+# Model A5 from 2026-10-15: HISTORY_TOUCH_LIVE.md D2 (membrane-board a5ce1bb) moves the pin and adds the A5 inputs.
+# Model A6 from 2026-10-17: HISTORY_TOUCH_LIVE.md D3 (membrane-board f16637c) moves the pin and adds the A6 frozen file.
+# D4 (membrane-board 0fd1020) adds the blind-5 basis file.
+#
+# Moved 2026-10-17 from the private triccs/membrane-datasets to this PUBLIC repo (owner ruling 2026-10-17:
+# free Actions minutes; the data library stays private). Schedules run only from `main`, so THIS FILE LIVES ON
+# `main`. Pin, inputs, sha256s, flags, cron times and the push loop are unchanged from the datasets workflow.
+#
+# Daily (UTC): 00:17 issue, 00:47 score; workflow_dispatch can run either job.
+# Code: this repo at a PINNED full commit (L.1). A model change moves the pin only through a dated deviation in
+#       the prereg.
+# Data: triccs/membrane-datasets (private). The job commits forecasts/q26-touch-live/ only, to its main.
+# Credential: DATASETS_TOKEN only (fine-grained PAT, contents read/write on triccs/membrane-datasets only),
+#       best kept as a secret of the `q26-datasets` environment restricted to `main`. It reaches exactly two
+#       steps: the datasets checkout (persist-credentials: false, so nothing is left in .git/config) and the
+#       final push, where it is passed per command as an HTTP header through GIT_CONFIG_* environment variables
+#       (never a remote URL, never .git/config). The code steps never receive it. Public RPCs only.
+# PUBLIC LOGS: this repo's Actions logs are public. The issuer's and scorer's own output (it can hold regimes,
+#       addresses and other data) goes to a runner temp file that is deleted; the log shows the exit status,
+#       line counts and whitelisted count-only lines. No artifacts. Git runs quiet. To diagnose a failed run,
+#       rerun the same command locally at the pinned commit.
+# A failed run commits nothing and leaves its day missing. Nothing is backfilled.
+# The datasets checkout is sparse: only the frozen inputs the refit reads and the live log are fetched
+# (locked blind sets are never downloaded).
+
+name: q26-touch-live
+
+on:
+  schedule:
+    - cron: "17 0 * * *"   # issue
+    - cron: "47 0 * * *"   # score
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "issue or score"
+        required: true
+        default: score
+        type: choice
+        options: [issue, score]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: q26-touch-live
+  cancel-in-progress: false
+
+env:
+  APP_REPO: The-Membrane/membrane-app
+  APP_SHA: f8d52911f968c20d4dcfb1b78adb1f2f35912244   # membrane-app research/history-forecasts, live/ code (model A6 + displayed rung, LIVE D5)
+  DATASETS_REPO: triccs/membrane-datasets
+  LIVE_DIR: forecasts/q26-touch-live
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  run:
+    if: github.repository == 'The-Membrane/membrane-app'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: q26-datasets
+    steps:
+      - name: Choose the job
+        id: job
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_JOB: ${{ inputs.job }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then job="$INPUT_JOB"
+          elif [ "$SCHEDULE" = "17 0 * * *" ]; then job=issue
+          elif [ "$SCHEDULE" = "47 0 * * *" ]; then job=score
+          else echo "unknown trigger"; exit 1; fi
+          case "$job" in issue|score) ;; *) echo "bad job $job"; exit 1 ;; esac
+          echo "job=$job" >> "$GITHUB_OUTPUT"
+          echo "job: $job"
+
+      - name: Check out membrane-datasets (main, sparse)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.DATASETS_REPO }}
+          token: ${{ secrets.DATASETS_TOKEN }}
+          ref: main
+          path: datasets
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /price-history/
+            /deribit-dvol/
+            /binance-klines/ETHUSDT-1h.json
+            /binance-klines/BTCUSDT-1h.json
+            /history-forecasts/a3/run-a99eff8/frozen-a3.json
+            /history-forecasts/a5/run-c6d70b36/frozen-a5.json
+            /history-forecasts/a5/run-c6d70b36/basis-final.csv
+            /history-forecasts/a6/run-015512cb/frozen-a6.json
+            /history-forecasts/a6/run-015512cb/basis-final-a6.csv
+            /history-forecasts/a6/run-015512cb/display-a6.json
+            /forecasts/q26-touch-live/
+
+      - name: Record the datasets git config (checked again before the push)
+        id: gitcfg
+        run: echo "sha256=$(sha256sum datasets/.git/config | cut -c1-64)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out membrane-app at the pinned commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.APP_REPO }}
+          ref: ${{ env.APP_SHA }}
+          path: app
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/research/history-forecasts
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check numpy==2.5.3 scipy==1.18.1 scikit-learn==1.9.1 pandas==3.0.5
+
+      - name: Issue (L.2, L.3)
+        if: steps.job.outputs.job == 'issue'
+        run: |
+          set +x
+          out="$RUNNER_TEMP/q26-run.log"; rc=0
+          python app/scripts/research/history-forecasts/live/q26_live_issue.py \
+            --datasets datasets --out datasets --expect-commit "$APP_SHA" \
+            --frozen-a5 history-forecasts/a5/run-c6d70b36/frozen-a5.json \
+            --frozen-a5-sha256 7e75cc2a27cb67fded145ac8124c2074c7f3974429f2c48d423740fd0d4a10fa \
+            --basis-final history-forecasts/a5/run-c6d70b36/basis-final.csv \
+            --basis-final-sha256 d6b2ff2f9332b8d11f6eac43efed9f151a87847d94f35f915eee0c5164b6a477 \
+            --frozen-a6 history-forecasts/a6/run-015512cb/frozen-a6.json \
+            --frozen-a6-sha256 97501da3fbb4de25c0257b6945a061543bf7fbef1344246cd47b418664bf02c0 \
+            --basis-final-a6 history-forecasts/a6/run-015512cb/basis-final-a6.csv \
+            --basis-final-a6-sha256 328a934d22d00bbba3eed8edc5879701647377d9c5734e4d6a2ef8998f61c7c1 \
+            --display-a6 history-forecasts/a6/run-015512cb/display-a6.json \
+            --display-a6-sha256 8e9086179ac40da1ec90976c5ba6a551c3893b002f0b7338a097a777a8362e62 \
+            >"$out" 2>&1 || rc=$?
+          # Public log: status and counts only. The run's own output is withheld and deleted.
+          echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
+               "FAILED $(grep -c 'FAILED' "$out" || true), Traceback $(grep -c '^Traceback' "$out" || true)"
+          grep -E '^(rounds (ETH|BTC|stETH): (append|bootstrap) \+[0-9]+ \(store [0-9]+\)|binance [A-Z]+: \+[0-9]+ \(store [0-9]+\))$' "$out" || true
+          sed -nE 's/^wrote .*; ([0-9]+) rows$/issued: \1 rows/p' "$out"
+          rm -f "$out"
+          exit "$rc"
+
+      - name: Score (L.4)
+        if: steps.job.outputs.job == 'score'
+        run: |
+          set +x
+          out="$RUNNER_TEMP/q26-run.log"; rc=0
+          python app/scripts/research/history-forecasts/live/q26_live_score.py \
+            --out datasets --expect-commit "$APP_SHA" \
+            >"$out" 2>&1 || rc=$?
+          # Public log: status and counts only. The run's own output is withheld and deleted.
+          echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
+               "FAILED $(grep -c 'FAILED' "$out" || true), Traceback $(grep -c '^Traceback' "$out" || true)"
+          grep -E '^(rounds (ETH|BTC|stETH): (append|bootstrap) \+[0-9]+ \(store [0-9]+\)|binance [A-Z]+: \+[0-9]+ \(store [0-9]+\)|scored: [0-9]+ new outcomes \([0-9]+ resolved\), [0-9]+ pending, [0-9]+ outcomes in total from [0-9]+ issue files)$' "$out" || true
+          rm -f "$out"
+          exit "$rc"
+
+      - name: Commit forecasts/q26-touch-live/ and push to membrane-datasets main (pull --rebase, up to 3 retries)
+        working-directory: datasets
+        env:
+          JOB: ${{ steps.job.outputs.job }}
+          GITCFG_SHA256: ${{ steps.gitcfg.outputs.sha256 }}
+          DATASETS_TOKEN: ${{ secrets.DATASETS_TOKEN }}
+        run: |
+          set +x
+          if [ "$(sha256sum .git/config | cut -c1-64)" != "$GITCFG_SHA256" ]; then
+            echo "datasets .git/config changed after checkout; not pushing"; exit 1
+          fi
+          git config user.name "q26-live-bot"
+          git config user.email "q26-live-bot@users.noreply.github.com"
+          git add -- "$LIVE_DIR"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -q -m "forecasts/q26-touch-live: $JOB $(date -u +%Y-%m-%dT%H:%MZ) (Q26 live log, app ${APP_SHA:0:7})" -- "$LIVE_DIR"
+          echo "committed $(git show --name-only --format= HEAD | wc -l) file(s)"
+          auth="$(printf 'x-access-token:%s' "$DATASETS_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          unset DATASETS_TOKEN
+          # Per-command config: the header and a disabled hooks path (command-line precedence over .git/config).
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          export GIT_CONFIG_KEY_1="core.hooksPath" GIT_CONFIG_VALUE_1="/dev/null"
+          for attempt in 1 2 3 4; do   # the first try plus up to 3 retries
+            if git pull -q --rebase origin main && git push -q origin HEAD:main; then
+              echo "pushed on attempt $attempt"; exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 15))
+          done
+          echo "push failed after 3 retries"; exit 1

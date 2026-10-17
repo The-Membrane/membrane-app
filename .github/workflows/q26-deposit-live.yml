@@ -1,0 +1,217 @@
+# Q26 per-deposit live log -- triccs/membrane-board design/DEPOSITOR_LIVE.md (registered at 3dc8c65,
+# sha256 52d7666a8395a6c0d1e5c9416ced4ec012c94abe9945a8d24a936e95efea4797). Owner approval 2026-10-16.
+# Go-live: DEPOSITOR_LIVE.md D2 (membrane-board 69fc9fd) after the refuting review.
+# Model B4 from the B4.5 change: DEPOSITOR_LIVE.md D3 (membrane-board e60cba7) moves the pin and adds the frozen B4 inputs
+# (DEPOSITOR_BEHAVIOR_PREREG_B4.md B4.5; frozen shipped-b4.json, membrane-datasets 91638e0).
+# B4 D2 fixes: DEPOSITOR_LIVE.md D4 (membrane-board 6896064): daily-balance gap fill 2026-10-08..13 and the B4 display labels
+# labels-b4-d2.csv (b4_labels_d2.py from labels-dev.csv and results-blind5.json, membrane-datasets c9d480a).
+#
+# Moved 2026-10-17 from the private triccs/membrane-datasets to this PUBLIC repo (owner ruling 2026-10-17:
+# free Actions minutes; the data library stays private). Schedules run only from `main`, so THIS FILE LIVES ON
+# `main`. Pin, inputs, sha256s, flags, cron times and the push loop are unchanged from the datasets workflow.
+#
+# Daily (UTC): 01:07 issue, 01:37 score; workflow_dispatch can run either job (DL.1).
+# Code: this repo at a PINNED full commit. A model or code change moves the pin only through a dated deviation
+#       in DEPOSITOR_LIVE.md.
+# Data: triccs/membrane-datasets (private). The job commits forecasts/q26-deposit-live/ only, to its main. It
+#       reads forecasts/q26-touch-live/rounds/ and never writes it (DL.7).
+# Credential: DATASETS_TOKEN only (fine-grained PAT, contents read/write on triccs/membrane-datasets only),
+#       best kept as a secret of the `q26-datasets` environment restricted to `main`. It reaches exactly two
+#       steps: the datasets checkout (persist-credentials: false, so nothing is left in .git/config) and the
+#       final push, where it is passed per command as an HTTP header through GIT_CONFIG_* environment variables
+#       (never a remote URL, never .git/config). The code steps never receive it. Public RPCs only.
+# PUBLIC LOGS: this repo's Actions logs are public. The issuer's and scorer's own output (it can hold addresses,
+#       balances and other data) goes to a runner temp file that is deleted; the log shows the exit status, line
+#       counts and whitelisted count-only lines. No artifacts. Git runs quiet. To diagnose a failed run, rerun
+#       the same command locally at the pinned commit.
+# A failed run commits nothing and leaves its day missing. Nothing is backfilled.
+# The datasets checkout is sparse: exactly the frozen inputs the issuer verifies (q26_dep_common.FROZEN_INPUTS,
+# sha256 checked at every issue), the touch round store (read only) and the live log.
+
+name: q26-deposit-live
+
+on:
+  schedule:
+    - cron: "7 1 * * *"    # issue
+    - cron: "37 1 * * *"   # score
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "issue or score"
+        required: true
+        default: score
+        type: choice
+        options: [issue, score]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: q26-deposit-live
+  cancel-in-progress: false
+
+env:
+  APP_REPO: The-Membrane/membrane-app
+  APP_SHA: ea54def98ebed47c1886a7d3054438e812f2fec4   # membrane-app research/history-forecasts, live_deposit/ code
+  DATASETS_REPO: triccs/membrane-datasets
+  LIVE_DIR: forecasts/q26-deposit-live
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  run:
+    if: github.repository == 'The-Membrane/membrane-app'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: q26-datasets
+    steps:
+      - name: Choose the job
+        id: job
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_JOB: ${{ inputs.job }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then job="$INPUT_JOB"
+          elif [ "$SCHEDULE" = "7 1 * * *" ]; then job=issue
+          elif [ "$SCHEDULE" = "37 1 * * *" ]; then job=score
+          else echo "unknown trigger"; exit 1; fi
+          case "$job" in issue|score) ;; *) echo "bad job $job"; exit 1 ;; esac
+          echo "job=$job" >> "$GITHUB_OUTPUT"
+          echo "job: $job"
+
+      - name: Check out membrane-datasets (main, sparse)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.DATASETS_REPO }}
+          token: ${{ secrets.DATASETS_TOKEN }}
+          ref: main
+          path: datasets
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /depositor-balances/PROVENANCE.md
+            /depositor-balances/blocks.csv
+            /depositor-balances/daily-balances-usdc.csv.gz
+            /depositor-balances/daily-balances-usdt.csv.gz
+            /depositor-balances/reserve-state.csv
+            /depositor-events/PROVENANCE.md
+            /depositor-events/events-usdc-2023.csv.gz
+            /depositor-events/events-usdc-2024.csv.gz
+            /depositor-events/events-usdc-2025.csv.gz
+            /depositor-events/events-usdc-2026.csv.gz
+            /depositor-events/events-usdt-2023.csv.gz
+            /depositor-events/events-usdt-2024.csv.gz
+            /depositor-events/events-usdt-2025.csv.gz
+            /depositor-events/events-usdt-2026.csv.gz
+            /depositor-events/daily-balances-ext-usdc.csv.gz
+            /depositor-events/daily-balances-ext-usdt.csv.gz
+            /depositor-events/extended-universe.csv
+            /price-history/eth-usd-1h.json
+            /rate-spike-flows/spike_episodes_full.csv
+            /cross-venue/PROVENANCE.md
+            /cross-venue/selected-tokens.csv
+            /cross-venue/share-paths-daily.csv.gz
+            /cross-venue/share-price-daily.csv.gz
+            /cross-venue/nesting.csv
+            /cross-venue/address-flags.csv
+            /history-forecasts/b3/run-6b2ff4d7/results.json
+            /history-forecasts/b3/run-6b2ff4d7/shipped-b3.json
+            /history-forecasts/b3/run-6b2ff4d7/labels.csv
+            /history-forecasts/b3/run-6b2ff4d7/labels-d1.csv
+            /history-forecasts/b4/run-2035639d/shipped-b4.json
+            /history-forecasts/b4/run-2035639d/labels-b4-d2.csv
+            /forecasts/q26-touch-live/rounds/
+            /forecasts/q26-deposit-live/
+
+      - name: Record the datasets git config (checked again before the push)
+        id: gitcfg
+        run: echo "sha256=$(sha256sum datasets/.git/config | cut -c1-64)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out membrane-app at the pinned commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7
+        with:
+          repository: ${{ env.APP_REPO }}
+          ref: ${{ env.APP_SHA }}
+          path: app
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/research/history-forecasts
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97   # v7
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check numpy==2.5.3 scipy==1.18.1 scikit-learn==1.9.1 pandas==3.0.5
+
+      - name: Issue (DL.2-DL.4)
+        if: steps.job.outputs.job == 'issue'
+        run: |
+          set +x
+          out="$RUNNER_TEMP/q26-run.log"; rc=0
+          python app/scripts/research/history-forecasts/live_deposit/q26_dep_issue.py \
+            --datasets datasets --out datasets --expect-commit "$APP_SHA" \
+            --model-b4 history-forecasts/b4/run-2035639d/shipped-b4.json \
+            --model-b4-sha256 cc8680c42d3f00ef7f08d84850406153fa082772daf22a3b1d90113aae1bbadf \
+            --labels-b4 history-forecasts/b4/run-2035639d/labels-b4-d2.csv \
+            --labels-b4-sha256 140a0d28a276c3b45d6279c6b9ff802b68639363084c89cf31808e6a60e7bd0f \
+            >"$out" 2>&1 || rc=$?
+          # Public log: status and counts only. The run's own output is withheld and deleted.
+          echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
+               "Traceback $(grep -c '^Traceback' "$out" || true)"
+          sed -nE 's/^wrote .*; ([0-9]+) units; ([0-9]+) s$/issued: \1 units in \2 s/p' "$out"
+          rm -f "$out"
+          exit "$rc"
+
+      - name: Score (DL.5, DL.6)
+        if: steps.job.outputs.job == 'score'
+        run: |
+          set +x
+          out="$RUNNER_TEMP/q26-run.log"; rc=0
+          python app/scripts/research/history-forecasts/live_deposit/q26_dep_score.py \
+            --datasets datasets --out datasets --expect-commit "$APP_SHA" \
+            >"$out" 2>&1 || rc=$?
+          # Public log: status and counts only. The run's own output is withheld and deleted.
+          echo "exit $rc; output withheld: $(wc -l <"$out") lines, STOP $(grep -c '^STOP' "$out" || true)," \
+               "Traceback $(grep -c '^Traceback' "$out" || true)"
+          grep -E '^scored: [0-9]+ new outcomes \([0-9]+ resolved\), pending [0-9]+, [0-9]+ outcomes from [0-9]+ issues$' "$out" || true
+          rm -f "$out"
+          exit "$rc"
+
+      - name: Commit forecasts/q26-deposit-live/ and push to membrane-datasets main (pull --rebase, up to 3 retries)
+        working-directory: datasets
+        env:
+          JOB: ${{ steps.job.outputs.job }}
+          GITCFG_SHA256: ${{ steps.gitcfg.outputs.sha256 }}
+          DATASETS_TOKEN: ${{ secrets.DATASETS_TOKEN }}
+        run: |
+          set +x
+          if [ "$(sha256sum .git/config | cut -c1-64)" != "$GITCFG_SHA256" ]; then
+            echo "datasets .git/config changed after checkout; not pushing"; exit 1
+          fi
+          git config user.name "q26-live-bot"
+          git config user.email "q26-live-bot@users.noreply.github.com"
+          git add -- "$LIVE_DIR"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -q -m "forecasts/q26-deposit-live: $JOB $(date -u +%Y-%m-%dT%H:%MZ) (Q26 deposit log, app ${APP_SHA:0:7})" -- "$LIVE_DIR"
+          echo "committed $(git show --name-only --format= HEAD | wc -l) file(s)"
+          auth="$(printf 'x-access-token:%s' "$DATASETS_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          unset DATASETS_TOKEN
+          # Per-command config: the header and a disabled hooks path (command-line precedence over .git/config).
+          export GIT_CONFIG_COUNT=2
+          export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          export GIT_CONFIG_KEY_1="core.hooksPath" GIT_CONFIG_VALUE_1="/dev/null"
+          for attempt in 1 2 3 4; do   # the first try plus up to 3 retries
+            if git pull -q --rebase origin main && git push -q origin HEAD:main; then
+              echo "pushed on attempt $attempt"; exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 15))
+          done
+          echo "push failed after 3 retries"; exit 1

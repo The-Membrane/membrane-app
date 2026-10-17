@@ -6,6 +6,9 @@ import {
   alarmFinding,
   alarmsView,
   newestReading,
+  pressRadar,
+  RADAR_CLOSED,
+  radarActionLabel,
   radarHref,
   SAFETY_COPY,
   shortAddr,
@@ -29,6 +32,30 @@ describe('the position hand-off', () => {
     expect(radarHref('ethereum', 'vitalik.eth')).toBeNull()
     expect(radarHref('ethereum', '')).toBeNull()
     expect(shortAddr(ADDR)).toBe('0x1601…347E')
+  })
+})
+
+describe('the Radar, opened in place', () => {
+  it('opens on a pasted address (trimmed), and nothing opens for a non-address', () => {
+    expect(pressRadar(RADAR_CLOSED, `  ${ADDR} `)).toEqual({ open: true, address: ADDR })
+    expect(pressRadar(RADAR_CLOSED, 'vitalik.eth')).toBe('invalid')
+    expect(pressRadar({ open: true, address: ADDR }, '')).toBe('invalid')
+  })
+
+  it('the same address (any case) closes it; another address moves it', () => {
+    const open = { open: true, address: ADDR }
+    expect(pressRadar(open, ADDR.toLowerCase())).toEqual({ open: false, address: ADDR })
+    const other = '0x0000000000000000000000000000000000000001'
+    expect(pressRadar(open, other)).toEqual({ open: true, address: other })
+    // Closed on an address: pressing again reopens it.
+    expect(pressRadar({ open: false, address: ADDR }, ADDR)).toEqual({ open: true, address: ADDR })
+  })
+
+  it('the button says Hide only while the open panel shows the field’s address', () => {
+    expect(radarActionLabel(RADAR_CLOSED, ADDR)).toBe(SAFETY_COPY.action)
+    expect(radarActionLabel({ open: true, address: ADDR }, ` ${ADDR.toUpperCase().replace('0X', '0x')} `)).toBe(SAFETY_COPY.hide)
+    expect(radarActionLabel({ open: true, address: ADDR }, '0x')).toBe(SAFETY_COPY.action)
+    expect(radarActionLabel({ open: false, address: ADDR }, ADDR)).toBe(SAFETY_COPY.action)
   })
 })
 

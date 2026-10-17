@@ -32,7 +32,11 @@ export const SAFETY_COPY = {
   deck: 'Read-only. No signature.',
   inputLabel: 'Ethereum address',
   placeholder: '0x…',
-  action: 'Check on Radar →',
+  action: 'Check on Radar ↓',
+  /** The same button while the Radar it opened is showing that address. */
+  hide: 'Hide Radar ↑',
+  radarKicker: 'Carry Radar',
+  fullRadar: 'Open the full Radar →',
   invalid: 'Not an Ethereum address.',
   useWallet: 'Use connected wallet',
   alarmsKicker: 'Alarms',
@@ -46,6 +50,37 @@ const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/
 export function radarHref(chain: string, raw: string): string | null {
   const a = raw.trim()
   return ADDRESS_RE.test(a) ? `/${chain}/radar/${a}` : null
+}
+
+/**
+ * The Radar opens in place, under the position lead (owner, Q27 round 3: "would it be
+ * bad to just expand on the page?"). Closed until asked, so nothing is fetched before.
+ */
+export interface RadarPanel {
+  open: boolean
+  /** The address the open (or last opened) panel reads. */
+  address: string | null
+}
+
+export const RADAR_CLOSED: RadarPanel = { open: false, address: null }
+
+const sameAddr = (a: string | null, b: string) => a !== null && a.toLowerCase() === b.toLowerCase()
+
+/**
+ * The Check-on-Radar button, pressed with the field's text: not an address → 'invalid'
+ * (the panel stays as it is); the address the open panel already shows → closed; any
+ * other address → open on it.
+ */
+export function pressRadar(panel: RadarPanel, raw: string): RadarPanel | 'invalid' {
+  const a = raw.trim()
+  if (!ADDRESS_RE.test(a)) return 'invalid'
+  if (panel.open && sameAddr(panel.address, a)) return { open: false, address: panel.address }
+  return { open: true, address: a }
+}
+
+/** The button's words: "Hide Radar ↑" only while the open panel shows the field's address. */
+export function radarActionLabel(panel: RadarPanel, raw: string): string {
+  return panel.open && sameAddr(panel.address, raw.trim()) ? SAFETY_COPY.hide : SAFETY_COPY.action
 }
 
 /** "0x7AdA…d142". */

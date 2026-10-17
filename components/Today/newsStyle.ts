@@ -17,3 +17,15 @@ export const LEAD_MIN_H = { base: '268px', lg: '252px' }
 
 /** An em dash, the loading placeholder (never a number). */
 export const DASH = '—'
+
+/** The nameplate's measure: "Membrane" (8 characters). */
+const NAMEPLATE_CHARS = 8
+/**
+ * The masthead nameplate's size. "Membrane" sets at clamp(56px, 16vw, 120px); a longer
+ * page name ("Carry Radar") scales every bound by 8 / its length, so it spans the same
+ * measure and never breaks or overflows a phone.
+ */
+export function nameplateSize(name: string): string {
+  const k = Math.min(1, NAMEPLATE_CHARS / Math.max(1, name.length))
+  return `clamp(${Math.round(56 * k)}px, ${Number((16 * k).toFixed(1))}vw, ${Math.round(120 * k)}px)`
+}

@@ -1,5 +1,4 @@
 import React, { memo, useId, useState, useSyncExternalStore, type FormEvent } from 'react'
-import { useRouter } from 'next/router'
 import { Box, Flex, Grid, Input, Text, VisuallyHidden } from '@chakra-ui/react'
 
 import { SPACING } from '@/config/spacing'
@@ -7,27 +6,47 @@ import { TRANSITIONS } from '@/config/transitions'
 import { TYPOGRAPHY } from '@/helpers/typography'
 import { NEWS, NEWS_FONT } from '@/components/NewsEdition/tokens'
 import { CuratorFeedCard } from '@/components/CuratorFeed/CuratorFeed'
+import { RadarReport } from '@/components/Radar/Radar'
 import { useChainRoute } from '@/hooks/useChainRoute'
 import useWallet from '@/hooks/useWallet'
 
-import { ActionLink, Credit, Deck, Figure, Headline, Kicker, Module, Withheld } from './newsAtoms'
+import { ActionButton, ActionLink, Credit, Deck, Figure, Headline, Kicker, Module, Withheld } from './newsAtoms'
 import { CAPS, DASH, HATCH, LEAD_MIN_H, TABULAR, TARGET } from './newsStyle'
-import { alarmsView, radarHref, SAFETY_COPY, shortAddr, type AlarmRowView } from './safetyView'
+import {
+  alarmsView,
+  pressRadar,
+  RADAR_CLOSED,
+  radarActionLabel,
+  radarHref,
+  SAFETY_COPY,
+  shortAddr,
+  type AlarmRowView,
+  type RadarPanel,
+} from './safetyView'
 import { useRecorderSummaries, useVenueAlarms } from './useTodayData'
 
 // THE SAFETY BODY (choppy, or no regime): your position first (paste an address, or use
-// the connected wallet, and Radar reads it), then the open venue alarms, then curator
-// exits. Nothing personal is printed here and no position number is invented. Words and
+// the connected wallet, and Radar reads it, opened in place under the lead), then the
+// open venue alarms, then curator exits. Nothing personal is printed here and no position number is invented. Words and
 // figures come from safetyView.ts. No freeze-vote module: there is no live source.
 
 const noSubscribe = () => () => {}
 const onClient = () => true
 const onServer = () => false
 
-/** Your position: the gesture that personalises Safety. */
-function PositionLead({ kicker }: { kicker: string }) {
-  const router = useRouter()
-  const { chainName } = useChainRoute()
+/** Your position: the gesture that personalises Safety. The button opens the Radar in
+ *  place (RadarInline); the panel's state lives in Safety, which draws it full width. */
+function PositionLead({
+  kicker,
+  panel,
+  onPanel,
+  panelId,
+}: {
+  kicker: string
+  panel: RadarPanel
+  onPanel: (p: RadarPanel) => void
+  panelId: string
+}) {
   const { address } = useWallet()
   // wagmi reconnects after mount; the wallet link's slot is reserved either way.
   const mounted = useSyncExternalStore(noSubscribe, onClient, onServer)
@@ -37,14 +56,19 @@ function PositionLead({ kicker }: { kicker: string }) {
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    const href = radarHref(chainName, value)
-    if (!href) {
+    const next = pressRadar(panel, value)
+    if (next === 'invalid') {
       setInvalid(true)
       return
     }
-    router.push(href)
+    onPanel(next)
   }
-  const walletHref = mounted && address ? radarHref(chainName, address) : null
+  const useConnected = () => {
+    if (!address) return
+    setValue(address)
+    setInvalid(false)
+    onPanel({ open: true, address })
+  }
 
   return (
     <Box minH={LEAD_MIN_H} pt={SPACING.lg} pb={SPACING.sm} data-module="position">
@@ -82,22 +106,29 @@ function PositionLead({ kicker }: { kicker: string }) {
           transition={TRANSITIONS.colors}
           sx={TABULAR}
         />
+        {/* Ink-2, the page's brown, raised (owner, Q27 round 3: "too green … try one of
+            our browns"); its width fits the longer label, so toggling moves nothing. */}
         <Box
           as="button"
           type="submit"
+          aria-expanded={panel.open}
+          aria-controls={panelId}
           minH={TARGET}
+          minW="calc(16ch + 32px)"
           px={SPACING.base}
           fontFamily={NEWS_FONT.mono}
           fontSize="13px"
           fontWeight={TYPOGRAPHY.bold}
-          color={NEWS.onCta}
-          bg={NEWS.cta}
+          textAlign="center"
+          color={NEWS.paper}
+          bg={NEWS.ink2}
           borderRadius={0}
+          boxShadow={NEWS.shadowRaised}
           transition={TRANSITIONS.colors}
-          _hover={{ bg: NEWS.ink, color: NEWS.paper }}
+          _hover={{ bg: NEWS.ink }}
           whiteSpace="nowrap"
         >
-          {SAFETY_COPY.action}
+          {radarActionLabel(panel, value)}
         </Box>
       </Flex>
       <Flex minH={TARGET} align="center" justify="space-between" columnGap={SPACING.base} wrap="wrap">
@@ -118,10 +149,10 @@ function PositionLead({ kicker }: { kicker: string }) {
             </>
           )}
         </Text>
-        {walletHref && address && (
-          <ActionLink href={walletHref}>
-            {SAFETY_COPY.useWallet} {shortAddr(address)} →
-          </ActionLink>
+        {mounted && address && (
+          <ActionButton onClick={useConnected} expanded={panel.open} controls={panelId}>
+            {SAFETY_COPY.useWallet} {shortAddr(address)} ↓
+          </ActionButton>
         )}
       </Flex>
     </Box>
@@ -194,21 +225,57 @@ export interface SafetyProps {
   id?: string
 }
 
+/** The Radar, opened in place: the same report the Radar page prints for the address,
+ *  and a quiet link to the full page (share line, image, watches). Mounted only while
+ *  open, so the scan runs only on expand. */
+function RadarInline({ address }: { address: string }) {
+  const { chainName } = useChainRoute()
+  const href = radarHref(chainName, address)
+  return (
+    <Module label={SAFETY_COPY.radarKicker}>
+      <Flex justify="space-between" align="center" columnGap={SPACING.base} wrap="wrap">
+        <Kicker>{SAFETY_COPY.radarKicker}</Kicker>
+        <Credit>{shortAddr(address)}</Credit>
+      </Flex>
+      <RadarReport address={address} inline />
+      {href && (
+        <Flex justify="flex-end" pt={SPACING.sm}>
+          <ActionLink href={href}>{SAFETY_COPY.fullRadar}</ActionLink>
+        </Flex>
+      )}
+    </Module>
+  )
+}
+
 export const Safety = memo(function Safety({ kicker, nowMs, id }: SafetyProps) {
+  const [panel, setPanel] = useState<RadarPanel>(RADAR_CLOSED)
+  const panelId = useId()
   return (
     <Box as="section" id={id} aria-labelledby="safety-head" data-news-section="safety" data-body="safety">
       <Grid
         templateColumns={{ base: 'minmax(0, 1fr)', lg: 'minmax(0, 5fr) minmax(0, 7fr)' }}
         columnGap={SPACING.xl}
       >
-        <PositionLead kicker={kicker} />
+        <PositionLead kicker={kicker} panel={panel} onPanel={setPanel} panelId={panelId} />
         <Box
           pt={{ base: 0, lg: SPACING.lg }}
           pl={{ base: 0, lg: SPACING.xl }}
           borderLeft={{ base: 'none', lg: `1px solid ${NEWS.rule}` }}
           minW={0}
+          order={{ base: 2, lg: 0 }}
         >
           <Alarms nowMs={nowMs} />
+        </Box>
+        {/* Full width under the lead and alarms; on a phone, straight under the lead. */}
+        <Box
+          id={panelId}
+          gridColumn="1 / -1"
+          order={{ base: 1, lg: 3 }}
+          minW={0}
+          data-module="radar"
+          data-module-state={panel.open ? 'open' : 'closed'}
+        >
+          {panel.open && panel.address && <RadarInline address={panel.address} />}
         </Box>
       </Grid>
       {/* The card draws its own rule and label ("Curator actions") and owns its states. */}

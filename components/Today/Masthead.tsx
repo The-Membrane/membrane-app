@@ -6,6 +6,8 @@ import { TYPOGRAPHY } from '@/helpers/typography'
 import { NEWS } from '@/components/NewsEdition/tokens'
 import { WeatherStrip } from '@/components/Weather/WeatherStrip'
 
+import { nameplateSize } from './newsStyle'
+
 import {
   DATELINE_MAX_CHARS,
   DATELINE_SHORT_MAX_CHARS,
@@ -15,9 +17,11 @@ import {
   TAGLINE,
 } from './todayCopy'
 
-// THE TODAY MASTHEAD: heavy rule, the nameplate in the pixel cut (Redaction 35, declared
-// in styles/fonts.css), the tagline (shown on phones too, DESIGN_RULES §8), then the
-// dateline between double rules: the reader's date and the weather strip.
+// THE MASTHEAD: heavy rule, the nameplate in the pixel cut (Redaction 35, declared in
+// styles/fonts.css), the tagline (shown on phones too, DESIGN_RULES §8), then the
+// dateline between double rules: the reader's date and the weather strip. Today prints
+// "Membrane"; another news page (Carry Radar) prints its own name in the same plate.
+// Mount inside a `.news-edition` root: the colours are its NEWS roles.
 
 const NAMEPLATE_FONT = "'Redaction 35', 'Redaction', Georgia, serif"
 /** A date slot's width before it fills: its longest date, caps-tracked mono (0.6em
@@ -49,7 +53,14 @@ function TodayDate() {
   )
 }
 
-export function Masthead() {
+export interface MastheadProps {
+  /** The nameplate (the page's h1). */
+  name?: string
+  /** The italic line under it; null prints none. */
+  tagline?: string | null
+}
+
+export function Masthead({ name = 'Membrane', tagline = TAGLINE }: MastheadProps) {
   return (
     <Box as="header" pt={{ base: SPACING.base, md: SPACING.lg }}>
       <Box borderTop={`4px solid ${NEWS.ink}`} />
@@ -58,24 +69,27 @@ export function Masthead() {
         textAlign="center"
         fontFamily={NAMEPLATE_FONT}
         fontWeight={TYPOGRAPHY.normal}
-        fontSize="clamp(56px, 16vw, 120px)"
+        fontSize={nameplateSize(name)}
         lineHeight={1.05}
         color={NEWS.ink}
         pt={SPACING.sm}
+        pb={tagline ? undefined : SPACING.md}
       >
-        Membrane
+        {name}
       </Text>
-      <Text
-        textAlign="center"
-        fontFamily={TYPOGRAPHY.fontDisplay}
-        fontStyle="italic"
-        fontSize="13px"
-        lineHeight="20px"
-        color={NEWS.ink2}
-        pb={SPACING.md}
-      >
-        {TAGLINE}
-      </Text>
+      {tagline && (
+        <Text
+          textAlign="center"
+          fontFamily={TYPOGRAPHY.fontDisplay}
+          fontStyle="italic"
+          fontSize="13px"
+          lineHeight="20px"
+          color={NEWS.ink2}
+          pb={SPACING.md}
+        >
+          {tagline}
+        </Text>
+      )}
       <WeatherStrip lead={<TodayDate />} />
     </Box>
   )

@@ -168,6 +168,45 @@ export function ActionLink({ href, children }: { href: string; children: ReactNo
   )
 }
 
+/** An action that acts on the page (opens something in place): an ActionLink's look,
+ *  as a button. */
+export function ActionButton({
+  onClick,
+  children,
+  expanded,
+  controls,
+}: {
+  onClick: () => void
+  children: ReactNode
+  /** aria-expanded, for a button that opens a region in place. */
+  expanded?: boolean
+  /** aria-controls: the id of the region it opens. */
+  controls?: string
+}) {
+  return (
+    <Box
+      as="button"
+      type="button"
+      onClick={onClick}
+      aria-expanded={expanded}
+      aria-controls={controls}
+      display="inline-flex"
+      alignItems="center"
+      minH={TARGET}
+      fontFamily={NEWS_FONT.mono}
+      fontSize="13px"
+      lineHeight="16px"
+      color={NEWS.ink}
+      textDecoration="underline"
+      textUnderlineOffset="3px"
+      transition={TRANSITIONS.colors}
+      _hover={{ color: NEWS.accent }}
+    >
+      {children}
+    </Box>
+  )
+}
+
 /** One module: a hairline rule on top, then its furniture. */
 export function Module({
   label,

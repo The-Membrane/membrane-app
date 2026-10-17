@@ -65,6 +65,8 @@
   --news-info: var(--m-info); /* #0f6b4b */
   --news-chart: var(--m-success);
   --news-chart-2: var(--m-risk-caution);
+  /* RAISED: a hard, offset, unblurred ink shadow, print style (owner ruling 2026-10-17). */
+  --news-shadow-raised: 3px 3px 0 var(--news-ink);
 }
 
 /* ---- NIGHT EDITION — lamplight (owner ruling 2026-10-10) ---------------------- */
@@ -91,6 +93,9 @@
   --news-info: #46d39a;
   --news-chart: #9cc97a;
   --news-chart-2: #d9925a; /* canvas LandingLamplight chart2 */
+  /* RAISED at night: ink at 28% (the rule-strong construction); full cream ink would read
+     as a second edge, not a shadow. Hard and unblurred, as by day. */
+  --news-shadow-raised: 3px 3px 0 rgba(242, 232, 220, 0.28);
 
   /* The bridge: every app token on this page resolves to its news role. */
   --m-bg-primary: var(--news-paper);
@@ -149,4 +154,26 @@
   text-transform: uppercase;
   letter-spacing: 0.14em;
   font-weight: 700;
+}
+
+/* ---- The connect button, raised ONLY while the edition is mounted ----------------- */
+/* The shared ConnectButton (components/WallectConnect/ConnectButton.tsx) carries a
+   data-connect-button hook. On every news-edition surface it is a print button: the label
+   centred on its own (the wallet glyph is dropped, so the word sits on the button's
+   centre line), ink on card stock, a strong rule, and the hard raised shadow (owner
+   ruling 2026-10-17). */
+:root:has(.news-edition) [data-connect-button] {
+  justify-content: center;
+  text-align: center;
+  background-color: var(--news-card);
+  color: var(--news-ink);
+  border: 1px solid var(--news-ink);
+  border-radius: 0;
+  box-shadow: var(--news-shadow-raised);
+}
+:root:has(.news-edition) [data-connect-button] .chakra-button__icon {
+  display: none;
+}
+:root:has(.news-edition) [data-connect-button]:hover {
+  background-color: var(--news-raised);
 }

@@ -18,6 +18,7 @@ import { RecapSection } from './RecapSection'
 import { RadarShareCard } from './RadarShareCard'
 import { exportElementAsImage } from '@/services/shareableCard'
 import { radarPermalinkPath } from '@/lib/share/permalink'
+import { Masthead } from '@/components/Today/Masthead'
 
 // Carry Radar — paste any mainnet address, see its positions across our four
 // instrumented venues, stressed against our RECORDED capacity + flow corpus.
@@ -190,30 +191,10 @@ const ComparatorSwapCost: React.FC<{ venue: string; sizeUsd: number }> = ({ venu
   return <YourSizeLine points={data.curve.points} sizeUsd={sizeUsd} size="11px" />
 }
 
-export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress }) => {
-  const { chainName } = useChainRoute()
-  const router = useRouter()
-  const [input, setInput] = useState('')
-  const [address, setAddress] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-
-  // Init the input: a ?address= deep-link (from the Carry Strats board) wins and
-  // auto-scans; otherwise fall back to the last-looked-up address (paste-first UX).
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    // A permalink (/[chain]/radar/[address]) passes its address in as a prop.
-    const deepLink = initialAddress ?? new URLSearchParams(window.location.search).get('address')?.trim()
-    if (deepLink && isAddressish(deepLink)) {
-      setInput(deepLink)
-      window.localStorage.setItem(LS_KEY, deepLink)
-      setAddress(deepLink)
-      return
-    }
-    const last = window.localStorage.getItem(LS_KEY)
-    if (last) setInput(last)
-  }, [initialAddress])
-
-  const { data, isFetching, error } = useQuery<RadarResponse>({
+/** The scan: one address against /api/radar. Shared by the page and the inline report
+ *  (one cache entry per address), and lazy: nothing is fetched until there is an address. */
+export function useRadarScan(address: string | null) {
+  return useQuery<RadarResponse>({
     queryKey: ['radar', address],
     enabled: !!address,
     queryFn: async () => {
@@ -229,23 +210,19 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
     // fresh lookup is not served a stale empty result for the whole session.
     refetchOnMount: true,
   })
+}
 
-  const submit = () => {
-    const v = input.trim()
-    if (!isAddressish(v)) return
-    if (typeof window !== 'undefined') window.localStorage.setItem(LS_KEY, v)
-    setAddress(v)
-  }
-
-  // After a scan, the address bar becomes the result's permalink. Shallow: the href
-  // stays the current page, only the visible URL changes — no remount, no refetch.
+/**
+ * The Radar read of one address: its positions, the one-venue comparator and where the
+ * numbers come from. The page adds the share line, the image export, the watches/recap
+ * and the next links; `inline` (Today's Safety body, opened in place) leaves those to
+ * the full page.
+ */
+export const RadarReport: React.FC<{ address: string; inline?: boolean }> = ({ address, inline = false }) => {
+  const { chainName } = useChainRoute()
+  const { data, isFetching, error } = useRadarScan(address)
+  const [copied, setCopied] = useState(false)
   const permalink = data?.address ? radarPermalinkPath(chainName, data.address) : null
-  useEffect(() => {
-    if (!permalink || !router.isReady) return
-    if (router.asPath.split(/[?#]/)[0].toLowerCase() === permalink) return
-    const address = permalink.slice(permalink.lastIndexOf('/') + 1)
-    router.replace({ pathname: router.pathname, query: { ...router.query, address } }, permalink, { shallow: true, scroll: false })
-  }, [permalink, router])
 
   const copyShare = async () => {
     if (!data?.share_line || typeof navigator === 'undefined') return
@@ -269,78 +246,21 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
     }
   }
 
-  const valid = isAddressish(input)
-
   return (
-    <Box maxW="1140px" mx="auto" px={SPACING.base} py={SPACING.lg} bg={SEMANTIC_COLORS.bgPrimary} color={SEMANTIC_COLORS.textPrimary}>
-      <Text fontFamily={TYPOGRAPHY.fontDisplay} fontSize={TYPOGRAPHY.h1} color={SEMANTIC_COLORS.textPrimary} letterSpacing="-0.01em">
-        Carry Radar
-      </Text>
-      <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.sm} maxW="640px">
-        Paste any mainnet address. See its positions across our four instrumented
-        venues, stressed against the capacity and flow we have actually recorded.
-        No wallet connect — this reads public chain state.
-      </Text>
-
-      {/* Address input — mono, paste-first. */}
-      <HStack mt={SPACING.lg} spacing={SPACING.sm} maxW="720px" flexWrap="wrap">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submit()
-          }}
-          placeholder="0x…"
-          fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="14px"
-          color={SEMANTIC_COLORS.textPrimary}
-          bg={SEMANTIC_COLORS.bgSecondary}
-          border="1px solid"
-          borderColor={SEMANTIC_COLORS.borderMedium}
-          borderRadius={0}
-          _hover={{ borderColor: SEMANTIC_COLORS.borderStrong }}
-          _focusVisible={FOCUS_STYLES.ring}
-          flex="1 1 420px"
-          spellCheck={false}
-          autoComplete="off"
-          aria-label="Mainnet address"
-        />
-        <Button
-          onClick={submit}
-          isDisabled={!valid}
-          fontFamily={TYPOGRAPHY.fontMono}
-          fontSize="13px"
-          borderRadius={0}
-          bg={SEMANTIC_COLORS.bgTertiary}
-          color={SEMANTIC_COLORS.textPrimary}
-          border="1px solid"
-          borderColor={SEMANTIC_COLORS.borderStrong}
-          transition={TRANSITIONS.colors}
-          _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
-          _focusVisible={FOCUS_STYLES.ring}
-        >
-          Scan
-        </Button>
-      </HStack>
-      {input.length > 0 && !valid && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.warning} mt={SPACING.sm}>
-          not a valid 0x address
-        </Text>
-      )}
-
+    <Box aria-busy={isFetching}>
       {isFetching && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} mt={SPACING.lg}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} mt={inline ? SPACING.sm : SPACING.lg}>
           reading chain + corpus…
         </Text>
       )}
       {error && (
-        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger} mt={SPACING.lg}>
+        <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.danger} mt={inline ? SPACING.sm : SPACING.lg}>
           {(error as Error).message}
         </Text>
       )}
 
       {data && (
-        <Box mt={SPACING.xl}>
+        <Box mt={inline ? SPACING.base : SPACING.xl}>
           {/* Held venues, each stressed at its own size. */}
           <SectionHeading
             index="01 /"
@@ -407,93 +327,211 @@ export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress })
             ))}
           </Card>
 
-          {/* Share line — the user's own result, copyable, never a plug. */}
-          <SectionHeading index="03 /" title="Share your read" />
-          <Card variant="subtle" p={SPACING.base}>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} lineHeight={1.7}>
-              {data.share_line}
-            </Text>
-            <HStack mt={SPACING.md} spacing={SPACING.sm}>
-              <Button
-                onClick={copyShare}
-                size="sm"
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
-                borderRadius={0}
-                bg="transparent"
-                color={SEMANTIC_COLORS.textSecondary}
-                border="1px solid"
-                borderColor={SEMANTIC_COLORS.borderStrong}
-                _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
-                _focusVisible={FOCUS_STYLES.ring}
-              >
-                {copied ? 'copied' : 'copy'}
-              </Button>
-              <Button
-                onClick={saveCard}
-                isDisabled={savingCard}
-                size="sm"
-                fontFamily={TYPOGRAPHY.fontMono}
-                fontSize="11px"
-                borderRadius={0}
-                bg="transparent"
-                color={SEMANTIC_COLORS.textSecondary}
-                border="1px solid"
-                borderColor={SEMANTIC_COLORS.borderStrong}
-                _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
-                _focusVisible={FOCUS_STYLES.ring}
-              >
-                {savingCard ? 'rendering…' : 'save image'}
-              </Button>
-            </HStack>
-          </Card>
+          {!inline && (
+            <>
+              {/* Share line — the user's own result, copyable, never a plug. */}
+              <SectionHeading index="03 /" title="Share your read" />
+              <Card variant="subtle" p={SPACING.base}>
+                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textPrimary} lineHeight={1.7}>
+                  {data.share_line}
+                </Text>
+                <HStack mt={SPACING.md} spacing={SPACING.sm}>
+                  <Button
+                    onClick={copyShare}
+                    size="sm"
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="11px"
+                    borderRadius={0}
+                    bg="transparent"
+                    color={SEMANTIC_COLORS.textSecondary}
+                    border="1px solid"
+                    borderColor={SEMANTIC_COLORS.borderStrong}
+                    _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+                    _focusVisible={FOCUS_STYLES.ring}
+                  >
+                    {copied ? 'copied' : 'copy'}
+                  </Button>
+                  <Button
+                    onClick={saveCard}
+                    isDisabled={savingCard}
+                    size="sm"
+                    fontFamily={TYPOGRAPHY.fontMono}
+                    fontSize="11px"
+                    borderRadius={0}
+                    bg="transparent"
+                    color={SEMANTIC_COLORS.textSecondary}
+                    border="1px solid"
+                    borderColor={SEMANTIC_COLORS.borderStrong}
+                    _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+                    _focusVisible={FOCUS_STYLES.ring}
+                  >
+                    {savingCard ? 'rendering…' : 'save image'}
+                  </Button>
+                </HStack>
+              </Card>
 
-          {/* Off-screen card the save-image button exports. Fed by the same
-              verdicts the page shows — the image IS the data. */}
-          <RadarShareCard
-            ref={shareCardRef}
-            totalUsdText={fmtUsd(data.total_usd)}
-            heldCount={data.held_count}
-            venues={(data.held_count > 0 ? data.positions : data.comparator).map((v) => ({
-              label: v.label,
-              verdict: v.verdict as 'clear' | 'caution' | 'exposed',
-              reason: v.reason,
-            }))}
-            dateText={new Date().toISOString().slice(0, 10)}
-          />
+              {/* Off-screen card the save-image button exports. Fed by the same
+                  verdicts the page shows — the image IS the data. */}
+              <RadarShareCard
+                ref={shareCardRef}
+                totalUsdText={fmtUsd(data.total_usd)}
+                heldCount={data.held_count}
+                venues={(data.held_count > 0 ? data.positions : data.comparator).map((v) => ({
+                  label: v.label,
+                  verdict: v.verdict as 'clear' | 'caution' | 'exposed',
+                  reason: v.reason,
+                }))}
+                dateText={new Date().toISOString().slice(0, 10)}
+              />
+            </>
+          )}
 
           {/* Provenance — one stamp per data class. */}
-          <Provenance prov={data.provenance} />
+          <Provenance prov={data.provenance} index={inline ? '03 /' : '04 /'} />
 
-          {/* Strat watches + post-event recap — track this address and tell the
-              story of what happened, composed only from chain logs + corpus. */}
-          {address && <RecapSection address={address} />}
+          {!inline && (
+            <>
+              {/* Strat watches + post-event recap — track this address and tell the
+                  story of what happened, composed only from chain logs + corpus. */}
+              <RecapSection address={address} />
 
-          {/* Next — kill the dead end. Invite the call, the board, the venue detail. */}
-          <Card variant="subtle" p={SPACING.base} mt={SPACING.lg}>
-            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.28em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
-              next
-            </Text>
-            <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.sm}>
-              <NextLink href={`/${chainName}/receipts`} style={{ textDecoration: 'underline' }}>
-                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
-                  think it holds? call it → /receipts
+              {/* Next — kill the dead end. Invite the call, the board, the venue detail. */}
+              <Card variant="subtle" p={SPACING.base} mt={SPACING.lg}>
+                <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="10px" letterSpacing="0.28em" textTransform="uppercase" color={SEMANTIC_COLORS.textSecondary}>
+                  next
                 </Text>
-              </NextLink>
-              <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
-                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
-                  the whole board → /carry
-                </Text>
-              </NextLink>
-              <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
-                <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
-                  what the big books do → /strats
-                </Text>
-              </NextLink>
-            </HStack>
-          </Card>
+                <HStack spacing={SPACING.lg} flexWrap="wrap" mt={SPACING.sm}>
+                  <NextLink href={`/${chainName}/receipts`} style={{ textDecoration: 'underline' }}>
+                    <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                      think it holds? call it → /receipts
+                    </Text>
+                  </NextLink>
+                  <NextLink href={`/${chainName}/carry`} style={{ textDecoration: 'underline' }}>
+                    <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                      the whole board → /carry
+                    </Text>
+                  </NextLink>
+                  <NextLink href={`/${chainName}/strats`} style={{ textDecoration: 'underline' }}>
+                    <Text as="span" fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} _hover={{ color: SEMANTIC_COLORS.success }}>
+                      what the big books do → /strats
+                    </Text>
+                  </NextLink>
+                </HStack>
+              </Card>
+            </>
+          )}
         </Box>
       )}
+    </Box>
+  )
+}
+
+export const Radar: React.FC<{ initialAddress?: string }> = ({ initialAddress }) => {
+  const { chainName } = useChainRoute()
+  const router = useRouter()
+  const [input, setInput] = useState('')
+  const [address, setAddress] = useState<string | null>(null)
+
+  // Init the input: a ?address= deep-link (from the Carry Strats board) wins and
+  // auto-scans; otherwise fall back to the last-looked-up address (paste-first UX).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    // A permalink (/[chain]/radar/[address]) passes its address in as a prop.
+    const deepLink = initialAddress ?? new URLSearchParams(window.location.search).get('address')?.trim()
+    if (deepLink && isAddressish(deepLink)) {
+      setInput(deepLink)
+      window.localStorage.setItem(LS_KEY, deepLink)
+      setAddress(deepLink)
+      return
+    }
+    const last = window.localStorage.getItem(LS_KEY)
+    if (last) setInput(last)
+  }, [initialAddress])
+
+  const { data } = useRadarScan(address)
+
+  const submit = () => {
+    const v = input.trim()
+    if (!isAddressish(v)) return
+    if (typeof window !== 'undefined') window.localStorage.setItem(LS_KEY, v)
+    setAddress(v)
+  }
+
+  // After a scan, the address bar becomes the result's permalink. Shallow: the href
+  // stays the current page, only the visible URL changes — no remount, no refetch.
+  const permalink = data?.address ? radarPermalinkPath(chainName, data.address) : null
+  useEffect(() => {
+    if (!permalink || !router.isReady) return
+    if (router.asPath.split(/[?#]/)[0].toLowerCase() === permalink) return
+    const address = permalink.slice(permalink.lastIndexOf('/') + 1)
+    router.replace({ pathname: router.pathname, query: { ...router.query, address } }, permalink, { shallow: true, scroll: false })
+  }, [permalink, router])
+
+  const valid = isAddressish(input)
+
+  // The news-edition root: the page prints under the same masthead as Today, with its
+  // own name in the plate (owner, Q27 round 3). The --m-* bridge in
+  // styles/news-edition.css carries the report's app tokens onto the paper.
+  return (
+    <Box className="news-edition" minH="100vh" px={{ base: SPACING.base, md: SPACING.lg, lg: SPACING.xl }}>
+      <Box maxW="1200px" mx="auto" pb={SPACING['2xl']}>
+        <Masthead name="Carry Radar" tagline={null} />
+        <Box maxW="1140px" pt={SPACING.lg} color={SEMANTIC_COLORS.textPrimary}>
+          <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="12px" color={SEMANTIC_COLORS.textSecondary} maxW="640px">
+            Paste any mainnet address. See its positions across our four instrumented
+            venues, stressed against the capacity and flow we have actually recorded.
+            No wallet connect — this reads public chain state.
+          </Text>
+
+          {/* Address input — mono, paste-first. */}
+          <HStack mt={SPACING.lg} spacing={SPACING.sm} maxW="720px" flexWrap="wrap">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit()
+              }}
+              placeholder="0x…"
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="14px"
+              color={SEMANTIC_COLORS.textPrimary}
+              bg={SEMANTIC_COLORS.bgSecondary}
+              border="1px solid"
+              borderColor={SEMANTIC_COLORS.borderMedium}
+              borderRadius={0}
+              _hover={{ borderColor: SEMANTIC_COLORS.borderStrong }}
+              _focusVisible={FOCUS_STYLES.ring}
+              flex="1 1 420px"
+              spellCheck={false}
+              autoComplete="off"
+              aria-label="Mainnet address"
+            />
+            <Button
+              onClick={submit}
+              isDisabled={!valid}
+              fontFamily={TYPOGRAPHY.fontMono}
+              fontSize="13px"
+              borderRadius={0}
+              bg={SEMANTIC_COLORS.bgTertiary}
+              color={SEMANTIC_COLORS.textPrimary}
+              border="1px solid"
+              borderColor={SEMANTIC_COLORS.borderStrong}
+              transition={TRANSITIONS.colors}
+              _hover={{ color: SEMANTIC_COLORS.success, borderColor: SEMANTIC_COLORS.success }}
+              _focusVisible={FOCUS_STYLES.ring}
+            >
+              Scan
+            </Button>
+          </HStack>
+          {input.length > 0 && !valid && (
+            <Text fontFamily={TYPOGRAPHY.fontMono} fontSize="11px" color={SEMANTIC_COLORS.warning} mt={SPACING.sm}>
+              not a valid 0x address
+            </Text>
+          )}
+
+          {address && <RadarReport address={address} />}
+        </Box>
+      </Box>
     </Box>
   )
 }
@@ -511,7 +549,7 @@ const HeaderCell: React.FC<{ children: React.ReactNode; alignRight?: boolean }> 
   </Text>
 )
 
-const Provenance: React.FC<{ prov: RadarResponse['provenance'] }> = ({ prov }) => {
+const Provenance: React.FC<{ prov: RadarResponse['provenance']; index: string }> = ({ prov, index }) => {
   const totalFlowRows = prov.recorded.per_venue.reduce((s, v) => s + v.flow_rows, 0)
   const totalSnapRows = prov.recorded.per_venue.reduce((s, v) => s + v.snapshot_rows, 0)
   const spans = prov.recorded.per_venue.map((v) => v.flow_span).filter(Boolean) as { start: string; end: string }[]
@@ -519,7 +557,7 @@ const Provenance: React.FC<{ prov: RadarResponse['provenance'] }> = ({ prov }) =
   const spanEnd = spans.length ? spans.reduce((m, s) => (s.end > m ? s.end : m), spans[0].end) : null
   return (
     <Box mt={SPACING.xl}>
-      <SectionHeading index="04 /" title="Where these numbers come from" />
+      <SectionHeading index={index} title="Where these numbers come from" />
       <Card variant="subtle" p={SPACING.base}>
         <Stamp>
           chain-read · positions read live at request time ({new Date(prov.chain_reads.at).toISOString().slice(0, 16).replace('T', ' ')}Z)

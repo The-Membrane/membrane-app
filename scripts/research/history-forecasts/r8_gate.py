@@ -243,7 +243,8 @@ def main():
         json.dump(doc, f, indent=1, sort_keys=True, allow_nan=False)
     print("GATE", "PASS" if g["pass"] else "FAIL")
     for r in g["rows"]:
-        print(f"  {r['log']:7s} {r['T']:>5s} N={r['N']:3d} rate {r['rate2']:.4f} {'ok' if r['inBand'] else 'OUT'}")
+        rate = "no run shown" if r["rate2"] is None else f"{r['rate2']:.4f}"
+        print(f"  {r['log']:7s} {r['T']:>5s} N={r['N']:3d} rate {rate} {'ok' if r['inBand'] else 'OUT'}")
 
 
 if __name__ == "__main__":

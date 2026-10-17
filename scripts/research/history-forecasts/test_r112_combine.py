@@ -84,3 +84,14 @@ def test_count_pos_episodes():
     y = np.array([0, 1, 1, 0, 1, 1, 1], float)
     ok = np.array([False, True, True, True, True, False, True])
     assert R.count_pos_episodes(y, ok) == 3
+
+
+def test_fit_ridge_finite_when_a_band_has_no_positive():
+    rng = np.random.default_rng(4)
+    n = 30000
+    bands = np.arange(n) % 3
+    lp0 = rng.normal(-3.0, 1.0, n)
+    y = (rng.random(n) < 1.0 / (1.0 + np.exp(-lp0))).astype(float)
+    y[bands == 2] = 0.0
+    th, info = R.fit_ridge(R.design(lp0, rng.normal(size=(n, 1)), bands), y, 1)
+    assert info["converged"] and np.all(np.isfinite(th)) and th[2] < th[0]

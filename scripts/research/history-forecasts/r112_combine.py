@@ -121,8 +121,9 @@ DECISIONS = {
                "First scored quarter = first quarter whose start is >= 365 days after every included feature's "
                "first data time. Training for quarter Q: rows with t >= training start and t + T <= Q start, "
                "expanding; 2026Q2 rows are training rows for 2026Q3.",
-    "R112-12": "Fit: Newton on sum log-loss + 0.5 * 1.0 * ||(b, c) - (1, 0)||^2, band intercepts unpenalised, "
-               "start at the identity, tol 1e-10, at most 100 iterations. One fit per (T, quarter).",
+    "R112-12": "Fit (D-R11.2b): Newton with backtracking on sum log-loss + 0.5 * 1.0 * ||(a, b, c) - (0, 1, 0)||^2 "
+               "(band intercepts penalised toward 0 too), start at the identity, tol 1e-10, at most 100 iterations. "
+               "One fit per (T, quarter).",
     "R112-13": "Validated rows: origins in scored quarters, t <= 2026-09-30T23:00Z, label finite, window "
                "[t, t+T] not meeting 2026-04-01..2026-06-30 (those are reported only), and (T, level) cells with "
                ">= 30 positive episodes. Positive episodes = runs of y = 1 over consecutive origins of the T grid, "
@@ -472,9 +473,15 @@ def fit_ridge(X, y, n_feat, lam=RIDGE, tol=1e-10, max_iter=100):
     p = X.shape[1]
     th0 = np.zeros(p)
     th0[3] = 1.0
-    pen = np.zeros(p)
-    pen[3:] = lam
+    pen = np.full(p, lam)          # D-R11.2b: the band intercepts are penalised toward 0 as well (1h deep band
+    #                                has no positive training row, so an unpenalised intercept has no finite MLE)
+
+    def obj(t):
+        e = X @ t
+        return float(np.sum(np.logaddexp(0.0, e) - y * e) + 0.5 * np.sum(pen * (t - th0) ** 2))
+
     th = th0.copy()
+    f = obj(th)
     info = {"converged": False}
     for it in range(1, max_iter + 1):
         eta = X @ th
@@ -483,8 +490,15 @@ def fit_ridge(X, y, n_feat, lam=RIDGE, tol=1e-10, max_iter=100):
         w = mu * (1.0 - mu)
         H = (X * w[:, None]).T @ X + np.diag(pen)
         step = np.linalg.solve(H, g)
-        th = th - step
-        if np.max(np.abs(step)) < tol:
+        s_ = 1.0
+        while True:                # backtracking on the convex objective
+            cand = th - s_ * step
+            fc = obj(cand)
+            if fc <= f + 1e-12 * abs(f) or s_ < 1e-8:
+                break
+            s_ *= 0.5
+        th, f = cand, fc
+        if np.max(np.abs(s_ * step)) < tol:
             info = {"converged": True}
             break
     eta = X @ th

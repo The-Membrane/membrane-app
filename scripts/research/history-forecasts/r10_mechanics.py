@@ -205,8 +205,8 @@ def gate_a(work, out):
                         f"{x['supply_target']:.12f}", "" if x["supply_model"] is None else f"{x['supply_model']:.12f}"])
     return {"hours_in_span": n_all, "hours_sampled": len(rows), "hours_without_rdu_block": n_all - len(rows),
             "share_borrow_within_2bp": share_b, "share_supply_within_2bp": share_s,
-            "pass_borrow": share_b >= PASS_SHARE, "pass_supply": share_s >= PASS_SHARE,
-            "pass": share_b >= PASS_SHARE and share_s >= PASS_SHARE,
+            "pass_borrow": bool(share_b >= PASS_SHARE), "pass_supply": bool(share_s >= PASS_SHARE),
+            "pass": bool(share_b >= PASS_SHARE and share_s >= PASS_SHARE),
             "borrow_err_bp_q50_q99_q999_max": [float(np.quantile(eb, q) * 1e4) for q in (0.5, 0.99, 0.999, 1.0)],
             "supply_err_bp_q50_q99_q999_max": [float(np.quantile(es, q) * 1e4) for q in (0.5, 0.99, 0.999, 1.0)],
             "by_era": era_rep, "curve_tuples_on_chain": curves,
@@ -252,7 +252,15 @@ class Day:
         self.v33 = meta["v33"]
 
     def eff(self, emode):
-        """Effective (LT, LB) vectors for a user e-mode id."""
+        """Effective (LT, LB) vectors for a user e-mode id (cached per day)."""
+        emode = int(emode or 0)
+        if not hasattr(self, "_eff"):
+            self._eff = {}
+        if emode not in self._eff:
+            self._eff[emode] = self._eff_compute(emode)
+        return self._eff[emode]
+
+    def _eff_compute(self, emode):
         lt, lb = self.lt.copy(), self.lb.copy()
         e = self.emode.get(str(emode)) if emode else None
         if e:
@@ -385,13 +393,11 @@ def replay(work, out):
             dayobj[d] = Day(metas[d], gidx)
         return dayobj[d]
 
-    latest = {}          # id -> (acc, read_day)
+    latest = {}          # id -> ((scaled collateral, variable debt, stable debt), e-mode)
     sim = {}
-    vb0 = {"n": 0, "ok": 0, "rel_err_q50_q99": None}
     vb0_errs = []
     per_day = []
     hourly_usdc_px = {}
-    hours_all = A.jload(os.path.join(work, "hours.json.gz"))
     for d in replay_days:
         pos = A.jload(os.path.join(work, "positions", f"{d}.json.gz"))
         day = D(d)
@@ -491,7 +497,7 @@ def replay(work, out):
     res = {"days": len(replay_days), "first_day": replay_days[0], "last_day": replay_days[-1],
            "real_events": int(sum(nreal.values())), "real_total_usd": float(y.sum()), "sim_total_usd": float(x.sum()),
            "days_real_positive": int(pos_days.sum()), "days_sim_positive": int((x > 0).sum()),
-           "spearman_daily": rho, "pass_spearman": rho >= PASS_SPEARMAN, "V_B0": vb0,
+           "spearman_daily": rho, "pass_spearman": bool(rho >= PASS_SPEARMAN), "V_B0": vb0,
            "pass": bool(vb0["pass"] and rho >= PASS_SPEARMAN),
            "reported": {"spearman_real_positive_days": rho_pos, "spearman_72h_sums": rho72,
                         "pearson_log1p_daily": float(pearsonr(np.log1p(x), np.log1p(y))[0]),

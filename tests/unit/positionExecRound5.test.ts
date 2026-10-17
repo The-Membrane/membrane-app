@@ -10,6 +10,7 @@ import { capSuggestion, limitOf, rowAt, settledToast, withAmount } from '@/compo
 import { checkAmount, maxText } from '@/lib/position-exec/amountInput'
 import {
   defaultPicks,
+  offReason,
   dustSheet,
   dustTotals,
   picked,
@@ -254,6 +255,17 @@ describe('collect dust: untick rows', () => {
     expect(picks.some((p) => !p)).toBe(true)
     expect(picks.some(Boolean)).toBe(true)
   })
+  it('also starts a row off when it pays less than its own gas (the lender: upUSDC 0.0011 USDC)', () => {
+    const why = lender.dust.map((c, i) => offReason(c, i, lender.sim, lender.ethUsd))
+    expect(why.filter((w) => w === 'gas')).toHaveLength(1)
+    expect(why.filter((w) => w === 'zero')).toHaveLength(lender.dust.length - 1)
+    expect(defaultPicks(lender.dust, lender.sim, lender.ethUsd).every((p) => !p)).toBe(true)
+    expect(lender.sheet.button).toEqual({ kind: 'wait', label: 'Nothing selected', enabled: false })
+    // A row that pays more than its gas starts on; with the gas unknown, paying something is enough.
+    const ready = DUST_STATES.find((s) => s.key === 'dust-ready')!
+    expect(defaultPicks(ready.dust, ready.sim, ready.ethUsd)).toEqual([true])
+    expect(offReason(lender.dust[why.indexOf('gas')], why.indexOf('gas'), null, null)).toBeNull()
+  })
   it('cuts the simulated gas to the ticked calls', () => {
     expect(pickedSim(SIM, [true, false, true])).toMatchObject({ gas: [100_000n, 30_000n], bufferedGas: 136_500n })
     expect(pickedSim(SIM, [false, false, false])).toBeNull()
@@ -262,7 +274,7 @@ describe('collect dust: untick rows', () => {
   })
   it('totals follow the ticks; none ticked reads "Nothing selected", disabled', () => {
     const all = lender.dust.map(() => true)
-    const some = defaultPicks(lender.dust)
+    const some = defaultPicks(lender.dust) // zero rows off, the paying row on
     const tAll = dustTotals(lender.dust, pickedSim(lender.sim, all), lender.ethUsd)
     const tSome = dustTotals(picked(lender.dust, some), pickedSim(lender.sim, some), lender.ethUsd)
     expect(tSome.rows.length).toBeLessThan(tAll.rows.length)

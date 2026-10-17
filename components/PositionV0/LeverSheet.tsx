@@ -416,8 +416,9 @@ const BUTTON = {
 } as const
 
 /** A button label in caps, with any address kept as written: "SWITCH WALLET TO 0x895d…95cc". */
+// One inline span: the button is a flex box, which would drop the space before the address.
 const ButtonLabel: React.FC<{ label: string }> = ({ label }) => (
-  <>
+  <Box as="span" display="inline">
     {label.split(/(0x[0-9a-fA-F]{2,}…?[0-9a-fA-F]*)/).map((part, i) =>
       i % 2 === 1 ? (
         <Box as="span" key={i} textTransform="none" letterSpacing="normal" whiteSpace="nowrap">
@@ -427,7 +428,7 @@ const ButtonLabel: React.FC<{ label: string }> = ({ label }) => (
         part
       ),
     )}
-  </>
+  </Box>
 )
 
 // ------------------------------------------------------------------ the slip

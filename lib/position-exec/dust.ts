@@ -276,9 +276,32 @@ export function dustPrep(dust: readonly DustCandidate[], sim: SimResult | null):
 // only clears the position, so it starts OFF; a row that pays something starts ON. The
 // totals and the gas follow the ticks; nothing ticked is "Nothing selected".
 
-/** The opening ticks: on for a row that pays something, off for one that pays 0. */
-export const defaultPicks = (dust: readonly DustCandidate[]): boolean[] =>
-  dust.map((c) => c.assets > 0n)
+/**
+ * Why a row starts unticked: it pays nothing ('zero'), or what it pays is worth less than
+ * its own call's gas at today's fee ('gas'; owner, Q27 round 5: nobody bothers with a row
+ * that costs more than it returns). Null: it starts ticked. A row whose gas is unknown
+ * (no simulation, no fee, no ETH price) is judged on what it pays alone.
+ */
+export function offReason(
+  c: DustCandidate,
+  i: number,
+  sim: SimResult | null,
+  ethUsd: number | null,
+): 'zero' | 'gas' | null {
+  if (c.assets === 0n) return 'zero'
+  const g = sim && sim.ok ? sim.gas[i] : null
+  if (g === null || g === undefined || !sim || !sim.ok || sim.maxFeePerGas === null || ethUsd === null)
+    return null
+  const gasUsd = Number(formatEther(buffered(g) * sim.maxFeePerGas)) * ethUsd
+  return dustRow(c).usd < gasUsd ? 'gas' : null
+}
+
+/** The opening ticks: off for a row that pays nothing or less than its gas, on otherwise. */
+export const defaultPicks = (
+  dust: readonly DustCandidate[],
+  sim: SimResult | null = null,
+  ethUsd: number | null = null,
+): boolean[] => dust.map((c, i) => offReason(c, i, sim, ethUsd) === null)
 
 /** The ticked positions, in the order read. */
 export const picked = <T>(xs: readonly T[], picks: readonly boolean[]): T[] =>

@@ -201,7 +201,7 @@ describe('dust design states (captured real reads)', () => {
     // Rows that pay nothing start unticked: the zero-only state opens with nothing selected.
     for (const s of DUST_STATES)
       expect(s.sheet.button).toMatchObject(
-        s.key === 'dust-nothing-to-receive'
+        s.key !== 'dust-ready'
           ? { kind: 'wait', label: 'Nothing selected', enabled: false }
           : { kind: 'sign', enabled: true },
       )

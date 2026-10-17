@@ -72,7 +72,7 @@ function state(
   const wallet: WalletState = { connected: true, address: owner, chainId: 1 }
   const sheetFor = (chosen: DustCandidate[], s: SimResult | null) =>
     dustSheet(chosen, s, wallet, TX_IDLE, owner)
-  const picks = defaultPicks(dust)
+  const picks = defaultPicks(dust, sim, cap.read.ethUsd)
   return {
     key,
     title,

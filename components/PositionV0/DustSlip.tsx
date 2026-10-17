@@ -27,6 +27,7 @@ import type { SimResult } from '@/lib/position-exec/simulate'
 import {
   aboutUsd,
   defaultPicks,
+  offReason,
   dustRow,
   dustTotals,
   dustWarningText,
@@ -101,7 +102,7 @@ export const DustSlip: React.FC<DustSlipProps> = ({
   onExplorer,
   harness,
 }) => {
-  const [picks, setPicks] = useState<boolean[]>(() => defaultPicks(dust))
+  const [picks, setPicks] = useState<boolean[]>(() => defaultPicks(dust, sim, ethUsd))
   const chosen = useMemo(() => picked(dust, picks), [dust, picks])
   const cutSim = useMemo(() => pickedSim(sim, picks), [sim, picks])
   const sheet = sheetFor(chosen, cutSim)
@@ -116,7 +117,7 @@ export const DustSlip: React.FC<DustSlipProps> = ({
     <Box display="grid" gap={SPACING.base} minW={0}>
       <Section title={`Positions · ${chosen.length} of ${dust.length} ticked`}>
         <Small pt={SPACING.xs}>
-          A position that pays nothing starts unticked: collecting it only clears it, for gas.
+          A position that pays nothing, or less than its own gas, starts unticked.
         </Small>
         {all.map((r, i) => (
           <Box
@@ -184,7 +185,11 @@ export const DustSlip: React.FC<DustSlipProps> = ({
                 </Mono>
               </Box>
               <Small overflowWrap="anywhere" color="inherit">
-                {picks[i] ? r.line : `Left as it is · ${r.line.charAt(0).toLowerCase()}${r.line.slice(1)}`}
+                {picks[i]
+                  ? r.line
+                  : offReason(dust[i], i, sim, ethUsd) === 'gas'
+                    ? 'Left as it is · pays less than its gas'
+                    : `Left as it is · ${r.line.charAt(0).toLowerCase()}${r.line.slice(1)}`}
               </Small>
             </Box>
           </Box>

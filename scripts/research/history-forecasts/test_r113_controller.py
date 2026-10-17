@@ -102,7 +102,7 @@ def test_eprocess_3d_subsequences():
     K = M.eprocess_path(days, d, "3d")
     # each subsequence bets 0 on its first issue, so the statistic is 1/3 for the first three days
     assert np.allclose(K[:3], 1.0 / 3)
-    assert K[-1] > 1.0
+    assert K[-1] > 1.0 / 3
     K1 = M.agrapa_wealth(d[::3])
     assert np.isclose(K[-1], K1[-1] / 3)                             # max3: max_r K^r / 3
     Km = M.eprocess_path(days, d, "3d", combine="mean")

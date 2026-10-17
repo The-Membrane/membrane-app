@@ -82,6 +82,23 @@ class TestPooled(unittest.TestCase):
         self.assertAlmostEqual(B.nw_lrv(d), 1.0, delta=0.08)
 
 
+class TestFiniteFlows(unittest.TestCase):
+    def test_zero_debt_start_does_not_poison_har(self):
+        rng = np.random.default_rng(3)
+        T = 300
+        S = 1e14 * np.exp(np.cumsum(rng.normal(0, 0.01, T)))
+        C = S * (0.2 + 0.05 * rng.random(T))
+        C[:2] = S[:2]                         # debt exactly 0 on the first two days
+        Z = np.zeros(T)
+        F = R4.make_flows(S, C, C * 0.95, Z, Z)
+        self.assertFalse(np.isfinite(F[4][:2]).any())
+        c_bad, _, _ = R4.har_fit(F[4], 200, 250)
+        self.assertIsNone(c_bad)                                 # the failure mode: no finite HAR row
+        G = B.finite_flows(F)
+        _, sig_ok, _ = R4.har_fit(G[4], 200, 250)
+        self.assertTrue(np.isfinite(sig_ok[250:]).all())
+
+
 class TestAcquire(unittest.TestCase):
     def test_streams_and_slim(self):
         s = A.streams()

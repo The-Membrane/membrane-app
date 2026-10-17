@@ -125,6 +125,11 @@ DECISIONS = [
     "skill vs empirical per market, supply-scaled skill per market, DM vs no-change, effective N (T x var / "
     "Newey-West long-run variance of d), the within-market-only pooled variance variant, a step-1 sensitivity with "
     "raw endpoints, round-trip counts, 2026Q2 origins.",
+    "B-14 (D-R10.4-Bb, after the first run stopped before any score) Undefined flow days: a supply or debt "
+    "log-change or dip that is not finite (debt is exactly 0 on the first 1-2 series days of each market, before "
+    "borrowing starts, so log(D1/D0) is infinite) is set to NaN before the frozen code runs. The frozen HAR and "
+    "block code already treat NaN as a missing day; an infinite value instead poisons every later HAR component. "
+    "Equivalent to starting the flow history at the first day with positive debt. Scoring origins are unchanged.",
     "B-13 Order: inputs-only counts, then frozen-r104b.json (code sha, input sha256, readings, constants, "
     "created_utc) written, hashed and committed to membrane-datasets before any forecast; one run from a clean "
     "detached worktree at the frozen sha; the run refuses if anything differs or a run already started; the run log "
@@ -209,6 +214,13 @@ def qrt_legs(qrts):
             rows.append({"qrt_id": qid, "leg": "redeposit", "ts": int(ts), "neutral_raw": int(take)})
     df = pd.DataFrame(rows, columns=["qrt_id", "leg", "ts", "neutral_raw"])
     return df.assign(block=df["ts"])
+
+
+def finite_flows(F):
+    """B-14: non-finite log-changes and dips -> NaN (the frozen code's missing-day value)."""
+    SX, CX, DX, xS, xD, dp = F
+    fix = [np.where(np.isfinite(a), a, np.nan) for a in (xS, xD, dp)]
+    return (SX, CX, DX, fix[0], fix[1], fix[2])
 
 
 def nw_lrv(d, lag=R5.NW_LAG):
@@ -441,6 +453,8 @@ def score_market(P, fc, fc_raw):
         return y, M, E, NC, R5.pinball3(y, M) / MICRO, R5.pinball3(y, E) / MICRO, R5.pinball3(y, NC) / MICRO
 
     rows, miss = build(P["sets"]["24h"]["score"])
+    if not rows:
+        raise SystemExit(f"STOP: no scorable origins (missing {miss})")
     y, M, E, NC, Lm, Le, Ln = losses(rows)
     Sx = np.array([r["S"] for r in rows]) / MICRO
     d = Lm - Le
@@ -602,9 +616,10 @@ def main():
     pin, rows_all = {}, []
     for m in MARKETS:
         Pm = P[m]
-        full = R4.make_flows(Pm["S_snap"], Pm["C_end"], Pm["dmin"], Pm["Q_full"], Pm["R_full"])
-        live = R4.make_flows(Pm["S_snap"], Pm["C_end"], Pm["dmin"], Pm["Q_live"], Pm["R_live"])
-        raw = R4.make_flows(Pm["S_snap"], Pm["C_end"], Pm["dmin"], np.zeros(len(Pm["t"])), np.zeros(len(Pm["t"])))
+        full = finite_flows(R4.make_flows(Pm["S_snap"], Pm["C_end"], Pm["dmin"], Pm["Q_full"], Pm["R_full"]))
+        live = finite_flows(R4.make_flows(Pm["S_snap"], Pm["C_end"], Pm["dmin"], Pm["Q_live"], Pm["R_live"]))
+        raw = finite_flows(R4.make_flows(Pm["S_snap"], Pm["C_end"], Pm["dmin"], np.zeros(len(Pm["t"])),
+                                         np.zeros(len(Pm["t"]))))
         say(m, "forecast")
         fc = R4.run_variant(full, live, Pm["dmin"], Pm["cash_t0"], Pm["sets"], None, False)
         fc_raw = R4.run_variant(raw, None, Pm["dmin"], Pm["cash_t0"], Pm["sets"], None, False)
